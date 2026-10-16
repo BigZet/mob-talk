@@ -28,16 +28,25 @@ class BargainingTest {
         assertEquals(3, Bargaining.maximumDiscount(offer(32, 45), 60));
     }
 
-    @Test void aQuoteRequiresSpokenAcceptanceAndPaysOnlyOnce() {
+    // The villager agreeing must change the window at once; a second spoken "yes" was the reported bug.
+    @Test void aVillagerConcessionAppliesAtOnceAndPaysOnlyOnce() {
         var trade = offer(32, 32);
-        var pending = Bargaining.negotiate(null, trade, 60, intent(OFFER, 3), 100).session();
-        assertNotNull(pending);
-        assertEquals(Bargaining.Status.PENDING, pending.status());
-        assertEquals(29, pending.price());
+        var applied = Bargaining.negotiate(null, trade, 60, intent(OFFER, 3), 100).session();
+        assertNotNull(applied);
+        assertEquals(Bargaining.Status.ACCEPTED, applied.status());
+        assertEquals(29, Bargaining.acceptedPrice(applied, trade, 101));
+        assertFalse(Bargaining.negotiate(applied, trade, 60, intent(ACCEPT, 0), 200).changed());
+        assertEquals(-1, Bargaining.acceptedPrice(Bargaining.consumed(applied), trade, 202));
+    }
+
+    // Quotes saved by 0.2.5 still wait for the player's spoken acceptance.
+    @Test void aLegacyPendingQuoteCanStillBeAccepted() {
+        var trade = offer(32, 32);
+        var pending = Bargaining.invalidate(Bargaining.negotiate(null, trade, 60, intent(OFFER, 3), 100).session(), Bargaining.Status.PENDING);
         assertEquals(-1, Bargaining.acceptedPrice(pending, trade, 101));
+        assertEquals(java.util.List.of(NONE, OFFER, ACCEPT, DECLINE), Bargaining.availability(pending, trade, 60, 150).allowedTypes());
         var accepted = Bargaining.negotiate(pending, trade, 60, intent(ACCEPT, 0), 200).session();
         assertEquals(29, Bargaining.acceptedPrice(accepted, trade, 201));
-        assertEquals(-1, Bargaining.acceptedPrice(Bargaining.consumed(accepted), trade, 202));
     }
 
     @Test void repeatedCounteroffersHaveThreeRoundsAndNeverRefreshTheExpiry() {
@@ -50,13 +59,12 @@ class BargainingTest {
         var fourth = Bargaining.negotiate(third, trade, 60, intent(OFFER, 3), 600);
         assertFalse(fourth.changed());
         assertEquals(third, fourth.session());
-        assertEquals(29, Bargaining.acceptedPrice(Bargaining.negotiate(third, trade, 60, intent(ACCEPT, 0), 700).session(), trade, 701));
+        assertEquals(29, Bargaining.acceptedPrice(third, trade, 701));
     }
 
     @Test void priceChangesOrRestockedDifferentItemsInvalidateTheQuotedTerms() {
         var trade = offer(32, 32);
-        var pending = Bargaining.negotiate(null, trade, 60, intent(OFFER, 3), 100).session();
-        var accepted = Bargaining.negotiate(pending, trade, 60, intent(ACCEPT, 0), 200).session();
+        var accepted = Bargaining.negotiate(null, trade, 60, intent(OFFER, 3), 100).session();
         assertEquals(-1, Bargaining.acceptedPrice(accepted, offer(32, 40), 201));
         assertEquals(-1, Bargaining.acceptedPrice(accepted, new Bargaining.Offer(2, "different-enchantment", 32, 32, 64, true), 201));
         assertEquals(-1, Bargaining.acceptedPrice(accepted, new Bargaining.Offer(2, trade.key(), 32, 32, 64, false), 201));
@@ -92,24 +100,24 @@ class BargainingTest {
         assertEquals(24100, refused.session().cooldownUntil());
     }
 
-    @Test void availabilityKeepsAcceptanceAfterTheThirdRound() {
+    @Test void availabilityStopsNewPricesAfterTheThirdRoundButKeepsTheAppliedOne() {
         var trade = offer(32, 32);
-        var pending = Bargaining.negotiate(null, trade, 60, intent(OFFER, 1), 100).session();
-        pending = Bargaining.negotiate(pending, trade, 60, intent(OFFER, 2), 200).session();
-        pending = Bargaining.negotiate(pending, trade, 60, intent(OFFER, 3), 300).session();
-        var availability = Bargaining.availability(pending, trade, 60, 400);
-        assertEquals(java.util.List.of(NONE, ACCEPT, DECLINE), availability.allowedTypes());
+        var applied = Bargaining.negotiate(null, trade, 60, intent(OFFER, 1), 100).session();
+        applied = Bargaining.negotiate(applied, trade, 60, intent(OFFER, 2), 200).session();
+        applied = Bargaining.negotiate(applied, trade, 60, intent(OFFER, 3), 300).session();
+        var availability = Bargaining.availability(applied, trade, 60, 400);
+        assertEquals(java.util.List.of(NONE, DECLINE), availability.allowedTypes());
         assertFalse(availability.reason().isBlank());
-        assertEquals(3, pending.rounds());
-        assertEquals(6100, pending.expiresTick());
-        assertEquals(Bargaining.Status.ACCEPTED, Bargaining.negotiate(pending, trade, 60, intent(ACCEPT, 0), 400).session().status());
+        assertEquals(3, applied.rounds());
+        assertEquals(6100, applied.expiresTick());
+        assertEquals(29, Bargaining.acceptedPrice(applied, trade, 400));
     }
 
-    @Test void availabilityBlocksNewPricesDuringCooldownAndAfterAcceptance() {
+    @Test void availabilityBlocksNewPricesDuringCooldown() {
         var trade = offer(32, 32);
         var pending = Bargaining.negotiate(null, trade, 60, intent(OFFER, 3), 100).session();
-        var accepted = Bargaining.negotiate(pending, trade, 60, intent(ACCEPT, 0), 200).session();
-        assertEquals(java.util.List.of(NONE, DECLINE), Bargaining.availability(accepted, trade, 60, 300).allowedTypes());
+        // An applied concession may still be adjusted within the remaining rounds.
+        assertEquals(java.util.List.of(NONE, OFFER, DECLINE), Bargaining.availability(pending, trade, 60, 300).allowedTypes());
         for (var terminal : java.util.List.of(Bargaining.Status.CONSUMED, Bargaining.Status.DECLINED, Bargaining.Status.EXPIRED)) {
             var finished = Bargaining.invalidate(pending, terminal);
             var availability = Bargaining.availability(finished, trade, 60, 6200);
@@ -131,7 +139,7 @@ class BargainingTest {
         var expired = Bargaining.availability(pending, trade, 60, pending.expiresTick());
         assertEquals(java.util.List.of(NONE), expired.allowedTypes());
         assertFalse(expired.reason().isBlank());
-        assertEquals(Bargaining.Status.PENDING, pending.status()); // Pure inspection cannot expire or extend the stored session.
+        assertEquals(Bargaining.Status.ACCEPTED, pending.status()); // Pure inspection cannot expire or extend the stored session.
         for (var previous : java.util.List.of(pending, Bargaining.invalidate(pending, Bargaining.Status.EXPIRED))) {
             var available = Bargaining.availability(previous, trade, 60, pending.cooldownUntil());
             assertEquals(java.util.List.of(NONE, OFFER, DECLINE), available.allowedTypes());
@@ -149,7 +157,7 @@ class BargainingTest {
             assertEquals(java.util.List.of(NONE), availability.allowedTypes());
             assertFalse(availability.reason().isBlank());
         }
-        assertEquals(Bargaining.Status.PENDING, pending.status());
+        assertEquals(Bargaining.Status.ACCEPTED, pending.status());
         assertEquals(29, pending.price());
     }
 }

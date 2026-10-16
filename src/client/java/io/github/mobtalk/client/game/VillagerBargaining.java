@@ -105,6 +105,7 @@ public final class VillagerBargaining {
         result.put("maximumDiscount", maximum);
         // Price options alone do not permit another OFFER after the round limit, acceptance, or cooldown.
         result.put("allowedPrices", List.copyOf(allowed));
+        result.put("minimumPrice", offer.vanillaCount() - maximum);
         result.put("allowedTypes", availability.allowedTypes().stream().map(Enum::name).toList());
         result.put("reason", availability.reason());
         result.put("firstBuy", item(window.offer().getOriginalFirstBuyItem()));
@@ -132,12 +133,13 @@ public final class VillagerBargaining {
         if (!decision.changed()) throw new IllegalStateException(decision.message());
         if (decision.changed()) bridge.memory.setBargain(villager.getUuid(), player.getUuid(), decision.session());
         if (decision.session() != null) known.put(new Pair(villager.getUuid(), player.getUuid()), (ServerWorld) villager.getWorld());
-        if (decision.session() != null && decision.session().status() == Bargaining.Status.ACCEPTED)
-            install(villager, player, decision.session(), tick);
+        if (decision.session() != null && decision.session().status() == Bargaining.Status.ACCEPTED) {
+            if (!install(villager, player, decision.session(), tick))
+                throw new IllegalStateException("Не удалось применить цену в окне торговли; условия сделки изменились");
+        }
         else remove(villager, true);
         Bargaining.Status expected = switch (intent.type()) {
-            case ACCEPT -> Bargaining.Status.ACCEPTED;
-            case OFFER -> Bargaining.Status.PENDING;
+            case ACCEPT, OFFER -> Bargaining.Status.ACCEPTED;
             case DECLINE -> Bargaining.Status.DECLINED;
             default -> throw new IllegalStateException("Неизвестный шаг переговоров");
         };
@@ -202,14 +204,15 @@ public final class VillagerBargaining {
                 && overlay.offer().getDisplayedFirstBuyItem().getCount() == overlay.price();
     }
 
-    private void install(VillagerEntity villager, ServerPlayerEntity player, Bargaining.Session session, long tick) {
+    /** Returns whether the agreed price is now what the trade window charges. */
+    private boolean install(VillagerEntity villager, ServerPlayerEntity player, Bargaining.Session session, long tick) {
         remove(villager, false);
-        if (!bridge.config.enabled || session.offerIndex() < 0 || session.offerIndex() >= villager.getOffers().size()) return;
+        if (!bridge.config.enabled || session.offerIndex() < 0 || session.offerIndex() >= villager.getOffers().size()) return false;
         TradeOffer trade = villager.getOffers().get(session.offerIndex());
         Bargaining.Offer offer = describe(villager, session.offerIndex(), trade);
         int price = Bargaining.acceptedPrice(session, offer, tick);
         if (price < 1 || Bargaining.maximumDiscount(offer, relationship(villager, player)) < session.discount()) {
-            expire(villager, player); refresh(villager, player); return;
+            expire(villager, player); refresh(villager, player); return false;
         }
         int special = trade.getSpecialPrice();
         // Subtracting discount alone fails when a vanilla price is clamped at the item's stack limit.
@@ -219,6 +222,7 @@ public final class VillagerBargaining {
         trade.setSpecialPrice(applied);
         known.put(new Pair(villager.getUuid(), player.getUuid()), (ServerWorld) villager.getWorld());
         refresh(villager, player);
+        return trade.getDisplayedFirstBuyItem().getCount() == price;
     }
 
     private void expire(VillagerEntity villager, ServerPlayerEntity player) {
