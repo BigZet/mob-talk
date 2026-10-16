@@ -5,6 +5,11 @@ import io.github.mobtalk.core.ConversationEngine;
 import io.github.mobtalk.core.MobSnapshot;
 import io.github.mobtalk.core.MobTalkConfig;
 import io.github.mobtalk.core.WhisperClient;
+import io.github.mobtalk.core.ActionIntent;
+import io.github.mobtalk.core.ActionType;
+import io.github.mobtalk.core.ConversationStore;
+import io.github.mobtalk.core.MobCard;
+import io.github.mobtalk.client.game.MobGameBridge;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
@@ -24,6 +29,7 @@ import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
@@ -59,12 +65,15 @@ public final class MobTalkClient implements ClientModInitializer {
     private final MicrophoneRecorder microphone = new MicrophoneRecorder();
     private final WhisperProcess helper = new WhisperProcess();
     private final AtomicBoolean pipelineBusy = new AtomicBoolean();
-    private final Deque<RecentEvent> recentEvents = new ArrayDeque<>();
     private volatile long generation;
     private volatile Thread pipelineThread;
     private volatile ConversationEngine engine;
     private volatile WhisperClient whisper;
     private volatile CompletableFuture<Void> helperCleanup = CompletableFuture.completedFuture(null);
+    private volatile CompletableFuture<MobGameBridge> gameReady;
+    private MinecraftServer gameServer;
+    private MobTalkConfig gameConfig;
+    private Path memoryWorld;
     private Path engineWorld;
     private MobTalkConfig engineConfig;
     private MobTalkConfig config = new MobTalkConfig();
@@ -79,12 +88,13 @@ public final class MobTalkClient implements ClientModInitializer {
     private boolean stopped;
     private boolean keyHeld;
     private boolean requestActive;
+    private CompletableFuture<String> actionRequest;
     private long ticks;
-    private float observedHealth;
     private String status = "Загрузка настроек…";
     private MobSpeechSound speech;
 
     @Override public void onInitializeClient() {
+        MobGameBridge.initialize();
         talkKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.talk", InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_V, "category.mobtalk"));
         settingsKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.settings", InputUtil.Type.KEYSYM,
@@ -96,9 +106,10 @@ public final class MobTalkClient implements ClientModInitializer {
             }
         });
         UseEntityCallback.EVENT.register((player, useWorld, hand, entity, hit) -> {
+            var subject = entity instanceof net.minecraft.entity.boss.dragon.EnderDragonPart part ? part.owner : entity;
             if (!useWorld.isClient() || player != client.player || client.getServer() == null
                     || !configReady || !config.enabled || player.isSpectator()
-                    || !(entity instanceof MobEntity mob) || !mob.isAlive() || mob.isRemoved()
+                    || !(subject instanceof MobEntity mob) || !mob.isAlive() || mob.isRemoved()
                     || !(player.getMainHandStack().isOf(Items.STICK) || player.getOffHandStack().isOf(Items.STICK)))
                 return ActionResult.PASS;
             updateWorld();
@@ -126,6 +137,7 @@ public final class MobTalkClient implements ClientModInitializer {
     private void tick() {
         ticks++;
         updateWorld();
+        ensureGameBridge();
         while (settingsKey.wasPressed()) openSettingsRequested = true;
         if (openSettingsRequested && !reloading && !stopped) {
             openSettingsRequested = false;
@@ -134,9 +146,9 @@ public final class MobTalkClient implements ClientModInitializer {
         boolean held = talkKey.isPressed();
         MobEntity mob = target();
         if (selected != null && mob == null) clearSelection("Моб погиб или выгрузился: выберите нового палкой");
+        if (client.player != null && !client.player.isAlive()
+                && (recording != null || requestActive || speech != null)) cancelWork("Игрок погиб: разговор отменён");
         if (mob != null) {
-            if (mob.getHealth() < observedHealth) addEvent("The mob was recently hurt");
-            observedHealth = mob.getHealth();
             if (!withinRange(mob) && (recording != null || requestActive || speech != null))
                 cancelWork("Подойдите к мобу ближе: разговор отменён");
         }
@@ -174,8 +186,8 @@ public final class MobTalkClient implements ClientModInitializer {
     private void leaveWorld() {
         cancelWork("Выберите моба ПКМ палкой");
         selected = null;
-        recentEvents.clear();
         world = null;
+        if (client.getServer() == null) releaseMemory();
         if (!stopped) helperCleanup = CompletableFuture.runAsync(helper::stopOwned, maintenance);
     }
 
@@ -183,9 +195,6 @@ public final class MobTalkClient implements ClientModInitializer {
         if (!mob.getUuid().equals(selected)) {
             cancelWork("Готов: удерживайте V");
             selected = mob.getUuid();
-            observedHealth = mob.getHealth();
-            recentEvents.clear();
-            addEvent("The player approached and selected the mob with a stick");
         }
         // Selecting the same UUID keeps its existing engine/profile/history.
         showHud();
@@ -194,12 +203,13 @@ public final class MobTalkClient implements ClientModInitializer {
     private void clearSelection(String reason) {
         cancelWork(reason);
         selected = null;
-        recentEvents.clear();
         showHud();
     }
 
     private void cancelWork(String reason) {
         generation++;
+        if (actionRequest != null) actionRequest.completeExceptionally(new java.util.concurrent.CancellationException(reason));
+        actionRequest = null;
         requestActive = false;
         if (recording != null) recording.cancel();
         recording = null;
@@ -251,8 +261,8 @@ public final class MobTalkClient implements ClientModInitializer {
             showHud();
             return;
         }
-        // Capture all Minecraft context before entering STT/LLM/TTS workers.
-        submit(request(seed.generation, snapshot(target())), wav, null);
+        // The authoritative server snapshot is captured after STT, immediately before the LLM.
+        submit(seed, wav, null);
     }
 
     private boolean readyForRequest() {
@@ -270,12 +280,47 @@ public final class MobTalkClient implements ClientModInitializer {
 
     private Request request(long requestGeneration, MobSnapshot snapshot) {
         return new Request(requestGeneration, selected,
-                client.getServer().getSavePath(WorldSavePath.ROOT), config, snapshot);
+                client.getServer().getSavePath(WorldSavePath.ROOT), config, snapshot, client.getServer(),
+                client.player.getUuid(), world.getRegistryKey().getValue().toString(), target() == null ? "" : target().getName().getString());
+    }
+
+    private void ensureGameBridge() {
+        MinecraftServer server = client.getServer();
+        if (server == null) { releaseMemory(); return; }
+        if (server == null || world == null || !configReady || stopped || gameServer == server && gameConfig == config) return;
+        gameServer = server; gameConfig = config;
+        Path directory = server.getSavePath(WorldSavePath.ROOT);
+        memoryWorld = directory;
+        MobTalkConfig preferences = config;
+        CompletableFuture<MobGameBridge> ready = new CompletableFuture<>();
+        gameReady = ready;
+        maintenance.execute(() -> {
+            try {
+                ConversationStore memory = ConversationStore.open(directory, preferences);
+                server.execute(() -> {
+                    if (gameReady != ready || stopped) { ready.completeExceptionally(new IllegalStateException("Мир сменился")); return; }
+                    try { ready.complete(MobGameBridge.attach(server, memory, preferences)); }
+                    catch (Throwable failure) { ready.completeExceptionally(failure); }
+                });
+            } catch (Throwable failure) { ready.completeExceptionally(failure); }
+        });
+    }
+    private void releaseMemory() {
+        Path leaving = memoryWorld;
+        MinecraftServer leavingServer = gameServer;
+        if (leaving == null) return;
+        memoryWorld = null; gameServer = null; gameConfig = null; gameReady = null;
+        if (!stopped) MobGameBridge.detach(leavingServer).thenRunAsync(() -> {
+            try { ConversationStore.closeWorld(leaving); }
+            catch (Exception failure) { LOGGER.warn("Mob Talk memory flush failed ({})", failure.getClass().getSimpleName()); }
+        }, maintenance);
     }
 
     private void submit(Request request, byte[] wav, String text) {
         if (!pipelineBusy.compareAndSet(false, true)) {
             status = "Предыдущий разговор ещё завершается";
+            if (actionRequest != null) actionRequest.completeExceptionally(new IllegalStateException(status));
+            actionRequest = null;
             showHud();
             return;
         }
@@ -291,12 +336,12 @@ public final class MobTalkClient implements ClientModInitializer {
                     updateStatus(request, "Whisper запускается и распознаёт…");
                     helperCleanup.get(10, TimeUnit.SECONDS);
                     checkCurrent(request);
-                    helper.ensureAvailable(request.config, () -> generation != request.generation);
+                    helper.ensureAvailable(request.config, () -> generation != request.generation, message -> updateStatus(request, message));
                     checkCurrent(request);
                     try (WhisperClient localWhisper = new WhisperClient(request.config)) {
                         whisper = localWhisper;
                         checkCurrent(request);
-                        question = localWhisper.transcribe(wav);
+                        question = localWhisper.transcribe(wav, request.mobName);
                     } finally { whisper = null; }
                     checkCurrent(request);
                     if (question == null || question.isBlank()) {
@@ -306,13 +351,29 @@ public final class MobTalkClient implements ClientModInitializer {
                 }
                 checkCurrent(request);
                 updateStatus(request, "Моб думает и готовит голос…");
+                CompletableFuture<MobGameBridge> ready = gameReady;
+                if (ready == null) throw new IllegalStateException("Память мира ещё загружается");
+                MobGameBridge game = ready.get(10, TimeUnit.SECONDS);
+                if (game.server != request.server) throw new InterruptedException("Мир сменился");
+                MobSnapshot snapshot = request.snapshot == null
+                        ? game.capture(request.target, request.player, request.dimension).get(10, TimeUnit.SECONDS) : request.snapshot;
+                checkCurrent(request);
                 ConversationEngine localEngine = ensureEngine(request);
                 checkCurrent(request);
-                ConversationEngine.Reply reply = localEngine.converse(request.snapshot, question);
+                ConversationEngine.Reply reply = localEngine.converse(snapshot, question);
                 checkCurrent(request);
-                client.execute(() -> deliver(request, reply));
+                Request observed = new Request(request.generation, request.target, request.worldDirectory, request.config,
+                        snapshot, request.server, request.player, request.dimension, request.mobName);
+                client.execute(() -> deliver(observed, reply));
             } catch (InterruptedException cancelled) {
                 Thread.currentThread().interrupt();
+                client.execute(() -> {
+                    if (generation == request.generation) {
+                        status = "Состояние моба изменилось: ответ отменён";
+                        if (actionRequest != null) actionRequest.completeExceptionally(cancelled);
+                        actionRequest = null; showHud();
+                    }
+                });
             } catch (Exception failure) {
                 client.execute(() -> reportFailure(request, failure));
             } finally {
@@ -344,6 +405,27 @@ public final class MobTalkClient implements ClientModInitializer {
 
     private void deliver(Request request, ConversationEngine.Reply reply) {
         if (!isCurrent(request)) return;
+        MobGameBridge game = MobGameBridge.active(request.server);
+        if (game == null || game.memory.revision(request.target) != reply.interactionRevision()) {
+            status = "Отношение моба изменилось: задайте вопрос ещё раз";
+            if (actionRequest != null) actionRequest.completeExceptionally(new java.util.concurrent.CancellationException(status));
+            actionRequest = null; showHud(); return;
+        }
+        game.applyWithRevision(request.target, request.player, request.dimension, reply.action(), request.snapshot,
+                reply.interactionRevision(), () -> generation == request.generation)
+                .whenComplete((delivery, error) -> client.execute(() -> {
+                    if (!isCurrent(request)) return;
+                    if (error != null) { reportFailure(request, error); return; }
+                    if (game.memory.revision(request.target) != delivery.revision()) {
+                        status = "Отношение моба изменилось: ответ отменён";
+                        if (actionRequest != null) actionRequest.completeExceptionally(new java.util.concurrent.CancellationException(status));
+                        actionRequest = null; showHud(); return;
+                    }
+                    finishDelivery(request, reply, delivery.message());
+                }));
+    }
+
+    private void finishDelivery(Request request, ConversationEngine.Reply reply, String actionMessage) {
         requestActive = false;
         chat("Вы: " + reply.recognizedText());
         chat(reply.speakerName() + ": " + reply.responseText());
@@ -356,7 +438,10 @@ public final class MobTalkClient implements ClientModInitializer {
         } else {
             status = "Ответ в чате; озвучка недоступна. Повторите позже";
         }
-        addEvent("The mob and player recently talked");
+        if (actionMessage != null && !actionMessage.isBlank()) chat("[Mob Talk] " + actionMessage);
+        if (actionRequest != null) actionRequest.complete(actionMessage == null || actionMessage.isBlank()
+                ? "Моб ответил без нового действия" : actionMessage);
+        actionRequest = null;
         showHud();
     }
 
@@ -370,6 +455,8 @@ public final class MobTalkClient implements ClientModInitializer {
 
     private void reportFailure(Request request, Throwable failure) {
         if (!isCurrent(request)) return;
+        if (actionRequest != null) actionRequest.completeExceptionally(failure);
+        actionRequest = null;
         requestActive = false;
         LOGGER.warn("Mob Talk request failed ({})", failure.getClass().getSimpleName());
         String message = failure.getMessage();
@@ -400,33 +487,91 @@ public final class MobTalkClient implements ClientModInitializer {
         return mob != null && client.player != null && client.player.squaredDistanceTo(mob) <= config.maxDistance * config.maxDistance;
     }
 
-    private MobSnapshot snapshot(MobEntity mob) {
-        if (mob == null || client.player == null || world == null) throw new IllegalStateException("Mob is unavailable");
-        String biome = world.getBiome(mob.getBlockPos()).getKey().map(key -> key.getValue().toString()).orElse("unknown");
-        long time = Math.floorMod(world.getTimeOfDay(), 24_000);
-        String timeOfDay = time < 1_000 ? "dawn" : time < 12_000 ? "day" : time < 13_000 ? "dusk" : "night";
-        String weather = world.isThundering() ? "thunderstorm" : world.isRaining() ? "rain" : "clear";
-        List<Entity> entities = new ArrayList<>();
-        for (Entity entity : world.getEntities()) {
-            if (entity != mob && entity != client.player && entity.isAlive() && !entity.isRemoved()
-                    && entity.squaredDistanceTo(mob) <= 64) entities.add(entity);
-        }
-        entities.sort(Comparator.comparingDouble(entity -> entity.squaredDistanceTo(mob)));
-        List<String> nearby = new ArrayList<>();
-        for (Entity entity : entities.stream().limit(5).toList())
-            nearby.add(Registries.ENTITY_TYPE.getId(entity.getType()) + " " + entity.getName().getString());
-        nearby.add("Block below mob: " + Registries.BLOCK.getId(world.getBlockState(mob.getBlockPos().down()).getBlock()));
-        nearby.add("Block at mob: " + Registries.BLOCK.getId(world.getBlockState(mob.getBlockPos()).getBlock()));
-        recentEvents.removeIf(event -> ticks - event.tick > 20 * 60);
-        return new MobSnapshot(mob.getUuid(), Registries.ENTITY_TYPE.getId(mob.getType()).toString(), mob.getName().getString(),
-                mob.getHealth(), mob.getMaxHealth(), world.getRegistryKey().getValue().toString(), biome, timeOfDay, weather,
-                Math.sqrt(client.player.squaredDistanceTo(mob)), Registries.ITEM.getId(client.player.getMainHandStack().getItem()).toString(),
-                List.copyOf(nearby), recentEvents.stream().map(RecentEvent::text).toList());
+    public CompletableFuture<MobSnapshot> selectedSnapshot() {
+        ensureGameBridge();
+        if (selected == null || client.player == null || world == null || gameReady == null)
+            return CompletableFuture.failedFuture(new IllegalStateException("Сначала выберите моба палкой"));
+        UUID mob = selected, player = client.player.getUuid();
+        String dimension = world.getRegistryKey().getValue().toString();
+        return gameReady.thenCompose(game -> game.capture(mob, player, dimension));
     }
-
-    private void addEvent(String event) {
-        recentEvents.addLast(new RecentEvent(ticks, event));
-        while (recentEvents.size() > 6) recentEvents.removeFirst();
+    public CompletableFuture<MobCard> selectedCard() {
+        CompletableFuture<MobSnapshot> snapshotFuture = selectedSnapshot();
+        CompletableFuture<MobGameBridge> ready = gameReady;
+        if (ready == null) return CompletableFuture.failedFuture(new IllegalStateException("Мир недоступен"));
+        return snapshotFuture.thenCompose(snapshot -> ready.thenApply(game -> {
+            game.memory.observe(snapshot); return game.memory.card(snapshot.id(), snapshot.playerId());
+        }));
+    }
+    public CompletableFuture<String> requestMobAction(ActionIntent action) {
+        if (action == null || action.type() == ActionType.NONE) return CompletableFuture.completedFuture("Выберите действие");
+        if (action.type() == ActionType.STOP) {
+            cancelWork("Действие отменено");
+            if (selected == null || client.player == null || world == null || client.getServer() == null)
+                return CompletableFuture.failedFuture(new IllegalStateException("Моб не выбран"));
+            MobGameBridge game = MobGameBridge.active(client.getServer());
+            if (game == null) return CompletableFuture.failedFuture(new IllegalStateException("Мир недоступен"));
+            return game.apply(selected, client.player.getUuid(), world.getRegistryKey().getValue().toString(), action, null, -1, () -> true);
+        }
+        if (!readyForRequest()) return CompletableFuture.failedFuture(new IllegalStateException(status));
+        cancelWork("Моб обдумывает просьбу…");
+        long requestGeneration = generation;
+        CompletableFuture<String> result = new CompletableFuture<>();
+        actionRequest = result;
+        Request seed = request(requestGeneration, null);
+        selectedSnapshot().whenComplete((snapshot, error) -> client.execute(() -> {
+            if (!isCurrent(seed)) { result.completeExceptionally(new java.util.concurrent.CancellationException("Просьба отменена")); return; }
+            if (error != null) { reportFailure(seed, error); return; }
+            String target = "меня";
+            if ((action.type() == ActionType.ATTACK || action.type() == ActionType.FLEE) && !"player".equals(action.target())) {
+                var observed = snapshot.observedEntities().stream().filter(entity -> entity.key().equals(action.target())
+                        || entity.id().toString().equals(action.target())).findFirst().orElse(null);
+                if (observed == null) { reportFailure(seed, new IllegalArgumentException("Цель не наблюдается мобом")); return; }
+                target = observed.name() + " (цель " + observed.key() + ")";
+            }
+            String question = switch (action.type()) {
+                case FOLLOW -> "Пожалуйста, следуй за мной и оставайся рядом, пока я не попрошу остановиться. Реши сам, согласен ли ты.";
+                case FLEE -> "Пожалуйста, отойди подальше от " + ("меня".equals(target) ? "меня" : "моба " + target)
+                        + ". Реши сам, хочешь ли ты уйти.";
+                case ATTACK -> "Я прошу тебя атаковать " + target + ". Реши сам, согласен ли ты и позволяет ли это твоя природа.";
+                default -> "";
+            };
+            submit(new Request(seed.generation, seed.target, seed.worldDirectory, seed.config, snapshot,
+                    seed.server, seed.player, seed.dimension, seed.mobName), null, question);
+        }));
+        return result;
+    }
+    public void stopSelectedAction() {
+        if (selected == null || client.getServer() == null || client.player == null || world == null) return;
+        MobGameBridge game = MobGameBridge.active(client.getServer());
+        if (game == null) return;
+        cancelWork("Действие отменено");
+        game.apply(selected, client.player.getUuid(), world.getRegistryKey().getValue().toString(),
+                new ActionIntent(ActionType.STOP, "player"), null, -1, () -> true)
+                .whenComplete((result, error) -> client.execute(() -> { if (error == null) notice(result); }));
+    }
+    public void stopAllFollowers() {
+        if (client.getServer() == null) return;
+        MobGameBridge game = MobGameBridge.active(client.getServer());
+        if (game != null) game.stopAllFollowers().thenAccept(result -> client.execute(() -> notice(result)));
+    }
+    public CompletableFuture<String> editSelectedCard(String name, String personality, String voiceId, String memory) {
+        UUID id = selected;
+        if (id == null || gameReady == null) return CompletableFuture.failedFuture(new IllegalStateException("Моб не выбран"));
+        cancelWork("Карточка изменена");
+        return gameReady.thenApply(game -> { game.memory.updateCard(id, name, personality, voiceId, memory); return "Карточка сохранена"; });
+    }
+    public CompletableFuture<String> clearSelectedHistory() {
+        UUID id = selected;
+        if (id == null || gameReady == null) return CompletableFuture.failedFuture(new IllegalStateException("Моб не выбран"));
+        cancelWork("История очищена");
+        return gameReady.thenApply(game -> { game.memory.clearHistory(id); return "История очищена"; });
+    }
+    public CompletableFuture<String> resetSelectedPersonality() {
+        UUID id = selected;
+        if (id == null || gameReady == null) return CompletableFuture.failedFuture(new IllegalStateException("Моб не выбран"));
+        cancelWork("Личность изменена");
+        return gameReady.thenApply(game -> { game.memory.resetPersonality(id); return "Особенности личности обновлены; память и отношения сохранены"; });
     }
 
     private void showHud() {
@@ -459,7 +604,7 @@ public final class MobTalkClient implements ClientModInitializer {
                     if (!readyForRequest()) { notice(status); return 0; }
                     stopSpeech();
                     long requestGeneration = ++generation;
-                    submit(request(requestGeneration, snapshot(target())), null, StringArgumentType.getString(context, "text"));
+                    submit(request(requestGeneration, null), null, StringArgumentType.getString(context, "text"));
                     return 1;
                 })))
                 .then(literal("status").executes(context -> {
@@ -467,6 +612,13 @@ public final class MobTalkClient implements ClientModInitializer {
                     return 1;
                 }))
                 .then(literal("clear").executes(context -> { clearSelection("Собеседник снят"); return 1; }))
+                .then(literal("follow").executes(context -> { commandAction(new ActionIntent(ActionType.FOLLOW, "player")); return 1; }))
+                .then(literal("flee").executes(context -> { commandAction(new ActionIntent(ActionType.FLEE, "player")); return 1; }))
+                .then(literal("stop").executes(context -> { stopSelectedAction(); return 1; }))
+                .then(literal("stop_all").executes(context -> { stopAllFollowers(); return 1; }))
+                .then(literal("attack").then(argument("target", StringArgumentType.word()).executes(context -> {
+                    commandAction(new ActionIntent(ActionType.ATTACK, StringArgumentType.getString(context, "target"))); return 1;
+                })))
                 .then(literal("reload").executes(context -> { reload(); return 1; }))
                 .then(literal("mic").then(literal("list").executes(context -> {
                     maintenance.execute(() -> {
@@ -483,6 +635,12 @@ public final class MobTalkClient implements ClientModInitializer {
                     });
                     return 1;
                 })))));
+    }
+
+    private void commandAction(ActionIntent action) {
+        requestMobAction(action).whenComplete((result, error) -> client.execute(() -> {
+            if (error == null) notice(result); else notice("Не удалось применить действие: " + error.getClass().getSimpleName());
+        }));
     }
 
     private void openSettings(Screen parent) {
@@ -536,6 +694,16 @@ public final class MobTalkClient implements ClientModInitializer {
                 InputUtil.Key key = KeyBindingHelper.getBoundKeyOf(talkKey);
                 return key.getCategory() == InputUtil.Type.KEYSYM ? key.getCode() : GLFW.GLFW_KEY_V;
             }
+            @Override public CompletableFuture<MobCard> selectedCard() { return MobTalkClient.this.selectedCard(); }
+            @Override public CompletableFuture<MobSnapshot> selectedSnapshot() { return MobTalkClient.this.selectedSnapshot(); }
+            @Override public CompletableFuture<String> requestMobAction(ActionIntent action) { return MobTalkClient.this.requestMobAction(action); }
+            @Override public void stopSelectedAction() { MobTalkClient.this.stopSelectedAction(); }
+            @Override public void stopAllFollowers() { MobTalkClient.this.stopAllFollowers(); }
+            @Override public CompletableFuture<String> editSelectedCard(String name, String personality, String voiceId, String memory) {
+                return MobTalkClient.this.editSelectedCard(name, personality, voiceId, memory);
+            }
+            @Override public CompletableFuture<String> clearSelectedHistory() { return MobTalkClient.this.clearSelectedHistory(); }
+            @Override public CompletableFuture<String> resetSelectedPersonality() { return MobTalkClient.this.resetSelectedPersonality(); }
         }));
     }
 
@@ -573,10 +741,16 @@ public final class MobTalkClient implements ClientModInitializer {
         stopped = true;
         microphone.close();
         pipeline.shutdownNow();
+        Path directory = memoryWorld;
+        CompletableFuture<Void> detached = gameServer == null ? CompletableFuture.completedFuture(null) : MobGameBridge.detach(gameServer);
+        if (directory != null) maintenance.execute(() -> {
+            try { detached.get(5, TimeUnit.SECONDS); } catch (Exception ignored) { }
+            try { ConversationStore.closeWorld(directory); } catch (Exception ignored) { }
+        });
         maintenance.execute(helper::stopOwned);
         maintenance.shutdown();
     }
 
-    private record RecentEvent(long tick, String text) { }
-    private record Request(long generation, UUID target, Path worldDirectory, MobTalkConfig config, MobSnapshot snapshot) { }
+    private record Request(long generation, UUID target, Path worldDirectory, MobTalkConfig config, MobSnapshot snapshot,
+            MinecraftServer server, UUID player, String dimension, String mobName) { }
 }

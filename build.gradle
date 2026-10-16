@@ -16,6 +16,8 @@ dependencies {
     mappings "net.fabricmc:yarn:${yarn_mappings}:v2"
     modImplementation "net.fabricmc:fabric-loader:${loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+    implementation 'javazoom:jlayer:1.0.1'
+    include 'javazoom:jlayer:1.0.1'
     testImplementation platform('org.junit:junit-bom:5.14.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -28,4 +30,8 @@ processResources {
 }
 tasks.withType(JavaCompile).configureEach { options.release = 21 }
 java { withSourcesJar(); sourceCompatibility = JavaVersion.VERSION_21; targetCompatibility = JavaVersion.VERSION_21 }
-jar { from('LICENSE') { rename { 'LICENSE_mobtalk' } } }
+jar {
+    from('LICENSE') { rename { 'LICENSE_mobtalk' } }
+    from('THIRD_PARTY_NOTICES.md')
+    from('licenses') { into 'licenses' }
+}

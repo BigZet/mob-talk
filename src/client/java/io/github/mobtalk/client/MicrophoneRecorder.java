@@ -66,7 +66,19 @@ final class MicrophoneRecorder implements AutoCloseable {
                     continue;
                 }
                 int count = line.read(buffer, 0, available);
-                if (count > 0) pcm.write(buffer, 0, count & ~1);
+                if (count > 0) {
+                    pcm.write(buffer, 0, count & ~1);
+                    capture.level = level(buffer, count);
+                }
+            }
+            // Freeze capture first, then retain frames already received before key release.
+            line.stop();
+            while (!capture.cancelled.get() && pcm.size() < maxBytes) {
+                int available = Math.min(Math.min(line.available(), buffer.length), maxBytes - pcm.size()) & ~1;
+                if (available == 0) break;
+                int count = line.read(buffer, 0, available);
+                if (count <= 0) break;
+                pcm.write(buffer, 0, count & ~1);
             }
             if (!capture.cancelled.get() && pcm.size() >= 3_200) result = PcmWav.encode(pcm.toByteArray());
         } catch (InterruptedException interrupted) {
@@ -86,6 +98,15 @@ final class MicrophoneRecorder implements AutoCloseable {
             if (failure != null) capture.wav.completeExceptionally(failure);
             else capture.wav.complete(result);
         }
+    }
+
+    private static double level(byte[] pcm, int length) {
+        double squares = 0;
+        for (int i = 0; i + 1 < length; i += 2) {
+            int sample = (short) ((pcm[i] & 255) | (pcm[i + 1] << 8));
+            squares += (double) sample * sample;
+        }
+        return Math.min(1, Math.sqrt(squares / Math.max(1, length / 2)) / 8192.0);
     }
 
     private static TargetDataLine selectLine(String name) throws LineUnavailableException, IOException {
@@ -119,6 +140,7 @@ final class MicrophoneRecorder implements AutoCloseable {
         final CompletableFuture<byte[]> wav = new CompletableFuture<>();
         private final AtomicBoolean stopped = new AtomicBoolean();
         private final AtomicBoolean cancelled = new AtomicBoolean();
+        volatile double level;
         void stop() { stopped.set(true); }
         void cancel() { cancelled.set(true); stopped.set(true); }
     }

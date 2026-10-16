@@ -20,6 +20,8 @@ class MobTalkConfigTest {
         draft.enabled = true;
         draft.llmModel = "edited/model";
         draft.maxDistance = 4;
+        draft.speciesOverrides.get("minecraft:cow").archetypePrompts[0] = "changed";
+        draft.speciesOverrides.get("minecraft:cow").voiceIds[0] = "zzzzzzzzzzzzzzzzzzzz";
         assertCustomized(original);
     }
 
@@ -62,7 +64,7 @@ class MobTalkConfigTest {
     @Test void loadAndSaveShareBoundsAndNullSafeDefaults() throws Exception {
         MobTalkConfig unsafe = new MobTalkConfig();
         unsafe.maxRecordingSeconds = 100;
-        unsafe.maxReplyWords = 100;
+        unsafe.maxReplyWords = 1000;
         unsafe.historyTurns = 100;
         unsafe.maxMemoryChars = 10000;
         unsafe.requestTimeoutSeconds = 100;
@@ -114,6 +116,16 @@ class MobTalkConfigTest {
         config.requestTimeoutSeconds = 30;
         config.maxDistance = 12.5;
         config.defaultVoice = "custom-voice";
+        config.commonPrompt = "Отвечай содержательно";
+        config.whisperBeamSize = 3;
+        config.whisperVadSilenceMs = 850;
+        config.whisperCpuThreads = 2;
+        config.whisperHotwords = "крипер, Майнкрафт";
+        SpeciesCatalog.Override override = new SpeciesCatalog.Override();
+        override.prompt = "Наблюдательная корова";
+        override.archetypePrompts[0] = "Свой характер";
+        override.voiceIds[0] = "abcdefghijklmnopqrst";
+        config.speciesOverrides.put("minecraft:cow", override);
         return config;
     }
 
@@ -133,21 +145,44 @@ class MobTalkConfigTest {
         assertEquals(30, config.requestTimeoutSeconds);
         assertEquals(12.5, config.maxDistance);
         assertEquals("custom-voice", config.defaultVoice);
+        assertEquals("Отвечай содержательно", config.commonPrompt);
+        assertEquals(3, config.whisperBeamSize);
+        assertEquals(850, config.whisperVadSilenceMs);
+        assertEquals(2, config.whisperCpuThreads);
+        assertEquals("крипер, Майнкрафт", config.whisperHotwords);
+        assertEquals("Наблюдательная корова", config.speciesOverrides.get("minecraft:cow").prompt);
+        assertEquals("Свой характер", config.speciesOverrides.get("minecraft:cow").archetypePrompts[0]);
+        assertEquals("abcdefghijklmnopqrst", config.speciesOverrides.get("minecraft:cow").voiceIds[0]);
     }
 
     private static void assertNormalized(MobTalkConfig config) {
         assertEquals(15, config.maxRecordingSeconds);
-        assertEquals(45, config.maxReplyWords);
-        assertEquals(6, config.historyTurns);
-        assertEquals(1200, config.maxMemoryChars);
+        assertEquals(120, config.maxReplyWords);
+        assertEquals(64, config.historyTurns);
+        assertEquals(4000, config.maxMemoryChars);
         assertEquals(90, config.requestTimeoutSeconds);
         assertEquals(2, config.maxDistance);
         assertEquals("google/gemini-2.5-flash-lite", config.llmModel);
-        assertEquals("small", config.whisperModel);
+        assertEquals("large-v3", config.whisperModel);
         assertEquals("auto", config.whisperDevice);
         assertEquals("ru", config.whisperLanguage);
         assertEquals("", config.microphoneName);
         assertEquals("rSfuQoQ3FY8SVKeraMAp", config.defaultVoice);
+    }
+
+    // Updating the old shipped defaults must retain deliberate smaller history/memory and a custom Whisper model.
+    @Test void migratesOldDefaultsAndRetainsUserChoices() throws Exception {
+        Path file = directory.resolve("mobtalk.json");
+        Files.writeString(file, "{\"historyTurns\":6,\"maxMemoryChars\":1200,\"whisperModel\":\"small\"}");
+        MobTalkConfig migrated = MobTalkConfig.load(file);
+        assertEquals(24, migrated.historyTurns);
+        assertEquals(4000, migrated.maxMemoryChars);
+        assertEquals("large-v3", migrated.whisperModel);
+        Files.writeString(file, "{\"historyTurns\":4,\"maxMemoryChars\":700,\"whisperModel\":\"tiny\"}");
+        MobTalkConfig retained = MobTalkConfig.load(file);
+        assertEquals(4, retained.historyTurns);
+        assertEquals(700, retained.maxMemoryChars);
+        assertEquals("tiny", retained.whisperModel);
     }
 
 }

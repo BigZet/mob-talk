@@ -1,0 +1,235 @@
+package io.github.mobtalk.core;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonParseException;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+/** Bundled species personalities and public-library metadata, without any claim of paid TTS validation. */
+public final class SpeciesCatalog {
+    public record Voice(String id, String name, String description, String previewUrl, String language) { }
+    public record Archetype(String name, String prompt, Voice voice) { }
+    public record Species(String id, String name, String prompt, String interests, String fears,
+                          boolean hostile, List<Archetype> variants) {
+        public Species { variants = List.copyOf(variants); }
+    }
+
+    /** Blank entries keep bundled values. Array shape is validated when preferences are saved. */
+    public static class Override {
+        public String prompt = "";
+        public String[] archetypePrompts = new String[]{"", "", ""};
+        public String[] voiceIds = new String[]{"", "", ""};
+    }
+
+    private static final Voice UNASSIGNED = new Voice("", "Не назначен",
+            "Для этого варианта ещё не подобран публичный ID; генерация не проверена.", "", "ru");
+
+    private static final Map<String, Voice> VOICES;
+    private static final Map<String, Species> SPECIES;
+    private static final List<Voice> RESERVES;
+    private static final Map<String, Voice> SPECIES_RESERVES;
+    private static final List<Species> ALL;
+
+    static {
+        VoiceDocument voices = read("voices.json", VoiceDocument.class);
+        Map<String, Voice> voiceMap = new LinkedHashMap<>();
+        if (voices.voices == null) throw invalid("Missing voice metadata");
+        for (Voice voice : voices.voices) {
+            if (voice == null || blank(voice.id()) || blank(voice.name()) || blank(voice.description())
+                    || blank(voice.previewUrl()) || blank(voice.language())
+                    || voiceMap.putIfAbsent(voice.id(), voice) != null)
+                throw invalid("Incomplete or duplicate voice metadata");
+        }
+        VOICES = Collections.unmodifiableMap(voiceMap);
+        var reserves = new ArrayList<Voice>();
+        if (voices.reserveIds != null) for (String id : voices.reserveIds) {
+            Voice voice = voiceMap.get(id);
+            if (voice == null || reserves.contains(voice)) throw invalid("Invalid reserve voice");
+            reserves.add(voice);
+        }
+        RESERVES = List.copyOf(reserves);
+        SpeciesDocument data = read("species.json", SpeciesDocument.class);
+        if (data.species == null || data.species.size() != 82) throw invalid("Expected 82 vanilla mob species");
+        Map<String, Species> speciesMap = new LinkedHashMap<>();
+        var assignedVoices = new LinkedHashSet<String>();
+        for (SpeciesData row : data.species) {
+            if (row == null || blank(row.id) || blank(row.name) || blank(row.prompt)
+                    || blank(row.interests) || blank(row.fears) || row.variants == null || row.variants.size() != 3)
+                throw invalid("Incomplete species profile");
+            var variants = new ArrayList<Archetype>();
+            var names = new LinkedHashSet<String>();
+            for (ArchetypeData variant : row.variants) {
+                if (variant == null || blank(variant.name) || blank(variant.prompt) || !names.add(variant.name))
+                    throw invalid("Incomplete species archetype: " + row.id);
+                Voice voice = blank(variant.voiceId) ? UNASSIGNED : voiceMap.get(variant.voiceId);
+                if (voice == null || (!blank(voice.id()) && !assignedVoices.add(voice.id())) || reserves.contains(voice))
+                    throw invalid("Missing or reused species voice: " + row.id);
+                variants.add(new Archetype(variant.name, variant.prompt, voice));
+            }
+            String id = normalized(row.id);
+            Species species = new Species(id, row.name, row.prompt, row.interests, row.fears, row.hostile, variants);
+            if (speciesMap.putIfAbsent(id, species) != null) throw invalid("Duplicate species: " + id);
+        }
+        SPECIES = Collections.unmodifiableMap(speciesMap);
+        var speciesReserves = new LinkedHashMap<String, Voice>();
+        var reservedIds = new LinkedHashSet<String>();
+        if (voices.speciesReserves != null) for (var entry : voices.speciesReserves.entrySet()) {
+            String type = normalized(entry.getKey());
+            Voice reserve = voiceMap.get(entry.getValue());
+            if (!speciesMap.containsKey(type) || reserve == null || !reserves.contains(reserve)
+                    || assignedVoices.contains(reserve.id()) || !reservedIds.add(reserve.id())
+                    || speciesReserves.putIfAbsent(type, reserve) != null)
+                throw invalid("Invalid species reserve: " + type);
+        }
+        SPECIES_RESERVES = Collections.unmodifiableMap(speciesReserves);
+        ALL = List.copyOf(speciesMap.values());
+    }
+
+    private SpeciesCatalog() { }
+
+    public static List<Species> all() { return ALL; }
+
+    public static Species get(String type) {
+        String id = normalized(type);
+        Species known = SPECIES.get(id);
+        if (known != null) return known;
+        return new Species(id, id.substring(id.indexOf(':') + 1).replace('_', ' '),
+                "Ты моб неизвестного вида. Говори по-русски, опирайся только на переданный игровой контекст; "
+                        + "не придумывай способности, биографию или уже выполненные действия.",
+                "Безопасность, окружающий мир и намерения собеседника.",
+                "Незнакомые угрозы и необъяснимые требования.", false,
+                List.of(new Archetype("Осторожный", "Спокойно уточняй незнакомые предложения.", UNASSIGNED),
+                        new Archetype("Любопытный", "Задавай конкретные вопросы о происходящем.", UNASSIGNED),
+                        new Archetype("Практичный", "Отвечай прямо и оценивай выполнимость просьбы.", UNASSIGNED)));
+    }
+
+    /** Known IDs return their real metadata; unknown user IDs remain explicitly unverified. */
+    public static Voice voice(String id) {
+        if (blank(id)) return UNASSIGNED;
+        String clean = id.trim();
+        Voice known = VOICES.get(clean);
+        return known != null ? known : new Voice(clean, "Пользовательский голос",
+                "Пользовательский ID; библиотечные метаданные и генерация не проверены.", "", "ru");
+    }
+
+    /** A dedicated, disjoint reserve for this species; never borrow another species' voice. */
+    public static Voice reserve(String type) {
+        return SPECIES_RESERVES.getOrDefault(normalized(type), UNASSIGNED);
+    }
+
+    public static Species effective(String type, MobTalkConfig config) {
+        Species base = get(type);
+        Override override = findOverride(base.id(), config);
+        if (override == null) return base;
+        var variants = new ArrayList<Archetype>();
+        for (int slot = 0; slot < 3; slot++) {
+            Archetype original = base.variants().get(slot);
+            String voiceId = entry(override.voiceIds, slot);
+            variants.add(new Archetype(original.name(), orDefault(entry(override.archetypePrompts, slot), original.prompt()),
+                    blank(voiceId) ? original.voice() : voice(voiceId)));
+        }
+        return new Species(base.id(), base.name(), orDefault(override.prompt, base.prompt()),
+                base.interests(), base.fears(), base.hostile(), variants);
+    }
+
+    public static void validateOverrides(MobTalkConfig config) throws IOException {
+        if (config == null || config.speciesOverrides == null) return;
+        var normalizedKeys = new LinkedHashSet<String>();
+        for (var entry : config.speciesOverrides.entrySet()) {
+            if (blank(entry.getKey()) || !entry.getKey().matches("(?:[a-z0-9_.-]+:)?[a-z0-9_./-]+"))
+                throw new IOException("Некорректный ID вида в настройках Mob Talk.");
+            String id = normalized(entry.getKey());
+            if (!normalizedKeys.add(id)) throw new IOException("Два изменения одного вида: " + id);
+            Override value = entry.getValue();
+            if (value == null || value.archetypePrompts == null || value.voiceIds == null
+                    || value.archetypePrompts.length != 3 || value.voiceIds.length != 3)
+                throw new IOException("Для " + id + " нужны ровно три характера и три голоса.");
+            if (value.prompt != null && value.prompt.length() > 8000)
+                throw new IOException("Слишком длинный характер вида " + id);
+            for (String prompt : value.archetypePrompts)
+                if (prompt != null && prompt.length() > 4000) throw new IOException("Слишком длинный вариант " + id);
+            for (String voiceId : value.voiceIds)
+                if (!blank(voiceId) && !voiceId.trim().matches("[A-Za-z0-9_-]{1,100}"))
+                    throw new IOException("Некорректный ID голоса для " + id);
+        }
+        var owners = new LinkedHashMap<String, String>();
+        var checkedTypes = new LinkedHashSet<>(SPECIES.keySet());
+        checkedTypes.addAll(normalizedKeys);
+        for (String type : checkedTypes) {
+            Species species = effective(type, config);
+            for (Archetype variant : species.variants()) {
+                if (blank(variant.voice().id())) continue;
+                if (SPECIES_RESERVES.values().stream().anyMatch(reserve -> reserve.id().equals(variant.voice().id())))
+                    throw new IOException("Голос " + variant.voice().id() + " уже выделен как отдельный видовой резерв.");
+                String owner = owners.putIfAbsent(variant.voice().id(), type + "/" + variant.name());
+                if (owner != null)
+                    throw new IOException("Голос " + variant.voice().id() + " повторяется у " + owner + " и " + type);
+            }
+        }
+    }
+
+    /** Explicit final casting gate; incomplete voices never prevent text conversations or menu editing. */
+    public static void validateCompleteCatalog() throws IOException {
+        var assigned = new LinkedHashSet<String>();
+        for (Species species : ALL) for (Archetype variant : species.variants()) {
+            Voice voice = variant.voice();
+            if (blank(voice.id()))
+                throw new IOException("Голос ещё не назначен: " + species.id() + "/" + variant.name());
+            if (!assigned.add(voice.id()) || !"ru".equals(voice.language())
+                    || !voice.previewUrl().startsWith("https://"))
+                throw new IOException("Неполные или повторные библиотечные метаданные голоса " + voice.id());
+        }
+        if (assigned.size() != 246 || SPECIES_RESERVES.size() != 82
+                || SPECIES_RESERVES.values().stream().anyMatch(voice -> assigned.contains(voice.id())))
+            throw new IOException("Нужны 246 уникальных голосов и 82 отдельных видовых резерва.");
+    }
+
+    private static Override findOverride(String id, MobTalkConfig config) {
+        if (config == null || config.speciesOverrides == null) return null;
+        Override exact = config.speciesOverrides.get(id);
+        if (exact != null) return exact;
+        for (var entry : config.speciesOverrides.entrySet())
+            if (id.equals(normalized(entry.getKey()))) return entry.getValue();
+        return null;
+    }
+
+    private static String normalized(String type) {
+        String clean = blank(type) ? "minecraft:unknown" : type.trim().toLowerCase(Locale.ROOT);
+        return clean.indexOf(':') >= 0 ? clean : "minecraft:" + clean;
+    }
+
+    private static String entry(String[] array, int slot) {
+        return array != null && slot < array.length ? array[slot] : "";
+    }
+    private static boolean blank(String value) { return value == null || value.isBlank(); }
+    private static String orDefault(String value, String fallback) { return blank(value) ? fallback : value.trim(); }
+    private static IllegalStateException invalid(String message) { return new IllegalStateException("Mob Talk catalog: " + message); }
+
+    private static <T> T read(String file, Class<T> type) {
+        try (var input = SpeciesCatalog.class.getResourceAsStream("/assets/mobtalk/" + file)) {
+            if (input == null) throw invalid("Missing " + file);
+            T data = new Gson().fromJson(new InputStreamReader(input, StandardCharsets.UTF_8), type);
+            if (data == null) throw invalid("Empty " + file);
+            return data;
+        } catch (IOException | JsonParseException invalid) {
+            throw new IllegalStateException("Mob Talk catalog: cannot read " + file, invalid);
+        }
+    }
+
+    private static final class VoiceDocument { List<Voice> voices; List<String> reserveIds; Map<String, String> speciesReserves; }
+    private static final class SpeciesDocument { List<SpeciesData> species; }
+    private static final class SpeciesData {
+        String id, name, prompt, interests, fears;
+        boolean hostile;
+        List<ArchetypeData> variants;
+    }
+    private static final class ArchetypeData { String name, prompt, voiceId; }
+}

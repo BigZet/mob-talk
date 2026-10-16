@@ -21,8 +21,32 @@ final class OpenRouterSpeechClient implements AutoCloseable {
         this.http = new BoundedHttp(config);
     }
 
+    static boolean validVoiceId(String voiceId) { return voiceId != null && voiceId.strip().matches("[A-Za-z0-9]{20,64}"); }
+    String selectedVoice(String preferred) { return validVoiceId(preferred) ? preferred.strip() : ""; }
+
+    Audio synthesizeWithFallback(String preferred, String text) throws IOException, InterruptedException {
+        return synthesizeWithFallback(preferred, "", text);
+    }
+
+    /** Only the caller's dedicated species reserve may replace a permanently rejected voice. */
+    Audio synthesizeWithFallback(String preferred, String reserve, String text) throws IOException, InterruptedException {
+        if (preferred == null || preferred.isBlank()) throw new IOException("Для этого характера голос ещё не назначен.");
+        String selected = selectedVoice(preferred), replacement = selectedVoice(reserve);
+        if (selected.isBlank()) {
+            if (replacement.isBlank()) throw new IOException("Для этого характера нет допустимого видового голоса.");
+            return new Audio(replacement, synthesize(replacement, text));
+        }
+        try { return new Audio(selected, synthesize(selected, text)); }
+        catch (IOException failure) {
+            String message = failure.getMessage();
+            if (replacement.isBlank() || selected.equals(replacement) || message == null
+                    || !(message.contains("HTTP 400") || message.contains("HTTP 404") || message.contains("HTTP 422"))) throw failure;
+            return new Audio(replacement, synthesize(replacement, text));
+        }
+    }
+
     byte[] synthesize(String voiceId, String text) throws IOException, InterruptedException {
-        if (voiceId == null || voiceId.isBlank() || text == null || text.isBlank())
+        if (!validVoiceId(voiceId) || text == null || text.isBlank())
             throw new IOException("Для озвучки нужны голос и текст.");
         JsonObject body = new JsonObject();
         body.addProperty("model", "elevenlabs/eleven-v4-turbo");
@@ -46,4 +70,5 @@ final class OpenRouterSpeechClient implements AutoCloseable {
     }
 
     @Override public void close() { http.close(); }
+    record Audio(String voiceId, byte[] pcm) { }
 }

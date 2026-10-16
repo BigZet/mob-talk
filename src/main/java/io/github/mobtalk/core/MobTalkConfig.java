@@ -2,6 +2,9 @@ package io.github.mobtalk.core;
 
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
@@ -10,18 +13,25 @@ import java.nio.file.StandardCopyOption;
 
 /** Local preferences only; the API key is loaded separately. */
 public final class MobTalkConfig {
+    public int schemaVersion = 2;
     public boolean enabled = true;
     public String llmModel = "google/gemini-2.5-flash-lite";
     public String whisperUrl = "http://127.0.0.1:63919";
     public boolean whisperAutoStart = true;
-    public String whisperModel = "small";
+    public String whisperModel = "large-v3";
     public String whisperDevice = "auto";
     public String whisperLanguage = "ru";
     public String microphoneName = "";
+    public int whisperBeamSize = 5;
+    public int whisperVadSilenceMs = 500;
+    public int whisperCpuThreads = 4;
+    public String whisperHotwords = "Minecraft, Майнкрафт, крипер, зомби, скелет, пиглин, эндермен, варден, тихоня, нюхач, лавомерка";
+    public String commonPrompt = "";
+    public Map<String, SpeciesCatalog.Override> speciesOverrides = new LinkedHashMap<>();
     public int maxRecordingSeconds = 15;
     public int maxReplyWords = 45;
-    public int historyTurns = 6;
-    public int maxMemoryChars = 1200;
+    public int historyTurns = 24;
+    public int maxMemoryChars = 4000;
     public int requestTimeoutSeconds = 45;
     public double maxDistance = 16;
     public String defaultVoice = "rSfuQoQ3FY8SVKeraMAp";
@@ -29,6 +39,7 @@ public final class MobTalkConfig {
     /** A menu draft or worker snapshot; editing it does not change the live preferences. */
     public MobTalkConfig copy() {
         MobTalkConfig copy = new MobTalkConfig();
+        copy.schemaVersion = schemaVersion;
         copy.enabled = enabled;
         copy.llmModel = llmModel;
         copy.whisperUrl = whisperUrl;
@@ -37,6 +48,20 @@ public final class MobTalkConfig {
         copy.whisperDevice = whisperDevice;
         copy.whisperLanguage = whisperLanguage;
         copy.microphoneName = microphoneName;
+        copy.whisperBeamSize = whisperBeamSize;
+        copy.whisperVadSilenceMs = whisperVadSilenceMs;
+        copy.whisperCpuThreads = whisperCpuThreads;
+        copy.whisperHotwords = whisperHotwords;
+        copy.commonPrompt = commonPrompt;
+        copy.speciesOverrides = new LinkedHashMap<>();
+        if (speciesOverrides != null) speciesOverrides.forEach((type, value) -> {
+            if (value == null) return;
+            SpeciesCatalog.Override replacement = new SpeciesCatalog.Override();
+            replacement.prompt = value.prompt;
+            replacement.archetypePrompts = value.archetypePrompts == null ? null : value.archetypePrompts.clone();
+            replacement.voiceIds = value.voiceIds == null ? null : value.voiceIds.clone();
+            copy.speciesOverrides.put(type, replacement);
+        });
         copy.maxRecordingSeconds = maxRecordingSeconds;
         copy.maxReplyWords = maxReplyWords;
         copy.historyTurns = historyTurns;
@@ -51,7 +76,13 @@ public final class MobTalkConfig {
         if (!Files.exists(file)) save(file, new MobTalkConfig());
         MobTalkConfig config;
         try {
-            config = new GsonBuilder().create().fromJson(Files.readString(file), MobTalkConfig.class);
+            String contents = Files.readString(file);
+            config = new GsonBuilder().create().fromJson(contents, MobTalkConfig.class);
+            if (config != null && !JsonParser.parseString(contents).getAsJsonObject().has("schemaVersion")) {
+                if (config.historyTurns == 6) config.historyTurns = 24;
+                if (config.maxMemoryChars == 1200) config.maxMemoryChars = 4000;
+                if ("small".equals(config.whisperModel)) config.whisperModel = "large-v3";
+            }
         } catch (JsonParseException invalid) {
             throw new IOException("Mob Talk config contains invalid JSON");
         }
@@ -79,9 +110,16 @@ public final class MobTalkConfig {
 
     private static void normalize(MobTalkConfig config) throws IOException {
         config.maxRecordingSeconds = Math.max(1, Math.min(15, config.maxRecordingSeconds));
-        config.maxReplyWords = Math.max(5, Math.min(45, config.maxReplyWords));
-        config.historyTurns = Math.max(1, Math.min(6, config.historyTurns));
-        config.maxMemoryChars = Math.max(200, Math.min(1200, config.maxMemoryChars));
+        config.maxReplyWords = Math.max(5, Math.min(120, config.maxReplyWords));
+        config.historyTurns = Math.max(1, Math.min(64, config.historyTurns));
+        config.maxMemoryChars = Math.max(200, Math.min(4000, config.maxMemoryChars));
+        config.schemaVersion = 2;
+        config.whisperBeamSize = Math.max(1, Math.min(10, config.whisperBeamSize));
+        config.whisperVadSilenceMs = Math.max(150, Math.min(1500, config.whisperVadSilenceMs));
+        config.whisperCpuThreads = Math.max(1, Math.min(16, config.whisperCpuThreads));
+        config.whisperHotwords = TextBounds.characters(config.whisperHotwords, 2000);
+        config.commonPrompt = config.commonPrompt == null ? "" : config.commonPrompt.strip();
+        if (config.speciesOverrides == null) config.speciesOverrides = new LinkedHashMap<>();
         config.requestTimeoutSeconds = Math.max(5, Math.min(90, config.requestTimeoutSeconds));
         config.maxDistance = Double.isFinite(config.maxDistance) ? Math.max(2, Math.min(64, config.maxDistance)) : 16;
         MobTalkConfig defaults = new MobTalkConfig();
@@ -91,6 +129,7 @@ public final class MobTalkConfig {
         config.whisperLanguage = textOrDefault(config.whisperLanguage, defaults.whisperLanguage);
         config.microphoneName = config.microphoneName == null ? "" : config.microphoneName;
         config.defaultVoice = textOrDefault(config.defaultVoice, defaults.defaultVoice);
+        SpeciesCatalog.validateOverrides(config);
         URI whisper;
         try {
             whisper = URI.create(config.whisperUrl);

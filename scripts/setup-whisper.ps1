@@ -1,7 +1,7 @@
 #requires -Version 7.0
 [CmdletBinding()]
 param(
-    [ValidatePattern('^[A-Za-z0-9._/-]+$')][string]$Model = 'small',
+    [ValidatePattern('^[A-Za-z0-9._/-]+$')][string]$Model = 'large-v3',
     [ValidateSet('auto', 'cpu', 'cuda')][string]$Device = 'auto',
     [ValidatePattern('^[a-z]{2,3}$')][string]$Language = 'ru',
     [ValidateRange(1, 16)][int]$CpuThreads = 4,

@@ -7,8 +7,9 @@ Only status codes are logged: audio and recognized text stay out of logs.
 from __future__ import annotations
 
 import argparse
+import base64
 from array import array
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import io
 import json
@@ -19,12 +20,18 @@ from pathlib import Path
 import socket
 import sys
 import threading
+import time
 import wave
 
 
 MAX_BODY_BYTES = 2 * 1024 * 1024
 MAX_AUDIO_SECONDS = 15.0
 _DLL_HANDLES = []
+MODEL_REPOS = {
+    "small": "Systran/faster-whisper-small", "medium": "Systran/faster-whisper-medium",
+    "large-v2": "Systran/faster-whisper-large-v2", "large-v3": "Systran/faster-whisper-large-v3",
+    "large-v3-turbo": "mobiuslabsgmbh/faster-whisper-large-v3-turbo",
+}
 
 
 def default_model_directory() -> Path:
@@ -34,11 +41,18 @@ def default_model_directory() -> Path:
 
 @dataclass(frozen=True)
 class Settings:
-    model: str = "small"
+    model: str = "large-v3"
     device: str = "auto"
     language: str = "ru"
     model_dir: Path = field(default_factory=default_model_directory)
     cpu_threads: int = 4
+    beam_size: int = 5
+    vad_silence_ms: int = 500
+    hotwords: str = "Minecraft, Майнкрафт, крипер, зомби, скелет, пиглин, эндермен, варден"
+
+
+class LoadCancelled(Exception):
+    pass
 
 
 class InvalidAudio(ValueError):
@@ -102,11 +116,33 @@ def _enable_windows_nvidia_libraries() -> None:
         os.environ["PATH"] = os.pathsep.join(map(str, directories)) + os.pathsep + os.environ.get("PATH", "")
 
 
-def load_model(settings: Settings):
+def load_model(settings: Settings, progress=None, cancelled=None):
     _enable_windows_nvidia_libraries()
     # Heavy imports are deliberately here, never on module import or GET health.
     import ctranslate2
     from faster_whisper import WhisperModel
+
+    model_path = settings.model
+    if settings.model in MODEL_REPOS:
+        from huggingface_hub import snapshot_download
+        from tqdm.auto import tqdm
+
+        class DownloadProgress(tqdm):
+            def update(self, n=1):
+                if cancelled is not None and cancelled.is_set():
+                    raise LoadCancelled()
+                result = super().update(n)
+                if progress:
+                    progress("downloading", int(self.n), int(self.total or 0))
+                return result
+
+        if progress:
+            progress("downloading", 0, 0)
+        model_path = snapshot_download(MODEL_REPOS[settings.model], cache_dir=str(settings.model_dir),
+            allow_patterns=["config.json", "preprocessor_config.json", "model.bin", "tokenizer.json", "vocabulary.*"],
+            tqdm_class=DownloadProgress, max_workers=2)
+    if cancelled is not None and cancelled.is_set():
+        raise LoadCancelled()
 
     settings.model_dir.mkdir(parents=True, exist_ok=True)
     options = dict(download_root=str(settings.model_dir),
@@ -118,7 +154,9 @@ def load_model(settings: Settings):
         try:
             if device == "cuda" and ctranslate2.get_cuda_device_count() == 0:
                 raise RuntimeError("cuda_unavailable")
-            model = WhisperModel(settings.model, device=device,
+            if progress:
+                progress("loading_" + device, 0, 0)
+            model = WhisperModel(model_path, device=device,
                                  compute_type="int8_float16" if device == "cuda" else "int8",
                                  **options)
             if device == "cuda":
@@ -130,7 +168,10 @@ def load_model(settings: Settings):
                     condition_on_previous_text=False, temperature=0.0)
                 list(segments)
             return model, device
-        except Exception:
+        except Exception as failure:
+            description = str(failure).casefold()
+            if "out of memory" in description or "alloc_failed" in description:
+                raise RuntimeError("gpu_out_of_memory") from failure
             if device == "cpu" or settings.device == "cuda":
                 raise
             print("MobTalk Whisper: CUDA unavailable; using CPU int8.", file=sys.stderr, flush=True)
@@ -146,6 +187,10 @@ class WhisperRuntime:
         self.transcription_lock = threading.Lock()
         self._load_lock = threading.Lock()
         self._loader = None
+        self.cancel_load = threading.Event()
+        self.progress = {"stage": "starting", "completed": 0, "total": 0, "unit": "files"}
+        self.error_code = ""
+        self.started_at = time.monotonic()
 
     def start_loading(self):
         with self._load_lock:
@@ -155,24 +200,79 @@ class WhisperRuntime:
 
     def _load(self):
         try:
-            self.model, self.device = load_model(self.settings)
+            self.model, self.device = load_model(self.settings, self._progress, self.cancel_load)
+            if self.cancel_load.is_set():
+                self.model = None
+                self.status = "cancelled"
+                return
             self.status = "ready"
             print(f"MobTalk Whisper: ready ({self.device}, {self.settings.model}).", flush=True)
+        except LoadCancelled:
+            self.model = None
+            self.status = "cancelled"
         except Exception as error:
             self.status = "error"
+            self.error_code = "gpu_out_of_memory" if "gpu_out_of_memory" in str(error) else "model_unavailable"
             # Exceptions can include input/model paths. Report only their type.
             print(f"MobTalk Whisper: model unavailable ({type(error).__name__}); run setup-whisper.ps1.",
                   file=sys.stderr, flush=True)
 
+    def _progress(self, stage, completed, total):
+        self.progress = {"stage": stage, "completed": completed, "total": total, "unit": "files"}
+
+    def configure(self, values):
+        model = values.get("model", self.settings.model)
+        if model == "turbo":
+            model = "large-v3-turbo"
+        device = values.get("device", self.settings.device)
+        language = values.get("language", self.settings.language)
+        if model not in MODEL_REPOS or device not in ("auto", "cpu", "cuda"):
+            raise ValueError("invalid_model_or_device")
+        if not isinstance(language, str) or not language or len(language) > 24:
+            raise ValueError("invalid_language")
+        updated = replace(self.settings, model=model, device=device, language=language,
+            beam_size=max(1, min(10, int(values.get("beamSize", self.settings.beam_size)))),
+            vad_silence_ms=max(150, min(1500, int(values.get("vadSilenceMs", self.settings.vad_silence_ms)))),
+            cpu_threads=max(1, min(16, int(values.get("cpuThreads", self.settings.cpu_threads)))),
+            hotwords=str(values.get("hotwords", self.settings.hotwords))[:2000])
+        with self._load_lock:
+            if updated == self.settings and self.status in ("ready", "loading"):
+                return self.health()
+            if self._loader is not None and self._loader.is_alive():
+                raise RuntimeError("busy")
+            if not self.transcription_lock.acquire(blocking=False):
+                raise RuntimeError("busy")
+            try:
+                self.model = None
+                import gc
+                gc.collect()
+                self.settings = updated
+                self.device = "pending"
+                self.status = "loading"
+                self.error_code = ""
+                self.cancel_load = threading.Event()
+                self.started_at = time.monotonic()
+                self._loader = threading.Thread(target=self._load, name="MobTalk-Whisper-Load", daemon=True)
+                self._loader.start()
+            finally:
+                self.transcription_lock.release()
+        return self.health()
+
     def health(self):
         ready = self.model is not None
         status = "busy" if ready and self.transcription_lock.locked() else self.status
-        return {"ready": ready, "status": status, "model": self.settings.model, "device": self.device}
+        return {"protocol": 2, "ready": ready, "status": status, "model": self.settings.model, "device": self.device,
+            "configuredDevice": self.settings.device, "language": self.settings.language,
+            "beamSize": self.settings.beam_size, "vadSilenceMs": self.settings.vad_silence_ms,
+            "cpuThreads": self.settings.cpu_threads, "hotwords": self.settings.hotwords,
+            "progress": self.progress, "error": self.error_code,
+            "loadingSeconds": round(time.monotonic() - self.started_at, 1)}
 
-    def transcribe(self, body: bytes) -> str:
+    def transcribe(self, body: bytes, context: str = "") -> str:
         segments, info = self.model.transcribe(io.BytesIO(body), language=self.settings.language,
-            beam_size=1, temperature=0.0, vad_filter=True,
-            vad_parameters={"min_silence_duration_ms": 500}, condition_on_previous_text=False)
+            beam_size=self.settings.beam_size, temperature=0.0, vad_filter=True,
+            vad_parameters={"min_silence_duration_ms": self.settings.vad_silence_ms, "speech_pad_ms": 250},
+            condition_on_previous_text=False, hotwords=(self.settings.hotwords + ", " + context).strip(", "))
         if info.duration_after_vad <= 0:
             return ""
         return speech_text(segments)
@@ -206,10 +306,32 @@ def create_server(runtime: WhisperRuntime, port: int = 63919) -> ThreadingHTTPSe
         def do_GET(self):
             if self.path == "/health":
                 self.json_response(200, runtime.health())
+            elif self.path == "/models":
+                models = [{"id": model, "installed": any((runtime.settings.model_dir / ("models--" + repo.replace("/", "--"))).glob("snapshots/*/model.bin"))}
+                          for model, repo in MODEL_REPOS.items()]
+                self.json_response(200, {"models": models, "active": runtime.settings.model})
             else:
                 self.json_response(404, {"error": "not_found"})
 
         def do_POST(self):
+            if self.path == "/cancel-load":
+                runtime.cancel_load.set()
+                self.json_response(200, {"status": "cancelling"})
+                return
+            if self.path == "/configure":
+                try:
+                    size = int(self.headers.get("Content-Length", "0"))
+                    if not 0 < size <= 8192:
+                        raise ValueError("invalid_body")
+                    values = json.loads(self.rfile.read(size))
+                    if not isinstance(values, dict):
+                        raise ValueError("invalid_body")
+                    self.json_response(202, runtime.configure(values))
+                except (ValueError, TypeError):
+                    self.json_response(400, {"error": "invalid_settings"})
+                except RuntimeError:
+                    self.json_response(409, {"error": "busy"})
+                return
             if self.path != "/transcribe":
                 self.json_response(404, {"error": "not_found"})
                 return
@@ -241,11 +363,22 @@ def create_server(runtime: WhisperRuntime, port: int = 63919) -> ThreadingHTTPSe
                     self.json_response(400, {"error": "invalid_pcm16_wav"})
                     return
                 if audio.silent:
-                    self.json_response(200, {"text": ""})
+                    self.json_response(200, {"text": "", "model": runtime.settings.model, "device": runtime.device,
+                        "durationSeconds": audio.duration, "elapsedSeconds": 0.0})
                 elif runtime.model is None:
                     self.json_response(503, {"error": "model_" + runtime.status})
                 else:
-                    self.json_response(200, {"text": runtime.transcribe(body)})
+                    context = ""
+                    encoded = self.headers.get("X-MobTalk-Context", "")
+                    if len(encoded) <= 2048:
+                        try:
+                            context = base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)).decode("utf-8")[:500]
+                        except (ValueError, UnicodeError):
+                            pass
+                    started = time.monotonic()
+                    text = runtime.transcribe(body, context)
+                    self.json_response(200, {"text": text, "model": runtime.settings.model, "device": runtime.device,
+                        "elapsedSeconds": round(time.monotonic() - started, 3), "durationSeconds": audio.duration})
             except socket.timeout:
                 self.json_response(408, {"error": "body_timeout"})
             except Exception:
@@ -259,11 +392,14 @@ def create_server(runtime: WhisperRuntime, port: int = 63919) -> ThreadingHTTPSe
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=63919)
-    parser.add_argument("--model", default="small")
+    parser.add_argument("--model", default="large-v3")
     parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
     parser.add_argument("--language", default="ru")
     parser.add_argument("--model-dir", type=Path, default=default_model_directory())
     parser.add_argument("--cpu-threads", type=int, default=4)
+    parser.add_argument("--beam-size", type=int, default=5)
+    parser.add_argument("--vad-silence-ms", type=int, default=500)
+    parser.add_argument("--hotwords", default=Settings().hotwords)
     parser.add_argument("--preload", action="store_true", help="Load/cache model, report actual device, and exit")
     args = parser.parse_args()
     if not 1 <= args.port <= 65535 or not 1 <= args.cpu_threads <= 16:
@@ -271,7 +407,8 @@ def main() -> int:
     # Third-party messages must not log recognized speech or request data.
     logging.getLogger("faster_whisper").setLevel(logging.ERROR)
     logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
-    settings = Settings(args.model, args.device, args.language, args.model_dir, args.cpu_threads)
+    settings = Settings(args.model, args.device, args.language, args.model_dir, args.cpu_threads,
+        max(1, min(10, args.beam_size)), max(150, min(1500, args.vad_silence_ms)), args.hotwords)
     runtime = WhisperRuntime(settings)
     if args.preload:
         runtime._load()

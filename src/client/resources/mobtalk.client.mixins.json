@@ -1,0 +1,7 @@
+{
+  "required": true,
+  "package": "io.github.mobtalk.client.game.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": ["MobEntityAccessor", "MobInteractionMixin", "MerchantTradeMixin", "InstantHealingMixin", "HorseTamingMixin", "BrainMovementMixin", "HeardVibrationMixin"],
+  "injectors": { "defaultRequire": 1 }
+}

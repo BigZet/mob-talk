@@ -14,31 +14,60 @@ import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 import java.util.ArrayList;
 import java.util.List;
 
 /** Reuses an external local worker, and destroys only the process started by this instance. */
 final class WhisperProcess {
     private Process owned;
+    private volatile boolean initiatedLoad;
 
     void ensureAvailable(MobTalkConfig config, BooleanSupplier cancelled) throws IOException, InterruptedException {
+        ensureAvailable(config, cancelled, ignored -> { });
+    }
+
+    void ensureAvailable(MobTalkConfig config, BooleanSupplier cancelled, Consumer<String> progress) throws IOException, InterruptedException {
         Process started = null;
         try (HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(1)).build()) {
             JsonObject health = health(http, config.whisperUrl);
             checkCancelled(cancelled);
-            if (isReady(health)) return;
+            if (isReady(health) && matches(health, config)) { initiatedLoad = false; return; }
             if (health == null) {
                 if (!config.whisperAutoStart)
                     throw new IOException("Whisper не запущен: выполните scripts/setup-whisper.ps1 или включите whisperAutoStart");
                 started = launch(config, cancelled);
+                initiatedLoad = started != null;
+            } else if (!matches(health, config) || health.has("status")
+                    && List.of("cancelled", "error").contains(health.get("status").getAsString())) {
+                if (!health.has("protocol") || health.get("protocol").getAsInt() < 2)
+                    throw new IOException("Работает старый Whisper helper. Перезапустите игру или обновите scripts/setup-whisper.ps1.");
+                JsonObject settings = new JsonObject();
+                settings.addProperty("model", config.whisperModel);
+                settings.addProperty("device", config.whisperDevice);
+                settings.addProperty("language", config.whisperLanguage);
+                settings.addProperty("beamSize", config.whisperBeamSize);
+                settings.addProperty("vadSilenceMs", config.whisperVadSilenceMs);
+                settings.addProperty("cpuThreads", config.whisperCpuThreads);
+                settings.addProperty("hotwords", config.whisperHotwords);
+                var configure = HttpRequest.newBuilder(URI.create(config.whisperUrl + "/configure"))
+                        .timeout(Duration.ofSeconds(5)).header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(settings.toString())).build();
+                int code = http.send(configure, HttpResponse.BodyHandlers.discarding()).statusCode();
+                if (code == 409) throw new IOException("Whisper занят загрузкой или распознаванием. Дождитесь завершения или отмените текущую загрузку.");
+                if (code != 202) throw new IOException("Whisper не принял настройки модели.");
+                initiatedLoad = true;
             }
-            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(90);
+            long deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(30);
             while (System.nanoTime() < deadline) {
                 checkCancelled(cancelled);
                 health = health(http, config.whisperUrl);
-                if (isReady(health)) return;
+                if (isReady(health) && matches(health, config)) { initiatedLoad = false; return; }
+                if (health != null) progress.accept(progressText(health));
                 if (health != null && health.has("status") && "error".equals(health.get("status").getAsString()))
-                    throw new IOException("Whisper не загрузил модель: повторите scripts/setup-whisper.ps1");
+                    throw new IOException(health.has("error") && "gpu_out_of_memory".equals(health.get("error").getAsString())
+                            ? "Не хватает видеопамяти. Выберите large-v3-turbo, medium или CPU."
+                            : "Whisper не загрузил модель: проверьте CUDA и scripts/setup-whisper.ps1");
                 synchronized (this) {
                     if (owned != null && !owned.isAlive()) {
                         owned = null;
@@ -47,7 +76,7 @@ final class WhisperProcess {
                 }
                 Thread.sleep(250);
             }
-            throw new IOException("Whisper не готов за 90 секунд: проверьте setup-whisper.ps1 и whisperModel");
+            throw new IOException("Загрузка Whisper заняла более 30 минут. Проверьте доступ к huggingface.co.");
         } finally {
             // Cancellation can race with ProcessBuilder.start(); clean up this request's process as well.
             if (started != null && (cancelled.getAsBoolean() || Thread.currentThread().isInterrupted())) stop(started);
@@ -71,7 +100,11 @@ final class WhisperProcess {
         owned = new ProcessBuilder(python.toString(), script.toString(),
                 "--port", Integer.toString(port), "--model", config.whisperModel,
                 "--device", config.whisperDevice, "--language", config.whisperLanguage,
-                "--model-dir", directory.resolve("models").toString())
+                "--model-dir", directory.resolve("models").toString(),
+                "--cpu-threads", Integer.toString(config.whisperCpuThreads),
+                "--beam-size", Integer.toString(config.whisperBeamSize),
+                "--vad-silence-ms", Integer.toString(config.whisperVadSilenceMs),
+                "--hotwords", config.whisperHotwords)
                 .directory(directory.toFile())
                 .redirectOutput(ProcessBuilder.Redirect.DISCARD)
                 .redirectError(ProcessBuilder.Redirect.DISCARD)
@@ -113,6 +146,35 @@ final class WhisperProcess {
         return health != null && health.has("ready") && health.get("ready").getAsBoolean();
     }
 
+    private static boolean matches(JsonObject health, MobTalkConfig config) {
+        if (health == null || !health.has("model") || !config.whisperModel.equals(health.get("model").getAsString())) return false;
+        if (!health.has("protocol")) return "small".equals(config.whisperModel) && config.whisperBeamSize == 1;
+        return config.whisperDevice.equals(health.get("configuredDevice").getAsString())
+                && config.whisperLanguage.equals(health.get("language").getAsString())
+                && config.whisperBeamSize == health.get("beamSize").getAsInt()
+                && config.whisperVadSilenceMs == health.get("vadSilenceMs").getAsInt()
+                && config.whisperCpuThreads == health.get("cpuThreads").getAsInt()
+                && config.whisperHotwords.equals(health.get("hotwords").getAsString());
+    }
+
+    private static String progressText(JsonObject health) {
+        String model = health.has("model") ? health.get("model").getAsString() : "Whisper";
+        String stage = health.has("progress") ? health.getAsJsonObject("progress").get("stage").getAsString() : "loading";
+        String label = switch (stage) {
+            case "downloading" -> "Загрузка файлов";
+            case "loading_cuda" -> "Подготовка CUDA";
+            case "loading_cpu" -> "Подготовка CPU";
+            default -> "Подготовка модели";
+        };
+        String counts = "";
+        if (health.has("progress")) {
+            var value = health.getAsJsonObject("progress");
+            int total = value.get("total").getAsInt();
+            if (total > 0) counts = " (" + value.get("completed").getAsInt() + "/" + total + " файлов)";
+        }
+        return label + " " + model + counts;
+    }
+
     private static void checkCancelled(BooleanSupplier cancelled) throws InterruptedException {
         if (Thread.currentThread().isInterrupted() || cancelled.getAsBoolean()) throw new InterruptedException("Cancelled");
     }
@@ -122,6 +184,18 @@ final class WhisperProcess {
         owned = null;
         if (process == null) return;
         stop(process);
+    }
+
+    /** Worker-only cancellation of a load initiated by this object; unrelated helpers are left alone. */
+    void cancelLoading(MobTalkConfig config) {
+        if (!initiatedLoad) return;
+        initiatedLoad = false;
+        try (HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(1)).build()) {
+            JsonObject value = health(http, config.whisperUrl);
+            if (value != null && value.has("status") && "loading".equals(value.get("status").getAsString()))
+                http.send(HttpRequest.newBuilder(URI.create(config.whisperUrl + "/cancel-load"))
+                        .timeout(Duration.ofSeconds(2)).POST(HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.discarding());
+        } catch (IOException | InterruptedException unavailable) { }
     }
 
     private static void stop(Process process) {
