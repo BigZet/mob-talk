@@ -9,6 +9,7 @@ import io.github.mobtalk.core.ActionIntent;
 import io.github.mobtalk.core.ActionType;
 import io.github.mobtalk.core.ConversationStore;
 import io.github.mobtalk.core.MobCard;
+import io.github.mobtalk.core.OpenRouterConnection;
 import io.github.mobtalk.core.OpenRouterToken;
 import io.github.mobtalk.client.game.MobGameBridge;
 import net.fabricmc.api.ClientModInitializer;
@@ -256,6 +257,7 @@ public final class MobTalkClient implements ClientModInitializer {
 
     private void tick() {
         ticks++;
+        if (ticks % 200 == 0) keepConnectionWarm();
         updateWorld();
         ensureGameBridge();
         if (merchantScreen != null) {
@@ -316,7 +318,7 @@ public final class MobTalkClient implements ClientModInitializer {
 
     private void leaveWorld() {
         endMerchantSession("Мир сменился: торговый разговор отменён");
-        cancelWork("Выберите моба ПКМ палкой");
+        cancelWork("Выберите моба ПКМ палкой", true);
         selected = null;
         world = null;
         if (client.getServer() == null) releaseMemory();
@@ -327,9 +329,16 @@ public final class MobTalkClient implements ClientModInitializer {
         if (!mob.getUuid().equals(selected)) {
             cancelWork(readyStatus());
             selected = mob.getUuid();
+            keepConnectionWarm();
         }
         // Selecting the same UUID keeps its existing engine/profile/history.
         showHud();
+    }
+
+    /** Opens (or keeps open) the OpenRouter connection while a mob is selected, so the first reply skips the handshake. */
+    private void keepConnectionWarm() {
+        if (stopped || !configReady || !config.enabled || selected == null) return;
+        maintenance.execute(() -> OpenRouterConnection.keepWarm(configDirectory));
     }
 
     private void clearSelection(String reason) {
@@ -338,7 +347,11 @@ public final class MobTalkClient implements ClientModInitializer {
         showHud();
     }
 
-    private void cancelWork(String reason) {
+    private void cancelWork(String reason) { cancelWork(reason, false); }
+
+    /** Interrupting the worker cancels in-flight requests; the engine itself is kept across mob switches and trade windows,
+     * since rebuilding it reloads the key and relearns provider quirks. Settings, reloads and world changes drop it. */
+    private void cancelWork(String reason, boolean dropEngine) {
         generation++;
         if (actionRequest != null) actionRequest.completeExceptionally(new java.util.concurrent.CancellationException(reason));
         actionRequest = null;
@@ -351,8 +364,8 @@ public final class MobTalkClient implements ClientModInitializer {
         if (running != null) running.interrupt();
         WhisperClient oldWhisper = whisper;
         whisper = null;
-        ConversationEngine oldEngine = engine;
-        engine = null;
+        ConversationEngine oldEngine = dropEngine ? engine : null;
+        if (dropEngine) engine = null;
         if (!stopped && (oldWhisper != null || oldEngine != null)) maintenance.execute(() -> {
             if (oldWhisper != null) oldWhisper.close();
             if (oldEngine != null) oldEngine.close();
@@ -791,7 +804,7 @@ public final class MobTalkClient implements ClientModInitializer {
 
     private void openSettings(Screen parent) {
         if (stopped || reloading || parent instanceof MobTalkSettingsScreen) return;
-        cancelWork("Настройки Mob Talk");
+        cancelWork("Настройки Mob Talk", true);
         client.setScreen(new MobTalkSettingsScreen(parent, config.copy(), new MobTalkSettingsScreen.Controller() {
             @Override public void listMicrophones(java.util.function.Consumer<List<String>> callback) {
                 maintenance.execute(() -> {
@@ -809,7 +822,7 @@ public final class MobTalkClient implements ClientModInitializer {
                     return;
                 }
                 reloading = true;
-                cancelWork("Сохранение настроек…");
+                cancelWork("Сохранение настроек…", true);
                 MobTalkConfig snapshot = draft.copy();
                 maintenance.execute(() -> {
                     try {
@@ -876,7 +889,7 @@ public final class MobTalkClient implements ClientModInitializer {
     private void reload() {
         if (reloading || stopped) return;
         reloading = true;
-        cancelWork("Загрузка настроек…");
+        cancelWork("Загрузка настроек…", true);
         maintenance.execute(() -> {
             helper.stopOwned();
             try {
@@ -903,7 +916,7 @@ public final class MobTalkClient implements ClientModInitializer {
 
     private void shutdown() {
         if (stopped) return;
-        cancelWork("Остановлено");
+        cancelWork("Остановлено", true);
         stopped = true;
         microphone.close();
         pipeline.shutdownNow();

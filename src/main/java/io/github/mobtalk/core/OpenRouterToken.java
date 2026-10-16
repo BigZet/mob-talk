@@ -33,10 +33,16 @@ public final class OpenRouterToken {
     public static Status status(Path configDirectory) { return status(configDirectory, Environment.current()); }
 
     /** Saves the key from the settings menu: DPAPI-encrypted for the Windows user, else the local token file. */
-    public static void store(Path configDirectory, String key) throws IOException { store(configDirectory, key, Environment.current()); }
+    public static void store(Path configDirectory, String key) throws IOException {
+        OpenRouterConnection.forgetKey();
+        store(configDirectory, key, Environment.current());
+    }
 
     /** Removes keys the menu can manage; OPENROUTER_API_KEY stays under the user's control. */
-    public static void remove(Path configDirectory) throws IOException { remove(configDirectory, Environment.current()); }
+    public static void remove(Path configDirectory) throws IOException {
+        OpenRouterConnection.forgetKey();
+        remove(configDirectory, Environment.current());
+    }
 
     static Status status(Path configDirectory, Environment environment) {
         try {

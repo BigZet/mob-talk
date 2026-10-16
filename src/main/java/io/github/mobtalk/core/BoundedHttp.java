@@ -17,8 +17,14 @@ import java.util.concurrent.TimeoutException;
 
 /** Finite body sizes and deadlines also cover a stalled response stream. */
 final class BoundedHttp implements AutoCloseable {
-    private final HttpClient transport = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15))
+    /** One client for the whole game session: its HTTP/2 connection to OpenRouter survives engine rebuilds. A new
+     * connection costs seconds behind some local proxies (5.3 s measured), a reused one about 0.1 s. */
+    private static final HttpClient SHARED = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15))
             .followRedirects(HttpClient.Redirect.NEVER).build();
+    private static final java.util.concurrent.atomic.AtomicLong lastOpenRouterUse = new java.util.concurrent.atomic.AtomicLong(System.nanoTime() - Long.MAX_VALUE / 4);
+    private static final long KEEP_WARM_NANOS = TimeUnit.SECONDS.toNanos(10);
+    private final java.util.Set<CompletableFuture<?>> inFlight = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private volatile boolean closed;
     private final int timeoutSeconds;
 
     BoundedHttp(MobTalkConfig config) {
@@ -27,10 +33,30 @@ final class BoundedHttp implements AutoCloseable {
 
     Duration timeout() { return Duration.ofSeconds(timeoutSeconds); }
 
+    private <T> CompletableFuture<HttpResponse<T>> start(HttpRequest request, HttpResponse.BodyHandler<T> handler) throws IOException {
+        if (closed) throw new IOException("Запрос отменён.");
+        if ("openrouter.ai".equals(request.uri().getHost())) lastOpenRouterUse.set(System.nanoTime());
+        CompletableFuture<HttpResponse<T>> pending = SHARED.sendAsync(request, handler);
+        inFlight.add(pending);
+        pending.whenComplete((ignored, failure) -> inFlight.remove(pending));
+        if (closed) pending.cancel(true);
+        return pending;
+    }
+
+    /** Keeps the shared OpenRouter connection open between conversations: Java drops an idle one after about 30 s.
+     * A free key-info request, sent only when nothing else used the connection for a while. Never blocks the caller. */
+    static void keepWarm(String key) {
+        long now = System.nanoTime(), last = lastOpenRouterUse.get();
+        if (now - last < KEEP_WARM_NANOS || !lastOpenRouterUse.compareAndSet(last, now)) return;
+        HttpRequest ping = HttpRequest.newBuilder(java.net.URI.create("https://openrouter.ai/api/v1/key")).timeout(Duration.ofSeconds(20))
+                .header("Authorization", "Bearer " + key).GET().build();
+        SHARED.sendAsync(ping, HttpResponse.BodyHandlers.discarding());
+    }
+
     byte[] send(HttpRequest request, int maxBytes, String service) throws IOException, InterruptedException {
         CompletableFuture<HttpResponse<byte[]>> pending = null;
         try {
-            pending = transport.sendAsync(request, response -> new LimitedBody(response.statusCode(), maxBytes, service));
+            pending = start(request, response -> new LimitedBody(response.statusCode(), maxBytes, service));
             return pending.get(timeoutSeconds, TimeUnit.SECONDS).body();
         } catch (TimeoutException timeout) {
             throw new IOException(service + ": превышено время ожидания.");
@@ -49,7 +75,7 @@ final class BoundedHttp implements AutoCloseable {
     byte[] sendEvents(HttpRequest request, int maxBytes, String service, java.util.function.Consumer<String> events) throws IOException, InterruptedException {
         CompletableFuture<HttpResponse<byte[]>> pending = null;
         try {
-            pending = transport.sendAsync(request, response -> response.statusCode() == 200
+            pending = start(request, response -> response.statusCode() == 200
                     ? new EventBody(maxBytes, service, events) : new LimitedBody(response.statusCode(), maxBytes, service));
             return pending.get(timeoutSeconds, TimeUnit.SECONDS).body();
         } catch (TimeoutException timeout) {
@@ -112,7 +138,7 @@ final class BoundedHttp implements AutoCloseable {
     SpeechStream stream(HttpRequest request, int maxBytes, String service) throws IOException, InterruptedException {
         SpeechStream sink = new SpeechStream(maxBytes);
         CompletableFuture<Integer> headers = new CompletableFuture<>();
-        CompletableFuture<HttpResponse<Void>> pending = transport.sendAsync(request, response -> {
+        CompletableFuture<HttpResponse<Void>> pending = start(request, response -> {
             headers.complete(response.statusCode());
             return new StreamingBody(response.statusCode(), sink);
         });
@@ -136,7 +162,11 @@ final class BoundedHttp implements AutoCloseable {
         return sink;
     }
 
-    @Override public void close() { transport.shutdownNow(); }
+    /** Cancels this owner's requests only; the shared connection stays open for the next engine. */
+    @Override public void close() {
+        closed = true;
+        for (CompletableFuture<?> pending : java.util.List.copyOf(inFlight)) pending.cancel(true);
+    }
 
     private static final class StreamingBody implements HttpResponse.BodySubscriber<Void> {
         private final CompletableFuture<Void> body = new CompletableFuture<>();

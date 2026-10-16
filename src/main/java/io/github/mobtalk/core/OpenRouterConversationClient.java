@@ -139,8 +139,18 @@ final class OpenRouterConversationClient implements AutoCloseable {
         for (int correction = 0; ; correction++) {
             try { return parseAnswer(bytes, snapshot, words, profile.memory, memoryLimit); }
             catch (RejectedBargain invalid) {
-                if (correction >= 1 || deadline <= System.nanoTime())
+                if (correction >= 2 || deadline <= System.nanoTime())
                     throw new IOException("OpenRouter LLM не подтвердил допустимые условия торга. Цена не изменена; повторите предложение.");
+                if (correction == 1) {
+                    // Two invalid trades in a row: answer in character without bargaining instead of failing the conversation.
+                    messages.add(message("system", "Торг в этом ответе невозможен. Ответь по характеру без новой цены и без обещания скидки; "
+                            + "если игрок хочет другой товар, попроси выбрать его строку в окне торговли. bargain: type NONE, offerIndex -1, price 0."));
+                    if (!jsonObjectOnly) body.getAsJsonObject("response_format").getAsJsonObject("json_schema").getAsJsonObject("schema")
+                            .getAsJsonObject("properties").getAsJsonObject("bargain").getAsJsonObject("properties").getAsJsonObject("type").add("enum", strings("NONE"));
+                    // Speech for a rejected attempt was paid for nothing; corrections are voiced after their checks pass.
+                    bytes = send(body, deadline, ignored -> { });
+                    continue;
+                }
                 // Retry only this failed intent, once, within the original request deadline. Never voice or remember it.
                 messages.add(message("system", "Исправь предыдущий ответ: намерение торга не прошло игровую проверку. " + invalid.getMessage() + " "
                         + "Разрешённые типы bargain сейчас: " + permittedBargainTypes(snapshot) + ". "
@@ -148,7 +158,7 @@ final class OpenRouterConversationClient implements AutoCloseable {
                         + "Если игрок просит цену ниже minimumPrice, предложи minimumPrice через OFFER (price=minimumPrice) или откажи. "
                         + "Если допустимой уступки нет, верни NONE и объясни ограничение естественной репликой без обещания скидки и без слов об изменённой цене. "
                         + "DECLINE означает отказ, а OFFER — реальную уступку. price — итоговая цена, которую ты называешь. Верни полный JSON с исправленной репликой и newFacts."));
-                bytes = send(body, deadline, spoken);
+                bytes = send(body, deadline, ignored -> { });
             }
         }
     }
@@ -243,7 +253,7 @@ final class OpenRouterConversationClient implements AutoCloseable {
                 String type = string(requested, "type").toUpperCase(Locale.ROOT);
                 boolean ordinaryRefusal = "DECLINE".equals(type) && !tradingWindowOpen(snapshot);
                 if (!"NONE".equals(type) && bargain.type() == BargainIntent.Type.NONE && !ordinaryRefusal)
-                    throw new RejectedBargain(""); // Do not voice a promise whose price intent was rejected.
+                    throw new RejectedBargain(otherRow(requested, snapshot)); // Do not voice a promise whose price intent was rejected.
             }
             int unbacked = unbackedPrice(reply, bargain, snapshot);
             if (unbacked >= 0) throw new RejectedBargain("В реплике названа цена " + unbacked + ", но bargain её не применяет, и окно торговли её не покажет. "
@@ -359,6 +369,18 @@ final class OpenRouterConversationClient implements AutoCloseable {
         return List.of("NONE", "OFFER", "ACCEPT", "DECLINE");
     }
 
+    /** The usual reason in play: the player names a different good than the row selected in the trade window. */
+    private static String otherRow(JsonObject requested, MobSnapshot snapshot) {
+        try {
+            int asked = integer(requested, "offerIndex");
+            if (snapshot.mobDetails().get("bargaining") instanceof Map<?,?> context && context.get("selectedIndex") instanceof Number selected
+                    && asked != selected.intValue())
+                return "Ты пытался уступить по строке " + asked + ", а в окне выбрана строка " + selected + ": скидка возможна только по выбранной. "
+                        + "Если игрок говорит о другом товаре, попроси выбрать его строку в окне торговли и цену не называй.";
+        } catch (RuntimeException unreadable) { /* Fall back to the general correction. */ }
+        return "";
+    }
+
     private static final class RejectedBargain extends IOException { RejectedBargain(String hint) { super(hint); } }
 
     static final int FACTS_LIMIT = 300;
@@ -442,7 +464,8 @@ final class OpenRouterConversationClient implements AutoCloseable {
         String unit = context.get("firstBuy") instanceof Map<?,?> first ? String.valueOf(first.get("name")) : "предмет";
         String result = context.get("sell") instanceof Map<?,?> sell ? sell.get("count") + "× " + sell.get("name") : "товар";
         StringBuilder summary = new StringBuilder("\n\nТорг сейчас: выбран обмен ").append(context.get("vanillaCount")).append("× ").append(unit)
-                .append(" → ").append(result).append(". Другие строки торговли сейчас без скидки.");
+                .append(" → ").append(result).append(". Другие строки сейчас без скидки: если игрок просит о другом товаре, ")
+                .append("попроси выбрать его строку в окне торговли (bargain NONE, цену не называй).");
         if (context.get("state") instanceof Map<?,?> state && "ACCEPTED".equals(state.get("status")))
             summary.append(" Уже действует уступка: цена ").append(state.get("price")).append(".");
         boolean canOffer = context.get("allowedTypes") instanceof List<?> allowed && allowed.contains("OFFER");

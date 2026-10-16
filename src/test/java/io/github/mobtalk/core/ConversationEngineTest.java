@@ -634,8 +634,26 @@ class ConversationEngineTest {
             MobSnapshot villager = tradingMob("minecraft:villager", bargainingContext(true, Map.of("status", "NONE")));
             assertThrows(IOException.class, () -> engine.converse(villager, "Уступишь?"));
             assertEquals(0, speechCalls.get());
-            assertEquals(2, chatCalls.get(), "Only one corrective request is allowed");
+            assertEquals(3, chatCalls.get(), "Two corrections at most, the last one without bargaining");
             assertTrue(engine.memory().card(villager.id(), villager.playerId()).turns().isEmpty());
+        }
+    }
+
+    // Reported in game: the window had potatoes selected, the player asked about carrots, and the reply became an error.
+    @Test void asksToSelectTheOtherRowInsteadOfFailing() throws Exception {
+        queuedAnswers.add(tradingAnswer("Морковку отдам за двадцать.", "OFFER", 0, 2));
+        queuedAnswers.add(tradingAnswer("Ладно, морковь за двадцать.", "OFFER", 0, 2));
+        queuedAnswers.add(tradingAnswer("Морковь, говоришь? Выбери её в окне, тогда и поторгуемся.", "NONE", -1, 0));
+        try (ConversationEngine engine = engine()) {
+            MobSnapshot villager = tradingMob("minecraft:villager", bargainingContext(true, Map.of("status", "NONE")));
+            var answer = engine.converse(villager, "Мне интересна морковь");
+            assertEquals("Морковь, говоришь? Выбери её в окне, тогда и поторгуемся.", answer.responseText());
+            assertEquals(BargainIntent.none(), answer.bargain());
+            assertEquals(3, chatCalls.get());
+            var messages = lastRequest.get().getAsJsonArray("messages");
+            assertTrue(messages.get(messages.size() - 2).getAsJsonObject().get("content").getAsString().contains("строке 0"));
+            assertEquals("[\"NONE\"]", lastRequest.get().getAsJsonObject("response_format").getAsJsonObject("json_schema").getAsJsonObject("schema")
+                    .getAsJsonObject("properties").getAsJsonObject("bargain").getAsJsonObject("properties").getAsJsonObject("type").get("enum").toString());
         }
     }
 
