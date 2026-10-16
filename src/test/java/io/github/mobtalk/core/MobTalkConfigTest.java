@@ -69,6 +69,7 @@ class MobTalkConfigTest {
         unsafe.maxMemoryChars = 10000;
         unsafe.requestTimeoutSeconds = 100;
         unsafe.maxDistance = -10;
+        unsafe.rudeness = 9;
         unsafe.llmModel = null;
         unsafe.whisperModel = null;
         unsafe.whisperDevice = null;
@@ -89,6 +90,7 @@ class MobTalkConfigTest {
         unsafe.maxMemoryChars = -1;
         unsafe.requestTimeoutSeconds = -1;
         unsafe.maxDistance = Double.NaN;
+        unsafe.rudeness = -5;
         MobTalkConfig.save(file, unsafe);
         MobTalkConfig minimum = MobTalkConfig.load(file);
         assertEquals(1, minimum.maxRecordingSeconds);
@@ -97,6 +99,7 @@ class MobTalkConfigTest {
         assertEquals(200, minimum.maxMemoryChars);
         assertEquals(5, minimum.requestTimeoutSeconds);
         assertEquals(16, minimum.maxDistance);
+        assertEquals(0, minimum.rudeness);
     }
 
     private static MobTalkConfig customized() {
@@ -162,6 +165,7 @@ class MobTalkConfigTest {
         assertEquals(4000, config.maxMemoryChars);
         assertEquals(90, config.requestTimeoutSeconds);
         assertEquals(2, config.maxDistance);
+        assertEquals(3, config.rudeness);
         assertEquals("google/gemini-2.5-flash-lite", config.llmModel);
         assertEquals("large-v3", config.whisperModel);
         assertEquals("auto", config.whisperDevice);

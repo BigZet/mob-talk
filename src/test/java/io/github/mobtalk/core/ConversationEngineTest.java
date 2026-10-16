@@ -541,6 +541,39 @@ class ConversationEngineTest {
         return answer;
     }
 
+    private String systemPrompt() {
+        return lastRequest.get().getAsJsonArray("messages").get(0).getAsJsonObject().get("content").getAsString();
+    }
+
+    // Haggling rules belong only to a villager that really sells something; the chosen rudeness level reaches the model.
+    @Test void sendsTradeRulesOnlyToSellingVillagersAndAppliesRudeness() throws Exception {
+        config.rudeness = 0;
+        try (ConversationEngine engine = engine()) {
+            engine.converse(cow(UUID.randomUUID()), "Привет");
+            assertTrue(systemPrompt().contains("bargain всегда"));
+            assertFalse(systemPrompt().contains("Голосовой торг"));
+            assertTrue(systemPrompt().contains("без мата"));
+            assertTrue(lastRequest.get().getAsJsonArray("messages").asList().getLast().getAsJsonObject()
+                    .get("content").getAsString().startsWith("Игрок говорит тебе: «Привет»"));
+
+            MobSnapshot base = tradingMob("minecraft:villager", bargainingContext(false, Map.of("status", "NONE")));
+            engine.converse(base, "Как торговля?");
+            assertTrue(systemPrompt().contains("bargain всегда"), "A villager without goods must not haggle");
+
+            MobSnapshot seller = new MobSnapshot(base.id(), base.type(), base.name(), base.health(), base.maxHealth(), base.dimension(),
+                    base.biome(), base.timeOfDay(), base.weather(), base.distance(), base.heldItem(), base.nearby(), base.recentEvents(),
+                    base.playerId(), Map.of(), Map.of("bargaining", bargainingContext(false, Map.of("status", "NONE")),
+                    "offers", List.of(Map.of("buy", Map.of("id", "minecraft:stick", "count", 32)))), Map.of(), List.of(),
+                    List.of(ActionType.NONE), 0);
+            engine.converse(seller, "Уступишь?");
+            assertTrue(systemPrompt().contains("открыл окно торговли"));
+            assertFalse(systemPrompt().contains("Голосовой торг"));
+
+            engine.converse(tradingMob("minecraft:villager", bargainingContext(true, Map.of("status", "NONE"))), "Уступишь?");
+            assertTrue(systemPrompt().contains("Голосовой торг"));
+        }
+    }
+
     // A real Flash Lite response proposed an unavailable concession despite refusing it in the spoken text.
     @Test void repairsAnInvalidTradeOnceBeforeSpeechAndHistory() throws Exception {
         queuedAnswers.add(tradingAnswer("Двадцать девять? Нет, тридцать две — моя цена.", "OFFER", 1, 3));

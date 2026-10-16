@@ -138,6 +138,11 @@ final class MobTalkSettingsScreen extends Screen {
         header("mobtalk.settings.section.conversation");
         wide(toggle("mobtalk.settings.enabled", draft.enabled, value -> draft.enabled = value),
                 button("mobtalk.settings.commonPrompt", ignored -> edit("mobtalk.settings.commonPrompt", draft.commonPrompt, 8000, value -> draft.commonPrompt = value, "")));
+        CyclingButtonWidget<Integer> rudeness = track(CyclingButtonWidget.<Integer>builder(value -> Text.translatable("mobtalk.settings.rudeness." + value))
+                .values(0, 1, 2, 3).initially(Math.max(0, Math.min(3, draft.rudeness)))
+                .build(0, 0, 100, 20, Text.translatable("mobtalk.settings.rudeness"), (button, value) -> draft.rudeness = value));
+        rudeness.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.rudeness.tooltip")));
+        wide(rudeness);
         wide(slider("mobtalk.settings.reply", 5, 120, draft.maxReplyWords, value -> draft.maxReplyWords = value));
         wide(track(new IntegerSlider("mobtalk.settings.distance", 2, 64, draft.maxDistance, value -> draft.maxDistance = value)));
         wide(slider("mobtalk.settings.recording", 1, 15, draft.maxRecordingSeconds, value -> draft.maxRecordingSeconds = value));

@@ -27,6 +27,8 @@ public final class MobTalkConfig {
     public int whisperCpuThreads = 4;
     public String whisperHotwords = "Minecraft, Майнкрафт, крипер, зомби, скелет, пиглин, эндермен, варден, тихоня, нюхач, лавомерка";
     public String commonPrompt = "";
+    /** 0 — без мата, 1 — грубовато, 2 — мат моментами, 3 — без тормозов. */
+    public int rudeness = 2;
     public Map<String, SpeciesCatalog.Override> speciesOverrides = new LinkedHashMap<>();
     public int maxRecordingSeconds = 15;
     public int maxReplyWords = 45;
@@ -53,6 +55,7 @@ public final class MobTalkConfig {
         copy.whisperCpuThreads = whisperCpuThreads;
         copy.whisperHotwords = whisperHotwords;
         copy.commonPrompt = commonPrompt;
+        copy.rudeness = rudeness;
         copy.speciesOverrides = new LinkedHashMap<>();
         if (speciesOverrides != null) speciesOverrides.forEach((type, value) -> {
             if (value == null) return;
@@ -119,6 +122,7 @@ public final class MobTalkConfig {
         config.whisperCpuThreads = Math.max(1, Math.min(16, config.whisperCpuThreads));
         config.whisperHotwords = TextBounds.characters(config.whisperHotwords, 2000);
         config.commonPrompt = config.commonPrompt == null ? "" : config.commonPrompt.strip();
+        config.rudeness = Math.max(0, Math.min(3, config.rudeness));
         if (config.speciesOverrides == null) config.speciesOverrides = new LinkedHashMap<>();
         config.requestTimeoutSeconds = Math.max(5, Math.min(90, config.requestTimeoutSeconds));
         config.maxDistance = Double.isFinite(config.maxDistance) ? Math.max(2, Math.min(64, config.maxDistance)) : 16;
