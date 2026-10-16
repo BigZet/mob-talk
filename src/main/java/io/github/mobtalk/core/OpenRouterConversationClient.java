@@ -335,7 +335,8 @@ final class OpenRouterConversationClient implements AutoCloseable {
         boolean canOffer = context.get("allowedTypes") instanceof List<?> allowed && allowed.contains("OFFER");
         if (canOffer && context.get("maximumDiscount") instanceof Number maximum && maximum.intValue() > 0)
             summary.append(" Уступить можно на 1–").append(maximum).append(" (цена не ниже ").append(context.get("minimumPrice")).append(" ").append(unit)
-                    .append(") и только через OFFER. Любая другая цена невозможна.");
+                    .append(") и только через OFFER. За один раз цена падает не больше чем вдвое; за все шаги не ниже ").append(context.get("floorPrice"))
+                    .append(". Любая другая цена невозможна. Сколько уступать — решай по характеру и отношению, не обязательно сразу максимум.");
         else summary.append(" Новую цену назвать нельзя: ").append(context.get("reason")).append(".");
         return summary.toString();
     }

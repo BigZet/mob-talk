@@ -3,11 +3,14 @@ package io.github.mobtalk.core;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Pure rules for a small, single-use concession on the first ingredient of an existing trade.
- * A villager's OFFER takes effect at once; PENDING only remains for quotes saved by 0.2.5. */
+/** Pure rules for a single-use concession on the first ingredient of an existing trade.
+ * One OFFER may at most halve the price currently charged; all rounds together stop at 10% of the original quantity.
+ * Rounding always favours the buyer. A villager's OFFER takes effect at once; PENDING only remains for quotes saved by 0.2.5. */
 public final class Bargaining {
     public static final long QUOTE_TICKS = 6000, COOLDOWN_TICKS = 24000;
     public static final int MAX_ROUNDS = 3;
+    /** At or below this relationship the villager refuses any concession. */
+    public static final int HOSTILE_RELATIONSHIP = -40;
     public enum Status { PENDING, ACCEPTED, CONSUMED, DECLINED, EXPIRED }
     public record Offer(int index, String key, int baseCount, int vanillaCount, int maxStack, boolean available) { }
     public record Session(String key, int offerIndex, int vanillaCount, int price, int discount, int rounds,
@@ -23,7 +26,7 @@ public final class Bargaining {
         if (offer == null || offer.index < 0 || offer.key == null || offer.key.isBlank())
             return new Availability(List.of(BargainIntent.Type.NONE), "Выберите доступную строку торговли заново");
         Decision proposal = negotiate(previous, offer, relationship,
-                new BargainIntent(BargainIntent.Type.OFFER, offer.index, Math.max(1, maximumDiscount(offer, relationship))), tick);
+                new BargainIntent(BargainIntent.Type.OFFER, offer.index, Math.max(1, maximumDiscount(offer, relationship, currentPrice(previous, offer, tick)))), tick);
         Decision acceptance = negotiate(previous, offer, relationship, new BargainIntent(BargainIntent.Type.ACCEPT, offer.index, 0), tick);
         Decision refusal = negotiate(previous, offer, relationship, new BargainIntent(BargainIntent.Type.DECLINE, offer.index, 0), tick);
         boolean canOffer = reaches(proposal, Status.ACCEPTED), canAccept = reaches(acceptance, Status.ACCEPTED);
@@ -41,11 +44,24 @@ public final class Bargaining {
         return decision.changed && decision.session != null && decision.session.status == status;
     }
 
-    public static int maximumDiscount(Offer offer, int relationship) {
-        if (!valid(offer) || relationship < 0) return 0;
-        long originalFloor = (offer.baseCount * 9L + 9) / 10;
-        int maximum = (int) Math.max(0, Math.min(3, Math.min(offer.vanillaCount / 10, offer.vanillaCount - originalFloor)));
-        return relationship < 30 ? Math.min(1, maximum) : maximum;
+    /** The lowest price any negotiation may reach: 90% off the original quantity, rounded down, never below one item. */
+    public static int floorPrice(Offer offer) { return Math.max(1, offer.baseCount / 10); }
+    /** The price the window charges now: an applied concession, otherwise the vanilla price. */
+    public static int currentPrice(Session session, Offer offer, long tick) {
+        return session != null && session.status == Status.ACCEPTED && valid(offer) && sameTrade(session, offer)
+                && session.vanillaCount == offer.vanillaCount && tick < session.expiresTick ? session.price : offer.vanillaCount;
+    }
+    /** Largest discount from vanillaCount that the next OFFER may set when starting from the vanilla price. */
+    public static int maximumDiscount(Offer offer, int relationship) { return maximumDiscount(offer, relationship, offer == null ? 0 : offer.vanillaCount); }
+    /** One step may at most halve the current price (half rounded down), and never go below floorPrice. */
+    public static int maximumDiscount(Offer offer, int relationship, int currentPrice) {
+        if (!valid(offer) || relationship <= HOSTILE_RELATIONSHIP) return 0;
+        int lowest = Math.max(floorPrice(offer), Math.min(currentPrice, offer.vanillaCount) / 2);
+        return Math.max(0, offer.vanillaCount - lowest);
+    }
+    /** Whether an already agreed discount still fits the overall limit for this trade and relationship. */
+    public static boolean permitted(Offer offer, int relationship, int discount) {
+        return valid(offer) && relationship > HOSTILE_RELATIONSHIP && discount >= 1 && offer.vanillaCount - discount >= floorPrice(offer);
     }
     public static Decision negotiate(Session previous, Offer offer, int relationship, BargainIntent intent, long tick) {
         if (intent == null || intent.type() == BargainIntent.Type.NONE) return unchanged(previous, "");
@@ -62,8 +78,8 @@ public final class Bargaining {
             return new Decision(invalidate(current, Status.EXPIRED), "Условия сделки изменились; прежняя уступка снята", true);
         if (intent.type() == BargainIntent.Type.DECLINE && active(current))
             return new Decision(invalidate(current, Status.DECLINED), "Переговоры закончены; обычная торговля остаётся доступна", true);
-        int maximum = maximumDiscount(offer, relationship);
-        if (maximum == 0) {
+        int maximum = maximumDiscount(offer, relationship, currentPrice(current, offer, tick));
+        if (maximumDiscount(offer, relationship) == 0) {
             if (active(current)) return new Decision(invalidate(current, Status.EXPIRED), "Уступка больше недоступна", true);
             return unchanged(previous, "В этой сделке нет доступной уступки с учётом цены и отношения");
         }
@@ -76,7 +92,7 @@ public final class Bargaining {
         if (intent.type() == BargainIntent.Type.ACCEPT) {
             if (current != null && current.status == Status.ACCEPTED) return unchanged(previous, "Цена уже действует в окне торговли");
             if (current == null || current.status != Status.PENDING) return unchanged(previous, "Нет предложения, которое можно принять");
-            if (current.discount <= 0 || current.discount > maximum || current.price != offer.vanillaCount - current.discount)
+            if (!permitted(offer, relationship, current.discount) || current.price != offer.vanillaCount - current.discount)
                 return new Decision(invalidate(current, Status.EXPIRED), "Условия предложения больше недействительны", true);
             return new Decision(invalidate(current, Status.ACCEPTED), "Договорились: " + current.price
                     + " вместо " + current.vanillaCount + " единиц первого предмета, на один обмен", true);
@@ -84,7 +100,8 @@ public final class Bargaining {
         if (active(current) && current.rounds >= MAX_ROUNDS)
             return unchanged(previous, current.status == Status.ACCEPTED ? "Житель уже назвал последнюю цену, она действует в окне торговли"
                     : "Житель назвал последнюю цену; можно принять её или отказаться");
-        if (intent.discount() <= 0 || intent.discount() > maximum) return unchanged(previous, "Предложенная уступка выходит за пределы этой сделки");
+        if (intent.discount() <= 0 || intent.discount() > maximum) return unchanged(previous, "Предложенная уступка выходит за пределы: за раз цена падает не больше чем вдвое, всего не ниже "
+                + floorPrice(offer));
         boolean continuing = active(current);
         Session applied = new Session(offer.key, offer.index, offer.vanillaCount, offer.vanillaCount - intent.discount(), intent.discount(),
                 continuing ? current.rounds + 1 : 1, continuing ? current.openedTick : tick,
@@ -95,7 +112,7 @@ public final class Bargaining {
     public static int acceptedPrice(Session session, Offer offer, long tick) {
         if (session == null || session.status != Status.ACCEPTED || !valid(offer) || !sameTrade(session, offer)
                 || tick < session.openedTick || tick >= session.expiresTick || session.vanillaCount != offer.vanillaCount
-                || session.discount <= 0 || session.discount > maximumDiscount(offer, 100)
+                || !permitted(offer, 100, session.discount)
                 || session.price != offer.vanillaCount - session.discount || session.price < 1) return -1;
         return session.price;
     }

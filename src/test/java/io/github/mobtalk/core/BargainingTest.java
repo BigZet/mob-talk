@@ -8,24 +8,38 @@ class BargainingTest {
     private Bargaining.Offer offer(int base, int price) { return new Bargaining.Offer(2, "sticks-for-emerald", base, price, 64, true); }
     private BargainIntent intent(BargainIntent.Type type, int discount) { return new BargainIntent(type, 2, discount); }
 
-    // The first ingredient may be sticks or emeralds; integer rounding must never exceed ten percent.
-    @Test void capsAnyInputQuantityWithoutRoundingUpCheapTrades() {
-        assertEquals(3, Bargaining.maximumDiscount(offer(32, 32), 60));
-        assertEquals(2, Bargaining.maximumDiscount(offer(20, 20), 60));
-        assertEquals(1, Bargaining.maximumDiscount(offer(10, 10), 60));
-        assertEquals(0, Bargaining.maximumDiscount(offer(9, 9), 60));
+    // One step at most halves the price (rounded down for the buyer); a negative but not hostile relationship still bargains.
+    @Test void oneStepAtMostHalvesThePriceInTheBuyersFavour() {
+        assertEquals(16, Bargaining.maximumDiscount(offer(32, 32), 60));
+        assertEquals(11, Bargaining.maximumDiscount(offer(22, 22), 0));
+        assertEquals(8, Bargaining.maximumDiscount(offer(15, 15), -10));
+        assertEquals(5, Bargaining.maximumDiscount(offer(9, 9), 60));
         assertEquals(0, Bargaining.maximumDiscount(offer(1, 1), 60));
-        assertEquals(3, Bargaining.maximumDiscount(offer(64, 64), 60));
-        assertEquals(1, Bargaining.maximumDiscount(offer(32, 32), 0));
-        assertEquals(0, Bargaining.maximumDiscount(offer(32, 32), -10));
+        assertEquals(0, Bargaining.maximumDiscount(offer(32, 32), Bargaining.HOSTILE_RELATIONSHIP));
     }
 
-    // Existing vanilla discounts consume the same ten-percent floor rather than stacking a new ten percent.
-    @Test void respectsVanillaDiscountsAndDoesNotResetDemand() {
-        assertEquals(1, Bargaining.maximumDiscount(offer(32, 30), 60));
-        assertEquals(0, Bargaining.maximumDiscount(offer(32, 29), 60));
-        assertEquals(0, Bargaining.maximumDiscount(offer(40, 30), 60));
-        assertEquals(3, Bargaining.maximumDiscount(offer(32, 45), 60));
+    // Reported limits: 22 carrots go 11 -> 5 -> 2, never below 10% of the original quantity rounded down.
+    @Test void stepsTogetherStopAtNinetyPercentOff() {
+        var trade = offer(22, 22);
+        assertFalse(Bargaining.negotiate(null, trade, 0, intent(OFFER, 12), 100).changed());
+        var first = Bargaining.negotiate(null, trade, 0, intent(OFFER, 11), 100).session();
+        assertEquals(11, Bargaining.acceptedPrice(first, trade, 101));
+        assertFalse(Bargaining.negotiate(first, trade, 0, intent(OFFER, 18), 200).changed());
+        var second = Bargaining.negotiate(first, trade, 0, intent(OFFER, 17), 200).session();
+        assertEquals(5, second.price());
+        var third = Bargaining.negotiate(second, trade, 0, intent(OFFER, 20), 300).session();
+        assertEquals(2, Bargaining.acceptedPrice(third, trade, 301));
+        assertEquals(2, Bargaining.floorPrice(trade));
+        assertEquals(3, Bargaining.floorPrice(offer(32, 32)));
+        assertEquals(1, Bargaining.floorPrice(offer(9, 9)));
+    }
+
+    // Existing vanilla discounts and demand change the starting point, never the floor of the original quantity.
+    @Test void respectsVanillaDiscountsAndDemand() {
+        assertEquals(15, Bargaining.maximumDiscount(offer(32, 30), 60));
+        assertEquals(23, Bargaining.maximumDiscount(offer(32, 45), 60));
+        assertEquals(1, Bargaining.maximumDiscount(offer(40, 5), 60));
+        assertEquals(0, Bargaining.maximumDiscount(offer(40, 4), 60));
     }
 
     // The villager agreeing must change the window at once; a second spoken "yes" was the reported bug.
@@ -87,13 +101,13 @@ class BargainingTest {
         assertFalse(Bargaining.negotiate(null, trade, 60, intent(OFFER, -1), 100).changed());
         assertFalse(Bargaining.negotiate(null, trade, 60, new BargainIntent(OFFER, 7, 1), 100).changed());
         assertFalse(Bargaining.negotiate(null, trade, 60, intent(ACCEPT, 0), 100).changed());
-        assertFalse(Bargaining.negotiate(null, offer(9, 9), 60, intent(OFFER, 1), 100).changed());
+        assertFalse(Bargaining.negotiate(null, offer(1, 1), 60, intent(OFFER, 1), 100).changed());
     }
 
     @Test void anAngryVillagerCanRefuseAnExistingProposalWithoutLeavingItUsable() {
         var trade = offer(32, 32);
         var pending = Bargaining.negotiate(null, trade, 60, intent(OFFER, 3), 100).session();
-        var refused = Bargaining.negotiate(pending, trade, -10, intent(DECLINE, 0), 200);
+        var refused = Bargaining.negotiate(pending, trade, -50, intent(DECLINE, 0), 200);
         assertTrue(refused.changed());
         assertEquals(Bargaining.Status.DECLINED, refused.session().status());
         assertEquals(-1, Bargaining.acceptedPrice(refused.session(), trade, 201));
@@ -127,10 +141,10 @@ class BargainingTest {
     }
 
     @Test void availabilityPermitsRefusalWithoutAnyDiscountCapacity() {
-        assertEquals(java.util.List.of(NONE, DECLINE), Bargaining.availability(null, offer(9, 9), 60, 100).allowedTypes());
-        assertEquals(java.util.List.of(NONE, DECLINE), Bargaining.availability(null, offer(32, 32), -10, 100).allowedTypes());
+        assertEquals(java.util.List.of(NONE, DECLINE), Bargaining.availability(null, offer(1, 1), 60, 100).allowedTypes());
+        assertEquals(java.util.List.of(NONE, DECLINE), Bargaining.availability(null, offer(32, 32), -50, 100).allowedTypes());
         var pending = Bargaining.negotiate(null, offer(32, 32), 60, intent(OFFER, 3), 100).session();
-        assertEquals(java.util.List.of(NONE, DECLINE), Bargaining.availability(pending, offer(32, 32), -10, 200).allowedTypes());
+        assertEquals(java.util.List.of(NONE, DECLINE), Bargaining.availability(pending, offer(32, 32), -50, 200).allowedTypes());
     }
 
     @Test void availabilityExpiresActiveTermsAndAllowsANewQuoteOnlyAfterCooldown() {

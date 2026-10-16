@@ -93,7 +93,7 @@ public final class VillagerBargaining {
         }
         Bargaining.Offer offer = describe(villager, window.index(), window.offer());
         int attitude = relationship(villager, player);
-        int maximum = bridge.config.enabled ? Bargaining.maximumDiscount(offer, attitude) : 0;
+        int maximum = bridge.config.enabled ? Bargaining.maximumDiscount(offer, attitude, Bargaining.currentPrice(session, offer, tick)) : 0;
         Bargaining.Availability availability = bridge.config.enabled ? Bargaining.availability(session, offer, attitude, tick)
                 : new Bargaining.Availability(List.of(BargainIntent.Type.NONE), "Торг отключён вместе с Mob Talk");
         List<Integer> allowed = new ArrayList<>();
@@ -106,6 +106,7 @@ public final class VillagerBargaining {
         // Price options alone do not permit another OFFER after the round limit, acceptance, or cooldown.
         result.put("allowedPrices", List.copyOf(allowed));
         result.put("minimumPrice", offer.vanillaCount() - maximum);
+        result.put("floorPrice", Bargaining.floorPrice(offer));
         result.put("allowedTypes", availability.allowedTypes().stream().map(Enum::name).toList());
         result.put("reason", availability.reason());
         result.put("firstBuy", item(window.offer().getOriginalFirstBuyItem()));
@@ -200,7 +201,7 @@ public final class VillagerBargaining {
         Bargaining.Session current = session(overlay.villager(), overlay.player(), tick);
         Bargaining.Offer offer = describe(overlay.villager(), overlay.index(), overlay.offer());
         return current != null && Bargaining.acceptedPrice(current, offer, tick) == overlay.price()
-                && Bargaining.maximumDiscount(offer, relationship(overlay.villager(), overlay.player())) >= current.discount()
+                && Bargaining.permitted(offer, relationship(overlay.villager(), overlay.player()), current.discount())
                 && overlay.offer().getDisplayedFirstBuyItem().getCount() == overlay.price();
     }
 
@@ -211,7 +212,7 @@ public final class VillagerBargaining {
         TradeOffer trade = villager.getOffers().get(session.offerIndex());
         Bargaining.Offer offer = describe(villager, session.offerIndex(), trade);
         int price = Bargaining.acceptedPrice(session, offer, tick);
-        if (price < 1 || Bargaining.maximumDiscount(offer, relationship(villager, player)) < session.discount()) {
+        if (price < 1 || !Bargaining.permitted(offer, relationship(villager, player), session.discount())) {
             expire(villager, player); refresh(villager, player); return false;
         }
         int special = trade.getSpecialPrice();
