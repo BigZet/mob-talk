@@ -22,6 +22,8 @@ final class OpenRouterSpeechClient implements AutoCloseable {
         this.http = new BoundedHttp(config);
     }
 
+    java.time.Duration timeout() { return http.timeout(); }
+
     static boolean validVoiceId(String voiceId) { return voiceId != null && voiceId.strip().matches("[A-Za-z0-9]{20,64}"); }
     String selectedVoice(String preferred) { return validVoiceId(preferred) ? preferred.strip() : ""; }
 
@@ -46,7 +48,35 @@ final class OpenRouterSpeechClient implements AutoCloseable {
         }
     }
 
+    /** Same voice fallback as synthesizeWithFallback; returns as soon as the audio starts arriving. */
+    StreamedAudio streamWithFallback(String preferred, String reserve, String text) throws IOException, InterruptedException {
+        if (preferred == null || preferred.isBlank()) throw new IOException("Для этого характера голос ещё не назначен.");
+        String selected = selectedVoice(preferred), replacement = selectedVoice(reserve);
+        if (selected.isBlank()) {
+            if (replacement.isBlank()) throw new IOException("Для этого характера нет допустимого видового голоса.");
+            return new StreamedAudio(replacement, stream(replacement, text));
+        }
+        try { return new StreamedAudio(selected, stream(selected, text)); }
+        catch (IOException failure) {
+            String message = failure.getMessage();
+            if (replacement.isBlank() || selected.equals(replacement) || message == null
+                    || !(message.contains("HTTP 400") || message.contains("HTTP 404") || message.contains("HTTP 422"))) throw failure;
+            return new StreamedAudio(replacement, stream(replacement, text));
+        }
+    }
+
+    /** OpenRouter forwards Eleven's PCM as it is generated: the first bytes come long before the last. */
+    SpeechStream stream(String voiceId, String text) throws IOException, InterruptedException {
+        return http.stream(request(voiceId, text), MAX_AUDIO_BYTES, "OpenRouter TTS");
+    }
+
     byte[] synthesize(String voiceId, String text) throws IOException, InterruptedException {
+        byte[] pcm = http.send(request(voiceId, text), MAX_AUDIO_BYTES, "OpenRouter TTS");
+        if (pcm.length == 0 || (pcm.length & 1) != 0) throw new IOException("OpenRouter TTS вернул неверный PCM звук.");
+        return pcm;
+    }
+
+    private HttpRequest request(String voiceId, String text) throws IOException {
         if (!validVoiceId(voiceId) || text == null || text.isBlank())
             throw new IOException("Для озвучки нужны голос и текст.");
         JsonObject body = new JsonObject();
@@ -61,15 +91,13 @@ final class OpenRouterSpeechClient implements AutoCloseable {
         JsonObject provider = new JsonObject();
         provider.add("options", options);
         body.add("provider", provider);
-        HttpRequest request = HttpRequest.newBuilder(endpoint).timeout(http.timeout())
+        return HttpRequest.newBuilder(endpoint).timeout(http.timeout())
                 .header("Authorization", "Bearer " + key).header("Content-Type", "application/json")
                 .header("Accept", "audio/pcm")
                 .POST(HttpRequest.BodyPublishers.ofString(body.toString(), StandardCharsets.UTF_8)).build();
-        byte[] pcm = http.send(request, MAX_AUDIO_BYTES, "OpenRouter TTS");
-        if (pcm.length == 0 || (pcm.length & 1) != 0) throw new IOException("OpenRouter TTS вернул неверный PCM звук.");
-        return pcm;
     }
 
     @Override public void close() { http.close(); }
     record Audio(String voiceId, byte[] pcm) { }
+    record StreamedAudio(String voiceId, SpeechStream stream) { }
 }

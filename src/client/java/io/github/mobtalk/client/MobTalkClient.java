@@ -499,7 +499,8 @@ public final class MobTalkClient implements ClientModInitializer {
                 ConversationEngine localEngine = ensureEngine(request);
                 checkCurrent(request);
                 ConversationEngine.PreparedReply prepared = localEngine.prepare(snapshot, question);
-                checkCurrent(request);
+                try { checkCurrent(request); }
+                catch (InterruptedException cancelled) { prepared.reply().discardSpeech(); throw cancelled; }
                 Request observed = new Request(request.generation, request.target, request.worldDirectory, request.config,
                         snapshot, request.server, request.player, request.dimension, request.mobName, request.merchant);
                 client.execute(() -> deliver(observed, localEngine, prepared));
@@ -542,10 +543,11 @@ public final class MobTalkClient implements ClientModInitializer {
     }
 
     private void deliver(Request request, ConversationEngine localEngine, ConversationEngine.PreparedReply prepared) {
-        if (!isCurrent(request)) return;
         ConversationEngine.Reply reply = prepared.reply();
+        if (!isCurrent(request)) { reply.discardSpeech(); return; }
         MobGameBridge game = MobGameBridge.active(request.server);
         if (game == null || game.memory.revision(request.target) != reply.interactionRevision()) {
+            reply.discardSpeech();
             status = "Отношение моба изменилось: задайте вопрос ещё раз";
             if (actionRequest != null) actionRequest.completeExceptionally(new java.util.concurrent.CancellationException(status));
             actionRequest = null; showHud(); return;
@@ -557,9 +559,10 @@ public final class MobTalkClient implements ClientModInitializer {
             return game.applyWithRevision(request.target, request.player, request.dimension, reply.action(), reply.bargain(), request.snapshot,
                     reply.interactionRevision(), () -> generation == request.generation);
         }).whenComplete((delivery, error) -> client.execute(() -> {
-            if (!isCurrent(request)) return;
-            if (error != null) { reportFailure(request, error); return; }
+            if (!isCurrent(request)) { reply.discardSpeech(); return; }
+            if (error != null) { reply.discardSpeech(); reportFailure(request, error); return; }
             if (!localEngine.commitDelivered(prepared, delivery.revision())) {
+                reply.discardSpeech();
                 status = "Отношение моба изменилось: ответ отменён";
                 if (actionRequest != null) actionRequest.completeExceptionally(new java.util.concurrent.CancellationException(status));
                 actionRequest = null; showHud(); return;
@@ -573,9 +576,8 @@ public final class MobTalkClient implements ClientModInitializer {
         chat("Вы: " + reply.recognizedText());
         chat(reply.speakerName() + ": " + reply.responseText());
         stopSpeech();
-        byte[] pcm = reply.pcm();
-        if (pcm != null && pcm.length > 0 && (pcm.length & 1) == 0) {
-            speech = new MobSpeechSound(client, world, selected, request.config.maxDistance, pcm);
+        if (reply.speech() != null) {
+            speech = new MobSpeechSound(client, world, selected, request.config.maxDistance, reply.speech());
             client.getSoundManager().play(speech);
             status = "Говорит…";
         } else {

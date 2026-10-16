@@ -1,5 +1,6 @@
 package io.github.mobtalk.client;
 
+import io.github.mobtalk.core.SpeechStream;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.sound.AudioStream;
 import net.minecraft.client.sound.MovingSoundInstance;
@@ -20,14 +21,16 @@ final class MobSpeechSound extends MovingSoundInstance {
     private final UUID target;
     private final double maxDistance;
     private final PcmSpeechAudioStream stream;
+    private final SpeechStream speech;
 
-    MobSpeechSound(MinecraftClient client, ClientWorld world, UUID target, double maxDistance, byte[] pcm) {
+    MobSpeechSound(MinecraftClient client, ClientWorld world, UUID target, double maxDistance, SpeechStream speech) {
         super(SoundEvent.of(Identifier.of("mobtalk", "mob_speech")), SoundCategory.NEUTRAL, SoundInstance.createRandom());
         this.client = client;
         this.world = world;
         this.target = target;
         this.maxDistance = maxDistance;
-        this.stream = new PcmSpeechAudioStream(pcm);
+        this.speech = speech;
+        this.stream = new PcmSpeechAudioStream(speech);
         updatePosition();
     }
 
@@ -64,6 +67,7 @@ final class MobSpeechSound extends MovingSoundInstance {
 
     void stop() {
         setDone();
+        speech.close();
         client.getSoundManager().stop(this);
     }
 }

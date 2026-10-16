@@ -44,7 +44,57 @@ final class BoundedHttp implements AutoCloseable {
         }
     }
 
+    /** Returns once a 200 response starts; the body keeps flowing into the stream until it ends, fails, is closed or times out. */
+    SpeechStream stream(HttpRequest request, int maxBytes, String service) throws IOException, InterruptedException {
+        SpeechStream sink = new SpeechStream(maxBytes);
+        CompletableFuture<Integer> headers = new CompletableFuture<>();
+        CompletableFuture<HttpResponse<Void>> pending = transport.sendAsync(request, response -> {
+            headers.complete(response.statusCode());
+            return new StreamingBody(response.statusCode(), sink);
+        });
+        pending.whenComplete((ignored, failure) -> {
+            sink.finish();
+            headers.completeExceptionally(failure == null ? new IOException("No response") : failure);
+        });
+        int status;
+        try {
+            status = headers.get(timeoutSeconds, TimeUnit.SECONDS);
+        } catch (TimeoutException timeout) {
+            pending.cancel(true); sink.close();
+            throw new IOException(service + ": превышено время ожидания.");
+        } catch (ExecutionException failure) {
+            sink.close();
+            throw new IOException(service + ": не удалось выполнить запрос.");
+        }
+        if (status != 200) { sink.close(); throw new SafeFailure(service + ": ошибка HTTP " + status + ".", status); }
+        // A stalled body must not keep the connection open forever.
+        CompletableFuture.delayedExecutor(timeoutSeconds, TimeUnit.SECONDS).execute(() -> { if (!sink.finished()) sink.close(); });
+        return sink;
+    }
+
     @Override public void close() { transport.shutdownNow(); }
+
+    private static final class StreamingBody implements HttpResponse.BodySubscriber<Void> {
+        private final CompletableFuture<Void> body = new CompletableFuture<>();
+        private final int status;
+        private final SpeechStream sink;
+        private Flow.Subscription subscription;
+
+        StreamingBody(int status, SpeechStream sink) { this.status = status; this.sink = sink; }
+        @Override public CompletionStage<Void> getBody() { return body; }
+        @Override public void onSubscribe(Flow.Subscription subscription) {
+            this.subscription = subscription;
+            if (status != 200) { subscription.cancel(); body.complete(null); return; }
+            sink.onCancel(subscription::cancel);
+            subscription.request(1);
+        }
+        @Override public void onNext(List<ByteBuffer> buffers) {
+            for (ByteBuffer buffer : buffers) if (!sink.append(buffer)) { subscription.cancel(); sink.finish(); body.complete(null); return; }
+            subscription.request(1);
+        }
+        @Override public void onError(Throwable ignored) { sink.finish(); body.complete(null); }
+        @Override public void onComplete() { sink.finish(); body.complete(null); }
+    }
 
     private static final class LimitedBody implements HttpResponse.BodySubscriber<byte[]> {
         private final CompletableFuture<byte[]> body = new CompletableFuture<>();

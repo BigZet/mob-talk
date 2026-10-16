@@ -5,6 +5,8 @@ import java.nio.file.Path;
 
 /** Blocking pipeline intended for one conversation worker, with a store per single-player world. */
 public final class ConversationEngine implements AutoCloseable {
+    /** About 0.4 s of 24 kHz 16-bit speech: enough for Minecraft's first queued buffers while the rest downloads. */
+    static final int PREBUFFER_BYTES = 19_200;
     private final ConversationStore store;
     private final OpenRouterConversationClient llm;
     private final OpenRouterSpeechClient speech;
@@ -50,16 +52,20 @@ public final class ConversationEngine implements AutoCloseable {
         checkCurrent(snapshot);
         OpenRouterConversationClient.Answer answer = llm.respond(snapshot, profile, question);
         checkCurrent(snapshot);
-        byte[] pcm;
+        SpeechStream audio = null;
         String voiceId = speech.selectedVoice(profile.voiceId);
         try {
-            OpenRouterSpeechClient.Audio audio = speech.synthesizeWithFallback(profile.voiceId, SpeciesCatalog.reserve(profile.type).id(), answer.reply());
-            pcm = audio.pcm();
-            voiceId = audio.voiceId();
+            OpenRouterSpeechClient.StreamedAudio streamed = speech.streamWithFallback(profile.voiceId, SpeciesCatalog.reserve(profile.type).id(), answer.reply());
+            audio = streamed.stream();
+            voiceId = streamed.voiceId();
+            // Speak from the first fraction of a second; the rest keeps downloading during playback.
+            if (!audio.awaitPrebuffer(PREBUFFER_BYTES, speech.timeout().toNanos())) { audio.close(); audio = null; }
         }
-        catch (IOException speechUnavailable) { pcm = new byte[0]; }
-        checkCurrent(snapshot);
-        if (pcm.length > 0 && configDirectory != null && speechKey != null) {
+        catch (IOException speechUnavailable) { audio = null; }
+        catch (InterruptedException cancelled) { if (audio != null) audio.close(); throw cancelled; }
+        try { checkCurrent(snapshot); }
+        catch (InterruptedException cancelled) { if (audio != null) audio.close(); throw cancelled; }
+        if (audio != null && configDirectory != null && speechKey != null) {
             try { SpeechPreview.mark(configDirectory, voiceId, speechKey); }
             catch (IOException cacheUnavailable) { /* A status-cache failure must never discard successful audio. */ }
         }
@@ -69,8 +75,8 @@ public final class ConversationEngine implements AutoCloseable {
         else if (Boolean.TRUE.equals(custom) || snapshot.playerId() == null && snapshot.mobDetails().isEmpty()) {
             if (snapshot.name() != null && !snapshot.name().isBlank()) name = TextBounds.characters(snapshot.name(), 120);
         }
-        Reply reply = new Reply(question, answer.reply(), name, voiceId, pcm, answer.action(), snapshot.interactionRevision(), answer.bargain());
-        return new PreparedReply(this, reply, snapshot, answer.memory(), answer.socialIntent(), pcm.length == 0 ? null : voiceId);
+        Reply reply = new Reply(question, answer.reply(), name, voiceId, audio, answer.action(), snapshot.interactionRevision(), answer.bargain());
+        return new PreparedReply(this, reply, snapshot, answer.memory(), answer.socialIntent(), audio == null ? null : voiceId);
     }
 
     /** Remember only a delivered answer, once, at the revision returned by authoritative game application. */
@@ -127,14 +133,14 @@ public final class ConversationEngine implements AutoCloseable {
         public Reply reply() { return reply; }
     }
 
-    public record Reply(String recognizedText, String responseText, String speakerName, String voiceId, byte[] pcm,
+    /** speech is null when audio is unavailable; it may still be downloading while the reply is delivered. */
+    public record Reply(String recognizedText, String responseText, String speakerName, String voiceId, SpeechStream speech,
                         ActionIntent action, long interactionRevision, BargainIntent bargain) {
-        public Reply(String recognizedText, String responseText, String speakerName, String voiceId, byte[] pcm,
-                     ActionIntent action, long interactionRevision) {
-            this(recognizedText, responseText, speakerName, voiceId, pcm, action, interactionRevision, BargainIntent.none());
+        /** The complete audio, waiting for the download to end; empty without speech. */
+        public byte[] pcm() throws InterruptedException {
+            return speech == null ? new byte[0] : speech.awaitAll(java.util.concurrent.TimeUnit.SECONDS.toNanos(90));
         }
-        public Reply(String recognizedText, String responseText, String speakerName, String voiceId, byte[] pcm) {
-            this(recognizedText, responseText, speakerName, voiceId, pcm, ActionIntent.none(), 0);
-        }
+        /** Stops downloading audio for a reply that will not be played. */
+        public void discardSpeech() { if (speech != null) speech.close(); }
     }
 }

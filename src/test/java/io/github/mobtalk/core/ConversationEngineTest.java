@@ -347,14 +347,36 @@ class ConversationEngineTest {
         }
     }
 
-    // Accepting odd or oversized PCM would feed malformed or unbounded audio into the game player.
-    @Test void rejectsInvalidAndOversizedPcmWhilePreservingText() throws Exception {
+    // Odd PCM would misalign samples; streamed audio starts before its length is known, so an oversized body is cut at the limit.
+    @Test void rejectsInvalidAndBoundsOversizedPcmWhilePreservingText() throws Exception {
         try (ConversationEngine engine = engine()) {
             speechBytes.set(new byte[] { 0 });
             assertEquals(0, engine.converse(cow(UUID.randomUUID()), "Привет").pcm().length);
             speechBytes.set(new byte[2 * 1024 * 1024 + 2]);
-            assertEquals(0, engine.converse(cow(UUID.randomUUID()), "Привет ещё раз").pcm().length);
+            var oversized = engine.converse(cow(UUID.randomUUID()), "Привет ещё раз");
+            assertEquals("Я мирно пасусь здесь.", oversized.responseText());
+            assertTrue(oversized.pcm().length <= OpenRouterSpeechClient.MAX_AUDIO_BYTES);
         }
+    }
+
+    // The game must start speaking from the first bytes instead of waiting for the whole body.
+    @Test void speechStreamPlaysWhatArrivedAndEndsCleanly() throws Exception {
+        SpeechStream stream = new SpeechStream(64);
+        assertFalse(stream.awaitPrebuffer(4, java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(20)));
+        assertTrue(stream.append(java.nio.ByteBuffer.wrap(new byte[] { 1, 2, 3, 4, 5 })));
+        assertTrue(stream.awaitPrebuffer(4, 0));
+        java.nio.ByteBuffer target = java.nio.ByteBuffer.allocate(16);
+        assertEquals(4, stream.read(0, target, 16), "Only whole 16-bit samples are handed out");
+        assertEquals(0, stream.read(4, target, 16), "More audio may still arrive");
+        stream.finish();
+        assertEquals(-1, stream.read(4, target, 16), "The odd trailing byte is dropped at the end");
+        assertFalse(stream.append(java.nio.ByteBuffer.wrap(new byte[] { 6, 7 })));
+        AtomicBoolean cancelled = new AtomicBoolean();
+        SpeechStream download = new SpeechStream(64);
+        download.onCancel(() -> cancelled.set(true));
+        download.close();
+        assertTrue(cancelled.get());
+        assertEquals(-1, download.read(0, target, 16));
     }
 
     // Coercing nonstring memory or missing reply would accept a broken structured provider contract.

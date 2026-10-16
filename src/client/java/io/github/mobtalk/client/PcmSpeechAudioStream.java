@@ -1,29 +1,37 @@
 package io.github.mobtalk.client;
 
+import io.github.mobtalk.core.SpeechStream;
 import net.minecraft.client.sound.AudioStream;
 import javax.sound.sampled.AudioFormat;
 import java.nio.ByteBuffer;
 
-/** ElevenLabs PCM 24 kHz is supplied directly to Minecraft's ordinary sound executor. */
+/** ElevenLabs PCM 24 kHz played by Minecraft's sound executor while the rest of it still downloads. */
 final class PcmSpeechAudioStream implements AudioStream {
     private static final AudioFormat FORMAT = new AudioFormat(24_000, 16, 1, true, false);
-    private byte[] pcm;
+    // Small chunks keep several OpenAL buffers queued, so each tick refills them instead of one long buffer draining.
+    private static final int CHUNK = 4_800, SILENCE = 960;
+    private final SpeechStream speech;
     private int offset;
     private ByteBuffer buffer;
 
-    PcmSpeechAudioStream(byte[] pcm) { this.pcm = pcm; }
+    PcmSpeechAudioStream(SpeechStream speech) { this.speech = speech; }
     @Override public AudioFormat getFormat() { return FORMAT; }
 
     @Override public ByteBuffer read(int size) {
-        int amount = Math.min(size & ~1, pcm.length - offset);
-        if (amount < 2) return null;
-        if (buffer == null || buffer.capacity() < amount) buffer = ByteBuffer.allocateDirect(amount);
+        int max = Math.min(size, CHUNK) & ~1;
+        if (max < 2) return null;
+        if (buffer == null) buffer = ByteBuffer.allocateDirect(CHUNK);
         buffer.clear();
-        buffer.put(pcm, offset, amount);
+        int amount = speech.read(offset, buffer, max);
+        if (amount < 0) return null;
+        if (amount == 0) {
+            // The download is behind playback: 20 ms of silence keeps the source alive instead of ending the speech.
+            for (int i = 0; i < SILENCE; i++) buffer.put((byte) 0);
+        }
         offset += amount;
         buffer.flip();
         return buffer;
     }
 
-    @Override public void close() { pcm = new byte[0]; buffer = null; }
+    @Override public void close() { speech.close(); buffer = null; }
 }
