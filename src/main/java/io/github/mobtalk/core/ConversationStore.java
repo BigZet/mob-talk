@@ -206,6 +206,8 @@ public final class ConversationStore {
             Relation r = relation(p, snapshot.playerId());
             if (social == SocialIntent.APOLOGY && cooledDown(r.lastApology, nowMillis, 60_000)) { r.lastApology = nowMillis; r.score = clamp(r.score + 5, hostile(p)); }
             else if (social == SocialIntent.INSULT && cooledDown(r.lastInsult, nowMillis, 60_000)) { r.lastInsult = nowMillis; r.score = clamp(r.score - 10, hostile(p)); }
+            // A spoken threat to kill the mob or those it guards weighs more than an insult: two of them let a golem fight back.
+            else if (social == SocialIntent.THREAT && cooledDown(r.lastThreat, nowMillis, 20_000)) { r.lastThreat = nowMillis; r.score = clamp(r.score - 25, hostile(p)); }
             // KIND speech never substitutes for an observed helpful action.
         }
         scheduleSave(); return true;
@@ -278,8 +280,9 @@ public final class ConversationStore {
                 if (r.lastHelp >= 0) facts.append("; наблюдалась его реальная помощь");
                 if (r.lastApology >= 0) facts.append("; его реплика распознана как извинение");
                 if (r.lastInsult >= 0) facts.append("; его реплика распознана как оскорбление");
+                if (r.lastThreat >= 0) facts.append("; он угрожал убийством");
             }
-            if (score < 0 && hits == 0 && (r == null || r.lastInsult < 0))
+            if (score < 0 && hits == 0 && (r == null || r.lastInsult < 0 && r.lastThreat < 0))
                 facts.append(hostile(p) ? "; есть исходная видовая враждебность" : "; конкретная личная причина неприязни не сохранена");
             result.add(facts.append(". Остальные события могут относиться к другим игрокам.").toString());
         }
@@ -334,7 +337,7 @@ public final class ConversationStore {
         p.customPersonality = source.customPersonality; p.calm = source.calm; p.confidence = source.confidence;
         p.curiosity = source.curiosity; p.sociability = source.sociability; p.preference = source.preference; p.fear = source.fear;
         p.turns = new ArrayList<>(source.turns); p.events = new ArrayList<>(source.events); p.traits = new ArrayList<>(source.traits);
-        source.relations.forEach((key, r) -> { Relation c = new Relation(); c.score = r.score; c.hits = r.hits; c.lastHelp = r.lastHelp; c.lastApology = r.lastApology; c.lastInsult = r.lastInsult; c.ownerKnown = r.ownerKnown; p.relations.put(key, c); });
+        source.relations.forEach((key, r) -> { Relation c = new Relation(); c.score = r.score; c.hits = r.hits; c.lastHelp = r.lastHelp; c.lastApology = r.lastApology; c.lastInsult = r.lastInsult; c.lastThreat = r.lastThreat; c.ownerKnown = r.ownerKnown; p.relations.put(key, c); });
         return p;
     }
     static final class Profile {
@@ -348,7 +351,7 @@ public final class ConversationStore {
     }
     public record Turn(String user, String assistant) { }
     private record Event(long time, String text) { }
-    private static final class Relation { int score, hits; long lastHelp = -1, lastApology = -1, lastInsult = -1; boolean ownerKnown; }
+    private static final class Relation { int score, hits; long lastHelp = -1, lastApology = -1, lastInsult = -1, lastThreat = -1; boolean ownerKnown; }
     private static final class State {
         int version = 2;
         Map<String,Profile> profiles = new LinkedHashMap<>();

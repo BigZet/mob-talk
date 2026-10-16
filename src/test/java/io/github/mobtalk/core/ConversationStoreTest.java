@@ -38,6 +38,22 @@ class ConversationStoreTest {
         ConversationStore.closeWorld(directory);
     }
 
+    // Reported in game: nine insults and death threats left a golem at -20, so it could never fight back.
+    @Test void twoSpacedDeathThreatsLetAPeacefulMobAttack() throws Exception {
+        UUID mob = UUID.randomUUID(), player = UUID.randomUUID();
+        ConversationStore store = ConversationStore.open(directory, config);
+        store.observe(cow(mob, player, 0, Map.of()));
+        assertTrue(store.commit(cow(mob, player, store.revision(mob), Map.of()), "Убью тебя", "Попробуй", "", SocialIntent.THREAT, ActionIntent.none(), 1000));
+        assertTrue(store.commit(cow(mob, player, store.revision(mob), Map.of()), "Убью!", "Слышал", "", SocialIntent.THREAT, ActionIntent.none(), 5000));
+        assertEquals(-25, store.card(mob, player).relationship());
+        assertFalse(CombatRules.mayAttackPlayer(false, store.card(mob, player).relationship(), false));
+        assertTrue(store.commit(cow(mob, player, store.revision(mob), Map.of()), "Всех вырежу", "Ну всё", "", SocialIntent.THREAT, ActionIntent.none(), 21_000));
+        assertEquals(-50, store.card(mob, player).relationship());
+        assertTrue(CombatRules.mayAttackPlayer(false, store.card(mob, player).relationship(), false));
+        assertTrue(store.card(mob, player).events().getFirst().contains("угрожал убийством"));
+        ConversationStore.closeWorld(directory);
+    }
+
     // Dropping persisted timestamps lets repeated chat apologies or help inflate attitude without a cooldown.
     @Test void boundsAttitudeAndPersistsPerPlayerCooldowns() throws Exception {
         UUID mob = UUID.randomUUID(), player = UUID.randomUUID(), other = UUID.randomUUID();

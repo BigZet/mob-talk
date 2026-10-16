@@ -165,7 +165,7 @@ class ConversationEngineTest {
             assertEquals("Открой торговлю и выбери морковку, тогда поговорим о цене.", answer.responseText());
             assertEquals(2, chatCalls.get());
             String correction = lastRequest.get().getAsJsonArray("messages").asList().getLast().getAsJsonObject().get("content").getAsString();
-            assertTrue(correction.contains("18"), correction);
+            assertTrue(correction.contains("15"), correction);
         }
     }
 
@@ -178,6 +178,20 @@ class ConversationEngineTest {
         assertEquals(29, OpenRouterConversationClient.unbackedPrice("Теперь 29, договорились?", BargainIntent.none(), farmer));
         assertEquals(-1, OpenRouterConversationClient.unbackedPrice("Привет! Мне 18 лет.", BargainIntent.none(), farmer));
         assertEquals(-1, OpenRouterConversationClient.unbackedPrice("Скину до 18.", BargainIntent.none(), cow(UUID.randomUUID())));
+        // Reported in the model comparison: "восемь" spoken while the window got 19 on the second step.
+        var eight = new BargainIntent(BargainIntent.Type.OFFER, 1, 24);
+        assertEquals(-1, OpenRouterConversationClient.unbackedPrice("Шесть? Ладно, уступлю: восемь морковок — и по рукам.", eight, farmer));
+        assertEquals(8, OpenRouterConversationClient.unbackedPrice("Шесть? Ладно, уступлю: восемь морковок.", new BargainIntent(BargainIntent.Type.OFFER, 1, 13), farmer));
+        assertEquals(29, OpenRouterConversationClient.unbackedPrice("Скину до двадцати девяти.", BargainIntent.none(), farmer));
+        assertEquals(List.of(22, 5, 1, 30), OpenRouterConversationClient.spokenNumbers("Двадцать две, пять или одну? Ещё 30."));
+    }
+
+    @Test void readsTheSpokenPriceRatherThanADiscount() {
+        var snapshot = tradingMob("minecraft:villager", bargainingContext(true, Map.of("status", "NONE")));
+        JsonObject answer = JsonParser.parseString("{\"type\":\"OFFER\",\"offerIndex\":1,\"price\":30}").getAsJsonObject();
+        assertEquals(new BargainIntent(BargainIntent.Type.OFFER, 1, 2), OpenRouterConversationClient.validateBargain(answer, snapshot));
+        JsonObject outside = JsonParser.parseString("{\"type\":\"OFFER\",\"offerIndex\":1,\"price\":20}").getAsJsonObject();
+        assertEquals(BargainIntent.none(), OpenRouterConversationClient.validateBargain(outside, snapshot));
     }
 
     // A structured concession changes the first input count, even when the player pays with items rather than emeralds.
@@ -546,10 +560,11 @@ class ConversationEngineTest {
         bargainResponse.set(JsonParser.parseString("{\"type\":\"NONE\",\"offerIndex\":-1,\"discount\":0}").getAsJsonObject());
         try (ConversationEngine engine = engine()) {
             assertEquals("Я мирно пасусь здесь.", engine.converse(cow(UUID.randomUUID()), "Привет").responseText());
-            assertEquals(2, chatCalls.get());
+            assertEquals(3, chatCalls.get(), "Drops temperature first, then falls back to json_object");
             assertEquals("json_object", lastRequest.get().getAsJsonObject("response_format").get("type").getAsString());
+            assertFalse(lastRequest.get().has("temperature"));
             engine.converse(cow(UUID.randomUUID()), "Ещё вопрос");
-            assertEquals(3, chatCalls.get());
+            assertEquals(4, chatCalls.get());
         }
     }
 
