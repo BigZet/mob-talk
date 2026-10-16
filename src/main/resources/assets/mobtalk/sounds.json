@@ -1,0 +1,6 @@
+{
+  "mob_speech": {
+    "subtitle": "subtitle.mobtalk.mob_speech",
+    "sounds": [ { "name": "fabric-sound-api-v1:empty", "stream": true } ]
+  }
+}

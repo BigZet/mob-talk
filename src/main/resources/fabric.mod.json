@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "mobtalk",
+  "version": "${version}",
+  "name": "Mob Talk",
+  "description": "Выберите моба палкой и поговорите с ним голосом: локальный Whisper, OpenRouter и ElevenLabs.",
+  "authors": ["BigZet"],
+  "license": "GPL-3.0-only",
+  "environment": "client",
+  "entrypoints": { "client": ["io.github.mobtalk.client.MobTalkClient"] },
+  "depends": { "fabricloader": ">=0.19.5", "minecraft": "1.21.1", "java": ">=21", "fabric-api": "*" }
+}
