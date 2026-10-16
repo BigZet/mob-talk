@@ -112,7 +112,10 @@ final class MobTalkSettingsScreen extends Screen {
         } else {
             slider("mobtalk.settings.history", left, 62, contentWidth, 1, 64, draft.historyTurns, value -> draft.historyTurns = value);
             slider("mobtalk.settings.memory", left, 86, contentWidth, 200, 4000, draft.maxMemoryChars, value -> draft.maxMemoryChars = value);
-            button("mobtalk.settings.connection", left, 116, contentWidth, ignored -> operation(voiceService().connection(draft.copy()), false))
+            addDrawableChild(CyclingButtonWidget.<Integer>builder(value -> Text.translatable("mobtalk.settings.rudeness." + value)).values(0, 1, 2, 3)
+                    .initially(Math.max(0, Math.min(3, draft.rudeness))).build(left, 110, contentWidth, 20, Text.translatable("mobtalk.settings.rudeness"),
+                            (button, value) -> draft.rudeness = value)).setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.rudeness.tooltip")));
+            button("mobtalk.settings.connection", left, 140, contentWidth, ignored -> operation(voiceService().connection(draft.copy()), false))
                     .setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.connection.tooltip")));
         }
     }
