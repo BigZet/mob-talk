@@ -146,6 +146,40 @@ class ConversationEngineTest {
                 UUID.randomUUID(), Map.of(), Map.of("bargaining", bargaining), Map.of(), List.of(), List.of(ActionType.NONE), 0);
     }
 
+    private MobSnapshot carrotFarmer(Map<String,Object> bargaining) {
+        MobSnapshot base = tradingMob("minecraft:villager", bargaining);
+        List<Map<String,Object>> offers = List.of(
+                Map.of("buy", Map.of("name", "Морковь", "count", 22), "secondBuy", Map.of("count", 0), "sell", Map.of("name", "Изумруд", "count", 1)),
+                Map.of("buy", Map.of("name", "Пшеница", "count", 20), "secondBuy", Map.of("count", 0), "sell", Map.of("name", "Изумруд", "count", 1)));
+        return new MobSnapshot(base.id(), base.type(), base.name(), base.health(), base.maxHealth(), base.dimension(), base.biome(),
+                base.timeOfDay(), base.weather(), base.distance(), base.heldItem(), base.nearby(), base.recentEvents(), base.playerId(),
+                Map.of(), Map.of("bargaining", bargaining, "offers", offers), Map.of(), List.of(), List.of(ActionType.NONE), 0);
+    }
+
+    // Reported in game: "морковка теперь по 18" with bargain NONE while the window still charged 22.
+    @Test void doesNotVoiceAPriceThatNoBargainApplies() throws Exception {
+        queuedAnswers.add(tradingAnswer("Ладно, голема починил — дам скидку. Морковка теперь по 18, пшеница по 15.", "NONE", -1, 0));
+        queuedAnswers.add(tradingAnswer("Открой торговлю и выбери морковку, тогда поговорим о цене.", "NONE", -1, 0));
+        try (ConversationEngine engine = engine()) {
+            var answer = engine.converse(carrotFarmer(bargainingContext(false, Map.of("status", "NONE"))), "Давай скидку");
+            assertEquals("Открой торговлю и выбери морковку, тогда поговорим о цене.", answer.responseText());
+            assertEquals(2, chatCalls.get());
+            String correction = lastRequest.get().getAsJsonArray("messages").asList().getLast().getAsJsonObject().get("content").getAsString();
+            assertTrue(correction.contains("18"), correction);
+        }
+    }
+
+    @Test void recognisesOnlyPricesBackedByTheBargain() {
+        var farmer = carrotFarmer(bargainingContext(true, Map.of("status", "NONE")));
+        var offer = new BargainIntent(BargainIntent.Type.OFFER, 1, 2);
+        assertEquals(-1, OpenRouterConversationClient.unbackedPrice("Ладно, уступлю: 30 палок и по рукам.", offer, farmer));
+        assertEquals(18, OpenRouterConversationClient.unbackedPrice("Уступлю, отдам за 18.", offer, farmer));
+        assertEquals(-1, OpenRouterConversationClient.unbackedPrice("Скидки не будет: 22 морковки за изумруд.", BargainIntent.none(), farmer));
+        assertEquals(29, OpenRouterConversationClient.unbackedPrice("Теперь 29, договорились?", BargainIntent.none(), farmer));
+        assertEquals(-1, OpenRouterConversationClient.unbackedPrice("Привет! Мне 18 лет.", BargainIntent.none(), farmer));
+        assertEquals(-1, OpenRouterConversationClient.unbackedPrice("Скину до 18.", BargainIntent.none(), cow(UUID.randomUUID())));
+    }
+
     // A structured concession changes the first input count, even when the player pays with items rather than emeralds.
     @Test void carriesStructuredBargainOfferAndExactPendingAcceptanceThroughEngine() throws Exception {
         try (ConversationEngine engine = engine()) {
