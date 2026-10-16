@@ -9,6 +9,7 @@ import io.github.mobtalk.core.ActionIntent;
 import io.github.mobtalk.core.ActionType;
 import io.github.mobtalk.core.ConversationStore;
 import io.github.mobtalk.core.MobCard;
+import io.github.mobtalk.core.OpenRouterToken;
 import io.github.mobtalk.client.game.MobGameBridge;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
@@ -837,6 +838,15 @@ public final class MobTalkClient implements ClientModInitializer {
                 InputUtil.Key key = KeyBindingHelper.getBoundKeyOf(talkKey);
                 return key.getCategory() == InputUtil.Type.KEYSYM ? key.getCode() : GLFW.GLFW_KEY_V;
             }
+            @Override public CompletableFuture<OpenRouterToken.Status> openRouterKeyStatus() {
+                return CompletableFuture.supplyAsync(() -> OpenRouterToken.status(configDirectory), maintenance);
+            }
+            @Override public CompletableFuture<OpenRouterToken.Status> saveOpenRouterKey(String key) {
+                return keyChange(() -> OpenRouterToken.store(configDirectory, key));
+            }
+            @Override public CompletableFuture<OpenRouterToken.Status> removeOpenRouterKey() {
+                return keyChange(() -> OpenRouterToken.remove(configDirectory));
+            }
             @Override public CompletableFuture<MobCard> selectedCard() { return MobTalkClient.this.selectedCard(); }
             @Override public CompletableFuture<MobSnapshot> selectedSnapshot() { return MobTalkClient.this.selectedSnapshot(); }
             @Override public CompletableFuture<String> requestMobAction(ActionIntent action) { return MobTalkClient.this.requestMobAction(action); }
@@ -848,6 +858,17 @@ public final class MobTalkClient implements ClientModInitializer {
             @Override public CompletableFuture<String> clearSelectedHistory() { return MobTalkClient.this.clearSelectedHistory(); }
             @Override public CompletableFuture<String> resetSelectedPersonality() { return MobTalkClient.this.resetSelectedPersonality(); }
         }));
+    }
+
+    private interface KeyChange { void run() throws java.io.IOException; }
+
+    /** Opening settings already dropped the engine, so the next conversation reads the new key. */
+    private CompletableFuture<OpenRouterToken.Status> keyChange(KeyChange change) {
+        return CompletableFuture.supplyAsync(() -> {
+            try { change.run(); }
+            catch (java.io.IOException failure) { throw new java.util.concurrent.CompletionException(failure); }
+            return OpenRouterToken.status(configDirectory);
+        }, maintenance);
     }
 
     private void reload() {
