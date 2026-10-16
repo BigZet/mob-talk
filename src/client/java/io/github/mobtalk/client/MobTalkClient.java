@@ -12,9 +12,14 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
+import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.gui.screen.GameMenuScreen;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
@@ -66,6 +71,8 @@ public final class MobTalkClient implements ClientModInitializer {
     private ClientWorld world;
     private UUID selected;
     private KeyBinding talkKey;
+    private KeyBinding settingsKey;
+    private boolean openSettingsRequested;
     private MicrophoneRecorder.Capture recording;
     private boolean configReady;
     private boolean reloading;
@@ -80,6 +87,14 @@ public final class MobTalkClient implements ClientModInitializer {
     @Override public void onInitializeClient() {
         talkKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.talk", InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_V, "category.mobtalk"));
+        settingsKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.settings", InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_F7, "category.mobtalk"));
+        ScreenEvents.AFTER_INIT.register((minecraft, screen, width, height) -> {
+            if (screen instanceof GameMenuScreen) {
+                Screens.getButtons(screen).add(ButtonWidget.builder(Text.literal("Mob Talk"), button -> openSettings(screen))
+                        .dimensions(width - 128, height - 26, 120, 20).build());
+            }
+        });
         UseEntityCallback.EVENT.register((player, useWorld, hand, entity, hit) -> {
             if (!useWorld.isClient() || player != client.player || client.getServer() == null
                     || !configReady || !config.enabled || player.isSpectator()
@@ -111,6 +126,11 @@ public final class MobTalkClient implements ClientModInitializer {
     private void tick() {
         ticks++;
         updateWorld();
+        while (settingsKey.wasPressed()) openSettingsRequested = true;
+        if (openSettingsRequested && !reloading && !stopped) {
+            openSettingsRequested = false;
+            openSettings(client.currentScreen);
+        }
         boolean held = talkKey.isPressed();
         MobEntity mob = target();
         if (selected != null && mob == null) clearSelection("Моб погиб или выгрузился: выберите нового палкой");
@@ -433,6 +453,8 @@ public final class MobTalkClient implements ClientModInitializer {
 
     private void registerCommands() {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> dispatcher.register(literal("mobtalk")
+                .executes(context -> { openSettingsRequested = true; return 1; })
+                .then(literal("settings").executes(context -> { openSettingsRequested = true; return 1; }))
                 .then(literal("say").then(argument("text", StringArgumentType.greedyString()).executes(context -> {
                     if (!readyForRequest()) { notice(status); return 0; }
                     stopSpeech();
@@ -461,6 +483,60 @@ public final class MobTalkClient implements ClientModInitializer {
                     });
                     return 1;
                 })))));
+    }
+
+    private void openSettings(Screen parent) {
+        if (stopped || reloading || parent instanceof MobTalkSettingsScreen) return;
+        cancelWork("Настройки Mob Talk");
+        client.setScreen(new MobTalkSettingsScreen(parent, config.copy(), new MobTalkSettingsScreen.Controller() {
+            @Override public void listMicrophones(java.util.function.Consumer<List<String>> callback) {
+                maintenance.execute(() -> {
+                    List<String> names;
+                    try { names = MicrophoneRecorder.devices(); }
+                    catch (RuntimeException unavailable) { names = List.of(); }
+                    List<String> result = names;
+                    client.execute(() -> callback.accept(result));
+                });
+            }
+
+            @Override public void save(MobTalkConfig draft, java.util.function.Consumer<String> completion) {
+                if (reloading || stopped) {
+                    completion.accept("Настройки ещё сохраняются. Повторите через секунду.");
+                    return;
+                }
+                reloading = true;
+                cancelWork("Сохранение настроек…");
+                MobTalkConfig snapshot = draft.copy();
+                maintenance.execute(() -> {
+                    try {
+                        MobTalkConfig.save(configDirectory.resolve("mobtalk.json"), snapshot);
+                        MobTalkConfig loaded = MobTalkConfig.load(configDirectory.resolve("mobtalk.json"));
+                        helper.stopOwned();
+                        client.execute(() -> {
+                            reloading = false;
+                            if (stopped) return;
+                            config = loaded;
+                            configReady = true;
+                            status = !loaded.enabled ? "Mob Talk выключен" : selected == null
+                                    ? "Выберите моба ПКМ палкой" : "Готов: удерживайте V";
+                            completion.accept(null);
+                        });
+                    } catch (Exception failure) {
+                        LOGGER.warn("Mob Talk settings save failed ({})", failure.getClass().getSimpleName());
+                        client.execute(() -> {
+                            reloading = false;
+                            if (!stopped) completion.accept(failure.getMessage() == null
+                                    ? "Не удалось сохранить настройки. Повторите попытку." : failure.getMessage());
+                        });
+                    }
+                });
+            }
+
+            @Override public int talkKeyCode() {
+                InputUtil.Key key = KeyBindingHelper.getBoundKeyOf(talkKey);
+                return key.getCategory() == InputUtil.Type.KEYSYM ? key.getCode() : GLFW.GLFW_KEY_V;
+            }
+        }));
     }
 
     private void reload() {
