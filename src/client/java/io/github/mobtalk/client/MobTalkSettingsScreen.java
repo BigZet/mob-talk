@@ -216,7 +216,7 @@ final class MobTalkSettingsScreen extends Screen {
             button("mobtalk.settings.voice.metadata", left, 138, half, ignored -> read("mobtalk.settings.voice.metadata",
                     voice.name() + "\nID: " + voice.id() + "\nЯзык: " + voice.language() + "\n\n" + voice.description()
                     + "\n\nПревью: " + (voice.previewUrl().isBlank() ? "нет" : voice.previewUrl())
-                    + "\n\nПревью библиотеки не подтверждает генерацию OpenRouter v4 Turbo."));
+                    + "\n\nПревью библиотеки не подтверждает генерацию OpenRouter Flash v2.5."));
             button("mobtalk.settings.voice.status", left + half + 6, 138, half, ignored -> operation(voiceService().status(voice.id()), false));
         }
     }

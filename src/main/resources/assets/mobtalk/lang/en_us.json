@@ -93,7 +93,7 @@
   "mobtalk.settings.voice.test": "Test voice",
   "mobtalk.settings.voice.stop": "Stop",
   "mobtalk.settings.voice.preview.tooltip": "Play existing ElevenLabs library audio. This does not test OpenRouter generation.",
-  "mobtalk.settings.voice.test.tooltip": "Generate a short phrase through OpenRouter v4 Turbo using your account credits.",
+  "mobtalk.settings.voice.test.tooltip": "Generate a short phrase through OpenRouter Flash v2.5 using your account credits.",
   "mobtalk.settings.voice.metadata": "Metadata",
   "mobtalk.settings.voice.status": "Test status",
   "mobtalk.settings.voice.phrase": "Hello! I can speak calmly or expressively, notice important details and answer your questions. Let's check how clearly this voice sounds.",

@@ -387,7 +387,8 @@ class ConversationEngineTest {
             var answer = engine.converse(cow(UUID.randomUUID()), "Привет ещё раз");
             var validations = JsonParser.parseString(Files.readString(cache.resolve("mobtalk-voice-status.json"))).getAsJsonObject();
             var validation = validations.getAsJsonObject(answer.voiceId());
-            assertEquals("elevenlabs/eleven-v4-turbo", validation.get("model").getAsString());
+            assertEquals("elevenlabs/eleven-flash-v2.5", speechRequest.get().get("model").getAsString());
+            assertEquals("elevenlabs/eleven-flash-v2.5", validation.get("model").getAsString());
             assertTrue(validation.get("account").getAsString().matches("[0-9a-f]{64}"));
             assertFalse(validation.get("date").getAsString().isBlank());
             assertFalse(validations.toString().contains("unit-test-key"));

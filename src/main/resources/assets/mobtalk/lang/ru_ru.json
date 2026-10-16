@@ -93,7 +93,7 @@
   "mobtalk.settings.voice.test": "Тест голоса",
   "mobtalk.settings.voice.stop": "Стоп",
   "mobtalk.settings.voice.preview.tooltip": "Проигрывает готовое аудио библиотеки ElevenLabs; генерацию OpenRouter не проверяет.",
-  "mobtalk.settings.voice.test.tooltip": "Генерирует короткую фразу через OpenRouter v4 Turbo. Использует средства вашего аккаунта.",
+  "mobtalk.settings.voice.test.tooltip": "Генерирует короткую фразу через OpenRouter Flash v2.5. Использует средства вашего аккаунта.",
   "mobtalk.settings.voice.metadata": "Метаданные",
   "mobtalk.settings.voice.status": "Статус теста",
   "mobtalk.settings.voice.phrase": "Привет! Я могу говорить спокойно или выразительно, замечать важные детали и отвечать на твои вопросы. Давай проверим, насколько ясно звучит этот голос.",

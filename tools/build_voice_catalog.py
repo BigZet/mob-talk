@@ -23,7 +23,7 @@ import urllib.request
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / "src/main/resources/assets/mobtalk"
 SOURCE = "https://api.elevenlabs.io/v1/shared-voices"
-TARGET_MODEL = "elevenlabs/eleven-v4-turbo"
+TARGET_MODEL = "elevenlabs/eleven-flash-v2.5"
 
 # Concrete species concerns supplement the approved brief, rather than random shared animal slogans.
 # id | interests | fears | state-sensitive conversational behavior
@@ -293,7 +293,7 @@ def metadata(raw, provenance):
             "generationStatus": "not_tested", "targetModel": TARGET_MODEL, "source": provenance,
             "fetchedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"), "freeUsersAllowed": raw.get("free_users_allowed"),
             "rate": rate, "liveModerationEnabled": moderated, "originalDescription": original_description,
-            "targetModelVerifiedByLibrary": any(item.get("model_id", item.get("modelId")) == "eleven_v4_turbo" for item in languages)}
+            "targetModelVerifiedByLibrary": any(item.get("model_id", item.get("modelId")) == "eleven_flash_v2_5" for item in languages)}
 
 
 def fetch_public(query):

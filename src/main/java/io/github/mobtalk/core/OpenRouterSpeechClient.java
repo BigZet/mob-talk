@@ -6,8 +6,9 @@ import java.net.URI;
 import java.net.http.HttpRequest;
 import java.nio.charset.StandardCharsets;
 
-/** Eleven v4 Turbo through OpenRouter, returning signed 16-bit mono PCM at 24 kHz. */
+/** Eleven Flash v2.5 through OpenRouter, returning signed 16-bit mono PCM at 24 kHz. */
 final class OpenRouterSpeechClient implements AutoCloseable {
+    static final String MODEL = "elevenlabs/eleven-flash-v2.5";
     private static final URI ENDPOINT = URI.create("https://openrouter.ai/api/v1/audio/speech");
     static final int MAX_AUDIO_BYTES = 2 * 1024 * 1024;
     private final String key;
@@ -49,7 +50,7 @@ final class OpenRouterSpeechClient implements AutoCloseable {
         if (!validVoiceId(voiceId) || text == null || text.isBlank())
             throw new IOException("Для озвучки нужны голос и текст.");
         JsonObject body = new JsonObject();
-        body.addProperty("model", "elevenlabs/eleven-v4-turbo");
+        body.addProperty("model", MODEL);
         body.addProperty("input", text);
         body.addProperty("voice", voiceId);
         body.addProperty("response_format", "pcm");

@@ -51,7 +51,7 @@ final class VoicePreviewService implements AutoCloseable {
             long token = generation;
             byte[] pcm = SpeechPreview.synthesize(immutable, directory, voice, text);
             playPcm(pcm, 24_000, 1, token);
-            return "Русская фраза успешно озвучена через Eleven v4 Turbo";
+            return "Русская фраза успешно озвучена через Eleven Flash v2.5";
         });
     }
 

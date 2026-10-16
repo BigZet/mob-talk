@@ -14,7 +14,7 @@ import java.util.Map;
 
 /** Explicit paid voice probe; secrets stay local and cache records contain only a one-way account digest. */
 public final class SpeechPreview {
-    private static final String MODEL = "elevenlabs/eleven-v4-turbo";
+    private static final String MODEL = OpenRouterSpeechClient.MODEL;
     private static final Gson JSON = new Gson();
     private SpeechPreview() { }
 
@@ -56,10 +56,10 @@ public final class SpeechPreview {
         try {
             Validation validation = load(directory).get(voice);
             if (validation != null && MODEL.equals(validation.model) && digest(OpenRouterToken.load(directory)).equals(validation.account))
-                return "OpenRouter v4 Turbo: успешно проверен " + validation.date.substring(0, 10);
+                return "OpenRouter Flash v2.5: успешно проверен " + validation.date.substring(0, 10);
         } catch (IOException | RuntimeException unavailable) { }
         return (SpeciesCatalog.voice(voice).previewUrl().isBlank() ? "Пользовательский ID; библиотека не проверена" : "Есть в публичном каталоге")
-                + "; OpenRouter v4 Turbo ещё не проверен";
+                + "; OpenRouter Flash v2.5 ещё не проверен";
     }
 
     private static Map<String, Validation> load(Path directory) throws IOException {
