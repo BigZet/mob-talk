@@ -359,6 +359,42 @@ class ConversationEngineTest {
         }
     }
 
+    @Test void findsTheReplyOnlyOnceItsClosingQuoteStreamedIn() {
+        assertNull(OpenRouterConversationClient.completedReply("{\"reply\":\"Скажи \\\"при"));
+        assertEquals("Скажи \"привет\"", OpenRouterConversationClient.completedReply("{\"reply\":\"Скажи \\\"привет\\\"\",\"socialIn"));
+        assertNull(OpenRouterConversationClient.completedReply("{\"socialIntent\":\"NONE\""));
+    }
+
+    @Test void appendsNewFactsAndForgetsTheOldestWhenFull() {
+        assertEquals("Старое", OpenRouterConversationClient.remember("Старое", "  ", 100));
+        assertEquals("Старое\nНовое", OpenRouterConversationClient.remember("Старое", "Новое", 100));
+        assertEquals("второе\nтретье", OpenRouterConversationClient.remember("первое\nвторое", "третье", 16));
+    }
+
+    // Speech must start from the streamed reply, once, while the model still writes facts, action and bargain.
+    @Test void startsSpeechFromAStreamedReplyAndAppendsItsFacts() throws Exception {
+        String answer = "{\"reply\":\"Скажи \\\"му\\\", путник.\",\"socialIntent\":\"NONE\",\"action\":{\"type\":\"NONE\",\"target\":\"\"},"
+                + "\"bargain\":{\"type\":\"NONE\",\"offerIndex\":-1,\"price\":0},\"newFacts\":\"Игрок назвался Стивом.\"}";
+        StringBuilder events = new StringBuilder(": OPENROUTER PROCESSING\n\n");
+        for (int i = 0; i < answer.length(); i += 7) {
+            JsonObject delta = new JsonObject(); delta.addProperty("content", answer.substring(i, Math.min(answer.length(), i + 7)));
+            JsonObject choice = new JsonObject(); choice.add("delta", delta);
+            JsonArray choices = new JsonArray(); choices.add(choice);
+            JsonObject event = new JsonObject(); event.add("choices", choices);
+            events.append("data: ").append(event).append("\n\n");
+        }
+        rawChat.set(events.append("data: [DONE]\n\n").toString());
+        try (ConversationEngine engine = engine()) {
+            MobSnapshot villager = tradingMob("minecraft:villager", bargainingContext(false, Map.of("status", "NONE")));
+            var reply = engine.converse(villager, "Привет, я Стив");
+            assertEquals("Скажи \"му\", путник.", reply.responseText());
+            assertTrue(lastRequest.get().get("stream").getAsBoolean());
+            assertArrayEquals(speechBytes.get(), reply.pcm());
+            assertEquals(1, speechCalls.get(), "The early speech request is reused, not repeated");
+            assertTrue(engine.memory().card(villager.id(), villager.playerId()).memory().endsWith("Игрок назвался Стивом."));
+        } finally { rawChat.set(null); }
+    }
+
     // The game must start speaking from the first bytes instead of waiting for the whole body.
     @Test void speechStreamPlaysWhatArrivedAndEndsCleanly() throws Exception {
         SpeechStream stream = new SpeechStream(64);

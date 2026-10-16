@@ -65,7 +65,7 @@ final class OpenRouterConversationClient implements AutoCloseable {
     private final MobTalkConfig config;
     private final URI endpoint;
     private final BoundedHttp http;
-    private boolean jsonObjectOnly, noTemperature;
+    private boolean jsonObjectOnly, noTemperature, noStreaming;
 
     OpenRouterConversationClient(String key, MobTalkConfig config) { this(key, config, ENDPOINT); }
     OpenRouterConversationClient(String key, MobTalkConfig config, URI endpoint) {
@@ -77,6 +77,13 @@ final class OpenRouterConversationClient implements AutoCloseable {
     }
 
     Answer respond(MobSnapshot snapshot, ConversationStore.Profile profile, String question) throws IOException, InterruptedException {
+        return respond(snapshot, profile, question, ignored -> { });
+    }
+
+    /** earlyReply receives the spoken text as soon as it is complete in the stream, before memory, action and bargain;
+     * it may be called again for a corrected retry, and the returned Answer is what counts. */
+    Answer respond(MobSnapshot snapshot, ConversationStore.Profile profile, String question, java.util.function.Consumer<String> earlyReply)
+            throws IOException, InterruptedException {
         SpeciesCatalog.Species species = SpeciesCatalog.effective(snapshot.type(), config);
         String archetype = species.variants().get(Math.max(0, Math.min(2, profile.variantSlot))).prompt();
         int words = Math.max(5, Math.min(120, config.maxReplyWords));
@@ -104,7 +111,8 @@ final class OpenRouterConversationClient implements AutoCloseable {
                 + "\n\n" + RULES
                 + "\nОтвет — JSON:\n"
                 + "reply — твоя реплика вслух.\n"
-                + "memory — обновлённая долговременная память об этом игроке до " + memoryLimit + " символов: сохрани полезные прежние факты, отделяй подтверждённые события от мнений и обид; шутки и оскорбления не факты.\n"
+                + "newFacts — только то новое из ЭТОГО разговора, что стоит помнить об игроке (до " + FACTS_LIMIT + " символов): подтверждённые события, его просьбы и договорённости. "
+                + "Не повторяй уже записанное в памяти; шутки, угрозы и оскорбления не факты. Если нового нет — пустая строка. Прежняя память сохранится сама.\n"
                 + "socialIntent — только о текущей реплике ИГРОКА: NONE, APOLOGY (извинился), KIND (добрые слова), INSULT (оскорбил тебя), THREAT (всерьёз угрожает убить тебя, твоих сородичей или тех, кого ты охраняешь); твоя грубость не делает её INSULT.\n"
                 + "action — {type:NONE|FOLLOW|FLEE|ATTACK|STOP,target:\"player\"|\"eN\"|\"\"} — намерение, которое игра выполнит после своей проверки. "
                 + "Только типы из availableActions и цели из observedEntities; FOLLOW — только за player; FLEE — от player или наблюдаемой угрозы; "
@@ -124,10 +132,12 @@ final class OpenRouterConversationClient implements AutoCloseable {
         body.addProperty("max_tokens", 4096); if (!noTemperature) body.addProperty("temperature", tradingWindowOpen(snapshot) ? 0.6 : 0.95); body.add("response_format", responseFormat(snapshot));
         JsonObject provider = new JsonObject(); provider.addProperty("require_parameters", true); provider.addProperty("sort", "latency"); body.add("provider", provider);
         if (jsonObjectOnly) useJsonObject(body);
+        if (!noStreaming) body.addProperty("stream", true);
         long deadline = System.nanoTime() + http.timeout().toNanos();
-        byte[] bytes = send(body, deadline);
+        java.util.function.Consumer<String> spoken = text -> earlyReply.accept(TextBounds.reply(text, words));
+        byte[] bytes = send(body, deadline, spoken);
         for (int correction = 0; ; correction++) {
-            try { return parseAnswer(bytes, snapshot, words, memoryLimit); }
+            try { return parseAnswer(bytes, snapshot, words, profile.memory, memoryLimit); }
             catch (RejectedBargain invalid) {
                 if (correction >= 1 || deadline <= System.nanoTime())
                     throw new IOException("OpenRouter LLM не подтвердил допустимые условия торга. Цена не изменена; повторите предложение.");
@@ -137,30 +147,79 @@ final class OpenRouterConversationClient implements AutoCloseable {
                         + "Повторно проверь selectedIndex, maximumDiscount, allowedPrices и state из текущего снимка. "
                         + "Если игрок просит цену ниже minimumPrice, предложи minimumPrice через OFFER (price=minimumPrice) или откажи. "
                         + "Если допустимой уступки нет, верни NONE и объясни ограничение естественной репликой без обещания скидки и без слов об изменённой цене. "
-                        + "DECLINE означает отказ, а OFFER — реальную уступку. price — итоговая цена, которую ты называешь. Верни полный JSON с исправленной репликой и памятью."));
-                bytes = send(body, deadline);
+                        + "DECLINE означает отказ, а OFFER — реальную уступку. price — итоговая цена, которую ты называешь. Верни полный JSON с исправленной репликой и newFacts."));
+                bytes = send(body, deadline, spoken);
             }
         }
     }
 
-    private byte[] send(JsonObject body, long deadline) throws IOException, InterruptedException {
+    private byte[] send(JsonObject body, long deadline, java.util.function.Consumer<String> spoken) throws IOException, InterruptedException {
         long remaining = deadline - System.nanoTime();
         if (remaining <= 0) throw new IOException("OpenRouter LLM: превышено время ожидания.");
-        try { return http.send(request(body, java.time.Duration.ofNanos(remaining)), 256 * 1024, "OpenRouter LLM"); }
+        try { return exchange(body, remaining, spoken); }
         catch (BoundedHttp.SafeFailure unavailable) {
             remaining = deadline - System.nanoTime();
-            if (unavailable.status != 404 || remaining <= 0) throw unavailable;
+            if (remaining <= 0) throw unavailable;
+            if (unavailable.status == 400 && body.has("stream")) { body.remove("stream"); noStreaming = true; return send(body, deadline, spoken); }
+            if (unavailable.status != 404) throw unavailable;
             // Claude 5.5 on OpenRouter has no endpoint taking temperature together with a strict schema.
-            if (body.has("temperature")) { body.remove("temperature"); noTemperature = true; return send(body, deadline); }
+            if (body.has("temperature")) { body.remove("temperature"); noTemperature = true; return send(body, deadline, spoken); }
             if (jsonObjectOnly) throw unavailable;
             // Providers without structured_outputs may still support response_format=json_object.
             jsonObjectOnly = true;
             useJsonObject(body);
-            return http.send(request(body, java.time.Duration.ofNanos(remaining)), 256 * 1024, "OpenRouter LLM");
+            return exchange(body, remaining, spoken);
         }
     }
 
-    private Answer parseAnswer(byte[] bytes, MobSnapshot snapshot, int words, int memoryLimit) throws IOException {
+    /** Streams when asked: the reply is handed over the moment its closing quote arrives, then the whole answer is rebuilt
+     * as an ordinary completion for parseAnswer. */
+    private byte[] exchange(JsonObject body, long remainingNanos, java.util.function.Consumer<String> spoken) throws IOException, InterruptedException {
+        HttpRequest request = request(body, java.time.Duration.ofNanos(remainingNanos));
+        if (!body.has("stream")) return http.send(request, 256 * 1024, "OpenRouter LLM");
+        StringBuilder content = new StringBuilder();
+        boolean[] seen = new boolean[2]; // [0] any event, [1] reply already handed over
+        String[] error = new String[1];
+        byte[] raw = http.sendEvents(request, 4 * 1024 * 1024, "OpenRouter LLM", data -> {
+            JsonObject event = JsonParser.parseString(data).getAsJsonObject();
+            seen[0] = true;
+            if (event.has("error")) { error[0] = "OpenRouter LLM: ошибка провайдера во время ответа."; return; }
+            JsonArray choices = event.getAsJsonArray("choices");
+            if (choices == null || choices.isEmpty()) return;
+            JsonObject delta = choices.get(0).getAsJsonObject().getAsJsonObject("delta");
+            if (delta == null || !delta.has("content") || delta.get("content").isJsonNull()) return;
+            content.append(delta.get("content").getAsString());
+            if (!seen[1]) {
+                String reply = completedReply(content);
+                if (reply != null) { seen[1] = true; spoken.accept(reply); }
+            }
+        });
+        if (error[0] != null) throw new IOException(error[0]);
+        if (!seen[0]) return raw;
+        JsonObject message = new JsonObject(); message.addProperty("content", content.toString());
+        JsonObject choice = new JsonObject(); choice.add("message", message);
+        JsonArray choices = new JsonArray(); choices.add(choice);
+        JsonObject completion = new JsonObject(); completion.add("choices", choices);
+        return completion.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static final Pattern REPLY_START = Pattern.compile("\"reply\"\\s*:\\s*\"");
+
+    /** The reply string once its closing quote has streamed in, else null. */
+    static String completedReply(CharSequence partial) {
+        Matcher start = REPLY_START.matcher(partial);
+        if (!start.find()) return null;
+        boolean escaped = false;
+        for (int i = start.end(); i < partial.length(); i++) {
+            char c = partial.charAt(i);
+            if (escaped) escaped = false;
+            else if (c == '\\') escaped = true;
+            else if (c == '"') return JsonParser.parseString(partial.subSequence(start.end() - 1, i + 1).toString()).getAsString();
+        }
+        return null;
+    }
+
+    private Answer parseAnswer(byte[] bytes, MobSnapshot snapshot, int words, String previousMemory, int memoryLimit) throws IOException {
         try {
             JsonObject response = JsonParser.parseString(new String(bytes, StandardCharsets.UTF_8)).getAsJsonObject();
             JsonElement content = response.getAsJsonArray("choices").get(0).getAsJsonObject().getAsJsonObject("message").get("content");
@@ -168,7 +227,10 @@ final class OpenRouterConversationClient implements AutoCloseable {
             JsonObject answer = JsonParser.parseString(content.getAsString()).getAsJsonObject();
             if (jsonObjectOnly && (!answer.has("action") || !answer.has("socialIntent") || !answer.has("bargain")))
                 throw new IllegalArgumentException();
-            String reply = TextBounds.reply(string(answer, "reply"), words), memory = TextBounds.characters(string(answer, "memory"), memoryLimit);
+            String reply = TextBounds.reply(string(answer, "reply"), words);
+            // newFacts is appended by code; a full "memory" from older or fallback answers still replaces it as before.
+            String memory = answer.has("newFacts") ? remember(previousMemory, TextBounds.characters(string(answer, "newFacts"), FACTS_LIMIT), memoryLimit)
+                    : TextBounds.characters(string(answer, "memory"), memoryLimit);
             if (reply.isBlank()) throw new IllegalArgumentException();
             SocialIntent social = SocialIntent.NONE;
             if (answer.has("socialIntent")) { try { social = SocialIntent.valueOf(string(answer, "socialIntent").toUpperCase(Locale.ROOT)); } catch (IllegalArgumentException ignored) { } }
@@ -299,6 +361,19 @@ final class OpenRouterConversationClient implements AutoCloseable {
 
     private static final class RejectedBargain extends IOException { RejectedBargain(String hint) { super(hint); } }
 
+    static final int FACTS_LIMIT = 300;
+
+    /** Appends new facts and drops the oldest lines once the memory outgrows its limit. */
+    static String remember(String previous, String facts, int limit) {
+        String old = previous == null ? "" : previous.strip(), fresh = facts == null ? "" : facts.strip();
+        if (fresh.isEmpty()) return TextBounds.characters(old, limit);
+        String combined = old.isEmpty() ? fresh : old + "\n" + fresh;
+        if (combined.length() <= limit) return combined;
+        String tail = combined.substring(combined.length() - limit);
+        int boundary = tail.indexOf('\n');
+        return boundary >= 0 && boundary < tail.length() - 1 ? tail.substring(boundary + 1) : tail;
+    }
+
     private static final Pattern PRICE_TALK = Pattern.compile("скид|уступ|дешевл|сбав|скин|договорил|обновил|теперь",
             Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
     private static final Pattern TOKEN = Pattern.compile("[\\p{L}\\d]+");
@@ -396,7 +471,7 @@ final class OpenRouterConversationClient implements AutoCloseable {
     }
 
     private static JsonObject responseFormat() {
-        JsonObject properties = new JsonObject(); properties.add("reply", property("string")); properties.add("memory", property("string"));
+        JsonObject properties = new JsonObject(); properties.add("reply", property("string"));
         JsonObject social = property("string"); social.add("enum", strings("NONE", "APOLOGY", "KIND", "INSULT", "THREAT")); properties.add("socialIntent", social);
         JsonObject actionFields = new JsonObject(), type = property("string"); type.add("enum", strings("NONE", "FOLLOW", "FLEE", "ATTACK", "STOP"));
         actionFields.add("type", type); actionFields.add("target", property("string"));
@@ -405,8 +480,10 @@ final class OpenRouterConversationClient implements AutoCloseable {
         bargainType.add("enum", strings("NONE", "OFFER", "ACCEPT", "DECLINE"));
         bargainFields.add("type", bargainType); bargainFields.add("offerIndex", property("integer")); bargainFields.add("price", property("integer"));
         properties.add("bargain", objectSchema(bargainFields, "type", "offerIndex", "price"));
+        // reply first so speech can start while the model is still writing the rest.
+        properties.add("newFacts", property("string"));
         JsonObject jsonSchema = new JsonObject(); jsonSchema.addProperty("name", "mob_reply"); jsonSchema.addProperty("strict", true);
-        jsonSchema.add("schema", objectSchema(properties, "reply", "memory", "socialIntent", "action", "bargain"));
+        jsonSchema.add("schema", objectSchema(properties, "reply", "socialIntent", "action", "bargain", "newFacts"));
         JsonObject format = new JsonObject(); format.addProperty("type", "json_schema"); format.add("json_schema", jsonSchema); return format;
     }
     private static JsonObject responseFormat(MobSnapshot snapshot) {

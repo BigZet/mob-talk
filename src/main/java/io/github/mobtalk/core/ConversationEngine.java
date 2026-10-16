@@ -50,12 +50,20 @@ public final class ConversationEngine implements AutoCloseable {
         if (question.isBlank()) throw new IOException("Речь не распознана. Удерживайте V и произнесите вопрос.");
         ConversationStore.Profile profile = store.profile(snapshot);
         checkCurrent(snapshot);
-        OpenRouterConversationClient.Answer answer = llm.respond(snapshot, profile, question);
-        checkCurrent(snapshot);
+        String reserve = SpeciesCatalog.reserve(profile.type).id();
+        EarlySpeech early = new EarlySpeech();
+        OpenRouterConversationClient.Answer answer;
+        try {
+            // Voice starts while the model still writes facts, action and bargain; checks below decide whether it is used.
+            answer = llm.respond(snapshot, profile, question, text -> early.start(text, () -> speech.streamWithFallback(profile.voiceId, reserve, text)));
+            checkCurrent(snapshot);
+        } catch (IOException | InterruptedException | RuntimeException failure) { early.discard(); throw failure; }
         SpeechStream audio = null;
         String voiceId = speech.selectedVoice(profile.voiceId);
         try {
-            OpenRouterSpeechClient.StreamedAudio streamed = speech.streamWithFallback(profile.voiceId, SpeciesCatalog.reserve(profile.type).id(), answer.reply());
+            java.util.concurrent.CompletableFuture<OpenRouterSpeechClient.StreamedAudio> started = early.take(answer.reply());
+            OpenRouterSpeechClient.StreamedAudio streamed = started == null ? speech.streamWithFallback(profile.voiceId, reserve, answer.reply())
+                    : awaitStarted(started);
             audio = streamed.stream();
             voiceId = streamed.voiceId();
             // Speak from the first fraction of a second; the rest keeps downloading during playback.
@@ -92,6 +100,52 @@ public final class ConversationEngine implements AutoCloseable {
             Reply reply = prepared.reply;
             return store.commit(delivered, reply.recognizedText(), reply.responseText(), prepared.memory, prepared.socialIntent,
                     reply.action(), System.currentTimeMillis(), prepared.successfulVoice);
+        }
+    }
+
+    private OpenRouterSpeechClient.StreamedAudio awaitStarted(java.util.concurrent.CompletableFuture<OpenRouterSpeechClient.StreamedAudio> started)
+            throws IOException, InterruptedException {
+        try { return started.get(speech.timeout().toSeconds(), java.util.concurrent.TimeUnit.SECONDS); }
+        catch (java.util.concurrent.ExecutionException failure) {
+            throw failure.getCause() instanceof IOException io ? io : new IOException("OpenRouter TTS: не удалось начать озвучку.");
+        } catch (java.util.concurrent.TimeoutException timeout) {
+            started.thenAccept(late -> late.stream().close());
+            throw new IOException("OpenRouter TTS: превышено время ожидания.");
+        } catch (InterruptedException cancelled) {
+            started.thenAccept(late -> late.stream().close());
+            throw cancelled;
+        }
+    }
+
+    /** At most one speech request opened from a streamed reply; any earlier or mismatched one is closed. */
+    private static final class EarlySpeech {
+        interface Opener { OpenRouterSpeechClient.StreamedAudio open() throws IOException, InterruptedException; }
+        private String text;
+        private java.util.concurrent.CompletableFuture<OpenRouterSpeechClient.StreamedAudio> pending;
+
+        synchronized void start(String reply, Opener opener) {
+            discard();
+            if (reply == null || reply.isBlank()) return;
+            java.util.concurrent.CompletableFuture<OpenRouterSpeechClient.StreamedAudio> future = new java.util.concurrent.CompletableFuture<>();
+            text = reply; pending = future;
+            // Called from the HTTP client's thread: opening the speech request must not hold up the rest of the reply.
+            Thread.ofVirtual().name("mobtalk-early-speech").start(() -> {
+                try { future.complete(opener.open()); } catch (Throwable failure) { future.completeExceptionally(failure); }
+            });
+        }
+
+        /** The early request when it voiced exactly the final reply; otherwise it is closed and null returned. */
+        synchronized java.util.concurrent.CompletableFuture<OpenRouterSpeechClient.StreamedAudio> take(String reply) {
+            if (pending != null && reply.equals(text)) {
+                var started = pending; pending = null; return started;
+            }
+            discard();
+            return null;
+        }
+
+        synchronized void discard() {
+            if (pending != null) pending.thenAccept(late -> late.stream().close());
+            pending = null;
         }
     }
 

@@ -44,6 +44,70 @@ final class BoundedHttp implements AutoCloseable {
         }
     }
 
+    /** A streaming chat completion: every server-sent "data:" payload goes to the consumer as it arrives, and the whole body
+     * is returned at the end, so a provider that ignored stream=true still yields its plain JSON. */
+    byte[] sendEvents(HttpRequest request, int maxBytes, String service, java.util.function.Consumer<String> events) throws IOException, InterruptedException {
+        CompletableFuture<HttpResponse<byte[]>> pending = null;
+        try {
+            pending = transport.sendAsync(request, response -> response.statusCode() == 200
+                    ? new EventBody(maxBytes, service, events) : new LimitedBody(response.statusCode(), maxBytes, service));
+            return pending.get(timeoutSeconds, TimeUnit.SECONDS).body();
+        } catch (TimeoutException timeout) {
+            throw new IOException(service + ": превышено время ожидания.");
+        } catch (ExecutionException failure) {
+            if (failure.getCause() instanceof SafeFailure safe) throw safe;
+            throw new IOException(service + ": не удалось выполнить запрос.");
+        } catch (RuntimeException failure) {
+            throw new IOException(service + ": не удалось выполнить запрос.");
+        } finally {
+            if (pending != null && !pending.isDone()) pending.cancel(true);
+        }
+    }
+
+    /** Splits the body into lines as bytes arrive; a multi-byte character never straddles two decoded lines. */
+    private static final class EventBody implements HttpResponse.BodySubscriber<byte[]> {
+        private final CompletableFuture<byte[]> body = new CompletableFuture<>();
+        private final ByteArrayOutputStream output = new ByteArrayOutputStream(), line = new ByteArrayOutputStream();
+        private final int maxBytes;
+        private final String service;
+        private final java.util.function.Consumer<String> events;
+        private Flow.Subscription subscription;
+
+        EventBody(int maxBytes, String service, java.util.function.Consumer<String> events) {
+            this.maxBytes = maxBytes; this.service = service; this.events = events;
+        }
+        @Override public CompletionStage<byte[]> getBody() { return body; }
+        @Override public void onSubscribe(Flow.Subscription subscription) { this.subscription = subscription; subscription.request(1); }
+        @Override public void onNext(List<ByteBuffer> buffers) {
+            if (body.isDone()) return;
+            for (ByteBuffer buffer : buffers) {
+                if (buffer.remaining() > maxBytes - output.size()) {
+                    body.completeExceptionally(new SafeFailure(service + ": ответ превышает допустимый размер."));
+                    subscription.cancel();
+                    return;
+                }
+                while (buffer.hasRemaining()) {
+                    byte next = buffer.get();
+                    output.write(next);
+                    if (next == '\n') flushLine(); else line.write(next);
+                }
+            }
+            subscription.request(1);
+        }
+        private void flushLine() {
+            String text = line.toString(java.nio.charset.StandardCharsets.UTF_8).strip();
+            line.reset();
+            if (text.startsWith("data:")) {
+                String data = text.substring(5).strip();
+                if (!data.equals("[DONE]")) {
+                    try { events.accept(data); } catch (RuntimeException ignored) { /* A consumer bug must not break the reply. */ }
+                }
+            }
+        }
+        @Override public void onError(Throwable ignored) { body.completeExceptionally(new SafeFailure(service + ": соединение прервано.")); }
+        @Override public void onComplete() { flushLine(); body.complete(output.toByteArray()); }
+    }
+
     /** Returns once a 200 response starts; the body keeps flowing into the stream until it ends, fails, is closed or times out. */
     SpeechStream stream(HttpRequest request, int maxBytes, String service) throws IOException, InterruptedException {
         SpeechStream sink = new SpeechStream(maxBytes);
