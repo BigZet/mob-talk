@@ -60,7 +60,7 @@ final class BoundedHttp implements AutoCloseable {
         @Override public CompletionStage<byte[]> getBody() { return body; }
         @Override public void onSubscribe(Flow.Subscription subscription) {
             this.subscription = subscription;
-            if (status != 200) fail(service + ": ошибка HTTP " + status + ".");
+            if (status != 200) fail(service + ": ошибка HTTP " + status + ".", status);
             else subscription.request(1);
         }
         @Override public void onNext(List<ByteBuffer> buffers) {
@@ -81,12 +81,17 @@ final class BoundedHttp implements AutoCloseable {
         }
         @Override public void onComplete() { body.complete(output.toByteArray()); }
         private void fail(String message) {
-            body.completeExceptionally(new SafeFailure(message));
+            fail(message, -1);
+        }
+        private void fail(String message, int status) {
+            body.completeExceptionally(new SafeFailure(message, status));
             subscription.cancel();
         }
     }
 
-    private static final class SafeFailure extends IOException {
-        SafeFailure(String message) { super(message); }
+    static final class SafeFailure extends IOException {
+        final int status;
+        SafeFailure(String message) { this(message, -1); }
+        SafeFailure(String message, int status) { super(message); this.status = status; }
     }
 }

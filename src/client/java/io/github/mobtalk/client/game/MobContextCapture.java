@@ -35,6 +35,8 @@ final class MobContextCapture {
         mobDetails.put("baby", mob.isBaby());
         if (mob.hasCustomName()) mobDetails.put("customName", mob.getCustomName().getString());
         mobDetails.put("aiDisabled", mob.isAiDisabled());
+        mobDetails.put("canAttackPlayer", bridge.actions.canAttack(mob, player));
+        mobDetails.put("difficulty", world.getDifficulty().getName());
         mobDetails.put("riding", mob.hasVehicle());
         mobDetails.put("leashed", mob.isLeashed());
         mobDetails.put("currentTarget", mob.getTarget() == null ? "none" : mob.getTarget().getUuid().toString());
@@ -65,6 +67,7 @@ final class MobContextCapture {
             rememberPlace(mobDetails, "jobSite", villager, MemoryModuleType.JOB_SITE);
             rememberPlace(mobDetails, "home", villager, MemoryModuleType.HOME);
             rememberPlace(mobDetails, "meetingPoint", villager, MemoryModuleType.MEETING_POINT);
+            mobDetails.put("bargaining", bridge.bargaining.capture(villager, player));
         }
         if (mob instanceof net.minecraft.entity.mob.ZombieVillagerEntity villager) {
             mobDetails.put("profession", Registries.VILLAGER_PROFESSION.getId(villager.getVillagerData().getProfession()).toString());

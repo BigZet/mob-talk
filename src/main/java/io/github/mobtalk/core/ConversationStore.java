@@ -2,6 +2,7 @@ package io.github.mobtalk.core;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonParser;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
@@ -50,8 +51,14 @@ public final class ConversationStore {
         boolean migrated = false, enriched = false;
         if (Files.exists(file)) {
             try {
-                state = JSON.fromJson(Files.readString(file, StandardCharsets.UTF_8), State.class);
+                String savedJson = Files.readString(file, StandardCharsets.UTF_8);
+                state = JSON.fromJson(savedJson, State.class);
                 if (state == null || state.profiles == null || state.version > 2) throw new IllegalArgumentException();
+                if (!JsonParser.parseString(savedJson).getAsJsonObject().has("bargains")) {
+                    Path backup = file.resolveSibling("conversations.before-bargaining.backup.json");
+                    if (!Files.exists(backup)) Files.copy(file, backup);
+                }
+                if (state.bargains == null) state.bargains = new LinkedHashMap<>();
                 migrated = state.version < 2;
                 for (var entry : state.profiles.entrySet()) {
                     Profile p = entry.getValue();
@@ -126,6 +133,18 @@ public final class ConversationStore {
     }
 
     public synchronized long revision(UUID mob) { Profile p = state.profiles.get(mob.toString()); return p == null ? 0 : p.revision; }
+    public synchronized Bargaining.Session bargain(UUID mob, UUID player) {
+        if (mob == null || player == null) return null;
+        return state.bargains.get(mob + ":" + player);
+    }
+    public synchronized void setBargain(UUID mob, UUID player, Bargaining.Session session) {
+        if (mob == null || player == null) throw new IllegalArgumentException("Bargaining requires a villager and a player");
+        String key = mob + ":" + player;
+        if (session == null) state.bargains.remove(key); else state.bargains.put(key, session);
+        Profile profile = state.profiles.get(mob.toString());
+        if (profile != null) profile.revision++;
+        scheduleSave();
+    }
     public synchronized List<String> events(UUID mob) { Profile p = state.profiles.get(mob.toString()); return p == null ? List.of() : p.events.stream().map(e -> e.text).toList(); }
 
     public synchronized MobCard card(UUID mob, UUID player) {
@@ -288,7 +307,13 @@ public final class ConversationStore {
     private void writeLoop() {
         while (true) {
             State snapshot;
-            synchronized (this) { if (!dirty) { writing = false; return; } dirty = false; snapshot = new State(); state.profiles.forEach((key, p) -> snapshot.profiles.put(key, copy(p))); }
+            synchronized (this) {
+                if (!dirty) { writing = false; return; }
+                dirty = false;
+                snapshot = new State();
+                state.profiles.forEach((key, p) -> snapshot.profiles.put(key, copy(p)));
+                snapshot.bargains.putAll(state.bargains); // Sessions are immutable records.
+            }
             try { write(snapshot); synchronized (this) { saveFailure = null; } }
             catch (IOException failure) { synchronized (this) { saveFailure = failure; dirty = true; writing = false; } return; }
         }
@@ -324,5 +349,9 @@ public final class ConversationStore {
     public record Turn(String user, String assistant) { }
     private record Event(long time, String text) { }
     private static final class Relation { int score, hits; long lastHelp = -1, lastApology = -1, lastInsult = -1; boolean ownerKnown; }
-    private static final class State { int version = 2; Map<String,Profile> profiles = new LinkedHashMap<>(); }
+    private static final class State {
+        int version = 2;
+        Map<String,Profile> profiles = new LinkedHashMap<>();
+        Map<String,Bargaining.Session> bargains = new LinkedHashMap<>();
+    }
 }

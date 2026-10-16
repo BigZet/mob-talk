@@ -13,7 +13,7 @@ final class OpenRouterToken {
     static String load(Path configDirectory) throws IOException {
         String environment = System.getenv("OPENROUTER_API_KEY");
         if (environment != null && !environment.isBlank()) return validate(environment);
-        for (String filename : new String[] { "mobtalk-openrouter-token.txt", "viewerparrots-openrouter-token.txt" }) {
+        for (String filename : new String[] { "mobtalk-openrouter-token.txt" }) {
             Path file = configDirectory.resolve(filename);
             if (Files.isRegularFile(file)) {
                 String token;
@@ -39,10 +39,8 @@ final class OpenRouterToken {
     }
 
     static Path encryptedKey(Path localAppData) {
-        Path standard = localAppData.resolve("ViewerParrots/openrouter-key.dpapi");
-        if (Files.isRegularFile(standard)) return standard;
-        Path redirected = localAppData.resolve("Packages/OpenAI.Codex_2p2nqsd0c76g0/LocalCache/Local/ViewerParrots/openrouter-key.dpapi");
-        return Files.isRegularFile(redirected) ? redirected : null;
+        Path encrypted = localAppData.resolve("MobTalk/openrouter-key.dpapi");
+        return Files.isRegularFile(encrypted) ? encrypted : null;
     }
 
     private static String loadDpapi() throws IOException {

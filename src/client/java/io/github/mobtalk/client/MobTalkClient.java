@@ -18,12 +18,15 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.gui.screen.GameMenuScreen;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.screen.ingame.MerchantScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.world.ClientWorld;
@@ -88,6 +91,12 @@ public final class MobTalkClient implements ClientModInitializer {
     private boolean stopped;
     private boolean keyHeld;
     private boolean requestActive;
+    private MerchantScreen merchantScreen;
+    private MerchantContext merchantContext;
+    private MerchantContext merchantWork;
+    private long merchantEpoch;
+    private boolean merchantKeyHeld;
+    private boolean merchantLookupPending;
     private CompletableFuture<String> actionRequest;
     private long ticks;
     private String status = "Загрузка настроек…";
@@ -104,6 +113,7 @@ public final class MobTalkClient implements ClientModInitializer {
                 Screens.getButtons(screen).add(ButtonWidget.builder(Text.literal("Mob Talk"), button -> openSettings(screen))
                         .dimensions(width - 128, height - 26, 120, 20).build());
             }
+            if (screen instanceof MerchantScreen merchant) initializeMerchantScreen(merchant);
         });
         UseEntityCallback.EVENT.register((player, useWorld, hand, entity, hit) -> {
             var subject = entity instanceof net.minecraft.entity.boss.dragon.EnderDragonPart part ? part.owner : entity;
@@ -126,6 +136,115 @@ public final class MobTalkClient implements ClientModInitializer {
         reload();
     }
 
+    /** Only the native trading screen accepts push-to-talk while a GUI is open. */
+    private void initializeMerchantScreen(MerchantScreen screen) {
+        if (merchantScreen != screen) {
+            endMerchantSession("Окно торговли изменилось: разговор отменён");
+            if (recording != null || requestActive || speech != null) cancelWork("Открыта торговля: разговор отменён");
+            updateWorld();
+            ensureGameBridge();
+            merchantScreen = screen;
+            merchantEpoch++;
+            merchantKeyHeld = false;
+            keyHeld = false;
+            status = "Определяем торговца…";
+            resolveMerchant(screen, merchantEpoch);
+        }
+        ScreenKeyboardEvents.allowKeyPress(screen).register((opened, key, scan, modifiers) -> {
+            if (!merchantInputEnabled(screen) || !talkKey.matchesKey(key, scan)) return true;
+            merchantKeyHeld = true;
+            return false;
+        });
+        ScreenKeyboardEvents.allowKeyRelease(screen).register((opened, key, scan, modifiers) -> {
+            if (merchantScreen != screen || !talkKey.matchesKey(key, scan)) return true;
+            boolean consumed = merchantKeyHeld || configReady && config.enabled;
+            merchantKeyHeld = false;
+            return !consumed;
+        });
+        ScreenMouseEvents.allowMouseClick(screen).register((opened, x, y, button) -> {
+            if (!merchantInputEnabled(screen) || !talkKey.matchesMouse(button)) return true;
+            merchantKeyHeld = true;
+            return false;
+        });
+        ScreenMouseEvents.allowMouseRelease(screen).register((opened, x, y, button) -> {
+            if (merchantScreen != screen || !talkKey.matchesMouse(button)) return true;
+            boolean consumed = merchantKeyHeld || configReady && config.enabled;
+            merchantKeyHeld = false;
+            return !consumed;
+        });
+        ScreenEvents.remove(screen).register(opened -> {
+            if (merchantScreen == screen) endMerchantSession("Торговля закрыта: разговор отменён");
+        });
+        ScreenEvents.afterRender(screen).register((opened, draw, mouseX, mouseY, delta) -> {
+            if (!configReady || !config.enabled || merchantScreen != screen) return;
+            String hint = merchantContext == null ? "Mob Talk · " + status
+                    : "Mob Talk · " + talkKey.getBoundKeyLocalizedText().getString() + ": удерживайте для речи · " + status;
+            String line = client.textRenderer.trimToWidth(hint, Math.max(40, screen.width - 12));
+            int textWidth = client.textRenderer.getWidth(line);
+            draw.fill((screen.width - textWidth) / 2 - 3, 3, (screen.width + textWidth) / 2 + 3, 17, 0xB0000000);
+            draw.drawCenteredTextWithShadow(client.textRenderer, Text.literal(line), screen.width / 2, 6, 0xFFFFFF);
+        });
+    }
+
+    private boolean merchantInputEnabled(MerchantScreen screen) {
+        return merchantScreen == screen && client.currentScreen == screen && configReady && config.enabled
+                && !reloading && client.isWindowFocused();
+    }
+
+    private void resolveMerchant(MerchantScreen screen, long epoch) {
+        if (merchantLookupPending || gameReady == null || client.player == null) return;
+        merchantLookupPending = true;
+        UUID player = client.player.getUuid();
+        int syncId = screen.getScreenHandler().syncId;
+        CompletableFuture<MobGameBridge> ready = gameReady;
+        ready.thenCompose(game -> game.selectMerchant(player, syncId)).whenComplete((id, error) -> client.execute(() -> {
+            if (merchantScreen != screen || merchantEpoch != epoch) return;
+            merchantLookupPending = false;
+            if (client.currentScreen != screen || client.player == null || !player.equals(client.player.getUuid())
+                    || client.player.currentScreenHandler != screen.getScreenHandler()) {
+                endMerchantSession("Окно торговли изменилось: разговор отменён");
+                return;
+            }
+            if (error != null) {
+                if (merchantContext != null) endMerchantSession("Торговец недоступен: разговор отменён");
+                else status = "Нет доступного торговца для Mob Talk";
+                return;
+            }
+            if (merchantContext != null) {
+                if (!merchantContext.mob.equals(id) || merchantContext.syncId != syncId)
+                    endMerchantSession("Торговец сменился: разговор отменён");
+                return;
+            }
+            MobEntity mob = MobSpeechSound.find(world, id);
+            if (mob == null || !mob.isAlive() || mob.isRemoved()) {
+                status = "Торговец ещё загружается";
+                return;
+            }
+            select(mob);
+            merchantContext = new MerchantContext(id, player, syncId, epoch);
+            status = readyStatus();
+        }));
+    }
+
+    private void endMerchantSession(String reason) {
+        merchantScreen = null;
+        merchantContext = null;
+        merchantEpoch++;
+        merchantLookupPending = false;
+        merchantKeyHeld = false;
+        keyHeld = talkKey != null && talkKey.isPressed();
+        if (merchantWork != null) cancelWork(reason);
+    }
+
+    private boolean allowedRecordingScreen() {
+        return client.currentScreen == null || merchantContext != null && client.currentScreen == merchantScreen
+                && client.player != null && client.player.currentScreenHandler == merchantScreen.getScreenHandler()
+                && merchantContext.player.equals(client.player.getUuid()) && merchantContext.mob.equals(selected)
+                && merchantContext.syncId == merchantScreen.getScreenHandler().syncId;
+    }
+
+    private String readyStatus() { return "Готов: удерживайте " + talkKey.getBoundKeyLocalizedText().getString(); }
+
     private static ExecutorService worker(String name) {
         return Executors.newSingleThreadExecutor(task -> {
             Thread thread = new Thread(task, name);
@@ -138,12 +257,18 @@ public final class MobTalkClient implements ClientModInitializer {
         ticks++;
         updateWorld();
         ensureGameBridge();
+        if (merchantScreen != null) {
+            if (client.currentScreen != merchantScreen || client.player == null
+                    || client.player.currentScreenHandler != merchantScreen.getScreenHandler())
+                endMerchantSession("Окно торговли изменилось: разговор отменён");
+            else if (ticks % 20 == 0) resolveMerchant(merchantScreen, merchantEpoch);
+        }
         while (settingsKey.wasPressed()) openSettingsRequested = true;
         if (openSettingsRequested && !reloading && !stopped) {
             openSettingsRequested = false;
             openSettings(client.currentScreen);
         }
-        boolean held = talkKey.isPressed();
+        boolean held = merchantScreen != null && client.currentScreen == merchantScreen ? merchantKeyHeld : talkKey.isPressed();
         MobEntity mob = target();
         if (selected != null && mob == null) clearSelection("Моб погиб или выгрузился: выберите нового палкой");
         if (client.player != null && !client.player.isAlive()
@@ -152,7 +277,12 @@ public final class MobTalkClient implements ClientModInitializer {
             if (!withinRange(mob) && (recording != null || requestActive || speech != null))
                 cancelWork("Подойдите к мобу ближе: разговор отменён");
         }
-        if (recording != null && (client.currentScreen != null || !client.isWindowFocused()
+        if (merchantWork != null && !client.isWindowFocused()) {
+            cancelWork("Окно неактивно: торговый разговор отменён");
+            merchantKeyHeld = false;
+            held = false;
+        }
+        if (recording != null && (!allowedRecordingScreen() || !client.isWindowFocused()
                 || world == null || client.player == null || !client.player.isAlive())) {
             cancelWork("Запись отменена");
         }
@@ -164,13 +294,13 @@ public final class MobTalkClient implements ClientModInitializer {
         keyHeld = held;
         if (speech != null && !client.getSoundManager().isPlaying(speech)) {
             speech = null;
-            if (!requestActive && recording == null) status = "Готов: удерживайте V";
+            if (!requestActive && recording == null) status = readyStatus();
         }
         if (selected != null && ticks % 20 == 0) showHud();
     }
 
     private boolean canRecord() {
-        return configReady && config.enabled && !reloading && client.currentScreen == null
+        return configReady && config.enabled && !reloading && allowedRecordingScreen()
                 && client.isWindowFocused() && client.player != null && client.player.isAlive() && world != null;
     }
 
@@ -184,6 +314,7 @@ public final class MobTalkClient implements ClientModInitializer {
     }
 
     private void leaveWorld() {
+        endMerchantSession("Мир сменился: торговый разговор отменён");
         cancelWork("Выберите моба ПКМ палкой");
         selected = null;
         world = null;
@@ -193,7 +324,7 @@ public final class MobTalkClient implements ClientModInitializer {
 
     private void select(MobEntity mob) {
         if (!mob.getUuid().equals(selected)) {
-            cancelWork("Готов: удерживайте V");
+            cancelWork(readyStatus());
             selected = mob.getUuid();
         }
         // Selecting the same UUID keeps its existing engine/profile/history.
@@ -211,6 +342,7 @@ public final class MobTalkClient implements ClientModInitializer {
         if (actionRequest != null) actionRequest.completeExceptionally(new java.util.concurrent.CancellationException(reason));
         actionRequest = null;
         requestActive = false;
+        merchantWork = null;
         if (recording != null) recording.cancel();
         recording = null;
         stopSpeech();
@@ -235,7 +367,8 @@ public final class MobTalkClient implements ClientModInitializer {
         try {
             MicrophoneRecorder.Capture capture = microphone.start(config.microphoneName, config.maxRecordingSeconds);
             recording = capture;
-            status = "Запись… отпустите V (до 15 сек.)";
+            merchantWork = seed.merchant;
+            status = "Запись… отпустите " + talkKey.getBoundKeyLocalizedText().getString() + " (до 15 сек.)";
             showHud();
             capture.wav.whenComplete((wav, error) -> client.execute(() -> finishRecording(seed, capture, wav, error)));
         } catch (RuntimeException unavailable) {
@@ -247,7 +380,7 @@ public final class MobTalkClient implements ClientModInitializer {
     private void finishRecording(Request seed, MicrophoneRecorder.Capture capture, byte[] wav, Throwable error) {
         if (recording != capture || !isCurrent(seed)) return;
         recording = null;
-        if (client.currentScreen != null || !client.isWindowFocused()) {
+        if (!allowedRecordingScreen() || !client.isWindowFocused()) {
             status = "Запись отменена";
             showHud();
             return;
@@ -257,7 +390,7 @@ public final class MobTalkClient implements ClientModInitializer {
             return;
         }
         if (wav == null) {
-            status = "Запись слишком короткая: удерживайте V и произнесите вопрос";
+            status = "Запись слишком короткая: " + readyStatus() + " и произнесите вопрос";
             showHud();
             return;
         }
@@ -281,7 +414,8 @@ public final class MobTalkClient implements ClientModInitializer {
     private Request request(long requestGeneration, MobSnapshot snapshot) {
         return new Request(requestGeneration, selected,
                 client.getServer().getSavePath(WorldSavePath.ROOT), config, snapshot, client.getServer(),
-                client.player.getUuid(), world.getRegistryKey().getValue().toString(), target() == null ? "" : target().getName().getString());
+                client.player.getUuid(), world.getRegistryKey().getValue().toString(), target() == null ? "" : target().getName().getString(),
+                client.currentScreen == merchantScreen ? merchantContext : null);
     }
 
     private void ensureGameBridge() {
@@ -325,6 +459,7 @@ public final class MobTalkClient implements ClientModInitializer {
             return;
         }
         requestActive = true;
+        merchantWork = request.merchant;
         status = wav == null ? "Моб думает…" : "Whisper распознаёт…";
         showHud();
         pipeline.execute(() -> {
@@ -345,7 +480,7 @@ public final class MobTalkClient implements ClientModInitializer {
                     } finally { whisper = null; }
                     checkCurrent(request);
                     if (question == null || question.isBlank()) {
-                        updateStatus(request, "Речь не распознана: удерживайте V и произнесите вопрос");
+                        updateStatus(request, "Речь не распознана: удерживайте голосовую клавишу и произнесите вопрос");
                         return;
                     }
                 }
@@ -355,16 +490,18 @@ public final class MobTalkClient implements ClientModInitializer {
                 if (ready == null) throw new IllegalStateException("Память мира ещё загружается");
                 MobGameBridge game = ready.get(10, TimeUnit.SECONDS);
                 if (game.server != request.server) throw new InterruptedException("Мир сменился");
+                if (request.merchant != null && !request.target.equals(game.selectMerchant(request.player,
+                        request.merchant.syncId).get(10, TimeUnit.SECONDS))) throw new InterruptedException("Торговец сменился");
                 MobSnapshot snapshot = request.snapshot == null
                         ? game.capture(request.target, request.player, request.dimension).get(10, TimeUnit.SECONDS) : request.snapshot;
                 checkCurrent(request);
                 ConversationEngine localEngine = ensureEngine(request);
                 checkCurrent(request);
-                ConversationEngine.Reply reply = localEngine.converse(snapshot, question);
+                ConversationEngine.PreparedReply prepared = localEngine.prepare(snapshot, question);
                 checkCurrent(request);
                 Request observed = new Request(request.generation, request.target, request.worldDirectory, request.config,
-                        snapshot, request.server, request.player, request.dimension, request.mobName);
-                client.execute(() -> deliver(observed, reply));
+                        snapshot, request.server, request.player, request.dimension, request.mobName, request.merchant);
+                client.execute(() -> deliver(observed, localEngine, prepared));
             } catch (InterruptedException cancelled) {
                 Thread.currentThread().interrupt();
                 client.execute(() -> {
@@ -403,26 +540,31 @@ public final class MobTalkClient implements ClientModInitializer {
         return created;
     }
 
-    private void deliver(Request request, ConversationEngine.Reply reply) {
+    private void deliver(Request request, ConversationEngine localEngine, ConversationEngine.PreparedReply prepared) {
         if (!isCurrent(request)) return;
+        ConversationEngine.Reply reply = prepared.reply();
         MobGameBridge game = MobGameBridge.active(request.server);
         if (game == null || game.memory.revision(request.target) != reply.interactionRevision()) {
             status = "Отношение моба изменилось: задайте вопрос ещё раз";
             if (actionRequest != null) actionRequest.completeExceptionally(new java.util.concurrent.CancellationException(status));
             actionRequest = null; showHud(); return;
         }
-        game.applyWithRevision(request.target, request.player, request.dimension, reply.action(), request.snapshot,
-                reply.interactionRevision(), () -> generation == request.generation)
-                .whenComplete((delivery, error) -> client.execute(() -> {
-                    if (!isCurrent(request)) return;
-                    if (error != null) { reportFailure(request, error); return; }
-                    if (game.memory.revision(request.target) != delivery.revision()) {
-                        status = "Отношение моба изменилось: ответ отменён";
-                        if (actionRequest != null) actionRequest.completeExceptionally(new java.util.concurrent.CancellationException(status));
-                        actionRequest = null; showHud(); return;
-                    }
-                    finishDelivery(request, reply, delivery.message());
-                }));
+        CompletableFuture<UUID> merchant = request.merchant == null ? CompletableFuture.completedFuture(request.target)
+                : game.selectMerchant(request.player, request.merchant.syncId);
+        merchant.thenCompose(id -> {
+            if (!request.target.equals(id)) throw new java.util.concurrent.CancellationException("Торговец сменился");
+            return game.applyWithRevision(request.target, request.player, request.dimension, reply.action(), reply.bargain(), request.snapshot,
+                    reply.interactionRevision(), () -> generation == request.generation);
+        }).whenComplete((delivery, error) -> client.execute(() -> {
+            if (!isCurrent(request)) return;
+            if (error != null) { reportFailure(request, error); return; }
+            if (!localEngine.commitDelivered(prepared, delivery.revision())) {
+                status = "Отношение моба изменилось: ответ отменён";
+                if (actionRequest != null) actionRequest.completeExceptionally(new java.util.concurrent.CancellationException(status));
+                actionRequest = null; showHud(); return;
+            }
+            finishDelivery(request, reply, delivery.message());
+        }));
     }
 
     private void finishDelivery(Request request, ConversationEngine.Reply reply, String actionMessage) {
@@ -478,7 +620,8 @@ public final class MobTalkClient implements ClientModInitializer {
     private boolean isCurrent(Request request) {
         return !stopped && generation == request.generation && request.target.equals(selected)
                 && world != null && client.world == world && client.getServer() != null
-                && client.player != null && client.player.isAlive() && withinRange(target());
+                && client.player != null && client.player.isAlive() && withinRange(target())
+                && (request.merchant == null || request.merchant.equals(merchantContext) && allowedRecordingScreen());
     }
 
     private MobEntity target() { return MobSpeechSound.find(world, selected); }
@@ -537,7 +680,7 @@ public final class MobTalkClient implements ClientModInitializer {
                 default -> "";
             };
             submit(new Request(seed.generation, seed.target, seed.worldDirectory, seed.config, snapshot,
-                    seed.server, seed.player, seed.dimension, seed.mobName), null, question);
+                    seed.server, seed.player, seed.dimension, seed.mobName, seed.merchant), null, question);
         }));
         return result;
     }
@@ -676,7 +819,7 @@ public final class MobTalkClient implements ClientModInitializer {
                             config = loaded;
                             configReady = true;
                             status = !loaded.enabled ? "Mob Talk выключен" : selected == null
-                                    ? "Выберите моба ПКМ палкой" : "Готов: удерживайте V";
+                                    ? "Выберите моба ПКМ палкой" : readyStatus();
                             completion.accept(null);
                         });
                     } catch (Exception failure) {
@@ -720,7 +863,7 @@ public final class MobTalkClient implements ClientModInitializer {
                     config = loaded;
                     configReady = true;
                     reloading = false;
-                    status = selected == null ? "Выберите моба ПКМ палкой" : "Готов: удерживайте V";
+                    status = selected == null ? "Выберите моба ПКМ палкой" : readyStatus();
                     if (world != null) notice("Настройки загружены");
                 });
             } catch (Exception failure) {
@@ -752,5 +895,6 @@ public final class MobTalkClient implements ClientModInitializer {
     }
 
     private record Request(long generation, UUID target, Path worldDirectory, MobTalkConfig config, MobSnapshot snapshot,
-            MinecraftServer server, UUID player, String dimension, String mobName) { }
+            MinecraftServer server, UUID player, String dimension, String mobName, MerchantContext merchant) { }
+    private record MerchantContext(UUID mob, UUID player, int syncId, long epoch) { }
 }

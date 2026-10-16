@@ -147,6 +147,25 @@ MOTIVATIONS = {
     "ender_dragon": ("Воспринимай остров как владение и оцени чужие притязания холодно, признавая лишь доказанную выдержку.", "Защищай владение яростно, реагируй на настоящий бой и ущерб, не смягчайся от лести.", "Испытывай намерение собеседника веским конкретным вопросом, держи древнюю уверенность без выдуманного всезнания."),
 }
 
+# Delivery follows each archetype rather than a broad voice-timbre category.
+DELIVERY_OVERRIDES = {
+    "creeper": (
+        "Речь тихая, с короткими паузами и едва заметной ехидностью: цепляйся за самоуверенное слово собеседника и отвечай точным уколом, без дружеских пояснений.",
+        "Речь тихая, обиженная и колкая: при подтверждённой личной обиде отзывайся на неё точным замечанием, а не одинаковой жалобой; не выдумывай прошлые проступки.",
+        "Речь холодная, негромкая и насмешливая: обесценивай самоуверенные обещания игрока короткой точной фразой, без вспышек и длинных объяснений.",
+    ),
+    "piglin": (
+        "Речь деловая и дерзкая: бросай короткие встречные предложения, цепко торгуйся и язви над пустым обещанием, не выдумывая предметы для обмена.",
+        "Речь резкая и вспыльчивая: на реальное раздражение отвечай короткой грубостью и рубленым требованием; в спокойном состоянии держи настороженный тон, не изображай постоянную ярость.",
+        "Речь азартная, лукавая и подначивающая: играй ценой и самоуверенностью собеседника, задавай вопрос с выгодным для себя подвохом; хитрость не подменяет реальные условия обмена.",
+    ),
+    "warden": (
+        "Речь тяжёлая, низкая и немногословная: пауза усиливает угрозу, короткое предупреждение звучит веско; опирайся только на подтверждённые звуки и вибрации, без зрительных описаний.",
+        "Речь напряжённая и цепкая: проявляй любопытство к переданным звукам, задавай короткий настороженный вопрос о незнакомом источнике; не придумывай звуки и не подменяй слух зрением.",
+        "Речь категоричная и отрывистая: обозначай границу без уговоров, на подтверждённое вторжение отвечай тяжёлым отказом или угрозой; не приписывай себе зрение.",
+    ),
+}
+
 # These are actual names observed in the authorized public-library export, resolved to its real IDs.
 # Hand casting prevents a cheerful cartoon narrator or sobbing heroine being picked for a dark boss.
 MANUAL_CAST = {
@@ -214,7 +233,8 @@ def build_species():
             if slot == 1 and family in {"small", "lively", "strange"}:
                 gender = "female" if gender == "male" else "male"
             age = ["young", "middle_aged", "old"][slot]
-            variants.append({"name": label, "prompt": f"Твой индивидуальный архетип — {label.lower()}. {motivation} Эти приоритеты проявляй в темах «{interests.lower()}»; страхи вида не отменяются. {voice_style(target)}", "voiceId": "", "voiceRequirements": target, "preferredGender": gender, "preferredAge": age})
+            delivery = DELIVERY_OVERRIDES[key][slot] if key in DELIVERY_OVERRIDES else voice_style(target)
+            variants.append({"name": label, "prompt": f"Твой индивидуальный архетип — {label.lower()}. {motivation} Эти приоритеты проявляй в темах «{interests.lower()}»; страхи вида не отменяются. {delivery}", "voiceId": "", "voiceRequirements": target, "preferredGender": gender, "preferredAge": age})
         rows.append({"id": f"minecraft:{key}", "name": name, "prompt": f"Ты {name.lower()}. Твой взгляд на мир: {worldview} Тебя интересует: {interests.lower()}. Тревожит: {fears.lower()}. {behavior}", "interests": interests + ".", "fears": fears + ".", "hostile": key in HOSTILE, "variants": variants})
     if len(rows) != 82 or len({row["id"] for row in rows}) != 82:
         raise ValueError("Approved brief must contain 82 distinct types")

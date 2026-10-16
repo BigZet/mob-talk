@@ -9,6 +9,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.mob.WardenEntity;
+import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -25,11 +26,13 @@ public final class MobGameBridge {
     public final ConversationStore memory;
     public volatile MobTalkConfig config;
     final MobActionController actions;
+    final VillagerBargaining bargaining;
     private final Map<UUID, Deque<Heard>> heard = new HashMap<>();
 
     private MobGameBridge(MinecraftServer server, ConversationStore memory, MobTalkConfig config) {
         this.server = server; this.memory = memory; this.config = config.copy();
         actions = new MobActionController(this);
+        bargaining = new VillagerBargaining(this);
     }
 
     public static void initialize() {
@@ -41,7 +44,8 @@ public final class MobGameBridge {
             if (source.getAttacker() instanceof ServerPlayerEntity player && !blocked && amount > 0) {
                 bridge.memory.recordDamage(mob.getUuid(), type(mob), mob.getName().getString(), player.getUuid(),
                         player.getName().getString(), System.currentTimeMillis());
-                bridge.actions.hurtBy(mob, player.getUuid());
+                if (mob instanceof VillagerEntity villager) bridge.bargaining.hurtBy(villager, player);
+                bridge.actions.hurtBy(mob, player);
             } else if (!blocked && amount > 0) {
                 bridge.event(mob, "Damage: " + source.getName() + "; attacker="
                         + (source.getAttacker() == null ? "environment" : type(source.getAttacker())));
@@ -55,9 +59,8 @@ public final class MobGameBridge {
                     bridge.memory.recordDamage(mob.getUuid(), type(mob), mob.getName().getString(), player.getUuid(),
                             player.getName().getString(), System.currentTimeMillis());
                 bridge.event(mob, "The mob died: " + source.getName());
-                bridge.actions.stop(mob.getUuid(), true);
             }
-            bridge.actions.targetDied(entity.getUuid());
+            // END_WORLD_TICK removes dead leases; a death callback can run inside that lease's melee goal.
         });
         ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
             MobGameBridge bridge = forEntity(entity);
@@ -67,12 +70,20 @@ public final class MobGameBridge {
             MobGameBridge bridge = forEntity(entity);
             if (bridge != null && entity instanceof MobEntity mob) {
                 bridge.actions.unload(mob);
+                if (mob instanceof VillagerEntity villager) bridge.bargaining.unload(villager);
                 bridge.heard.remove(mob.getUuid());
             }
         });
         ServerTickEvents.END_WORLD_TICK.register(world -> {
             MobGameBridge bridge = active;
-            if (bridge != null && bridge.server == world.getServer()) bridge.actions.tick(world);
+            if (bridge != null && bridge.server == world.getServer()) {
+                bridge.actions.tick(world);
+                bridge.bargaining.tick(world);
+            }
+        });
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+            MobGameBridge bridge = active(server);
+            if (bridge != null) bridge.bargaining.close();
         });
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
             MobGameBridge bridge = active;
@@ -103,11 +114,15 @@ public final class MobGameBridge {
                 bridge.memory.recordAction(card.id(), ActionIntent.none());
         if (server.isStopped()) return CompletableFuture.completedFuture(null);
         CompletableFuture<Void> done = new CompletableFuture<>();
-        server.execute(() -> { bridge.actions.clearRuntime(); done.complete(null); });
+        server.execute(() -> { bridge.actions.clearRuntime(); bridge.bargaining.close(); done.complete(null); });
         return done;
     }
     public static MobGameBridge forEntity(Entity entity) {
         return entity.getWorld() instanceof ServerWorld world ? active(world.getServer()) : null;
+    }
+    static MobGameBridge currentTradeBridge() {
+        MobGameBridge bridge = active;
+        return bridge != null && bridge.server.isOnThread() ? bridge : null;
     }
     public static String type(Entity entity) { return Registries.ENTITY_TYPE.getId(entity.getType()).toString(); }
     public void event(MobEntity mob, String text) {
@@ -119,6 +134,14 @@ public final class MobGameBridge {
         bridge.memory.recordHelp(mob.getUuid(), type(mob), mob.getName().getString(), player.getUuid(),
                 player.getName().getString(), System.currentTimeMillis());
         bridge.event(mob, reason + ": " + player.getName().getString());
+    }
+
+    public CompletableFuture<UUID> selectMerchant(UUID playerId, int syncId) {
+        return onServer(() -> {
+            ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
+            if (player == null) throw new IllegalStateException("Игрок недоступен");
+            return VillagerBargaining.selected(player, syncId).getUuid();
+        });
     }
 
     public CompletableFuture<MobSnapshot> capture(UUID mobId, UUID playerId, String dimension) {
@@ -142,6 +165,10 @@ public final class MobGameBridge {
     }
     public CompletableFuture<Outcome> applyWithRevision(UUID mobId, UUID playerId, String dimension, ActionIntent intent,
             MobSnapshot observed, long expectedRevision, java.util.function.BooleanSupplier valid) {
+        return applyWithRevision(mobId, playerId, dimension, intent, BargainIntent.none(), observed, expectedRevision, valid);
+    }
+    public CompletableFuture<Outcome> applyWithRevision(UUID mobId, UUID playerId, String dimension, ActionIntent intent,
+            BargainIntent bargain, MobSnapshot observed, long expectedRevision, java.util.function.BooleanSupplier valid) {
         return onServer(() -> {
             synchronized (memory) {
                 if (!valid.getAsBoolean()) throw new java.util.concurrent.CancellationException("Разговор отменён");
@@ -153,7 +180,13 @@ public final class MobGameBridge {
                 if (!(entity instanceof MobEntity mob) || !mob.isAlive() || player == null || !player.isAlive()
                         || player.getWorld() != world) throw new java.util.concurrent.CancellationException("Моб или игрок недоступен");
                 if (memory.card(mobId, playerId) == null) event(mob, "The player met this mob");
+                String trade = "";
+                if (bargain != null && bargain.type() != BargainIntent.Type.NONE) {
+                    if (!(mob instanceof VillagerEntity villager)) throw new IllegalStateException("Торг доступен только с жителями");
+                    trade = bargaining.apply(villager, player, bargain, observed);
+                }
                 String result = actions.apply(mob, player, intent, observed);
+                if (!trade.isBlank()) result = result.isBlank() ? trade : result + "; " + trade;
                 return new Outcome(result, memory.revision(mobId));
             }
         });
@@ -196,7 +229,7 @@ public final class MobGameBridge {
     }
     public static boolean suppressesAttack(MobEntity mob) {
         MobGameBridge bridge = forEntity(mob);
-        return bridge != null && bridge.actions.moving(mob);
+        return bridge != null && bridge.actions.suppressesNativeAttack(mob);
     }
     record Heard(long tick, Vec3d position, UUID source, String event) { }
 }

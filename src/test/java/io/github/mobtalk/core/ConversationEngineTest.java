@@ -16,8 +16,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -31,10 +33,13 @@ class ConversationEngineTest {
     private final AtomicReference<String> reply = new AtomicReference<>("Я мирно пасусь здесь.");
     private final AtomicReference<String> summary = new AtomicReference<>("Игрок спросил о жизни на лугу.");
     private final AtomicReference<String> rawChat = new AtomicReference<>();
+    private final AtomicReference<JsonObject> bargainResponse = new AtomicReference<>();
     private final AtomicInteger chatStatus = new AtomicInteger(200);
+    private final AtomicBoolean rejectsStructuredOutput = new AtomicBoolean();
     private final AtomicInteger speechStatus = new AtomicInteger(200);
     private final AtomicReference<byte[]> speechBytes = new AtomicReference<>(new byte[] { 0, 0, 1, 0 });
     private final AtomicInteger chatCalls = new AtomicInteger();
+    private final java.util.Queue<JsonObject> queuedAnswers = new java.util.concurrent.ConcurrentLinkedQueue<>();
     private final AtomicInteger speechCalls = new AtomicInteger();
     private final AtomicReference<JsonObject> speechRequest = new AtomicReference<>();
     private final AtomicReference<Runnable> speechHook = new AtomicReference<>();
@@ -57,6 +62,12 @@ class ConversationEngineTest {
             JsonObject content = new JsonObject();
             content.addProperty("reply", reply.get());
             content.addProperty("memory", summary.get());
+            content.addProperty("socialIntent", "NONE");
+            JsonObject defaultAction = new JsonObject(); defaultAction.addProperty("type", "NONE"); defaultAction.addProperty("target", "");
+            content.add("action", defaultAction);
+            if (bargainResponse.get() != null) content.add("bargain", bargainResponse.get());
+            JsonObject queued = queuedAnswers.poll();
+            if (queued != null) content = queued;
             JsonObject message = new JsonObject();
             message.addProperty("role", "assistant");
             message.addProperty("content", content.toString());
@@ -68,7 +79,8 @@ class ConversationEngineTest {
             response.add("choices", choices);
             byte[] body = (rawChat.get() == null ? response.toString() : rawChat.get()).getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type", "application/json");
-            exchange.sendResponseHeaders(chatStatus.get(), body.length);
+            boolean strictRejected = rejectsStructuredOutput.get() && "json_schema".equals(lastRequest.get().getAsJsonObject("response_format").get("type").getAsString());
+            exchange.sendResponseHeaders(strictRejected ? 404 : chatStatus.get(), body.length);
             exchange.getResponseBody().write(body);
             exchange.close();
         });
@@ -115,6 +127,62 @@ class ConversationEngineTest {
                 snapshot.dimension(), snapshot.biome(), snapshot.timeOfDay(), snapshot.weather(), snapshot.distance(),
                 snapshot.heldItem(), snapshot.nearby(), snapshot.recentEvents(), snapshot.playerId(), snapshot.playerDetails(),
                 snapshot.mobDetails(), snapshot.environmentDetails(), snapshot.observedEntities(), snapshot.availableActions(), revision);
+    }
+
+    private Map<String,Object> bargainingContext(boolean open, Map<String,Object> state) {
+        return Map.ofEntries(Map.entry("open", open), Map.entry("selectedIndex", 1), Map.entry("selectedOffer", 1),
+                Map.entry("fingerprint", "fixture-sticks-for-emerald"), Map.entry("baseCount", 32),
+                Map.entry("vanillaCount", 32), Map.entry("currentPrice", 32), Map.entry("maximumDiscount", 3),
+                Map.entry("allowedPrices", List.of(31, 30, 29)), Map.entry("available", true),
+                Map.entry("firstBuy", Map.of("id", "minecraft:stick", "name", "Палка", "count", 32)),
+                Map.entry("secondBuy", Map.of()), Map.entry("sell", Map.of("id", "minecraft:emerald", "name", "Изумруд", "count", 1)),
+                Map.entry("serverTick", 1000), Map.entry("reason", ""), Map.entry("state", state));
+    }
+
+    private MobSnapshot tradingMob(String type, Map<String,Object> bargaining) {
+        MobSnapshot base = cow(UUID.randomUUID());
+        return new MobSnapshot(base.id(), type, "Торговец", base.health(), base.maxHealth(), base.dimension(), base.biome(),
+                base.timeOfDay(), base.weather(), base.distance(), base.heldItem(), base.nearby(), base.recentEvents(),
+                UUID.randomUUID(), Map.of(), Map.of("bargaining", bargaining), Map.of(), List.of(), List.of(ActionType.NONE), 0);
+    }
+
+    // A structured concession changes the first input count, even when the player pays with items rather than emeralds.
+    @Test void carriesStructuredBargainOfferAndExactPendingAcceptanceThroughEngine() throws Exception {
+        try (ConversationEngine engine = engine()) {
+            bargainResponse.set(JsonParser.parseString("{\"type\":\"OFFER\",\"offerIndex\":1,\"discount\":3}").getAsJsonObject());
+            var offer = engine.converse(tradingMob("minecraft:villager", bargainingContext(true, Map.of("status", "NONE"))), "Можешь уступить?");
+            assertEquals(new BargainIntent(BargainIntent.Type.OFFER, 1, 3), offer.bargain());
+            assertArrayEquals(speechBytes.get(), offer.pcm());
+            bargainResponse.set(JsonParser.parseString("{\"type\":\"ACCEPT\",\"offerIndex\":1,\"discount\":0}").getAsJsonObject());
+            var accepted = engine.converse(tradingMob("minecraft:villager", bargainingContext(true,
+                    Map.of("status", "PENDING", "offerIndex", 1, "vanillaCount", 32, "price", 29, "discount", 3,
+                            "key", "fixture-sticks-for-emerald", "expiresTick", 7000L))), "Согласен");
+            assertEquals(new BargainIntent(BargainIntent.Type.ACCEPT, 1, 0), accepted.bargain());
+        }
+    }
+
+    // Model intent cannot negotiate outside the current villager window, invent a price, or change a pending agreement.
+    @Test void rejectsBargainOutsideSelectedTradeOrPermittedPriceBeforeVoicingIt() throws Exception {
+        try (ConversationEngine engine = engine()) {
+            bargainResponse.set(JsonParser.parseString("{\"type\":\"OFFER\",\"offerIndex\":1,\"discount\":3}").getAsJsonObject());
+            assertThrows(IOException.class, () -> engine.converse(tradingMob("minecraft:cow", bargainingContext(true, Map.of("status", "NONE"))), "Уступишь?"));
+            assertThrows(IOException.class, () -> engine.converse(tradingMob("minecraft:villager", bargainingContext(false, Map.of("status", "NONE"))), "Уступишь?"));
+            for (String invalid : List.of("{\"type\":\"OFFER\",\"offerIndex\":0,\"discount\":3}",
+                    "{\"type\":\"OFFER\",\"offerIndex\":1,\"discount\":0}",
+                    "{\"type\":\"OFFER\",\"offerIndex\":1,\"discount\":4}",
+                    "{\"type\":\"OFFER\",\"offerIndex\":1,\"discount\":2.5}",
+                    "{\"type\":\"OFFER\",\"offerIndex\":1,\"discount\":\"3\"}")) {
+                bargainResponse.set(JsonParser.parseString(invalid).getAsJsonObject());
+                assertThrows(IOException.class, () -> engine.converse(tradingMob("minecraft:villager", bargainingContext(true, Map.of("status", "NONE"))), "Уступишь?"));
+            }
+            bargainResponse.set(JsonParser.parseString("{\"type\":\"ACCEPT\",\"offerIndex\":1,\"discount\":2}").getAsJsonObject());
+            assertEquals(new BargainIntent(BargainIntent.Type.ACCEPT, 1, 0), engine.converse(tradingMob("minecraft:villager", bargainingContext(true,
+                    Map.of("status", "PENDING", "offerIndex", 1, "vanillaCount", 32, "price", 29, "discount", 3,
+                            "key", "fixture-sticks-for-emerald", "expiresTick", 7000L))), "Согласен").bargain());
+            assertThrows(IOException.class, () -> engine.converse(tradingMob("minecraft:villager", bargainingContext(true, Map.of("status", "NONE"))), "Согласен"));
+            bargainResponse.set(null);
+            assertEquals(BargainIntent.none(), engine.converse(cow(UUID.randomUUID()), "Привет").bargain());
+        }
     }
 
     // Removing the UUID key, trimming, or reload would mix or lose persistent conversations.
@@ -165,11 +233,11 @@ class ConversationEngineTest {
         }
     }
 
-    // Passing provider text straight through would let speech exceed the requested sentence/word bound.
-    @Test void boundsReplyToTwoSentencesAndFortyFiveWords() throws Exception {
-        reply.set("Один. Два. Три лишних предложения.");
+    // A fixed sentence count cuts natural short reactions; the configured word budget still applies.
+    @Test void keepsNaturalSentenceRhythmWithinFortyFiveWords() throws Exception {
+        reply.set("Один. Два. Третья короткая мысль.");
         try (ConversationEngine engine = engine()) {
-            assertEquals("Один. Два.", engine.converse(cow(UUID.randomUUID()), "Привет").responseText());
+            assertEquals("Один. Два. Третья короткая мысль.", engine.converse(cow(UUID.randomUUID()), "Привет").responseText());
             reply.set("слово ".repeat(60));
             String text = engine.converse(cow(UUID.randomUUID()), "Привет ещё раз").responseText();
             assertEquals(45, text.split("\\s+").length);
@@ -436,6 +504,91 @@ class ConversationEngineTest {
                 List.of(ActionType.NONE, ActionType.ATTACK), 0);
         assertEquals(new ActionIntent(ActionType.ATTACK, "e1"), OpenRouterConversationClient.validateAction(JsonParser.parseString("{\"type\":\"ATTACK\",\"target\":\"e1\"}").getAsJsonObject(), snapshot));
         assertEquals(ActionIntent.none(), OpenRouterConversationClient.validateAction(JsonParser.parseString("{\"type\":\"ATTACK\",\"target\":\"e2\"}").getAsJsonObject(), snapshot));
+    }
+
+    // Some free providers accept JSON objects but route strict schema requests to no endpoint.
+    @Test void fallsBackOnceToJsonObjectWhenTheProviderHasNoStructuredEndpoint() throws Exception {
+        rejectsStructuredOutput.set(true);
+        bargainResponse.set(JsonParser.parseString("{\"type\":\"NONE\",\"offerIndex\":-1,\"discount\":0}").getAsJsonObject());
+        try (ConversationEngine engine = engine()) {
+            assertEquals("Я мирно пасусь здесь.", engine.converse(cow(UUID.randomUUID()), "Привет").responseText());
+            assertEquals(2, chatCalls.get());
+            assertEquals("json_object", lastRequest.get().getAsJsonObject("response_format").get("type").getAsString());
+            engine.converse(cow(UUID.randomUUID()), "Ещё вопрос");
+            assertEquals(3, chatCalls.get());
+        }
+    }
+
+    // Dropping an invalid price intent while voicing its promise would falsely announce a discount.
+    @Test void doesNotVoiceOrRememberAnImpossibleBargainingPromise() throws Exception {
+        reply.set("Отдам за десять.");
+        bargainResponse.set(JsonParser.parseString("{\"type\":\"OFFER\",\"offerIndex\":1,\"discount\":22}").getAsJsonObject());
+        try (ConversationEngine engine = engine()) {
+            MobSnapshot villager = tradingMob("minecraft:villager", bargainingContext(true, Map.of("status", "NONE")));
+            assertThrows(IOException.class, () -> engine.converse(villager, "Уступишь?"));
+            assertEquals(0, speechCalls.get());
+            assertEquals(2, chatCalls.get(), "Only one corrective request is allowed");
+            assertTrue(engine.memory().card(villager.id(), villager.playerId()).turns().isEmpty());
+        }
+    }
+
+    private JsonObject tradingAnswer(String text, String type, int index, int discount) {
+        JsonObject answer = new JsonObject();
+        answer.addProperty("reply", text); answer.addProperty("memory", text); answer.addProperty("socialIntent", "NONE");
+        answer.add("action", JsonParser.parseString("{\"type\":\"NONE\",\"target\":\"\"}"));
+        JsonObject bargain = new JsonObject(); bargain.addProperty("type", type);
+        bargain.addProperty("offerIndex", index); bargain.addProperty("discount", discount); answer.add("bargain", bargain);
+        return answer;
+    }
+
+    // A real Flash Lite response proposed an unavailable concession despite refusing it in the spoken text.
+    @Test void repairsAnInvalidTradeOnceBeforeSpeechAndHistory() throws Exception {
+        queuedAnswers.add(tradingAnswer("Двадцать девять? Нет, тридцать две — моя цена.", "OFFER", 1, 3));
+        queuedAnswers.add(tradingAnswer("Открой торговлю, тогда обсудим выбранный товар.", "NONE", -1, 0));
+        try (ConversationEngine engine = engine()) {
+            MobSnapshot villager = tradingMob("minecraft:villager", bargainingContext(false, Map.of("status", "NONE")));
+            var answer = engine.converse(villager, "Давай двадцать девять вместо тридцати двух?");
+            assertEquals(BargainIntent.none(), answer.bargain());
+            assertEquals("Открой торговлю, тогда обсудим выбранный товар.", answer.responseText());
+            assertEquals(2, chatCalls.get()); assertEquals(1, speechCalls.get());
+            var turns = engine.memory().card(villager.id(), villager.playerId()).turns();
+            assertEquals(1, turns.size()); assertEquals(answer.responseText(), turns.getFirst().assistant());
+        }
+    }
+
+    @Test void refusingWithoutAnOpenWindowIsSafeOrdinaryDialogue() throws Exception {
+        queuedAnswers.add(tradingAnswer("Без торгового окна скидки не обсуждаю.", "DECLINE", -1, 0));
+        try (ConversationEngine engine = engine()) {
+            var answer = engine.converse(tradingMob("minecraft:villager", bargainingContext(false, Map.of("status", "NONE"))), "Уступи");
+            assertEquals(BargainIntent.none(), answer.bargain());
+            assertEquals(1, chatCalls.get()); assertEquals(1, speechCalls.get());
+        }
+    }
+
+    @Test void acceptsTheStoredPriceWithoutParsingUnusedDiscount() {
+        var snapshot = tradingMob("minecraft:villager", bargainingContext(true,
+                Map.of("status", "PENDING", "offerIndex", 1, "vanillaCount", 32, "price", 29, "discount", 3,
+                        "key", "fixture-sticks-for-emerald", "expiresTick", 7000L)));
+        for (String discount : List.of("null", "\"0\"")) {
+            JsonObject answer = JsonParser.parseString("{\"type\":\"ACCEPT\",\"offerIndex\":1,\"discount\":" + discount + "}").getAsJsonObject();
+            assertEquals(new BargainIntent(BargainIntent.Type.ACCEPT, 1, 0), OpenRouterConversationClient.validateBargain(answer, snapshot));
+        }
+    }
+
+    @Test void doesNotOfferAgainWhenTheServerOnlyAllowsAcceptOrDecline() throws Exception {
+        var context = new java.util.LinkedHashMap<String,Object>(bargainingContext(true, Map.of("status", "PENDING")));
+        context.put("allowedTypes", List.of("NONE", "ACCEPT", "DECLINE"));
+        context.put("reason", "Последняя цена: можно принять её или отказаться");
+        queuedAnswers.add(tradingAnswer("Уступлю ещё немного.", "OFFER", 1, 2));
+        queuedAnswers.add(tradingAnswer("Я уже назвал последнюю цену.", "NONE", -1, 0));
+        try (ConversationEngine engine = engine()) {
+            assertEquals(BargainIntent.none(), engine.converse(tradingMob("minecraft:villager", context), "Ещё дешевле?").bargain());
+            assertEquals(2, chatCalls.get()); assertEquals(1, speechCalls.get());
+            var allowed = lastRequest.get().getAsJsonObject("response_format").getAsJsonObject("json_schema")
+                    .getAsJsonObject("schema").getAsJsonObject("properties").getAsJsonObject("bargain")
+                    .getAsJsonObject("properties").getAsJsonObject("type").getAsJsonArray("enum");
+            assertFalse(allowed.toString().contains("OFFER"));
+        }
     }
 
     // A catalog slot awaiting assignment must remain text-only, not silently reuse a species-wide fallback.

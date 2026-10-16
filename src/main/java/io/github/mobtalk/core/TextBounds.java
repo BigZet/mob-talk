@@ -16,8 +16,6 @@ final class TextBounds {
 
     static String reply(String text, int maxWords) {
         String clean = characters(text, 8000).replaceAll("\\s+", " ");
-        String[] sentences = clean.split("(?<=[.!?…])\\s+", 3);
-        if (sentences.length > 2) clean = sentences[0] + " " + sentences[1];
         String[] words = clean.split("\\s+");
         int limit = Math.max(1, Math.min(120, maxWords));
         if (words.length > limit) clean = String.join(" ", java.util.Arrays.copyOf(words, limit));

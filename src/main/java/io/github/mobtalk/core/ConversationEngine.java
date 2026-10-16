@@ -35,6 +35,14 @@ public final class ConversationEngine implements AutoCloseable {
     }
 
     public Reply converse(MobSnapshot snapshot, String userText) throws IOException, InterruptedException {
+        PreparedReply prepared = prepare(snapshot, userText);
+        if (!commitDelivered(prepared, snapshot.interactionRevision()))
+            throw new InterruptedException("Разговор отменён: состояние моба изменилось.");
+        return prepared.reply();
+    }
+
+    /** Generate off the game thread; authoritative actions must succeed before the caller commits this reply. */
+    public PreparedReply prepare(MobSnapshot snapshot, String userText) throws IOException, InterruptedException {
         if (closed) throw new IOException("Разговор Mob Talk уже завершён.");
         String question = TextBounds.characters(userText, 2000);
         if (question.isBlank()) throw new IOException("Речь не распознана. Удерживайте V и произнесите вопрос.");
@@ -51,9 +59,6 @@ public final class ConversationEngine implements AutoCloseable {
         }
         catch (IOException speechUnavailable) { pcm = new byte[0]; }
         checkCurrent(snapshot);
-        if (!store.commit(snapshot, question, answer.reply(), answer.memory(), answer.socialIntent(), answer.action(), System.currentTimeMillis(),
-                pcm.length == 0 ? null : voiceId))
-            throw new InterruptedException("Разговор отменён: состояние моба изменилось.");
         if (pcm.length > 0 && configDirectory != null && speechKey != null) {
             try { SpeechPreview.mark(configDirectory, voiceId, speechKey); }
             catch (IOException cacheUnavailable) { /* A status-cache failure must never discard successful audio. */ }
@@ -64,7 +69,24 @@ public final class ConversationEngine implements AutoCloseable {
         else if (Boolean.TRUE.equals(custom) || snapshot.playerId() == null && snapshot.mobDetails().isEmpty()) {
             if (snapshot.name() != null && !snapshot.name().isBlank()) name = TextBounds.characters(snapshot.name(), 120);
         }
-        return new Reply(question, answer.reply(), name, voiceId, pcm, answer.action(), snapshot.interactionRevision());
+        Reply reply = new Reply(question, answer.reply(), name, voiceId, pcm, answer.action(), snapshot.interactionRevision(), answer.bargain());
+        return new PreparedReply(this, reply, snapshot, answer.memory(), answer.socialIntent(), pcm.length == 0 ? null : voiceId);
+    }
+
+    /** Remember only a delivered answer, once, at the revision returned by authoritative game application. */
+    public boolean commitDelivered(PreparedReply prepared, long expectedCurrentRevision) {
+        synchronized (prepared) {
+            if (closed || prepared.owner != this || prepared.completed) return false;
+            prepared.completed = true;
+            MobSnapshot observed = prepared.snapshot;
+            MobSnapshot delivered = new MobSnapshot(observed.id(), observed.type(), observed.name(), observed.health(), observed.maxHealth(),
+                    observed.dimension(), observed.biome(), observed.timeOfDay(), observed.weather(), observed.distance(),
+                    observed.heldItem(), observed.nearby(), observed.recentEvents(), observed.playerId(), observed.playerDetails(),
+                    observed.mobDetails(), observed.environmentDetails(), observed.observedEntities(), observed.availableActions(), expectedCurrentRevision);
+            Reply reply = prepared.reply;
+            return store.commit(delivered, reply.recognizedText(), reply.responseText(), prepared.memory, prepared.socialIntent,
+                    reply.action(), System.currentTimeMillis(), prepared.successfulVoice);
+        }
     }
 
     public ConversationStore memory() { return store; }
@@ -82,8 +104,35 @@ public final class ConversationEngine implements AutoCloseable {
         llm.close();
         speech.close();
     }
+
+    public static final class PreparedReply {
+        private final ConversationEngine owner;
+        private final Reply reply;
+        private final MobSnapshot snapshot;
+        private final String memory;
+        private final SocialIntent socialIntent;
+        private final String successfulVoice;
+        private boolean completed;
+
+        private PreparedReply(ConversationEngine owner, Reply reply, MobSnapshot snapshot, String memory,
+                              SocialIntent socialIntent, String successfulVoice) {
+            this.owner = owner;
+            this.reply = reply;
+            this.snapshot = snapshot;
+            this.memory = memory;
+            this.socialIntent = socialIntent;
+            this.successfulVoice = successfulVoice;
+        }
+
+        public Reply reply() { return reply; }
+    }
+
     public record Reply(String recognizedText, String responseText, String speakerName, String voiceId, byte[] pcm,
-                        ActionIntent action, long interactionRevision) {
+                        ActionIntent action, long interactionRevision, BargainIntent bargain) {
+        public Reply(String recognizedText, String responseText, String speakerName, String voiceId, byte[] pcm,
+                     ActionIntent action, long interactionRevision) {
+            this(recognizedText, responseText, speakerName, voiceId, pcm, action, interactionRevision, BargainIntent.none());
+        }
         public Reply(String recognizedText, String responseText, String speakerName, String voiceId, byte[] pcm) {
             this(recognizedText, responseText, speakerName, voiceId, pcm, ActionIntent.none(), 0);
         }
