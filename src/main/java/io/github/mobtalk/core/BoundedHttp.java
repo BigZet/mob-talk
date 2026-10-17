@@ -33,6 +33,12 @@ final class BoundedHttp implements AutoCloseable {
 
     Duration timeout() { return Duration.ofSeconds(timeoutSeconds); }
 
+    /** A connection or HTTP/2 stream lost on the way, not an HTTP error or a timeout: worth one fresh attempt. */
+    static boolean dropped(IOException failure) {
+        if (failure instanceof SafeFailure safe) return safe.status <= 0 && safe.getMessage() != null && safe.getMessage().endsWith("соединение прервано.");
+        return failure.getMessage() != null && failure.getMessage().endsWith("не удалось выполнить запрос.");
+    }
+
     private <T> CompletableFuture<HttpResponse<T>> start(HttpRequest request, HttpResponse.BodyHandler<T> handler) throws IOException {
         if (closed) throw new IOException("Запрос отменён.");
         lastUse.put(request.uri().getHost(), System.nanoTime());
@@ -63,9 +69,10 @@ final class BoundedHttp implements AutoCloseable {
             throw new IOException(service + ": превышено время ожидания.");
         } catch (ExecutionException failure) {
             if (failure.getCause() instanceof SafeFailure safe) throw safe;
-            throw new IOException(service + ": не удалось выполнить запрос.");
+            // The cause stays attached for diagnosis; the message shown to the player stays generic.
+            throw new IOException(service + ": не удалось выполнить запрос.", failure.getCause());
         } catch (RuntimeException failure) {
-            throw new IOException(service + ": не удалось выполнить запрос.");
+            throw new IOException(service + ": не удалось выполнить запрос.", failure);
         } finally {
             if (pending != null && !pending.isDone()) pending.cancel(true);
         }
@@ -83,9 +90,10 @@ final class BoundedHttp implements AutoCloseable {
             throw new IOException(service + ": превышено время ожидания.");
         } catch (ExecutionException failure) {
             if (failure.getCause() instanceof SafeFailure safe) throw safe;
-            throw new IOException(service + ": не удалось выполнить запрос.");
+            // The cause stays attached for diagnosis; the message shown to the player stays generic.
+            throw new IOException(service + ": не удалось выполнить запрос.", failure.getCause());
         } catch (RuntimeException failure) {
-            throw new IOException(service + ": не удалось выполнить запрос.");
+            throw new IOException(service + ": не удалось выполнить запрос.", failure);
         } finally {
             if (pending != null && !pending.isDone()) pending.cancel(true);
         }

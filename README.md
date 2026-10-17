@@ -18,7 +18,7 @@ Minecraft 1.21.1 · Fabric · одиночная игра. Нужен ключ [
 
 Нужны Minecraft Java **1.21.1**, Java **21**, Fabric Loader **0.19.5**, Fabric API **0.116.17+1.21.1**, Python **3.12** и PowerShell **7**.
 
-1. Положите `mobtalk-0.2.16.jar` и Fabric API в `mods` своего инстанса.
+1. Положите `mobtalk-0.2.17.jar` и Fabric API в `mods` своего инстанса.
 2. Из папки проекта выполните в PowerShell 7: `./scripts/setup-whisper.ps1 -NoStart`. Скрипт создаёт отдельное окружение `%LOCALAPPDATA%/MobTalk`, устанавливает совместимые библиотеки и скачивает модель. По умолчанию `large-v3`; для лёгкого начала добавьте `-Model small`, для CPU — `-Device cpu`. Остальные модели загружаются из игрового меню.
 3. Нажмите в игре **F7 → Общее**, вставьте OpenRouter API-ключ в поле «API-ключ» (кнопка «Вставить» или Ctrl+V) и нажмите «Сохранить ключ». Ключ скрыт звёздочками, шифруется Windows (DPAPI) для вашей учётной записи в `%LOCALAPPDATA%\MobTalk\openrouter-key.dpapi` и не попадает в `mobtalk.json`, JAR или память мира. По-прежнему поддерживаются `OPENROUTER_API_KEY` (важнее ключа из меню) и `config/mobtalk-openrouter-token.txt`.
    Ответы мобов можно получать и через **Venice**: в F7 → «Общее» переключите «Провайдер» на Venice, вставьте ключ Venice в появившийся раздел и укажите модель (по умолчанию `deepseek-v4-1-flash`). Озвучка в любом случае идёт через OpenRouter (голоса ElevenLabs), поэтому ключ OpenRouter нужен и с Venice; без него ответы будут только текстом. Ключ Venice хранится так же: `%LOCALAPPDATA%\MobTalk\venice-key.dpapi`, `VENICE_API_KEY` или `config/mobtalk-venice-token.txt`.
@@ -130,11 +130,23 @@ LLM и TTS расходуют кредиты OpenRouter (LLM — кредиты 
 
 Проверка подключения использует [информацию о текущем API-ключе](https://openrouter.ai/docs/api/api-reference/api-keys/get-current-api-key); она не запускает LLM или TTS.
 
+### Рекомендуемые модели
+
+Октябрь 2026: проверка на всех 82 видах (знакомство, дроп, хамство на «Без тормозов», комплимент) через реальный промпт мода.
+
+| Модель | Где | Ответ | Сильные стороны | Слабые стороны |
+|---|---|---|---|---|
+| `openai/gpt-6-luna` (по умолчанию) | OpenRouter, Venice `openai-gpt-6-luna` | ~3.6 с | Самая точная по механикам и дропу, ругается по ситуации, не грубит без повода | Около 1% ответов OpenRouter обрывает |
+| `anthropic/claude-haiku-5.5` | OpenRouter, Venice `claude-haiku-5-5` | ~4 с | Самые живые реплики, держит образ, мат на хамство всегда | Чуть длиннее и медленнее |
+| `deepseek-v4-1-flash` | Venice; OpenRouter `deepseek/deepseek-v4.1-flash` | ~2 с | Самая дешёвая и быстрая | Слабее держит правила: чаще цепляется к снаряжению игрока, иногда путает дроп |
+
+`google/gemini-3.1-flash-lite` быстрее всех (~1 с), но чаще путает факты и грубит в ответ на вежливость. `venice-uncensored-1-2` плохо владеет русским.
+
 ## Разработка и проверка
 
 Сборка: `./scripts/verify.ps1 -Tests`.
 Локальный backend: `py -3.12 -m unittest discover -s tools -p test_whisper_server.py`.
-Результат: `build/libs/mobtalk-0.2.16.jar`.
+Результат: `build/libs/mobtalk-0.2.17.jar`.
 
 Целевые тесты используют локальные HTTP-фикстуры и подставную модель Whisper. Это не проверка живого микрофона или всех 246 голосов через платный API.
 

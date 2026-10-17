@@ -21,8 +21,10 @@ final class OpenRouterConversationClient implements AutoCloseable {
             Как ты разговариваешь:
             Аудитория — взрослые игроки, которые выросли на Майнкрафте. Это не детская передача и не служба поддержки.
             Ты живое существо со своим мнением и настроением: споришь, подкалываешь, хвастаешься, обижаешься, злишься, боишься, радуешься, врёшь из вредности.
-            Цепляйся за конкретику из снимка: что игрок сказал, во что одет, что держит, сколько у него здоровья и голода, время суток, погода, биом, кто рядом, сколько здоровья у тебя.
+            Отвечай прежде всего на то, что игрок сказал. Конкретику из снимка (одежда, что в руках, здоровье, голод, время, погода, биом, кто рядом, твоё здоровье) бери по одной детали и каждый раз разную — что-то действительно заметное сейчас.
+            Снаряжение и предмет в руке игрока упоминай редко, только когда это важно: игроки почти всегда держат палку или меч, и подколки про них быстро надоедают.
             Майнкрафт — твой родной мир: знай его механики, крафт, дроп, фермы, привычки игроков, байки и мемы старых версий. Ностальгические отсылки и фирменные шутки своего вида — приправа, а не каждая реплика.
+            Говори только по-русски, даже если данные о мире на английском: названия предметов и мобов переводи на привычный русским игрокам язык.
             Обычно одна-три короткие фразы. Сразу по делу, без представлений, без ремарок в скобках или звёздочках, без эмодзи. Эмоцию передавай словами, междометиями и пунктуацией — реплику озвучат голосом.
             Примеры реплик из характера показывают голос; не повторяй их дословно. Не копируй построение своих прошлых ответов и не заканчивай каждую реплику вопросом.
             Фирменные междометия и присказки вида («Хмм», «Сссс» и подобные) — изредка, а не в начале каждой реплики.
@@ -137,7 +139,10 @@ final class OpenRouterConversationClient implements AutoCloseable {
                 + bargainingRules(snapshot);
         // Last on purpose: in tests models ignored a mid-prompt level and kept the archetype's politeness.
         system += "\n\nГлавное в манере речи сейчас — " + Character.toLowerCase(RUDENESS[Math.max(0, Math.min(3, config.rudeness))].charAt(0))
-                + RUDENESS[Math.max(0, Math.min(3, config.rudeness))].substring(1) + " Это важнее вежливости или грубости из описания характера.";
+                + RUDENESS[Math.max(0, Math.min(3, config.rudeness))].substring(1)
+                + " Уровень задаёт, какими словами и насколько жёстко можно ругаться, а не обязывает грубить: добрый или спокойный персонаж с вежливым игроком "
+                + "остаётся собой, лишь подкалывает по характеру. Но когда игрок хамит, угрожает, вредит, или ты по натуре зол и враждебен, ругайся в полную силу "
+                + "уровня — это важнее вежливой манеры из описания характера.";
         if (config.commonPrompt != null && !config.commonPrompt.isBlank())
             system += "\n\nНастройка мира от игрока (важнее стиля выше): " + TextBounds.characters(config.commonPrompt, 8000);
         JsonArray messages = new JsonArray(); messages.add(message("system", system));
@@ -166,7 +171,8 @@ final class OpenRouterConversationClient implements AutoCloseable {
             try { return parseAnswer(bytes, snapshot, words, profile.memory, memoryLimit); }
             catch (RejectedBargain invalid) {
                 if (correction >= 2 || deadline <= System.nanoTime())
-                    throw new IOException(service() + " не подтвердил допустимые условия торга. Цена не изменена; повторите предложение.");
+                    throw new IOException(invalid.trade ? service() + " не подтвердил допустимые условия торга. Цена не изменена; повторите предложение."
+                            : service() + " не дал годной реплики. Повторите вопрос.");
                 if (correction == 1) {
                     // Two invalid trades in a row: answer in character without bargaining instead of failing the conversation.
                     messages.add(message("system", "Торг в этом ответе невозможен. Ответь по характеру без новой цены и без обещания скидки; "
@@ -178,6 +184,11 @@ final class OpenRouterConversationClient implements AutoCloseable {
                     continue;
                 }
                 // Retry only this failed intent, once, within the original request deadline. Never voice or remember it.
+                if (!invalid.trade) {
+                    messages.add(message("system", "Исправь предыдущий ответ: " + invalid.getMessage() + " Верни полный JSON с исправленной репликой."));
+                    bytes = send(body, deadline, ignored -> { });
+                    continue;
+                }
                 messages.add(message("system", "Исправь предыдущий ответ: намерение торга не прошло игровую проверку. " + invalid.getMessage() + " "
                         + "Разрешённые типы bargain сейчас: " + permittedBargainTypes(snapshot) + ". "
                         + "Повторно проверь selectedIndex, maximumDiscount, allowedPrices и state из текущего снимка. "
@@ -190,21 +201,30 @@ final class OpenRouterConversationClient implements AutoCloseable {
     }
 
     private byte[] send(JsonObject body, long deadline, java.util.function.Consumer<String> spoken) throws IOException, InterruptedException {
+        return send(body, deadline, spoken, true);
+    }
+
+    private byte[] send(JsonObject body, long deadline, java.util.function.Consumer<String> spoken, boolean retryDropped)
+            throws IOException, InterruptedException {
         long remaining = deadline - System.nanoTime();
         if (remaining <= 0) throw new IOException(service() + ": превышено время ожидания.");
         try { return exchange(body, remaining, spoken); }
         catch (BoundedHttp.SafeFailure unavailable) {
             remaining = deadline - System.nanoTime();
             if (remaining <= 0) throw unavailable;
-            if (unavailable.status == 400 && body.has("stream")) { body.remove("stream"); noStreaming = true; return send(body, deadline, spoken); }
+            if (retryDropped && BoundedHttp.dropped(unavailable)) return send(body, deadline, spoken, false);
+            if (unavailable.status == 400 && body.has("stream")) { body.remove("stream"); noStreaming = true; return send(body, deadline, spoken, retryDropped); }
             if (unavailable.status != 404) throw unavailable;
             // Claude 5.5 on OpenRouter has no endpoint taking temperature together with a strict schema.
-            if (body.has("temperature")) { body.remove("temperature"); noTemperature = true; return send(body, deadline, spoken); }
+            if (body.has("temperature")) { body.remove("temperature"); noTemperature = true; return send(body, deadline, spoken, retryDropped); }
             if (jsonObjectOnly) throw unavailable;
             // Providers without structured_outputs may still support response_format=json_object.
             jsonObjectOnly = true;
             useJsonObject(body);
             return exchange(body, remaining, spoken);
+        } catch (IOException failure) {
+            if (retryDropped && BoundedHttp.dropped(failure) && deadline - System.nanoTime() > 0) return send(body, deadline, spoken, false);
+            throw failure;
         }
     }
 
@@ -269,7 +289,10 @@ final class OpenRouterConversationClient implements AutoCloseable {
                     : TextBounds.characters(string(answer, "memory"), memoryLimit);
             if (reply.isBlank()) throw new IllegalArgumentException();
             if (reply.codePoints().noneMatch(Character::isLetter))
-                throw new RejectedBargain("Реплика пустая: в reply нет ни одного слова. Скажи вслух нормальную фразу по характеру.");
+                throw new RejectedBargain("Реплика пустая: в reply нет ни одного слова. Скажи вслух нормальную фразу по характеру.", false);
+            // DeepSeek answered about 3% of lines in English despite the rule; such a line must not be voiced to a Russian player.
+            if (foreignWords(reply, snapshot) >= 3)
+                throw new RejectedBargain("Реплика не на русском. Скажи ту же мысль по-русски, своими словами и в своей манере.", false);
             SocialIntent social = SocialIntent.NONE;
             if (answer.has("socialIntent")) { try { social = SocialIntent.valueOf(string(answer, "socialIntent").toUpperCase(Locale.ROOT)); } catch (IllegalArgumentException ignored) { } }
             ActionIntent action = answer.has("action") && answer.get("action").isJsonObject() ? validateAction(answer.getAsJsonObject("action"), snapshot) : ActionIntent.none();
@@ -409,9 +432,24 @@ final class OpenRouterConversationClient implements AutoCloseable {
         return "";
     }
 
-    private static final class RejectedBargain extends IOException { RejectedBargain(String hint) { super(hint); } }
+    /** A reply the game must not voice; the model gets one or two corrections. trade=false for language or empty replies. */
+    private static final class RejectedBargain extends IOException {
+        final boolean trade;
+        RejectedBargain(String hint) { this(hint, true); }
+        RejectedBargain(String hint, boolean trade) { super(hint); this.trade = trade; }
+    }
 
     static final int FACTS_LIMIT = 300;
+    private static final Pattern LATIN_WORD = Pattern.compile("\\b[A-Za-z]{3,}\\b");
+
+    /** Latin words of three letters or more, not counting the player's own name. */
+    static int foreignWords(String reply, MobSnapshot snapshot) {
+        Object name = snapshot.playerDetails().get("name");
+        Matcher words = LATIN_WORD.matcher(reply);
+        int count = 0;
+        while (words.find()) if (!(name instanceof String player && words.group().equalsIgnoreCase(player))) count++;
+        return count;
+    }
 
     /** Drops stray punctuation before the first word and quotes wrapped around the whole line. */
     static String spokenText(String reply) {

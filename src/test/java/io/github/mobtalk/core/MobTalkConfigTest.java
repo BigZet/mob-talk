@@ -182,7 +182,7 @@ class MobTalkConfigTest {
         assertEquals(90, config.requestTimeoutSeconds);
         assertEquals(2, config.maxDistance);
         assertEquals(3, config.rudeness);
-        assertEquals("google/gemini-2.5-flash-lite", config.llmModel);
+        assertEquals("openai/gpt-6-luna", config.llmModel);
         assertEquals("large-v3", config.whisperModel);
         assertEquals("auto", config.whisperDevice);
         assertEquals("ru", config.whisperLanguage);

@@ -17,7 +17,7 @@ public final class MobTalkConfig {
     public boolean enabled = true;
     /** Who answers in conversations: "openrouter" or "venice". Speech always uses OpenRouter (ElevenLabs voices). */
     public String llmProvider = "openrouter";
-    public String llmModel = "google/gemini-2.5-flash-lite";
+    public String llmModel = "openai/gpt-6-luna";
     public String veniceModel = "deepseek-v4-1-flash";
     public String whisperUrl = "http://127.0.0.1:63919";
     public boolean whisperAutoStart = true;

@@ -380,6 +380,37 @@ class ConversationEngineTest {
         assertEquals("Скажи «привет» сам.", OpenRouterConversationClient.spokenText("Скажи «привет» сам."));
     }
 
+    // Seen in the review: DeepSeek sometimes answered in English; the player's own name is not a foreign word.
+    @Test void asksAgainInRussianWhenTheReplyIsInEnglish() throws Exception {
+        queuedAnswers.add(tradingAnswer("Yeah, sniffing. Under this grass there is history, colleague.", "NONE", -1, 0));
+        queuedAnswers.add(tradingAnswer("Нюхаю, коллега. Под этой травой — история.", "NONE", -1, 0));
+        try (ConversationEngine engine = engine()) {
+            var answer = engine.converse(cow(UUID.randomUUID()), "Что ты нюхаешь?");
+            assertEquals("Нюхаю, коллега. Под этой травой — история.", answer.responseText());
+            assertEquals(2, chatCalls.get());
+            String correction = lastRequest.get().getAsJsonArray("messages").asList().getLast().getAsJsonObject().get("content").getAsString();
+            assertTrue(correction.contains("по-русски") && !correction.contains("торга"), correction);
+        }
+        MobSnapshot named = tradingMob("minecraft:villager", bargainingContext(false, Map.of("status", "NONE")));
+        assertEquals(0, OpenRouterConversationClient.foreignWords("Хмм, привет, numnerd!", new MobSnapshot(named.id(), named.type(), named.name(), 20, 20,
+                "minecraft:overworld", "minecraft:plains", "day", "clear", 2, "minecraft:stick", List.of(), List.of(), named.playerId(),
+                Map.of("name", "numnerd"), Map.of(), Map.of(), List.of(), List.of(ActionType.NONE), 0)));
+    }
+
+    @Test void retriesOnlyConnectionsThatWereDropped() {
+        assertTrue(BoundedHttp.dropped(new IOException("OpenRouter LLM: не удалось выполнить запрос.")));
+        assertTrue(BoundedHttp.dropped(new BoundedHttp.SafeFailure("OpenRouter LLM: соединение прервано.")));
+        assertFalse(BoundedHttp.dropped(new BoundedHttp.SafeFailure("OpenRouter LLM: ошибка HTTP 401.", 401)));
+        assertFalse(BoundedHttp.dropped(new IOException("OpenRouter LLM: превышено время ожидания.")));
+    }
+
+    // A bare "heldItem" beside the mob's own fields made piglins say "my iron sword drops" about the player's sword.
+    @Test void labelsTheHeldItemAsThePlayers() {
+        String json = new com.google.gson.Gson().toJson(cow(UUID.randomUUID()));
+        assertTrue(json.contains("\"playerHeldItem\":\"minecraft:stick\""), json);
+        assertFalse(json.contains("\"heldItem\""));
+    }
+
     @Test void findsTheReplyOnlyOnceItsClosingQuoteStreamedIn() {
         assertNull(OpenRouterConversationClient.completedReply("{\"reply\":\"Скажи \\\"при"));
         assertEquals("Скажи \"привет\"", OpenRouterConversationClient.completedReply("{\"reply\":\"Скажи \\\"привет\\\"\",\"socialIn"));

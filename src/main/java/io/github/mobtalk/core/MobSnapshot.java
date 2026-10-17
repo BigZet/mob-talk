@@ -1,5 +1,6 @@
 package io.github.mobtalk.core;
 
+import com.google.gson.annotations.SerializedName;
 import java.util.List;
 import java.util.Map;
 import java.util.LinkedHashMap;
@@ -10,7 +11,8 @@ import java.util.UUID;
 /** Immutable game-thread capture; background conversations never touch Minecraft objects. */
 public record MobSnapshot(UUID id, String type, String name, float health, float maxHealth,
         String dimension, String biome, String timeOfDay, String weather, double distance,
-        String heldItem, List<String> nearby, List<String> recentEvents,
+        // The player's main hand; models read a bare "heldItem" next to the mob's own fields as the mob's weapon.
+        @SerializedName("playerHeldItem") String heldItem, List<String> nearby, List<String> recentEvents,
         UUID playerId, Map<String,Object> playerDetails, Map<String,Object> mobDetails,
         Map<String,Object> environmentDetails, List<ObservedEntity> observedEntities,
         List<ActionType> availableActions, long interactionRevision) {

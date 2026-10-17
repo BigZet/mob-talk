@@ -68,7 +68,11 @@ final class OpenRouterSpeechClient implements AutoCloseable {
 
     /** OpenRouter forwards Eleven's PCM as it is generated: the first bytes come long before the last. */
     SpeechStream stream(String voiceId, String text) throws IOException, InterruptedException {
-        return http.stream(request(voiceId, text), MAX_AUDIO_BYTES, "OpenRouter TTS");
+        try { return http.stream(request(voiceId, text), MAX_AUDIO_BYTES, "OpenRouter TTS"); }
+        catch (IOException failure) {
+            if (!BoundedHttp.dropped(failure)) throw failure;
+            return http.stream(request(voiceId, text), MAX_AUDIO_BYTES, "OpenRouter TTS");
+        }
     }
 
     byte[] synthesize(String voiceId, String text) throws IOException, InterruptedException {
