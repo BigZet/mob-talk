@@ -801,6 +801,219 @@ class ConversationEngineTest {
         }
     }
 
+    /** The shape Trading.view promises, built by hand: one visible deal, one locked secret, one quest to offer and one active. */
+    private Map<String,Object> cowTrading(boolean canUnlock, boolean canComplete) {
+        Map<String,Object> milk = Map.ofEntries(Map.entry("id", "milk"), Map.entry("name", "Ведро молока"),
+                Map.entry("sell", Map.of("id", "minecraft:milk_bucket", "name", "Ведро молока", "count", 1)),
+                Map.entry("price", Map.of("id", "minecraft:wheat", "name", "Пшеница", "count", 6)),
+                Map.entry("basePrice", 6), Map.entry("currentPrice", 6), Map.entry("minPrice", 1), Map.entry("maxDiscountNow", 3),
+                Map.entry("allowedPrices", List.of(5, 4, 3)), Map.entry("canOffer", true), Map.entry("reason", ""), Map.entry("stockLeft", -1));
+        Map<String,Object> leather = Map.of("id", "leather", "hint", "Знает, где лежит кожа пропавшей подруги", "unlockRelationship", 40,
+                "unlockQuest", "fence", "canUnlockNow", canUnlock, "reason", canUnlock ? "" : "отношение ниже 40");
+        Map<String,Object> wolves = Map.of("id", "wolves", "title", "Отгони волков", "kind", "KILL", "target", "minecraft:wolf", "targetName", "Волк",
+                "count", 3, "pitch", "Волки воют за холмом третью ночь", "reward", Map.of("relationship", 20, "unlockDeal", "", "discountDeal", "milk", "discountPercent", 25));
+        Map<String,Object> fence = Map.of("id", "fence", "title", "Почини загон", "kind", "BRING", "target", "minecraft:oak_fence", "count", 8,
+                "progress", 3, "canComplete", canComplete);
+        return Map.of("deals", List.of(milk), "secret", List.of(leather), "allowedDealTypes", List.of("NONE", "OFFER", "DECLINE"),
+                "quests", Map.of("available", List.of(wolves), "active", List.of(fence), "done", List.of()));
+    }
+
+    private MobSnapshot tradingCow(Map<String,Object> trading) {
+        MobSnapshot base = cow(UUID.randomUUID());
+        return new MobSnapshot(base.id(), base.type(), base.name(), base.health(), base.maxHealth(), base.dimension(), base.biome(),
+                base.timeOfDay(), base.weather(), base.distance(), base.heldItem(), base.nearby(), base.recentEvents(),
+                UUID.randomUUID(), Map.of("name", "Стив", "hunger", 4), Map.of("trading", trading), Map.of(), List.of(), List.of(ActionType.NONE), 0);
+    }
+
+    private JsonObject ownAnswer(String text, String dealType, String dealId, int price, String unlock, String questType, String questId) {
+        JsonObject answer = tradingAnswer(text, "NONE", -1, 0);
+        JsonObject deal = new JsonObject(); deal.addProperty("type", dealType); deal.addProperty("id", dealId); deal.addProperty("price", price); answer.add("deal", deal);
+        answer.addProperty("unlock", unlock);
+        JsonObject quest = new JsonObject(); quest.addProperty("type", questType); quest.addProperty("id", questId); answer.add("quest", quest);
+        return answer;
+    }
+
+    private String lastCorrection() {
+        return lastRequest.get().getAsJsonArray("messages").asList().getLast().getAsJsonObject().get("content").getAsString();
+    }
+
+    private JsonArray schemaEnum(String intent) {
+        return lastRequest.get().getAsJsonObject("response_format").getAsJsonObject("json_schema").getAsJsonObject("schema")
+                .getAsJsonObject("properties").getAsJsonObject(intent).getAsJsonObject("properties").getAsJsonObject("type").getAsJsonArray("enum");
+    }
+
+    // Speech must still start from the streamed reply while the model writes the new deal, unlock and quest fields.
+    @Test void streamsAReplyAndCarriesTheDealThrough() throws Exception {
+        String answer = "{\"reply\":\"Ладно, четыре пшеницы — и ведро твоё.\",\"socialIntent\":\"NONE\",\"action\":{\"type\":\"NONE\",\"target\":\"\"},"
+                + "\"bargain\":{\"type\":\"NONE\",\"offerIndex\":-1,\"price\":0},\"deal\":{\"type\":\"OFFER\",\"id\":\"milk\",\"price\":4},"
+                + "\"unlock\":\"\",\"quest\":{\"type\":\"NONE\",\"id\":\"\"},\"newFacts\":\"Сторговались на четыре пшеницы за молоко.\"}";
+        StringBuilder events = new StringBuilder();
+        for (int i = 0; i < answer.length(); i += 9) {
+            JsonObject delta = new JsonObject(); delta.addProperty("content", answer.substring(i, Math.min(answer.length(), i + 9)));
+            JsonObject choice = new JsonObject(); choice.add("delta", delta);
+            JsonArray choices = new JsonArray(); choices.add(choice);
+            JsonObject event = new JsonObject(); event.add("choices", choices);
+            events.append("data: ").append(event).append("\n\n");
+        }
+        rawChat.set(events.append("data: [DONE]\n\n").toString());
+        try (ConversationEngine engine = engine()) {
+            var reply = engine.converse(tradingCow(cowTrading(false, false)), "Уступи по молоку");
+            assertEquals(new DealIntent(DealIntent.Type.OFFER, "milk", 4), reply.deal());
+            assertEquals("", reply.unlock());
+            assertEquals(QuestIntent.none(), reply.quest());
+            assertEquals(1, speechCalls.get());
+            assertArrayEquals(speechBytes.get(), reply.pcm());
+        } finally { rawChat.set(null); }
+    }
+
+    // A price outside the deal's allowedPrices must not be voiced; a refusal and a legal price pass unchanged.
+    @Test void pricesOwnDealsOnlyWithinAllowedPrices() throws Exception {
+        queuedAnswers.add(ownAnswer("Ладно, отдам за два.", "OFFER", "milk", 2, "", "NONE", ""));
+        queuedAnswers.add(ownAnswer("Два? Ишь какой. Четыре, и ни колоском меньше.", "OFFER", "milk", 4, "", "NONE", ""));
+        try (ConversationEngine engine = engine()) {
+            var answer = engine.converse(tradingCow(cowTrading(false, false)), "Давай за два");
+            assertEquals(new DealIntent(DealIntent.Type.OFFER, "milk", 4), answer.deal());
+            assertEquals(2, chatCalls.get()); assertEquals(1, speechCalls.get());
+            String correction = lastCorrection();
+            assertTrue(correction.contains("allowedPrices") && correction.contains("minPrice 1") && correction.contains("[5, 4, 3]"), correction);
+            assertTrue(correction.contains("Разрешённые типы deal сейчас: [NONE, OFFER, DECLINE]"), correction);
+
+            queuedAnswers.add(ownAnswer("Нет. Шесть пшеницы, и точка.", "DECLINE", "milk", 0, "", "NONE", ""));
+            assertEquals(new DealIntent(DealIntent.Type.DECLINE, "milk", 0), engine.converse(tradingCow(cowTrading(false, false)), "Скинь").deal());
+
+            queuedAnswers.add(ownAnswer("Пшеницу? Продам за три.", "OFFER", "wheat", 3, "", "NONE", ""));
+            queuedAnswers.add(ownAnswer("Пшеницей я не торгую, её я ем.", "NONE", "", 0, "", "NONE", ""));
+            assertEquals(DealIntent.none(), engine.converse(tradingCow(cowTrading(false, false)), "Продай пшеницу").deal());
+            assertTrue(lastCorrection().contains("Сделки с id «wheat» у тебя нет"), lastCorrection());
+
+            // Last chance: the schema forbids every intent, like the villager's bargain.
+            queuedAnswers.add(ownAnswer("Отдам за два.", "OFFER", "milk", 2, "", "NONE", ""));
+            queuedAnswers.add(ownAnswer("Отдам за два.", "OFFER", "milk", 2, "", "NONE", ""));
+            queuedAnswers.add(ownAnswer("Нет, два — это грабёж.", "NONE", "", 0, "", "NONE", ""));
+            assertEquals(DealIntent.none(), engine.converse(tradingCow(cowTrading(false, false)), "Два!").deal());
+            assertEquals("[\"NONE\"]", schemaEnum("deal").toString());
+            assertEquals("[\"NONE\"]", schemaEnum("quest").toString());
+        }
+    }
+
+    // A secret stays shut until the game says canUnlockNow; the model is told how far the player is from it.
+    @Test void opensASecretDealOnlyWhenTheGameAllows() throws Exception {
+        queuedAnswers.add(ownAnswer("Так и быть, покажу тебе кожу.", "NONE", "", 0, "leather", "NONE", ""));
+        queuedAnswers.add(ownAnswer("Есть у меня кое-что, да не для чужих.", "NONE", "", 0, "", "NONE", ""));
+        try (ConversationEngine engine = engine()) {
+            var answer = engine.converse(tradingCow(cowTrading(false, false)), "Что прячешь?");
+            assertEquals("", answer.unlock());
+            assertEquals(2, chatCalls.get());
+            String correction = lastCorrection();
+            assertTrue(correction.contains("ещё закрыта") && correction.contains("из 40") && correction.contains("fence") && correction.contains("не открывай"), correction);
+
+            queuedAnswers.add(ownAnswer("Ладно, свой. Кожа лежит за холмом, два изумруда.", "NONE", "", 0, "leather", "NONE", ""));
+            assertEquals("leather", engine.converse(tradingCow(cowTrading(true, false)), "Что прячешь?").unlock());
+            assertEquals(3, chatCalls.get());
+        }
+    }
+
+    // The mob may hand out a listed favour, but may count it done only once the game has counted items or kills.
+    @Test void countsAQuestDoneOnlyWhenTheGameVerifiedIt() throws Exception {
+        queuedAnswers.add(ownAnswer("Загон как новенький, спасибо!", "NONE", "", 0, "", "COMPLETE", "fence"));
+        queuedAnswers.add(ownAnswer("Три секции? Мне восемь надо, волки не дремлют.", "NONE", "", 0, "", "NONE", ""));
+        try (ConversationEngine engine = engine()) {
+            var answer = engine.converse(tradingCow(cowTrading(false, false)), "Я починил загон");
+            assertEquals(QuestIntent.none(), answer.quest());
+            String correction = lastCorrection();
+            assertTrue(correction.contains("ещё не принёс") && correction.contains("прогресс 3 из 8") && correction.contains("Не считай"), correction);
+
+            queuedAnswers.add(ownAnswer("Все восемь! Загон стоит, ты молодец.", "NONE", "", 0, "", "COMPLETE", "fence"));
+            assertEquals(new QuestIntent(QuestIntent.Type.COMPLETE, "fence"), engine.converse(tradingCow(cowTrading(false, true)), "Готово").quest());
+
+            queuedAnswers.add(ownAnswer("Отгони волков за холмом, тогда поговорим.", "NONE", "", 0, "", "OFFER", "wolves"));
+            assertEquals(new QuestIntent(QuestIntent.Type.OFFER, "wolves"), engine.converse(tradingCow(cowTrading(false, false)), "Чем помочь?").quest());
+
+            queuedAnswers.add(ownAnswer("Принеси мне алмазов.", "NONE", "", 0, "", "OFFER", "diamonds"));
+            queuedAnswers.add(ownAnswer("Волки, говорю. За холмом.", "NONE", "", 0, "", "NONE", ""));
+            assertEquals(QuestIntent.none(), engine.converse(tradingCow(cowTrading(false, false)), "Что сделать?").quest());
+            assertTrue(lastCorrection().contains("Задания «diamonds» у тебя нет"), lastCorrection());
+        }
+    }
+
+    // A species without a catalog entry trades nothing: one line in the prompt, NONE in the schema, NONE in the reply.
+    @Test void speciesWithoutTradingAnswersNone() throws Exception {
+        try (ConversationEngine engine = engine()) {
+            var answer = engine.converse(cow(UUID.randomUUID()), "Что продаёшь?");
+            assertEquals(DealIntent.none(), answer.deal()); assertEquals("", answer.unlock()); assertEquals(QuestIntent.none(), answer.quest());
+            assertTrue(systemPrompt().contains("Своей торговли у тебя нет"));
+            assertFalse(systemPrompt().contains("Торговля в твоей жизни"));
+            assertEquals("[\"NONE\"]", schemaEnum("deal").toString());
+            assertEquals("[\"NONE\"]", schemaEnum("quest").toString());
+
+            engine.converse(tradingCow(cowTrading(false, false)), "Что продаёшь?");
+            assertTrue(systemPrompt().contains("Торговля в твоей жизни") && systemPrompt().contains("Никогда не перечисляй свои товары"));
+            assertTrue(systemPrompt().contains("deal — {type:NONE|OFFER|DECLINE"));
+            assertEquals("[\"NONE\",\"OFFER\",\"DECLINE\"]", schemaEnum("deal").toString());
+            assertEquals("[\"NONE\",\"OFFER\",\"COMPLETE\"]", schemaEnum("quest").toString());
+            String user = lastRequest.get().getAsJsonArray("messages").asList().getLast().getAsJsonObject().get("content").getAsString();
+            assertTrue(user.contains("«Ведро молока» (id milk): 1× Ведро молока за 6× Пшеница") && user.contains("от 3 до 5"), user);
+            assertTrue(user.contains("id leather: Знает, где лежит кожа") && user.contains("не ниже 40") && user.contains("после задания «fence»"), user);
+            assertTrue(user.contains("активное «Почини загон» (id fence): принести 8× minecraft:oak_fence, прогресс 3 из 8") && user.contains("Волки воют за холмом"), user);
+        }
+    }
+
+    // The creature's own life leads the prompt; trading rules and the rudeness level stay at the end.
+    @Test void leadsWithTheCreaturesOwnLifeAndKeepsRudenessLast() throws Exception {
+        SpeciesCatalog.Species cow = SpeciesCatalog.get("minecraft:cow");
+        SpeciesCatalog.Species soulful = new SpeciesCatalog.Species(cow.id(), cow.name(), cow.prompt(), cow.interests(), cow.fears(), false, cow.variants(),
+                "Тянешь гласные и вставляешь «му-у» в конце важных фраз", "Чтобы телёнок пережил зиму", "Ты выдоила себя сама и винишь в этом игрока");
+        var profile = new ConversationStore.Profile();
+        profile.name = "Бурёнка"; profile.variantSlot = 0; profile.relationship = 10; profile.recentEvents = List.of("Игрок Стив ударил моба; отношение -80");
+        config.rudeness = 1;
+        try (var client = new OpenRouterConversationClient("unit-test-key", config, chatEndpoint)) {
+            String system = client.systemPrompt(soulful, profile, tradingCow(cowTrading(false, false)));
+            for (String part : List.of("фирменные штучки: Тянешь гласные", "Чего ты хочешь от жизни: Чтобы телёнок пережил зиму", "судишь игрока",
+                    "Твоя тайна: Ты выдоила себя сама", "Чужим не выдаёшь", "Сейчас ты потрёпан: здоровье 7 из 10, мокнешь под дождём ночью, тебя недавно били",
+                    "а игрок перед тобой явно голодный"))
+                assertTrue(system.contains(part), "Missing: " + part + "\n" + system);
+            int who = system.indexOf("Кто ты:"), character = system.indexOf("Твой характер:"), mood = system.indexOf("Сейчас ты "),
+                    player = system.indexOf("Этот игрок:"), trade = system.indexOf("Торговля в твоей жизни"), json = system.indexOf("Ответ — JSON"),
+                    rude = system.indexOf("Главное в манере речи");
+            assertTrue(0 < who && who < character && character < mood && mood < player && player < trade && trade < json && json < rude, system);
+            assertTrue(system.indexOf("дерзко и грубовато") > system.indexOf("quest — {type"), "Rudeness must stay last");
+
+            profile.relationship = 70;
+            assertTrue(client.systemPrompt(soulful, profile, tradingCow(cowTrading(true, false))).contains("Этот игрок — свой, ему можно её доверить"));
+            String plain = client.systemPrompt(cow, profile, cow(UUID.randomUUID()));
+            assertFalse(plain.contains("Твоя тайна") || plain.contains("фирменные штучки") || plain.contains("Чего ты хочешь"), plain);
+            assertTrue(plain.contains("Сейчас ты потрёпан"));
+        }
+    }
+
+    @Test void readsTheMoodOffTheSnapshot() {
+        var profile = new ConversationStore.Profile();
+        UUID player = UUID.randomUUID();
+        MobSnapshot calf = new MobSnapshot(UUID.randomUUID(), "minecraft:cow", "Телёнок", 2, 10, "minecraft:overworld", "minecraft:plains", "day", "thunderstorm", 2,
+                "minecraft:stick", List.of(), List.of(), player, Map.of("health", 4.0, "maxHealth", 20.0), Map.of("baby", true, "panicking", true, "onFire", true, "lastAttacker", player.toString()),
+                Map.of("shelter", Map.of("openSky", false, "rainReachesHere", false)), List.of(), List.of(ActionType.NONE), 0);
+        String mood = OpenRouterConversationClient.mood(calf, profile);
+        for (String part : List.of("ещё детёныш", "еле жив: здоровье 2 из 10", "горишь!", "в панике", "сидишь под крышей, пока снаружи гроза днём",
+                "на тебя только что нападали", "игрок еле живой"))
+            assertTrue(mood.contains(part), mood);
+        MobSnapshot calm = new MobSnapshot(UUID.randomUUID(), "minecraft:cow", "Корова", 10, 10, "minecraft:overworld", "minecraft:plains", "day", "clear", 2,
+                "minecraft:stick", List.of(), List.of());
+        assertEquals("цел и здоров, белый день.", OpenRouterConversationClient.mood(calm, profile));
+    }
+
+    // A number the cow says is honest only when the deal data or the applied OFFER backs it.
+    @Test void recognisesOnlyPricesBackedByTheDeal() {
+        MobSnapshot cow = tradingCow(cowTrading(false, false));
+        var four = new DealIntent(DealIntent.Type.OFFER, "milk", 4);
+        assertEquals(-1, OpenRouterConversationClient.unbackedPrice("Ладно, отдам за четыре пшеницы.", BargainIntent.none(), four, cow));
+        assertEquals(4, OpenRouterConversationClient.unbackedPrice("Ладно, отдам за четыре пшеницы.", BargainIntent.none(), DealIntent.none(), cow));
+        assertEquals(-1, OpenRouterConversationClient.unbackedPrice("Молоко стоит шесть пшеницы, и точка.", BargainIntent.none(), DealIntent.none(), cow));
+        assertEquals(-1, OpenRouterConversationClient.unbackedPrice("Продам одно ведро, не больше.", BargainIntent.none(), DealIntent.none(), cow));
+        assertEquals(2, OpenRouterConversationClient.unbackedPrice("Цена теперь два.", BargainIntent.none(), new DealIntent(DealIntent.Type.DECLINE, "milk", 0), cow));
+        assertEquals(-1, OpenRouterConversationClient.unbackedPrice("Мне 12 лет, отстань.", BargainIntent.none(), DealIntent.none(), cow));
+        assertEquals(-1, OpenRouterConversationClient.unbackedPrice("Цена дружбы — 100 ударов.", BargainIntent.none(), DealIntent.none(), cow(UUID.randomUUID())));
+    }
+
     // A catalog slot awaiting assignment must remain text-only, not silently reuse a species-wide fallback.
     @Test void unassignedVoiceDoesNotSendSpeechRequest() throws Exception {
         UUID mob = UUID.randomUUID();
