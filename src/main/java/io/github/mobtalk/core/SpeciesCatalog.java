@@ -17,9 +17,17 @@ import java.util.Map;
 public final class SpeciesCatalog {
     public record Voice(String id, String name, String description, String previewUrl, String language) { }
     public record Archetype(String name, String prompt, Voice voice) { }
+    /** quirks: speech habits and trademarks; desire: what this creature wants from life; secret: something it hides and
+     * lets slip only to a friend. All three are optional text and may be blank for species not yet written up. */
     public record Species(String id, String name, String prompt, String interests, String fears,
-                          boolean hostile, List<Archetype> variants) {
-        public Species { variants = List.copyOf(variants); }
+                          boolean hostile, List<Archetype> variants, String quirks, String desire, String secret) {
+        public Species {
+            variants = List.copyOf(variants);
+            quirks = quirks == null ? "" : quirks; desire = desire == null ? "" : desire; secret = secret == null ? "" : secret;
+        }
+        public Species(String id, String name, String prompt, String interests, String fears, boolean hostile, List<Archetype> variants) {
+            this(id, name, prompt, interests, fears, hostile, variants, "", "", "");
+        }
     }
 
     /** Blank entries keep bundled values. Array shape is validated when preferences are saved. */
@@ -75,7 +83,7 @@ public final class SpeciesCatalog {
                 variants.add(new Archetype(variant.name, variant.prompt, voice));
             }
             String id = normalized(row.id);
-            Species species = new Species(id, row.name, row.prompt, row.interests, row.fears, row.hostile, variants);
+            Species species = new Species(id, row.name, row.prompt, row.interests, row.fears, row.hostile, variants, row.quirks, row.desire, row.secret);
             if (speciesMap.putIfAbsent(id, species) != null) throw invalid("Duplicate species: " + id);
         }
         SPECIES = Collections.unmodifiableMap(speciesMap);
@@ -141,7 +149,7 @@ public final class SpeciesCatalog {
                     blank(voiceId) ? original.voice() : voice(voiceId)));
         }
         return new Species(base.id(), base.name(), orDefault(override.prompt, base.prompt()),
-                base.interests(), base.fears(), base.hostile(), variants);
+                base.interests(), base.fears(), base.hostile(), variants, base.quirks(), base.desire(), base.secret());
     }
 
     public static void validateOverrides(MobTalkConfig config) throws IOException {
@@ -231,7 +239,7 @@ public final class SpeciesCatalog {
     private static final class VoiceDocument { List<Voice> voices; List<String> reserveIds; Map<String, String> speciesReserves; }
     private static final class SpeciesDocument { List<SpeciesData> species; }
     private static final class SpeciesData {
-        String id, name, prompt, interests, fears;
+        String id, name, prompt, interests, fears, quirks, desire, secret;
         boolean hostile;
         List<ArchetypeData> variants;
     }

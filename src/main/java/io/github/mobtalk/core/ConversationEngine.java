@@ -94,7 +94,8 @@ public final class ConversationEngine implements AutoCloseable {
         else if (Boolean.TRUE.equals(custom) || snapshot.playerId() == null && snapshot.mobDetails().isEmpty()) {
             if (snapshot.name() != null && !snapshot.name().isBlank()) name = TextBounds.characters(snapshot.name(), 120);
         }
-        Reply reply = new Reply(question, answer.reply(), name, voiceId, audio, answer.action(), snapshot.interactionRevision(), answer.bargain());
+        Reply reply = new Reply(question, answer.reply(), name, voiceId, audio, answer.action(), snapshot.interactionRevision(), answer.bargain(),
+                answer.deal(), answer.unlock(), answer.quest());
         return new PreparedReply(this, reply, snapshot, answer.memory(), answer.socialIntent(), audio == null ? null : voiceId);
     }
 
@@ -200,7 +201,17 @@ public final class ConversationEngine implements AutoCloseable {
 
     /** speech is null when audio is unavailable; it may still be downloading while the reply is delivered. */
     public record Reply(String recognizedText, String responseText, String speakerName, String voiceId, SpeechStream speech,
-                        ActionIntent action, long interactionRevision, BargainIntent bargain) {
+                        ActionIntent action, long interactionRevision, BargainIntent bargain,
+                        DealIntent deal, String unlock, QuestIntent quest) {
+        public Reply {
+            if (deal == null) deal = DealIntent.none();
+            unlock = unlock == null ? "" : unlock;
+            if (quest == null) quest = QuestIntent.none();
+        }
+        public Reply(String recognizedText, String responseText, String speakerName, String voiceId, SpeechStream speech,
+                     ActionIntent action, long interactionRevision, BargainIntent bargain) {
+            this(recognizedText, responseText, speakerName, voiceId, speech, action, interactionRevision, bargain, DealIntent.none(), "", QuestIntent.none());
+        }
         /** The complete audio, waiting for the download to end; empty without speech. */
         public byte[] pcm() throws InterruptedException {
             return speech == null ? new byte[0] : speech.awaitAll(java.util.concurrent.TimeUnit.SECONDS.toNanos(90));

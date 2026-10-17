@@ -594,7 +594,17 @@ final class OpenRouterConversationClient implements AutoCloseable {
     private static JsonArray strings(String... values) { JsonArray array = new JsonArray(); for (String value : values) array.add(value); return array; }
     private static String string(JsonObject object, String field) { JsonElement value = object.get(field); if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString()) throw new IllegalArgumentException(); return value.getAsString(); }
     private static JsonObject message(String role, String content) { JsonObject message = new JsonObject(); message.addProperty("role", role); message.addProperty("content", content); return message; }
-    record Answer(String reply, String memory, SocialIntent socialIntent, ActionIntent action, BargainIntent bargain) {
+    /** deal/unlock/quest concern the mob's own catalog (trades.json); bargain stays the vanilla villager window. */
+    record Answer(String reply, String memory, SocialIntent socialIntent, ActionIntent action, BargainIntent bargain,
+                  DealIntent deal, String unlock, QuestIntent quest) {
+        Answer {
+            if (deal == null) deal = DealIntent.none();
+            unlock = unlock == null ? "" : unlock;
+            if (quest == null) quest = QuestIntent.none();
+        }
+        Answer(String reply, String memory, SocialIntent socialIntent, ActionIntent action, BargainIntent bargain) {
+            this(reply, memory, socialIntent, action, bargain, DealIntent.none(), "", QuestIntent.none());
+        }
         Answer(String reply, String memory, SocialIntent socialIntent, ActionIntent action) { this(reply, memory, socialIntent, action, BargainIntent.none()); }
         Answer(String reply, String memory) { this(reply, memory, SocialIntent.NONE, ActionIntent.none()); }
     }

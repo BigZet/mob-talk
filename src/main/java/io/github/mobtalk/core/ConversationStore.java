@@ -145,6 +145,47 @@ public final class ConversationStore {
         if (profile != null) profile.revision++;
         scheduleSave();
     }
+    // ---- Deals and quests of the mob's own catalog (trades.json): per mob, per player. Implemented by the core agent. ----
+
+    /** Never null: a deal the player has not touched yet is {@link TradeState#initial()}. */
+    public synchronized TradeState tradeState(UUID mob, UUID player, String dealId) {
+        throw new UnsupportedOperationException("implemented by the core agent");
+    }
+    /** All deal states of this player with this mob, keyed by deal id; missing deals are initial. */
+    public synchronized Map<String, TradeState> tradeStates(UUID mob, UUID player) {
+        throw new UnsupportedOperationException("implemented by the core agent");
+    }
+    /** Stores an accepted OFFER (already checked with Trading.permitted) and bumps the profile revision. */
+    public synchronized void setDealPrice(UUID mob, UUID player, String dealId, int price, long nowMillis) {
+        throw new UnsupportedOperationException("implemented by the core agent");
+    }
+    /** Opens a secret deal for this player (already checked with Trading.canUnlock) and records an event. */
+    public synchronized void unlockDeal(UUID mob, UUID player, String dealId, long nowMillis) {
+        throw new UnsupportedOperationException("implemented by the core agent");
+    }
+    /** Records a completed purchase on {@code worldDay}: stock, a memory event and a small relationship gain. */
+    public synchronized void recordPurchase(UUID mob, UUID player, String dealId, String playerName, long worldDay, long nowMillis) {
+        throw new UnsupportedOperationException("implemented by the core agent");
+    }
+    /** All quest states of this player with this mob, keyed by quest id. */
+    public synchronized Map<String, QuestState> quests(UUID mob, UUID player) {
+        throw new UnsupportedOperationException("implemented by the core agent");
+    }
+    /** Makes a catalog quest ACTIVE for this player; at most one ACTIVE quest per mob and player. */
+    public synchronized void startQuest(UUID mob, UUID player, String questId, long nowMillis) {
+        throw new UnsupportedOperationException("implemented by the core agent");
+    }
+    /** A player killed an entity: advances every ACTIVE KILL quest of that player (any mob) whose target is this type.
+     * Returns the number of quests advanced. */
+    public synchronized int recordKill(UUID player, String entityType) {
+        throw new UnsupportedOperationException("implemented by the core agent");
+    }
+    /** Marks the quest DONE and applies its reward (relationship, unlockDeal, discountDeal) for this player; records an event.
+     * The caller has already verified and taken the items for a BRING quest. Returns the reward applied. */
+    public synchronized QuestDefinition.Reward completeQuest(UUID mob, UUID player, String questId, String playerName, long nowMillis) {
+        throw new UnsupportedOperationException("implemented by the core agent");
+    }
+
     public synchronized List<String> events(UUID mob) { Profile p = state.profiles.get(mob.toString()); return p == null ? List.of() : p.events.stream().map(e -> e.text).toList(); }
 
     public synchronized MobCard card(UUID mob, UUID player) {
