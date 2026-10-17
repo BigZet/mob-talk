@@ -37,16 +37,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** Server-thread-only quotes. The ordinary merchant inventory remains the sole payment mechanism. */
+/** Server-thread-only permanent price overlays. The ordinary merchant inventory remains the sole payment mechanism. */
 public final class VillagerBargaining {
     private final MobGameBridge bridge;
     private final Map<TradeOffer, Overlay> overlays = new IdentityHashMap<>();
-    private final Map<Pair, ServerWorld> known = new HashMap<>();
     private final Map<UUID, VillagerEntity> refreshAfterTrade = new HashMap<>();
 
     VillagerBargaining(MobGameBridge bridge) { this.bridge = bridge; }
 
-    private record Pair(UUID villager, UUID player) { }
     private record Window(VillagerEntity villager, ServerPlayerEntity player, MerchantScreenHandler handler,
                           MerchantInventory inventory, int index, TradeOffer offer) { }
     private record Overlay(VillagerEntity villager, ServerPlayerEntity player, int index, TradeOffer offer,
@@ -77,7 +75,7 @@ public final class VillagerBargaining {
 
     Map<String, Object> capture(VillagerEntity villager, ServerPlayerEntity player) {
         long tick = villager.getWorld().getTime();
-        Bargaining.Session session = session(villager, player, tick);
+        Bargaining.Session session = session(villager, player);
         Window window = window(villager, player);
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("open", window != null);
@@ -93,15 +91,18 @@ public final class VillagerBargaining {
         }
         Bargaining.Offer offer = describe(villager, window.index(), window.offer());
         int attitude = relationship(villager, player);
-        int maximum = bridge.config.enabled ? Bargaining.maximumDiscount(offer, attitude, Bargaining.currentPrice(session, offer, tick)) : 0;
+        int current = Bargaining.currentPrice(session, offer);
+        int maximum = bridge.config.enabled ? Bargaining.maximumDiscount(offer, attitude, current) : 0;
         Bargaining.Availability availability = bridge.config.enabled ? Bargaining.availability(session, offer, attitude, tick)
                 : new Bargaining.Availability(List.of(BargainIntent.Type.NONE), "Торг отключён вместе с Mob Talk");
         List<Integer> allowed = new ArrayList<>();
-        for (int discount = 1; discount <= maximum; discount++) allowed.add(offer.vanillaCount() - discount);
+        // Only prices below the one already granted: a negotiated price never goes back up.
+        for (int price = current - 1; price >= offer.vanillaCount() - maximum; price--) allowed.add(price);
         result.put("fingerprint", offer.key());
         result.put("baseCount", offer.baseCount());
         result.put("vanillaCount", offer.vanillaCount());
         result.put("currentPrice", window.offer().getDisplayedFirstBuyItem().getCount());
+        result.put("permanentPrice", Bargaining.acceptedPrice(session, offer, tick) > 0);
         result.put("maximumDiscount", maximum);
         // Price options alone do not permit another OFFER after the round limit, acceptance, or cooldown.
         result.put("allowedPrices", List.copyOf(allowed));
@@ -125,7 +126,7 @@ public final class VillagerBargaining {
         Bargaining.Offer offer = describe(villager, window.index(), window.offer());
         if (!matchesObservation(observed, window, offer)) throw new IllegalStateException("Условия торговли изменились: обсудите текущую выбранную сделку");
         long tick = villager.getWorld().getTime();
-        Bargaining.Session previous = session(villager, player, tick);
+        Bargaining.Session previous = session(villager, player);
         Bargaining.Decision decision = Bargaining.negotiate(previous, offer, relationship(villager, player), intent, tick);
         if (!decision.changed() && intent.type() == BargainIntent.Type.DECLINE) {
             remove(villager, true); // A refusal can be voiced even when no concession is available; it creates no new quote.
@@ -133,8 +134,8 @@ public final class VillagerBargaining {
         }
         if (!decision.changed()) throw new IllegalStateException(decision.message());
         if (decision.changed()) bridge.memory.setBargain(villager.getUuid(), player.getUuid(), decision.session());
-        if (decision.session() != null) known.put(new Pair(villager.getUuid(), player.getUuid()), (ServerWorld) villager.getWorld());
-        if (decision.session() != null && decision.session().status() == Bargaining.Status.ACCEPTED) {
+        // A DECLINE keeps the granted price in the window; only a lost price removes the overlay.
+        if (Bargaining.acceptedPrice(decision.session(), offer, tick) > 0) {
             if (!install(villager, player, decision.session(), tick))
                 throw new IllegalStateException("Не удалось применить цену в окне торговли; условия сделки изменились");
         }
@@ -157,19 +158,9 @@ public final class VillagerBargaining {
     }
     private static int number(Object value) { return value instanceof Number n ? n.intValue() : -1; }
 
-    private Bargaining.Session session(VillagerEntity villager, ServerPlayerEntity player, long tick) {
-        Pair pair = new Pair(villager.getUuid(), player.getUuid());
-        Bargaining.Session value = bridge.memory.bargain(pair.villager(), pair.player());
-        if (value != null) {
-            known.put(pair, (ServerWorld) villager.getWorld());
-            if (active(value) && (!bridge.config.enabled || tick >= value.expiresTick())) {
-                value = Bargaining.invalidate(value, Bargaining.Status.EXPIRED);
-                bridge.memory.setBargain(pair.villager(), pair.player(), value);
-                if (overlays.values().stream().anyMatch(overlay -> overlay.villager() == villager && overlay.player() == player))
-                    remove(villager, true);
-            }
-        }
-        return value;
+    /** A granted price never expires with time; only a hurt, a changed trade or a hostile player (expire) removes it. */
+    private Bargaining.Session session(VillagerEntity villager, ServerPlayerEntity player) {
+        return bridge.memory.bargain(villager.getUuid(), player.getUuid());
     }
 
     private static boolean active(Bargaining.Session session) {
@@ -198,7 +189,7 @@ public final class VillagerBargaining {
                 || overlay.villager().getCustomer() != overlay.player() || window(overlay.villager(), overlay.player()) == null) return false;
         List<TradeOffer> offers = overlay.villager().getOffers();
         if (overlay.index() >= offers.size() || offers.get(overlay.index()) != overlay.offer()) return false;
-        Bargaining.Session current = session(overlay.villager(), overlay.player(), tick);
+        Bargaining.Session current = session(overlay.villager(), overlay.player());
         Bargaining.Offer offer = describe(overlay.villager(), overlay.index(), overlay.offer());
         return current != null && Bargaining.acceptedPrice(current, offer, tick) == overlay.price()
                 && Bargaining.permitted(offer, relationship(overlay.villager(), overlay.player()), current.discount())
@@ -210,6 +201,7 @@ public final class VillagerBargaining {
         remove(villager, false);
         if (!bridge.config.enabled || session.offerIndex() < 0 || session.offerIndex() >= villager.getOffers().size()) return false;
         TradeOffer trade = villager.getOffers().get(session.offerIndex());
+        if (trade.isDisabled()) return false; // Sold out until restock: the price waits for the next opening.
         Bargaining.Offer offer = describe(villager, session.offerIndex(), trade);
         int price = Bargaining.acceptedPrice(session, offer, tick);
         if (price < 1 || !Bargaining.permitted(offer, relationship(villager, player), session.discount())) {
@@ -221,14 +213,13 @@ public final class VillagerBargaining {
         Overlay overlay = new Overlay(villager, player, session.offerIndex(), trade, special, applied, price);
         overlays.put(trade, overlay);
         trade.setSpecialPrice(applied);
-        known.put(new Pair(villager.getUuid(), player.getUuid()), (ServerWorld) villager.getWorld());
         refresh(villager, player);
         return trade.getDisplayedFirstBuyItem().getCount() == price;
     }
 
     private void expire(VillagerEntity villager, ServerPlayerEntity player) {
         Bargaining.Session session = bridge.memory.bargain(villager.getUuid(), player.getUuid());
-        if (active(session)) bridge.memory.setBargain(villager.getUuid(), player.getUuid(),
+        if (active(session) || Bargaining.holdsPrice(session)) bridge.memory.setBargain(villager.getUuid(), player.getUuid(),
                 Bargaining.invalidate(session, Bargaining.Status.EXPIRED));
     }
     void hurtBy(VillagerEntity villager, ServerPlayerEntity player) {
@@ -237,18 +228,12 @@ public final class VillagerBargaining {
         if (overlay != null) remove(villager, true);
     }
     void tick(ServerWorld world) {
-        if (!bridge.config.enabled) {
-            for (var entry : known.entrySet()) if (entry.getValue() == world) {
-                Pair pair = entry.getKey();
-                Bargaining.Session session = bridge.memory.bargain(pair.villager(), pair.player());
-                if (active(session)) bridge.memory.setBargain(pair.villager(), pair.player(), Bargaining.invalidate(session, Bargaining.Status.EXPIRED));
-            }
-        }
         for (Overlay overlay : List.copyOf(overlays.values())) {
             if (overlay.villager().getWorld() != world) continue;
             if (!valid(overlay, world.getTime())) {
-                // Closing only removes the visual/payment overlay; it never extends or consumes the quote.
-                if (window(overlay.villager(), overlay.player()) != null) expire(overlay.villager(), overlay.player());
+                // Closing the window, disabling the mod or a sold-out row only removes the overlay; the granted price stays.
+                if (window(overlay.villager(), overlay.player()) != null && bridge.config.enabled && !overlay.offer().isDisabled())
+                    expire(overlay.villager(), overlay.player());
                 remove(overlay.villager(), true);
             }
         }
@@ -256,7 +241,7 @@ public final class VillagerBargaining {
     void unload(VillagerEntity villager) { remove(villager, false); }
     void close() {
         for (Overlay overlay : List.copyOf(overlays.values())) remove(overlay.villager(), true);
-        known.clear(); refreshAfterTrade.clear();
+        refreshAfterTrade.clear();
     }
 
     private void remove(VillagerEntity villager, boolean refresh) {
@@ -285,9 +270,8 @@ public final class VillagerBargaining {
         if (!(customer instanceof ServerPlayerEntity player)) return;
         MobGameBridge bridge = MobGameBridge.forEntity(villager);
         if (bridge == null) return;
-        Bargaining.Session session = bridge.bargaining.session(villager, player, villager.getWorld().getTime());
-        if (session != null && session.status() == Bargaining.Status.ACCEPTED)
-            bridge.bargaining.install(villager, player, session, villager.getWorld().getTime());
+        Bargaining.Session session = bridge.bargaining.session(villager, player);
+        if (Bargaining.holdsPrice(session)) bridge.bargaining.install(villager, player, session, villager.getWorld().getTime());
     }
     public static void changingCustomer(VillagerEntity villager, PlayerEntity customer) {
         MobGameBridge bridge = MobGameBridge.forEntity(villager);
@@ -325,18 +309,12 @@ public final class VillagerBargaining {
         return true;
     }
 
-    /** Successful vanilla ingredient depletion consumes exactly one discounted exchange, before the next shift-click iteration. */
+    /** A paid exchange keeps the overlay: the granted price is permanent, so the next (shift-click) iteration pays it too. */
     public static void paid(TradeOffer trade) {
         MobGameBridge bridge = MobGameBridge.currentTradeBridge();
         if (bridge == null) return;
-        VillagerBargaining bargains = bridge.bargaining;
-        Overlay overlay = bargains.overlays.remove(trade);
-        if (overlay == null) return;
-        Bargaining.Session session = bridge.memory.bargain(overlay.villager().getUuid(), overlay.player().getUuid());
-        if (session != null && session.status() == Bargaining.Status.ACCEPTED)
-            bridge.memory.setBargain(overlay.villager().getUuid(), overlay.player().getUuid(), Bargaining.consumed(session));
-        trade.setSpecialPrice(trade.getSpecialPrice() + overlay.delta());
-        bargains.refreshAfterTrade.put(overlay.villager().getUuid(), overlay.villager());
+        Overlay overlay = bridge.bargaining.overlays.get(trade);
+        if (overlay != null) bridge.bargaining.refreshAfterTrade.put(overlay.villager().getUuid(), overlay.villager());
     }
     public static void traded(VillagerEntity villager, ServerPlayerEntity player) {
         MobGameBridge bridge = MobGameBridge.forEntity(villager);

@@ -48,6 +48,11 @@ final class MobContextCapture {
         mob.getBrain().getFirstPossibleNonCoreActivity().ifPresent(activity -> mobDetails.put("activity", activity.getId()));
         ActionIntent active = bridge.memory.action(mob.getUuid());
         mobDetails.put("activeAction", Map.of("type", active.type().name(), "target", active.target()));
+        MobCard card = bridge.memory.card(mob.getUuid(), player.getUuid());
+        String type = MobGameBridge.type(mob);
+        mobDetails.put("trading", Trading.view(type, bridge.memory.tradeStates(mob.getUuid(), player.getUuid()),
+                bridge.memory.quests(mob.getUuid(), player.getUuid()), card == null ? 0 : card.relationship(), System.currentTimeMillis(),
+                Math.floorDiv(world.getTimeOfDay(), 24_000L), MobTrading.inventoryCounts(player), MobTrading.itemNames(type)));
         if (mob instanceof TameableEntity tameable) {
             mobDetails.put("tamed", tameable.isTamed());
             mobDetails.put("sitting", tameable.isSitting());

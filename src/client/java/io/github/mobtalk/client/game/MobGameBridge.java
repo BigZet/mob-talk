@@ -14,6 +14,7 @@ import net.minecraft.registry.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
 import net.minecraft.util.math.Vec3d;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -27,12 +28,14 @@ public final class MobGameBridge {
     public volatile MobTalkConfig config;
     final MobActionController actions;
     final VillagerBargaining bargaining;
+    final MobTrading trading;
     private final Map<UUID, Deque<Heard>> heard = new HashMap<>();
 
     private MobGameBridge(MinecraftServer server, ConversationStore memory, MobTalkConfig config) {
         this.server = server; this.memory = memory; this.config = config.copy();
         actions = new MobActionController(this);
         bargaining = new VillagerBargaining(this);
+        trading = new MobTrading(this);
     }
 
     public static void initialize() {
@@ -54,12 +57,15 @@ public final class MobGameBridge {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             MobGameBridge bridge = forEntity(entity);
             if (bridge == null) return;
-            if (entity instanceof MobEntity mob) {
-                if (source.getAttacker() instanceof ServerPlayerEntity player)
+            if (source.getAttacker() instanceof ServerPlayerEntity player) {
+                if (entity instanceof MobEntity mob)
                     bridge.memory.recordDamage(mob.getUuid(), type(mob), mob.getName().getString(), player.getUuid(),
                             player.getName().getString(), System.currentTimeMillis());
-                bridge.event(mob, "The mob died: " + source.getName());
+                // KILL quests count every living entity the player kills, not only mobs with a profile.
+                if (bridge.memory.recordKill(player.getUuid(), type(entity)) > 0)
+                    player.sendMessage(Text.literal("Задание: прогресс обновлён"), true);
             }
+            if (entity instanceof MobEntity mob) bridge.event(mob, "The mob died: " + source.getName());
             // END_WORLD_TICK removes dead leases; a death callback can run inside that lease's melee goal.
         });
         ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
@@ -146,16 +152,44 @@ public final class MobGameBridge {
 
     public CompletableFuture<MobSnapshot> capture(UUID mobId, UUID playerId, String dimension) {
         return onServer(() -> {
-            ServerWorld world = world(dimension);
-            Entity entity = world == null ? null : world.getEntity(mobId);
-            ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
-            if (!(entity instanceof MobEntity mob) || !mob.isAlive() || mob.isRemoved() || player == null
-                    || !player.isAlive() || player.getWorld() != world)
-                throw new IllegalStateException("Собеседник или игрок недоступен");
-            if (mob.squaredDistanceTo(player) > config.maxDistance * config.maxDistance)
-                throw new IllegalStateException("Подойдите к мобу ближе");
-            if (memory.card(mobId, playerId) == null) event(mob, "The player met this mob");
-            return MobContextCapture.capture(this, world, mob, player);
+            Nearby nearby = nearby(mobId, playerId, dimension);
+            if (memory.card(mobId, playerId) == null) event(nearby.mob, "The player met this mob");
+            return MobContextCapture.capture(this, nearby.world, nearby.mob, nearby.player);
+        });
+    }
+    /** The living mob and player in the same world within the conversation range; server thread only. */
+    private Nearby nearby(UUID mobId, UUID playerId, String dimension) {
+        ServerWorld world = world(dimension);
+        Entity entity = world == null ? null : world.getEntity(mobId);
+        ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
+        if (!(entity instanceof MobEntity mob) || !mob.isAlive() || mob.isRemoved() || player == null
+                || !player.isAlive() || player.getWorld() != world)
+            throw new IllegalStateException("Собеседник или игрок недоступен");
+        if (mob.squaredDistanceTo(player) > config.maxDistance * config.maxDistance)
+            throw new IllegalStateException("Подойдите к мобу ближе");
+        return new Nearby(world, mob, player);
+    }
+    private record Nearby(ServerWorld world, MobEntity mob, ServerPlayerEntity player) { }
+
+    /** One visible deal of the selected mob as the trade screen shows it; {@code owned} counts the price item in the inventory. */
+    public record TradeRow(TradeDeal deal, int currentPrice, int stockLeft, int owned) { }
+    public record ActiveQuest(String title, int progress, int count) { }
+    public record TradeOffers(String mobName, List<TradeRow> deals, List<String> hints, ActiveQuest quest) { }
+    public CompletableFuture<TradeOffers> tradeOffers(UUID mobId, UUID playerId, String dimension) {
+        return onServer(() -> {
+            Nearby nearby = nearby(mobId, playerId, dimension);
+            synchronized (memory) { return trading.offers(nearby.mob, nearby.player); }
+        });
+    }
+    /** An explicit purchase from the trade screen: items move on the server only after every check passes. */
+    public CompletableFuture<String> buy(UUID mobId, UUID playerId, String dimension, String dealId) {
+        return onServer(() -> {
+            if (!config.enabled) throw new IllegalStateException("Mob Talk выключен");
+            Nearby nearby = nearby(mobId, playerId, dimension);
+            synchronized (memory) {
+                if (memory.card(mobId, playerId) == null) event(nearby.mob, "The player met this mob");
+                return trading.buy(nearby.mob, nearby.player, dealId);
+            }
         });
     }
 
@@ -169,6 +203,11 @@ public final class MobGameBridge {
     }
     public CompletableFuture<Outcome> applyWithRevision(UUID mobId, UUID playerId, String dimension, ActionIntent intent,
             BargainIntent bargain, MobSnapshot observed, long expectedRevision, java.util.function.BooleanSupplier valid) {
+        return applyWithRevision(mobId, playerId, dimension, intent, bargain, DealIntent.none(), "", QuestIntent.none(), observed, expectedRevision, valid);
+    }
+    public CompletableFuture<Outcome> applyWithRevision(UUID mobId, UUID playerId, String dimension, ActionIntent intent,
+            BargainIntent bargain, DealIntent deal, String unlock, QuestIntent quest, MobSnapshot observed, long expectedRevision,
+            java.util.function.BooleanSupplier valid) {
         return onServer(() -> {
             synchronized (memory) {
                 if (!valid.getAsBoolean()) throw new java.util.concurrent.CancellationException("Разговор отменён");
@@ -185,6 +224,8 @@ public final class MobGameBridge {
                     if (!(mob instanceof VillagerEntity villager)) throw new IllegalStateException("Торг доступен только с жителями");
                     trade = bargaining.apply(villager, player, bargain, observed);
                 }
+                String deals = trading.apply(mob, player, deal, unlock, quest);
+                if (!deals.isBlank()) trade = trade.isBlank() ? deals : trade + "; " + deals;
                 String result = actions.apply(mob, player, intent, observed);
                 if (!trade.isBlank()) result = result.isBlank() ? trade : result + "; " + trade;
                 return new Outcome(result, memory.revision(mobId));
