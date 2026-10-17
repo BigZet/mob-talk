@@ -35,6 +35,19 @@ class OpenRouterTokenTest {
         assertEquals(OpenRouterToken.Source.NONE, OpenRouterToken.status(config, plain).source());
     }
 
+    // The Venice key lives next to the OpenRouter one; neither may shadow or remove the other.
+    @Test void keepsVeniceAndOpenRouterKeysApart() throws Exception {
+        var plain = new OpenRouterToken.Environment(null, null, null);
+        OpenRouterToken.store(config, OpenRouterToken.Provider.VENICE, "VENICE_INFERENCE_KEY_unit-test-0000000000", plain);
+        assertTrue(Files.exists(config.resolve("mobtalk-venice-token.txt")));
+        assertEquals(OpenRouterToken.Source.NONE, OpenRouterToken.status(config, OpenRouterToken.Provider.OPENROUTER, plain).source());
+        assertEquals(OpenRouterToken.Source.FILE, OpenRouterToken.status(config, OpenRouterToken.Provider.VENICE, plain).source());
+        OpenRouterToken.store(config, KEY, plain);
+        OpenRouterToken.remove(config, OpenRouterToken.Provider.VENICE, plain);
+        assertEquals(OpenRouterToken.Source.NONE, OpenRouterToken.status(config, OpenRouterToken.Provider.VENICE, plain).source());
+        assertEquals(OpenRouterToken.Source.FILE, OpenRouterToken.status(config, plain).source());
+    }
+
     @Test void rejectsKeysWithSpaces() {
         var plain = new OpenRouterToken.Environment(null, null, null);
         assertThrows(IOException.class, () -> OpenRouterToken.store(config, "sk-or v1", plain));

@@ -15,11 +15,22 @@ public final class ConversationEngine implements AutoCloseable {
     private volatile boolean closed;
 
     public ConversationEngine(MobTalkConfig config, Path worldDirectory, Path configDirectory) throws IOException {
-        this(config, worldDirectory, configDirectory, OpenRouterToken.load(configDirectory));
+        this(config, worldDirectory, configDirectory, chatKey(config, configDirectory), speechKey(config, configDirectory));
     }
 
-    private ConversationEngine(MobTalkConfig config, Path worldDirectory, Path configDirectory, String key) throws IOException {
-        this(config, worldDirectory, new OpenRouterConversationClient(key, config), new OpenRouterSpeechClient(key, config), configDirectory, key);
+    private ConversationEngine(MobTalkConfig config, Path worldDirectory, Path configDirectory, String chatKey, String speechKey) throws IOException {
+        this(config, worldDirectory, new OpenRouterConversationClient(chatKey, config), new OpenRouterSpeechClient(speechKey, config), configDirectory, speechKey);
+    }
+
+    /** The chosen provider's key is required: without it there is nobody to answer. */
+    private static String chatKey(MobTalkConfig config, Path configDirectory) throws IOException {
+        return OpenRouterToken.load(configDirectory, config.usesVenice() ? OpenRouterToken.Provider.VENICE : OpenRouterToken.Provider.OPENROUTER);
+    }
+
+    /** Speech always goes through OpenRouter; with Venice chatting, a missing OpenRouter key only leaves replies unvoiced. */
+    private static String speechKey(MobTalkConfig config, Path configDirectory) throws IOException {
+        if (!config.usesVenice()) return OpenRouterToken.load(configDirectory);
+        try { return OpenRouterToken.load(configDirectory); } catch (IOException missing) { return null; }
     }
 
     ConversationEngine(MobTalkConfig config, Path worldDirectory, OpenRouterConversationClient llm, OpenRouterSpeechClient speech) throws IOException {

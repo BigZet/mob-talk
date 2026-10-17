@@ -21,7 +21,7 @@ final class BoundedHttp implements AutoCloseable {
      * connection costs seconds behind some local proxies (5.3 s measured), a reused one about 0.1 s. */
     private static final HttpClient SHARED = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15))
             .followRedirects(HttpClient.Redirect.NEVER).build();
-    private static final java.util.concurrent.atomic.AtomicLong lastOpenRouterUse = new java.util.concurrent.atomic.AtomicLong(System.nanoTime() - Long.MAX_VALUE / 4);
+    private static final java.util.concurrent.ConcurrentHashMap<String, Long> lastUse = new java.util.concurrent.ConcurrentHashMap<>();
     private static final long KEEP_WARM_NANOS = TimeUnit.SECONDS.toNanos(10);
     private final java.util.Set<CompletableFuture<?>> inFlight = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private volatile boolean closed;
@@ -35,7 +35,7 @@ final class BoundedHttp implements AutoCloseable {
 
     private <T> CompletableFuture<HttpResponse<T>> start(HttpRequest request, HttpResponse.BodyHandler<T> handler) throws IOException {
         if (closed) throw new IOException("Запрос отменён.");
-        if ("openrouter.ai".equals(request.uri().getHost())) lastOpenRouterUse.set(System.nanoTime());
+        lastUse.put(request.uri().getHost(), System.nanoTime());
         CompletableFuture<HttpResponse<T>> pending = SHARED.sendAsync(request, handler);
         inFlight.add(pending);
         pending.whenComplete((ignored, failure) -> inFlight.remove(pending));
@@ -43,13 +43,14 @@ final class BoundedHttp implements AutoCloseable {
         return pending;
     }
 
-    /** Keeps the shared OpenRouter connection open between conversations: Java drops an idle one after about 30 s.
-     * A free key-info request, sent only when nothing else used the connection for a while. Never blocks the caller. */
-    static void keepWarm(String key) {
-        long now = System.nanoTime(), last = lastOpenRouterUse.get();
-        if (now - last < KEEP_WARM_NANOS || !lastOpenRouterUse.compareAndSet(last, now)) return;
-        HttpRequest ping = HttpRequest.newBuilder(java.net.URI.create("https://openrouter.ai/api/v1/key")).timeout(Duration.ofSeconds(20))
-                .header("Authorization", "Bearer " + key).GET().build();
+    /** Keeps a shared connection open between conversations: Java drops an idle one after about 30 s. The ping is a free
+     * request, sent only when nothing else used that host for a while. Never blocks the caller. */
+    static void keepWarm(HttpRequest ping) {
+        String host = ping.uri().getHost();
+        long now = System.nanoTime();
+        Long last = lastUse.get(host);
+        if (last != null && now - last < KEEP_WARM_NANOS) return;
+        if (last == null ? lastUse.putIfAbsent(host, now) != null : !lastUse.replace(host, last, now)) return;
         SHARED.sendAsync(ping, HttpResponse.BodyHandlers.discarding());
     }
 

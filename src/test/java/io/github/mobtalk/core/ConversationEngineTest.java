@@ -359,6 +359,19 @@ class ConversationEngineTest {
         }
     }
 
+    // Venice prepends its own system prompt unless told not to, and has no OpenRouter provider routing.
+    @Test void sendsVeniceParametersInsteadOfOpenRouterRouting() throws Exception {
+        MobTalkConfig venice = config.copy(); venice.llmProvider = "venice"; venice.veniceModel = "deepseek-v4-1-flash";
+        try (var client = new OpenRouterConversationClient("unit-test-key", venice, chatEndpoint)) {
+            client.respond(cow(UUID.randomUUID()), ConversationStore.open(directory, venice).profile(cow(UUID.randomUUID())), "Привет");
+        } finally { ConversationStore.closeWorld(directory); }
+        JsonObject request = lastRequest.get();
+        assertEquals("deepseek-v4-1-flash", request.get("model").getAsString());
+        assertFalse(request.has("provider"));
+        assertFalse(request.getAsJsonObject("venice_parameters").get("include_venice_system_prompt").getAsBoolean());
+        assertTrue(request.getAsJsonObject("venice_parameters").get("disable_thinking").getAsBoolean());
+    }
+
     @Test void findsTheReplyOnlyOnceItsClosingQuoteStreamedIn() {
         assertNull(OpenRouterConversationClient.completedReply("{\"reply\":\"Скажи \\\"при"));
         assertEquals("Скажи \"привет\"", OpenRouterConversationClient.completedReply("{\"reply\":\"Скажи \\\"привет\\\"\",\"socialIn"));

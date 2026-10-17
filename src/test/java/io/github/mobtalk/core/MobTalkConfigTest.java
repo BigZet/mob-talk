@@ -25,6 +25,18 @@ class MobTalkConfigTest {
         assertCustomized(original);
     }
 
+    // A typo in the provider must fall back to OpenRouter rather than send requests nowhere.
+    @Test void normalizesTheChatProvider() throws Exception {
+        Path file = directory.resolve("config/mobtalk.json");
+        for (var entry : java.util.Map.of("VENICE", "venice", "bogus", "openrouter", "", "openrouter").entrySet()) {
+            MobTalkConfig config = new MobTalkConfig(); config.llmProvider = entry.getKey(); config.veniceModel = " ";
+            MobTalkConfig.save(file, config);
+            MobTalkConfig loaded = MobTalkConfig.load(file);
+            assertEquals(entry.getValue(), loaded.llmProvider);
+            assertEquals("deepseek-v4-1-flash", loaded.veniceModel);
+        }
+    }
+
     // Saving only menu fields would silently reset the worker, limits, and voice preferences.
     @Test void roundTripPreservesAllPreferences() throws Exception {
         Path file = directory.resolve("config/mobtalk.json");
@@ -106,6 +118,8 @@ class MobTalkConfigTest {
         MobTalkConfig config = new MobTalkConfig();
         config.enabled = false;
         config.llmModel = "provider/custom-model";
+        config.llmProvider = "venice";
+        config.veniceModel = "venice-uncensored-1-2";
         config.whisperUrl = "http://localhost:12345";
         config.whisperAutoStart = false;
         config.whisperModel = "tiny";
@@ -135,6 +149,8 @@ class MobTalkConfigTest {
     private static void assertCustomized(MobTalkConfig config) {
         assertFalse(config.enabled);
         assertEquals("provider/custom-model", config.llmModel);
+        assertTrue(config.usesVenice());
+        assertEquals("venice-uncensored-1-2", config.chatModel());
         assertEquals("http://localhost:12345", config.whisperUrl);
         assertFalse(config.whisperAutoStart);
         assertEquals("tiny", config.whisperModel);

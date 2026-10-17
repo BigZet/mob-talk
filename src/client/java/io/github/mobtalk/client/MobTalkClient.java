@@ -338,7 +338,7 @@ public final class MobTalkClient implements ClientModInitializer {
     /** Opens (or keeps open) the OpenRouter connection while a mob is selected, so the first reply skips the handshake. */
     private void keepConnectionWarm() {
         if (stopped || !configReady || !config.enabled || selected == null) return;
-        maintenance.execute(() -> OpenRouterConnection.keepWarm(configDirectory));
+        maintenance.execute(() -> OpenRouterConnection.keepWarm(configDirectory, config.usesVenice()));
     }
 
     private void clearSelection(String reason) {
@@ -853,14 +853,14 @@ public final class MobTalkClient implements ClientModInitializer {
                 InputUtil.Key key = KeyBindingHelper.getBoundKeyOf(talkKey);
                 return key.getCategory() == InputUtil.Type.KEYSYM ? key.getCode() : GLFW.GLFW_KEY_V;
             }
-            @Override public CompletableFuture<OpenRouterToken.Status> openRouterKeyStatus() {
-                return CompletableFuture.supplyAsync(() -> OpenRouterToken.status(configDirectory), maintenance);
+            @Override public CompletableFuture<OpenRouterToken.Status> keyStatus(OpenRouterToken.Provider provider) {
+                return CompletableFuture.supplyAsync(() -> OpenRouterToken.status(configDirectory, provider), maintenance);
             }
-            @Override public CompletableFuture<OpenRouterToken.Status> saveOpenRouterKey(String key) {
-                return keyChange(() -> OpenRouterToken.store(configDirectory, key));
+            @Override public CompletableFuture<OpenRouterToken.Status> saveKey(OpenRouterToken.Provider provider, String key) {
+                return keyChange(provider, () -> OpenRouterToken.store(configDirectory, provider, key));
             }
-            @Override public CompletableFuture<OpenRouterToken.Status> removeOpenRouterKey() {
-                return keyChange(() -> OpenRouterToken.remove(configDirectory));
+            @Override public CompletableFuture<OpenRouterToken.Status> removeKey(OpenRouterToken.Provider provider) {
+                return keyChange(provider, () -> OpenRouterToken.remove(configDirectory, provider));
             }
             @Override public CompletableFuture<MobCard> selectedCard() { return MobTalkClient.this.selectedCard(); }
             @Override public CompletableFuture<MobSnapshot> selectedSnapshot() { return MobTalkClient.this.selectedSnapshot(); }
@@ -878,11 +878,11 @@ public final class MobTalkClient implements ClientModInitializer {
     private interface KeyChange { void run() throws java.io.IOException; }
 
     /** Opening settings already dropped the engine, so the next conversation reads the new key. */
-    private CompletableFuture<OpenRouterToken.Status> keyChange(KeyChange change) {
+    private CompletableFuture<OpenRouterToken.Status> keyChange(OpenRouterToken.Provider provider, KeyChange change) {
         return CompletableFuture.supplyAsync(() -> {
             try { change.run(); }
             catch (java.io.IOException failure) { throw new java.util.concurrent.CompletionException(failure); }
-            return OpenRouterToken.status(configDirectory);
+            return OpenRouterToken.status(configDirectory, provider);
         }, maintenance);
     }
 

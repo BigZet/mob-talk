@@ -20,13 +20,24 @@ public final class SpeechPreview {
 
     /** Read-only authentication check; never calls a paid model or exposes the key response. */
     public static String connectionStatus(Path directory, MobTalkConfig config) throws IOException, InterruptedException {
-        String key = OpenRouterToken.load(directory);
         try (BoundedHttp http = new BoundedHttp(config)) {
-            HttpRequest request = HttpRequest.newBuilder(URI.create("https://openrouter.ai/api/v1/key"))
-                    .timeout(http.timeout()).header("Authorization", "Bearer " + key).GET().build();
-            http.send(request, 64 * 1024, "OpenRouter");
-            return "OpenRouter доступен, ключ принят. Выбранная LLM: " + config.llmModel;
+            if (!config.usesVenice()) {
+                checkOpenRouter(http, OpenRouterToken.load(directory));
+                return "OpenRouter доступен, ключ принят. Выбранная LLM: " + config.llmModel;
+            }
+            String venice = OpenRouterToken.load(directory, OpenRouterToken.Provider.VENICE);
+            http.send(HttpRequest.newBuilder(URI.create("https://api.venice.ai/api/v1/api_keys/rate_limits"))
+                    .timeout(http.timeout()).header("Authorization", "Bearer " + venice).GET().build(), 256 * 1024, "Venice");
+            String speech;
+            try { checkOpenRouter(http, OpenRouterToken.load(directory)); speech = "озвучка OpenRouter готова"; }
+            catch (IOException unavailable) { speech = "озвучка недоступна: " + unavailable.getMessage(); }
+            return "Venice доступен, ключ принят. Выбранная LLM: " + config.veniceModel + "; " + speech;
         }
+    }
+
+    private static void checkOpenRouter(BoundedHttp http, String key) throws IOException, InterruptedException {
+        http.send(HttpRequest.newBuilder(URI.create("https://openrouter.ai/api/v1/key"))
+                .timeout(http.timeout()).header("Authorization", "Bearer " + key).GET().build(), 64 * 1024, "OpenRouter");
     }
 
     public static byte[] synthesize(MobTalkConfig config, Path directory, String voice, String text) throws IOException, InterruptedException {

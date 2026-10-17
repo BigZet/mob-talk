@@ -15,7 +15,10 @@ import java.nio.file.StandardCopyOption;
 public final class MobTalkConfig {
     public int schemaVersion = 2;
     public boolean enabled = true;
+    /** Who answers in conversations: "openrouter" or "venice". Speech always uses OpenRouter (ElevenLabs voices). */
+    public String llmProvider = "openrouter";
     public String llmModel = "google/gemini-2.5-flash-lite";
+    public String veniceModel = "deepseek-v4-1-flash";
     public String whisperUrl = "http://127.0.0.1:63919";
     public boolean whisperAutoStart = true;
     public String whisperModel = "large-v3";
@@ -43,7 +46,9 @@ public final class MobTalkConfig {
         MobTalkConfig copy = new MobTalkConfig();
         copy.schemaVersion = schemaVersion;
         copy.enabled = enabled;
+        copy.llmProvider = llmProvider;
         copy.llmModel = llmModel;
+        copy.veniceModel = veniceModel;
         copy.whisperUrl = whisperUrl;
         copy.whisperAutoStart = whisperAutoStart;
         copy.whisperModel = whisperModel;
@@ -128,6 +133,8 @@ public final class MobTalkConfig {
         config.maxDistance = Double.isFinite(config.maxDistance) ? Math.max(2, Math.min(64, config.maxDistance)) : 16;
         MobTalkConfig defaults = new MobTalkConfig();
         config.llmModel = textOrDefault(config.llmModel, defaults.llmModel);
+        config.veniceModel = textOrDefault(config.veniceModel, defaults.veniceModel);
+        config.llmProvider = "venice".equalsIgnoreCase(textOrDefault(config.llmProvider, defaults.llmProvider)) ? "venice" : "openrouter";
         config.whisperModel = textOrDefault(config.whisperModel, defaults.whisperModel);
         config.whisperDevice = textOrDefault(config.whisperDevice, defaults.whisperDevice);
         config.whisperLanguage = textOrDefault(config.whisperLanguage, defaults.whisperLanguage);
@@ -146,6 +153,10 @@ public final class MobTalkConfig {
                 || whisper.getQuery() != null || whisper.getFragment() != null || !whisper.getPath().isEmpty())
             throw new IOException("Whisper must use a local HTTP address");
     }
+
+    public boolean usesVenice() { return "venice".equals(llmProvider); }
+    /** The chat model of the selected provider. */
+    public String chatModel() { return usesVenice() ? veniceModel : llmModel; }
 
     private static String textOrDefault(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value.trim();

@@ -17,7 +17,8 @@ final class OpenRouterSpeechClient implements AutoCloseable {
 
     OpenRouterSpeechClient(String key, MobTalkConfig config) { this(key, config, ENDPOINT); }
     OpenRouterSpeechClient(String key, MobTalkConfig config, URI endpoint) {
-        this.key = OpenRouterConversationClient.validKey(key);
+        // No key: the client exists but every request fails, so the reply is shown as text only.
+        this.key = key == null ? null : OpenRouterConversationClient.validKey(key);
         this.endpoint = endpoint;
         this.http = new BoundedHttp(config);
     }
@@ -77,6 +78,7 @@ final class OpenRouterSpeechClient implements AutoCloseable {
     }
 
     private HttpRequest request(String voiceId, String text) throws IOException {
+        if (key == null) throw new IOException("Для озвучки нужен ключ OpenRouter.");
         if (!validVoiceId(voiceId) || text == null || text.isBlank())
             throw new IOException("Для озвучки нужны голос и текст.");
         JsonObject body = new JsonObject();

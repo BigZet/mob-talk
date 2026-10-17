@@ -24,9 +24,9 @@ final class MobTalkSettingsScreen extends Screen {
         void listMicrophones(Consumer<List<String>> callback);
         void save(MobTalkConfig draft, Consumer<String> completion);
         int talkKeyCode();
-        default CompletableFuture<OpenRouterToken.Status> openRouterKeyStatus() { return CompletableFuture.completedFuture(new OpenRouterToken.Status(OpenRouterToken.Source.NONE, "")); }
-        default CompletableFuture<OpenRouterToken.Status> saveOpenRouterKey(String key) { return CompletableFuture.failedFuture(new UnsupportedOperationException()); }
-        default CompletableFuture<OpenRouterToken.Status> removeOpenRouterKey() { return CompletableFuture.failedFuture(new UnsupportedOperationException()); }
+        default CompletableFuture<OpenRouterToken.Status> keyStatus(OpenRouterToken.Provider provider) { return CompletableFuture.completedFuture(new OpenRouterToken.Status(OpenRouterToken.Source.NONE, "")); }
+        default CompletableFuture<OpenRouterToken.Status> saveKey(OpenRouterToken.Provider provider, String key) { return CompletableFuture.failedFuture(new UnsupportedOperationException()); }
+        default CompletableFuture<OpenRouterToken.Status> removeKey(OpenRouterToken.Provider provider) { return CompletableFuture.failedFuture(new UnsupportedOperationException()); }
         default CompletableFuture<MobCard> selectedCard() { return CompletableFuture.completedFuture(null); }
         default CompletableFuture<MobSnapshot> selectedSnapshot() { return CompletableFuture.completedFuture(null); }
         default CompletableFuture<String> requestMobAction(ActionIntent action) { return CompletableFuture.completedFuture("Сначала выберите моба."); }
@@ -58,9 +58,9 @@ final class MobTalkSettingsScreen extends Screen {
     private Text status = Text.empty();
     private boolean error;
     private VoicePreviewService voices;
-    private OpenRouterToken.Status keyStatus;
+    private final Map<OpenRouterToken.Provider, OpenRouterToken.Status> keyStatus = new EnumMap<>(OpenRouterToken.Provider.class);
+    private final Map<OpenRouterToken.Provider, String> pendingKey = new EnumMap<>(OpenRouterToken.Provider.class);
     private boolean keyRequested, keyBusy;
-    private String pendingKey = "";
     private MobCard card;
     private MobSnapshot snapshot;
     private boolean loadingCard, cardLoaded, dirtyCard, clearHistory, resetPersonality;
@@ -108,31 +108,21 @@ final class MobTalkSettingsScreen extends Screen {
     // ---- Общее ----
 
     private void general() {
-        header("mobtalk.settings.section.openrouter");
-        note(keyStatusText(), keyStatusColor());
-        TextFieldWidget key = new TextFieldWidget(textRenderer, 0, 0, 100, 20, Text.translatable("mobtalk.settings.key"));
-        key.setMaxLength(512); key.setText(pendingKey);
-        key.setPlaceholder(Text.translatable("mobtalk.settings.key.placeholder").formatted(Formatting.DARK_GRAY));
-        // Streams may show the menu: the key is never drawn, only its length.
-        key.setRenderTextProvider((text, first) -> OrderedText.styledForwardsVisitedString("*".repeat(text.length()), Style.EMPTY));
-        key.setChangedListener(value -> pendingKey = value);
-        ButtonWidget paste = button("mobtalk.settings.key.paste", ignored -> {
-            String clipboard = client.keyboard.getClipboard();
-            key.setText(clipboard == null ? "" : clipboard.strip());
-        });
-        paste.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.key.paste.tooltip")));
-        labeled("mobtalk.settings.key", new int[] {3, 1}, track(key), paste);
-        ButtonWidget store = button("mobtalk.settings.key.save", ignored -> {
-            if (pendingKey.isBlank()) { status = Text.translatable("mobtalk.settings.key.empty"); error = true; }
-            else withKey(() -> status = Text.translatable("mobtalk.settings.key.saved"));
-        });
-        ButtonWidget remove = button("mobtalk.settings.key.remove", ignored -> removeKey());
-        remove.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.key.remove.tooltip")));
-        ButtonWidget check = button("mobtalk.settings.connection", ignored -> withKey(() -> operation(voiceService().connection(draft.copy()), false)));
+        header("mobtalk.settings.section.llm");
+        CyclingButtonWidget<Boolean> provider = track(CyclingButtonWidget.<Boolean>builder(venice -> Text.literal(venice ? "Venice" : "OpenRouter"))
+                .values(false, true).initially(draft.usesVenice())
+                .build(0, 0, 100, 20, Text.translatable("mobtalk.settings.provider"), (button, venice) -> { draft.llmProvider = venice ? "venice" : "openrouter"; refreshOnTick = true; }));
+        provider.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.provider.tooltip")));
+        ButtonWidget check = button("mobtalk.settings.connection", ignored -> withKeys(() -> operation(voiceService().connection(draft.copy()), false)));
         check.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.connection.tooltip")));
-        store.active = remove.active = check.active = !keyBusy;
-        wide(store, remove, check);
-        labeled("mobtalk.settings.llm", field(draft.llmModel, 160, value -> draft.llmModel = value));
+        check.active = !keyBusy;
+        wide(provider, check);
+        if (draft.usesVenice()) labeled("mobtalk.settings.llm", field(draft.veniceModel, 160, value -> draft.veniceModel = value));
+        else labeled("mobtalk.settings.llm", field(draft.llmModel, 160, value -> draft.llmModel = value));
+        if (draft.usesVenice()) note(Text.translatable("mobtalk.settings.provider.veniceModels"), 0x9A9A9A);
+
+        keySection(OpenRouterToken.Provider.OPENROUTER, draft.usesVenice() ? "mobtalk.settings.section.openrouter.speech" : "mobtalk.settings.section.openrouter");
+        if (draft.usesVenice()) keySection(OpenRouterToken.Provider.VENICE, "mobtalk.settings.section.venice");
         note(Text.translatable("mobtalk.settings.key.hint"), 0x9A9A9A);
 
         header("mobtalk.settings.section.conversation");
@@ -153,38 +143,73 @@ final class MobTalkSettingsScreen extends Screen {
         wide(slider("mobtalk.settings.memory", 200, 4000, draft.maxMemoryChars, value -> draft.maxMemoryChars = value));
     }
 
-    private Text keyStatusText() {
-        if (keyStatus == null) return Text.translatable("mobtalk.settings.key.checking");
-        return switch (keyStatus.source()) {
-            case ENVIRONMENT -> Text.translatable("mobtalk.settings.key.environment", keyStatus.hint());
-            case FILE -> Text.translatable("mobtalk.settings.key.file", keyStatus.hint());
-            case ENCRYPTED -> Text.translatable("mobtalk.settings.key.encrypted", keyStatus.hint());
-            case NONE -> Text.translatable("mobtalk.settings.key.none");
+    /** One provider's key: status, masked field with paste, save and remove. */
+    private void keySection(OpenRouterToken.Provider provider, String title) {
+        header(title);
+        note(keyStatusText(provider), keyStatusColor(provider));
+        TextFieldWidget key = new TextFieldWidget(textRenderer, 0, 0, 100, 20, Text.translatable("mobtalk.settings.key"));
+        key.setMaxLength(512); key.setText(pendingKey.getOrDefault(provider, ""));
+        key.setPlaceholder(Text.translatable("mobtalk.settings.key.placeholder." + provider.name().toLowerCase(Locale.ROOT)).formatted(Formatting.DARK_GRAY));
+        // Streams may show the menu: the key is never drawn, only its length.
+        key.setRenderTextProvider((text, first) -> OrderedText.styledForwardsVisitedString("*".repeat(text.length()), Style.EMPTY));
+        key.setChangedListener(value -> pendingKey.put(provider, value));
+        ButtonWidget paste = button("mobtalk.settings.key.paste", ignored -> {
+            String clipboard = client.keyboard.getClipboard();
+            key.setText(clipboard == null ? "" : clipboard.strip());
+        });
+        paste.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.key.paste.tooltip")));
+        labeled("mobtalk.settings.key", new int[] {3, 1}, track(key), paste);
+        ButtonWidget store = button("mobtalk.settings.key.save", ignored -> {
+            if (pendingKey.getOrDefault(provider, "").isBlank()) { status = Text.translatable("mobtalk.settings.key.empty"); error = true; }
+            else keyOperation(provider, controller.saveKey(provider, pendingKey.get(provider).strip()),
+                    () -> { pendingKey.remove(provider); status = Text.translatable("mobtalk.settings.key.saved", provider.label); });
+        });
+        ButtonWidget remove = button("mobtalk.settings.key.remove", ignored -> {
+            pendingKey.remove(provider);
+            keyOperation(provider, controller.removeKey(provider), () -> status = Text.translatable("mobtalk.settings.key.removed", provider.label));
+        });
+        remove.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.key.remove.tooltip." + provider.name().toLowerCase(Locale.ROOT))));
+        store.active = remove.active = !keyBusy;
+        wide(store, remove);
+    }
+
+    private Text keyStatusText(OpenRouterToken.Provider provider) {
+        OpenRouterToken.Status known = keyStatus.get(provider);
+        if (known == null) return Text.translatable("mobtalk.settings.key.checking");
+        String name = provider.name().toLowerCase(Locale.ROOT);
+        return switch (known.source()) {
+            case ENVIRONMENT -> Text.translatable("mobtalk.settings.key.environment." + name, known.hint());
+            case FILE -> Text.translatable("mobtalk.settings.key.file." + name, known.hint());
+            case ENCRYPTED -> Text.translatable("mobtalk.settings.key.encrypted", known.hint());
+            case NONE -> Text.translatable("mobtalk.settings.key.none." + name);
         };
     }
-    private int keyStatusColor() {
-        if (keyStatus == null) return 0xBBBBBB;
-        return switch (keyStatus.source()) { case NONE -> 0xFF9999; case ENVIRONMENT -> 0xFFE08A; default -> 0x9CE59C; };
+    private int keyStatusColor(OpenRouterToken.Provider provider) {
+        OpenRouterToken.Status known = keyStatus.get(provider);
+        if (known == null) return 0xBBBBBB;
+        return switch (known.source()) { case NONE -> 0xFF9999; case ENVIRONMENT -> 0xFFE08A; default -> 0x9CE59C; };
     }
     private void loadKeyStatus() {
         keyRequested = true;
-        controller.openRouterKeyStatus().whenComplete((value, failure) -> client.execute(() -> {
-            if (disposed) return; keyStatus = failure == null ? value : new OpenRouterToken.Status(OpenRouterToken.Source.NONE, "");
-            if (client.currentScreen == this && tab == GENERAL) refreshOnTick = true;
-        }));
+        for (OpenRouterToken.Provider provider : OpenRouterToken.Provider.values())
+            controller.keyStatus(provider).whenComplete((value, failure) -> client.execute(() -> {
+                if (disposed) return; keyStatus.put(provider, failure == null ? value : new OpenRouterToken.Status(OpenRouterToken.Source.NONE, ""));
+                if (client.currentScreen == this && tab == GENERAL) refreshOnTick = true;
+            }));
     }
-    /** Saves a pasted key first so checks and the conversation use it; runs next only on success. */
-    private void withKey(Runnable next) {
-        String key = pendingKey.strip();
-        if (key.isEmpty()) { next.run(); return; }
-        keyOperation(controller.saveOpenRouterKey(key), () -> { pendingKey = ""; next.run(); });
+    /** Saves every pasted key first, so the check and the conversation use them; runs next only when all succeeded. */
+    private void withKeys(Runnable next) {
+        for (OpenRouterToken.Provider provider : OpenRouterToken.Provider.values()) {
+            String key = pendingKey.getOrDefault(provider, "").strip();
+            if (!key.isEmpty()) { keyOperation(provider, controller.saveKey(provider, key), () -> { pendingKey.remove(provider); withKeys(next); }); return; }
+        }
+        next.run();
     }
-    private void removeKey() { pendingKey = ""; keyOperation(controller.removeOpenRouterKey(), () -> status = Text.translatable("mobtalk.settings.key.removed")); }
-    private void keyOperation(CompletableFuture<OpenRouterToken.Status> future, Runnable success) {
+    private void keyOperation(OpenRouterToken.Provider provider, CompletableFuture<OpenRouterToken.Status> future, Runnable success) {
         keyBusy = true; status = Text.translatable("mobtalk.settings.working"); error = false; refreshOnTick = true;
         future.whenComplete((value, failure) -> client.execute(() -> {
             keyBusy = false; if (disposed) return;
-            if (failure == null) { keyStatus = value; error = false; success.run(); }
+            if (failure == null) { keyStatus.put(provider, value); error = false; success.run(); }
             else { status = Text.literal(failureMessage(failure, "mobtalk.settings.key.failed")); error = true; }
             refreshOnTick = true;
         }));
@@ -392,14 +417,22 @@ final class MobTalkSettingsScreen extends Screen {
 
     private void save() {
         if (saving) return; saving = true; status = Text.translatable("mobtalk.settings.saving"); error = false; controls(false); stopPreview();
-        String key = pendingKey.strip();
-        CompletableFuture<OpenRouterToken.Status> keySaved = key.isEmpty() ? CompletableFuture.completedFuture(keyStatus) : controller.saveOpenRouterKey(key);
-        keySaved.whenComplete((value, failure) -> client.execute(() -> {
-            if (disposed) return;
-            if (failure != null) { saveFailed(failureMessage(failure, "mobtalk.settings.key.failed")); return; }
-            if (!key.isEmpty()) { pendingKey = ""; keyStatus = value; }
-            saveSettings();
-        }));
+        saveKeysThenSettings();
+    }
+    /** Pasted but unsaved keys are stored before the settings, one provider at a time. */
+    private void saveKeysThenSettings() {
+        for (OpenRouterToken.Provider provider : OpenRouterToken.Provider.values()) {
+            String key = pendingKey.getOrDefault(provider, "").strip();
+            if (key.isEmpty()) continue;
+            controller.saveKey(provider, key).whenComplete((value, failure) -> client.execute(() -> {
+                if (disposed) return;
+                if (failure != null) { saveFailed(failureMessage(failure, "mobtalk.settings.key.failed")); return; }
+                pendingKey.remove(provider); keyStatus.put(provider, value);
+                saveKeysThenSettings();
+            }));
+            return;
+        }
+        saveSettings();
     }
     private void saveSettings() {
         try { controller.save(draft.copy(), failure -> client.execute(() -> {
