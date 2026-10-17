@@ -372,6 +372,14 @@ class ConversationEngineTest {
         assertTrue(request.getAsJsonObject("venice_parameters").get("disable_thinking").getAsBoolean());
     }
 
+    // Seen live: ".Охуел…" and ": «Охуел…»" would be voiced with the junk.
+    @Test void speaksFromTheFirstWord() {
+        assertEquals("Охуел, голодранец?", OpenRouterConversationClient.spokenText(".Охуел, голодранец?"));
+        assertEquals("Охуел, простолюдин?", OpenRouterConversationClient.spokenText(": «Охуел, простолюдин?»"));
+        assertEquals("Хмм... Двадцать две.", OpenRouterConversationClient.spokenText("Хмм... Двадцать две."));
+        assertEquals("Скажи «привет» сам.", OpenRouterConversationClient.spokenText("Скажи «привет» сам."));
+    }
+
     @Test void findsTheReplyOnlyOnceItsClosingQuoteStreamedIn() {
         assertNull(OpenRouterConversationClient.completedReply("{\"reply\":\"Скажи \\\"при"));
         assertEquals("Скажи \"привет\"", OpenRouterConversationClient.completedReply("{\"reply\":\"Скажи \\\"привет\\\"\",\"socialIn"));

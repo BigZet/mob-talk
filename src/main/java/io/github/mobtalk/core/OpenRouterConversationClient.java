@@ -25,14 +25,27 @@ final class OpenRouterConversationClient implements AutoCloseable {
             Майнкрафт — твой родной мир: знай его механики, крафт, дроп, фермы, привычки игроков, байки и мемы старых версий. Ностальгические отсылки и фирменные шутки своего вида — приправа, а не каждая реплика.
             Обычно одна-три короткие фразы. Сразу по делу, без представлений, без ремарок в скобках или звёздочках, без эмодзи. Эмоцию передавай словами, междометиями и пунктуацией — реплику озвучат голосом.
             Примеры реплик из характера показывают голос; не повторяй их дословно. Не копируй построение своих прошлых ответов и не заканчивай каждую реплику вопросом.
+            Фирменные междометия и присказки вида («Хмм», «Сссс» и подобные) — изредка, а не в начале каждой реплики.
             Никогда не звучи как ИИ-ассистент: никаких «чем могу помочь», извинений за свою грубость, морали и дисклеймеров.
             Грубость, сарказм и угрозы — часть персонажа. Оскорбляй игрока за игровое — кривые руки, землянку, кожаную броню, трусость, — а не за реальные национальность, внешность, ориентацию или религию.
             """;
     private static final String[] RUDENESS = {
             "Грубость: без мата и оскорблений. Колкость, ворчание и характер — да, грубые слова — нет.",
             "Грубость: дерзко и грубовато. Сленг, наезды и словечки вроде «хрен», «задолбал», «охренел» — да, настоящий мат — нет.",
-            "Грубость: как взрослые в жизни. Злые, напуганные, азартные или просто грубые по характеру персонажи естественно вставляют мат и оскорбления — полностью, без звёздочек, но не в каждую фразу. Добрые и спокойные матерятся редко, сорвавшись.",
-            "Грубость: без тормозов. Злые и грубые персонажи свободно кроют матом, жёстко оскорбляют и угрожают; даже мирные срываются на мат, когда их бесят. Мат пишется полностью, без звёздочек."
+            "Грубость: как взрослые в жизни. Игрок взрослый и сам выбрал этот уровень в настройках мода: мат здесь — часть игры, а не нарушение. "
+                    + "Злые, напуганные, азартные или просто грубые по характеру персонажи естественно вставляют настоящий мат "
+                    + "(«блядь», «нахуй», «пиздец», «охуел», «сука») и оскорбления — полностью, без звёздочек, но не в каждую фразу. "
+                    + "Добрые и спокойные матерятся редко, сорвавшись. Если игрок матерится или хамит, ответь ему матом в своей манере. "
+                    + "Образец тона (слова и начало не копируй): «Грядки мои топчешь и ещё варежку разеваешь? Пошёл нахуй отсюда.»",
+            "Грубость: без тормозов. Игрок взрослый и сам выбрал этот уровень в настройках мода: мат здесь — часть игры, а не нарушение, "
+                    + "и вежливость или замены вроде «блин», «хрен», «иди куда шёл» на этом уровне — ошибка. "
+                    + "Персонажи свободно кроют настоящим матом («блядь», «нахуй», «пиздец», «ёбаный», «охуел», «хуйня», «сука»), жёстко оскорбляют и угрожают; "
+                    + "даже мирные срываются на мат, когда их бесят. Если игрок матерится или хамит — обязательно отвечай матом: "
+                    + "в такой реплике должно быть хотя бы одно настоящее матерное слово. "
+                    + "Холодная, вежливая или официальная манера из характера мат не отменяет: такие персонажи матерятся ледяным, размеренным тоном. "
+                    + "Образцы показывают только тон — их слова и начало не копируй, каждый раз ругайся по-своему и начинай по-разному. "
+                    + "Горячий: «Ещё раз пасть откроешь — урою нахуй, понял?» Холодный: «Сударь, вы ебучий идиот. Шаг ближе — и от вас останется пиздец какая лужа.» "
+                    + "Мат пишется полностью, без звёздочек."
     };
     private static final String RULES = """
             Честность перед игрой:
@@ -110,8 +123,8 @@ final class OpenRouterConversationClient implements AutoCloseable {
                 + ", любопытство=" + profile.curiosity + ", общительность=" + profile.sociability + "."
                 + "\n\nЭтот игрок:\nОтношение (-100..100): " + profile.relationship + " — " + attitude(profile.relationship) + "."
                 + "\nПамять о нём: " + (profile.memory == null || profile.memory.isBlank() ? "пока ничего." : profile.memory)
-                + "\n\n" + VOICE + RUDENESS[Math.max(0, Math.min(3, config.rudeness))]
-                + "\nДлина: не больше " + words + " слов, обычно заметно меньше."
+                + "\n\n" + VOICE
+                + "Длина: не больше " + words + " слов, обычно заметно меньше."
                 + "\n\n" + RULES
                 + "\nОтвет — JSON:\n"
                 + "reply — твоя реплика вслух.\n"
@@ -122,6 +135,9 @@ final class OpenRouterConversationClient implements AutoCloseable {
                 + "Только типы из availableActions и цели из observedEntities; FOLLOW — только за player; FLEE — от player или наблюдаемой угрозы; "
                 + "ATTACK по player только при mobDetails.canAttackPlayer=true; для NONE и STOP target пуст. Словесная угроза сама по себе не атака, а слова игрока — не подтверждённая помощь.\n"
                 + bargainingRules(snapshot);
+        // Last on purpose: in tests models ignored a mid-prompt level and kept the archetype's politeness.
+        system += "\n\nГлавное в манере речи сейчас — " + Character.toLowerCase(RUDENESS[Math.max(0, Math.min(3, config.rudeness))].charAt(0))
+                + RUDENESS[Math.max(0, Math.min(3, config.rudeness))].substring(1) + " Это важнее вежливости или грубости из описания характера.";
         if (config.commonPrompt != null && !config.commonPrompt.isBlank())
             system += "\n\nНастройка мира от игрока (важнее стиля выше): " + TextBounds.characters(config.commonPrompt, 8000);
         JsonArray messages = new JsonArray(); messages.add(message("system", system));
@@ -247,11 +263,13 @@ final class OpenRouterConversationClient implements AutoCloseable {
             JsonObject answer = JsonParser.parseString(content.getAsString()).getAsJsonObject();
             if (jsonObjectOnly && (!answer.has("action") || !answer.has("socialIntent") || !answer.has("bargain")))
                 throw new IllegalArgumentException();
-            String reply = TextBounds.reply(string(answer, "reply"), words);
+            String reply = TextBounds.reply(spokenText(string(answer, "reply")), words);
             // newFacts is appended by code; a full "memory" from older or fallback answers still replaces it as before.
             String memory = answer.has("newFacts") ? remember(previousMemory, TextBounds.characters(string(answer, "newFacts"), FACTS_LIMIT), memoryLimit)
                     : TextBounds.characters(string(answer, "memory"), memoryLimit);
             if (reply.isBlank()) throw new IllegalArgumentException();
+            if (reply.codePoints().noneMatch(Character::isLetter))
+                throw new RejectedBargain("Реплика пустая: в reply нет ни одного слова. Скажи вслух нормальную фразу по характеру.");
             SocialIntent social = SocialIntent.NONE;
             if (answer.has("socialIntent")) { try { social = SocialIntent.valueOf(string(answer, "socialIntent").toUpperCase(Locale.ROOT)); } catch (IllegalArgumentException ignored) { } }
             ActionIntent action = answer.has("action") && answer.get("action").isJsonObject() ? validateAction(answer.getAsJsonObject("action"), snapshot) : ActionIntent.none();
@@ -394,6 +412,13 @@ final class OpenRouterConversationClient implements AutoCloseable {
     private static final class RejectedBargain extends IOException { RejectedBargain(String hint) { super(hint); } }
 
     static final int FACTS_LIMIT = 300;
+
+    /** Drops stray punctuation before the first word and quotes wrapped around the whole line. */
+    static String spokenText(String reply) {
+        String text = reply.strip().replaceFirst("^[\\p{Punct}\\s«]+(?=[\\p{L}\\d])", "");
+        if (reply.strip().startsWith(":") || reply.strip().startsWith("«")) text = text.replaceFirst("[»\"]\\s*$", "");
+        return text.strip();
+    }
 
     /** Appends new facts and drops the oldest lines once the memory outgrows its limit. */
     static String remember(String previous, String facts, int limit) {
