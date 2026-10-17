@@ -74,7 +74,7 @@ public final class ConversationStore {
                     while (p.events.size() > 20) p.events.removeFirst();
                     if (p.relations == null) p.relations = new LinkedHashMap<>();
                     p.relations.entrySet().removeIf(e -> e.getValue() == null);
-                    p.relations.values().forEach(r -> r.score = clamp(r.score, hostile(p)));
+                    p.relations.values().forEach(r -> { r.score = clamp(r.score, hostile(p)); sanitize(r); });
                     if (p.action == null) p.action = ActionIntent.none();
                     if (p.traits == null) p.traits = new ArrayList<>();
                     if (migrated) p.variantSlot = -1;
@@ -145,45 +145,128 @@ public final class ConversationStore {
         if (profile != null) profile.revision++;
         scheduleSave();
     }
-    // ---- Deals and quests of the mob's own catalog (trades.json): per mob, per player. Implemented by the core agent. ----
+    // ---- Deals and quests of the mob's own catalog (trades.json): per mob, per player. ----
+    // Reads never create anything; writes need an existing profile (the mob was observed first) and a real player.
+    // The store does not check ids against TradeCatalog: the game layer validates intents through Trading before calling.
 
     /** Never null: a deal the player has not touched yet is {@link TradeState#initial()}. */
     public synchronized TradeState tradeState(UUID mob, UUID player, String dealId) {
-        throw new UnsupportedOperationException("implemented by the core agent");
+        Relation r = existing(mob, player);
+        TradeState state = r == null || dealId == null ? null : r.deals.get(dealId);
+        return state == null ? TradeState.initial() : state;
     }
     /** All deal states of this player with this mob, keyed by deal id; missing deals are initial. */
     public synchronized Map<String, TradeState> tradeStates(UUID mob, UUID player) {
-        throw new UnsupportedOperationException("implemented by the core agent");
+        Relation r = existing(mob, player);
+        return r == null ? Map.of() : Collections.unmodifiableMap(new LinkedHashMap<>(r.deals));
     }
     /** Stores an accepted OFFER (already checked with Trading.permitted) and bumps the profile revision. */
     public synchronized void setDealPrice(UUID mob, UUID player, String dealId, int price, long nowMillis) {
-        throw new UnsupportedOperationException("implemented by the core agent");
+        Profile p = require(mob); Relation r = tradingRelation(p, player);
+        r.deals.put(dealId, Trading.offered(r.deals.get(dealId), price, nowMillis));
+        p.revision++; scheduleSave();
     }
     /** Opens a secret deal for this player (already checked with Trading.canUnlock) and records an event. */
     public synchronized void unlockDeal(UUID mob, UUID player, String dealId, long nowMillis) {
-        throw new UnsupportedOperationException("implemented by the core agent");
+        Profile p = require(mob); Relation r = tradingRelation(p, player);
+        TradeState state = r.deals.getOrDefault(dealId, TradeState.initial());
+        if (state.unlocked()) return;
+        r.deals.put(dealId, new TradeState(state.price(), true, state.rounds(), state.sessionStartMillis(), state.boughtToday(), state.boughtDay()));
+        p.revision++;
+        event(p, nowMillis, "Открыл игроку секретную сделку «" + dealName(p, dealId) + "»"); scheduleSave();
     }
     /** Records a completed purchase on {@code worldDay}: stock, a memory event and a small relationship gain. */
     public synchronized void recordPurchase(UUID mob, UUID player, String dealId, String playerName, long worldDay, long nowMillis) {
-        throw new UnsupportedOperationException("implemented by the core agent");
+        Profile p = require(mob); Relation r = tradingRelation(p, player);
+        TradeState before = r.deals.getOrDefault(dealId, TradeState.initial());
+        r.deals.put(dealId, Trading.bought(before, worldDay));
+        if (cooledDown(r.lastPurchase, nowMillis, 60_000)) { r.lastPurchase = nowMillis; r.score = clamp(r.score + 5, hostile(p)); }
+        p.revision++;
+        TradeDeal deal = TradeCatalog.deal(p.type, dealId);
+        String what = deal == null ? "товар «" + dealId + "»"
+                : deal.sell().count() + "× " + deal.sell().name() + " за " + Trading.currentPrice(deal, before) + "× " + deal.price().name();
+        event(p, nowMillis, "Игрок " + safePlayer(playerName) + " купил " + what + "; отношение " + r.score); scheduleSave();
     }
     /** All quest states of this player with this mob, keyed by quest id. */
     public synchronized Map<String, QuestState> quests(UUID mob, UUID player) {
-        throw new UnsupportedOperationException("implemented by the core agent");
+        Relation r = existing(mob, player);
+        return r == null ? Map.of() : Collections.unmodifiableMap(new LinkedHashMap<>(r.quests));
     }
     /** Makes a catalog quest ACTIVE for this player; at most one ACTIVE quest per mob and player. */
     public synchronized void startQuest(UUID mob, UUID player, String questId, long nowMillis) {
-        throw new UnsupportedOperationException("implemented by the core agent");
+        Profile p = require(mob); Relation r = tradingRelation(p, player);
+        QuestState current = r.quests.get(questId);
+        if (current != null && current.status() == QuestState.Status.ACTIVE) return;
+        if (current != null) throw new IllegalStateException("Задание «" + questTitle(p, questId) + "» уже выполнено.");
+        for (var entry : r.quests.entrySet()) if (entry.getValue().status() == QuestState.Status.ACTIVE)
+            throw new IllegalStateException("Сначала нужно закончить задание «" + questTitle(p, entry.getKey()) + "».");
+        r.quests.put(questId, new QuestState(QuestState.Status.ACTIVE, 0, nowMillis));
+        p.revision++;
+        event(p, nowMillis, "Игрок взял задание: " + questTitle(p, questId)); scheduleSave();
     }
     /** A player killed an entity: advances every ACTIVE KILL quest of that player (any mob) whose target is this type.
      * Returns the number of quests advanced. */
     public synchronized int recordKill(UUID player, String entityType) {
-        throw new UnsupportedOperationException("implemented by the core agent");
+        if (player == null || entityType == null || entityType.isBlank()) return 0;
+        String target = canonical(entityType.trim());
+        int advanced = 0;
+        for (Profile p : state.profiles.values()) {
+            Relation r = p.relations.get(player.toString());
+            if (r == null) continue;
+            for (var entry : r.quests.entrySet()) {
+                QuestState s = entry.getValue();
+                QuestDefinition quest = TradeCatalog.quest(p.type, entry.getKey());
+                if (s.status() != QuestState.Status.ACTIVE || quest == null || quest.kind() != QuestDefinition.Kind.KILL
+                        || !quest.target().equals(target) || s.progress() >= quest.count()) continue;
+                entry.setValue(new QuestState(QuestState.Status.ACTIVE, s.progress() + 1, s.startedMillis()));
+                p.revision++; advanced++;
+            }
+        }
+        if (advanced > 0) scheduleSave();
+        return advanced;
     }
     /** Marks the quest DONE and applies its reward (relationship, unlockDeal, discountDeal) for this player; records an event.
      * The caller has already verified and taken the items for a BRING quest. Returns the reward applied. */
     public synchronized QuestDefinition.Reward completeQuest(UUID mob, UUID player, String questId, String playerName, long nowMillis) {
-        throw new UnsupportedOperationException("implemented by the core agent");
+        Profile p = require(mob); Relation r = tradingRelation(p, player);
+        QuestState current = r.quests.get(questId);
+        if (current == null || current.status() != QuestState.Status.ACTIVE)
+            throw new IllegalStateException("Задание «" + questTitle(p, questId) + "» сейчас не выполняется.");
+        QuestDefinition quest = TradeCatalog.quest(p.type, questId);
+        QuestDefinition.Reward reward = quest == null ? new QuestDefinition.Reward(0, "", "", 0) : quest.reward();
+        r.quests.put(questId, new QuestState(QuestState.Status.DONE, current.progress(), current.startedMillis()));
+        if (reward.relationship() != 0) r.score = clamp(r.score + reward.relationship(), hostile(p));
+        if (!reward.unlockDeal().isEmpty()) {
+            TradeState s = r.deals.getOrDefault(reward.unlockDeal(), TradeState.initial());
+            r.deals.put(reward.unlockDeal(), new TradeState(s.price(), true, s.rounds(), s.sessionStartMillis(), s.boughtToday(), s.boughtDay()));
+        }
+        TradeDeal discounted = TradeCatalog.deal(p.type, reward.discountDeal());
+        if (discounted != null && reward.discountPercent() > 0) {
+            TradeState s = r.deals.getOrDefault(discounted.id(), TradeState.initial());
+            int paying = Trading.currentPrice(discounted, s);
+            int lowered = Math.max(discounted.floorPrice(), paying * (100 - reward.discountPercent()) / 100);
+            if (lowered < paying) r.deals.put(discounted.id(), new TradeState(lowered, s.unlocked(), s.rounds(), s.sessionStartMillis(), s.boughtToday(), s.boughtDay()));
+        }
+        p.revision++;
+        event(p, nowMillis, "Игрок " + safePlayer(playerName) + " выполнил задание: " + questTitle(p, questId) + "; отношение " + r.score); scheduleSave();
+        return reward;
+    }
+    private Relation existing(UUID mob, UUID player) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        return p == null || player == null ? null : p.relations.get(player.toString());
+    }
+    private Relation tradingRelation(Profile p, UUID player) {
+        if (player == null) throw new IllegalArgumentException("Сделки и задания требуют игрока.");
+        return relation(p, player);
+    }
+    private static String dealName(Profile p, String dealId) { TradeDeal deal = TradeCatalog.deal(p.type, dealId); return deal == null ? String.valueOf(dealId) : deal.name(); }
+    private static String questTitle(Profile p, String questId) { QuestDefinition quest = TradeCatalog.quest(p.type, questId); return quest == null ? String.valueOf(questId) : quest.title(); }
+    /** Files written before 0.3 have no deal/quest maps; a damaged entry is dropped rather than failing the whole world. */
+    private static void sanitize(Relation r) {
+        if (r.deals == null) r.deals = new LinkedHashMap<>();
+        r.deals.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null);
+        if (r.quests == null) r.quests = new LinkedHashMap<>();
+        r.quests.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null || e.getValue().status() == null);
     }
 
     public synchronized List<String> events(UUID mob) { Profile p = state.profiles.get(mob.toString()); return p == null ? List.of() : p.events.stream().map(e -> e.text).toList(); }
@@ -322,6 +405,17 @@ public final class ConversationStore {
                 if (r.lastApology >= 0) facts.append("; его реплика распознана как извинение");
                 if (r.lastInsult >= 0) facts.append("; его реплика распознана как оскорбление");
                 if (r.lastThreat >= 0) facts.append("; он угрожал убийством");
+                if (r.lastPurchase >= 0) facts.append("; он уже покупал у моба");
+                List<String> unlocked = r.deals.entrySet().stream().filter(e -> e.getValue().unlocked()).map(e -> dealName(p, e.getKey())).toList();
+                if (!unlocked.isEmpty()) facts.append("; ему открыты секретные сделки: ").append(String.join(", ", unlocked));
+                for (var entry : r.quests.entrySet()) {
+                    QuestDefinition quest = TradeCatalog.quest(p.type, entry.getKey());
+                    if (entry.getValue().status() == QuestState.Status.ACTIVE)
+                        facts.append("; выполняет задание «").append(questTitle(p, entry.getKey())).append("»")
+                                .append(quest != null && quest.kind() == QuestDefinition.Kind.KILL ? " (" + entry.getValue().progress() + "/" + quest.count() + ")" : "");
+                }
+                List<String> done = r.quests.entrySet().stream().filter(e -> e.getValue().status() == QuestState.Status.DONE).map(e -> questTitle(p, e.getKey())).toList();
+                if (!done.isEmpty()) facts.append("; выполнил задания: ").append(String.join(", ", done));
             }
             if (score < 0 && hits == 0 && (r == null || r.lastInsult < 0 && r.lastThreat < 0))
                 facts.append(hostile(p) ? "; есть исходная видовая враждебность" : "; конкретная личная причина неприязни не сохранена");
@@ -378,7 +472,12 @@ public final class ConversationStore {
         p.customPersonality = source.customPersonality; p.calm = source.calm; p.confidence = source.confidence;
         p.curiosity = source.curiosity; p.sociability = source.sociability; p.preference = source.preference; p.fear = source.fear;
         p.turns = new ArrayList<>(source.turns); p.events = new ArrayList<>(source.events); p.traits = new ArrayList<>(source.traits);
-        source.relations.forEach((key, r) -> { Relation c = new Relation(); c.score = r.score; c.hits = r.hits; c.lastHelp = r.lastHelp; c.lastApology = r.lastApology; c.lastInsult = r.lastInsult; c.lastThreat = r.lastThreat; c.ownerKnown = r.ownerKnown; p.relations.put(key, c); });
+        source.relations.forEach((key, r) -> {
+            Relation c = new Relation(); c.score = r.score; c.hits = r.hits; c.lastHelp = r.lastHelp; c.lastApology = r.lastApology;
+            c.lastInsult = r.lastInsult; c.lastThreat = r.lastThreat; c.lastPurchase = r.lastPurchase; c.ownerKnown = r.ownerKnown;
+            c.deals = new LinkedHashMap<>(r.deals); c.quests = new LinkedHashMap<>(r.quests); // Immutable records.
+            p.relations.put(key, c);
+        });
         return p;
     }
     static final class Profile {
@@ -392,7 +491,10 @@ public final class ConversationStore {
     }
     public record Turn(String user, String assistant) { }
     private record Event(long time, String text) { }
-    private static final class Relation { int score, hits; long lastHelp = -1, lastApology = -1, lastInsult = -1, lastThreat = -1; boolean ownerKnown; }
+    private static final class Relation {
+        int score, hits; long lastHelp = -1, lastApology = -1, lastInsult = -1, lastThreat = -1, lastPurchase = -1; boolean ownerKnown;
+        Map<String,TradeState> deals = new LinkedHashMap<>(); Map<String,QuestState> quests = new LinkedHashMap<>();
+    }
     private static final class State {
         int version = 2;
         Map<String,Profile> profiles = new LinkedHashMap<>();

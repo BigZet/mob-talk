@@ -6,6 +6,8 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.*;
@@ -13,6 +15,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class ConversationStoreTest {
     @TempDir Path directory;
     private final MobTalkConfig config = new MobTalkConfig();
+    @BeforeEach void fixture() { TradeFixtures.install(); }
+    @AfterEach void restoreBundle() { TradeFixtures.reset(); }
 
     private MobSnapshot cow(UUID id, UUID player, long revision, Map<String,Object> details) {
         return new MobSnapshot(id, "minecraft:cow", "Корова", 10, 10, "minecraft:overworld", "minecraft:plains",
@@ -278,5 +282,186 @@ class ConversationStoreTest {
         assertEquals(List.of("minecraft:stick"), snapshot.mobDetails().get("equipment"));
         assertFalse(snapshot.mobDetails().containsKey("ownerId"));
         assertThrows(UnsupportedOperationException.class, () -> snapshot.mobDetails().put("new", true));
+    }
+
+    // Negotiated prices, opened secrets and quests belong to one player and one mob, survive reload, and bump the revision.
+    @Test void dealsAndQuestsSurviveReloadWithoutLeakingToAnotherPlayerOrMob() throws Exception {
+        UUID mob = UUID.randomUUID(), otherMob = UUID.randomUUID(), player = UUID.randomUUID(), other = UUID.randomUUID();
+        ConversationStore store = ConversationStore.open(directory, config);
+        store.observe(cow(mob, player, 0, Map.of()));
+        store.observe(cow(otherMob, player, 0, Map.of()));
+        assertEquals(TradeState.initial(), store.tradeState(mob, player, "milk"));
+        assertEquals(Map.of(), store.tradeStates(mob, player));
+        assertEquals(Map.of(), store.quests(UUID.randomUUID(), player), "unknown mob reads as empty");
+        long revision = store.revision(mob);
+        store.setDealPrice(mob, player, "milk", 3, 1000);
+        assertEquals(revision + 1, store.revision(mob));
+        store.unlockDeal(mob, player, "leather", 2000);
+        store.unlockDeal(mob, player, "leather", 2001);
+        assertEquals(revision + 2, store.revision(mob), "a repeated unlock changes nothing");
+        store.startQuest(mob, player, "fence", 3000);
+        store.startQuest(mob, player, "fence", 3001);
+        assertEquals(revision + 3, store.revision(mob), "re-offering the active quest is a no-op");
+        assertThrows(IllegalStateException.class, () -> store.startQuest(mob, player, "wolves", 3002), "one active quest per mob and player");
+        assertThrows(IllegalArgumentException.class, () -> store.setDealPrice(mob, null, "milk", 2, 3003));
+        assertThrows(IllegalArgumentException.class, () -> store.setDealPrice(UUID.randomUUID(), player, "milk", 2, 3003), "no profile yet");
+        Map<String, TradeState> deals = store.tradeStates(mob, player);
+        assertEquals(new TradeState(3, false, 1, 1000, 0, -1), deals.get("milk"));
+        assertEquals(new TradeState(0, true, 0, -1, 0, -1), deals.get("leather"));
+        assertEquals(Map.of("fence", new QuestState(QuestState.Status.ACTIVE, 0, 3000)), store.quests(mob, player));
+        assertThrows(UnsupportedOperationException.class, () -> store.tradeStates(mob, player).put("hay", TradeState.initial()));
+        assertEquals(TradeState.initial(), store.tradeState(mob, other, "milk"));
+        assertEquals(TradeState.initial(), store.tradeState(otherMob, player, "milk"));
+        assertEquals(Map.of(), store.quests(mob, other));
+        assertEquals(Map.of(), store.quests(otherMob, player));
+        store.startQuest(otherMob, player, "wolves", 3500);
+        List<String> events = store.events(mob);
+        assertTrue(events.stream().anyMatch(e -> e.contains("секретную сделку «Кожа с подружки»")), events.toString());
+        assertTrue(events.stream().anyMatch(e -> e.equals("Игрок взял задание: Почини загон")), events.toString());
+        String facts = store.card(mob, player).events().getFirst();
+        assertTrue(facts.contains("ему открыты секретные сделки: Кожа с подружки"), facts);
+        assertTrue(facts.contains("выполняет задание «Почини загон»"), facts);
+        assertFalse(store.card(mob, other).events().getFirst().contains("задание"));
+        ConversationStore.closeWorld(directory);
+        ConversationStore reopened = ConversationStore.open(directory, config);
+        try {
+            assertEquals(deals, reopened.tradeStates(mob, player));
+            assertEquals(Map.of("fence", new QuestState(QuestState.Status.ACTIVE, 0, 3000)), reopened.quests(mob, player));
+            assertEquals(Map.of("wolves", new QuestState(QuestState.Status.ACTIVE, 0, 3500)), reopened.quests(otherMob, player));
+            assertEquals(Map.of(), reopened.tradeStates(mob, other));
+            assertEquals(facts, reopened.card(mob, player).events().getFirst());
+            assertEquals(revision + 3, reopened.revision(mob));
+        } finally { ConversationStore.closeWorld(directory); }
+    }
+
+    // A finished quest pays out once: relationship (clamped), the secret deal opens, and the discount lowers the permanent price.
+    @Test void completedQuestAppliesRewardOnceAndPermanently() throws Exception {
+        UUID mob = UUID.randomUUID(), player = UUID.randomUUID(), zombie = UUID.randomUUID();
+        ConversationStore store = ConversationStore.open(directory, config);
+        store.observe(cow(mob, player, 0, Map.of()));
+        assertThrows(IllegalStateException.class, () -> store.completeQuest(mob, player, "fence", "Игрок", 100), "not started");
+        store.startQuest(mob, player, "fence", 1000);
+        store.setDealPrice(mob, player, "milk", 3, 1500);
+        long revision = store.revision(mob);
+        assertEquals(new QuestDefinition.Reward(30, "leather", "milk", 25), store.completeQuest(mob, player, "fence", "Игрок", 2000));
+        assertEquals(revision + 1, store.revision(mob));
+        assertEquals(30, store.card(mob, player).relationship());
+        assertTrue(store.tradeState(mob, player, "leather").unlocked());
+        assertEquals(new TradeState(2, false, 1, 1500, 0, -1), store.tradeState(mob, player, "milk"), "3 × 75% = 2, rounds untouched");
+        assertEquals(QuestState.Status.DONE, store.quests(mob, player).get("fence").status());
+        assertTrue(store.events(mob).stream().anyMatch(e -> e.startsWith("Игрок Игрок выполнил задание: Почини загон")), store.events(mob).toString());
+        assertTrue(store.card(mob, player).events().getFirst().contains("выполнил задания: Почини загон"));
+        assertThrows(IllegalStateException.class, () -> store.completeQuest(mob, player, "fence", "Игрок", 2001), "no second payout");
+        assertThrows(IllegalStateException.class, () -> store.startQuest(mob, player, "fence", 2002), "cannot restart a done quest");
+        assertEquals(30, store.card(mob, player).relationship());
+        store.startQuest(mob, player, "wolves", 2100);
+        assertEquals(List.of("wolves"), store.quests(mob, player).entrySet().stream().filter(e -> e.getValue().status() == QuestState.Status.ACTIVE).map(Map.Entry::getKey).toList());
+        // Discount from the catalog price, then its floor: a second pass on an already cheap deal stops at floorPrice.
+        UUID second = UUID.randomUUID();
+        store.observe(cow(second, player, 0, Map.of()));
+        store.startQuest(second, player, "fence", 3000);
+        store.completeQuest(second, player, "fence", "Игрок", 3100);
+        assertEquals(4, store.tradeState(second, player, "milk").price(), "6 × 75% = 4 from the catalog price");
+        assertEquals(TradeState.initial(), store.tradeState(second, player, "hay"), "untouched deals stay initial");
+        // Hostile species: the reward cannot lift the relationship above the hostile ceiling.
+        store.observe(new MobSnapshot(zombie, "minecraft:zombie", "Зомби", 10, 10, "minecraft:overworld", "minecraft:plains",
+                "night", "clear", 2, "minecraft:stick", List.of(), List.of(), player, Map.of("name", "Игрок"), Map.of(), Map.of(), List.of(), List.of(ActionType.NONE), 0));
+        store.startQuest(zombie, player, "any", 4000);
+        assertEquals(new QuestDefinition.Reward(0, "", "", 0), store.completeQuest(zombie, player, "any", "Игрок", 4100), "a quest unknown to the catalog pays nothing");
+        assertTrue(store.card(zombie, player).relationship() < 0);
+        ConversationStore.closeWorld(directory);
+        ConversationStore reopened = ConversationStore.open(directory, config);
+        try {
+            assertEquals(30, reopened.card(mob, player).relationship());
+            assertEquals(2, reopened.tradeState(mob, player, "milk").price());
+            assertTrue(reopened.tradeState(mob, player, "leather").unlocked());
+            assertEquals(QuestState.Status.DONE, reopened.quests(mob, player).get("fence").status());
+        } finally { ConversationStore.closeWorld(directory); }
+    }
+
+    // Kills count for every active KILL quest of that player across mobs, saturate at the target, and ignore other players.
+    @Test void killsAdvanceOnlyMatchingActiveQuestsOfThatPlayer() throws Exception {
+        UUID mob = UUID.randomUUID(), otherMob = UUID.randomUUID(), player = UUID.randomUUID(), other = UUID.randomUUID();
+        ConversationStore store = ConversationStore.open(directory, config);
+        store.observe(cow(mob, player, 0, Map.of()));
+        store.observe(cow(otherMob, player, 0, Map.of()));
+        store.observe(cow(otherMob, other, 0, Map.of()));
+        assertEquals(0, store.recordKill(player, "minecraft:wolf"), "nothing active");
+        store.startQuest(mob, player, "wolves", 1000);
+        store.startQuest(otherMob, player, "fence", 1000);
+        store.startQuest(otherMob, other, "wolves", 1000);
+        long revision = store.revision(mob), otherRevision = store.revision(otherMob);
+        assertEquals(0, store.recordKill(player, "minecraft:cow"));
+        assertEquals(0, store.recordKill(null, "minecraft:wolf"));
+        assertEquals(1, store.recordKill(player, "minecraft:wolf"));
+        assertEquals(1, store.recordKill(player, "wolf"), "namespace defaults to minecraft");
+        assertEquals(0, store.recordKill(player, "minecraft:wolf"), "saturated at count");
+        assertEquals(2, store.quests(mob, player).get("wolves").progress());
+        assertEquals(0, store.quests(otherMob, other).get("wolves").progress(), "another player's quest");
+        assertEquals(0, store.quests(otherMob, player).get("fence").progress(), "a BRING quest ignores kills");
+        assertEquals(revision + 2, store.revision(mob));
+        assertEquals(otherRevision, store.revision(otherMob));
+        assertTrue(Trading.canComplete(TradeCatalog.quest("minecraft:cow", "wolves"), store.quests(mob, player).get("wolves"), Map.of()));
+        assertEquals(10, store.completeQuest(mob, player, "wolves", "Игрок", 5000).relationship());
+        assertEquals(10, store.card(mob, player).relationship());
+        assertThrows(IllegalStateException.class, () -> store.startQuest(otherMob, other, "fence", 6000), "the other player's wolves quest is still active");
+        ConversationStore.closeWorld(directory);
+    }
+
+    // Buying is remembered as an event and warms the mob up a little, once a minute; daily stock is counted per deal.
+    @Test void purchasesCountStockAndWarmRelationshipOncePerMinute() throws Exception {
+        UUID mob = UUID.randomUUID(), player = UUID.randomUUID();
+        ConversationStore store = ConversationStore.open(directory, config);
+        store.observe(cow(mob, player, 0, Map.of()));
+        store.setDealPrice(mob, player, "milk", 4, 500);
+        store.recordPurchase(mob, player, "milk", "Игрок", 7, 1000);
+        store.recordPurchase(mob, player, "milk", "Игрок", 7, 1001);
+        assertEquals(5, store.card(mob, player).relationship());
+        store.recordPurchase(mob, player, "leather", "Игрок", 7, 61_000);
+        assertEquals(10, store.card(mob, player).relationship());
+        assertEquals(new TradeState(4, false, 1, 500, 2, 7), store.tradeState(mob, player, "milk"));
+        assertEquals(new TradeState(0, false, 0, -1, 1, 7), store.tradeState(mob, player, "leather"));
+        assertEquals(0, Trading.stockLeft(TradeCatalog.deal("minecraft:cow", "leather"), store.tradeState(mob, player, "leather"), 7));
+        assertEquals(1, Trading.stockLeft(TradeCatalog.deal("minecraft:cow", "leather"), store.tradeState(mob, player, "leather"), 8));
+        List<String> events = store.events(mob);
+        assertTrue(events.contains("Игрок Игрок купил 1× Ведро молока за 4× Пшеница; отношение 5"), events.toString());
+        assertTrue(events.contains("Игрок Игрок купил 3× Кожа за 2× Изумруд; отношение 10"), events.toString());
+        assertTrue(store.card(mob, player).events().getFirst().contains("он уже покупал у моба"));
+        store.recordPurchase(mob, player, "ghost", "Игрок", 7, 62_000);
+        assertTrue(store.events(mob).contains("Игрок Игрок купил товар «ghost»; отношение 10"), "unknown deal ids still log");
+        ConversationStore.closeWorld(directory);
+        store = ConversationStore.open(directory, config);
+        try {
+            assertEquals(10, store.card(mob, player).relationship());
+            assertEquals(2, store.tradeState(mob, player, "milk").boughtToday());
+            store.recordPurchase(mob, player, "milk", "Игрок", 7, 62_500);
+            assertEquals(10, store.card(mob, player).relationship(), "the purchase cooldown survives reload");
+        } finally { ConversationStore.closeWorld(directory); }
+    }
+
+    // A world saved before 0.3 has relations without deal/quest maps; it must load and start trading from scratch.
+    @Test void loadsPreTradingFilesAndDropsDamagedTradeEntries() throws Exception {
+        UUID mob = UUID.randomUUID(), player = UUID.randomUUID();
+        Path file = directory.resolve("data/mobtalk/conversations.json");
+        Files.createDirectories(file.getParent());
+        Files.writeString(file, "{\"version\":2,\"profiles\":{\"" + mob + "\":{\"type\":\"minecraft:cow\",\"name\":\"Корова\",\"personality\":\"Личность\","
+                + "\"voiceId\":\"LegacySharedVoice000001\",\"memory\":\"Знакомы\",\"variantSlot\":1,\"revision\":7,"
+                + "\"relations\":{\"" + player + "\":{\"score\":35,\"hits\":0,\"lastHelp\":10,\"lastApology\":-1,\"lastInsult\":-1,\"lastThreat\":-1,\"ownerKnown\":false}}}},\"bargains\":{}}");
+        ConversationStore store = ConversationStore.open(directory, config);
+        assertEquals(35, store.card(mob, player).relationship());
+        assertEquals(Map.of(), store.tradeStates(mob, player));
+        assertEquals(Map.of(), store.quests(mob, player));
+        assertEquals(TradeState.initial(), store.tradeState(mob, player, "milk"));
+        store.setDealPrice(mob, player, "milk", 5, 100);
+        assertEquals(5, store.tradeState(mob, player, "milk").price());
+        ConversationStore.closeWorld(directory);
+        // A hand-edited file with a null deal entry and a quest without status must not take the whole world down.
+        String saved = Files.readString(file);
+        Files.writeString(file, saved.replace("\"deals\": {", "\"deals\": {\"broken\": null,").replace("\"quests\": {}", "\"quests\": {\"fence\": {\"progress\": 1}, \"wolves\": {\"status\": \"DONE\", \"progress\": 2, \"startedMillis\": 5}}"));
+        store = ConversationStore.open(directory, config);
+        try {
+            assertEquals(Map.of("milk", new TradeState(5, false, 1, 100, 0, -1)), store.tradeStates(mob, player));
+            assertEquals(Map.of("wolves", new QuestState(QuestState.Status.DONE, 2, 5)), store.quests(mob, player));
+        } finally { ConversationStore.closeWorld(directory); }
     }
 }

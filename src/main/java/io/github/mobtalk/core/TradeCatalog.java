@@ -4,6 +4,8 @@ import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,11 +17,38 @@ import java.util.Map;
 
 /** Bundled deals and quests per species from assets/mobtalk/trades.json. A species absent from the file trades nothing. */
 public final class TradeCatalog {
-    private static final Map<String, List<TradeDeal>> DEALS;
-    private static final Map<String, List<QuestDefinition>> QUESTS;
+    /** Validated contents of one trades.json, keyed by canonical species id in file order. */
+    record Loaded(Map<String, List<TradeDeal>> deals, Map<String, List<QuestDefinition>> quests) { }
+    private static final Loaded BUNDLED = bundled();
+    private static volatile Loaded current = BUNDLED;
 
-    static {
-        Document data = read();
+    private TradeCatalog() { }
+
+    public static List<TradeDeal> deals(String type) { return current.deals.getOrDefault(normalized(type), List.of()); }
+    public static List<QuestDefinition> quests(String type) { return current.quests.getOrDefault(normalized(type), List.of()); }
+    public static TradeDeal deal(String type, String id) {
+        if (id == null) return null;
+        for (TradeDeal deal : deals(type)) if (deal.id().equals(id)) return deal;
+        return null;
+    }
+    public static QuestDefinition quest(String type, String id) {
+        if (id == null) return null;
+        for (QuestDefinition quest : quests(type)) if (quest.id().equals(id)) return quest;
+        return null;
+    }
+    /** Species that trade or ask for anything, in file order. */
+    public static List<String> tradingSpecies() { return List.copyOf(current.deals.keySet()); }
+
+    /** Tests only: serve {@code loaded} instead of the bundled file; null restores the bundle. */
+    static void install(Loaded loaded) { current = loaded == null ? BUNDLED : loaded; }
+
+    /** Parses and validates one trades.json document; {@link IllegalStateException} names the first problem. */
+    static Loaded parse(String json) { return parse(new StringReader(json)); }
+    static Loaded parse(Reader reader) {
+        Document data;
+        try { data = new Gson().fromJson(reader, Document.class); }
+        catch (JsonParseException unreadable) { throw new IllegalStateException("Mob Talk trades: cannot read trades.json", unreadable); }
+        if (data == null) throw invalid("empty trades.json");
         Map<String, List<TradeDeal>> deals = new LinkedHashMap<>();
         Map<String, List<QuestDefinition>> quests = new LinkedHashMap<>();
         if (data.species != null) for (var entry : data.species.entrySet()) {
@@ -59,26 +88,8 @@ public final class TradeCatalog {
             deals.put(type, List.copyOf(dealList));
             quests.put(type, List.copyOf(questList));
         }
-        DEALS = Collections.unmodifiableMap(deals);
-        QUESTS = Collections.unmodifiableMap(quests);
+        return new Loaded(Collections.unmodifiableMap(deals), Collections.unmodifiableMap(quests));
     }
-
-    private TradeCatalog() { }
-
-    public static List<TradeDeal> deals(String type) { return DEALS.getOrDefault(normalized(type), List.of()); }
-    public static List<QuestDefinition> quests(String type) { return QUESTS.getOrDefault(normalized(type), List.of()); }
-    public static TradeDeal deal(String type, String id) {
-        if (id == null) return null;
-        for (TradeDeal deal : deals(type)) if (deal.id().equals(id)) return deal;
-        return null;
-    }
-    public static QuestDefinition quest(String type, String id) {
-        if (id == null) return null;
-        for (QuestDefinition quest : quests(type)) if (quest.id().equals(id)) return quest;
-        return null;
-    }
-    /** Species that trade or ask for anything, in file order. */
-    public static List<String> tradingSpecies() { return List.copyOf(DEALS.keySet()); }
 
     private static TradeDeal.Item item(ItemData data, String type) {
         if (data == null) throw invalid(type + ": missing item");
@@ -95,13 +106,11 @@ public final class TradeCatalog {
     }
     private static IllegalStateException invalid(String message) { return new IllegalStateException("Mob Talk trades: " + message); }
 
-    private static Document read() {
+    private static Loaded bundled() {
         try (var input = TradeCatalog.class.getResourceAsStream("/assets/mobtalk/trades.json")) {
             if (input == null) throw invalid("missing trades.json");
-            Document data = new Gson().fromJson(new InputStreamReader(input, StandardCharsets.UTF_8), Document.class);
-            if (data == null) throw invalid("empty trades.json");
-            return data;
-        } catch (IOException | JsonParseException unreadable) { throw new IllegalStateException("Mob Talk trades: cannot read trades.json", unreadable); }
+            return parse(new InputStreamReader(input, StandardCharsets.UTF_8));
+        } catch (IOException unreadable) { throw new IllegalStateException("Mob Talk trades: cannot read trades.json", unreadable); }
     }
 
     private static final class Document { int schemaVersion; Map<String, SpeciesTrades> species; }
