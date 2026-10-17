@@ -86,6 +86,7 @@ public final class MobTalkClient implements ClientModInitializer {
     private UUID selected;
     private KeyBinding talkKey;
     private KeyBinding settingsKey;
+    private KeyBinding tradeKey;
     private boolean openSettingsRequested;
     private MicrophoneRecorder.Capture recording;
     private boolean configReady;
@@ -110,6 +111,8 @@ public final class MobTalkClient implements ClientModInitializer {
                 GLFW.GLFW_KEY_V, "category.mobtalk"));
         settingsKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.settings", InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_F7, "category.mobtalk"));
+        tradeKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.trade", InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_B, "category.mobtalk"));
         ScreenEvents.AFTER_INIT.register((minecraft, screen, width, height) -> {
             if (screen instanceof GameMenuScreen) {
                 Screens.getButtons(screen).add(ButtonWidget.builder(Text.literal("Mob Talk"), button -> openSettings(screen))
@@ -271,6 +274,7 @@ public final class MobTalkClient implements ClientModInitializer {
             openSettingsRequested = false;
             openSettings(client.currentScreen);
         }
+        while (tradeKey.wasPressed()) openTrade();
         boolean held = merchantScreen != null && client.currentScreen == merchantScreen ? merchantKeyHeld : talkKey.isPressed();
         MobEntity mob = target();
         if (selected != null && mob == null) clearSelection("Моб погиб или выгрузился: выберите нового палкой");
@@ -569,8 +573,8 @@ public final class MobTalkClient implements ClientModInitializer {
                 : game.selectMerchant(request.player, request.merchant.syncId);
         merchant.thenCompose(id -> {
             if (!request.target.equals(id)) throw new java.util.concurrent.CancellationException("Торговец сменился");
-            return game.applyWithRevision(request.target, request.player, request.dimension, reply.action(), reply.bargain(), request.snapshot,
-                    reply.interactionRevision(), () -> generation == request.generation);
+            return game.applyWithRevision(request.target, request.player, request.dimension, reply.action(), reply.bargain(),
+                    reply.deal(), reply.unlock(), reply.quest(), request.snapshot, reply.interactionRevision(), () -> generation == request.generation);
         }).whenComplete((delivery, error) -> client.execute(() -> {
             if (!isCurrent(request)) { reply.discardSpeech(); return; }
             if (error != null) { reply.discardSpeech(); reportFailure(request, error); return; }
@@ -771,6 +775,7 @@ public final class MobTalkClient implements ClientModInitializer {
                     return 1;
                 }))
                 .then(literal("clear").executes(context -> { clearSelection("Собеседник снят"); return 1; }))
+                .then(literal("trade").executes(context -> { openTrade(); return 1; }))
                 .then(literal("follow").executes(context -> { commandAction(new ActionIntent(ActionType.FOLLOW, "player")); return 1; }))
                 .then(literal("flee").executes(context -> { commandAction(new ActionIntent(ActionType.FLEE, "player")); return 1; }))
                 .then(literal("stop").executes(context -> { stopSelectedAction(); return 1; }))
@@ -799,6 +804,29 @@ public final class MobTalkClient implements ClientModInitializer {
     private void commandAction(ActionIntent action) {
         requestMobAction(action).whenComplete((result, error) -> client.execute(() -> {
             if (error == null) notice(result); else notice("Не удалось применить действие: " + error.getClass().getSimpleName());
+        }));
+    }
+
+    /** The mob's own deals: opening the screen never cancels a running conversation, so the mob may keep talking. */
+    private void openTrade() {
+        if (stopped || reloading || client.currentScreen instanceof MobTradeScreen) return;
+        if (client.currentScreen != null) return;
+        updateWorld();
+        ensureGameBridge();
+        if (!configReady) { notice("Настройки ещё загружаются"); return; }
+        if (!config.enabled) { notice("Mob Talk выключен в config/mobtalk.json"); return; }
+        MobEntity mob = target();
+        if (mob == null || !withinRange(mob) || client.player == null || world == null) { notice("Сначала выберите моба палкой"); return; }
+        if (recording != null) { notice("Сначала отпустите клавишу речи"); return; }
+        CompletableFuture<MobGameBridge> ready = gameReady;
+        if (ready == null) { notice("Память мира ещё загружается"); return; }
+        UUID mobId = selected, player = client.player.getUuid();
+        String dimension = world.getRegistryKey().getValue().toString();
+        client.setScreen(new MobTradeScreen(mob.getName(), new MobTradeScreen.Controller() {
+            @Override public CompletableFuture<MobGameBridge.TradeOffers> load() { return ready.thenCompose(game -> game.tradeOffers(mobId, player, dimension)); }
+            @Override public CompletableFuture<String> buy(String dealId) { return ready.thenCompose(game -> game.buy(mobId, player, dimension, dealId)); }
+            @Override public boolean available() { return mobId.equals(selected) && gameReady == ready && withinRange(target()); }
+            @Override public boolean isTradeKey(int key, int scan) { return tradeKey.matchesKey(key, scan); }
         }));
     }
 
