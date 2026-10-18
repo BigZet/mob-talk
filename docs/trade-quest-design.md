@@ -99,11 +99,8 @@ Core (`src/main/java/io/github/mobtalk/core`, чистая Java, без Minecraf
 мобом в Minecraft 1.21.1 (дроп, среда, профессия, лор); валюта не обязательно изумруды (пиглин — золото, зомби — гнилая плоть,
 пчела — цветы). Только существующие vanilla id предметов и сущностей. Имена по-русски. `name` сделки — как моб её называет.
 
-## Владение файлами (параллельная работа)
+## Где что лежит после рефакторинга (19 октября 2026)
 
-| Агент | Файлы |
-|---|---|
-| core | `core/Trading.java`, новые методы `core/ConversationStore.java` (+ поля Profile/Relation, копирование, миграция), `core/TradeCatalog*`, новые тесты `TradingTest`, `TradeCatalogTest`, дополнения `ConversationStoreTest` |
-| llm | `core/OpenRouterConversationClient.java`, `core/ConversationEngine.java`, `test/ConversationEngineTest.java` |
-| game | `client/game/*` (кроме mixin-accessor'ов без нужды), `client/MobTalkClient.java`, `client/game/MobMerchant.java`, `core/Bargaining.java` + `BargainingTest`, lang-файлы, `mobtalk.client.mixins.json` |
-| content | `assets/mobtalk/trades.json`, `assets/mobtalk/species.json` (поля quirks/desire/secret), `SpeciesCatalogTest` (проверка новых полей) |
+- Промпт: `MobPrompt` (сборка), `PromptTexts` (тексты правил и исправлений), `TradingView` (чтение данных снимка).
+- Ответ: `ReplySchema` (схема), `AnswerValidator` (проверки и подсказки для исправлений), `OpenRouterConversationClient` (транспорт и цикл исправлений).
+- Истории: `BiographyWriter`; память: `ConversationStore` (операции), `WorldMemoryFile` (файл), `ProfileDefaults` (рождение профиля), `MemoryNotes` (факты).
