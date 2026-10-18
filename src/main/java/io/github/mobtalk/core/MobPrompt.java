@@ -208,7 +208,10 @@ final class MobPrompt {
                 summary.append("\n— сейчас игрок тебе ничего не должен; если он сам предложит помощь или спросит, что тебе нужно, можешь придумать услугу (quest OFFER): ")
                         .append("выбери один из этих предметов — ").append(candidateList(view)).append(" — item и count ровно как здесь, а зачем он тебе именно сейчас — придумай сам, ")
                         .append("из своей жизни и того, что вокруг. Не повторяй то, что игрок уже приносил; без повода не проси.");
-            if (favor.get("done") instanceof List<?> done && !done.isEmpty()) summary.append("\n— игрок уже оказывал услуги тебе и твоим сородичам: ").append(done).append('.');
+            if (favor.get("done") instanceof List<?> done && !done.isEmpty()) summary.append("\n— игрок уже оказывал услуги лично тебе: ").append(done).append('.');
+            if (favor.get("neighbours") instanceof List<?> neighbours && !neighbours.isEmpty())
+                summary.append("\n— что болтают соседи по деревне: ").append(String.join("; ", neighbours.stream().map(String::valueOf).toList()))
+                        .append(". Это их долги и их благодарность, не твои: чужое не принимай и не засчитывай, того же самого не проси, а упомянуть можешь как слух.");
             summary.append("\n— других незакрытых поручений нет: если в истории разговора ты просил о чём-то ещё, это уже закрыто или отменено; действует только то, что здесь.");
         }
         return summary.toString();

@@ -27,7 +27,8 @@ import java.util.Map;
  *   "secret": [ { "id", "hint", "unlockRelationship": int, "requiresFavor": bool, "canUnlockNow": bool, "reason": str } ... ], // locked secret deals
  *   "allowedDealTypes": ["NONE","OFFER","DECLINE"],   // OFFER present only when some visible deal has canOffer; DECLINE only with a visible deal
  *   "favor": { "active": { "item", "itemName", "count", "have", "canComplete": bool, "title", "rewardDeal", "rewardPercent" }, // absent when none
- *              "canAsk": bool, "candidates": [ { "item", "itemName", "count" } ... ] (only while canAsk), "done": [ "title" ... ] }
+ *              "canAsk": bool, "candidates": [ { "item", "itemName", "count" } ... ] (only while canAsk), "done": [ "title" ... ],
+ *              "neighbours": [ "<villager> ждёт/получил …" ... ] (only for villagers with neighbours) }
  * }
  * </pre>
  * {@code reason} is "" when the move is possible, else a Russian explanation the mob may voice. {@code allowedPrices} lists every
@@ -123,6 +124,13 @@ public final class Trading {
     public static Map<String, Object> view(String type, Map<String, TradeState> states, Favor favor, List<String> favorsDone,
                                            int relationship, long nowMillis, long worldDay, Map<String, Integer> inventory,
                                            Map<String, String> itemNames, boolean ownDeals) {
+        return view(type, states, favor, favorsDone, relationship, nowMillis, worldDay, inventory, itemNames, ownDeals, List.of());
+    }
+    /** {@code neighbours}: one line per fellow villager about what the player owes them or did for them — gossip the mob
+     * repeats but never collects on. */
+    public static Map<String, Object> view(String type, Map<String, TradeState> states, Favor favor, List<String> favorsDone,
+                                           int relationship, long nowMillis, long worldDay, Map<String, Integer> inventory,
+                                           Map<String, String> itemNames, boolean ownDeals, List<String> neighbours) {
         if (TradeCatalog.deals(type).isEmpty()) return Map.of();
         List<TradeDeal> deals = ownDeals ? TradeCatalog.deals(type) : List.of();
         if (states == null) states = Map.of();
@@ -152,7 +160,7 @@ public final class Trading {
         if (!visible.isEmpty()) types.add(DealIntent.Type.DECLINE.name());
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("deals", visible); result.put("secret", secret); result.put("allowedDealTypes", types);
-        result.put("favor", favorView(type, favor, favorsDone, inventory, itemNames));
+        result.put("favor", favorView(type, favor, favorsDone, inventory, itemNames, neighbours == null ? List.of() : neighbours));
         return result;
     }
     private static Map<String, Object> item(TradeDeal.Item item, Map<String, String> itemNames) {
@@ -178,7 +186,7 @@ public final class Trading {
         return row;
     }
     /** The favour the species waits for (if any) and what the player already did; the mob invents new ones itself. */
-    private static Map<String, Object> favorView(String type, Favor favor, List<String> done, Map<String, Integer> inventory, Map<String, String> itemNames) {
+    private static Map<String, Object> favorView(String type, Favor favor, List<String> done, Map<String, Integer> inventory, Map<String, String> itemNames, List<String> neighbours) {
         Map<String, Object> result = new LinkedHashMap<>();
         if (favor != null) {
             Map<String, Object> active = new LinkedHashMap<>();
@@ -200,6 +208,7 @@ public final class Trading {
             result.put("candidates", candidates);
         }
         result.put("done", List.copyOf(done));
+        if (!neighbours.isEmpty()) result.put("neighbours", List.copyOf(neighbours));
         return result;
     }
     /** Visible deals for a trade screen, with the player's current price for each. */

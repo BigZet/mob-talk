@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
 
-/** Shared world memory: profiles, relations, what a species knows about a player, villages. Every mutation runs under this
+/** Shared world memory: profiles, each mob's relations with players (standing, deals, favours), villages. Every mutation runs under this
  * lock and queues a write through {@link WorldMemoryFile}; {@link ProfileDefaults} fills what a profile is born with. */
 public final class ConversationStore {
     private static final Map<Path,ConversationStore> WORLDS = new HashMap<>();
@@ -108,34 +108,24 @@ public final class ConversationStore {
         if (profile != null) profile.revision++;
         scheduleSave();
     }
-    // ---- Deals and quests of the mob's own catalog (trades.json). ----
-    // Negotiated prices and stock are per mob and player; favours and opened secrets are shared by the whole species for that
-    // player (a village does not ask for the same bell twice). Reads never create anything; writes need an existing profile
-    // and a real player. Ids are not checked against TradeCatalog here: the game layer validates intents through Trading first.
+    // ---- Deals and favours of the mob's own catalog (trades.json): every mob keeps its own ledger with each player. ----
+    // Reads never create anything; writes need an existing profile and a real player. Ids are not checked against TradeCatalog
+    // here: the game layer validates intents through Trading first.
 
     /** Never null: a deal the player has not touched yet is {@link TradeState#initial()}. */
     public synchronized TradeState tradeState(UUID mob, UUID player, String dealId) {
-        Profile p = mob == null ? null : state.profiles.get(mob.toString());
-        Relation r = p == null || player == null ? null : p.relations.get(player.toString());
+        Relation r = existing(mob, player);
         TradeState state = r == null || dealId == null ? null : r.deals.get(dealId);
-        return withUnlocks(p, player, dealId, state == null ? TradeState.initial() : state);
+        return state == null ? TradeState.initial() : state;
     }
     /** All deal states of this player with this mob, keyed by deal id; missing deals are initial. */
     public synchronized Map<String, TradeState> tradeStates(UUID mob, UUID player) {
-        Profile p = mob == null ? null : state.profiles.get(mob.toString());
-        if (p == null || player == null) return Map.of();
-        Relation r = p.relations.get(player.toString());
-        Map<String,TradeState> result = new LinkedHashMap<>();
-        if (r != null) r.deals.forEach((id, value) -> result.put(id, withUnlocks(p, player, id, value)));
-        Shared shared = state.species.get(sharedKey(p.type, player));
-        if (shared != null) for (String id : shared.unlocked) result.computeIfAbsent(id, ignored -> withUnlocks(p, player, id, TradeState.initial()));
-        return Collections.unmodifiableMap(result);
+        Relation r = existing(mob, player);
+        return r == null ? Map.of() : Collections.unmodifiableMap(new LinkedHashMap<>(r.deals));
     }
-    private TradeState withUnlocks(Profile p, UUID player, String dealId, TradeState value) {
-        if (p == null || player == null || value.unlocked()) return value;
-        Shared shared = state.species.get(sharedKey(p.type, player));
-        return shared != null && shared.unlocked.contains(dealId)
-                ? new TradeState(value.price(), true, value.rounds(), value.sessionStartMillis(), value.boughtToday(), value.boughtDay()) : value;
+    private Relation existing(UUID mob, UUID player) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        return p == null || player == null ? null : p.relations.get(player.toString());
     }
     /** Stores an accepted OFFER (already checked with Trading.permitted) and bumps the profile revision. */
     public synchronized void setDealPrice(UUID mob, UUID player, String dealId, int price, long nowMillis) {
@@ -145,8 +135,10 @@ public final class ConversationStore {
     }
     /** Opens a secret deal for this player (already checked with Trading.canUnlock) and records an event. */
     public synchronized void unlockDeal(UUID mob, UUID player, String dealId, long nowMillis) {
-        Profile p = require(mob); tradingRelation(p, player);
-        if (!shared(p.type, player).unlocked.add(dealId)) return;
+        Profile p = require(mob); Relation r = tradingRelation(p, player);
+        TradeState state = r.deals.getOrDefault(dealId, TradeState.initial());
+        if (state.unlocked()) return;
+        r.deals.put(dealId, new TradeState(state.price(), true, state.rounds(), state.sessionStartMillis(), state.boughtToday(), state.boughtDay()));
         p.revision++;
         event(p, nowMillis, "Открыл игроку секретную сделку «" + dealName(p, dealId) + "»"); scheduleSave();
     }
@@ -162,8 +154,6 @@ public final class ConversationStore {
                 : deal.sell().count() + "× " + deal.sell().name() + " за " + Trading.currentPrice(deal, before) + "× " + deal.price().name();
         event(p, nowMillis, "Игрок " + safePlayer(playerName) + " купил " + what + "; отношение " + r.score); scheduleSave();
     }
-    private static String sharedKey(String type, UUID player) { return type + ":" + player; }
-    private Shared shared(String type, UUID player) { return state.species.computeIfAbsent(sharedKey(type, player), ignored -> new Shared()); }
     private Relation tradingRelation(Profile p, UUID player) {
         if (player == null) throw new IllegalArgumentException("Сделки и задания требуют игрока.");
         return relation(p, player);
@@ -215,53 +205,57 @@ public final class ConversationStore {
         return village;
     }
 
-    // ---- Favours the mob itself asks for (bring N of an item). Shared by the species for this player. ----
+    // ---- Favours the mob itself asks for (bring N of an item): its own debt, its own gratitude. ----
 
-    /** The favour this species is waiting on from the player, or null. */
-    public synchronized Favor favor(UUID mob, UUID player) {
-        Profile p = mob == null ? null : state.profiles.get(mob.toString());
-        Shared shared = p == null || player == null ? null : state.species.get(sharedKey(p.type, player));
-        return shared == null ? null : shared.favor;
-    }
-    /** Titles of favours this player has done for the species, oldest first. */
-    public synchronized List<String> favorsDone(UUID mob, UUID player) {
-        Profile p = mob == null ? null : state.profiles.get(mob.toString());
-        Shared shared = p == null || player == null ? null : state.species.get(sharedKey(p.type, player));
-        return shared == null ? List.of() : List.copyOf(shared.favorsDone);
-    }
-    /** The mob asks for a favour; refused while another one is pending for this species and player. */
+    /** The favour this mob is waiting on from the player, or null. */
+    public synchronized Favor favor(UUID mob, UUID player) { Relation r = existing(mob, player); return r == null ? null : r.favor; }
+    /** Titles of favours this player did for this mob, oldest first. */
+    public synchronized List<String> favorsDone(UUID mob, UUID player) { Relation r = existing(mob, player); return r == null ? List.of() : List.copyOf(r.favorsDone); }
+    /** The mob asks for a favour; refused while it already waits for one. */
     public synchronized void startFavor(UUID mob, UUID player, Favor favor, long nowMillis) {
-        Profile p = require(mob); tradingRelation(p, player);
-        Shared shared = shared(p.type, player);
-        if (shared.favor != null) throw new IllegalStateException("Сначала нужно закончить услугу «" + shared.favor.title() + "».");
-        shared.favor = new Favor(favor.item(), favor.count(), favor.title(), favor.rewardDeal(), favor.rewardPercent(), mob, nowMillis);
+        Profile p = require(mob); Relation r = tradingRelation(p, player);
+        if (r.favor != null) throw new IllegalStateException("Сначала нужно закончить услугу «" + r.favor.title() + "».");
+        r.favor = new Favor(favor.item(), favor.count(), favor.title(), favor.rewardDeal(), favor.rewardPercent(), mob, nowMillis);
         p.revision++;
-        event(p, nowMillis, "Попросил игрока об услуге: " + shared.favor.title() + " (" + favor.count() + "× " + favor.item() + ")"); scheduleSave();
+        event(p, nowMillis, "Попросил игрока об услуге: " + r.favor.title() + " (" + favor.count() + "× " + favor.item() + ")"); scheduleSave();
     }
-    /** The player delivered (the game already took the items): the favour is done for the species, this mob warms up by
-     * {@link Favor#RELATIONSHIP}, the promised deal opens and/or its price drops for this mob. Returns the favour. */
+    /** The player delivered (the game already took the items): this mob warms up by {@link Favor#RELATIONSHIP}, the promised
+     * deal opens and/or its price drops. Returns the favour. */
     public synchronized Favor completeFavor(UUID mob, UUID player, String playerName, long nowMillis) {
         Profile p = require(mob); Relation r = tradingRelation(p, player);
-        Shared shared = shared(p.type, player);
-        Favor favor = shared.favor;
+        Favor favor = r.favor;
         if (favor == null) throw new IllegalStateException("Сейчас никакой услуги не ждут.");
-        shared.favor = null;
-        shared.favorsDone.add(favor.title());
-        while (shared.favorsDone.size() > 50) shared.favorsDone.removeFirst();
+        r.favor = null;
+        r.favorsDone.add(favor.title());
+        while (r.favorsDone.size() > 50) r.favorsDone.removeFirst();
         r.score = clamp(r.score + Favor.RELATIONSHIP, hostile(p));
         TradeDeal promised = TradeCatalog.deal(p.type, favor.rewardDeal());
         if (promised != null) {
-            if (promised.secret()) shared.unlocked.add(promised.id());
-            if (favor.rewardPercent() > 0) {
-                TradeState s = r.deals.getOrDefault(promised.id(), TradeState.initial());
-                int paying = Trading.currentPrice(promised, s);
-                int lowered = Math.max(promised.floorPrice(), paying * (100 - favor.rewardPercent()) / 100);
-                if (lowered < paying) r.deals.put(promised.id(), new TradeState(lowered, s.unlocked(), s.rounds(), s.sessionStartMillis(), s.boughtToday(), s.boughtDay()));
-            }
+            TradeState s = r.deals.getOrDefault(promised.id(), TradeState.initial());
+            int paying = Trading.currentPrice(promised, s);
+            int lowered = favor.rewardPercent() > 0 ? Math.max(promised.floorPrice(), paying * (100 - favor.rewardPercent()) / 100) : paying;
+            r.deals.put(promised.id(), new TradeState(lowered < paying ? lowered : s.price(), s.unlocked() || promised.secret(), s.rounds(), s.sessionStartMillis(), s.boughtToday(), s.boughtDay()));
         }
         p.revision++;
         event(p, nowMillis, "Игрок " + safePlayer(playerName) + " выполнил услугу: " + favor.title() + "; отношение " + r.score); scheduleSave();
         return favor;
+    }
+    /** Village gossip: what the player owes to, or did for, the other villagers of this mob's village, one line each.
+     * Mobs outside a village hear nothing. */
+    public synchronized List<String> neighbourFavors(UUID mob, UUID player) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        if (p == null || player == null || p.villageId == null || p.villageId.isBlank()) return List.of();
+        List<String> lines = new ArrayList<>();
+        for (Profile q : state.profiles.values()) {
+            if (q == p || !p.villageId.equals(q.villageId)) continue;
+            Relation r = q.relations.get(player.toString());
+            if (r == null || r.favor == null && r.favorsDone.isEmpty()) continue;
+            String who = q.givenName.isBlank() ? q.name : q.givenName;
+            if (r.favor != null) lines.add(who + " ждёт от него «" + r.favor.title() + "» (" + r.favor.count() + "× " + r.favor.item() + ")");
+            if (!r.favorsDone.isEmpty()) lines.add(who + " уже получил от него: " + String.join(", ", r.favorsDone));
+            if (lines.size() >= 12) break;
+        }
+        return List.copyOf(lines);
     }
 
     public synchronized List<String> events(UUID mob) { Profile p = state.profiles.get(mob.toString()); return p == null ? List.of() : p.events.stream().map(e -> e.text).toList(); }
@@ -360,12 +354,11 @@ public final class ConversationStore {
                 if (r.lastInsult >= 0) facts.append("; его реплика распознана как оскорбление");
                 if (r.lastThreat >= 0) facts.append("; он угрожал убийством");
                 if (r.lastPurchase >= 0) facts.append("; он уже покупал у моба");
-                Shared shared = state.species.getOrDefault(sharedKey(p.type, player), new Shared());
-                List<String> unlocked = shared.unlocked.stream().map(id -> dealName(p, id)).toList();
-                if (!unlocked.isEmpty()) facts.append("; ему открыты секретные сделки: ").append(String.join(", ", unlocked));
-                if (shared.favor != null) facts.append("; сородичи ждут от него услугу «").append(shared.favor.title()).append("» (")
-                        .append(shared.favor.count()).append("× ").append(shared.favor.item()).append(")");
-                if (!shared.favorsDone.isEmpty()) facts.append("; оказал услуги (это знают все сородичи): ").append(String.join(", ", shared.favorsDone));
+                List<String> unlocked = r.deals.entrySet().stream().filter(e -> e.getValue().unlocked()).map(e -> dealName(p, e.getKey())).toList();
+                if (!unlocked.isEmpty()) facts.append("; ему открыты твои секретные сделки: ").append(String.join(", ", unlocked));
+                if (r.favor != null) facts.append("; ты ждёшь от него услугу «").append(r.favor.title()).append("» (")
+                        .append(r.favor.count()).append("× ").append(r.favor.item()).append(")");
+                if (!r.favorsDone.isEmpty()) facts.append("; он оказал тебе услуги: ").append(String.join(", ", r.favorsDone));
             }
             if (score < 0 && hits == 0 && (r == null || r.lastInsult < 0 && r.lastThreat < 0))
                 facts.append(hostile(p) ? "; есть исходная видовая враждебность" : "; конкретная личная причина неприязни не сохранена");
@@ -427,59 +420,40 @@ public final class ConversationStore {
     }
     public record Turn(String user, String assistant) { }
     private record Event(long time, String text) { }
-    /** One player as this mob knows them: standing, what they did, and their prices on its deals. */
+    /** One player as this mob knows them: standing, what they did, their prices on its deals, the favour it waits for. */
     static final class Relation {
         int score, hits; long lastHelp = -1, lastApology = -1, lastInsult = -1, lastThreat = -1, lastPurchase = -1; boolean ownerKnown;
         Map<String,TradeState> deals = new LinkedHashMap<>();
+        Favor favor; List<String> favorsDone = new ArrayList<>();
         void sanitize() {
             if (deals == null) deals = new LinkedHashMap<>();
             deals.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null);
-        }
-        Relation copy() {
-            Relation c = new Relation(); c.score = score; c.hits = hits; c.lastHelp = lastHelp; c.lastApology = lastApology;
-            c.lastInsult = lastInsult; c.lastThreat = lastThreat; c.lastPurchase = lastPurchase; c.ownerKnown = ownerKnown;
-            c.deals = new LinkedHashMap<>(deals); // Immutable records.
-            return c;
-        }
-    }
-    /** What a whole species knows about one player: key "type:player". */
-    static final class Shared {
-        Set<String> unlocked = new LinkedHashSet<>(); Favor favor; List<String> favorsDone = new ArrayList<>();
-        void sanitize() {
-            if (unlocked == null) unlocked = new LinkedHashSet<>();
-            unlocked.removeIf(Objects::isNull);
             if (favorsDone == null) favorsDone = new ArrayList<>();
             favorsDone.removeIf(Objects::isNull);
             if (favor != null && (favor.item() == null || favor.count() < 1)) favor = null;
         }
-        Shared copy() { Shared c = new Shared(); c.unlocked.addAll(unlocked); c.favor = favor; c.favorsDone.addAll(favorsDone); return c; }
+        Relation copy() {
+            Relation c = new Relation(); c.score = score; c.hits = hits; c.lastHelp = lastHelp; c.lastApology = lastApology;
+            c.lastInsult = lastInsult; c.lastThreat = lastThreat; c.lastPurchase = lastPurchase; c.ownerKnown = ownerKnown;
+            c.deals = new LinkedHashMap<>(deals); c.favor = favor; c.favorsDone = new ArrayList<>(favorsDone); // Immutable records.
+            return c;
+        }
     }
     /** The whole file. */
     static final class State {
         int version = 2;
         Map<String,Profile> profiles = new LinkedHashMap<>();
         Map<String,Bargaining.Session> bargains = new LinkedHashMap<>();
-        Map<String,Shared> species = new LinkedHashMap<>();
         Map<String,Village> villages = new LinkedHashMap<>();
         void sanitize() {
             if (bargains == null) bargains = new LinkedHashMap<>();
-            if (species == null) species = new LinkedHashMap<>();
             if (villages == null) villages = new LinkedHashMap<>();
             villages.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null || e.getValue().name() == null || e.getValue().dimension() == null);
-            species.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null);
-            species.values().forEach(Shared::sanitize);
-        }
-        /** 0.3.0 kept opened secrets per mob; fold them into the species record so the whole village knows. */
-        void adoptLegacyUnlocks(String type, String player, Relation r) {
-            if (r.deals.values().stream().noneMatch(TradeState::unlocked)) return;
-            Shared shared = species.computeIfAbsent(type + ":" + player, ignored -> new Shared());
-            r.deals.forEach((id, value) -> { if (value.unlocked()) shared.unlocked.add(id); });
         }
         State copy() {
             State c = new State(); c.version = version;
             profiles.forEach((key, p) -> c.profiles.put(key, p.copy()));
             c.bargains.putAll(bargains); c.villages.putAll(villages); // Immutable records.
-            species.forEach((key, shared) -> c.species.put(key, shared.copy()));
             return c;
         }
     }

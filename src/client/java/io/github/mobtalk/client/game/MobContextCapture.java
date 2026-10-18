@@ -56,7 +56,8 @@ final class MobContextCapture {
         Map<String, Object> trading = new LinkedHashMap<>(Trading.view(type, bridge.memory.tradeStates(mob.getUuid(), player.getUuid()),
                 bridge.memory.favor(mob.getUuid(), player.getUuid()), bridge.memory.favorsDone(mob.getUuid(), player.getUuid()),
                 card == null ? 0 : card.relationship(), System.currentTimeMillis(),
-                Math.floorDiv(world.getTimeOfDay(), 24_000L), MobTrading.inventoryCounts(player), MobTrading.itemNames(type), !(mob instanceof MerchantEntity)));
+                Math.floorDiv(world.getTimeOfDay(), 24_000L), MobTrading.inventoryCounts(player), MobTrading.itemNames(type), !(mob instanceof MerchantEntity),
+                bridge.memory.neighbourFavors(mob.getUuid(), player.getUuid())));
         if (!trading.isEmpty()) {
             // An empty view stays empty: the LLM client reads "trades nothing" from it.
             MobMerchant window = MobMerchant.of(player, mob);

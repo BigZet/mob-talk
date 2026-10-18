@@ -315,41 +315,56 @@ class ConversationStoreTest {
         } finally { ConversationStore.closeWorld(directory); }
     }
 
-    // A favour the mob invented is owed to the whole species: any cow may take the delivery, the taker warms up and keeps
-    // the promised price; the promised secret opens for the species; the next favour may be asked only afterwards.
-    @Test void favoursAreSharedBySpeciesAndPayTheMobThatTakesDelivery() throws Exception {
-        UUID giver = UUID.randomUUID(), taker = UUID.randomUUID(), player = UUID.randomUUID(), other = UUID.randomUUID();
+    // A favour is the asking mob's own debt and gratitude: another cow neither collects it nor shares the reward, but a fellow
+    // villager hears about it as gossip; the promised secret opens for the giver only.
+    @Test void favoursBelongToTheMobThatAskedAndNeighboursOnlyHearOfThem() throws Exception {
+        UUID giver = UUID.randomUUID(), other = UUID.randomUUID(), player = UUID.randomUUID(), stranger = UUID.randomUUID();
         ConversationStore store = ConversationStore.open(directory, config);
         store.observe(cow(giver, player, 0, Map.of()));
-        store.observe(cow(taker, player, 0, Map.of()));
+        store.observe(cow(other, player, 0, Map.of()));
         assertNull(store.favor(giver, player));
         assertThrows(IllegalStateException.class, () -> store.completeFavor(giver, player, "Игрок", 50), "nothing owed yet");
         Favor asked = new Favor("minecraft:bell", 1, "Колокол на площадь", "leather", 20, null, 0);
         store.startFavor(giver, player, asked, 1000);
-        Favor pending = store.favor(taker, player);
+        Favor pending = store.favor(giver, player);
         assertEquals("minecraft:bell", pending.item()); assertEquals(giver, pending.giver()); assertEquals(1000, pending.startedMillis());
-        assertThrows(IllegalStateException.class, () -> store.startFavor(taker, player, asked, 1100), "one favour at a time per species");
-        assertNull(store.favor(giver, other));
-        long revision = store.revision(taker);
-        Favor done = store.completeFavor(taker, player, "Игрок", 2000);
+        assertNull(store.favor(other, player), "the other cow did not ask for anything");
+        assertNull(store.favor(giver, stranger));
+        assertThrows(IllegalStateException.class, () -> store.startFavor(giver, player, asked, 1100), "one favour at a time per mob");
+        store.startFavor(other, player, new Favor("minecraft:wheat", 64, "", "", 0, null, 0), 1200);
+        assertThrows(IllegalArgumentException.class, () -> store.completeFavor(stranger, player, "Игрок", 1300), "no such mob");
+        long revision = store.revision(giver);
+        Favor done = store.completeFavor(giver, player, "Игрок", 2000);
         assertEquals("Колокол на площадь", done.title());
-        assertEquals(revision + 1, store.revision(taker));
-        assertEquals(Favor.RELATIONSHIP, store.card(taker, player).relationship());
-        assertEquals(0, store.card(giver, player).relationship(), "the giver did not take the delivery");
-        assertTrue(store.tradeState(giver, player, "leather").unlocked(), "the promised secret is open for the species");
-        assertEquals(1, store.tradeState(taker, player, "leather").price(), "2 × 80% = 1, floor is 1");
-        assertEquals(0, store.tradeState(giver, player, "leather").price(), "the discount stays with the taker");
+        assertEquals(revision + 1, store.revision(giver));
+        assertEquals(Favor.RELATIONSHIP, store.card(giver, player).relationship());
+        assertEquals(0, store.card(other, player).relationship(), "the other cow owes no gratitude");
+        assertTrue(store.tradeState(giver, player, "leather").unlocked(), "the promised secret is open with the giver");
+        assertFalse(store.tradeState(other, player, "leather").unlocked(), "and only with the giver");
+        assertEquals(1, store.tradeState(giver, player, "leather").price(), "2 × 80% = 1, floor is 1");
         assertEquals(List.of("Колокол на площадь"), store.favorsDone(giver, player));
+        assertEquals(List.of(), store.favorsDone(other, player));
         assertNull(store.favor(giver, player));
-        assertTrue(store.events(taker).stream().anyMatch(e -> e.startsWith("Игрок Игрок выполнил услугу: Колокол на площадь")), store.events(taker).toString());
+        assertEquals("64× wheat", store.favor(other, player).title(), "a blank title names the goods");
+        assertTrue(store.events(giver).stream().anyMatch(e -> e.startsWith("Игрок Игрок выполнил услугу: Колокол на площадь")), store.events(giver).toString());
+        assertTrue(store.card(giver, player).events().getFirst().contains("он оказал тебе услуги: Колокол на площадь"));
+        assertFalse(store.card(other, player).events().getFirst().contains("оказал"));
         assertThrows(IllegalArgumentException.class, () -> new Favor("minecraft:wheat", 70, "", "", 0, null, 0), "a stack at most");
-        store.startFavor(taker, player, new Favor("minecraft:wheat", 64, "", "", 0, null, 0), 3000);
+        // Gossip travels inside a village only.
+        assertEquals(List.of(), store.neighbourFavors(giver, player), "cows have no village");
+        ConversationStore.Village village = store.createVillage("minecraft:overworld", 0, 0, "Тихие Грядки", "Стоит на пепелище.");
+        store.setBackstory(giver, "Марфа", "Ты родилась у реки.", "", "", village.id());
+        store.setBackstory(other, "Зорька", "Ты пришла с севера.", "", "", village.id());
+        assertEquals(List.of("Марфа уже получил от него: Колокол на площадь"), store.neighbourFavors(other, player));
+        assertEquals(List.of("Зорька ждёт от него «64× wheat» (64× minecraft:wheat)"), store.neighbourFavors(giver, player));
+        assertEquals(List.of(), store.neighbourFavors(giver, stranger));
         ConversationStore.closeWorld(directory);
         ConversationStore reopened = ConversationStore.open(directory, config);
         try {
-            assertEquals("64× wheat", reopened.favor(giver, player).title(), "a blank title names the goods");
-            assertEquals(List.of("Колокол на площадь"), reopened.favorsDone(taker, player));
-            assertTrue(reopened.tradeState(taker, player, "leather").unlocked());
+            assertEquals("64× wheat", reopened.favor(other, player).title());
+            assertEquals(List.of("Колокол на площадь"), reopened.favorsDone(giver, player));
+            assertTrue(reopened.tradeState(giver, player, "leather").unlocked());
+            assertEquals(1, reopened.neighbourFavors(other, player).size());
         } finally { ConversationStore.closeWorld(directory); }
     }
 
@@ -403,10 +418,10 @@ class ConversationStoreTest {
         store = ConversationStore.open(directory, config);
         try {
             assertEquals(new TradeState(5, false, 1, 100, 0, -1), store.tradeStates(mob, player).get("milk"));
-            assertTrue(store.tradeState(mob, player, "leather").unlocked(), "a 0.3.0 unlock is adopted by the species");
+            assertTrue(store.tradeState(mob, player, "leather").unlocked(), "an unlock stays with its mob");
             UUID other = UUID.randomUUID();
             store.observe(cow(other, player, 0, Map.of()));
-            assertTrue(store.tradeState(other, player, "leather").unlocked());
+            assertFalse(store.tradeState(other, player, "leather").unlocked());
         } finally { ConversationStore.closeWorld(directory); }
     }
 }

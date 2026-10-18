@@ -52,7 +52,6 @@ final class WorldMemoryFile {
                 if (p == null || p.type == null || p.personality == null || p.voiceId == null) throw new IllegalArgumentException();
                 p.id = UUID.fromString(entry.getKey());
                 p.sanitize();
-                p.relations.forEach((player, r) -> state.adoptLegacyUnlocks(p.type, player, r));
                 if (migrated) p.variantSlot = -1;
             }
             if (migrated) { backup(file, "conversations.v1.backup.json"); state.version = 2; }

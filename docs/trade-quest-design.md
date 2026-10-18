@@ -50,7 +50,7 @@ Core (`src/main/java/io/github/mobtalk/core`, чистая Java, без Minecraf
   Сдать можно любой особи вида: при COMPLETE код проверяет инвентарь (`have ≥ count`), забирает предметы, применяет награду.
 - Каталог: `species.<id>.ideas = [{item, count, why}]` — только подсказки для модели («можешь взять идею или придумать свою,
   в характере»); `deal.requiresFavor: true` — секретная сделка открывается только после хотя бы одной выполненной услуги.
-- Состояние (`ConversationStore`, общее для вида и игрока): `FavorState(active: {item, count, title, rewardDeal, rewardPercent, giver, startedMillis} | null, done: [title…], favors: int)`.
+- Состояние (`ConversationStore`, у каждого моба своё для каждого игрока, в `Relation`): `favor` (активная услуга), `favorsDone` (названия), открытые секреты — флаг `unlocked` в `TradeState`. Соседи по деревне получают `favor.neighbours` — строки-слухи о долгах игрока другим жителям (19 октября 2026: общие для вида услуги размывали личность жителей).
 - Вид модели (`mobDetails.trading.quests`): `{active: {item, itemName, count, have, canComplete, title, reward}, done: [titles], favors: n, ideas: [...], canOffer: bool}`.
 - Промпт: просить услугу только когда игрок сам предлагает помощь, спрашивает, что нужно, или добивается секретного; не чаще
   раза за разговор; никаких дежурных концовок («по рукам?»).
