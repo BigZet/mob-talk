@@ -150,10 +150,20 @@ class TradingTest {
         Map<String, String> names = Map.of("minecraft:oak_fence", "Дубовый забор");
         Map<String, Object> fresh = Trading.view(COW, Map.of(), null, List.of(), 0, 0, 0, Map.of(), names);
         assertEquals(true, favor(fresh).get("canAsk")); assertNull(active(fresh)); assertEquals(List.of(), favor(fresh).get("done"));
-        assertFalse(favor(fresh).containsKey("ideas"), "catalog ideas made every cow ask for a fence; the mob invents its own");
+        assertFalse(favor(fresh).containsKey("ideas"), "catalog ideas made every cow ask for a fence; the game draws candidates instead");
+        List<?> candidates = (List<?>) favor(fresh).get("candidates");
+        assertEquals(Trading.CANDIDATES, candidates.size());
+        for (Object value : candidates) {
+            Map<?, ?> candidate = (Map<?, ?>) value;
+            assertTrue(FavorItems.ids().contains(candidate.get("item")), candidate.toString());
+            assertTrue((Integer) candidate.get("count") >= 1 && (Integer) candidate.get("count") <= Favor.MAX_COUNT, candidate.toString());
+            assertNotNull(candidate.get("itemName"));
+        }
+        assertEquals(3, candidates.stream().map(c -> ((Map<?, ?>) c).get("item")).distinct().count(), "distinct items");
         Favor fence = new Favor("minecraft:oak_fence", 8, "Почини загон", "leather", 20, null, 0);
         Map<String, Object> carrying = Trading.view(COW, Map.of(), fence, List.of("Колокол"), 0, 0, 0, Map.of("minecraft:oak_fence", 5), names);
         assertEquals(false, favor(carrying).get("canAsk"), "one favour at a time");
+        assertFalse(favor(carrying).containsKey("candidates"), "nothing to pick while a favour is owed");
         Map<String, Object> row = active(carrying);
         assertEquals("Почини загон", row.get("title")); assertEquals("Дубовый забор", row.get("itemName")); assertEquals(8, row.get("count"));
         assertEquals(5, row.get("have")); assertEquals(false, row.get("canComplete")); assertEquals("leather", row.get("rewardDeal")); assertEquals(20, row.get("rewardPercent"));

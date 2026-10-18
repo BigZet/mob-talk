@@ -60,6 +60,8 @@ public final class ConversationStore {
                 }
                 if (state.bargains == null) state.bargains = new LinkedHashMap<>();
                 if (state.species == null) state.species = new LinkedHashMap<>();
+                if (state.villages == null) state.villages = new LinkedHashMap<>();
+                state.villages.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null || e.getValue().name() == null || e.getValue().dimension() == null);
                 state.species.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null);
                 state.species.values().forEach(ConversationStore::sanitize);
                 migrated = state.version < 2;
@@ -80,6 +82,7 @@ public final class ConversationStore {
                     p.relations.forEach((player, r) -> { r.score = clamp(r.score, hostile(p)); sanitize(r); adopt(p.type, player, r); });
                     if (p.action == null) p.action = ActionIntent.none();
                     if (p.traits == null) p.traits = new ArrayList<>();
+                    if (p.givenName == null) p.givenName = ""; if (p.backstory == null) p.backstory = ""; if (p.villageId == null) p.villageId = "";
                     if (migrated) p.variantSlot = -1;
                 }
                 if (migrated) {
@@ -108,6 +111,7 @@ public final class ConversationStore {
             }
         }
         Profile detached = copy(p);
+        detached.village = p.villageId == null || p.villageId.isBlank() ? null : state.villages.get(p.villageId);
         MobCard current = card(snapshot.id(), snapshot.playerId());
         detached.relationship = current.relationship();
         detached.recentEvents = current.events();
@@ -226,6 +230,45 @@ public final class ConversationStore {
         if (shared.favorsDone == null) shared.favorsDone = new ArrayList<>();
         shared.favorsDone.removeIf(Objects::isNull);
         if (shared.favor != null && (shared.favor.item() == null || shared.favor.count() < 1)) shared.favor = null;
+    }
+
+    // ---- Generated life stories: one per mob at first meeting, one per village at its first villager. ----
+
+    /** A village the player has met, anchored where its first villager stood (or its bell). */
+    public record Village(String id, String dimension, int x, int z, String name, String story) { }
+    /** How far (blocks, same dimension) a villager may stand from a village's anchor and still belong to it. */
+    public static final int VILLAGE_RADIUS = 160;
+
+    public synchronized boolean hasBackstory(UUID mob) { Profile p = state.profiles.get(mob.toString()); return p != null && !p.backstory.isBlank(); }
+    /** The model's invented name and story for this mob; blank parts stay blank. villageId may be "". */
+    public synchronized void setBackstory(UUID mob, String givenName, String story, String villageId) {
+        Profile p = require(mob);
+        p.givenName = TextBounds.characters(givenName, 60); p.backstory = TextBounds.characters(story, 1500);
+        p.villageId = villageId == null ? "" : villageId;
+        scheduleSave(); // No revision bump: a story arriving mid-answer invalidates nothing.
+    }
+    /** Names the model already gave to mobs of this species, so the next one differs. */
+    public synchronized List<String> givenNames(String type) {
+        String canonical = canonical(type);
+        return state.profiles.values().stream().filter(p -> canonical.equals(p.type) && !p.givenName.isBlank()).map(p -> p.givenName).distinct().limit(40).toList();
+    }
+    public synchronized Village village(String id) { return id == null || id.isBlank() ? null : state.villages.get(id); }
+    public synchronized List<String> villageNames() { return state.villages.values().stream().map(Village::name).toList(); }
+    /** The known village whose anchor is within {@link #VILLAGE_RADIUS} blocks in this dimension, nearest first; null when none. */
+    public synchronized Village villageNear(String dimension, int x, int z) {
+        Village best = null; long bestDistance = Long.MAX_VALUE;
+        for (Village village : state.villages.values()) {
+            if (!village.dimension().equals(dimension)) continue;
+            long dx = village.x() - x, dz = village.z() - z, distance = dx * dx + dz * dz;
+            if (distance <= (long) VILLAGE_RADIUS * VILLAGE_RADIUS && distance < bestDistance) { best = village; bestDistance = distance; }
+        }
+        return best;
+    }
+    public synchronized Village createVillage(String dimension, int x, int z, String name, String story) {
+        Village village = new Village("village-" + UUID.randomUUID().toString().substring(0, 8), dimension, x, z,
+                TextBounds.characters(name == null || name.isBlank() ? "Безымянная деревня" : name, 60), TextBounds.characters(story, 1500));
+        state.villages.put(village.id(), village); scheduleSave();
+        return village;
     }
 
     // ---- Favours the mob itself asks for (bring N of an item). Shared by the species for this player. ----
@@ -455,6 +498,7 @@ public final class ConversationStore {
                 snapshot = new State();
                 state.profiles.forEach((key, p) -> snapshot.profiles.put(key, copy(p)));
                 snapshot.bargains.putAll(state.bargains); // Sessions are immutable records.
+                snapshot.villages.putAll(state.villages); // Immutable records.
                 state.species.forEach((key, shared) -> {
                     Shared c = new Shared(); c.unlocked.addAll(shared.unlocked);
                     c.favor = shared.favor; c.favorsDone.addAll(shared.favorsDone); snapshot.species.put(key, c);
@@ -477,6 +521,7 @@ public final class ConversationStore {
     private static Profile copy(Profile source) {
         Profile p = new Profile(); p.id = source.id; p.type = source.type; p.name = source.name; p.personality = source.personality;
         p.voiceId = source.voiceId; p.memory = source.memory; p.variantSlot = source.variantSlot; p.revision = source.revision; p.action = source.action;
+        p.givenName = source.givenName; p.backstory = source.backstory; p.villageId = source.villageId;
         p.customPersonality = source.customPersonality; p.calm = source.calm; p.confidence = source.confidence;
         p.curiosity = source.curiosity; p.sociability = source.sociability; p.preference = source.preference; p.fear = source.fear;
         p.turns = new ArrayList<>(source.turns); p.events = new ArrayList<>(source.events); p.traits = new ArrayList<>(source.traits);
@@ -489,8 +534,10 @@ public final class ConversationStore {
         return p;
     }
     static final class Profile {
-        transient UUID id; transient int relationship; transient List<String> recentEvents = List.of();
+        transient UUID id; transient int relationship; transient List<String> recentEvents = List.of(); transient Village village;
         String type, name, personality, voiceId; String memory = "";
+        /** What the model called this mob and the life it invented for it; blank until the first meeting is written up. */
+        String givenName = "", backstory = "", villageId = "";
         String customPersonality, preference, fear;
         int calm = -1, confidence = -1, curiosity = -1, sociability = -1;
         int variantSlot = -1; long revision; ActionIntent action = ActionIntent.none();
@@ -510,5 +557,6 @@ public final class ConversationStore {
         Map<String,Profile> profiles = new LinkedHashMap<>();
         Map<String,Bargaining.Session> bargains = new LinkedHashMap<>();
         Map<String,Shared> species = new LinkedHashMap<>();
+        Map<String,Village> villages = new LinkedHashMap<>();
     }
 }

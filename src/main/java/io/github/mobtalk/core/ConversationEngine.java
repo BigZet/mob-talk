@@ -88,7 +88,7 @@ public final class ConversationEngine implements AutoCloseable {
             try { SpeechPreview.mark(configDirectory, voiceId, speechKey); }
             catch (IOException cacheUnavailable) { /* A status-cache failure must never discard successful audio. */ }
         }
-        String name = profile.name.isBlank() ? profile.type : profile.name;
+        String name = profile.givenName != null && !profile.givenName.isBlank() ? profile.givenName : profile.name.isBlank() ? profile.type : profile.name;
         Object custom = snapshot.mobDetails().get("customName");
         if (custom instanceof String text && !text.isBlank()) name = TextBounds.characters(text, 120);
         else if (Boolean.TRUE.equals(custom) || snapshot.playerId() == null && snapshot.mobDetails().isEmpty()) {
@@ -162,6 +162,32 @@ public final class ConversationEngine implements AutoCloseable {
     }
 
     public ConversationStore memory() { return store; }
+
+    /** Writes the mob's life story (and its village's, for the first villager met there) once; later calls return at once.
+     * One model request; safe to call from any worker, never from the game thread. */
+    public void ensureBackstory(MobSnapshot snapshot) throws IOException, InterruptedException {
+        if (closed || store.hasBackstory(snapshot.id())) return;
+        ConversationStore.Profile profile = store.profile(snapshot);
+        boolean villager = "minecraft:villager".equals(snapshot.type());
+        int[] anchor = villager ? villageAnchor(snapshot) : null;
+        ConversationStore.Village village = anchor == null ? null : store.villageNear(snapshot.dimension(), anchor[0], anchor[1]);
+        OpenRouterConversationClient.Biography written = llm.biography(snapshot, profile, village, store.givenNames(snapshot.type()), store.villageNames());
+        if (closed || store.hasBackstory(snapshot.id())) return;
+        if (villager && village == null && anchor != null && !written.villageStory().isBlank())
+            village = store.createVillage(snapshot.dimension(), anchor[0], anchor[1], written.villageName(), written.villageStory());
+        store.setBackstory(snapshot.id(), written.name(), written.story(), village == null ? "" : village.id());
+    }
+
+    /** Where this villager's village is: its bell, else its bed, else where it stands. */
+    static int[] villageAnchor(MobSnapshot snapshot) {
+        for (String key : java.util.List.of("meetingPoint", "home", "position")) {
+            Object value = snapshot.mobDetails().get(key);
+            Object position = value instanceof java.util.Map<?,?> place && place.get("position") instanceof java.util.Map<?,?> inner ? inner : value;
+            if (position instanceof java.util.Map<?,?> point && point.get("x") instanceof Number x && point.get("z") instanceof Number z)
+                return new int[]{x.intValue(), z.intValue()};
+        }
+        return null;
+    }
 
     public void resetPersonality(java.util.UUID mobId) { store.resetPersonality(mobId); }
 

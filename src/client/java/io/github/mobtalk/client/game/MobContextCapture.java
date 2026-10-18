@@ -33,6 +33,7 @@ final class MobContextCapture {
         String weather = blind ? "unknown (blind)" : world.isThundering() ? "thunderstorm" : world.isRaining() ? "rain" : "clear";
         Map<String, Object> mobDetails = new LinkedHashMap<>(living(mob, !blind));
         mobDetails.put("baby", mob.isBaby());
+        mobDetails.put("position", position(mob.getBlockPos()));
         if (mob.hasCustomName()) mobDetails.put("customName", mob.getCustomName().getString());
         mobDetails.put("aiDisabled", mob.isAiDisabled());
         mobDetails.put("canAttackPlayer", bridge.actions.canAttack(mob, player));

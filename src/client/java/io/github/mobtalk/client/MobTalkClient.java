@@ -343,9 +343,31 @@ public final class MobTalkClient implements ClientModInitializer {
             cancelWork(readyStatus());
             selected = mob.getUuid();
             keepConnectionWarm();
+            prefetchBackstory();
         }
         // Selecting the same UUID keeps its existing engine/profile/history.
         showHud();
+    }
+
+    /** A mob met for the first time gets its life story (and its village's) written while the player is still raising the key;
+     * the conversation worker runs it so a request that follows simply queues behind. Failures are silent: the story can come later. */
+    private void prefetchBackstory() {
+        if (stopped || !configReady || !config.enabled || selected == null || client.player == null || world == null || gameReady == null) return;
+        ensureGameBridge();
+        Request seed = request(generation, null);
+        pipeline.execute(() -> {
+            try {
+                if (generation != seed.generation || pipelineBusy.get()) return;
+                MobGameBridge game = gameReady.get(10, TimeUnit.SECONDS);
+                if (game.memory.hasBackstory(seed.target)) return;
+                MobSnapshot snapshot = game.capture(seed.target, seed.player, seed.dimension).get(10, TimeUnit.SECONDS);
+                if (generation != seed.generation) return;
+                ensureEngine(seed).ensureBackstory(snapshot);
+                client.execute(() -> { if (generation == seed.generation) showHud(); });
+            } catch (Exception quiet) {
+                LOGGER.debug("Mob Talk backstory skipped ({})", quiet.getClass().getSimpleName());
+            } finally { Thread.interrupted(); }
+        });
     }
 
     /** Opens (or keeps open) the OpenRouter connection while a mob is selected, so the first reply skips the handshake. */

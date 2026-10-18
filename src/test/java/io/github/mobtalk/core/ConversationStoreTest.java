@@ -353,6 +353,32 @@ class ConversationStoreTest {
         } finally { ConversationStore.closeWorld(directory); }
     }
 
+    // Stories survive reload; villages are found by distance in their own dimension; names are listed per species.
+    @Test void keepsStoriesAndVillagesAcrossReload() throws Exception {
+        UUID cow = UUID.randomUUID(), player = UUID.randomUUID();
+        ConversationStore store = ConversationStore.open(directory, config);
+        store.observe(cow(cow, player, 0, Map.of()));
+        assertFalse(store.hasBackstory(cow));
+        assertEquals(List.of(), store.givenNames("cow"));
+        long revision = store.revision(cow);
+        ConversationStore.Village village = store.createVillage("minecraft:overworld", 10, -20, "Тихие Грядки", "Стоит на пепелище.");
+        store.setBackstory(cow, "Марфа", "Ты родилась у реки.", village.id());
+        assertEquals(revision, store.revision(cow), "a story does not cancel a running answer");
+        assertTrue(store.hasBackstory(cow));
+        assertEquals(List.of("Марфа"), store.givenNames("minecraft:cow"));
+        assertSame(village, store.villageNear("minecraft:overworld", 100, 100));
+        assertNull(store.villageNear("minecraft:overworld", 10 + ConversationStore.VILLAGE_RADIUS + 1, -20));
+        assertNull(store.villageNear("minecraft:the_end", 10, -20));
+        ConversationStore.closeWorld(directory);
+        ConversationStore reopened = ConversationStore.open(directory, config);
+        try {
+            assertTrue(reopened.hasBackstory(cow));
+            assertEquals(village, reopened.village(village.id()));
+            assertEquals(List.of("Тихие Грядки"), reopened.villageNames());
+            assertEquals("Безымянная деревня", reopened.createVillage("minecraft:overworld", 0, 0, " ", "").name());
+        } finally { ConversationStore.closeWorld(directory); }
+    }
+
     // A world saved before 0.3 has relations without deal/quest maps; it must load and start trading from scratch.
     @Test void loadsPreTradingFilesAndDropsDamagedTradeEntries() throws Exception {
         UUID mob = UUID.randomUUID(), player = UUID.randomUUID();

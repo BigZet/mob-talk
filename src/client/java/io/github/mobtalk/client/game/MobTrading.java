@@ -33,6 +33,7 @@ final class MobTrading {
         Map<String, String> names = new LinkedHashMap<>();
         for (TradeDeal deal : TradeCatalog.deals(type)) { name(names, deal.sell().id()); name(names, deal.price().id()); }
         for (TradeCatalog.Idea idea : TradeCatalog.ideas(type)) name(names, idea.item());
+        for (String id : FavorItems.ids()) name(names, id); // The favour candidates are drawn from this pool inside Trading.view.
         return names;
     }
     private static void name(Map<String, String> names, String id) {

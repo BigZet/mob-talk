@@ -27,7 +27,7 @@ import java.util.Map;
  *   "secret": [ { "id", "hint", "unlockRelationship": int, "requiresFavor": bool, "canUnlockNow": bool, "reason": str } ... ], // locked secret deals
  *   "allowedDealTypes": ["NONE","OFFER","DECLINE"],   // OFFER present only when some visible deal has canOffer; DECLINE only with a visible deal
  *   "favor": { "active": { "item", "itemName", "count", "have", "canComplete": bool, "title", "rewardDeal", "rewardPercent" }, // absent when none
- *              "canAsk": bool, "done": [ "title" ... ] }
+ *              "canAsk": bool, "candidates": [ { "item", "itemName", "count" } ... ] (only while canAsk), "done": [ "title" ... ] }
  * }
  * </pre>
  * {@code reason} is "" when the move is possible, else a Russian explanation the mob may voice. {@code allowedPrices} lists every
@@ -37,6 +37,8 @@ public final class Trading {
     public static final int MAX_ROUNDS = 3;
     public static final long SESSION_MILLIS = 20 * 60_000L;
     public static final int HOSTILE_RELATIONSHIP = -40;
+    /** Items offered to the mob for its next favour, drawn anew for every conversation. */
+    public static final int CANDIDATES = 3;
     private static volatile java.util.function.Predicate<String> itemChecker = id -> true;
     private Trading() { }
 
@@ -180,6 +182,16 @@ public final class Trading {
             result.put("active", active);
         }
         result.put("canAsk", favor == null);
+        if (favor == null) {
+            // The game picks what may be asked for; the mob only chooses among these and invents why.
+            List<Map<String, Object>> candidates = new ArrayList<>();
+            for (FavorItems.Candidate candidate : FavorItems.draw(CANDIDATES)) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("item", candidate.item()); row.put("itemName", itemNames.getOrDefault(candidate.item(), candidate.item())); row.put("count", candidate.count());
+                candidates.add(row);
+            }
+            result.put("candidates", candidates);
+        }
         result.put("done", List.copyOf(done));
         return result;
     }

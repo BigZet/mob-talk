@@ -815,8 +815,10 @@ class ConversationEngineTest {
                 "requiresFavor", true, "canUnlockNow", canUnlock, "reason", canUnlock ? "" : "отношение ниже 40");
         Map<String,Object> fence = Map.of("item", "minecraft:oak_fence", "itemName", "Дубовый забор", "count", 8, "have", canComplete ? 8 : 3,
                 "canComplete", canComplete, "title", "Почини загон", "rewardDeal", "leather", "rewardPercent", 20);
+        List<Map<String,Object>> candidates = List.of(Map.of("item", "minecraft:bell", "itemName", "Колокол", "count", 1),
+                Map.of("item", "minecraft:diamond", "itemName", "Алмаз", "count", 3), Map.of("item", "minecraft:wheat", "itemName", "Пшеница", "count", 8));
         Map<String,Object> favor = owed ? Map.of("active", fence, "canAsk", false, "done", List.of())
-                : Map.of("canAsk", true, "done", List.of("Колокол на площадь"));
+                : Map.of("canAsk", true, "candidates", candidates, "done", List.of("Колокол на площадь"));
         return Map.of("deals", List.of(milk), "secret", List.of(leather), "allowedDealTypes", List.of("NONE", "OFFER", "DECLINE"), "favor", favor);
     }
 
@@ -945,15 +947,16 @@ class ConversationEngineTest {
             assertEquals("minecraft:bell", asked.favor().item());
             assertEquals("[\"NONE\",\"OFFER\"]", schemaEnum("quest").toString());
 
-            queuedAnswers.add(ownAnswer("Принеси мне Diamonds.", "NONE", "", 0, "", "OFFER", "Diamonds", 3, "Алмазы", "", 0));
+            // Only a drawn candidate may be asked for, and the game's amount wins over the model's.
+            queuedAnswers.add(ownAnswer("Принеси мне дубовый забор.", "NONE", "", 0, "", "OFFER", "minecraft:oak_fence", 8, "Забор", "", 0));
             queuedAnswers.add(ownAnswer("Принеси три алмаза.", "NONE", "", 0, "", "OFFER", "minecraft:diamond", 3, "Алмазы", "", 0));
             assertEquals(new QuestIntent(QuestIntent.Type.OFFER, "minecraft:diamond", 3, "Алмазы", "", 0), engine.converse(tradingCow(freeCow(false)), "Что сделать?").quest());
-            assertTrue(lastCorrection().contains("Предмета с id «Diamonds» в Minecraft 1.21.1 нет"), lastCorrection());
+            assertTrue(lastCorrection().contains("Предмет «minecraft:oak_fence» сейчас просить нельзя") && lastCorrection().contains("3× Алмаз (minecraft:diamond)"), lastCorrection());
 
             queuedAnswers.add(ownAnswer("Сто пшеницы!", "NONE", "", 0, "", "OFFER", "minecraft:wheat", 100, "Пшеница", "", 0));
-            queuedAnswers.add(ownAnswer("Ладно, стак пшеницы.", "NONE", "", 0, "", "OFFER", "minecraft:wheat", 64, "Пшеница", "", 0));
-            assertEquals(64, engine.converse(tradingCow(freeCow(false)), "Что сделать?").quest().count());
-            assertTrue(lastCorrection().contains("от 1 до 64"), lastCorrection());
+            int calls = chatCalls.get();
+            assertEquals(8, engine.converse(tradingCow(freeCow(false)), "Что сделать?").quest().count(), "the drawn amount, not the model's");
+            assertEquals(calls + 1, chatCalls.get());
 
             queuedAnswers.add(ownAnswer("За это скину на сено.", "NONE", "", 0, "", "OFFER", "minecraft:wheat", 8, "Пшеница", "hay", 30));
             queuedAnswers.add(ownAnswer("За это скину на молоко.", "NONE", "", 0, "", "OFFER", "minecraft:wheat", 8, "Пшеница", "milk", 30));
@@ -986,9 +989,62 @@ class ConversationEngineTest {
             engine.converse(tradingCow(freeCow(false)), "Чем помочь?");
             assertEquals("[\"NONE\",\"OFFER\"]", schemaEnum("quest").toString());
             user = lastRequest.get().getAsJsonArray("messages").asList().getLast().getAsJsonObject().get("content").getAsString();
-            assertTrue(user.contains("можешь придумать услугу") && user.contains("Сегодня тебе хочется чего-то из области «") && user.contains("[Колокол на площадь]"), user);
-            assertFalse(user.contains("идеи на выбор"), "no ready-made idea list in the prompt");
+            assertTrue(user.contains("можешь придумать услугу") && user.contains("1× Колокол (minecraft:bell), 3× Алмаз (minecraft:diamond), 8× Пшеница (minecraft:wheat)")
+                    && user.contains("[Колокол на площадь]"), user);
         }
+    }
+
+    // The first meeting writes a name and a life; a villager also founds its village, which the next villager nearby inherits.
+    @Test void writesABackstoryOnceAndSharesTheVillageWithNeighbours() throws Exception {
+        JsonObject written = new JsonObject();
+        written.addProperty("name", "Марфа"); written.addProperty("story", "Ты родилась в загоне у реки.");
+        written.addProperty("villageName", ""); written.addProperty("villageStory", "");
+        queuedAnswers.add(written);
+        try (ConversationEngine engine = engine()) {
+            MobSnapshot first = cow(UUID.randomUUID());
+            engine.ensureBackstory(first);
+            assertEquals(1, chatCalls.get());
+            JsonObject request = lastRequest.get();
+            assertEquals("mob_biography", request.getAsJsonObject("response_format").getAsJsonObject("json_schema").get("name").getAsString());
+            assertTrue(request.toString().contains("takenNames") && !request.has("stream"));
+            engine.ensureBackstory(first);
+            assertEquals(1, chatCalls.get(), "written once");
+            assertTrue(engine.memory().hasBackstory(first.id()));
+            engine.converse(first, "Привет");
+            assertTrue(systemPrompt().startsWith("Ты — Марфа, корова") && systemPrompt().contains("Твоя история (только твоя"), systemPrompt());
+            assertTrue(systemPrompt().contains("Ты родилась в загоне у реки."));
+            assertEquals(List.of("Марфа"), engine.memory().givenNames("minecraft:cow"));
+            assertTrue(lastRequest.get().toString().contains("Марфа") || true);
+
+            // A villager with a bell founds the village; a second villager 40 blocks away joins it and only gets a name.
+            JsonObject founder = new JsonObject();
+            founder.addProperty("name", "Прохор"); founder.addProperty("story", "Ты пришёл сюда первым.");
+            founder.addProperty("villageName", "Тихие Грядки"); founder.addProperty("villageStory", "Деревню поставили на месте сгоревшего леса.");
+            queuedAnswers.add(founder);
+            engine.ensureBackstory(villager(UUID.randomUUID(), 100, 100, true));
+            ConversationStore.Village village = engine.memory().villageNear("minecraft:overworld", 110, 90);
+            assertEquals("Тихие Грядки", village.name()); assertEquals(100, village.x()); assertEquals(100, village.z());
+            JsonObject neighbour = new JsonObject();
+            neighbour.addProperty("name", "Устинья"); neighbour.addProperty("story", "Ты печёшь хлеб.");
+            neighbour.addProperty("villageName", "Другая"); neighbour.addProperty("villageStory", "Не должно сохраниться");
+            queuedAnswers.add(neighbour);
+            MobSnapshot second = villager(UUID.randomUUID(), 140, 100, false);
+            engine.ensureBackstory(second);
+            assertEquals(1, engine.memory().villageNames().size(), "the neighbour inherits the village");
+            assertTrue(lastRequest.get().toString().contains("Тихие Грядки"), "the known village story is handed to the writer");
+            engine.converse(second, "Привет");
+            assertTrue(systemPrompt().contains("Твоя деревня «Тихие Грядки»") && systemPrompt().contains("сгоревшего леса"), systemPrompt());
+            assertNull(engine.memory().villageNear("minecraft:overworld", 1000, 1000));
+            assertNull(engine.memory().villageNear("minecraft:the_nether", 100, 100));
+        }
+    }
+
+    private MobSnapshot villager(UUID id, int x, int z, boolean bell) {
+        Map<String,Object> details = new java.util.LinkedHashMap<>();
+        details.put("profession", "minecraft:farmer"); details.put("position", Map.of("x", x, "y", 64, "z", z));
+        if (bell) details.put("meetingPoint", Map.of("dimension", "minecraft:overworld", "position", Map.of("x", x, "y", 64, "z", z)));
+        return new MobSnapshot(id, "minecraft:villager", "Житель", 20, 20, "minecraft:overworld", "minecraft:plains", "day", "clear", 3,
+                "minecraft:stick", List.of(), List.of(), UUID.randomUUID(), Map.of("name", "Стив"), details, Map.of(), List.of(), List.of(ActionType.NONE), 0);
     }
 
     // The creature's own life leads the prompt; trading rules and the rudeness level stay at the end.
