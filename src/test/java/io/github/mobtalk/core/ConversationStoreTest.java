@@ -313,8 +313,11 @@ class ConversationStoreTest {
         assertEquals(TradeState.initial(), store.tradeState(mob, other, "milk"));
         assertEquals(TradeState.initial(), store.tradeState(otherMob, player, "milk"));
         assertEquals(Map.of(), store.quests(mob, other));
-        assertEquals(Map.of(), store.quests(otherMob, player));
-        store.startQuest(otherMob, player, "wolves", 3500);
+        // The whole species shares the player's quests and opened secrets; only the negotiated price stays with one mob.
+        assertEquals(Map.of("fence", new QuestState(QuestState.Status.ACTIVE, 0, 3000)), store.quests(otherMob, player));
+        assertTrue(store.tradeState(otherMob, player, "leather").unlocked());
+        assertEquals(0, store.tradeState(otherMob, player, "leather").price());
+        assertThrows(IllegalStateException.class, () -> store.startQuest(otherMob, player, "wolves", 3500), "another cow knows the fence is pending");
         List<String> events = store.events(mob);
         assertTrue(events.stream().anyMatch(e -> e.contains("секретную сделку «Кожа с подружки»")), events.toString());
         assertTrue(events.stream().anyMatch(e -> e.equals("Игрок взял задание: Почини загон")), events.toString());
@@ -327,7 +330,8 @@ class ConversationStoreTest {
         try {
             assertEquals(deals, reopened.tradeStates(mob, player));
             assertEquals(Map.of("fence", new QuestState(QuestState.Status.ACTIVE, 0, 3000)), reopened.quests(mob, player));
-            assertEquals(Map.of("wolves", new QuestState(QuestState.Status.ACTIVE, 0, 3500)), reopened.quests(otherMob, player));
+            assertEquals(Map.of("fence", new QuestState(QuestState.Status.ACTIVE, 0, 3000)), reopened.quests(otherMob, player));
+            assertTrue(reopened.tradeState(otherMob, player, "leather").unlocked());
             assertEquals(Map.of(), reopened.tradeStates(mob, other));
             assertEquals(facts, reopened.card(mob, player).events().getFirst());
             assertEquals(revision + 3, reopened.revision(mob));
@@ -350,19 +354,21 @@ class ConversationStoreTest {
         assertEquals(new TradeState(2, false, 1, 1500, 0, -1), store.tradeState(mob, player, "milk"), "3 × 75% = 2, rounds untouched");
         assertEquals(QuestState.Status.DONE, store.quests(mob, player).get("fence").status());
         assertTrue(store.events(mob).stream().anyMatch(e -> e.startsWith("Игрок Игрок выполнил задание: Почини загон")), store.events(mob).toString());
-        assertTrue(store.card(mob, player).events().getFirst().contains("выполнил задания: Почини загон"));
+        assertTrue(store.card(mob, player).events().getFirst().contains("выполнил задания (это знают все сородичи): Почини загон"));
         assertThrows(IllegalStateException.class, () -> store.completeQuest(mob, player, "fence", "Игрок", 2001), "no second payout");
         assertThrows(IllegalStateException.class, () -> store.startQuest(mob, player, "fence", 2002), "cannot restart a done quest");
         assertEquals(30, store.card(mob, player).relationship());
         store.startQuest(mob, player, "wolves", 2100);
         assertEquals(List.of("wolves"), store.quests(mob, player).entrySet().stream().filter(e -> e.getValue().status() == QuestState.Status.ACTIVE).map(Map.Entry::getKey).toList());
-        // Discount from the catalog price, then its floor: a second pass on an already cheap deal stops at floorPrice.
+        // A second cow already knows the fence is done: it cannot ask again, shows the opened secret, but keeps its own full price.
         UUID second = UUID.randomUUID();
         store.observe(cow(second, player, 0, Map.of()));
-        store.startQuest(second, player, "fence", 3000);
-        store.completeQuest(second, player, "fence", "Игрок", 3100);
-        assertEquals(4, store.tradeState(second, player, "milk").price(), "6 × 75% = 4 from the catalog price");
-        assertEquals(TradeState.initial(), store.tradeState(second, player, "hay"), "untouched deals stay initial");
+        assertThrows(IllegalStateException.class, () -> store.startQuest(second, player, "fence", 3000));
+        assertEquals(QuestState.Status.DONE, store.quests(second, player).get("fence").status());
+        assertTrue(store.tradeState(second, player, "leather").unlocked());
+        assertEquals(0, store.tradeState(second, player, "milk").price(), "the discount went to the giver only");
+        assertEquals(0, store.card(second, player).relationship(), "so did the gratitude");
+        assertTrue(store.card(second, player).events().getFirst().contains("выполнил задания (это знают все сородичи): Почини загон"));
         // Hostile species: the reward cannot lift the relationship above the hostile ceiling.
         store.observe(new MobSnapshot(zombie, "minecraft:zombie", "Зомби", 10, 10, "minecraft:overworld", "minecraft:plains",
                 "night", "clear", 2, "minecraft:stick", List.of(), List.of(), player, Map.of("name", "Игрок"), Map.of(), Map.of(), List.of(), List.of(ActionType.NONE), 0));
@@ -388,7 +394,6 @@ class ConversationStoreTest {
         store.observe(cow(otherMob, other, 0, Map.of()));
         assertEquals(0, store.recordKill(player, "minecraft:wolf"), "nothing active");
         store.startQuest(mob, player, "wolves", 1000);
-        store.startQuest(otherMob, player, "fence", 1000);
         store.startQuest(otherMob, other, "wolves", 1000);
         long revision = store.revision(mob), otherRevision = store.revision(otherMob);
         assertEquals(0, store.recordKill(player, "minecraft:cow"));
@@ -398,9 +403,9 @@ class ConversationStoreTest {
         assertEquals(0, store.recordKill(player, "minecraft:wolf"), "saturated at count");
         assertEquals(2, store.quests(mob, player).get("wolves").progress());
         assertEquals(0, store.quests(otherMob, other).get("wolves").progress(), "another player's quest");
-        assertEquals(0, store.quests(otherMob, player).get("fence").progress(), "a BRING quest ignores kills");
+        assertEquals(2, store.quests(otherMob, player).get("wolves").progress(), "the whole species counts the same kills");
         assertEquals(revision + 2, store.revision(mob));
-        assertEquals(otherRevision, store.revision(otherMob));
+        assertEquals(otherRevision + 2, store.revision(otherMob), "the other cow knows this player too");
         assertTrue(Trading.canComplete(TradeCatalog.quest("minecraft:cow", "wolves"), store.quests(mob, player).get("wolves"), Map.of()));
         assertEquals(10, store.completeQuest(mob, player, "wolves", "Игрок", 5000).relationship());
         assertEquals(10, store.card(mob, player).relationship());

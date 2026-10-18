@@ -59,6 +59,9 @@ public final class ConversationStore {
                     if (!Files.exists(backup)) Files.copy(file, backup);
                 }
                 if (state.bargains == null) state.bargains = new LinkedHashMap<>();
+                if (state.species == null) state.species = new LinkedHashMap<>();
+                state.species.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null);
+                state.species.values().forEach(ConversationStore::sanitize);
                 migrated = state.version < 2;
                 for (var entry : state.profiles.entrySet()) {
                     Profile p = entry.getValue();
@@ -74,7 +77,7 @@ public final class ConversationStore {
                     while (p.events.size() > 20) p.events.removeFirst();
                     if (p.relations == null) p.relations = new LinkedHashMap<>();
                     p.relations.entrySet().removeIf(e -> e.getValue() == null);
-                    p.relations.values().forEach(r -> { r.score = clamp(r.score, hostile(p)); sanitize(r); });
+                    p.relations.forEach((player, r) -> { r.score = clamp(r.score, hostile(p)); sanitize(r); adopt(p.type, player, r); });
                     if (p.action == null) p.action = ActionIntent.none();
                     if (p.traits == null) p.traits = new ArrayList<>();
                     if (migrated) p.variantSlot = -1;
@@ -145,20 +148,34 @@ public final class ConversationStore {
         if (profile != null) profile.revision++;
         scheduleSave();
     }
-    // ---- Deals and quests of the mob's own catalog (trades.json): per mob, per player. ----
-    // Reads never create anything; writes need an existing profile (the mob was observed first) and a real player.
-    // The store does not check ids against TradeCatalog: the game layer validates intents through Trading before calling.
+    // ---- Deals and quests of the mob's own catalog (trades.json). ----
+    // Negotiated prices and stock are per mob and player; quests and opened secrets are shared by the whole species for that
+    // player (a village does not ask for the same bell twice). Reads never create anything; writes need an existing profile
+    // and a real player. Ids are not checked against TradeCatalog here: the game layer validates intents through Trading first.
 
     /** Never null: a deal the player has not touched yet is {@link TradeState#initial()}. */
     public synchronized TradeState tradeState(UUID mob, UUID player, String dealId) {
-        Relation r = existing(mob, player);
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        Relation r = p == null || player == null ? null : p.relations.get(player.toString());
         TradeState state = r == null || dealId == null ? null : r.deals.get(dealId);
-        return state == null ? TradeState.initial() : state;
+        return withUnlocks(p, player, dealId, state == null ? TradeState.initial() : state);
     }
     /** All deal states of this player with this mob, keyed by deal id; missing deals are initial. */
     public synchronized Map<String, TradeState> tradeStates(UUID mob, UUID player) {
-        Relation r = existing(mob, player);
-        return r == null ? Map.of() : Collections.unmodifiableMap(new LinkedHashMap<>(r.deals));
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        if (p == null || player == null) return Map.of();
+        Relation r = p.relations.get(player.toString());
+        Map<String,TradeState> result = new LinkedHashMap<>();
+        if (r != null) r.deals.forEach((id, value) -> result.put(id, withUnlocks(p, player, id, value)));
+        Shared shared = state.species.get(sharedKey(p.type, player));
+        if (shared != null) for (String id : shared.unlocked) result.computeIfAbsent(id, ignored -> withUnlocks(p, player, id, TradeState.initial()));
+        return Collections.unmodifiableMap(result);
+    }
+    private TradeState withUnlocks(Profile p, UUID player, String dealId, TradeState value) {
+        if (p == null || player == null || value.unlocked()) return value;
+        Shared shared = state.species.get(sharedKey(p.type, player));
+        return shared != null && shared.unlocked.contains(dealId)
+                ? new TradeState(value.price(), true, value.rounds(), value.sessionStartMillis(), value.boughtToday(), value.boughtDay()) : value;
     }
     /** Stores an accepted OFFER (already checked with Trading.permitted) and bumps the profile revision. */
     public synchronized void setDealPrice(UUID mob, UUID player, String dealId, int price, long nowMillis) {
@@ -168,10 +185,8 @@ public final class ConversationStore {
     }
     /** Opens a secret deal for this player (already checked with Trading.canUnlock) and records an event. */
     public synchronized void unlockDeal(UUID mob, UUID player, String dealId, long nowMillis) {
-        Profile p = require(mob); Relation r = tradingRelation(p, player);
-        TradeState state = r.deals.getOrDefault(dealId, TradeState.initial());
-        if (state.unlocked()) return;
-        r.deals.put(dealId, new TradeState(state.price(), true, state.rounds(), state.sessionStartMillis(), state.boughtToday(), state.boughtDay()));
+        Profile p = require(mob); tradingRelation(p, player);
+        if (!shared(p.type, player).unlocked.add(dealId)) return;
         p.revision++;
         event(p, nowMillis, "Открыл игроку секретную сделку «" + dealName(p, dealId) + "»"); scheduleSave();
     }
@@ -189,18 +204,20 @@ public final class ConversationStore {
     }
     /** All quest states of this player with this mob, keyed by quest id. */
     public synchronized Map<String, QuestState> quests(UUID mob, UUID player) {
-        Relation r = existing(mob, player);
-        return r == null ? Map.of() : Collections.unmodifiableMap(new LinkedHashMap<>(r.quests));
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        Shared shared = p == null || player == null ? null : state.species.get(sharedKey(p.type, player));
+        return shared == null ? Map.of() : Collections.unmodifiableMap(new LinkedHashMap<>(shared.quests));
     }
-    /** Makes a catalog quest ACTIVE for this player; at most one ACTIVE quest per mob and player. */
+    /** Makes a catalog quest ACTIVE for this player; at most one ACTIVE quest per species and player. */
     public synchronized void startQuest(UUID mob, UUID player, String questId, long nowMillis) {
-        Profile p = require(mob); Relation r = tradingRelation(p, player);
-        QuestState current = r.quests.get(questId);
+        Profile p = require(mob); tradingRelation(p, player);
+        Shared shared = shared(p.type, player);
+        QuestState current = shared.quests.get(questId);
         if (current != null && current.status() == QuestState.Status.ACTIVE) return;
         if (current != null) throw new IllegalStateException("Задание «" + questTitle(p, questId) + "» уже выполнено.");
-        for (var entry : r.quests.entrySet()) if (entry.getValue().status() == QuestState.Status.ACTIVE)
+        for (var entry : shared.quests.entrySet()) if (entry.getValue().status() == QuestState.Status.ACTIVE)
             throw new IllegalStateException("Сначала нужно закончить задание «" + questTitle(p, entry.getKey()) + "».");
-        r.quests.put(questId, new QuestState(QuestState.Status.ACTIVE, 0, nowMillis));
+        shared.quests.put(questId, new QuestState(QuestState.Status.ACTIVE, 0, nowMillis));
         p.revision++;
         event(p, nowMillis, "Игрок взял задание: " + questTitle(p, questId)); scheduleSave();
     }
@@ -210,16 +227,19 @@ public final class ConversationStore {
         if (player == null || entityType == null || entityType.isBlank()) return 0;
         String target = canonical(entityType.trim());
         int advanced = 0;
-        for (Profile p : state.profiles.values()) {
-            Relation r = p.relations.get(player.toString());
-            if (r == null) continue;
-            for (var entry : r.quests.entrySet()) {
+        String suffix = ":" + player;
+        for (var shared : state.species.entrySet()) {
+            if (!shared.getKey().endsWith(suffix)) continue;
+            String type = shared.getKey().substring(0, shared.getKey().length() - suffix.length());
+            for (var entry : shared.getValue().quests.entrySet()) {
                 QuestState s = entry.getValue();
-                QuestDefinition quest = TradeCatalog.quest(p.type, entry.getKey());
+                QuestDefinition quest = TradeCatalog.quest(type, entry.getKey());
                 if (s.status() != QuestState.Status.ACTIVE || quest == null || quest.kind() != QuestDefinition.Kind.KILL
                         || !quest.target().equals(target) || s.progress() >= quest.count()) continue;
                 entry.setValue(new QuestState(QuestState.Status.ACTIVE, s.progress() + 1, s.startedMillis()));
-                p.revision++; advanced++;
+                advanced++;
+                // Every mob of the species that knows this player may be mid-answer about the old progress.
+                for (Profile p : state.profiles.values()) if (p.type.equals(type) && p.relations.containsKey(player.toString())) p.revision++;
             }
         }
         if (advanced > 0) scheduleSave();
@@ -229,17 +249,16 @@ public final class ConversationStore {
      * The caller has already verified and taken the items for a BRING quest. Returns the reward applied. */
     public synchronized QuestDefinition.Reward completeQuest(UUID mob, UUID player, String questId, String playerName, long nowMillis) {
         Profile p = require(mob); Relation r = tradingRelation(p, player);
-        QuestState current = r.quests.get(questId);
+        Shared shared = shared(p.type, player);
+        QuestState current = shared.quests.get(questId);
         if (current == null || current.status() != QuestState.Status.ACTIVE)
             throw new IllegalStateException("Задание «" + questTitle(p, questId) + "» сейчас не выполняется.");
         QuestDefinition quest = TradeCatalog.quest(p.type, questId);
         QuestDefinition.Reward reward = quest == null ? new QuestDefinition.Reward(0, "", "", 0) : quest.reward();
-        r.quests.put(questId, new QuestState(QuestState.Status.DONE, current.progress(), current.startedMillis()));
+        shared.quests.put(questId, new QuestState(QuestState.Status.DONE, current.progress(), current.startedMillis()));
+        // The giver warms up and lowers its own price; the opened secret is known to the whole species.
         if (reward.relationship() != 0) r.score = clamp(r.score + reward.relationship(), hostile(p));
-        if (!reward.unlockDeal().isEmpty()) {
-            TradeState s = r.deals.getOrDefault(reward.unlockDeal(), TradeState.initial());
-            r.deals.put(reward.unlockDeal(), new TradeState(s.price(), true, s.rounds(), s.sessionStartMillis(), s.boughtToday(), s.boughtDay()));
-        }
+        if (!reward.unlockDeal().isEmpty()) shared.unlocked.add(reward.unlockDeal());
         TradeDeal discounted = TradeCatalog.deal(p.type, reward.discountDeal());
         if (discounted != null && reward.discountPercent() > 0) {
             TradeState s = r.deals.getOrDefault(discounted.id(), TradeState.initial());
@@ -251,9 +270,20 @@ public final class ConversationStore {
         event(p, nowMillis, "Игрок " + safePlayer(playerName) + " выполнил задание: " + questTitle(p, questId) + "; отношение " + r.score); scheduleSave();
         return reward;
     }
-    private Relation existing(UUID mob, UUID player) {
-        Profile p = mob == null ? null : state.profiles.get(mob.toString());
-        return p == null || player == null ? null : p.relations.get(player.toString());
+    private static String sharedKey(String type, UUID player) { return type + ":" + player; }
+    private Shared shared(String type, UUID player) { return state.species.computeIfAbsent(sharedKey(type, player), ignored -> new Shared()); }
+    /** 0.3.0 kept quests and unlocks per mob; fold them into the species record so a village remembers the bell it got. */
+    private void adopt(String type, String player, Relation r) {
+        if (r.quests.isEmpty() && r.deals.values().stream().noneMatch(TradeState::unlocked)) return;
+        Shared shared = state.species.computeIfAbsent(type + ":" + player, ignored -> new Shared());
+        r.quests.forEach((id, value) -> {
+            QuestState known = shared.quests.get(id);
+            boolean active = shared.quests.values().stream().anyMatch(q -> q.status() == QuestState.Status.ACTIVE);
+            if (value.status() == QuestState.Status.DONE) shared.quests.put(id, value);
+            else if (known == null && !active) shared.quests.put(id, value);
+        });
+        r.deals.forEach((id, value) -> { if (value.unlocked()) shared.unlocked.add(id); });
+        r.quests.clear();
     }
     private Relation tradingRelation(Profile p, UUID player) {
         if (player == null) throw new IllegalArgumentException("Сделки и задания требуют игрока.");
@@ -267,6 +297,12 @@ public final class ConversationStore {
         r.deals.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null);
         if (r.quests == null) r.quests = new LinkedHashMap<>();
         r.quests.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null || e.getValue().status() == null);
+    }
+    private static void sanitize(Shared shared) {
+        if (shared.quests == null) shared.quests = new LinkedHashMap<>();
+        shared.quests.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null || e.getValue().status() == null);
+        if (shared.unlocked == null) shared.unlocked = new LinkedHashSet<>();
+        shared.unlocked.removeIf(Objects::isNull);
     }
 
     public synchronized List<String> events(UUID mob) { Profile p = state.profiles.get(mob.toString()); return p == null ? List.of() : p.events.stream().map(e -> e.text).toList(); }
@@ -406,16 +442,17 @@ public final class ConversationStore {
                 if (r.lastInsult >= 0) facts.append("; его реплика распознана как оскорбление");
                 if (r.lastThreat >= 0) facts.append("; он угрожал убийством");
                 if (r.lastPurchase >= 0) facts.append("; он уже покупал у моба");
-                List<String> unlocked = r.deals.entrySet().stream().filter(e -> e.getValue().unlocked()).map(e -> dealName(p, e.getKey())).toList();
+                Shared shared = state.species.getOrDefault(sharedKey(p.type, player), new Shared());
+                List<String> unlocked = shared.unlocked.stream().map(id -> dealName(p, id)).toList();
                 if (!unlocked.isEmpty()) facts.append("; ему открыты секретные сделки: ").append(String.join(", ", unlocked));
-                for (var entry : r.quests.entrySet()) {
+                for (var entry : shared.quests.entrySet()) {
                     QuestDefinition quest = TradeCatalog.quest(p.type, entry.getKey());
                     if (entry.getValue().status() == QuestState.Status.ACTIVE)
                         facts.append("; выполняет задание «").append(questTitle(p, entry.getKey())).append("»")
                                 .append(quest != null && quest.kind() == QuestDefinition.Kind.KILL ? " (" + entry.getValue().progress() + "/" + quest.count() + ")" : "");
                 }
-                List<String> done = r.quests.entrySet().stream().filter(e -> e.getValue().status() == QuestState.Status.DONE).map(e -> questTitle(p, e.getKey())).toList();
-                if (!done.isEmpty()) facts.append("; выполнил задания: ").append(String.join(", ", done));
+                List<String> done = shared.quests.entrySet().stream().filter(e -> e.getValue().status() == QuestState.Status.DONE).map(e -> questTitle(p, e.getKey())).toList();
+                if (!done.isEmpty()) facts.append("; выполнил задания (это знают все сородичи): ").append(String.join(", ", done));
             }
             if (score < 0 && hits == 0 && (r == null || r.lastInsult < 0 && r.lastThreat < 0))
                 facts.append(hostile(p) ? "; есть исходная видовая враждебность" : "; конкретная личная причина неприязни не сохранена");
@@ -451,6 +488,7 @@ public final class ConversationStore {
                 snapshot = new State();
                 state.profiles.forEach((key, p) -> snapshot.profiles.put(key, copy(p)));
                 snapshot.bargains.putAll(state.bargains); // Sessions are immutable records.
+                state.species.forEach((key, shared) -> { Shared c = new Shared(); c.quests.putAll(shared.quests); c.unlocked.addAll(shared.unlocked); snapshot.species.put(key, c); });
             }
             try { write(snapshot); synchronized (this) { saveFailure = null; } }
             catch (IOException failure) { synchronized (this) { saveFailure = failure; dirty = true; writing = false; } return; }
@@ -495,9 +533,12 @@ public final class ConversationStore {
         int score, hits; long lastHelp = -1, lastApology = -1, lastInsult = -1, lastThreat = -1, lastPurchase = -1; boolean ownerKnown;
         Map<String,TradeState> deals = new LinkedHashMap<>(); Map<String,QuestState> quests = new LinkedHashMap<>();
     }
+    /** What a whole species knows about one player: key "type:player". */
+    private static final class Shared { Map<String,QuestState> quests = new LinkedHashMap<>(); Set<String> unlocked = new LinkedHashSet<>(); }
     private static final class State {
         int version = 2;
         Map<String,Profile> profiles = new LinkedHashMap<>();
         Map<String,Bargaining.Session> bargains = new LinkedHashMap<>();
+        Map<String,Shared> species = new LinkedHashMap<>();
     }
 }
