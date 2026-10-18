@@ -23,6 +23,9 @@ final class BoundedHttp implements AutoCloseable {
             .followRedirects(HttpClient.Redirect.NEVER).build();
     private static final java.util.concurrent.ConcurrentHashMap<String, Long> lastUse = new java.util.concurrent.ConcurrentHashMap<>();
     private static final long KEEP_WARM_NANOS = TimeUnit.SECONDS.toNanos(10);
+    /** Where the first bytes of an error response go (the provider's reason for a 4xx), never the player's screen. */
+    static volatile java.util.function.Consumer<String> diagnostics = line -> { };
+    private static final int ERROR_BODY_BYTES = 4096;
     private final java.util.Set<CompletableFuture<?>> inFlight = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private volatile boolean closed;
     private final int timeoutSeconds;
@@ -213,17 +216,18 @@ final class BoundedHttp implements AutoCloseable {
         @Override public CompletionStage<byte[]> getBody() { return body; }
         @Override public void onSubscribe(Flow.Subscription subscription) {
             this.subscription = subscription;
-            if (status != 200) fail(service + ": ошибка HTTP " + status + ".", status);
-            else subscription.request(1);
+            subscription.request(1); // An error body is read too: its first line says why the provider refused.
         }
         @Override public void onNext(List<ByteBuffer> buffers) {
             if (body.isDone()) return;
+            int limit = status == 200 ? maxBytes : ERROR_BODY_BYTES;
             for (ByteBuffer buffer : buffers) {
-                if (buffer.remaining() > maxBytes - output.size()) {
+                int room = limit - output.size();
+                if (status == 200 && buffer.remaining() > room) {
                     fail(service + ": ответ превышает допустимый размер.");
                     return;
                 }
-                byte[] bytes = new byte[buffer.remaining()];
+                byte[] bytes = new byte[Math.min(buffer.remaining(), Math.max(0, room))];
                 buffer.get(bytes);
                 output.writeBytes(bytes);
             }
@@ -232,7 +236,12 @@ final class BoundedHttp implements AutoCloseable {
         @Override public void onError(Throwable ignored) {
             body.completeExceptionally(new SafeFailure(service + ": соединение прервано."));
         }
-        @Override public void onComplete() { body.complete(output.toByteArray()); }
+        @Override public void onComplete() {
+            if (status == 200) { body.complete(output.toByteArray()); return; }
+            String reason = output.toString(java.nio.charset.StandardCharsets.UTF_8).replaceAll("\\s+", " ").strip();
+            diagnostics.accept(service + " HTTP " + status + ": " + (reason.length() > 400 ? reason.substring(0, 400) + "…" : reason));
+            body.completeExceptionally(new SafeFailure(service + ": ошибка HTTP " + status + ".", status));
+        }
         private void fail(String message) {
             fail(message, -1);
         }

@@ -180,7 +180,10 @@ public final class ConversationEngine implements AutoCloseable {
     public ConversationStore memory() { return store; }
 
     /** Where one-line diagnostics go (rejected intents and their corrections); the game points this at its log. */
-    public static void setDiagnostics(java.util.function.Consumer<String> sink) { OpenRouterConversationClient.diagnostics = sink == null ? line -> { } : sink; }
+    public static void setDiagnostics(java.util.function.Consumer<String> sink) {
+        OpenRouterConversationClient.diagnostics = sink == null ? line -> { } : sink;
+        BoundedHttp.diagnostics = sink == null ? line -> { } : sink;
+    }
 
     /** Writes the mob's life story (and its village's, for the first villager met there) once; later calls return at once.
      * One model request; safe to call from any worker, never from the game thread. */

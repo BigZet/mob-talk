@@ -176,6 +176,8 @@ public final class MobTalkClient implements ClientModInitializer {
     static final String AIM_HINT = "Наведите прицел на моба и удерживайте V";
     /** How often a bystander is asked about an exchange with nothing in it. */
     static final double SMALL_TALK_CHANCE = 0.35;
+    /** How long a first reply waits for the life story still being written before answering without it. */
+    static final int STORY_PATIENCE_SECONDS = 8;
 
     /** The living mob under the crosshair within the conversation range, or null; a dragon part counts as the dragon. */
     MobEntity aimedMob() { return aimedMob(config.maxDistance); }
@@ -572,13 +574,11 @@ public final class MobTalkClient implements ClientModInitializer {
                     // The story asked for on selection is usually still being written: wait for it rather than ask twice.
                     // A bystander gets its story when the player turns to it: one extra request per passer-by would be too slow.
                     updateStatus(request, "Моб вспоминает, кто он…");
+                    // Wait a little for the story in flight; past that the mob answers without it and the story lands for the next reply.
                     CompletableFuture<Void> story = storiesInFlight.get(request.target);
-                    if (story != null) { try { story.get(60, TimeUnit.SECONDS); } catch (Exception late) { /* The inline attempt below covers it. */ } }
-                    checkCurrent(request);
-                    if (!game.memory.hasBackstory(request.target)) {
-                        try { localEngine.ensureBackstory(snapshot); }
-                        catch (java.io.IOException noStory) { LOGGER.warn("Mob Talk backstory not written yet: {}", String.valueOf(noStory.getMessage())); }
-                    }
+                    if (story != null) { try { story.get(STORY_PATIENCE_SECONDS, TimeUnit.SECONDS); } catch (Exception late) { /* Answer now, story later. */ } }
+                    else { try { localEngine.ensureBackstory(snapshot); }
+                        catch (java.io.IOException noStory) { LOGGER.warn("Mob Talk backstory not written yet: {}", String.valueOf(noStory.getMessage())); } }
                     checkCurrent(request);
                     updateStatus(request, "Моб думает и готовит голос…");
                 }

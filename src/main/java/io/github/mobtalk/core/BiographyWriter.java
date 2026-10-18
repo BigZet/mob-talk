@@ -38,7 +38,7 @@ final class BiographyWriter {
         JsonArray messages = new JsonArray();
         messages.add(ReplySchema.message("system", instructions(facts)));
         messages.add(ReplySchema.message("user", "Факты о персонаже: " + factsJson(species, facts)));
-        JsonObject body = client.body(messages, 2048, retry ? 0.8 : 1.0, ReplySchema.biographyFormat(), false);
+        JsonObject body = client.body(messages, 1200, retry ? 0.8 : 1.0, ReplySchema.biographyFormat(), false);
         byte[] bytes = client.complete(body);
         try {
             JsonObject response = JsonParser.parseString(new String(bytes, StandardCharsets.UTF_8)).getAsJsonObject();
@@ -63,7 +63,7 @@ final class BiographyWriter {
         return "Ты сочиняешь биографию персонажа для мода Minecraft 1.21.1, где игрок разговаривает с мобами голосом. Аудитория взрослая. "
                 + "Пиши по-русски, конкретно и по-майнкрафтовски: места, события, вещи и мобы из игры, а не абстракции. Без упоминания игрока и без морали.\n"
                 + "name — имя или кличка в одно-два слова, в духе персонажа и вида (у животных — кличка, у жителя — имя, у монстров — прозвище); не из списка занятых.\n"
-                + "story — 3–5 предложений во втором лице («Ты родился…»): откуда ты, одно событие, которое тебя изменило, кого или что ты потерял или ищешь, "
+                + "story — 3–4 коротких предложения во втором лице («Ты родился…»): откуда ты, одно событие, которое тебя изменило, кого или что ты потерял или ищешь, "
                 + "одна странность или привычка. Всё должно сочетаться с характером и с тем, где персонаж стоит сейчас.\n"
                 + "desire — одно-два предложения: чего именно ЭТОТ персонаж хочет от жизни (конкретная, достижимая в Minecraft цель). "
                 + "secret — одно-два предложения: что он скрывает и выдаёт только другу. typicalDesire и typicalSecret в фактах — лишь то, что обычно бывает у этого вида: "
