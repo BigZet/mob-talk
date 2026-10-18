@@ -63,7 +63,7 @@ final class OpenRouterConversationClient implements AutoCloseable {
             Торгуйся с личностью: жадничай, гордись, жалей, вредничай, хитри — но все цифры только из данных.
             """;
     private static final String NO_TRADE = "bargain всегда {type:NONE,offerIndex:-1,price:0}: ты сейчас не торгуешь.";
-    private static final String NO_OWN_TRADE = "Своей торговли у тебя нет, ты ничего не продаёшь: deal всегда {type:NONE,id:\"\",price:0}, unlock всегда \"\", quest всегда {type:NONE,id:\"\"}.";
+    private static final String NO_OWN_TRADE = "Своей торговли у тебя нет, ты ничего не продаёшь: deal всегда {type:NONE,id:\"\",price:0}, unlock всегда \"\", quest всегда {type:NONE,item:\"\",count:0,title:\"\",rewardDeal:\"\",rewardPercent:0}.";
     private static final String DEAL_RULES = """
             Твои собственные сделки и услуги (mobDetails.trading; покупка происходит в торговом окне твоих сделок, которое игрок открывает сам, не словами — товар не выдавай и не говори, что обмен уже состоялся):
             deal — {type:NONE|OFFER|DECLINE,id:строка,price:целое}: твой ход по одной из своих сделок trading.deals. NONE — сделка в этой реплике не обсуждается (id="", price=0).
@@ -71,8 +71,10 @@ final class OpenRouterConversationClient implements AutoCloseable {
             Пока игрок не просит уступить, называй currentPrice и уступок не делай (deal NONE). Выбирай OFFER и когда уступаешь сам в ответ на торг, и когда соглашаешься на число игрока, если оно есть в allowedPrices; иначе предложи minPrice или откажи. DECLINE — отказ уступить по сделке id (price=0).
             Никогда не говори, что цена снижена или вы договорились, если deal.type не OFFER. Текст reply обязан называть ту же цену, что и deal.
             unlock — id секретной сделки из trading.secret, которую ты прямо сейчас открываешь игроку, иначе "". Открывать можно только при canUnlockNow=true; пока условия не выполнены (отношение, задание) — намекай, набивай цену, но не открывай и товар не называй.
-            quest — {type:NONE|OFFER|COMPLETE,id:строка}. OFFER — ты поручаешь игроку услугу из quests.available, и он берётся за неё сразу. Поручай только когда игрок сам предложил помощь, спросил, что тебе нужно, или добивается закрытого и секретного — и не чаще одного раза за разговор. На приветствие, болтовню, вопрос о товарах или цене — quest NONE: о своей нужде можно обмолвиться вскользь, без «принеси» и без списка. Не каждый разговор должен кончаться поручением.
-            COMPLETE — ты признаёшь услугу из quests.active выполненной, только при canComplete=true; пока прогресс меньше count — не считай её сделанной. Иначе NONE, id="".
+            quest — {type:NONE|OFFER|COMPLETE,item:строка,count:целое,title:строка,rewardDeal:строка,rewardPercent:целое}: услуга, которую ты сам придумываешь и просишь у игрока.
+            OFFER — ты просишь принести тебе count (1–64) предметов item: это настоящий id предмета Minecraft 1.21.1 вида minecraft:oak_fence, который ты выбираешь сам по своей жизни, желанию и характеру (trading.favor.ideas — лишь подсказки, можно взять свою). Зачем тебе это — говори в реплике. title — название услуги в два-четыре слова. rewardDeal — какую из своих сделок (id из deals или secret) ты обещаешь за это: закрытая секретная откроется, а rewardPercent (0–50) снизит её цену навсегда; можно ничего не обещать (rewardDeal "", rewardPercent 0).
+            Проси услугу только когда игрок сам предложил помощь, спросил, что тебе нужно, или добивается закрытого и секретного, и только при favor.canAsk=true — не чаще одного раза за разговор. На приветствие, болтовню, вопрос о товарах или цене — quest NONE: о своей нужде можно обмолвиться вскользь, без «принеси» и без списка. Не каждый разговор должен кончаться просьбой.
+            COMPLETE — ты принимаешь принесённое по favor.active, только при canComplete=true (игрок несёт нужное количество; игра заберёт предметы сама); пока have меньше count — не принимай и скажи, чего не хватает. Иначе NONE с пустыми полями.
             """;
     private static final String TRADE_CLOSED = "bargain сейчас {type:NONE,offerIndex:-1,price:0}. Ты торгуешь (товары в mobDetails.offers) и можешь торговаться о цене голосом, "
             + "но скидка возможна только когда игрок открыл окно торговли и выбрал товар — так и скажи, если он просит уступить. "
@@ -156,7 +158,7 @@ final class OpenRouterConversationClient implements AutoCloseable {
                     // Two invalid trades in a row: answer in character without bargaining instead of failing the conversation.
                     messages.add(message("system", "Торг в этом ответе невозможен. Ответь по характеру без новой цены, без обещания скидки, "
                             + "без открытия секретов и без зачёта заданий; если игрок хочет другой товар жителя, попроси выбрать его строку в окне торговли. "
-                            + "bargain: type NONE, offerIndex -1, price 0. deal: type NONE, id \"\", price 0. unlock: \"\". quest: type NONE, id \"\"."));
+                            + "bargain: type NONE, offerIndex -1, price 0. deal: type NONE, id \"\", price 0. unlock: \"\". quest: type NONE, item \"\", count 0, title \"\", rewardDeal \"\", rewardPercent 0."));
                     if (!jsonObjectOnly) {
                         JsonObject properties = body.getAsJsonObject("response_format").getAsJsonObject("json_schema").getAsJsonObject("schema").getAsJsonObject("properties");
                         for (String intent : List.of("bargain", "deal", "quest"))
@@ -499,13 +501,10 @@ final class OpenRouterConversationClient implements AutoCloseable {
         return snapshot.mobDetails().get("trading") instanceof Map<?,?> map && !map.isEmpty() ? map : null;
     }
     private static List<?> items(Map<?,?> source, String field) { return source != null && source.get(field) instanceof List<?> list ? list : List.of(); }
-    private static Map<?,?> quests(MobSnapshot snapshot) { Map<?,?> trading = trading(snapshot); return trading != null && trading.get("quests") instanceof Map<?,?> map ? map : null; }
+    private static Map<?,?> favor(MobSnapshot snapshot) { Map<?,?> trading = trading(snapshot); return trading != null && trading.get("favor") instanceof Map<?,?> map ? map : null; }
+    private static Map<?,?> activeFavor(MobSnapshot snapshot) { Map<?,?> favor = favor(snapshot); return favor != null && favor.get("active") instanceof Map<?,?> map ? map : null; }
     private static boolean ownDeals(MobSnapshot snapshot) { return !items(trading(snapshot), "deals").isEmpty(); }
-    private static boolean ownTrading(MobSnapshot snapshot) {
-        Map<?,?> quests = quests(snapshot);
-        return ownDeals(snapshot) || !items(trading(snapshot), "secret").isEmpty()
-                || !items(quests, "available").isEmpty() || !items(quests, "active").isEmpty() || !items(quests, "done").isEmpty();
-    }
+    private static boolean ownTrading(MobSnapshot snapshot) { return ownDeals(snapshot) || !items(trading(snapshot), "secret").isEmpty(); }
     private static boolean sellsAnything(MobSnapshot snapshot) { return ownTrading(snapshot) || villagerOffers(snapshot); }
 
     private static String dealRules(MobSnapshot snapshot) { return ownTrading(snapshot) ? DEAL_RULES : NO_OWN_TRADE; }
@@ -532,10 +531,10 @@ final class OpenRouterConversationClient implements AutoCloseable {
     }
 
     static List<String> permittedQuestTypes(MobSnapshot snapshot) {
-        Map<?,?> quests = quests(snapshot);
+        Map<?,?> favor = favor(snapshot);
         List<String> types = new java.util.ArrayList<>(List.of("NONE"));
-        if (!items(quests, "available").isEmpty()) types.add("OFFER");
-        if (!items(quests, "active").isEmpty()) types.add("COMPLETE");
+        if (favor != null && Boolean.TRUE.equals(favor.get("canAsk"))) types.add("OFFER");
+        if (activeFavor(snapshot) != null) types.add("COMPLETE");
         return List.copyOf(types);
     }
 
@@ -580,37 +579,38 @@ final class OpenRouterConversationClient implements AutoCloseable {
         StringBuilder why = new StringBuilder("Сделка «" + id + "» ещё закрыта: ");
         if (secret.get("unlockRelationship") instanceof Number needed && relationship < needed.intValue())
             why.append("отношение ").append(relationship).append(" из ").append(needed).append("; ");
-        if (secret.get("unlockQuest") instanceof String quest && !quest.isBlank()) why.append("нужно выполнить задание «").append(quest).append("»; ");
+        if (Boolean.TRUE.equals(secret.get("requiresFavor"))) why.append("сначала игрок должен оказать тебе услугу; ");
         if (secret.get("reason") instanceof String reason && !reason.isBlank()) why.append(reason).append("; ");
         throw new RejectedBargain(why + "намекни, что есть кое-что для своих, но не открывай и товар не называй (unlock \"\").", true, true);
     }
 
-    /** OFFER only from the available list; COMPLETE only when the game has counted the items or kills. */
+    /** OFFER only while no favour is pending, for a real item in a sane amount; COMPLETE only when the game counted the items. */
     private static QuestIntent validateQuest(JsonObject quest, MobSnapshot snapshot) throws RejectedBargain {
         QuestIntent.Type type;
-        String id;
-        try {
-            type = QuestIntent.Type.valueOf(string(quest, "type").toUpperCase(Locale.ROOT));
-            if (type == QuestIntent.Type.NONE) return QuestIntent.none();
-            id = string(quest, "id");
-        } catch (RuntimeException malformed) { return QuestIntent.none(); }
-        Map<?,?> quests = quests(snapshot);
-        List<?> available = items(quests, "available"), active = items(quests, "active"), done = items(quests, "done");
-        Map<?,?> activeQuest = entry(active, id);
-        if (type == QuestIntent.Type.OFFER) {
-            if (entry(available, id) != null) return new QuestIntent(type, id);
-            if (activeQuest != null) throw new RejectedBargain("Задание «" + id + "» игрок уже взял (прогресс " + activeQuest.get("progress") + " из "
-                    + activeQuest.get("count") + "): не поручай его снова — quest NONE, а в реплике напомни, чего ждёшь.", true, true);
-            throw new RejectedBargain((done.contains(id) ? "Задание «" + id + "» уже выполнено. " : "Задания «" + id + "» у тебя нет. ")
-                    + "Поручить можно только из quests.available: " + ids(available) + (active.isEmpty() ? "" : " (одно задание уже активно)")
-                    + "; если поручать нечего — quest NONE.", true, true);
+        try { type = QuestIntent.Type.valueOf(string(quest, "type").toUpperCase(Locale.ROOT)); }
+        catch (RuntimeException malformed) { return QuestIntent.none(); }
+        if (type == QuestIntent.Type.NONE) return QuestIntent.none();
+        Map<?,?> favor = favor(snapshot), active = activeFavor(snapshot);
+        if (favor == null) return QuestIntent.none();
+        if (type == QuestIntent.Type.COMPLETE) {
+            if (active == null) throw new RejectedBargain("Игрок тебе сейчас ничего не должен: принимать нечего — quest NONE.", true, true);
+            if (Boolean.TRUE.equals(active.get("canComplete"))) return QuestIntent.complete();
+            throw new RejectedBargain("Игрок ещё не принёс нужного: у него " + active.get("have") + " из " + active.get("count") + "× " + active.get("itemName")
+                    + ". Не принимай услугу «" + active.get("title") + "» (quest NONE), а в реплике скажи, чего не хватает.", true, true);
         }
-        if (activeQuest == null) throw new RejectedBargain("Задание «" + id + "» у игрока не активно (активные: " + ids(active)
-                + "): засчитать его нельзя — quest NONE.", true, true);
-        if (Boolean.TRUE.equals(activeQuest.get("canComplete"))) return new QuestIntent(type, id);
-        boolean kill = "KILL".equals(String.valueOf(activeQuest.get("kind")));
-        throw new RejectedBargain("Игрок ещё не " + (kill ? "убил" : "принёс") + " нужного: прогресс " + activeQuest.get("progress") + " из " + activeQuest.get("count")
-                + " (" + activeQuest.get("target") + "). Не считай задание «" + id + "» выполненным — quest NONE, а в реплике скажи, чего не хватает.", true, true);
+        if (active != null) throw new RejectedBargain("Игрок уже должен тебе услугу «" + active.get("title") + "» (" + active.get("have") + " из "
+                + active.get("count") + "× " + active.get("itemName") + "): новую не проси — quest NONE, а в реплике напомни, чего ждёшь.", true, true);
+        String item, title, reward; int count, percent;
+        try { item = string(quest, "item"); title = string(quest, "title"); reward = string(quest, "rewardDeal"); count = integer(quest, "count"); percent = integer(quest, "rewardPercent"); }
+        catch (RuntimeException malformed) { throw new RejectedBargain("Поле quest заполнено неверно: для OFFER нужны item (id предмета), count (1–64), title, rewardDeal, rewardPercent.", true, true); }
+        if (!Trading.itemExists(item)) throw new RejectedBargain("Предмета с id «" + item + "» в Minecraft 1.21.1 нет. Попроси настоящий предмет "
+                + "(id вида minecraft:oak_fence, строчными буквами) или ничего не проси (quest NONE).", true, true);
+        if (count < 1 || count > Favor.MAX_COUNT) throw new RejectedBargain("count услуги должен быть от 1 до " + Favor.MAX_COUNT + ", а не " + count + ".", true, true);
+        if (!reward.isEmpty() && ownDeal(snapshot, reward) == null && entry(items(trading(snapshot), "secret"), reward) == null)
+            throw new RejectedBargain("Сделки «" + reward + "» у тебя нет: в rewardDeal только id из deals " + ids(items(trading(snapshot), "deals"))
+                    + " или secret " + ids(items(trading(snapshot), "secret")) + ", либо пустая строка.", true, true);
+        if (reward.isEmpty() && percent > 0) throw new RejectedBargain("rewardPercent без rewardDeal бессмыслен: назови сделку или поставь 0.", true, true);
+        return new QuestIntent(type, item, count, title, reward, Math.max(0, Math.min(Favor.MAX_PERCENT, percent)));
     }
 
     private static String speciesNotes(MobSnapshot snapshot) {
@@ -750,9 +750,10 @@ final class OpenRouterConversationClient implements AutoCloseable {
             for (String field : List.of("basePrice", "currentPrice")) if (own.get(field) instanceof Number count) honest.add(count.intValue());
         }
         if (deal.type() == DealIntent.Type.OFFER) honest.add(deal.price());
-        // "Все восемь! Загон стоит" names a quest count, not a price.
-        for (String list : List.of("available", "active")) for (Object value : items(quests(snapshot), list)) if (value instanceof Map<?,?> quest)
-            for (String field : List.of("count", "progress")) if (quest.get(field) instanceof Number number) honest.add(number.intValue());
+        // "Все восемь! Загон стоит" names a favour count, not a price.
+        Map<?,?> active = activeFavor(snapshot);
+        if (active != null) for (String field : List.of("count", "have")) if (active.get(field) instanceof Number number) honest.add(number.intValue());
+        for (Object value : items(favor(snapshot), "ideas")) if (value instanceof Map<?,?> idea && idea.get("count") instanceof Number number) honest.add(number.intValue());
         if (!villager) {
             List<Integer> numbers = spokenNumbers(reply);
             return numbers.isEmpty() || honest.contains(numbers.getLast()) ? -1 : numbers.getLast();
@@ -808,28 +809,34 @@ final class OpenRouterConversationClient implements AutoCloseable {
             for (Object value : secret) if (value instanceof Map<?,?> hidden) {
                 summary.append("\n— id ").append(hidden.get("id")).append(": ").append(hidden.get("hint"));
                 summary.append("; откроется").append(hidden.get("unlockRelationship") instanceof Number needed && needed.intValue() > 0 ? " при отношении не ниже " + needed : "")
-                        .append(hidden.get("unlockQuest") instanceof String quest && !quest.isBlank() ? " после задания «" + quest + "»" : "");
+                        .append(Boolean.TRUE.equals(hidden.get("requiresFavor")) ? " после хотя бы одной услуги игрока тебе" : "");
                 summary.append(Boolean.TRUE.equals(hidden.get("canUnlockNow")) ? "; условия выполнены — можешь открыть прямо сейчас (unlock), если считаешь игрока достойным"
                         : "; сейчас открыть нельзя" + (hidden.get("reason") instanceof String reason && !reason.isBlank() ? " (" + reason + ")" : "")).append('.');
             }
         }
-        Map<?,?> quests = quests(snapshot);
-        List<?> available = items(quests, "available"), active = items(quests, "active"), done = items(quests, "done");
-        if (!available.isEmpty() || !active.isEmpty() || !done.isEmpty()) {
-            summary.append("\n\nУслуги (задания):");
-            for (Object value : active) if (value instanceof Map<?,?> quest)
-                summary.append("\n— активное «").append(quest.get("title")).append("» (id ").append(quest.get("id")).append("): ")
-                        .append("KILL".equals(String.valueOf(quest.get("kind"))) ? "убить " : "принести ").append(quest.get("count")).append("× ")
-                        .append(quest.get("target")).append(", прогресс ").append(quest.get("progress")).append(" из ").append(quest.get("count"))
-                        .append(Boolean.TRUE.equals(quest.get("canComplete")) ? " — выполнено, можешь засчитать (quest COMPLETE) и отблагодарить."
-                                : " — ещё не выполнено: не засчитывай, напоминай, чего не хватает.");
-            for (Object value : available) if (value instanceof Map<?,?> quest)
-                summary.append("\n— можно поручить «").append(quest.get("title")).append("» (id ").append(quest.get("id")).append("): ")
-                        .append("KILL".equals(String.valueOf(quest.get("kind"))) ? "убить " : "принести ").append(quest.get("count")).append("× ")
-                        .append(quest.get("targetName") != null ? quest.get("targetName") : quest.get("target"))
-                        .append(quest.get("pitch") instanceof String pitch && !pitch.isBlank() ? " — " + pitch : "")
-                        .append(active.isEmpty() ? ". Поручай только к слову или когда это тебе выгодно (quest OFFER)." : ". Пока активно другое задание, это не поручай.");
-            if (!done.isEmpty()) summary.append("\n— уже выполнил для тебя: ").append(done).append(".");
+        Map<?,?> favor = favor(snapshot);
+        if (favor != null) {
+            summary.append("\n\nУслуги:");
+            if (favor.get("active") instanceof Map<?,?> active)
+                summary.append("\n— игрок должен тебе «").append(active.get("title")).append("»: принести ").append(active.get("count")).append("× ")
+                        .append(active.get("itemName")).append(" (").append(active.get("item")).append("), у него сейчас ").append(active.get("have")).append(" из ").append(active.get("count"))
+                        .append(Boolean.TRUE.equals(active.get("canComplete")) ? " — принёс: можешь принять (quest COMPLETE), игра заберёт предметы, и отблагодарить."
+                                : " — ещё не принёс: не принимай, напоминай, чего не хватает.")
+                        .append(active.get("rewardDeal") instanceof String deal && !deal.isBlank() ? " За это ты обещал сделку «" + deal + "»"
+                                + (active.get("rewardPercent") instanceof Number percent && percent.intValue() > 0 ? " со скидкой " + percent + "%." : ".") : "");
+            else if (Boolean.TRUE.equals(favor.get("canAsk"))) {
+                summary.append("\n— сейчас игрок тебе ничего не должен; если он сам предложит помощь или спросит, что тебе нужно, можешь придумать услугу (quest OFFER): настоящий предмет и количество по своей жизни");
+                List<?> ideas = items(favor, "ideas");
+                if (!ideas.isEmpty()) {
+                    summary.append("; идеи на выбор, не обязательно: ");
+                    List<String> lines = new java.util.ArrayList<>();
+                    for (Object value : ideas) if (value instanceof Map<?,?> idea)
+                        lines.add(idea.get("count") + "× " + idea.get("itemName") + " (" + idea.get("item") + ")" + (idea.get("why") instanceof String why && !why.isBlank() ? " — " + why : ""));
+                    summary.append(String.join("; ", lines));
+                }
+                summary.append('.');
+            }
+            if (favor.get("done") instanceof List<?> done && !done.isEmpty()) summary.append("\n— игрок уже оказывал услуги тебе и твоим сородичам: ").append(done).append('.');
         }
         return summary.toString();
     }
@@ -901,8 +908,9 @@ final class OpenRouterConversationClient implements AutoCloseable {
         properties.add("deal", objectSchema(dealFields, "type", "id", "price"));
         properties.add("unlock", property("string"));
         JsonObject questFields = new JsonObject(), questType = property("string"); questType.add("enum", strings("NONE", "OFFER", "COMPLETE"));
-        questFields.add("type", questType); questFields.add("id", property("string"));
-        properties.add("quest", objectSchema(questFields, "type", "id"));
+        questFields.add("type", questType); questFields.add("item", property("string")); questFields.add("count", property("integer"));
+        questFields.add("title", property("string")); questFields.add("rewardDeal", property("string")); questFields.add("rewardPercent", property("integer"));
+        properties.add("quest", objectSchema(questFields, "type", "item", "count", "title", "rewardDeal", "rewardPercent"));
         // reply first so speech can start while the model is still writing the rest.
         properties.add("newFacts", property("string"));
         JsonObject jsonSchema = new JsonObject(); jsonSchema.addProperty("name", "mob_reply"); jsonSchema.addProperty("strict", true);

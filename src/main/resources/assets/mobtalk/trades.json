@@ -19,8 +19,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "beef",
@@ -38,8 +38,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "leather",
@@ -57,38 +57,15 @@
           "secret": true,
           "hint": "Знает, где лежит кожа пропавшей подруги, но об этом говорит только своим",
           "unlockRelationship": 40,
-          "unlockQuest": "fence",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "fence",
-          "title": "Почини загон",
-          "kind": "BRING",
-          "target": "minecraft:oak_fence",
+          "item": "minecraft:oak_fence",
           "count": 8,
-          "pitch": "Крипер снёс половину загона, неси восемь секций забора, а то волки доберутся до телят",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "leather",
-            "discountDeal": "milk",
-            "discountPercent": 25
-          }
-        },
-        {
-          "id": "creeper",
-          "title": "Прогони шипящего",
-          "kind": "KILL",
-          "target": "minecraft:creeper",
-          "count": 2,
-          "pitch": "У моего забора третью ночь шипит зелёный, убери его, и я тебе поверю",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "beef",
-            "discountPercent": 30
-          }
+          "why": "Крипер снёс половину загона, неси восемь секций забора, а то волки доберутся до телят"
         }
       ]
     },
@@ -110,8 +87,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "shrooms",
@@ -129,8 +106,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "suspicious",
@@ -148,8 +125,8 @@
           "secret": true,
           "hint": "Намекает, что бурые знают рецепт рагу, от которого бывает по-разному",
           "unlockRelationship": 40,
-          "unlockQuest": "",
-          "maxPerDay": 2
+          "maxPerDay": 2,
+          "requiresFavor": false
         },
         {
           "id": "mycelium",
@@ -167,24 +144,15 @@
           "secret": true,
           "hint": "Говорит, что грибница сама решает, кому отдать кусочек острова",
           "unlockRelationship": 60,
-          "unlockQuest": "lightning",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "lightning",
-          "title": "Молния по заказу",
-          "kind": "BRING",
-          "target": "minecraft:lightning_rod",
+          "item": "minecraft:lightning_rod",
           "count": 1,
-          "pitch": "Принеси громоотвод и воткни его на моём холме, я хочу наконец сменить масть",
-          "reward": {
-            "relationship": 35,
-            "unlockDeal": "mycelium",
-            "discountDeal": "stew",
-            "discountPercent": 20
-          }
+          "why": "Принеси громоотвод и воткни его на моём холме, я хочу наконец сменить масть"
         }
       ]
     },
@@ -206,8 +174,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "black",
@@ -225,8 +193,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "pink",
@@ -244,38 +212,15 @@
           "secret": true,
           "hint": "Шепчет, что знает, где пасётся розовая, но просто так не скажет",
           "unlockRelationship": 40,
-          "unlockQuest": "",
-          "maxPerDay": 2
+          "maxPerDay": 2,
+          "requiresFavor": false
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "jeb",
-          "title": "Хочу быть jeb_",
-          "kind": "BRING",
-          "target": "minecraft:name_tag",
+          "item": "minecraft:name_tag",
           "count": 1,
-          "pitch": "Принеси бирку, назови меня jeb_, и я буду переливаться для тебя всеми цветами",
-          "reward": {
-            "relationship": 40,
-            "unlockDeal": "pink",
-            "discountDeal": "wool",
-            "discountPercent": 25
-          }
-        },
-        {
-          "id": "wolves",
-          "title": "Волки у стада",
-          "kind": "KILL",
-          "target": "minecraft:wolf",
-          "count": 2,
-          "pitch": "Два волка воют за холмом третью ночь, стадо не спит, разберись с ними",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "black",
-            "discountPercent": 30
-          }
+          "why": "Принеси бирку, назови меня jeb_, и я буду переливаться для тебя всеми цветами"
         }
       ]
     },
@@ -297,8 +242,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "porkchop",
@@ -316,8 +261,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "saddle",
@@ -335,38 +280,20 @@
           "secret": true,
           "hint": "Намекает, что где-то в луже лежит седло того, кто слишком сильно разогнался",
           "unlockRelationship": 50,
-          "unlockQuest": "golden",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "bed",
-          "title": "Грядка для своих",
-          "kind": "BRING",
-          "target": "minecraft:carrot",
+          "item": "minecraft:carrot",
           "count": 12,
-          "pitch": "Принеси дюжину моркови, я засажу грядку за лужей и перестану воровать у жителей",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "truffle",
-            "discountPercent": 30
-          }
+          "why": "Принеси дюжину моркови, я засажу грядку за лужей и перестану воровать у жителей"
         },
         {
-          "id": "golden",
-          "title": "Золотая морковь",
-          "kind": "BRING",
-          "target": "minecraft:golden_carrot",
+          "item": "minecraft:golden_carrot",
           "count": 2,
-          "pitch": "Две золотые морковки — и я покажу, где лежит седло того летуна",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "saddle",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Две золотые морковки — и я покажу, где лежит седло того летуна"
         }
       ]
     },
@@ -388,8 +315,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "feather",
@@ -407,8 +334,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "turtle",
@@ -426,38 +353,15 @@
           "secret": true,
           "hint": "Квохчет, что видела на пляже яйца побольше своих, но это секрет двора",
           "unlockRelationship": 50,
-          "unlockQuest": "",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": false
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "fox",
-          "title": "Лиса у курятника",
-          "kind": "KILL",
-          "target": "minecraft:fox",
-          "count": 2,
-          "pitch": "Рыжая второй раз утащила соседку, прогони лис от двора",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "",
-            "discountDeal": "egg",
-            "discountPercent": 40
-          }
-        },
-        {
-          "id": "coop",
-          "title": "Построй курятник",
-          "kind": "BRING",
-          "target": "minecraft:oak_fence",
+          "item": "minecraft:oak_fence",
           "count": 8,
-          "pitch": "Восемь секций забора — и у нас наконец будет двор, а не поле для лис",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "turtle",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Восемь секций забора — и у нас наконец будет двор, а не поле для лис"
         }
       ]
     },
@@ -479,8 +383,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "dandelion",
@@ -498,8 +402,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "foot",
@@ -517,38 +421,20 @@
           "secret": true,
           "hint": "Нервно намекает, что знает, где лежит одна лапка, и очень не хочет об этом говорить",
           "unlockRelationship": 50,
-          "unlockQuest": "golden",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "stock",
-          "title": "Запас на зиму",
-          "kind": "BRING",
-          "target": "minecraft:carrot",
+          "item": "minecraft:carrot",
           "count": 8,
-          "pitch": "Восемь морковок в мою нору, и я больше не трогаю твою грядку, честно",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "hide",
-            "discountPercent": 30
-          }
+          "why": "Восемь морковок в мою нору, и я больше не трогаю твою грядку, честно"
         },
         {
-          "id": "golden",
-          "title": "Золотая морковка",
-          "kind": "BRING",
-          "target": "minecraft:golden_carrot",
+          "item": "minecraft:golden_carrot",
           "count": 1,
-          "pitch": "Одна золотая морковка, и я покажу тебе то, о чём молчу",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "foot",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Одна золотая морковка, и я покажу тебе то, о чём молчу"
         }
       ]
     },
@@ -570,8 +456,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "calcite",
@@ -589,8 +475,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "horn",
@@ -608,38 +494,15 @@
           "secret": true,
           "hint": "Фыркает, что где-то в скале торчит её старый рог, но показывать не собирается",
           "unlockRelationship": 40,
-          "unlockQuest": "strays",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "boots",
-          "title": "Сапоги для снега",
-          "kind": "BRING",
-          "target": "minecraft:leather_boots",
+          "item": "minecraft:leather_boots",
           "count": 1,
-          "pitch": "Принеси кожаные сапоги, я покажу тропу по рыхлому снегу, куда ты без них провалишься",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "snow",
-            "discountPercent": 50
-          }
-        },
-        {
-          "id": "strays",
-          "title": "Зимогоры на пике",
-          "kind": "KILL",
-          "target": "minecraft:stray",
-          "count": 2,
-          "pitch": "Два ледяных стрелка засели на моём пике, сбей их, и я расскажу про рог",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "horn",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Принеси кожаные сапоги, я покажу тропу по рыхлому снегу, куда ты без них провалишься"
         }
       ]
     },
@@ -661,8 +524,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "sneeze",
@@ -680,8 +543,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "cake",
@@ -699,38 +562,20 @@
           "secret": true,
           "hint": "Хрустит, что у неё где-то закопан торт, но это не для чужих",
           "unlockRelationship": 60,
-          "unlockQuest": "",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": false
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "stock",
-          "title": "Запас бамбука",
-          "kind": "BRING",
-          "target": "minecraft:bamboo",
+          "item": "minecraft:bamboo",
           "count": 16,
-          "pitch": "Притащи шестнадцать бамбука к моему дереву, и я перестану жевать твой забор",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "sneeze",
-            "discountPercent": 30
-          }
+          "why": "Притащи шестнадцать бамбука к моему дереву, и я перестану жевать твой забор"
         },
         {
-          "id": "cake",
-          "title": "Торт на траву",
-          "kind": "BRING",
-          "target": "minecraft:cake",
+          "item": "minecraft:cake",
           "count": 1,
-          "pitch": "Положи торт прямо на траву, целиком, и я скажу, где закопан второй",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "cake",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Положи торт прямо на траву, целиком, и я скажу, где закопан второй"
         }
       ]
     },
@@ -752,8 +597,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 2
+          "maxPerDay": 2,
+          "requiresFavor": false
         },
         {
           "id": "sand",
@@ -771,8 +616,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "armor",
@@ -790,38 +635,15 @@
           "secret": true,
           "hint": "Бормочет про готовую броню из своих щитков, которую кто-то бросил в кустах",
           "unlockRelationship": 50,
-          "unlockQuest": "undead",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "eyes",
-          "title": "Паучьи глаза",
-          "kind": "BRING",
-          "target": "minecraft:spider_eye",
+          "item": "minecraft:spider_eye",
           "count": 6,
-          "pitch": "Принеси шесть паучьих глаз, я неделю не ел ничего приличного",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "",
-            "discountDeal": "scute",
-            "discountPercent": 50
-          }
-        },
-        {
-          "id": "undead",
-          "title": "Нежить у кустов",
-          "kind": "KILL",
-          "target": "minecraft:zombie",
-          "count": 3,
-          "pitch": "Три зомби топчутся у моих кустов каждую ночь, убери их, и я расскажу про броню",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "armor",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Принеси шесть паучьих глаз, я неделю не ел ничего приличного"
         }
       ]
     },
@@ -843,8 +665,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "egg",
@@ -862,8 +684,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "feather",
@@ -881,8 +703,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "totem",
@@ -900,38 +722,15 @@
           "secret": true,
           "hint": "Отводит взгляд и говорит, что в зубах у неё ничего интересного, вообще ничего",
           "unlockRelationship": 60,
-          "unlockQuest": "bush",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "bush",
-          "title": "Куст у норы",
-          "kind": "BRING",
-          "target": "minecraft:sweet_berries",
+          "item": "minecraft:sweet_berries",
           "count": 16,
-          "pitch": "Шестнадцать ягод, я посажу куст у норы и, может быть, покажу, что держу",
-          "reward": {
-            "relationship": 35,
-            "unlockDeal": "totem",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "wolves",
-          "title": "Волки в тайге",
-          "kind": "KILL",
-          "target": "minecraft:wolf",
-          "count": 2,
-          "pitch": "Два серых повадились к моей норе, разберись, и я буду делиться ягодами",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "berries",
-            "discountPercent": 30
-          }
+          "why": "Шестнадцать ягод, я посажу куст у норы и, может быть, покажу, что держу"
         }
       ]
     },
@@ -953,8 +752,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "hide",
@@ -972,8 +771,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "armor",
@@ -991,38 +790,15 @@
           "secret": true,
           "hint": "Глухо рычит, что хранит броню одного из стаи, и не хочет, чтобы её носил чужой",
           "unlockRelationship": 60,
-          "unlockQuest": "skeletons",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "skeletons",
-          "title": "Охота на скелетов",
-          "kind": "KILL",
-          "target": "minecraft:skeleton",
-          "count": 5,
-          "pitch": "Пять костяных на нашей тропе, пойдём вместе, и я признаю тебя стаей",
-          "reward": {
-            "relationship": 35,
-            "unlockDeal": "armor",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "collar",
-          "title": "Красный ошейник",
-          "kind": "BRING",
-          "target": "minecraft:red_dye",
+          "item": "minecraft:red_dye",
           "count": 2,
-          "pitch": "Принеси красной краски, хочу ошейник того самого цвета, как у первых псов",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "mutton",
-            "discountPercent": 30
-          }
+          "why": "Принеси красной краски, хочу ошейник того самого цвета, как у первых псов"
         }
       ]
     },
@@ -1044,8 +820,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "hide",
@@ -1063,8 +839,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "feather",
@@ -1082,8 +858,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "membrane",
@@ -1101,38 +877,15 @@
           "secret": true,
           "hint": "Делает вид, что не понимает, о какой перепонке речь, и облизывается",
           "unlockRelationship": 50,
-          "unlockQuest": "",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": false
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "hiss",
-          "title": "Отгони шипящих",
-          "kind": "KILL",
-          "target": "minecraft:creeper",
-          "count": 3,
-          "pitch": "Три зелёных шипят у дома, где моя печка, убери их, и я, так и быть, останусь",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "",
-            "discountDeal": "membrane",
-            "discountPercent": 25
-          }
-        },
-        {
-          "id": "breakfast",
-          "title": "Завтрак для меня",
-          "kind": "BRING",
-          "target": "minecraft:cod",
+          "item": "minecraft:cod",
           "count": 6,
-          "pitch": "Шесть трески, и я подумаю, достоин ли ты, чтобы я спала на твоём сундуке",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "string",
-            "discountPercent": 50
-          }
+          "why": "Шесть трески, и я подумаю, достоин ли ты, чтобы я спала на твоём сундуке"
         }
       ]
     },
@@ -1154,8 +907,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "feather",
@@ -1173,8 +926,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "vine",
@@ -1192,8 +945,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "melon",
@@ -1211,38 +964,15 @@
           "secret": true,
           "hint": "Знает поляну с арбузами в чаще, но туда водит только своих",
           "unlockRelationship": 40,
-          "unlockQuest": "",
-          "maxPerDay": 2
+          "maxPerDay": 2,
+          "requiresFavor": false
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "trust",
-          "title": "Заслужи доверие",
-          "kind": "BRING",
-          "target": "minecraft:cod",
+          "item": "minecraft:cod",
           "count": 8,
-          "pitch": "Восемь трески, положи и отойди на три прыжка, тогда посмотрим",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "melon",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "hiss",
-          "title": "Шипящие у чащи",
-          "kind": "KILL",
-          "target": "minecraft:creeper",
-          "count": 2,
-          "pitch": "Два зелёных пасутся у моей тропы, убери их, и я покажу короткий путь",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "cocoa",
-            "discountPercent": 30
-          }
+          "why": "Восемь трески, положи и отойди на три прыжка, тогда посмотрим"
         }
       ]
     },
@@ -1264,8 +994,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "fish",
@@ -1283,8 +1013,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "blue",
@@ -1302,38 +1032,15 @@
           "secret": true,
           "hint": "Рычит, что знает, где лёд синий, но туда не водит тех, кто бегает",
           "unlockRelationship": 40,
-          "unlockQuest": "",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": false
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "fish",
-          "title": "Рыба для малыша",
-          "kind": "BRING",
-          "target": "minecraft:cod",
+          "item": "minecraft:cod",
           "count": 10,
-          "pitch": "Десять трески на лёд, для медвежонка, и я перестану вставать на лапы при тебе",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "blue",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "strays",
-          "title": "Стрелы издалека",
-          "kind": "KILL",
-          "target": "minecraft:stray",
-          "count": 3,
-          "pitch": "Три костяных стреляют с торосов в моего малыша, убери их",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "ice",
-            "discountPercent": 30
-          }
+          "why": "Десять трески на лёд, для медвежонка, и я перестану вставать на лапы при тебе"
         }
       ]
     },
@@ -1355,8 +1062,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "comb",
@@ -1374,8 +1081,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "block",
@@ -1393,38 +1100,20 @@
           "secret": true,
           "hint": "Жужжит, что у роя есть блок, который не дают чужим, пока те не посадят что-нибудь",
           "unlockRelationship": 40,
-          "unlockQuest": "",
-          "maxPerDay": 2
+          "maxPerDay": 2,
+          "requiresFavor": false
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "meadow",
-          "title": "Засади луг",
-          "kind": "BRING",
-          "target": "minecraft:sunflower",
+          "item": "minecraft:sunflower",
           "count": 8,
-          "pitch": "Восемь подсолнухов вокруг улья, и рой вспомнит тебя добрым словом",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "block",
-            "discountDeal": "honey",
-            "discountPercent": 25
-          }
+          "why": "Восемь подсолнухов вокруг улья, и рой вспомнит тебя добрым словом"
         },
         {
-          "id": "fire",
-          "title": "Костёр под летком",
-          "kind": "BRING",
-          "target": "minecraft:campfire",
+          "item": "minecraft:campfire",
           "count": 1,
-          "pitch": "Поставь костёр под улей, чтобы мы не бросались на каждого с бутылкой",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "comb",
-            "discountPercent": 30
-          }
+          "why": "Поставь костёр под улей, чтобы мы не бросались на каждого с бутылкой"
         }
       ]
     },
@@ -1446,8 +1135,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "pickle",
@@ -1465,8 +1154,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "scute",
@@ -1484,38 +1173,15 @@
           "secret": true,
           "hint": "Неспешно намекает, что щитки малышей не продаются, но друзьям кое-что показывают",
           "unlockRelationship": 40,
-          "unlockQuest": "zombies",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "zombies",
-          "title": "Отгони от кладки",
-          "kind": "KILL",
-          "target": "minecraft:zombie",
-          "count": 5,
-          "pitch": "Пять зомби каждую ночь прут к яйцам, убери их, и я покажу, что роняют малыши",
-          "reward": {
-            "relationship": 35,
-            "unlockDeal": "scute",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "fence",
-          "title": "Забор на пляже",
-          "kind": "BRING",
-          "target": "minecraft:oak_fence",
+          "item": "minecraft:oak_fence",
           "count": 8,
-          "pitch": "Восемь секций забора вокруг кладки, и я перестану дрожать над каждым яйцом",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "seagrass",
-            "discountPercent": 50
-          }
+          "why": "Восемь секций забора вокруг кладки, и я перестану дрожать над каждым яйцом"
         }
       ]
     },
@@ -1537,8 +1203,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "spawn",
@@ -1556,8 +1222,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "froglight",
@@ -1575,38 +1241,15 @@
           "secret": true,
           "hint": "Квакает, что знает про горячую закуску, от которой светятся, но это не для чужих",
           "unlockRelationship": 40,
-          "unlockQuest": "slimes",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "slimes",
-          "title": "Мелочь на болоте",
-          "kind": "KILL",
-          "target": "minecraft:slime",
-          "count": 3,
-          "pitch": "Разбей трёх слизней, чтобы осталась мелочь мне на закуску",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "froglight",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "mangrove",
-          "title": "Засади топь",
-          "kind": "BRING",
-          "target": "minecraft:mangrove_propagule",
+          "item": "minecraft:mangrove_propagule",
           "count": 4,
-          "pitch": "Четыре мангровых ростка вдоль пруда, и у меня будет тень, ква, точка",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "lily",
-            "discountPercent": 50
-          }
+          "why": "Четыре мангровых ростка вдоль пруда, и у меня будет тень, ква, точка"
         }
       ]
     },
@@ -1628,8 +1271,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "pod",
@@ -1647,8 +1290,8 @@
           "secret": true,
           "hint": "Сопит, что откопал кое-что покрупнее семян, но покажет только тем, кто ходит медленно",
           "unlockRelationship": 40,
-          "unlockQuest": "",
-          "maxPerDay": 2
+          "maxPerDay": 2,
+          "requiresFavor": false
         },
         {
           "id": "flower",
@@ -1666,38 +1309,20 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "moss",
-          "title": "Мягкая земля",
-          "kind": "BRING",
-          "target": "minecraft:moss_block",
+          "item": "minecraft:moss_block",
           "count": 16,
-          "pitch": "Шестнадцать мха под мои ноги, и я буду копать для тебя, фрр, с удовольствием",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "",
-            "discountDeal": "torch",
-            "discountPercent": 50
-          }
+          "why": "Шестнадцать мха под мои ноги, и я буду копать для тебя, фрр, с удовольствием"
         },
         {
-          "id": "sand",
-          "title": "Песок с секретом",
-          "kind": "BRING",
-          "target": "minecraft:suspicious_sand",
+          "item": "minecraft:suspicious_sand",
           "count": 2,
-          "pitch": "Принеси два подозрительных песка, я чую, в одном из них лежит эпоха",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "pod",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Принеси два подозрительных песка, я чую, в одном из них лежит эпоха"
         }
       ]
     },
@@ -1719,8 +1344,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "hay",
@@ -1738,8 +1363,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "saddle",
@@ -1757,38 +1382,20 @@
           "secret": true,
           "hint": "Фыркает, что видела седло без хозяина у обрыва, но тебе туда рано",
           "unlockRelationship": 50,
-          "unlockQuest": "golden",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "golden",
-          "title": "Золотое яблоко",
-          "kind": "BRING",
-          "target": "minecraft:golden_apple",
+          "item": "minecraft:golden_apple",
           "count": 1,
-          "pitch": "Принеси золотое яблоко, и я расскажу, что лежит у обрыва",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "saddle",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Принеси золотое яблоко, и я расскажу, что лежит у обрыва"
         },
         {
-          "id": "hay",
-          "title": "Корм для табуна",
-          "kind": "BRING",
-          "target": "minecraft:hay_block",
+          "item": "minecraft:hay_block",
           "count": 8,
-          "pitch": "Восемь снопов сена к водопою, и табун примет тебя как своего",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "lead",
-            "discountPercent": 50
-          }
+          "why": "Восемь снопов сена к водопою, и табун примет тебя как своего"
         }
       ]
     },
@@ -1810,8 +1417,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "iron",
@@ -1829,8 +1436,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "diamond",
@@ -1848,38 +1455,20 @@
           "secret": true,
           "hint": "Бурчит, что в сундуке есть кое-что не булыжник, но это его собственное",
           "unlockRelationship": 60,
-          "unlockQuest": "carrots",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "carrots",
-          "title": "Честная оплата",
-          "kind": "BRING",
-          "target": "minecraft:golden_carrot",
+          "item": "minecraft:golden_carrot",
           "count": 4,
-          "pitch": "Четыре золотые морковки за все те походы в шахту, и мы квиты",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "diamond",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Четыре золотые морковки за все те походы в шахту, и мы квиты"
         },
         {
-          "id": "road",
-          "title": "Нормальная дорога",
-          "kind": "BRING",
-          "target": "minecraft:oak_slab",
+          "item": "minecraft:oak_slab",
           "count": 16,
-          "pitch": "Выложи шестнадцать плит по тропе к шахте, чтобы я не ломал ноги",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "iron",
-            "discountPercent": 40
-          }
+          "why": "Выложи шестнадцать плит по тропе к шахте, чтобы я не ломал ноги"
         }
       ]
     },
@@ -1901,8 +1490,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "coal",
@@ -1920,8 +1509,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "tag",
@@ -1939,38 +1528,20 @@
           "secret": true,
           "hint": "Ровно замечает, что в сундуке лежит одна вещь, которую должны были отдать ему",
           "unlockRelationship": 50,
-          "unlockQuest": "map",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "map",
-          "title": "Карта маршрута",
-          "kind": "BRING",
-          "target": "minecraft:map",
+          "item": "minecraft:map",
           "count": 1,
-          "pitch": "Принеси карту, покажи на ней дорогу без обрывов, и я доверю тебе сундук",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "tag",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Принеси карту, покажи на ней дорогу без обрывов, и я доверю тебе сундук"
         },
         {
-          "id": "water",
-          "title": "Привал у воды",
-          "kind": "BRING",
-          "target": "minecraft:water_bucket",
+          "item": "minecraft:water_bucket",
           "count": 2,
-          "pitch": "Два ведра воды к стоянке на тропе, и я перестану считать тебя как всех",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "cobble",
-            "discountPercent": 50
-          }
+          "why": "Два ведра воды к стоянке на тропе, и я перестану считать тебя как всех"
         }
       ]
     },
@@ -1992,8 +1563,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "bush",
@@ -2011,8 +1582,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "saddle",
@@ -2030,38 +1601,15 @@
           "secret": true,
           "hint": "Невозмутимо замечает, что в песке у колодца лежит седло, но тебе пока рано",
           "unlockRelationship": 50,
-          "unlockQuest": "husks",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "cactus",
-          "title": "Кактусы в дорогу",
-          "kind": "BRING",
-          "target": "minecraft:cactus",
+          "item": "minecraft:cactus",
           "count": 12,
-          "pitch": "Дюжина кактусов к колодцу, и я повезу двоих хоть до края пустыни",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "sandstone",
-            "discountPercent": 50
-          }
-        },
-        {
-          "id": "husks",
-          "title": "Кадавры у колодца",
-          "kind": "KILL",
-          "target": "minecraft:husk",
-          "count": 4,
-          "pitch": "Четыре иссохших караулят колодец, убери их, и я покажу, что лежит в песке",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "saddle",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Дюжина кактусов к колодцу, и я повезу двоих хоть до края пустыни"
         }
       ]
     },
@@ -2083,8 +1631,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "lead",
@@ -2102,8 +1650,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "purple",
@@ -2121,38 +1669,15 @@
           "secret": true,
           "hint": "Церемонно намекает, что у неё есть цвет, в котором ещё никто не ходил, но не для всех",
           "unlockRelationship": 40,
-          "unlockQuest": "",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": false
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "hay",
-          "title": "Сено для стада",
-          "kind": "BRING",
-          "target": "minecraft:hay_block",
+          "item": "minecraft:hay_block",
           "count": 4,
-          "pitch": "Четыре снопа сена к стаду, и я, так и быть, приму вас в караван",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "carpet",
-            "discountPercent": 30
-          }
-        },
-        {
-          "id": "wolves",
-          "title": "Волки у стада",
-          "kind": "KILL",
-          "target": "minecraft:wolf",
-          "count": 2,
-          "pitch": "Два волка кружат у стада, и плевков на всех не хватает, разберись",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "purple",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Четыре снопа сена к стаду, и я, так и быть, приму вас в караван"
         }
       ]
     },
@@ -2174,8 +1699,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "dye",
@@ -2193,8 +1718,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "emerald",
@@ -2212,38 +1737,15 @@
           "secret": true,
           "hint": "Косится и говорит, что в попоне ничего не зашито, вообще ничего",
           "unlockRelationship": 50,
-          "unlockQuest": "escort",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "escort",
-          "title": "Ночной эскорт",
-          "kind": "KILL",
-          "target": "minecraft:zombie",
-          "count": 6,
-          "pitch": "Шесть зомби идут за караваном от самого леса, отбей ночь, и я расскажу про попону",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "emerald",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "milk",
-          "title": "Молоко к утру",
-          "kind": "BRING",
-          "target": "minecraft:milk_bucket",
+          "item": "minecraft:milk_bucket",
           "count": 1,
-          "pitch": "Принеси ведро молока к рассвету, торговцу надо смыть невидимость",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "lead",
-            "discountPercent": 50
-          }
+          "why": "Принеси ведро молока к рассвету, торговцу надо смыть невидимость"
         }
       ]
     },
@@ -2265,8 +1767,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "bow",
@@ -2284,8 +1786,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "helmet",
@@ -2303,38 +1805,15 @@
           "secret": true,
           "hint": "Сухо замечает, что у всадника был шлем, и он его не выбросил",
           "unlockRelationship": 40,
-          "unlockQuest": "rod",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "rod",
-          "title": "Громоотвод для грозы",
-          "kind": "BRING",
-          "target": "minecraft:lightning_rod",
+          "item": "minecraft:lightning_rod",
           "count": 1,
-          "pitch": "Поставь громоотвод на равнине, мне нужна гроза, чтобы вспомнить, кто я",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "helmet",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "riders",
-          "title": "Бывшие всадники",
-          "kind": "KILL",
-          "target": "minecraft:skeleton",
-          "count": 4,
-          "pitch": "Четыре костяных ждут меня у пещеры, не хочу обратно под них, убери",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "bone",
-            "discountPercent": 50
-          }
+          "why": "Поставь громоотвод на равнине, мне нужна гроза, чтобы вспомнить, кто я"
         }
       ]
     },
@@ -2356,8 +1835,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "bone",
@@ -2375,8 +1854,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "saddle",
@@ -2394,24 +1873,15 @@
           "secret": true,
           "hint": "Булькает, что у него есть седло, только все проходят мимо",
           "unlockRelationship": 50,
-          "unlockQuest": "name",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "name",
-          "title": "Дай мне имя",
-          "kind": "BRING",
-          "target": "minecraft:name_tag",
+          "item": "minecraft:name_tag",
           "count": 1,
-          "pitch": "Повесь на меня бирку с именем, чтобы меня больше нельзя было забыть",
-          "reward": {
-            "relationship": 40,
-            "unlockDeal": "saddle",
-            "discountDeal": "flesh",
-            "discountPercent": 50
-          }
+          "why": "Повесь на меня бирку с именем, чтобы меня больше нельзя было забыть"
         }
       ]
     },
@@ -2433,8 +1903,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "meal",
@@ -2452,8 +1922,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "shell",
@@ -2471,38 +1941,15 @@
           "secret": true,
           "hint": "Пускает пузыри и говорит, что стая кое-что нашла на дне, но стая не делится с тенью",
           "unlockRelationship": 40,
-          "unlockQuest": "",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": false
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "drowned",
-          "title": "Прогони утопленников",
-          "kind": "KILL",
-          "target": "minecraft:drowned",
-          "count": 3,
-          "pitch": "Три утопленника стоят на нашем течении, убери их, и мы приплывём к тебе",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "shell",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "kelp",
-          "title": "Лес для стаи",
-          "kind": "BRING",
-          "target": "minecraft:kelp",
+          "item": "minecraft:kelp",
           "count": 12,
-          "pitch": "Посади двенадцать ламинарий у берега, нам нужно где прятаться от тени",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "cod",
-            "discountPercent": 50
-          }
+          "why": "Посади двенадцать ламинарий у берега, нам нужно где прятаться от тени"
         }
       ]
     },
@@ -2524,8 +1971,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "ice",
@@ -2543,8 +1990,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "map",
@@ -2562,38 +2009,15 @@
           "secret": true,
           "hint": "Говорит, что знает дорогу к истоку, но делится только с теми, кто плывёт против течения",
           "unlockRelationship": 40,
-          "unlockQuest": "",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": false
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "column",
-          "title": "Колонна вверх",
-          "kind": "BRING",
-          "target": "minecraft:soul_sand",
+          "item": "minecraft:soul_sand",
           "count": 4,
-          "pitch": "Четыре песка душ под водопад, построй колонну, и я поднимусь к истоку",
-          "reward": {
-            "relationship": 35,
-            "unlockDeal": "map",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "bear",
-          "title": "Медведь у переката",
-          "kind": "KILL",
-          "target": "minecraft:polar_bear",
-          "count": 1,
-          "pitch": "Белый сидит на перекате и глотает наших, разберись с ним",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "salmon",
-            "discountPercent": 50
-          }
+          "why": "Четыре песка душ под водопад, построй колонну, и я поднимусь к истоку"
         }
       ]
     },
@@ -2615,8 +2039,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "coral",
@@ -2634,8 +2058,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "fan",
@@ -2653,38 +2077,15 @@
           "secret": true,
           "hint": "Шепчет, что знает риф, где растёт самый яркий коралл, но это только для своих",
           "unlockRelationship": 40,
-          "unlockQuest": "",
-          "maxPerDay": 2
+          "maxPerDay": 2,
+          "requiresFavor": false
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "aquarium",
-          "title": "Стекло для аквариума",
-          "kind": "BRING",
-          "target": "minecraft:glass",
+          "item": "minecraft:glass",
           "count": 8,
-          "pitch": "Восемь стекла, и я покажу тебе риф, который сочетается с твоей бронёй",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "fan",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "axolotl",
-          "title": "Улыбчивые маньяки",
-          "kind": "KILL",
-          "target": "minecraft:axolotl",
-          "count": 2,
-          "pitch": "Два аксолотля караулят у рифа, убери их, и стайка перестанет прятаться",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "coral",
-            "discountPercent": 50
-          }
+          "why": "Восемь стекла, и я покажу тебе риф, который сочетается с твоей бронёй"
         }
       ]
     },
@@ -2706,8 +2107,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "meal",
@@ -2725,8 +2126,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "pickles",
@@ -2744,38 +2145,15 @@
           "secret": true,
           "hint": "Шипит, что на его участке кое-что растёт, но чужим туда вход закрыт",
           "unlockRelationship": 40,
-          "unlockQuest": "",
-          "maxPerDay": 2
+          "maxPerDay": 2,
+          "requiresFavor": false
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "wall",
-          "title": "Стена вокруг",
-          "kind": "BRING",
-          "target": "minecraft:glass",
+          "item": "minecraft:glass",
           "count": 8,
-          "pitch": "Поставь восемь стекла вокруг моего участка, чтобы ни один аксолотль не подплыл",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "pickles",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "axolotls",
-          "title": "Улыбчивые отвалили",
-          "kind": "KILL",
-          "target": "minecraft:axolotl",
-          "count": 2,
-          "pitch": "Два улыбчивых лезут ко мне каждый день, пш-ш, убери их",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "me",
-            "discountPercent": 50
-          }
+          "why": "Поставь восемь стекла вокруг моего участка, чтобы ни один аксолотль не подплыл"
         }
       ]
     },
@@ -2797,8 +2175,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "dye",
@@ -2816,8 +2194,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "book",
@@ -2835,38 +2213,15 @@
           "secret": true,
           "hint": "Булькает, что чернила у него есть, но перо и книгу надо приносить самому",
           "unlockRelationship": 40,
-          "unlockQuest": "",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": false
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "guardians",
-          "title": "Стражи на течении",
-          "kind": "KILL",
-          "target": "minecraft:guardian",
-          "count": 2,
-          "pitch": "Два стража бьют лучом по нашим у монумента, убери их, и я поделюсь книгой",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "book",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "kelp",
-          "title": "Заросли для пряток",
-          "kind": "BRING",
-          "target": "minecraft:kelp",
+          "item": "minecraft:kelp",
           "count": 10,
-          "pitch": "Посади десять ламинарий в реке, нам надо где прятаться от аксолотлей",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "ink",
-            "discountPercent": 50
-          }
+          "why": "Посади десять ламинарий в реке, нам надо где прятаться от аксолотлей"
         }
       ]
     },
@@ -2888,8 +2243,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "berries",
@@ -2907,8 +2262,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "frame",
@@ -2926,38 +2281,15 @@
           "secret": true,
           "hint": "Мерцает и говорит, что знает, как свет повесить на стену, но покажет не всякому",
           "unlockRelationship": 40,
-          "unlockQuest": "",
-          "maxPerDay": 2
+          "maxPerDay": 2,
+          "requiresFavor": false
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "axolotls",
-          "title": "Улыбки в темноте",
-          "kind": "KILL",
-          "target": "minecraft:axolotl",
-          "count": 2,
-          "pitch": "Два улыбчивых крутятся у моей пещеры, убери их, и я покажу, как свет вешают в рамку",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "frame",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "amethyst",
-          "title": "Отражения для меня",
-          "kind": "BRING",
-          "target": "minecraft:amethyst_shard",
+          "item": "minecraft:amethyst_shard",
           "count": 6,
-          "pitch": "Шесть осколков аметиста на дно, чтобы мой свет в них отражался",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "ink",
-            "discountPercent": 50
-          }
+          "why": "Шесть осколков аметиста на дно, чтобы мой свет в них отражался"
         }
       ]
     },
@@ -2979,8 +2311,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "shell",
@@ -2998,8 +2330,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "map",
@@ -3017,8 +2349,8 @@
           "secret": true,
           "hint": "Щёлкает, что знает, где корабль, но покажет только тому, кто принёс рыбу",
           "unlockRelationship": 30,
-          "unlockQuest": "",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": false
         },
         {
           "id": "heart",
@@ -3036,38 +2368,15 @@
           "secret": true,
           "hint": "Намекает, что в одном сундуке на дне лежит кое-что синее, и это не лёд",
           "unlockRelationship": 70,
-          "unlockQuest": "wreck",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "feed",
-          "title": "Накорми стаю",
-          "kind": "BRING",
-          "target": "minecraft:cod",
+          "item": "minecraft:cod",
           "count": 10,
-          "pitch": "Десять трески стае, и мы отведём тебя туда, куда лодки не доплывают",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "map",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "wreck",
-          "title": "Очисти обломки",
-          "kind": "KILL",
-          "target": "minecraft:drowned",
-          "count": 5,
-          "pitch": "Пять утопленников сидят в обломках корабля, выгони их, и я покажу сундук",
-          "reward": {
-            "relationship": 35,
-            "unlockDeal": "heart",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Десять трески стае, и мы отведём тебя туда, куда лодки не доплывают"
         }
       ]
     },
@@ -3089,8 +2398,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "berries",
@@ -3108,8 +2417,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "shard",
@@ -3127,40 +2436,11 @@
           "secret": true,
           "hint": "Улыбается и говорит, что после одной охоты у него осталось кое-что колючее",
           "unlockRelationship": 40,
-          "unlockQuest": "hunt",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
-        {
-          "id": "hunt",
-          "title": "Совместная охота",
-          "kind": "KILL",
-          "target": "minecraft:guardian",
-          "count": 2,
-          "pitch": "А давай вместе на двух стражей, я прикинусь мёртвым, ты добьёшь, а?",
-          "reward": {
-            "relationship": 35,
-            "unlockDeal": "shard",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "drowned",
-          "title": "Утопленники в пещере",
-          "kind": "KILL",
-          "target": "minecraft:drowned",
-          "count": 4,
-          "pitch": "Четыре утопленника забрели в мою пещеру, обед слишком большой, помоги",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "berries",
-            "discountPercent": 50
-          }
-        }
-      ]
+      "ideas": []
     },
     "minecraft:tadpole": {
       "deals": [
@@ -3180,8 +2460,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "seagrass",
@@ -3199,8 +2479,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "spawn",
@@ -3218,24 +2498,15 @@
           "secret": true,
           "hint": "Шепчет, что знает, где икра, из которой вылупился сам, но стесняется",
           "unlockRelationship": 40,
-          "unlockQuest": "",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": false
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "feed",
-          "title": "Покорми меня",
-          "kind": "BRING",
-          "target": "minecraft:slime_ball",
+          "item": "minecraft:slime_ball",
           "count": 3,
-          "pitch": "Три слизи, и я вырасту быстрее, а когда вырасту, всё тебе покажу",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "spawn",
-            "discountDeal": "lily",
-            "discountPercent": 50
-          }
+          "why": "Три слизи, и я вырасту быстрее, а когда вырасту, всё тебе покажу"
         }
       ]
     },
@@ -3257,8 +2528,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "cocoa",
@@ -3276,8 +2547,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "disc",
@@ -3295,38 +2566,15 @@
           "secret": true,
           "hint": "Насвистывает мотив и говорит, что знает, где лежит одна пластинка, но это не её, честно",
           "unlockRelationship": 50,
-          "unlockQuest": "jukebox",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "jukebox",
-          "title": "Поставь музыку",
-          "kind": "BRING",
-          "target": "minecraft:jukebox",
+          "item": "minecraft:jukebox",
           "count": 1,
-          "pitch": "Поставь проигрыватель на базе, и я покажу, что спрятала в листве",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "disc",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "hiss",
-          "title": "Шипение без крипера",
-          "kind": "KILL",
-          "target": "minecraft:creeper",
-          "count": 2,
-          "pitch": "Два настоящих крипера мешают мне шипеть понарошку, убери их",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "feather",
-            "discountPercent": 50
-          }
+          "why": "Поставь проигрыватель на базе, и я покажу, что спрятала в листве"
         }
       ]
     },
@@ -3348,8 +2596,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "nuggets",
@@ -3367,8 +2615,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "note",
@@ -3386,8 +2634,8 @@
           "secret": true,
           "hint": "Напевает, что нашёл блок, который звучит, но делится только с друзьями",
           "unlockRelationship": 30,
-          "unlockQuest": "",
-          "maxPerDay": 2
+          "maxPerDay": 2,
+          "requiresFavor": false
         },
         {
           "id": "totem",
@@ -3405,38 +2653,15 @@
           "secret": true,
           "hint": "Замолкает и говорит, что ничего не прячет, ля-ля",
           "unlockRelationship": 60,
-          "unlockQuest": "free",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "music",
-          "title": "Музыка для меня",
-          "kind": "BRING",
-          "target": "minecraft:jukebox",
+          "item": "minecraft:jukebox",
           "count": 1,
-          "pitch": "Поставь проигрыватель, я хочу танцевать, а если дашь аметист, нас станет двое",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "note",
-            "discountDeal": "shine",
-            "discountPercent": 50
-          }
-        },
-        {
-          "id": "free",
-          "title": "Освободи братьев",
-          "kind": "KILL",
-          "target": "minecraft:pillager",
-          "count": 3,
-          "pitch": "Три разбойника держат ключи от клеток на аванпосте, убери их, и я отдам то, что прячу",
-          "reward": {
-            "relationship": 40,
-            "unlockDeal": "totem",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Поставь проигрыватель, я хочу танцевать, а если дашь аметист, нас станет двое"
         }
       ]
     },
@@ -3458,8 +2683,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "web",
@@ -3477,8 +2702,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "amethyst",
@@ -3496,38 +2721,20 @@
           "secret": true,
           "hint": "Пищит, что знает, где потолок звенит, но показывает только тем, кто не носит факел",
           "unlockRelationship": 40,
-          "unlockQuest": "",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": false
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "halloween",
-          "title": "Хэллоуин для мышей",
-          "kind": "BRING",
-          "target": "minecraft:carved_pumpkin",
+          "item": "minecraft:carved_pumpkin",
           "count": 1,
-          "pitch": "Поставь резную тыкву у входа в пещеру, пи, у нас праздник",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "amethyst",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Поставь резную тыкву у входа в пещеру, пи, у нас праздник"
         },
         {
-          "id": "quiet",
-          "title": "Погаси свет",
-          "kind": "BRING",
-          "target": "minecraft:black_wool",
+          "item": "minecraft:black_wool",
           "count": 4,
-          "pitch": "Заткни чёрной шерстью дыры, через которые светит, я хочу спать",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "coal",
-            "discountPercent": 50
-          }
+          "why": "Заткни чёрной шерстью дыры, через которые светит, я хочу спать"
         }
       ]
     },
@@ -3549,8 +2756,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "map",
@@ -3568,8 +2775,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "book",
@@ -3587,8 +2794,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "apple",
@@ -3606,38 +2813,15 @@
           "secret": true,
           "hint": "Хмыкает, что в деревне есть кое-что на чёрный день, но это не для покупателей",
           "unlockRelationship": 50,
-          "unlockQuest": "bell",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "bell",
-          "title": "Колокол на площадь",
-          "kind": "BRING",
-          "target": "minecraft:bell",
+          "item": "minecraft:bell",
           "count": 1,
-          "pitch": "Принеси колокол на площадь, чтобы было во что звонить, когда придут",
-          "reward": {
-            "relationship": 40,
-            "unlockDeal": "apple",
-            "discountDeal": "bread",
-            "discountPercent": 25
-          }
-        },
-        {
-          "id": "siege",
-          "title": "Ночная осада",
-          "kind": "KILL",
-          "target": "minecraft:zombie",
-          "count": 8,
-          "pitch": "Восемь зомби стучат в двери каждую ночь, отбей осаду, и цены будут для своих",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "",
-            "discountDeal": "map",
-            "discountPercent": 50
-          }
+          "why": "Принеси колокол на площадь, чтобы было во что звонить, когда придут"
         }
       ]
     },
@@ -3659,8 +2843,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "lead",
@@ -3678,8 +2862,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "milk",
@@ -3697,8 +2881,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "map",
@@ -3716,38 +2900,15 @@
           "secret": true,
           "hint": "Понижает голос и говорит, что под балахоном есть карта, которую он никому не показывает",
           "unlockRelationship": 40,
-          "unlockQuest": "night",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "night",
-          "title": "Ночь без зелья",
-          "kind": "KILL",
-          "target": "minecraft:zombie",
-          "count": 5,
-          "pitch": "Зелье невидимости кончилось, а пять зомби идут по следу каравана, выручай, дорогой гость",
-          "reward": {
-            "relationship": 35,
-            "unlockDeal": "map",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "llama",
-          "title": "Найди ламу",
-          "kind": "BRING",
-          "target": "minecraft:lead",
+          "item": "minecraft:lead",
           "count": 1,
-          "pitch": "Одна лама сорвалась с поводка, принеси новый поводок, и я сделаю скидку на лёд",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "ice",
-            "discountPercent": 50
-          }
+          "why": "Одна лама сорвалась с поводка, принеси новый поводок, и я сделаю скидку на лёд"
         }
       ]
     },
@@ -3769,8 +2930,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "crossbow",
@@ -3788,8 +2949,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "ingot",
@@ -3807,40 +2968,11 @@
           "secret": true,
           "hint": "Трещит, что в нём есть лишний слиток, но отдаст его только другу деревни",
           "unlockRelationship": 60,
-          "unlockQuest": "patrol",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
-        {
-          "id": "patrol",
-          "title": "Патруль у околицы",
-          "kind": "KILL",
-          "target": "minecraft:pillager",
-          "count": 4,
-          "pitch": "Четыре разбойника стоят у околицы, я не могу уйти от дверей, убери их",
-          "reward": {
-            "relationship": 35,
-            "unlockDeal": "ingot",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "siege",
-          "title": "Ночная осада",
-          "kind": "KILL",
-          "target": "minecraft:zombie",
-          "count": 6,
-          "pitch": "Шесть зомби за ночь, слишком много для одного, помоги",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "poppy",
-            "discountPercent": 50
-          }
-        }
-      ]
+      "ideas": []
     },
     "minecraft:snow_golem": {
       "deals": [
@@ -3860,8 +2992,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "snow",
@@ -3879,8 +3011,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "pumpkin",
@@ -3898,38 +3030,15 @@
           "secret": true,
           "hint": "Смущённо докладывает, что под снегом лежит его старое лицо, и это личное",
           "unlockRelationship": 40,
-          "unlockQuest": "blaze",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "blaze",
-          "title": "Снежок в ифрита",
-          "kind": "KILL",
-          "target": "minecraft:blaze",
+          "item": "minecraft:powder_snow_bucket",
           "count": 1,
-          "pitch": "Сбей одного ифрита, я не доберусь до Незера, но хочу знать, что мои снежки могут",
-          "reward": {
-            "relationship": 35,
-            "unlockDeal": "pumpkin",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "cold",
-          "title": "Самый холодный снег",
-          "kind": "BRING",
-          "target": "minecraft:powder_snow_bucket",
-          "count": 1,
-          "pitch": "Принеси ведро порошкового снега, я буду стоять в нём, когда жарко",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "snowballs",
-            "discountPercent": 50
-          }
+          "why": "Принеси ведро порошкового снега, я буду стоять в нём, когда жарко"
         }
       ]
     },
@@ -3951,8 +3060,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "carrot",
@@ -3970,8 +3079,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "potato",
@@ -3989,8 +3098,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "iron",
@@ -4008,38 +3117,15 @@
           "secret": true,
           "hint": "Хрипит, что у последнего парня было что-то железное, и оно до сих пор при нём",
           "unlockRelationship": 40,
-          "unlockQuest": "sun",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "sun",
-          "title": "Увидеть солнце",
-          "kind": "BRING",
-          "target": "minecraft:iron_helmet",
+          "item": "minecraft:iron_helmet",
           "count": 1,
-          "pitch": "Дай шлем, хочу постоять на холме утром и не сгореть, ыыыхх",
-          "reward": {
-            "relationship": 40,
-            "unlockDeal": "iron",
-            "discountDeal": "flesh",
-            "discountPercent": 50
-          }
-        },
-        {
-          "id": "chickens",
-          "title": "Куры с наездниками",
-          "kind": "KILL",
-          "target": "minecraft:chicken",
-          "count": 3,
-          "pitch": "Три курицы носят мелких, которые быстрее меня, разберись с курами",
-          "reward": {
-            "relationship": 15,
-            "unlockDeal": "",
-            "discountDeal": "carrot",
-            "discountPercent": 50
-          }
+          "why": "Дай шлем, хочу постоять на холме утром и не сгореть, ыыыхх"
         }
       ]
     },
@@ -4061,8 +3147,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "bone",
@@ -4080,8 +3166,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "carrot",
@@ -4099,8 +3185,8 @@
           "secret": true,
           "hint": "Сипит, что у одного путника была сумка, и в сумке кое-что осталось",
           "unlockRelationship": 30,
-          "unlockQuest": "",
-          "maxPerDay": 2
+          "maxPerDay": 2,
+          "requiresFavor": false
         },
         {
           "id": "map",
@@ -4118,38 +3204,20 @@
           "secret": true,
           "hint": "Говорит, что знает дорогу к пирамиде, но путникам туда лучше не ходить",
           "unlockRelationship": 40,
-          "unlockQuest": "tnt",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "tnt",
-          "title": "ТНТ под плиту",
-          "kind": "BRING",
-          "target": "minecraft:tnt",
+          "item": "minecraft:tnt",
           "count": 1,
-          "pitch": "Принеси динамит, положу под плиту в пирамиде, чтобы следующего путника встретили как надо",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "map",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Принеси динамит, положу под плиту в пирамиде, чтобы следующего путника встретили как надо"
         },
         {
-          "id": "shade",
-          "title": "Тень над колодцем",
-          "kind": "BRING",
-          "target": "minecraft:sandstone",
+          "item": "minecraft:sandstone",
           "count": 16,
-          "pitch": "Выложи шестнадцать песчаника над колодцем, хочу сидеть в тени и ждать",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "flesh",
-            "discountPercent": 50
-          }
+          "why": "Выложи шестнадцать песчаника над колодцем, хочу сидеть в тени и ждать"
         }
       ]
     },
@@ -4171,8 +3239,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "shell",
@@ -4190,8 +3258,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "map",
@@ -4209,8 +3277,8 @@
           "secret": true,
           "hint": "Булькает, что знает, где на дне лежит сундук, но сухим не показывает",
           "unlockRelationship": 30,
-          "unlockQuest": "",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": false
         },
         {
           "id": "trident",
@@ -4228,38 +3296,15 @@
           "secret": true,
           "hint": "Тяжело молчит, а потом говорит, что у него есть кое-что острое, не для чужих рук",
           "unlockRelationship": 60,
-          "unlockQuest": "light",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "guardians",
-          "title": "Стражи шумят",
-          "kind": "KILL",
-          "target": "minecraft:guardian",
+          "item": "minecraft:glow_ink_sac",
           "count": 3,
-          "pitch": "Три стража бьют лучом по моим обломкам, убери их, и я покажу карту",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "map",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "light",
-          "title": "Свет на дне",
-          "kind": "BRING",
-          "target": "minecraft:glow_ink_sac",
-          "count": 3,
-          "pitch": "Принеси три светящихся мешка, хочу видеть свою каюту, бль, и тогда поговорим о трезубце",
-          "reward": {
-            "relationship": 35,
-            "unlockDeal": "trident",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Принеси три светящихся мешка, хочу видеть свою каюту, бль, и тогда поговорим о трезубце"
         }
       ]
     },
@@ -4281,8 +3326,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "seeds",
@@ -4300,8 +3345,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "book",
@@ -4319,8 +3364,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "emeralds",
@@ -4338,38 +3383,15 @@
           "secret": true,
           "hint": "Бормочет про сундук в деревне, но не может вспомнить, где",
           "unlockRelationship": 40,
-          "unlockQuest": "cure",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "cure",
-          "title": "Вылечи меня",
-          "kind": "BRING",
-          "target": "minecraft:golden_apple",
+          "item": "minecraft:golden_apple",
           "count": 1,
-          "pitch": "Принеси золотое яблоко и брызни слабостью, хрмм, я всё отдам, когда вспомню",
-          "reward": {
-            "relationship": 40,
-            "unlockDeal": "emeralds",
-            "discountDeal": "flesh",
-            "discountPercent": 50
-          }
-        },
-        {
-          "id": "biters",
-          "title": "Те, кто меня укусил",
-          "kind": "KILL",
-          "target": "minecraft:zombie",
-          "count": 4,
-          "pitch": "Четверо, которые стучали в мою дверь, ходят рядом, убери их",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "book",
-            "discountPercent": 50
-          }
+          "why": "Принеси золотое яблоко и брызни слабостью, хрмм, я всё отдам, когда вспомню"
         }
       ]
     },
@@ -4391,8 +3413,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "bones",
@@ -4410,8 +3432,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "bow",
@@ -4429,8 +3451,8 @@
           "secret": true,
           "hint": "Щёлкает, что запасной лук у него есть, но отдаст только за что-то от солнца",
           "unlockRelationship": 40,
-          "unlockQuest": "",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": false
         },
         {
           "id": "disc",
@@ -4448,38 +3470,15 @@
           "secret": true,
           "hint": "Клацает, что знает, что выпадает из крипера от правильной стрелы, и у него это есть",
           "unlockRelationship": 60,
-          "unlockQuest": "creepers",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "creepers",
-          "title": "Выстрел в крипера",
-          "kind": "KILL",
-          "target": "minecraft:creeper",
-          "count": 3,
-          "pitch": "Три зелёных пасутся на моей дистанции, сними их, и я покажу, что у меня лежит",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "disc",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "helmet",
-          "title": "Шлем от солнца",
-          "kind": "BRING",
-          "target": "minecraft:iron_helmet",
+          "item": "minecraft:iron_helmet",
           "count": 1,
-          "pitch": "Принеси железный шлем, хочу встретить рассвет на крыше, клац",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "bow",
-            "discountDeal": "arrows",
-            "discountPercent": 50
-          }
+          "why": "Принеси железный шлем, хочу встретить рассвет на крыше, клац"
         }
       ]
     },
@@ -4501,8 +3500,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "ice",
@@ -4520,8 +3519,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "helmet",
@@ -4539,38 +3538,15 @@
           "secret": true,
           "hint": "Роняет, что у дозорного был шлем, и дозорный больше не дозорный",
           "unlockRelationship": 40,
-          "unlockQuest": "snow",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "snow",
-          "title": "Сугроб у засады",
-          "kind": "BRING",
-          "target": "minecraft:snow_block",
+          "item": "minecraft:snow_block",
           "count": 8,
-          "pitch": "Восемь снежных блоков у моего камня, чтобы засада была по пояс в снегу",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "helmet",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "rookies",
-          "title": "Салаги в снегу",
-          "kind": "KILL",
-          "target": "minecraft:skeleton",
-          "count": 3,
-          "pitch": "Трое обычных забрели в мою метель и портят вид, убери их, и холодно",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "bones",
-            "discountPercent": 50
-          }
+          "why": "Восемь снежных блоков у моего камня, чтобы засада была по пояс в снегу"
         }
       ]
     },
@@ -4592,8 +3568,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "arrows",
@@ -4611,8 +3587,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "key",
@@ -4630,38 +3606,15 @@
           "secret": true,
           "hint": "Булькает, что из зала испытаний вынес не только мох, но это секрет трясины",
           "unlockRelationship": 50,
-          "unlockQuest": "breeze",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "breeze",
-          "title": "Свистящий сосед",
-          "kind": "KILL",
-          "target": "minecraft:breeze",
-          "count": 1,
-          "pitch": "В зале испытаний свистит сосед, который не даёт мне сидеть в засаде, убери его",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "key",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "mangrove",
-          "title": "Засади топь",
-          "kind": "BRING",
-          "target": "minecraft:mangrove_propagule",
+          "item": "minecraft:mangrove_propagule",
           "count": 4,
-          "pitch": "Четыре ростка мангра у моей засады, трясина любит тень, буль",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "shrooms",
-            "discountPercent": 50
-          }
+          "why": "Четыре ростка мангра у моей засады, трясина любит тень, буль"
         }
       ]
     },
@@ -4683,8 +3636,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "wall",
@@ -4702,8 +3655,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "disc",
@@ -4721,8 +3674,8 @@
           "secret": true,
           "hint": "Шипит, что нашёл пластинку, просто нашёл, и это точно не с друга",
           "unlockRelationship": 30,
-          "unlockQuest": "",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": false
         },
         {
           "id": "head",
@@ -4740,38 +3693,15 @@
           "secret": true,
           "hint": "Долго молчит и говорит, что у него есть кое-что для тех, кто любит грозу",
           "unlockRelationship": 60,
-          "unlockQuest": "rod",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "rod",
-          "title": "Хочу молнию",
-          "kind": "BRING",
-          "target": "minecraft:lightning_rod",
+          "item": "minecraft:lightning_rod",
           "count": 1,
-          "pitch": "Поставь громоотвод рядом со мной перед грозой, ссс, я хочу стать синим",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "head",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "archers",
-          "title": "Костяные стрелки",
-          "kind": "KILL",
-          "target": "minecraft:skeleton",
-          "count": 3,
-          "pitch": "Три скелета стреляют мне в спину, когда я подкрадываюсь, убери их",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "disc",
-            "discountDeal": "gunpowder",
-            "discountPercent": 50
-          }
+          "why": "Поставь громоотвод рядом со мной перед грозой, ссс, я хочу стать синим"
         }
       ]
     },
@@ -4793,8 +3723,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "eye",
@@ -4812,8 +3742,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "web",
@@ -4831,38 +3761,15 @@
           "secret": true,
           "hint": "Щёлкает, что знает, где паутина настоящая, но меняет её только на кое-что костяное",
           "unlockRelationship": 40,
-          "unlockQuest": "",
-          "maxPerDay": 2
+          "maxPerDay": 2,
+          "requiresFavor": false
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "bones",
-          "title": "Косточки для жокея",
-          "kind": "BRING",
-          "target": "minecraft:bone",
+          "item": "minecraft:bone",
           "count": 8,
-          "pitch": "Восемь костей ко мне на стену, собираю наездника, тк, по частям",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "string",
-            "discountPercent": 50
-          }
-        },
-        {
-          "id": "tenants",
-          "title": "Квартиранты в стенах",
-          "kind": "KILL",
-          "target": "minecraft:silverfish",
-          "count": 5,
-          "pitch": "Пять чешуйниц грызут стену, по которой я хожу, убери их",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "web",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Восемь костей ко мне на стену, собираю наездника, тк, по частям"
         }
       ]
     },
@@ -4884,8 +3791,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "eye",
@@ -4903,8 +3810,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "apple",
@@ -4922,8 +3829,8 @@
           "secret": true,
           "hint": "Цокает, что в застрявшей вагонетке лежит кое-что золотое, но это добыча шахты",
           "unlockRelationship": 40,
-          "unlockQuest": "",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": false
         },
         {
           "id": "tag",
@@ -4941,38 +3848,15 @@
           "secret": true,
           "hint": "Дёргано говорит, что у него есть имя на бумажке, и это дороже яблока",
           "unlockRelationship": 50,
-          "unlockQuest": "strangers",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "rails",
-          "title": "Почини рельсы",
-          "kind": "BRING",
-          "target": "minecraft:rail",
+          "item": "minecraft:rail",
           "count": 16,
-          "pitch": "Шестнадцать рельсов в мой тоннель, хочу, чтобы вагонетка поехала, цк",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "apple",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "strangers",
-          "title": "Чужаки в шахте",
-          "kind": "KILL",
-          "target": "minecraft:zombie",
-          "count": 4,
-          "pitch": "Четыре зомби шатаются у моего спавнера и топчут паутину, убери их",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "tag",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Шестнадцать рельсов в мой тоннель, хочу, чтобы вагонетка поехала, цк"
         }
       ]
     },
@@ -4994,8 +3878,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "block",
@@ -5013,8 +3897,8 @@
           "secret": true,
           "hint": "Хлюпает, что может отдать себя куском, но только тем, кто защитит мелких",
           "unlockRelationship": 40,
-          "unlockQuest": "frogs",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         },
         {
           "id": "clay",
@@ -5032,38 +3916,15 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "frogs",
-          "title": "Месть за мелких",
-          "kind": "KILL",
-          "target": "minecraft:frog",
-          "count": 2,
-          "pitch": "Две лягушки сожрали моих мелких, хлюп, сделай что-нибудь",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "block",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "pads",
-          "title": "Кувшинки для прыжков",
-          "kind": "BRING",
-          "target": "minecraft:lily_pad",
+          "item": "minecraft:lily_pad",
           "count": 8,
-          "pitch": "Восемь кувшинок по болоту, я буду по ним прыгать, а ты подвинься",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "ball",
-            "discountPercent": 50
-          }
+          "why": "Восемь кувшинок по болоту, я буду по ним прыгать, а ты подвинься"
         }
       ]
     },
@@ -5085,8 +3946,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "flat",
@@ -5104,8 +3965,8 @@
           "secret": true,
           "hint": "Шуршат, что могут отдать блок с соседом внутри, но соседа надо заслужить",
           "unlockRelationship": 40,
-          "unlockQuest": "",
-          "maxPerDay": 2
+          "maxPerDay": 2,
+          "requiresFavor": false
         },
         {
           "id": "eye",
@@ -5123,38 +3984,15 @@
           "secret": true,
           "hint": "Шепчут хором, что в стене лежит кое-что зелёное, и это не мох",
           "unlockRelationship": 60,
-          "unlockQuest": "flats",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "flats",
-          "title": "Новая квартира",
-          "kind": "BRING",
-          "target": "minecraft:stone_bricks",
+          "item": "minecraft:stone_bricks",
           "count": 32,
-          "pitch": "Тридцать два каменных кирпича к крепости, нам нужны новые стены, шшр",
-          "reward": {
-            "relationship": 35,
-            "unlockDeal": "eye",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "spiders",
-          "title": "Синие соседи",
-          "kind": "KILL",
-          "target": "minecraft:cave_spider",
-          "count": 3,
-          "pitch": "Три синих паука заплели наш коридор, выгони их",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "flat",
-            "discountDeal": "cracked",
-            "discountPercent": 50
-          }
+          "why": "Тридцать два каменных кирпича к крепости, нам нужны новые стены, шшр"
         }
       ]
     },
@@ -5176,8 +4014,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "bed",
@@ -5195,8 +4033,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": false
         },
         {
           "id": "wings",
@@ -5214,38 +4052,20 @@
           "secret": true,
           "hint": "Шипит, что для тех, кто не спит и не боится, у него найдётся больше перепонок",
           "unlockRelationship": 40,
-          "unlockQuest": "spyglass",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "spyglass",
-          "title": "Следить за бессонными",
-          "kind": "BRING",
-          "target": "minecraft:spyglass",
+          "item": "minecraft:spyglass",
           "count": 1,
-          "pitch": "Принеси подзорную трубу, хочу видеть, кто не спит, раньше, чем они увидят меня",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "wings",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Принеси подзорную трубу, хочу видеть, кто не спит, раньше, чем они увидят меня"
         },
         {
-          "id": "clock",
-          "title": "Сколько ночей",
-          "kind": "BRING",
-          "target": "minecraft:clock",
+          "item": "minecraft:clock",
           "count": 1,
-          "pitch": "Принеси часы, бессонный, я хочу считать твои ночи точно",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "membrane",
-            "discountPercent": 50
-          }
+          "why": "Принеси часы, бессонный, я хочу считать твои ночи точно"
         }
       ]
     },
@@ -5267,8 +4087,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "map",
@@ -5286,8 +4106,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "crossbow",
@@ -5305,8 +4125,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "bottle",
@@ -5324,38 +4144,15 @@
           "secret": true,
           "hint": "Понижает голос и говорит, что у капитана есть склянка, за которой стоит сходить",
           "unlockRelationship": 40,
-          "unlockQuest": "golem",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "golem",
-          "title": "Снеси железяку",
-          "kind": "KILL",
-          "target": "minecraft:iron_golem",
+          "item": "minecraft:crossbow",
           "count": 1,
-          "pitch": "Один голем держит всю деревню, сними его, и я покажу, что у капитана в сумке",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "bottle",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "spare",
-          "title": "Запасной арбалет",
-          "kind": "BRING",
-          "target": "minecraft:crossbow",
-          "count": 1,
-          "pitch": "Принеси арбалет, мой сломался на последнем рейде, лут",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "arrows",
-            "discountPercent": 50
-          }
+          "why": "Принеси арбалет, мой сломался на последнем рейде, лут"
         }
       ]
     },
@@ -5377,8 +4174,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "axe",
@@ -5396,8 +4193,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "totem",
@@ -5415,38 +4212,15 @@
           "secret": true,
           "hint": "Коротко роняет, что в особняке есть кое-что, что вызыватель считает своим",
           "unlockRelationship": 70,
-          "unlockQuest": "golem",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "golem",
-          "title": "Железка первой",
-          "kind": "KILL",
-          "target": "minecraft:iron_golem",
-          "count": 1,
-          "pitch": "Голем первым, дверь, потом поговорим о том, что лежит в особняке",
-          "reward": {
-            "relationship": 35,
-            "unlockDeal": "totem",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "logs",
-          "title": "Доски для особняка",
-          "kind": "BRING",
-          "target": "minecraft:dark_oak_log",
+          "item": "minecraft:dark_oak_log",
           "count": 16,
-          "pitch": "Шестнадцать брёвен тёмного дуба к особняку, стены гниют, топор не чинит",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "axe",
-            "discountPercent": 50
-          }
+          "why": "Шестнадцать брёвен тёмного дуба к особняку, стены гниют, топор не чинит"
         }
       ]
     },
@@ -5468,8 +4242,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "red",
@@ -5487,8 +4261,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "totem",
@@ -5506,38 +4280,15 @@
           "secret": true,
           "hint": "Как мило, вы спрашиваете о тотеме, но тотемы — для тех, кто служил",
           "unlockRelationship": 70,
-          "unlockQuest": "golem",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "sheep",
-          "title": "Синие овцы",
-          "kind": "BRING",
-          "target": "minecraft:blue_wool",
+          "item": "minecraft:blue_wool",
           "count": 16,
-          "pitch": "Принесите шестнадцать синей шерсти, мне нужно на что-то сказать уоло-ло",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "red",
-            "discountPercent": 50
-          }
-        },
-        {
-          "id": "golem",
-          "title": "Тупая железка",
-          "kind": "KILL",
-          "target": "minecraft:iron_golem",
-          "count": 1,
-          "pitch": "Уберите голема у ближайшей деревни, и я, возможно, расстанусь с одной ценной вещью",
-          "reward": {
-            "relationship": 40,
-            "unlockDeal": "totem",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Принесите шестнадцать синей шерсти, мне нужно на что-то сказать уоло-ло"
         }
       ]
     },
@@ -5559,8 +4310,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": false
         },
         {
           "id": "dust",
@@ -5578,8 +4329,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "totem",
@@ -5597,38 +4348,15 @@
           "secret": true,
           "hint": "Хихикает, что у хозяина чего-то не хватает, и это не досаждатель",
           "unlockRelationship": 70,
-          "unlockQuest": "draw",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "draw",
-          "title": "Запомни меня",
-          "kind": "BRING",
-          "target": "minecraft:paper",
+          "item": "minecraft:paper",
           "count": 4,
-          "pitch": "Принеси четыре бумаги и нарисуй меня, хи-хи, пока я ещё есть",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "totem",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "axes",
-          "title": "Скучные топоры",
-          "kind": "KILL",
-          "target": "minecraft:vindicator",
-          "count": 2,
-          "pitch": "Два поборника стоят в коридоре и мешают летать, убери их, медленный",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "sword",
-            "discountPercent": 50
-          }
+          "why": "Принеси четыре бумаги и нарисуй меня, хи-хи, пока я ещё есть"
         }
       ]
     },
@@ -5650,8 +4378,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "leaves",
@@ -5669,8 +4397,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "saddle",
@@ -5688,38 +4416,20 @@
           "secret": true,
           "hint": "Рычит, что седло есть, но на нём никто не сидел, и так и будет",
           "unlockRelationship": 50,
-          "unlockQuest": "hay",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "hay",
-          "title": "Стог для тарана",
-          "kind": "BRING",
-          "target": "minecraft:hay_block",
+          "item": "minecraft:hay_block",
           "count": 6,
-          "pitch": "Шесть снопов сена перед рейдом, хрусть, и я покажу седло",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "saddle",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Шесть снопов сена перед рейдом, хрусть, и я покажу седло"
         },
         {
-          "id": "shield",
-          "title": "Сломай щит",
-          "kind": "BRING",
-          "target": "minecraft:shield",
+          "item": "minecraft:shield",
           "count": 1,
-          "pitch": "Принеси щит и сломай его при мне, хочу видеть, как они ломаются",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "wheat",
-            "discountPercent": 50
-          }
+          "why": "Принеси щит и сломай его при мне, хочу видеть, как они ломаются"
         }
       ]
     },
@@ -5741,8 +4451,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "redstone",
@@ -5760,8 +4470,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "eye",
@@ -5779,8 +4489,8 @@
           "secret": true,
           "hint": "Хихикает, что у неё есть ингредиент, который всё переворачивает, но не для чужих",
           "unlockRelationship": 30,
-          "unlockQuest": "",
-          "maxPerDay": 2
+          "maxPerDay": 2,
+          "requiresFavor": false
         },
         {
           "id": "stand",
@@ -5798,38 +4508,15 @@
           "secret": true,
           "hint": "Намекает, что в хижине есть вторая стойка, и она ей не нужна, если будет нарост",
           "unlockRelationship": 50,
-          "unlockQuest": "wart",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "wart",
-          "title": "Адский нарост",
-          "kind": "BRING",
-          "target": "minecraft:nether_wart",
+          "item": "minecraft:nether_wart",
           "count": 8,
-          "pitch": "Принеси восемь адского нароста, ингредиент, и стойка твоя, хи-хи-хик",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "stand",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "slimes",
-          "title": "Слизни под сваями",
-          "kind": "KILL",
-          "target": "minecraft:slime",
-          "count": 4,
-          "pitch": "Четыре слизня хлюпают под моей хижиной, убери их, и склянки будут дешевле",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "eye",
-            "discountDeal": "bottles",
-            "discountPercent": 50
-          }
+          "why": "Принеси восемь адского нароста, ингредиент, и стойка твоя, хи-хи-хик"
         }
       ]
     },
@@ -5851,8 +4538,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 2
+          "maxPerDay": 2,
+          "requiresFavor": false
         },
         {
           "id": "charge",
@@ -5870,8 +4557,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "key",
@@ -5889,38 +4576,15 @@
           "secret": true,
           "hint": "Свистит, что в зале есть ключ, который он сдул со стола, и он у него",
           "unlockRelationship": 50,
-          "unlockQuest": "bogged",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "bogged",
-          "title": "Мокрые соседи",
-          "kind": "KILL",
-          "target": "minecraft:bogged",
-          "count": 4,
-          "pitch": "Четыре болотных стрелка сидят в моём зале и не прыгают, скучно, убери их",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "key",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "misses",
-          "title": "Промахи лучников",
-          "kind": "BRING",
-          "target": "minecraft:arrow",
+          "item": "minecraft:arrow",
           "count": 16,
-          "pitch": "Собери шестнадцать стрел, которыми в меня промахнулись, фьють, это коллекция",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "rod",
-            "discountPercent": 50
-          }
+          "why": "Собери шестнадцать стрел, которыми в меня промахнулись, фьють, это коллекция"
         }
       ]
     },
@@ -5942,8 +4606,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "pebble",
@@ -5961,8 +4625,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "head",
@@ -5980,38 +4644,15 @@
           "secret": true,
           "hint": "Медленно говорит, что у него есть голова поменьше, на память, ну",
           "unlockRelationship": 50,
-          "unlockQuest": "name",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "name",
-          "title": "Назови меня",
-          "kind": "BRING",
-          "target": "minecraft:name_tag",
+          "item": "minecraft:name_tag",
           "count": 1,
-          "pitch": "Повесь на меня бирку, муравей, хочу знать, как меня зовут",
-          "reward": {
-            "relationship": 40,
-            "unlockDeal": "head",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "ants",
-          "title": "Мелочь под ногами",
-          "kind": "KILL",
-          "target": "minecraft:silverfish",
-          "count": 5,
-          "pitch": "Пять мелких бегают у ног, не могу наступить, убери их, ну",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "pebble",
-            "discountPercent": 50
-          }
+          "why": "Повесь на меня бирку, муравей, хочу знать, как меня зовут"
         }
       ]
     },
@@ -6033,8 +4674,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "arrows",
@@ -6052,8 +4693,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "tag",
@@ -6071,8 +4712,8 @@
           "secret": true,
           "hint": "Следите за руками: у него есть бумажка, которая делает любого кем угодно",
           "unlockRelationship": 30,
-          "unlockQuest": "",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": false
         },
         {
           "id": "totem",
@@ -6090,38 +4731,15 @@
           "secret": true,
           "hint": "Говорит, что у него нет тотема, и повторяет это слишком часто",
           "unlockRelationship": 60,
-          "unlockQuest": "rival",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "ink",
-          "title": "Чернила для слепоты",
-          "kind": "BRING",
-          "target": "minecraft:ink_sac",
+          "item": "minecraft:ink_sac",
           "count": 8,
-          "pitch": "Принеси восемь чернильных мешков, зритель, слепота не варится из воздуха",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "tag",
-            "discountDeal": "bow",
-            "discountPercent": 50
-          }
-        },
-        {
-          "id": "rival",
-          "title": "Соперник на сцене",
-          "kind": "KILL",
-          "target": "minecraft:evoker",
-          "count": 1,
-          "pitch": "Убери вызывателя, итак, и в особняке наконец освободится сцена",
-          "reward": {
-            "relationship": 40,
-            "unlockDeal": "totem",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Принеси восемь чернильных мешков, зритель, слепота не варится из воздуха"
         }
       ]
     },
@@ -6143,8 +4761,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "obsidian",
@@ -6162,8 +4780,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "quartz",
@@ -6181,8 +4799,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "debris",
@@ -6200,38 +4818,15 @@
           "secret": true,
           "hint": "Хрюкает, что в сундуке лежит тяжёлая чёрная штука, не золото, но за золото отдаст",
           "unlockRelationship": 60,
-          "unlockQuest": "tribute",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "hunt",
-          "title": "Охота на хоглинов",
-          "kind": "KILL",
-          "target": "minecraft:hoglin",
-          "count": 3,
-          "pitch": "Три хоглина у леса, пошли вместе, хрю, потом танцуем",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "",
-            "discountDeal": "pearl",
-            "discountPercent": 50
-          }
-        },
-        {
-          "id": "tribute",
-          "title": "Дань золотом",
-          "kind": "BRING",
-          "target": "minecraft:gold_ingot",
+          "item": "minecraft:gold_ingot",
           "count": 8,
-          "pitch": "Восемь слитков банде, и я покажу, что в сундуке кроме золота",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "debris",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Восемь слитков банде, и я покажу, что в сундуке кроме золота"
         }
       ]
     },
@@ -6253,8 +4848,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "chain",
@@ -6272,8 +4867,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "axe",
@@ -6291,40 +4886,11 @@
           "secret": true,
           "hint": "Коротко: у него есть второй топор, но он не для чужих",
           "unlockRelationship": 60,
-          "unlockQuest": "rotten",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
-        {
-          "id": "rotten",
-          "title": "Гнилые родичи",
-          "kind": "KILL",
-          "target": "minecraft:zombified_piglin",
-          "count": 4,
-          "pitch": "Четыре гнилых топчутся у ворот, пост требует, убери",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "axe",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "bones",
-          "title": "Чёрные кости у ворот",
-          "kind": "KILL",
-          "target": "minecraft:wither_skeleton",
-          "count": 3,
-          "pitch": "Три чёрных скелета лезут с моста к сокровищнице, чужой, разберись",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "bricks",
-            "discountPercent": 50
-          }
-        }
-      ]
+      "ideas": []
     },
     "minecraft:zombified_piglin": {
       "deals": [
@@ -6344,8 +4910,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "flesh",
@@ -6363,8 +4929,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "sword",
@@ -6382,8 +4948,8 @@
           "secret": true,
           "hint": "Хрипит, что толпа хранит мечи своих, но не для чужих рук",
           "unlockRelationship": 40,
-          "unlockQuest": "",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": false
         },
         {
           "id": "ingot",
@@ -6401,38 +4967,15 @@
           "secret": true,
           "hint": "Глухо намекает, что держит слиток не для золота, а для памяти",
           "unlockRelationship": 60,
-          "unlockQuest": "carrot",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "carrot",
-          "title": "Морковка из прошлого",
-          "kind": "BRING",
-          "target": "minecraft:carrot",
+          "item": "minecraft:carrot",
           "count": 6,
-          "pitch": "Принеси шесть морковок, хр-р, толпа не поймёт, а я вспомню",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "ingot",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "ghast",
-          "title": "Плакса над толпой",
-          "kind": "KILL",
-          "target": "minecraft:ghast",
-          "count": 1,
-          "pitch": "Гаст плачет над нами третью ночь и плюётся, спокойно, убери его",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "sword",
-            "discountDeal": "nuggets",
-            "discountPercent": 50
-          }
+          "why": "Принеси шесть морковок, хр-р, толпа не поймёт, а я вспомню"
         }
       ]
     },
@@ -6454,8 +4997,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "leather",
@@ -6473,8 +5016,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "stem",
@@ -6492,38 +5035,15 @@
           "secret": true,
           "hint": "Сопит, что знает поляну, где стволы толще, но это стадное",
           "unlockRelationship": 30,
-          "unlockQuest": "",
-          "maxPerDay": 2
+          "maxPerDay": 2,
+          "requiresFavor": false
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "hunters",
-          "title": "Охотники с копьями",
-          "kind": "KILL",
-          "target": "minecraft:piglin",
-          "count": 4,
-          "pitch": "Четыре рыла с копьями ходят вокруг стада, фррх, убери их",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "stem",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "feed",
-          "title": "Корм для стада",
-          "kind": "BRING",
-          "target": "minecraft:crimson_fungus",
+          "item": "minecraft:crimson_fungus",
           "count": 8,
-          "pitch": "Восемь багровых грибов стаду, и я не бодаю тебя первым",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "porkchop",
-            "discountPercent": 50
-          }
+          "why": "Восемь багровых грибов стаду, и я не бодаю тебя первым"
         }
       ]
     },
@@ -6545,8 +5065,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "bone",
@@ -6564,8 +5084,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "memory",
@@ -6583,38 +5103,15 @@
           "secret": true,
           "hint": "Рычит, что держит в пасти что-то красное и не знает зачем",
           "unlockRelationship": 50,
-          "unlockQuest": "soft",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "soft",
-          "title": "Мясо, мягкое",
-          "kind": "BRING",
-          "target": "minecraft:beef",
+          "item": "minecraft:beef",
           "count": 6,
-          "pitch": "Шесть мяса. Мягкого. Сюда. Потом… потом покажу",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "memory",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "alive",
-          "title": "Всё живое",
-          "kind": "KILL",
-          "target": "minecraft:zombie",
-          "count": 5,
-          "pitch": "Пять ходячих. Цель. Бей. Я… потом",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "flesh",
-            "discountPercent": 50
-          }
+          "why": "Шесть мяса. Мягкого. Сюда. Потом… потом покажу"
         }
       ]
     },
@@ -6636,8 +5133,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 2
+          "maxPerDay": 2,
+          "requiresFavor": false
         },
         {
           "id": "powder",
@@ -6655,8 +5152,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "charge",
@@ -6674,8 +5171,8 @@
           "secret": true,
           "hint": "Трещит, что у караула есть заряды не только для залпа",
           "unlockRelationship": 30,
-          "unlockQuest": "",
-          "maxPerDay": 2
+          "maxPerDay": 2,
+          "requiresFavor": false
         },
         {
           "id": "rods",
@@ -6693,38 +5190,15 @@
           "secret": true,
           "hint": "По уставу стержни не продаются, но для тех, кто служил крепости, бывает исключение",
           "unlockRelationship": 40,
-          "unlockQuest": "snowman",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "snowman",
-          "title": "Снеговик наверху",
-          "kind": "KILL",
-          "target": "minecraft:snow_golem",
-          "count": 1,
-          "pitch": "Где-то наверху живёт снеговик, который кидается в нас снежками, тссх, убери его",
-          "reward": {
-            "relationship": 35,
-            "unlockDeal": "rods",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "bricks",
-          "title": "Ремонт крепости",
-          "kind": "BRING",
-          "target": "minecraft:nether_bricks",
+          "item": "minecraft:nether_bricks",
           "count": 16,
-          "pitch": "Шестнадцать адского кирпича к мосту у спавнера, крепость крошится",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "rod",
-            "discountPercent": 25
-          }
+          "why": "Шестнадцать адского кирпича к мосту у спавнера, крепость крошится"
         }
       ]
     },
@@ -6746,8 +5220,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "tear",
@@ -6765,8 +5239,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 2
+          "maxPerDay": 2,
+          "requiresFavor": false
         },
         {
           "id": "tears",
@@ -6784,38 +5258,15 @@
           "secret": true,
           "hint": "Всхлипывает, что для того, кто принёс цветы, слёз не жалко",
           "unlockRelationship": 50,
-          "unlockQuest": "flowers",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "flowers",
-          "title": "Цветы на базальт",
-          "kind": "BRING",
-          "target": "minecraft:poppy",
+          "item": "minecraft:poppy",
           "count": 4,
-          "pitch": "Принеси четыре мака и положи на базальт, и-и-их, просто положи",
-          "reward": {
-            "relationship": 35,
-            "unlockDeal": "tears",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "neighbors",
-          "title": "Шумные соседи",
-          "kind": "KILL",
-          "target": "minecraft:piglin",
-          "count": 3,
-          "pitch": "Три пиглина хрюкают под моим местом и не дают плакать спокойно, убери их",
-          "reward": {
-            "relationship": 20,
-            "unlockDeal": "",
-            "discountDeal": "gunpowder",
-            "discountPercent": 50
-          }
+          "why": "Принеси четыре мака и положи на базальт, и-и-их, просто положи"
         }
       ]
     },
@@ -6837,8 +5288,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "block",
@@ -6856,8 +5307,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "core",
@@ -6875,38 +5326,15 @@
           "secret": true,
           "hint": "Шипит, что внутри у него теплее, но туда пускает не всех",
           "unlockRelationship": 40,
-          "unlockQuest": "frog",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "frog",
-          "title": "Лягушка в Незере",
-          "kind": "KILL",
-          "target": "minecraft:frog",
-          "count": 1,
-          "pitch": "Кто-то притащил лягушку в Незер, пш-ш, найди и убери, пока она не сожрала мелких",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "core",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "heat",
-          "title": "Разогрей дно",
-          "kind": "BRING",
-          "target": "minecraft:lava_bucket",
+          "item": "minecraft:lava_bucket",
           "count": 2,
-          "pitch": "Два ведра лавы на мой базальт, холодно стало, сверху виднее",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "cream",
-            "discountPercent": 50
-          }
+          "why": "Два ведра лавы на мой базальт, холодно стало, сверху виднее"
         }
       ]
     },
@@ -6928,8 +5356,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "bones",
@@ -6947,8 +5375,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "sword",
@@ -6966,8 +5394,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "skull",
@@ -6985,38 +5413,15 @@
           "secret": true,
           "hint": "Отставить вопросы о черепах, но для того, кто держал мост рядом, разговор другой",
           "unlockRelationship": 60,
-          "unlockQuest": "bridge",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "bridge",
-          "title": "Залатай мост",
-          "kind": "BRING",
-          "target": "minecraft:nether_bricks",
+          "item": "minecraft:nether_bricks",
           "count": 8,
-          "pitch": "Восемь адского кирпича на мост, караул не может стоять над дырой",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "skull",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "snouts",
-          "title": "Рыла на мосту",
-          "kind": "KILL",
-          "target": "minecraft:piglin",
-          "count": 4,
-          "pitch": "Четыре рыла лезут на мост с золотыми мечами, так точно, разберись",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "coal",
-            "discountPercent": 50
-          }
+          "why": "Восемь адского кирпича на мост, караул не может стоять над дырой"
         }
       ]
     },
@@ -7038,8 +5443,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "ash",
@@ -7057,8 +5462,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "star",
@@ -7076,38 +5481,15 @@
           "secret": true,
           "hint": "Три головы молчат разом, потом одна говорит: звезда даётся только тому, кто готов собрать нас снова",
           "unlockRelationship": 70,
-          "unlockQuest": "skulls",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "skulls",
-          "title": "Три черепа",
-          "kind": "BRING",
-          "target": "minecraft:wither_skeleton_skull",
+          "item": "minecraft:wither_skeleton_skull",
           "count": 3,
-          "pitch": "Принеси три черепа, покажи, что можешь собрать нас снова, и получишь то, за чем пришёл",
-          "reward": {
-            "relationship": 40,
-            "unlockDeal": "star",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "golems",
-          "title": "Железо жителей",
-          "kind": "KILL",
-          "target": "minecraft:iron_golem",
-          "count": 2,
-          "pitch": "Два голема стоят между мной и деревней, снеси их, и розы будут дешевле",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "rose",
-            "discountPercent": 50
-          }
+          "why": "Принеси три черепа, покажи, что можешь собрать нас снова, и получишь то, за чем пришёл"
         }
       ]
     },
@@ -7129,8 +5511,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "basalt",
@@ -7148,8 +5530,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "saddle",
@@ -7167,38 +5549,15 @@
           "secret": true,
           "hint": "Курлычет, что на дне у берега лежит седло, и оно теперь ничьё",
           "unlockRelationship": 40,
-          "unlockQuest": "fungus",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "fungus",
-          "title": "Искажённые грибы",
-          "kind": "BRING",
-          "target": "minecraft:warped_fungus",
+          "item": "minecraft:warped_fungus",
           "count": 6,
-          "pitch": "Шесть искажённых грибов, не на удочке, а в лапу, и я покажу, что лежит у берега",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "saddle",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "ghast",
-          "title": "Плакса над лавой",
-          "kind": "KILL",
-          "target": "minecraft:ghast",
-          "count": 1,
-          "pitch": "Гаст плюётся в мою дорогу к бастиону, ой, убери его",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "string",
-            "discountPercent": 50
-          }
+          "why": "Шесть искажённых грибов, не на удочке, а в лапу, и я покажу, что лежит у берега"
         }
       ]
     },
@@ -7220,8 +5579,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "sand",
@@ -7239,8 +5598,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "pearls",
@@ -7258,8 +5617,8 @@
           "secret": true,
           "hint": "Шепчет, что всегда хотел подержать один блок, который нельзя поднимать",
           "unlockRelationship": 40,
-          "unlockQuest": "",
-          "maxPerDay": 2
+          "maxPerDay": 2,
+          "requiresFavor": false
         },
         {
           "id": "eye",
@@ -7277,38 +5636,15 @@
           "secret": true,
           "hint": "Отворачивается и говорит, что знает, во что превращают жемчуг, и ему это не нравится",
           "unlockRelationship": 60,
-          "unlockQuest": "mites",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "mycelium",
-          "title": "Мицелий в коллекцию",
-          "kind": "BRING",
-          "target": "minecraft:mycelium",
+          "item": "minecraft:mycelium",
           "count": 1,
-          "pitch": "Принеси один мицелий, в коллекции нет, не смотри, просто положи",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "",
-            "discountDeal": "pearl",
-            "discountPercent": 50
-          }
-        },
-        {
-          "id": "mites",
-          "title": "Убери мерзость",
-          "kind": "KILL",
-          "target": "minecraft:endermite",
-          "count": 3,
-          "pitch": "Три мерзости ползают у моих блоков, убери их, и я отдам Око",
-          "reward": {
-            "relationship": 35,
-            "unlockDeal": "eye",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Принеси один мицелий, в коллекции нет, не смотри, просто положи"
         }
       ]
     },
@@ -7330,8 +5666,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "chorus",
@@ -7349,8 +5685,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "map",
@@ -7368,38 +5704,15 @@
           "secret": true,
           "hint": "Пищит, что знает, где щель обратно в жемчуг, но покажет только тому, кто его назвал",
           "unlockRelationship": 30,
-          "unlockQuest": "name",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "name",
-          "title": "Не дай исчезнуть",
-          "kind": "BRING",
-          "target": "minecraft:name_tag",
+          "item": "minecraft:name_tag",
           "count": 1,
-          "pitch": "Повесь на меня бирку, кусь, пока две минуты не кончились",
-          "reward": {
-            "relationship": 40,
-            "unlockDeal": "map",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "tall",
-          "title": "Длинные смотрят",
-          "kind": "KILL",
-          "target": "minecraft:enderman",
-          "count": 2,
-          "pitch": "Два длинных ходят вокруг и смотрят, что? убери их",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "stone",
-            "discountPercent": 50
-          }
+          "why": "Повесь на меня бирку, кусь, пока две минуты не кончились"
         }
       ]
     },
@@ -7421,8 +5734,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "rod",
@@ -7440,8 +5753,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "shell",
@@ -7459,8 +5772,8 @@
           "secret": true,
           "hint": "Щёлкает крышкой и говорит, что в городе остались панцири, но они не для сундуков",
           "unlockRelationship": 60,
-          "unlockQuest": "wall",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         },
         {
           "id": "elytra",
@@ -7478,38 +5791,15 @@
           "secret": true,
           "hint": "Закрыто. Но на корабле есть вещь, за которой приходят все, и он знает, где она",
           "unlockRelationship": 70,
-          "unlockQuest": "mites",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "wall",
-          "title": "Ровная стена",
-          "kind": "BRING",
-          "target": "minecraft:purpur_block",
+          "item": "minecraft:purpur_block",
           "count": 16,
-          "pitch": "Шестнадцать пурпура, заделай дырки в стене, клк, ровно",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "shell",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "mites",
-          "title": "Мелочь на полу",
-          "kind": "KILL",
-          "target": "minecraft:endermite",
-          "count": 3,
-          "pitch": "Три мелких ползают по моему полу и портят геометрию, убери",
-          "reward": {
-            "relationship": 35,
-            "unlockDeal": "elytra",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
+          "why": "Шестнадцать пурпура, заделай дырки в стене, клк, ровно"
         }
       ]
     },
@@ -7531,8 +5821,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 2
+          "maxPerDay": 2,
+          "requiresFavor": false
         },
         {
           "id": "stone",
@@ -7550,8 +5840,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "breaths",
@@ -7569,8 +5859,8 @@
           "secret": true,
           "hint": "Тому, кто вернул кристаллы, дракон дышит щедрее",
           "unlockRelationship": 50,
-          "unlockQuest": "crystals",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         },
         {
           "id": "head",
@@ -7588,38 +5878,15 @@
           "secret": true,
           "hint": "Ревёт, что на корабле висит голова, и это не трофей, это предупреждение",
           "unlockRelationship": 70,
-          "unlockQuest": "parasites",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "crystals",
-          "title": "Верни кристаллы",
-          "kind": "BRING",
-          "target": "minecraft:end_crystal",
+          "item": "minecraft:end_crystal",
           "count": 4,
-          "pitch": "Принеси четыре кристалла и поставь на портал, претендент, посмотрим, что ты поймёшь",
-          "reward": {
-            "relationship": 40,
-            "unlockDeal": "breaths",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "parasites",
-          "title": "Паразиты на острове",
-          "kind": "KILL",
-          "target": "minecraft:endermite",
-          "count": 5,
-          "pitch": "Пять мелких тварей ползают по моему острову, эндермены бесятся, убери",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "head",
-            "discountDeal": "breath",
-            "discountPercent": 25
-          }
+          "why": "Принеси четыре кристалла и поставь на портал, претендент, посмотрим, что ты поймёшь"
         }
       ]
     },
@@ -7641,8 +5908,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "crystals",
@@ -7660,8 +5927,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "lantern",
@@ -7679,8 +5946,8 @@
           "secret": true,
           "hint": "Докладывает, что в зале есть лишний фонарь, но это имущество монумента",
           "unlockRelationship": 40,
-          "unlockQuest": "",
-          "maxPerDay": 2
+          "maxPerDay": 2,
+          "requiresFavor": false
         },
         {
           "id": "sponge",
@@ -7698,40 +5965,11 @@
           "secret": true,
           "hint": "Шипит, что конфисковал у ныряльщика то, чем сушат залы, и держит под охраной",
           "unlockRelationship": 60,
-          "unlockQuest": "squids",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
-        {
-          "id": "squids",
-          "title": "Кальмары для разминки",
-          "kind": "KILL",
-          "target": "minecraft:squid",
-          "count": 5,
-          "pitch": "Пять кальмаров в моём секторе, цель захвачена, помоги зачистить",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "sponge",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "drowned",
-          "title": "Утопленники у стен",
-          "kind": "KILL",
-          "target": "minecraft:drowned",
-          "count": 4,
-          "pitch": "Четыре утопленника шатаются у стен монумента, не в моём секторе, но мешают",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "shard",
-            "discountPercent": 50
-          }
-        }
-      ]
+      "ideas": []
     },
     "minecraft:elder_guardian": {
       "deals": [
@@ -7751,8 +5989,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "fish",
@@ -7770,8 +6008,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "sponge",
@@ -7789,8 +6027,8 @@
           "secret": true,
           "hint": "Я помню, где лежат губки, но их не дают очередным",
           "unlockRelationship": 50,
-          "unlockQuest": "",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": false
         },
         {
           "id": "trim",
@@ -7808,38 +6046,15 @@
           "secret": true,
           "hint": "Тяжело молчит, а потом говорит, что знает узор, который носили хранители до тебя",
           "unlockRelationship": 70,
-          "unlockQuest": "gold",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "gold",
-          "title": "Верни золото",
-          "kind": "BRING",
-          "target": "minecraft:gold_block",
+          "item": "minecraft:gold_block",
           "count": 1,
-          "pitch": "Принеси золотой блок в сердце зала, очередной, и я вспомню тебя иначе",
-          "reward": {
-            "relationship": 40,
-            "unlockDeal": "trim",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "intruders",
-          "title": "Чужаки в залах",
-          "kind": "KILL",
-          "target": "minecraft:drowned",
-          "count": 5,
-          "pitch": "Пять утопленников бродят по моим залам, я помню, когда их не было, убери",
-          "reward": {
-            "relationship": 25,
-            "unlockDeal": "",
-            "discountDeal": "dark",
-            "discountPercent": 50
-          }
+          "why": "Принеси золотой блок в сердце зала, очередной, и я вспомню тебя иначе"
         }
       ]
     },
@@ -7861,8 +6076,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "sensor",
@@ -7880,8 +6095,8 @@
           "secret": false,
           "hint": "",
           "unlockRelationship": 0,
-          "unlockQuest": "",
-          "maxPerDay": 0
+          "maxPerDay": 0,
+          "requiresFavor": false
         },
         {
           "id": "shard",
@@ -7899,8 +6114,8 @@
           "secret": true,
           "hint": "Рычит, что в тишине города есть осколки, которые звучат, но отдаст их только тихому",
           "unlockRelationship": 50,
-          "unlockQuest": "silence",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         },
         {
           "id": "catalyst",
@@ -7918,38 +6133,15 @@
           "secret": true,
           "hint": "Долго слушает, а потом говорит, что у него есть то, что выпадает после него, и это не для шумных",
           "unlockRelationship": 70,
-          "unlockQuest": "bones",
-          "maxPerDay": 1
+          "maxPerDay": 1,
+          "requiresFavor": true
         }
       ],
-      "quests": [
+      "ideas": [
         {
-          "id": "silence",
-          "title": "Полная тишина",
-          "kind": "BRING",
-          "target": "minecraft:white_wool",
+          "item": "minecraft:white_wool",
           "count": 16,
-          "pitch": "Шестнадцать шерсти на крикуны вокруг, тише, и я дам тебе эхо",
-          "reward": {
-            "relationship": 40,
-            "unlockDeal": "shard",
-            "discountDeal": "",
-            "discountPercent": 0
-          }
-        },
-        {
-          "id": "bones",
-          "title": "Стук костей",
-          "kind": "KILL",
-          "target": "minecraft:skeleton",
-          "count": 5,
-          "pitch": "Пять костяных гремят в моём городе, я слышу каждую кость, убери их",
-          "reward": {
-            "relationship": 30,
-            "unlockDeal": "catalyst",
-            "discountDeal": "sculk",
-            "discountPercent": 50
-          }
+          "why": "Шестнадцать шерсти на крикуны вокруг, тише, и я дам тебе эхо"
         }
       ]
     }

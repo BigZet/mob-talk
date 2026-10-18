@@ -10,12 +10,10 @@ import static org.junit.jupiter.api.Assertions.*;
 class TradingTest {
     private static final String COW = "minecraft:cow";
     private TradeDeal milk, hay, bulk, leather;
-    private QuestDefinition fence, wolves;
 
     @BeforeEach void fixture() {
         TradeFixtures.install();
         milk = TradeCatalog.deal(COW, "milk"); hay = TradeCatalog.deal(COW, "hay"); bulk = TradeCatalog.deal(COW, "bulk"); leather = TradeCatalog.deal(COW, "leather");
-        fence = TradeCatalog.quest(COW, "fence"); wolves = TradeCatalog.quest(COW, "wolves");
     }
     @AfterEach void restoreBundle() { TradeFixtures.reset(); }
 
@@ -28,11 +26,14 @@ class TradingTest {
         return ((List<Map<String, Object>>) view.get("secret")).stream().filter(d -> id.equals(d.get("id"))).findFirst().orElseThrow();
     }
     @SuppressWarnings("unchecked")
-    private static Map<String, Object> quests(Map<String, Object> view) { return (Map<String, Object>) view.get("quests"); }
+    private static Map<String, Object> favor(Map<String, Object> view) { return (Map<String, Object>) view.get("favor"); }
     @SuppressWarnings("unchecked")
-    private static List<Map<String, Object>> questList(Map<String, Object> view, String key) { return (List<Map<String, Object>>) quests(view).get(key); }
-    private static Map<String, Object> view(Map<String, TradeState> states, Map<String, QuestState> quests, int relationship, long now) {
-        return Trading.view(COW, states, quests, relationship, now, 0, Map.of(), Map.of());
+    private static Map<String, Object> active(Map<String, Object> view) { return (Map<String, Object>) favor(view).get("active"); }
+    private static Map<String, Object> view(Map<String, TradeState> states, List<String> done, int relationship, long now) {
+        return Trading.view(COW, states, null, done, relationship, now, 0, Map.of(), Map.of());
+    }
+    private static Map<String, Object> view(Map<String, TradeState> states, Map<String, ?> ignored, int relationship, long now) {
+        return view(states, List.of(), relationship, now);
     }
 
     // One OFFER halves at most, the floor is 10%, and a negotiated price is permanent: later rounds only go lower.
@@ -98,24 +99,23 @@ class TradingTest {
         assertEquals(List.of("NONE", "OFFER", "DECLINE"), view(Map.of("milk", negotiated), Map.of(), Trading.HOSTILE_RELATIONSHIP + 1, 10).get("allowedDealTypes"));
     }
 
-    // A secret deal stays a hint until relationship and quest allow the mob to open it; then it trades like any other.
-    @Test void secretDealsHideUntilUnlockedByRelationshipAndQuest() {
-        Map<String, Object> locked = view(Map.of(), Map.of(), 10, 0);
+    // A secret deal stays a hint until relationship and a favour allow the mob to open it; then it trades like any other.
+    @Test void secretDealsHideUntilUnlockedByRelationshipAndFavour() {
+        Map<String, Object> locked = view(Map.of(), List.of(), 10, 0);
         assertEquals(List.of("milk", "hay", "bulk"), ((List<?>) locked.get("deals")).stream().map(d -> ((Map<?, ?>) d).get("id")).toList());
         Map<String, Object> row = secret(locked, "leather");
         assertEquals("Знает, где лежит кожа пропавшей подруги", row.get("hint"));
-        assertEquals(40, row.get("unlockRelationship")); assertEquals("fence", row.get("unlockQuest")); assertEquals(false, row.get("canUnlockNow"));
-        assertEquals("нужно отношение не ниже 40 (сейчас 10); сначала игрок должен выполнить задание fence", row.get("reason"));
-        assertFalse(Trading.canUnlock(leather, null, 100, Map.of()));
-        assertFalse(Trading.canUnlock(leather, TradeState.initial(), 39, Map.of("fence", new QuestState(QuestState.Status.DONE, 0, 0))));
-        assertFalse(Trading.canUnlock(leather, TradeState.initial(), 40, Map.of("fence", new QuestState(QuestState.Status.ACTIVE, 0, 0))));
-        Map<String, QuestState> done = Map.of("fence", new QuestState(QuestState.Status.DONE, 0, 0));
-        assertTrue(Trading.canUnlock(leather, TradeState.initial(), 40, done));
+        assertEquals(40, row.get("unlockRelationship")); assertEquals(true, row.get("requiresFavor")); assertEquals(false, row.get("canUnlockNow"));
+        assertEquals("нужно отношение не ниже 40 (сейчас 10); сначала игрок должен оказать тебе хоть одну услугу", row.get("reason"));
+        assertFalse(Trading.canUnlock(leather, null, 100, 0));
+        assertFalse(Trading.canUnlock(leather, TradeState.initial(), 39, 1));
+        assertTrue(Trading.canUnlock(leather, TradeState.initial(), 40, 1));
+        List<String> done = List.of("Колокол на площадь");
         assertEquals("", secret(view(Map.of(), done, 40, 0), "leather").get("reason"));
         assertEquals(true, secret(view(Map.of(), done, 40, 0), "leather").get("canUnlockNow"));
-        assertFalse(Trading.canUnlock(milk, TradeState.initial(), 100, done), "a public deal is never unlocked");
+        assertFalse(Trading.canUnlock(milk, TradeState.initial(), 100, 1), "a public deal is never unlocked");
         TradeState opened = new TradeState(0, true, 0, -1, 0, -1);
-        assertFalse(Trading.canUnlock(leather, opened, 100, done), "already open");
+        assertFalse(Trading.canUnlock(leather, opened, 100, 1), "already open");
         Map<String, Object> unlocked = view(Map.of("leather", opened), done, 40, 0);
         assertTrue(((List<?>) unlocked.get("secret")).isEmpty());
         assertEquals(List.of(1), deal(unlocked, "leather").get("allowedPrices"));
@@ -125,10 +125,10 @@ class TradingTest {
         assertEquals(new Trading.Priced(milk, 3, -1), priced.get(0));
         assertEquals(new Trading.Priced(leather, 2, 1), priced.get(3));
         assertEquals(3, Trading.priced(COW, Map.of(), 0).size());
-        // Pig: no quest, only relationship.
-        assertEquals(true, secret(Trading.view("pig", Map.of(), Map.of(), 20, 0, 0, Map.of(), Map.of()), "truffle").get("canUnlockNow"));
-        assertEquals("нужно отношение не ниже 20 (сейчас 19)", secret(Trading.view("pig", Map.of(), Map.of(), 19, 0, 0, Map.of(), Map.of()), "truffle").get("reason"));
-        assertEquals(List.of("NONE"), Trading.view("pig", Map.of(), Map.of(), 19, 0, 0, Map.of(), Map.of()).get("allowedDealTypes"), "nothing visible to decline");
+        // Pig: no favour needed, only relationship.
+        assertEquals(true, secret(Trading.view("pig", Map.of(), null, List.of(), 20, 0, 0, Map.of(), Map.of()), "truffle").get("canUnlockNow"));
+        assertEquals("нужно отношение не ниже 20 (сейчас 19)", secret(Trading.view("pig", Map.of(), null, List.of(), 19, 0, 0, Map.of(), Map.of()), "truffle").get("reason"));
+        assertEquals(List.of("NONE"), Trading.view("pig", Map.of(), null, List.of(), 19, 0, 0, Map.of(), Map.of()).get("allowedDealTypes"), "nothing visible to decline");
     }
 
     // Daily stock counts purchases per world day and resets with the day, without touching the price.
@@ -145,49 +145,38 @@ class TradingTest {
         assertEquals(-1, deal(view(Map.of(), Map.of(), 0, 0), "milk").get("stockLeft"));
     }
 
-    // One active quest at a time: the offer list empties, progress follows the inventory or kills, done quests are listed by id.
-    @Test void questsMoveFromAvailableToActiveToDone() {
+    // The favour view: ideas while nothing is owed, the pending favour with what the player carries, titles already done.
+    @Test void favourViewFollowsTheInventory() {
         Map<String, String> names = Map.of("minecraft:oak_fence", "Дубовый забор");
-        Map<String, Object> fresh = Trading.view(COW, Map.of(), Map.of(), 0, 0, 0, Map.of(), names);
-        List<Map<String, Object>> available = questList(fresh, "available");
-        assertEquals(List.of("fence", "wolves"), available.stream().map(q -> q.get("id")).toList());
-        Map<String, Object> fenceRow = available.get(0);
-        assertEquals("Почини загон", fenceRow.get("title")); assertEquals("BRING", fenceRow.get("kind")); assertEquals("minecraft:oak_fence", fenceRow.get("target"));
-        assertEquals("Дубовый забор", fenceRow.get("targetName")); assertEquals(8, fenceRow.get("count")); assertEquals("Крипер снёс половину загона", fenceRow.get("pitch"));
-        assertEquals(Map.of("relationship", 30, "unlockDeal", "leather", "discountDeal", "milk", "discountPercent", 25), fenceRow.get("reward"));
-        assertEquals("minecraft:wolf", available.get(1).get("targetName"), "entity ids stay raw");
-        assertEquals(List.of(), questList(fresh, "active")); assertEquals(List.of(), quests(fresh).get("done"));
-        QuestState active = new QuestState(QuestState.Status.ACTIVE, 0, 0);
-        Map<String, Object> carrying = Trading.view(COW, Map.of(), Map.of("fence", active), 0, 0, 0, Map.of("minecraft:oak_fence", 5), names);
-        assertEquals(List.of(), questList(carrying, "available"), "one quest at a time");
-        Map<String, Object> activeRow = questList(carrying, "active").get(0);
-        assertEquals("fence", activeRow.get("id")); assertEquals(5, activeRow.get("progress")); assertEquals(false, activeRow.get("canComplete"));
-        assertEquals("Дубовый забор", activeRow.get("targetName"));
-        assertFalse(Trading.canComplete(fence, active, Map.of("minecraft:oak_fence", 7)));
-        assertTrue(Trading.canComplete(fence, active, Map.of("minecraft:oak_fence", 8)));
-        assertFalse(Trading.canComplete(fence, active, Map.of()));
-        assertFalse(Trading.canComplete(fence, null, Map.of("minecraft:oak_fence", 80)), "not started");
-        assertFalse(Trading.canComplete(fence, new QuestState(QuestState.Status.DONE, 0, 0), Map.of("minecraft:oak_fence", 80)), "already done");
-        Map<String, Object> enough = Trading.view(COW, Map.of(), Map.of("fence", active), 0, 0, 0, Map.of("minecraft:oak_fence", 12), names);
-        assertEquals(8, questList(enough, "active").get(0).get("progress")); assertEquals(true, questList(enough, "active").get(0).get("canComplete"));
-        QuestState hunting = new QuestState(QuestState.Status.ACTIVE, 1, 0);
-        assertFalse(Trading.canComplete(wolves, hunting, Map.of("minecraft:wolf", 50)), "kills, not items");
-        assertTrue(Trading.canComplete(wolves, new QuestState(QuestState.Status.ACTIVE, 2, 0), Map.of()));
-        Map<String, QuestState> mixed = Map.of("fence", new QuestState(QuestState.Status.DONE, 0, 0), "wolves", hunting);
-        Map<String, Object> later = view(Map.of(), mixed, 0, 0);
-        assertEquals(List.of("fence"), quests(later).get("done"));
-        assertEquals(1, questList(later, "active").get(0).get("progress"));
-        assertEquals(List.of(), questList(later, "available"));
-        Map<String, Object> afterAll = view(Map.of(), Map.of("fence", new QuestState(QuestState.Status.DONE, 0, 0)), 0, 0);
-        assertEquals(List.of("wolves"), questList(afterAll, "available").stream().map(q -> q.get("id")).toList());
+        Map<String, Object> fresh = Trading.view(COW, Map.of(), null, List.of(), 0, 0, 0, Map.of(), names);
+        assertEquals(true, favor(fresh).get("canAsk")); assertNull(active(fresh)); assertEquals(List.of(), favor(fresh).get("done"));
+        List<?> ideas = (List<?>) favor(fresh).get("ideas");
+        assertEquals(2, ideas.size());
+        Map<?, ?> idea = (Map<?, ?>) ideas.get(0);
+        assertEquals("minecraft:oak_fence", idea.get("item")); assertEquals("Дубовый забор", idea.get("itemName")); assertEquals(8, idea.get("count"));
+        assertEquals("Крипер снёс половину загона", idea.get("why"));
+        assertEquals("minecraft:bell", ((Map<?, ?>) ideas.get(1)).get("itemName"), "unknown names stay raw");
+        Favor fence = new Favor("minecraft:oak_fence", 8, "Почини загон", "leather", 20, null, 0);
+        Map<String, Object> carrying = Trading.view(COW, Map.of(), fence, List.of("Колокол"), 0, 0, 0, Map.of("minecraft:oak_fence", 5), names);
+        assertEquals(false, favor(carrying).get("canAsk"), "one favour at a time");
+        Map<String, Object> row = active(carrying);
+        assertEquals("Почини загон", row.get("title")); assertEquals("Дубовый забор", row.get("itemName")); assertEquals(8, row.get("count"));
+        assertEquals(5, row.get("have")); assertEquals(false, row.get("canComplete")); assertEquals("leather", row.get("rewardDeal")); assertEquals(20, row.get("rewardPercent"));
+        assertEquals(List.of("Колокол"), favor(carrying).get("done"));
+        assertFalse(Trading.canComplete(fence, Map.of("minecraft:oak_fence", 7)));
+        assertTrue(Trading.canComplete(fence, Map.of("minecraft:oak_fence", 8)));
+        assertFalse(Trading.canComplete(fence, Map.of()));
+        assertFalse(Trading.canComplete(null, Map.of("minecraft:oak_fence", 80)), "nothing owed");
+        Map<String, Object> enough = Trading.view(COW, Map.of(), fence, List.of(), 0, 0, 0, Map.of("minecraft:oak_fence", 12), names);
+        assertEquals(8, active(enough).get("have")); assertEquals(true, active(enough).get("canComplete"));
     }
 
     // Species outside the catalog get an empty map, and a state for an unknown deal is ignored rather than failing.
     @Test void unknownSpeciesTradesNothing() {
-        assertEquals(Map.of(), Trading.view("minecraft:sheep", Map.of("milk", TradeState.initial()), Map.of(), 100, 0, 0, Map.of(), Map.of()));
+        assertEquals(Map.of(), Trading.view("minecraft:sheep", Map.of("milk", TradeState.initial()), null, List.of(), 100, 0, 0, Map.of(), Map.of()));
         assertEquals(List.of(), Trading.priced("minecraft:sheep", Map.of(), 0));
-        Map<String, Object> cow = Trading.view(COW, Map.of("ghost", Trading.offered(null, 1, 0)), Map.of("ghost", new QuestState(QuestState.Status.ACTIVE, 0, 0)), 0, 0, 0, null, null);
+        Map<String, Object> cow = Trading.view(COW, Map.of("ghost", Trading.offered(null, 1, 0)), null, null, 0, 0, 0, null, null);
         assertEquals(3, ((List<?>) cow.get("deals")).size());
-        assertEquals(2, questList(cow, "available").size(), "an active quest unknown to the catalog does not block offers");
+        assertEquals(true, favor(cow).get("canAsk"));
     }
 }

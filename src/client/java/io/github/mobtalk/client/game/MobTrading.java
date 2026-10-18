@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** Server-thread-only deals and quests of the mob's own catalog (trades.json): the model proposes, this class verifies,
+/** Server-thread-only deals and favours of the mob's own catalog (trades.json): the model proposes, this class verifies,
  * and items change hands only in the vanilla merchant window ({@link MobMerchant}) — never by the model's words alone. */
 final class MobTrading {
     private final MobGameBridge bridge;
@@ -28,11 +28,11 @@ final class MobTrading {
             if (!stack.isEmpty()) counts.merge(Registries.ITEM.getId(stack.getItem()).toString(), stack.getCount(), Integer::sum);
         return counts;
     }
-    /** Localized names of every item this species' deals and BRING quests mention; ids unknown to the registry are skipped. */
+    /** Localized names of every item this species' deals and favour ideas mention; ids unknown to the registry are skipped. */
     static Map<String, String> itemNames(String type) {
         Map<String, String> names = new LinkedHashMap<>();
         for (TradeDeal deal : TradeCatalog.deals(type)) { name(names, deal.sell().id()); name(names, deal.price().id()); }
-        for (QuestDefinition quest : TradeCatalog.quests(type)) if (quest.kind() == QuestDefinition.Kind.BRING) name(names, quest.target());
+        for (TradeCatalog.Idea idea : TradeCatalog.ideas(type)) name(names, idea.item());
         return names;
     }
     private static void name(Map<String, String> names, String id) {
@@ -50,10 +50,6 @@ final class MobTrading {
         return known == null ? item.name() : new ItemStack(known).getName().getString();
     }
     private static String amount(TradeDeal.Item item, int count) { return count + "× " + name(item); }
-    private static String targetName(QuestDefinition quest) {
-        Item known = item(quest.target());
-        return known == null ? quest.target() : new ItemStack(known).getName().getString();
-    }
     private static List<ItemStack> stacks(PlayerInventory inventory) {
         List<ItemStack> result = new ArrayList<>(inventory.main);
         result.addAll(inventory.offHand);
@@ -107,7 +103,7 @@ final class MobTrading {
             TradeDeal found = TradeCatalog.deal(type, unlock);
             if (found == null) throw new IllegalStateException("У этого моба нет сделки " + unlock);
             TradeState state = bridge.memory.tradeState(mobId, playerId, found.id());
-            if (!Trading.canUnlock(found, state, relationship(mob, player), bridge.memory.quests(mobId, playerId)))
+            if (!Trading.canUnlock(found, state, relationship(mob, player), bridge.memory.favorsDone(mobId, playerId).size()))
                 throw new IllegalStateException("Сделку «" + found.name() + "» ещё рано открывать");
             bridge.memory.unlockDeal(mobId, playerId, found.id(), now);
             changed = true;
@@ -115,50 +111,40 @@ final class MobTrading {
             messages.add("Открыта сделка: " + found.name() + " — " + amount(found.sell(), found.sell().count()) + " за " + amount(found.price(), price));
         }
         if (quest != null && quest.type() == QuestIntent.Type.OFFER) {
-            QuestDefinition found = TradeCatalog.quest(type, quest.questId());
-            if (found == null) throw new IllegalStateException("У этого моба нет задания " + quest.questId());
-            Map<String, QuestState> quests = bridge.memory.quests(mobId, playerId);
-            QuestState known = quests.get(found.id());
-            if (known != null && known.status() == QuestState.Status.DONE) throw new IllegalStateException("Задание «" + found.title() + "» уже выполнено");
-            if (quests.values().stream().anyMatch(state -> state.status() == QuestState.Status.ACTIVE))
-                throw new IllegalStateException("У вас уже есть задание от этого моба");
-            bridge.memory.startQuest(mobId, playerId, found.id(), now);
-            changed = true;
-            messages.add("Задание принято: " + found.title() + " (" + progress(found, player, 0) + " из " + found.count() + ")");
+            if (bridge.memory.favor(mobId, playerId) != null) throw new IllegalStateException("Сородичи уже ждут от вас услугу «" + bridge.memory.favor(mobId, playerId).title() + "»");
+            Item wanted = item(quest.item());
+            if (wanted == null) throw new IllegalStateException("Моб просит предмет, которого нет в игре: " + quest.item());
+            Favor favor = quest.favor();
+            bridge.memory.startFavor(mobId, playerId, favor, now);
+            messages.add("Услуга: " + favor.title() + " — принести " + favor.count() + "× " + new ItemStack(wanted).getName().getString()
+                    + rewardPromise(type, favor));
         } else if (quest != null && quest.type() == QuestIntent.Type.COMPLETE) {
-            QuestDefinition found = TradeCatalog.quest(type, quest.questId());
-            if (found == null) throw new IllegalStateException("У этого моба нет задания " + quest.questId());
-            QuestState state = bridge.memory.quests(mobId, playerId).get(found.id());
-            if (state == null || state.status() != QuestState.Status.ACTIVE) throw new IllegalStateException("Задание «" + found.title() + "» не активно");
-            Item target = found.kind() == QuestDefinition.Kind.BRING ? item(found.target()) : null;
-            if (found.kind() == QuestDefinition.Kind.BRING) {
-                int have = target == null ? 0 : count(player, target);
-                if (have < found.count()) throw new IllegalStateException("У вас нет " + found.count() + "× " + targetName(found));
-            } else if (state.progress() < found.count())
-                throw new IllegalStateException("Задание «" + found.title() + "» ещё не выполнено: " + state.progress() + " из " + found.count());
-            QuestDefinition.Reward reward = bridge.memory.completeQuest(mobId, playerId, found.id(), player.getName().getString(), now);
-            if (target != null) take(player, target, found.count());
-            messages.add("Задание выполнено: " + found.title() + rewardText(type, reward));
-            changed = true;
+            Favor favor = bridge.memory.favor(mobId, playerId);
+            if (favor == null) throw new IllegalStateException("Никакой услуги сейчас не ждут");
+            Item wanted = item(favor.item());
+            int have = wanted == null ? 0 : count(player, wanted);
+            if (have < favor.count()) throw new IllegalStateException("У вас нет " + favor.count() + "× " + favorItemName(favor) + " (есть " + have + ")");
+            take(player, wanted, favor.count());
+            Favor done = bridge.memory.completeFavor(mobId, playerId, player.getName().getString(), now);
+            messages.add("Услуга оказана: " + done.title() + " (+" + Favor.RELATIONSHIP + " к отношению" + rewardText(type, done) + ")");
         }
-        MobMerchant window = changed ? MobMerchant.of(player, mob) : null;
-        if (window != null) window.refresh();
         return String.join("; ", messages);
     }
-    static int progress(QuestDefinition quest, ServerPlayerEntity player, int kills) {
-        if (quest.kind() != QuestDefinition.Kind.BRING) return Math.min(quest.count(), kills);
-        Item target = item(quest.target());
-        return target == null ? 0 : Math.min(quest.count(), count(player, target));
+    static String favorItemName(Favor favor) {
+        Item known = item(favor.item());
+        return known == null ? favor.item() : new ItemStack(known).getName().getString();
     }
-    private static String rewardText(String type, QuestDefinition.Reward reward) {
-        List<String> parts = new ArrayList<>();
-        if (reward == null) return "";
-        if (reward.relationship() != 0) parts.add((reward.relationship() > 0 ? "+" : "") + reward.relationship() + " к отношению");
-        TradeDeal unlocked = TradeCatalog.deal(type, reward.unlockDeal());
-        if (unlocked != null) parts.add("открыта сделка «" + unlocked.name() + "»");
-        TradeDeal cheaper = TradeCatalog.deal(type, reward.discountDeal());
-        if (cheaper != null && reward.discountPercent() > 0) parts.add("цена на «" + cheaper.name() + "» снижена на " + reward.discountPercent() + "%");
-        return parts.isEmpty() ? "" : " (" + String.join(", ", parts) + ")";
+    private static String rewardPromise(String type, Favor favor) {
+        TradeDeal promised = TradeCatalog.deal(type, favor.rewardDeal());
+        if (promised == null) return "";
+        return promised.secret() ? "; обещано открыть «" + promised.name() + "»" + (favor.rewardPercent() > 0 ? " и скинуть " + favor.rewardPercent() + "%" : "")
+                : favor.rewardPercent() > 0 ? "; обещана скидка " + favor.rewardPercent() + "% на «" + promised.name() + "»" : "";
+    }
+    private static String rewardText(String type, Favor favor) {
+        TradeDeal promised = TradeCatalog.deal(type, favor.rewardDeal());
+        if (promised == null) return "";
+        return (promised.secret() ? ", открыта сделка «" + promised.name() + "»" : "")
+                + (favor.rewardPercent() > 0 ? ", цена на «" + promised.name() + "» снижена на " + favor.rewardPercent() + "%" : "");
     }
 
     /** The vanilla merchant window over this mob's deals; the player then buys there, and an accepted move refreshes it in place. */

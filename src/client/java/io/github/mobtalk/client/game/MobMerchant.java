@@ -102,11 +102,12 @@ final class MobMerchant implements Merchant {
             offers.add(offer);
             dealIds.put(offer, deal.id());
         }
-        for (var entry : bridge.memory.quests(mob.getUuid(), player.getUuid()).entrySet()) {
-            QuestDefinition quest = TradeCatalog.quest(type, entry.getKey());
-            if (quest == null || entry.getValue().status() != QuestState.Status.ACTIVE) continue;
-            offers.add(note(Items.PAPER, "Задание: " + quest.title() + " (" + MobTrading.progress(quest, player, entry.getValue().progress())
-                    + " из " + quest.count() + ")", quest.pitch()));
+        Favor favor = bridge.memory.favor(mob.getUuid(), player.getUuid());
+        if (favor != null) {
+            Item wanted = MobTrading.item(favor.item());
+            int have = wanted == null ? 0 : Math.min(favor.count(), MobTrading.inventoryCounts(player).getOrDefault(favor.item(), 0));
+            offers.add(note(Items.PAPER, "Услуга: " + favor.title() + " (" + have + " из " + favor.count() + ")",
+                    "Принести " + favor.count() + "× " + MobTrading.favorItemName(favor) + " и сказать об этом любому из сородичей"));
         }
     }
 

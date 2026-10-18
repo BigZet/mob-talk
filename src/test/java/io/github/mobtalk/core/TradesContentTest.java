@@ -10,16 +10,16 @@ import static org.junit.jupiter.api.Assertions.*;
 class TradesContentTest {
     private static final Pattern ITEM_ID = Pattern.compile("minecraft:[a-z0-9_]+");
 
-    // Every one of the 82 species must have an agenda of its own: a visible deal plus at least one quest.
-    @Test void everySpeciesTradesWithVisibleDealsAndQuests() {
+    // Every one of the 82 species must have an agenda of its own: a visible deal, a secret one, and ideas for favours.
+    @Test void everySpeciesTradesWithVisibleDealsAndIdeas() {
         List<String> species = TradeCatalog.tradingSpecies();
         assertEquals(82, species.size());
         assertEquals(SpeciesCatalog.all().stream().map(SpeciesCatalog.Species::id).toList(), species);
         for (String type : species) {
             List<TradeDeal> deals = TradeCatalog.deals(type);
-            List<QuestDefinition> quests = TradeCatalog.quests(type);
+            List<TradeCatalog.Idea> ideas = TradeCatalog.ideas(type);
             assertTrue(deals.size() >= 2 && deals.size() <= 4, type);
-            assertTrue(quests.size() >= 1 && quests.size() <= 2, type);
+            assertTrue(ideas.size() <= 2, type);
             assertTrue(deals.stream().anyMatch(deal -> !deal.secret()), type + " has no visible deal");
             assertTrue(deals.stream().anyMatch(TradeDeal::secret), type + " has no secret deal");
             var pairs = new HashSet<String>();
@@ -33,25 +33,14 @@ class TradesContentTest {
                 assertTrue(pairs.add(deal.sell().id() + "->" + deal.price().id()), type + " repeats " + deal.id());
                 if (deal.secret()) {
                     assertFalse(deal.hint().isBlank(), type + " " + deal.id());
-                    assertTrue(deal.unlockRelationship() > 0 || !deal.unlockQuest().isEmpty(), type + " " + deal.id());
+                    assertTrue(deal.unlockRelationship() > 0 || deal.requiresFavor(), type + " " + deal.id());
                 }
-                if (!deal.unlockQuest().isEmpty()) assertNotNull(TradeCatalog.quest(type, deal.unlockQuest()), type + " " + deal.id());
                 assertSame(deal, TradeCatalog.deal(type, deal.id()));
             }
-            for (QuestDefinition quest : quests) {
-                assertNotNull(quest.kind(), type);
-                assertTrue(ITEM_ID.matcher(quest.target()).matches(), type + " " + quest.target());
-                assertTrue(quest.count() >= 1 && quest.count() <= 32, type);
-                assertFalse(quest.pitch().isBlank(), type);
-                assertFalse(quest.title().isBlank(), type);
-                assertTrue(quest.reward().relationship() > 0, type);
-                assertTrue(!quest.reward().unlockDeal().isEmpty() || !quest.reward().discountDeal().isEmpty(), type + " " + quest.id());
-                if (!quest.reward().unlockDeal().isEmpty()) assertNotNull(TradeCatalog.deal(type, quest.reward().unlockDeal()), type);
-                if (!quest.reward().discountDeal().isEmpty()) {
-                    assertNotNull(TradeCatalog.deal(type, quest.reward().discountDeal()), type);
-                    assertTrue(quest.reward().discountPercent() >= 10 && quest.reward().discountPercent() <= 50, type);
-                }
-                assertSame(quest, TradeCatalog.quest(type, quest.id()));
+            for (TradeCatalog.Idea idea : ideas) {
+                assertTrue(ITEM_ID.matcher(idea.item()).matches(), type + " " + idea.item());
+                assertTrue(idea.count() >= 1 && idea.count() <= 32, type);
+                assertFalse(idea.why().isBlank(), type);
             }
         }
         assertTrue(TradeCatalog.deals("example:custom_mob").isEmpty());

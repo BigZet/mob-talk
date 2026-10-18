@@ -5,7 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Pure rules for a mob's own deals (trades.json) and quests. Nothing here touches Minecraft or disk.
+/** Pure rules for a mob's own deals (trades.json) and the favours it asks for. Nothing here touches Minecraft or disk.
  *
  * <p>Price rules, for every species: one OFFER may at most halve the price currently charged (half rounded down);
  * all rounds together never go below {@link TradeDeal#floorPrice()} (10% of the catalog price); a negotiated price is
@@ -13,9 +13,9 @@ import java.util.Map;
  * A bargaining session allows {@link #MAX_ROUNDS} OFFERs; {@link #SESSION_MILLIS} after its first OFFER a new session may start.
  * At or below {@link #HOSTILE_RELATIONSHIP} the mob refuses any concession.
  *
- * <p>Secret deals: hidden from the player's trade screen and from the mob's "deals" list until unlocked. The mob may unlock one
+ * <p>Secret deals: hidden from the player's trade window and from the mob's "deals" list until unlocked. The mob may unlock one
  * in conversation ({@code unlock} field of the answer) only when the player's relationship reaches {@code unlockRelationship}
- * and, if {@code unlockQuest} is set, that quest is DONE. Quest rewards may unlock a deal directly.
+ * and, if {@code requiresFavor} is set, the player has done the species a favour. A promised favour reward may open one too.
  *
  * <p>{@link #view} builds the map the model sees as {@code mobDetails.trading}; the LLM client validates answers against the
  * same keys, so both sides must agree on this shape:
@@ -88,14 +88,10 @@ public final class Trading {
     }
     /** Whether the player may see and buy this deal now. */
     public static boolean visible(TradeDeal deal, TradeState state) { return !deal.secret() || state != null && state.unlocked(); }
-    /** Whether the mob may open this secret deal for the player right now. */
-    public static boolean canUnlock(TradeDeal deal, TradeState state, int relationship, Map<String, QuestState> quests) {
+    /** Whether the mob may open this secret deal for the player right now; {@code favors} = favours the player did for the species. */
+    public static boolean canUnlock(TradeDeal deal, TradeState state, int relationship, int favors) {
         return deal.secret() && !(state != null && state.unlocked()) && relationship >= deal.unlockRelationship()
-                && (deal.unlockQuest().isEmpty() || done(quests, deal.unlockQuest()));
-    }
-    private static boolean done(Map<String, QuestState> quests, String questId) {
-        QuestState state = quests == null ? null : quests.get(questId);
-        return state != null && state.status() == QuestState.Status.DONE;
+                && (!deal.requiresFavor() || favors > 0);
     }
     /** Exchanges left today, or -1 when unlimited. */
     public static int stockLeft(TradeDeal deal, TradeState state, long worldDay) {
@@ -109,32 +105,28 @@ public final class Trading {
         int today = state.boughtDay() == worldDay ? state.boughtToday() + 1 : 1;
         return new TradeState(state.price(), state.unlocked(), state.rounds(), state.sessionStartMillis(), today, worldDay);
     }
-    /** Whether the active quest can be completed with what the player has: BRING needs {@code inventory} (item id → count),
-     * KILL needs progress ≥ count. A quest that is not ACTIVE can never be completed. */
-    public static boolean canComplete(QuestDefinition quest, QuestState state, Map<String, Integer> inventory) {
-        if (state == null || state.status() != QuestState.Status.ACTIVE) return false;
-        return quest.kind() == QuestDefinition.Kind.KILL ? state.progress() >= quest.count() : carried(quest, inventory) >= quest.count();
-    }
-    private static int carried(QuestDefinition quest, Map<String, Integer> inventory) {
-        Integer count = inventory == null ? null : inventory.get(quest.target());
+    /** Whether the pending favour can be accepted now: the player carries at least {@code favor.count()} of its item. */
+    public static boolean canComplete(Favor favor, Map<String, Integer> inventory) { return favor != null && carried(favor, inventory) >= favor.count(); }
+    private static int carried(Favor favor, Map<String, Integer> inventory) {
+        Integer count = inventory == null || favor == null ? null : inventory.get(favor.item());
         return count == null ? 0 : count;
     }
     /** The model's view described in the class comment. {@code states}/{@code quests} may be empty maps, never null;
      * {@code itemNames} maps item ids to display names when the game knows them (else the catalog name is used). */
-    public static Map<String, Object> view(String type, Map<String, TradeState> states, Map<String, QuestState> quests,
+    public static Map<String, Object> view(String type, Map<String, TradeState> states, Favor favor, List<String> favorsDone,
                                            int relationship, long nowMillis, long worldDay, Map<String, Integer> inventory,
                                            Map<String, String> itemNames) {
         List<TradeDeal> deals = TradeCatalog.deals(type);
-        List<QuestDefinition> definitions = TradeCatalog.quests(type);
-        if (deals.isEmpty() && definitions.isEmpty()) return Map.of();
+        if (deals.isEmpty()) return Map.of();
         if (states == null) states = Map.of();
-        if (quests == null) quests = Map.of();
+        if (favorsDone == null) favorsDone = List.of();
         if (itemNames == null) itemNames = Map.of();
+        int favors = favorsDone.size();
         List<Map<String, Object>> visible = new ArrayList<>(), secret = new ArrayList<>();
         boolean anyOffer = false;
         for (TradeDeal deal : deals) {
             TradeState state = states.getOrDefault(deal.id(), TradeState.initial());
-            if (!visible(deal, state)) { secret.add(secretView(deal, state, relationship, quests)); continue; }
+            if (!visible(deal, state)) { secret.add(secretView(deal, state, relationship, favors)); continue; }
             Map<String, Object> row = new LinkedHashMap<>();
             int current = currentPrice(deal, state), maximum = maximumDiscount(deal, state, relationship, nowMillis);
             List<Integer> allowed = new ArrayList<>();
@@ -153,7 +145,7 @@ public final class Trading {
         if (!visible.isEmpty()) types.add(DealIntent.Type.DECLINE.name());
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("deals", visible); result.put("secret", secret); result.put("allowedDealTypes", types);
-        result.put("quests", questsView(definitions, quests, inventory, itemNames));
+        result.put("favor", favorView(type, favor, favorsDone, inventory, itemNames));
         return result;
     }
     private static Map<String, Object> item(TradeDeal.Item item, Map<String, String> itemNames) {
@@ -167,42 +159,38 @@ public final class Trading {
         if (roundsExhausted(state, nowMillis)) return "три уступки подряд уже сделаны, следующий торг через " + minutesLeft(state, nowMillis) + " мин";
         return "";
     }
-    private static Map<String, Object> secretView(TradeDeal deal, TradeState state, int relationship, Map<String, QuestState> quests) {
+    private static Map<String, Object> secretView(TradeDeal deal, TradeState state, int relationship, int favors) {
         Map<String, Object> row = new LinkedHashMap<>();
-        boolean can = canUnlock(deal, state, relationship, quests);
+        boolean can = canUnlock(deal, state, relationship, favors);
         List<String> blockers = new ArrayList<>();
         if (relationship < deal.unlockRelationship()) blockers.add("нужно отношение не ниже " + deal.unlockRelationship() + " (сейчас " + relationship + ")");
-        if (!deal.unlockQuest().isEmpty() && !done(quests, deal.unlockQuest())) blockers.add("сначала игрок должен выполнить задание " + deal.unlockQuest());
+        if (deal.requiresFavor() && favors == 0) blockers.add("сначала игрок должен оказать тебе хоть одну услугу");
         row.put("id", deal.id()); row.put("hint", deal.hint()); row.put("unlockRelationship", deal.unlockRelationship());
-        row.put("unlockQuest", deal.unlockQuest()); row.put("canUnlockNow", can);
+        row.put("requiresFavor", deal.requiresFavor()); row.put("canUnlockNow", can);
         row.put("reason", can ? "" : String.join("; ", blockers));
         return row;
     }
-    private static Map<String, Object> questsView(List<QuestDefinition> definitions, Map<String, QuestState> states,
-                                                  Map<String, Integer> inventory, Map<String, String> itemNames) {
-        List<Map<String, Object>> available = new ArrayList<>(), active = new ArrayList<>();
-        List<String> done = new ArrayList<>();
-        for (QuestDefinition quest : definitions) {
-            QuestState state = states.get(quest.id());
-            Map<String, Object> row = new LinkedHashMap<>();
-            row.put("id", quest.id()); row.put("title", quest.title()); row.put("kind", quest.kind().name());
-            row.put("target", quest.target()); row.put("targetName", itemNames.getOrDefault(quest.target(), quest.target()));
-            row.put("count", quest.count());
-            if (state == null) {
-                row.put("pitch", quest.pitch());
-                Map<String, Object> reward = new LinkedHashMap<>();
-                reward.put("relationship", quest.reward().relationship()); reward.put("unlockDeal", quest.reward().unlockDeal());
-                reward.put("discountDeal", quest.reward().discountDeal()); reward.put("discountPercent", quest.reward().discountPercent());
-                row.put("reward", reward);
-                available.add(row);
-            } else if (state.status() == QuestState.Status.ACTIVE) {
-                int progress = quest.kind() == QuestDefinition.Kind.KILL ? state.progress() : Math.min(quest.count(), carried(quest, inventory));
-                row.put("progress", progress); row.put("canComplete", canComplete(quest, state, inventory));
-                active.add(row);
-            } else done.add(quest.id());
-        }
+    /** The favour the species waits for (if any), what the player already did, and ideas the mob may use when it asks. */
+    private static Map<String, Object> favorView(String type, Favor favor, List<String> done, Map<String, Integer> inventory, Map<String, String> itemNames) {
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("available", active.isEmpty() ? available : List.of()); result.put("active", active); result.put("done", done);
+        if (favor != null) {
+            Map<String, Object> active = new LinkedHashMap<>();
+            active.put("item", favor.item()); active.put("itemName", itemNames.getOrDefault(favor.item(), favor.item()));
+            active.put("count", favor.count()); active.put("have", Math.min(favor.count(), carried(favor, inventory)));
+            active.put("canComplete", canComplete(favor, inventory)); active.put("title", favor.title());
+            active.put("rewardDeal", favor.rewardDeal()); active.put("rewardPercent", favor.rewardPercent());
+            result.put("active", active);
+        }
+        result.put("canAsk", favor == null);
+        result.put("done", List.copyOf(done));
+        List<Map<String, Object>> ideas = new ArrayList<>();
+        for (TradeCatalog.Idea idea : TradeCatalog.ideas(type)) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("item", idea.item()); row.put("itemName", itemNames.getOrDefault(idea.item(), idea.item()));
+            row.put("count", idea.count()); row.put("why", idea.why());
+            ideas.add(row);
+        }
+        result.put("ideas", ideas);
         return result;
     }
     /** Visible deals for a trade screen, with the player's current price for each. */

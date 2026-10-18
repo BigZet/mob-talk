@@ -15,30 +15,22 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-/** Bundled deals and quests per species from assets/mobtalk/trades.json. A species absent from the file trades nothing. */
+/** Bundled deals and favour ideas per species from assets/mobtalk/trades.json. A species absent from the file trades nothing. */
 public final class TradeCatalog {
     /** Validated contents of one trades.json, keyed by canonical species id in file order. */
     /** A hint for the model when it invents a favour to ask: an item, a count and why this species might want it. */
     public record Idea(String item, int count, String why) { }
-    record Loaded(Map<String, List<TradeDeal>> deals, Map<String, List<QuestDefinition>> quests, Map<String, List<Idea>> ideas) {
-        Loaded(Map<String, List<TradeDeal>> deals, Map<String, List<QuestDefinition>> quests) { this(deals, quests, Map.of()); }
-    }
+    record Loaded(Map<String, List<TradeDeal>> deals, Map<String, List<Idea>> ideas) { }
     private static final Loaded BUNDLED = bundled();
     private static volatile Loaded current = BUNDLED;
 
     private TradeCatalog() { }
 
     public static List<TradeDeal> deals(String type) { return current.deals.getOrDefault(normalized(type), List.of()); }
-    public static List<QuestDefinition> quests(String type) { return current.quests.getOrDefault(normalized(type), List.of()); }
     public static List<Idea> ideas(String type) { return current.ideas.getOrDefault(normalized(type), List.of()); }
     public static TradeDeal deal(String type, String id) {
         if (id == null) return null;
         for (TradeDeal deal : deals(type)) if (deal.id().equals(id)) return deal;
-        return null;
-    }
-    public static QuestDefinition quest(String type, String id) {
-        if (id == null) return null;
-        for (QuestDefinition quest : quests(type)) if (quest.id().equals(id)) return quest;
         return null;
     }
     /** Species that trade or ask for anything, in file order. */
@@ -55,7 +47,6 @@ public final class TradeCatalog {
         catch (JsonParseException unreadable) { throw new IllegalStateException("Mob Talk trades: cannot read trades.json", unreadable); }
         if (data == null) throw invalid("empty trades.json");
         Map<String, List<TradeDeal>> deals = new LinkedHashMap<>();
-        Map<String, List<QuestDefinition>> quests = new LinkedHashMap<>();
         Map<String, List<Idea>> ideas = new LinkedHashMap<>();
         if (data.species != null) for (var entry : data.species.entrySet()) {
             String type = normalized(entry.getKey());
@@ -66,30 +57,13 @@ public final class TradeCatalog {
             if (row.deals != null) for (DealData deal : row.deals) {
                 if (deal == null) throw invalid(type + ": empty deal");
                 try {
+                    // Files from 0.3.0 named a catalog quest in unlockQuest; any favour now counts.
+                    boolean favor = deal.requiresFavor || deal.unlockQuest != null && !deal.unlockQuest.isBlank();
                     TradeDeal built = new TradeDeal(deal.id, deal.name, item(deal.sell, type), item(deal.price, type), deal.secret,
-                            deal.hint, deal.unlockRelationship, deal.unlockQuest, deal.maxPerDay);
+                            deal.hint, deal.unlockRelationship, favor, deal.maxPerDay);
                     if (!dealIds.add(built.id())) throw invalid(type + ": duplicate deal " + built.id());
                     dealList.add(built);
                 } catch (IllegalArgumentException incomplete) { throw invalid(type + ": incomplete deal " + deal.id); }
-            }
-            var questIds = new LinkedHashSet<String>();
-            var questList = new ArrayList<QuestDefinition>();
-            if (row.quests != null) for (QuestData quest : row.quests) {
-                if (quest == null) throw invalid(type + ": empty quest");
-                try {
-                    QuestDefinition.Kind kind = QuestDefinition.Kind.valueOf(String.valueOf(quest.kind).toUpperCase(Locale.ROOT));
-                    QuestDefinition.Reward reward = quest.reward == null ? null
-                            : new QuestDefinition.Reward(quest.reward.relationship, quest.reward.unlockDeal, quest.reward.discountDeal, quest.reward.discountPercent);
-                    QuestDefinition built = new QuestDefinition(quest.id, quest.title, kind, itemId(quest.target, type), quest.count, quest.pitch, reward);
-                    if (!questIds.add(built.id())) throw invalid(type + ": duplicate quest " + built.id());
-                    questList.add(built);
-                } catch (IllegalArgumentException incomplete) { throw invalid(type + ": incomplete quest " + quest.id); }
-            }
-            for (TradeDeal deal : dealList)
-                if (!deal.unlockQuest().isEmpty() && !questIds.contains(deal.unlockQuest())) throw invalid(type + ": unknown unlockQuest of " + deal.id());
-            for (QuestDefinition quest : questList) {
-                if (!quest.reward().unlockDeal().isEmpty() && !dealIds.contains(quest.reward().unlockDeal())) throw invalid(type + ": unknown unlockDeal of " + quest.id());
-                if (!quest.reward().discountDeal().isEmpty() && !dealIds.contains(quest.reward().discountDeal())) throw invalid(type + ": unknown discountDeal of " + quest.id());
             }
             var ideaList = new ArrayList<Idea>();
             if (row.ideas != null) for (IdeaData idea : row.ideas) {
@@ -97,10 +71,9 @@ public final class TradeCatalog {
                 ideaList.add(new Idea(itemId(idea.item, type), idea.count, idea.why == null ? "" : idea.why));
             }
             deals.put(type, List.copyOf(dealList));
-            quests.put(type, List.copyOf(questList));
             ideas.put(type, List.copyOf(ideaList));
         }
-        return new Loaded(Collections.unmodifiableMap(deals), Collections.unmodifiableMap(quests), Collections.unmodifiableMap(ideas));
+        return new Loaded(Collections.unmodifiableMap(deals), Collections.unmodifiableMap(ideas));
     }
 
     private static TradeDeal.Item item(ItemData data, String type) {
@@ -126,15 +99,13 @@ public final class TradeCatalog {
     }
 
     private static final class Document { int schemaVersion; Map<String, SpeciesTrades> species; }
-    private static final class SpeciesTrades { List<DealData> deals; List<QuestData> quests; List<IdeaData> ideas; }
+    private static final class SpeciesTrades { List<DealData> deals; List<IdeaData> ideas; }
     private static final class IdeaData { String item, why = ""; int count = 1; }
     private static final class ItemData { String id, name; int count = 1; }
     private static final class DealData {
         String id, name, hint = "", unlockQuest = "";
         ItemData sell, price;
-        boolean secret;
+        boolean secret, requiresFavor;
         int unlockRelationship, maxPerDay;
     }
-    private static final class RewardData { int relationship; String unlockDeal = "", discountDeal = ""; int discountPercent; }
-    private static final class QuestData { String id, title, kind, target, pitch = ""; int count = 1; RewardData reward; }
 }

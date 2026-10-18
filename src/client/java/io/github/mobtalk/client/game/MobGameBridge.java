@@ -41,6 +41,8 @@ public final class MobGameBridge {
     public static void initialize() {
         if (registered) return;
         registered = true;
+        // A favour may only ask for an item the game knows; the core checks the id shape alone.
+        Trading.setItemChecker(id -> MobTrading.item(id) != null);
         ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, base, amount, blocked) -> {
             MobGameBridge bridge = forEntity(entity);
             if (bridge == null || !(entity instanceof MobEntity mob)) return;
@@ -61,9 +63,6 @@ public final class MobGameBridge {
                 if (entity instanceof MobEntity mob)
                     bridge.memory.recordDamage(mob.getUuid(), type(mob), mob.getName().getString(), player.getUuid(),
                             player.getName().getString(), System.currentTimeMillis());
-                // KILL quests count every living entity the player kills, not only mobs with a profile.
-                if (bridge.memory.recordKill(player.getUuid(), type(entity)) > 0)
-                    player.sendMessage(Text.literal("Задание: прогресс обновлён"), true);
             }
             if (entity instanceof MobEntity mob) bridge.event(mob, "The mob died: " + source.getName());
             // END_WORLD_TICK removes dead leases; a death callback can run inside that lease's melee goal.

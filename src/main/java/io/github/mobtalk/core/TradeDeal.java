@@ -1,9 +1,10 @@
 package io.github.mobtalk.core;
 
-/** One thing a mob of this species sells, from trades.json. A secret deal is invisible until the mob opens it in conversation.
+/** One thing a mob of this species sells, from trades.json. A secret deal is invisible until the mob opens it in conversation;
+ * {@code requiresFavor} keeps it shut until the player has done the species at least one favour.
  * Counts are per exchange; {@code price} is what the player hands over, {@code sell} what the player gets. */
 public record TradeDeal(String id, String name, Item sell, Item price, boolean secret, String hint,
-                        int unlockRelationship, String unlockQuest, int maxPerDay) {
+                        int unlockRelationship, boolean requiresFavor, int maxPerDay) {
     /** An item stack by vanilla id; {@code name} is the Russian name the mob says aloud. */
     public record Item(String id, String name, int count) {
         public Item { if (count < 1) throw new IllegalArgumentException("count"); }
@@ -13,7 +14,6 @@ public record TradeDeal(String id, String name, Item sell, Item price, boolean s
         if (name == null || name.isBlank()) throw new IllegalArgumentException("name");
         if (sell == null || price == null) throw new IllegalArgumentException("items");
         hint = hint == null ? "" : hint;
-        unlockQuest = unlockQuest == null ? "" : unlockQuest;
         maxPerDay = Math.max(0, maxPerDay);
     }
     /** The lowest price any bargaining may reach: 90% off, rounded down, never below one item. */
