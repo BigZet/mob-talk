@@ -146,8 +146,8 @@ public final class MobTalkClient implements ClientModInitializer {
     }
     String statusLine() {
         MobGameBridge game = client.getServer() == null ? null : MobGameBridge.active(client.getServer());
-        return status + (selected == null ? " · цель не выбрана" : " · UUID " + selected
-                + (game == null || favorLabel(game).isEmpty() ? "" : " · " + favorLabel(game).replace(" · ", "")));
+        String favor = game == null ? "" : favorLabel(game).replace(" · ", "");
+        return status + (selected == null ? " · цель не выбрана" : " · UUID " + selected + (favor.isEmpty() ? "" : " · " + favor));
     }
 
     String readyStatus() { return "Готов: удерживайте " + talkKey.getBoundKeyLocalizedText().getString(); }
@@ -358,7 +358,7 @@ public final class MobTalkClient implements ClientModInitializer {
     void ensureGameBridge() {
         MinecraftServer server = client.getServer();
         if (server == null) { releaseMemory(); return; }
-        if (server == null || world == null || !configReady || stopped || gameServer == server && gameConfig == config) return;
+        if (world == null || !configReady || stopped || gameServer == server && gameConfig == config) return;
         gameServer = server; gameConfig = config;
         Path directory = server.getSavePath(WorldSavePath.ROOT);
         memoryWorld = directory;
@@ -681,8 +681,13 @@ public final class MobTalkClient implements ClientModInitializer {
         io.github.mobtalk.core.Favor favor = selected == null || client.player == null ? null : game.memory.favor(selected, client.player.getUuid());
         if (favor == null) return "";
         net.minecraft.util.Identifier id = net.minecraft.util.Identifier.tryParse(favor.item());
-        int have = id == null || !net.minecraft.registry.Registries.ITEM.containsId(id) ? 0
-                : client.player.getInventory().count(net.minecraft.registry.Registries.ITEM.get(id));
+        net.minecraft.item.Item wanted = id == null || !net.minecraft.registry.Registries.ITEM.containsId(id) ? null : net.minecraft.registry.Registries.ITEM.get(id);
+        int have = 0;
+        // The same slots the server takes from on delivery: main inventory and offhand, not worn armour.
+        if (wanted != null) {
+            for (var stack : client.player.getInventory().main) if (stack.isOf(wanted)) have += stack.getCount();
+            for (var stack : client.player.getInventory().offHand) if (stack.isOf(wanted)) have += stack.getCount();
+        }
         return "услуга: " + favor.title() + " " + Math.min(have, favor.count()) + "/" + favor.count() + " · ";
     }
 

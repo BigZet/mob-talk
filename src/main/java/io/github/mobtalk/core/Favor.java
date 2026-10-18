@@ -4,8 +4,8 @@ import java.util.UUID;
 
 /** A favour a mob asked of the player in conversation: bring {@code count} of item {@code item}. The model invents it
  * (and the reason, voiced in the reply); the game only verifies the items. {@code rewardDeal} is the mob's own deal it
- * promised: a locked secret opens, and {@code rewardPercent} lowers its price permanently. One active favour per species
- * and player; any mob of the species may accept the delivery. */
+ * promised: a locked secret opens, and {@code rewardPercent} lowers its price permanently. One active favour per mob
+ * and player; only the mob that asked accepts the delivery. */
 public record Favor(String item, int count, String title, String rewardDeal, int rewardPercent, UUID giver, long startedMillis) {
     public static final int MAX_COUNT = 64, MAX_PERCENT = 50, RELATIONSHIP = 25;
     public Favor {

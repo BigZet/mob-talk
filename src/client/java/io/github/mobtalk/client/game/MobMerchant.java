@@ -107,7 +107,7 @@ public final class MobMerchant implements Merchant {
             Item wanted = MobTrading.item(favor.item());
             int have = wanted == null ? 0 : Math.min(favor.count(), MobTrading.inventoryCounts(player).getOrDefault(favor.item(), 0));
             offers.add(note(Items.PAPER, "Услуга: " + favor.title() + " (" + have + " из " + favor.count() + ")",
-                    "Принести " + favor.count() + "× " + MobTrading.favorItemName(favor) + " и сказать об этом любому из сородичей"));
+                    "Принести " + favor.count() + "× " + MobTrading.favorItemName(favor) + " и сказать ему об этом"));
         }
     }
 

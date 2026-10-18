@@ -1050,6 +1050,22 @@ class ConversationEngineTest {
         }
     }
 
+    // A founder answered without a village would leave the next villager founding a second one: the writer asks once more.
+    @Test void retriesAFounderWhoseVillageCameBackBlank() throws Exception {
+        JsonObject cutOff = new JsonObject();
+        cutOff.addProperty("name", "Фома"); cutOff.addProperty("story", "Ты пришёл сюда первым.");
+        cutOff.addProperty("villageName", ""); cutOff.addProperty("villageStory", "");
+        JsonObject whole = new JsonObject();
+        whole.addProperty("name", "Фома"); whole.addProperty("story", "Ты пришёл сюда первым.");
+        whole.addProperty("villageName", "Сырые Луга"); whole.addProperty("villageStory", "Деревня выросла на болоте.");
+        queuedAnswers.add(cutOff); queuedAnswers.add(whole);
+        try (ConversationEngine engine = engine()) {
+            engine.ensureBackstory(villager(UUID.randomUUID(), 300, 300, true));
+            assertEquals(2, chatCalls.get(), "one retry");
+            assertEquals("Сырые Луга", engine.memory().villageNear("minecraft:overworld", 300, 300).name());
+        }
+    }
+
     private MobSnapshot villager(UUID id, int x, int z, boolean bell) {
         Map<String,Object> details = new java.util.LinkedHashMap<>();
         details.put("profession", "minecraft:farmer"); details.put("position", Map.of("x", x, "y", 64, "z", z));

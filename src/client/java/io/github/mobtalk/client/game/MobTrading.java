@@ -112,7 +112,7 @@ final class MobTrading {
             messages.add("Открыта сделка: " + found.name() + " — " + amount(found.sell(), found.sell().count()) + " за " + amount(found.price(), price));
         }
         if (quest != null && quest.type() == QuestIntent.Type.OFFER) {
-            if (bridge.memory.favor(mobId, playerId) != null) throw new IllegalStateException("Сородичи уже ждут от вас услугу «" + bridge.memory.favor(mobId, playerId).title() + "»");
+            if (bridge.memory.favor(mobId, playerId) != null) throw new IllegalStateException("Этот моб уже ждёт от вас услугу «" + bridge.memory.favor(mobId, playerId).title() + "»");
             Item wanted = item(quest.item());
             if (wanted == null) throw new IllegalStateException("Моб просит предмет, которого нет в игре: " + quest.item());
             Favor favor = quest.favor();

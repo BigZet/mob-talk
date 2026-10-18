@@ -15,7 +15,7 @@ import java.util.Map;
  *
  * <p>Secret deals: hidden from the player's trade window and from the mob's "deals" list until unlocked. The mob may unlock one
  * in conversation ({@code unlock} field of the answer) only when the player's relationship reaches {@code unlockRelationship}
- * and, if {@code requiresFavor} is set, the player has done the species a favour. A promised favour reward may open one too.
+ * and, if {@code requiresFavor} is set, the player has done this mob a favour. A promised favour reward may open one too.
  *
  * <p>{@link #view} builds the map the model sees as {@code mobDetails.trading}; the LLM client validates answers against the
  * same keys, so both sides must agree on this shape:
@@ -89,7 +89,7 @@ public final class Trading {
     }
     /** Whether the player may see and buy this deal now. */
     public static boolean visible(TradeDeal deal, TradeState state) { return !deal.secret() || state != null && state.unlocked(); }
-    /** Whether the mob may open this secret deal for the player right now; {@code favors} = favours the player did for the species. */
+    /** Whether the mob may open this secret deal for the player right now; {@code favors} = favours the player did for this mob. */
     public static boolean canUnlock(TradeDeal deal, TradeState state, int relationship, int favors) {
         return deal.secret() && !(state != null && state.unlocked()) && relationship >= deal.unlockRelationship()
                 && (!deal.requiresFavor() || favors > 0);
@@ -112,7 +112,7 @@ public final class Trading {
         Integer count = inventory == null || favor == null ? null : inventory.get(favor.item());
         return count == null ? 0 : count;
     }
-    /** The model's view described in the class comment. {@code states}/{@code quests} may be empty maps, never null;
+    /** The model's view described in the class comment. {@code states}/{@code favorsDone} may be empty, never null;
      * {@code itemNames} maps item ids to display names when the game knows them (else the catalog name is used). */
     public static Map<String, Object> view(String type, Map<String, TradeState> states, Favor favor, List<String> favorsDone,
                                            int relationship, long nowMillis, long worldDay, Map<String, Integer> inventory,

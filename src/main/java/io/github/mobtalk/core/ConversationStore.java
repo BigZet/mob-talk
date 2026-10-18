@@ -79,7 +79,8 @@ public final class ConversationStore {
 
     public synchronized void recordDamage(UUID mob, String type, String name, UUID player, String playerName, long nowMillis) {
         Profile p = ensure(mob, type, name); Relation r = relation(p, player);
-        r.score = r.hits++ == 0 ? Math.min(-80, r.score) : Math.max(-100, r.score - 20);
+        // A blow always ends a friendship or a truce: the first drops a stranger to −80, every later one leaves the mob displeased.
+        r.score = r.hits++ == 0 ? Math.min(-80, r.score) : Math.max(-100, Math.min(r.score, 0) - 20);
         p.revision++;
         event(p, nowMillis, "Игрок " + safePlayer(playerName) + " ударил моба; отношение " + r.score); scheduleSave();
     }
@@ -96,6 +97,18 @@ public final class ConversationStore {
     }
 
     public synchronized long revision(UUID mob) { Profile p = state.profiles.get(mob.toString()); return p == null ? 0 : p.revision; }
+    /** Whether this mob has a profile at all: a diary entry is only worth keeping for a mob the player already knows. */
+    public synchronized boolean known(UUID mob) { return mob != null && state.profiles.containsKey(mob.toString()); }
+    /** Drops the profile of a mob the player never talked to (no turns, no life story): a dead one would only bloat the file.
+     * Returns whether it was dropped; a mob with a conversation keeps its memory. */
+    public synchronized boolean forgetStranger(UUID mob) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        if (p == null || !p.turns.isEmpty() || !p.backstory.isBlank()) return false;
+        state.profiles.remove(mob.toString());
+        state.bargains.keySet().removeIf(key -> key.startsWith(mob + ":"));
+        scheduleSave();
+        return true;
+    }
     public synchronized Bargaining.Session bargain(UUID mob, UUID player) {
         if (mob == null || player == null) return null;
         return state.bargains.get(mob + ":" + player);

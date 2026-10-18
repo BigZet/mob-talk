@@ -46,10 +46,13 @@ final class BiographyWriter {
             String story = TextBounds.characters(ReplySchema.string(answer, "story"), 1500);
             if (story.isBlank()) throw new IllegalArgumentException();
             boolean founds = facts.founds();
+            String villageName = founds ? TextBounds.characters(ReplySchema.string(answer, "villageName"), 60) : "";
+            String villageStory = founds ? TextBounds.characters(ReplySchema.string(answer, "villageStory"), 1500) : "";
+            // A founder without a village would leave the next villager founding a second one on the same square.
+            if (founds && (villageName.isBlank() || villageStory.isBlank())) throw new IllegalArgumentException();
             return new Biography(TextBounds.characters(ReplySchema.string(answer, "name"), 60), story,
                     TextBounds.characters(ReplySchema.optional(answer, "desire"), 400), TextBounds.characters(ReplySchema.optional(answer, "secret"), 400),
-                    founds ? TextBounds.characters(ReplySchema.string(answer, "villageName"), 60) : "",
-                    founds ? TextBounds.characters(ReplySchema.string(answer, "villageStory"), 1500) : "");
+                    villageName, villageStory);
         } catch (RuntimeException malformed) {
             String text = new String(bytes, StandardCharsets.UTF_8);
             throw new Malformed(client.service() + " не написал биографию" + (text.contains("\"finish_reason\":\"length\"") ? " (ответ обрезан)." : "."));

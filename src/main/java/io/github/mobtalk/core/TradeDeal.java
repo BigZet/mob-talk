@@ -1,7 +1,7 @@
 package io.github.mobtalk.core;
 
 /** One thing a mob of this species sells, from trades.json. A secret deal is invisible until the mob opens it in conversation;
- * {@code requiresFavor} keeps it shut until the player has done the species at least one favour.
+ * {@code requiresFavor} keeps it shut until the player has done this mob at least one favour.
  * Counts are per exchange; {@code price} is what the player hands over, {@code sell} what the player gets. */
 public record TradeDeal(String id, String name, Item sell, Item price, boolean secret, String hint,
                         int unlockRelationship, boolean requiresFavor, int maxPerDay) {

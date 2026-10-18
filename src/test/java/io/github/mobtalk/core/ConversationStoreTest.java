@@ -82,6 +82,25 @@ class ConversationStoreTest {
         ConversationStore.closeWorld(directory);
     }
 
+    // A friend or a truce ends with any blow, not only the first; a mob nobody talked to leaves no memory when it dies.
+    @Test void anyBlowEndsAFriendshipAndDeadStrangersLeaveNoMemory() throws Exception {
+        UUID mob = UUID.randomUUID(), stranger = UUID.randomUUID(), player = UUID.randomUUID();
+        ConversationStore store = ConversationStore.open(directory, config);
+        store.recordDamage(mob, "minecraft:zombie", "Зомби", player, "Игрок", 1000);
+        for (int i = 0; i < 12; i++) store.recordHelp(mob, "minecraft:zombie", "Зомби", player, "Игрок", 2000 + i * 31_000L);
+        assertEquals(100, store.card(mob, player).relationship(), "won back all the way after the first blow");
+        store.recordDamage(mob, "minecraft:zombie", "Зомби", player, "Игрок", 500_000);
+        assertEquals(-20, store.card(mob, player).relationship(), "a later blow still ends the truce");
+        assertFalse(CombatRules.truce(true, store.relationship(mob, player)));
+        store.recordDamage(stranger, "minecraft:zombie", "Зомби", player, "Игрок", 1000);
+        assertTrue(store.known(stranger)); assertFalse(store.known(UUID.randomUUID()));
+        assertTrue(store.forgetStranger(stranger), "hit but never talked to: nothing worth keeping");
+        assertFalse(store.known(stranger)); assertFalse(store.forgetStranger(stranger));
+        assertTrue(store.commit(cow(mob, player, store.revision(mob), Map.of()), "привет", "ответ", "", SocialIntent.NONE, ActionIntent.none(), 600_000));
+        assertFalse(store.forgetStranger(mob), "a conversation keeps the memory"); assertTrue(store.known(mob));
+        ConversationStore.closeWorld(directory);
+    }
+
     // Durable per-player relation facts must outlive the rotating event log without accusing another player.
     @Test void keepsDislikeReasonsScopedToCurrentPlayerAfterEventRotation() throws Exception {
         UUID mob = UUID.randomUUID(), player = UUID.randomUUID(), other = UUID.randomUUID();

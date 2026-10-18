@@ -3,7 +3,7 @@ package io.github.mobtalk.core;
 /** Player-directed combat permission; physical reach, damage and invulnerability remain game rules. */
 public final class CombatRules {
     /** From this relationship a hostile mob keeps a truce with the player: it neither hunts nor answers a conversation with an attack.
-     * The first blow drops the relationship to −80 and ends it. */
+     * Any blow ends it: the first drops a stranger to −80, a later one leaves the mob below zero. */
     public static final int TRUCE = 20;
     /** From this relationship the mob counts the player as its own: it may follow and fight for them like a tamed one. */
     public static final int ALLY = 60;

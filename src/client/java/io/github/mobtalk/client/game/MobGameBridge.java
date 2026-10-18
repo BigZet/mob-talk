@@ -50,20 +50,19 @@ public final class MobGameBridge {
                         player.getName().getString(), System.currentTimeMillis());
                 if (mob instanceof VillagerEntity villager) bridge.bargaining.hurtBy(villager, player);
                 bridge.actions.hurtBy(mob, player);
-            } else if (!blocked && amount > 0) {
+            } else if (!blocked && amount > 0 && bridge.memory.known(mob.getUuid())) {
+                // Only a mob the player already knows keeps a diary: a profile for every burning zombie would bloat the world memory.
                 bridge.event(mob, "Damage: " + source.getName() + "; attacker="
                         + (source.getAttacker() == null ? "environment" : type(source.getAttacker())));
             }
         });
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             MobGameBridge bridge = forEntity(entity);
-            if (bridge == null) return;
-            if (source.getAttacker() instanceof ServerPlayerEntity player) {
-                if (entity instanceof MobEntity mob)
-                    bridge.memory.recordDamage(mob.getUuid(), type(mob), mob.getName().getString(), player.getUuid(),
-                            player.getName().getString(), System.currentTimeMillis());
-            }
-            if (entity instanceof MobEntity mob) bridge.event(mob, "The mob died: " + source.getName());
+            if (bridge == null || !(entity instanceof MobEntity mob)) return;
+            // The killing blow was already counted by AFTER_DAMAGE. A mob nobody talked to leaves no memory behind;
+            // one with a conversation keeps its profile, and its death goes into it.
+            UUID id = mob.getUuid();
+            if (bridge.memory.known(id) && !bridge.memory.forgetStranger(id)) bridge.event(mob, "The mob died: " + source.getName());
             // END_WORLD_TICK removes dead leases; a death callback can run inside that lease's melee goal.
         });
         ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
