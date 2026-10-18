@@ -142,6 +142,8 @@ public final class MobTalkClient implements ClientModInitializer {
     boolean busyTalking() { return recording != null || requestActive || speech != null; }
     boolean speaking() { return speech != null; }
     MobTalkConfig config() { return config; }
+    /** Self-test only: opens the configured microphone and records for up to {@code seconds} (stop() ends it earlier). */
+    MicrophoneRecorder.Capture microphoneProbe(int seconds) { return microphone.start(config.microphoneName, seconds); }
     /** How many spoken replies started and how many were cut off by the next one while still playing (self-test bookkeeping). */
     int speechStarts, speechCutoffs;
     /** A recorded question handed in as WAV (the self-test voices one with TTS); goes through Whisper like a real recording. */

@@ -80,7 +80,8 @@ final class SelfTest {
         if (until.getAsBoolean()) { String done = waitingFor; waitingFor = ""; log("… " + done); then.run(); }
         else if (ticks >= deadline) {
             String what = waitingFor; waitingFor = "";
-            if (what.startsWith("cow beside") || what.startsWith("bystander queue") || what.startsWith("saves flushed") || what.startsWith("window closed")) log("… " + what); else fail("timeout waiting for " + what);
+            if (what.startsWith("cow beside") || what.startsWith("bystander queue") || what.startsWith("saves flushed") || what.startsWith("window closed")
+                    || what.startsWith("recording for")) log("… " + what); else fail("timeout waiting for " + what);
             then.run();
         }
     }
@@ -366,8 +367,52 @@ final class SelfTest {
         await("Venice TTS answered", 60, pcm::isDone, () -> {
             if (pcm.isCompletedExceptionally()) fail("Venice TTS (" + config.veniceTtsModel + ", " + config.veniceVoice + "): " + pcm.exceptionNow().getMessage());
             else check(pcm.join().length > 2000, "Venice TTS returned PCM: " + pcm.join().length + " bytes");
-            finish();
+            microphoneCheck();
         });
+    }
+
+    // ---- Stage 12: the real microphone opens and delivers audio (what a held V records); content is whatever the room says.
+    private void microphoneCheck() {
+        CompletableFuture<List<String>> devices = CompletableFuture.supplyAsync(MicrophoneRecorder::devices);
+        await("microphones listed", 10, devices::isDone, () -> {
+            List<String> names = devices.isCompletedExceptionally() ? List.of() : devices.join();
+            log("microphones: " + names);
+            check(!names.isEmpty(), "at least one capture device is available");
+            MicrophoneRecorder.Capture capture;
+            try { capture = owner.microphoneProbe(3); }
+            catch (RuntimeException busy) { fail("microphone could not start: " + busy.getMessage()); veniceChat(); return; }
+            await("recording for two seconds", 2, () -> false, () -> {
+                capture.stop();
+                await("recording closed", 10, capture.wav::isDone, () -> {
+                    if (capture.wav.isCompletedExceptionally()) { fail("microphone recording failed: " + capture.wav.exceptionNow().getMessage()); veniceChat(); return; }
+                    byte[] wav = capture.wav.join();
+                    check(wav != null && wav.length > 44 + 16_000, "the microphone line recorded audio: " + (wav == null ? 0 : wav.length) + " bytes (" + (wav == null ? 0 : (wav.length - 44) / 32_000.0) + " s)");
+                    veniceChat();
+                });
+            });
+        });
+    }
+
+    // ---- Stage 13: Venice as the chat provider, live in the game; the settings are put back afterwards.
+    private void veniceChat() {
+        MobTalkConfig original = owner.config().copy();
+        MobTalkConfig draft = original.copy(); draft.llmProvider = "venice";
+        owner.saveConfig(draft, message -> { if (message != null) fail("could not switch to Venice: " + message); });
+        await("settings switched to Venice", 20, () -> owner.config().usesVenice() && owner.enabled() && !owner.reloading, () -> {
+            MobEntity target = MobSpeechSound.find(owner.world, cow);
+            if (target == null) { fail("cow gone before the Venice check"); restore(original); return; }
+            owner.select(target);
+            int before = turns(cow);
+            check(owner.say("Скажи одним словом, какое сейчас у тебя настроение?"), "say() accepted through Venice (" + draft.veniceModel + ")");
+            await("Venice replied", 120, () -> replied(cow, before), () -> {
+                check(turns(cow) > before, "Venice LLM answered in the game: " + lastReply(cow));
+                restore(original);
+            });
+        });
+    }
+    private void restore(MobTalkConfig original) {
+        owner.saveConfig(original, message -> { if (message != null) fail("could not restore the settings: " + message); });
+        await("settings restored", 20, () -> !owner.config().usesVenice() && !owner.reloading, this::finish);
     }
 
     private String lastReply(UUID mob) {
