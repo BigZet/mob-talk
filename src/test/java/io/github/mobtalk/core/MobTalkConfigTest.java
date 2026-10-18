@@ -78,6 +78,7 @@ class MobTalkConfigTest {
         unsafe.maxRecordingSeconds = 100;
         unsafe.maxReplyWords = 1000;
         unsafe.historyTurns = 100;
+        unsafe.witnessReplies = 9;
         unsafe.maxMemoryChars = 10000;
         unsafe.requestTimeoutSeconds = 100;
         unsafe.maxDistance = -10;
@@ -99,6 +100,7 @@ class MobTalkConfigTest {
         unsafe.maxRecordingSeconds = -1;
         unsafe.maxReplyWords = -1;
         unsafe.historyTurns = -1;
+        unsafe.witnessReplies = -3;
         unsafe.maxMemoryChars = -1;
         unsafe.requestTimeoutSeconds = -1;
         unsafe.maxDistance = Double.NaN;
@@ -112,6 +114,7 @@ class MobTalkConfigTest {
         assertEquals(5, minimum.requestTimeoutSeconds);
         assertEquals(16, minimum.maxDistance);
         assertEquals(0, minimum.rudeness);
+        assertEquals(0, minimum.witnessReplies);
     }
 
     private static MobTalkConfig customized() {
@@ -182,6 +185,7 @@ class MobTalkConfigTest {
         assertEquals(90, config.requestTimeoutSeconds);
         assertEquals(2, config.maxDistance);
         assertEquals(3, config.rudeness);
+        assertEquals(2, config.witnessReplies);
         assertEquals("openai/gpt-6-luna", config.llmModel);
         assertEquals("large-v3", config.whisperModel);
         assertEquals("auto", config.whisperDevice);

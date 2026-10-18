@@ -98,7 +98,7 @@
   "mobtalk.settings.voice.status": "Test status",
   "mobtalk.settings.voice.phrase": "Hello! I can speak calmly or expressively, notice important details and answer your questions. Let's check how clearly this voice sounds.",
   "mobtalk.settings.mob.loading": "Loading the selected mob profile…",
-  "mobtalk.settings.mob.empty": "Select a living mob with a stick first.",
+  "mobtalk.settings.mob.empty": "Aim at a living mob and press V first.",
   "mobtalk.settings.mob.refresh": "Refresh profile",
   "mobtalk.settings.mob.stopAll": "Stop all followers",
   "mobtalk.settings.mob.loadFailed": "Could not load the profile. Select the mob again.",
@@ -200,5 +200,6 @@
   "mobtalk.settings.key.file.openrouter": "Key from config/mobtalk-openrouter-token.txt: %s",
   "mobtalk.settings.key.file.venice": "Key from config/mobtalk-venice-token.txt: %s",
   "mobtalk.settings.key.none.openrouter": "No key yet. Paste your OpenRouter key below.",
-  "mobtalk.settings.key.none.venice": "No key yet. Paste your Venice key below."
+  "mobtalk.settings.key.none.venice": "No key yet. Paste your Venice key below.",
+  "mobtalk.settings.witnesses": "Bystander replies after an answer: %s"
 }

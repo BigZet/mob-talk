@@ -71,6 +71,8 @@ public final class ConversationStore {
         MobCard current = card(snapshot.id(), snapshot.playerId());
         detached.relationship = current.relationship();
         detached.recentEvents = current.events();
+        Relation own = snapshot.playerId() == null ? null : p.relations.get(snapshot.playerId().toString());
+        detached.hits = own == null ? 0 : own.hits;
         return detached;
     }
 
@@ -90,6 +92,23 @@ public final class ConversationStore {
         if (!cooledDown(r.lastHelp, nowMillis, 30_000)) return;
         r.lastHelp = nowMillis; r.score = clamp(r.score + 20, hostile(p)); p.revision++;
         event(p, nowMillis, "Игрок " + safePlayer(playerName) + " помог мобу; отношение " + r.score); scheduleSave();
+    }
+
+    /** A mob that saw what the player did to another: a smaller drop than the victim's, once per {@code WITNESS_COOLDOWN}, and a
+     * memory of it. Only mobs with a profile notice; strangers are not worth one. */
+    public static final long WITNESS_COOLDOWN = 5_000;
+    public synchronized void recordWitnessed(UUID mob, UUID player, String playerName, String seen, int delta, long nowMillis) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        if (p == null || player == null) return;
+        Relation r = relation(p, player);
+        if (!cooledDown(r.lastWitness, nowMillis, WITNESS_COOLDOWN)) return;
+        r.lastWitness = nowMillis; r.score = clamp(r.score + delta, hostile(p)); p.revision++;
+        event(p, nowMillis, "Видел, как игрок " + safePlayer(playerName) + " " + seen + "; отношение " + r.score); scheduleSave();
+    }
+    /** What others call this mob: the name the model gave it, else what the game shows; "" for a stranger. */
+    public synchronized String displayName(UUID mob) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        return p == null ? "" : p.givenName.isBlank() ? p.name : p.givenName;
     }
 
     public synchronized void recordEvent(UUID mob, String type, String name, String text, long nowMillis) {
@@ -378,6 +397,7 @@ public final class ConversationStore {
                 if (r.lastApology >= 0) facts.append("; его реплика распознана как извинение");
                 if (r.lastInsult >= 0) facts.append("; его реплика распознана как оскорбление");
                 if (r.lastThreat >= 0) facts.append("; он угрожал убийством");
+                if (r.lastWitness >= 0) facts.append("; ты видел, как он обходился с другими");
                 if (r.lastPurchase >= 0) facts.append("; он уже покупал у моба");
                 List<String> unlocked = r.deals.entrySet().stream().filter(e -> e.getValue().unlocked()).map(e -> dealName(p, e.getKey())).toList();
                 if (!unlocked.isEmpty()) facts.append("; ему открыты твои секретные сделки: ").append(String.join(", ", unlocked));
@@ -402,7 +422,7 @@ public final class ConversationStore {
     private static void event(Profile p, long time, String text) { p.events.add(new Event(time, TextBounds.characters(text, 500))); while (p.events.size() > 20) p.events.removeFirst(); }
 
     static final class Profile {
-        transient UUID id; transient int relationship; transient List<String> recentEvents = List.of(); transient Village village;
+        transient UUID id; transient int relationship, hits; transient List<String> recentEvents = List.of(); transient Village village;
         String type, name, personality, voiceId; String memory = "";
         /** What the model called this mob and the life it invented for it; blank until the first meeting is written up. */
         String givenName = "", backstory = "", villageId = "";
@@ -448,7 +468,7 @@ public final class ConversationStore {
     private record Event(long time, String text) { }
     /** One player as this mob knows them: standing, what they did, their prices on its deals, the favour it waits for. */
     static final class Relation {
-        int score, hits; long lastHelp = -1, lastApology = -1, lastInsult = -1, lastThreat = -1, lastPurchase = -1; boolean ownerKnown;
+        int score, hits; long lastHelp = -1, lastApology = -1, lastInsult = -1, lastThreat = -1, lastPurchase = -1, lastWitness = -1; boolean ownerKnown;
         Map<String,TradeState> deals = new LinkedHashMap<>();
         Favor favor; List<String> favorsDone = new ArrayList<>();
         void sanitize() {
@@ -460,7 +480,7 @@ public final class ConversationStore {
         }
         Relation copy() {
             Relation c = new Relation(); c.score = score; c.hits = hits; c.lastHelp = lastHelp; c.lastApology = lastApology;
-            c.lastInsult = lastInsult; c.lastThreat = lastThreat; c.lastPurchase = lastPurchase; c.ownerKnown = ownerKnown;
+            c.lastInsult = lastInsult; c.lastThreat = lastThreat; c.lastPurchase = lastPurchase; c.lastWitness = lastWitness; c.ownerKnown = ownerKnown;
             c.deals = new LinkedHashMap<>(deals); c.favor = favor; c.favorsDone = new ArrayList<>(favorsDone); // Immutable records.
             return c;
         }

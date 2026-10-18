@@ -48,6 +48,7 @@ public final class MobGameBridge {
             if (source.getAttacker() instanceof ServerPlayerEntity player && !blocked && amount > 0) {
                 bridge.memory.recordDamage(mob.getUuid(), type(mob), mob.getName().getString(), player.getUuid(),
                         player.getName().getString(), System.currentTimeMillis());
+                bridge.witnessed(mob, player, "ударил", -10);
                 if (mob instanceof VillagerEntity villager) bridge.bargaining.hurtBy(villager, player);
                 bridge.actions.hurtBy(mob, player);
             } else if (!blocked && amount > 0 && bridge.memory.known(mob.getUuid())) {
@@ -62,6 +63,7 @@ public final class MobGameBridge {
             // The killing blow was already counted by AFTER_DAMAGE. A mob nobody talked to leaves no memory behind;
             // one with a conversation keeps its profile, and its death goes into it.
             UUID id = mob.getUuid();
+            if (source.getAttacker() instanceof ServerPlayerEntity player) bridge.witnessed(mob, player, "убил", -25);
             if (bridge.memory.known(id) && !bridge.memory.forgetStranger(id)) bridge.event(mob, "The mob died: " + source.getName());
             // END_WORLD_TICK removes dead leases; a death callback can run inside that lease's melee goal.
         });
@@ -81,6 +83,7 @@ public final class MobGameBridge {
             MobGameBridge bridge = active;
             if (bridge != null && bridge.server == world.getServer()) {
                 bridge.actions.tick(world);
+                bridge.actions.stance(world);
                 bridge.bargaining.tick(world);
             }
         });
@@ -131,6 +134,36 @@ public final class MobGameBridge {
     public void event(MobEntity mob, String text) {
         memory.recordEvent(mob.getUuid(), type(mob), mob.getName().getString(), text, System.currentTimeMillis());
     }
+    /** Every mob with a profile that can see the victim takes it personally: a smaller drop than the victim's and a memory
+     * "Видел, как игрок … ударил Марфу (корова)". Strangers notice nothing — a profile for each would bloat the world memory. */
+    void witnessed(MobEntity victim, ServerPlayerEntity player, String seen, int delta) {
+        if (!config.enabled || !(victim.getWorld() instanceof ServerWorld world)) return;
+        String name = memory.displayName(victim.getUuid());
+        String what = seen + " " + (name.isBlank() ? victim.getName().getString() : name) + " (" + SpeciesCatalog.get(type(victim)).name().toLowerCase(java.util.Locale.ROOT) + ")";
+        long now = System.currentTimeMillis();
+        for (MobEntity witness : world.getEntitiesByClass(MobEntity.class, victim.getBoundingBox().expand(WITNESS_RANGE),
+                other -> other != victim && other.isAlive() && !other.isRemoved() && memory.known(other.getUuid()) && other.canSee(victim)))
+            memory.recordWitnessed(witness.getUuid(), player.getUuid(), player.getName().getString(), what, delta, now);
+    }
+    /** How far a mob sees what happens to another. */
+    static final double WITNESS_RANGE = 16;
+
+    /** Bystanders that may add a line after the mob spoken to: alive, within the conversation range of the player, able to see
+     * them, nearest first with mobs the player already knows ahead of strangers. Never the speaker itself. */
+    public CompletableFuture<List<UUID>> witnesses(UUID speakerId, UUID playerId, String dimension, int limit) {
+        return onServer(() -> {
+            ServerWorld world = world(dimension);
+            ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
+            if (world == null || player == null || !player.isAlive() || player.getWorld() != world || limit <= 0) return List.of();
+            double range = Math.min(12, config.maxDistance);
+            List<MobEntity> around = world.getEntitiesByClass(MobEntity.class, player.getBoundingBox().expand(range),
+                    mob -> !mob.getUuid().equals(speakerId) && mob.isAlive() && !mob.isRemoved() && !mob.isAiDisabled()
+                            && mob.squaredDistanceTo(player) <= range * range && mob.canSee(player));
+            around.sort(Comparator.comparingInt((MobEntity mob) -> memory.known(mob.getUuid()) ? 0 : 1).thenComparingDouble(player::squaredDistanceTo));
+            return around.stream().limit(limit).map(Entity::getUuid).toList();
+        });
+    }
+
     public static void helped(MobEntity mob, ServerPlayerEntity player, String reason) {
         MobGameBridge bridge = forEntity(mob);
         if (bridge == null) return;
@@ -206,6 +239,13 @@ public final class MobGameBridge {
     public CompletableFuture<Outcome> applyWithRevision(UUID mobId, UUID playerId, String dimension, ActionIntent intent,
             BargainIntent bargain, DealIntent deal, String unlock, QuestIntent quest, MobSnapshot observed, long expectedRevision,
             java.util.function.BooleanSupplier valid) {
+        return applyWithRevision(mobId, playerId, dimension, intent, bargain, deal, unlock, quest, SocialIntent.NONE, observed, expectedRevision, valid);
+    }
+    /** {@code social}: what the player's words were (the store scores the victim on commit); bystanders in sight take an insult
+     * or a death threat to one of their own personally. */
+    public CompletableFuture<Outcome> applyWithRevision(UUID mobId, UUID playerId, String dimension, ActionIntent intent,
+            BargainIntent bargain, DealIntent deal, String unlock, QuestIntent quest, SocialIntent social, MobSnapshot observed, long expectedRevision,
+            java.util.function.BooleanSupplier valid) {
         return onServer(() -> {
             synchronized (memory) {
                 if (!valid.getAsBoolean()) throw new java.util.concurrent.CancellationException("Разговор отменён");
@@ -226,6 +266,8 @@ public final class MobGameBridge {
                 if (!deals.isBlank()) trade = trade.isBlank() ? deals : trade + "; " + deals;
                 String result = actions.apply(mob, player, intent, observed);
                 if (!trade.isBlank()) result = result.isBlank() ? trade : result + "; " + trade;
+                if (social == SocialIntent.THREAT) witnessed(mob, player, "грозил убить", -10);
+                else if (social == SocialIntent.INSULT) witnessed(mob, player, "оскорбил", -5);
                 return new Outcome(result, memory.revision(mobId));
             }
         });

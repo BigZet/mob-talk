@@ -37,7 +37,7 @@ import java.util.Map;
 public final class Trading {
     public static final int MAX_ROUNDS = 3;
     public static final long SESSION_MILLIS = 20 * 60_000L;
-    public static final int HOSTILE_RELATIONSHIP = -40;
+    public static final int HOSTILE_RELATIONSHIP = CombatRules.HATRED;
     /** Items offered to the mob for its next favour, drawn anew for every conversation. */
     public static final int CANDIDATES = 3;
     private static volatile java.util.function.Predicate<String> itemChecker = id -> true;

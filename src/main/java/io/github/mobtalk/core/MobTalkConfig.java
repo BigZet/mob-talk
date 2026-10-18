@@ -39,6 +39,8 @@ public final class MobTalkConfig {
     public int maxMemoryChars = 4000;
     public int requestTimeoutSeconds = 45;
     public double maxDistance = 16;
+    /** Bystanders that may answer after the mob spoken to, one after another (0–2): three voices in a row at most. */
+    public int witnessReplies = 2;
     public String defaultVoice = "rSfuQoQ3FY8SVKeraMAp";
 
     /** A menu draft or worker snapshot; editing it does not change the live preferences. */
@@ -76,6 +78,7 @@ public final class MobTalkConfig {
         copy.maxMemoryChars = maxMemoryChars;
         copy.requestTimeoutSeconds = requestTimeoutSeconds;
         copy.maxDistance = maxDistance;
+        copy.witnessReplies = witnessReplies;
         copy.defaultVoice = defaultVoice;
         return copy;
     }
@@ -131,6 +134,7 @@ public final class MobTalkConfig {
         if (config.speciesOverrides == null) config.speciesOverrides = new LinkedHashMap<>();
         config.requestTimeoutSeconds = Math.max(5, Math.min(90, config.requestTimeoutSeconds));
         config.maxDistance = Double.isFinite(config.maxDistance) ? Math.max(2, Math.min(64, config.maxDistance)) : 16;
+        config.witnessReplies = Math.max(0, Math.min(2, config.witnessReplies));
         MobTalkConfig defaults = new MobTalkConfig();
         config.llmModel = textOrDefault(config.llmModel, defaults.llmModel);
         config.veniceModel = textOrDefault(config.veniceModel, defaults.veniceModel);

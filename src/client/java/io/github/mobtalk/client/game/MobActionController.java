@@ -25,6 +25,11 @@ final class MobActionController {
     private final MobGameBridge bridge;
     private final Map<UUID, Lease> leases = new HashMap<>();
     private final Map<UUID, Retaliation> pendingRetaliations = new HashMap<>();
+    /** When each villager last called the golem, so the alarm is not raised every second. */
+    private final Map<UUID, Long> alarms = new HashMap<>();
+    /** How close a hated player must come before a mob acts on it, and how often that is checked. */
+    static final double HATRED_RANGE = 12;
+    private static final long STANCE_PERIOD = 20, ALARM_COOLDOWN = 200;
     private record Retaliation(MobEntity mob, ServerPlayerEntity player) { }
     MobActionController(MobGameBridge bridge) { this.bridge = bridge; }
 
@@ -47,6 +52,74 @@ final class MobActionController {
             types.add(ActionType.ATTACK);
         return List.copyOf(types);
     }
+    /** A creature with a real attack: teeth, claws, fists or a weapon. A villager's slap is not one. */
+    static boolean fighter(MobEntity mob) {
+        String type = MobGameBridge.type(mob);
+        return SpeciesCatalog.get(type).hostile() || ATTACK_ONLY.contains(type) || mob instanceof net.minecraft.entity.ai.RangedAttackMob
+                || mob.getAttributes().hasAttribute(EntityAttributes.GENERIC_ATTACK_DAMAGE) && attackDamage(mob) > 0;
+    }
+    static double attackDamage(MobEntity mob) {
+        return mob.getAttributes().hasAttribute(EntityAttributes.GENERIC_ATTACK_DAMAGE) ? mob.getAttributeValue(EntityAttributes.GENERIC_ATTACK_DAMAGE) : 0;
+    }
+    /** The two sides of a fight as {@link Situation} weighs them, from live entities. */
+    static Situation.Combatant combatant(MobEntity mob) {
+        int allies = 0;
+        for (MobEntity other : mob.getWorld().getEntitiesByClass(MobEntity.class, mob.getBoundingBox().expand(Situation.ALLY_RANGE),
+                other -> other != mob && other.isAlive() && other.getType() == mob.getType())) allies++;
+        return new Situation.Combatant(mob.getHealth(), mob.getMaxHealth(), attackDamage(mob) / 2, 0, fighter(mob),
+                Situation.BOSSES.contains(MobGameBridge.type(mob)), allies);
+    }
+    static Situation.Combatant combatant(ServerPlayerEntity player) {
+        double weapon = Math.max(Situation.weaponScore(id(player.getMainHandStack())), Situation.weaponScore(id(player.getOffHandStack())));
+        double armor = 0;
+        for (EquipmentSlot slot : EquipmentSlot.values()) if (slot.isArmorSlot()) armor += Situation.armorScore(id(player.getEquippedStack(slot)));
+        return new Situation.Combatant(player.getHealth(), player.getMaxHealth(), weapon, armor, true, false, 0);
+    }
+    private static String id(net.minecraft.item.ItemStack stack) { return stack.isEmpty() ? "" : net.minecraft.registry.Registries.ITEM.getId(stack.getItem()).toString(); }
+
+    /** Hatred with consequences, once a second: a peaceful mob at or below {@link CombatRules#HATRED} that sees the player close by
+     * attacks when it can win, otherwise runs — and a villager calls the golem. Hostile species need no help hating. */
+    void stance(ServerWorld world) {
+        if (!bridge.config.enabled || world.getTime() % STANCE_PERIOD != 7) return;
+        double range = Math.min(HATRED_RANGE, bridge.config.maxDistance);
+        for (ServerPlayerEntity player : world.getPlayers()) {
+            if (!player.isAlive() || player.isSpectator() || player.isCreative()) continue;
+            for (MobEntity mob : world.getEntitiesByClass(MobEntity.class, player.getBoundingBox().expand(range),
+                    other -> other.isAlive() && !other.isRemoved() && bridge.memory.known(other.getUuid()) && other.squaredDistanceTo(player) <= range * range)) {
+                if (leases.containsKey(mob.getUuid()) || SpeciesCatalog.get(MobGameBridge.type(mob)).hostile()
+                        || bridge.memory.relationship(mob.getUuid(), player.getUuid()) > CombatRules.HATRED || !mob.canSee(player)) continue;
+                if (mob instanceof Tameable tameable && player.getUuid().equals(tameable.getOwnerUuid())) continue;
+                Situation.Verdict verdict = Situation.verdict(combatant(mob), combatant(player));
+                boolean fights = fighter(mob) && (verdict == Situation.Verdict.EVEN || verdict == Situation.Verdict.STRONGER)
+                        && available(mob).contains(ActionType.ATTACK) && canAttack(mob, player);
+                if (fights) {
+                    apply(mob, player, new ActionIntent(ActionType.ATTACK, "player"), null);
+                    Lease lease = leases.get(mob.getUuid());
+                    if (lease != null && lease.action == ActionType.ATTACK) { lease.retaliatory = true; lease.expires = world.getTime() + 400; }
+                    bridge.event(mob, "Напал на игрока " + player.getName().getString() + " из ненависти");
+                } else if (available(mob).contains(ActionType.FLEE)) {
+                    apply(mob, player, new ActionIntent(ActionType.FLEE, "player"), null);
+                    if (mob instanceof net.minecraft.entity.passive.VillagerEntity villager) alarm(villager, player, world);
+                }
+            }
+        }
+    }
+    /** A frightened villager calls the village golems on the player; a golem that trusts the player stays out of it. */
+    private void alarm(net.minecraft.entity.passive.VillagerEntity villager, ServerPlayerEntity player, ServerWorld world) {
+        long now = world.getTime();
+        Long last = alarms.get(villager.getUuid());
+        if (last != null && now - last < ALARM_COOLDOWN) return;
+        alarms.put(villager.getUuid(), now);
+        boolean called = false;
+        for (net.minecraft.entity.passive.IronGolemEntity golem : world.getEntitiesByClass(net.minecraft.entity.passive.IronGolemEntity.class,
+                villager.getBoundingBox().expand(16), other -> other.isAlive() && !other.isRemoved())) {
+            if (bridge.memory.relationship(golem.getUuid(), player.getUuid()) >= CombatRules.TRUCE || !canAttack(golem, player)) continue;
+            golem.setAngryAt(player.getUuid()); golem.chooseRandomAngerTime(); golem.setTarget(player);
+            called = true;
+        }
+        if (called) bridge.event(villager, "Позвал голема на помощь против игрока " + player.getName().getString());
+    }
+
     private static boolean nativeAnimalCombat(String type) {
         return Set.of("minecraft:wolf", "minecraft:cat", "minecraft:bee", "minecraft:polar_bear", "minecraft:panda", "minecraft:fox",
                 "minecraft:ocelot").contains(type);
@@ -270,8 +343,8 @@ final class MobActionController {
         }
         if (persist) bridge.memory.recordAction(id, ActionIntent.none());
     }
-    void unload(MobEntity mob) { stop(mob.getUuid(), false); }
-    void clearRuntime() { pendingRetaliations.clear(); for (UUID id : List.copyOf(leases.keySet())) stop(id, false); }
+    void unload(MobEntity mob) { stop(mob.getUuid(), false); alarms.remove(mob.getUuid()); }
+    void clearRuntime() { pendingRetaliations.clear(); alarms.clear(); for (UUID id : List.copyOf(leases.keySet())) stop(id, false); }
 
     private final class Lease {
         final MobEntity mob; final UUID targetId; final ActionType action; long expires;

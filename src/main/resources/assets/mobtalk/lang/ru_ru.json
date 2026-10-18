@@ -98,7 +98,7 @@
   "mobtalk.settings.voice.status": "Статус теста",
   "mobtalk.settings.voice.phrase": "Привет! Я могу говорить спокойно или выразительно, замечать важные детали и отвечать на твои вопросы. Давай проверим, насколько ясно звучит этот голос.",
   "mobtalk.settings.mob.loading": "Загрузка карточки выбранного моба…",
-  "mobtalk.settings.mob.empty": "Сначала выберите живого моба палкой.",
+  "mobtalk.settings.mob.empty": "Сначала наведите прицел на моба и нажмите V.",
   "mobtalk.settings.mob.refresh": "Обновить карточку",
   "mobtalk.settings.mob.stopAll": "Стоп всем спутникам",
   "mobtalk.settings.mob.loadFailed": "Не удалось получить карточку. Выберите моба заново.",
@@ -200,5 +200,6 @@
   "mobtalk.settings.key.file.openrouter": "Ключ из config/mobtalk-openrouter-token.txt: %s",
   "mobtalk.settings.key.file.venice": "Ключ из config/mobtalk-venice-token.txt: %s",
   "mobtalk.settings.key.none.openrouter": "Ключ не задан. Вставьте ключ OpenRouter ниже.",
-  "mobtalk.settings.key.none.venice": "Ключ не задан. Вставьте ключ Venice ниже."
+  "mobtalk.settings.key.none.venice": "Ключ не задан. Вставьте ключ Venice ниже.",
+  "mobtalk.settings.witnesses": "Реплик очевидцев после ответа: %s"
 }

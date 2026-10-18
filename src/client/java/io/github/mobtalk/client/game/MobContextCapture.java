@@ -37,6 +37,8 @@ final class MobContextCapture {
         if (mob.hasCustomName()) mobDetails.put("customName", mob.getCustomName().getString());
         mobDetails.put("aiDisabled", mob.isAiDisabled());
         mobDetails.put("canAttackPlayer", bridge.actions.canAttack(mob, player));
+        mobDetails.put("fighter", MobActionController.fighter(mob));
+        mobDetails.put("attackDamage", MobActionController.attackDamage(mob));
         mobDetails.put("difficulty", world.getDifficulty().getName());
         mobDetails.put("riding", mob.hasVehicle());
         mobDetails.put("leashed", mob.isLeashed());

@@ -47,6 +47,15 @@ public final class ConversationEngine implements AutoCloseable {
         catch (IOException failure) { llm.close(); speech.close(); throw failure; }
     }
 
+    /** An exchange a bystander heard: who the player spoke to, what was said and what came back. */
+    public record Overheard(String speaker, String said, String answer) {
+        public Overheard {
+            speaker = TextBounds.characters(speaker, 120); said = TextBounds.characters(said, 2000); answer = TextBounds.characters(answer, 2000);
+        }
+        /** How the exchange goes into the bystander's own history. */
+        String asHeard() { return "(ты слышал) Игрок — " + speaker + ": «" + said + "»; " + speaker + ": «" + answer + "»"; }
+    }
+
     public Reply converse(MobSnapshot snapshot, String userText) throws IOException, InterruptedException {
         PreparedReply prepared = prepare(snapshot, userText);
         if (!commitDelivered(prepared, snapshot.interactionRevision()))
@@ -55,9 +64,12 @@ public final class ConversationEngine implements AutoCloseable {
     }
 
     /** Generate off the game thread; authoritative actions must succeed before the caller commits this reply. */
-    public PreparedReply prepare(MobSnapshot snapshot, String userText) throws IOException, InterruptedException {
+    public PreparedReply prepare(MobSnapshot snapshot, String userText) throws IOException, InterruptedException { return prepare(snapshot, userText, null); }
+
+    /** {@code overheard} non-null: this mob only heard the exchange and may answer with silence (a blank reply, no speech). */
+    public PreparedReply prepare(MobSnapshot snapshot, String userText, Overheard overheard) throws IOException, InterruptedException {
         if (closed) throw new IOException("Разговор Mob Talk уже завершён.");
-        String question = TextBounds.characters(userText, 2000);
+        String question = overheard != null ? overheard.asHeard() : TextBounds.characters(userText, 2000);
         if (question.isBlank()) throw new IOException("Речь не распознана. Удерживайте V и произнесите вопрос.");
         ConversationStore.Profile profile = store.profile(snapshot);
         checkCurrent(snapshot);
@@ -66,12 +78,13 @@ public final class ConversationEngine implements AutoCloseable {
         OpenRouterConversationClient.Answer answer;
         try {
             // Voice starts while the model still writes facts, action and bargain; checks below decide whether it is used.
-            answer = llm.respond(snapshot, profile, question, text -> early.start(text, () -> speech.streamWithFallback(profile.voiceId, reserve, text)));
+            answer = llm.respond(snapshot, profile, question, overheard, text -> early.start(text, () -> speech.streamWithFallback(profile.voiceId, reserve, text)));
             checkCurrent(snapshot);
         } catch (IOException | InterruptedException | RuntimeException failure) { early.discard(); throw failure; }
         SpeechStream audio = null;
         String voiceId = speech.selectedVoice(profile.voiceId);
-        try {
+        if (answer.reply().isBlank()) { early.discard(); }
+        else try {
             java.util.concurrent.CompletableFuture<OpenRouterSpeechClient.StreamedAudio> started = early.take(answer.reply());
             OpenRouterSpeechClient.StreamedAudio streamed = started == null ? speech.streamWithFallback(profile.voiceId, reserve, answer.reply())
                     : awaitStarted(started);
@@ -95,7 +108,7 @@ public final class ConversationEngine implements AutoCloseable {
             if (snapshot.name() != null && !snapshot.name().isBlank()) name = TextBounds.characters(snapshot.name(), 120);
         }
         Reply reply = new Reply(question, answer.reply(), name, voiceId, audio, answer.action(), snapshot.interactionRevision(), answer.bargain(),
-                answer.deal(), answer.unlock(), answer.quest());
+                answer.deal(), answer.unlock(), answer.quest(), answer.socialIntent(), overheard != null);
         return new PreparedReply(this, reply, snapshot, answer.memory(), answer.socialIntent(), audio == null ? null : voiceId);
     }
 
@@ -104,6 +117,8 @@ public final class ConversationEngine implements AutoCloseable {
         synchronized (prepared) {
             if (closed || prepared.owner != this || prepared.completed) return false;
             prepared.completed = true;
+            // A bystander that chose silence has nothing to remember.
+            if (prepared.reply.overheard() && prepared.reply.responseText().isBlank()) return true;
             MobSnapshot observed = prepared.snapshot;
             MobSnapshot delivered = new MobSnapshot(observed.id(), observed.type(), observed.name(), observed.health(), observed.maxHealth(),
                     observed.dimension(), observed.biome(), observed.timeOfDay(), observed.weather(), observed.distance(),
@@ -233,16 +248,24 @@ public final class ConversationEngine implements AutoCloseable {
     /** speech is null when audio is unavailable; it may still be downloading while the reply is delivered. */
     public record Reply(String recognizedText, String responseText, String speakerName, String voiceId, SpeechStream speech,
                         ActionIntent action, long interactionRevision, BargainIntent bargain,
-                        DealIntent deal, String unlock, QuestIntent quest) {
+                        DealIntent deal, String unlock, QuestIntent quest, SocialIntent socialIntent, boolean overheard) {
         public Reply {
             if (deal == null) deal = DealIntent.none();
             unlock = unlock == null ? "" : unlock;
             if (quest == null) quest = QuestIntent.none();
+            if (socialIntent == null) socialIntent = SocialIntent.NONE;
+        }
+        public Reply(String recognizedText, String responseText, String speakerName, String voiceId, SpeechStream speech,
+                     ActionIntent action, long interactionRevision, BargainIntent bargain,
+                     DealIntent deal, String unlock, QuestIntent quest) {
+            this(recognizedText, responseText, speakerName, voiceId, speech, action, interactionRevision, bargain, deal, unlock, quest, SocialIntent.NONE, false);
         }
         public Reply(String recognizedText, String responseText, String speakerName, String voiceId, SpeechStream speech,
                      ActionIntent action, long interactionRevision, BargainIntent bargain) {
             this(recognizedText, responseText, speakerName, voiceId, speech, action, interactionRevision, bargain, DealIntent.none(), "", QuestIntent.none());
         }
+        /** A bystander that chose to keep quiet: nothing to show, nothing to voice. */
+        public boolean silent() { return responseText == null || responseText.isBlank(); }
         /** The complete audio, waiting for the download to end; empty without speech. */
         public byte[] pcm() throws InterruptedException {
             return speech == null ? new byte[0] : speech.awaitAll(java.util.concurrent.TimeUnit.SECONDS.toNanos(90));

@@ -1001,6 +1001,45 @@ class ConversationEngineTest {
         }
     }
 
+    // A bystander hears the exchange, may keep quiet (nothing voiced, nothing remembered) or add a line that goes into its history;
+    // it never trades on what it heard and never judges the player's words.
+    @Test void bystandersAnswerWhatTheyOverheardOrKeepQuiet() throws Exception {
+        JsonObject quiet = new JsonObject();
+        quiet.addProperty("assessment", "Не моё дело."); quiet.addProperty("reply", ""); quiet.addProperty("newFacts", "");
+        quiet.addProperty("socialIntent", "INSULT");
+        JsonObject action = new JsonObject(); action.addProperty("type", "NONE"); action.addProperty("target", ""); quiet.add("action", action);
+        queuedAnswers.add(quiet);
+        ConversationEngine.Overheard heard = new ConversationEngine.Overheard("Марфа", "Ты тупая корова", "Сам такой!");
+        try (ConversationEngine engine = engine()) {
+            MobSnapshot bystander = currentCow(UUID.randomUUID(), 0);
+            ConversationEngine.PreparedReply prepared = engine.prepare(bystander, "", heard);
+            assertTrue(prepared.reply().silent() && prepared.reply().overheard() && prepared.reply().speech() == null, "silence is not voiced");
+            assertEquals(0, speechCalls.get());
+            assertEquals(SocialIntent.NONE, prepared.reply().socialIntent(), "an overheard insult is not aimed at the bystander");
+            JsonObject request = lastRequest.get();
+            String system = request.getAsJsonArray("messages").get(0).getAsJsonObject().get("content").getAsString();
+            String user = request.getAsJsonArray("messages").asList().getLast().getAsJsonObject().get("content").getAsString();
+            assertTrue(system.contains("ты не собеседник, а очевидец") && system.contains("Трезвая оценка обстановки"), system);
+            assertTrue(user.startsWith("Ты рядом и слышишь чужой разговор. Игрок сказал Марфа: «Ты тупая корова». Марфа в ответ: «Сам такой!»"), user);
+            JsonObject properties = request.getAsJsonObject("response_format").getAsJsonObject("json_schema").getAsJsonObject("schema").getAsJsonObject("properties");
+            assertEquals("[\"NONE\"]", properties.getAsJsonObject("quest").getAsJsonObject("properties").getAsJsonObject("type").get("enum").toString());
+            assertEquals("assessment", properties.keySet().iterator().next(), "the assessment comes before the spoken line");
+            assertTrue(engine.commitDelivered(prepared, 0));
+            assertTrue(engine.memory().card(bystander.id(), bystander.playerId()).turns().isEmpty(), "silence leaves no turn");
+
+            JsonObject spoken = quiet.deepCopy(); spoken.addProperty("reply", "Эй, полегче с ней!");
+            queuedAnswers.add(spoken);
+            MobSnapshot again = currentCow(bystander.id(), engine.memory().revision(bystander.id()));
+            prepared = engine.prepare(again, "", heard);
+            assertFalse(prepared.reply().silent()); assertEquals("Эй, полегче с ней!", prepared.reply().responseText());
+            assertEquals(1, speechCalls.get(), "a spoken line is voiced");
+            assertTrue(engine.commitDelivered(prepared, engine.memory().revision(bystander.id())));
+            var turns = engine.memory().card(bystander.id(), bystander.playerId()).turns();
+            assertEquals(1, turns.size());
+            assertEquals("(ты слышал) Игрок — Марфа: «Ты тупая корова»; Марфа: «Сам такой!»", turns.getFirst().user());
+        }
+    }
+
     // The first meeting writes a name and a life; a villager also founds its village, which the next villager nearby inherits.
     @Test void writesABackstoryOnceAndSharesTheVillageWithNeighbours() throws Exception {
         JsonObject written = new JsonObject();

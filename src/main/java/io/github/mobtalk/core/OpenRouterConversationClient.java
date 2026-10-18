@@ -51,24 +51,31 @@ final class OpenRouterConversationClient implements AutoCloseable {
      * it may be called again for a corrected retry, and the returned Answer is what counts. */
     Answer respond(MobSnapshot snapshot, ConversationStore.Profile profile, String question, Consumer<String> earlyReply)
             throws IOException, InterruptedException {
+        return respond(snapshot, profile, question, null, earlyReply);
+    }
+
+    /** {@code overheard} non-null: the mob is a bystander of that exchange, {@code question} is ignored, trading intents are off. */
+    Answer respond(MobSnapshot snapshot, ConversationStore.Profile profile, String question, ConversationEngine.Overheard overheard, Consumer<String> earlyReply)
+            throws IOException, InterruptedException {
         SpeciesCatalog.Species species = SpeciesCatalog.effective(snapshot.type(), config);
         TradingView view = TradingView.of(snapshot);
         JsonArray messages = new JsonArray();
-        messages.add(ReplySchema.message("system", prompt.system(species, profile, snapshot)));
+        messages.add(ReplySchema.message("system", prompt.system(species, profile, snapshot) + (overheard == null ? "" : "\n\n" + PromptTexts.OVERHEARD)));
         int history = Math.max(1, Math.min(64, config.historyTurns));
         for (int i = Math.max(0, profile.turns.size() - history); i < profile.turns.size(); i++) {
             ConversationStore.Turn turn = profile.turns.get(i);
             messages.add(ReplySchema.message("user", turn.user())); messages.add(ReplySchema.message("assistant", turn.assistant()));
         }
-        messages.add(ReplySchema.message("user", prompt.userMessage(question, snapshot, profile)));
+        messages.add(ReplySchema.message("user", overheard == null ? prompt.userMessage(question, snapshot, profile) : prompt.overheardMessage(overheard, snapshot, profile)));
         JsonObject body = body(messages, 4096, view.windowOpen() ? 0.6 : 0.95, ReplySchema.replyFormat(snapshot), !noStreaming);
+        if (overheard != null) ReplySchema.forbidIntents(body);
         long deadline = System.nanoTime() + http.timeout().toNanos();
         int words = prompt.words();
         byte[] bytes = send(body, deadline, text -> earlyReply.accept(TextBounds.reply(text, words)));
         for (int correction = 0; ; correction++) {
             // Read the provider quirks after each send: a 404 fallback to json_object may have happened inside it.
             AnswerValidator.Bounds bounds = new AnswerValidator.Bounds(words, profile.memory, Math.max(200, Math.min(4000, config.maxMemoryChars)),
-                    profile.relationship, jsonObjectOnly, service());
+                    profile.relationship, jsonObjectOnly, service(), overheard != null);
             try { return AnswerValidator.parse(bytes, snapshot, bounds); }
             catch (AnswerValidator.Rejected invalid) {
                 diagnostics.accept("ответ отклонён (попытка " + (correction + 1) + ", " + snapshot.type() + "): " + invalid.getMessage());

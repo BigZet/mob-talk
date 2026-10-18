@@ -30,7 +30,11 @@ final class AnswerValidator {
     }
 
     /** What the parser needs beyond the bytes: limits from the config and the memory the facts are appended to. */
-    record Bounds(int words, String previousMemory, int memoryLimit, int relationship, boolean jsonObjectOnly, String service) { }
+    record Bounds(int words, String previousMemory, int memoryLimit, int relationship, boolean jsonObjectOnly, String service, boolean overheard) {
+        Bounds(int words, String previousMemory, int memoryLimit, int relationship, boolean jsonObjectOnly, String service) {
+            this(words, previousMemory, memoryLimit, relationship, jsonObjectOnly, service, false);
+        }
+    }
 
     static OpenRouterConversationClient.Answer parse(byte[] bytes, MobSnapshot snapshot, Bounds bounds) throws IOException {
         TradingView view = TradingView.of(snapshot);
@@ -45,6 +49,9 @@ final class AnswerValidator {
             // newFacts is appended by code; a full "memory" from older or fallback answers still replaces it as before.
             String memory = answer.has("newFacts") ? MemoryNotes.remember(bounds.previousMemory(), TextBounds.characters(ReplySchema.string(answer, "newFacts"), MemoryNotes.FACTS_LIMIT), bounds.memoryLimit())
                     : TextBounds.characters(ReplySchema.string(answer, "memory"), bounds.memoryLimit());
+            if (bounds.overheard() && reply.isBlank()) return new OpenRouterConversationClient.Answer("", memory, SocialIntent.NONE,
+                    answer.has("action") && answer.get("action").isJsonObject() ? validateAction(answer.getAsJsonObject("action"), snapshot) : ActionIntent.none(),
+                    BargainIntent.none(), DealIntent.none(), "", QuestIntent.none());
             if (reply.isBlank()) throw new IllegalArgumentException();
             if (reply.codePoints().noneMatch(Character::isLetter))
                 throw new Rejected("Реплика пустая: в reply нет ни одного слова. Скажи вслух нормальную фразу по характеру.", false);
@@ -52,6 +59,10 @@ final class AnswerValidator {
             if (foreignWords(reply, snapshot) >= 3)
                 throw new Rejected("Реплика не на русском. Скажи ту же мысль по-русски, своими словами и в своей манере.", false);
             SocialIntent social = SocialIntent.NONE;
+            // The player's words were not addressed to a bystander: it neither judges them nor trades on them.
+            if (bounds.overheard()) return new OpenRouterConversationClient.Answer(reply, memory, SocialIntent.NONE,
+                    answer.has("action") && answer.get("action").isJsonObject() ? validateAction(answer.getAsJsonObject("action"), snapshot) : ActionIntent.none(),
+                    BargainIntent.none(), DealIntent.none(), "", QuestIntent.none());
             if (answer.has("socialIntent")) { try { social = SocialIntent.valueOf(ReplySchema.string(answer, "socialIntent").toUpperCase(Locale.ROOT)); } catch (IllegalArgumentException ignored) { } }
             ActionIntent action = answer.has("action") && answer.get("action").isJsonObject() ? validateAction(answer.getAsJsonObject("action"), snapshot) : ActionIntent.none();
             BargainIntent bargain = BargainIntent.none();

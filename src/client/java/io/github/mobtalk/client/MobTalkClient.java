@@ -15,7 +15,6 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import net.fabricmc.loader.api.FabricLoader;
@@ -28,13 +27,15 @@ import net.minecraft.client.gui.screen.ingame.MerchantScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.projectile.ProjectileUtil;
+import net.minecraft.util.hit.EntityHitResult;
+import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
 import net.minecraft.util.WorldSavePath;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
@@ -90,6 +91,10 @@ public final class MobTalkClient implements ClientModInitializer {
     private boolean requestActive;
     private final MerchantSession merchant = new MerchantSession(this);
     private CompletableFuture<String> actionRequest;
+    /** Bystanders still to answer after the mob spoken to, in order; emptied by any new request. */
+    private final Deque<UUID> witnessQueue = new ArrayDeque<>();
+    private ConversationEngine.Overheard overheard;
+    private long witnessGeneration = -1;
     private long ticks;
     String status = "Загрузка настроек…";
     private MobSpeechSound speech;
@@ -109,20 +114,6 @@ public final class MobTalkClient implements ClientModInitializer {
                         .dimensions(width - 128, height - 26, 120, 20).build());
             }
             if (screen instanceof MerchantScreen trading) merchant.initialize(trading);
-        });
-        UseEntityCallback.EVENT.register((player, useWorld, hand, entity, hit) -> {
-            var subject = entity instanceof net.minecraft.entity.boss.dragon.EnderDragonPart part ? part.owner : entity;
-            if (!useWorld.isClient() || player != client.player || client.getServer() == null
-                    || !configReady || !config.enabled || player.isSpectator()
-                    || !(subject instanceof MobEntity mob) || !mob.isAlive() || mob.isRemoved()
-                    || !(player.getMainHandStack().isOf(Items.STICK) || player.getOffHandStack().isOf(Items.STICK)))
-                return ActionResult.PASS;
-            updateWorld();
-            if (player.isSneaking()) clearSelection("Собеседник снят");
-            else select(mob);
-            player.swingHand(player.getMainHandStack().isOf(Items.STICK) ? Hand.MAIN_HAND : Hand.OFF_HAND);
-            // FAIL cancels both vanilla interaction and its server packet (villager GUI/feeding remain closed).
-            return ActionResult.FAIL;
         });
         ClientTickEvents.END_CLIENT_TICK.register(ignored -> tick());
         ClientPlayConnectionEvents.DISCONNECT.register((handler, ignored) -> leaveWorld());
@@ -151,6 +142,30 @@ public final class MobTalkClient implements ClientModInitializer {
     }
 
     String readyStatus() { return "Готов: удерживайте " + talkKey.getBoundKeyLocalizedText().getString(); }
+    static final String AIM_HINT = "Наведите прицел на моба и удерживайте V";
+
+    /** The living mob under the crosshair within the conversation range, or null; a dragon part counts as the dragon. */
+    MobEntity aimedMob() {
+        if (client.player == null || world == null || client.world != world) return null;
+        double range = config.maxDistance;
+        Vec3d start = client.player.getCameraPosVec(1f), look = client.player.getRotationVec(1f), end = start.add(look.multiply(range));
+        HitResult block = client.player.raycast(range, 1f, false);
+        double limit = block.getType() == HitResult.Type.MISS ? range * range : block.getPos().squaredDistanceTo(start);
+        EntityHitResult hit = ProjectileUtil.raycast(client.player, start, end, client.player.getBoundingBox().stretch(look.multiply(range)).expand(1),
+                entity -> entity instanceof LivingEntity && !entity.isSpectator() && entity.isAlive(), limit);
+        Entity entity = hit == null ? null : hit.getEntity();
+        if (entity instanceof net.minecraft.entity.boss.dragon.EnderDragonPart part) entity = part.owner;
+        return entity instanceof MobEntity mob && mob.isAlive() && !mob.isRemoved() ? mob : null;
+    }
+
+    /** V with no window open: the mob under the crosshair becomes the conversation partner; with nothing in the crosshair the
+     * last one keeps the conversation. */
+    private void aimBeforeTalking() {
+        if (!enabled() || client.player == null || world == null) return;
+        MobEntity aimed = aimedMob();
+        if (aimed != null && !aimed.getUuid().equals(selected)) select(aimed);
+        else if (aimed == null && target() == null) { status = AIM_HINT; showHud(); }
+    }
 
     private static ExecutorService worker(String name) {
         return Executors.newSingleThreadExecutor(task -> {
@@ -190,7 +205,9 @@ public final class MobTalkClient implements ClientModInitializer {
                 || world == null || client.player == null || !client.player.isAlive())) {
             cancelWork("Запись отменена");
         }
+        if (held && !keyHeld && !merchant.windowOpen()) aimBeforeTalking();
         if (held && !keyHeld && canRecord()) beginRecording();
+        if (!witnessQueue.isEmpty()) advanceWitnesses();
         if (!held && keyHeld && recording != null) {
             status = "Завершение записи…";
             recording.stop();
@@ -214,12 +231,12 @@ public final class MobTalkClient implements ClientModInitializer {
         leaveWorld();
         world = current;
         keyHeld = talkKey != null && talkKey.isPressed();
-        if (world != null) status = configReady ? "Выберите моба ПКМ палкой" : "Загрузка настроек…";
+        if (world != null) status = configReady ? AIM_HINT : "Загрузка настроек…";
     }
 
     private void leaveWorld() {
         merchant.end("Мир сменился: торговый разговор отменён");
-        cancelWork("Выберите моба ПКМ палкой", true);
+        cancelWork(AIM_HINT, true);
         selected = null;
         world = null;
         if (client.getServer() == null) releaseMemory();
@@ -276,6 +293,7 @@ public final class MobTalkClient implements ClientModInitializer {
      * since rebuilding it reloads the key and relearns provider quirks. Settings, reloads and world changes drop it. */
     private void cancelWork(String reason, boolean dropEngine) {
         generation++;
+        witnessQueue.clear(); overheard = null;
         if (actionRequest != null) actionRequest.completeExceptionally(new java.util.concurrent.CancellationException(reason));
         actionRequest = null;
         requestActive = false;
@@ -340,7 +358,7 @@ public final class MobTalkClient implements ClientModInitializer {
         if (!configReady || reloading) status = "Настройки ещё загружаются";
         else if (!config.enabled) status = "Mob Talk выключен в config/mobtalk.json";
         else if (world == null || client.player == null || !client.player.isAlive()) status = "Mob Talk работает в одиночном мире";
-        else if (target() == null) status = "Сначала выберите живого моба ПКМ палкой";
+        else if (target() == null) status = AIM_HINT;
         else if (!withinRange(target())) status = "Подойдите к мобу ближе (до " + Math.round(config.maxDistance) + " блоков)";
         else if (recording != null || pipelineBusy.get()) status = "Предыдущий разговор ещё завершается";
         else return true;
@@ -352,7 +370,32 @@ public final class MobTalkClient implements ClientModInitializer {
         return new Request(requestGeneration, selected,
                 client.getServer().getSavePath(WorldSavePath.ROOT), config, snapshot, client.getServer(),
                 client.player.getUuid(), world.getRegistryKey().getValue().toString(), target() == null ? "" : target().getName().getString(),
-                merchant.current());
+                merchant.current(), null);
+    }
+
+    /** After the mob spoken to answered: who else heard it, so they can add a line one after another. */
+    private void queueWitnesses(Request request, ConversationEngine.Reply reply) {
+        witnessQueue.clear(); overheard = null;
+        if (request.overheard != null || config.witnessReplies <= 0 || reply.silent()) return;
+        MobGameBridge game = MobGameBridge.active(request.server);
+        if (game == null) return;
+        ConversationEngine.Overheard heard = new ConversationEngine.Overheard(reply.speakerName(), reply.recognizedText(), reply.responseText());
+        game.witnesses(request.target, request.player, request.dimension, config.witnessReplies).whenComplete((ids, error) -> client.execute(() -> {
+            if (error != null || ids.isEmpty() || generation != request.generation) return;
+            witnessQueue.addAll(ids); overheard = heard; witnessGeneration = request.generation;
+        }));
+    }
+
+    /** One bystander at a time, and only once the previous voice has gone quiet. */
+    private void advanceWitnesses() {
+        if (generation != witnessGeneration) { witnessQueue.clear(); overheard = null; return; }
+        if (speech != null || requestActive || recording != null || pipelineBusy.get() || overheard == null) return;
+        UUID next = witnessQueue.poll();
+        MobEntity mob = MobSpeechSound.find(world, next);
+        if (mob == null || !withinRange(mob) || client.player == null || client.getServer() == null) return;
+        Request seed = new Request(generation, next, client.getServer().getSavePath(WorldSavePath.ROOT), config, null, client.getServer(),
+                client.player.getUuid(), world.getRegistryKey().getValue().toString(), mob.getName().getString(), null, overheard);
+        submit(seed, null, "");
     }
 
     void ensureGameBridge() {
@@ -397,7 +440,7 @@ public final class MobTalkClient implements ClientModInitializer {
         }
         requestActive = true;
         merchant.setWork(request.merchant);
-        status = wav == null ? "Моб думает…" : "Whisper распознаёт…";
+        status = request.overheard != null ? request.mobName + " прислушивается…" : wav == null ? "Моб думает…" : "Whisper распознаёт…";
         showHud();
         pipeline.execute(() -> {
             pipelineThread = Thread.currentThread();
@@ -422,7 +465,7 @@ public final class MobTalkClient implements ClientModInitializer {
                     }
                 }
                 checkCurrent(request);
-                updateStatus(request, "Моб думает и готовит голос…");
+                updateStatus(request, request.overheard != null ? request.mobName + " прислушивается…" : "Моб думает и готовит голос…");
                 CompletableFuture<MobGameBridge> ready = gameReady;
                 if (ready == null) throw new IllegalStateException("Память мира ещё загружается");
                 MobGameBridge game = ready.get(10, TimeUnit.SECONDS);
@@ -434,19 +477,20 @@ public final class MobTalkClient implements ClientModInitializer {
                 checkCurrent(request);
                 ConversationEngine localEngine = ensureEngine(request);
                 checkCurrent(request);
-                if (!game.memory.hasBackstory(request.target)) {
+                if (request.overheard == null && !game.memory.hasBackstory(request.target)) {
                     // The prefetch on selection may have lost the race; a first reply without a life story would sound generic.
+                    // A bystander gets its story when the player turns to it: one extra request per passer-by would be too slow.
                     updateStatus(request, "Моб вспоминает, кто он…");
                     try { localEngine.ensureBackstory(snapshot); }
                     catch (java.io.IOException noStory) { LOGGER.warn("Mob Talk backstory not written yet: {}", String.valueOf(noStory.getMessage())); }
                     checkCurrent(request);
                     updateStatus(request, "Моб думает и готовит голос…");
                 }
-                ConversationEngine.PreparedReply prepared = localEngine.prepare(snapshot, question);
+                ConversationEngine.PreparedReply prepared = localEngine.prepare(snapshot, question, request.overheard);
                 try { checkCurrent(request); }
                 catch (InterruptedException cancelled) { prepared.reply().discardSpeech(); throw cancelled; }
                 Request observed = new Request(request.generation, request.target, request.worldDirectory, request.config,
-                        snapshot, request.server, request.player, request.dimension, request.mobName, request.merchant);
+                        snapshot, request.server, request.player, request.dimension, request.mobName, request.merchant, request.overheard);
                 client.execute(() -> deliver(observed, localEngine, prepared));
             } catch (InterruptedException cancelled) {
                 Thread.currentThread().interrupt();
@@ -501,7 +545,7 @@ public final class MobTalkClient implements ClientModInitializer {
         merchant.thenCompose(id -> {
             if (!request.target.equals(id)) throw new java.util.concurrent.CancellationException("Торговец сменился");
             return game.applyWithRevision(request.target, request.player, request.dimension, reply.action(), reply.bargain(),
-                    reply.deal(), reply.unlock(), reply.quest(), request.snapshot, reply.interactionRevision(), () -> generation == request.generation);
+                    reply.deal(), reply.unlock(), reply.quest(), reply.socialIntent(), request.snapshot, reply.interactionRevision(), () -> generation == request.generation);
         }).whenComplete((delivery, error) -> client.execute(() -> {
             if (!isCurrent(request)) { reply.discardSpeech(); return; }
             if (error != null) { reply.discardSpeech(); reportFailure(request, error); return; }
@@ -517,17 +561,19 @@ public final class MobTalkClient implements ClientModInitializer {
 
     private void finishDelivery(Request request, ConversationEngine.Reply reply, String actionMessage) {
         requestActive = false;
-        chat("Вы: " + reply.recognizedText());
+        if (request.overheard == null) chat("Вы: " + reply.recognizedText());
+        if (reply.silent()) { status = readyStatus(); showHud(); return; }
         chat(reply.speakerName() + ": " + reply.responseText());
         stopSpeech();
         if (reply.speech() != null) {
-            speech = new MobSpeechSound(client, world, selected, request.config.maxDistance, reply.speech());
+            speech = new MobSpeechSound(client, world, request.target, request.config.maxDistance, reply.speech());
             client.getSoundManager().play(speech);
-            status = "Говорит…";
+            status = request.overheard == null ? "Говорит…" : reply.speakerName() + " вмешивается…";
         } else {
             status = "Ответ в чате; озвучка недоступна. Повторите позже";
         }
         if (actionMessage != null && !actionMessage.isBlank()) chat("[Mob Talk] " + actionMessage);
+        queueWitnesses(request, reply);
         if (actionRequest != null) actionRequest.complete(actionMessage == null || actionMessage.isBlank()
                 ? "Моб ответил без нового действия" : actionMessage);
         actionRequest = null;
@@ -565,9 +611,10 @@ public final class MobTalkClient implements ClientModInitializer {
     }
 
     private boolean isCurrent(Request request) {
-        return !stopped && generation == request.generation && request.target.equals(selected)
+        MobEntity subject = request.overheard == null ? target() : MobSpeechSound.find(world, request.target);
+        return !stopped && generation == request.generation && (request.overheard != null || request.target.equals(selected))
                 && world != null && client.world == world && client.getServer() != null
-                && client.player != null && client.player.isAlive() && withinRange(target())
+                && client.player != null && client.player.isAlive() && withinRange(subject)
                 && (request.merchant == null || request.merchant.equals(merchant.context()) && merchant.allowedRecordingScreen());
     }
 
@@ -580,7 +627,7 @@ public final class MobTalkClient implements ClientModInitializer {
     public CompletableFuture<MobSnapshot> selectedSnapshot() {
         ensureGameBridge();
         if (selected == null || client.player == null || world == null || gameReady == null)
-            return CompletableFuture.failedFuture(new IllegalStateException("Сначала выберите моба палкой"));
+            return CompletableFuture.failedFuture(new IllegalStateException("Сначала наведите прицел на моба и нажмите V"));
         UUID mob = selected, player = client.player.getUuid();
         String dimension = world.getRegistryKey().getValue().toString();
         return gameReady.thenCompose(game -> game.capture(mob, player, dimension));
@@ -627,7 +674,7 @@ public final class MobTalkClient implements ClientModInitializer {
                 default -> "";
             };
             submit(new Request(seed.generation, seed.target, seed.worldDirectory, seed.config, snapshot,
-                    seed.server, seed.player, seed.dimension, seed.mobName, seed.merchant), null, question);
+                    seed.server, seed.player, seed.dimension, seed.mobName, seed.merchant, null), null, question);
         }));
         return result;
     }
@@ -673,7 +720,9 @@ public final class MobTalkClient implements ClientModInitializer {
                 + String.format(Locale.ROOT, "%.1f м · ", Math.sqrt(client.player.squaredDistanceTo(mob)))
                 + (card == null ? "" : MobGameBridge.relationshipLabel(card) + " · ")
                 + (game == null ? "" : favorLabel(game));
-        client.player.sendMessage(Text.literal("Mob Talk · " + targetLabel + status), true);
+        MobEntity aimed = client.currentScreen == null ? aimedMob() : null;
+        String aimLabel = aimed == null || aimed == mob ? "" : "в прицеле: " + aimed.getName().getString() + " · ";
+        client.player.sendMessage(Text.literal("Mob Talk · " + aimLabel + targetLabel + status), true);
     }
 
     /** «услуга: Колокол площади 0/1 · » while this species waits for something from the player; counts the player's own inventory. */
@@ -713,7 +762,7 @@ public final class MobTalkClient implements ClientModInitializer {
         if (!configReady) { notice("Настройки ещё загружаются"); return; }
         if (!config.enabled) { notice("Mob Talk выключен в config/mobtalk.json"); return; }
         MobEntity mob = target();
-        if (mob == null || !withinRange(mob) || client.player == null || world == null) { notice("Сначала выберите моба палкой"); return; }
+        if (mob == null || !withinRange(mob) || client.player == null || world == null) { notice("Сначала наведите прицел на моба и нажмите V"); return; }
         if (recording != null) { notice("Сначала отпустите клавишу речи"); return; }
         CompletableFuture<MobGameBridge> ready = gameReady;
         if (ready == null) { notice("Память мира ещё загружается"); return; }
@@ -754,8 +803,7 @@ public final class MobTalkClient implements ClientModInitializer {
                     if (stopped) return;
                     config = loaded;
                     configReady = true;
-                    status = !loaded.enabled ? "Mob Talk выключен" : selected == null
-                            ? "Выберите моба ПКМ палкой" : readyStatus();
+                    status = !loaded.enabled ? "Mob Talk выключен" : selected == null ? AIM_HINT : readyStatus();
                     completion.accept(null);
                 });
             } catch (Exception failure) {
@@ -782,7 +830,7 @@ public final class MobTalkClient implements ClientModInitializer {
                     config = loaded;
                     configReady = true;
                     reloading = false;
-                    status = selected == null ? "Выберите моба ПКМ палкой" : readyStatus();
+                    status = selected == null ? AIM_HINT : readyStatus();
                     if (world != null) notice("Настройки загружены");
                 });
             } catch (Exception failure) {
@@ -813,6 +861,8 @@ public final class MobTalkClient implements ClientModInitializer {
         maintenance.shutdown();
     }
 
+    /** overheard non-null: the mob is a bystander answering the exchange it heard, not the conversation partner. */
     private record Request(long generation, UUID target, Path worldDirectory, MobTalkConfig config, MobSnapshot snapshot,
-            MinecraftServer server, UUID player, String dimension, String mobName, MerchantSession.Context merchant) { }
+            MinecraftServer server, UUID player, String dimension, String mobName, MerchantSession.Context merchant,
+            ConversationEngine.Overheard overheard) { }
 }

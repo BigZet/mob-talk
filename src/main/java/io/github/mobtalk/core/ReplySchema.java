@@ -12,7 +12,7 @@ final class ReplySchema {
     /** The reply schema with the intent enums narrowed to what this snapshot allows; reply comes first so speech can start early. */
     static JsonObject replyFormat(MobSnapshot snapshot) {
         TradingView view = TradingView.of(snapshot);
-        JsonObject properties = new JsonObject(); properties.add("reply", property("string"));
+        JsonObject properties = new JsonObject(); properties.add("assessment", property("string")); properties.add("reply", property("string"));
         JsonObject social = property("string"); social.add("enum", strings("NONE", "APOLOGY", "KIND", "INSULT", "THREAT")); properties.add("socialIntent", social);
         JsonObject actionFields = new JsonObject(), type = property("string"); type.add("enum", strings("NONE", "FOLLOW", "FLEE", "ATTACK", "STOP"));
         actionFields.add("type", type); actionFields.add("target", property("string"));
@@ -30,7 +30,7 @@ final class ReplySchema {
         questFields.add("title", property("string")); questFields.add("rewardDeal", property("string")); questFields.add("rewardPercent", property("integer"));
         properties.add("quest", objectSchema(questFields, "type", "item", "count", "title", "rewardDeal", "rewardPercent"));
         properties.add("newFacts", property("string"));
-        return format("mob_reply", objectSchema(properties, "reply", "socialIntent", "action", "bargain", "deal", "unlock", "quest", "newFacts"));
+        return format("mob_reply", objectSchema(properties, "assessment", "reply", "socialIntent", "action", "bargain", "deal", "unlock", "quest", "newFacts"));
     }
 
     /** The biography schema: name, story, own desire and secret, and the village when the mob founds one. */

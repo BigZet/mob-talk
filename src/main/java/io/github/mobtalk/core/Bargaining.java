@@ -14,7 +14,7 @@ public final class Bargaining {
     public static final long QUOTE_TICKS = 6000, COOLDOWN_TICKS = 24000;
     public static final int MAX_ROUNDS = 3;
     /** At or below this relationship the villager refuses any concession. */
-    public static final int HOSTILE_RELATIONSHIP = -40;
+    public static final int HOSTILE_RELATIONSHIP = CombatRules.HATRED;
     /** CONSUMED remains only for one-exchange discounts saved before 0.3; they hold no price. */
     public enum Status { PENDING, ACCEPTED, CONSUMED, DECLINED, EXPIRED }
     public record Offer(int index, String key, int baseCount, int vanillaCount, int maxStack, boolean available) { }

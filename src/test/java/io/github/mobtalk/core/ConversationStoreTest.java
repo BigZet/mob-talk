@@ -104,6 +104,27 @@ class ConversationStoreTest {
         ConversationStore.closeWorld(directory);
     }
 
+    // What a mob sees happen to another sticks: a smaller drop, once per cooldown, with a memory; strangers notice nothing.
+    @Test void witnessesTakeItPersonallyOncePerCooldown() throws Exception {
+        UUID victim = UUID.randomUUID(), witness = UUID.randomUUID(), stranger = UUID.randomUUID(), player = UUID.randomUUID();
+        ConversationStore store = ConversationStore.open(directory, config);
+        store.observe(cow(witness, player, 0, Map.of()));
+        assertEquals("Корова", store.displayName(witness)); assertEquals("", store.displayName(stranger));
+        store.setBackstory(witness, "Марфа", "Ты родилась у реки.", "", "", "");
+        assertEquals("Марфа", store.displayName(witness));
+        store.recordWitnessed(witness, player, "Стив", "ударил Зорьку (корова)", -10, 1000);
+        store.recordWitnessed(witness, player, "Стив", "ударил Зорьку (корова)", -10, 2000);
+        assertEquals(-10, store.card(witness, player).relationship(), "the second blow within the cooldown is one event");
+        store.recordWitnessed(witness, player, "Стив", "убил Зорьку (корова)", -25, 1000 + ConversationStore.WITNESS_COOLDOWN);
+        assertEquals(-35, store.card(witness, player).relationship());
+        assertTrue(store.card(witness, player).events().stream().anyMatch(event -> event.equals("Видел, как игрок Стив убил Зорьку (корова); отношение -35")));
+        assertTrue(store.card(witness, player).events().getFirst().contains("ты видел, как он обходился с другими"));
+        store.recordWitnessed(stranger, player, "Стив", "ударил Зорьку (корова)", -10, 9000);
+        assertFalse(store.known(stranger), "a bystander without a profile gets none");
+        assertEquals(1, store.profile(cow(witness, player, store.revision(witness), Map.of())).hits + 1, "hits travel into the detached profile");
+        ConversationStore.closeWorld(directory);
+    }
+
     // Durable per-player relation facts must outlive the rotating event log without accusing another player.
     @Test void keepsDislikeReasonsScopedToCurrentPlayerAfterEventRotation() throws Exception {
         UUID mob = UUID.randomUUID(), player = UUID.randomUUID(), other = UUID.randomUUID();

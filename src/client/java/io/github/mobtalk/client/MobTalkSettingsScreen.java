@@ -137,6 +137,7 @@ final class MobTalkSettingsScreen extends Screen {
         wide(track(new IntegerSlider("mobtalk.settings.distance", 2, 64, draft.maxDistance, value -> draft.maxDistance = value)));
         wide(slider("mobtalk.settings.recording", 1, 15, draft.maxRecordingSeconds, value -> draft.maxRecordingSeconds = value));
         wide(slider("mobtalk.settings.timeout", 5, 90, draft.requestTimeoutSeconds, value -> draft.requestTimeoutSeconds = value));
+        wide(slider("mobtalk.settings.witnesses", 0, 2, draft.witnessReplies, value -> draft.witnessReplies = value));
 
         header("mobtalk.settings.section.memory");
         wide(slider("mobtalk.settings.history", 1, 64, draft.historyTurns, value -> draft.historyTurns = value));
