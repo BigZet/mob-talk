@@ -30,6 +30,10 @@ class SpeciesCatalogTest {
             assertTrue(prompts.add(species.prompt()), species.id());
             assertFalse(species.interests().isBlank(), species.id());
             assertFalse(species.fears().isBlank(), species.id());
+            // 0.3 personality: without quirks, a desire and a secret the mob falls back to sounding like a shopkeeper.
+            assertFalse(species.quirks().isBlank(), species.id());
+            assertFalse(species.desire().isBlank(), species.id());
+            assertFalse(species.secret().isBlank(), species.id());
             assertEquals(3, species.variants().size(), species.id());
             var variantNames = new HashSet<String>();
             for (var variant : species.variants()) {
