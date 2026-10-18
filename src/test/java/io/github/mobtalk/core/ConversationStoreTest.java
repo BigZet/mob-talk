@@ -112,16 +112,26 @@ class ConversationStoreTest {
         assertEquals("Корова", store.displayName(witness)); assertEquals("", store.displayName(stranger));
         store.setBackstory(witness, "Марфа", "Ты родилась у реки.", "", "", "");
         assertEquals("Марфа", store.displayName(witness));
+        long before = store.revision(witness);
         store.recordWitnessed(witness, player, "Стив", "ударил Зорьку (корова)", -10, 1000);
         store.recordWitnessed(witness, player, "Стив", "ударил Зорьку (корова)", -10, 2000);
         assertEquals(-10, store.card(witness, player).relationship(), "the second blow within the cooldown is one event");
-        store.recordWitnessed(witness, player, "Стив", "убил Зорьку (корова)", -25, 1000 + ConversationStore.WITNESS_COOLDOWN);
+        store.recordWitnessed(witness, player, "Стив", "убил Зорьку (корова)", -25, 3000);
+        assertEquals(-25, store.card(witness, player).relationship(), "the kill right after the blows counts in full, once");
+        assertTrue(store.card(witness, player).events().stream().anyMatch(event -> event.equals("Видел, как игрок Стив убил Зорьку (корова); отношение -25")));
+        assertEquals(before, store.revision(witness), "what was merely seen does not cancel a reply in flight");
+        store.recordWitnessed(witness, player, "Стив", "ударил Борьку (свинья)", -10, 3000 + ConversationStore.WITNESS_COOLDOWN);
         assertEquals(-35, store.card(witness, player).relationship());
-        assertTrue(store.card(witness, player).events().stream().anyMatch(event -> event.equals("Видел, как игрок Стив убил Зорьку (корова); отношение -35")));
+        UUID bumped = UUID.randomUUID();
+        store.recordDamage(bumped, "minecraft:cow", "Корова", player, "Стив", 1000);
+        assertTrue(store.known(bumped) && !store.acquainted(bumped), "a blow in passing makes no acquaintance");
+        assertTrue(store.acquainted(witness), "a life story does");
         assertTrue(store.card(witness, player).events().getFirst().contains("ты видел, как он обходился с другими"));
         store.recordWitnessed(stranger, player, "Стив", "ударил Зорьку (корова)", -10, 9000);
         assertFalse(store.known(stranger), "a bystander without a profile gets none");
-        assertEquals(1, store.profile(cow(witness, player, store.revision(witness), Map.of())).hits + 1, "hits travel into the detached profile");
+        assertEquals(0, store.profile(cow(witness, player, store.revision(witness), Map.of())).hits);
+        store.recordDamage(witness, "minecraft:cow", "Корова", player, "Стив", 50_000);
+        assertEquals(1, store.profile(cow(witness, player, store.revision(witness), Map.of())).hits, "hits travel into the detached profile");
         ConversationStore.closeWorld(directory);
     }
 

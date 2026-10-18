@@ -9,7 +9,8 @@ import java.util.List;
 final class ReplySchema {
     private ReplySchema() { }
 
-    /** The reply schema with the intent enums narrowed to what this snapshot allows; reply comes first so speech can start early. */
+    /** The reply schema with the intent enums narrowed to what this snapshot allows; the short assessment comes first, the spoken
+     * reply right after it so speech can start early, the rest follows. */
     static JsonObject replyFormat(MobSnapshot snapshot) {
         TradingView view = TradingView.of(snapshot);
         JsonObject properties = new JsonObject(); properties.add("assessment", property("string")); properties.add("reply", property("string"));

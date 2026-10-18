@@ -49,7 +49,7 @@ final class AnswerValidator {
             // newFacts is appended by code; a full "memory" from older or fallback answers still replaces it as before.
             String memory = answer.has("newFacts") ? MemoryNotes.remember(bounds.previousMemory(), TextBounds.characters(ReplySchema.string(answer, "newFacts"), MemoryNotes.FACTS_LIMIT), bounds.memoryLimit())
                     : TextBounds.characters(ReplySchema.string(answer, "memory"), bounds.memoryLimit());
-            if (bounds.overheard() && reply.isBlank()) return new OpenRouterConversationClient.Answer("", memory, SocialIntent.NONE,
+            if (bounds.overheard() && reply.codePoints().noneMatch(Character::isLetter)) return new OpenRouterConversationClient.Answer("", memory, SocialIntent.NONE,
                     answer.has("action") && answer.get("action").isJsonObject() ? validateAction(answer.getAsJsonObject("action"), snapshot) : ActionIntent.none(),
                     BargainIntent.none(), DealIntent.none(), "", QuestIntent.none());
             if (reply.isBlank()) throw new IllegalArgumentException();

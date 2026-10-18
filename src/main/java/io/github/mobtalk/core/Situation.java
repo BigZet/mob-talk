@@ -24,8 +24,8 @@ public final class Situation {
         double power() {
             if (boss) return 40;
             // A creature that cannot fight back is outmatched by bare fists already; any weapon makes that doom (see verdict).
-            double body = fighter ? 1 + Math.min(10, maxHealth / 10) + weapon : 1.5;
-            return (body + armor * 0.6) * (0.4 + 0.6 * fraction()) + (fighter ? allies * 0.5 : 0);
+            double body = fighter ? 1 + Math.min(10, maxHealth / 10) + weapon : 0.5 * (1 + Math.min(10, maxHealth / 10));
+            return (body + armor * 0.6) * (0.4 + 0.6 * fraction()) + (fighter ? allies : 0);
         }
     }
 
@@ -34,12 +34,13 @@ public final class Situation {
     private final String playerWeapon, playerArmor;
     private final int hits, witnessed;
     private final int relationship;
-    private final boolean hostile;
+    private final boolean hostile, threat, creative;
 
-    private Situation(Combatant mob, Combatant player, String playerWeapon, String playerArmor, int hits, int witnessed, int relationship, boolean hostile) {
-        this.mob = mob; this.player = player; this.verdict = verdict(mob, player);
+    private Situation(Combatant mob, Combatant player, String playerWeapon, String playerArmor, int hits, int witnessed, int relationship,
+                      boolean hostile, boolean threat, boolean creative) {
+        this.mob = mob; this.player = player; this.verdict = creative ? Verdict.DOOMED : verdict(mob, player);
         this.playerWeapon = playerWeapon; this.playerArmor = playerArmor; this.hits = hits; this.witnessed = witnessed;
-        this.relationship = relationship; this.hostile = hostile;
+        this.relationship = relationship; this.hostile = hostile; this.threat = threat; this.creative = creative;
     }
 
     public Verdict verdict() { return verdict; }
@@ -47,14 +48,16 @@ public final class Situation {
     /** Who would win: a creature that cannot fight at all is doomed against anyone armed, otherwise the powers are compared. */
     public static Verdict verdict(Combatant mob, Combatant player) {
         if (mob.boss()) return Verdict.STRONGER;
-        if (!mob.fighter() && (player.weapon() > 0 || player.armor() > 0)) return Verdict.DOOMED;
+        if (!mob.fighter() && player.weapon() > FISTS) return Verdict.DOOMED;
         double ratio = mob.power() / Math.max(0.1, player.power());
         if (ratio < 0.45) return Verdict.DOOMED;
         if (ratio < 0.85) return Verdict.OUTMATCHED;
-        if (ratio <= 1.5) return Verdict.EVEN;
+        if (ratio < 1.5) return Verdict.EVEN;
         return Verdict.STRONGER;
     }
 
+    /** Bare hands still hit: the weapon score of an empty hand. */
+    public static final double FISTS = 0.5;
     /** How dangerous a held item is, 0 for anything that is not a weapon. */
     public static double weaponScore(String itemId) {
         String id = itemId == null ? "" : itemId.toLowerCase(Locale.ROOT);
@@ -83,14 +86,15 @@ public final class Situation {
      * mobDetails (fighter, attackDamage), allies from observedEntities, history from the profile. */
     public static Situation of(MobSnapshot snapshot, ConversationStore.Profile profile) {
         Map<String,Object> details = snapshot.mobDetails(), player = snapshot.playerDetails();
+        String type = snapshot.type() == null ? "" : snapshot.type();
         boolean fighter = Boolean.TRUE.equals(details.get("fighter"));
         double attack = details.get("attackDamage") instanceof Number damage ? damage.doubleValue() : 0;
         int allies = 0;
         for (ObservedEntity entity : snapshot.observedEntities())
-            if (entity.visible() && snapshot.type().equals(entity.type()) && entity.distance() <= ALLY_RANGE) allies++;
-        Combatant mob = new Combatant(snapshot.health(), snapshot.maxHealth(), attack / 2, 0, fighter, BOSSES.contains(snapshot.type()), allies);
+            if (entity.visible() && type.equals(entity.type()) && entity.distance() <= ALLY_RANGE) allies++;
+        Combatant mob = new Combatant(snapshot.health(), snapshot.maxHealth(), attack / 2, 0, fighter, BOSSES.contains(type), allies);
         String weaponId = itemId(player, "mainHand"), weaponName = itemName(player, "mainHand");
-        double weapon = Math.max(weaponScore(weaponId), weaponScore(itemId(player, "offHand")));
+        double weapon = Math.max(FISTS, Math.max(weaponScore(weaponId), weaponScore(itemId(player, "offHand"))));
         if (weaponScore(itemId(player, "offHand")) > weaponScore(weaponId)) weaponName = itemName(player, "offHand");
         double armor = 0; int pieces = 0; String best = "";
         if (player.get("equipment") instanceof Map<?,?> equipment)
@@ -104,12 +108,16 @@ public final class Situation {
         double health = player.get("health") instanceof Number value ? value.doubleValue() : 20;
         double maxHealth = player.get("maxHealth") instanceof Number value ? value.doubleValue() : 20;
         Combatant human = new Combatant(health, maxHealth, weapon, armor, true, false, 0);
-        String weaponText = weapon > 0 ? "вооружён: " + weaponName : "без оружия в руках";
+        String weaponText = weapon > FISTS ? "вооружён: " + weaponName : "без оружия в руках";
         String armorText = pieces == 0 ? "без брони" : "броня: " + pieces + " " + plural(pieces, "часть", "части", "частей") + " (" + materialName(best) + ")";
         int witnessed = 0;
         if (profile != null && profile.recentEvents != null) for (String event : profile.recentEvents) if (event != null && event.startsWith("Видел, как игрок")) witnessed++;
-        return new Situation(mob, human, weaponText, armorText, profile == null ? 0 : profile.hits, witnessed,
-                profile == null ? 0 : profile.relationship, profile != null && profile.type != null && SpeciesCatalog.get(profile.type).hostile());
+        boolean hostile = profile != null && profile.type != null && SpeciesCatalog.get(profile.type).hostile();
+        int hits = profile == null ? 0 : profile.hits, relationship = profile == null ? 0 : profile.relationship;
+        // Fear is for a real threat: this player hit or hurt it, is an enemy, or the species is at war with players anyway.
+        boolean attacked = snapshot.playerId() != null && snapshot.playerId().toString().equals(String.valueOf(details.get("lastAttacker")));
+        boolean threat = hostile || hits > 0 || witnessed > 0 || relationship < 0 || attacked;
+        return new Situation(mob, human, weaponText, armorText, hits, witnessed, relationship, hostile, threat, Boolean.TRUE.equals(player.get("creative")));
     }
 
     private static String itemId(Map<String,Object> player, String slot) { return player.get(slot) instanceof Map<?,?> item && item.get("id") instanceof String id ? id : ""; }
@@ -140,10 +148,19 @@ public final class Situation {
             if (witnessed > 0) text.append("ты видел, как он обходился с другими (см. rememberedEvents), ").append(witnessed).append(' ').append(plural(witnessed, "случай", "случая", "случаев"));
             text.append('.');
         }
+        if (creative) text.append("\n— Он в творческом режиме: неуязвим и всемогущ, любая драка с ним проиграна заранее.");
         text.append("\n— Вывод: ").append(switch (verdict) {
-            case DOOMED -> "в драке с ним тебе не выжить, он сильнее в разы. Хорохориться, упрямиться и угрожать тут глупо и неправдоподобно: "
-                    + "бойся, уступай, торгуйся за жизнь, проси пощады, хитри или беги (action FLEE); гордость побереги на потом.";
-            case OUTMATCHED -> "он заметно сильнее тебя. Наглость опасна: осторожничай, не нарывайся, ищи выгоду или путь к отступлению.";
+            case DOOMED -> hostile
+                    ? "в драке с ним тебе не выжить, он сильнее в разы. Ты это знаешь: злись, грози издали, но в лоб не лезь — отступи, выжидай, держись на расстоянии; "
+                            + "пощады враг не просит, но и хорохориться, будто ты ему ровня, неправдоподобно."
+                    : threat ? "в драке с ним тебе не выжить, он сильнее в разы. Хорохориться, упрямиться и угрожать тут глупо и неправдоподобно: "
+                            + "бойся, уступай в споре, откупайся обещаниями, проси пощады, хитри или беги (action FLEE); гордость побереги на потом. "
+                            + "О ценах это не говорит: цены только по правилам торга."
+                    : "если дойдёт до драки, тебе не выжить, он сильнее в разы — но повода для драки нет: он тебе не враг. Держись ровно, без заискивания "
+                            + "и без бравады, просто не нарывайся и не грози ему.";
+            case OUTMATCHED -> hostile ? "он заметно сильнее тебя: нападать в лоб глупо, но ты враг и остаёшься им — грози, выжидай, ищи момент или отступай."
+                    : threat ? "он заметно сильнее тебя. Наглость опасна: осторожничай, не нарывайся, ищи выгоду или путь к отступлению."
+                    : "он сильнее тебя, но пока не враг: не нарывайся, и всё.";
             case EVEN -> "силы примерно равны: можно дерзить, но драка — риск для обоих.";
             case STRONGER -> "ты сильнее его: можешь позволить себе наглость и угрозы, если характер велит, а он пусть боится.";
         });

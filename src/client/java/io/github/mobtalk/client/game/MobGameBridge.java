@@ -60,8 +60,8 @@ public final class MobGameBridge {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             MobGameBridge bridge = forEntity(entity);
             if (bridge == null || !(entity instanceof MobEntity mob)) return;
-            // The killing blow was already counted by AFTER_DAMAGE. A mob nobody talked to leaves no memory behind;
-            // one with a conversation keeps its profile, and its death goes into it.
+            // Fabric fires AFTER_DAMAGE only for a survived blow, so the kill is seen here alone. A mob nobody talked to leaves no
+            // memory behind; one with a conversation keeps its profile, and its death goes into it.
             UUID id = mob.getUuid();
             if (source.getAttacker() instanceof ServerPlayerEntity player) bridge.witnessed(mob, player, "убил", -25);
             if (bridge.memory.known(id) && !bridge.memory.forgetStranger(id)) bridge.event(mob, "The mob died: " + source.getName());
@@ -138,6 +138,8 @@ public final class MobGameBridge {
      * "Видел, как игрок … ударил Марфу (корова)". Strangers notice nothing — a profile for each would bloat the world memory. */
     void witnessed(MobEntity victim, ServerPlayerEntity player, String seen, int delta) {
         if (!config.enabled || !(victim.getWorld() instanceof ServerWorld world)) return;
+        // Killing monsters, or a creature that is attacking the player, is self-defence in everyone's eyes.
+        if (SpeciesCatalog.get(type(victim)).hostile() || victim.getTarget() == player) return;
         String name = memory.displayName(victim.getUuid());
         String what = seen + " " + (name.isBlank() ? victim.getName().getString() : name) + " (" + SpeciesCatalog.get(type(victim)).name().toLowerCase(java.util.Locale.ROOT) + ")";
         long now = System.currentTimeMillis();

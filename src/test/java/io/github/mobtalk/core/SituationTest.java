@@ -31,6 +31,7 @@ class SituationTest {
         Situation situation = Situation.of(snapshot, profile("minecraft:villager", 0, 2, List.of("Видел, как игрок Стив убил Марфу (корова); отношение -25")));
         assertEquals(Situation.Verdict.DOOMED, situation.verdict());
         String text = situation.describe();
+        assertTrue(text.contains("проси пощады") && text.contains("О ценах это не говорит"), "hit twice: a real threat: " + text);
         assertTrue(text.contains("вооружён: Алмазный меч") && text.contains("броня: 2 части (алмаз)"), text);
         assertTrue(text.contains("драться не умеешь") && text.contains("сородичей рядом нет"), text);
         assertTrue(text.contains("он бил тебя 2 раза") && text.contains("1 случай"), text);
@@ -40,7 +41,10 @@ class SituationTest {
 
     // A naked, empty-handed player is no threat even to a villager; a wolf pack outright outmatches them.
     @Test void gearDecidesTheVerdict() {
-        assertEquals(Situation.Verdict.OUTMATCHED, Situation.of(snapshot("minecraft:villager", 20, 20, false, 0, player("minecraft:stick"), List.of()), null).verdict(), "bare fists still beat a villager, but it is not doomed");
+        Situation fists = Situation.of(snapshot("minecraft:villager", 20, 20, false, 0, player("minecraft:stick"), List.of()), profile("minecraft:villager", 40, 0, List.of()));
+        assertEquals(Situation.Verdict.DOOMED, fists.verdict(), "bare fists still beat a villager that cannot fight back");
+        assertTrue(fists.describe().contains("повода для драки нет") && !fists.describe().contains("проси пощады"), "no threat, no begging: " + fists.describe());
+        assertEquals(Situation.Verdict.OUTMATCHED, Situation.of(snapshot("minecraft:horse", 30, 30, false, 0, player("minecraft:stick"), List.of()), null).verdict(), "a big body counts even without teeth");
         List<ObservedEntity> pack = List.of(
                 new ObservedEntity("e1", UUID.randomUUID(), "minecraft:wolf", "Волк", 4, "north", true, Map.of()),
                 new ObservedEntity("e2", UUID.randomUUID(), "minecraft:wolf", "Волк", 6, "north", true, Map.of()),
@@ -53,6 +57,10 @@ class SituationTest {
                 profile("minecraft:zombie", -80, 0, List.of()));
         assertTrue(zombie.verdict() == Situation.Verdict.OUTMATCHED || zombie.verdict() == Situation.Verdict.DOOMED, zombie.verdict().name());
         assertFalse(zombie.describe().contains("ненавидишь"), "hostile species need no hatred line");
+        assertTrue(!zombie.describe().contains("проси пощады") && !zombie.describe().contains("FLEE") && zombie.describe().contains("враг"), "a monster stays a monster: " + zombie.describe());
+        Map<String,Object> creative = new java.util.LinkedHashMap<>(player("minecraft:stick")); creative.put("creative", true);
+        Situation god = Situation.of(snapshot("minecraft:wolf", 8, 8, true, 4, creative, pack), profile("minecraft:wolf", -50, 1, List.of()));
+        assertEquals(Situation.Verdict.DOOMED, god.verdict()); assertTrue(god.describe().contains("творческом режиме"), god.describe());
         assertEquals(Situation.Verdict.STRONGER, Situation.of(snapshot("minecraft:warden", 500, 500, true, 30, player("minecraft:netherite_sword"), List.of()), null).verdict());
     }
 

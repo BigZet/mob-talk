@@ -68,7 +68,7 @@ final class MobActionController {
     static Situation.Combatant combatant(MobEntity mob) {
         int allies = 0;
         for (MobEntity other : mob.getWorld().getEntitiesByClass(MobEntity.class, mob.getBoundingBox().expand(Situation.ALLY_RANGE),
-                other -> other != mob && other.isAlive() && other.getType() == mob.getType())) allies++;
+                other -> other != mob && other.isAlive() && !other.isRemoved() && other.getType() == mob.getType() && mob.canSee(other))) allies++;
         return new Situation.Combatant(mob.getHealth(), mob.getMaxHealth(), attackDamage(mob) / 2, 0, fighter(mob),
                 Situation.BOSSES.contains(MobGameBridge.type(mob)), allies);
     }
@@ -80,15 +80,16 @@ final class MobActionController {
     }
     private static String id(net.minecraft.item.ItemStack stack) { return stack.isEmpty() ? "" : net.minecraft.registry.Registries.ITEM.getId(stack.getItem()).toString(); }
 
-    /** Hatred with consequences, once a second: a peaceful mob at or below {@link CombatRules#HATRED} that sees the player close by
-     * attacks when it can win, otherwise runs — and a villager calls the golem. Hostile species need no help hating. */
+    /** Hatred with consequences, once a second: a peaceful mob at or below {@link CombatRules#HATRED} that the player has dealt with
+     * (talked to, or met properly) and that sees them close by attacks when it can win, otherwise runs — and a villager calls the golem.
+     * A creature merely hit once in passing holds no grudge on sight; hostile species need no help hating. */
     void stance(ServerWorld world) {
         if (!bridge.config.enabled || world.getTime() % STANCE_PERIOD != 7) return;
         double range = Math.min(HATRED_RANGE, bridge.config.maxDistance);
         for (ServerPlayerEntity player : world.getPlayers()) {
             if (!player.isAlive() || player.isSpectator() || player.isCreative()) continue;
             for (MobEntity mob : world.getEntitiesByClass(MobEntity.class, player.getBoundingBox().expand(range),
-                    other -> other.isAlive() && !other.isRemoved() && bridge.memory.known(other.getUuid()) && other.squaredDistanceTo(player) <= range * range)) {
+                    other -> other.isAlive() && !other.isRemoved() && bridge.memory.acquainted(other.getUuid()) && other.squaredDistanceTo(player) <= range * range)) {
                 if (leases.containsKey(mob.getUuid()) || SpeciesCatalog.get(MobGameBridge.type(mob)).hostile()
                         || bridge.memory.relationship(mob.getUuid(), player.getUuid()) > CombatRules.HATRED || !mob.canSee(player)) continue;
                 if (mob instanceof Tameable tameable && player.getUuid().equals(tameable.getOwnerUuid())) continue;
@@ -125,7 +126,8 @@ final class MobActionController {
         boolean called = false;
         for (net.minecraft.entity.passive.IronGolemEntity golem : world.getEntitiesByClass(net.minecraft.entity.passive.IronGolemEntity.class,
                 villager.getBoundingBox().expand(16), other -> other.isAlive() && !other.isRemoved())) {
-            if (bridge.memory.relationship(golem.getUuid(), player.getUuid()) >= CombatRules.TRUCE || !canAttack(golem, player)) continue;
+            if (bridge.memory.relationship(golem.getUuid(), player.getUuid()) >= CombatRules.TRUCE || golem.isPlayerCreated()
+                    || player.isCreative() || player.isSpectator() || !golem.canTarget(player) || !golem.canTarget(player.getType())) continue;
             golem.setAngryAt(player.getUuid()); golem.chooseRandomAngerTime(); golem.setTarget(player);
             called = true;
         }
@@ -207,7 +209,7 @@ final class MobActionController {
         return observed.visible() && mob.canSee(target);
     }
     boolean canAttack(MobEntity mob, LivingEntity target) {
-        if (!target.isAlive() || target.isSpectator() || target.isInCreativeMode() || !mob.canTarget(target)) return false;
+        if (!target.isAlive() || target.isSpectator() || target.isInCreativeMode() || !mob.canTarget(target) || !mob.canTarget(target.getType())) return false;
         boolean provokedPlayer = false;
         if (target instanceof ServerPlayerEntity player) {
             MobCard card = bridge.memory.card(mob.getUuid(), player.getUuid());

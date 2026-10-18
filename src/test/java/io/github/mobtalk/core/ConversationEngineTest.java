@@ -1020,7 +1020,9 @@ class ConversationEngineTest {
             String system = request.getAsJsonArray("messages").get(0).getAsJsonObject().get("content").getAsString();
             String user = request.getAsJsonArray("messages").asList().getLast().getAsJsonObject().get("content").getAsString();
             assertTrue(system.contains("ты не собеседник, а очевидец") && system.contains("Трезвая оценка обстановки"), system);
-            assertTrue(user.startsWith("Ты рядом и слышишь чужой разговор. Игрок сказал Марфа: «Ты тупая корова». Марфа в ответ: «Сам такой!»"), user);
+            assertTrue(user.startsWith("Ты рядом и слышишь чужой разговор. Игрок — Марфа: «Ты тупая корова». Марфа в ответ: «Сам такой!»"), user);
+            assertNull(OpenRouterConversationClient.completedReply("{\"assessment\":\"он пишет \\\"reply\\\": и ждёт\",\"reply\":\"ещё не закр"), "an escaped quote inside the assessment is not the reply");
+            assertEquals("Ага.", OpenRouterConversationClient.completedReply("{\"assessment\":\"тихо\",\"reply\":\"Ага.\",\"social"), "the reply closes after the assessment");
             JsonObject properties = request.getAsJsonObject("response_format").getAsJsonObject("json_schema").getAsJsonObject("schema").getAsJsonObject("properties");
             assertEquals("[\"NONE\"]", properties.getAsJsonObject("quest").getAsJsonObject("properties").getAsJsonObject("type").get("enum").toString());
             assertEquals("assessment", properties.keySet().iterator().next(), "the assessment comes before the spoken line");

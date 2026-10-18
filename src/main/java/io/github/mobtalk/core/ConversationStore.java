@@ -101,8 +101,14 @@ public final class ConversationStore {
         Profile p = mob == null ? null : state.profiles.get(mob.toString());
         if (p == null || player == null) return;
         Relation r = relation(p, player);
-        if (!cooledDown(r.lastWitness, nowMillis, WITNESS_COOLDOWN)) return;
-        r.lastWitness = nowMillis; r.score = clamp(r.score + delta, hostile(p)); p.revision++;
+        int applied = delta;
+        if (!cooledDown(r.lastWitness, nowMillis, WITNESS_COOLDOWN)) {
+            // Within the cooldown only something worse than what was already counted gets through — the kill after the blows, not the blows.
+            if (delta >= r.lastWitnessDelta) return;
+            applied = delta - r.lastWitnessDelta;
+        }
+        r.lastWitness = nowMillis; r.lastWitnessDelta = delta; r.score = clamp(r.score + applied, hostile(p));
+        // No revision bump: what the mob saw happen to another must not cancel the reply it is giving right now.
         event(p, nowMillis, "Видел, как игрок " + safePlayer(playerName) + " " + seen + "; отношение " + r.score); scheduleSave();
     }
     /** What others call this mob: the name the model gave it, else what the game shows; "" for a stranger. */
@@ -118,6 +124,11 @@ public final class ConversationStore {
     public synchronized long revision(UUID mob) { Profile p = state.profiles.get(mob.toString()); return p == null ? 0 : p.revision; }
     /** Whether this mob has a profile at all: a diary entry is only worth keeping for a mob the player already knows. */
     public synchronized boolean known(UUID mob) { return mob != null && state.profiles.containsKey(mob.toString()); }
+    /** A mob the player has actually dealt with — spoken to, or given a life story — as opposed to one merely bumped into. */
+    public synchronized boolean acquainted(UUID mob) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        return p != null && (!p.turns.isEmpty() || !p.backstory.isBlank());
+    }
     /** Drops the profile of a mob the player never talked to (no turns, no life story): a dead one would only bloat the file.
      * Returns whether it was dropped; a mob with a conversation keeps its memory. */
     public synchronized boolean forgetStranger(UUID mob) {
@@ -468,7 +479,7 @@ public final class ConversationStore {
     private record Event(long time, String text) { }
     /** One player as this mob knows them: standing, what they did, their prices on its deals, the favour it waits for. */
     static final class Relation {
-        int score, hits; long lastHelp = -1, lastApology = -1, lastInsult = -1, lastThreat = -1, lastPurchase = -1, lastWitness = -1; boolean ownerKnown;
+        int score, hits, lastWitnessDelta; long lastHelp = -1, lastApology = -1, lastInsult = -1, lastThreat = -1, lastPurchase = -1, lastWitness = -1; boolean ownerKnown;
         Map<String,TradeState> deals = new LinkedHashMap<>();
         Favor favor; List<String> favorsDone = new ArrayList<>();
         void sanitize() {
@@ -480,7 +491,7 @@ public final class ConversationStore {
         }
         Relation copy() {
             Relation c = new Relation(); c.score = score; c.hits = hits; c.lastHelp = lastHelp; c.lastApology = lastApology;
-            c.lastInsult = lastInsult; c.lastThreat = lastThreat; c.lastPurchase = lastPurchase; c.lastWitness = lastWitness; c.ownerKnown = ownerKnown;
+            c.lastInsult = lastInsult; c.lastThreat = lastThreat; c.lastPurchase = lastPurchase; c.lastWitness = lastWitness; c.lastWitnessDelta = lastWitnessDelta; c.ownerKnown = ownerKnown;
             c.deals = new LinkedHashMap<>(deals); c.favor = favor; c.favorsDone = new ArrayList<>(favorsDone); // Immutable records.
             return c;
         }
