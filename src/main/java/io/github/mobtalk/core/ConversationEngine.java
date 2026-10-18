@@ -175,7 +175,7 @@ public final class ConversationEngine implements AutoCloseable {
         int[] anchor = villager || golem ? villageAnchor(snapshot) : null;
         // A golem belongs to the village it stands in but never founds one: villages are born with their first villager.
         ConversationStore.Village village = anchor == null ? null : store.villageNear(snapshot.dimension(), anchor[0], anchor[1]);
-        OpenRouterConversationClient.Biography written = llm.biography(snapshot, profile, village, store.givenNames(snapshot.type()),
+        BiographyWriter.Biography written = llm.biography(snapshot, profile, village, store.givenNames(snapshot.type()),
                 store.storyOpenings(snapshot.type()), store.villageNames());
         if (closed || store.hasBackstory(snapshot.id())) return;
         if (villager && village == null && anchor != null && !written.villageStory().isBlank())

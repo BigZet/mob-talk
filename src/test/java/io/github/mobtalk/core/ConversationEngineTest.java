@@ -172,26 +172,26 @@ class ConversationEngineTest {
     @Test void recognisesOnlyPricesBackedByTheBargain() {
         var farmer = carrotFarmer(bargainingContext(true, Map.of("status", "NONE")));
         var offer = new BargainIntent(BargainIntent.Type.OFFER, 1, 2);
-        assertEquals(-1, OpenRouterConversationClient.unbackedPrice("Ладно, уступлю: 30 палок и по рукам.", offer, farmer));
-        assertEquals(18, OpenRouterConversationClient.unbackedPrice("Уступлю, отдам за 18.", offer, farmer));
-        assertEquals(-1, OpenRouterConversationClient.unbackedPrice("Скидки не будет: 22 морковки за изумруд.", BargainIntent.none(), farmer));
-        assertEquals(29, OpenRouterConversationClient.unbackedPrice("Теперь 29, договорились?", BargainIntent.none(), farmer));
-        assertEquals(-1, OpenRouterConversationClient.unbackedPrice("Привет! Мне 18 лет.", BargainIntent.none(), farmer));
-        assertEquals(-1, OpenRouterConversationClient.unbackedPrice("Скину до 18.", BargainIntent.none(), cow(UUID.randomUUID())));
+        assertEquals(-1, AnswerValidator.unbackedPrice("Ладно, уступлю: 30 палок и по рукам.", offer, farmer));
+        assertEquals(18, AnswerValidator.unbackedPrice("Уступлю, отдам за 18.", offer, farmer));
+        assertEquals(-1, AnswerValidator.unbackedPrice("Скидки не будет: 22 морковки за изумруд.", BargainIntent.none(), farmer));
+        assertEquals(29, AnswerValidator.unbackedPrice("Теперь 29, договорились?", BargainIntent.none(), farmer));
+        assertEquals(-1, AnswerValidator.unbackedPrice("Привет! Мне 18 лет.", BargainIntent.none(), farmer));
+        assertEquals(-1, AnswerValidator.unbackedPrice("Скину до 18.", BargainIntent.none(), cow(UUID.randomUUID())));
         // Reported in the model comparison: "восемь" spoken while the window got 19 on the second step.
         var eight = new BargainIntent(BargainIntent.Type.OFFER, 1, 24);
-        assertEquals(-1, OpenRouterConversationClient.unbackedPrice("Шесть? Ладно, уступлю: восемь морковок — и по рукам.", eight, farmer));
-        assertEquals(8, OpenRouterConversationClient.unbackedPrice("Шесть? Ладно, уступлю: восемь морковок.", new BargainIntent(BargainIntent.Type.OFFER, 1, 13), farmer));
-        assertEquals(29, OpenRouterConversationClient.unbackedPrice("Скину до двадцати девяти.", BargainIntent.none(), farmer));
-        assertEquals(List.of(22, 5, 1, 30), OpenRouterConversationClient.spokenNumbers("Двадцать две, пять или одну? Ещё 30."));
+        assertEquals(-1, AnswerValidator.unbackedPrice("Шесть? Ладно, уступлю: восемь морковок — и по рукам.", eight, farmer));
+        assertEquals(8, AnswerValidator.unbackedPrice("Шесть? Ладно, уступлю: восемь морковок.", new BargainIntent(BargainIntent.Type.OFFER, 1, 13), farmer));
+        assertEquals(29, AnswerValidator.unbackedPrice("Скину до двадцати девяти.", BargainIntent.none(), farmer));
+        assertEquals(List.of(22, 5, 1, 30), AnswerValidator.spokenNumbers("Двадцать две, пять или одну? Ещё 30."));
     }
 
     @Test void readsTheSpokenPriceRatherThanADiscount() {
         var snapshot = tradingMob("minecraft:villager", bargainingContext(true, Map.of("status", "NONE")));
         JsonObject answer = JsonParser.parseString("{\"type\":\"OFFER\",\"offerIndex\":1,\"price\":30}").getAsJsonObject();
-        assertEquals(new BargainIntent(BargainIntent.Type.OFFER, 1, 2), OpenRouterConversationClient.validateBargain(answer, snapshot));
+        assertEquals(new BargainIntent(BargainIntent.Type.OFFER, 1, 2), AnswerValidator.validateBargain(answer, snapshot));
         JsonObject outside = JsonParser.parseString("{\"type\":\"OFFER\",\"offerIndex\":1,\"price\":20}").getAsJsonObject();
-        assertEquals(BargainIntent.none(), OpenRouterConversationClient.validateBargain(outside, snapshot));
+        assertEquals(BargainIntent.none(), AnswerValidator.validateBargain(outside, snapshot));
     }
 
     // A structured concession changes the first input count, even when the player pays with items rather than emeralds.
@@ -374,10 +374,10 @@ class ConversationEngineTest {
 
     // Seen live: ".Охуел…" and ": «Охуел…»" would be voiced with the junk.
     @Test void speaksFromTheFirstWord() {
-        assertEquals("Охуел, голодранец?", OpenRouterConversationClient.spokenText(".Охуел, голодранец?"));
-        assertEquals("Охуел, простолюдин?", OpenRouterConversationClient.spokenText(": «Охуел, простолюдин?»"));
-        assertEquals("Хмм... Двадцать две.", OpenRouterConversationClient.spokenText("Хмм... Двадцать две."));
-        assertEquals("Скажи «привет» сам.", OpenRouterConversationClient.spokenText("Скажи «привет» сам."));
+        assertEquals("Охуел, голодранец?", AnswerValidator.spokenText(".Охуел, голодранец?"));
+        assertEquals("Охуел, простолюдин?", AnswerValidator.spokenText(": «Охуел, простолюдин?»"));
+        assertEquals("Хмм... Двадцать две.", AnswerValidator.spokenText("Хмм... Двадцать две."));
+        assertEquals("Скажи «привет» сам.", AnswerValidator.spokenText("Скажи «привет» сам."));
     }
 
     // Seen in the review: DeepSeek sometimes answered in English; the player's own name is not a foreign word.
@@ -392,7 +392,7 @@ class ConversationEngineTest {
             assertTrue(correction.contains("по-русски") && !correction.contains("торга"), correction);
         }
         MobSnapshot named = tradingMob("minecraft:villager", bargainingContext(false, Map.of("status", "NONE")));
-        assertEquals(0, OpenRouterConversationClient.foreignWords("Хмм, привет, numnerd!", new MobSnapshot(named.id(), named.type(), named.name(), 20, 20,
+        assertEquals(0, AnswerValidator.foreignWords("Хмм, привет, numnerd!", new MobSnapshot(named.id(), named.type(), named.name(), 20, 20,
                 "minecraft:overworld", "minecraft:plains", "day", "clear", 2, "minecraft:stick", List.of(), List.of(), named.playerId(),
                 Map.of("name", "numnerd"), Map.of(), Map.of(), List.of(), List.of(ActionType.NONE), 0)));
     }
@@ -418,9 +418,9 @@ class ConversationEngineTest {
     }
 
     @Test void appendsNewFactsAndForgetsTheOldestWhenFull() {
-        assertEquals("Старое", OpenRouterConversationClient.remember("Старое", "  ", 100));
-        assertEquals("Старое\nНовое", OpenRouterConversationClient.remember("Старое", "Новое", 100));
-        assertEquals("второе\nтретье", OpenRouterConversationClient.remember("первое\nвторое", "третье", 16));
+        assertEquals("Старое", MemoryNotes.remember("Старое", "  ", 100));
+        assertEquals("Старое\nНовое", MemoryNotes.remember("Старое", "Новое", 100));
+        assertEquals("второе\nтретье", MemoryNotes.remember("первое\nвторое", "третье", 16));
     }
 
     // Speech must start from the streamed reply, once, while the model still writes facts, action and bargain.
@@ -647,10 +647,10 @@ class ConversationEngineTest {
                 List.of(new ObservedEntity("e1", UUID.randomUUID(), "minecraft:cow", "Корова", 3, "north", true, java.util.Map.of()),
                         new ObservedEntity("e2", UUID.randomUUID(), "minecraft:sheep", "Овца", 4, "south", false, java.util.Map.of())),
                 List.of(ActionType.NONE, ActionType.FOLLOW, ActionType.FLEE, ActionType.STOP), 0);
-        assertEquals(new ActionIntent(ActionType.FOLLOW, "player"), OpenRouterConversationClient.validateAction(JsonParser.parseString("{\"type\":\"FOLLOW\",\"target\":\"player\"}").getAsJsonObject(), snapshot));
-        assertEquals(new ActionIntent(ActionType.FLEE, "e1"), OpenRouterConversationClient.validateAction(JsonParser.parseString("{\"type\":\"FLEE\",\"target\":\"e1\"}").getAsJsonObject(), snapshot));
+        assertEquals(new ActionIntent(ActionType.FOLLOW, "player"), AnswerValidator.validateAction(JsonParser.parseString("{\"type\":\"FOLLOW\",\"target\":\"player\"}").getAsJsonObject(), snapshot));
+        assertEquals(new ActionIntent(ActionType.FLEE, "e1"), AnswerValidator.validateAction(JsonParser.parseString("{\"type\":\"FLEE\",\"target\":\"e1\"}").getAsJsonObject(), snapshot));
         for (String invalid : List.of("{\"type\":\"ATTACK\",\"target\":\"player\"}", "{\"type\":\"FOLLOW\",\"target\":\"e1\"}", "{\"type\":\"FLEE\",\"target\":\"e2\"}", "{\"type\":\"FOLLOW\",\"target\":\"e99\"}"))
-            assertEquals(ActionIntent.none(), OpenRouterConversationClient.validateAction(JsonParser.parseString(invalid).getAsJsonObject(), snapshot));
+            assertEquals(ActionIntent.none(), AnswerValidator.validateAction(JsonParser.parseString(invalid).getAsJsonObject(), snapshot));
     }
 
     @Test void blindWardenMayTargetConfirmedSoundButNotUnknownHiddenEntity() {
@@ -660,8 +660,8 @@ class ConversationEngineTest {
                 List.of(new ObservedEntity("e1", UUID.randomUUID(), "unknown", "Источник звука", 4, "north", false, java.util.Map.of("audible", true)),
                         new ObservedEntity("e2", UUID.randomUUID(), "unknown", "Скрытая цель", 4, "south", false, java.util.Map.of())),
                 List.of(ActionType.NONE, ActionType.ATTACK), 0);
-        assertEquals(new ActionIntent(ActionType.ATTACK, "e1"), OpenRouterConversationClient.validateAction(JsonParser.parseString("{\"type\":\"ATTACK\",\"target\":\"e1\"}").getAsJsonObject(), snapshot));
-        assertEquals(ActionIntent.none(), OpenRouterConversationClient.validateAction(JsonParser.parseString("{\"type\":\"ATTACK\",\"target\":\"e2\"}").getAsJsonObject(), snapshot));
+        assertEquals(new ActionIntent(ActionType.ATTACK, "e1"), AnswerValidator.validateAction(JsonParser.parseString("{\"type\":\"ATTACK\",\"target\":\"e1\"}").getAsJsonObject(), snapshot));
+        assertEquals(ActionIntent.none(), AnswerValidator.validateAction(JsonParser.parseString("{\"type\":\"ATTACK\",\"target\":\"e2\"}").getAsJsonObject(), snapshot));
     }
 
     // Some free providers accept JSON objects but route strict schema requests to no endpoint.
@@ -781,7 +781,7 @@ class ConversationEngineTest {
                         "key", "fixture-sticks-for-emerald", "expiresTick", 7000L)));
         for (String discount : List.of("null", "\"0\"")) {
             JsonObject answer = JsonParser.parseString("{\"type\":\"ACCEPT\",\"offerIndex\":1,\"discount\":" + discount + "}").getAsJsonObject();
-            assertEquals(new BargainIntent(BargainIntent.Type.ACCEPT, 1, 0), OpenRouterConversationClient.validateBargain(answer, snapshot));
+            assertEquals(new BargainIntent(BargainIntent.Type.ACCEPT, 1, 0), AnswerValidator.validateBargain(answer, snapshot));
         }
     }
 
@@ -941,7 +941,7 @@ class ConversationEngineTest {
             queuedAnswers.add(ownAnswer("Три секции — это не загон. Неси остальные.", "NONE", "", 0, "", "NONE"));
             assertEquals(QuestIntent.none(), engine.converse(tradingCow(cowTrading(false, false)), "Держи").quest());
             assertTrue(lastCorrection().contains("quest не COMPLETE") && lastCorrection().contains("3 из 8"), lastCorrection());
-            assertTrue(OpenRouterConversationClient.claimsDelivery("Засчитываю, молодец") && !OpenRouterConversationClient.claimsDelivery("Не принимаю, мало"));
+            assertTrue(AnswerValidator.claimsDelivery("Засчитываю, молодец") && !AnswerValidator.claimsDelivery("Не принимаю, мало"));
 
             queuedAnswers.add(ownAnswer("Принеси ещё ведро воды.", "NONE", "", 0, "", "OFFER", "minecraft:water_bucket", 1, "Ведро воды", "", 0));
             queuedAnswers.add(ownAnswer("Сначала забор, потом остальное.", "NONE", "", 0, "", "NONE"));
@@ -1094,44 +1094,44 @@ class ConversationEngineTest {
         MobSnapshot calf = new MobSnapshot(UUID.randomUUID(), "minecraft:cow", "Телёнок", 2, 10, "minecraft:overworld", "minecraft:plains", "day", "thunderstorm", 2,
                 "minecraft:stick", List.of(), List.of(), player, Map.of("health", 4.0, "maxHealth", 20.0), Map.of("baby", true, "panicking", true, "onFire", true, "lastAttacker", player.toString()),
                 Map.of("shelter", Map.of("openSky", false, "rainReachesHere", false)), List.of(), List.of(ActionType.NONE), 0);
-        String mood = OpenRouterConversationClient.mood(calf, profile);
+        String mood = MobPrompt.mood(calf, profile);
         for (String part : List.of("ещё детёныш", "еле жив: здоровье 2 из 10", "горишь!", "в панике", "сидишь под крышей, пока снаружи гроза днём",
                 "на тебя только что нападали", "игрок еле живой"))
             assertTrue(mood.contains(part), mood);
         MobSnapshot calm = new MobSnapshot(UUID.randomUUID(), "minecraft:cow", "Корова", 10, 10, "minecraft:overworld", "minecraft:plains", "day", "clear", 2,
                 "minecraft:stick", List.of(), List.of());
-        assertEquals("цел и здоров, белый день.", OpenRouterConversationClient.mood(calm, profile));
+        assertEquals("цел и здоров, белый день.", MobPrompt.mood(calm, profile));
     }
 
     // With the vanilla window open the mob is told the player sees the price change at once and which row they look at.
     @Test void describesTheOpenDealWindowAndItsSelectedRow() {
-        assertFalse(OpenRouterConversationClient.dealSummary(tradingCow(cowTrading(false, false))).contains("Окно твоих сделок"));
+        assertFalse(MobPrompt.dealSummary(tradingCow(cowTrading(false, false))).contains("Окно твоих сделок"));
         Map<String,Object> open = new java.util.LinkedHashMap<>(cowTrading(false, false));
         open.put("windowOpen", true); open.put("selectedDeal", "milk");
-        String summary = OpenRouterConversationClient.dealSummary(tradingCow(open));
+        String summary = MobPrompt.dealSummary(tradingCow(open));
         assertTrue(summary.contains("Окно твоих сделок у игрока сейчас открыто") && summary.contains("тут же появится в нём новой ценой"), summary);
         assertTrue(summary.contains("строку «Ведро молока» (id milk): торгуйся за неё, если игрок не назвал другую сделку"), summary);
         assertTrue(summary.indexOf("Окно твоих сделок") < summary.indexOf("Секретное, ещё закрытое"), summary);
         open.put("selectedDeal", "");
-        summary = OpenRouterConversationClient.dealSummary(tradingCow(open));
+        summary = MobPrompt.dealSummary(tradingCow(open));
         assertTrue(summary.contains("Строка со сделкой пока не выбрана") && !summary.contains("Игрок смотрит"), summary);
         open.put("selectedDeal", "leather"); // A teaser row maps to no visible deal.
-        assertTrue(OpenRouterConversationClient.dealSummary(tradingCow(open)).contains("Строка со сделкой пока не выбрана"));
+        assertTrue(MobPrompt.dealSummary(tradingCow(open)).contains("Строка со сделкой пока не выбрана"));
         open.put("windowOpen", false); open.put("selectedDeal", "milk");
-        assertFalse(OpenRouterConversationClient.dealSummary(tradingCow(open)).contains("Окно твоих сделок"));
+        assertFalse(MobPrompt.dealSummary(tradingCow(open)).contains("Окно твоих сделок"));
     }
 
     // A number the cow says is honest only when the deal data or the applied OFFER backs it.
     @Test void recognisesOnlyPricesBackedByTheDeal() {
         MobSnapshot cow = tradingCow(cowTrading(false, false));
         var four = new DealIntent(DealIntent.Type.OFFER, "milk", 4);
-        assertEquals(-1, OpenRouterConversationClient.unbackedPrice("Ладно, отдам за четыре пшеницы.", BargainIntent.none(), four, cow));
-        assertEquals(4, OpenRouterConversationClient.unbackedPrice("Ладно, отдам за четыре пшеницы.", BargainIntent.none(), DealIntent.none(), cow));
-        assertEquals(-1, OpenRouterConversationClient.unbackedPrice("Молоко стоит шесть пшеницы, и точка.", BargainIntent.none(), DealIntent.none(), cow));
-        assertEquals(-1, OpenRouterConversationClient.unbackedPrice("Продам одно ведро, не больше.", BargainIntent.none(), DealIntent.none(), cow));
-        assertEquals(2, OpenRouterConversationClient.unbackedPrice("Цена теперь два.", BargainIntent.none(), new DealIntent(DealIntent.Type.DECLINE, "milk", 0), cow));
-        assertEquals(-1, OpenRouterConversationClient.unbackedPrice("Мне 12 лет, отстань.", BargainIntent.none(), DealIntent.none(), cow));
-        assertEquals(-1, OpenRouterConversationClient.unbackedPrice("Цена дружбы — 100 ударов.", BargainIntent.none(), DealIntent.none(), cow(UUID.randomUUID())));
+        assertEquals(-1, AnswerValidator.unbackedPrice("Ладно, отдам за четыре пшеницы.", BargainIntent.none(), four, cow));
+        assertEquals(4, AnswerValidator.unbackedPrice("Ладно, отдам за четыре пшеницы.", BargainIntent.none(), DealIntent.none(), cow));
+        assertEquals(-1, AnswerValidator.unbackedPrice("Молоко стоит шесть пшеницы, и точка.", BargainIntent.none(), DealIntent.none(), cow));
+        assertEquals(-1, AnswerValidator.unbackedPrice("Продам одно ведро, не больше.", BargainIntent.none(), DealIntent.none(), cow));
+        assertEquals(2, AnswerValidator.unbackedPrice("Цена теперь два.", BargainIntent.none(), new DealIntent(DealIntent.Type.DECLINE, "milk", 0), cow));
+        assertEquals(-1, AnswerValidator.unbackedPrice("Мне 12 лет, отстань.", BargainIntent.none(), DealIntent.none(), cow));
+        assertEquals(-1, AnswerValidator.unbackedPrice("Цена дружбы — 100 ударов.", BargainIntent.none(), DealIntent.none(), cow(UUID.randomUUID())));
     }
 
     // A catalog slot awaiting assignment must remain text-only, not silently reuse a species-wide fallback.
