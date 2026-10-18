@@ -116,8 +116,15 @@ public final class Trading {
     public static Map<String, Object> view(String type, Map<String, TradeState> states, Favor favor, List<String> favorsDone,
                                            int relationship, long nowMillis, long worldDay, Map<String, Integer> inventory,
                                            Map<String, String> itemNames) {
-        List<TradeDeal> deals = TradeCatalog.deals(type);
-        if (deals.isEmpty()) return Map.of();
+        return view(type, states, favor, favorsDone, relationship, nowMillis, worldDay, inventory, itemNames, true);
+    }
+    /** {@code ownDeals=false} hides the catalog deals — a villager or wandering trader sells in its vanilla window instead —
+     * while the favours stay; a species the catalog does not know at all still gets an empty map. */
+    public static Map<String, Object> view(String type, Map<String, TradeState> states, Favor favor, List<String> favorsDone,
+                                           int relationship, long nowMillis, long worldDay, Map<String, Integer> inventory,
+                                           Map<String, String> itemNames, boolean ownDeals) {
+        if (TradeCatalog.deals(type).isEmpty()) return Map.of();
+        List<TradeDeal> deals = ownDeals ? TradeCatalog.deals(type) : List.of();
         if (states == null) states = Map.of();
         if (favorsDone == null) favorsDone = List.of();
         if (itemNames == null) itemNames = Map.of();

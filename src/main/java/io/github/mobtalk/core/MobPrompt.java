@@ -60,7 +60,8 @@ final class MobPrompt {
                 + (view.sellsAnything() ? "\n\n" + PromptTexts.TRADER_CHARACTER : "")
                 + "\n\n" + PromptTexts.RULES
                 + PromptTexts.ANSWER_FIELDS
-                + bargainingRules(view) + "\n" + (view.ownTrading() ? PromptTexts.DEAL_RULES : PromptTexts.NO_OWN_TRADE);
+                + bargainingRules(view) + "\n" + (view.ownTrading() ? PromptTexts.DEAL_RULES + PromptTexts.FAVOR_RULES
+                        : view.favor() != null ? PromptTexts.NO_OWN_DEALS + PromptTexts.FAVOR_RULES : PromptTexts.NO_OWN_TRADE);
         // Last on purpose: in tests models ignored a mid-prompt level and kept the archetype's politeness.
         String rudeness = PromptTexts.RUDENESS[Math.max(0, Math.min(3, config.rudeness))];
         system += "\n\nГлавное в манере речи сейчас — " + Character.toLowerCase(rudeness.charAt(0)) + rudeness.substring(1) + PromptTexts.RUDENESS_TAIL;

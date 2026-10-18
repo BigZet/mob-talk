@@ -1104,6 +1104,25 @@ class ConversationEngineTest {
     }
 
     // With the vanilla window open the mob is told the player sees the price change at once and which row they look at.
+    // A villager has no catalog deals of its own (its goods are the vanilla window), yet it may still ask and accept favours.
+    @Test void merchantKeepsFavoursWithoutOwnDeals() throws Exception {
+        Map<String,Object> trading = new java.util.LinkedHashMap<>(freeCow(false));
+        trading.put("deals", List.of()); trading.put("secret", List.of()); trading.put("allowedDealTypes", List.of("NONE"));
+        MobSnapshot base = tradingCow(trading);
+        MobSnapshot villager = new MobSnapshot(base.id(), "minecraft:villager", "Житель", base.health(), base.maxHealth(), base.dimension(), base.biome(),
+                base.timeOfDay(), base.weather(), base.distance(), base.heldItem(), base.nearby(), base.recentEvents(), base.playerId(), base.playerDetails(),
+                base.mobDetails(), base.environmentDetails(), base.observedEntities(), base.availableActions(), 0);
+        queuedAnswers.add(ownAnswer("Принеси колокол, телятам пора домой.", "NONE", "", 0, "", "OFFER", "minecraft:bell", 1, "Колокол", "", 0));
+        try (ConversationEngine engine = engine()) {
+            var reply = engine.converse(villager, "Чем помочь?");
+            assertEquals(QuestIntent.Type.OFFER, reply.quest().type());
+            assertTrue(systemPrompt().contains("Своих отдельных сделок у тебя нет") && systemPrompt().contains("quest — {type"), systemPrompt());
+            assertFalse(systemPrompt().contains("Своей торговли у тебя нет"), "favours are still possible");
+            assertEquals("[\"NONE\"]", schemaEnum("deal").toString());
+            assertEquals("[\"NONE\",\"OFFER\"]", schemaEnum("quest").toString());
+        }
+    }
+
     @Test void describesTheOpenDealWindowAndItsSelectedRow() {
         assertFalse(MobPrompt.dealSummary(tradingCow(cowTrading(false, false))).contains("Окно твоих сделок"));
         Map<String,Object> open = new java.util.LinkedHashMap<>(cowTrading(false, false));

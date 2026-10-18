@@ -146,6 +146,15 @@ class TradingTest {
     }
 
     // The favour view: ideas while nothing is owed, the pending favour with what the player carries, titles already done.
+    // A merchant hides its catalog (the vanilla window is its shop) but keeps the favour block; an unknown species still gets nothing.
+    @Test void merchantsHideCatalogDealsButKeepFavours() {
+        Map<String, Object> hidden = Trading.view(COW, Map.of(), null, List.of(), 50, 0, 0, Map.of(), Map.of(), false);
+        assertEquals(List.of(), hidden.get("deals")); assertEquals(List.of(), hidden.get("secret"));
+        assertEquals(List.of("NONE"), hidden.get("allowedDealTypes"));
+        assertEquals(true, favor(hidden).get("canAsk"));
+        assertEquals(Map.of(), Trading.view("minecraft:sheep", Map.of(), null, List.of(), 50, 0, 0, Map.of(), Map.of(), false));
+    }
+
     @Test void favourViewFollowsTheInventory() {
         Map<String, String> names = Map.of("minecraft:oak_fence", "Дубовый забор");
         Map<String, Object> fresh = Trading.view(COW, Map.of(), null, List.of(), 0, 0, 0, Map.of(), names);

@@ -154,5 +154,14 @@ final class MobTrading {
     }
 
     /** The vanilla merchant window over this mob's deals; the player then buys there, and an accepted move refreshes it in place. */
-    void open(MobEntity mob, ServerPlayerEntity player) { MobMerchant.open(bridge, mob, player); }
+    void open(MobEntity mob, ServerPlayerEntity player) {
+        if (mob instanceof net.minecraft.entity.passive.MerchantEntity merchant) {
+            // One window per villager: B starts the same vanilla trade a right-click would, so prices and bargaining agree.
+            if (merchant.getOffers().isEmpty() || merchant.isBaby()) throw new IllegalStateException("Этот житель ничем не торгует");
+            if (merchant.getCustomer() != null && merchant.getCustomer() != player) throw new IllegalStateException("Житель сейчас торгует с кем-то другим");
+            if (!merchant.interact(player, net.minecraft.util.Hand.MAIN_HAND).isAccepted()) throw new IllegalStateException("Житель сейчас не может торговать");
+            return;
+        }
+        MobMerchant.open(bridge, mob, player);
+    }
 }
