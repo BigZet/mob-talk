@@ -99,9 +99,20 @@ final class AnswerValidator {
                         : view.windowOpen() ? "Либо верни OFFER с ценой из allowedPrices и назови в реплике ровно её, либо не называй новую цену."
                         : "Окно торговли закрыто: не называй новую цену, а предложи открыть торговлю и выбрать товар."), true, own);
             }
-            return new OpenRouterConversationClient.Answer(reply, memory, social, action, bargain, deal, unlock, quest);
+            return new OpenRouterConversationClient.Answer(reply, memory, social, action, bargain, deal, unlock, quest, biography(answer));
         } catch (Rejected invalid) { throw invalid; }
         catch (RuntimeException malformed) { throw new IOException(bounds.service() + " вернул неверный ответ. Повторите вопрос."); }
+    }
+
+    /** The life the mob invented inside its reply, or null when the answer has none or the story is blank. */
+    static BiographyWriter.Biography biography(JsonObject answer) {
+        if (!answer.has("biography") || !answer.get("biography").isJsonObject()) return null;
+        JsonObject life = answer.getAsJsonObject("biography");
+        String story = TextBounds.characters(ReplySchema.optional(life, "story"), 1500);
+        if (story.isBlank()) return null;
+        return new BiographyWriter.Biography(TextBounds.characters(ReplySchema.optional(life, "name"), 60), story,
+                TextBounds.characters(ReplySchema.optional(life, "desire"), 400), TextBounds.characters(ReplySchema.optional(life, "secret"), 400),
+                TextBounds.characters(ReplySchema.optional(life, "villageName"), 60), TextBounds.characters(ReplySchema.optional(life, "villageStory"), 1500));
     }
 
     static ActionIntent validateAction(JsonObject action, MobSnapshot snapshot) {

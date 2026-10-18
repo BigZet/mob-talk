@@ -71,7 +71,9 @@ final class OpenRouterConversationClient implements AutoCloseable {
             messages.add(ReplySchema.message("user", turn.user())); messages.add(ReplySchema.message("assistant", turn.assistant()));
         }
         messages.add(ReplySchema.message("user", overheard == null ? prompt.userMessage(question, snapshot, profile) : prompt.overheardMessage(overheard, snapshot, profile)));
-        JsonObject body = body(messages, 4096, view.windowOpen() ? 0.6 : 0.95, ReplySchema.replyFormat(snapshot), !noStreaming);
+        // A mob without a life story invents it inside its first reply: one request, not two.
+        boolean needsStory = overheard == null && (profile.backstory == null || profile.backstory.isBlank());
+        JsonObject body = body(messages, 4096, view.windowOpen() ? 0.6 : 0.95, ReplySchema.replyFormat(snapshot, needsStory), !noStreaming);
         if (overheard != null) ReplySchema.forbidIntents(body);
         long deadline = System.nanoTime() + http.timeout().toNanos();
         int words = prompt.words();
@@ -117,6 +119,10 @@ final class OpenRouterConversationClient implements AutoCloseable {
             // No require_parameters: OpenRouter keeps only opt-in tier endpoints for some models, and the default-tier ones then
             // fail a strict parameter match (404 "No endpoints found"). response_format stays a soft routing preference.
             JsonObject provider = new JsonObject(); provider.addProperty("sort", "latency"); body.add("provider", provider);
+            // A reasoning model thinks for seconds before the first token; a mob's line does not need that.
+            if (!config.reasoningEffort.isBlank() && !"none".equals(config.reasoningEffort)) {
+                JsonObject reasoning = new JsonObject(); reasoning.addProperty("effort", config.reasoningEffort); body.add("reasoning", reasoning);
+            }
         }
         if (jsonObjectOnly) ReplySchema.useJsonObject(body);
         if (stream) body.addProperty("stream", true);
@@ -220,11 +226,15 @@ final class OpenRouterConversationClient implements AutoCloseable {
 
     /** deal/unlock/quest concern the mob's own catalog (trades.json); bargain stays the vanilla villager window. */
     record Answer(String reply, String memory, SocialIntent socialIntent, ActionIntent action, BargainIntent bargain,
-                  DealIntent deal, String unlock, QuestIntent quest) {
+                  DealIntent deal, String unlock, QuestIntent quest, BiographyWriter.Biography biography) {
         Answer {
             if (deal == null) deal = DealIntent.none();
             unlock = unlock == null ? "" : unlock;
             if (quest == null) quest = QuestIntent.none();
+        }
+        Answer(String reply, String memory, SocialIntent socialIntent, ActionIntent action, BargainIntent bargain,
+               DealIntent deal, String unlock, QuestIntent quest) {
+            this(reply, memory, socialIntent, action, bargain, deal, unlock, quest, null);
         }
         Answer(String reply, String memory, SocialIntent socialIntent, ActionIntent action, BargainIntent bargain) {
             this(reply, memory, socialIntent, action, bargain, DealIntent.none(), "", QuestIntent.none());

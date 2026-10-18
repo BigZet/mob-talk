@@ -102,7 +102,9 @@ public final class ConversationEngine implements AutoCloseable {
             try { SpeechPreview.mark(configDirectory, voiceId, speechKey, speech.model()); }
             catch (IOException cacheUnavailable) { /* A status-cache failure must never discard successful audio. */ }
         }
-        String name = profile.givenName != null && !profile.givenName.isBlank() ? profile.givenName : profile.name.isBlank() ? profile.type : profile.name;
+        if (answer.biography() != null) adopt(snapshot, answer.biography());
+        String invented = answer.biography() == null ? "" : answer.biography().name();
+        String name = !invented.isBlank() ? invented : profile.givenName != null && !profile.givenName.isBlank() ? profile.givenName : profile.name.isBlank() ? profile.type : profile.name;
         Object custom = snapshot.mobDetails().get("customName");
         if (custom instanceof String text && !text.isBlank()) name = TextBounds.characters(text, 120);
         else if (Boolean.TRUE.equals(custom) || snapshot.playerId() == null && snapshot.mobDetails().isEmpty()) {
@@ -196,7 +198,15 @@ public final class ConversationEngine implements AutoCloseable {
         ConversationStore.Village village = anchor == null ? null : store.villageNear(snapshot.dimension(), anchor[0], anchor[1]);
         BiographyWriter.Biography written = llm.biography(snapshot, profile, village, store.givenNames(snapshot.type()),
                 store.storyOpenings(snapshot.type()), store.villageNames());
-        if (closed || store.hasBackstory(snapshot.id())) return;
+        adopt(snapshot, written);
+    }
+
+    /** Stores a life the model wrote (inside a reply or by a separate request), founding the village for its first villager. */
+    private void adopt(MobSnapshot snapshot, BiographyWriter.Biography written) {
+        if (closed || written == null || written.story().isBlank() || store.hasBackstory(snapshot.id())) return;
+        boolean villager = "minecraft:villager".equals(snapshot.type()), golem = "minecraft:iron_golem".equals(snapshot.type());
+        int[] anchor = villager || golem ? villageAnchor(snapshot) : null;
+        ConversationStore.Village village = anchor == null ? null : store.villageNear(snapshot.dimension(), anchor[0], anchor[1]);
         if (villager && village == null && anchor != null && !written.villageStory().isBlank())
             village = store.createVillage(snapshot.dimension(), anchor[0], anchor[1], written.villageName(), written.villageStory());
         store.setBackstory(snapshot.id(), written.name(), written.story(), written.desire(), written.secret(), village == null ? "" : village.id());

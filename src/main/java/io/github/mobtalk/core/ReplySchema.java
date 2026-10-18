@@ -11,7 +11,9 @@ final class ReplySchema {
 
     /** The reply schema with the intent enums narrowed to what this snapshot allows; the short assessment comes first, the spoken
      * reply right after it so speech can start early, the rest follows. */
-    static JsonObject replyFormat(MobSnapshot snapshot) {
+    static JsonObject replyFormat(MobSnapshot snapshot) { return replyFormat(snapshot, false); }
+    /** {@code withBiography}: the mob has no life story yet and invents it in this very answer. */
+    static JsonObject replyFormat(MobSnapshot snapshot, boolean withBiography) {
         TradingView view = TradingView.of(snapshot);
         JsonObject properties = new JsonObject(); properties.add("assessment", property("string")); properties.add("reply", property("string"));
         JsonObject social = property("string"); social.add("enum", strings("NONE", "APOLOGY", "KIND", "INSULT", "THREAT")); properties.add("socialIntent", social);
@@ -31,7 +33,11 @@ final class ReplySchema {
         questFields.add("title", property("string")); questFields.add("rewardDeal", property("string")); questFields.add("rewardPercent", property("integer"));
         properties.add("quest", objectSchema(questFields, "type", "item", "count", "title", "rewardDeal", "rewardPercent"));
         properties.add("newFacts", property("string"));
-        return format("mob_reply", objectSchema(properties, "assessment", "reply", "socialIntent", "action", "bargain", "deal", "unlock", "quest", "newFacts"));
+        if (!withBiography) return format("mob_reply", objectSchema(properties, "assessment", "reply", "socialIntent", "action", "bargain", "deal", "unlock", "quest", "newFacts"));
+        JsonObject life = new JsonObject();
+        for (String field : BIOGRAPHY_FIELDS) life.add(field, property("string"));
+        properties.add("biography", objectSchema(life, BIOGRAPHY_FIELDS.toArray(String[]::new)));
+        return format("mob_reply", objectSchema(properties, "assessment", "reply", "socialIntent", "action", "bargain", "deal", "unlock", "quest", "newFacts", "biography"));
     }
 
     /** The biography schema: name, story, own desire and secret, and the village when the mob founds one. */

@@ -61,11 +61,9 @@ public final class MobTalkClient implements ClientModInitializer {
     final Path configDirectory = FabricLoader.getInstance().getConfigDir();
     private final ExecutorService pipeline = worker("mobtalk-conversation");
     final ExecutorService maintenance = worker("mobtalk-settings");
-    /** Life stories are written here, never on the conversation worker: a recording must not wait behind a biography. */
-    private final ExecutorService biographies = worker("mobtalk-biography");
     /** Bystanders think in parallel with each other and with the partner's voice; only the playback is one at a time. */
     private final ExecutorService witnesses = Executors.newFixedThreadPool(2, task -> { Thread thread = new Thread(task, "mobtalk-witness"); thread.setDaemon(true); return thread; });
-    private final java.util.concurrent.ConcurrentHashMap<UUID, CompletableFuture<Void>> storiesInFlight = new java.util.concurrent.ConcurrentHashMap<>();
+
     private final MicrophoneRecorder microphone = new MicrophoneRecorder();
     private final WhisperProcess helper = new WhisperProcess();
     private final AtomicBoolean pipelineBusy = new AtomicBoolean();
@@ -109,8 +107,7 @@ public final class MobTalkClient implements ClientModInitializer {
     private int pendingDeliveries;
     /** V was pressed while the pipeline was still busy: recording starts the moment it frees up, as long as V stays down. */
     private boolean armRecording;
-    /** The mob whose life story the selection asked for; the prefetch stops only when the selection moves on. */
-    private volatile UUID prefetchTarget;
+
     private long ticks;
     String status = "Загрузка настроек…";
     private MobSpeechSound speech;
@@ -175,9 +172,7 @@ public final class MobTalkClient implements ClientModInitializer {
     String readyStatus() { return "Готов: удерживайте " + talkKey.getBoundKeyLocalizedText().getString(); }
     static final String AIM_HINT = "Наведите прицел на моба и удерживайте V";
     /** How often a bystander is asked about an exchange with nothing in it. */
-    static final double SMALL_TALK_CHANCE = 0.35;
-    /** How long a first reply waits for the life story still being written before answering without it. */
-    static final int STORY_PATIENCE_SECONDS = 8;
+    static final double SMALL_TALK_CHANCE = 0.5;
 
     /** The living mob under the crosshair within the conversation range, or null; a dragon part counts as the dragon. */
     MobEntity aimedMob() { return aimedMob(config.maxDistance); }
@@ -279,7 +274,7 @@ public final class MobTalkClient implements ClientModInitializer {
     private void leaveWorld() {
         merchant.end("Мир сменился: торговый разговор отменён");
         cancelWork(AIM_HINT, true);
-        selected = null; prefetchTarget = null;
+        selected = null;
         world = null;
         if (client.getServer() == null) releaseMemory();
         if (!stopped) helperCleanup = CompletableFuture.runAsync(helper::stopOwned, maintenance);
@@ -289,34 +284,10 @@ public final class MobTalkClient implements ClientModInitializer {
         if (!mob.getUuid().equals(selected)) {
             cancelWork(readyStatus());
             selected = mob.getUuid();
-            prefetchTarget = selected;
             keepConnectionWarm();
-            prefetchBackstory();
         }
         // Selecting the same UUID keeps its existing engine/profile/history.
         showHud();
-    }
-
-    /** A mob met for the first time gets its life story (and its village's) written on its own worker while the player is still
-     * raising the key; a request that follows waits for that story instead of asking for it again. Failures are silent. */
-    private void prefetchBackstory() {
-        if (stopped || !configReady || !config.enabled || selected == null || client.player == null || world == null || gameReady == null) return;
-        ensureGameBridge();
-        Request seed = request(generation, null);
-        storiesInFlight.computeIfAbsent(seed.target, id -> CompletableFuture.runAsync(() -> {
-            try {
-                // V right after aiming bumps the generation at once; only moving the selection on makes this story pointless.
-                if (!seed.target.equals(prefetchTarget)) return;
-                MobGameBridge game = gameReady.get(10, TimeUnit.SECONDS);
-                if (game.memory.hasBackstory(seed.target)) return;
-                MobSnapshot snapshot = game.capture(seed.target, seed.player, seed.dimension).get(10, TimeUnit.SECONDS);
-                if (!seed.target.equals(prefetchTarget)) return;
-                ensureEngine(seed, false).ensureBackstory(snapshot);
-                client.execute(() -> { if (seed.target.equals(selected)) showHud(); });
-            } catch (Exception failure) {
-                LOGGER.warn("Mob Talk backstory not written yet: {}", String.valueOf(failure.getMessage()));
-            } finally { Thread.interrupted(); storiesInFlight.remove(seed.target); }
-        }, biographies));
     }
 
     /** Opens (or keeps open) the OpenRouter connection while a mob is selected, so the first reply skips the handshake. */
@@ -327,7 +298,7 @@ public final class MobTalkClient implements ClientModInitializer {
 
     void clearSelection(String reason) {
         cancelWork(reason);
-        selected = null; prefetchTarget = null;
+        selected = null;
         showHud();
     }
 
@@ -441,7 +412,7 @@ public final class MobTalkClient implements ClientModInitializer {
     /** One bystander's thinking, off both the game thread and the conversation worker; the result lands in readyWitnesses. */
     private void startWitness(UUID id, ConversationEngine.Overheard heard, Request after) {
         MobEntity mob = MobSpeechSound.find(world, id);
-        if (mob == null || !withinRange(mob) || client.player == null || client.getServer() == null) return;
+        if (mob == null || !withinRange(mob) || client.player == null || client.getServer() == null) { LOGGER.info("Mob Talk bystander {} out of reach on the client", id); return; }
         Request seed = new Request(after.generation, id, after.worldDirectory, after.config, null, after.server, after.player, after.dimension,
                 mob.getName().getString(), null, heard);
         ConversationEngine localEngine = engine;
@@ -462,7 +433,7 @@ public final class MobTalkClient implements ClientModInitializer {
                     readyWitnesses.add(new Ready(observed, localEngine, prepared));
                 });
             } catch (Exception failure) {
-                LOGGER.debug("Mob Talk bystander {} stayed out: {}", seed.mobName, String.valueOf(failure.getMessage()));
+                LOGGER.info("Mob Talk bystander {} stayed out: {}", seed.mobName, String.valueOf(failure.getMessage()));
             } finally {
                 Thread.interrupted();
                 client.execute(() -> witnessesInFlight--);
@@ -570,18 +541,7 @@ public final class MobTalkClient implements ClientModInitializer {
                 checkCurrent(request);
                 ConversationEngine localEngine = ensureEngine(request);
                 checkCurrent(request);
-                if (request.overheard == null && !game.memory.hasBackstory(request.target)) {
-                    // The story asked for on selection is usually still being written: wait for it rather than ask twice.
-                    // A bystander gets its story when the player turns to it: one extra request per passer-by would be too slow.
-                    updateStatus(request, "Моб вспоминает, кто он…");
-                    // Wait a little for the story in flight; past that the mob answers without it and the story lands for the next reply.
-                    CompletableFuture<Void> story = storiesInFlight.get(request.target);
-                    if (story != null) { try { story.get(STORY_PATIENCE_SECONDS, TimeUnit.SECONDS); } catch (Exception late) { /* Answer now, story later. */ } }
-                    else { try { localEngine.ensureBackstory(snapshot); }
-                        catch (java.io.IOException noStory) { LOGGER.warn("Mob Talk backstory not written yet: {}", String.valueOf(noStory.getMessage())); } }
-                    checkCurrent(request);
-                    updateStatus(request, "Моб думает и готовит голос…");
-                }
+                // A mob without a life story invents it inside this first reply (see MobPrompt.lifeToInvent): no separate request.
                 ConversationEngine.PreparedReply prepared = localEngine.prepare(snapshot, question, request.overheard);
                 try { checkCurrent(request); }
                 catch (InterruptedException cancelled) { prepared.reply().discardSpeech(); throw cancelled; }
@@ -615,6 +575,7 @@ public final class MobTalkClient implements ClientModInitializer {
     /** {@code bound}: the engine is for this request's generation; a prefetch is bound to the selection instead. Synchronized: the
      * conversation worker and the biography worker may both need it at once. */
     private synchronized ConversationEngine ensureEngine(Request request, boolean bound) throws Exception {
+        // bound=false was the biography prefetch's; kept for a caller that outlives the request generation.
         ConversationEngine cached = engine;
         if (cached != null && request.worldDirectory.equals(engineWorld) && request.config == engineConfig) return cached;
         if (cached != null) cached.close();
@@ -982,7 +943,7 @@ public final class MobTalkClient implements ClientModInitializer {
         cancelWork("Остановлено", true);
         stopped = true;
         microphone.close();
-        pipeline.shutdownNow(); witnesses.shutdownNow(); biographies.shutdownNow();
+        pipeline.shutdownNow(); witnesses.shutdownNow();
         Path directory = memoryWorld;
         CompletableFuture<Void> detached = gameServer == null ? CompletableFuture.completedFuture(null) : MobGameBridge.detach(gameServer);
         if (directory != null) maintenance.execute(() -> {

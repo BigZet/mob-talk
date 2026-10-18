@@ -19,6 +19,8 @@ public final class MobTalkConfig {
     public String llmProvider = "openrouter";
     public String llmModel = "openai/gpt-6-luna";
     public String veniceModel = "deepseek-v4-1-flash";
+    /** OpenRouter reasoning models think before answering; "minimal" skips that (seconds saved per reply). "" sends nothing. */
+    public String reasoningEffort = "minimal";
     /** Who voices the replies: "openrouter" (ElevenLabs voices by id) or "venice" (one Kokoro voice for every mob). */
     public String ttsProvider = "openrouter";
     public String ttsModel = "elevenlabs/eleven-flash-v2.5";
@@ -58,6 +60,7 @@ public final class MobTalkConfig {
         copy.llmModel = llmModel;
         copy.veniceModel = veniceModel;
         copy.ttsProvider = ttsProvider; copy.ttsModel = ttsModel; copy.veniceTtsModel = veniceTtsModel; copy.veniceVoice = veniceVoice;
+        copy.reasoningEffort = reasoningEffort;
         copy.whisperUrl = whisperUrl;
         copy.whisperAutoStart = whisperAutoStart;
         copy.whisperModel = whisperModel;
@@ -148,6 +151,8 @@ public final class MobTalkConfig {
         config.llmProvider = "venice".equalsIgnoreCase(textOrDefault(config.llmProvider, defaults.llmProvider)) ? "venice" : "openrouter";
         config.ttsProvider = "venice".equalsIgnoreCase(textOrDefault(config.ttsProvider, defaults.ttsProvider)) ? "venice" : "openrouter";
         config.ttsModel = textOrDefault(config.ttsModel, defaults.ttsModel);
+        config.reasoningEffort = config.reasoningEffort == null ? "" : config.reasoningEffort.strip().toLowerCase(java.util.Locale.ROOT);
+        if (!java.util.List.of("", "none", "minimal", "low", "medium", "high").contains(config.reasoningEffort)) config.reasoningEffort = defaults.reasoningEffort;
         config.veniceTtsModel = textOrDefault(config.veniceTtsModel, defaults.veniceTtsModel);
         config.veniceVoice = textOrDefault(config.veniceVoice, defaults.veniceVoice);
         if (!config.veniceVoice.matches("[A-Za-z0-9_.-]{1,64}")) throw new IOException("Голос Venice: только латиница, цифры, _ . -");

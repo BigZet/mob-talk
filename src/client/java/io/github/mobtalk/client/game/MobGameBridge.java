@@ -169,9 +169,12 @@ public final class MobGameBridge {
             ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
             if (world == null || player == null || !player.isAlive() || player.getWorld() != world || limit <= 0) return List.of();
             double range = Math.min(HEARING_RANGE, config.maxDistance);
-            List<MobEntity> around = world.getEntitiesByClass(MobEntity.class, player.getBoundingBox().expand(range),
+            Entity speaker = world.getEntity(speakerId);
+            // Within earshot of either side of the conversation, and able to see the player.
+            List<MobEntity> around = world.getEntitiesByClass(MobEntity.class, player.getBoundingBox().expand(range + 4),
                     mob -> !mob.getUuid().equals(speakerId) && mob.isAlive() && !mob.isRemoved() && !mob.isAiDisabled()
-                            && mob.squaredDistanceTo(player) <= range * range && mob.canSee(player));
+                            && (mob.squaredDistanceTo(player) <= range * range || speaker != null && mob.squaredDistanceTo(speaker) <= range * range)
+                            && mob.squaredDistanceTo(player) <= config.maxDistance * config.maxDistance && mob.canSee(player));
             around.sort(Comparator.comparingInt((MobEntity mob) -> memory.known(mob.getUuid()) ? 0 : 1).thenComparingDouble(player::squaredDistanceTo));
             return around.stream().limit(limit).map(Entity::getUuid).toList();
         });

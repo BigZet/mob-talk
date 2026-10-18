@@ -1042,6 +1042,42 @@ class ConversationEngineTest {
         }
     }
 
+    // A mob without a story invents it inside its first reply: one request, the name is used at once, a villager founds its village.
+    @Test void inventsTheLifeInsideTheFirstReply() throws Exception {
+        JsonObject first = new JsonObject();
+        first.addProperty("assessment", "Спокойно."); first.addProperty("reply", "Прохор я. Чего надо?"); first.addProperty("newFacts", "");
+        first.addProperty("socialIntent", "NONE");
+        JsonObject action = new JsonObject(); action.addProperty("type", "NONE"); action.addProperty("target", ""); first.add("action", action);
+        JsonObject life = new JsonObject();
+        life.addProperty("name", "Прохор"); life.addProperty("story", "Ты пришёл сюда первым."); life.addProperty("desire", "Хочешь колокол.");
+        life.addProperty("secret", "Боишься воды."); life.addProperty("villageName", "Тихие Грядки"); life.addProperty("villageStory", "Деревню поставили у брода.");
+        first.add("biography", life);
+        queuedAnswers.add(first);
+        try (ConversationEngine engine = engine()) {
+            MobSnapshot founder = villager(UUID.randomUUID(), 500, 500, true);
+            ConversationEngine.Reply reply = engine.converse(founder, "Кто ты?");
+            assertEquals(1, chatCalls.get(), "no separate biography request");
+            assertEquals("Прохор", reply.speakerName(), "the invented name is used for the very first line");
+            JsonObject request = lastRequest.get();
+            String system = request.getAsJsonArray("messages").get(0).getAsJsonObject().get("content").getAsString();
+            assertTrue(system.contains("придумай их прямо сейчас в поле biography") && system.contains("villageName — название твоей деревни"), system);
+            JsonObject schema = request.getAsJsonObject("response_format").getAsJsonObject("json_schema").getAsJsonObject("schema");
+            assertTrue(schema.getAsJsonObject("properties").has("biography") && schema.getAsJsonArray("required").toString().contains("biography"));
+            assertTrue(engine.memory().hasBackstory(founder.id()));
+            assertEquals("Тихие Грядки", engine.memory().villageNear("minecraft:overworld", 505, 495).name());
+            assertEquals(List.of("Прохор"), engine.memory().givenNames("minecraft:villager"));
+
+            // The story is known now: the next reply asks for no biography, and a neighbour is told the village is known.
+            engine.converse(villager(founder.id(), 500, 500, true), "Привет ещё раз");
+            assertFalse(lastRequest.get().getAsJsonObject("response_format").getAsJsonObject("json_schema").getAsJsonObject("schema").getAsJsonObject("properties").has("biography"));
+            assertTrue(lastRequest.get().getAsJsonArray("messages").get(0).getAsJsonObject().get("content").getAsString().contains("Ты пришёл сюда первым."));
+            engine.converse(villager(UUID.randomUUID(), 520, 500, false), "Привет");
+            String neighbour = lastRequest.get().getAsJsonArray("messages").get(0).getAsJsonObject().get("content").getAsString();
+            assertTrue(neighbour.contains("твоя деревня уже известна: «Тихие Грядки»") && neighbour.contains("заняты: Прохор"), neighbour);
+            assertTrue(request.toString().contains("\"reasoning\":{\"effort\":\"minimal\"}"), "reasoning kept minimal for speed");
+        }
+    }
+
     // The first meeting writes a name and a life; a villager also founds its village, which the next villager nearby inherits.
     @Test void writesABackstoryOnceAndSharesTheVillageWithNeighbours() throws Exception {
         JsonObject written = new JsonObject();

@@ -68,6 +68,14 @@ public final class ConversationStore {
         }
         Profile detached = p.copy();
         detached.village = p.villageId == null || p.villageId.isBlank() ? null : state.villages.get(p.villageId);
+        if (p.backstory.isBlank()) {
+            // No life story yet: the first reply invents one, so it needs the names already taken and the village (if any) around.
+            detached.takenNames = givenNames(p.type);
+            boolean villager = "minecraft:villager".equals(p.type), golem = "minecraft:iron_golem".equals(p.type);
+            int[] anchor = villager || golem ? ConversationEngine.villageAnchor(snapshot) : null;
+            if (anchor != null && detached.village == null) detached.village = villageNear(snapshot.dimension(), anchor[0], anchor[1]);
+            detached.founds = villager && detached.village == null;
+        }
         MobCard current = card(snapshot.id(), snapshot.playerId());
         detached.relationship = current.relationship();
         detached.recentEvents = current.events();
@@ -434,6 +442,8 @@ public final class ConversationStore {
 
     static final class Profile {
         transient UUID id; transient int relationship, hits; transient List<String> recentEvents = List.of(); transient Village village;
+        /** For a mob without a story: names its species already uses, and whether it is the first villager of a new village. */
+        transient List<String> takenNames = List.of(); transient boolean founds;
         String type, name, personality, voiceId; String memory = "";
         /** What the model called this mob and the life it invented for it; blank until the first meeting is written up. */
         String givenName = "", backstory = "", villageId = "";
