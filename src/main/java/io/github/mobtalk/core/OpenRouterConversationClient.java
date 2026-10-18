@@ -27,6 +27,10 @@ final class OpenRouterConversationClient implements AutoCloseable {
     private boolean jsonObjectOnly, noTemperature, noStreaming;
     /** One-line diagnostics (rejected answers and their hints); the game points this at its log. */
     static volatile Consumer<String> diagnostics = line -> { };
+    /** Replies, bystanders and a biography may be in flight together; a fourth waits so a low-tier key is not rate-limited. */
+    private static final java.util.concurrent.Semaphore IN_FLIGHT = new java.util.concurrent.Semaphore(3, true);
+    /** Rate limits (429) are retried after this many milliseconds, doubling once. */
+    static final long RATE_LIMIT_PAUSE_MILLIS = 1500;
 
     /** The chat endpoint of the provider chosen in the config. */
     OpenRouterConversationClient(String key, MobTalkConfig config) { this(key, config, config.usesVenice() ? VENICE_ENDPOINT : ENDPOINT); }
@@ -110,7 +114,9 @@ final class OpenRouterConversationClient implements AutoCloseable {
             JsonObject venice = new JsonObject(); venice.addProperty("include_venice_system_prompt", false); venice.addProperty("disable_thinking", true);
             body.add("venice_parameters", venice);
         } else {
-            JsonObject provider = new JsonObject(); provider.addProperty("require_parameters", true); provider.addProperty("sort", "latency"); body.add("provider", provider);
+            // No require_parameters: OpenRouter keeps only opt-in tier endpoints for some models, and the default-tier ones then
+            // fail a strict parameter match (404 "No endpoints found"). response_format stays a soft routing preference.
+            JsonObject provider = new JsonObject(); provider.addProperty("sort", "latency"); body.add("provider", provider);
         }
         if (jsonObjectOnly) ReplySchema.useJsonObject(body);
         if (stream) body.addProperty("stream", true);
@@ -123,13 +129,20 @@ final class OpenRouterConversationClient implements AutoCloseable {
     private byte[] send(JsonObject body, long deadline, Consumer<String> spoken) throws IOException, InterruptedException { return send(body, deadline, spoken, true); }
 
     private byte[] send(JsonObject body, long deadline, Consumer<String> spoken, boolean retryDropped) throws IOException, InterruptedException {
+        return send(body, deadline, spoken, retryDropped, 0);
+    }
+    private byte[] send(JsonObject body, long deadline, Consumer<String> spoken, boolean retryDropped, int rateLimited) throws IOException, InterruptedException {
         long remaining = deadline - System.nanoTime();
         if (remaining <= 0) throw new IOException(service() + ": превышено время ожидания.");
-        try { return exchange(body, remaining, spoken); }
+        try { return guarded(body, remaining, spoken); }
         catch (BoundedHttp.SafeFailure unavailable) {
             remaining = deadline - System.nanoTime();
             if (remaining <= 0) throw unavailable;
-            if (retryDropped && BoundedHttp.dropped(unavailable)) return send(body, deadline, spoken, false);
+            if (unavailable.status == 429 && rateLimited < 2) {
+                long pause = RATE_LIMIT_PAUSE_MILLIS << rateLimited;
+                if (remaining > pause * 1_000_000L) { Thread.sleep(pause); return send(body, deadline, spoken, retryDropped, rateLimited + 1); }
+            }
+            if (retryDropped && BoundedHttp.dropped(unavailable)) return send(body, deadline, spoken, false, rateLimited);
             if (unavailable.status == 400 && body.has("stream")) { body.remove("stream"); noStreaming = true; return send(body, deadline, spoken, retryDropped); }
             if (unavailable.status != 404) throw unavailable;
             // Claude 5.5 on OpenRouter has no endpoint taking temperature together with a strict schema.
@@ -138,11 +151,19 @@ final class OpenRouterConversationClient implements AutoCloseable {
             // Providers without structured_outputs may still support response_format=json_object.
             jsonObjectOnly = true;
             ReplySchema.useJsonObject(body);
-            return exchange(body, remaining, spoken);
+            return guarded(body, remaining, spoken);
         } catch (IOException failure) {
             if (retryDropped && BoundedHttp.dropped(failure) && deadline - System.nanoTime() > 0) return send(body, deadline, spoken, false);
             throw failure;
         }
+    }
+
+    /** At most a few completions in flight across all clients; the rest wait their turn within the deadline. */
+    private byte[] guarded(JsonObject body, long remainingNanos, Consumer<String> spoken) throws IOException, InterruptedException {
+        long waited = System.nanoTime();
+        if (!IN_FLIGHT.tryAcquire(remainingNanos, java.util.concurrent.TimeUnit.NANOSECONDS)) throw new IOException(service() + ": превышено время ожидания.");
+        try { return exchange(body, remainingNanos - (System.nanoTime() - waited), spoken); }
+        finally { IN_FLIGHT.release(); }
     }
 
     /** Streams when asked: the reply is handed over the moment its closing quote arrives, then the whole answer is rebuilt

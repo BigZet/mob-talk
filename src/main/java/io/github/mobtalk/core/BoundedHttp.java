@@ -239,7 +239,7 @@ final class BoundedHttp implements AutoCloseable {
         @Override public void onComplete() {
             if (status == 200) { body.complete(output.toByteArray()); return; }
             String reason = output.toString(java.nio.charset.StandardCharsets.UTF_8).replaceAll("\\s+", " ").strip();
-            diagnostics.accept(service + " HTTP " + status + ": " + (reason.length() > 400 ? reason.substring(0, 400) + "…" : reason));
+            diagnostics.accept(service + " HTTP " + status + ": " + (reason.length() > 1500 ? reason.substring(0, 1500) + "…" : reason));
             body.completeExceptionally(new SafeFailure(service + ": ошибка HTTP " + status + ".", status));
         }
         private void fail(String message) {
