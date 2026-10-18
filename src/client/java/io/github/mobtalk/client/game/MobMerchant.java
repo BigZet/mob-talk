@@ -30,7 +30,7 @@ import java.util.Map;
 /** The vanilla merchant window over a mob's own deals (trades.json): not an entity, one instance per opening. Items change hands
  * through the ordinary MerchantScreenHandler; this class only builds the rows, records purchases and keeps the window alive
  * while the mob lives and the player stays within conversation range. Server thread only. */
-final class MobMerchant implements Merchant {
+public final class MobMerchant implements Merchant {
     private static final int UNLIMITED = 1_000_000, LORE_WIDTH = 38;
     private static final Style PLAIN = Style.EMPTY.withItalic(false), NOTE = Style.EMPTY.withColor(Formatting.GRAY).withItalic(false);
     final MobEntity mob;
@@ -159,5 +159,9 @@ final class MobMerchant implements Merchant {
     @Override public boolean isLeveledMerchant() { return false; }
     @Override public boolean canRefreshTrades() { return false; }
     @Override public SoundEvent getYesSound() { return SoundEvents.ENTITY_VILLAGER_YES; }
+    /** What MerchantScreenHandler.playYesSound would do for an entity merchant. */
+    public void playYesSound() {
+        if (mob.isAlive()) mob.getWorld().playSoundFromEntity(null, mob, getYesSound(), net.minecraft.sound.SoundCategory.NEUTRAL, 1f, 1f);
+    }
     @Override public boolean isClient() { return false; }
 }

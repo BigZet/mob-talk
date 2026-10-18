@@ -104,6 +104,7 @@ final class OpenRouterConversationClient implements AutoCloseable {
     private final URI endpoint;
     private final BoundedHttp http;
     private boolean jsonObjectOnly, noTemperature, noStreaming;
+    static volatile java.util.function.Consumer<String> diagnostics = line -> { };
 
     /** The chat endpoint of the provider chosen in the config. */
     OpenRouterConversationClient(String key, MobTalkConfig config) { this(key, config, config.usesVenice() ? VENICE_ENDPOINT : ENDPOINT); }
@@ -153,6 +154,7 @@ final class OpenRouterConversationClient implements AutoCloseable {
         for (int correction = 0; ; correction++) {
             try { return parseAnswer(bytes, snapshot, words, profile.memory, memoryLimit, profile.relationship); }
             catch (RejectedBargain invalid) {
+                diagnostics.accept("ответ отклонён (попытка " + (correction + 1) + ", " + snapshot.type() + "): " + invalid.getMessage());
                 if (correction >= 2 || deadline <= System.nanoTime())
                     throw new IOException(invalid.trade ? service() + " не подтвердил допустимые условия торга. Цена не изменена; повторите предложение."
                             : service() + " не дал годной реплики. Повторите вопрос.");

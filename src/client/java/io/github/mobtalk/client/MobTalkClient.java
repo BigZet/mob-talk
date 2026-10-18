@@ -109,6 +109,7 @@ public final class MobTalkClient implements ClientModInitializer {
 
     @Override public void onInitializeClient() {
         MobGameBridge.initialize();
+        ConversationEngine.setDiagnostics(line -> LOGGER.info("Mob Talk: {}", line));
         talkKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.talk", InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_V, "category.mobtalk"));
         settingsKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.settings", InputUtil.Type.KEYSYM,
@@ -357,15 +358,15 @@ public final class MobTalkClient implements ClientModInitializer {
         Request seed = request(generation, null);
         pipeline.execute(() -> {
             try {
-                if (generation != seed.generation || pipelineBusy.get()) return;
+                if (generation != seed.generation) return;
                 MobGameBridge game = gameReady.get(10, TimeUnit.SECONDS);
                 if (game.memory.hasBackstory(seed.target)) return;
                 MobSnapshot snapshot = game.capture(seed.target, seed.player, seed.dimension).get(10, TimeUnit.SECONDS);
                 if (generation != seed.generation) return;
                 ensureEngine(seed).ensureBackstory(snapshot);
                 client.execute(() -> { if (generation == seed.generation) showHud(); });
-            } catch (Exception quiet) {
-                LOGGER.debug("Mob Talk backstory skipped ({})", quiet.getClass().getSimpleName());
+            } catch (Exception failure) {
+                LOGGER.warn("Mob Talk backstory not written yet: {}", String.valueOf(failure.getMessage()));
             } finally { Thread.interrupted(); }
         });
     }
@@ -546,6 +547,14 @@ public final class MobTalkClient implements ClientModInitializer {
                 checkCurrent(request);
                 ConversationEngine localEngine = ensureEngine(request);
                 checkCurrent(request);
+                if (!game.memory.hasBackstory(request.target)) {
+                    // The prefetch on selection may have lost the race; a first reply without a life story would sound generic.
+                    updateStatus(request, "Моб вспоминает, кто он…");
+                    try { localEngine.ensureBackstory(snapshot); }
+                    catch (java.io.IOException noStory) { LOGGER.warn("Mob Talk backstory not written yet: {}", String.valueOf(noStory.getMessage())); }
+                    checkCurrent(request);
+                    updateStatus(request, "Моб думает и готовит голос…");
+                }
                 ConversationEngine.PreparedReply prepared = localEngine.prepare(snapshot, question);
                 try { checkCurrent(request); }
                 catch (InterruptedException cancelled) { prepared.reply().discardSpeech(); throw cancelled; }
