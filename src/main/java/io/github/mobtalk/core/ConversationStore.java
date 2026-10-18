@@ -318,7 +318,12 @@ public final class ConversationStore {
         p.revision++; scheduleSave();
     }
     public synchronized ActionIntent action(UUID mob) { Profile p = state.profiles.get(mob.toString()); return p == null ? ActionIntent.none() : p.action; }
-    public synchronized void recordAction(UUID mob, ActionIntent action) { Profile p = require(mob); p.action = action == null ? ActionIntent.none() : action; p.revision++; scheduleSave(); }
+    /** A mob without a profile (a dead stranger whose lease is still being stopped) has nothing to persist. */
+    public synchronized void recordAction(UUID mob, ActionIntent action) {
+        Profile p = state.profiles.get(mob.toString());
+        if (p == null) return;
+        p.action = action == null ? ActionIntent.none() : action; p.revision++; scheduleSave();
+    }
 
     /** Atomic revision check rejects a network response captured before a hit or profile edit. */
     synchronized boolean commit(MobSnapshot snapshot, String user, String reply, String memory, SocialIntent social, ActionIntent action, long nowMillis) {

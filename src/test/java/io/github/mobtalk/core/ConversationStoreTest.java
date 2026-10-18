@@ -96,6 +96,9 @@ class ConversationStoreTest {
         assertTrue(store.known(stranger)); assertFalse(store.known(UUID.randomUUID()));
         assertTrue(store.forgetStranger(stranger), "hit but never talked to: nothing worth keeping");
         assertFalse(store.known(stranger)); assertFalse(store.forgetStranger(stranger));
+        // The retaliation lease of a killed stranger is stopped a tick after its profile went: that must not throw on the server thread.
+        assertDoesNotThrow(() -> store.recordAction(stranger, ActionIntent.none()));
+        assertEquals(ActionType.NONE, store.action(stranger).type()); assertFalse(store.known(stranger));
         assertTrue(store.commit(cow(mob, player, store.revision(mob), Map.of()), "привет", "ответ", "", SocialIntent.NONE, ActionIntent.none(), 600_000));
         assertFalse(store.forgetStranger(mob), "a conversation keeps the memory"); assertTrue(store.known(mob));
         ConversationStore.closeWorld(directory);
