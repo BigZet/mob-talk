@@ -175,7 +175,7 @@ LLM и TTS расходуют кредиты OpenRouter (LLM — кредиты 
 | `Trading`, `Bargaining`, `TradeCatalog`, `FavorItems` | Правила цен, уступок жителя, каталог сделок, пул предметов для услуг. |
 | `SpeciesCatalog` | 82 вида, архетипы, голоса, привычки/желание/тайна. |
 
-`client` — Fabric: `MobTalkClient` (клавиши, запись, конвейер разговора, HUD, команды), `game/*` — integrated server (снимок мира, действия, окно сделок `MobMerchant`, торг жителя `VillagerBargaining`, миксины).
+`client` — Fabric: `MobTalkClient` (клавиши, запись, конвейер разговора, HUD), `MerchantSession` (речь внутри торгового окна), `MobTalkCommands` (`/mobtalk`), `SettingsController` (связь меню F7 с клиентом), `game/*` — integrated server (снимок мира, действия, окно сделок `MobMerchant`, торг жителя `VillagerBargaining`, миксины).
 
 Целевые тесты используют локальные HTTP-фикстуры и подставную модель Whisper. Это не проверка живого микрофона или всех 246 голосов через платный API.
 
