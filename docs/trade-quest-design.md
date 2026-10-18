@@ -46,7 +46,7 @@ Core (`src/main/java/io/github/mobtalk/core`, чистая Java, без Minecraf
 
 - `mobDetails.trading` = `Trading.view(...)` в `MobContextCapture` для каждого моба; `inventory` — счёт предметов игрока по id, `itemNames` — локализованные имена.
 - Применение намерений (`MobGameBridge.applyWithRevision`): deal → `Trading.permitted` → `store.setDealPrice`; unlock → `Trading.canUnlock` → `store.unlockDeal`; quest OFFER → `store.startQuest`; quest COMPLETE → проверка инвентаря/прогресса → изъятие → `store.completeQuest`. Невалидное намерение — `IllegalStateException` с текстом, как у торга жителя (пользователь видит `[Mob Talk] …`).
-- Покупка — только явным кликом в экране сделок `MobTradeScreen` (клавиша по умолчанию `B`, `/mobtalk trade`), на сервере: проверка и изъятие `price`, выдача `sell`, `store.recordPurchase`. Экран показывает открытые сделки с текущей ценой, заблокированные секретные — как «???» с подсказкой-тизером, и активный квест с прогрессом.
+- Покупка — только в **ванильном окне торговца** (клавиша по умолчанию `B`, `/mobtalk trade`; у жителя ПКМ по-прежнему открывает окно профессии, `B` — личные сделки). На сервере `MobMerchant` (реализация `Merchant` без сущности) строит `TradeOffer` из `Trading.priced`: цена игрока через `setSpecialPrice` (исходная зачёркнута), `maxUses` = дневной остаток, обмен делает ванильный `MerchantScreenHandler`, `trade()` → `store.recordPurchase`. Закрытые секретные — отключённые строки `???` (барьер) с подсказкой в lore, активный квест — отключённая строка-бумага «Задание: … (a из b)». Окно живёт, пока моб жив и в радиусе разговора. Торг возможен при открытом окне: `MobContextCapture` добавляет в `trading` поля `windowOpen` и `selectedDeal` (id выбранной строки), а принятый OFFER/unlock/квест тут же перестраивает строки (`updateOffers` + `sendTradeOffers`), как в `VillagerBargaining.refresh`.
 - Житель: ванильное окно и `Bargaining`/`VillagerBargaining` сохраняются, но уступка становится постоянной (без истечения, без CONSUMED после оплаты, дальнейшее снижение возможно в новой сессии до floor).
 - `recordKill` вызывается из `AFTER_DEATH`, когда атакующий — игрок.
 
@@ -92,5 +92,5 @@ Core (`src/main/java/io/github/mobtalk/core`, чистая Java, без Minecraf
 |---|---|
 | core | `core/Trading.java`, новые методы `core/ConversationStore.java` (+ поля Profile/Relation, копирование, миграция), `core/TradeCatalog*`, новые тесты `TradingTest`, `TradeCatalogTest`, дополнения `ConversationStoreTest` |
 | llm | `core/OpenRouterConversationClient.java`, `core/ConversationEngine.java`, `test/ConversationEngineTest.java` |
-| game | `client/game/*` (кроме mixin-accessor'ов без нужды), `client/MobTalkClient.java`, новый `client/MobTradeScreen.java`, `core/Bargaining.java` + `BargainingTest`, lang-файлы, `mobtalk.client.mixins.json` |
+| game | `client/game/*` (кроме mixin-accessor'ов без нужды), `client/MobTalkClient.java`, `client/game/MobMerchant.java`, `core/Bargaining.java` + `BargainingTest`, lang-файлы, `mobtalk.client.mixins.json` |
 | content | `assets/mobtalk/trades.json`, `assets/mobtalk/species.json` (поля quirks/desire/secret), `SpeciesCatalogTest` (проверка новых полей) |

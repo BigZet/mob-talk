@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /** Server-thread-only deals and quests of the mob's own catalog (trades.json): the model proposes, this class verifies,
- * and items change hands only here — never by the model's words alone. */
+ * and items change hands only in the vanilla merchant window ({@link MobMerchant}) — never by the model's words alone. */
 final class MobTrading {
     private final MobGameBridge bridge;
     MobTrading(MobGameBridge bridge) { this.bridge = bridge; }
@@ -82,11 +82,12 @@ final class MobTrading {
         MobCard card = bridge.memory.card(mob.getUuid(), player.getUuid());
         return card == null ? 0 : card.relationship();
     }
-    private static long worldDay(MobEntity mob) { return Math.floorDiv(mob.getWorld().getTimeOfDay(), 24_000L); }
+    static long worldDay(MobEntity mob) { return Math.floorDiv(mob.getWorld().getTimeOfDay(), 24_000L); }
 
     /** Applies the model's deal, unlock and quest moves in that order; an unjustified move throws with the reason the player sees. */
     String apply(MobEntity mob, ServerPlayerEntity player, DealIntent deal, String unlock, QuestIntent quest) {
         List<String> messages = new ArrayList<>();
+        boolean changed = false;
         String type = MobGameBridge.type(mob);
         UUID mobId = mob.getUuid(), playerId = player.getUuid();
         long now = System.currentTimeMillis();
@@ -99,6 +100,7 @@ final class MobTrading {
                 throw new IllegalStateException("Уступка по сделке «" + found.name() + "» выходит за пределы: за раз цена падает не больше чем вдвое, всего не ниже "
                         + found.floorPrice() + ", не больше " + Trading.MAX_ROUNDS + " шагов за сессию");
             bridge.memory.setDealPrice(mobId, playerId, found.id(), deal.price(), now);
+            changed = true;
             messages.add("Цена для вас: " + amount(found.price(), deal.price()) + " за " + amount(found.sell(), found.sell().count()) + " (постоянно)");
         } else if (deal != null && deal.type() == DealIntent.Type.DECLINE) messages.add("Торг окончен");
         if (unlock != null && !unlock.isBlank()) {
@@ -108,6 +110,7 @@ final class MobTrading {
             if (!Trading.canUnlock(found, state, relationship(mob, player), bridge.memory.quests(mobId, playerId)))
                 throw new IllegalStateException("Сделку «" + found.name() + "» ещё рано открывать");
             bridge.memory.unlockDeal(mobId, playerId, found.id(), now);
+            changed = true;
             int price = Trading.currentPrice(found, bridge.memory.tradeState(mobId, playerId, found.id()));
             messages.add("Открыта сделка: " + found.name() + " — " + amount(found.sell(), found.sell().count()) + " за " + amount(found.price(), price));
         }
@@ -120,6 +123,7 @@ final class MobTrading {
             if (quests.values().stream().anyMatch(state -> state.status() == QuestState.Status.ACTIVE))
                 throw new IllegalStateException("У вас уже есть задание от этого моба");
             bridge.memory.startQuest(mobId, playerId, found.id(), now);
+            changed = true;
             messages.add("Задание принято: " + found.title() + " (" + progress(found, player, 0) + " из " + found.count() + ")");
         } else if (quest != null && quest.type() == QuestIntent.Type.COMPLETE) {
             QuestDefinition found = TradeCatalog.quest(type, quest.questId());
@@ -135,10 +139,13 @@ final class MobTrading {
             QuestDefinition.Reward reward = bridge.memory.completeQuest(mobId, playerId, found.id(), player.getName().getString(), now);
             if (target != null) take(player, target, found.count());
             messages.add("Задание выполнено: " + found.title() + rewardText(type, reward));
+            changed = true;
         }
+        MobMerchant window = changed ? MobMerchant.of(player, mob) : null;
+        if (window != null) window.refresh();
         return String.join("; ", messages);
     }
-    private static int progress(QuestDefinition quest, ServerPlayerEntity player, int kills) {
+    static int progress(QuestDefinition quest, ServerPlayerEntity player, int kills) {
         if (quest.kind() != QuestDefinition.Kind.BRING) return Math.min(quest.count(), kills);
         Item target = item(quest.target());
         return target == null ? 0 : Math.min(quest.count(), count(player, target));
@@ -154,50 +161,6 @@ final class MobTrading {
         return parts.isEmpty() ? "" : " (" + String.join(", ", parts) + ")";
     }
 
-    /** One exchange of a visible deal at the player's current price; the only way the mob's goods reach the inventory. */
-    String buy(MobEntity mob, ServerPlayerEntity player, String dealId) {
-        String type = MobGameBridge.type(mob);
-        TradeDeal deal = TradeCatalog.deal(type, dealId);
-        if (deal == null) throw new IllegalStateException("У этого моба нет такой сделки");
-        TradeState state = bridge.memory.tradeState(mob.getUuid(), player.getUuid(), deal.id());
-        if (!Trading.visible(deal, state)) throw new IllegalStateException("Сделка «" + deal.name() + "» ещё не открыта");
-        long day = worldDay(mob);
-        if (Trading.stockLeft(deal, state, day) == 0) throw new IllegalStateException("На сегодня у моба больше нет: " + deal.name());
-        Item priceItem = item(deal.price().id()), goods = item(deal.sell().id());
-        if (priceItem == null || goods == null) throw new IllegalStateException("Предметы сделки «" + deal.name() + "» неизвестны игре");
-        int price = Trading.currentPrice(deal, state);
-        int have = count(player, priceItem);
-        if (have < price) throw new IllegalStateException("Нужно " + amount(deal.price(), price) + ", у вас " + have);
-        take(player, priceItem, price);
-        for (int left = deal.sell().count(); left > 0; ) {
-            ItemStack stack = new ItemStack(goods, Math.min(left, goods.getMaxCount()));
-            left -= stack.getCount();
-            player.getInventory().offerOrDrop(stack);
-        }
-        player.currentScreenHandler.sendContentUpdates();
-        bridge.memory.recordPurchase(mob.getUuid(), player.getUuid(), deal.id(), player.getName().getString(), day, System.currentTimeMillis());
-        return "Куплено: " + amount(deal.sell(), deal.sell().count()) + " за " + amount(deal.price(), price);
-    }
-
-    /** What the trade screen shows: visible deals with the player's price, teasers of locked secret deals, the active quest. */
-    MobGameBridge.TradeOffers offers(MobEntity mob, ServerPlayerEntity player) {
-        String type = MobGameBridge.type(mob);
-        Map<String, TradeState> states = bridge.memory.tradeStates(mob.getUuid(), player.getUuid());
-        Map<String, Integer> inventory = inventoryCounts(player);
-        List<MobGameBridge.TradeRow> rows = new ArrayList<>();
-        for (Trading.Priced priced : Trading.priced(type, states, worldDay(mob)))
-            if (item(priced.deal().sell().id()) != null && item(priced.deal().price().id()) != null)
-                rows.add(new MobGameBridge.TradeRow(priced.deal(), priced.currentPrice(), priced.stockLeft(),
-                        inventory.getOrDefault(priced.deal().price().id(), 0)));
-        List<String> hints = new ArrayList<>();
-        for (TradeDeal deal : TradeCatalog.deals(type))
-            if (deal.secret() && !Trading.visible(deal, states.getOrDefault(deal.id(), TradeState.initial()))) hints.add(deal.hint());
-        MobGameBridge.ActiveQuest active = null;
-        for (var entry : bridge.memory.quests(mob.getUuid(), player.getUuid()).entrySet()) {
-            QuestDefinition quest = TradeCatalog.quest(type, entry.getKey());
-            if (quest == null || entry.getValue().status() != QuestState.Status.ACTIVE) continue;
-            active = new MobGameBridge.ActiveQuest(quest.title(), progress(quest, player, entry.getValue().progress()), quest.count());
-        }
-        return new MobGameBridge.TradeOffers(mob.getName().getString(), List.copyOf(rows), List.copyOf(hints), active);
-    }
+    /** The vanilla merchant window over this mob's deals; the player then buys there, and an accepted move refreshes it in place. */
+    void open(MobEntity mob, ServerPlayerEntity player) { MobMerchant.open(bridge, mob, player); }
 }

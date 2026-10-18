@@ -64,7 +64,7 @@ final class OpenRouterConversationClient implements AutoCloseable {
     private static final String NO_TRADE = "bargain всегда {type:NONE,offerIndex:-1,price:0}: ты сейчас не торгуешь.";
     private static final String NO_OWN_TRADE = "Своей торговли у тебя нет, ты ничего не продаёшь: deal всегда {type:NONE,id:\"\",price:0}, unlock всегда \"\", quest всегда {type:NONE,id:\"\"}.";
     private static final String DEAL_RULES = """
-            Твои собственные сделки и услуги (mobDetails.trading; покупка происходит в экране сделок, не словами — товар не выдавай и не говори, что обмен уже состоялся):
+            Твои собственные сделки и услуги (mobDetails.trading; покупка происходит в торговом окне твоих сделок, которое игрок открывает сам, не словами — товар не выдавай и не говори, что обмен уже состоялся):
             deal — {type:NONE|OFFER|DECLINE,id:строка,price:целое}: твой ход по одной из своих сделок trading.deals. NONE — сделка в этой реплике не обсуждается (id="", price=0).
             OFFER — ты называешь новую цену: price — количество предметов price.name за один обмен, то самое число, что ты говоришь вслух; оно обязано входить в allowedPrices этой сделки, ниже minPrice не бывает, при canOffer=false уступки нет (причина в reason). Названная цена становится постоянной для этого игрока.
             Пока игрок не просит уступить, называй currentPrice и уступок не делай (deal NONE). Выбирай OFFER и когда уступаешь сам в ответ на торг, и когда соглашаешься на число игрока, если оно есть в allowedPrices; иначе предложи minPrice или откажи. DECLINE — отказ уступить по сделке id (price=0).
@@ -800,6 +800,7 @@ final class OpenRouterConversationClient implements AutoCloseable {
                 summary.append('.');
             }
         }
+        summary.append(windowSummary(snapshot));
         List<?> secret = items(trading(snapshot), "secret");
         if (!secret.isEmpty()) {
             summary.append("\n\nСекретное, ещё закрытое (товар не называй, только дразни и намекай):");
@@ -830,6 +831,16 @@ final class OpenRouterConversationClient implements AutoCloseable {
             if (!done.isEmpty()) summary.append("\n— уже выполнил для тебя: ").append(done).append(".");
         }
         return summary.toString();
+    }
+
+    /** The player holds the mob's own trade window open: an OFFER lands in it at once, and the selected row is what they look at. */
+    private static String windowSummary(MobSnapshot snapshot) {
+        Map<?,?> trading = trading(snapshot);
+        if (trading == null || !Boolean.TRUE.equals(trading.get("windowOpen"))) return "";
+        Map<?,?> row = trading.get("selectedDeal") instanceof String id && !id.isBlank() ? ownDeal(snapshot, id) : null;
+        return "\n\nОкно твоих сделок у игрока сейчас открыто: уступка через deal OFFER тут же появится в нём новой ценой, а покупка — его клик там же."
+                + (row != null ? " Игрок смотрит на строку «" + row.get("name") + "» (id " + row.get("id") + "): торгуйся за неё, если игрок не назвал другую сделку."
+                : " Строка со сделкой пока не выбрана: торгуйся за ту, что игрок назвал.");
     }
 
     private static String priceRange(List<?> prices) {

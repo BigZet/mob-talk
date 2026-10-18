@@ -142,12 +142,20 @@ public final class MobGameBridge {
         bridge.event(mob, reason + ": " + player.getName().getString());
     }
 
+    /** The conversation target behind the player's open merchant window: a mob's own deals (B) or a villager's profession trades. */
     public CompletableFuture<UUID> selectMerchant(UUID playerId, int syncId) {
         return onServer(() -> {
             ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
             if (player == null) throw new IllegalStateException("Игрок недоступен");
+            MobMerchant own = MobMerchant.of(player);
+            if (own != null && player.currentScreenHandler.syncId == syncId) return own.mob.getUuid();
             return VillagerBargaining.selected(player, syncId).getUuid();
         });
+    }
+    /** « отношение +N» for the HUD and the trade-window title; no card means a stranger. */
+    public static String relationshipLabel(MobCard card) {
+        int value = card == null ? 0 : card.relationship();
+        return "отношение " + (value >= 0 ? "+" : "") + value;
     }
 
     public CompletableFuture<MobSnapshot> capture(UUID mobId, UUID playerId, String dimension) {
@@ -171,25 +179,16 @@ public final class MobGameBridge {
     }
     private record Nearby(ServerWorld world, MobEntity mob, ServerPlayerEntity player) { }
 
-    /** One visible deal of the selected mob as the trade screen shows it; {@code owned} counts the price item in the inventory. */
-    public record TradeRow(TradeDeal deal, int currentPrice, int stockLeft, int owned) { }
-    public record ActiveQuest(String title, int progress, int count) { }
-    public record TradeOffers(String mobName, List<TradeRow> deals, List<String> hints, ActiveQuest quest) { }
-    public CompletableFuture<TradeOffers> tradeOffers(UUID mobId, UUID playerId, String dimension) {
-        return onServer(() -> {
-            Nearby nearby = nearby(mobId, playerId, dimension);
-            synchronized (memory) { return trading.offers(nearby.mob, nearby.player); }
-        });
-    }
-    /** An explicit purchase from the trade screen: items move on the server only after every check passes. */
-    public CompletableFuture<String> buy(UUID mobId, UUID playerId, String dimension, String dealId) {
+    /** Opens the vanilla merchant window over the mob's own deals; the vanilla handler moves the items from then on. */
+    public CompletableFuture<Void> openTrade(UUID mobId, UUID playerId, String dimension) {
         return onServer(() -> {
             if (!config.enabled) throw new IllegalStateException("Mob Talk выключен");
             Nearby nearby = nearby(mobId, playerId, dimension);
             synchronized (memory) {
                 if (memory.card(mobId, playerId) == null) event(nearby.mob, "The player met this mob");
-                return trading.buy(nearby.mob, nearby.player, dealId);
+                trading.open(nearby.mob, nearby.player);
             }
+            return null;
         });
     }
 

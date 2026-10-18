@@ -55,6 +55,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
@@ -100,6 +101,7 @@ public final class MobTalkClient implements ClientModInitializer {
     private long merchantEpoch;
     private boolean merchantKeyHeld;
     private boolean merchantLookupPending;
+    private UUID ownTradeRequested;
     private CompletableFuture<String> actionRequest;
     private long ticks;
     private String status = "Загрузка настроек…";
@@ -144,8 +146,11 @@ public final class MobTalkClient implements ClientModInitializer {
     /** Only the native trading screen accepts push-to-talk while a GUI is open. */
     private void initializeMerchantScreen(MerchantScreen screen) {
         if (merchantScreen != screen) {
+            // The mob's own window (B) is part of the conversation; only a villager's profession window interrupts it.
+            boolean own = ownTradeRequested != null;
+            ownTradeRequested = null;
             endMerchantSession("Окно торговли изменилось: разговор отменён");
-            if (recording != null || requestActive || speech != null) cancelWork("Открыта торговля: разговор отменён");
+            if (!own && (recording != null || requestActive || speech != null)) cancelWork("Открыта торговля: разговор отменён");
             updateWorld();
             ensureGameBridge();
             merchantScreen = screen;
@@ -156,6 +161,10 @@ public final class MobTalkClient implements ClientModInitializer {
             resolveMerchant(screen, merchantEpoch);
         }
         ScreenKeyboardEvents.allowKeyPress(screen).register((opened, key, scan, modifiers) -> {
+            if (merchantScreen == screen && merchantContext != null && tradeKey.matchesKey(key, scan)) {
+                screen.close(); // The deals key toggles the window, as the old screen did.
+                return false;
+            }
             if (!merchantInputEnabled(screen) || !talkKey.matchesKey(key, scan)) return true;
             merchantKeyHeld = true;
             return false;
@@ -740,8 +749,11 @@ public final class MobTalkClient implements ClientModInitializer {
     private void showHud() {
         if (client.player == null) return;
         MobEntity mob = target();
+        MobGameBridge game = mob == null || client.getServer() == null ? null : MobGameBridge.active(client.getServer());
+        MobCard card = game == null ? null : game.memory.card(selected, client.player.getUuid());
         String targetLabel = mob == null ? "" : mob.getName().getString() + " · "
-                + String.format(Locale.ROOT, "%.1f м · ", Math.sqrt(client.player.squaredDistanceTo(mob)));
+                + String.format(Locale.ROOT, "%.1f м · ", Math.sqrt(client.player.squaredDistanceTo(mob)))
+                + (card == null ? "" : MobGameBridge.relationshipLabel(card) + " · ");
         client.player.sendMessage(Text.literal("Mob Talk · " + targetLabel + status), true);
     }
 
@@ -807,10 +819,9 @@ public final class MobTalkClient implements ClientModInitializer {
         }));
     }
 
-    /** The mob's own deals: opening the screen never cancels a running conversation, so the mob may keep talking. */
+    /** The mob's own deals in the vanilla merchant window, opened by the server; a running conversation keeps going. */
     private void openTrade() {
-        if (stopped || reloading || client.currentScreen instanceof MobTradeScreen) return;
-        if (client.currentScreen != null) return;
+        if (stopped || reloading || client.currentScreen != null) return;
         updateWorld();
         ensureGameBridge();
         if (!configReady) { notice("Настройки ещё загружаются"); return; }
@@ -822,11 +833,13 @@ public final class MobTalkClient implements ClientModInitializer {
         if (ready == null) { notice("Память мира ещё загружается"); return; }
         UUID mobId = selected, player = client.player.getUuid();
         String dimension = world.getRegistryKey().getValue().toString();
-        client.setScreen(new MobTradeScreen(mob.getName(), new MobTradeScreen.Controller() {
-            @Override public CompletableFuture<MobGameBridge.TradeOffers> load() { return ready.thenCompose(game -> game.tradeOffers(mobId, player, dimension)); }
-            @Override public CompletableFuture<String> buy(String dealId) { return ready.thenCompose(game -> game.buy(mobId, player, dimension, dealId)); }
-            @Override public boolean available() { return mobId.equals(selected) && gameReady == ready && withinRange(target()); }
-            @Override public boolean isTradeKey(int key, int scan) { return tradeKey.matchesKey(key, scan); }
+        ownTradeRequested = mobId;
+        ready.thenCompose(game -> game.openTrade(mobId, player, dimension)).whenComplete((ignored, error) -> client.execute(() -> {
+            if (error == null) return;
+            ownTradeRequested = null;
+            Throwable cause = error instanceof CompletionException && error.getCause() != null ? error.getCause() : error;
+            String message = MobTalkSettingsScreen.cleanMessage(cause.getMessage());
+            notice(message.isBlank() ? "Не удалось открыть сделки: моб недоступен" : message);
         }));
     }
 

@@ -50,9 +50,16 @@ final class MobContextCapture {
         mobDetails.put("activeAction", Map.of("type", active.type().name(), "target", active.target()));
         MobCard card = bridge.memory.card(mob.getUuid(), player.getUuid());
         String type = MobGameBridge.type(mob);
-        mobDetails.put("trading", Trading.view(type, bridge.memory.tradeStates(mob.getUuid(), player.getUuid()),
+        Map<String, Object> trading = new LinkedHashMap<>(Trading.view(type, bridge.memory.tradeStates(mob.getUuid(), player.getUuid()),
                 bridge.memory.quests(mob.getUuid(), player.getUuid()), card == null ? 0 : card.relationship(), System.currentTimeMillis(),
                 Math.floorDiv(world.getTimeOfDay(), 24_000L), MobTrading.inventoryCounts(player), MobTrading.itemNames(type)));
+        if (!trading.isEmpty()) {
+            // An empty view stays empty: the LLM client reads "trades nothing" from it.
+            MobMerchant window = MobMerchant.of(player, mob);
+            trading.put("windowOpen", window != null);
+            trading.put("selectedDeal", window == null ? "" : window.selectedDeal());
+        }
+        mobDetails.put("trading", Map.copyOf(trading));
         if (mob instanceof TameableEntity tameable) {
             mobDetails.put("tamed", tameable.isTamed());
             mobDetails.put("sitting", tameable.isSitting());
