@@ -27,6 +27,9 @@ final class MobActionController {
     private final Map<UUID, Retaliation> pendingRetaliations = new HashMap<>();
     /** When each villager last called the golem, so the alarm is not raised every second. */
     private final Map<UUID, Long> alarms = new HashMap<>();
+    /** When each hated player last got a memory line from a mob's stance, so fleeing every 20 s is remembered once. */
+    private final Map<String, Long> hatredMemories = new HashMap<>();
+    private static final long HATRED_MEMORY_TICKS = 6000;
     /** How close a hated player must come before a mob acts on it, and how often that is checked. */
     static final double HATRED_RANGE = 12;
     private static final long STANCE_PERIOD = 20, ALARM_COOLDOWN = 200;
@@ -93,16 +96,25 @@ final class MobActionController {
                 boolean fights = fighter(mob) && (verdict == Situation.Verdict.EVEN || verdict == Situation.Verdict.STRONGER)
                         && available(mob).contains(ActionType.ATTACK) && canAttack(mob, player);
                 if (fights) {
-                    apply(mob, player, new ActionIntent(ActionType.ATTACK, "player"), null);
+                    apply(mob, player, new ActionIntent(ActionType.ATTACK, "player"), null, true);
                     Lease lease = leases.get(mob.getUuid());
                     if (lease != null && lease.action == ActionType.ATTACK) { lease.retaliatory = true; lease.expires = world.getTime() + 400; }
-                    bridge.event(mob, "Напал на игрока " + player.getName().getString() + " из ненависти");
+                    remember(mob, player, world, "Напал на игрока " + player.getName().getString() + " из ненависти");
                 } else if (available(mob).contains(ActionType.FLEE)) {
-                    apply(mob, player, new ActionIntent(ActionType.FLEE, "player"), null);
+                    apply(mob, player, new ActionIntent(ActionType.FLEE, "player"), null, true);
+                    remember(mob, player, world, "Убегал от игрока " + player.getName().getString() + ": ненавидит его и боится");
                     if (mob instanceof net.minecraft.entity.passive.VillagerEntity villager) alarm(villager, player, world);
                 }
             }
         }
+    }
+    /** One memory line per mob and player per {@link #HATRED_MEMORY_TICKS}: the stance repeats every 20 s, the diary should not. */
+    private void remember(MobEntity mob, ServerPlayerEntity player, ServerWorld world, String text) {
+        String key = mob.getUuid() + ":" + player.getUuid();
+        Long last = hatredMemories.get(key);
+        if (last != null && world.getTime() - last < HATRED_MEMORY_TICKS) return;
+        hatredMemories.put(key, world.getTime());
+        bridge.event(mob, text);
     }
     /** A frightened villager calls the village golems on the player; a golem that trusts the player stays out of it. */
     private void alarm(net.minecraft.entity.passive.VillagerEntity villager, ServerPlayerEntity player, ServerWorld world) {
@@ -140,7 +152,10 @@ final class MobActionController {
         return canUseMeleeFallback(mob) || target instanceof ServerPlayerEntity
                 && (mob instanceof net.minecraft.entity.passive.FrogEntity || mob instanceof net.minecraft.entity.passive.AxolotlEntity);
     }
-    String apply(MobEntity mob, ServerPlayerEntity player, ActionIntent intent, MobSnapshot snapshot) {
+    String apply(MobEntity mob, ServerPlayerEntity player, ActionIntent intent, MobSnapshot snapshot) { return apply(mob, player, intent, snapshot, false); }
+    /** {@code quiet}: a lease the mob takes on its own (hatred stance) — nothing persisted, no event, no revision bump, so a reply
+     * in flight for this mob survives; the lease itself behaves the same. */
+    String apply(MobEntity mob, ServerPlayerEntity player, ActionIntent intent, MobSnapshot snapshot, boolean quiet) {
         ActionType action = intent == null ? ActionType.NONE : intent.type();
         if (action == ActionType.NONE) return "";
         if (action == ActionType.STOP) { stop(mob.getUuid(), true); return "Действие отменено; моб вернулся к обычному поведению"; }
@@ -174,8 +189,10 @@ final class MobActionController {
         if (action != ActionType.ATTACK) selectors.mobtalk$goalSelector().add(-1, lease.moveGoal);
         else if (lease.meleeGoal != null) selectors.mobtalk$goalSelector().add(-1, lease.meleeGoal);
         if (action == ActionType.ATTACK) assignAttack(mob, target);
-        bridge.memory.recordAction(mob.getUuid(), new ActionIntent(action, target.getUuid().toString()));
-        bridge.event(mob, "Action started: " + action + "; target=" + target.getName().getString());
+        if (!quiet) {
+            bridge.memory.recordAction(mob.getUuid(), new ActionIntent(action, target.getUuid().toString()));
+            bridge.event(mob, "Action started: " + action + "; target=" + target.getName().getString());
+        }
         return switch (action) {
             case FOLLOW -> "Моб следует за вами; остановка через STOP или кнопку отмены";
             case FLEE -> "Моб ищет безопасный путь подальше от " + target.getName().getString();
@@ -344,7 +361,7 @@ final class MobActionController {
         if (persist) bridge.memory.recordAction(id, ActionIntent.none());
     }
     void unload(MobEntity mob) { stop(mob.getUuid(), false); alarms.remove(mob.getUuid()); }
-    void clearRuntime() { pendingRetaliations.clear(); alarms.clear(); for (UUID id : List.copyOf(leases.keySet())) stop(id, false); }
+    void clearRuntime() { pendingRetaliations.clear(); alarms.clear(); hatredMemories.clear(); for (UUID id : List.copyOf(leases.keySet())) stop(id, false); }
 
     private final class Lease {
         final MobEntity mob; final UUID targetId; final ActionType action; long expires;

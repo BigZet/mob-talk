@@ -3,7 +3,7 @@
   "id": "mobtalk",
   "version": "${version}",
   "name": "Mob Talk",
-  "description": "Выберите моба палкой и поговорите с ним голосом: локальный Whisper, OpenRouter и ElevenLabs.",
+  "description": "Наведите прицел на моба и поговорите с ним голосом: локальный Whisper, OpenRouter и ElevenLabs.",
   "authors": ["BigZet"],
   "license": "GPL-3.0-only",
   "environment": "client",
