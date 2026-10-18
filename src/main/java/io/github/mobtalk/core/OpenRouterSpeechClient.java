@@ -80,16 +80,23 @@ final class OpenRouterSpeechClient implements AutoCloseable {
     }
 
     /** OpenRouter forwards Eleven's PCM as it is generated: the first bytes come long before the last. */
+    /** A lost connection (a connect timeout included) gets two more tries: Venice's endpoint drops connects now and then. */
+    static final int CONNECT_ATTEMPTS = 3;
     SpeechStream stream(String voiceId, String text) throws IOException, InterruptedException {
-        try { return http.stream(request(voiceId, text), MAX_AUDIO_BYTES, service()); }
-        catch (IOException failure) {
-            if (!BoundedHttp.dropped(failure)) throw failure;
-            return http.stream(request(voiceId, text), MAX_AUDIO_BYTES, service());
+        for (int attempt = 1; ; attempt++) {
+            try { return http.stream(request(voiceId, text), MAX_AUDIO_BYTES, service()); }
+            catch (IOException failure) {
+                if (!BoundedHttp.dropped(failure) || attempt >= CONNECT_ATTEMPTS) throw failure;
+            }
         }
     }
 
     byte[] synthesize(String voiceId, String text) throws IOException, InterruptedException {
-        byte[] pcm = http.send(request(voiceId, text), MAX_AUDIO_BYTES, service());
+        byte[] pcm = null;
+        for (int attempt = 1; pcm == null; attempt++) {
+            try { pcm = http.send(request(voiceId, text), MAX_AUDIO_BYTES, service()); }
+            catch (IOException failure) { if (!BoundedHttp.dropped(failure) || attempt >= CONNECT_ATTEMPTS) throw failure; }
+        }
         if (pcm.length == 0 || (pcm.length & 1) != 0) throw new IOException(service() + " вернул неверный PCM звук.");
         return pcm;
     }

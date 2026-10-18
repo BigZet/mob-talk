@@ -19,7 +19,8 @@ import java.util.concurrent.TimeoutException;
 final class BoundedHttp implements AutoCloseable {
     /** One client for the whole game session: its HTTP/2 connection to OpenRouter survives engine rebuilds. A new
      * connection costs seconds behind some local proxies (5.3 s measured), a reused one about 0.1 s. */
-    private static final HttpClient SHARED = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15))
+    /** A connect that has not happened in six seconds will not: better a quick retry than a long wait before one. */
+    private static final HttpClient SHARED = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(6))
             .followRedirects(HttpClient.Redirect.NEVER).build();
     private static final java.util.concurrent.ConcurrentHashMap<String, Long> lastUse = new java.util.concurrent.ConcurrentHashMap<>();
     private static final long KEEP_WARM_NANOS = TimeUnit.SECONDS.toNanos(10);
