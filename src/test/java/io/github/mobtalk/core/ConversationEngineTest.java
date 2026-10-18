@@ -1003,6 +1003,24 @@ class ConversationEngineTest {
         assertEquals("цел и здоров, белый день.", OpenRouterConversationClient.mood(calm, profile));
     }
 
+    // With the vanilla window open the mob is told the player sees the price change at once and which row they look at.
+    @Test void describesTheOpenDealWindowAndItsSelectedRow() {
+        assertFalse(OpenRouterConversationClient.dealSummary(tradingCow(cowTrading(false, false))).contains("Окно твоих сделок"));
+        Map<String,Object> open = new java.util.LinkedHashMap<>(cowTrading(false, false));
+        open.put("windowOpen", true); open.put("selectedDeal", "milk");
+        String summary = OpenRouterConversationClient.dealSummary(tradingCow(open));
+        assertTrue(summary.contains("Окно твоих сделок у игрока сейчас открыто") && summary.contains("тут же появится в нём новой ценой"), summary);
+        assertTrue(summary.contains("строку «Ведро молока» (id milk): торгуйся за неё, если игрок не назвал другую сделку"), summary);
+        assertTrue(summary.indexOf("Окно твоих сделок") < summary.indexOf("Секретное, ещё закрытое"), summary);
+        open.put("selectedDeal", "");
+        summary = OpenRouterConversationClient.dealSummary(tradingCow(open));
+        assertTrue(summary.contains("Строка со сделкой пока не выбрана") && !summary.contains("Игрок смотрит"), summary);
+        open.put("selectedDeal", "leather"); // A teaser row maps to no visible deal.
+        assertTrue(OpenRouterConversationClient.dealSummary(tradingCow(open)).contains("Строка со сделкой пока не выбрана"));
+        open.put("windowOpen", false); open.put("selectedDeal", "milk");
+        assertFalse(OpenRouterConversationClient.dealSummary(tradingCow(open)).contains("Окно твоих сделок"));
+    }
+
     // A number the cow says is honest only when the deal data or the applied OFFER backs it.
     @Test void recognisesOnlyPricesBackedByTheDeal() {
         MobSnapshot cow = tradingCow(cowTrading(false, false));
