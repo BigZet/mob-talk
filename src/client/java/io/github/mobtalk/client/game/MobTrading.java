@@ -117,6 +117,7 @@ final class MobTrading {
             if (wanted == null) throw new IllegalStateException("Моб просит предмет, которого нет в игре: " + quest.item());
             Favor favor = quest.favor();
             bridge.memory.startFavor(mobId, playerId, favor, now);
+            changed = true;
             messages.add("Услуга: " + favor.title() + " — принести " + favor.count() + "× " + new ItemStack(wanted).getName().getString()
                     + rewardPromise(type, favor));
         } else if (quest != null && quest.type() == QuestIntent.Type.COMPLETE) {
@@ -127,8 +128,12 @@ final class MobTrading {
             if (have < favor.count()) throw new IllegalStateException("У вас нет " + favor.count() + "× " + favorItemName(favor) + " (есть " + have + ")");
             take(player, wanted, favor.count());
             Favor done = bridge.memory.completeFavor(mobId, playerId, player.getName().getString(), now);
+            changed = true;
             messages.add("Услуга оказана: " + done.title() + " (+" + Favor.RELATIONSHIP + " к отношению" + rewardText(type, done) + ")");
         }
+        // The player may be looking at the window right now: a new price, an opened secret or a favour row shows up at once.
+        MobMerchant window = changed ? MobMerchant.of(player, mob) : null;
+        if (window != null) window.refresh();
         return String.join("; ", messages);
     }
     static String favorItemName(Favor favor) {

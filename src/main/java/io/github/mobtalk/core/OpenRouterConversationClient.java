@@ -64,10 +64,11 @@ final class OpenRouterConversationClient implements AutoCloseable {
         JsonObject body = body(messages, 4096, view.windowOpen() ? 0.6 : 0.95, ReplySchema.replyFormat(snapshot), !noStreaming);
         long deadline = System.nanoTime() + http.timeout().toNanos();
         int words = prompt.words();
-        AnswerValidator.Bounds bounds = new AnswerValidator.Bounds(words, profile.memory, Math.max(200, Math.min(4000, config.maxMemoryChars)),
-                profile.relationship, jsonObjectOnly, service());
         byte[] bytes = send(body, deadline, text -> earlyReply.accept(TextBounds.reply(text, words)));
         for (int correction = 0; ; correction++) {
+            // Read the provider quirks after each send: a 404 fallback to json_object may have happened inside it.
+            AnswerValidator.Bounds bounds = new AnswerValidator.Bounds(words, profile.memory, Math.max(200, Math.min(4000, config.maxMemoryChars)),
+                    profile.relationship, jsonObjectOnly, service());
             try { return AnswerValidator.parse(bytes, snapshot, bounds); }
             catch (AnswerValidator.Rejected invalid) {
                 diagnostics.accept("ответ отклонён (попытка " + (correction + 1) + ", " + snapshot.type() + "): " + invalid.getMessage());

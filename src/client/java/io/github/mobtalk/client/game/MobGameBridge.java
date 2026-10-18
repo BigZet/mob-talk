@@ -14,7 +14,6 @@ import net.minecraft.registry.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.Text;
 import net.minecraft.util.math.Vec3d;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;

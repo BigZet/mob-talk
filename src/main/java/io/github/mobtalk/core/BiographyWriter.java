@@ -25,9 +25,12 @@ final class BiographyWriter {
         boolean founds() { return villager() && village == null; }
     }
 
+    /** The model answered, but not with a usable biography (cut off, empty story): worth one more try, unlike a dead network. */
+    static final class Malformed extends IOException { Malformed(String message) { super(message); } }
+
     static Biography write(OpenRouterConversationClient client, MobTalkConfig config, Facts facts) throws IOException, InterruptedException {
         try { return write(client, config, facts, false); }
-        catch (IOException malformed) { return write(client, config, facts, true); } // A cut-off JSON once in a while: one more try.
+        catch (Malformed cutOff) { return write(client, config, facts, true); }
     }
 
     private static Biography write(OpenRouterConversationClient client, MobTalkConfig config, Facts facts, boolean retry) throws IOException, InterruptedException {
@@ -49,7 +52,7 @@ final class BiographyWriter {
                     founds ? TextBounds.characters(ReplySchema.string(answer, "villageStory"), 1500) : "");
         } catch (RuntimeException malformed) {
             String text = new String(bytes, StandardCharsets.UTF_8);
-            throw new IOException(client.service() + " не написал биографию" + (text.contains("\"finish_reason\":\"length\"") ? " (ответ обрезан)." : "."));
+            throw new Malformed(client.service() + " не написал биографию" + (text.contains("\"finish_reason\":\"length\"") ? " (ответ обрезан)." : "."));
         }
     }
 
