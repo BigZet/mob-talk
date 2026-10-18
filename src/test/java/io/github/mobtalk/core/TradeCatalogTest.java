@@ -57,14 +57,17 @@ class TradeCatalogTest {
     }
 
     // The bundled placeholder (filled by the content branch) must answer empty, never throw.
-    @Test void bundledFileAnswersEmptyForEverySpecies() {
+    // The bundled file covers every vanilla species; a modded species the file does not know trades nothing and never throws.
+    @Test void bundledFileCoversVanillaAndAnswersEmptyForUnknownSpecies() {
         TradeFixtures.reset();
-        assertTrue(TradeCatalog.deals("minecraft:cow").isEmpty());
-        assertTrue(TradeCatalog.quests("cow").isEmpty());
-        assertNull(TradeCatalog.deal("minecraft:cow", "milk"));
-        assertNull(TradeCatalog.quest("minecraft:cow", "fence"));
-        assertEquals(List.of(), TradeCatalog.tradingSpecies());
-        assertEquals(java.util.Map.of(), Trading.view("minecraft:cow", java.util.Map.of(), java.util.Map.of(), 0, 0, 0, java.util.Map.of(), java.util.Map.of()));
-        assertEquals(List.of(), Trading.priced("minecraft:cow", java.util.Map.of(), 0));
+        assertEquals(82, TradeCatalog.tradingSpecies().size());
+        assertFalse(TradeCatalog.deals("minecraft:cow").isEmpty());
+        assertFalse(TradeCatalog.quests("cow").isEmpty());
+        String unknown = "somemod:gremlin";
+        assertTrue(TradeCatalog.deals(unknown).isEmpty());
+        assertNull(TradeCatalog.deal(unknown, "milk"));
+        assertNull(TradeCatalog.quest(unknown, "fence"));
+        assertEquals(java.util.Map.of(), Trading.view(unknown, java.util.Map.of(), java.util.Map.of(), 0, 0, 0, java.util.Map.of(), java.util.Map.of()));
+        assertEquals(List.of(), Trading.priced(unknown, java.util.Map.of(), 0));
     }
 }

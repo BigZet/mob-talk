@@ -980,7 +980,9 @@ class ConversationEngineTest {
 
             profile.relationship = 70;
             assertTrue(client.systemPrompt(soulful, profile, tradingCow(cowTrading(true, false))).contains("Этот игрок — свой, ему можно её доверить"));
-            String plain = client.systemPrompt(cow, profile, cow(UUID.randomUUID()));
+            // A species not yet written up (blank quirks/desire/secret) gets no empty headings.
+            SpeciesCatalog.Species bare = new SpeciesCatalog.Species(cow.id(), cow.name(), cow.prompt(), cow.interests(), cow.fears(), false, cow.variants());
+            String plain = client.systemPrompt(bare, profile, cow(UUID.randomUUID()));
             assertFalse(plain.contains("Твоя тайна") || plain.contains("фирменные штучки") || plain.contains("Чего ты хочешь"), plain);
             assertTrue(plain.contains("Сейчас ты потрёпан"));
         }
