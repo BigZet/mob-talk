@@ -121,8 +121,25 @@ final class MobTalkSettingsScreen extends Screen {
         else labeled("mobtalk.settings.llm", field(draft.llmModel, 160, value -> draft.llmModel = value));
         if (draft.usesVenice()) note(Text.translatable("mobtalk.settings.provider.veniceModels"), 0x9A9A9A);
 
-        keySection(OpenRouterToken.Provider.OPENROUTER, draft.usesVenice() ? "mobtalk.settings.section.openrouter.speech" : "mobtalk.settings.section.openrouter");
-        if (draft.usesVenice()) keySection(OpenRouterToken.Provider.VENICE, "mobtalk.settings.section.venice");
+        header("mobtalk.settings.section.tts");
+        CyclingButtonWidget<Boolean> tts = track(CyclingButtonWidget.<Boolean>builder(venice -> Text.literal(venice ? "Venice" : "OpenRouter"))
+                .values(false, true).initially(draft.usesVeniceSpeech())
+                .build(0, 0, 100, 20, Text.translatable("mobtalk.settings.tts"), (button, venice) -> { draft.ttsProvider = venice ? "venice" : "openrouter"; refreshOnTick = true; }));
+        tts.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.tts.tooltip")));
+        wide(tts);
+        if (draft.usesVeniceSpeech()) {
+            labeled("mobtalk.settings.ttsModel", field(draft.veniceTtsModel, 160, value -> draft.veniceTtsModel = value));
+            labeled("mobtalk.settings.veniceVoice", field(draft.veniceVoice, 160, value -> draft.veniceVoice = value));
+            note(Text.translatable("mobtalk.settings.tts.veniceNote"), 0x9A9A9A);
+        } else {
+            labeled("mobtalk.settings.ttsModel", field(draft.ttsModel, 160, value -> draft.ttsModel = value));
+            note(Text.translatable("mobtalk.settings.tts.openRouterNote"), 0x9A9A9A);
+        }
+
+        if (draft.needsOpenRouter()) keySection(OpenRouterToken.Provider.OPENROUTER, draft.usesVenice() ? "mobtalk.settings.section.openrouter.speech"
+                : draft.usesVeniceSpeech() ? "mobtalk.settings.section.openrouter.chat" : "mobtalk.settings.section.openrouter");
+        if (draft.needsVenice()) keySection(OpenRouterToken.Provider.VENICE, draft.usesVenice() && draft.usesVeniceSpeech() ? "mobtalk.settings.section.venice.both"
+                : draft.usesVenice() ? "mobtalk.settings.section.venice" : "mobtalk.settings.section.venice.speech");
         note(Text.translatable("mobtalk.settings.key.hint"), 0x9A9A9A);
 
         header("mobtalk.settings.section.conversation");
@@ -285,7 +302,7 @@ final class MobTalkSettingsScreen extends Screen {
                         voice.name() + "\nID: " + voice.id() + "\nЯзык: " + voice.language() + "\n\n" + voice.description()
                         + "\n\nПревью: " + (voice.previewUrl().isBlank() ? "нет" : voice.previewUrl())
                         + "\n\nПревью библиотеки не подтверждает генерацию OpenRouter Flash v2.5.")),
-                button("mobtalk.settings.voice.status", ignored -> operation(voiceService().status(voice.id()), false)));
+                button("mobtalk.settings.voice.status", ignored -> operation(voiceService().status(draft.copy(), voice.id()), false)));
     }
 
     /** Fixed above the list so the chosen species stays visible while scrolling. */

@@ -51,13 +51,14 @@ final class VoicePreviewService implements AutoCloseable {
             long token = generation;
             byte[] pcm = SpeechPreview.synthesize(immutable, directory, voice, text);
             playPcm(pcm, 24_000, 1, token);
-            return "Русская фраза успешно озвучена через Eleven Flash v2.5";
+            return "Русская фраза успешно озвучена через " + immutable.speechModel() + (immutable.usesVeniceSpeech() ? " (Venice, голос " + immutable.veniceVoice + ")" : "");
         });
     }
 
-    CompletableFuture<String> status(String voice) {
+    CompletableFuture<String> status(MobTalkConfig config, String voice) {
         if (closed) return CompletableFuture.completedFuture("");
-        return CompletableFuture.supplyAsync(() -> SpeechPreview.status(directory, voice), worker);
+        MobTalkConfig immutable = config.copy();
+        return CompletableFuture.supplyAsync(() -> SpeechPreview.status(directory, voice, immutable), worker);
     }
     CompletableFuture<String> connection(MobTalkConfig config) {
         MobTalkConfig immutable = config.copy();

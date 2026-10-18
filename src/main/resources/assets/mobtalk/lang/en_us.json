@@ -187,7 +187,7 @@
   "mobtalk.settings.mob.voice": "Voice",
   "mobtalk.settings.section.llm": "Reply model (LLM)",
   "mobtalk.settings.provider": "Provider",
-  "mobtalk.settings.provider.tooltip": "Who writes the mobs' replies. Speech always goes through OpenRouter (ElevenLabs voices).",
+  "mobtalk.settings.provider.tooltip": "Who writes the mobs' replies. The speech provider is chosen separately below.",
   "mobtalk.settings.provider.veniceModels": "Venice models, e.g. deepseek-v4-1-flash, venice-uncensored-1-2, claude-haiku-5-5",
   "mobtalk.settings.section.openrouter.speech": "OpenRouter key (speech)",
   "mobtalk.settings.section.venice": "Venice key (replies)",
@@ -201,5 +201,15 @@
   "mobtalk.settings.key.file.venice": "Key from config/mobtalk-venice-token.txt: %s",
   "mobtalk.settings.key.none.openrouter": "No key yet. Paste your OpenRouter key below.",
   "mobtalk.settings.key.none.venice": "No key yet. Paste your Venice key below.",
-  "mobtalk.settings.witnesses": "Bystander replies after an answer: %s"
+  "mobtalk.settings.witnesses": "Bystander replies after an answer: %s",
+  "mobtalk.settings.section.tts": "Speech",
+  "mobtalk.settings.tts": "Speech provider",
+  "mobtalk.settings.tts.tooltip": "Who voices the replies. OpenRouter: ElevenLabs voices by id from the species catalog. Venice: the Kokoro model and one voice for every mob.",
+  "mobtalk.settings.ttsModel": "Speech model",
+  "mobtalk.settings.veniceVoice": "Venice voice",
+  "mobtalk.settings.tts.veniceNote": "Venice: model tts-kokoro; voices af_sky, af_bella, am_adam, bf_emma, bm_george… Kokoro has no Russian voices, expect an accent.",
+  "mobtalk.settings.tts.openRouterNote": "OpenRouter: elevenlabs/eleven-flash-v2.5 (default), elevenlabs/eleven-multilingual-v2, elevenlabs/eleven-turbo-v2.5.",
+  "mobtalk.settings.section.openrouter.chat": "OpenRouter key (replies)",
+  "mobtalk.settings.section.venice.speech": "Venice key (speech)",
+  "mobtalk.settings.section.venice.both": "Venice key (replies and speech)"
 }

@@ -187,7 +187,7 @@
   "mobtalk.settings.mob.voice": "Голос",
   "mobtalk.settings.section.llm": "Модель ответа (LLM)",
   "mobtalk.settings.provider": "Провайдер",
-  "mobtalk.settings.provider.tooltip": "Кто придумывает ответы мобов. Озвучка всегда идёт через OpenRouter (голоса ElevenLabs).",
+  "mobtalk.settings.provider.tooltip": "Кто придумывает ответы мобов. Провайдер озвучки выбирается отдельно ниже.",
   "mobtalk.settings.provider.veniceModels": "Модели Venice, например: deepseek-v4-1-flash, venice-uncensored-1-2, claude-haiku-5-5",
   "mobtalk.settings.section.openrouter.speech": "Ключ OpenRouter (озвучка)",
   "mobtalk.settings.section.venice": "Ключ Venice (ответы)",
@@ -201,5 +201,15 @@
   "mobtalk.settings.key.file.venice": "Ключ из config/mobtalk-venice-token.txt: %s",
   "mobtalk.settings.key.none.openrouter": "Ключ не задан. Вставьте ключ OpenRouter ниже.",
   "mobtalk.settings.key.none.venice": "Ключ не задан. Вставьте ключ Venice ниже.",
-  "mobtalk.settings.witnesses": "Реплик очевидцев после ответа: %s"
+  "mobtalk.settings.witnesses": "Реплик очевидцев после ответа: %s",
+  "mobtalk.settings.section.tts": "Озвучка",
+  "mobtalk.settings.tts": "Провайдер озвучки",
+  "mobtalk.settings.tts.tooltip": "Кто озвучивает реплики. OpenRouter: голоса ElevenLabs по ID из каталога видов. Venice: модель Kokoro и один голос на всех мобов.",
+  "mobtalk.settings.ttsModel": "Модель озвучки",
+  "mobtalk.settings.veniceVoice": "Голос Venice",
+  "mobtalk.settings.tts.veniceNote": "Venice: модель tts-kokoro; голоса af_sky, af_bella, am_adam, bf_emma, bm_george… Русских голосов у Kokoro нет — будет акцент.",
+  "mobtalk.settings.tts.openRouterNote": "OpenRouter: elevenlabs/eleven-flash-v2.5 (по умолчанию), elevenlabs/eleven-multilingual-v2, elevenlabs/eleven-turbo-v2.5.",
+  "mobtalk.settings.section.openrouter.chat": "Ключ OpenRouter (ответы)",
+  "mobtalk.settings.section.venice.speech": "Ключ Venice (озвучка)",
+  "mobtalk.settings.section.venice.both": "Ключ Venice (ответы и озвучка)"
 }

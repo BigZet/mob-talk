@@ -27,10 +27,11 @@ public final class ConversationEngine implements AutoCloseable {
         return OpenRouterToken.load(configDirectory, config.usesVenice() ? OpenRouterToken.Provider.VENICE : OpenRouterToken.Provider.OPENROUTER);
     }
 
-    /** Speech always goes through OpenRouter; with Venice chatting, a missing OpenRouter key only leaves replies unvoiced. */
+    /** The speech provider's key; when it differs from the chat provider's, a missing one only leaves replies unvoiced. */
     private static String speechKey(MobTalkConfig config, Path configDirectory) throws IOException {
-        if (!config.usesVenice()) return OpenRouterToken.load(configDirectory);
-        try { return OpenRouterToken.load(configDirectory); } catch (IOException missing) { return null; }
+        OpenRouterToken.Provider provider = config.usesVeniceSpeech() ? OpenRouterToken.Provider.VENICE : OpenRouterToken.Provider.OPENROUTER;
+        if (config.usesVenice() == config.usesVeniceSpeech()) return OpenRouterToken.load(configDirectory, provider);
+        try { return OpenRouterToken.load(configDirectory, provider); } catch (IOException missing) { return null; }
     }
 
     ConversationEngine(MobTalkConfig config, Path worldDirectory, OpenRouterConversationClient llm, OpenRouterSpeechClient speech) throws IOException {
@@ -98,7 +99,7 @@ public final class ConversationEngine implements AutoCloseable {
         try { checkCurrent(snapshot); }
         catch (InterruptedException cancelled) { if (audio != null) audio.close(); throw cancelled; }
         if (audio != null && configDirectory != null && speechKey != null) {
-            try { SpeechPreview.mark(configDirectory, voiceId, speechKey); }
+            try { SpeechPreview.mark(configDirectory, voiceId, speechKey, speech.model()); }
             catch (IOException cacheUnavailable) { /* A status-cache failure must never discard successful audio. */ }
         }
         String name = profile.givenName != null && !profile.givenName.isBlank() ? profile.givenName : profile.name.isBlank() ? profile.type : profile.name;

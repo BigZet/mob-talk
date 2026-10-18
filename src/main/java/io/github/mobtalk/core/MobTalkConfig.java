@@ -15,10 +15,16 @@ import java.nio.file.StandardCopyOption;
 public final class MobTalkConfig {
     public int schemaVersion = 2;
     public boolean enabled = true;
-    /** Who answers in conversations: "openrouter" or "venice". Speech always uses OpenRouter (ElevenLabs voices). */
+    /** Who answers in conversations: "openrouter" or "venice". */
     public String llmProvider = "openrouter";
     public String llmModel = "openai/gpt-6-luna";
     public String veniceModel = "deepseek-v4-1-flash";
+    /** Who voices the replies: "openrouter" (ElevenLabs voices by id) or "venice" (one Kokoro voice for every mob). */
+    public String ttsProvider = "openrouter";
+    public String ttsModel = "elevenlabs/eleven-flash-v2.5";
+    public String veniceTtsModel = "tts-kokoro";
+    /** The Venice voice every mob speaks with; Kokoro has no Russian voices, so this is an accent at best. */
+    public String veniceVoice = "af_sky";
     public String whisperUrl = "http://127.0.0.1:63919";
     public boolean whisperAutoStart = true;
     public String whisperModel = "large-v3";
@@ -51,6 +57,7 @@ public final class MobTalkConfig {
         copy.llmProvider = llmProvider;
         copy.llmModel = llmModel;
         copy.veniceModel = veniceModel;
+        copy.ttsProvider = ttsProvider; copy.ttsModel = ttsModel; copy.veniceTtsModel = veniceTtsModel; copy.veniceVoice = veniceVoice;
         copy.whisperUrl = whisperUrl;
         copy.whisperAutoStart = whisperAutoStart;
         copy.whisperModel = whisperModel;
@@ -139,6 +146,11 @@ public final class MobTalkConfig {
         config.llmModel = textOrDefault(config.llmModel, defaults.llmModel);
         config.veniceModel = textOrDefault(config.veniceModel, defaults.veniceModel);
         config.llmProvider = "venice".equalsIgnoreCase(textOrDefault(config.llmProvider, defaults.llmProvider)) ? "venice" : "openrouter";
+        config.ttsProvider = "venice".equalsIgnoreCase(textOrDefault(config.ttsProvider, defaults.ttsProvider)) ? "venice" : "openrouter";
+        config.ttsModel = textOrDefault(config.ttsModel, defaults.ttsModel);
+        config.veniceTtsModel = textOrDefault(config.veniceTtsModel, defaults.veniceTtsModel);
+        config.veniceVoice = textOrDefault(config.veniceVoice, defaults.veniceVoice);
+        if (!config.veniceVoice.matches("[A-Za-z0-9_.-]{1,64}")) throw new IOException("Голос Venice: только латиница, цифры, _ . -");
         config.whisperModel = textOrDefault(config.whisperModel, defaults.whisperModel);
         config.whisperDevice = textOrDefault(config.whisperDevice, defaults.whisperDevice);
         config.whisperLanguage = textOrDefault(config.whisperLanguage, defaults.whisperLanguage);
@@ -161,6 +173,12 @@ public final class MobTalkConfig {
     public boolean usesVenice() { return "venice".equals(llmProvider); }
     /** The chat model of the selected provider. */
     public String chatModel() { return usesVenice() ? veniceModel : llmModel; }
+    public boolean usesVeniceSpeech() { return "venice".equals(ttsProvider); }
+    /** The speech model of the selected speech provider. */
+    public String speechModel() { return usesVeniceSpeech() ? veniceTtsModel : ttsModel; }
+    /** Whether any part of the pipeline (chat or speech) goes through that provider. */
+    public boolean needsOpenRouter() { return !usesVenice() || !usesVeniceSpeech(); }
+    public boolean needsVenice() { return usesVenice() || usesVeniceSpeech(); }
 
     private static String textOrDefault(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value.trim();

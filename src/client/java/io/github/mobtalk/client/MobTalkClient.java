@@ -297,7 +297,7 @@ public final class MobTalkClient implements ClientModInitializer {
     /** Opens (or keeps open) the OpenRouter connection while a mob is selected, so the first reply skips the handshake. */
     private void keepConnectionWarm() {
         if (stopped || !configReady || !config.enabled || selected == null) return;
-        maintenance.execute(() -> OpenRouterConnection.keepWarm(configDirectory, config.usesVenice()));
+        maintenance.execute(() -> OpenRouterConnection.keepWarm(configDirectory, config.needsVenice(), config.needsOpenRouter()));
     }
 
     void clearSelection(String reason) {

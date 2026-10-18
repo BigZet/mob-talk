@@ -14,10 +14,13 @@ public final class OpenRouterConnection {
 
     private OpenRouterConnection() { }
 
-    public static void keepWarm(Path configDirectory, boolean venice) {
+    public static void keepWarm(Path configDirectory, boolean venice) { keepWarm(configDirectory, venice, true); }
+    /** {@code venice}/{@code openRouter}: which providers the configured pipeline will call. */
+    public static void keepWarm(Path configDirectory, boolean venice, boolean openRouter) {
         // A small public listing: it warms the connection without sending the Venice key anywhere new.
         if (venice) BoundedHttp.keepWarm(HttpRequest.newBuilder(URI.create("https://api.venice.ai/api/v1/models?type=upscale"))
                 .timeout(Duration.ofSeconds(20)).GET().build());
+        if (!openRouter) return;
         String current = key;
         if (current == null) {
             try { current = OpenRouterToken.load(configDirectory); } catch (IOException missing) { return; }
