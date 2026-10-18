@@ -315,13 +315,13 @@ final class SelfTest {
             await("cow deal window", 10, () -> owner.client.currentScreen instanceof MerchantScreen, () -> {
                 String title = owner.client.currentScreen == null ? "" : owner.client.currentScreen.getTitle().getString();
                 check(owner.client.currentScreen instanceof MerchantScreen && title.contains("отношение"), "B opens the cow's own deals with the relationship in the title: " + title);
-                owner.client.setScreen(null);
+                if (owner.client.currentScreen != null) owner.client.currentScreen.close();
                 await("window closed", 1, () -> false, () -> {
                     owner.select(MobSpeechSound.find(owner.world, villager));
                     owner.openTrade();
                     await("farmer vanilla window", 10, () -> owner.client.currentScreen instanceof MerchantScreen, () -> {
                         check(owner.client.currentScreen instanceof MerchantScreen, "B opens the farmer's vanilla trade window");
-                        owner.client.setScreen(null);
+                        if (owner.client.currentScreen != null) owner.client.currentScreen.close();
                         await("window closed", 1, () -> false, this::voicePath);
                     });
                 });
