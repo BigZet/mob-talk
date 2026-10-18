@@ -753,8 +753,19 @@ public final class MobTalkClient implements ClientModInitializer {
         MobCard card = game == null ? null : game.memory.card(selected, client.player.getUuid());
         String targetLabel = mob == null ? "" : mob.getName().getString() + " · "
                 + String.format(Locale.ROOT, "%.1f м · ", Math.sqrt(client.player.squaredDistanceTo(mob)))
-                + (card == null ? "" : MobGameBridge.relationshipLabel(card) + " · ");
+                + (card == null ? "" : MobGameBridge.relationshipLabel(card) + " · ")
+                + (game == null ? "" : favorLabel(game));
         client.player.sendMessage(Text.literal("Mob Talk · " + targetLabel + status), true);
+    }
+
+    /** «услуга: Колокол площади 0/1 · » while this species waits for something from the player; counts the player's own inventory. */
+    private String favorLabel(MobGameBridge game) {
+        io.github.mobtalk.core.Favor favor = selected == null || client.player == null ? null : game.memory.favor(selected, client.player.getUuid());
+        if (favor == null) return "";
+        net.minecraft.util.Identifier id = net.minecraft.util.Identifier.tryParse(favor.item());
+        int have = id == null || !net.minecraft.registry.Registries.ITEM.containsId(id) ? 0
+                : client.player.getInventory().count(net.minecraft.registry.Registries.ITEM.get(id));
+        return "услуга: " + favor.title() + " " + Math.min(have, favor.count()) + "/" + favor.count() + " · ";
     }
 
     private void stopSpeech() {
@@ -783,7 +794,9 @@ public final class MobTalkClient implements ClientModInitializer {
                     return 1;
                 })))
                 .then(literal("status").executes(context -> {
-                    notice(status + (selected == null ? " · цель не выбрана" : " · UUID " + selected));
+                    MobGameBridge game = client.getServer() == null ? null : MobGameBridge.active(client.getServer());
+                    notice(status + (selected == null ? " · цель не выбрана" : " · UUID " + selected
+                            + (game == null || favorLabel(game).isEmpty() ? "" : " · " + favorLabel(game).replace(" · ", ""))));
                     return 1;
                 }))
                 .then(literal("clear").executes(context -> { clearSelection("Собеседник снят"); return 1; }))

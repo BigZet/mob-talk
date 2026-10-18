@@ -150,12 +150,7 @@ class TradingTest {
         Map<String, String> names = Map.of("minecraft:oak_fence", "Дубовый забор");
         Map<String, Object> fresh = Trading.view(COW, Map.of(), null, List.of(), 0, 0, 0, Map.of(), names);
         assertEquals(true, favor(fresh).get("canAsk")); assertNull(active(fresh)); assertEquals(List.of(), favor(fresh).get("done"));
-        List<?> ideas = (List<?>) favor(fresh).get("ideas");
-        assertEquals(2, ideas.size());
-        Map<?, ?> idea = (Map<?, ?>) ideas.get(0);
-        assertEquals("minecraft:oak_fence", idea.get("item")); assertEquals("Дубовый забор", idea.get("itemName")); assertEquals(8, idea.get("count"));
-        assertEquals("Крипер снёс половину загона", idea.get("why"));
-        assertEquals("minecraft:bell", ((Map<?, ?>) ideas.get(1)).get("itemName"), "unknown names stay raw");
+        assertFalse(favor(fresh).containsKey("ideas"), "catalog ideas made every cow ask for a fence; the mob invents its own");
         Favor fence = new Favor("minecraft:oak_fence", 8, "Почини загон", "leather", 20, null, 0);
         Map<String, Object> carrying = Trading.view(COW, Map.of(), fence, List.of("Колокол"), 0, 0, 0, Map.of("minecraft:oak_fence", 5), names);
         assertEquals(false, favor(carrying).get("canAsk"), "one favour at a time");

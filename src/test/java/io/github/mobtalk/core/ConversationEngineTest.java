@@ -815,9 +815,8 @@ class ConversationEngineTest {
                 "requiresFavor", true, "canUnlockNow", canUnlock, "reason", canUnlock ? "" : "отношение ниже 40");
         Map<String,Object> fence = Map.of("item", "minecraft:oak_fence", "itemName", "Дубовый забор", "count", 8, "have", canComplete ? 8 : 3,
                 "canComplete", canComplete, "title", "Почини загон", "rewardDeal", "leather", "rewardPercent", 20);
-        Map<String,Object> idea = Map.of("item", "minecraft:bell", "itemName", "Колокол", "count", 1, "why", "Чтобы телята слышали, куда идти");
-        Map<String,Object> favor = owed ? Map.of("active", fence, "canAsk", false, "done", List.of(), "ideas", List.of(idea))
-                : Map.of("canAsk", true, "done", List.of("Колокол на площадь"), "ideas", List.of(idea));
+        Map<String,Object> favor = owed ? Map.of("active", fence, "canAsk", false, "done", List.of())
+                : Map.of("canAsk", true, "done", List.of("Колокол на площадь"));
         return Map.of("deals", List.of(milk), "secret", List.of(leather), "allowedDealTypes", List.of("NONE", "OFFER", "DECLINE"), "favor", favor);
     }
 
@@ -987,7 +986,8 @@ class ConversationEngineTest {
             engine.converse(tradingCow(freeCow(false)), "Чем помочь?");
             assertEquals("[\"NONE\",\"OFFER\"]", schemaEnum("quest").toString());
             user = lastRequest.get().getAsJsonArray("messages").asList().getLast().getAsJsonObject().get("content").getAsString();
-            assertTrue(user.contains("можешь придумать услугу") && user.contains("1× Колокол (minecraft:bell) — Чтобы телята слышали") && user.contains("[Колокол на площадь]"), user);
+            assertTrue(user.contains("можешь придумать услугу") && user.contains("Сегодня тебе хочется чего-то из области «") && user.contains("[Колокол на площадь]"), user);
+            assertFalse(user.contains("идеи на выбор"), "no ready-made idea list in the prompt");
         }
     }
 

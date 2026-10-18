@@ -24,16 +24,14 @@ import java.util.Map;
  *   "deals": [ { "id", "name", "sell": {"id","name","count"}, "price": {"id","name","count"},
  *                "basePrice": int, "currentPrice": int, "minPrice": int, "maxDiscountNow": int,
  *                "allowedPrices": [int...], "canOffer": bool, "reason": str, "stockLeft": int (-1 = unlimited) } ... ],   // visible deals only
- *   "secret": [ { "id", "hint", "unlockRelationship": int, "unlockQuest": str, "canUnlockNow": bool, "reason": str } ... ], // locked secret deals
+ *   "secret": [ { "id", "hint", "unlockRelationship": int, "requiresFavor": bool, "canUnlockNow": bool, "reason": str } ... ], // locked secret deals
  *   "allowedDealTypes": ["NONE","OFFER","DECLINE"],   // OFFER present only when some visible deal has canOffer; DECLINE only with a visible deal
- *   "quests": { "available": [ { "id", "title", "kind", "target", "targetName", "count", "pitch",
- *                                 "reward": {"relationship","unlockDeal","discountDeal","discountPercent"} } ... ],
- *               "active":    [ { "id", "title", "kind", "target", "targetName", "count", "progress", "canComplete": bool } ... ],
- *               "done":      [ "id" ... ] }
+ *   "favor": { "active": { "item", "itemName", "count", "have", "canComplete": bool, "title", "rewardDeal", "rewardPercent" }, // absent when none
+ *              "canAsk": bool, "done": [ "title" ... ] }
  * }
  * </pre>
  * {@code reason} is "" when the move is possible, else a Russian explanation the mob may voice. {@code allowedPrices} lists every
- * price the next OFFER may set. For an active BRING quest {@code progress} is how many target items the player carries now.
+ * price the next OFFER may set. For the active favour {@code have} is how many of its items the player carries now.
  * A species with neither deals nor quests gets an empty map (the LLM client then says the mob trades nothing). */
 public final class Trading {
     public static final int MAX_ROUNDS = 3;
@@ -170,7 +168,7 @@ public final class Trading {
         row.put("reason", can ? "" : String.join("; ", blockers));
         return row;
     }
-    /** The favour the species waits for (if any), what the player already did, and ideas the mob may use when it asks. */
+    /** The favour the species waits for (if any) and what the player already did; the mob invents new ones itself. */
     private static Map<String, Object> favorView(String type, Favor favor, List<String> done, Map<String, Integer> inventory, Map<String, String> itemNames) {
         Map<String, Object> result = new LinkedHashMap<>();
         if (favor != null) {
@@ -183,14 +181,6 @@ public final class Trading {
         }
         result.put("canAsk", favor == null);
         result.put("done", List.copyOf(done));
-        List<Map<String, Object>> ideas = new ArrayList<>();
-        for (TradeCatalog.Idea idea : TradeCatalog.ideas(type)) {
-            Map<String, Object> row = new LinkedHashMap<>();
-            row.put("item", idea.item()); row.put("itemName", itemNames.getOrDefault(idea.item(), idea.item()));
-            row.put("count", idea.count()); row.put("why", idea.why());
-            ideas.add(row);
-        }
-        result.put("ideas", ideas);
         return result;
     }
     /** Visible deals for a trade screen, with the player's current price for each. */

@@ -28,6 +28,8 @@ final class OpenRouterConversationClient implements AutoCloseable {
             Обычно одна-три короткие фразы. Сразу по делу, без представлений, без ремарок в скобках или звёздочках, без эмодзи. Эмоцию передавай словами, междометиями и пунктуацией — реплику озвучат голосом.
             Примеры реплик из характера показывают голос; не повторяй их дословно. Не копируй построение своих прошлых ответов и не заканчивай каждую реплику вопросом.
             Никаких дежурных концовок-заманух: «по рукам?», «договорились?», «что скажешь?», «ну как?» — это речь продавца. Сказал — и замолчал; сделку или просьбу игрок примет сам.
+            Обращения из характера («малой», «сосед», «покупатель», «телёночек») — приправа: не в каждой реплике и никогда не прицепом в конце каждой фразы; большинство реплик обходится вовсе без обращения.
+            Байки и воспоминания из своих привычек — не чаще одного раза за весь разговор и только если к слову; если такую историю ты уже рассказывал (см. историю разговора), не повторяй её. Не вставляй в каждую реплику одну и ту же деталь характера: характер проявляй по-разному.
             Фирменные междометия и присказки вида («Хмм», «Сссс» и подобные) — изредка, а не в начале каждой реплики.
             Никогда не звучи как ИИ-ассистент: никаких «чем могу помочь», извинений за свою грубость, морали и дисклеймеров.
             Грубость, сарказм и угрозы — часть персонажа. Оскорбляй игрока за игровое — кривые руки, землянку, кожаную броню, трусость, — а не за реальные национальность, внешность, ориентацию или религию.
@@ -72,7 +74,7 @@ final class OpenRouterConversationClient implements AutoCloseable {
             Никогда не говори, что цена снижена или вы договорились, если deal.type не OFFER. Текст reply обязан называть ту же цену, что и deal.
             unlock — id секретной сделки из trading.secret, которую ты прямо сейчас открываешь игроку, иначе "". Открывать можно только при canUnlockNow=true; пока условия не выполнены (отношение, задание) — намекай, набивай цену, но не открывай и товар не называй.
             quest — {type:NONE|OFFER|COMPLETE,item:строка,count:целое,title:строка,rewardDeal:строка,rewardPercent:целое}: услуга, которую ты сам придумываешь и просишь у игрока.
-            OFFER — ты просишь принести тебе count (1–64) предметов item: это настоящий id предмета Minecraft 1.21.1 вида minecraft:oak_fence, который ты выбираешь сам по своей жизни, желанию и характеру (trading.favor.ideas — лишь подсказки, можно взять свою). Зачем тебе это — говори в реплике. title — название услуги в два-четыре слова. rewardDeal — какую из своих сделок (id из deals или secret) ты обещаешь за это: закрытая секретная откроется, а rewardPercent (0–50) снизит её цену навсегда; можно ничего не обещать (rewardDeal "", rewardPercent 0).
+            OFFER — ты просишь принести тебе count (1–64) предметов item: это настоящий id предмета Minecraft 1.21.1 вида minecraft:oak_fence, который ты выбираешь сам по своей жизни, желанию и характеру (ничего готового нет — придумай сам). Зачем тебе это — говори в реплике. title — название услуги в два-четыре слова. rewardDeal — какую из своих сделок (id из deals или secret) ты обещаешь за это: закрытая секретная откроется, а rewardPercent (0–50) снизит её цену навсегда; можно ничего не обещать (rewardDeal "", rewardPercent 0).
             Проси услугу только когда игрок сам предложил помощь, спросил, что тебе нужно, или добивается закрытого и секретного, и только при favor.canAsk=true — не чаще одного раза за разговор. На приветствие, болтовню, вопрос о товарах или цене — quest NONE: о своей нужде можно обмолвиться вскользь, без «принеси» и без списка. Не каждый разговор должен кончаться просьбой.
             COMPLETE — ты принимаешь принесённое по favor.active, только при canComplete=true (игрок несёт нужное количество; игра заберёт предметы сама); пока have меньше count — не принимай и скажи, чего не хватает. Иначе NONE с пустыми полями.
             """;
@@ -753,7 +755,6 @@ final class OpenRouterConversationClient implements AutoCloseable {
         // "Все восемь! Загон стоит" names a favour count, not a price.
         Map<?,?> active = activeFavor(snapshot);
         if (active != null) for (String field : List.of("count", "have")) if (active.get(field) instanceof Number number) honest.add(number.intValue());
-        for (Object value : items(favor(snapshot), "ideas")) if (value instanceof Map<?,?> idea && idea.get("count") instanceof Number number) honest.add(number.intValue());
         if (!villager) {
             List<Integer> numbers = spokenNumbers(reply);
             return numbers.isEmpty() || honest.contains(numbers.getLast()) ? -1 : numbers.getLast();
@@ -824,22 +825,23 @@ final class OpenRouterConversationClient implements AutoCloseable {
                                 : " — ещё не принёс: не принимай, напоминай, чего не хватает.")
                         .append(active.get("rewardDeal") instanceof String deal && !deal.isBlank() ? " За это ты обещал сделку «" + deal + "»"
                                 + (active.get("rewardPercent") instanceof Number percent && percent.intValue() > 0 ? " со скидкой " + percent + "%." : ".") : "");
-            else if (Boolean.TRUE.equals(favor.get("canAsk"))) {
-                summary.append("\n— сейчас игрок тебе ничего не должен; если он сам предложит помощь или спросит, что тебе нужно, можешь придумать услугу (quest OFFER): настоящий предмет и количество по своей жизни");
-                List<?> ideas = items(favor, "ideas");
-                if (!ideas.isEmpty()) {
-                    summary.append("; идеи на выбор, не обязательно: ");
-                    List<String> lines = new java.util.ArrayList<>();
-                    for (Object value : ideas) if (value instanceof Map<?,?> idea)
-                        lines.add(idea.get("count") + "× " + idea.get("itemName") + " (" + idea.get("item") + ")" + (idea.get("why") instanceof String why && !why.isBlank() ? " — " + why : ""));
-                    summary.append(String.join("; ", lines));
-                }
-                summary.append('.');
-            }
+            else if (Boolean.TRUE.equals(favor.get("canAsk")))
+                summary.append("\n— сейчас игрок тебе ничего не должен; если он сам предложит помощь или спросит, что тебе нужно, можешь придумать услугу (quest OFFER): ")
+                        .append("настоящий предмет и количество, каждый раз новое и неожиданное. Сегодня тебе хочется чего-то из области «").append(favorTheme())
+                        .append("» — привяжи просьбу к тому, что происходит прямо сейчас (биом, время, погода, что рядом, что у игрока в руках, твоё состояние) и к своей жизни. ")
+                        .append("Не проси самое очевидное для своего вида и не повторяй то, что игрок уже приносил; большую мечту всей жизни — редко, чаще мелкие нужды дня.");
             if (favor.get("done") instanceof List<?> done && !done.isEmpty()) summary.append("\n— игрок уже оказывал услуги тебе и твоим сородичам: ").append(done).append('.');
         }
         return summary.toString();
     }
+
+    private static final String[] FAVOR_THEMES = {
+            "еда, которую любишь именно ты", "что-то для дома, логова или гнезда", "блок или растение из другого биома", "безделушка на память",
+            "инструмент, оружие или снаряжение", "что-то блестящее или драгоценное", "семена, саженцы или цветы", "что-то из Нижнего мира или Края",
+            "что-то с моря или реки", "книга, карта или бумага", "шерсть, краска или ткань определённого цвета", "музыка или шум — пластинка, нотный блок, колокольчик",
+            "свет: факелы, фонари, свечи", "что-то съедобное для твоих друзей или детёнышей", "лекарство: зелье, молоко, золотое яблоко", "еда или вещь, которую ты никогда не пробовал"};
+    /** A different nudge each time, so two villages do not both want a bell. */
+    private static String favorTheme() { return FAVOR_THEMES[java.util.concurrent.ThreadLocalRandom.current().nextInt(FAVOR_THEMES.length)]; }
 
     /** The player holds the mob's own trade window open: an OFFER lands in it at once, and the selected row is what they look at. */
     private static String windowSummary(MobSnapshot snapshot) {
