@@ -1,24 +1,16 @@
 package io.github.mobtalk.core;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonParser;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
-import java.util.concurrent.*;
 
-/** Shared world memory. In-memory mutations enqueue one daemon disk writer. */
+/** Shared world memory: profiles, relations, what a species knows about a player, villages. Every mutation runs under this
+ * lock and queues a write through {@link WorldMemoryFile}; {@link ProfileDefaults} fills what a profile is born with. */
 public final class ConversationStore {
-    private static final Gson JSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Map<Path,ConversationStore> WORLDS = new HashMap<>();
-    private final Path file;
-    private final ExecutorService writer;
-    private State state = new State();
+    private final WorldMemoryFile file;
+    private State state;
     private MobTalkConfig config;
-    private boolean dirty, writing;
-    private IOException saveFailure;
 
     /** Initial load touches disk: call from a maintenance/conversation worker. */
     public static ConversationStore open(Path worldDirectory, MobTalkConfig config) throws IOException {
@@ -41,63 +33,26 @@ public final class ConversationStore {
             if (store == null) return;
             store.flush();
             WORLDS.remove(key);
-            store.writer.shutdown();
+            store.file.shutdown();
         }
     }
 
     private ConversationStore(Path worldDirectory, MobTalkConfig config) throws IOException {
-        file = worldDirectory.resolve("data/mobtalk/conversations.json");
         this.config = config.copy();
-        boolean migrated = false, enriched = false;
-        if (Files.exists(file)) {
-            try {
-                String savedJson = Files.readString(file, StandardCharsets.UTF_8);
-                state = JSON.fromJson(savedJson, State.class);
-                if (state == null || state.profiles == null || state.version > 2) throw new IllegalArgumentException();
-                if (!JsonParser.parseString(savedJson).getAsJsonObject().has("bargains")) {
-                    Path backup = file.resolveSibling("conversations.before-bargaining.backup.json");
-                    if (!Files.exists(backup)) Files.copy(file, backup);
-                }
-                if (state.bargains == null) state.bargains = new LinkedHashMap<>();
-                if (state.species == null) state.species = new LinkedHashMap<>();
-                if (state.villages == null) state.villages = new LinkedHashMap<>();
-                state.villages.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null || e.getValue().name() == null || e.getValue().dimension() == null);
-                state.species.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null);
-                state.species.values().forEach(ConversationStore::sanitize);
-                migrated = state.version < 2;
-                for (var entry : state.profiles.entrySet()) {
-                    Profile p = entry.getValue();
-                    UUID id = UUID.fromString(entry.getKey());
-                    if (p == null || p.type == null || p.personality == null || p.voiceId == null) throw new IllegalArgumentException();
-                    p.id = id; p.type = canonical(p.type); p.name = TextBounds.characters(p.name, 120);
-                    p.personality = TextBounds.characters(p.personality, 4000); p.memory = TextBounds.characters(p.memory, 4000);
-                    if (p.turns == null) p.turns = new ArrayList<>();
-                    p.turns.removeIf(t -> t == null || t.user() == null || t.assistant() == null);
-                    while (p.turns.size() > 100) p.turns.removeFirst();
-                    if (p.events == null) p.events = new ArrayList<>();
-                    p.events.removeIf(e -> e == null || e.text == null);
-                    while (p.events.size() > 20) p.events.removeFirst();
-                    if (p.relations == null) p.relations = new LinkedHashMap<>();
-                    p.relations.entrySet().removeIf(e -> e.getValue() == null);
-                    p.relations.forEach((player, r) -> { r.score = clamp(r.score, hostile(p)); sanitize(r); adopt(p.type, player, r); });
-                    if (p.action == null) p.action = ActionIntent.none();
-                    if (p.traits == null) p.traits = new ArrayList<>();
-                    if (p.givenName == null) p.givenName = ""; if (p.backstory == null) p.backstory = ""; if (p.villageId == null) p.villageId = "";
-                    if (p.wish == null) p.wish = ""; if (p.hidden == null) p.hidden = "";
-                    if (migrated) p.variantSlot = -1;
-                }
-                if (migrated) {
-                    Path backup = file.resolveSibling("conversations.v1.backup.json");
-                    if (!Files.exists(backup)) Files.copy(file, backup);
-                    state.version = 2;
-                }
-                // Back up v1 before assigning its old shared voices to the new disjoint pools.
-                for (Profile profile : state.profiles.values()) enriched |= refreshProfile(profile);
-            } catch (IOException | RuntimeException failure) { throw new IOException("Не удалось прочитать память Mob Talk в папке мира."); }
-        }
-        writer = Executors.newSingleThreadExecutor(task -> { Thread thread = new Thread(task, "mobtalk-world-memory"); thread.setDaemon(true); return thread; });
-        if (migrated || enriched) scheduleSave();
+        WorldMemoryFile.Loaded loaded = WorldMemoryFile.read(WorldMemoryFile.of(worldDirectory));
+        state = loaded.state() == null ? new State() : loaded.state();
+        file = new WorldMemoryFile(WorldMemoryFile.of(worldDirectory), this::snapshot);
+        boolean enriched = false;
+        // Back up v1 before assigning its old shared voices to the new disjoint pools.
+        for (Profile profile : state.profiles.values()) enriched |= ProfileDefaults.refresh(profile, state.profiles, this.config);
+        if (loaded.migrated() || enriched) scheduleSave();
     }
+
+    /** A deep copy for the writer thread, taken under the store lock. */
+    private synchronized State snapshot() { return state.copy(); }
+    private void scheduleSave() { file.markDirty(); }
+    /** Blocking writer barrier for shutdown/tests, never the game thread. */
+    public void flush() throws IOException { file.flush(); }
 
     synchronized Profile profile(MobSnapshot snapshot) {
         Profile p = ensure(snapshot.id(), snapshot.type(), snapshot.name());
@@ -111,7 +66,7 @@ public final class ConversationStore {
                 r.ownerKnown = true; scheduleSave();
             }
         }
-        Profile detached = copy(p);
+        Profile detached = p.copy();
         detached.village = p.villageId == null || p.villageId.isBlank() ? null : state.villages.get(p.villageId);
         MobCard current = card(snapshot.id(), snapshot.playerId());
         detached.relationship = current.relationship();
@@ -209,30 +164,11 @@ public final class ConversationStore {
     }
     private static String sharedKey(String type, UUID player) { return type + ":" + player; }
     private Shared shared(String type, UUID player) { return state.species.computeIfAbsent(sharedKey(type, player), ignored -> new Shared()); }
-    /** 0.3.0 kept opened secrets per mob; fold them into the species record so the whole village knows. */
-    private void adopt(String type, String player, Relation r) {
-        if (r.deals.values().stream().noneMatch(TradeState::unlocked)) return;
-        Shared shared = state.species.computeIfAbsent(type + ":" + player, ignored -> new Shared());
-        r.deals.forEach((id, value) -> { if (value.unlocked()) shared.unlocked.add(id); });
-    }
     private Relation tradingRelation(Profile p, UUID player) {
         if (player == null) throw new IllegalArgumentException("Сделки и задания требуют игрока.");
         return relation(p, player);
     }
     private static String dealName(Profile p, String dealId) { TradeDeal deal = TradeCatalog.deal(p.type, dealId); return deal == null ? String.valueOf(dealId) : deal.name(); }
-    /** Files written before 0.3 have no deal maps; a damaged entry is dropped rather than failing the whole world. */
-    private static void sanitize(Relation r) {
-        if (r.deals == null) r.deals = new LinkedHashMap<>();
-        r.deals.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null);
-    }
-    private static void sanitize(Shared shared) {
-        if (shared.unlocked == null) shared.unlocked = new LinkedHashSet<>();
-        shared.unlocked.removeIf(Objects::isNull);
-        if (shared.favorsDone == null) shared.favorsDone = new ArrayList<>();
-        shared.favorsDone.removeIf(Objects::isNull);
-        if (shared.favor != null && (shared.favor.item() == null || shared.favor.count() < 1)) shared.favor = null;
-    }
-
     // ---- Generated life stories: one per mob at first meeting, one per village at its first villager. ----
 
     /** A village the player has met, anchored where its first villager stood (or its bell). */
@@ -364,7 +300,7 @@ public final class ConversationStore {
         p.customPersonality = "";
         p.calm = -1; p.confidence = -1; p.curiosity = -1; p.sociability = -1;
         p.preference = ""; p.fear = ""; p.traits = new ArrayList<>();
-        refreshProfile(p);
+        ProfileDefaults.refresh(p, state.profiles, config);
         p.revision++; scheduleSave();
     }
     public synchronized ActionIntent action(UUID mob) { Profile p = state.profiles.get(mob.toString()); return p == null ? ActionIntent.none() : p.action; }
@@ -398,52 +334,11 @@ public final class ConversationStore {
 
     private Profile ensure(UUID id, String type, String observedName) {
         Profile p = state.profiles.get(id.toString());
-        if (p != null) { if (refreshProfile(p)) scheduleSave(); return p; }
+        if (p != null) { if (ProfileDefaults.refresh(p, state.profiles, config)) scheduleSave(); return p; }
         SpeciesCatalog.Species species = SpeciesCatalog.effective(type, config);
         p = new Profile(); p.id = id; p.type = species.id(); p.name = TextBounds.characters(observedName, 120);
-        refreshProfile(p);
+        ProfileDefaults.refresh(p, state.profiles, config);
         state.profiles.put(id.toString(), p); scheduleSave(); return p;
-    }
-
-    private int allocateSlot(String canonical) {
-        int[] counts = new int[3];
-        for (Profile existing : state.profiles.values()) if (canonical.equals(existing.type) && existing.variantSlot >= 0 && existing.variantSlot < 3) counts[existing.variantSlot]++;
-        int least = Math.min(counts[0], Math.min(counts[1], counts[2])); List<Integer> candidates = new ArrayList<>();
-        for (int i = 0; i < 3; i++) if (counts[i] == least) candidates.add(i);
-        return candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
-    }
-
-    private boolean refreshProfile(Profile p) {
-        SpeciesCatalog.Species species = SpeciesCatalog.effective(p.type, config);
-        boolean changed = false, legacy = p.variantSlot < 0 || p.variantSlot >= 3;
-        if (legacy) {
-            p.variantSlot = allocateSlot(species.id()); p.voiceId = species.variants().get(p.variantSlot).voice().id();
-            p.customPersonality = ""; p.traits = new ArrayList<>(); changed = true;
-        }
-        if (p.customPersonality == null) {
-            boolean generated = p.personality == null || p.personality.isBlank()
-                    || SpeciesCatalog.get(p.type).variants().stream().anyMatch(v -> v.prompt().equals(p.personality))
-                    || species.variants().stream().anyMatch(v -> v.prompt().equals(p.personality));
-            p.customPersonality = generated ? "" : TextBounds.characters(p.personality, 4000); changed = true;
-        }
-        if (p.calm < 0 || p.calm > 100) { p.calm = randomAxis(); changed = true; }
-        if (p.confidence < 0 || p.confidence > 100) { p.confidence = randomAxis(); changed = true; }
-        if (p.curiosity < 0 || p.curiosity > 100) { p.curiosity = randomAxis(); changed = true; }
-        if (p.sociability < 0 || p.sociability > 100) { p.sociability = randomAxis(); changed = true; }
-        if (p.preference == null || p.preference.isBlank()) { p.preference = concern(species.interests()); changed = true; }
-        if (p.fear == null || p.fear.isBlank()) { p.fear = concern(species.fears()); changed = true; }
-        if (p.traits == null || p.traits.isEmpty()) {
-            p.traits = new ArrayList<>(List.of("Особенно ценит: " + p.preference, "Лично тревожит: " + p.fear)); changed = true;
-        }
-        String personality = p.customPersonality.isBlank() ? species.variants().get(p.variantSlot).prompt() : p.customPersonality;
-        if (!personality.equals(p.personality)) { p.personality = TextBounds.characters(personality, 4000); changed = true; }
-        return changed;
-    }
-
-    private static int randomAxis() { return ThreadLocalRandom.current().nextInt(101); }
-    private static String concern(String themes) {
-        String[] choices = themes.replaceAll("[.]+$", "").split(",|\\s+и\\s+");
-        return TextBounds.characters(choices[ThreadLocalRandom.current().nextInt(choices.length)].strip(), 300);
     }
 
     private Relation relation(Profile p, UUID player) {
@@ -479,68 +374,14 @@ public final class ConversationStore {
         p.events.forEach(event -> result.add(event.text));
         return List.copyOf(result);
     }
-    private boolean hostile(Profile p) { return SpeciesCatalog.get(p.type).hostile(); }
-    private static int clamp(int score, boolean hostile) { return Math.max(-100, Math.min(hostile ? -1 : 100, score)); }
+    private static boolean hostile(Profile p) { return p.hostile(); }
+    static int clamp(int score, boolean hostile) { return Math.max(-100, Math.min(hostile ? -1 : 100, score)); }
     private static boolean cooledDown(long last, long now, long delay) { return last < 0 || now >= last && now - last >= delay; }
     private static String safePlayer(String name) { return TextBounds.characters(name == null || name.isBlank() ? "неизвестный" : name, 120); }
     private static String canonical(String type) { return type.contains(":") ? type : "minecraft:" + type; }
     private Profile require(UUID id) { Profile p = state.profiles.get(id.toString()); if (p == null) throw new IllegalArgumentException("Профиль моба ещё не создан."); return p; }
     private static void event(Profile p, long time, String text) { p.events.add(new Event(time, TextBounds.characters(text, 500))); while (p.events.size() > 20) p.events.removeFirst(); }
 
-    /** Blocking writer barrier for shutdown/tests, never the game thread. */
-    public void flush() throws IOException {
-        Future<?> barrier;
-        synchronized (this) { if (dirty && !writing) scheduleSave(); barrier = writer.submit(() -> { }); }
-        try { barrier.get(); }
-        catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); throw new IOException("Сохранение памяти Mob Talk прервано."); }
-        catch (ExecutionException failure) { throw new IOException("Не удалось сохранить память Mob Talk."); }
-        synchronized (this) { if (saveFailure != null) throw saveFailure; }
-    }
-    private synchronized void scheduleSave() { dirty = true; if (!writing) { writing = true; writer.execute(this::writeLoop); } }
-    private void writeLoop() {
-        while (true) {
-            State snapshot;
-            synchronized (this) {
-                if (!dirty) { writing = false; return; }
-                dirty = false;
-                snapshot = new State();
-                state.profiles.forEach((key, p) -> snapshot.profiles.put(key, copy(p)));
-                snapshot.bargains.putAll(state.bargains); // Sessions are immutable records.
-                snapshot.villages.putAll(state.villages); // Immutable records.
-                state.species.forEach((key, shared) -> {
-                    Shared c = new Shared(); c.unlocked.addAll(shared.unlocked);
-                    c.favor = shared.favor; c.favorsDone.addAll(shared.favorsDone); snapshot.species.put(key, c);
-                });
-            }
-            try { write(snapshot); synchronized (this) { saveFailure = null; } }
-            catch (IOException failure) { synchronized (this) { saveFailure = failure; dirty = true; writing = false; } return; }
-        }
-    }
-    private void write(State snapshot) throws IOException {
-        Path temporary = null;
-        try {
-            Files.createDirectories(file.getParent()); temporary = Files.createTempFile(file.getParent(), "conversations-", ".tmp");
-            Files.writeString(temporary, JSON.toJson(snapshot), StandardCharsets.UTF_8);
-            try { Files.move(temporary, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING); }
-            catch (AtomicMoveNotSupportedException unsupported) { Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING); }
-        } catch (IOException failure) { throw new IOException("Не удалось сохранить память Mob Talk в папке мира."); }
-        finally { if (temporary != null) Files.deleteIfExists(temporary); }
-    }
-    private static Profile copy(Profile source) {
-        Profile p = new Profile(); p.id = source.id; p.type = source.type; p.name = source.name; p.personality = source.personality;
-        p.voiceId = source.voiceId; p.memory = source.memory; p.variantSlot = source.variantSlot; p.revision = source.revision; p.action = source.action;
-        p.givenName = source.givenName; p.backstory = source.backstory; p.villageId = source.villageId; p.wish = source.wish; p.hidden = source.hidden;
-        p.customPersonality = source.customPersonality; p.calm = source.calm; p.confidence = source.confidence;
-        p.curiosity = source.curiosity; p.sociability = source.sociability; p.preference = source.preference; p.fear = source.fear;
-        p.turns = new ArrayList<>(source.turns); p.events = new ArrayList<>(source.events); p.traits = new ArrayList<>(source.traits);
-        source.relations.forEach((key, r) -> {
-            Relation c = new Relation(); c.score = r.score; c.hits = r.hits; c.lastHelp = r.lastHelp; c.lastApology = r.lastApology;
-            c.lastInsult = r.lastInsult; c.lastThreat = r.lastThreat; c.lastPurchase = r.lastPurchase; c.ownerKnown = r.ownerKnown;
-            c.deals = new LinkedHashMap<>(r.deals); // Immutable records.
-            p.relations.put(key, c);
-        });
-        return p;
-    }
     static final class Profile {
         transient UUID id; transient int relationship; transient List<String> recentEvents = List.of(); transient Village village;
         String type, name, personality, voiceId; String memory = "";
@@ -553,20 +394,93 @@ public final class ConversationStore {
         int variantSlot = -1; long revision; ActionIntent action = ActionIntent.none();
         List<String> traits = new ArrayList<>();
         List<Turn> turns = new ArrayList<>(); List<Event> events = new ArrayList<>(); Map<String,Relation> relations = new LinkedHashMap<>();
+
+        boolean hostile() { return SpeciesCatalog.get(type).hostile(); }
+        /** Bounds and defaults for a profile read from disk; a damaged entry is dropped rather than failing the whole world. */
+        void sanitize() {
+            type = type.contains(":") ? type : "minecraft:" + type; name = TextBounds.characters(name, 120);
+            personality = TextBounds.characters(personality, 4000); memory = TextBounds.characters(memory, 4000);
+            if (turns == null) turns = new ArrayList<>();
+            turns.removeIf(t -> t == null || t.user() == null || t.assistant() == null);
+            while (turns.size() > 100) turns.removeFirst();
+            if (events == null) events = new ArrayList<>();
+            events.removeIf(e -> e == null || e.text == null);
+            while (events.size() > 20) events.removeFirst();
+            if (relations == null) relations = new LinkedHashMap<>();
+            relations.entrySet().removeIf(e -> e.getValue() == null);
+            relations.values().forEach(r -> { r.score = clamp(r.score, hostile()); r.sanitize(); });
+            if (action == null) action = ActionIntent.none();
+            if (traits == null) traits = new ArrayList<>();
+            if (givenName == null) givenName = ""; if (backstory == null) backstory = ""; if (villageId == null) villageId = "";
+            if (wish == null) wish = ""; if (hidden == null) hidden = "";
+        }
+        Profile copy() {
+            Profile p = new Profile(); p.id = id; p.type = type; p.name = name; p.personality = personality;
+            p.voiceId = voiceId; p.memory = memory; p.variantSlot = variantSlot; p.revision = revision; p.action = action;
+            p.givenName = givenName; p.backstory = backstory; p.villageId = villageId; p.wish = wish; p.hidden = hidden;
+            p.customPersonality = customPersonality; p.calm = calm; p.confidence = confidence;
+            p.curiosity = curiosity; p.sociability = sociability; p.preference = preference; p.fear = fear;
+            p.turns = new ArrayList<>(turns); p.events = new ArrayList<>(events); p.traits = new ArrayList<>(traits);
+            relations.forEach((key, r) -> p.relations.put(key, r.copy()));
+            return p;
+        }
     }
     public record Turn(String user, String assistant) { }
     private record Event(long time, String text) { }
-    private static final class Relation {
+    /** One player as this mob knows them: standing, what they did, and their prices on its deals. */
+    static final class Relation {
         int score, hits; long lastHelp = -1, lastApology = -1, lastInsult = -1, lastThreat = -1, lastPurchase = -1; boolean ownerKnown;
         Map<String,TradeState> deals = new LinkedHashMap<>();
+        void sanitize() {
+            if (deals == null) deals = new LinkedHashMap<>();
+            deals.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null);
+        }
+        Relation copy() {
+            Relation c = new Relation(); c.score = score; c.hits = hits; c.lastHelp = lastHelp; c.lastApology = lastApology;
+            c.lastInsult = lastInsult; c.lastThreat = lastThreat; c.lastPurchase = lastPurchase; c.ownerKnown = ownerKnown;
+            c.deals = new LinkedHashMap<>(deals); // Immutable records.
+            return c;
+        }
     }
     /** What a whole species knows about one player: key "type:player". */
-    private static final class Shared { Set<String> unlocked = new LinkedHashSet<>(); Favor favor; List<String> favorsDone = new ArrayList<>(); }
-    private static final class State {
+    static final class Shared {
+        Set<String> unlocked = new LinkedHashSet<>(); Favor favor; List<String> favorsDone = new ArrayList<>();
+        void sanitize() {
+            if (unlocked == null) unlocked = new LinkedHashSet<>();
+            unlocked.removeIf(Objects::isNull);
+            if (favorsDone == null) favorsDone = new ArrayList<>();
+            favorsDone.removeIf(Objects::isNull);
+            if (favor != null && (favor.item() == null || favor.count() < 1)) favor = null;
+        }
+        Shared copy() { Shared c = new Shared(); c.unlocked.addAll(unlocked); c.favor = favor; c.favorsDone.addAll(favorsDone); return c; }
+    }
+    /** The whole file. */
+    static final class State {
         int version = 2;
         Map<String,Profile> profiles = new LinkedHashMap<>();
         Map<String,Bargaining.Session> bargains = new LinkedHashMap<>();
         Map<String,Shared> species = new LinkedHashMap<>();
         Map<String,Village> villages = new LinkedHashMap<>();
+        void sanitize() {
+            if (bargains == null) bargains = new LinkedHashMap<>();
+            if (species == null) species = new LinkedHashMap<>();
+            if (villages == null) villages = new LinkedHashMap<>();
+            villages.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null || e.getValue().name() == null || e.getValue().dimension() == null);
+            species.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null);
+            species.values().forEach(Shared::sanitize);
+        }
+        /** 0.3.0 kept opened secrets per mob; fold them into the species record so the whole village knows. */
+        void adoptLegacyUnlocks(String type, String player, Relation r) {
+            if (r.deals.values().stream().noneMatch(TradeState::unlocked)) return;
+            Shared shared = species.computeIfAbsent(type + ":" + player, ignored -> new Shared());
+            r.deals.forEach((id, value) -> { if (value.unlocked()) shared.unlocked.add(id); });
+        }
+        State copy() {
+            State c = new State(); c.version = version;
+            profiles.forEach((key, p) -> c.profiles.put(key, p.copy()));
+            c.bargains.putAll(bargains); c.villages.putAll(villages); // Immutable records.
+            species.forEach((key, shared) -> c.species.put(key, shared.copy()));
+            return c;
+        }
     }
 }
