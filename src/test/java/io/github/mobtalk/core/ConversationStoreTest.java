@@ -444,6 +444,44 @@ class ConversationStoreTest {
         } finally { ConversationStore.closeWorld(directory); }
     }
 
+    // A favour the mob invented is owed to the whole species: any cow may take the delivery, the taker warms up and keeps
+    // the promised price; the promised secret opens for the species; the next favour may be asked only afterwards.
+    @Test void favoursAreSharedBySpeciesAndPayTheMobThatTakesDelivery() throws Exception {
+        UUID giver = UUID.randomUUID(), taker = UUID.randomUUID(), player = UUID.randomUUID(), other = UUID.randomUUID();
+        ConversationStore store = ConversationStore.open(directory, config);
+        store.observe(cow(giver, player, 0, Map.of()));
+        store.observe(cow(taker, player, 0, Map.of()));
+        assertNull(store.favor(giver, player));
+        assertThrows(IllegalStateException.class, () -> store.completeFavor(giver, player, "Игрок", 50), "nothing owed yet");
+        Favor asked = new Favor("minecraft:bell", 1, "Колокол на площадь", "leather", 20, null, 0);
+        store.startFavor(giver, player, asked, 1000);
+        Favor pending = store.favor(taker, player);
+        assertEquals("minecraft:bell", pending.item()); assertEquals(giver, pending.giver()); assertEquals(1000, pending.startedMillis());
+        assertThrows(IllegalStateException.class, () -> store.startFavor(taker, player, asked, 1100), "one favour at a time per species");
+        assertNull(store.favor(giver, other));
+        long revision = store.revision(taker);
+        Favor done = store.completeFavor(taker, player, "Игрок", 2000);
+        assertEquals("Колокол на площадь", done.title());
+        assertEquals(revision + 1, store.revision(taker));
+        assertEquals(Favor.RELATIONSHIP, store.card(taker, player).relationship());
+        assertEquals(0, store.card(giver, player).relationship(), "the giver did not take the delivery");
+        assertTrue(store.tradeState(giver, player, "leather").unlocked(), "the promised secret is open for the species");
+        assertEquals(1, store.tradeState(taker, player, "leather").price(), "2 × 80% = 1, floor is 1");
+        assertEquals(0, store.tradeState(giver, player, "leather").price(), "the discount stays with the taker");
+        assertEquals(List.of("Колокол на площадь"), store.favorsDone(giver, player));
+        assertNull(store.favor(giver, player));
+        assertTrue(store.events(taker).stream().anyMatch(e -> e.startsWith("Игрок Игрок выполнил услугу: Колокол на площадь")), store.events(taker).toString());
+        assertThrows(IllegalArgumentException.class, () -> new Favor("minecraft:wheat", 70, "", "", 0, null, 0), "a stack at most");
+        store.startFavor(taker, player, new Favor("minecraft:wheat", 64, "", "", 0, null, 0), 3000);
+        ConversationStore.closeWorld(directory);
+        ConversationStore reopened = ConversationStore.open(directory, config);
+        try {
+            assertEquals("64× wheat", reopened.favor(giver, player).title(), "a blank title names the goods");
+            assertEquals(List.of("Колокол на площадь"), reopened.favorsDone(taker, player));
+            assertTrue(reopened.tradeState(taker, player, "leather").unlocked());
+        } finally { ConversationStore.closeWorld(directory); }
+    }
+
     // A world saved before 0.3 has relations without deal/quest maps; it must load and start trading from scratch.
     @Test void loadsPreTradingFilesAndDropsDamagedTradeEntries() throws Exception {
         UUID mob = UUID.randomUUID(), player = UUID.randomUUID();

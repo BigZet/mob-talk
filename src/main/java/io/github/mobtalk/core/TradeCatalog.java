@@ -18,7 +18,11 @@ import java.util.Map;
 /** Bundled deals and quests per species from assets/mobtalk/trades.json. A species absent from the file trades nothing. */
 public final class TradeCatalog {
     /** Validated contents of one trades.json, keyed by canonical species id in file order. */
-    record Loaded(Map<String, List<TradeDeal>> deals, Map<String, List<QuestDefinition>> quests) { }
+    /** A hint for the model when it invents a favour to ask: an item, a count and why this species might want it. */
+    public record Idea(String item, int count, String why) { }
+    record Loaded(Map<String, List<TradeDeal>> deals, Map<String, List<QuestDefinition>> quests, Map<String, List<Idea>> ideas) {
+        Loaded(Map<String, List<TradeDeal>> deals, Map<String, List<QuestDefinition>> quests) { this(deals, quests, Map.of()); }
+    }
     private static final Loaded BUNDLED = bundled();
     private static volatile Loaded current = BUNDLED;
 
@@ -26,6 +30,7 @@ public final class TradeCatalog {
 
     public static List<TradeDeal> deals(String type) { return current.deals.getOrDefault(normalized(type), List.of()); }
     public static List<QuestDefinition> quests(String type) { return current.quests.getOrDefault(normalized(type), List.of()); }
+    public static List<Idea> ideas(String type) { return current.ideas.getOrDefault(normalized(type), List.of()); }
     public static TradeDeal deal(String type, String id) {
         if (id == null) return null;
         for (TradeDeal deal : deals(type)) if (deal.id().equals(id)) return deal;
@@ -51,6 +56,7 @@ public final class TradeCatalog {
         if (data == null) throw invalid("empty trades.json");
         Map<String, List<TradeDeal>> deals = new LinkedHashMap<>();
         Map<String, List<QuestDefinition>> quests = new LinkedHashMap<>();
+        Map<String, List<Idea>> ideas = new LinkedHashMap<>();
         if (data.species != null) for (var entry : data.species.entrySet()) {
             String type = normalized(entry.getKey());
             SpeciesTrades row = entry.getValue();
@@ -85,10 +91,16 @@ public final class TradeCatalog {
                 if (!quest.reward().unlockDeal().isEmpty() && !dealIds.contains(quest.reward().unlockDeal())) throw invalid(type + ": unknown unlockDeal of " + quest.id());
                 if (!quest.reward().discountDeal().isEmpty() && !dealIds.contains(quest.reward().discountDeal())) throw invalid(type + ": unknown discountDeal of " + quest.id());
             }
+            var ideaList = new ArrayList<Idea>();
+            if (row.ideas != null) for (IdeaData idea : row.ideas) {
+                if (idea == null || idea.count < 1 || idea.count > Favor.MAX_COUNT) throw invalid(type + ": bad idea");
+                ideaList.add(new Idea(itemId(idea.item, type), idea.count, idea.why == null ? "" : idea.why));
+            }
             deals.put(type, List.copyOf(dealList));
             quests.put(type, List.copyOf(questList));
+            ideas.put(type, List.copyOf(ideaList));
         }
-        return new Loaded(Collections.unmodifiableMap(deals), Collections.unmodifiableMap(quests));
+        return new Loaded(Collections.unmodifiableMap(deals), Collections.unmodifiableMap(quests), Collections.unmodifiableMap(ideas));
     }
 
     private static TradeDeal.Item item(ItemData data, String type) {
@@ -114,7 +126,8 @@ public final class TradeCatalog {
     }
 
     private static final class Document { int schemaVersion; Map<String, SpeciesTrades> species; }
-    private static final class SpeciesTrades { List<DealData> deals; List<QuestData> quests; }
+    private static final class SpeciesTrades { List<DealData> deals; List<QuestData> quests; List<IdeaData> ideas; }
+    private static final class IdeaData { String item, why = ""; int count = 1; }
     private static final class ItemData { String id, name; int count = 1; }
     private static final class DealData {
         String id, name, hint = "", unlockQuest = "";

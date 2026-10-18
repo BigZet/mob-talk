@@ -39,7 +39,15 @@ public final class Trading {
     public static final int MAX_ROUNDS = 3;
     public static final long SESSION_MILLIS = 20 * 60_000L;
     public static final int HOSTILE_RELATIONSHIP = -40;
+    private static volatile java.util.function.Predicate<String> itemChecker = id -> true;
     private Trading() { }
+
+    /** The game layer installs a registry lookup so a favour can only ask for items that exist. */
+    public static void setItemChecker(java.util.function.Predicate<String> checker) { itemChecker = checker == null ? id -> true : checker; }
+    /** Whether {@code id} is a well-formed item id that the game knows (shape only until the game installs its check). */
+    public static boolean itemExists(String id) {
+        return id != null && id.matches("[a-z0-9_.-]+:[a-z0-9_./-]+") && itemChecker.test(id);
+    }
 
     /** The price this player pays now: the negotiated one, else the catalog price. */
     public static int currentPrice(TradeDeal deal, TradeState state) {

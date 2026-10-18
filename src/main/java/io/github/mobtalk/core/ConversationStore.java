@@ -303,6 +303,58 @@ public final class ConversationStore {
         shared.quests.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null || e.getValue().status() == null);
         if (shared.unlocked == null) shared.unlocked = new LinkedHashSet<>();
         shared.unlocked.removeIf(Objects::isNull);
+        if (shared.favorsDone == null) shared.favorsDone = new ArrayList<>();
+        shared.favorsDone.removeIf(Objects::isNull);
+        if (shared.favor != null && (shared.favor.item() == null || shared.favor.count() < 1)) shared.favor = null;
+    }
+
+    // ---- Favours the mob itself asks for (bring N of an item). Shared by the species for this player. ----
+
+    /** The favour this species is waiting on from the player, or null. */
+    public synchronized Favor favor(UUID mob, UUID player) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        Shared shared = p == null || player == null ? null : state.species.get(sharedKey(p.type, player));
+        return shared == null ? null : shared.favor;
+    }
+    /** Titles of favours this player has done for the species, oldest first. */
+    public synchronized List<String> favorsDone(UUID mob, UUID player) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        Shared shared = p == null || player == null ? null : state.species.get(sharedKey(p.type, player));
+        return shared == null ? List.of() : List.copyOf(shared.favorsDone);
+    }
+    /** The mob asks for a favour; refused while another one is pending for this species and player. */
+    public synchronized void startFavor(UUID mob, UUID player, Favor favor, long nowMillis) {
+        Profile p = require(mob); tradingRelation(p, player);
+        Shared shared = shared(p.type, player);
+        if (shared.favor != null) throw new IllegalStateException("Сначала нужно закончить услугу «" + shared.favor.title() + "».");
+        shared.favor = new Favor(favor.item(), favor.count(), favor.title(), favor.rewardDeal(), favor.rewardPercent(), mob, nowMillis);
+        p.revision++;
+        event(p, nowMillis, "Попросил игрока об услуге: " + shared.favor.title() + " (" + favor.count() + "× " + favor.item() + ")"); scheduleSave();
+    }
+    /** The player delivered (the game already took the items): the favour is done for the species, this mob warms up by
+     * {@link Favor#RELATIONSHIP}, the promised deal opens and/or its price drops for this mob. Returns the favour. */
+    public synchronized Favor completeFavor(UUID mob, UUID player, String playerName, long nowMillis) {
+        Profile p = require(mob); Relation r = tradingRelation(p, player);
+        Shared shared = shared(p.type, player);
+        Favor favor = shared.favor;
+        if (favor == null) throw new IllegalStateException("Сейчас никакой услуги не ждут.");
+        shared.favor = null;
+        shared.favorsDone.add(favor.title());
+        while (shared.favorsDone.size() > 50) shared.favorsDone.removeFirst();
+        r.score = clamp(r.score + Favor.RELATIONSHIP, hostile(p));
+        TradeDeal promised = TradeCatalog.deal(p.type, favor.rewardDeal());
+        if (promised != null) {
+            if (promised.secret()) shared.unlocked.add(promised.id());
+            if (favor.rewardPercent() > 0) {
+                TradeState s = r.deals.getOrDefault(promised.id(), TradeState.initial());
+                int paying = Trading.currentPrice(promised, s);
+                int lowered = Math.max(promised.floorPrice(), paying * (100 - favor.rewardPercent()) / 100);
+                if (lowered < paying) r.deals.put(promised.id(), new TradeState(lowered, s.unlocked(), s.rounds(), s.sessionStartMillis(), s.boughtToday(), s.boughtDay()));
+            }
+        }
+        p.revision++;
+        event(p, nowMillis, "Игрок " + safePlayer(playerName) + " выполнил услугу: " + favor.title() + "; отношение " + r.score); scheduleSave();
+        return favor;
     }
 
     public synchronized List<String> events(UUID mob) { Profile p = state.profiles.get(mob.toString()); return p == null ? List.of() : p.events.stream().map(e -> e.text).toList(); }
@@ -488,7 +540,10 @@ public final class ConversationStore {
                 snapshot = new State();
                 state.profiles.forEach((key, p) -> snapshot.profiles.put(key, copy(p)));
                 snapshot.bargains.putAll(state.bargains); // Sessions are immutable records.
-                state.species.forEach((key, shared) -> { Shared c = new Shared(); c.quests.putAll(shared.quests); c.unlocked.addAll(shared.unlocked); snapshot.species.put(key, c); });
+                state.species.forEach((key, shared) -> {
+                    Shared c = new Shared(); c.quests.putAll(shared.quests); c.unlocked.addAll(shared.unlocked);
+                    c.favor = shared.favor; c.favorsDone.addAll(shared.favorsDone); snapshot.species.put(key, c);
+                });
             }
             try { write(snapshot); synchronized (this) { saveFailure = null; } }
             catch (IOException failure) { synchronized (this) { saveFailure = failure; dirty = true; writing = false; } return; }
@@ -534,7 +589,10 @@ public final class ConversationStore {
         Map<String,TradeState> deals = new LinkedHashMap<>(); Map<String,QuestState> quests = new LinkedHashMap<>();
     }
     /** What a whole species knows about one player: key "type:player". */
-    private static final class Shared { Map<String,QuestState> quests = new LinkedHashMap<>(); Set<String> unlocked = new LinkedHashSet<>(); }
+    private static final class Shared {
+        Map<String,QuestState> quests = new LinkedHashMap<>(); Set<String> unlocked = new LinkedHashSet<>();
+        Favor favor; List<String> favorsDone = new ArrayList<>();
+    }
     private static final class State {
         int version = 2;
         Map<String,Profile> profiles = new LinkedHashMap<>();
