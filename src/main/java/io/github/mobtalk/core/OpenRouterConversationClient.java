@@ -944,6 +944,11 @@ final class OpenRouterConversationClient implements AutoCloseable {
      * story to stay consistent with, or null; for a villager without one the model founds the village too. */
     Biography biography(MobSnapshot snapshot, ConversationStore.Profile profile, ConversationStore.Village village,
                         List<String> takenNames, List<String> takenVillages) throws IOException, InterruptedException {
+        try { return biography(snapshot, profile, village, takenNames, takenVillages, false); }
+        catch (IOException malformed) { return biography(snapshot, profile, village, takenNames, takenVillages, true); } // A cut-off JSON once in a while: one more try.
+    }
+    private Biography biography(MobSnapshot snapshot, ConversationStore.Profile profile, ConversationStore.Village village,
+                                List<String> takenNames, List<String> takenVillages, boolean retry) throws IOException, InterruptedException {
         SpeciesCatalog.Species species = SpeciesCatalog.effective(snapshot.type(), config);
         String archetype = species.variants().get(Math.max(0, Math.min(2, profile.variantSlot))).prompt();
         boolean villager = "minecraft:villager".equals(snapshot.type());
@@ -968,7 +973,7 @@ final class OpenRouterConversationClient implements AutoCloseable {
         facts.add("takenNames", JSON.toJsonTree(takenNames)); facts.add("takenVillageNames", JSON.toJsonTree(takenVillages));
         JsonArray messages = new JsonArray(); messages.add(message("system", system)); messages.add(message("user", "Факты о персонаже: " + facts));
         JsonObject body = new JsonObject(); body.addProperty("model", config.chatModel()); body.add("messages", messages);
-        body.addProperty("max_tokens", 1024); if (!noTemperature) body.addProperty("temperature", 1.0);
+        body.addProperty("max_tokens", 2048); if (!noTemperature) body.addProperty("temperature", retry ? 0.8 : 1.0);
         JsonObject fields = new JsonObject();
         for (String field : List.of("name", "story", "villageName", "villageStory")) fields.add(field, property("string"));
         JsonObject jsonSchema = new JsonObject(); jsonSchema.addProperty("name", "mob_biography"); jsonSchema.addProperty("strict", true);
@@ -989,7 +994,10 @@ final class OpenRouterConversationClient implements AutoCloseable {
             if (story.isBlank()) throw new IllegalArgumentException();
             return new Biography(TextBounds.characters(string(answer, "name"), 60), story,
                     founds ? TextBounds.characters(string(answer, "villageName"), 60) : "", founds ? TextBounds.characters(string(answer, "villageStory"), 1500) : "");
-        } catch (RuntimeException malformed) { throw new IOException(service() + " не написал биографию."); }
+        } catch (RuntimeException malformed) {
+            String text = new String(bytes, StandardCharsets.UTF_8);
+            throw new IOException(service() + " не написал биографию" + (text.contains("\"finish_reason\":\"length\"") ? " (ответ обрезан)." : "."));
+        }
     }
 
     /** deal/unlock/quest concern the mob's own catalog (trades.json); bargain stays the vanilla villager window. */
