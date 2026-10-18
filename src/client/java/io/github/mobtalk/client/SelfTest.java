@@ -19,6 +19,12 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.BooleanSupplier;
+import java.util.concurrent.CompletableFuture;
+import io.github.mobtalk.audio.PcmWav;
+import io.github.mobtalk.core.MobTalkConfig;
+import io.github.mobtalk.core.SpeechPreview;
+import net.minecraft.client.gui.screen.ingame.MerchantScreen;
+import net.minecraft.entity.mob.HuskEntity;
 
 /** An end-to-end run inside the real game, for the developer only: {@code -Dmobtalk.selftest=<world folder>} loads that world
  * from the title screen, summons a villager, a cow and a golem next to the player and walks through aiming, a spoken reply with
@@ -29,7 +35,7 @@ final class SelfTest {
     private final MobTalkClient owner;
     private final String world;
     private int stage, ticks, stageStart;
-    private UUID villager, cow, golem;
+    private UUID villager, cow, golem, cow2, villager2;
     /** The flat stage in the sky above the player's spawn: nothing around to block sight or paths. */
     private int sx, sz; private static final int SY = 200;
     private int villagerTurns, cowTurns, villagerRelation, cowRelation;
@@ -74,7 +80,7 @@ final class SelfTest {
         if (until.getAsBoolean()) { String done = waitingFor; waitingFor = ""; log("… " + done); then.run(); }
         else if (ticks >= deadline) {
             String what = waitingFor; waitingFor = "";
-            if (what.startsWith("cow beside") || what.startsWith("bystander queue") || what.startsWith("saves flushed")) log("… " + what); else fail("timeout waiting for " + what);
+            if (what.startsWith("cow beside") || what.startsWith("bystander queue") || what.startsWith("saves flushed") || what.startsWith("window closed")) log("… " + what); else fail("timeout waiting for " + what);
             then.run();
         }
     }
@@ -209,8 +215,158 @@ final class SelfTest {
                 check(golem != null && world.getEntity(golem) instanceof IronGolemEntity iron && iron.getTarget() == serverPlayer(), "the golem targets the player");
                 command("gamemode creative " + owner.client.player.getName().getString());
                 command("kill @e[type=minecraft:iron_golem,distance=..24]");
-                finish();
+                twoWitnesses();
             });
+        });
+    }
+
+    /** A profile with a life story, without a conversation: enough to count as an acquaintance. */
+    private void acquaint(UUID mob, String type, String name, String story) {
+        bridge().memory.recordEvent(mob, type, name, "Самотест: знакомство", System.currentTimeMillis());
+        bridge().memory.setBackstory(mob, name, story, "", "", "");
+    }
+    private static final String FARMER = " {PersistenceRequired:1b,VillagerData:{profession:\"minecraft:farmer\",level:2,type:\"minecraft:plains\"}}";
+
+    // ---- Stage 6: two bystanders answer one after another; no voice is cut off by the next.
+    private void twoWitnesses() {
+        command("summon minecraft:cow " + at(3, -2) + " {PersistenceRequired:1b}");
+        command("summon minecraft:villager " + at(3, 0) + FARMER);
+        command("tp " + villager + " " + at(-8, -8)); command("tp " + cow + " " + at(3, 2));
+        await("second cow and farmer summoned", 10, () -> {
+            ServerPlayerEntity player = serverPlayer(); ServerWorld world = (ServerWorld) player.getWorld();
+            cow2 = world.getEntitiesByClass(CowEntity.class, player.getBoundingBox().expand(12), c -> c.isAlive() && !c.getUuid().equals(cow)).stream().map(MobEntity::getUuid).findFirst().orElse(null);
+            villager2 = world.getEntitiesByClass(VillagerEntity.class, player.getBoundingBox().expand(6), v -> v.isAlive() && !v.getUuid().equals(villager)).stream().map(MobEntity::getUuid).findFirst().orElse(null);
+            return cow2 != null && villager2 != null && MobSpeechSound.find(owner.world, villager2) != null;
+        }, () -> {
+            acquaint(cow2, "minecraft:cow", "Зорька", "Ты родилась на этой площадке и ничего другого не видела.");
+            owner.select(MobSpeechSound.find(owner.world, villager2));
+            int before = turns(villager2), cutoffs = owner.speechCutoffs, starts = owner.speechStarts, c1 = turns(cow), c2 = turns(cow2);
+            check(owner.say("Ты жалкий трус и болван, вся твоя деревня это знает!"), "say() accepted for the insult");
+            await("farmer answered the insult", 120, () -> replied(villager2, before), () ->
+                await("bystander queue filled", 3, () -> false, () -> await("both bystanders done", 180, () -> !owner.busyTalking() && !owner.witnessPending(), () -> {
+                    int spoke = (turns(cow) > c1 ? 1 : 0) + (turns(cow2) > c2 ? 1 : 0);
+                    log("bystanders that spoke: " + spoke + " of 2; voices started " + (owner.speechStarts - starts));
+                    check(owner.speechCutoffs == cutoffs, "no voice was cut off by the next one (cutoffs " + (owner.speechCutoffs - cutoffs) + ")");
+                    check(owner.speechStarts - starts >= 1, "the farmer's reply was voiced");
+                    massHatred();
+                })));
+        });
+    }
+
+    // ---- Stage 7: five hated villagers at once: every one that sees the player runs, the server keeps ticking.
+    private void massHatred() {
+        String name = owner.client.player.getName().getString();
+        command("kill @e[type=minecraft:villager,distance=..40]"); command("kill @e[type=minecraft:cow,distance=..40]");
+        for (int i = -2; i <= 2; i++) command("summon minecraft:villager " + at(i * 2, 5) + " {PersistenceRequired:1b}");
+        await("five villagers summoned", 10, () -> nearestAll(VillagerEntity.class).size() >= 5, () -> {
+            List<UUID> crowd = nearestAll(VillagerEntity.class);
+            for (UUID id : crowd) { acquaint(id, "minecraft:villager", "Житель", "Ты из толпы самотеста."); bridge().memory.recordWitnessed(id, owner.client.player.getUuid(), name, "сжёг деревню (самотест)", -100, System.currentTimeMillis()); }
+            command("gamemode survival " + name);
+            await("the crowd reacts", 5, () -> fled(crowd) >= 4, () -> {
+                int count = fled(crowd);
+                check(count >= 4, "hated villagers ran on sight: " + count + " of " + crowd.size());
+                check(server().isRunning() && owner.client.player.isAlive(), "server still ticking, player alive");
+                command("gamemode creative " + name);
+                truce();
+            });
+        });
+    }
+    private <T extends MobEntity> List<UUID> nearestAll(Class<T> type) {
+        ServerPlayerEntity player = serverPlayer();
+        return ((ServerWorld) player.getWorld()).getEntitiesByClass(type, player.getBoundingBox().expand(12), MobEntity::isAlive).stream().map(MobEntity::getUuid).toList();
+    }
+    private int fled(List<UUID> crowd) {
+        int count = 0;
+        for (UUID id : crowd) { MobCard card = bridge().memory.card(id, owner.client.player.getUuid()); if (card != null && card.events().stream().anyMatch(e -> e.startsWith("Убегал от игрока"))) count++; }
+        return count;
+    }
+
+    // ---- Stage 8: a hostile species with a truce leaves the player alone; one without it attacks.
+    private void truce() {
+        String name = owner.client.player.getName().getString();
+        command("kill @e[type=minecraft:villager,distance=..40]");
+        command("summon minecraft:husk " + at(4, 0) + " {PersistenceRequired:1b}"); command("summon minecraft:husk " + at(-4, 0) + " {PersistenceRequired:1b}");
+        await("two husks summoned", 10, () -> nearestAll(HuskEntity.class).size() >= 2, () -> {
+            List<UUID> husks = nearestAll(HuskEntity.class);
+            UUID friend = husks.get(0), enemy = husks.get(1);
+            acquaint(friend, "minecraft:husk", "Кассим", "Ты давно бродишь по этой пустыне.");
+            bridge().memory.recordWitnessed(friend, owner.client.player.getUuid(), name, "спас тебя (самотест)", 180, System.currentTimeMillis());
+            log("husk relations: friend " + relation(friend) + ", enemy " + relation(enemy));
+            command("gamemode survival " + name);
+            await("the enemy husk targets the player", 6, () -> target(enemy) == serverPlayer(), () -> {
+                check(target(enemy) == serverPlayer(), "a hostile without a truce attacks the player");
+                check(target(friend) != serverPlayer(), "a hostile with a truce (+" + relation(friend) + ") never takes the player as target");
+                check(owner.client.player.isAlive(), "player survived the husks");
+                command("gamemode creative " + name); command("kill @e[type=minecraft:husk,distance=..40]");
+                dealsWindow();
+            });
+        });
+    }
+    private Object target(UUID mob) { return ((ServerWorld) serverPlayer().getWorld()).getEntity(mob) instanceof MobEntity m ? m.getTarget() : null; }
+
+    // ---- Stage 9: B opens the mob's own deal window, and a farmer's vanilla window.
+    private void dealsWindow() {
+        command("summon minecraft:cow " + at(3, 0) + " {PersistenceRequired:1b}");
+        command("summon minecraft:villager " + at(3, 2) + FARMER);
+        await("cow and farmer summoned", 10, () -> { cow = nearest(CowEntity.class); villager = nearest(VillagerEntity.class);
+            return cow != null && villager != null && MobSpeechSound.find(owner.world, cow) != null && MobSpeechSound.find(owner.world, villager) != null; }, () -> {
+            owner.select(MobSpeechSound.find(owner.world, cow));
+            owner.openTrade();
+            await("cow deal window", 10, () -> owner.client.currentScreen instanceof MerchantScreen, () -> {
+                String title = owner.client.currentScreen == null ? "" : owner.client.currentScreen.getTitle().getString();
+                check(owner.client.currentScreen instanceof MerchantScreen && title.contains("отношение"), "B opens the cow's own deals with the relationship in the title: " + title);
+                owner.client.setScreen(null);
+                await("window closed", 1, () -> false, () -> {
+                    owner.select(MobSpeechSound.find(owner.world, villager));
+                    owner.openTrade();
+                    await("farmer vanilla window", 10, () -> owner.client.currentScreen instanceof MerchantScreen, () -> {
+                        check(owner.client.currentScreen instanceof MerchantScreen, "B opens the farmer's vanilla trade window");
+                        owner.client.setScreen(null);
+                        await("window closed", 1, () -> false, this::voicePath);
+                    });
+                });
+            });
+        });
+    }
+
+    // ---- Stage 10: the voice path — a question voiced by TTS goes through Whisper like a recording.
+    private void voicePath() {
+        MobTalkConfig config = owner.config().copy();
+        CompletableFuture<byte[]> wav = CompletableFuture.supplyAsync(() -> {
+            try {
+                byte[] pcm24 = SpeechPreview.synthesize(config, owner.configDirectory, config.defaultVoice, "Как тебя зовут и что ты здесь делаешь?");
+                int samples = pcm24.length / 2 * 2 / 3;
+                byte[] pcm16 = new byte[samples * 2];
+                for (int i = 0; i < samples; i++) { int j = (int) ((long) i * 3 / 2) * 2; pcm16[i * 2] = pcm24[j]; pcm16[i * 2 + 1] = pcm24[j + 1]; }
+                return PcmWav.encode(pcm16);
+            } catch (Exception failure) { throw new RuntimeException(failure); }
+        });
+        await("question voiced by TTS", 60, wav::isDone, () -> {
+            if (wav.isCompletedExceptionally()) { fail("could not voice the question: " + wav.exceptionNow().getMessage()); veniceSpeech(); return; }
+            owner.select(MobSpeechSound.find(owner.world, cow));
+            int before = turns(cow);
+            check(owner.sayWav(wav.join()), "sayWav() accepted (Whisper path)");
+            await("Whisper recognised and the cow replied", 300, () -> replied(cow, before), () -> {
+                MobCard card = bridge().memory.card(cow, owner.client.player.getUuid());
+                String heard = card == null || card.turns().isEmpty() ? "" : card.turns().getLast().user();
+                log("Whisper heard: " + heard);
+                check(heard.toLowerCase().contains("зовут"), "the recognised question reached the model");
+                veniceSpeech();
+            });
+        });
+    }
+
+    // ---- Stage 11: the Venice speech provider returns PCM for a Russian line.
+    private void veniceSpeech() {
+        MobTalkConfig config = owner.config().copy(); config.ttsProvider = "venice";
+        CompletableFuture<byte[]> pcm = CompletableFuture.supplyAsync(() -> {
+            try { return SpeechPreview.synthesize(config, owner.configDirectory, "ignored", "Проверка озвучки через Venice."); }
+            catch (Exception failure) { throw new RuntimeException(failure); }
+        });
+        await("Venice TTS answered", 60, pcm::isDone, () -> {
+            if (pcm.isCompletedExceptionally()) fail("Venice TTS (" + config.veniceTtsModel + ", " + config.veniceVoice + "): " + pcm.exceptionNow().getMessage());
+            else check(pcm.join().length > 2000, "Venice TTS returned PCM: " + pcm.join().length + " bytes");
+            finish();
         });
     }
 

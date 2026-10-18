@@ -135,6 +135,17 @@ public final class MobTalkClient implements ClientModInitializer {
     /** A recording, a request or a spoken reply is in flight. */
     boolean busyTalking() { return recording != null || requestActive || speech != null; }
     boolean speaking() { return speech != null; }
+    MobTalkConfig config() { return config; }
+    /** How many spoken replies started and how many were cut off by the next one while still playing (self-test bookkeeping). */
+    int speechStarts, speechCutoffs;
+    /** A recorded question handed in as WAV (the self-test voices one with TTS); goes through Whisper like a real recording. */
+    boolean sayWav(byte[] wav) {
+        if (!readyForRequest()) { notice(status); return false; }
+        stopSpeech();
+        long requestGeneration = ++generation;
+        submit(request(requestGeneration, null), wav, null);
+        return true;
+    }
     /** Bystanders still waiting for their turn, or one being applied right now. */
     boolean witnessPending() { return !witnessQueue.isEmpty() || pendingDeliveries > 0 || pipelineBusy.get(); }
     void requestSettings() { openSettingsRequested = true; }
@@ -612,7 +623,7 @@ public final class MobTalkClient implements ClientModInitializer {
         stopSpeech();
         if (reply.speech() != null) {
             speech = new MobSpeechSound(client, world, request.target, request.config.maxDistance, reply.speech());
-            client.getSoundManager().play(speech);
+            client.getSoundManager().play(speech); speechStarts++;
             status = request.overheard == null ? "Говорит…" : reply.speakerName() + " вмешивается…";
         } else {
             status = request.overheard == null ? "Ответ в чате; озвучка недоступна. Повторите позже" : "Ответ в чате; озвучка недоступна";
@@ -788,6 +799,7 @@ public final class MobTalkClient implements ClientModInitializer {
     }
 
     void stopSpeech() {
+        if (speech != null && client.getSoundManager().isPlaying(speech)) speechCutoffs++;
         if (speech != null) speech.stop();
         speech = null;
     }
