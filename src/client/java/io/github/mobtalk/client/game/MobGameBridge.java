@@ -153,7 +153,9 @@ public final class MobGameBridge {
     /** « отношение +N» for the HUD and the trade-window title; no card means a stranger. */
     public static String relationshipLabel(MobCard card) {
         int value = card == null ? 0 : card.relationship();
-        return "отношение " + (value >= 0 ? "+" : "") + value;
+        boolean hostile = card != null && SpeciesCatalog.get(card.type()).hostile();
+        String mark = hostile && value >= CombatRules.ALLY ? " (свой)" : hostile && value >= CombatRules.TRUCE ? " (перемирие)" : "";
+        return "отношение " + (value >= 0 ? "+" : "") + value + mark;
     }
 
     public CompletableFuture<MobSnapshot> capture(UUID mobId, UUID playerId, String dimension) {
@@ -268,6 +270,12 @@ public final class MobGameBridge {
     public static boolean suppressesAttack(MobEntity mob) {
         MobGameBridge bridge = forEntity(mob);
         return bridge != null && bridge.actions.suppressesNativeAttack(mob);
+    }
+    /** A hostile mob that earned this player's trust leaves them alone; the first blow drops the relationship and ends it. */
+    public static boolean truce(MobEntity mob, ServerPlayerEntity player) {
+        MobGameBridge bridge = forEntity(mob);
+        if (bridge == null || !bridge.config.enabled) return false;
+        return CombatRules.truce(SpeciesCatalog.get(type(mob)).hostile(), bridge.memory.relationship(mob.getUuid(), player.getUuid()));
     }
     record Heard(long tick, Vec3d position, UUID source, String event) { }
 }

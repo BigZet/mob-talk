@@ -198,6 +198,13 @@ final class MobActionController {
     }
     /** Brain tasks run after the goal navigation tick. Reapply only this lease's movement intent. */
     void afterBrain(MobEntity mob) {
+        // Brain-driven hostiles (piglins, hoglins, wardens, zoglins) choose targets in memory, not through setTarget.
+        if (registered(mob, MemoryModuleType.ATTACK_TARGET) && mob.getBrain().getOptionalRegisteredMemory(MemoryModuleType.ATTACK_TARGET)
+                .orElse(null) instanceof ServerPlayerEntity player && MobGameBridge.truce(mob, player)) {
+            mob.getBrain().forget(MemoryModuleType.ATTACK_TARGET);
+            if (registered(mob, MemoryModuleType.ANGRY_AT)) mob.getBrain().forget(MemoryModuleType.ANGRY_AT);
+            if (mob instanceof WardenEntity warden) warden.removeSuspect(player);
+        }
         Lease lease = leases.get(mob.getUuid());
         if (lease == null || lease.action == ActionType.ATTACK && lease.meleeGoal == null) return;
         LivingEntity target = lease.target();

@@ -130,7 +130,9 @@ class ConversationStoreTest {
         assertEquals(java.util.Set.of(0, 1, 2), slots);
         UUID hostile = UUID.randomUUID();
         for (int i = 0; i < 12; i++) store.recordHelp(hostile, "minecraft:zombie", "Зомби", player, "Игрок", 1000 + i * 31_000L);
-        assertTrue(store.card(hostile, player).relationship() < 0);
+        assertEquals(100, store.card(hostile, player).relationship(), "a hostile species can be won over all the way");
+        assertEquals(100, store.relationship(hostile, player));
+        assertEquals(0, store.relationship(UUID.randomUUID(), player), "an unknown mob reads as neutral");
         ConversationStore.closeWorld(directory);
     }
 

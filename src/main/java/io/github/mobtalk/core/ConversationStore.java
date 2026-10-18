@@ -260,6 +260,13 @@ public final class ConversationStore {
 
     public synchronized List<String> events(UUID mob) { Profile p = state.profiles.get(mob.toString()); return p == null ? List.of() : p.events.stream().map(e -> e.text).toList(); }
 
+    /** The bare score, for checks that run every tick: no card, no event list. */
+    public synchronized int relationship(UUID mob, UUID player) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        if (p == null) return 0;
+        Relation r = player == null ? null : p.relations.get(player.toString());
+        return r == null ? (hostile(p) ? -80 : 0) : r.score;
+    }
     public synchronized MobCard card(UUID mob, UUID player) {
         Profile p = state.profiles.get(mob.toString()); if (p == null) return null;
         Relation r = player == null ? null : p.relations.get(player.toString());
@@ -368,7 +375,8 @@ public final class ConversationStore {
         return List.copyOf(result);
     }
     private static boolean hostile(Profile p) { return p.hostile(); }
-    static int clamp(int score, boolean hostile) { return Math.max(-100, Math.min(hostile ? -1 : 100, score)); }
+    /** Hostile species start at −80 but may be won over all the way: favours, help and purchases lift them past the truce. */
+    static int clamp(int score, boolean hostile) { return Math.max(-100, Math.min(100, score)); }
     private static boolean cooledDown(long last, long now, long delay) { return last < 0 || now >= last && now - last >= delay; }
     private static String safePlayer(String name) { return TextBounds.characters(name == null || name.isBlank() ? "неизвестный" : name, 120); }
     private static String canonical(String type) { return type.contains(":") ? type : "minecraft:" + type; }

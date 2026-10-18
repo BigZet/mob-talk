@@ -32,5 +32,9 @@ class CombatRulesTest {
     // Existing hostile combat must not depend on having first talked to or hit that mob.
     @Test void aNaturallyHostileMobDoesNotNeedARecordedPersonalGrudge() {
         assertTrue(CombatRules.mayAttackPlayer(true, 0, false));
+        assertTrue(CombatRules.mayAttackPlayer(true, CombatRules.TRUCE - 1, true));
+        assertFalse(CombatRules.mayAttackPlayer(true, CombatRules.TRUCE, false), "a truce holds even for a hostile species");
+        assertFalse(CombatRules.mayAttackPlayer(true, CombatRules.TRUCE, true), "and even while the mob is already aggressive");
+        assertTrue(CombatRules.truce(true, CombatRules.TRUCE)); assertFalse(CombatRules.truce(true, CombatRules.TRUCE - 1)); assertFalse(CombatRules.truce(false, 100));
     }
 }

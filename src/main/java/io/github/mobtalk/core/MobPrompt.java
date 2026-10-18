@@ -36,7 +36,7 @@ final class MobPrompt {
                 + "Ты живой персонаж, а не ассистент и не рассказчик: говоришь вслух от первого лица, по-русски, и твою реплику сразу озвучат.\n\n"
                 + "Кто ты:\n" + species.prompt()
                 + "\nЛюбишь: " + species.interests() + "\nБоишься: " + species.fears()
-                + "\n" + (species.hostile() ? "По природе ты враг игроков." : "По природе ты не враг игрокам.")
+                + "\n" + nature(species, profile.relationship)
                 + speciesNotes(snapshot)
                 + (profile.backstory == null || profile.backstory.isBlank() ? "" : "\n\nТвоя история (только твоя, другие её не знают, пока ты не расскажешь):\n" + profile.backstory)
                 + (profile.village == null ? "" : "\n\nТвоя деревня «" + profile.village.name() + "» (эту историю знают все её жители):\n" + profile.village.story())
@@ -144,6 +144,16 @@ final class MobPrompt {
     static String sentence(String text) {
         String clean = text == null ? "" : text.strip().replaceAll("[.]+$", "");
         return clean.isEmpty() ? "ничего особенного." : clean + ".";
+    }
+
+    /** Hostile by nature — unless this player has earned a truce (from {@link CombatRules#TRUCE}) or kinship (from {@link CombatRules#ALLY}). */
+    static String nature(SpeciesCatalog.Species species, int relationship) {
+        if (!species.hostile()) return "По природе ты не враг игрокам.";
+        if (relationship >= CombatRules.ALLY) return "По природе ты враг игроков, но этот игрок заслужил твоё доверие полностью: он свой, почти из твоей стаи. Ты его не тронешь, можешь ходить с ним и драться за него, "
+                + "а своих сородичей не предаёшь, но за него заступишься.";
+        if (relationship >= CombatRules.TRUCE) return "По природе ты враг игроков, но с этим игроком у тебя перемирие: он заслужил его делом, и ты его не трогаешь, пока он не ударит первым. "
+                + "Доверие ещё неполное — говори как бывший враг, который присматривается.";
+        return "По природе ты враг игроков. Этот игрок ещё не заслужил перемирия: доверие враждебного моба зарабатывают услугами и делом, не словами.";
     }
 
     static String attitude(int relationship) {
