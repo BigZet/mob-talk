@@ -83,6 +83,7 @@ public final class ConversationStore {
                     if (p.action == null) p.action = ActionIntent.none();
                     if (p.traits == null) p.traits = new ArrayList<>();
                     if (p.givenName == null) p.givenName = ""; if (p.backstory == null) p.backstory = ""; if (p.villageId == null) p.villageId = "";
+                    if (p.wish == null) p.wish = ""; if (p.hidden == null) p.hidden = "";
                     if (migrated) p.variantSlot = -1;
                 }
                 if (migrated) {
@@ -241,11 +242,18 @@ public final class ConversationStore {
 
     public synchronized boolean hasBackstory(UUID mob) { Profile p = state.profiles.get(mob.toString()); return p != null && !p.backstory.isBlank(); }
     /** The model's invented name and story for this mob; blank parts stay blank. villageId may be "". */
-    public synchronized void setBackstory(UUID mob, String givenName, String story, String villageId) {
+    public synchronized void setBackstory(UUID mob, String givenName, String story, String wish, String hidden, String villageId) {
         Profile p = require(mob);
         p.givenName = TextBounds.characters(givenName, 60); p.backstory = TextBounds.characters(story, 1500);
+        p.wish = TextBounds.characters(wish, 400); p.hidden = TextBounds.characters(hidden, 400);
         p.villageId = villageId == null ? "" : villageId;
         scheduleSave(); // No revision bump: a story arriving mid-answer invalidates nothing.
+    }
+    /** Opening lines of the stories already written for this species, so the next one takes another path. */
+    public synchronized List<String> storyOpenings(String type) {
+        String canonical = canonical(type);
+        return state.profiles.values().stream().filter(p -> canonical.equals(p.type) && !p.backstory.isBlank())
+                .map(p -> TextBounds.characters(p.backstory, 90)).distinct().limit(20).toList();
     }
     /** Names the model already gave to mobs of this species, so the next one differs. */
     public synchronized List<String> givenNames(String type) {
@@ -521,7 +529,7 @@ public final class ConversationStore {
     private static Profile copy(Profile source) {
         Profile p = new Profile(); p.id = source.id; p.type = source.type; p.name = source.name; p.personality = source.personality;
         p.voiceId = source.voiceId; p.memory = source.memory; p.variantSlot = source.variantSlot; p.revision = source.revision; p.action = source.action;
-        p.givenName = source.givenName; p.backstory = source.backstory; p.villageId = source.villageId;
+        p.givenName = source.givenName; p.backstory = source.backstory; p.villageId = source.villageId; p.wish = source.wish; p.hidden = source.hidden;
         p.customPersonality = source.customPersonality; p.calm = source.calm; p.confidence = source.confidence;
         p.curiosity = source.curiosity; p.sociability = source.sociability; p.preference = source.preference; p.fear = source.fear;
         p.turns = new ArrayList<>(source.turns); p.events = new ArrayList<>(source.events); p.traits = new ArrayList<>(source.traits);
@@ -538,6 +546,8 @@ public final class ConversationStore {
         String type, name, personality, voiceId; String memory = "";
         /** What the model called this mob and the life it invented for it; blank until the first meeting is written up. */
         String givenName = "", backstory = "", villageId = "";
+        /** This individual's own wish and secret, invented with the story; blank means the species defaults apply. */
+        String wish = "", hidden = "";
         String customPersonality, preference, fear;
         int calm = -1, confidence = -1, curiosity = -1, sociability = -1;
         int variantSlot = -1; long revision; ActionIntent action = ActionIntent.none();

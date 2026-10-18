@@ -362,10 +362,11 @@ class ConversationStoreTest {
         assertEquals(List.of(), store.givenNames("cow"));
         long revision = store.revision(cow);
         ConversationStore.Village village = store.createVillage("minecraft:overworld", 10, -20, "Тихие Грядки", "Стоит на пепелище.");
-        store.setBackstory(cow, "Марфа", "Ты родилась у реки.", village.id());
+        store.setBackstory(cow, "Марфа", "Ты родилась у реки.", "Хочешь увидеть море.", "Боишься ведра.", village.id());
         assertEquals(revision, store.revision(cow), "a story does not cancel a running answer");
         assertTrue(store.hasBackstory(cow));
         assertEquals(List.of("Марфа"), store.givenNames("minecraft:cow"));
+        assertEquals(List.of("Ты родилась у реки."), store.storyOpenings("cow"));
         assertSame(village, store.villageNear("minecraft:overworld", 100, 100));
         assertNull(store.villageNear("minecraft:overworld", 10 + ConversationStore.VILLAGE_RADIUS + 1, -20));
         assertNull(store.villageNear("minecraft:the_end", 10, -20));

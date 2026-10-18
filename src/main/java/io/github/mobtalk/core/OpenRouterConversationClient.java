@@ -221,9 +221,9 @@ final class OpenRouterConversationClient implements AutoCloseable {
                 + "\n\nТвой характер:\n" + archetype
                 + (custom ? "\nЛичная настройка именно этой особи (важнее характера выше): " + profile.customPersonality : "")
                 + (species.quirks().isBlank() ? "" : "\nКак ты говоришь, твои фирменные штучки: " + sentence(species.quirks()))
-                + (species.desire().isBlank() ? "" : "\nЧего ты хочешь от жизни: " + sentence(species.desire())
-                        + " Это твоя личная цель: ты её преследуешь, сам заводишь о ней речь и судишь игрока по тому, помогает он ей или мешает.")
-                + (species.secret().isBlank() ? "" : "\nТвоя тайна: " + sentence(species.secret())
+                + (desire(profile, species).isBlank() ? "" : "\nЧего ты хочешь от жизни: " + sentence(desire(profile, species))
+                        + " Это твоя личная цель: ты её преследуешь, иногда заводишь о ней речь — но не в каждой реплике — и судишь игрока по тому, помогает он ей или мешает.")
+                + (secret(profile, species).isBlank() ? "" : "\nТвоя тайна: " + sentence(secret(profile, species))
                         + (friend ? " Этот игрок — свой, ему можно её доверить, если к слову придётся."
                         : " Чужим не выдаёшь: отмахивайся, переводи тему, самое большее — намекни, что есть что скрывать. Этот игрок пока чужой."))
                 + "\nЛично тебе особенно дорого: " + sentence(profile.preference) + " Лично тебя тревожит: " + sentence(profile.fear)
@@ -257,6 +257,9 @@ final class OpenRouterConversationClient implements AutoCloseable {
         return system;
     }
 
+    private static String desire(ConversationStore.Profile profile, SpeciesCatalog.Species species) { return profile.wish != null && !profile.wish.isBlank() ? profile.wish : species.desire(); }
+    private static String secret(ConversationStore.Profile profile, SpeciesCatalog.Species species) { return profile.hidden != null && !profile.hidden.isBlank() ? profile.hidden : species.secret(); }
+
     /** Relationship from which the mob trusts the player with its species secret. */
     static final int FRIEND_RELATIONSHIP = 60;
 
@@ -270,6 +273,7 @@ final class OpenRouterConversationClient implements AutoCloseable {
             int whole = Math.round(health), top = Math.round(max);
             if (health <= max * 0.25f) parts.add("еле жив: здоровье " + whole + " из " + top);
             else if (health < max * 0.75f) parts.add("потрёпан: здоровье " + whole + " из " + top);
+            else if (health < max) parts.add("почти цел: здоровье " + whole + " из " + top);
             else parts.add("цел и здоров");
         }
         if (Boolean.TRUE.equals(mob.get("onFire"))) parts.add("горишь!");
@@ -420,6 +424,10 @@ final class OpenRouterConversationClient implements AutoCloseable {
             }
             String unlock = answer.has("unlock") && answer.get("unlock").isJsonPrimitive() ? validateUnlock(string(answer, "unlock"), snapshot, relationship) : "";
             QuestIntent quest = answer.has("quest") && answer.get("quest").isJsonObject() ? validateQuest(answer.getAsJsonObject("quest"), snapshot) : QuestIntent.none();
+            if (quest.type() != QuestIntent.Type.COMPLETE && claimsDelivery(reply) && activeFavor(snapshot) != null)
+                throw new RejectedBargain("В реплике ты принимаешь услугу («" + activeFavor(snapshot).get("title") + "»), но quest не COMPLETE — игра ничего не забрала. "
+                        + (Boolean.TRUE.equals(activeFavor(snapshot).get("canComplete")) ? "Если принимаешь — верни quest COMPLETE." : "Игрок ещё не принёс нужного (" + activeFavor(snapshot).get("have") + " из "
+                        + activeFavor(snapshot).get("count") + "): не говори, что принял или засчитал."), true, true);
             int unbacked = unbackedPrice(reply, bargain, deal, snapshot);
             if (unbacked >= 0) {
                 boolean own = ownDeals(snapshot) && !"minecraft:villager".equals(snapshot.type());
@@ -629,6 +637,8 @@ final class OpenRouterConversationClient implements AutoCloseable {
             notes.append("\nТы слеп: о мире знаешь только звуки, вибрации и запахи из снимка; действовать можешь против подтверждённого audible источника.");
         if ("minecraft:panda".equals(snapshot.type())) notes.append("\nТвой нрав задают реальные гены панды из mobDetails.");
         if (snapshot.mobDetails().containsKey("owner")) notes.append("\nПриручён ли ты и кто хозяин — смотри mobDetails.tamed и owner.");
+        if ("minecraft:villager".equals(snapshot.type()) && snapshot.mobDetails().containsKey("meetingPoint"))
+            notes.append("\nВ твоей деревне уже есть колокол (mobDetails.meetingPoint) — не проси его и не жалуйся на его отсутствие.");
         return notes.toString();
     }
 
@@ -710,6 +720,10 @@ final class OpenRouterConversationClient implements AutoCloseable {
         int boundary = tail.indexOf('\n');
         return boundary >= 0 && boundary < tail.length() - 1 ? tail.substring(boundary + 1) : tail;
     }
+
+    private static final Pattern DELIVERY_TALK = Pattern.compile("(?<!не )(?<!не\\s)(принимаю|засчитываю|засчитано|услуг[аи] оказан|дело сделано|выполнен[оа]\\b|принял[аи]?\\b)", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    /** "Принимаю!" with nothing taken is the quest-world version of a voiced price the window never charged. */
+    static boolean claimsDelivery(String reply) { return reply != null && DELIVERY_TALK.matcher(reply).find(); }
 
     private static final Pattern PRICE_TALK = Pattern.compile("скид|уступ|дешевл|сбав|скин|договорил|обновил|теперь|продам|отдам за|стоит|цен[аыу]",
             Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
@@ -831,7 +845,7 @@ final class OpenRouterConversationClient implements AutoCloseable {
                 summary.append("\n— игрок должен тебе «").append(active.get("title")).append("»: принести ").append(active.get("count")).append("× ")
                         .append(active.get("itemName")).append(" (").append(active.get("item")).append("), у него сейчас ").append(active.get("have")).append(" из ").append(active.get("count"))
                         .append(Boolean.TRUE.equals(active.get("canComplete")) ? " — принёс: можешь принять (quest COMPLETE), игра заберёт предметы, и отблагодарить."
-                                : " — ещё не принёс: не принимай, напоминай, чего не хватает.")
+                                : " — ещё не принёс: не принимай; напомнить можно, когда игрок сам заговорит об услуге или спросит, что делать, а не в каждой реплике.")
                         .append(active.get("rewardDeal") instanceof String deal && !deal.isBlank() ? " За это ты обещал сделку «" + deal + "»"
                                 + (active.get("rewardPercent") instanceof Number percent && percent.intValue() > 0 ? " со скидкой " + percent + "%." : ".") : "");
             else if (Boolean.TRUE.equals(favor.get("canAsk")))
@@ -839,6 +853,7 @@ final class OpenRouterConversationClient implements AutoCloseable {
                         .append("выбери один из этих предметов — ").append(candidateList(favor)).append(" — item и count ровно как здесь, а зачем он тебе именно сейчас — придумай сам, ")
                         .append("из своей жизни и того, что вокруг. Не повторяй то, что игрок уже приносил; без повода не проси.");
             if (favor.get("done") instanceof List<?> done && !done.isEmpty()) summary.append("\n— игрок уже оказывал услуги тебе и твоим сородичам: ").append(done).append('.');
+            summary.append("\n— других незакрытых поручений нет: если в истории разговора ты просил о чём-то ещё, это уже закрыто или отменено; действует только то, что здесь.");
         }
         return summary.toString();
     }
@@ -937,20 +952,21 @@ final class OpenRouterConversationClient implements AutoCloseable {
     private static JsonObject objectSchema(JsonObject fields, String... required) { JsonObject schema = property("object"); schema.add("properties", fields); schema.add("required", strings(required)); schema.addProperty("additionalProperties", false); return schema; }
     private static JsonObject property(String type) { JsonObject property = new JsonObject(); property.addProperty("type", type); return property; }
     private static JsonArray strings(String... values) { JsonArray array = new JsonArray(); for (String value : values) array.add(value); return array; }
+    private static String optional(JsonObject object, String field) { JsonElement value = object.get(field); return value != null && value.isJsonPrimitive() && value.getAsJsonPrimitive().isString() ? value.getAsString() : ""; }
     private static String string(JsonObject object, String field) { JsonElement value = object.get(field); if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString()) throw new IllegalArgumentException(); return value.getAsString(); }
     private static JsonObject message(String role, String content) { JsonObject message = new JsonObject(); message.addProperty("role", role); message.addProperty("content", content); return message; }
     /** The invented name and life of one mob, plus a village (name and story) when it is the first villager met there. */
-    record Biography(String name, String story, String villageName, String villageStory) { }
+    record Biography(String name, String story, String desire, String secret, String villageName, String villageStory) { }
 
     /** One extra request at the first meeting: the model writes who this creature is. {@code village} is the known village
      * story to stay consistent with, or null; for a villager without one the model founds the village too. */
     Biography biography(MobSnapshot snapshot, ConversationStore.Profile profile, ConversationStore.Village village,
-                        List<String> takenNames, List<String> takenVillages) throws IOException, InterruptedException {
-        try { return biography(snapshot, profile, village, takenNames, takenVillages, false); }
-        catch (IOException malformed) { return biography(snapshot, profile, village, takenNames, takenVillages, true); } // A cut-off JSON once in a while: one more try.
+                        List<String> takenNames, List<String> takenStories, List<String> takenVillages) throws IOException, InterruptedException {
+        try { return biography(snapshot, profile, village, takenNames, takenStories, takenVillages, false); }
+        catch (IOException malformed) { return biography(snapshot, profile, village, takenNames, takenStories, takenVillages, true); } // A cut-off JSON once in a while: one more try.
     }
     private Biography biography(MobSnapshot snapshot, ConversationStore.Profile profile, ConversationStore.Village village,
-                                List<String> takenNames, List<String> takenVillages, boolean retry) throws IOException, InterruptedException {
+                                List<String> takenNames, List<String> takenStories, List<String> takenVillages, boolean retry) throws IOException, InterruptedException {
         SpeciesCatalog.Species species = SpeciesCatalog.effective(snapshot.type(), config);
         String archetype = species.variants().get(Math.max(0, Math.min(2, profile.variantSlot))).prompt();
         boolean villager = "minecraft:villager".equals(snapshot.type());
@@ -959,27 +975,31 @@ final class OpenRouterConversationClient implements AutoCloseable {
                 + "Пиши по-русски, конкретно и по-майнкрафтовски: места, события, вещи и мобы из игры, а не абстракции. Без упоминания игрока и без морали.\n"
                 + "name — имя или кличка в одно-два слова, в духе персонажа и вида (у животных — кличка, у жителя — имя, у монстров — прозвище); не из списка занятых.\n"
                 + "story — 3–5 предложений во втором лице («Ты родился…»): откуда ты, одно событие, которое тебя изменило, кого или что ты потерял или ищешь, "
-                + "одна странность или привычка, одна мечта. Всё должно сочетаться с характером и желанием ниже и с тем, где персонаж стоит сейчас.\n"
+                + "одна странность или привычка. Всё должно сочетаться с характером и с тем, где персонаж стоит сейчас.\n"
+                + "desire — одно-два предложения: чего именно ЭТОТ персонаж хочет от жизни (конкретная, достижимая в Minecraft цель). "
+                + "secret — одно-два предложения: что он скрывает и выдаёт только другу. typicalDesire и typicalSecret в фактах — лишь то, что обычно бывает у этого вида: "
+                + "придумай другое, своё, не пересказывай их. Не повторяй мотивы из takenStories (это истории сородичей): у каждого своя судьба и свои события.\n"
                 + (founds ? "villageName — название деревни (1–3 слова, живое, не «Деревня №1»), не из занятых; villageStory — 3–4 предложения: как деревня возникла, чем славится, "
                         + "какая беда или легенда с ней связана, кто в ней заметен (профессии, без имён). История жителя должна вытекать из истории деревни.\n"
                 : "villageName и villageStory — пустые строки.\n")
-                + "Ответ — JSON с полями name, story, villageName, villageStory.";
+                + (snapshot.mobDetails().containsKey("meetingPoint") ? "В этой деревне уже есть колокол на площади — не мечтай о нём, он есть.\n" : "")
+                + "Ответ — JSON с полями name, story, desire, secret, villageName, villageStory.";
         JsonObject facts = new JsonObject();
         facts.addProperty("species", species.name()); facts.addProperty("speciesPrompt", species.prompt()); facts.addProperty("archetype", archetype);
-        facts.addProperty("quirks", species.quirks()); facts.addProperty("desire", species.desire()); facts.addProperty("secret", species.secret());
+        facts.addProperty("quirks", species.quirks()); facts.addProperty("typicalDesire", species.desire()); facts.addProperty("typicalSecret", species.secret());
         facts.addProperty("preference", profile.preference); facts.addProperty("fear", profile.fear);
         facts.addProperty("biome", snapshot.biome()); facts.addProperty("dimension", snapshot.dimension()); facts.addProperty("timeOfDay", snapshot.timeOfDay());
         for (String key : List.of("profession", "level", "baby", "tamed", "variant", "customName"))
             if (snapshot.mobDetails().get(key) != null) facts.addProperty(key, String.valueOf(snapshot.mobDetails().get(key)));
         if (village != null) { facts.addProperty("villageName", village.name()); facts.addProperty("villageStory", village.story()); }
-        facts.add("takenNames", JSON.toJsonTree(takenNames)); facts.add("takenVillageNames", JSON.toJsonTree(takenVillages));
+        facts.add("takenNames", JSON.toJsonTree(takenNames)); facts.add("takenStories", JSON.toJsonTree(takenStories)); facts.add("takenVillageNames", JSON.toJsonTree(takenVillages));
         JsonArray messages = new JsonArray(); messages.add(message("system", system)); messages.add(message("user", "Факты о персонаже: " + facts));
         JsonObject body = new JsonObject(); body.addProperty("model", config.chatModel()); body.add("messages", messages);
         body.addProperty("max_tokens", 2048); if (!noTemperature) body.addProperty("temperature", retry ? 0.8 : 1.0);
         JsonObject fields = new JsonObject();
-        for (String field : List.of("name", "story", "villageName", "villageStory")) fields.add(field, property("string"));
+        for (String field : List.of("name", "story", "desire", "secret", "villageName", "villageStory")) fields.add(field, property("string"));
         JsonObject jsonSchema = new JsonObject(); jsonSchema.addProperty("name", "mob_biography"); jsonSchema.addProperty("strict", true);
-        jsonSchema.add("schema", objectSchema(fields, "name", "story", "villageName", "villageStory"));
+        jsonSchema.add("schema", objectSchema(fields, "name", "story", "desire", "secret", "villageName", "villageStory"));
         JsonObject format = new JsonObject(); format.addProperty("type", "json_schema"); format.add("json_schema", jsonSchema); body.add("response_format", format);
         if (config.usesVenice()) {
             JsonObject venice = new JsonObject(); venice.addProperty("include_venice_system_prompt", false); venice.addProperty("disable_thinking", true);
@@ -994,7 +1014,8 @@ final class OpenRouterConversationClient implements AutoCloseable {
             JsonObject answer = JsonParser.parseString(response.getAsJsonArray("choices").get(0).getAsJsonObject().getAsJsonObject("message").get("content").getAsString()).getAsJsonObject();
             String story = TextBounds.characters(string(answer, "story"), 1500);
             if (story.isBlank()) throw new IllegalArgumentException();
-            return new Biography(TextBounds.characters(string(answer, "name"), 60), story,
+            return new Biography(TextBounds.characters(string(answer, "name"), 60), story, TextBounds.characters(optional(answer, "desire"), 400),
+                    TextBounds.characters(optional(answer, "secret"), 400),
                     founds ? TextBounds.characters(string(answer, "villageName"), 60) : "", founds ? TextBounds.characters(string(answer, "villageStory"), 1500) : "");
         } catch (RuntimeException malformed) {
             String text = new String(bytes, StandardCharsets.UTF_8);

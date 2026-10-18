@@ -171,14 +171,16 @@ public final class ConversationEngine implements AutoCloseable {
     public void ensureBackstory(MobSnapshot snapshot) throws IOException, InterruptedException {
         if (closed || store.hasBackstory(snapshot.id())) return;
         ConversationStore.Profile profile = store.profile(snapshot);
-        boolean villager = "minecraft:villager".equals(snapshot.type());
-        int[] anchor = villager ? villageAnchor(snapshot) : null;
+        boolean villager = "minecraft:villager".equals(snapshot.type()), golem = "minecraft:iron_golem".equals(snapshot.type());
+        int[] anchor = villager || golem ? villageAnchor(snapshot) : null;
+        // A golem belongs to the village it stands in but never founds one: villages are born with their first villager.
         ConversationStore.Village village = anchor == null ? null : store.villageNear(snapshot.dimension(), anchor[0], anchor[1]);
-        OpenRouterConversationClient.Biography written = llm.biography(snapshot, profile, village, store.givenNames(snapshot.type()), store.villageNames());
+        OpenRouterConversationClient.Biography written = llm.biography(snapshot, profile, village, store.givenNames(snapshot.type()),
+                store.storyOpenings(snapshot.type()), store.villageNames());
         if (closed || store.hasBackstory(snapshot.id())) return;
         if (villager && village == null && anchor != null && !written.villageStory().isBlank())
             village = store.createVillage(snapshot.dimension(), anchor[0], anchor[1], written.villageName(), written.villageStory());
-        store.setBackstory(snapshot.id(), written.name(), written.story(), village == null ? "" : village.id());
+        store.setBackstory(snapshot.id(), written.name(), written.story(), written.desire(), written.secret(), village == null ? "" : village.id());
     }
 
     /** Where this villager's village is: its bell, else its bed, else where it stands. */

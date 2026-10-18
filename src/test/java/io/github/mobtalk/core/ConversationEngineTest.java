@@ -936,6 +936,13 @@ class ConversationEngineTest {
             queuedAnswers.add(ownAnswer("Все восемь! Загон стоит, ты молодец.", "NONE", "", 0, "", "COMPLETE"));
             assertEquals(QuestIntent.complete(), engine.converse(tradingCow(cowTrading(false, true)), "Готово").quest());
 
+            // "Принимаю!" with quest NONE would voice a delivery the game never took.
+            queuedAnswers.add(ownAnswer("Принимаю, загон спасён!", "NONE", "", 0, "", "NONE"));
+            queuedAnswers.add(ownAnswer("Три секции — это не загон. Неси остальные.", "NONE", "", 0, "", "NONE"));
+            assertEquals(QuestIntent.none(), engine.converse(tradingCow(cowTrading(false, false)), "Держи").quest());
+            assertTrue(lastCorrection().contains("quest не COMPLETE") && lastCorrection().contains("3 из 8"), lastCorrection());
+            assertTrue(OpenRouterConversationClient.claimsDelivery("Засчитываю, молодец") && !OpenRouterConversationClient.claimsDelivery("Не принимаю, мало"));
+
             queuedAnswers.add(ownAnswer("Принеси ещё ведро воды.", "NONE", "", 0, "", "OFFER", "minecraft:water_bucket", 1, "Ведро воды", "", 0));
             queuedAnswers.add(ownAnswer("Сначала забор, потом остальное.", "NONE", "", 0, "", "NONE"));
             assertEquals(QuestIntent.none(), engine.converse(tradingCow(cowTrading(false, false)), "Что ещё сделать?").quest());
@@ -998,6 +1005,7 @@ class ConversationEngineTest {
     @Test void writesABackstoryOnceAndSharesTheVillageWithNeighbours() throws Exception {
         JsonObject written = new JsonObject();
         written.addProperty("name", "Марфа"); written.addProperty("story", "Ты родилась в загоне у реки.");
+        written.addProperty("desire", "Хочешь увидеть море."); written.addProperty("secret", "Ты боишься ведра.");
         written.addProperty("villageName", ""); written.addProperty("villageStory", "");
         queuedAnswers.add(written);
         try (ConversationEngine engine = engine()) {
@@ -1013,6 +1021,8 @@ class ConversationEngineTest {
             engine.converse(first, "Привет");
             assertTrue(systemPrompt().startsWith("Ты — Марфа, корова") && systemPrompt().contains("Твоя история (только твоя"), systemPrompt());
             assertTrue(systemPrompt().contains("Ты родилась в загоне у реки."));
+            assertTrue(systemPrompt().contains("Чего ты хочешь от жизни: Хочешь увидеть море.") && systemPrompt().contains("Твоя тайна: Ты боишься ведра."), "the individual's own wish and secret");
+            assertTrue(request.toString().contains("takenStories") && request.toString().contains("typicalDesire"), "the writer gets seeds, not a script");
             assertEquals(List.of("Марфа"), engine.memory().givenNames("minecraft:cow"));
             assertTrue(lastRequest.get().toString().contains("Марфа") || true);
 
@@ -1032,6 +1042,7 @@ class ConversationEngineTest {
             engine.ensureBackstory(second);
             assertEquals(1, engine.memory().villageNames().size(), "the neighbour inherits the village");
             assertTrue(lastRequest.get().toString().contains("Тихие Грядки"), "the known village story is handed to the writer");
+            assertTrue(lastRequest.get().toString().contains("Ты пришёл сюда первым."), "the neighbour's story is handed over so this one differs");
             engine.converse(second, "Привет");
             assertTrue(systemPrompt().contains("Твоя деревня «Тихие Грядки»") && systemPrompt().contains("сгоревшего леса"), systemPrompt());
             assertNull(engine.memory().villageNear("minecraft:overworld", 1000, 1000));
