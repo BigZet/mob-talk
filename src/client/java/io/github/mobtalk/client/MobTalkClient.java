@@ -126,6 +126,7 @@ public final class MobTalkClient implements ClientModInitializer {
         ClientPlayConnectionEvents.DISCONNECT.register((handler, ignored) -> leaveWorld());
         ClientLifecycleEvents.CLIENT_STOPPING.register(ignored -> shutdown());
         MobTalkCommands.register(this);
+        SelfTest.install(this);
         reload();
     }
 
@@ -133,6 +134,9 @@ public final class MobTalkClient implements ClientModInitializer {
     boolean enabled() { return configReady && config.enabled; }
     /** A recording, a request or a spoken reply is in flight. */
     boolean busyTalking() { return recording != null || requestActive || speech != null; }
+    boolean speaking() { return speech != null; }
+    /** Bystanders still waiting for their turn, or one being applied right now. */
+    boolean witnessPending() { return !witnessQueue.isEmpty() || pendingDeliveries > 0 || pipelineBusy.get(); }
     void requestSettings() { openSettingsRequested = true; }
     /** /mobtalk say: the typed line goes through the same pipeline as speech. */
     boolean say(String text) {
