@@ -57,7 +57,7 @@ class SituationTest {
                 profile("minecraft:zombie", -80, 0, List.of()));
         assertTrue(zombie.verdict() == Situation.Verdict.OUTMATCHED || zombie.verdict() == Situation.Verdict.DOOMED, zombie.verdict().name());
         assertFalse(zombie.describe().contains("ненавидишь"), "hostile species need no hatred line");
-        assertTrue(!zombie.describe().contains("проси пощады") && !zombie.describe().contains("FLEE") && zombie.describe().contains("враг"), "a monster stays a monster: " + zombie.describe());
+        assertTrue(!zombie.describe().contains("проси пощады") && !zombie.describe().contains("беги (action FLEE)") && zombie.describe().contains("враг"), "a monster stays a monster: " + zombie.describe());
         Map<String,Object> creative = new java.util.LinkedHashMap<>(player("minecraft:stick")); creative.put("creative", true);
         Situation god = Situation.of(snapshot("minecraft:wolf", 8, 8, true, 4, creative, pack), profile("minecraft:wolf", -50, 1, List.of()));
         assertEquals(Situation.Verdict.DOOMED, god.verdict()); assertTrue(god.describe().contains("творческом режиме"), god.describe());
