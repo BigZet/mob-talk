@@ -136,19 +136,30 @@ public final class MobGameBridge {
     }
     /** Every mob with a profile that can see the victim takes it personally: a smaller drop than the victim's and a memory
      * "Видел, как игрок … ударил Марфу (корова)". Strangers notice nothing — a profile for each would bloat the world memory. */
-    void witnessed(MobEntity victim, ServerPlayerEntity player, String seen, int delta) {
+    void witnessed(MobEntity victim, ServerPlayerEntity player, String seen, int delta) { witnessed(victim, player, seen, delta, WITNESS_RANGE); }
+    void witnessed(MobEntity victim, ServerPlayerEntity player, String seen, int delta, double range) {
         if (!config.enabled || !(victim.getWorld() instanceof ServerWorld world)) return;
         // Killing monsters, or a creature that is attacking the player, is self-defence in everyone's eyes.
         if (SpeciesCatalog.get(type(victim)).hostile() || victim.getTarget() == player) return;
         String name = memory.displayName(victim.getUuid());
         String what = seen + " " + (name.isBlank() ? victim.getName().getString() : name) + " (" + SpeciesCatalog.get(type(victim)).name().toLowerCase(java.util.Locale.ROOT) + ")";
         long now = System.currentTimeMillis();
-        for (MobEntity witness : world.getEntitiesByClass(MobEntity.class, victim.getBoundingBox().expand(WITNESS_RANGE),
+        for (MobEntity witness : world.getEntitiesByClass(MobEntity.class, victim.getBoundingBox().expand(range),
                 other -> other != victim && other.isAlive() && !other.isRemoved() && memory.known(other.getUuid()) && other.canSee(victim)))
             memory.recordWitnessed(witness.getUuid(), player.getUuid(), player.getName().getString(), what, delta, now);
     }
-    /** How far a mob sees what happens to another. */
-    static final double WITNESS_RANGE = 16;
+    /** How far a mob sees what happens to another, and how far it hears what is said. */
+    static final double WITNESS_RANGE = 16, HEARING_RANGE = 5;
+
+    /** The mob stops wandering and keeps looking at the player for {@code ticks}: it is being spoken to, thinking or speaking. */
+    public CompletableFuture<Void> attend(UUID mobId, UUID playerId, int ticks) {
+        return onServer(() -> {
+            ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
+            Entity entity = player == null ? null : ((ServerWorld) player.getWorld()).getEntity(mobId);
+            if (entity instanceof MobEntity mob && mob.isAlive()) actions.attend(mob, player, ticks);
+            return null;
+        });
+    }
 
     /** Bystanders that may add a line after the mob spoken to: alive, within the conversation range of the player, able to see
      * them, nearest first with mobs the player already knows ahead of strangers. Never the speaker itself. */
@@ -157,7 +168,7 @@ public final class MobGameBridge {
             ServerWorld world = world(dimension);
             ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
             if (world == null || player == null || !player.isAlive() || player.getWorld() != world || limit <= 0) return List.of();
-            double range = Math.min(12, config.maxDistance);
+            double range = Math.min(HEARING_RANGE, config.maxDistance);
             List<MobEntity> around = world.getEntitiesByClass(MobEntity.class, player.getBoundingBox().expand(range),
                     mob -> !mob.getUuid().equals(speakerId) && mob.isAlive() && !mob.isRemoved() && !mob.isAiDisabled()
                             && mob.squaredDistanceTo(player) <= range * range && mob.canSee(player));
@@ -196,6 +207,7 @@ public final class MobGameBridge {
         return onServer(() -> {
             Nearby nearby = nearby(mobId, playerId, dimension);
             if (memory.card(mobId, playerId) == null) event(nearby.mob, "The player met this mob");
+            actions.attend(nearby.mob, nearby.player, 100); // Being spoken to: stand and listen while the answer is written.
             return MobContextCapture.capture(this, nearby.world, nearby.mob, nearby.player);
         });
     }
@@ -268,8 +280,8 @@ public final class MobGameBridge {
                 if (!deals.isBlank()) trade = trade.isBlank() ? deals : trade + "; " + deals;
                 String result = actions.apply(mob, player, intent, observed);
                 if (!trade.isBlank()) result = result.isBlank() ? trade : result + "; " + trade;
-                if (social == SocialIntent.THREAT) witnessed(mob, player, "грозил убить", -10);
-                else if (social == SocialIntent.INSULT) witnessed(mob, player, "оскорбил", -5);
+                if (social == SocialIntent.THREAT) witnessed(mob, player, "грозил убить", -10, HEARING_RANGE);
+                else if (social == SocialIntent.INSULT) witnessed(mob, player, "оскорбил", -5, HEARING_RANGE);
                 return new Outcome(result, memory.revision(mobId));
             }
         });

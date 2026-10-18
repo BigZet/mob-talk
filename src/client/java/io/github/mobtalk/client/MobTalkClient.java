@@ -61,6 +61,11 @@ public final class MobTalkClient implements ClientModInitializer {
     final Path configDirectory = FabricLoader.getInstance().getConfigDir();
     private final ExecutorService pipeline = worker("mobtalk-conversation");
     final ExecutorService maintenance = worker("mobtalk-settings");
+    /** Life stories are written here, never on the conversation worker: a recording must not wait behind a biography. */
+    private final ExecutorService biographies = worker("mobtalk-biography");
+    /** Bystanders think in parallel with each other and with the partner's voice; only the playback is one at a time. */
+    private final ExecutorService witnesses = Executors.newFixedThreadPool(2, task -> { Thread thread = new Thread(task, "mobtalk-witness"); thread.setDaemon(true); return thread; });
+    private final java.util.concurrent.ConcurrentHashMap<UUID, CompletableFuture<Void>> storiesInFlight = new java.util.concurrent.ConcurrentHashMap<>();
     private final MicrophoneRecorder microphone = new MicrophoneRecorder();
     private final WhisperProcess helper = new WhisperProcess();
     private final AtomicBoolean pipelineBusy = new AtomicBoolean();
@@ -90,14 +95,18 @@ public final class MobTalkClient implements ClientModInitializer {
     private boolean requestActive;
     private final MerchantSession merchant = new MerchantSession(this);
     private CompletableFuture<String> actionRequest;
-    /** Bystanders still to answer after the mob spoken to, in order; emptied by any new request. */
-    private final Deque<UUID> witnessQueue = new ArrayDeque<>();
-    private ConversationEngine.Overheard overheard;
-    private long witnessGeneration = -1;
+    /** Bystander replies already prepared (LLM done, voice prebuffered), waiting for the current voice to end. */
+    private final Deque<Ready> readyWitnesses = new ArrayDeque<>();
+    private final List<java.util.concurrent.Future<?>> witnessTasks = new ArrayList<>();
+    private int witnessesInFlight;
+    private record Ready(Request request, ConversationEngine engine, ConversationEngine.PreparedReply prepared) { }
+    /** The mob whose voice is playing: it keeps standing and looking at the player until it is done. */
+    private UUID speakingMob;
+    /** A move (flee, follow, attack) the mob announced: it is carried out once its voice has finished, not mid-sentence. */
+    private Deferred deferredAction;
+    private record Deferred(Request request, ActionIntent action) { }
     /** Replies handed to the client thread whose server application is still in flight: the next bystander waits for them. */
     private int pendingDeliveries;
-    /** The request in the pipeline is a bystander's: a new V cancels it instead of waiting. */
-    private boolean witnessActive;
     /** V was pressed while the pipeline was still busy: recording starts the moment it frees up, as long as V stays down. */
     private boolean armRecording;
     /** The mob whose life story the selection asked for; the prefetch stops only when the selection moves on. */
@@ -147,7 +156,7 @@ public final class MobTalkClient implements ClientModInitializer {
         return true;
     }
     /** Bystanders still waiting for their turn, or one being applied right now. */
-    boolean witnessPending() { return !witnessQueue.isEmpty() || pendingDeliveries > 0 || pipelineBusy.get(); }
+    boolean witnessPending() { return witnessesInFlight > 0 || !readyWitnesses.isEmpty() || pendingDeliveries > 0; }
     void requestSettings() { openSettingsRequested = true; }
     /** /mobtalk say: the typed line goes through the same pipeline as speech. */
     boolean say(String text) {
@@ -231,23 +240,22 @@ public final class MobTalkClient implements ClientModInitializer {
         }
         if (held && !keyHeld && !merchant.windowOpen()) aimBeforeTalking();
         if (held && !keyHeld && canRecord()) {
-            if (recording == null && pipelineBusy.get()) {
-                // A bystander in the middle of its line is cut off by the player's V; the player's own request is waited out.
-                if (witnessActive) cancelWork(readyStatus());
-                armRecording = true;
-            } else beginRecording();
+            if (recording == null && pipelineBusy.get()) armRecording = true; // The player's own request is waited out.
+            else beginRecording();
         }
         if (armRecording && held && recording == null && !pipelineBusy.get() && canRecord()) { armRecording = false; beginRecording(); }
         if (!held) armRecording = false;
-        if (!witnessQueue.isEmpty()) advanceWitnesses();
+        if (!readyWitnesses.isEmpty()) playNextWitness();
+        if (ticks % 20 == 0) keepAttention();
         if (!held && keyHeld && recording != null) {
             status = "Завершение записи…";
             recording.stop();
         }
         keyHeld = held;
         if (speech != null && !client.getSoundManager().isPlaying(speech)) {
-            speech = null;
+            speech = null; speakingMob = null;
             if (!requestActive && recording == null) status = readyStatus();
+            runDeferredAction();
         }
         if (selected != null && ticks % 20 == 0) showHud();
     }
@@ -287,13 +295,13 @@ public final class MobTalkClient implements ClientModInitializer {
         showHud();
     }
 
-    /** A mob met for the first time gets its life story (and its village's) written while the player is still raising the key;
-     * the conversation worker runs it so a request that follows simply queues behind. Failures are silent: the story can come later. */
+    /** A mob met for the first time gets its life story (and its village's) written on its own worker while the player is still
+     * raising the key; a request that follows waits for that story instead of asking for it again. Failures are silent. */
     private void prefetchBackstory() {
         if (stopped || !configReady || !config.enabled || selected == null || client.player == null || world == null || gameReady == null) return;
         ensureGameBridge();
         Request seed = request(generation, null);
-        pipeline.execute(() -> {
+        storiesInFlight.computeIfAbsent(seed.target, id -> CompletableFuture.runAsync(() -> {
             try {
                 // V right after aiming bumps the generation at once; only moving the selection on makes this story pointless.
                 if (!seed.target.equals(prefetchTarget)) return;
@@ -305,8 +313,8 @@ public final class MobTalkClient implements ClientModInitializer {
                 client.execute(() -> { if (seed.target.equals(selected)) showHud(); });
             } catch (Exception failure) {
                 LOGGER.warn("Mob Talk backstory not written yet: {}", String.valueOf(failure.getMessage()));
-            } finally { Thread.interrupted(); }
-        });
+            } finally { Thread.interrupted(); storiesInFlight.remove(seed.target); }
+        }, biographies));
     }
 
     /** Opens (or keeps open) the OpenRouter connection while a mob is selected, so the first reply skips the handshake. */
@@ -327,7 +335,11 @@ public final class MobTalkClient implements ClientModInitializer {
      * since rebuilding it reloads the key and relearns provider quirks. Settings, reloads and world changes drop it. */
     private void cancelWork(String reason, boolean dropEngine) {
         generation++;
-        witnessQueue.clear(); overheard = null; witnessActive = false; armRecording = false;
+        armRecording = false; deferredAction = null;
+        for (var task : witnessTasks) task.cancel(true);
+        witnessTasks.clear();
+        for (Ready ready : readyWitnesses) ready.prepared.reply().discardSpeech();
+        readyWitnesses.clear();
         if (actionRequest != null) actionRequest.completeExceptionally(new java.util.concurrent.CancellationException(reason));
         actionRequest = null;
         requestActive = false;
@@ -407,11 +419,10 @@ public final class MobTalkClient implements ClientModInitializer {
                 merchant.current(), null);
     }
 
-    /** After the mob spoken to answered: who else heard it, so they can add a line one after another. */
+    /** After the mob spoken to answered: who else heard it. Every bystander starts thinking at once, in parallel with the
+     * partner's voice; the lines are then played one after another as they come ready, never over another voice. */
     private void queueWitnesses(Request request, ConversationEngine.Reply reply) {
-        if (request.overheard != null) return; // The queue is the partner's; a bystander finishing keeps the next one waiting.
-        witnessQueue.clear(); overheard = null;
-        if (config.witnessReplies <= 0 || reply.silent()) return;
+        if (request.overheard != null || config.witnessReplies <= 0 || reply.silent()) return;
         MobGameBridge game = MobGameBridge.active(request.server);
         if (game == null) return;
         ConversationEngine.Overheard heard = new ConversationEngine.Overheard(reply.speakerName(), reply.recognizedText(), reply.responseText());
@@ -421,21 +432,61 @@ public final class MobTalkClient implements ClientModInitializer {
         game.witnesses(request.target, request.player, request.dimension, config.witnessReplies).whenComplete((ids, error) -> client.execute(() -> {
             if (error != null || ids.isEmpty() || generation != request.generation) return;
             java.util.Random chance = new java.util.Random();
-            for (UUID id : ids) if (eventful || chance.nextDouble() < SMALL_TALK_CHANCE) witnessQueue.add(id);
-            if (!witnessQueue.isEmpty()) { overheard = heard; witnessGeneration = request.generation; }
+            for (UUID id : ids) if (eventful || chance.nextDouble() < SMALL_TALK_CHANCE) startWitness(id, heard, request);
         }));
     }
 
-    /** One bystander at a time, and only once the previous voice has gone quiet. */
-    private void advanceWitnesses() {
-        if (generation != witnessGeneration) { witnessQueue.clear(); overheard = null; return; }
-        if (speech != null || requestActive || recording != null || pipelineBusy.get() || pendingDeliveries > 0 || overheard == null) return;
-        UUID next = witnessQueue.poll();
-        MobEntity mob = MobSpeechSound.find(world, next);
+    /** One bystander's thinking, off both the game thread and the conversation worker; the result lands in readyWitnesses. */
+    private void startWitness(UUID id, ConversationEngine.Overheard heard, Request after) {
+        MobEntity mob = MobSpeechSound.find(world, id);
         if (mob == null || !withinRange(mob) || client.player == null || client.getServer() == null) return;
-        Request seed = new Request(generation, next, client.getServer().getSavePath(WorldSavePath.ROOT), config, null, client.getServer(),
-                client.player.getUuid(), world.getRegistryKey().getValue().toString(), mob.getName().getString(), null, overheard);
-        submit(seed, null, "");
+        Request seed = new Request(after.generation, id, after.worldDirectory, after.config, null, after.server, after.player, after.dimension,
+                mob.getName().getString(), null, heard);
+        ConversationEngine localEngine = engine;
+        if (localEngine == null) return;
+        witnessesInFlight++;
+        witnessTasks.add(witnesses.submit(() -> {
+            try {
+                if (generation != seed.generation) return;
+                MobGameBridge game = gameReady.get(10, TimeUnit.SECONDS);
+                game.attend(seed.target, seed.player, 100);
+                MobSnapshot snapshot = game.capture(seed.target, seed.player, seed.dimension).get(10, TimeUnit.SECONDS);
+                if (generation != seed.generation) return;
+                ConversationEngine.PreparedReply prepared = localEngine.prepare(snapshot, "", heard);
+                Request observed = new Request(seed.generation, seed.target, seed.worldDirectory, seed.config, snapshot, seed.server, seed.player,
+                        seed.dimension, seed.mobName, null, heard);
+                client.execute(() -> {
+                    if (generation != seed.generation) { prepared.reply().discardSpeech(); return; }
+                    readyWitnesses.add(new Ready(observed, localEngine, prepared));
+                });
+            } catch (Exception failure) {
+                LOGGER.debug("Mob Talk bystander {} stayed out: {}", seed.mobName, String.valueOf(failure.getMessage()));
+            } finally {
+                Thread.interrupted();
+                client.execute(() -> witnessesInFlight--);
+            }
+        }));
+    }
+
+    /** The floor is free: the next ready bystander speaks. */
+    private void playNextWitness() {
+        if (speech != null || requestActive || recording != null || pendingDeliveries > 0) return;
+        Ready next = readyWitnesses.poll();
+        if (next == null) return;
+        if (generation != next.request.generation) { next.prepared.reply().discardSpeech(); return; }
+        pendingDeliveries++;
+        deliver(next.request, next.engine, next.prepared);
+    }
+
+    /** Every second: the mob being spoken to, the one speaking and every bystander still thinking stay put and keep looking at the player. */
+    private void keepAttention() {
+        if (client.player == null || client.getServer() == null) return;
+        MobGameBridge game = MobGameBridge.active(client.getServer());
+        if (game == null) return;
+        UUID player = client.player.getUuid();
+        if (selected != null && (requestActive || speakingMob == null && speech != null)) game.attend(selected, player, 40);
+        if (speakingMob != null) game.attend(speakingMob, player, 40);
+        for (Ready ready : readyWitnesses) game.attend(ready.request.target, player, 40);
     }
 
     void ensureGameBridge() {
@@ -479,7 +530,6 @@ public final class MobTalkClient implements ClientModInitializer {
             return;
         }
         requestActive = true;
-        witnessActive = request.overheard != null;
         merchant.setWork(request.merchant);
         status = request.overheard != null ? request.mobName + " прислушивается…" : wav == null ? "Моб думает…" : "Whisper распознаёт…";
         showHud();
@@ -519,11 +569,16 @@ public final class MobTalkClient implements ClientModInitializer {
                 ConversationEngine localEngine = ensureEngine(request);
                 checkCurrent(request);
                 if (request.overheard == null && !game.memory.hasBackstory(request.target)) {
-                    // The prefetch on selection may have lost the race; a first reply without a life story would sound generic.
+                    // The story asked for on selection is usually still being written: wait for it rather than ask twice.
                     // A bystander gets its story when the player turns to it: one extra request per passer-by would be too slow.
                     updateStatus(request, "Моб вспоминает, кто он…");
-                    try { localEngine.ensureBackstory(snapshot); }
-                    catch (java.io.IOException noStory) { LOGGER.warn("Mob Talk backstory not written yet: {}", String.valueOf(noStory.getMessage())); }
+                    CompletableFuture<Void> story = storiesInFlight.get(request.target);
+                    if (story != null) { try { story.get(60, TimeUnit.SECONDS); } catch (Exception late) { /* The inline attempt below covers it. */ } }
+                    checkCurrent(request);
+                    if (!game.memory.hasBackstory(request.target)) {
+                        try { localEngine.ensureBackstory(snapshot); }
+                        catch (java.io.IOException noStory) { LOGGER.warn("Mob Talk backstory not written yet: {}", String.valueOf(noStory.getMessage())); }
+                    }
                     checkCurrent(request);
                     updateStatus(request, "Моб думает и готовит голос…");
                 }
@@ -550,15 +605,16 @@ public final class MobTalkClient implements ClientModInitializer {
                 // Do not leak an interrupt into the executor's next request.
                 Thread.interrupted();
                 client.execute(() -> {
-                    if (generation == request.generation) { requestActive = false; witnessActive = false; }
+                    if (generation == request.generation) requestActive = false;
                 });
             }
         });
     }
 
     private ConversationEngine ensureEngine(Request request) throws Exception { return ensureEngine(request, true); }
-    /** {@code bound}: the engine is for this request's generation; a prefetch is bound to the selection instead. */
-    private ConversationEngine ensureEngine(Request request, boolean bound) throws Exception {
+    /** {@code bound}: the engine is for this request's generation; a prefetch is bound to the selection instead. Synchronized: the
+     * conversation worker and the biography worker may both need it at once. */
+    private synchronized ConversationEngine ensureEngine(Request request, boolean bound) throws Exception {
         ConversationEngine cached = engine;
         if (cached != null && request.worldDirectory.equals(engineWorld) && request.config == engineConfig) return cached;
         if (cached != null) cached.close();
@@ -589,9 +645,12 @@ public final class MobTalkClient implements ClientModInitializer {
             CompletableFuture<UUID> merchant = request.merchant == null ? CompletableFuture.completedFuture(request.target)
                     : game.selectMerchant(request.player, request.merchant.syncId());
             async = true;
+            // A mob that says "I'm leaving" leaves after saying it: the move waits for the voice, the rest applies now.
+            ActionIntent action = reply.action();
+            boolean defer = reply.speech() != null && action.type() != ActionType.NONE && action.type() != ActionType.STOP;
             merchant.thenCompose(id -> {
                 if (!request.target.equals(id)) throw new java.util.concurrent.CancellationException("Торговец сменился");
-                return game.applyWithRevision(request.target, request.player, request.dimension, reply.action(), reply.bargain(),
+                return game.applyWithRevision(request.target, request.player, request.dimension, defer ? ActionIntent.none() : action, reply.bargain(),
                         reply.deal(), reply.unlock(), reply.quest(), reply.socialIntent(), request.snapshot, reply.interactionRevision(), () -> generation == request.generation);
             }).whenComplete((delivery, error) -> client.execute(() -> {
                 try {
@@ -604,9 +663,23 @@ public final class MobTalkClient implements ClientModInitializer {
                         actionRequest = null; showHud(); return;
                     }
                     finishDelivery(request, reply, delivery.message());
+                    if (defer) { deferredAction = new Deferred(request, action); if (speech == null) runDeferredAction(); }
                 } finally { pendingDeliveries--; }
             }));
         } finally { if (!async) pendingDeliveries--; }
+    }
+
+    /** The announced move, now that the voice is over; the mob's state may have changed meanwhile, so the game checks it again. */
+    private void runDeferredAction() {
+        Deferred deferred = deferredAction;
+        deferredAction = null;
+        if (deferred == null || generation != deferred.request.generation || client.getServer() == null) return;
+        MobGameBridge game = MobGameBridge.active(deferred.request.server);
+        if (game == null) return;
+        game.apply(deferred.request.target, deferred.request.player, deferred.request.dimension, deferred.action, deferred.request.snapshot, -1,
+                () -> generation == deferred.request.generation).whenComplete((message, error) -> client.execute(() -> {
+            if (error == null && message != null && !message.isBlank() && generation == deferred.request.generation) chat("[Mob Talk] " + message);
+        }));
     }
 
     /** A reply that no longer applies: a bystander that walked off leaves the HUD on the ready line, not on "прислушивается". */
@@ -623,7 +696,7 @@ public final class MobTalkClient implements ClientModInitializer {
         stopSpeech();
         if (reply.speech() != null) {
             speech = new MobSpeechSound(client, world, request.target, request.config.maxDistance, reply.speech());
-            client.getSoundManager().play(speech); speechStarts++;
+            client.getSoundManager().play(speech); speechStarts++; speakingMob = request.target;
             status = request.overheard == null ? "Говорит…" : reply.speakerName() + " вмешивается…";
         } else {
             status = request.overheard == null ? "Ответ в чате; озвучка недоступна. Повторите позже" : "Ответ в чате; озвучка недоступна";
@@ -909,7 +982,7 @@ public final class MobTalkClient implements ClientModInitializer {
         cancelWork("Остановлено", true);
         stopped = true;
         microphone.close();
-        pipeline.shutdownNow();
+        pipeline.shutdownNow(); witnesses.shutdownNow(); biographies.shutdownNow();
         Path directory = memoryWorld;
         CompletableFuture<Void> detached = gameServer == null ? CompletableFuture.completedFuture(null) : MobGameBridge.detach(gameServer);
         if (directory != null) maintenance.execute(() -> {

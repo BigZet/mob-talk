@@ -25,6 +25,21 @@ final class MobActionController {
     private final MobGameBridge bridge;
     private final Map<UUID, Lease> leases = new HashMap<>();
     private final Map<UUID, Retaliation> pendingRetaliations = new HashMap<>();
+    /** Mobs in a conversation (being spoken to, thinking or speaking): they stand still and face the player until the tick stored. */
+    private final Map<UUID, Attention> attention = new HashMap<>();
+    private record Attention(MobEntity mob, ServerPlayerEntity player, long until) { }
+    void attend(MobEntity mob, ServerPlayerEntity player, int ticks) {
+        long until = mob.getWorld().getTime() + ticks;
+        Attention current = attention.get(mob.getUuid());
+        if (current == null || current.until < until || current.player != player) attention.put(mob.getUuid(), new Attention(mob, player, until));
+    }
+    /** Whether the mob should hold still now: in a conversation, with no lease, no panic and no fight of its own. */
+    private boolean attentive(MobEntity mob) {
+        Attention current = attention.get(mob.getUuid());
+        if (current == null) return false;
+        if (mob.getWorld().getTime() > current.until || !mob.isAlive() || !current.player.isAlive() || current.player.getWorld() != mob.getWorld()) { attention.remove(mob.getUuid()); return false; }
+        return !leases.containsKey(mob.getUuid()) && mob.getTarget() == null && !(mob instanceof PathAwareEntity aware && aware.isPanicking());
+    }
     /** When each villager last called the golem, so the alarm is not raised every second. */
     private final Map<UUID, Long> alarms = new HashMap<>();
     /** When each hated player last got a memory line from a mob's stance, so fleeing every 20 s is remembered once. */
@@ -269,6 +284,16 @@ final class MobActionController {
         } catch (IllegalArgumentException ignored) { }
     }
     void tick(ServerWorld world) {
+        for (Attention current : List.copyOf(attention.values())) {
+            if (current.mob.getWorld() != world) continue;
+            if (!attentive(current.mob)) continue;
+            // Stand where you are and look at the one talking; a goal that just picked a stroll stops as its path is dropped.
+            current.mob.getNavigation().stop();
+            current.mob.getLookControl().lookAt(current.player, 30f, 30f);
+            if (registered(current.mob, MemoryModuleType.WALK_TARGET)) current.mob.getBrain().forget(MemoryModuleType.WALK_TARGET);
+            if (registered(current.mob, MemoryModuleType.PATH)) current.mob.getBrain().forget(MemoryModuleType.PATH);
+            if (registered(current.mob, MemoryModuleType.LOOK_TARGET)) current.mob.getBrain().remember(MemoryModuleType.LOOK_TARGET, new EntityLookTarget(current.player, true), 20);
+        }
         // Damage may be reflected by Thorns inside GoalSelector.tickGoals(). Mutate selectors only after entity ticks.
         for (Retaliation pending : List.copyOf(pendingRetaliations.values())) {
             if (pending.mob.getWorld() != world) continue;
@@ -298,6 +323,13 @@ final class MobActionController {
             if (mob instanceof WardenEntity warden) warden.removeSuspect(player);
         }
         Lease lease = leases.get(mob.getUuid());
+        if (lease == null && attentive(mob)) {
+            // Brain tasks re-plan a walk every tick; drop it again after they ran so a listening villager stays put.
+            if (registered(mob, MemoryModuleType.WALK_TARGET)) mob.getBrain().forget(MemoryModuleType.WALK_TARGET);
+            if (registered(mob, MemoryModuleType.PATH)) mob.getBrain().forget(MemoryModuleType.PATH);
+            mob.getNavigation().stop();
+            return;
+        }
         if (lease == null || lease.action == ActionType.ATTACK && lease.meleeGoal == null) return;
         LivingEntity target = lease.target();
         if (target == null) return;
@@ -362,8 +394,8 @@ final class MobActionController {
         }
         if (persist) bridge.memory.recordAction(id, ActionIntent.none());
     }
-    void unload(MobEntity mob) { stop(mob.getUuid(), false); alarms.remove(mob.getUuid()); }
-    void clearRuntime() { pendingRetaliations.clear(); alarms.clear(); hatredMemories.clear(); for (UUID id : List.copyOf(leases.keySet())) stop(id, false); }
+    void unload(MobEntity mob) { stop(mob.getUuid(), false); alarms.remove(mob.getUuid()); attention.remove(mob.getUuid()); }
+    void clearRuntime() { pendingRetaliations.clear(); alarms.clear(); hatredMemories.clear(); attention.clear(); for (UUID id : List.copyOf(leases.keySet())) stop(id, false); }
 
     private final class Lease {
         final MobEntity mob; final UUID targetId; final ActionType action; long expires;
