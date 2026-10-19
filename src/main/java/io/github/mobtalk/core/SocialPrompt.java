@@ -80,6 +80,11 @@ final class SocialPrompt {
         }
         return lines;
     }
+    /** How the village sees this player, one line; "" for a stranger or outside the layer. */
+    static String standing(ConversationStore.Profile p) {
+        String line = p == null ? "" : VillageStanding.describe(p.standing);
+        return line.isBlank() ? "" : "\nДеревня об этом игроке (факт, не пересказывай): " + line + ".";
+    }
     /** Why the spouse will not have a child now, or null when it agrees. */
     static String childRefusal(int score, boolean infertile, boolean expecting, boolean tooSoon) {
         if (expecting) return "ребёнок у вас уже на подходе";

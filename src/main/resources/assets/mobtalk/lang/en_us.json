@@ -247,6 +247,7 @@
   "mobtalk.family.wedding": "[Mob Talk] A wedding in the village: %s and %s",
   "mobtalk.family.birth": "[Mob Talk] %s and %s had a child",
   "mobtalk.family.grown": "[Mob Talk] %s has grown up",
+  "mobtalk.village.noTrade": "The village exiled you: villagers will not trade with you",
   "mobtalk.settings.initiative": "Mobs speak first",
   "mobtalk.settings.initiativeRate": "Initiatives per minute (per world): %s",
   "mobtalk.settings.decider": "Who decides whether to speak",

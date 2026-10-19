@@ -247,6 +247,7 @@
   "mobtalk.family.wedding": "[Mob Talk] В деревне свадьба: %s и %s",
   "mobtalk.family.birth": "[Mob Talk] У %s и %s родился ребёнок",
   "mobtalk.family.grown": "[Mob Talk] %s вырос(ла)",
+  "mobtalk.village.noTrade": "Деревня вас изгнала: жители с вами не торгуют",
   "mobtalk.settings.initiative": "Мобы заговаривают первыми",
   "mobtalk.settings.initiativeRate": "Инициатив в минуту (на мир): %s",
   "mobtalk.settings.decider": "Кто решает, говорить ли",

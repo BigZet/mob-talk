@@ -62,6 +62,7 @@ final class MobPrompt {
                 + rumors(profile)
                 + "\n\nЭтот игрок:\nОтношение (-100..100): " + profile.relationship + " — " + attitude(profile.relationship) + "."
                 + (profile.repute != null && profile.repute.known() && profile.turns.isEmpty() ? "\n" + profile.repute.describe() : "")
+                + SocialPrompt.standing(profile)
                 + MemoryRanking.promptBlock(profile.facts, profile.memory, System.currentTimeMillis()) + ConversationSummary.promptBlock(profile.summaries)
                 + SocialPrompt.gestures(profile)
                 + "\n\n" + PromptTexts.VOICE

@@ -56,6 +56,7 @@ public final class SocialLedger {
         detached.family = state.family.kin(p.id).stream().filter(kin -> !kin.player()).toList();
         UUID player = snapshot.playerId();
         if (player == null) return;
+        detached.standing = standing(state, p.villageId, player, now);
         Rapport rapport = r == null || r.rapport == null ? new Rapport() : r.rapport;
         int score = r == null ? 0 : r.score;
         boolean adult = adult(p, snapshot);
@@ -373,6 +374,30 @@ public final class SocialLedger {
         }
     }
 
+    // ---- The village's view of the player (VillageStanding): relationships of its residents plus its rumours. ----
+
+    /** The standing of the player in this village; {@link VillageStanding.View#NONE} for no village. */
+    public VillageStanding.View standing(String villageId, UUID player, long now) { synchronized (store) { return standing(store.state, villageId, player, now); } }
+    /** The standing in the known village around this point (same dimension, within the village radius), or NONE. */
+    public VillageStanding.View standingAt(String dimension, int x, int z, UUID player, long now) {
+        synchronized (store) {
+            ConversationStore.Village village = store.villageNear(dimension, x, z);
+            return village == null ? VillageStanding.View.NONE : standing(store.state, village.id(), player, now);
+        }
+    }
+    static VillageStanding.View standing(ConversationStore.State state, String villageId, UUID player, long now) {
+        if (villageId == null || villageId.isBlank() || player == null) return VillageStanding.View.NONE;
+        List<Integer> scores = new ArrayList<>();
+        int residents = 0;
+        for (ConversationStore.Profile q : state.profiles.values()) {
+            if (!villageId.equals(q.villageId) || !"minecraft:villager".equals(q.type) || state.family.dead(q.id)) continue;
+            residents++;
+            ConversationStore.Relation r = q.relations.get(player.toString());
+            if (r != null) scores.add(r.score);
+        }
+        return VillageStanding.of(scores, residents, state.rumors.reputation(villageId, now));
+    }
+
     /** The living spouse of a villager, for the game (village weddings, births); null for none. */
     public UUID spouse(UUID mob) { synchronized (store) { return store.state.family.spouse(mob); } }
     /** The relatives of a mob in words. */
@@ -396,6 +421,8 @@ public final class SocialLedger {
                 line.append("; усталость ").append(r.rapport.fatigue(now));
                 if (r.rapport.courtship().partners()) line.append("; ").append(r.rapport.courtship().word);
             }
+            VillageStanding.View standing = standing(store.state, p.villageId, player, now);
+            if (standing.rank() != VillageStanding.Rank.STRANGER) line.append("; в деревне: ").append(standing.rank().word).append(" (").append(standing.points()).append(')');
             List<FamilyTree.Kin> kin = store.state.family.kin(mob);
             if (!kin.isEmpty()) line.append("; семья: ").append(String.join(", ", kin.stream().map(k -> k.word() + " " + (k.name().isBlank() ? "?" : k.name()) + (k.dead() ? " †" : "")).toList()));
             return line.toString();

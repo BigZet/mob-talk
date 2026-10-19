@@ -43,6 +43,8 @@ public final class MobGameBridge {
     final SocialController society;
     /** Villagers' families: weddings, births, growth, mourning. */
     final FamilyController families;
+    /** The village's stance towards the player: no trade for an exile, a watchful golem, warnings. */
+    final VillageController villages;
     private final Map<UUID, Deque<Heard>> heard = new HashMap<>();
 
     private MobGameBridge(MinecraftServer server, ConversationStore memory, MobTalkConfig config) {
@@ -50,6 +52,7 @@ public final class MobGameBridge {
         social = new MobSocialController(this);
         society = new SocialController(this);
         families = new FamilyController(this);
+        villages = new VillageController(this);
         initiative = new InitiativeController(this);
         actions = new MobActionController(this);
         bargaining = new VillagerBargaining(this);
@@ -119,6 +122,7 @@ public final class MobGameBridge {
                 bridge.social.tick(world);
                 bridge.society.tick(world);
                 bridge.families.tick(world);
+                bridge.villages.tick(world);
                 bridge.initiative.tick(world);
                 bridge.bargaining.tick(world);
                 bridge.trades.tick(world);
@@ -158,7 +162,7 @@ public final class MobGameBridge {
                 bridge.memory.recordAction(card.id(), ActionIntent.none());
         if (server.isStopped()) return CompletableFuture.completedFuture(null);
         CompletableFuture<Void> done = new CompletableFuture<>();
-        server.execute(() -> { bridge.actions.clearRuntime(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.initiative.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
+        server.execute(() -> { bridge.actions.clearRuntime(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.initiative.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
         return done;
     }
     public static MobGameBridge forEntity(Entity entity) {
@@ -390,6 +394,11 @@ public final class MobGameBridge {
         MobGameBridge bridge = forEntity(mob);
         if (bridge == null || !bridge.config.enabled) return false;
         return CombatRules.truce(SpeciesCatalog.get(type(mob)).hostile(), bridge.memory.relationship(mob.getUuid(), player.getUuid()));
+    }
+    /** An exiled player gets no trade window from this village's villagers. */
+    public static boolean refusesTrade(VillagerEntity villager, ServerPlayerEntity player) {
+        MobGameBridge bridge = forEntity(villager);
+        return bridge != null && bridge.villages.refuseTrade(villager, player);
     }
     /** Villager families own breeding: while they are on, vanilla villagers do not breed (children come only to couples). */
     public static boolean familiesOwnBreeding(VillagerEntity villager) {

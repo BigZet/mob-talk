@@ -667,6 +667,8 @@ public final class ConversationStore {
         transient SocialTurn socialTurn;
         /** This villager's relatives from the family tree, for «Свои»; empty outside the social layer. */
         transient List<FamilyTree.Kin> family = List.of();
+        /** How the village sees the current player ({@link VillageStanding}); NONE outside the social layer. */
+        transient VillageStanding.View standing = VillageStanding.View.NONE;
         /** Sex, character, marks and growth of a villager in the social layer ({@link SocialProfile}); null for other mobs. */
         SocialProfile social;
         String type, name, personality, voiceId; String memory = "";

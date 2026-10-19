@@ -22,7 +22,8 @@
     "BlockPlacementMixin",
     "BlockPlacedMixin",
     "FluidPlacedMixin",
-    "VillagerFamilyMixin"
+    "VillagerFamilyMixin",
+    "VillageTradeRefusalMixin"
   ],
   "injectors": {
     "defaultRequire": 1
