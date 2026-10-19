@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.MobEntity;
@@ -32,6 +33,8 @@ public final class MobGameBridge {
     final TradeBridge trades;
     /** Misdeeds without a blow, seen by the village. */
     final MischiefWatch mischief;
+    /** What the player built or dug lately, for the place analysis ("he walled me in"). */
+    final BlockChangeLog changes = new BlockChangeLog();
     private final Map<UUID, Deque<Heard>> heard = new HashMap<>();
 
     private MobGameBridge(MinecraftServer server, ConversationStore memory, MobTalkConfig config) {
@@ -84,7 +87,12 @@ public final class MobGameBridge {
                 bridge.actions.unload(mob);
                 if (mob instanceof VillagerEntity villager) { bridge.bargaining.unload(villager); bridge.trades.unload(villager); }
                 bridge.heard.remove(mob.getUuid());
+                bridge.changes.forget(mob.getUuid());
             }
+        });
+        PlayerBlockBreakEvents.AFTER.register((world, player, pos, state, blockEntity) -> {
+            MobGameBridge bridge = world instanceof ServerWorld serverWorld ? active(serverWorld.getServer()) : null;
+            if (bridge != null && player instanceof ServerPlayerEntity serverPlayer) bridge.changes.broken((ServerWorld) world, pos, serverPlayer);
         });
         ServerTickEvents.END_WORLD_TICK.register(world -> {
             MobGameBridge bridge = active;
@@ -93,6 +101,7 @@ public final class MobGameBridge {
                 bridge.actions.stance(world);
                 bridge.bargaining.tick(world);
                 bridge.trades.tick(world);
+                bridge.changes.tick(bridge, world);
             }
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
@@ -139,6 +148,11 @@ public final class MobGameBridge {
         return bridge != null && bridge.server.isOnThread() ? bridge : null;
     }
     public static String type(Entity entity) { return Registries.ENTITY_TYPE.getId(entity.getType()).toString(); }
+    /** From the placement mixins: a block or a bucket of fluid the player put down. */
+    public static void blockPlaced(ServerWorld world, net.minecraft.util.math.BlockPos pos, ServerPlayerEntity player) {
+        MobGameBridge bridge = active(world.getServer());
+        if (bridge != null) bridge.changes.placed(world, pos, player);
+    }
     public void event(MobEntity mob, String text) {
         memory.recordEvent(mob.getUuid(), type(mob), mob.getName().getString(), text, System.currentTimeMillis());
     }
@@ -220,7 +234,7 @@ public final class MobGameBridge {
             if (memory.card(mobId, playerId) == null) event(nearby.mob, "The player met this mob");
             actions.attend(nearby.mob, nearby.player, 100); // Being spoken to: stand and listen while the answer is written.
             return MobContextCapture.capture(this, nearby.world, nearby.mob, nearby.player);
-        });
+        }).thenApplyAsync(PlaceCapture::classify); // The classifier takes tens of milliseconds: never on the server thread.
     }
     /** The living mob and player in the same world within the conversation range; server thread only. */
     private Nearby nearby(UUID mobId, UUID playerId, String dimension) {

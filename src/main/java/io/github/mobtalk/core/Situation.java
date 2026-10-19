@@ -34,6 +34,7 @@ public final class Situation {
     private final String playerWeapon, playerArmor;
     private final int hits, witnessed, kills, calm, confidence;
     private final boolean trapped;
+    private final String escape;
     private final int relationship;
     private final boolean hostile, threat, creative;
 
@@ -42,7 +43,12 @@ public final class Situation {
         this.mob = mob; this.player = player; this.verdict = creative ? Verdict.DOOMED : verdict(mob, player);
         this.playerWeapon = playerWeapon; this.playerArmor = playerArmor; this.hits = hits; this.witnessed = witnessed;
         this.relationship = relationship; this.hostile = hostile; this.threat = threat; this.creative = creative;
-        this.kills = kills; this.calm = calm; this.confidence = confidence; this.trapped = trapped;
+        this.kills = kills; this.calm = calm; this.confidence = confidence; this.trapped = trapped; this.escape = "";
+    }
+    private Situation(Situation base, String escape) {
+        this.mob = base.mob; this.player = base.player; this.verdict = base.verdict; this.playerWeapon = base.playerWeapon; this.playerArmor = base.playerArmor;
+        this.hits = base.hits; this.witnessed = base.witnessed; this.relationship = base.relationship; this.hostile = base.hostile; this.threat = base.threat;
+        this.creative = base.creative; this.kills = base.kills; this.calm = base.calm; this.confidence = base.confidence; this.trapped = base.trapped; this.escape = escape;
     }
 
     public Verdict verdict() { return verdict; }
@@ -122,10 +128,12 @@ public final class Situation {
         // Fear is for a real threat: this player hit or hurt it, is an enemy, or the species is at war with players anyway.
         boolean attacked = snapshot.playerId() != null && snapshot.playerId().toString().equals(String.valueOf(details.get("lastAttacker")));
         boolean threat = hostile || hits > 0 || witnessed > 0 || relationship < 0 || attacked;
-        return new Situation(mob, human, weaponText, armorText, hits, witnessed, relationship, hostile, threat, Boolean.TRUE.equals(player.get("creative")),
+        Situation situation = new Situation(mob, human, weaponText, armorText, hits, witnessed, relationship, hostile, threat, Boolean.TRUE.equals(player.get("creative")),
                 // The nerves of the moment, not the temperament alone: a calm creature just beaten still panics.
                 kills, profile == null ? 50 : profile.stateView != null ? profile.stateView.calm() : profile.calm,
                 profile == null ? 50 : profile.confidence, Boolean.TRUE.equals(details.get("trapped")));
+        // What shuts it in, from the place analysis when there is one.
+        return new Situation(situation, PlacePrompt.escape(snapshot));
     }
 
     private static String itemId(Map<String,Object> player, String slot) { return player.get(slot) instanceof Map<?,?> item && item.get("id") instanceof String id ? id : ""; }
@@ -177,7 +185,7 @@ public final class Situation {
                     ? "при случае он получит по заслугам — можешь напасть (action ATTACK)." : "держись от него подальше или беги, звать на помощь не стыдно."));
         if (kills > 0) text.append("\n— На твоих глазах он убил ").append(kills).append(' ').append(plural(kills, "существо", "существа", "существ"))
                 .append(" (кого — в rememberedEvents). Это не строка в отчёте, а горе, ярость или оцепенение — по характеру; не говори об этом ровным голосом и не делай вид, что ничего не было.");
-        if (trapped) text.append("\n— Бежать некуда: ты заперт, путь наружу закрыт. Не говори «я ухожу» и не обещай отойти — это невозможно. Остаются слова: торг, мольба, злость, "
+        if (trapped) text.append("\n— Бежать некуда: ").append(escape.isBlank() ? "ты заперт, путь наружу закрыт" : escape + " — ты заперт").append(". Не говори «я ухожу» и не обещай отойти — это невозможно. Остаются слова: торг, мольба, злость, "
                 + "обращение к своим, молчание или смирение. action FLEE бессмысленен.");
         if (verdict == Verdict.DOOMED || verdict == Verdict.OUTMATCHED) text.append("\n— Как именно ты это переживаешь — по темпераменту: ")
                 .append(calm < 35 ? "паникуешь, сбиваешься, повторяешь обрывки" : calm > 65 ? "держишься ровно и торгуешься холодно" : "нервничаешь, но соображаешь")

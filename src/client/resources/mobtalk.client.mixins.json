@@ -19,7 +19,9 @@
     "MerchantYesSoundMixin",
     "TruceTargetMixin",
     "SpokenOfferSaveMixin",
-    "BlockPlacementMixin"
+    "BlockPlacementMixin",
+    "BlockPlacedMixin",
+    "FluidPlacedMixin"
   ],
   "injectors": {
     "defaultRequire": 1

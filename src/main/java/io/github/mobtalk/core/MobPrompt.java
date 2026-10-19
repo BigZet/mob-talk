@@ -56,6 +56,7 @@ final class MobPrompt {
                 + "\n\nСейчас ты " + mood(snapshot, profile) + " Начинай разговор из этого состояния, а не с чистого листа."
                 + "\n\n" + state.describe() + "\n" + PromptTexts.STATE_RULE
                 + "\n\n" + Situation.of(snapshot, profile).describe()
+                + PlacePrompt.block(snapshot)
                 + "\n\nЭтот игрок:\nОтношение (-100..100): " + profile.relationship + " — " + attitude(profile.relationship) + "."
                 + MemoryRanking.promptBlock(profile.facts, profile.memory, System.currentTimeMillis()) + ConversationSummary.promptBlock(profile.summaries)
                 + "\n\n" + PromptTexts.VOICE
@@ -75,7 +76,7 @@ final class MobPrompt {
 
     /** What a bystander hears: the exchange it was not part of, then the snapshot as data; no trading numbers, it trades nothing here. */
     String overheardMessage(ConversationEngine.Overheard overheard, MobSnapshot snapshot, ConversationStore.Profile profile) {
-        JsonObject observed = new JsonObject(); observed.add("worldSnapshot", JSON.toJsonTree(snapshot));
+        JsonObject observed = new JsonObject(); observed.add("worldSnapshot", PlacePrompt.withoutPlace(JSON.toJsonTree(snapshot)));
         observed.add("rememberedEvents", JSON.toJsonTree(profile.recentEvents));
         return "Ты рядом и слышишь чужой разговор. Игрок — " + overheard.speaker() + ": «" + overheard.said() + "». "
                 + overheard.speaker() + " в ответ: «" + overheard.answer() + "». Это сказано не тебе. Вмешаться или промолчать — решай по характеру и обстановке."
