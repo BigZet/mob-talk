@@ -65,7 +65,7 @@ class Asker:
         with self.lock:
             if self.spent >= self.budget: return None
         image = base64.b64encode(render.png(render.collage(blocks, palette, views))).decode()
-        body = {'model': MODEL, 'temperature': 0.2, 'max_tokens': 400, 'reasoning': {'effort': 'low'}, 'usage': {'include': True},
+        body = {'model': MODEL, 'temperature': 0.2, 'max_tokens': 900, 'reasoning': {'effort': 'low'}, 'usage': {'include': True},
                 'response_format': {'type': 'json_schema', 'json_schema': {'name': 'place', 'strict': True, 'schema': SCHEMA}},
                 'messages': [{'role': 'user', 'content': [{'type': 'text', 'text': PROMPT.format(panels=PANELS[views])},
                                                           {'type': 'image_url', 'image_url': {'url': 'data:image/png;base64,' + image}}]}]}
@@ -134,8 +134,9 @@ def main():
     ap.add_argument('--n', type=int, default=50); ap.add_argument('--budget', type=float, default=5.0)
     ap.add_argument('--describe', type=int, default=1200, help='harvested cubes asked once, for descriptions')
     ap.add_argument('--max-requests', type=int, default=10000)
+    ap.add_argument('--folders', nargs='*', default=['harvest', 'saves'])
     args = ap.parse_args()
-    data = load_all([os.path.join(DATA, 'harvest'), os.path.join(DATA, 'saves')])
+    data = load_all([os.path.join(DATA, f) for f in args.folders])
     asker = Asker(args.budget)
     rng = random.Random(11)
     if args.mode == 'check':

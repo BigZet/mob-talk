@@ -10,6 +10,7 @@ import java.util.Random;
 
 /** Writes generated scenes as a flat binary dataset the Python trainer reads with numpy: a header, then for every sample the
  * 16³ cube of material ids (x-major, then y, then z) followed by one label byte. Labels are balanced and the order is shuffled.
+ * A sidecar {@code <out>.fam} holds the same cubes as {@link BlockFamily} ids, one 4096-byte cube per sample.
  * <pre>java -cp build/classes/java/main io.github.mobtalk.core.place.SceneDataset out.mtvx 60000 [seed]</pre> */
 public final class SceneDataset {
     /** File magic, then the counts, as big-endian int32: version, samples, cube edge, material count, label count, then the
@@ -39,10 +40,14 @@ public final class SceneDataset {
             int[] labels = new int[count];
             for (int i = 0; i < count; i++) labels[i] = i % SceneGenerator.Label.ALL.length;
             for (int i = count - 1; i > 0; i--) { int j = order.nextInt(i + 1); int t = labels[i]; labels[i] = labels[j]; labels[j] = t; }
-            for (int i = 0; i < count; i++) {
-                SceneGenerator.Scene scene = generator.generate(SceneGenerator.Label.ALL[labels[i]]);
-                data.write(scene.grid().cube());
-                data.writeByte(labels[i]);
+            // The block families go to a sidecar file in the same order, so version-1 readers keep working.
+            try (OutputStream famRaw = new BufferedOutputStream(Files.newOutputStream(Path.of(out + ".fam")), 1 << 20)) {
+                for (int i = 0; i < count; i++) {
+                    SceneGenerator.Scene scene = generator.generate(SceneGenerator.Label.ALL[labels[i]]);
+                    data.write(scene.grid().cube());
+                    data.writeByte(labels[i]);
+                    famRaw.write(scene.grid().familyCube());
+                }
             }
         }
     }
