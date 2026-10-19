@@ -116,8 +116,9 @@ public final class MobTalkConfig {
     public int spokenOfferMinutes = 10, bargainCooldownMinutes = 20;
     /** The place around a mob: analysed at all (enclosure, exits, height), and named by the classifier («похоже на шахту»). */
     public boolean placeAnalysis = true, placeClassifier = true;
-    /** How mobs call the player in prompts and memories; "" uses the Minecraft nick ({@link PlayerIdentity}). */
-    public String playerName = "";
+    /** How mobs address the player, three comma-separated lists picked by the relationship: hostile or mocking, ordinary, close.
+     * Empty lists fall back to the ordinary one, then to the Minecraft nick ({@link PlayerIdentity}). */
+    public String playerNamesHostile = "", playerNamesNeutral = "", playerNamesClose = "";
 
     /** A menu draft or worker snapshot; editing it does not change the live preferences. */
     public MobTalkConfig copy() {
@@ -166,7 +167,7 @@ public final class MobTalkConfig {
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;
         copy.familyLife = familyLife; copy.weddingChance = weddingChance; copy.birthChance = birthChance; copy.childGrowthDays = childGrowthDays;
         Tunables.copy(this, copy);
-        copy.placeAnalysis = placeAnalysis; copy.placeClassifier = placeClassifier; copy.playerName = playerName;
+        copy.placeAnalysis = placeAnalysis; copy.placeClassifier = placeClassifier; copy.playerNamesHostile = playerNamesHostile; copy.playerNamesNeutral = playerNamesNeutral; copy.playerNamesClose = playerNamesClose;
         return copy;
     }
 
@@ -216,7 +217,9 @@ public final class MobTalkConfig {
         if (config.speciesOverrides == null) config.speciesOverrides = new LinkedHashMap<>();
         config.playerGender = config.playerGender == null ? "any" : config.playerGender.strip().toLowerCase(java.util.Locale.ROOT);
         if (!java.util.List.of("male", "female", "any").contains(config.playerGender)) config.playerGender = "any";
-        config.playerName = PlayerIdentity.clean(config.playerName);
+        config.playerNamesHostile = PlayerIdentity.clean(config.playerNamesHostile);
+        config.playerNamesNeutral = PlayerIdentity.clean(config.playerNamesNeutral);
+        config.playerNamesClose = PlayerIdentity.clean(config.playerNamesClose);
         config.decider = "jev".equalsIgnoreCase(config.decider == null ? "" : config.decider.strip()) ? "jev" : "rules";
         config.vision = Vision.normalize(config.vision);
         MobTalkConfig defaults = new MobTalkConfig();

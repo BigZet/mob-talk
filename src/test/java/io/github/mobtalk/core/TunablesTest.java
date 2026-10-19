@@ -100,14 +100,15 @@ class TunablesTest {
     @Test void copyAndRoundTripCarryEveryTunable() throws Exception {
         MobTalkConfig custom = new MobTalkConfig();
         for (Tunables.Tunable t : Tunables.ALL) t.set(custom, t.max());
-        custom.placeAnalysis = false; custom.placeClassifier = false; custom.playerName = "Лена";
+        custom.placeAnalysis = false; custom.placeClassifier = false; custom.playerNamesHostile = "Димас, Дмитрий Михайлович"; custom.playerNamesNeutral = "Дима"; custom.playerNamesClose = "Димка, Димасик";
         MobTalkConfig copy = custom.copy();
         Path file = directory.resolve("config/mobtalk.json");
         MobTalkConfig.save(file, custom);
         MobTalkConfig loaded = MobTalkConfig.load(file);
         for (MobTalkConfig other : List.of(copy, loaded)) {
             for (Tunables.Tunable t : Tunables.ALL) assertEquals(t.get(custom), t.get(other), t.field());
-            assertFalse(other.placeAnalysis); assertFalse(other.placeClassifier); assertEquals("Лена", other.playerName);
+            assertFalse(other.placeAnalysis); assertFalse(other.placeClassifier); assertEquals("Дима", other.playerNamesNeutral);
+            assertEquals("Димка, Димасик", other.playerNamesClose); assertEquals("Димас, Дмитрий Михайлович", other.playerNamesHostile);
         }
         Tunables.reset(copy, Tunables.Section.SOCIAL);
         assertEquals(40, copy.heartsFriend); assertEquals(5, copy.weddingChance);
@@ -164,15 +165,45 @@ class TunablesTest {
         assertEquals(SocialRules.Move.APPROACH, SocialRules.decide(self, List.of(bond), id -> 10.0, 0).move());
     }
 
-    // The name mobs know the player by: the setting when given, else the nick; one clean line.
-    @Test void playerNameOverridesTheNick() {
+    // Forms of address follow the relationship; empty lists fall back to the ordinary one, then to the nick.
+    @Test void playerNamesFollowTheRelationship() throws Exception {
         MobTalkConfig config = new MobTalkConfig();
         assertEquals("Steve", PlayerIdentity.name(config, "Steve"));
-        config.playerName = "  Лена\nиз\tдеревни  ";
-        assertEquals("Лена из деревни", PlayerIdentity.name(config, "Steve"));
-        config.playerName = "x".repeat(100);
-        assertEquals(PlayerIdentity.MAX_LENGTH, PlayerIdentity.name(config, "Steve").length());
+        assertEquals(List.of("Steve"), PlayerIdentity.forms(config, "Steve", -80));
+        assertEquals("", PlayerIdentity.promptLine(config, "Steve", 0), "no lists, no extra line");
+        config.playerNamesHostile = "Димас, Дмитрий Михайлович, Дмитрий"; config.playerNamesNeutral = "Дима"; config.playerNamesClose = "Димка, Димасик, Димулька";
+        assertEquals("Дима", PlayerIdentity.name(config, "Steve"), "facts and memories use the first ordinary name");
+        assertEquals(List.of("Димас", "Дмитрий Михайлович", "Дмитрий"), PlayerIdentity.forms(config, "Steve", -20));
+        assertEquals(List.of("Дима"), PlayerIdentity.forms(config, "Steve", -19));
+        assertEquals(List.of("Дима"), PlayerIdentity.forms(config, "Steve", 39));
+        assertEquals(List.of("Димка", "Димасик", "Димулька"), PlayerIdentity.forms(config, "Steve", 40));
+        assertEquals("Игрока зовут Дима; по твоему отношению к нему обращайся так: Димка, Димасик, Димулька (выбирай по настроению, не все сразу).",
+                PlayerIdentity.promptLine(config, "Steve", 70));
+        config.heartsFriend = 60;
+        assertEquals(List.of("Дима"), PlayerIdentity.forms(config, "Steve", 50), "the close list starts at the friend heart");
+        config.playerNamesClose = "";
+        assertEquals(List.of("Дима"), PlayerIdentity.forms(config, "Steve", 90), "an empty close list falls back to the ordinary one");
+        config.playerNamesNeutral = "";
+        assertEquals("Steve", PlayerIdentity.name(config, "Steve"));
+        assertEquals(List.of("Steve"), PlayerIdentity.forms(config, "Steve", 10), "no ordinary list: the nick");
+        assertEquals(List.of("Димас", "Дмитрий Михайлович", "Дмитрий"), PlayerIdentity.forms(config, "Steve", -50));
+        // Validation: ten names at most, thirty characters each, one line, no repeats.
+        StringBuilder many = new StringBuilder();
+        for (int i = 0; i < 15; i++) many.append("Имя").append(i).append(", ");
+        assertEquals(PlayerIdentity.MAX_NAMES, PlayerIdentity.parse(many.toString()).size());
+        assertEquals(PlayerIdentity.MAX_LENGTH, PlayerIdentity.parse("x".repeat(50)).getFirst().length());
+        assertEquals(List.of("Дима из деревни", "Дима"), PlayerIdentity.parse(" Дима\nиз\tдеревни , ,Дима, дима "));
+        Path file = directory.resolve("config/names.json");
+        config.playerNamesNeutral = " Дима ,, Дима\nДимон ";
+        MobTalkConfig.save(file, config);
+        assertEquals("Дима, Дима Димон", MobTalkConfig.load(file).playerNamesNeutral);
+        // The prompt carries the line, the snapshot name stays the ordinary one.
+        config.playerNamesNeutral = "Дима"; config.playerNamesClose = "Димка";
+        MobSnapshot snapshot = new MobSnapshot(UUID.randomUUID(), "minecraft:cow", "Корова", 10, 10, "minecraft:overworld", "minecraft:plains",
+                "day", "clear", 2, "minecraft:stick", List.of(), List.of(), UUID.randomUUID(), java.util.Map.of("name", "Дима"), java.util.Map.of(), java.util.Map.of(),
+                List.of(), List.of(ActionType.NONE), 0);
+        assertEquals("\nИгрока зовут Дима; по твоему отношению к нему обращайся так: Димка.", MobPrompt.names(config, snapshot, 80));
         Tuning.apply(config);
-        assertEquals(PlayerIdentity.MAX_LENGTH, PlayerIdentity.name("Steve").length());
+        assertEquals("Дима", PlayerIdentity.name("Steve"));
     }
 }

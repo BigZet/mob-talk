@@ -38,6 +38,7 @@ final class MobPrompt {
                 + "Кто ты:\n" + species.prompt()
                 + "\nЛюбишь: " + species.interests() + "\nБоишься: " + species.fears()
                 + "\n" + nature(species, profile.relationship)
+                + names(config, snapshot, profile.relationship)
                 + speciesNotes(snapshot)
                 + (profile.backstory == null || profile.backstory.isBlank() ? "\n\n" + lifeToInvent(profile, species) : "\n\nТвоя история (только твоя, другие её не знают, пока ты не расскажешь):\n" + profile.backstory)
                 + (profile.village == null ? "" : "\n\nТвоя деревня «" + profile.village.name() + "» (эту историю знают все её жители):\n" + profile.village.story())
@@ -147,6 +148,13 @@ final class MobPrompt {
         if (view.windowOpen()) return PromptTexts.BARGAINING_RULES;
         if (view.spokenAvailable()) return PromptTexts.SPOKEN_BARGAINING_RULES;
         return view.villagerOffers() ? PromptTexts.TRADE_CLOSED : PromptTexts.NO_TRADE;
+    }
+
+    /** How to address the player at this relationship, when the settings give forms of address; "" otherwise. */
+    static String names(MobTalkConfig config, MobSnapshot snapshot, int relationship) {
+        String nick = snapshot.playerDetails().get("name") instanceof String name ? name : "";
+        String line = PlayerIdentity.promptLine(config, nick, relationship);
+        return line.isEmpty() ? "" : "\n" + line;
     }
 
     /** One line of state read off the snapshot, so a conversation starts from how the creature feels, not from neutral. */
