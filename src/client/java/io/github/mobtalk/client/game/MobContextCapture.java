@@ -51,6 +51,9 @@ final class MobContextCapture {
         mob.getBrain().getFirstPossibleNonCoreActivity().ifPresent(activity -> mobDetails.put("activity", activity.getId()));
         ActionIntent active = bridge.memory.action(mob.getUuid());
         mobDetails.put("activeAction", Map.of("type", active.type().name(), "target", active.target()));
+        mobDetails.put("truce", MobGameBridge.truce(mob, player));
+        List<String> sparing = bridge.actions.friends.sparing(mob);
+        if (!sparing.isEmpty()) mobDetails.put("sparing", sparing);
         MobCard card = bridge.memory.card(mob.getUuid(), player.getUuid());
         String type = MobGameBridge.type(mob);
         // A merchant's goods are its vanilla offers (same window on right-click and on B); the catalog deals would be a second,
@@ -178,7 +181,7 @@ final class MobContextCapture {
                 world.getRegistryKey().getValue().toString(), biome, time, weather, blind ? -1 : round(mob.distanceTo(player)),
                 blind ? "unknown (blind)" : Registries.ITEM.getId(player.getMainHandStack().getItem()).toString(), List.copyOf(nearby),
                 bridge.memory.events(mob.getUuid()), player.getUuid(), Map.copyOf(playerDetails), Map.copyOf(mobDetails),
-                Map.copyOf(environment), List.copyOf(observed), MobActionController.available(mob), bridge.memory.revision(mob.getUuid()));
+                Map.copyOf(environment), List.copyOf(observed), bridge.actions.available(mob, player), bridge.memory.revision(mob.getUuid()));
     }
 
     /** A walking mob that cannot path 10 blocks away in any of four directions is shut in: a pit, a pen, a cell. */

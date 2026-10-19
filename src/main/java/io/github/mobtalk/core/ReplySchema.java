@@ -19,7 +19,7 @@ final class ReplySchema {
         TradingView view = TradingView.of(snapshot);
         JsonObject properties = new JsonObject(); properties.add("assessment", property("string")); properties.add("reply", property("string"));
         JsonObject social = property("string"); social.add("enum", strings("NONE", "APOLOGY", "KIND", "INSULT", "THREAT")); properties.add("socialIntent", social);
-        JsonObject actionFields = new JsonObject(), type = property("string"); type.add("enum", strings("NONE", "FOLLOW", "FLEE", "ATTACK", "STOP"));
+        JsonObject actionFields = new JsonObject(), type = property("string"); type.add("enum", strings("NONE", "FOLLOW", "FLEE", "ATTACK", "STOP", "STAY", "GUARD", "SPARE"));
         actionFields.add("type", type); actionFields.add("target", property("string"));
         properties.add("action", objectSchema(actionFields, "type", "target"));
         JsonObject bargainFields = new JsonObject(), bargainType = property("string");

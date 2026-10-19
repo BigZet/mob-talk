@@ -377,7 +377,7 @@ final class MobTalkSettingsScreen extends Screen {
         request.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.mob.request.tooltip")));
         labeled("mobtalk.settings.mob.action", new int[] {2, 1}, action, request);
         List<String> targets = new ArrayList<>(List.of("player"));
-        if ((requestedAction == ActionType.ATTACK || requestedAction == ActionType.FLEE) && snapshot != null)
+        if ((requestedAction == ActionType.ATTACK || requestedAction == ActionType.FLEE || requestedAction == ActionType.SPARE) && snapshot != null)
             for (ObservedEntity entity : snapshot.observedEntities())
                 if (entity.visible() || "minecraft:warden".equals(snapshot.type()) && Boolean.TRUE.equals(entity.details().get("audible"))) targets.add(entity.key());
         if (!targets.contains(requestedTarget)) requestedTarget = "player";

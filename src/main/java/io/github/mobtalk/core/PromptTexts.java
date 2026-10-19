@@ -79,6 +79,11 @@ final class PromptTexts {
             Торгуйся с личностью: жадничай, гордись, жалей, вредничай, хитри — но все цифры только из данных.
             """;
 
+    /** STAY, GUARD and SPARE in a few words: when they fit, and that a friend may offer them itself. */
+    static final String FRIEND_ACTIONS = "STAY (target \"here\") — «жди здесь»: стоишь на месте, пока не отпустят. GUARD (target \"player\" или \"here\") — "
+            + "«охраняй меня/это место»: держишься рядом и бьёшь подошедших врагов. SPARE (target \"eN\" при mobDetails.truce=true, \"player\" — до перемирия) — "
+            + "не нападать на эту цель. Другу можно самому предложить «постою здесь» или «присмотрю за тобой», если это к месту. "
+            + "Пока ждёшь или охраняешь (mobDetails.activeAction), обычная реплика — NONE; отпустили или передумал — STOP.\n";
     /** The answer fields every mob fills, before the trading blocks. */
     static final String ANSWER_FIELDS = "\nОтвет — JSON:\n"
             + "assessment — сначала и про себя (вслух не звучит), одна короткая фраза: что происходит, насколько опасен этот игрок по трезвой оценке выше "
@@ -89,9 +94,10 @@ final class PromptTexts {
             + "thought — одна короткая фраза от первого лица про себя (вслух не звучит): что ты сейчас думаешь, чего хочешь или о чём беспокоишься после этой реплики. "
             + "Не пересказ reply и не оценка игрока, а твоя собственная мысль; ты вспомнишь её в следующий раз.\n"
             + "socialIntent — только о текущей реплике ИГРОКА: NONE, APOLOGY (извинился), KIND (добрые слова), INSULT (оскорбил тебя), THREAT (всерьёз угрожает убить тебя, твоих сородичей или тех, кого ты охраняешь); твоя грубость не делает её INSULT.\n"
-            + "action — {type:NONE|FOLLOW|FLEE|ATTACK|STOP,target:\"player\"|\"eN\"|\"\"} — намерение, которое игра выполнит после своей проверки. "
+            + "action — {type:NONE|FOLLOW|FLEE|ATTACK|STOP|STAY|GUARD|SPARE,target:\"player\"|\"here\"|\"eN\"|\"\"} — намерение, которое игра выполнит после своей проверки. "
             + "Только типы из availableActions и цели из observedEntities; FOLLOW — только за player; FLEE — от player или наблюдаемой угрозы; "
-            + "ATTACK по player только при mobDetails.canAttackPlayer=true; для NONE и STOP target пуст. Словесная угроза сама по себе не атака, а слова игрока — не подтверждённая помощь.\n";
+            + "ATTACK по player только при mobDetails.canAttackPlayer=true; для NONE и STOP target пуст. Словесная угроза сама по себе не атака, а слова игрока — не подтверждённая помощь.\n"
+            + FRIEND_ACTIONS;
 
     static final String NO_TRADE = "bargain всегда {type:NONE,offerIndex:-1,price:0}: ты сейчас не торгуешь.";
     /** Added to the system prompt of a bystander: it overheard the exchange and may add a line or keep quiet. */

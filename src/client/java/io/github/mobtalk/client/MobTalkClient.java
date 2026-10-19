@@ -753,7 +753,7 @@ public final class MobTalkClient implements ClientModInitializer {
             if (!isCurrent(seed)) { result.completeExceptionally(new java.util.concurrent.CancellationException("Просьба отменена")); return; }
             if (error != null) { reportFailure(seed, error); return; }
             String target = "меня";
-            if ((action.type() == ActionType.ATTACK || action.type() == ActionType.FLEE) && !"player".equals(action.target())) {
+            if ((action.type() == ActionType.ATTACK || action.type() == ActionType.FLEE || action.type() == ActionType.SPARE) && !"player".equals(action.target())) {
                 var observed = snapshot.observedEntities().stream().filter(entity -> entity.key().equals(action.target())
                         || entity.id().toString().equals(action.target())).findFirst().orElse(null);
                 if (observed == null) { reportFailure(seed, new IllegalArgumentException("Цель не наблюдается мобом")); return; }
@@ -764,6 +764,9 @@ public final class MobTalkClient implements ClientModInitializer {
                 case FLEE -> "Пожалуйста, отойди подальше от " + ("меня".equals(target) ? "меня" : "моба " + target)
                         + ". Реши сам, хочешь ли ты уйти.";
                 case ATTACK -> "Я прошу тебя атаковать " + target + ". Реши сам, согласен ли ты и позволяет ли это твоя природа.";
+                case STAY -> "Пожалуйста, подожди меня здесь и никуда не уходи, пока я не вернусь. Реши сам, согласен ли ты.";
+                case GUARD -> "Пожалуйста, охраняй меня: держись рядом и не подпускай врагов. Реши сам, согласен ли ты.";
+                case SPARE -> "Пожалуйста, не нападай на " + target + ". Реши сам, согласен ли ты.";
                 default -> "";
             };
             submit(new Request(seed.generation, seed.target, seed.worldDirectory, seed.config, snapshot,
@@ -838,6 +841,11 @@ public final class MobTalkClient implements ClientModInitializer {
                 .append(" (настроение ").append(state.mood()).append(", спокойствие ").append(state.calm())
                 .append(", интерес ").append(state.interest()).append(", доверие ").append(state.trust()).append(')');
         if (!state.thought().isEmpty()) text.append(" · мысль: «").append(state.thought()).append('»');
+        long now = client.world == null ? 0 : client.world.getTime();
+        for (io.github.mobtalk.core.FriendActions.Status active : game.friendStatus(selected))
+            text.append(" · ").append(Text.translatable("mobtalk.friend.status", Text.translatable("mobtalk.action." + active.type().name().toLowerCase(java.util.Locale.ROOT)),
+                    active.type() == ActionType.SPARE ? active.target() : Text.translatable("mobtalk.friend." + active.target()),
+                    Math.max(1, (active.expires() - now + 1199) / 1200)).getString());
         return text.toString();
     }
 
