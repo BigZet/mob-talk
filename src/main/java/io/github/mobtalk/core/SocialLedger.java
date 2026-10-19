@@ -155,7 +155,7 @@ public final class SocialLedger {
     /** The effects of one gesture on one relation; under the store lock. */
     private void apply(ConversationStore.Profile p, ConversationStore.Relation r, UUID player, String playerName, GestureIntent intent, MobTalkConfig config, long now) {
         r.score = ConversationStore.clamp(r.score + intent.hearts(), p.hostile());
-        r.rapport.record(intent.gesture(), now);
+        r.rapport.record(intent.gesture(), now, intent.hearts() != 0);
         boolean accepted = intent.outcome() == Gesture.Outcome.ACCEPTED;
         if (intent.gesture() == Gesture.GIFT && intent.takesItem()) r.rapport.gave(intent.item(), now);
         FamilyTree tree = store.state.family;

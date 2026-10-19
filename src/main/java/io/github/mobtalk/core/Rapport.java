@@ -38,10 +38,12 @@ public final class Rapport {
         if (gesture == null || !gesture.name().equals(lastGesture) || lastGestureAt < 0 || now - lastGestureAt > REPEAT_WINDOW_MILLIS) return 0;
         return repeats + 1;
     }
-    /** A gesture that changed the relationship: fatigue +1 (gifts never tire), the repeat count follows. */
-    public void record(Gesture gesture, long now) {
+    /** A gesture: the repeat count follows it; fatigue +1 unless it is a gift (gifts never tire). */
+    public void record(Gesture gesture, long now) { record(gesture, now, gesture != Gesture.GIFT); }
+    /** {@code tires}: the gesture changed the relationship (spec §3.3: only those tire); a refused proposal does not. */
+    public void record(Gesture gesture, long now, boolean tires) {
         int next = repeats(gesture, now);
-        if (gesture != Gesture.GIFT) {
+        if (tires && gesture != Gesture.GIFT) {
             fatigue = fatigue(now) + 1;
             fatigueAt = now;
         }

@@ -63,6 +63,8 @@ final class OpenRouterConversationClient implements AutoCloseable {
             throws IOException, InterruptedException {
         SpeciesCatalog.Species species = SpeciesCatalog.effective(snapshot.type(), config);
         TradingView view = TradingView.of(snapshot);
+        // A bystander or a creature speaking first makes no gesture with the player: no outcomes block, no gesture field.
+        if (overheard != null) profile.socialTurn = null;
         JsonArray messages = new JsonArray();
         String aside = overheard == null ? "" : "\n\n" + switch (overheard.kind()) {
             case BYSTANDER -> PromptTexts.OVERHEARD; case INITIATIVE -> PromptTexts.INITIATIVE; case DIALOGUE -> PromptTexts.DIALOGUE; };

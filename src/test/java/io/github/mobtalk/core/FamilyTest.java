@@ -50,7 +50,7 @@ class FamilyTest {
         assertNull(Romance.refusePropose(ready));
         assertNotNull(Romance.refuseDate(ready), "a ring is not a bouquet");
         assertNull(Romance.refuseDate(new Romance.Suit(true, false, Courtship.NONE, villager, null, null, 75, Gender.FEMALE, Set.of(), Gender.MALE, "minecraft:poppy")));
-        assertTrue(Romance.refusePropose(new Romance.Suit(true, false, Courtship.NONE, villager, null, null, 80, Gender.FEMALE, Set.of(), Gender.MALE, "minecraft:gold_ingot")).contains("90"));
+        assertTrue(Romance.refusePropose(new Romance.Suit(true, false, Courtship.NONE, villager, null, null, 80, Gender.FEMALE, Set.of(), Gender.MALE, "minecraft:gold_ingot")).contains("рано"));
         assertTrue(Romance.refusePropose(new Romance.Suit(false, false, Courtship.NONE, villager, null, null, 95, Gender.FEMALE, Set.of(), Gender.MALE, "minecraft:gold_nugget")).contains("ребёнок"));
         assertTrue(Romance.refusePropose(new Romance.Suit(true, true, Courtship.NONE, villager, null, null, 95, Gender.FEMALE, Set.of(), Gender.MALE, "minecraft:gold_nugget")).contains("родня"));
         assertNotNull(Romance.refusePropose(new Romance.Suit(true, false, Courtship.NONE, villager, UUID.randomUUID(), null, 95, Gender.FEMALE, Set.of(), Gender.MALE, "minecraft:gold_nugget")));

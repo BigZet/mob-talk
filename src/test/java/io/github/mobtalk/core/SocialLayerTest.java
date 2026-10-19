@@ -82,6 +82,38 @@ class SocialLayerTest {
         config.socialLayer = true;
     }
 
+    @Test void socialSettingsAreBoundedAndOldConfigsGetDefaults() throws Exception {
+        MobTalkConfig wild = new MobTalkConfig();
+        wild.playerGender = "Robot"; wild.weddingChance = 400; wild.birthChance = -3; wild.childGrowthDays = 0;
+        Path file = directory.resolve("config.json");
+        MobTalkConfig.save(file, wild);
+        MobTalkConfig loaded = MobTalkConfig.load(file);
+        assertEquals("any", loaded.playerGender); assertEquals(100, loaded.weddingChance); assertEquals(0, loaded.birthChance); assertEquals(1, loaded.childGrowthDays);
+        java.nio.file.Files.writeString(file, "{\"schemaVersion\":2}");
+        MobTalkConfig old = MobTalkConfig.load(file);
+        assertTrue(old.socialLayer && old.familyLife);
+        assertEquals("any", old.playerGender); assertEquals(5, old.weddingChance); assertEquals(4, old.childGrowthDays);
+        MobTalkConfig copy = loaded.copy();
+        assertEquals(loaded.childGrowthDays, copy.childGrowthDays); assertEquals(loaded.playerGender, copy.playerGender);
+    }
+
+    // A bystander or a creature speaking first makes no gesture: no outcomes in its prompt, no gesture field.
+    @Test void overheardRepliesCarryNoGestures() throws Exception {
+        UUID mob = UUID.randomUUID(), player = UUID.randomUUID();
+        try (ConversationEngine engine = new ConversationEngine(config, directory, new OpenRouterConversationClient("unit-test-key", config, chat),
+                new OpenRouterSpeechClient("unit-test-key", config, speech))) {
+            engine.memory().observe(villager(mob, player, 0, false, "minecraft:diamond"));
+            engine.memory().setBackstory(mob, "Ладко", "Ты родился в Ольховке.", "", "", "");
+            gesture.set("GIFT");
+            ConversationEngine.PreparedReply prepared = engine.prepare(villager(mob, player, engine.memory().revision(mob), false, "minecraft:diamond"), "",
+                    ConversationEngine.Overheard.initiative("Повод: игрок рядом."));
+            assertFalse(prepared.gesture().present());
+            JsonObject schema = lastRequest.get().getAsJsonObject("response_format").getAsJsonObject("json_schema").getAsJsonObject("schema");
+            assertFalse(schema.getAsJsonObject("properties").has("gesture"));
+            assertFalse(lastRequest.get().getAsJsonArray("messages").get(0).getAsJsonObject().get("content").getAsString().contains(SocialPrompt.GESTURE_HEADER));
+        }
+    }
+
     // One reply: the schema offers the gestures, the model names JOKE, the commit applies exactly the outcome decided beforehand.
     @Test void theDecidedOutcomeOfTheNamedGestureIsApplied() throws Exception {
         UUID mob = UUID.randomUUID(), player = UUID.randomUUID();

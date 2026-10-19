@@ -51,7 +51,7 @@ public final class Romance {
         if (s.related()) return "вы родня — об этом и думать нельзя";
         if (s.villagerSpouse() != null) return "ты уже в браке с другим";
         if (s.playerPartner() != null && !s.playerPartner().equals(s.villager())) return "у него уже есть пара, и это не ты";
-        if (s.score() < threshold) return "ты пока недостаточно его любишь (нужно отношение " + threshold + ", сейчас " + s.score() + ")";
+        if (s.score() < threshold) return threshold >= Hearts.MARRIAGE ? "для брака ты его пока недостаточно любишь — рано" : "ты его пока слишком мало знаешь — рано";
         if (!drawn(s.villagerGender(), s.traits(), s.playerGender())) return "тебя не тянет к нему — дело не в нём";
         return null;
     }

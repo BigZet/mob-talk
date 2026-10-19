@@ -90,7 +90,7 @@ final class SocialPrompt {
         if (expecting) return "ребёнок у вас уже на подходе";
         if (tooSoon) return "рано: с прошлого раза прошло меньше трёх игровых дней";
         if (infertile) return "у тебя не может быть детей — это твоя боль";
-        if (score < Hearts.MARRIAGE) return "сейчас между вами не та близость (нужно отношение " + Hearts.MARRIAGE + ")";
+        if (score < Hearts.MARRIAGE) return "сейчас между вами не та близость";
         return null;
     }
     /** The correction when the reply says yes to a courtship the game turned down. */
