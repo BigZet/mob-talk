@@ -64,7 +64,9 @@ final class OpenRouterConversationClient implements AutoCloseable {
         SpeciesCatalog.Species species = SpeciesCatalog.effective(snapshot.type(), config);
         TradingView view = TradingView.of(snapshot);
         JsonArray messages = new JsonArray();
-        messages.add(ReplySchema.message("system", prompt.system(species, profile, snapshot) + (overheard == null ? "" : "\n\n" + PromptTexts.OVERHEARD)));
+        String aside = overheard == null ? "" : "\n\n" + switch (overheard.kind()) {
+            case BYSTANDER -> PromptTexts.OVERHEARD; case INITIATIVE -> PromptTexts.INITIATIVE; case DIALOGUE -> PromptTexts.DIALOGUE; };
+        messages.add(ReplySchema.message("system", prompt.system(species, profile, snapshot) + aside));
         int history = Math.max(1, Math.min(64, config.historyTurns));
         // Only the current conversation's exchanges: the earlier ones are read as summaries in the system prompt (ConversationSummary).
         for (int i = Math.max(profile.unsummarizedFrom(), profile.turns.size() - history); i < profile.turns.size(); i++) {

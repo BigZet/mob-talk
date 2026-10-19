@@ -69,6 +69,20 @@ final class BlockChangeLog {
         return any ? (int) Math.max(1, Math.round((now - oldest) / 60_000.0)) : 0;
     }
 
+    /** How many blocks the player placed or broke within {@code range} of {@code origin} in the last {@code withinMillis}: a creature
+     * remarks on a building or a pit going up next to it (see Initiative). */
+    synchronized int countNear(ServerWorld world, BlockPos origin, double range, long withinMillis) {
+        long now = System.currentTimeMillis();
+        prune(now);
+        int count = 0;
+        double limit = range * range;
+        for (Change change : changes) {
+            if (change.world() != world.getRegistryKey() || now - change.millis() > withinMillis) continue;
+            if (BlockPos.fromLong(change.pos()).getSquaredDistance(origin) <= limit) count++;
+        }
+        return count;
+    }
+
     /** Once a tick: runs the due checks, at most one per tick, and tells a creature that was just shut in who did it. */
     void tick(MobGameBridge bridge, ServerWorld world) {
         if (pending.isEmpty()) return;

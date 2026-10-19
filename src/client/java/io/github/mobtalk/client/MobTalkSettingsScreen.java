@@ -159,6 +159,12 @@ final class MobTalkSettingsScreen extends Screen {
         wide(toggle("mobtalk.settings.bargainHud", draft.showBargainHud, value -> draft.showBargainHud = value));
         wide(toggle("mobtalk.settings.social", draft.socialBehavior, value -> draft.socialBehavior = value));
         wide(slider("mobtalk.settings.socialDensity", 1, 30, draft.socialActionsPerMinute, value -> draft.socialActionsPerMinute = value));
+        wide(toggle("mobtalk.settings.initiative", draft.initiative, value -> draft.initiative = value));
+        wide(slider("mobtalk.settings.initiativeRate", 1, 6, draft.initiativesPerMinute, value -> draft.initiativesPerMinute = value));
+        CyclingButtonWidget<Boolean> decider = track(CyclingButtonWidget.<Boolean>builder(jev -> Text.translatable(jev ? "mobtalk.settings.decider.jev" : "mobtalk.settings.decider.rules"))
+                .values(false, true).initially(draft.usesJev()).build(0, 0, 100, 20, Text.translatable("mobtalk.settings.decider"), (button, jev) -> draft.decider = jev ? "jev" : "rules"));
+        decider.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.decider.tooltip")));
+        wide(decider);
 
         header("mobtalk.settings.section.memory");
         wide(slider("mobtalk.settings.history", 1, 64, draft.historyTurns, value -> draft.historyTurns = value));

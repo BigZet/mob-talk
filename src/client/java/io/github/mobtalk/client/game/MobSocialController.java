@@ -99,14 +99,17 @@ final class MobSocialController {
         }
         if (around.size() < 2) return;
         List<MobEntity> mobs = new ArrayList<>(around.values());
-        // Standing together: every known pair within reach warms up a little, neighbours and kin from a head start.
+        // Standing together: every known pair within reach warms up a little, neighbours and kin from a head start — and, once per
+        // interval, the village's rumours cross between two of its inhabitants.
         for (int i = 0; i < mobs.size(); i++) for (int j = i + 1; j < mobs.size(); j++) {
             MobEntity a = mobs.get(i), b = mobs.get(j);
             if (hostile(a) != hostile(b) || !SocialRules.together(a.distanceTo(b))) continue;
             MobRelations.Kinship kinship = bridge.memory.kinship(a.getUuid(), b.getUuid());
-            bridge.memory.updateRelations(r -> r.together(a.getUuid(), name(a), type(a), b.getUuid(), name(b), type(b), kinship,
+            boolean met = bridge.memory.updateRelations(r -> r.together(a.getUuid(), name(a), type(a), b.getUuid(), name(b), type(b), kinship,
                     MobRelations.TOGETHER_GAIN, MobRelations.TOGETHER_INTERVAL, now));
+            if (met) bridge.memory.spreadRumors(a.getUuid(), b.getUuid(), random::nextDouble, now);
         }
+        traders(world, mobs, now);
         // Grief: a friend goes to sit with the mourner, once per loss; the mourner itself may be talking to the player meanwhile.
         for (MobEntity mourner : mobs) {
             List<MobRelations.View> bonds = bridge.memory.bonds(mourner.getUuid(), now);
@@ -140,6 +143,24 @@ final class MobSocialController {
                 case APPROACH -> { if (budget(time)) { walkTo(mob, target, 0.9F, 3); cooldowns.put(mob.getUuid(), time + MOB_COOLDOWN); } }
                 case RETREAT -> { if (retreat(mob, target)) cooldowns.put(mob.getUuid(), time + RETREAT_COOLDOWN); }
                 default -> { }
+            }
+        }
+    }
+    /** When each wandering trader last traded rumours, so a visit counts once per {@link MobRelations#TOGETHER_INTERVAL}. */
+    private final Map<UUID, Long> traderVisits = new HashMap<>();
+    /** A wandering trader standing with a villager picks up the village's rumours, or hands over the ones it brought from the last village. */
+    private void traders(ServerWorld world, List<MobEntity> known, long now) {
+        for (ServerPlayerEntity player : world.getPlayers()) {
+            for (net.minecraft.entity.passive.WanderingTraderEntity trader : world.getEntitiesByClass(net.minecraft.entity.passive.WanderingTraderEntity.class,
+                    player.getBoundingBox().expand(SocialRules.PLAYER_RANGE), other -> other.isAlive() && !other.isRemoved())) {
+                Long last = traderVisits.get(trader.getUuid());
+                if (last != null && now - last < MobRelations.TOGETHER_INTERVAL) continue;
+                for (MobEntity villager : known) {
+                    if (!(villager instanceof net.minecraft.entity.passive.VillagerEntity) || !SocialRules.together(trader.distanceTo(villager))) continue;
+                    traderVisits.put(trader.getUuid(), now);
+                    bridge.memory.tradeRumors(trader.getUuid(), villager.getUuid(), now);
+                    break;
+                }
             }
         }
     }
@@ -221,8 +242,8 @@ final class MobSocialController {
     }
 
     void unload(MobEntity mob) {
-        cooldowns.remove(mob.getUuid()); visits.remove(mob.getUuid());
+        cooldowns.remove(mob.getUuid()); visits.remove(mob.getUuid()); traderVisits.remove(mob.getUuid());
         visits.values().removeIf(visit -> visit.mourner == mob);
     }
-    void clearRuntime() { cooldowns.clear(); visits.clear(); windowStart = -1; walks = 0; }
+    void clearRuntime() { cooldowns.clear(); visits.clear(); traderVisits.clear(); windowStart = -1; walks = 0; }
 }

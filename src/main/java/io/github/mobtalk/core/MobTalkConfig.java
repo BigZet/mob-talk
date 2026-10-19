@@ -59,6 +59,11 @@ public final class MobTalkConfig {
     public boolean socialBehavior = true;
     /** At most this many social walks per minute in a world: a village should not look choreographed. */
     public int socialActionsPerMinute = 6;
+    /** Creatures speak first on an occasion (a return, an open deal, a friend nearby, a building, the weather), at most this often. */
+    public boolean initiative = true;
+    public int initiativesPerMinute = 1;
+    /** Who decides whether a creature speaks up, who answers next and whether a bystander cuts in: "rules" or "jev" (OpenRouter Decisions API). */
+    public String decider = "rules";
     public String defaultVoice = "rSfuQoQ3FY8SVKeraMAp";
 
     /** A menu draft or worker snapshot; editing it does not change the live preferences. */
@@ -103,6 +108,7 @@ public final class MobTalkConfig {
         copy.showStateHud = showStateHud;
         copy.showBargainHud = showBargainHud;
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
+        copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.decider = decider;
         copy.defaultVoice = defaultVoice;
         return copy;
     }
@@ -160,6 +166,8 @@ public final class MobTalkConfig {
         config.maxDistance = Double.isFinite(config.maxDistance) ? Math.max(2, Math.min(64, config.maxDistance)) : 16;
         config.witnessReplies = Math.max(0, Math.min(2, config.witnessReplies));
         config.socialActionsPerMinute = Math.max(1, Math.min(30, config.socialActionsPerMinute));
+        config.initiativesPerMinute = Math.max(1, Math.min(6, config.initiativesPerMinute));
+        config.decider = "jev".equalsIgnoreCase(config.decider == null ? "" : config.decider.strip()) ? "jev" : "rules";
         MobTalkConfig defaults = new MobTalkConfig();
         config.llmModel = textOrDefault(config.llmModel, defaults.llmModel);
         config.veniceModel = textOrDefault(config.veniceModel, defaults.veniceModel);
@@ -191,6 +199,8 @@ public final class MobTalkConfig {
             throw new IOException("Whisper must use a local HTTP address");
     }
 
+    /** Whether decisions go to the Decisions API (OpenRouter key) instead of the rules. */
+    public boolean usesJev() { return "jev".equals(decider); }
     public boolean usesVenice() { return "venice".equals(llmProvider); }
     /** The chat model of the selected provider. */
     public String chatModel() { return usesVenice() ? veniceModel : llmModel; }
