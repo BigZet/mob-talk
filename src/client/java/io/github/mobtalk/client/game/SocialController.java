@@ -75,6 +75,7 @@ final class SocialController {
         GestureIntent result = bridge.memory.social().giftThrown(villager.getUuid(), MobGameBridge.type(villager), villager.getName().getString(),
                 player.getUuid(), MobGameBridge.playerName(player), item, profession, villager.isBaby(), now);
         if (result == null) return;
+        bridge.jealousy.gift(villager, player, result);
         villager.getLookControl().lookAt(player, 30f, 30f);
         if (result.takesItem()) {
             drop.getStack().decrement(1);
@@ -102,6 +103,7 @@ final class SocialController {
         GestureIntent result = bridge.memory.social().giftFromHand(mob.getUuid(), MobGameBridge.type(mob), mob.getName().getString(),
                 player.getUuid(), MobGameBridge.playerName(player), item, profession, mob.isBaby(), favouriteFood, now);
         if (result == null) return "Этот моб подарков не принимает";
+        bridge.jealousy.gift(mob, player, result);
         String name = bridge.memory.displayName(mob.getUuid());
         if (name.isBlank()) name = mob.getName().getString();
         mob.getLookControl().lookAt(player, 30f, 30f);

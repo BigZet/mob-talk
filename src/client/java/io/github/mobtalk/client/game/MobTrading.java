@@ -128,6 +128,7 @@ final class MobTrading {
             if (have < favor.count()) throw new IllegalStateException("У вас нет " + favor.count() + "× " + favorItemName(favor) + " (есть " + have + ")");
             take(player, wanted, favor.count());
             Favor done = bridge.memory.completeFavor(mobId, playerId, MobGameBridge.playerName(player), now);
+            bridge.jealousy.favor(mob, player); // Трек J: поручение соперника — повод ревновать.
             changed = true;
             messages.add("Услуга оказана: " + done.title() + " (+" + Favor.RELATIONSHIP + " к отношению" + rewardText(type, done) + ")");
         }
