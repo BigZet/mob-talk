@@ -32,7 +32,7 @@ final class InitiativeVoice {
         if (ticks % 20 != 5 || !owner.enabled() || owner.client.player == null || owner.world == null || owner.client.getServer() == null) return;
         MobGameBridge game = MobGameBridge.active(owner.client.getServer());
         if (game == null) return;
-        boolean busy = owner.busyTalking() || owner.witnessPending() || scene != null || !cues.isEmpty();
+        boolean busy = owner.busyTalking() || owner.witnessPending() || scene != null || !cues.isEmpty() || owner.village.active();
         game.initiative.playerBusy = busy;
         if (ticks % 600 == 5) chronicle(game);
         if (busy) return; // Ordinary occasions are only raised while initiative is on; gifts and family events always are.

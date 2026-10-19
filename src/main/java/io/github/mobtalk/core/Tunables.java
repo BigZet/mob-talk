@@ -124,6 +124,12 @@ public final class Tunables {
         integer("initiativeHearRange", s, "initiative", 4, 32, 1, c -> c.initiativeHearRange, (c, x) -> c.initiativeHearRange = x);
         integer("initiativeMetRange", s, "initiative", 4, 48, 1, c -> c.initiativeMetRange, (c, x) -> c.initiativeMetRange = x);
         integer("sceneMaxLines", s, "initiative", Initiative.SCENE_MIN_LINES, 8, 1, c -> c.sceneMaxLines, (c, x) -> c.sceneMaxLines = x);
+        // Village small talk and the villagers' chat announcements.
+        integer("villageChatterSeconds", s, "chatter", 30, 900, 10, c -> c.villageChatterSeconds, (c, x) -> c.villageChatterSeconds = x);
+        integer("villageChatterRange", s, "chatter", 4, 32, 1, c -> c.villageChatterRange, (c, x) -> c.villageChatterRange = x);
+        integer("noticeMinutes", s, "chatter", 1, 30, 1, c -> c.noticeMinutes, (c, x) -> c.noticeMinutes = x);
+        integer("noticeWorkPercent", s, "chatter", 0, 100, 5, c -> c.noticeWorkPercent, (c, x) -> c.noticeWorkPercent = x);
+        integer("noticeRange", s, "chatter", 16, 128, 4, c -> c.noticeRange, (c, x) -> c.noticeRange = x);
         // The village's view of the player.
         integer("villageExilePoints", s, "village", -1000, 0, 10, c -> c.villageExilePoints, (c, x) -> c.villageExilePoints = x);
         integer("villageSuspectPoints", s, "village", -500, 0, 5, c -> c.villageSuspectPoints, (c, x) -> c.villageSuspectPoints = x);
@@ -190,6 +196,7 @@ public final class Tunables {
             case SOCIAL -> {
                 config.socialLayer = d.socialLayer; config.playerGender = d.playerGender; config.familyLife = d.familyLife;
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
+                config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices;
             }
             case ACTIONS -> { config.placeAnalysis = d.placeAnalysis; config.placeClassifier = d.placeClassifier; }
         }

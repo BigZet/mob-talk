@@ -68,6 +68,10 @@ public final class MobTalkConfig {
     /** Creatures speak first on an occasion (a return, an open deal, a friend nearby, a building, the weather), at most this often. */
     public boolean initiative = true;
     public int initiativesPerMinute = 1;
+    /** Villagers of one village talk among themselves within the player's earshot, without knowing the player (village small talk). */
+    public boolean villageChatter = true;
+    /** Villagers the player knows write to the chat in their own name: village news, or a call to come over for work. */
+    public boolean villageNotices = true;
     /** Who decides whether a creature speaks up, who answers next and whether a bystander cuts in: "rules" or "jev" (OpenRouter Decisions API). */
     public String decider = "rules";
     public String defaultVoice = "rSfuQoQ3FY8SVKeraMAp";
@@ -111,6 +115,10 @@ public final class MobTalkConfig {
     /** Speaking first: one creature's pause and the absence that counts as a return (minutes), the ranges (blocks), scene length. */
     public int initiativeMobCooldownMinutes = 5, initiativeReturnMinutes = 20, initiativeSpeakRange = 6, initiativeHearRange = 12, initiativeMetRange = 16;
     public int sceneMaxLines = 4;
+    /** Village small talk: one talk per village in this many seconds, heard within this many blocks of the player. */
+    public int villageChatterSeconds = 120, villageChatterRange = 16;
+    /** Chat announcements: one per village in this many minutes, the share of calls to work (percent), only within this many blocks. */
+    public int noticeMinutes = 4, noticeWorkPercent = 40, noticeRange = 64;
     /** The village's view: points at or below which the player is an exile or a suspect, and from which a friend, guard or head. */
     public int villageExilePoints = -150, villageSuspectPoints = -40, villageFriendPoints = 120, villageGuardPoints = 300, villageElderPoints = 600;
     /** Friendly duties: a lease (minutes), how far the player may go (blocks), the guard's distances and the stay drift (blocks). */
@@ -167,6 +175,7 @@ public final class MobTalkConfig {
         copy.showBargainHud = showBargainHud;
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.decider = decider;
+        copy.villageChatter = villageChatter; copy.villageNotices = villageNotices;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;
         copy.familyLife = familyLife; copy.weddingChance = weddingChance; copy.birthChance = birthChance; copy.childGrowthDays = childGrowthDays;

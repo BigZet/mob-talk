@@ -514,7 +514,51 @@ final class SelfTest {
             var facts = bridge().memory.facts(firstVillager);
             log("facts of the first villager: " + facts.size() + " " + facts.stream().map(f -> f.importance() + ":" + f.text()).toList());
             check(facts.stream().allMatch(f -> f.importance() >= 1 && f.importance() <= 5), "every fact carries an importance 1–5");
-            voicePath();
+            villageTalk();
+        });
+    }
+
+    // ---- Stage 9f (track K): two villagers nobody introduced talk among themselves in their voices; a known one writes to the chat.
+    private UUID talker1, talker2;
+    private boolean chatted(UUID mob) { return mob != null && bridge().memory.events(mob).stream().anyMatch(e -> e.startsWith("Болтал с ")); }
+    private void villageTalk() {
+        command("summon minecraft:villager " + at(-3, 3) + FARMER);
+        command("summon minecraft:villager " + at(-3, 5) + " {PersistenceRequired:1b,VillagerData:{profession:\"minecraft:librarian\",level:2,type:\"minecraft:plains\"}}");
+        await("two strangers summoned", 10, () -> {
+            ServerPlayerEntity player = serverPlayer(); ServerWorld world = (ServerWorld) player.getWorld();
+            List<UUID> fresh = world.getEntitiesByClass(VillagerEntity.class, player.getBoundingBox().expand(12), v -> v.isAlive() && !bridge().memory.known(v.getUuid()))
+                    .stream().map(MobEntity::getUuid).toList();
+            if (fresh.size() < 2) return false;
+            talker1 = fresh.get(0); talker2 = fresh.get(1); return true;
+        }, () -> {
+            voiced = false;
+            await("villagers talked among themselves", 120, () -> { if (owner.speaking()) voiced = true; return (chatted(talker1) || chatted(talker2)) && !owner.busyTalking(); }, () -> {
+                UUID a = chatted(talker1) ? talker1 : talker2;
+                log("small talk: " + bridge().memory.events(a).stream().filter(e -> e.startsWith("Болтал с ")).toList());
+                check(chatted(talker1) || chatted(talker2), "two strangers talked among themselves (no acquaintance, no friendship)");
+                check(!bridge().memory.displayName(a).isBlank() && !bridge().memory.acquainted(a), "the talker got a name (" + bridge().memory.displayName(a) + ") without becoming the player's acquaintance");
+                long now = System.currentTimeMillis();
+                check(bridge().memory.bonds(a, now).stream().anyMatch(b -> b.other().equals(talker1) || b.other().equals(talker2) || b.other().equals(firstVillager)), "the talk introduced the two");
+                check(voiced, "the small talk was voiced");
+                notices();
+            });
+        });
+    }
+    private void notices() {
+        acquaint(talker2, "minecraft:villager", "Фома", "Ты библиотекарь этой площадки и любишь поговорить.");
+        UUID player = owner.client.player.getUuid();
+        await("a known villager wrote to the chat", 90, () -> bridge().memory.lastNotice(talker2) >= 0, () -> {
+            check(bridge().memory.lastNotice(talker2) >= 0, "a known villager wrote to the chat in its own name: " + bridge().memory.events(talker2).getLast());
+            if (!bridge().memory.invited(talker2, player, System.currentTimeMillis())) { log("the announcement was news, not a call to work"); voicePath(); return; }
+            command("tp " + talker2 + " " + at(2, 0));
+            await("the call to work became a favour", 20, () -> bridge().memory.favor(talker2, player) != null, () -> {
+                check(bridge().memory.favor(talker2, player) != null, "coming to the villager who called turned the call into a favour");
+                int starts = owner.speechStarts;
+                await("the villager explained the work", 120, () -> owner.speechStarts > starts && !owner.busyTalking(), () -> {
+                    log("the villager on the work: " + lastReply(talker2));
+                    voicePath();
+                });
+            });
         });
     }
 
