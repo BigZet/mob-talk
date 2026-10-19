@@ -296,8 +296,8 @@ public final class ConversationEngine implements AutoCloseable {
     public void resetPersonality(java.util.UUID mobId) { store.resetPersonality(mobId); }
 
     private void checkCurrent(MobSnapshot snapshot) throws InterruptedException {
-        if (closed || Thread.currentThread().isInterrupted() || store.revision(snapshot.id()) != snapshot.interactionRevision())
-            throw new InterruptedException("Разговор отменён: состояние моба изменилось.");
+        // A relationship that moved mid-answer no longer cancels the answer: the next turn sees it. Only closing or an interrupt does.
+        if (closed || Thread.currentThread().isInterrupted()) throw new InterruptedException("Разговор отменён.");
     }
 
     /** Cancels network work immediately; no file or network waiting in close. */

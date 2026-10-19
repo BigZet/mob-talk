@@ -93,6 +93,7 @@ public final class MobTalkClient implements ClientModInitializer {
     private KeyBinding settingsKey;
     KeyBinding tradeKey;
     KeyBinding giftKey;
+    private final MobLabels labels = new MobLabels(this);
     private boolean openSettingsRequested;
     private MicrophoneRecorder.Capture recording;
     private boolean configReady;
@@ -139,6 +140,7 @@ public final class MobTalkClient implements ClientModInitializer {
                 GLFW.GLFW_KEY_B, "category.mobtalk"));
         giftKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.gift", InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_G, "category.mobtalk"));
+        net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_ENTITIES.register(labels::render);
         ScreenEvents.AFTER_INIT.register((minecraft, screen, width, height) -> {
             if (screen instanceof GameMenuScreen) {
                 Screens.getButtons(screen).add(ButtonWidget.builder(Text.literal("Mob Talk"), button -> openSettings(screen))
@@ -311,6 +313,7 @@ public final class MobTalkClient implements ClientModInitializer {
             runDeferredAction();
         }
         if (selected != null && ticks % 20 == 0) showHud();
+        if (ticks % 10 == 7) labels.tick();
         if (conversationMob != null && ticks % 20 == 0 && System.currentTimeMillis() - lastReplyMillis > ConversationSummary.SILENCE_MILLIS) endConversation(conversationMob);
     }
 
@@ -689,12 +692,14 @@ public final class MobTalkClient implements ClientModInitializer {
             ConversationEngine.Reply reply = prepared.reply();
             if (!isCurrent(request)) { dropped(request, reply); return; }
             MobGameBridge game = MobGameBridge.active(request.server);
-            if (game == null || game.memory.revision(request.target) != reply.interactionRevision()) {
+            if (game == null) {
                 reply.discardSpeech();
-                status = "Отношение моба изменилось: задайте вопрос ещё раз";
+                status = "Мир сменился: задайте вопрос ещё раз";
                 if (actionRequest != null) actionRequest.completeExceptionally(new java.util.concurrent.CancellationException(status));
                 actionRequest = null; showHud(); return;
             }
+            // The relationship may have moved while the model wrote (a blow, a gift, a bystander's word): the reply is still spoken;
+            // the model sees the change on its next turn. Only a dead or missing mob cancels (checked on the server).
             CompletableFuture<UUID> merchant = request.merchant == null ? CompletableFuture.completedFuture(request.target)
                     : game.selectMerchant(request.player, request.merchant.syncId());
             async = true;
@@ -711,7 +716,7 @@ public final class MobTalkClient implements ClientModInitializer {
                     if (error != null) { reply.discardSpeech(); reportFailure(request, error); return; }
                     if (!localEngine.commitDelivered(prepared, delivery.revision())) {
                         reply.discardSpeech();
-                        status = "Отношение моба изменилось: ответ отменён";
+                        status = "Моб исчез: ответ отменён";
                         if (actionRequest != null) actionRequest.completeExceptionally(new java.util.concurrent.CancellationException(status));
                         actionRequest = null; showHud(); return;
                     }
@@ -785,9 +790,8 @@ public final class MobTalkClient implements ClientModInitializer {
         requestActive = false;
         LOGGER.warn("Mob Talk request failed ({})", failure.getClass().getSimpleName());
         if (request.overheard != null) { initiatives.ended(request.target); status = readyStatus(); showHud(); return; } // A passer-by that could not answer is no one's problem.
-        String message = failure.getMessage();
-        status = message == null || message.isBlank() ? "Разговор не удался: проверьте микрофон, Whisper и ключ OpenRouter"
-                : message.replace('\n', ' ').replace('\r', ' ');
+        String message = io.github.mobtalk.core.Failures.plain(failure);
+        status = message.isBlank() ? "Разговор не удался: проверьте микрофон, Whisper и ключ OpenRouter" : message;
         if (status.length() > 240) status = status.substring(0, 240);
         notice(status);
         // The model is unreachable, not the mob: a short local line keeps the creature present instead of mute.

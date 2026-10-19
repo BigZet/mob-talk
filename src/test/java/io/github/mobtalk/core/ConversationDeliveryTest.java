@@ -113,19 +113,19 @@ class ConversationDeliveryTest {
         }
     }
 
-    @Test void hitAfterGameApplicationPreventsStaleReplyFromBeingRemembered() throws Exception {
+    // The player asked for no cancellations: a blow landing while the reply is on its way no longer drops the reply; the next turn sees it.
+    @Test void hitAfterGameApplicationKeepsTheReplyAndTheBlow() throws Exception {
         try (ConversationEngine engine = engine()) {
             ConversationEngine.PreparedReply prepared = engine.prepare(snapshot(), "Дай скидку, жадина");
             engine.memory().recordAction(mob, ActionIntent.none());
             long deliveredRevision = engine.memory().revision(mob);
             engine.memory().recordDamage(mob, "minecraft:villager", "Торговец", player, "Игрок", System.currentTimeMillis());
-            assertFalse(engine.commitDelivered(prepared, deliveredRevision));
-            // A stale delivery token cannot be retried against a newer revision.
+            assertTrue(engine.commitDelivered(prepared, deliveredRevision));
+            // The same prepared reply is never committed twice.
             assertFalse(engine.commitDelivered(prepared, engine.memory().revision(mob)));
             MobCard card = engine.memory().card(mob, player);
-            assertTrue(card.turns().isEmpty());
-            assertTrue(card.memory().isBlank());
-            assertEquals(-80, card.relationship());
+            assertEquals(1, card.turns().size());
+            assertTrue(card.relationship() <= -80, "the blow and the insult of the reply both count: " + card.relationship());
         }
     }
 }

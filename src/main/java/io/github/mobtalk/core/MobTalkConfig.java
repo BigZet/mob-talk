@@ -55,6 +55,8 @@ public final class MobTalkConfig {
     public boolean showStateHud = true;
     /** When a screenshot of the player's view goes with the question: off, unusual (odd place, "look", first meeting) or always. */
     public String vision = "unusual";
+    /** A line over every known creature: name, word of its state, relationship. */
+    public boolean showNameTags = true;
     /** One word of how the haggle goes («склоняется», «не уверен», «против») in the Mob Talk line while a bargain is on. */
     public boolean showBargainHud = true;
     /** Mobs act on what they think of each other (friends drift together, enemies keep away, a friend visits a mourner). */
@@ -117,7 +119,7 @@ public final class MobTalkConfig {
         copy.requestTimeoutSeconds = requestTimeoutSeconds;
         copy.maxDistance = maxDistance;
         copy.witnessReplies = witnessReplies;
-        copy.showStateHud = showStateHud; copy.vision = vision;
+        copy.showStateHud = showStateHud; copy.vision = vision; copy.showNameTags = showNameTags;
         copy.showBargainHud = showBargainHud;
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.decider = decider;

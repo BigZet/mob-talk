@@ -543,7 +543,7 @@ public final class ConversationStore {
     synchronized boolean commit(MobSnapshot snapshot, String user, String reply, String memory, SocialIntent social,
                                 ActionIntent action, long nowMillis, String successfulVoice, String thought, MemoryFact fact) {
         Profile p = require(snapshot.id());
-        if (p.revision != snapshot.interactionRevision()) return false;
+        // The revision may have moved while the model wrote (a blow, a gift): the exchange is still recorded; the next turn sees the change.
         if (successfulVoice != null && OpenRouterSpeechClient.validVoiceId(successfulVoice)) p.voiceId = successfulVoice.strip();
         p.turns.add(new Turn(TextBounds.characters(user, 2000), TextBounds.characters(reply, 8000)));
         while (p.turns.size() > 100) { p.turns.removeFirst(); p.turnsDropped++; }

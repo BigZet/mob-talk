@@ -231,6 +231,7 @@
   "mobtalk.settings.section.venice.speech": "Venice key (speech)",
   "mobtalk.settings.section.venice.both": "Venice key (replies and speech)",
   "mobtalk.settings.stateHud": "Mob's state in the Mob Talk line",
+  "mobtalk.settings.nameTags": "Name, state and relationship over known mobs",
   "mobtalk.settings.vision": "Vision: a screenshot with the question",
   "mobtalk.settings.vision.off": "Off",
   "mobtalk.settings.vision.unusual": "When there is a reason",

@@ -156,6 +156,7 @@ final class MobTalkSettingsScreen extends Screen {
         wide(slider("mobtalk.settings.timeout", 5, 90, draft.requestTimeoutSeconds, value -> draft.requestTimeoutSeconds = value));
         wide(slider("mobtalk.settings.witnesses", 0, 2, draft.witnessReplies, value -> draft.witnessReplies = value));
         wide(toggle("mobtalk.settings.stateHud", draft.showStateHud, value -> draft.showStateHud = value));
+        wide(toggle("mobtalk.settings.nameTags", draft.showNameTags, value -> draft.showNameTags = value));
         CyclingButtonWidget<String> vision = track(CyclingButtonWidget.<String>builder(value -> Text.translatable("mobtalk.settings.vision." + value))
                 .values(io.github.mobtalk.core.Vision.MODES).initially(io.github.mobtalk.core.Vision.normalize(draft.vision))
                 .build(0, 0, 100, 20, Text.translatable("mobtalk.settings.vision"), (button, chosen) -> draft.vision = chosen));

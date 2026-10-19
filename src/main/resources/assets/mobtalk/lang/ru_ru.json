@@ -231,6 +231,7 @@
   "mobtalk.settings.section.venice.speech": "Ключ Venice (озвучка)",
   "mobtalk.settings.section.venice.both": "Ключ Venice (ответы и озвучка)",
   "mobtalk.settings.stateHud": "Состояние моба в строке Mob Talk",
+  "mobtalk.settings.nameTags": "Имя, состояние и отношение над знакомыми мобами",
   "mobtalk.settings.vision": "Зрение: снимок экрана к вопросу",
   "mobtalk.settings.vision.off": "Выключено",
   "mobtalk.settings.vision.unusual": "Когда есть повод",
