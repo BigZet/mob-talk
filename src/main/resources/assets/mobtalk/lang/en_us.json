@@ -494,5 +494,17 @@
   "mobtalk.tune.spokenOfferMinutes": "Spoken offer lasts %s min",
   "mobtalk.tune.spokenOfferMinutes.tooltip": "How many game minutes a row promised in words stays in the trade window.",
   "mobtalk.tune.bargainCooldownMinutes": "New haggle after %s min",
-  "mobtalk.tune.bargainCooldownMinutes.tooltip": "Pause after a haggle before you can bargain with the same villager again. Game minutes."
+  "mobtalk.tune.bargainCooldownMinutes.tooltip": "Pause after a haggle before you can bargain with the same villager again. Game minutes.",
+  "mobtalk.info.title": "Mob and village",
+  "mobtalk.info.loading": "Gathering…",
+  "mobtalk.info.refresh": "Refresh",
+  "mobtalk.info.showSecrets": "Show secrets",
+  "mobtalk.info.hideSecrets": "Hide secrets",
+  "mobtalk.info.failed": "Could not gather the details: %s",
+  "mobtalk.settings.section.village": "The village you stand in",
+  "mobtalk.settings.village.loading": "Checking your standing…",
+  "mobtalk.settings.village.failed": "Could not read your standing.",
+  "mobtalk.settings.village.refresh": "Refresh status",
+  "mobtalk.settings.info": "Mob and village",
+  "mobtalk.settings.info.tooltip": "Everything about the selected mob and its village: character, relationship, state, bonds, deals, memory, place, residents, rumours, families. Also /mobtalk info."
 }

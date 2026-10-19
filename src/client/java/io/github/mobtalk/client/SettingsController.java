@@ -55,6 +55,8 @@ final class SettingsController implements MobTalkSettingsScreen.Controller {
     @Override public CompletableFuture<String> clearSelectedHistory() { return owner.clearSelectedHistory(); }
     @Override public CompletableFuture<String> resetSelectedPersonality() { return owner.resetSelectedPersonality(); }
 
+    @Override public CompletableFuture<List<String>> villageStatus() { return owner.villageStatus(); }
+    @Override public void openInfo(net.minecraft.client.gui.screen.Screen parent) { owner.openInfo(parent); }
     @Override public List<String> keyHints() {
         return List.of(hint(owner.talkKey, "mobtalk.settings.keys.talk"), hint(owner.settingsKey, "mobtalk.settings.keys.settings"),
                 hint(owner.tradeKey, "mobtalk.settings.keys.trade"), hint(owner.giftKey, "mobtalk.settings.keys.gift"),

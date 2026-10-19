@@ -424,6 +424,37 @@ public final class MobGameBridge {
         MobGameBridge bridge = forEntity(mob);
         return bridge != null && bridge.config.enabled && bridge.actions.friends.spared(mob, target);
     }
+    /** The «Моб и деревня» panel ({@link MobInfo}): the place is captured on the server thread like before a reply (without making the
+     * mob stop and listen), classified and written up off it. {@code mobId} may be null: only the village where the player stands. */
+    public CompletableFuture<String> info(UUID mobId, UUID playerId, String dimension, int x, int z, boolean secrets) {
+        record Seen(List<String> duties, Map<String, Object> place, byte[] cube) { }
+        return onServer(() -> {
+            ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
+            ServerWorld world = world(dimension);
+            Entity entity = mobId == null || world == null ? null : world.getEntity(mobId);
+            List<String> duties = new ArrayList<>();
+            long now = world == null ? 0 : world.getTime();
+            if (mobId != null) for (FriendActions.Status active : friendStatus(mobId))
+                duties.add(net.minecraft.text.Text.translatable("mobtalk.friend.status", net.minecraft.text.Text.translatable("mobtalk.action." + active.type().name().toLowerCase(Locale.ROOT)),
+                        active.type() == ActionType.SPARE ? active.target() : net.minecraft.text.Text.translatable("mobtalk.friend." + active.target()),
+                        Math.max(1, (active.expires() - now + 1199) / 1200)).getString());
+            Map<String, Object> place = Map.of(); byte[] cube = null;
+            if (config.placeAnalysis && entity instanceof MobEntity mob && mob.isAlive() && player != null && player.getWorld() == world) {
+                PlaceCapture.Result captured = PlaceCapture.capture(world, mob, player, changes);
+                place = PlaceCapture.details(captured);
+                if (config.placeClassifier) cube = captured.grid().cube();
+            }
+            return new Seen(duties, place, cube);
+        }).thenApplyAsync(seen -> {
+            Map<String, Object> place = new LinkedHashMap<>(seen.place());
+            io.github.mobtalk.core.place.PlaceClassifier classifier = seen.cube() == null ? null : io.github.mobtalk.core.place.PlaceClassifier.bundled();
+            if (classifier != null) {
+                io.github.mobtalk.core.place.PlaceClassifier.Guess guess = classifier.guess(seen.cube());
+                place.put("looksLike", guess.label()); place.put("looksLikeConfidence", (double) guess.confidence());
+            }
+            return MobInfo.report(memory, mobId, playerId, dimension, x, z, System.currentTimeMillis(), secrets, seen.duties(), place);
+        });
+    }
     /** The STAY/GUARD/SPARE leases of this mob for /mobtalk state; safe from the client thread. */
     public List<FriendActions.Status> friendStatus(UUID mob) { return actions.friends.status(mob); }
     record Heard(long tick, Vec3d position, UUID source, String event) { }

@@ -37,6 +37,10 @@ final class MobTalkSettingsScreen extends Screen {
         default CompletableFuture<String> resetSelectedPersonality() { return CompletableFuture.completedFuture("Сначала выберите моба."); }
         /** The mod's keys as they are bound now, one line each («V — говорить с мобом»). */
         default List<String> keyHints() { return List.of(); }
+        /** The player's standing in the village where they stand, in lines. */
+        default CompletableFuture<List<String>> villageStatus() { return CompletableFuture.completedFuture(List.of()); }
+        /** Opens «Моб и деревня» over this menu. */
+        default void openInfo(Screen parent) { }
     }
     static final List<String> WHISPER_MODELS = List.of("small", "medium", "large-v2", "large-v3", "large-v3-turbo");
     private static final String[] TABS = {"general", "voice", "model", "talk", "social", "actions", "species", "mob"};
@@ -130,9 +134,26 @@ final class MobTalkSettingsScreen extends Screen {
         names("mobtalk.settings.names.close", draft.playerNamesClose, value -> draft.playerNamesClose = value);
         names("mobtalk.settings.names.hostile", draft.playerNamesHostile, value -> draft.playerNamesHostile = value);
 
+        header("mobtalk.settings.section.village");
+        if (village == null) { note(Text.translatable("mobtalk.settings.village.loading"), 0xBBBBBB); loadVillage(); }
+        else for (String line : village) note(Text.literal(line), 0xD5D5D5);
+        ButtonWidget info = button("mobtalk.settings.info", ignored -> { stopPreview(); openingChild = true; controller.openInfo(this); });
+        info.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.info.tooltip")));
+        wide(info, button("mobtalk.settings.village.refresh", ignored -> { village = null; refreshOnTick = true; }));
+
         header("mobtalk.settings.section.keys");
         for (String line : controller.keyHints()) note(Text.literal(line), 0xBBBBBB);
         resetSection(Tunables.Section.GENERAL);
+    }
+    private List<String> village;
+    private boolean loadingVillage;
+    private void loadVillage() {
+        if (loadingVillage) return; loadingVillage = true;
+        controller.villageStatus().whenComplete((lines, failure) -> client.execute(() -> {
+            loadingVillage = false; if (disposed) return;
+            village = failure == null && lines != null ? lines : List.of(Text.translatable("mobtalk.settings.village.failed").getString());
+            if (client.currentScreen == this && tab == GENERAL) refreshOnTick = true;
+        }));
     }
     /** One list of forms of address: a text field with the example as placeholder and the rule in the tooltip. */
     private void names(String key, String value, Consumer<String> changed) {
@@ -491,6 +512,7 @@ final class MobTalkSettingsScreen extends Screen {
                 button("mobtalk.settings.mob.stopAll", ignored -> controller.stopAllFollowers()));
 
         header("mobtalk.settings.section.details");
+        wide(button("mobtalk.settings.info", ignored -> { stopPreview(); openingChild = true; controller.openInfo(this); }));
         wide(button("mobtalk.settings.mob.history", ignored -> read("mobtalk.settings.mob.history", historyText())),
                 button("mobtalk.settings.mob.events", ignored -> read("mobtalk.settings.mob.events", String.join("\n\n", card.events()))));
         wide(button("mobtalk.settings.mob.traits", ignored -> read("mobtalk.settings.mob.traits",

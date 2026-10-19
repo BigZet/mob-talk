@@ -181,6 +181,9 @@ public final class MobTalkClient implements ClientModInitializer {
     /** A short piece of work off the game thread (a decision), on the bystander lane. */
     void background(Runnable work) { witnesses.execute(work); }
     void requestSettings() { openSettingsRequested = true; }
+    /** /mobtalk info: the chat closes first, the panel opens on the next tick. */
+    void requestInfo() { openInfoRequested = true; }
+    private boolean openInfoRequested;
     /** The player's view at the moment a question starts: pixels sampled on the render thread, encoded later off it. */
     private record Shot(long generation, int width, int height, int[] rgb) { }
     private volatile Shot shot;
@@ -270,6 +273,7 @@ public final class MobTalkClient implements ClientModInitializer {
             openSettingsRequested = false;
             openSettings(client.currentScreen);
         }
+        if (openInfoRequested && !reloading && !stopped) { openInfoRequested = false; openInfo(client.currentScreen); }
         while (tradeKey.wasPressed()) openTrade();
         while (giftKey.wasPressed()) giftFromHand();
         boolean held = merchant.windowOpen() ? merchant.keyHeld() : talkKey.isPressed();
@@ -964,6 +968,30 @@ public final class MobTalkClient implements ClientModInitializer {
         game.onServer(() -> game.memory.forgiveVillage(dimension, x, z, player)).thenAccept(result -> client.execute(() -> notice(result)));
     }
 
+    /** «Моб и деревня» over {@code parent}: the selected mob (or none) and the village where the player stands. */
+    void openInfo(net.minecraft.client.gui.screen.Screen parent) {
+        if (stopped) return;
+        client.setScreen(new InfoScreen(parent, this::infoReport));
+    }
+    CompletableFuture<String> infoReport(boolean secrets) {
+        MobGameBridge game = client.getServer() == null ? null : MobGameBridge.active(client.getServer());
+        if (game == null || client.player == null || world == null) return CompletableFuture.failedFuture(new IllegalStateException("Мир ещё не загружен"));
+        return game.info(selected, client.player.getUuid(), world.getRegistryKey().getValue().toString(), client.player.getBlockX(), client.player.getBlockZ(), secrets);
+    }
+    /** The player's standing in the village where they stand, for the F7 menu and /mobtalk state. */
+    CompletableFuture<List<String>> villageStatus() {
+        MobGameBridge game = client.getServer() == null ? null : MobGameBridge.active(client.getServer());
+        if (game == null || client.player == null || world == null) return CompletableFuture.completedFuture(List.of("Мир ещё не загружен."));
+        UUID player = client.player.getUuid();
+        String dimension = world.getRegistryKey().getValue().toString();
+        int x = client.player.getBlockX(), z = client.player.getBlockZ();
+        return CompletableFuture.supplyAsync(() -> {
+            ConversationStore.Village village = game.memory.villageNear(dimension, x, z);
+            return io.github.mobtalk.core.MobInfo.standingLines(village == null ? null : game.memory.social().standingAt(dimension, x, z, player, System.currentTimeMillis()),
+                    village == null ? "" : village.name());
+        }, maintenance);
+    }
+
     String stateLine() {
         MobGameBridge game = client.getServer() == null ? null : MobGameBridge.active(client.getServer());
         MobCard card = game == null || selected == null || client.player == null ? null : game.memory.card(selected, client.player.getUuid());
@@ -987,6 +1015,12 @@ public final class MobTalkClient implements ClientModInitializer {
         if (!rumors.isEmpty()) text.append(" · слухи: ").append(String.join("; ", rumors.stream().limit(3).map(io.github.mobtalk.core.VillageRumors.View::label).toList()));
         String social = game.memory.social().describe(selected, client.player.getUuid());
         if (!social.isBlank()) text.append(" · нрав: ").append(social);
+        if (client.player != null && world != null) {
+            String dimension = world.getRegistryKey().getValue().toString();
+            ConversationStore.Village village = game.memory.villageNear(dimension, client.player.getBlockX(), client.player.getBlockZ());
+            if (village != null) text.append(" · ").append(io.github.mobtalk.core.MobInfo.standingLine(game.memory.social().standingAt(dimension,
+                    client.player.getBlockX(), client.player.getBlockZ(), client.player.getUuid(), System.currentTimeMillis()), village.name()));
+        }
         text.append(" · решатель: ").append(decider.name());
         return text.toString();
     }

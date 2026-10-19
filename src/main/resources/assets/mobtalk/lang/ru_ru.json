@@ -494,5 +494,17 @@
   "mobtalk.tune.spokenOfferMinutes": "Устная сделка держится %s мин",
   "mobtalk.tune.spokenOfferMinutes.tooltip": "Сколько игровых минут строка, обещанная жителем на словах, остаётся в окне торговли.",
   "mobtalk.tune.bargainCooldownMinutes": "Новый торг через %s мин",
-  "mobtalk.tune.bargainCooldownMinutes.tooltip": "Пауза после торга, прежде чем можно снова сбивать цену с того же жителя. Игровые минуты."
+  "mobtalk.tune.bargainCooldownMinutes.tooltip": "Пауза после торга, прежде чем можно снова сбивать цену с того же жителя. Игровые минуты.",
+  "mobtalk.info.title": "Моб и деревня",
+  "mobtalk.info.loading": "Сбор сведений…",
+  "mobtalk.info.refresh": "Обновить",
+  "mobtalk.info.showSecrets": "Показать тайны",
+  "mobtalk.info.hideSecrets": "Скрыть тайны",
+  "mobtalk.info.failed": "Не удалось собрать сведения: %s",
+  "mobtalk.settings.section.village": "Деревня, где вы стоите",
+  "mobtalk.settings.village.loading": "Проверка репутации…",
+  "mobtalk.settings.village.failed": "Не удалось узнать репутацию.",
+  "mobtalk.settings.village.refresh": "Обновить статус",
+  "mobtalk.settings.info": "Моб и деревня",
+  "mobtalk.settings.info.tooltip": "Всё о выбранном мобе и его деревне: характер, отношение, состояние, связи, сделки, память, место, жители, слухи, семьи. Также /mobtalk info."
 }
