@@ -72,7 +72,7 @@ final class OpenRouterConversationClient implements AutoCloseable {
         }
         messages.add(ReplySchema.message("user", overheard == null ? prompt.userMessage(question, snapshot, profile) : prompt.overheardMessage(overheard, snapshot, profile)));
         // A mob without a life story invents it inside its first reply: one request, not two.
-        boolean needsStory = overheard == null && (profile.backstory == null || profile.backstory.isBlank());
+        boolean needsStory = profile.backstory == null || profile.backstory.isBlank();
         JsonObject body = body(messages, 4096, view.windowOpen() ? 0.6 : 0.95, ReplySchema.replyFormat(snapshot, needsStory), !noStreaming);
         if (overheard != null) ReplySchema.forbidIntents(body);
         long deadline = System.nanoTime() + http.timeout().toNanos();

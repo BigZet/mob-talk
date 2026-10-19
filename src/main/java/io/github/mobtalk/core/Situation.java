@@ -32,15 +32,17 @@ public final class Situation {
     private final Combatant mob, player;
     private final Verdict verdict;
     private final String playerWeapon, playerArmor;
-    private final int hits, witnessed;
+    private final int hits, witnessed, kills, calm, confidence;
+    private final boolean trapped;
     private final int relationship;
     private final boolean hostile, threat, creative;
 
     private Situation(Combatant mob, Combatant player, String playerWeapon, String playerArmor, int hits, int witnessed, int relationship,
-                      boolean hostile, boolean threat, boolean creative) {
+                      boolean hostile, boolean threat, boolean creative, int kills, int calm, int confidence, boolean trapped) {
         this.mob = mob; this.player = player; this.verdict = creative ? Verdict.DOOMED : verdict(mob, player);
         this.playerWeapon = playerWeapon; this.playerArmor = playerArmor; this.hits = hits; this.witnessed = witnessed;
         this.relationship = relationship; this.hostile = hostile; this.threat = threat; this.creative = creative;
+        this.kills = kills; this.calm = calm; this.confidence = confidence; this.trapped = trapped;
     }
 
     public Verdict verdict() { return verdict; }
@@ -110,14 +112,18 @@ public final class Situation {
         Combatant human = new Combatant(health, maxHealth, weapon, armor, true, false, 0);
         String weaponText = weapon > FISTS ? "вооружён: " + weaponName : "без оружия в руках";
         String armorText = pieces == 0 ? "без брони" : "броня: " + pieces + " " + plural(pieces, "часть", "части", "частей") + " (" + materialName(best) + ")";
-        int witnessed = 0;
-        if (profile != null && profile.recentEvents != null) for (String event : profile.recentEvents) if (event != null && event.startsWith("Видел, как игрок")) witnessed++;
+        int witnessed = 0, kills = 0;
+        if (profile != null && profile.recentEvents != null) for (String event : profile.recentEvents) if (event != null && event.startsWith("Видел, как игрок")) {
+            witnessed++;
+            if (event.contains(" убил ")) kills++;
+        }
         boolean hostile = profile != null && profile.type != null && SpeciesCatalog.get(profile.type).hostile();
         int hits = profile == null ? 0 : profile.hits, relationship = profile == null ? 0 : profile.relationship;
         // Fear is for a real threat: this player hit or hurt it, is an enemy, or the species is at war with players anyway.
         boolean attacked = snapshot.playerId() != null && snapshot.playerId().toString().equals(String.valueOf(details.get("lastAttacker")));
         boolean threat = hostile || hits > 0 || witnessed > 0 || relationship < 0 || attacked;
-        return new Situation(mob, human, weaponText, armorText, hits, witnessed, relationship, hostile, threat, Boolean.TRUE.equals(player.get("creative")));
+        return new Situation(mob, human, weaponText, armorText, hits, witnessed, relationship, hostile, threat, Boolean.TRUE.equals(player.get("creative")),
+                kills, profile == null ? 50 : profile.calm, profile == null ? 50 : profile.confidence, Boolean.TRUE.equals(details.get("trapped")));
     }
 
     private static String itemId(Map<String,Object> player, String slot) { return player.get(slot) instanceof Map<?,?> item && item.get("id") instanceof String id ? id : ""; }
@@ -167,6 +173,14 @@ public final class Situation {
         if (!hostile && relationship <= CombatRules.HATRED)
             text.append(" Ты этого игрока ненавидишь: " + (mob.fighter() && (verdict == Verdict.EVEN || verdict == Verdict.STRONGER)
                     ? "при случае он получит по заслугам — можешь напасть (action ATTACK)." : "держись от него подальше или беги, звать на помощь не стыдно."));
+        if (kills > 0) text.append("\n— На твоих глазах он убил ").append(kills).append(' ').append(plural(kills, "существо", "существа", "существ"))
+                .append(" (кого — в rememberedEvents). Это не строка в отчёте, а горе, ярость или оцепенение — по характеру; не говори об этом ровным голосом и не делай вид, что ничего не было.");
+        if (trapped) text.append("\n— Бежать некуда: ты заперт, путь наружу закрыт. Не говори «я ухожу» и не обещай отойти — это невозможно. Остаются слова: торг, мольба, злость, "
+                + "обращение к своим, молчание или смирение. action FLEE бессмысленен.");
+        if (verdict == Verdict.DOOMED || verdict == Verdict.OUTMATCHED) text.append("\n— Как именно ты это переживаешь — по темпераменту: ")
+                .append(calm < 35 ? "паникуешь, сбиваешься, повторяешь обрывки" : calm > 65 ? "держишься ровно и торгуешься холодно" : "нервничаешь, но соображаешь")
+                .append(confidence > 65 ? "; даже обречённый не унижаешься — огрызаешься, язвишь, ставишь условия" : confidence < 35 ? "; легко унижаешься, умоляешь, обещаешь что угодно" : "; просишь по-человечески, без театра")
+                .append(". Каждая новая реплика — другой оттенок, не копия прошлой.");
         return text.toString();
     }
 }

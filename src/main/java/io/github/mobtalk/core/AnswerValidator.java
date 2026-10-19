@@ -119,6 +119,7 @@ final class AnswerValidator {
         try {
             ActionType type = ActionType.valueOf(ReplySchema.string(action, "type").toUpperCase(Locale.ROOT));
             if (type == ActionType.NONE || !snapshot.availableActions().contains(type)) return ActionIntent.none();
+            if (type == ActionType.FLEE && Boolean.TRUE.equals(snapshot.mobDetails().get("trapped"))) return ActionIntent.none(); // Nowhere to run.
             if (type == ActionType.STOP) return new ActionIntent(type, "");
             String target = ReplySchema.string(action, "target");
             if (type == ActionType.FOLLOW && !target.equals("player")) return ActionIntent.none();
@@ -269,6 +270,8 @@ final class AnswerValidator {
     static String spokenText(String reply) {
         String text = reply.strip().replaceFirst("^[\\p{Punct}\\s«]+(?=[\\p{L}\\d])", "");
         if (reply.strip().startsWith(":") || reply.strip().startsWith("«")) text = text.replaceFirst("[»\"]\\s*$", "");
+        // A closing quote with no opening one ("Лучший песик»?") is a typo the voice would read as nothing anyway.
+        if (text.indexOf('»') >= 0 && text.indexOf('«') < 0) text = text.replace("»", "");
         return text.strip();
     }
 

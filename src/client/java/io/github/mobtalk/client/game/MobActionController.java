@@ -177,6 +177,11 @@ final class MobActionController {
         if (action == ActionType.NONE) return "";
         if (action == ActionType.STOP) { stop(mob.getUuid(), true); return "Действие отменено; моб вернулся к обычному поведению"; }
         if (!available(mob).contains(action)) return "Это действие недоступно данному мобу";
+        Lease running = leases.get(mob.getUuid());
+        if (running != null && running.action == action && action == ActionType.FLEE && running.targetId.equals(player.getUuid())) {
+            running.expires = mob.getWorld().getTime() + 400; // Still running from the same player: nothing new to announce.
+            return "";
+        }
         MobCard card = bridge.memory.card(mob.getUuid(), player.getUuid());
         if (action == ActionType.FOLLOW && mob instanceof Tameable tameable && tameable.getOwnerUuid() != null
                 && !tameable.getOwnerUuid().equals(player.getUuid())) return "У этого моба другой хозяин";

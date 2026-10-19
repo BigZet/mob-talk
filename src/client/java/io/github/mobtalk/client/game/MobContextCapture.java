@@ -78,7 +78,10 @@ final class MobContextCapture {
         }
         if (mob instanceof AnimalEntity animal) mobDetails.put("inLove", animal.isInLove());
         if (mob instanceof PassiveEntity passive) mobDetails.put("breedingAge", passive.getBreedingAge());
-        if (mob instanceof net.minecraft.entity.mob.PathAwareEntity pathAware) mobDetails.put("panicking", pathAware.isPanicking());
+        if (mob instanceof net.minecraft.entity.mob.PathAwareEntity pathAware) {
+            mobDetails.put("panicking", pathAware.isPanicking());
+            mobDetails.put("trapped", trapped(world, pathAware));
+        }
         if (mob instanceof VillagerEntity villager) {
             mobDetails.put("profession", Registries.VILLAGER_PROFESSION.getId(villager.getVillagerData().getProfession()).toString());
             mobDetails.put("level", villager.getVillagerData().getLevel());
@@ -176,6 +179,22 @@ final class MobContextCapture {
                 blind ? "unknown (blind)" : Registries.ITEM.getId(player.getMainHandStack().getItem()).toString(), List.copyOf(nearby),
                 bridge.memory.events(mob.getUuid()), player.getUuid(), Map.copyOf(playerDetails), Map.copyOf(mobDetails),
                 Map.copyOf(environment), List.copyOf(observed), MobActionController.available(mob), bridge.memory.revision(mob.getUuid()));
+    }
+
+    /** A walking mob that cannot path 10 blocks away in any of four directions is shut in: a pit, a pen, a cell. */
+    static boolean trapped(ServerWorld world, net.minecraft.entity.mob.PathAwareEntity mob) {
+        if (mob.isAiDisabled() || !(mob.getNavigation() instanceof net.minecraft.entity.ai.pathing.MobNavigation)) return false;
+        BlockPos origin = mob.getBlockPos();
+        for (int[] step : new int[][]{{10, 0}, {-10, 0}, {0, 10}, {0, -10}}) {
+            BlockPos away = origin.add(step[0], 0, step[1]);
+            if (!world.getChunkManager().isChunkLoaded(away.getX() >> 4, away.getZ() >> 4)) return false;
+            // Any surface near that column counts: the path finder settles on the reachable height itself.
+            for (int dy : new int[]{0, 2, -2, 4, -4}) {
+                net.minecraft.entity.ai.pathing.Path path = mob.getNavigation().findPathTo(away.up(dy), 1);
+                if (path != null && path.reachesTarget()) return false;
+            }
+        }
+        return true;
     }
 
     static Map<String, Object> living(LivingEntity entity, boolean equipment) {
