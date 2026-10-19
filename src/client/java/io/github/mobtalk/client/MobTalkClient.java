@@ -971,9 +971,10 @@ public final class MobTalkClient implements ClientModInitializer {
     /** The gift key: one item from the hand to the chosen (or aimed) creature; it takes or declines and then says a word of it. */
     void giftFromHand() {
         if (stopped || reloading || client.player == null || world == null) return;
-        MobEntity mob = target();
-        if (mob == null) mob = aimedMob();
-        if (mob == null) { notice("Наведите прицел на моба или выберите его клавишей V"); return; }
+        // The present goes to the creature under the crosshair; the chosen one only when nothing is aimed at.
+        MobEntity mob = aimedMob();
+        if (mob == null) mob = target();
+        if (mob == null) { notice("Наведите прицел на моба"); return; }
         if (client.player.getMainHandStack().isEmpty()) { notice("Возьмите подарок в руку"); return; }
         MobGameBridge game = client.getServer() == null ? null : MobGameBridge.active(client.getServer());
         if (game == null) { notice("Мир ещё не загружен"); return; }
