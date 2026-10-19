@@ -34,7 +34,9 @@ final class Reflection {
         void reply(int importance) { replies++; add(importance); }
         void add(int importance) { this.importance = Math.min(1000, this.importance + Math.max(0, importance)); }
         boolean due(long nowMillis) {
-            return replies >= REPLIES_BETWEEN && importance > IMPORTANCE_THRESHOLD && (lastMillis < 0 || nowMillis - lastMillis >= COOLDOWN_MILLIS);
+            MobTalkConfig tuning = Tuning.get();
+            return replies >= tuning.reflectionReplies && importance > tuning.reflectionImportance
+                    && (lastMillis < 0 || nowMillis - lastMillis >= tuning.reflectionCooldownSeconds * 1000L);
         }
         /** A reflection is on its way: the counters start over whatever it brings, so a failure cannot retry every reply. */
         void started(long nowMillis) { replies = 0; importance = 0; lastMillis = nowMillis; }

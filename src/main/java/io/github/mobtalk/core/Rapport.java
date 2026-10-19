@@ -30,7 +30,7 @@ public final class Rapport {
     /** Fatigue now, after its lazy decay. */
     public int fatigue(long now) {
         if (fatigue <= 0) return 0;
-        long steps = Math.max(0, now - fatigueAt) / FATIGUE_STEP_MILLIS;
+        long steps = Math.max(0, now - fatigueAt) / (Tuning.get().gestureFatigueMinutes * 60_000L);
         return (int) Math.max(0, fatigue - steps);
     }
     /** How many times this gesture came right before (0 for a different one or after a pause). */
@@ -70,9 +70,9 @@ public final class Rapport {
     private void forget(long now) {
         gifts.removeIf(given -> given == null || given.item() == null);
         if (gifts.isEmpty()) { forgetAt = now; return; }
-        long steps = Math.max(0, now - forgetAt) / GIFT_FORGET_MILLIS;
+        long every = Tuning.get().giftForgetMinutes * 60_000L, steps = Math.max(0, now - forgetAt) / every;
         for (long i = 0; i < steps && !gifts.isEmpty(); i++) gifts.removeFirst();
-        forgetAt += steps * GIFT_FORGET_MILLIS;
+        forgetAt += steps * every;
     }
     public Courtship courtship() { return Courtship.of(courtship); }
     public void courtship(Courtship state) { courtship = state == null || state == Courtship.NONE ? "" : state.name(); }

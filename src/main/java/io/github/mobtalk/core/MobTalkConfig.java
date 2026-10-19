@@ -80,6 +80,48 @@ public final class MobTalkConfig {
     /** Game days from a child's birth to adulthood (four stages); vanilla takes one. */
     public int childGrowthDays = 4;
 
+    // ---- Tuning that used to be constants; ranges and settings-screen groups live in Tunables. ----
+    /** Bystanders: how far a mob hears an insult or a threat and sees a blow (blocks), how often one witness counts a deed (seconds),
+     * how much the relationship drops for each deed seen, and the chance (percent) a bystander chips in without an occasion. */
+    public int witnessHearingRange = 5, witnessSightRange = 16, witnessCooldownSeconds = 5;
+    public int witnessHitPenalty = 10, witnessKillPenalty = 25, witnessInsultPenalty = 5, witnessThreatPenalty = 10;
+    public int smallTalkChance = 50;
+    /** The emotional state: half-lives of an ordinary and a strong impression (minutes), and the thresholds of its axes (0–100). */
+    public int stateHalfLifeMinutes = 10, stateSlowHalfLifeMinutes = 30;
+    public int waryCalm = 25, waryTrust = 25, keenInterest = 75, generousMood = 65, generousTrust = 65;
+    /** Memory: half-life of a fact (days), the floor of its freshness (percent), how many facts are kept, the silence that ends a
+     * conversation (minutes), and when a mob thinks the player over (replies, importance, seconds between). */
+    public int memoryHalfLifeDays = 7, memoryFloorPercent = 30, memoryMaxFacts = 60, conversationSilenceMinutes = 3;
+    public int reflectionReplies = 4, reflectionImportance = 8, reflectionCooldownSeconds = 60;
+    /** Gifts: hearts for a creature's favourite food, how fast repeats bore (percent), value-to-hearts rate (percent), gesture
+     * fatigue and gift memory (minutes per step). */
+    public int foodGiftHearts = 8, giftSaturationPercent = 50, giftHeartsPercent = 33, gestureFatigueMinutes = 4, giftForgetMinutes = 20;
+    /** Hearts: the relationship from which a villager is a friend, agrees to court, agrees to marry. */
+    public int heartsFriend = 40, heartsDating = 70, heartsMarriage = 90;
+    /** Bonds between mobs: how far from the player they act (blocks), the chance a friend walks over (percent per check), the
+     * walking band and retreat distance (blocks), how fast a bond fades (hours) and how long grief lasts (minutes). */
+    public int socialPlayerRange = 32;
+    public double socialApproachChance = 12.5;
+    public int socialApproachMin = 6, socialApproachMax = 24, socialRetreatRange = 4, bondHalfLifeHours = 6, griefMinutes = 60;
+    /** Rumours: forgotten after (game days), kept per village and per villager, passing chance (percent), shown to the model, and the
+     * importance that makes the village talk before the day is out. */
+    public int rumorForgetDays = 5, rumorsPerVillage = 10, rumorsPerVillager = 6, rumorSpreadPercent = 45, rumorsInPrompt = 3, rumorChronicleImportance = 12;
+    /** Speaking first: one creature's pause and the absence that counts as a return (minutes), the ranges (blocks), scene length. */
+    public int initiativeMobCooldownMinutes = 5, initiativeReturnMinutes = 20, initiativeSpeakRange = 6, initiativeHearRange = 12, initiativeMetRange = 16;
+    public int sceneMaxLines = 4;
+    /** The village's view: points at or below which the player is an exile or a suspect, and from which a friend, guard or head. */
+    public int villageExilePoints = -150, villageSuspectPoints = -40, villageFriendPoints = 120, villageGuardPoints = 300, villageElderPoints = 600;
+    /** Friendly duties: a lease (minutes), how far the player may go (blocks), the guard's distances and the stay drift (blocks). */
+    public int friendLeaseMinutes = 10, friendLeaveRange = 48, guardNear = 3, guardFar = 6, guardAlert = 8, guardChase = 16;
+    public double stayDrift = 2.5;
+    /** Trade: how long a spoken offer stays in the window, and the pause before a new haggle (minutes). */
+    public int spokenOfferMinutes = 10, bargainCooldownMinutes = 20;
+    /** The place around a mob: analysed at all (enclosure, exits, height), and named by the classifier («похоже на шахту»). */
+    public boolean placeAnalysis = true, placeClassifier = true;
+    /** How mobs address the player, three comma-separated lists picked by the relationship: hostile or mocking, ordinary, close.
+     * Empty lists fall back to the ordinary one, then to the Minecraft nick ({@link PlayerIdentity}). */
+    public String playerNamesHostile = "", playerNamesNeutral = "", playerNamesClose = "";
+
     /** A menu draft or worker snapshot; editing it does not change the live preferences. */
     public MobTalkConfig copy() {
         MobTalkConfig copy = new MobTalkConfig();
@@ -126,6 +168,8 @@ public final class MobTalkConfig {
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;
         copy.familyLife = familyLife; copy.weddingChance = weddingChance; copy.birthChance = birthChance; copy.childGrowthDays = childGrowthDays;
+        Tunables.copy(this, copy);
+        copy.placeAnalysis = placeAnalysis; copy.placeClassifier = placeClassifier; copy.playerNamesHostile = playerNamesHostile; copy.playerNamesNeutral = playerNamesNeutral; copy.playerNamesClose = playerNamesClose;
         return copy;
     }
 
@@ -166,28 +210,18 @@ public final class MobTalkConfig {
     }
 
     private static void normalize(MobTalkConfig config) throws IOException {
-        config.maxRecordingSeconds = Math.max(1, Math.min(15, config.maxRecordingSeconds));
-        config.maxReplyWords = Math.max(5, Math.min(120, config.maxReplyWords));
-        config.historyTurns = Math.max(1, Math.min(64, config.historyTurns));
-        config.maxMemoryChars = Math.max(200, Math.min(4000, config.maxMemoryChars));
+        // Every number (recording, reply, history, memory, Whisper, distances, chances, thresholds) into its range: see Tunables.
+        Tunables.normalize(config);
         config.schemaVersion = 2;
-        config.whisperBeamSize = Math.max(1, Math.min(10, config.whisperBeamSize));
-        config.whisperVadSilenceMs = Math.max(150, Math.min(1500, config.whisperVadSilenceMs));
-        config.whisperCpuThreads = Math.max(1, Math.min(16, config.whisperCpuThreads));
         config.whisperHotwords = TextBounds.characters(config.whisperHotwords, 2000);
         config.commonPrompt = config.commonPrompt == null ? "" : config.commonPrompt.strip();
         config.rudeness = Math.max(0, Math.min(3, config.rudeness));
         if (config.speciesOverrides == null) config.speciesOverrides = new LinkedHashMap<>();
-        config.requestTimeoutSeconds = Math.max(5, Math.min(90, config.requestTimeoutSeconds));
-        config.maxDistance = Double.isFinite(config.maxDistance) ? Math.max(2, Math.min(64, config.maxDistance)) : 16;
-        config.witnessReplies = Math.max(0, Math.min(2, config.witnessReplies));
-        config.socialActionsPerMinute = Math.max(1, Math.min(30, config.socialActionsPerMinute));
-        config.initiativesPerMinute = Math.max(1, Math.min(6, config.initiativesPerMinute));
         config.playerGender = config.playerGender == null ? "any" : config.playerGender.strip().toLowerCase(java.util.Locale.ROOT);
         if (!java.util.List.of("male", "female", "any").contains(config.playerGender)) config.playerGender = "any";
-        config.weddingChance = Math.max(0, Math.min(100, config.weddingChance));
-        config.birthChance = Math.max(0, Math.min(100, config.birthChance));
-        config.childGrowthDays = Math.max(1, Math.min(16, config.childGrowthDays));
+        config.playerNamesHostile = PlayerIdentity.clean(config.playerNamesHostile);
+        config.playerNamesNeutral = PlayerIdentity.clean(config.playerNamesNeutral);
+        config.playerNamesClose = PlayerIdentity.clean(config.playerNamesClose);
         config.decider = "jev".equalsIgnoreCase(config.decider == null ? "" : config.decider.strip()) ? "jev" : "rules";
         config.vision = Vision.normalize(config.vision);
         MobTalkConfig defaults = new MobTalkConfig();

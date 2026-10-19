@@ -67,9 +67,10 @@ public final class Initiative {
     /** The strongest occasion the facts give, or null: never for a stranger, a creature hostile by nature, a busy one, or one the
      * player cannot hear. */
     public static Trigger detect(Facts f, long now) {
-        if (f == null || !f.acquainted() || f.hostile() || f.busy() || f.playerDistance() > HEAR_RANGE) return null;
-        boolean close = f.playerDistance() <= SPEAK_RANGE;
-        if (close && f.relationship() >= 0 && f.lastMetMillis() >= 0 && now - f.lastMetMillis() >= RETURN_MILLIS) return Trigger.RETURN;
+        MobTalkConfig tuning = Tuning.get();
+        if (f == null || !f.acquainted() || f.hostile() || f.busy() || f.playerDistance() > tuning.initiativeHearRange) return null;
+        boolean close = f.playerDistance() <= tuning.initiativeSpeakRange;
+        if (close && f.relationship() >= 0 && f.lastMetMillis() >= 0 && now - f.lastMetMillis() >= tuning.initiativeReturnMinutes * 60_000L) return Trigger.RETURN;
         if (f.blocksChanged() >= BUILDING_BLOCKS && f.relationship() > CombatRules.HATRED) return Trigger.BUILDING;
         if (close && (f.hasThought() || f.openDeal())) return Trigger.CONCERN;
         if (close && !f.weatherChange().isEmpty() && now - f.weatherChangedMillis() <= WEATHER_FRESH_MILLIS) return Trigger.WEATHER;
@@ -108,7 +109,7 @@ public final class Initiative {
             long worldInterval = 60_000L / Math.max(1, Math.min(60, perMinute));
             if (worldLast >= 0 && now - worldLast < worldInterval) return false;
             Long last = mobLast.get(mob);
-            return last == null || now - last >= MOB_COOLDOWN_MILLIS;
+            return last == null || now - last >= Tuning.get().initiativeMobCooldownMinutes * 60_000L;
         }
         /** Spends the budget on this creature. */
         public void spent(UUID mob, long now) { worldLast = now; mobLast.put(mob, now); }

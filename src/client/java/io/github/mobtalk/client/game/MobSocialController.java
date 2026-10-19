@@ -60,7 +60,7 @@ final class MobSocialController {
         String deadName = name(victim), deadType = type(victim);
         boolean acquainted = bridge.memory.acquainted(dead);
         long now = System.currentTimeMillis();
-        for (MobEntity witness : world.getEntitiesByClass(MobEntity.class, victim.getBoundingBox().expand(MobGameBridge.WITNESS_RANGE),
+        for (MobEntity witness : world.getEntitiesByClass(MobEntity.class, victim.getBoundingBox().expand(bridge.config.witnessSightRange),
                 other -> other != victim && other.isAlive() && !other.isRemoved() && bridge.memory.known(other.getUuid()) && other.canSee(victim)))
             bridge.memory.updateRelations(r -> r.mourn(witness.getUuid(), dead, deadName, deadType, acquainted, now));
     }
@@ -84,7 +84,7 @@ final class MobSocialController {
         tickVisits(world);
         if (world.getTime() % PERIOD != PHASE) return;
         long now = System.currentTimeMillis(), time = world.getTime();
-        double range = SocialRules.PLAYER_RANGE;
+        double range = bridge.config.socialPlayerRange;
         Map<UUID, MobEntity> around = new LinkedHashMap<>();
         Map<UUID, Double> toPlayer = new HashMap<>();
         for (ServerPlayerEntity player : world.getPlayers()) {
@@ -152,7 +152,7 @@ final class MobSocialController {
     private void traders(ServerWorld world, List<MobEntity> known, long now) {
         for (ServerPlayerEntity player : world.getPlayers()) {
             for (net.minecraft.entity.passive.WanderingTraderEntity trader : world.getEntitiesByClass(net.minecraft.entity.passive.WanderingTraderEntity.class,
-                    player.getBoundingBox().expand(SocialRules.PLAYER_RANGE), other -> other.isAlive() && !other.isRemoved())) {
+                    player.getBoundingBox().expand(bridge.config.socialPlayerRange), other -> other.isAlive() && !other.isRemoved())) {
                 Long last = traderVisits.get(trader.getUuid());
                 if (last != null && now - last < MobRelations.TOGETHER_INTERVAL) continue;
                 for (MobEntity villager : known) {

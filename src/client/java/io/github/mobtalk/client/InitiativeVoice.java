@@ -60,7 +60,7 @@ final class InitiativeVoice {
         ConversationStore.Village village = game.memory.villageNear(owner.world.getRegistryKey().getValue().toString(), (int) player.getX(), (int) player.getZ());
         if (village == null) return;
         long day = Math.floorDiv(owner.world.getTimeOfDay(), 24_000L);
-        String name = player.getName().getString();
+        String name = MobGameBridge.playerName(player);
         owner.maintenance.execute(() -> engine.chronicleIfDue(village.id(), name, day));
     }
 
@@ -72,7 +72,7 @@ final class InitiativeVoice {
             if (cue == null || cue.partners().isEmpty()) { scene = null; return; }
             List<Initiative.Candidate> cast = new ArrayList<>();
             cast.add(new Initiative.Candidate(target, reply.speakerName(), 0, 0)); cast.addAll(cue.partners());
-            scene = new Initiative.Scene(cast, Initiative.SCENE_MIN_LINES + random.nextInt(Initiative.SCENE_MAX_LINES - Initiative.SCENE_MIN_LINES + 1));
+            scene = new Initiative.Scene(cast, Initiative.SCENE_MIN_LINES + random.nextInt(Math.max(Initiative.SCENE_MIN_LINES, owner.config().sceneMaxLines) - Initiative.SCENE_MIN_LINES + 1));
             sceneGeneration = generation;
         } else if (scene == null || generation != sceneGeneration) return;
         scene.linesLeft--;

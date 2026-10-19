@@ -6,19 +6,19 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Consumer;
-import java.util.function.IntConsumer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.Selectable;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.*;
+import io.github.mobtalk.client.settings.TunableSlider;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
-/** Four tabs of scrollable sections; preference/profile edits remain private until Save, the API key is stored separately. */
+/** Eight tabs of scrollable sections (general, voice, model, conversation, social, actions and place, species, the selected mob); preference/profile edits remain private until Save, the API key is stored separately. */
 final class MobTalkSettingsScreen extends Screen {
     interface Controller {
         void listMicrophones(Consumer<List<String>> callback);
@@ -35,10 +35,17 @@ final class MobTalkSettingsScreen extends Screen {
         default CompletableFuture<String> editSelectedCard(String name, String personality, String voiceId, String memory) { return CompletableFuture.completedFuture("Сначала выберите моба."); }
         default CompletableFuture<String> clearSelectedHistory() { return CompletableFuture.completedFuture("Сначала выберите моба."); }
         default CompletableFuture<String> resetSelectedPersonality() { return CompletableFuture.completedFuture("Сначала выберите моба."); }
+        /** The mod's keys as they are bound now, one line each («V — говорить с мобом»). */
+        default List<String> keyHints() { return List.of(); }
+        /** The player's standing in the village where they stand, in lines. */
+        default CompletableFuture<List<String>> villageStatus() { return CompletableFuture.completedFuture(List.of()); }
+        /** Opens «Моб и деревня» over this menu. */
+        default void openInfo(Screen parent) { }
     }
     static final List<String> WHISPER_MODELS = List.of("small", "medium", "large-v2", "large-v3", "large-v3-turbo");
-    private static final String[] TABS = {"general", "mic", "species", "mob"};
-    private static final int GENERAL = 0, MIC = 1, SPECIES = 2, MOB = 3, ROW = 24, LIST_TOP = 48;
+    private static final String[] TABS = {"general", "voice", "model", "talk", "social", "actions", "species", "mob"};
+    /** Two rows of four tabs above the list. */
+    private static final int GENERAL = 0, VOICE = 1, MODEL = 2, TALK = 3, SOCIAL = 4, ACTIONS = 5, SPECIES = 6, MOB = 7, PER_ROW = 4, ROW = 24, LIST_TOP = 70;
     private final Screen parent;
     private final Controller controller;
     private final String originalMicrophone;
@@ -76,18 +83,21 @@ final class MobTalkSettingsScreen extends Screen {
     @Override protected void init() {
         widgets.clear(); speciesPicker = null; searchField = null; refreshButton = null;
         contentWidth = Math.min(460, width - 40); left = (width - contentWidth) / 2;
-        int tabWidth = (contentWidth - 4 * (TABS.length - 1)) / TABS.length;
+        int tabWidth = (contentWidth - 4 * (PER_ROW - 1)) / PER_ROW;
         for (int i = 0; i < TABS.length; i++) {
             int chosen = i;
             ButtonWidget button = addDrawableChild(ButtonWidget.builder(Text.translatable("mobtalk.settings.tab." + TABS[i]),
                     ignored -> { stopPreview(); tab = chosen; status = Text.empty(); error = false; clearAndInit(); })
-                    .dimensions(left + i * (tabWidth + 4), 22, tabWidth, 20).build());
+                    .dimensions(left + i % PER_ROW * (tabWidth + 4), 22 + i / PER_ROW * 22, tabWidth, 20).build());
             button.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.tab." + TABS[i] + ".full")));
             button.active = i != tab && !saving;
         }
         int top = switch (tab) { case SPECIES -> LIST_TOP + 50; case MOB -> LIST_TOP + 26; default -> LIST_TOP; };
         list = new SettingsList(top, height - 56);
-        switch (tab) { case MIC -> microphone(); case SPECIES -> speciesTab(); case MOB -> selectedMob(); default -> general(); }
+        switch (tab) {
+            case VOICE -> voice(); case MODEL -> model(); case TALK -> talk(); case SOCIAL -> social(); case ACTIONS -> actions();
+            case SPECIES -> speciesTab(); case MOB -> selectedMob(); default -> general();
+        }
         addDrawableChild(list);
         list.restore(scrolls[tab]);
         if (tab == SPECIES && noSpeciesMatches) for (ClickableWidget widget : widgets) if (widget != searchField) widget.active = false;
@@ -108,6 +118,55 @@ final class MobTalkSettingsScreen extends Screen {
     // ---- Общее ----
 
     private void general() {
+        header("mobtalk.settings.section.main");
+        wide(tip(toggle("mobtalk.settings.enabled", draft.enabled, value -> draft.enabled = value), "mobtalk.settings.enabled.tooltip"));
+        CyclingButtonWidget<String> vision = track(CyclingButtonWidget.<String>builder(value -> Text.translatable("mobtalk.settings.vision." + value))
+                .values(io.github.mobtalk.core.Vision.MODES).initially(io.github.mobtalk.core.Vision.normalize(draft.vision))
+                .build(0, 0, 100, 20, Text.translatable("mobtalk.settings.vision"), (button, chosen) -> draft.vision = chosen));
+        vision.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.vision.tooltip")));
+        wide(vision);
+        wide(tip(toggle("mobtalk.settings.stateHud", draft.showStateHud, value -> draft.showStateHud = value), "mobtalk.settings.stateHud.tooltip"),
+                tip(toggle("mobtalk.settings.bargainHud", draft.showBargainHud, value -> draft.showBargainHud = value), "mobtalk.settings.bargainHud.tooltip"));
+        wide(tip(toggle("mobtalk.settings.nameTags", draft.showNameTags, value -> draft.showNameTags = value), "mobtalk.settings.nameTags.tooltip"));
+
+        header("mobtalk.settings.section.names");
+        note(Text.translatable("mobtalk.settings.names.hint"), 0x9A9A9A);
+        names("mobtalk.settings.names.neutral", draft.playerNamesNeutral, value -> draft.playerNamesNeutral = value);
+        names("mobtalk.settings.names.close", draft.playerNamesClose, value -> draft.playerNamesClose = value);
+        names("mobtalk.settings.names.hostile", draft.playerNamesHostile, value -> draft.playerNamesHostile = value);
+
+        header("mobtalk.settings.section.village");
+        if (village == null) { note(Text.translatable("mobtalk.settings.village.loading"), 0xBBBBBB); loadVillage(); }
+        else for (String line : village) note(Text.literal(line), 0xD5D5D5);
+        ButtonWidget info = button("mobtalk.settings.info", ignored -> { stopPreview(); openingChild = true; controller.openInfo(this); });
+        info.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.info.tooltip")));
+        wide(info, button("mobtalk.settings.village.refresh", ignored -> { village = null; refreshOnTick = true; }));
+
+        header("mobtalk.settings.section.keys");
+        for (String line : controller.keyHints()) note(Text.literal(line), 0xBBBBBB);
+        resetSection(Tunables.Section.GENERAL);
+    }
+    private List<String> village;
+    private boolean loadingVillage;
+    private void loadVillage() {
+        if (loadingVillage) return; loadingVillage = true;
+        controller.villageStatus().whenComplete((lines, failure) -> client.execute(() -> {
+            loadingVillage = false; if (disposed) return;
+            village = failure == null && lines != null ? lines : List.of(Text.translatable("mobtalk.settings.village.failed").getString());
+            if (client.currentScreen == this && tab == GENERAL) refreshOnTick = true;
+        }));
+    }
+    /** One list of forms of address: a text field with the example as placeholder and the rule in the tooltip. */
+    private void names(String key, String value, Consumer<String> changed) {
+        TextFieldWidget field = field(value, 400, changed);
+        field.setPlaceholder(Text.translatable(key + ".placeholder").formatted(Formatting.DARK_GRAY));
+        field.setTooltip(Tooltip.of(Text.translatable(key + ".tooltip")));
+        labeled(key, field);
+    }
+
+    // ---- Модель ----
+
+    private void model() {
         header("mobtalk.settings.section.llm");
         CyclingButtonWidget<Boolean> provider = track(CyclingButtonWidget.<Boolean>builder(venice -> Text.literal(venice ? "Venice" : "OpenRouter"))
                 .values(false, true).initially(draft.usesVenice())
@@ -117,82 +176,98 @@ final class MobTalkSettingsScreen extends Screen {
         check.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.connection.tooltip")));
         check.active = !keyBusy;
         wide(provider, check);
-        if (draft.usesVenice()) labeled("mobtalk.settings.llm", field(draft.veniceModel, 160, value -> draft.veniceModel = value));
-        else labeled("mobtalk.settings.llm", field(draft.llmModel, 160, value -> draft.llmModel = value));
+        TextFieldWidget model = draft.usesVenice() ? field(draft.veniceModel, 160, value -> draft.veniceModel = value) : field(draft.llmModel, 160, value -> draft.llmModel = value);
+        model.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.llm.tooltip")));
+        labeled("mobtalk.settings.llm", model);
         if (draft.usesVenice()) note(Text.translatable("mobtalk.settings.provider.veniceModels"), 0x9A9A9A);
-
-        header("mobtalk.settings.section.tts");
-        CyclingButtonWidget<Boolean> tts = track(CyclingButtonWidget.<Boolean>builder(venice -> Text.literal(venice ? "Venice" : "OpenRouter"))
-                .values(false, true).initially(draft.usesVeniceSpeech())
-                .build(0, 0, 100, 20, Text.translatable("mobtalk.settings.tts"), (button, venice) -> { draft.ttsProvider = venice ? "venice" : "openrouter"; refreshOnTick = true; }));
-        tts.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.tts.tooltip")));
-        wide(tts);
-        if (draft.usesVeniceSpeech()) {
-            labeled("mobtalk.settings.ttsModel", field(draft.veniceTtsModel, 160, value -> draft.veniceTtsModel = value));
-            labeled("mobtalk.settings.veniceVoice", field(draft.veniceVoice, 160, value -> draft.veniceVoice = value));
-            note(Text.translatable("mobtalk.settings.tts.veniceNote"), 0x9A9A9A);
-        } else {
-            labeled("mobtalk.settings.ttsModel", field(draft.ttsModel, 160, value -> draft.ttsModel = value));
-            note(Text.translatable("mobtalk.settings.tts.openRouterNote"), 0x9A9A9A);
-        }
+        CyclingButtonWidget<String> reasoning = track(CyclingButtonWidget.<String>builder(value -> Text.translatable("mobtalk.settings.reasoning." + (value.isEmpty() ? "default" : value)))
+                .values(retain(List.of("", "none", "minimal", "low", "medium", "high"), draft.reasoningEffort)).initially(draft.reasoningEffort == null ? "" : draft.reasoningEffort)
+                .build(0, 0, 100, 20, Text.translatable("mobtalk.settings.reasoning"), (button, value) -> draft.reasoningEffort = value));
+        reasoning.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.reasoning.tooltip")));
+        wide(reasoning);
+        TextFieldWidget background = field(draft.backgroundModel, 160, value -> draft.backgroundModel = value);
+        background.setPlaceholder(Text.translatable("mobtalk.settings.backgroundModel.placeholder").formatted(Formatting.DARK_GRAY));
+        background.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.backgroundModel.tooltip")));
+        labeled("mobtalk.settings.backgroundModel", background);
+        CyclingButtonWidget<Boolean> decider = track(CyclingButtonWidget.<Boolean>builder(jev -> Text.translatable(jev ? "mobtalk.settings.decider.jev" : "mobtalk.settings.decider.rules"))
+                .values(false, true).initially(draft.usesJev()).build(0, 0, 100, 20, Text.translatable("mobtalk.settings.decider"), (button, jev) -> draft.decider = jev ? "jev" : "rules"));
+        decider.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.decider.tooltip")));
+        wide(decider);
+        tunables(Tunables.Section.MODEL, Map.of());
 
         if (draft.needsOpenRouter()) keySection(OpenRouterToken.Provider.OPENROUTER, draft.usesVenice() ? "mobtalk.settings.section.openrouter.speech"
                 : draft.usesVeniceSpeech() ? "mobtalk.settings.section.openrouter.chat" : "mobtalk.settings.section.openrouter");
         if (draft.needsVenice()) keySection(OpenRouterToken.Provider.VENICE, draft.usesVenice() && draft.usesVeniceSpeech() ? "mobtalk.settings.section.venice.both"
                 : draft.usesVenice() ? "mobtalk.settings.section.venice" : "mobtalk.settings.section.venice.speech");
         note(Text.translatable("mobtalk.settings.key.hint"), 0x9A9A9A);
+        resetSection(Tunables.Section.MODEL);
+    }
 
-        header("mobtalk.settings.section.conversation");
-        wide(toggle("mobtalk.settings.enabled", draft.enabled, value -> draft.enabled = value),
-                button("mobtalk.settings.commonPrompt", ignored -> edit("mobtalk.settings.commonPrompt", draft.commonPrompt, 8000, value -> draft.commonPrompt = value, "")));
+    // ---- Общение ----
+
+    private void talk() {
+        header("mobtalk.settings.section.style");
         CyclingButtonWidget<Integer> rudeness = track(CyclingButtonWidget.<Integer>builder(value -> Text.translatable("mobtalk.settings.rudeness." + value))
                 .values(0, 1, 2, 3).initially(Math.max(0, Math.min(3, draft.rudeness)))
                 .build(0, 0, 100, 20, Text.translatable("mobtalk.settings.rudeness"), (button, value) -> draft.rudeness = value));
         rudeness.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.rudeness.tooltip")));
-        wide(rudeness);
-        wide(slider("mobtalk.settings.reply", 5, 120, draft.maxReplyWords, value -> draft.maxReplyWords = value));
-        wide(track(new IntegerSlider("mobtalk.settings.distance", 2, 64, draft.maxDistance, value -> draft.maxDistance = value)));
-        wide(slider("mobtalk.settings.recording", 1, 15, draft.maxRecordingSeconds, value -> draft.maxRecordingSeconds = value));
-        wide(slider("mobtalk.settings.timeout", 5, 90, draft.requestTimeoutSeconds, value -> draft.requestTimeoutSeconds = value));
-        wide(slider("mobtalk.settings.witnesses", 0, 2, draft.witnessReplies, value -> draft.witnessReplies = value));
-        wide(toggle("mobtalk.settings.stateHud", draft.showStateHud, value -> draft.showStateHud = value));
-        wide(toggle("mobtalk.settings.nameTags", draft.showNameTags, value -> draft.showNameTags = value));
-        CyclingButtonWidget<String> vision = track(CyclingButtonWidget.<String>builder(value -> Text.translatable("mobtalk.settings.vision." + value))
-                .values(io.github.mobtalk.core.Vision.MODES).initially(io.github.mobtalk.core.Vision.normalize(draft.vision))
-                .build(0, 0, 100, 20, Text.translatable("mobtalk.settings.vision"), (button, chosen) -> draft.vision = chosen));
-        vision.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.vision.tooltip")));
-        wide(vision);
-        wide(toggle("mobtalk.settings.bargainHud", draft.showBargainHud, value -> draft.showBargainHud = value));
-        wide(toggle("mobtalk.settings.social", draft.socialBehavior, value -> draft.socialBehavior = value));
-        wide(slider("mobtalk.settings.socialDensity", 1, 30, draft.socialActionsPerMinute, value -> draft.socialActionsPerMinute = value));
-        socialLayer();
-        wide(toggle("mobtalk.settings.initiative", draft.initiative, value -> draft.initiative = value));
-        wide(slider("mobtalk.settings.initiativeRate", 1, 6, draft.initiativesPerMinute, value -> draft.initiativesPerMinute = value));
-        CyclingButtonWidget<Boolean> decider = track(CyclingButtonWidget.<Boolean>builder(jev -> Text.translatable(jev ? "mobtalk.settings.decider.jev" : "mobtalk.settings.decider.rules"))
-                .values(false, true).initially(draft.usesJev()).build(0, 0, 100, 20, Text.translatable("mobtalk.settings.decider"), (button, jev) -> draft.decider = jev ? "jev" : "rules"));
-        decider.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.decider.tooltip")));
-        wide(decider);
-
-        header("mobtalk.settings.section.memory");
-        wide(slider("mobtalk.settings.history", 1, 64, draft.historyTurns, value -> draft.historyTurns = value));
-        wide(slider("mobtalk.settings.memory", 200, 4000, draft.maxMemoryChars, value -> draft.maxMemoryChars = value));
+        ButtonWidget prompt = button("mobtalk.settings.commonPrompt", ignored -> edit("mobtalk.settings.commonPrompt", draft.commonPrompt, 8000, value -> draft.commonPrompt = value, ""));
+        prompt.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.commonPrompt.tooltip")));
+        wide(rudeness, prompt);
+        tunables(Tunables.Section.TALK, Map.of());
+        resetSection(Tunables.Section.TALK);
     }
 
-    /** The villagers' social layer: the switch and the player's sex for courtship. */
-    private void socialLayer() {
-        CyclingButtonWidget<String> gender = track(CyclingButtonWidget.<String>builder(value -> Text.translatable("mobtalk.settings.playerGender." + value))
-                .values("any", "male", "female").initially(draft.playerGender == null ? "any" : draft.playerGender)
-                .build(0, 0, 100, 20, Text.translatable("mobtalk.settings.playerGender"), (button, value) -> draft.playerGender = value));
-        gender.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.playerGender.tooltip")));
-        CyclingButtonWidget<Boolean> layer = toggle("mobtalk.settings.socialLayer", draft.socialLayer, value -> draft.socialLayer = value);
-        layer.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.socialLayer.tooltip")));
-        wide(layer, gender);
-        CyclingButtonWidget<Boolean> family = toggle("mobtalk.settings.familyLife", draft.familyLife, value -> draft.familyLife = value);
-        family.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.familyLife.tooltip")));
-        wide(family);
-        wide(slider("mobtalk.settings.weddingChance", 0, 100, draft.weddingChance, value -> draft.weddingChance = value),
-                slider("mobtalk.settings.birthChance", 0, 100, draft.birthChance, value -> draft.birthChance = value));
-        wide(slider("mobtalk.settings.childGrowthDays", 1, 16, draft.childGrowthDays, value -> draft.childGrowthDays = value));
+    // ---- Социальное ----
+
+    private void social() {
+        tunables(Tunables.Section.SOCIAL, Map.of(
+                "family", () -> {
+                    CyclingButtonWidget<String> gender = track(CyclingButtonWidget.<String>builder(value -> Text.translatable("mobtalk.settings.playerGender." + value))
+                            .values("any", "male", "female").initially(draft.playerGender == null ? "any" : draft.playerGender)
+                            .build(0, 0, 100, 20, Text.translatable("mobtalk.settings.playerGender"), (button, value) -> draft.playerGender = value));
+                    gender.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.playerGender.tooltip")));
+                    wide(tip(toggle("mobtalk.settings.socialLayer", draft.socialLayer, value -> draft.socialLayer = value), "mobtalk.settings.socialLayer.tooltip"), gender);
+                    wide(tip(toggle("mobtalk.settings.familyLife", draft.familyLife, value -> draft.familyLife = value), "mobtalk.settings.familyLife.tooltip"));
+                },
+                "bonds", () -> wide(tip(toggle("mobtalk.settings.social", draft.socialBehavior, value -> draft.socialBehavior = value), "mobtalk.settings.social.tooltip")),
+                "initiative", () -> wide(tip(toggle("mobtalk.settings.initiative", draft.initiative, value -> draft.initiative = value), "mobtalk.settings.initiative.tooltip"))));
+        resetSection(Tunables.Section.SOCIAL);
+    }
+
+    // ---- Действия и место ----
+
+    private void actions() {
+        tunables(Tunables.Section.ACTIONS, Map.of());
+        header("mobtalk.settings.group.place");
+        wide(tip(toggle("mobtalk.settings.placeAnalysis", draft.placeAnalysis, value -> draft.placeAnalysis = value), "mobtalk.settings.placeAnalysis.tooltip"),
+                tip(toggle("mobtalk.settings.placeClassifier", draft.placeClassifier, value -> draft.placeClassifier = value), "mobtalk.settings.placeClassifier.tooltip"));
+        note(Text.translatable("mobtalk.settings.place.note"), 0x9A9A9A);
+        resetSection(Tunables.Section.ACTIONS);
+    }
+
+    /** The sliders of one tab under a header per group, in the table's order; {@code before} adds the switches of a group above its sliders. */
+    private void tunables(Tunables.Section section, Map<String, Runnable> before) {
+        String group = null;
+        for (Tunables.Tunable tunable : Tunables.of(section)) {
+            if (!tunable.group().equals(group)) {
+                group = tunable.group();
+                header("mobtalk.settings.group." + group);
+                Runnable extra = before.get(group);
+                if (extra != null) extra.run();
+            }
+            wide(track(new TunableSlider(tunable, draft)));
+        }
+    }
+    /** «Сбросить раздел»: this tab's numbers and switches back to their defaults in the draft; texts typed by hand stay. */
+    private void resetSection(Tunables.Section section) {
+        header("mobtalk.settings.section.resetSection");
+        ButtonWidget reset = button("mobtalk.settings.resetSection", ignored -> {
+            Tunables.resetSection(draft, section); refreshOnTick = true;
+            status = Text.translatable("mobtalk.settings.resetSection.done"); error = false;
+        });
+        reset.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.resetSection.tooltip")));
+        wide(reset);
     }
 
     /** One provider's key: status, masked field with paste, save and remove. */
@@ -246,7 +321,7 @@ final class MobTalkSettingsScreen extends Screen {
         for (OpenRouterToken.Provider provider : OpenRouterToken.Provider.values())
             controller.keyStatus(provider).whenComplete((value, failure) -> client.execute(() -> {
                 if (disposed) return; keyStatus.put(provider, failure == null ? value : new OpenRouterToken.Status(OpenRouterToken.Source.NONE, ""));
-                if (client.currentScreen == this && tab == GENERAL) refreshOnTick = true;
+                if (client.currentScreen == this && tab == MODEL) refreshOnTick = true;
             }));
     }
     /** Saves every pasted key first, so the check and the conversation use them; runs next only when all succeeded. */
@@ -267,9 +342,9 @@ final class MobTalkSettingsScreen extends Screen {
         }));
     }
 
-    // ---- Микрофон ----
+    // ---- Голос и распознавание ----
 
-    private void microphone() {
+    private void voice() {
         header("mobtalk.settings.section.device");
         List<String> options = new ArrayList<>(List.of(""));
         for (String name : microphones) if (name != null && !name.isBlank() && !options.contains(name)) options.add(name);
@@ -292,15 +367,30 @@ final class MobTalkSettingsScreen extends Screen {
                 toggle("mobtalk.settings.whisper.autostart", draft.whisperAutoStart, value -> draft.whisperAutoStart = value));
         labeled("mobtalk.settings.whisper.language", field(draft.whisperLanguage, 24, value -> draft.whisperLanguage = value));
 
+        tunables(Tunables.Section.VOICE, Map.of());
         header("mobtalk.settings.section.tuning");
-        wide(slider("mobtalk.settings.whisper.beam", 1, 10, draft.whisperBeamSize, value -> draft.whisperBeamSize = value));
-        wide(slider("mobtalk.settings.whisper.vad", 150, 1500, draft.whisperVadSilenceMs, value -> draft.whisperVadSilenceMs = value));
-        wide(slider("mobtalk.settings.whisper.cpu", 1, 16, draft.whisperCpuThreads, value -> draft.whisperCpuThreads = value));
         wide(button("mobtalk.settings.whisper.hotwords", ignored -> edit("mobtalk.settings.whisper.hotwords", draft.whisperHotwords, 2000,
                 value -> draft.whisperHotwords = value, new MobTalkConfig().whisperHotwords)));
         TextFieldWidget url = field(draft.whisperUrl, 128, value -> draft.whisperUrl = value);
         url.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.whisper.url.tooltip")));
         labeled("mobtalk.settings.whisper.url", url);
+
+        header("mobtalk.settings.section.tts");
+        CyclingButtonWidget<Boolean> tts = track(CyclingButtonWidget.<Boolean>builder(venice -> Text.literal(venice ? "Venice" : "OpenRouter"))
+                .values(false, true).initially(draft.usesVeniceSpeech())
+                .build(0, 0, 100, 20, Text.translatable("mobtalk.settings.tts"), (button, venice) -> { draft.ttsProvider = venice ? "venice" : "openrouter"; refreshOnTick = true; }));
+        tts.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.tts.tooltip")));
+        wide(tts);
+        if (draft.usesVeniceSpeech()) {
+            labeled("mobtalk.settings.ttsModel", field(draft.veniceTtsModel, 160, value -> draft.veniceTtsModel = value));
+            labeled("mobtalk.settings.veniceVoice", field(draft.veniceVoice, 160, value -> draft.veniceVoice = value));
+            note(Text.translatable("mobtalk.settings.tts.veniceNote"), 0x9A9A9A);
+        } else {
+            labeled("mobtalk.settings.ttsModel", field(draft.ttsModel, 160, value -> draft.ttsModel = value));
+            note(Text.translatable("mobtalk.settings.tts.openRouterNote"), 0x9A9A9A);
+        }
+        note(Text.translatable("mobtalk.settings.tts.keyNote"), 0x9A9A9A);
+        resetSection(Tunables.Section.VOICE);
     }
 
     // ---- Виды мобов: характер и голос ----
@@ -423,6 +513,7 @@ final class MobTalkSettingsScreen extends Screen {
                 button("mobtalk.settings.mob.stopAll", ignored -> controller.stopAllFollowers()));
 
         header("mobtalk.settings.section.details");
+        wide(button("mobtalk.settings.info", ignored -> { stopPreview(); openingChild = true; controller.openInfo(this); }));
         wide(button("mobtalk.settings.mob.history", ignored -> read("mobtalk.settings.mob.history", historyText())),
                 button("mobtalk.settings.mob.events", ignored -> read("mobtalk.settings.mob.events", String.join("\n\n", card.events()))));
         wide(button("mobtalk.settings.mob.traits", ignored -> read("mobtalk.settings.mob.traits",
@@ -511,7 +602,7 @@ final class MobTalkSettingsScreen extends Screen {
         try { controller.listMicrophones(names -> client.execute(() -> {
             if (disposed) return; microphones = names == null ? List.of() : List.copyOf(names); listing = false;
             status = names == null ? Text.translatable("mobtalk.settings.list.failed") : names.isEmpty() ? Text.translatable("mobtalk.settings.list.empty") : Text.empty();
-            error = names == null || names.isEmpty(); if (client.currentScreen == this && !saving && tab == MIC) clearAndInit();
+            error = names == null || names.isEmpty(); if (client.currentScreen == this && !saving && tab == VOICE) clearAndInit();
         })); } catch (RuntimeException failure) { listing = false; error = true; status = Text.translatable("mobtalk.settings.list.failed"); if (refreshButton != null) refreshButton.active = true; }
     }
     private Text microphoneName(String name) {
@@ -543,7 +634,8 @@ final class MobTalkSettingsScreen extends Screen {
         TextFieldWidget field = track(new TextFieldWidget(textRenderer, 0, 0, 100, 20, Text.empty()));
         field.setMaxLength(Math.max(maximum, value == null ? 0 : value.length())); field.setText(value == null ? "" : value); field.setChangedListener(changed); return field;
     }
-    private IntegerSlider slider(String key, int min, int max, int current, IntConsumer changed) { return track(new IntegerSlider(key, min, max, current, changed)); }
+    /** The explanation under the pointer, from the lang file. */
+    private <T extends ClickableWidget> T tip(T widget, String key) { widget.setTooltip(Tooltip.of(Text.translatable(key))); return widget; }
 
     private void open(Screen screen) { stopPreview(); openingChild = true; client.setScreen(screen); }
     private void edit(String title, String value, int maximum, Consumer<String> apply, String reset) { open(new TextEditorScreen(this, Text.translatable(title), value, maximum, apply, reset)); }
@@ -628,12 +720,5 @@ final class MobTalkSettingsScreen extends Screen {
             }
         }
         private int weight(int index) { return weights == null || index >= weights.length ? 1 : weights[index]; }
-    }
-
-    private static final class IntegerSlider extends SliderWidget {
-        private final String key; private final int min, max; private final IntConsumer changed; private double displayed;
-        IntegerSlider(String key, int min, int max, double current, IntConsumer changed) { super(0, 0, 100, 20, Text.empty(), Math.max(0, Math.min(1, (current - min) / (max - min)))); this.key = key; this.min = min; this.max = max; this.changed = changed; displayed = current; updateMessage(); }
-        @Override protected void updateMessage() { setMessage(Text.translatable(key, displayed == Math.rint(displayed) ? Integer.toString((int) displayed) : String.format(Locale.ROOT, "%.1f", displayed))); }
-        @Override protected void applyValue() { int amount = min + (int) Math.round(value * (max - min)); displayed = amount; changed.accept(amount); }
     }
 }

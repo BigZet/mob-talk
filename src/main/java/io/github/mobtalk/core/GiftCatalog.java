@@ -47,9 +47,9 @@ public final class GiftCatalog {
         }
         if (chosen == null) return new Value(Gesture.Outcome.REFUSED, 0, 0, 0, "", false);
         int before = chosen;
-        int penalty = (int) (Math.max(0, times) * SATURATION * Math.pow(Math.max(before, 0), SATURATION_POWER));
+        int penalty = (int) (Math.max(0, times) * (Tuning.get().giftSaturationPercent / 100.0) * Math.pow(Math.max(before, 0), SATURATION_POWER));
         int after = before - penalty;
-        int hearts = (int) (after * TO_HEARTS);
+        int hearts = (int) (after * (Tuning.get().giftHeartsPercent / 100.0));
         Gesture.Outcome tier = before <= 0 ? Gesture.Outcome.REFUSED : after <= 0 ? Gesture.Outcome.ALREADY
                 : after <= good ? Gesture.Outcome.GOOD : after <= better ? Gesture.Outcome.BETTER : Gesture.Outcome.BEST;
         return new Value(tier, before, after, hearts, chosenCategory.word(), true);

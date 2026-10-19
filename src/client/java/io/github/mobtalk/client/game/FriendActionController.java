@@ -183,7 +183,7 @@ final class FriendActionController {
         if (now < duty.nextScan) return;
         duty.nextScan = now + 10;
         MobEntity guard = duty.mob;
-        LivingEntity foe = world.getEntitiesByClass(MobEntity.class, new Box(anchor, anchor).expand(FriendActions.GUARD_ALERT),
+        LivingEntity foe = world.getEntitiesByClass(MobEntity.class, new Box(anchor, anchor).expand(FriendActions.guardAlert()),
                         other -> other != guard && other.isAlive() && !other.isRemoved()
                                 && FriendActions.threatens(Math.sqrt(other.squaredDistanceTo(anchor))) && hostileTo(other, guard, player)
                                 && guard.canSee(other) && actions.canAttack(guard, other))
@@ -222,7 +222,7 @@ final class FriendActionController {
         }
         Vec3d anchor = duty.anchor(player);
         double distance = anchor == null ? 0 : Math.sqrt(mob.squaredDistanceTo(anchor));
-        boolean walk = duty.lease.type == ActionType.STAY ? distance > FriendActions.STAY_DRIFT
+        boolean walk = duty.lease.type == ActionType.STAY ? distance > FriendActions.stayDrift()
                 : (duty.approaching = FriendActions.approach(duty.approaching, distance));
         if (!walk) {
             if (afterBrain) forgetWalk(mob);
@@ -230,7 +230,7 @@ final class FriendActionController {
             return;
         }
         if (afterBrain && MobActionController.registered(mob, MemoryModuleType.WALK_TARGET))
-            mob.getBrain().remember(MemoryModuleType.WALK_TARGET, new WalkTarget(anchor, 1.1F, duty.lease.type == ActionType.STAY ? 1 : (int) FriendActions.GUARD_NEAR), 20);
+            mob.getBrain().remember(MemoryModuleType.WALK_TARGET, new WalkTarget(anchor, 1.1F, duty.lease.type == ActionType.STAY ? 1 : (int) FriendActions.guardNear()), 20);
         long now = mob.getWorld().getTime();
         if (now >= duty.nextPath || !mob.getNavigation().isFollowingPath()) {
             duty.nextPath = now + 10;

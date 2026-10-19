@@ -127,7 +127,7 @@ final class MobTrading {
             int have = wanted == null ? 0 : count(player, wanted);
             if (have < favor.count()) throw new IllegalStateException("У вас нет " + favor.count() + "× " + favorItemName(favor) + " (есть " + have + ")");
             take(player, wanted, favor.count());
-            Favor done = bridge.memory.completeFavor(mobId, playerId, player.getName().getString(), now);
+            Favor done = bridge.memory.completeFavor(mobId, playerId, MobGameBridge.playerName(player), now);
             changed = true;
             messages.add("Услуга оказана: " + done.title() + " (+" + Favor.RELATIONSHIP + " к отношению" + rewardText(type, done) + ")");
         }

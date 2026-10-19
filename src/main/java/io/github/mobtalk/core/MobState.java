@@ -10,11 +10,11 @@ import java.util.List;
  * when the state is read, never by a tick. Besides the axes the mob keeps one short thought, the last thing it said to
  * itself, which colours its next line. Pure Java, persisted inside the profile; every mutation runs under the store lock. */
 public final class MobState {
-    /** Ordinary impressions: half of the deviation is gone in ten minutes. */
+    /** Ordinary impressions: half of the deviation is gone in ten minutes (the default of {@link MobTalkConfig#stateHalfLifeMinutes}). */
     public static final long HALF_LIFE = 10 * 60_000L;
     /** A blow, a killing, a death threat, a big favour: half of it is still there after half an hour. */
     public static final long SLOW_HALF_LIFE = 30 * 60_000L;
-    /** Below either, the mob makes no concessions and closes no deals. */
+    /** Below either, the mob makes no concessions and closes no deals (defaults; the live values are in {@link MobTalkConfig}). */
     public static final int WARY_CALM = 25, WARY_TRUST = 25;
     /** From this interest an acquainted mob turns to the player on its own when they come near. */
     public static final int KEEN_INTEREST = 75;
@@ -24,6 +24,9 @@ public final class MobState {
     public static final int THOUGHT_LIMIT = 160;
     /** How often being whole and unthreatened calms a mob down again. */
     static final long SAFE_COOLDOWN = 5 * 60_000L;
+    /** The live half-lives from the settings. */
+    static long halfLife() { return Tuning.get().stateHalfLifeMinutes * 60_000L; }
+    static long slowHalfLife() { return Tuning.get().stateSlowHalfLifeMinutes * 60_000L; }
 
     public enum Axis { MOOD, CALM, INTEREST, TRUST }
 
@@ -67,7 +70,7 @@ public final class MobState {
 
     /** One axis on disk: {@code value} below 0 means "at rest, wherever the baseline is now". */
     static final class Value {
-        double value = -1; long halfLife = HALF_LIFE;
+        double value = -1; long halfLife = halfLife();
         Value copy() { Value c = new Value(); c.value = value; c.halfLife = halfLife; return c; }
     }
     Value mood = new Value(), calm = new Value(), interest = new Value(), trust = new Value();
@@ -104,7 +107,7 @@ public final class MobState {
             Value v = value(axis);
             if (v.value < 0) continue;
             v.value = current(v, baseline.of(axis), now, updatedAt);
-            if (Math.abs(v.value - baseline.of(axis)) < 1) { v.value = -1; v.halfLife = HALF_LIFE; }
+            if (Math.abs(v.value - baseline.of(axis)) < 1) { v.value = -1; v.halfLife = halfLife(); }
         }
         updatedAt = now;
     }
@@ -123,8 +126,8 @@ public final class MobState {
             if (event.slow) next = delta < 0 ? Math.min(next, base + delta) : Math.max(next, base + delta);
             if (event == Event.SAFE) next = Math.min(next, Math.max(was, base));
             v.value = Math.max(0, Math.min(100, next));
-            if (event.slow) v.halfLife = Math.max(v.halfLife, SLOW_HALF_LIFE);
-            if (Math.abs(v.value - baseline.of(axis)) < 1) { v.value = -1; v.halfLife = HALF_LIFE; }
+            if (event.slow) v.halfLife = Math.max(v.halfLife, slowHalfLife());
+            if (Math.abs(v.value - baseline.of(axis)) < 1) { v.value = -1; v.halfLife = halfLife(); }
         }
     }
 
@@ -161,7 +164,7 @@ public final class MobState {
         for (Axis axis : Axis.values()) {
             Value v = value(axis);
             if (!(v.value >= 0 && v.value <= 100)) v.value = -1;
-            if (v.halfLife < 1_000 || v.halfLife > 24 * 60 * 60_000L) v.halfLife = HALF_LIFE;
+            if (v.halfLife < 1_000 || v.halfLife > 24 * 60 * 60_000L) v.halfLife = halfLife();
         }
         thought = cleanThought(thought);
     }
@@ -179,11 +182,11 @@ public final class MobState {
         public static final View NEUTRAL = new View(50, 50, 45, 45, "");
 
         /** Too anxious or too distrustful to haggle or close a deal. */
-        public boolean refusesDeals() { return calm < WARY_CALM || trust < WARY_TRUST; }
+        public boolean refusesDeals() { MobTalkConfig t = Tuning.get(); return calm < t.waryCalm || trust < t.waryTrust; }
         /** Interested enough to turn to the player on its own. */
-        public boolean keen() { return interest >= KEEN_INTEREST; }
+        public boolean keen() { return interest >= Tuning.get().keenInterest; }
         /** Cheerful and trusting: concessions come easier. */
-        public boolean generous() { return mood >= GENEROUS_MOOD && trust >= GENEROUS_TRUST; }
+        public boolean generous() { MobTalkConfig t = Tuning.get(); return mood >= t.generousMood && trust >= t.generousTrust; }
 
         public int of(Axis axis) { return switch (axis) { case MOOD -> mood; case CALM -> calm; case INTEREST -> interest; case TRUST -> trust; }; }
 

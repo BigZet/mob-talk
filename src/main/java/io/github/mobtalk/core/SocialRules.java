@@ -8,7 +8,8 @@ import java.util.function.Function;
  * time on their hands drift towards each other, enemies keep their distance, a friend comes to sit with a mourner once.
  * Only while the player is near enough to see it, never for a creature that is busy, fighting, talking or hostile by nature. */
 public final class SocialRules {
-    /** Beyond this distance from the player nothing social happens: nobody is watching. */
+    /** Defaults of the live values in {@link MobTalkConfig} (socialPlayerRange, socialApproach*, socialRetreatRange).
+     * Beyond this distance from the player nothing social happens: nobody is watching. */
     public static final double PLAYER_RANGE = 32;
     /** Two creatures this close are "together" and warm to each other. */
     public static final double TOGETHER_RANGE = 8;
@@ -24,7 +25,7 @@ public final class SocialRules {
     public enum Move { NONE, APPROACH, RETREAT }
     /** The creature deciding: {@code busy} covers a lease, a conversation, a fight, panic or disabled AI. */
     public record Actor(UUID id, boolean busy, boolean hostileSpecies, double playerDistance) {
-        public boolean free() { return !busy && !hostileSpecies && playerDistance <= PLAYER_RANGE; }
+        public boolean free() { return !busy && !hostileSpecies && playerDistance <= Tuning.get().socialPlayerRange; }
     }
     public record Decision(Move move, UUID target) {
         public static final Decision NONE = new Decision(Move.NONE, null);
@@ -37,18 +38,19 @@ public final class SocialRules {
      * walking distance. {@code distanceTo} gives the distance to another creature, or null when it is not around. */
     public static Decision decide(Actor self, List<MobRelations.View> bonds, Function<UUID, Double> distanceTo, double roll) {
         if (self == null || !self.free() || bonds == null || bonds.isEmpty()) return Decision.NONE;
+        MobTalkConfig tuning = Tuning.get();
         MobRelations.View enemy = null; double nearest = Double.MAX_VALUE;
         for (MobRelations.View bond : bonds) {
             if (!bond.rival()) continue;
             Double distance = distanceTo.apply(bond.other());
-            if (distance != null && distance < RETREAT_RANGE && distance < nearest) { nearest = distance; enemy = bond; }
+            if (distance != null && distance < tuning.socialRetreatRange && distance < nearest) { nearest = distance; enemy = bond; }
         }
         if (enemy != null) return new Decision(Move.RETREAT, enemy.other());
-        if (roll >= APPROACH_CHANCE) return Decision.NONE;
+        if (roll * 100 >= tuning.socialApproachChance) return Decision.NONE;
         for (MobRelations.View bond : bonds) { // Strongest first: the list is sorted.
             if (!bond.friend() || bond.mourns()) continue;
             Double distance = distanceTo.apply(bond.other());
-            if (distance != null && distance > APPROACH_MIN && distance <= APPROACH_MAX) return new Decision(Move.APPROACH, bond.other());
+            if (distance != null && distance > tuning.socialApproachMin && distance <= tuning.socialApproachMax) return new Decision(Move.APPROACH, bond.other());
         }
         return Decision.NONE;
     }

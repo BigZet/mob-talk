@@ -133,7 +133,7 @@ public final class ConversationStore {
 
     /** A mob that saw what the player did to another: a smaller drop than the victim's, once per {@code WITNESS_COOLDOWN}, and a
      * memory of it. Only mobs with a profile notice; strangers are not worth one. */
-    public static final long WITNESS_COOLDOWN = 5_000;
+    public static final long WITNESS_COOLDOWN = 5_000; // The default of MobTalkConfig.witnessCooldownSeconds.
     public synchronized void recordWitnessed(UUID mob, UUID player, String playerName, String seen, int delta, long nowMillis) {
         recordWitnessed(mob, null, null, player, playerName, seen, delta, null, nowMillis);
     }
@@ -145,7 +145,7 @@ public final class ConversationStore {
         if (p == null) return;
         Relation r = relation(p, player);
         int applied = delta;
-        if (!cooledDown(r.lastWitness, nowMillis, WITNESS_COOLDOWN)) {
+        if (!cooledDown(r.lastWitness, nowMillis, config.witnessCooldownSeconds * 1000L)) {
             // Within the cooldown only something worse than what was already counted gets through — the kill after the blows, not the blows.
             if (delta >= r.lastWitnessDelta) return;
             applied = delta - r.lastWitnessDelta;

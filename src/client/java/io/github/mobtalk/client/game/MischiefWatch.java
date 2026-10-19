@@ -35,7 +35,8 @@ import java.util.Set;
  * The rules live in {@link Mischief}; this class only reads the world. Server thread only. */
 public final class MischiefWatch {
     /** How far a villager sees a misdeed, in blocks from the block itself. */
-    static final double SIGHT = MobGameBridge.WITNESS_RANGE;
+    /** How far villagers see a misdeed: the witnesses sight range from the settings. */
+    static double sight() { return io.github.mobtalk.core.Tuning.get().witnessSightRange; }
     /** How far the owner of a work block or bed may be to notice it broken. */
     static final double OWNER_RANGE = 48;
     /** How many chunk sections from an occupied point of interest (a bed, a job site, a bell) still count as the village. */
@@ -122,7 +123,7 @@ public final class MischiefWatch {
 
     /** Villagers and golems close to the block that can see the player. */
     private static List<MobEntity> witnesses(ServerWorld world, ServerPlayerEntity player, BlockPos pos) {
-        Box around = new Box(pos).expand(SIGHT);
+        Box around = new Box(pos).expand(sight());
         List<MobEntity> result = new ArrayList<>(world.getEntitiesByClass(VillagerEntity.class, around, villager -> villager.isAlive() && !villager.isRemoved() && villager.canSee(player)));
         result.addAll(world.getEntitiesByClass(IronGolemEntity.class, around, golem -> golem.isAlive() && !golem.isRemoved() && golem.canSee(player)));
         return result;

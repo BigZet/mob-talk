@@ -11,6 +11,11 @@ public final class FriendActions {
     public static final double GUARD_NEAR = 3, GUARD_FAR = 6, GUARD_ALERT = 8, GUARD_CHASE = 16;
     /** A waiting mob pushed further than this from its spot walks back. */
     public static final double STAY_DRIFT = 2.5;
+    /** The live values from the settings ({@link MobTalkConfig}); the constants above are their defaults. */
+    public static long leaseTicks() { return Tuning.get().friendLeaseMinutes * 1200L; }
+    public static double guardNear() { return Tuning.get().guardNear; }
+    public static double guardAlert() { return Tuning.get().guardAlert; }
+    public static double stayDrift() { return Tuning.get().stayDrift; }
     public static final String PLAYER = "player", HERE = "here";
     private FriendActions() { }
 
@@ -70,17 +75,17 @@ public final class FriendActions {
         public final ActionType type;
         public final String target;
         private long expires;
-        public Lease(ActionType type, String target, long now) { this.type = type; this.target = target; expires = now + LEASE_TICKS; }
+        public Lease(ActionType type, String target, long now) { this.type = type; this.target = target; expires = now + leaseTicks(); }
         public boolean same(ActionType type, String target) { return this.type == type && this.target.equals(target); }
         /** The same request again: the clock restarts, nothing is announced. */
-        public void refresh(long now) { expires = now + LEASE_TICKS; }
+        public void refresh(long now) { expires = now + leaseTicks(); }
         public long expires() { return expires; }
         public long remaining(long now) { return Math.max(0, expires - now); }
         /** {@code playerDistance}: NaN when the player is dead, offline or in another world. SPARE does not care where the player is. */
         public End check(long now, double playerDistance, boolean targetPresent) {
             if (now >= expires) return End.EXPIRED;
             if (!targetPresent) return End.TARGET_GONE;
-            if (type != ActionType.SPARE && (Double.isNaN(playerDistance) || playerDistance > LEAVE_RANGE)) return End.LEFT;
+            if (type != ActionType.SPARE && (Double.isNaN(playerDistance) || playerDistance > Tuning.get().friendLeaveRange)) return End.LEFT;
             return End.NONE;
         }
     }
@@ -94,11 +99,11 @@ public final class FriendActions {
     }
 
     /** Guard movement with hysteresis: once it walks back it comes to NEAR, then holds still until the distance exceeds FAR. */
-    public static boolean approach(boolean approaching, double distance) { return distance > (approaching ? GUARD_NEAR : GUARD_FAR); }
+    public static boolean approach(boolean approaching, double distance) { return distance > (approaching ? Tuning.get().guardNear : Tuning.get().guardFar); }
     /** A hostile this close to what is guarded is attacked. */
-    public static boolean threatens(double distanceToGuarded) { return distanceToGuarded <= GUARD_ALERT; }
+    public static boolean threatens(double distanceToGuarded) { return distanceToGuarded <= Tuning.get().guardAlert; }
     /** A chase this far from what is guarded is given up and the guard returns. */
-    public static boolean breakOff(double foeDistanceToGuarded) { return foeDistanceToGuarded > GUARD_CHASE; }
+    public static boolean breakOff(double foeDistanceToGuarded) { return foeDistanceToGuarded > Tuning.get().guardChase; }
 
     /** A running lease as /mobtalk state shows it; read from the client thread. */
     public record Status(ActionType type, String target, long expires) { }

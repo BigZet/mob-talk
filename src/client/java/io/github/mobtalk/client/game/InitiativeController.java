@@ -45,13 +45,13 @@ public final class InitiativeController {
         Sky sky = watchSky(world, now);
         for (ServerPlayerEntity player : world.getPlayers()) {
             if (!player.isAlive() || player.isSpectator()) continue;
-            List<MobEntity> around = world.getEntitiesByClass(MobEntity.class, player.getBoundingBox().expand(MET_RANGE),
+            List<MobEntity> around = world.getEntitiesByClass(MobEntity.class, player.getBoundingBox().expand(bridge.config.initiativeMetRange),
                     mob -> mob.isAlive() && !mob.isRemoved() && !mob.isAiDisabled() && bridge.memory.known(mob.getUuid()));
             for (MobEntity mob : around) {
                 double distance = mob.distanceTo(player);
                 Long met = lastNear.get(mob.getUuid());
                 long lastMet = met == null ? bridge.memory.lastTurnMillis(mob.getUuid()) : Math.max(met, bridge.memory.lastTurnMillis(mob.getUuid()));
-                if (distance <= MET_RANGE) lastNear.put(mob.getUuid(), now);
+                if (distance <= bridge.config.initiativeMetRange) lastNear.put(mob.getUuid(), now);
                 if (playerBusy || !cues.isEmpty() || !bridge.memory.acquainted(mob.getUuid())) continue;
                 Initiative.Facts facts = facts(world, mob, player, distance, lastMet, sky, now);
                 Initiative.Trigger trigger = Initiative.detect(facts, now);
@@ -79,7 +79,7 @@ public final class InitiativeController {
             if (!(world.getEntity(bond.other()) instanceof MobEntity friend) || !friend.isAlive() || friend.isRemoved() || friend.isAiDisabled()) continue;
             if (bridge.actions.busy(friend) || friend.getTarget() != null || !bridge.memory.acquainted(friend.getUuid())) continue;
             double apart = mob.distanceTo(friend);
-            if (apart <= Initiative.FRIEND_RANGE && friend.distanceTo(player) <= Initiative.HEAR_RANGE)
+            if (apart <= Initiative.FRIEND_RANGE && friend.distanceTo(player) <= bridge.config.initiativeHearRange)
                 friends.add(new Initiative.Candidate(friend.getUuid(), name(friend), bond.score(), apart));
         }
         int blocks = bridge.changes.countNear(world, mob.getBlockPos(), BUILDING_RANGE, BUILDING_MILLIS);

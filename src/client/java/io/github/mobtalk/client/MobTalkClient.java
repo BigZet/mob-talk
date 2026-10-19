@@ -90,7 +90,7 @@ public final class MobTalkClient implements ClientModInitializer {
     private UUID conversationMob;
     private long lastReplyMillis;
     KeyBinding talkKey;
-    private KeyBinding settingsKey;
+    KeyBinding settingsKey;
     KeyBinding tradeKey;
     KeyBinding giftKey;
     private final MobLabels labels = new MobLabels(this);
@@ -183,6 +183,9 @@ public final class MobTalkClient implements ClientModInitializer {
     /** A short piece of work off the game thread (a decision), on the bystander lane. */
     void background(Runnable work) { witnesses.execute(work); }
     void requestSettings() { openSettingsRequested = true; }
+    /** /mobtalk info: the chat closes first, the panel opens on the next tick. */
+    void requestInfo() { openInfoRequested = true; }
+    private boolean openInfoRequested;
     /** The player's view at the moment a question starts: pixels sampled on the render thread, encoded later off it. */
     private record Shot(long generation, int width, int height, int[] rgb) { }
     private volatile Shot shot;
@@ -272,6 +275,7 @@ public final class MobTalkClient implements ClientModInitializer {
             openSettingsRequested = false;
             openSettings(client.currentScreen);
         }
+        if (openInfoRequested && !reloading && !stopped) { openInfoRequested = false; openInfo(client.currentScreen); }
         while (tradeKey.wasPressed()) openTrade();
         while (giftKey.wasPressed()) giftFromHand();
         boolean held = merchant.windowOpen() ? merchant.keyHeld() : talkKey.isPressed();
@@ -314,7 +318,7 @@ public final class MobTalkClient implements ClientModInitializer {
         }
         if (selected != null && ticks % 20 == 0) showHud();
         if (ticks % 10 == 7) labels.tick();
-        if (conversationMob != null && ticks % 20 == 0 && System.currentTimeMillis() - lastReplyMillis > ConversationSummary.SILENCE_MILLIS) endConversation(conversationMob);
+        if (conversationMob != null && ticks % 20 == 0 && System.currentTimeMillis() - lastReplyMillis > config.conversationSilenceMinutes * 60_000L) endConversation(conversationMob);
     }
 
     /** The conversation with this mob is over: the engine summarises it in the background (nothing here waits or touches the network). */
@@ -323,7 +327,7 @@ public final class MobTalkClient implements ClientModInitializer {
         if (mob.equals(conversationMob)) conversationMob = null;
         ConversationEngine localEngine = engine;
         if (localEngine == null || stopped || client.player == null) return;
-        UUID player = client.player.getUuid(); String name = client.player.getName().getString();
+        UUID player = client.player.getUuid(); String name = MobGameBridge.playerName(client.player);
         maintenance.execute(() -> localEngine.endConversation(mob, player, name));
     }
 
@@ -970,6 +974,30 @@ public final class MobTalkClient implements ClientModInitializer {
         game.onServer(() -> game.memory.forgiveVillage(dimension, x, z, player)).thenAccept(result -> client.execute(() -> notice(result)));
     }
 
+    /** «Моб и деревня» over {@code parent}: the selected mob (or none) and the village where the player stands. */
+    void openInfo(net.minecraft.client.gui.screen.Screen parent) {
+        if (stopped) return;
+        client.setScreen(new InfoScreen(parent, this::infoReport));
+    }
+    CompletableFuture<String> infoReport(boolean secrets) {
+        MobGameBridge game = client.getServer() == null ? null : MobGameBridge.active(client.getServer());
+        if (game == null || client.player == null || world == null) return CompletableFuture.failedFuture(new IllegalStateException("Мир ещё не загружен"));
+        return game.info(selected, client.player.getUuid(), world.getRegistryKey().getValue().toString(), client.player.getBlockX(), client.player.getBlockZ(), secrets);
+    }
+    /** The player's standing in the village where they stand, for the F7 menu and /mobtalk state. */
+    CompletableFuture<List<String>> villageStatus() {
+        MobGameBridge game = client.getServer() == null ? null : MobGameBridge.active(client.getServer());
+        if (game == null || client.player == null || world == null) return CompletableFuture.completedFuture(List.of("Мир ещё не загружен."));
+        UUID player = client.player.getUuid();
+        String dimension = world.getRegistryKey().getValue().toString();
+        int x = client.player.getBlockX(), z = client.player.getBlockZ();
+        return CompletableFuture.supplyAsync(() -> {
+            ConversationStore.Village village = game.memory.villageNear(dimension, x, z);
+            return io.github.mobtalk.core.MobInfo.standingLines(village == null ? null : game.memory.social().standingAt(dimension, x, z, player, System.currentTimeMillis()),
+                    village == null ? "" : village.name());
+        }, maintenance);
+    }
+
     String stateLine() {
         MobGameBridge game = client.getServer() == null ? null : MobGameBridge.active(client.getServer());
         MobCard card = game == null || selected == null || client.player == null ? null : game.memory.card(selected, client.player.getUuid());
@@ -993,6 +1021,12 @@ public final class MobTalkClient implements ClientModInitializer {
         if (!rumors.isEmpty()) text.append(" · слухи: ").append(String.join("; ", rumors.stream().limit(3).map(io.github.mobtalk.core.VillageRumors.View::label).toList()));
         String social = game.memory.social().describe(selected, client.player.getUuid());
         if (!social.isBlank()) text.append(" · нрав: ").append(social);
+        if (client.player != null && world != null) {
+            String dimension = world.getRegistryKey().getValue().toString();
+            ConversationStore.Village village = game.memory.villageNear(dimension, client.player.getBlockX(), client.player.getBlockZ());
+            if (village != null) text.append(" · ").append(io.github.mobtalk.core.MobInfo.standingLine(game.memory.social().standingAt(dimension,
+                    client.player.getBlockX(), client.player.getBlockZ(), client.player.getUuid(), System.currentTimeMillis()), village.name()));
+        }
         text.append(" · решатель: ").append(decider.name());
         return text.toString();
     }
@@ -1083,7 +1117,7 @@ public final class MobTalkClient implements ClientModInitializer {
                 client.execute(() -> {
                     reloading = false;
                     if (stopped) return;
-                    config = loaded;
+                    config = loaded; io.github.mobtalk.core.Tuning.apply(loaded);
                     configReady = true;
                     status = !loaded.enabled ? "Mob Talk выключен" : selected == null ? AIM_HINT : readyStatus();
                     completion.accept(null);
@@ -1109,7 +1143,7 @@ public final class MobTalkClient implements ClientModInitializer {
                 MobTalkConfig loaded = MobTalkConfig.load(configDirectory.resolve("mobtalk.json"));
                 client.execute(() -> {
                     if (stopped) return;
-                    config = loaded;
+                    config = loaded; io.github.mobtalk.core.Tuning.apply(loaded);
                     configReady = true;
                     reloading = false;
                     status = selected == null ? AIM_HINT : readyStatus();
