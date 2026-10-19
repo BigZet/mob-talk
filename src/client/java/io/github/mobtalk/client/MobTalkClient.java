@@ -761,6 +761,7 @@ public final class MobTalkClient implements ClientModInitializer {
             int calm = card == null || card.state() == null ? 50 : card.state().calm();
             boolean hostile = io.github.mobtalk.core.SpeciesCatalog.get(request.snapshot == null ? "" : request.snapshot.type()).hostile();
             chat(request.mobName + ": " + io.github.mobtalk.core.FallbackLines.line(hostile, calm, System.nanoTime() / 1_000_000L) + " §8(без связи)");
+            game.attend(request.target, client.player.getUuid(), 60); // The gesture that goes with it: it turns to the player and waits.
         }
     }
 
