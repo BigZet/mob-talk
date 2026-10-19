@@ -100,6 +100,18 @@ public final class Tunables {
         integer("heartsFriend", s, "hearts", 1, 100, 1, c -> c.heartsFriend, (c, x) -> c.heartsFriend = x);
         integer("heartsDating", s, "hearts", 1, 100, 1, c -> c.heartsDating, (c, x) -> c.heartsDating = x);
         integer("heartsMarriage", s, "hearts", 1, 100, 1, c -> c.heartsMarriage, (c, x) -> c.heartsMarriage = x);
+        // Ревность и сон вместе (трек J).
+        integer("jealousyTalk", s, "jealousy", 0, 30, 1, c -> c.jealousyTalk, (c, x) -> c.jealousyTalk = x);
+        integer("jealousySleep", s, "jealousy", 0, 60, 1, c -> c.jealousySleep, (c, x) -> c.jealousySleep = x);
+        integer("jealousyFavor", s, "jealousy", 0, 40, 1, c -> c.jealousyFavor, (c, x) -> c.jealousyFavor = x);
+        integer("jealousyGift", s, "jealousy", 0, 60, 1, c -> c.jealousyGift, (c, x) -> c.jealousyGift = x);
+        integer("jealousyRumorPercent", s, "jealousy", 0, 100, 1, c -> c.jealousyRumorPercent, (c, x) -> c.jealousyRumorPercent = x);
+        integer("jealousyMarriedPercent", s, "jealousy", 100, 300, 5, c -> c.jealousyMarriedPercent, (c, x) -> c.jealousyMarriedPercent = x);
+        integer("jealousyHeartsPercent", s, "jealousy", 0, 100, 1, c -> c.jealousyHeartsPercent, (c, x) -> c.jealousyHeartsPercent = x);
+        integer("jealousyHalfLifeMinutes", s, "jealousy", 5, 600, 5, c -> c.jealousyHalfLifeMinutes, (c, x) -> c.jealousyHalfLifeMinutes = x);
+        integer("jealousyAttention", s, "jealousy", 0, 30, 1, c -> c.jealousyAttention, (c, x) -> c.jealousyAttention = x);
+        integer("coSleepRange", s, "jealousy", 2, 32, 1, c -> c.coSleepRange, (c, x) -> c.coSleepRange = x);
+        integer("coSleepHearts", s, "jealousy", 0, 20, 1, c -> c.coSleepHearts, (c, x) -> c.coSleepHearts = x);
         // Bonds between mobs and their walks.
         integer("socialActionsPerMinute", s, "bonds", 1, 30, 1, c -> c.socialActionsPerMinute, (c, x) -> c.socialActionsPerMinute = x);
         integer("socialPlayerRange", s, "bonds", 8, 96, 1, c -> c.socialPlayerRange, (c, x) -> c.socialPlayerRange = x);
@@ -194,7 +206,7 @@ public final class Tunables {
             }
             case TALK -> config.rudeness = d.rudeness;
             case SOCIAL -> {
-                config.socialLayer = d.socialLayer; config.playerGender = d.playerGender; config.familyLife = d.familyLife;
+                config.socialLayer = d.socialLayer; config.playerGender = d.playerGender; config.familyLife = d.familyLife; config.coSleep = d.coSleep;
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices;
             }

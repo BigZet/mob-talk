@@ -729,6 +729,8 @@ public final class MobTalkClient implements ClientModInitializer {
                         if (actionRequest != null) actionRequest.completeExceptionally(new java.util.concurrent.CancellationException(status));
                         actionRequest = null; showHud(); return;
                     }
+                    // Трек J: «пойдём спать» своей паре — она пойдёт за игроком к кровати (не пару сервер не позовёт).
+                    if (request.overheard == null && io.github.mobtalk.core.CoSleep.invites(reply.recognizedText())) game.inviteToBed(request.target, request.player);
                     finishDelivery(request, reply, delivery.message());
                     if (defer) { deferredAction = new Deferred(request, action); if (speech == null) runDeferredAction(); }
                 } finally { pendingDeliveries--; }

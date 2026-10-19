@@ -396,7 +396,7 @@ final class SelfTest {
                     log("cow about the gift: " + lastReply(cow));
                     check(turns(cow) > turnsBefore, "the cow spoke of the gift");
                     command("item replace entity " + name + " weapon.mainhand with minecraft:air");
-                    stayHere();
+                    new SelfTestJealousy(this, sx, SY, sz).run(this::stayHere); // Трек J: ревность и сон вместе, без LLM.
                 });
             });
         });

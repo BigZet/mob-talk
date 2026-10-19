@@ -107,6 +107,7 @@ public final class SocialLedger {
             }
         }
         List<String> facts = SocialPrompt.playerFacts(courtship, state.family, p.id, player, config);
+        facts.addAll(JealousyLedger.facts(p, rapport, config, now)); // Трек J: ревность и ночь вместе.
         detached.socialTurn = new SocialTurn(rolled, closed, facts);
     }
     /** The villager the player courts or married, or null: the living spouse in the tree, else any courtship in the relations. */
@@ -475,6 +476,8 @@ public final class SocialLedger {
             if (r != null && r.rapport != null) {
                 line.append("; усталость ").append(r.rapport.fatigue(now));
                 if (r.rapport.courtship().partners()) line.append("; ").append(r.rapport.courtship().word);
+                String jealous = r.rapport.jealousy == null ? "" : r.rapport.jealousy.describe(now);
+                if (!jealous.isEmpty()) line.append("; ").append(jealous);
             }
             VillageStanding.View standing = standing(store.state, p.villageId, player, now);
             if (standing.rank() != VillageStanding.Rank.STRANGER) line.append("; в деревне: ").append(standing.rank().word).append(" (").append(standing.points()).append(')');

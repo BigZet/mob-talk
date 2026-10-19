@@ -104,6 +104,13 @@ public final class MobTalkConfig {
     public int foodGiftHearts = 8, giftSaturationPercent = 50, giftHeartsPercent = 33, gestureFatigueMinutes = 4, giftForgetMinutes = 20;
     /** Hearts: the relationship from which a villager is a friend, agrees to court, agrees to marry. */
     public int heartsFriend = 40, heartsDating = 70, heartsMarriage = 90;
+    /** Ревность (трек J): сила поводов — разговор, сон рядом, услуга, подарок (база, плюс ценность подарка), доля силы по слуху и
+     * в браке (проценты), какая доля ревности снимается с сердечек (процент), полураспад (минуты) и сколько гасит разговор с ревнующим. */
+    public int jealousyTalk = 3, jealousySleep = 20, jealousyFavor = 8, jealousyGift = 12, jealousyRumorPercent = 50, jealousyMarriedPercent = 150;
+    public int jealousyHeartsPercent = 30, jealousyHalfLifeMinutes = 60, jealousyAttention = 4;
+    /** Сон вместе: влюблённый житель ложится рядом, когда игрок спит; откуда он приходит (блоки) и сколько сердечек даёт ночь. */
+    public boolean coSleep = true;
+    public int coSleepRange = 12, coSleepHearts = 3;
     /** Bonds between mobs: how far from the player they act (blocks), the chance a friend walks over (percent per check), the
      * walking band and retreat distance (blocks), how fast a bond fades (hours) and how long grief lasts (minutes). */
     public int socialPlayerRange = 32;
@@ -179,6 +186,7 @@ public final class MobTalkConfig {
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;
         copy.familyLife = familyLife; copy.weddingChance = weddingChance; copy.birthChance = birthChance; copy.childGrowthDays = childGrowthDays;
+        copy.coSleep = coSleep;
         Tunables.copy(this, copy);
         copy.placeAnalysis = placeAnalysis; copy.placeClassifier = placeClassifier; copy.playerNamesHostile = playerNamesHostile; copy.playerNamesNeutral = playerNamesNeutral; copy.playerNamesClose = playerNamesClose;
         return copy;

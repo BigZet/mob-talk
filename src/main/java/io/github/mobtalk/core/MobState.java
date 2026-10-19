@@ -61,7 +61,9 @@ public final class MobState {
         /** A gift taken with pleasure, or one that offended (allergy, a thing it hates). */
         GIFT_LIKED(10, 5, 5, 8, false), GIFT_SPURNED(-6, -2, 0, -5, false),
         /** Family events: a courtship or wedding, a divorce, a death in the family, a child born. */
-        ROMANCE(15, 5, 10, 15, true), DIVORCE(-20, -15, 0, -30, true), BEREAVED(-35, -20, -10, 0, true), CHILD_BORN(20, 10, 5, 15, true);
+        ROMANCE(15, 5, 10, 15, true), DIVORCE(-20, -15, 0, -30, true), BEREAVED(-35, -20, -10, 0, true), CHILD_BORN(20, 10, 5, 15, true),
+        /** Трек J: ревность к сопернику (доверие падает, интерес к игроку растёт) и ночь, проведённая рядом с игроком. */
+        JEALOUSY(-10, -8, 8, -15, false), NIGHT_TOGETHER(12, 12, 5, 20, true);
 
         final int mood, calm, interest, trust; final boolean slow;
         Event(int mood, int calm, int interest, int trust, boolean slow) { this.mood = mood; this.calm = calm; this.interest = interest; this.trust = trust; this.slow = slow; }

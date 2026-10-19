@@ -374,6 +374,7 @@ final class MobActionController {
                 && friends.spared(mob, mob.getBrain().getOptionalRegisteredMemory(MemoryModuleType.ATTACK_TARGET).orElse(null)))
             mob.getBrain().forget(MemoryModuleType.ATTACK_TARGET);
         Lease lease = leases.get(mob.getUuid());
+        if (lease == null && bridge.coSleep.afterBrain(mob)) return; // Трек J: идёт к кровати или спит рядом с игроком.
         if (lease == null && friends.afterBrain(mob)) return;
         if (lease == null && bridge.social.standing(mob)) { bridge.social.afterBrain(mob); return; }
         if (lease == null && attentive(mob)) {

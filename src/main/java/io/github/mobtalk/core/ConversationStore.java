@@ -12,6 +12,7 @@ public final class ConversationStore {
     State state;
     private MobTalkConfig config;
     private final SocialLedger social = new SocialLedger(this);
+    private final JealousyLedger jealousy = new JealousyLedger(this);
 
     /** Initial load touches disk: call from a maintenance/conversation worker. */
     public static ConversationStore open(Path worldDirectory, MobTalkConfig config) throws IOException {
@@ -54,6 +55,8 @@ public final class ConversationStore {
     void scheduleSave() { file.markDirty(); }
     /** The social layer of this world (characters, gestures, gifts, family, village standing); see {@link SocialLedger}. */
     public SocialLedger social() { return social; }
+    /** Ревность пар игрока и ночи вместе (трек J); см. {@link JealousyLedger}. */
+    public JealousyLedger jealousy() { return jealousy; }
     /** The preferences this store was opened with, for the social layer. */
     synchronized MobTalkConfig config() { return config; }
     /** Blocking writer barrier for shutdown/tests, never the game thread. */

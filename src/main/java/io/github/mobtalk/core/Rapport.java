@@ -25,7 +25,11 @@ public final class Rapport {
     String courtship = "";
     /** When the two last tried for a child (real millis), −1 for never. */
     long lastChildMillis = -1;
+    /** Ревность и ночи вместе ({@link Jealousy}); null, пока не было ни того, ни другого. */
+    Jealousy jealousy;
     public record Given(String item, long time) { }
+    /** Ревность этой пары, создаётся при первом обращении. */
+    public Jealousy jealousy() { if (jealousy == null) jealousy = new Jealousy(); return jealousy; }
 
     /** Fatigue now, after its lazy decay. */
     public int fatigue(long now) {
@@ -84,10 +88,12 @@ public final class Rapport {
         gifts.removeIf(given -> given == null || given.item() == null || given.item().isBlank());
         while (gifts.size() > GIFT_QUEUE) gifts.removeFirst();
         if (courtship == null) courtship = "";
+        if (jealousy != null) jealousy.sanitize();
     }
     Rapport copy() {
         Rapport c = new Rapport(); c.fatigue = fatigue; c.fatigueAt = fatigueAt; c.lastGesture = lastGesture; c.repeats = repeats;
         c.lastGestureAt = lastGestureAt; c.gifts = new ArrayList<>(gifts); c.forgetAt = forgetAt; c.courtship = courtship; c.lastChildMillis = lastChildMillis;
+        c.jealousy = jealousy == null ? null : jealousy.copy();
         return c;
     }
 }
