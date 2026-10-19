@@ -17,7 +17,9 @@
     "MerchantBargainingScreenHandlerMixin",
     "TradeOutputBargainingMixin",
     "MerchantYesSoundMixin",
-    "TruceTargetMixin"
+    "TruceTargetMixin",
+    "SpokenOfferSaveMixin",
+    "BlockPlacementMixin"
   ],
   "injectors": {
     "defaultRequire": 1

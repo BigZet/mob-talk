@@ -87,6 +87,7 @@ public final class VillagerBargaining {
         if (window == null) {
             result.put("allowedTypes", List.of(BargainIntent.Type.NONE.name()));
             result.put("reason", "Торг доступен только в открытом окне торговли этого жителя");
+            result.put("spoken", bridge.trades.capture(villager, player, tick)); // …or as a promise the villager puts into the window itself.
             return Map.copyOf(result);
         }
         Bargaining.Offer offer = describe(villager, window.index(), window.offer());
@@ -179,7 +180,7 @@ public final class VillagerBargaining {
         return new Bargaining.Offer(index, fingerprint(villager, trade), original.getCount(), vanilla,
                 original.getMaxCount(), !trade.isDisabled());
     }
-    private static int rawPrice(TradeOffer offer) {
+    static int rawPrice(TradeOffer offer) {
         int count = offer.getOriginalFirstBuyItem().getCount();
         return count + Math.max(0, MathHelper.floor((float) (count * offer.getDemandBonus()) * offer.getPriceMultiplier()));
     }
@@ -335,7 +336,7 @@ public final class VillagerBargaining {
     private static Map<String, Object> item(ItemStack stack) {
         return Map.of("id", Registries.ITEM.getId(stack.getItem()).toString(), "name", stack.getName().getString(), "count", stack.getCount());
     }
-    private static String fingerprint(VillagerEntity villager, TradeOffer offer) {
+    static String fingerprint(VillagerEntity villager, TradeOffer offer) {
         var ops = villager.getRegistryManager().getOps(JsonOps.INSTANCE);
         JsonObject data = new JsonObject();
         data.add("first", TradedItem.CODEC.encodeStart(ops, offer.getFirstBuyItem()).getOrThrow());

@@ -109,6 +109,7 @@ final class MobPrompt {
     /** Only a villager with real offers trades in a window; the full price rules matter only inside its open window. */
     private static String bargainingRules(TradingView view) {
         if (view.windowOpen()) return PromptTexts.BARGAINING_RULES;
+        if (view.spokenAvailable()) return PromptTexts.SPOKEN_BARGAINING_RULES;
         return view.villagerOffers() ? PromptTexts.TRADE_CLOSED : PromptTexts.NO_TRADE;
     }
 
@@ -278,6 +279,7 @@ final class MobPrompt {
     private static String villagerSummary(MobSnapshot snapshot) {
         TradingView view = TradingView.of(snapshot);
         if (!view.villagerOffers()) return "";
+        if (view.spokenAvailable()) return SpokenOffer.summary(view.spoken());
         if (!view.windowOpen()) return "\n\nТорг: окно торговли закрыто — цены сейчас не меняются, новых цен не называй и скидку не обещай.";
         Map<?,?> context = view.bargaining();
         String unit = context.get("firstBuy") instanceof Map<?,?> first ? String.valueOf(first.get("name")) : "предмет";

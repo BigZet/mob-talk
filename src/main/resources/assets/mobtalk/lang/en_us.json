@@ -247,5 +247,9 @@
   "mobtalk.state.distrustful": "distrustful",
   "mobtalk.state.wary": "wary",
   "mobtalk.state.trusting": "trusting",
-  "mobtalk.state.devoted": "devoted"
+  "mobtalk.state.devoted": "devoted",
+  "mobtalk.settings.bargainHud": "Haggling progress in the Mob Talk line",
+  "mobtalk.bargain.leaning": "leaning",
+  "mobtalk.bargain.unsure": "unsure",
+  "mobtalk.bargain.against": "against"
 }

@@ -1,6 +1,7 @@
 package io.github.mobtalk.client.game.mixin;
 
 import io.github.mobtalk.client.game.MobGameBridge;
+import io.github.mobtalk.client.game.TradeBridge;
 import io.github.mobtalk.client.game.VillagerBargaining;
 import net.minecraft.entity.passive.MerchantEntity;
 import net.minecraft.entity.passive.VillagerEntity;
@@ -17,7 +18,7 @@ abstract class MerchantTradeMixin {
         MerchantEntity merchant = (MerchantEntity) (Object) this;
         if (merchant.getCustomer() instanceof ServerPlayerEntity player) {
             MobGameBridge.helped(merchant, player, "The player completed a trade");
-            if (merchant instanceof VillagerEntity villager) VillagerBargaining.traded(villager, player);
+            if (merchant instanceof VillagerEntity villager) { VillagerBargaining.traded(villager, player); TradeBridge.traded(villager, player, offer); }
         }
     }
 }

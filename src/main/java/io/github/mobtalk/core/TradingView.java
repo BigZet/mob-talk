@@ -49,7 +49,11 @@ record TradingView(MobSnapshot snapshot) {
     List<?> villagerOfferRows() { return snapshot.mobDetails().get("offers") instanceof List<?> offers ? offers : List.of(); }
     Map<?,?> bargaining() { return snapshot.mobDetails().get("bargaining") instanceof Map<?,?> context ? context : null; }
     boolean windowOpen() { return villager() && snapshot.playerId() != null && bargaining() != null && Boolean.TRUE.equals(bargaining().get("open")); }
+    /** The spoken-promise block ({@link SpokenOffer}) the game layer adds while the villager's window is shut, or null. */
+    Map<?,?> spoken() { return bargaining() != null && bargaining().get("spoken") instanceof Map<?,?> spoken && Boolean.TRUE.equals(spoken.get("available")) ? spoken : null; }
+    boolean spokenAvailable() { return villager() && snapshot.playerId() != null && !windowOpen() && spoken() != null; }
     List<String> permittedBargainTypes() {
+        if (spokenAvailable()) return SpokenOffer.allowedTypes(spoken());
         if (!windowOpen()) return List.of("NONE");
         if (bargaining().get("allowedTypes") instanceof List<?> allowed)
             return Arrays.stream(BargainIntent.Type.values()).map(Enum::name).filter(value -> "NONE".equals(value) || allowed.contains(value)).toList();
