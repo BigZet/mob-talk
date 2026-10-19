@@ -311,7 +311,7 @@ public final class MobTalkClient implements ClientModInitializer {
             runDeferredAction();
         }
         if (selected != null && ticks % 20 == 0) showHud();
-        if (conversationMob != null && ticks % 20 == 0 && System.currentTimeMillis() - lastReplyMillis > ConversationSummary.SILENCE_MILLIS) endConversation(conversationMob);
+        if (conversationMob != null && ticks % 20 == 0 && System.currentTimeMillis() - lastReplyMillis > config.conversationSilenceMinutes * 60_000L) endConversation(conversationMob);
     }
 
     /** The conversation with this mob is over: the engine summarises it in the background (nothing here waits or touches the network). */
@@ -320,7 +320,7 @@ public final class MobTalkClient implements ClientModInitializer {
         if (mob.equals(conversationMob)) conversationMob = null;
         ConversationEngine localEngine = engine;
         if (localEngine == null || stopped || client.player == null) return;
-        UUID player = client.player.getUuid(); String name = client.player.getName().getString();
+        UUID player = client.player.getUuid(); String name = MobGameBridge.playerName(client.player);
         maintenance.execute(() -> localEngine.endConversation(mob, player, name));
     }
 
@@ -1077,7 +1077,7 @@ public final class MobTalkClient implements ClientModInitializer {
                 client.execute(() -> {
                     reloading = false;
                     if (stopped) return;
-                    config = loaded;
+                    config = loaded; io.github.mobtalk.core.Tuning.apply(loaded);
                     configReady = true;
                     status = !loaded.enabled ? "Mob Talk выключен" : selected == null ? AIM_HINT : readyStatus();
                     completion.accept(null);
@@ -1103,7 +1103,7 @@ public final class MobTalkClient implements ClientModInitializer {
                 MobTalkConfig loaded = MobTalkConfig.load(configDirectory.resolve("mobtalk.json"));
                 client.execute(() -> {
                     if (stopped) return;
-                    config = loaded;
+                    config = loaded; io.github.mobtalk.core.Tuning.apply(loaded);
                     configReady = true;
                     reloading = false;
                     status = selected == null ? AIM_HINT : readyStatus();

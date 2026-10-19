@@ -19,6 +19,11 @@ public final class VillageRumors {
     public static final long DAY_MILLIS = 20 * 60_000L;
     /** Rumours this old are forgotten; their weight runs down to nothing by then. */
     public static final int FORGET_DAYS = 5;
+    /** The live limits from the settings ({@link MobTalkConfig}); the constants here are their defaults. */
+    static int forgetDays() { return Tuning.get().rumorForgetDays; }
+    static int perVillage() { return Tuning.get().rumorsPerVillage; }
+    static int perVillager() { return Tuning.get().rumorsPerVillager; }
+    static int inPrompt() { return Tuning.get().rumorsInPrompt; }
     /** Most rumours a village keeps, and most one villager knows. */
     public static final int MAX_PER_VILLAGE = 10, MAX_PER_VILLAGER = 6;
     /** Most rumours one chronicle request adds, and most a wandering trader carries away. */
@@ -45,9 +50,9 @@ public final class VillageRumors {
         /** importance × (1 − age/forget): a rumour weighs less every day and nothing on its fifth. */
         double weight(long now) {
             double days = Math.max(0, now - time) / (double) DAY_MILLIS;
-            return Math.max(0, importance * (1 - days / FORGET_DAYS));
+            return Math.max(0, importance * (1 - days / forgetDays()));
         }
-        boolean forgotten(long now) { return now - time >= FORGET_DAYS * DAY_MILLIS; }
+        boolean forgotten(long now) { return now - time >= forgetDays() * DAY_MILLIS; }
         View view(long now) { return new View(id, text, source, importance, sign, time, weight(now)); }
     }
     /** One village's chronicle: the rumours and when it was last written. */
@@ -107,7 +112,7 @@ public final class VillageRumors {
         Chronicle chronicle = villages.get(villageId);
         if (!anyFact) return false;
         if (chronicle == null) return true;
-        return day > chronicle.lastDay || importanceSince >= IMPORTANCE_THRESHOLD;
+        return day > chronicle.lastDay || importanceSince >= Tuning.get().rumorChronicleImportance;
     }
     /** The moment facts count from for the next chronicle. */
     public long since(String villageId) { Chronicle chronicle = villages.get(villageId); return chronicle == null ? 0 : chronicle.sinceMillis; }
@@ -138,7 +143,7 @@ public final class VillageRumors {
     }
     private void trim(Chronicle chronicle, long now) {
         chronicle.rumors.removeIf(rumor -> rumor.forgotten(now));
-        while (chronicle.rumors.size() > MAX_PER_VILLAGE) {
+        while (chronicle.rumors.size() > perVillage()) {
             Rumor weakest = null;
             for (Rumor rumor : chronicle.rumors) if (weakest == null || rumor.weight(now) < weakest.weight(now)) weakest = rumor;
             chronicle.rumors.remove(weakest);
@@ -148,7 +153,7 @@ public final class VillageRumors {
         List<String> known = heard.computeIfAbsent(mobId, ignored -> new ArrayList<>());
         if (known.contains(rumorId)) return;
         known.add(rumorId);
-        while (known.size() > MAX_PER_VILLAGER) known.removeFirst();
+        while (known.size() > perVillager()) known.removeFirst();
     }
     /** The rumour by id: in the given village first, else wherever it lives (a villager without a village of its own yet still heard it). */
     private Rumor find(String villageId, String rumorId) {
@@ -188,7 +193,7 @@ public final class VillageRumors {
     }
     /** The chance one rumour crosses in one meeting. */
     public static double chance(int importance, boolean close) {
-        return Math.min(MAX_CHANCE, MemoryFact.clamp(importance) / 5.0 * BASE_CHANCE * (close ? CLOSE_BOOST : 1));
+        return Math.min(MAX_CHANCE, MemoryFact.clamp(importance) / 5.0 * (Tuning.get().rumorSpreadPercent / 100.0) * (close ? CLOSE_BOOST : 1));
     }
 
     /** A wandering trader stood a while in a village: it takes along up to {@link #MAX_CARRIED} of the weightiest rumours it
@@ -243,7 +248,7 @@ public final class VillageRumors {
     /** A villager nobody talked to yet still knows what the village says: it picks up the weightiest rumours at once. */
     public List<View> newcomer(UUID mob, String villageId, long now) {
         List<View> top = village(villageId, now);
-        for (View view : top.stream().limit(PROMPT_LIMIT).toList()) hear(mob.toString(), view.id());
+        for (View view : top.stream().limit(inPrompt()).toList()) hear(mob.toString(), view.id());
         return heardBy(mob, villageId, now);
     }
     /** Every live rumour of the village, weightiest first. */
@@ -261,7 +266,7 @@ public final class VillageRumors {
     /** The block the model reads: at most {@link #PROMPT_LIMIT} rumours, one line each. */
     public static List<String> lines(List<View> views) {
         if (views == null) return List.of();
-        return views.stream().limit(PROMPT_LIMIT).map(View::line).toList();
+        return views.stream().limit(inPrompt()).map(View::line).toList();
     }
     public void remove(UUID mob) { if (mob != null) { heard.remove(mob.toString()); carried.remove(mob.toString()); } }
     /** The village's chronicle and what its residents heard are dropped (the player was forgiven). */
@@ -339,11 +344,11 @@ public final class VillageRumors {
                 rumor.importance = MemoryFact.clamp(rumor.importance); rumor.sign = Integer.signum(rumor.sign);
                 if (rumor.source == null) rumor.source = ""; if (rumor.sourceId == null) rumor.sourceId = "";
             }
-            while (chronicle.rumors.size() > MAX_PER_VILLAGE) chronicle.rumors.removeFirst();
+            while (chronicle.rumors.size() > perVillage()) chronicle.rumors.removeFirst();
         }
         if (heard == null) heard = new LinkedHashMap<>();
         heard.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null);
-        for (List<String> known : heard.values()) { known.removeIf(Objects::isNull); while (known.size() > MAX_PER_VILLAGER) known.removeFirst(); }
+        for (List<String> known : heard.values()) { known.removeIf(Objects::isNull); while (known.size() > perVillager()) known.removeFirst(); }
         if (carried == null) carried = new LinkedHashMap<>();
         carried.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null || e.getValue().rumors == null);
         for (Carried bag : carried.values()) { if (bag.from == null) bag.from = ""; bag.rumors.removeIf(r -> r == null || r.text == null); while (bag.rumors.size() > MAX_CARRIED) bag.rumors.removeFirst(); }

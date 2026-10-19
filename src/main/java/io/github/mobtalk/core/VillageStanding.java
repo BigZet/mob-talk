@@ -41,11 +41,12 @@ public final class VillageStanding {
         int points = sum + rumor;
         int average = acquainted == 0 ? 0 : Math.round(sum / (float) acquainted);
         Rank rank;
-        if (points <= EXILE_POINTS || acquainted >= 2 && average <= EXILE_AVERAGE) rank = Rank.EXILE;
-        else if (points < SUSPECT_POINTS || acquainted >= 1 && average < SUSPECT_AVERAGE) rank = Rank.SUSPECT;
-        else if (points >= ELDER_POINTS && acquainted >= ELDER_PEOPLE && residents >= ELDER_RESIDENTS) rank = Rank.ELDER;
-        else if (points >= GUARD_POINTS && acquainted >= GUARD_PEOPLE) rank = Rank.GUARD;
-        else if (points >= FRIEND_POINTS && acquainted >= FRIEND_PEOPLE) rank = Rank.FRIEND;
+        MobTalkConfig tuning = Tuning.get(); // The point thresholds are settings; the constants above are their defaults.
+        if (points <= tuning.villageExilePoints || acquainted >= 2 && average <= EXILE_AVERAGE) rank = Rank.EXILE;
+        else if (points < tuning.villageSuspectPoints || acquainted >= 1 && average < SUSPECT_AVERAGE) rank = Rank.SUSPECT;
+        else if (points >= tuning.villageElderPoints && acquainted >= ELDER_PEOPLE && residents >= ELDER_RESIDENTS) rank = Rank.ELDER;
+        else if (points >= tuning.villageGuardPoints && acquainted >= GUARD_PEOPLE) rank = Rank.GUARD;
+        else if (points >= tuning.villageFriendPoints && acquainted >= FRIEND_PEOPLE) rank = Rank.FRIEND;
         else if (points >= 0 && acquainted >= 1) rank = Rank.GUEST;
         else rank = Rank.STRANGER;
         return new View(rank, points, residents, acquainted, average);

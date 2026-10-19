@@ -39,7 +39,7 @@ public final class TradeBridge {
         final VillagerEntity villager; final UUID player; final String playerName; final TradeOffer offer; final String what;
         SpokenOffer spoken; boolean bought, hidden;
         Promise(VillagerEntity villager, ServerPlayerEntity player, TradeOffer offer, SpokenOffer spoken, String what) {
-            this.villager = villager; this.player = player.getUuid(); this.playerName = player.getName().getString(); this.offer = offer; this.spoken = spoken; this.what = what;
+            this.villager = villager; this.player = player.getUuid(); this.playerName = MobGameBridge.playerName(player); this.offer = offer; this.spoken = spoken; this.what = what;
         }
     }
 
@@ -155,7 +155,7 @@ public final class TradeBridge {
     private void bought(Promise promise, ServerPlayerEntity buyer) {
         promise.bought = true; promise.spoken = promise.spoken.asBought();
         UUID player = buyer == null ? promise.player : buyer.getUuid();
-        String name = buyer == null ? promise.playerName : buyer.getName().getString();
+        String name = buyer == null ? promise.playerName : MobGameBridge.playerName(buyer);
         if (bridge.memory.known(promise.villager.getUuid())) bridge.memory.recordTradeDone(promise.villager.getUuid(), player, name, promise.what, System.currentTimeMillis());
     }
     private void remove(Promise promise, boolean refresh) {

@@ -43,7 +43,7 @@ final class FamilyController {
             if (expecting.dueTick() == 0) { bridge.memory.social().due(expecting.villager(), world.getTime() + ChildGrowth.BIRTH_DELAY_TICKS); continue; }
             if (world.getTime() < expecting.dueTick() || !(world.getEntity(expecting.villager()) instanceof VillagerEntity parent) || !parent.isAlive()) continue;
             ServerPlayerEntity player = world.getServer().getPlayerManager().getPlayer(expecting.partner());
-            String playerName = player == null ? "" : player.getName().getString();
+            String playerName = player == null ? "" : MobGameBridge.playerName(player);
             int count = random.nextDouble() < ChildGrowth.TWINS ? 2 : 1;
             for (int i = 0; i < count; i++) {
                 VillagerEntity baby = spawnBaby(world, parent);
@@ -125,7 +125,7 @@ final class FamilyController {
         long now = System.currentTimeMillis();
         String deadName = name(mob);
         List<SocialLedger.Mourner> mourners = bridge.memory.social().died(mob.getUuid(), deadName, MobGameBridge.type(mob),
-                killer == null ? null : killer.getUuid(), killer == null ? "" : killer.getName().getString(), now);
+                killer == null ? null : killer.getUuid(), killer == null ? "" : MobGameBridge.playerName(killer), now);
         if (!enabled()) return;
         for (ServerPlayerEntity player : world.getPlayers()) {
             for (SocialLedger.Mourner mourner : mourners) {

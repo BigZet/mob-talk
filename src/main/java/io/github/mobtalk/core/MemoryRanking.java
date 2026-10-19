@@ -28,7 +28,9 @@ final class MemoryRanking {
     /** importance × freshness, where freshness decays from 1 towards {@link #FLOOR} with a half-life of a week. */
     static double score(int importance, long time, long nowMillis) {
         double age = Math.max(0, nowMillis - time);
-        double freshness = FLOOR + (1 - FLOOR) * Math.pow(0.5, age / HALF_LIFE_MILLIS);
+        MobTalkConfig tuning = Tuning.get();
+        double floor = tuning.memoryFloorPercent / 100.0;
+        double freshness = floor + (1 - floor) * Math.pow(0.5, age / (tuning.memoryHalfLifeDays * 24.0 * 60 * 60 * 1000));
         return MemoryFact.clamp(importance) * freshness;
     }
     static double score(MemoryFact fact, long nowMillis) { return score(fact.importance(), fact.time(), nowMillis); }
@@ -48,7 +50,7 @@ final class MemoryRanking {
         List<MemoryFact> reflections = new ArrayList<>(facts.stream().filter(MemoryFact::reflection).toList());
         evict(reflections, MAX_REFLECTIONS, f -> score(f, nowMillis));
         facts.removeIf(f -> f.reflection() && !reflections.contains(f));
-        evict(facts, MAX_FACTS, f -> score(f, nowMillis));
+        evict(facts, Tuning.get().memoryMaxFacts, f -> score(f, nowMillis));
         while (facts.size() > 1 && renderLength(facts) > maxChars) removeLowest(facts, f -> score(f, nowMillis));
         if (facts.size() == 1 && facts.getFirst().text().length() > maxChars)
             facts.set(0, new MemoryFact(TextBounds.characters(facts.getFirst().text(), maxChars), facts.getFirst().importance(), facts.getFirst().time(), facts.getFirst().reflection()));

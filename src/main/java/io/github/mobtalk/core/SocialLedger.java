@@ -162,8 +162,8 @@ public final class SocialLedger {
             GestureIntent intent;
             if (p.hostile() || r.score <= CombatRules.HATRED) intent = new GestureIntent(Gesture.GIFT, Gesture.Outcome.REFUSED, 0, item, "от этого игрока тебе ничего не надо");
             else if (favouriteFood) {
-                int hearts = Math.max(0, FOOD_FIRST - 2 * times);
-                intent = new GestureIntent(Gesture.GIFT, hearts >= FOOD_FIRST ? Gesture.Outcome.BEST : hearts >= 4 ? Gesture.Outcome.BETTER : hearts > 0 ? Gesture.Outcome.GOOD : Gesture.Outcome.ALREADY,
+                int first = config.foodGiftHearts, hearts = Math.max(0, first - 2 * times);
+                intent = new GestureIntent(Gesture.GIFT, hearts >= first && first > 0 ? Gesture.Outcome.BEST : hearts >= 4 ? Gesture.Outcome.BETTER : hearts > 0 ? Gesture.Outcome.GOOD : Gesture.Outcome.ALREADY,
                         hearts, item, "твоя любимая еда");
             } else if (GiftCatalog.known(item)) {
                 GiftCatalog.Value value = GiftCatalog.weigh(item, new GiftCatalog.Receiver(Persona.FRIENDLY, Set.of(), "", child), times);

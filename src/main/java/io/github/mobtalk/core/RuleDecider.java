@@ -23,7 +23,7 @@ public final class RuleDecider implements Decider {
         double base = switch (state.trigger()) { case RETURN -> 0.9; case CONCERN -> 0.7; case BUILDING -> 0.6; case WEATHER -> 0.45; case FRIENDS -> 0.5; case GIFT -> 1.0; };
         double temper = (state.sociability() - 50) / 200.0 + (state.state().interest() - 50) / 400.0;
         double mood = state.state().mood() < 30 ? -0.1 : 0;
-        double trust = state.state().trust() < MobState.WARY_TRUST && state.trigger() != Initiative.Trigger.FRIENDS ? -0.2 : 0;
+        double trust = state.state().trust() < Tuning.get().waryTrust && state.trigger() != Initiative.Trigger.FRIENDS ? -0.2 : 0;
         return Math.max(0.05, Math.min(0.95, base + temper + mood + trust));
     }
     /** The manner the occasion calls for, coloured by the mood. */
@@ -54,6 +54,6 @@ public final class RuleDecider implements Decider {
     }
 
     @Override public boolean bystanderAnswers(DecisionState state) {
-        return state != null && state.eventful() || random.nextDouble() < SMALL_TALK_CHANCE;
+        return state != null && state.eventful() || random.nextDouble() * 100 < Tuning.get().smallTalkChance;
     }
 }

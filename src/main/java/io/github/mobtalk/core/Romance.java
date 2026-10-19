@@ -36,13 +36,13 @@ public final class Romance {
 
     /** The reason a bouquet (DATE) is turned down, or null when it is accepted. */
     public static String refuseDate(Suit s) {
-        String common = common(s, Hearts.DATING);
+        String common = common(s, Hearts.dating());
         if (common != null) return common;
         return bouquet(s.held()) ? null : "без цветов это не ухаживание — пусть принесёт букет (любой цветок в руке)";
     }
     /** The reason a ring (PROPOSE) is turned down, or null when it is accepted. A courtship first is not required. */
     public static String refusePropose(Suit s) {
-        String common = common(s, Hearts.MARRIAGE);
+        String common = common(s, Hearts.marriage());
         if (common != null) return common;
         return ring(s.held()) ? null : "без кольца не сватаются — пусть принесёт кольцо (золотой самородок или слиток в руке)";
     }
@@ -51,7 +51,7 @@ public final class Romance {
         if (s.related()) return "вы родня — об этом и думать нельзя";
         if (s.villagerSpouse() != null) return "ты уже в браке с другим";
         if (s.playerPartner() != null && !s.playerPartner().equals(s.villager())) return "у него уже есть пара, и это не ты";
-        if (s.score() < threshold) return threshold >= Hearts.MARRIAGE ? "для брака ты его пока недостаточно любишь — рано" : "ты его пока слишком мало знаешь — рано";
+        if (s.score() < threshold) return threshold >= Hearts.marriage() ? "для брака ты его пока недостаточно любишь — рано" : "ты его пока слишком мало знаешь — рано";
         if (!drawn(s.villagerGender(), s.traits(), s.playerGender())) return "тебя не тянет к нему — дело не в нём";
         return null;
     }

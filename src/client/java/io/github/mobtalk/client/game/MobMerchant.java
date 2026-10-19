@@ -146,7 +146,7 @@ public final class MobMerchant implements Merchant {
         offer.use();
         String dealId = dealIds.get(offer);
         if (dealId == null) return;
-        bridge.memory.recordPurchase(mob.getUuid(), player.getUuid(), dealId, player.getName().getString(), MobTrading.worldDay(mob), System.currentTimeMillis());
+        bridge.memory.recordPurchase(mob.getUuid(), player.getUuid(), dealId, MobGameBridge.playerName(player), MobTrading.worldDay(mob), System.currentTimeMillis());
     }
     @Override public void setCustomer(PlayerEntity customer) { this.customer = customer; }
     /** A null customer makes MerchantScreenHandler.canUse fail, and the server closes the window on its own. */

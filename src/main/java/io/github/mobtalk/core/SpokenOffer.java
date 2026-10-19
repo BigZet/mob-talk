@@ -54,7 +54,7 @@ public record SpokenOffer(int offerIndex, String key, int vanillaCount, int pric
         if (!allowedPrices(standing, row, relationship, currentPrice, tick).contains(price)) return null;
         boolean same = standing != null && standing.active(tick) && standing.sameRow(row.index(), row.key());
         return new SpokenOffer(row.index(), row.key(), row.vanillaCount(), price, same ? standing.rounds() + 1 : 1,
-                same ? standing.createdTick() : tick, tick + LIFETIME_TICKS, false);
+                same ? standing.createdTick() : tick, tick + Tuning.get().spokenOfferMinutes * 1200L, false);
     }
 
     // ---- What the model reads and what it may answer: {@code mobDetails.bargaining.spoken} is built by the game layer from the

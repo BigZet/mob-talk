@@ -82,7 +82,7 @@ final class MobContextCapture {
         if (mob instanceof AnimalEntity animal) mobDetails.put("inLove", animal.isInLove());
         if (mob instanceof PassiveEntity passive) mobDetails.put("breedingAge", passive.getBreedingAge());
         // The shape of the place: the flood over the blocks around it says whether there is a way out at all.
-        PlaceCapture.Result place = blind ? null : PlaceCapture.capture(world, mob, player, bridge.changes);
+        PlaceCapture.Result place = blind || !bridge.config.placeAnalysis ? null : PlaceCapture.capture(world, mob, player, bridge.changes);
         if (place != null) PlaceCapture.stash(mob.getUuid(), place.grid());
         if (mob instanceof net.minecraft.entity.mob.PathAwareEntity pathAware) {
             mobDetails.put("panicking", pathAware.isPanicking());
@@ -119,7 +119,7 @@ final class MobContextCapture {
         Map<String, Object> playerDetails = new LinkedHashMap<>();
         if (!blind) {
             playerDetails.putAll(living(player, true));
-            playerDetails.put("name", player.getName().getString());
+            playerDetails.put("name", MobGameBridge.playerName(player));
             playerDetails.put("hunger", player.getHungerManager().getFoodLevel());
             playerDetails.put("saturation", player.getHungerManager().getSaturationLevel());
             playerDetails.put("creative", player.isCreative());

@@ -81,10 +81,10 @@ public final class MobRelations {
         /** The score now: it halves every {@link #BOND_HALF_LIFE} since it was last touched. */
         int scoreAt(long now) {
             long elapsed = Math.max(0, now - touched);
-            return (int) Math.round(score * Math.pow(0.5, elapsed / (double) BOND_HALF_LIFE));
+            return (int) Math.round(score * Math.pow(0.5, elapsed / (double) (Tuning.get().bondHalfLifeHours * 60 * 60_000L)));
         }
         void settle(long now) { score = scoreAt(now); touched = now; }
-        boolean mourning(long now) { return mourningSince >= 0 && now >= mourningSince && now - mourningSince < GRIEF_DURATION; }
+        boolean mourning(long now) { return mourningSince >= 0 && now >= mourningSince && now - mourningSince < Tuning.get().griefMinutes * 60_000L; }
         View view(long now) {
             Set<Tag> all = EnumSet.noneOf(Tag.class);
             int current = scoreAt(now);

@@ -112,7 +112,7 @@ public final class ConversationEngine implements AutoCloseable {
         // The player came back after a long silence: the earlier conversation ended, whether or not the game noticed; this reply still
         // sees its tail, the summary (if it arrives) replaces it from the next one on.
         long now = System.currentTimeMillis();
-        if (overheard == null && profile.lastTurnMillis >= 0 && now - profile.lastTurnMillis > ConversationSummary.SILENCE_MILLIS)
+        if (overheard == null && profile.lastTurnMillis >= 0 && now - profile.lastTurnMillis > ConversationSummary.silenceMillis())
             endConversation(snapshot.id(), snapshot.playerId(), playerName(snapshot));
         String reserve = SpeciesCatalog.reserve(profile.type).id();
         EarlySpeech early = new EarlySpeech();

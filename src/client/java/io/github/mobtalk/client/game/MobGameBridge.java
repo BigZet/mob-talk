@@ -72,8 +72,8 @@ public final class MobGameBridge {
             if (bridge == null || !(entity instanceof MobEntity mob)) return;
             if (source.getAttacker() instanceof ServerPlayerEntity player && !blocked && amount > 0) {
                 bridge.memory.recordDamage(mob.getUuid(), type(mob), mob.getName().getString(), player.getUuid(),
-                        player.getName().getString(), System.currentTimeMillis());
-                bridge.witnessed(mob, player, "ударил", -10);
+                        MobGameBridge.playerName(player), System.currentTimeMillis());
+                bridge.witnessed(mob, player, Witness.HIT);
                 if (mob instanceof VillagerEntity villager) bridge.bargaining.hurtBy(villager, player);
                 bridge.actions.hurtBy(mob, player);
             } else if (!blocked && amount > 0 && bridge.memory.known(mob.getUuid())) {
@@ -89,7 +89,7 @@ public final class MobGameBridge {
             // Fabric fires AFTER_DAMAGE only for a survived blow, so the kill is seen here alone. A mob nobody talked to leaves no
             // memory behind; one with a conversation keeps its profile, and its death goes into it.
             UUID id = mob.getUuid();
-            if (source.getAttacker() instanceof ServerPlayerEntity player) bridge.witnessed(mob, player, "убил", -25);
+            if (source.getAttacker() instanceof ServerPlayerEntity player) bridge.witnessed(mob, player, Witness.KILL);
             bridge.social.died(mob); // Before the stranger's profile goes: the mourners keep its name.
             bridge.families.died(mob, source); // Relatives mourn wherever they are.
             if (bridge.memory.known(id) && !bridge.memory.forgetStranger(id)) bridge.event(mob, "The mob died: " + source.getName());
@@ -172,6 +172,9 @@ public final class MobGameBridge {
         MobGameBridge bridge = active;
         return bridge != null && bridge.server.isOnThread() ? bridge : null;
     }
+    /** The name mobs know this player by: the one set in the settings, else the nick ({@link PlayerIdentity}). Use it wherever the
+     * name goes into a prompt, a memory, a rumour or a family record — never for commands or the real account. */
+    public static String playerName(net.minecraft.entity.player.PlayerEntity player) { return player == null ? "" : PlayerIdentity.name(player.getName().getString()); }
     public static String type(Entity entity) { return Registries.ENTITY_TYPE.getId(entity.getType()).toString(); }
     /** From the placement mixins: a block or a bucket of fluid the player put down. */
     public static void blockPlaced(ServerWorld world, net.minecraft.util.math.BlockPos pos, ServerPlayerEntity player) {
@@ -183,7 +186,7 @@ public final class MobGameBridge {
     }
     /** Every mob with a profile that can see the victim takes it personally: a smaller drop than the victim's and a memory
      * "Видел, как игрок … ударил Марфу (корова)". Strangers notice nothing — a profile for each would bloat the world memory. */
-    void witnessed(MobEntity victim, ServerPlayerEntity player, String seen, int delta) { witnessed(victim, player, seen, delta, WITNESS_RANGE); }
+    void witnessed(MobEntity victim, ServerPlayerEntity player, Witness deed) { witnessed(victim, player, deed.verb, -deed.penalty(config), deed.range(config)); }
     void witnessed(MobEntity victim, ServerPlayerEntity player, String seen, int delta, double range) {
         if (!config.enabled || !(victim.getWorld() instanceof ServerWorld world)) return;
         // Killing monsters, or a creature that is attacking the player, is self-defence in everyone's eyes.
@@ -193,9 +196,10 @@ public final class MobGameBridge {
         long now = System.currentTimeMillis();
         for (MobEntity witness : world.getEntitiesByClass(MobEntity.class, victim.getBoundingBox().expand(range),
                 other -> other != victim && other.isAlive() && !other.isRemoved() && memory.known(other.getUuid()) && other.canSee(victim)))
-            memory.recordWitnessed(witness.getUuid(), player.getUuid(), player.getName().getString(), what, delta, now);
+            memory.recordWitnessed(witness.getUuid(), player.getUuid(), MobGameBridge.playerName(player), what, delta, now);
     }
-    /** How far a mob sees what happens to another, and how far it hears what is said. */
+    /** How far a mob sees what happens to another, and how far it hears what is said: the defaults of the settings
+     * {@code witnessSightRange} and {@code witnessHearingRange} (see {@link Witness}). */
     static final double WITNESS_RANGE = 16, HEARING_RANGE = 5;
 
     /** The mob stops wandering and keeps looking at the player for {@code ticks}: it is being spoken to, thinking or speaking. */
@@ -225,7 +229,7 @@ public final class MobGameBridge {
             ServerWorld world = world(dimension);
             ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
             if (world == null || player == null || !player.isAlive() || player.getWorld() != world || limit <= 0) return List.of();
-            double range = Math.min(HEARING_RANGE, config.maxDistance);
+            double range = Math.min(config.witnessHearingRange, config.maxDistance);
             Entity speaker = world.getEntity(speakerId);
             // Within earshot of either side of the conversation, and able to see the player.
             List<MobEntity> around = world.getEntitiesByClass(MobEntity.class, player.getBoundingBox().expand(range + 4),
@@ -241,8 +245,8 @@ public final class MobGameBridge {
         MobGameBridge bridge = forEntity(mob);
         if (bridge == null) return;
         bridge.memory.recordHelp(mob.getUuid(), type(mob), mob.getName().getString(), player.getUuid(),
-                player.getName().getString(), System.currentTimeMillis());
-        bridge.event(mob, reason + ": " + player.getName().getString());
+                MobGameBridge.playerName(player), System.currentTimeMillis());
+        bridge.event(mob, reason + ": " + MobGameBridge.playerName(player));
     }
 
     /** The conversation target behind the player's open merchant window: a mob's own deals (B) or a villager's profession trades. */
@@ -272,7 +276,7 @@ public final class MobGameBridge {
             MobSnapshot snapshot = MobContextCapture.capture(this, nearby.world, nearby.mob, nearby.player);
             social.conversation(nearby.mob, snapshot); // The known creatures around get acquainted with the one spoken to.
             return snapshot;
-        }).thenApplyAsync(PlaceCapture::classify); // The classifier takes tens of milliseconds: never on the server thread.
+        }).thenApplyAsync(snapshot -> config.placeClassifier ? PlaceCapture.classify(snapshot) : snapshot); // Tens of milliseconds: never on the server thread.
     }
     /** The living mob and player in the same world within the conversation range; server thread only. */
     private Nearby nearby(UUID mobId, UUID playerId, String dimension) {
@@ -353,8 +357,8 @@ public final class MobGameBridge {
                 String result = actions.apply(mob, player, intent, observed);
                 if (!gestured.isBlank()) result = result.isBlank() ? gestured : result + "; " + gestured;
                 if (!trade.isBlank()) result = result.isBlank() ? trade : result + "; " + trade;
-                if (social == SocialIntent.THREAT) witnessed(mob, player, "грозил убить", -10, HEARING_RANGE);
-                else if (social == SocialIntent.INSULT) witnessed(mob, player, "оскорбил", -5, HEARING_RANGE);
+                Witness heard = Witness.of(social);
+                if (heard != null) witnessed(mob, player, heard);
                 return new Outcome(result, memory.revision(mobId));
             }
         });

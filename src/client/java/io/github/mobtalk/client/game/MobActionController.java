@@ -130,10 +130,10 @@ final class MobActionController {
                     apply(mob, player, new ActionIntent(ActionType.ATTACK, "player"), null, true);
                     Lease lease = leases.get(mob.getUuid());
                     if (lease != null && lease.action == ActionType.ATTACK) { lease.retaliatory = true; lease.expires = world.getTime() + 400; }
-                    remember(mob, player, world, "Напал на игрока " + player.getName().getString() + " из ненависти");
+                    remember(mob, player, world, "Напал на игрока " + MobGameBridge.playerName(player) + " из ненависти");
                 } else if (available(mob).contains(ActionType.FLEE)) {
                     apply(mob, player, new ActionIntent(ActionType.FLEE, "player"), null, true);
-                    remember(mob, player, world, "Убегал от игрока " + player.getName().getString() + ": ненавидит его и боится");
+                    remember(mob, player, world, "Убегал от игрока " + MobGameBridge.playerName(player) + ": ненавидит его и боится");
                     if (mob instanceof net.minecraft.entity.passive.VillagerEntity villager) alarm(villager, player, world);
                 }
             }
@@ -161,7 +161,7 @@ final class MobActionController {
             golem.setAngryAt(player.getUuid()); golem.chooseRandomAngerTime(); golem.setTarget(player);
             called = true;
         }
-        if (called) bridge.event(villager, "Позвал голема на помощь против игрока " + player.getName().getString());
+        if (called) bridge.event(villager, "Позвал голема на помощь против игрока " + MobGameBridge.playerName(player));
     }
 
     private static boolean nativeAnimalCombat(String type) {

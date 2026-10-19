@@ -13,6 +13,8 @@ public final class Bargaining {
     /** QUOTE_TICKS only fills the legacy {@code expiresTick} field: prices no longer expire. */
     public static final long QUOTE_TICKS = 6000, COOLDOWN_TICKS = 24000;
     public static final int MAX_ROUNDS = 3;
+    /** The live pause before a new haggle ({@link MobTalkConfig#bargainCooldownMinutes}); COOLDOWN_TICKS is its default. */
+    static long cooldownTicks() { return Tuning.get().bargainCooldownMinutes * 1200L; }
     /** At or below this relationship the villager refuses any concession. */
     public static final int HOSTILE_RELATIONSHIP = CombatRules.HATRED;
     /** CONSUMED remains only for one-exchange discounts saved before 0.3; they hold no price. */
@@ -92,7 +94,7 @@ public final class Bargaining {
         }
         if (intent.type() == BargainIntent.Type.DECLINE) {
             Session declined = new Session(offer.key, offer.index, offer.vanillaCount, offer.vanillaCount - held, held, 0,
-                    tick, tick + QUOTE_TICKS, tick + COOLDOWN_TICKS, Status.DECLINED);
+                    tick, tick + QUOTE_TICKS, tick + cooldownTicks(), Status.DECLINED);
             return new Decision(declined, declinedMessage(declined), true);
         }
         if (intent.type() == BargainIntent.Type.ACCEPT) {
@@ -112,7 +114,7 @@ public final class Bargaining {
         if (intent.discount() <= held) return unchanged(previous, "Цена " + current.price + " уже действует постоянно и не повышается; можно только уступить ещё");
         Session applied = new Session(offer.key, offer.index, offer.vanillaCount, offer.vanillaCount - intent.discount(), intent.discount(),
                 continuing ? current.rounds + 1 : 1, continuing ? current.openedTick : tick,
-                continuing ? current.expiresTick : tick + QUOTE_TICKS, continuing ? current.cooldownUntil : tick + COOLDOWN_TICKS, Status.ACCEPTED);
+                continuing ? current.expiresTick : tick + QUOTE_TICKS, continuing ? current.cooldownUntil : tick + cooldownTicks(), Status.ACCEPTED);
         return new Decision(applied, "Цена в окне торговли: " + applied.price + " вместо " + applied.vanillaCount
                 + " единиц первого предмета, постоянно", true);
     }

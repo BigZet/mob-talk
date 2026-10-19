@@ -17,6 +17,8 @@ public final class ConversationSummary {
 
     /** Silence after the last reply that counts as the end of the conversation. */
     public static final long SILENCE_MILLIS = 3 * 60 * 1000;
+    /** The live silence from the settings ({@link MobTalkConfig#conversationSilenceMinutes}); the constant above is its default. */
+    public static long silenceMillis() { return Tuning.get().conversationSilenceMinutes * 60_000L; }
     /** Fewer exchanges than this are not worth a request; they roll into the next conversation's summary. */
     static final int MIN_TURNS = 2;
     /** Most summaries a profile keeps; the oldest goes when a new one arrives. */
