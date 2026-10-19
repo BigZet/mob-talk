@@ -37,10 +37,13 @@ final class MobLabels {
         if (game == null) return;
         UUID player = client.player.getUuid();
         for (MobEntity mob : client.world.getEntitiesByClass(MobEntity.class, client.player.getBoundingBox().expand(RANGE), Entity::isAlive)) {
+            // Only creatures the player has a history with (a conversation or a life story) and a name of their own: a stranger
+            // that merely saw something gets no label.
+            if (!game.memory.acquainted(mob.getUuid())) continue;
             MobCard card = game.memory.card(mob.getUuid(), player);
             if (card == null) continue;
             String name = game.memory.displayName(mob.getUuid());
-            if (name.isBlank()) name = mob.getName().getString();
+            if (name.isBlank()) continue;
             MobState.Descriptor marker = card.state() == null ? null : card.state().marker();
             String word = marker == null ? "ровно" : Text.translatable("mobtalk.state." + marker.key()).getString();
             int sign = marker == null ? 0 : marker.sign();
