@@ -167,6 +167,31 @@ public final class Tunables {
     /** Copies every number as it is, unclamped: a draft keeps what the file said until it is saved. */
     static void copy(MobTalkConfig from, MobTalkConfig to) { for (Tunable tunable : ALL) tunable.setter().accept(to, tunable.get(from)); }
 
-    /** The numbers of one tab back to their defaults; the switches and texts of that tab are reset by the screen. */
+    /** The numbers of one tab back to their defaults. */
     public static void reset(MobTalkConfig config, Section section) { for (Tunable tunable : of(section)) tunable.set(config, tunable.defaultValue()); }
+
+    /** «Сбросить раздел»: the numbers, switches and choices of one tab back to their defaults. What the player wrote or picked
+     * by hand stays: the microphone, the common style prompt, the names, the API keys (never in the config anyway). */
+    public static void resetSection(MobTalkConfig config, Section section) {
+        reset(config, section);
+        MobTalkConfig d = DEFAULTS;
+        switch (section) {
+            case GENERAL -> { config.enabled = d.enabled; config.vision = d.vision; config.showStateHud = d.showStateHud; config.showBargainHud = d.showBargainHud; }
+            case VOICE -> {
+                config.whisperModel = d.whisperModel; config.whisperDevice = d.whisperDevice; config.whisperLanguage = d.whisperLanguage;
+                config.whisperAutoStart = d.whisperAutoStart; config.whisperUrl = d.whisperUrl; config.whisperHotwords = d.whisperHotwords;
+                config.ttsProvider = d.ttsProvider; config.ttsModel = d.ttsModel; config.veniceTtsModel = d.veniceTtsModel; config.veniceVoice = d.veniceVoice;
+            }
+            case MODEL -> {
+                config.llmProvider = d.llmProvider; config.llmModel = d.llmModel; config.veniceModel = d.veniceModel;
+                config.reasoningEffort = d.reasoningEffort; config.backgroundModel = d.backgroundModel; config.decider = d.decider;
+            }
+            case TALK -> config.rudeness = d.rudeness;
+            case SOCIAL -> {
+                config.socialLayer = d.socialLayer; config.playerGender = d.playerGender; config.familyLife = d.familyLife;
+                config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
+            }
+            case ACTIONS -> { config.placeAnalysis = d.placeAnalysis; config.placeClassifier = d.placeClassifier; }
+        }
+    }
 }

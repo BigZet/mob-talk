@@ -122,6 +122,37 @@ class TunablesTest {
         }
     }
 
+    // «Сбросить раздел» returns one tab's numbers and switches and keeps what was typed by hand and other tabs.
+    @Test void resetSectionTouchesOnlyItsTab() {
+        MobTalkConfig draft = new MobTalkConfig();
+        draft.socialLayer = false; draft.initiative = false; draft.heartsFriend = 5; draft.rudeness = 0;
+        draft.vision = "always"; draft.playerNamesNeutral = "Дима"; draft.commonPrompt = "Говори кратко"; draft.microphoneName = "USB";
+        draft.placeClassifier = false; draft.guardChase = 60; draft.decider = "jev"; draft.whisperModel = "small";
+        Tunables.resetSection(draft, Tunables.Section.SOCIAL);
+        assertTrue(draft.socialLayer); assertTrue(draft.initiative); assertEquals(40, draft.heartsFriend);
+        assertEquals(0, draft.rudeness); assertFalse(draft.placeClassifier); assertEquals("jev", draft.decider);
+        Tunables.resetSection(draft, Tunables.Section.TALK); assertEquals(2, draft.rudeness); assertEquals("Говори кратко", draft.commonPrompt);
+        Tunables.resetSection(draft, Tunables.Section.GENERAL); assertEquals("unusual", draft.vision); assertEquals("Дима", draft.playerNamesNeutral);
+        Tunables.resetSection(draft, Tunables.Section.ACTIONS); assertTrue(draft.placeClassifier); assertEquals(16, draft.guardChase);
+        Tunables.resetSection(draft, Tunables.Section.MODEL); assertEquals("rules", draft.decider);
+        Tunables.resetSection(draft, Tunables.Section.VOICE); assertEquals("large-v3", draft.whisperModel); assertEquals("USB", draft.microphoneName);
+    }
+
+    // Every slider has its label (with the value placeholder) and its explanation in both languages.
+    @Test void everyTunableHasLangKeys() throws Exception {
+        for (String lang : List.of("ru_ru", "en_us")) {
+            try (var in = getClass().getResourceAsStream("/assets/mobtalk/lang/" + lang + ".json")) {
+                assertNotNull(in, lang);
+                var json = com.google.gson.JsonParser.parseReader(new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
+                for (Tunables.Tunable t : Tunables.ALL) {
+                    assertTrue(json.has(t.langKey()) && json.get(t.langKey()).getAsString().contains("%s"), lang + " " + t.langKey());
+                    assertTrue(json.has(t.langKey() + ".tooltip"), lang + " " + t.langKey() + ".tooltip");
+                    assertTrue(json.has("mobtalk.settings.group." + t.group()), lang + " group " + t.group());
+                }
+            }
+        }
+    }
+
     // Bystanders take their ranges and drops from the settings.
     @Test void witnessesReadRangesAndPenalties() {
         MobTalkConfig config = new MobTalkConfig();

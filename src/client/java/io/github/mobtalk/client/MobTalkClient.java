@@ -90,7 +90,7 @@ public final class MobTalkClient implements ClientModInitializer {
     private UUID conversationMob;
     private long lastReplyMillis;
     KeyBinding talkKey;
-    private KeyBinding settingsKey;
+    KeyBinding settingsKey;
     KeyBinding tradeKey;
     KeyBinding giftKey;
     private boolean openSettingsRequested;
