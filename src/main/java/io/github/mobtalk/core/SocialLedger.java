@@ -28,6 +28,12 @@ public final class SocialLedger {
         if (p.social == null) { p.social = SocialProfile.of(p.id, false); temper(p); changed = true; }
         // A villager the layer knows has a name before anyone talks to it: weddings and rumours name people, not «Крестьянин».
         if (p.givenName == null || p.givenName.isBlank()) { p.givenName = VillagerNames.pick(p.id, p.social.gender()); changed = true; }
+        // The voice follows the sex: a woman does not speak with the archetype's male voice.
+        SpeciesCatalog.Voice current = SpeciesCatalog.voice(p.voiceId);
+        if (current.sex() != null && current.sex() != p.social.gender()) {
+            SpeciesCatalog.Voice fitting = SpeciesCatalog.voiceFor(p.type, p.social.gender(), p.id);
+            if (!fitting.id().isBlank()) { p.voiceId = fitting.id(); changed = true; }
+        }
         return changed;
     }
     /** The character's one-time shift of the temperament. */

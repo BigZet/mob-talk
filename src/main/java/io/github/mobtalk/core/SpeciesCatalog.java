@@ -15,7 +15,11 @@ import java.util.Map;
 
 /** Bundled species personalities and public-library metadata, without any claim of paid TTS validation. */
 public final class SpeciesCatalog {
-    public record Voice(String id, String name, String description, String previewUrl, String language) { }
+    public record Voice(String id, String name, String description, String previewUrl, String language, String gender, String assignedSpecies) {
+        public Voice(String id, String name, String description, String previewUrl, String language) { this(id, name, description, previewUrl, language, "", ""); }
+        /** The library's sex for the voice, or null when unknown. */
+        public Gender sex() { return gender == null ? null : "female".equalsIgnoreCase(gender) ? Gender.FEMALE : "male".equalsIgnoreCase(gender) ? Gender.MALE : null; }
+    }
     public record Archetype(String name, String prompt, Voice voice) { }
     /** quirks: speech habits and trademarks; desire: what this creature wants from life; secret: something it hides and
      * lets slip only to a friend. All three are optional text and may be blank for species not yet written up. */
@@ -130,6 +134,22 @@ public final class SpeciesCatalog {
         Voice known = VOICES.get(clean);
         return known != null ? known : new Voice(clean, "Пользовательский голос",
                 "Пользовательский ID; библиотечные метаданные и генерация не проверены.", "", "ru");
+    }
+
+    /** A voice of the given sex for a creature of this species, deterministic for its UUID: first the species' own voices of that sex
+     * (its archetypes), then any Russian library voice of that sex that no species reserve holds; UNASSIGNED when the library has none. */
+    public static Voice voiceFor(String type, Gender gender, java.util.UUID seed) {
+        if (gender == null) return UNASSIGNED;
+        String id = normalized(type);
+        List<Voice> own = new ArrayList<>(), any = new ArrayList<>();
+        for (Voice voice : VOICES.values()) {
+            if (voice.sex() != gender || !"ru".equalsIgnoreCase(voice.language()) || RESERVES.contains(voice)) continue;
+            if (id.equals(voice.assignedSpecies() == null ? "" : normalized(voice.assignedSpecies()))) own.add(voice); else any.add(voice);
+        }
+        List<Voice> pool = own.isEmpty() ? any : own;
+        if (pool.isEmpty()) return UNASSIGNED;
+        long hash = seed == null ? 0 : seed.getMostSignificantBits() ^ Long.rotateLeft(seed.getLeastSignificantBits(), 23);
+        return pool.get((int) Math.floorMod(hash, (long) pool.size()));
     }
 
     /** A dedicated, disjoint reserve for this species; never borrow another species' voice. */
