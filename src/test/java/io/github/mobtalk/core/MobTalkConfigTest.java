@@ -25,6 +25,24 @@ class MobTalkConfigTest {
         assertCustomized(original);
     }
 
+    // A fine-tuned model is chosen by its folder name in models/ or an absolute path; junk falls back to large-v3.
+    @Test void acceptsLocalWhisperModelsAndRejectsJunk() throws Exception {
+        Path file = directory.resolve("whisper.json");
+        String absolute = directory.resolve("models/mobtalk-small-ru").toAbsolutePath().toString();
+        for (String model : new String[] {"large-v3-turbo", "mobtalk-small-ru", absolute}) {
+            MobTalkConfig config = new MobTalkConfig();
+            config.whisperModel = model;
+            MobTalkConfig.save(file, config);
+            assertEquals(model, MobTalkConfig.load(file).whisperModel);
+        }
+        for (String junk : new String[] {"../models/x", "openai/whisper-small", "-flag", "a\nb"}) {
+            MobTalkConfig config = new MobTalkConfig();
+            config.whisperModel = junk;
+            MobTalkConfig.save(file, config);
+            assertEquals("large-v3", MobTalkConfig.load(file).whisperModel, junk);
+        }
+    }
+
     // A typo in the provider must fall back to OpenRouter rather than send requests nowhere.
     @Test void normalizesTheChatProvider() throws Exception {
         Path file = directory.resolve("config/mobtalk.json");

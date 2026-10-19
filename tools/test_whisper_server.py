@@ -231,6 +231,33 @@ class RuntimeTests(unittest.TestCase):
         self.assertIs(self.runtime.model, model)
         self.assertEqual(self.runtime.settings.language, "ru")
 
+    def test_configure_accepts_installed_local_model_by_folder_name_or_path(self):
+        self.make_ready()
+        folder = self.runtime.settings.model_dir / "mobtalk-small-ru"
+        folder.mkdir()
+        (folder / "model.bin").touch()
+        for name in ("mobtalk-small-ru", str(folder)):
+            with self.subTest(name=name), patch.object(whisper, "load_model",
+                                                       return_value=(FakeModel(), "cpu")) as loader:
+                health = self.runtime.configure({"model": name})
+                self.runtime._loader.join(1)
+                self.assertEqual(health["model"], name)
+                self.assertEqual(loader.call_args.args[0].model, name)
+
+    def test_local_model_requires_model_bin_and_never_downloads_unknown_names(self):
+        self.make_ready()
+        (self.runtime.settings.model_dir / "empty-folder").mkdir()
+        for name in ("empty-folder", "openai/whisper-small", "../models", "models--x"):
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                self.runtime.configure({"model": name})
+        with self.assertRaisesRegex(RuntimeError, "model_unavailable"):
+            fake = ModuleType("faster_whisper")
+            fake.WhisperModel = Mock()
+            with patch.dict(sys.modules, {"ctranslate2": ModuleType("ctranslate2"), "faster_whisper": fake}):
+                whisper.load_model(whisper.Settings(model="openai/whisper-small",
+                                                    model_dir=self.runtime.settings.model_dir))
+        fake.WhisperModel.assert_not_called()
+
     def test_runtime_reports_explicit_gpu_out_of_memory(self):
         with patch.object(whisper, "load_model", side_effect=RuntimeError("gpu_out_of_memory")), \
                 contextlib.redirect_stderr(io.StringIO()):
@@ -244,7 +271,10 @@ class RuntimeTests(unittest.TestCase):
         ctranslate2.get_cuda_device_count = lambda: 1
         faster_whisper = ModuleType("faster_whisper")
         faster_whisper.WhisperModel = Mock(side_effect=RuntimeError("CUDA failed: out of memory"))
-        # A local placeholder name skips all download/cache code; only constructor error handling runs.
+        # A local model folder skips all download/cache code; only constructor error handling runs.
+        local = self.runtime.settings.model_dir / "local-test-model"
+        local.mkdir()
+        (local / "model.bin").touch()
         settings = whisper.Settings(model="local-test-model", device="auto", model_dir=self.runtime.settings.model_dir)
         with patch.dict(sys.modules, {"ctranslate2": ctranslate2, "faster_whisper": faster_whisper}), \
                 patch.object(whisper, "_enable_windows_nvidia_libraries"):
@@ -305,6 +335,15 @@ class HttpProtocolTests(unittest.TestCase):
         self.assertEqual(set(models), {"small", "medium", "large-v2", "large-v3", "large-v3-turbo"})
         self.assertTrue(models["medium"])
         self.assertFalse(models["large-v3"])
+
+    def test_models_lists_installed_local_models(self):
+        folder = self.runtime.settings.model_dir / "mobtalk-small-ru"
+        folder.mkdir(parents=True)
+        (folder / "model.bin").touch()
+        status, result = self.request("GET", "/models")
+        self.assertEqual(status, 200)
+        local = [model for model in result["models"] if model.get("local")]
+        self.assertEqual(local, [{"id": "mobtalk-small-ru", "installed": True, "local": True}])
 
     def test_transcribe_valid_pcm_returns_text_metadata_and_decodes_name_header(self):
         body = pcm_wav()
