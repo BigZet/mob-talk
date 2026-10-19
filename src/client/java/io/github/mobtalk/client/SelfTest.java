@@ -89,7 +89,7 @@ final class SelfTest {
         else if (ticks >= deadline) {
             String what = waitingFor; waitingFor = "";
             if (what.startsWith("cow beside") || what.startsWith("bystander queue") || what.startsWith("saves flushed") || what.startsWith("window closed")
-                    || what.startsWith("recording for") || what.startsWith("cow waits") || what.startsWith("cow at the bottom")) log("… " + what);
+                    || what.startsWith("recording for") || what.startsWith("cow waits") || what.startsWith("cow at the bottom") || what.startsWith("farmer refuses")) log("… " + what);
             else fail("timeout waiting for " + what);
             then.run();
         }
@@ -332,7 +332,19 @@ final class SelfTest {
                 if (owner.client.currentScreen != null) owner.client.currentScreen.close();
                 await("window closed", 1, () -> false, () -> {
                     owner.select(MobSpeechSound.find(owner.world, villager));
+                    // The stage floats above a real village: its standing decides whether the farmer trades with this player at all.
+                    ServerPlayerEntity me = serverPlayer();
+                    var standing = bridge().memory.social().standingAt(me.getWorld().getRegistryKey().getValue().toString(), me.getBlockX(), me.getBlockZ(), me.getUuid(), System.currentTimeMillis());
+                    log("village standing of the player: " + standing);
                     owner.openTrade();
+                    if (standing.refusesTrade()) {
+                        await("farmer refuses the exile", 4, () -> false, () -> {
+                            check(!(owner.client.currentScreen instanceof MerchantScreen), "an exile gets no vanilla trade window (village standing " + standing.rank() + ")");
+                            if (owner.client.currentScreen != null) owner.client.currentScreen.close();
+                            await("window closed", 1, () -> false, this::stateWord);
+                        });
+                        return;
+                    }
                     await("farmer vanilla window", 10, () -> owner.client.currentScreen instanceof MerchantScreen, () -> {
                         check(owner.client.currentScreen instanceof MerchantScreen, "B opens the farmer's vanilla trade window");
                         if (owner.client.currentScreen != null) owner.client.currentScreen.close();
