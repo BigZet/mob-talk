@@ -57,7 +57,7 @@ final class MobPrompt {
                 + "\n\n" + state.describe() + "\n" + PromptTexts.STATE_RULE
                 + "\n\n" + Situation.of(snapshot, profile).describe()
                 + "\n\nЭтот игрок:\nОтношение (-100..100): " + profile.relationship + " — " + attitude(profile.relationship) + "."
-                + "\nПамять о нём: " + (profile.memory == null || profile.memory.isBlank() ? "пока ничего." : profile.memory)
+                + MemoryRanking.promptBlock(profile.facts, profile.memory, System.currentTimeMillis()) + ConversationSummary.promptBlock(profile.summaries)
                 + "\n\n" + PromptTexts.VOICE
                 + "Длина: не больше " + words() + " слов, обычно заметно меньше."
                 + (view.sellsAnything() ? "\n\n" + PromptTexts.TRADER_CHARACTER + PromptTexts.stateTrade(state) : "")

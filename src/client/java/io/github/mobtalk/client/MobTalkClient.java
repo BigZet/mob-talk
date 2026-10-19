@@ -1,6 +1,7 @@
 package io.github.mobtalk.client;
 
 import io.github.mobtalk.core.ConversationEngine;
+import io.github.mobtalk.core.ConversationSummary;
 import io.github.mobtalk.core.MobSnapshot;
 import io.github.mobtalk.core.MobTalkConfig;
 import io.github.mobtalk.core.WhisperClient;
@@ -81,6 +82,9 @@ public final class MobTalkClient implements ClientModInitializer {
     private MobTalkConfig config = new MobTalkConfig();
     ClientWorld world;
     UUID selected;
+    /** The mob of the conversation under way (its last reply was delivered) and when; silence or another mob ends it (a summary is made). */
+    private UUID conversationMob;
+    private long lastReplyMillis;
     KeyBinding talkKey;
     private KeyBinding settingsKey;
     KeyBinding tradeKey;
@@ -257,6 +261,17 @@ public final class MobTalkClient implements ClientModInitializer {
             runDeferredAction();
         }
         if (selected != null && ticks % 20 == 0) showHud();
+        if (conversationMob != null && ticks % 20 == 0 && System.currentTimeMillis() - lastReplyMillis > ConversationSummary.SILENCE_MILLIS) endConversation(conversationMob);
+    }
+
+    /** The conversation with this mob is over: the engine summarises it in the background (nothing here waits or touches the network). */
+    private void endConversation(UUID mob) {
+        if (mob == null) return;
+        if (mob.equals(conversationMob)) conversationMob = null;
+        ConversationEngine localEngine = engine;
+        if (localEngine == null || stopped || client.player == null) return;
+        UUID player = client.player.getUuid(); String name = client.player.getName().getString();
+        maintenance.execute(() -> localEngine.endConversation(mob, player, name));
     }
 
     private boolean canRecord() {
@@ -284,6 +299,7 @@ public final class MobTalkClient implements ClientModInitializer {
 
     void select(MobEntity mob) {
         if (!mob.getUuid().equals(selected)) {
+            if (conversationMob != null && !conversationMob.equals(mob.getUuid())) endConversation(conversationMob);
             cancelWork(readyStatus());
             selected = mob.getUuid();
             keepConnectionWarm();
@@ -299,6 +315,7 @@ public final class MobTalkClient implements ClientModInitializer {
     }
 
     void clearSelection(String reason) {
+        endConversation(conversationMob);
         cancelWork(reason);
         selected = null;
         showHud();
@@ -653,6 +670,7 @@ public final class MobTalkClient implements ClientModInitializer {
 
     private void finishDelivery(Request request, ConversationEngine.Reply reply, String actionMessage) {
         requestActive = false;
+        if (request.overheard == null) { conversationMob = request.target; lastReplyMillis = System.currentTimeMillis(); }
         if (request.overheard == null) chat("Вы: " + reply.recognizedText());
         if (reply.silent()) { status = readyStatus(); showHud(); return; }
         chat(reply.speakerName() + ": " + reply.responseText());

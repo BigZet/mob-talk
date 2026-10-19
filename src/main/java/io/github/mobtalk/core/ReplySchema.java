@@ -35,12 +35,19 @@ final class ReplySchema {
         questFields.add("title", property("string")); questFields.add("rewardDeal", property("string")); questFields.add("rewardPercent", property("integer"));
         properties.add("quest", objectSchema(questFields, "type", "item", "count", "title", "rewardDeal", "rewardPercent"));
         properties.add("newFacts", property("string"));
+        properties.add("importance", property("integer")); // How much newFacts matters, 1–5 (MemoryRanking); ignored when newFacts is empty.
         properties.add("thought", property("string"));
-        if (!withBiography) return format("mob_reply", objectSchema(properties, "assessment", "reply", "socialIntent", "action", "bargain", "deal", "unlock", "quest", "newFacts", "thought"));
+        if (!withBiography) return format("mob_reply", objectSchema(properties, "assessment", "reply", "socialIntent", "action", "bargain", "deal", "unlock", "quest", "newFacts", "importance", "thought"));
         JsonObject life = new JsonObject();
         for (String field : BIOGRAPHY_FIELDS) life.add(field, property("string"));
         properties.add("biography", objectSchema(life, BIOGRAPHY_FIELDS.toArray(String[]::new)));
-        return format("mob_reply", objectSchema(properties, "assessment", "reply", "socialIntent", "action", "bargain", "deal", "unlock", "quest", "newFacts", "thought", "biography"));
+        return format("mob_reply", objectSchema(properties, "assessment", "reply", "socialIntent", "action", "bargain", "deal", "unlock", "quest", "newFacts", "importance", "thought", "biography"));
+    }
+
+    /** The importance the answer gave its new fact, clamped to 1–5; {@link MemoryFact#ORDINARY} when absent or not a number. */
+    static int importance(JsonObject answer) {
+        try { return MemoryFact.clamp(integer(answer, "importance")); }
+        catch (RuntimeException absent) { return MemoryFact.ORDINARY; }
     }
     private static String[] withoutOffer(List<String> types, boolean wary) {
         return (wary ? types.stream().filter(type -> !"OFFER".equals(type)).toList() : types).toArray(String[]::new);
@@ -71,7 +78,7 @@ final class ReplySchema {
         system.addProperty("content", system.get("content").getAsString() + "\nОбязательная схема JSON-ответа: " + schema);
     }
 
-    private static JsonObject format(String name, JsonObject schema) {
+    static JsonObject format(String name, JsonObject schema) {
         JsonObject jsonSchema = new JsonObject(); jsonSchema.addProperty("name", name); jsonSchema.addProperty("strict", true); jsonSchema.add("schema", schema);
         JsonObject format = new JsonObject(); format.addProperty("type", "json_schema"); format.add("json_schema", jsonSchema); return format;
     }

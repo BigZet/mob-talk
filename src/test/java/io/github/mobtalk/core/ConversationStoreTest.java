@@ -148,7 +148,9 @@ class ConversationStoreTest {
         assertTrue(store.commit(snapshot, "Глупая корова", "Обидно", "", SocialIntent.INSULT, ActionIntent.none(), 4000));
         for (int i = 0; i < 25; i++) store.recordEvent(mob, "minecraft:cow", "Корова", "Прошёл день " + i, 5000 + i);
         assertEquals(20, store.events(mob).size());
-        assertTrue(store.events(mob).stream().noneMatch(text -> text.contains("ударил")));
+        // Events go by importance × freshness (MemoryRanking): the days rotate out first, the blows stay.
+        assertEquals(2, store.events(mob).stream().filter(text -> text.contains("ударил")).count());
+        assertTrue(store.events(mob).stream().noneMatch(text -> text.contains("Прошёл день 0")));
         List<String> ownEvents = store.card(mob, player).events();
         String ownFacts = ownEvents.getFirst();
         assertTrue(ownFacts.contains(player.toString()));

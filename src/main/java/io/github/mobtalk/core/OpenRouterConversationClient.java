@@ -66,7 +66,8 @@ final class OpenRouterConversationClient implements AutoCloseable {
         JsonArray messages = new JsonArray();
         messages.add(ReplySchema.message("system", prompt.system(species, profile, snapshot) + (overheard == null ? "" : "\n\n" + PromptTexts.OVERHEARD)));
         int history = Math.max(1, Math.min(64, config.historyTurns));
-        for (int i = Math.max(0, profile.turns.size() - history); i < profile.turns.size(); i++) {
+        // Only the current conversation's exchanges: the earlier ones are read as summaries in the system prompt (ConversationSummary).
+        for (int i = Math.max(profile.unsummarizedFrom(), profile.turns.size() - history); i < profile.turns.size(); i++) {
             ConversationStore.Turn turn = profile.turns.get(i);
             messages.add(ReplySchema.message("user", turn.user())); messages.add(ReplySchema.message("assistant", turn.assistant()));
         }
@@ -129,6 +130,15 @@ final class OpenRouterConversationClient implements AutoCloseable {
         }
         if (jsonObjectOnly) ReplySchema.useJsonObject(body);
         if (stream) body.addProperty("stream", true);
+        return body;
+    }
+
+    /** A body for a background task nobody waits for (summaries, reflections): the cheap model from the config when one is set,
+     * minimal reasoning, no streaming. */
+    JsonObject backgroundBody(JsonArray messages, int maxTokens, JsonObject responseFormat) {
+        JsonObject body = body(messages, maxTokens, 0.5, responseFormat, false);
+        if (config.backgroundModel != null && !config.backgroundModel.isBlank()) body.addProperty("model", config.backgroundModel.strip());
+        if (body.has("reasoning")) body.getAsJsonObject("reasoning").addProperty("effort", "minimal");
         return body;
     }
 
@@ -229,13 +239,19 @@ final class OpenRouterConversationClient implements AutoCloseable {
 
     /** deal/unlock/quest concern the mob's own catalog (trades.json); bargain stays the vanilla villager window. */
     /** {@code thought}: the mob's one-line aside to itself, kept as its concern until the next answer ("" when it gave none). */
+    /** {@code fact}: the newFacts of this answer with their importance (see {@link MemoryRanking}), or null when it added none;
+     * {@code memory} is null for such answers and a whole memory text only for older or fallback ones. */
     record Answer(String reply, String memory, SocialIntent socialIntent, ActionIntent action, BargainIntent bargain,
-                  DealIntent deal, String unlock, QuestIntent quest, BiographyWriter.Biography biography, String thought) {
+                  DealIntent deal, String unlock, QuestIntent quest, BiographyWriter.Biography biography, String thought, MemoryFact fact) {
         Answer {
             if (deal == null) deal = DealIntent.none();
             unlock = unlock == null ? "" : unlock;
             if (quest == null) quest = QuestIntent.none();
             thought = thought == null ? "" : thought;
+        }
+        Answer(String reply, String memory, SocialIntent socialIntent, ActionIntent action, BargainIntent bargain,
+               DealIntent deal, String unlock, QuestIntent quest, BiographyWriter.Biography biography, String thought) {
+            this(reply, memory, socialIntent, action, bargain, deal, unlock, quest, biography, thought, null);
         }
         Answer(String reply, String memory, SocialIntent socialIntent, ActionIntent action, BargainIntent bargain,
                DealIntent deal, String unlock, QuestIntent quest, BiographyWriter.Biography biography) {
