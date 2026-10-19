@@ -390,6 +390,22 @@ public final class ConversationStore {
         return "Деревня «" + village.name() + "» простила: жителей " + residents + ", обид снято " + forgiven + ", слухи забыты";
     }
     public synchronized List<String> villageNames() { return state.villages.values().stream().map(Village::name).toList(); }
+    /** Words Whisper should expect: the villages' names and the given names of known creatures, the most recently spoken to first,
+     * {@code priority} ahead of all. Whisper's prompt is short, so the list is cut to {@code budget} characters at whole names. */
+    public synchronized String hotwords(List<String> priority, int budget) {
+        LinkedHashSet<String> words = new LinkedHashSet<>();
+        if (priority != null) for (String word : priority) if (word != null && !word.isBlank()) words.add(word.strip());
+        for (Village village : state.villages.values()) if (village.name() != null && !village.name().isBlank()) words.add(village.name().strip());
+        state.profiles.values().stream().filter(p -> p.givenName != null && !p.givenName.isBlank())
+                .sorted(Comparator.comparingLong((Profile p) -> -p.lastTurnMillis)).forEach(p -> words.add(p.givenName.strip()));
+        StringBuilder text = new StringBuilder();
+        for (String word : words) {
+            if (text.length() + word.length() + 2 > budget) break;
+            if (text.length() > 0) text.append(", ");
+            text.append(word);
+        }
+        return text.toString();
+    }
     /** The known village whose anchor is within {@link #VILLAGE_RADIUS} blocks in this dimension, nearest first; null when none. */
     public synchronized Village villageNear(String dimension, int x, int z) {
         Village best = null; long bestDistance = Long.MAX_VALUE;

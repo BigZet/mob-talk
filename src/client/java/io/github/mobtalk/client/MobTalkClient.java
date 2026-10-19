@@ -618,7 +618,7 @@ public final class MobTalkClient implements ClientModInitializer {
                     try (WhisperClient localWhisper = new WhisperClient(request.config)) {
                         whisper = localWhisper;
                         checkCurrent(request);
-                        question = localWhisper.transcribe(wav, request.mobName);
+                        question = localWhisper.transcribe(wav, whisperContext(request));
                     } finally { whisper = null; }
                     checkCurrent(request);
                     if (question == null || question.isBlank()) {
@@ -952,6 +952,21 @@ public final class MobTalkClient implements ClientModInitializer {
     }
 
     /** /mobtalk state: every axis of the selected mob's state in words and its last thought, for the chat. */
+    /** What Whisper should expect in this question: the mob's name, the known creatures around the player, the villages and the rest
+     * of the known names; Whisper's prompt is short, so it is cut at 500 characters. */
+    private String whisperContext(Request request) {
+        MobGameBridge game = request.server == null ? null : MobGameBridge.active(request.server);
+        if (game == null) return request.mobName == null ? "" : request.mobName;
+        List<String> priority = new ArrayList<>();
+        if (request.mobName != null) priority.add(request.mobName);
+        if (client.player != null && client.world != null)
+            for (MobEntity near : client.world.getEntitiesByClass(MobEntity.class, client.player.getBoundingBox().expand(32), Entity::isAlive)) {
+                String name = game.memory.displayName(near.getUuid());
+                if (!name.isBlank()) priority.add(name);
+            }
+        return game.memory.hotwords(priority, 500);
+    }
+
     /** The gift key: one item from the hand to the chosen (or aimed) creature; it takes or declines and then says a word of it. */
     void giftFromHand() {
         if (stopped || reloading || client.player == null || world == null) return;
