@@ -3,6 +3,7 @@
   "key.mobtalk.talk": "Talk to selected mob (hold)",
   "key.mobtalk.settings": "Mob Talk settings",
   "key.mobtalk.trade": "Deals of the selected mob",
+  "key.mobtalk.gift": "Give one item from your hand to the chosen mob",
   "subtitle.mobtalk.mob_speech": "Mob speaks",
   "mobtalk.settings.title": "Mob Talk Settings",
   "mobtalk.settings.tab.main": "General",

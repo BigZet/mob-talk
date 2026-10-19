@@ -89,5 +89,33 @@ final class SocialController {
                 SocialLedger.giftCue(result), List.of(), now));
     }
 
+    /** One item from the player's main hand goes to the creature (the gift key): weighed by the ledger, taken or declined with a sound,
+     * then the creature says a word of it. Returns the line for the chat. */
+    String giftFromHand(ServerWorld world, ServerPlayerEntity player, MobEntity mob) {
+        ItemStack stack = player.getMainHandStack();
+        if (stack.isEmpty()) return "В руке ничего нет";
+        if (!mob.isAlive() || mob.squaredDistanceTo(player) > bridge.config.maxDistance * bridge.config.maxDistance) return "Подойдите к мобу ближе";
+        String item = Registries.ITEM.getId(stack.getItem()).toString();
+        String profession = mob instanceof VillagerEntity villager ? Registries.VILLAGER_PROFESSION.getId(villager.getVillagerData().getProfession()).toString() : "";
+        boolean favouriteFood = mob instanceof net.minecraft.entity.passive.AnimalEntity animal && animal.isBreedingItem(stack);
+        long now = System.currentTimeMillis();
+        GestureIntent result = bridge.memory.social().giftFromHand(mob.getUuid(), MobGameBridge.type(mob), mob.getName().getString(),
+                player.getUuid(), player.getName().getString(), item, profession, mob.isBaby(), favouriteFood, now);
+        if (result == null) return "Этот моб подарков не принимает";
+        String name = bridge.memory.displayName(mob.getUuid());
+        if (name.isBlank()) name = mob.getName().getString();
+        mob.getLookControl().lookAt(player, 30f, 30f);
+        String shown = stack.getName().getString();
+        if (result.takesItem()) {
+            stack.decrement(1);
+            world.playSound(null, mob.getBlockPos(), mob instanceof VillagerEntity ? SoundEvents.ENTITY_VILLAGER_YES : SoundEvents.ENTITY_ITEM_PICKUP, SoundCategory.NEUTRAL, 1f, 1f);
+        } else {
+            if (mob instanceof VillagerEntity villager) villager.setHeadRollingTimeLeft(40);
+            world.playSound(null, mob.getBlockPos(), SoundEvents.ENTITY_VILLAGER_NO, SoundCategory.NEUTRAL, 0.6f, mob instanceof VillagerEntity ? 1f : 1.4f);
+        }
+        bridge.initiative.raise(new Initiative.Cue(mob.getUuid(), name, Initiative.Trigger.GIFT, SocialLedger.handGiftCue(result), List.of(), now));
+        return result.takesItem() ? name + " принимает " + shown + (result.hearts() > 0 ? " (+" + result.hearts() + ")" : "") : name + " не берёт " + shown;
+    }
+
     void clearRuntime() { judged.clear(); }
 }

@@ -78,4 +78,18 @@ class VillageStandingTest {
         assertEquals(1, living.residents()); assertEquals(1, living.acquainted());
         assertNotEquals(VillageStanding.Rank.EXILE, living.rank());
     }
+
+    // A villager the social layer meets has a name from its UUID before any talk, and the model's story keeps it.
+    @Test void villagersAreNamedBeforeTheyAreSpokenTo() throws Exception {
+        ConversationStore store = ConversationStore.open(directory, new MobTalkConfig());
+        UUID id = UUID.randomUUID(), player = UUID.randomUUID();
+        store.observe(SocialLayerTest.villager(id, player, 0, false, "minecraft:air"));
+        String name = store.displayName(id);
+        assertFalse(name.isBlank()); assertNotEquals("Житель", name);
+        assertEquals(name, VillagerNames.pick(id, store.profile(SocialLayerTest.villager(id, player, store.revision(id), false, "minecraft:air")).social.gender()));
+        assertTrue(new MobPrompt(new MobTalkConfig()).system(SpeciesCatalog.get("minecraft:villager"), store.profile(SocialLayerTest.villager(id, player, store.revision(id), false, "minecraft:air")),
+                SocialLayerTest.villager(id, player, 0, false, "minecraft:air")).contains("твоё имя уже известно: «" + name + "»"));
+        store.setBackstory(id, "Другое имя", "Ты родился здесь.", "", "", "");
+        assertEquals("Другое имя", store.displayName(id), "an explicit name from the story or the card replaces the seeded one");
+    }
 }

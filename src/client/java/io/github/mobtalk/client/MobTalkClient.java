@@ -92,6 +92,7 @@ public final class MobTalkClient implements ClientModInitializer {
     KeyBinding talkKey;
     private KeyBinding settingsKey;
     KeyBinding tradeKey;
+    KeyBinding giftKey;
     private boolean openSettingsRequested;
     private MicrophoneRecorder.Capture recording;
     private boolean configReady;
@@ -136,6 +137,8 @@ public final class MobTalkClient implements ClientModInitializer {
                 GLFW.GLFW_KEY_F7, "category.mobtalk"));
         tradeKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.trade", InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_B, "category.mobtalk"));
+        giftKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.gift", InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_G, "category.mobtalk"));
         ScreenEvents.AFTER_INIT.register((minecraft, screen, width, height) -> {
             if (screen instanceof GameMenuScreen) {
                 Screens.getButtons(screen).add(ButtonWidget.builder(Text.literal("Mob Talk"), button -> openSettings(screen))
@@ -268,6 +271,7 @@ public final class MobTalkClient implements ClientModInitializer {
             openSettings(client.currentScreen);
         }
         while (tradeKey.wasPressed()) openTrade();
+        while (giftKey.wasPressed()) giftFromHand();
         boolean held = merchant.windowOpen() ? merchant.keyHeld() : talkKey.isPressed();
         MobEntity mob = target();
         if (selected != null && mob == null) clearSelection("Моб погиб или выгрузился: наведите прицел на другого");
@@ -938,6 +942,18 @@ public final class MobTalkClient implements ClientModInitializer {
     }
 
     /** /mobtalk state: every axis of the selected mob's state in words and its last thought, for the chat. */
+    /** The gift key: one item from the hand to the chosen (or aimed) creature; it takes or declines and then says a word of it. */
+    void giftFromHand() {
+        if (stopped || reloading || client.player == null || world == null) return;
+        MobEntity mob = target();
+        if (mob == null) mob = aimedMob();
+        if (mob == null) { notice("Наведите прицел на моба или выберите его клавишей V"); return; }
+        if (client.player.getMainHandStack().isEmpty()) { notice("Возьмите подарок в руку"); return; }
+        MobGameBridge game = client.getServer() == null ? null : MobGameBridge.active(client.getServer());
+        if (game == null) { notice("Мир ещё не загружен"); return; }
+        game.giftFromHand(mob.getUuid(), client.player.getUuid()).whenComplete((result, error) -> client.execute(() -> notice(error != null ? "Подарок не удался: " + error.getMessage() : result)));
+    }
+
     /** /mobtalk village forgive: every resident of the village around the player forgets the grudges, and its rumours go. */
     void forgiveVillage() {
         MobGameBridge game = client.getServer() == null ? null : MobGameBridge.active(client.getServer());

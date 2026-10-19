@@ -1094,7 +1094,7 @@ class ConversationEngineTest {
             assertEquals("Прохор", reply.speakerName(), "the invented name is used for the very first line");
             JsonObject request = lastRequest.get();
             String system = request.getAsJsonArray("messages").get(0).getAsJsonObject().get("content").getAsString();
-            assertTrue(system.contains("придумай их прямо сейчас в поле biography") && system.contains("villageName — название твоей деревни"), system);
+            assertTrue(system.contains("прямо сейчас в поле biography") && system.contains("villageName — название твоей деревни"), system);
             JsonObject schema = request.getAsJsonObject("response_format").getAsJsonObject("json_schema").getAsJsonObject("schema");
             assertTrue(schema.getAsJsonObject("properties").has("biography") && schema.getAsJsonArray("required").toString().contains("biography"));
             assertTrue(engine.memory().hasBackstory(founder.id()));
@@ -1107,7 +1107,7 @@ class ConversationEngineTest {
             assertTrue(lastRequest.get().getAsJsonArray("messages").get(0).getAsJsonObject().get("content").getAsString().contains("Ты пришёл сюда первым."));
             engine.converse(villager(UUID.randomUUID(), 520, 500, false), "Привет");
             String neighbour = lastRequest.get().getAsJsonArray("messages").get(0).getAsJsonObject().get("content").getAsString();
-            assertTrue(neighbour.contains("твоя деревня уже известна: «Тихие Грядки»") && neighbour.contains("заняты: Прохор"), neighbour);
+            assertTrue(neighbour.contains("твоя деревня уже известна: «Тихие Грядки»"), neighbour);
             assertTrue(request.toString().contains("\"reasoning\":{\"effort\":\"minimal\"}"), "reasoning kept minimal for speed");
         }
     }

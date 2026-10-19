@@ -199,6 +199,16 @@ public final class MobGameBridge {
     static final double WITNESS_RANGE = 16, HEARING_RANGE = 5;
 
     /** The mob stops wandering and keeps looking at the player for {@code ticks}: it is being spoken to, thinking or speaking. */
+    /** The gift key: one item from the player's hand to this creature, on the server. */
+    public CompletableFuture<String> giftFromHand(UUID mobId, UUID playerId) {
+        return onServer(() -> {
+            ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
+            Entity entity = player == null ? null : ((ServerWorld) player.getWorld()).getEntity(mobId);
+            if (!(entity instanceof MobEntity mob) || !mob.isAlive()) return "Моб недоступен";
+            return society.giftFromHand((ServerWorld) player.getWorld(), player, mob);
+        });
+    }
+
     public CompletableFuture<Void> attend(UUID mobId, UUID playerId, int ticks) {
         return onServer(() -> {
             ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);

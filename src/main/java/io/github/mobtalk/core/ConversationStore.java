@@ -348,7 +348,9 @@ public final class ConversationStore {
     /** The model's invented name and story for this mob; blank parts stay blank. villageId may be "". */
     public synchronized void setBackstory(UUID mob, String givenName, String story, String wish, String hidden, String villageId) {
         Profile p = require(mob);
-        p.givenName = TextBounds.characters(givenName, 60); p.backstory = TextBounds.characters(story, 1500);
+        // An explicit name (the model's story, the card in F7) replaces the one the social layer seeded; the prompt asks the model to keep it.
+        if (givenName != null && !givenName.isBlank() || p.social == null) p.givenName = TextBounds.characters(givenName, 60);
+        p.backstory = TextBounds.characters(story, 1500);
         p.wish = TextBounds.characters(wish, 400); p.hidden = TextBounds.characters(hidden, 400);
         p.villageId = villageId == null ? "" : villageId;
         scheduleSave(); // No revision bump: a story arriving mid-answer invalidates nothing.

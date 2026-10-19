@@ -105,9 +105,11 @@ final class MobPrompt {
 
     /** A mob met for the first time: the rules for the life it invents inside this reply (field {@code biography}). */
     static String lifeToInvent(ConversationStore.Profile profile, SpeciesCatalog.Species species) {
-        StringBuilder text = new StringBuilder("У тебя ещё нет имени и истории — придумай их прямо сейчас в поле biography и отвечай уже из них, как давно живущий здесь персонаж:\n");
-        text.append("name — имя или кличка в одно-два слова, в духе вида (у животных кличка, у жителя имя, у монстров прозвище)");
-        if (profile.takenNames != null && !profile.takenNames.isEmpty()) text.append("; заняты: ").append(String.join(", ", profile.takenNames));
+        boolean named = profile.givenName != null && !profile.givenName.isBlank();
+        StringBuilder text = new StringBuilder(named ? "У тебя ещё нет истории — придумай её прямо сейчас в поле biography и отвечай уже из неё, как давно живущий здесь персонаж:\n" : "У тебя ещё нет имени и истории — придумай их прямо сейчас в поле biography и отвечай уже из них, как давно живущий здесь персонаж:\n");
+        if (named) text.append("name — твоё имя уже известно: «").append(profile.givenName).append("», верни его без изменений");
+        else text.append("name — имя или кличка в одно-два слова, в духе вида (у животных кличка, у жителя имя, у монстров прозвище)");
+        if (!named && profile.takenNames != null && !profile.takenNames.isEmpty()) text.append("; заняты: ").append(String.join(", ", profile.takenNames));
         text.append(".\nstory — 3 коротких предложения во втором лице («Ты родился…»): откуда ты, одно событие, которое тебя изменило, кого или что ты потерял или ищешь. ")
             .append("Конкретно и по-майнкрафтовски: места, вещи и мобы из игры. Без упоминания игрока.\n")
             .append("desire — одно предложение: чего именно ты хочешь от жизни (достижимое в Minecraft). secret — одно предложение: что скрываешь и выдаёшь только другу. ")

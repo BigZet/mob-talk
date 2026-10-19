@@ -138,7 +138,8 @@ class FamilyTest {
         assertEquals(woman, store.social().spouse(man));
         assertTrue(store.events(woman).stream().anyMatch(e -> e.contains("брак")));
         ConversationStore.Profile wife = store.profile(villager(woman, player, store.revision(woman), "minecraft:air"));
-        assertTrue(MobPrompt.kin(wife, villager(woman, player, 0, "minecraft:air")).contains("Пётр — твой муж"), MobPrompt.kin(wife, villager(woman, player, 0, "minecraft:air")));
+        // The husband carries the name the social layer seeded for him (the observed «Пётр» is only what the game showed).
+        assertTrue(MobPrompt.kin(wife, villager(woman, player, 0, "minecraft:air")).contains(store.displayName(man) + " — твой муж"), MobPrompt.kin(wife, villager(woman, player, 0, "minecraft:air")));
         int before = store.relationship(woman, player);
         List<SocialLedger.Mourner> mourners = store.social().died(man, "Пётр", "minecraft:villager", player, "Стив", 2000);
         assertEquals(1, mourners.size()); assertEquals("муж", mourners.getFirst().word());

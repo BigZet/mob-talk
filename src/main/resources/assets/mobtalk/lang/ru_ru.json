@@ -3,6 +3,7 @@
   "key.mobtalk.talk": "Говорить с выбранным мобом (удерживать)",
   "key.mobtalk.settings": "Настройки Mob Talk",
   "key.mobtalk.trade": "Сделки выбранного моба",
+  "key.mobtalk.gift": "Подарить предмет из руки выбранному мобу (1 шт.)",
   "subtitle.mobtalk.mob_speech": "Моб говорит",
   "mobtalk.settings.title": "Настройки Mob Talk",
   "mobtalk.settings.tab.main": "Основное",

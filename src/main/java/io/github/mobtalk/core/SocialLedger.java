@@ -23,10 +23,12 @@ public final class SocialLedger {
     /** Gives a villager its social profile the first time the layer sees it: sex, character and marks from its UUID, and the
      * character's one-time shift of the temperament. Returns whether anything changed. */
     static boolean adopt(ConversationStore.Profile p, MobTalkConfig config) {
-        if (!applies(p, config) || p.social != null) return false;
-        p.social = SocialProfile.of(p.id, false);
-        temper(p);
-        return true;
+        if (!applies(p, config)) return false;
+        boolean changed = false;
+        if (p.social == null) { p.social = SocialProfile.of(p.id, false); temper(p); changed = true; }
+        // A villager the layer knows has a name before anyone talks to it: weddings and rumours name people, not «Крестьянин».
+        if (p.givenName == null || p.givenName.isBlank()) { p.givenName = VillagerNames.pick(p.id, p.social.gender()); changed = true; }
+        return changed;
     }
     /** The character's one-time shift of the temperament. */
     static void temper(ConversationStore.Profile p) {
@@ -133,6 +135,49 @@ public final class SocialLedger {
             apply(p, r, player, playerName, intent, config, now);
             p.revision++; // Like a blow or help: a reply written before the gift landed is stale.
             store.scheduleSave();
+            return intent;
+        }
+    }
+
+    /** How warmly a creature outside the villagers' layer takes a gift from the hand: its own food is the best present, anything the
+     * catalogue values counts for half (a cow cares little for emeralds), the rest is declined; a hated or hostile creature wants nothing. */
+    static final int FOOD_FIRST = 8;
+    public GestureIntent giftFromHand(UUID mob, String type, String name, UUID player, String playerName, String item, String profession, boolean child,
+                                      boolean favouriteFood, long now) {
+        if (mob == null || player == null || item == null) return null;
+        synchronized (store) {
+            MobTalkConfig config = store.config();
+            if (applies(type, config)) {
+                ConversationStore.Profile p = store.ensure(mob, type, name);
+                if (p.social == null) return null;
+                ConversationStore.Relation r = rapport(p, player);
+                GestureIntent intent = gift(p, r.rapport, item, profession, child, now);
+                apply(p, r, player, playerName, intent, config, now);
+                p.revision++; store.scheduleSave();
+                return intent;
+            }
+            ConversationStore.Profile p = store.ensure(mob, type, name);
+            ConversationStore.Relation r = rapport(p, player);
+            int times = r.rapport.given(item, now);
+            GestureIntent intent;
+            if (p.hostile() || r.score <= CombatRules.HATRED) intent = new GestureIntent(Gesture.GIFT, Gesture.Outcome.REFUSED, 0, item, "от этого игрока тебе ничего не надо");
+            else if (favouriteFood) {
+                int hearts = Math.max(0, FOOD_FIRST - 2 * times);
+                intent = new GestureIntent(Gesture.GIFT, hearts >= FOOD_FIRST ? Gesture.Outcome.BEST : hearts >= 4 ? Gesture.Outcome.BETTER : hearts > 0 ? Gesture.Outcome.GOOD : Gesture.Outcome.ALREADY,
+                        hearts, item, "твоя любимая еда");
+            } else if (GiftCatalog.known(item)) {
+                GiftCatalog.Value value = GiftCatalog.weigh(item, new GiftCatalog.Receiver(Persona.FRIENDLY, Set.of(), "", child), times);
+                int hearts = value.hearts() / 2;
+                intent = new GestureIntent(Gesture.GIFT, value.tier() == Gesture.Outcome.REFUSED ? Gesture.Outcome.REFUSED : hearts <= 0 ? Gesture.Outcome.ALREADY : Gesture.Outcome.GOOD,
+                        Math.max(0, hearts), item, value.category());
+            } else intent = new GestureIntent(Gesture.GIFT, Gesture.Outcome.REFUSED, 0, item, "тебе это не нужно");
+            r.score = ConversationStore.clamp(r.score + intent.hearts(), p.hostile());
+            r.rapport.record(Gesture.GIFT, now, intent.hearts() != 0);
+            if (intent.takesItem()) r.rapport.gave(item, now);
+            ConversationStore.feel(p, r, intent.takesItem() ? MobState.Event.GIFT_LIKED : MobState.Event.GIFT_SPURNED, now);
+            ConversationStore.event(p, now, "Игрок " + TextBounds.characters(playerName, 60) + (intent.takesItem() ? " подарил тебе " : " предлагал тебе ") + item
+                    + (intent.note().isBlank() ? "" : " (" + intent.note() + ")") + (intent.takesItem() ? "; отношение " + r.score : ", ты не взял"), 4);
+            p.revision++; store.scheduleSave();
             return intent;
         }
     }
@@ -407,6 +452,8 @@ public final class SocialLedger {
 
     /** The occasion for the villager's words about a thrown gift whose outcome the game already applied. */
     public static String giftCue(GestureIntent intent) { return SocialPrompt.thrownGift(intent); }
+    /** The same cue for a gift handed over (not picked up from the ground). */
+    public static String handGiftCue(GestureIntent intent) { return SocialPrompt.thrownGift(intent).replace("ты его подобрал", "ты взял его из рук игрока").replace("ты его не взял", "ты не взял его из рук игрока"); }
 
     /** One line about the selected villager's social side, for /mobtalk state; "" for anyone else. */
     public String describe(UUID mob, UUID player) {

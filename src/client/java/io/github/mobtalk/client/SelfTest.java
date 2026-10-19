@@ -374,7 +374,28 @@ final class SelfTest {
             MobCard card = bridge().memory.card(cow, owner.client.player.getUuid());
             MobState.Descriptor marker = card == null || card.state() == null ? null : card.state().marker();
             check(card != null && card.state() != null, "the mob card carries the state for the HUD; marker: " + (marker == null ? "(neutral)" : marker.key() + " / " + marker.word()));
-            stayHere();
+            giftWheat();
+        });
+    }
+
+    // ---- Stage 9a' (0.7.0): the gift key — wheat from the hand to the cow: taken, relationship up, a word of thanks.
+    private void giftWheat() {
+        String name = owner.client.player.getName().getString();
+        command("item replace entity " + name + " weapon.mainhand with minecraft:wheat 2");
+        await("wheat in hand", 3, () -> owner.client.player.getMainHandStack().getCount() == 2, () -> {
+            int relationBefore = relation(cow), turnsBefore = turns(cow);
+            owner.giftFromHand();
+            await("the cow took the wheat", 10, () -> relation(cow) > relationBefore, () -> {
+                check(relation(cow) > relationBefore, "the cow took the wheat from the hand: relation " + relationBefore + " → " + relation(cow));
+                await("hand count synced", 2, () -> owner.client.player.getMainHandStack().getCount() == 1, () ->
+                        check(owner.client.player.getMainHandStack().getCount() == 1, "one wheat left the hand (" + owner.client.player.getMainHandStack().getCount() + " left)"));
+                await("the cow said a word of the gift", 90, () -> turns(cow) > turnsBefore && !owner.busyTalking(), () -> {
+                    log("cow about the gift: " + lastReply(cow));
+                    check(turns(cow) > turnsBefore, "the cow spoke of the gift");
+                    command("item replace entity " + name + " weapon.mainhand with minecraft:air");
+                    stayHere();
+                });
+            });
         });
     }
 
