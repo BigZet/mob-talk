@@ -40,6 +40,8 @@ final class MobActionController {
         if (mob.getWorld().getTime() > current.until || !mob.isAlive() || !current.player.isAlive() || current.player.getWorld() != mob.getWorld()) { attention.remove(mob.getUuid()); return false; }
         return !leases.containsKey(mob.getUuid()) && mob.getTarget() == null && !(mob instanceof PathAwareEntity aware && aware.isPanicking());
     }
+    /** Under a lease or in a conversation: not to be moved by anything else (the social controller asks). */
+    boolean busy(MobEntity mob) { return leases.containsKey(mob.getUuid()) || attentive(mob); }
     /** When each villager last called the golem, so the alarm is not raised every second. */
     private final Map<UUID, Long> alarms = new HashMap<>();
     /** When each hated player last got a memory line from a mob's stance, so fleeing every 20 s is remembered once. */
@@ -337,6 +339,7 @@ final class MobActionController {
             if (mob instanceof WardenEntity warden) warden.removeSuspect(player);
         }
         Lease lease = leases.get(mob.getUuid());
+        if (lease == null && bridge.social.standing(mob)) { bridge.social.afterBrain(mob); return; }
         if (lease == null && attentive(mob)) {
             // Brain tasks re-plan a walk every tick; drop it again after they ran so a listening villager stays put.
             if (registered(mob, MemoryModuleType.WALK_TARGET)) mob.getBrain().forget(MemoryModuleType.WALK_TARGET);

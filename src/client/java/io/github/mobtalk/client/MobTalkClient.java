@@ -838,6 +838,8 @@ public final class MobTalkClient implements ClientModInitializer {
                 .append(" (настроение ").append(state.mood()).append(", спокойствие ").append(state.calm())
                 .append(", интерес ").append(state.interest()).append(", доверие ").append(state.trust()).append(')');
         if (!state.thought().isEmpty()) text.append(" · мысль: «").append(state.thought()).append('»');
+        List<io.github.mobtalk.core.MobRelations.View> bonds = game.memory.bonds(selected, System.currentTimeMillis());
+        if (!bonds.isEmpty()) text.append(" · свои: ").append(String.join(", ", bonds.stream().limit(6).map(io.github.mobtalk.core.MobRelations.View::label).toList()));
         return text.toString();
     }
 

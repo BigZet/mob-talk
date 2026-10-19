@@ -156,6 +156,8 @@ final class MobTalkSettingsScreen extends Screen {
         wide(slider("mobtalk.settings.timeout", 5, 90, draft.requestTimeoutSeconds, value -> draft.requestTimeoutSeconds = value));
         wide(slider("mobtalk.settings.witnesses", 0, 2, draft.witnessReplies, value -> draft.witnessReplies = value));
         wide(toggle("mobtalk.settings.stateHud", draft.showStateHud, value -> draft.showStateHud = value));
+        wide(toggle("mobtalk.settings.social", draft.socialBehavior, value -> draft.socialBehavior = value));
+        wide(slider("mobtalk.settings.socialDensity", 1, 30, draft.socialActionsPerMinute, value -> draft.socialActionsPerMinute = value));
 
         header("mobtalk.settings.section.memory");
         wide(slider("mobtalk.settings.history", 1, 64, draft.historyTurns, value -> draft.historyTurns = value));

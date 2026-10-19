@@ -34,15 +34,15 @@ public final class Situation {
     private final String playerWeapon, playerArmor;
     private final int hits, witnessed, kills, calm, confidence;
     private final boolean trapped;
-    private final int relationship;
+    private final int relationship, friendsNear;
     private final boolean hostile, threat, creative;
 
     private Situation(Combatant mob, Combatant player, String playerWeapon, String playerArmor, int hits, int witnessed, int relationship,
-                      boolean hostile, boolean threat, boolean creative, int kills, int calm, int confidence, boolean trapped) {
+                      boolean hostile, boolean threat, boolean creative, int kills, int calm, int confidence, boolean trapped, int friendsNear) {
         this.mob = mob; this.player = player; this.verdict = creative ? Verdict.DOOMED : verdict(mob, player);
         this.playerWeapon = playerWeapon; this.playerArmor = playerArmor; this.hits = hits; this.witnessed = witnessed;
         this.relationship = relationship; this.hostile = hostile; this.threat = threat; this.creative = creative;
-        this.kills = kills; this.calm = calm; this.confidence = confidence; this.trapped = trapped;
+        this.kills = kills; this.calm = calm; this.confidence = confidence; this.trapped = trapped; this.friendsNear = friendsNear;
     }
 
     public Verdict verdict() { return verdict; }
@@ -91,9 +91,15 @@ public final class Situation {
         String type = snapshot.type() == null ? "" : snapshot.type();
         boolean fighter = Boolean.TRUE.equals(details.get("fighter"));
         double attack = details.get("attackDamage") instanceof Number damage ? damage.doubleValue() : 0;
-        int allies = 0;
-        for (ObservedEntity entity : snapshot.observedEntities())
-            if (entity.visible() && type.equals(entity.type()) && entity.distance() <= ALLY_RANGE) allies++;
+        // Kin of the same species count as allies, and so does a friend of another kind (see MobRelations) standing as close.
+        Set<java.util.UUID> friends = new java.util.HashSet<>();
+        if (profile != null && profile.bonds != null) for (MobRelations.View bond : profile.bonds) if (bond.friend()) friends.add(bond.other());
+        int allies = 0, friendsNear = 0;
+        for (ObservedEntity entity : snapshot.observedEntities()) {
+            if (!entity.visible() || entity.distance() > ALLY_RANGE) continue;
+            if (type.equals(entity.type())) allies++;
+            else if (friends.contains(entity.id())) { allies++; friendsNear++; }
+        }
         Combatant mob = new Combatant(snapshot.health(), snapshot.maxHealth(), attack / 2, 0, fighter, BOSSES.contains(type), allies);
         String weaponId = itemId(player, "mainHand"), weaponName = itemName(player, "mainHand");
         double weapon = Math.max(FISTS, Math.max(weaponScore(weaponId), weaponScore(itemId(player, "offHand"))));
@@ -125,7 +131,7 @@ public final class Situation {
         return new Situation(mob, human, weaponText, armorText, hits, witnessed, relationship, hostile, threat, Boolean.TRUE.equals(player.get("creative")),
                 // The nerves of the moment, not the temperament alone: a calm creature just beaten still panics.
                 kills, profile == null ? 50 : profile.stateView != null ? profile.stateView.calm() : profile.calm,
-                profile == null ? 50 : profile.confidence, Boolean.TRUE.equals(details.get("trapped")));
+                profile == null ? 50 : profile.confidence, Boolean.TRUE.equals(details.get("trapped")), friendsNear);
     }
 
     private static String itemId(Map<String,Object> player, String slot) { return player.get(slot) instanceof Map<?,?> item && item.get("id") instanceof String id ? id : ""; }
@@ -148,7 +154,8 @@ public final class Situation {
                 .append(", здоровье ").append(Math.round(player.health())).append(" из ").append(Math.round(player.maxHealth())).append('.');
         text.append("\n— Ты: здоровье ").append(Math.round(mob.health())).append(" из ").append(Math.round(mob.maxHealth())).append(", ")
                 .append(mob.boss() ? "ты сам по себе сила, с которой считаются" : mob.fighter() ? "драться умеешь" : "драться не умеешь: ни оружия, ни зубов, ни когтей")
-                .append(mob.allies() > 0 ? ", рядом сородичей: " + mob.allies() : ", сородичей рядом нет").append('.');
+                .append(mob.allies() - friendsNear > 0 ? ", рядом сородичей: " + (mob.allies() - friendsNear) : ", сородичей рядом нет")
+                .append(friendsNear > 0 ? ", рядом друзей другого рода: " + friendsNear : "").append('.');
         if (hits > 0 || witnessed > 0) {
             text.append("\n— История: ");
             if (hits > 0) text.append("он бил тебя ").append(hits).append(' ').append(plural(hits, "раз", "раза", "раз"));

@@ -28,10 +28,13 @@ public final class MobGameBridge {
     final MobActionController actions;
     final VillagerBargaining bargaining;
     final MobTrading trading;
+    /** Bonds between mobs: their sources in the game and the walks they cause. */
+    final MobSocialController social;
     private final Map<UUID, Deque<Heard>> heard = new HashMap<>();
 
     private MobGameBridge(MinecraftServer server, ConversationStore memory, MobTalkConfig config) {
         this.server = server; this.memory = memory; this.config = config.copy();
+        social = new MobSocialController(this);
         actions = new MobActionController(this);
         bargaining = new VillagerBargaining(this);
         trading = new MobTrading(this);
@@ -55,6 +58,7 @@ public final class MobGameBridge {
                 // Only a mob the player already knows keeps a diary: a profile for every burning zombie would bloat the world memory.
                 bridge.event(mob, "Damage: " + source.getName() + "; attacker="
                         + (source.getAttacker() == null ? "environment" : type(source.getAttacker())));
+                if (source.getAttacker() instanceof MobEntity attacker) bridge.social.attacked(attacker, mob);
             }
         });
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
@@ -64,6 +68,7 @@ public final class MobGameBridge {
             // memory behind; one with a conversation keeps its profile, and its death goes into it.
             UUID id = mob.getUuid();
             if (source.getAttacker() instanceof ServerPlayerEntity player) bridge.witnessed(mob, player, "убил", -25);
+            bridge.social.died(mob); // Before the stranger's profile goes: the mourners keep its name.
             if (bridge.memory.known(id) && !bridge.memory.forgetStranger(id)) bridge.event(mob, "The mob died: " + source.getName());
             // END_WORLD_TICK removes dead leases; a death callback can run inside that lease's melee goal.
         });
@@ -75,6 +80,7 @@ public final class MobGameBridge {
             MobGameBridge bridge = forEntity(entity);
             if (bridge != null && entity instanceof MobEntity mob) {
                 bridge.actions.unload(mob);
+                bridge.social.unload(mob);
                 if (mob instanceof VillagerEntity villager) bridge.bargaining.unload(villager);
                 bridge.heard.remove(mob.getUuid());
             }
@@ -84,6 +90,7 @@ public final class MobGameBridge {
             if (bridge != null && bridge.server == world.getServer()) {
                 bridge.actions.tick(world);
                 bridge.actions.stance(world);
+                bridge.social.tick(world);
                 bridge.bargaining.tick(world);
             }
         });
@@ -120,7 +127,7 @@ public final class MobGameBridge {
                 bridge.memory.recordAction(card.id(), ActionIntent.none());
         if (server.isStopped()) return CompletableFuture.completedFuture(null);
         CompletableFuture<Void> done = new CompletableFuture<>();
-        server.execute(() -> { bridge.actions.clearRuntime(); bridge.bargaining.close(); done.complete(null); });
+        server.execute(() -> { bridge.actions.clearRuntime(); bridge.social.clearRuntime(); bridge.bargaining.close(); done.complete(null); });
         return done;
     }
     public static MobGameBridge forEntity(Entity entity) {
@@ -211,7 +218,9 @@ public final class MobGameBridge {
             Nearby nearby = nearby(mobId, playerId, dimension);
             if (memory.card(mobId, playerId) == null) event(nearby.mob, "The player met this mob");
             actions.attend(nearby.mob, nearby.player, 100); // Being spoken to: stand and listen while the answer is written.
-            return MobContextCapture.capture(this, nearby.world, nearby.mob, nearby.player);
+            MobSnapshot snapshot = MobContextCapture.capture(this, nearby.world, nearby.mob, nearby.player);
+            social.conversation(nearby.mob, snapshot); // The known creatures around get acquainted with the one spoken to.
+            return snapshot;
         });
     }
     /** The living mob and player in the same world within the conversation range; server thread only. */

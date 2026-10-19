@@ -213,6 +213,8 @@
   "mobtalk.settings.section.venice.speech": "Venice key (speech)",
   "mobtalk.settings.section.venice.both": "Venice key (replies and speech)",
   "mobtalk.settings.stateHud": "Mob's state in the Mob Talk line",
+  "mobtalk.settings.social": "Mobs act on their relations with each other",
+  "mobtalk.settings.socialDensity": "Social walks per minute: %s",
   "mobtalk.state.gloomy": "gloomy",
   "mobtalk.state.down": "down",
   "mobtalk.state.even": "even",
