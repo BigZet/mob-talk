@@ -104,6 +104,7 @@ final class AnswerValidator {
                 throw new Rejected("В реплике названа цена " + unbacked + ", но " + (own ? "deal" : "bargain") + " её не применяет, и игра её не покажет. "
                         + (own ? "Либо верни deal OFFER с ценой из allowedPrices этой сделки и назови в реплике ровно её, либо не называй новую цену."
                         : view.windowOpen() ? "Либо верни OFFER с ценой из allowedPrices и назови в реплике ровно её, либо не называй новую цену."
+                        : view.spokenAvailable() ? "Либо верни bargain OFFER с offerIndex нужной строки и ценой из её allowedPrices и назови в реплике ровно её, либо не называй новую цену."
                         : "Окно торговли закрыто: не называй новую цену, а предложи открыть торговлю и выбрать товар."), true, own);
             }
             // The thought is optional: an older or fallback answer without it keeps the mob's previous one.
@@ -145,7 +146,10 @@ final class AnswerValidator {
         TradingView view = TradingView.of(snapshot);
         try {
             BargainIntent.Type type = BargainIntent.Type.valueOf(ReplySchema.string(bargain, "type").toUpperCase(Locale.ROOT));
-            if (type == BargainIntent.Type.NONE || !view.windowOpen()) return BargainIntent.none();
+            if (type == BargainIntent.Type.NONE) return BargainIntent.none();
+            // Window shut: a promise on one of the villager's rows (SpokenOffer) instead of a price in the open window.
+            if (!view.windowOpen()) return view.spokenAvailable() ? SpokenOffer.validate(view.spoken(), type.name(), ReplySchema.integer(bargain, "offerIndex"),
+                    bargain.has("price") ? ReplySchema.integer(bargain, "price") : -1) : BargainIntent.none();
             Map<?,?> context = view.bargaining();
             if (!view.permittedBargainTypes().contains(type.name())) return BargainIntent.none();
             int selected = TradingView.integer(context.get(context.containsKey("selectedIndex") ? "selectedIndex" : "selectedOffer"));
@@ -177,6 +181,7 @@ final class AnswerValidator {
     private static String otherRow(JsonObject requested, TradingView view) {
         try {
             int asked = ReplySchema.integer(requested, "offerIndex");
+            if (view.spokenAvailable()) return SpokenOffer.rejection(view.spoken(), asked, requested.get("price"));
             if (view.bargaining() != null && view.bargaining().get("selectedIndex") instanceof Number selected && asked != selected.intValue())
                 return "Ты пытался уступить по строке " + asked + ", а в окне выбрана строка " + selected + ": скидка возможна только по выбранной. "
                         + "Если игрок говорит о другом товаре, попроси выбрать его строку в окне торговли и цену не называй.";
@@ -356,6 +361,7 @@ final class AnswerValidator {
             if (bargain.type() == BargainIntent.Type.OFFER && context.get("vanillaCount") instanceof Number vanilla)
                 honest.add(vanilla.intValue() - bargain.discount());
         }
+        honest.addAll(SpokenOffer.honestPrices(view.spoken(), bargain)); // The promise with the window shut, and every row's price.
         List<Integer> numbers = spokenNumbers(reply);
         // Echoing the player's own number ("Шесть? Ладно, восемь") is fine; the last number is the one that sticks.
         return numbers.isEmpty() || honest.contains(numbers.getLast()) ? -1 : numbers.getLast();

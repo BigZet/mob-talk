@@ -121,8 +121,14 @@ public final class ConversationStore {
      * memory of it. Only mobs with a profile notice; strangers are not worth one. */
     public static final long WITNESS_COOLDOWN = 5_000;
     public synchronized void recordWitnessed(UUID mob, UUID player, String playerName, String seen, int delta, long nowMillis) {
-        Profile p = mob == null ? null : state.profiles.get(mob.toString());
-        if (p == null || player == null) return;
+        recordWitnessed(mob, null, null, player, playerName, seen, delta, null, nowMillis);
+    }
+    /** {@code type} non-null: a villager (or golem) that saw a misdeed gets a profile even as a stranger — a village remembers;
+     * {@code felt} names the state shift, null derives it from {@code seen} (a killing or a blow). */
+    public synchronized void recordWitnessed(UUID mob, String type, String name, UUID player, String playerName, String seen, int delta, MobState.Event felt, long nowMillis) {
+        if (mob == null || player == null) return;
+        Profile p = type != null ? ensure(mob, type, name) : state.profiles.get(mob.toString());
+        if (p == null) return;
         Relation r = relation(p, player);
         int applied = delta;
         if (!cooledDown(r.lastWitness, nowMillis, WITNESS_COOLDOWN)) {
@@ -131,7 +137,7 @@ public final class ConversationStore {
             applied = delta - r.lastWitnessDelta;
         }
         r.lastWitness = nowMillis; r.lastWitnessDelta = delta; r.score = clamp(r.score + applied, hostile(p));
-        feel(p, r, seen != null && seen.startsWith("убил") ? MobState.Event.WITNESSED_KILL : MobState.Event.WITNESSED_HIT, nowMillis);
+        feel(p, r, felt != null ? felt : seen != null && seen.startsWith("убил") ? MobState.Event.WITNESSED_KILL : MobState.Event.WITNESSED_HIT, nowMillis);
         // No revision bump: what the mob saw happen to another must not cancel the reply it is giving right now.
         event(p, nowMillis, "Видел, как игрок " + safePlayer(playerName) + " " + seen + "; отношение " + r.score); scheduleSave();
     }
@@ -222,6 +228,15 @@ public final class ConversationStore {
         String what = deal == null ? "товар «" + dealId + "»"
                 : deal.sell().count() + "× " + deal.sell().name() + " за " + Trading.currentPrice(deal, before) + "× " + deal.price().name();
         event(p, nowMillis, "Игрок " + safePlayer(playerName) + " купил " + what + "; отношение " + r.score); scheduleSave();
+    }
+    /** The player bought what the villager promised in conversation ({@link SpokenOffer}) in its vanilla window: a kept bargain —
+     * the same small gain and warmth as a catalog purchase, and a memory of what changed hands. */
+    public synchronized void recordTradeDone(UUID mob, UUID player, String playerName, String what, long nowMillis) {
+        Profile p = require(mob); Relation r = tradingRelation(p, player);
+        if (cooledDown(r.lastPurchase, nowMillis, 60_000)) { r.lastPurchase = nowMillis; r.score = clamp(r.score + 5, hostile(p)); }
+        feel(p, r, MobState.Event.PURCHASE, nowMillis);
+        p.revision++;
+        event(p, nowMillis, "Игрок " + safePlayer(playerName) + " купил по договорённости " + TextBounds.characters(what, 200) + "; отношение " + r.score); scheduleSave();
     }
     private Relation tradingRelation(Profile p, UUID player) {
         if (player == null) throw new IllegalArgumentException("Сделки и задания требуют игрока.");

@@ -35,6 +35,9 @@ public final class MobState {
         WITNESSED_HIT(-10, -20, 5, -15, false),
         /** It saw the player kill another creature. */
         WITNESSED_KILL(-25, -35, 10, -30, true),
+        /** It saw the player at a misdeed without a blow: a stranger's chest, a village plot, a work block, a door or a bed. Suspicion
+         * more than fear: trust and calm go down, interest up. */
+        MISCHIEF(-5, -10, 10, -15, false),
         INSULT(-15, -10, 0, -10, false),
         THREAT(-10, -30, 10, -25, true),
         APOLOGY(5, 10, 0, 10, false),

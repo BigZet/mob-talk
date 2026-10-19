@@ -51,6 +51,8 @@ public final class MobTalkConfig {
     public int witnessReplies = 2;
     /** One word of the selected mob's emotional state («встревожен», «в духе») in the Mob Talk line. */
     public boolean showStateHud = true;
+    /** One word of how the haggle goes («склоняется», «не уверен», «против») in the Mob Talk line while a bargain is on. */
+    public boolean showBargainHud = true;
     public String defaultVoice = "rSfuQoQ3FY8SVKeraMAp";
 
     /** A menu draft or worker snapshot; editing it does not change the live preferences. */
@@ -92,6 +94,7 @@ public final class MobTalkConfig {
         copy.maxDistance = maxDistance;
         copy.witnessReplies = witnessReplies;
         copy.showStateHud = showStateHud;
+        copy.showBargainHud = showBargainHud;
         copy.defaultVoice = defaultVoice;
         return copy;
     }

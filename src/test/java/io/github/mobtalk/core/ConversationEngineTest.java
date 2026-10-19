@@ -169,6 +169,40 @@ class ConversationEngineTest {
         }
     }
 
+    // Window shut, but the villager may promise a row (SpokenOffer): the OFFER is carried through with the price it named, and a
+    // price outside the row's allowedPrices is corrected with that range.
+    @Test void carriesASpokenPromiseWhenTheWindowIsShut() throws Exception {
+        Map<String,Object> row = SpokenOffer.row(0, "fixture-carrots", Map.of("id", "minecraft:carrot", "name", "Морковь", "count", 22),
+                Map.of("id", "minecraft:air", "name", "", "count", 0), Map.of("id", "minecraft:emerald", "name", "Изумруд", "count", 1),
+                22, List.of(21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11), false);
+        Map<String,Object> bargaining = new java.util.HashMap<>(bargainingContext(false, Map.of("status", "NONE")));
+        bargaining.put("spoken", SpokenOffer.block(List.of(row), null, 1000, ""));
+        MobSnapshot farmer = carrotFarmer(Map.copyOf(bargaining));
+        JsonObject promise = tradingAnswer("Ладно, уговорил: восемнадцать морковок за изумруд, открывай лавку.", "OFFER", 0, 0);
+        promise.getAsJsonObject("bargain").addProperty("price", 18);
+        queuedAnswers.add(promise);
+        try (ConversationEngine engine = engine()) {
+            var answer = engine.converse(farmer, "Скинь до восемнадцати");
+            assertEquals(new BargainIntent(BargainIntent.Type.OFFER, 0, 4), answer.bargain(), "discount counted from the row's current price");
+            assertEquals(1, chatCalls.get(), "the price named aloud is the one promised: no correction");
+            assertTrue(systemPrompt().contains("Торг словами"), "the spoken-bargain rules replace the window-shut ones");
+            String user = lastRequest.get().getAsJsonArray("messages").asList().getLast().getAsJsonObject().get("content").getAsString();
+            assertTrue(user.contains("от 11 до 21"), user);
+            JsonObject schema = lastRequest.get().getAsJsonObject("response_format").getAsJsonObject("json_schema").getAsJsonObject("schema");
+            assertTrue(schema.getAsJsonObject("properties").getAsJsonObject("bargain").getAsJsonObject("properties").getAsJsonObject("type").getAsJsonArray("enum").toString().contains("OFFER"));
+            JsonObject tooLow = tradingAnswer("Пять? Ладно, пять морковок.", "OFFER", 0, 0);
+            tooLow.getAsJsonObject("bargain").addProperty("price", 5);
+            queuedAnswers.add(tooLow);
+            queuedAnswers.add(tradingAnswer("Нет, дешевле не отдам, не обессудь.", "NONE", -1, 0));
+            var refused = engine.converse(farmer, "Давай по пять");
+            assertEquals(BargainIntent.none(), refused.bargain());
+            assertEquals(3, chatCalls.get());
+            String correction = lastRequest.get().getAsJsonArray("messages").asList().stream().map(m -> m.getAsJsonObject().get("content").getAsString())
+                    .filter(text -> text.contains("allowedPrices")).reduce((a, b) -> b).orElse("");
+            assertTrue(correction.contains("не ниже 11"), correction);
+        }
+    }
+
     @Test void recognisesOnlyPricesBackedByTheBargain() {
         var farmer = carrotFarmer(bargainingContext(true, Map.of("status", "NONE")));
         var offer = new BargainIntent(BargainIntent.Type.OFFER, 1, 2);
