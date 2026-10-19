@@ -27,7 +27,9 @@ public final class Initiative {
     public enum Trigger {
         RETURN("игрок вернулся после долгого отсутствия"), BUILDING("игрок только что много строил или копал рядом"),
         CONCERN("у тебя есть незакрытое дело с игроком или мысль, которая не даёт покоя"), WEATHER("погода или время суток только что переменились"),
-        FRIENDS("рядом стоит твой друг, и никто с вами не говорит");
+        FRIENDS("рядом стоит твой друг, и никто с вами не говорит"),
+        /** Raised by the game itself, not detected: a gift thrown at the villager's feet, a family event. Always voiced. */
+        GIFT("игрок только что сделал тебе подарок или в твоей семье случилось важное");
         public final String reason;
         Trigger(String reason) { this.reason = reason; }
     }
@@ -85,6 +87,7 @@ public final class Initiative {
                 case "ночь" -> "настала ночь"; case "дождь" -> "пошёл дождь"; case "гроза" -> "началась гроза"; case "рассвет" -> "рассвело"; default -> f.weatherChange(); })
                     + ", и игрок рядом";
             case FRIENDS -> "рядом стоит " + (f.friendsNearby().isEmpty() ? "твой друг" : f.friendsNearby().getFirst().name() + ", твой друг") + "; игрок поблизости, но с вами не говорит";
+            case GIFT -> trigger.reason;
         };
     }
 

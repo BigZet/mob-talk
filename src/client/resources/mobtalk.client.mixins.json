@@ -20,7 +20,9 @@
     "TruceTargetMixin",
     "SpokenOfferSaveMixin",
     "BlockPlacedMixin",
-    "FluidPlacedMixin"
+    "FluidPlacedMixin",
+    "VillagerFamilyMixin",
+    "VillageTradeRefusalMixin"
   ],
   "injectors": {
     "defaultRequire": 1

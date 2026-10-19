@@ -20,7 +20,7 @@ public final class RuleDecider implements Decider {
     /** The chance to speak: from the occasion, lifted by sociability and interest, lowered by a gloomy mood or distrust. */
     public static double speakChance(DecisionState state) {
         if (state.trigger() == null) return 0;
-        double base = switch (state.trigger()) { case RETURN -> 0.9; case CONCERN -> 0.7; case BUILDING -> 0.6; case WEATHER -> 0.45; case FRIENDS -> 0.5; };
+        double base = switch (state.trigger()) { case RETURN -> 0.9; case CONCERN -> 0.7; case BUILDING -> 0.6; case WEATHER -> 0.45; case FRIENDS -> 0.5; case GIFT -> 1.0; };
         double temper = (state.sociability() - 50) / 200.0 + (state.state().interest() - 50) / 400.0;
         double mood = state.state().mood() < 30 ? -0.1 : 0;
         double trust = state.state().trust() < MobState.WARY_TRUST && state.trigger() != Initiative.Trigger.FRIENDS ? -0.2 : 0;
@@ -34,7 +34,7 @@ public final class RuleDecider implements Decider {
             case CONCERN -> Initiative.Reaction.ASK;
             case BUILDING -> wary ? Initiative.Reaction.COMPLAIN : Initiative.Reaction.REMARK;
             case WEATHER -> gloomy || wary ? Initiative.Reaction.COMPLAIN : Initiative.Reaction.REMARK;
-            case FRIENDS -> Initiative.Reaction.REMARK;
+            case FRIENDS, GIFT -> Initiative.Reaction.REMARK;
         };
     }
     @Override public Initiative.Verdict speaksUp(DecisionState state) {

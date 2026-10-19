@@ -32,6 +32,8 @@ public final class InitiativeController {
 
     InitiativeController(MobGameBridge bridge) { this.bridge = bridge; }
 
+    /** An occasion the game raised itself (a thrown gift, a family event): queued past the budgets, voiced when the floor is free. */
+    public void raise(Initiative.Cue cue) { if (cue != null) cues.add(cue); }
     /** The next occasion for the client, or null. */
     public Initiative.Cue poll() { return cues.poll(); }
     /** The creature chose silence: the world's minute is given back so another may speak sooner. */

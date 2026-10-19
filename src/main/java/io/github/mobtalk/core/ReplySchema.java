@@ -15,7 +15,9 @@ final class ReplySchema {
     /** {@code withBiography}: the mob has no life story yet and invents it in this very answer. */
     static JsonObject replyFormat(MobSnapshot snapshot, boolean withBiography) { return replyFormat(snapshot, withBiography, false); }
     /** {@code wary}: the mob is too anxious or distrustful to concede, so OFFER leaves the bargain and deal enums altogether. */
-    static JsonObject replyFormat(MobSnapshot snapshot, boolean withBiography, boolean wary) {
+    static JsonObject replyFormat(MobSnapshot snapshot, boolean withBiography, boolean wary) { return replyFormat(snapshot, withBiography, wary, List.of()); }
+    /** {@code gestures}: the social layer's gesture enum for this reply ({@link SocialTurn#schemaValues()}); empty leaves the field out. */
+    static JsonObject replyFormat(MobSnapshot snapshot, boolean withBiography, boolean wary, List<String> gestures) {
         TradingView view = TradingView.of(snapshot);
         JsonObject properties = new JsonObject(); properties.add("assessment", property("string")); properties.add("reply", property("string"));
         JsonObject social = property("string"); social.add("enum", strings("NONE", "APOLOGY", "KIND", "INSULT", "THREAT")); properties.add("socialIntent", social);
@@ -37,11 +39,17 @@ final class ReplySchema {
         properties.add("newFacts", property("string"));
         properties.add("importance", property("integer")); // How much newFacts matters, 1–5 (MemoryRanking); ignored when newFacts is empty.
         properties.add("thought", property("string"));
-        if (!withBiography) return format("mob_reply", objectSchema(properties, "assessment", "reply", "socialIntent", "action", "bargain", "deal", "unlock", "quest", "newFacts", "importance", "thought"));
+        List<String> required = new java.util.ArrayList<>(List.of("assessment", "reply", "socialIntent", "action", "bargain", "deal", "unlock", "quest", "newFacts", "importance", "thought"));
+        if (gestures != null && !gestures.isEmpty()) {
+            JsonObject gesture = property("string"); gesture.add("enum", strings(gestures.toArray(String[]::new)));
+            properties.add("gesture", gesture); required.add("gesture");
+        }
+        if (!withBiography) return format("mob_reply", objectSchema(properties, required.toArray(String[]::new)));
         JsonObject life = new JsonObject();
         for (String field : BIOGRAPHY_FIELDS) life.add(field, property("string"));
         properties.add("biography", objectSchema(life, BIOGRAPHY_FIELDS.toArray(String[]::new)));
-        return format("mob_reply", objectSchema(properties, "assessment", "reply", "socialIntent", "action", "bargain", "deal", "unlock", "quest", "newFacts", "importance", "thought", "biography"));
+        required.add("biography");
+        return format("mob_reply", objectSchema(properties, required.toArray(String[]::new)));
     }
 
     /** The importance the answer gave its new fact, clamped to 1–5; {@link MemoryFact#ORDINARY} when absent or not a number. */
@@ -68,6 +76,7 @@ final class ReplySchema {
         for (String intent : List.of("bargain", "deal", "quest"))
             properties.getAsJsonObject(intent).getAsJsonObject("properties").getAsJsonObject("type").add("enum", strings("NONE"));
         properties.getAsJsonObject("unlock").add("enum", strings(""));
+        if (properties.has("gesture")) properties.getAsJsonObject("gesture").add("enum", strings("NONE"));
     }
 
     /** Providers without structured outputs get json_object plus the schema spelled out in the system prompt. */

@@ -43,6 +43,7 @@ final class MobPrompt {
                 + (profile.village == null ? "" : "\n\nТвоя деревня «" + profile.village.name() + "» (эту историю знают все её жители):\n" + profile.village.story())
                 + "\n\nТвой характер:\n" + archetype
                 + (custom ? "\nЛичная настройка именно этой особи (важнее характера выше): " + profile.customPersonality : "")
+                + SocialPrompt.persona(profile)
                 + (species.quirks().isBlank() ? "" : "\nКак ты говоришь, твои фирменные штучки: " + sentence(species.quirks()))
                 + (desire.isBlank() ? "" : "\nЧего ты хочешь от жизни: " + sentence(desire)
                         + " Это твоя личная цель: ты её преследуешь, иногда заводишь о ней речь — но не в каждой реплике — и судишь игрока по тому, помогает он ей или мешает.")
@@ -61,7 +62,9 @@ final class MobPrompt {
                 + rumors(profile)
                 + "\n\nЭтот игрок:\nОтношение (-100..100): " + profile.relationship + " — " + attitude(profile.relationship) + "."
                 + (profile.repute != null && profile.repute.known() && profile.turns.isEmpty() ? "\n" + profile.repute.describe() : "")
+                + SocialPrompt.standing(profile)
                 + MemoryRanking.promptBlock(profile.facts, profile.memory, System.currentTimeMillis()) + ConversationSummary.promptBlock(profile.summaries)
+                + SocialPrompt.gestures(profile)
                 + "\n\n" + PromptTexts.VOICE
                 + "Длина: не больше " + words() + " слов, обычно заметно меньше."
                 + (view.sellsAnything() ? "\n\n" + PromptTexts.TRADER_CHARACTER + PromptTexts.stateTrade(state) : "")
@@ -109,6 +112,7 @@ final class MobPrompt {
             .append("Конкретно и по-майнкрафтовски: места, вещи и мобы из игры. Без упоминания игрока.\n")
             .append("desire — одно предложение: чего именно ты хочешь от жизни (достижимое в Minecraft). secret — одно предложение: что скрываешь и выдаёшь только другу. ")
             .append("Это должно быть своё, не пересказ типичного для вида.\n");
+        text.append(SocialPrompt.lifeFacts(profile));
         if (profile.founds) text.append("villageName — название твоей деревни (1–3 живых слова); villageStory — 3 предложения: как деревня возникла, чем славится, какая беда или легенда с ней связана.\n");
         else text.append("villageName и villageStory — пустые строки").append(profile.village == null ? "" : " (твоя деревня уже известна: «" + profile.village.name() + "»)").append(".\n");
         return text.toString();
@@ -125,7 +129,10 @@ final class MobPrompt {
     static String kin(ConversationStore.Profile profile, MobSnapshot snapshot) {
         java.util.Set<java.util.UUID> present = new java.util.HashSet<>();
         for (ObservedEntity entity : snapshot.observedEntities()) if (entity.visible() && entity.id() != null) present.add(entity.id());
-        List<String> lines = MobRelations.lines(profile.bonds, present, 3);
+        List<String> lines = new ArrayList<>(SocialPrompt.familyLines(profile.family, present));
+        java.util.Set<java.util.UUID> family = new java.util.HashSet<>();
+        if (profile.family != null) for (FamilyTree.Kin kin : profile.family) family.add(kin.id());
+        lines.addAll(MobRelations.lines(profile.bonds == null ? List.of() : profile.bonds.stream().filter(bond -> !family.contains(bond.other())).toList(), present, 3));
         if (lines.isEmpty()) return "";
         return "\n\n" + PromptTexts.KIN_HEADER + "\n— " + String.join("\n— ", lines) + "\n" + PromptTexts.KIN_RULE;
     }

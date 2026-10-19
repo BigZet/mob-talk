@@ -63,6 +63,8 @@ final class OpenRouterConversationClient implements AutoCloseable {
             throws IOException, InterruptedException {
         SpeciesCatalog.Species species = SpeciesCatalog.effective(snapshot.type(), config);
         TradingView view = TradingView.of(snapshot);
+        // A bystander or a creature speaking first makes no gesture with the player: no outcomes block, no gesture field.
+        if (overheard != null) profile.socialTurn = null;
         JsonArray messages = new JsonArray();
         String aside = overheard == null ? "" : "\n\n" + switch (overheard.kind()) {
             case BYSTANDER -> PromptTexts.OVERHEARD; case INITIATIVE -> PromptTexts.INITIATIVE; case DIALOGUE -> PromptTexts.DIALOGUE; };
@@ -79,7 +81,8 @@ final class OpenRouterConversationClient implements AutoCloseable {
         // An anxious or distrustful mob cannot concede: the schema itself drops OFFER, the validator catches json_object providers.
         MobState.View state = profile.stateView != null ? profile.stateView : MobState.viewOf(profile, System.currentTimeMillis());
         boolean wary = state.refusesDeals();
-        JsonObject body = body(messages, 4096, view.windowOpen() ? 0.6 : 0.95, ReplySchema.replyFormat(snapshot, needsStory, wary), !noStreaming);
+        JsonObject body = body(messages, 4096, view.windowOpen() ? 0.6 : 0.95, ReplySchema.replyFormat(snapshot, needsStory, wary,
+                overheard == null ? SocialPrompt.schemaGestures(profile) : List.of()), !noStreaming);
         if (overheard != null) ReplySchema.forbidIntents(body);
         long deadline = System.nanoTime() + http.timeout().toNanos();
         int words = prompt.words();
@@ -89,7 +92,7 @@ final class OpenRouterConversationClient implements AutoCloseable {
             java.util.List<String> recent = profile.turns == null ? java.util.List.of()
                     : profile.turns.subList(Math.max(0, profile.turns.size() - 3), profile.turns.size()).stream().map(ConversationStore.Turn::assistant).toList();
             AnswerValidator.Bounds bounds = new AnswerValidator.Bounds(words, profile.memory, Math.max(200, Math.min(4000, config.maxMemoryChars)),
-                    profile.relationship, jsonObjectOnly, service(), overheard != null, wary, recent);
+                    profile.relationship, jsonObjectOnly, service(), overheard != null, wary, recent, overheard == null ? profile.socialTurn : null);
             try { return AnswerValidator.parse(bytes, snapshot, bounds); }
             catch (AnswerValidator.Rejected invalid) {
                 diagnostics.accept("ответ отклонён (попытка " + (correction + 1) + ", " + snapshot.type() + "): " + invalid.getMessage());
@@ -246,12 +249,17 @@ final class OpenRouterConversationClient implements AutoCloseable {
     /** {@code fact}: the newFacts of this answer with their importance (see {@link MemoryRanking}), or null when it added none;
      * {@code memory} is null for such answers and a whole memory text only for older or fallback ones. */
     record Answer(String reply, String memory, SocialIntent socialIntent, ActionIntent action, BargainIntent bargain,
-                  DealIntent deal, String unlock, QuestIntent quest, BiographyWriter.Biography biography, String thought, MemoryFact fact) {
+                  DealIntent deal, String unlock, QuestIntent quest, BiographyWriter.Biography biography, String thought, MemoryFact fact, GestureIntent gesture) {
         Answer {
+            if (gesture == null) gesture = GestureIntent.none();
             if (deal == null) deal = DealIntent.none();
             unlock = unlock == null ? "" : unlock;
             if (quest == null) quest = QuestIntent.none();
             thought = thought == null ? "" : thought;
+        }
+        Answer(String reply, String memory, SocialIntent socialIntent, ActionIntent action, BargainIntent bargain,
+               DealIntent deal, String unlock, QuestIntent quest, BiographyWriter.Biography biography, String thought, MemoryFact fact) {
+            this(reply, memory, socialIntent, action, bargain, deal, unlock, quest, biography, thought, fact, GestureIntent.none());
         }
         Answer(String reply, String memory, SocialIntent socialIntent, ActionIntent action, BargainIntent bargain,
                DealIntent deal, String unlock, QuestIntent quest, BiographyWriter.Biography biography, String thought) {

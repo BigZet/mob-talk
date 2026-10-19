@@ -16,7 +16,7 @@ public final class MobRelations {
     /** Simply being together never takes a bond above this: friendship beyond it would need more than proximity. */
     public static final int SYMPATHY_CAP = 60;
     /** Where a bond starts with a neighbour of the same village, and with one of the same species. */
-    public static final int FAMILY_START = 10, KIN_START = 5;
+    public static final int NEIGHBOR_START = 10, KIN_START = 5;
     /** A blow between two creatures: what the victim loses towards the attacker, and the attacker towards the victim. */
     public static final int ATTACKED_DROP = -45, ATTACKER_DROP = -15;
     /** Standing within reach: one point per {@link #TOGETHER_INTERVAL}; being around a conversation: two per {@link #MET_INTERVAL}. */
@@ -27,18 +27,18 @@ public final class MobRelations {
     /** Grief for the dead: three Minecraft days of real time. */
     public static final long GRIEF_DURATION = 3 * 20 * 60_000L;
 
-    /** Why two creatures belong together without having met: one village (villagers and golems), one species, or nothing. */
-    public enum Kinship { NONE, KIN, FAMILY }
+    /** Why two creatures belong together without having met: one village (neighbours: villagers and golems), one species, or nothing. */
+    public enum Kinship { NONE, KIN, NEIGHBOR }
     /** The tags a bond may carry: FRIEND and RIVAL follow the score, the others are facts stored with the bond. */
     public enum Tag {
-        FRIEND("друг"), RIVAL("соперник"), KIN("сородич"), FAMILY("семья"), MOURNS("скорбит");
+        FRIEND("друг"), RIVAL("соперник"), KIN("сородич"), NEIGHBOR("сосед"), MOURNS("скорбит");
         public final String word;
         Tag(String word) { this.word = word; }
     }
 
-    /** One village makes family; one species makes kin; anything else is nothing. */
+    /** One village makes neighbours; one species makes kin; anything else is nothing. Blood and marriage live in {@link FamilyTree}. */
     public static Kinship kinship(String typeA, String villageA, String typeB, String villageB) {
-        if (villageA != null && !villageA.isBlank() && villageA.equals(villageB)) return Kinship.FAMILY;
+        if (villageA != null && !villageA.isBlank() && villageA.equals(villageB)) return Kinship.NEIGHBOR;
         return typeA != null && typeA.equals(typeB) ? Kinship.KIN : Kinship.NONE;
     }
 
@@ -48,7 +48,7 @@ public final class MobRelations {
         public boolean rival() { return tags.contains(Tag.RIVAL); }
         public boolean mourns() { return tags.contains(Tag.MOURNS); }
         /** How much this bond matters: grief and family hold on, a faded acquaintance goes first. */
-        public int strength() { return Math.abs(score) + (mourns() ? 50 : 0) + (tags.contains(Tag.FAMILY) ? 5 : 0); }
+        public int strength() { return Math.abs(score) + (mourns() ? 50 : 0) + (tags.contains(Tag.NEIGHBOR) ? 5 : 0); }
         /** « Аксинья +52 [семья, друг]» for the debug line. */
         public String label() {
             List<String> words = tags.stream().sorted().map(tag -> tag.word).toList();
@@ -58,7 +58,7 @@ public final class MobRelations {
         public String describe(boolean present) {
             String species = SpeciesCatalog.get(type == null ? "" : type).name().toLowerCase(Locale.ROOT);
             String who = name + " (" + species + ")";
-            String family = tags.contains(Tag.FAMILY) ? "сосед по деревне" : tags.contains(Tag.KIN) ? "сородич" : "";
+            String family = tags.contains(Tag.NEIGHBOR) ? "сосед по деревне" : tags.contains(Tag.KIN) ? "сородич" : "";
             String text;
             if (mourns()) text = who + " погиб на твоих глазах; ты скорбишь по нему" + (consoled ? ", друг приходил посидеть с тобой" : "");
             else if (score >= 70) text = who + " — близкий друг" + (family.isEmpty() ? "" : ", " + family);
@@ -91,7 +91,7 @@ public final class MobRelations {
             if (current >= FRIEND) all.add(Tag.FRIEND);
             if (current <= RIVAL) all.add(Tag.RIVAL);
             if (tags.contains(Tag.KIN.name())) all.add(Tag.KIN);
-            if (tags.contains(Tag.FAMILY.name())) all.add(Tag.FAMILY);
+            if (tags.contains(Tag.NEIGHBOR.name())) all.add(Tag.NEIGHBOR);
             if (mourning(now)) all.add(Tag.MOURNS);
             UUID id;
             try { id = UUID.fromString(other); } catch (IllegalArgumentException invalid) { id = new UUID(0, 0); }
@@ -132,7 +132,7 @@ public final class MobRelations {
         Bond bond = find(self, other);
         boolean fresh = bond == null;
         if (fresh) {
-            bond = create(self, other, otherName, otherType, now, kinship == Kinship.FAMILY ? FAMILY_START : kinship == Kinship.KIN ? KIN_START : 0);
+            bond = create(self, other, otherName, otherType, now, kinship == Kinship.NEIGHBOR ? NEIGHBOR_START : kinship == Kinship.KIN ? KIN_START : 0);
             if (bond == null) return false;
         } else {
             if (now >= bond.lastMet && now - bond.lastMet < interval) return false;
@@ -140,7 +140,7 @@ public final class MobRelations {
             if (bond.score < SYMPATHY_CAP) bond.score = Math.min(SYMPATHY_CAP, bond.score + gain);
             name(bond, otherName, otherType);
         }
-        if (kinship == Kinship.FAMILY) bond.tags.add(Tag.FAMILY.name());
+        if (kinship == Kinship.NEIGHBOR) bond.tags.add(Tag.NEIGHBOR.name());
         if (kinship == Kinship.KIN) bond.tags.add(Tag.KIN.name());
         bond.lastMet = now;
         return true;
@@ -229,7 +229,9 @@ public final class MobRelations {
                 if (bond.name == null) bond.name = ""; if (bond.type == null) bond.type = "";
                 if (bond.mourningSince < 0) bond.mourningSince = -1; if (bond.consoledAt < 0) bond.consoledAt = -1;
                 if (bond.tags == null) bond.tags = new LinkedHashSet<>();
-                bond.tags.removeIf(tag -> tag == null || !(tag.equals(Tag.KIN.name()) || tag.equals(Tag.FAMILY.name())));
+                // "FAMILY" meant "one village" before real families existed: such bonds are neighbours.
+                if (bond.tags.remove("FAMILY")) bond.tags.add(Tag.NEIGHBOR.name());
+                bond.tags.removeIf(tag -> tag == null || !(tag.equals(Tag.KIN.name()) || tag.equals(Tag.NEIGHBOR.name())));
             }
             while (own.size() > MAX_BONDS) own.removeFirst();
         }

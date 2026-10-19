@@ -22,7 +22,7 @@ class MobRelationsTest {
         return views.stream().filter(view -> view.other().equals(other)).findFirst().orElse(null);
     }
     private static boolean neighbours(MobRelations relations, UUID a, UUID b, long now) {
-        return relations.together(a, "Аксинья", "minecraft:villager", b, "Прохор", "minecraft:villager", MobRelations.Kinship.FAMILY,
+        return relations.together(a, "Аксинья", "minecraft:villager", b, "Прохор", "minecraft:villager", MobRelations.Kinship.NEIGHBOR,
                 MobRelations.TOGETHER_GAIN, MobRelations.TOGETHER_INTERVAL, now);
     }
 
@@ -33,13 +33,13 @@ class MobRelationsTest {
         assertTrue(neighbours(relations, aksinya, prokhor, 0));
         assertFalse(neighbours(relations, aksinya, prokhor, 10 * SECOND), "within the interval nothing changes");
         MobRelations.View view = bond(relations.views(aksinya, 10 * SECOND), prokhor);
-        assertEquals(MobRelations.FAMILY_START, view.score()); assertEquals("Прохор", view.name());
-        assertEquals(Set.of(MobRelations.Tag.FAMILY), view.tags());
+        assertEquals(MobRelations.NEIGHBOR_START, view.score()); assertEquals("Прохор", view.name());
+        assertEquals(Set.of(MobRelations.Tag.NEIGHBOR), view.tags());
         assertFalse(view.friend());
         long now = 0;
         for (int i = 0; i < 40; i++) { now += MobRelations.TOGETHER_INTERVAL; neighbours(relations, aksinya, prokhor, now); }
         view = bond(relations.views(aksinya, now), prokhor);
-        assertEquals(MobRelations.FAMILY_START + 40, view.score());
+        assertEquals(MobRelations.NEIGHBOR_START + 40, view.score());
         assertTrue(view.friend(), "forty half-minutes side by side make a friend: " + view);
         assertTrue(bond(relations.views(prokhor, now), aksinya).friend(), "the bond is kept on both sides");
         for (int i = 0; i < 100; i++) { now += MobRelations.TOGETHER_INTERVAL; neighbours(relations, aksinya, prokhor, now); }
@@ -48,7 +48,7 @@ class MobRelationsTest {
                 MobRelations.MET_GAIN, MobRelations.MET_INTERVAL, now));
         MobRelations.View stranger = bond(relations.views(aksinya, now), wolf);
         assertEquals(0, stranger.score()); assertTrue(stranger.tags().isEmpty(), "no kinship, no tag: " + stranger);
-        assertEquals(MobRelations.Kinship.FAMILY, MobRelations.kinship("minecraft:villager", "village-1", "minecraft:iron_golem", "village-1"));
+        assertEquals(MobRelations.Kinship.NEIGHBOR, MobRelations.kinship("minecraft:villager", "village-1", "minecraft:iron_golem", "village-1"));
         assertEquals(MobRelations.Kinship.KIN, MobRelations.kinship("minecraft:villager", "village-1", "minecraft:villager", "village-2"));
         assertEquals(MobRelations.Kinship.KIN, MobRelations.kinship("minecraft:villager", "", "minecraft:villager", ""), "no village is not one village, but one species still");
         assertEquals(MobRelations.Kinship.NONE, MobRelations.kinship("minecraft:iron_golem", "", "minecraft:villager", ""));
@@ -124,16 +124,16 @@ class MobRelationsTest {
         relations.attacked(wolf, "Серый", "minecraft:wolf", aksinya, "Аксинья", "minecraft:villager", 0);
         assertFalse(relations.mourn(aksinya, wolf, "Серый", "minecraft:wolf", false, SECOND), "an enemy is not mourned");
         assertEquals("Серый +0", new MobRelations.View(wolf, "Серый", "minecraft:wolf", 0, 0, Set.of(), false).label());
-        assertEquals("Прохор -45 [соперник, семья, скорбит]", new MobRelations.View(prokhor, "Прохор", "minecraft:villager", -45, 0,
-                Set.of(MobRelations.Tag.RIVAL, MobRelations.Tag.FAMILY, MobRelations.Tag.MOURNS), false).label());
+        assertEquals("Прохор -45 [соперник, сосед, скорбит]", new MobRelations.View(prokhor, "Прохор", "minecraft:villager", -45, 0,
+                Set.of(MobRelations.Tag.RIVAL, MobRelations.Tag.NEIGHBOR, MobRelations.Tag.MOURNS), false).label());
     }
 
     // The prompt reads the three strongest bonds in words, those standing nearby marked; a loner gets no block at all.
     @Test void promptNamesTheThreeStrongestBonds() throws Exception {
         UUID golem = UUID.randomUUID(), cow = UUID.randomUUID();
         List<MobRelations.View> views = List.of(
-                new MobRelations.View(prokhor, "Прохор", "minecraft:villager", 20, 0, Set.of(MobRelations.Tag.MOURNS, MobRelations.Tag.FAMILY), false),
-                new MobRelations.View(golem, "Кузьма", "minecraft:iron_golem", 72, 0, Set.of(MobRelations.Tag.FRIEND, MobRelations.Tag.FAMILY), false),
+                new MobRelations.View(prokhor, "Прохор", "minecraft:villager", 20, 0, Set.of(MobRelations.Tag.MOURNS, MobRelations.Tag.NEIGHBOR), false),
+                new MobRelations.View(golem, "Кузьма", "minecraft:iron_golem", 72, 0, Set.of(MobRelations.Tag.FRIEND, MobRelations.Tag.NEIGHBOR), false),
                 new MobRelations.View(wolf, "Серый", "minecraft:wolf", -50, 0, Set.of(MobRelations.Tag.RIVAL), false),
                 new MobRelations.View(cow, "Марфа", "minecraft:cow", 3, 0, Set.of(), false));
         List<String> lines = MobRelations.lines(views, Set.of(golem), 3);
@@ -149,7 +149,7 @@ class MobRelationsTest {
         long now = System.currentTimeMillis(); // The store reads the bonds at the real time of the profile.
         store.observe(villager(aksinya, player, List.of()));
         store.observe(villager(prokhor, player, List.of()));
-        store.updateRelations(r -> r.together(aksinya, "Аксинья", "minecraft:villager", prokhor, "Прохор", "minecraft:villager", MobRelations.Kinship.FAMILY,
+        store.updateRelations(r -> r.together(aksinya, "Аксинья", "minecraft:villager", prokhor, "Прохор", "minecraft:villager", MobRelations.Kinship.NEIGHBOR,
                 MobRelations.TOGETHER_GAIN, MobRelations.TOGETHER_INTERVAL, now - 2000));
         store.updateRelations(r -> r.mourn(aksinya, prokhor, "Прохор", "minecraft:villager", false, now - 1000));
         ObservedEntity seen = new ObservedEntity("e1", prokhor, "minecraft:villager", "Житель", 3, "north", true, Map.of());
@@ -164,7 +164,7 @@ class MobRelationsTest {
         // Reopened from disk: the grief, the name and the family tag are still there; a forgotten stranger takes its bonds along.
         store = ConversationStore.open(directory, config);
         MobRelations.View loaded = bond(store.bonds(aksinya, now), prokhor);
-        assertNotNull(loaded); assertTrue(loaded.mourns() && loaded.tags().contains(MobRelations.Tag.FAMILY), loaded.toString());
+        assertNotNull(loaded); assertTrue(loaded.mourns() && loaded.tags().contains(MobRelations.Tag.NEIGHBOR), loaded.toString());
         assertEquals("Прохор", loaded.name());
         assertEquals(MobRelations.Kinship.KIN, store.kinship(aksinya, prokhor), "no village yet: the same species only");
         assertTrue(store.forgetStranger(prokhor));

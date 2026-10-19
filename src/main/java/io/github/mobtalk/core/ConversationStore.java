@@ -9,8 +9,9 @@ import java.util.*;
 public final class ConversationStore {
     private static final Map<Path,ConversationStore> WORLDS = new HashMap<>();
     private final WorldMemoryFile file;
-    private State state;
+    State state;
     private MobTalkConfig config;
+    private final SocialLedger social = new SocialLedger(this);
 
     /** Initial load touches disk: call from a maintenance/conversation worker. */
     public static ConversationStore open(Path worldDirectory, MobTalkConfig config) throws IOException {
@@ -50,7 +51,11 @@ public final class ConversationStore {
 
     /** A deep copy for the writer thread, taken under the store lock. */
     private synchronized State snapshot() { return state.copy(); }
-    private void scheduleSave() { file.markDirty(); }
+    void scheduleSave() { file.markDirty(); }
+    /** The social layer of this world (characters, gestures, gifts, family, village standing); see {@link SocialLedger}. */
+    public SocialLedger social() { return social; }
+    /** The preferences this store was opened with, for the social layer. */
+    synchronized MobTalkConfig config() { return config; }
     /** Blocking writer barrier for shutdown/tests, never the game thread. */
     public void flush() throws IOException { file.flush(); }
 
@@ -94,6 +99,7 @@ public final class ConversationStore {
         boolean attacked = snapshot.mobDetails().get("lastAttacker") instanceof String attacker && !"none".equals(attacker);
         if (snapshot.maxHealth() > 0 && snapshot.health() >= snapshot.maxHealth() && !attacked && p.state.safe(baseline(p, current.relationship()), now)) scheduleSave();
         detached.stateView = p.state.view(baseline(p, current.relationship()), now);
+        SocialLedger.prepare(state, p, detached, own, snapshot, detached.stateView, config, now);
         return detached;
     }
 
@@ -103,8 +109,8 @@ public final class ConversationStore {
         if (p == null) return null;
         return p.state.view(baseline(p, relationship(mob, player)), System.currentTimeMillis());
     }
-    private static MobState.Baseline baseline(Profile p, int relationship) { return MobState.Baseline.of(p.calm, p.confidence, p.curiosity, p.sociability, relationship); }
-    private static void feel(Profile p, Relation r, MobState.Event event, long nowMillis) { p.state.shift(event, baseline(p, r.score), nowMillis); }
+    static MobState.Baseline baseline(Profile p, int relationship) { return SocialLedger.baseline(p, MobState.Baseline.of(p.calm, p.confidence, p.curiosity, p.sociability, relationship)); }
+    static void feel(Profile p, Relation r, MobState.Event event, long nowMillis) { p.state.shift(event, baseline(p, r.score), nowMillis); }
 
     /** Create/view a profile from immutable context without waiting for any disk operation. */
     public synchronized MobCard observe(MobSnapshot snapshot) { profile(snapshot); return card(snapshot.id(), snapshot.playerId()); }
@@ -218,7 +224,7 @@ public final class ConversationStore {
     public synchronized boolean spreadRumors(UUID a, UUID b, java.util.function.DoubleSupplier roll, long now) {
         String village = villageOf(a);
         if (village.isBlank() || !village.equals(villageOf(b))) return false;
-        boolean close = state.relations.views(a, now).stream().anyMatch(v -> v.other().equals(b) && (v.friend() || v.tags().contains(MobRelations.Tag.FAMILY)));
+        boolean close = state.relations.views(a, now).stream().anyMatch(v -> v.other().equals(b) && (v.friend() || v.tags().contains(MobRelations.Tag.NEIGHBOR)));
         int crossed = state.rumors.spread(village, a, b, close, roll, now);
         if (crossed > 0) scheduleSave();
         return crossed > 0;
@@ -544,16 +550,17 @@ public final class ConversationStore {
         scheduleSave(); return true;
     }
 
-    private Profile ensure(UUID id, String type, String observedName) {
+    Profile ensure(UUID id, String type, String observedName) {
         Profile p = state.profiles.get(id.toString());
-        if (p != null) { if (ProfileDefaults.refresh(p, state.profiles, config)) scheduleSave(); return p; }
+        if (p != null) { if (ProfileDefaults.refresh(p, state.profiles, config) | SocialLedger.adopt(p, config)) scheduleSave(); return p; }
         SpeciesCatalog.Species species = SpeciesCatalog.effective(type, config);
         p = new Profile(); p.id = id; p.type = species.id(); p.name = TextBounds.characters(observedName, 120);
         ProfileDefaults.refresh(p, state.profiles, config);
+        SocialLedger.adopt(p, config);
         state.profiles.put(id.toString(), p); scheduleSave(); return p;
     }
 
-    private Relation relation(Profile p, UUID player) {
+    Relation relation(Profile p, UUID player) {
         return p.relations.computeIfAbsent(player == null ? "unknown" : player.toString(), ignored -> { Relation r = new Relation(); r.score = hostile(p) ? -80 : 0; return r; });
     }
     /** Derive durable causes from this player's relation without expanding the persisted event log. */
@@ -595,7 +602,7 @@ public final class ConversationStore {
     private Profile require(UUID id) { Profile p = state.profiles.get(id.toString()); if (p == null) throw new IllegalArgumentException("Профиль моба ещё не создан."); return p; }
     private static void event(Profile p, long time, String text) { event(p, time, text, MemoryFact.ORDINARY); }
     /** An event the game recorded, with how much it matters: the least important and oldest go first when the list is full. */
-    private static void event(Profile p, long time, String text, int importance) {
+    static void event(Profile p, long time, String text, int importance) {
         p.events.add(new Event(time, TextBounds.characters(text, 500), MemoryFact.clamp(importance)));
         p.reflection.add(importance);
         MemoryRanking.evict(p.events, MemoryRanking.MAX_EVENTS, e -> MemoryRanking.score(e.importance(), e.time(), time));
@@ -656,6 +663,14 @@ public final class ConversationStore {
         transient List<MobRelations.View> bonds = List.of();
         /** What this villager has heard the village say, weightiest first, and the player's fame there; see {@link VillageRumors}. */
         transient List<VillageRumors.View> rumors = List.of(); transient VillageRumors.Reputation repute = VillageRumors.Reputation.NONE;
+        /** The outcomes of the player's gestures for this reply, decided before the request ({@link SocialTurn}); null outside the social layer. */
+        transient SocialTurn socialTurn;
+        /** This villager's relatives from the family tree, for «Свои»; empty outside the social layer. */
+        transient List<FamilyTree.Kin> family = List.of();
+        /** How the village sees the current player ({@link VillageStanding}); NONE outside the social layer. */
+        transient VillageStanding.View standing = VillageStanding.View.NONE;
+        /** Sex, character, marks and growth of a villager in the social layer ({@link SocialProfile}); null for other mobs. */
+        SocialProfile social;
         String type, name, personality, voiceId; String memory = "";
         /** The memory as facts with importance and age ({@link MemoryRanking}); {@code memory} above is the same text, one line each. */
         List<MemoryFact> facts = new ArrayList<>();
@@ -713,6 +728,7 @@ public final class ConversationStore {
             if (wish == null) wish = ""; if (hidden == null) hidden = "";
             if (state == null) state = new MobState();
             state.sanitize();
+            if (social != null) social.sanitize();
         }
         Profile copy() {
             Profile p = new Profile(); p.id = id; p.type = type; p.name = name; p.personality = personality; p.state = state.copy();
@@ -724,6 +740,7 @@ public final class ConversationStore {
             p.facts = new ArrayList<>(facts); p.summaries = new ArrayList<>(summaries); // Immutable records.
             p.turnsDropped = turnsDropped; p.summarizedTurns = summarizedTurns; p.lastTurnMillis = lastTurnMillis; p.reflection = reflection.copy();
             relations.forEach((key, r) -> p.relations.put(key, r.copy()));
+            p.social = social == null ? null : social.copy();
             return p;
         }
         /** The index in {@code turns} where the current, unsummarised conversation begins. */
@@ -737,7 +754,10 @@ public final class ConversationStore {
         int score, hits, lastWitnessDelta; long lastHelp = -1, lastApology = -1, lastInsult = -1, lastThreat = -1, lastPurchase = -1, lastWitness = -1; boolean ownerKnown;
         Map<String,TradeState> deals = new LinkedHashMap<>();
         Favor favor; List<String> favorsDone = new ArrayList<>();
+        /** Gestures, gifts and courtship with this player ({@link Rapport}); null until the first gesture. */
+        Rapport rapport;
         void sanitize() {
+            if (rapport != null) rapport.sanitize();
             if (deals == null) deals = new LinkedHashMap<>();
             deals.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null);
             if (favorsDone == null) favorsDone = new ArrayList<>();
@@ -748,6 +768,7 @@ public final class ConversationStore {
             Relation c = new Relation(); c.score = score; c.hits = hits; c.lastHelp = lastHelp; c.lastApology = lastApology;
             c.lastInsult = lastInsult; c.lastThreat = lastThreat; c.lastPurchase = lastPurchase; c.lastWitness = lastWitness; c.lastWitnessDelta = lastWitnessDelta; c.ownerKnown = ownerKnown;
             c.deals = new LinkedHashMap<>(deals); c.favor = favor; c.favorsDone = new ArrayList<>(favorsDone); // Immutable records.
+            c.rapport = rapport == null ? null : rapport.copy();
             return c;
         }
     }
@@ -761,7 +782,11 @@ public final class ConversationStore {
         MobRelations relations = new MobRelations();
         /** What the villages say; absent in files written before it. */
         VillageRumors rumors = new VillageRumors();
+        /** The world's family tree (social layer); absent in files written before it. */
+        FamilyTree family = new FamilyTree();
         void sanitize() {
+            if (family == null) family = new FamilyTree();
+            family.sanitize();
             if (bargains == null) bargains = new LinkedHashMap<>();
             if (villages == null) villages = new LinkedHashMap<>();
             villages.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null || e.getValue().name() == null || e.getValue().dimension() == null);
@@ -774,7 +799,7 @@ public final class ConversationStore {
             State c = new State(); c.version = version;
             profiles.forEach((key, p) -> c.profiles.put(key, p.copy()));
             c.bargains.putAll(bargains); c.villages.putAll(villages); // Immutable records.
-            c.relations = relations.copy(); c.rumors = rumors.copy();
+            c.relations = relations.copy(); c.rumors = rumors.copy(); c.family = family.copy();
             return c;
         }
     }

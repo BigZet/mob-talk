@@ -39,11 +39,20 @@ public final class MobGameBridge {
     final MobSocialController social;
     /** Occasions for a creature to speak first, found on the server and voiced by the client. */
     public final InitiativeController initiative;
+    /** The villagers' social layer in the world: gifts changing hands, slaps, families, the village's stance. */
+    final SocialController society;
+    /** Villagers' families: weddings, births, growth, mourning. */
+    final FamilyController families;
+    /** The village's stance towards the player: no trade for an exile, a watchful golem, warnings. */
+    final VillageController villages;
     private final Map<UUID, Deque<Heard>> heard = new HashMap<>();
 
     private MobGameBridge(MinecraftServer server, ConversationStore memory, MobTalkConfig config) {
         this.server = server; this.memory = memory; this.config = config.copy();
         social = new MobSocialController(this);
+        society = new SocialController(this);
+        families = new FamilyController(this);
+        villages = new VillageController(this);
         initiative = new InitiativeController(this);
         actions = new MobActionController(this);
         bargaining = new VillagerBargaining(this);
@@ -82,6 +91,7 @@ public final class MobGameBridge {
             UUID id = mob.getUuid();
             if (source.getAttacker() instanceof ServerPlayerEntity player) bridge.witnessed(mob, player, "убил", -25);
             bridge.social.died(mob); // Before the stranger's profile goes: the mourners keep its name.
+            bridge.families.died(mob, source); // Relatives mourn wherever they are.
             if (bridge.memory.known(id) && !bridge.memory.forgetStranger(id)) bridge.event(mob, "The mob died: " + source.getName());
             // END_WORLD_TICK removes dead leases; a death callback can run inside that lease's melee goal.
         });
@@ -110,6 +120,9 @@ public final class MobGameBridge {
                 bridge.actions.tick(world);
                 bridge.actions.stance(world);
                 bridge.social.tick(world);
+                bridge.society.tick(world);
+                bridge.families.tick(world);
+                bridge.villages.tick(world);
                 bridge.initiative.tick(world);
                 bridge.bargaining.tick(world);
                 bridge.trades.tick(world);
@@ -149,7 +162,7 @@ public final class MobGameBridge {
                 bridge.memory.recordAction(card.id(), ActionIntent.none());
         if (server.isStopped()) return CompletableFuture.completedFuture(null);
         CompletableFuture<Void> done = new CompletableFuture<>();
-        server.execute(() -> { bridge.actions.clearRuntime(); bridge.social.clearRuntime(); bridge.initiative.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
+        server.execute(() -> { bridge.actions.clearRuntime(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.initiative.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
         return done;
     }
     public static MobGameBridge forEntity(Entity entity) {
@@ -237,7 +250,8 @@ public final class MobGameBridge {
         int value = card == null ? 0 : card.relationship();
         boolean hostile = card != null && SpeciesCatalog.get(card.type()).hostile();
         String mark = hostile && value >= CombatRules.ALLY ? " (свой)" : hostile && value >= CombatRules.TRUCE ? " (перемирие)" : "";
-        return "отношение " + (value >= 0 ? "+" : "") + value + mark;
+        String hearts = card != null && "minecraft:villager".equals(card.type()) ? Hearts.symbols(value) : "";
+        return "отношение " + (value >= 0 ? "+" : "") + value + mark + (hearts.isEmpty() ? "" : " " + hearts);
     }
 
     public CompletableFuture<MobSnapshot> capture(UUID mobId, UUID playerId, String dimension) {
@@ -299,6 +313,12 @@ public final class MobGameBridge {
     public CompletableFuture<Outcome> applyWithRevision(UUID mobId, UUID playerId, String dimension, ActionIntent intent,
             BargainIntent bargain, DealIntent deal, String unlock, QuestIntent quest, SocialIntent social, MobSnapshot observed, long expectedRevision,
             java.util.function.BooleanSupplier valid) {
+        return applyWithRevision(mobId, playerId, dimension, intent, bargain, deal, unlock, quest, social, GestureIntent.none(), observed, expectedRevision, valid);
+    }
+    /** {@code gesture}: the social gesture of the reply with its decided outcome; its effect on the world runs here, before the commit. */
+    public CompletableFuture<Outcome> applyWithRevision(UUID mobId, UUID playerId, String dimension, ActionIntent intent,
+            BargainIntent bargain, DealIntent deal, String unlock, QuestIntent quest, SocialIntent social, GestureIntent gesture, MobSnapshot observed,
+            long expectedRevision, java.util.function.BooleanSupplier valid) {
         return onServer(() -> {
             synchronized (memory) {
                 if (!valid.getAsBoolean()) throw new java.util.concurrent.CancellationException("Разговор отменён");
@@ -310,6 +330,8 @@ public final class MobGameBridge {
                 if (!(entity instanceof MobEntity mob) || !mob.isAlive() || player == null || !player.isAlive()
                         || player.getWorld() != world) throw new java.util.concurrent.CancellationException("Моб или игрок недоступен");
                 if (memory.card(mobId, playerId) == null) event(mob, "The player met this mob");
+                // First: a gift no longer in hand cancels the whole reply before anything else changes.
+                String gestured = society.apply(mob, player, gesture);
                 String trade = "";
                 if (bargain != null && bargain.type() != BargainIntent.Type.NONE) {
                     if (!(mob instanceof VillagerEntity villager)) throw new IllegalStateException("Торг доступен только с жителями");
@@ -319,6 +341,7 @@ public final class MobGameBridge {
                 String deals = trading.apply(mob, player, deal, unlock, quest);
                 if (!deals.isBlank()) trade = trade.isBlank() ? deals : trade + "; " + deals;
                 String result = actions.apply(mob, player, intent, observed);
+                if (!gestured.isBlank()) result = result.isBlank() ? gestured : result + "; " + gestured;
                 if (!trade.isBlank()) result = result.isBlank() ? trade : result + "; " + trade;
                 if (social == SocialIntent.THREAT) witnessed(mob, player, "грозил убить", -10, HEARING_RANGE);
                 else if (social == SocialIntent.INSULT) witnessed(mob, player, "оскорбил", -5, HEARING_RANGE);
@@ -371,6 +394,16 @@ public final class MobGameBridge {
         MobGameBridge bridge = forEntity(mob);
         if (bridge == null || !bridge.config.enabled) return false;
         return CombatRules.truce(SpeciesCatalog.get(type(mob)).hostile(), bridge.memory.relationship(mob.getUuid(), player.getUuid()));
+    }
+    /** An exiled player gets no trade window from this village's villagers. */
+    public static boolean refusesTrade(VillagerEntity villager, ServerPlayerEntity player) {
+        MobGameBridge bridge = forEntity(villager);
+        return bridge != null && bridge.villages.refuseTrade(villager, player);
+    }
+    /** Villager families own breeding: while they are on, vanilla villagers do not breed (children come only to couples). */
+    public static boolean familiesOwnBreeding(VillagerEntity villager) {
+        MobGameBridge bridge = forEntity(villager);
+        return bridge != null && bridge.config.enabled && bridge.config.socialLayer && bridge.config.familyLife;
     }
     /** A creature this hostile promised to leave alone (SPARE) is never taken as a target while the promise lasts. */
     public static boolean spared(MobEntity mob, LivingEntity target) {

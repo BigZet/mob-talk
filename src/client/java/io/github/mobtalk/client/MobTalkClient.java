@@ -668,7 +668,7 @@ public final class MobTalkClient implements ClientModInitializer {
             merchant.thenCompose(id -> {
                 if (!request.target.equals(id)) throw new java.util.concurrent.CancellationException("Торговец сменился");
                 return game.applyWithRevision(request.target, request.player, request.dimension, defer ? ActionIntent.none() : action, reply.bargain(),
-                        reply.deal(), reply.unlock(), reply.quest(), reply.socialIntent(), request.snapshot, reply.interactionRevision(), () -> generation == request.generation);
+                        reply.deal(), reply.unlock(), reply.quest(), reply.socialIntent(), prepared.gesture(), request.snapshot, reply.interactionRevision(), () -> generation == request.generation);
             }).whenComplete((delivery, error) -> client.execute(() -> {
                 try {
                     if (!isCurrent(request)) { dropped(request, reply); return; }
@@ -926,6 +926,8 @@ public final class MobTalkClient implements ClientModInitializer {
         if (!bonds.isEmpty()) text.append(" · свои: ").append(String.join(", ", bonds.stream().limit(6).map(io.github.mobtalk.core.MobRelations.View::label).toList()));
         List<io.github.mobtalk.core.VillageRumors.View> rumors = game.memory.rumorsOf(selected, System.currentTimeMillis());
         if (!rumors.isEmpty()) text.append(" · слухи: ").append(String.join("; ", rumors.stream().limit(3).map(io.github.mobtalk.core.VillageRumors.View::label).toList()));
+        String social = game.memory.social().describe(selected, client.player.getUuid());
+        if (!social.isBlank()) text.append(" · нрав: ").append(social);
         text.append(" · решатель: ").append(decider.name());
         return text.toString();
     }
