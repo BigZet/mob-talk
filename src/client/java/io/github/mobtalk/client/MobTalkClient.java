@@ -351,8 +351,11 @@ public final class MobTalkClient implements ClientModInitializer {
         ConversationEngine oldEngine = dropEngine ? engine : null;
         if (dropEngine) engine = null;
         if (!stopped && (oldWhisper != null || oldEngine != null)) maintenance.execute(() -> {
+            long started = System.nanoTime();
             if (oldWhisper != null) oldWhisper.close();
             if (oldEngine != null) oldEngine.close();
+            long took = (System.nanoTime() - started) / 1_000_000;
+            if (took > 1000) LOGGER.info("Mob Talk: closing the previous engine took {} ms", took);
         });
         status = reason;
     }
@@ -953,11 +956,17 @@ public final class MobTalkClient implements ClientModInitializer {
         reloading = true;
         cancelWork("Сохранение настроек…", true);
         MobTalkConfig snapshot = draft.copy();
+        long queued = System.nanoTime();
         maintenance.execute(() -> {
             try {
+                long started = System.nanoTime();
                 MobTalkConfig.save(configDirectory.resolve("mobtalk.json"), snapshot);
                 MobTalkConfig loaded = MobTalkConfig.load(configDirectory.resolve("mobtalk.json"));
+                long saved = System.nanoTime();
                 helper.stopOwned();
+                long stoppedAt = System.nanoTime();
+                if (stoppedAt - queued > 2_000_000_000L) LOGGER.info("Mob Talk settings save: waited in queue {} ms, wrote {} ms, stopped Whisper {} ms",
+                        (started - queued) / 1_000_000, (saved - started) / 1_000_000, (stoppedAt - saved) / 1_000_000);
                 client.execute(() -> {
                     reloading = false;
                     if (stopped) return;

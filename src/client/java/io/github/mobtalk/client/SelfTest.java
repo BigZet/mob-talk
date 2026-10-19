@@ -25,6 +25,14 @@ import io.github.mobtalk.core.MobTalkConfig;
 import io.github.mobtalk.core.SpeechPreview;
 import net.minecraft.client.gui.screen.ingame.MerchantScreen;
 import net.minecraft.entity.mob.HuskEntity;
+import io.github.mobtalk.core.ActionIntent;
+import io.github.mobtalk.core.ActionType;
+import io.github.mobtalk.core.FriendActions;
+import io.github.mobtalk.core.MobRelations;
+import io.github.mobtalk.core.MobState;
+import io.github.mobtalk.core.PlacePrompt;
+import io.github.mobtalk.core.MobSnapshot;
+import java.util.Map;
 
 /** An end-to-end run inside the real game, for the developer only: {@code -Dmobtalk.selftest=<world folder>} loads that world
  * from the title screen, summons a villager, a cow and a golem next to the player and walks through aiming, a spoken reply with
@@ -35,7 +43,7 @@ final class SelfTest {
     private final MobTalkClient owner;
     private final String world;
     private int stage, ticks, stageStart;
-    private UUID villager, cow, golem, cow2, villager2;
+    private UUID villager, cow, golem, cow2, villager2, firstCow, firstVillager;
     /** The flat stage in the sky above the player's spawn: nothing around to block sight or paths. */
     private int sx, sz; private static final int SY = 200;
     private int villagerTurns, cowTurns, villagerRelation, cowRelation;
@@ -81,7 +89,8 @@ final class SelfTest {
         else if (ticks >= deadline) {
             String what = waitingFor; waitingFor = "";
             if (what.startsWith("cow beside") || what.startsWith("bystander queue") || what.startsWith("saves flushed") || what.startsWith("window closed")
-                    || what.startsWith("recording for")) log("… " + what); else fail("timeout waiting for " + what);
+                    || what.startsWith("recording for") || what.startsWith("cow waits") || what.startsWith("cow at the bottom")) log("… " + what);
+            else fail("timeout waiting for " + what);
             then.run();
         }
     }
@@ -143,6 +152,7 @@ final class SelfTest {
         MobEntity target = MobSpeechSound.find(owner.world, cow);
         if (target == null) { fail("cow not on the client"); talkToVillager(); return; }
         owner.select(target);
+        firstCow = cow;
         int before = turns(cow);
         check(owner.say("Привет, корова! Как тебя зовут?"), "say() accepted for the cow");
         await("cow replied (LLM + TTS)", 120, () -> replied(cow, before), () -> {
@@ -157,6 +167,7 @@ final class SelfTest {
         MobEntity target = MobSpeechSound.find(owner.world, villager);
         if (target == null) { fail("villager not on the client"); finish(); return; }
         owner.select(target);
+        firstVillager = villager;
         int before = turns(villager);
         check(owner.say("Здравствуй, сосед. Кто ты и что это за деревня?"), "say() accepted for the villager");
         await("villager replied", 120, () -> replied(villager, before), () -> {
@@ -323,10 +334,147 @@ final class SelfTest {
                     await("farmer vanilla window", 10, () -> owner.client.currentScreen instanceof MerchantScreen, () -> {
                         check(owner.client.currentScreen instanceof MerchantScreen, "B opens the farmer's vanilla trade window");
                         if (owner.client.currentScreen != null) owner.client.currentScreen.close();
-                        await("window closed", 1, () -> false, this::voicePath);
+                        await("window closed", 1, () -> false, this::stateWord);
                     });
                 });
             });
+        });
+    }
+
+
+    // ---- Stage 9a (0.6.0): the emotional state moves with the talk and shows one word in the HUD.
+    private void stateWord() {
+        MobEntity target = MobSpeechSound.find(owner.world, cow);
+        if (target == null) { fail("cow gone before the state check"); stayHere(); return; }
+        owner.select(target);
+        MobState.View before = bridge().memory.stateView(cow, owner.client.player.getUuid());
+        log("cow state before: " + before);
+        int turnsBefore = turns(cow);
+        check(owner.say("Ты мне очень нравишься, корова. Хочешь, я буду приносить тебе пшеницу каждый день?"), "say() accepted for the kind word");
+        await("cow answered the kind word", 120, () -> replied(cow, turnsBefore), () -> {
+            MobState.View after = bridge().memory.stateView(cow, owner.client.player.getUuid());
+            log("cow state after: " + after + " | reply: " + lastReply(cow));
+            check(after != null, "state view exists for an acquainted cow");
+            check(after != null && (before == null || after.interest() >= before.interest()), "interest did not drop after a friendly talk");
+            check(after != null && !after.refusesDeals(), "a cow spoken to kindly does not refuse deals");
+            MobCard card = bridge().memory.card(cow, owner.client.player.getUuid());
+            MobState.Descriptor marker = card == null || card.state() == null ? null : card.state().marker();
+            check(card != null && card.state() != null, "the mob card carries the state for the HUD; marker: " + (marker == null ? "(neutral)" : marker.key() + " / " + marker.word()));
+            stayHere();
+        });
+    }
+
+    // ---- Stage 9b (0.6.0): STAY — a friend asked to wait keeps its place; the lease shows in the status.
+    private void stayHere() {
+        String name = owner.client.player.getName().getString();
+        bridge().memory.recordWitnessed(cow, owner.client.player.getUuid(), name, "выручил тебя (самотест)", 60, System.currentTimeMillis());
+        ServerWorld world = (ServerWorld) serverPlayer().getWorld();
+        String dimension = world.getRegistryKey().getValue().toString();
+        check(FriendActions.mayStay(relation(cow), false), "relationship " + relation(cow) + " allows STAY");
+        var captured = bridge().capture(cow, owner.client.player.getUuid(), dimension);
+        var applied = captured.thenCompose(snapshot -> {
+            check(snapshot.availableActions().contains(ActionType.STAY), "STAY is among the cow's available actions: " + snapshot.availableActions());
+            return bridge().apply(cow, owner.client.player.getUuid(), dimension, new ActionIntent(ActionType.STAY, FriendActions.HERE), snapshot, -1, () -> true);
+        });
+        await("STAY applied", 20, applied::isDone, () -> {
+            String message = applied.isCompletedExceptionally() ? "error: " + applied.exceptionNow().getMessage() : applied.join();
+            log("STAY message: " + message);
+            List<FriendActions.Status> status = bridge().friendStatus(cow);
+            check(status.stream().anyMatch(active -> active.type() == ActionType.STAY), "STAY lease is active: " + status);
+            MobEntity c = world.getEntity(cow) instanceof MobEntity m ? m : null;
+            double x0 = c == null ? 0 : c.getX(), z0 = c == null ? 0 : c.getZ();
+            await("cow waits five seconds", 5, () -> false, () -> {
+                MobEntity c2 = world.getEntity(cow) instanceof MobEntity m ? m : null;
+                double moved = c2 == null ? 99 : Math.hypot(c2.getX() - x0, c2.getZ() - z0);
+                check(moved <= FriendActions.STAY_DRIFT + 0.5, "the cow stayed put (moved " + String.format("%.1f", moved) + " blocks)");
+                owner.stopSelectedAction();
+                await("STAY released", 5, () -> bridge().friendStatus(cow).isEmpty(), () -> {
+                    check(bridge().friendStatus(cow).isEmpty(), "STAY lease released by STOP");
+                    pitPlace();
+                });
+            });
+        });
+    }
+
+    // ---- Stage 9c (0.6.0): the place analysis sees a bedrock pit for what it is.
+    private void pitPlace() {
+        // A 3×3 pit, four deep, walled with bedrock, dug into the stage floor at the far corner; the cow goes to the bottom.
+        int px = sx - 7, pz = sz + 7, floor = SY - 5;
+        command("fill " + (px - 3) + " " + SY + " " + (pz - 3) + " " + (px + 3) + " " + (SY + 3) + " " + (pz + 3) + " minecraft:air");
+        command("fill " + (px - 2) + " " + floor + " " + (pz - 2) + " " + (px + 2) + " " + (SY - 1) + " " + (pz + 2) + " minecraft:bedrock");
+        command("fill " + (px - 1) + " " + (floor + 1) + " " + (pz - 1) + " " + (px + 1) + " " + (SY - 1) + " " + (pz + 1) + " minecraft:air");
+        command("tp " + cow + " " + px + " " + (floor + 1) + " " + pz);
+        command("tp " + owner.client.player.getName().getString() + " " + (px + 3) + " " + SY + " " + pz);
+        await("cow at the bottom of the pit", 3, () -> false, () -> {
+            ServerWorld world = (ServerWorld) serverPlayer().getWorld();
+            String dimension = world.getRegistryKey().getValue().toString();
+            var captured = bridge().capture(cow, owner.client.player.getUuid(), dimension);
+            await("snapshot captured in the pit", 20, captured::isDone, () -> {
+                if (captured.isCompletedExceptionally()) { fail("capture failed: " + captured.exceptionNow().getMessage()); relations(); return; }
+                MobSnapshot snapshot = captured.join();
+                Object place = snapshot.environmentDetails().get("place");
+                String block = PlacePrompt.block(snapshot);
+                log("place: " + place);
+                log("place block: " + block.replace('\n', ' '));
+                check(place instanceof Map<?, ?> map && "PIT".equals(map.get("kind")), "the place is recognised as a pit");
+                check(place instanceof Map<?, ?> map && Boolean.TRUE.equals(map.get("trapped")), "the pit counts as trapped");
+                check(Boolean.TRUE.equals(snapshot.mobDetails().get("trapped")), "mobDetails.trapped follows the place analysis");
+                check(block.contains("ям") && (block.contains("бедрок") || block.contains("не прокопать")), "the prompt block names the pit and its bedrock walls");
+                MobEntity target = MobSpeechSound.find(owner.world, cow);
+                if (target == null) { fail("cow not on the client in the pit"); relations(); return; }
+                owner.select(target);
+                int before = turns(cow);
+                check(owner.say("Где ты сейчас находишься и можешь ли выбраться?"), "say() accepted in the pit");
+                await("cow described the pit", 120, () -> replied(cow, before), () -> {
+                    String reply = lastReply(cow).toLowerCase();
+                    log("cow in the pit: " + lastReply(cow));
+                    check(reply.contains("ям") || reply.contains("выбрат") || reply.contains("стен") || reply.contains("глубок") || reply.contains("дн"), "the reply speaks of the pit");
+                    command("fill " + (px - 2) + " " + floor + " " + (pz - 2) + " " + (px + 2) + " " + (SY - 2) + " " + (pz + 2) + " minecraft:air");
+                    command("fill " + (px - 2) + " " + (SY - 1) + " " + (pz - 2) + " " + (px + 2) + " " + (SY - 1) + " " + (pz + 2) + " minecraft:smooth_stone");
+                    command("tp " + cow + " " + at(3, 0));
+                    command("tp " + owner.client.player.getName().getString() + " " + at(0, 0));
+                    relations();
+                });
+            });
+        });
+    }
+
+    // ---- Stage 9d (0.6.0): bonds between mobs — a friend, grief by name, and the prompt's «Свои» block.
+    private void relations() {
+        command("summon minecraft:cow " + at(3, -2) + " {PersistenceRequired:1b}");
+        await("companion cow summoned", 10, () -> {
+            ServerPlayerEntity player = serverPlayer(); ServerWorld world = (ServerWorld) player.getWorld();
+            cow2 = world.getEntitiesByClass(CowEntity.class, player.getBoundingBox().expand(12), c -> c.isAlive() && !c.getUuid().equals(cow)).stream().map(MobEntity::getUuid).findFirst().orElse(null);
+            return cow2 != null;
+        }, () -> {
+            acquaint(cow2, "minecraft:cow", "Зорька", "Ты родилась на этой площадке и ничего другого не видела.");
+            String cowName = bridge().memory.displayName(cow);
+            long now = System.currentTimeMillis();
+            bridge().memory.updateRelations(r -> { boolean changed = false;
+                for (int i = 0; i < 50; i++) changed |= r.together(cow, cowName, "minecraft:cow", cow2, "Зорька", "minecraft:cow", MobRelations.Kinship.KIN, 1, 0, now + i); return changed; });
+            List<MobRelations.View> bonds = bridge().memory.bonds(cow, now + 100);
+            log("bonds of the cow: " + bonds.stream().map(MobRelations.View::label).toList());
+            check(bonds.stream().anyMatch(b -> b.other().equals(cow2) && b.friend()), "standing together made the cows friends");
+            bridge().memory.updateRelations(r -> r.mourn(cow, cow2, "Зорька", "minecraft:cow", true, now + 200));
+            List<MobRelations.View> grief = bridge().memory.bonds(cow, now + 300);
+            check(grief.stream().anyMatch(b -> b.other().equals(cow2) && b.mourns()), "the cow mourns Зорька by name: " + grief.stream().map(MobRelations.View::label).toList());
+            List<String> lines = MobRelations.lines(grief, java.util.Set.of(cow2), 3);
+            log("«Свои» lines: " + lines);
+            check(lines.stream().anyMatch(line -> line.contains("Зорька")), "the «Свои» block names the mourned friend");
+            memoryStage();
+        });
+    }
+
+    // ---- Stage 9e (0.6.0): the first cow's conversation ended long ago — its summary and ranked facts exist.
+    private void memoryStage() {
+        await("conversation summary of the first villager", 45, () -> !bridge().memory.summaries(firstVillager).isEmpty(), () -> {
+            var summaries = bridge().memory.summaries(firstVillager);
+            check(!summaries.isEmpty(), "a summary was written for the first villager's two-turn conversation" + (summaries.isEmpty() ? "" : ": " + summaries.getLast().text()));
+            log("summaries of the first cow (one turn, none expected): " + bridge().memory.summaries(firstCow).size());
+            var facts = bridge().memory.facts(firstVillager);
+            log("facts of the first villager: " + facts.size() + " " + facts.stream().map(f -> f.importance() + ":" + f.text()).toList());
+            check(facts.stream().allMatch(f -> f.importance() >= 1 && f.importance() <= 5), "every fact carries an importance 1–5");
+            voicePath();
         });
     }
 
@@ -361,7 +509,7 @@ final class SelfTest {
     private void veniceSpeech() {
         MobTalkConfig config = owner.config().copy(); config.ttsProvider = "venice";
         CompletableFuture<byte[]> pcm = CompletableFuture.supplyAsync(() -> {
-            try { return SpeechPreview.synthesize(config, owner.configDirectory, "ignored", "Проверка озвучки через Venice."); }
+            try { return SpeechPreview.synthesize(config, owner.configDirectory, config.veniceSpeechKeepsVoices() ? config.defaultVoice : "ignored", "Проверка озвучки через Venice."); }
             catch (Exception failure) { throw new RuntimeException(failure); }
         });
         await("Venice TTS answered", 60, pcm::isDone, () -> {
@@ -396,6 +544,7 @@ final class SelfTest {
     // ---- Stage 13: Venice as the chat provider, live in the game; the settings are put back afterwards.
     private void veniceChat() {
         MobTalkConfig original = owner.config().copy();
+        if (original.usesVenice()) { log("chat provider was already Venice (a previous run did not restore it): the test will end on OpenRouter"); original.llmProvider = "openrouter"; }
         MobTalkConfig draft = original.copy(); draft.llmProvider = "venice";
         owner.saveConfig(draft, message -> { if (message != null) fail("could not switch to Venice: " + message); });
         await("settings switched to Venice", 20, () -> owner.config().usesVenice() && owner.enabled() && !owner.reloading, () -> {
@@ -411,8 +560,12 @@ final class SelfTest {
         });
     }
     private void restore(MobTalkConfig original) {
-        owner.saveConfig(original, message -> { if (message != null) fail("could not restore the settings: " + message); });
-        await("settings restored", 20, () -> !owner.config().usesVenice() && !owner.reloading, this::finish);
+        long started = System.currentTimeMillis();
+        owner.saveConfig(original, message -> { if (message != null) fail("could not restore the settings: " + message); else log("settings restored in " + (System.currentTimeMillis() - started) + " ms"); });
+        await("settings restored", 40, () -> original.llmProvider.equals(owner.config().llmProvider) && !owner.reloading, () -> {
+            log("after restore: reloading=" + owner.reloading + ", llmProvider=" + owner.config().llmProvider);
+            finish();
+        });
     }
 
     private String lastReply(UUID mob) {
