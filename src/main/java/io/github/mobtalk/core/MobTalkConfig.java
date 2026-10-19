@@ -65,6 +65,10 @@ public final class MobTalkConfig {
     /** Who decides whether a creature speaks up, who answers next and whether a bystander cuts in: "rules" or "jev" (OpenRouter Decisions API). */
     public String decider = "rules";
     public String defaultVoice = "rSfuQoQ3FY8SVKeraMAp";
+    /** The villagers' social layer (characters, gestures, gifts, family, village standing; docs/mca-social-spec.md). */
+    public boolean socialLayer = true;
+    /** The player's sex for courtship: "male", "female" or "any" (not counted). */
+    public String playerGender = "any";
 
     /** A menu draft or worker snapshot; editing it does not change the live preferences. */
     public MobTalkConfig copy() {
@@ -110,6 +114,7 @@ public final class MobTalkConfig {
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.decider = decider;
         copy.defaultVoice = defaultVoice;
+        copy.socialLayer = socialLayer; copy.playerGender = playerGender;
         return copy;
     }
 
@@ -167,6 +172,8 @@ public final class MobTalkConfig {
         config.witnessReplies = Math.max(0, Math.min(2, config.witnessReplies));
         config.socialActionsPerMinute = Math.max(1, Math.min(30, config.socialActionsPerMinute));
         config.initiativesPerMinute = Math.max(1, Math.min(6, config.initiativesPerMinute));
+        config.playerGender = config.playerGender == null ? "any" : config.playerGender.strip().toLowerCase(java.util.Locale.ROOT);
+        if (!java.util.List.of("male", "female", "any").contains(config.playerGender)) config.playerGender = "any";
         config.decider = "jev".equalsIgnoreCase(config.decider == null ? "" : config.decider.strip()) ? "jev" : "rules";
         MobTalkConfig defaults = new MobTalkConfig();
         config.llmModel = textOrDefault(config.llmModel, defaults.llmModel);

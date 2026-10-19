@@ -52,7 +52,13 @@ public final class MobState {
         /** The plain fact of a conversation. */
         TALK(3, 2, 12, 3, false),
         /** Whole and unthreatened for a while. */
-        SAFE(5, 15, 0, 0, false);
+        SAFE(5, 15, 0, 0, false),
+        /** Social layer ({@link GestureTable}): a joke that landed, a hug returned — and one that did not. */
+        GESTURE_WARM(6, 3, 5, 5, false), GESTURE_COLD(-5, -3, 0, -4, false),
+        /** A gift taken with pleasure, or one that offended (allergy, a thing it hates). */
+        GIFT_LIKED(10, 5, 5, 8, false), GIFT_SPURNED(-6, -2, 0, -5, false),
+        /** Family events: a courtship or wedding, a divorce, a death in the family, a child born. */
+        ROMANCE(15, 5, 10, 15, true), DIVORCE(-20, -15, 0, -30, true), BEREAVED(-35, -20, -10, 0, true), CHILD_BORN(20, 10, 5, 15, true);
 
         final int mood, calm, interest, trust; final boolean slow;
         Event(int mood, int calm, int interest, int trust, boolean slow) { this.mood = mood; this.calm = calm; this.interest = interest; this.trust = trust; this.slow = slow; }
@@ -77,6 +83,8 @@ public final class MobState {
                     (int) Math.round(25 + cur * 0.4), (int) Math.round(45 + rel * 0.35));
         }
         private static int axis(int value) { return value < 0 || value > 100 ? 50 : value; }
+        /** The same rest with the mood point moved by a character ({@link Persona#moodRest}). */
+        public Baseline moodShifted(int shift) { return shift == 0 ? this : new Baseline(Math.max(0, Math.min(100, mood + shift)), calm, interest, trust); }
         int of(Axis axis) { return switch (axis) { case MOOD -> mood; case CALM -> calm; case INTEREST -> interest; case TRUST -> trust; }; }
     }
 
@@ -241,6 +249,6 @@ public final class MobState {
     public static View viewOf(ConversationStore.Profile profile, long now) {
         if (profile == null) return View.NEUTRAL;
         MobState state = profile.state == null ? new MobState() : profile.state;
-        return state.view(Baseline.of(profile.calm, profile.confidence, profile.curiosity, profile.sociability, profile.relationship), now);
+        return state.view(SocialLedger.baseline(profile, Baseline.of(profile.calm, profile.confidence, profile.curiosity, profile.sociability, profile.relationship)), now);
     }
 }

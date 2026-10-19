@@ -159,6 +159,7 @@ final class MobTalkSettingsScreen extends Screen {
         wide(toggle("mobtalk.settings.bargainHud", draft.showBargainHud, value -> draft.showBargainHud = value));
         wide(toggle("mobtalk.settings.social", draft.socialBehavior, value -> draft.socialBehavior = value));
         wide(slider("mobtalk.settings.socialDensity", 1, 30, draft.socialActionsPerMinute, value -> draft.socialActionsPerMinute = value));
+        socialLayer();
         wide(toggle("mobtalk.settings.initiative", draft.initiative, value -> draft.initiative = value));
         wide(slider("mobtalk.settings.initiativeRate", 1, 6, draft.initiativesPerMinute, value -> draft.initiativesPerMinute = value));
         CyclingButtonWidget<Boolean> decider = track(CyclingButtonWidget.<Boolean>builder(jev -> Text.translatable(jev ? "mobtalk.settings.decider.jev" : "mobtalk.settings.decider.rules"))
@@ -169,6 +170,17 @@ final class MobTalkSettingsScreen extends Screen {
         header("mobtalk.settings.section.memory");
         wide(slider("mobtalk.settings.history", 1, 64, draft.historyTurns, value -> draft.historyTurns = value));
         wide(slider("mobtalk.settings.memory", 200, 4000, draft.maxMemoryChars, value -> draft.maxMemoryChars = value));
+    }
+
+    /** The villagers' social layer: the switch and the player's sex for courtship. */
+    private void socialLayer() {
+        CyclingButtonWidget<String> gender = track(CyclingButtonWidget.<String>builder(value -> Text.translatable("mobtalk.settings.playerGender." + value))
+                .values("any", "male", "female").initially(draft.playerGender == null ? "any" : draft.playerGender)
+                .build(0, 0, 100, 20, Text.translatable("mobtalk.settings.playerGender"), (button, value) -> draft.playerGender = value));
+        gender.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.playerGender.tooltip")));
+        CyclingButtonWidget<Boolean> layer = toggle("mobtalk.settings.socialLayer", draft.socialLayer, value -> draft.socialLayer = value);
+        layer.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.socialLayer.tooltip")));
+        wide(layer, gender);
     }
 
     /** One provider's key: status, masked field with paste, save and remove. */

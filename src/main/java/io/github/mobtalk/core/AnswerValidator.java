@@ -30,7 +30,11 @@ final class AnswerValidator {
     }
 
     /** What the parser needs beyond the bytes: limits from the config and the memory the facts are appended to. */
-    record Bounds(int words, String previousMemory, int memoryLimit, int relationship, boolean jsonObjectOnly, String service, boolean overheard, boolean wary) {
+    record Bounds(int words, String previousMemory, int memoryLimit, int relationship, boolean jsonObjectOnly, String service, boolean overheard, boolean wary, SocialTurn social) {
+        /** {@code social}: the gestures on offer with their outcomes ({@link SocialTurn}); null outside the social layer. */
+        Bounds(int words, String previousMemory, int memoryLimit, int relationship, boolean jsonObjectOnly, String service, boolean overheard, boolean wary) {
+            this(words, previousMemory, memoryLimit, relationship, jsonObjectOnly, service, overheard, wary, null);
+        }
         Bounds(int words, String previousMemory, int memoryLimit, int relationship, boolean jsonObjectOnly, String service) {
             this(words, previousMemory, memoryLimit, relationship, jsonObjectOnly, service, false);
         }
@@ -110,11 +114,22 @@ final class AnswerValidator {
                         : "Окно торговли закрыто: не называй новую цену, а предложи открыть торговлю и выбрать товар."), true, own);
             }
             // The thought is optional: an older or fallback answer without it keeps the mob's previous one.
+            GestureIntent gesture = gesture(answer, bounds.social());
+            checkGesture(reply, gesture);
             return new OpenRouterConversationClient.Answer(reply, memory, social, action, bargain, deal, unlock, quest, biography(answer),
-                    MobState.cleanThought(ReplySchema.optional(answer, "thought")), fact);
+                    MobState.cleanThought(ReplySchema.optional(answer, "thought")), fact, gesture);
         } catch (Rejected invalid) { throw invalid; }
         catch (RuntimeException malformed) { throw new IOException(bounds.service() + " вернул неверный ответ. Повторите вопрос."); }
     }
+
+    /** The gesture the model named, with the outcome decided before the request; none when absent, unknown or not on offer. */
+    static GestureIntent gesture(JsonObject answer, SocialTurn social) {
+        if (social == null || !answer.has("gesture")) return GestureIntent.none();
+        return social.intent(Gesture.of(ReplySchema.optional(answer, "gesture")));
+    }
+
+    /** A reply that contradicts the decided outcome of a gesture where words can be checked at all: see {@link Romance}. */
+    static void checkGesture(String reply, GestureIntent gesture) throws Rejected { }
 
     /** The life the mob invented inside its reply, or null when the answer has none or the story is blank. */
     static BiographyWriter.Biography biography(JsonObject answer) {

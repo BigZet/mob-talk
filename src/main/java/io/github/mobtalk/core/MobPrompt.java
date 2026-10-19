@@ -43,6 +43,7 @@ final class MobPrompt {
                 + (profile.village == null ? "" : "\n\nТвоя деревня «" + profile.village.name() + "» (эту историю знают все её жители):\n" + profile.village.story())
                 + "\n\nТвой характер:\n" + archetype
                 + (custom ? "\nЛичная настройка именно этой особи (важнее характера выше): " + profile.customPersonality : "")
+                + SocialPrompt.persona(profile)
                 + (species.quirks().isBlank() ? "" : "\nКак ты говоришь, твои фирменные штучки: " + sentence(species.quirks()))
                 + (desire.isBlank() ? "" : "\nЧего ты хочешь от жизни: " + sentence(desire)
                         + " Это твоя личная цель: ты её преследуешь, иногда заводишь о ней речь — но не в каждой реплике — и судишь игрока по тому, помогает он ей или мешает.")
@@ -62,6 +63,7 @@ final class MobPrompt {
                 + "\n\nЭтот игрок:\nОтношение (-100..100): " + profile.relationship + " — " + attitude(profile.relationship) + "."
                 + (profile.repute != null && profile.repute.known() && profile.turns.isEmpty() ? "\n" + profile.repute.describe() : "")
                 + MemoryRanking.promptBlock(profile.facts, profile.memory, System.currentTimeMillis()) + ConversationSummary.promptBlock(profile.summaries)
+                + SocialPrompt.gestures(profile)
                 + "\n\n" + PromptTexts.VOICE
                 + "Длина: не больше " + words() + " слов, обычно заметно меньше."
                 + (view.sellsAnything() ? "\n\n" + PromptTexts.TRADER_CHARACTER + PromptTexts.stateTrade(state) : "")

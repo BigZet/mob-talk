@@ -149,7 +149,8 @@ public final class ConversationEngine implements AutoCloseable {
         }
         Reply reply = new Reply(question, answer.reply(), name, voiceId, audio, answer.action(), snapshot.interactionRevision(), answer.bargain(),
                 answer.deal(), answer.unlock(), answer.quest(), answer.socialIntent(), overheard != null);
-        return new PreparedReply(this, reply, snapshot, answer.memory(), answer.socialIntent(), audio == null ? null : voiceId, answer.thought(), answer.fact());
+        return new PreparedReply(this, reply, snapshot, answer.memory(), answer.socialIntent(), audio == null ? null : voiceId, answer.thought(), answer.fact(),
+                overheard == null ? answer.gesture() : GestureIntent.none());
     }
 
     private static String playerName(MobSnapshot snapshot) { return snapshot.playerDetails().get("name") instanceof String name ? name : ""; }
@@ -191,6 +192,8 @@ public final class ConversationEngine implements AutoCloseable {
             Reply reply = prepared.reply;
             boolean committed = store.commit(delivered, reply.recognizedText(), reply.responseText(), prepared.memory, prepared.socialIntent,
                     reply.action(), System.currentTimeMillis(), prepared.successfulVoice, prepared.thought, prepared.fact);
+            if (committed && prepared.gesture.present())
+                store.social().applyGesture(delivered.id(), delivered.playerId(), playerName(delivered), prepared.gesture, System.currentTimeMillis());
             if (committed && !reply.overheard()) maybeReflect(delivered);
             return committed;
         }
@@ -308,10 +311,11 @@ public final class ConversationEngine implements AutoCloseable {
         private final SocialIntent socialIntent;
         private final String successfulVoice, thought;
         private final MemoryFact fact;
+        private final GestureIntent gesture;
         private boolean completed;
 
         private PreparedReply(ConversationEngine owner, Reply reply, MobSnapshot snapshot, String memory,
-                              SocialIntent socialIntent, String successfulVoice, String thought, MemoryFact fact) {
+                              SocialIntent socialIntent, String successfulVoice, String thought, MemoryFact fact, GestureIntent gesture) {
             this.owner = owner;
             this.reply = reply;
             this.snapshot = snapshot;
@@ -320,9 +324,12 @@ public final class ConversationEngine implements AutoCloseable {
             this.successfulVoice = successfulVoice;
             this.thought = thought;
             this.fact = fact;
+            this.gesture = gesture == null ? GestureIntent.none() : gesture;
         }
 
         public Reply reply() { return reply; }
+        /** The social gesture of this reply with its decided outcome; the game takes the item (gift, ring) before the commit applies it. */
+        public GestureIntent gesture() { return gesture; }
     }
 
     /** speech is null when audio is unavailable; it may still be downloading while the reply is delivered. */

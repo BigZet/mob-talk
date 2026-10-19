@@ -39,11 +39,14 @@ public final class MobGameBridge {
     final MobSocialController social;
     /** Occasions for a creature to speak first, found on the server and voiced by the client. */
     public final InitiativeController initiative;
+    /** The villagers' social layer in the world: gifts changing hands, slaps, families, the village's stance. */
+    final SocialController society;
     private final Map<UUID, Deque<Heard>> heard = new HashMap<>();
 
     private MobGameBridge(MinecraftServer server, ConversationStore memory, MobTalkConfig config) {
         this.server = server; this.memory = memory; this.config = config.copy();
         social = new MobSocialController(this);
+        society = new SocialController(this);
         initiative = new InitiativeController(this);
         actions = new MobActionController(this);
         bargaining = new VillagerBargaining(this);
@@ -299,6 +302,12 @@ public final class MobGameBridge {
     public CompletableFuture<Outcome> applyWithRevision(UUID mobId, UUID playerId, String dimension, ActionIntent intent,
             BargainIntent bargain, DealIntent deal, String unlock, QuestIntent quest, SocialIntent social, MobSnapshot observed, long expectedRevision,
             java.util.function.BooleanSupplier valid) {
+        return applyWithRevision(mobId, playerId, dimension, intent, bargain, deal, unlock, quest, social, GestureIntent.none(), observed, expectedRevision, valid);
+    }
+    /** {@code gesture}: the social gesture of the reply with its decided outcome; its effect on the world runs here, before the commit. */
+    public CompletableFuture<Outcome> applyWithRevision(UUID mobId, UUID playerId, String dimension, ActionIntent intent,
+            BargainIntent bargain, DealIntent deal, String unlock, QuestIntent quest, SocialIntent social, GestureIntent gesture, MobSnapshot observed,
+            long expectedRevision, java.util.function.BooleanSupplier valid) {
         return onServer(() -> {
             synchronized (memory) {
                 if (!valid.getAsBoolean()) throw new java.util.concurrent.CancellationException("Разговор отменён");
@@ -319,6 +328,8 @@ public final class MobGameBridge {
                 String deals = trading.apply(mob, player, deal, unlock, quest);
                 if (!deals.isBlank()) trade = trade.isBlank() ? deals : trade + "; " + deals;
                 String result = actions.apply(mob, player, intent, observed);
+                String gestured = society.apply(mob, player, gesture);
+                if (!gestured.isBlank()) result = result.isBlank() ? gestured : result + "; " + gestured;
                 if (!trade.isBlank()) result = result.isBlank() ? trade : result + "; " + trade;
                 if (social == SocialIntent.THREAT) witnessed(mob, player, "грозил убить", -10, HEARING_RANGE);
                 else if (social == SocialIntent.INSULT) witnessed(mob, player, "оскорбил", -5, HEARING_RANGE);
