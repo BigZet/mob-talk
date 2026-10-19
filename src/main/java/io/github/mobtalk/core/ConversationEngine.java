@@ -89,6 +89,37 @@ public final class ConversationEngine implements AutoCloseable {
         });
     }
 
+    /** One line of village small talk, voiced in its speaker's voice ({@code audio} null when speech is unavailable). */
+    public record ChatterLine(java.util.UUID speaker, String name, String text, SpeechStream audio) { }
+
+    /** Village small talk ({@link VillageChatter}): one cheap request writes the exchange, each line is voiced in turn. Blocking:
+     * call from a worker, never from the game thread. Empty when the model gave nothing usable. */
+    public List<ChatterLine> chatter(VillageChatter.Input input) throws IOException, InterruptedException {
+        if (closed) throw new IOException("Разговор Mob Talk уже завершён.");
+        List<VillageChatter.Line> lines = VillageChatter.request(llm, input);
+        List<ChatterLine> voiced = new java.util.ArrayList<>();
+        String reserve = SpeciesCatalog.reserve("minecraft:villager").id();
+        try {
+            for (VillageChatter.Line line : lines) {
+                VillageChatter.Speaker speaker = input.speaker(line.speaker());
+                SpeechStream audio = null;
+                try {
+                    audio = speech.streamWithFallback(speaker.voiceId(), reserve, line.text()).stream();
+                    if (!audio.awaitPrebuffer(PREBUFFER_BYTES, speech.timeout().toNanos())) { audio.close(); audio = null; }
+                } catch (IOException speechUnavailable) { if (audio != null) audio.close(); audio = null; }
+                voiced.add(new ChatterLine(speaker.id(), speaker.name(), line.text(), audio));
+                if (closed || Thread.currentThread().isInterrupted()) throw new InterruptedException("Болтовня отменена.");
+            }
+        } catch (InterruptedException cancelled) { for (ChatterLine line : voiced) if (line.audio() != null) line.audio().close(); throw cancelled; }
+        return voiced;
+    }
+
+    /** A villager's chat announcement ({@link VillageNotices}): one cheap request, "" when nothing usable came back. Blocking. */
+    public String announce(VillageNotices.Input input) throws IOException, InterruptedException {
+        if (closed) throw new IOException("Разговор Mob Talk уже завершён.");
+        return VillageNotices.request(llm, input);
+    }
+
     public Reply converse(MobSnapshot snapshot, String userText) throws IOException, InterruptedException {
         PreparedReply prepared = prepare(snapshot, userText);
         if (!commitDelivered(prepared, snapshot.interactionRevision()))

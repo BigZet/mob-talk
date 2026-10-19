@@ -183,6 +183,7 @@ public final class ConversationStore {
         state.bargains.keySet().removeIf(key -> key.startsWith(mob + ":"));
         state.relations.remove(mob);
         state.rumors.remove(mob);
+        state.notices.remove(mob);
         scheduleSave();
         return true;
     }
@@ -242,6 +243,88 @@ public final class ConversationStore {
         List<VillageRumors.View> carried = state.rumors.carriedBy(mob, now);
         return carried.isEmpty() ? state.rumors.heardBy(mob, villageOf(mob), now) : carried;
     }
+    // ---- Village small talk and announcements, see VillageChatter and VillageNotices. ----
+
+    /** Two villagers about to talk: both get a profile on the spot (name, sex, character and voice from the social layer, the
+     * village when one is known), the topic is chosen from what they know. {@code a} tells the rumour when one of them has one
+     * the other has not; the two may be swapped for that. */
+    public synchronized VillageChatter.Input chatterInput(VillageChatter.Seat first, VillageChatter.Seat second, String villageKey, String villageName,
+                                                          String playerName, String weather, java.util.function.DoubleSupplier roll, long now) {
+        Profile p = chatterProfile(first, villageKey), q = chatterProfile(second, villageKey);
+        String village = p.villageId.isBlank() ? q.villageId : p.villageId;
+        VillageRumors.View told = state.rumors.untold(village, p.id, q.id, now);
+        if (told == null) {
+            VillageRumors.View back = state.rumors.untold(village, q.id, p.id, now);
+            if (back != null) { Profile swap = p; p = q; q = swap; told = back; }
+        }
+        VillageChatter.Speaker a = speaker(p), b = speaker(q);
+        String recent = p.events.isEmpty() ? "" : p.events.getLast().text();
+        String repute = village.isBlank() ? "" : state.rumors.reputation(village, now).describe();
+        if (repute.indexOf(':') >= 0) repute = repute.substring(0, repute.indexOf(':'));
+        UUID other = q.id;
+        boolean acquainted = state.relations.views(p.id, now).stream().anyMatch(v -> v.other().equals(other));
+        VillageChatter.Subject subject = VillageChatter.subject(a, b, new VillageChatter.Facts(told, repute, weather, recent), roll);
+        scheduleSave();
+        return new VillageChatter.Input(villageKey, villageName, a, b, subject, safePlayer(playerName), weather, acquainted);
+    }
+    private Profile chatterProfile(VillageChatter.Seat seat, String villageKey) {
+        Profile p = ensure(seat.id(), seat.type(), seat.observedName());
+        if (p.villageId.isBlank() && villageKey != null && state.villages.containsKey(villageKey)) p.villageId = villageKey;
+        return p;
+    }
+    private static VillageChatter.Speaker speaker(Profile p) {
+        Gender gender = p.social != null ? p.social.gender() : SocialProfile.genderOf(p.id);
+        return new VillageChatter.Speaker(p.id, p.givenName.isBlank() ? p.name : p.givenName, gender, p.name, p.social == null ? "" : p.social.persona().word, p.voiceId);
+    }
+    /** The voice of this mob's profile, "" without one. */
+    public synchronized String voiceOf(UUID mob) { Profile p = mob == null ? null : state.profiles.get(mob.toString()); return p == null ? "" : p.voiceId; }
+    /** The talk was heard: the two know each other a little better, the rumour passed, and each remembers whom it talked to. */
+    public synchronized void recordChatter(VillageChatter.Input input, List<VillageChatter.Line> lines, long now) {
+        Profile p = state.profiles.get(input.a().id().toString()), q = state.profiles.get(input.b().id().toString());
+        if (p == null || q == null || lines == null || lines.isEmpty()) return;
+        MobRelations.Kinship kinship = MobRelations.kinship(p.type, p.villageId, q.type, q.villageId);
+        state.relations.together(p.id, input.a().name(), p.type, q.id, input.b().name(), q.type, kinship, VillageChatter.CHAT_GAIN, VillageChatter.CHAT_INTERVAL, now);
+        if (input.subject().topic() == VillageChatter.Topic.RUMOR) state.rumors.tell(q.id, input.subject().rumorId());
+        String said = TextBounds.characters(lines.getFirst().text(), 120);
+        event(p, now, "Болтал с " + input.b().name() + ": «" + said + "»", MemoryFact.ORDINARY - 1);
+        event(q, now, "Болтал с " + input.a().name() + ", тот сказал: «" + said + "»", MemoryFact.ORDINARY - 1);
+        scheduleSave();
+    }
+
+    /** What a villager's next chat announcement needs; null for a stranger. {@code work} is the item drawn for a call to work. */
+    public synchronized VillageNotices.Input noticeInput(UUID mob, UUID player, String playerName, VillageNotices.Kind kind, VillageNotices.Work work, long now) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        if (p == null) return null;
+        Village village = village(p.villageId);
+        List<String> rumors = VillageRumors.lines(state.rumors.heardBy(p.id, p.villageId, now));
+        List<String> events = p.events.stream().skip(Math.max(0, p.events.size() - 3)).map(Event::text).toList();
+        VillageChatter.Speaker self = speaker(p);
+        return new VillageNotices.Input(p.id, player, self.name(), self.gender(), p.name, self.persona(), village == null ? "" : village.name(), safePlayer(playerName),
+                kind, work, p.wish, rumors, events, state.notices.earlier(mob));
+    }
+    /** When this villager last wrote to the chat, −1 for never. */
+    public synchronized long lastNotice(UUID mob) { return state.notices.last(mob); }
+    /** Whether this villager is waiting for this player to come over for work. */
+    public synchronized boolean invited(UUID mob, UUID player, long now) { return state.notices.invited(mob, player, now); }
+    /** The announcement went to the chat: the ledger keeps it (and opens the call to work), the villager remembers it. */
+    public synchronized void recordNotice(VillageNotices.Input input, String text, long now) {
+        Profile p = state.profiles.get(input.mob().toString());
+        if (p == null || text == null || text.isBlank()) return;
+        state.notices.record(input, text, now);
+        boolean work = input.kind() == VillageNotices.Kind.WORK;
+        event(p, now, (work ? "Позвал игрока " + input.playerName() + " в чате, есть для него работа: «" : "Написал в чат деревни: «")
+                + TextBounds.characters(text, 160) + "»", work ? MemoryFact.ORDINARY : MemoryFact.ORDINARY - 1);
+        scheduleSave();
+    }
+    /** The open calls to work for this player. */
+    public synchronized List<VillageNotices.Invitation> invitations(UUID player, long now) { return state.notices.open(player, now); }
+    /** The call is answered (or no longer can be): it leaves the ledger. */
+    public synchronized VillageNotices.Invitation takeInvitation(UUID mob, UUID player) {
+        VillageNotices.Invitation taken = state.notices.take(mob, player);
+        if (taken != null) scheduleSave();
+        return taken;
+    }
+
     /** What a decider sees of this mob right now; null for a stranger. {@code cue} for a creature speaking first, {@code speaker}/{@code said}
      * for one that heard something. */
     public synchronized DecisionState decision(UUID mob, UUID player, Initiative.Cue cue, String speaker, String said, boolean eventful) {
@@ -824,7 +907,11 @@ public final class ConversationStore {
         VillageRumors rumors = new VillageRumors();
         /** The world's family tree (social layer); absent in files written before it. */
         FamilyTree family = new FamilyTree();
+        /** Villagers' chat announcements and open calls to work; absent in files written before them. */
+        VillageNotices notices = new VillageNotices();
         void sanitize() {
+            if (notices == null) notices = new VillageNotices();
+            notices.sanitize();
             if (family == null) family = new FamilyTree();
             family.sanitize();
             if (bargains == null) bargains = new LinkedHashMap<>();
@@ -839,7 +926,7 @@ public final class ConversationStore {
             State c = new State(); c.version = version;
             profiles.forEach((key, p) -> c.profiles.put(key, p.copy()));
             c.bargains.putAll(bargains); c.villages.putAll(villages); // Immutable records.
-            c.relations = relations.copy(); c.rumors = rumors.copy(); c.family = family.copy();
+            c.relations = relations.copy(); c.rumors = rumors.copy(); c.family = family.copy(); c.notices = notices.copy();
             return c;
         }
     }

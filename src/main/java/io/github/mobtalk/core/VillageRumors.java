@@ -191,6 +191,15 @@ public final class VillageRumors {
         }
         return crossed;
     }
+    /** The weightiest live rumour {@code teller} knows and {@code listener} has not heard, or null: what small talk passes on. */
+    public View untold(String villageId, UUID teller, UUID listener, long now) {
+        List<String> known = listener == null ? null : heard.get(listener.toString());
+        for (View view : heardBy(teller, villageId, now)) if (known == null || !known.contains(view.id())) return view;
+        return null;
+    }
+    /** {@code listener} heard this rumour (told in small talk). */
+    public void tell(UUID listener, String rumorId) { if (listener != null && rumorId != null && !rumorId.isBlank()) hear(listener.toString(), rumorId); }
+
     /** The chance one rumour crosses in one meeting. */
     public static double chance(int importance, boolean close) {
         return Math.min(MAX_CHANCE, MemoryFact.clamp(importance) / 5.0 * (Tuning.get().rumorSpreadPercent / 100.0) * (close ? CLOSE_BOOST : 1));

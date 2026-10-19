@@ -39,6 +39,8 @@ public final class MobGameBridge {
     final MobSocialController social;
     /** Occasions for a creature to speak first, found on the server and voiced by the client. */
     public final InitiativeController initiative;
+    /** Villagers talking among themselves and writing to the chat, found on the server and voiced by the client. */
+    public final VillageTalkController talk;
     /** The villagers' social layer in the world: gifts changing hands, slaps, families, the village's stance. */
     final SocialController society;
     private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("mobtalk-bridge");
@@ -55,6 +57,7 @@ public final class MobGameBridge {
         families = new FamilyController(this);
         villages = new VillageController(this);
         initiative = new InitiativeController(this);
+        talk = new VillageTalkController(this);
         actions = new MobActionController(this);
         bargaining = new VillagerBargaining(this);
         trading = new MobTrading(this);
@@ -106,6 +109,7 @@ public final class MobGameBridge {
                 bridge.actions.unload(mob);
                 bridge.social.unload(mob);
                 bridge.initiative.unload(mob);
+                bridge.talk.unload(mob.getUuid());
                 if (mob instanceof VillagerEntity villager) { bridge.bargaining.unload(villager); bridge.trades.unload(villager); }
                 bridge.heard.remove(mob.getUuid());
                 bridge.changes.forget(mob.getUuid());
@@ -125,6 +129,7 @@ public final class MobGameBridge {
                 bridge.families.tick(world);
                 bridge.villages.tick(world);
                 bridge.initiative.tick(world);
+                bridge.talk.tick(world);
                 bridge.bargaining.tick(world);
                 bridge.trades.tick(world);
                 bridge.changes.tick(bridge, world);
@@ -163,7 +168,7 @@ public final class MobGameBridge {
                 bridge.memory.recordAction(card.id(), ActionIntent.none());
         if (server.isStopped()) return CompletableFuture.completedFuture(null);
         CompletableFuture<Void> done = new CompletableFuture<>();
-        server.execute(() -> { bridge.actions.clearRuntime(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.initiative.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
+        server.execute(() -> { bridge.actions.clearRuntime(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
         return done;
     }
     public static MobGameBridge forEntity(Entity entity) {

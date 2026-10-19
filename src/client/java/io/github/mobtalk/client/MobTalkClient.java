@@ -104,6 +104,8 @@ public final class MobTalkClient implements ClientModInitializer {
     private final MerchantSession merchant = new MerchantSession(this);
     /** Creatures speaking first and scenes between them; the decider behind them (rules, or Jev with the rules as fallback). */
     final InitiativeVoice initiatives = new InitiativeVoice(this);
+    /** Villagers talking among themselves and writing to the chat. */
+    final VillageTalkVoice village = new VillageTalkVoice(this);
     private volatile Decider decider = new RuleDecider();
     private CompletableFuture<String> actionRequest;
     /** Bystander replies already prepared (LLM done, voice prebuffered), waiting for the current voice to end. */
@@ -307,6 +309,7 @@ public final class MobTalkClient implements ClientModInitializer {
         if (!readyWitnesses.isEmpty()) playNextWitness();
         if (ticks % 20 == 0) keepAttention();
         initiatives.tick(ticks);
+        village.tick(ticks);
         if (!held && keyHeld && recording != null) {
             status = "Завершение записи…";
             recording.stop();
@@ -388,6 +391,7 @@ public final class MobTalkClient implements ClientModInitializer {
         generation++;
         armRecording = false; deferredAction = null;
         initiatives.cancel();
+        village.cancel();
         for (var task : witnessTasks) task.cancel(true);
         witnessTasks.clear();
         for (Ready ready : readyWitnesses) ready.prepared.reply().discardSpeech();
@@ -1067,6 +1071,25 @@ public final class MobTalkClient implements ClientModInitializer {
         if (speech != null && client.getSoundManager().isPlaying(speech)) speechCutoffs++;
         if (speech != null) speech.stop();
         speech = null;
+    }
+
+    /** A line of village small talk: into the chat, and voiced at the speaker when there is audio. Only while nobody speaks. */
+    void playOverheard(UUID mob, String line, io.github.mobtalk.core.SpeechStream audio, double range) {
+        chat(line);
+        stopSpeech();
+        if (audio == null || world == null) return;
+        speech = new MobSpeechSound(client, world, mob, Math.max(range, config.maxDistance), audio);
+        client.getSoundManager().play(speech); speechStarts++; speakingMob = mob;
+    }
+
+    /** The engine for background village talk, created on the calling worker the first time (it loads the key), like for a first question. */
+    java.util.function.Supplier<ConversationEngine> engineSupplier() {
+        if (client.getServer() == null || client.player == null || world == null) return () -> null;
+        Request seed = request(generation, null);
+        return () -> {
+            try { return ensureEngine(seed, false); }
+            catch (Exception unavailable) { LOGGER.info("Mob Talk: no engine for village talk ({})", unavailable.getClass().getSimpleName()); return null; }
+        };
     }
 
     void chat(String text) {
