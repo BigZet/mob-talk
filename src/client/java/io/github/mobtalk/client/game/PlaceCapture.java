@@ -77,8 +77,9 @@ final class PlaceCapture {
                 BlockState state = world.getBlockState(pos);
                 if (state.isAir()) continue;
                 Material kind = classify(state, world, pos);
-                if (kind == Material.AIR) continue;
+                // Torches, rails and signs are air to a body but keep their names: the block families read them.
                 grid.set(x, y, z, kind, Registries.BLOCK.getId(state.getBlock()).toString());
+                if (kind == Material.AIR) continue;
                 if (kind == Material.WATER || kind == Material.LAVA) {
                     FluidState fluid = state.getFluidState();
                     if (!fluid.isEmpty() && !fluid.isStill()) {

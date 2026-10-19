@@ -53,12 +53,32 @@ public final class StructureCapture {
 
     private static int gap(int at, int min, int max) { return at < min ? min - at : at > max ? max - at : 0; }
 
+    /** The registry id of a piece's type ("minecraft:jigsaw", "minecraft:mscorridor"). */
+    public static String pieceType(StructurePiece piece) {
+        Identifier type = Registries.STRUCTURE_PIECE.getId(piece.getType());
+        return type == null ? "" : type.toString();
+    }
+
+    /** The template a piece was built from ("minecraft:village/plains/houses/plains_small_house_1"), "" for hand-coded pieces, or
+     * null for pieces that are no place at all (empty pool elements, decoration features such as hay piles). */
+    public static String template(ServerWorld world, StructurePiece piece) {
+        if (piece instanceof PoolStructurePiece pool) {
+            String element = String.valueOf(pool.getPoolElement());
+            if (element.startsWith("Empty") || element.startsWith("Feature")) return null;
+            Matcher m = ID.matcher(element);
+            String template = m.find() ? m.group() : "";
+            // Mob and golem markers (villagers, animals, piglins) carry no blocks: no place to name.
+            return template.contains("/villagers") || template.contains("/animals") || template.contains("/mobs") || template.contains("village/common/") ? null : template;
+        }
+        if (piece instanceof SimpleStructurePiece) return piece.toNbt(StructureContext.from(world)).getString("Template");
+        return "";
+    }
+
     /** Structure pieces within {@code radius} of origin; empty pool elements and decoration features are left out. */
     public static List<Found> find(ServerWorld world, BlockPos origin, int radius) {
         List<Found> out = new ArrayList<>();
         Set<StructureStart> seen = Collections.newSetFromMap(new IdentityHashMap<>());
         BlockBox area = new BlockBox(origin.getX() - radius, origin.getY() - radius, origin.getZ() - radius, origin.getX() + radius, origin.getY() + radius, origin.getZ() + radius);
-        StructureContext context = null;
         for (int cx = (origin.getX() - radius) >> 4; cx <= (origin.getX() + radius) >> 4; cx++)
             for (int cz = (origin.getZ() - radius) >> 4; cz <= (origin.getZ() + radius) >> 4; cz++) {
                 if (!world.getChunkManager().isChunkLoaded(cx, cz)) continue;
@@ -73,18 +93,8 @@ public final class StructureCapture {
                         String structure = id == null ? "unknown" : id.toString();
                         for (StructurePiece piece : start.getChildren()) {
                             if (!piece.getBoundingBox().intersects(area)) continue;
-                            Identifier type = Registries.STRUCTURE_PIECE.getId(piece.getType());
-                            String template = "";
-                            if (piece instanceof PoolStructurePiece pool) {
-                                String element = String.valueOf(pool.getPoolElement());
-                                if (element.startsWith("Empty") || element.startsWith("Feature")) continue;
-                                Matcher m = ID.matcher(element);
-                                if (m.find()) template = m.group();
-                            } else if (piece instanceof SimpleStructurePiece) {
-                                if (context == null) context = StructureContext.from(world);
-                                template = piece.toNbt(context).getString("Template");
-                            }
-                            out.add(new Found(start, piece, structure, type == null ? "" : type.toString(), template));
+                            String template = template(world, piece);
+                            if (template != null) out.add(new Found(start, piece, structure, pieceType(piece), template));
                         }
                     }
                 }
