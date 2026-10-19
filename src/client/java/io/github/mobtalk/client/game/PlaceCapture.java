@@ -5,6 +5,8 @@ import io.github.mobtalk.core.place.Material;
 import io.github.mobtalk.core.place.Place;
 import io.github.mobtalk.core.place.PlaceClassifier;
 import io.github.mobtalk.core.place.PlaceObjects;
+import io.github.mobtalk.core.place.Structures;
+import io.github.mobtalk.core.place.Trees;
 import io.github.mobtalk.core.place.VoxelGrid;
 import net.minecraft.block.*;
 import net.minecraft.entity.mob.MobEntity;
@@ -32,7 +34,7 @@ final class PlaceCapture {
     /** The box sampled around the creature: 25×17×25 cells, enough for the flood's radius and the classifier's cube. */
     static final int RADIUS_XZ = Place.RADIUS, RADIUS_Y = 8;
 
-    record Result(VoxelGrid grid, Place.Report report, List<PlaceObjects.Item> objects, int originY) { }
+    record Result(VoxelGrid grid, Place.Report report, List<PlaceObjects.Item> objects, int originY, List<String> structures, List<String> trees) { }
 
     private PlaceCapture() { }
 
@@ -51,7 +53,9 @@ final class PlaceCapture {
         }
         Place.Report report = Place.analyse(grid, options);
         List<PlaceObjects.Item> objects = PlaceObjects.find(grid, report.originY);
-        return new Result(grid, report, objects, report.originY);
+        // Registry facts: the vanilla structure pieces around and the trees by rule; both are facts, not guesses.
+        List<String> structures = Structures.facts(StructureCapture.pieces(world, origin, Structures.RADIUS));
+        return new Result(grid, report, objects, report.originY, structures, Trees.facts(grid, report.originY));
     }
 
     /** The grid, or null when a chunk of the box is not loaded (never load chunks for a conversation). */
@@ -73,8 +77,9 @@ final class PlaceCapture {
                 BlockState state = world.getBlockState(pos);
                 if (state.isAir()) continue;
                 Material kind = classify(state, world, pos);
-                if (kind == Material.AIR) continue;
+                // Torches, rails and signs are air to a body but keep their names: the block families read them.
                 grid.set(x, y, z, kind, Registries.BLOCK.getId(state.getBlock()).toString());
+                if (kind == Material.AIR) continue;
                 if (kind == Material.WATER || kind == Material.LAVA) {
                     FluidState fluid = state.getFluidState();
                     if (!fluid.isEmpty() && !fluid.isStill()) {
@@ -125,27 +130,33 @@ final class PlaceCapture {
         List<String> objects = new ArrayList<>();
         for (PlaceObjects.Item item : result.objects()) objects.add(item.text());
         place.put("objects", objects);
+        if (!result.structures().isEmpty()) place.put("structures", List.copyOf(result.structures()));
+        if (!result.trees().isEmpty()) place.put("trees", List.copyOf(result.trees()));
         return place;
     }
 
-    private static final Map<UUID, byte[]> CUBES = new ConcurrentHashMap<>();
+    private static final Map<UUID, byte[][]> CUBES = new ConcurrentHashMap<>();
     /** Keeps the classifier's input aside for {@link #classify(MobSnapshot)}: the snapshot itself carries only JSON values. */
     static void stash(UUID mob, VoxelGrid grid) {
         if (CUBES.size() > 64) CUBES.clear(); // A capture that never reached the classifier must not pile up.
-        CUBES.put(mob, grid.cube());
+        CUBES.put(mob, new byte[][]{grid.cube(), grid.familyCube()});
     }
 
     /** Runs the classifier off the server thread and writes its guess into the place details; the snapshot comes back as is
      * when there is nothing to classify or no weights are bundled. */
     static MobSnapshot classify(MobSnapshot snapshot) {
-        byte[] cube = CUBES.remove(snapshot.id());
+        byte[][] cubes = CUBES.remove(snapshot.id());
         PlaceClassifier classifier = PlaceClassifier.bundled();
-        if (cube == null || classifier == null || !(snapshot.environmentDetails().get("place") instanceof Map<?, ?> existing)) return snapshot;
-        PlaceClassifier.Guess guess = classifier.guess(cube);
+        if (cubes == null || classifier == null || !(snapshot.environmentDetails().get("place") instanceof Map<?, ?> existing)) return snapshot;
+        PlaceClassifier.Hierarchy guess = classifier.classify(cubes[0], cubes[1]);
         Map<String, Object> place = new LinkedHashMap<>();
         existing.forEach((key, value) -> place.put(String.valueOf(key), value));
         place.put("looksLike", guess.label());
         place.put("looksLikeConfidence", Math.round(guess.confidence() * 100) / 100.0);
+        if (guess.function() != null) {
+            place.put("looksLikeFunction", guess.function());
+            place.put("looksLikeFunctionConfidence", Math.round(guess.functionConfidence() * 100) / 100.0);
+        }
         Map<String, Object> environment = new LinkedHashMap<>(snapshot.environmentDetails());
         environment.put("place", place);
         return new MobSnapshot(snapshot.id(), snapshot.type(), snapshot.name(), snapshot.health(), snapshot.maxHealth(), snapshot.dimension(), snapshot.biome(),

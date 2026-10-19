@@ -92,6 +92,32 @@ public final class VoxelGrid {
         return out;
     }
 
+    /** The same cube as {@link #cube()}, with each cell's {@link BlockFamily} instead of its material. */
+    public byte[] familyCube() {
+        byte[] families = new byte[names.size()];
+        for (int i = 0; i < families.length; i++) families[i] = (byte) BlockFamily.of(names.get(i)).ordinal();
+        byte[] out = new byte[CUBE * CUBE * CUBE];
+        for (int x = 0; x < CUBE; x++) for (int y = 0; y < CUBE; y++) for (int z = 0; z < CUBE; z++) {
+            int i = index(CUBE_X0 + x, CUBE_Y0 + y, CUBE_Z0 + z);
+            out[(x * CUBE + y) * CUBE + z] = i < 0 ? 0 : families[block[i]];
+        }
+        return out;
+    }
+
+    /** The block ids of the classifier's cube as indices into {@code palette} (filled by this call), laid out like {@link #cube()}. */
+    public short[] blockCube(List<String> palette) {
+        Map<Short, Short> local = new HashMap<>();
+        short[] out = new short[CUBE * CUBE * CUBE];
+        for (int x = 0; x < CUBE; x++) for (int y = 0; y < CUBE; y++) for (int z = 0; z < CUBE; z++) {
+            int i = index(CUBE_X0 + x, CUBE_Y0 + y, CUBE_Z0 + z);
+            short id = i < 0 ? 0 : block[i];
+            Short mapped = local.get(id);
+            if (mapped == null) { mapped = (short) palette.size(); palette.add(names.get(id)); local.put(id, mapped); }
+            out[(x * CUBE + y) * CUBE + z] = mapped;
+        }
+        return out;
+    }
+
     private short nameId(String name) {
         Short id = nameIds.get(name);
         if (id != null) return id;

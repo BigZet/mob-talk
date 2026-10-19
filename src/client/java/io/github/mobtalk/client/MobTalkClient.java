@@ -153,6 +153,7 @@ public final class MobTalkClient implements ClientModInitializer {
         ClientLifecycleEvents.CLIENT_STOPPING.register(ignored -> shutdown());
         MobTalkCommands.register(this);
         SelfTest.install(this);
+        io.github.mobtalk.client.game.DatasetHarvester.install(client);
         reload();
     }
 
