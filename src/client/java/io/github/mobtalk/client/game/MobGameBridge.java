@@ -345,15 +345,27 @@ public final class MobGameBridge {
                 if (!(entity instanceof MobEntity mob) || !mob.isAlive() || player == null || !player.isAlive()
                         || player.getWorld() != world) throw new java.util.concurrent.CancellationException("Моб или игрок недоступен");
                 if (memory.card(mobId, playerId) == null) event(mob, "The player met this mob");
+                // The thing handed over is what the favour asked for: it is the delivery, not a present — the favour takes it and pays,
+                // whatever the model called it (a gift would eat the item and leave the favour open).
+                Favor owed = memory.favor(mobId, playerId);
+                GestureIntent handed = gesture; QuestIntent asked = quest;
+                if (handed != null && handed.takesItem() && owed != null && owed.item().equals(handed.item())) {
+                    handed = GestureIntent.none();
+                    net.minecraft.item.Item wanted = MobTrading.item(owed.item());
+                    if (asked == null || asked.type() != QuestIntent.Type.COMPLETE) {
+                        if (wanted != null && MobTrading.count(player, wanted) >= owed.count()) asked = QuestIntent.complete();
+                        else LOGGER.info("Mob Talk: предмет услуги в руке, но не хватает до {} шт.: подарок не засчитан, услуга открыта", owed.count());
+                    }
+                }
                 // First: a gift no longer in hand cancels the whole reply before anything else changes.
-                String gestured = society.apply(mob, player, gesture);
+                String gestured = society.apply(mob, player, handed);
                 String trade = "";
                 if (bargain != null && bargain.type() != BargainIntent.Type.NONE) {
                     if (!(mob instanceof VillagerEntity villager)) throw new IllegalStateException("Торг доступен только с жителями");
                     // Window shut: the bargain is a spoken promise that becomes a one-use row; open: a price in the window.
                     trade = TradeBridge.spoken(observed) ? trades.apply(villager, player, bargain, observed) : bargaining.apply(villager, player, bargain, observed);
                 }
-                String deals = trading.apply(mob, player, deal, unlock, quest);
+                String deals = trading.apply(mob, player, deal, unlock, asked);
                 if (!deals.isBlank()) trade = trade.isBlank() ? deals : trade + "; " + deals;
                 String result = actions.apply(mob, player, intent, observed);
                 if (!gestured.isBlank()) result = result.isBlank() ? gestured : result + "; " + gestured;

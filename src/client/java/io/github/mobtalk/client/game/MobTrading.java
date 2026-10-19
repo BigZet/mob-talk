@@ -56,7 +56,7 @@ final class MobTrading {
         result.addAll(inventory.offHand);
         return result;
     }
-    private static int count(ServerPlayerEntity player, Item item) {
+    static int count(ServerPlayerEntity player, Item item) {
         int total = 0;
         for (ItemStack stack : stacks(player.getInventory())) if (stack.isOf(item)) total += stack.getCount();
         return total;
