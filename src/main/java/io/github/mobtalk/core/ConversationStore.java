@@ -83,6 +83,13 @@ public final class ConversationStore {
         detached.hits = own == null ? 0 : own.hits;
         long now = System.currentTimeMillis();
         detached.bonds = state.relations.views(p.id, now);
+        // What the village says: a villager nobody talked to yet picks up the loudest rumours and the player's fame at once.
+        String villageId = detached.village != null ? detached.village.id() : p.villageId;
+        if (villageId != null && !villageId.isBlank()) {
+            detached.rumors = p.turns.isEmpty() ? state.rumors.newcomer(p.id, villageId, now) : state.rumors.heardBy(p.id, villageId, now);
+            detached.repute = state.rumors.reputation(villageId, now);
+            if (p.turns.isEmpty() && !detached.rumors.isEmpty()) scheduleSave();
+        }
         // Whole and not under attack: the nerves settle a little, however the player is regarded.
         boolean attacked = snapshot.mobDetails().get("lastAttacker") instanceof String attacker && !"none".equals(attacker);
         if (snapshot.maxHealth() > 0 && snapshot.health() >= snapshot.maxHealth() && !attacked && p.state.safe(baseline(p, current.relationship()), now)) scheduleSave();
@@ -169,13 +176,82 @@ public final class ConversationStore {
         state.profiles.remove(mob.toString());
         state.bargains.keySet().removeIf(key -> key.startsWith(mob + ":"));
         state.relations.remove(mob);
+        state.rumors.remove(mob);
         scheduleSave();
         return true;
+    }
+    // ---- Village rumours, see VillageRumors: the chronicle's input, its result, spreading, and what a mob knows. ----
+
+    /** The id of the village this mob belongs to, or "". */
+    public synchronized String villageOf(UUID mob) { Profile p = mob == null ? null : state.profiles.get(mob.toString()); return p == null || p.villageId == null ? "" : p.villageId; }
+    /** When the player last talked with this mob, -1 for never. */
+    public synchronized long lastTurnMillis(UUID mob) { Profile p = mob == null ? null : state.profiles.get(mob.toString()); return p == null ? -1 : p.lastTurnMillis; }
+    /** The chronicle request's input when the village's chronicle is due (a new day, or enough importance since the last one):
+     * the events and facts of at least {@link VillageRumors#MIN_IMPORTANCE} of every known inhabitant since then. The chronicle
+     * counts as started once this returns non-null, whatever the request brings. */
+    public synchronized VillageRumors.Input chronicleDue(String villageId, String playerName, long day, long now) {
+        Village village = village(villageId);
+        if (village == null) return null;
+        long since = state.rumors.since(villageId);
+        List<VillageRumors.Fact> facts = new ArrayList<>(); List<String> names = new ArrayList<>();
+        for (Profile q : state.profiles.values()) {
+            if (!villageId.equals(q.villageId)) continue;
+            String who = q.givenName.isBlank() ? q.name : q.givenName;
+            names.add(who);
+            for (Event event : q.events) if (event.importance() >= VillageRumors.MIN_IMPORTANCE && event.time() > since) facts.add(new VillageRumors.Fact(who, event.text(), event.importance(), event.time()));
+            for (MemoryFact fact : q.facts) if (!fact.reflection() && fact.importance() >= VillageRumors.MIN_IMPORTANCE && fact.time() > since) facts.add(new VillageRumors.Fact(who, fact.text(), fact.importance(), fact.time()));
+        }
+        VillageRumors.Input input = new VillageRumors.Input(villageId, village.name(), village.story(), names, facts, safePlayer(playerName), day);
+        if (!state.rumors.due(villageId, day, input.importance(), !facts.isEmpty(), now)) return null;
+        state.rumors.started(villageId, day, now); scheduleSave();
+        return input;
+    }
+    /** Stores the rumours a chronicle request produced; each teller knows its own at once. */
+    public synchronized int addRumors(String villageId, List<VillageRumors.View> rumors, long now) {
+        Map<String, String> ids = new HashMap<>();
+        for (Profile q : state.profiles.values()) if (villageId.equals(q.villageId)) ids.put(q.givenName.isBlank() ? q.name : q.givenName, q.id.toString());
+        int added = state.rumors.add(villageId, rumors, ids, now);
+        if (added > 0) scheduleSave();
+        return added;
+    }
+    /** Two inhabitants of one village stand together: rumours cross between them (faster between family and friends). */
+    public synchronized boolean spreadRumors(UUID a, UUID b, java.util.function.DoubleSupplier roll, long now) {
+        String village = villageOf(a);
+        if (village.isBlank() || !village.equals(villageOf(b))) return false;
+        boolean close = state.relations.views(a, now).stream().anyMatch(v -> v.other().equals(b) && (v.friend() || v.tags().contains(MobRelations.Tag.FAMILY)));
+        int crossed = state.rumors.spread(village, a, b, close, roll, now);
+        if (crossed > 0) scheduleSave();
+        return crossed > 0;
+    }
+    /** A wandering trader stood with a villager: it takes that village's rumours along, or hands over the ones it brought. */
+    public synchronized boolean tradeRumors(UUID trader, UUID villager, long now) {
+        String village = villageOf(villager);
+        if (village.isBlank()) return false;
+        int moved = state.rumors.deliver(trader, village, villager, now) + state.rumors.carry(trader, village, now);
+        if (moved > 0) scheduleSave();
+        return moved > 0;
+    }
+    /** What this mob knows of the village talk (or carries, for a trader), for the debug line. */
+    public synchronized List<VillageRumors.View> rumorsOf(UUID mob, long now) {
+        List<VillageRumors.View> carried = state.rumors.carriedBy(mob, now);
+        return carried.isEmpty() ? state.rumors.heardBy(mob, villageOf(mob), now) : carried;
+    }
+    /** What a decider sees of this mob right now; null for a stranger. {@code cue} for a creature speaking first, {@code speaker}/{@code said}
+     * for one that heard something. */
+    public synchronized DecisionState decision(UUID mob, UUID player, Initiative.Cue cue, String speaker, String said, boolean eventful) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        if (p == null) return null;
+        int score = relationship(mob, player);
+        long now = System.currentTimeMillis();
+        String name = p.givenName.isBlank() ? p.name : p.givenName, species = SpeciesCatalog.get(p.type).name();
+        List<String> events = p.events.stream().map(e -> e.text).toList();
+        return cue != null ? DecisionState.forCue(mob, name, species, p.state.view(baseline(p, score), now), p.sociability, p.curiosity, score, state.relations.views(mob, now), cue, events)
+                : DecisionState.forHeard(mob, name, species, p.state.view(baseline(p, score), now), p.sociability, p.curiosity, score, state.relations.views(mob, now), speaker, said, eventful, events);
     }
     // ---- What mobs think of each other, see MobRelations: reads give detached views, writes run under the lock. ----
     public synchronized List<MobRelations.View> bonds(UUID mob, long nowMillis) { return state.relations.views(mob, nowMillis); }
     /** Runs one change against the relations under the lock; a change that reports true is saved. */
-    public synchronized void updateRelations(java.util.function.Predicate<MobRelations> change) { if (change.test(state.relations)) scheduleSave(); }
+    public synchronized boolean updateRelations(java.util.function.Predicate<MobRelations> change) { boolean changed = change.test(state.relations); if (changed) scheduleSave(); return changed; }
     /** Family for two mobs of one village, kin for one species, nothing for strangers or a mob without a profile. */
     public synchronized MobRelations.Kinship kinship(UUID a, UUID b) {
         Profile p = a == null ? null : state.profiles.get(a.toString()), q = b == null ? null : state.profiles.get(b.toString());
@@ -578,6 +654,8 @@ public final class ConversationStore {
         transient MobState.View stateView;
         /** What this mob thinks of other mobs at the moment the profile was read, strongest first; see {@link MobRelations}. */
         transient List<MobRelations.View> bonds = List.of();
+        /** What this villager has heard the village say, weightiest first, and the player's fame there; see {@link VillageRumors}. */
+        transient List<VillageRumors.View> rumors = List.of(); transient VillageRumors.Reputation repute = VillageRumors.Reputation.NONE;
         String type, name, personality, voiceId; String memory = "";
         /** The memory as facts with importance and age ({@link MemoryRanking}); {@code memory} above is the same text, one line each. */
         List<MemoryFact> facts = new ArrayList<>();
@@ -681,18 +759,22 @@ public final class ConversationStore {
         Map<String,Village> villages = new LinkedHashMap<>();
         /** Bonds between mobs; absent in files written before them. */
         MobRelations relations = new MobRelations();
+        /** What the villages say; absent in files written before it. */
+        VillageRumors rumors = new VillageRumors();
         void sanitize() {
             if (bargains == null) bargains = new LinkedHashMap<>();
             if (villages == null) villages = new LinkedHashMap<>();
             villages.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null || e.getValue().name() == null || e.getValue().dimension() == null);
             if (relations == null) relations = new MobRelations();
             relations.sanitize();
+            if (rumors == null) rumors = new VillageRumors();
+            rumors.sanitize();
         }
         State copy() {
             State c = new State(); c.version = version;
             profiles.forEach((key, p) -> c.profiles.put(key, p.copy()));
             c.bargains.putAll(bargains); c.villages.putAll(villages); // Immutable records.
-            c.relations = relations.copy();
+            c.relations = relations.copy(); c.rumors = rumors.copy();
             return c;
         }
     }

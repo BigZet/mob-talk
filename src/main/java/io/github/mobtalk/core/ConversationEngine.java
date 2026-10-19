@@ -2,6 +2,7 @@ package io.github.mobtalk.core;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 
 /** Blocking pipeline intended for one conversation worker, with a store per single-player world. */
 public final class ConversationEngine implements AutoCloseable {
@@ -48,13 +49,44 @@ public final class ConversationEngine implements AutoCloseable {
         catch (IOException failure) { llm.close(); speech.close(); throw failure; }
     }
 
-    /** An exchange a bystander heard: who the player spoke to, what was said and what came back. */
-    public record Overheard(String speaker, String said, String answer) {
+    /** Something said that was not the player talking to this mob: an exchange a bystander heard (who the player spoke to, what was
+     * said and what came back), an occasion for this mob to speak first ({@code said} holds the occasion, see {@link Initiative#cueText}),
+     * or another creature's line addressed to this mob ({@code speaker} and {@code answer}). */
+    public record Overheard(String speaker, String said, String answer, Kind kind) {
+        public enum Kind { BYSTANDER, INITIATIVE, DIALOGUE }
         public Overheard {
             speaker = TextBounds.characters(speaker, 120); said = TextBounds.characters(said, 2000); answer = TextBounds.characters(answer, 2000);
+            kind = kind == null ? Kind.BYSTANDER : kind;
         }
-        /** How the exchange goes into the bystander's own history. */
-        String asHeard() { return "(ты слышал) Игрок — " + speaker + ": «" + said + "»; " + speaker + ": «" + answer + "»"; }
+        public Overheard(String speaker, String said, String answer) { this(speaker, said, answer, Kind.BYSTANDER); }
+        /** The occasion for a creature to speak first, in words for the prompt. */
+        public static Overheard initiative(String cue) { return new Overheard("", cue, "", Kind.INITIATIVE); }
+        /** Another creature's line to this one. */
+        public static Overheard dialogue(String speaker, String line) { return new Overheard(speaker, "", line, Kind.DIALOGUE); }
+        public boolean spontaneous() { return kind != Kind.BYSTANDER; }
+        /** How the exchange goes into the mob's own history. */
+        String asHeard() {
+            return switch (kind) {
+                case BYSTANDER -> "(ты слышал) Игрок — " + speaker + ": «" + said + "»; " + speaker + ": «" + answer + "»";
+                case INITIATIVE -> "(ты заговорил первым) " + said;
+                case DIALOGUE -> "(тебе сказал " + speaker + ") «" + answer + "»";
+            };
+        }
+    }
+
+    /** The village's chronicle when it is due: one background request turns the day's events into rumours ({@link VillageRumors});
+     * nothing here waits or touches the network. */
+    public void chronicleIfDue(String villageId, String playerName, long day) {
+        if (closed || villageId == null || villageId.isBlank()) return;
+        long now = System.currentTimeMillis();
+        VillageRumors.Input input = store.chronicleDue(villageId, playerName, day, now);
+        if (input == null) return;
+        BackgroundTasks.submit("chronicle:" + villageId, () -> {
+            if (closed) return;
+            List<VillageRumors.View> rumors = VillageRumors.request(llm, input);
+            int added = store.addRumors(villageId, rumors, System.currentTimeMillis());
+            OpenRouterConversationClient.diagnostics.accept("хроника деревни «" + input.villageName() + "»: " + added + " новых слухов из " + input.facts().size() + " фактов");
+        });
     }
 
     public Reply converse(MobSnapshot snapshot, String userText) throws IOException, InterruptedException {
