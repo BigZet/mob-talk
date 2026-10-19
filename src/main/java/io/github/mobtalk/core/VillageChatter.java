@@ -59,15 +59,23 @@ public final class VillageChatter {
     public static Subject subject(Speaker a, Speaker b, Facts facts, DoubleSupplier roll) {
         double r = roll.getAsDouble();
         if (facts.rumor() != null && r < 0.75)
-            return new Subject(Topic.RUMOR, a.name() + " пересказывает " + b.name() + " слух, которого тот ещё не слышал: «" + facts.rumor().line() + "»", facts.rumor().id());
+            return new Subject(Topic.RUMOR, rumorTopic(a, b, facts.rumor()), facts.rumor().id());
         List<Subject> options = new ArrayList<>();
         if (!facts.reputation().isBlank()) options.add(new Subject(Topic.REPUTATION, "что в деревне говорят об игроке " + "(" + facts.reputation() + ")", ""));
         if (!facts.weather().isBlank() && !"день".equals(facts.weather())) options.add(new Subject(Topic.WEATHER, "погода и время суток: сейчас " + facts.weather(), ""));
         if (!facts.recentEvent().isBlank()) options.add(new Subject(Topic.EVENT, "что недавно случилось с " + a.name() + ": " + facts.recentEvent(), ""));
         options.add(new Subject(Topic.WORK, "работа и деревенские дела: " + a.name() + (a.profession().isBlank() ? "" : " — " + a.profession())
                 + ", " + b.name() + (b.profession().isBlank() ? "" : " — " + b.profession()), ""));
-        if (facts.rumor() != null) options.add(new Subject(Topic.RUMOR, a.name() + " пересказывает " + b.name() + " слух: «" + facts.rumor().line() + "»", facts.rumor().id()));
+        if (facts.rumor() != null) options.add(new Subject(Topic.RUMOR, rumorTopic(a, b, facts.rumor()), facts.rumor().id()));
         return options.get(Math.min(options.size() - 1, (int) (roll.getAsDouble() * options.size())));
+    }
+
+    /** The rumour as a topic: what is said and who started it, kept apart, so the line retells it in the teller's own words
+     * («слыхал, у Кремня сын родился») instead of quoting «Кремень говорит, что у Кремня…». */
+    static String rumorTopic(Speaker a, Speaker b, VillageRumors.View rumor) {
+        return a.name() + " пересказывает " + b.name() + " своими словами новость, которой тот ещё не слышал: " + rumor.text()
+                + (rumor.source().isBlank() || rumor.source().equals(a.name()) ? "" : " (пошло от " + rumor.source() + ")")
+                + ". Это новость о других, не о самих говорящих; не начинай с «говорит, что»";
     }
 
     /** The world's pace: one talk per village per {@code intervalSeconds}, one per villager per {@link #MOB_COOLDOWN_MILLIS}. Runtime only. */
@@ -132,7 +140,7 @@ public final class VillageChatter {
         return "Ты пишешь короткую сценку из жизни деревни" + (input.villageName().isBlank() ? "" : " «" + input.villageName() + "»") + " в мире Minecraft: "
                 + "два жителя переговариваются между собой, а игрок" + (input.playerName().isBlank() ? "" : " " + input.playerName()) + " стоит неподалёку и слышит их. "
                 + "a — " + describe(a) + "; b — " + describe(b) + ". "
-                + (input.acquainted() ? "Они давно знают друг друга." : "Они почти не знакомы: уместно назвать себя или обратиться по имени. ")
+                + "Они соседи и знают друг друга в лицо: не представляются и не называют себя по имени, разговор начинается сразу с дела."
                 + " Тема: " + input.subject().text() + ". "
                 + "Напиши " + MIN_LINES + "–" + MAX_LINES + " реплики по очереди, первая — a. Каждая реплика — одна короткая разговорная фраза до 15 слов, по-русски, "
                 + "живо и в духе характера; говорят друг с другом, не с игроком; без ремарок, без кавычек, без имени говорящего в начале. "

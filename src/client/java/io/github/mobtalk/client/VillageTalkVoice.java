@@ -84,7 +84,8 @@ final class VillageTalkVoice {
 
     /** The next announcement the server picked: written on the bystander lane, then posted to the chat in the villager's name. */
     private void announce(MobGameBridge game) {
-        if (announcing) return;
+        // Not in the middle of someone's voice: a chat line landing between two lines of small talk reads as a reply to it.
+        if (announcing || active() || owner.busyTalking()) return;
         VillageNotices.Cue cue = game.talk.pollNotice();
         if (cue == null) return;
         Supplier<ConversationEngine> engines = owner.engineSupplier();

@@ -33,7 +33,10 @@ class VillageTalkTest {
         VillageRumors.View rumor = new VillageRumors.View("r1", "Стив подарил Марфе цветок", "Марфа", 3, 1, 0, 3);
         VillageChatter.Subject told = VillageChatter.subject(a, b, new VillageChatter.Facts(rumor, "", "день", ""), () -> 0.1);
         assertEquals(VillageChatter.Topic.RUMOR, told.topic()); assertEquals("r1", told.rumorId());
-        assertTrue(told.text().contains("Марфа говорит, что Стив подарил Марфе цветок"), told.text());
+        assertTrue(told.text().contains("Стив подарил Марфе цветок (пошло от Марфа)") && !told.text().contains("говорит, что Стив"), told.text());
+        // Neighbours know each other by sight: nobody opens with «Я Пахом».
+        String prompt = VillageChatter.instructions(new VillageChatter.Input("v", "Ольховка", a, b, told, "Стив", "день", false));
+        assertTrue(prompt.contains("не представляются") && !prompt.contains("назвать себя"), prompt);
         VillageChatter.Subject idle = VillageChatter.subject(a, b, new VillageChatter.Facts(null, "", "день", ""), () -> 0.5);
         assertEquals(VillageChatter.Topic.WORK, idle.topic(), "a plain day with nothing to tell: work");
         VillageChatter.Subject rain = VillageChatter.subject(a, b, new VillageChatter.Facts(null, "", "дождь", ""), () -> 0.0);
