@@ -241,7 +241,9 @@ public final class SocialLedger {
         if (dead == null) return List.of();
         synchronized (store) {
             ConversationStore.State state = store.state;
-            if (!state.family.known(dead)) return List.of();
+            boolean inTree = state.family.known(dead);
+            // Even a villager with no relatives is struck off: the village's standing counts the living only.
+            if (!inTree) { if (state.profiles.containsKey(dead.toString())) { state.family.markDead(dead, deadName); store.scheduleSave(); } return List.of(); }
             Gender deadGender = deadGender(state, dead);
             List<Mourner> mourners = new ArrayList<>();
             for (Map.Entry<UUID, FamilyTree.Link> entry : state.family.died(dead).entrySet()) {

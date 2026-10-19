@@ -70,6 +70,13 @@ public final class FamilyTree {
         if (mother != null) { Node m = nodes.computeIfAbsent(mother.toString(), key -> { Node n = new Node(); n.id = key; return n; }); node.mother = m.id; if (!m.children.contains(node.id)) m.children.add(node.id); }
         if (father != null) { Node f = nodes.computeIfAbsent(father.toString(), key -> { Node n = new Node(); n.id = key; return n; }); node.father = f.id; if (!f.children.contains(node.id)) f.children.add(node.id); }
     }
+    /** A villager outside the tree died too: the village must stop counting it, so it gets a node marked dead. */
+    public void markDead(UUID id, String name) {
+        if (id == null) return;
+        Node node = nodes.computeIfAbsent(id.toString(), key -> { Node n = new Node(); n.id = key; return n; });
+        if (node.name == null || node.name.isBlank()) node.name = name == null ? "" : name;
+        node.dead = true;
+    }
     /** {@code id} died: its spouse becomes a widow(er). Returns the relatives to grieve, with how they were linked. */
     Map<UUID, Link> died(UUID id) {
         Node node = get(id);

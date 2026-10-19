@@ -71,5 +71,11 @@ class VillageStandingTest {
         ConversationStore.Profile p = store.profile(SocialLayerTest.villager(residents[0], player, store.revision(residents[0]), false, "minecraft:air"));
         String prompt = new MobPrompt(new MobTalkConfig()).system(SpeciesCatalog.get("minecraft:villager"), p, SocialLayerTest.villager(residents[0], player, 0, false, "minecraft:air"));
         assertTrue(prompt.contains("деревня его изгнала"), prompt);
+        // Two of the three die (no relatives in the tree): the village counts the living only, and one hurt resident makes a suspect, not an exile.
+        store.social().died(residents[1], "Житель", "minecraft:villager", player, "Стив", 2000);
+        store.social().died(residents[2], "Житель", "minecraft:villager", player, "Стив", 2000);
+        VillageStanding.View living = store.social().standing(village.id(), player, System.currentTimeMillis());
+        assertEquals(1, living.residents()); assertEquals(1, living.acquainted());
+        assertNotEquals(VillageStanding.Rank.EXILE, living.rank());
     }
 }

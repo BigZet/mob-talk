@@ -120,12 +120,13 @@ final class FamilyController {
 
     /** A villager died: its relatives mourn and turn on a player killer; the nearest mourner by the player says a word of it. */
     void died(MobEntity mob, DamageSource source) {
-        if (!enabled() || !(mob instanceof VillagerEntity) || !(mob.getWorld() instanceof ServerWorld world)) return;
+        if (!bridge.config.enabled || !(mob instanceof VillagerEntity) || !(mob.getWorld() instanceof ServerWorld world)) return;
         ServerPlayerEntity killer = source.getAttacker() instanceof ServerPlayerEntity player ? player : null;
         long now = System.currentTimeMillis();
         String deadName = name(mob);
         List<SocialLedger.Mourner> mourners = bridge.memory.social().died(mob.getUuid(), deadName, MobGameBridge.type(mob),
                 killer == null ? null : killer.getUuid(), killer == null ? "" : killer.getName().getString(), now);
+        if (!enabled()) return;
         for (ServerPlayerEntity player : world.getPlayers()) {
             for (SocialLedger.Mourner mourner : mourners) {
                 if (!(world.getEntity(mourner.id()) instanceof VillagerEntity relative) || relative.squaredDistanceTo(player) > 16 * 16) continue;
