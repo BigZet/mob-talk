@@ -90,6 +90,12 @@ public final class SocialLedger {
             }
             if (courtship.partners()) rolled.put(Gesture.DIVORCE, new GestureIntent(Gesture.DIVORCE, Gesture.Outcome.ACCEPTED,
                     courtship == Courtship.MARRIED ? DIVORCE_HEARTS : BREAKUP_HEARTS, "", courtship.name()));
+            if (courtship == Courtship.MARRIED && config.familyLife) {
+                String refusal = SocialPrompt.childRefusal(score, p.social.has(VillagerTrait.INFERTILE), p.social.expectingTick >= 0,
+                        rapport.lastChildMillis >= 0 && now - rapport.lastChildMillis < ChildGrowth.CHILD_COOLDOWN_MILLIS);
+                rolled.put(Gesture.CHILD, new GestureIntent(Gesture.CHILD, refusal == null ? Gesture.Outcome.ACCEPTED : Gesture.Outcome.REFUSED,
+                        refusal == null ? DATE_HEARTS : 0, "", refusal == null ? "" : refusal));
+            }
         }
         List<String> facts = SocialPrompt.playerFacts(courtship, state.family, p.id, player, config);
         detached.socialTurn = new SocialTurn(rolled, closed, facts);
@@ -168,6 +174,10 @@ public final class SocialLedger {
                 r.rapport.courtship(Courtship.NONE);
                 if (p.id.equals(tree.spouse(player))) tree.divorce(player);
                 felt = MobState.Event.DIVORCE;
+            }
+            case CHILD -> {
+                if (accepted && p.social != null) { r.rapport.lastChildMillis = now; p.social.expectingTick = 0; p.social.expectingWith = player.toString(); }
+                felt = accepted ? MobState.Event.ROMANCE : null;
             }
             case GIFT -> felt = intent.outcome().warm() ? MobState.Event.GIFT_LIKED : intent.hearts() < 0 ? MobState.Event.GIFT_SPURNED : null;
             default -> felt = intent.outcome().warm() ? MobState.Event.GESTURE_WARM : MobState.Event.GESTURE_COLD;
@@ -262,6 +272,105 @@ public final class SocialLedger {
         FamilyTree.Node node = state.family.nodes.get(dead.toString());
         Gender g = node == null ? null : Gender.of(node.gender);
         return g == null ? Gender.MALE : g;
+    }
+
+    // ---- Children: born only to couples, growing through stages the game holds them in. ----
+
+    /** A child on the way with the player: the villager, the player, the birth tick (0 while the game has not set it). */
+    public record Expecting(UUID villager, UUID partner, long dueTick) { }
+    public List<Expecting> expecting() {
+        synchronized (store) {
+            List<Expecting> list = new ArrayList<>();
+            for (ConversationStore.Profile p : store.state.profiles.values())
+                if (p.social != null && p.social.expectingTick >= 0 && !p.social.expectingWith.isBlank())
+                    try { list.add(new Expecting(p.id, UUID.fromString(p.social.expectingWith), p.social.expectingTick)); } catch (IllegalArgumentException ignored) { }
+            return list;
+        }
+    }
+    /** The game set the day of birth (a game day after the agreement). */
+    public void due(UUID villager, long tick) {
+        synchronized (store) {
+            ConversationStore.Profile p = store.state.profiles.get(villager.toString());
+            if (p != null && p.social != null && p.social.expectingTick == 0) { p.social.expectingTick = Math.max(1, tick); store.scheduleSave(); }
+        }
+    }
+    /** What the village rule needs to know of a married villager: its sex, its living spouse, how many children it has, fertility. */
+    public record Household(UUID villager, Gender gender, UUID spouse, int children, boolean fertile) { }
+    public Household household(UUID villager) {
+        synchronized (store) {
+            ConversationStore.State state = store.state;
+            ConversationStore.Profile p = state.profiles.get(villager.toString());
+            SocialProfile social = p != null && p.social != null ? p.social : SocialProfile.of(villager, false);
+            UUID spouse = state.family.spouse(villager);
+            ConversationStore.Profile q = spouse == null ? null : state.profiles.get(spouse.toString());
+            boolean fertile = !social.has(VillagerTrait.INFERTILE) && (q == null || q.social == null || !q.social.has(VillagerTrait.INFERTILE));
+            return new Household(villager, social.gender(), spouse, state.family.children(villager).size(), fertile);
+        }
+    }
+    /** A child was born (the game spawned it) to {@code a} and {@code b} — villagers or the player — at {@code worldTick}: its profile
+     * with sex, child character, inherited marks and temperament, its place in the tree, the news in its parents' memories, and the
+     * starting {@link Hearts#OWN_CHILD} towards a player parent. Returns the newborn's sex. */
+    public Gender born(UUID child, UUID a, UUID b, String playerName, long worldTick, long now) {
+        synchronized (store) {
+            ConversationStore.State state = store.state;
+            MobTalkConfig config = store.config();
+            ConversationStore.Profile pa = state.profiles.get(a.toString()), pb = state.profiles.get(b.toString());
+            ChildGrowth.Newborn newborn = ChildGrowth.born(traits(pa), temperament(pa), traits(pb), temperament(pb), new Random());
+            ConversationStore.Profile kid = store.ensure(child, "minecraft:villager", "Житель");
+            if (kid.social == null) kid.social = SocialProfile.of(child, true);
+            kid.social.gender = newborn.gender().name(); kid.social.persona = newborn.persona().name();
+            kid.social.traits = new ArrayList<>(newborn.traits().stream().map(Enum::name).toList());
+            kid.social.bornTick = worldTick; kid.social.stage = ChildGrowth.Stage.INFANT.name();
+            kid.calm = newborn.calm(); kid.confidence = newborn.confidence(); kid.curiosity = newborn.curiosity(); kid.sociability = newborn.sociability();
+            Gender ga = gender(state, pa, a, config), gb = gender(state, pb, b, config);
+            boolean aMother = ga == Gender.FEMALE || gb == Gender.MALE;
+            state.family.addChild(child, "", newborn.gender(), aMother ? a : b, aMother ? b : a);
+            for (ConversationStore.Profile parent : new ConversationStore.Profile[]{pa, pb}) {
+                if (parent == null) continue;
+                if (parent.social != null && parent.social.expectingTick >= 0) { parent.social.expectingTick = -1; parent.social.expectingWith = ""; }
+                parent.state.shift(MobState.Event.CHILD_BORN, ConversationStore.baseline(parent, 0), now);
+                ConversationStore.event(parent, now, "У тебя родился ребёнок: " + newborn.gender().offspring, 5);
+                parent.revision++;
+            }
+            for (UUID parent : List.of(a, b)) {
+                // The player parent: no profile of its own, and the caller named it.
+                if (playerName == null || playerName.isBlank() || state.profiles.containsKey(parent.toString())) continue;
+                ConversationStore.Relation r = store.relation(kid, parent);
+                r.score = Hearts.OWN_CHILD;
+                state.family.node(parent, playerName, Gender.ofPlayer(config.playerGender), true);
+            }
+            ConversationStore.event(kid, now, "Ты родился в семье: " + String.join(", ", state.family.kin(child).stream()
+                    .map(k -> k.word() + (k.name().isBlank() ? "" : " " + k.name())).toList()), 5);
+            store.scheduleSave();
+            return newborn.gender();
+        }
+    }
+    private static Collection<VillagerTrait> traits(ConversationStore.Profile p) { return p == null || p.social == null ? List.of() : p.social.traits(); }
+    private static int[] temperament(ConversationStore.Profile p) { return p == null ? null : new int[]{p.calm, p.confidence, p.curiosity, p.sociability}; }
+    /** A parent's sex: its profile, else its node in the tree, else (a player) the config's. */
+    private static Gender gender(ConversationStore.State state, ConversationStore.Profile p, UUID id, MobTalkConfig config) {
+        if (p != null && p.social != null) return p.social.gender();
+        FamilyTree.Node node = state.family.nodes.get(id.toString());
+        Gender known = node == null ? null : Gender.of(node.gender);
+        if (known != null) return known;
+        return node != null && node.player ? Gender.ofPlayer(config.playerGender) : p != null ? SocialProfile.genderOf(id) : Gender.ofPlayer(config.playerGender);
+    }
+    /** For each loaded villager the tree tracks as a child: its stage at {@code worldTick} (saved in its profile). Grown ones are ADULT. */
+    public Map<UUID, ChildGrowth.Stage> grow(Collection<UUID> loaded, long worldTick) {
+        synchronized (store) {
+            Map<UUID, ChildGrowth.Stage> stages = new LinkedHashMap<>();
+            int days = store.config().childGrowthDays;
+            boolean changed = false;
+            for (UUID id : loaded) {
+                ConversationStore.Profile p = store.state.profiles.get(id.toString());
+                if (p == null || p.social == null || p.social.bornTick < 0) continue;
+                ChildGrowth.Stage stage = ChildGrowth.stage(worldTick - p.social.bornTick, days);
+                if (!stage.name().equals(p.social.stage)) { p.social.stage = stage.name(); p.revision++; changed = true; }
+                stages.put(id, stage);
+            }
+            if (changed) store.scheduleSave();
+            return stages;
+        }
     }
 
     /** The living spouse of a villager, for the game (village weddings, births); null for none. */

@@ -52,6 +52,7 @@ final class SocialPrompt {
             case JOKE -> "шутит"; case COMPLIMENT -> "хвалит тебя или твоё"; case HUG -> "обнимает"; case FLIRT -> "заигрывает"; case KISS -> "целует";
             case GIFT -> "протягивает вещь из руки («держи», «это тебе»)"; case DATE -> "предлагает встречаться, ухаживает с цветами";
             case PROPOSE -> "делает предложение («выходи за меня», с кольцом)"; case DIVORCE -> "хочет расстаться или развестись";
+            case CHILD -> "зовёт завести ребёнка";
             default -> "";
         };
     }
@@ -78,6 +79,14 @@ final class SocialPrompt {
                     + (kin.dead() ? ", его уже нет в живых — ты горюешь" : present != null && present.contains(kin.id()) ? " (сейчас рядом)" : ""));
         }
         return lines;
+    }
+    /** Why the spouse will not have a child now, or null when it agrees. */
+    static String childRefusal(int score, boolean infertile, boolean expecting, boolean tooSoon) {
+        if (expecting) return "ребёнок у вас уже на подходе";
+        if (tooSoon) return "рано: с прошлого раза прошло меньше трёх игровых дней";
+        if (infertile) return "у тебя не может быть детей — это твоя боль";
+        if (score < Hearts.MARRIAGE) return "сейчас между вами не та близость (нужно отношение " + Hearts.MARRIAGE + ")";
+        return null;
     }
     /** The correction when the reply says yes to a courtship the game turned down. */
     static String consentRejection(String reason) {
@@ -114,6 +123,7 @@ final class SocialPrompt {
             case GIFT -> giftWords(intent);
             case DATE -> o == Gesture.Outcome.ACCEPTED ? "согласишься встречаться и возьмёшь цветы — с этой минуты вы пара" : "откажешь: " + intent.note();
             case PROPOSE -> o == Gesture.Outcome.ACCEPTED ? "согласишься на брак и примешь кольцо — с этой минуты вы супруги" : "откажешь: " + intent.note();
+            case CHILD -> o == Gesture.Outcome.ACCEPTED ? "согласишься завести ребёнка — через игровой день он появится у вас" : "откажешь: " + intent.note();
             case DIVORCE -> Courtship.MARRIED.name().equals(intent.note()) ? "брак расторгнут — это решено, вы больше не супруги; переживи это по характеру"
                     : "вы расстаётесь — это решено, вы больше не пара";
             default -> "";
@@ -160,6 +170,7 @@ final class SocialPrompt {
             case DATE -> warm ? " предложил встречаться и подарил цветы — вы теперь пара" : " предложил встречаться — ты отказал (" + intent.note() + ")";
             case PROPOSE -> warm ? " сделал тебе предложение с кольцом — вы теперь в браке" : " сделал тебе предложение — ты отказал (" + intent.note() + ")";
             case DIVORCE -> Courtship.MARRIED.name().equals(intent.note()) ? " развёлся с тобой" : " расстался с тобой";
+            case CHILD -> warm ? " — вы решили завести ребёнка" : " звал завести ребёнка — ты отказал (" + intent.note() + ")";
             default -> " сделал жест «" + intent.gesture().word + "»";
         };
         return who + what + "; отношение " + score;
@@ -169,7 +180,7 @@ final class SocialPrompt {
         if (intent.outcome() == Gesture.Outcome.SLAP) return 3;
         return switch (intent.gesture()) {
             case GIFT -> 4;
-            case DATE, PROPOSE -> intent.outcome() == Gesture.Outcome.ACCEPTED ? 5 : 3;
+            case DATE, PROPOSE, CHILD -> intent.outcome() == Gesture.Outcome.ACCEPTED ? 5 : 3;
             case DIVORCE -> 5;
             default -> MemoryFact.ORDINARY;
         };

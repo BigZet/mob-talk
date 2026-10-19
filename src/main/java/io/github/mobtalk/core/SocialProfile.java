@@ -12,6 +12,10 @@ public final class SocialProfile {
     long bornTick = -1;
     /** {@link ChildGrowth.Stage} by name, "" until the game set one. */
     String stage = "";
+    /** A child on the way with the player: −1 for none, 0 when conceived and the game has not set the day yet, else the birth tick. */
+    long expectingTick = -1;
+    /** The other parent of the child on the way (the player's UUID). */
+    String expectingWith = "";
 
     /** The deterministic sex, character and marks of a villager met in the world. */
     static SocialProfile of(UUID id, boolean child) {
@@ -40,9 +44,12 @@ public final class SocialProfile {
         if (traits == null) traits = new ArrayList<>();
         traits.removeIf(name -> VillagerTrait.of(name) == null);
         if (stage == null) stage = "";
+        if (expectingWith == null) expectingWith = "";
+        if (expectingTick < -1) expectingTick = -1;
     }
     SocialProfile copy() {
         SocialProfile c = new SocialProfile(); c.gender = gender; c.persona = persona; c.traits = new ArrayList<>(traits); c.bornTick = bornTick; c.stage = stage;
+        c.expectingTick = expectingTick; c.expectingWith = expectingWith;
         return c;
     }
 }

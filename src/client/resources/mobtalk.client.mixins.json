@@ -21,7 +21,8 @@
     "SpokenOfferSaveMixin",
     "BlockPlacementMixin",
     "BlockPlacedMixin",
-    "FluidPlacedMixin"
+    "FluidPlacedMixin",
+    "VillagerFamilyMixin"
   ],
   "injectors": {
     "defaultRequire": 1

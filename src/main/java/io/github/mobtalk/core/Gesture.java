@@ -10,7 +10,9 @@ public enum Gesture {
     FLIRT("флирт", true), KISS("поцелуй", true),
     GIFT("подарок", false),
     /** Courtship: a bouquet (from 70), a proposal with a ring (from 90), a break-up or divorce. */
-    DATE("предложение встречаться", true), PROPOSE("предложение руки и сердца", true), DIVORCE("расставание", false);
+    DATE("предложение встречаться", true), PROPOSE("предложение руки и сердца", true), DIVORCE("расставание", false),
+    /** A child with the player's spouse (married, from 90). */
+    CHILD("ребёнок", true);
 
     /** The word for the prompt. */
     public final String word;

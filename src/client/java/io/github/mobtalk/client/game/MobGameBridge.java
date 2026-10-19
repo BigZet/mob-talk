@@ -391,6 +391,11 @@ public final class MobGameBridge {
         if (bridge == null || !bridge.config.enabled) return false;
         return CombatRules.truce(SpeciesCatalog.get(type(mob)).hostile(), bridge.memory.relationship(mob.getUuid(), player.getUuid()));
     }
+    /** Villager families own breeding: while they are on, vanilla villagers do not breed (children come only to couples). */
+    public static boolean familiesOwnBreeding(VillagerEntity villager) {
+        MobGameBridge bridge = forEntity(villager);
+        return bridge != null && bridge.config.enabled && bridge.config.socialLayer && bridge.config.familyLife;
+    }
     /** A creature this hostile promised to leave alone (SPARE) is never taken as a target while the promise lasts. */
     public static boolean spared(MobEntity mob, LivingEntity target) {
         MobGameBridge bridge = forEntity(mob);
