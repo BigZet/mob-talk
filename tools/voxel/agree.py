@@ -60,7 +60,7 @@ def main():
     for line in open(vlm.CACHE, encoding='utf-8'):
         a = json.loads(line)
         if a.get('answer') and not a['id'].endswith('#test'): answers[a['id']][a['views']] = a['answer']
-    data = vlm.load_all([os.path.join(DATA, 'harvest'), os.path.join(DATA, 'saves')])
+    data = vlm.load_all([os.path.join(DATA, f) for f in ('harvest', 'harvest2', 'saves')])
     out, stats = {}, collections.Counter()
     registry_rows = collections.Counter()
     for sid, views in answers.items():
@@ -94,7 +94,7 @@ def main():
     print('registry function vs VLM function (top pairs):')
     for (want, got), n in registry_rows.most_common(25): print(f'  {n:5d}  {want} -> {got}')
     # Clusters of free descriptions.
-    items = [(sid, v['class'] + '. ' + v['description']) for sid, views in answers.items() for k_, v in views.items() if k_ == 'a' and sid in data]
+    items = [(sid, v.get('class', '') + '. ' + v.get('description', '')) for sid, views in answers.items() for k_, v in views.items() if k_ == 'a' and sid in data]
     rng = np.random.default_rng(5)
     assign, C, vocab = tfidf_kmeans([t for _, t in items], args.k, rng)
     clusters = []
@@ -103,7 +103,7 @@ def main():
         if not members: continue
         top = [vocab[t] for t in np.argsort(-C[j])[:8]]
         truths = collections.Counter(labels.fine_of(data[items[i][0]][2]) or data[items[i][0]][2].get('rule') or '?' for i in members)
-        classes = collections.Counter(answers[items[i][0]]['a']['class'].lower() for i in members)
+        classes = collections.Counter(answers[items[i][0]]['a'].get('class', '').lower() for i in members)
         clusters.append(dict(size=len(members), terms=top, vlm_classes=classes.most_common(6), sources=truths.most_common(6),
                              examples=[items[i][1] for i in members[:4]]))
     clusters.sort(key=lambda c: -c['size'])

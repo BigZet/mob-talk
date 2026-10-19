@@ -43,6 +43,18 @@ class PlacePromptTest {
         assertTrue(block.contains("пользуйся ими, а не пересказывай"), "the use-don't-retell rule stays");
     }
 
+    @Test void hierarchicalGuessNamesFunctionThenClass() {
+        Map<String, Object> place = new java.util.HashMap<>(PIT);
+        place.put("looksLike", "деревенский дом"); place.put("looksLikeConfidence", 0.64);
+        place.put("looksLikeFunction", "ванильная структура"); place.put("looksLikeFunctionConfidence", 0.82);
+        String block = PlacePrompt.block(snapshot(place, false));
+        assertTrue(block.contains("Похоже на: ванильная структура (уверенность 82 %), деревенский дом (64 %) — это догадка"), block);
+        assertTrue(block.contains("структуры из реестра) точнее"), block);
+        place.put("looksLikeConfidence", 0.2);
+        String unsure = PlacePrompt.block(snapshot(place, false));
+        assertTrue(unsure.contains("Похоже на: ванильная структура (уверенность 82 %) — это догадка") && !unsure.contains("деревенский дом"), unsure);
+    }
+
     @Test void fightEstimateNamesWhatShutsItIn() {
         String text = Situation.of(snapshot(PIT, true), null).describe();
         assertTrue(text.contains("Бежать некуда: яма 3×3 глубиной 4 из бедрок, не прокопать — ты заперт."), text);

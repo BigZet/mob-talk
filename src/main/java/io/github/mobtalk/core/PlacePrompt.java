@@ -17,6 +17,9 @@ public final class PlacePrompt {
             Map.entry("CAGE", "клетка"), Map.entry("HOUSE", "дом"), Map.entry("FARM", "ферма"), Map.entry("MINE", "шахта"), Map.entry("TRAP", "ловушка"),
             Map.entry("OPEN", "открытое место"), Map.entry("PILLAR", "столб"), Map.entry("POND", "водоём"));
 
+    /** Below this the fine class is left out and only the function is named. */
+    static final double MIN_CLASS = 0.35;
+
     static Map<?, ?> place(MobSnapshot snapshot) {
         return snapshot != null && snapshot.environmentDetails().get("place") instanceof Map<?, ?> place ? place : null;
     }
@@ -34,8 +37,17 @@ public final class PlacePrompt {
             text.append("\nЧто вокруг: ").append(String.join("; ", objects.stream().map(String::valueOf).toList())).append('.');
         if (place.get("looksLike") instanceof String label && !label.isBlank()) {
             double confidence = place.get("looksLikeConfidence") instanceof Number n ? n.doubleValue() : 0;
-            text.append("\nПохоже на: ").append(LOOKS.getOrDefault(label, label.toLowerCase(java.util.Locale.ROOT)))
-                    .append(" (уверенность ").append(Math.round(confidence * 100)).append(" %) — это догадка о назначении места; факты выше точнее.");
+            String name = LOOKS.getOrDefault(label, label.toLowerCase(java.util.Locale.ROOT));
+            if (place.get("looksLikeFunction") instanceof String function && !function.isBlank()) {
+                // Two levels: what the place is for, then the class when the classifier is sure enough of it.
+                double sure = place.get("looksLikeFunctionConfidence") instanceof Number n ? n.doubleValue() : 0;
+                text.append("\nПохоже на: ").append(function).append(" (уверенность ").append(Math.round(sure * 100)).append(" %)");
+                if (confidence >= MIN_CLASS) text.append(", ").append(name).append(" (").append(Math.round(confidence * 100)).append(" %)");
+                text.append(" — это догадка о назначении места; факты выше (форма места, структуры из реестра) точнее.");
+            } else {
+                text.append("\nПохоже на: ").append(name)
+                        .append(" (уверенность ").append(Math.round(confidence * 100)).append(" %) — это догадка о назначении места; факты выше точнее.");
+            }
         }
         return text.toString();
     }

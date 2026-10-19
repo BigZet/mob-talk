@@ -60,11 +60,12 @@ class Asker:
                 self.done[(a['id'], a['views'])] = a
                 self.spent += a.get('cost') or 0; self.requests += 1
 
-    def ask(self, sid, views, blocks, palette):
+    def ask(self, sid, views, blocks, palette, image=None):
         if (sid, views) in self.done: return self.done[(sid, views)]
         with self.lock:
             if self.spent >= self.budget: return None
-        image = base64.b64encode(render.png(render.collage(blocks, palette, views))).decode()
+        if image is None: image = _render((blocks, palette, views))
+        image = base64.b64encode(image).decode()
         body = {'model': MODEL, 'temperature': 0.2, 'max_tokens': 900, 'reasoning': {'effort': 'low'}, 'usage': {'include': True},
                 'response_format': {'type': 'json_schema', 'json_schema': {'name': 'place', 'strict': True, 'schema': SCHEMA}},
                 'messages': [{'role': 'user', 'content': [{'type': 'text', 'text': PROMPT.format(panels=PANELS[views])},
@@ -115,10 +116,21 @@ def rule_of(cube, blocks, meta):
 TABLE = None
 
 
+def _render(job):
+    blocks, palette, views = job
+    return render.png(render.collage(blocks, palette, views))
+
+
 def run(asker, jobs, workers=8):
+    """Renders in processes (numpy holds the GIL), asks in threads (the network does not)."""
+    from multiprocessing import Pool
+    jobs = [j for j in jobs if (j[0], j[1]) not in asker.done]
+    with Pool(4) as procs:
+        images = procs.map(_render, [(b, p, v) for _, v, b, p in jobs], chunksize=8)
+    print(f'rendered {len(images)} collages', flush=True)
     results = {}
     with ThreadPoolExecutor(workers) as pool:
-        futures = {pool.submit(asker.ask, sid, v, b, p): (sid, v) for sid, v, b, p in jobs}
+        futures = {pool.submit(asker.ask, sid, v, b, p, img): (sid, v) for (sid, v, b, p), img in zip(jobs, images)}
         for n, f in enumerate(futures):
             results[futures[f]] = f.result()
             if n % 100 == 99: print(f'{n + 1}/{len(futures)} requests, spent ${asker.spent:.3f}', flush=True)
@@ -134,7 +146,8 @@ def main():
     ap.add_argument('--n', type=int, default=50); ap.add_argument('--budget', type=float, default=5.0)
     ap.add_argument('--describe', type=int, default=1200, help='harvested cubes asked once, for descriptions')
     ap.add_argument('--max-requests', type=int, default=10000)
-    ap.add_argument('--folders', nargs='*', default=['harvest', 'saves'])
+    ap.add_argument('--workers', type=int, default=24)
+    ap.add_argument('--folders', nargs='*', default=['harvest', 'harvest2', 'saves'])
     args = ap.parse_args()
     data = load_all([os.path.join(DATA, f) for f in args.folders])
     asker = Asker(args.budget)
@@ -166,17 +179,17 @@ def main():
         json.dump(dict(summary=summary, rows=rows), open(os.path.join(DATA, 'vlm', 'check.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
         print(json.dumps(summary, ensure_ascii=False))
         return
-    # label: builds from saves (both views), harvested cubes without a sure label (both views), a described sample (one view)
-    both, once = [], []
-    for sid, (cube, blocks, meta) in data.items():
-        if meta.get('src') == 'save' or labels.fine_of(meta) is None: both.append(sid)
+    # label: player builds and harvested cubes without a sure label get both views (the agreement needs two); every other cube
+    # from the saves and a sample of harvested ones get one view, for the comparison with the registry and for the descriptions.
+    both = [sid for sid, (_, _, m) in data.items() if m.get('kind') == 'build' or m.get('src') == 'harvest' and labels.fine_of(m) is None]
+    saves_once = [sid for sid, (_, _, m) in data.items() if m.get('src') == 'save' and m.get('kind') != 'build']
     harvested = [sid for sid, (_, _, m) in data.items() if m.get('src') == 'harvest' and labels.fine_of(m) is not None]
     rng.shuffle(harvested)
-    once = harvested[:args.describe]
+    once = saves_once + harvested[:args.describe]
     jobs = [(sid, v, data[sid][1], data[sid][2]['palette']) for sid in both for v in ('a', 'b')] + [(sid, 'a', data[sid][1], data[sid][2]['palette']) for sid in once]
     jobs = jobs[:max(0, args.max_requests - asker.requests)]
     print(f'{len(both)} cubes twice, {len(once)} once: {len(jobs)} requests (already {asker.requests}, ${asker.spent:.3f})', flush=True)
-    run(asker, jobs)
+    run(asker, jobs, args.workers)
     print(f'done: {asker.requests} requests, ${asker.spent:.3f}')
 
 

@@ -6,34 +6,77 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-/** The place classifier run by hand: a small 3D convolutional net over the 16³ cube of material ids, one input channel per
- * material, trained in Python (tools/voxel/train.py) and shipped as a flat binary of folded weights. It names the kind of
- * place (house, farm, trap, …) with a confidence; the flood's facts stay in charge of geometry, this only adds meaning.
- * Plain Java loops, no native libraries: a few tens of milliseconds on one core, run off the game thread. */
+/** The place classifier run by hand: a small 3D convolutional net over the 16³ cube around a creature, trained in Python and
+ * shipped as a flat binary of folded weights. Plain Java loops, no native libraries: tens of milliseconds on one core, run off
+ * the game thread.
+ *
+ * <p>Format 1 (tools/voxel/train.py): one-hot materials in, one head of generated-scene labels (PIT, HOUSE, ...).
+ * Format 2 (tools/voxel/train2.py): one-hot materials and one-hot block families in, a fine head (Russian class names, each with
+ * its parent function) and optionally a function head; without one, a function's probability is the sum of its classes'.
+ * The flood's and the registry's facts stay in charge; this only guesses what the place is for. */
 public final class PlaceClassifier {
     public static final String RESOURCE = "/assets/mobtalk/place/classifier.bin";
     private static final int CUBE = VoxelGrid.CUBE;
 
     /** One layer of the net; convolutions carry their weights as [cout][cin][k][k][k]. */
     private record Layer(int type, int cin, int cout, int k, int stride, int pad, float[] weights, float[] bias) { }
+    /** One output head: labels, the function index of each label, and its linear layer. */
+    private record Head(String name, List<String> labels, int[] parents, Layer linear) { }
 
+    private final int version, materials, families;
     private final List<Layer> layers;
-    private final List<String> labels;
-    private final int channels;
+    private final List<Head> heads;
+    private final List<String> functions;
 
-    private PlaceClassifier(List<Layer> layers, List<String> labels, int channels) { this.layers = layers; this.labels = labels; this.channels = channels; }
+    private PlaceClassifier(int version, int materials, int families, List<Layer> layers, List<Head> heads, List<String> functions) {
+        this.version = version; this.materials = materials; this.families = families; this.layers = layers; this.heads = heads; this.functions = functions;
+    }
 
-    public List<String> labels() { return labels; }
+    public int version() { return version; }
+    /** The labels of the fine head (format 2) or the only head (format 1). */
+    public List<String> labels() { return heads.getFirst().labels(); }
+    /** The functions of places (format 2), empty for format 1. */
+    public List<String> functions() { return functions; }
+    /** Whether the model carries its own function head. */
+    public boolean hasFunctionHead() { return heads.size() > 1; }
 
-    /** Reads the weights file; see train.py for the layout. */
+    /** Reads the weights file; see train.py (format 1) and train2.py (format 2) for the layout. */
     public static PlaceClassifier read(InputStream raw) throws IOException {
         DataInputStream in = new DataInputStream(raw);
         byte[] magic = new byte[4]; in.readFully(magic);
         if (!new String(magic, java.nio.charset.StandardCharsets.US_ASCII).equals("MTCL")) throw new IOException("not a classifier file");
-        int version = in.readInt(), channels = in.readInt(), cube = in.readInt(), classes = in.readInt();
-        if (version != 1 || cube != CUBE) throw new IOException("unsupported classifier version " + version + " cube " + cube);
-        List<String> labels = new ArrayList<>();
-        for (int i = 0; i < classes; i++) labels.add(in.readUTF());
+        int version = in.readInt();
+        if (version == 1) {
+            int channels = in.readInt(), cube = in.readInt(), classes = in.readInt();
+            if (cube != CUBE) throw new IOException("unsupported cube " + cube);
+            List<String> labels = new ArrayList<>();
+            for (int i = 0; i < classes; i++) labels.add(in.readUTF());
+            List<Layer> all = readLayers(in);
+            Layer linear = all.removeLast();
+            if (linear.type() != 4) throw new IOException("format 1 must end in a linear layer");
+            return new PlaceClassifier(1, channels, 0, all, List.of(new Head("fine", labels, new int[labels.size()], linear)), List.of());
+        }
+        if (version != 2) throw new IOException("unsupported classifier version " + version);
+        int materials = in.readInt(), families = in.readInt(), cube = in.readInt();
+        if (cube != CUBE) throw new IOException("unsupported cube " + cube);
+        int nf = in.readInt();
+        List<String> functions = new ArrayList<>();
+        for (int i = 0; i < nf; i++) functions.add(in.readUTF());
+        List<Layer> layers = readLayers(in);
+        int count = in.readInt();
+        List<Head> heads = new ArrayList<>();
+        for (int h = 0; h < count; h++) {
+            String name = in.readUTF();
+            int n = in.readInt();
+            List<String> labels = new ArrayList<>(); int[] parents = new int[n];
+            for (int i = 0; i < n; i++) { labels.add(in.readUTF()); parents[i] = in.readInt(); }
+            int cin = in.readInt(), cout = in.readInt();
+            heads.add(new Head(name, labels, parents, new Layer(4, cin, cout, 0, 0, 0, floats(in, cout * cin), floats(in, cout))));
+        }
+        return new PlaceClassifier(2, materials, families, layers, heads, functions);
+    }
+
+    private static List<Layer> readLayers(DataInputStream in) throws IOException {
         int count = in.readInt();
         List<Layer> layers = new ArrayList<>();
         for (int i = 0; i < count; i++) {
@@ -48,8 +91,9 @@ public final class PlaceClassifier {
                 default -> throw new IOException("unknown layer type " + type);
             }
         }
-        return new PlaceClassifier(layers, labels, channels);
+        return layers;
     }
+
     private static float[] floats(DataInputStream in, int count) throws IOException {
         byte[] raw = new byte[count * 4]; in.readFully(raw);
         float[] out = new float[count];
@@ -72,12 +116,14 @@ public final class PlaceClassifier {
         }
     }
 
-    /** Raw scores per label for a cube of material ids laid out x-major, then y, then z (see {@link VoxelGrid#cube()}). */
-    public float[] logits(byte[] cube) {
-        int size = CUBE;
-        float[] x = new float[channels * size * size * size];
-        int cells = size * size * size;
-        for (int i = 0; i < cells; i++) { int c = cube[i] & 0xFF; if (c < channels) x[c * cells + i] = 1f; }
+    /** The pooled features of a cube: materials (and, for format 2, block families) laid out x-major, then y, then z. */
+    private float[] features(byte[] cube, byte[] familyCube) {
+        int size = CUBE, cells = size * size * size, channels = materials + families;
+        float[] x = new float[channels * cells];
+        for (int i = 0; i < cells; i++) {
+            int m = cube[i] & 0xFF; if (m < materials) x[m * cells + i] = 1f;
+            if (families > 0 && familyCube != null) { int f = familyCube[i] & 0xFF; if (f < families) x[(materials + f) * cells + i] = 1f; }
+        }
         int c = channels;
         for (Layer layer : layers) {
             switch (layer.type()) {
@@ -91,9 +137,18 @@ public final class PlaceClassifier {
         return x;
     }
 
-    /** Probabilities per label. */
-    public float[] probabilities(byte[] cube) {
-        float[] logits = logits(cube);
+    /** Raw scores of the first head for a material cube (format 1, or format 2 without families). */
+    public float[] logits(byte[] cube) { return logits(cube, null)[0]; }
+
+    /** Raw scores of every head: [0] the fine head, [1] the function head when there is one. */
+    public float[][] logits(byte[] cube, byte[] familyCube) {
+        float[] h = features(cube, familyCube);
+        float[][] out = new float[heads.size()][];
+        for (int i = 0; i < out.length; i++) out[i] = linear(h, heads.get(i).linear());
+        return out;
+    }
+
+    static float[] softmax(float[] logits) {
         float max = Float.NEGATIVE_INFINITY; for (float v : logits) max = Math.max(max, v);
         double sum = 0; for (float v : logits) sum += Math.exp(v - max);
         float[] out = new float[logits.length];
@@ -101,13 +156,39 @@ public final class PlaceClassifier {
         return out;
     }
 
-    /** The best label and its probability. */
+    /** Probabilities per label of the first head (material cube only). */
+    public float[] probabilities(byte[] cube) { return softmax(logits(cube)); }
+
+    /** The best label and its probability (format 1 call shape). */
     public record Guess(String label, int index, float confidence) { }
     public Guess guess(byte[] cube) {
         float[] p = probabilities(cube);
-        int best = 0; for (int i = 1; i < p.length; i++) if (p[i] > p[best]) best = i;
-        return new Guess(labels.get(best), best, p[best]);
+        int best = argmax(p);
+        return new Guess(labels().get(best), best, p[best]);
     }
+
+    /** A guess at two levels: what the place is for, and the concrete class. Function is null for format 1. */
+    public record Hierarchy(String function, float functionConfidence, String label, float confidence) { }
+    public Hierarchy classify(byte[] cube, byte[] familyCube) {
+        float[][] logits = logits(cube, familyCube);
+        float[] fine = softmax(logits[0]);
+        int best = argmax(fine);
+        if (functions.isEmpty()) return new Hierarchy(null, 0, labels().get(best), fine[best]);
+        float[] function;
+        if (logits.length > 1) function = softmax(logits[1]);
+        else {
+            function = new float[functions.size()];
+            int[] parents = heads.getFirst().parents();
+            for (int i = 0; i < fine.length; i++) function[parents[i]] += fine[i];
+        }
+        int f = argmax(function);
+        return new Hierarchy(functions.get(f), function[f], labels().get(best), fine[best]);
+    }
+
+    /** The function a fine label belongs to, for format 2. */
+    public String functionOf(int label) { return functions.isEmpty() ? null : functions.get(heads.getFirst().parents()[label]); }
+
+    private static int argmax(float[] p) { int best = 0; for (int i = 1; i < p.length; i++) if (p[i] > p[best]) best = i; return best; }
 
     private static float[] conv(float[] x, int cin, int size, Layer layer) {
         int k = layer.k(), pad = layer.pad(), stride = layer.stride(), cout = layer.cout();

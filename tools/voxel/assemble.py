@@ -35,7 +35,8 @@ def main():
     ap.add_argument('--holdout-seeds', type=int, default=2, help='the last N harvested worlds are held out')
     ap.add_argument('--holdout-saves', nargs='*', default=['stream 1', 'Новый мир (1)', 'New World (19)'])
     ap.add_argument('--mutations', type=int, default=12)
-    ap.add_argument('--harvest', default='harvest', help='folder under the data directory with harvested worlds')
+    ap.add_argument('--harvest', nargs='*', default=['harvest', 'harvest2'], help='folders under the data directory with harvested worlds; '
+                    'the held-out seeds are the last worlds of the first folder')
     ap.add_argument('--min-class', type=int, default=12, help='fine classes with fewer real source cubes are dropped to their function')
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
@@ -46,8 +47,9 @@ def main():
     if os.path.exists(agreed): overrides = json.load(open(agreed, encoding='utf-8'))
 
     real = collections.defaultdict(list)  # set -> list of (mat, fam, fine, func, src)
-    harvest = bases(os.path.join(DATA, args.harvest))
-    holdout_bases = set(harvest[-args.holdout_seeds:]) if args.holdout_seeds else set()
+    first = bases(os.path.join(DATA, args.harvest[0]))
+    holdout_bases = set(first[-args.holdout_seeds:]) if args.holdout_seeds else set()
+    harvest = first + [b for f in args.harvest[1:] if os.path.isdir(os.path.join(DATA, f)) for b in bases(os.path.join(DATA, f))]
     backgrounds = ([], [])
     for base in harvest + bases(os.path.join(DATA, 'saves')):
         cubes, blocks, meta = read_v2(base)

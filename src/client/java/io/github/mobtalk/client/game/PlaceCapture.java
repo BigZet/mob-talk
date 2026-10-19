@@ -135,24 +135,28 @@ final class PlaceCapture {
         return place;
     }
 
-    private static final Map<UUID, byte[]> CUBES = new ConcurrentHashMap<>();
+    private static final Map<UUID, byte[][]> CUBES = new ConcurrentHashMap<>();
     /** Keeps the classifier's input aside for {@link #classify(MobSnapshot)}: the snapshot itself carries only JSON values. */
     static void stash(UUID mob, VoxelGrid grid) {
         if (CUBES.size() > 64) CUBES.clear(); // A capture that never reached the classifier must not pile up.
-        CUBES.put(mob, grid.cube());
+        CUBES.put(mob, new byte[][]{grid.cube(), grid.familyCube()});
     }
 
     /** Runs the classifier off the server thread and writes its guess into the place details; the snapshot comes back as is
      * when there is nothing to classify or no weights are bundled. */
     static MobSnapshot classify(MobSnapshot snapshot) {
-        byte[] cube = CUBES.remove(snapshot.id());
+        byte[][] cubes = CUBES.remove(snapshot.id());
         PlaceClassifier classifier = PlaceClassifier.bundled();
-        if (cube == null || classifier == null || !(snapshot.environmentDetails().get("place") instanceof Map<?, ?> existing)) return snapshot;
-        PlaceClassifier.Guess guess = classifier.guess(cube);
+        if (cubes == null || classifier == null || !(snapshot.environmentDetails().get("place") instanceof Map<?, ?> existing)) return snapshot;
+        PlaceClassifier.Hierarchy guess = classifier.classify(cubes[0], cubes[1]);
         Map<String, Object> place = new LinkedHashMap<>();
         existing.forEach((key, value) -> place.put(String.valueOf(key), value));
         place.put("looksLike", guess.label());
         place.put("looksLikeConfidence", Math.round(guess.confidence() * 100) / 100.0);
+        if (guess.function() != null) {
+            place.put("looksLikeFunction", guess.function());
+            place.put("looksLikeFunctionConfidence", Math.round(guess.functionConfidence() * 100) / 100.0);
+        }
         Map<String, Object> environment = new LinkedHashMap<>(snapshot.environmentDetails());
         environment.put("place", place);
         return new MobSnapshot(snapshot.id(), snapshot.type(), snapshot.name(), snapshot.health(), snapshot.maxHealth(), snapshot.dimension(), snapshot.biome(),
