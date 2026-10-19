@@ -101,4 +101,33 @@ public final class StructureCapture {
             }
         return out;
     }
+
+    /** For the self-test: a spot a creature could stand on inside a house of the village nearest to {@code near} (located through the
+     * registry, generating chunks when needed), or null when no village is within {@code radiusChunks}. */
+    public static BlockPos villageHouseSpot(ServerWorld world, BlockPos near, int radiusChunks) {
+        var registry = world.getRegistryManager().get(RegistryKeys.STRUCTURE);
+        List<net.minecraft.registry.entry.RegistryEntry<Structure>> villages = new ArrayList<>();
+        for (var key : registry.getKeys())
+            if (key.getValue().getPath().startsWith("village_")) registry.getEntry(key).ifPresent(villages::add);
+        var found = world.getChunkManager().getChunkGenerator().locateStructure(world, net.minecraft.registry.entry.RegistryEntryList.of(villages), near, radiusChunks, false);
+        if (found == null) return null;
+        ChunkPos at = new ChunkPos(found.getFirst());
+        StructureStart start = world.getChunk(at.x, at.z, net.minecraft.world.chunk.ChunkStatus.STRUCTURE_STARTS).getStructureStart(found.getSecond().value());
+        if (start == null || !start.hasChildren()) return null;
+        for (StructurePiece piece : start.getChildren()) {
+            String template = template(world, piece);
+            if (template == null || !template.contains("/houses/")) continue;
+            BlockBox box = piece.getBoundingBox();
+            for (int cx = box.getMinX() - 16 >> 4; cx <= box.getMaxX() + 16 >> 4; cx++)
+                for (int cz = box.getMinZ() - 16 >> 4; cz <= box.getMaxZ() + 16 >> 4; cz++) world.getChunk(cx, cz);
+            BlockPos center = box.getCenter(), best = null;
+            for (BlockPos pos : BlockPos.iterate(box.getMinX() + 1, box.getMinY(), box.getMinZ() + 1, box.getMaxX() - 1, box.getMaxY(), box.getMaxZ() - 1)) {
+                if (!PlaceCapture.classify(world.getBlockState(pos), world, pos).passable || !PlaceCapture.classify(world.getBlockState(pos.up()), world, pos.up()).passable) continue;
+                if (PlaceCapture.classify(world.getBlockState(pos.down()), world, pos.down()).passable) continue;
+                if (best == null || pos.getSquaredDistance(center) < best.getSquaredDistance(center)) best = pos.toImmutable();
+            }
+            if (best != null) return best;
+        }
+        return null;
+    }
 }

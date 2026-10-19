@@ -107,6 +107,7 @@ public final class DatasetHarvester {
     private Sink sink;
     private final Set<Long> taken = new HashSet<>();
     private final Map<String, Integer> counts = new LinkedHashMap<>();
+    private String lastJob = "";
 
     private DatasetHarvester(MinecraftClient client, Path out, int worlds, long minutes, long firstSeed) {
         this.client = client; this.out = out; this.worlds = worlds; this.minutes = minutes;
@@ -228,7 +229,10 @@ public final class DatasetHarvester {
         while (System.nanoTime() < until) {
             Runnable job = work.pollFirst();
             if (job == null || System.nanoTime() > deadline) { finishWorld(job == null ? "all jobs" : "time is up, " + work.size() + " jobs left"); return; }
+            long jobStart = System.nanoTime();
             try { job.run(); } catch (RuntimeException e) { LOGGER.warn("[harvest] job failed", e); }
+            long ms = (System.nanoTime() - jobStart) / 1_000_000;
+            if (ms > 5000) log("slow job: " + ms + " ms (" + lastJob + ")");
         }
     }
 
@@ -260,6 +264,7 @@ public final class DatasetHarvester {
 
     // ---- Structures.
     private void locate(ServerWorld world, RegistryKey<Structure> key, BlockPos center) {
+        lastJob = "locate " + key.getValue().getPath();
         Registry<Structure> registry = world.getRegistryManager().get(RegistryKeys.STRUCTURE);
         RegistryEntry<Structure> entry = registry.getEntry(key).orElse(null);
         if (entry == null) return;
@@ -292,6 +297,7 @@ public final class DatasetHarvester {
     }
 
     private void piece(ServerWorld world, String structure, String startBiome, StructurePiece piece) {
+        lastJob = "piece of " + structure;
         String template = StructureCapture.template(world, piece);
         if (template == null) return;
         BlockBox box = piece.getBoundingBox();
@@ -323,6 +329,7 @@ public final class DatasetHarvester {
 
     // ---- Trees grown by their own configured features on natural ground.
     private void tree(ServerWorld world, String feature) {
+        lastJob = "tree " + feature;
         Registry<ConfiguredFeature<?, ?>> registry = world.getRegistryManager().get(RegistryKeys.CONFIGURED_FEATURE);
         var entry = registry.getEntry(Identifier.of("minecraft", feature)).orElse(null);
         if (entry == null) { count("no-feature:" + feature); return; }
@@ -357,6 +364,7 @@ public final class DatasetHarvester {
 
     // ---- Background: no structure within the sample, labelled by biome and relief.
     private void background(ServerWorld world, boolean underground) {
+        lastJob = "background " + (underground ? "underground" : "surface");
         for (int attempt = 0; attempt < 4; attempt++) {
             BlockPos column = randomColumn();
             ensure(world, column, 13);

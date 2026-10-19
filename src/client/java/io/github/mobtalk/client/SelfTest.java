@@ -40,7 +40,9 @@ import java.util.Map;
  * {@code [selftest]} and quitting the game at the end. Never active in normal play. */
 final class SelfTest {
     private static final Logger LOGGER = LoggerFactory.getLogger("mobtalk-selftest");
-    private final MobTalkClient owner;
+    /** {@code -Dmobtalk.selftest.only=place}: only the place stages (no LLM, no voice), for checking vision without paying for chat. */
+    static final boolean ONLY_PLACE = "place".equals(System.getProperty("mobtalk.selftest.only"));
+    final MobTalkClient owner;
     private final String world;
     private int stage, ticks, stageStart;
     private UUID villager, cow, golem, cow2, villager2, firstCow, firstVillager;
@@ -63,12 +65,12 @@ final class SelfTest {
         LOGGER.info("[selftest] armed for world {}", world);
     }
 
-    private void log(String text) { LOGGER.info("[selftest] {}", text); }
-    private void fail(String text) { failed = true; LOGGER.error("[selftest] FAIL: {}", text); }
-    private void check(boolean ok, String what) { if (ok) log("OK: " + what); else fail(what); }
+    void log(String text) { LOGGER.info("[selftest] {}", text); }
+    void fail(String text) { failed = true; LOGGER.error("[selftest] FAIL: {}", text); }
+    void check(boolean ok, String what) { if (ok) log("OK: " + what); else fail(what); }
 
     /** Waits (up to {@code seconds}) for {@code condition}, then runs {@code next}; a timeout is a failure that still moves on. */
-    private void await(String what, int seconds, BooleanSupplier condition, Runnable next) {
+    void await(String what, int seconds, BooleanSupplier condition, Runnable next) {
         waitingFor = what; until = condition; then = next; deadline = ticks + seconds * 20;
     }
 
@@ -89,15 +91,15 @@ final class SelfTest {
         else if (ticks >= deadline) {
             String what = waitingFor; waitingFor = "";
             if (what.startsWith("cow beside") || what.startsWith("bystander queue") || what.startsWith("saves flushed") || what.startsWith("window closed")
-                    || what.startsWith("recording for") || what.startsWith("cow waits") || what.startsWith("cow at the bottom") || what.startsWith("farmer refuses")) log("… " + what);
+                    || what.startsWith("recording for") || what.startsWith("cow waits") || what.startsWith("cow at the bottom") || what.startsWith("farmer refuses") || what.startsWith("pause")) log("… " + what);
             else fail("timeout waiting for " + what);
             then.run();
         }
     }
 
-    private MinecraftServer server() { return owner.client.getServer(); }
-    private ServerPlayerEntity serverPlayer() { return server().getPlayerManager().getPlayer(owner.client.player.getUuid()); }
-    private void command(String line) {
+    MinecraftServer server() { return owner.client.getServer(); }
+    ServerPlayerEntity serverPlayer() { return server().getPlayerManager().getPlayer(owner.client.player.getUuid()); }
+    void command(String line) {
         MinecraftServer server = server();
         server.execute(() -> server.getCommandManager().executeWithPrefix(server.getCommandSource().withSilent().withLevel(4), line));
     }
@@ -108,7 +110,7 @@ final class SelfTest {
         found.sort(Comparator.comparingDouble(player::squaredDistanceTo));
         return found.isEmpty() ? null : found.getFirst().getUuid();
     }
-    private MobGameBridge bridge() { return MobGameBridge.active(server()); }
+    MobGameBridge bridge() { return MobGameBridge.active(server()); }
     private int relation(UUID mob) { return bridge().memory.relationship(mob, owner.client.player.getUuid()); }
     private int turns(UUID mob) { MobCard card = bridge().memory.card(mob, owner.client.player.getUuid()); return card == null ? 0 : card.turns().size(); }
     private boolean replied(UUID mob, int before) { if (owner.speaking()) voiced = true; return turns(mob) > before && !owner.busyTalking(); }
@@ -132,7 +134,7 @@ final class SelfTest {
         await("villager and cow summoned", 10, () -> {
             villager = nearest(VillagerEntity.class); cow = nearest(CowEntity.class);
             return villager != null && cow != null && MobSpeechSound.find(owner.world, villager) != null && MobSpeechSound.find(owner.world, cow) != null;
-        }, this::aim);
+        }, ONLY_PLACE ? () -> new SelfTestPlace(this, cow, sx, SY, sz).run(this::finish) : this::aim);
     }
 
     // ---- Stage 2: the crosshair finds the villager; V would pick it.
@@ -447,7 +449,7 @@ final class SelfTest {
                     command("fill " + (px - 2) + " " + (SY - 1) + " " + (pz - 2) + " " + (px + 2) + " " + (SY - 1) + " " + (pz + 2) + " minecraft:smooth_stone");
                     command("tp " + cow + " " + at(3, 0));
                     command("tp " + owner.client.player.getName().getString() + " " + at(0, 0));
-                    relations();
+                    new SelfTestPlace(this, cow, sx, SY, sz).run(this::relations);
                 });
             });
         });
