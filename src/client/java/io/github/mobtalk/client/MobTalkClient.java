@@ -754,6 +754,14 @@ public final class MobTalkClient implements ClientModInitializer {
                 : message.replace('\n', ' ').replace('\r', ' ');
         if (status.length() > 240) status = status.substring(0, 240);
         notice(status);
+        // The model is unreachable, not the mob: a short local line keeps the creature present instead of mute.
+        MobGameBridge game = request.server == null ? null : MobGameBridge.active(request.server);
+        if (failure instanceof java.io.IOException && game != null && client.player != null) {
+            MobCard card = game.memory.card(request.target, client.player.getUuid());
+            int calm = card == null || card.state() == null ? 50 : card.state().calm();
+            boolean hostile = io.github.mobtalk.core.SpeciesCatalog.get(request.snapshot == null ? "" : request.snapshot.type()).hostile();
+            chat(request.mobName + ": " + io.github.mobtalk.core.FallbackLines.line(hostile, calm, System.nanoTime() / 1_000_000L) + " §8(без связи)");
+        }
     }
 
     private static void checkCurrentInterrupt() throws InterruptedException {
@@ -947,8 +955,11 @@ public final class MobTalkClient implements ClientModInitializer {
         client.inGameHud.getChatHud().addMessage(Text.literal(text));
     }
 
+    private String lastNotice = ""; private long lastNoticeMillis;
     void notice(String message) {
-        chat("[Mob Talk] " + message);
+        long now = System.currentTimeMillis();
+        if (!message.equals(lastNotice) || now - lastNoticeMillis > 15_000) chat("[Mob Talk] " + message);
+        lastNotice = message; lastNoticeMillis = now;
         showHud();
     }
 

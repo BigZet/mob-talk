@@ -19,7 +19,6 @@
     "MerchantYesSoundMixin",
     "TruceTargetMixin",
     "SpokenOfferSaveMixin",
-    "BlockPlacementMixin",
     "BlockPlacedMixin",
     "FluidPlacedMixin"
   ],

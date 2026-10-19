@@ -30,7 +30,11 @@ final class AnswerValidator {
     }
 
     /** What the parser needs beyond the bytes: limits from the config and the memory the facts are appended to. */
-    record Bounds(int words, String previousMemory, int memoryLimit, int relationship, boolean jsonObjectOnly, String service, boolean overheard, boolean wary) {
+    record Bounds(int words, String previousMemory, int memoryLimit, int relationship, boolean jsonObjectOnly, String service, boolean overheard, boolean wary,
+                  java.util.List<String> recentReplies) {
+        Bounds(int words, String previousMemory, int memoryLimit, int relationship, boolean jsonObjectOnly, String service, boolean overheard, boolean wary) {
+            this(words, previousMemory, memoryLimit, relationship, jsonObjectOnly, service, overheard, wary, java.util.List.of());
+        }
         Bounds(int words, String previousMemory, int memoryLimit, int relationship, boolean jsonObjectOnly, String service) {
             this(words, previousMemory, memoryLimit, relationship, jsonObjectOnly, service, false);
         }
@@ -64,6 +68,9 @@ final class AnswerValidator {
             // DeepSeek answered about 3% of lines in English despite the rule; such a line must not be voiced to a Russian player.
             if (foreignWords(reply, snapshot) >= 3)
                 throw new Rejected("Реплика не на русском. Скажи ту же мысль по-русски, своими словами и в своей манере.", false);
+            String echoed = repeated(reply, bounds.recentReplies());
+            if (echoed != null) throw new Rejected("Ты почти дословно повторяешь свою недавнюю реплику («" + TextBounds.characters(echoed, 80)
+                    + "»). Скажи иначе: другими словами, короче, с другой мыслью — или одним междометием.", false);
             SocialIntent social = SocialIntent.NONE;
             // The player's words were not addressed to a bystander: it neither judges them nor trades on them.
             if (bounds.overheard()) return new OpenRouterConversationClient.Answer(reply, memory, SocialIntent.NONE,
@@ -284,6 +291,28 @@ final class AnswerValidator {
     }
 
     /** Drops stray punctuation before the first word and quotes wrapped around the whole line. */
+    /** The recent own line this reply mostly repeats (word sets overlap by {@link #REPEAT_OVERLAP} or more), else null.
+     * Short replies («Да.», «Уходи.») are allowed to recur: only lines of four or more content words count. */
+    static final double REPEAT_OVERLAP = 0.6;
+    static String repeated(String reply, java.util.List<String> recent) {
+        java.util.Set<String> words = contentWords(reply);
+        if (words.size() < 4 || recent == null) return null;
+        for (String previous : recent) {
+            java.util.Set<String> other = contentWords(previous);
+            if (other.size() < 4) continue;
+            long common = words.stream().filter(other::contains).count();
+            double overlap = (double) common / Math.min(words.size(), other.size());
+            if (overlap >= REPEAT_OVERLAP) return previous;
+        }
+        return null;
+    }
+    private static java.util.Set<String> contentWords(String text) {
+        java.util.Set<String> words = new java.util.HashSet<>();
+        if (text == null) return words;
+        for (String raw : text.toLowerCase(java.util.Locale.ROOT).split("[^\\p{L}\\p{Nd}]+")) if (raw.length() >= 3) words.add(raw);
+        return words;
+    }
+
     static String spokenText(String reply) {
         String text = reply.strip().replaceFirst("^[\\p{Punct}\\s«]+(?=[\\p{L}\\d])", "");
         if (reply.strip().startsWith(":") || reply.strip().startsWith("«")) text = text.replaceFirst("[»\"]\\s*$", "");

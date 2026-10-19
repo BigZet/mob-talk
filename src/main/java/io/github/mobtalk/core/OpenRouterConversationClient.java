@@ -86,8 +86,10 @@ final class OpenRouterConversationClient implements AutoCloseable {
         byte[] bytes = send(body, deadline, text -> earlyReply.accept(TextBounds.reply(text, words)));
         for (int correction = 0; ; correction++) {
             // Read the provider quirks after each send: a 404 fallback to json_object may have happened inside it.
+            java.util.List<String> recent = profile.turns == null ? java.util.List.of()
+                    : profile.turns.subList(Math.max(0, profile.turns.size() - 3), profile.turns.size()).stream().map(ConversationStore.Turn::assistant).toList();
             AnswerValidator.Bounds bounds = new AnswerValidator.Bounds(words, profile.memory, Math.max(200, Math.min(4000, config.maxMemoryChars)),
-                    profile.relationship, jsonObjectOnly, service(), overheard != null, wary);
+                    profile.relationship, jsonObjectOnly, service(), overheard != null, wary, recent);
             try { return AnswerValidator.parse(bytes, snapshot, bounds); }
             catch (AnswerValidator.Rejected invalid) {
                 diagnostics.accept("ответ отклонён (попытка " + (correction + 1) + ", " + snapshot.type() + "): " + invalid.getMessage());

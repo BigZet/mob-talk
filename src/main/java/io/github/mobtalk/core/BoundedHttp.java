@@ -37,6 +37,19 @@ final class BoundedHttp implements AutoCloseable {
 
     Duration timeout() { return Duration.ofSeconds(timeoutSeconds); }
 
+    /** What the player can do about an HTTP status: the money, the key or the service, not just a number. */
+    static String httpMessage(String service, int status) {
+        // The number stays in every message: callers match on "HTTP 404" and the like to tell a rejected voice from a dropped line.
+        return switch (status) {
+            case 401, 403 -> service + ": ключ не принят (HTTP " + status + "). Проверьте ключ в настройках (F7).";
+            case 402 -> service + ": закончились кредиты (HTTP 402). Пополните баланс на сайте провайдера.";
+            case 408, 504 -> service + ": сервер не ответил вовремя (HTTP " + status + "). Повторите вопрос.";
+            case 429 -> service + ": слишком много запросов (HTTP 429), подождите немного.";
+            default -> status >= 500 ? service + ": сервис временно недоступен (HTTP " + status + "). Повторите позже."
+                    : service + ": ошибка HTTP " + status + ".";
+        };
+    }
+
     /** A connection or HTTP/2 stream lost on the way, not an HTTP error or a timeout: worth one fresh attempt. */
     static boolean dropped(IOException failure) {
         if (failure instanceof SafeFailure safe) return safe.status <= 0 && safe.getMessage() != null && safe.getMessage().endsWith("соединение прервано.");
@@ -169,7 +182,7 @@ final class BoundedHttp implements AutoCloseable {
             sink.close();
             throw new IOException(service + ": не удалось выполнить запрос.");
         }
-        if (status != 200) { sink.close(); throw new SafeFailure(service + ": ошибка HTTP " + status + ".", status); }
+        if (status != 200) { sink.close(); throw new SafeFailure(httpMessage(service, status), status); }
         // A stalled body must not keep the connection open forever.
         CompletableFuture.delayedExecutor(timeoutSeconds, TimeUnit.SECONDS).execute(() -> { if (!sink.finished()) sink.close(); });
         return sink;
@@ -241,7 +254,7 @@ final class BoundedHttp implements AutoCloseable {
             if (status == 200) { body.complete(output.toByteArray()); return; }
             String reason = output.toString(java.nio.charset.StandardCharsets.UTF_8).replaceAll("\\s+", " ").strip();
             diagnostics.accept(service + " HTTP " + status + ": " + (reason.length() > 1500 ? reason.substring(0, 1500) + "…" : reason));
-            body.completeExceptionally(new SafeFailure(service + ": ошибка HTTP " + status + ".", status));
+            body.completeExceptionally(new SafeFailure(httpMessage(service, status), status));
         }
         private void fail(String message) {
             fail(message, -1);
