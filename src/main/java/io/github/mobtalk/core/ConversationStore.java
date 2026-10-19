@@ -550,7 +550,7 @@ public final class ConversationStore {
         scheduleSave(); return true;
     }
 
-    private Profile ensure(UUID id, String type, String observedName) {
+    Profile ensure(UUID id, String type, String observedName) {
         Profile p = state.profiles.get(id.toString());
         if (p != null) { if (ProfileDefaults.refresh(p, state.profiles, config) | SocialLedger.adopt(p, config)) scheduleSave(); return p; }
         SpeciesCatalog.Species species = SpeciesCatalog.effective(type, config);

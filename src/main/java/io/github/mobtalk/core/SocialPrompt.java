@@ -15,7 +15,7 @@ final class SocialPrompt {
             + "отыграй ровно этот исход, своими словами и по характеру, не споря с ним и не объявляя его вслух; список не пересказывай:";
     static final String GESTURE_FIELD = "gesture — что игрок делает именно ЭТОЙ своей репликой: JOKE — шутит, COMPLIMENT — хвалит тебя или твоё, HUG — обнимает, "
             + "FLIRT — заигрывает, KISS — целует, GIFT — протягивает тебе вещь из руки («держи», «это тебе»); иначе NONE. Жест должен быть в его словах, а не в твоих; "
-            + "только значения из схемы.";
+            + "только значения из схемы. Подарок забирает игра, когда ты его принимаешь: не говори «оставь себе», если берёшь.";
 
     /** «Нрав» and sex of a villager, its inborn marks as facts; "" for anyone outside the layer. */
     static String persona(ConversationStore.Profile p) {
@@ -54,7 +54,33 @@ final class SocialPrompt {
             case FLIRT -> o == Gesture.Outcome.SUCCESS ? "флирт зайдёт — ответишь кокетством" : o == Gesture.Outcome.SLAP ? "оскорбишься и влепишь пощёчину"
                     : "смутишься и неловко отшутишься, ответа нет";
             case KISS -> o == Gesture.Outcome.SUCCESS ? "ответишь на поцелуй" : o == Gesture.Outcome.SLAP ? "влепишь пощёчину" : "увернёшься — целовать не дашь";
+            case GIFT -> giftWords(intent);
             default -> "";
+        };
+    }
+    /** The occasion for words about a gift thrown at the villager's feet: the outcome is a fact, the line reacts to it. */
+    static String thrownGift(GestureIntent intent) {
+        String what = intent.item() + (intent.note().isBlank() ? "" : " (" + intent.note() + ")");
+        String how = switch (intent.outcome()) {
+            case BEST -> "ты его подобрал и в восторге: лучший подарок";
+            case BETTER -> "ты его подобрал и рад: хороший подарок";
+            case GOOD -> "ты его подобрал: мелочь, но приятно";
+            case ALREADY -> "ты его не взял: он тебе это уже дарил, надоело";
+            default -> intent.hearts() < 0 ? "ты его не взял и обиделся: тебе такое нельзя или противно" : "ты его не взял: не нужно";
+        };
+        return "игрок только что бросил тебе под ноги подарок — " + what + "; " + how
+                + ". Это уже случилось: отреагируй одной репликой по характеру, обращаясь к игроку";
+    }
+    /** A gift in words: what it is (the item id, the model names it in Russian) and how it is taken. */
+    static String giftWords(GestureIntent intent) {
+        String what = "у него в руке " + intent.item() + (intent.note().isBlank() ? "" : " (" + intent.note() + ")") + " — ";
+        return what + switch (intent.outcome()) {
+            case BEST -> "примешь с восторгом: лучший подарок, о каком ты мечтал";
+            case BETTER -> "обрадуешься: хороший подарок, возьмёшь";
+            case GOOD -> "возьмёшь с благодарностью: мелочь, но приятно";
+            case ALREADY -> "не возьмёшь: он тебе это уже дарил, надоело — скажи об этом";
+            default -> intent.hearts() < 0 ? "не возьмёшь и обидишься: тебе такое нельзя или противно"
+                    : intent.note().isBlank() ? "не возьмёшь: не поймёшь, что это и зачем оно тебе" : "не возьмёшь: тебе это не нужно";
         };
     }
 
@@ -68,6 +94,8 @@ final class SocialPrompt {
             case HUG -> warm ? " обнял, ты обнял в ответ" : " полез обниматься, ты отстранился";
             case FLIRT -> warm ? " флиртовал с тобой, тебе понравилось" : intent.outcome() == Gesture.Outcome.SLAP ? " флиртовал, получил пощёчину" : " флиртовал, вышло неловко";
             case KISS -> warm ? " поцеловал тебя" : intent.outcome() == Gesture.Outcome.SLAP ? " полез целоваться, получил пощёчину" : " полез целоваться, ты увернулся";
+            case GIFT -> " подарил тебе " + intent.item() + (intent.takesItem() ? (intent.outcome() == Gesture.Outcome.BEST ? " — лучший подарок" : " — ты взял")
+                    : intent.outcome() == Gesture.Outcome.ALREADY ? " — уже дарил, ты не взял" : " — ты отказался");
             default -> " сделал жест «" + intent.gesture().word + "»";
         };
         return who + what + "; отношение " + score;

@@ -35,7 +35,7 @@ final class InitiativeVoice {
         boolean busy = owner.busyTalking() || owner.witnessPending() || scene != null || !cues.isEmpty();
         game.initiative.playerBusy = busy;
         if (ticks % 600 == 5) chronicle(game);
-        if (busy || !owner.config().initiative) return;
+        if (busy) return; // Ordinary occasions are only raised while initiative is on; gifts and family events always are.
         Initiative.Cue cue = game.initiative.poll();
         if (cue == null) return;
         MobEntity mob = MobSpeechSound.find(owner.world, cue.mob());
@@ -44,7 +44,9 @@ final class InitiativeVoice {
         UUID player = owner.client.player.getUuid();
         owner.startSpontaneous(cue.mob(), cue.mobName(), () -> {
             DecisionState state = game.memory.decision(cue.mob(), player, cue, "", "", false);
-            Initiative.Verdict verdict = state == null ? Initiative.Verdict.QUIET : owner.decider().speaksUp(state);
+            // A reaction the game owes (a gift, a family event) is always spoken; the decider only shapes ordinary occasions.
+            Initiative.Verdict verdict = cue.trigger() == Initiative.Trigger.GIFT ? new Initiative.Verdict(true, Initiative.Reaction.REMARK, 1)
+                    : state == null ? Initiative.Verdict.QUIET : owner.decider().speaksUp(state);
             if (!verdict.speak()) { game.initiative.refund(cue); owner.client.execute(() -> cues.remove(cue.mob())); return null; }
             return ConversationEngine.Overheard.initiative(Initiative.cueText(cue, verdict));
         });

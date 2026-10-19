@@ -113,6 +113,7 @@ public final class MobGameBridge {
                 bridge.actions.tick(world);
                 bridge.actions.stance(world);
                 bridge.social.tick(world);
+                bridge.society.tick(world);
                 bridge.initiative.tick(world);
                 bridge.bargaining.tick(world);
                 bridge.trades.tick(world);
@@ -152,7 +153,7 @@ public final class MobGameBridge {
                 bridge.memory.recordAction(card.id(), ActionIntent.none());
         if (server.isStopped()) return CompletableFuture.completedFuture(null);
         CompletableFuture<Void> done = new CompletableFuture<>();
-        server.execute(() -> { bridge.actions.clearRuntime(); bridge.social.clearRuntime(); bridge.initiative.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
+        server.execute(() -> { bridge.actions.clearRuntime(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.initiative.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
         return done;
     }
     public static MobGameBridge forEntity(Entity entity) {
@@ -240,7 +241,8 @@ public final class MobGameBridge {
         int value = card == null ? 0 : card.relationship();
         boolean hostile = card != null && SpeciesCatalog.get(card.type()).hostile();
         String mark = hostile && value >= CombatRules.ALLY ? " (свой)" : hostile && value >= CombatRules.TRUCE ? " (перемирие)" : "";
-        return "отношение " + (value >= 0 ? "+" : "") + value + mark;
+        String hearts = card != null && "minecraft:villager".equals(card.type()) ? Hearts.symbols(value) : "";
+        return "отношение " + (value >= 0 ? "+" : "") + value + mark + (hearts.isEmpty() ? "" : " " + hearts);
     }
 
     public CompletableFuture<MobSnapshot> capture(UUID mobId, UUID playerId, String dimension) {
@@ -319,6 +321,8 @@ public final class MobGameBridge {
                 if (!(entity instanceof MobEntity mob) || !mob.isAlive() || player == null || !player.isAlive()
                         || player.getWorld() != world) throw new java.util.concurrent.CancellationException("Моб или игрок недоступен");
                 if (memory.card(mobId, playerId) == null) event(mob, "The player met this mob");
+                // First: a gift no longer in hand cancels the whole reply before anything else changes.
+                String gestured = society.apply(mob, player, gesture);
                 String trade = "";
                 if (bargain != null && bargain.type() != BargainIntent.Type.NONE) {
                     if (!(mob instanceof VillagerEntity villager)) throw new IllegalStateException("Торг доступен только с жителями");
@@ -328,7 +332,6 @@ public final class MobGameBridge {
                 String deals = trading.apply(mob, player, deal, unlock, quest);
                 if (!deals.isBlank()) trade = trade.isBlank() ? deals : trade + "; " + deals;
                 String result = actions.apply(mob, player, intent, observed);
-                String gestured = society.apply(mob, player, gesture);
                 if (!gestured.isBlank()) result = result.isBlank() ? gestured : result + "; " + gestured;
                 if (!trade.isBlank()) result = result.isBlank() ? trade : result + "; " + trade;
                 if (social == SocialIntent.THREAT) witnessed(mob, player, "грозил убить", -10, HEARING_RANGE);

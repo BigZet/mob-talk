@@ -54,7 +54,37 @@ public final class SocialLedger {
             rolled.putAll(SocialTurn.roll(context, List.of(gesture), () -> ThreadLocalRandom.current().nextDouble()));
         }
         if (!adult) closed.add(SocialPrompt.CHILD_ROMANCE);
+        String held = snapshot.heldItem();
+        if (held != null && held.contains(":") && !held.endsWith(":air") && !held.startsWith("unknown"))
+            rolled.put(Gesture.GIFT, gift(p, rapport, held, profession(snapshot), !adult, now));
         detached.socialTurn = new SocialTurn(rolled, closed);
+    }
+    static String profession(MobSnapshot snapshot) { return snapshot.mobDetails().get("profession") instanceof String id ? id : ""; }
+
+    /** A gift weighed for this villager against what it was given lately ({@link GiftCatalog}). */
+    static GestureIntent gift(ConversationStore.Profile p, Rapport rapport, String item, String profession, boolean child, long now) {
+        GiftCatalog.Value value = GiftCatalog.weigh(item, new GiftCatalog.Receiver(p.social.persona(), p.social.traits(), profession, child), rapport.given(item, now));
+        String note = !value.known() ? "" : value.offends() ? value.category() + ", тебе это претит" : value.category();
+        return new GestureIntent(Gesture.GIFT, value.tier(), value.hearts(), item, note);
+    }
+
+    /** A gift thrown at the villager's feet (no conversation): weighed and applied at once; null when the villager is outside the
+     * layer or the player unknown. The caller takes the item when the result {@link GestureIntent#takesItem()}. */
+    public GestureIntent giftThrown(UUID mob, String type, String name, UUID player, String playerName, String item, String profession, boolean child, long now) {
+        if (mob == null || player == null || item == null) return null;
+        synchronized (store) {
+            MobTalkConfig config = store.config();
+            if (!applies(type, config)) return null;
+            ConversationStore.Profile p = store.ensure(mob, type, name);
+            if (p.social == null) return null;
+            ConversationStore.Relation r = store.relation(p, player);
+            if (r.rapport == null) r.rapport = new Rapport();
+            GestureIntent intent = gift(p, r.rapport, item, profession, child, now);
+            apply(p, r, playerName, intent, now);
+            p.revision++; // Like a blow or help: a reply written before the gift landed is stale.
+            store.scheduleSave();
+            return intent;
+        }
     }
 
     /** After a delivered reply: the gesture's effects — relationship, fatigue and repeats, the emotional state, a memory line. */
@@ -65,16 +95,24 @@ public final class SocialLedger {
             if (p == null) return;
             ConversationStore.Relation r = store.relation(p, player);
             if (r.rapport == null) r.rapport = new Rapport();
-            r.score = ConversationStore.clamp(r.score + intent.hearts(), p.hostile());
-            r.rapport.record(intent.gesture(), now);
-            boolean gift = intent.gesture() == Gesture.GIFT;
-            MobState.Event felt = intent.outcome().warm() ? (gift ? MobState.Event.GIFT_LIKED : MobState.Event.GESTURE_WARM)
-                    : gift ? (intent.hearts() < 0 ? MobState.Event.GIFT_SPURNED : null) : MobState.Event.GESTURE_COLD;
-            if (felt != null) ConversationStore.feel(p, r, felt, now);
-            ConversationStore.event(p, now, SocialPrompt.memoryLine(intent, playerName, r.score), SocialPrompt.importance(intent));
+            apply(p, r, playerName, intent, now);
             store.scheduleSave();
         }
     }
+    /** The effects of one gesture on one relation; under the store lock. */
+    private static void apply(ConversationStore.Profile p, ConversationStore.Relation r, String playerName, GestureIntent intent, long now) {
+        r.score = ConversationStore.clamp(r.score + intent.hearts(), p.hostile());
+        r.rapport.record(intent.gesture(), now);
+        boolean gift = intent.gesture() == Gesture.GIFT;
+        if (gift && intent.takesItem()) r.rapport.gave(intent.item(), now);
+        MobState.Event felt = intent.outcome().warm() ? (gift ? MobState.Event.GIFT_LIKED : MobState.Event.GESTURE_WARM)
+                : gift ? (intent.hearts() < 0 ? MobState.Event.GIFT_SPURNED : null) : MobState.Event.GESTURE_COLD;
+        if (felt != null) ConversationStore.feel(p, r, felt, now);
+        ConversationStore.event(p, now, SocialPrompt.memoryLine(intent, playerName, r.score), SocialPrompt.importance(intent));
+    }
+
+    /** The occasion for the villager's words about a thrown gift whose outcome the game already applied. */
+    public static String giftCue(GestureIntent intent) { return SocialPrompt.thrownGift(intent); }
 
     /** One line about the selected villager's social side, for /mobtalk state; "" for anyone else. */
     public String describe(UUID mob, UUID player) {
