@@ -230,6 +230,8 @@
   "mobtalk.settings.section.venice.speech": "Ключ Venice (озвучка)",
   "mobtalk.settings.section.venice.both": "Ключ Venice (ответы и озвучка)",
   "mobtalk.settings.stateHud": "Состояние моба в строке Mob Talk",
+  "mobtalk.settings.social": "Мобы ведут себя по отношениям друг к другу",
+  "mobtalk.settings.socialDensity": "Социальных действий в минуту: %s",
   "mobtalk.state.gloomy": "мрачен",
   "mobtalk.state.down": "не в духе",
   "mobtalk.state.even": "ровно",

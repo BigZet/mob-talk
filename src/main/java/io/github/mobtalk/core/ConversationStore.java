@@ -82,6 +82,7 @@ public final class ConversationStore {
         Relation own = snapshot.playerId() == null ? null : p.relations.get(snapshot.playerId().toString());
         detached.hits = own == null ? 0 : own.hits;
         long now = System.currentTimeMillis();
+        detached.bonds = state.relations.views(p.id, now);
         // Whole and not under attack: the nerves settle a little, however the player is regarded.
         boolean attacked = snapshot.mobDetails().get("lastAttacker") instanceof String attacker && !"none".equals(attacker);
         if (snapshot.maxHealth() > 0 && snapshot.health() >= snapshot.maxHealth() && !attacked && p.state.safe(baseline(p, current.relationship()), now)) scheduleSave();
@@ -167,8 +168,18 @@ public final class ConversationStore {
         if (p == null || !p.turns.isEmpty() || !p.backstory.isBlank()) return false;
         state.profiles.remove(mob.toString());
         state.bargains.keySet().removeIf(key -> key.startsWith(mob + ":"));
+        state.relations.remove(mob);
         scheduleSave();
         return true;
+    }
+    // ---- What mobs think of each other, see MobRelations: reads give detached views, writes run under the lock. ----
+    public synchronized List<MobRelations.View> bonds(UUID mob, long nowMillis) { return state.relations.views(mob, nowMillis); }
+    /** Runs one change against the relations under the lock; a change that reports true is saved. */
+    public synchronized void updateRelations(java.util.function.Predicate<MobRelations> change) { if (change.test(state.relations)) scheduleSave(); }
+    /** Family for two mobs of one village, kin for one species, nothing for strangers or a mob without a profile. */
+    public synchronized MobRelations.Kinship kinship(UUID a, UUID b) {
+        Profile p = a == null ? null : state.profiles.get(a.toString()), q = b == null ? null : state.profiles.get(b.toString());
+        return p == null || q == null ? MobRelations.Kinship.NONE : MobRelations.kinship(p.type, p.villageId, q.type, q.villageId);
     }
     public synchronized Bargaining.Session bargain(UUID mob, UUID player) {
         if (mob == null || player == null) return null;
@@ -565,6 +576,8 @@ public final class ConversationStore {
         transient List<String> takenNames = List.of(); transient boolean founds;
         /** How the mob feels towards the current player at the moment the profile was read; null on a profile built by hand. */
         transient MobState.View stateView;
+        /** What this mob thinks of other mobs at the moment the profile was read, strongest first; see {@link MobRelations}. */
+        transient List<MobRelations.View> bonds = List.of();
         String type, name, personality, voiceId; String memory = "";
         /** The memory as facts with importance and age ({@link MemoryRanking}); {@code memory} above is the same text, one line each. */
         List<MemoryFact> facts = new ArrayList<>();
@@ -666,15 +679,20 @@ public final class ConversationStore {
         Map<String,Profile> profiles = new LinkedHashMap<>();
         Map<String,Bargaining.Session> bargains = new LinkedHashMap<>();
         Map<String,Village> villages = new LinkedHashMap<>();
+        /** Bonds between mobs; absent in files written before them. */
+        MobRelations relations = new MobRelations();
         void sanitize() {
             if (bargains == null) bargains = new LinkedHashMap<>();
             if (villages == null) villages = new LinkedHashMap<>();
             villages.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null || e.getValue().name() == null || e.getValue().dimension() == null);
+            if (relations == null) relations = new MobRelations();
+            relations.sanitize();
         }
         State copy() {
             State c = new State(); c.version = version;
             profiles.forEach((key, p) -> c.profiles.put(key, p.copy()));
             c.bargains.putAll(bargains); c.villages.putAll(villages); // Immutable records.
+            c.relations = relations.copy();
             return c;
         }
     }

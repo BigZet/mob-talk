@@ -879,6 +879,8 @@ public final class MobTalkClient implements ClientModInitializer {
             text.append(" · ").append(Text.translatable("mobtalk.friend.status", Text.translatable("mobtalk.action." + active.type().name().toLowerCase(java.util.Locale.ROOT)),
                     active.type() == ActionType.SPARE ? active.target() : Text.translatable("mobtalk.friend." + active.target()),
                     Math.max(1, (active.expires() - now + 1199) / 1200)).getString());
+        List<io.github.mobtalk.core.MobRelations.View> bonds = game.memory.bonds(selected, System.currentTimeMillis());
+        if (!bonds.isEmpty()) text.append(" · свои: ").append(String.join(", ", bonds.stream().limit(6).map(io.github.mobtalk.core.MobRelations.View::label).toList()));
         return text.toString();
     }
 
