@@ -181,6 +181,8 @@ public final class MobTalkConfig {
         config.veniceVoice = textOrDefault(config.veniceVoice, defaults.veniceVoice);
         if (!config.veniceVoice.matches("[A-Za-z0-9_.-]{1,64}")) throw new IOException("Голос Venice: только латиница, цифры, _ . -");
         config.whisperModel = textOrDefault(config.whisperModel, defaults.whisperModel);
+        // A catalogue name, a fine-tuned model folder in Whisper's models directory, or its absolute path.
+        if (!validWhisperModel(config.whisperModel)) config.whisperModel = defaults.whisperModel;
         config.whisperDevice = textOrDefault(config.whisperDevice, defaults.whisperDevice);
         config.whisperLanguage = textOrDefault(config.whisperLanguage, defaults.whisperLanguage);
         config.microphoneName = config.microphoneName == null ? "" : config.microphoneName;
@@ -212,6 +214,16 @@ public final class MobTalkConfig {
     /** Whether any part of the pipeline (chat or speech) goes through that provider. */
     public boolean needsOpenRouter() { return !usesVenice() || !usesVeniceSpeech(); }
     public boolean needsVenice() { return usesVenice() || usesVeniceSpeech(); }
+
+    static boolean validWhisperModel(String model) {
+        if (model.matches("[A-Za-z0-9][A-Za-z0-9._-]{0,63}")) return true;
+        try {
+            return model.length() <= 260 && model.chars().noneMatch(Character::isISOControl)
+                    && java.nio.file.Path.of(model).isAbsolute();
+        } catch (java.nio.file.InvalidPathException invalid) {
+            return false;
+        }
+    }
 
     private static String textOrDefault(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value.trim();

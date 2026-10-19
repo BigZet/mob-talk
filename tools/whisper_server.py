@@ -17,6 +17,7 @@ import logging
 import math
 import os
 from pathlib import Path
+import re
 import socket
 import sys
 import threading
@@ -32,6 +33,30 @@ MODEL_REPOS = {
     "large-v2": "Systran/faster-whisper-large-v2", "large-v3": "Systran/faster-whisper-large-v3",
     "large-v3-turbo": "mobiuslabsgmbh/faster-whisper-large-v3-turbo",
 }
+
+
+LOCAL_MODEL_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+
+
+def local_model_path(model, model_dir: Path):
+    """A fine-tuned CTranslate2 folder with model.bin: models/<name> or an absolute path."""
+    if not isinstance(model, str) or model in MODEL_REPOS or len(model) > 260:
+        return None
+    if LOCAL_MODEL_NAME.match(model) and not model.startswith("models--"):
+        candidate = Path(model_dir) / model
+    elif Path(model).is_absolute():
+        candidate = Path(model)
+    else:
+        return None
+    return candidate if (candidate / "model.bin").is_file() else None
+
+
+def local_models(model_dir: Path) -> list:
+    try:
+        return sorted(path.name for path in Path(model_dir).iterdir()
+                      if local_model_path(path.name, model_dir) is not None)
+    except OSError:
+        return []
 
 
 def default_model_directory() -> Path:
@@ -123,7 +148,13 @@ def load_model(settings: Settings, progress=None, cancelled=None):
     from faster_whisper import WhisperModel
 
     model_path = settings.model
-    if settings.model in MODEL_REPOS:
+    if settings.model not in MODEL_REPOS:
+        local = local_model_path(settings.model, settings.model_dir)
+        if local is None:
+            # Never pass unknown names on: faster-whisper would download a Hugging Face repo.
+            raise RuntimeError("model_unavailable")
+        model_path = str(local)
+    else:
         from huggingface_hub import snapshot_download
         from tqdm.auto import tqdm
 
@@ -226,7 +257,8 @@ class WhisperRuntime:
             model = "large-v3-turbo"
         device = values.get("device", self.settings.device)
         language = values.get("language", self.settings.language)
-        if model not in MODEL_REPOS or device not in ("auto", "cpu", "cuda"):
+        known = model in MODEL_REPOS or local_model_path(model, self.settings.model_dir) is not None
+        if not known or device not in ("auto", "cpu", "cuda"):
             raise ValueError("invalid_model_or_device")
         if not isinstance(language, str) or not language or len(language) > 24:
             raise ValueError("invalid_language")
@@ -309,6 +341,8 @@ def create_server(runtime: WhisperRuntime, port: int = 63919) -> ThreadingHTTPSe
             elif self.path == "/models":
                 models = [{"id": model, "installed": any((runtime.settings.model_dir / ("models--" + repo.replace("/", "--"))).glob("snapshots/*/model.bin"))}
                           for model, repo in MODEL_REPOS.items()]
+                models += [{"id": name, "installed": True, "local": True}
+                           for name in local_models(runtime.settings.model_dir)]
                 self.json_response(200, {"models": models, "active": runtime.settings.model})
             else:
                 self.json_response(404, {"error": "not_found"})

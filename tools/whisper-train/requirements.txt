@@ -1,0 +1,13 @@
+# torch/torchaudio come from https://download.pytorch.org/whl/cu126 (see scripts/train-whisper.ps1)
+transformers>=4.46,<5
+peft
+accelerate
+jiwer
+soundfile
+librosa
+faster-whisper==1.2.1
+av==16.1.0
+speechbrain
+ctranslate2
+huggingface_hub
+num2words
