@@ -180,6 +180,8 @@ final class SelfTest {
                 ServerWorld world = (ServerWorld) serverPlayer().getWorld();
                 boolean sees = world.getEntity(cow) instanceof MobEntity c && world.getEntity(villager) instanceof MobEntity v && c.canSee(v);
                 log("cow sees the villager: " + sees + "; cow sees the player: " + (world.getEntity(cow) instanceof MobEntity c2 && c2.canSee(serverPlayer())));
+                // A cow wanders: hold it in place for the half minute the reply may take, or it strolls out of hearing range of the villager.
+                bridge().attend(cow, owner.client.player.getUuid(), 600);
                 check(owner.say("Слушай сюда, тупица: сейчас я тебя зарублю мечом, и всю твою деревню тоже!"), "say() accepted for the threat");
                 await("villager answered the threat", 120, () -> replied(villager, villagerTurns), this::afterThreat);
             });
