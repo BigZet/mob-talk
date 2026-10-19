@@ -64,7 +64,7 @@ class SocialLayerTest {
         ConversationStore.Profile p = store.profile(villager(villager, player, 0, false, "minecraft:air"));
         assertNotNull(p.social);
         assertNotNull(p.socialTurn);
-        assertEquals(List.of("NONE", "JOKE", "COMPLIMENT", "HUG", "FLIRT", "KISS"), p.socialTurn.schemaValues());
+        assertEquals(List.of("NONE", "JOKE", "COMPLIMENT", "HUG", "FLIRT", "KISS", "DATE", "PROPOSE"), p.socialTurn.schemaValues());
         String prompt = new MobPrompt(config).system(SpeciesCatalog.get("minecraft:villager"), p, villager(villager, player, 0, false, "minecraft:air"));
         assertTrue(prompt.contains("Нрав: " + p.social.persona().word), prompt);
         assertTrue(prompt.contains(SocialPrompt.GESTURE_HEADER));

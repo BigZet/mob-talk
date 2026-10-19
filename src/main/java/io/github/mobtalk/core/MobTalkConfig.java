@@ -69,6 +69,12 @@ public final class MobTalkConfig {
     public boolean socialLayer = true;
     /** The player's sex for courtship: "male", "female" or "any" (not counted). */
     public String playerGender = "any";
+    /** Villagers marry and have children only in couples; while on, vanilla villager breeding is off. */
+    public boolean familyLife = true;
+    /** The chance per minute (percent) that a village near the player holds a wedding, and that a married couple has a child. */
+    public int weddingChance = 5, birthChance = 5;
+    /** Game days from a child's birth to adulthood (four stages); vanilla takes one. */
+    public int childGrowthDays = 4;
 
     /** A menu draft or worker snapshot; editing it does not change the live preferences. */
     public MobTalkConfig copy() {
@@ -115,6 +121,7 @@ public final class MobTalkConfig {
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.decider = decider;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;
+        copy.familyLife = familyLife; copy.weddingChance = weddingChance; copy.birthChance = birthChance; copy.childGrowthDays = childGrowthDays;
         return copy;
     }
 
@@ -174,6 +181,9 @@ public final class MobTalkConfig {
         config.initiativesPerMinute = Math.max(1, Math.min(6, config.initiativesPerMinute));
         config.playerGender = config.playerGender == null ? "any" : config.playerGender.strip().toLowerCase(java.util.Locale.ROOT);
         if (!java.util.List.of("male", "female", "any").contains(config.playerGender)) config.playerGender = "any";
+        config.weddingChance = Math.max(0, Math.min(100, config.weddingChance));
+        config.birthChance = Math.max(0, Math.min(100, config.birthChance));
+        config.childGrowthDays = Math.max(1, Math.min(16, config.childGrowthDays));
         config.decider = "jev".equalsIgnoreCase(config.decider == null ? "" : config.decider.strip()) ? "jev" : "rules";
         MobTalkConfig defaults = new MobTalkConfig();
         config.llmModel = textOrDefault(config.llmModel, defaults.llmModel);

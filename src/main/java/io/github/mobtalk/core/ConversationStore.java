@@ -99,7 +99,7 @@ public final class ConversationStore {
         boolean attacked = snapshot.mobDetails().get("lastAttacker") instanceof String attacker && !"none".equals(attacker);
         if (snapshot.maxHealth() > 0 && snapshot.health() >= snapshot.maxHealth() && !attacked && p.state.safe(baseline(p, current.relationship()), now)) scheduleSave();
         detached.stateView = p.state.view(baseline(p, current.relationship()), now);
-        SocialLedger.prepare(p, detached, own, snapshot, detached.stateView, config, now);
+        SocialLedger.prepare(state, p, detached, own, snapshot, detached.stateView, config, now);
         return detached;
     }
 
@@ -224,7 +224,7 @@ public final class ConversationStore {
     public synchronized boolean spreadRumors(UUID a, UUID b, java.util.function.DoubleSupplier roll, long now) {
         String village = villageOf(a);
         if (village.isBlank() || !village.equals(villageOf(b))) return false;
-        boolean close = state.relations.views(a, now).stream().anyMatch(v -> v.other().equals(b) && (v.friend() || v.tags().contains(MobRelations.Tag.FAMILY)));
+        boolean close = state.relations.views(a, now).stream().anyMatch(v -> v.other().equals(b) && (v.friend() || v.tags().contains(MobRelations.Tag.NEIGHBOR)));
         int crossed = state.rumors.spread(village, a, b, close, roll, now);
         if (crossed > 0) scheduleSave();
         return crossed > 0;
@@ -665,6 +665,8 @@ public final class ConversationStore {
         transient List<VillageRumors.View> rumors = List.of(); transient VillageRumors.Reputation repute = VillageRumors.Reputation.NONE;
         /** The outcomes of the player's gestures for this reply, decided before the request ({@link SocialTurn}); null outside the social layer. */
         transient SocialTurn socialTurn;
+        /** This villager's relatives from the family tree, for «Свои»; empty outside the social layer. */
+        transient List<FamilyTree.Kin> family = List.of();
         /** Sex, character, marks and growth of a villager in the social layer ({@link SocialProfile}); null for other mobs. */
         SocialProfile social;
         String type, name, personality, voiceId; String memory = "";
@@ -778,7 +780,11 @@ public final class ConversationStore {
         MobRelations relations = new MobRelations();
         /** What the villages say; absent in files written before it. */
         VillageRumors rumors = new VillageRumors();
+        /** The world's family tree (social layer); absent in files written before it. */
+        FamilyTree family = new FamilyTree();
         void sanitize() {
+            if (family == null) family = new FamilyTree();
+            family.sanitize();
             if (bargains == null) bargains = new LinkedHashMap<>();
             if (villages == null) villages = new LinkedHashMap<>();
             villages.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null || e.getValue().name() == null || e.getValue().dimension() == null);
@@ -791,7 +797,7 @@ public final class ConversationStore {
             State c = new State(); c.version = version;
             profiles.forEach((key, p) -> c.profiles.put(key, p.copy()));
             c.bargains.putAll(bargains); c.villages.putAll(villages); // Immutable records.
-            c.relations = relations.copy(); c.rumors = rumors.copy();
+            c.relations = relations.copy(); c.rumors = rumors.copy(); c.family = family.copy();
             return c;
         }
     }

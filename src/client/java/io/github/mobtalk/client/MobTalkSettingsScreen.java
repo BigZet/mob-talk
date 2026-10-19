@@ -181,6 +181,12 @@ final class MobTalkSettingsScreen extends Screen {
         CyclingButtonWidget<Boolean> layer = toggle("mobtalk.settings.socialLayer", draft.socialLayer, value -> draft.socialLayer = value);
         layer.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.socialLayer.tooltip")));
         wide(layer, gender);
+        CyclingButtonWidget<Boolean> family = toggle("mobtalk.settings.familyLife", draft.familyLife, value -> draft.familyLife = value);
+        family.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.familyLife.tooltip")));
+        wide(family);
+        wide(slider("mobtalk.settings.weddingChance", 0, 100, draft.weddingChance, value -> draft.weddingChance = value),
+                slider("mobtalk.settings.birthChance", 0, 100, draft.birthChance, value -> draft.birthChance = value));
+        wide(slider("mobtalk.settings.childGrowthDays", 1, 16, draft.childGrowthDays, value -> draft.childGrowthDays = value));
     }
 
     /** One provider's key: status, masked field with paste, save and remove. */

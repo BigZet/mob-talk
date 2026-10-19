@@ -8,7 +8,9 @@ public enum Gesture {
     NONE("", false),
     JOKE("шутка", false), COMPLIMENT("комплимент", false), HUG("объятие", false),
     FLIRT("флирт", true), KISS("поцелуй", true),
-    GIFT("подарок", false);
+    GIFT("подарок", false),
+    /** Courtship: a bouquet (from 70), a proposal with a ring (from 90), a break-up or divorce. */
+    DATE("предложение встречаться", true), PROPOSE("предложение руки и сердца", true), DIVORCE("расставание", false);
 
     /** The word for the prompt. */
     public final String word;

@@ -129,7 +129,16 @@ final class AnswerValidator {
     }
 
     /** A reply that contradicts the decided outcome of a gesture where words can be checked at all: see {@link Romance}. */
-    static void checkGesture(String reply, GestureIntent gesture) throws Rejected { }
+    static void checkGesture(String reply, GestureIntent gesture) throws Rejected {
+        if (gesture == null || reply == null) return;
+        boolean courting = gesture.gesture() == Gesture.DATE || gesture.gesture() == Gesture.PROPOSE;
+        if (courting && gesture.outcome() != Gesture.Outcome.ACCEPTED && CONSENT.matcher(reply).find())
+            throw new Rejected(SocialPrompt.consentRejection(gesture.note()), false);
+    }
+    /** Words of consent to courtship or marriage, not preceded by a negation. */
+    private static final Pattern CONSENT = Pattern.compile("(?<!не )(согласн\\p{L}*|выйду за|"
+            + "стану тво\\p{L}+|давай встречаться|"
+            + "теперь мы пара|женюсь)", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 
     /** The life the mob invented inside its reply, or null when the answer has none or the story is blank. */
     static BiographyWriter.Biography biography(JsonObject answer) {

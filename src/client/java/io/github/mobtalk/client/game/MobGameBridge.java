@@ -41,12 +41,15 @@ public final class MobGameBridge {
     public final InitiativeController initiative;
     /** The villagers' social layer in the world: gifts changing hands, slaps, families, the village's stance. */
     final SocialController society;
+    /** Villagers' families: weddings, births, growth, mourning. */
+    final FamilyController families;
     private final Map<UUID, Deque<Heard>> heard = new HashMap<>();
 
     private MobGameBridge(MinecraftServer server, ConversationStore memory, MobTalkConfig config) {
         this.server = server; this.memory = memory; this.config = config.copy();
         social = new MobSocialController(this);
         society = new SocialController(this);
+        families = new FamilyController(this);
         initiative = new InitiativeController(this);
         actions = new MobActionController(this);
         bargaining = new VillagerBargaining(this);
@@ -85,6 +88,7 @@ public final class MobGameBridge {
             UUID id = mob.getUuid();
             if (source.getAttacker() instanceof ServerPlayerEntity player) bridge.witnessed(mob, player, "убил", -25);
             bridge.social.died(mob); // Before the stranger's profile goes: the mourners keep its name.
+            bridge.families.died(mob, source); // Relatives mourn wherever they are.
             if (bridge.memory.known(id) && !bridge.memory.forgetStranger(id)) bridge.event(mob, "The mob died: " + source.getName());
             // END_WORLD_TICK removes dead leases; a death callback can run inside that lease's melee goal.
         });
@@ -114,6 +118,7 @@ public final class MobGameBridge {
                 bridge.actions.stance(world);
                 bridge.social.tick(world);
                 bridge.society.tick(world);
+                bridge.families.tick(world);
                 bridge.initiative.tick(world);
                 bridge.bargaining.tick(world);
                 bridge.trades.tick(world);

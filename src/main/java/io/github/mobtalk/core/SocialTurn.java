@@ -8,12 +8,16 @@ import java.util.*;
  * words what is out of the question (romance with a child or a relative). */
 public final class SocialTurn {
     private final Map<Gesture, GestureIntent> rolled;
-    private final List<String> closed;
+    private final List<String> closed, facts;
 
-    public SocialTurn(Map<Gesture, GestureIntent> rolled, List<String> closed) {
+    public SocialTurn(Map<Gesture, GestureIntent> rolled, List<String> closed) { this(rolled, closed, List.of()); }
+    /** {@code facts}: what the villager and this player are to each other (a couple, a parent and child), for the prompt. */
+    public SocialTurn(Map<Gesture, GestureIntent> rolled, List<String> closed, List<String> facts) {
         this.rolled = Collections.unmodifiableMap(new LinkedHashMap<>(rolled == null ? Map.of() : rolled));
         this.closed = closed == null ? List.of() : List.copyOf(closed);
+        this.facts = facts == null ? List.of() : List.copyOf(facts);
     }
+    public List<String> facts() { return facts; }
     public Map<Gesture, GestureIntent> rolled() { return rolled; }
     public List<String> closed() { return closed; }
     /** The intent for the gesture the model named; none for NONE or a gesture that was not on offer. */
