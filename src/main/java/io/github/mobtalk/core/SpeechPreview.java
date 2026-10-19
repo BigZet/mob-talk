@@ -45,7 +45,7 @@ public final class SpeechPreview {
 
     /** Voices {@code text} with the configured speech provider; through Venice the per-mob voice gives way to the configured one. */
     public static byte[] synthesize(MobTalkConfig config, Path directory, String voice, String text) throws IOException, InterruptedException {
-        if (!config.usesVeniceSpeech() && !OpenRouterSpeechClient.validVoiceId(voice)) throw new IOException("Голос ещё не назначен или ID имеет неверный формат.");
+        if ((!config.usesVeniceSpeech() || config.veniceSpeechKeepsVoices()) && !OpenRouterSpeechClient.validVoiceId(voice)) throw new IOException("Голос ещё не назначен или ID имеет неверный формат.");
         String key = OpenRouterToken.load(directory, config.usesVeniceSpeech() ? OpenRouterToken.Provider.VENICE : OpenRouterToken.Provider.OPENROUTER);
         try (OpenRouterSpeechClient speech = new OpenRouterSpeechClient(key, config)) {
             String used = speech.selectedVoice(voice);
@@ -70,14 +70,14 @@ public final class SpeechPreview {
     public static synchronized String status(Path directory, String voice, MobTalkConfig config) {
         if (voice == null || voice.isBlank()) return "Голос не назначен";
         String model = config.speechModel();
-        if (config.usesVeniceSpeech()) voice = config.veniceVoice;
+        if (config.usesVeniceSpeech() && !config.veniceSpeechKeepsVoices()) voice = config.veniceVoice;
         try {
             Validation validation = load(directory).get(voice);
             OpenRouterToken.Provider provider = config.usesVeniceSpeech() ? OpenRouterToken.Provider.VENICE : OpenRouterToken.Provider.OPENROUTER;
             if (validation != null && model.equals(validation.model) && digest(OpenRouterToken.load(directory, provider)).equals(validation.account))
                 return model + ": успешно проверен " + validation.date.substring(0, 10);
         } catch (IOException | RuntimeException unavailable) { }
-        if (config.usesVeniceSpeech()) return "Venice, голос " + voice + "; " + model + " ещё не проверен";
+        if (config.usesVeniceSpeech() && !config.veniceSpeechKeepsVoices()) return "Venice, голос " + voice + "; " + model + " ещё не проверен";
         return (SpeciesCatalog.voice(voice).previewUrl().isBlank() ? "Пользовательский ID; библиотека не проверена" : "Есть в публичном каталоге")
                 + "; " + model + " ещё не проверен";
     }

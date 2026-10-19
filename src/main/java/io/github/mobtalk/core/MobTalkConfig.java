@@ -179,6 +179,8 @@ public final class MobTalkConfig {
     /** The chat model of the selected provider. */
     public String chatModel() { return usesVenice() ? veniceModel : llmModel; }
     public boolean usesVeniceSpeech() { return "venice".equals(ttsProvider); }
+    /** Venice's ElevenLabs model takes the same raw ElevenLabs voice ids as OpenRouter: every mob keeps its own voice there. */
+    public boolean veniceSpeechKeepsVoices() { return usesVeniceSpeech() && veniceTtsModel != null && veniceTtsModel.startsWith("tts-elevenlabs"); }
     /** The speech model of the selected speech provider. */
     public String speechModel() { return usesVeniceSpeech() ? veniceTtsModel : ttsModel; }
     /** Whether any part of the pipeline (chat or speech) goes through that provider. */

@@ -34,12 +34,15 @@ final class OpenRouterSpeechClient implements AutoCloseable {
 
     /** An ElevenLabs voice id as the species catalog and the mob card store them. */
     static boolean validVoiceId(String voiceId) { return voiceId != null && voiceId.strip().matches("[A-Za-z0-9]{20,64}"); }
-    /** Venice voices every mob with the configured Kokoro voice; the per-mob ElevenLabs id only matters through OpenRouter. */
+    /** Through OpenRouter, and through Venice's ElevenLabs model, every mob speaks with its own ElevenLabs voice id; any other
+     * Venice model knows only its own catalog, so the configured Venice voice stands in for all. */
     String selectedVoice(String preferred) {
-        if (config.usesVeniceSpeech()) return config.veniceVoice.matches("[A-Za-z0-9_.-]{1,64}") ? config.veniceVoice : "";
+        if (config.usesVeniceSpeech() && !config.veniceSpeechKeepsVoices()) return config.veniceVoice.matches("[A-Za-z0-9_.-]{1,64}") ? config.veniceVoice : "";
         return validVoiceId(preferred) ? preferred.strip() : "";
     }
-    private boolean usable(String voiceId) { return config.usesVeniceSpeech() ? voiceId != null && voiceId.matches("[A-Za-z0-9_.-]{1,64}") : validVoiceId(voiceId); }
+    private boolean usable(String voiceId) {
+        return config.usesVeniceSpeech() && !config.veniceSpeechKeepsVoices() ? voiceId != null && voiceId.matches("[A-Za-z0-9_.-]{1,64}") : validVoiceId(voiceId);
+    }
 
     Audio synthesizeWithFallback(String preferred, String text) throws IOException, InterruptedException {
         return synthesizeWithFallback(preferred, "", text);
@@ -83,6 +86,8 @@ final class OpenRouterSpeechClient implements AutoCloseable {
     /** A lost connection (a connect timeout included) gets two more tries: Venice's endpoint drops connects now and then. */
     static final int CONNECT_ATTEMPTS = 3;
     SpeechStream stream(String voiceId, String text) throws IOException, InterruptedException {
+        // A model that speaks only MP3 or WAV is downloaded whole and decoded; PCM streams as it is generated.
+        if (!"pcm".equals(format())) return SpeechStream.of(synthesize(voiceId, text));
         for (int attempt = 1; ; attempt++) {
             try { return http.stream(request(voiceId, text), MAX_AUDIO_BYTES, service()); }
             catch (IOException failure) {
@@ -91,12 +96,23 @@ final class OpenRouterSpeechClient implements AutoCloseable {
         }
     }
 
+    /** Venice models that speak raw PCM; the rest answer in WAV or MP3 (ElevenLabs there is MP3 only) and get decoded. */
+    private static final java.util.Set<String> VENICE_PCM = java.util.Set.of("tts-kokoro", "tts-xai-v1", "tts-minimax-speech-02-hd", "tts-gradium-v1");
+    private static final java.util.Set<String> VENICE_WAV = java.util.Set.of("tts-inworld-1-5-max", "tts-chatterbox-hd", "tts-orpheus");
+    /** The response format asked of the provider for the configured model. */
+    String format() {
+        if (!config.usesVeniceSpeech()) return "pcm";
+        String model = model();
+        return VENICE_PCM.contains(model) ? "pcm" : VENICE_WAV.contains(model) ? "wav" : "mp3";
+    }
+
     byte[] synthesize(String voiceId, String text) throws IOException, InterruptedException {
-        byte[] pcm = null;
-        for (int attempt = 1; pcm == null; attempt++) {
-            try { pcm = http.send(request(voiceId, text), MAX_AUDIO_BYTES, service()); }
+        byte[] audio = null;
+        for (int attempt = 1; audio == null; attempt++) {
+            try { audio = http.send(request(voiceId, text), MAX_AUDIO_BYTES, service()); }
             catch (IOException failure) { if (!BoundedHttp.dropped(failure) || attempt >= CONNECT_ATTEMPTS) throw failure; }
         }
+        byte[] pcm = io.github.mobtalk.audio.AudioDecode.toPcm24k(audio, format());
         if (pcm.length == 0 || (pcm.length & 1) != 0) throw new IOException(service() + " вернул неверный PCM звук.");
         return pcm;
     }
@@ -109,9 +125,10 @@ final class OpenRouterSpeechClient implements AutoCloseable {
         body.addProperty("model", model());
         body.addProperty("input", text);
         body.addProperty("voice", voiceId);
-        // Both providers speak the OpenAI shape: "pcm" is 24 kHz signed 16-bit mono.
-        body.addProperty("response_format", "pcm");
-        if (config.usesVeniceSpeech()) body.addProperty("streaming", true);
+        // Both providers speak the OpenAI shape: "pcm" is 24 kHz signed 16-bit mono; other formats are decoded after download.
+        String format = format();
+        body.addProperty("response_format", format);
+        if (config.usesVeniceSpeech() && "pcm".equals(format)) body.addProperty("streaming", true);
         else if (model().startsWith("elevenlabs/")) {
             JsonObject elevenlabs = new JsonObject();
             elevenlabs.addProperty("output_format", "pcm_24000");
@@ -123,7 +140,7 @@ final class OpenRouterSpeechClient implements AutoCloseable {
         }
         return HttpRequest.newBuilder(endpoint).timeout(http.timeout())
                 .header("Authorization", "Bearer " + key).header("Content-Type", "application/json")
-                .header("Accept", "audio/pcm")
+                .header("Accept", "pcm".equals(format()) ? "audio/pcm" : "mp3".equals(format()) ? "audio/mpeg" : "audio/wav")
                 .POST(HttpRequest.BodyPublishers.ofString(body.toString(), StandardCharsets.UTF_8)).build();
     }
 
