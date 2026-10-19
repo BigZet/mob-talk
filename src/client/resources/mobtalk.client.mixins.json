@@ -17,7 +17,9 @@
     "MerchantBargainingScreenHandlerMixin",
     "TradeOutputBargainingMixin",
     "MerchantYesSoundMixin",
-    "TruceTargetMixin"
+    "TruceTargetMixin",
+    "BlockPlacedMixin",
+    "FluidPlacedMixin"
   ],
   "injectors": {
     "defaultRequire": 1

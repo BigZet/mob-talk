@@ -78,9 +78,12 @@ final class MobContextCapture {
         }
         if (mob instanceof AnimalEntity animal) mobDetails.put("inLove", animal.isInLove());
         if (mob instanceof PassiveEntity passive) mobDetails.put("breedingAge", passive.getBreedingAge());
+        // The shape of the place: the flood over the blocks around it says whether there is a way out at all.
+        PlaceCapture.Result place = blind ? null : PlaceCapture.capture(world, mob, player, bridge.changes);
+        if (place != null) PlaceCapture.stash(mob.getUuid(), place.grid());
         if (mob instanceof net.minecraft.entity.mob.PathAwareEntity pathAware) {
             mobDetails.put("panicking", pathAware.isPanicking());
-            mobDetails.put("trapped", trapped(world, pathAware));
+            mobDetails.put("trapped", place != null && place.report().trapped || trapped(world, pathAware));
         }
         if (mob instanceof VillagerEntity villager) {
             mobDetails.put("profession", Registries.VILLAGER_PROFESSION.getId(villager.getVillagerData().getProfession()).toString());
@@ -166,8 +169,10 @@ final class MobContextCapture {
             environment.put("timeOfDayTicks", day);
             environment.put("blockAtMob", Registries.BLOCK.getId(world.getBlockState(mob.getBlockPos()).getBlock()).toString());
             environment.put("blockBelowMob", Registries.BLOCK.getId(world.getBlockState(mob.getBlockPos().down()).getBlock()).toString());
+            // Grouped objects (hazards, doors, water, walls) replace the raw feature list; plants and workstations keep their
+            // own short lists, since villagers and animals are asked about them.
             List<Map<String, Object>> features = features(world, mob);
-            environment.put("features", features);
+            if (place != null) environment.put("place", PlaceCapture.details(place));
             environment.put("vegetation", features.stream().filter(feature -> "vegetation".equals(feature.get("kind"))).toList());
             environment.put("workBlocks", features.stream().filter(feature -> "workstation".equals(feature.get("kind"))).toList());
             environment.put("droppedItems", droppedItems(world, mob));
@@ -351,8 +356,9 @@ final class MobContextCapture {
                     RaycastContext.FluidHandling.ANY, mob));
             if (hit.getType() != HitResult.Type.MISS && !hit.getBlockPos().equals(pos)) continue;
             categories.add(id);
+            // Only the state a creature would mention: open, lit, grown; the rest is noise for the model.
             Map<String, String> properties = new LinkedHashMap<>();
-            state.getEntries().forEach((property, value) -> properties.put(property.getName(), String.valueOf(value)));
+            state.getEntries().forEach((property, value) -> { if (Set.of("open", "lit", "age", "powered").contains(property.getName())) properties.put(property.getName(), String.valueOf(value)); });
             group.add(Map.of("block", id, "kind", kind, "state", Map.copyOf(properties),
                     "distance", round(mob.getPos().distanceTo(Vec3d.ofCenter(pos))),
                     "direction", direction(mob.getPos(), Vec3d.ofCenter(pos))));
