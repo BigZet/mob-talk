@@ -50,9 +50,11 @@ final class AnswerValidator {
             if (bounds.jsonObjectOnly() && (!answer.has("action") || !answer.has("socialIntent") || !answer.has("bargain")))
                 throw new IllegalArgumentException();
             String reply = TextBounds.reply(spokenText(ReplySchema.string(answer, "reply")), bounds.words());
-            // newFacts is appended by code; a full "memory" from older or fallback answers still replaces it as before.
-            String memory = answer.has("newFacts") ? MemoryNotes.remember(bounds.previousMemory(), TextBounds.characters(ReplySchema.string(answer, "newFacts"), MemoryNotes.FACTS_LIMIT), bounds.memoryLimit())
-                    : TextBounds.characters(ReplySchema.string(answer, "memory"), bounds.memoryLimit());
+            // newFacts becomes one fact with its importance (MemoryRanking) and memory stays null: the store appends to what it holds, so a
+            // summary or reflection that landed meanwhile survives. A full "memory" from an older or fallback answer still replaces it as before.
+            String facts = answer.has("newFacts") ? TextBounds.characters(ReplySchema.string(answer, "newFacts"), MemoryNotes.FACTS_LIMIT) : null;
+            String memory = facts != null ? null : TextBounds.characters(ReplySchema.string(answer, "memory"), bounds.memoryLimit());
+            MemoryFact fact = facts == null || facts.isBlank() ? null : MemoryFact.of(facts, ReplySchema.importance(answer), System.currentTimeMillis());
             if (bounds.overheard() && reply.codePoints().noneMatch(Character::isLetter)) return new OpenRouterConversationClient.Answer("", memory, SocialIntent.NONE,
                     answer.has("action") && answer.get("action").isJsonObject() ? validateAction(answer.getAsJsonObject("action"), snapshot) : ActionIntent.none(),
                     BargainIntent.none(), DealIntent.none(), "", QuestIntent.none());
@@ -109,7 +111,7 @@ final class AnswerValidator {
             }
             // The thought is optional: an older or fallback answer without it keeps the mob's previous one.
             return new OpenRouterConversationClient.Answer(reply, memory, social, action, bargain, deal, unlock, quest, biography(answer),
-                    MobState.cleanThought(ReplySchema.optional(answer, "thought")));
+                    MobState.cleanThought(ReplySchema.optional(answer, "thought")), fact);
         } catch (Rejected invalid) { throw invalid; }
         catch (RuntimeException malformed) { throw new IOException(bounds.service() + " вернул неверный ответ. Повторите вопрос."); }
     }

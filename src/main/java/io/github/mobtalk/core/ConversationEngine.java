@@ -74,6 +74,11 @@ public final class ConversationEngine implements AutoCloseable {
         if (question.isBlank()) throw new IOException("Речь не распознана. Удерживайте V и произнесите вопрос.");
         ConversationStore.Profile profile = store.profile(snapshot);
         checkCurrent(snapshot);
+        // The player came back after a long silence: the earlier conversation ended, whether or not the game noticed; this reply still
+        // sees its tail, the summary (if it arrives) replaces it from the next one on.
+        long now = System.currentTimeMillis();
+        if (overheard == null && profile.lastTurnMillis >= 0 && now - profile.lastTurnMillis > ConversationSummary.SILENCE_MILLIS)
+            endConversation(snapshot.id(), snapshot.playerId(), playerName(snapshot));
         String reserve = SpeciesCatalog.reserve(profile.type).id();
         EarlySpeech early = new EarlySpeech();
         OpenRouterConversationClient.Answer answer;
@@ -112,8 +117,32 @@ public final class ConversationEngine implements AutoCloseable {
         }
         Reply reply = new Reply(question, answer.reply(), name, voiceId, audio, answer.action(), snapshot.interactionRevision(), answer.bargain(),
                 answer.deal(), answer.unlock(), answer.quest(), answer.socialIntent(), overheard != null);
-        return new PreparedReply(this, reply, snapshot, answer.memory(), answer.socialIntent(), audio == null ? null : voiceId, answer.thought());
+        return new PreparedReply(this, reply, snapshot, answer.memory(), answer.socialIntent(), audio == null ? null : voiceId, answer.thought(), answer.fact());
     }
+
+    private static String playerName(MobSnapshot snapshot) { return snapshot.playerDetails().get("name") instanceof String name ? name : ""; }
+
+    /** The conversation with this mob is over (the player turned away, fell silent or left): its exchanges are summarised in the
+     * background by {@link ConversationSummary}, one cheap request nobody waits for. Only a copy under the store lock happens here. */
+    public void endConversation(java.util.UUID mob, java.util.UUID player, String playerName) {
+        if (closed || mob == null) return;
+        ConversationSummary.Pending pending = store.pendingSummary(mob, player, playerName);
+        if (pending == null) return;
+        BackgroundTasks.submit("summary:" + mob, () -> { if (!closed) ConversationSummary.summarize(store, llm, pending, System.currentTimeMillis()); });
+    }
+
+    /** After a committed reply: when enough has happened since the mob last thought this player over, one background request
+     * draws conclusions ({@link Reflection}); the counters restart as soon as it is queued. */
+    private void maybeReflect(MobSnapshot delivered) {
+        if (closed || delivered.playerId() == null) return;
+        long now = System.currentTimeMillis();
+        Reflection.Input input = store.reflectionDue(delivered.id(), delivered.playerId(), playerName(delivered), now);
+        if (input == null) return;
+        BackgroundTasks.submit("reflection:" + delivered.id(), () -> { if (!closed) Reflection.reflect(store, llm, input, now); });
+    }
+
+    /** Waits for the background lane (summaries, reflections) to drain; tests only, never the game thread. */
+    public void awaitBackground(long millis) throws InterruptedException, java.util.concurrent.TimeoutException { BackgroundTasks.awaitIdle(millis); }
 
     /** Remember only a delivered answer, once, at the revision returned by authoritative game application. */
     public boolean commitDelivered(PreparedReply prepared, long expectedCurrentRevision) {
@@ -128,8 +157,10 @@ public final class ConversationEngine implements AutoCloseable {
                     observed.heldItem(), observed.nearby(), observed.recentEvents(), observed.playerId(), observed.playerDetails(),
                     observed.mobDetails(), observed.environmentDetails(), observed.observedEntities(), observed.availableActions(), expectedCurrentRevision);
             Reply reply = prepared.reply;
-            return store.commit(delivered, reply.recognizedText(), reply.responseText(), prepared.memory, prepared.socialIntent,
-                    reply.action(), System.currentTimeMillis(), prepared.successfulVoice, prepared.thought);
+            boolean committed = store.commit(delivered, reply.recognizedText(), reply.responseText(), prepared.memory, prepared.socialIntent,
+                    reply.action(), System.currentTimeMillis(), prepared.successfulVoice, prepared.thought, prepared.fact);
+            if (committed && !reply.overheard()) maybeReflect(delivered);
+            return committed;
         }
     }
 
@@ -244,10 +275,11 @@ public final class ConversationEngine implements AutoCloseable {
         private final String memory;
         private final SocialIntent socialIntent;
         private final String successfulVoice, thought;
+        private final MemoryFact fact;
         private boolean completed;
 
         private PreparedReply(ConversationEngine owner, Reply reply, MobSnapshot snapshot, String memory,
-                              SocialIntent socialIntent, String successfulVoice, String thought) {
+                              SocialIntent socialIntent, String successfulVoice, String thought, MemoryFact fact) {
             this.owner = owner;
             this.reply = reply;
             this.snapshot = snapshot;
@@ -255,6 +287,7 @@ public final class ConversationEngine implements AutoCloseable {
             this.socialIntent = socialIntent;
             this.successfulVoice = successfulVoice;
             this.thought = thought;
+            this.fact = fact;
         }
 
         public Reply reply() { return reply; }

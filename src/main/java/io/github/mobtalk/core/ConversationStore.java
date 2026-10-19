@@ -107,14 +107,14 @@ public final class ConversationStore {
         r.score = r.hits++ == 0 ? Math.min(-80, r.score) : Math.max(-100, Math.min(r.score, 0) - 20);
         feel(p, r, MobState.Event.HIT, nowMillis);
         p.revision++;
-        event(p, nowMillis, "Игрок " + safePlayer(playerName) + " ударил моба; отношение " + r.score); scheduleSave();
+        event(p, nowMillis, "Игрок " + safePlayer(playerName) + " ударил моба; отношение " + r.score, MemoryRanking.HIT); scheduleSave();
     }
 
     public synchronized void recordHelp(UUID mob, String type, String name, UUID player, String playerName, long nowMillis) {
         Profile p = ensure(mob, type, name); Relation r = relation(p, player);
         if (!cooledDown(r.lastHelp, nowMillis, 30_000)) return;
         r.lastHelp = nowMillis; r.score = clamp(r.score + 20, hostile(p)); feel(p, r, MobState.Event.HELP, nowMillis); p.revision++;
-        event(p, nowMillis, "Игрок " + safePlayer(playerName) + " помог мобу; отношение " + r.score); scheduleSave();
+        event(p, nowMillis, "Игрок " + safePlayer(playerName) + " помог мобу; отношение " + r.score, MemoryRanking.HELP); scheduleSave();
     }
 
     /** A mob that saw what the player did to another: a smaller drop than the victim's, once per {@code WITNESS_COOLDOWN}, and a
@@ -137,9 +137,10 @@ public final class ConversationStore {
             applied = delta - r.lastWitnessDelta;
         }
         r.lastWitness = nowMillis; r.lastWitnessDelta = delta; r.score = clamp(r.score + applied, hostile(p));
-        feel(p, r, felt != null ? felt : seen != null && seen.startsWith("убил") ? MobState.Event.WITNESSED_KILL : MobState.Event.WITNESSED_HIT, nowMillis);
+        boolean kill = seen != null && seen.startsWith("убил");
+        feel(p, r, felt != null ? felt : kill ? MobState.Event.WITNESSED_KILL : MobState.Event.WITNESSED_HIT, nowMillis);
         // No revision bump: what the mob saw happen to another must not cancel the reply it is giving right now.
-        event(p, nowMillis, "Видел, как игрок " + safePlayer(playerName) + " " + seen + "; отношение " + r.score); scheduleSave();
+        event(p, nowMillis, "Видел, как игрок " + safePlayer(playerName) + " " + seen + "; отношение " + r.score, kill ? MemoryRanking.WITNESSED_KILL : MemoryRanking.WITNESSED_HIT); scheduleSave();
     }
     /** What others call this mob: the name the model gave it, else what the game shows; "" for a stranger. */
     public synchronized String displayName(UUID mob) {
@@ -214,7 +215,7 @@ public final class ConversationStore {
         if (state.unlocked()) return;
         r.deals.put(dealId, new TradeState(state.price(), true, state.rounds(), state.sessionStartMillis(), state.boughtToday(), state.boughtDay()));
         p.revision++;
-        event(p, nowMillis, "Открыл игроку секретную сделку «" + dealName(p, dealId) + "»"); scheduleSave();
+        event(p, nowMillis, "Открыл игроку секретную сделку «" + dealName(p, dealId) + "»", MemoryRanking.UNLOCK); scheduleSave();
     }
     /** Records a completed purchase on {@code worldDay}: stock, a memory event and a small relationship gain. */
     public synchronized void recordPurchase(UUID mob, UUID player, String dealId, String playerName, long worldDay, long nowMillis) {
@@ -227,7 +228,7 @@ public final class ConversationStore {
         TradeDeal deal = TradeCatalog.deal(p.type, dealId);
         String what = deal == null ? "товар «" + dealId + "»"
                 : deal.sell().count() + "× " + deal.sell().name() + " за " + Trading.currentPrice(deal, before) + "× " + deal.price().name();
-        event(p, nowMillis, "Игрок " + safePlayer(playerName) + " купил " + what + "; отношение " + r.score); scheduleSave();
+        event(p, nowMillis, "Игрок " + safePlayer(playerName) + " купил " + what + "; отношение " + r.score, MemoryRanking.PURCHASE); scheduleSave();
     }
     /** The player bought what the villager promised in conversation ({@link SpokenOffer}) in its vanilla window: a kept bargain —
      * the same small gain and warmth as a catalog purchase, and a memory of what changed hands. */
@@ -301,7 +302,7 @@ public final class ConversationStore {
         if (r.favor != null) throw new IllegalStateException("Сначала нужно закончить услугу «" + r.favor.title() + "».");
         r.favor = new Favor(favor.item(), favor.count(), favor.title(), favor.rewardDeal(), favor.rewardPercent(), mob, nowMillis);
         p.revision++;
-        event(p, nowMillis, "Попросил игрока об услуге: " + r.favor.title() + " (" + favor.count() + "× " + favor.item() + ")"); scheduleSave();
+        event(p, nowMillis, "Попросил игрока об услуге: " + r.favor.title() + " (" + favor.count() + "× " + favor.item() + ")", MemoryRanking.FAVOR_ASKED); scheduleSave();
     }
     /** The player delivered (the game already took the items): this mob warms up by {@link Favor#RELATIONSHIP}, the promised
      * deal opens and/or its price drops. Returns the favour. */
@@ -322,7 +323,7 @@ public final class ConversationStore {
             r.deals.put(promised.id(), new TradeState(lowered < paying ? lowered : s.price(), s.unlocked() || promised.secret(), s.rounds(), s.sessionStartMillis(), s.boughtToday(), s.boughtDay()));
         }
         p.revision++;
-        event(p, nowMillis, "Игрок " + safePlayer(playerName) + " выполнил услугу: " + favor.title() + "; отношение " + r.score); scheduleSave();
+        event(p, nowMillis, "Игрок " + safePlayer(playerName) + " выполнил услугу: " + favor.title() + "; отношение " + r.score, MemoryRanking.FAVOR_DONE); scheduleSave();
         return favor;
     }
     /** Village gossip: what the player owes to, or did for, the other villagers of this mob's village, one line each.
@@ -378,10 +379,13 @@ public final class ConversationStore {
                     ? SpeciesCatalog.effective(p.type, config).variants().get(p.variantSlot).prompt() : p.customPersonality;
         }
         if (voiceId != null) p.voiceId = voiceId.strip();
-        if (memory != null) p.memory = TextBounds.characters(memory, 4000);
+        if (memory != null) { p.facts = MemoryRanking.edited(p.facts, TextBounds.characters(memory, 4000), System.currentTimeMillis()); p.memory = MemoryRanking.render(p.facts); }
         p.revision++; scheduleSave();
     }
-    public synchronized void clearHistory(UUID mob) { Profile p = require(mob); p.turns.clear(); p.revision++; scheduleSave(); }
+    /** Forgets the exchanges and the summaries made of them; the facts stay. */
+    public synchronized void clearHistory(UUID mob) {
+        Profile p = require(mob); p.turnsDropped += p.turns.size(); p.turns.clear(); p.summarizedTurns = p.turnsDropped; p.summaries.clear(); p.revision++; scheduleSave();
+    }
     /** Reroll the individual's temperament without changing its voice, memories, or relationships. */
     public synchronized void resetPersonality(UUID mobId) {
         Profile p = require(mobId);
@@ -414,12 +418,26 @@ public final class ConversationStore {
      * player's words, move the emotional state along with the score. */
     synchronized boolean commit(MobSnapshot snapshot, String user, String reply, String memory, SocialIntent social,
                                 ActionIntent action, long nowMillis, String successfulVoice, String thought) {
+        return commit(snapshot, user, reply, memory, social, action, nowMillis, successfulVoice, thought, null);
+    }
+
+    /** {@code fact}: the new fact of this answer with its importance, kept by {@link MemoryRanking}; null when the answer added none.
+     * {@code memory}: a whole memory text from an older or fallback answer, replacing the facts when it differs; null for a newFacts answer. */
+    synchronized boolean commit(MobSnapshot snapshot, String user, String reply, String memory, SocialIntent social,
+                                ActionIntent action, long nowMillis, String successfulVoice, String thought, MemoryFact fact) {
         Profile p = require(snapshot.id());
         if (p.revision != snapshot.interactionRevision()) return false;
         if (successfulVoice != null && OpenRouterSpeechClient.validVoiceId(successfulVoice)) p.voiceId = successfulVoice.strip();
         p.turns.add(new Turn(TextBounds.characters(user, 2000), TextBounds.characters(reply, 8000)));
-        while (p.turns.size() > 100) p.turns.removeFirst();
-        p.memory = TextBounds.characters(memory, Math.max(200, Math.min(4000, config.maxMemoryChars)));
+        while (p.turns.size() > 100) { p.turns.removeFirst(); p.turnsDropped++; }
+        p.lastTurnMillis = nowMillis;
+        int limit = Math.max(200, Math.min(4000, config.maxMemoryChars));
+        if (fact != null) { MemoryRanking.remember(p.facts, fact, limit, nowMillis); p.memory = MemoryRanking.render(p.facts); }
+        else if (memory != null && !TextBounds.characters(memory, limit).equals(TextBounds.characters(p.memory, limit))) {
+            p.memory = TextBounds.characters(memory, limit); p.facts = MemoryRanking.parse(p.memory, nowMillis);
+        }
+        p.reflection.reply(fact == null ? MemoryFact.ORDINARY : Math.max(MemoryFact.ORDINARY, fact.importance()));
+        if (social == SocialIntent.THREAT) p.reflection.add(MemoryRanking.THREAT);
         p.state.think(thought);
         // Action state is persisted only by recordAction after authoritative native validation.
         if (snapshot.playerId() != null) {
@@ -488,7 +506,58 @@ public final class ConversationStore {
     private static String safePlayer(String name) { return TextBounds.characters(name == null || name.isBlank() ? "неизвестный" : name, 120); }
     private static String canonical(String type) { return type.contains(":") ? type : "minecraft:" + type; }
     private Profile require(UUID id) { Profile p = state.profiles.get(id.toString()); if (p == null) throw new IllegalArgumentException("Профиль моба ещё не создан."); return p; }
-    private static void event(Profile p, long time, String text) { p.events.add(new Event(time, TextBounds.characters(text, 500))); while (p.events.size() > 20) p.events.removeFirst(); }
+    private static void event(Profile p, long time, String text) { event(p, time, text, MemoryFact.ORDINARY); }
+    /** An event the game recorded, with how much it matters: the least important and oldest go first when the list is full. */
+    private static void event(Profile p, long time, String text, int importance) {
+        p.events.add(new Event(time, TextBounds.characters(text, 500), MemoryFact.clamp(importance)));
+        p.reflection.add(importance);
+        MemoryRanking.evict(p.events, MemoryRanking.MAX_EVENTS, e -> MemoryRanking.score(e.importance(), e.time(), time));
+    }
+
+    // ---- Background memory work (see ConversationSummary, Reflection, BackgroundTasks): reads copy, writes check the history moved.
+
+    /** The exchanges of the conversation that just ended with this mob, or null when fewer than {@link ConversationSummary#MIN_TURNS}
+     * are still unsummarised. Cheap: a copy under the lock, no network. */
+    synchronized ConversationSummary.Pending pendingSummary(UUID mob, UUID player, String playerName) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        if (p == null) return null;
+        int from = p.unsummarizedFrom();
+        ConversationSummary.Pending pending = new ConversationSummary.Pending(mob, p.turnsDropped + from, p.turnsDropped + p.turns.size(),
+                List.copyOf(p.turns.subList(from, p.turns.size())), p.givenName.isBlank() ? p.name : p.givenName, SpeciesCatalog.get(p.type).name(), safePlayer(playerName));
+        return pending.worthIt() ? pending : null;
+    }
+    /** Stores a summary of exchanges [fromTurn, toTurn), unless the history was cleared or summarised meanwhile. */
+    synchronized void addSummary(UUID mob, long fromTurn, long toTurn, ConversationSummary.Summary summary) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        if (p == null || summary == null || summary.text().isBlank() || p.summarizedTurns != fromTurn || toTurn > p.turnsDropped + p.turns.size()) return;
+        p.summarizedTurns = toTurn;
+        p.summaries.add(summary);
+        while (p.summaries.size() > ConversationSummary.MAX_SUMMARIES) p.summaries.removeFirst();
+        scheduleSave(); // No revision bump: a summary arriving mid-answer invalidates nothing.
+    }
+    /** Past conversations with this mob, oldest first. */
+    public synchronized List<ConversationSummary.Summary> summaries(UUID mob) { Profile p = mob == null ? null : state.profiles.get(mob.toString()); return p == null ? List.of() : List.copyOf(p.summaries); }
+    /** What the mob remembers about players, as facts with importance. */
+    public synchronized List<MemoryFact> facts(UUID mob) { Profile p = mob == null ? null : state.profiles.get(mob.toString()); return p == null ? List.of() : List.copyOf(p.facts); }
+
+    /** Whether enough has happened since the last reflection ({@link Reflection.Counters#due}); when so, the counters restart
+     * and the mob's memory is copied for the request. Null otherwise. */
+    synchronized Reflection.Input reflectionDue(UUID mob, UUID player, String playerName, long nowMillis) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        if (p == null || !p.reflection.due(nowMillis)) return null;
+        p.reflection.started(nowMillis); scheduleSave();
+        return new Reflection.Input(mob, player, p.givenName.isBlank() ? p.name : p.givenName, SpeciesCatalog.get(p.type).name(), safePlayer(playerName),
+                relationship(mob, player), List.copyOf(p.facts), List.copyOf(p.summaries), p.events.stream().map(e -> e.text).toList());
+    }
+    /** Adds conclusions about the player as reflection facts (importance {@link MemoryFact#REFLECTION}). */
+    synchronized void addReflections(UUID mob, List<String> insights, long nowMillis) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        if (p == null || insights == null || insights.isEmpty()) return;
+        int limit = Math.max(200, Math.min(4000, config.maxMemoryChars));
+        for (String insight : insights) MemoryRanking.remember(p.facts, new MemoryFact(insight, MemoryFact.REFLECTION, nowMillis, true), limit, nowMillis);
+        p.memory = MemoryRanking.render(p.facts);
+        scheduleSave(); // No revision bump: a thought that landed mid-answer invalidates nothing.
+    }
 
     static final class Profile {
         transient UUID id; transient int relationship, hits; transient List<String> recentEvents = List.of(); transient Village village;
@@ -497,6 +566,16 @@ public final class ConversationStore {
         /** How the mob feels towards the current player at the moment the profile was read; null on a profile built by hand. */
         transient MobState.View stateView;
         String type, name, personality, voiceId; String memory = "";
+        /** The memory as facts with importance and age ({@link MemoryRanking}); {@code memory} above is the same text, one line each. */
+        List<MemoryFact> facts = new ArrayList<>();
+        /** Past conversations in a few sentences each, oldest first ({@link ConversationSummary}). */
+        List<ConversationSummary.Summary> summaries = new ArrayList<>();
+        /** Absolute history indices: exchanges dropped from the front of {@code turns}, and the first exchange no summary covers yet. */
+        long turnsDropped, summarizedTurns;
+        /** When the last exchange was committed; −1 before the first. */
+        long lastTurnMillis = -1;
+        /** Replies and importance since the mob last thought the player over ({@link Reflection}). */
+        Reflection.Counters reflection = new Reflection.Counters();
         /** The emotional state: four drifting axes and the last thought, see {@link MobState}. */
         MobState state = new MobState();
         /** What the model called this mob and the life it invented for it; blank until the first meeting is written up. */
@@ -516,10 +595,24 @@ public final class ConversationStore {
             personality = TextBounds.characters(personality, 4000); memory = TextBounds.characters(memory, 4000);
             if (turns == null) turns = new ArrayList<>();
             turns.removeIf(t -> t == null || t.user() == null || t.assistant() == null);
-            while (turns.size() > 100) turns.removeFirst();
+            while (turns.size() > 100) { turns.removeFirst(); turnsDropped++; }
+            turnsDropped = Math.max(0, turnsDropped);
+            summarizedTurns = Math.max(turnsDropped, Math.min(turnsDropped + turns.size(), summarizedTurns));
+            if (summaries == null) summaries = new ArrayList<>();
+            summaries.removeIf(s -> s == null || s.text() == null || s.text().isBlank());
+            while (summaries.size() > ConversationSummary.MAX_SUMMARIES) summaries.removeFirst();
+            if (reflection == null) reflection = new Reflection.Counters();
+            reflection.sanitize();
+            long now = System.currentTimeMillis();
+            if (facts == null) facts = new ArrayList<>();
+            facts.removeIf(f -> f == null || f.text() == null || f.text().isBlank());
+            // Saved before importance existed: every line of the old memory text becomes a fact of middling importance.
+            if (facts.isEmpty() && !memory.isBlank()) facts = MemoryRanking.parse(memory, now);
+            memory = MemoryRanking.render(facts);
             if (events == null) events = new ArrayList<>();
             events.removeIf(e -> e == null || e.text == null);
-            while (events.size() > 20) events.removeFirst();
+            events.replaceAll(e -> e.importance() > 0 ? e : new Event(e.time(), e.text(), MemoryFact.MIGRATED));
+            MemoryRanking.evict(events, MemoryRanking.MAX_EVENTS, e -> MemoryRanking.score(e.importance(), e.time(), now));
             if (relations == null) relations = new LinkedHashMap<>();
             relations.entrySet().removeIf(e -> e.getValue() == null);
             relations.values().forEach(r -> { r.score = clamp(r.score, hostile()); r.sanitize(); });
@@ -537,12 +630,17 @@ public final class ConversationStore {
             p.customPersonality = customPersonality; p.calm = calm; p.confidence = confidence;
             p.curiosity = curiosity; p.sociability = sociability; p.preference = preference; p.fear = fear;
             p.turns = new ArrayList<>(turns); p.events = new ArrayList<>(events); p.traits = new ArrayList<>(traits);
+            p.facts = new ArrayList<>(facts); p.summaries = new ArrayList<>(summaries); // Immutable records.
+            p.turnsDropped = turnsDropped; p.summarizedTurns = summarizedTurns; p.lastTurnMillis = lastTurnMillis; p.reflection = reflection.copy();
             relations.forEach((key, r) -> p.relations.put(key, r.copy()));
             return p;
         }
+        /** The index in {@code turns} where the current, unsummarised conversation begins. */
+        int unsummarizedFrom() { return (int) Math.max(0, Math.min(turns.size(), summarizedTurns - turnsDropped)); }
     }
     public record Turn(String user, String assistant) { }
-    private record Event(long time, String text) { }
+    /** {@code importance} 1–5 ({@link MemoryRanking}); 0 in files saved before it existed, read as {@link MemoryFact#MIGRATED}. */
+    private record Event(long time, String text, int importance) { }
     /** One player as this mob knows them: standing, what they did, their prices on its deals, the favour it waits for. */
     static final class Relation {
         int score, hits, lastWitnessDelta; long lastHelp = -1, lastApology = -1, lastInsult = -1, lastThreat = -1, lastPurchase = -1, lastWitness = -1; boolean ownerKnown;
