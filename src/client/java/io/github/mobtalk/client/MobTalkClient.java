@@ -107,6 +107,10 @@ public final class MobTalkClient implements ClientModInitializer {
     private int pendingDeliveries;
     /** V was pressed while the pipeline was still busy: recording starts the moment it frees up, as long as V stays down. */
     private boolean armRecording;
+    /** The mob's last haggling move, for the one-word verdict in the HUD; shown for {@link #BARGAIN_HUD_TICKS} after it. */
+    private io.github.mobtalk.core.BargainMeter.Move bargainMove;
+    private long bargainUntil;
+    private static final long BARGAIN_HUD_TICKS = 2400;
 
     private long ticks;
     String status = "Загрузка настроек…";
@@ -286,6 +290,7 @@ public final class MobTalkClient implements ClientModInitializer {
         if (!mob.getUuid().equals(selected)) {
             cancelWork(readyStatus());
             selected = mob.getUuid();
+            bargainMove = null; // Another partner, another haggle.
             keepConnectionWarm();
         }
         // Selecting the same UUID keeps its existing engine/profile/history.
@@ -665,6 +670,10 @@ public final class MobTalkClient implements ClientModInitializer {
             status = request.overheard == null ? "Ответ в чате; озвучка недоступна. Повторите позже" : "Ответ в чате; озвучка недоступна";
         }
         if (actionMessage != null && !actionMessage.isBlank()) chat("[Mob Talk] " + actionMessage);
+        if (request.overheard == null) {
+            io.github.mobtalk.core.BargainMeter.Move move = io.github.mobtalk.core.BargainMeter.move(reply.bargain(), reply.deal(), request.snapshot, reply.recognizedText());
+            if (move != null) { bargainMove = move; bargainUntil = ticks + BARGAIN_HUD_TICKS; }
+        }
         queueWitnesses(request, reply);
         if (actionRequest != null) actionRequest.complete(actionMessage == null || actionMessage.isBlank()
                 ? "Моб ответил без нового действия" : actionMessage);
@@ -821,6 +830,12 @@ public final class MobTalkClient implements ClientModInitializer {
             io.github.mobtalk.core.MobState.Descriptor marker = card.state().marker();
             line.append(Text.translatable("mobtalk.state." + marker.key()).formatted(marker.sign() < 0 ? net.minecraft.util.Formatting.RED
                     : marker.sign() > 0 ? net.minecraft.util.Formatting.GREEN : net.minecraft.util.Formatting.GRAY)).append(Text.literal(" · "));
+        }
+        // How the haggle goes, recomputed against the drifting state: «торг: склоняется» in green, «против» in red.
+        if (mob != null && card != null && config.showBargainHud && bargainMove != null && ticks < bargainUntil) {
+            io.github.mobtalk.core.BargainMeter.Verdict verdict = io.github.mobtalk.core.BargainMeter.read(bargainMove, card.state(), card.relationship()).verdict();
+            line.append(Text.literal("торг: ")).append(Text.translatable("mobtalk.bargain." + verdict.key).formatted(verdict.sign < 0 ? net.minecraft.util.Formatting.RED
+                    : verdict.sign > 0 ? net.minecraft.util.Formatting.GREEN : net.minecraft.util.Formatting.YELLOW)).append(Text.literal(" · "));
         }
         client.player.sendMessage(line.append(Text.literal((game == null ? "" : favorLabel(game)) + status)), true);
     }

@@ -230,5 +230,9 @@
   "mobtalk.state.distrustful": "не доверяет",
   "mobtalk.state.wary": "насторожен",
   "mobtalk.state.trusting": "доверяет",
-  "mobtalk.state.devoted": "предан"
+  "mobtalk.state.devoted": "предан",
+  "mobtalk.settings.bargainHud": "Ход торга в строке Mob Talk",
+  "mobtalk.bargain.leaning": "склоняется",
+  "mobtalk.bargain.unsure": "не уверен",
+  "mobtalk.bargain.against": "против"
 }

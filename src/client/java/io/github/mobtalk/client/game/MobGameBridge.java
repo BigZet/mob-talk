@@ -28,6 +28,10 @@ public final class MobGameBridge {
     final MobActionController actions;
     final VillagerBargaining bargaining;
     final MobTrading trading;
+    /** Spoken promises of villagers as one-use rows in their vanilla window. */
+    final TradeBridge trades;
+    /** Misdeeds without a blow, seen by the village. */
+    final MischiefWatch mischief;
     private final Map<UUID, Deque<Heard>> heard = new HashMap<>();
 
     private MobGameBridge(MinecraftServer server, ConversationStore memory, MobTalkConfig config) {
@@ -35,6 +39,8 @@ public final class MobGameBridge {
         actions = new MobActionController(this);
         bargaining = new VillagerBargaining(this);
         trading = new MobTrading(this);
+        trades = new TradeBridge(this);
+        mischief = new MischiefWatch(this);
     }
 
     public static void initialize() {
@@ -42,6 +48,7 @@ public final class MobGameBridge {
         registered = true;
         // A favour may only ask for an item the game knows; the core checks the id shape alone.
         Trading.setItemChecker(id -> MobTrading.item(id) != null);
+        MischiefWatch.initialize();
         ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, base, amount, blocked) -> {
             MobGameBridge bridge = forEntity(entity);
             if (bridge == null || !(entity instanceof MobEntity mob)) return;
@@ -75,7 +82,7 @@ public final class MobGameBridge {
             MobGameBridge bridge = forEntity(entity);
             if (bridge != null && entity instanceof MobEntity mob) {
                 bridge.actions.unload(mob);
-                if (mob instanceof VillagerEntity villager) bridge.bargaining.unload(villager);
+                if (mob instanceof VillagerEntity villager) { bridge.bargaining.unload(villager); bridge.trades.unload(villager); }
                 bridge.heard.remove(mob.getUuid());
             }
         });
@@ -85,11 +92,12 @@ public final class MobGameBridge {
                 bridge.actions.tick(world);
                 bridge.actions.stance(world);
                 bridge.bargaining.tick(world);
+                bridge.trades.tick(world);
             }
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             MobGameBridge bridge = active(server);
-            if (bridge != null) bridge.bargaining.close();
+            if (bridge != null) { bridge.bargaining.close(); bridge.trades.close(); }
         });
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
             MobGameBridge bridge = active;
@@ -120,7 +128,7 @@ public final class MobGameBridge {
                 bridge.memory.recordAction(card.id(), ActionIntent.none());
         if (server.isStopped()) return CompletableFuture.completedFuture(null);
         CompletableFuture<Void> done = new CompletableFuture<>();
-        server.execute(() -> { bridge.actions.clearRuntime(); bridge.bargaining.close(); done.complete(null); });
+        server.execute(() -> { bridge.actions.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
         return done;
     }
     public static MobGameBridge forEntity(Entity entity) {
@@ -277,7 +285,8 @@ public final class MobGameBridge {
                 String trade = "";
                 if (bargain != null && bargain.type() != BargainIntent.Type.NONE) {
                     if (!(mob instanceof VillagerEntity villager)) throw new IllegalStateException("Торг доступен только с жителями");
-                    trade = bargaining.apply(villager, player, bargain, observed);
+                    // Window shut: the bargain is a spoken promise that becomes a one-use row; open: a price in the window.
+                    trade = TradeBridge.spoken(observed) ? trades.apply(villager, player, bargain, observed) : bargaining.apply(villager, player, bargain, observed);
                 }
                 String deals = trading.apply(mob, player, deal, unlock, quest);
                 if (!deals.isBlank()) trade = trade.isBlank() ? deals : trade + "; " + deals;
