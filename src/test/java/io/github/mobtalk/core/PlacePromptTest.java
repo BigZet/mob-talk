@@ -32,6 +32,17 @@ class PlacePromptTest {
         assertEquals("", PlacePrompt.block(snapshot(Map.of("kind", "OPEN"), false)), "no summary, no block");
     }
 
+    @Test void registryFactsAndTreesFollowTheSummary() {
+        Map<String, Object> village = new java.util.HashMap<>(PIT);
+        village.put("structures", List.of("Ты внутри: кузница — равнинная деревня.", "Рядом: церковь (равнинная деревня) в 9 блоках к северу."));
+        village.put("trees", List.of("Над тобой крона: дуба."));
+        String block = PlacePrompt.block(snapshot(village, false));
+        int summary = block.indexOf("Выхода нет: ты заперт."), smithy = block.indexOf("\nТы внутри: кузница — равнинная деревня."),
+                oak = block.indexOf("\nНад тобой крона: дуба."), around = block.indexOf("Что вокруг:");
+        assertTrue(summary > 0 && smithy > summary && block.contains("\nРядом: церковь") && oak > smithy && around > oak, block);
+        assertTrue(block.contains("пользуйся ими, а не пересказывай"), "the use-don't-retell rule stays");
+    }
+
     @Test void fightEstimateNamesWhatShutsItIn() {
         String text = Situation.of(snapshot(PIT, true), null).describe();
         assertTrue(text.contains("Бежать некуда: яма 3×3 глубиной 4 из бедрок, не прокопать — ты заперт."), text);

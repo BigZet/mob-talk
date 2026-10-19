@@ -1,0 +1,94 @@
+package io.github.mobtalk.client.game;
+
+import io.github.mobtalk.core.place.Structures;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import it.unimi.dsi.fastutil.longs.LongSet;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.RegistryKeys;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.structure.PoolStructurePiece;
+import net.minecraft.structure.SimpleStructurePiece;
+import net.minecraft.structure.StructureContext;
+import net.minecraft.structure.StructurePiece;
+import net.minecraft.structure.StructureStart;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockBox;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.gen.structure.Structure;
+
+/** Reads the vanilla structures around a position from the world's own records: every loaded chunk nearby lists the structure
+ * starts that reach into it, and each start lists its pieces with their boxes and templates. Nothing is loaded or generated: a
+ * start whose chunk is not loaded is skipped. Runs on the server thread. */
+public final class StructureCapture {
+    private static final Pattern ID = Pattern.compile("[a-z0-9_.-]+:[a-z0-9_./-]+");
+
+    private StructureCapture() { }
+
+    /** One piece as the world records it, with the identifiers the dataset and the prompt both use. */
+    public record Found(StructureStart start, StructurePiece piece, String structure, String pieceType, String template) { }
+
+    /** The pieces whose boxes come within {@code radius} of {@code origin}, plus whether origin is inside each one. */
+    public static List<Structures.Piece> pieces(ServerWorld world, BlockPos origin, int radius) {
+        List<Structures.Piece> out = new ArrayList<>();
+        for (Found found : find(world, origin, radius)) {
+            BlockBox box = found.piece().getBoundingBox(), whole = found.start().getBoundingBox();
+            int dx = gap(origin.getX(), box.getMinX(), box.getMaxX()), dy = gap(origin.getY(), box.getMinY(), box.getMaxY()),
+                    dz = gap(origin.getZ(), box.getMinZ(), box.getMaxZ());
+            boolean inside = dx == 0 && dz == 0 && (dy == 0 || box.contains(origin.down()));
+            boolean inStart = whole.contains(origin) || whole.contains(origin.down());
+            long volume = (long) box.getBlockCountX() * box.getBlockCountY() * box.getBlockCountZ();
+            out.add(new Structures.Piece(found.structure(), found.pieceType(), found.template(), dx, dy, dz, inside, inStart, (int) Math.min(Integer.MAX_VALUE, volume)));
+        }
+        return out;
+    }
+
+    private static int gap(int at, int min, int max) { return at < min ? min - at : at > max ? max - at : 0; }
+
+    /** Structure pieces within {@code radius} of origin; empty pool elements and decoration features are left out. */
+    public static List<Found> find(ServerWorld world, BlockPos origin, int radius) {
+        List<Found> out = new ArrayList<>();
+        Set<StructureStart> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+        BlockBox area = new BlockBox(origin.getX() - radius, origin.getY() - radius, origin.getZ() - radius, origin.getX() + radius, origin.getY() + radius, origin.getZ() + radius);
+        StructureContext context = null;
+        for (int cx = (origin.getX() - radius) >> 4; cx <= (origin.getX() + radius) >> 4; cx++)
+            for (int cz = (origin.getZ() - radius) >> 4; cz <= (origin.getZ() + radius) >> 4; cz++) {
+                if (!world.getChunkManager().isChunkLoaded(cx, cz)) continue;
+                Chunk chunk = world.getChunk(cx, cz);
+                for (Map.Entry<Structure, LongSet> entry : chunk.getStructureReferences().entrySet()) {
+                    for (long reference : entry.getValue()) {
+                        ChunkPos at = new ChunkPos(reference);
+                        if (!world.getChunkManager().isChunkLoaded(at.x, at.z)) continue;
+                        StructureStart start = world.getChunk(at.x, at.z).getStructureStart(entry.getKey());
+                        if (start == null || !start.hasChildren() || !seen.add(start) || !start.getBoundingBox().intersects(area)) continue;
+                        Identifier id = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getId(entry.getKey());
+                        String structure = id == null ? "unknown" : id.toString();
+                        for (StructurePiece piece : start.getChildren()) {
+                            if (!piece.getBoundingBox().intersects(area)) continue;
+                            Identifier type = Registries.STRUCTURE_PIECE.getId(piece.getType());
+                            String template = "";
+                            if (piece instanceof PoolStructurePiece pool) {
+                                String element = String.valueOf(pool.getPoolElement());
+                                if (element.startsWith("Empty") || element.startsWith("Feature")) continue;
+                                Matcher m = ID.matcher(element);
+                                if (m.find()) template = m.group();
+                            } else if (piece instanceof SimpleStructurePiece) {
+                                if (context == null) context = StructureContext.from(world);
+                                template = piece.toNbt(context).getString("Template");
+                            }
+                            out.add(new Found(start, piece, structure, type == null ? "" : type.toString(), template));
+                        }
+                    }
+                }
+            }
+        return out;
+    }
+}

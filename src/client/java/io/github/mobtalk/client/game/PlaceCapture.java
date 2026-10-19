@@ -5,6 +5,8 @@ import io.github.mobtalk.core.place.Material;
 import io.github.mobtalk.core.place.Place;
 import io.github.mobtalk.core.place.PlaceClassifier;
 import io.github.mobtalk.core.place.PlaceObjects;
+import io.github.mobtalk.core.place.Structures;
+import io.github.mobtalk.core.place.Trees;
 import io.github.mobtalk.core.place.VoxelGrid;
 import net.minecraft.block.*;
 import net.minecraft.entity.mob.MobEntity;
@@ -32,7 +34,7 @@ final class PlaceCapture {
     /** The box sampled around the creature: 25×17×25 cells, enough for the flood's radius and the classifier's cube. */
     static final int RADIUS_XZ = Place.RADIUS, RADIUS_Y = 8;
 
-    record Result(VoxelGrid grid, Place.Report report, List<PlaceObjects.Item> objects, int originY) { }
+    record Result(VoxelGrid grid, Place.Report report, List<PlaceObjects.Item> objects, int originY, List<String> structures, List<String> trees) { }
 
     private PlaceCapture() { }
 
@@ -51,7 +53,9 @@ final class PlaceCapture {
         }
         Place.Report report = Place.analyse(grid, options);
         List<PlaceObjects.Item> objects = PlaceObjects.find(grid, report.originY);
-        return new Result(grid, report, objects, report.originY);
+        // Registry facts: the vanilla structure pieces around and the trees by rule; both are facts, not guesses.
+        List<String> structures = Structures.facts(StructureCapture.pieces(world, origin, Structures.RADIUS));
+        return new Result(grid, report, objects, report.originY, structures, Trees.facts(grid, report.originY));
     }
 
     /** The grid, or null when a chunk of the box is not loaded (never load chunks for a conversation). */
@@ -125,6 +129,8 @@ final class PlaceCapture {
         List<String> objects = new ArrayList<>();
         for (PlaceObjects.Item item : result.objects()) objects.add(item.text());
         place.put("objects", objects);
+        if (!result.structures().isEmpty()) place.put("structures", List.copyOf(result.structures()));
+        if (!result.trees().isEmpty()) place.put("trees", List.copyOf(result.trees()));
         return place;
     }
 

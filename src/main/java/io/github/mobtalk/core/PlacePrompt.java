@@ -26,6 +26,10 @@ public final class PlacePrompt {
         Map<?, ?> place = place(snapshot);
         if (place == null || !(place.get("summary") instanceof String summary) || summary.isBlank()) return "";
         StringBuilder text = new StringBuilder("\n\nМесто, где ты стоишь. ").append(RULE).append('\n').append(summary);
+        // Registry facts (vanilla structures) and trees by rule: short lines, as sure as the flood's.
+        for (String key : List.of("structures", "trees"))
+            if (place.get(key) instanceof List<?> lines)
+                for (Object line : lines) if (line != null && !String.valueOf(line).isBlank()) text.append('\n').append(line);
         if (place.get("objects") instanceof List<?> objects && !objects.isEmpty())
             text.append("\nЧто вокруг: ").append(String.join("; ", objects.stream().map(String::valueOf).toList())).append('.');
         if (place.get("looksLike") instanceof String label && !label.isBlank()) {
