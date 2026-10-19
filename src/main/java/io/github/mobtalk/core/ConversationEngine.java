@@ -112,7 +112,7 @@ public final class ConversationEngine implements AutoCloseable {
         }
         Reply reply = new Reply(question, answer.reply(), name, voiceId, audio, answer.action(), snapshot.interactionRevision(), answer.bargain(),
                 answer.deal(), answer.unlock(), answer.quest(), answer.socialIntent(), overheard != null);
-        return new PreparedReply(this, reply, snapshot, answer.memory(), answer.socialIntent(), audio == null ? null : voiceId);
+        return new PreparedReply(this, reply, snapshot, answer.memory(), answer.socialIntent(), audio == null ? null : voiceId, answer.thought());
     }
 
     /** Remember only a delivered answer, once, at the revision returned by authoritative game application. */
@@ -129,7 +129,7 @@ public final class ConversationEngine implements AutoCloseable {
                     observed.mobDetails(), observed.environmentDetails(), observed.observedEntities(), observed.availableActions(), expectedCurrentRevision);
             Reply reply = prepared.reply;
             return store.commit(delivered, reply.recognizedText(), reply.responseText(), prepared.memory, prepared.socialIntent,
-                    reply.action(), System.currentTimeMillis(), prepared.successfulVoice);
+                    reply.action(), System.currentTimeMillis(), prepared.successfulVoice, prepared.thought);
         }
     }
 
@@ -243,17 +243,18 @@ public final class ConversationEngine implements AutoCloseable {
         private final MobSnapshot snapshot;
         private final String memory;
         private final SocialIntent socialIntent;
-        private final String successfulVoice;
+        private final String successfulVoice, thought;
         private boolean completed;
 
         private PreparedReply(ConversationEngine owner, Reply reply, MobSnapshot snapshot, String memory,
-                              SocialIntent socialIntent, String successfulVoice) {
+                              SocialIntent socialIntent, String successfulVoice, String thought) {
             this.owner = owner;
             this.reply = reply;
             this.snapshot = snapshot;
             this.memory = memory;
             this.socialIntent = socialIntent;
             this.successfulVoice = successfulVoice;
+            this.thought = thought;
         }
 
         public Reply reply() { return reply; }

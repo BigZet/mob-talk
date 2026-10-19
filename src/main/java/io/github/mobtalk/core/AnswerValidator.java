@@ -30,9 +30,13 @@ final class AnswerValidator {
     }
 
     /** What the parser needs beyond the bytes: limits from the config and the memory the facts are appended to. */
-    record Bounds(int words, String previousMemory, int memoryLimit, int relationship, boolean jsonObjectOnly, String service, boolean overheard) {
+    record Bounds(int words, String previousMemory, int memoryLimit, int relationship, boolean jsonObjectOnly, String service, boolean overheard, boolean wary) {
         Bounds(int words, String previousMemory, int memoryLimit, int relationship, boolean jsonObjectOnly, String service) {
             this(words, previousMemory, memoryLimit, relationship, jsonObjectOnly, service, false);
+        }
+        /** {@code wary}: the mob's state ({@link MobState.View#refusesDeals()}) forbids any concession in this answer. */
+        Bounds(int words, String previousMemory, int memoryLimit, int relationship, boolean jsonObjectOnly, String service, boolean overheard) {
+            this(words, previousMemory, memoryLimit, relationship, jsonObjectOnly, service, overheard, false);
         }
     }
 
@@ -74,6 +78,8 @@ final class AnswerValidator {
                 boolean ordinaryRefusal = "DECLINE".equals(type) && !view.windowOpen();
                 if (!"NONE".equals(type) && bargain.type() == BargainIntent.Type.NONE && !ordinaryRefusal)
                     throw new Rejected(otherRow(requested, view)); // Do not voice a promise whose price intent was rejected.
+                // Too shaken or distrustful to concede: the refusal must be spoken, not a price the window would then show.
+                if (bounds.wary() && bargain.type() == BargainIntent.Type.OFFER) throw new Rejected(PromptTexts.WARY_TRADE);
             }
             DealIntent deal = DealIntent.none();
             if (answer.has("deal") && answer.get("deal").isJsonObject()) {
@@ -83,6 +89,7 @@ final class AnswerValidator {
                 if (deal.type() == DealIntent.Type.NONE && requested.get("type") instanceof JsonPrimitive type && type.isString()
                         && "OFFER".equalsIgnoreCase(type.getAsString()))
                     throw new Rejected(dealRejection(requested, view), true, true);
+                if (bounds.wary() && deal.type() == DealIntent.Type.OFFER) throw new Rejected(PromptTexts.WARY_TRADE, true, true);
             }
             String unlock = answer.has("unlock") && answer.get("unlock").isJsonPrimitive() ? validateUnlock(ReplySchema.string(answer, "unlock"), view, bounds.relationship()) : "";
             QuestIntent quest = answer.has("quest") && answer.get("quest").isJsonObject() ? validateQuest(answer.getAsJsonObject("quest"), view) : QuestIntent.none();
@@ -99,7 +106,9 @@ final class AnswerValidator {
                         : view.windowOpen() ? "Либо верни OFFER с ценой из allowedPrices и назови в реплике ровно её, либо не называй новую цену."
                         : "Окно торговли закрыто: не называй новую цену, а предложи открыть торговлю и выбрать товар."), true, own);
             }
-            return new OpenRouterConversationClient.Answer(reply, memory, social, action, bargain, deal, unlock, quest, biography(answer));
+            // The thought is optional: an older or fallback answer without it keeps the mob's previous one.
+            return new OpenRouterConversationClient.Answer(reply, memory, social, action, bargain, deal, unlock, quest, biography(answer),
+                    MobState.cleanThought(ReplySchema.optional(answer, "thought")));
         } catch (Rejected invalid) { throw invalid; }
         catch (RuntimeException malformed) { throw new IOException(bounds.service() + " вернул неверный ответ. Повторите вопрос."); }
     }

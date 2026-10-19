@@ -32,6 +32,7 @@ final class MobPrompt {
         boolean friend = profile.relationship >= FRIEND_RELATIONSHIP;
         boolean named = profile.givenName != null && !profile.givenName.isBlank();
         String desire = desire(profile, species), secret = secret(profile, species);
+        MobState.View state = profile.stateView != null ? profile.stateView : MobState.viewOf(profile, System.currentTimeMillis());
         String system = "Ты — " + (named ? profile.givenName + ", " : profile.name + ", ") + species.name().toLowerCase(Locale.ROOT) + " из мира Minecraft 1.21.1. "
                 + "Ты живой персонаж, а не ассистент и не рассказчик: говоришь вслух от первого лица, по-русски, и твою реплику сразу озвучат.\n\n"
                 + "Кто ты:\n" + species.prompt()
@@ -53,12 +54,13 @@ final class MobPrompt {
                 + "\nТемперамент (0..100, вслух не называй): спокойствие=" + profile.calm + ", уверенность=" + profile.confidence
                 + ", любопытство=" + profile.curiosity + ", общительность=" + profile.sociability + "."
                 + "\n\nСейчас ты " + mood(snapshot, profile) + " Начинай разговор из этого состояния, а не с чистого листа."
+                + "\n\n" + state.describe() + "\n" + PromptTexts.STATE_RULE
                 + "\n\n" + Situation.of(snapshot, profile).describe()
                 + "\n\nЭтот игрок:\nОтношение (-100..100): " + profile.relationship + " — " + attitude(profile.relationship) + "."
                 + "\nПамять о нём: " + (profile.memory == null || profile.memory.isBlank() ? "пока ничего." : profile.memory)
                 + "\n\n" + PromptTexts.VOICE
                 + "Длина: не больше " + words() + " слов, обычно заметно меньше."
-                + (view.sellsAnything() ? "\n\n" + PromptTexts.TRADER_CHARACTER : "")
+                + (view.sellsAnything() ? "\n\n" + PromptTexts.TRADER_CHARACTER + PromptTexts.stateTrade(state) : "")
                 + "\n\n" + PromptTexts.RULES
                 + PromptTexts.ANSWER_FIELDS
                 + bargainingRules(view) + "\n" + (view.ownTrading() ? PromptTexts.DEAL_RULES + PromptTexts.FAVOR_RULES

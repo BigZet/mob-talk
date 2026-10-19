@@ -811,12 +811,34 @@ public final class MobTalkClient implements ClientModInitializer {
         MobCard card = game == null ? null : game.memory.card(selected, client.player.getUuid());
         String targetLabel = mob == null ? "" : mob.getName().getString() + " · "
                 + String.format(Locale.ROOT, "%.1f м · ", Math.sqrt(client.player.squaredDistanceTo(mob)))
-                + (card == null ? "" : MobGameBridge.relationshipLabel(card) + " · ")
-                + (game == null ? "" : favorLabel(game));
+                + (card == null ? "" : MobGameBridge.relationshipLabel(card) + " · ");
         MobEntity aimed = client.currentScreen == null ? aimedMob() : null, far = aimed == null && client.currentScreen == null ? aimedMob(48) : null;
         String aimLabel = aimed != null && aimed != mob ? "в прицеле: " + aimed.getName().getString() + " · "
                 : far != null && far != mob ? "в прицеле: " + far.getName().getString() + " (далеко, подойдите) · " : "";
-        client.player.sendMessage(Text.literal("Mob Talk · " + aimLabel + targetLabel + status), true);
+        net.minecraft.text.MutableText line = Text.literal("Mob Talk · " + aimLabel + targetLabel);
+        // One word of how the mob feels, coloured by its sign; the words themselves live in the lang files.
+        if (mob != null && card != null && config.showStateHud) {
+            io.github.mobtalk.core.MobState.Descriptor marker = card.state().marker();
+            line.append(Text.translatable("mobtalk.state." + marker.key()).formatted(marker.sign() < 0 ? net.minecraft.util.Formatting.RED
+                    : marker.sign() > 0 ? net.minecraft.util.Formatting.GREEN : net.minecraft.util.Formatting.GRAY)).append(Text.literal(" · "));
+        }
+        client.player.sendMessage(line.append(Text.literal((game == null ? "" : favorLabel(game)) + status)), true);
+    }
+
+    /** /mobtalk state: every axis of the selected mob's state in words and its last thought, for the chat. */
+    String stateLine() {
+        MobGameBridge game = client.getServer() == null ? null : MobGameBridge.active(client.getServer());
+        MobCard card = game == null || selected == null || client.player == null ? null : game.memory.card(selected, client.player.getUuid());
+        if (card == null) return "Состояние: собеседник не выбран или ещё незнаком";
+        io.github.mobtalk.core.MobState.View state = card.state();
+        StringBuilder text = new StringBuilder("Состояние ").append(card.name().isBlank() ? card.type() : card.name()).append(": ");
+        List<String> words = new java.util.ArrayList<>();
+        for (io.github.mobtalk.core.MobState.Descriptor word : state.words()) words.add(Text.translatable("mobtalk.state." + word.key()).getString());
+        text.append(words.isEmpty() ? "ровно" : String.join(", ", words))
+                .append(" (настроение ").append(state.mood()).append(", спокойствие ").append(state.calm())
+                .append(", интерес ").append(state.interest()).append(", доверие ").append(state.trust()).append(')');
+        if (!state.thought().isEmpty()) text.append(" · мысль: «").append(state.thought()).append('»');
+        return text.toString();
     }
 
     /** «услуга: Колокол площади 0/1 · » while this species waits for something from the player; counts the player's own inventory. */

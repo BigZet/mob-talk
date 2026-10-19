@@ -49,6 +49,8 @@ public final class MobTalkConfig {
     public double maxDistance = 16;
     /** Bystanders that may answer after the mob spoken to, one after another (0–2): three voices in a row at most. */
     public int witnessReplies = 2;
+    /** One word of the selected mob's emotional state («встревожен», «в духе») in the Mob Talk line. */
+    public boolean showStateHud = true;
     public String defaultVoice = "rSfuQoQ3FY8SVKeraMAp";
 
     /** A menu draft or worker snapshot; editing it does not change the live preferences. */
@@ -89,6 +91,7 @@ public final class MobTalkConfig {
         copy.requestTimeoutSeconds = requestTimeoutSeconds;
         copy.maxDistance = maxDistance;
         copy.witnessReplies = witnessReplies;
+        copy.showStateHud = showStateHud;
         copy.defaultVoice = defaultVoice;
         return copy;
     }

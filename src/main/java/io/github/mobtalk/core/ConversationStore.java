@@ -81,8 +81,22 @@ public final class ConversationStore {
         detached.recentEvents = current.events();
         Relation own = snapshot.playerId() == null ? null : p.relations.get(snapshot.playerId().toString());
         detached.hits = own == null ? 0 : own.hits;
+        long now = System.currentTimeMillis();
+        // Whole and not under attack: the nerves settle a little, however the player is regarded.
+        boolean attacked = snapshot.mobDetails().get("lastAttacker") instanceof String attacker && !"none".equals(attacker);
+        if (snapshot.maxHealth() > 0 && snapshot.health() >= snapshot.maxHealth() && !attacked && p.state.safe(baseline(p, current.relationship()), now)) scheduleSave();
+        detached.stateView = p.state.view(baseline(p, current.relationship()), now);
         return detached;
     }
+
+    /** The current emotional state as this player sees it, or null for a stranger; cheap enough for a tick loop. */
+    public synchronized MobState.View stateView(UUID mob, UUID player) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        if (p == null) return null;
+        return p.state.view(baseline(p, relationship(mob, player)), System.currentTimeMillis());
+    }
+    private static MobState.Baseline baseline(Profile p, int relationship) { return MobState.Baseline.of(p.calm, p.confidence, p.curiosity, p.sociability, relationship); }
+    private static void feel(Profile p, Relation r, MobState.Event event, long nowMillis) { p.state.shift(event, baseline(p, r.score), nowMillis); }
 
     /** Create/view a profile from immutable context without waiting for any disk operation. */
     public synchronized MobCard observe(MobSnapshot snapshot) { profile(snapshot); return card(snapshot.id(), snapshot.playerId()); }
@@ -91,6 +105,7 @@ public final class ConversationStore {
         Profile p = ensure(mob, type, name); Relation r = relation(p, player);
         // A blow always ends a friendship or a truce: the first drops a stranger to −80, every later one leaves the mob displeased.
         r.score = r.hits++ == 0 ? Math.min(-80, r.score) : Math.max(-100, Math.min(r.score, 0) - 20);
+        feel(p, r, MobState.Event.HIT, nowMillis);
         p.revision++;
         event(p, nowMillis, "Игрок " + safePlayer(playerName) + " ударил моба; отношение " + r.score); scheduleSave();
     }
@@ -98,7 +113,7 @@ public final class ConversationStore {
     public synchronized void recordHelp(UUID mob, String type, String name, UUID player, String playerName, long nowMillis) {
         Profile p = ensure(mob, type, name); Relation r = relation(p, player);
         if (!cooledDown(r.lastHelp, nowMillis, 30_000)) return;
-        r.lastHelp = nowMillis; r.score = clamp(r.score + 20, hostile(p)); p.revision++;
+        r.lastHelp = nowMillis; r.score = clamp(r.score + 20, hostile(p)); feel(p, r, MobState.Event.HELP, nowMillis); p.revision++;
         event(p, nowMillis, "Игрок " + safePlayer(playerName) + " помог мобу; отношение " + r.score); scheduleSave();
     }
 
@@ -116,6 +131,7 @@ public final class ConversationStore {
             applied = delta - r.lastWitnessDelta;
         }
         r.lastWitness = nowMillis; r.lastWitnessDelta = delta; r.score = clamp(r.score + applied, hostile(p));
+        feel(p, r, seen != null && seen.startsWith("убил") ? MobState.Event.WITNESSED_KILL : MobState.Event.WITNESSED_HIT, nowMillis);
         // No revision bump: what the mob saw happen to another must not cancel the reply it is giving right now.
         event(p, nowMillis, "Видел, как игрок " + safePlayer(playerName) + " " + seen + "; отношение " + r.score); scheduleSave();
     }
@@ -182,6 +198,7 @@ public final class ConversationStore {
     public synchronized void setDealPrice(UUID mob, UUID player, String dealId, int price, long nowMillis) {
         Profile p = require(mob); Relation r = tradingRelation(p, player);
         r.deals.put(dealId, Trading.offered(r.deals.get(dealId), price, nowMillis));
+        feel(p, r, MobState.Event.CONCESSION, nowMillis);
         p.revision++; scheduleSave();
     }
     /** Opens a secret deal for this player (already checked with Trading.canUnlock) and records an event. */
@@ -199,6 +216,7 @@ public final class ConversationStore {
         TradeState before = r.deals.getOrDefault(dealId, TradeState.initial());
         r.deals.put(dealId, Trading.bought(before, worldDay));
         if (cooledDown(r.lastPurchase, nowMillis, 60_000)) { r.lastPurchase = nowMillis; r.score = clamp(r.score + 5, hostile(p)); }
+        feel(p, r, MobState.Event.PURCHASE, nowMillis);
         p.revision++;
         TradeDeal deal = TradeCatalog.deal(p.type, dealId);
         String what = deal == null ? "товар «" + dealId + "»"
@@ -280,6 +298,7 @@ public final class ConversationStore {
         r.favorsDone.add(favor.title());
         while (r.favorsDone.size() > 50) r.favorsDone.removeFirst();
         r.score = clamp(r.score + Favor.RELATIONSHIP, hostile(p));
+        feel(p, r, MobState.Event.FAVOR_DONE, nowMillis);
         TradeDeal promised = TradeCatalog.deal(p.type, favor.rewardDeal());
         if (promised != null) {
             TradeState s = r.deals.getOrDefault(promised.id(), TradeState.initial());
@@ -321,10 +340,12 @@ public final class ConversationStore {
     public synchronized MobCard card(UUID mob, UUID player) {
         Profile p = state.profiles.get(mob.toString()); if (p == null) return null;
         Relation r = player == null ? null : p.relations.get(player.toString());
+        int score = r == null ? (hostile(p) ? -80 : 0) : r.score;
         return new MobCard(mob, p.type, p.name, p.personality, p.voiceId, p.variantSlot,
-                r == null ? (hostile(p) ? -80 : 0) : r.score, p.memory, p.turns,
+                score, p.memory, p.turns,
                 eventsForPlayer(p, player), p.revision, p.action,
-                p.calm, p.confidence, p.curiosity, p.sociability, p.preference, p.fear, p.customPersonality);
+                p.calm, p.confidence, p.curiosity, p.sociability, p.preference, p.fear, p.customPersonality,
+                p.state.view(baseline(p, score), System.currentTimeMillis()));
     }
     public synchronized List<MobCard> cards(UUID player) { return state.profiles.keySet().stream().map(UUID::fromString).map(id -> card(id, player)).toList(); }
 
@@ -371,12 +392,20 @@ public final class ConversationStore {
     /** Voice replacement is committed with the same revision check, without cancelling its own valid reply. */
     synchronized boolean commit(MobSnapshot snapshot, String user, String reply, String memory, SocialIntent social,
                                 ActionIntent action, long nowMillis, String successfulVoice) {
+        return commit(snapshot, user, reply, memory, social, action, nowMillis, successfulVoice, "");
+    }
+
+    /** {@code thought}: what the mob said to itself in this answer; it colours the next one. The exchange itself, and the
+     * player's words, move the emotional state along with the score. */
+    synchronized boolean commit(MobSnapshot snapshot, String user, String reply, String memory, SocialIntent social,
+                                ActionIntent action, long nowMillis, String successfulVoice, String thought) {
         Profile p = require(snapshot.id());
         if (p.revision != snapshot.interactionRevision()) return false;
         if (successfulVoice != null && OpenRouterSpeechClient.validVoiceId(successfulVoice)) p.voiceId = successfulVoice.strip();
         p.turns.add(new Turn(TextBounds.characters(user, 2000), TextBounds.characters(reply, 8000)));
         while (p.turns.size() > 100) p.turns.removeFirst();
         p.memory = TextBounds.characters(memory, Math.max(200, Math.min(4000, config.maxMemoryChars)));
+        p.state.think(thought);
         // Action state is persisted only by recordAction after authoritative native validation.
         if (snapshot.playerId() != null) {
             Relation r = relation(p, snapshot.playerId());
@@ -385,6 +414,12 @@ public final class ConversationStore {
             // A spoken threat to kill the mob or those it guards weighs more than an insult: two of them let a golem fight back.
             else if (social == SocialIntent.THREAT && cooledDown(r.lastThreat, nowMillis, 20_000)) { r.lastThreat = nowMillis; r.score = clamp(r.score - 25, hostile(p)); }
             // KIND speech never substitutes for an observed helpful action.
+            feel(p, r, MobState.Event.TALK, nowMillis);
+            MobState.Event felt = switch (social) {
+                case APOLOGY -> MobState.Event.APOLOGY; case KIND -> MobState.Event.KIND;
+                case INSULT -> MobState.Event.INSULT; case THREAT -> MobState.Event.THREAT; case NONE -> null;
+            };
+            if (felt != null) feel(p, r, felt, nowMillis);
         }
         scheduleSave(); return true;
     }
@@ -444,7 +479,11 @@ public final class ConversationStore {
         transient UUID id; transient int relationship, hits; transient List<String> recentEvents = List.of(); transient Village village;
         /** For a mob without a story: names its species already uses, and whether it is the first villager of a new village. */
         transient List<String> takenNames = List.of(); transient boolean founds;
+        /** How the mob feels towards the current player at the moment the profile was read; null on a profile built by hand. */
+        transient MobState.View stateView;
         String type, name, personality, voiceId; String memory = "";
+        /** The emotional state: four drifting axes and the last thought, see {@link MobState}. */
+        MobState state = new MobState();
         /** What the model called this mob and the life it invented for it; blank until the first meeting is written up. */
         String givenName = "", backstory = "", villageId = "";
         /** This individual's own wish and secret, invented with the story; blank means the species defaults apply. */
@@ -473,9 +512,11 @@ public final class ConversationStore {
             if (traits == null) traits = new ArrayList<>();
             if (givenName == null) givenName = ""; if (backstory == null) backstory = ""; if (villageId == null) villageId = "";
             if (wish == null) wish = ""; if (hidden == null) hidden = "";
+            if (state == null) state = new MobState();
+            state.sanitize();
         }
         Profile copy() {
-            Profile p = new Profile(); p.id = id; p.type = type; p.name = name; p.personality = personality;
+            Profile p = new Profile(); p.id = id; p.type = type; p.name = name; p.personality = personality; p.state = state.copy();
             p.voiceId = voiceId; p.memory = memory; p.variantSlot = variantSlot; p.revision = revision; p.action = action;
             p.givenName = givenName; p.backstory = backstory; p.villageId = villageId; p.wish = wish; p.hidden = hidden;
             p.customPersonality = customPersonality; p.calm = calm; p.confidence = confidence;

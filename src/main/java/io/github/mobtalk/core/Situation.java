@@ -123,7 +123,9 @@ public final class Situation {
         boolean attacked = snapshot.playerId() != null && snapshot.playerId().toString().equals(String.valueOf(details.get("lastAttacker")));
         boolean threat = hostile || hits > 0 || witnessed > 0 || relationship < 0 || attacked;
         return new Situation(mob, human, weaponText, armorText, hits, witnessed, relationship, hostile, threat, Boolean.TRUE.equals(player.get("creative")),
-                kills, profile == null ? 50 : profile.calm, profile == null ? 50 : profile.confidence, Boolean.TRUE.equals(details.get("trapped")));
+                // The nerves of the moment, not the temperament alone: a calm creature just beaten still panics.
+                kills, profile == null ? 50 : profile.stateView != null ? profile.stateView.calm() : profile.calm,
+                profile == null ? 50 : profile.confidence, Boolean.TRUE.equals(details.get("trapped")));
     }
 
     private static String itemId(Map<String,Object> player, String slot) { return player.get(slot) instanceof Map<?,?> item && item.get("id") instanceof String id ? id : ""; }

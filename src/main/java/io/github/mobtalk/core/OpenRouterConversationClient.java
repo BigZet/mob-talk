@@ -73,7 +73,10 @@ final class OpenRouterConversationClient implements AutoCloseable {
         messages.add(ReplySchema.message("user", overheard == null ? prompt.userMessage(question, snapshot, profile) : prompt.overheardMessage(overheard, snapshot, profile)));
         // A mob without a life story invents it inside its first reply: one request, not two.
         boolean needsStory = profile.backstory == null || profile.backstory.isBlank();
-        JsonObject body = body(messages, 4096, view.windowOpen() ? 0.6 : 0.95, ReplySchema.replyFormat(snapshot, needsStory), !noStreaming);
+        // An anxious or distrustful mob cannot concede: the schema itself drops OFFER, the validator catches json_object providers.
+        MobState.View state = profile.stateView != null ? profile.stateView : MobState.viewOf(profile, System.currentTimeMillis());
+        boolean wary = state.refusesDeals();
+        JsonObject body = body(messages, 4096, view.windowOpen() ? 0.6 : 0.95, ReplySchema.replyFormat(snapshot, needsStory, wary), !noStreaming);
         if (overheard != null) ReplySchema.forbidIntents(body);
         long deadline = System.nanoTime() + http.timeout().toNanos();
         int words = prompt.words();
@@ -81,7 +84,7 @@ final class OpenRouterConversationClient implements AutoCloseable {
         for (int correction = 0; ; correction++) {
             // Read the provider quirks after each send: a 404 fallback to json_object may have happened inside it.
             AnswerValidator.Bounds bounds = new AnswerValidator.Bounds(words, profile.memory, Math.max(200, Math.min(4000, config.maxMemoryChars)),
-                    profile.relationship, jsonObjectOnly, service(), overheard != null);
+                    profile.relationship, jsonObjectOnly, service(), overheard != null, wary);
             try { return AnswerValidator.parse(bytes, snapshot, bounds); }
             catch (AnswerValidator.Rejected invalid) {
                 diagnostics.accept("ответ отклонён (попытка " + (correction + 1) + ", " + snapshot.type() + "): " + invalid.getMessage());
@@ -225,12 +228,18 @@ final class OpenRouterConversationClient implements AutoCloseable {
     }
 
     /** deal/unlock/quest concern the mob's own catalog (trades.json); bargain stays the vanilla villager window. */
+    /** {@code thought}: the mob's one-line aside to itself, kept as its concern until the next answer ("" when it gave none). */
     record Answer(String reply, String memory, SocialIntent socialIntent, ActionIntent action, BargainIntent bargain,
-                  DealIntent deal, String unlock, QuestIntent quest, BiographyWriter.Biography biography) {
+                  DealIntent deal, String unlock, QuestIntent quest, BiographyWriter.Biography biography, String thought) {
         Answer {
             if (deal == null) deal = DealIntent.none();
             unlock = unlock == null ? "" : unlock;
             if (quest == null) quest = QuestIntent.none();
+            thought = thought == null ? "" : thought;
+        }
+        Answer(String reply, String memory, SocialIntent socialIntent, ActionIntent action, BargainIntent bargain,
+               DealIntent deal, String unlock, QuestIntent quest, BiographyWriter.Biography biography) {
+            this(reply, memory, socialIntent, action, bargain, deal, unlock, quest, biography, "");
         }
         Answer(String reply, String memory, SocialIntent socialIntent, ActionIntent action, BargainIntent bargain,
                DealIntent deal, String unlock, QuestIntent quest) {
