@@ -32,8 +32,9 @@ class ConversationStoreTest {
         assertSame(first, second);
         first.recordDamage(mob, "minecraft:cow", "Корова", player, "Игрок", 1000);
         assertEquals(-80, second.card(mob, player).relationship());
-        assertFalse(second.commit(cow(mob, player, 0, Map.of()), "привет", "ответ", "устарело", SocialIntent.NONE, ActionIntent.none(), 2000));
-        assertTrue(second.card(mob, player).turns().isEmpty());
+        // A reply captured before the blow is still committed (the player asked for no cancellations); the blow stays on the record.
+        assertTrue(second.commit(cow(mob, player, 0, Map.of()), "привет", "ответ", "устарело", SocialIntent.NONE, ActionIntent.none(), 2000));
+        assertEquals(1, second.card(mob, player).turns().size());
         assertTrue(second.commit(cow(mob, player, first.revision(mob), Map.of()), "привет", "ответ", "помню удар", SocialIntent.NONE, ActionIntent.none(), 2000));
         ConversationStore.closeWorld(directory);
         ConversationStore loaded = ConversationStore.open(directory, config);
@@ -274,10 +275,12 @@ class ConversationStoreTest {
         assertTrue(SpeciesCatalog.get(after.type()).fears().contains(after.fear()));
         assertEquals(List.of("Особенно ценит: " + after.preference(), "Лично тревожит: " + after.fear()),
                 store.profile(cow(mob, player, after.revision(), Map.of())).traits);
-        assertFalse(store.commit(cow(mob, player, before.revision(), Map.of()), "Старый вопрос", "Поздний ответ", "", SocialIntent.NONE, ActionIntent.none(), 3000));
+        // A late reply with an older revision is still remembered (no cancellations on a changed relationship).
+        assertTrue(store.commit(cow(mob, player, before.revision(), Map.of()), "Старый вопрос", "Поздний ответ", "", SocialIntent.NONE, ActionIntent.none(), 3000));
+        MobCard afterLate = store.card(mob, player);
         ConversationStore.closeWorld(directory);
         store = ConversationStore.open(directory, config);
-        assertEquals(after, store.card(mob, player));
+        assertEquals(afterLate, store.card(mob, player));
         ConversationStore.closeWorld(directory);
     }
 

@@ -218,6 +218,7 @@
   "mobtalk.settings.section.venice.speech": "Ключ Venice (озвучка)",
   "mobtalk.settings.section.venice.both": "Ключ Venice (ответы и озвучка)",
   "mobtalk.settings.stateHud": "Состояние моба в строке Mob Talk",
+  "mobtalk.settings.nameTags": "Имя, состояние и отношение над знакомыми мобами",
   "mobtalk.settings.vision": "Зрение: снимок экрана к вопросу",
   "mobtalk.settings.vision.off": "Выключено",
   "mobtalk.settings.vision.unusual": "Когда есть повод",
@@ -506,5 +507,6 @@
   "mobtalk.settings.village.failed": "Не удалось узнать репутацию.",
   "mobtalk.settings.village.refresh": "Обновить статус",
   "mobtalk.settings.info": "Моб и деревня",
-  "mobtalk.settings.info.tooltip": "Всё о выбранном мобе и его деревне: характер, отношение, состояние, связи, сделки, память, место, жители, слухи, семьи. Также /mobtalk info."
+  "mobtalk.settings.info.tooltip": "Всё о выбранном мобе и его деревне: характер, отношение, состояние, связи, сделки, память, место, жители, слухи, семьи. Также /mobtalk info.",
+  "mobtalk.settings.nameTags.tooltip": "Подпись над головой знакомых мобов: имя, слово состояния и отношение с сердечками."
 }

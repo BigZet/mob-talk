@@ -509,16 +509,16 @@ class ConversationEngineTest {
         }
     }
 
-    // A hit while TTS is pending must cancel both delivery and durable history, not just audio playback.
-    @Test void hitDuringSpeechPreventsStaleHistoryCommit() throws Exception {
+    // A hit while TTS is pending no longer cancels the reply (the player asked for no cancellations): the exchange is kept and the blow counted.
+    @Test void hitDuringSpeechKeepsTheReplyAndCountsTheBlow() throws Exception {
         UUID mob = UUID.randomUUID(), player = UUID.randomUUID();
         MobSnapshot snapshot = new MobSnapshot(mob, "minecraft:cow", "Корова", 10, 10,
                 "minecraft:overworld", "minecraft:plains", "day", "clear", 2, "minecraft:stick", List.of(), List.of(),
                 player, java.util.Map.of("name", "Игрок"), java.util.Map.of(), java.util.Map.of(), List.of(), List.of(ActionType.NONE), 0);
         try (ConversationEngine engine = engine()) {
             speechHook.set(() -> engine.memory().recordDamage(mob, "minecraft:cow", "Корова", player, "Игрок", 1000));
-            assertThrows(InterruptedException.class, () -> engine.converse(snapshot, "Привет"));
-            assertTrue(engine.memory().card(mob, player).turns().isEmpty());
+            engine.converse(snapshot, "Привет");
+            assertEquals(1, engine.memory().card(mob, player).turns().size());
             assertEquals(-80, engine.memory().card(mob, player).relationship());
         }
     }

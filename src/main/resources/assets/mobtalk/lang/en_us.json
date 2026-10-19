@@ -218,6 +218,7 @@
   "mobtalk.settings.section.venice.speech": "Venice key (speech)",
   "mobtalk.settings.section.venice.both": "Venice key (replies and speech)",
   "mobtalk.settings.stateHud": "Mob's state in the Mob Talk line",
+  "mobtalk.settings.nameTags": "Name, state and relationship over known mobs",
   "mobtalk.settings.vision": "Vision: a screenshot with the question",
   "mobtalk.settings.vision.off": "Off",
   "mobtalk.settings.vision.unusual": "When there is a reason",
@@ -506,5 +507,6 @@
   "mobtalk.settings.village.failed": "Could not read your standing.",
   "mobtalk.settings.village.refresh": "Refresh status",
   "mobtalk.settings.info": "Mob and village",
-  "mobtalk.settings.info.tooltip": "Everything about the selected mob and its village: character, relationship, state, bonds, deals, memory, place, residents, rumours, families. Also /mobtalk info."
+  "mobtalk.settings.info.tooltip": "Everything about the selected mob and its village: character, relationship, state, bonds, deals, memory, place, residents, rumours, families. Also /mobtalk info.",
+  "mobtalk.settings.nameTags.tooltip": "A label above known mobs: name, state word and relationship with hearts."
 }

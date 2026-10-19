@@ -41,6 +41,7 @@ public final class MobGameBridge {
     public final InitiativeController initiative;
     /** The villagers' social layer in the world: gifts changing hands, slaps, families, the village's stance. */
     final SocialController society;
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("mobtalk-bridge");
     /** Villagers' families: weddings, births, growth, mourning. */
     final FamilyController families;
     /** The village's stance towards the player: no trade for an exile, a watchful golem, warnings. */
@@ -336,8 +337,8 @@ public final class MobGameBridge {
         return onServer(() -> {
             synchronized (memory) {
                 if (!valid.getAsBoolean()) throw new java.util.concurrent.CancellationException("Разговор отменён");
-                if (expectedRevision >= 0 && memory.revision(mobId) != expectedRevision)
-                    throw new java.util.concurrent.CancellationException("Отношение моба изменилось: устаревший ответ отменён");
+                // A reply written before a blow or a gift still stands (the player asked for no cancellations): the next turn sees the change.
+                if (expectedRevision >= 0 && memory.revision(mobId) != expectedRevision) LOGGER.info("Mob Talk: отношение моба изменилось во время ответа, ответ оставлен");
                 ServerWorld world = world(dimension);
                 Entity entity = world == null ? null : world.getEntity(mobId);
                 ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
