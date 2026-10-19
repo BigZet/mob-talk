@@ -98,7 +98,7 @@ public final class MobGameBridge {
         });
         ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
             MobGameBridge bridge = forEntity(entity);
-            if (bridge != null && entity instanceof MobEntity mob) bridge.actions.restore(mob);
+            if (bridge != null && entity instanceof MobEntity mob) { bridge.actions.restore(mob); bridge.keep(mob); }
         });
         ServerEntityEvents.ENTITY_UNLOAD.register((entity, world) -> {
             MobGameBridge bridge = forEntity(entity);
@@ -242,9 +242,18 @@ public final class MobGameBridge {
         });
     }
 
+    /** A creature the player has a history with never despawns (vanilla keeps only named or fed ones): the flag is set when the
+     * player talks to it, gives to it or helps it, and again whenever a known creature loads with a world. */
+    void keep(MobEntity mob) { keep(mob, memory.acquainted(mob.getUuid())); }
+    void keep(MobEntity mob, boolean acquainted) {
+        if (!config.keepAcquainted || !acquainted || mob.isPersistent()) return;
+        mob.setPersistent();
+    }
+
     public static void helped(MobEntity mob, ServerPlayerEntity player, String reason) {
         MobGameBridge bridge = forEntity(mob);
         if (bridge == null) return;
+        bridge.keep(mob, true);
         bridge.memory.recordHelp(mob.getUuid(), type(mob), mob.getName().getString(), player.getUuid(),
                 MobGameBridge.playerName(player), System.currentTimeMillis());
         bridge.event(mob, reason + ": " + MobGameBridge.playerName(player));
@@ -345,6 +354,7 @@ public final class MobGameBridge {
                 if (!(entity instanceof MobEntity mob) || !mob.isAlive() || player == null || !player.isAlive()
                         || player.getWorld() != world) throw new java.util.concurrent.CancellationException("Моб или игрок недоступен");
                 if (memory.card(mobId, playerId) == null) event(mob, "The player met this mob");
+                keep(mob, true); // Spoken to: it will not despawn behind the player's back.
                 // The thing handed over is what the favour asked for: it is the delivery, not a present — the favour takes it and pays,
                 // whatever the model called it (a gift would eat the item and leave the favour open).
                 Favor owed = memory.favor(mobId, playerId);

@@ -128,6 +128,7 @@ final class MobTalkSettingsScreen extends Screen {
         wide(tip(toggle("mobtalk.settings.stateHud", draft.showStateHud, value -> draft.showStateHud = value), "mobtalk.settings.stateHud.tooltip"),
                 tip(toggle("mobtalk.settings.bargainHud", draft.showBargainHud, value -> draft.showBargainHud = value), "mobtalk.settings.bargainHud.tooltip"));
         wide(tip(toggle("mobtalk.settings.nameTags", draft.showNameTags, value -> draft.showNameTags = value), "mobtalk.settings.nameTags.tooltip"));
+        wide(tip(toggle("mobtalk.settings.keepAcquainted", draft.keepAcquainted, value -> draft.keepAcquainted = value), "mobtalk.settings.keepAcquainted.tooltip"));
 
         header("mobtalk.settings.section.names");
         note(Text.translatable("mobtalk.settings.names.hint"), 0x9A9A9A);

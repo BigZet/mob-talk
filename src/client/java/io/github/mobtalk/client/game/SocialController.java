@@ -108,6 +108,7 @@ final class SocialController {
         String shown = stack.getName().getString();
         if (result.takesItem()) {
             stack.decrement(1);
+            bridge.keep(mob, true); // A creature that took a present from the hand stays in the world.
             world.playSound(null, mob.getBlockPos(), mob instanceof VillagerEntity ? SoundEvents.ENTITY_VILLAGER_YES : SoundEvents.ENTITY_ITEM_PICKUP, SoundCategory.NEUTRAL, 1f, 1f);
         } else {
             if (mob instanceof VillagerEntity villager) villager.setHeadRollingTimeLeft(40);

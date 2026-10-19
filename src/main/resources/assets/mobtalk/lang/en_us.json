@@ -219,6 +219,8 @@
   "mobtalk.settings.section.venice.both": "Venice key (replies and speech)",
   "mobtalk.settings.stateHud": "Mob's state in the Mob Talk line",
   "mobtalk.settings.nameTags": "Name, state and relationship over known mobs",
+  "mobtalk.settings.keepAcquainted": "Known mobs never despawn",
+  "mobtalk.settings.keepAcquainted.tooltip": "A creature you talked to, gave to or helped is marked persistent and never despawns, like a name-tagged one.",
   "mobtalk.settings.vision": "Vision: a screenshot with the question",
   "mobtalk.settings.vision.off": "Off",
   "mobtalk.settings.vision.unusual": "When there is a reason",

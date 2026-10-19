@@ -57,6 +57,8 @@ public final class MobTalkConfig {
     public String vision = "unusual";
     /** A line over every known creature: name, word of its state, relationship. */
     public boolean showNameTags = true;
+    /** Creatures the player talked to, gave to or helped never despawn. */
+    public boolean keepAcquainted = true;
     /** One word of how the haggle goes («склоняется», «не уверен», «против») in the Mob Talk line while a bargain is on. */
     public boolean showBargainHud = true;
     /** Mobs act on what they think of each other (friends drift together, enemies keep away, a friend visits a mourner). */
@@ -161,7 +163,7 @@ public final class MobTalkConfig {
         copy.requestTimeoutSeconds = requestTimeoutSeconds;
         copy.maxDistance = maxDistance;
         copy.witnessReplies = witnessReplies;
-        copy.showStateHud = showStateHud; copy.vision = vision; copy.showNameTags = showNameTags;
+        copy.showStateHud = showStateHud; copy.vision = vision; copy.showNameTags = showNameTags; copy.keepAcquainted = keepAcquainted;
         copy.showBargainHud = showBargainHud;
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.decider = decider;

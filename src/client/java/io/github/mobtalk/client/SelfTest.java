@@ -159,6 +159,7 @@ final class SelfTest {
         check(owner.say("Привет, корова! Как тебя зовут?"), "say() accepted for the cow");
         await("cow replied (LLM + TTS)", 120, () -> replied(cow, before), () -> {
             check(turns(cow) > before, "cow reply committed to memory: " + lastReply(cow));
+            check(((ServerWorld) serverPlayer().getWorld()).getEntity(cow) instanceof MobEntity spoken && spoken.isPersistent(), "a creature spoken to is marked persistent (never despawns)");
             check(voiced, "a reply was voiced (speech played)"); voiced = false;
             talkToVillager();
         });
