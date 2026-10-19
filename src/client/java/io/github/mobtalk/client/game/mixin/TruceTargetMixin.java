@@ -10,11 +10,13 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /** Goal-driven hostiles (zombies, skeletons, creepers, spiders…) pick the player through setTarget; a player the mob has a truce
- * with is never taken as a target. Brain-driven ones are handled in MobActionController.afterBrain. */
+ * with is never taken as a target, nor is anyone the mob promised to spare. Brain-driven ones are handled in
+ * MobActionController.afterBrain. */
 @Mixin(MobEntity.class)
 abstract class TruceTargetMixin {
     @Inject(method = "setTarget", at = @At("HEAD"), cancellable = true)
     private void mobtalk$keepTruce(LivingEntity target, CallbackInfo ci) {
         if (target instanceof ServerPlayerEntity player && MobGameBridge.truce((MobEntity) (Object) this, player)) ci.cancel();
+        else if (target != null && MobGameBridge.spared((MobEntity) (Object) this, target)) ci.cancel();
     }
 }

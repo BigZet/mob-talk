@@ -130,6 +130,7 @@ final class AnswerValidator {
             if (type == ActionType.NONE || !snapshot.availableActions().contains(type)) return ActionIntent.none();
             if (type == ActionType.FLEE && Boolean.TRUE.equals(snapshot.mobDetails().get("trapped"))) return ActionIntent.none(); // Nowhere to run.
             if (type == ActionType.STOP) return new ActionIntent(type, "");
+            if (FriendActions.isFriendAction(type)) return FriendActions.validate(type, ReplySchema.string(action, "target"), snapshot);
             String target = ReplySchema.string(action, "target");
             if (type == ActionType.FOLLOW && !target.equals("player")) return ActionIntent.none();
             boolean known = target.equals("player") ? snapshot.playerId() != null : target.matches("e[0-9]+") && snapshot.observedEntities().stream()

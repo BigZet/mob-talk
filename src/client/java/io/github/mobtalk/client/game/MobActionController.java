@@ -51,7 +51,9 @@ final class MobActionController {
     static final double KEEN_RANGE = 6;
     private static final long STANCE_PERIOD = 20, ALARM_COOLDOWN = 200;
     private record Retaliation(MobEntity mob, ServerPlayerEntity player) { }
-    MobActionController(MobGameBridge bridge) { this.bridge = bridge; }
+    /** STAY, GUARD and SPARE: requests a friend grants the player, beside this controller's own leases. */
+    final FriendActionController friends;
+    MobActionController(MobGameBridge bridge) { this.bridge = bridge; friends = new FriendActionController(bridge, this); }
 
     static List<ActionType> available(MobEntity mob) {
         List<ActionType> types = new ArrayList<>(List.of(ActionType.NONE, ActionType.STOP));
@@ -72,6 +74,8 @@ final class MobActionController {
             types.add(ActionType.ATTACK);
         return List.copyOf(types);
     }
+    /** {@link #available(MobEntity)} plus the friend requests this player may make of the mob now. */
+    List<ActionType> available(MobEntity mob, ServerPlayerEntity player) { return friends.available(mob, player, available(mob)); }
     /** A creature with a real attack: teeth, claws, fists or a weapon. A villager's slap is not one. */
     static boolean fighter(MobEntity mob) {
         String type = MobGameBridge.type(mob);
@@ -184,7 +188,8 @@ final class MobActionController {
     String apply(MobEntity mob, ServerPlayerEntity player, ActionIntent intent, MobSnapshot snapshot, boolean quiet) {
         ActionType action = intent == null ? ActionType.NONE : intent.type();
         if (action == ActionType.NONE) return "";
-        if (action == ActionType.STOP) { stop(mob.getUuid(), true); return "Действие отменено; моб вернулся к обычному поведению"; }
+        if (action == ActionType.STOP) { friends.cancel(mob.getUuid()); stop(mob.getUuid(), true); return "Действие отменено; моб вернулся к обычному поведению"; }
+        if (FriendActions.isFriendAction(action)) return friends.apply(mob, player, intent, snapshot);
         if (!available(mob).contains(action)) return "Это действие недоступно данному мобу";
         Lease running = leases.get(mob.getUuid());
         if (running != null && running.action == action && action == ActionType.FLEE && running.targetId.equals(player.getUuid())) {
@@ -202,24 +207,15 @@ final class MobActionController {
         LivingEntity target = player;
         if ((action == ActionType.ATTACK || action == ActionType.FLEE) && !"player".equals(intent.target())
                 && !player.getUuid().toString().equals(intent.target())) {
-            ObservedEntity observed = snapshot == null ? null : snapshot.observedEntities().stream()
-                    .filter(entity -> entity.key().equals(intent.target()) || entity.id().toString().equals(intent.target())).findFirst().orElse(null);
-            if (observed == null) return "Цель не наблюдалась мобом";
-            Entity found = mob.getWorld() instanceof ServerWorld world ? world.getEntity(observed.id()) : null;
-            if (!(found instanceof MobEntity living) || living == mob || !living.isAlive()
-                    || living.squaredDistanceTo(mob) > 24 * 24 || !perceives(mob, living, observed))
-                return "Цель больше не доступна мобу";
-            target = living;
+            Resolved resolved = resolve(mob, intent.target(), snapshot);
+            if (resolved.entity() == null) return resolved.error();
+            target = resolved.entity();
         }
+        if (action == ActionType.ATTACK) friends.lift(mob, target); // Asked to attack someone it spared: the newer request wins.
         if (action == ActionType.ATTACK && !canAttack(mob, target)) return "Моб не может атаковать эту цель по своей природе";
+        friends.replaced(mob, intent);
         stop(mob.getUuid(), false);
-        Lease lease = new Lease(mob, target.getUuid(), action, action == ActionType.FLEE ? mob.getWorld().getTime() + 400 : Long.MAX_VALUE);
-        leases.put(mob.getUuid(), lease);
-        MobEntityAccessor selectors = (MobEntityAccessor) mob;
-        selectors.mobtalk$targetSelector().add(-1, lease.targetGoal);
-        if (action != ActionType.ATTACK) selectors.mobtalk$goalSelector().add(-1, lease.moveGoal);
-        else if (lease.meleeGoal != null) selectors.mobtalk$goalSelector().add(-1, lease.meleeGoal);
-        if (action == ActionType.ATTACK) assignAttack(mob, target);
+        begin(mob, target, action);
         if (!quiet) {
             bridge.memory.recordAction(mob.getUuid(), new ActionIntent(action, target.getUuid().toString()));
             bridge.event(mob, "Action started: " + action + "; target=" + target.getName().getString());
@@ -231,6 +227,38 @@ final class MobActionController {
             default -> "";
         };
     }
+    private void begin(MobEntity mob, LivingEntity target, ActionType action) {
+        Lease lease = new Lease(mob, target.getUuid(), action, action == ActionType.FLEE ? mob.getWorld().getTime() + 400 : Long.MAX_VALUE);
+        leases.put(mob.getUuid(), lease);
+        MobEntityAccessor selectors = (MobEntityAccessor) mob;
+        selectors.mobtalk$targetSelector().add(-1, lease.targetGoal);
+        if (action != ActionType.ATTACK) selectors.mobtalk$goalSelector().add(-1, lease.moveGoal);
+        else if (lease.meleeGoal != null) selectors.mobtalk$goalSelector().add(-1, lease.meleeGoal);
+        if (action == ActionType.ATTACK) assignAttack(mob, target);
+    }
+    /** A guard's fight: an ordinary attack lease, but not the player's request, so nothing is persisted or announced. */
+    boolean guardAttack(MobEntity mob, LivingEntity target) {
+        if (!available(mob).contains(ActionType.ATTACK) || !canAttack(mob, target)) return false;
+        stop(mob.getUuid(), false);
+        begin(mob, target, ActionType.ATTACK);
+        return true;
+    }
+    boolean attacking(MobEntity mob, LivingEntity target) {
+        Lease lease = leases.get(mob.getUuid());
+        return lease != null && lease.action == ActionType.ATTACK && lease.targetId.equals(target.getUuid());
+    }
+    /** An observed alias (or UUID) from the snapshot as the live creature the mob still perceives, or the reason it is not one. */
+    record Resolved(LivingEntity entity, String error) { }
+    Resolved resolve(MobEntity mob, String key, MobSnapshot snapshot) {
+        ObservedEntity observed = snapshot == null ? null : snapshot.observedEntities().stream()
+                .filter(entity -> entity.key().equals(key) || entity.id().toString().equals(key)).findFirst().orElse(null);
+        if (observed == null) return new Resolved(null, "Цель не наблюдалась мобом");
+        Entity found = mob.getWorld() instanceof ServerWorld world ? world.getEntity(observed.id()) : null;
+        if (!(found instanceof MobEntity living) || living == mob || !living.isAlive()
+                || living.squaredDistanceTo(mob) > 24 * 24 || !perceives(mob, living, observed))
+            return new Resolved(null, "Цель больше не доступна мобу");
+        return new Resolved(living, "");
+    }
     private boolean perceives(MobEntity mob, MobEntity target, ObservedEntity observed) {
         if (mob instanceof WardenEntity)
             return Boolean.TRUE.equals(observed.details().get("audible"))
@@ -239,6 +267,7 @@ final class MobActionController {
     }
     boolean canAttack(MobEntity mob, LivingEntity target) {
         if (!target.isAlive() || target.isSpectator() || target.isInCreativeMode() || !mob.canTarget(target) || !mob.canTarget(target.getType())) return false;
+        if (friends.spared(mob, target)) return false;
         boolean provokedPlayer = false;
         if (target instanceof ServerPlayerEntity player) {
             MobCard card = bridge.memory.card(mob.getUuid(), player.getUuid());
@@ -316,17 +345,20 @@ final class MobActionController {
         }
         for (Lease lease : List.copyOf(leases.values())) {
             if (lease.mob.getWorld() != world) continue;
-            if (!bridge.config.enabled || !lease.mob.isAlive() || lease.mob.isRemoved()) { stop(lease.mob.getUuid(), true); continue; }
+            if (!bridge.config.enabled || !lease.mob.isAlive() || lease.mob.isRemoved()) { release(lease.mob.getUuid()); continue; }
             LivingEntity target = lease.target();
             if (lease.action == ActionType.FOLLOW && target == null) { lease.mob.getNavigation().stop(); continue; }
             if (target == null || !target.isAlive() || world.getTime() >= lease.expires
                     || lease.action == ActionType.ATTACK && (!canAttack(lease.mob, target) || lease.mob.squaredDistanceTo(target) > 64 * 64)) {
-                stop(lease.mob.getUuid(), true); continue;
+                release(lease.mob.getUuid()); continue;
             }
-            if (lease.action == ActionType.FLEE && lease.mob.squaredDistanceTo(target) >= 16 * 16) { stop(lease.mob.getUuid(), true); continue; }
+            if (lease.action == ActionType.FLEE && lease.mob.squaredDistanceTo(target) >= 16 * 16) { release(lease.mob.getUuid()); continue; }
             if (lease.action == ActionType.ATTACK) assignAttack(lease.mob, target);
         }
+        friends.tick(world);
     }
+    /** A lease ends by itself; a guard's fight ending must not clear the GUARD the mob still has on record. */
+    private void release(UUID id) { stop(id, !friends.holds(id)); }
     /** Brain tasks run after the goal navigation tick. Reapply only this lease's movement intent. */
     void afterBrain(MobEntity mob) {
         // Brain-driven hostiles (piglins, hoglins, wardens, zoglins) choose targets in memory, not through setTarget.
@@ -336,7 +368,11 @@ final class MobActionController {
             if (registered(mob, MemoryModuleType.ANGRY_AT)) mob.getBrain().forget(MemoryModuleType.ANGRY_AT);
             if (mob instanceof WardenEntity warden) warden.removeSuspect(player);
         }
+        if (registered(mob, MemoryModuleType.ATTACK_TARGET)
+                && friends.spared(mob, mob.getBrain().getOptionalRegisteredMemory(MemoryModuleType.ATTACK_TARGET).orElse(null)))
+            mob.getBrain().forget(MemoryModuleType.ATTACK_TARGET);
         Lease lease = leases.get(mob.getUuid());
+        if (lease == null && friends.afterBrain(mob)) return;
         if (lease == null && attentive(mob)) {
             // Brain tasks re-plan a walk every tick; drop it again after they ran so a listening villager stays put.
             if (registered(mob, MemoryModuleType.WALK_TARGET)) mob.getBrain().forget(MemoryModuleType.WALK_TARGET);
@@ -364,6 +400,7 @@ final class MobActionController {
     }
     private void retaliate(MobEntity mob, ServerPlayerEntity player) {
         if (!bridge.config.enabled || !mob.isAlive() || mob.isRemoved() || player.getWorld() != mob.getWorld()) return;
+        friends.hurtBy(mob, player);
         UUID playerId = player.getUuid();
         Lease lease = leases.get(mob.getUuid());
         if (lease != null && lease.action == ActionType.ATTACK && lease.targetId.equals(playerId)) {
@@ -408,8 +445,8 @@ final class MobActionController {
         }
         if (persist) bridge.memory.recordAction(id, ActionIntent.none());
     }
-    void unload(MobEntity mob) { stop(mob.getUuid(), false); alarms.remove(mob.getUuid()); attention.remove(mob.getUuid()); }
-    void clearRuntime() { pendingRetaliations.clear(); alarms.clear(); hatredMemories.clear(); attention.clear(); for (UUID id : List.copyOf(leases.keySet())) stop(id, false); }
+    void unload(MobEntity mob) { friends.unload(mob); stop(mob.getUuid(), false); alarms.remove(mob.getUuid()); attention.remove(mob.getUuid()); }
+    void clearRuntime() { pendingRetaliations.clear(); alarms.clear(); hatredMemories.clear(); attention.clear(); friends.clear(); for (UUID id : List.copyOf(leases.keySet())) stop(id, false); }
 
     private final class Lease {
         final MobEntity mob; final UUID targetId; final ActionType action; long expires;

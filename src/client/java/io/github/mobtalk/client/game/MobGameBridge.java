@@ -335,5 +335,12 @@ public final class MobGameBridge {
         if (bridge == null || !bridge.config.enabled) return false;
         return CombatRules.truce(SpeciesCatalog.get(type(mob)).hostile(), bridge.memory.relationship(mob.getUuid(), player.getUuid()));
     }
+    /** A creature this hostile promised to leave alone (SPARE) is never taken as a target while the promise lasts. */
+    public static boolean spared(MobEntity mob, LivingEntity target) {
+        MobGameBridge bridge = forEntity(mob);
+        return bridge != null && bridge.config.enabled && bridge.actions.friends.spared(mob, target);
+    }
+    /** The STAY/GUARD/SPARE leases of this mob for /mobtalk state; safe from the client thread. */
+    public List<FriendActions.Status> friendStatus(UUID mob) { return actions.friends.status(mob); }
     record Heard(long tick, Vec3d position, UUID source, String event) { }
 }
