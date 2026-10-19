@@ -61,6 +61,15 @@ final class OpenRouterConversationClient implements AutoCloseable {
     /** {@code overheard} non-null: the mob is a bystander of that exchange, {@code question} is ignored, trading intents are off. */
     Answer respond(MobSnapshot snapshot, ConversationStore.Profile profile, String question, ConversationEngine.Overheard overheard, Consumer<String> earlyReply)
             throws IOException, InterruptedException {
+        return respond(snapshot, profile, question, overheard, null, earlyReply);
+    }
+
+    /** The provider refused a picture once (HTTP 400): the rest of the session goes without. */
+    private volatile boolean noVision;
+
+    /** {@code picture} non-null: a JPEG of the player's view goes with the question as an image part ({@link Vision}). */
+    Answer respond(MobSnapshot snapshot, ConversationStore.Profile profile, String question, ConversationEngine.Overheard overheard, byte[] picture, Consumer<String> earlyReply)
+            throws IOException, InterruptedException {
         SpeciesCatalog.Species species = SpeciesCatalog.effective(snapshot.type(), config);
         TradingView view = TradingView.of(snapshot);
         // A bystander or a creature speaking first makes no gesture with the player: no outcomes block, no gesture field.
@@ -75,7 +84,9 @@ final class OpenRouterConversationClient implements AutoCloseable {
             ConversationStore.Turn turn = profile.turns.get(i);
             messages.add(ReplySchema.message("user", turn.user())); messages.add(ReplySchema.message("assistant", turn.assistant()));
         }
-        messages.add(ReplySchema.message("user", overheard == null ? prompt.userMessage(question, snapshot, profile) : prompt.overheardMessage(overheard, snapshot, profile)));
+        boolean withPicture = overheard == null && picture != null && picture.length > 0 && !noVision;
+        if (withPicture) { messages.add(Vision.message(prompt.userMessage(question, snapshot, profile), picture)); Vision.ATTACHED.incrementAndGet(); diagnostics.accept("снимок " + picture.length / 1024 + " КБ приложен к вопросу"); }
+        else messages.add(ReplySchema.message("user", overheard == null ? prompt.userMessage(question, snapshot, profile) : prompt.overheardMessage(overheard, snapshot, profile)));
         // A mob without a life story invents it inside its first reply: one request, not two.
         boolean needsStory = profile.backstory == null || profile.backstory.isBlank();
         // An anxious or distrustful mob cannot concede: the schema itself drops OFFER, the validator catches json_object providers.
@@ -169,6 +180,8 @@ final class OpenRouterConversationClient implements AutoCloseable {
                 if (remaining > pause * 1_000_000L) { Thread.sleep(pause); return send(body, deadline, spoken, retryDropped, rateLimited + 1); }
             }
             if (retryDropped && BoundedHttp.dropped(unavailable)) return send(body, deadline, spoken, false, rateLimited);
+            // A model that takes no images answers 400: the question goes again as text only, and no picture is sent again this session.
+            if (unavailable.status == 400 && Vision.hasImage(body)) { Vision.stripImages(body); noVision = true; diagnostics.accept(service() + " не принял снимок: дальше без зрения"); return send(body, deadline, spoken, retryDropped); }
             if (unavailable.status == 400 && body.has("stream")) { body.remove("stream"); noStreaming = true; return send(body, deadline, spoken, retryDropped); }
             if (unavailable.status != 404) throw unavailable;
             // Claude 5.5 on OpenRouter has no endpoint taking temperature together with a strict schema.

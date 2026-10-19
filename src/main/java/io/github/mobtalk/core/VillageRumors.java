@@ -264,6 +264,11 @@ public final class VillageRumors {
         return views.stream().limit(PROMPT_LIMIT).map(View::line).toList();
     }
     public void remove(UUID mob) { if (mob != null) { heard.remove(mob.toString()); carried.remove(mob.toString()); } }
+    /** The village's chronicle and what its residents heard are dropped (the player was forgiven). */
+    public void forgetVillage(String villageId, java.util.Collection<String> residents) {
+        if (villageId != null) villages.remove(villageId);
+        if (residents != null) for (String id : residents) { heard.remove(id); carried.remove(id); }
+    }
 
     // ---- The chronicle request itself (runs on the background lane). ----
 

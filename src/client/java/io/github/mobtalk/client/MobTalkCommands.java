@@ -20,6 +20,7 @@ final class MobTalkCommands {
                         client.say(StringArgumentType.getString(context, "text")) ? 1 : 0)))
                 .then(literal("status").executes(context -> { client.notice(client.statusLine()); return 1; }))
                 .then(literal("state").executes(context -> { client.chat("[Mob Talk] " + client.stateLine()); return 1; }))
+                .then(literal("village").then(literal("forgive").executes(context -> { client.forgiveVillage(); return 1; })))
                 .then(literal("clear").executes(context -> { client.clearSelection("Собеседник снят"); return 1; }))
                 .then(literal("trade").executes(context -> { client.openTrade(); return 1; }))
                 .then(literal("follow").executes(context -> { action(client, new ActionIntent(ActionType.FOLLOW, "player")); return 1; }))

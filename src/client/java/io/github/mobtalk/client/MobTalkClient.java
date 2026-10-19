@@ -166,6 +166,7 @@ public final class MobTalkClient implements ClientModInitializer {
         if (!readyForRequest()) { notice(status); return false; }
         stopSpeech();
         long requestGeneration = ++generation;
+        captureShot(requestGeneration);
         submit(request(requestGeneration, null), wav, null);
         return true;
     }
@@ -177,11 +178,41 @@ public final class MobTalkClient implements ClientModInitializer {
     /** A short piece of work off the game thread (a decision), on the bystander lane. */
     void background(Runnable work) { witnesses.execute(work); }
     void requestSettings() { openSettingsRequested = true; }
+    /** The player's view at the moment a question starts: pixels sampled on the render thread, encoded later off it. */
+    private record Shot(long generation, int width, int height, int[] rgb) { }
+    private volatile Shot shot;
+    private void captureShot(long requestGeneration) {
+        shot = null;
+        if (io.github.mobtalk.core.Vision.OFF.equals(io.github.mobtalk.core.Vision.normalize(config.vision)) || !com.mojang.blaze3d.systems.RenderSystem.isOnRenderThread()) return;
+        try (net.minecraft.client.texture.NativeImage image = net.minecraft.client.util.ScreenshotRecorder.takeScreenshot(client.getFramebuffer())) {
+            int width = image.getWidth(), height = image.getHeight();
+            int step = Math.max(1, (int) Math.ceil(Math.max(width, height) / (double) io.github.mobtalk.core.Vision.MAX_SIDE));
+            int w = Math.max(1, width / step), h = Math.max(1, height / step);
+            int[] rgb = new int[w * h];
+            for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) {
+                int abgr = image.getColor(x * step, y * step); // NativeImage packs ABGR: red in the low byte.
+                rgb[y * w + x] = ((abgr & 0xFF) << 16) | (abgr & 0xFF00) | ((abgr >> 16) & 0xFF);
+            }
+            shot = new Shot(requestGeneration, w, h, rgb);
+        } catch (RuntimeException failure) { LOGGER.debug("Mob Talk screenshot skipped ({})", failure.getClass().getSimpleName()); }
+    }
+    /** The JPEG for this request, or null: only when the mode and the question call for it ({@link io.github.mobtalk.core.Vision#wanted}). */
+    private byte[] pictureFor(Request request, MobSnapshot snapshot, String question, MobGameBridge game) {
+        Shot taken = shot;
+        if (taken == null || taken.generation() != request.generation || request.overheard != null) return null;
+        MobCard card = game.memory.card(request.target, request.player);
+        boolean firstMeeting = card == null || card.turns().isEmpty();
+        if (!io.github.mobtalk.core.Vision.wanted(request.config.vision, snapshot, firstMeeting, question)) return null;
+        try { return io.github.mobtalk.core.Vision.jpeg(taken.rgb(), taken.width(), taken.height()); }
+        catch (java.io.IOException failure) { LOGGER.debug("Mob Talk screenshot not encoded ({})", failure.getMessage()); return null; }
+    }
+
     /** /mobtalk say: the typed line goes through the same pipeline as speech. */
     boolean say(String text) {
         if (!readyForRequest()) { notice(status); return false; }
         stopSpeech();
         long requestGeneration = ++generation;
+        captureShot(requestGeneration);
         submit(request(requestGeneration, null), null, text);
         return true;
     }
@@ -377,6 +408,7 @@ public final class MobTalkClient implements ClientModInitializer {
         stopSpeech();
         long requestGeneration = ++generation;
         Request seed = request(requestGeneration, null);
+        captureShot(requestGeneration);
         try {
             MicrophoneRecorder.Capture capture = microphone.start(config.microphoneName, config.maxRecordingSeconds);
             recording = capture;
@@ -597,7 +629,7 @@ public final class MobTalkClient implements ClientModInitializer {
                 ConversationEngine localEngine = ensureEngine(request);
                 checkCurrent(request);
                 // A mob without a life story invents it inside this first reply (see MobPrompt.lifeToInvent): no separate request.
-                ConversationEngine.PreparedReply prepared = localEngine.prepare(snapshot, question, request.overheard);
+                ConversationEngine.PreparedReply prepared = localEngine.prepare(snapshot, question, request.overheard, pictureFor(request, snapshot, question, game));
                 try { checkCurrent(request); }
                 catch (InterruptedException cancelled) { prepared.reply().discardSpeech(); throw cancelled; }
                 Request observed = new Request(request.generation, request.target, request.worldDirectory, request.config,
@@ -906,6 +938,16 @@ public final class MobTalkClient implements ClientModInitializer {
     }
 
     /** /mobtalk state: every axis of the selected mob's state in words and its last thought, for the chat. */
+    /** /mobtalk village forgive: every resident of the village around the player forgets the grudges, and its rumours go. */
+    void forgiveVillage() {
+        MobGameBridge game = client.getServer() == null ? null : MobGameBridge.active(client.getServer());
+        if (game == null || client.player == null) { notice("Мир ещё не загружен"); return; }
+        UUID player = client.player.getUuid();
+        String dimension = client.player.getWorld().getRegistryKey().getValue().toString();
+        int x = client.player.getBlockX(), z = client.player.getBlockZ();
+        game.onServer(() -> game.memory.forgiveVillage(dimension, x, z, player)).thenAccept(result -> client.execute(() -> notice(result)));
+    }
+
     String stateLine() {
         MobGameBridge game = client.getServer() == null ? null : MobGameBridge.active(client.getServer());
         MobCard card = game == null || selected == null || client.player == null ? null : game.memory.card(selected, client.player.getUuid());

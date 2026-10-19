@@ -53,6 +53,8 @@ public final class MobTalkConfig {
     public int witnessReplies = 2;
     /** One word of the selected mob's emotional state («встревожен», «в духе») in the Mob Talk line. */
     public boolean showStateHud = true;
+    /** When a screenshot of the player's view goes with the question: off, unusual (odd place, "look", first meeting) or always. */
+    public String vision = "unusual";
     /** One word of how the haggle goes («склоняется», «не уверен», «против») in the Mob Talk line while a bargain is on. */
     public boolean showBargainHud = true;
     /** Mobs act on what they think of each other (friends drift together, enemies keep away, a friend visits a mourner). */
@@ -115,7 +117,7 @@ public final class MobTalkConfig {
         copy.requestTimeoutSeconds = requestTimeoutSeconds;
         copy.maxDistance = maxDistance;
         copy.witnessReplies = witnessReplies;
-        copy.showStateHud = showStateHud;
+        copy.showStateHud = showStateHud; copy.vision = vision;
         copy.showBargainHud = showBargainHud;
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.decider = decider;
@@ -185,6 +187,7 @@ public final class MobTalkConfig {
         config.birthChance = Math.max(0, Math.min(100, config.birthChance));
         config.childGrowthDays = Math.max(1, Math.min(16, config.childGrowthDays));
         config.decider = "jev".equalsIgnoreCase(config.decider == null ? "" : config.decider.strip()) ? "jev" : "rules";
+        config.vision = Vision.normalize(config.vision);
         MobTalkConfig defaults = new MobTalkConfig();
         config.llmModel = textOrDefault(config.llmModel, defaults.llmModel);
         config.veniceModel = textOrDefault(config.veniceModel, defaults.veniceModel);

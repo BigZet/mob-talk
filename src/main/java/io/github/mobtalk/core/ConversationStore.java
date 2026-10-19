@@ -365,6 +365,28 @@ public final class ConversationStore {
         return state.profiles.values().stream().filter(p -> canonical.equals(p.type) && !p.givenName.isBlank()).map(p -> p.givenName).distinct().limit(40).toList();
     }
     public synchronized Village village(String id) { return id == null || id.isBlank() ? null : state.villages.get(id); }
+
+    /** The village around a point forgives the player: residents' relationships below zero go to zero, blows and witnessed deeds
+     * are forgotten, and the village's rumours and what its residents heard are dropped. Returns a line for the chat. */
+    public synchronized String forgiveVillage(String dimension, int x, int z, UUID player) {
+        Village village = villageNear(dimension, x, z);
+        if (village == null || player == null) return "Рядом нет известной деревни";
+        int residents = 0, forgiven = 0;
+        List<String> ids = new ArrayList<>();
+        for (Map.Entry<String, Profile> entry : state.profiles.entrySet()) {
+            Profile p = entry.getValue();
+            if (!village.id().equals(p.villageId) || !"minecraft:villager".equals(p.type)) continue;
+            residents++; ids.add(entry.getKey());
+            Relation r = p.relations.get(player.toString());
+            if (r == null) continue;
+            if (r.score < 0) { r.score = 0; forgiven++; }
+            r.hits = 0; r.lastWitnessDelta = 0; r.lastWitness = -1;
+            p.revision++;
+        }
+        state.rumors.forgetVillage(village.id(), ids);
+        scheduleSave();
+        return "Деревня «" + village.name() + "» простила: жителей " + residents + ", обид снято " + forgiven + ", слухи забыты";
+    }
     public synchronized List<String> villageNames() { return state.villages.values().stream().map(Village::name).toList(); }
     /** The known village whose anchor is within {@link #VILLAGE_RADIUS} blocks in this dimension, nearest first; null when none. */
     public synchronized Village villageNear(String dimension, int x, int z) {

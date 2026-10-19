@@ -438,10 +438,12 @@ final class SelfTest {
                 if (target == null) { fail("cow not on the client in the pit"); relations(); return; }
                 owner.select(target);
                 int before = turns(cow);
+                int shots = io.github.mobtalk.core.Vision.attached();
                 check(owner.say("Где ты сейчас находишься и можешь ли выбраться?"), "say() accepted in the pit");
                 await("cow described the pit", 120, () -> replied(cow, before), () -> {
                     String reply = lastReply(cow).toLowerCase();
                     log("cow in the pit: " + lastReply(cow));
+                    if (!"off".equals(owner.config().vision)) check(io.github.mobtalk.core.Vision.attached() > shots, "a screenshot went with the question in the pit (vision=" + owner.config().vision + ")");
                     check(reply.contains("ям") || reply.contains("выбрат") || reply.contains("стен") || reply.contains("глубок") || reply.contains("дн"), "the reply speaks of the pit");
                     command("fill " + (px - 2) + " " + floor + " " + (pz - 2) + " " + (px + 2) + " " + (SY - 2) + " " + (pz + 2) + " minecraft:air");
                     command("fill " + (px - 2) + " " + (SY - 1) + " " + (pz - 2) + " " + (px + 2) + " " + (SY - 1) + " " + (pz + 2) + " minecraft:smooth_stone");

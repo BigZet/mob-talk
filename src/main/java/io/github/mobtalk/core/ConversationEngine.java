@@ -100,7 +100,10 @@ public final class ConversationEngine implements AutoCloseable {
     public PreparedReply prepare(MobSnapshot snapshot, String userText) throws IOException, InterruptedException { return prepare(snapshot, userText, null); }
 
     /** {@code overheard} non-null: this mob only heard the exchange and may answer with silence (a blank reply, no speech). */
-    public PreparedReply prepare(MobSnapshot snapshot, String userText, Overheard overheard) throws IOException, InterruptedException {
+    public PreparedReply prepare(MobSnapshot snapshot, String userText, Overheard overheard) throws IOException, InterruptedException { return prepare(snapshot, userText, overheard, null); }
+
+    /** {@code picture} non-null: a JPEG of what the player sees, attached to the question ({@link Vision}); ignored for bystanders. */
+    public PreparedReply prepare(MobSnapshot snapshot, String userText, Overheard overheard, byte[] picture) throws IOException, InterruptedException {
         if (closed) throw new IOException("Разговор Mob Talk уже завершён.");
         String question = overheard != null ? overheard.asHeard() : TextBounds.characters(userText, 2000);
         if (question.isBlank()) throw new IOException("Речь не распознана. Удерживайте V и произнесите вопрос.");
@@ -116,7 +119,8 @@ public final class ConversationEngine implements AutoCloseable {
         OpenRouterConversationClient.Answer answer;
         try {
             // Voice starts while the model still writes facts, action and bargain; checks below decide whether it is used.
-            answer = llm.respond(snapshot, profile, question, overheard, text -> early.start(text, () -> speech.streamWithFallback(profile.voiceId, reserve, text)));
+            answer = llm.respond(snapshot, profile, question, overheard, overheard == null ? picture : null,
+                    text -> early.start(text, () -> speech.streamWithFallback(profile.voiceId, reserve, text)));
             checkCurrent(snapshot);
         } catch (IOException | InterruptedException | RuntimeException failure) { early.discard(); throw failure; }
         SpeechStream audio = null;
