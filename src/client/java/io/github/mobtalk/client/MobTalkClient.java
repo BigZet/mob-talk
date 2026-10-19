@@ -923,15 +923,17 @@ public final class MobTalkClient implements ClientModInitializer {
         MobEntity mob = target();
         MobGameBridge game = mob == null || client.getServer() == null ? null : MobGameBridge.active(client.getServer());
         MobCard card = game == null ? null : game.memory.card(selected, client.player.getUuid());
+        // With a label over the creature (name · state · relationship) the line keeps only what the label lacks.
+        boolean labelled = config.showNameTags && card != null && game.memory.acquainted(selected) && !game.memory.displayName(selected).isBlank();
         String targetLabel = mob == null ? "" : mob.getName().getString() + " · "
                 + String.format(Locale.ROOT, "%.1f м · ", Math.sqrt(client.player.squaredDistanceTo(mob)))
-                + (card == null ? "" : MobGameBridge.relationshipLabel(card) + " · ");
+                + (card == null || labelled ? "" : MobGameBridge.relationshipLabel(card) + " · ");
         MobEntity aimed = client.currentScreen == null ? aimedMob() : null, far = aimed == null && client.currentScreen == null ? aimedMob(48) : null;
         String aimLabel = aimed != null && aimed != mob ? "в прицеле: " + aimed.getName().getString() + " · "
                 : far != null && far != mob ? "в прицеле: " + far.getName().getString() + " (далеко, подойдите) · " : "";
         net.minecraft.text.MutableText line = Text.literal("Mob Talk · " + aimLabel + targetLabel);
         // One word of how the mob feels, coloured by its sign; the words themselves live in the lang files.
-        if (mob != null && card != null && config.showStateHud) {
+        if (mob != null && card != null && config.showStateHud && !labelled) {
             io.github.mobtalk.core.MobState.Descriptor marker = card.state().marker();
             line.append(Text.translatable("mobtalk.state." + marker.key()).formatted(marker.sign() < 0 ? net.minecraft.util.Formatting.RED
                     : marker.sign() > 0 ? net.minecraft.util.Formatting.GREEN : net.minecraft.util.Formatting.GRAY)).append(Text.literal(" · "));
