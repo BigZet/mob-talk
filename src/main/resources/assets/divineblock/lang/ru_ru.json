@@ -1,5 +1,7 @@
 {
   "block.divineblock.altar": "Божественный алтарь",
   "key.categories.divineblock": "Божественный блок",
-  "key.divineblock.settings": "Настройки бога"
+  "key.divineblock.settings": "Настройки бога",
+  "key.divineblock.pray": "Молиться вслух (удерживать)",
+  "subtitle.divineblock.god_voice": "Голос бога"
 }

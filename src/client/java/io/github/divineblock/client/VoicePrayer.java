@@ -1,0 +1,110 @@
+package io.github.divineblock.client;
+
+import io.github.divineblock.DivineBlockMod;
+import io.github.divineblock.core.DivineConfig;
+import io.github.divineblock.core.LocalWhisper;
+import io.github.divineblock.core.PcmWav;
+import io.github.divineblock.game.AltarBlock;
+import io.github.divineblock.game.PrayPayload;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.world.ClientWorld;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.math.BlockPos;
+
+/** Praying aloud: hold the key near an altar (15 seconds at most), release, and Whisper turns the words into the prayer.
+ * The microphone records only while the key is held; recognition runs on a worker, and the prayer is dropped if the player
+ * left the world or the altar meanwhile. */
+final class VoicePrayer {
+    private static final ExecutorService WORKER = Executors.newSingleThreadExecutor(r -> { Thread t = new Thread(r, "divineblock-whisper"); t.setDaemon(true); return t; });
+    private static final MicrophoneRecorder RECORDER = new MicrophoneRecorder();
+    private static MicrophoneRecorder.Capture capture;
+    private static BlockPos altar;
+    private static ClientWorld world;
+    private static volatile boolean busy;
+    /** Every recognised prayer, for the self-test. */
+    static volatile java.util.function.Consumer<String> heard = text -> { };
+
+    private VoicePrayer() { }
+
+    static void tick(MinecraftClient client, KeyBinding key) {
+        if (client.player == null || client.world == null) { cancel(); return; }
+        boolean held = key.isPressed() && client.currentScreen == null;
+        if (capture == null && held) start(client);
+        else if (capture != null && !held) finish(client);
+        else if (capture != null) {
+            int bars = (int) Math.round(capture.level * 10);
+            client.player.sendMessage(Text.literal("Молитва слышна… " + "▮".repeat(bars) + "▯".repeat(10 - bars) + " (отпусти, чтобы вознести)").formatted(Formatting.GOLD), true);
+        }
+    }
+
+    private static void start(MinecraftClient client) {
+        if (busy) { client.player.sendMessage(Text.literal("Бог ещё внимает прежней молитве…").formatted(Formatting.GOLD), true); return; }
+        BlockPos found = findAltar(client);
+        if (found == null) { client.player.sendMessage(Text.literal("Молиться вслух можно лишь у алтаря.").formatted(Formatting.GRAY), true); return; }
+        DivineConfig config = DivineBlockMod.config();
+        try { capture = RECORDER.start(config.microphoneName, PcmWav.MAX_SECONDS); }
+        catch (RuntimeException occupied) { client.player.sendMessage(Text.literal(occupied.getMessage()).formatted(Formatting.RED), true); return; }
+        altar = found; world = client.world;
+    }
+
+    private static void finish(MinecraftClient client) {
+        MicrophoneRecorder.Capture done = capture;
+        capture = null;
+        done.stop();
+        process(client, done.wav, altar, world);
+    }
+
+    /** Recognises a recorded prayer and sends it to the altar; the self-test feeds a synthesised one through here too. */
+    static void process(MinecraftClient client, java.util.concurrent.CompletableFuture<byte[]> recording, BlockPos target, ClientWorld where) {
+        DivineConfig config = DivineBlockMod.config();
+        busy = true;
+        client.player.sendMessage(Text.literal("Бог вслушивается…").formatted(Formatting.GOLD), true);
+        recording.whenComplete((wav, failure) -> WORKER.execute(() -> {
+            String text = null, problem = null;
+            try {
+                if (failure != null) throw failure instanceof Exception e ? e : new Exception(failure);
+                if (wav == null) problem = "Слишком коротко: держи клавишу, пока молишься.";
+                else {
+                    WhisperHelper.ensureReady(config, line -> client.execute(() -> { if (client.player != null) client.player.sendMessage(Text.literal(line).formatted(Formatting.GRAY), true); }));
+                    text = new LocalWhisper(config.whisperUrl).transcribe(wav);
+                }
+            } catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); problem = "Молитва прервана."; }
+            catch (Exception error) { problem = error.getMessage(); }
+            String prayer = text, message = problem;
+            client.execute(() -> {
+                busy = false;
+                if (client.player == null || client.world != where) return; // Left the world: the prayer is lost.
+                if (message != null) { client.player.sendMessage(Text.literal(message).formatted(Formatting.RED), true); return; }
+                if (prayer == null || prayer.isBlank()) { client.player.sendMessage(Text.literal("Бог не расслышал ни слова.").formatted(Formatting.GRAY), true); return; }
+                if (!target.isWithinDistance(client.player.getBlockPos(), 8)) { client.player.sendMessage(Text.literal("Ты отошёл от алтаря.").formatted(Formatting.GRAY), true); return; }
+                client.player.sendMessage(Text.literal("Ты молишься: «" + prayer + "»").formatted(Formatting.GRAY, Formatting.ITALIC), false);
+                heard.accept(prayer);
+                if (ClientPlayNetworking.canSend(PrayPayload.ID)) ClientPlayNetworking.send(new PrayPayload(target, prayer.length() > PrayPayload.MAX_TEXT ? prayer.substring(0, PrayPayload.MAX_TEXT) : prayer));
+            });
+        }));
+    }
+
+    /** The altar under the crosshair, else the nearest within six blocks. */
+    static BlockPos findAltar(MinecraftClient client) {
+        HitResult hit = client.crosshairTarget;
+        if (hit instanceof BlockHitResult block && hit.getType() == HitResult.Type.BLOCK
+                && client.world.getBlockState(block.getBlockPos()).getBlock() instanceof AltarBlock
+                && block.getBlockPos().isWithinDistance(client.player.getBlockPos(), 8)) return block.getBlockPos();
+        for (BlockPos pos : BlockPos.iterateOutwards(client.player.getBlockPos(), 6, 4, 6))
+            if (client.world.getBlockState(pos).getBlock() instanceof AltarBlock) return pos.toImmutable();
+        return null;
+    }
+
+    static void cancel() {
+        if (capture != null) { capture.cancel(); capture = null; }
+    }
+
+    static void shutdown() { cancel(); RECORDER.close(); WhisperHelper.stopOwned(); }
+}

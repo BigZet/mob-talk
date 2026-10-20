@@ -196,6 +196,8 @@ public final class Prayers {
 
     static void say(ServerPlayerEntity player, String line) {
         spoken.accept(line);
+        if (line != null && !line.isBlank() && !"…".equals(line) && net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.canSend(player, GodLinePayload.ID))
+            net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(player, new GodLinePayload(line.length() > 600 ? line.substring(0, 600) : line));
         player.sendMessage(Text.literal("[Бог] ").formatted(Formatting.GOLD, Formatting.BOLD)
                 .append(Text.literal(line == null || line.isBlank() ? "…" : line).formatted(Formatting.YELLOW, Formatting.ITALIC)), false);
     }

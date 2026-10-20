@@ -41,6 +41,7 @@ public final class DivineBlockMod implements ModInitializer {
         Registry.register(Registries.ITEM, Identifier.of(ID, "altar"), ALTAR_ITEM);
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> entries.add(ALTAR_ITEM));
         PayloadTypeRegistry.playC2S().register(PrayPayload.ID, PrayPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(io.github.divineblock.game.GodLinePayload.ID, io.github.divineblock.game.GodLinePayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(PrayPayload.ID, (payload, context) -> Prayers.handle(context.player(), payload.altar(), payload.text()));
         JevGodDecider.diagnostics = line -> LOG.info("Божественный блок: {}", line);
         GameHooks.register();

@@ -30,7 +30,7 @@ public final class DivineSettingsScreen extends Screen {
     public DivineSettingsScreen(Screen parent) { super(Text.literal("Божественный блок")); this.parent = parent; }
 
     @Override protected void init() {
-        int column = 150, gap = 8, left = this.width / 2 - column - gap / 2, right = this.width / 2 + gap / 2, y = 30, row = 24;
+        int column = 150, gap = 8, left = this.width / 2 - column - gap / 2, right = this.width / 2 + gap / 2, y = 28, row = 22;
         addDrawableChild(CyclingButtonWidget.<DivineConfig.Personality>builder(p -> Text.literal(p.label)).values(DivineConfig.Personality.values())
                 .initially(config.personality).build(left, y, column, 20, Text.literal("Нрав"), (b, v) -> config.personality = v));
         addDrawableChild(CyclingButtonWidget.<Integer>builder(v -> Text.literal(v + " — " + new String[] { "знамения", "малое", "среднее", "большое", "апокалипсис" }[v]))
@@ -51,13 +51,18 @@ public final class DivineSettingsScreen extends Screen {
         addDrawableChild(CyclingButtonWidget.<DivineConfig.Provider>builder(p -> Text.literal(p == DivineConfig.Provider.VENICE ? "Venice → OpenRouter" : "OpenRouter"))
                 .values(DivineConfig.Provider.values()).initially(config.provider).build(left, y, column, 20, Text.literal("Речь"), (b, v) -> config.provider = v));
         addDrawableChild(CyclingButtonWidget.onOffBuilder(config.debug).build(right, y, column, 20, Text.literal("Отладка"), (b, v) -> config.debug = v));
+        y += row;
+        addDrawableChild(CyclingButtonWidget.onOffBuilder(config.voice).build(left, y, column, 20, Text.literal("Голос бога"), (b, v) -> config.voice = v));
+        java.util.List<String> voices = java.util.Arrays.stream(io.github.divineblock.core.GodVoice.VOICES).map(v -> v[0]).toList();
+        addDrawableChild(CyclingButtonWidget.<String>builder(id -> Text.literal(voiceName(id))).values(voices)
+                .initially(voices.contains(config.voiceId) ? config.voiceId : voices.get(0)).build(right, y, column, 20, Text.literal("Голос"), (b, v) -> config.voiceId = v));
         y += row + 6;
 
-        openRouterKey = keyField(left, y, column * 2 + gap - 84, "Ключ OpenRouter (sk-or-…)");
-        addDrawableChild(ButtonWidget.builder(Text.literal("Сохранить"), b -> storeKey(ApiKeys.Provider.OPENROUTER, openRouterKey)).dimensions(right + column - 80, y, 80, 20).build());
-        y += row;
-        veniceKey = keyField(left, y, column * 2 + gap - 84, "Ключ Venice (необязательно)");
-        addDrawableChild(ButtonWidget.builder(Text.literal("Сохранить"), b -> storeKey(ApiKeys.Provider.VENICE, veniceKey)).dimensions(right + column - 80, y, 80, 20).build());
+        // Both keys on one row: a field and its save button in each column.
+        openRouterKey = keyField(left, y, column - 44, "Ключ OpenRouter");
+        addDrawableChild(ButtonWidget.builder(Text.literal("Сохр."), b -> storeKey(ApiKeys.Provider.OPENROUTER, openRouterKey)).dimensions(left + column - 40, y, 40, 20).build());
+        veniceKey = keyField(right, y, column - 44, "Ключ Venice");
+        addDrawableChild(ButtonWidget.builder(Text.literal("Сохр."), b -> storeKey(ApiKeys.Provider.VENICE, veniceKey)).dimensions(right + column - 40, y, 40, 20).build());
 
         addDrawableChild(ButtonWidget.builder(Text.literal("Готово"), b -> close()).dimensions(this.width / 2 - 100, this.height - 28, 200, 20).build());
         refreshKeyStatus();
@@ -115,7 +120,7 @@ public final class DivineSettingsScreen extends Screen {
     @Override public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
         context.drawCenteredTextWithShadow(textRenderer, title.copy().formatted(Formatting.GOLD), this.width / 2, 12, 0xFFFFFF);
-        int y = 30 + 24 * 5 + 6 + 24 * 2 + 2;
+        int y = 28 + 22 * 6 + 6 + 22 + 2;
         context.drawTextWithShadow(textRenderer, Text.literal(keyStatus).formatted(Formatting.GRAY), this.width / 2 - 154, y, 0xFFFFFF);
         y += 12;
         String[] lines = soul.split("\n");
@@ -124,7 +129,7 @@ public final class DivineSettingsScreen extends Screen {
             if (line.isBlank()) continue;
             boolean numbers = line.startsWith("•") || line.startsWith("Итог") || line.startsWith("Последний");
             if (numbers && !config.debug) continue;
-            if (y > this.height - 40 || shown++ > 12) break;
+            if (y > this.height - 38 || shown++ > 12) break;
             context.drawTextWithShadow(textRenderer, Text.literal(line).formatted(numbers ? Formatting.DARK_GRAY : Formatting.YELLOW), this.width / 2 - 154, y, 0xFFFFFF);
             y += 10;
         }
@@ -134,6 +139,11 @@ public final class DivineSettingsScreen extends Screen {
         try { config.save(DivineBlockMod.configFile()); DivineBlockMod.reloadConfig(); }
         catch (IOException failure) { DivineBlockMod.LOG.warn("Божественный блок: настройки не сохранены", failure); }
         if (client != null) client.setScreen(parent);
+    }
+
+    private static String voiceName(String id) {
+        for (String[] voice : io.github.divineblock.core.GodVoice.VOICES) if (voice[0].equals(id)) return voice[1];
+        return id;
     }
 
     private static int nearest(int value, int... options) {

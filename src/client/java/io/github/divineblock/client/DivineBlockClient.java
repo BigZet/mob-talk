@@ -9,15 +9,19 @@ import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
 
-/** Client side: the prayer screen on the altar and the settings key (F9 by default). */
+/** Client side: the prayer screen on the altar, praying aloud (hold R), the god's voice and the settings key (F9). */
 public final class DivineBlockClient implements ClientModInitializer {
-    private static KeyBinding settingsKey;
+    private static KeyBinding settingsKey, prayKey;
 
     @Override public void onInitializeClient() {
         AltarBlock.openPrayer = pos -> MinecraftClient.getInstance().setScreen(new PrayerScreen(pos));
         SelfTest.register();
         settingsKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.divineblock.settings", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_F9, "key.categories.divineblock"));
+        prayKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.divineblock.pray", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_R, "key.categories.divineblock"));
+        GodVoicePlayer.register();
+        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents.CLIENT_STOPPING.register(client -> VoicePrayer.shutdown());
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            VoicePrayer.tick(client, prayKey);
             while (settingsKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new DivineSettingsScreen(null));
         });
     }

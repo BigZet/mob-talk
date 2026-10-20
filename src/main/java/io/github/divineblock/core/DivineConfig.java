@@ -39,6 +39,14 @@ public final class DivineConfig {
     public String chatModel = "openai/gpt-6-luna";
     public String veniceModel = "deepseek-v4-1-flash";
     public int speechTimeoutSeconds = 12;
+    /** The god speaks aloud (OpenRouter text to speech); off leaves subtitles only. */
+    public boolean voice = true;
+    public String voiceId = GodVoice.VOICES[0][0];
+    public String ttsModel = "elevenlabs/eleven-flash-v2.5";
+    /** Prayers by voice: the local Whisper helper (shared with Mob Talk) and the microphone; "" is the system default. */
+    public String whisperUrl = "http://127.0.0.1:63919";
+    public boolean whisperAutoStart = true;
+    public String microphoneName = "";
     /** Ids of acts the player switched off. */
     public List<String> disabled = new ArrayList<>();
     public boolean debug = false;
@@ -71,6 +79,10 @@ public final class DivineConfig {
         if (chatModel == null || chatModel.isBlank()) chatModel = new DivineConfig().chatModel;
         if (veniceModel == null || veniceModel.isBlank()) veniceModel = new DivineConfig().veniceModel;
         if (disabled == null) disabled = new ArrayList<>();
+        if (!GodVoice.validVoiceId(voiceId)) voiceId = GodVoice.VOICES[0][0];
+        if (ttsModel == null || ttsModel.isBlank()) ttsModel = new DivineConfig().ttsModel;
+        try { LocalWhisper.local(whisperUrl); } catch (IllegalArgumentException invalid) { whisperUrl = new DivineConfig().whisperUrl; }
+        if (microphoneName == null) microphoneName = "";
         return this;
     }
 

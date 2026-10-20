@@ -1,5 +1,7 @@
 {
   "block.divineblock.altar": "Divine Altar",
   "key.categories.divineblock": "Divine Block",
-  "key.divineblock.settings": "God settings"
+  "key.divineblock.settings": "God settings",
+  "key.divineblock.pray": "Pray aloud (hold)",
+  "subtitle.divineblock.god_voice": "The god speaks"
 }

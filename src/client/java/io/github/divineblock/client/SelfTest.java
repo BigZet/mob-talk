@@ -53,7 +53,8 @@ import net.minecraft.world.level.LevelInfo;
 public final class SelfTest {
     private static final List<String> report = new ArrayList<>();
     private static int phase, ticks, failures;
-    private static volatile String screenshot, clientPrayer;
+    private static volatile String screenshot, clientPrayer, heardText;
+    private static volatile int voiced;
     private static volatile boolean finished;
     private static BlockPos altar, base;
 
@@ -63,6 +64,8 @@ public final class SelfTest {
         if (!Boolean.getBoolean("divineblock.selftest")) return;
         log("самотест включён");
         Prayers.spoken = line -> log("  бог: " + line);
+        GodVoicePlayer.played = seconds -> { voiced++; log(String.format(java.util.Locale.ROOT, "  голос бога звучит: %.1f с", seconds)); };
+        VoicePrayer.heard = text -> { heardText = text; log("  Whisper распознал молитву: " + text); };
         ClientTickEvents.END_CLIENT_TICK.register(SelfTest::tick);
     }
 
@@ -182,11 +185,28 @@ public final class SelfTest {
         steps.add(new Step(-1, () -> verdictArrived(soul, 1, "милость святому")));
         steps.add(new Step(40, () -> { screenshot = "help"; soul.lastPrayerTick = Long.MIN_VALUE / 2; Prayers.handle(player, altar, "Почему?"); }));
         steps.add(new Step(100, () -> {
+            // A spoken prayer: the god's own voice says it, Whisper hears it, and it goes to the altar like a real one.
+            soul.lastPrayerTick = Long.MIN_VALUE / 2; soul.prayerTicks.clear();
+            MinecraftClient client = MinecraftClient.getInstance();
+            java.util.concurrent.CompletableFuture<byte[]> wav = java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+                try { return io.github.divineblock.core.PcmWav.encode(io.github.divineblock.core.PcmWav.from24k(
+                        new io.github.divineblock.core.GodVoice(DivineBlockMod.config(), DivineBlockMod.configDirectory()).synthesize("Господи, молю тебя, исцели меня."))); }
+                catch (Exception failure) { throw new java.util.concurrent.CompletionException(failure); }
+            });
+            BlockPos at = altar;
+            client.execute(() -> VoicePrayer.process(client, wav, at, client.world));
+        }));
+        steps.add(new Step(-1, () -> {
+            check(heardText != null && heardText.toLowerCase().contains("исцели"), "молитва голосом распознана: " + heardText);
+            verdictArrived(soul, 2, "молитва голосом");
+        }));
+        steps.add(new Step(100, () -> {
+            check(voiced >= 2, "голос бога прозвучал: " + voiced + " раз");
             soul.righteousness.score = -45; soul.mood = -50; soul.lastPrayerTick = Long.MIN_VALUE / 2; soul.prayerTicks.clear();
             Prayers.handle(player, altar, "Ты тупой бог, дай алмазы");
         }));
         steps.add(new Step(-1, () -> {
-            Verdict wrath = verdictArrived(soul, 2, "гнев грешнику");
+            Verdict wrath = verdictArrived(soul, 3, "гнев грешнику");
             if (wrath != null && wrath.warned) {
                 screenshot = "warning";
                 Scheduler.later(60, () -> {
