@@ -574,7 +574,7 @@ final class SelfTest {
                 check(!bridge().memory.displayName(a).isBlank() && !bridge().memory.acquainted(a), "the talker got a name (" + bridge().memory.displayName(a) + ") without becoming the player's acquaintance");
                 long now = System.currentTimeMillis();
                 // The partner may be any villager standing by (the farmer of the earlier stages too): the one the talk names.
-                String partner = bridge().memory.events(a).stream().filter(e -> e.startsWith("Болтал с ")).reduce((x, y) -> y).orElse("").substring("Болтал с ".length()).split("[,:]")[0].strip();
+                String partner = bridge().memory.events(a).stream().filter(e -> e.startsWith("Болтал с ")).reduce((x, y) -> y).map(e -> e.substring("Болтал с ".length()).split("[,:]")[0].strip()).orElse("");
                 check(bridge().memory.bonds(a, now).stream().anyMatch(b -> bridge().memory.displayName(b.other()).equals(partner)), "the talk introduced the two (" + partner + ")");
                 check(voiced, "the small talk was voiced");
                 notices();
@@ -590,9 +590,11 @@ final class SelfTest {
             command("tp " + talker2 + " " + at(2, 0));
             await("the call to work became a favour", 20, () -> bridge().memory.favor(talker2, player) != null, () -> {
                 check(bridge().memory.favor(talker2, player) != null, "coming to the villager who called turned the call into a favour");
-                int starts = owner.speechStarts;
-                await("the villager explained the work", 120, () -> owner.speechStarts > starts && !owner.busyTalking(), () -> {
+                int starts = owner.speechStarts, shown = owner.repliesShown;
+                // A reply shown as text ends the wait too: an unvoiced line is a failed check, not two minutes of silence.
+                await("the villager explained the work", 120, () -> (owner.speechStarts > starts || owner.repliesShown > shown) && !owner.busyTalking(), () -> {
                     log("the villager on the work: " + lastReply(talker2));
+                    check(owner.speechStarts > starts, "the villager's explanation was voiced");
                     voicePath();
                 });
             });
@@ -602,6 +604,8 @@ final class SelfTest {
     // ---- Stage 10: the voice path — a question voiced by TTS goes through Whisper like a recording.
     private void voicePath() {
         MobTalkConfig config = owner.config().copy();
+        // Без -Dmobtalk.selftest.venice=1 вопрос озвучивает OpenRouter, даже если в настройках выбрана озвучка Venice.
+        if (!VENICE) config.ttsProvider = "openrouter";
         CompletableFuture<byte[]> wav = CompletableFuture.supplyAsync(() -> {
             try {
                 byte[] pcm24 = SpeechPreview.synthesize(config, owner.configDirectory, config.defaultVoice, "Как тебя зовут и что ты здесь делаешь?");

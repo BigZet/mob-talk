@@ -17,20 +17,69 @@ final class OpenRouterSpeechClient implements AutoCloseable {
     private final URI endpoint;
     private final BoundedHttp http;
     private final MobTalkConfig config;
+    /** Venice speech only: OpenRouter voicing when Venice refuses (no credits, key, rate limit); null without an OpenRouter key. */
+    private final OpenRouterSpeechClient fallback;
+    /** Venice refused the account itself (401/402/403 or no key): the rest of this session speaks through the fallback. */
+    private volatile boolean onFallback;
 
-    OpenRouterSpeechClient(String key, MobTalkConfig config) { this(key, config, config.usesVeniceSpeech() ? VENICE_ENDPOINT : ENDPOINT); }
-    OpenRouterSpeechClient(String key, MobTalkConfig config, URI endpoint) {
+    OpenRouterSpeechClient(String key, MobTalkConfig config) { this(key, config, (String) null); }
+    /** {@code openRouterKey}: when speech goes through Venice, the OpenRouter key that takes over if Venice refuses. */
+    OpenRouterSpeechClient(String key, MobTalkConfig config, String openRouterKey) {
+        this(key, config, config.usesVeniceSpeech() ? VENICE_ENDPOINT : ENDPOINT, fallbackFor(config, openRouterKey));
+        // Venice's balance is checked once, off the caller's thread; until it answers a refusal still hands over on its own.
+        if (fallback != null && this.key != null) Thread.ofVirtual().name("mobtalk-venice-balance").start(this::checkBalance);
+    }
+
+    private void checkBalance() {
+        try {
+            VeniceBalance.Status balance = VeniceBalance.check(http, key);
+            if (balance.low() && !onFallback) {
+                onFallback = true;
+                System.out.println("Mob Talk: Venice " + balance.describe() + ", озвучка до конца сессии идёт через OpenRouter.");
+            }
+        } catch (IOException | RuntimeException unknown) { /* Unknown balance: Venice is tried, a refusal still hands over. */ }
+        catch (InterruptedException closed) { Thread.currentThread().interrupt(); }
+    }
+    OpenRouterSpeechClient(String key, MobTalkConfig config, URI endpoint) { this(key, config, endpoint, null); }
+    OpenRouterSpeechClient(String key, MobTalkConfig config, URI endpoint, OpenRouterSpeechClient fallback) {
         // No key: the client exists but every request fails, so the reply is shown as text only.
         this.key = key == null ? null : OpenRouterConversationClient.validKey(key);
         this.endpoint = endpoint;
         this.config = config.copy();
         this.http = new BoundedHttp(config);
+        this.fallback = fallback;
+    }
+
+    private static OpenRouterSpeechClient fallbackFor(MobTalkConfig config, String openRouterKey) {
+        if (!config.usesVeniceSpeech() || openRouterKey == null || openRouterKey.isBlank()) return null;
+        MobTalkConfig openRouter = config.copy();
+        openRouter.ttsProvider = "openrouter";
+        return new OpenRouterSpeechClient(openRouterKey, openRouter, ENDPOINT, null);
     }
 
     java.time.Duration timeout() { return http.timeout(); }
     /** The speech model requests name. */
-    String model() { return config.speechModel(); }
-    String service() { return config.usesVeniceSpeech() ? "Venice TTS" : "OpenRouter TTS"; }
+    String model() { return onFallback ? fallback.model() : config.speechModel(); }
+    String service() { return onFallback ? fallback.service() : config.usesVeniceSpeech() ? "Venice TTS" : "OpenRouter TTS"; }
+    /** Whether Venice gave up for this session and OpenRouter voices instead; successes then are not Venice's to record. */
+    boolean fellBack() { return onFallback; }
+
+    /** A Venice refusal OpenRouter can stand in for: anything but a rejected voice or text (400/404/422) and a lost line. */
+    private boolean handsOver(IOException failure) {
+        // The balance check may have switched over while this request was still with Venice: that one goes over too.
+        if (fallback == null) return false;
+        if (onFallback) return true;
+        if (key == null) return true;
+        if (!(failure instanceof BoundedHttp.SafeFailure safe) || safe.status <= 0) return false;
+        return safe.status == 401 || safe.status == 402 || safe.status == 403 || safe.status == 408 || safe.status == 429 || safe.status >= 500;
+    }
+    private void handOver(IOException failure) {
+        int status = failure instanceof BoundedHttp.SafeFailure safe ? safe.status : -1;
+        if (!onFallback && (key == null || status == 401 || status == 402 || status == 403)) {
+            onFallback = true;
+            System.out.println("Mob Talk: Venice TTS недоступна (" + (key == null ? "нет ключа" : "HTTP " + status) + "), озвучка до конца сессии идёт через OpenRouter.");
+        }
+    }
 
     /** An ElevenLabs voice id as the species catalog and the mob card store them. */
     static boolean validVoiceId(String voiceId) { return voiceId != null && voiceId.strip().matches("[A-Za-z0-9]{20,64}"); }
@@ -50,6 +99,16 @@ final class OpenRouterSpeechClient implements AutoCloseable {
 
     /** Only the caller's dedicated species reserve may replace a permanently rejected voice. */
     Audio synthesizeWithFallback(String preferred, String reserve, String text) throws IOException, InterruptedException {
+        if (onFallback) return fallback.synthesizeWithFallback(preferred, reserve, text);
+        try { return synthesizeHere(preferred, reserve, text); }
+        catch (IOException failure) {
+            if (!handsOver(failure)) throw failure;
+            handOver(failure);
+            return fallback.synthesizeWithFallback(preferred, reserve, text);
+        }
+    }
+
+    private Audio synthesizeHere(String preferred, String reserve, String text) throws IOException, InterruptedException {
         if (preferred == null || preferred.isBlank()) throw new IOException("Для этого характера голос ещё не назначен.");
         String selected = selectedVoice(preferred), replacement = selectedVoice(reserve);
         if (selected.isBlank()) {
@@ -67,6 +126,16 @@ final class OpenRouterSpeechClient implements AutoCloseable {
 
     /** Same voice fallback as synthesizeWithFallback; returns as soon as the audio starts arriving. */
     StreamedAudio streamWithFallback(String preferred, String reserve, String text) throws IOException, InterruptedException {
+        if (onFallback) return fallback.streamWithFallback(preferred, reserve, text);
+        try { return streamHere(preferred, reserve, text); }
+        catch (IOException failure) {
+            if (!handsOver(failure)) throw failure;
+            handOver(failure);
+            return fallback.streamWithFallback(preferred, reserve, text);
+        }
+    }
+
+    private StreamedAudio streamHere(String preferred, String reserve, String text) throws IOException, InterruptedException {
         if (preferred == null || preferred.isBlank()) throw new IOException("Для этого характера голос ещё не назначен.");
         String selected = selectedVoice(preferred), replacement = selectedVoice(reserve);
         if (selected.isBlank()) {
@@ -144,7 +213,7 @@ final class OpenRouterSpeechClient implements AutoCloseable {
                 .POST(HttpRequest.BodyPublishers.ofString(body.toString(), StandardCharsets.UTF_8)).build();
     }
 
-    @Override public void close() { http.close(); }
+    @Override public void close() { http.close(); if (fallback != null) fallback.close(); }
     record Audio(String voiceId, byte[] pcm) { }
     record StreamedAudio(String voiceId, SpeechStream stream) { }
 }

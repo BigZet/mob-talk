@@ -20,7 +20,13 @@ public final class ConversationEngine implements AutoCloseable {
     }
 
     private ConversationEngine(MobTalkConfig config, Path worldDirectory, Path configDirectory, String chatKey, String speechKey) throws IOException {
-        this(config, worldDirectory, new OpenRouterConversationClient(chatKey, config), new OpenRouterSpeechClient(speechKey, config), configDirectory, speechKey);
+        this(config, worldDirectory, new OpenRouterConversationClient(chatKey, config), new OpenRouterSpeechClient(speechKey, config, speechFallbackKey(config, configDirectory)), configDirectory, speechKey);
+    }
+
+    /** Venice speech: the OpenRouter key that voices instead when Venice is empty or refuses; null when there is none. */
+    static String speechFallbackKey(MobTalkConfig config, Path configDirectory) {
+        if (!config.usesVeniceSpeech()) return null;
+        try { return OpenRouterToken.load(configDirectory, OpenRouterToken.Provider.OPENROUTER); } catch (IOException missing) { return null; }
     }
 
     /** The chosen provider's key is required: without it there is nobody to answer. */
@@ -196,7 +202,7 @@ public final class ConversationEngine implements AutoCloseable {
         catch (InterruptedException cancelled) { if (audio != null) audio.close(); throw cancelled; }
         try { checkCurrent(snapshot); }
         catch (InterruptedException cancelled) { if (audio != null) audio.close(); throw cancelled; }
-        if (audio != null && configDirectory != null && speechKey != null) {
+        if (audio != null && configDirectory != null && speechKey != null && !speech.fellBack()) {
             try { SpeechPreview.mark(configDirectory, voiceId, speechKey, speech.model()); }
             catch (IOException cacheUnavailable) { /* A status-cache failure must never discard successful audio. */ }
         }

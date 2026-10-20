@@ -23,19 +23,28 @@ public final class SpeechPreview {
             if (!config.usesVenice()) {
                 checkOpenRouter(http, OpenRouterToken.load(directory));
                 String speech = config.usesVeniceSpeech() ? "; озвучка Venice (" + config.veniceTtsModel + ", голос " + config.veniceVoice + ")"
-                        + (OpenRouterToken.status(directory, OpenRouterToken.Provider.VENICE).source() == OpenRouterToken.Source.NONE ? " — ключ Venice не задан" : "")
+                        + (OpenRouterToken.status(directory, OpenRouterToken.Provider.VENICE).source() == OpenRouterToken.Source.NONE
+                            ? " — ключ Venice не задан, озвучит OpenRouter" : veniceBalance(http, OpenRouterToken.load(directory, OpenRouterToken.Provider.VENICE)))
                         : "; озвучка " + config.ttsModel;
                 return "OpenRouter доступен, ключ принят. Выбранная LLM: " + config.llmModel + speech;
             }
             String venice = OpenRouterToken.load(directory, OpenRouterToken.Provider.VENICE);
-            http.send(HttpRequest.newBuilder(URI.create("https://api.venice.ai/api/v1/api_keys/rate_limits"))
-                    .timeout(http.timeout()).header("Authorization", "Bearer " + venice).GET().build(), 256 * 1024, "Venice");
+            VeniceBalance.Status balance = VeniceBalance.check(http, venice);
             String speech;
-            if (config.usesVeniceSpeech()) speech = "озвучка Venice (" + config.veniceTtsModel + ", голос " + config.veniceVoice + ")";
+            if (config.usesVeniceSpeech()) speech = "озвучка Venice (" + config.veniceTtsModel + ", голос " + config.veniceVoice + ")"
+                    + (balance.low() ? "; баланс Venice: " + balance.describe() + " — озвучит OpenRouter" : "");
             else try { checkOpenRouter(http, OpenRouterToken.load(directory)); speech = "озвучка OpenRouter готова (" + config.ttsModel + ")"; }
             catch (IOException unavailable) { speech = "озвучка недоступна: " + unavailable.getMessage(); }
-            return "Venice доступен, ключ принят. Выбранная LLM: " + config.veniceModel + "; " + speech;
+            return "Venice доступен, ключ принят (" + balance.describe() + "). Выбранная LLM: " + config.veniceModel + "; " + speech;
         }
+    }
+
+    /** The F7 note on Venice's balance: empty when it is fine, the hand-over to OpenRouter when it is low or unknown to fail. */
+    private static String veniceBalance(BoundedHttp http, String key) throws InterruptedException {
+        try {
+            VeniceBalance.Status balance = VeniceBalance.check(http, key);
+            return balance.low() ? " — баланс Venice: " + balance.describe() + ", озвучит OpenRouter" : " — баланс Venice: " + balance.describe();
+        } catch (IOException unavailable) { return " — баланс Venice не проверен: " + unavailable.getMessage(); }
     }
 
     private static void checkOpenRouter(BoundedHttp http, String key) throws IOException, InterruptedException {
@@ -46,12 +55,14 @@ public final class SpeechPreview {
     /** Voices {@code text} with the configured speech provider; through Venice the per-mob voice gives way to the configured one. */
     public static byte[] synthesize(MobTalkConfig config, Path directory, String voice, String text) throws IOException, InterruptedException {
         if ((!config.usesVeniceSpeech() || config.veniceSpeechKeepsVoices()) && !OpenRouterSpeechClient.validVoiceId(voice)) throw new IOException("Голос ещё не назначен или ID имеет неверный формат.");
-        String key = OpenRouterToken.load(directory, config.usesVeniceSpeech() ? OpenRouterToken.Provider.VENICE : OpenRouterToken.Provider.OPENROUTER);
-        try (OpenRouterSpeechClient speech = new OpenRouterSpeechClient(key, config)) {
-            String used = speech.selectedVoice(voice);
-            byte[] pcm = speech.synthesize(used, TextBounds.reply(text, 120));
-            try { mark(directory, used, key, speech.model()); } catch (IOException cacheUnavailable) { /* Audio remains usable. */ }
-            return pcm;
+        String fallback = ConversationEngine.speechFallbackKey(config, directory), key;
+        try { key = OpenRouterToken.load(directory, config.usesVeniceSpeech() ? OpenRouterToken.Provider.VENICE : OpenRouterToken.Provider.OPENROUTER); }
+        catch (IOException missing) { if (fallback == null) throw missing; key = null; }
+        try (OpenRouterSpeechClient speech = new OpenRouterSpeechClient(key, config, fallback)) {
+            // Through Venice's Kokoro every mob has the one configured voice; OpenRouter taking over needs the mob's own id.
+            OpenRouterSpeechClient.Audio audio = speech.synthesizeWithFallback(voice, TextBounds.reply(text, 120));
+            if (key != null && !speech.fellBack()) try { mark(directory, audio.voiceId(), key, speech.model()); } catch (IOException cacheUnavailable) { /* Audio remains usable. */ }
+            return audio.pcm();
         }
     }
 
