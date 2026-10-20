@@ -36,6 +36,8 @@ public final class InitiativeController {
     public void raise(Initiative.Cue cue) { if (cue != null) cues.add(cue); }
     /** The next occasion for the client, or null. */
     public Initiative.Cue poll() { return cues.poll(); }
+    /** Сколько поводов ждут клиента. */
+    public int pending() { return cues.size(); }
     /** The creature chose silence: the world's minute is given back so another may speak sooner. */
     public synchronized void refund(Initiative.Cue cue) { if (cue != null) budget.refund(cue.createdMillis()); }
 
