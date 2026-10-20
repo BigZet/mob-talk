@@ -15,6 +15,7 @@ public final class DivineBlockClient implements ClientModInitializer {
 
     @Override public void onInitializeClient() {
         AltarBlock.openPrayer = pos -> MinecraftClient.getInstance().setScreen(new PrayerScreen(pos));
+        SelfTest.register();
         settingsKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.divineblock.settings", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_F9, "key.categories.divineblock"));
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (settingsKey.wasPressed()) if (client.currentScreen == null) client.setScreen(new DivineSettingsScreen(null));

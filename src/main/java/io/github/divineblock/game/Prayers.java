@@ -191,7 +191,11 @@ public final class Prayers {
         say(player, "Ладно, смертный. Раскаяние принято, но я запомню.");
     }
 
+    /** Every line the god says, for the self-test's report. */
+    public static volatile java.util.function.Consumer<String> spoken = line -> { };
+
     static void say(ServerPlayerEntity player, String line) {
+        spoken.accept(line);
         player.sendMessage(Text.literal("[Бог] ").formatted(Formatting.GOLD, Formatting.BOLD)
                 .append(Text.literal(line == null || line.isBlank() ? "…" : line).formatted(Formatting.YELLOW, Formatting.ITALIC)), false);
     }

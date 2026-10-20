@@ -1,0 +1,265 @@
+package io.github.divineblock.client;
+
+import io.github.divineblock.DivineBlockMod;
+import io.github.divineblock.core.DivineConfig;
+import io.github.divineblock.core.GodLedger;
+import io.github.divineblock.core.Miracle;
+import io.github.divineblock.core.Righteousness;
+import io.github.divineblock.core.Verdict;
+import io.github.divineblock.game.DivineState;
+import io.github.divineblock.game.Miracles;
+import io.github.divineblock.game.PrayPayload;
+import io.github.divineblock.game.Prayers;
+import io.github.divineblock.game.Scheduler;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.block.Blocks;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.TitleScreen;
+import net.minecraft.client.util.ScreenshotRecorder;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.ItemEntity;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.passive.VillagerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.resource.DataConfiguration;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Hand;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
+import net.minecraft.world.Difficulty;
+import net.minecraft.world.GameMode;
+import net.minecraft.world.GameRules;
+import net.minecraft.world.Heightmap;
+import net.minecraft.world.gen.GeneratorOptions;
+import net.minecraft.world.gen.WorldPresets;
+import net.minecraft.world.level.LevelInfo;
+
+/** The unattended in-game self-test, on with -Ddivineblock.selftest=true: makes a fresh world, places an altar, prays through
+ * the real packet, kills a villager to see the deed counted, angers the god and repents, performs every act of the catalogue,
+ * takes screenshots and quits. Report: %LOCALAPPDATA%\DivineBlock\selftest\report.txt; screenshots in the game's screenshots. */
+public final class SelfTest {
+    private static final List<String> report = new ArrayList<>();
+    private static int phase, ticks, failures;
+    private static volatile String screenshot, clientPrayer;
+    private static volatile boolean finished;
+    private static BlockPos altar, base;
+
+    private SelfTest() { }
+
+    public static void register() {
+        if (!Boolean.getBoolean("divineblock.selftest")) return;
+        log("самотест включён");
+        Prayers.spoken = line -> log("  бог: " + line);
+        ClientTickEvents.END_CLIENT_TICK.register(SelfTest::tick);
+    }
+
+    private static void tick(MinecraftClient client) {
+        ticks++;
+        if (screenshot != null) {
+            String name = "divineblock-" + screenshot + ".png";
+            screenshot = null;
+            ScreenshotRecorder.saveScreenshot(client.runDirectory, name, client.getFramebuffer(), text -> log("  скриншот " + name));
+        }
+        if (clientPrayer != null && client.player != null) {
+            String text = clientPrayer; clientPrayer = null;
+            ClientPlayNetworking.send(new PrayPayload(altar, text));
+            log("молитва через пакет: " + text);
+        }
+        switch (phase) {
+            case 0 -> {
+                if (!(client.currentScreen instanceof TitleScreen)) return;
+                GameRules rules = new GameRules();
+                rules.get(GameRules.DO_MOB_SPAWNING).set(false, null);
+                rules.get(GameRules.DO_DAYLIGHT_CYCLE).set(false, null);
+                rules.get(GameRules.DO_WEATHER_CYCLE).set(false, null);
+                String name = "divineblock-selftest";
+                LevelInfo info = new LevelInfo(name, GameMode.SURVIVAL, false, Difficulty.NORMAL, true, rules, DataConfiguration.SAFE_MODE);
+                log("создаю мир " + name);
+                phase = 1; ticks = 0;
+                client.createIntegratedServerLoader().createAndStart(name, info, new GeneratorOptions(20261020L, true, false), WorldPresets::createDemoOptions, new TitleScreen());
+            }
+            case 1 -> {
+                if (client.player != null && client.getServer() != null && client.player.age > 60) {
+                    MinecraftServer server = client.getServer();
+                    var uuid = client.player.getUuid();
+                    server.execute(() -> begin(server, server.getPlayerManager().getPlayer(uuid)));
+                    phase = 2;
+                } else if (ticks > 20 * 240) { fail("мир не открылся"); finish(client); }
+            }
+            case 2 -> { if (finished) finish(client); else if (ticks > 20 * 600) { fail("самотест не уложился в 10 минут"); finish(client); } }
+            default -> { }
+        }
+    }
+
+    // ---- On the server thread. ----
+
+    private static void begin(MinecraftServer server, ServerPlayerEntity player) {
+        if (player == null) { fail("нет игрока на сервере"); finished = true; return; }
+        ServerWorld world = player.getServerWorld();
+        world.setTimeOfDay(6000);
+        world.setWeather(100_000, 0, false, false);
+        base = world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, player.getBlockPos());
+        altar = base.north(3);
+        altar = world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, altar);
+        world.setBlockState(altar, DivineBlockMod.ALTAR.getDefaultState());
+        home(player);
+        log("алтарь в " + altar.toShortString() + ", игрок в " + base.toShortString());
+        screenshot = "altar";
+        GodLedger.Soul soul = DivineState.of(server).ledger.soul(player.getUuid());
+
+        List<Step> steps = new ArrayList<>();
+        steps.add(new Step(40, () -> {
+            VillagerEntity villager = EntityType.VILLAGER.create(world);
+            villager.refreshPositionAndAngles(base.getX() + 4, base.getY(), base.getZ(), 0, 0);
+            world.spawnEntity(villager);
+            double before = soul.righteousness.score;
+            villager.damage(world.getDamageSources().playerAttack(player), 1000f);
+            double after = soul.righteousness.score;
+            check(after < before && soul.righteousness.memories.stream().anyMatch(m -> m.deed == Righteousness.Deed.VILLAGER_KILLED),
+                    "убийство жителя замечено: праведность " + before + " → " + after);
+        }));
+        steps.add(new Step(20, () -> {
+            soul.righteousness.score = 70; soul.mood = 40; soul.lastPrayerTick = Long.MIN_VALUE / 2; soul.prayerTicks.clear();
+            soul.righteousness.memories.clear();
+            for (int i = 0; i < 3; i++) world.spawnEntity(new ItemEntity(world, altar.getX() + 0.5, altar.getY() + 1.2, altar.getZ() + 0.5, new ItemStack(Items.DIAMOND)));
+            player.setHealth(6f);
+            clientPrayer = "Пожалуйста, великий, исцели меня";
+        }));
+        steps.add(new Step(-1, () -> verdictArrived(soul, 1, "милость святому")));
+        steps.add(new Step(40, () -> { screenshot = "help"; soul.lastPrayerTick = Long.MIN_VALUE / 2; Prayers.handle(player, altar, "Почему?"); }));
+        steps.add(new Step(100, () -> {
+            soul.righteousness.score = -45; soul.mood = -50; soul.lastPrayerTick = Long.MIN_VALUE / 2; soul.prayerTicks.clear();
+            Prayers.handle(player, altar, "Ты тупой бог, дай алмазы");
+        }));
+        steps.add(new Step(-1, () -> {
+            Verdict wrath = verdictArrived(soul, 2, "гнев грешнику");
+            if (wrath != null && wrath.warned) {
+                screenshot = "warning";
+                Scheduler.later(60, () -> {
+                    Prayers.handle(player, altar, "Прости меня, великий, каюсь");
+                    Scheduler.later(5, () -> check(wrath.forgiven, "покаяние в срок отменило кару: forgiven=" + wrath.forgiven));
+                });
+            } else log("кара без знамения, покаяние не проверено");
+        }));
+        steps.add(new Step(120, () -> log("--- все деяния каталога ---")));
+        DivineConfig config = DivineBlockMod.config();
+        config.allowWither = true; config.maxTier = 4;
+        for (Miracle miracle : Miracle.values()) steps.add(new Step(miracle == Miracle.METEOR || miracle == Miracle.CHICKEN_RAIN ? 90 : 30, () -> perform(player, miracle, config)));
+        steps.add(new Step(40, () -> { clean(world); home(player); screenshot = "end"; }));
+        steps.add(new Step(30, () -> { log("ошибок: " + failures); write(); finished = true; }));
+        run(steps, 0);
+    }
+
+    private record Step(int delay, Runnable action) { }
+
+    /** Runs the steps in order; a step with delay -1 waits (up to 20 s) for a verdict to arrive before its action. */
+    private static void run(List<Step> steps, int index) {
+        if (index >= steps.size()) return;
+        Step step = steps.get(index);
+        if (step.delay() >= 0) Scheduler.later(Math.max(1, step.delay()), () -> { safely(step.action()); run(steps, index + 1); });
+        else waitVerdict(steps, index, 0);
+    }
+    private static int verdicts;
+    private static void waitVerdict(List<Step> steps, int index, int waited) {
+        Scheduler.later(10, () -> {
+            MinecraftServer server = MinecraftClient.getInstance().getServer();
+            int size = server == null ? 0 : DivineState.of(server).ledger.souls.values().stream().mapToInt(s -> s.chronicle.size()).sum();
+            if (size > verdicts || waited > 400) { verdicts = size; safely(steps.get(index).action()); run(steps, index + 1); }
+            else waitVerdict(steps, index, waited + 10);
+        });
+    }
+
+    private static Verdict verdictArrived(GodLedger.Soul soul, int expected, String what) {
+        Verdict last = soul.lastVerdict();
+        if (!check(soul.chronicle.size() >= expected && last != null, what + ": вердикт пришёл")) return null;
+        log("  " + last.breakdown().replace("\n", "\n  "));
+        log("  решил: " + last.decidedBy + ", деяние " + last.miracle + " ×" + last.power + (last.warned ? ", со знамением" : ""));
+        if (what.startsWith("милость")) check(last.inclination == Miracle.Kind.HELP, what + ": склонность " + last.inclination);
+        if (what.startsWith("гнев")) check(last.inclination == Miracle.Kind.WRATH, what + ": склонность " + last.inclination);
+        return last;
+    }
+
+    private static void perform(ServerPlayerEntity player, Miracle miracle, DivineConfig config) {
+        ServerWorld world = player.getServerWorld();
+        clean(world);
+        home(player);
+        player.clearStatusEffects();
+        player.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, 20 * 60, 4, false, false));
+        player.setHealth(player.getMaxHealth() * 0.5f);
+        switch (miracle) {
+            case ENCHANT, CURSE_TOOL -> player.setStackInHand(Hand.MAIN_HAND, new ItemStack(Items.DIAMOND_SWORD));
+            case REPAIR -> { ItemStack sword = new ItemStack(Items.IRON_SWORD); sword.setDamage(100); player.setStackInHand(Hand.MAIN_HAND, sword); }
+            case TRANSMUTE -> player.setStackInHand(Hand.MAIN_HAND, new ItemStack(Items.DIAMOND, 5));
+            case GROW -> {
+                for (int dx = 1; dx <= 3; dx++) {
+                    BlockPos soil = base.east(dx).down();
+                    world.setBlockState(soil, Blocks.FARMLAND.getDefaultState());
+                    world.setBlockState(soil.up(), Blocks.WHEAT.getDefaultState());
+                }
+            }
+            case SMITE_ENEMIES -> { for (int i = 0; i < 2; i++) { var zombie = EntityType.ZOMBIE.create(world); zombie.refreshPositionAndAngles(base.getX() + 6, base.getY(), base.getZ() + i * 2, 0, 0); world.spawnEntity(zombie); } }
+            default -> { }
+        }
+        int power = Math.max(miracle.minTier, Math.min(miracle.maxTier, 2));
+        String result;
+        try { result = Miracles.perform(miracle, power, player, altar, "дай алмазный меч", config); }
+        catch (RuntimeException failure) { fail(miracle.id() + " ×" + power + ": исключение " + failure); return; }
+        boolean optional = miracle == Miracle.SAFE_HOME || miracle == Miracle.RANDOM_TP; // These move the player; null only in odd terrain.
+        if (result == null && !optional) fail(miracle.id() + " ×" + power + ": не сработало");
+        else log("ok " + miracle.id() + " ×" + power + ": " + result);
+        if (miracle == Miracle.WITHER) Scheduler.later(10, () -> { var withers = world.getEntitiesByType(EntityType.WITHER, w -> true); check(!withers.isEmpty(), "визер появился"); withers.forEach(w -> w.discard()); });
+        if (miracle == Miracle.OMEN_LIGHT || miracle == Miracle.CHICKEN_RAIN || miracle == Miracle.FIRE_RING || miracle == Miracle.SMITE_ENEMIES || miracle == Miracle.GIFT_ITEM)
+            Scheduler.later(miracle == Miracle.CHICKEN_RAIN ? 40 : 8, () -> screenshot = miracle.id());
+        if (miracle == Miracle.METEOR) Scheduler.later(64, () -> screenshot = "meteor");
+    }
+
+    private static void home(ServerPlayerEntity player) {
+        if (base == null) return;
+        player.teleport(player.getServerWorld(), base.getX() + 0.5, base.getY(), base.getZ() + 0.5, 180f, 25f);
+        player.setFireTicks(0);
+    }
+    private static void clean(ServerWorld world) {
+        if (base == null) return;
+        for (MobEntity mob : world.getEntitiesByClass(MobEntity.class, new Box(base).expand(96), m -> true)) mob.discard();
+        for (ItemEntity item : world.getEntitiesByClass(ItemEntity.class, new Box(base).expand(32), i -> true)) item.discard();
+        for (BlockPos pos : BlockPos.iterate(base.add(-8, -3, -8), base.add(8, 3, 8)))
+            if (world.getBlockState(pos).isOf(Blocks.FIRE)) world.setBlockState(pos, Blocks.AIR.getDefaultState());
+    }
+
+    // ---- Report. ----
+
+    private static void safely(Runnable action) {
+        try { action.run(); } catch (RuntimeException failure) { fail("шаг упал: " + failure); DivineBlockMod.LOG.warn("самотест", failure); }
+    }
+    private static boolean check(boolean ok, String what) { if (ok) log("ok " + what); else fail(what); return ok; }
+    private static void fail(String what) { failures++; log("FAIL " + what); }
+    private static synchronized void log(String line) {
+        String stamped = LocalTime.now().withNano(0) + " " + line;
+        report.add(stamped);
+        DivineBlockMod.LOG.info("[самотест] {}", line);
+    }
+    private static synchronized void write() {
+        String local = System.getenv("LOCALAPPDATA");
+        Path dir = Path.of(local == null ? "." : local, "DivineBlock", "selftest");
+        try { Files.createDirectories(dir); Files.write(dir.resolve("report.txt"), report, StandardCharsets.UTF_8); }
+        catch (IOException failure) { DivineBlockMod.LOG.warn("самотест: отчёт не записан", failure); }
+    }
+    private static void finish(MinecraftClient client) {
+        phase = 3;
+        write();
+        client.execute(client::scheduleStop);
+    }
+}
