@@ -44,6 +44,7 @@ public final class DivineBlockMod implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(io.github.divineblock.game.GodLinePayload.ID, io.github.divineblock.game.GodLinePayload.CODEC);
         PayloadTypeRegistry.playS2C().register(io.github.divineblock.game.BeamsPayload.ID, io.github.divineblock.game.BeamsPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(io.github.divineblock.game.FlipPayload.ID, io.github.divineblock.game.FlipPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(io.github.divineblock.game.TornadoPayload.ID, io.github.divineblock.game.TornadoPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(io.github.divineblock.game.VoiceStartPayload.ID, io.github.divineblock.game.VoiceStartPayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(io.github.divineblock.game.VoiceStartPayload.ID,
                 (payload, context) -> Prayers.voiceStarted(context.player(), payload.id(), payload.seconds()));

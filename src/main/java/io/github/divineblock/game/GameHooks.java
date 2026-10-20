@@ -10,8 +10,8 @@ public final class GameHooks {
     private GameHooks() { }
 
     public static void register() {
-        ServerTickEvents.END_SERVER_TICK.register(server -> Scheduler.tick());
-        ServerLifecycleEvents.SERVER_STOPPING.register(server -> { Scheduler.clear(); Prayers.clear(); });
+        ServerTickEvents.END_SERVER_TICK.register(server -> { Scheduler.tick(); Tornadoes.tick(); });
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> { Scheduler.clear(); Prayers.clear(); Tornadoes.clear(); });
         DeedWatcher.register();
     }
 

@@ -111,6 +111,8 @@ public final class Miracles {
             case END_EXILE -> Wrath.endExile(world, player);
             case SKELETON_RIDERS -> Wrath.skeletonRiders(world, player, power, severity);
             case RIFTS -> Cataclysm.rifts(world, player, altar, severity, config);
+            case TORNADO -> Tornadoes.summon(world, player, altar, power >= 4 ? (severity >= 3 ? 5 : 4) : (severity >= 2 ? 3 : 2),
+                    power >= 4 ? 20 * 90 : 20 * 60, config);
             case GREAT_CRATER -> Cataclysm.greatCrater(world, player, altar, severity, config);
             case CHUNK_VOID -> Wrath.chunkVoid(world, player, altar, severity, config);
             case WITHER -> Wrath.withers(world, player, altar, severity);

@@ -321,6 +321,17 @@ public final class SelfTest {
         if (miracle == Miracle.OMEN_LIGHT || miracle == Miracle.CHICKEN_RAIN || miracle == Miracle.FIRE_RING || miracle == Miracle.SMITE_ENEMIES || miracle == Miracle.GIFT_ITEM)
             Scheduler.later(miracle == Miracle.CHICKEN_RAIN ? 40 : 8, () -> screenshot = miracle.id());
         if (miracle == Miracle.METEOR) Scheduler.later(64, () -> screenshot = "meteor");
+        if (miracle == Miracle.TORNADO) Scheduler.later(140, () -> {
+            // Turn to face the funnel from a safe distance, then photograph it.
+            var at = io.github.divineblock.game.Tornadoes.newest();
+            if (at == null) { fail("торнадо не появилось"); return; }
+            double dx = at.x - player.getX(), dz = at.z - player.getZ();
+            float yaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
+            player.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, 20 * 60, 4, false, false));
+            player.teleport(player.getServerWorld(), player.getX(), player.getY(), player.getZ(), yaw, -12f);
+            check(true, "торнадо стоит в " + Math.round(Math.hypot(dx, dz)) + " блоках");
+            Scheduler.later(5, () -> screenshot = "tornado");
+        });
     }
 
     private static void home(ServerPlayerEntity player) {

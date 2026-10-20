@@ -193,4 +193,20 @@ class GodCoreTest {
         assertTrue(peak <= 31_200, "kept below clipping: " + peak);
         assertTrue(after > 100, "reverb and echo are heard after the dry sound ends: " + after);
     }
+
+    @Test void tornadoFunnelLeansSpinsAndPulls() {
+        TornadoFunnel funnel = new TornadoFunnel(0);
+        assertEquals(35.2, funnel.topRadius(), 1e-9);
+        for (int t = 0; t < 400; t++) funnel.tick(0.3 * t, 64, 0);
+        assertTrue(funnel.y[TornadoFunnel.LAYERS - 1] - funnel.y[0] > 70, "a tall horn");
+        double lag = funnel.x[0] - funnel.x[TornadoFunnel.LAYERS - 1];
+        assertTrue(lag > 30 && lag < 60, "the top lags behind a moving base: " + lag);
+        assertTrue(funnel.ringRadius(TornadoFunnel.LAYERS - 1) > 5 * funnel.ringRadius(10), "flares toward the top");
+        double[] near = funnel.force(funnel.x[0] + 20, 65, funnel.z[0], 0, 1);
+        assertTrue(near[1] > 0.08, "lift beats gravity near the funnel");
+        double inward = -(near[0] * 20) / 20;
+        assertTrue(inward > 0, "pulled inward at the ground");
+        double[] far = funnel.force(funnel.x[0] + 130, 65, funnel.z[0], 0, 1);
+        assertEquals(0, far[0], 1e-9); assertEquals(0, far[1], 1e-9);
+    }
 }
