@@ -66,35 +66,39 @@ class GodCoreTest {
         assertEquals(Miracle.HEAL, choice.miracle());
         assertTrue(choice.power() <= verdict.budget && choice.power() >= Miracle.HEAL.minTier);
 
-        Verdict doom = new Verdict(); doom.inclination = Miracle.Kind.WRATH; doom.budget = 4; doom.favor = -24; doom.prayer = "визер";
+        Verdict doom = new Verdict(); doom.inclination = Miracle.Kind.WRATH; doom.budget = 4; doom.favor = -24; doom.fury = true; doom.blasphemiesBefore = 3; doom.prayer = "визер";
         assertFalse(GodDecider.candidates(doom, config).contains(Miracle.WITHER), "the Wither needs its own flag");
         config.allowWither = true; config.maxTier = 4;
-        GodDecider.Choice wither = new RuleGodDecider().choose(doom, config);
-        assertEquals(Miracle.WITHER, wither.miracle());
-        assertTrue(wither.warn(), "serious wrath always comes with an omen");
+        GodDecider.Choice end = new RuleGodDecider().choose(doom, config);
+        assertTrue(MiracleGroup.K5.members.contains(end.miracle()), "the rules take the heaviest open group: " + end);
+        assertTrue(end.warn(), "serious wrath comes with thunder");
 
         Verdict quiet = new Verdict(); quiet.inclination = Miracle.Kind.OMEN; quiet.favor = 1;
         assertEquals(Miracle.OMEN_LIGHT, new RuleGodDecider().choose(quiet, config).miracle());
     }
 
-    @Test void jevIsHeldToTheListAndTheBudget() throws Exception {
+    @Test void jevPicksAnOpenGroupAndTheActIsDrawnFromIt() throws Exception {
         DivineConfig config = config();
-        Verdict verdict = new Verdict(); verdict.inclination = Miracle.Kind.WRATH; verdict.budget = 2; verdict.favor = -10; verdict.prayer = "ну и что";
-        List<Miracle> candidates = GodDecider.candidates(verdict, config);
+        Verdict verdict = new Verdict(); verdict.inclination = Miracle.Kind.WRATH; verdict.budget = 3; verdict.favor = -10; verdict.fury = true; verdict.prayer = "ну и что";
+        List<MiracleGroup> open = MiracleGroup.open(verdict, config);
+        assertEquals(List.of(MiracleGroup.K1, MiracleGroup.K2, MiracleGroup.K3), open, "a first insult opens К1–К3");
         JevGodDecider jev = new JevGodDecider("sk-test", new RuleGodDecider(), URI.create("http://127.0.0.1:9/"));
-        var answers = JevGodDecider.parse("{\"answers\":{\"miracle\":{\"choice\":\"meteor\"},\"power\":{\"score\":5}},\"usage\":{\"cost\":0.00004}}");
-        GodDecider.Choice choice = jev.interpret(answers, verdict, candidates, config);
-        assertEquals(Miracle.METEOR, choice.miracle());
-        assertEquals(2, choice.power(), "Jev's power is cut to the budget");
-        assertTrue(choice.warn());
+        var answers = JevGodDecider.parse("{\"answers\":{\"group\":{\"choice\":\"K3\"}},\"usage\":{\"cost\":0.00004}}");
+        GodDecider.Choice choice = jev.interpret(answers, verdict, open, config);
+        assertTrue(MiracleGroup.K3.members.contains(choice.miracle()), choice.toString());
+        assertEquals("K3", choice.group());
 
-        var invented = JevGodDecider.parse("{\"answers\":{\"miracle\":{\"choice\":\"summon_herobrine\"}}}");
-        assertEquals("rules", jev.interpret(invented, verdict, candidates, config).decidedBy());
+        var closed = JevGodDecider.parse("{\"answers\":{\"group\":{\"choice\":\"K5\"}}}");
+        assertEquals("rules", jev.interpret(closed, verdict, open, config).decidedBy(), "a closed group is not Jev's to open");
         assertEquals("rules", jev.choose(verdict, config).decidedBy(), "an unreachable Jev hands the choice to the rules");
 
-        var questions = JevGodDecider.questions(verdict, candidates);
-        assertTrue(questions.getAsJsonObject("miracle").getAsJsonObject("criteria").has("meteor"));
+        var questions = JevGodDecider.questions(verdict, open, false);
+        assertTrue(questions.getAsJsonObject("group").getAsJsonObject("criteria").has("K3"));
         assertFalse(JevGodDecider.state(verdict).toString().contains("sk-test"));
+
+        // The third blasphemy opens the end of the world.
+        verdict.blasphemiesBefore = 2;
+        assertTrue(MiracleGroup.open(verdict, config).contains(MiracleGroup.K5));
     }
 
     @Test void theGodMayChooseSilence() {
@@ -133,10 +137,10 @@ class GodCoreTest {
         assertEquals(Miracle.Kind.WRATH, verdict.inclination, verdict.breakdown());
         assertEquals(4, verdict.budget, verdict.breakdown());
         List<Miracle> punishments = GodDecider.candidates(verdict, config);
-        assertFalse(punishments.contains(Miracle.CURSE_MINOR), "no mere debuff for blasphemy: " + punishments);
+        assertTrue(punishments.contains(Miracle.METEOR) && !punishments.contains(Miracle.GREAT_CRATER), "a first insult opens К1–К3: " + punishments);
         assertFalse(punishments.contains(Miracle.IGNORE), "no silence in fury");
         GodDecider.Choice choice = new RuleGodDecider().choose(verdict, config);
-        assertEquals(4, choice.power(), choice.toString());
+        assertTrue(MiracleGroup.K3.members.contains(choice.miracle()), choice.toString());
         assertTrue(VerdictBuilder.build(context("ты тупой бог", 0, 0, 0), config).fury, "an insult without swearing is blasphemy too");
     }
 
@@ -216,17 +220,16 @@ class GodCoreTest {
         // A first insult: heavy, but far from the end of the world.
         Verdict first = VerdictBuilder.build(context("ты тупой бог", 0, 0, 0), config);
         List<Miracle> early = GodDecider.candidates(first, config);
-        assertTrue(early.stream().allMatch(m -> m.gravity() <= first.level() + 2), early + " at level " + first.level());
         assertFalse(early.contains(Miracle.GREAT_CRATER), "no apocalypse for a first insult");
         // A damned soul insulting again and again, pestering: the ladder's top.
         Verdict worst = VerdictBuilder.build(context("бля, сука, ты ничтожество", -90, 0, 5), config);
         assertTrue(worst.level() >= 7, worst.breakdown());
         assertTrue(GodDecider.candidates(worst, config).stream().anyMatch(m -> m.gravity() >= 9), "the worst wrath is within reach");
         // What was just done is set aside.
-        List<Miracle> before = GodDecider.candidates(first, config);
-        first.recentActs = before.stream().limit(2).map(Miracle::id).toList();
-        List<Miracle> after = GodDecider.candidates(first, config);
-        assertTrue(after.stream().noneMatch(m -> first.recentActs.contains(m.id())), after.toString());
+        first.recentActs = MiracleGroup.K3.members.stream().limit(3).map(Miracle::id).toList();
+        java.util.Random random = new java.util.Random(1);
+        for (int i = 0; i < 50; i++)
+            assertFalse(first.recentActs.contains(MiracleGroup.K3.draw(first, config, random).id()), "a recent act is not drawn again");
         // Six blasphemies in a row: the rules never pick the same act twice running.
         java.util.List<String> history = new java.util.ArrayList<>();
         String previous = "";

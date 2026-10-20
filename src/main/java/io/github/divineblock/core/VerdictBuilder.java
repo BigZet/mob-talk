@@ -88,6 +88,8 @@ public final class VerdictBuilder {
 
         Verdict verdict = new Verdict();
         verdict.prayer = context.prayer() == null ? "" : context.prayer();
+        verdict.blasphemiesBefore = context.blasphemiesBefore();
+        verdict.damned = context.righteousness() <= -60;
         verdict.reasons = reasons;
         verdict.day = context.today();
         for (Verdict.Reason reason : reasons) { verdict.favor += reason.favor(); verdict.force += reason.force(); }

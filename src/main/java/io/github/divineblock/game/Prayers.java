@@ -153,7 +153,7 @@ public final class Prayers {
             try {
                 GodDecider.Choice choice = decider(config).choose(verdict, config);
                 verdict.miracle = choice.miracle().id(); verdict.power = choice.power(); verdict.warned = choice.warn();
-                verdict.decidedBy = choice.decidedBy(); verdict.decisionNote = choice.note() + "; молитву признал: " + judgedBy;
+                verdict.decidedBy = choice.decidedBy(); verdict.decisionNote = choice.note() + "; молитву признал: " + judgedBy; verdict.group = choice.group();
                 verdict.speech = verdict.chosen() == Miracle.IGNORE ? "" : new GodSpeech(config, DivineBlockMod.configDirectory()).announce(verdict, recentLines);
             } catch (RuntimeException failure) {
                 DivineBlockMod.LOG.warn("Божественный блок: решение не принято", failure);

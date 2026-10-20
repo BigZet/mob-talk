@@ -2,40 +2,30 @@ package io.github.divineblock.core;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
-/** Picks the act within a verdict's budget. The reasons are already summed; the decider only chooses which act fits. */
+/** Picks the act for a verdict whose reasons are already summed: which group of acts ({@link MiracleGroup}), then one act
+ * drawn from it at random without repeats. */
 public interface GodDecider {
-    record Choice(Miracle miracle, int power, boolean warn, String decidedBy, String note) { }
+    record Choice(Miracle miracle, int power, boolean warn, String decidedBy, String note, String group) { }
 
     String name();
     Choice choose(Verdict verdict, DivineConfig config);
 
-    /** The acts a verdict allows: its own kind within the budget and the settings, on the rung of the ladder its reasons
-     * earned (see {@link Verdict#level()}), and not the acts the god used on this mortal just now. Omens when nothing fits. */
+    Random RANDOM = new Random();
+
+    /** The act drawn from {@code group}, at the power the budget allows. */
+    static Choice drawn(Verdict verdict, DivineConfig config, MiracleGroup group, String by, String note) {
+        Miracle miracle = group.draw(verdict, config, RANDOM);
+        int power = power(miracle, verdict.budget, verdict.budget);
+        return new Choice(miracle, power, mustWarn(miracle, power), by, note + ", " + group.id() + " «" + group.label + "»", group.id());
+    }
+
+    /** Every act the verdict could end in (all members of its open groups), for the self-test and the log. */
     static List<Miracle> candidates(Verdict verdict, DivineConfig config) {
-        List<Miracle> allowed = new ArrayList<>();
-        for (Miracle miracle : Miracle.values())
-            if (miracle.kind == verdict.inclination && miracle.kind != Miracle.Kind.OMEN && miracle.minTier <= verdict.budget && config.allows(miracle))
-                allowed.add(miracle);
         List<Miracle> out = new ArrayList<>();
-        if (!allowed.isEmpty()) {
-            int level = verdict.level();
-            // The rung and its neighbours; widened if the settings left too little there.
-            for (int widen = 0; widen <= 10 && out.size() < 3; widen++) {
-                out.clear();
-                for (Miracle miracle : allowed) if (miracle.gravity() >= level - 2 - widen && miracle.gravity() <= level + 2 + widen) out.add(miracle);
-            }
-            // Whatever the mortal asked for by name stays possible when mercy or a jest answers him.
-            if (verdict.inclination != Miracle.Kind.WRATH)
-                for (Miracle miracle : allowed) if (!out.contains(miracle) && miracle.hintMatches(verdict.prayer) > 0) out.add(miracle);
-            // No two alike in a row: what was just done to this mortal is set aside while anything else remains.
-            List<Miracle> fresh = new ArrayList<>(out);
-            if (verdict.recentActs != null) fresh.removeIf(miracle -> verdict.recentActs.contains(miracle.id()));
-            if (!fresh.isEmpty()) out = fresh;
-        }
-        if (out.isEmpty()) for (Miracle miracle : Miracle.values()) if (miracle.kind == Miracle.Kind.OMEN && miracle != Miracle.IGNORE && config.allows(miracle)) out.add(miracle);
-        // The god may always choose silence: a prayer he hears but does not deign to answer.
-        if (config.allows(Miracle.IGNORE) && !out.contains(Miracle.IGNORE) && !verdict.fury) out.add(Miracle.IGNORE);
+        for (MiracleGroup group : MiracleGroup.open(verdict, config)) for (Miracle miracle : group.allowed(verdict, config)) if (!out.contains(miracle)) out.add(miracle);
+        if (config.allows(Miracle.IGNORE) && !verdict.fury) out.add(Miracle.IGNORE);
         return out;
     }
 
@@ -44,6 +34,6 @@ public interface GodDecider {
         return Math.max(miracle.minTier, Math.min(Math.min(wanted, budget), miracle.maxTier));
     }
 
-    /** A serious punishment always comes with an omen first: time to repent or run. */
+    /** Serious wrath comes with thunder and the title in the same breath. */
     static boolean mustWarn(Miracle miracle, int power) { return miracle.kind == Miracle.Kind.WRATH && power >= 2; }
 }

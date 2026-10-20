@@ -30,6 +30,11 @@ public final class Verdict {
     public boolean fury;
     /** The mortal repented of earlier blasphemy and was forgiven: a sign of peace, nothing else. */
     public boolean forgiveness;
+    /** How many times this mortal blasphemed in the last days before this prayer, and whether his soul is damned. */
+    public int blasphemiesBefore;
+    public boolean damned;
+    /** The group the act was drawn from (К1…, Б1…, Ш1…), for the log and the self-test. */
+    public String group = "";
     /** "jev" or "rules", and what Jev said, for the debug view. */
     public String decidedBy = "rules";
     public String decisionNote = "";

@@ -74,17 +74,15 @@ public final class JevGodDecider implements GodDecider {
         return state;
     }
 
-    static JsonObject questions(Verdict verdict, List<Miracle> candidates) {
-        JsonObject questions = new JsonObject();
+    /** One question: which of the open groups answers this prayer and these reasons; "silence" when the god may stay mute. */
+    static JsonObject questions(Verdict verdict, List<MiracleGroup> open, boolean silence) {
         JsonObject options = new JsonObject();
-        for (Miracle miracle : candidates) options.addProperty(miracle.id(), miracle.kind.label + ", сила " + miracle.minTier + "–" + miracle.maxTier + ": " + miracle.description);
-        questions.add("miracle", question("choice", "Своенравный бог Minecraft услышал молитву prayer. Его решение уже взвешено причинами reasons "
-                + "(итог: inclination, бюджет силы budget, ступень гнева или милости level из 10). Какое из дозволенных деяний лучше всего отвечает "
-                + "и на молитву, и на эти причины, и на ступень? Будь разнообразен: не повторяй недавних деяний recent_acts, удивляй.", options));
-        JsonArray levels = new JsonArray();
-        String[] words = { "0: только знак", "1: малое", "2: среднее", "3: большое", "4: апокалипсис" };
-        for (int tier = 0; tier <= Math.max(1, verdict.budget); tier++) levels.add(words[Math.min(4, tier)]);
-        questions.add("power", question("score", "Насколько сильным должно быть это деяние при таких причинах?", levels));
+        for (MiracleGroup group : open) options.addProperty(group.id(), group.label + ": " + group.description);
+        if (silence) options.addProperty("silence", "промолчать, не ответить вовсе");
+        JsonObject questions = new JsonObject();
+        questions.add("group", question("choice", "Своенравный бог Minecraft услышал молитву prayer. Его решение уже взвешено причинами reasons "
+                + "(итог: inclination, ступень гнева или милости level из 10). Группы перечислены от лёгкой к тяжёлой; выбери ту, что "
+                + "по мере заслуженного отвечает на молитву и причины. Бог своенравен: не обязательно самая тяжёлая.", options));
         return questions;
     }
 
@@ -144,31 +142,28 @@ public final class JevGodDecider implements GodDecider {
     }
 
     @Override public Choice choose(Verdict verdict, DivineConfig config) {
-        List<Miracle> candidates = GodDecider.candidates(verdict, config);
-        if (verdict.inclination == Miracle.Kind.OMEN || candidates.size() < 3) return fallback.choose(verdict, config);
+        List<MiracleGroup> open = MiracleGroup.open(verdict, config);
+        boolean silence = config.allows(Miracle.IGNORE) && !verdict.fury && verdict.inclination != Miracle.Kind.HELP;
+        if (verdict.inclination == Miracle.Kind.OMEN || open.isEmpty() || open.size() == 1 && !silence) return fallback.choose(verdict, config);
         Answers answers;
-        try { answers = ask(state(verdict), questions(verdict, candidates)); }
+        try { answers = ask(state(verdict), questions(verdict, open, silence)); }
         catch (IOException | RuntimeException failure) {
             diagnostics.accept("Jev недоступен, решают правила: " + failure.getMessage());
             return fallback.choose(verdict, config);
         } catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); return fallback.choose(verdict, config); }
-        return interpret(answers, verdict, candidates, config);
+        return interpret(answers, verdict, open, config);
     }
 
-    /** Jev's answer held to our list and our budget; anything outside them is the rules' turn. */
-    Choice interpret(Answers answers, Verdict verdict, List<Miracle> candidates, DivineConfig config) {
-        Miracle picked = Miracle.byId(answers.choice("miracle"));
-        if (picked == null || !candidates.contains(picked)) {
-            diagnostics.accept("Jev выбрал недопустимое «" + answers.choice("miracle") + "», решают правила");
+    /** Jev's group held to the open ones; anything else is the rules' turn. The act inside the group is drawn at random. */
+    Choice interpret(Answers answers, Verdict verdict, List<MiracleGroup> open, DivineConfig config) {
+        String picked = answers.choice("group");
+        String cost = answers.cost() > 0 ? String.format(java.util.Locale.ROOT, ", $%.5f", answers.cost()) : "";
+        if ("silence".equals(picked)) return new Choice(Miracle.IGNORE, 0, false, name(), "Jev: молчание" + cost, "");
+        MiracleGroup group = MiracleGroup.byId(picked);
+        if (group == null || !open.contains(group)) {
+            diagnostics.accept("Jev выбрал недопустимую группу «" + picked + "», решают правила");
             return fallback.choose(verdict, config);
         }
-        double score = answers.score("power");
-        int wanted = Double.isNaN(score) ? verdict.budget : (int) Math.round(score) - 1; // Scores run 1..N over the N levels.
-        if (picked.kind == Miracle.Kind.WRATH) wanted = verdict.budget; // Jev picks the punishment; its weight is what was earned.
-        int power = GodDecider.power(picked, wanted, verdict.budget);
-        boolean warned = GodDecider.mustWarn(picked, power);
-        String note = "Jev: " + picked.id() + ", сила " + wanted + (power != wanted ? " → " + power + (wanted > power ? " по бюджету" : ", меньше деяние не бывает") : "")
-                + (answers.cost() > 0 ? String.format(java.util.Locale.ROOT, ", $%.5f", answers.cost()) : "");
-        return new Choice(picked, power, warned, name(), note);
+        return GodDecider.drawn(verdict, config, group, name(), "Jev" + cost);
     }
 }
