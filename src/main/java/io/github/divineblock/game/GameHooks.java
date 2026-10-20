@@ -13,6 +13,7 @@ public final class GameHooks {
         ServerTickEvents.END_SERVER_TICK.register(server -> { Scheduler.tick(); Tornadoes.tick(); });
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> { Scheduler.clear(); Prayers.clear(); Tornadoes.clear(); });
         DeedWatcher.register();
+        DivineCommands.register();
     }
 
     /** What the settings screen shows about the player in single player: words, numbers only in debug. */
