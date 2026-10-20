@@ -76,6 +76,11 @@ class Settings:
     hotwords: str = "крипер, зомби, скелет, пиглин, эндермен, варден"
 
 
+# Bumped whenever this script changes behaviour, so the game can replace a
+# helper left running by an older Mob Talk (it outlives the game).
+HELPER_VERSION = 2
+
+
 class LoadCancelled(Exception):
     pass
 
@@ -320,7 +325,7 @@ class WhisperRuntime:
     def health(self):
         ready = self.model is not None
         status = "busy" if ready and self.transcription_lock.locked() else self.status
-        return {"protocol": 2, "ready": ready, "status": status, "model": self.settings.model, "device": self.device,
+        return {"protocol": 2, "helperVersion": HELPER_VERSION, "ready": ready, "status": status, "model": self.settings.model, "device": self.device,
             "configuredDevice": self.settings.device, "language": self.settings.language,
             "beamSize": self.settings.beam_size, "vadSilenceMs": self.settings.vad_silence_ms,
             "cpuThreads": self.settings.cpu_threads, "hotwords": self.settings.hotwords,
@@ -390,6 +395,13 @@ def create_server(runtime: WhisperRuntime, port: int = 63919) -> ThreadingHTTPSe
             if self.path == "/cancel-load":
                 runtime.cancel_load.set()
                 self.json_response(200, {"status": "cancelling"})
+                return
+            if self.path == "/shutdown":
+                if not runtime.transcription_lock.acquire(blocking=False):
+                    self.json_response(409, {"error": "busy"})
+                    return
+                self.json_response(200, {"status": "stopping"})
+                threading.Thread(target=self.server.shutdown, daemon=True).start()
                 return
             if self.path == "/configure":
                 try:

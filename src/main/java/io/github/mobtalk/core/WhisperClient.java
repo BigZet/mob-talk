@@ -6,7 +6,12 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /** Blocking local STT; call from the microphone/conversation worker only. */
 public final class WhisperClient implements AutoCloseable {
@@ -47,13 +52,36 @@ public final class WhisperClient implements AutoCloseable {
             var json = JsonParser.parseString(new String(body, StandardCharsets.UTF_8)).getAsJsonObject();
             JsonElement text = json.get("text");
             if (text == null || !text.isJsonPrimitive() || !text.getAsJsonPrimitive().isString()) throw new IllegalArgumentException();
-            return new Result(TextBounds.characters(text.getAsString(), 2000),
+            return new Result(withoutLoop(TextBounds.characters(text.getAsString(), 2000)),
                     json.has("model") ? json.get("model").getAsString() : "unknown",
                     json.has("device") ? json.get("device").getAsString() : "unknown",
                     json.has("elapsedSeconds") ? json.get("elapsedSeconds").getAsDouble() : -1);
         } catch (RuntimeException malformed) {
             throw new IOException("Whisper вернул неверный ответ. Проверьте локальный помощник.");
         }
+    }
+
+    private static final Pattern WORD = Pattern.compile("[\\p{L}\\p{N}_]+");
+
+    /**
+     * Cuts a decoder repetition loop (1-4 words repeated back to back, 8+ words in all), as the helper does;
+     * kept here too for a helper an older Mob Talk left running.
+     */
+    static String withoutLoop(String text) {
+        List<String> keys = new ArrayList<>();
+        List<Integer> starts = new ArrayList<>();
+        for (Matcher m = WORD.matcher(text); m.find(); ) { keys.add(m.group().toLowerCase(Locale.ROOT)); starts.add(m.start()); }
+        for (int start = 0; start < keys.size(); start++) {
+            for (int size = 1; size <= 4 && start + size <= keys.size(); size++) {
+                List<String> gram = keys.subList(start, start + size);
+                int repeats = 1;
+                while (start + (repeats + 1) * size <= keys.size()
+                        && keys.subList(start + repeats * size, start + (repeats + 1) * size).equals(gram)) repeats++;
+                if (repeats >= 4 && repeats * size >= 8)
+                    return text.substring(0, starts.get(start)).replaceAll("[\\s,.;:\\-–—…]+$", "");
+            }
+        }
+        return text;
     }
 
     public record Result(String text, String model, String device, double elapsedSeconds) { }

@@ -20,6 +20,8 @@ import java.util.List;
 
 /** Reuses an external local worker, and destroys only the process started by this instance. */
 final class WhisperProcess {
+    /** tools/whisper_server.py HELPER_VERSION shipped in this JAR. */
+    private static final int HELPER_VERSION = 2;
     private Process owned;
     private volatile boolean initiatedLoad;
 
@@ -32,6 +34,8 @@ final class WhisperProcess {
         try (HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(1)).build()) {
             JsonObject health = health(http, config.whisperUrl);
             checkCancelled(cancelled);
+            if (health != null && health.has("helperVersion") && health.get("helperVersion").getAsInt() < HELPER_VERSION)
+                health = replaceOutdated(http, config.whisperUrl, health);
             if (isReady(health) && matches(health, config)) { initiatedLoad = false; return; }
             if (health == null) {
                 if (!config.whisperAutoStart)
@@ -129,6 +133,19 @@ final class WhisperProcess {
             if (Files.isRegularFile(directory.resolve("venv/Scripts/python.exe"))) return directory;
         }
         throw new IOException("Whisper ещё не установлен: запустите scripts/setup-whisper.ps1 из архива Mob Talk");
+    }
+
+    /** A helper left by an older Mob Talk keeps running between games with its old script; stop it so the JAR's one starts. */
+    private static JsonObject replaceOutdated(HttpClient http, String url, JsonObject health) throws IOException, InterruptedException {
+        var shutdown = HttpRequest.newBuilder(URI.create(url + "/shutdown")).timeout(Duration.ofSeconds(2))
+                .POST(HttpRequest.BodyPublishers.noBody()).build();
+        if (http.send(shutdown, HttpResponse.BodyHandlers.discarding()).statusCode() != 200) return health;
+        for (int i = 0; i < 40; i++) {
+            Thread.sleep(250);
+            JsonObject current = health(http, url);
+            if (current == null) return null;
+        }
+        return health(http, url);
     }
 
     private static JsonObject health(HttpClient client, String url) throws InterruptedException {
