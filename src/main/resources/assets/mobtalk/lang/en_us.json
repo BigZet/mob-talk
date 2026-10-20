@@ -327,6 +327,8 @@
   "mobtalk.settings.commonPrompt.tooltip": "A common addition to every mob's character: manner, limits, tone. Not reset by the section button.",
   "mobtalk.settings.social.tooltip": "Mobs act on how they feel about each other: friends drift together, enemies apart, a friend visits a mourner.",
   "mobtalk.settings.initiative.tooltip": "Creatures speak first on an occasion: your return, an open deal, a friend nearby, building, weather.",
+  "mobtalk.settings.giftsFirst": "Gifts skip the queue",
+  "mobtalk.settings.giftsFirst.tooltip": "A reaction to a gift or a family event goes ahead of bystanders and small talk, and several gifts in a row to one creature get one reaction, not a queue.",
   "mobtalk.settings.placeAnalysis": "Place analysis",
   "mobtalk.settings.placeAnalysis.tooltip": "The mob understands where it stands: walled in or not, exits, height, objects around.",
   "mobtalk.settings.placeClassifier": "\"Looks like…\"",

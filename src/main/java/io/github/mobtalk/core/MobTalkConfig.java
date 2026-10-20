@@ -73,6 +73,9 @@ public final class MobTalkConfig {
     /** Creatures speak first on an occasion (a return, an open deal, a friend nearby, a building, the weather), at most this often. */
     public boolean initiative = true;
     public int initiativesPerMinute = 1;
+    /** A reaction the game owes (a gift, a family event) goes ahead of bystanders and small talk, and gifts given in a row to one
+     * creature get one reaction instead of a queue of them. */
+    public boolean giftsFirst = true;
     /** Villagers of one village talk among themselves within the player's earshot, without knowing the player (village small talk). */
     public boolean villageChatter = true;
     /** Villagers the player knows write to the chat in their own name: village news, or a call to come over for work. */
@@ -201,7 +204,7 @@ public final class MobTalkConfig {
         copy.showStateHud = showStateHud; copy.vision = vision; copy.showNameTags = showNameTags; copy.keepAcquainted = keepAcquainted;
         copy.showBargainHud = showBargainHud;
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
-        copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.decider = decider;
+        copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;

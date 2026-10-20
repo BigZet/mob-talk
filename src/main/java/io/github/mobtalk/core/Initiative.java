@@ -92,6 +92,30 @@ public final class Initiative {
         };
     }
 
+    /** Начало повода, собранного из нескольких подряд (подарки один за другим): по нему видно, что реплика одна на всё. */
+    static final String MERGED = "подряд случилось несколько поводов — отреагируй на всё сразу, одной-двумя фразами, не перечисляя по пунктам: ";
+    private static final String STEP = "; потом ", END = ". Всё это уже случилось; обращайся к игроку";
+    /** Сколько последних поводов держит собранный: дальше старые отбрасываются, промпт не растёт. */
+    static final int MERGED_KEEP = 4;
+
+    /** Two reactions the game owes one creature, still unvoiced, become one: the earlier's moment, both reasons in order. */
+    public static Cue merge(Cue earlier, Cue later) {
+        List<String> steps = new ArrayList<>(steps(earlier.reason())); steps.addAll(steps(later.reason()));
+        if (steps.size() > MERGED_KEEP) steps = steps.subList(steps.size() - MERGED_KEEP, steps.size());
+        return new Cue(later.mob(), later.mobName(), Trigger.GIFT, MERGED + String.join(STEP, steps) + END, List.of(), earlier.createdMillis());
+    }
+    /** Whether the occasion gathers several reactions in one. */
+    public static boolean merged(Cue cue) { return cue != null && cue.reason().startsWith(MERGED); }
+    private static List<String> steps(String reason) {
+        if (!reason.startsWith(MERGED)) {
+            int rule = reason.lastIndexOf(". Это уже случилось");
+            return List.of(rule > 0 ? reason.substring(0, rule) : reason);
+        }
+        String body = reason.substring(MERGED.length());
+        if (body.endsWith(END)) body = body.substring(0, body.length() - END.length());
+        return List.of(body.split(java.util.regex.Pattern.quote(STEP)));
+    }
+
     /** The whole occasion for the prompt: why, in what manner, how long. */
     public static String cueText(Cue cue, Verdict verdict) {
         String manner = verdict.reaction() == Reaction.SILENT ? Reaction.REMARK.manner : verdict.reaction().manner;

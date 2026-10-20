@@ -71,7 +71,7 @@ final class BiographyWriter {
                 + (facts.founds() ? "villageName — название деревни (1–3 слова, живое, не «Деревня №1»), не из занятых; villageStory — 3–4 предложения: как деревня возникла, чем славится, "
                         + "какая беда или легенда с ней связана, кто в ней заметен (профессии, без имён). История жителя должна вытекать из истории деревни.\n"
                 : "villageName и villageStory — пустые строки.\n")
-                + (facts.snapshot().mobDetails().containsKey("meetingPoint") ? "В этой деревне уже есть колокол на площади — не мечтай о нём, он есть.\n" : "")
+                + ("minecraft:villager".equals(facts.snapshot().type()) ? PromptTexts.VILLAGE_FIXTURES_LIFE + "\n" : "")
                 + "Ответ — JSON с полями name, story, desire, secret, villageName, villageStory.";
     }
 

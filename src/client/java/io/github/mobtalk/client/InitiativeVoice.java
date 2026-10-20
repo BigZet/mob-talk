@@ -51,18 +51,23 @@ final class InitiativeVoice {
             }
         } else { waitingSince = 0; waitLogged = false; }
         if (ticks % 600 == 5) chronicle(game);
-        if (busy) return; // Ordinary occasions are only raised while initiative is on; gifts and family events always are.
-        Initiative.Cue cue = game.initiative.poll();
+        // Ordinary occasions are only raised while initiative is on; gifts and family events always are. A reaction the game owes does
+        // not wait behind bystanders, a creature scene or small talk: it starts thinking at once and speaks first when the floor frees.
+        Initiative.Cue cue;
+        if (!busy) cue = game.initiative.poll();
+        else if (owner.config().giftsFirst && !owner.recordingNow() && !owner.wedding.active()) cue = game.initiative.pollGift(cues.keySet());
+        else return;
         if (cue == null) return;
         MobEntity mob = MobSpeechSound.find(owner.world, cue.mob());
         if (mob == null || !owner.withinRange(mob)) { game.initiative.refund(cue); return; }
         cues.put(cue.mob(), cue); taken.put(cue.mob(), now);
         LOGGER.info("Mob Talk initiative: {} takes the floor ({})", cue.mobName(), cue.trigger());
         UUID player = owner.client.player.getUuid();
-        owner.startSpontaneous(cue.mob(), cue.mobName(), () -> {
+        boolean owed = cue.trigger() == Initiative.Trigger.GIFT;
+        owner.startSpontaneous(cue.mob(), cue.mobName(), owed && owner.config().giftsFirst, () -> {
             DecisionState state = game.memory.decision(cue.mob(), player, cue, "", "", false);
             // A reaction the game owes (a gift, a family event) is always spoken; the decider only shapes ordinary occasions.
-            Initiative.Verdict verdict = cue.trigger() == Initiative.Trigger.GIFT ? new Initiative.Verdict(true, Initiative.Reaction.REMARK, 1)
+            Initiative.Verdict verdict = owed ? new Initiative.Verdict(true, Initiative.Reaction.REMARK, Initiative.merged(cue) ? 2 : 1)
                     : state == null ? Initiative.Verdict.QUIET : owner.decider().speaksUp(state);
             if (!verdict.speak()) { game.initiative.refund(cue); owner.client.execute(() -> cues.remove(cue.mob())); return null; }
             return ConversationEngine.Overheard.initiative(Initiative.cueText(cue, verdict));

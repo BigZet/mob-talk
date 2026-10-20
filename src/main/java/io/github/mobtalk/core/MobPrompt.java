@@ -207,8 +207,7 @@ final class MobPrompt {
             notes.append("\nТы слеп: о мире знаешь только звуки, вибрации и запахи из снимка; действовать можешь против подтверждённого audible источника.");
         if ("minecraft:panda".equals(snapshot.type())) notes.append("\nТвой нрав задают реальные гены панды из mobDetails.");
         if (snapshot.mobDetails().containsKey("owner")) notes.append("\nПриручён ли ты и кто хозяин — смотри mobDetails.tamed и owner.");
-        if ("minecraft:villager".equals(snapshot.type()) && snapshot.mobDetails().containsKey("meetingPoint"))
-            notes.append("\nВ твоей деревне уже есть колокол (mobDetails.meetingPoint) — не проси его и не жалуйся на его отсутствие.");
+        if ("minecraft:villager".equals(snapshot.type())) notes.append("\n").append(PromptTexts.VILLAGE_FIXTURES);
         return notes.toString();
     }
 
