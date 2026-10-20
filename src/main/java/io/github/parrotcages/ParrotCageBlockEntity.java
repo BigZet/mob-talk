@@ -41,14 +41,19 @@ public final class ParrotCageBlockEntity extends BlockEntity {
 
 	private ParrotCageBlock cage() { return (ParrotCageBlock) getCachedState().getBlock(); }
 
-	/** Внутренний объём клетки, в котором должен находиться пленник. */
+	/** Квадрат, вписанный в круглую клетку до начала купола: здесь пленник точно внутри. */
 	public Box interior() {
-		double px = 1 / 16.0;
-		ParrotCageBlock cage = cage();
+		CageForm form = cage().form();
+		double half = form.radius() * 0.7;
 		BlockPos o = getPos();
-		return new Box(o.getX() + ParrotCageBlock.WALL * px, o.getY() + ParrotCageBlock.FLOOR * px, o.getZ() + ParrotCageBlock.WALL * px,
-				o.getX() + cage.width() - ParrotCageBlock.WALL * px, o.getY() + cage.height() - ParrotCageBlock.WALL * px,
-				o.getZ() + cage.width() - ParrotCageBlock.WALL * px);
+		return new Box(o.getX() + form.centerX() - half, o.getY() + form.floor(), o.getZ() + form.centerZ() - half,
+				o.getX() + form.centerX() + half, o.getY() + form.wallTop(), o.getZ() + form.centerZ() + half);
+	}
+
+	/** Центр птицы внутри формы клетки (с небольшим допуском на рывок о прутья). */
+	private boolean contains(Entity bird) {
+		Vec3d c = bird.getBoundingBox().getCenter();
+		return cage().form().inside(c.x - getPos().getX(), c.y - getPos().getY(), c.z - getPos().getZ(), -0.2);
 	}
 
 	private Vec3d seat() {
@@ -147,10 +152,7 @@ public final class ParrotCageBlockEntity extends BlockEntity {
 		}
 		cage.missingTicks = 0;
 		if (!CageLinks.isLinkedTo(bird, server, pos)) CageLinks.link(bird, server, pos);
-		Box allowed = cage.interior().expand(0.25);
-		if (!allowed.contains(bird.getBoundingBox().getCenter()) || bird.getBoundingBox().minY < allowed.minY - 0.25) {
-			cage.returnInside(server, bird);
-		}
+		if (!cage.contains(bird)) cage.returnInside(server, bird);
 	}
 
 	@Override

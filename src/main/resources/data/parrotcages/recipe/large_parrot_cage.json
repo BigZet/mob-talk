@@ -2,22 +2,19 @@
   "type": "minecraft:crafting_shaped",
   "category": "decorations",
   "pattern": [
-    "BIB",
-    "IXI",
-    "SSS"
+    " I ",
+    "IBI",
+    "ISI"
   ],
   "key": {
     "I": {
-      "item": "minecraft:iron_bars"
-    },
-    "S": {
-      "item": "minecraft:dark_oak_slab"
-    },
-    "B": {
       "item": "minecraft:iron_ingot"
     },
-    "X": {
+    "B": {
       "item": "minecraft:iron_block"
+    },
+    "S": {
+      "item": "minecraft:oak_slab"
     }
   },
   "result": {

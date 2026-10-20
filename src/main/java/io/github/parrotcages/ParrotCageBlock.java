@@ -39,18 +39,19 @@ public final class ParrotCageBlock extends BlockWithEntity {
 	public static final IntProperty CY = IntProperty.of("cy", 0, 2);
 	public static final IntProperty CZ = IntProperty.of("cz", 0, 2);
 
-	/** Толщина пола и стенок в пикселях; совпадает с моделями. */
-	static final double FLOOR = 2, WALL = 1;
-
 	private final int width, height;
+	private final boolean golden;
+	private final CageForm form;
 	private final MapCodec<ParrotCageBlock> codec;
 	private final VoxelShape[] shapes = new VoxelShape[27];
 
-	public ParrotCageBlock(Settings settings, int width, int height) {
+	public ParrotCageBlock(Settings settings, int width, int height, boolean golden) {
 		super(settings);
 		this.width = width;
 		this.height = height;
-		this.codec = createCodec(s -> new ParrotCageBlock(s, width, height));
+		this.golden = golden;
+		this.form = new CageForm(width, height);
+		this.codec = createCodec(s -> new ParrotCageBlock(s, width, height, golden));
 		setDefaultState(getStateManager().getDefaultState().with(CX, 0).with(CY, 0).with(CZ, 0));
 		for (int x = 0; x < 3; x++) for (int y = 0; y < 3; y++) for (int z = 0; z < 3; z++)
 			shapes[index(x, y, z)] = buildShape(x, y, z);
@@ -58,18 +59,35 @@ public final class ParrotCageBlock extends BlockWithEntity {
 
 	public int width() { return width; }
 	public int height() { return height; }
+	public boolean golden() { return golden; }
 
 	private static int index(int x, int y, int z) { return x * 9 + y * 3 + z; }
 
+	public CageForm form() { return form; }
+
+	/**
+	 * Столкновения по сетке 2×2×2 пикселя: твёрдо всё, что вне формы клетки. Так стенки повторяют
+	 * круглые прутья и купол, а над куполом и в углах блока птица не протиснется.
+	 */
 	private VoxelShape buildShape(int x, int y, int z) {
+		if (x >= width || y >= height || z >= width) return VoxelShapes.empty();
 		VoxelShape shape = VoxelShapes.empty();
-		if (y == 0) shape = VoxelShapes.union(shape, createCuboidShape(0, 0, 0, 16, FLOOR, 16));
-		if (y == height - 1) shape = VoxelShapes.union(shape, createCuboidShape(0, 16 - WALL, 0, 16, 16, 16));
-		if (x == 0) shape = VoxelShapes.union(shape, createCuboidShape(0, 0, 0, WALL, 16, 16));
-		if (x == width - 1) shape = VoxelShapes.union(shape, createCuboidShape(16 - WALL, 0, 0, 16, 16, 16));
-		if (z == 0) shape = VoxelShapes.union(shape, createCuboidShape(0, 0, 0, 16, 16, WALL));
-		if (z == width - 1) shape = VoxelShapes.union(shape, createCuboidShape(0, 0, 16 - WALL, 16, 16, 16));
-		return shape;
+		int cells = 8;
+		// В маленькой клетке птица держится ближе к середине, чтобы клюв и хвост не торчали сквозь прутья.
+		double margin = width == 1 ? 0.08 : 0.03;
+		double cell = 1.0 / cells;
+		for (int cx = 0; cx < cells; cx++) for (int cz = 0; cz < cells; cz++) {
+			int runStart = -1;
+			for (int cy = 0; cy <= cells; cy++) {
+				boolean solid = cy < cells && !form.inside(x + (cx + 0.5) * cell, y + (cy + 0.5) * cell, z + (cz + 0.5) * cell, margin);
+				if (solid && runStart < 0) runStart = cy;
+				if (!solid && runStart >= 0) {
+					shape = VoxelShapes.union(shape, VoxelShapes.cuboid(cx * cell, runStart * cell, cz * cell, (cx + 1) * cell, cy * cell, (cz + 1) * cell));
+					runStart = -1;
+				}
+			}
+		}
+		return shape.simplify();
 	}
 
 	@Override protected MapCodec<? extends BlockWithEntity> getCodec() { return codec; }
@@ -82,9 +100,9 @@ public final class ParrotCageBlock extends BlockWithEntity {
 		return shapes[index(state.get(CX), state.get(CY), state.get(CZ))];
 	}
 
-	@Override protected BlockRenderType getRenderType(BlockState state) { return BlockRenderType.MODEL; }
+	/** Всю клетку целиком рисует {@code CageRenderer} из угловой части: купол шире одного блока. */
+	@Override protected BlockRenderType getRenderType(BlockState state) { return BlockRenderType.INVISIBLE; }
 	@Override protected boolean canPathfindThrough(BlockState state, NavigationType type) { return false; }
-	@Override protected float getAmbientOcclusionLightLevel(BlockState state, BlockView world, BlockPos pos) { return 1.0f; }
 	@Override protected boolean isTransparent(BlockState state, BlockView world, BlockPos pos) { return true; }
 
 	public static BlockPos origin(BlockPos pos, BlockState state) {

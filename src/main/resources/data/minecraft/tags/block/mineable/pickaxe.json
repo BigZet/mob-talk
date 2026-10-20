@@ -1,0 +1,11 @@
+{
+  "replace": false,
+  "values": [
+    "parrotcages:small_parrot_cage",
+    "parrotcages:medium_parrot_cage",
+    "parrotcages:large_parrot_cage",
+    "parrotcages:small_golden_parrot_cage",
+    "parrotcages:medium_golden_parrot_cage",
+    "parrotcages:large_golden_parrot_cage"
+  ]
+}

@@ -51,7 +51,7 @@ final class SelfTest {
 	private int index = -1, ticks, deadline;
 	private boolean started, failed;
 	private int sx, sz;
-	private BlockPos small, medium, large, vanillaCage;
+	private BlockPos small, medium, large, vanillaCage, goldMedium, goldLarge;
 	private UUID vanilla;
 
 	private SelfTest(MinecraftClient client, String world) { this.client = client; this.world = world; }
@@ -203,7 +203,9 @@ final class SelfTest {
 			small = new BlockPos(sx - 6, SY, sz + 4);
 			medium = new BlockPos(sx - 3, SY, sz + 4);
 			large = new BlockPos(sx + 1, SY, sz + 4);
-			vanillaCage = new BlockPos(sx + 6, SY, sz + 4);
+			vanillaCage = new BlockPos(sx - 6, SY, sz + 9);
+			goldMedium = new BlockPos(sx - 3, SY, sz + 9);
+			goldLarge = new BlockPos(sx + 1, SY, sz + 9);
 			command("gamemode survival " + name);
 			command("time set noon");
 			command("gamerule doDaylightCycle false");
@@ -225,7 +227,9 @@ final class SelfTest {
 			placeCage(ParrotCages.SMALL_CAGE, small);
 			placeCage(ParrotCages.MEDIUM_CAGE, medium);
 			placeCage(ParrotCages.LARGE_CAGE, large.add(1, 0, 1)); // большая клетка встаёт вокруг клика: он в середине нижнего слоя
-			placeCage(ParrotCages.SMALL_CAGE, vanillaCage);
+			placeCage(ParrotCages.SMALL_GOLDEN_CAGE, vanillaCage);
+			placeCage(ParrotCages.MEDIUM_GOLDEN_CAGE, goldMedium);
+			placeCage(ParrotCages.LARGE_GOLDEN_CAGE, goldLarge.add(1, 0, 1));
 		});
 		pause("cage structure checked", 1, () -> {
 			check(serverWorld().getBlockState(small.up()).isOf(ParrotCages.SMALL_CAGE) && cage(small) != null, "small cage is 1x2x1 with its corner block entity");
@@ -298,15 +302,34 @@ final class SelfTest {
 		});
 
 		// Скриншоты.
+		// Два диких попугая для золотых клеток.
+		for (int slot = 0; slot < 2; slot++) {
+			boolean mediumSlot = slot == 0;
+			UUID[] wild = new UUID[1];
+			pause("golden: spawn wild parrot", 1, () -> {
+				ParrotEntity bird = EntityType.PARROT.create(serverWorld());
+				bird.refreshPositionAndAngles(player().getX() + 2, player().getY(), player().getZ(), 0, 0);
+				bird.setVariant(mediumSlot ? ParrotEntity.Variant.YELLOW_BLUE : ParrotEntity.Variant.GRAY);
+				bird.setPersistent();
+				serverWorld().spawnEntity(bird);
+				wild[0] = bird.getUuid();
+			});
+			pause("golden: lured", 2, () -> lure(serverWorld().getEntity(wild[0]), mediumSlot ? goldMedium : goldLarge));
+			pause("golden: checked", 1, () -> check(holds(mediumSlot ? goldMedium : goldLarge, serverWorld().getEntity(wild[0])), "wild parrot sits in a golden cage"));
+		}
+
+		// Скриншоты.
 		pauseClient("camera", 3, () -> {
 			client.options.hudHidden = true;
-			look(sx + 1.5, SY + 2.2, sz - 4.5, -5f, 18f);
+			look(sx - 1.0, SY + 4.2, sz - 3.5, 0f, 28f);
 		});
 		pauseClient("screenshot overview", 1, () -> screenshot("parrotcages-overview.png"));
-		pause("camera small", 2, () -> look(sx - 4.3, SY + 1.0, sz + 1.6, 25f, 10f));
-		pauseClient("screenshot small+medium", 1, () -> screenshot("parrotcages-small-medium.png"));
-		pause("camera large", 2, () -> look(sx + 2.5, SY + 2.6, sz + 0.5, 0f, 25f));
-		pauseClient("screenshot large", 1, () -> screenshot("parrotcages-large.png"));
+		pause("camera iron", 2, () -> look(sx - 1.5, SY + 1.4, sz + 0.2, 0f, 8f));
+		pauseClient("screenshot iron", 1, () -> screenshot("parrotcages-iron.png"));
+		pause("camera golden", 2, () -> look(sx - 1.5, SY + 1.6, sz + 5.4, 0f, 10f));
+		pauseClient("screenshot golden", 1, () -> screenshot("parrotcages-golden.png"));
+		pause("camera small", 2, () -> look(sx - 5.5, SY + 1.0, sz + 2.6, 0f, 8f));
+		pauseClient("screenshot small", 1, () -> screenshot("parrotcages-small.png"));
 		pauseClient("camera back", 1, () -> { client.options.hudHidden = false; look(sx, SY, sz - 2, 0f, 0f); });
 
 		// Выпуск: средняя птица снова следует за стримером.
@@ -324,7 +347,7 @@ final class SelfTest {
 
 		// Выпуск маленькой: !come снова работает.
 		pause("small: release", 2, () -> { command("tp @s " + sx + " " + SY + " " + (sz - 2)); releaseByHand(small); });
-		pause("small: come", 8, () -> {
+		pause("small: come", 14, () -> {
 			output.clear();
 			command("tp @s " + (sx - 14) + " " + SY + " " + (sz - 8));
 			command("vp come cage_small");

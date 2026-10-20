@@ -8,5 +8,8 @@
   "parrotcages.message.occupant_away": "Пленника сейчас нет рядом с клеткой",
   "parrotcages.message.no_parrot": "Рядом нет свободного попугая (ищу в радиусе %s блоков)",
   "parrotcages.message.unknown": "неизвестный попугай",
-  "parrotcages.message.need_bait": "Возьмите семена в руку, чтобы приманить попугая в клетку"
+  "parrotcages.message.need_bait": "Возьмите семена в руку, чтобы приманить попугая в клетку",
+  "block.parrotcages.small_golden_parrot_cage": "Маленькая золотая клетка для попугая",
+  "block.parrotcages.medium_golden_parrot_cage": "Средняя золотая клетка для попугая",
+  "block.parrotcages.large_golden_parrot_cage": "Большая золотая клетка для попугая"
 }

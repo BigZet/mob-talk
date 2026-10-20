@@ -29,13 +29,16 @@ import net.minecraft.util.math.GlobalPos;
 public final class ParrotCages implements ModInitializer {
 	public static final String MOD_ID = "parrotcages";
 
-	public static final ParrotCageBlock SMALL_CAGE = registerCage("small_parrot_cage", 1, 2, MapColor.OAK_TAN);
-	public static final ParrotCageBlock MEDIUM_CAGE = registerCage("medium_parrot_cage", 2, 2, MapColor.SPRUCE_BROWN);
-	public static final ParrotCageBlock LARGE_CAGE = registerCage("large_parrot_cage", 3, 3, MapColor.BROWN);
+	public static final ParrotCageBlock SMALL_CAGE = registerCage("small_parrot_cage", 1, 2, false, MapColor.IRON_GRAY);
+	public static final ParrotCageBlock MEDIUM_CAGE = registerCage("medium_parrot_cage", 2, 2, false, MapColor.IRON_GRAY);
+	public static final ParrotCageBlock LARGE_CAGE = registerCage("large_parrot_cage", 3, 3, false, MapColor.IRON_GRAY);
+	public static final ParrotCageBlock SMALL_GOLDEN_CAGE = registerCage("small_golden_parrot_cage", 1, 2, true, MapColor.GOLD);
+	public static final ParrotCageBlock MEDIUM_GOLDEN_CAGE = registerCage("medium_golden_parrot_cage", 2, 2, true, MapColor.GOLD);
+	public static final ParrotCageBlock LARGE_GOLDEN_CAGE = registerCage("large_golden_parrot_cage", 3, 3, true, MapColor.GOLD);
 
 	public static final BlockEntityType<ParrotCageBlockEntity> CAGE_BLOCK_ENTITY = Registry.register(
 			Registries.BLOCK_ENTITY_TYPE, id("parrot_cage"),
-			BlockEntityType.Builder.create(ParrotCageBlockEntity::new, SMALL_CAGE, MEDIUM_CAGE, LARGE_CAGE).build());
+			BlockEntityType.Builder.create(ParrotCageBlockEntity::new, cages()).build());
 
 	/** Где стоит клетка пленника: по ней проверяется, что тег не устарел. */
 	public static final AttachmentType<GlobalPos> CAGE_LINK = AttachmentRegistry.<GlobalPos>builder()
@@ -43,12 +46,12 @@ public final class ParrotCages implements ModInitializer {
 
 	public static Identifier id(String path) { return Identifier.of(MOD_ID, path); }
 
-	private static ParrotCageBlock registerCage(String path, int width, int height, MapColor color) {
+	private static ParrotCageBlock registerCage(String path, int width, int height, boolean golden, MapColor color) {
 		ParrotCageBlock block = Registry.register(Registries.BLOCK, id(path), new ParrotCageBlock(
-				AbstractBlock.Settings.create().mapColor(color).strength(1.5f).sounds(BlockSoundGroup.WOOD)
+				AbstractBlock.Settings.create().mapColor(color).strength(1.5f).sounds(golden ? BlockSoundGroup.METAL : BlockSoundGroup.LANTERN)
 						.nonOpaque().pistonBehavior(PistonBehavior.BLOCK).allowsSpawning((s, w, p, t) -> false)
 						.solidBlock((s, w, p) -> false).suffocates((s, w, p) -> false).blockVision((s, w, p) -> false),
-				width, height));
+				width, height, golden));
 		Registry.register(Registries.ITEM, id(path), new BlockItem(block, new Item.Settings()));
 		return block;
 	}
@@ -56,9 +59,7 @@ public final class ParrotCages implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> {
-			entries.add(SMALL_CAGE);
-			entries.add(MEDIUM_CAGE);
-			entries.add(LARGE_CAGE);
+			for (Block cage : cages()) entries.add(cage);
 		});
 		ServerEntityEvents.ENTITY_LOAD.register(CageLinks::onEntityLoad);
 		ServerEntityEvents.ENTITY_UNLOAD.register(CageLinks::onEntityUnload);
@@ -66,5 +67,7 @@ public final class ParrotCages implements ModInitializer {
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> CageLinks.clear());
 	}
 
-	static Block[] cages() { return new Block[] {SMALL_CAGE, MEDIUM_CAGE, LARGE_CAGE}; }
+	static ParrotCageBlock[] cages() {
+		return new ParrotCageBlock[] {SMALL_CAGE, MEDIUM_CAGE, LARGE_CAGE, SMALL_GOLDEN_CAGE, MEDIUM_GOLDEN_CAGE, LARGE_GOLDEN_CAGE};
+	}
 }

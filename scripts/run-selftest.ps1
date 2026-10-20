@@ -18,8 +18,11 @@ if (Get-CimInstance Win32_Process -Filter "name='javaw.exe'") { throw 'Minecraft
 
 Say 'build + install'
 Set-Location $repo
-.\gradlew.bat build -q 2>&1 | Where-Object { $_ -match 'error|FAIL' }
-if ($LASTEXITCODE -ne 0) { throw 'build failed' }
+$ErrorActionPreference = 'Continue'
+.\gradlew.bat build -q 2>&1 | Where-Object { "$_" -match 'error|FAIL' }
+$built = $LASTEXITCODE
+$ErrorActionPreference = 'Stop'
+if ($built -ne 0) { throw 'build failed' }
 Remove-Item "$mc\mods\parrotcages-*.jar", "$mc\mods\viewerparrots-*.jar" -ErrorAction SilentlyContinue
 Copy-Item (Get-ChildItem "$repo\build\libs\parrotcages-*.jar" | Where-Object Name -notmatch 'sources' | Select-Object -First 1).FullName "$mc\mods\"
 Copy-Item (Get-ChildItem "$ViewerParrots\build\libs\viewerparrots-*.jar" | Where-Object Name -notmatch 'sources' | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName "$mc\mods\"

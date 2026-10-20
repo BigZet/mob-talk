@@ -2,19 +2,16 @@
   "type": "minecraft:crafting_shaped",
   "category": "decorations",
   "pattern": [
-    "IBI",
-    "I I",
-    "SSS"
+    " N ",
+    "N N",
+    "NSN"
   ],
   "key": {
-    "I": {
-      "item": "minecraft:iron_bars"
+    "N": {
+      "item": "minecraft:iron_nugget"
     },
     "S": {
       "item": "minecraft:oak_slab"
-    },
-    "B": {
-      "item": "minecraft:iron_nugget"
     }
   },
   "result": {

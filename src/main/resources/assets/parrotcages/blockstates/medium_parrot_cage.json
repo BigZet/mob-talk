@@ -1,55 +1,7 @@
 {
-  "multipart": [
-    {
-      "when": {
-        "cy": "0"
-      },
-      "apply": {
-        "model": "parrotcages:block/medium_parrot_cage_floor"
-      }
-    },
-    {
-      "when": {
-        "cy": "1"
-      },
-      "apply": {
-        "model": "parrotcages:block/cage_roof"
-      }
-    },
-    {
-      "when": {
-        "cz": "0"
-      },
-      "apply": {
-        "model": "parrotcages:block/cage_wall"
-      }
-    },
-    {
-      "when": {
-        "cx": "1"
-      },
-      "apply": {
-        "model": "parrotcages:block/cage_wall",
-        "y": 90
-      }
-    },
-    {
-      "when": {
-        "cz": "1"
-      },
-      "apply": {
-        "model": "parrotcages:block/cage_wall",
-        "y": 180
-      }
-    },
-    {
-      "when": {
-        "cx": "0"
-      },
-      "apply": {
-        "model": "parrotcages:block/cage_wall",
-        "y": 270
-      }
+  "variants": {
+    "": {
+      "model": "parrotcages:block/cage_iron_particle"
     }
-  ]
+  }
 }
