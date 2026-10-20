@@ -39,7 +39,7 @@ class MobTalkConfigTest {
             MobTalkConfig config = new MobTalkConfig();
             config.whisperModel = junk;
             MobTalkConfig.save(file, config);
-            assertEquals("large-v3", MobTalkConfig.load(file).whisperModel, junk);
+            assertEquals("large-v3-turbo", MobTalkConfig.load(file).whisperModel, junk);
         }
     }
 
@@ -205,11 +205,29 @@ class MobTalkConfigTest {
         assertEquals(3, config.rudeness);
         assertEquals(2, config.witnessReplies);
         assertEquals("openai/gpt-6-luna", config.llmModel);
-        assertEquals("large-v3", config.whisperModel);
+        assertEquals("large-v3-turbo", config.whisperModel);
         assertEquals("auto", config.whisperDevice);
         assertEquals("ru", config.whisperLanguage);
         assertEquals("", config.microphoneName);
         assertEquals("rSfuQoQ3FY8SVKeraMAp", config.defaultVoice);
+    }
+
+    // Version 3: the old shipped reasoning, Whisper model and beam move to the faster values; deliberate choices stay.
+    @Test void migratesToTheFasterDefaults() throws Exception {
+        Path file = directory.resolve("mobtalk.json");
+        Files.writeString(file, "{\"schemaVersion\":2,\"reasoningEffort\":\"minimal\",\"whisperModel\":\"large-v3\",\"whisperBeamSize\":5,\"requestTimeoutSeconds\":70}");
+        MobTalkConfig migrated = MobTalkConfig.load(file);
+        assertEquals("none", migrated.reasoningEffort);
+        assertEquals("large-v3-turbo", migrated.whisperModel);
+        assertEquals(3, migrated.whisperBeamSize);
+        assertEquals(70, migrated.requestTimeoutSeconds);
+        assertEquals(12, migrated.firstTokenSeconds);
+        Files.writeString(file, "{\"schemaVersion\":2,\"reasoningEffort\":\"low\",\"whisperModel\":\"medium\",\"whisperBeamSize\":7}");
+        MobTalkConfig kept = MobTalkConfig.load(file);
+        assertEquals("low", kept.reasoningEffort); assertEquals("medium", kept.whisperModel); assertEquals(7, kept.whisperBeamSize);
+        MobTalkConfig.save(file, migrated);
+        Files.writeString(file, Files.readString(file).replace("\"none\"", "\"minimal\""));
+        assertEquals("minimal", MobTalkConfig.load(file).reasoningEffort, "a version-3 file keeps a minimal chosen after the update");
     }
 
     // Updating the old shipped defaults must retain deliberate smaller history/memory and a custom Whisper model.
@@ -219,7 +237,7 @@ class MobTalkConfigTest {
         MobTalkConfig migrated = MobTalkConfig.load(file);
         assertEquals(24, migrated.historyTurns);
         assertEquals(4000, migrated.maxMemoryChars);
-        assertEquals("large-v3", migrated.whisperModel);
+        assertEquals("large-v3-turbo", migrated.whisperModel, "small went to large-v3 in version 2, then to turbo in version 3");
         Files.writeString(file, "{\"historyTurns\":4,\"maxMemoryChars\":700,\"whisperModel\":\"tiny\"}");
         MobTalkConfig retained = MobTalkConfig.load(file);
         assertEquals(4, retained.historyTurns);

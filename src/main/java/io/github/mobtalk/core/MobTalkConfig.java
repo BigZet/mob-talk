@@ -13,14 +13,15 @@ import java.nio.file.StandardCopyOption;
 
 /** Local preferences only; the API key is loaded separately. */
 public final class MobTalkConfig {
-    public int schemaVersion = 2;
+    public int schemaVersion = 3;
     public boolean enabled = true;
     /** Who answers in conversations: "openrouter" or "venice". */
     public String llmProvider = "openrouter";
     public String llmModel = "openai/gpt-6-luna";
     public String veniceModel = "deepseek-v4-1-flash";
-    /** OpenRouter reasoning models think before answering; "minimal" skips that (seconds saved per reply). "" sends nothing. */
-    public String reasoningEffort = "minimal";
+    /** OpenRouter reasoning models think before answering; "none" asks for no thinking at all (measured: "minimal" still
+     * thinks on most replies and costs 1.5–2.5 s before the first token). "" sends nothing and leaves it to the provider. */
+    public String reasoningEffort = "none";
     /** A cheap model for background work nobody waits for (conversation summaries, reflections); "" uses the chat model. */
     public String backgroundModel = "";
     /** Who voices the replies: "openrouter" (ElevenLabs voices by id) or "venice" (one Kokoro voice for every mob). */
@@ -31,11 +32,11 @@ public final class MobTalkConfig {
     public String veniceVoice = "af_sky";
     public String whisperUrl = "http://127.0.0.1:63919";
     public boolean whisperAutoStart = true;
-    public String whisperModel = "large-v3";
+    public String whisperModel = "large-v3-turbo";
     public String whisperDevice = "auto";
     public String whisperLanguage = "ru";
     public String microphoneName = "";
-    public int whisperBeamSize = 5;
+    public int whisperBeamSize = 3;
     public int whisperVadSilenceMs = 500;
     public int whisperCpuThreads = 4;
     public String whisperHotwords = "Minecraft, Майнкрафт, крипер, зомби, скелет, пиглин, эндермен, варден, тихоня, нюхач, лавомерка";
@@ -48,6 +49,8 @@ public final class MobTalkConfig {
     public int historyTurns = 24;
     public int maxMemoryChars = 4000;
     public int requestTimeoutSeconds = 45;
+    /** How long a streamed reply may stay silent before its first token; a stalled provider is cancelled and asked once more. 0 waits the whole timeout. */
+    public int firstTokenSeconds = 12;
     public double maxDistance = 16;
     /** Bystanders that may answer after the mob spoken to, one after another (0–2): three voices in a row at most. */
     public int witnessReplies = 2;
@@ -190,6 +193,7 @@ public final class MobTalkConfig {
         copy.historyTurns = historyTurns;
         copy.maxMemoryChars = maxMemoryChars;
         copy.requestTimeoutSeconds = requestTimeoutSeconds;
+        copy.firstTokenSeconds = firstTokenSeconds;
         copy.maxDistance = maxDistance;
         copy.witnessReplies = witnessReplies;
         copy.showStateHud = showStateHud; copy.vision = vision; copy.showNameTags = showNameTags; copy.keepAcquainted = keepAcquainted;
@@ -213,10 +217,19 @@ public final class MobTalkConfig {
         try {
             String contents = Files.readString(file);
             config = new GsonBuilder().create().fromJson(contents, MobTalkConfig.class);
-            if (config != null && !JsonParser.parseString(contents).getAsJsonObject().has("schemaVersion")) {
+            // The version the file was written with: a missing field means the oldest, whatever the field's default says.
+            var stored = config == null ? null : JsonParser.parseString(contents).getAsJsonObject().get("schemaVersion");
+            int version = stored == null || !stored.isJsonPrimitive() ? 0 : stored.getAsInt();
+            if (config != null && version == 0) {
                 if (config.historyTurns == 6) config.historyTurns = 24;
                 if (config.maxMemoryChars == 1200) config.maxMemoryChars = 4000;
                 if ("small".equals(config.whisperModel)) config.whisperModel = "large-v3";
+            }
+            // Version 3 (speed): the old shipped values move to the faster ones; anything the player chose differently stays.
+            if (config != null && version < 3) {
+                if ("minimal".equals(config.reasoningEffort)) config.reasoningEffort = "none";
+                if ("large-v3".equals(config.whisperModel)) config.whisperModel = "large-v3-turbo";
+                if (config.whisperBeamSize == 5) config.whisperBeamSize = 3;
             }
         } catch (JsonParseException invalid) {
             throw new IOException("Mob Talk config contains invalid JSON");
@@ -246,7 +259,7 @@ public final class MobTalkConfig {
     private static void normalize(MobTalkConfig config) throws IOException {
         // Every number (recording, reply, history, memory, Whisper, distances, chances, thresholds) into its range: see Tunables.
         Tunables.normalize(config);
-        config.schemaVersion = 2;
+        config.schemaVersion = 3;
         config.whisperHotwords = TextBounds.characters(config.whisperHotwords, 2000);
         config.commonPrompt = config.commonPrompt == null ? "" : config.commonPrompt.strip();
         config.rudeness = Math.max(0, Math.min(3, config.rudeness));

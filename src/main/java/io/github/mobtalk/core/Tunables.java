@@ -54,6 +54,7 @@ public final class Tunables {
         integer("whisperVadSilenceMs", v, "whisper", 150, 1500, 1, c -> c.whisperVadSilenceMs, (c, x) -> c.whisperVadSilenceMs = x);
         integer("whisperCpuThreads", v, "whisper", 1, 16, 1, c -> c.whisperCpuThreads, (c, x) -> c.whisperCpuThreads = x);
         integer("requestTimeoutSeconds", m, "requests", 5, 90, 1, c -> c.requestTimeoutSeconds, (c, x) -> c.requestTimeoutSeconds = x);
+        integer("firstTokenSeconds", m, "requests", 0, 60, 1, c -> c.firstTokenSeconds, (c, x) -> c.firstTokenSeconds = x);
 
         // Bystanders: who hears and sees what the player does, and what it costs.
         integer("witnessReplies", t, "witness", 0, 2, 1, c -> c.witnessReplies, (c, x) -> c.witnessReplies = x);

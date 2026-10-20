@@ -30,9 +30,12 @@ final class BoundedHttp implements AutoCloseable {
     private final java.util.Set<CompletableFuture<?>> inFlight = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private volatile boolean closed;
     private final int timeoutSeconds;
+    /** Streamed replies only: how long the model may stay silent before its first event; 0 waits the whole timeout. */
+    private final int firstEventSeconds;
 
     BoundedHttp(MobTalkConfig config) {
         timeoutSeconds = Math.max(1, Math.min(90, config.requestTimeoutSeconds));
+        firstEventSeconds = Math.max(0, Math.min(timeoutSeconds, config.firstTokenSeconds));
     }
 
     Duration timeout() { return Duration.ofSeconds(timeoutSeconds); }
@@ -49,6 +52,12 @@ final class BoundedHttp implements AutoCloseable {
                     : service + ": ошибка HTTP " + status + ".";
         };
     }
+
+    /** The model accepted the request but sent nothing within the first-token wait: the request was cancelled, worth one fresh attempt. */
+    static boolean stalled(IOException failure) {
+        return failure instanceof SafeFailure safe && safe.status <= 0 && safe.getMessage() != null && safe.getMessage().endsWith(STALLED);
+    }
+    static final String STALLED = "модель не начала отвечать вовремя.";
 
     /** A connection or HTTP/2 stream lost on the way, not an HTTP error or a timeout: worth one fresh attempt. */
     static boolean dropped(IOException failure) {
@@ -99,10 +108,25 @@ final class BoundedHttp implements AutoCloseable {
      * is returned at the end, so a provider that ignored stream=true still yields its plain JSON. */
     byte[] sendEvents(HttpRequest request, int maxBytes, String service, java.util.function.Consumer<String> events) throws IOException, InterruptedException {
         CompletableFuture<HttpResponse<byte[]>> pending = null;
+        // Completed by the first streamed event, or by any response that is not a stream (an error status): either way the model answered.
+        CompletableFuture<Void> started = new CompletableFuture<>();
+        long sent = System.nanoTime();
         try {
-            pending = start(request, response -> response.statusCode() == 200
-                    ? new EventBody(maxBytes, service, events) : new LimitedBody(response.statusCode(), maxBytes, service));
-            return pending.get(timeoutSeconds, TimeUnit.SECONDS).body();
+            pending = start(request, response -> {
+                if (response.statusCode() != 200) { started.complete(null); return new LimitedBody(response.statusCode(), maxBytes, service); }
+                return new EventBody(maxBytes, service, data -> { started.complete(null); events.accept(data); });
+            });
+            pending.whenComplete((ignored, failure) -> started.complete(null));
+            if (firstEventSeconds > 0) {
+                try { started.get(firstEventSeconds, TimeUnit.SECONDS); }
+                catch (TimeoutException silent) {
+                    pending.cancel(true);
+                    diagnostics.accept(service + ": нет первого токена за " + firstEventSeconds + " с, запрос отменён");
+                    throw new SafeFailure(service + ": " + STALLED);
+                } catch (ExecutionException ignored) { /* The failure itself surfaces from pending.get below. */ }
+            }
+            long remaining = TimeUnit.SECONDS.toNanos(timeoutSeconds) - (System.nanoTime() - sent);
+            return pending.get(Math.max(1, remaining), TimeUnit.NANOSECONDS).body();
         } catch (TimeoutException timeout) {
             throw new IOException(service + ": превышено время ожидания.");
         } catch (ExecutionException failure) {

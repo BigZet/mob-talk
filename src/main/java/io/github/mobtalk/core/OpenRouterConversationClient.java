@@ -24,11 +24,16 @@ final class OpenRouterConversationClient implements AutoCloseable {
     private final URI endpoint;
     private final BoundedHttp http;
     private final MobPrompt prompt;
-    private boolean jsonObjectOnly, noTemperature, noStreaming;
+    private boolean jsonObjectOnly, noTemperature, noStreaming, noReasoning;
     /** One-line diagnostics (rejected answers and their hints); the game points this at its log. */
     static volatile Consumer<String> diagnostics = line -> { };
-    /** Replies, bystanders and a biography may be in flight together; a fourth waits so a low-tier key is not rate-limited. */
-    private static final java.util.concurrent.Semaphore IN_FLIGHT = new java.util.concurrent.Semaphore(3, true);
+    /** At most three completions in flight across all clients, so a low-tier key is not rate-limited, in three lanes: the player's
+     * own question never waits behind anyone; bystanders, initiative and dialogue share two permits; background work (summaries,
+     * reflections, biographies, chatter, rumours) goes one at a time through those same two, so it can never take both. */
+    enum Lane { PLAYER, OTHERS, BACKGROUND }
+    private static final java.util.concurrent.Semaphore PLAYER_LANE = new java.util.concurrent.Semaphore(1, true);
+    private static final java.util.concurrent.Semaphore OTHER_LANES = new java.util.concurrent.Semaphore(2, true);
+    private static final java.util.concurrent.Semaphore BACKGROUND_LANE = new java.util.concurrent.Semaphore(1, true);
     /** Rate limits (429) are retried after this many milliseconds, doubling once. */
     static final long RATE_LIMIT_PAUSE_MILLIS = 1500;
 
@@ -58,6 +63,12 @@ final class OpenRouterConversationClient implements AutoCloseable {
         return respond(snapshot, profile, question, null, earlyReply);
     }
 
+    /** The spoken text handed over while the rest of the answer still streams. {@link #shown()} says whether the player already
+     * saw and heard it: from then on a rejected tail is dropped rather than corrected, since the line cannot be unsaid. */
+    interface EarlyReply extends Consumer<String> {
+        default boolean shown() { return false; }
+    }
+
     /** {@code overheard} non-null: the mob is a bystander of that exchange, {@code question} is ignored, trading intents are off. */
     Answer respond(MobSnapshot snapshot, ConversationStore.Profile profile, String question, ConversationEngine.Overheard overheard, Consumer<String> earlyReply)
             throws IOException, InterruptedException {
@@ -69,6 +80,11 @@ final class OpenRouterConversationClient implements AutoCloseable {
 
     /** {@code picture} non-null: a JPEG of the player's view goes with the question as an image part ({@link Vision}). */
     Answer respond(MobSnapshot snapshot, ConversationStore.Profile profile, String question, ConversationEngine.Overheard overheard, byte[] picture, Consumer<String> earlyReply)
+            throws IOException, InterruptedException {
+        return respond(snapshot, profile, question, overheard, picture, earlyReply instanceof EarlyReply early ? early : earlyReply::accept);
+    }
+
+    Answer respond(MobSnapshot snapshot, ConversationStore.Profile profile, String question, ConversationEngine.Overheard overheard, byte[] picture, EarlyReply earlyReply)
             throws IOException, InterruptedException {
         SpeciesCatalog.Species species = SpeciesCatalog.effective(snapshot.type(), config);
         TradingView view = TradingView.of(snapshot);
@@ -97,7 +113,8 @@ final class OpenRouterConversationClient implements AutoCloseable {
         if (overheard != null) ReplySchema.forbidIntents(body);
         long deadline = System.nanoTime() + http.timeout().toNanos();
         int words = prompt.words();
-        byte[] bytes = send(body, deadline, text -> earlyReply.accept(TextBounds.reply(text, words)));
+        Lane lane = overheard == null ? Lane.PLAYER : Lane.OTHERS;
+        byte[] bytes = send(body, deadline, text -> earlyReply.accept(TextBounds.reply(text, words)), lane);
         for (int correction = 0; ; correction++) {
             // Read the provider quirks after each send: a 404 fallback to json_object may have happened inside it.
             java.util.List<String> recent = profile.turns == null ? java.util.List.of()
@@ -107,6 +124,12 @@ final class OpenRouterConversationClient implements AutoCloseable {
             try { return AnswerValidator.parse(bytes, snapshot, bounds); }
             catch (AnswerValidator.Rejected invalid) {
                 diagnostics.accept("ответ отклонён (попытка " + (correction + 1) + ", " + snapshot.type() + "): " + invalid.getMessage());
+                // The line already reached the player's ears: it stands as said, only its intents are dropped (no bargain, no action).
+                if (correction == 0 && earlyReply.shown()) {
+                    String reply = TextBounds.reply(spokenReply(bytes), words);
+                    diagnostics.accept("реплика уже прозвучала: намерения этого ответа не применяются");
+                    return new Answer(reply, null);
+                }
                 if (correction >= 2 || deadline <= System.nanoTime())
                     throw new IOException(invalid.trade ? service() + " не подтвердил допустимые условия торга. Цена не изменена; повторите предложение."
                             : service() + " не дал годной реплики. Повторите вопрос.");
@@ -118,7 +141,7 @@ final class OpenRouterConversationClient implements AutoCloseable {
                 } else if (!invalid.trade) messages.add(ReplySchema.message("system", PromptTexts.plainCorrection(invalid.getMessage())));
                 else if (invalid.own) messages.add(ReplySchema.message("system", PromptTexts.ownTradeCorrection(invalid.getMessage(), view.permittedDealTypes(), view.permittedQuestTypes())));
                 else messages.add(ReplySchema.message("system", PromptTexts.bargainCorrection(invalid.getMessage(), view.permittedBargainTypes())));
-                bytes = send(body, deadline, ignored -> { });
+                bytes = send(body, deadline, ignored -> { }, lane);
             }
         }
     }
@@ -141,8 +164,9 @@ final class OpenRouterConversationClient implements AutoCloseable {
             // No require_parameters: OpenRouter keeps only opt-in tier endpoints for some models, and the default-tier ones then
             // fail a strict parameter match (404 "No endpoints found"). response_format stays a soft routing preference.
             JsonObject provider = new JsonObject(); provider.addProperty("sort", "latency"); body.add("provider", provider);
-            // A reasoning model thinks for seconds before the first token; a mob's line does not need that.
-            if (!config.reasoningEffort.isBlank() && !"none".equals(config.reasoningEffort)) {
+            // A reasoning model thinks for seconds before the first token; a mob's line does not need that. "none" is sent as such:
+            // measured on gpt-6-luna, "minimal" still thought on most replies (1.5–2.5 s), an explicit "none" never did.
+            if (!config.reasoningEffort.isBlank() && !noReasoning) {
                 JsonObject reasoning = new JsonObject(); reasoning.addProperty("effort", config.reasoningEffort); body.add("reasoning", reasoning);
             }
         }
@@ -156,53 +180,62 @@ final class OpenRouterConversationClient implements AutoCloseable {
     JsonObject backgroundBody(JsonArray messages, int maxTokens, JsonObject responseFormat) {
         JsonObject body = body(messages, maxTokens, 0.5, responseFormat, false);
         if (config.backgroundModel != null && !config.backgroundModel.isBlank()) body.addProperty("model", config.backgroundModel.strip());
-        if (body.has("reasoning")) body.getAsJsonObject("reasoning").addProperty("effort", "minimal");
+        if (body.has("reasoning") && !"none".equals(config.reasoningEffort)) body.getAsJsonObject("reasoning").addProperty("effort", "minimal");
         return body;
     }
 
-    /** One completion without streaming, within the configured timeout. */
-    byte[] complete(JsonObject body) throws IOException, InterruptedException { return send(body, System.nanoTime() + http.timeout().toNanos(), ignored -> { }); }
+    /** One completion without streaming, within the configured timeout, on the background lane. */
+    byte[] complete(JsonObject body) throws IOException, InterruptedException { return send(body, System.nanoTime() + http.timeout().toNanos(), ignored -> { }, Lane.BACKGROUND); }
 
-    private byte[] send(JsonObject body, long deadline, Consumer<String> spoken) throws IOException, InterruptedException { return send(body, deadline, spoken, true); }
+    private byte[] send(JsonObject body, long deadline, Consumer<String> spoken, Lane lane) throws IOException, InterruptedException { return send(body, deadline, spoken, lane, true, true, 0); }
 
-    private byte[] send(JsonObject body, long deadline, Consumer<String> spoken, boolean retryDropped) throws IOException, InterruptedException {
-        return send(body, deadline, spoken, retryDropped, 0);
-    }
-    private byte[] send(JsonObject body, long deadline, Consumer<String> spoken, boolean retryDropped, int rateLimited) throws IOException, InterruptedException {
+    private byte[] send(JsonObject body, long deadline, Consumer<String> spoken, Lane lane, boolean retryDropped, boolean retryStalled, int rateLimited) throws IOException, InterruptedException {
         long remaining = deadline - System.nanoTime();
         if (remaining <= 0) throw new IOException(service() + ": превышено время ожидания.");
-        try { return guarded(body, remaining, spoken); }
+        try { return guarded(body, remaining, spoken, lane); }
         catch (BoundedHttp.SafeFailure unavailable) {
             remaining = deadline - System.nanoTime();
             if (remaining <= 0) throw unavailable;
             if (unavailable.status == 429 && rateLimited < 2) {
                 long pause = RATE_LIMIT_PAUSE_MILLIS << rateLimited;
-                if (remaining > pause * 1_000_000L) { Thread.sleep(pause); return send(body, deadline, spoken, retryDropped, rateLimited + 1); }
+                if (remaining > pause * 1_000_000L) { Thread.sleep(pause); return send(body, deadline, spoken, lane, retryDropped, retryStalled, rateLimited + 1); }
             }
-            if (retryDropped && BoundedHttp.dropped(unavailable)) return send(body, deadline, spoken, false, rateLimited);
+            if (retryDropped && BoundedHttp.dropped(unavailable)) return send(body, deadline, spoken, lane, false, retryStalled, rateLimited);
+            // The model took the request and went silent: once more, instead of waiting the whole timeout for nothing.
+            if (BoundedHttp.stalled(unavailable)) {
+                if (retryStalled) return send(body, deadline, spoken, lane, retryDropped, false, rateLimited);
+                throw new IOException(service() + ": модель не начала отвечать вовремя. Повторите вопрос.");
+            }
             // A model that takes no images answers 400: the question goes again as text only, and no picture is sent again this session.
-            if (unavailable.status == 400 && Vision.hasImage(body)) { Vision.stripImages(body); noVision = true; diagnostics.accept(service() + " не принял снимок: дальше без зрения"); return send(body, deadline, spoken, retryDropped); }
-            if (unavailable.status == 400 && body.has("stream")) { body.remove("stream"); noStreaming = true; return send(body, deadline, spoken, retryDropped); }
+            if (unavailable.status == 400 && Vision.hasImage(body)) { Vision.stripImages(body); noVision = true; diagnostics.accept(service() + " не принял снимок: дальше без зрения"); return send(body, deadline, spoken, lane, retryDropped, retryStalled, rateLimited); }
+            // An endpoint whose thinking cannot be switched off (Gemini Flash) answers 400 to reasoning: the rest of the session goes without the field.
+            if (unavailable.status == 400 && body.has("reasoning")) { body.remove("reasoning"); noReasoning = true; diagnostics.accept(service() + " не принял параметр reasoning: дальше без него"); return send(body, deadline, spoken, lane, retryDropped, retryStalled, rateLimited); }
+            if (unavailable.status == 400 && body.has("stream")) { body.remove("stream"); noStreaming = true; return send(body, deadline, spoken, lane, retryDropped, retryStalled, rateLimited); }
             if (unavailable.status != 404) throw unavailable;
             // Claude 5.5 on OpenRouter has no endpoint taking temperature together with a strict schema.
-            if (body.has("temperature")) { body.remove("temperature"); noTemperature = true; return send(body, deadline, spoken, retryDropped); }
+            if (body.has("temperature")) { body.remove("temperature"); noTemperature = true; return send(body, deadline, spoken, lane, retryDropped, retryStalled, rateLimited); }
             if (jsonObjectOnly) throw unavailable;
             // Providers without structured_outputs may still support response_format=json_object.
             jsonObjectOnly = true;
             ReplySchema.useJsonObject(body);
-            return guarded(body, remaining, spoken);
+            return guarded(body, remaining, spoken, lane);
         } catch (IOException failure) {
-            if (retryDropped && BoundedHttp.dropped(failure) && deadline - System.nanoTime() > 0) return send(body, deadline, spoken, false);
+            if (retryDropped && BoundedHttp.dropped(failure) && deadline - System.nanoTime() > 0) return send(body, deadline, spoken, lane, false, retryStalled, rateLimited);
             throw failure;
         }
     }
 
-    /** At most a few completions in flight across all clients; the rest wait their turn within the deadline. */
-    private byte[] guarded(JsonObject body, long remainingNanos, Consumer<String> spoken) throws IOException, InterruptedException {
+    /** At most a few completions in flight across all clients, by lane; the rest wait their turn within the deadline. */
+    private byte[] guarded(JsonObject body, long remainingNanos, Consumer<String> spoken, Lane lane) throws IOException, InterruptedException {
         long waited = System.nanoTime();
-        if (!IN_FLIGHT.tryAcquire(remainingNanos, java.util.concurrent.TimeUnit.NANOSECONDS)) throw new IOException(service() + ": превышено время ожидания.");
-        try { return exchange(body, remainingNanos - (System.nanoTime() - waited), spoken); }
-        finally { IN_FLIGHT.release(); }
+        java.util.concurrent.Semaphore first = lane == Lane.BACKGROUND ? BACKGROUND_LANE : null, second = lane == Lane.PLAYER ? PLAYER_LANE : OTHER_LANES;
+        if (first != null && !first.tryAcquire(remainingNanos, java.util.concurrent.TimeUnit.NANOSECONDS)) throw new IOException(service() + ": превышено время ожидания.");
+        try {
+            long left = remainingNanos - (System.nanoTime() - waited);
+            if (left <= 0 || !second.tryAcquire(left, java.util.concurrent.TimeUnit.NANOSECONDS)) throw new IOException(service() + ": превышено время ожидания.");
+            try { return exchange(body, remainingNanos - (System.nanoTime() - waited), spoken); }
+            finally { second.release(); }
+        } finally { if (first != null) first.release(); }
     }
 
     /** Streams when asked: the reply is handed over the moment its closing quote arrives, then the whole answer is rebuilt
@@ -234,6 +267,16 @@ final class OpenRouterConversationClient implements AutoCloseable {
         JsonArray choices = new JsonArray(); choices.add(choice);
         JsonObject completion = new JsonObject(); completion.add("choices", choices);
         return completion.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    /** The reply string of a completion the validator refused: what the player already heard, "" when even that is unreadable. */
+    static String spokenReply(byte[] completion) {
+        try {
+            String content = JsonParser.parseString(new String(completion, StandardCharsets.UTF_8)).getAsJsonObject().getAsJsonArray("choices")
+                    .get(0).getAsJsonObject().getAsJsonObject("message").get("content").getAsString();
+            try { return JsonParser.parseString(content).getAsJsonObject().get("reply").getAsString(); }
+            catch (RuntimeException partial) { String reply = completedReply(content); return reply == null ? "" : reply; }
+        } catch (RuntimeException unreadable) { return ""; }
     }
 
     private static final Pattern REPLY_START = Pattern.compile("\"reply\"\\s*:\\s*\"");

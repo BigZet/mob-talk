@@ -648,6 +648,7 @@ public final class MobTalkClient implements ClientModInitializer {
         showHud();
         pipeline.execute(() -> {
             pipelineThread = Thread.currentThread();
+            long began = System.nanoTime();
             try {
                 checkCurrent(request);
                 String question = text;
@@ -690,13 +691,26 @@ public final class MobTalkClient implements ClientModInitializer {
                 checkCurrent(request);
                 ConversationEngine localEngine = ensureEngine(request);
                 checkCurrent(request);
+                // The player's line goes to the chat and the speaker as soon as it is written and its voice has started, while the
+                // model still writes facts, action and bargain; the rest of the delivery follows when the answer is complete.
+                String asked = question;
+                EarlyState early = new EarlyState();
+                long thinking = System.nanoTime();
+                ConversationEngine.EarlyListener earlyListener = (line, name, audio, claim) -> {
+                    early.offeredNanos = System.nanoTime();
+                    client.execute(() -> showEarly(request, early, asked, line, name, audio, claim));
+                };
                 // A mob without a life story invents it inside this first reply (see MobPrompt.lifeToInvent): no separate request.
-                ConversationEngine.PreparedReply prepared = localEngine.prepare(snapshot, question, request.overheard, pictureFor(request, snapshot, question, game));
+                ConversationEngine.PreparedReply prepared = localEngine.prepare(snapshot, question, request.overheard, pictureFor(request, snapshot, question, game), earlyListener);
+                long done = System.nanoTime();
+                // One line per answer, for tuning: recognition (with world capture), the line and voice out, the whole answer.
+                LOGGER.info("Mob Talk timing: {} ms before the model, line out {}, whole answer {} ms", (thinking - began) / 1_000_000,
+                        early.offeredNanos == 0 ? "with the answer" : "at " + (early.offeredNanos - thinking) / 1_000_000 + " ms", (done - thinking) / 1_000_000);
                 try { checkCurrent(request); }
                 catch (InterruptedException cancelled) { prepared.reply().discardSpeech(); throw cancelled; }
                 Request observed = new Request(request.generation, request.target, request.worldDirectory, request.config,
                         snapshot, request.server, request.player, request.dimension, request.mobName, request.merchant, request.overheard);
-                client.execute(() -> { pendingDeliveries++; deliver(observed, localEngine, prepared); });
+                client.execute(() -> { pendingDeliveries++; deliver(observed, localEngine, prepared, early); });
             } catch (InterruptedException cancelled) {
                 Thread.currentThread().interrupt();
                 client.execute(() -> {
@@ -740,9 +754,32 @@ public final class MobTalkClient implements ClientModInitializer {
         return created;
     }
 
-    /** Entered with pendingDeliveries already counted; every way out of the delivery, synchronous or not, releases it. */
-    private void deliver(Request request, ConversationEngine localEngine, ConversationEngine.PreparedReply prepared) {
+    /** What of a reply the player already has: the line and its voice may have gone out before the answer was complete. Game thread only. */
+    private static final class EarlyState { boolean shown, delivered; volatile long offeredNanos; }
+
+    /** The player's line before the rest of the answer: into the chat and the speaker now, the delivery that follows skips both.
+     * Game thread; a line the model withdrew meanwhile, or one whose request is over, is not shown. */
+    private void showEarly(Request request, EarlyState early, String asked, String text, String name, io.github.mobtalk.core.SpeechStream audio,
+                           java.util.function.BooleanSupplier claim) {
+        if (early.delivered || early.shown || !isCurrent(request) || world == null || !claim.getAsBoolean()) return;
+        early.shown = true;
+        chat("Вы: " + asked);
+        chat(name + ": " + text); repliesShown++;
+        stopSpeech();
+        speech = new MobSpeechSound(client, world, request.target, request.config.maxDistance, audio);
+        client.getSoundManager().play(speech); speechStarts++; speakingMob = request.target;
+        status = "Говорит…";
+        showHud();
+    }
+
+    private void deliver(Request request, ConversationEngine localEngine, ConversationEngine.PreparedReply prepared) { deliver(request, localEngine, prepared, null); }
+
+    /** Entered with pendingDeliveries already counted; every way out of the delivery, synchronous or not, releases it.
+     * {@code early} non-null: the player's own question, whose line may already be out (see {@link #showEarly}). */
+    private void deliver(Request request, ConversationEngine localEngine, ConversationEngine.PreparedReply prepared, EarlyState early) {
         boolean async = false;
+        if (early != null) early.delivered = true;
+        boolean shownEarly = early != null && early.shown;
         try {
             ConversationEngine.Reply reply = prepared.reply();
             if (!isCurrent(request)) { dropped(request, reply); return; }
@@ -780,7 +817,7 @@ public final class MobTalkClient implements ClientModInitializer {
                     // Трек L: «идём на свадьбу» невесте — свадьба у колокола; «будь моим свидетелем» — свидетель (решено заранее, как жест).
                     if (request.overheard == null) weddingWords(game, request, reply, prepared.gesture());
                     if (request.overheard == null) familyWords(game, request, reply);
-                    finishDelivery(request, reply, delivery.message());
+                    finishDelivery(request, reply, delivery.message(), shownEarly);
                     if (defer) { deferredAction = new Deferred(request, action); if (speech == null) runDeferredAction(); }
                 } finally { pendingDeliveries--; }
             }));
@@ -835,21 +872,29 @@ public final class MobTalkClient implements ClientModInitializer {
         if (request.overheard != null && generation == request.generation) { status = readyStatus(); showHud(); }
     }
 
-    private void finishDelivery(Request request, ConversationEngine.Reply reply, String actionMessage) {
+    private void finishDelivery(Request request, ConversationEngine.Reply reply, String actionMessage) { finishDelivery(request, reply, actionMessage, false); }
+
+    /** {@code shownEarly}: the line and its voice went out already (see {@link #showEarly}); only the rest of the delivery is left. */
+    private void finishDelivery(Request request, ConversationEngine.Reply reply, String actionMessage, boolean shownEarly) {
         requestActive = false;
         if (request.overheard == null) { conversationMob = request.target; lastReplyMillis = System.currentTimeMillis(); }
-        if (request.overheard == null) chat("Вы: " + reply.recognizedText());
+        if (request.overheard == null && !shownEarly) chat("Вы: " + reply.recognizedText());
         boolean spontaneous = request.overheard != null && request.overheard.spontaneous();
         if (spontaneous) initiatives.spoken(request.target, request.overheard, request.generation, reply);
         if (reply.silent()) { status = readyStatus(); showHud(); return; }
-        chat(reply.speakerName() + ": " + reply.responseText()); repliesShown++;
-        stopSpeech();
-        if (reply.speech() != null) {
-            speech = new MobSpeechSound(client, world, request.target, request.config.maxDistance, reply.speech());
-            client.getSoundManager().play(speech); speechStarts++; speakingMob = request.target;
-            status = request.overheard == null ? "Говорит…" : spontaneous ? reply.speakerName() + " заговаривает…" : reply.speakerName() + " вмешивается…";
+        if (shownEarly) {
+            // Still playing, or already over: either way it was heard; the HUD keeps whatever the playback set.
+            if (speech == null) status = readyStatus();
         } else {
-            status = request.overheard == null ? "Ответ в чате; озвучка недоступна. Повторите позже" : "Ответ в чате; озвучка недоступна";
+            chat(reply.speakerName() + ": " + reply.responseText()); repliesShown++;
+            stopSpeech();
+            if (reply.speech() != null) {
+                speech = new MobSpeechSound(client, world, request.target, request.config.maxDistance, reply.speech());
+                client.getSoundManager().play(speech); speechStarts++; speakingMob = request.target;
+                status = request.overheard == null ? "Говорит…" : spontaneous ? reply.speakerName() + " заговаривает…" : reply.speakerName() + " вмешивается…";
+            } else {
+                status = request.overheard == null ? "Ответ в чате; озвучка недоступна. Повторите позже" : "Ответ в чате; озвучка недоступна";
+            }
         }
         if (actionMessage != null && !actionMessage.isBlank()) chat("[Mob Talk] " + actionMessage);
         if (request.overheard == null) {
