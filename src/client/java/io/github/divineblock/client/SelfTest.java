@@ -99,9 +99,46 @@ public final class SelfTest {
                     phase = 2;
                 } else if (ticks > 20 * 240) { fail("мир не открылся"); finish(client); }
             }
-            case 2 -> { if (finished) finish(client); else if (ticks > 20 * 600) { fail("самотест не уложился в 10 минут"); finish(client); } }
+            case 2 -> {
+                if (finished) { phase = 4; ticks = 0; }
+                else if (ticks > 20 * 600) { fail("самотест не уложился в 10 минут"); finish(client); }
+            }
+            case 4 -> screens(client);
             default -> { }
         }
+    }
+
+    /** Mob Talk's F7 menu and this mod's F9 menu open side by side without breaking each other. */
+    private static void screens(MinecraftClient client) {
+        switch (ticks) {
+            case 1 -> {
+                for (String mod : new String[] { "mobtalk", "viewerparrots", "divineblock" })
+                    check(net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer(mod).isPresent(), "мод загружен: " + mod
+                            + net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer(mod).map(c -> " " + c.getMetadata().getVersion().getFriendlyString()).orElse(""));
+                press(client, "key.mobtalk.settings");
+            }
+            case 30 -> {
+                String open = client.currentScreen == null ? "нет" : client.currentScreen.getClass().getName();
+                check(open.contains("mobtalk"), "меню Mob Talk (F7) открылось: " + open);
+                screenshot = "mobtalk-f7";
+            }
+            case 40 -> { client.setScreen(null); press(client, "key.divineblock.settings"); }
+            case 70 -> {
+                check(client.currentScreen instanceof DivineSettingsScreen, "меню Божественного блока (F9) открылось");
+                screenshot = "settings-f9";
+            }
+            case 80 -> { client.setScreen(null); log("ошибок всего: " + failures); finish(client); }
+            default -> { }
+        }
+    }
+    private static void press(MinecraftClient client, String translationKey) {
+        for (net.minecraft.client.option.KeyBinding key : client.options.allKeys)
+            if (key.getTranslationKey().equals(translationKey)) {
+                net.minecraft.client.option.KeyBinding.onKeyPressed(net.minecraft.client.util.InputUtil.fromTranslationKey(key.getBoundKeyTranslationKey()));
+                log("нажата клавиша " + key.getBoundKeyLocalizedText().getString() + " (" + translationKey + ")");
+                return;
+            }
+        fail("нет клавиши " + translationKey);
     }
 
     // ---- On the server thread. ----
@@ -159,7 +196,7 @@ public final class SelfTest {
         config.allowWither = true; config.maxTier = 4;
         for (Miracle miracle : Miracle.values()) steps.add(new Step(miracle == Miracle.METEOR || miracle == Miracle.CHICKEN_RAIN ? 90 : 30, () -> perform(player, miracle, config)));
         steps.add(new Step(40, () -> { clean(world); home(player); screenshot = "end"; }));
-        steps.add(new Step(30, () -> { log("ошибок: " + failures); write(); finished = true; }));
+        steps.add(new Step(30, () -> { log("ошибок после деяний: " + failures); write(); finished = true; }));
         run(steps, 0);
     }
 
