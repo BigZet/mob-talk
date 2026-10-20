@@ -330,6 +330,7 @@ class HttpProtocolTests(unittest.TestCase):
         status, health = self.request("GET", "/health")
         self.assertEqual(status, 200)
         self.assertEqual(health["protocol"], 2)
+        self.assertEqual(health["helperVersion"], whisper.HELPER_VERSION)
         self.assertTrue(health["ready"])
         self.assertEqual(health["model"], "large-v3")
         self.assertEqual(health["device"], "cpu")

@@ -52,4 +52,11 @@ class WhisperClientTest {
         config.whisperUrl = "https://example.com";
         assertThrows(IllegalArgumentException.class, () -> new WhisperClient(config));
     }
+
+    // turbo with hotwords once returned «Майнкрафт, …» forty times for «Я тебя сейчас убью»; ordinary repeats stay.
+    @Test void cutsADecoderRepetitionLoop() {
+        assertEquals("Я тебя сейчас убью", WhisperClient.withoutLoop("Я тебя сейчас убью. " + "Майнкрафт, ".repeat(40) + "М"));
+        assertEquals("", WhisperClient.withoutLoop("Майнкрафт, ".repeat(40)));
+        assertEquals("Нет, нет, нет, нет!", WhisperClient.withoutLoop("Нет, нет, нет, нет!"));
+    }
 }
