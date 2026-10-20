@@ -165,6 +165,7 @@
   "mobtalk.test.results.timing": "Подготовка: %s с · Распознавание: %s с",
   "mobtalk.settings.mob.traits": "Темперамент и особенности",
   "mobtalk.settings.mob.temperament": "Шкала 0–100\nСпокойствие: %s\nУверенность: %s\nЛюбопытство: %s\nОбщительность: %s",
+  "mobtalk.settings.mob.age": "Возраст: %s",
   "mobtalk.settings.mob.preferences": "Предпочтение: %s\nСтрах: %s",
   "mobtalk.settings.mob.resetPersonality": "Новая индивидуальность",
   "mobtalk.settings.mob.resetPersonality.tooltip": "После сохранения изменит темперамент и личные особенности. Голос, память, история и отношение сохранятся.",

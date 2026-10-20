@@ -48,6 +48,7 @@ public final class SpeciesCatalog {
     private static final Map<String, Species> SPECIES;
     private static final List<Voice> RESERVES;
     private static final Map<String, Voice> SPECIES_RESERVES;
+    private static final Map<VoiceAge, List<Voice>> VILLAGER_POOL;
     private static final List<Species> ALL;
 
     static {
@@ -102,6 +103,21 @@ public final class SpeciesCatalog {
                 throw invalid("Invalid species reserve: " + type);
         }
         SPECIES_RESERVES = Collections.unmodifiableMap(speciesReserves);
+        // Villagers' own voices: no species archetype or reserve holds them, and each has a known sex.
+        var pool = new java.util.EnumMap<VoiceAge, List<Voice>>(VoiceAge.class);
+        var pooled = new LinkedHashSet<String>();
+        for (VoiceAge age : VoiceAge.values()) {
+            var list = new ArrayList<Voice>();
+            List<String> ids = voices.villagerPool == null ? null : voices.villagerPool.get(age.key);
+            if (ids != null) for (String id : ids) {
+                Voice voice = voiceMap.get(id);
+                if (voice == null || voice.sex() == null || reserves.contains(voice) || assignedVoices.contains(id) || !pooled.add(id))
+                    throw invalid("Invalid villager pool voice: " + id);
+                list.add(voice);
+            }
+            pool.put(age, List.copyOf(list));
+        }
+        VILLAGER_POOL = Collections.unmodifiableMap(pool);
         ALL = List.copyOf(speciesMap.values());
     }
 
@@ -151,6 +167,15 @@ public final class SpeciesCatalog {
         long hash = seed == null ? 0 : seed.getMostSignificantBits() ^ Long.rotateLeft(seed.getLeastSignificantBits(), 23);
         return pool.get((int) Math.floorMod(hash, (long) pool.size()));
     }
+
+    /** The villagers' own voices of this age and sex, in catalog order; empty when the catalog has none. */
+    public static List<Voice> villagerPool(VoiceAge age, Gender gender) {
+        if (age == null || gender == null) return List.of();
+        return VILLAGER_POOL.getOrDefault(age, List.of()).stream().filter(voice -> voice.sex() == gender).toList();
+    }
+
+    /** Whether the catalog knows this ID; anything else is a voice the player typed in. */
+    public static boolean known(String id) { return !blank(id) && VOICES.containsKey(id.trim()); }
 
     /** A dedicated, disjoint reserve for this species; never borrow another species' voice. */
     public static Voice reserve(String type) {
@@ -256,7 +281,7 @@ public final class SpeciesCatalog {
         }
     }
 
-    private static final class VoiceDocument { List<Voice> voices; List<String> reserveIds; Map<String, String> speciesReserves; }
+    private static final class VoiceDocument { List<Voice> voices; List<String> reserveIds; Map<String, String> speciesReserves; Map<String, List<String>> villagerPool; }
     private static final class SpeciesDocument { List<SpeciesData> species; }
     private static final class SpeciesData {
         String id, name, prompt, interests, fears, quirks, desire, secret;

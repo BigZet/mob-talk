@@ -165,6 +165,7 @@
   "mobtalk.test.results.timing": "Preparation: %s s · Recognition: %s s",
   "mobtalk.settings.mob.traits": "Temperament and traits",
   "mobtalk.settings.mob.temperament": "Scale 0–100\nCalm: %s\nConfidence: %s\nCuriosity: %s\nSociability: %s",
+  "mobtalk.settings.mob.age": "Age: %s",
   "mobtalk.settings.mob.preferences": "Preference: %s\nFear: %s",
   "mobtalk.settings.mob.resetPersonality": "New individuality",
   "mobtalk.settings.mob.resetPersonality.tooltip": "Rerolls temperament and personal traits after Save. Keeps voice, memory, history and relationships.",

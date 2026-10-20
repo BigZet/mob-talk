@@ -635,7 +635,8 @@ final class MobTalkSettingsScreen extends Screen {
         wide(button("mobtalk.settings.mob.history", ignored -> read("mobtalk.settings.mob.history", historyText())),
                 button("mobtalk.settings.mob.events", ignored -> read("mobtalk.settings.mob.events", String.join("\n\n", card.events()))));
         wide(button("mobtalk.settings.mob.traits", ignored -> read("mobtalk.settings.mob.traits",
-                        Text.translatable("mobtalk.settings.mob.temperament", card.calm(), card.confidence(), card.curiosity(), card.sociability()).getString()
+                        (card.age().isBlank() ? "" : Text.translatable("mobtalk.settings.mob.age", card.age()).getString() + "\n\n")
+                        + Text.translatable("mobtalk.settings.mob.temperament", card.calm(), card.confidence(), card.curiosity(), card.sociability()).getString()
                         + "\n\n" + card.personality() + "\n\n"
                         + Text.translatable("mobtalk.settings.mob.preferences", card.preference(), card.fear()).getString())),
                 button("mobtalk.settings.mob.context", ignored -> showContext()));

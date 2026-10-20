@@ -16,6 +16,8 @@ public final class SocialProfile {
     long expectingTick = -1;
     /** The other parent of the child on the way (the player's UUID). */
     String expectingWith = "";
+    /** {@link VoiceAge} by name, "" until the villager's voice was first cast; villagers never age. */
+    String age = "";
 
     /** The deterministic sex, character and marks of a villager met in the world. */
     static SocialProfile of(UUID id, boolean child) {
@@ -39,6 +41,8 @@ public final class SocialProfile {
         return set;
     }
     public boolean has(VillagerTrait trait) { return traits.contains(trait.name()); }
+    /** How old the villager sounds, null before its voice was first cast. */
+    public VoiceAge age() { return VoiceAge.of(age); }
 
     void sanitize() {
         if (Gender.of(gender) == null) gender = Gender.MALE.name();
@@ -48,10 +52,11 @@ public final class SocialProfile {
         if (stage == null) stage = "";
         if (expectingWith == null) expectingWith = "";
         if (expectingTick < -1) expectingTick = -1;
+        if (age == null || VoiceAge.of(age) == null) age = "";
     }
     SocialProfile copy() {
         SocialProfile c = new SocialProfile(); c.gender = gender; c.persona = persona; c.traits = new ArrayList<>(traits); c.bornTick = bornTick; c.stage = stage;
-        c.expectingTick = expectingTick; c.expectingWith = expectingWith;
+        c.expectingTick = expectingTick; c.expectingWith = expectingWith; c.age = age;
         return c;
     }
 }

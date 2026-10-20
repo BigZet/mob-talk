@@ -30,11 +30,20 @@ public final class SocialLedger {
         // A villager the layer knows has a name before anyone talks to it: weddings and rumours name people, not «Крестьянин».
         // A name once given stays (memories, the family tree and rumours carry it); a new one is one the neighbours do not wear.
         if (p.givenName == null || p.givenName.isBlank()) { p.givenName = VillagerNames.pick(p.id, p.social.gender(), VillagerNames.wear(others, p.id, p.villageId)); changed = true; }
-        // The voice follows the sex: a woman does not speak with the archetype's male voice.
+        // The voice comes once from the villagers' own pool by sex and age; a voice the player typed in stays theirs. Later the
+        // voice changes only when it does not match the sex, so a catalog voice the player picked in the menu is kept too.
+        Gender gender = p.social.gender();
+        boolean first = p.social.age() == null;
+        if (first) { p.social.age = VillagerVoices.age(p.id, p.social).name(); changed = true; }
+        if (p.voiceId == null) p.voiceId = "";
         SpeciesCatalog.Voice current = SpeciesCatalog.voice(p.voiceId);
-        if (current.sex() != null && current.sex() != p.social.gender()) {
-            SpeciesCatalog.Voice fitting = SpeciesCatalog.voiceFor(p.type, p.social.gender(), p.id);
-            if (!fitting.id().isBlank()) { p.voiceId = fitting.id(); changed = true; }
+        boolean custom = !p.voiceId.isBlank() && !SpeciesCatalog.known(p.voiceId);
+        boolean recast = first ? !custom && !VillagerVoices.fits(p.voiceId, gender, p.social.age())
+                : p.voiceId.isBlank() || (current.sex() != null && current.sex() != gender);
+        if (recast) {
+            String fitting = VillagerVoices.pick(gender, p.social.age(), p.id, others == null ? List.of() : others);
+            if (fitting.isBlank()) fitting = SpeciesCatalog.voiceFor(p.type, gender, p.id).id();
+            if (!fitting.isBlank() && !fitting.equals(p.voiceId)) { p.voiceId = fitting; changed = true; }
         }
         return changed;
     }

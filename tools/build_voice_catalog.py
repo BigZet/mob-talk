@@ -448,19 +448,24 @@ def main():
     reserve_ids = [voice_id for voice_id in old_reserves if voice_id in voices]
     assignment_error = ""
     species_reserves = previous.get("speciesReserves", {})
+    # Villagers' own voices (picked by ear, by sex and age) never become species archetypes or reserves.
+    villager_pool = previous.get("villagerPool", {})
+    pooled = {voice_id for ids in villager_pool.values() for voice_id in ids}
+    reserve_ids = [voice_id for voice_id in reserve_ids if voice_id not in pooled]
     if args.assign:
         try:
-            reserve_ids, species_reserves = assign(species, voices)
+            reserve_ids, species_reserves = assign(species, {k: v for k, v in voices.items() if k not in pooled})
             write_json(ASSETS / "species.json", species)
         except ValueError as error:
             assignment_error = str(error)
     assigned = {variant["voiceId"] for row in species["species"] for variant in row["variants"] if variant["voiceId"]}
     if not assigned:
-        reserve_ids = list(voices)
+        reserve_ids = [voice_id for voice_id in voices if voice_id not in pooled]
     voice_doc = {"schemaVersion": 1, "targetModel": TARGET_MODEL, "generationStatus": "not_tested",
                  "catalogComplete": len(assigned) == 246, "assignedCount": len(assigned), "candidateCount": len(voices),
                  "collectionNote": fetch_error or ("Authorized read-only public-library export imported; no paid synthesis performed." if args.source else previous.get("collectionNote", "Public library metadata, without paid synthesis validation.")),
-                 "voices": list(voices.values()), "reserveIds": reserve_ids, "speciesReserves": species_reserves}
+                 "voices": list(voices.values()), "reserveIds": reserve_ids, "speciesReserves": species_reserves,
+                 "villagerPool": villager_pool}
     write_json(ASSETS / "voices.json", voice_doc)
     print(json.dumps({"species": len(species["species"]), "archetypes": 246, "realCandidates": len(voices),
                       "assigned": len(assigned), "reserves": len(reserve_ids), "generationTested": 0,
