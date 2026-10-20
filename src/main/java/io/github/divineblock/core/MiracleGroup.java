@@ -69,6 +69,8 @@ public enum MiracleGroup {
                 case B3 -> level >= 3;
                 case B4 -> level >= 4 && config.maxTier >= 3;
             };
+            // Mercy and jests may answer exactly what was asked, whatever the level: "дай алмазов" opens the gifts.
+            if (!opened && group.kind != Miracle.Kind.WRATH && group.allowed(verdict, config).stream().anyMatch(m -> m.hintMatches(verdict.prayer) > 0)) opened = true;
             if (opened && !group.allowed(verdict, config).isEmpty()) out.add(group);
         }
         return out;

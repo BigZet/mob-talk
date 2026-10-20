@@ -42,6 +42,14 @@ public final class JevGodDecider implements GodDecider {
     public record Answers(JsonObject answers, double cost) {
         public double noul(String q) { JsonObject a = answer(q); return a != null && a.has("noul") ? a.get("noul").getAsDouble() : -1; }
         public String choice(String q) { JsonObject a = answer(q); return a != null && a.has("choice") && a.get("choice").isJsonPrimitive() ? a.get("choice").getAsString() : ""; }
+        /** A choice question's probability for each option, empty when absent. */
+        public java.util.Map<String, Double> probabilities(String q) {
+            java.util.Map<String, Double> out = new java.util.LinkedHashMap<>();
+            JsonObject a = answer(q);
+            if (a != null && a.has("probabilities") && a.get("probabilities").isJsonObject())
+                for (var entry : a.getAsJsonObject("probabilities").entrySet()) out.put(entry.getKey(), entry.getValue().getAsDouble());
+            return out;
+        }
         public double score(String q) { JsonObject a = answer(q); return a != null && a.has("score") ? a.get("score").getAsDouble() : Double.NaN; }
         private JsonObject answer(String q) { JsonElement a = answers == null ? null : answers.get(q); return a != null && a.isJsonObject() ? a.getAsJsonObject() : null; }
     }
@@ -154,16 +162,29 @@ public final class JevGodDecider implements GodDecider {
         return interpret(answers, verdict, open, config);
     }
 
-    /** Jev's group held to the open ones; anything else is the rules' turn. The act inside the group is drawn at random. */
+    /** Jev's opinion mixed with the escalation ladder: half Jev's probabilities over the open groups, half a bell around the
+     * group the verdict's level points at; then a draw. Jev alone is too categorical (it answers the same, and leans to the
+     * lightest group), the ladder alone ignores the prayer. A group outside the open ones never comes out. */
     Choice interpret(Answers answers, Verdict verdict, List<MiracleGroup> open, DivineConfig config) {
+        java.util.Map<String, Double> jev = answers.probabilities("group");
         String picked = answers.choice("group");
+        if (jev.isEmpty() && !picked.isEmpty()) jev = java.util.Map.of(picked, 1.0);
+        if (jev.isEmpty()) return fallback.choose(verdict, config);
+        java.util.Map<String, Double> ladder = GodDecider.ladder(verdict, open);
+        java.util.Map<String, Double> mixed = new java.util.LinkedHashMap<>();
+        double jevTotal = 0;
+        for (MiracleGroup group : open) jevTotal += jev.getOrDefault(group.id(), 0.0);
+        double silence = jev.getOrDefault("silence", 0.0);
+        jevTotal += silence;
+        for (MiracleGroup group : open)
+            mixed.put(group.id(), 0.5 * (jevTotal > 0 ? jev.getOrDefault(group.id(), 0.0) / jevTotal : 0) + 0.5 * ladder.getOrDefault(group.id(), 0.0));
+        if (silence > 0) mixed.put("silence", 0.5 * silence / jevTotal);
+        String drawn = GodDecider.sample(mixed);
         String cost = answers.cost() > 0 ? String.format(java.util.Locale.ROOT, ", $%.5f", answers.cost()) : "";
-        if ("silence".equals(picked)) return new Choice(Miracle.IGNORE, 0, false, name(), "Jev: молчание" + cost, "");
-        MiracleGroup group = MiracleGroup.byId(picked);
-        if (group == null || !open.contains(group)) {
-            diagnostics.accept("Jev выбрал недопустимую группу «" + picked + "», решают правила");
-            return fallback.choose(verdict, config);
-        }
-        return GodDecider.drawn(verdict, config, group, name(), "Jev" + cost);
+        String note = "Jev " + GodDecider.percent(jev) + " ⊕ лестница → " + GodDecider.percent(mixed) + cost;
+        if ("silence".equals(drawn)) return new Choice(Miracle.IGNORE, 0, false, name(), note + ": молчание", "");
+        MiracleGroup group = MiracleGroup.byId(drawn);
+        if (group == null) return fallback.choose(verdict, config);
+        return GodDecider.drawn(verdict, config, group, name(), note);
     }
 }

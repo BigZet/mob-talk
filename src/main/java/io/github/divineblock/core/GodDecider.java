@@ -21,6 +21,38 @@ public interface GodDecider {
         return new Choice(miracle, power, mustWarn(miracle, power), by, note + ", " + group.id() + " «" + group.label + "»", group.id());
     }
 
+    /** The ladder's wish over the open groups (lightest first): a bell around the group the verdict's level points at.
+     * Wrath: a first insult (level 4) centres on the second group, the third blasphemy (level 7–8) on the fourth, the
+     * worst (level 10) on the fifth. Mercy and jests: their level picks the group directly. */
+    static java.util.Map<String, Double> ladder(Verdict verdict, List<MiracleGroup> open) {
+        double target = verdict.inclination == Miracle.Kind.WRATH ? (verdict.level() - 2) / 2.0 : verdict.level() - 1;
+        target = Math.max(0, Math.min(open.size() - 1, target));
+        java.util.Map<String, Double> out = new java.util.LinkedHashMap<>();
+        double total = 0;
+        for (int i = 0; i < open.size(); i++) { double w = Math.exp(-(i - target) * (i - target)); out.put(open.get(i).id(), w); total += w; }
+        for (var entry : out.entrySet()) entry.setValue(entry.getValue() / total);
+        return out;
+    }
+
+    /** One key drawn by weight. */
+    static String sample(java.util.Map<String, Double> weights) {
+        double total = 0;
+        for (double w : weights.values()) total += Math.max(0, w);
+        double roll = RANDOM.nextDouble() * total;
+        String last = null;
+        for (var entry : weights.entrySet()) { last = entry.getKey(); roll -= Math.max(0, entry.getValue()); if (roll <= 0) return entry.getKey(); }
+        return last;
+    }
+
+    static String percent(java.util.Map<String, Double> weights) {
+        StringBuilder out = new StringBuilder("{");
+        for (var entry : weights.entrySet()) {
+            if (out.length() > 1) out.append(' ');
+            out.append(entry.getKey()).append(' ').append(Math.round(entry.getValue() * 100)).append('%');
+        }
+        return out.append('}').toString();
+    }
+
     /** Every act the verdict could end in (all members of its open groups), for the self-test and the log. */
     static List<Miracle> candidates(Verdict verdict, DivineConfig config) {
         List<Miracle> out = new ArrayList<>();

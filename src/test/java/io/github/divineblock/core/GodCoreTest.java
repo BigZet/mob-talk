@@ -85,11 +85,17 @@ class GodCoreTest {
         JevGodDecider jev = new JevGodDecider("sk-test", new RuleGodDecider(), URI.create("http://127.0.0.1:9/"));
         var answers = JevGodDecider.parse("{\"answers\":{\"group\":{\"choice\":\"K3\"}},\"usage\":{\"cost\":0.00004}}");
         GodDecider.Choice choice = jev.interpret(answers, verdict, open, config);
-        assertTrue(MiracleGroup.K3.members.contains(choice.miracle()), choice.toString());
+        assertTrue(List.of("K1", "K2", "K3").contains(choice.group()), choice.toString());
         assertEquals("K3", choice.group());
 
         var closed = JevGodDecider.parse("{\"answers\":{\"group\":{\"choice\":\"K5\"}}}");
-        assertEquals("rules", jev.interpret(closed, verdict, open, config).decidedBy(), "a closed group is not Jev's to open");
+        for (int i = 0; i < 30; i++)
+            assertTrue(open.stream().map(MiracleGroup::id).toList().contains(jev.interpret(closed, verdict, open, config).group()), "a closed group never comes out");
+        // Jev's leaning is mixed with the ladder: over many draws more than one group comes out.
+        var leaning = JevGodDecider.parse("{\"answers\":{\"group\":{\"choice\":\"K1\",\"probabilities\":{\"K1\":0.8,\"K2\":0.1,\"K3\":0.1}}}}");
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (int i = 0; i < 60; i++) seen.add(jev.interpret(leaning, verdict, open, config).group());
+        assertTrue(seen.size() >= 2, "not categorical: " + seen);
         assertEquals("rules", jev.choose(verdict, config).decidedBy(), "an unreachable Jev hands the choice to the rules");
 
         var questions = JevGodDecider.questions(verdict, open, false);
@@ -140,7 +146,7 @@ class GodCoreTest {
         assertTrue(punishments.contains(Miracle.METEOR) && !punishments.contains(Miracle.GREAT_CRATER), "a first insult opens К1–К3: " + punishments);
         assertFalse(punishments.contains(Miracle.IGNORE), "no silence in fury");
         GodDecider.Choice choice = new RuleGodDecider().choose(verdict, config);
-        assertTrue(MiracleGroup.K3.members.contains(choice.miracle()), choice.toString());
+        assertTrue(List.of("K1", "K2", "K3").contains(choice.group()), choice.toString());
         assertTrue(VerdictBuilder.build(context("ты тупой бог", 0, 0, 0), config).fury, "an insult without swearing is blasphemy too");
     }
 

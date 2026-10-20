@@ -2,8 +2,8 @@ package io.github.divineblock.core;
 
 import java.util.List;
 
-/** The fallback when Jev is off or silent: the heaviest group the verdict opened (the god at his most wrathful or most
- * gracious), an act drawn from it at random without repeats; a pestering mortal who earned no mercy gets silence, and a
+/** The fallback when Jev is off or silent: a group drawn by the escalation ladder alone, an act drawn from it at random
+ * without repeats; a pestering mortal who earned no mercy gets silence, and a
  * verdict with no group gets an omen. */
 public final class RuleGodDecider implements GodDecider {
     @Override public String name() { return "rules"; }
@@ -13,12 +13,13 @@ public final class RuleGodDecider implements GodDecider {
             return new Choice(Miracle.IGNORE, 0, false, name(), "наскучил просьбами: молчание", "");
         List<MiracleGroup> open = MiracleGroup.open(verdict, config);
         if (verdict.inclination == Miracle.Kind.OMEN || open.isEmpty()) return omen(verdict, config, name());
-        MiracleGroup group = open.get(open.size() - 1);
+        // Without Jev the ladder alone decides, by weighted draw: escalation without sameness.
+        MiracleGroup group = MiracleGroup.byId(GodDecider.sample(GodDecider.ladder(verdict, open)));
         // Mercy answers what was asked: the group holding the act named in the prayer, if one is open.
         if (verdict.inclination != Miracle.Kind.WRATH)
             for (MiracleGroup candidate : open)
                 if (candidate.allowed(verdict, config).stream().anyMatch(m -> m.hintMatches(verdict.prayer) > 0)) group = candidate;
-        return GodDecider.drawn(verdict, config, group, name(), "тяжелейшая открытая группа");
+        return GodDecider.drawn(verdict, config, group, name(), "лестница " + GodDecider.percent(GodDecider.ladder(verdict, open)));
     }
 
     static Choice omen(Verdict verdict, DivineConfig config, String by) {
