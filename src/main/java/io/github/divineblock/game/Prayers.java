@@ -66,7 +66,7 @@ public final class Prayers {
 
         if (PrayerTone.isWhyQuestion(text)) {
             Verdict last = soul.lastVerdict();
-            if (last == null) { say(player, "Я ещё ничего не решал о тебе, смертный."); return; }
+            if (last == null) { say(player, "Ничесоже доселе не рёк я о тебе, смертне."); return; }
             Verdict copy = last;
             WORKER.execute(() -> {
                 String line = new GodSpeech(config, DivineBlockMod.configDirectory()).explain(copy);
@@ -75,8 +75,8 @@ public final class Prayers {
             return;
         }
 
-        if (THINKING.contains(player.getUuid())) { hint(player, "Бог ещё обдумывает прошлую молитву…"); return; }
-        if (now - soul.lastPrayerTick < config.cooldownSeconds * 20L) { hint(player, "Алтарь ещё не остыл. Подожди немного."); return; }
+        if (THINKING.contains(player.getUuid())) { hint(player, "Бог ещё размышляет над прежней молитвой…"); return; }
+        if (now - soul.lastPrayerTick < config.cooldownSeconds * 20L) { hint(player, "Алтарь ещё не остыл. Повремени, чадо."); return; }
 
         // Gifts thrown on the altar are taken whatever the answer.
         int offeringValue = 0; boolean insult = false;
@@ -150,7 +150,7 @@ public final class Prayers {
             Miracles.warn(player, altar);
             List<Verdict.Reason> main = verdict.mainReasons(1);
             title(player, Text.literal("Гнев небес").formatted(Formatting.DARK_RED),
-                    Text.literal((main.isEmpty() ? "" : main.get(0).text() + ". ") + "Покайся у алтаря!").formatted(Formatting.RED));
+                    Text.literal((main.isEmpty() ? "" : main.get(0).text() + ". ") + "Покайся у алтаря, смертне!").formatted(Formatting.RED));
             boolean[] cancelled = { false };
             Pending pending = new Pending(verdict, altar, world.getRegistryKey(), cancelled);
             PENDING.put(player.getUuid(), pending);
@@ -180,15 +180,15 @@ public final class Prayers {
     private static void repent(ServerPlayerEntity player, Pending pending, GodLedger.Soul soul, long now) {
         Verdict verdict = pending.verdict();
         boolean forgivable = verdict.forgivable(soul.righteousness.score);
-        if (!forgivable) { say(player, "Поздно каяться. Ты знаешь, что сделал."); return; }
+        if (!forgivable) { say(player, "Поздно покаяние твоё. Ведаешь сам, что содеял."); return; }
         pending.cancelled()[0] = true;
         PENDING.remove(player.getUuid());
         verdict.forgiven = true;
         verdict.reasons.add(new Verdict.Reason("покаялся вовремя", 2, 0));
         soul.shiftMood(now, 5);
         Miracles.forgiven(player, pending.altar());
-        title(player, Text.literal("Гнев утих").formatted(Formatting.GOLD), Text.literal("На этот раз пощажу.").formatted(Formatting.YELLOW));
-        say(player, "Ладно, смертный. Раскаяние принято, но я запомню.");
+        title(player, Text.literal("Гнев утих").formatted(Formatting.GOLD), Text.literal("Ныне пощажу.").formatted(Formatting.YELLOW));
+        say(player, "Быть по сему: приемлю покаяние твоё. Но памятую всё.");
     }
 
     /** Every line the god says, for the self-test's report. */

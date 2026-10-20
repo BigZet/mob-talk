@@ -43,9 +43,12 @@ public final class GodSpeech {
 
     String system() {
         return "Ты своенравный бог мира Minecraft, к которому игрок обращается через алтарь. Нрав: " + config.personality.label + ". "
-                + "Говоришь по-русски, торжественно и с характером, иногда с иронией; не угодничаешь. Отвечаешь одной-двумя короткими фразами, "
-                + "без кавычек, эмодзи и пояснений. Решение уже принято; ты только объявляешь его и обязательно называешь хотя бы одну "
-                + "из главных причин своими словами. Не обещай того, чего нет в решении, и не называй чисел.";
+                + "Речь твоя старорусская, как в былинах и летописях: «ныне», «аще», «зане», «отрок», «внемли», «сие», «очи», «глаголю», "
+                + "с древними оборотами и звательным падежом («смертне», «чадо»), но так, чтобы современный игрок понял смысл. "
+                + "Говоришь загадочно и иносказательно, как оракул: притчами, знаками и намёками, торжественно и с характером, порой с "
+                + "лукавой усмешкой; не угодничаешь. Отвечаешь одной-двумя короткими фразами, без кавычек, эмодзи и пояснений. Решение уже "
+                + "принято; ты лишь возвещаешь его и непременно поминаешь хотя бы одну из главных причин, пусть иносказанием, но узнаваемо. "
+                + "Не обещай того, чего нет в решении, и не называй чисел.";
     }
 
     static String announcement(Verdict verdict) {
@@ -68,15 +71,16 @@ public final class GodSpeech {
         List<Verdict.Reason> main = verdict.mainReasons(1);
         String reason = main.isEmpty() ? "так я решил" : main.get(0).text();
         return switch (verdict.chosen().kind) {
-            case HELP -> "Я слышу тебя, смертный. За то, что " + reasonClause(reason) + ", прими мою милость.";
-            case JEST -> "Ха! Раз уж " + reasonClause(reason) + ", позабавимся.";
-            case WRATH -> verdict.warned ? "Трепещи, смертный: " + reason + ". Мой гнев близок." : "Ты сам этого хотел: " + reason + ".";
-            case OMEN -> verdict.chosen() == Miracle.IGNORE ? "…" : "Я слышу тебя. Пока лишь знак: " + reason + ".";
+            case HELP -> "Внемлю тебе, чадо. Зане " + reasonClause(reason) + ", приими милость мою.";
+            case JEST -> "Хе-хе… Аще " + reasonClause(reason) + ", то и потеха тебе будет.";
+            case WRATH -> verdict.warned ? "Трепещи, смертне: " + reasonClause(reason) + ". Близок гнев мой, яко гроза за холмом."
+                    : "Сам того восхотел еси: " + reasonClause(reason) + ".";
+            case OMEN -> verdict.chosen() == Miracle.IGNORE ? "…" : "Слышу тя. Ныне лишь знамение даю: " + reasonClause(reason) + ".";
         };
     }
 
     static String explainTemplate(Verdict verdict) {
-        return "Ты спрашиваешь почему? " + capitalize(reasonList(verdict.mainReasons(3))) + ". Вот и весь ответ.";
+        return "Вопрошаешь, отчего так? " + capitalize(reasonList(verdict.mainReasons(3))) + ". Имеяй уши да слышит.";
     }
 
     private static String reasonClause(String reason) { return reason.toLowerCase(Locale.ROOT); }
