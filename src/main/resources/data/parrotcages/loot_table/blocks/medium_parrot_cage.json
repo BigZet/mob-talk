@@ -12,6 +12,15 @@
       ],
       "conditions": [
         {
+          "condition": "minecraft:block_state_property",
+          "block": "parrotcages:medium_parrot_cage",
+          "properties": {
+            "cx": "0",
+            "cy": "0",
+            "cz": "0"
+          }
+        },
+        {
           "condition": "minecraft:survives_explosion"
         }
       ]

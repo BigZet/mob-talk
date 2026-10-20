@@ -8,5 +8,6 @@ public final class ParrotCagesClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		BlockRenderLayerMap.INSTANCE.putBlocks(RenderLayer.getCutout(), ParrotCages.cages());
+		SelfTest.install();
 	}
 }

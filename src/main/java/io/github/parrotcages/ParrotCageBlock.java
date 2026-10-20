@@ -141,6 +141,23 @@ public final class ParrotCageBlock extends BlockWithEntity {
 		return state;
 	}
 
+	/** Предмет выпадает только из угловой части; в творческом режиме части снимаются без каскада и без выпадения. */
+	@Override
+	public BlockState onBreak(World world, BlockPos pos, BlockState state, PlayerEntity player) {
+		if (!world.isClient() && player.isCreative()) {
+			BlockPos origin = origin(pos, state);
+			if (!pos.equals(origin) && world.getBlockEntity(origin) instanceof ParrotCageBlockEntity cage && world instanceof ServerWorld server) {
+				cage.release(server, null);
+			}
+			for (int x = 0; x < width; x++) for (int y = 0; y < height; y++) for (int z = 0; z < width; z++) {
+				BlockPos p = origin.add(x, y, z);
+				if (!p.equals(pos) && world.getBlockState(p).isOf(this))
+					world.setBlockState(p, Blocks.AIR.getDefaultState(), Block.NOTIFY_LISTENERS | Block.FORCE_STATE | Block.SKIP_DROPS);
+			}
+		}
+		return super.onBreak(world, pos, state, player);
+	}
+
 	@Override
 	protected void onStateReplaced(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved) {
 		if (!state.isOf(newState.getBlock()) && isOrigin(state) && world instanceof ServerWorld server
