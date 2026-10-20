@@ -532,12 +532,16 @@ final class SelfTest {
             List<UUID> fresh = world.getEntitiesByClass(VillagerEntity.class, player.getBoundingBox().expand(12), v -> v.isAlive() && !bridge().memory.known(v.getUuid()))
                     .stream().map(MobEntity::getUuid).toList();
             if (fresh.size() < 2) return false;
-            talker1 = fresh.get(0); talker2 = fresh.get(1); return true;
+            talker1 = fresh.get(0); talker2 = fresh.get(1);
+            for (VillagerEntity v : world.getEntitiesByClass(VillagerEntity.class, player.getBoundingBox().expand(16), VillagerEntity::isAlive))
+                log("villager near the talk: " + v.getUuid() + " baby=" + v.isBaby() + " known=" + bridge().memory.known(v.getUuid()) + " name=" + bridge().memory.displayName(v.getUuid())
+                        + " tags=" + v.getCommandTags() + " at " + v.getBlockPos().toShortString());
+            return true;
         }, () -> {
             voiced = false;
             await("villagers talked among themselves", 120, () -> { if (owner.speaking()) voiced = true; return (chatted(talker1) || chatted(talker2)) && !owner.busyTalking(); }, () -> {
                 UUID a = chatted(talker1) ? talker1 : talker2;
-                log("small talk: " + bridge().memory.events(a).stream().filter(e -> e.startsWith("Болтал с ")).toList());
+                log("small talk: " + bridge().memory.events(a).stream().filter(e -> e.startsWith("Болтал с ")).toList() + "; talkers " + talker1 + ", " + talker2);
                 check(chatted(talker1) || chatted(talker2), "two strangers talked among themselves (no acquaintance, no friendship)");
                 check(!bridge().memory.displayName(a).isBlank() && !bridge().memory.acquainted(a), "the talker got a name (" + bridge().memory.displayName(a) + ") without becoming the player's acquaintance");
                 long now = System.currentTimeMillis();

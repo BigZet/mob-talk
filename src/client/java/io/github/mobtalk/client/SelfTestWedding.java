@@ -51,6 +51,7 @@ final class SelfTestWedding {
         selectedBefore = test.owner.selected;
         test.log("wedding stages (track L): a live wedding, a wedding without network, villagers' weddings");
         savedBridgeConfig = test.bridge().config.copy();
+        test.bridge().config.weddingChance = 0; // Деревня сама не женит участников этапа.
         test.command("fill " + (wx - 16) + " " + (wy - 1) + " " + (wz - 16) + " " + (wx + 16) + " " + (wy - 1) + " " + (wz + 16) + " minecraft:smooth_stone");
         test.command("fill " + (wx - 16) + " " + wy + " " + (wz - 16) + " " + (wx + 16) + " " + (wy + 6) + " " + (wz + 16) + " minecraft:air");
         for (String wall : List.of(
@@ -302,7 +303,7 @@ final class SelfTestWedding {
     // ---- 3. Свадьба жителей сценой; гибель жениха прерывает вторую. ----
 
     private void villageWeddings() {
-        List<UUID> free = new ArrayList<>(guests);
+        List<UUID> free = new ArrayList<>(guests.stream().filter(g -> entity(g) != null && test.bridge().memory.social().household(g).spouse() == null).toList());
         UUID a = null, b = null, c = null, d = null;
         List<UUID> men = free.stream().filter(x -> SocialProfile.genderOf(x) == Gender.MALE).toList();
         List<UUID> women = free.stream().filter(x -> SocialProfile.genderOf(x) == Gender.FEMALE).toList();
@@ -347,7 +348,8 @@ final class SelfTestWedding {
     private void finish() {
         WeddingFaults.clear();
         MobTalkConfig restored = savedBridgeConfig;
-        if (restored != null) { test.bridge().config.weddingGatherSeconds = restored.weddingGatherSeconds; test.bridge().config.weddingVowWaitSeconds = restored.weddingVowWaitSeconds; }
+        if (restored != null) { test.bridge().config.weddingGatherSeconds = restored.weddingGatherSeconds; test.bridge().config.weddingVowWaitSeconds = restored.weddingVowWaitSeconds;
+            test.bridge().config.weddingChance = restored.weddingChance; }
         test.owner.client.options.hudHidden = false;
         test.command("kill @e[tag=" + TAG + "]");
         test.command("item replace entity " + name() + " armor.head with minecraft:air");
