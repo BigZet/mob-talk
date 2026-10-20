@@ -14,6 +14,7 @@ public final class ConversationStore {
     private final SocialLedger social = new SocialLedger(this);
     private final JealousyLedger jealousy = new JealousyLedger(this);
     private final WeddingLedger wedding = new WeddingLedger(this);
+    private final ChildLedger children = new ChildLedger(this);
 
     /** Initial load touches disk: call from a maintenance/conversation worker. */
     public static ConversationStore open(Path worldDirectory, MobTalkConfig config) throws IOException {
@@ -60,6 +61,8 @@ public final class ConversationStore {
     public JealousyLedger jealousy() { return jealousy; }
     /** Трек L: помолвка, свидетели и свадьба у колокола; см. {@link WeddingLedger}. */
     public WeddingLedger wedding() { return wedding; }
+    /** Трек N: особая ночь, беременность, роды и экран семьи; см. {@link ChildLedger}. */
+    public ChildLedger children() { return children; }
     /** The preferences this store was opened with, for the social layer. */
     synchronized MobTalkConfig config() { return config; }
     /** Blocking writer barrier for shutdown/tests, never the game thread. */
@@ -105,7 +108,7 @@ public final class ConversationStore {
         boolean attacked = snapshot.mobDetails().get("lastAttacker") instanceof String attacker && !"none".equals(attacker);
         if (snapshot.maxHealth() > 0 && snapshot.health() >= snapshot.maxHealth() && !attacked && p.state.safe(baseline(p, current.relationship()), now)) scheduleSave();
         detached.stateView = p.state.view(baseline(p, current.relationship()), now);
-        SocialLedger.prepare(state, p, detached, own, snapshot, detached.stateView, config, now);
+        SocialLedger.prepare(state, p, detached, own, snapshot, detached.stateView, config, now, children);
         return detached;
     }
 
@@ -731,6 +734,8 @@ public final class ConversationStore {
     private static String canonical(String type) { return type.contains(":") ? type : "minecraft:" + type; }
     private Profile require(UUID id) { Profile p = state.profiles.get(id.toString()); if (p == null) throw new IllegalArgumentException("Профиль моба ещё не создан."); return p; }
     private static void event(Profile p, long time, String text) { event(p, time, text, MemoryFact.ORDINARY); }
+    /** The texts of the last {@code count} events, oldest first. */
+    static List<String> lastEvents(Profile p, int count) { return p.events.stream().skip(Math.max(0, p.events.size() - count)).map(Event::text).toList(); }
     /** An event the game recorded, with how much it matters: the least important and oldest go first when the list is full. */
     static void event(Profile p, long time, String text, int importance) {
         p.events.add(new Event(time, TextBounds.characters(text, 500), MemoryFact.clamp(importance)));

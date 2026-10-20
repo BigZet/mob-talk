@@ -70,7 +70,7 @@ public final class SocialLedger {
     /** Before the request: the villager's family for «Свои», and the outcome of every gesture the player could make now (see
      * {@link SocialTurn}), into the detached profile the prompt is built from. */
     static void prepare(ConversationStore.State state, ConversationStore.Profile p, ConversationStore.Profile detached, ConversationStore.Relation r,
-                        MobSnapshot snapshot, MobState.View view, MobTalkConfig config, long now) {
+                        MobSnapshot snapshot, MobState.View view, MobTalkConfig config, long now, ChildLedger children) {
         if (!applies(p, config) || p.social == null) return;
         detached.family = state.family.kin(p.id).stream().filter(kin -> !kin.player()).toList();
         UUID player = snapshot.playerId();
@@ -120,6 +120,7 @@ public final class SocialLedger {
         List<String> facts = SocialPrompt.playerFacts(courtship, state.family, p.id, player, config);
         facts.addAll(JealousyLedger.facts(p, rapport, config, now)); // Трек J: ревность и ночь вместе.
         facts.addAll(WeddingLedger.facts(state, p, r, player, snapshot, config, now)); // Трек L: помолвка, свидетели, свадьба.
+        facts.addAll(ChildLedger.facts(state, p, r, player, config, children)); // Трек N: особый вечер, беременность.
         detached.socialTurn = new SocialTurn(rolled, closed, facts);
     }
     /** The villager the player courts or married, or null: the living spouse in the tree, else any courtship in the relations. */
@@ -404,7 +405,7 @@ public final class SocialLedger {
             state.family.addChild(child, "", newborn.gender(), aMother ? a : b, aMother ? b : a);
             for (ConversationStore.Profile parent : new ConversationStore.Profile[]{pa, pb}) {
                 if (parent == null) continue;
-                if (parent.social != null && parent.social.expectingTick >= 0) { parent.social.expectingTick = -1; parent.social.expectingWith = ""; }
+                if (parent.social != null && parent.social.expectingTick >= 0) parent.social.clearExpecting();
                 parent.state.shift(MobState.Event.CHILD_BORN, ConversationStore.baseline(parent, 0), now);
                 ConversationStore.event(parent, now, "У тебя родился ребёнок: " + newborn.gender().offspring, 5);
                 parent.revision++;

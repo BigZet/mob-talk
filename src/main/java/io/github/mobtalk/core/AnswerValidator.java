@@ -120,6 +120,7 @@ final class AnswerValidator {
             // The thought is optional: an older or fallback answer without it keeps the mob's previous one.
             GestureIntent gesture = gesture(answer, bounds.social());
             checkGesture(reply, gesture);
+            checkTender(reply, bounds.social());
             return new OpenRouterConversationClient.Answer(reply, memory, social, action, bargain, deal, unlock, quest, biography(answer),
                     MobState.cleanThought(ReplySchema.optional(answer, "thought")), fact, gesture);
         } catch (Rejected invalid) { throw invalid; }
@@ -138,6 +139,11 @@ final class AnswerValidator {
         boolean courting = gesture.gesture() == Gesture.DATE || gesture.gesture() == Gesture.PROPOSE;
         if (courting && gesture.outcome() != Gesture.Outcome.ACCEPTED && CONSENT.matcher(reply).find())
             throw new Rejected(SocialPrompt.consentRejection(gesture.note()), false);
+    }
+    /** Трек N: в особый вечер ответ, ушедший в откровенность, переписывается (а если и повтор не вышел — звучит запасная реплика). */
+    static void checkTender(String reply, SocialTurn social) throws Rejected {
+        if (social == null || social.facts().stream().noneMatch(fact -> fact.startsWith(SpecialEvening.MARK))) return;
+        if (SpecialEvening.explicit(reply)) throw new Rejected(SpecialEvening.REJECTION, false);
     }
     /** Words of consent to courtship or marriage, not preceded by a negation. */
     private static final Pattern CONSENT = Pattern.compile("(?<!не )(согласн\\p{L}*|выйду за|"

@@ -122,6 +122,13 @@ public final class Tunables {
         integer("weddingRange", s, "wedding", 16, 96, 4, c -> c.weddingRange, (c, x) -> c.weddingRange = x);
         integer("weddingScenePercent", s, "wedding", 0, 100, 5, c -> c.weddingScenePercent, (c, x) -> c.weddingScenePercent = x);
         integer("weddingAttireDays", s, "wedding", 0, 30, 1, c -> c.weddingAttireDays, (c, x) -> c.weddingAttireDays = x);
+        // Ребёнок в семье (трек N).
+        integer("pregnancyDays", s, "child", 1, 20, 1, c -> c.pregnancyDays, (c, x) -> c.pregnancyDays = x);
+        integer("conceptionChance", s, "child", 0, 100, 1, c -> c.conceptionChance, (c, x) -> c.conceptionChance = x);
+        integer("specialNightChanceMin", s, "child", 0, 100, 1, c -> c.specialNightChanceMin, (c, x) -> c.specialNightChanceMin = x);
+        integer("specialNightChanceMax", s, "child", 0, 100, 1, c -> c.specialNightChanceMax, (c, x) -> c.specialNightChanceMax = x);
+        integer("specialNightHearts", s, "child", 0, 20, 1, c -> c.specialNightHearts, (c, x) -> c.specialNightHearts = x);
+        integer("specialNightQuietSeconds", s, "child", 5, 300, 5, c -> c.specialNightQuietSeconds, (c, x) -> c.specialNightQuietSeconds = x);
         // Bonds between mobs and their walks.
         integer("socialActionsPerMinute", s, "bonds", 1, 30, 1, c -> c.socialActionsPerMinute, (c, x) -> c.socialActionsPerMinute = x);
         integer("socialPlayerRange", s, "bonds", 8, 96, 1, c -> c.socialPlayerRange, (c, x) -> c.socialPlayerRange = x);
@@ -217,6 +224,7 @@ public final class Tunables {
             case TALK -> config.rudeness = d.rudeness;
             case SOCIAL -> {
                 config.socialLayer = d.socialLayer; config.playerGender = d.playerGender; config.familyLife = d.familyLife; config.coSleep = d.coSleep; config.weddingCeremony = d.weddingCeremony;
+                config.pregnancy = d.pregnancy; config.pregnancyBelly = d.pregnancyBelly; config.pregnancyStatus = d.pregnancyStatus; config.familyFade = d.familyFade;
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices;
             }

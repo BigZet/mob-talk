@@ -120,6 +120,11 @@ public final class MobTalkConfig {
     public boolean weddingCeremony = true;
     public int weddingVowSeconds = 60, weddingVowWaitSeconds = 60, weddingGatherSeconds = 60, weddingGuests = 16, weddingWishes = 12, weddingRange = 48;
     public int weddingScenePercent = 30, weddingAttireDays = 1;
+    /** Ребёнок в семье (трек N): беременность как у людей (выключено — малыш через игровой день, как раньше), живот на фигурке,
+     * строка под именем и мягкие затемнения особой ночи и родов. Длина срока (игровые дни), шанс зачатия за обычную ночь вместе
+     * и за особую (от и до по уюту дома, проценты), сердечки за особую ночь и сколько секунд тишины в кровати её заканчивают. */
+    public boolean pregnancy = true, pregnancyBelly = true, pregnancyStatus = true, familyFade = true;
+    public int pregnancyDays = 5, conceptionChance = 15, specialNightChanceMin = 40, specialNightChanceMax = 80, specialNightHearts = 5, specialNightQuietSeconds = 30;
     /** Bonds between mobs: how far from the player they act (blocks), the chance a friend walks over (percent per check), the
      * walking band and retreat distance (blocks), how fast a bond fades (hours) and how long grief lasts (minutes). */
     public int socialPlayerRange = 32;
@@ -196,6 +201,7 @@ public final class MobTalkConfig {
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;
         copy.familyLife = familyLife; copy.weddingChance = weddingChance; copy.birthChance = birthChance; copy.childGrowthDays = childGrowthDays;
         copy.coSleep = coSleep; copy.weddingCeremony = weddingCeremony;
+        copy.pregnancy = pregnancy; copy.pregnancyBelly = pregnancyBelly; copy.pregnancyStatus = pregnancyStatus; copy.familyFade = familyFade;
         Tunables.copy(this, copy);
         copy.placeAnalysis = placeAnalysis; copy.placeClassifier = placeClassifier; copy.playerNamesHostile = playerNamesHostile; copy.playerNamesNeutral = playerNamesNeutral; copy.playerNamesClose = playerNamesClose;
         return copy;

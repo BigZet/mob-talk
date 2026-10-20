@@ -64,9 +64,12 @@ final class InitiativeVoice {
         owner.maintenance.execute(() -> engine.chronicleIfDue(village.id(), name, day));
     }
 
+    /** Последняя реплика каждого, кто заговорил первым или ответил в сцене (для самотеста). */
+    final Map<UUID, String> lastLines = new HashMap<>();
     /** A first line or an answer was delivered: start or continue the scene. */
     void spoken(UUID target, ConversationEngine.Overheard overheard, long generation, ConversationEngine.Reply reply) {
         Initiative.Cue cue = cues.remove(target);
+        if (!reply.silent()) lastLines.put(target, reply.responseText());
         if (reply.silent()) { if (overheard.kind() == ConversationEngine.Overheard.Kind.DIALOGUE || cue != null) scene = null; return; }
         if (overheard.kind() == ConversationEngine.Overheard.Kind.INITIATIVE) {
             if (cue == null || cue.partners().isEmpty()) { scene = null; return; }

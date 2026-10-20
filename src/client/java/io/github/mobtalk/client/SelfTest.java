@@ -48,6 +48,8 @@ final class SelfTest {
     static final boolean ONLY_PLACE = "place".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=wedding}: only the wedding stages of track L. */
     static final boolean ONLY_WEDDING = "wedding".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=family}: only the stages of track N (special night, term, birth, family screen). */
+    static final boolean ONLY_FAMILY = "family".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=names}: sixteen new villagers get sixteen different names (no LLM, no voice). */
     static final boolean ONLY_NAMES = "names".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=voices}: new villagers get an age and a pool voice of their sex and age with no early repeats,
@@ -146,7 +148,8 @@ final class SelfTest {
             villager = nearest(VillagerEntity.class); cow = nearest(CowEntity.class);
             return villager != null && cow != null && MobSpeechSound.find(owner.world, villager) != null && MobSpeechSound.find(owner.world, cow) != null;
         }, ONLY_PLACE ? () -> new SelfTestPlace(this, cow, sx, SY, sz).run(this::finish)
-                : ONLY_WEDDING ? () -> new SelfTestWedding(this, sx, SY, sz).run(this::finish) : ONLY_NAMES ? this::names : ONLY_VOICES ? this::voices : this::aim);
+                : ONLY_WEDDING ? () -> new SelfTestWedding(this, sx, SY, sz).run(this::finish)
+                : ONLY_FAMILY ? () -> new SelfTestFamily(this, sx, SY, sz).run(this::finish) : ONLY_NAMES ? this::names : ONLY_VOICES ? this::voices : this::aim);
     }
 
     // ---- Names only: a crowd of new villagers, each named on meeting, none sharing a name.
@@ -484,7 +487,7 @@ final class SelfTest {
                     log("cow about the gift: " + lastReply(cow));
                     check(turns(cow) > turnsBefore, "the cow spoke of the gift");
                     command("item replace entity " + name + " weapon.mainhand with minecraft:air");
-                    new SelfTestJealousy(this, sx, SY, sz).run(() -> new SelfTestWedding(this, sx, SY, sz).run(this::stayHere)); // Треки J и L.
+                    new SelfTestJealousy(this, sx, SY, sz).run(() -> new SelfTestWedding(this, sx, SY, sz).run(() -> new SelfTestFamily(this, sx, SY, sz).run(this::stayHere))); // Треки J, L и N.
                 });
             });
         });

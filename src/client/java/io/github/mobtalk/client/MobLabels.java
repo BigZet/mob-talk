@@ -26,11 +26,13 @@ final class MobLabels {
     static final double RANGE = 24;
     private final MobTalkClient owner;
     private final Map<UUID, Text> labels = new HashMap<>();
+    /** Трек N: вторая строка под именем — «ждёт малыша · 3 из 5 дн.». */
+    private final Map<UUID, Text> statuses = new HashMap<>();
 
     MobLabels(MobTalkClient owner) { this.owner = owner; }
 
     void tick() {
-        labels.clear();
+        labels.clear(); statuses.clear();
         MinecraftClient client = owner.client;
         if (!owner.enabled() || !owner.config().showNameTags || client.player == null || client.world == null || client.getServer() == null) return;
         MobGameBridge game = MobGameBridge.active(client.getServer());
@@ -54,6 +56,8 @@ final class MobLabels {
                     .append(Text.literal(" · ").formatted(Formatting.DARK_GRAY))
                     .append(Text.literal((relation > 0 ? "+" : "") + relation).formatted(relation > 0 ? Formatting.GREEN : relation < 0 ? Formatting.RED : Formatting.GRAY));
             labels.put(mob.getUuid(), label);
+            String status = ChildView.status(mob.getUuid());
+            if (!status.isBlank()) statuses.put(mob.getUuid(), Text.literal(status).formatted(Formatting.LIGHT_PURPLE));
         }
     }
 
@@ -83,6 +87,12 @@ final class MobLabels {
             float x = -textRenderer.getWidth(label) / 2.0f;
             textRenderer.draw(label, x, 0, 0x20FFFFFF, false, matrix, consumers, TextRenderer.TextLayerType.SEE_THROUGH, background, LightmapTextureManager.MAX_LIGHT_COORDINATE);
             textRenderer.draw(label, x, 0, 0xFFFFFFFF, false, matrix, consumers, TextRenderer.TextLayerType.NORMAL, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
+            Text status = statuses.get(entity.getUuid());
+            if (status != null) {
+                float sx = -textRenderer.getWidth(status) / 2.0f;
+                textRenderer.draw(status, sx, 10, 0x20FFFFFF, false, matrix, consumers, TextRenderer.TextLayerType.SEE_THROUGH, background, LightmapTextureManager.MAX_LIGHT_COORDINATE);
+                textRenderer.draw(status, sx, 10, 0xFFFFFFFF, false, matrix, consumers, TextRenderer.TextLayerType.NORMAL, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
+            }
             matrices.pop();
         }
     }

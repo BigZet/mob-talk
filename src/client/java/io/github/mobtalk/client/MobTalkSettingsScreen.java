@@ -344,6 +344,12 @@ final class MobTalkSettingsScreen extends Screen {
                 "bonds", () -> wide(tip(toggle("mobtalk.settings.social", draft.socialBehavior, value -> draft.socialBehavior = value), "mobtalk.settings.social.tooltip")),
                 "jealousy", () -> wide(tip(toggle("mobtalk.settings.coSleep", draft.coSleep, value -> draft.coSleep = value), "mobtalk.settings.coSleep.tooltip")),
                 "wedding", () -> wide(tip(toggle("mobtalk.settings.weddingCeremony", draft.weddingCeremony, value -> draft.weddingCeremony = value), "mobtalk.settings.weddingCeremony.tooltip")),
+                "child", () -> {
+                    wide(tip(toggle("mobtalk.settings.pregnancy", draft.pregnancy, value -> draft.pregnancy = value), "mobtalk.settings.pregnancy.tooltip"),
+                            tip(toggle("mobtalk.settings.familyFade", draft.familyFade, value -> draft.familyFade = value), "mobtalk.settings.familyFade.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.pregnancyBelly", draft.pregnancyBelly, value -> draft.pregnancyBelly = value), "mobtalk.settings.pregnancyBelly.tooltip"),
+                            tip(toggle("mobtalk.settings.pregnancyStatus", draft.pregnancyStatus, value -> draft.pregnancyStatus = value), "mobtalk.settings.pregnancyStatus.tooltip"));
+                },
                 "initiative", () -> wide(tip(toggle("mobtalk.settings.initiative", draft.initiative, value -> draft.initiative = value), "mobtalk.settings.initiative.tooltip")),
                 "chatter", () -> wide(tip(toggle("mobtalk.settings.villageChatter", draft.villageChatter, value -> draft.villageChatter = value), "mobtalk.settings.villageChatter.tooltip"),
                         tip(toggle("mobtalk.settings.villageNotices", draft.villageNotices, value -> draft.villageNotices = value), "mobtalk.settings.villageNotices.tooltip"))));

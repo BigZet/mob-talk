@@ -130,7 +130,7 @@ final class SocialPrompt {
             case PROPOSE -> o == Gesture.Outcome.ACCEPTED ? (Tuning.get().weddingCeremony
                     ? "согласишься и примешь кольцо — с этой минуты вы помолвлены, а свадьбу сыграете у колокола при всей деревне, когда игрок позовёт"
                     : "согласишься на брак и примешь кольцо — с этой минуты вы супруги") : "откажешь: " + intent.note();
-            case CHILD -> o == Gesture.Outcome.ACCEPTED ? "согласишься завести ребёнка — через игровой день он появится у вас" : "откажешь: " + intent.note();
+            case CHILD -> o == Gesture.Outcome.ACCEPTED ? "согласишься завести ребёнка — теперь вы его ждёте вместе" : "откажешь: " + intent.note();
             case DIVORCE -> Courtship.ENGAGED.name().equals(intent.note()) ? "помолвка расторгнута — это решено, свадьбы не будет; кольцо ты вернёшь"
                     : Courtship.MARRIED.name().equals(intent.note()) ? "брак расторгнут — это решено, вы больше не супруги; переживи это по характеру"
                     : "вы расстаётесь — это решено, вы больше не пара";
