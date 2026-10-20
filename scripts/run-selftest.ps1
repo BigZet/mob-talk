@@ -1,4 +1,4 @@
-# Runs the in-game self-test unattended on the Prism instance divine-block-test (Fabric 1.21.1 with Mob Talk and Viewer
+﻿# Runs the in-game self-test unattended on the Prism instance divine-block-test (Fabric 1.21.1 with Mob Talk and Viewer
 # Parrots beside this mod): builds, installs the JAR, arms -Ddivineblock.selftest=true in instance.cfg while PrismLauncher is
 # closed, launches, waits for the game to quit, restores instance.cfg, deletes the test world and reopens PrismLauncher.
 # Report: %LOCALAPPDATA%\DivineBlock\selftest\report.txt; screenshots in the instance's screenshots folder.
