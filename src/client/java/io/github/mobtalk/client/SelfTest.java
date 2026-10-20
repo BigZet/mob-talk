@@ -42,6 +42,8 @@ final class SelfTest {
     private static final Logger LOGGER = LoggerFactory.getLogger("mobtalk-selftest");
     /** {@code -Dmobtalk.selftest.only=place}: only the place stages (no LLM, no voice), for checking vision without paying for chat. */
     static final boolean ONLY_PLACE = "place".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=wedding}: only the wedding stages of track L. */
+    static final boolean ONLY_WEDDING = "wedding".equals(System.getProperty("mobtalk.selftest.only"));
     final MobTalkClient owner;
     private final String world;
     private int stage, ticks, stageStart;
@@ -134,7 +136,8 @@ final class SelfTest {
         await("villager and cow summoned", 10, () -> {
             villager = nearest(VillagerEntity.class); cow = nearest(CowEntity.class);
             return villager != null && cow != null && MobSpeechSound.find(owner.world, villager) != null && MobSpeechSound.find(owner.world, cow) != null;
-        }, ONLY_PLACE ? () -> new SelfTestPlace(this, cow, sx, SY, sz).run(this::finish) : this::aim);
+        }, ONLY_PLACE ? () -> new SelfTestPlace(this, cow, sx, SY, sz).run(this::finish)
+                : ONLY_WEDDING ? () -> new SelfTestWedding(this, sx, SY, sz).run(this::finish) : this::aim);
     }
 
     // ---- Stage 2: the crosshair finds the villager; V would pick it.
@@ -396,7 +399,7 @@ final class SelfTest {
                     log("cow about the gift: " + lastReply(cow));
                     check(turns(cow) > turnsBefore, "the cow spoke of the gift");
                     command("item replace entity " + name + " weapon.mainhand with minecraft:air");
-                    new SelfTestJealousy(this, sx, SY, sz).run(this::stayHere); // Трек J: ревность и сон вместе, без LLM.
+                    new SelfTestJealousy(this, sx, SY, sz).run(() -> new SelfTestWedding(this, sx, SY, sz).run(this::stayHere)); // Треки J и L.
                 });
             });
         });
@@ -522,6 +525,12 @@ final class SelfTest {
     private UUID talker1, talker2;
     private boolean chatted(UUID mob) { return mob != null && bridge().memory.events(mob).stream().anyMatch(e -> e.startsWith("Болтал с ")); }
     private void villageTalk() {
+        // Жители прошлых этапов (ненавидящие, ревность) к этому времени свободны болтать и перебивают двух новых: убрать их.
+        server().execute(() -> {
+            ServerWorld w = (ServerWorld) serverPlayer().getWorld();
+            for (VillagerEntity v : w.getEntitiesByClass(VillagerEntity.class, serverPlayer().getBoundingBox().expand(40), v -> v.isAlive()
+                    && !v.getUuid().equals(villager) && !v.getUuid().equals(firstVillager))) v.discard();
+        });
         command("summon minecraft:villager " + at(-3, 3) + FARMER);
         command("summon minecraft:villager " + at(-3, 5) + " {PersistenceRequired:1b,VillagerData:{profession:\"minecraft:librarian\",level:2,type:\"minecraft:plains\"}}");
         await("two strangers summoned", 10, () -> {
@@ -529,12 +538,16 @@ final class SelfTest {
             List<UUID> fresh = world.getEntitiesByClass(VillagerEntity.class, player.getBoundingBox().expand(12), v -> v.isAlive() && !bridge().memory.known(v.getUuid()))
                     .stream().map(MobEntity::getUuid).toList();
             if (fresh.size() < 2) return false;
-            talker1 = fresh.get(0); talker2 = fresh.get(1); return true;
+            talker1 = fresh.get(0); talker2 = fresh.get(1);
+            for (VillagerEntity v : world.getEntitiesByClass(VillagerEntity.class, player.getBoundingBox().expand(16), VillagerEntity::isAlive))
+                log("villager near the talk: " + v.getUuid() + " baby=" + v.isBaby() + " known=" + bridge().memory.known(v.getUuid()) + " name=" + bridge().memory.displayName(v.getUuid())
+                        + " tags=" + v.getCommandTags() + " at " + v.getBlockPos().toShortString());
+            return true;
         }, () -> {
             voiced = false;
             await("villagers talked among themselves", 120, () -> { if (owner.speaking()) voiced = true; return (chatted(talker1) || chatted(talker2)) && !owner.busyTalking(); }, () -> {
                 UUID a = chatted(talker1) ? talker1 : talker2;
-                log("small talk: " + bridge().memory.events(a).stream().filter(e -> e.startsWith("Болтал с ")).toList());
+                log("small talk: " + bridge().memory.events(a).stream().filter(e -> e.startsWith("Болтал с ")).toList() + "; talkers " + talker1 + ", " + talker2);
                 check(chatted(talker1) || chatted(talker2), "two strangers talked among themselves (no acquaintance, no friendship)");
                 check(!bridge().memory.displayName(a).isBlank() && !bridge().memory.acquainted(a), "the talker got a name (" + bridge().memory.displayName(a) + ") without becoming the player's acquaintance");
                 long now = System.currentTimeMillis();
@@ -592,7 +605,10 @@ final class SelfTest {
     }
 
     // ---- Stage 11: the Venice speech provider returns PCM for a Russian line.
+    /** Этапы Venice (озвучка и чат) только по {@code -Dmobtalk.selftest.venice=1}: баланс Venice почти пуст, самотест идёт через OpenRouter. */
+    static final boolean VENICE = "1".equals(System.getProperty("mobtalk.selftest.venice"));
     private void veniceSpeech() {
+        if (!VENICE) { log("Venice speech skipped (no -Dmobtalk.selftest.venice=1)"); microphoneCheck(); return; }
         MobTalkConfig config = owner.config().copy(); config.ttsProvider = "venice";
         CompletableFuture<byte[]> pcm = CompletableFuture.supplyAsync(() -> {
             try { return SpeechPreview.synthesize(config, owner.configDirectory, config.veniceSpeechKeepsVoices() ? config.defaultVoice : "ignored", "Проверка озвучки через Venice."); }
@@ -629,6 +645,7 @@ final class SelfTest {
 
     // ---- Stage 13: Venice as the chat provider, live in the game; the settings are put back afterwards.
     private void veniceChat() {
+        if (!VENICE) { log("Venice chat skipped; llmProvider stays " + owner.config().llmProvider); finish(); return; }
         MobTalkConfig original = owner.config().copy();
         if (original.usesVenice()) { log("chat provider was already Venice (a previous run did not restore it): the test will end on OpenRouter"); original.llmProvider = "openrouter"; }
         MobTalkConfig draft = original.copy(); draft.llmProvider = "venice";

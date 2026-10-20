@@ -7,8 +7,10 @@ import java.util.*;
  * reply only voices them. Pure Java. */
 public final class Romance {
     private Romance() { }
-    /** The bouquet: any flower of the {@code flowers} gift category. The rings: a gold nugget or a gold ingot. */
-    public static final Set<String> RINGS = Set.of("minecraft:gold_nugget", "minecraft:gold_ingot");
+    /** The bouquet: any flower of the {@code flowers} gift category. The rings: the mod's own engagement and wedding rings (трек L),
+     * and, for old worlds and worlds without them, a diamond, a gold nugget or a gold ingot. */
+    public static final String ENGAGEMENT_RING = "mobtalk:engagement_ring", WEDDING_RING = "mobtalk:wedding_ring";
+    public static final Set<String> RINGS = Set.of(ENGAGEMENT_RING, WEDDING_RING, "minecraft:diamond", "minecraft:gold_nugget", "minecraft:gold_ingot");
 
     /** Whether someone of {@code self} sex with these marks is drawn to {@code other}; a player of no counted sex attracts everyone. */
     public static boolean drawn(Gender self, Set<VillagerTrait> traits, Gender other) {
@@ -28,6 +30,12 @@ public final class Romance {
         return false;
     }
     public static boolean ring(String item) { return item != null && RINGS.contains(item); }
+    /** How much warmer the proposal is for the ring itself: a real engagement ring most, a diamond some, gold nothing extra. */
+    public static int ringHearts(String item) {
+        if (ENGAGEMENT_RING.equals(item)) return 5;
+        if (WEDDING_RING.equals(item) || "minecraft:diamond".equals(item)) return 2;
+        return 0;
+    }
 
     /** What the game knows when the player courts or proposes. {@code playerPartner}: the villager the player already courts or married,
      * null for none; {@code villagerSpouse}: the villager's own spouse among villagers, null for none. */
@@ -44,7 +52,7 @@ public final class Romance {
     public static String refusePropose(Suit s) {
         String common = common(s, Hearts.marriage());
         if (common != null) return common;
-        return ring(s.held()) ? null : "без кольца не сватаются — пусть принесёт кольцо (золотой самородок или слиток в руке)";
+        return ring(s.held()) ? null : "без кольца не сватаются — пусть принесёт кольцо (помолвочное кольцо, алмаз или золото в руке)";
     }
     private static String common(Suit s, int threshold) {
         if (!s.adult()) return "ты ещё ребёнок";

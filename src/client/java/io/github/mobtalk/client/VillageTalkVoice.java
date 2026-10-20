@@ -33,10 +33,11 @@ final class VillageTalkVoice {
         MobGameBridge game = MobGameBridge.active(owner.client.getServer());
         if (game == null) return;
         game.talk.talking = active();
+        if (owner.wedding.active()) { cancel(); return; } // Трек L: на свадьбе деревня не болтает и не пишет объявлений.
         if (lines != null) { advance(game); return; }
         if (ticks % 20 != 3) return;
         announce(game);
-        boolean floorBusy = writing || owner.busyTalking() || owner.witnessPending() || owner.initiatives.sceneOn();
+        boolean floorBusy = writing || owner.busyTalking() || owner.witnessPending() || owner.initiatives.sceneOn() || owner.wedding.active();
         if (!floorBusy) write(game);
     }
 
@@ -77,6 +78,7 @@ final class VillageTalkVoice {
         next++;
         if (!recorded) {
             recorded = true;
+            LOGGER.info("Mob Talk: болтовня {} ({}) и {} ({})", input.a().name(), input.a().id(), input.b().name(), input.b().id());
             game.memory.recordChatter(input, lines.stream().map(l -> new VillageChatter.Line(l.speaker().equals(input.a().id()) ? 0 : 1, l.text())).toList(), System.currentTimeMillis());
         }
         owner.playOverheard(line.speaker(), "§7" + line.name() + ": " + line.text(), line.audio(), range());

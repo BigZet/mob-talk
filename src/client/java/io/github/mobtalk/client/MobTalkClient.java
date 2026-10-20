@@ -107,6 +107,8 @@ public final class MobTalkClient implements ClientModInitializer {
     final InitiativeVoice initiatives = new InitiativeVoice(this);
     /** Villagers talking among themselves and writing to the chat. */
     final VillageTalkVoice village = new VillageTalkVoice(this);
+    /** Трек L: свадьба у колокола — тексты, голоса и клятва игрока. */
+    final WeddingVoice wedding = new WeddingVoice(this);
     private volatile Decider decider = new RuleDecider();
     private CompletableFuture<String> actionRequest;
     /** Bystander replies already prepared (LLM done, voice prebuffered), waiting for the current voice to end. */
@@ -133,6 +135,7 @@ public final class MobTalkClient implements ClientModInitializer {
     private MobSpeechSound speech;
 
     @Override public void onInitializeClient() {
+        io.github.mobtalk.client.game.WeddingItems.register(); // Свои предметы — до загрузки любого мира.
         MobGameBridge.initialize();
         ConversationEngine.setDiagnostics(line -> LOGGER.info("Mob Talk: {}", line));
         talkKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.talk", InputUtil.Type.KEYSYM,
@@ -312,6 +315,7 @@ public final class MobTalkClient implements ClientModInitializer {
         if (ticks % 20 == 0) keepAttention();
         initiatives.tick(ticks);
         village.tick(ticks);
+        wedding.tick(ticks);
         if (!held && keyHeld && recording != null) {
             status = "Завершение записи…";
             recording.stop();
@@ -357,6 +361,7 @@ public final class MobTalkClient implements ClientModInitializer {
     private void leaveWorld() {
         merchant.end("Мир сменился: торговый разговор отменён");
         cancelWork(AIM_HINT, true);
+        wedding.reset();
         selected = null;
         world = null;
         if (client.getServer() == null) releaseMemory();
@@ -431,10 +436,12 @@ public final class MobTalkClient implements ClientModInitializer {
         Request seed = request(requestGeneration, null);
         captureShot(requestGeneration);
         try {
-            MicrophoneRecorder.Capture capture = microphone.start(config.microphoneName, config.maxRecordingSeconds);
+            // Трек L: клятву на свадьбе можно говорить дольше обычного вопроса.
+            int seconds = wedding.takesVow() ? config.weddingVowSeconds : config.maxRecordingSeconds;
+            MicrophoneRecorder.Capture capture = microphone.start(config.microphoneName, seconds);
             recording = capture;
             merchant.setWork(seed.merchant);
-            status = "Запись… отпустите " + talkKey.getBoundKeyLocalizedText().getString() + " (до 15 сек.)";
+            status = "Запись… отпустите " + talkKey.getBoundKeyLocalizedText().getString() + " (до " + seconds + " сек.)";
             showHud();
             capture.wav.whenComplete((wav, error) -> client.execute(() -> finishRecording(seed, capture, wav, error)));
         } catch (RuntimeException unavailable) {
@@ -554,6 +561,8 @@ public final class MobTalkClient implements ClientModInitializer {
         if (speech != null || requestActive || recording != null || pendingDeliveries > 0) return;
         Ready next = readyWitnesses.poll();
         if (next == null) return;
+        // Трек L: на свадьбе посторонние реплики (очевидцы, инициатива), задуманные до неё, не звучат.
+        if (wedding.active()) { next.prepared.reply().discardSpeech(); initiatives.ended(next.request.target); return; }
         if (generation != next.request.generation) { next.prepared.reply().discardSpeech(); return; }
         pendingDeliveries++;
         deliver(next.request, next.engine, next.prepared);
@@ -620,6 +629,7 @@ public final class MobTalkClient implements ClientModInitializer {
                 checkCurrent(request);
                 String question = text;
                 if (wav != null) {
+                    if (io.github.mobtalk.core.WeddingFaults.whisper && wedding.takesVow()) throw new java.io.IOException("самотест: Whisper недоступен");
                     updateStatus(request, "Whisper запускается и распознаёт…");
                     helperCleanup.get(10, TimeUnit.SECONDS);
                     checkCurrent(request);
@@ -632,9 +642,17 @@ public final class MobTalkClient implements ClientModInitializer {
                     } finally { whisper = null; }
                     checkCurrent(request);
                     if (question == null || question.isBlank()) {
+                        if (request.overheard == null && wedding.takesVow()) client.execute(wedding::vowUnheard);
                         updateStatus(request, "Речь не распознана: удерживайте голосовую клавишу и произнесите вопрос");
                         return;
                     }
+                }
+                // Трек L: на свадьбе сказанное в свою очередь — клятва, она уходит в службу, а не в разговор.
+                if (request.overheard == null && wedding.takesVow() && question != null && !question.isBlank()) {
+                    String vow = question;
+                    client.execute(() -> wedding.vowHeard(vow));
+                    updateStatus(request, "Клятва произнесена");
+                    return;
                 }
                 checkCurrent(request);
                 updateStatus(request, request.overheard != null ? request.mobName + " прислушивается…" : "Моб думает и готовит голос…");
@@ -736,11 +754,25 @@ public final class MobTalkClient implements ClientModInitializer {
                     }
                     // Трек J: «пойдём спать» своей паре — она пойдёт за игроком к кровати (не пару сервер не позовёт).
                     if (request.overheard == null && io.github.mobtalk.core.CoSleep.invites(reply.recognizedText())) game.inviteToBed(request.target, request.player);
+                    // Трек L: «идём на свадьбу» невесте — свадьба у колокола; «будь моим свидетелем» — свидетель (решено заранее, как жест).
+                    if (request.overheard == null) weddingWords(game, request, reply, prepared.gesture());
                     finishDelivery(request, reply, delivery.message());
                     if (defer) { deferredAction = new Deferred(request, action); if (speech == null) runDeferredAction(); }
                 } finally { pendingDeliveries--; }
             }));
         } finally { if (!async) pendingDeliveries--; }
+    }
+
+    /** Трек L: что сказанное значит для свадьбы — помолвка состоялась, зовут на свадьбу, просят быть свидетелем. */
+    private void weddingWords(MobGameBridge game, Request request, ConversationEngine.Reply reply, io.github.mobtalk.core.GestureIntent gesture) {
+        if (!config.weddingCeremony) return;
+        if (gesture != null && gesture.gesture() == io.github.mobtalk.core.Gesture.PROPOSE && gesture.outcome() == io.github.mobtalk.core.Gesture.Outcome.ACCEPTED)
+            chat("§d[Mob Talk] Вы помолвлены с " + reply.speakerName() + ". Свадьбу играют у колокола днём: скажите «идём на свадьбу». Свидетелей зовите словами «будь моим свидетелем».");
+        String said = reply.recognizedText();
+        if (io.github.mobtalk.core.Wedding.calls(said))
+            game.startWedding(request.target, request.player).thenAccept(message -> client.execute(() -> { if (!message.isBlank()) notice(message); }));
+        if (io.github.mobtalk.core.Wedding.asksWitness(said))
+            game.appointWitness(request.target, request.player).thenAccept(message -> client.execute(() -> { if (!message.isBlank()) notice(message); }));
     }
 
     /** The announced move, now that the voice is over; the mob's state may have changed meanwhile, so the game checks it again. */
@@ -800,6 +832,8 @@ public final class MobTalkClient implements ClientModInitializer {
     }
 
     private void reportFailure(Request request, Throwable failure) {
+        boolean vow = request.overheard == null && wedding.takesVow();
+        if (vow) wedding.vowUnheard();
         if (!isCurrent(request)) return;
         if (actionRequest != null) actionRequest.completeExceptionally(failure);
         actionRequest = null;
@@ -812,7 +846,7 @@ public final class MobTalkClient implements ClientModInitializer {
         notice(status);
         // The model is unreachable, not the mob: a short local line keeps the creature present instead of mute.
         MobGameBridge game = request.server == null ? null : MobGameBridge.active(request.server);
-        if (failure instanceof java.io.IOException && game != null && client.player != null) {
+        if (failure instanceof java.io.IOException && game != null && client.player != null && !vow) {
             MobCard card = game.memory.card(request.target, client.player.getUuid());
             int calm = card == null || card.state() == null ? 50 : card.state().calm();
             boolean hostile = io.github.mobtalk.core.SpeciesCatalog.get(request.snapshot == null ? "" : request.snapshot.type()).hostile();
@@ -1083,6 +1117,10 @@ public final class MobTalkClient implements ClientModInitializer {
     /** A line of village small talk: into the chat, and voiced at the speaker when there is audio. Only while nobody speaks. */
     void playOverheard(UUID mob, String line, io.github.mobtalk.core.SpeechStream audio, double range) {
         chat(line);
+        playVoice(mob, audio, range);
+    }
+    /** A voice at the speaker without a chat line (the wedding prints the whole line once and voices it phrase by phrase). */
+    void playVoice(UUID mob, io.github.mobtalk.core.SpeechStream audio, double range) {
         stopSpeech();
         if (audio == null || world == null) return;
         speech = new MobSpeechSound(client, world, mob, Math.max(range, config.maxDistance), audio);

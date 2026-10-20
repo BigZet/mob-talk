@@ -127,9 +127,12 @@ final class SocialPrompt {
             case KISS -> o == Gesture.Outcome.SUCCESS ? "ответишь на поцелуй" : o == Gesture.Outcome.SLAP ? "влепишь пощёчину" : "увернёшься — целовать не дашь";
             case GIFT -> giftWords(intent);
             case DATE -> o == Gesture.Outcome.ACCEPTED ? "согласишься встречаться и возьмёшь цветы — с этой минуты вы пара" : "откажешь: " + intent.note();
-            case PROPOSE -> o == Gesture.Outcome.ACCEPTED ? "согласишься на брак и примешь кольцо — с этой минуты вы супруги" : "откажешь: " + intent.note();
+            case PROPOSE -> o == Gesture.Outcome.ACCEPTED ? (Tuning.get().weddingCeremony
+                    ? "согласишься и примешь кольцо — с этой минуты вы помолвлены, а свадьбу сыграете у колокола при всей деревне, когда игрок позовёт"
+                    : "согласишься на брак и примешь кольцо — с этой минуты вы супруги") : "откажешь: " + intent.note();
             case CHILD -> o == Gesture.Outcome.ACCEPTED ? "согласишься завести ребёнка — через игровой день он появится у вас" : "откажешь: " + intent.note();
-            case DIVORCE -> Courtship.MARRIED.name().equals(intent.note()) ? "брак расторгнут — это решено, вы больше не супруги; переживи это по характеру"
+            case DIVORCE -> Courtship.ENGAGED.name().equals(intent.note()) ? "помолвка расторгнута — это решено, свадьбы не будет; кольцо ты вернёшь"
+                    : Courtship.MARRIED.name().equals(intent.note()) ? "брак расторгнут — это решено, вы больше не супруги; переживи это по характеру"
                     : "вы расстаётесь — это решено, вы больше не пара";
             default -> "";
         };
@@ -173,8 +176,9 @@ final class SocialPrompt {
             case GIFT -> " подарил тебе " + intent.item() + (intent.takesItem() ? (intent.outcome() == Gesture.Outcome.BEST ? " — лучший подарок" : " — ты взял")
                     : intent.outcome() == Gesture.Outcome.ALREADY ? " — уже дарил, ты не взял" : " — ты отказался");
             case DATE -> warm ? " предложил встречаться и подарил цветы — вы теперь пара" : " предложил встречаться — ты отказал (" + intent.note() + ")";
-            case PROPOSE -> warm ? " сделал тебе предложение с кольцом — вы теперь в браке" : " сделал тебе предложение — ты отказал (" + intent.note() + ")";
-            case DIVORCE -> Courtship.MARRIED.name().equals(intent.note()) ? " развёлся с тобой" : " расстался с тобой";
+            case PROPOSE -> warm ? (Tuning.get().weddingCeremony ? " сделал тебе предложение с кольцом — вы помолвлены, свадьба впереди"
+                    : " сделал тебе предложение с кольцом — вы теперь в браке") : " сделал тебе предложение — ты отказал (" + intent.note() + ")";
+            case DIVORCE -> Courtship.MARRIED.name().equals(intent.note()) ? " развёлся с тобой" : Courtship.ENGAGED.name().equals(intent.note()) ? " расторг помолвку с тобой" : " расстался с тобой";
             case CHILD -> warm ? " — вы решили завести ребёнка" : " звал завести ребёнка — ты отказал (" + intent.note() + ")";
             default -> " сделал жест «" + intent.gesture().word + "»";
         };

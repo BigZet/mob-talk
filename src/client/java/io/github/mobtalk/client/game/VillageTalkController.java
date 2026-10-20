@@ -48,7 +48,7 @@ public final class VillageTalkController {
     // ---- Small talk. ----
 
     private void chatter(ServerWorld world) {
-        if (talking || !talks.isEmpty() || bridge.initiative.playerBusy) return;
+        if (talking || !talks.isEmpty() || bridge.initiative.playerBusy || bridge.wedding.active()) return;
         long now = System.currentTimeMillis();
         String dimension = world.getRegistryKey().getValue().toString();
         for (ServerPlayerEntity player : world.getPlayers()) {
@@ -77,7 +77,7 @@ public final class VillageTalkController {
     /** A villager that may talk: grown, awake, not fleeing, fighting, riding, trading or held by the player's conversation. */
     private boolean free(VillagerEntity villager) {
         return villager.isAlive() && !villager.isRemoved() && !villager.isAiDisabled() && !villager.isBaby() && !villager.isSleeping() && !villager.isPanicking()
-                && villager.getTarget() == null && !villager.hasVehicle() && !villager.hasCustomer() && !bridge.actions.busy(villager);
+                && villager.getTarget() == null && !villager.hasVehicle() && !villager.hasCustomer() && !bridge.actions.busy(villager) && !bridge.wedding.involved(villager.getUuid());
     }
     private ConversationStore.Village village(String dimension, VillagerEntity villager) { return bridge.memory.villageNear(dimension, villager.getBlockX(), villager.getBlockZ()); }
     /** A village the world memory has not met yet still keeps its talk apart from the next one: a square of the village radius. */
@@ -97,6 +97,7 @@ public final class VillageTalkController {
     // ---- Announcements. ----
 
     private void notice(ServerWorld world) {
+        if (bridge.wedding.active()) return;
         long now = System.currentTimeMillis();
         String dimension = world.getRegistryKey().getValue().toString();
         for (ServerPlayerEntity player : world.getPlayers()) {

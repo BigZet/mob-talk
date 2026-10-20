@@ -25,8 +25,8 @@ import time
 import wave
 
 
-MAX_BODY_BYTES = 2 * 1024 * 1024
-MAX_AUDIO_SECONDS = 15.0
+MAX_BODY_BYTES = 4 * 1024 * 1024
+MAX_AUDIO_SECONDS = 120.0  # an ordinary question is 15 s at most; a wedding vow may run to two minutes
 _DLL_HANDLES = []
 MODEL_REPOS = {
     "small": "Systran/faster-whisper-small", "medium": "Systran/faster-whisper-medium",

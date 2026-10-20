@@ -23,7 +23,7 @@ public final class GestureTable {
         /** MCA's two low mood levels on the 0..100 axis: a sad villager is easier to cheer up. */
         boolean depressed() { return mood < 20; }
         boolean sad() { return mood >= 20 && mood < 35; }
-        boolean dating() { return courtship == Courtship.DATING; }
+        boolean dating() { return courtship == Courtship.DATING || courtship == Courtship.ENGAGED; }
         boolean married() { return courtship == Courtship.MARRIED; }
         /** 0..1.5 from 10 up: affection that makes a hug or a kiss more welcome. */
         double affection() { return Math.min(1.5, Math.max(0, score / 100.0 - 0.1)); }

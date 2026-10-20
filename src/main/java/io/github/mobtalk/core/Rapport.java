@@ -27,6 +27,10 @@ public final class Rapport {
     long lastChildMillis = -1;
     /** Ревность и ночи вместе ({@link Jealousy}); null, пока не было ни того, ни другого. */
     Jealousy jealousy;
+    /** Трек L: кольцо, принятое при помолвке (и на свадьбе), id предмета; свидетели, которых назвал игрок (UUID, "" — нет); когда
+     * сыграна свадьба (реальные мс, −1 — не было). */
+    String ring = "", witnessMan = "", witnessWoman = "";
+    long weddingMillis = -1;
     public record Given(String item, long time) { }
     /** Ревность этой пары, создаётся при первом обращении. */
     public Jealousy jealousy() { if (jealousy == null) jealousy = new Jealousy(); return jealousy; }
@@ -89,11 +93,13 @@ public final class Rapport {
         while (gifts.size() > GIFT_QUEUE) gifts.removeFirst();
         if (courtship == null) courtship = "";
         if (jealousy != null) jealousy.sanitize();
+        if (ring == null) ring = ""; if (witnessMan == null) witnessMan = ""; if (witnessWoman == null) witnessWoman = "";
     }
     Rapport copy() {
         Rapport c = new Rapport(); c.fatigue = fatigue; c.fatigueAt = fatigueAt; c.lastGesture = lastGesture; c.repeats = repeats;
         c.lastGestureAt = lastGestureAt; c.gifts = new ArrayList<>(gifts); c.forgetAt = forgetAt; c.courtship = courtship; c.lastChildMillis = lastChildMillis;
         c.jealousy = jealousy == null ? null : jealousy.copy();
+        c.ring = ring; c.witnessMan = witnessMan; c.witnessWoman = witnessWoman; c.weddingMillis = weddingMillis;
         return c;
     }
 }

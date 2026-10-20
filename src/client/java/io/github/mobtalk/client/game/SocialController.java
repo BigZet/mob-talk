@@ -38,6 +38,11 @@ final class SocialController {
             if (mob.getWorld() instanceof ServerWorld world) world.playSound(null, mob.getBlockPos(), SoundEvents.ENTITY_VILLAGER_YES, SoundCategory.NEUTRAL, 1f, 1f);
             return "";
         }
+        // Трек L: расторгнутая помолвка или развод — житель возвращает кольцо.
+        if (gesture.gesture() == Gesture.DIVORCE) {
+            net.minecraft.item.Item ring = MobTrading.item(bridge.memory.wedding().ring(mob.getUuid(), player.getUuid()));
+            if (ring != null) { ItemStack back = new ItemStack(ring); if (!player.getInventory().insertStack(back)) player.dropItem(back, false); return "Кольцо вернулось к вам"; }
+        }
         if (gesture.outcome() == Gesture.Outcome.SLAP && mob.getWorld() instanceof ServerWorld world) {
             player.damage(world.getDamageSources().mobAttack(mob), 1.0f);
             return "Пощёчина!";

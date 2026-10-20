@@ -92,10 +92,10 @@ public final class SocialLedger {
                 rolled.put(Gesture.DATE, new GestureIntent(Gesture.DATE, refusal == null ? Gesture.Outcome.ACCEPTED : Gesture.Outcome.REFUSED,
                         refusal == null ? DATE_HEARTS : 0, refusal == null ? held : "", refusal == null ? "" : refusal));
             }
-            if (courtship != Courtship.MARRIED) {
+            if (courtship != Courtship.MARRIED && courtship != Courtship.ENGAGED) {
                 String refusal = Romance.refusePropose(suit);
                 rolled.put(Gesture.PROPOSE, new GestureIntent(Gesture.PROPOSE, refusal == null ? Gesture.Outcome.ACCEPTED : Gesture.Outcome.REFUSED,
-                        refusal == null ? WEDDING_HEARTS : 0, refusal == null ? held : "", refusal == null ? "" : refusal));
+                        refusal == null ? WEDDING_HEARTS + Romance.ringHearts(held) : 0, refusal == null ? held : "", refusal == null ? "" : refusal));
             }
             if (courtship.partners()) rolled.put(Gesture.DIVORCE, new GestureIntent(Gesture.DIVORCE, Gesture.Outcome.ACCEPTED,
                     courtship == Courtship.MARRIED ? DIVORCE_HEARTS : BREAKUP_HEARTS, "", courtship.name()));
@@ -108,6 +108,7 @@ public final class SocialLedger {
         }
         List<String> facts = SocialPrompt.playerFacts(courtship, state.family, p.id, player, config);
         facts.addAll(JealousyLedger.facts(p, rapport, config, now)); // Трек J: ревность и ночь вместе.
+        facts.addAll(WeddingLedger.facts(state, p, r, player, snapshot, config, now)); // Трек L: помолвка, свидетели, свадьба.
         detached.socialTurn = new SocialTurn(rolled, closed, facts);
     }
     /** The villager the player courts or married, or null: the living spouse in the tree, else any courtship in the relations. */
@@ -216,15 +217,21 @@ public final class SocialLedger {
             case DATE -> { if (accepted) r.rapport.courtship(Courtship.DATING); felt = accepted ? MobState.Event.ROMANCE : null; }
             case PROPOSE -> {
                 if (accepted) {
-                    r.rapport.courtship(Courtship.MARRIED);
                     UUID former = partner(store.state, player);
                     if (former != null && !former.equals(p.id)) leave(former, player);
-                    tree.marry(player, playerName, Gender.ofPlayer(config.playerGender), true, p.id, name(p), p.social == null ? null : p.social.gender(), false);
+                    r.rapport.ring = intent.item() == null ? "" : intent.item();
+                    // Трек L: кольцо — помолвка, брак будет у колокола; без свадебной службы — сразу брак, как раньше.
+                    if (config.weddingCeremony) r.rapport.courtship(Courtship.ENGAGED);
+                    else {
+                        r.rapport.courtship(Courtship.MARRIED);
+                        tree.marry(player, playerName, Gender.ofPlayer(config.playerGender), true, p.id, name(p), p.social == null ? null : p.social.gender(), false);
+                    }
                 }
                 felt = accepted ? MobState.Event.ROMANCE : null;
             }
             case DIVORCE -> {
                 r.rapport.courtship(Courtship.NONE);
+                r.rapport.ring = ""; r.rapport.witnessMan = ""; r.rapport.witnessWoman = ""; // Кольцо игра вернула игроку до этого.
                 if (p.id.equals(tree.spouse(player))) tree.divorce(player);
                 felt = MobState.Event.DIVORCE;
             }
@@ -252,7 +259,10 @@ public final class SocialLedger {
     public record Resident(UUID id, String name, boolean adult) { }
     /** Once in a while for a loaded village (spec §5.2): marries the pair {@link Romance#wedding} picks among these residents.
      * Returns the pair (with profiles made for both), or null when nobody married. */
-    public UUID[] villageWedding(List<Resident> residents, UUID player, long now) {
+    public UUID[] villageWedding(List<Resident> residents, UUID player, long now) { return villageWedding(residents, player, now, true); }
+    /** {@code marry} false: only picks the pair (and gives both a profile) for a wedding held as a scene at the bell (трек L); the
+     * marriage itself is then {@link WeddingLedger#villageWed}. */
+    public UUID[] villageWedding(List<Resident> residents, UUID player, long now, boolean marry) {
         synchronized (store) {
             MobTalkConfig config = store.config();
             if (!config.socialLayer) return null;
@@ -272,6 +282,7 @@ public final class SocialLedger {
             if (pair == null) return null;
             ConversationStore.Profile a = store.ensure(pair[0], "minecraft:villager", byId.get(pair[0]).name()), b = store.ensure(pair[1], "minecraft:villager", byId.get(pair[1]).name());
             if (a.social == null || b.social == null) return null;
+            if (!marry) { store.scheduleSave(); return pair; }
             state.family.marry(a.id, name(a), a.social.gender(), false, b.id, name(b), b.social.gender(), false);
             for (ConversationStore.Profile[] two : List.of(new ConversationStore.Profile[]{a, b}, new ConversationStore.Profile[]{b, a})) {
                 ConversationStore.Profile self = two[0], other = two[1];

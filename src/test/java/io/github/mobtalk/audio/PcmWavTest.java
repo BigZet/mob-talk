@@ -19,16 +19,18 @@ class PcmWavTest {
         }
     }
 
-    @Test void capsConfiguredRecordingAtFifteenSeconds() {
+    @Test void capsRecordingAtTwoMinutes() {
         assertEquals(480_000, PcmWav.maxBytes(15));
-        assertEquals(480_000, PcmWav.maxBytes(30));
+        assertEquals(1_920_000, PcmWav.maxBytes(60));
+        assertEquals(3_840_000, PcmWav.maxBytes(120));
+        assertEquals(3_840_000, PcmWav.maxBytes(300));
         assertEquals(32_000, PcmWav.maxBytes(1));
     }
 
     @Test void refusesEmptyIncompleteAndOversizeAudio() {
         assertThrows(IllegalArgumentException.class, () -> PcmWav.encode(new byte[0]));
         assertThrows(IllegalArgumentException.class, () -> PcmWav.encode(new byte[3]));
-        assertThrows(IllegalArgumentException.class, () -> PcmWav.encode(new byte[480_002]));
+        assertThrows(IllegalArgumentException.class, () -> PcmWav.encode(new byte[3_840_002]));
         assertThrows(IllegalArgumentException.class, () -> PcmWav.maxBytes(0));
         assertThrows(IllegalArgumentException.class, () -> PcmWav.maxBytes(-1));
     }

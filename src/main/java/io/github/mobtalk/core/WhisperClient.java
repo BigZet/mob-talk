@@ -10,7 +10,8 @@ import java.util.Base64;
 
 /** Blocking local STT; call from the microphone/conversation worker only. */
 public final class WhisperClient implements AutoCloseable {
-    private static final int MAX_WAV_BYTES = 2 * 1024 * 1024;
+    /** Two minutes of 16 kHz mono PCM (a wedding vow) and the header fit. */
+    private static final int MAX_WAV_BYTES = 4 * 1024 * 1024;
     private final URI endpoint;
     private final BoundedHttp http;
 

@@ -1,0 +1,18 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "category": "misc",
+ "pattern": [
+  "NNN",
+  "N N",
+  "NNN"
+ ],
+ "key": {
+  "N": {
+   "item": "minecraft:gold_nugget"
+  }
+ },
+ "result": {
+  "id": "mobtalk:wedding_ring",
+  "count": 2
+ }
+}

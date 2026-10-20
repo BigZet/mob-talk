@@ -80,6 +80,11 @@ final class JealousyController {
             BlockPos bed = player.getSleepingPosition().get();
             Vec3d center = Vec3d.ofCenter(bed);
             double reach = CoSleep.NEAR_SLEEPER + 1;
+            // Пара сама спит рядом с игроком: соседняя кровать с кем-то ещё — не измена, ночь вместе не оборачивается ревностью.
+            boolean together = world.getEntitiesByClass(VillagerEntity.class, new net.minecraft.util.math.Box(bed).expand(reach),
+                    v -> v.isAlive() && v.isSleeping() && bridge.memory.jealousy().partner(v.getUuid(), player.getUuid())).stream()
+                    .anyMatch(v -> v.getSleepingPosition().map(pos -> Vec3d.ofCenter(pos).distanceTo(center) <= CoSleep.NEAR_SLEEPER).orElse(false));
+            if (together) continue;
             for (VillagerEntity sleeper : world.getEntitiesByClass(VillagerEntity.class, new net.minecraft.util.math.Box(bed).expand(reach),
                     v -> v.isAlive() && !v.isBaby() && v.isSleeping() && v.getSleepingPosition().isPresent())) {
                 BlockPos other = sleeper.getSleepingPosition().get();
