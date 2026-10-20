@@ -132,7 +132,8 @@ public final class Prayers {
         boolean storm = world.isThundering(), danger = player.getHealth() < player.getMaxHealth() * 0.3f;
         VerdictBuilder.Context context = new VerdictBuilder.Context(text, tone, offeringValue, String.join(", ", gifts), insult,
                 righteousness.score, righteousness.label(), righteousness.notable(day, 3, 2), day, (int) Math.round(soul.mood(now)), recent,
-                storm, world.getMoonPhase(), danger, judgement.insult());
+                storm, world.getMoonPhase(), danger, judgement.insult(),
+                righteousness.memories.stream().filter(m -> m.deed == Righteousness.Deed.BLASPHEMY && day - m.day <= 3).mapToInt(m -> m.count).sum());
         Verdict verdict = VerdictBuilder.build(context, config);
 
         soul.prayed(now);
@@ -144,6 +145,7 @@ public final class Prayers {
         if (recent >= 2) soul.shiftMood(now, -5);
         state.markDirty();
 
+        verdict.recentActs = soul.chronicle.stream().map(v -> v.miracle).skip(Math.max(0, soul.chronicle.size() - 3)).toList();
         List<String> recentLines = soul.chronicle.stream().map(v -> v.speech).filter(line -> line != null && !line.isBlank())
                 .skip(Math.max(0, soul.chronicle.size() - 4)).toList();
         WORKER.execute(() -> {

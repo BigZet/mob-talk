@@ -32,10 +32,23 @@ public final class Verdict {
     public String decidedBy = "rules";
     public String decisionNote = "";
     public String speech = "";
-    /** Set when the player repented in time and the punishment was called off. */
     /** Kept for verdicts saved before the god stopped giving second chances; always false now. */
     public boolean forgiven;
     public long day;
+
+    /** The acts the god used on this mortal lately (newest last), so he does not repeat himself; not saved. */
+    public transient List<String> recentActs = List.of();
+
+    /** The rung of the ladder (1..10) the reasons earned for the chosen side: wrath climbs with every point of insult, sin,
+     * anger and pestering; mercy climbs with favour; jests with force. */
+    public int level() {
+        return switch (inclination) {
+            case WRATH -> Math.max(fury ? 4 : 1, Math.min(10, (int) Math.round((-favor - 2) / 2.0))); // Fury starts above mere curses.
+            case HELP -> Math.max(1, Math.min(5, (int) Math.round(favor / 2.0)));
+            case JEST -> Math.max(1, Math.min(3, force));
+            case OMEN -> 0;
+        };
+    }
 
     /** How cruel the fury is, 1..5: how many dragons or withers, how much land is cut away. Grows with the weight of the
      * reasons against the sinner (repeated blasphemy, sins, anger); 1 outside fury. */
@@ -56,7 +69,7 @@ public final class Verdict {
         StringBuilder out = new StringBuilder();
         for (Reason reason : reasons) out.append("• ").append(reason.signed()).append('\n');
         out.append("Итог: милость ").append(favor).append(", сила ").append(force).append(" → ").append(inclination.label)
-                .append(", бюджет ").append(budget).append("; выбрано ").append(miracle).append(" ×").append(power)
+                .append(", бюджет ").append(budget).append(", ступень ").append(level()).append("; выбрано ").append(miracle).append(" ×").append(power)
                 .append(" (").append(decidedBy).append(decisionNote.isBlank() ? "" : ": " + decisionNote).append(")");
         return out.toString();
     }

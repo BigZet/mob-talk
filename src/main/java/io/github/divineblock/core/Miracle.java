@@ -84,6 +84,32 @@ public enum Miracle {
 
     public String id() { return name().toLowerCase(Locale.ROOT); }
 
+    /** How heavy the act is on a ladder of 1..10, within its kind: the god climbs it as insult, sin and pestering grow (or,
+     * for mercy, as favour grows), so punishments escalate instead of always being the biggest one at hand. */
+    public int gravity() {
+        return switch (this) {
+            case OMEN_LIGHT, OMEN_THUNDER, OMEN_LAUGH, IGNORE -> 0;
+            case HEAL, FEED, WEATHER_CLEAR -> 1;
+            case BUFF, GIFT_ITEM, REPAIR, GROW -> 2;
+            case ORE_VEIN, ENCHANT, GUARDIAN, SMITE_ENEMIES, SAFE_HOME -> 3;
+            case TOTEM -> 4;
+            case BLESSING -> 5;
+            case SWAP_ITEMS, CHICKEN_RAIN, MOON_GRAVITY -> 1;
+            case FLIP, TRANSMUTE -> 2;
+            case RANDOM_TP -> 3;
+            case LIGHTNING, CURSE_MINOR -> 1;
+            case SWARM, CURSE_TOOL -> 2;
+            case ACID_RAIN, FIRE_RING, ANVIL_RAIN -> 3;
+            case METEOR, EARTHQUAKE, UNDEAD_HORDE -> 4;
+            case SINKHOLE, TNT_RAIN, RAID, SKELETON_RIDERS -> 5;
+            case BLAZE_HORDE, TORNADO, HELL_EXILE -> 6;
+            case END_EXILE, WARDEN -> 7;
+            case METEOR_SHOWER, RIFTS -> 8;
+            case CHUNK_VOID, WITHER -> 9;
+            case DRAGON, GREAT_CRATER -> 10;
+        };
+    }
+
     public static Miracle byId(String id) {
         if (id == null) return null;
         for (Miracle miracle : values()) if (miracle.id().equalsIgnoreCase(id.strip())) return miracle;

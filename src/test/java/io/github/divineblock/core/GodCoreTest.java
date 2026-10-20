@@ -66,7 +66,7 @@ class GodCoreTest {
         assertEquals(Miracle.HEAL, choice.miracle());
         assertTrue(choice.power() <= verdict.budget && choice.power() >= Miracle.HEAL.minTier);
 
-        Verdict doom = new Verdict(); doom.inclination = Miracle.Kind.WRATH; doom.budget = 4; doom.prayer = "визер";
+        Verdict doom = new Verdict(); doom.inclination = Miracle.Kind.WRATH; doom.budget = 4; doom.favor = -24; doom.prayer = "визер";
         assertFalse(GodDecider.candidates(doom, config).contains(Miracle.WITHER), "the Wither needs its own flag");
         config.allowWither = true; config.maxTier = 4;
         GodDecider.Choice wither = new RuleGodDecider().choose(doom, config);
@@ -79,7 +79,7 @@ class GodCoreTest {
 
     @Test void jevIsHeldToTheListAndTheBudget() throws Exception {
         DivineConfig config = config();
-        Verdict verdict = new Verdict(); verdict.inclination = Miracle.Kind.WRATH; verdict.budget = 2; verdict.prayer = "ну и что";
+        Verdict verdict = new Verdict(); verdict.inclination = Miracle.Kind.WRATH; verdict.budget = 2; verdict.favor = -10; verdict.prayer = "ну и что";
         List<Miracle> candidates = GodDecider.candidates(verdict, config);
         JevGodDecider jev = new JevGodDecider("sk-test", new RuleGodDecider(), URI.create("http://127.0.0.1:9/"));
         var answers = JevGodDecider.parse("{\"answers\":{\"miracle\":{\"choice\":\"meteor\"},\"power\":{\"score\":5}},\"usage\":{\"cost\":0.00004}}");
@@ -93,7 +93,7 @@ class GodCoreTest {
         assertEquals("rules", jev.choose(verdict, config).decidedBy(), "an unreachable Jev hands the choice to the rules");
 
         var questions = JevGodDecider.questions(verdict, candidates);
-        assertTrue(questions.getAsJsonObject("miracle").getAsJsonObject("criteria").has("lightning"));
+        assertTrue(questions.getAsJsonObject("miracle").getAsJsonObject("criteria").has("meteor"));
         assertFalse(JevGodDecider.state(verdict).toString().contains("sk-test"));
     }
 
@@ -208,5 +208,34 @@ class GodCoreTest {
         assertTrue(inward > 0, "pulled inward at the ground");
         double[] far = funnel.force(funnel.x[0] + 130, 65, funnel.z[0], 0, 1);
         assertEquals(0, far[0], 1e-9); assertEquals(0, far[1], 1e-9);
+    }
+
+    @Test void wrathClimbsTheLadderAndNeverRepeats() {
+        DivineConfig config = config();
+        config.allowWither = true;
+        // A first insult: heavy, but far from the end of the world.
+        Verdict first = VerdictBuilder.build(context("ты тупой бог", 0, 0, 0), config);
+        List<Miracle> early = GodDecider.candidates(first, config);
+        assertTrue(early.stream().allMatch(m -> m.gravity() <= first.level() + 2), early + " at level " + first.level());
+        assertFalse(early.contains(Miracle.GREAT_CRATER), "no apocalypse for a first insult");
+        // A damned soul insulting again and again, pestering: the ladder's top.
+        Verdict worst = VerdictBuilder.build(context("бля, сука, ты ничтожество", -90, 0, 5), config);
+        assertTrue(worst.level() >= 7, worst.breakdown());
+        assertTrue(GodDecider.candidates(worst, config).stream().anyMatch(m -> m.gravity() >= 9), "the worst wrath is within reach");
+        // What was just done is set aside.
+        List<Miracle> before = GodDecider.candidates(first, config);
+        first.recentActs = before.stream().limit(2).map(Miracle::id).toList();
+        List<Miracle> after = GodDecider.candidates(first, config);
+        assertTrue(after.stream().noneMatch(m -> first.recentActs.contains(m.id())), after.toString());
+        // Six blasphemies in a row: the rules never pick the same act twice running.
+        java.util.List<String> history = new java.util.ArrayList<>();
+        String previous = "";
+        for (int i = 0; i < 6; i++) {
+            Verdict verdict = VerdictBuilder.build(context("ты тупой бог", -30, 0, i), config);
+            verdict.recentActs = history.subList(Math.max(0, history.size() - 3), history.size());
+            String chosen = new RuleGodDecider().choose(verdict, config).miracle().id();
+            assertNotEquals(previous, chosen);
+            history.add(chosen); previous = chosen;
+        }
     }
 }

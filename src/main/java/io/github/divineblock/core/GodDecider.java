@@ -10,13 +10,29 @@ public interface GodDecider {
     String name();
     Choice choose(Verdict verdict, DivineConfig config);
 
-    /** The acts a verdict allows: its own kind within the budget and the settings, or omens when nothing else fits. */
+    /** The acts a verdict allows: its own kind within the budget and the settings, on the rung of the ladder its reasons
+     * earned (see {@link Verdict#level()}), and not the acts the god used on this mortal just now. Omens when nothing fits. */
     static List<Miracle> candidates(Verdict verdict, DivineConfig config) {
-        List<Miracle> out = new ArrayList<>();
+        List<Miracle> allowed = new ArrayList<>();
         for (Miracle miracle : Miracle.values())
-            if (miracle.kind == verdict.inclination && miracle.kind != Miracle.Kind.OMEN && miracle.minTier <= verdict.budget && config.allows(miracle)
-                    // Wrath earned in full is not paid out in small coin: a mere curse is no answer to a budget of three.
-                    && !(miracle.kind == Miracle.Kind.WRATH && verdict.budget >= 2 && miracle.maxTier < verdict.budget)) out.add(miracle);
+            if (miracle.kind == verdict.inclination && miracle.kind != Miracle.Kind.OMEN && miracle.minTier <= verdict.budget && config.allows(miracle))
+                allowed.add(miracle);
+        List<Miracle> out = new ArrayList<>();
+        if (!allowed.isEmpty()) {
+            int level = verdict.level();
+            // The rung and its neighbours; widened if the settings left too little there.
+            for (int widen = 0; widen <= 10 && out.size() < 3; widen++) {
+                out.clear();
+                for (Miracle miracle : allowed) if (miracle.gravity() >= level - 2 - widen && miracle.gravity() <= level + 2 + widen) out.add(miracle);
+            }
+            // Whatever the mortal asked for by name stays possible when mercy or a jest answers him.
+            if (verdict.inclination != Miracle.Kind.WRATH)
+                for (Miracle miracle : allowed) if (!out.contains(miracle) && miracle.hintMatches(verdict.prayer) > 0) out.add(miracle);
+            // No two alike in a row: what was just done to this mortal is set aside while anything else remains.
+            List<Miracle> fresh = new ArrayList<>(out);
+            if (verdict.recentActs != null) fresh.removeIf(miracle -> verdict.recentActs.contains(miracle.id()));
+            if (!fresh.isEmpty()) out = fresh;
+        }
         if (out.isEmpty()) for (Miracle miracle : Miracle.values()) if (miracle.kind == Miracle.Kind.OMEN && miracle != Miracle.IGNORE && config.allows(miracle)) out.add(miracle);
         // The god may always choose silence: a prayer he hears but does not deign to answer.
         if (config.allows(Miracle.IGNORE) && !out.contains(Miracle.IGNORE) && !verdict.fury) out.add(Miracle.IGNORE);

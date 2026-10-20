@@ -9,13 +9,21 @@ public final class VerdictBuilder {
     /** Everything a verdict depends on, gathered on the game thread. */
     public record Context(String prayer, PrayerTone tone, int offeringValue, String offeringText, boolean insultingOffering,
                           double righteousness, String righteousnessLabel, List<Righteousness.Memory> notableDeeds, long today,
-                          int mood, int recentPrayers, boolean thundering, int moonPhase, boolean inDanger, boolean judgedInsult) {
+                          int mood, int recentPrayers, boolean thundering, int moonPhase, boolean inDanger, boolean judgedInsult,
+                          int blasphemiesBefore) {
+        /** Without the count of earlier blasphemies. */
+        public Context(String prayer, PrayerTone tone, int offeringValue, String offeringText, boolean insultingOffering, double righteousness,
+                       String righteousnessLabel, List<Righteousness.Memory> notableDeeds, long today, int mood, int recentPrayers,
+                       boolean thundering, int moonPhase, boolean inDanger, boolean judgedInsult) {
+            this(prayer, tone, offeringValue, offeringText, insultingOffering, righteousness, righteousnessLabel, notableDeeds, today, mood,
+                    recentPrayers, thundering, moonPhase, inDanger, judgedInsult, 0);
+        }
         /** Without Jev's judgement of insolence (the rules' words only). */
         public Context(String prayer, PrayerTone tone, int offeringValue, String offeringText, boolean insultingOffering, double righteousness,
                        String righteousnessLabel, List<Righteousness.Memory> notableDeeds, long today, int mood, int recentPrayers,
                        boolean thundering, int moonPhase, boolean inDanger) {
             this(prayer, tone, offeringValue, offeringText, insultingOffering, righteousness, righteousnessLabel, notableDeeds, today, mood,
-                    recentPrayers, thundering, moonPhase, inDanger, false);
+                    recentPrayers, thundering, moonPhase, inDanger, false, 0);
         }
     }
 
@@ -52,6 +60,9 @@ public final class VerdictBuilder {
         boolean blasphemy = tone.profane() || tone.rude() || context.judgedInsult();
         if (tone.profane()) reasons.add(new Verdict.Reason("брань и хула на бога — бог в бешенстве", -10, 3));
         else if (blasphemy) reasons.add(new Verdict.Reason("хула и дерзость к богу — бог в бешенстве", -10, 3));
+        // Every earlier blasphemy of these days raises the fury a rung: the god remembers each insult.
+        if (blasphemy && context.blasphemiesBefore() > 0)
+            reasons.add(new Verdict.Reason("хулит уже " + (context.blasphemiesBefore() + 1) + "-й раз", -Math.min(12, 2 * context.blasphemiesBefore()), 0));
         else if (tone.polite()) reasons.add(new Verdict.Reason("смиренная молитва", 1, 0));
         if (tone.repents()) reasons.add(new Verdict.Reason("раскаяние", 1, 0));
         if (tone.urgent() || context.inDanger()) reasons.add(new Verdict.Reason(context.inDanger() ? "смертный в беде" : "мольба о срочной помощи", context.inDanger() ? 1 : 0, 1));

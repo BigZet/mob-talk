@@ -21,7 +21,7 @@ import java.util.function.Consumer;
 public final class JevGodDecider implements GodDecider {
     static final URI ENDPOINT = URI.create("https://openrouter.ai/api/alpha/decisions");
     public static final String MODEL = "~typesafe/jev-latest";
-    public static final Duration TIMEOUT = Duration.ofMillis(2500);
+    public static final Duration TIMEOUT = Duration.ofMillis(4000);
     private static final int MAX_BODY = 64 * 1024;
     private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(TIMEOUT).followRedirects(HttpClient.Redirect.NEVER).build();
     /** Where one-line diagnostics go; the game points it at its log. Never carries the key. */
@@ -67,6 +67,10 @@ public final class JevGodDecider implements GodDecider {
         state.addProperty("force", verdict.force);
         state.addProperty("inclination", verdict.inclination.label);
         state.addProperty("budget", verdict.budget);
+        state.addProperty("level", verdict.level());
+        JsonArray recent = new JsonArray();
+        if (verdict.recentActs != null) for (String act : verdict.recentActs) recent.add(act);
+        state.add("recent_acts", recent);
         return state;
     }
 
@@ -75,7 +79,8 @@ public final class JevGodDecider implements GodDecider {
         JsonObject options = new JsonObject();
         for (Miracle miracle : candidates) options.addProperty(miracle.id(), miracle.kind.label + ", сила " + miracle.minTier + "–" + miracle.maxTier + ": " + miracle.description);
         questions.add("miracle", question("choice", "Своенравный бог Minecraft услышал молитву prayer. Его решение уже взвешено причинами reasons "
-                + "(итог: inclination, бюджет силы budget). Какое из дозволенных деяний лучше всего отвечает и на молитву, и на эти причины?", options));
+                + "(итог: inclination, бюджет силы budget, ступень гнева или милости level из 10). Какое из дозволенных деяний лучше всего отвечает "
+                + "и на молитву, и на эти причины, и на ступень? Будь разнообразен: не повторяй недавних деяний recent_acts, удивляй.", options));
         JsonArray levels = new JsonArray();
         String[] words = { "0: только знак", "1: малое", "2: среднее", "3: большое", "4: апокалипсис" };
         for (int tier = 0; tier <= Math.max(1, verdict.budget); tier++) levels.add(words[Math.min(4, tier)]);
