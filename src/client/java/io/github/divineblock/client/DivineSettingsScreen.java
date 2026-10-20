@@ -52,7 +52,10 @@ public final class DivineSettingsScreen extends Screen {
                 .values(DivineConfig.Provider.values()).initially(config.provider).build(left, y, column, 20, Text.literal("Речь"), (b, v) -> config.provider = v));
         addDrawableChild(CyclingButtonWidget.onOffBuilder(config.debug).build(right, y, column, 20, Text.literal("Отладка"), (b, v) -> config.debug = v));
         y += row;
-        addDrawableChild(CyclingButtonWidget.onOffBuilder(config.voice).build(left, y, column, 20, Text.literal("Голос бога"), (b, v) -> config.voice = v));
+        // Off, plain, or ringing as in a temple (reverb and a quiet echo).
+        addDrawableChild(CyclingButtonWidget.<Integer>builder(v -> Text.literal(new String[] { "выкл", "без эха", "храм" }[v])).values(List.of(0, 1, 2))
+                .initially(!config.voice ? 0 : config.voiceTemple ? 2 : 1).build(left, y, column, 20, Text.literal("Голос бога"),
+                        (b, v) -> { config.voice = v > 0; config.voiceTemple = v == 2; }));
         java.util.List<String> voices = java.util.Arrays.stream(io.github.divineblock.core.GodVoice.VOICES).map(v -> v[0]).toList();
         addDrawableChild(CyclingButtonWidget.<String>builder(id -> Text.literal(voiceName(id))).values(voices)
                 .initially(voices.contains(config.voiceId) ? config.voiceId : voices.get(0)).build(right, y, column, 20, Text.literal("Голос"), (b, v) -> config.voiceId = v));

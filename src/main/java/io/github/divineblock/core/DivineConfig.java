@@ -39,6 +39,8 @@ public final class DivineConfig {
     public int speechTimeoutSeconds = 20;
     /** The god speaks aloud (OpenRouter text to speech); off leaves subtitles only. */
     public boolean voice = true;
+    /** The voice rings as in a temple: a big reverb and a quiet echo ({@link VoiceEffects}). */
+    public boolean voiceTemple = true;
     public String voiceId = GodVoice.VOICES[0][0];
     public String ttsModel = "elevenlabs/eleven-flash-v2.5";
     /** Prayers by voice: the local Whisper helper (shared with Mob Talk) and the microphone; "" is the system default. */

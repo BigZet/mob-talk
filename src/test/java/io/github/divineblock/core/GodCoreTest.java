@@ -154,4 +154,21 @@ class GodCoreTest {
         wild.sanitized();
         assertEquals(4, wild.maxTier); assertEquals(3, wild.whimWeight); assertEquals(DivineConfig.Personality.CAPRICIOUS, wild.personality);
     }
+
+    @Test void templeRingsOnWithoutClipping() {
+        int rate = 24_000;
+        byte[] pcm = new byte[rate * 2]; // One loud second: a click train at full scale.
+        for (int i = 0; i < rate; i += 600) { pcm[2 * i] = (byte) 0xFF; pcm[2 * i + 1] = (byte) 0x7F; }
+        byte[] wet = VoiceEffects.temple(pcm, rate);
+        assertTrue(wet.length > pcm.length, "the hall rings on after the last word");
+        assertTrue(wet.length <= pcm.length + (int) (VoiceEffects.TAIL_SECONDS * rate) * 2);
+        int peak = 0, after = 0;
+        for (int i = 0; i < wet.length / 2; i++) {
+            int v = Math.abs((short) ((wet[2 * i] & 255) | (wet[2 * i + 1] << 8)));
+            peak = Math.max(peak, v);
+            if (i > rate + rate / 10 && i < rate + rate / 2) after = Math.max(after, v);
+        }
+        assertTrue(peak <= 31_200, "kept below clipping: " + peak);
+        assertTrue(after > 100, "reverb and echo are heard after the dry sound ends: " + after);
+    }
 }

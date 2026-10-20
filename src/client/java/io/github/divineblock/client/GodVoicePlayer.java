@@ -43,10 +43,14 @@ final class GodVoicePlayer {
         ClientWorld world = client.world;
         WORKER.execute(() -> {
             if (generation.get() != mine) return; // A newer line is already waiting.
-            byte[] pcm;
-            try { pcm = new GodVoice(config, DivineBlockMod.configDirectory()).synthesize(line); }
+            byte[] voiced;
+            try {
+                voiced = new GodVoice(config, DivineBlockMod.configDirectory()).synthesize(line);
+                if (config.voiceTemple) voiced = io.github.divineblock.core.VoiceEffects.temple(voiced, GodVoice.SAMPLE_RATE);
+            }
             catch (Exception failure) { DivineBlockMod.LOG.info("Божественный блок: голос бога молчит: {}", failure.getMessage()); return; }
             catch (Throwable ignored) { return; }
+            byte[] pcm = voiced;
             client.execute(() -> {
                 if (generation.get() != mine || client.world != world || world == null) return;
                 if (playing != null) client.getSoundManager().stop(playing);
