@@ -24,6 +24,17 @@ public record PrayerTone(boolean polite, boolean rude, boolean repents, boolean 
         return any(text, WHY) && text.split(" ").length <= 6;
     }
 
+    private static final List<String> ADDRESS = List.of("бож", "господ", "всевышн", "великий", "творец", "создател", "отче", "владык", "небес",
+            "молю", "прошу", "помилуй", "услышь", "внемли", "даруй", "дай", "пошли", "ниспошли", "помоги", "спаси", "благослов", "прости",
+            "хвала", "слава", "аминь", "пожалуйста", "god", "lord", "please");
+
+    /** The rules' answer to "is this a prayer?" when Jev is silent: the words address the god, ask, praise, repent or insult him. */
+    public static boolean addressesGod(String prayer) {
+        if (prayer == null || prayer.isBlank()) return false;
+        String text = prayer.toLowerCase(Locale.ROOT);
+        return any(text, ADDRESS) || any(text, REPENTS) || any(text, RUDE) || any(text, WHY) || text.strip().startsWith("о ");
+    }
+
     private static boolean any(String text, List<String> stems) {
         for (String stem : stems) if (text.contains(stem)) return true;
         return false;

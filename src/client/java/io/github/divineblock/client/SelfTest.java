@@ -53,7 +53,7 @@ import net.minecraft.world.level.LevelInfo;
 public final class SelfTest {
     private static final List<String> report = new ArrayList<>();
     private static int phase, ticks, failures;
-    private static volatile String screenshot, clientPrayer, heardText;
+    private static volatile String screenshot, clientPrayer, heardText, unheardText;
     private static volatile int voiced;
     private static volatile boolean finished;
     private static BlockPos altar, base;
@@ -207,13 +207,18 @@ public final class SelfTest {
         }));
         steps.add(new Step(-1, () -> {
             Verdict wrath = verdictArrived(soul, 3, "гнев грешнику");
-            if (wrath != null && wrath.warned) {
-                screenshot = "warning";
-                Scheduler.later(60, () -> {
-                    Prayers.handle(player, altar, "Прости меня, великий, каюсь");
-                    Scheduler.later(5, () -> check(wrath.forgiven, "покаяние в срок отменило кару: forgiven=" + wrath.forgiven));
-                });
-            } else log("кара без знамения, покаяние не проверено");
+            screenshot = "wrath";
+            if (wrath != null) check(wrath.chosen() == Miracle.IGNORE || wrath.chosen().kind == Miracle.Kind.WRATH, "кара свершилась сразу, без отсрочки: " + wrath.miracle);
+        }));
+        steps.add(new Step(80, () -> {
+            // Idle talk at the altar is not a prayer: the god does not hear it, nothing is weighed or done.
+            soul.lastPrayerTick = Long.MIN_VALUE / 2; soul.prayerTicks.clear();
+            Prayers.unheard = text -> { unheardText = text; log("  не молитва, бог не услышал: " + text); };
+            Prayers.handle(player, altar, "так, сейчас накопаю угля и поставлю факелы у входа в шахту");
+        }));
+        steps.add(new Step(80, () -> {
+            check(unheardText != null, "болтовню у алтаря бог не счёл молитвой");
+            check(soul.chronicle.size() == 3, "после болтовни нового вердикта нет: " + soul.chronicle.size());
         }));
         steps.add(new Step(120, () -> log("--- все деяния каталога ---")));
         DivineConfig config = DivineBlockMod.config();

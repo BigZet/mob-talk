@@ -16,6 +16,8 @@ public interface GodDecider {
         for (Miracle miracle : Miracle.values())
             if (miracle.kind == verdict.inclination && miracle.kind != Miracle.Kind.OMEN && miracle.minTier <= verdict.budget && config.allows(miracle)) out.add(miracle);
         if (out.isEmpty()) for (Miracle miracle : Miracle.values()) if (miracle.kind == Miracle.Kind.OMEN && miracle != Miracle.IGNORE && config.allows(miracle)) out.add(miracle);
+        // The god may always choose silence: a prayer he hears but does not deign to answer.
+        if (config.allows(Miracle.IGNORE) && !out.contains(Miracle.IGNORE)) out.add(Miracle.IGNORE);
         return out;
     }
 

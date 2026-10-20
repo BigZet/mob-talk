@@ -32,8 +32,6 @@ public final class DivineConfig {
     /** The weight of the god's named whims (storm, moon); 0 makes him fully predictable. */
     public int whimWeight = 1;
     public int cooldownSeconds = 20;
-    /** Seconds between the omen and a serious punishment: time to repent or run. */
-    public int warnSeconds = 12;
     public boolean useJev = true;
     public Provider provider = Provider.OPENROUTER;
     public String chatModel = "openai/gpt-6-luna";
@@ -74,7 +72,6 @@ public final class DivineConfig {
         protectRadius = clamp(protectRadius, 0, 256);
         whimWeight = clamp(whimWeight, 0, 3);
         cooldownSeconds = clamp(cooldownSeconds, 0, 600);
-        warnSeconds = clamp(warnSeconds, 3, 60);
         speechTimeoutSeconds = clamp(speechTimeoutSeconds, 3, 60);
         if (chatModel == null || chatModel.isBlank()) chatModel = new DivineConfig().chatModel;
         if (veniceModel == null || veniceModel.isBlank()) veniceModel = new DivineConfig().veniceModel;

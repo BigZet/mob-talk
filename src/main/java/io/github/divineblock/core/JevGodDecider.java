@@ -80,10 +80,26 @@ public final class JevGodDecider implements GodDecider {
         String[] words = { "0: только знак", "1: малое", "2: среднее", "3: большое", "4: апокалипсис" };
         for (int tier = 0; tier <= Math.max(1, verdict.budget); tier++) levels.add(words[Math.min(4, tier)]);
         questions.add("power", question("score", "Насколько сильным должно быть это деяние при таких причинах?", levels));
-        JsonObject criteria = new JsonObject();
-        criteria.addProperty("true", "сначала знамение и время одуматься"); criteria.addProperty("false", "сразу, без предупреждения");
-        questions.add("warn", question("noul", "Даст ли бог сначала знамение и время покаяться?", criteria));
         return questions;
+    }
+
+    /** Whether the words are a prayer the god hears, or idle talk he lets pass; null when Jev could not answer. */
+    public Boolean isPrayer(String text) {
+        JsonObject state = new JsonObject();
+        state.addProperty("utterance", text == null ? "" : text.length() > 600 ? text.substring(0, 600) : text);
+        state.addProperty("where", "игрок стоит у алтаря бога в Minecraft");
+        JsonObject criteria = new JsonObject();
+        criteria.addProperty("true", "молитва: обращение к богу — просьба, мольба, хвала, благодарность, покаяние, вопрос или даже дерзость, сказанная богу");
+        criteria.addProperty("false", "не молитва: болтовня с другими, мысли вслух, случайные слова, шум, речь не к богу");
+        JsonObject questions = new JsonObject();
+        questions.add("is_prayer", question("noul", "Игрок у алтаря произнёс utterance. Обращена ли эта речь к богу как молитва?", criteria));
+        try {
+            double yes = ask(state, questions).noul("is_prayer");
+            return yes < 0 ? null : yes >= 0.5;
+        } catch (IOException | RuntimeException failure) {
+            diagnostics.accept("Jev не определил, молитва ли это: " + failure.getMessage());
+            return null;
+        } catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); return null; }
     }
     private static JsonObject question(String type, String instructions, JsonElement criteria) {
         JsonObject q = new JsonObject(); q.addProperty("type", type); q.addProperty("instructions", instructions); q.add("criteria", criteria); return q;
@@ -104,7 +120,7 @@ public final class JevGodDecider implements GodDecider {
 
     @Override public Choice choose(Verdict verdict, DivineConfig config) {
         List<Miracle> candidates = GodDecider.candidates(verdict, config);
-        if (verdict.inclination == Miracle.Kind.OMEN || candidates.size() < 2) return fallback.choose(verdict, config);
+        if (verdict.inclination == Miracle.Kind.OMEN || candidates.size() < 3) return fallback.choose(verdict, config);
         Answers answers;
         try { answers = ask(state(verdict), questions(verdict, candidates)); }
         catch (IOException | RuntimeException failure) {
@@ -124,10 +140,9 @@ public final class JevGodDecider implements GodDecider {
         double score = answers.score("power");
         int wanted = Double.isNaN(score) ? verdict.budget : (int) Math.round(score) - 1; // Scores run 1..N over the N levels.
         int power = GodDecider.power(picked, wanted, verdict.budget);
-        double warn = answers.noul("warn");
-        boolean warned = GodDecider.mustWarn(picked, power) || (picked.kind == Miracle.Kind.WRATH && warn >= 0.5);
+        boolean warned = GodDecider.mustWarn(picked, power);
         String note = "Jev: " + picked.id() + ", сила " + wanted + (power != wanted ? " → " + power + (wanted > power ? " по бюджету" : ", меньше деяние не бывает") : "")
-                + (warn >= 0 ? ", знамение " + Math.round(warn * 100) + "%" : "") + (answers.cost() > 0 ? String.format(java.util.Locale.ROOT, ", $%.5f", answers.cost()) : "");
+                + (answers.cost() > 0 ? String.format(java.util.Locale.ROOT, ", $%.5f", answers.cost()) : "");
         return new Choice(picked, power, warned, name(), note);
     }
 }

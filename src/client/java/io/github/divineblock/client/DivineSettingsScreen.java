@@ -41,8 +41,8 @@ public final class DivineSettingsScreen extends Screen {
         y += row;
         addDrawableChild(CyclingButtonWidget.<Integer>builder(v -> Text.literal(v == 0 ? "нет" : String.valueOf(v))).values(List.of(0, 1, 2, 3))
                 .initially(config.whimWeight).build(left, y, column, 20, Text.literal("Прихоть бога"), (b, v) -> config.whimWeight = v));
-        addDrawableChild(CyclingButtonWidget.<Integer>builder(v -> Text.literal(v + " с")).values(List.of(6, 12, 20, 30))
-                .initially(nearest(config.warnSeconds, 6, 12, 20, 30)).build(right, y, column, 20, Text.literal("Знамение до кары"), (b, v) -> config.warnSeconds = v));
+        addDrawableChild(CyclingButtonWidget.onOffBuilder(!config.disabled.contains("ignore")).build(right, y, column, 20, Text.literal("Может промолчать"),
+                (b, v) -> { config.disabled.remove("ignore"); if (!v) config.disabled.add("ignore"); }));
         y += row;
         addDrawableChild(CyclingButtonWidget.<Integer>builder(v -> Text.literal(v + " с")).values(List.of(0, 10, 20, 60))
                 .initially(nearest(config.cooldownSeconds, 0, 10, 20, 60)).build(left, y, column, 20, Text.literal("Пауза алтаря"), (b, v) -> config.cooldownSeconds = v));

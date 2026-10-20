@@ -15,9 +15,7 @@ import io.github.divineblock.core.RuleGodDecider;
 import io.github.divineblock.core.Verdict;
 import io.github.divineblock.core.VerdictBuilder;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -36,15 +34,14 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 
-/** A prayer from words to deed. The game thread gathers the facts and the gifts; a worker asks Jev and the chat model; the
- * game thread performs the act if the player is still there, alive, in the same world. Serious wrath waits behind an omen. */
+/** A prayer from words to deed. A worker first asks Jev whether the words are a prayer at all (the god does not hear idle
+ * talk); then the game thread gathers the facts and the gifts, a worker asks Jev for the act and the chat model for the line,
+ * and the game thread performs the act at once if the player is still there, alive, in the same world. The god gives no
+ * second chance: he never asks back, never delays, and an announced punishment cannot be talked away. */
 public final class Prayers {
     private static final ExecutorService WORKER = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "divineblock-worker"); thread.setDaemon(true); return thread;
     });
-    /** A punishment announced and not yet fallen, per player: repenting in time can stop it. */
-    private record Pending(Verdict verdict, BlockPos altar, net.minecraft.registry.RegistryKey<net.minecraft.world.World> world, boolean[] cancelled) { }
-    private static final Map<UUID, Pending> PENDING = new HashMap<>();
     private static final java.util.Set<UUID> THINKING = new java.util.HashSet<>();
 
     private Prayers() { }
@@ -56,27 +53,60 @@ public final class Prayers {
         if (!(world.getBlockState(altar).getBlock() instanceof AltarBlock) || !altar.isWithinDistance(player.getBlockPos(), 8)) return;
         MinecraftServer server = world.getServer();
         DivineConfig config = DivineBlockMod.config();
-        DivineState state = DivineState.of(server);
-        GodLedger.Soul soul = state.ledger.soul(player.getUuid());
-        long now = server.getOverworld().getTime(), day = DeedWatcher.day(server);
-        PrayerTone tone = PrayerTone.of(text);
-
-        Pending pending = PENDING.get(player.getUuid());
-        if (pending != null && tone.repents()) { repent(player, pending, soul, now); state.markDirty(); return; }
+        GodLedger.Soul soul = DivineState.of(server).ledger.soul(player.getUuid());
 
         if (PrayerTone.isWhyQuestion(text)) {
             Verdict last = soul.lastVerdict();
             if (last == null) { say(player, "Ничесоже доселе не рёк я о тебе, смертне."); return; }
-            Verdict copy = last;
             WORKER.execute(() -> {
-                String line = new GodSpeech(config, DivineBlockMod.configDirectory()).explain(copy);
+                String line = new GodSpeech(config, DivineBlockMod.configDirectory()).explain(last);
                 server.execute(() -> { if (!player.isRemoved()) say(player, line); });
             });
             return;
         }
 
         if (THINKING.contains(player.getUuid())) { hint(player, "Бог ещё размышляет над прежней молитвой…"); return; }
+        long now = server.getOverworld().getTime();
         if (now - soul.lastPrayerTick < config.cooldownSeconds * 20L) { hint(player, "Алтарь ещё не остыл. Повремени, чадо."); return; }
+
+        THINKING.add(player.getUuid());
+        hint(player, "Бог внимает…");
+        world.spawnParticles(ParticleTypes.ENCHANT, altar.getX() + 0.5, altar.getY() + 1.5, altar.getZ() + 0.5, 80, 0.5, 0.8, 0.5, 0.5);
+        WORKER.execute(() -> {
+            Judgement judgement = judge(config, text);
+            server.execute(() -> {
+                if (!judgement.prayer()) {
+                    THINKING.remove(player.getUuid());
+                    DivineBlockMod.LOG.info("Божественный блок: не молитва ({}): {}", judgement.by(), text);
+                    unheard.accept(text);
+                    if (!player.isRemoved()) hint(player, "Алтарь безмолвен: сие не молитва.");
+                    return;
+                }
+                if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) { THINKING.remove(player.getUuid()); return; }
+                pray(player, altar, world, text, config, judgement.by());
+            });
+        });
+    }
+
+    /** Whether the words are a prayer: Jev decides, the rules answer when Jev is off or silent. */
+    record Judgement(boolean prayer, String by) { }
+    static Judgement judge(DivineConfig config, String text) {
+        if (config.useJev) {
+            try {
+                Boolean jev = new JevGodDecider(ApiKeys.load(DivineBlockMod.configDirectory(), ApiKeys.Provider.OPENROUTER), new RuleGodDecider()).isPrayer(text);
+                if (jev != null) return new Judgement(jev, "jev");
+            } catch (Exception missing) { DivineBlockMod.LOG.info("Божественный блок: Jev без ключа, молитву распознают правила"); }
+        }
+        return new Judgement(PrayerTone.addressesGod(text), "rules");
+    }
+
+    /** The heard prayer: the gifts burn, the verdict is weighed, and the decision is made off the game thread. */
+    private static void pray(ServerPlayerEntity player, BlockPos altar, ServerWorld world, String text, DivineConfig config, String judgedBy) {
+        MinecraftServer server = world.getServer();
+        DivineState state = DivineState.of(server);
+        GodLedger.Soul soul = state.ledger.soul(player.getUuid());
+        long now = server.getOverworld().getTime(), day = DeedWatcher.day(server);
+        PrayerTone tone = PrayerTone.of(text);
 
         // Gifts thrown on the altar are taken whatever the answer.
         int offeringValue = 0; boolean insult = false;
@@ -111,15 +141,12 @@ public final class Prayers {
         if (recent >= 2) soul.shiftMood(now, -5);
         state.markDirty();
 
-        hint(player, "Бог внимает…");
-        world.spawnParticles(ParticleTypes.ENCHANT, altar.getX() + 0.5, altar.getY() + 1.5, altar.getZ() + 0.5, 80, 0.5, 0.8, 0.5, 0.5);
-        THINKING.add(player.getUuid());
         WORKER.execute(() -> {
             try {
                 GodDecider.Choice choice = decider(config).choose(verdict, config);
                 verdict.miracle = choice.miracle().id(); verdict.power = choice.power(); verdict.warned = choice.warn();
-                verdict.decidedBy = choice.decidedBy(); verdict.decisionNote = choice.note();
-                verdict.speech = new GodSpeech(config, DivineBlockMod.configDirectory()).announce(verdict);
+                verdict.decidedBy = choice.decidedBy(); verdict.decisionNote = choice.note() + "; молитву признал: " + judgedBy;
+                verdict.speech = verdict.chosen() == Miracle.IGNORE ? "" : new GodSpeech(config, DivineBlockMod.configDirectory()).announce(verdict);
             } catch (RuntimeException failure) {
                 DivineBlockMod.LOG.warn("Божественный блок: решение не принято", failure);
                 verdict.miracle = Miracle.OMEN_LAUGH.id(); verdict.power = 0; verdict.warned = false; verdict.speech = "…";
@@ -135,31 +162,22 @@ public final class Prayers {
         catch (Exception missing) { DivineBlockMod.LOG.info("Божественный блок: Jev без ключа OpenRouter, решают правила"); return rules; }
     }
 
-    /** Back on the game thread: the player must still be here for the god to act. */
+    /** Back on the game thread: the player must still be here, and then the god acts at once. */
     private static void deliver(ServerPlayerEntity player, BlockPos altar, ServerWorld world, Verdict verdict, DivineConfig config) {
         if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) return;
         MinecraftServer server = world.getServer();
-        GodLedger.Soul soul = DivineState.of(server).ledger.soul(player.getUuid());
-        soul.remember(verdict);
+        DivineState.of(server).ledger.soul(player.getUuid()).remember(verdict);
         DivineState.of(server).markDirty();
         DivineBlockMod.LOG.info("Божественный блок: вердикт для {}\n{}", player.getName().getString(), verdict.breakdown());
-        say(player, verdict.speech);
         if (config.debug) player.sendMessage(Text.literal(verdict.breakdown()).formatted(Formatting.DARK_GRAY), false);
-
+        if (verdict.chosen() == Miracle.IGNORE) { act(player, altar, verdict, config); return; } // Silence: no word at all.
+        say(player, verdict.speech);
         if (verdict.warned) {
+            // The wrath is announced and falls in the same breath: thunder, the title, the act.
             Miracles.warn(player, altar);
             List<Verdict.Reason> main = verdict.mainReasons(1);
             title(player, Text.literal("Гнев небес").formatted(Formatting.DARK_RED),
-                    Text.literal((main.isEmpty() ? "" : main.get(0).text() + ". ") + "Покайся у алтаря, смертне!").formatted(Formatting.RED));
-            boolean[] cancelled = { false };
-            Pending pending = new Pending(verdict, altar, world.getRegistryKey(), cancelled);
-            PENDING.put(player.getUuid(), pending);
-            Scheduler.later(config.warnSeconds * 20, () -> {
-                if (PENDING.get(player.getUuid()) == pending) PENDING.remove(player.getUuid());
-                if (cancelled[0] || player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) return;
-                act(player, altar, verdict, config);
-            });
-            return;
+                    Text.literal(main.isEmpty() ? "Мене, мене, текел, упарсин" : main.get(0).text()).formatted(Formatting.RED));
         }
         act(player, altar, verdict, config);
     }
@@ -177,22 +195,9 @@ public final class Prayers {
         hint(player, "✦ " + done);
     }
 
-    private static void repent(ServerPlayerEntity player, Pending pending, GodLedger.Soul soul, long now) {
-        Verdict verdict = pending.verdict();
-        boolean forgivable = verdict.forgivable(soul.righteousness.score);
-        if (!forgivable) { say(player, "Поздно покаяние твоё. Ведаешь сам, что содеял."); return; }
-        pending.cancelled()[0] = true;
-        PENDING.remove(player.getUuid());
-        verdict.forgiven = true;
-        verdict.reasons.add(new Verdict.Reason("покаялся вовремя", 2, 0));
-        soul.shiftMood(now, 5);
-        Miracles.forgiven(player, pending.altar());
-        title(player, Text.literal("Гнев утих").formatted(Formatting.GOLD), Text.literal("Ныне пощажу.").formatted(Formatting.YELLOW));
-        say(player, "Быть по сему: приемлю покаяние твоё. Но памятую всё.");
-    }
-
-    /** Every line the god says, for the self-test's report. */
+    /** Every line the god says and every utterance he did not count as a prayer, for the self-test's report. */
     public static volatile java.util.function.Consumer<String> spoken = line -> { };
+    public static volatile java.util.function.Consumer<String> unheard = text -> { };
 
     static void say(ServerPlayerEntity player, String line) {
         spoken.accept(line);
@@ -208,6 +213,6 @@ public final class Prayers {
         player.networkHandler.sendPacket(new TitleS2CPacket(title));
     }
 
-    /** Forgets pending punishments and in-flight prayers when the server stops. */
-    static void clear() { PENDING.clear(); THINKING.clear(); }
+    /** Forgets in-flight prayers when the server stops. */
+    static void clear() { THINKING.clear(); }
 }

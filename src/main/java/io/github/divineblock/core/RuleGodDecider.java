@@ -3,12 +3,16 @@ package io.github.divineblock.core;
 import java.util.List;
 
 /** The deterministic chooser, and the fallback when Jev is off or silent: the act the prayer asks for if the verdict allows
- * it, else the strongest act the budget pays for. Ties are broken by the prayer's words and the day, never by a die. */
+ * it, else the strongest act the budget pays for. A pestering mortal who earned no mercy gets silence. Ties are broken by
+ * the prayer's words and the day, never by a die. */
 public final class RuleGodDecider implements GodDecider {
     @Override public String name() { return "rules"; }
 
     @Override public Choice choose(Verdict verdict, DivineConfig config) {
-        List<Miracle> candidates = GodDecider.candidates(verdict, config);
+        List<Miracle> all = GodDecider.candidates(verdict, config);
+        if (all.contains(Miracle.IGNORE) && verdict.inclination != Miracle.Kind.HELP && pestering(verdict))
+            return new Choice(Miracle.IGNORE, 0, false, name(), "наскучил просьбами: молчание");
+        List<Miracle> candidates = all.stream().filter(m -> m != Miracle.IGNORE).toList();
         if (verdict.inclination == Miracle.Kind.OMEN || candidates.stream().allMatch(m -> m.kind == Miracle.Kind.OMEN)) {
             Miracle omen = verdict.favor > 0 ? Miracle.OMEN_LIGHT : verdict.favor < 0 ? Miracle.OMEN_THUNDER : Miracle.OMEN_LAUGH;
             if (!candidates.contains(omen)) omen = candidates.isEmpty() ? Miracle.IGNORE : candidates.get(0);
@@ -25,5 +29,10 @@ public final class RuleGodDecider implements GodDecider {
         int power = GodDecider.power(best, verdict.budget, verdict.budget);
         String note = best.hintMatches(verdict.prayer) > 0 ? "подходит к просьбе" : "сильнейшее по бюджету";
         return new Choice(best, power, GodDecider.mustWarn(best, power), name(), note);
+    }
+
+    /** Asking again and again weighs as a named reason; two or more points of it make the god turn away. */
+    static boolean pestering(Verdict verdict) {
+        return verdict.reasons.stream().anyMatch(r -> r.text().startsWith("просишь уже") && r.favor() <= -2);
     }
 }

@@ -31,6 +31,7 @@ public final class Verdict {
     public String decisionNote = "";
     public String speech = "";
     /** Set when the player repented in time and the punishment was called off. */
+    /** Kept for verdicts saved before the god stopped giving second chances; always false now. */
     public boolean forgiven;
     public long day;
 
@@ -43,10 +44,6 @@ public final class Verdict {
         sorted.sort(Comparator.comparingInt((Reason r) -> side == 0 ? -(Math.abs(r.favor()) + Math.abs(r.force())) : -(r.favor() * side * 2 + Math.abs(r.force()))));
         return sorted.subList(0, Math.min(limit, sorted.size()));
     }
-
-    /** Whether repenting during the omen can still stop this punishment: not an apocalypse, not a damned soul. Rudeness
-     * is already one of the reasons; an apology is exactly what it calls for. */
-    public boolean forgivable(double righteousness) { return power <= 3 && righteousness > -60; }
 
     /** The full breakdown in numbers for the debug view and the log. */
     public String breakdown() {

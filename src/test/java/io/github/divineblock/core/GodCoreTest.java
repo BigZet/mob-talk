@@ -80,7 +80,7 @@ class GodCoreTest {
         Verdict verdict = new Verdict(); verdict.inclination = Miracle.Kind.WRATH; verdict.budget = 2; verdict.prayer = "ну и что";
         List<Miracle> candidates = GodDecider.candidates(verdict, config);
         JevGodDecider jev = new JevGodDecider("sk-test", new RuleGodDecider(), URI.create("http://127.0.0.1:9/"));
-        var answers = JevGodDecider.parse("{\"answers\":{\"miracle\":{\"choice\":\"meteor\"},\"power\":{\"score\":5},\"warn\":{\"noul\":0.1}},\"usage\":{\"cost\":0.00004}}");
+        var answers = JevGodDecider.parse("{\"answers\":{\"miracle\":{\"choice\":\"meteor\"},\"power\":{\"score\":5}},\"usage\":{\"cost\":0.00004}}");
         GodDecider.Choice choice = jev.interpret(answers, verdict, candidates, config);
         assertEquals(Miracle.METEOR, choice.miracle());
         assertEquals(2, choice.power(), "Jev's power is cut to the budget");
@@ -95,11 +95,21 @@ class GodCoreTest {
         assertFalse(JevGodDecider.state(verdict).toString().contains("sk-test"));
     }
 
-    @Test void repentingStopsAllButApocalypseAndTheDamned() {
-        Verdict rude = new Verdict(); rude.prayer = "Ты тупой бог"; rude.power = 2;
-        assertTrue(rude.forgivable(-45), "a rude sinner may still apologise");
-        assertFalse(rude.forgivable(-70));
-        rude.power = 4; assertFalse(rude.forgivable(0));
+    @Test void theGodMayChooseSilence() {
+        DivineConfig config = config();
+        Verdict pest = VerdictBuilder.build(context("дай алмазы", 0, 0, 4), config);
+        assertTrue(GodDecider.candidates(pest, config).contains(Miracle.IGNORE));
+        assertEquals(Miracle.IGNORE, new RuleGodDecider().choose(pest, config).miracle(), pest.breakdown());
+        config.disabled.add("ignore");
+        assertNotEquals(Miracle.IGNORE, new RuleGodDecider().choose(pest, config).miracle(), "silence can be switched off");
+    }
+
+    @Test void onlyPrayersAreHeard() {
+        assertTrue(PrayerTone.addressesGod("Господи, даруй мне сил"));
+        assertTrue(PrayerTone.addressesGod("О великий, услышь"));
+        assertTrue(PrayerTone.addressesGod("ты тупой бог"));
+        assertFalse(PrayerTone.addressesGod("пойду накопаю угля и поставлю факелы"));
+        assertFalse(PrayerTone.addressesGod("эй, Вася, глянь сюда"));
     }
 
     @Test void prayerToneAndWhy() {
@@ -140,8 +150,8 @@ class GodCoreTest {
     @Test void offeringsAndConfig() {
         assertEquals(30, Offerings.value("minecraft:diamond", 3));
         assertTrue(Offerings.insults("minecraft:rotten_flesh"));
-        DivineConfig wild = new DivineConfig(); wild.maxTier = 9; wild.warnSeconds = 0; wild.personality = null;
+        DivineConfig wild = new DivineConfig(); wild.maxTier = 9; wild.whimWeight = 9; wild.personality = null;
         wild.sanitized();
-        assertEquals(4, wild.maxTier); assertEquals(3, wild.warnSeconds); assertEquals(DivineConfig.Personality.CAPRICIOUS, wild.personality);
+        assertEquals(4, wild.maxTier); assertEquals(3, wild.whimWeight); assertEquals(DivineConfig.Personality.CAPRICIOUS, wild.personality);
     }
 }
