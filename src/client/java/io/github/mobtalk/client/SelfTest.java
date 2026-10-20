@@ -44,6 +44,8 @@ final class SelfTest {
     static final boolean ONLY_PLACE = "place".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=wedding}: only the wedding stages of track L. */
     static final boolean ONLY_WEDDING = "wedding".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=names}: sixteen new villagers get sixteen different names (no LLM, no voice). */
+    static final boolean ONLY_NAMES = "names".equals(System.getProperty("mobtalk.selftest.only"));
     final MobTalkClient owner;
     private final String world;
     private int stage, ticks, stageStart;
@@ -137,7 +139,27 @@ final class SelfTest {
             villager = nearest(VillagerEntity.class); cow = nearest(CowEntity.class);
             return villager != null && cow != null && MobSpeechSound.find(owner.world, villager) != null && MobSpeechSound.find(owner.world, cow) != null;
         }, ONLY_PLACE ? () -> new SelfTestPlace(this, cow, sx, SY, sz).run(this::finish)
-                : ONLY_WEDDING ? () -> new SelfTestWedding(this, sx, SY, sz).run(this::finish) : this::aim);
+                : ONLY_WEDDING ? () -> new SelfTestWedding(this, sx, SY, sz).run(this::finish) : ONLY_NAMES ? this::names : this::aim);
+    }
+
+    // ---- Names only: a crowd of new villagers, each named on meeting, none sharing a name.
+    private void names() {
+        command("kill @e[type=minecraft:villager,distance=..40]");
+        for (int i = 0; i < 16; i++) command("summon minecraft:villager " + at(-6 + (i % 4) * 4, -6 + (i / 4) * 4) + " {PersistenceRequired:1b,NoAI:1b}");
+        await("sixteen villagers summoned", 10, () -> nearestAll(VillagerEntity.class).size() >= 16, () -> {
+            List<String> names = new java.util.ArrayList<>();
+            for (UUID id : nearestAll(VillagerEntity.class)) {
+                bridge().memory.recordEvent(id, "minecraft:villager", "Житель", "Самотест: знакомство", System.currentTimeMillis());
+                String name = bridge().memory.displayName(id);
+                names.add(name);
+                command("data merge entity " + id + " {CustomName:'\"" + name + "\"',CustomNameVisible:1b}");
+            }
+            log("names: " + String.join(", ", names));
+            owner.chat("[Mob Talk] Самотест имён: " + String.join(", ", names));
+            check(names.stream().noneMatch(n -> n.isBlank() || n.equals("Житель")), "every villager has a name");
+            check(new java.util.HashSet<>(names).size() == names.size(), "no two villagers share a name (" + new java.util.HashSet<>(names).size() + " of " + names.size() + ")");
+            await("pause for a look", 20, () -> false, this::finish);
+        });
     }
 
     // ---- Stage 2: the crosshair finds the villager; V would pick it.
