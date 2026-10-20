@@ -426,6 +426,16 @@ final class MobActionController {
             retaliation.expires = mob.getWorld().getTime() + 400;
         }
     }
+    /** Трек J: пара идёт спать к этому игроку — «следуй за мной» и внимание к разговору с ним больше не держат её на месте. */
+    void yieldTo(MobEntity mob, UUID playerId) {
+        Lease lease = leases.get(mob.getUuid());
+        if (lease != null && lease.action == ActionType.FOLLOW && lease.targetId.equals(playerId)) stop(mob.getUuid(), true);
+        ActionIntent saved = bridge.memory.action(mob.getUuid());
+        if (saved != null && saved.type() == ActionType.FOLLOW && playerId.toString().equals(saved.target()))
+            bridge.memory.recordAction(mob.getUuid(), ActionIntent.none());
+        Attention current = attention.get(mob.getUuid());
+        if (current != null && current.player.getUuid().equals(playerId)) attention.remove(mob.getUuid());
+    }
     void stopFollowers() {
         for (MobCard card : bridge.memory.cards(null))
             if (card.action() != null && card.action().type() == ActionType.FOLLOW) {

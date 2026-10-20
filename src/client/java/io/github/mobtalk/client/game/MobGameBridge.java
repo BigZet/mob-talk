@@ -287,6 +287,11 @@ public final class MobGameBridge {
         mob.setPersistent();
     }
 
+    /** Трек J: пропуск ночи ждёт, пока игрок лежит рядом с парой (миксин на {@code PlayerEntity.canResetTimeBySleeping}). */
+    public static boolean holdsNight(ServerPlayerEntity player) {
+        MobGameBridge bridge = forEntity(player);
+        return bridge != null && bridge.coSleep.holdsNight(player);
+    }
     public static void helped(MobEntity mob, ServerPlayerEntity player, String reason) {
         MobGameBridge bridge = forEntity(mob);
         if (bridge == null) return;

@@ -84,7 +84,13 @@ final class SelfTestJealousy {
         test.command("tp " + wife + " " + at(-2, -3));
         int relationBefore = test.bridge().memory.relationship(wife, playerId());
         int jealousBefore = test.bridge().memory.jealousy().level(wife, playerId(), System.currentTimeMillis());
-        test.await("pause: beds placed, night fell", 2, () -> false, () -> {
+        // Как в игре: «пойдём спать» даёт приглашение и следование за игроком — следование не должно мешать лечь.
+        String dimension = world().getRegistryKey().getValue().toString();
+        test.bridge().inviteToBed(wife, playerId());
+        var follow = test.bridge().capture(wife, playerId(), dimension)
+                .thenCompose(snapshot -> test.bridge().apply(wife, playerId(), dimension, new ActionIntent(ActionType.FOLLOW, "player"), snapshot, -1, () -> true));
+        test.await("pause: beds placed, night fell, the partner follows", 3, () -> false, () -> {
+            test.check(follow.isDone() && !follow.isCompletedExceptionally(), "the partner was told to follow the player");
             CompletableFuture<String> slept = test.bridge().onServer(() -> test.serverPlayer().trySleep(head).map(problem -> "no: " + problem, ok -> "ok").toString());
             test.await("the player lay down", 5, slept::isDone, () -> {
                 test.log("trySleep: " + (slept.isCompletedExceptionally() ? slept.exceptionNow().getMessage() : slept.join()));
@@ -95,7 +101,12 @@ final class SelfTestJealousy {
                     test.check(test.bridge().memory.relationship(wife, playerId()) > relationBefore, "a night together raised the relationship ("
                             + relationBefore + " → " + test.bridge().memory.relationship(wife, playerId()) + ")");
                     test.check(test.bridge().memory.jealousy().level(wife, playerId(), System.currentTimeMillis()) < jealousBefore || jealousBefore == 0, "a night together soothed the jealousy");
-                    test.await("pause: the night is skipped", 8, () -> false, this::finish);
+                    test.await("pause: longer than the vanilla 5 s in bed", 8, () -> false, () -> {
+                        long time = world().getTimeOfDay() % 24_000L;
+                        test.check(time >= 12_000L, "the night waits while the partner lies beside the player (time " + time + ")");
+                        CompletableFuture<Void> up = test.bridge().onServer(() -> { test.serverPlayer().wakeUp(false, true); return null; });
+                        test.await("the player got up", 5, up::isDone, this::finish);
+                    });
                 });
             });
         });

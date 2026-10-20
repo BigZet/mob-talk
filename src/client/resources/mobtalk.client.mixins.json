@@ -22,7 +22,9 @@
     "BlockPlacedMixin",
     "FluidPlacedMixin",
     "VillagerFamilyMixin",
-    "VillageTradeRefusalMixin"
+    "VillageTradeRefusalMixin",
+    "NightHoldMixin",
+    "ChatScreenAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

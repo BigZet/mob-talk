@@ -102,6 +102,7 @@ public final class MobTalkClient implements ClientModInitializer {
     boolean keyHeld;
     private boolean requestActive;
     private final MerchantSession merchant = new MerchantSession(this);
+    private final BedTalk bed = new BedTalk(this);
     /** Creatures speaking first and scenes between them; the decider behind them (rules, or Jev with the rules as fallback). */
     final InitiativeVoice initiatives = new InitiativeVoice(this);
     /** Villagers talking among themselves and writing to the chat. */
@@ -152,6 +153,7 @@ public final class MobTalkClient implements ClientModInitializer {
                         .dimensions(width - 128, height - 26, 120, 20).build());
             }
             if (screen instanceof MerchantScreen trading) merchant.initialize(trading);
+            if (screen instanceof net.minecraft.client.gui.screen.SleepingChatScreen sleeping) bed.initialize(sleeping);
         });
         ClientTickEvents.END_CLIENT_TICK.register(ignored -> tick());
         ClientPlayConnectionEvents.DISCONNECT.register((handler, ignored) -> leaveWorld());
@@ -257,7 +259,7 @@ public final class MobTalkClient implements ClientModInitializer {
      * last one keeps the conversation. */
     private void aimBeforeTalking() {
         if (!enabled() || client.player == null || !client.player.isAlive() || client.player.isSpectator() || world == null) return;
-        MobEntity aimed = aimedMob();
+        MobEntity aimed = bed.open() ? bed.partner() : aimedMob(); // В кровати прицела нет: собеседник — житель у кровати.
         if (aimed != null && !aimed.getUuid().equals(selected)) select(aimed);
         else if (aimed == null && target() == null) { status = AIM_HINT; showHud(); }
     }
@@ -284,7 +286,7 @@ public final class MobTalkClient implements ClientModInitializer {
         if (openInfoRequested && !reloading && !stopped) { openInfoRequested = false; openInfo(client.currentScreen); }
         while (tradeKey.wasPressed()) openTrade();
         while (giftKey.wasPressed()) giftFromHand();
-        boolean held = merchant.windowOpen() ? merchant.keyHeld() : talkKey.isPressed();
+        boolean held = merchant.windowOpen() ? merchant.keyHeld() : bed.open() ? bed.keyHeld() : talkKey.isPressed();
         MobEntity mob = target();
         if (selected != null && mob == null) clearSelection("Моб погиб или выгрузился: наведите прицел на другого");
         if (client.player != null && !client.player.isAlive()
@@ -298,7 +300,7 @@ public final class MobTalkClient implements ClientModInitializer {
             merchant.clearKeyHeld();
             held = false;
         }
-        if (recording != null && (!merchant.allowedRecordingScreen() || !client.isWindowFocused()
+        if (recording != null && (!recordingScreen() || !client.isWindowFocused()
                 || world == null || client.player == null || !client.player.isAlive())) {
             cancelWork("Запись отменена");
         }
@@ -339,8 +341,11 @@ public final class MobTalkClient implements ClientModInitializer {
         maintenance.execute(() -> localEngine.endConversation(mob, player, name));
     }
 
+    /** Окно, в котором можно говорить: никакого, торговое окно этого моба или окно чата в кровати (трек J). */
+    private boolean recordingScreen() { return merchant.allowedRecordingScreen() || bed.open(); }
+
     private boolean canRecord() {
-        return enabled() && !reloading && merchant.allowedRecordingScreen()
+        return enabled() && !reloading && recordingScreen()
                 && client.isWindowFocused() && client.player != null && client.player.isAlive() && world != null;
     }
 
@@ -448,7 +453,7 @@ public final class MobTalkClient implements ClientModInitializer {
     private void finishRecording(Request seed, MicrophoneRecorder.Capture capture, byte[] wav, Throwable error) {
         if (recording != capture || !isCurrent(seed)) return;
         recording = null;
-        if (!merchant.allowedRecordingScreen() || !client.isWindowFocused()) {
+        if (!recordingScreen() || !client.isWindowFocused()) {
             status = "Запись отменена";
             showHud();
             return;
