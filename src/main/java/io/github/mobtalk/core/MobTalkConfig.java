@@ -111,6 +111,8 @@ public final class MobTalkConfig {
     /** Сон вместе: влюблённый житель ложится рядом, когда игрок спит; откуда он приходит (блоки) и сколько сердечек даёт ночь. */
     public boolean coSleep = true;
     public int coSleepRange = 12, coSleepHearts = 3;
+    /** Сколько секунд ночь не пропускается, пока игрок лежит рядом с парой (0 — ванильные 5 с). */
+    public int coSleepNightDelay = 60;
     /** Bonds between mobs: how far from the player they act (blocks), the chance a friend walks over (percent per check), the
      * walking band and retreat distance (blocks), how fast a bond fades (hours) and how long grief lasts (minutes). */
     public int socialPlayerRange = 32;
