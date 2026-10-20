@@ -125,13 +125,17 @@ class GodCoreTest {
 
     @Test void swearingAtTheGodBringsRealWrath() {
         DivineConfig config = config();
-        Verdict verdict = VerdictBuilder.build(context("бля, ты бесполезный бог, дай алмазы", 0, 0, 0), config);
+        // Even a saint bearing diamonds: blasphemy throws the god into fury at once.
+        Verdict verdict = VerdictBuilder.build(context("бля, ты бесполезный бог, дай алмазы", 80, 90, 0), config);
+        assertTrue(verdict.fury, verdict.breakdown());
         assertEquals(Miracle.Kind.WRATH, verdict.inclination, verdict.breakdown());
         assertEquals(3, verdict.budget, verdict.breakdown());
         List<Miracle> punishments = GodDecider.candidates(verdict, config);
         assertFalse(punishments.contains(Miracle.CURSE_MINOR), "no mere debuff for blasphemy: " + punishments);
+        assertFalse(punishments.contains(Miracle.IGNORE), "no silence in fury");
         GodDecider.Choice choice = new RuleGodDecider().choose(verdict, config);
-        assertTrue(choice.miracle() == Miracle.IGNORE || choice.power() == 3, choice.toString());
+        assertEquals(3, choice.power(), choice.toString());
+        assertTrue(VerdictBuilder.build(context("ты тупой бог", 0, 0, 0), config).fury, "an insult without swearing is blasphemy too");
     }
 
     @Test void ledgerSurvivesTheSave() {

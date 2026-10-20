@@ -138,8 +138,8 @@ public final class Prayers {
         soul.prayed(now);
         if (insult) soul.shiftMood(now, -15);
         else if (offeringValue > 0) soul.shiftMood(now, Math.min(25, 3 + offeringValue / 3.0));
-        if (tone.profane()) { soul.shiftMood(now, -40); righteousness.record(Righteousness.Deed.BLASPHEMY, day, ""); }
-        else if (tone.rude() || judgement.insult()) { soul.shiftMood(now, -20); righteousness.record(Righteousness.Deed.RUDE_PRAYER, day, ""); }
+        // Blasphemy of any kind: the god's mood drops to the bottom at once, and the sin is remembered.
+        if (verdict.fury) { soul.shiftMood(now, -200); righteousness.record(Righteousness.Deed.BLASPHEMY, day, ""); }
         else if (tone.polite()) soul.shiftMood(now, 3);
         if (recent >= 2) soul.shiftMood(now, -5);
         state.markDirty();

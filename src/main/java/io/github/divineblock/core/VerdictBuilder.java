@@ -48,9 +48,10 @@ public final class VerdictBuilder {
         }
 
         PrayerTone tone = context.tone();
-        // Swearing at a god is not a slip of the tongue: it is the heaviest word a mortal can bring to the altar.
-        if (tone.profane()) reasons.add(new Verdict.Reason("брань и хула на бога", -5, 2));
-        else if (tone.rude() || context.judgedInsult()) reasons.add(new Verdict.Reason("дерзость к богу", -3, 1));
+        // The god does not tolerate blasphemy at all: any insult, sworn or not, throws him into fury (see the end).
+        boolean blasphemy = tone.profane() || tone.rude() || context.judgedInsult();
+        if (tone.profane()) reasons.add(new Verdict.Reason("брань и хула на бога — бог в бешенстве", -10, 3));
+        else if (blasphemy) reasons.add(new Verdict.Reason("хула и дерзость к богу — бог в бешенстве", -10, 3));
         else if (tone.polite()) reasons.add(new Verdict.Reason("смиренная молитва", 1, 0));
         if (tone.repents()) reasons.add(new Verdict.Reason("раскаяние", 1, 0));
         if (tone.urgent() || context.inDanger()) reasons.add(new Verdict.Reason(context.inDanger() ? "смертный в беде" : "мольба о срочной помощи", context.inDanger() ? 1 : 0, 1));
@@ -78,6 +79,13 @@ public final class VerdictBuilder {
         for (Verdict.Reason reason : reasons) { verdict.favor += reason.favor(); verdict.force += reason.force(); }
         verdict.inclination = inclination(verdict.favor, verdict.force, personality);
         verdict.budget = budget(verdict, r, config);
+        if (blasphemy) {
+            // Fury: no gift, holiness or moon softens it, no silence, and the full strength the settings allow.
+            verdict.fury = true;
+            verdict.inclination = Miracle.Kind.WRATH;
+            verdict.budget = Math.max(verdict.budget, Math.min(3, config.maxTier));
+            if (r <= -60) verdict.budget = Math.min(4, config.maxTier);
+        }
         return verdict;
     }
 

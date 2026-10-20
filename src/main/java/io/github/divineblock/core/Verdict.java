@@ -26,6 +26,8 @@ public final class Verdict {
     public String miracle = Miracle.IGNORE.id();
     public int power;
     public boolean warned;
+    /** Blasphemy: the god is in a fury, punishes at full strength and never stays silent. */
+    public boolean fury;
     /** "jev" or "rules", and what Jev said, for the debug view. */
     public String decidedBy = "rules";
     public String decisionNote = "";
