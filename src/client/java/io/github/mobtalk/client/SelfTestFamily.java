@@ -51,8 +51,8 @@ final class SelfTestFamily {
             test.command("fill " + wall + " minecraft:barrier");
         test.command("time set 1000"); test.command("weather clear");
         test.command("tp " + name() + " " + at(0, 0, 4));
-        for (int i = 0; i < 6; i++) test.command("summon minecraft:villager " + at(-5 + i * 2, 0, -4) + " {PersistenceRequired:1b,Tags:[\"" + TAG + "\"]}");
-        test.await("six villagers for track N", 15, () -> tagged().size() >= 6, this::cast);
+        for (int i = 0; i < 12; i++) test.command("summon minecraft:villager " + at(-6 + (i % 6) * 2, 0, -4 + (i / 6) * 2) + " {PersistenceRequired:1b,Tags:[\"" + TAG + "\"]}");
+        test.await("twelve villagers for track N", 15, () -> tagged().size() >= 12, this::cast);
     }
     private List<VillagerEntity> tagged() {
         return world().getEntitiesByClass(VillagerEntity.class, new Box(fx - 9, fy - 2, fz - 9, fx + 9, fy + 6, fz + 9), v -> v.isAlive() && v.getCommandTags().contains(TAG));
@@ -61,10 +61,12 @@ final class SelfTestFamily {
     /** Жительница, которую тянет к игроку и которая понесёт сама; иначе житель, от которого понесёт игрок. Остальные уходят. */
     private void cast() {
         Gender player = Gender.ofPlayer(test.owner.config().playerGender);
+        for (VillagerEntity v : tagged()) test.log("candidate " + v.getUuid() + ": " + SocialProfile.genderOf(v.getUuid()) + ", drawn to the player "
+                + SocialProfile.drawnTo(v.getUuid(), player) + ", carrier " + Pregnancy.carrier(SocialProfile.genderOf(v.getUuid()), player));
         for (Pregnancy.Carrier wanted : List.of(Pregnancy.Carrier.VILLAGER, Pregnancy.Carrier.PLAYER))
             for (VillagerEntity v : tagged())
                 if (spouse == null && SocialProfile.drawnTo(v.getUuid(), player) && Pregnancy.carrier(SocialProfile.genderOf(v.getUuid()), player) == wanted) { spouse = v.getUuid(); carrier = wanted; }
-        if (spouse == null) { test.fail("no villager among six can carry or father a child with this player's sex"); finish(); return; }
+        if (spouse == null) { test.fail("no villager among twelve can carry or father a child with this player's sex"); finish(); return; }
         for (VillagerEntity v : tagged()) if (!v.getUuid().equals(spouse)) v.discard();
         long now = System.currentTimeMillis();
         test.bridge().memory.recordEvent(spouse, "minecraft:villager", "Житель", "Самотест: знакомство (трек N)", now);
@@ -119,8 +121,12 @@ final class SelfTestFamily {
     /** Ночь: игрок ложится, пара ложится рядом, экран уходит в тень, ночь держится, пока шепчутся; шанс малыша. */
     private void night() {
         test.command("time add 12000"); // 1000 → 13000, вечер.
-        BlockPos bed = new BlockPos(fx - 1, fy, fz - 6);
         test.command("tp " + name() + " " + at(-1, 0, -3));
+        // Ночь для сна игра видит со следующего тика (тьма неба пересчитывается), поэтому ложимся после паузы.
+        test.await("pause: night falls", 3, () -> false, this::lieDown);
+    }
+    private void lieDown() {
+        BlockPos bed = new BlockPos(fx - 1, fy, fz - 6);
         CompletableFuture<String> slept = test.bridge().onServer(() -> test.serverPlayer().trySleep(bed).map(problem -> "no: " + problem, ok -> "ok").toString());
         test.await("the player lay down", 5, slept::isDone, () -> {
             test.log("trySleep: " + (slept.isCompletedExceptionally() ? slept.exceptionNow().getMessage() : slept.join()));
@@ -166,7 +172,7 @@ final class SelfTestFamily {
     /** Срок: на следующий день о малыше знают — строка под именем; к середине виден живот; экран семьи; поздний срок — медленнее. */
     private void term() {
         test.command("time add " + DAY);
-        test.await("the news: the term under the name", 20, () -> ChildView.status(carrierId()).contains("ждёт малыша"), () -> {
+        test.await("the news: the term under the name", 20, () -> ChildView.status(carrierId()).contains("ждёт малыша") && pregnant() != null && pregnant().news() >= 1, () -> {
             test.log("status: " + ChildView.status(carrierId()));
             ChildLedger.Pregnant p = pregnant();
             test.check(p != null && p.news() >= 1, "the news was told (stage " + (p == null ? -1 : p.news()) + ")");
@@ -174,11 +180,20 @@ final class SelfTestFamily {
             test.await("mid-term: the belly shows", 20, () -> ChildView.belly(carrierId()) > 0, () -> {
                 test.log("belly " + ChildView.belly(carrierId()) + ", status " + ChildView.status(carrierId()));
                 if (carrier == Pregnancy.Carrier.VILLAGER) {
-                    test.command("tp " + spouse + " " + at(0, 0, -1));
-                    test.command("tp " + name() + " " + at(0, 0, 2) + " facing " + at(0, 1, -1));
-                    test.bridge().attend(spouse, playerId(), 200);
+                    // Сбоку, на уровне пояса: жительница замерла лицом на юг, камера с востока — округлость видна в профиль.
+                    test.command("tp " + spouse + " " + (fx + 0.5) + " " + fy + " " + (fz - 0.5) + " 0 0");
+                    test.command("data merge entity " + spouse + " {NoAI:1b}");
+                    test.command("tp " + name() + " " + (fx + 3.0) + " " + fy + " " + (fz - 0.5) + " facing " + (fx + 0.5) + " " + (fy + 1.1) + " " + (fz - 0.5));
                 }
-                shot("mobtalk-family-belly.png", carrier == Pregnancy.Carrier.PLAYER, this::screen);
+                shot("mobtalk-family-belly-label.png", carrier == Pregnancy.Carrier.PLAYER, () -> {
+                    test.owner.client.options.hudHidden = true;
+                    shot("mobtalk-family-belly.png", carrier == Pregnancy.Carrier.PLAYER, () -> {
+                        test.owner.client.options.hudHidden = false;
+                        if (carrier == Pregnancy.Carrier.VILLAGER) test.command("data merge entity " + spouse + " {NoAI:0b}");
+                        test.command("tp " + name() + " " + at(0, 0, 2));
+                        screen();
+                    });
+                });
             });
         });
     }
@@ -217,7 +232,7 @@ final class SelfTestFamily {
         int childrenBefore = test.bridge().memory.children().overview(playerId(), 0, 0, System.currentTimeMillis()).children().size();
         test.command("time add " + DAY);
         test.await("labour began", 15, () -> { ChildLedger.Pregnant p = pregnant(); return p != null && p.news() >= 4; }, () ->
-            test.await("the baby is born", 50, () -> test.bridge().memory.children().overview(playerId(), 0, 0, System.currentTimeMillis()).children().size() > childrenBefore, () -> {
+            test.await("the baby is born", 80, () -> test.bridge().memory.children().overview(playerId(), 0, 0, System.currentTimeMillis()).children().size() > childrenBefore, () -> {
                 ChildController.Fade fade = children().fade(playerId());
                 test.check(fade != null && fade.kind() == ChildController.FadeKind.BIRTH, "the birth fades the screen of the player nearby");
                 ChildLedger.Overview o = test.bridge().memory.children().overview(playerId(), 0, world().getTime(), System.currentTimeMillis());

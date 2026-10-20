@@ -11,8 +11,8 @@ public final class Pregnancy {
     private Pregnancy() { }
     /** О беременности узнают через столько тиков после зачатия (не больше трети срока). */
     public static final long KNOWN_TICKS = ChildGrowth.DAY_TICKS;
-    /** Схватки до родов: столько тиков жительница идёт к кровати и зовёт игрока. */
-    public static final long LABOUR_TICKS = 600;
+    /** Схватки до родов: столько тиков (минута) жительница идёт к кровати и зовёт игрока — её слова успевают прозвучать до родов. */
+    public static final long LABOUR_TICKS = 1200;
 
     /** Кто носит ребёнка. NONE — однополая пара: ребёнок приходит прежним путём, без беременности. */
     public enum Carrier { VILLAGER, PLAYER, NONE }

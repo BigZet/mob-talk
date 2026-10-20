@@ -210,7 +210,8 @@ public final class ChildLedger {
                     days = Math.max(1, s.pregnancyDays);
                     Pregnancy.Term term = Pregnancy.term(s.conceivedTick, dayTime, days);
                     day = Pregnancy.day(s.conceivedTick, dayTime, days);
-                    pregnancy = Pregnancy.known(s.conceivedTick, dayTime, days) ? term.word + " · " + Pregnancy.status(term, day, days) : "";
+                    pregnancy = !Pregnancy.known(s.conceivedTick, dayTime, days) ? "" : term == Pregnancy.Term.DUE ? "роды"
+                            : term.word + ", " + day + " из " + days + " дн." + (day >= days ? " — скоро роды" : "");
                     if (pregnancy.isBlank()) days = 0;
                     else if (carrier == Pregnancy.Carrier.VILLAGER) craving = Pregnancy.craving(day + s.conceivedTick / ChildGrowth.DAY_TICKS);
                 }

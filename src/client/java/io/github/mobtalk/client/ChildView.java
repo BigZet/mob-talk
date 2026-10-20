@@ -120,7 +120,7 @@ final class ChildView {
                 line = "Наутро…";
             }
             default -> {
-                alpha = age < 1500 ? age / 1500f : age < 5000 ? 1f : Math.max(0f, 1f - (age - 5000) / (float) (ChildController.BIRTH_MILLIS - 5000));
+                alpha = age < 600 ? age / 600f : age < 5000 ? 1f : Math.max(0f, 1f - (age - 5000) / (float) (ChildController.BIRTH_MILLIS - 5000));
                 line = age < 2500 ? "" : "Слышен детский плач…";
             }
         }
