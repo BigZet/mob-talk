@@ -46,7 +46,7 @@ public final class GodSpeech {
                 + "Речь твоя старорусская, как в былинах и летописях: «ныне», «аще», «зане», «отрок», «внемли», «сие», «очи», «глаголю», "
                 + "с древними оборотами и звательным падежом («смертне», «чадо»), но так, чтобы современный игрок понял смысл. "
                 + "Говоришь загадочно и иносказательно, как оракул: притчами, знаками и намёками, торжественно и с характером, порой с "
-                + "лукавой усмешкой; не угодничаешь. Отвечаешь одной-двумя короткими фразами, без кавычек, эмодзи и пояснений. Решение уже "
+                + "лукавой усмешкой; не угодничаешь. Отвечаешь одной-двумя короткими фразами, всего не длиннее 30 слов, без кавычек, эмодзи и пояснений. Решение уже "
                 + "принято; ты лишь возвещаешь его и непременно поминаешь хотя бы одну из главных причин, пусть иносказанием, но узнаваемо. "
                 + "Не обещай того, чего нет в решении, и не называй чисел.";
     }
@@ -111,7 +111,7 @@ public final class GodSpeech {
             JsonArray messages = new JsonArray();
             messages.add(message("system", system)); messages.add(message("user", user));
             body.add("messages", messages);
-            body.addProperty("max_tokens", 400);
+            body.addProperty("max_tokens", 220);
             body.addProperty("temperature", 0.9);
             if (provider == ApiKeys.Provider.VENICE) {
                 JsonObject venice = new JsonObject(); venice.addProperty("include_venice_system_prompt", false); venice.addProperty("disable_thinking", true);
@@ -147,6 +147,11 @@ public final class GodSpeech {
         String line = text.replaceAll("(?s)<think>.*?</think>", "").replaceAll("[*_#`]", "").replaceAll("\\s+", " ").strip();
         if (line.startsWith("«") && line.endsWith("»") || line.startsWith("\"") && line.endsWith("\"")) line = line.substring(1, line.length() - 1).strip();
         if (line.isBlank()) return null;
+        // Spoken aloud, a god keeps it short: two sentences at most.
+        java.util.regex.Matcher sentences = java.util.regex.Pattern.compile("[^.!?…]+[.!?…]+").matcher(line);
+        StringBuilder kept = new StringBuilder();
+        for (int count = 0; count < 2 && sentences.find(); count++) kept.append(sentences.group());
+        if (!kept.isEmpty()) line = kept.toString().strip();
         return line.length() > 320 ? line.substring(0, 320).replaceAll("\\s+\\S*$", "") + "…" : line;
     }
 

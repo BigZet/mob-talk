@@ -132,6 +132,7 @@ class GodCoreTest {
         assertTrue(verdict.mainReasons(1).stream().anyMatch(r -> line.toLowerCase().contains(r.text().toLowerCase())), line);
         assertTrue(GodSpeech.explainTemplate(verdict).startsWith("Вопрошаешь, отчего так?"));
         assertEquals("Трепещи.", GodSpeech.clean("«**Трепещи.**»"));
+        assertEquals("Раз. Два!", GodSpeech.clean("Раз. Два! Три? Четыре."));
         assertEquals("Да.", GodSpeech.parse(JsonParser.parseString("{\"choices\":[{\"message\":{\"content\":\"Да.\"}}]}").toString()));
         assertTrue(GodSpeech.announcement(verdict).contains("Главные причины"));
     }

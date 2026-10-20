@@ -38,7 +38,7 @@ public final class DivineConfig {
     public Provider provider = Provider.OPENROUTER;
     public String chatModel = "openai/gpt-6-luna";
     public String veniceModel = "deepseek-v4-1-flash";
-    public int speechTimeoutSeconds = 12;
+    public int speechTimeoutSeconds = 20;
     /** The god speaks aloud (OpenRouter text to speech); off leaves subtitles only. */
     public boolean voice = true;
     public String voiceId = GodVoice.VOICES[0][0];
