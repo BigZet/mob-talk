@@ -79,6 +79,8 @@ public final class WeddingController {
         long feastUntil = -1;
         final List<Long> bells = new ArrayList<>();
         boolean rings, hurt, servicing;
+        /** Наряд надет и арка стоит: до этого клиенту (и самотесту) смотреть рано. */
+        public volatile boolean ready;
         String ringItem = "";
         Scene(Wedding.Ceremony ceremony, WeddingScript.Input input, UUID player, ServerWorld world, Vec3d anchor, Vec3d forward, Vec3d right,
               Vec3d couple, Vec3d playerSpot, boolean quiet, Map<UUID, Vec3d> seats) {
@@ -199,6 +201,7 @@ public final class WeddingController {
         scene = s;
         dress(s, world);
         arch(s, world);
+        s.ready = true;
         s.bells.add(world.getTime() + 2);
         return s;
     }

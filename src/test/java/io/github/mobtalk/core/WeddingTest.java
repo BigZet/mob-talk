@@ -78,6 +78,9 @@ class WeddingTest {
         for (String yes : List.of("Идём на свадьбу!", "пошли жениться", "Пора нам пожениться", "давай сыграем свадьбу", "пойдём к колоколу, любимая"))
             assertTrue(Wedding.calls(yes), yes);
         for (String no : List.of("Как прошла свадьба у соседей?", "привет", "пойдём спать")) assertFalse(Wedding.calls(no), no);
+        for (String proposal : List.of("Выходи за меня!", "Будь моей женой", "предлагаю тебе руку и сердце", "Выйдешь за меня замуж?", "давай поженимся"))
+            assertTrue(Wedding.proposes(proposal), proposal);
+        assertFalse(Wedding.proposes("Как дела?"));
         assertTrue(Wedding.asksWitness("Будь моим свидетелем!"));
         assertTrue(Wedding.asksWitness("будешь свидетельницей на свадьбе?"));
         assertFalse(Wedding.asksWitness("Как дела?"));
@@ -259,6 +262,10 @@ class WeddingTest {
         GestureIntent proposal = store.profile(villager(bride, player, store.revision(bride), Romance.ENGAGEMENT_RING)).socialTurn.intent(Gesture.PROPOSE);
         assertEquals(Gesture.Outcome.ACCEPTED, proposal.outcome(), proposal.note());
         assertEquals(SocialLedger.WEDDING_HEARTS + 5, proposal.hearts(), "the mod's own ring is the warmest");
+        ConversationStore.Profile asked = store.profile(villager(bride, player, store.revision(bride), Romance.ENGAGEMENT_RING));
+        assertSame(asked.socialTurn.intent(Gesture.PROPOSE), ConversationEngine.proposalKept(asked, "Выходи за меня!", GestureIntent.none()),
+                "the model said yes but forgot the gesture: the accepted proposal still counts");
+        assertFalse(ConversationEngine.proposalKept(asked, "Как дела?", GestureIntent.none()).present(), "no proposal in the words — nothing added");
         store.social().applyGesture(bride, player, "Стив", proposal, System.currentTimeMillis());
         assertTrue(store.wedding().engaged(bride, player));
         assertNull(store.state.family.spouse(player), "engaged, not married yet");
