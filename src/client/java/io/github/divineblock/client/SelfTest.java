@@ -130,7 +130,18 @@ public final class SelfTest {
                 check(client.currentScreen instanceof DivineSettingsScreen, "меню Божественного блока (F9) открылось");
                 screenshot = "settings-f9";
             }
-            case 80 -> { client.setScreen(null); log("ошибок всего: " + failures); finish(client); }
+            case 80 -> {
+                // The reverb and echo menu: opens from F9 and plays the preview line through the effects.
+                DivineSettingsScreen settings = (DivineSettingsScreen) client.currentScreen;
+                client.setScreen(new VoiceSettingsScreen(settings, DivineBlockMod.config()));
+                GodVoicePlayer.played = seconds -> log(String.format(java.util.Locale.ROOT, "  пробная фраза с эффектом звучит: %.1f с", seconds));
+                GodVoicePlayer.preview(client, DivineBlockMod.config(), line -> { if (!line.isBlank()) log("  прослушивание: " + line); });
+            }
+            case 200 -> {
+                check(client.currentScreen instanceof VoiceSettingsScreen, "меню «Эхо и реверб» открылось");
+                screenshot = "voice-settings";
+            }
+            case 220 -> { client.setScreen(null); log("ошибок всего: " + failures); finish(client); }
             default -> { }
         }
     }

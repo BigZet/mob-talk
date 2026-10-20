@@ -61,6 +61,7 @@ final class GodVoicePlayer {
                 if (playing != null) client.getSoundManager().stop(playing);
                 playing = new GodSound(pcm);
                 client.getSoundManager().play(playing);
+                played.accept(pcm.length / (2.0 * GodVoice.SAMPLE_RATE));
                 status.accept("");
             });
         });
