@@ -2,7 +2,7 @@
 # arms -Dmobtalk.selftest in instance.cfg while PrismLauncher is closed, launches the game, waits for it to quit,
 # restores instance.cfg, deletes the world copy and reopens PrismLauncher. Logs: %LOCALAPPDATA%\MobTalk\selftest\
 # (selftest-run.log is UTF-16 from Tee-Object; read it with Get-Content or iconv -f UTF-16). Refuses to run while javaw.exe is up.
-# Usage (Windows PowerShell): powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 [-Only wedding|place]
+# Usage (Windows PowerShell): powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 [-Only wedding|place|names]
 param([string]$Only = '')
 $ErrorActionPreference = 'Stop'
 $scratch = Join-Path $env:LOCALAPPDATA "MobTalk\selftest"
