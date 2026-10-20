@@ -1,0 +1,22 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "category": "misc",
+ "group": "mobtalk_engagement_ring",
+ "pattern": [
+  " N ",
+  "NGN",
+  " N "
+ ],
+ "key": {
+  "N": {
+   "item": "minecraft:gold_nugget"
+  },
+  "G": {
+   "item": "minecraft:emerald"
+  }
+ },
+ "result": {
+  "id": "mobtalk:engagement_ring",
+  "count": 1
+ }
+}

@@ -13,6 +13,7 @@ public final class ConversationStore {
     private MobTalkConfig config;
     private final SocialLedger social = new SocialLedger(this);
     private final JealousyLedger jealousy = new JealousyLedger(this);
+    private final WeddingLedger wedding = new WeddingLedger(this);
 
     /** Initial load touches disk: call from a maintenance/conversation worker. */
     public static ConversationStore open(Path worldDirectory, MobTalkConfig config) throws IOException {
@@ -57,6 +58,8 @@ public final class ConversationStore {
     public SocialLedger social() { return social; }
     /** Ревность пар игрока и ночи вместе (трек J); см. {@link JealousyLedger}. */
     public JealousyLedger jealousy() { return jealousy; }
+    /** Трек L: помолвка, свидетели и свадьба у колокола; см. {@link WeddingLedger}. */
+    public WeddingLedger wedding() { return wedding; }
     /** The preferences this store was opened with, for the social layer. */
     synchronized MobTalkConfig config() { return config; }
     /** Blocking writer barrier for shutdown/tests, never the game thread. */

@@ -28,6 +28,8 @@ public final class SocialProfile {
     }
     /** The sex of a villager without a profile yet: the same answer {@link #of} would give. */
     public static Gender genderOf(UUID id) { return of(id, false).gender(); }
+    /** Потянет ли жителя без профиля к игроку этого пола ({@link Romance#drawn}); для игрового самотеста свадьбы. */
+    public static boolean drawnTo(UUID id, Gender player) { SocialProfile s = of(id, false); return Romance.drawn(s.gender(), s.traits(), player); }
 
     public Gender gender() { Gender g = Gender.of(gender); return g == null ? Gender.MALE : g; }
     public Persona persona() { Persona p = Persona.of(persona); return p == null ? Persona.FRIENDLY : p; }

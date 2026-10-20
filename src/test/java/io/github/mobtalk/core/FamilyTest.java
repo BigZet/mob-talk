@@ -86,7 +86,7 @@ class FamilyTest {
 
     // A ring at 95 is accepted: the reply's commit makes the two spouses in the tree, and the prompt then says so.
     @Test void aProposalWithARingMarriesThePlayer() throws Exception {
-        MobTalkConfig config = new MobTalkConfig(); config.playerGender = "male";
+        MobTalkConfig config = new MobTalkConfig(); config.playerGender = "male"; config.weddingCeremony = false; // Без свадьбы у колокола (трек L): брак сразу.
         ConversationStore store = ConversationStore.open(directory, config);
         UUID mob = UUID.randomUUID(), player = UUID.randomUUID();
         store.observe(villager(mob, player, 0, "minecraft:air"));

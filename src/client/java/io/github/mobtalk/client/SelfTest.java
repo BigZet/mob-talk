@@ -42,6 +42,8 @@ final class SelfTest {
     private static final Logger LOGGER = LoggerFactory.getLogger("mobtalk-selftest");
     /** {@code -Dmobtalk.selftest.only=place}: only the place stages (no LLM, no voice), for checking vision without paying for chat. */
     static final boolean ONLY_PLACE = "place".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=wedding}: only the wedding stages of track L. */
+    static final boolean ONLY_WEDDING = "wedding".equals(System.getProperty("mobtalk.selftest.only"));
     final MobTalkClient owner;
     private final String world;
     private int stage, ticks, stageStart;
@@ -134,7 +136,8 @@ final class SelfTest {
         await("villager and cow summoned", 10, () -> {
             villager = nearest(VillagerEntity.class); cow = nearest(CowEntity.class);
             return villager != null && cow != null && MobSpeechSound.find(owner.world, villager) != null && MobSpeechSound.find(owner.world, cow) != null;
-        }, ONLY_PLACE ? () -> new SelfTestPlace(this, cow, sx, SY, sz).run(this::finish) : this::aim);
+        }, ONLY_PLACE ? () -> new SelfTestPlace(this, cow, sx, SY, sz).run(this::finish)
+                : ONLY_WEDDING ? () -> new SelfTestWedding(this, sx, SY, sz).run(this::finish) : this::aim);
     }
 
     // ---- Stage 2: the crosshair finds the villager; V would pick it.
@@ -396,7 +399,7 @@ final class SelfTest {
                     log("cow about the gift: " + lastReply(cow));
                     check(turns(cow) > turnsBefore, "the cow spoke of the gift");
                     command("item replace entity " + name + " weapon.mainhand with minecraft:air");
-                    new SelfTestJealousy(this, sx, SY, sz).run(this::stayHere); // Трек J: ревность и сон вместе, без LLM.
+                    new SelfTestJealousy(this, sx, SY, sz).run(() -> new SelfTestWedding(this, sx, SY, sz).run(this::stayHere)); // Треки J и L.
                 });
             });
         });

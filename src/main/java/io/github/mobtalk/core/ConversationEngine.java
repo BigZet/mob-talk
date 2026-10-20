@@ -120,6 +120,32 @@ public final class ConversationEngine implements AutoCloseable {
         return VillageNotices.request(llm, input);
     }
 
+    /** Тексты свадьбы ({@link WeddingScript}): один фоновый запрос. Блокирует: только из рабочего потока. */
+    public Wedding.Script weddingScript(WeddingScript.Input input) throws IOException, InterruptedException {
+        if (closed) throw new IOException("Разговор Mob Talk уже завершён.");
+        if (WeddingFaults.llm) throw new IOException("самотест: модель недоступна");
+        return WeddingScript.request(llm, input);
+    }
+    /** Клятва пары в ответ на слова игрока; "" — модель не дала пригодного. Блокирует. */
+    public String weddingVow(WeddingScript.Input input, String playerVow) throws IOException, InterruptedException {
+        if (closed) throw new IOException("Разговор Mob Talk уже завершён.");
+        if (WeddingFaults.llm) throw new IOException("самотест: модель недоступна");
+        return WeddingScript.spouseVow(llm, input, playerVow);
+    }
+    /** Одна фраза голосом {@code voiceId} (запасной — голос жителя); null — озвучка недоступна, тогда реплика идёт только текстом.
+     * Блокирует до первых долей секунды звука. */
+    public SpeechStream voice(String voiceId, String text) throws InterruptedException {
+        if (closed || text == null || text.isBlank() || WeddingFaults.tts) return null;
+        String reserve = SpeciesCatalog.reserve("minecraft:villager").id();
+        SpeechStream audio = null;
+        try {
+            audio = speech.streamWithFallback(voiceId, reserve, text).stream();
+            if (!audio.awaitPrebuffer(PREBUFFER_BYTES, speech.timeout().toNanos())) { audio.close(); return null; }
+            return audio;
+        } catch (IOException unavailable) { if (audio != null) audio.close(); return null; }
+        catch (InterruptedException cancelled) { if (audio != null) audio.close(); throw cancelled; }
+    }
+
     public Reply converse(MobSnapshot snapshot, String userText) throws IOException, InterruptedException {
         PreparedReply prepared = prepare(snapshot, userText);
         if (!commitDelivered(prepared, snapshot.interactionRevision()))

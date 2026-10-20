@@ -55,7 +55,7 @@ class ChildrenTest {
 
     // Married at 95: the spouse agrees to a child, the game sets the day, the baby is born into the tree loving its player parent.
     @Test void thePlayersChildFromAgreementToBirth() throws Exception {
-        MobTalkConfig config = new MobTalkConfig(); config.playerGender = "male";
+        MobTalkConfig config = new MobTalkConfig(); config.playerGender = "male"; config.weddingCeremony = false; // Кольцо — сразу брак (без службы трека L).
         ConversationStore store = ConversationStore.open(directory, config);
         UUID wife = UUID.randomUUID(), player = UUID.randomUUID(), baby = UUID.randomUUID();
         store.observe(SocialLayerTest.villager(wife, player, 0, false, "minecraft:air"));

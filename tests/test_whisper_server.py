@@ -49,8 +49,8 @@ class WorkerTests(unittest.TestCase):
         self.assertNotIn("faster_whisper", sys.modules)
 
     def test_accepts_pcm16_at_duration_limit(self):
-        audio = self.worker.validate_wav(make_wav(seconds=15))
-        self.assertEqual(15, audio.duration)
+        audio = self.worker.validate_wav(make_wav(seconds=120))
+        self.assertEqual(120, audio.duration)
         self.assertFalse(audio.silent)
 
     def test_rejects_non_wav_unsupported_pcm_and_truncation(self):
@@ -61,7 +61,7 @@ class WorkerTests(unittest.TestCase):
                     self.worker.validate_wav(body)
 
     def test_rejects_empty_and_overlong_audio(self):
-        for body in (make_wav(seconds=0), make_wav(seconds=15.01)):
+        for body in (make_wav(seconds=0), make_wav(seconds=120.01)):
             with self.assertRaises(self.worker.InvalidAudio):
                 self.worker.validate_wav(body)
 
@@ -118,7 +118,7 @@ class HttpTests(unittest.TestCase):
     def test_invalid_and_oversize_body_are_rejected_before_inference(self):
         self.assertEqual(400, self.request("POST", "/transcribe", b"wrong format")[0])
         self.assertEqual(413, self.request("POST", "/transcribe", b"",
-            {"Content-Length": "2097153"})[0])
+            {"Content-Length": "4194305"})[0])
         self.assertEqual(400, self.request("POST", "/transcribe", b"",
             {"Content-Length": "-1"})[0])
 

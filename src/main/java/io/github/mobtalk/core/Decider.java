@@ -13,6 +13,9 @@ public interface Decider {
     UUID nextSpeaker(DecisionState state, List<Initiative.Candidate> candidates);
     /** Whether a bystander puts in a word after an exchange it overheard. */
     boolean bystanderAnswers(DecisionState state);
+    /** Трек L: согласился ли игрок на брак своим ответом на вопрос ведущего. Отказ — только явный ({@link Wedding#refuses}); шутка,
+     * сомнение или молчание — согласие. */
+    default boolean consents(String question, String answer) { return !Wedding.refuses(answer); }
     /** For the log: "rules" or "jev". */
     String name();
 }

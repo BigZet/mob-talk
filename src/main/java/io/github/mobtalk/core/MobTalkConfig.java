@@ -111,6 +111,13 @@ public final class MobTalkConfig {
     /** Сон вместе: влюблённый житель ложится рядом, когда игрок спит; откуда он приходит (блоки) и сколько сердечек даёт ночь. */
     public boolean coSleep = true;
     public int coSleepRange = 12, coSleepHearts = 3;
+    /** Свадьба у колокола (трек L): помолвка кольцом, свидетели, служба при деревне. Запись клятвы игрока (секунды, только пока
+     * держат кнопку), ожидание клятвы до переспроса и сбор у колокола (секунды), сколько гостей зовут и сколько из них говорят
+     * пожелания, откуда гостей зовут (блоки), какая доля свадеб жителей при игроке становится сценой (процент) и сколько дней
+     * пара носит венцы. */
+    public boolean weddingCeremony = true;
+    public int weddingVowSeconds = 60, weddingVowWaitSeconds = 60, weddingGatherSeconds = 60, weddingGuests = 16, weddingWishes = 12, weddingRange = 48;
+    public int weddingScenePercent = 30, weddingAttireDays = 1;
     /** Bonds between mobs: how far from the player they act (blocks), the chance a friend walks over (percent per check), the
      * walking band and retreat distance (blocks), how fast a bond fades (hours) and how long grief lasts (minutes). */
     public int socialPlayerRange = 32;
@@ -186,7 +193,7 @@ public final class MobTalkConfig {
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;
         copy.familyLife = familyLife; copy.weddingChance = weddingChance; copy.birthChance = birthChance; copy.childGrowthDays = childGrowthDays;
-        copy.coSleep = coSleep;
+        copy.coSleep = coSleep; copy.weddingCeremony = weddingCeremony;
         Tunables.copy(this, copy);
         copy.placeAnalysis = placeAnalysis; copy.placeClassifier = placeClassifier; copy.playerNamesHostile = playerNamesHostile; copy.playerNamesNeutral = playerNamesNeutral; copy.playerNamesClose = playerNamesClose;
         return copy;

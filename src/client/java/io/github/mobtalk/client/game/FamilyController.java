@@ -107,6 +107,11 @@ final class FamilyController {
         List<VillagerEntity> villagers = village(world, player);
         if (villagers.size() < 2) return;
         List<SocialLedger.Resident> residents = villagers.stream().map(v -> new SocialLedger.Resident(v.getUuid(), name(v), !v.isBaby())).toList();
+        // Трек L: иногда, пока игрок рядом, свадьба жителей идёт сценой у колокола — с ведущим, клятвами и пожеланиями.
+        if (bridge.config.weddingCeremony && !bridge.wedding.active() && random.nextInt(100) < bridge.config.weddingScenePercent) {
+            UUID[] chosen = bridge.memory.social().villageWedding(residents, player.getUuid(), System.currentTimeMillis(), false);
+            if (chosen != null && bridge.wedding.startVillage(world, chosen[0], chosen[1], player)) return;
+        }
         UUID[] pair = bridge.memory.social().villageWedding(residents, player.getUuid(), System.currentTimeMillis());
         if (pair == null) return;
         List<String> names = new ArrayList<>();
@@ -124,6 +129,11 @@ final class FamilyController {
         ServerPlayerEntity killer = source.getAttacker() instanceof ServerPlayerEntity player ? player : null;
         long now = System.currentTimeMillis();
         String deadName = name(mob);
+        // Трек L: кольцо, которое житель носил, падает на землю.
+        for (String ring : bridge.memory.wedding().rings(mob.getUuid())) {
+            net.minecraft.item.Item item = MobTrading.item(ring);
+            if (item != null) mob.dropStack(new net.minecraft.item.ItemStack(item));
+        }
         List<SocialLedger.Mourner> mourners = bridge.memory.social().died(mob.getUuid(), deadName, MobGameBridge.type(mob),
                 killer == null ? null : killer.getUuid(), killer == null ? "" : MobGameBridge.playerName(killer), now);
         if (!enabled()) return;

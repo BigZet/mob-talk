@@ -156,6 +156,18 @@ public final class JevDecider implements Decider {
         return fallback.nextSpeaker(state, candidates);
     }
 
+    /** Правила находят явный отказ; Jev его только перепроверяет («нет ничего лучше — да!» — не отказ). Без ответа Jev — правила. */
+    @Override public boolean consents(String question, String answer) {
+        if (!Wedding.refuses(answer)) return true;
+        JsonObject state = new JsonObject(); state.addProperty("question", TextBounds.characters(question, 600)); state.addProperty("answer", TextBounds.characters(answer, 1500));
+        JsonObject questions = new JsonObject();
+        questions.add("consents", noul("На свадьбе ведущий задал вопрос question, игрок ответил answer. Согласился ли игрок вступить в брак?",
+                "согласился (пусть с шуткой или оговоркой)", "явно отказался"));
+        Answers answers = tryAsk(state, questions);
+        double yes = answers == null ? -1 : answers.noul("consents");
+        return yes >= 0.6;
+    }
+
     @Override public boolean bystanderAnswers(DecisionState state) {
         if (state != null && state.eventful()) return true;
         JsonObject questions = new JsonObject();

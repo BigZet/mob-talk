@@ -36,7 +36,7 @@ final class VillageTalkVoice {
         if (lines != null) { advance(game); return; }
         if (ticks % 20 != 3) return;
         announce(game);
-        boolean floorBusy = writing || owner.busyTalking() || owner.witnessPending() || owner.initiatives.sceneOn();
+        boolean floorBusy = writing || owner.busyTalking() || owner.witnessPending() || owner.initiatives.sceneOn() || owner.wedding.active();
         if (!floorBusy) write(game);
     }
 

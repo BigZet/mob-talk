@@ -112,6 +112,15 @@ public final class Tunables {
         integer("jealousyAttention", s, "jealousy", 0, 30, 1, c -> c.jealousyAttention, (c, x) -> c.jealousyAttention = x);
         integer("coSleepRange", s, "jealousy", 2, 32, 1, c -> c.coSleepRange, (c, x) -> c.coSleepRange = x);
         integer("coSleepHearts", s, "jealousy", 0, 20, 1, c -> c.coSleepHearts, (c, x) -> c.coSleepHearts = x);
+        // Свадьба у колокола (трек L).
+        integer("weddingVowSeconds", s, "wedding", 15, 120, 5, c -> c.weddingVowSeconds, (c, x) -> c.weddingVowSeconds = x);
+        integer("weddingVowWaitSeconds", s, "wedding", 10, 180, 5, c -> c.weddingVowWaitSeconds, (c, x) -> c.weddingVowWaitSeconds = x);
+        integer("weddingGatherSeconds", s, "wedding", 20, 180, 5, c -> c.weddingGatherSeconds, (c, x) -> c.weddingGatherSeconds = x);
+        integer("weddingGuests", s, "wedding", 0, 32, 1, c -> c.weddingGuests, (c, x) -> c.weddingGuests = x);
+        integer("weddingWishes", s, "wedding", 0, 24, 1, c -> c.weddingWishes, (c, x) -> c.weddingWishes = x);
+        integer("weddingRange", s, "wedding", 16, 96, 4, c -> c.weddingRange, (c, x) -> c.weddingRange = x);
+        integer("weddingScenePercent", s, "wedding", 0, 100, 5, c -> c.weddingScenePercent, (c, x) -> c.weddingScenePercent = x);
+        integer("weddingAttireDays", s, "wedding", 0, 30, 1, c -> c.weddingAttireDays, (c, x) -> c.weddingAttireDays = x);
         // Bonds between mobs and their walks.
         integer("socialActionsPerMinute", s, "bonds", 1, 30, 1, c -> c.socialActionsPerMinute, (c, x) -> c.socialActionsPerMinute = x);
         integer("socialPlayerRange", s, "bonds", 8, 96, 1, c -> c.socialPlayerRange, (c, x) -> c.socialPlayerRange = x);
@@ -206,7 +215,7 @@ public final class Tunables {
             }
             case TALK -> config.rudeness = d.rudeness;
             case SOCIAL -> {
-                config.socialLayer = d.socialLayer; config.playerGender = d.playerGender; config.familyLife = d.familyLife; config.coSleep = d.coSleep;
+                config.socialLayer = d.socialLayer; config.playerGender = d.playerGender; config.familyLife = d.familyLife; config.coSleep = d.coSleep; config.weddingCeremony = d.weddingCeremony;
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices;
             }
