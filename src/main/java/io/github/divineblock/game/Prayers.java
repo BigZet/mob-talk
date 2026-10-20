@@ -226,7 +226,7 @@ public final class Prayers {
     private static void act(ServerPlayerEntity player, BlockPos altar, Verdict verdict, DivineConfig config) {
         Miracle miracle = verdict.chosen();
         String done;
-        try { done = Miracles.perform(miracle, verdict.power, player, altar, verdict.prayer, config); }
+        try { done = Miracles.perform(miracle, verdict.power, player, altar, verdict.prayer, config, verdict.severity()); }
         catch (RuntimeException failure) { DivineBlockMod.LOG.warn("Божественный блок: чудо {} не удалось", miracle.id(), failure); done = null; }
         if (done == null) {
             // Nothing to act on here (empty hand, the Nether's roof): the god answers with a sign instead of half a miracle.

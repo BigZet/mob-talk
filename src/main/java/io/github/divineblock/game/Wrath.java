@@ -252,7 +252,6 @@ final class Wrath {
         if (warden == null) return null;
         warden.increaseAngerAt(player, 150, false);
         warden.setPersistent();
-        Miracles.effect(player, StatusEffects.DARKNESS, 400, 0);
         return "Хранитель восстал из глубин";
     }
 
@@ -301,5 +300,90 @@ final class Wrath {
         mob.equipStack(EquipmentSlot.CHEST, new ItemStack(chest));
         mob.setEquipmentDropChance(EquipmentSlot.HEAD, 0.05f);
         mob.setEquipmentDropChance(EquipmentSlot.CHEST, 0.05f);
+    }
+
+    // ---- Exiles, bosses and the void. ----
+
+    /** Exile to the End: the sinner lands on the obsidian platform before the dragon's island. */
+    static String endExile(ServerWorld world, ServerPlayerEntity player) {
+        ServerWorld end = world.getServer().getWorld(World.END);
+        if (end == null || world == end) return null;
+        BlockPos spawn = ServerWorld.END_SPAWN_POS;
+        for (BlockPos pos : BlockPos.iterate(spawn.add(-2, -1, -2), spawn.add(2, -1, 2))) end.setBlockState(pos, Blocks.OBSIDIAN.getDefaultState());
+        for (BlockPos pos : BlockPos.iterate(spawn.add(-2, 0, -2), spawn.add(2, 2, 2))) end.setBlockState(pos, Blocks.AIR.getDefaultState());
+        Miracles.burst(world, player.getBlockPos(), ParticleTypes.REVERSE_PORTAL, 120);
+        player.teleport(end, spawn.getX() + 0.5, spawn.getY(), spawn.getZ() + 0.5, player.getYaw(), player.getPitch());
+        Miracles.sound(end, spawn, SoundEvents.ENTITY_ENDER_DRAGON_GROWL, 4f, 0.8f);
+        return "изгнан в Край";
+    }
+
+    /** One wither or, in great fury, up to five, rising around the altar. */
+    static String withers(ServerWorld world, ServerPlayerEntity player, BlockPos altar, int severity) {
+        int spawned = 0;
+        for (int i = 0; i < severity; i++) {
+            net.minecraft.entity.boss.WitherEntity wither = EntityType.WITHER.create(world);
+            if (wither == null) continue;
+            double angle = Math.PI * 2 * i / severity;
+            BlockPos at = world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES,
+                    altar.add((int) Math.round(Math.cos(angle) * 10), 0, (int) Math.round(Math.sin(angle) * 10))).up(2);
+            wither.refreshPositionAndAngles(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, 0, 0);
+            wither.onSummoned();
+            world.spawnEntity(wither);
+            spawned++;
+        }
+        return spawned == 0 ? null : spawned == 1 ? "визер" : spawned + " визеров";
+    }
+
+    /** One ender dragon or up to five, circling the sinner as their fight's centre. */
+    static String dragons(ServerWorld world, ServerPlayerEntity player, int severity) {
+        int spawned = 0;
+        for (int i = 0; i < severity; i++) {
+            net.minecraft.entity.boss.dragon.EnderDragonEntity dragon = EntityType.ENDER_DRAGON.create(world);
+            if (dragon == null) continue;
+            double angle = Math.PI * 2 * i / severity;
+            dragon.refreshPositionAndAngles(player.getX() + Math.cos(angle) * 30, player.getY() + 40 + i * 6, player.getZ() + Math.sin(angle) * 30,
+                    world.random.nextFloat() * 360, 0);
+            dragon.setFightOrigin(player.getBlockPos());
+            dragon.setPersistent();
+            world.spawnEntity(dragon);
+            spawned++;
+        }
+        Miracles.sound(world, player.getBlockPos(), SoundEvents.ENTITY_ENDER_DRAGON_GROWL, 5f, 0.7f);
+        return spawned == 0 ? null : spawned == 1 ? "дракон Края" : spawned + " драконов Края";
+    }
+
+    /** Whole chunks cut out down through the bedrock into the void, layer by layer from the sky down, the one before the
+     * sinner first and, in great fury, the ones around it. The altar and the home stay. */
+    static String chunkVoid(ServerWorld world, ServerPlayerEntity player, BlockPos altar, int severity, DivineConfig config) {
+        if (config.protectBlocks) return null;
+        Vec3d look = player.getRotationVector().multiply(1, 0, 1);
+        if (look.lengthSquared() < 1e-4) look = new Vec3d(0, 0, 1);
+        look = look.normalize();
+        net.minecraft.util.math.ChunkPos ahead = new net.minecraft.util.math.ChunkPos(BlockPos.ofFloored(player.getX() + look.x * 20, 0, player.getZ() + look.z * 20));
+        int[][] order = { { 0, 0 }, { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
+        int count = Math.max(1, Math.min(5, severity));
+        int top = world.getTopY() - 1, bottom = world.getBottomY();
+        for (int c = 0; c < count; c++) {
+            net.minecraft.util.math.ChunkPos chunk = new net.minecraft.util.math.ChunkPos(ahead.x + order[c][0], ahead.z + order[c][1]);
+            int layersPerTick = 6, delay = c * 20;
+            int[] y = { top };
+            Scheduler.repeat(1, (top - bottom) / layersPerTick + 2 + delay, step -> {
+                if (step < delay) return;
+                BlockPos.Mutable pos = new BlockPos.Mutable();
+                for (int layer = 0; layer < layersPerTick && y[0] >= bottom; layer++, y[0]--) {
+                    for (int x = chunk.getStartX(); x <= chunk.getEndX(); x++) for (int z = chunk.getStartZ(); z <= chunk.getEndZ(); z++) {
+                        pos.set(x, y[0], z);
+                        BlockState state = world.getBlockState(pos);
+                        if (state.isAir() || state.getBlock() instanceof AltarBlock || Protection.spares(world, player, altar, pos, config)) continue;
+                        world.setBlockState(pos, Blocks.AIR.getDefaultState(), Block.NOTIFY_LISTENERS | Block.FORCE_STATE);
+                    }
+                }
+                if (step % 10 == 0) {
+                    world.spawnParticles(ParticleTypes.REVERSE_PORTAL, chunk.getCenterX(), y[0] + 2, chunk.getCenterZ(), 120, 6, 2, 6, 0.1);
+                    Miracles.sound(world, new BlockPos(chunk.getCenterX(), y[0], chunk.getCenterZ()), SoundEvents.BLOCK_END_PORTAL_SPAWN, 3f, 0.5f);
+                }
+            });
+        }
+        return count == 1 ? "земля вырезана до бездны" : count + " участков земли вырезаны до бездны";
     }
 }

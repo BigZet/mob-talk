@@ -36,7 +36,8 @@ public final class DivineSettingsScreen extends Screen {
         addDrawableChild(CyclingButtonWidget.<Integer>builder(v -> Text.literal(v + " — " + new String[] { "знамения", "малое", "среднее", "большое", "апокалипсис" }[v]))
                 .values(List.of(0, 1, 2, 3, 4)).initially(config.maxTier).build(right, y, column, 20, Text.literal("Потолок"), (b, v) -> config.maxTier = v));
         y += row;
-        addDrawableChild(CyclingButtonWidget.onOffBuilder(config.allowWither).build(left, y, column, 20, Text.literal("Визер"), (b, v) -> config.allowWither = v));
+        addDrawableChild(CyclingButtonWidget.onOffBuilder(config.allowWither || config.allowDragon).build(left, y, column, 20, Text.literal("Визеры и драконы"),
+                (b, v) -> { config.allowWither = v; config.allowDragon = v; }));
         addDrawableChild(CyclingButtonWidget.onOffBuilder(config.protectBlocks).build(right, y, column, 20, Text.literal("Беречь блоки"), (b, v) -> config.protectBlocks = v));
         y += row;
         addDrawableChild(CyclingButtonWidget.<Integer>builder(v -> Text.literal(v == 0 ? "нет" : String.valueOf(v))).values(List.of(0, 1, 2, 3))

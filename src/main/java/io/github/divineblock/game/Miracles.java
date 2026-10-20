@@ -61,10 +61,15 @@ public final class Miracles {
     private Miracles() { }
 
     public static String perform(Miracle miracle, int power, ServerPlayerEntity player, BlockPos altar, String prayer, DivineConfig config) {
+        return perform(miracle, power, player, altar, prayer, config, 1);
+    }
+
+    /** {@code severity} 1..5 sets how many bosses come and how much land is cut away in great fury. */
+    public static String perform(Miracle miracle, int power, ServerPlayerEntity player, BlockPos altar, String prayer, DivineConfig config, int severity) {
         ServerWorld world = player.getServerWorld();
         return switch (miracle) {
             case OMEN_LIGHT -> { column(world, altar, ParticleTypes.END_ROD); sound(world, altar, SoundEvents.BLOCK_BEACON_ACTIVATE, 1.5f, 0.8f); yield "столб света"; }
-            case OMEN_THUNDER -> { sound(world, player.getBlockPos(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, 2f, 0.6f); effect(player, StatusEffects.DARKNESS, 200, 0); yield "гром и тьма"; }
+            case OMEN_THUNDER -> { sound(world, player.getBlockPos(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, 2f, 0.6f); effect(player, StatusEffects.DARKNESS, 50, 0); yield "гром и тьма"; }
             case OMEN_LAUGH -> { sound(world, altar, SoundEvents.ENTITY_WITCH_CELEBRATE, 2f, 0.5f); burst(world, altar.up(), ParticleTypes.LARGE_SMOKE, 40); yield "хохот с неба"; }
             case IGNORE -> { burst(world, altar.up(), ParticleTypes.SMOKE, 15); sound(world, altar, SoundEvents.BLOCK_FIRE_EXTINGUISH, 1f, 0.6f); yield "бог молчит"; }
             case HEAL -> heal(player, power);
@@ -103,7 +108,13 @@ public final class Miracles {
             case BLAZE_HORDE -> Wrath.blazeHorde(world, player, power);
             case METEOR_SHOWER -> Wrath.meteorShower(world, player, altar, power, config);
             case WARDEN -> Wrath.warden(world, player);
-            case WITHER -> wither(world, altar);
+            case END_EXILE -> Wrath.endExile(world, player);
+            case CHUNK_VOID -> Wrath.chunkVoid(world, player, altar, severity, config);
+            case WITHER -> Wrath.withers(world, player, altar, severity);
+            case DRAGON -> Wrath.dragons(world, player, severity);
+            case FLIP -> Jests.flip(world, player, power);
+            case SHRINK -> Jests.scale(player, -0.9, 60 * 20, "смертный уменьшен в десять раз");
+            case GIANT -> Jests.scale(player, power >= 3 ? 4 : 2.5, 60 * 20, "смертный стал великаном");
         };
     }
 
@@ -114,7 +125,6 @@ public final class Miracles {
         ServerWorld world = player.getServerWorld();
         sound(world, player.getBlockPos(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, 2f, 0.5f);
         sound(world, altar, SoundEvents.AMBIENT_CAVE.value(), 2f, 0.6f);
-        effect(player, StatusEffects.DARKNESS, 240, 0);
         burst(world, altar.up(), ParticleTypes.ANGRY_VILLAGER, 20);
         column(world, altar, ParticleTypes.SOUL_FIRE_FLAME);
     }
@@ -125,7 +135,6 @@ public final class Miracles {
             case HELP -> ParticleTypes.END_ROD; case JEST -> ParticleTypes.WITCH; case WRATH -> ParticleTypes.SOUL_FIRE_FLAME; case OMEN -> ParticleTypes.ENCHANT; };
         int steps = (int) Math.max(1, Math.round(seconds * 4));
         sound(world, altar, kind == Miracle.Kind.WRATH ? SoundEvents.AMBIENT_CAVE.value() : SoundEvents.BLOCK_BEACON_AMBIENT, 1.5f, kind == Miracle.Kind.WRATH ? 0.5f : 0.8f);
-        if (kind == Miracle.Kind.WRATH) effect(player, StatusEffects.DARKNESS, (int) (seconds * 20) + 40, 0);
         Scheduler.repeat(5, steps, i -> {
             double angle = i * 0.6, radius = 1.2;
             for (int arm = 0; arm < 3; arm++) {
@@ -478,16 +487,6 @@ public final class Miracles {
         player.setOnFireFor(2 + power);
         sound(world, center, SoundEvents.ITEM_FIRECHARGE_USE, 1.5f, 0.6f);
         return placed > 0 ? "кольцо огня" : "кольцо призрачного огня";
-    }
-
-    private static String wither(ServerWorld world, BlockPos altar) {
-        WitherEntity wither = EntityType.WITHER.create(world);
-        if (wither == null) return null;
-        BlockPos at = world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, altar.add(8, 0, 8)).up(2);
-        wither.refreshPositionAndAngles(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, 0, 0);
-        wither.onSummoned();
-        world.spawnEntity(wither);
-        return "визер";
     }
 
     // ---- Helpers. ----

@@ -1,0 +1,7 @@
+{
+  "required": true,
+  "package": "io.github.divineblock.client.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": ["UpsideDownMixin"],
+  "injectors": { "defaultRequire": 1 }
+}

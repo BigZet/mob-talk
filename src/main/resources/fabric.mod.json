@@ -11,5 +11,6 @@
     "main": ["io.github.divineblock.DivineBlockMod"],
     "client": ["io.github.divineblock.client.DivineBlockClient"]
   },
+  "mixins": [ { "config": "divineblock.client.mixins.json", "environment": "client" } ],
   "depends": { "fabricloader": ">=0.19.5", "minecraft": "1.21.1", "java": ">=21", "fabric-api": "*" }
 }

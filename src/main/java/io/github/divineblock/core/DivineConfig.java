@@ -25,6 +25,8 @@ public final class DivineConfig {
     /** The strongest act the god may perform, 0..4. */
     public int maxTier = 4;
     public boolean allowWither = false;
+    /** Ender dragons outside the End (one, or up to five in great fury). */
+    public boolean allowDragon = true;
     /** Destructive acts (fire, meteors) spare blocks entirely; off lets meteors leave craters outside the protected radius. */
     public boolean protectBlocks = false;
     /** No block changes within this many blocks of the player's bed (the altar itself is always spared). */
@@ -103,6 +105,7 @@ public final class DivineConfig {
     public boolean allows(Miracle miracle) {
         if (miracle == null || disabled.contains(miracle.id())) return false;
         if (miracle == Miracle.WITHER && !allowWither) return false;
+        if (miracle == Miracle.DRAGON && !allowDragon) return false;
         return miracle.minTier <= maxTier;
     }
 

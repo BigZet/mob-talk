@@ -37,6 +37,10 @@ public final class Verdict {
     public boolean forgiven;
     public long day;
 
+    /** How cruel the fury is, 1..5: how many dragons or withers, how much land is cut away. Grows with the weight of the
+     * reasons against the sinner (repeated blasphemy, sins, anger); 1 outside fury. */
+    public int severity() { return fury ? Math.max(1, Math.min(5, 1 + (-favor - 10) / 3)) : 1; }
+
     public Miracle chosen() { Miracle m = Miracle.byId(miracle); return m == null ? Miracle.IGNORE : m; }
 
     /** The reasons that weigh most, for the god's speech: the strongest pull toward the chosen side first. */
