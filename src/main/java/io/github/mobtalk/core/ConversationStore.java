@@ -583,7 +583,8 @@ public final class ConversationStore {
                 score, p.memory, p.turns,
                 eventsForPlayer(p, player), p.revision, p.action,
                 p.calm, p.confidence, p.curiosity, p.sociability, p.preference, p.fear, p.customPersonality,
-                p.state.view(baseline(p, score), System.currentTimeMillis()));
+                p.state.view(baseline(p, score), System.currentTimeMillis()),
+                p.social == null || p.social.age() == null ? "" : p.social.age().word(p.social.gender()));
     }
     public synchronized List<MobCard> cards(UUID player) { return state.profiles.keySet().stream().map(UUID::fromString).map(id -> card(id, player)).toList(); }
 
