@@ -60,6 +60,32 @@ class VeniceSpeechFallbackTest {
         } finally { server.stop(0); }
     }
 
+    @Test void requestInFlightWhenBalanceCheckSwitchesStillGoesOver() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        OpenRouterSpeechClient[] holder = new OpenRouterSpeechClient[1];
+        server.createContext("/venice", exchange -> {
+            // The balance check lands while Venice is still answering this request.
+            try { var field = OpenRouterSpeechClient.class.getDeclaredField("onFallback"); field.setAccessible(true); field.set(holder[0], true); }
+            catch (ReflectiveOperationException impossible) { throw new IllegalStateException(impossible); }
+            exchange.sendResponseHeaders(402, -1); exchange.close();
+        });
+        server.createContext("/openrouter", exchange -> { byte[] pcm = new byte[4_800]; exchange.sendResponseHeaders(200, pcm.length); exchange.getResponseBody().write(pcm); exchange.close(); });
+        server.start();
+        try {
+            String base = "http://127.0.0.1:" + server.getAddress().getPort();
+            MobTalkConfig config = new MobTalkConfig();
+            config.ttsProvider = "venice";
+            config.veniceTtsModel = "tts-elevenlabs-turbo-v2-5";
+            MobTalkConfig openRouterConfig = config.copy();
+            openRouterConfig.ttsProvider = "openrouter";
+            try (OpenRouterSpeechClient fallback = new OpenRouterSpeechClient("or-key", openRouterConfig, URI.create(base + "/openrouter"));
+                 OpenRouterSpeechClient speech = new OpenRouterSpeechClient("venice-key", config, URI.create(base + "/venice"), fallback)) {
+                holder[0] = speech;
+                assertEquals(4_800, speech.synthesizeWithFallback(VOICE, "", "Клятва").pcm().length);
+            }
+        } finally { server.stop(0); }
+    }
+
     @Test void rejectedVoiceStaysWithVenice() throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         AtomicInteger openRouter = new AtomicInteger();

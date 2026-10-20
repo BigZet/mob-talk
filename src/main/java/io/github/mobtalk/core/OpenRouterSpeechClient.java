@@ -66,14 +66,16 @@ final class OpenRouterSpeechClient implements AutoCloseable {
 
     /** A Venice refusal OpenRouter can stand in for: anything but a rejected voice or text (400/404/422) and a lost line. */
     private boolean handsOver(IOException failure) {
-        if (fallback == null || onFallback) return false;
+        // The balance check may have switched over while this request was still with Venice: that one goes over too.
+        if (fallback == null) return false;
+        if (onFallback) return true;
         if (key == null) return true;
         if (!(failure instanceof BoundedHttp.SafeFailure safe) || safe.status <= 0) return false;
         return safe.status == 401 || safe.status == 402 || safe.status == 403 || safe.status == 408 || safe.status == 429 || safe.status >= 500;
     }
     private void handOver(IOException failure) {
         int status = failure instanceof BoundedHttp.SafeFailure safe ? safe.status : -1;
-        if (key == null || status == 401 || status == 402 || status == 403) {
+        if (!onFallback && (key == null || status == 401 || status == 402 || status == 403)) {
             onFallback = true;
             System.out.println("Mob Talk: Venice TTS недоступна (" + (key == null ? "нет ключа" : "HTTP " + status) + "), озвучка до конца сессии идёт через OpenRouter.");
         }
