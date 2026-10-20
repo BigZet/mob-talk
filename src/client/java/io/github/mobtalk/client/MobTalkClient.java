@@ -192,6 +192,11 @@ public final class MobTalkClient implements ClientModInitializer {
     }
     /** Bystanders still waiting for their turn, or one being applied right now. */
     boolean witnessPending() { return witnessesInFlight > 0 || !readyWitnesses.isEmpty() || pendingDeliveries > 0; }
+    /** Чем сейчас занят голос (для лога, когда реплика инициативы долго ждёт очереди). */
+    String busyReason() {
+        return "recording=" + (recording != null) + " request=" + requestActive + " speech=" + (speech != null) + " inFlight=" + witnessesInFlight
+                + " ready=" + readyWitnesses.size() + " deliveries=" + pendingDeliveries;
+    }
     ConversationEngine engine() { return engine; }
     Decider decider() { return decider; }
     long generation() { return generation; }
@@ -416,6 +421,9 @@ public final class MobTalkClient implements ClientModInitializer {
         village.cancel();
         for (var task : witnessTasks) task.cancel(true);
         witnessTasks.clear();
+        // Задача, отменённая до старта, свой finally не выполнит: счётчик обнуляется здесь, а запоздавшие finally прошлого поколения
+        // его не трогают — иначе «в полёте» навсегда > 0 и инициатива молчит до перезахода в мир.
+        witnessesInFlight = 0;
         for (Ready ready : readyWitnesses) ready.prepared.reply().discardSpeech();
         readyWitnesses.clear();
         if (actionRequest != null) actionRequest.completeExceptionally(new java.util.concurrent.CancellationException(reason));
@@ -537,13 +545,16 @@ public final class MobTalkClient implements ClientModInitializer {
         if (mob == null || !withinRange(mob) || client.player == null || client.getServer() == null) { LOGGER.info("Mob Talk bystander {} out of reach on the client", id); initiatives.ended(id); return; }
         Request seed = new Request(generation, id, client.getServer().getSavePath(WorldSavePath.ROOT), config, null, client.getServer(), client.player.getUuid(),
                 world.getRegistryKey().getValue().toString(), mobName == null || mobName.isBlank() ? mob.getName().getString() : mobName, null, null);
-        ConversationEngine localEngine = engine;
-        if (localEngine == null) { initiatives.ended(id); return; }
+        // До первого вопроса игрока движка ещё нет: повод семьи (подарок, особый вечер, утро) раньше молча пропадал. Теперь движок
+        // создаётся здесь же, на полосе очевидцев, как для деревенской болтовни.
+        ConversationEngine known = engine;
+        LOGGER.info("Mob Talk initiative: {} starts thinking{}", seed.mobName, known == null ? " (creating the engine)" : "");
         witnessesInFlight++;
         witnessTasks.add(witnesses.submit(() -> {
             boolean spoke = false;
             try {
                 if (generation != seed.generation) return;
+                ConversationEngine localEngine = known != null ? known : ensureEngine(seed, false);
                 ConversationEngine.Overheard heard = decide.get();
                 if (heard == null || generation != seed.generation) return;
                 MobGameBridge game = gameReady.get(10, TimeUnit.SECONDS);
@@ -563,7 +574,7 @@ public final class MobTalkClient implements ClientModInitializer {
             } finally {
                 Thread.interrupted();
                 boolean delivered = spoke;
-                client.execute(() -> { witnessesInFlight--; if (!delivered) initiatives.ended(id); });
+                client.execute(() -> { if (generation == seed.generation) witnessesInFlight = Math.max(0, witnessesInFlight - 1); if (!delivered) initiatives.ended(id); });
             }
         }));
     }
@@ -575,7 +586,7 @@ public final class MobTalkClient implements ClientModInitializer {
         if (next == null) return;
         // Трек L: на свадьбе посторонние реплики (очевидцы, инициатива), задуманные до неё, не звучат.
         if (wedding.active()) { next.prepared.reply().discardSpeech(); initiatives.ended(next.request.target); return; }
-        if (generation != next.request.generation) { next.prepared.reply().discardSpeech(); return; }
+        if (generation != next.request.generation) { next.prepared.reply().discardSpeech(); if (next.request.overheard != null) initiatives.ended(next.request.target); return; }
         pendingDeliveries++;
         deliver(next.request, next.engine, next.prepared);
     }

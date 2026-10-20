@@ -32,15 +32,32 @@ final class InitiativeVoice {
         if (ticks % 20 != 5 || !owner.enabled() || owner.client.player == null || owner.world == null || owner.client.getServer() == null) return;
         MobGameBridge game = MobGameBridge.active(owner.client.getServer());
         if (game == null) return;
+        long now = System.currentTimeMillis();
+        // Повод, на который за {@link #STALE_MILLIS} не пришло ни ответа, ни отказа, снимается: потерянный где-то по дороге не должен
+        // навсегда занять очередь (так молчали реплики семьи в самотесте трека N).
+        for (var it = cues.entrySet().iterator(); it.hasNext(); ) {
+            var entry = it.next();
+            Long since = taken.get(entry.getKey());
+            if (since != null && now - since > STALE_MILLIS) { LOGGER.warn("Mob Talk initiative: {} gave no line in {} s, dropped", entry.getValue().mobName(), STALE_MILLIS / 1000); it.remove(); taken.remove(entry.getKey()); }
+        }
         boolean busy = owner.busyTalking() || owner.witnessPending() || scene != null || !cues.isEmpty() || owner.village.active() || owner.wedding.active();
         game.initiative.playerBusy = busy;
+        if (busy && game.initiative.pending() > 0) {
+            if (waitingSince == 0) waitingSince = now;
+            else if (now - waitingSince > 15_000 && !waitLogged) {
+                waitLogged = true;
+                LOGGER.info("Mob Talk initiative: {} occasion(s) wait for the floor: {} scene={} cues={} village={} wedding={}", game.initiative.pending(),
+                        owner.busyReason(), scene != null, cues.keySet(), owner.village.active(), owner.wedding.active());
+            }
+        } else { waitingSince = 0; waitLogged = false; }
         if (ticks % 600 == 5) chronicle(game);
         if (busy) return; // Ordinary occasions are only raised while initiative is on; gifts and family events always are.
         Initiative.Cue cue = game.initiative.poll();
         if (cue == null) return;
         MobEntity mob = MobSpeechSound.find(owner.world, cue.mob());
         if (mob == null || !owner.withinRange(mob)) { game.initiative.refund(cue); return; }
-        cues.put(cue.mob(), cue);
+        cues.put(cue.mob(), cue); taken.put(cue.mob(), now);
+        LOGGER.info("Mob Talk initiative: {} takes the floor ({})", cue.mobName(), cue.trigger());
         UUID player = owner.client.player.getUuid();
         owner.startSpontaneous(cue.mob(), cue.mobName(), () -> {
             DecisionState state = game.memory.decision(cue.mob(), player, cue, "", "", false);
@@ -64,11 +81,17 @@ final class InitiativeVoice {
         owner.maintenance.execute(() -> engine.chronicleIfDue(village.id(), name, day));
     }
 
+    /** Когда повод взят в работу; через столько без ответа он снимается. */
+    private final Map<UUID, Long> taken = new HashMap<>();
+    static final long STALE_MILLIS = 120_000;
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("mobtalk");
+    private long waitingSince; private boolean waitLogged;
     /** Последняя реплика каждого, кто заговорил первым или ответил в сцене; "" — решил промолчать (для самотеста). */
     final Map<UUID, String> lastLines = new HashMap<>();
     /** A first line or an answer was delivered: start or continue the scene. */
     void spoken(UUID target, ConversationEngine.Overheard overheard, long generation, ConversationEngine.Reply reply) {
-        Initiative.Cue cue = cues.remove(target);
+        Initiative.Cue cue = cues.remove(target); taken.remove(target);
+        LOGGER.info("Mob Talk initiative: {} {}", reply.speakerName(), reply.silent() ? "kept silent" : "spoke");
         lastLines.put(target, reply.silent() ? "" : reply.responseText());
         if (reply.silent()) { if (overheard.kind() == ConversationEngine.Overheard.Kind.DIALOGUE || cue != null) scene = null; return; }
         if (overheard.kind() == ConversationEngine.Overheard.Kind.INITIATIVE) {
@@ -111,10 +134,11 @@ final class InitiativeVoice {
 
     /** A spontaneous line failed or was dropped: nothing waits on it any more. */
     void ended(UUID mob) {
-        cues.remove(mob);
+        if (cues.remove(mob) != null) LOGGER.info("Mob Talk initiative: the occasion of {} ended without a line", mob);
+        taken.remove(mob);
         if (scene != null && (scene.lastSpeaker == null || scene.participants.stream().anyMatch(c -> c.id().equals(mob)))) scene = null;
     }
     /** The player spoke or the world changed: whatever scene was on is over. */
-    void cancel() { cues.clear(); scene = null; }
+    void cancel() { cues.clear(); taken.clear(); scene = null; }
     boolean sceneOn() { return scene != null; }
 }
