@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "divineblock",
+  "version": "${version}",
+  "name": "Божественный блок",
+  "description": "Алтарь своенравного бога на LLM: молитесь, приносите дары и отвечайте за свои дела.",
+  "authors": ["BigZet"],
+  "license": "GPL-3.0-only",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["io.github.divineblock.DivineBlockMod"],
+    "client": ["io.github.divineblock.client.DivineBlockClient"]
+  },
+  "depends": { "fabricloader": ">=0.19.5", "minecraft": "1.21.1", "java": ">=21", "fabric-api": "*" }
+}
