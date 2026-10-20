@@ -82,6 +82,9 @@ final class SelfTestJealousy {
         test.command("time set 13000");
         test.command("tp " + name() + " " + (sx - 4) + " " + sy + " " + (sz - 4));
         test.command("tp " + wife + " " + at(-2, -3));
+        // The rival must not take the second bed: a night beside the rival is its own jealousy (−hearts), not what this stage measures.
+        // Before, the rival was usually still held by its own initiative line here; with faster replies it is free to lie down.
+        test.command("data merge entity " + rival + " {NoAI:1b}");
         int relationBefore = test.bridge().memory.relationship(wife, playerId());
         int jealousBefore = test.bridge().memory.jealousy().level(wife, playerId(), System.currentTimeMillis());
         // Как в игре: «пойдём спать» даёт приглашение и следование за игроком — следование не должно мешать лечь.
@@ -94,7 +97,8 @@ final class SelfTestJealousy {
             CompletableFuture<String> slept = test.bridge().onServer(() -> test.serverPlayer().trySleep(head).map(problem -> "no: " + problem, ok -> "ok").toString());
             test.await("the player lay down", 5, slept::isDone, () -> {
                 test.log("trySleep: " + (slept.isCompletedExceptionally() ? slept.exceptionNow().getMessage() : slept.join()));
-                test.await("the partner lies down beside the player", 8, () -> { VillagerEntity w = entity(wife); return w != null && w.isSleeping(); }, () -> {
+                // The partner may be held for a few seconds by a line of its own (an initiative turns it to the player): wait it out.
+                test.await("the partner lies down beside the player", 20, () -> { VillagerEntity w = entity(wife); return w != null && w.isSleeping(); }, () -> {
                     VillagerEntity w = entity(wife);
                     Optional<BlockPos> where = w == null ? Optional.empty() : w.getSleepingPosition();
                     test.check(where.isPresent() && where.get().getManhattanDistance(head) <= 2, "the partner sleeps in a bed within two blocks: " + where);

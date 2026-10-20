@@ -167,6 +167,24 @@ public final class ConversationEngine implements AutoCloseable {
 
     /** {@code picture} non-null: a JPEG of what the player sees, attached to the question ({@link Vision}); ignored for bystanders. */
     public PreparedReply prepare(MobSnapshot snapshot, String userText, Overheard overheard, byte[] picture) throws IOException, InterruptedException {
+        return prepare(snapshot, userText, overheard, picture, null);
+    }
+
+    /** The player's answer handed over early: the spoken line with the first fraction of a second of its voice, while the model still
+     * writes the rest (facts, action, bargain). Called at most once, off the game thread; {@code claim} must be called right before
+     * showing it and returns false when the line is no longer valid (the model corrected itself before anyone saw it). */
+    public interface EarlyListener { void spoken(String text, String speakerName, SpeechStream audio, java.util.function.BooleanSupplier claim); }
+
+    /** Early delivery is for the player's own question to a mob with nothing to haggle about: a trader's line is spoken only after
+     * its bargain, deal or quest passed the checks, since a concession that fails them would have to be unsaid. */
+    static boolean deliversEarly(Overheard overheard, MobSnapshot snapshot, EarlyListener listener) {
+        if (overheard != null || listener == null) return false;
+        TradingView view = TradingView.of(snapshot);
+        return !view.windowOpen() && !view.sellsAnything();
+    }
+
+    /** {@code earlyListener} non-null: the reply may reach the player before the rest of the answer, see {@link EarlyListener}. */
+    public PreparedReply prepare(MobSnapshot snapshot, String userText, Overheard overheard, byte[] picture, EarlyListener earlyListener) throws IOException, InterruptedException {
         if (closed) throw new IOException("Разговор Mob Talk уже завершён.");
         String question = overheard != null ? overheard.asHeard() : TextBounds.characters(userText, 2000);
         if (question.isBlank()) throw new IOException("Речь не распознана. Удерживайте V и произнесите вопрос.");
@@ -179,11 +197,18 @@ public final class ConversationEngine implements AutoCloseable {
             endConversation(snapshot.id(), snapshot.playerId(), playerName(snapshot));
         String reserve = SpeciesCatalog.reserve(profile.type).id();
         EarlySpeech early = new EarlySpeech();
+        EarlyHandoff handoff = deliversEarly(overheard, snapshot, earlyListener) ? new EarlyHandoff(earlyListener, displayName(snapshot, profile, "")) : null;
         OpenRouterConversationClient.Answer answer;
         try {
             // Voice starts while the model still writes facts, action and bargain; checks below decide whether it is used.
-            answer = llm.respond(snapshot, profile, question, overheard, overheard == null ? picture : null,
-                    text -> early.start(text, () -> speech.streamWithFallback(profile.voiceId, reserve, text)));
+            OpenRouterConversationClient.EarlyReply onReply = new OpenRouterConversationClient.EarlyReply() {
+                @Override public void accept(String text) {
+                    var started = early.start(text, () -> speech.streamWithFallback(profile.voiceId, reserve, text));
+                    if (handoff != null && started != null) handoff.offer(text, started, speech.timeout().toNanos());
+                }
+                @Override public boolean shown() { return handoff != null && handoff.shownOrInvalidated(); }
+            };
+            answer = llm.respond(snapshot, profile, question, overheard, overheard == null ? picture : null, onReply);
             checkCurrent(snapshot);
         } catch (IOException | InterruptedException | RuntimeException failure) { early.discard(); throw failure; }
         SpeechStream audio = null;
@@ -207,17 +232,55 @@ public final class ConversationEngine implements AutoCloseable {
             catch (IOException cacheUnavailable) { /* A status-cache failure must never discard successful audio. */ }
         }
         if (answer.biography() != null) adopt(snapshot, answer.biography());
-        String invented = answer.biography() == null ? "" : answer.biography().name();
-        String name = !invented.isBlank() ? invented : profile.givenName != null && !profile.givenName.isBlank() ? profile.givenName : profile.name.isBlank() ? profile.type : profile.name;
+        String name = displayName(snapshot, profile, answer.biography() == null ? "" : answer.biography().name());
+        Reply reply = new Reply(question, answer.reply(), name, voiceId, audio, answer.action(), snapshot.interactionRevision(), answer.bargain(),
+                answer.deal(), answer.unlock(), answer.quest(), answer.socialIntent(), overheard != null);
+        return new PreparedReply(this, reply, snapshot, answer.memory(), answer.socialIntent(), audio == null ? null : voiceId, answer.thought(), answer.fact(),
+                overheard == null ? proposalKept(profile, question, answer.gesture()) : GestureIntent.none());
+    }
+
+    /** The name over the mob's line: the one it just invented, else its given name, else the card's, else the species; a custom name
+     * tag or a nameless snapshot's own name wins. */
+    static String displayName(MobSnapshot snapshot, ConversationStore.Profile profile, String invented) {
+        String name = invented != null && !invented.isBlank() ? invented : profile.givenName != null && !profile.givenName.isBlank() ? profile.givenName : profile.name.isBlank() ? profile.type : profile.name;
         Object custom = snapshot.mobDetails().get("customName");
         if (custom instanceof String text && !text.isBlank()) name = TextBounds.characters(text, 120);
         else if (Boolean.TRUE.equals(custom) || snapshot.playerId() == null && snapshot.mobDetails().isEmpty()) {
             if (snapshot.name() != null && !snapshot.name().isBlank()) name = TextBounds.characters(snapshot.name(), 120);
         }
-        Reply reply = new Reply(question, answer.reply(), name, voiceId, audio, answer.action(), snapshot.interactionRevision(), answer.bargain(),
-                answer.deal(), answer.unlock(), answer.quest(), answer.socialIntent(), overheard != null);
-        return new PreparedReply(this, reply, snapshot, answer.memory(), answer.socialIntent(), audio == null ? null : voiceId, answer.thought(), answer.fact(),
-                overheard == null ? proposalKept(profile, question, answer.gesture()) : GestureIntent.none());
+        return name;
+    }
+
+    /** One early hand-over per answer: waits off the game thread for the voice to start, then offers the line to the listener. The
+     * state goes PENDING → SHOWN when the game claims it, or PENDING → INVALID when the model corrects itself first; whichever
+     * comes first wins, so a corrected line is never shown and a shown line is never corrected. */
+    private static final class EarlyHandoff {
+        private static final int PENDING = 0, SHOWN = 1, INVALID = 2;
+        private final EarlyListener listener;
+        private final String speakerName;
+        private final java.util.concurrent.atomic.AtomicInteger state = new java.util.concurrent.atomic.AtomicInteger(PENDING);
+        private final java.util.concurrent.atomic.AtomicBoolean offered = new java.util.concurrent.atomic.AtomicBoolean();
+
+        EarlyHandoff(EarlyListener listener, String speakerName) { this.listener = listener; this.speakerName = speakerName; }
+
+        void offer(String text, java.util.concurrent.CompletableFuture<OpenRouterSpeechClient.StreamedAudio> started, long timeoutNanos) {
+            if (!offered.compareAndSet(false, true)) return;
+            Thread.ofVirtual().name("mobtalk-early-reply").start(() -> {
+                try {
+                    SpeechStream audio = started.get(timeoutNanos, java.util.concurrent.TimeUnit.NANOSECONDS).stream();
+                    // Without playable audio the ordinary path delivers text and voice together; nothing is shown twice.
+                    if (!audio.awaitPrebuffer(PREBUFFER_BYTES, timeoutNanos) || state.get() != PENDING) return;
+                    listener.spoken(text, speakerName, audio, () -> state.compareAndSet(PENDING, SHOWN));
+                } catch (InterruptedException cancelled) { Thread.currentThread().interrupt(); }
+                catch (Exception unavailable) { /* The ordinary path reports it. */ }
+            });
+        }
+
+        /** True when the player already has the line; otherwise the line is invalidated so it can never be shown later. */
+        boolean shownOrInvalidated() {
+            state.compareAndSet(PENDING, INVALID);
+            return state.get() == SHOWN;
+        }
     }
 
     /** Трек L: игрок явно сделал предложение с кольцом, игра его приняла, а модель не отметила жест — согласие всё равно в силе,
@@ -294,15 +357,17 @@ public final class ConversationEngine implements AutoCloseable {
         private String text;
         private java.util.concurrent.CompletableFuture<OpenRouterSpeechClient.StreamedAudio> pending;
 
-        synchronized void start(String reply, Opener opener) {
+        /** The speech request opened for this reply, null for a blank one. */
+        synchronized java.util.concurrent.CompletableFuture<OpenRouterSpeechClient.StreamedAudio> start(String reply, Opener opener) {
             discard();
-            if (reply == null || reply.isBlank()) return;
+            if (reply == null || reply.isBlank()) return null;
             java.util.concurrent.CompletableFuture<OpenRouterSpeechClient.StreamedAudio> future = new java.util.concurrent.CompletableFuture<>();
             text = reply; pending = future;
             // Called from the HTTP client's thread: opening the speech request must not hold up the rest of the reply.
             Thread.ofVirtual().name("mobtalk-early-speech").start(() -> {
                 try { future.complete(opener.open()); } catch (Throwable failure) { future.completeExceptionally(failure); }
             });
+            return future;
         }
 
         /** The early request when it voiced exactly the final reply; otherwise it is closed and null returned. */

@@ -146,12 +146,17 @@ final class SelfTestWedding {
             VillagerEntity b = entity(bride);
             Item expected = cast.spouse().gender() == Gender.FEMALE ? WeddingItems.BRIDAL_VEIL : WeddingItems.WEDDING_CROWN;
             test.check(b != null && b.getEquippedStack(EquipmentSlot.HEAD).isOf(expected), "the bride wears " + expected);
-            test.check(b != null && !b.getMainHandStack().isEmpty(), "the bride holds flowers");
             Vec3d spot = s.playerSpot();
             if (spot != null) test.command("tp " + name() + " " + spot.x + " " + spot.y + " " + spot.z);
             test.await("everyone gathered and the service began", 110, () -> scene() != null && scene().ceremony.phase() == Wedding.Ceremony.Phase.SERVICE, () -> {
                 test.check(scene() != null, "the service runs");
-                shoot("mobtalk-wedding-gathered.png", () -> shoot("mobtalk-wedding-close.png", this::waitVow));
+                // Vanilla villagers show their trade item to a player nearby and then empty the hand: the scene hands the flowers back
+                // every two seconds, so the check gives it a few.
+                test.await("the bride's flowers in hand", 6, () -> { VillagerEntity holder = entity(bride); return holder != null && !holder.getMainHandStack().isEmpty(); }, () -> {
+                    VillagerEntity holder = entity(bride);
+                    test.check(holder != null && !holder.getMainHandStack().isEmpty(), "the bride holds flowers");
+                    shoot("mobtalk-wedding-gathered.png", () -> shoot("mobtalk-wedding-close.png", this::waitVow));
+                });
             });
         });
     }

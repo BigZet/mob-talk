@@ -34,6 +34,8 @@ public final class VillageTalkController {
 
     /** The next talk for the client, or null. */
     public VillageChatter.Cue pollTalk() { return talks.poll(); }
+    /** A pair is queued for the client to write. */
+    public boolean waiting() { return !talks.isEmpty(); }
     /** The next announcement for the client, or null. */
     public VillageNotices.Cue pollNotice() { return notices.poll(); }
 

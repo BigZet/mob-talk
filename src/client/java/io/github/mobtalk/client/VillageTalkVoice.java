@@ -25,6 +25,8 @@ final class VillageTalkVoice {
 
     VillageTalkVoice(MobTalkClient owner) { this.owner = owner; }
 
+    private long busySince, busyLogged;
+
     /** A talk is being written or played. */
     boolean active() { return writing || lines != null; }
 
@@ -38,6 +40,15 @@ final class VillageTalkVoice {
         if (ticks % 20 != 3) return;
         announce(game);
         boolean floorBusy = writing || owner.busyTalking() || owner.witnessPending() || owner.initiatives.sceneOn() || owner.wedding.active();
+        // A pair waits while the floor stays taken: say why once it has waited long, so a silent village can be read from the log.
+        if (floorBusy && game.talk.waiting()) {
+            long now = System.currentTimeMillis();
+            if (busySince == 0) busySince = now;
+            else if (now - busySince > 20_000 && now - busyLogged > 30_000) {
+                busyLogged = now;
+                LOGGER.info("Mob Talk: small talk waits for the floor: writing={} {} scene={} wedding={}", writing, owner.busyReason(), owner.initiatives.sceneOn(), owner.wedding.active());
+            }
+        } else busySince = 0;
         if (!floorBusy) write(game);
     }
 
@@ -47,7 +58,7 @@ final class VillageTalkVoice {
     private void write(MobGameBridge game) {
         VillageChatter.Cue cue = game.talk.pollTalk();
         if (cue == null) return;
-        if (!near(cue.input().a()) || !near(cue.input().b())) return;
+        if (!near(cue.input().a()) || !near(cue.input().b())) { LOGGER.info("Mob Talk: small talk of {} and {} dropped: out of earshot", cue.input().a().name(), cue.input().b().name()); return; }
         long generation = owner.generation();
         Supplier<ConversationEngine> engines = owner.engineSupplier();
         writing = true; game.talk.talking = true;
@@ -62,6 +73,7 @@ final class VillageTalkVoice {
             List<ConversationEngine.ChatterLine> done = written;
             owner.client.execute(() -> {
                 writing = false;
+                if (done.isEmpty()) LOGGER.info("Mob Talk: small talk of {} and {} came back empty", cue.input().a().name(), cue.input().b().name());
                 if (generation != owner.generation() || done.isEmpty() || owner.world == null) { discard(done, 0); return; }
                 lines = done; input = cue.input(); next = 0; recorded = false;
             });

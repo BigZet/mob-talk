@@ -1108,7 +1108,7 @@ class ConversationEngineTest {
             engine.converse(villager(UUID.randomUUID(), 520, 500, false), "Привет");
             String neighbour = lastRequest.get().getAsJsonArray("messages").get(0).getAsJsonObject().get("content").getAsString();
             assertTrue(neighbour.contains("твоя деревня уже известна: «Тихие Грядки»"), neighbour);
-            assertTrue(request.toString().contains("\"reasoning\":{\"effort\":\"minimal\"}"), "reasoning kept minimal for speed");
+            assertTrue(request.toString().contains("\"reasoning\":{\"effort\":\"none\"}"), "reasoning switched off for speed");
         }
     }
 

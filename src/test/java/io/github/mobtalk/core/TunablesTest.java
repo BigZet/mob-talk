@@ -135,7 +135,7 @@ class TunablesTest {
         Tunables.resetSection(draft, Tunables.Section.GENERAL); assertEquals("unusual", draft.vision); assertEquals("Дима", draft.playerNamesNeutral);
         Tunables.resetSection(draft, Tunables.Section.ACTIONS); assertTrue(draft.placeClassifier); assertEquals(16, draft.guardChase);
         Tunables.resetSection(draft, Tunables.Section.MODEL); assertEquals("rules", draft.decider);
-        Tunables.resetSection(draft, Tunables.Section.VOICE); assertEquals("large-v3", draft.whisperModel); assertEquals("USB", draft.microphoneName);
+        Tunables.resetSection(draft, Tunables.Section.VOICE); assertEquals("large-v3-turbo", draft.whisperModel); assertEquals("USB", draft.microphoneName);
     }
 
     // Every slider has its label (with the value placeholder) and its explanation in both languages.
