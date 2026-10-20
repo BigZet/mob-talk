@@ -126,7 +126,7 @@ public final class JevGodDecider implements GodDecider {
         int power = GodDecider.power(picked, wanted, verdict.budget);
         double warn = answers.noul("warn");
         boolean warned = GodDecider.mustWarn(picked, power) || (picked.kind == Miracle.Kind.WRATH && warn >= 0.5);
-        String note = "Jev: " + picked.id() + ", сила " + wanted + (power != wanted ? " → " + power + " по бюджету" : "")
+        String note = "Jev: " + picked.id() + ", сила " + wanted + (power != wanted ? " → " + power + (wanted > power ? " по бюджету" : ", меньше деяние не бывает") : "")
                 + (warn >= 0 ? ", знамение " + Math.round(warn * 100) + "%" : "") + (answers.cost() > 0 ? String.format(java.util.Locale.ROOT, ", $%.5f", answers.cost()) : "");
         return new Choice(picked, power, warned, name(), note);
     }

@@ -179,7 +179,7 @@ public final class Prayers {
 
     private static void repent(ServerPlayerEntity player, Pending pending, GodLedger.Soul soul, long now) {
         Verdict verdict = pending.verdict();
-        boolean forgivable = verdict.power <= 3 && soul.righteousness.score > -60 && !PrayerTone.of(verdict.prayer).rude();
+        boolean forgivable = verdict.forgivable(soul.righteousness.score);
         if (!forgivable) { say(player, "Поздно каяться. Ты знаешь, что сделал."); return; }
         pending.cancelled()[0] = true;
         PENDING.remove(player.getUuid());

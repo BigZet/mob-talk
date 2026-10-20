@@ -95,6 +95,13 @@ class GodCoreTest {
         assertFalse(JevGodDecider.state(verdict).toString().contains("sk-test"));
     }
 
+    @Test void repentingStopsAllButApocalypseAndTheDamned() {
+        Verdict rude = new Verdict(); rude.prayer = "Ты тупой бог"; rude.power = 2;
+        assertTrue(rude.forgivable(-45), "a rude sinner may still apologise");
+        assertFalse(rude.forgivable(-70));
+        rude.power = 4; assertFalse(rude.forgivable(0));
+    }
+
     @Test void prayerToneAndWhy() {
         assertTrue(PrayerTone.isWhyQuestion("Почему?"));
         assertTrue(PrayerTone.isWhyQuestion("за что ты меня так"));

@@ -44,6 +44,10 @@ public final class Verdict {
         return sorted.subList(0, Math.min(limit, sorted.size()));
     }
 
+    /** Whether repenting during the omen can still stop this punishment: not an apocalypse, not a damned soul. Rudeness
+     * is already one of the reasons; an apology is exactly what it calls for. */
+    public boolean forgivable(double righteousness) { return power <= 3 && righteousness > -60; }
+
     /** The full breakdown in numbers for the debug view and the log. */
     public String breakdown() {
         StringBuilder out = new StringBuilder();
