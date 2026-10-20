@@ -350,7 +350,8 @@ final class MobTalkSettingsScreen extends Screen {
                     wide(tip(toggle("mobtalk.settings.pregnancyBelly", draft.pregnancyBelly, value -> draft.pregnancyBelly = value), "mobtalk.settings.pregnancyBelly.tooltip"),
                             tip(toggle("mobtalk.settings.pregnancyStatus", draft.pregnancyStatus, value -> draft.pregnancyStatus = value), "mobtalk.settings.pregnancyStatus.tooltip"));
                 },
-                "initiative", () -> wide(tip(toggle("mobtalk.settings.initiative", draft.initiative, value -> draft.initiative = value), "mobtalk.settings.initiative.tooltip")),
+                "initiative", () -> wide(tip(toggle("mobtalk.settings.initiative", draft.initiative, value -> draft.initiative = value), "mobtalk.settings.initiative.tooltip"),
+                        tip(toggle("mobtalk.settings.giftsFirst", draft.giftsFirst, value -> draft.giftsFirst = value), "mobtalk.settings.giftsFirst.tooltip")),
                 "chatter", () -> wide(tip(toggle("mobtalk.settings.villageChatter", draft.villageChatter, value -> draft.villageChatter = value), "mobtalk.settings.villageChatter.tooltip"),
                         tip(toggle("mobtalk.settings.villageNotices", draft.villageNotices, value -> draft.villageNotices = value), "mobtalk.settings.villageNotices.tooltip"))));
         resetSection(Tunables.Section.SOCIAL);

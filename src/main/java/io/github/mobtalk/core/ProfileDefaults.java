@@ -9,6 +9,10 @@ import java.util.concurrent.ThreadLocalRandom;
  * a temperament, a personal concern and fear, and the personality text that follows from them. */
 final class ProfileDefaults {
     private ProfileDefaults() { }
+    private static final String VILLAGER = "minecraft:villager";
+    static final java.util.Set<String> RETIRED_VILLAGER_INTERESTS = java.util.Set.of("кровать в деревне", "колокол на площади");
+    /** Желание жителя про кровати и колокол (так писала биография по старой подсказке вида): сбрасывается к желанию вида. */
+    static final java.util.regex.Pattern FIXTURE_WISH = java.util.regex.Pattern.compile("кроват|колокол", java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.UNICODE_CASE);
 
     /** Fills every missing or stale field; returns whether anything changed and should be saved. */
     static boolean refresh(ConversationStore.Profile p, Map<String, ConversationStore.Profile> all, MobTalkConfig config) {
@@ -28,7 +32,17 @@ final class ProfileDefaults {
         if (p.confidence < 0 || p.confidence > 100) { p.confidence = randomAxis(); changed = true; }
         if (p.curiosity < 0 || p.curiosity > 100) { p.curiosity = randomAxis(); changed = true; }
         if (p.sociability < 0 || p.sociability > 100) { p.sociability = randomAxis(); changed = true; }
-        if (p.preference == null || p.preference.isBlank()) { p.preference = concern(species.interests()); changed = true; }
+        if (VILLAGER.equals(p.type) && p.preference != null && RETIRED_VILLAGER_INTERESTS.contains(p.preference)) {
+            // Жители 0.7.0 получали «кровать в деревне» и «колокол на площади» как личное пристрастие и сводили к ним разговор.
+            String retired = p.preference; p.preference = "";
+            if (p.traits != null) p.traits.removeIf(trait -> trait.equals("Особенно ценит: " + retired));
+        }
+        if (VILLAGER.equals(p.type) && p.wish != null && FIXTURE_WISH.matcher(p.wish).find()) { p.wish = ""; changed = true; }
+        if (p.preference == null || p.preference.isBlank()) {
+            p.preference = concern(species.interests()); changed = true;
+            if (p.traits != null && !p.traits.isEmpty() && p.traits.stream().noneMatch(trait -> trait.startsWith("Особенно ценит: ")))
+                p.traits.add(0, "Особенно ценит: " + p.preference);
+        }
         if (p.fear == null || p.fear.isBlank()) { p.fear = concern(species.fears()); changed = true; }
         if (p.traits == null || p.traits.isEmpty()) {
             p.traits = new ArrayList<>(List.of("Особенно ценит: " + p.preference, "Лично тревожит: " + p.fear)); changed = true;

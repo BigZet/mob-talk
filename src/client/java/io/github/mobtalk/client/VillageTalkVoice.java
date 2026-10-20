@@ -29,6 +29,8 @@ final class VillageTalkVoice {
 
     /** A talk is being written or played. */
     boolean active() { return writing || lines != null; }
+    /** Written lines are being voiced one after another: nothing else speaks in between. */
+    boolean voicing() { return lines != null; }
 
     void tick(long ticks) {
         if (ticks % 10 != 3 || !owner.enabled() || owner.client.player == null || owner.world == null || owner.client.getServer() == null) return;

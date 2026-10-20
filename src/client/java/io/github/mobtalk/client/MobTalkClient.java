@@ -67,6 +67,8 @@ public final class MobTalkClient implements ClientModInitializer {
     private final ExecutorService pipeline = worker("mobtalk-conversation");
     final ExecutorService maintenance = worker("mobtalk-settings");
     /** Bystanders think in parallel with each other and with the partner's voice; only the playback is one at a time. */
+    /** Reactions the game owes (a gift, a family event): their own lane, so they never wait for bystanders' thinking. */
+    private final ExecutorService reactions = worker("mobtalk-reaction");
     private final ExecutorService witnesses = Executors.newFixedThreadPool(2, task -> { Thread thread = new Thread(task, "mobtalk-witness"); thread.setDaemon(true); return thread; });
 
     private final MicrophoneRecorder microphone = new MicrophoneRecorder();
@@ -118,7 +120,7 @@ public final class MobTalkClient implements ClientModInitializer {
     private final Deque<Ready> readyWitnesses = new ArrayDeque<>();
     private final List<java.util.concurrent.Future<?>> witnessTasks = new ArrayList<>();
     private int witnessesInFlight;
-    private record Ready(Request request, ConversationEngine engine, ConversationEngine.PreparedReply prepared) { }
+    private record Ready(Request request, ConversationEngine engine, ConversationEngine.PreparedReply prepared, boolean owed) { }
     /** The mob whose voice is playing: it keeps standing and looking at the player until it is done. */
     private UUID speakingMob;
     /** A move (flee, follow, attack) the mob announced: it is carried out once its voice has finished, not mid-sentence. */
@@ -176,6 +178,7 @@ public final class MobTalkClient implements ClientModInitializer {
     /** A recording, a request or a spoken reply is in flight. */
     boolean busyTalking() { return recording != null || requestActive || speech != null; }
     boolean speaking() { return speech != null; }
+    boolean recordingNow() { return recording != null; }
     MobTalkConfig config() { return config; }
     /** Self-test only: opens the configured microphone and records for up to {@code seconds} (stop() ends it earlier). */
     MicrophoneRecorder.Capture microphoneProbe(int seconds) { return microphone.start(config.microphoneName, seconds); }
@@ -540,7 +543,9 @@ public final class MobTalkClient implements ClientModInitializer {
     /** A line nobody asked for — a bystander's, a creature's first word, an answer to another creature: {@code decide} runs on the
      * bystander lane and returns what the mob heard (or the occasion), or null to keep quiet. The thinking happens off both the game
      * thread and the conversation worker; the result lands in readyWitnesses and is voiced when the floor is free. */
-    void startSpontaneous(UUID id, String mobName, java.util.function.Supplier<ConversationEngine.Overheard> decide) {
+    void startSpontaneous(UUID id, String mobName, java.util.function.Supplier<ConversationEngine.Overheard> decide) { startSpontaneous(id, mobName, false, decide); }
+    /** {@code owed}: a reaction the game owes (a gift) — thinks on its own lane and is voiced before every bystander already waiting. */
+    void startSpontaneous(UUID id, String mobName, boolean owed, java.util.function.Supplier<ConversationEngine.Overheard> decide) {
         MobEntity mob = MobSpeechSound.find(world, id);
         if (mob == null || !withinRange(mob) || client.player == null || client.getServer() == null) { LOGGER.info("Mob Talk bystander {} out of reach on the client", id); initiatives.ended(id); return; }
         Request seed = new Request(generation, id, client.getServer().getSavePath(WorldSavePath.ROOT), config, null, client.getServer(), client.player.getUuid(),
@@ -550,7 +555,8 @@ public final class MobTalkClient implements ClientModInitializer {
         ConversationEngine known = engine;
         LOGGER.info("Mob Talk initiative: {} starts thinking{}", seed.mobName, known == null ? " (creating the engine)" : "");
         witnessesInFlight++;
-        witnessTasks.add(witnesses.submit(() -> {
+        witnessTasks.removeIf(java.util.concurrent.Future::isDone);
+        witnessTasks.add((owed ? reactions : witnesses).submit(() -> {
             boolean spoke = false;
             try {
                 if (generation != seed.generation) return;
@@ -567,7 +573,12 @@ public final class MobTalkClient implements ClientModInitializer {
                         seed.dimension, seed.mobName, null, heard);
                 client.execute(() -> {
                     if (generation != seed.generation) { prepared.reply().discardSpeech(); initiatives.ended(id); return; }
-                    readyWitnesses.add(new Ready(observed, localEngine, prepared));
+                    Ready ready = new Ready(observed, localEngine, prepared, owed);
+                    if (!owed) { readyWitnesses.add(ready); return; }
+                    // Ahead of every bystander, behind reactions already owed: the gifts are answered in the order given.
+                    List<Ready> queued = new ArrayList<>(readyWitnesses); readyWitnesses.clear();
+                    int at = 0; while (at < queued.size() && queued.get(at).owed()) at++;
+                    queued.add(at, ready); readyWitnesses.addAll(queued);
                 });
             } catch (Exception failure) {
                 LOGGER.info("Mob Talk bystander {} stayed out: {}", seed.mobName, String.valueOf(failure.getMessage()));
@@ -581,7 +592,7 @@ public final class MobTalkClient implements ClientModInitializer {
 
     /** The floor is free: the next ready bystander speaks. */
     private void playNextWitness() {
-        if (speech != null || requestActive || recording != null || pendingDeliveries > 0) return;
+        if (speech != null || requestActive || recording != null || pendingDeliveries > 0 || village.voicing()) return;
         Ready next = readyWitnesses.poll();
         if (next == null) return;
         // Трек L: на свадьбе посторонние реплики (очевидцы, инициатива), задуманные до неё, не звучат.
@@ -1336,7 +1347,7 @@ public final class MobTalkClient implements ClientModInitializer {
         cancelWork("Остановлено", true);
         stopped = true;
         microphone.close();
-        pipeline.shutdownNow(); witnesses.shutdownNow();
+        pipeline.shutdownNow(); witnesses.shutdownNow(); reactions.shutdownNow();
         Path directory = memoryWorld;
         CompletableFuture<Void> detached = gameServer == null ? CompletableFuture.completedFuture(null) : MobGameBridge.detach(gameServer);
         if (directory != null) maintenance.execute(() -> {
