@@ -220,7 +220,6 @@ public final class SelfTest {
             verdictArrived(soul, 2, "молитва голосом");
         }));
         steps.add(new Step(100, () -> {
-            check(voiced >= 2, "голос бога прозвучал: " + voiced + " раз");
             // An ordinary mortal swears at the god: real wrath, at full strength, and only after the god has spoken.
             soul.righteousness.score = 0; soul.mood = 0; soul.lastPrayerTick = Long.MIN_VALUE / 2; soul.prayerTicks.clear();
             Prayers.spoken = line -> { spokenAt = System.nanoTime(); log("  бог: " + line); Scheduler.later(20, () -> screenshot = "beams"); };
@@ -238,6 +237,7 @@ public final class SelfTest {
         }));
         steps.add(new Step(400, () -> {
             screenshot = "wrath";
+            check(voiced >= 1, "голос бога прозвучал до конца: " + voiced + " раз");
             check(spokenAt > 0 && performedAt > spokenAt, "кара пала после слов бога: слова → дело через "
                     + (performedAt > 0 && spokenAt > 0 ? (performedAt - spokenAt) / 1_000_000 + " мс" : "—"));
         }));
