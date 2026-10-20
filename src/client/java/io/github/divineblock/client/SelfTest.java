@@ -235,7 +235,7 @@ public final class SelfTest {
                 check(wrath.reasons.stream().anyMatch(r -> r.text().contains("брань")), "брань названа причиной");
             }
         }));
-        steps.add(new Step(400, () -> {
+        steps.add(new Step(800, () -> { // The god may speak for up to twenty seconds before the act falls.
             screenshot = "wrath";
             check(voiced >= 1, "голос бога прозвучал до конца: " + voiced + " раз");
             check(spokenAt > 0 && performedAt > spokenAt, "кара пала после слов бога: слова → дело через "
