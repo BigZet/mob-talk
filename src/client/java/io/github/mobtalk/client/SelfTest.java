@@ -3,6 +3,10 @@ package io.github.mobtalk.client;
 import io.github.mobtalk.client.game.MobGameBridge;
 import io.github.mobtalk.core.CombatRules;
 import io.github.mobtalk.core.MobCard;
+import io.github.mobtalk.core.Gender;
+import io.github.mobtalk.core.SocialProfile;
+import io.github.mobtalk.core.SpeciesCatalog;
+import io.github.mobtalk.core.VoiceAge;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.gui.screen.TitleScreen;
 import net.minecraft.command.argument.EntityAnchorArgumentType;
@@ -46,6 +50,9 @@ final class SelfTest {
     static final boolean ONLY_WEDDING = "wedding".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=names}: sixteen new villagers get sixteen different names (no LLM, no voice). */
     static final boolean ONLY_NAMES = "names".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=voices}: new villagers get an age and a pool voice of their sex and age with no early repeats,
+     * and one villager of each age is voiced through OpenRouter (no LLM). */
+    static final boolean ONLY_VOICES = "voices".equals(System.getProperty("mobtalk.selftest.only"));
     final MobTalkClient owner;
     private final String world;
     private int stage, ticks, stageStart;
@@ -139,7 +146,7 @@ final class SelfTest {
             villager = nearest(VillagerEntity.class); cow = nearest(CowEntity.class);
             return villager != null && cow != null && MobSpeechSound.find(owner.world, villager) != null && MobSpeechSound.find(owner.world, cow) != null;
         }, ONLY_PLACE ? () -> new SelfTestPlace(this, cow, sx, SY, sz).run(this::finish)
-                : ONLY_WEDDING ? () -> new SelfTestWedding(this, sx, SY, sz).run(this::finish) : ONLY_NAMES ? this::names : this::aim);
+                : ONLY_WEDDING ? () -> new SelfTestWedding(this, sx, SY, sz).run(this::finish) : ONLY_NAMES ? this::names : ONLY_VOICES ? this::voices : this::aim);
     }
 
     // ---- Names only: a crowd of new villagers, each named on meeting, none sharing a name.
@@ -159,6 +166,62 @@ final class SelfTest {
             check(names.stream().noneMatch(n -> n.isBlank() || n.equals("Житель")), "every villager has a name");
             check(new java.util.HashSet<>(names).size() == names.size(), "no two villagers share a name (" + new java.util.HashSet<>(names).size() + " of " + names.size() + ")");
             await("pause for a look", 20, () -> false, this::finish);
+        });
+    }
+
+    // ---- Voices only: a crowd of new villagers, each with a fixed age and a voice from the villagers' pool of its sex and age;
+    // within a sex and age a voice repeats only once that pool is used up; one villager of each age is really voiced.
+    private void voices() {
+        command("kill @e[type=minecraft:villager,distance=..40]");
+        for (int i = 0; i < 30; i++) command("summon minecraft:villager " + at(-10 + (i % 6) * 4, -10 + (i / 6) * 4) + " {PersistenceRequired:1b,NoAI:1b}");
+        await("thirty villagers summoned", 10, () -> nearestAll(VillagerEntity.class).size() >= 30, () -> {
+            UUID player = owner.client.player.getUuid();
+            Map<String, java.util.Set<String>> voicesByGroup = new java.util.TreeMap<>();
+            Map<String, Integer> membersByGroup = new java.util.TreeMap<>(), poolByGroup = new java.util.TreeMap<>();
+            Map<VoiceAge, String> sample = new java.util.EnumMap<>(VoiceAge.class);
+            int fitting = 0, total = 0;
+            for (UUID id : nearestAll(VillagerEntity.class)) {
+                bridge().memory.recordEvent(id, "minecraft:villager", "Житель", "Самотест: знакомство", System.currentTimeMillis());
+                MobCard card = bridge().memory.card(id, player);
+                if (card == null) { fail("no profile for " + id); continue; }
+                total++;
+                SpeciesCatalog.Voice voice = SpeciesCatalog.voice(card.voiceId());
+                Gender gender = SocialProfile.genderOf(id);
+                VoiceAge age = null;
+                for (VoiceAge a : VoiceAge.values()) if (a.word(gender).equals(card.age())) age = a;
+                boolean inPool = age != null && SpeciesCatalog.villagerPool(age, gender).stream().anyMatch(v -> v.id().equals(card.voiceId()));
+                if (inPool) fitting++;
+                else log("misfit: " + bridge().memory.displayName(id) + " " + gender + " age «" + card.age() + "» voice " + voice.name());
+                String group = gender + "/" + (age == null ? "?" : age.name());
+                voicesByGroup.computeIfAbsent(group, g -> new java.util.HashSet<>()).add(card.voiceId());
+                membersByGroup.merge(group, 1, Integer::sum);
+                if (age != null) { poolByGroup.put(group, SpeciesCatalog.villagerPool(age, gender).size()); sample.putIfAbsent(age, card.voiceId()); }
+                command("data merge entity " + id + " {CustomName:'\"" + bridge().memory.displayName(id) + " · " + card.age() + "\"',CustomNameVisible:1b}");
+            }
+            check(total >= 30 && fitting == total, "every villager has an age and a pool voice of its sex and age (" + fitting + " of " + total + ")");
+            boolean noEarlyRepeat = true;
+            for (var entry : membersByGroup.entrySet()) {
+                int members = entry.getValue(), distinct = voicesByGroup.get(entry.getKey()).size(), pool = poolByGroup.getOrDefault(entry.getKey(), 0);
+                log("group " + entry.getKey() + ": " + members + " villagers, " + distinct + " voices, pool " + pool);
+                if (distinct != Math.min(members, pool)) noEarlyRepeat = false;
+            }
+            check(noEarlyRepeat, "a voice repeats only once its sex-and-age pool is used up");
+            owner.chat("[Mob Talk] Самотест голосов: " + total + " жителей, " + membersByGroup);
+            MobTalkConfig config = owner.config().copy(); config.ttsProvider = "openrouter";
+            var spoken = new java.util.EnumMap<VoiceAge, CompletableFuture<byte[]>>(VoiceAge.class);
+            for (var entry : sample.entrySet()) spoken.put(entry.getKey(), CompletableFuture.supplyAsync(() -> {
+                try { return SpeechPreview.synthesize(config, owner.configDirectory, entry.getValue(), "Здравствуй, путник. Заходи, коли с добром."); }
+                catch (Exception failure) { throw new RuntimeException(failure); }
+            }));
+            await("one villager of each age voiced", 90, () -> spoken.values().stream().allMatch(CompletableFuture::isDone), () -> {
+                for (var entry : spoken.entrySet()) {
+                    String name = SpeciesCatalog.voice(sample.get(entry.getKey())).name();
+                    if (entry.getValue().isCompletedExceptionally()) fail(entry.getKey() + " voice " + name + ": " + entry.getValue().exceptionNow().getMessage());
+                    else check(entry.getValue().join().length > 2000, entry.getKey() + " voice " + name + " returned " + entry.getValue().join().length + " bytes");
+                }
+                check(spoken.size() == VoiceAge.values().length, "the crowd has every age (" + spoken.keySet() + ")");
+                await("pause for a look", 20, () -> false, this::finish);
+            });
         });
     }
 
