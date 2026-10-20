@@ -36,7 +36,7 @@ final class GodVoicePlayer {
         ClientPlayNetworking.registerGlobalReceiver(GodLinePayload.ID, (payload, context) -> speak(context.client(), payload.line()));
     }
 
-    static final String PREVIEW_LINE = "Взвешен еси на весах и найден лёгким, смертне. Аз воздам.";
+    static final String PREVIEW_LINE = "Ты взвешен на весах и найден лёгким, смертный. Что посеял, то и пожнёшь.";
     /** The dry preview line per voice: the knobs are tuned by ear without paying for speech again. */
     private static final java.util.Map<String, byte[]> previewCache = new java.util.concurrent.ConcurrentHashMap<>();
 

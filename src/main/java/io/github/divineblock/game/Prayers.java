@@ -57,7 +57,7 @@ public final class Prayers {
 
         if (PrayerTone.isWhyQuestion(text)) {
             Verdict last = soul.lastVerdict();
-            if (last == null) { say(player, "Ничесоже доселе не рёк я о тебе, смертне."); return; }
+            if (last == null) { say(player, "Я ещё ничего о тебе не решал, смертный."); return; }
             WORKER.execute(() -> {
                 String line = new GodSpeech(config, DivineBlockMod.configDirectory()).explain(last);
                 server.execute(() -> { if (!player.isRemoved()) say(player, line); });
@@ -67,7 +67,7 @@ public final class Prayers {
 
         if (THINKING.contains(player.getUuid())) { hint(player, "Бог ещё размышляет над прежней молитвой…"); return; }
         long now = server.getOverworld().getTime();
-        if (now - soul.lastPrayerTick < config.cooldownSeconds * 20L) { hint(player, "Алтарь ещё не остыл. Повремени, чадо."); return; }
+        if (now - soul.lastPrayerTick < config.cooldownSeconds * 20L) { hint(player, "Алтарь ещё не остыл. Повремени, смертный."); return; }
 
         THINKING.add(player.getUuid());
         hint(player, "Бог внимает…");
@@ -79,7 +79,7 @@ public final class Prayers {
                     THINKING.remove(player.getUuid());
                     DivineBlockMod.LOG.info("Божественный блок: не молитва ({}): {}", judgement.by(), text);
                     unheard.accept(text);
-                    if (!player.isRemoved()) hint(player, "Алтарь безмолвен: сие не молитва.");
+                    if (!player.isRemoved()) hint(player, "Алтарь безмолвен: это не молитва.");
                     return;
                 }
                 if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) { THINKING.remove(player.getUuid()); return; }

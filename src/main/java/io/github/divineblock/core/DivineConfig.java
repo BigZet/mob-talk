@@ -42,9 +42,9 @@ public final class DivineConfig {
     /** The voice rings as in a temple: a big reverb and a quiet echo ({@link VoiceEffects}). */
     public boolean voiceTemple = true;
     /** The reverb and echo knobs, 0..100 (echo time in milliseconds); the temple preset by default. */
-    public int voiceRoomSize = VoiceEffects.Preset.TEMPLE.settings.roomSize(), voiceReverb = VoiceEffects.Preset.TEMPLE.settings.reverbLevel(),
-            voiceEchoMs = VoiceEffects.Preset.TEMPLE.settings.echoMs(), voiceEchoLevel = VoiceEffects.Preset.TEMPLE.settings.echoLevel(),
-            voiceEchoRepeats = VoiceEffects.Preset.TEMPLE.settings.echoRepeats();
+    public int voiceRoomSize = VoiceEffects.Preset.CHAPEL.settings.roomSize(), voiceReverb = VoiceEffects.Preset.CHAPEL.settings.reverbLevel(),
+            voiceEchoMs = VoiceEffects.Preset.CHAPEL.settings.echoMs(), voiceEchoLevel = VoiceEffects.Preset.CHAPEL.settings.echoLevel(),
+            voiceEchoRepeats = VoiceEffects.Preset.CHAPEL.settings.echoRepeats();
 
     /** The reverb and echo as {@link VoiceEffects} takes them (clamped there). */
     public VoiceEffects.Settings voiceEffects() { return new VoiceEffects.Settings(voiceRoomSize, voiceReverb, voiceEchoMs, voiceEchoLevel, voiceEchoRepeats); }

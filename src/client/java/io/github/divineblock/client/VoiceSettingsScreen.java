@@ -27,7 +27,7 @@ final class VoiceSettingsScreen extends Screen {
         VoiceEffects.Preset current = null;
         for (VoiceEffects.Preset preset : VoiceEffects.Preset.values()) if (preset.settings.equals(config.voiceEffects())) current = preset;
         addDrawableChild(CyclingButtonWidget.<VoiceEffects.Preset>builder(p -> Text.literal(p == null ? "свой" : p.label))
-                .values(VoiceEffects.Preset.values()).initially(current == null ? VoiceEffects.Preset.TEMPLE : current)
+                .values(VoiceEffects.Preset.values()).initially(current == null ? VoiceEffects.Preset.CHAPEL : current)
                 .build(left, y, width, 20, Text.literal("Пресет"), (b, preset) -> { config.voiceEffects(preset.settings); clearAndInit(); }));
         y += row;
         addDrawableChild(slider(left, y, width, "Размер зала", 0, 100, () -> config.voiceRoomSize, v -> config.voiceRoomSize = v, v -> v + "%"));

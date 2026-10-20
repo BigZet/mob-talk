@@ -140,7 +140,7 @@ class GodCoreTest {
         verdict.miracle = "heal";
         String line = GodSpeech.template(verdict);
         assertTrue(verdict.mainReasons(1).stream().anyMatch(r -> line.toLowerCase().contains(r.text().toLowerCase())), line);
-        assertTrue(GodSpeech.explainTemplate(verdict).startsWith("Вопрошаешь, отчего так?"));
+        assertTrue(GodSpeech.explainTemplate(verdict).startsWith("Спрашиваешь, почему?"));
         assertEquals("Трепещи.", GodSpeech.clean("«**Трепещи.**»"));
         assertEquals("Раз. Два!", GodSpeech.clean("Раз. Два! Три? Четыре."));
         assertEquals("Да.", GodSpeech.parse(JsonParser.parseString("{\"choices\":[{\"message\":{\"content\":\"Да.\"}}]}").toString()));
