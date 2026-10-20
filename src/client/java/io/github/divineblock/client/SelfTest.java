@@ -148,9 +148,13 @@ public final class SelfTest {
         ServerWorld world = player.getServerWorld();
         world.setTimeOfDay(6000);
         world.setWeather(100_000, 0, false, false);
-        base = world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, player.getBlockPos());
+        // A flat stage in the open: a 15x15 floor with clear sky above, so the screenshots show the altar and the acts.
+        base = world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, player.getBlockPos()).up(2);
+        for (BlockPos pos : BlockPos.iterate(base.add(-7, -1, -7), base.add(7, 12, 7)))
+            world.setBlockState(pos, pos.getY() == base.getY() - 1 ? Blocks.GRASS_BLOCK.getDefaultState() : Blocks.AIR.getDefaultState());
+        for (BlockPos pos : BlockPos.iterate(base.add(-7, -4, -7), base.add(7, -2, 7)))
+            if (world.getBlockState(pos).isAir()) world.setBlockState(pos, Blocks.STONE.getDefaultState());
         altar = base.north(3);
-        altar = world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, altar);
         world.setBlockState(altar, DivineBlockMod.ALTAR.getDefaultState());
         home(player);
         log("алтарь в " + altar.toShortString() + ", игрок в " + base.toShortString());
@@ -265,7 +269,7 @@ public final class SelfTest {
 
     private static void home(ServerPlayerEntity player) {
         if (base == null) return;
-        player.teleport(player.getServerWorld(), base.getX() + 0.5, base.getY(), base.getZ() + 0.5, 180f, 25f);
+        player.teleport(player.getServerWorld(), base.getX() + 0.5, base.getY(), base.getZ() + 0.5, 180f, 15f);
         player.setFireTicks(0);
     }
     private static void clean(ServerWorld world) {
