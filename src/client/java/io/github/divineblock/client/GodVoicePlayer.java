@@ -36,6 +36,36 @@ final class GodVoicePlayer {
         ClientPlayNetworking.registerGlobalReceiver(GodLinePayload.ID, (payload, context) -> speak(context.client(), payload.line()));
     }
 
+    static final String PREVIEW_LINE = "Взвешен еси на весах и найден лёгким, смертне. Аз воздам.";
+    /** The dry preview line per voice: the knobs are tuned by ear without paying for speech again. */
+    private static final java.util.Map<String, byte[]> previewCache = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Plays the preview line with the given (unsaved) settings, in a world or in a menu. */
+    static void preview(MinecraftClient client, DivineConfig config, java.util.function.Consumer<String> status) {
+        int mine = generation.incrementAndGet();
+        DivineConfig settings = config.copy();
+        WORKER.execute(() -> {
+            byte[] voiced;
+            try {
+                byte[] dry = previewCache.get(settings.voiceId);
+                if (dry == null) {
+                    status.accept("Голос готовится…");
+                    dry = new GodVoice(settings, DivineBlockMod.configDirectory()).synthesize(PREVIEW_LINE);
+                    previewCache.put(settings.voiceId, dry);
+                }
+                voiced = settings.voiceTemple ? io.github.divineblock.core.VoiceEffects.apply(dry, GodVoice.SAMPLE_RATE, settings.voiceEffects()) : dry;
+            } catch (Exception failure) { status.accept("Голос недоступен: " + failure.getMessage()); return; }
+            byte[] pcm = voiced;
+            client.execute(() -> {
+                if (generation.get() != mine) return;
+                if (playing != null) client.getSoundManager().stop(playing);
+                playing = new GodSound(pcm);
+                client.getSoundManager().play(playing);
+                status.accept("");
+            });
+        });
+    }
+
     static void speak(MinecraftClient client, String line) {
         DivineConfig config = DivineBlockMod.config();
         if (!config.voice || line == null || line.isBlank()) return;
@@ -46,7 +76,7 @@ final class GodVoicePlayer {
             byte[] voiced;
             try {
                 voiced = new GodVoice(config, DivineBlockMod.configDirectory()).synthesize(line);
-                if (config.voiceTemple) voiced = io.github.divineblock.core.VoiceEffects.temple(voiced, GodVoice.SAMPLE_RATE);
+                if (config.voiceTemple) voiced = io.github.divineblock.core.VoiceEffects.apply(voiced, GodVoice.SAMPLE_RATE, config.voiceEffects());
             }
             catch (Exception failure) { DivineBlockMod.LOG.info("Божественный блок: голос бога молчит: {}", failure.getMessage()); return; }
             catch (Throwable ignored) { return; }

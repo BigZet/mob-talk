@@ -53,7 +53,7 @@ public final class DivineSettingsScreen extends Screen {
         addDrawableChild(CyclingButtonWidget.onOffBuilder(config.debug).build(right, y, column, 20, Text.literal("Отладка"), (b, v) -> config.debug = v));
         y += row;
         // Off, plain, or ringing as in a temple (reverb and a quiet echo).
-        addDrawableChild(CyclingButtonWidget.<Integer>builder(v -> Text.literal(new String[] { "выкл", "без эха", "храм" }[v])).values(List.of(0, 1, 2))
+        addDrawableChild(CyclingButtonWidget.<Integer>builder(v -> Text.literal(new String[] { "выкл", "без эха", "с эхом" }[v])).values(List.of(0, 1, 2))
                 .initially(!config.voice ? 0 : config.voiceTemple ? 2 : 1).build(left, y, column, 20, Text.literal("Голос бога"),
                         (b, v) -> { config.voice = v > 0; config.voiceTemple = v == 2; }));
         java.util.List<String> voices = java.util.Arrays.stream(io.github.divineblock.core.GodVoice.VOICES).map(v -> v[0]).toList();
@@ -67,7 +67,9 @@ public final class DivineSettingsScreen extends Screen {
         veniceKey = keyField(right, y, column - 44, "Ключ Venice");
         addDrawableChild(ButtonWidget.builder(Text.literal("Сохр."), b -> storeKey(ApiKeys.Provider.VENICE, veniceKey)).dimensions(right + column - 40, y, 40, 20).build());
 
-        addDrawableChild(ButtonWidget.builder(Text.literal("Готово"), b -> close()).dimensions(this.width / 2 - 100, this.height - 28, 200, 20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Эхо и реверб…"), b -> client.setScreen(new VoiceSettingsScreen(this, config)))
+                .dimensions(this.width / 2 - 154, this.height - 28, 150, 20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Готово"), b -> close()).dimensions(this.width / 2 + 4, this.height - 28, 150, 20).build());
         refreshKeyStatus();
         soul = readSoul();
     }
