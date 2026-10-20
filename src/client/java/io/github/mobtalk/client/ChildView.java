@@ -23,7 +23,9 @@ import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.passive.VillagerEntity;
+import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -65,24 +67,38 @@ final class ChildView {
     static void register() {
         LivingEntityFeatureRendererRegistrationCallback.EVENT.register((type, renderer, helper, context) -> {
             if (renderer instanceof VillagerEntityRenderer villager)
-                helper.register(new Belly<VillagerEntity, VillagerResemblingModel<VillagerEntity>>(villager, model -> model.getPart().getChild("body"), true, 4, 47, -3.5f));
+                helper.register(new Belly<VillagerEntity, VillagerResemblingModel<VillagerEntity>>(villager, model -> model.getPart().getChild("body"), true, 9f, -3.5f,
+                        19, 26, ChildView::robe, 3, 50)); // Ниже сложенных рук.
             else if (renderer instanceof PlayerEntityRenderer player)
-                helper.register(new Belly<AbstractClientPlayerEntity, PlayerEntityModel<AbstractClientPlayerEntity>>(player, model -> model.body, false, 18, 24, -2.25f));
+                helper.register(new Belly<AbstractClientPlayerEntity, PlayerEntityModel<AbstractClientPlayerEntity>>(player, model -> model.body, false, 5f, -2.25f,
+                        17, 22, null, 0, 0));
         });
     }
+    /** Роба жителя его типа (равнины, снега…): в базовой текстуре жителя роба прозрачна, её рисует слой типа. */
+    private static Identifier robe(VillagerEntity villager) {
+        Identifier type = Registries.VILLAGER_TYPE.getId(villager.getVillagerData().getType());
+        return Identifier.of(type.getNamespace(), "textures/entity/villager/type/" + type.getPath() + ".png");
+    }
 
-    /** Округлость спереди на туловище: кубик 7×6×2 из текстуры самой фигурки (роба жителя, туловище скина игрока), по сроку глубже. */
+    /** Округлость спереди на туловище: кубик 7×6×3 от высоты {@code top}, по сроку глубже. Низ — туловище из текстуры самой фигурки
+     * (у жителя под робой, у игрока — скин), поверх у жителя — роба его типа, где она есть. */
     private static final class Belly<T extends LivingEntity, M extends EntityModel<T>> extends FeatureRenderer<T, M> {
         private final Function<M, ModelPart> body;
         private final boolean fromRoot;
-        private final ModelPart part;
+        private final ModelPart part, cover;
+        private final Function<T, Identifier> coverTexture;
         private final float front;
-        Belly(FeatureRendererContext<T, M> context, Function<M, ModelPart> body, boolean fromRoot, int u, int v, float front) {
+        Belly(FeatureRendererContext<T, M> context, Function<M, ModelPart> body, boolean fromRoot, float top, float front,
+              int u, int v, Function<T, Identifier> coverTexture, int cu, int cv) {
             super(context);
-            this.body = body; this.fromRoot = fromRoot; this.front = front;
+            this.body = body; this.fromRoot = fromRoot; this.front = front; this.coverTexture = coverTexture;
+            part = cube(u, v, top, Dilation.NONE);
+            cover = coverTexture == null ? null : cube(cu, cv, top, new Dilation(0.05f));
+        }
+        private static ModelPart cube(int u, int v, float top, Dilation dilation) {
             ModelData data = new ModelData();
-            data.getRoot().addChild("belly", ModelPartBuilder.create().uv(u, v).cuboid(-3.5f, 5f, -2f, 7f, 6f, 2f), ModelTransform.NONE);
-            part = TexturedModelData.of(data, 64, 64).createModel().getChild("belly");
+            data.getRoot().addChild("belly", ModelPartBuilder.create().uv(u, v).cuboid(-3.5f, top, -3f, 7f, 6f, 3f, dilation), ModelTransform.NONE);
+            return TexturedModelData.of(data, 64, 64).createModel().getChild("belly");
         }
         @Override public void render(MatrixStack matrices, VertexConsumerProvider consumers, int light, T entity, float limbAngle, float limbDistance,
                                      float tickDelta, float animationProgress, float headYaw, float headPitch) {
@@ -91,11 +107,12 @@ final class ChildView {
             M model = getContextModel();
             matrices.push();
             if (fromRoot && model instanceof VillagerResemblingModel<?> villager) villager.getPart().rotate(matrices);
-            ModelPart torso = body.apply(model);
-            torso.rotate(matrices);
+            body.apply(model).rotate(matrices);
             matrices.translate(0, 0, front / 16f);
             matrices.scale(1f, 1f, amount);
-            part.render(matrices, consumers.getBuffer(RenderLayer.getEntityCutoutNoCull(getTexture(entity))), light, LivingEntityRenderer.getOverlay(entity, 0));
+            int overlay = LivingEntityRenderer.getOverlay(entity, 0);
+            part.render(matrices, consumers.getBuffer(RenderLayer.getEntityCutoutNoCull(getTexture(entity))), light, overlay);
+            if (cover != null) cover.render(matrices, consumers.getBuffer(RenderLayer.getEntityCutoutNoCull(coverTexture.apply(entity))), light, overlay);
             matrices.pop();
         }
     }

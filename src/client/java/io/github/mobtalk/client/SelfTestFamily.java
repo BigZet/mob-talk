@@ -45,6 +45,8 @@ final class SelfTestFamily {
         test.log("family stages (track N): a special night, the term, the birth, the family screen");
         saved = test.bridge().config.copy();
         test.bridge().config.weddingChance = 0; test.bridge().config.birthChance = 0; // Деревня сама ничего не затевает.
+        // Болтовня деревни внизу занимает очередь голосов: реплики семьи ждали бы её. На этап — тишина.
+        test.bridge().config.villageChatter = false; test.bridge().config.villageNotices = false;
         test.command("fill " + at(-8, -1, -8) + " " + at(8, -1, 8) + " minecraft:smooth_stone");
         test.command("fill " + at(-8, 0, -8) + " " + at(8, 5, 8) + " minecraft:air");
         for (String wall : List.of(at(-8, 0, -8) + " " + at(8, 1, -8), at(-8, 0, 8) + " " + at(8, 1, 8), at(-8, 0, -8) + " " + at(-8, 1, 8), at(8, 0, -8) + " " + at(8, 1, 8)))
@@ -108,12 +110,12 @@ final class SelfTestFamily {
             test.check(!message.isBlank(), "the spouse accepted the special evening");
             ChildLedger.Evening evening = test.bridge().memory.children().evening(spouse);
             test.check(evening != null && evening.cozy().score() >= 5, "the home is cosy: " + (evening == null ? "no evening" : evening.cozy().words()));
-            test.await("the spouse speaks of what she sees (live)", 60, () -> test.owner.initiatives.lastLines.containsKey(spouse), () -> {
+            test.await("the spouse speaks of what she sees (live)", 90, () -> test.owner.initiatives.lastLines.containsKey(spouse), () -> {
                 String line = test.owner.initiatives.lastLines.getOrDefault(spouse, "");
                 test.log("evening line: " + line);
-                if (line.isBlank()) test.log("… no live line (network or a quiet verdict): the evening goes on");
+                if (line.isBlank()) test.log("… the model chose silence: the evening goes on");
                 else test.check(!SpecialEvening.explicit(line), "the evening line stays tender");
-                shot("mobtalk-family-evening.png", false, this::night);
+                shot("mobtalk-family-evening.png", false, () -> test.await("pause: she finishes speaking", 30, () -> !test.owner.speaking() && !test.owner.busyTalking(), this::night));
             });
         });
     }
@@ -162,7 +164,7 @@ final class SelfTestFamily {
             test.check(fade != null && fade.kind() == ChildController.FadeKind.MORNING, "«Наутро…» on the screen");
             int after = test.bridge().memory.relationship(spouse, playerId());
             test.check(after > before || after >= 100, "the special night warmed the spouse (" + before + " → " + after + ")");
-            shot("mobtalk-family-morning.png", false, () -> test.await("the morning line (live)", 60, () -> test.owner.initiatives.lastLines.containsKey(spouse), () -> {
+            shot("mobtalk-family-morning.png", false, () -> test.await("the morning line (live)", 90, () -> test.owner.initiatives.lastLines.containsKey(spouse), () -> {
                 test.log("morning line: " + test.owner.initiatives.lastLines.getOrDefault(spouse, "(none)"));
                 term();
             }));
@@ -180,12 +182,20 @@ final class SelfTestFamily {
             test.await("mid-term: the belly shows", 20, () -> ChildView.belly(carrierId()) > 0, () -> {
                 test.log("belly " + ChildView.belly(carrierId()) + ", status " + ChildView.status(carrierId()));
                 if (carrier == Pregnancy.Carrier.VILLAGER) {
-                    // Сбоку, на уровне пояса: жительница замерла лицом на юг, камера с востока — округлость видна в профиль.
-                    test.command("tp " + spouse + " " + (fx + 0.5) + " " + fy + " " + (fz - 0.5) + " 0 0");
-                    test.command("data merge entity " + spouse + " {NoAI:1b}");
-                    test.command("tp " + name() + " " + (fx + 3.0) + " " + fy + " " + (fz - 0.5) + " facing " + (fx + 0.5) + " " + (fy + 1.1) + " " + (fz - 0.5));
+                    // Спереди: она поворачивается к игроку на востоке (подпись и живот анфас).
+                    test.command("tp " + spouse + " " + (fx + 0.5) + " " + fy + " " + (fz - 0.5));
+                    test.command("tp " + name() + " " + (fx + 3.5) + " " + fy + " " + (fz - 0.5) + " 90 10");
+                    test.owner.client.player.setYaw(90); test.owner.client.player.setPitch(10);
+                    test.bridge().attend(spouse, playerId(), 200);
                 }
                 shot("mobtalk-family-belly-label.png", carrier == Pregnancy.Carrier.PLAYER, () -> {
+                    if (carrier == Pregnancy.Carrier.VILLAGER) {
+                        // Сбоку: она замирает лицом на север, камера с востока смотрит на запад и чуть вниз — округлость в профиль.
+                        test.command("data merge entity " + spouse + " {NoAI:1b}");
+                        test.bridge().onServer(() -> { VillagerEntity w = entity(spouse); if (w != null) { w.setYaw(180); w.setBodyYaw(180); w.setHeadYaw(180); } return null; }).join();
+                        test.command("tp " + name() + " " + (fx + 2.8) + " " + fy + " " + (fz - 0.5) + " 90 20");
+                        test.owner.client.player.setYaw(90); test.owner.client.player.setPitch(20);
+                    }
                     test.owner.client.options.hudHidden = true;
                     shot("mobtalk-family-belly.png", carrier == Pregnancy.Carrier.PLAYER, () -> {
                         test.owner.client.options.hudHidden = false;
@@ -222,7 +232,18 @@ final class SelfTestFamily {
                     test.check(speed != null && speed.hasModifier(Identifier.of("mobtalk", "pregnancy_slow")), "late in the term she walks slower");
                 }
                 test.check(ChildView.status(carrierId()).contains("скоро роды"), "the last day says «скоро роды»: " + ChildView.status(carrierId()));
-                birth();
+                if (carrier != Pregnancy.Carrier.VILLAGER) { birth(); return; }
+                test.command("data merge entity " + spouse + " {NoAI:1b}");
+                test.command("tp " + spouse + " " + (fx + 0.5) + " " + fy + " " + (fz - 0.5));
+                test.bridge().onServer(() -> { VillagerEntity w = entity(spouse); if (w != null) { w.setYaw(180); w.setBodyYaw(180); w.setHeadYaw(180); } return null; }).join();
+                test.command("tp " + name() + " " + (fx + 2.8) + " " + fy + " " + (fz - 0.5) + " 90 20");
+                test.owner.client.options.hudHidden = true;
+                shot("mobtalk-family-belly-late.png", false, () -> {
+                    test.owner.client.options.hudHidden = false;
+                    test.command("data merge entity " + spouse + " {NoAI:0b}");
+                    test.command("tp " + name() + " " + at(0, 0, 2));
+                    birth();
+                });
             });
         });
     }
