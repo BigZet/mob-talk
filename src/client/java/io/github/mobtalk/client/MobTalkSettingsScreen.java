@@ -12,13 +12,16 @@ import net.minecraft.client.gui.Selectable;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.*;
+import net.minecraft.client.sound.PositionedSoundInstance;
+import net.minecraft.sound.SoundEvents;
 import io.github.mobtalk.client.settings.TunableSlider;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
-/** Eight tabs of scrollable sections (general, voice, model, conversation, social, actions and place, species, the selected mob); preference/profile edits remain private until Save, the API key is stored separately. */
+/** Eight tabs of scrollable sections (general, voice, model, conversation, social, actions and place, species, the selected mob); preference/profile edits remain private until Save, the API key is stored separately.
+ * The sliders of a group fold under its header (the group's switches stay in view), and one search field looks through the six settings tabs at once. */
 final class MobTalkSettingsScreen extends Screen {
     interface Controller {
         void listMicrophones(Consumer<List<String>> callback);
@@ -74,6 +77,17 @@ final class MobTalkSettingsScreen extends Screen {
     private String cardName = "", cardPersonality = "", cardVoice = "", cardMemory = "";
     private ActionType requestedAction = ActionType.FOLLOW;
     private String requestedTarget = "player";
+    /** Slider groups shown unfolded; the few everyday numbers start open. Kept until the game closes, not in the config. */
+    private static final Set<String> EXPANDED = new HashSet<>(Set.of("reply", "recording", "requests"));
+    /** The search over every settings tab; while it holds text, the list shows matches from all six tabs. */
+    private String find = "";
+    private TextFieldWidget findField;
+    /** The tab name before every header while searching, so a match says where it lives. */
+    private String prefix = "";
+    /** Rows of a search are collected here first and filtered before they reach the list. */
+    private List<Row> collecting;
+    /** Tooltip text of a control, so the search also finds a setting by its explanation. */
+    private final Map<ClickableWidget, String> tips = new IdentityHashMap<>();
 
     MobTalkSettingsScreen(Screen parent, MobTalkConfig initial, Controller controller) {
         super(Text.translatable("mobtalk.settings.title")); this.parent = parent; this.controller = controller;
@@ -81,25 +95,27 @@ final class MobTalkSettingsScreen extends Screen {
     }
 
     @Override protected void init() {
-        widgets.clear(); speciesPicker = null; searchField = null; refreshButton = null;
+        widgets.clear(); tips.clear(); speciesPicker = null; searchField = null; findField = null; refreshButton = null;
         contentWidth = Math.min(460, width - 40); left = (width - contentWidth) / 2;
         int tabWidth = (contentWidth - 4 * (PER_ROW - 1)) / PER_ROW;
         for (int i = 0; i < TABS.length; i++) {
             int chosen = i;
             ButtonWidget button = addDrawableChild(ButtonWidget.builder(Text.translatable("mobtalk.settings.tab." + TABS[i]),
-                    ignored -> { stopPreview(); tab = chosen; status = Text.empty(); error = false; clearAndInit(); })
+                    ignored -> { stopPreview(); tab = chosen; find = ""; status = Text.empty(); error = false; clearAndInit(); })
                     .dimensions(left + i % PER_ROW * (tabWidth + 4), 22 + i / PER_ROW * 22, tabWidth, 20).build());
             button.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.tab." + TABS[i] + ".full")));
-            button.active = i != tab && !saving;
+            button.active = (i != tab || searching()) && !saving;
         }
-        int top = switch (tab) { case SPECIES -> LIST_TOP + 50; case MOB -> LIST_TOP + 26; default -> LIST_TOP; };
+        int top = switch (tab) { case SPECIES -> LIST_TOP + 50; case MOB -> LIST_TOP + 26; default -> LIST_TOP + 24; };
         list = new SettingsList(top, height - 56);
-        switch (tab) {
-            case VOICE -> voice(); case MODEL -> model(); case TALK -> talk(); case SOCIAL -> social(); case ACTIONS -> actions();
-            case SPECIES -> speciesTab(); case MOB -> selectedMob(); default -> general();
+        if (section(tab) != null) findHeader();
+        if (searching()) searchAll();
+        else {
+            if (section(tab) != null && !Tunables.of(section(tab)).isEmpty()) foldButtons(section(tab));
+            build(tab);
         }
         addDrawableChild(list);
-        list.restore(scrolls[tab]);
+        if (!searching()) list.restore(scrolls[tab]);
         if (tab == SPECIES && noSpeciesMatches) for (ClickableWidget widget : widgets) if (widget != searchField) widget.active = false;
 
         int footer = Math.min(150, (contentWidth - 12) / 3), footerLeft = (width - footer * 3 - 12) / 2;
@@ -113,6 +129,100 @@ final class MobTalkSettingsScreen extends Screen {
         if (saving) controls(false);
         if (!enumerated) refreshMicrophones();
         if (!keyRequested) loadKeyStatus();
+    }
+
+    private void build(int which) {
+        switch (which) {
+            case VOICE -> voice(); case MODEL -> model(); case TALK -> talk(); case SOCIAL -> social(); case ACTIONS -> actions();
+            case SPECIES -> speciesTab(); case MOB -> selectedMob(); default -> general();
+        }
+    }
+    /** The tabs of plain settings and their slider table; the species and the selected mob have none. */
+    private static Tunables.Section section(int which) {
+        return switch (which) {
+            case GENERAL -> Tunables.Section.GENERAL; case VOICE -> Tunables.Section.VOICE; case MODEL -> Tunables.Section.MODEL;
+            case TALK -> Tunables.Section.TALK; case SOCIAL -> Tunables.Section.SOCIAL; case ACTIONS -> Tunables.Section.ACTIONS; default -> null;
+        };
+    }
+
+    // ---- Поиск и свёрнутые группы ----
+
+    private boolean searching() { return !find.isBlank() && section(tab) != null; }
+
+    /** Fixed above the list on the six settings tabs: typing rebuilds the list from every tab and keeps the caret. */
+    private void findHeader() {
+        TextFieldWidget field = addDrawableChild(new TextFieldWidget(textRenderer, left, LIST_TOP, contentWidth, 20, Text.translatable("mobtalk.settings.find")));
+        findField = track(field);
+        field.setMaxLength(60); field.setText(find);
+        field.setPlaceholder(Text.translatable("mobtalk.settings.find").formatted(Formatting.DARK_GRAY));
+        field.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.find.tooltip")));
+        field.setChangedListener(value -> {
+            boolean was = searching(); find = value;
+            if (!was && !searching()) return;
+            int cursor = field.getCursor(); clearAndInit();
+            if (findField != null) { setInitialFocus(findField); findField.setCursor(cursor, false); }
+        });
+    }
+
+    /** Builds the six settings tabs into one buffer and keeps the rows that match every word, under their headers. */
+    private void searchAll() {
+        String[] words = normalized(find).split("\\s+");
+        collecting = new ArrayList<>();
+        int saved = tab;
+        try {
+            for (int which = GENERAL; which <= ACTIONS; which++) {
+                tab = which; prefix = Text.translatable("mobtalk.settings.tab." + TABS[which]).getString() + " › ";
+                build(which);
+            }
+        } finally { tab = saved; prefix = ""; }
+        List<Row> rows = collecting; collecting = null;
+        List<Row> segment = new ArrayList<>(), kept = new ArrayList<>();
+        int found = 0;
+        for (Row row : rows) {
+            if (row.kind == RowKind.HEADER) { found += keep(segment, words, kept); segment = new ArrayList<>(); }
+            segment.add(row);
+        }
+        found += keep(segment, words, kept);
+        note(found == 0 ? Text.translatable("mobtalk.settings.find.none", find.strip()) : Text.translatable("mobtalk.settings.find.count", found), found == 0 ? 0xFF9999 : 0x9A9A9A);
+        for (Row row : kept) list.add(row);
+    }
+    /** One header and its rows: all of them when the header matches, else only the matching rows; the header goes along with any. */
+    private int keep(List<Row> segment, String[] words, List<Row> out) {
+        if (segment.isEmpty()) return 0;
+        Row head = segment.getFirst().kind == RowKind.HEADER ? segment.getFirst() : null;
+        List<Row> body = head == null ? segment : segment.subList(1, segment.size());
+        boolean all = head != null && matches(head.label.getString(), words);
+        List<Row> hits = new ArrayList<>();
+        for (Row row : body) if (all ? row.kind == RowKind.CONTROLS : matches(searchText(row), words)) hits.add(row);
+        if (hits.isEmpty()) return 0;
+        if (head != null) out.add(head);
+        out.addAll(hits);
+        int count = 0; for (Row row : hits) if (row.kind == RowKind.CONTROLS) count++;
+        return count;
+    }
+    private String searchText(Row row) {
+        StringBuilder text = new StringBuilder(row.label == null ? "" : row.label.getString());
+        for (ClickableWidget control : row.controls) {
+            text.append(' ').append(control.getMessage().getString());
+            String tip = control instanceof TunableSlider slider ? slider.explanation() : tips.get(control);
+            if (tip != null) text.append(' ').append(tip);
+        }
+        return text.toString();
+    }
+    private static boolean matches(String text, String[] words) {
+        String haystack = normalized(text);
+        for (String word : words) if (!word.isEmpty() && !haystack.contains(word)) return false;
+        return true;
+    }
+    private static String normalized(String text) { return text.toLowerCase(Locale.ROOT).replace('ё', 'е').strip(); }
+
+    /** «Развернуть всё» and «Свернуть всё» over the slider groups of this tab. */
+    private void foldButtons(Tunables.Section section) {
+        Set<String> groups = new LinkedHashSet<>(); for (Tunables.Tunable tunable : Tunables.of(section)) groups.add(tunable.group());
+        ButtonWidget open = button("mobtalk.settings.expandAll", ignored -> { EXPANDED.addAll(groups); refreshOnTick = true; });
+        ButtonWidget shut = button("mobtalk.settings.collapseAll", ignored -> { EXPANDED.removeAll(groups); refreshOnTick = true; });
+        open.active = !EXPANDED.containsAll(groups); shut.active = groups.stream().anyMatch(EXPANDED::contains);
+        wide(open, shut);
     }
 
     // ---- Общее ----
@@ -254,18 +364,21 @@ final class MobTalkSettingsScreen extends Screen {
     /** The sliders of one tab under a header per group, in the table's order; {@code before} adds the switches of a group above its sliders. */
     private void tunables(Tunables.Section section, Map<String, Runnable> before) {
         String group = null;
+        boolean folded = false;
         for (Tunables.Tunable tunable : Tunables.of(section)) {
             if (!tunable.group().equals(group)) {
                 group = tunable.group();
-                header("mobtalk.settings.group." + group);
+                folded = collecting == null && !EXPANDED.contains(group);
+                groupHeader(section, group, folded);
                 Runnable extra = before.get(group);
                 if (extra != null) extra.run();
             }
-            wide(track(new TunableSlider(tunable, draft)));
+            if (!folded) wide(track(new TunableSlider(tunable, draft)));
         }
     }
     /** «Сбросить раздел»: this tab's numbers and switches back to their defaults in the draft; texts typed by hand stay. */
     private void resetSection(Tunables.Section section) {
+        if (collecting != null) return;
         header("mobtalk.settings.section.resetSection");
         ButtonWidget reset = button("mobtalk.settings.resetSection", ignored -> {
             Tunables.resetSection(draft, section); refreshOnTick = true;
@@ -620,11 +733,24 @@ final class MobTalkSettingsScreen extends Screen {
 
     // ---- Строки списка и виджеты ----
 
-    private void header(String key) { list.add(new Row(Text.translatable(key), RowKind.HEADER, 0xFFD37F, null, List.of())); }
-    private void note(Text text, int color) { list.add(new Row(text, RowKind.NOTE, color, null, List.of())); }
-    private void wide(ClickableWidget... controls) { list.add(new Row(null, RowKind.CONTROLS, 0, null, List.of(controls))); }
+    private void add(Row row) { if (collecting != null) collecting.add(row); else list.add(row); }
+    private void header(String key) { add(new Row(Text.literal(prefix + Text.translatable(key).getString()), RowKind.HEADER, 0xFFD37F, null, List.of())); }
+    /** A slider group's header: a click folds or unfolds it; the right side counts its numbers and those moved off their defaults. */
+    private void groupHeader(Tunables.Section section, String group, boolean folded) {
+        int count = 0, changed = 0;
+        for (Tunables.Tunable tunable : Tunables.of(section)) if (tunable.group().equals(group)) {
+            count++; if (tunable.normalize(tunable.get(draft)) != tunable.defaultValue()) changed++;
+        }
+        String name = prefix + Text.translatable("mobtalk.settings.group." + group).getString();
+        Row row = new Row(Text.literal(collecting != null ? name : (folded ? "▶ " : "▼ ") + name), RowKind.HEADER, 0xFFD37F, null, List.of());
+        row.side = changed == 0 ? Text.translatable("mobtalk.settings.group.count", count) : Text.translatable("mobtalk.settings.group.changed", count, changed);
+        if (collecting == null) row.group = group;
+        add(row);
+    }
+    private void note(Text text, int color) { add(new Row(text, RowKind.NOTE, color, null, List.of())); }
+    private void wide(ClickableWidget... controls) { add(new Row(null, RowKind.CONTROLS, 0, null, List.of(controls))); }
     private void labeled(String key, ClickableWidget... controls) { labeled(key, null, controls); }
-    private void labeled(String key, int[] weights, ClickableWidget... controls) { list.add(new Row(Text.translatable(key), RowKind.CONTROLS, 0xD5D5D5, weights, List.of(controls))); }
+    private void labeled(String key, int[] weights, ClickableWidget... controls) { add(new Row(Text.translatable(key), RowKind.CONTROLS, 0xD5D5D5, weights, List.of(controls))); }
 
     private <T extends ClickableWidget> T track(T widget) { widgets.add(widget); return widget; }
     private ButtonWidget button(String key, ButtonWidget.PressAction action) { return track(ButtonWidget.builder(Text.translatable(key), action).size(100, 20).build()); }
@@ -640,7 +766,7 @@ final class MobTalkSettingsScreen extends Screen {
         field.setMaxLength(Math.max(maximum, value == null ? 0 : value.length())); field.setText(value == null ? "" : value); field.setChangedListener(changed); return field;
     }
     /** The explanation under the pointer, from the lang file. */
-    private <T extends ClickableWidget> T tip(T widget, String key) { widget.setTooltip(Tooltip.of(Text.translatable(key))); return widget; }
+    private <T extends ClickableWidget> T tip(T widget, String key) { widget.setTooltip(Tooltip.of(Text.translatable(key))); tips.put(widget, Text.translatable(key).getString()); return widget; }
 
     private void open(Screen screen) { stopPreview(); openingChild = true; client.setScreen(screen); }
     private void edit(String title, String value, int maximum, Consumer<String> apply, String reset) { open(new TextEditorScreen(this, Text.translatable(title), value, maximum, apply, reset)); }
@@ -679,7 +805,7 @@ final class MobTalkSettingsScreen extends Screen {
         void add(Row row) { addEntry(row); }
         /** Rebuilding after an edit, a child screen, or an async refresh keeps the reader's place. */
         void restore(double amount) { setScrollAmount(amount); restored = true; }
-        @Override public void setScrollAmount(double amount) { super.setScrollAmount(amount); if (restored) scrolls[tab] = getScrollAmount(); }
+        @Override public void setScrollAmount(double amount) { super.setScrollAmount(amount); if (restored && !searching()) scrolls[tab] = getScrollAmount(); }
         @Override public int getRowWidth() { return contentWidth; }
         @Override protected int getScrollbarX() { return getRowRight() + 6; }
     }
@@ -690,6 +816,10 @@ final class MobTalkSettingsScreen extends Screen {
         private final int color;
         private final int[] weights;
         private final List<ClickableWidget> controls;
+        /** A slider group this header folds, or null for a plain header. */
+        private String group;
+        /** Dim text at the right end of a header. */
+        private Text side;
 
         Row(Text label, RowKind kind, int color, int[] weights, List<ClickableWidget> controls) {
             this.label = label; this.kind = kind; this.color = color; this.weights = weights; this.controls = controls;
@@ -699,7 +829,13 @@ final class MobTalkSettingsScreen extends Screen {
         @Override public void render(DrawContext context, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY, boolean hovered, float delta) {
             int textY = y + (entryHeight - 8) / 2;
             if (kind == RowKind.HEADER) {
-                context.drawTextWithShadow(textRenderer, label, x, textY + 2, color);
+                if (group != null && hovered) {
+                    context.fill(x - 2, y + 2, x + entryWidth + 2, y + entryHeight, 0x22FFFFFF);
+                    setTooltip(textRenderer.wrapLines(Text.translatable("mobtalk.settings.group.toggle"), Math.min(360, width - 24)));
+                }
+                int sideWidth = side == null ? 0 : textRenderer.getWidth(side);
+                if (side != null) context.drawTextWithShadow(textRenderer, side, x + entryWidth - sideWidth, textY + 2, 0x8A8A8A);
+                context.drawTextWithShadow(textRenderer, clipped(label.getString(), entryWidth - sideWidth - 8), x, textY + 2, color);
                 context.fill(x, y + entryHeight, x + entryWidth, y + entryHeight + 1, 0x55FFFFFF);
                 return;
             }
@@ -723,6 +859,15 @@ final class MobTalkSettingsScreen extends Screen {
                 widget.render(context, mouseX, mouseY, delta);
                 cursor += size + gap;
             }
+        }
+        @Override public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            if (kind == RowKind.HEADER && group != null && button == 0) {
+                if (!EXPANDED.remove(group)) EXPANDED.add(group);
+                client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                refreshOnTick = true;
+                return true;
+            }
+            return super.mouseClicked(mouseX, mouseY, button);
         }
         private int weight(int index) { return weights == null || index >= weights.length ? 1 : weights[index]; }
     }
