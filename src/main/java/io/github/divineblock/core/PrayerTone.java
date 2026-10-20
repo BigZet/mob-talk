@@ -33,7 +33,7 @@ public record PrayerTone(boolean polite, boolean rude, boolean profane, boolean 
 
     private static final List<String> ADDRESS = List.of("бож", "господ", "всевышн", "великий", "творец", "создател", "отче", "владык", "небес",
             "молю", "прошу", "помилуй", "услышь", "внемли", "даруй", "дай", "пошли", "ниспошли", "помоги", "спаси", "благослов", "прости",
-            "хвала", "слава", "аминь", "пожалуйста", "god", "lord", "please");
+            "хвала", "слава", "аминь", "пожалуйста", "докажи", "покажи", "не верю", "существ", "явись", "ответь", "слышишь", "god", "lord", "please");
 
     /** The rules' answer to "is this a prayer?" when Jev is silent: the words address the god, ask, praise, repent or insult him. */
     public static boolean addressesGod(String prayer) {

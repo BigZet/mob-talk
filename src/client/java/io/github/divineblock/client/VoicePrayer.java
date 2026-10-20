@@ -45,9 +45,9 @@ final class VoicePrayer {
     }
 
     private static void start(MinecraftClient client) {
-        if (busy) { client.player.sendMessage(Text.literal("Бог ещё внимает прежней молитве…").formatted(Formatting.GOLD), true); return; }
+        if (busy) { debug(client, "Бог ещё внимает прежней молитве…"); return; }
         BlockPos found = findAltar(client);
-        if (found == null) { client.player.sendMessage(Text.literal("Молиться вслух можно лишь у алтаря.").formatted(Formatting.GRAY), true); return; }
+        if (found == null) { debug(client, "Молиться вслух можно лишь у алтаря."); return; }
         DivineConfig config = DivineBlockMod.config();
         try { capture = RECORDER.start(config.microphoneName, PcmWav.MAX_SECONDS); }
         catch (RuntimeException occupied) { client.player.sendMessage(Text.literal(occupied.getMessage()).formatted(Formatting.RED), true); return; }
@@ -65,7 +65,7 @@ final class VoicePrayer {
     static void process(MinecraftClient client, java.util.concurrent.CompletableFuture<byte[]> recording, BlockPos target, ClientWorld where) {
         DivineConfig config = DivineBlockMod.config();
         busy = true;
-        client.player.sendMessage(Text.literal("Бог вслушивается…").formatted(Formatting.GOLD), true);
+        debug(client, "Бог вслушивается…");
         recording.whenComplete((wav, failure) -> WORKER.execute(() -> {
             String text = null, problem = null;
             try {
@@ -82,9 +82,9 @@ final class VoicePrayer {
                 busy = false;
                 if (client.player == null || client.world != where) return; // Left the world: the prayer is lost.
                 if (message != null) { client.player.sendMessage(Text.literal(message).formatted(Formatting.RED), true); return; }
-                if (prayer == null || prayer.isBlank()) { client.player.sendMessage(Text.literal("Бог не расслышал ни слова.").formatted(Formatting.GRAY), true); return; }
-                if (!target.isWithinDistance(client.player.getBlockPos(), 8)) { client.player.sendMessage(Text.literal("Ты отошёл от алтаря.").formatted(Formatting.GRAY), true); return; }
-                client.player.sendMessage(Text.literal("Ты молишься: «" + prayer + "»").formatted(Formatting.GRAY, Formatting.ITALIC), false);
+                if (prayer == null || prayer.isBlank()) { debug(client, "Бог не расслышал ни слова."); return; }
+                if (!target.isWithinDistance(client.player.getBlockPos(), 8)) { debug(client, "Ты отошёл от алтаря."); return; }
+                if (config.debug) client.player.sendMessage(Text.literal("Ты молишься: «" + prayer + "»").formatted(Formatting.GRAY, Formatting.ITALIC), false);
                 heard.accept(prayer);
                 if (ClientPlayNetworking.canSend(PrayPayload.ID)) ClientPlayNetworking.send(new PrayPayload(target, prayer.length() > PrayPayload.MAX_TEXT ? prayer.substring(0, PrayPayload.MAX_TEXT) : prayer));
             });
@@ -120,6 +120,11 @@ final class VoicePrayer {
             } catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); }
             catch (Exception error) { status.accept(error.getMessage()); }
         }));
+    }
+
+    /** A service line for the action bar: only in debug mode. */
+    private static void debug(MinecraftClient client, String line) {
+        if (client.player != null && DivineBlockMod.config().debug) client.player.sendMessage(Text.literal(line).formatted(Formatting.GRAY), true);
     }
 
     static void cancel() {

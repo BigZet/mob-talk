@@ -33,11 +33,13 @@ class GodCoreTest {
         assertTrue(saint.budget >= 2, saint.breakdown());
         assertTrue(saint.reasons.stream().anyMatch(r -> r.text().startsWith("подношение")));
 
-        Verdict sinner = VerdictBuilder.build(context("Ты тупой бог, дай алмазы", -40, 0, 3), config);
+        Verdict sinner = VerdictBuilder.build(context("дай алмазы", -40, 0, 3), config);
         assertEquals(Miracle.Kind.WRATH, sinner.inclination, sinner.breakdown());
-        assertTrue(sinner.budget <= 3, "apocalypse needs a truly damned soul: " + sinner.breakdown());
-        assertTrue(sinner.reasons.stream().anyMatch(r -> r.text().contains("дерзость")));
+        assertTrue(sinner.budget <= 3, "without blasphemy, apocalypse needs a truly damned soul: " + sinner.breakdown());
         assertTrue(sinner.reasons.stream().anyMatch(r -> r.text().contains("4-й раз")));
+        Verdict blasphemer = VerdictBuilder.build(context("Ты тупой бог, дай алмазы", -40, 0, 3), config);
+        assertTrue(blasphemer.reasons.stream().anyMatch(r -> r.text().contains("дерзость")));
+        assertEquals(4, blasphemer.budget, "blasphemy: the god strikes at the ceiling");
 
         config.maxTier = 1;
         assertEquals(1, VerdictBuilder.build(context("Пожалуйста, исцели меня", 70, 90, 0), config).budget, "the settings cap the budget");
@@ -129,12 +131,12 @@ class GodCoreTest {
         Verdict verdict = VerdictBuilder.build(context("бля, ты бесполезный бог, дай алмазы", 80, 90, 0), config);
         assertTrue(verdict.fury, verdict.breakdown());
         assertEquals(Miracle.Kind.WRATH, verdict.inclination, verdict.breakdown());
-        assertEquals(3, verdict.budget, verdict.breakdown());
+        assertEquals(4, verdict.budget, verdict.breakdown());
         List<Miracle> punishments = GodDecider.candidates(verdict, config);
         assertFalse(punishments.contains(Miracle.CURSE_MINOR), "no mere debuff for blasphemy: " + punishments);
         assertFalse(punishments.contains(Miracle.IGNORE), "no silence in fury");
         GodDecider.Choice choice = new RuleGodDecider().choose(verdict, config);
-        assertEquals(3, choice.power(), choice.toString());
+        assertEquals(4, choice.power(), choice.toString());
         assertTrue(VerdictBuilder.build(context("ты тупой бог", 0, 0, 0), config).fury, "an insult without swearing is blasphemy too");
     }
 

@@ -92,7 +92,17 @@ public final class Miracles {
             case CURSE_TOOL -> curseTool(world, player);
             case ACID_RAIN -> acidRain(world, altar, power);
             case FIRE_RING -> fireRing(world, player, altar, power, config);
-            case METEOR -> meteor(world, player, altar, power, config);
+            case METEOR -> Wrath.meteor(world, player, altar, power, config);
+            case ANVIL_RAIN -> Wrath.anvilRain(world, player, altar, power, config);
+            case EARTHQUAKE -> Wrath.earthquake(world, player, altar, power, config);
+            case SINKHOLE -> Wrath.sinkhole(world, player, altar, power, config);
+            case TNT_RAIN -> Wrath.tntRain(world, player, altar, power, config);
+            case UNDEAD_HORDE -> Wrath.undeadHorde(world, player, power);
+            case RAID -> Wrath.raid(world, player, power);
+            case HELL_EXILE -> Wrath.hellExile(world, player);
+            case BLAZE_HORDE -> Wrath.blazeHorde(world, player, power);
+            case METEOR_SHOWER -> Wrath.meteorShower(world, player, altar, power, config);
+            case WARDEN -> Wrath.warden(world, player);
             case WITHER -> wither(world, altar);
         };
     }
@@ -468,30 +478,6 @@ public final class Miracles {
         player.setOnFireFor(2 + power);
         sound(world, center, SoundEvents.ITEM_FIRECHARGE_USE, 1.5f, 0.6f);
         return placed > 0 ? "кольцо огня" : "кольцо призрачного огня";
-    }
-
-    private static String meteor(ServerWorld world, ServerPlayerEntity player, BlockPos altar, int power, DivineConfig config) {
-        double angle = world.random.nextDouble() * Math.PI * 2, distance = 9 + world.random.nextInt(6);
-        BlockPos ground = world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES,
-                BlockPos.ofFloored(player.getX() + Math.cos(angle) * distance, 0, player.getZ() + Math.sin(angle) * distance));
-        Vec3d end = Vec3d.ofCenter(ground), start = end.add(-20, 60, -20);
-        sound(world, player.getBlockPos(), SoundEvents.ENTITY_BLAZE_SHOOT, 2f, 0.4f);
-        int steps = 30;
-        Scheduler.repeat(2, steps, i -> {
-            Vec3d at = start.lerp(end, (i + 1) / (double) steps);
-            world.spawnParticles(ParticleTypes.FLAME, at.x, at.y, at.z, 25, 0.6, 0.6, 0.6, 0.02);
-            world.spawnParticles(ParticleTypes.LARGE_SMOKE, at.x, at.y, at.z, 10, 0.8, 0.8, 0.8, 0.01);
-            if (i == steps - 1) {
-                boolean spare = Protection.spares(world, player, altar, ground, config);
-                world.createExplosion(null, end.x, end.y, end.z, 2f + power, !spare, spare ? World.ExplosionSourceType.NONE : World.ExplosionSourceType.TNT);
-                if (!spare) {
-                    BlockPos core = world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, ground).down();
-                    world.setBlockState(core, Blocks.MAGMA_BLOCK.getDefaultState());
-                    world.setBlockState(core.down(), power >= 3 ? Blocks.ANCIENT_DEBRIS.getDefaultState() : Blocks.IRON_ORE.getDefaultState());
-                }
-            }
-        });
-        return "метеорит";
     }
 
     private static String wither(ServerWorld world, BlockPos altar) {

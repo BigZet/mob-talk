@@ -83,8 +83,7 @@ public final class VerdictBuilder {
             // Fury: no gift, holiness or moon softens it, no silence, and the full strength the settings allow.
             verdict.fury = true;
             verdict.inclination = Miracle.Kind.WRATH;
-            verdict.budget = Math.max(verdict.budget, Math.min(3, config.maxTier));
-            if (r <= -60) verdict.budget = Math.min(4, config.maxTier);
+            verdict.budget = config.maxTier;
         }
         return verdict;
     }

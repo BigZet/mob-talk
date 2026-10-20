@@ -23,12 +23,12 @@ public final class DivineConfig {
 
     public Personality personality = Personality.CAPRICIOUS;
     /** The strongest act the god may perform, 0..4. */
-    public int maxTier = 3;
+    public int maxTier = 4;
     public boolean allowWither = false;
     /** Destructive acts (fire, meteors) spare blocks entirely; off lets meteors leave craters outside the protected radius. */
     public boolean protectBlocks = false;
-    /** No block changes within this many blocks of the altar and of the player's bed. */
-    public int protectRadius = 24;
+    /** No block changes within this many blocks of the player's bed (the altar itself is always spared). */
+    public int protectRadius = 16;
     /** The weight of the god's named whims (storm, moon); 0 makes him fully predictable. */
     public int whimWeight = 1;
     public int cooldownSeconds = 20;

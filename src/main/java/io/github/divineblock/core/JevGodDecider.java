@@ -21,7 +21,7 @@ import java.util.function.Consumer;
 public final class JevGodDecider implements GodDecider {
     static final URI ENDPOINT = URI.create("https://openrouter.ai/api/alpha/decisions");
     public static final String MODEL = "~typesafe/jev-latest";
-    public static final Duration TIMEOUT = Duration.ofMillis(1500);
+    public static final Duration TIMEOUT = Duration.ofMillis(2500);
     private static final int MAX_BODY = 64 * 1024;
     private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(TIMEOUT).followRedirects(HttpClient.Redirect.NEVER).build();
     /** Where one-line diagnostics go; the game points it at its log. Never carries the key. */
@@ -116,7 +116,16 @@ public final class JevGodDecider implements GodDecider {
         JsonObject q = new JsonObject(); q.addProperty("type", type); q.addProperty("instructions", instructions); q.add("criteria", criteria); return q;
     }
 
+    /** One retry: a dropped connection (the first call after a while often is) should not hand the god to the rules. */
     Answers ask(JsonObject state, JsonObject questions) throws IOException, InterruptedException {
+        try { return askOnce(state, questions); }
+        catch (IOException failure) {
+            if (failure.getMessage() == null || !failure.getMessage().contains("не удалось выполнить")) throw failure;
+            return askOnce(state, questions);
+        }
+    }
+
+    private Answers askOnce(JsonObject state, JsonObject questions) throws IOException, InterruptedException {
         JsonObject body = new JsonObject(); body.addProperty("model", MODEL); body.add("state", state); body.add("questions", questions);
         HttpRequest request = HttpRequest.newBuilder(endpoint).timeout(TIMEOUT).header("Authorization", "Bearer " + key).header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(body.toString(), StandardCharsets.UTF_8)).build();

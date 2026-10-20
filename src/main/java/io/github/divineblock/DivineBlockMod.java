@@ -42,6 +42,7 @@ public final class DivineBlockMod implements ModInitializer {
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> entries.add(ALTAR_ITEM));
         PayloadTypeRegistry.playC2S().register(PrayPayload.ID, PrayPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(io.github.divineblock.game.GodLinePayload.ID, io.github.divineblock.game.GodLinePayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(io.github.divineblock.game.BeamsPayload.ID, io.github.divineblock.game.BeamsPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(io.github.divineblock.game.VoiceStartPayload.ID, io.github.divineblock.game.VoiceStartPayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(io.github.divineblock.game.VoiceStartPayload.ID,
                 (payload, context) -> Prayers.voiceStarted(context.player(), payload.id(), payload.seconds()));

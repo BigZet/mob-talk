@@ -179,6 +179,8 @@ public final class Prayers {
         speakThen(player, altar, verdict.speech, seconds -> {
             if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) return;
             Miracles.speaking(player, altar, verdict.chosen().kind, seconds);
+            if (ServerPlayNetworking.canSend(player, BeamsPayload.ID))
+                ServerPlayNetworking.send(player, new BeamsPayload(altar, (int) Math.round(seconds * 20) + 30, beamColor(verdict.chosen().kind)));
             Scheduler.later((int) Math.max(1, Math.round(seconds * 20) + 4), () -> {
                 if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) return;
                 Miracles.flourish(player, altar, verdict.chosen().kind, verdict.power);
@@ -190,6 +192,10 @@ public final class Prayers {
                 act(player, altar, verdict, config);
             });
         });
+    }
+
+    static int beamColor(Miracle.Kind kind) {
+        return switch (kind) { case HELP -> 0xFFFFD24A; case JEST -> 0xFFB050FF; case WRATH -> 0xFFFF2A1A; case OMEN -> 0xFFFFFFFF; };
     }
 
     /** Lines waiting for the client to start voicing them, by player and line id. */
@@ -244,7 +250,10 @@ public final class Prayers {
         player.sendMessage(Text.literal("[Бог] ").formatted(Formatting.GOLD, Formatting.BOLD)
                 .append(Text.literal(line == null || line.isBlank() ? "…" : line).formatted(Formatting.YELLOW, Formatting.ITALIC)), false);
     }
-    static void hint(ServerPlayerEntity player, String line) { player.sendMessage(Text.literal(line).formatted(Formatting.GOLD), true); }
+    /** A service line (heard, ignored, what happened): only in debug mode, so the game itself shows nothing but the god. */
+    static void hint(ServerPlayerEntity player, String line) {
+        if (DivineBlockMod.config().debug) player.sendMessage(Text.literal(line).formatted(Formatting.GOLD), true);
+    }
     private static void title(ServerPlayerEntity player, Text title, Text subtitle) {
         player.networkHandler.sendPacket(new TitleFadeS2CPacket(10, 60, 20));
         player.networkHandler.sendPacket(new SubtitleS2CPacket(subtitle));
