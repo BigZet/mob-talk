@@ -1,0 +1,11 @@
+{
+  "block.parrotcages.small_parrot_cage": "Small Parrot Cage",
+  "block.parrotcages.medium_parrot_cage": "Medium Parrot Cage",
+  "block.parrotcages.large_parrot_cage": "Large Parrot Cage",
+  "parrotcages.message.caged": "%s is now in the cage",
+  "parrotcages.message.released": "%s was released",
+  "parrotcages.message.occupied": "%s is in this cage. Sneak and right-click to release it",
+  "parrotcages.message.occupant_away": "The occupant is not near the cage right now",
+  "parrotcages.message.no_parrot": "No free parrot nearby (searching within %s blocks)",
+  "parrotcages.message.unknown": "unknown parrot"
+}

@@ -1,0 +1,11 @@
+{
+  "block.parrotcages.small_parrot_cage": "Маленькая клетка для попугая",
+  "block.parrotcages.medium_parrot_cage": "Средняя клетка для попугая",
+  "block.parrotcages.large_parrot_cage": "Большая клетка для попугая",
+  "parrotcages.message.caged": "%s теперь в клетке",
+  "parrotcages.message.released": "%s выпущен из клетки",
+  "parrotcages.message.occupied": "В клетке сидит %s. Присядьте и нажмите ПКМ, чтобы выпустить",
+  "parrotcages.message.occupant_away": "Пленника сейчас нет рядом с клеткой",
+  "parrotcages.message.no_parrot": "Рядом нет свободного попугая (ищу в радиусе %s блоков)",
+  "parrotcages.message.unknown": "неизвестный попугай"
+}

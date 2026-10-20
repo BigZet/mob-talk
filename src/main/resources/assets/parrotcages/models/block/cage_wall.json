@@ -1,0 +1,42 @@
+{
+  "parent": "minecraft:block/block",
+  "ambientocclusion": false,
+  "textures": {
+    "bars": "minecraft:block/iron_bars",
+    "particle": "minecraft:block/iron_bars"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        16,
+        1
+      ],
+      "faces": {
+        "north": {
+          "texture": "#bars"
+        },
+        "south": {
+          "texture": "#bars"
+        },
+        "east": {
+          "texture": "#bars"
+        },
+        "west": {
+          "texture": "#bars"
+        },
+        "up": {
+          "texture": "#bars"
+        },
+        "down": {
+          "texture": "#bars"
+        }
+      }
+    }
+  ]
+}

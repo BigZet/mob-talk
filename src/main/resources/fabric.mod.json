@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "parrotcages",
+  "version": "${version}",
+  "name": "Parrot Cages",
+  "description": "Клетки для попугаев трёх размеров. Птица остаётся живой внутри и совместима с Viewer Parrots.",
+  "authors": [
+    "BigZet"
+  ],
+  "license": "GPL-3.0-only",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "io.github.parrotcages.ParrotCages"
+    ],
+    "client": [
+      "io.github.parrotcages.ParrotCagesClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "1.21.1",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
