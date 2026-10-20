@@ -238,4 +238,19 @@ class GodCoreTest {
             history.add(chosen); previous = chosen;
         }
     }
+
+    @Test void theRepentantBlasphemerIsForgiven() {
+        DivineConfig config = config();
+        for (String apology : List.of("Прости меня бог прости я слуга твой", "Прости меня бог за грехи мои")) {
+            Verdict verdict = VerdictBuilder.build(new VerdictBuilder.Context(apology, PrayerTone.of(apology), 0, "", false, -30, "", List.of(), 1,
+                    -100, 5, false, 2, false, false, 2), config);
+            assertTrue(verdict.forgiveness, verdict.breakdown());
+            assertNotEquals(Miracle.Kind.WRATH, verdict.inclination, verdict.breakdown());
+            assertFalse(verdict.reasons.stream().anyMatch(r -> r.text().startsWith("просишь уже")), "an apology is not pestering");
+        }
+        // Swearing while "apologising" is still blasphemy.
+        Verdict mock = VerdictBuilder.build(new VerdictBuilder.Context("прости, сука", PrayerTone.of("прости, сука"), 0, "", false, 0, "", List.of(), 1,
+                0, 0, false, 2, false, false, 2), config);
+        assertTrue(mock.fury, mock.breakdown());
+    }
 }

@@ -28,6 +28,8 @@ public final class Verdict {
     public boolean warned;
     /** Blasphemy: the god is in a fury, punishes at full strength and never stays silent. */
     public boolean fury;
+    /** The mortal repented of earlier blasphemy and was forgiven: a sign of peace, nothing else. */
+    public boolean forgiveness;
     /** "jev" or "rules", and what Jev said, for the debug view. */
     public String decidedBy = "rules";
     public String decisionNote = "";

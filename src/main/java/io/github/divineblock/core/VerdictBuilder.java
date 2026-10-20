@@ -63,11 +63,14 @@ public final class VerdictBuilder {
         // Every earlier blasphemy of these days raises the fury a rung: the god remembers each insult.
         if (blasphemy && context.blasphemiesBefore() > 0)
             reasons.add(new Verdict.Reason("хулит уже " + (context.blasphemiesBefore() + 1) + "-й раз", -Math.min(12, 2 * context.blasphemiesBefore()), 0));
-        else if (tone.polite()) reasons.add(new Verdict.Reason("смиренная молитва", 1, 0));
-        if (tone.repents()) reasons.add(new Verdict.Reason("раскаяние", 1, 0));
+        // A sincere apology outweighs the old insults: the god forgives the penitent instead of punishing him again.
+        boolean repents = tone.repents() && !blasphemy;
+        if (repents) reasons.add(new Verdict.Reason(context.blasphemiesBefore() > 0 ? "искреннее покаяние в хуле" : "раскаяние", 6, 0));
+        else if (tone.polite() && !blasphemy) reasons.add(new Verdict.Reason("смиренная молитва", 1, 0));
         if (tone.urgent() || context.inDanger()) reasons.add(new Verdict.Reason(context.inDanger() ? "смертный в беде" : "мольба о срочной помощи", context.inDanger() ? 1 : 0, 1));
 
-        if (context.recentPrayers() >= 2) {
+        // Coming back to apologise is not pestering.
+        if (context.recentPrayers() >= 2 && !repents) {
             int extra = Math.min(3, context.recentPrayers() - 1);
             reasons.add(new Verdict.Reason("просишь уже " + (context.recentPrayers() + 1) + "-й раз подряд", -extra, 0));
         }
@@ -90,6 +93,12 @@ public final class VerdictBuilder {
         for (Verdict.Reason reason : reasons) { verdict.favor += reason.favor(); verdict.force += reason.force(); }
         verdict.inclination = inclination(verdict.favor, verdict.force, personality);
         verdict.budget = budget(verdict, r, config);
+        if (repents && context.blasphemiesBefore() > 0 && verdict.favor > -6) {
+            // Forgiveness after blasphemy: a sign of peace, neither a gift nor a blow.
+            verdict.forgiveness = true;
+            verdict.inclination = Miracle.Kind.OMEN;
+            verdict.budget = 0;
+        }
         if (blasphemy) {
             // Fury: no gift, holiness or moon softens it, no silence, and the full strength the settings allow.
             verdict.fury = true;

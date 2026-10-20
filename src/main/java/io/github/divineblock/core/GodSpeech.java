@@ -80,6 +80,7 @@ public final class GodSpeech {
         StringBuilder out = new StringBuilder("Молитва смертного: «").append(clip(verdict.prayer, 400)).append("»\n");
         out.append("Твоё решение: ").append(miracle.kind.label).append(" — ").append(miracle.description).append(" (сила ").append(verdict.power).append(").\n");
         out.append("Главные причины: ").append(reasonList(verdict.mainReasons(3))).append(".\n");
+        if (verdict.forgiveness) out.append("Смертный, что прежде хулил тебя, искренне кается. Ты прощаешь его — сурово, но прощаешь; кары не будет.\n");
         if (verdict.fury) out.append("Смертный хулил тебя. Ты в бешенстве: хулы ты не терпишь, гнев твой страшен и немедлен.\n");
         out.append("Форма этой реплики — ").append(form).append(".");
         if (recentLines != null && !recentLines.isEmpty()) {

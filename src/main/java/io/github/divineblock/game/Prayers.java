@@ -141,6 +141,7 @@ public final class Prayers {
         else if (offeringValue > 0) soul.shiftMood(now, Math.min(25, 3 + offeringValue / 3.0));
         // Blasphemy of any kind: the god's mood drops to the bottom at once, and the sin is remembered.
         if (verdict.fury) { soul.shiftMood(now, -200); righteousness.record(Righteousness.Deed.BLASPHEMY, day, ""); }
+        else if (verdict.forgiveness) soul.shiftMood(now, 60 - soul.mood(now)); // Anger let go: the mood returns to mild favour.
         else if (tone.polite()) soul.shiftMood(now, 3);
         if (recent >= 2) soul.shiftMood(now, -5);
         state.markDirty();
