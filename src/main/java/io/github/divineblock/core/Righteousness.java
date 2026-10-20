@@ -20,7 +20,8 @@ public final class Righteousness {
         ANIMAL_BRED(0.5, 5, "разводил животных"),
         TRADED(0.5, 5, "честно торговал с жителями"),
         PLANTED(0.25, 3, "сажал деревья и посевы"),
-        RUDE_PRAYER(-2, 6, "хамил богу в молитве");
+        RUDE_PRAYER(-2, 6, "хамил богу в молитве"),
+        BLASPHEMY(-8, 32, "хулил бога бранью");
 
         public final double weight, dailyCap;
         public final String phrase;

@@ -55,6 +55,7 @@ public final class SelfTest {
     private static int phase, ticks, failures;
     private static volatile String screenshot, clientPrayer, heardText, unheardText;
     private static volatile int voiced;
+    private static volatile long spokenAt, performedAt;
     private static volatile boolean finished;
     private static BlockPos altar, base;
 
@@ -141,7 +142,14 @@ public final class SelfTest {
                 check(client.currentScreen instanceof VoiceSettingsScreen, "меню «Эхо и реверб» открылось");
                 screenshot = "voice-settings";
             }
-            case 220 -> { client.setScreen(null); log("ошибок всего: " + failures); finish(client); }
+            case 220 -> client.setScreen(new net.minecraft.client.gui.screen.GameMenuScreen(true));
+            case 250 -> {
+                boolean button = client.currentScreen != null && net.fabricmc.fabric.api.client.screen.v1.Screens.getButtons(client.currentScreen).stream()
+                        .anyMatch(b -> b.getMessage().getString().equals("Божественный блок"));
+                check(button, "кнопка «Божественный блок» есть в меню Esc");
+                screenshot = "pause-menu";
+            }
+            case 270 -> { client.setScreen(null); log("ошибок всего: " + failures); finish(client); }
             default -> { }
         }
     }
@@ -213,13 +221,25 @@ public final class SelfTest {
         }));
         steps.add(new Step(100, () -> {
             check(voiced >= 2, "голос бога прозвучал: " + voiced + " раз");
-            soul.righteousness.score = -45; soul.mood = -50; soul.lastPrayerTick = Long.MIN_VALUE / 2; soul.prayerTicks.clear();
-            Prayers.handle(player, altar, "Ты тупой бог, дай алмазы");
+            // An ordinary mortal swears at the god: real wrath, at full strength, and only after the god has spoken.
+            soul.righteousness.score = 0; soul.mood = 0; soul.lastPrayerTick = Long.MIN_VALUE / 2; soul.prayerTicks.clear();
+            Prayers.spoken = line -> { spokenAt = System.nanoTime(); log("  бог: " + line); };
+            Prayers.performed = act -> { performedAt = System.nanoTime(); log("  свершилось: " + act); };
+            spokenAt = performedAt = 0;
+            Prayers.handle(player, altar, "бля, ты бесполезный бог, дай алмазы");
         }));
         steps.add(new Step(-1, () -> {
             Verdict wrath = verdictArrived(soul, 3, "гнев грешнику");
+            if (wrath != null) {
+                check(wrath.chosen() == Miracle.IGNORE || wrath.chosen().kind == Miracle.Kind.WRATH && wrath.power >= 3,
+                        "за брань — настоящая кара: " + wrath.miracle + " ×" + wrath.power);
+                check(wrath.reasons.stream().anyMatch(r -> r.text().contains("брань")), "брань названа причиной");
+            }
+        }));
+        steps.add(new Step(400, () -> {
             screenshot = "wrath";
-            if (wrath != null) check(wrath.chosen() == Miracle.IGNORE || wrath.chosen().kind == Miracle.Kind.WRATH, "кара свершилась сразу, без отсрочки: " + wrath.miracle);
+            check(spokenAt > 0 && performedAt > spokenAt, "кара пала после слов бога: слова → дело через "
+                    + (performedAt > 0 && spokenAt > 0 ? (performedAt - spokenAt) / 1_000_000 + " мс" : "—"));
         }));
         steps.add(new Step(80, () -> {
             // Idle talk at the altar is not a prayer: the god does not hear it, nothing is weighed or done.

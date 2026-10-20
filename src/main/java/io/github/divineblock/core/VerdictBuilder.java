@@ -9,7 +9,15 @@ public final class VerdictBuilder {
     /** Everything a verdict depends on, gathered on the game thread. */
     public record Context(String prayer, PrayerTone tone, int offeringValue, String offeringText, boolean insultingOffering,
                           double righteousness, String righteousnessLabel, List<Righteousness.Memory> notableDeeds, long today,
-                          int mood, int recentPrayers, boolean thundering, int moonPhase, boolean inDanger) { }
+                          int mood, int recentPrayers, boolean thundering, int moonPhase, boolean inDanger, boolean judgedInsult) {
+        /** Without Jev's judgement of insolence (the rules' words only). */
+        public Context(String prayer, PrayerTone tone, int offeringValue, String offeringText, boolean insultingOffering, double righteousness,
+                       String righteousnessLabel, List<Righteousness.Memory> notableDeeds, long today, int mood, int recentPrayers,
+                       boolean thundering, int moonPhase, boolean inDanger) {
+            this(prayer, tone, offeringValue, offeringText, insultingOffering, righteousness, righteousnessLabel, notableDeeds, today, mood,
+                    recentPrayers, thundering, moonPhase, inDanger, false);
+        }
+    }
 
     private VerdictBuilder() { }
 
@@ -40,7 +48,9 @@ public final class VerdictBuilder {
         }
 
         PrayerTone tone = context.tone();
-        if (tone.rude()) reasons.add(new Verdict.Reason("хамство в молитве", -2, 1));
+        // Swearing at a god is not a slip of the tongue: it is the heaviest word a mortal can bring to the altar.
+        if (tone.profane()) reasons.add(new Verdict.Reason("брань и хула на бога", -5, 2));
+        else if (tone.rude() || context.judgedInsult()) reasons.add(new Verdict.Reason("дерзость к богу", -3, 1));
         else if (tone.polite()) reasons.add(new Verdict.Reason("смиренная молитва", 1, 0));
         if (tone.repents()) reasons.add(new Verdict.Reason("раскаяние", 1, 0));
         if (tone.urgent() || context.inDanger()) reasons.add(new Verdict.Reason(context.inDanger() ? "смертный в беде" : "мольба о срочной помощи", context.inDanger() ? 1 : 0, 1));

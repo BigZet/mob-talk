@@ -8,20 +8,20 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.concurrent.TimeUnit;
 
-/** API keys for OpenRouter and Venice, adapted from Mob Talk's OpenRouterToken. Order: the environment variable, a local
- * token file next to the config, the DPAPI-encrypted key of this mod, then Mob Talk's own encrypted key (read only), so a
- * player with Mob Talk set up needs nothing more. Called on workers; keys never reach the config, prompts or logs. */
+/** API keys for OpenRouter and Venice, adapted from Mob Talk's OpenRouterToken but entirely this mod's own: the environment
+ * variable, a local token file next to the config, or the key saved in the settings (DPAPI-encrypted under
+ * %LOCALAPPDATA%\DivineBlock). Called on workers; keys never reach the config, prompts or logs. */
 public final class ApiKeys {
     public enum Provider {
-        OPENROUTER("OpenRouter", "OPENROUTER_API_KEY", "divineblock-openrouter-token.txt", "DivineBlock/openrouter-key.dpapi", "MobTalk/openrouter-key.dpapi"),
-        VENICE("Venice", "VENICE_API_KEY", "divineblock-venice-token.txt", "DivineBlock/venice-key.dpapi", "MobTalk/venice-key.dpapi");
+        OPENROUTER("OpenRouter", "OPENROUTER_API_KEY", "divineblock-openrouter-token.txt", "DivineBlock/openrouter-key.dpapi"),
+        VENICE("Venice", "VENICE_API_KEY", "divineblock-venice-token.txt", "DivineBlock/venice-key.dpapi");
         public final String label;
-        final String variable, plainFile, encryptedFile, mobTalkFile;
-        Provider(String label, String variable, String plainFile, String encryptedFile, String mobTalkFile) {
-            this.label = label; this.variable = variable; this.plainFile = plainFile; this.encryptedFile = encryptedFile; this.mobTalkFile = mobTalkFile;
+        final String variable, plainFile, encryptedFile;
+        Provider(String label, String variable, String plainFile, String encryptedFile) {
+            this.label = label; this.variable = variable; this.plainFile = plainFile; this.encryptedFile = encryptedFile;
         }
     }
-    public enum Source { ENVIRONMENT, FILE, ENCRYPTED, MOB_TALK, NONE }
+    public enum Source { ENVIRONMENT, FILE, ENCRYPTED, NONE }
     /** Where the key comes from and a masked hint such as sk-or-v1…9f3c; never the key itself. */
     public record Status(Source source, String hint) { }
 
@@ -43,10 +43,8 @@ public final class ApiKeys {
             String token = Files.readString(plain, StandardCharsets.UTF_8).replace("﻿", "").strip();
             if (!token.isBlank()) return validate(token, provider);
         }
-        for (String encrypted : new String[] { provider.encryptedFile, provider.mobTalkFile }) {
-            String token = decrypt(encrypted, provider);
-            if (!token.isBlank()) return validate(token, provider);
-        }
+        String token = decrypt(provider.encryptedFile, provider);
+        if (!token.isBlank()) return validate(token, provider);
         throw new IOException("Нет ключа " + provider.label + ": вставьте его в настройках Божественного блока.");
     }
 
@@ -58,7 +56,6 @@ public final class ApiKeys {
             if (Files.isRegularFile(plain)) return new Status(Source.FILE, mask(Files.readString(plain, StandardCharsets.UTF_8).strip()));
             Path local = localAppData();
             if (local != null && Files.isRegularFile(local.resolve(provider.encryptedFile))) return new Status(Source.ENCRYPTED, "зашифрован Windows");
-            if (local != null && Files.isRegularFile(local.resolve(provider.mobTalkFile))) return new Status(Source.MOB_TALK, "ключ Mob Talk");
         } catch (IOException | RuntimeException ignored) { }
         return new Status(Source.NONE, "");
     }

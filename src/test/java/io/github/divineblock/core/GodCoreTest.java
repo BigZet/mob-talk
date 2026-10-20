@@ -36,7 +36,7 @@ class GodCoreTest {
         Verdict sinner = VerdictBuilder.build(context("Ты тупой бог, дай алмазы", -40, 0, 3), config);
         assertEquals(Miracle.Kind.WRATH, sinner.inclination, sinner.breakdown());
         assertTrue(sinner.budget <= 3, "apocalypse needs a truly damned soul: " + sinner.breakdown());
-        assertTrue(sinner.reasons.stream().anyMatch(r -> r.text().contains("хамство")));
+        assertTrue(sinner.reasons.stream().anyMatch(r -> r.text().contains("дерзость")));
         assertTrue(sinner.reasons.stream().anyMatch(r -> r.text().contains("4-й раз")));
 
         config.maxTier = 1;
@@ -118,6 +118,20 @@ class GodCoreTest {
         assertFalse(PrayerTone.isWhyQuestion("почему бы тебе не дать мне алмазов и золота и железа побольше"));
         assertTrue(PrayerTone.of("Прости меня, великий").repents());
         assertTrue(PrayerTone.of("заткнись, идиот").rude());
+        assertTrue(PrayerTone.of("да пошёл ты нахуй, бог").profane());
+        assertTrue(PrayerTone.of("Сука, дай алмазы").profane());
+        assertFalse(PrayerTone.of("я употребляю хлеб и строю себе дом").profane(), "no false alarm inside ordinary words");
+    }
+
+    @Test void swearingAtTheGodBringsRealWrath() {
+        DivineConfig config = config();
+        Verdict verdict = VerdictBuilder.build(context("бля, ты бесполезный бог, дай алмазы", 0, 0, 0), config);
+        assertEquals(Miracle.Kind.WRATH, verdict.inclination, verdict.breakdown());
+        assertEquals(3, verdict.budget, verdict.breakdown());
+        List<Miracle> punishments = GodDecider.candidates(verdict, config);
+        assertFalse(punishments.contains(Miracle.CURSE_MINOR), "no mere debuff for blasphemy: " + punishments);
+        GodDecider.Choice choice = new RuleGodDecider().choose(verdict, config);
+        assertTrue(choice.miracle() == Miracle.IGNORE || choice.power() == 3, choice.toString());
     }
 
     @Test void ledgerSurvivesTheSave() {

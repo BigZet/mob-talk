@@ -3,8 +3,14 @@ package io.github.divineblock.core;
 import java.util.List;
 import java.util.Locale;
 
-/** What the words of a prayer show without a model: courtesy, rudeness, repentance, a "why?" and urgency. */
-public record PrayerTone(boolean polite, boolean rude, boolean repents, boolean asksWhy, boolean urgent) {
+/** What the words of a prayer show without a model: courtesy, rudeness, swearing at the god, repentance, a "why?" and urgency. */
+public record PrayerTone(boolean polite, boolean rude, boolean profane, boolean repents, boolean asksWhy, boolean urgent) {
+    /** Russian obscenities and the worst insults. The unmistakable roots match anywhere ("нахуй", "распиздяй"); the short ones
+     * only at the start of a word, so "употребляю" is not "бля" and "себе" is not swearing. */
+    private static final java.util.regex.Pattern PROFANITY = java.util.regex.Pattern.compile(
+            "(?U)(ху[йёяю]|хуе[вт]|хуйн|пизд|п[иі]зж|[её]бан|[её]бат|[её]бну|бляд|блят|(?<![\\p{L}])([её]б[аеиуоыё]|[её]бл|бля|сук[аиу]|суч|мудак|мудил"
+                    + "|гандон|долбо[её]б|говн|залуп|шлюх|пид[оа]р|нахер|похер|f+u+c+k|shit|bitch))",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
     private static final List<String> POLITE = List.of("пожалуйста", "прошу", "молю", "смиренно", "будь добр", "милостив", "please", "благодар", "спасибо", "слава");
     private static final List<String> RUDE = List.of("дурак", "тупой", "тупица", "идиот", "заткнись", "сдохни", "ненавижу тебя", "плевать на тебя", "ты никто",
             "бесполезн", "fuck", "stupid", "хрен", "чёрт тебя", "черт тебя", "лох", "урод");
@@ -14,7 +20,8 @@ public record PrayerTone(boolean polite, boolean rude, boolean repents, boolean 
 
     public static PrayerTone of(String prayer) {
         String text = prayer == null ? "" : prayer.toLowerCase(Locale.ROOT);
-        return new PrayerTone(any(text, POLITE), any(text, RUDE), any(text, REPENTS), any(text, WHY), any(text, URGENT));
+        boolean profane = PROFANITY.matcher(text).find();
+        return new PrayerTone(any(text, POLITE) && !profane, any(text, RUDE) || profane, profane, any(text, REPENTS), any(text, WHY), any(text, URGENT));
     }
 
     /** A bare "why?" asks the god to explain his last verdict; a "why" inside a longer request is just a prayer. */
@@ -32,7 +39,8 @@ public record PrayerTone(boolean polite, boolean rude, boolean repents, boolean 
     public static boolean addressesGod(String prayer) {
         if (prayer == null || prayer.isBlank()) return false;
         String text = prayer.toLowerCase(Locale.ROOT);
-        return any(text, ADDRESS) || any(text, REPENTS) || any(text, RUDE) || any(text, WHY) || text.strip().startsWith("о ");
+        return any(text, ADDRESS) || any(text, REPENTS) || any(text, RUDE) || any(text, WHY) || text.strip().startsWith("о ")
+                || PROFANITY.matcher(text).find();
     }
 
     private static boolean any(String text, List<String> stems) {

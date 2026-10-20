@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.network.packet.s2c.play.SubtitleS2CPacket;
 import net.minecraft.network.packet.s2c.play.TitleFadeS2CPacket;
@@ -83,25 +84,26 @@ public final class Prayers {
                     return;
                 }
                 if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) { THINKING.remove(player.getUuid()); return; }
-                pray(player, altar, world, text, config, judgement.by());
+                pray(player, altar, world, text, config, judgement);
             });
         });
     }
 
-    /** Whether the words are a prayer: Jev decides, the rules answer when Jev is off or silent. */
-    record Judgement(boolean prayer, String by) { }
+    /** Whether the words are a prayer and whether they insult the god: Jev decides, the rules answer when Jev is off or silent. */
+    record Judgement(boolean prayer, boolean insult, String by) { }
     static Judgement judge(DivineConfig config, String text) {
         if (config.useJev) {
             try {
-                Boolean jev = new JevGodDecider(ApiKeys.load(DivineBlockMod.configDirectory(), ApiKeys.Provider.OPENROUTER), new RuleGodDecider()).isPrayer(text);
-                if (jev != null) return new Judgement(jev, "jev");
+                JevGodDecider.Reading jev = new JevGodDecider(ApiKeys.load(DivineBlockMod.configDirectory(), ApiKeys.Provider.OPENROUTER), new RuleGodDecider()).read(text);
+                if (jev != null) return new Judgement(jev.prayer(), jev.insult(), "jev");
             } catch (Exception missing) { DivineBlockMod.LOG.info("Божественный блок: Jev без ключа, молитву распознают правила"); }
         }
-        return new Judgement(PrayerTone.addressesGod(text), "rules");
+        return new Judgement(PrayerTone.addressesGod(text), PrayerTone.of(text).rude(), "rules");
     }
 
     /** The heard prayer: the gifts burn, the verdict is weighed, and the decision is made off the game thread. */
-    private static void pray(ServerPlayerEntity player, BlockPos altar, ServerWorld world, String text, DivineConfig config, String judgedBy) {
+    private static void pray(ServerPlayerEntity player, BlockPos altar, ServerWorld world, String text, DivineConfig config, Judgement judgement) {
+        String judgedBy = judgement.by();
         MinecraftServer server = world.getServer();
         DivineState state = DivineState.of(server);
         GodLedger.Soul soul = state.ledger.soul(player.getUuid());
@@ -130,23 +132,26 @@ public final class Prayers {
         boolean storm = world.isThundering(), danger = player.getHealth() < player.getMaxHealth() * 0.3f;
         VerdictBuilder.Context context = new VerdictBuilder.Context(text, tone, offeringValue, String.join(", ", gifts), insult,
                 righteousness.score, righteousness.label(), righteousness.notable(day, 3, 2), day, (int) Math.round(soul.mood(now)), recent,
-                storm, world.getMoonPhase(), danger);
+                storm, world.getMoonPhase(), danger, judgement.insult());
         Verdict verdict = VerdictBuilder.build(context, config);
 
         soul.prayed(now);
         if (insult) soul.shiftMood(now, -15);
         else if (offeringValue > 0) soul.shiftMood(now, Math.min(25, 3 + offeringValue / 3.0));
-        if (tone.rude()) { soul.shiftMood(now, -15); righteousness.record(Righteousness.Deed.RUDE_PRAYER, day, ""); }
+        if (tone.profane()) { soul.shiftMood(now, -40); righteousness.record(Righteousness.Deed.BLASPHEMY, day, ""); }
+        else if (tone.rude() || judgement.insult()) { soul.shiftMood(now, -20); righteousness.record(Righteousness.Deed.RUDE_PRAYER, day, ""); }
         else if (tone.polite()) soul.shiftMood(now, 3);
         if (recent >= 2) soul.shiftMood(now, -5);
         state.markDirty();
 
+        List<String> recentLines = soul.chronicle.stream().map(v -> v.speech).filter(line -> line != null && !line.isBlank())
+                .skip(Math.max(0, soul.chronicle.size() - 4)).toList();
         WORKER.execute(() -> {
             try {
                 GodDecider.Choice choice = decider(config).choose(verdict, config);
                 verdict.miracle = choice.miracle().id(); verdict.power = choice.power(); verdict.warned = choice.warn();
                 verdict.decidedBy = choice.decidedBy(); verdict.decisionNote = choice.note() + "; молитву признал: " + judgedBy;
-                verdict.speech = verdict.chosen() == Miracle.IGNORE ? "" : new GodSpeech(config, DivineBlockMod.configDirectory()).announce(verdict);
+                verdict.speech = verdict.chosen() == Miracle.IGNORE ? "" : new GodSpeech(config, DivineBlockMod.configDirectory()).announce(verdict, recentLines);
             } catch (RuntimeException failure) {
                 DivineBlockMod.LOG.warn("Божественный блок: решение не принято", failure);
                 verdict.miracle = Miracle.OMEN_LAUGH.id(); verdict.power = 0; verdict.warned = false; verdict.speech = "…";
@@ -162,7 +167,7 @@ public final class Prayers {
         catch (Exception missing) { DivineBlockMod.LOG.info("Божественный блок: Jev без ключа OpenRouter, решают правила"); return rules; }
     }
 
-    /** Back on the game thread: the player must still be here, and then the god acts at once. */
+    /** Back on the game thread: the player must still be here. The god speaks first; the act falls when his voice ends. */
     private static void deliver(ServerPlayerEntity player, BlockPos altar, ServerWorld world, Verdict verdict, DivineConfig config) {
         if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) return;
         MinecraftServer server = world.getServer();
@@ -171,15 +176,45 @@ public final class Prayers {
         DivineBlockMod.LOG.info("Божественный блок: вердикт для {}\n{}", player.getName().getString(), verdict.breakdown());
         if (config.debug) player.sendMessage(Text.literal(verdict.breakdown()).formatted(Formatting.DARK_GRAY), false);
         if (verdict.chosen() == Miracle.IGNORE) { act(player, altar, verdict, config); return; } // Silence: no word at all.
-        say(player, verdict.speech);
-        if (verdict.warned) {
-            // The wrath is announced and falls in the same breath: thunder, the title, the act.
-            Miracles.warn(player, altar);
-            List<Verdict.Reason> main = verdict.mainReasons(1);
-            title(player, Text.literal("Гнев небес").formatted(Formatting.DARK_RED),
-                    Text.literal(main.isEmpty() ? "Мене, мене, текел, упарсин" : main.get(0).text()).formatted(Formatting.RED));
-        }
-        act(player, altar, verdict, config);
+        speakThen(player, altar, verdict.speech, seconds -> {
+            if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) return;
+            Miracles.speaking(player, altar, verdict.chosen().kind, seconds);
+            Scheduler.later((int) Math.max(1, Math.round(seconds * 20) + 4), () -> {
+                if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) return;
+                Miracles.flourish(player, altar, verdict.chosen().kind, verdict.power);
+                if (verdict.warned) {
+                    List<Verdict.Reason> main = verdict.mainReasons(1);
+                    title(player, Text.literal("Гнев небес").formatted(Formatting.DARK_RED),
+                            Text.literal(main.isEmpty() ? "Мене, мене, текел, упарсин" : main.get(0).text()).formatted(Formatting.RED));
+                }
+                act(player, altar, verdict, config);
+            });
+        });
+    }
+
+    /** Lines waiting for the client to start voicing them, by player and line id. */
+    private record Waiting(UUID player, int id, java.util.function.DoubleConsumer then, boolean[] done) { }
+    private static final java.util.Map<String, Waiting> WAITING = new java.util.HashMap<>();
+    private static int nextLine = 1;
+    /** How long to wait for the voice before acting anyway (no mod on the client, a stalled speech service). */
+    static final int VOICE_TIMEOUT_TICKS = 20 * 15;
+
+    /** Sends the line to be voiced; the chat text and {@code then} come when the voice starts, or after the timeout. */
+    private static void speakThen(ServerPlayerEntity player, BlockPos altar, String line, java.util.function.DoubleConsumer then) {
+        int id = nextLine++;
+        boolean[] done = { false };
+        Waiting waiting = new Waiting(player.getUuid(), id, seconds -> { if (done[0]) return; done[0] = true; chat(player, line); then.accept(seconds); }, done);
+        boolean voiced = line != null && !line.isBlank() && !"…".equals(line) && ServerPlayNetworking.canSend(player, GodLinePayload.ID);
+        if (!voiced) { waiting.then().accept(0); return; }
+        WAITING.put(player.getUuid() + "/" + id, waiting);
+        ServerPlayNetworking.send(player, new GodLinePayload(id, line.length() > 600 ? line.substring(0, 600) : line));
+        Scheduler.later(VOICE_TIMEOUT_TICKS, () -> { if (WAITING.remove(player.getUuid() + "/" + id) != null) waiting.then().accept(0); });
+    }
+
+    /** The client started voicing a line (or gave up on it). */
+    public static void voiceStarted(ServerPlayerEntity player, int id, float seconds) {
+        Waiting waiting = WAITING.remove(player.getUuid() + "/" + id);
+        if (waiting != null) waiting.then().accept(Math.max(0, Math.min(60, seconds)));
     }
 
     private static void act(ServerPlayerEntity player, BlockPos altar, Verdict verdict, DivineConfig config) {
@@ -193,16 +228,19 @@ public final class Prayers {
             done = Miracles.perform(omen, 0, player, altar, verdict.prayer, config) + " (" + miracle.id() + " не вышло)";
         }
         hint(player, "✦ " + done);
+        performed.accept(miracle.id());
     }
 
-    /** Every line the god says and every utterance he did not count as a prayer, for the self-test's report. */
+    /** Every line the god says, every utterance he did not count as a prayer and every act, for the self-test's report. */
     public static volatile java.util.function.Consumer<String> spoken = line -> { };
     public static volatile java.util.function.Consumer<String> unheard = text -> { };
+    public static volatile java.util.function.Consumer<String> performed = act -> { };
 
-    static void say(ServerPlayerEntity player, String line) {
+    /** A line with nothing to follow it (the answer to "why?", a refusal): voiced and shown together. */
+    static void say(ServerPlayerEntity player, String line) { speakThen(player, null, line, seconds -> { }); }
+
+    private static void chat(ServerPlayerEntity player, String line) {
         spoken.accept(line);
-        if (line != null && !line.isBlank() && !"…".equals(line) && net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.canSend(player, GodLinePayload.ID))
-            net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(player, new GodLinePayload(line.length() > 600 ? line.substring(0, 600) : line));
         player.sendMessage(Text.literal("[Бог] ").formatted(Formatting.GOLD, Formatting.BOLD)
                 .append(Text.literal(line == null || line.isBlank() ? "…" : line).formatted(Formatting.YELLOW, Formatting.ITALIC)), false);
     }
@@ -213,6 +251,6 @@ public final class Prayers {
         player.networkHandler.sendPacket(new TitleS2CPacket(title));
     }
 
-    /** Forgets in-flight prayers when the server stops. */
-    static void clear() { THINKING.clear(); }
+    /** Forgets in-flight prayers and unvoiced lines when the server stops. */
+    static void clear() { THINKING.clear(); WAITING.clear(); }
 }

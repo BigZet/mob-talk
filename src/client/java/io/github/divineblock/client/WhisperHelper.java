@@ -52,11 +52,16 @@ final class WhisperHelper {
         if (owned != null && owned.isAlive()) return;
         String localAppData = System.getenv("LOCALAPPDATA");
         Path local = localAppData == null ? Path.of(System.getProperty("user.home"), "AppData", "Local") : Path.of(localAppData);
-        Path mobTalk = local.resolve("MobTalk");
-        Path python = mobTalk.resolve("venv/Scripts/pythonw.exe");
-        if (!Files.isRegularFile(python)) python = mobTalk.resolve("venv/Scripts/python.exe");
-        if (!Files.isRegularFile(python)) throw new IOException("Whisper не установлен: поставьте его через Mob Talk (scripts/setup-whisper.ps1).");
         Path directory = local.resolve("DivineBlock");
+        // This mod's own Python environment (scripts/setup-whisper.ps1); an existing Mob Talk environment is only a fallback,
+        // so the 3 GB model is not downloaded twice on a machine that has both mods.
+        Path home = null, python = null;
+        for (Path candidate : new Path[] { directory, local.resolve("MobTalk") }) {
+            for (String exe : new String[] { "venv/Scripts/pythonw.exe", "venv/Scripts/python.exe" })
+                if (python == null && Files.isRegularFile(candidate.resolve(exe))) { python = candidate.resolve(exe); home = candidate; }
+        }
+        if (python == null) throw new IOException("Whisper не установлен: выполните scripts/setup-whisper.ps1 из папки Божественного блока.");
+        Path mobTalk = home;
         Files.createDirectories(directory);
         Path script = directory.resolve("whisper_server.py");
         try (var resource = WhisperHelper.class.getResourceAsStream("/assets/divineblock/helper/whisper_server.py")) {

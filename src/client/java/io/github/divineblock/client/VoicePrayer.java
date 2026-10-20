@@ -102,6 +102,26 @@ final class VoicePrayer {
         return null;
     }
 
+    /** The settings' microphone check: four seconds from the chosen microphone, then what Whisper heard. */
+    static void testMicrophone(DivineConfig config, java.util.function.Consumer<String> status) {
+        if (capture != null || busy) { status.accept("Микрофон сейчас занят молитвой."); return; }
+        MicrophoneRecorder.Capture test;
+        try { test = RECORDER.start(config.microphoneName, 4); }
+        catch (RuntimeException occupied) { status.accept(occupied.getMessage()); return; }
+        DivineConfig settings = config.copy();
+        test.wav.whenComplete((wav, failure) -> WORKER.execute(() -> {
+            try {
+                if (failure != null) { status.accept(failure.getMessage() == null ? "Микрофон недоступен." : failure.getMessage()); return; }
+                if (wav == null) { status.accept("Микрофон молчит: тишина или нет доступа."); return; }
+                status.accept("Распознаю…");
+                WhisperHelper.ensureReady(settings, status);
+                String text = new LocalWhisper(settings.whisperUrl).transcribe(wav);
+                status.accept(text.isBlank() ? "Записалось, но слов не слышно." : "Слышно: «" + text + "»");
+            } catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); }
+            catch (Exception error) { status.accept(error.getMessage()); }
+        }));
+    }
+
     static void cancel() {
         if (capture != null) { capture.cancel(); capture = null; }
     }

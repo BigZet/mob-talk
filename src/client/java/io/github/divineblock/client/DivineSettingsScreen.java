@@ -67,7 +67,7 @@ public final class DivineSettingsScreen extends Screen {
         veniceKey = keyField(right, y, column - 44, "Ключ Venice");
         addDrawableChild(ButtonWidget.builder(Text.literal("Сохр."), b -> storeKey(ApiKeys.Provider.VENICE, veniceKey)).dimensions(right + column - 40, y, 40, 20).build());
 
-        addDrawableChild(ButtonWidget.builder(Text.literal("Эхо и реверб…"), b -> client.setScreen(new VoiceSettingsScreen(this, config)))
+        addDrawableChild(ButtonWidget.builder(Text.literal("Голос и микрофон…"), b -> client.setScreen(new VoiceSettingsScreen(this, config)))
                 .dimensions(this.width / 2 - 154, this.height - 28, 150, 20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Готово"), b -> close()).dimensions(this.width / 2 + 4, this.height - 28, 150, 20).build());
         refreshKeyStatus();
@@ -108,7 +108,7 @@ public final class DivineSettingsScreen extends Screen {
     private static String describe(ApiKeys.Status status) {
         return switch (status.source()) {
             case ENVIRONMENT -> "из переменной среды " + status.hint(); case FILE -> "файл " + status.hint();
-            case ENCRYPTED -> "сохранён"; case MOB_TALK -> "берётся из Mob Talk"; case NONE -> "нет";
+            case ENCRYPTED -> "сохранён"; case NONE -> "нет";
         };
     }
 

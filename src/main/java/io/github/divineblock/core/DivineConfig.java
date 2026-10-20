@@ -26,7 +26,7 @@ public final class DivineConfig {
     public int maxTier = 3;
     public boolean allowWither = false;
     /** Destructive acts (fire, meteors) spare blocks entirely; off lets meteors leave craters outside the protected radius. */
-    public boolean protectBlocks = true;
+    public boolean protectBlocks = false;
     /** No block changes within this many blocks of the altar and of the player's bed. */
     public int protectRadius = 24;
     /** The weight of the god's named whims (storm, moon); 0 makes him fully predictable. */

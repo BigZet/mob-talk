@@ -14,7 +14,9 @@ public interface GodDecider {
     static List<Miracle> candidates(Verdict verdict, DivineConfig config) {
         List<Miracle> out = new ArrayList<>();
         for (Miracle miracle : Miracle.values())
-            if (miracle.kind == verdict.inclination && miracle.kind != Miracle.Kind.OMEN && miracle.minTier <= verdict.budget && config.allows(miracle)) out.add(miracle);
+            if (miracle.kind == verdict.inclination && miracle.kind != Miracle.Kind.OMEN && miracle.minTier <= verdict.budget && config.allows(miracle)
+                    // Wrath earned in full is not paid out in small coin: a mere curse is no answer to a budget of three.
+                    && !(miracle.kind == Miracle.Kind.WRATH && verdict.budget >= 2 && miracle.maxTier < verdict.budget)) out.add(miracle);
         if (out.isEmpty()) for (Miracle miracle : Miracle.values()) if (miracle.kind == Miracle.Kind.OMEN && miracle != Miracle.IGNORE && config.allows(miracle)) out.add(miracle);
         // The god may always choose silence: a prayer he hears but does not deign to answer.
         if (config.allows(Miracle.IGNORE) && !out.contains(Miracle.IGNORE)) out.add(Miracle.IGNORE);

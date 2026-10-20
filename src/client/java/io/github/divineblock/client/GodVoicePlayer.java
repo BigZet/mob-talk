@@ -33,7 +33,7 @@ final class GodVoicePlayer {
     private GodVoicePlayer() { }
 
     static void register() {
-        ClientPlayNetworking.registerGlobalReceiver(GodLinePayload.ID, (payload, context) -> speak(context.client(), payload.line()));
+        ClientPlayNetworking.registerGlobalReceiver(GodLinePayload.ID, (payload, context) -> speak(context.client(), payload.id(), payload.line()));
     }
 
     static final String PREVIEW_LINE = "Ты взвешен на весах и найден лёгким, смертный. Что посеял, то и пожнёшь.";
@@ -67,29 +67,40 @@ final class GodVoicePlayer {
         });
     }
 
-    static void speak(MinecraftClient client, String line) {
+    static void speak(MinecraftClient client, int id, String line) {
         DivineConfig config = DivineBlockMod.config();
-        if (!config.voice || line == null || line.isBlank()) return;
+        if (!config.voice || line == null || line.isBlank()) { started(id, 0); return; }
         int mine = generation.incrementAndGet();
         ClientWorld world = client.world;
         WORKER.execute(() -> {
-            if (generation.get() != mine) return; // A newer line is already waiting.
+            if (generation.get() != mine) { started(id, 0); return; } // A newer line is already waiting.
             byte[] voiced;
+            double spoken;
             try {
                 voiced = new GodVoice(config, DivineBlockMod.configDirectory()).synthesize(line);
+                spoken = voiced.length / (2.0 * GodVoice.SAMPLE_RATE); // The words themselves; the hall's tail may ring over the act.
                 if (config.voiceTemple) voiced = io.github.divineblock.core.VoiceEffects.apply(voiced, GodVoice.SAMPLE_RATE, config.voiceEffects());
             }
-            catch (Exception failure) { DivineBlockMod.LOG.info("Божественный блок: голос бога молчит: {}", failure.getMessage()); return; }
-            catch (Throwable ignored) { return; }
+            catch (Exception failure) { DivineBlockMod.LOG.info("Божественный блок: голос бога молчит: {}", failure.getMessage()); started(id, 0); return; }
+            catch (Throwable ignored) { started(id, 0); return; }
             byte[] pcm = voiced;
+            double words = spoken;
             client.execute(() -> {
-                if (generation.get() != mine || client.world != world || world == null) return;
+                if (generation.get() != mine || client.world != world || world == null) { started(id, 0); return; }
                 if (playing != null) client.getSoundManager().stop(playing);
                 playing = new GodSound(pcm);
-                played.accept(pcm.length / (2.0 * GodVoice.SAMPLE_RATE));
+                double seconds = pcm.length / (2.0 * GodVoice.SAMPLE_RATE);
+                played.accept(seconds);
                 client.getSoundManager().play(playing);
+                started(id, (float) words);
             });
         });
+    }
+
+    /** Tells the server the voice began (or will not come), so the act can follow the words. */
+    private static void started(int id, float seconds) {
+        if (id != 0 && ClientPlayNetworking.canSend(io.github.divineblock.game.VoiceStartPayload.ID))
+            MinecraftClient.getInstance().execute(() -> ClientPlayNetworking.send(new io.github.divineblock.game.VoiceStartPayload(id, seconds)));
     }
 
     /** Non-positional: the god is heard the same wherever the player looks. */

@@ -108,11 +108,57 @@ public final class Miracles {
         burst(world, altar.up(), ParticleTypes.ANGRY_VILLAGER, 20);
         column(world, altar, ParticleTypes.SOUL_FIRE_FLAME);
     }
-    public static void forgiven(ServerPlayerEntity player, BlockPos altar) {
+    /** While the god speaks: the altar breathes light and the air around the player stirs, coloured by what is coming. */
+    public static void speaking(ServerPlayerEntity player, BlockPos altar, Miracle.Kind kind, double seconds) {
         ServerWorld world = player.getServerWorld();
-        player.removeStatusEffect(StatusEffects.DARKNESS);
-        sound(world, altar, SoundEvents.BLOCK_BEACON_DEACTIVATE, 1.5f, 1.2f);
-        burst(world, altar.up(), ParticleTypes.HEART, 10);
+        ParticleEffect glow = switch (kind) {
+            case HELP -> ParticleTypes.END_ROD; case JEST -> ParticleTypes.WITCH; case WRATH -> ParticleTypes.SOUL_FIRE_FLAME; case OMEN -> ParticleTypes.ENCHANT; };
+        int steps = (int) Math.max(1, Math.round(seconds * 4));
+        sound(world, altar, kind == Miracle.Kind.WRATH ? SoundEvents.AMBIENT_CAVE.value() : SoundEvents.BLOCK_BEACON_AMBIENT, 1.5f, kind == Miracle.Kind.WRATH ? 0.5f : 0.8f);
+        if (kind == Miracle.Kind.WRATH) effect(player, StatusEffects.DARKNESS, (int) (seconds * 20) + 40, 0);
+        Scheduler.repeat(5, steps, i -> {
+            double angle = i * 0.6, radius = 1.2;
+            for (int arm = 0; arm < 3; arm++) {
+                double a = angle + arm * Math.PI * 2 / 3;
+                world.spawnParticles(glow, altar.getX() + 0.5 + Math.cos(a) * radius, altar.getY() + 1.2 + (i % 8) * 0.25,
+                        altar.getZ() + 0.5 + Math.sin(a) * radius, 2, 0.05, 0.05, 0.05, 0.01);
+            }
+            world.spawnParticles(ParticleTypes.ENCHANT, player.getX(), player.getY() + 1.6, player.getZ(), 6, 0.6, 0.6, 0.6, 0.4);
+        });
+    }
+
+    /** The moment the act falls: a burst over the altar and the player, by kind and power. Effects only; never touches blocks. */
+    public static void flourish(ServerPlayerEntity player, BlockPos altar, Miracle.Kind kind, int power) {
+        ServerWorld world = player.getServerWorld();
+        BlockPos at = player.getBlockPos();
+        switch (kind) {
+            case HELP -> {
+                column(world, altar, ParticleTypes.END_ROD);
+                column(world, at, ParticleTypes.TOTEM_OF_UNDYING);
+                world.spawnParticles(ParticleTypes.GLOW, player.getX(), player.getY() + 1, player.getZ(), 60, 1.2, 1.2, 1.2, 0.05);
+                sound(world, at, SoundEvents.BLOCK_BEACON_POWER_SELECT, 1.5f, 1.2f);
+                sound(world, at, SoundEvents.BLOCK_AMETHYST_BLOCK_RESONATE, 2f, 0.7f);
+                effect(player, StatusEffects.GLOWING, 60, 0);
+            }
+            case JEST -> {
+                world.spawnParticles(ParticleTypes.FIREWORK, player.getX(), player.getY() + 2, player.getZ(), 80, 1.5, 1, 1.5, 0.15);
+                world.spawnParticles(ParticleTypes.NOTE, altar.getX() + 0.5, altar.getY() + 1.5, altar.getZ() + 0.5, 12, 0.8, 0.5, 0.8, 1);
+                sound(world, at, SoundEvents.ENTITY_EVOKER_CAST_SPELL, 1.5f, 1.3f);
+                sound(world, altar, SoundEvents.ENTITY_WITCH_CELEBRATE, 2f, 0.8f);
+            }
+            case WRATH -> {
+                warn(player, altar);
+                bolt(world, altar.add(2, 0, 2), true);
+                world.spawnParticles(ParticleTypes.EXPLOSION_EMITTER, player.getX(), player.getY() + 3, player.getZ(), 1, 0, 0, 0, 0);
+                world.spawnParticles(ParticleTypes.LARGE_SMOKE, player.getX(), player.getY() + 1, player.getZ(), 80, 2, 1, 2, 0.05);
+                sound(world, at, SoundEvents.ENTITY_ELDER_GUARDIAN_CURSE, 1.5f, 0.6f);
+                if (power >= 3) {
+                    sound(world, at, SoundEvents.ENTITY_WITHER_AMBIENT, 1.5f, 0.5f);
+                    if (world.getRegistryKey() == World.OVERWORLD && !world.isThundering()) world.setWeather(0, 20 * 40, true, true);
+                }
+            }
+            case OMEN -> { }
+        }
     }
 
     // ---- Help. ----

@@ -83,24 +83,35 @@ public final class JevGodDecider implements GodDecider {
         return questions;
     }
 
-    /** Whether the words are a prayer the god hears, or idle talk he lets pass; null when Jev could not answer. */
-    public Boolean isPrayer(String text) {
+    /** Jev's reading of an utterance at the altar: is it a prayer, and does it insult the god. */
+    public record Reading(boolean prayer, boolean insult) { }
+
+    /** Both questions in one call; null when Jev could not answer. */
+    public Reading read(String text) {
         JsonObject state = new JsonObject();
         state.addProperty("utterance", text == null ? "" : text.length() > 600 ? text.substring(0, 600) : text);
         state.addProperty("where", "игрок стоит у алтаря бога в Minecraft");
-        JsonObject criteria = new JsonObject();
-        criteria.addProperty("true", "молитва: обращение к богу — просьба, мольба, хвала, благодарность, покаяние, вопрос или даже дерзость, сказанная богу");
-        criteria.addProperty("false", "не молитва: болтовня с другими, мысли вслух, случайные слова, шум, речь не к богу");
+        JsonObject prayer = new JsonObject();
+        prayer.addProperty("true", "молитва: обращение к богу — просьба, мольба, хвала, благодарность, покаяние, вопрос, брань или дерзость, сказанная богу");
+        prayer.addProperty("false", "не молитва: болтовня с другими, мысли вслух, случайные слова, шум, речь не к богу");
+        JsonObject insult = new JsonObject();
+        insult.addProperty("true", "оскорбляет, хулит, высмеивает бога, бранится на него или требует нагло и с презрением");
+        insult.addProperty("false", "почтительно, смиренно или хотя бы нейтрально");
         JsonObject questions = new JsonObject();
-        questions.add("is_prayer", question("noul", "Игрок у алтаря произнёс utterance. Обращена ли эта речь к богу как молитва?", criteria));
+        questions.add("is_prayer", question("noul", "Игрок у алтаря произнёс utterance. Обращена ли эта речь к богу как молитва?", prayer));
+        questions.add("insult", question("noul", "Если игрок обращается к богу, дерзит ли он богу или оскорбляет его?", insult));
         try {
-            double yes = ask(state, questions).noul("is_prayer");
-            return yes < 0 ? null : yes >= 0.5;
+            Answers answers = ask(state, questions);
+            double yes = answers.noul("is_prayer"), rude = answers.noul("insult");
+            return yes < 0 ? null : new Reading(yes >= 0.5, rude >= 0.6);
         } catch (IOException | RuntimeException failure) {
-            diagnostics.accept("Jev не определил, молитва ли это: " + failure.getMessage());
+            diagnostics.accept("Jev не прочёл молитву: " + failure.getMessage());
             return null;
         } catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); return null; }
     }
+
+    /** Whether the words are a prayer the god hears, or idle talk he lets pass; null when Jev could not answer. */
+    public Boolean isPrayer(String text) { Reading reading = read(text); return reading == null ? null : reading.prayer(); }
     private static JsonObject question(String type, String instructions, JsonElement criteria) {
         JsonObject q = new JsonObject(); q.addProperty("type", type); q.addProperty("instructions", instructions); q.add("criteria", criteria); return q;
     }
@@ -139,6 +150,7 @@ public final class JevGodDecider implements GodDecider {
         }
         double score = answers.score("power");
         int wanted = Double.isNaN(score) ? verdict.budget : (int) Math.round(score) - 1; // Scores run 1..N over the N levels.
+        if (picked.kind == Miracle.Kind.WRATH) wanted = verdict.budget; // Jev picks the punishment; its weight is what was earned.
         int power = GodDecider.power(picked, wanted, verdict.budget);
         boolean warned = GodDecider.mustWarn(picked, power);
         String note = "Jev: " + picked.id() + ", сила " + wanted + (power != wanted ? " → " + power + (wanted > power ? " по бюджету" : ", меньше деяние не бывает") : "")

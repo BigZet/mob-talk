@@ -30,8 +30,11 @@ public final class GodSpeech {
     public GodSpeech(DivineConfig config, Path configDirectory) { this.config = config.copy(); this.configDirectory = configDirectory; }
 
     /** The line for a fresh verdict. */
-    public String announce(Verdict verdict) {
-        String line = ask(system(), announcement(verdict));
+    public String announce(Verdict verdict) { return announce(verdict, List.of()); }
+
+    /** The line for a fresh verdict, unlike the god's last few lines. */
+    public String announce(Verdict verdict, List<String> recentLines) {
+        String line = ask(system(), announcement(verdict, recentLines, form(verdict)));
         return line != null ? line : template(verdict);
     }
 
@@ -41,28 +44,47 @@ public final class GodSpeech {
         return line != null ? line : explainTemplate(verdict);
     }
 
+    /** The shapes a divine utterance can take; each reply gets one, so no two sound alike. */
+    static final String[] FORMS = {
+            "пророчество: говори о том, что грядёт, как о свершившемся",
+            "загадка: облеки решение в загадку, отгадка которой и есть деяние",
+            "притча: краткая притча о другом смертном, в которой игрок узнает себя",
+            "видение: опиши, что ты зришь над ним, будто сон наяву",
+            "изречение: одна тяжёлая, как камень, мудрость с двойным дном",
+            "насмешка оракула: лукавая полуулыбка, где милость или кара скрыта в шутке",
+            "знамение природы: говори через небо, ветер, камень, воду или огонь",
+            "летопись: будто вписываешь его деяния в древнюю книгу судеб" };
+
+    /** The form for this verdict: drawn by the moment, never by the decision, which is already made. */
+    static String form(Verdict verdict) { return FORMS[Math.floorMod((int) (System.nanoTime() / 1_000_000) ^ verdict.prayer.hashCode(), FORMS.length)]; }
+
     String system() {
-        return "Ты своенравный бог мира Minecraft, к которому игрок обращается через алтарь. Нрав: " + config.personality.label + ". "
-                + "Говоришь торжественно и по-древнерусски, но понятно на слух: в каждой реплике два-три старинных слова или оборота "
-                + "из понятных («ныне», «сие», «внемли», «узри», «очи», «длань», «глас», «чадо», «отрок», «аки», «доколе», «грядёт», "
-                + "«токмо», «воздам», «ибо», «зрю»), старинный порядок слов («слышу глас твой», «милость моя»), но без тёмных "
-                + "церковнославянских форм вроде «еси», «тя», «аз», «зане», «аще» и без звательного падежа. "
-                + "Говоришь загадочно, как оракул: не называешь деяние прямо, а описываешь его образом и намёком (не «метеорит», а «камень "
-                + "небесный»; не «исцеляю», а «раны твои затворятся»), с недосказанностью и лукавой усмешкой; не угодничаешь. "
-                + "Добавляй библейские метафоры и узнаваемые отсылки — потоп и ковчег, Вавилонская башня, казни египетские, манна "
-                + "небесная, Иона во чреве кита, блудный сын, «что посеешь, то и пожнёшь», «имеющий уши да слышит», — к месту, коротко "
-                + "и простыми словами. "
-                + "Отвечаешь одной-двумя короткими фразами, всего не длиннее 30 слов, без кавычек, эмодзи и пояснений. Решение уже принято "
-                + "и свершается в тот же миг: ты лишь возвещаешь его и непременно поминаешь хотя бы одну из главных причин, пусть "
-                + "иносказанием, но узнаваемо. Второго шанса не даёшь: не переспрашиваешь, не задаёшь вопросов, не грозишь на будущее и не "
-                + "зовёшь каяться. Не обещай того, чего нет в решении, и не называй чисел.";
+        return "Ты своенравный древний бог мира Minecraft, игрок говорит с тобой через алтарь. Нрав: " + config.personality.label + ". "
+                + "Говоришь мистически и туманно, как оракул и пророк: загадками, образами, притчами, знамениями, с двойным дном и "
+                + "недосказанностью. Деяние никогда не называешь прямо — смысл угадывается, но не разжёвывается. "
+                + "Речь древнерусская, торжественная, но понятная на слух: старинные слова и обороты к месту, каждый раз разные, без "
+                + "тёмных церковнославянских форм («еси», «тя», «аз», «зане», «аще») и без звательного падежа. "
+                + "Вплетай библейские образы и отсылки к месту и простыми словами. "
+                + "Каждая реплика звучит по-новому: не начинай одинаково, не начинай со «Слышу», «Внемли», «Узри», «Ныне», не повторяй "
+                + "начала и обороты прежних реплик; начинай с образа, имени явления или действия. "
+                + "Одна-две короткие фразы, не длиннее 30 слов, без кавычек, эмодзи и пояснений. Решение уже принято и свершится сразу "
+                + "после твоих слов: ты возвещаешь его и поминаешь хотя бы одну главную причину — иносказанием, но узнаваемо. Второго "
+                + "шанса нет: не переспрашиваешь, не задаёшь вопросов, не грозишь на будущее и не зовёшь каяться. Не обещай того, чего нет "
+                + "в решении, и не называй чисел. Если смертный бранился или хулил тебя — ответ твой холоден и страшен.";
     }
 
-    static String announcement(Verdict verdict) {
+    static String announcement(Verdict verdict) { return announcement(verdict, List.of(), FORMS[0]); }
+
+    static String announcement(Verdict verdict, List<String> recentLines, String form) {
         Miracle miracle = verdict.chosen();
         StringBuilder out = new StringBuilder("Молитва смертного: «").append(clip(verdict.prayer, 400)).append("»\n");
         out.append("Твоё решение: ").append(miracle.kind.label).append(" — ").append(miracle.description).append(" (сила ").append(verdict.power).append(").\n");
-        out.append("Главные причины: ").append(reasonList(verdict.mainReasons(3))).append(".");
+        out.append("Главные причины: ").append(reasonList(verdict.mainReasons(3))).append(".\n");
+        out.append("Форма этой реплики — ").append(form).append(".");
+        if (recentLines != null && !recentLines.isEmpty()) {
+            out.append("\nТвои прежние реплики (не повторяй их начала, слов и оборотов):");
+            for (String line : recentLines) out.append("\n— ").append(clip(line, 200));
+        }
         return out.toString();
     }
 
@@ -81,7 +103,7 @@ public final class GodSpeech {
             case JEST -> "Хе-хе… Узри, отрок: раз уж " + reasonClause(reason) + ", быть тебе потехой небес.";
             case WRATH -> verdict.warned ? "Взвешен ты на весах и найден лёгким: " + reasonClause(reason) + ". Ныне воздам."
                     : "Что посеял, то и пожнёшь: " + reasonClause(reason) + ".";
-            case OMEN -> verdict.chosen() == Miracle.IGNORE ? "…" : "Слышу глас твой. Ныне лишь знамение: " + reasonClause(reason) + ".";
+            case OMEN -> verdict.chosen() == Miracle.IGNORE ? "…" : "Ветер над алтарём переменился — то лишь знамение: " + reasonClause(reason) + ".";
         };
     }
 
@@ -118,7 +140,7 @@ public final class GodSpeech {
             messages.add(message("system", system)); messages.add(message("user", user));
             body.add("messages", messages);
             body.addProperty("max_tokens", 700);
-            body.addProperty("temperature", 0.9);
+            body.addProperty("temperature", 1.0);
             if (provider == ApiKeys.Provider.VENICE) {
                 JsonObject venice = new JsonObject(); venice.addProperty("include_venice_system_prompt", false); venice.addProperty("disable_thinking", true);
                 body.add("venice_parameters", venice);
