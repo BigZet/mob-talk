@@ -386,4 +386,41 @@ final class Wrath {
         }
         return count == 1 ? "земля вырезана до бездны" : count + " участков земли вырезаны до бездны";
     }
+
+    /** A rain of meteors: the first where the sinner looks, the rest all around him, each with its crater; up to twenty. */
+    static String meteors(ServerWorld world, ServerPlayerEntity player, BlockPos altar, int power, int severity, DivineConfig config) {
+        int count = power >= 4 ? 20 : power == 3 ? 12 : 6;
+        meteor(world, player, altar, Math.min(4, power), config);
+        Scheduler.repeat(6, count - 1, i -> {
+            double angle = world.random.nextDouble() * Math.PI * 2, distance = 12 + world.random.nextInt(34);
+            BlockPos ground = world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES,
+                    BlockPos.ofFloored(player.getX() + Math.cos(angle) * distance, 0, player.getZ() + Math.sin(angle) * distance));
+            fall(world, player, altar, ground, Math.min(3, power), config);
+        });
+        return count + " метеоритов";
+    }
+
+    /** The horsemen: skeletons in helmets on skeleton horses, riding at the sinner; up to thirty. */
+    static String skeletonRiders(ServerWorld world, ServerPlayerEntity player, int power, int severity) {
+        int count = power >= 4 ? Math.min(30, 20 + 2 * severity) : 12;
+        int spawned = 0;
+        for (int i = 0; i < count; i++) {
+            net.minecraft.entity.mob.SkeletonHorseEntity horse = EntityType.SKELETON_HORSE.create(world);
+            net.minecraft.entity.mob.SkeletonEntity rider = EntityType.SKELETON.create(world);
+            if (horse == null || rider == null) continue;
+            horse.setTame(true);
+            ring(world, player, horse, 14, 26, ParticleTypes.SOUL_FIRE_FLAME);
+            armour(rider, Items.IRON_HELMET, Items.CHAINMAIL_CHESTPLATE);
+            rider.equipStack(EquipmentSlot.MAINHAND, new ItemStack(Items.BOW));
+            rider.refreshPositionAndAngles(horse.getX(), horse.getY(), horse.getZ(), horse.getYaw(), 0);
+            rider.setTarget(player);
+            rider.setPersistent();
+            world.spawnEntity(rider);
+            rider.startRiding(horse, true);
+            spawned++;
+        }
+        Miracles.sound(world, player.getBlockPos(), SoundEvents.ENTITY_SKELETON_HORSE_AMBIENT, 5f, 0.6f);
+        Miracles.sound(world, player.getBlockPos(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, 3f, 0.5f);
+        return "всадники смерти: " + spawned;
+    }
 }

@@ -14,7 +14,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RotationAxis;
 import net.minecraft.util.math.Vec3d;
 
-/** Beacon beams out of the altar while the god speaks: five or so, each leaning at its own random angle of 45–90° from the
+/** Beacon beams out of the altar while the god speaks: forty of them, each leaning at its own random angle of 45–90° from the
  * ground, all spinning fast around the altar's vertical axis. Drawn with the beacon's own beam renderer. */
 final class AltarBeams {
     private record Beam(float elevation, float azimuth) { }
@@ -40,7 +40,7 @@ final class AltarBeams {
         }
         Random random = new Random(altar.asLong() ^ client.world.getTime());
         List<Beam> beams = new ArrayList<>();
-        int count = 4 + random.nextInt(3);
+        int count = 40;
         for (int i = 0; i < count; i++) beams.add(new Beam(45 + random.nextFloat() * 45, i * 360f / count + random.nextFloat() * 20));
         long now = client.world.getTime();
         SHOWS.add(new Show(altar.toImmutable(), now, now + Math.max(20, ticks), color, beams, random.nextBoolean() ? 9f : -9f));

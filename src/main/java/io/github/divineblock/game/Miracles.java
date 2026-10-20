@@ -97,7 +97,7 @@ public final class Miracles {
             case CURSE_TOOL -> curseTool(world, player);
             case ACID_RAIN -> acidRain(world, altar, power);
             case FIRE_RING -> fireRing(world, player, altar, power, config);
-            case METEOR -> Wrath.meteor(world, player, altar, power, config);
+            case METEOR -> Wrath.meteors(world, player, altar, power, severity, config);
             case ANVIL_RAIN -> Wrath.anvilRain(world, player, altar, power, config);
             case EARTHQUAKE -> Wrath.earthquake(world, player, altar, power, config);
             case SINKHOLE -> Wrath.sinkhole(world, player, altar, power, config);
@@ -109,12 +109,13 @@ public final class Miracles {
             case METEOR_SHOWER -> Wrath.meteorShower(world, player, altar, power, config);
             case WARDEN -> Wrath.warden(world, player);
             case END_EXILE -> Wrath.endExile(world, player);
+            case SKELETON_RIDERS -> Wrath.skeletonRiders(world, player, power, severity);
+            case RIFTS -> Cataclysm.rifts(world, player, altar, severity, config);
+            case GREAT_CRATER -> Cataclysm.greatCrater(world, player, altar, severity, config);
             case CHUNK_VOID -> Wrath.chunkVoid(world, player, altar, severity, config);
             case WITHER -> Wrath.withers(world, player, altar, severity);
             case DRAGON -> Wrath.dragons(world, player, severity);
             case FLIP -> Jests.flip(world, player, power);
-            case SHRINK -> Jests.scale(player, -0.9, 60 * 20, "смертный уменьшен в десять раз");
-            case GIANT -> Jests.scale(player, power >= 3 ? 4 : 2.5, 60 * 20, "смертный стал великаном");
         };
     }
 
