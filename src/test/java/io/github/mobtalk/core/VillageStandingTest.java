@@ -92,4 +92,29 @@ class VillageStandingTest {
         store.setBackstory(id, "Другое имя", "Ты родился здесь.", "", "", "");
         assertEquals("Другое имя", store.displayName(id), "an explicit name from the story or the card replaces the seeded one");
     }
+
+    // Sixty villagers met one after another carry sixty different names; a name already stored is never re-rolled.
+    @Test void neighboursDoNotShareNames() throws Exception {
+        ConversationStore store = ConversationStore.open(directory, new MobTalkConfig());
+        UUID player = UUID.randomUUID();
+        java.util.Map<UUID, String> names = new java.util.LinkedHashMap<>();
+        for (int i = 0; i < 60; i++) {
+            UUID id = UUID.randomUUID();
+            store.observe(SocialLayerTest.villager(id, player, 0, false, "minecraft:air"));
+            names.put(id, store.displayName(id));
+        }
+        assertEquals(60, new java.util.HashSet<>(names.values()).size(), names.values().toString());
+        for (var named : names.entrySet()) store.observe(SocialLayerTest.villager(named.getKey(), player, store.revision(named.getKey()), false, "minecraft:air"));
+        names.forEach((id, name) -> assertEquals(name, store.displayName(id)));
+    }
+
+    // Once the pool runs out, a villager avoids the names of its own village before any other.
+    @Test void aVillageIsAvoidedFirstWhenEveryNameIsWorn() {
+        UUID id = UUID.randomUUID();
+        java.util.Map<String, Integer> wear = new java.util.HashMap<>();
+        for (String name : VillagerNames.FEMALE) wear.put(name, VillagerNames.SAME_VILLAGE);
+        wear.put("Ирина", 3);
+        assertEquals("Ирина", VillagerNames.pick(id, Gender.FEMALE, wear));
+        assertTrue(VillagerNames.FEMALE.contains(VillagerNames.pick(id, Gender.FEMALE, java.util.Map.of())));
+    }
 }

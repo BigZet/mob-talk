@@ -21,13 +21,15 @@ public final class SocialLedger {
     static boolean applies(ConversationStore.Profile p, MobTalkConfig config) { return p != null && applies(p.type, config); }
 
     /** Gives a villager its social profile the first time the layer sees it: sex, character and marks from its UUID, and the
-     * character's one-time shift of the temperament. Returns whether anything changed. */
-    static boolean adopt(ConversationStore.Profile p, MobTalkConfig config) {
+     * character's one-time shift of the temperament, and a name no neighbour carries ({@code others}: every profile of the world).
+     * Returns whether anything changed. */
+    static boolean adopt(ConversationStore.Profile p, MobTalkConfig config, Collection<ConversationStore.Profile> others) {
         if (!applies(p, config)) return false;
         boolean changed = false;
         if (p.social == null) { p.social = SocialProfile.of(p.id, false); temper(p); changed = true; }
         // A villager the layer knows has a name before anyone talks to it: weddings and rumours name people, not «Крестьянин».
-        if (p.givenName == null || p.givenName.isBlank()) { p.givenName = VillagerNames.pick(p.id, p.social.gender()); changed = true; }
+        // A name once given stays (memories, the family tree and rumours carry it); a new one is one the neighbours do not wear.
+        if (p.givenName == null || p.givenName.isBlank()) { p.givenName = VillagerNames.pick(p.id, p.social.gender(), VillagerNames.wear(others, p.id, p.villageId)); changed = true; }
         // The voice follows the sex: a woman does not speak with the archetype's male voice.
         SpeciesCatalog.Voice current = SpeciesCatalog.voice(p.voiceId);
         if (current.sex() != null && current.sex() != p.social.gender()) {

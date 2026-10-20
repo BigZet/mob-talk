@@ -681,11 +681,11 @@ public final class ConversationStore {
 
     Profile ensure(UUID id, String type, String observedName) {
         Profile p = state.profiles.get(id.toString());
-        if (p != null) { if (ProfileDefaults.refresh(p, state.profiles, config) | SocialLedger.adopt(p, config)) scheduleSave(); return p; }
+        if (p != null) { if (ProfileDefaults.refresh(p, state.profiles, config) | SocialLedger.adopt(p, config, state.profiles.values())) scheduleSave(); return p; }
         SpeciesCatalog.Species species = SpeciesCatalog.effective(type, config);
         p = new Profile(); p.id = id; p.type = species.id(); p.name = TextBounds.characters(observedName, 120);
         ProfileDefaults.refresh(p, state.profiles, config);
-        SocialLedger.adopt(p, config);
+        SocialLedger.adopt(p, config, state.profiles.values());
         state.profiles.put(id.toString(), p); scheduleSave(); return p;
     }
 
