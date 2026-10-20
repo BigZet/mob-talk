@@ -123,6 +123,22 @@ class RuntimeTests(unittest.TestCase):
         self.runtime.model = FakeModel([segment("ложное приветствие")], duration_after_vad=0)
         self.assertEqual(self.runtime.transcribe(pcm_wav()), "")
 
+    def test_hotword_repetition_loop_retries_without_hotwords(self):
+        class LoopThenClean(FakeModel):
+            def transcribe(self, source, **options):
+                self.calls.append((source.getvalue(), options))
+                text = "Майнкрафт, " * 40 if options["hotwords"] else "Я тебя сейчас убью."
+                return iter([segment(text)]), SimpleNamespace(duration_after_vad=0.4)
+        model = self.runtime.model = LoopThenClean()
+        self.assertEqual(self.runtime.transcribe(pcm_wav(), "Роман"), "Я тебя сейчас убью.")
+        self.assertIsNone(model.calls[1][1]["hotwords"])
+
+    def test_loop_that_survives_the_retry_is_cut_and_short_repeats_stay(self):
+        self.runtime.model = FakeModel([segment("Я тебя сейчас убью. " + "Майнкрафт, " * 40 + "М")])
+        self.assertEqual(self.runtime.transcribe(pcm_wav()), "Я тебя сейчас убью")
+        self.assertEqual(whisper.without_loop("Майнкрафт, " * 40), "")
+        self.assertEqual(whisper.without_loop("Нет, нет, нет, нет!"), "Нет, нет, нет, нет!")
+
     def test_configure_updates_model_language_device_and_decoding_settings(self):
         self.make_ready()
         started, release = threading.Event(), threading.Event()

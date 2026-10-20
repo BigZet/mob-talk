@@ -230,6 +230,16 @@ class MobTalkConfigTest {
         assertEquals("minimal", MobTalkConfig.load(file).reasoningEffort, "a version-3 file keeps a minimal chosen after the update");
     }
 
+    // Version 4: the shipped hotwords lose «Майнкрафт», which turbo repeated in a loop; edited hotwords stay.
+    @Test void migratesTheLoopingHotwords() throws Exception {
+        Path file = directory.resolve("mobtalk.json");
+        Files.writeString(file, "{\"schemaVersion\":3,\"whisperHotwords\":\"" + MobTalkConfig.OLD_HOTWORDS + "\"}");
+        assertEquals(new MobTalkConfig().whisperHotwords, MobTalkConfig.load(file).whisperHotwords);
+        assertFalse(new MobTalkConfig().whisperHotwords.contains("Майнкрафт"));
+        Files.writeString(file, "{\"schemaVersion\":3,\"whisperHotwords\":\"Майнкрафт, Клювик\"}");
+        assertEquals("Майнкрафт, Клювик", MobTalkConfig.load(file).whisperHotwords);
+    }
+
     // Updating the old shipped defaults must retain deliberate smaller history/memory and a custom Whisper model.
     @Test void migratesOldDefaultsAndRetainsUserChoices() throws Exception {
         Path file = directory.resolve("mobtalk.json");

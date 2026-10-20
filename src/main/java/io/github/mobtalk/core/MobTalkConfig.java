@@ -13,7 +13,7 @@ import java.nio.file.StandardCopyOption;
 
 /** Local preferences only; the API key is loaded separately. */
 public final class MobTalkConfig {
-    public int schemaVersion = 3;
+    public int schemaVersion = 4;
     public boolean enabled = true;
     /** Who answers in conversations: "openrouter" or "venice". */
     public String llmProvider = "openrouter";
@@ -39,7 +39,9 @@ public final class MobTalkConfig {
     public int whisperBeamSize = 3;
     public int whisperVadSilenceMs = 500;
     public int whisperCpuThreads = 4;
-    public String whisperHotwords = "Minecraft, Майнкрафт, крипер, зомби, скелет, пиглин, эндермен, варден, тихоня, нюхач, лавомерка";
+    public String whisperHotwords = "крипер, зомби, скелет, пиглин, эндермен, варден, тихоня, нюхач, лавомерка";
+    /** The shipped hotwords before version 4: turbo looped on «Майнкрафт» instead of the player's speech. */
+    static final String OLD_HOTWORDS = "Minecraft, Майнкрафт, крипер, зомби, скелет, пиглин, эндермен, варден, тихоня, нюхач, лавомерка";
     public String commonPrompt = "";
     /** 0 — без мата, 1 — грубовато, 2 — мат моментами, 3 — без тормозов. */
     public int rudeness = 2;
@@ -231,6 +233,8 @@ public final class MobTalkConfig {
                 if ("large-v3".equals(config.whisperModel)) config.whisperModel = "large-v3-turbo";
                 if (config.whisperBeamSize == 5) config.whisperBeamSize = 3;
             }
+            if (config != null && version < 4 && OLD_HOTWORDS.equals(config.whisperHotwords))
+                config.whisperHotwords = new MobTalkConfig().whisperHotwords;
         } catch (JsonParseException invalid) {
             throw new IOException("Mob Talk config contains invalid JSON");
         }
@@ -259,7 +263,7 @@ public final class MobTalkConfig {
     private static void normalize(MobTalkConfig config) throws IOException {
         // Every number (recording, reply, history, memory, Whisper, distances, chances, thresholds) into its range: see Tunables.
         Tunables.normalize(config);
-        config.schemaVersion = 3;
+        config.schemaVersion = 4;
         config.whisperHotwords = TextBounds.characters(config.whisperHotwords, 2000);
         config.commonPrompt = config.commonPrompt == null ? "" : config.commonPrompt.strip();
         config.rudeness = Math.max(0, Math.min(3, config.rudeness));

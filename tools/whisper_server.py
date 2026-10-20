@@ -73,7 +73,7 @@ class Settings:
     cpu_threads: int = 4
     beam_size: int = 5
     vad_silence_ms: int = 500
-    hotwords: str = "Minecraft, Майнкрафт, крипер, зомби, скелет, пиглин, эндермен, варден"
+    hotwords: str = "крипер, зомби, скелет, пиглин, эндермен, варден"
 
 
 class LoadCancelled(Exception):
@@ -124,6 +124,33 @@ def speech_text(segments) -> str:
             continue
         parts.append(text)
     return " ".join(parts)[:2000].strip()
+
+
+_WORD = re.compile(r"\w+")
+
+
+def loop_start(text: str) -> int:
+    """Where a decoder repetition loop begins (a phrase of 1-4 words repeated
+    back to back, 8+ words in all), or -1. Turbo with hotwords can emit one
+    hotword dozens of times instead of the player's speech."""
+    words = list(_WORD.finditer(text))
+    keys = [word.group().casefold() for word in words]
+    for start in range(len(keys)):
+        for size in range(1, 5):
+            gram = keys[start:start + size]
+            if len(gram) < size:
+                break
+            repeats = 1
+            while keys[start + repeats * size:start + (repeats + 1) * size] == gram:
+                repeats += 1
+            if repeats >= 4 and repeats * size >= 8:
+                return words[start].start()
+    return -1
+
+
+def without_loop(text: str) -> str:
+    start = loop_start(text)
+    return text if start < 0 else text[:start].rstrip(" ,.;:-–—…")
 
 
 def _enable_windows_nvidia_libraries() -> None:
@@ -301,12 +328,24 @@ class WhisperRuntime:
             "loadingSeconds": round(time.monotonic() - self.started_at, 1)}
 
     def transcribe(self, body: bytes, context: str = "") -> str:
+        text = self._decode(body, (self.settings.hotwords + ", " + context).strip(", "))
+        if text is None:
+            return ""
+        if loop_start(text) >= 0:
+            # Hotwords bias the decoder towards their words; without them the
+            # same audio usually decodes cleanly. Whatever still loops is cut.
+            retry = self._decode(body, None)
+            text = without_loop(retry if retry is not None else text)
+            print("MobTalk Whisper: repetition loop dropped.", file=sys.stderr, flush=True)
+        return text
+
+    def _decode(self, body: bytes, hotwords):
         segments, info = self.model.transcribe(io.BytesIO(body), language=self.settings.language,
             beam_size=self.settings.beam_size, temperature=0.0, vad_filter=True,
             vad_parameters={"min_silence_duration_ms": self.settings.vad_silence_ms, "speech_pad_ms": 250},
-            condition_on_previous_text=False, hotwords=(self.settings.hotwords + ", " + context).strip(", "))
+            condition_on_previous_text=False, hotwords=hotwords or None)
         if info.duration_after_vad <= 0:
-            return ""
+            return None
         return speech_text(segments)
 
 
