@@ -146,6 +146,14 @@ public final class Wedding {
         if (said == null || said.isBlank()) return false;
         return CALL.matcher(said.toLowerCase(Locale.ROOT).replace('ё', 'е')).find();
     }
+    private static final Pattern PROPOSAL = Pattern.compile(
+            "выход\\w*\\s+за\\s+меня|выйдешь\\s+за\\s+меня|будь\\s+мо(ей|им)\\s+(женой|мужем)|стань\\s+мо(ей|им)\\s+(женой|мужем)|руку\\s+и\\s+сердце|женись\\s+на\\s+мне"
+                    + "|(давай|хочу)\\s+(поженимся|пожениться|жениться\\s+на\\s+тебе)|замуж\\s+за\\s+меня", Pattern.UNICODE_CHARACTER_CLASS);
+    /** Делает ли игрок предложение этими словами («выходи за меня», «будь моей женой», «предлагаю руку и сердце»). */
+    public static boolean proposes(String said) {
+        if (said == null || said.isBlank()) return false;
+        return PROPOSAL.matcher(said.toLowerCase(Locale.ROOT).replace('ё', 'е')).find();
+    }
     private static final Pattern WITNESS = Pattern.compile("свидетел|свидетельниц|дружк|шафер");
     /** Просит ли игрок быть свидетелем («будь моим свидетелем», «будешь свидетельницей?»). */
     public static boolean asksWitness(String said) {

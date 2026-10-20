@@ -134,7 +134,7 @@ final class SelfTestWedding {
         int turns = turns(bride);
         speechBefore = test.owner.wedding.voiced;
         test.check(test.owner.say("Идём на свадьбу, любимая! Все к колоколу!"), "the call to the wedding is said");
-        test.await("the wedding began", 120, () -> scene() != null, () -> {
+        test.await("the wedding began", 120, () -> scene() != null && scene().ready, () -> {
             WeddingController.Scene s = scene();
             test.log("bride said: " + lastReply(bride));
             Wedding.Cast cast = s.ceremony.cast();

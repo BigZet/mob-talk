@@ -217,7 +217,15 @@ public final class ConversationEngine implements AutoCloseable {
         Reply reply = new Reply(question, answer.reply(), name, voiceId, audio, answer.action(), snapshot.interactionRevision(), answer.bargain(),
                 answer.deal(), answer.unlock(), answer.quest(), answer.socialIntent(), overheard != null);
         return new PreparedReply(this, reply, snapshot, answer.memory(), answer.socialIntent(), audio == null ? null : voiceId, answer.thought(), answer.fact(),
-                overheard == null ? answer.gesture() : GestureIntent.none());
+                overheard == null ? proposalKept(profile, question, answer.gesture()) : GestureIntent.none());
+    }
+
+    /** Трек L: игрок явно сделал предложение с кольцом, игра его приняла, а модель не отметила жест — согласие всё равно в силе,
+     * иначе житель скажет «да», а помолвки не будет и кольцо останется в руке. */
+    static GestureIntent proposalKept(ConversationStore.Profile profile, String question, GestureIntent chosen) {
+        if (chosen != null && chosen.present() || profile == null || profile.socialTurn == null || !Wedding.proposes(question)) return chosen;
+        GestureIntent proposal = profile.socialTurn.intent(Gesture.PROPOSE);
+        return proposal.present() && proposal.outcome() == Gesture.Outcome.ACCEPTED ? proposal : chosen;
     }
 
     private static String playerName(MobSnapshot snapshot) { return snapshot.playerDetails().get("name") instanceof String name ? name : ""; }
