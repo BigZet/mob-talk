@@ -117,7 +117,7 @@ public final class GodSpeech {
             JsonArray messages = new JsonArray();
             messages.add(message("system", system)); messages.add(message("user", user));
             body.add("messages", messages);
-            body.addProperty("max_tokens", 220);
+            body.addProperty("max_tokens", 700);
             body.addProperty("temperature", 0.9);
             if (provider == ApiKeys.Provider.VENICE) {
                 JsonObject venice = new JsonObject(); venice.addProperty("include_venice_system_prompt", false); venice.addProperty("disable_thinking", true);
@@ -157,7 +157,9 @@ public final class GodSpeech {
         java.util.regex.Matcher sentences = java.util.regex.Pattern.compile("[^.!?…]+[.!?…]+").matcher(line);
         StringBuilder kept = new StringBuilder();
         for (int count = 0; count < 2 && sentences.find(); count++) kept.append(sentences.group());
-        if (!kept.isEmpty()) line = kept.toString().strip();
+        // A reply cut off by the token limit ends mid-word: only whole sentences are spoken, and none at all means the template.
+        if (kept.isEmpty()) return null;
+        line = kept.toString().strip();
         return line.length() > 320 ? line.substring(0, 320).replaceAll("\\s+\\S*$", "") + "…" : line;
     }
 

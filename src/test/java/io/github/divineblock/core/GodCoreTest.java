@@ -143,6 +143,8 @@ class GodCoreTest {
         assertTrue(GodSpeech.explainTemplate(verdict).startsWith("Спрашиваешь, почему?"));
         assertEquals("Трепещи.", GodSpeech.clean("«**Трепещи.**»"));
         assertEquals("Раз. Два!", GodSpeech.clean("Раз. Два! Три? Четыре."));
+        assertEquals("Ныне раны затворятся.", GodSpeech.clean("Ныне раны затворятся. Внемли: за хулу в молитве и гр"), "a cut-off tail is dropped");
+        assertNull(GodSpeech.clean("Внемли: за хулу в молитве и гр"), "a reply cut off before its first full stop falls back to the template");
         assertEquals("Да.", GodSpeech.parse(JsonParser.parseString("{\"choices\":[{\"message\":{\"content\":\"Да.\"}}]}").toString()));
         assertTrue(GodSpeech.announcement(verdict).contains("Главные причины"));
     }
