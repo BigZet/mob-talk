@@ -23,8 +23,9 @@ import java.util.*;
  * ванильного сна. Только серверный поток. */
 final class CoSleepController {
     private static final long PERIOD = 5;
-    /** Пара, не дошедшая до кровати за столько тиков, бросает затею (ночь к тому времени обычно уже пропущена). */
+    /** Пара, не дошедшая до кровати за столько тиков (или за задержку ночи, если она дольше), бросает затею. */
     private static final long GIVE_UP_TICKS = 20 * 30;
+    private long giveUpTicks() { return Math.max(GIVE_UP_TICKS, 20L * bridge.config.coSleepNightDelay); }
     private final MobGameBridge bridge;
     /** Житель → его ночь рядом с игроком (идёт к кровати или уже лёг). */
     private final Map<UUID, Night> nights = new HashMap<>();
@@ -32,6 +33,8 @@ final class CoSleepController {
     private final Map<UUID, Invite> invites = new HashMap<>();
     /** Кто из игроков спал на прошлой проверке: чтобы заметить, как он лёг и как встал. */
     private final Set<UUID> sleeping = new HashSet<>();
+    /** Игрок → до какого тика сервера ночь не пропускается (пара рядом, можно поговорить в кровати). */
+    private final Map<UUID, Long> holds = new HashMap<>();
     private static final class Night {
         final UUID player; final BlockPos bed; final long startedTick; boolean asleep;
         Night(UUID player, BlockPos bed, long startedTick) { this.player = player; this.bed = bed; this.startedTick = startedTick; }
@@ -55,7 +58,7 @@ final class CoSleepController {
         for (ServerPlayerEntity player : world.getPlayers()) {
             boolean asleep = player.isSleeping() && player.getSleepingPosition().isPresent();
             if (asleep && sleeping.add(player.getUuid())) lieDown(world, player, now);
-            else if (!asleep && sleeping.remove(player.getUuid())) woke(world, player, now);
+            else if (!asleep && sleeping.remove(player.getUuid())) { holds.remove(player.getUuid()); woke(world, player, now); }
         }
         for (Iterator<Map.Entry<UUID, Night>> it = nights.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<UUID, Night> entry = it.next();
@@ -65,7 +68,7 @@ final class CoSleepController {
             if (!(entity instanceof VillagerEntity villager) || !villager.isAlive()) { it.remove(); continue; }
             if (night.asleep) { if (!villager.isSleeping()) it.remove(); continue; }
             ServerPlayerEntity player = world.getServer().getPlayerManager().getPlayer(night.player);
-            if (player == null || !player.isSleeping() || world.getTime() - night.startedTick > GIVE_UP_TICKS) { it.remove(); continue; }
+            if (player == null || !player.isSleeping() || world.getTime() - night.startedTick > giveUpTicks()) { it.remove(); continue; }
             if (villager.squaredDistanceTo(Vec3d.ofBottomCenter(night.bed)) > 4.0) continue;
             BlockState state = world.getBlockState(night.bed);
             boolean shared = player.getSleepingPosition().map(night.bed::equals).orElse(false);
@@ -94,6 +97,9 @@ final class CoSleepController {
             }
             Invite invite = invites.get(partner.id());
             boolean invited = invite != null && invite.player().equals(player.getUuid());
+            double reach = Math.sqrt(villager.squaredDistanceTo(Vec3d.ofBottomCenter(bed)));
+            // «Пойдём спать» часто даёт ещё и «следуй за мной»: такое следование и разговор с этим игроком не мешают лечь рядом.
+            if (!villager.isBaby() && reach <= (invited ? 2.0 : 1.0) * bridge.config.coSleepRange) bridge.actions.yieldTo(villager, player.getUuid());
             boolean busy = bridge.actions.busy(villager) || villager.getTarget() != null || villager.isPanicking() || villager.hasVehicle() || villager.isLeashed();
             double distance = Math.sqrt(villager.squaredDistanceTo(Vec3d.ofBottomCenter(bed)));
             if (!CoSleep.comes(true, !villager.isBaby(), busy, distance, invited, bridge.config.coSleepRange)) continue;
@@ -105,6 +111,15 @@ final class CoSleepController {
             if (villager.isSleeping()) villager.wakeUp(); // Спала в своей кровати поодаль: встаёт и идёт к игроку.
             nights.put(partner.id(), new Night(player.getUuid(), target, world.getTime()));
         }
+        if (nights.values().stream().anyMatch(night -> night.player.equals(player.getUuid())))
+            holds.put(player.getUuid(), world.getServer().getTicks() + 20L * bridge.config.coSleepNightDelay);
+    }
+    /** Ночь не пропускается, пока игрок лежит рядом с парой меньше {@link MobTalkConfig#coSleepNightDelay} секунд: можно поговорить.
+     * Без пары рядом и при 0 — ванильные 5 секунд. */
+    boolean holdsNight(ServerPlayerEntity player) {
+        if (!enabled() || bridge.config.coSleepNightDelay <= 0) return false;
+        Long until = holds.get(player.getUuid());
+        return until != null && player.isSleeping() && player.getServer() != null && player.getServer().getTicks() < until;
     }
     /** Ближайшая свободная кровать (изголовье) в 1–2 блоках от кровати игрока, не занятая и не обещанная другой паре; null — нет. */
     private BlockPos freeBed(ServerWorld world, BlockPos bed) {
@@ -167,5 +182,5 @@ final class CoSleepController {
     }
 
     void unload(MobEntity mob) { nights.remove(mob.getUuid()); invites.remove(mob.getUuid()); }
-    void clearRuntime() { nights.clear(); invites.clear(); sleeping.clear(); }
+    void clearRuntime() { nights.clear(); invites.clear(); sleeping.clear(); holds.clear(); }
 }

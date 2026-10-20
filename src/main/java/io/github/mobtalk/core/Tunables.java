@@ -112,6 +112,7 @@ public final class Tunables {
         integer("jealousyAttention", s, "jealousy", 0, 30, 1, c -> c.jealousyAttention, (c, x) -> c.jealousyAttention = x);
         integer("coSleepRange", s, "jealousy", 2, 32, 1, c -> c.coSleepRange, (c, x) -> c.coSleepRange = x);
         integer("coSleepHearts", s, "jealousy", 0, 20, 1, c -> c.coSleepHearts, (c, x) -> c.coSleepHearts = x);
+        integer("coSleepNightDelay", s, "jealousy", 0, 300, 5, c -> c.coSleepNightDelay, (c, x) -> c.coSleepNightDelay = x);
         // Bonds between mobs and their walks.
         integer("socialActionsPerMinute", s, "bonds", 1, 30, 1, c -> c.socialActionsPerMinute, (c, x) -> c.socialActionsPerMinute = x);
         integer("socialPlayerRange", s, "bonds", 8, 96, 1, c -> c.socialPlayerRange, (c, x) -> c.socialPlayerRange = x);
