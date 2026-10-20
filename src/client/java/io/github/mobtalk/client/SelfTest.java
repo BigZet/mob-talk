@@ -574,7 +574,7 @@ final class SelfTest {
                 check(!bridge().memory.displayName(a).isBlank() && !bridge().memory.acquainted(a), "the talker got a name (" + bridge().memory.displayName(a) + ") without becoming the player's acquaintance");
                 long now = System.currentTimeMillis();
                 // The partner may be any villager standing by (the farmer of the earlier stages too): the one the talk names.
-                String partner = bridge().memory.events(a).stream().filter(e -> e.startsWith("Болтал с ")).reduce((x, y) -> y).orElse("").substring("Болтал с ".length()).split("[,:]")[0].strip();
+                String partner = bridge().memory.events(a).stream().filter(e -> e.startsWith("Болтал с ")).reduce((x, y) -> y).map(e -> e.substring("Болтал с ".length()).split("[,:]")[0].strip()).orElse("");
                 check(bridge().memory.bonds(a, now).stream().anyMatch(b -> bridge().memory.displayName(b.other()).equals(partner)), "the talk introduced the two (" + partner + ")");
                 check(voiced, "the small talk was voiced");
                 notices();
