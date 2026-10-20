@@ -223,7 +223,7 @@ public final class SelfTest {
             check(voiced >= 2, "голос бога прозвучал: " + voiced + " раз");
             // An ordinary mortal swears at the god: real wrath, at full strength, and only after the god has spoken.
             soul.righteousness.score = 0; soul.mood = 0; soul.lastPrayerTick = Long.MIN_VALUE / 2; soul.prayerTicks.clear();
-            Prayers.spoken = line -> { spokenAt = System.nanoTime(); log("  бог: " + line); };
+            Prayers.spoken = line -> { spokenAt = System.nanoTime(); log("  бог: " + line); Scheduler.later(20, () -> screenshot = "beams"); };
             Prayers.performed = act -> { performedAt = System.nanoTime(); log("  свершилось: " + act); };
             spokenAt = performedAt = 0;
             Prayers.handle(player, altar, "бля, ты бесполезный бог, дай алмазы");
@@ -290,9 +290,9 @@ public final class SelfTest {
     }
 
     private static void perform(ServerPlayerEntity player, Miracle miracle, DivineConfig config) {
+        home(player);
         ServerWorld world = player.getServerWorld();
         clean(world);
-        home(player);
         player.clearStatusEffects();
         player.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, 20 * 60, 4, false, false));
         player.setHealth(player.getMaxHealth() * 0.5f);
@@ -325,7 +325,9 @@ public final class SelfTest {
 
     private static void home(ServerPlayerEntity player) {
         if (base == null) return;
-        player.teleport(player.getServerWorld(), base.getX() + 0.5, base.getY(), base.getZ() + 0.5, 180f, 15f);
+        // Back to the stage in the overworld (an exile to the Nether is undone here too).
+        player.teleport(player.getServer().getOverworld(), base.getX() + 0.5, base.getY(), base.getZ() + 0.5, 180f, 15f);
+        player.setVelocity(0, 0, 0); player.fallDistance = 0;
         player.setFireTicks(0);
     }
     private static void clean(ServerWorld world) {
