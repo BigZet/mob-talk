@@ -33,6 +33,8 @@ final class SelfTestWedding {
     private int speechBefore;
     private boolean fireworks;
     private MobTalkConfig savedBridgeConfig;
+    /** Собеседник до этапа: следующие этапы самотеста рассчитывают на него. */
+    private UUID selectedBefore;
 
     SelfTestWedding(SelfTest test, int stageX, int stageY, int stageZ) { this.test = test; this.wx = stageX + 60; this.wy = stageY; this.wz = stageZ; }
 
@@ -46,6 +48,7 @@ final class SelfTestWedding {
 
     void run(Runnable then) {
         next = then;
+        selectedBefore = test.owner.selected;
         test.log("wedding stages (track L): a live wedding, a wedding without network, villagers' weddings");
         savedBridgeConfig = test.bridge().config.copy();
         test.command("fill " + (wx - 16) + " " + (wy - 1) + " " + (wz - 16) + " " + (wx + 16) + " " + (wy - 1) + " " + (wz + 16) + " minecraft:smooth_stone");
@@ -58,6 +61,9 @@ final class SelfTestWedding {
             test.command("fill " + wall + " minecraft:barrier");
         test.command("setblock " + at(0, 0) + " minecraft:bell[attachment=floor,facing=north]");
         test.command("time set 1000"); test.command("weather clear");
+        test.command("effect give " + name() + " minecraft:resistance 1200 255 true");
+        // В мире «stream 1» игрок — изгнанник деревни внизу: изгнаннику на свадьбу приходит только родня. Для этапа — прощение.
+        test.log("forgive: " + test.bridge().memory.forgiveVillage(world().getRegistryKey().getValue().toString(), wx, wz, playerId()));
         test.command("tp " + name() + " " + at(0, 8));
         for (int i = 0; i < 12; i++) test.command("summon minecraft:villager " + at(-6 + (i % 6) * 2, 4 + (i / 6) * 2) + " {PersistenceRequired:1b,Tags:[\"" + TAG + "\"]}");
         test.command("summon minecraft:villager " + at(6, 6) + " {PersistenceRequired:1b,Tags:[\"" + TAG + "\",\"cleric\"],VillagerData:{profession:\"minecraft:cleric\",level:2,type:\"minecraft:plains\"}}");
@@ -125,7 +131,7 @@ final class SelfTestWedding {
         test.command("item replace entity " + name() + " hotbar.1 with mobtalk:wedding_ring 2");
         test.owner.select(MobSpeechSound.find(test.owner.world, bride));
         int turns = turns(bride);
-        speechBefore = test.owner.speechStarts;
+        speechBefore = test.owner.wedding.voiced;
         test.check(test.owner.say("Идём на свадьбу, любимая! Все к колоколу!"), "the call to the wedding is said");
         test.await("the wedding began", 120, () -> scene() != null, () -> {
             WeddingController.Scene s = scene();
@@ -144,7 +150,7 @@ final class SelfTestWedding {
             if (spot != null) test.command("tp " + name() + " " + spot.x + " " + spot.y + " " + spot.z);
             test.await("everyone gathered and the service began", 110, () -> scene() != null && scene().ceremony.phase() == Wedding.Ceremony.Phase.SERVICE, () -> {
                 test.check(scene() != null, "the service runs");
-                shoot("mobtalk-wedding-gathered.png", this::waitVow);
+                shoot("mobtalk-wedding-gathered.png", () -> shoot("mobtalk-wedding-close.png", this::waitVow));
             });
         });
     }
@@ -152,7 +158,12 @@ final class SelfTestWedding {
     private void shoot(String file, Runnable then) {
         WeddingController.Scene s = scene();
         if (s == null) { then.run(); return; }
-        Vec3d eye = s.couple().add(s.forward().multiply(9)).add(0, 2.5, 0), look = s.couple().add(0, 1.2, 0);
+        boolean close = file.contains("close");
+        // Со стороны колокола: пара лицом к камере, гости за ней. Крупно — сбоку от ведущего.
+        Vec3d right = new Vec3d(-s.forward().z, 0, s.forward().x);
+        Vec3d eye = close ? s.couple().subtract(s.forward().multiply(1.8)).add(right.multiply(1.6)).add(0, 0.05, 0)
+                : s.couple().subtract(s.forward().multiply(10)).add(0, 3, 0);
+        Vec3d look = s.couple().add(0, close ? 1.7 : 1.5, 0);
         Vec3d back = s.playerSpot();
         test.command("tp " + name() + " " + eye.x + " " + eye.y + " " + eye.z + " facing " + look.x + " " + look.y + " " + look.z);
         test.owner.client.options.hudHidden = true;
@@ -166,7 +177,7 @@ final class SelfTestWedding {
     private void waitVow() {
         test.await("the officiant asked for the vow", 150, () -> scene() == null || scene().ceremony.awaitingVow(), () -> {
             if (scene() == null) { test.fail("the wedding ended before the vow"); afterLive(); return; }
-            test.check(test.owner.speechStarts > speechBefore, "the officiant's lines were voiced");
+            test.check(test.owner.wedding.voiced > speechBefore, "the officiant's lines were voiced");
             test.check(test.owner.wedding.takesVow(), "the client takes the next words as the vow");
             MobTalkConfig config = test.owner.config().copy();
             CompletableFuture<byte[]> wav = CompletableFuture.supplyAsync(() -> {
@@ -205,7 +216,7 @@ final class SelfTestWedding {
     }
     private void afterFeast() {
         test.check(fireworks, "fireworks went up");
-        test.check(test.owner.speechStarts - speechBefore >= 6, "officiant, bride and guests spoke in their voices: " + (test.owner.speechStarts - speechBefore) + " voiced lines");
+        test.check(test.owner.wedding.voiced - speechBefore >= 6, "officiant, bride and guests spoke in their voices: " + (test.owner.wedding.voiced - speechBefore) + " voiced phrases");
         test.await("pause: the last effects", 3, () -> false, () -> {
             test.check(test.bridge().memory.events(witness).stream().anyMatch(e -> e.contains("свидетел") && e.contains("свадьб")), "the witness remembers the wedding");
             long guestMemories = guests.stream().filter(g -> test.bridge().memory.events(g).stream().anyMatch(e -> e.contains("свадьб"))).count();
@@ -240,6 +251,7 @@ final class SelfTestWedding {
         test.bridge().memory.social().applyGesture(bride2, playerId(), name(), new GestureIntent(Gesture.GIFT, Gesture.Outcome.BEST, 95, "minecraft:diamond", ""), now);
         test.bridge().memory.social().applyGesture(bride2, playerId(), name(), new GestureIntent(Gesture.PROPOSE, Gesture.Outcome.ACCEPTED, 12, "minecraft:diamond", ""), now);
         test.check(test.bridge().memory.wedding().engaged(bride2, playerId()), "engaged to the second bride with a diamond");
+        test.command("time set 1000");
         WeddingFaults.llm = true; WeddingFaults.tts = true; WeddingFaults.whisper = true;
         test.bridge().config.weddingGatherSeconds = 20; test.bridge().config.weddingVowWaitSeconds = 10;
         test.command("tp " + name() + " " + at(0, 8));
@@ -267,7 +279,7 @@ final class SelfTestWedding {
             test.await("the wedding without network began", 10, () -> scene() != null, () -> {
                 Vec3d spot = scene().playerSpot();
                 if (spot != null) test.command("tp " + name() + " " + spot.x + " " + spot.y + " " + spot.z);
-                int voiced = test.owner.speechStarts;
+                int voiced = test.owner.wedding.voiced;
                 long started = System.currentTimeMillis();
                 test.await("the vow is awaited", 120, () -> scene() == null || scene().ceremony.awaitingVow(), () -> {
                     // A spoken vow while Whisper is down: the client says it was not heard; then the player keeps silent.
@@ -276,7 +288,7 @@ final class SelfTestWedding {
                         test.check(test.bridge().memory.jealousy().partners(playerId()).stream().anyMatch(p -> p.id().equals(bride2) && p.married()),
                                 "no model, no voice, no Whisper, no vow: still married on the stand-in texts");
                         test.await("the second wedding ends", 120, () -> scene() == null, () -> {
-                            test.check(test.owner.speechStarts == voiced, "with speech down nothing was voiced, the lines went as text");
+                            test.check(test.owner.wedding.voiced == voiced, "with speech down nothing of the wedding was voiced, the lines went as text");
                             test.log("the wedding without network took " + (System.currentTimeMillis() - started) / 1000 + " s");
                             WeddingFaults.clear();
                             villageWeddings();
@@ -292,14 +304,13 @@ final class SelfTestWedding {
     private void villageWeddings() {
         List<UUID> free = new ArrayList<>(guests);
         UUID a = null, b = null, c = null, d = null;
-        for (UUID x : free) for (UUID y : free) {
-            if (x.equals(y) || a != null && (x.equals(a) || x.equals(b) || y.equals(a) || y.equals(b))) continue;
-            if (SocialProfile.genderOf(x) == Gender.MALE && SocialProfile.genderOf(y) == Gender.FEMALE) {
-                if (a == null) { a = x; b = y; } else if (c == null) { c = x; d = y; }
-            }
-        }
+        List<UUID> men = free.stream().filter(x -> SocialProfile.genderOf(x) == Gender.MALE).toList();
+        List<UUID> women = free.stream().filter(x -> SocialProfile.genderOf(x) == Gender.FEMALE).toList();
+        if (!men.isEmpty() && !women.isEmpty()) { a = men.get(0); b = women.get(0); }
+        if (men.size() > 1 && women.size() > 1) { c = men.get(1); d = women.get(1); }
         if (a == null) { test.log("no man and woman among the guests: the villagers' wedding scene is skipped"); finish(); return; }
         UUID groom = a, wife = b, groom2 = c, wife2 = d;
+        test.command("time set 1000"); // Свадьбы играют днём, а этапы идут долго.
         WeddingFaults.llm = true; WeddingFaults.tts = true; // Быстро: на запасных текстах.
         CompletableFuture<Boolean> began = test.bridge().onServer(() -> test.bridge().wedding.startVillageForTest(world(), groom, wife, test.serverPlayer()));
         test.await("the villagers' scene starts", 10, began::isDone, () -> {
@@ -342,6 +353,10 @@ final class SelfTestWedding {
         test.command("item replace entity " + name() + " armor.head with minecraft:air");
         test.command("time set day");
         test.command("tp " + name() + " " + (wx - 60) + " " + wy + " " + wz);
-        test.await("pause: track L stage cleaned up", 2, () -> false, next);
+        test.await("pause: track L stage cleaned up", 2, () -> false, () -> {
+            var before = MobSpeechSound.find(test.owner.world, selectedBefore);
+            if (before != null) test.owner.select(before);
+            next.run();
+        });
     }
 }

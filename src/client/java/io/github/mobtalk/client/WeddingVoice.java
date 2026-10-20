@@ -37,7 +37,9 @@ final class WeddingVoice {
     private boolean playing;
     /** Озвучки, заказанные заранее: голос + текст → поток. */
     private final Map<String, Future<SpeechStream>> prefetched = new LinkedHashMap<>();
-    private int promptedVow = -1;
+    private int promptedVow = -1, judgedVow = -1;
+    /** Сколько фраз свадьбы прозвучало голосом (для самотеста). */
+    int voiced;
     /** Игрок, чья свадьба идёт, и ждёт ли служба его клятвы: читается конвейером разговора из другого потока. */
     private volatile boolean vowOpen;
 
@@ -46,7 +48,17 @@ final class WeddingVoice {
     /** Свадьба идёт: обычные разговоры деревни и инициатива молчат. */
     boolean active() { return ceremony != null; }
     /** Служба ждёт клятвы этого игрока: запись идёт до {@link MobTalkConfig#weddingVowSeconds}, а распознанное уходит в службу. */
-    boolean takesVow() { return vowOpen; }
+    boolean takesVow() {
+        if (!vowOpen) {
+            // Тик клиента мог ещё не увидеть, что служба уже ждёт клятву: смотрим на саму службу.
+            var server = owner.client.getServer();
+            MobGameBridge game = server == null ? null : MobGameBridge.active(server);
+            WeddingController.Scene scene = game == null ? null : game.wedding.scene();
+            var player = owner.client.player;
+            return scene != null && player != null && scene.playerWedding() && scene.player.equals(player.getUuid()) && scene.ceremony.awaitingVow();
+        }
+        return true;
+    }
 
     void tick(long ticks) {
         MobGameBridge game = owner.client.getServer() == null ? null : MobGameBridge.active(owner.client.getServer());
@@ -101,6 +113,9 @@ final class WeddingVoice {
         Wedding.Ceremony target = ceremony;
         WeddingScript.Input request = input;
         if (target == null || !target.awaitingVow()) return;
+        Wedding.Beat beat = target.current();
+        if (beat == null || beat.seq() == judgedVow) return; // Эту клятву уже судят: второй раз не считается.
+        judgedVow = beat.seq();
         vowOpen = false;
         owner.chat("Вы: " + text);
         Decider decider = owner.decider();
@@ -159,7 +174,7 @@ final class WeddingVoice {
         MobEntity speaker = MobSpeechSound.find(owner.world, line.speaker());
         if (stream != null && speaker != null && owner.client.player.squaredDistanceTo(speaker) <= RANGE * RANGE) {
             owner.playVoice(line.speaker(), stream, RANGE);
-            playing = true;
+            playing = true; voiced++;
         } else {
             if (stream != null) stream.close();
             textUntil = now + Wedding.speakMillis(segments.get(segment)); // Без голоса: столько, сколько заняла бы речь.
@@ -222,6 +237,6 @@ final class WeddingVoice {
         if (audio != null) { if (!audio.isDone()) audio.cancel(true); closeLater(audio); }
         for (Future<SpeechStream> future : prefetched.values()) closeLater(future);
         prefetched.clear();
-        ceremony = null; input = null; line = null; audio = null; playing = false; textUntil = -1; promptedVow = -1; vowOpen = false;
+        ceremony = null; input = null; line = null; audio = null; playing = false; textUntil = -1; promptedVow = -1; judgedVow = -1; vowOpen = false;
     }
 }

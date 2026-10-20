@@ -97,6 +97,7 @@ public final class VillageTalkController {
     // ---- Announcements. ----
 
     private void notice(ServerWorld world) {
+        if (bridge.wedding.active()) return;
         long now = System.currentTimeMillis();
         String dimension = world.getRegistryKey().getValue().toString();
         for (ServerPlayerEntity player : world.getPlayers()) {

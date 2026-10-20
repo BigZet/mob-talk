@@ -33,6 +33,7 @@ final class VillageTalkVoice {
         MobGameBridge game = MobGameBridge.active(owner.client.getServer());
         if (game == null) return;
         game.talk.talking = active();
+        if (owner.wedding.active()) { cancel(); return; } // Трек L: на свадьбе деревня не болтает и не пишет объявлений.
         if (lines != null) { advance(game); return; }
         if (ticks % 20 != 3) return;
         announce(game);

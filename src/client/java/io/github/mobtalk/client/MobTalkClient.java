@@ -561,6 +561,8 @@ public final class MobTalkClient implements ClientModInitializer {
         if (speech != null || requestActive || recording != null || pendingDeliveries > 0) return;
         Ready next = readyWitnesses.poll();
         if (next == null) return;
+        // Трек L: на свадьбе посторонние реплики (очевидцы, инициатива), задуманные до неё, не звучат.
+        if (wedding.active()) { next.prepared.reply().discardSpeech(); initiatives.ended(next.request.target); return; }
         if (generation != next.request.generation) { next.prepared.reply().discardSpeech(); return; }
         pendingDeliveries++;
         deliver(next.request, next.engine, next.prepared);
@@ -830,7 +832,8 @@ public final class MobTalkClient implements ClientModInitializer {
     }
 
     private void reportFailure(Request request, Throwable failure) {
-        if (request.overheard == null && wedding.takesVow()) wedding.vowUnheard();
+        boolean vow = request.overheard == null && wedding.takesVow();
+        if (vow) wedding.vowUnheard();
         if (!isCurrent(request)) return;
         if (actionRequest != null) actionRequest.completeExceptionally(failure);
         actionRequest = null;
@@ -843,7 +846,7 @@ public final class MobTalkClient implements ClientModInitializer {
         notice(status);
         // The model is unreachable, not the mob: a short local line keeps the creature present instead of mute.
         MobGameBridge game = request.server == null ? null : MobGameBridge.active(request.server);
-        if (failure instanceof java.io.IOException && game != null && client.player != null) {
+        if (failure instanceof java.io.IOException && game != null && client.player != null && !vow) {
             MobCard card = game.memory.card(request.target, client.player.getUuid());
             int calm = card == null || card.state() == null ? 50 : card.state().calm();
             boolean hostile = io.github.mobtalk.core.SpeciesCatalog.get(request.snapshot == null ? "" : request.snapshot.type()).hostile();

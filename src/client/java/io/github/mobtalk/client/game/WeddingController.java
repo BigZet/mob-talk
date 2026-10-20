@@ -153,6 +153,7 @@ public final class WeddingController {
     boolean startVillage(ServerWorld world, UUID first, UUID second, ServerPlayerEntity near) {
         if (!enabled() || scene != null || !(world.getEntity(first) instanceof VillagerEntity a) || !(world.getEntity(second) instanceof VillagerEntity b)) return false;
         if (!daytime(world) || world.hasRaidAt(a.getBlockPos())) return false;
+        if (bridge.memory.social().household(first).spouse() != null || bridge.memory.social().household(second).spouse() != null) return false; // Уже в браке.
         BlockPos bell = bell(world, a);
         if (bell == null) return false;
         Vec3d anchor = Vec3d.ofBottomCenter(bell);
@@ -214,6 +215,7 @@ public final class WeddingController {
             if (t >= at) { it.remove(); world.playSound(null, BlockPos.ofFloored(s.anchor), SoundEvents.BLOCK_BELL_USE, SoundCategory.BLOCKS, 2.0f, 1.0f); }
         }
         if (s.feastUntil > t) feast(s, world, t);
+        if (t % 40 == 9 && !s.ceremony.over()) dress(s, world); // Мозг жителя мог забрать цветы из руки: вернуть.
         if (t % CHECK != 0) return;
         Wedding.Ceremony c = s.ceremony;
         String trouble = trouble(s, world);
@@ -457,7 +459,8 @@ public final class WeddingController {
                 default -> null;
             };
             if (head != null && v.getEquippedStack(EquipmentSlot.HEAD).isEmpty()) { v.equipStack(EquipmentSlot.HEAD, WeddingItems.marked(head, Long.MAX_VALUE)); s.dressed.add(p.id()); }
-            if (hand != null && v.getMainHandStack().isEmpty()) v.equipStack(EquipmentSlot.MAINHAND, WeddingItems.marked(hand, 0));
+            // В руке у жителя бывает только временное (товар, который он показывает): цветы его заменяют, после службы рука пустеет.
+            if (hand != null && WeddingItems.markedUntil(v.getMainHandStack()) < 0) v.equipStack(EquipmentSlot.MAINHAND, WeddingItems.marked(hand, 0));
         }
     }
     /** После службы цветы из рук убираются; наряд пары и свидетелей остаётся на {@link MobTalkConfig#weddingAttireDays} дней после
