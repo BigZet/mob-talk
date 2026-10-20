@@ -173,7 +173,7 @@ public final class MobTalkClient implements ClientModInitializer {
     /** Self-test only: opens the configured microphone and records for up to {@code seconds} (stop() ends it earlier). */
     MicrophoneRecorder.Capture microphoneProbe(int seconds) { return microphone.start(config.microphoneName, seconds); }
     /** How many spoken replies started and how many were cut off by the next one while still playing (self-test bookkeeping). */
-    int speechStarts, speechCutoffs;
+    int speechStarts, speechCutoffs, repliesShown;
     /** A recorded question handed in as WAV (the self-test voices one with TTS); goes through Whisper like a real recording. */
     boolean sayWav(byte[] wav) {
         if (!readyForRequest()) { notice(status); return false; }
@@ -802,7 +802,7 @@ public final class MobTalkClient implements ClientModInitializer {
         boolean spontaneous = request.overheard != null && request.overheard.spontaneous();
         if (spontaneous) initiatives.spoken(request.target, request.overheard, request.generation, reply);
         if (reply.silent()) { status = readyStatus(); showHud(); return; }
-        chat(reply.speakerName() + ": " + reply.responseText());
+        chat(reply.speakerName() + ": " + reply.responseText()); repliesShown++;
         stopSpeech();
         if (reply.speech() != null) {
             speech = new MobSpeechSound(client, world, request.target, request.config.maxDistance, reply.speech());
