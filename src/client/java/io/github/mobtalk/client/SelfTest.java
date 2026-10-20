@@ -475,19 +475,27 @@ final class SelfTest {
     // ---- Stage 9a' (0.7.0): the gift key — wheat from the hand to the cow: taken, relationship up, a word of thanks.
     private void giftWheat() {
         String name = owner.client.player.getName().getString();
-        command("item replace entity " + name + " weapon.mainhand with minecraft:wheat 2");
-        await("wheat in hand", 3, () -> owner.client.player.getMainHandStack().getCount() == 2, () -> {
+        command("item replace entity " + name + " weapon.mainhand with minecraft:wheat 4");
+        await("wheat in hand", 3, () -> owner.client.player.getMainHandStack().getCount() == 4, () -> {
             int relationBefore = relation(cow), turnsBefore = turns(cow);
-            owner.giftFromHand();
+            long given = System.currentTimeMillis();
+            // Три подарка подряд: одна реакция на все, без очереди за очевидцами.
+            owner.giftFromHand(); owner.giftFromHand(); owner.giftFromHand();
             await("the cow took the wheat", 10, () -> relation(cow) > relationBefore, () -> {
                 check(relation(cow) > relationBefore, "the cow took the wheat from the hand: relation " + relationBefore + " → " + relation(cow));
                 await("hand count synced", 2, () -> owner.client.player.getMainHandStack().getCount() == 1, () ->
-                        check(owner.client.player.getMainHandStack().getCount() == 1, "one wheat left the hand (" + owner.client.player.getMainHandStack().getCount() + " left)"));
+                        check(owner.client.player.getMainHandStack().getCount() == 1, "three wheat left the hand (" + owner.client.player.getMainHandStack().getCount() + " left)"));
                 await("the cow said a word of the gift", 90, () -> turns(cow) > turnsBefore && !owner.busyTalking(), () -> {
-                    log("cow about the gift: " + lastReply(cow));
+                    long reacted = System.currentTimeMillis() - given;
+                    log("cow about the gifts after " + reacted + " ms: " + lastReply(cow));
                     check(turns(cow) > turnsBefore, "the cow spoke of the gift");
-                    command("item replace entity " + name + " weapon.mainhand with minecraft:air");
-                    new SelfTestJealousy(this, sx, SY, sz).run(() -> new SelfTestWedding(this, sx, SY, sz).run(() -> new SelfTestFamily(this, sx, SY, sz).run(this::stayHere))); // Треки J, L и N.
+                    check(reacted < 30_000, "the gift reaction came within 30 s (" + reacted + " ms)");
+                    int after = turns(cow);
+                    await("pause: no second gift reaction", 12, () -> turns(cow) > after, () -> {
+                        check(turns(cow) == turnsBefore + 1, "three gifts in a row got one reaction (" + (turns(cow) - turnsBefore) + ")");
+                        command("item replace entity " + name + " weapon.mainhand with minecraft:air");
+                        new SelfTestJealousy(this, sx, SY, sz).run(() -> new SelfTestWedding(this, sx, SY, sz).run(() -> new SelfTestFamily(this, sx, SY, sz).run(this::stayHere))); // Треки J, L и N.
+                    });
                 });
             });
         });
