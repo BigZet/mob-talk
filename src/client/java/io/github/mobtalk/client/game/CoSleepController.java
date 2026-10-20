@@ -58,7 +58,7 @@ final class CoSleepController {
         for (ServerPlayerEntity player : world.getPlayers()) {
             boolean asleep = player.isSleeping() && player.getSleepingPosition().isPresent();
             if (asleep && sleeping.add(player.getUuid())) lieDown(world, player, now);
-            else if (!asleep && sleeping.remove(player.getUuid())) { holds.remove(player.getUuid()); woke(world, player, now); }
+            else if (!asleep && sleeping.remove(player.getUuid())) { holds.remove(player.getUuid()); bridge.children.woke(player); woke(world, player, now); }
         }
         for (Iterator<Map.Entry<UUID, Night>> it = nights.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<UUID, Night> entry = it.next();
@@ -77,7 +77,7 @@ final class CoSleepController {
             villager.sleep(night.bed); // Ванильный сон: та же поза, что у жителя в своей кровати.
             night.asleep = true;
             invites.remove(villager.getUuid());
-            bridge.memory.jealousy().sleptTogether(villager.getUuid(), player.getUuid(), MobGameBridge.playerName(player), now);
+            if (bridge.memory.jealousy().sleptTogether(villager.getUuid(), player.getUuid(), MobGameBridge.playerName(player), now)) bridge.children.night(villager, player); // Трек N.
         }
     }
 
@@ -92,7 +92,7 @@ final class CoSleepController {
                     && Math.abs(pos.getZ() - bed.getZ()) <= CoSleep.BED_RADIUS && Math.abs(pos.getY() - bed.getY()) <= 1).orElse(false)) {
                 Night night = new Night(player.getUuid(), villager.getSleepingPosition().get(), world.getTime());
                 night.asleep = true; nights.put(partner.id(), night);
-                bridge.memory.jealousy().sleptTogether(partner.id(), player.getUuid(), MobGameBridge.playerName(player), now);
+                if (bridge.memory.jealousy().sleptTogether(partner.id(), player.getUuid(), MobGameBridge.playerName(player), now)) bridge.children.night(villager, player); // Трек N.
                 continue;
             }
             Invite invite = invites.get(partner.id());
@@ -149,8 +149,9 @@ final class CoSleepController {
             // Днём ванильный распорядок будит жителя сам; повод для реплики — один раз за ночь.
             if (!bridge.memory.jealousy().morning(villager.getUuid(), player.getUuid())) continue;
             String name = bridge.memory.displayName(villager.getUuid());
+            String special = bridge.children.morning(villager, player); // Трек N: утро после особой ночи.
             bridge.initiative.raise(new Initiative.Cue(villager.getUuid(), name.isBlank() ? villager.getName().getString() : name, Initiative.Trigger.GIFT,
-                    CoSleep.morningCue(MobGameBridge.playerName(player)), List.of(), now));
+                    special != null ? special : CoSleep.morningCue(MobGameBridge.playerName(player)), List.of(), now));
         }
     }
 

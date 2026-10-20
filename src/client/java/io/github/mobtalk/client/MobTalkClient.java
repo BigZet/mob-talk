@@ -94,6 +94,9 @@ public final class MobTalkClient implements ClientModInitializer {
     KeyBinding tradeKey;
     KeyBinding giftKey;
     private final MobLabels labels = new MobLabels(this);
+    /** Трек N: живот, строка под именем, затемнения. */
+    private final ChildView children = new ChildView(this);
+    KeyBinding familyKey;
     private boolean openSettingsRequested;
     private MicrophoneRecorder.Capture recording;
     private boolean configReady;
@@ -146,7 +149,11 @@ public final class MobTalkClient implements ClientModInitializer {
                 GLFW.GLFW_KEY_B, "category.mobtalk"));
         giftKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.gift", InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_G, "category.mobtalk"));
+        familyKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.family", InputUtil.Type.KEYSYM,
+                InputUtil.UNKNOWN_KEY.getCode(), "category.mobtalk"));
         net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_ENTITIES.register(labels::render);
+        ChildView.register();
+        net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback.EVENT.register(children::renderFade);
         ScreenEvents.AFTER_INIT.register((minecraft, screen, width, height) -> {
             if (screen instanceof GameMenuScreen) {
                 Screens.getButtons(screen).add(ButtonWidget.builder(Text.literal("Mob Talk"), button -> openSettings(screen))
@@ -193,6 +200,9 @@ public final class MobTalkClient implements ClientModInitializer {
     void requestSettings() { openSettingsRequested = true; }
     /** /mobtalk info: the chat closes first, the panel opens on the next tick. */
     void requestInfo() { openInfoRequested = true; }
+    /** Трек N: экран семьи из команды — откроется на следующем тике, когда чат закроется. */
+    void requestFamily() { openFamilyRequested = true; }
+    private boolean openFamilyRequested;
     private boolean openInfoRequested;
     /** The player's view at the moment a question starts: pixels sampled on the render thread, encoded later off it. */
     private record Shot(long generation, int width, int height, int[] rgb) { }
@@ -284,8 +294,10 @@ public final class MobTalkClient implements ClientModInitializer {
             openSettings(client.currentScreen);
         }
         if (openInfoRequested && !reloading && !stopped) { openInfoRequested = false; openInfo(client.currentScreen); }
+        if (openFamilyRequested && !reloading && !stopped) { openFamilyRequested = false; openFamily(client.currentScreen); }
         while (tradeKey.wasPressed()) openTrade();
         while (giftKey.wasPressed()) giftFromHand();
+        while (familyKey.wasPressed()) openFamily(client.currentScreen);
         boolean held = merchant.windowOpen() ? merchant.keyHeld() : bed.open() ? bed.keyHeld() : talkKey.isPressed();
         MobEntity mob = target();
         if (selected != null && mob == null) clearSelection("Моб погиб или выгрузился: наведите прицел на другого");
@@ -327,7 +339,7 @@ public final class MobTalkClient implements ClientModInitializer {
             runDeferredAction();
         }
         if (selected != null && ticks % 20 == 0) showHud();
-        if (ticks % 10 == 7) labels.tick();
+        if (ticks % 10 == 7) { children.tick(); labels.tick(); }
         if (conversationMob != null && ticks % 20 == 0 && System.currentTimeMillis() - lastReplyMillis > config.conversationSilenceMinutes * 60_000L) endConversation(conversationMob);
     }
 
@@ -756,11 +768,28 @@ public final class MobTalkClient implements ClientModInitializer {
                     if (request.overheard == null && io.github.mobtalk.core.CoSleep.invites(reply.recognizedText())) game.inviteToBed(request.target, request.player);
                     // Трек L: «идём на свадьбу» невесте — свадьба у колокола; «будь моим свидетелем» — свидетель (решено заранее, как жест).
                     if (request.overheard == null) weddingWords(game, request, reply, prepared.gesture());
+                    if (request.overheard == null) familyWords(game, request, reply);
                     finishDelivery(request, reply, delivery.message());
                     if (defer) { deferredAction = new Deferred(request, action); if (speech == null) runDeferredAction(); }
                 } finally { pendingDeliveries--; }
             }));
         } finally { if (!async) pendingDeliveries--; }
+    }
+
+    /** Трек N: «у меня для тебя сюрприз» супругу — особый вечер; любые слова паре в особую ночь держат ночь, пока шепчутся. */
+    private void familyWords(MobGameBridge game, Request request, ConversationEngine.Reply reply) {
+        if (!config.familyLife || !config.socialLayer) return;
+        game.eveningSpoke(request.player);
+        if (io.github.mobtalk.core.SpecialEvening.invites(reply.recognizedText()))
+            game.startEvening(request.target, request.player).thenAccept(message -> client.execute(() -> { if (!message.isBlank()) chat("§d[Mob Talk] " + message); }));
+    }
+
+    /** Трек N: экран семьи — супруг, дети и что им нужно; только чтение мира. */
+    void openFamily(net.minecraft.client.gui.screen.Screen parent) {
+        if (client.getServer() == null || client.player == null) { notice("Экран семьи доступен в одиночной игре"); return; }
+        MobGameBridge game = MobGameBridge.active(client.getServer());
+        if (game == null) { notice("Мир ещё загружается"); return; }
+        client.setScreen(new FamilyScreen(parent, game, client.player.getUuid()));
     }
 
     /** Трек L: что сказанное значит для свадьбы — помолвка состоялась, зовут на свадьбу, просят быть свидетелем. */

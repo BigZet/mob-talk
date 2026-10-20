@@ -40,6 +40,8 @@ final class FamilyController {
     /** The player's child: the day is set a game day after the agreement; when it comes and the spouse is loaded, the baby appears. */
     private void expecting(ServerWorld world) {
         for (SocialLedger.Expecting expecting : bridge.memory.social().expecting()) {
+            // Трек N: этого малыша ведёт беременность (ночь вместе, срок, роды) — ChildController.
+            if (bridge.config.pregnancy && bridge.memory.children().handles(expecting.villager())) continue;
             if (expecting.dueTick() == 0) { bridge.memory.social().due(expecting.villager(), world.getTime() + ChildGrowth.BIRTH_DELAY_TICKS); continue; }
             if (world.getTime() < expecting.dueTick() || !(world.getEntity(expecting.villager()) instanceof VillagerEntity parent) || !parent.isAlive()) continue;
             ServerPlayerEntity player = world.getServer().getPlayerManager().getPlayer(expecting.partner());

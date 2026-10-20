@@ -53,6 +53,8 @@ public final class MobGameBridge {
     final CoSleepController coSleep;
     /** Трек L: свадьба у колокола. */
     public final WeddingController wedding;
+    /** Трек N: особая ночь, беременность, роды. */
+    public final ChildController children;
     private final Map<UUID, Deque<Heard>> heard = new HashMap<>();
 
     private MobGameBridge(MinecraftServer server, ConversationStore memory, MobTalkConfig config) {
@@ -64,6 +66,7 @@ public final class MobGameBridge {
         jealousy = new JealousyController(this);
         coSleep = new CoSleepController(this);
         wedding = new WeddingController(this);
+        children = new ChildController(this);
         initiative = new InitiativeController(this);
         talk = new VillageTalkController(this);
         actions = new MobActionController(this);
@@ -105,6 +108,7 @@ public final class MobGameBridge {
             if (source.getAttacker() instanceof ServerPlayerEntity player) bridge.witnessed(mob, player, Witness.KILL);
             bridge.social.died(mob); // Before the stranger's profile goes: the mourners keep its name.
             bridge.families.died(mob, source); // Relatives mourn wherever they are.
+            bridge.children.died(mob);
             if (bridge.memory.known(id) && !bridge.memory.forgetStranger(id)) bridge.event(mob, "The mob died: " + source.getName());
             // END_WORLD_TICK removes dead leases; a death callback can run inside that lease's melee goal.
         });
@@ -142,6 +146,7 @@ public final class MobGameBridge {
                 bridge.jealousy.tick(world);
                 bridge.coSleep.tick(world);
                 bridge.wedding.tick(world);
+                bridge.children.tick(world);
                 bridge.initiative.tick(world);
                 bridge.talk.tick(world);
                 bridge.bargaining.tick(world);
@@ -182,7 +187,7 @@ public final class MobGameBridge {
                 bridge.memory.recordAction(card.id(), ActionIntent.none());
         if (server.isStopped()) return CompletableFuture.completedFuture(null);
         CompletableFuture<Void> done = new CompletableFuture<>();
-        server.execute(() -> { bridge.actions.clearRuntime(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
+        server.execute(() -> { bridge.actions.clearRuntime(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
         return done;
     }
     public static MobGameBridge forEntity(Entity entity) {
@@ -235,6 +240,45 @@ public final class MobGameBridge {
 
     /** Трек J: игрок позвал свою пару спать («пойдём спать»): она идёт за ним и ляжет рядом, когда он ляжет. */
     public CompletableFuture<Void> inviteToBed(UUID mobId, UUID playerId) { return onServer(() -> { coSleep.invite(mobId, playerId); return null; }); }
+    /** Трек N: игрок позвал супруга на особый вечер; строка для чата ("" — звали не супруга). */
+    public CompletableFuture<String> startEvening(UUID mobId, UUID playerId) {
+        return onServer(() -> {
+            ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
+            Entity entity = player == null ? null : ((ServerWorld) player.getWorld()).getEntity(mobId);
+            return entity instanceof VillagerEntity villager ? children.startEvening(villager, player) : "";
+        });
+    }
+    /** Трек N: экран семьи — сводка из памяти мира и то, что видно в мире: где супруг и дети, настроение, профессия. */
+    public record FamilyPage(ChildLedger.Overview overview, Map<UUID, String> where, Map<UUID, String> mood, Map<UUID, String> profession) { }
+    public CompletableFuture<FamilyPage> family(UUID playerId) {
+        return onServer(() -> {
+            ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
+            ChildLedger.Overview overview = memory.children().overview(playerId, server.getOverworld().getTimeOfDay(), server.getOverworld().getTime(), System.currentTimeMillis());
+            Map<UUID, String> where = new HashMap<>(), mood = new HashMap<>(), profession = new HashMap<>();
+            List<UUID> ids = new ArrayList<>();
+            overview.spouses().forEach(s -> ids.add(s.id())); overview.children().forEach(c -> ids.add(c.id()));
+            for (UUID id : ids) {
+                Entity entity = null;
+                for (ServerWorld world : server.getWorlds()) { entity = world.getEntity(id); if (entity != null) break; }
+                if (!(entity instanceof MobEntity mob) || !mob.isAlive()) { where.put(id, "не рядом (не загружен)"); continue; }
+                if (player != null && mob.getWorld() == player.getWorld()) {
+                    int distance = (int) Math.sqrt(mob.squaredDistanceTo(player));
+                    where.put(id, (distance <= 16 ? "рядом" : distance <= 64 ? "в деревне" : "далеко") + " (" + distance + " бл., " + mob.getBlockX() + " " + mob.getBlockY() + " " + mob.getBlockZ() + ")");
+                } else where.put(id, "в другом измерении");
+                MobCard card = memory.card(id, playerId);
+                MobState.Descriptor marker = card == null || card.state() == null ? null : card.state().marker();
+                if (marker != null) mood.put(id, net.minecraft.text.Text.translatable("mobtalk.state." + marker.key()).getString()
+                        + (card.state().thought() == null || card.state().thought().isBlank() ? "" : " — «" + card.state().thought() + "»"));
+                if (mob instanceof VillagerEntity villager) {
+                    net.minecraft.util.Identifier job = Registries.VILLAGER_PROFESSION.getId(villager.getVillagerData().getProfession());
+                    if (job != null && !"none".equals(job.getPath())) profession.put(id, net.minecraft.text.Text.translatable("entity.minecraft.villager." + job.getPath()).getString());
+                }
+            }
+            return new FamilyPage(overview, where, mood, profession);
+        });
+    }
+    /** Трек N: игрок что-то сказал своей паре — в особую ночь это держит ночь. */
+    public CompletableFuture<Void> eveningSpoke(UUID playerId) { return onServer(() -> { children.spoke(playerId); return null; }); }
     /** Трек L: игрок позвал невесту (жениха) на свадьбу; строка для чата — почему нельзя, "" — началась или звали не ту. */
     public CompletableFuture<String> startWedding(UUID mobId, UUID playerId) {
         return onServer(() -> {
@@ -290,7 +334,7 @@ public final class MobGameBridge {
     /** Трек J: пропуск ночи ждёт, пока игрок лежит рядом с парой (миксин на {@code PlayerEntity.canResetTimeBySleeping}). */
     public static boolean holdsNight(ServerPlayerEntity player) {
         MobGameBridge bridge = forEntity(player);
-        return bridge != null && bridge.coSleep.holdsNight(player);
+        return bridge != null && (bridge.coSleep.holdsNight(player) || bridge.children.holdsNight(player));
     }
     public static void helped(MobEntity mob, ServerPlayerEntity player, String reason) {
         MobGameBridge bridge = forEntity(mob);
