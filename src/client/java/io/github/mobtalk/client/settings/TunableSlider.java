@@ -21,6 +21,9 @@ public final class TunableSlider extends SliderWidget {
                 .append(Text.translatable("mobtalk.settings.range", format(tunable.min()), format(tunable.max()), format(tunable.defaultValue())))));
     }
 
+    /** The explanation from the lang file, for the settings search. */
+    public String explanation() { return Text.translatable(tunable.langKey() + ".tooltip").getString(); }
+
     private static double position(Tunables.Tunable tunable, double value) {
         return tunable.max() <= tunable.min() ? 0 : Math.max(0, Math.min(1, (value - tunable.min()) / (tunable.max() - tunable.min())));
     }
