@@ -31,7 +31,18 @@ public final class GodVoice {
 
     public static boolean validVoiceId(String id) { return id != null && id.matches("[A-Za-z0-9]{20,64}"); }
 
+    /** The whole line at once (the preview, tests). */
     public byte[] synthesize(String line) throws IOException, InterruptedException {
+        try (java.io.InputStream stream = stream(line)) {
+            byte[] pcm = stream.readNBytes(MAX_AUDIO_BYTES + 1);
+            if (pcm.length < 2 || pcm.length > MAX_AUDIO_BYTES) throw new IOException("Озвучка вернула неверный звук.");
+            return (pcm.length & 1) == 0 ? pcm : java.util.Arrays.copyOf(pcm, pcm.length - 1);
+        }
+    }
+
+    /** The line as it is synthesised: returns once the response starts, and the PCM keeps flowing while the god already
+     * speaks. Read it on a worker and close it to stop the download. */
+    public java.io.InputStream stream(String line) throws IOException, InterruptedException {
         if (line == null || line.isBlank() || line.length() > 600) throw new IOException("Нечего озвучивать.");
         if (!validVoiceId(config.voiceId)) throw new IOException("Голос бога задан неверно.");
         String key = ApiKeys.load(configDirectory, ApiKeys.Provider.OPENROUTER);
@@ -46,16 +57,14 @@ public final class GodVoice {
             JsonObject provider = new JsonObject(); provider.add("options", options);
             body.add("provider", provider);
         }
-        HttpRequest request = HttpRequest.newBuilder(ENDPOINT).timeout(Duration.ofSeconds(30)).header("Authorization", "Bearer " + key)
+        HttpRequest request = HttpRequest.newBuilder(ENDPOINT).timeout(Duration.ofSeconds(40)).header("Authorization", "Bearer " + key)
                 .header("Content-Type", "application/json").header("Accept", "audio/pcm")
                 .POST(HttpRequest.BodyPublishers.ofString(body.toString(), StandardCharsets.UTF_8)).build();
-        HttpResponse<byte[]> response;
-        try { response = HTTP.sendAsync(request, HttpResponse.BodyHandlers.ofByteArray()).get(30, TimeUnit.SECONDS); }
-        catch (java.util.concurrent.TimeoutException slow) { throw new IOException("Озвучка не пришла вовремя."); }
+        HttpResponse<java.io.InputStream> response;
+        try { response = HTTP.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream()).get(20, TimeUnit.SECONDS); }
+        catch (java.util.concurrent.TimeoutException slow) { throw new IOException("Озвучка не началась вовремя."); }
         catch (java.util.concurrent.ExecutionException failure) { throw new IOException("Озвучка недоступна."); }
-        if (response.statusCode() != 200) throw new IOException("Озвучка: ошибка HTTP " + response.statusCode() + ".");
-        byte[] pcm = response.body();
-        if (pcm.length < 2 || pcm.length > MAX_AUDIO_BYTES) throw new IOException("Озвучка вернула неверный звук.");
-        return (pcm.length & 1) == 0 ? pcm : java.util.Arrays.copyOf(pcm, pcm.length - 1);
+        if (response.statusCode() != 200) { response.body().close(); throw new IOException("Озвучка: ошибка HTTP " + response.statusCode() + "."); }
+        return response.body();
     }
 }

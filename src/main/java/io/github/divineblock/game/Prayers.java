@@ -176,21 +176,23 @@ public final class Prayers {
         DivineBlockMod.LOG.info("Божественный блок: вердикт для {}\n{}", player.getName().getString(), verdict.breakdown());
         if (config.debug) player.sendMessage(Text.literal(verdict.breakdown()).formatted(Formatting.DARK_GRAY), false);
         if (verdict.chosen() == Miracle.IGNORE) { act(player, altar, verdict, config); return; } // Silence: no word at all.
-        speakThen(player, altar, verdict.speech, seconds -> {
-            if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) return;
-            Miracles.speaking(player, altar, verdict.chosen().kind, seconds);
+        int color = beamColor(verdict.chosen().kind);
+        double estimate = Math.max(3, verdict.speech.split("\s+").length * 0.45); // Seconds the words may take, for the glow.
+        speakThen(player, verdict.speech, () -> {
+            if (player.isRemoved() || player.getServerWorld() != world) return;
+            Miracles.speaking(player, altar, verdict.chosen().kind, estimate);
             if (ServerPlayNetworking.canSend(player, BeamsPayload.ID))
-                ServerPlayNetworking.send(player, new BeamsPayload(altar, (int) Math.round(seconds * 20) + 30, beamColor(verdict.chosen().kind)));
-            Scheduler.later((int) Math.max(1, Math.round(seconds * 20) + 4), () -> {
-                if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) return;
-                Miracles.flourish(player, altar, verdict.chosen().kind, verdict.power);
-                if (verdict.warned) {
-                    List<Verdict.Reason> main = verdict.mainReasons(1);
-                    title(player, Text.literal("Гнев небес").formatted(Formatting.DARK_RED),
-                            Text.literal(main.isEmpty() ? "Мене, мене, текел, упарсин" : main.get(0).text()).formatted(Formatting.RED));
-                }
-                act(player, altar, verdict, config);
-            });
+                ServerPlayNetworking.send(player, new BeamsPayload(altar, 20 * 45, color));
+        }, () -> {
+            if (ServerPlayNetworking.canSend(player, BeamsPayload.ID)) ServerPlayNetworking.send(player, new BeamsPayload(altar, 0, color));
+            if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) return;
+            Miracles.flourish(player, altar, verdict.chosen().kind, verdict.power);
+            if (verdict.warned) {
+                List<Verdict.Reason> main = verdict.mainReasons(1);
+                title(player, Text.literal("Гнев небес").formatted(Formatting.DARK_RED),
+                        Text.literal(main.isEmpty() ? "Мене, мене, текел, упарсин" : main.get(0).text()).formatted(Formatting.RED));
+            }
+            act(player, altar, verdict, config);
         });
     }
 
@@ -198,29 +200,45 @@ public final class Prayers {
         return switch (kind) { case HELP -> 0xFFFFD24A; case JEST -> 0xFFB050FF; case WRATH -> 0xFFFF2A1A; case OMEN -> 0xFFFFFFFF; };
     }
 
-    /** Lines waiting for the client to start voicing them, by player and line id. */
-    private record Waiting(UUID player, int id, java.util.function.DoubleConsumer then, boolean[] done) { }
-    private static final java.util.Map<String, Waiting> WAITING = new java.util.HashMap<>();
+    /** A line on its way through the client's voice: started (the words are heard) and ended (the last word is said). */
+    private static final class Speaking {
+        final String line; final ServerPlayerEntity player; final Runnable onStart, onEnd;
+        boolean started, ended;
+        Speaking(ServerPlayerEntity player, String line, Runnable onStart, Runnable onEnd) { this.player = player; this.line = line; this.onStart = onStart; this.onEnd = onEnd; }
+        void start() { if (started) return; started = true; chat(player, line); onStart.run(); }
+        void end() { if (ended) return; start(); ended = true; onEnd.run(); }
+    }
+    private static final java.util.Map<String, Speaking> WAITING = new java.util.HashMap<>();
     private static int nextLine = 1;
-    /** How long to wait for the voice before acting anyway (no mod on the client, a stalled speech service). */
-    static final int VOICE_TIMEOUT_TICKS = 20 * 15;
+    /** How long to wait for the voice to begin, and then to end, before acting anyway (no mod on the client, a stalled service). */
+    static final int VOICE_START_TIMEOUT_TICKS = 20 * 20, VOICE_END_TIMEOUT_TICKS = 20 * 45;
 
-    /** Sends the line to be voiced; the chat text and {@code then} come when the voice starts, or after the timeout. */
-    private static void speakThen(ServerPlayerEntity player, BlockPos altar, String line, java.util.function.DoubleConsumer then) {
-        int id = nextLine++;
-        boolean[] done = { false };
-        Waiting waiting = new Waiting(player.getUuid(), id, seconds -> { if (done[0]) return; done[0] = true; chat(player, line); then.accept(seconds); }, done);
+    /** Sends the line to be voiced. The chat text and {@code onStart} come when the voice starts; {@code onEnd} when it ends. */
+    private static void speakThen(ServerPlayerEntity player, String line, Runnable onStart, Runnable onEnd) {
+        Speaking speaking = new Speaking(player, line, onStart, onEnd);
         boolean voiced = line != null && !line.isBlank() && !"…".equals(line) && ServerPlayNetworking.canSend(player, GodLinePayload.ID);
-        if (!voiced) { waiting.then().accept(0); return; }
-        WAITING.put(player.getUuid() + "/" + id, waiting);
+        if (!voiced) { speaking.end(); return; }
+        int id = nextLine++;
+        String key = player.getUuid() + "/" + id;
+        WAITING.put(key, speaking);
         ServerPlayNetworking.send(player, new GodLinePayload(id, line.length() > 600 ? line.substring(0, 600) : line));
-        Scheduler.later(VOICE_TIMEOUT_TICKS, () -> { if (WAITING.remove(player.getUuid() + "/" + id) != null) waiting.then().accept(0); });
+        Scheduler.later(VOICE_START_TIMEOUT_TICKS, () -> {
+            if (!speaking.started && WAITING.remove(key) != null) speaking.end();
+        });
     }
 
-    /** The client started voicing a line (or gave up on it). */
+    /** The client's voice news: {@code seconds < 0} — it started (length unknown yet); otherwise it ended or never came. */
     public static void voiceStarted(ServerPlayerEntity player, int id, float seconds) {
-        Waiting waiting = WAITING.remove(player.getUuid() + "/" + id);
-        if (waiting != null) waiting.then().accept(Math.max(0, Math.min(60, seconds)));
+        String key = player.getUuid() + "/" + id;
+        Speaking speaking = WAITING.get(key);
+        if (speaking == null) return;
+        if (seconds < 0) {
+            speaking.start();
+            Scheduler.later(VOICE_END_TIMEOUT_TICKS, () -> { if (WAITING.remove(key) != null) speaking.end(); });
+            return;
+        }
+        WAITING.remove(key);
+        speaking.end();
     }
 
     private static void act(ServerPlayerEntity player, BlockPos altar, Verdict verdict, DivineConfig config) {
@@ -243,7 +261,7 @@ public final class Prayers {
     public static volatile java.util.function.Consumer<String> performed = act -> { };
 
     /** A line with nothing to follow it (the answer to "why?", a refusal): voiced and shown together. */
-    static void say(ServerPlayerEntity player, String line) { speakThen(player, null, line, seconds -> { }); }
+    static void say(ServerPlayerEntity player, String line) { speakThen(player, line, () -> { }, () -> { }); }
 
     private static void chat(ServerPlayerEntity player, String line) {
         spoken.accept(line);

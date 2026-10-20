@@ -31,6 +31,13 @@ final class AltarBeams {
 
     static void start(MinecraftClient client, BlockPos altar, int ticks, int color) {
         if (client.world == null) return;
+        if (ticks <= 0) {
+            // The last word: the beams at this altar fade out over half a second.
+            long fade = client.world.getTime() + 10;
+            SHOWS.replaceAll(show -> show.altar().equals(altar) && show.end() > fade
+                    ? new Show(show.altar(), show.start(), fade, show.color(), show.beams(), show.spin()) : show);
+            return;
+        }
         Random random = new Random(altar.asLong() ^ client.world.getTime());
         List<Beam> beams = new ArrayList<>();
         int count = 4 + random.nextInt(3);
