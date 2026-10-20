@@ -5,7 +5,10 @@ import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.passive.ParrotEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.particle.ParticleTypes;
+import net.minecraft.registry.tag.ItemTags;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
@@ -69,6 +72,12 @@ public final class ParrotCageBlockEntity extends BlockEntity {
 			}
 			return;
 		}
+		ItemStack bait = player.getMainHandStack().isIn(ItemTags.PARROT_FOOD) ? player.getMainHandStack()
+				: player.getOffHandStack().isIn(ItemTags.PARROT_FOOD) ? player.getOffHandStack() : ItemStack.EMPTY;
+		if (bait.isEmpty()) {
+			player.sendMessage(Text.translatable("parrotcages.message.need_bait"), true);
+			return;
+		}
 		ParrotEntity bird = world.getEntitiesByClass(ParrotEntity.class, player.getBoundingBox().expand(CAPTURE_RADIUS),
 						p -> p.isAlive() && !CageLinks.isCaged(p) && !p.hasVehicle() && !p.isLeashed()
 								&& (!p.isTamed() || p.isOwner(player)))
@@ -77,7 +86,10 @@ public final class ParrotCageBlockEntity extends BlockEntity {
 			player.sendMessage(Text.translatable("parrotcages.message.no_parrot", (int) CAPTURE_RADIUS), true);
 			return;
 		}
+		bait.decrementUnlessCreative(1, player);
 		capture(world, bird);
+		Vec3d seat = seat();
+		world.spawnParticles(ParticleTypes.HEART, seat.x, seat.y + 0.6, seat.z, 5, 0.25, 0.2, 0.25, 0.02);
 		player.sendMessage(Text.translatable("parrotcages.message.caged", bird.getDisplayName()), true);
 	}
 
