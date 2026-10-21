@@ -3,6 +3,8 @@
 # closed, launches, waits for the game to quit, restores instance.cfg, deletes the test world and reopens PrismLauncher.
 # Report: %LOCALAPPDATA%\DivineBlock\selftest\report.txt; screenshots in the instance's screenshots folder.
 # Refuses to run while javaw.exe is up. Usage: powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1
+# -Church runs the church self-test instead (ChurchSelfTest) and copies its screenshots to -Shots when given.
+param([switch]$Church, [string]$Shots = '')
 $ErrorActionPreference = 'Stop'
 $scratch = Join-Path $env:LOCALAPPDATA "DivineBlock\selftest"
 New-Item -ItemType Directory -Force $scratch | Out-Null
@@ -11,7 +13,9 @@ $name = 'divine-block-test'
 $inst = "$env:APPDATA\PrismLauncher\instances\$name"
 $mc = "$inst\minecraft"
 $prism = 'C:\Users\bigze\AppData\Local\Programs\PrismLauncher\prismlauncher.exe'
-$world = 'divineblock-selftest'
+$world = if ($Church) { 'divineblock-churchtest' } else { 'divineblock-selftest' }
+$flag = if ($Church) { '-Ddivineblock.churchtest=true' } else { '-Ddivineblock.selftest=true' }
+$launchedAt = Get-Date
 $log = "$scratch\selftest-run.log"
 function Say($t) { $line = "$(Get-Date -Format HH:mm:ss) $t"; $line | Tee-Object -FilePath $log -Append }
 "" | Out-File $log
@@ -36,7 +40,7 @@ Start-Sleep -Seconds 3
 Copy-Item "$inst\instance.cfg" "$scratch\instance.cfg.bak" -Force
 $cfg = Get-Content "$inst\instance.cfg" -Raw
 $cfg = $cfg -replace '(?m)^OverrideJavaArgs=.*\r?\n', '' -replace '(?m)^JvmArgs=.*\r?\n', ''
-$cfg = $cfg -replace '\[General\]\r?\n', "[General]`nOverrideJavaArgs=true`nJvmArgs=-Ddivineblock.selftest=true`n"
+$cfg = $cfg -replace '\[General\]\r?\n', "[General]`nOverrideJavaArgs=true`nJvmArgs=$flag`n"
 [System.IO.File]::WriteAllText("$inst\instance.cfg", $cfg)
 
 Say 'launch'
@@ -54,6 +58,11 @@ if (-not $started) { Say 'javaw did not start' } else {
 }
 Start-Sleep -Seconds 3
 Copy-Item "$mc\logs\latest.log" "$scratch\selftest-latest.log" -Force
+if ($Church -and $Shots) {
+  New-Item -ItemType Directory -Force $Shots | Out-Null
+  Get-ChildItem "$mc\screenshots\divineblock-church-*.png" | Where-Object { $_.LastWriteTime -ge $launchedAt } | Copy-Item -Destination $Shots -Force
+  Say "screenshots copied to $Shots"
+}
 
 Say 'restore instance.cfg, delete the test world'
 Get-Process prismlauncher -ErrorAction SilentlyContinue | Stop-Process -Force

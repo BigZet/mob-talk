@@ -1,0 +1,297 @@
+package io.github.divineblock.client;
+
+import com.mojang.datafixers.util.Pair;
+import io.github.divineblock.DivineBlockMod;
+import io.github.divineblock.game.Scheduler;
+import io.github.divineblock.world.CemeteryPiece;
+import io.github.divineblock.world.ChurchBuilder;
+import io.github.divineblock.world.ChurchPiece;
+import io.github.divineblock.world.ChurchStructure;
+import io.github.divineblock.world.ChurchSites;
+import io.github.divineblock.world.ChurchWorldgen;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.entity.ChestBlockEntity;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.TitleScreen;
+import net.minecraft.client.util.ScreenshotRecorder;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.registry.entry.RegistryEntryList;
+import net.minecraft.resource.DataConfiguration;
+import net.minecraft.screen.CraftingScreenHandler;
+import net.minecraft.structure.PoolStructurePiece;
+import net.minecraft.structure.StructurePiece;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.Difficulty;
+import net.minecraft.world.GameMode;
+import net.minecraft.world.GameRules;
+import net.minecraft.world.gen.GeneratorOptions;
+import net.minecraft.world.gen.WorldPresets;
+import net.minecraft.world.gen.structure.Structure;
+import net.minecraft.world.level.LevelInfo;
+
+/** The church self-test, on with -Ddivineblock.churchtest=true: makes a fresh world with structures, finds churches with
+ * /locate (one of each kind if it can), flies around them taking screenshots by day and by night, inside by the altar and over
+ * the churchyard, checks the altar and the chest stand where they should, the new altar recipe in a crafting table, and that
+ * switching churches off generates none. Report: %LOCALAPPDATA%\DivineBlock\selftest\church-report.txt; screenshots
+ * divineblock-church-*.png in the game's screenshots folder. */
+public final class ChurchSelfTest {
+    private static final List<String> report = new ArrayList<>();
+    private static int phase, ticks, failures;
+    private static volatile String screenshot;
+    private static volatile boolean finished, hud = true, moody;
+    private static int waited;
+    private static double gamma = -1;
+
+    private ChurchSelfTest() { }
+
+    public static void register() {
+        if (!Boolean.getBoolean("divineblock.churchtest")) return;
+        log("самотест церкви включён");
+        ClientTickEvents.END_CLIENT_TICK.register(ChurchSelfTest::tick);
+    }
+
+    private static void tick(MinecraftClient client) {
+        ticks++;
+        client.options.hudHidden = !hud;
+        // Screenshots at the default brightness (the instance may be set brighter), restored at the end.
+        if (moody && gamma < 0) { gamma = client.options.getGamma().getValue(); client.options.getGamma().setValue(0.5); }
+        if (!moody && gamma >= 0) { client.options.getGamma().setValue(gamma); gamma = -1; }
+        // Only once the chunks around the camera have been drawn (or after ten seconds).
+        if (screenshot != null && !client.worldRenderer.isTerrainRenderComplete() && waited++ < 200) return;
+        if (screenshot != null) {
+            if (waited > 0) log("  ждал отрисовки чанков " + waited + " тиков");
+            waited = 0;
+            String name = "divineblock-church-" + screenshot + ".png";
+            screenshot = null;
+            ScreenshotRecorder.saveScreenshot(client.runDirectory, name, client.getFramebuffer(), text -> log("  скриншот " + name));
+        }
+        switch (phase) {
+            case 0 -> {
+                if (!(client.currentScreen instanceof TitleScreen)) return;
+                GameRules rules = new GameRules();
+                rules.get(GameRules.DO_MOB_SPAWNING).set(false, null);
+                rules.get(GameRules.DO_DAYLIGHT_CYCLE).set(false, null);
+                rules.get(GameRules.DO_WEATHER_CYCLE).set(false, null);
+                String name = "divineblock-churchtest";
+                LevelInfo info = new LevelInfo(name, GameMode.CREATIVE, false, Difficulty.PEACEFUL, true, rules, DataConfiguration.SAFE_MODE);
+                log("создаю мир " + name);
+                phase = 1; ticks = 0;
+                client.createIntegratedServerLoader().createAndStart(name, info, new GeneratorOptions(20261021L, true, false), WorldPresets::createDemoOptions, new TitleScreen());
+            }
+            case 1 -> {
+                if (client.player != null && client.getServer() != null && client.player.age > 60) {
+                    MinecraftServer server = client.getServer();
+                    var uuid = client.player.getUuid();
+                    server.execute(() -> begin(server, server.getPlayerManager().getPlayer(uuid)));
+                    phase = 2;
+                } else if (ticks > 20 * 240) { fail("мир не открылся"); finish(client); }
+            }
+            case 2 -> {
+                if (finished) { phase = 3; moody = false; client.execute(() -> { write(); client.scheduleStop(); }); }
+                else if (ticks > 20 * 900) { fail("самотест не уложился в 15 минут"); phase = 3; write(); client.execute(client::scheduleStop); }
+            }
+            default -> { }
+        }
+    }
+
+    // ---- On the server thread. ----
+
+    private record Step(int delay, Runnable action) { }
+
+    private static void begin(MinecraftServer server, ServerPlayerEntity player) {
+        if (player == null) { fail("нет игрока"); finished = true; return; }
+        ServerWorld world = player.getServerWorld();
+        world.setWeather(100_000, 0, false, false);
+        check(ChurchWorldgen.enabled() && ChurchWorldgen.spacing() == DivineBlockMod.config().churchSpacing,
+                "настройки церквей: включены=" + ChurchWorldgen.enabled() + ", редкость " + ChurchWorldgen.spacing() + " чанков");
+        check(server.getRecipeManager().get(Identifier.of(DivineBlockMod.ID, "altar")).isPresent(), "рецепт алтаря загружен");
+        // The real command first, as a player would type it.
+        server.getCommandManager().executeWithPrefix(player.getCommandSource().withLevel(4), "locate structure divineblock:orthodox_church");
+        log("команда /locate structure divineblock:orthodox_church выполнена (ответ в чате)");
+
+        // Up to three churches, looking for both kinds.
+        Map<ChurchBuilder.Variant, ChurchSites.Site> sites = new TreeMap<>();
+        List<ChurchSites.Site> all = new ArrayList<>();
+        BlockPos[] from = { player.getBlockPos(), player.getBlockPos().add(4000, 0, 0), player.getBlockPos().add(0, 0, 4000), player.getBlockPos().add(-4000, 0, -4000) };
+        for (BlockPos start : from) {
+            ChurchSites.Site site = locate(world, start);
+            if (site == null) continue;
+            all.add(site);
+            sites.putIfAbsent(site.variant(), site);
+            if (sites.size() == 2) break;
+        }
+        check(!sites.isEmpty(), "найдено церквей: " + all.size() + ", видов: " + sites.keySet());
+        for (int i = 1; i < all.size(); i++) {
+            double apart = Math.sqrt(all.get(i).origin().getSquaredDistance(all.get(i - 1).origin())) / 16;
+            log("  расстояние между найденными: " + Math.round(apart) + " чанков");
+        }
+
+        List<Step> steps = new ArrayList<>();
+        for (ChurchSites.Site site : sites.values()) tour(steps, world, player, site);
+        steps.add(new Step(20, () -> recipe(world, player)));
+        steps.add(new Step(60, () -> screenshot = "recipe"));
+        steps.add(new Step(30, () -> { player.closeHandledScreen(); unlocked(player); }));
+        steps.add(new Step(20, () -> disabled(world)));
+        steps.add(new Step(20, () -> { log("ошибок всего: " + failures); finished = true; }));
+        run(steps, 0);
+    }
+
+    /** Finds a church from start and makes sure its chunks exist; null if none. */
+    private static ChurchSites.Site locate(ServerWorld world, BlockPos start) {
+        RegistryEntry<Structure> entry = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getEntry(ChurchWorldgen.STRUCTURE).orElse(null);
+        if (entry == null) { fail("структура не зарегистрирована"); return null; }
+        long began = System.nanoTime();
+        Pair<BlockPos, RegistryEntry<Structure>> hit = world.getChunkManager().getChunkGenerator().locateStructure(world, RegistryEntryList.of(entry), start, 100, false);
+        if (hit == null) { log("  от " + start.toShortString() + " церквей не найдено"); return null; }
+        BlockPos at = hit.getFirst();
+        log("  от " + start.toShortString() + " найдена церковь у " + at.toShortString() + " за " + (System.nanoTime() - began) / 1_000_000 + " мс, "
+                + Math.round(Math.sqrt(start.getSquaredDistance(at)) / 16) + " чанков");
+        for (int cx = (at.getX() >> 4) - 3; cx <= (at.getX() >> 4) + 4; cx++)
+            for (int cz = (at.getZ() >> 4) - 2; cz <= (at.getZ() >> 4) + 4; cz++) world.getChunk(cx, cz);
+        ChurchSites.Site site = ChurchSites.at(world, at.withY(world.getTopY() - 1)).or(() -> ChurchSites.at(world, at)).orElse(null);
+        if (site == null) {
+            for (int y = world.getBottomY(); y < world.getTopY() && site == null; y += 8) site = ChurchSites.at(world, at.withY(y)).orElse(null);
+        }
+        if (site == null) { fail("у " + at.toShortString() + " нет частей церкви"); return null; }
+        log("  церковь: " + site.variant() + ", пол на y=" + site.origin().getY() + ", алтарь " + site.altar().toShortString());
+        check(world.getBlockState(site.altar()).isOf(DivineBlockMod.ALTAR), "алтарь стоит в алтарной части: " + world.getBlockState(site.altar()));
+        check(world.getBlockEntity(site.chest()) instanceof ChestBlockEntity, "сундук с лутом на месте");
+        check(world.getBlockState(site.naveCenter()).isAir() && world.getBlockState(site.naveCenter().up()).isAir(), "точка босса в центре храма свободна");
+        ChurchPiece.Frame frame = new ChurchPiece.Frame(site.origin(), site.rotation());
+        int bells = 0;
+        var belfry = frame.box(0, 10, -3, 6, 17, 3);
+        for (BlockPos pos : BlockPos.iterate(belfry.getMinX(), belfry.getMinY(), belfry.getMinZ(), belfry.getMaxX(), belfry.getMaxY(), belfry.getMaxZ()))
+            if (world.getBlockState(pos).isOf(Blocks.BELL)) bells++;
+        check(bells == 1, "колокол на колокольне: " + bells + ", поворот " + site.rotation());
+        var structureStart = world.getStructureAccessor().getStructureContaining(site.naveCenter(),
+                world.getRegistryManager().get(RegistryKeys.STRUCTURE).get(ChurchWorldgen.STRUCTURE));
+        long yard = structureStart.getChildren().stream().filter(p -> p instanceof PoolStructurePiece).count();
+        boolean stand = structureStart.getChildren().stream().anyMatch(p -> p instanceof CemeteryPiece);
+        boolean pool = world.getRegistryManager().get(RegistryKeys.TEMPLATE_POOL).getEntry(ChurchStructure.CEMETERY_POOL).isPresent();
+        if (pool) check(yard > 0 && !stand, "кладбище из пула divineblock:cemetery/start пристроено: частей " + yard);
+        else check(stand, "пула кладбища нет — стоит заглушка кладбища");
+        for (StructurePiece piece : structureStart.getChildren()) log("    часть " + piece.getClass().getSimpleName() + " " + piece.getBoundingBox());
+        return site;
+    }
+
+    /** Camera positions around one church, in its own turned coordinates: day from the west front and the churchyard
+     * corner, night, inside towards the iconostasis and the altar, over the churchyard. */
+    private static void tour(List<Step> steps, ServerWorld world, ServerPlayerEntity player, ChurchSites.Site site) {
+        String kind = site.variant().name().toLowerCase();
+        ChurchPiece.Frame frame = new ChurchPiece.Frame(site.origin(), site.rotation());
+        java.util.function.Function<double[], Vec3d> at = p -> {
+            BlockPos block = frame.world((int) Math.floor(p[0]), (int) Math.floor(p[1]), (int) Math.floor(p[2]));
+            return Vec3d.ofCenter(block).add(0, p[1] - Math.floor(p[1]) - 0.5, 0);
+        };
+        Vec3d nave = at.apply(new double[] { ChurchBuilder.NAVE_X, 12, 0 });
+        steps.add(new Step(10, () -> {
+            player.changeGameMode(GameMode.SPECTATOR);
+            world.setTimeOfDay(6000);
+            hud = false; moody = true;
+            look(player, at.apply(new double[] { -26, 16, -30 }), nave);
+        }));
+        steps.add(new Step(140, () -> screenshot = kind + "-day-northwest"));
+        steps.add(new Step(10, () -> look(player, at.apply(new double[] { 56, 22, 50 }), at.apply(new double[] { 18, 4, 14 }))));
+        steps.add(new Step(120, () -> screenshot = kind + "-day-southeast"));
+        steps.add(new Step(10, () -> look(player, at.apply(new double[] { -34, 7, 4 }), at.apply(new double[] { ChurchBuilder.NAVE_X, 8, 0 }))));
+        steps.add(new Step(120, () -> screenshot = kind + "-day-west"));
+        steps.add(new Step(10, () -> { world.setTimeOfDay(18000); look(player, at.apply(new double[] { -26, 16, -30 }), nave); }));
+        steps.add(new Step(80, () -> screenshot = kind + "-night"));
+        steps.add(new Step(10, () -> look(player, at.apply(new double[] { 17, 2.6, 0 }), at.apply(new double[] { 31, 2, 0 }))));
+        steps.add(new Step(80, () -> screenshot = kind + "-night-interior"));
+        steps.add(new Step(10, () -> { world.setTimeOfDay(6000); look(player, at.apply(new double[] { 16, 3.2, 3 }), at.apply(new double[] { 27, 5, 0 })); }));
+        steps.add(new Step(80, () -> screenshot = kind + "-interior-iconostasis"));
+        steps.add(new Step(10, () -> look(player, at.apply(new double[] { 28, 2.4, 2 }), at.apply(new double[] { 31, 1.5, 0 }))));
+        steps.add(new Step(60, () -> screenshot = kind + "-interior-altar"));
+        steps.add(new Step(10, () -> look(player, at.apply(new double[] { 18, 2.5, 0 }), at.apply(new double[] { -2, 12, 0 }))));
+        steps.add(new Step(60, () -> screenshot = kind + "-interior-west"));
+        steps.add(new Step(10, () -> look(player, at.apply(new double[] { 18, 24, 50 }), at.apply(new double[] { 18, 0, 22 }))));
+        steps.add(new Step(100, () -> screenshot = kind + "-cemetery"));
+        steps.add(new Step(10, () -> { hud = true; moody = false; }));
+    }
+
+    private static void look(ServerPlayerEntity player, Vec3d eye, Vec3d target) {
+        double dx = target.x - eye.x, dy = target.y - eye.y, dz = target.z - eye.z;
+        float yaw = (float) Math.toDegrees(Math.atan2(-dx, dz)), pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.hypot(dx, dz)));
+        player.teleport(player.getServerWorld(), eye.x, eye.y - player.getStandingEyeHeight(), eye.z, yaw, pitch);
+    }
+
+    /** The new, dear recipe in a real crafting table; the old cheap one makes nothing. */
+    private static void recipe(ServerWorld world, ServerPlayerEntity player) {
+        player.changeGameMode(GameMode.CREATIVE);
+        world.setTimeOfDay(6000);
+        BlockPos table = player.getBlockPos().down(3);
+        world.setBlockState(table, Blocks.CRAFTING_TABLE.getDefaultState());
+        player.openHandledScreen(Blocks.CRAFTING_TABLE.getDefaultState().createScreenHandlerFactory(world, table));
+        if (!(player.currentScreenHandler instanceof CraftingScreenHandler crafting)) { fail("верстак не открылся"); return; }
+        Item[] old = { Items.GOLD_INGOT, Items.GOLD_INGOT, Items.GOLD_INGOT, Items.QUARTZ_BLOCK, Items.DIAMOND, Items.QUARTZ_BLOCK, Items.OBSIDIAN, Items.OBSIDIAN, Items.OBSIDIAN };
+        lay(crafting, old);
+        check(crafting.getSlot(0).getStack().isEmpty(), "старый дешёвый рецепт больше не даёт алтарь");
+        Item[] dear = { Items.GOLD_BLOCK, Items.BOOK, Items.GOLD_BLOCK, Items.DIAMOND, Items.NETHERITE_INGOT, Items.DIAMOND, Items.CRYING_OBSIDIAN, Items.CRYING_OBSIDIAN, Items.CRYING_OBSIDIAN };
+        lay(crafting, dear);
+        ItemStack result = crafting.getSlot(0).getStack();
+        check(result.isOf(DivineBlockMod.ALTAR_ITEM), "новый рецепт (золотые блоки, книга, алмазы, незерит, плачущий обсидиан) даёт алтарь: " + result);
+    }
+    private static void lay(CraftingScreenHandler crafting, Item[] grid) {
+        for (int i = 0; i < 9; i++) crafting.getSlot(1 + i).setStack(new ItemStack(grid[i]));
+        crafting.onContentChanged(crafting.getSlot(1).inventory);
+        crafting.sendContentUpdates();
+    }
+    private static void unlocked(ServerPlayerEntity player) {
+        boolean known = player.getRecipeBook().contains(Identifier.of(DivineBlockMod.ID, "altar"));
+        check(known, "рецепт алтаря открылся в книге рецептов после посещения церкви");
+    }
+
+    /** Churches switched off: none is found in an untouched part of the world; then the setting goes back. */
+    private static void disabled(ServerWorld world) {
+        var config = DivineBlockMod.config();
+        config.churches = false;
+        ChurchWorldgen.apply(config);
+        RegistryEntry<Structure> entry = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getEntry(ChurchWorldgen.STRUCTURE).orElseThrow();
+        var hit = world.getChunkManager().getChunkGenerator().locateStructure(world, RegistryEntryList.of(entry), new BlockPos(40_000, 80, -40_000), 6, false);
+        check(hit == null, "при выключенных церквях новых не находится: " + (hit == null ? "нет" : hit.getFirst().toShortString()));
+        ChurchWorldgen.apply(DivineBlockMod.config());
+    }
+
+    private static void run(List<Step> steps, int index) {
+        if (index >= steps.size()) return;
+        Step step = steps.get(index);
+        Scheduler.later(Math.max(1, step.delay()), () -> {
+            try { step.action().run(); } catch (RuntimeException failure) { fail("шаг упал: " + failure); DivineBlockMod.LOG.warn("самотест церкви", failure); }
+            run(steps, index + 1);
+        });
+    }
+
+    private static boolean check(boolean ok, String what) { if (ok) log("ok " + what); else fail(what); return ok; }
+    private static void fail(String what) { failures++; log("FAIL " + what); }
+    private static synchronized void log(String line) {
+        report.add(LocalTime.now().withNano(0) + " " + line);
+        DivineBlockMod.LOG.info("[самотест церкви] {}", line);
+    }
+    private static synchronized void write() {
+        String local = System.getenv("LOCALAPPDATA");
+        Path dir = Path.of(local == null ? "." : local, "DivineBlock", "selftest");
+        try { Files.createDirectories(dir); Files.write(dir.resolve("church-report.txt"), report, StandardCharsets.UTF_8); }
+        catch (IOException failure) { DivineBlockMod.LOG.warn("самотест церкви: отчёт не записан", failure); }
+    }
+    private static void finish(MinecraftClient client) { phase = 3; write(); client.execute(client::scheduleStop); }
+}

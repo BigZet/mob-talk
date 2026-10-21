@@ -1,0 +1,7 @@
+{
+  "type": "divineblock:orthodox_church",
+  "biomes": "#divineblock:has_structure/orthodox_church",
+  "spawn_overrides": {},
+  "step": "top_layer_modification",
+  "terrain_adaptation": "beard_thin"
+}
