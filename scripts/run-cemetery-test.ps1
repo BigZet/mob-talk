@@ -33,34 +33,43 @@ Say 'stop Prism and arm instance.cfg'
 Get-Process prismlauncher -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Seconds 3
 $cfg = Get-Content "$inst\instance.cfg" -Raw -Encoding UTF8
-# Another thread's run leaves its flag in instance.cfg while it is in progress: never back that up as the clean config.
+# Another thread's run leaves its flag in instance.cfg while it is in progress: never arm over it.
 if ($cfg -match '(?m)^JvmArgs=.*-D(divineblock|mobtalk)\.') { Start-Process $prism; throw 'instance.cfg is armed by another test run' }
 Copy-Item "$inst\instance.cfg" "$scratch\instance.cfg.bak" -Force
-$cfg = $cfg -replace '(?m)^OverrideJavaArgs=.*\r?\n', '' -replace '(?m)^JvmArgs=.*\r?\n', ''
-$cfg = $cfg -replace '\[General\]\r?\n', "[General]`nOverrideJavaArgs=true`nJvmArgs=-Ddivineblock.cemeterytest=true`n"
-[System.IO.File]::WriteAllText("$inst\instance.cfg", $cfg)
-
-Say 'launch'
-Start-Process $prism -ArgumentList '--launch', $name
-$started = $false
-for ($i = 0; $i -lt 30; $i++) { Start-Sleep -Seconds 5; if (Get-CimInstance Win32_Process -Filter "name='javaw.exe'") { $started = $true; break } }
-if (-not $started) { Say 'javaw did not start' } else {
-  Say 'javaw running; waiting for the self-test to quit the game'
-  for ($i = 0; $i -lt 90; $i++) {
-    Start-Sleep -Seconds 10
-    if (-not (Get-CimInstance Win32_Process -Filter "name='javaw.exe'")) { Say 'javaw exited'; break }
-    if ($i % 3 -eq 2) { $last = Get-Content "$mc\logs\latest.log" -Encoding UTF8 -ErrorAction SilentlyContinue | Select-String 'тест кладбища' | Select-Object -Last 1; Say "… $last" }
-  }
-  if (Get-CimInstance Win32_Process -Filter "name='javaw.exe'") { Say 'timeout: killing javaw'; Get-Process javaw | Stop-Process -Force }
+# Disarming strips only the lines this script adds, so a config that Prism or someone else changed meanwhile survives.
+function Disarm {
+  $now = Get-Content "$inst\instance.cfg" -Raw -Encoding UTF8
+  $now = $now -replace '(?m)^OverrideJavaArgs=true\r?\n(?=JvmArgs=-Ddivineblock\.cemeterytest=true)', '' -replace '(?m)^JvmArgs=-Ddivineblock\.cemeterytest=true\r?\n', ''
+  [System.IO.File]::WriteAllText("$inst\instance.cfg", $now)
 }
-Start-Sleep -Seconds 3
-Copy-Item "$mc\logs\latest.log" "$scratch\cemeterytest-latest.log" -Force
-Get-ChildItem "$mc\screenshots\cemetery-*.png" -ErrorAction SilentlyContinue | Move-Item -Destination $scratch -Force
+try {
+  $cfg = $cfg -replace '(?m)^OverrideJavaArgs=.*\r?\n', '' -replace '(?m)^JvmArgs=.*\r?\n', ''
+  $cfg = $cfg -replace '\[General\]\r?\n', "[General]`nOverrideJavaArgs=true`nJvmArgs=-Ddivineblock.cemeterytest=true`n"
+  [System.IO.File]::WriteAllText("$inst\instance.cfg", $cfg)
+  if (Get-CimInstance Win32_Process -Filter "name='javaw.exe'") { throw 'Minecraft started meanwhile' }
 
-Say 'restore instance.cfg, delete the test world'
-Get-Process prismlauncher -ErrorAction SilentlyContinue | Stop-Process -Force
-Start-Sleep -Seconds 3
-Copy-Item "$scratch\instance.cfg.bak" "$inst\instance.cfg" -Force
-Remove-Item -Recurse -Force "$mc\saves\$world" -ErrorAction SilentlyContinue
-Start-Process $prism
-Say 'done'
+  Say 'launch'
+  Start-Process $prism -ArgumentList '--launch', $name
+  $game = $null
+  for ($i = 0; $i -lt 30; $i++) { Start-Sleep -Seconds 5; $game = Get-CimInstance Win32_Process -Filter "name='javaw.exe'" | Select-Object -First 1; if ($game) { break } }
+  if (-not $game) { Say 'javaw did not start' } else {
+    Say 'javaw running; waiting for the cemetery test to quit the game'
+    for ($i = 0; $i -lt 90; $i++) {
+      Start-Sleep -Seconds 10
+      if (-not (Get-Process -Id $game.ProcessId -ErrorAction SilentlyContinue)) { Say 'javaw exited'; break }
+      if ($i % 3 -eq 2) { $last = Get-Content "$mc\logs\latest.log" -Encoding UTF8 -ErrorAction SilentlyContinue | Select-String 'тест кладбища' | Select-Object -Last 1; Say "… $last" }
+    }
+    if (Get-Process -Id $game.ProcessId -ErrorAction SilentlyContinue) { Say 'timeout: killing the test game'; Stop-Process -Id $game.ProcessId -Force }
+  }
+  Start-Sleep -Seconds 3
+  Copy-Item "$mc\logs\latest.log" "$scratch\cemeterytest-latest.log" -Force
+  Get-ChildItem "$mc\screenshots\cemetery-*.png" -ErrorAction SilentlyContinue | Move-Item -Destination $scratch -Force
+} finally {
+  Say 'disarm instance.cfg, delete the test world'
+  Get-Process prismlauncher -ErrorAction SilentlyContinue | Stop-Process -Force
+  Start-Sleep -Seconds 3
+  Disarm
+  Remove-Item -Recurse -Force "$mc\saves\$world" -ErrorAction SilentlyContinue
+  Start-Process $prism
+  Say 'done'
+}

@@ -49,3 +49,10 @@
 - `scripts/run-cemetery-test.ps1` — автотест на экземпляре Prism `divine-block-test`: все блоки на лужайке, участок вручную,
   шаблон и структура на природе, снимки `cemetery-*.png` и отчёт в `%LOCALAPPDATA%\DivineBlock\cemeterytest`.
 - Шаблоны и пулы пересобирает `python scripts/cemetery/structures.py` (раскладка из сида, свой читатель/писатель NBT).
+
+## TODO: печать босса
+
+Когда ветка bosses будет в main, поставить в каждый шаблон `cemetery_1..3` одну печать `divineblock:boss_seal`
+(NBT `{boss:"cemetery", power:2, night:true, cooldownDays:1, radius:...}`) в **(10, 0, 13)** — перекрёсток аллеи и
+поперечной тропы, в слое земли (если печать заметна глазом — в (10, 0, 26), в конце аллеи). Ставится в
+`scripts/cemetery/structures.py` в `layout()`, затем перегенерировать шаблоны.
