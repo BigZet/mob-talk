@@ -19,6 +19,9 @@ public final class SkyTint {
     private static long holdUntil = Long.MAX_VALUE;
     private static float amount, previous;
     private static ClientWorld world;
+    /** «Бог с булавой»: while the god is over the clouds the sky turns a storm slate, over two seconds each way. */
+    private static final Vec3d GOD_SKY = new Vec3d(0.13, 0.13, 0.17);
+    private static float god, godPrevious, godWanted;
 
     private SkyTint() { }
 
@@ -35,8 +38,14 @@ public final class SkyTint {
         if (client.world != null && holdUntil == Long.MAX_VALUE) holdUntil = client.world.getTime() + HOLD_AFTER_WORDS;
     }
 
+    /** The god's presence in the sky, 0..1 (from the client's view of his figure). */
+    public static void god(float wanted) { godWanted = Math.max(0f, Math.min(1f, wanted)); }
+    public static float godAmount() { return god; }
+
     private static void tick(MinecraftClient client) {
-        if (client.world != world) { world = client.world; depth = 0; amount = previous = 0; holdUntil = Long.MAX_VALUE; }
+        if (client.world != world) { world = client.world; depth = 0; amount = previous = 0; holdUntil = Long.MAX_VALUE; god = godPrevious = godWanted = 0; }
+        godPrevious = god;
+        god += Math.max(-1 / 40f, Math.min(1 / 40f, godWanted - god));
         previous = amount;
         if (client.world == null) return;
         boolean on = depth > 0 && client.world.getTime() < holdUntil;
@@ -50,6 +59,8 @@ public final class SkyTint {
 
     /** The vanilla colour with the wrath laid over it ({@code share} of the full tint: the fog takes a little less). */
     public static Vec3d tint(Vec3d colour, float tickDelta, double share) {
+        float storm = godPrevious + (god - godPrevious) * tickDelta;
+        if (storm > 0) colour = colour.multiply(1 - 0.78 * storm * share).add(GOD_SKY.multiply(0.78 * storm * share));
         float now = previous + (amount - previous) * tickDelta;
         if (now <= 0 || depth <= 0) return colour;
         double k = STRENGTH[depth - 1] * now * share;

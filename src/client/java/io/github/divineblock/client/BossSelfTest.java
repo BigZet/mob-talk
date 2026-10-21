@@ -139,6 +139,11 @@ public final class BossSelfTest {
         String only = System.getProperty("divineblock.bosstest.only", "");
         List<BossKind> kinds = Arrays.stream(BossKind.values()).filter(k -> only.isBlank() || Arrays.asList(only.split(",")).contains(k.id)).toList();
         List<Step> steps = new ArrayList<>();
+        if (Boolean.getBoolean("divineblock.bosstest.god")) {
+            godScene(steps, server, player);
+            run(steps, 0);
+            return;
+        }
         if (Boolean.getBoolean("divineblock.bosstest.showcase")) {
             for (BossKind kind : kinds) showcase(steps, player, kind);
             steps.add(new Step(20, () -> { write(); finished = true; }));
@@ -258,6 +263,123 @@ public final class BossSelfTest {
                     BossEffects.MARK_OF_BEAST, BossEffects.CONFUSION)) player.removeStatusEffect(effect);
             BossEffects.lift(player);
         }));
+    }
+
+    /** «Бог с булавой» (-Ddivineblock.bosstest.god=true): an armour stand where the sinner stands, the player watching as a
+     * spectator from behind and below; the god comes out of the clouds to the north, strikes the stand with each of his
+     * three blows, is sent back early and the sky clears. Then the storm without the figure (F9 off) and the deed by command. */
+    private static void godScene(List<Step> steps, MinecraftServer server, ServerPlayerEntity player) {
+        io.github.divineblock.boss.GodWrath[] wrath = new io.github.divineblock.boss.GodWrath[1];
+        net.minecraft.entity.decoration.ArmorStandEntity[] stand = new net.minecraft.entity.decoration.ArmorStandEntity[1];
+        steps.add(new Step(20, () -> {
+            log("--- Бог с булавой ---");
+            ServerWorld world = player.getServerWorld();
+            clear(world);
+            world.setTimeOfDay(6000);
+            BlockPos spot = base.add(0, 0, -10);
+            var made = net.minecraft.entity.EntityType.ARMOR_STAND.create(world);
+            if (made != null) {
+                made.refreshPositionAndAngles(spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5, 180f, 0f);
+                made.equipStack(net.minecraft.entity.EquipmentSlot.HEAD, new net.minecraft.item.ItemStack(net.minecraft.item.Items.GOLDEN_HELMET));
+                made.equipStack(net.minecraft.entity.EquipmentSlot.CHEST, new net.minecraft.item.ItemStack(net.minecraft.item.Items.IRON_CHESTPLATE));
+                made.equipStack(net.minecraft.entity.EquipmentSlot.LEGS, new net.minecraft.item.ItemStack(net.minecraft.item.Items.IRON_LEGGINGS));
+                made.equipStack(net.minecraft.entity.EquipmentSlot.FEET, new net.minecraft.item.ItemStack(net.minecraft.item.Items.IRON_BOOTS));
+                world.spawnEntity(made);
+                stand[0] = made;
+            }
+            player.teleport(world, spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5, 180f, 0f);
+            io.github.divineblock.boss.GodWrath.placeNextAt(-Math.PI / 2);
+            wrath[0] = DivineBosses.spawnGodAvatar(world, player, 4, 20 * 60);
+            check(wrath[0] != null && wrath[0].hasFigure(), "Бог с булавой явился с фигурой");
+            if (wrath[0] == null) return;
+            if (stand[0] != null) wrath[0].aimAt(stand[0]);
+            var avatar = wrath[0].avatar();
+            check(avatar != null && !avatar.shouldSave() && !avatar.canHit() && !avatar.damage(world.getDamageSources().generic(), 100f),
+                    "фигура неуязвима, не сохраняется, в неё не попасть");
+            player.changeGameMode(GameMode.SPECTATOR);
+            MinecraftClient.getInstance().execute(() -> {
+                MinecraftClient.getInstance().options.hudHidden = true;
+                MinecraftClient.getInstance().options.getFov().setValue(90);
+            });
+            watched = null;
+            player.teleport(world, spot.getX() + 0.5, spot.getY() + 7, spot.getZ() + 28.5, 180f, -20f);
+        }));
+        steps.add(new Step(45, () -> screenshot = "god-1-gathering"));
+        steps.add(new Step(40, () -> {
+            screenshot = "god-2-emerged";
+            check(io.github.divineblock.client.SkyTint.godAmount() > 0.5f, "небо потемнело: " + io.github.divineblock.client.SkyTint.godAmount());
+        }));
+        // Portraits at his height, from the front and from the side, then back behind the stand.
+        steps.add(new Step(5, () -> {
+            if (wrath[0] == null) return;
+            Vec3d at = wrath[0].station();
+            player.teleport(player.getServerWorld(), at.x, at.y + 14, at.z + 52, 180f, 2f);
+        }));
+        steps.add(new Step(25, () -> screenshot = "god-portrait-front"));
+        steps.add(new Step(5, () -> {
+            if (wrath[0] == null) return;
+            Vec3d at = wrath[0].station();
+            player.teleport(player.getServerWorld(), at.x + 52, at.y + 14, at.z, 90f, 2f);
+        }));
+        steps.add(new Step(25, () -> screenshot = "god-portrait-side"));
+        steps.add(new Step(5, () -> {
+            BlockPos spot = base.add(0, 0, -10);
+            player.teleport(player.getServerWorld(), spot.getX() + 0.5, spot.getY() + 7, spot.getZ() + 28.5, 180f, -20f);
+        }));
+        steps.add(new Step(10, () -> { if (wrath[0] != null) wrath[0].strikeNow(io.github.divineblock.boss.GodAvatarEntity.OVERHEAD); }));
+        steps.add(new Step(22, () -> {
+            screenshot = "god-3-raised";
+            if (wrath[0] != null) check("WARN".equals(wrath[0].stageName()), "булава занесена, круг на земле: " + wrath[0].stageName());
+        }));
+        steps.add(new Step(16, () -> screenshot = "god-4-strike"));
+        steps.add(new Step(20, () -> {
+            if (wrath[0] == null) return;
+            check(wrath[0].strikes() >= 1, "удар булавы упал: " + wrath[0].strikes());
+            check(stand[0] == null || stand[0].isAlive(), "стойка цела (её не бьют)");
+        }));
+        steps.add(new Step(30, () -> { if (wrath[0] != null) wrath[0].strikeNow(io.github.divineblock.boss.GodAvatarEntity.SWEEP); }));
+        steps.add(new Step(24, () -> screenshot = "god-5-sweep-raised"));
+        steps.add(new Step(16, () -> screenshot = "god-6-sweep"));
+        steps.add(new Step(40, () -> { if (wrath[0] != null) wrath[0].strikeNow(io.github.divineblock.boss.GodAvatarEntity.LIGHTNING); }));
+        steps.add(new Step(24, () -> screenshot = "god-7-lightning-raised"));
+        steps.add(new Step(14, () -> screenshot = "god-8-lightning"));
+        steps.add(new Step(40, () -> {
+            if (wrath[0] == null) return;
+            check(wrath[0].strikes() >= 3, "три вида ударов: " + wrath[0].strikes());
+            check(DivineBosses.dismissGodAvatar(player), "покаяние: Бог уходит раньше срока");
+        }));
+        steps.add(new Step(40, () -> screenshot = "god-9-leaving"));
+        steps.add(new Step(70, () -> {
+            if (wrath[0] == null) return;
+            check(wrath[0].finished(), "Бог ушёл в облака: " + wrath[0].stageName());
+            check(player.getServerWorld().getEntitiesByClass(io.github.divineblock.boss.GodAvatarEntity.class, new Box(base).expand(128), e -> true).isEmpty(), "фигуры больше нет в мире");
+        }));
+        steps.add(new Step(60, () -> {
+            check(io.github.divineblock.client.SkyTint.godAmount() < 0.2f, "небо прояснилось: " + io.github.divineblock.client.SkyTint.godAmount());
+            screenshot = "god-10-clear";
+            // F9 off: the storm without the figure.
+            DivineConfig config = DivineBlockMod.config();
+            config.disabledBosses.add(DivineBosses.GOD_AVATAR_ID);
+            try { config.save(DivineBlockMod.configFile()); DivineBlockMod.reloadConfig(); } catch (IOException failure) { fail("настройки не сохранены: " + failure); }
+            wrath[0] = DivineBosses.spawnGodAvatar(player.getServerWorld(), player, 3, 20 * 10);
+            check(wrath[0] != null && !wrath[0].hasFigure(), "выключенный Бог с булавой приходит грозой без фигуры");
+            if (wrath[0] != null && stand[0] != null) { wrath[0].aimAt(stand[0]); wrath[0].strikeNow(io.github.divineblock.boss.GodAvatarEntity.LIGHTNING); }
+        }));
+        steps.add(new Step(200, () -> {
+            if (wrath[0] != null) check(wrath[0].strikes() >= 1, "гроза ударила без фигуры: " + wrath[0].strikes());
+            screenshot = "god-11-storm";
+            DivineConfig config = DivineBlockMod.config();
+            config.disabledBosses.remove(DivineBosses.GOD_AVATAR_ID);
+            try { config.save(DivineBlockMod.configFile()); DivineBlockMod.reloadConfig(); } catch (IOException ignored) { }
+            DivineBosses.dismissGodAvatar(player);
+        }));
+        steps.add(new Step(100, () -> {
+            int done;
+            try { done = server.getCommandManager().getDispatcher().execute("divineblock act god_mace 4", player.getCommandSource().withLevel(4)); }
+            catch (com.mojang.brigadier.exceptions.CommandSyntaxException wrong) { fail("команда не разобрана: " + wrong.getMessage()); return; }
+            check(done == 1 && DivineBosses.dismissGodAvatar(player), "деяние /divineblock act god_mace 4 вызвало Бога с булавой");
+        }));
+        steps.add(new Step(100, () -> { log("ошибок после Бога с булавой: " + failures); write(); finished = true; }));
     }
 
     /** A posed portrait for scale: the boss stands still (no AI) beside an armoured stand of a player's size, the player

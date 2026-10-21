@@ -41,6 +41,7 @@ public final class BossClient {
         EntityModelLayerRegistry.registerModelLayer(CherubModel.LAYER, CherubModelData::create);
         EntityModelLayerRegistry.registerModelLayer(BeastModel.LAYER, BeastModelData::create);
         EntityModelLayerRegistry.registerModelLayer(NimrodModel.LAYER, NimrodModelData::create);
+        EntityModelLayerRegistry.registerModelLayer(GodModel.LAYER, GodModelData::create);
         EntityRendererRegistry.register(DivineBosses.BLACK_SCHEMNIK, context -> new SacredBossRenderer<>(context, new SchemnikModel(context.getPart(SchemnikModel.LAYER)), "black_schemnik", 0.8f, 1f));
         EntityRendererRegistry.register(DivineBosses.BELL_RINGER, context -> new SacredBossRenderer<>(context, new BellRingerModel(context.getPart(BellRingerModel.LAYER)), "bell_ringer", 1f, 1f));
         EntityRendererRegistry.register(DivineBosses.SERAPH, context -> new SacredBossRenderer<>(context, new SeraphModel(context.getPart(SeraphModel.LAYER)), "seraph", 1f, 1f));
@@ -55,6 +56,8 @@ public final class BossClient {
         EntityRendererRegistry.register(DivineBosses.CHERUB, context -> new SacredBossRenderer<>(context, new CherubModel(context.getPart(CherubModel.LAYER)), "cherub", 1f, 1f));
         EntityRendererRegistry.register(DivineBosses.BEAST, context -> new SacredBossRenderer<>(context, new BeastModel(context.getPart(BeastModel.LAYER)), "beast", 1f, 1f));
         EntityRendererRegistry.register(DivineBosses.NIMROD, context -> new SacredBossRenderer<>(context, new NimrodModel(context.getPart(NimrodModel.LAYER)), "nimrod", 1f, 1f));
+        EntityRendererRegistry.register(DivineBosses.GOD_AVATAR, GodRenderer::new);
+        GodSky.register();
         BellRingerModel.registerClient();
         SeraphModel.registerClient();
         FacelessIconModel.registerClient();

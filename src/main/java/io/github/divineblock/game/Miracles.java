@@ -120,6 +120,7 @@ public final class Miracles {
             case BOSS_SCHEMNIK, BOSS_BELL_RINGER, BOSS_SERAPH, BOSS_FACELESS, BOSS_WAILER, BOSS_ARCHANGEL, BOSS_LEVIATHAN, BOSS_BEHEMOTH,
                  BOSS_GOLIATH, BOSS_DESTROYING_ANGEL, BOSS_CHERUB, BOSS_NIMROD, BOSS_HORSEMEN, BOSS_BEAST ->
                     io.github.divineblock.boss.BossPunishment.summon(miracle, world, player, power, severity);
+            case GOD_MACE -> godMace(world, player, altar, power, severity);
             case FLIP -> Jests.flip(world, player, power);
             case TIME_RUSH -> Jests.timeRush(world, player, power);
             case SHEEP_PARTY -> Jests.sheepParty(world, player, power);
@@ -129,6 +130,14 @@ public final class Miracles {
             case LEVITATE -> Jests.levitate(world, player);
             case DIZZY -> Jests.dizzy(world, player);
         };
+    }
+
+    /** «Бог с булавой»: 20 s of strikes at severity 1, up to 60 s at 5. */
+    private static String godMace(ServerWorld world, ServerPlayerEntity player, BlockPos altar, int power, int severity) {
+        int seconds = 20 + 10 * (Math.max(1, Math.min(5, severity)) - 1);
+        var wrath = io.github.divineblock.boss.DivineBosses.spawnGodAvatar(world, player, Math.max(1, power + severity - 2), 20 * seconds, altar);
+        if (wrath == null) return null;
+        return (wrath.hasFigure() ? "сам Бог с булавой" : "гроза Бога с булавой") + " на " + seconds + " с";
     }
 
     // ---- Omens and the warning before wrath. ----
