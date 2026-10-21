@@ -49,9 +49,9 @@ public final class BossClient {
         EntityRendererRegistry.register(DivineBosses.BEHEMOTH, context -> new SacredBossRenderer<>(context, new BehemothModel(context.getPart(BehemothModel.LAYER)), "behemoth", 2f, 1.2f));
         EntityRendererRegistry.register(DivineBosses.GOLIATH, context -> new SacredBossRenderer<>(context, new GoliathModel(context.getPart(GoliathModel.LAYER)), "goliath", 1.4f, 1.75f));
         EntityRendererRegistry.register(DivineBosses.HORSEMEN, HorsemenRenderer::new);
-        EntityRendererRegistry.register(DivineBosses.DESTROYING_ANGEL, context -> new SacredBossRenderer<>(context, new DestroyingAngelModel(context.getPart(DestroyingAngelModel.LAYER)), "destroying_angel", 0.8f, 1.05f));
+        EntityRendererRegistry.register(DivineBosses.DESTROYING_ANGEL, context -> new SacredBossRenderer<>(context, new DestroyingAngelModel(context.getPart(DestroyingAngelModel.LAYER)), "destroying_angel", 1.6f, 2.1f));
         EntityRendererRegistry.register(DivineBosses.CHERUB, context -> new SacredBossRenderer<>(context, new CherubModel(context.getPart(CherubModel.LAYER)), "cherub", 1f, 1f));
-        EntityRendererRegistry.register(DivineBosses.BEAST, context -> new SacredBossRenderer<>(context, new BeastModel(context.getPart(BeastModel.LAYER)), "beast", 1f, 1f));
+        EntityRendererRegistry.register(DivineBosses.BEAST, context -> new SacredBossRenderer<>(context, new BeastModel(context.getPart(BeastModel.LAYER)), "beast", 3.6f, 2.2f));
         EntityRendererRegistry.register(DivineBosses.NIMROD, context -> new SacredBossRenderer<>(context, new NimrodModel(context.getPart(NimrodModel.LAYER)), "nimrod", 1f, 1f));
         BellRingerModel.registerClient();
         SeraphModel.registerClient();

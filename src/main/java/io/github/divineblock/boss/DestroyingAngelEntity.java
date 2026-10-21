@@ -22,6 +22,7 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.joml.Vector3f;
@@ -120,6 +121,8 @@ public final class DestroyingAngelEntity extends SacredBoss {
     @Override public BossKind kind() { return BossKind.DESTROYING_ANGEL; }
     @Override protected String theme() { return "punishment_59"; }
     @Override protected float meleeDamage() { return 7f; }
+    /** The long sword reaches past his robe. */
+    @Override protected double meleeReach() { return getWidth() / 2 + 3.2; }
 
     @Override public void setTarget(LivingEntity target) {
         if (target != null && passOver > 0 && target.getUuid().equals(spared)) target = null;
@@ -145,11 +148,11 @@ public final class DestroyingAngelEntity extends SacredBoss {
         boolean sun = world.isDay() && world.isSkyVisible(getBlockPos().up(2));
         if (!sun) { sunTicks = 0; return; }
         sunTicks += 10;
-        particles(ParticleTypes.LARGE_SMOKE, getX(), getY() + 1.5, getZ(), 8, 0.4, 0.8, 0.4, 0.02);
+        particles(ParticleTypes.LARGE_SMOKE, getX(), getY() + getHeight() * 0.5, getZ(), 10, 0.6, getHeight() * 0.3, 0.6, 0.02);
         if (sunTicks == 10) for (ServerPlayerEntity player : playersNear(48))
             player.sendMessage(Text.literal("Светает: губитель тает в свете дня…").formatted(Formatting.GRAY), true);
         if (sunTicks < 100) return;
-        particles(ParticleTypes.LARGE_SMOKE, getX(), getY() + 1.4, getZ(), 60, 0.5, 1, 0.5, 0.04);
+        particles(ParticleTypes.LARGE_SMOKE, getX(), getY() + getHeight() * 0.5, getZ(), 80, 0.8, getHeight() * 0.35, 0.8, 0.04);
         sound(SoundEvents.ENTITY_VEX_DEATH, 2f, 0.4f);
         liftMarks();
         debug("растаял при свете дня");
@@ -175,10 +178,11 @@ public final class DestroyingAngelEntity extends SacredBoss {
         dir = dir.lengthSquared() < 1e-4 ? getRotationVector().multiply(1, 0, 1).normalize() : dir.normalize();
         Vec3d end = target.getPos().add(dir.multiply(4));
         BlockPos room = DivineBosses.room(world, BlockPos.ofFloored(end), 2);
-        Vec3d land = room == null ? target.getPos() : new Vec3d(end.x, room.getY(), end.z);
+        Vec3d land = room != null && headroom(world, room) ? new Vec3d(end.x, room.getY(), end.z)
+                : headroom(world, target.getBlockPos()) ? target.getPos() : getPos();
         Vec3d from = getPos().add(0, 1.2, 0), to = land.add(0, 1.2, 0);
         cast("Тень губителя", warn, true, left -> {
-            particles(ParticleTypes.SQUID_INK, getX(), getY() + 1.4, getZ(), 3, 0.3, 0.6, 0.3, 0.01);
+            particles(ParticleTypes.SQUID_INK, getX(), getY() + getHeight() * 0.45, getZ(), 4, 0.5, getHeight() * 0.25, 0.5, 0.01);
             if (left == warn) sound(SoundEvents.ENTITY_PHANTOM_SWOOP, 2f, 0.5f);
         }, () -> {
             for (int i = 0; i <= 12; i++) {
@@ -198,9 +202,9 @@ public final class DestroyingAngelEntity extends SacredBoss {
     private void sweep(LivingEntity target) {
         Vec3d dir = target.getPos().subtract(getPos()).multiply(1, 0, 1);
         dir = dir.lengthSquared() < 1e-4 ? getRotationVector().multiply(1, 0, 1).normalize() : dir.normalize();
-        Vec3d front = getPos().add(dir.multiply(1.8));
+        Vec3d front = getPos().add(dir.multiply(getWidth() / 2 + 1.8));
         cast("Взмах меча", 16, true, left -> { if (left == 16) sound(SoundEvents.ITEM_TRIDENT_RETURN, 1.6f, 1.4f); }, () -> { });
-        hazards.zone(front, 2.6, 16, COLD, at -> {
+        hazards.zone(front, 3.0, 16, COLD, at -> {
             swingHand(Hand.MAIN_HAND);
             sound(SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, 2f, 0.6f);
             particles(ParticleTypes.SWEEP_ATTACK, at.x, at.y + 1, at.z, 6, 1.2, 0.3, 1.2, 0);
@@ -242,8 +246,8 @@ public final class DestroyingAngelEntity extends SacredBoss {
 
     @Override protected void ultimate(LivingEntity target) {
         castUltimate(left -> {
-            particles(ParticleTypes.SQUID_INK, getX(), getY() + 1.5, getZ(), 4, 1.2, 1.2, 1.2, 0.02);
-            particles(BLOOD, getX(), getY() + 2.6, getZ(), 2, 0.6, 0.3, 0.6, 0);
+            particles(ParticleTypes.SQUID_INK, getX(), getY() + getHeight() * 0.5, getZ(), 5, 1.6, getHeight() * 0.3, 1.6, 0.02);
+            particles(BLOOD, getX(), getY() + getHeight() * 0.6, getZ(), 3, 0.8, 0.4, 0.8, 0);
             if (left % 20 == 0) sound(SoundEvents.ENTITY_WARDEN_HEARTBEAT, 3f, 0.5f);
             if (left == ULT_WARNING) for (ServerPlayerEntity player : playersNear(48))
                 player.sendMessage(Text.literal("«В эту самую ночь пройду по земле Египетской и поражу всякого первенца» (Исх 12:12) — спрячься от его взгляда!")
@@ -254,7 +258,7 @@ public final class DestroyingAngelEntity extends SacredBoss {
     /** Everyone within 32 blocks whom he can see is marked; a wall between saves. */
     private void tenthPlague() {
         sound(SoundEvents.ENTITY_WARDEN_SONIC_BOOM, 2f, 0.5f);
-        particles(ParticleTypes.SCULK_SOUL, getX(), getY() + 1.5, getZ(), 40, 2, 1, 2, 0.05);
+        particles(ParticleTypes.SCULK_SOUL, getX(), getY() + getHeight() * 0.5, getZ(), 50, 2.5, 1.5, 2.5, 0.05);
         int marked = 0;
         for (ServerPlayerEntity player : playersNear(32)) {
             if (player.isCreative() || player.isSpectator()) continue;
@@ -287,6 +291,13 @@ public final class DestroyingAngelEntity extends SacredBoss {
                 player.removeStatusEffect(BossEffects.FIRSTBORN_MARK);
                 player.sendMessage(Text.literal("Печать первенца угасла").formatted(Formatting.GOLD), true);
             }
+    }
+
+    /** Whether he fits standing at {@code pos}: free blocks for his whole height. */
+    private boolean headroom(ServerWorld world, BlockPos pos) {
+        for (int y = 0; y < MathHelper.ceil(getHeight()); y++)
+            if (!world.getBlockState(pos.up(y)).getCollisionShape(world, pos.up(y)).isEmpty()) return false;
+        return true;
     }
 
     private static Vec3d rotate(Vec3d v, double angle) {
