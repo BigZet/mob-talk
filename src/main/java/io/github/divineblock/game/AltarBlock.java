@@ -24,6 +24,9 @@ public final class AltarBlock extends Block {
 
     @Override protected ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
         if (world.isClient) openPrayer.accept(pos.toImmutable());
+        // Kneeling at an altar ends the Panikhida a mourner sang over the player.
+        else if (io.github.divineblock.boss.BossEffects.lift(player))
+            player.sendMessage(net.minecraft.text.Text.literal("Панихида отпета у алтаря: силы возвращаются").formatted(net.minecraft.util.Formatting.GOLD), true);
         return ActionResult.success(world.isClient);
     }
 

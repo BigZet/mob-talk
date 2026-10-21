@@ -14,7 +14,7 @@ import net.minecraft.util.Formatting;
  * off. Edits the parent's config; the parent saves it on "Готово". */
 public final class WrathSettingsScreen extends Screen {
     /** The cruel acts the player may switch off one by one (the ban has its own switch). */
-    static final List<Miracle> CRUEL = List.of(Miracle.BLIGHT, Miracle.CAIN, Miracle.SACRED_BOSS, Miracle.PLAGUES, Miracle.SODOM, Miracle.FLOOD,
+    static final List<Miracle> CRUEL = List.of(Miracle.BLIGHT, Miracle.CAIN, Miracle.PLAGUES, Miracle.SODOM, Miracle.FLOOD,
             Miracle.BABEL, Miracle.MEMORY_WIPE, Miracle.JUDGEMENT);
     private final Screen parent;
     private final DivineConfig config;
@@ -46,7 +46,7 @@ public final class WrathSettingsScreen extends Screen {
 
     static String name(Miracle miracle) {
         return switch (miracle) {
-            case BLIGHT -> "Порча земли"; case CAIN -> "Печать Каина"; case SACRED_BOSS -> "Священный босс"; case PLAGUES -> "Казни египетские";
+            case BLIGHT -> "Порча земли"; case CAIN -> "Печать Каина"; case PLAGUES -> "Казни египетские";
             case SODOM -> "Содом"; case FLOOD -> "Потоп"; case BABEL -> "Вавилон"; case MEMORY_WIPE -> "Стирание памяти"; case JUDGEMENT -> "Суд в небесах";
             default -> miracle.id();
         };

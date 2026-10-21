@@ -86,6 +86,11 @@ public final class DivineConfig {
     /** How rare churches are: one per this many chunks square at most, 32..256 (the vanilla village is 34). */
     public int churchSpacing = 64;
     public boolean debug = false;
+    /** Sacred bosses ({@code io.github.divineblock.boss}): ids switched off (a buffed vanilla mob comes instead), strength in
+     * percent (50..300) and whether their ultimates may break glass, put out lights and set fires. */
+    public List<String> disabledBosses = new ArrayList<>();
+    public int bossDifficulty = 100;
+    public boolean bossBlockDamage = true;
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
@@ -120,6 +125,8 @@ public final class DivineConfig {
         try { LocalWhisper.local(whisperUrl); } catch (IllegalArgumentException invalid) { whisperUrl = new DivineConfig().whisperUrl; }
         if (microphoneName == null) microphoneName = "";
         chantVolume = clamp(chantVolume, 0, 200);
+        if (disabledBosses == null) disabledBosses = new ArrayList<>();
+        bossDifficulty = clamp(bossDifficulty, 50, 300);
         churchSpacing = clamp(churchSpacing, 32, 256);
         comboActs = clamp(comboActs, 0, 2);
         curseDays = clamp(curseDays, 1, 7);

@@ -66,6 +66,10 @@ public final class Prayers {
         ServerWorld world = player.getServerWorld();
         String text = rawText == null ? "" : rawText.replaceAll("\\p{Cntrl}", " ").strip();
         if (text.isEmpty() || text.length() > PrayPayload.MAX_TEXT) return;
+        if (io.github.divineblock.boss.BossEffects.silenced(player)) {
+            player.sendMessage(Text.literal("Обет молчания: уста запечатаны, бог не слышит").formatted(Formatting.DARK_GRAY), true);
+            return;
+        }
         if (!(world.getBlockState(altar).getBlock() instanceof AltarBlock) || !altar.isWithinDistance(player.getBlockPos(), 8)) return;
         MinecraftServer server = world.getServer();
         DivineConfig config = DivineBlockMod.config();
@@ -343,6 +347,8 @@ public final class Prayers {
 
     /** A line with nothing to follow it (the answer to "why?", a refusal): voiced and shown together. */
     static void say(ServerPlayerEntity player, String line) { speakThen(player, line, () -> { }, () -> { }); }
+    /** A line of the god outside a verdict (the god with the mace): voiced when the voice works, always shown in chat. */
+    public static void proclaim(ServerPlayerEntity player, String line) { say(player, line); }
 
     private static void chat(ServerPlayerEntity player, String line) {
         spoken.accept(line);

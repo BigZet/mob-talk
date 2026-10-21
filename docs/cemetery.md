@@ -71,9 +71,9 @@ un-selftest.ps1 -Mode off -Jvm
   счёт оградок и деревьев; отчёт и снимки `cemetery-*.png` в `%LOCALAPPDATA%\DivineBlock\selftest\<копия>\`.
 - Шаблоны и пулы пересобирает `python scripts/cemetery/structures.py` (раскладка из сида, свой читатель/писатель NBT).
 
-## TODO: печать босса
+## Печать босса
 
-Когда ветка bosses будет в main, поставить в каждый шаблон `cemetery_1..3` одну печать `divineblock:boss_seal`
-(NBT `{boss:"cemetery", power:2, night:true, cooldownDays:1, radius:...}`) в **(10, 0, 26)** — конец тропы куска начала, в слое земли (если печать заметна глазом — в
-кусок края `end_*`, (10, 0, 5) за поклонным крестом). Ставится в
-`scripts/cemetery/structures.py` в `layout()`, затем перегенерировать шаблоны.
+В каждом начальном шаблоне `cemetery_1..3` у конца тропы, в **(10, 0, 24)** (в (10, 0, 26) стоит джигсо следующего куска), лежит печать `divineblock:boss_seal` с NBT
+`{boss:"cemetery", power:2, night:1, cooldownDays:1, radius:14}`: ночью, когда игрок подходит ближе 14 блоков, из неё встаёт
+босс погоста (Звонарь или Плакальщица); после его гибели — снова через сутки. Ставится в `scripts/cemetery/structures.py`
+(`piece`, кусок `start`). Подробнее о печатях — в `docs/bosses.md`.

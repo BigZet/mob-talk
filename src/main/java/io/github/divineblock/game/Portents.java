@@ -35,7 +35,7 @@ final class Portents {
             case JUDGEMENT -> { sign = ParticleTypes.END_ROD; sound = SoundEvents.BLOCK_BELL_RESONATE; color = Fx.HOLY; }
             case MEMORY_WIPE -> { sign = ParticleTypes.REVERSE_PORTAL; sound = SoundEvents.BLOCK_PORTAL_AMBIENT; color = Fx.VIOLET; }
             case ETERNAL_BAN -> { sign = ParticleTypes.SOUL; sound = SoundEvents.BLOCK_BELL_USE; color = Fx.SOUL; }
-            case SACRED_BOSS -> { sign = ParticleTypes.ENCHANT; sound = SoundEvents.BLOCK_BELL_RESONATE; color = Fx.GOLD; }
+            case BOSS_SCHEMNIK, BOSS_BELL_RINGER, BOSS_SERAPH, BOSS_FACELESS, BOSS_WAILER, BOSS_ARCHANGEL, BOSS_LEVIATHAN, BOSS_BEHEMOTH, BOSS_GOLIATH, BOSS_DESTROYING_ANGEL, BOSS_CHERUB, BOSS_NIMROD, BOSS_HORSEMEN, BOSS_BEAST -> { sign = ParticleTypes.ENCHANT; sound = SoundEvents.BLOCK_BELL_RESONATE; color = Fx.GOLD; }
             default -> { return; }
         }
         int steps = (int) Math.max(1, Math.round(seconds / 1.5));
@@ -57,7 +57,7 @@ final class Portents {
             case GREAT_CRATER -> { Fx.flash(world, Vec3d.ofCenter(altar), Fx.FIRE, 1f); Fx.shake(world, at, 1f, 100); Fx.impact(world, Vec3d.ofCenter(altar), Fx.FIRE, 4f); }
             case BLIGHT -> Fx.smoke(world, at, Fx.BLACK, 6);
             case CAIN -> { Fx.ring(world, at, Fx.BLOOD, 10); Fx.sparks(world, at.add(0, 1.8, 0), Fx.BLOOD, 2); }
-            case SACRED_BOSS -> { Fx.pillar(world, at, Fx.HOLY, 60); Fx.ring(world, at, Fx.GOLD, 12); }
+            case BOSS_SCHEMNIK, BOSS_BELL_RINGER, BOSS_SERAPH, BOSS_FACELESS, BOSS_WAILER, BOSS_ARCHANGEL, BOSS_LEVIATHAN, BOSS_BEHEMOTH, BOSS_GOLIATH, BOSS_DESTROYING_ANGEL, BOSS_CHERUB, BOSS_NIMROD, BOSS_HORSEMEN, BOSS_BEAST -> { Fx.pillar(world, at, Fx.HOLY, 60); Fx.ring(world, at, Fx.GOLD, 12); }
             case PLAGUES -> { Fx.ring(world, at, Fx.BLOOD, 16); Fx.smoke(world, at, 0xFF3A0A0A, 5); }
             case SODOM -> { Fx.embers(world, at, Fx.FIRE, 24, 20 * 35); Fx.flash(world, at, Fx.FIRE, 0.6f); Fx.shake(world, at, 0.4f, 60); }
             case FLOOD -> Fx.ring(world, at, Fx.SOUL, 30);

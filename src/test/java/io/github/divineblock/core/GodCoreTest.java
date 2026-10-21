@@ -71,7 +71,7 @@ class GodCoreTest {
         config.allowWither = true; config.maxTier = 4;
         GodDecider.Choice end = new RuleGodDecider().choose(doom, config);
         // The ladder is a weighted draw now: the worst sinner lands in the two heaviest groups, mostly the fifth.
-        assertTrue(MiracleGroup.K5.members.contains(end.miracle()) || MiracleGroup.K4.members.contains(end.miracle()), "the rules lean to the heaviest open group: " + end);
+        assertTrue(MiracleGroup.K5.members.contains(end.miracle()) || MiracleGroup.KS.members.contains(end.miracle()) || MiracleGroup.K4.members.contains(end.miracle()), "the rules lean to the heaviest open group: " + end);
         assertTrue(end.warn(), "serious wrath comes with thunder");
 
         Verdict quiet = new Verdict(); quiet.inclination = Miracle.Kind.OMEN; quiet.favor = 1;
