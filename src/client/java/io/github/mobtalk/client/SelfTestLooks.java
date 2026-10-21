@@ -48,6 +48,7 @@ final class SelfTestLooks {
 
     void run(Runnable then) {
         next = then;
+        test.owner.client.options.setPerspective(Perspective.FIRST_PERSON); // Снимки глазами игрока: его фигура не заслоняет жителей.
         test.log("looks stages (track M): human villagers, wedding attire, sleep, the vanilla fallback");
         test.owner.config().humanVillagers = true;
         test.command("time set 6000"); test.command("weather clear");
