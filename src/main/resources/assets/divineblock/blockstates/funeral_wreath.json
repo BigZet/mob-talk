@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "divineblock:block/funeral_wreath"
+    },
+    "facing=east": {
+      "model": "divineblock:block/funeral_wreath",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "divineblock:block/funeral_wreath",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "divineblock:block/funeral_wreath",
+      "y": 270
+    }
+  }
+}

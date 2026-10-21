@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "divineblock:block/artificial_flowers"
+    },
+    "facing=east": {
+      "model": "divineblock:block/artificial_flowers",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "divineblock:block/artificial_flowers",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "divineblock:block/artificial_flowers",
+      "y": 270
+    }
+  }
+}

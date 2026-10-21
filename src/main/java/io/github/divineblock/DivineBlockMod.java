@@ -41,6 +41,7 @@ public final class DivineBlockMod implements ModInitializer {
         Registry.register(Registries.BLOCK, Identifier.of(ID, "altar"), ALTAR);
         Registry.register(Registries.ITEM, Identifier.of(ID, "altar"), ALTAR_ITEM);
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> entries.add(ALTAR_ITEM));
+        io.github.divineblock.cemetery.CemeteryBlocks.register();
         PayloadTypeRegistry.playC2S().register(PrayPayload.ID, PrayPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(io.github.divineblock.game.GodLinePayload.ID, io.github.divineblock.game.GodLinePayload.CODEC);
         PayloadTypeRegistry.playS2C().register(io.github.divineblock.game.BeamsPayload.ID, io.github.divineblock.game.BeamsPayload.CODEC);

@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "decorations",
+  "pattern": [
+    " B ",
+    "BBB",
+    " S "
+  ],
+  "key": {
+    "B": {
+      "item": "minecraft:polished_blackstone"
+    },
+    "S": {
+      "item": "minecraft:polished_blackstone_slab"
+    }
+  },
+  "result": {
+    "id": "divineblock:granite_cross",
+    "count": 1
+  }
+}

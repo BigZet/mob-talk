@@ -1,0 +1,314 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "soil": "divineblock:block/grave_soil_grassy",
+    "top": "divineblock:block/grave_soil_grassy",
+    "tufts": "divineblock:block/grave_tufts",
+    "particle": "#soil"
+  },
+  "elements": [
+    {
+      "from": [
+        1,
+        0,
+        0
+      ],
+      "to": [
+        15,
+        3,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#soil",
+          "uv": [
+            1,
+            13,
+            15,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#soil",
+          "uv": [
+            1,
+            13,
+            15,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#soil",
+          "uv": [
+            0,
+            13,
+            16,
+            16
+          ]
+        },
+        "west": {
+          "texture": "#soil",
+          "uv": [
+            0,
+            13,
+            16,
+            16
+          ]
+        },
+        "up": {
+          "texture": "#top",
+          "uv": [
+            1,
+            0,
+            15,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#soil",
+          "uv": [
+            1,
+            0,
+            15,
+            16
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.5,
+        3,
+        0
+      ],
+      "to": [
+        13.5,
+        5,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#soil",
+          "uv": [
+            2.5,
+            11,
+            13.5,
+            13
+          ]
+        },
+        "south": {
+          "texture": "#soil",
+          "uv": [
+            2.5,
+            11,
+            13.5,
+            13
+          ]
+        },
+        "east": {
+          "texture": "#soil",
+          "uv": [
+            0,
+            11,
+            16,
+            13
+          ]
+        },
+        "west": {
+          "texture": "#soil",
+          "uv": [
+            0,
+            11,
+            16,
+            13
+          ]
+        },
+        "up": {
+          "texture": "#top",
+          "uv": [
+            2.5,
+            0,
+            13.5,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#soil",
+          "uv": [
+            2.5,
+            0,
+            13.5,
+            16
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4,
+        5,
+        0
+      ],
+      "to": [
+        12,
+        6,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#soil",
+          "uv": [
+            4,
+            10,
+            12,
+            11
+          ]
+        },
+        "south": {
+          "texture": "#soil",
+          "uv": [
+            4,
+            10,
+            12,
+            11
+          ]
+        },
+        "east": {
+          "texture": "#soil",
+          "uv": [
+            0,
+            10,
+            16,
+            11
+          ]
+        },
+        "west": {
+          "texture": "#soil",
+          "uv": [
+            0,
+            10,
+            16,
+            11
+          ]
+        },
+        "up": {
+          "texture": "#top",
+          "uv": [
+            4,
+            0,
+            12,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#soil",
+          "uv": [
+            4,
+            0,
+            12,
+            16
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.5,
+        1,
+        0.5
+      ],
+      "to": [
+        3.5,
+        9,
+        15.5
+      ],
+      "faces": {
+        "east": {
+          "texture": "#tufts",
+          "uv": [
+            0,
+            7,
+            15,
+            15
+          ]
+        },
+        "west": {
+          "texture": "#tufts",
+          "uv": [
+            0,
+            7,
+            15,
+            15
+          ]
+        }
+      },
+      "shade": false
+    },
+    {
+      "from": [
+        12.5,
+        1,
+        0.5
+      ],
+      "to": [
+        12.5,
+        9,
+        15.5
+      ],
+      "faces": {
+        "east": {
+          "texture": "#tufts",
+          "uv": [
+            0,
+            7,
+            15,
+            15
+          ]
+        },
+        "west": {
+          "texture": "#tufts",
+          "uv": [
+            0,
+            7,
+            15,
+            15
+          ]
+        }
+      },
+      "shade": false
+    },
+    {
+      "from": [
+        8,
+        1,
+        0.5
+      ],
+      "to": [
+        8,
+        9,
+        15.5
+      ],
+      "faces": {
+        "east": {
+          "texture": "#tufts",
+          "uv": [
+            0,
+            7,
+            15,
+            15
+          ]
+        },
+        "west": {
+          "texture": "#tufts",
+          "uv": [
+            0,
+            7,
+            15,
+            15
+          ]
+        }
+      },
+      "shade": false
+    }
+  ]
+}

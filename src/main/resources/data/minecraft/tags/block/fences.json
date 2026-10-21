@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    "divineblock:black_grave_fence",
+    "divineblock:blue_grave_fence",
+    "divineblock:rusty_grave_fence"
+  ]
+}

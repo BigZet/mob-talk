@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "divineblock:wooden_cross",
+    "divineblock:roofed_cross",
+    "divineblock:old_cross",
+    "divineblock:grave_bench",
+    "divineblock:grave_table"
+  ]
+}
