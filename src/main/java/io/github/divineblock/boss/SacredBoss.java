@@ -219,6 +219,8 @@ public abstract class SacredBoss extends HostileEntity {
         dataTracker.set(CAST_STATE, (byte) 0);
         ultTimer = 1;
     }
+    /** Tests: how many of its attacks are in flight. */
+    public int hazardCount() { return hazards.count(); }
     /** Tests: cast an ordinary attack on the next tick. */
     public void forceAttack() { attackTimer = 1; }
     /** 0..1: how far the current cast has come. */

@@ -16,6 +16,7 @@ public final class DivineBlockClient implements ClientModInitializer {
     @Override public void onInitializeClient() {
         AltarBlock.openPrayer = pos -> MinecraftClient.getInstance().setScreen(new PrayerScreen(pos));
         SelfTest.register();
+        BossSelfTest.register();
         settingsKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.divineblock.settings", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_F9, "key.categories.divineblock"));
         prayKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.divineblock.pray", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_R, "key.categories.divineblock"));
         GodVoicePlayer.register();
