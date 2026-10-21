@@ -50,17 +50,20 @@ final class SelfTestLooks {
         for (String wall : List.of(at(-12, 0, -8) + " " + at(12, 1, -8), at(-12, 0, 8) + " " + at(12, 1, 8), at(-12, 0, -8) + " " + at(-12, 1, 8), at(12, 0, -8) + " " + at(12, 1, 8)))
             test.command("fill " + wall + " minecraft:barrier"); // Только стены: в полу из барьера жители задохнулись бы.
         test.command("time set 6000"); test.command("weather clear");
-        for (int i = 0; i < LINEUP.length; i++)
-            test.command("summon minecraft:villager " + at(-9 + i * 2, 0, -3) + " {NoAI:1b,PersistenceRequired:1b,Rotation:[0f,0f],Tags:[\"" + TAG
-                    + "\"],VillagerData:{profession:\"minecraft:" + LINEUP[i][0] + "\",type:\"minecraft:" + LINEUP[i][1] + "\",level:2}}");
-        for (int i = 0; i < 3; i++)
-            test.command("summon minecraft:villager " + at(-2 + i * 2, 0, -1) + " {NoAI:1b,PersistenceRequired:1b,Age:-24000,Rotation:[0f,0f],Tags:[\"" + TAG
-                    + "\"],VillagerData:{profession:\"minecraft:none\",type:\"minecraft:plains\",level:1}}");
         test.command("tp " + name() + " " + at(0, 0, 6) + " 180 10");
-        test.await("thirteen villagers for track M", 15, () -> clientTagged().size() >= LINEUP.length + 3, this::lineup);
+        test.await("pause: the stage chunks load", 3, () -> false, () -> {
+            for (int i = 0; i < LINEUP.length; i++)
+                test.command("summon minecraft:villager " + at(-9 + i * 2, 0, -3) + " {NoAI:1b,PersistenceRequired:1b,Rotation:[0f,0f],Tags:[\"" + TAG
+                        + "\"],VillagerData:{profession:\"minecraft:" + LINEUP[i][0] + "\",type:\"minecraft:" + LINEUP[i][1] + "\",level:2}}");
+            for (int i = 0; i < 3; i++)
+                test.command("summon minecraft:villager " + at(-2 + i * 2, 0, -1) + " {NoAI:1b,PersistenceRequired:1b,Age:-24000,Rotation:[0f,0f],Tags:[\"" + TAG
+                        + "\"],VillagerData:{profession:\"minecraft:none\",type:\"minecraft:plains\",level:1}}");
+            test.await("thirteen villagers for track M", 40, () -> clientTagged().size() >= LINEUP.length + 3, this::lineup);
+        });
     }
 
     private void lineup() {
+        if (clientTagged().isEmpty()) { test.fail("no villagers on the stage"); finish(); return; }
         test.check(test.owner.client.getEntityRenderDispatcher().getRenderer(clientTagged().getFirst()) instanceof VillagerLooks, "villagers are drawn by the switchable renderer");
         test.command("effect give @e[tag=" + TAG + "] minecraft:resistance 600 255 true");
         test.await("pause: the looks settle", 2, () -> false, () -> {
@@ -82,6 +85,7 @@ final class SelfTestLooks {
             test.check(babies == 3, "three children among them");
             test.log("women " + female + " of " + clientTagged().size());
             test.owner.client.options.hudHidden = true;
+            test.check(clientTagged().stream().noneMatch(v -> !HumanLooks.of(v).outfit().isEmpty()), "nobody wears a wedding outfit before the attire");
             shot("mobtalk-looks-lineup.png", () -> side(() -> wedding(this::sleep)));
         });
     }
@@ -94,12 +98,15 @@ final class SelfTestLooks {
 
     /** Фата и венец (как их надевает свадьба трека L) и цветы в руках у двоих посередине ряда; снимок вблизи. */
     private void wedding(Runnable then) {
-        VillagerEntity bride = null, groom = null;
+        VillagerEntity bride = null, groom = null, maid = null;
         for (VillagerEntity v : tagged()) {
             if (v.isBaby()) continue;
             boolean woman = SocialProfile.genderOf(v.getUuid()) == io.github.mobtalk.core.Gender.FEMALE;
-            if (woman && bride == null) bride = v; else if (!woman && groom == null) groom = v;
+            if (woman && bride == null) bride = v; else if (woman && maid == null) maid = v; else if (!woman && groom == null) groom = v;
         }
+        if (maid != null) { VillagerEntity w = maid; test.server().execute(() -> { // Подружка в венке: праздничное платье по убору.
+            w.equipStack(EquipmentSlot.HEAD, new ItemStack(WeddingItems.FLOWER_WREATH)); w.equipStack(EquipmentSlot.MAINHAND, new ItemStack(Items.ALLIUM));
+            w.refreshPositionAndAngles(fx - 2.5, fy, fz + 1.5, 0, 0); }); }
         if (bride == null || groom == null) { test.fail("no bride and groom among the lineup"); then.run(); return; }
         VillagerEntity b = bride, g = groom;
         test.server().execute(() -> {
@@ -109,14 +116,19 @@ final class SelfTestLooks {
             b.setHeadYaw(0); b.setBodyYaw(0); g.setHeadYaw(0); g.setBodyYaw(0);
         });
         test.command("tp " + name() + " " + at(0, 0, 5) + " 180 15");
-        test.await("pause: the couple dressed", 3, () -> false, () -> shot("mobtalk-looks-wedding.png", () -> {
+        test.await("pause: the couple dressed", 3, () -> false, () -> {
+            for (VillagerEntity v : clientTagged()) if (!HumanLooks.of(v).outfit().isEmpty()) test.log("outfit " + HumanLooks.of(v).outfit() + ": " + HumanTextures.clothes(HumanLooks.of(v)));
+            test.check(clientTagged().stream().anyMatch(v -> HumanLooks.of(v).outfit().equals("bride") && HumanTextures.clothes(HumanLooks.of(v)).getPath().contains("wedding/bride")), "the bride wears a wedding dress");
+            test.check(clientTagged().stream().anyMatch(v -> HumanLooks.of(v).outfit().equals("groom") && HumanTextures.clothes(HumanLooks.of(v)).getPath().contains("wedding/groom")), "the groom wears a suit");
+            shot("mobtalk-looks-wedding.png", () -> {
             test.owner.client.options.setPerspective(Perspective.THIRD_PERSON_FRONT);
             test.command("tp " + name() + " " + at(0, 0, 4) + " 0 15");
             test.await("pause: the couple from behind", 2, () -> false, () -> shot("mobtalk-looks-wedding-back.png", () -> {
                 test.owner.client.options.setPerspective(Perspective.FIRST_PERSON);
                 then.run();
             }));
-        }));
+            });
+        });
     }
 
     /** Житель в кровати: поза сна ванильная, глаза закрыты. */
