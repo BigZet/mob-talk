@@ -30,7 +30,8 @@ public final class DivineSettingsScreen extends Screen {
     public DivineSettingsScreen(Screen parent) { super(Text.literal("Божественный блок")); this.parent = parent; }
 
     @Override protected void init() {
-        int column = 150, gap = 8, left = this.width / 2 - column - gap / 2, right = this.width / 2 + gap / 2, y = 28, row = 22;
+        // Eight rows of settings and the keys: on a small window (GUI height under 280) the rows close up so the keys stay above the bottom buttons.
+        int column = 150, gap = 8, left = this.width / 2 - column - gap / 2, right = this.width / 2 + gap / 2, y = 28, row = row();
         addDrawableChild(CyclingButtonWidget.<DivineConfig.Personality>builder(p -> Text.literal(p.label)).values(DivineConfig.Personality.values())
                 .initially(config.personality).build(left, y, column, 20, Text.literal("Нрав"), (b, v) -> config.personality = v));
         addDrawableChild(CyclingButtonWidget.<Integer>builder(v -> Text.literal(v + " — " + new String[] { "знамения", "малое", "среднее", "большое", "апокалипсис" }[v]))
@@ -61,11 +62,16 @@ public final class DivineSettingsScreen extends Screen {
         addDrawableChild(CyclingButtonWidget.<String>builder(id -> Text.literal(voiceName(id))).values(voices)
                 .initially(voices.contains(config.voiceId) ? config.voiceId : voices.get(0)).build(right, y, column, 20, Text.literal("Голос"), (b, v) -> config.voiceId = v));
         y += row;
+        // The god's drawn effects: off leaves the vanilla particles of before.
+        addDrawableChild(CyclingButtonWidget.<Integer>builder(v -> Text.literal(new String[] { "выкл", "низко", "средне", "высоко" }[v])).values(List.of(0, 1, 2, 3))
+                .initially(config.effects).build(left, y, column, 20, Text.literal("Эффекты"), (b, v) -> config.effects = v));
+        addDrawableChild(CyclingButtonWidget.onOffBuilder(config.cameraShake).build(right, y, column, 20, Text.literal("Тряска камеры"), (b, v) -> config.cameraShake = v));
+        y += row;
         // Churches in newly generated chunks and how rare they are (one per N x N chunks at most).
         addDrawableChild(CyclingButtonWidget.onOffBuilder(config.churches).build(left, y, column, 20, Text.literal("Церкви в мире"), (b, v) -> config.churches = v));
         addDrawableChild(CyclingButtonWidget.<Integer>builder(v -> Text.literal(v + " чанков")).values(List.of(32, 48, 64, 80, 100, 150, 256))
                 .initially(nearest(config.churchSpacing, 32, 48, 64, 80, 100, 150, 256)).build(right, y, column, 20, Text.literal("Редкость"), (b, v) -> config.churchSpacing = v));
-        y += row + 6;
+        y += row + keysGap();
 
         // Both keys on one row: a field and its save button in each column.
         openRouterKey = keyField(left, y, column - 44, "Ключ OpenRouter");
@@ -79,6 +85,9 @@ public final class DivineSettingsScreen extends Screen {
         refreshKeyStatus();
         soul = readSoul();
     }
+
+    private int row() { return this.height < 280 ? 20 : 22; }
+    private int keysGap() { return this.height < 280 ? 2 : 6; }
 
     private TextFieldWidget keyField(int x, int y, int width, String placeholder) {
         TextFieldWidget field = new TextFieldWidget(textRenderer, x, y, width, 20, Text.literal(placeholder));
@@ -131,8 +140,8 @@ public final class DivineSettingsScreen extends Screen {
     @Override public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
         context.drawCenteredTextWithShadow(textRenderer, title.copy().formatted(Formatting.GOLD), this.width / 2, 12, 0xFFFFFF);
-        int y = 28 + 22 * 7 + 6 + 22 + 2;
-        context.drawTextWithShadow(textRenderer, Text.literal(keyStatus).formatted(Formatting.GRAY), this.width / 2 - 154, y, 0xFFFFFF);
+        int y = 28 + row() * 8 + keysGap() + 22 + 2;
+        if (y <= this.height - 38) context.drawTextWithShadow(textRenderer, Text.literal(keyStatus).formatted(Formatting.GRAY), this.width / 2 - 154, y, 0xFFFFFF);
         y += 12;
         String[] lines = soul.split("\n");
         int shown = 0;
@@ -147,7 +156,7 @@ public final class DivineSettingsScreen extends Screen {
     }
 
     @Override public void close() {
-        try { config.save(DivineBlockMod.configFile()); DivineBlockMod.reloadConfig(); }
+        try { config.save(DivineBlockMod.configFile()); DivineBlockMod.reloadConfig(); io.github.divineblock.client.fx.FxQuality.reload(); }
         catch (IOException failure) { DivineBlockMod.LOG.warn("Божественный блок: настройки не сохранены", failure); }
         if (client != null) client.setScreen(parent);
     }

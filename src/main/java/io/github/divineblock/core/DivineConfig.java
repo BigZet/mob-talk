@@ -57,6 +57,10 @@ public final class DivineConfig {
     /** Church chants (quiet singing near the altar, music under a blessing or a punishment, always below the god's voice):
      * percent of their already quiet default, 0..200; 0 switches them off. */
     public int chantVolume = 100;
+    /** The god's drawn effects (own particles, rays of light, bolts, meteors): 0 off (vanilla particles), 1 low, 2 medium, 3 high. */
+    public int effects = 3;
+    /** The camera shakes under the blows of wrath. */
+    public boolean cameraShake = true;
     public String voiceId = GodVoice.VOICES[0][0];
     public String ttsModel = "elevenlabs/eleven-flash-v2.5";
     /** Prayers by voice: the local Whisper helper (shared with Mob Talk) and the microphone; "" is the system default. */
@@ -91,6 +95,7 @@ public final class DivineConfig {
         if (personality == null) personality = Personality.CAPRICIOUS;
         if (provider == null) provider = Provider.OPENROUTER;
         maxTier = clamp(maxTier, 0, 4);
+        effects = clamp(effects, 0, 3);
         protectRadius = clamp(protectRadius, 0, 256);
         whimWeight = clamp(whimWeight, 0, 3);
         cooldownSeconds = clamp(cooldownSeconds, 0, 600);
