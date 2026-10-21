@@ -169,8 +169,8 @@ def portrait(img, x0, y0, w, h, frame, seed):
             if e > 0.78: img.putpixel((x, y), frame); continue
             fy = (y - y0) / h; fx = abs(x - cx) / (w / 2)
             col = hexc("#d8c7a4")  # background
-            if fy > 0.18 and fy < 0.62 and fx < 0.42: col = hexc("#9c7b58")  # face
-            if fy <= 0.3 and fx < 0.5: col = hexc("#4a3a2c")  # hair
+            if 0.2 < fy < 0.64 and fx < 0.5: col = hexc("#c49a72")  # face
+            if fy <= 0.24 and fx < 0.62: col = hexc("#3e3026")  # hair
             if fy >= 0.66: col = hexc("#3c3128")  # shoulders
             img.putpixel((x, y), shade(col, rnd.uniform(0.95, 1.05)))
 
@@ -365,12 +365,12 @@ def write_models(shapes):
     model("roofed_cross", w, roof, tall=True, ao=False)
 
     old = {"post": tex("old_grave_wood"), "bar": tex("old_grave_wood_bar")}
-    base = [e for e in cross_elements("post", "bar", plaque=False, titulus=False, top=29)]
-    base[1] = el((2.5, 20, 7), (13, 22, 9), "bar")  # a shorter, sagging crossbar
-    leaning = [tilted(e, (8, 0), 22.5) for e in base]
-    for e in leaning:  # the foot moves right so the leaning cross stays over its own block
-        for k in ("from", "to"): e[k] = [round(e[k][0] + 4.5, 4)] + e[k][1:]
-        e["rotation"]["origin"][0] = round(e["rotation"]["origin"][0] + 4.5, 4)
+    # The old cross leans back on its sunken foot. A model element turns about one axis only, so the footrest that used to
+    # slant has slipped level; the title board is gone.
+    leaning = [el((7, -1, 7), (9, 29, 9), "post"), el((2.5, 19.5, 7), (13, 21.5, 9), "bar"), el((4.5, 8.5, 7.25), (11.5, 10, 8.75), "bar")]
+    for e in leaning:
+        e["rotation"] = {"origin": [8, 0, 3], "axis": "x", "angle": 22.5}
+        for k in ("from", "to"): e[k][2] = round(e[k][2] - 5, 4)
     model("old_cross", old, leaning, tall=True, ao=False)
 
     i = {"iron": tex("painted_iron_black"), "gold": tex("painted_gold")}
@@ -441,7 +441,7 @@ def write_models(shapes):
         closed = list(posts)
         for x1, x2 in ((1.5, 7.9), (8.1, 14.5)):
             closed += [el((x1, 2, 7.5), (x2, 3, 8.5), "iron"), el((x1, 10, 7.5), (x2, 11, 8.5), "iron")]
-        for x in (3.3, 5.6, 6.95, 8.25, 9.6, 11.9):
+        for x in (3.4, 5.6, 9.6, 11.8):
             closed.append(el((x, 1, 7.6), (x + 0.8, 12.25, 8.4), "iron"))
             closed.append(el((x + 0.15, 12.25, 7.75), (x + 0.65, 13, 8.25), "iron"))
         closed.append(el((7.4, 6, 7.2), (8.6, 7, 8.8), "gold"))

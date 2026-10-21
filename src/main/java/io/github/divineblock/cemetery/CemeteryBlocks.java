@@ -47,9 +47,9 @@ public final class CemeteryBlocks {
     private static final double[][] CROSS_LOW = { box(7, 0, 7, 9, 16, 9), box(3, 8, 7, 13, 11, 9) };
     private static final double[][] CROSS_HIGH = { box(7, 0, 7, 9, 14, 9), box(1, 4.5, 7, 15, 7, 9), box(5, 9.5, 7, 11, 11.5, 9) };
     private static final double[][] ROOFED_HIGH = { box(7, 0, 7, 9, 14, 9), box(1, 4.5, 7, 15, 7, 9), box(3, 10, 3.5, 13, 16, 12.5) };
-    // The old cross leans 22.5 degrees to one side, its foot moved the other way, and has lost its title board.
-    private static final double[][] OLD_LOW = { box(7, 0, 7, 13.5, 9, 9), box(4, 9, 7, 11, 16, 9), box(5, 6.5, 7, 11.5, 13.5, 9) };
-    private static final double[][] OLD_HIGH = { box(0.5, 0, 7, 7, 11.5, 9), box(0, 0.5, 7, 9.5, 6.5, 9) };
+    // The old cross leans back on its sunken foot, its footrest slipped level and its title board gone.
+    private static final double[][] OLD_LOW = { box(7, 0, 1.5, 9, 8, 6), box(7, 8, 4, 9, 16, 10), box(4.5, 7.5, 5.5, 11.5, 9.5, 7.5) };
+    private static final double[][] OLD_HIGH = { box(7, 0, 9, 9, 11.5, 15), box(2.5, 1.5, 9.5, 13, 4.5, 12.5) };
 
     public static final Block WOODEN_CROSS = block("wooden_cross", new TallGraveBlock(wood(), CROSS_LOW, CROSS_HIGH));
     public static final Block ROOFED_CROSS = block("roofed_cross", new TallGraveBlock(wood(), CROSS_LOW, ROOFED_HIGH));
