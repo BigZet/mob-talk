@@ -30,8 +30,11 @@ powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 [-Mode true|cr
 > трогает `divine-block-test`, после игры удаляет копию. Отчёт: `%LOCALAPPDATA%\DivineBlock\selftest\<копия>\report.txt`.
 > Свои флаги — через `-Mode`/`-Jvm`, а не правкой instance.cfg. Чужие `javaw` и Whisper не останавливать.
 
-## Prism вне Codex
+## Где игра ищет ключи
 
-Prism из оболочки Codex видит подменённый `%LOCALAPPDATA%` и не находит `DivineBlock\openrouter-key.dpapi`
-(голос и вердикты бога падают с «Нет ключа OpenRouter»). Скрипт поднимает Prism через `explorer.exe`, а уже
-открытый перезапускает `scripts\restart-prism-clean.ps1` (ждёт, пока доиграют все игры, держа все слоты).
+Prism для самотестов запускается через `explorer.exe`, поэтому игра видит настоящий `%LOCALAPPDATA%`.
+Сессии Claude и Codex — упакованные приложения: всё, что они пишут в `%LOCALAPPDATA%`, на деле попадает в
+`%LOCALAPPDATA%\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local` (или `OpenAI.Codex_*`), и сами они видят это
+наложенным на настоящую папку. Ключ, сохранённый из такой сессии, игра не найдёт. Если в логе игры
+«ключ OpenRouter: нет файла …», ключ надо положить в настоящий `%LOCALAPPDATA%\DivineBlock`. Слоты
+`PrismParallel\slots` тоже лежат в наложении своего приложения: треды Claude и Codex считают игры раздельно.

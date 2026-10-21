@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
  * variable, a local token file next to the config, or the key saved in the settings (DPAPI-encrypted under
  * %LOCALAPPDATA%\DivineBlock). Called on workers; keys never reach the config, prompts or logs. */
 public final class ApiKeys {
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger("divineblock");
     public enum Provider {
         OPENROUTER("OpenRouter", "OPENROUTER_API_KEY", "divineblock-openrouter-token.txt", "DivineBlock/openrouter-key.dpapi"),
         VENICE("Venice", "VENICE_API_KEY", "divineblock-venice-token.txt", "DivineBlock/venice-key.dpapi");
@@ -92,9 +93,9 @@ public final class ApiKeys {
 
     private static String decrypt(String relative, Provider provider) throws IOException {
         Path local = localAppData(), windows = windows();
-        if (local == null || windows == null) return "";
+        if (local == null || windows == null) { LOG.info("ключ: нет LOCALAPPDATA ({}) или SystemRoot ({})", local, windows); return ""; }
         Path file = local.resolve(relative);
-        if (!Files.isRegularFile(file) || Files.size(file) > 65536) return "";
+        if (!Files.isRegularFile(file) || Files.size(file) > 65536) { LOG.info("ключ {}: нет файла {}", provider.label, file); return ""; }
         String blob = Files.readString(file, StandardCharsets.UTF_8).replace("﻿", "").strip();
         return powershell(windows, DECRYPT, blob, 513, provider);
     }
@@ -105,9 +106,15 @@ public final class ApiKeys {
         Process process = null;
         try {
             process = new ProcessBuilder(executable.toString(), "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", command)
-                    .redirectError(ProcessBuilder.Redirect.DISCARD).start();
+                    .start();
             try (var stdin = process.getOutputStream()) { stdin.write(input.getBytes(StandardCharsets.UTF_8)); }
-            if (!process.waitFor(10, TimeUnit.SECONDS) || process.exitValue() != 0) return "";
+            // PowerShell with the Security module takes ~6 s on an idle machine and more beside running games: allow 30 s.
+            if (!process.waitFor(30, TimeUnit.SECONDS)) { LOG.info("ключ {}: PowerShell не ответил за 30 с", provider.label); return ""; }
+            if (process.exitValue() != 0) {
+                String error = new String(process.getErrorStream().readNBytes(600), StandardCharsets.UTF_8).strip();
+                LOG.info("ключ {}: PowerShell завершился с кодом {}: {}", provider.label, process.exitValue(), error);
+                return "";
+            }
             return new String(process.getInputStream().readNBytes(maximum), StandardCharsets.UTF_8).strip();
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
