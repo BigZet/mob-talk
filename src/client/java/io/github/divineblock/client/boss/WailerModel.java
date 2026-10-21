@@ -27,7 +27,7 @@ public final class WailerModel extends BossModel<WailerEntity> {
         candle = part("candle"); flame = part("candle_flame");
         layers = new Layer[] {
             layer("hem", 15, 3, 0f, MathHelper.TAU, 0f, true, 1f),
-            layer("drape", 12, 3, 0f, MathHelper.TAU, 0.5f, true, 0.9f),
+            layer("drape", 12, 3, 1.1f, MathHelper.TAU - 1.1f, 0f, false, 0.9f),
             layer("shawl", 12, 2, 0f, MathHelper.TAU, 0f, true, 0.6f),
             layer("veil", 8, 4, 2f, MathHelper.TAU - 2f, 0f, false, 1.2f),
             layer("right_arm_rags", 5, 2, 0f, MathHelper.TAU, 0f, true, 0.8f),
@@ -64,7 +64,7 @@ public final class WailerModel extends BossModel<WailerEntity> {
         float bow = 0.05f + MathHelper.sin(age * 0.05f) * 0.02f;
         head.yaw += headYaw * 0.6f;
         head.pitch += headPitch * 0.4f;
-        float mouth = 0.06f + MathHelper.sin(age * 0.07f) * 0.04f;
+        float mouth = 0.12f + MathHelper.sin(age * 0.07f) * 0.05f;
         float rArm = MathHelper.sin(age * 0.06f) * 0.05f + glide * 0.25f, lArm = MathHelper.sin(age * 0.06f + 1f) * 0.03f;
         float rFore = 0f, lFore = 0f, rRoll = MathHelper.sin(age * 0.05f) * 0.03f, lRoll = 0f, flare = 0f, flameScale = 1f;
 

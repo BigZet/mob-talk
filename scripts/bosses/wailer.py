@@ -4,7 +4,7 @@ hollow cheeks, an open wailing mouth and glowing tear-streaked eyes; very long t
 burning funeral candle up before her face. No feet: she floats.
 Built about 44 units tall and drawn at scale 2 (about five and a half blocks), at 4 pixels per unit."""
 from boxtex import *
-from schemnik import flame, finger, bone, ragged, pointed
+from schemnik import flame, finger, bone, ragged, pointed, upright
 
 SHROUD = (22, 20, 26)
 SHROUD_HL = (70, 66, 82)
@@ -110,40 +110,51 @@ def wailer_face(p, f, opts):
     for v in range(H):
         for u in range(W):
             dx = (u + 0.5 - W / 2) / (W / 2)
-            c = shade(ASH, (1.05 - 0.3 * dx * dx) * p.noise(0.04))
-            if f.side == "front" and 0.45 < abs(dx) < 0.95 and 0.55 * H < v < 0.85 * H:
-                c = mix(c, ASH_SHADOW, 0.45)
+            t = v / max(1, H - 1)
+            # Ashen flesh, darkest under the veil at the brow and sunk at the temples and cheeks.
+            c = shade(ASH, (0.62 + 0.45 * min(1.0, t * 2.2) - 0.32 * dx * dx) * p.noise(0.04))
+            if f.side == "front" and 0.4 < abs(dx) < 0.95 and 0.5 * H < v < 0.86 * H:
+                c = mix(c, (60, 60, 72), 0.55)
             p.put(f, u, v, c)
     if f.side != "front":
         return
-    ey = int(H * 0.38)
+    ey = int(H * 0.4)
     for sgn in (-1, 1):
         cx = W / 2 + sgn * W * 0.24
         for u in range(W):
             for v in range(H):
-                r = ((u + 0.5 - cx) / (W * 0.2)) ** 2 + ((v + 0.5 - ey) / (H * 0.1)) ** 2
+                r = ((u + 0.5 - cx) / (W * 0.22)) ** 2 + ((v + 0.5 - ey) / (H * 0.13)) ** 2
                 if r <= 1.0:
-                    p.put(f, u, v, (26, 20, 28))
-                elif r <= 1.8:
-                    p.put(f, u, v, mix(ASH_SHADOW, (40, 34, 44), 0.5))
+                    p.put(f, u, v, (8, 6, 10))
+                elif r <= 1.9:
+                    p.put(f, u, v, mix((70, 66, 80), (24, 20, 28), 1.9 - r))
+        # A burning white pin of an eye with a cold halo.
         ex = int(cx)
-        for du in (-1, 0, 1):
-            p.put(f, ex + du, ey, GHOST, GHOST)
-        p.put(f, ex, ey - 1, shade(GHOST, 0.8), shade(GHOST, 0.8))
-        p.put(f, ex + sgn, ey, (30, 40, 50), (30, 40, 50))
-        # Tear tracks, glowing faintly, down to the jaw.
-        for v in range(ey + 1, H):
+        for du in range(-2, 3):
+            for dv in range(-1, 2):
+                if abs(du) + abs(dv) <= 2:
+                    g = (40, 70, 90)
+                    p.put(f, ex + du, ey + dv, g, g)
+        for du, dv in ((0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)):
+            c = (255, 255, 255) if (du, dv) == (0, 0) else GHOST
+            p.put(f, ex + du, ey + dv, c, c)
+        # Tear tracks, glowing, down to the jaw.
+        for v in range(ey + 2, H):
             wob = int(round(math.sin(v * 0.5 + sgn) * 0.6))
-            g = shade(TEAR, 1.0 - 0.5 * (v - ey) / (H - ey))
+            g = shade(TEAR, 1.0 - 0.45 * (v - ey) / (H - ey))
             p.put(f, ex + wob, v, g, g)
+            p.put(f, ex + wob + sgn, v, shade(g, 0.45), shade(g, 0.35))
     nx = W // 2
-    for v in range(int(H * 0.42), int(H * 0.7)):
-        p.put(f, nx - 1, v, ASH_SHADOW)
-    p.put(f, nx - 2, int(H * 0.7), (60, 56, 64))
-    p.put(f, nx + 1, int(H * 0.7), (60, 56, 64))
-    for v in range(int(H * 0.8), H):
-        for u in range(nx - 3, nx + 3):
-            p.put(f, u, v, (12, 8, 10) if v > int(H * 0.82) else (130, 120, 126))
+    for v in range(int(H * 0.46), int(H * 0.68)):
+        p.put(f, nx - 1, v, (70, 68, 80))
+        p.put(f, nx, v, shade(ASH, 1.05))
+    for u in (nx - 2, nx + 1):
+        p.put(f, u, int(H * 0.68), (30, 26, 34))
+    # The mouth gapes in a long wail.
+    for v in range(int(H * 0.76), H):
+        half = 2 + (v - int(H * 0.76)) // 2
+        for u in range(nx - half, nx + half):
+            p.put(f, u, v, (10, 4, 8) if v > int(H * 0.77) else (96, 86, 96))
 
 
 def jaw(p, f, opts):
@@ -154,9 +165,14 @@ def jaw(p, f, opts):
             dx = (u + 0.5 - W / 2) / (W / 2)
             p.put(f, u, v, shade(ASH, (1.0 - 0.35 * dx * dx) * p.noise(0.04)))
     if f.side == "front":
-        for u in range(W // 2 - 3, W // 2 + 3):
-            p.put(f, u, 0, (12, 8, 10))
-            p.put(f, u, 1, (130, 120, 126))
+        for v in range(0, 3):
+            half = 4 - v
+            for u in range(W // 2 - half, W // 2 + half):
+                p.put(f, u, v, (10, 4, 8) if v < 2 else (96, 86, 96))
+        for v in range(H):
+            for u in range(W):
+                if abs(u + 0.5 - W / 2) > W * 0.35:
+                    p.put(f, u, v, mix((60, 60, 72), ASH, 0.4))
     if f.side == "top":
         for v in range(H):
             for u in range(W):
@@ -182,15 +198,15 @@ def kokoshnik(p, f, opts):
             elif f.side in ("front", "back") and height - d * 2.5 < rise <= height - d * 1.5 and u % 3 == 0:
                 c = (200, 198, 204)
             p.put(f, u, v, c)
+    if f.side not in ("front", "back"):
+        # The thin edges of the plate would draw a frame round the arch: leave them clear.
+        for v in range(H):
+            for u in range(W):
+                p.put(f, u, v, None)
+        return
     if f.side == "front":
         cx = W // 2
-        for v in range(int(H * 0.3), int(H * 0.75)):
-            p.put(f, cx, v, SILVER)
-            p.put(f, cx - 1, v, SILVER)
-        for u in range(cx - 4, cx + 4):
-            p.put(f, u, int(H * 0.42), SILVER)
-        for u in range(cx - 3, cx + 3):
-            p.put(f, u, int(H * 0.62) + (1 if u < cx else 0), SILVER)
+        orthodox_cross(p, f, cx, int(H * 0.56), int(H * 0.56), SILVER, 2)
         for u in range(2, W - 2, 3):
             p.put(f, u, H - 2, (190, 188, 196))
 
@@ -229,7 +245,7 @@ def claw(name, side, curl, splay):
         Box((-0.5, -0.6, -0.5), (1.0, 0.9, 1.0), knuckle),
     ])
     for i, x in enumerate((-0.66, -0.22, 0.22, 0.66)):
-        length = 2.1 - 0.2 * abs(i - 1.5)
+        length = 2.2 - 0.2 * abs(i - 1.5)
         hand.children.append(finger("%s_finger%d" % (name, i), (x, 2.3, 0), (-curl * 0.5, 0, (x / 0.66) * splay),
                                     (length, length * 0.82, length * 0.62), 0.36, curl, knuckle))
     hand.children.append(finger("%s_thumb" % name, (side * 0.9, 0.8, -0.2), (-0.6, 0, -side * 0.6), (1.5, 1.1), 0.38, 0.35, knuckle))
@@ -240,6 +256,10 @@ def sleeve_rags(prefix):
     """Torn sleeve ends hanging from the elbow."""
     return strips(prefix + "_rags", pivot=(0, 8.5, 0), top=(1.0, 1.0), bottom=(1.9, 1.9), length=7.5, count=5,
                   base=SHROUD, highlight=SHROUD_HL, segs=2, seed=len(prefix) * 7, width_k=1.0, thickness=0.25)
+
+
+R_ARM, R_FORE = (-0.18, 0, 0.14), (-0.3, 0, 0)
+L_ARM, L_FORE = (-0.25, 0, -0.16), (-2.45, 0, 0.12)
 
 
 def arm(label, side, rotation, fore_rotation, curl, splay, held):
@@ -256,57 +276,66 @@ def arm(label, side, rotation, fore_rotation, curl, splay, held):
     ], children=[fore, sleeve_rags(label)])
 
 
-candle = Part("candle", pivot=(0, 12.9, -0.4), rotation=(2.55, 0, -0.1), boxes=[
-    Box((-0.5, -7.5, -0.5), (1.0, 8.6, 1.0), wax),
-    Box((-0.68, -6.6, -0.2), (0.28, 2.6, 0.5), wax),
-    Box((0.4, -5.2, -0.25), (0.28, 1.8, 0.5), wax),
-    Box((-0.08, -8.2, -0.08), (0.16, 0.8, 0.16), solid((24, 18, 14))),
-], children=[flame("candle_flame", (0, -8.0, 0), height=3.2, width=1.9)])
+candle = Part("candle", pivot=(0, 13.2, -0.5), rotation=upright(L_ARM, L_FORE), boxes=[
+    Box((-0.55, -8.0, -0.55), (1.1, 9.0, 1.1), wax),
+    Box((-0.75, -7.0, -0.2), (0.28, 2.6, 0.5), wax),
+    Box((0.45, -5.6, -0.25), (0.28, 1.8, 0.5), wax),
+    Box((-0.08, -8.7, -0.08), (0.16, 0.8, 0.16), solid((24, 18, 14))),
+], children=[flame("candle_flame", (0, -8.5, 0), height=3.4, width=2.0)])
 
-veil_front = Part("half_veil", pivot=(0.4, -6.9, -2.75), rotation=(-0.06, 0, 0.03),
-                  boxes=[Box((-0.3, 0, -0.12), (3.0, 7.6, 0.24), pointed(tatter(GAUZE, SHROUD_HL, end=True, lace=True), 0.6))])
+# Veils that frame the face: the one on her left falls over the cheek to the eye, so half the face is hidden.
+face_veils = [
+    Part("veil_side_r", pivot=(-2.95, -7.8, -2.9), rotation=(-0.05, 0, 0.04),
+         boxes=[Box((-0.3, 0, -0.12), (1.3, 11.5, 0.24), pointed(tatter(GAUZE, SHROUD_HL, end=True), 0.7))]),
+    Part("half_veil", pivot=(0.8, -7.8, -3.0), rotation=(-0.05, 0, -0.02),
+         boxes=[Box((0, 0, -0.12), (2.3, 12.5, 0.24), pointed(tatter(GAUZE, SHROUD_HL, end=True, lace=True), 0.72))]),
+]
 
-headdress = Part("headdress", pivot=(0, -6.6, 0.8), rotation=(-0.24, 0, 0), boxes=[
-    Box((-4.2, -6.4, -0.3), (8.4, 6.4, 0.6), kokoshnik),
-    Box((-2.9, -0.6, -3.2), (5.8, 1.2, 5.6), band),
+headdress = Part("headdress", pivot=(0, -8.0, 0.9), rotation=(-0.22, 0, 0), boxes=[
+    Box((-4.4, -7.0, -0.3), (9, 7, 0.6), kokoshnik),
+    Box((-3.1, -0.6, -3.2), (6.2, 1.2, 5.6), band),
 ], children=[
-    Part("headdress_cross", pivot=(0, -6.0, 0), boxes=[
-        Box((-0.22, -2.4, -0.22), (0.44, 2.4, 0.44), solid(SILVER, k=0.08)),
-        Box((-0.8, -1.8, -0.22), (1.6, 0.4, 0.44), solid(SILVER, k=0.08)),
+    # A small silver eight-pointed cross on top: upright, titulus, crossbar, footrest raised on the viewer's left.
+    Part("headdress_cross", pivot=(0, -6.6, 0), boxes=[
+        Box((-0.22, -3.0, -0.22), (0.44, 3.0, 0.44), solid(SILVER, k=0.08)),
+        Box((-0.45, -2.75, -0.22), (0.9, 0.3, 0.44), solid(SILVER, k=0.08)),
+        Box((-0.9, -2.2, -0.22), (1.8, 0.35, 0.44), solid(SILVER, k=0.08)),
+    ], children=[
+        Part("headdress_cross_foot", pivot=(0, -0.9, 0), rotation=(0, 0, 0.45), boxes=[Box((-0.6, -0.15, -0.22), (1.2, 0.3, 0.44), solid(SILVER, k=0.08))]),
     ]),
 ])
 
-head = Part("head", pivot=(0, -14.6, -0.6), rotation=(0.28, 0, 0), boxes=[
-    Box((-2, -6, -2.3), (4, 6, 4.4), wailer_face),
-    Box((-2.8, -6.8, -2.5), (0.75, 8.2, 5.4), gauze),
-    Box((2.05, -6.8, -2.5), (0.75, 8.2, 5.4), gauze),
-    Box((-2.8, -6.8, 2.1), (5.6, 8.6, 0.7), gauze),
-    Box((-2.8, -7.4, -2.6), (5.6, 0.7, 5.4), gauze),
-    Box((-2.9, -7.2, -3.0), (5.8, 1.9, 0.45), ragged(gauze, 0.35, 2)),
+head = Part("head", pivot=(0, -14.8, -0.6), rotation=(0.2, 0, 0), boxes=[
+    Box((-2.5, -7, -2.6), (5, 7, 4.8), wailer_face),
+    Box((-3.3, -8.0, -2.3), (0.7, 9.6, 5.6), gauze),
+    Box((2.6, -8.0, -2.3), (0.7, 9.6, 5.6), gauze),
+    Box((-3.3, -8.0, 2.6), (6.6, 10, 0.7), gauze),
+    Box((-3.3, -8.6, -2.4), (6.6, 0.7, 5.7), gauze),
+    Box((-3.0, -8.4, -3.1), (6, 2.2, 0.4), ragged(gauze, 0.4, 2)),
 ], children=[
-    Part("jaw", pivot=(0, -0.2, -0.3), boxes=[Box((-1.6, 0, -2.0), (3.2, 1.6, 3.4), jaw)]),
-    veil_front, headdress,
-])
+    Part("jaw", pivot=(0, -0.3, -0.4), boxes=[Box((-2.0, 0, -2.3), (4, 1.8, 3.6), jaw)]),
+    headdress,
+] + face_veils)
 
 parts = [
     Part("figure", pivot=(0, 24, 0), children=[
-        strips("hem", pivot=(0, -20.6, 0), top=(3.0, 2.4), bottom=(6.4, 6.0), length=19.2, count=15, base=SHROUD,
-               highlight=SHROUD_HL, segs=3, seed=4, width_k=1.05, holes=0.02),
+        strips("hem", pivot=(0, -20.6, 0), top=(2.8, 2.2), bottom=(5.6, 5.2), length=19.2, count=15, base=SHROUD,
+               highlight=SHROUD_HL, segs=3, seed=4, width_k=1.08, holes=0.02),
         Part("body", pivot=(0, -20, 0), boxes=[
-            Box((-2.6, -6, -1.8), (5.2, 6.6, 3.6), shroud),
-            Box((-3.2, -11.6, -2.1), (6.4, 5.8, 4.2), shroud),
-            Box((-4.3, -12.7, -1.7), (8.6, 1.9, 3.4), shroud),
-            Box((-0.8, -15.2, -1.0), (1.6, 3.4, 1.8), skin),
+            Box((-2.4, -6, -1.7), (4.8, 6.6, 3.4), shroud),
+            Box((-3.0, -11.6, -2.0), (6.0, 5.8, 4.0), shroud),
+            Box((-4.1, -12.7, -1.6), (8.2, 1.9, 3.2), shroud),
+            Box((-0.8, -15.4, -1.0), (1.6, 3.6, 1.8), skin),
         ], children=[
-            strips("drape", pivot=(0, -9.0, 0), top=(3.6, 2.8), bottom=(7.8, 7.2), length=18.5, count=12, base=SHROUD,
-                   highlight=SHROUD_HL, segs=3, seed=9, offset=0.5, width_k=0.95, holes=0.035),
-            strips("shawl", pivot=(0, -13.4, 0.1), top=(3.0, 2.3), bottom=(5.8, 4.8), length=8.0, count=12, base=GAUZE,
+            strips("drape", pivot=(0, -9.0, 0.3), top=(3.4, 2.6), bottom=(6.8, 6.6), length=17, count=12, base=(30, 28, 36),
+                   highlight=SHROUD_HL, arc=(1.1, 2 * math.pi - 1.1), segs=3, seed=9, width_k=0.95, holes=0.035),
+            strips("shawl", pivot=(0, -13.4, 0.1), top=(3.0, 2.3), bottom=(5.4, 4.6), length=7.0, count=12, base=GAUZE,
                    highlight=SHROUD_HL, segs=2, seed=13, width_k=1.0, holes=0.02),
-            strips("veil", pivot=(0, -21.2, 2.4), top=(2.6, 1.4), bottom=(8.5, 9.0), length=39, count=8, base=GAUZE,
+            strips("veil", pivot=(0, -22.0, 2.6), top=(2.8, 1.4), bottom=(8.5, 9.0), length=40, count=8, base=GAUZE,
                    highlight=SHROUD_HL, arc=(2.0, 2 * math.pi - 2.0), segs=4, seed=21, width_k=1.0, holes=0.01, lace=True),
             head,
-            arm("right_arm", -1, (-0.18, 0, 0.12), (-0.3, 0, 0), 0.35, 0.22, []),
-            arm("left_arm", 1, (-0.35, 0, -0.1), (-2.2, 0, 0.1), 0.9, 0.08, [candle]),
+            arm("right_arm", -1, R_ARM, R_FORE, 0.35, 0.22, []),
+            arm("left_arm", 1, L_ARM, L_FORE, 0.9, 0.08, [candle]),
         ]),
     ]),
 ]

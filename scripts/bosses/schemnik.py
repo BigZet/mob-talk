@@ -165,10 +165,9 @@ def brow_band(p, f, opts):
         p.put(f, u, H - 1, EMB_RED)
         p.put(f, u, 0, EMB_RED)
     cx = W // 2
-    rect(p, f, cx - 1, 1, cx, H - 2, EMB_WHITE)
-    rect(p, f, cx - 3, 2, cx + 2, 3, EMB_WHITE)
-    draw_text(p, f, cx - 9, 2, "ІС", EMB_RED)
-    draw_text(p, f, cx + 4, 2, "ХС", EMB_RED)
+    orthodox_cross(p, f, cx, H // 2, H - 4, EMB_WHITE, 2)
+    draw_text(p, f, 1, H - 7, "ІС", EMB_RED)
+    draw_text(p, f, W - 1 - text_width("ХС"), H - 7, "ХС", EMB_RED)
 
 
 def hood_cloth(p, f, opts):
@@ -190,10 +189,8 @@ def kukol_cape(p, f, opts):
     for u in range(W):
         p.put(f, u, H - 3, EMB_RED)
         p.put(f, u, H - 4, EMB_WHITE if u % 3 else EMB_RED)
-    if W >= 10 and f.box.size[0] > 3.0:
-        cx, top = W // 2, H // 3
-        rect(p, f, cx - 1, top, cx, top + 9, EMB_WHITE)
-        rect(p, f, cx - 3, top + 3, cx + 2, top + 4, EMB_WHITE)
+    if W >= 10 and f.side == "front" and (f.x // 7) % 2 == 0:
+        orthodox_cross(p, f, W // 2, H // 2 - 2, min(16, H - 12), EMB_WHITE, 1)
 
 
 def lappet(p, f, opts):
@@ -205,9 +202,8 @@ def lappet(p, f, opts):
     if f.side in ("front", "back"):
         braid(p, f, width=1)
         cx = W // 2
-        rect(p, f, cx - 1, 4, cx, 16, EMB_WHITE)
-        rect(p, f, cx - 3, 7, cx + 2, 8, EMB_WHITE)
-        draw_text(p, f, 2, 20, "ІС", EMB_RED)
+        orthodox_cross(p, f, cx, 12, 17, EMB_WHITE, 2)
+        draw_text(p, f, 2, 24, "ІС", EMB_RED)
 
 
 def pointed(style, start=0.7):
@@ -249,14 +245,15 @@ def void_face(p, f, opts):
             p.put(f, u, v, shade(c, p.noise(0.08)))
     if f.side != "front":
         return
-    ey = int(H * 0.44)
+    ey = int(H * 0.42)
     for ex in (int(W * 0.3), W - 1 - int(W * 0.3)):
+        # Each eye is a small candle flame: a faint ember glow, a pointed tip, a white-hot heart.
         for du in range(-2, 3):
-            for dv in range(-3, 4):
-                if du * du + dv * dv <= 6:
-                    p.put(f, ex + du, ey + dv, (60, 26, 6), (70, 30, 6))
-        for (du, dv, c) in ((0, -2, FLAME), (0, -1, CANDLE), (-1, 0, CANDLE), (0, 0, (255, 248, 210)), (1, 0, CANDLE),
-                            (0, 1, (255, 240, 190)), (-1, 1, FLAME), (1, 1, FLAME)):
+            for dv in range(-3, 3):
+                if du * du + dv * dv <= 5:
+                    p.put(f, ex + du, ey + dv, (70, 24, 4), (70, 24, 4))
+        for du, dv, c in ((0, -3, FLAME), (0, -2, CANDLE), (-1, -1, FLAME), (0, -1, CANDLE), (1, -1, FLAME),
+                          (-1, 0, CANDLE), (0, 0, (255, 252, 230)), (1, 0, CANDLE), (0, 1, (255, 240, 190))):
             p.put(f, ex + du, ey + dv, c, c)
 
 
@@ -290,7 +287,14 @@ def black_wax(p, f, opts):
                 p.put(f, u, v, c, c if r < 0.45 else None)
                 continue
             k = 1.25 if u % 5 == 1 else 1.0
-            p.put(f, u, v, shade(WAX_BLACK, k * p.noise(0.08)))
+            c = shade(WAX_BLACK, k * p.noise(0.08))
+            lit = 1 - v / max(1, f.h * 0.35)
+            if lit > 0 and f.box.size[1] > 3:
+                # The flame lights the rim of the wax from above.
+                c = mix(c, (150, 60, 20), lit * 0.8)
+                p.put(f, u, v, c, shade(c, lit))
+                continue
+            p.put(f, u, v, c)
 
 
 def flame_tongue(p, f, opts):
@@ -410,110 +414,138 @@ def flame(name, pivot, height=3.0, width=1.8):
     ])
 
 
+def euler_matrix(r):
+    """The rotation matrix of a ModelPart rotation (pitch, yaw, roll), applied Z·Y·X."""
+    a, b, g = r
+    ca, sa, cb, sb, cg, sg = math.cos(a), math.sin(a), math.cos(b), math.sin(b), math.cos(g), math.sin(g)
+    rx = [[1, 0, 0], [0, ca, -sa], [0, sa, ca]]
+    ry = [[cb, 0, sb], [0, 1, 0], [-sb, 0, cb]]
+    rz = [[cg, -sg, 0], [sg, cg, 0], [0, 0, 1]]
+    mul = lambda m, n: [[sum(m[i][k] * n[k][j] for k in range(3)) for j in range(3)] for i in range(3)]
+    return mul(mul(rz, ry), rx)
+
+
+def upright(*chain, tilt=(0.0, 0.0, 0.0)):
+    """The rotation that undoes a chain of parent rotations, so a held thing (a staff, a candle, a hanging rope) stands or
+    hangs straight in the body's frame; `tilt` is added on top."""
+    m = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+    for r in chain:
+        n = euler_matrix(r)
+        m = [[sum(m[i][k] * n[k][j] for k in range(3)) for j in range(3)] for i in range(3)]
+    inv = [[m[j][i] for j in range(3)] for i in range(3)]
+    inv = [[sum(inv[i][k] * euler_matrix(tilt)[k][j] for k in range(3)) for j in range(3)] for i in range(3)]
+    pitch = math.atan2(inv[2][1], inv[2][2])
+    yaw = math.asin(max(-1.0, min(1.0, -inv[2][0])))
+    roll = math.atan2(inv[1][0], inv[0][0])
+    return (pitch, yaw, roll)
+
+
 # ---- The monk. ----
 
 robe = drapery(ROBE, highlight=ROBE_HL)
 mantle = ragged(drapery(MANTLE, highlight=MANTLE_HL, hem=(48, 42, 50), hem_width=1), 0.7, 1)
 gold = gold_leaf(ornament=False)
 
+R_ARM, R_FORE = (0.05, 0, 0.16), (-0.5, 0, 0)
+L_ARM, L_FORE = (-0.05, 0, -0.42), (-0.8, 0, 0.1)
 
-def sleeve(prefix, drape_pitch):
-    """A wide monastic sleeve: a bell of folds round the forearm and a long fall of cloth hanging under it."""
+
+def sleeve(prefix, chain):
+    """A wide monastic sleeve: a short bell of folds round the forearm and a long fall of cloth hanging straight down
+    from under it."""
     return [
-        ring(prefix + "_sleeve", pivot=(0, -0.6, 0), top=(1.9, 1.9), bottom=(3.4, 3.4), height=7.6, panels=9,
-             style=ragged(robe, 0.5, 2), sway=0.04, fold=0.25, seed=3, length_var=0.5),
-        Part(prefix + "_drape", pivot=(0, 0.6, 1.6), rotation=(drape_pitch, 0, 0),
-             boxes=[Box((-2.2, 0, -0.25), (4.4, 9.5, 0.5), pointed(ragged(robe, 0.5, 4), 0.75))]),
+        ring(prefix + "_sleeve", pivot=(0, -0.6, 0), top=(1.9, 1.9), bottom=(2.7, 2.7), height=6.6, panels=9,
+             style=ragged(robe, 0.4, 2), sway=0.04, fold=0.25, seed=3, length_var=0.4),
+        Part(prefix + "_drape", pivot=(0, 0.4, 1.5), rotation=upright(*chain, tilt=(0.12, 0, 0)),
+             boxes=[Box((-2.6, 0, -0.25), (5.2, 11.5, 0.5), pointed(ragged(robe, 0.5, 4), 0.7))]),
     ]
 
 
-staff = Part("staff", pivot=(0, 9.6, -1.9), rotation=(0.45, 0, -0.14), boxes=[
-    Box((-0.55, -27, -0.55), (1.1, 40.2, 1.1), wood_grain),
+staff = Part("staff", pivot=(0, 9.4, -1.9), rotation=upright(R_ARM, R_FORE), boxes=[
+    Box((-0.55, -27, -0.55), (1.1, 40.6, 1.1), wood_grain),
     Box((-0.75, -27.6, -0.75), (1.5, 1.6, 1.5), gold),
     Box((-0.7, -14, -0.7), (1.4, 1.0, 1.4), gold),
     Box((-0.7, -1.2, -0.7), (1.4, 0.8, 1.4), gold),
-    Box((-0.7, 12.6, -0.7), (1.4, 0.8, 1.4), solid(BRONZE, k=0.06)),
+    Box((-0.7, 12.8, -0.7), (1.4, 0.8, 1.4), solid(BRONZE, k=0.06)),
 ], children=[
+    # The eight-pointed cross: upright, titulus, the long crossbar with trefoil ends, the footrest raised on the viewer's left.
     Part("staff_cross", pivot=(0, -27.6, 0), boxes=[
         Box((-1.3, -1.6, -1.3), (2.6, 1.6, 2.6), gold_leaf()),
-        Box((-0.45, -9.5, -0.45), (0.9, 8.2, 0.9), gold),
-        Box((-1.3, -8.6, -0.45), (2.6, 0.8, 0.9), gold),
-        Box((-3.4, -7.0, -0.45), (6.8, 1.0, 0.9), gold),
-        Box((-3.9, -7.15, -0.55), (1.0, 1.3, 1.1), gold),
-        Box((2.9, -7.15, -0.55), (1.0, 1.3, 1.1), gold),
-        Box((-0.7, -10.1, -0.55), (1.4, 0.9, 1.1), gold),
+        Box((-0.45, -10.2, -0.45), (0.9, 8.8, 0.9), gold),
+        Box((-1.4, -9.0, -0.45), (2.8, 0.8, 0.9), gold),
+        Box((-3.4, -7.2, -0.45), (6.8, 1.0, 0.9), gold),
+        Box((-3.9, -7.35, -0.55), (1.0, 1.3, 1.1), gold),
+        Box((2.9, -7.35, -0.55), (1.0, 1.3, 1.1), gold),
     ], children=[
-        Part("staff_footrest", pivot=(0, -4.2, 0), rotation=(0, 0, -0.38), boxes=[Box((-2.0, -0.4, -0.45), (4.0, 0.8, 0.9), gold)]),
+        Part("staff_footrest", pivot=(0, -4.0, 0), rotation=(0, 0, 0.4), boxes=[Box((-2.0, -0.4, -0.45), (4.0, 0.8, 0.9), gold)]),
     ]),
 ])
 
-candle = Part("candle", pivot=(0, 10.0, -1.1), rotation=(1.4, 0, 0), boxes=[
+candle = Part("candle", pivot=(0, 9.8, -1.2), rotation=upright(L_ARM, L_FORE), boxes=[
     Box((-1.4, -0.5, -1.4), (2.8, 0.5, 2.8), gold_leaf(ornament=False)),
-    Box((-0.7, -6.5, -0.7), (1.4, 6.0, 1.4), black_wax),
-    Box((-0.95, -6.1, -0.3), (0.35, 2.2, 0.6), black_wax),
-    Box((0.55, -5.8, -0.2), (0.35, 1.4, 0.5), black_wax),
-    Box((-0.1, -7.2, -0.1), (0.2, 0.8, 0.2), solid((20, 14, 10))),
-], children=[flame("candle_flame", (0, -7.0, 0), height=3.4, width=2.0)])
+    Box((-0.75, -7.5, -0.75), (1.5, 7.0, 1.5), black_wax),
+    Box((-1.0, -7.0, -0.3), (0.35, 2.2, 0.6), black_wax),
+    Box((0.6, -6.6, -0.2), (0.35, 1.4, 0.5), black_wax),
+    Box((-0.1, -8.2, -0.1), (0.2, 0.8, 0.2), solid((20, 14, 10))),
+], children=[flame("candle_flame", (0, -8.0, 0), height=3.8, width=2.2)])
 
-chotki = bead_chain("chotki", pivot=(0, 7.4, 0.7), rotation=(1.4, 0, 0), count=16, spacing=0.85, size=0.7)
+chotki = bead_chain("chotki", pivot=(0, 7.2, 0.8), rotation=upright(L_ARM, L_FORE), count=15, spacing=1.05, size=0.8)
 
 
-def arm(label, side, rotation, fore_pitch, drape_pitch, hand_curl, held):
+def arm(label, side, rotation, fore, hand_curl, held):
     hand = skeletal_hand(label + "_hand", side, curl=hand_curl)
     hand.pivot = (0, 8.0, 0)
-    fore = Part(label + "_forearm", pivot=(0, 7.4, 0), rotation=(fore_pitch, 0, 0),
-                boxes=[Box((-0.6, 0, -0.6), (1.2, 8.2, 1.2), bone())],
-                children=sleeve(label, drape_pitch) + [hand] + held)
-    return Part(label, pivot=(side * 5.4, -11.2, -1.0), rotation=rotation, boxes=[
+    forearm = Part(label + "_forearm", pivot=(0, 7.4, 0), rotation=fore,
+                   boxes=[Box((-0.6, 0, -0.6), (1.2, 8.2, 1.2), bone())],
+                   children=sleeve(label, (rotation, fore)) + [hand] + held)
+    return Part(label, pivot=(side * 5.2, -11.2, -1.0), rotation=rotation, boxes=[
         Box((-1.9, -1.4, -1.9), (3.8, 3.0, 3.8), robe),
         Box((-1.7, 0, -1.7), (3.4, 7.8, 3.4), robe),
-    ], children=[fore])
+    ], children=[forearm])
 
 
 def hood():
+    """The кукуль: a deep cone of folded wool round the head, open in front on a pit of darkness with two candle-flame eyes, rising to a soft point
+    that droops backward; the embroidered brow piece with the cross sits over the opening."""
     shell = hood_cloth
-    tip4 = Part("hood_tip4", pivot=(0, -2.1, 0.1), rotation=(-0.3, 0, 0), boxes=[Box((-0.55, -2.0, -0.55), (1.1, 2.2, 1.1), shell)])
-    tip3 = Part("hood_tip3", pivot=(0, -2.3, 0.1), rotation=(-0.22, 0, 0), boxes=[Box((-1.25, -2.3, -1.15), (2.5, 2.5, 2.3), shell)], children=[tip4])
-    tip2 = Part("hood_tip2", pivot=(0, -2.5, 0.2), rotation=(-0.2, 0, 0), boxes=[Box((-2.05, -2.5, -1.95), (4.1, 2.7, 3.9), shell)], children=[tip3])
-    tip = Part("hood_tip", pivot=(0, -8.2, 0.7), rotation=(-0.32, 0, 0), boxes=[Box((-2.9, -2.7, -2.7), (5.8, 2.9, 5.5), shell)], children=[tip2])
-    flaps = [Part("hood_flap_%s" % n, pivot=(s * 3.0, 1.0, -0.6), rotation=(0, 0, -s * 0.28),
-                  boxes=[Box((-0.5, 0, -2.8), (1.0, 4.6, 6.4), ragged(robe, 0.5, 6))]) for s, n in ((-1, "r"), (1, "l"))]
+    tip3 = Part("hood_tip3", pivot=(0, -2.0, 0.1), rotation=(-0.35, 0, 0), boxes=[Box((-0.5, -2.2, -0.5), (1.0, 2.4, 1.0), shell)])
+    tip2 = Part("hood_tip2", pivot=(0, -2.4, 0.15), rotation=(-0.3, 0, 0), boxes=[Box((-1.1, -2.4, -1.0), (2.2, 2.6, 2.0), shell)], children=[tip3])
+    tip = Part("hood_tip", pivot=(0, -9.4, 0.6), rotation=(-0.25, 0, 0), boxes=[Box((-1.8, -2.6, -1.7), (3.6, 2.9, 3.4), shell)], children=[tip2])
+    cowl = ring("cowl", pivot=(0, -9.6, 0.5), top=(1.7, 1.8), bottom=(4.6, 4.8), height=11.6, panels=12, style=ragged(shell, 0.4, 8),
+                arc=(0.95, 2 * math.pi - 0.95), sway=0.03, fold=0.3, seed=4, length_var=0.4, thickness=0.6, width_k=1.15)
+    brow = Part("hood_brow", pivot=(0, -8.6, -2.4), rotation=(0.32, 0, 0), boxes=[Box((-2.5, -2.6, -0.3), (5, 4, 0.6), brow_band)])
     return Part("head", pivot=(0, -12.6, -0.3), boxes=[
         Box((-2.3, -6.6, -2.4), (4.6, 6.8, 4.6), void_face, flat=True),
-        Box((-3.3, -7.6, -3.0), (1.0, 9.2, 6.6), shell),
-        Box((2.3, -7.6, -3.0), (1.0, 9.2, 6.6), shell),
-        Box((-3.3, -7.6, 2.4), (6.6, 9.6, 1.0), shell),
-        Box((-3.3, -8.5, -3.0), (6.6, 1.0, 6.6), shell),
-        Box((-3.5, -8.4, -3.9), (7, 2, 1.2), brow_band),
-    ], children=[tip] + flaps)
+        Box((-2.8, -8.4, -1.6), (5.6, 9.4, 4.4), solid((8, 6, 10), k=0.05), flat=True),
+    ], children=[cowl, tip, brow])
 
 
 lappets = []
 for s, n in ((-1, "r"), (1, "l")):
     low = Part("lappet_%s_low" % n, pivot=(0, 10, 0), rotation=(0.05, 0, 0),
                boxes=[Box((-1.4, 0, -0.2), (3, 10, 0.4), pointed(lappet, 0.55))])
-    lappets.append(Part("lappet_%s" % n, pivot=(s * 1.7, -12.0, 5.2), rotation=(0.16, 0, s * 0.03),
+    lappets.append(Part("lappet_%s" % n, pivot=(s * 1.7, -12.0, 5.0), rotation=(0.15, 0, s * 0.03),
                         boxes=[Box((-1.4, 0, -0.2), (3, 10, 0.4), lappet)], children=[low]))
 
 parts = [
     Part("figure", pivot=(0, 24, 0), children=[
-        skirt("ryasa", pivot=(0, -17.4, 0), top_radius=3.9, bottom_radius=7.4, height=16.9, panels=16,
+        skirt("ryasa", pivot=(0, -17.4, 0), top_radius=3.7, bottom_radius=6.6, height=16.9, panels=16,
               style=ragged(drapery(ROBE, highlight=ROBE_HL), 0.6, 2), sway=0.05),
-        Part("analav_low", pivot=(0, -17.2, -4.5), rotation=(-0.195, 0, 0), boxes=[Box((-3, 0, -0.2), (6, 16, 0.4), analav_low)]),
+        Part("analav_low", pivot=(0, -17.2, -4.25), rotation=(-0.175, 0, 0), boxes=[Box((-3, 0, -0.2), (6, 16, 0.4), analav_low)]),
         Part("body", pivot=(0, -17, 0), boxes=[
-            Box((-4.2, -12, -2.6), (8.4, 6.6, 5.2), robe),
-            Box((-3.7, -6, -2.4), (7.4, 6.6, 4.8), robe),
-            Box((-5.2, -12.6, -2.3), (10.4, 2.4, 4.6), robe),
-            Box((-4.0, -0.8, -2.7), (8, 1.4, 5.4), solid((44, 30, 24), k=0.08)),
+            Box((-4.0, -12, -2.5), (8.0, 6.6, 5.0), robe),
+            Box((-3.5, -6, -2.3), (7.0, 6.6, 4.6), robe),
+            Box((-5.0, -12.6, -2.2), (10.0, 2.4, 4.4), robe),
+            Box((-3.8, -0.8, -2.6), (7.6, 1.4, 5.2), solid((44, 30, 24), k=0.08)),
         ], children=[
-            Part("analav", pivot=(0, -11.4, -2.95), rotation=(-0.14, 0, 0), boxes=[Box((-3, 0, -0.2), (6, 9, 0.4), analav_top)]),
-            ring("mantle", pivot=(0, -11.8, 1.4), top=(5.8, 3.4), bottom=(10.0, 9.0), height=28.0, panels=17, style=mantle,
-                 arc=(1.25, 2 * math.pi - 1.25), sway=0.05, fold=0.55, seed=7, length_var=0.6),
-            ring("cape", pivot=(0, -12.6, 0.4), top=(3.4, 3.2), bottom=(6.6, 6.0), height=9.5, panels=14,
-                 style=ragged(kukol_cape, 0.4, 5), arc=(0.75, 2 * math.pi - 0.75), sway=0.04, fold=0.3, seed=2, length_var=0.4),
+            Part("analav", pivot=(0, -11.4, -2.85), rotation=(-0.13, 0, 0), boxes=[Box((-3, 0, -0.2), (6, 9, 0.4), analav_top)]),
+            ring("mantle", pivot=(0, -11.8, 1.4), top=(5.6, 3.2), bottom=(8.8, 7.6), height=28.0, panels=17, style=mantle,
+                 arc=(1.3, 2 * math.pi - 1.3), sway=0.05, fold=0.55, seed=7, length_var=0.6),
+            ring("cape", pivot=(0, -12.6, 0.4), top=(3.4, 3.2), bottom=(6.4, 5.8), height=9.5, panels=14,
+                 style=ragged(kukol_cape, 0.4, 5), arc=(0.8, 2 * math.pi - 0.8), sway=0.04, fold=0.3, seed=2, length_var=0.4),
             hood(),
-            arm("right_arm", -1, (0.05, 0, 0.14), -0.5, 0.42, 0.7, [staff]),
-            arm("left_arm", 1, (-0.25, 0, -0.12), -1.15, 1.1, 0.8, [candle, chotki]),
+            arm("right_arm", -1, R_ARM, R_FORE, 0.7, [staff]),
+            arm("left_arm", 1, L_ARM, L_FORE, 0.8, [candle, chotki]),
         ] + lappets),
     ]),
 ]
