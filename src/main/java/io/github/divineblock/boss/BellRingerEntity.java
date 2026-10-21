@@ -72,11 +72,11 @@ public final class BellRingerEntity extends SacredBoss {
     @Override protected void pursue(LivingEntity target) {
         double distance = squaredDistanceTo(target);
         if (age % 10 == 0) {
-            if (distance > 9) getNavigation().startMovingTo(target, 0.8);
+            if (distance > 16) getNavigation().startMovingTo(target, 0.8);
             else getNavigation().stop();
         }
         if (hopCooldown > 0) hopCooldown--;
-        if (hopCooldown == 0 && isOnGround() && distance > 16) {
+        if (hopCooldown == 0 && isOnGround() && distance > 25) {
             Vec3d to = target.getPos().subtract(getPos()).multiply(1, 0, 1);
             to = to.lengthSquared() < 1e-4 ? Vec3d.ZERO : to.normalize();
             setVelocity(to.x * 0.34, 0.45, to.z * 0.34);
@@ -97,7 +97,7 @@ public final class BellRingerEntity extends SacredBoss {
     private void land() {
         sound(SoundEvents.BLOCK_BELL_USE, 1.2f, 0.45f);
         BlockState ground = getWorld().getBlockState(getBlockPos().down());
-        if (!ground.isAir()) particles(new BlockStateParticleEffect(ParticleTypes.BLOCK, ground), getX(), getY() + 0.1, getZ(), 24, 1.1, 0.05, 1.1, 0.1);
+        if (!ground.isAir()) particles(new BlockStateParticleEffect(ParticleTypes.BLOCK, ground), getX(), getY() + 0.1, getZ(), 32, 1.6, 0.05, 1.6, 0.1);
     }
 
     // ---- Attacks. ----
@@ -163,18 +163,18 @@ public final class BellRingerEntity extends SacredBoss {
         cast("Язык колокола", warn, true, left -> {
             if (left == warn) sound(SoundEvents.BLOCK_BELL_RESONATE, 1.5f, 1.2f);
             if (left % 3 == 0) for (int i = -3; i <= 3; i++) {
-                Vec3d at = from.add(dir.rotateY(i * 0.3f).multiply(4.2));
+                Vec3d at = from.add(dir.rotateY(i * 0.3f).multiply(4.8));
                 particles(ParticleTypes.CRIT, at.x, at.y + 0.3, at.z, 1, 0.05, 0.05, 0.05, 0);
             }
         }, () -> {
             sound(SoundEvents.BLOCK_ANVIL_LAND, 1.4f, 0.6f);
             sound(SoundEvents.BLOCK_BELL_USE, 2f, 0.8f);
-            Vec3d front = from.add(dir.multiply(2.5));
+            Vec3d front = from.add(dir.multiply(3.0));
             particles(ParticleTypes.SWEEP_ATTACK, front.x, front.y + 0.8, front.z, 5, 1.2, 0.2, 1.2, 0);
-            for (LivingEntity victim : victims(from, 6)) {
+            for (LivingEntity victim : victims(from, 6.5)) {
                 Vec3d rel = victim.getPos().subtract(from).multiply(1, 0, 1);
                 double flat = rel.length();
-                if (flat <= 5 && (flat < 1.5 || rel.normalize().dotProduct(dir) > 0.25) && hurt(victim, 10f)) {
+                if (flat <= 5.5 && (flat < 2.0 || rel.normalize().dotProduct(dir) > 0.25) && hurt(victim, 10f)) {
                     push(victim, from, 1.4, 0.5);
                     deafen(victim, 20 * 5);
                 }
@@ -312,6 +312,6 @@ public final class BellRingerEntity extends SacredBoss {
 
     private Vec3d crownPos() {
         float yaw = bodyYaw * MathHelper.RADIANS_PER_DEGREE;
-        return new Vec3d(getX() - Math.sin(yaw) * 0.8, getY() + 2.9, getZ() + Math.cos(yaw) * 0.8);
+        return new Vec3d(getX() - Math.sin(yaw) * 0.8, getY() + getHeight() * 0.85, getZ() + Math.cos(yaw) * 0.8);
     }
 }

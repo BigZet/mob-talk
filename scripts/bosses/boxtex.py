@@ -187,9 +187,16 @@ class Box:
         """`flat` skips the volume shading (halos, painted icons, fire)."""
         self.origin, self.size, self.style, self.mirror, self.dilation, self.uv, self.flat = origin, size, style, mirror, dilation, uv, flat
 
+    def snap(self, density):
+        """Rounds each size to whole pixels (at least one), keeping the box centred."""
+        step = 1.0 / density
+        snapped = tuple(max(step, round(s / step) * step) for s in self.size)
+        self.origin = tuple(o - (n - s) / 2 for o, s, n in zip(self.origin, self.size, snapped))
+        self.size = snapped
+
     def net(self):
-        w, h, d = (max(0, int(math.ceil(s))) for s in self.size)
-        return 2 * d + 2 * w, d + h
+        w, h, d = self.size
+        return int(math.ceil(2 * d + 2 * w - 1e-6)), int(math.ceil(d + h - 1e-6))
 
 
 class Part:
@@ -219,9 +226,10 @@ def pack(root, size):
         shelf = max(shelf, h)
 
 
-def faces(b):
-    u, v = b.uv
-    w, h, d = (max(0, int(math.ceil(s))) for s in b.size)
+def faces(b, density=1):
+    """The six faces in pixels, where Minecraft samples them: the box's exact sizes from its uv corner."""
+    u, v = b.uv[0] * density, b.uv[1] * density
+    w, h, d = (int(round(s * density)) for s in b.size)
     return [
         Face("top", u + d, v, w, d, b), Face("bottom", u + d + w, v, w, d, b),
         Face("right", u, v + d, d, h, b), Face("front", u + d, v + d, w, h, b),
@@ -263,16 +271,20 @@ def build(name, texture, root_parts, size=128, seed=1, glow_needed=True, density
     `size * density` wide and every face gets `density` times more painted detail (Minecraft scales UVs by the declared
     size). `light` shades every face for volume: lit tops, darker undersides, soft occlusion at the edges."""
     root = Part("__root__", children=root_parts)
+    for part in root.walk():
+        for b in part.boxes:
+            b.snap(density)
     pack(root, size)
     painter = Painter(size * density, seed)
     for part in root.walk():
         for b in part.boxes:
-            for f in faces(b):
-                f = Face(f.side, f.x * density, f.y * density, f.w * density, f.h * density, f.box)
+            fs = faces(b, density)
+            for f in fs:
                 if f.w > 0 and f.h > 0:
                     b.style(painter, f, {"density": density})
                     if light and not b.flat:
                         relight(painter, f, density)
+            clear_plane_edges(painter, b, fs)
     os.makedirs(TEX_DIR, exist_ok=True)
     painter.img.save(os.path.join(TEX_DIR, texture + ".png"))
     glows = painter.glow.getbbox() is not None
@@ -302,6 +314,27 @@ def build(name, texture, root_parts, size=128, seed=1, glow_needed=True, density
     with open(os.path.join(JAVA_DIR, name + "ModelData.java"), "w", encoding="utf-8", newline="\n") as out:
         out.write(java)
     print("wrote", name + "ModelData.java,", texture + ".png", "(glow)" if glows else "")
+
+
+# ---- Thin planes. ----
+
+def clear_plane_edges(p, b, fs):
+    """A thin plane (a feather, a blade, a ribbon, a halo) whose broad face has cut-outs must not keep its narrow edge faces:
+    they would run straight past the cut-outs and draw a rectangle around the shape. Clear them, in the texture and the glow."""
+    w, h, d = b.size
+    thin = min(w, h, d)
+    if thin > 0.5:
+        return
+    broad = [f for f in fs if f.w > 0 and f.h > 0 and min(f.w, f.h) > 2 * max(1, int(round(thin * 4)))]
+    if not any(p.img.getpixel((f.x + u, f.y + v))[3] == 0 for f in broad for v in range(f.h) for u in range(f.w)):
+        return
+    for f in fs:
+        if f in broad or f.w <= 0 or f.h <= 0:
+            continue
+        for v in range(f.h):
+            for u in range(f.w):
+                p.img.putpixel((f.x + u, f.y + v), (0, 0, 0, 0))
+                p.glow.putpixel((f.x + u, f.y + v), (0, 0, 0, 0))
 
 
 # ---- Volume shading, applied to every face after its style. ----
@@ -496,10 +529,10 @@ def halo_disc(rim=GOLD_DARK, fill=GOLD_LIGHT, glow=True, rays=True):
     def paint(p, f, opts):
         W, H = f.w, f.h
         R = min(W, H) / 2
-        if R < 2:
+        if f.side not in ("front", "back"):
             for v in range(H):
                 for u in range(W):
-                    p.put(f, u, v, rim)
+                    p.put(f, u, v, None)
             return
         for v in range(H):
             for u in range(W):
@@ -537,6 +570,34 @@ def orthodox_cross(p, f, cx, cy, height, color, thickness=1, glow=None):
     for i in range(int(-half), int(half) + 1):
         y = foot_y + i * 0.45
         bar(cx + i, cx + i, y, y + t - 1)
+
+
+def burning_blade(core=(250, 236, 196), edge_glow=True):
+    """A real blade: polished pale gold-steel with a central fuller, its edges burning (glowing orange licks), and the top of
+    the face cut to a sharp point."""
+    def paint(p, f, opts):
+        W, H = f.w, f.h
+        point = min(H, int(W * 1.6))
+        for v in range(H):
+            for u in range(W):
+                half = W / 2
+                x = abs(u + 0.5 - half) / half if W > 1 else 0
+                if v < point and x > v / max(1, point):
+                    p.put(f, u, v, None)
+                    continue
+                if f.side not in ("front", "back"):
+                    p.put(f, u, v, shade(core, 0.8))
+                    continue
+                c = mix(core, (190, 170, 130), x * 0.6)
+                if x < 0.12:
+                    c = shade(core, 0.82)
+                if x > 0.72:
+                    lick = 0.5 + 0.5 * math.sin(v * 0.9 + u)
+                    c = mix(CANDLE, FLAME, lick)
+                    p.put(f, u, v, c, c if edge_glow else None)
+                    continue
+                p.put(f, u, v, c)
+    return paint
 
 
 def flame_blade(glow=True):
