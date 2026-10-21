@@ -55,7 +55,7 @@ public final class DivineBosses {
     private static final Map<BossKind, EntityType<? extends SacredBoss>> TYPES = new EnumMap<>(BossKind.class);
     public static final EntityType<SchemnikEntity> BLACK_SCHEMNIK = entity(BossKind.BLACK_SCHEMNIK, SchemnikEntity::new, 1.6f, 4.9f, false);
     public static final EntityType<BellRingerEntity> BELL_RINGER = entity(BossKind.BELL_RINGER, BellRingerEntity::new, 3.2f, 5.0f, false);
-    public static final EntityType<SeraphEntity> SERAPH = entity(BossKind.SERAPH, SeraphEntity::new, 1.6f, 2.6f, true);
+    public static final EntityType<SeraphEntity> SERAPH = entity(BossKind.SERAPH, SeraphEntity::new, 3.4f, 7.2f, true);
     public static final EntityType<FacelessIconEntity> FACELESS_ICON = entity(BossKind.FACELESS_ICON, FacelessIconEntity::new, 3.0f, 4.5f, false);
     public static final EntityType<WailerEntity> WAILER = entity(BossKind.WAILER, WailerEntity::new, 1.4f, 5.3f, false);
     public static final EntityType<ArchangelEntity> ARCHANGEL = entity(BossKind.ARCHANGEL, ArchangelEntity::new, 2.2f, 7.4f, true);
@@ -64,7 +64,7 @@ public final class DivineBosses {
     public static final EntityType<GoliathEntity> GOLIATH = entity(BossKind.GOLIATH, GoliathEntity::new, 2.4f, 6.3f, false);
     public static final EntityType<HorsemenEntity> HORSEMEN = entity(BossKind.HORSEMEN, HorsemenEntity::new, 1.6f, 3.2f, true);
     public static final EntityType<DestroyingAngelEntity> DESTROYING_ANGEL = entity(BossKind.DESTROYING_ANGEL, DestroyingAngelEntity::new, 1.6f, 5.6f, true);
-    public static final EntityType<CherubEntity> CHERUB = entity(BossKind.CHERUB, CherubEntity::new, 1.4f, 2.8f, true);
+    public static final EntityType<CherubEntity> CHERUB = entity(BossKind.CHERUB, CherubEntity::new, 2.0f, 5.8f, true);
     public static final EntityType<BeastEntity> BEAST = entity(BossKind.BEAST, BeastEntity::new, 4.4f, 4.6f, true);
     public static final EntityType<NimrodEntity> NIMROD = entity(BossKind.NIMROD, NimrodEntity::new, 1.6f, 4.5f, false);
 

@@ -60,7 +60,7 @@ public final class CherubEntity extends SacredBoss {
     @Override public BossKind kind() { return BossKind.CHERUB; }
     @Override protected String theme() { return "punishment_39"; }
     @Override protected float meleeDamage() { return 8f; }
-    @Override protected double meleeReach() { return 3.6; }
+    @Override protected double meleeReach() { return 4.5; }
 
     /** The centre of the guarded place (home, or where he stands if he has none). */
     public Vec3d guarded() { return home == null ? getPos() : Vec3d.ofBottomCenter(home); }
@@ -174,7 +174,7 @@ public final class CherubEntity extends SacredBoss {
     }
 
     private void spinningSword(LivingEntity target, double tilt) {
-        Vec3d start = getPos().add(0, 1.4, 0);
+        Vec3d start = getPos().add(0, getHeight() * 0.45, 0);
         Vec3d aim = target.getPos().add(0, 1, 0).subtract(start).normalize();
         Vec3d dir = new Vec3d(aim.x * Math.cos(tilt) - aim.z * Math.sin(tilt), aim.y, aim.x * Math.sin(tilt) + aim.z * Math.cos(tilt));
         Vec3d[] pos = { start };
@@ -182,7 +182,7 @@ public final class CherubEntity extends SacredBoss {
         hazards.repeat(1, 48, step -> {
             if (step < 22) pos[0] = pos[0].add(dir.multiply(0.6));
             else {
-                Vec3d back = getPos().add(0, 1.4, 0).subtract(pos[0]);
+                Vec3d back = getPos().add(0, getHeight() * 0.45, 0).subtract(pos[0]);
                 if (back.length() < 1) return;
                 pos[0] = pos[0].add(back.normalize().multiply(Math.min(0.7, back.length())));
             }
@@ -337,9 +337,11 @@ public final class CherubEntity extends SacredBoss {
         }
     }
 
-    /** Where the flaming sword's tip is: above his right hand. */
+    /** Where the flaming sword's tip is: raised before him, a little to his right, about level with the top of his head. */
     private Vec3d swordTip() {
         float yaw = bodyYaw * MathHelper.RADIANS_PER_DEGREE;
-        return new Vec3d(getX() - Math.cos(yaw) * 0.7 - Math.sin(yaw) * 0.6, getY() + 2.6, getZ() - Math.sin(yaw) * 0.7 + Math.cos(yaw) * 0.6);
+        double right = getHeight() * 0.2, ahead = getHeight() * 0.6;
+        return new Vec3d(getX() - Math.cos(yaw) * right - Math.sin(yaw) * ahead, getY() + getHeight() * 1.05,
+                getZ() - Math.sin(yaw) * right + Math.cos(yaw) * ahead);
     }
 }
