@@ -169,11 +169,11 @@ final class SelfTestLooks {
         if (mother == null) { test.fail("no woman left for the belly"); vanilla(); return; }
         ChildView.forceBelly(Map.of(mother, 1f));
         test.command("tp " + mother + " " + (fx + 0.5) + " " + fy + " " + (fz + 4.5) + " 0 0"); // Лицом на юг.
-        // Куда она смотрит, у неподвижного жителя видно не сразу: снимки с трёх сторон, в двух из них профиль.
-        test.command("tp " + name() + " " + (fx + 3.5) + " " + fy + " " + (fz + 4.5) + " 90 10");
-        test.await("pause: the camera east of her", 2, () -> false, () -> shot("mobtalk-looks-belly-east.png", () -> {
-            test.command("tp " + name() + " " + (fx - 2.5) + " " + fy + " " + (fz + 4.5) + " -90 10");
-            test.await("pause: the camera west of her", 2, () -> false, () -> shot("mobtalk-looks-belly-west.png", () -> {
+        // Вполоборота спереди справа и слева (в профиль сбоку неподвижная жительница на снимках оказывалась спиной), и прямо спереди.
+        test.command("tp " + name() + " " + (fx + 2.5) + " " + (fy + 0.5) + " " + (fz + 6.5) + " 135 20");
+        test.await("pause: the camera front-right of her", 2, () -> false, () -> shot("mobtalk-looks-belly-right.png", () -> {
+            test.command("tp " + name() + " " + (fx - 1.5) + " " + (fy + 0.5) + " " + (fz + 6.5) + " -135 20");
+            test.await("pause: the camera front-left of her", 2, () -> false, () -> shot("mobtalk-looks-belly-left.png", () -> {
                 test.command("tp " + name() + " " + (fx + 0.5) + " " + fy + " " + (fz + 7.5) + " 180 10");
                 test.await("pause: the camera south of her", 2, () -> false, () -> shot("mobtalk-looks-belly-south.png", this::vanilla));
             }));
