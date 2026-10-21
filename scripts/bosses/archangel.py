@@ -20,13 +20,15 @@ def breastplate(p, f, opts):
         return
     d = opts.get("density", 1)
     cx, cy = f.w // 2, f.h // 2
-    r = min(f.w, f.h) * 0.36
+    r = min(f.w, f.h) * 0.48
     for v in range(f.h):
         for u in range(f.w):
-            if r - d * 0.6 < math.hypot(u - cx, v - cy) < r + d * 0.4:
+            dist = math.hypot(u - cx, v - cy)
+            if dist < r - d * 0.7:
+                p.put(f, u, v, shade(CRIMSON_DARK, p.noise(0.05)))
+            elif dist < r + d * 0.3:
                 p.put(f, u, v, GOLD_DARK)
-    draw_cross(p, f, cx, int(cy - r * 0.8), int(r * 1.6), CINNABAR)
-    draw_cross(p, f, cx + 1, int(cy - r * 0.8), int(r * 1.6), CINNABAR)
+    orthodox_cross(p, f, cx, cy, int(r * 1.75), GOLD_LIGHT, thickness=max(1, d // 2))
 
 
 def leather_strip(p, f, opts):
@@ -42,9 +44,68 @@ def leather_strip(p, f, opts):
             p.put(f, u, v, c)
 
 
+def one_eye_face(p, f, opts):
+    """Ochre flesh softly modelled, with no nose or mouth: the single eye is its own plane in front."""
+    if f.side != "front":
+        col = HAIR if f.side in ("back", "top") else SKIN
+        for v in range(f.h):
+            for u in range(f.w):
+                p.put(f, u, v, shade(col, p.noise(0.05)))
+        return
+    for v in range(f.h):
+        for u in range(f.w):
+            dx = (u - f.w / 2) / (f.w / 2)
+            c = shade(SKIN, 1.08 - 0.3 * dx * dx)
+            if v < f.h * 0.16:
+                c = shade(HAIR, p.noise(0.08))
+            p.put(f, u, v, shade(c, p.noise(0.03)))
+
+
+def great_eye(p, f, opts):
+    """One great almond eye: dark lids and lashes, a white, a burning gold iris with a black pupil and a highlight."""
+    W, H = f.w, f.h
+    cx, cy = W / 2, H / 2
+    for v in range(H):
+        for u in range(W):
+            if f.side != "front":
+                p.put(f, u, v, SKIN)
+                continue
+            nx, ny = (u + 0.5 - cx) / (W / 2), (v + 0.5 - cy) / (H / 2)
+            lid = 1 - nx * nx
+            if abs(ny) > lid:
+                p.put(f, u, v, None if abs(ny) > lid + 0.25 else shade(SKIN, 0.8))
+                continue
+            if abs(ny) > lid - 0.18:
+                p.put(f, u, v, (40, 24, 18))
+                continue
+            r = math.hypot(nx * W / H, ny)
+            if r < 0.28:
+                c = (10, 6, 4)
+            elif r < 0.78:
+                c = mix(GOLD_LIGHT, FLAME, (r - 0.28) / 0.5)
+            else:
+                c = (236, 230, 214)
+            glow = c if r < 0.78 and r >= 0.28 else None
+            if 0.1 < nx * W / H + 0.3 < 0.22 and -0.45 < ny < -0.3:
+                c, glow = (255, 255, 240), (255, 255, 240)
+            p.put(f, u, v, c, glow)
+
+
+def toroki(p, f, opts):
+    """A thin ribbon of light gold with a darker edge; it narrows toward its fluttering end."""
+    for v in range(f.h):
+        for u in range(f.w):
+            t = v / max(1, f.h - 1)
+            if f.w > 2 and abs(u + 0.5 - f.w / 2) > (f.w / 2) * (1 - 0.5 * t):
+                p.put(f, u, v, None)
+                continue
+            edge = u in (0, f.w - 1)
+            p.put(f, u, v, GOLD_DARK if edge else mix(GOLD_LIGHT, (255, 250, 230), 0.4 * (1 - t)))
+
+
 wings = []
 for side, label in ((-1, "right"), (1, "left")):
-    inner = wing(label + "_wing", pivot=(side * 2.4, -13, 3.2), rotation=(0.18, -side * 0.35, -side * 0.85), span=19, rows=3, feathers=10,
+    inner = wing(label + "_wing", pivot=(side * 3.4, -11.5, 3.6), rotation=(0.18, -side * 0.35, -side * 0.85), span=19, rows=3, feathers=10,
                  base=WING, tip=OCHRE, side=side)
     tip = wing(label + "_wing_tip", pivot=(side * 19, 0, 0), rotation=(0, 0, side * 0.6), span=17, rows=3, feathers=10,
                base=WING, tip=GOLD, side=side)
@@ -74,6 +135,8 @@ sword = Part("sword", pivot=(0, 13.2, -0.4), rotation=(0.7, 0, -0.3), boxes=[
     Box((-0.9, 2.8, -0.9), (1.8, 1.4, 1.8), gold_leaf(ornament=False)),
     Box((-1.5, -29, -0.2), (3, 26.6, 0.4), flame_blade(), flat=True),
     Box((-0.5, -27, -0.45), (1, 24, 0.9), flame_blade(), flat=True),
+], children=[
+    Part("sword_tip", pivot=(0, -29, 0), rotation=(0, 0, 0.785), boxes=[Box((-0.9, -0.9, -0.15), (1.8, 1.8, 0.3), solid((255, 246, 214)), flat=True)]),
 ])
 spear = Part("spear", pivot=(0, 13.2, 0), rotation=(0.05, 0, 0.3), boxes=[
     Box((-0.45, -30, -0.45), (0.9, 46, 0.9), solid(WOOD, k=0.08)),
@@ -115,11 +178,19 @@ parts = [
             Box((-5.2, -14.8, -1.8), (2.2, 1.6, 2.2), gold_leaf(ornament=False)),
         ], children=[
             Part("head", pivot=(0, -16.8, 0), boxes=[
-                Box((-2.5, -6.2, -2.9), (5, 6.2, 5.6), icon_face(SKIN, HAIR, eye=(52, 36, 26), stern=True)),
+                Box((-2.5, -6.2, -2.9), (5, 6.2, 5.6), one_eye_face),
             ], children=[
-                curls("curls", pivot=(0, -4.4, 0.4), count=11, radius=2.9, length=4.2, color=HAIR, seed=7),
+                Part("eye", pivot=(0, -3.0, -2.9), boxes=[Box((-2.3, -1.6, -0.45), (4.6, 3.2, 0.45), great_eye, flat=True)]),
+                Part("hair", pivot=(0, 0, 0), boxes=[
+                    Box((-2.8, -6.6, -2.4), (5.6, 1.4, 5.4), hair(HAIR)),
+                    Box((-2.8, -5.4, 1.2), (5.6, 5.6, 1.9), hair(HAIR)),
+                ]),
+                Part("lock_r", pivot=(-2.4, -3.2, 1.6), rotation=(0.18, 0, 0.06), boxes=[Box((-0.7, 0, -0.9), (1.4, 5.6, 1.8), hair(HAIR))]),
+                Part("lock_l", pivot=(2.4, -3.2, 1.6), rotation=(0.18, 0, -0.06), boxes=[Box((-0.7, 0, -0.9), (1.4, 5.6, 1.8), hair(HAIR))]),
+                Part("toroki_r", pivot=(-2.7, -4.6, 2.2), rotation=(0.9, 0.25, 0.1), boxes=[Box((-0.35, 0, -0.05), (0.7, 7, 0.1), toroki, flat=True)]),
+                Part("toroki_l", pivot=(2.7, -4.6, 2.2), rotation=(0.9, -0.25, -0.1), boxes=[Box((-0.35, 0, -0.05), (0.7, 7, 0.1), toroki, flat=True)]),
                 Part("diadem", pivot=(0, -5.6, -2.95), boxes=[Box((-2.6, -0.6, 0), (5.2, 1.0, 0.4), gold_leaf(ornament=False))]),
-                halo("halo", pivot=(0, -3.2, 3.6), radius=6.2),
+                halo("halo", pivot=(0, -4.4, 3.4), radius=7.5),
             ]),
             Part("cloak", pivot=(0, -15, 3.0), children=cloak_panels),
             Part("chest_r", pivot=(-4.4, -11, -0.2), rotation=(0, 0.35, 0), boxes=[Box((-0.8, -3.8, -3), (1.6, 7.6, 6), scale_mail((190, 146, 62), GOLD_DARK))]),

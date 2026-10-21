@@ -45,8 +45,8 @@ public final class SkyTint {
     }
 
     /** For the self-test: how red the sky is now, 0..1, and how deep. */
-    static float amount() { return amount; }
-    static int depth() { return depth; }
+    public static float amount() { return amount; }
+    public static int depth() { return depth; }
 
     /** The vanilla colour with the wrath laid over it ({@code share} of the full tint: the fog takes a little less). */
     public static Vec3d tint(Vec3d colour, float tickDelta, double share) {

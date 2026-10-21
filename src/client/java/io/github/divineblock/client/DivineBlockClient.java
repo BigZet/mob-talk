@@ -17,6 +17,7 @@ public final class DivineBlockClient implements ClientModInitializer {
         AltarBlock.openPrayer = pos -> MinecraftClient.getInstance().setScreen(new PrayerScreen(pos));
         SelfTest.register();
         BossSelfTest.register();
+        FxTest.register();
         ChurchSelfTest.register();
         settingsKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.divineblock.settings", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_F9, "key.categories.divineblock"));
         prayKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.divineblock.pray", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_R, "key.categories.divineblock"));
@@ -27,6 +28,7 @@ public final class DivineBlockClient implements ClientModInitializer {
         Flipped.register();
         TornadoRenderer.register();
         io.github.divineblock.client.boss.BossClient.register();
+        io.github.divineblock.client.fx.FxEngine.register();
         // A button in the pause menu, as Mob Talk has, one row above its "Mob Talk" button in the same corner.
         net.fabricmc.fabric.api.client.screen.v1.ScreenEvents.AFTER_INIT.register((minecraft, screen, width, height) -> {
             if (screen instanceof net.minecraft.client.gui.screen.GameMenuScreen)
