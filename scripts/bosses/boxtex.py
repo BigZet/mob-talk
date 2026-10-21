@@ -518,12 +518,38 @@ def halo_disc(rim=GOLD_DARK, fill=GOLD_LIGHT, glow=True, rays=True):
     return paint
 
 
+def orthodox_cross(p, f, cx, cy, height, color, thickness=1, glow=None):
+    """A clear eight-pointed Orthodox cross centred at (cx, cy): the upright, a short titulus above, the long crossbar, and the
+    slanted footrest below (its left end, as the viewer sees it, raised)."""
+    t = max(1, thickness)
+    top, bottom = int(cy - height / 2), int(cy + height / 2)
+    def bar(x0, x1, y0, y1):
+        for x in range(int(x0), int(x1) + 1):
+            for y in range(int(y0), int(y1) + 1):
+                p.put(f, x, y, color, glow)
+    bar(cx - t // 2, cx - t // 2 + t - 1, top, bottom)
+    title_y = top + height * 0.12
+    bar(cx - height * 0.16, cx + height * 0.16, title_y, title_y + t - 1)
+    arm_y = top + height * 0.3
+    bar(cx - height * 0.34, cx + height * 0.34, arm_y, arm_y + t - 1)
+    foot_y = top + height * 0.74
+    half = height * 0.22
+    for i in range(int(-half), int(half) + 1):
+        y = foot_y + i * 0.45
+        bar(cx + i, cx + i, y, y + t - 1)
+
+
 def flame_blade(glow=True):
-    """A blade of fire: a white-hot core, then gold, orange and red licks toward the edges, with a transparent flicker."""
+    """A blade of fire: a white-hot core, then gold, orange and red licks toward the edges, with a transparent flicker. The
+    top of the face (the blade's end) is cut to a sharp point."""
     def paint(p, f, opts):
         W, H = f.w, f.h
+        point = min(H, int(W * 2.2))
         for v in range(H):
             for u in range(W):
+                if v < point and abs(u + 0.5 - W / 2) > (W / 2) * (v / max(1, point)):
+                    p.put(f, u, v, None)
+                    continue
                 across = abs(u + 0.5 - W / 2) / (W / 2) if W > 1 else 0
                 lick = 0.25 * math.sin(v * 0.7 + u) + 0.15 * math.sin(v * 1.9)
                 t = min(1.0, across + lick * across)
