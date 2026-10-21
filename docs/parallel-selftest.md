@@ -29,3 +29,9 @@ powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 [-Mode true|cr
 > создаёт копию `t-db-<ветка>-...` с вашим JAR, ждёт слот (не больше 3 игр сразу), не закрывает Prism и не
 > трогает `divine-block-test`, после игры удаляет копию. Отчёт: `%LOCALAPPDATA%\DivineBlock\selftest\<копия>\report.txt`.
 > Свои флаги — через `-Mode`/`-Jvm`, а не правкой instance.cfg. Чужие `javaw` и Whisper не останавливать.
+
+## Prism вне Codex
+
+Prism из оболочки Codex видит подменённый `%LOCALAPPDATA%` и не находит `DivineBlock\openrouter-key.dpapi`
+(голос и вердикты бога падают с «Нет ключа OpenRouter»). Скрипт поднимает Prism через `explorer.exe`, а уже
+открытый перезапускает `scripts\restart-prism-clean.ps1` (ждёт, пока доиграют все игры, держа все слоты).
