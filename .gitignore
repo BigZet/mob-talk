@@ -1,0 +1,13 @@
+.gradle/
+build/
+run/
+artifacts/
+.venv/
+__pycache__/
+.idea/
+*.dpapi
+*token.txt
+*key.txt
+.env
+config/
+run-selftest/

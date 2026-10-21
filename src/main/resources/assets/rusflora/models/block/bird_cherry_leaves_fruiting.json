@@ -1,0 +1,6 @@
+{
+  "parent": "rusflora:block/shrub_leaves",
+  "textures": {
+    "all": "rusflora:block/bird_cherry_leaves_fruiting"
+  }
+}

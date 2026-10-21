@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cross",
+  "textures": {
+    "cross": "rusflora:block/white_lilac_sapling"
+  }
+}

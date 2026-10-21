@@ -1,0 +1,6 @@
+{
+  "parent": "rusflora:block/shrub_leaves",
+  "textures": {
+    "all": "rusflora:block/hazel_leaves_flowering"
+  }
+}

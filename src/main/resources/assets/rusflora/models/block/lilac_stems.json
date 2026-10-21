@@ -1,0 +1,6 @@
+{
+  "parent": "rusflora:block/shrub_stems",
+  "textures": {
+    "bark": "rusflora:block/lilac_stems"
+  }
+}

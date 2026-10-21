@@ -1,0 +1,14 @@
+# Референсы кустов
+
+Фото не входят в репозиторий и JAR: текстуры нарисованы с нуля в `tools/generate_assets.py`, фото служили только образцом
+формы и цвета. Описания — Большая российская энциклопедия (bigenc.ru), Plantarium, БСЭ.
+
+| Куст | Что взято в модель | Фото (Wikimedia Commons) |
+|---|---|---|
+| Лещина (*Corylus avellana*) | многоствольный куст 3–5 м, шире кверху; округлые двоякозубчатые листья; жёлтые серёжки весной; орехи по 2–5 в бахромчатой обёртке | [куст](https://commons.wikimedia.org/wiki/File:Corylus_avellana_shrub.jpg), [лист](https://commons.wikimedia.org/wiki/File:Corylus_avellana_young_leaves.JPG), [серёжки](https://commons.wikimedia.org/wiki/File:Corylus_avellana_m1.JPG), [орехи](https://commons.wikimedia.org/wiki/File:Hazel_(50739517422).jpg) |
+| Шиповник майский (*Rosa majalis*) | низкий колючий куст до 2 м на опушках, вырубках, берегах; мелкие перистые листья; розовые пятилепестковые цветы; красные гладкие плоды | [куст в цвету](https://commons.wikimedia.org/wiki/File:Rosa_majalis_plant_(01).jpg), [листья](https://commons.wikimedia.org/wiki/File:Rosa_majalis_kz04.jpg), [плоды](https://commons.wikimedia.org/wiki/File:Dog_rose_hips.jpg) |
+| Черёмуха (*Prunus padus*) | высокий куст или деревце у воды и в лесах; тёмная кора; белые поникающие кисти; блестящие чёрные ягоды | [кисти](https://commons.wikimedia.org/wiki/File:Bird_Cherry_(Prunus_padus)_blossom_-_geograph.org.uk_-_2932954.jpg), [цветущая крона](https://commons.wikimedia.org/wiki/File:Hagberry_blossom_(Prunus_padus).jpg) |
+| Бузина красная (*Sambucus racemosa*) | ветвистый куст 1,5–3 м в подлеске; перистые пильчатые листья; кремовые метёлки; плотные гроздья красных ягод (сырые ядовиты) | [ягоды](https://commons.wikimedia.org/wiki/File:20220621_Sambucus_racemosa_01.jpg), [гроздь](https://commons.wikimedia.org/wiki/File:Sambucus_racemosa_1567.JPG) |
+| Можжевельник обыкновенный (*Juniperus communis*) | тёмный колючий куст в подлеске боров, на опушках и сухих холмах; узкий конус или стелющаяся форма; сизые шишкоягоды | [стелющийся](https://commons.wikimedia.org/wiki/File:Juniperus_sibirica_Burgsd.jpg) |
+| Ива пепельная (*Salix cinerea*) | серо-зелёный округлый куст до 5 м у воды и в болотах; узкие листья с войлочной изнанкой; серебристые серёжки | [куст](https://commons.wikimedia.org/wiki/File:Salix_cinerea_Habitus_in_spring_Germany.jpg), [серёжка](https://commons.wikimedia.org/wiki/File:Pussy_Willow_Stem_2000px.jpg) |
+| Сирень (*Syringa vulgaris*) | широкий куст у деревенских домов, старые одичавшие заросли; плотные лиловые или белые кисти | [у дома](https://commons.wikimedia.org/wiki/File:02018_0257_Syringa_vulgaris_in_Sanok.jpg), [заросль](https://commons.wikimedia.org/wiki/File:Syringa_vulgaris_kz01.jpg), [белая](https://commons.wikimedia.org/wiki/File:Syringa_vulgaris_White.jpg) |

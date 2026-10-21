@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "rusflora",
+  "version": "${version}",
+  "name": "Русская флора",
+  "description": "Кусты средней полосы России в генерации мира: лещина, шиповник, черёмуха, бузина, можжевельник, ивняк и сирень.",
+  "authors": ["BigZet"],
+  "license": "GPL-3.0-only",
+  "icon": "assets/rusflora/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["io.github.rusflora.RusFlora"],
+    "client": ["io.github.rusflora.client.RusFloraClient"]
+  },
+  "depends": { "fabricloader": ">=0.19.5", "minecraft": "1.21.1", "java": ">=21", "fabric-api": "*" }
+}

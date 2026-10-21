@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "stage=0": {
+      "model": "rusflora:block/willow_leaves"
+    },
+    "stage=1": {
+      "model": "rusflora:block/willow_leaves_flowering"
+    },
+    "stage=2": {
+      "model": "rusflora:block/willow_leaves"
+    }
+  }
+}

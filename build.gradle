@@ -1,0 +1,35 @@
+plugins { id 'fabric-loom' version "${loom_version}" }
+version = project.mod_version
+group = 'io.github.rusflora'
+base { archivesName = 'rusflora' }
+loom {
+    splitEnvironmentSourceSets()
+    runs {
+        selftest {
+            client()
+            name 'Self-test'
+            vmArg '-Drusflora.selftest=true'
+            programArgs '--width', '1600', '--height', '900'
+            runDir 'run-selftest'
+        }
+    }
+    mods {
+        rusflora {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+}
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    mappings "net.fabricmc:yarn:${yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+}
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') { expand version: project.version }
+}
+tasks.withType(JavaCompile).configureEach { options.release = 21; options.encoding = 'UTF-8' }
+java { withSourcesJar(); sourceCompatibility = JavaVersion.VERSION_21; targetCompatibility = JavaVersion.VERSION_21 }
+jar { from('LICENSE') { rename { 'LICENSE_rusflora' } } }
