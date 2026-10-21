@@ -163,7 +163,6 @@ final class Wrath {
             world.spawnParticles(ParticleTypes.FLAME, top.x, top.y, top.z, 30, 0.5, 0.5, 0.5, 0.05);
             Miracles.sound(world, rest, SoundEvents.ENTITY_MAGMA_CUBE_JUMP, 2f, 0.6f);
         });
->>>>>>> d4e29b2 (Жестокие кары гнева: продолжения, волны и последствия)
     }
 
     /** A bowl of the given radius: earth removed, the floor scorched to magma and blackstone, an ore core, fire at the rim. */
