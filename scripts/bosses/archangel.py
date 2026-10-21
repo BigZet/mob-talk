@@ -133,10 +133,7 @@ sword = Part("sword", pivot=(0, 13.2, -0.4), rotation=(0.7, 0, -0.3), boxes=[
     Box((-0.55, -1.4, -0.55), (1.1, 4.2, 1.1), solid((70, 40, 24))),
     Box((-3.2, -2.4, -0.7), (6.4, 1.1, 1.4), gold_leaf(ornament=False)),
     Box((-0.9, 2.8, -0.9), (1.8, 1.4, 1.8), gold_leaf(ornament=False)),
-    Box((-1.5, -29, -0.2), (3, 26.6, 0.4), flame_blade(), flat=True),
-    Box((-0.5, -27, -0.45), (1, 24, 0.9), flame_blade(), flat=True),
-], children=[
-    Part("sword_tip", pivot=(0, -29, 0), rotation=(0, 0, 0.785), boxes=[Box((-0.9, -0.9, -0.15), (1.8, 1.8, 0.3), solid((255, 246, 214)), flat=True)]),
+    Box((-1.5, -29, -0.25), (3, 26.75, 0.5), burning_blade(), flat=True),
 ])
 spear = Part("spear", pivot=(0, 13.2, 0), rotation=(0.05, 0, 0.3), boxes=[
     Box((-0.45, -30, -0.45), (0.9, 46, 0.9), solid(WOOD, k=0.08)),
@@ -144,6 +141,8 @@ spear = Part("spear", pivot=(0, 13.2, 0), rotation=(0.05, 0, 0.3), boxes=[
     Box((-2.4, -33.5, -0.5), (4.8, 1, 1), gold_leaf(ornament=False)),
     Box((-1.6, -35.6, -0.5), (3.2, 0.8, 1), gold_leaf(ornament=False)),
     Box((-1, -36.4, -0.6), (2, 1.2, 1.2), solid(CANDLE), flat=True),
+], children=[
+    Part("spear_footrest", pivot=(0, -31.6, 0), rotation=(0, 0, 0.35), boxes=[Box((-1.5, -0.5, -0.5), (3.0, 1.0, 1.0), gold_leaf(ornament=False))]),
 ])
 trumpet = Part("trumpet", pivot=(4.6, -3, -0.5), rotation=(0.2, 0, 0.5), boxes=[
     Box((-0.4, -5, -0.4), (0.8, 5, 0.8), gold_leaf(ornament=False)),
@@ -178,19 +177,24 @@ parts = [
             Box((-5.2, -14.8, -1.8), (2.2, 1.6, 2.2), gold_leaf(ornament=False)),
         ], children=[
             Part("head", pivot=(0, -16.8, 0), boxes=[
-                Box((-2.5, -6.2, -2.9), (5, 6.2, 5.6), one_eye_face),
+                Box((-2.25, -6.0, -2.75), (4.5, 5.75, 5.25), one_eye_face),
+                Box((-1.75, -1.0, -2.6), (3.5, 1.0, 4.0), solid(SKIN, k=0.04)),
             ], children=[
-                Part("eye", pivot=(0, -3.0, -2.9), boxes=[Box((-2.3, -1.6, -0.45), (4.6, 3.2, 0.45), great_eye, flat=True)]),
+                Part("eye", pivot=(0, -3.0, -2.8), boxes=[Box((-2.0, -1.4, -0.25), (4.0, 2.75, 0.25), great_eye, flat=True)]),
+                Part("brow", pivot=(0, -4.6, -2.95), boxes=[Box((-2.25, -0.4, -0.25), (4.5, 0.75, 0.5), solid(shade(SKIN, 0.85), k=0.04))]),
                 Part("hair", pivot=(0, 0, 0), boxes=[
-                    Box((-2.8, -6.6, -2.4), (5.6, 1.4, 5.4), hair(HAIR)),
-                    Box((-2.8, -5.4, 1.2), (5.6, 5.6, 1.9), hair(HAIR)),
+                    Box((-2.75, -6.75, -2.75), (5.5, 1.25, 5.75), hair(HAIR)),
+                    Box((-2.5, -6.0, -3.0), (5.0, 0.75, 0.5), hair(HAIR)),
+                    Box((-2.75, -5.75, 1.0), (5.5, 6.0, 1.75), hair(HAIR)),
+                    Box((-3.0, -6.0, -2.5), (0.75, 5.25, 4.25), hair(HAIR)),
+                    Box((2.25, -6.0, -2.5), (0.75, 5.25, 4.25), hair(HAIR)),
                 ]),
                 Part("lock_r", pivot=(-2.4, -3.2, 1.6), rotation=(0.18, 0, 0.06), boxes=[Box((-0.7, 0, -0.9), (1.4, 5.6, 1.8), hair(HAIR))]),
                 Part("lock_l", pivot=(2.4, -3.2, 1.6), rotation=(0.18, 0, -0.06), boxes=[Box((-0.7, 0, -0.9), (1.4, 5.6, 1.8), hair(HAIR))]),
                 Part("toroki_r", pivot=(-2.7, -4.6, 2.2), rotation=(0.9, 0.25, 0.1), boxes=[Box((-0.35, 0, -0.05), (0.7, 7, 0.1), toroki, flat=True)]),
                 Part("toroki_l", pivot=(2.7, -4.6, 2.2), rotation=(0.9, -0.25, -0.1), boxes=[Box((-0.35, 0, -0.05), (0.7, 7, 0.1), toroki, flat=True)]),
                 Part("diadem", pivot=(0, -5.6, -2.95), boxes=[Box((-2.6, -0.6, 0), (5.2, 1.0, 0.4), gold_leaf(ornament=False))]),
-                halo("halo", pivot=(0, -4.4, 3.4), radius=7.5),
+                halo("halo", pivot=(0, -3.5, 3.75), radius=7.0),
             ]),
             Part("cloak", pivot=(0, -15, 3.0), children=cloak_panels),
             Part("chest_r", pivot=(-4.4, -11, -0.2), rotation=(0, 0.35, 0), boxes=[Box((-0.8, -3.8, -3), (1.6, 7.6, 6), scale_mail((190, 146, 62), GOLD_DARK))]),
