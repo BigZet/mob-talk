@@ -1,76 +1,54 @@
-﻿# Runs the cemetery test unattended on the Prism instance divine-block-test, the same way run-selftest.ps1 runs the
-# self-test: builds, installs the JAR, arms -Ddivineblock.cemeterytest=true, launches, waits for the game to quit, restores
-# instance.cfg and deletes the test world. Report and screenshots (cemetery-*.png): %LOCALAPPDATA%\DivineBlock\cemeterytest.
-# Refuses to run while javaw.exe is up. Usage: powershell -ExecutionPolicy Bypass -File scripts\run-cemetery-test.ps1
+﻿# Runs the cemetery test unattended on a throwaway copy of the Prism instance divine-block-test (ParallelPrism.psm1):
+# builds, copies the instance with -Ddivineblock.cemeterytest=true, installs the fresh JAR into the copy, launches it through
+# the running PrismLauncher (never closes Prism, never touches other games or the base instance), waits for that copy's own
+# game to quit and deletes the copy. Report and screenshots (cemetery-*.png): %LOCALAPPDATA%\DivineBlock\cemeterytest.
+# Usage: powershell -ExecutionPolicy Bypass -File scripts\run-cemetery-test.ps1
 $ErrorActionPreference = 'Stop'
 $scratch = Join-Path $env:LOCALAPPDATA "DivineBlock\cemeterytest"
 New-Item -ItemType Directory -Force $scratch | Out-Null
 $repo = Split-Path -Parent $PSScriptRoot
-$name = 'divine-block-test'
-$inst = "$env:APPDATA\PrismLauncher\instances\$name"
-$mc = "$inst\minecraft"
-$prism = 'C:\Users\bigze\AppData\Local\Programs\PrismLauncher\prismlauncher.exe'
-$world = 'divineblock-cemeterytest'
+$module = @("$repo\scripts\ParallelPrism.psm1", "$repo\..\parallel-selftest\scripts\ParallelPrism.psm1",
+    "$env:USERPROFILE\Documents\GH\divine-block\scripts\ParallelPrism.psm1",
+    "$env:USERPROFILE\Documents\GH\divine-block\.claude\worktrees\parallel-selftest\scripts\ParallelPrism.psm1") |
+    Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $module) { throw 'ParallelPrism.psm1 not found' }
+Import-Module $module -Force
 $log = "$scratch\cemeterytest-run.log"
 function Say($t) { $line = "$(Get-Date -Format HH:mm:ss) $t"; $line | Tee-Object -FilePath $log -Append }
 "" | Out-File $log
 
-if (Get-CimInstance Win32_Process -Filter "name='javaw.exe'") { throw 'Minecraft is running' }
-if (-not (Test-Path "$mc\mods")) { throw "Prism instance missing: $inst" }
-
-Say 'build + install'
+Say 'build'
 Set-Location $repo
 .\gradlew.bat build -x test -q 2>&1 | Where-Object { $_ -match 'error|FAIL' }
 if ($LASTEXITCODE -ne 0) { throw 'build failed' }
 $jar = Get-ChildItem "$repo\build\libs\divineblock-*.jar" | Where-Object { $_.Name -notmatch '-sources' } | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-Get-ChildItem "$mc\mods\divineblock-*.jar" | Remove-Item -Force
-Copy-Item $jar.FullName "$mc\mods\"
-Get-ChildItem "$mc\mods\*.jar" | ForEach-Object { Say "mod: $($_.Name)" }
-Remove-Item "$scratch\report.txt", "$scratch\cemetery-*.png" -Force -ErrorAction SilentlyContinue
-if (Test-Path "$mc\saves\$world") { Remove-Item -Recurse -Force "$mc\saves\$world" }
 
-Say 'stop Prism and arm instance.cfg'
-Get-Process prismlauncher -ErrorAction SilentlyContinue | Stop-Process -Force
-Start-Sleep -Seconds 3
-$cfg = Get-Content "$inst\instance.cfg" -Raw -Encoding UTF8
-# Another thread's run leaves its flag in instance.cfg while it is in progress: never arm over it.
-if ($cfg -match '(?m)^JvmArgs=.*-D(divineblock|mobtalk)\.') { Start-Process $prism; throw 'instance.cfg is armed by another test run' }
-Copy-Item "$inst\instance.cfg" "$scratch\instance.cfg.bak" -Force
-# Disarming strips only the lines this script adds, so a config that Prism or someone else changed meanwhile survives.
-function Disarm {
-  $now = Get-Content "$inst\instance.cfg" -Raw -Encoding UTF8
-  # Prism saves the value quoted (JvmArgs="-D..."), so both spellings go.
-  $now = $now -replace '(?m)^OverrideJavaArgs=true\r?\n(?="?JvmArgs="?-Ddivineblock\.cemeterytest=true)', '' -replace '(?m)^JvmArgs="?-Ddivineblock\.cemeterytest=true"?\r?\n', ''
-  [System.IO.File]::WriteAllText("$inst\instance.cfg", $now)
-}
+$slot = Enter-GameSlot -Owner 'divine-block cemetery test' -Say { param($t) Say $t }
+$name = New-TestInstanceName 'cem' 'cemetery'
 try {
-  $cfg = $cfg -replace '(?m)^OverrideJavaArgs=.*\r?\n', '' -replace '(?m)^JvmArgs=.*\r?\n', ''
-  $cfg = $cfg -replace '\[General\]\r?\n', "[General]`nOverrideJavaArgs=true`nJvmArgs=-Ddivineblock.cemeterytest=true`n"
-  [System.IO.File]::WriteAllText("$inst\instance.cfg", $cfg)
-  if (Get-CimInstance Win32_Process -Filter "name='javaw.exe'") { throw 'Minecraft started meanwhile' }
+  Say "copy divine-block-test -> $name"
+  $dst = New-TestInstance -Base 'divine-block-test' -Name $name -JvmArgs '-Ddivineblock.cemeterytest=true'
+  Get-ChildItem "$dst\minecraft\mods\divineblock-*.jar" | Remove-Item -Force
+  Copy-Item $jar.FullName "$dst\minecraft\mods\"
+  Get-ChildItem "$dst\minecraft\mods\*.jar" | ForEach-Object { Say "mod: $($_.Name)" }
+  Remove-Item "$scratch\report.txt", "$scratch\cemetery-*.png" -Force -ErrorAction SilentlyContinue
 
   Say 'launch'
-  Start-Process $prism -ArgumentList '--launch', $name
-  $game = $null
-  for ($i = 0; $i -lt 30; $i++) { Start-Sleep -Seconds 5; $game = Get-CimInstance Win32_Process -Filter "name='javaw.exe'" | Where-Object { $_.CommandLine -match 'divineblock\.cemeterytest' } | Select-Object -First 1; if ($game) { break } }
-  if (-not $game) { Say 'javaw did not start' } else {
-    Say 'javaw running; waiting for the cemetery test to quit the game'
-    for ($i = 0; $i -lt 90; $i++) {
+  $game = Start-TestInstance $name
+  if (-not $game) { Say 'the game of the copy did not start' } else {
+    Say "game pid $($game.ProcessId) running; waiting for the cemetery test to quit it"
+    for ($i = 0; $i -lt 120; $i++) {
       Start-Sleep -Seconds 10
-      if (-not (Get-Process -Id $game.ProcessId -ErrorAction SilentlyContinue)) { Say 'javaw exited'; break }
-      if ($i % 3 -eq 2) { $last = Get-Content "$mc\logs\latest.log" -Encoding UTF8 -ErrorAction SilentlyContinue | Select-String 'тест кладбища' | Select-Object -Last 1; Say "… $last" }
+      if (-not (Get-Process -Id $game.ProcessId -ErrorAction SilentlyContinue)) { Say 'game exited'; break }
+      if ($i % 3 -eq 2) { $last = Get-Content "$dst\minecraft\logs\latest.log" -Encoding UTF8 -ErrorAction SilentlyContinue | Select-String 'тест кладбища' | Select-Object -Last 1; Say "… $last" }
     }
-    if (Get-Process -Id $game.ProcessId -ErrorAction SilentlyContinue) { Say 'timeout: killing the test game'; Stop-Process -Id $game.ProcessId -Force }
+    if (Get-Process -Id $game.ProcessId -ErrorAction SilentlyContinue) { Say 'timeout: stopping the copy''s game'; Stop-Process -Id $game.ProcessId -Force; Start-Sleep -Seconds 3 }
   }
-  Start-Sleep -Seconds 3
-  Copy-Item "$mc\logs\latest.log" "$scratch\cemeterytest-latest.log" -Force
-  Get-ChildItem "$mc\screenshots\cemetery-*.png" -ErrorAction SilentlyContinue | Move-Item -Destination $scratch -Force
+  Copy-Item "$dst\minecraft\logs\latest.log" "$scratch\cemeterytest-latest.log" -Force -ErrorAction SilentlyContinue
+  Get-ChildItem "$dst\minecraft\screenshots\cemetery-*.png" -ErrorAction SilentlyContinue | Copy-Item -Destination $scratch -Force
 } finally {
-  Say 'disarm instance.cfg, delete the test world'
-  Get-Process prismlauncher -ErrorAction SilentlyContinue | Stop-Process -Force
-  Start-Sleep -Seconds 3
-  Disarm
-  Remove-Item -Recurse -Force "$mc\saves\$world" -ErrorAction SilentlyContinue
-  Start-Process $prism
+  Start-Sleep -Seconds 2
+  try { Remove-TestInstance $name; Say "deleted $name" } catch { Say "could not delete ${name}: $_" }
+  Exit-GameSlot $slot
   Say 'done'
 }

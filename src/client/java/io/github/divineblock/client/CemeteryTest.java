@@ -42,7 +42,7 @@ import net.minecraft.world.level.LevelInfo;
 
 /** The unattended cemetery test, on with -Ddivineblock.cemeterytest=true: makes a fresh world, lines up every cemetery block on
  * a flattened lawn and photographs it from the front, at an angle and from behind, lays a raw cemetery template on the lawn,
- * generates the cemetery structure on natural ground, checks the recipes, the templates and that a tall cross breaks whole,
+ * generates the whole cemetery on natural ground and in taiga, checks the recipes, the templates and that a tall cross breaks whole,
  * then quits. Report: %LOCALAPPDATA%\DivineBlock\cemeterytest\report.txt; screenshots in the game's screenshots folder. */
 public final class CemeteryTest {
     private record Step(int delay, Consumer<MinecraftClient> action) { }
@@ -51,8 +51,7 @@ public final class CemeteryTest {
     private static final Deque<Step> steps = new ArrayDeque<>();
     private static int phase, ticks, wait, failures;
     private static volatile String screenshot;
-    private static volatile BlockPos base, field, wild;
-    private static volatile int[] wildBounds;
+    private static volatile BlockPos base, field;
 
     private CemeteryTest() { }
 
@@ -168,55 +167,86 @@ public final class CemeteryTest {
         camera(10.5, 40, 40, 180, 60, "template-top", true);
         camera(-4, 6, 30, -140, 18, "template-ground", true);
         camera(13, 4, -4, 25, 15, "template-entrance", true);
+        scene("wild", world -> base.add(260, 0, 40));
+        // A cemetery in taiga: spruces, pines and birches instead of oaks.
+        scene("taiga", world -> {
+            var found = world.locateBiome(biome -> biome.isIn(net.minecraft.registry.tag.BiomeTags.IS_TAIGA), base, 4000, 32, 64);
+            if (found == null) { fail("тайга не нашлась в 4000 блоках"); return null; }
+            log("  тайга: " + found.getFirst().toShortString() + " " + found.getSecond().getKey().map(k -> k.getValue().toString()).orElse("?"));
+            return found.getFirst();
+        });
+        on(40, client -> { });
+    }
+
+    /** Generates the cemetery on natural ground at the given spot (found on the server thread), counts its plots and trees
+     * and photographs it from above, from a corner and along the path at eye level. */
+    private static void scene(String tag, java.util.function.Function<ServerWorld, BlockPos> where) {
+        BlockPos[] spot = new BlockPos[1];
+        int[][] box = new int[1][];
         on(10, client -> serverDo(client, server -> {
-            BlockPos at = base.add(260, 0, 40);
-            run(server, String.format("tp @a %d %d %d 180 30", at.getX(), base.getY() + 30, at.getZ()));
+            spot[0] = where.apply(server.getOverworld());
+            if (spot[0] != null) run(server, String.format("tp @a %d %d %d 180 30", spot[0].getX(), base.getY() + 40, spot[0].getZ()));
         }));
-        on(160, client -> serverDo(client, server -> {
+        on(200, client -> serverDo(client, server -> {
+            if (spot[0] == null) return;
             ServerWorld world = server.getOverworld();
-            BlockPos at = base.add(260, 0, 40);
+            BlockPos at = spot[0];
+            int top = world.getTopY(Heightmap.Type.WORLD_SURFACE, at.getX(), at.getZ());
             // Structures generate before grass and flowers do; clear them so the heightmap the cemetery follows is the ground.
-            for (int dx = -48; dx < 48; dx += 24) for (int dz = -16; dz < 80; dz += 24)
+            for (int dx = -72; dx < 72; dx += 24) for (int dz = -72; dz < 72; dz += 24)
                 for (String plant : new String[] { "minecraft:short_grass", "minecraft:tall_grass", "minecraft:fern", "minecraft:large_fern",
                         "#minecraft:small_flowers", "#minecraft:tall_flowers", "minecraft:sweet_berry_bush", "minecraft:snow" })
-                    run(server, String.format("fill %d %d %d %d %d %d minecraft:air replace %s", at.getX() + dx, base.getY() - 12, at.getZ() + dz,
-                            at.getX() + dx + 23, base.getY() + 30, at.getZ() + dz + 23, plant));
+                    run(server, String.format("fill %d %d %d %d %d %d minecraft:air replace %s", at.getX() + dx, top - 14, at.getZ() + dz,
+                            at.getX() + dx + 23, top + 26, at.getZ() + dz + 23, plant));
             int y = world.getTopY(Heightmap.Type.WORLD_SURFACE, at.getX(), at.getZ());
-            wild = new BlockPos(at.getX(), y, at.getZ());
             ServerPlayerEntity player = server.getPlayerManager().getPlayerList().get(0);
             player.teleport(world, at.getX() + 0.5, y + 30, at.getZ() + 0.5, 180, 30);
             server.getCommandManager().executeWithPrefix(player.getCommandSource().withLevel(4), "divineblock cemetery");
-            wildBounds = bounds(world, wild, 72);
-            if (check(wildBounds != null, "структура кладбища сгенерирована на природном рельефе"))
-                log(String.format("  границы: x %d..%d, y %d..%d, z %d..%d", wildBounds[0], wildBounds[3], wildBounds[1], wildBounds[4], wildBounds[2], wildBounds[5]));
-            if (wildBounds != null) {
-                int gates = 0, trees = 0;
-                BlockPos.Mutable p = new BlockPos.Mutable();
-                for (int x = wildBounds[0]; x <= wildBounds[3]; x++) for (int z = wildBounds[2]; z <= wildBounds[5]; z++)
-                    for (int yy = wildBounds[1] - 2; yy <= wildBounds[4] + 2; yy++) {
-                        BlockState state = world.getBlockState(p.set(x, yy, z));
-                        if (state.getBlock() instanceof net.minecraft.block.FenceGateBlock) gates++;
-                        if (state.isIn(net.minecraft.registry.tag.BlockTags.LOGS) && world.getBlockState(p.down()).isIn(net.minecraft.registry.tag.BlockTags.DIRT)) {
-                            trees++;
-                            log("  дерево: " + Registries.BLOCK.getId(state.getBlock()) + " в биоме " + world.getBiome(p).getKey().map(k -> k.getValue().toString()).orElse("?"));
-                        }
+            int[] b = bounds(world, new BlockPos(at.getX(), y, at.getZ()), 72);
+            box[0] = b;
+            if (!check(b != null, "кладбище (" + tag + ") сгенерировано на природном рельефе")) return;
+            log(String.format("  границы: x %d..%d, y %d..%d, z %d..%d (%d × %d)", b[0], b[3], b[1], b[4], b[2], b[5], b[3] - b[0] + 1, b[5] - b[2] + 1));
+            int gates = 0, trees = 0;
+            BlockPos.Mutable p = new BlockPos.Mutable();
+            for (int x = b[0] - 4; x <= b[3] + 4; x++) for (int z = b[2] - 4; z <= b[5] + 4; z++)
+                for (int yy = b[1] - 3; yy <= b[4] + 3; yy++) {
+                    BlockState state = world.getBlockState(p.set(x, yy, z));
+                    if (state.getBlock() instanceof net.minecraft.block.FenceGateBlock) gates++;
+                    if (state.isIn(net.minecraft.registry.tag.BlockTags.LOGS) && world.getBlockState(p.down()).isIn(net.minecraft.registry.tag.BlockTags.DIRT)) {
+                        trees++;
+                        log("  дерево: " + Registries.BLOCK.getId(state.getBlock()) + " в биоме " + world.getBiome(p).getKey().map(k -> k.getValue().toString()).orElse("?"));
                     }
-                check(gates >= 30, "оградок с калитками на кладбище: " + gates);
-                log("  деревьев: " + trees);
-            }
+                }
+            check(gates >= 30, "оградок с калитками на кладбище (" + tag + "): " + gates);
+            log("  деревьев: " + trees);
         }));
         on(20, client -> {
-            if (wildBounds == null) return;
-            int[] b = wildBounds;
+            int[] b = box[0];
+            if (b == null) return;
             double cx = (b[0] + b[3]) / 2.0, cz = (b[2] + b[5]) / 2.0;
-            tp(client, cx, b[4] + 44, b[5] + 26, 180, 52);
+            boolean alongX = b[3] - b[0] > b[5] - b[2];
+            if (alongX) tp(client, cx, b[4] + 40, b[5] + 30, 180, 55); else tp(client, b[3] + 30, b[4] + 40, cz, 90, 55);
         });
-        on(140, client -> screenshot = "wild-overview");
-        on(5, client -> { if (wildBounds != null) tp(client, wildBounds[3] + 8, wildBounds[4] + 6, wildBounds[5] + 8, 135, 22); });
-        on(100, client -> screenshot = "wild-corner");
-        on(5, client -> { if (wildBounds != null) tp(client, (wildBounds[0] + wildBounds[3]) / 2.0 + 0.5, wildBounds[1] + 3, (wildBounds[2] + wildBounds[5]) / 2.0, 30, 12); });
-        on(100, client -> screenshot = "wild-inside");
-        on(40, client -> { });
+        on(160, client -> screenshot = tag + "-overview");
+        on(5, client -> { int[] b = box[0]; if (b != null) tp(client, b[3] + 7, b[4] + 7, b[5] + 7, 135, 24); });
+        on(110, client -> screenshot = tag + "-corner");
+        // Along the path at eye level: the path runs down the middle of the long side.
+        on(5, client -> {
+            int[] b = box[0];
+            if (b == null) return;
+            boolean alongX = b[3] - b[0] > b[5] - b[2];
+            double mid = alongX ? (b[2] + b[5]) / 2.0 + 0.5 : (b[0] + b[3]) / 2.0 + 0.5;
+            if (alongX) tp(client, b[0] + 1.5, b[1] + 2.6, mid, -90, 8); else tp(client, mid, b[1] + 2.6, b[2] + 1.5, 0, 8);
+        });
+        on(110, client -> screenshot = tag + "-path");
+        on(5, client -> {
+            int[] b = box[0];
+            if (b == null) return;
+            boolean alongX = b[3] - b[0] > b[5] - b[2];
+            double mid = alongX ? (b[2] + b[5]) / 2.0 + 0.5 : (b[0] + b[3]) / 2.0 + 0.5;
+            if (alongX) tp(client, b[3] - 1.5, b[1] + 2.6, mid, 90, 8); else tp(client, mid, b[1] + 2.6, b[5] - 1.5, 180, 8);
+        });
+        on(110, client -> screenshot = tag + "-path-back");
     }
 
     private static void checks(MinecraftServer server) {
