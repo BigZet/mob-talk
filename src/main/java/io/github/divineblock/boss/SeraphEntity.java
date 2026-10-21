@@ -32,7 +32,9 @@ import net.minecraft.world.World;
 public final class SeraphEntity extends SacredBoss {
     private static final TrackedData<Boolean> DESCENDING = DataTracker.registerData(SeraphEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     /** How high it hovers over the ground, in blocks. */
-    static final double HOVER = 5;
+    static final double HOVER = 3.5;
+    /** Where the face of light is, as a share of the height (feathers fly from it, fire gathers round it). */
+    static final double FACE = 0.57;
     static final int DESCENT_TICKS = 70;
 
     private int descendLeft;
@@ -57,7 +59,7 @@ public final class SeraphEntity extends SacredBoss {
     @Override public BossKind kind() { return BossKind.SERAPH; }
     @Override protected String theme() { return "punishment_59"; }
     @Override protected float meleeDamage() { return 7f; }
-    @Override protected double meleeReach() { return 3.0; }
+    @Override protected double meleeReach() { return 4.0; }
     @Override public boolean handleFallDamage(float fallDistance, float damageMultiplier, DamageSource source) { return false; }
     @Override public boolean hasNoGravity() { return true; }
 
@@ -72,7 +74,7 @@ public final class SeraphEntity extends SacredBoss {
             sound(SoundEvents.ENTITY_ENDER_DRAGON_FLAP, 2f, 1.2f);
         }
         hold();
-        if (age % 3 == 0) particles(ParticleTypes.FLAME, getX(), getY() + 1.1, getZ(), 2, 0.6, 0.6, 0.6, 0.01);
+        if (age % 3 == 0) particles(ParticleTypes.FLAME, getX(), getY() + getHeight() * FACE, getZ(), 3, 1.2, 1.4, 1.2, 0.01);
         if (age % 12 == 0) particles(ParticleTypes.SMALL_FLAME, getX(), getY() + 0.2, getZ(), 3, 0.3, 0.1, 0.3, 0.02);
     }
 
@@ -93,7 +95,7 @@ public final class SeraphEntity extends SacredBoss {
         if (descendLeft > 0 && landing != null) goal = landing;
         else {
             orbit += phase >= 3 ? 0.03 : 0.02;
-            goal = new Vec3d(target.getX() + Math.cos(orbit) * 6, getY(), target.getZ() + Math.sin(orbit) * 6);
+            goal = new Vec3d(target.getX() + Math.cos(orbit) * 7, getY(), target.getZ() + Math.sin(orbit) * 7);
         }
         Vec3d flat = new Vec3d(goal.x - getX(), 0, goal.z - getZ());
         Vec3d v = getVelocity();
@@ -146,10 +148,10 @@ public final class SeraphEntity extends SacredBoss {
     private void feathers(LivingEntity target) {
         int count = phase >= 2 ? 8 : 5;
         cast("Огненные перья", 20, false, left -> {
-            particles(ParticleTypes.FLAME, getX(), getY() + 1.2, getZ(), 6, 1.4, 0.8, 1.4, 0.02);
+            particles(ParticleTypes.FLAME, getX(), getY() + getHeight() * FACE, getZ(), 8, 2.4, 1.2, 2.4, 0.02);
             if (left == 20) sound(SoundEvents.ENTITY_BLAZE_AMBIENT, 2f, 0.7f);
         }, () -> {
-            Vec3d from = new Vec3d(getX(), getY() + 1.2, getZ());
+            Vec3d from = new Vec3d(getX(), getY() + getHeight() * FACE, getZ());
             Vec3d aim = target.getEyePos().subtract(from).normalize();
             for (int i = 0; i < count; i++) {
                 double spread = (i - (count - 1) / 2.0) * 0.14;
@@ -183,7 +185,7 @@ public final class SeraphEntity extends SacredBoss {
     private void descend(LivingEntity target) {
         Vec3d toward = new Vec3d(getX() - target.getX(), 0, getZ() - target.getZ());
         toward = toward.lengthSquared() < 1e-4 ? new Vec3d(1, 0, 0) : toward.normalize();
-        double x = target.getX() + toward.x * 3, z = target.getZ() + toward.z * 3;
+        double x = target.getX() + toward.x * 4, z = target.getZ() + toward.z * 4;
         Vec3d spot = new Vec3d(x, groundBelow(x, target.getY() + 2, z, 8), z);
         cast("Нисхождение", 24, true, left -> {
             particles(ParticleTypes.FLAME, spot.x, spot.y + 0.1, spot.z, 5, 0.8, 0.05, 0.8, 0);
@@ -196,7 +198,7 @@ public final class SeraphEntity extends SacredBoss {
             sound(SoundEvents.ENTITY_ENDER_DRAGON_FLAP, 2f, 0.6f);
             hazards.later(18, () -> {
                 Vec3d at = new Vec3d(getX(), groundBelow(getX(), getY() + 1, getZ(), 8), getZ());
-                particles(ParticleTypes.FLAME, at.x, at.y + 0.3, at.z, 40, 1.5, 0.2, 1.5, 0.05);
+                particles(ParticleTypes.FLAME, at.x, at.y + 0.3, at.z, 50, 2.2, 0.2, 2.2, 0.05);
                 hazards.ring(at, 0.3, 5, 1.0, ParticleTypes.SMALL_FLAME, victim -> { if (hurt(victim, 4f)) victim.setOnFireFor(2); });
             });
             for (ServerPlayerEntity player : playersNear(32))
@@ -213,7 +215,7 @@ public final class SeraphEntity extends SacredBoss {
                 particles(ParticleTypes.FLAME, target.getX() + Math.cos(angle) * r, target.getY() + 6 + random.nextDouble() * 3,
                         target.getZ() + Math.sin(angle) * r, 1, 0, -0.2, 0, 0.02);
             }
-            particles(ParticleTypes.FLAME, getX(), getY() + 1.2, getZ(), 8, 1.5, 1, 1.5, 0.05);
+            particles(ParticleTypes.FLAME, getX(), getY() + getHeight() * FACE, getZ(), 10, 2.5, 1.6, 2.5, 0.05);
             if (left % 20 == 0) sound(SoundEvents.BLOCK_BELL_RESONATE, 2f, 1.4f);
         }, () -> flameFromHeaven(target));
     }
@@ -261,7 +263,7 @@ public final class SeraphEntity extends SacredBoss {
 
     @Override protected void onPhase(int phase) {
         sound(SoundEvents.ENTITY_BLAZE_AMBIENT, 3f, 0.5f);
-        particles(ParticleTypes.FLAME, getX(), getY() + 1.2, getZ(), 80, 2, 1.5, 2, 0.1);
+        particles(ParticleTypes.FLAME, getX(), getY() + getHeight() * FACE, getZ(), 100, 3, 2.5, 3, 0.1);
         if (phase == 3) addStatusEffect(new StatusEffectInstance(StatusEffects.SPEED, StatusEffectInstance.INFINITE, 0, false, false));
     }
 
