@@ -592,6 +592,8 @@
   "mobtalk.settings.pregnancy.tooltip": "The player's couple gets a baby the human way: after 'let's have a child' every night together has a chance, a special night ('I have a surprise for you', candles, flowers, a carpet, a record, a cake) a bigger one. The woman of the couple carries; term, news, cravings, a gentle birth. Off: the baby comes a game day later, as before. Same-sex couples keep the old way for now.",
   "mobtalk.settings.familyFade": "Fades",
   "mobtalk.settings.familyFade.tooltip": "A special night fades softly to black and ends with 'Next morning…'; a birth is a short fade for those nearby. Off: vanilla sleep only.",
+  "mobtalk.settings.humanVillagers": "Villagers as people",
+  "mobtalk.settings.humanVillagers.tooltip": "Villagers look like people, as in MCA Reborn: their own skin, face, eye and hair colour, clothes by profession, children resemble their parents. It is still the vanilla villager: trading, weddings, children and sleep work as before. Turn off for the vanilla model (instantly, no reload).",
   "mobtalk.settings.pregnancyBelly": "Belly on the figure",
   "mobtalk.settings.pregnancyBelly.tooltip": "A separate layer over the vanilla villager model (and the player in third person): slightly round mid-term, clearly at the end. May look off with resource packs — then turn it off.",
   "mobtalk.settings.pregnancyStatus": "Term under the name",

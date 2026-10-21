@@ -461,7 +461,13 @@ public final class WeddingController {
                 case OFFICIANT -> p.cleric() ? Items.BOOK : null;
                 default -> null;
             };
-            if (head != null && v.getEquippedStack(EquipmentSlot.HEAD).isEmpty()) { v.equipStack(EquipmentSlot.HEAD, WeddingItems.marked(head, Long.MAX_VALUE)); s.dressed.add(p.id()); }
+            String outfit = switch (role) { // Трек M: наряд человека-жителя под убором.
+                case SPOUSE, PARTNER -> p.gender() == Gender.FEMALE ? "bride" : "groom";
+                case WITNESS_WOMAN -> "bridesmaid";
+                case WITNESS_MAN -> "groomsman";
+                default -> "";
+            };
+            if (head != null && v.getEquippedStack(EquipmentSlot.HEAD).isEmpty()) { v.equipStack(EquipmentSlot.HEAD, WeddingItems.marked(head, Long.MAX_VALUE, outfit)); s.dressed.add(p.id()); }
             // В руке у жителя бывает только временное (товар, который он показывает): цветы его заменяют, после службы рука пустеет.
             if (hand != null && WeddingItems.markedUntil(v.getMainHandStack()) < 0) v.equipStack(EquipmentSlot.MAINHAND, WeddingItems.marked(hand, 0));
         }
@@ -476,7 +482,7 @@ public final class WeddingController {
             ItemStack head = v.getEquippedStack(EquipmentSlot.HEAD);
             if (WeddingItems.markedUntil(head) >= 0) {
                 if (until <= world.getTime()) v.equipStack(EquipmentSlot.HEAD, ItemStack.EMPTY);
-                else v.equipStack(EquipmentSlot.HEAD, WeddingItems.marked(head.getItem(), until));
+                else v.equipStack(EquipmentSlot.HEAD, WeddingItems.marked(head.getItem(), until, WeddingItems.outfit(head)));
             }
         }
     }
