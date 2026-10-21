@@ -148,6 +148,7 @@ function Start-TestInstance([string]$Name, [int]$TimeoutSeconds = 600, [int]$Qui
         if ($prism.Count -and -not ((Test-Path $log) -and (Select-String -LiteralPath $log -SimpleMatch "Loaded instance `"$Name`"" -Quiet))) {
             Invoke-PrismRescan; Start-Sleep -Seconds 3
         }
+        if (-not $prism.Count) { Start-PrismClean | Out-Null; $prism = @(Get-Process prismlauncher -ErrorAction SilentlyContinue | ForEach-Object Id) }
         $before = if (Test-Path $log) { @(Select-String -LiteralPath $log -SimpleMatch $refusal).Count } else { 0 }
         Start-Process $script:PrismExe -ArgumentList '--launch', $Name
         $quiet = (Get-Date).AddSeconds($QuietSeconds)
@@ -166,6 +167,22 @@ function Start-TestInstance([string]$Name, [int]$TimeoutSeconds = 600, [int]$Qui
     $null
 }
 
+# Starts PrismLauncher through explorer.exe, so it gets the desktop's own environment instead of the caller's (a Prism
+# started from a Codex shell inherits its redirected %LOCALAPPDATA%\Packages\OpenAI.Codex_*\LocalCache\Local
+# and misses keys such as DivineBlock\openrouter-key.dpapi). Returns the new Prism process once its instances are loaded.
+function Start-PrismClean([int]$TimeoutSeconds = 60) {
+    Start-Process explorer.exe -ArgumentList "`"$script:PrismExe`""
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    $log = Join-Path $env:APPDATA 'PrismLauncher\logs\PrismLauncher-0.log'
+    while ((Get-Date) -lt $deadline) {
+        Start-Sleep -Seconds 2
+        $p = Get-Process prismlauncher -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($p -and (Test-Path $log) -and (Get-Item $log).LastWriteTime -ge $p.StartTime -and
+            (Select-String -LiteralPath $log -SimpleMatch 'Instances loaded' -Quiet)) { Start-Sleep -Seconds 2; return $p }
+    }
+    throw 'PrismLauncher did not start'
+}
+
 # Python Whisper helpers listening on a port (Mob Talk passes --port on the command line).
 function Get-WhisperHelper([int]$Port) {
     @(Get-CimInstance Win32_Process -Filter "name='python.exe' or name='pythonw.exe'" |
@@ -177,7 +194,6 @@ using System; using System.Drawing; using System.Runtime.InteropServices;
 public static class ParallelPrismWindow {
     [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h, out RECT r);
     [DllImport("user32.dll")] static extern bool PrintWindow(IntPtr h, IntPtr dc, uint flags);
-    [StructLayout(LayoutKind.Sequential)] struct RECT { public int L, T, R, B; }
     public static bool Save(IntPtr h, string path) {
         RECT r; if (h == IntPtr.Zero || !GetWindowRect(h, out r) || r.R - r.L < 50) return false;
         using (var bmp = new Bitmap(r.R - r.L, r.B - r.T)) using (var g = Graphics.FromImage(bmp)) {
@@ -199,4 +215,4 @@ function Save-GameWindowShot([string]$Name, [string]$Path) {
 }
 
 Export-ModuleMember -Function New-TestInstanceName, Get-InstanceGame, Get-AllGames, Enter-GameSlot, Exit-GameSlot,
-    New-TestInstance, Remove-TestInstance, Start-TestInstance, Invoke-PrismRescan, Get-WhisperHelper, Save-GameWindowShot
+    New-TestInstance, Remove-TestInstance, Start-TestInstance, Invoke-PrismRescan, Start-PrismClean, Get-WhisperHelper, Save-GameWindowShot
