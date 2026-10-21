@@ -81,6 +81,7 @@ public final class NimrodModel extends BossModel<NimrodEntity> {
             leftForearm.pitch += foreAdd;
             bow.pitch -= armAdd + foreAdd;
             bow.roll += 0.25f;
+            bow.yaw += 1.2f;
             rightArm.pitch -= 1.5f;
             rightArm.yaw += 0.55f;
             rightForearm.pitch -= 1.7f;

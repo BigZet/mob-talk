@@ -204,15 +204,15 @@ def goliath_face(p, f, opts):
     for side in (-1, 1):
         ex = cx + side * W * 0.22
         # Heavy brows, lowered toward the nose (a scowl).
-        for u in range(int(ex - W * 0.15), int(ex + W * 0.15) + 1):
+        # Deep sockets under a jutting brow ridge.
+        for u in range(int(ex - W * 0.16), int(ex + W * 0.16) + 1):
+            for v in range(ey - 3, ey + 3):
+                p.put(f, u, v, shade(SKIN, 0.5 + 0.06 * abs(v - ey)))
+        for u in range(int(ex - W * 0.17), int(ex + W * 0.17) + 1):
             t = (u - ex) * side
-            by = int(H * 0.33 - t * 0.18)
-            for k in range(2):
-                p.put(f, u, by + k, shade(BEARD, 1.0 + 0.2 * k))
-        # Deep sockets, the white and the dark iris.
-        for u in range(int(ex - W * 0.13), int(ex + W * 0.13) + 1):
-            for v in range(ey - 2, ey + 3):
-                p.put(f, u, v, shade(SKIN, 0.62))
+            by = int(H * 0.34 - t * 0.3)
+            for k in range(3):
+                p.put(f, u, by + k, shade(BEARD, 0.9 + 0.25 * k))
         for u in range(int(ex - W * 0.09), int(ex + W * 0.09) + 1):
             p.put(f, u, ey, (226, 214, 190))
             p.put(f, u, ey + 1, (196, 182, 160))
@@ -221,7 +221,19 @@ def goliath_face(p, f, opts):
             p.put(f, u, ey + 1, (60, 36, 24))
         p.put(f, int(ex - 1), ey - 1, (30, 20, 14))
         p.put(f, int(ex), ey - 1, (30, 20, 14))
-    # A broad nose with a lit ridge and flared nostrils.
+    # Frown furrows between the brows, and an old scar across the right cheek.
+    for v in range(int(H * 0.27), int(H * 0.36)):
+        p.put(f, int(cx - 2), v, shade(SKIN, 0.68))
+        p.put(f, int(cx + 1), v, shade(SKIN, 0.68))
+    for k in range(7):
+        p.put(f, int(cx - W * 0.38 + k), int(H * 0.5 + k * 0.9), (150, 86, 66))
+    # Shadow under the cheekbones.
+    for side in (-1, 1):
+        for v in range(int(H * 0.6), int(H * 0.68)):
+            p.put(f, int(cx + side * W * 0.33), v, shade(SKIN, 0.7))
+    # A broad nose with a lit ridge, a shadowed side and flared nostrils.
+    for v in range(int(H * 0.42), int(H * 0.64)):
+        p.put(f, int(cx + 1), v, shade(SKIN, 0.66))
     for v in range(int(H * 0.38), int(H * 0.64)):
         p.put(f, int(cx - 1), v, shade(SKIN, 0.78))
         p.put(f, int(cx), v, SKIN_LIGHT)
@@ -358,11 +370,11 @@ spear = Part("spear", pivot=(1.4, 4.4, 0), rotation=(1.15, 0, 0), boxes=[
         Box((-2.8, -9, -0.4), (5.6, 6, 0.8), iron_blade),
         Box((-2.0, -12, -0.35), (4.0, 3, 0.7), iron_blade),
         Box((-1.1, -14, -0.3), (2.2, 2, 0.6), iron_blade),
-        Box((-0.4, -15.4, -0.25), (0.8, 1.4, 0.5), solid(IRON_LIGHT, k=0.04)),
         Box((-0.55, -13.5, -0.7), (1.1, 13.5, 1.4), metal(IRON, IRON_DARK, IRON_LIGHT)),
+    ], children=[
+        # The point: a diamond turned on its corner, so the blade ends sharp.
+        Part("spear_point", pivot=(0, -14, 0), rotation=(0, 0, 0.785), boxes=[Box((-0.8, -0.8, -0.3), (1.6, 1.6, 0.6), iron_blade)]),
     ]),
-    # The thong loop of a throwing spear, hanging from the staff.
-    Part("spear_loop", pivot=(1, -20, 0), rotation=(0, 0, -0.5), boxes=[Box((0, 0, -0.25), (0.5, 4.5, 0.5), solid(LEATHER_DARK))]),
 ])
 
 shield = Part("shield", pivot=(-1.2, 4.0, -1.6), rotation=(1.35, -0.7, 0.4), children=[
@@ -434,8 +446,6 @@ beard = Part("beard", pivot=(0, -1.6, -3.6), boxes=[Box((-3.6, -0.6, -0.4), (7.2
 
 head = Part("head", pivot=(0, -20.4, -0.6), boxes=[
     Box((-4, -8, -4), (8, 8, 8), goliath_face),
-    Box((-4.6, -5.6, -0.6), (0.8, 2.4, 1.6), skin),
-    Box((3.8, -5.6, -0.6), (0.8, 2.4, 1.6), skin),
 ], children=[
     beard,
     Part("helmet", boxes=[
@@ -458,9 +468,9 @@ head = Part("head", pivot=(0, -20.4, -0.6), boxes=[
 javelin = Part("javelin", pivot=(0, -8.5, 5.6), rotation=(0, 0, 0.62), boxes=[
     Box((-0.55, -16, -0.55), (1.1, 31, 1.1), bronze(rim=False)),
     Box((-1.1, -21, -0.3), (2.2, 5, 0.6), iron_blade),
-    Box((-0.5, -22.5, -0.25), (1.0, 1.5, 0.5), iron_blade),
+    Box((-0.6, -22.4, -0.25), (1.2, 1.4, 0.5), iron_blade),
     Box((-0.8, 14, -0.8), (1.6, 2, 1.6), plate),
-])
+], children=[Part("javelin_point", pivot=(0, -22.4, 0), rotation=(0, 0, 0.785), boxes=[Box((-0.5, -0.5, -0.2), (1.0, 1.0, 0.4), iron_blade)])])
 
 body = Part("body", boxes=torso_rows + [
     # The belt with a bronze plaque.
@@ -480,7 +490,7 @@ body = Part("body", boxes=torso_rows + [
     head,
     javelin,
     arm("right_arm", -1, (-0.22, 0, 0.12), -0.85, [spear]),
-    arm("left_arm", 1, (-0.3, 0, -0.55), -1.05, [shield]),
+    arm("left_arm", 1, (-0.05, 0, -0.6), -1.25, [shield]),
 ])
 
 parts = [

@@ -164,9 +164,11 @@ public final class GoliathModel extends BossModel<GoliathEntity> {
         head.pitch += 0.55f;
         head.roll += MathHelper.sin(age * 0.2f) * 0.05f;
         crest.pitch += 0.2f;
+        // The spear stays nearly upright to lean on; the shield rests on its rim beside him.
         rightArm.pitch += 0.15f;
-        spear.pitch += 0.45f;
-        leftArm.pitch += 0.55f;
+        spear.pitch -= 0.4f;
+        leftArm.pitch += 0.45f;
         leftArm.roll += 0.1f;
+        shield.pitch -= 0.7f;
     }
 }

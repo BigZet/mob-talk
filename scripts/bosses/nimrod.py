@@ -10,8 +10,8 @@ from boxtex import *
 SKIN = (176, 112, 72)
 SKIN_LIGHT = (212, 152, 104)
 SKIN_DARK = (116, 68, 40)
-HAIR = (34, 30, 44)
-HAIR_LIGHT = (128, 118, 146)
+HAIR = (42, 38, 56)
+HAIR_LIGHT = (160, 150, 182)
 CRIMSON = (126, 24, 32)
 LAPIS = (38, 62, 138)
 LAPIS_LIGHT = (86, 120, 196)
@@ -217,12 +217,15 @@ def nimrod_face(p, f, opts):
     ey = int(H * 0.43)
     for side in (-1, 1):
         ex = cx + side * W * 0.21
-        # One heavy brow running across, arched over each eye.
-        for u in range(int(ex - W * 0.17), int(ex + W * 0.17) + 1):
-            t = (u + 0.5 - ex) / (W * 0.17)
-            by = int(H * 0.31 + 0.9 * t * t)
-            p.put(f, u, by, HAIR)
-            p.put(f, u, by + 1, shade(HAIR, 1.4))
+        # Heavy brows drawn down toward the nose: an imperious, unforgiving look; shadow under them.
+        for u in range(int(ex - W * 0.15), int(ex + W * 0.15) + 1):
+            for v in range(int(ey - 3), int(ey - 1)):
+                p.put(f, u, v, shade(SKIN, 0.7))
+        for u in range(int(ex - W * 0.19), int(ex + W * 0.19) + 1):
+            t = (u + 0.5 - ex) * side
+            by = int(H * 0.33 - t * 0.22)
+            for k in range(3):
+                p.put(f, u, by + k, HAIR if k < 2 else shade(HAIR, 1.6))
         # The almond eye: a kohl outline, the white, the iris with an ember.
         ew, eh = W * 0.15, max(1.6, H * 0.065)
         for u in range(int(ex - ew - 1), int(ex + ew + 2)):
@@ -240,7 +243,11 @@ def nimrod_face(p, f, opts):
                 p.put(f, u, v, (54, 28, 20))
         p.put(f, int(ex), int(ey), (255, 120, 40), (190, 70, 20))
         p.put(f, int(ex - 1), int(ey), (220, 90, 30), (150, 50, 16))
-    # A strong hooked nose.
+    for v in range(int(H * 0.28), int(H * 0.36)):
+        p.put(f, int(cx - 1), v, shade(SKIN, 0.7))
+    # A strong hooked nose with a shadowed side.
+    for v in range(int(H * 0.42), int(H * 0.64)):
+        p.put(f, int(cx + 1), v, shade(SKIN, 0.68))
     for v in range(int(H * 0.38), int(H * 0.64)):
         p.put(f, int(cx - 1), v, shade(SKIN, 0.75))
         p.put(f, int(cx), v, SKIN_LIGHT)
@@ -336,8 +343,8 @@ def limb(name, sign):
     """A limb as a chain of segments, each a child of the one before."""
     root = parent = None
     for k, (length, bend) in enumerate(SEGS):
-        width = 1.1 - 0.15 * k
-        box = Box((-width / 2, -length if sign < 0 else 0, -0.55), (width, length, 1.1), composite)
+        width = 1.7 - 0.25 * k
+        box = Box((-width / 2, -length if sign < 0 else 0, -0.75), (width, length, 1.5), composite)
         pivot = (0, sign * 2.0, 0) if parent is None else (0, sign * SEGS[k - 1][0], 0)
         node = Part("%s_%d" % (name, k), pivot=pivot, rotation=(sign * bend, 0, 0), boxes=[box])
         if parent is None:
@@ -357,11 +364,11 @@ def string_half(name, tip):
     ty, tz = tip
     dy, dz = NOCK[0] - ty, NOCK[1] - tz
     return Part(name, pivot=(0, ty, tz), rotation=(math.atan2(dz, dy), 0, 0),
-                boxes=[Box((-0.15, 0, -0.15), (0.3, math.hypot(dy, dz), 0.3), solid(BONE, k=0.04))])
+                boxes=[Box((-0.2, 0, -0.2), (0.4, math.hypot(dy, dz), 0.4), solid(BONE, k=0.04))])
 
 
-bow = Part("bow", pivot=(-1.3, 2.2, 0.2), rotation=(0.1, 0, 0), boxes=[
-    Box((-0.7, -2.2, -0.7), (1.4, 4.4, 1.4), leather(LEATHER_DARK, stitch=False)),
+bow = Part("bow", pivot=(-1.3, 2.2, 0.2), rotation=(0.1, -1.2, 0), boxes=[
+    Box((-0.9, -2.2, -0.9), (1.8, 4.4, 1.8), leather(LEATHER_DARK, stitch=False)),
     Box((-0.8, -2.6, -0.8), (1.6, 0.6, 1.6), gold_plain),
     Box((-0.8, 2.0, -0.8), (1.6, 0.6, 1.6), gold_plain),
 ], children=[
@@ -371,10 +378,10 @@ bow = Part("bow", pivot=(-1.3, 2.2, 0.2), rotation=(0.1, 0, 0), boxes=[
     string_half("string_lower", lower_tip),
     Part("nocked_arrow", pivot=(0, 0, NOCK[1]), boxes=[
         Box((-0.2, -0.2, -17), (0.4, 0.4, 18), wood((150, 112, 62))),
-        Box((-0.5, -0.5, -18.6), (1.0, 1.0, 1.6), metal(IRON, (70, 70, 76), (200, 200, 206))),
+        Box((-0.45, -0.45, -18.2), (0.9, 0.9, 1.2), metal(IRON, (70, 70, 76), (200, 200, 206))),
         Box((-0.05, -1.2, -1.5), (0.1, 2.4, 3.0), fletching),
         Box((-1.2, -0.05, -1.5), (2.4, 0.1, 3.0), fletching),
-    ]),
+    ], children=[Part("arrow_point", pivot=(0, 0, -18.2), rotation=(0, 0.785, 0), boxes=[Box((-0.6, -0.15, -0.6), (1.2, 0.3, 1.2), metal(IRON, (70, 70, 76), (200, 200, 206)))])]),
 ])
 
 brick = Part("brick", pivot=(1.6, 3.4, 0), rotation=(0.6, 0, 0.2), boxes=[Box((-1.6, -1.2, -2.6), (3.2, 2.4, 5.2), brick_style)])
@@ -433,8 +440,10 @@ crown = Part("crown", pivot=(0, -7.8, 0), boxes=[
     Box((-3.1, -7.0, -3.1), (6.2, 2.2, 6.2), gold_band()),
     Box((-2.2, -8.8, -2.2), (4.4, 1.8, 4.4), gold_band(stones=False)),
     Box((-1.0, -10.0, -1.0), (2.0, 1.2, 2.0), gold_plain),
-    Box((-0.5, -11.2, -0.5), (1.0, 1.2, 1.0), solid((200, 60, 40), glow=False)),
+    Box((-0.6, -11.0, -0.6), (1.2, 1.0, 1.2), gold_plain),
 ], children=[
+    # The spike on top, ending in a point: a carnelian diamond on its corner.
+    Part("crown_point", pivot=(0, -11.6, 0), rotation=(0, 0.785, 0.785), boxes=[Box((-0.6, -0.6, -0.6), (1.2, 1.2, 1.2), solid((200, 60, 40)))]),
     crenels("crown_merlons_0", -2.2, 4.4, 16, 1.2, gold_plain),
     crenels("crown_merlons_1", -4.8, 3.7, 12, 1.0, gold_plain),
     crenels("crown_merlons_2", -7.0, 2.9, 8, 0.9, gold_plain),
@@ -506,7 +515,7 @@ body = Part("body", boxes=torso, children=[
     head,
     quiver,
     arm("right_arm", -1, (-0.12, 0, 0.08), -0.75, [brick]),
-    arm("left_arm", 1, (0.05, 0, -0.1), -0.15, [bow]),
+    arm("left_arm", 1, (0.0, 0, -0.28), -0.35, [bow]),
 ])
 
 parts = [
