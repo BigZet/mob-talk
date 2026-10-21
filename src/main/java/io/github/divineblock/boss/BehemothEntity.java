@@ -57,10 +57,13 @@ public final class BehemothEntity extends SacredBoss {
     /** On the client too: whether he is charging right now. */
     public boolean isCharging() { return dataTracker.get(CHARGING); }
 
+    /** An attack came due during a charge; it follows right after the charge. */
+    private boolean attackWaiting;
+
     @Override public BossKind kind() { return BossKind.BEHEMOTH; }
     @Override protected String theme() { return "punishment_02"; }
     @Override protected float meleeDamage() { return 10f; }
-    @Override protected double meleeReach() { return 4.2; }
+    @Override protected double meleeReach() { return 6.0; }
 
     @Override protected void pursue(LivingEntity target) {
         if (chargeLeft > 0 || stunned > 0) { getNavigation().stop(); return; }
@@ -68,12 +71,14 @@ public final class BehemothEntity extends SacredBoss {
     }
 
     @Override protected int attack(LivingEntity target) {
-        if (chargeLeft > 0 || stunned > 0) return 20;
+        if (chargeLeft > 0) { attackWaiting = true; return 20; }
+        // Dazed after a crash he cannot move, but he can still spit the swamp at whoever comes close.
+        if (stunned > 0) { mud(target); return 60; }
         double distance = distanceTo(target);
         int roll = random.nextInt(4), faster = 12 * (phase - 1);
-        if (distance < 6 && roll == 0) { stomp(phase >= 2 ? 2 : 1); return 70 - faster; }
-        if (distance < 7.5 && roll == 1) { tailSweep(); return 65 - faster; }
-        if (distance > 6 && roll != 3 || roll == 2) { ram(target, phase >= 3 ? 2 : 0); return 100 - faster; }
+        if (distance < 7 && roll == 0) { stomp(phase >= 2 ? 2 : 1); return 70 - faster; }
+        if (distance < 9 && roll == 1) { tailSweep(); return 65 - faster; }
+        if (distance > 7.5 && roll != 3 || roll == 2) { ram(target, phase >= 3 ? 2 : 0); return 100 - faster; }
         mud(target);
         return 60 - faster;
     }
@@ -107,7 +112,7 @@ public final class BehemothEntity extends SacredBoss {
             if (left % 3 == 0)
                 for (int a = -110; a <= 110; a += 10) {
                     Vec3d dir = back.rotateY(a * MathHelper.RADIANS_PER_DEGREE);
-                    for (double r = 3; r <= 7; r += 2) particles(needle, center.x + dir.x * r, center.y + 0.3, center.z + dir.z * r, 1, 0, 0, 0, 0);
+                    for (double r = 4; r <= 9; r += 2.5) particles(needle, center.x + dir.x * r, center.y + 0.3, center.z + dir.z * r, 1, 0, 0, 0, 0);
                 }
             if (left == 24) sound(SoundEvents.ENTITY_HOGLIN_ANGRY, 2.5f, 0.4f);
         }, () -> {
@@ -115,9 +120,9 @@ public final class BehemothEntity extends SacredBoss {
             sound(SoundEvents.BLOCK_WOOD_BREAK, 2f, 0.5f);
             for (int a = -110; a <= 110; a += 20) {
                 Vec3d dir = back.rotateY(a * MathHelper.RADIANS_PER_DEGREE);
-                particles(ParticleTypes.SWEEP_ATTACK, center.x + dir.x * 5, center.y + 1, center.z + dir.z * 5, 1, 0, 0, 0, 0);
+                particles(ParticleTypes.SWEEP_ATTACK, center.x + dir.x * 6.5, center.y + 1, center.z + dir.z * 6.5, 1, 0, 0, 0, 0);
             }
-            for (LivingEntity victim : victims(center, 7.5)) {
+            for (LivingEntity victim : victims(center, 9.5)) {
                 Vec3d rel = victim.getPos().subtract(center).multiply(1, 0, 1);
                 if (rel.lengthSquared() > 1 && rel.normalize().dotProduct(back) < -0.35) continue;
                 if (hurt(victim, 9f)) push(victim, center, 1.6, 0.5);
@@ -195,7 +200,7 @@ public final class BehemothEntity extends SacredBoss {
         if (stunned > 0) {
             stunned--;
             getNavigation().stop();
-            if (age % 5 == 0) particles(ParticleTypes.CRIT, getX(), getY() + 3.2, getZ(), 4, 0.6, 0.2, 0.6, 0.05);
+            if (age % 5 == 0) particles(ParticleTypes.CRIT, getX(), getY() + getHeight() + 0.3, getZ(), 4, 0.6, 0.2, 0.6, 0.05);
         }
         if (chargeLeft > 0) chargeStep(world);
         else if (age % 40 == 0 && getTarget() == null && world.getBlockState(getBlockPos().down()).isOf(Blocks.GRASS_BLOCK)) {
@@ -213,7 +218,7 @@ public final class BehemothEntity extends SacredBoss {
         particles(ground(), getX(), getY() + 0.2, getZ(), 8, 1.2, 0.1, 1.2, 0.15);
         if (age % 4 == 0) sound(SoundEvents.ENTITY_RAVAGER_STEP, 2.5f, 0.6f);
         if (quake && mayBreakBlocks()) carve(world);
-        for (LivingEntity victim : victims(getPos().add(chargeDir.multiply(1.2)), 3.2))
+        for (LivingEntity victim : victims(getPos().add(chargeDir.multiply(3.0)), 3.4))
             if (trampled.add(victim) && hurt(victim, quake ? 12f : 10f)) {
                 push(victim, getPos(), 2.2, 0.6);
                 particles(ParticleTypes.CRIT, victim.getX(), victim.getBodyY(0.5), victim.getZ(), 14, 0.4, 0.4, 0.4, 0.3);
@@ -239,7 +244,14 @@ public final class BehemothEntity extends SacredBoss {
                 LivingEntity target = getTarget();
                 if (target != null && isAlive() && !isCasting()) { chainLeft = 1; ram(target, next); }
             });
+        } else if (attackWaiting) {
+            // An attack fell due while he was charging: he turns on the foe as soon as he stops (telegraphed as always).
+            hazards.later(6, () -> {
+                LivingEntity target = getTarget();
+                if (target != null && isAlive() && !isCasting() && chargeLeft == 0) attack(target);
+            });
         }
+        attackWaiting = false;
         chainLeft = 0;
     }
 
@@ -345,7 +357,8 @@ public final class BehemothEntity extends SacredBoss {
         return new BlockStateParticleEffect(ParticleTypes.BLOCK, state);
     }
     private Vec3d forward() { return Vec3d.fromPolar(0, getBodyYaw()); }
-    private Vec3d mouthPos() { Vec3d f = forward(); return getPos().add(f.x * 3.4, 1.3, f.z * 3.4); }
+    /** The mouth: the head reaches well past the hitbox, about five blocks ahead of the middle. */
+    private Vec3d mouthPos() { Vec3d f = forward(); return getPos().add(f.x * 4.8, getHeight() * 0.55, f.z * 4.8); }
     private void face(Vec3d dir) {
         float yaw = (float) (MathHelper.atan2(dir.z, dir.x) * MathHelper.DEGREES_PER_RADIAN) - 90f;
         setYaw(yaw); setBodyYaw(yaw); setHeadYaw(yaw);
