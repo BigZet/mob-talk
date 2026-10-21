@@ -196,6 +196,10 @@ public final class ChurchSelfTest {
             String nbt = entity == null ? "нет" : entity.createNbt(world.getRegistryManager()).toString();
             check(world.getBlockState(sealAt).isOf(seal.get()) && nbt.contains("church"), "печать босса в полу алтаря: " + nbt);
         } else log("  блока divineblock:boss_seal нет в сборке — печать не ставится");
+        long trees = structureStart.getChildren().stream().filter(p -> p instanceof PoolStructurePiece element
+                && element.getPoolElement() instanceof net.minecraft.structure.pool.FeaturePoolElement).count();
+        log("  кладбище: кусков " + yard + ", из них деревьев " + trees + ", бокс " + net.minecraft.structure.StructurePiece.boundingBox(
+                structureStart.getChildren().stream().filter(p -> p instanceof PoolStructurePiece)));
         for (StructurePiece piece : structureStart.getChildren()) log("    часть " + piece.getClass().getSimpleName() + " " + piece.getBoundingBox());
         return site;
     }
@@ -233,6 +237,9 @@ public final class ChurchSelfTest {
         steps.add(new Step(60, () -> screenshot = kind + "-interior-west"));
         steps.add(new Step(10, () -> look(player, at.apply(new double[] { 18, 24, 50 }), at.apply(new double[] { 18, 0, 22 }))));
         steps.add(new Step(100, () -> screenshot = kind + "-cemetery"));
+        // The whole churchyard from straight above, the church at the top edge of the picture.
+        steps.add(new Step(10, () -> look(player, at.apply(new double[] { 18, 90, 36 }), at.apply(new double[] { 18, 0, 38 }))));
+        steps.add(new Step(140, () -> screenshot = kind + "-cemetery-top"));
         steps.add(new Step(10, () -> { hud = true; moody = false; }));
     }
 
