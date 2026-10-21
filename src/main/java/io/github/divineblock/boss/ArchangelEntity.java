@@ -46,7 +46,7 @@ public final class ArchangelEntity extends SacredBoss {
     @Override public BossKind kind() { return BossKind.ARCHANGEL; }
     @Override protected String theme() { return "punishment_20"; }
     @Override protected float meleeDamage() { return 9f; }
-    @Override protected double meleeReach() { return 3.6; }
+    @Override protected double meleeReach() { return 5.5; }
 
     // ---- Movement: walking, leaps and glides. ----
 
@@ -77,7 +77,7 @@ public final class ArchangelEntity extends SacredBoss {
         if (gliding) {
             if (isOnGround() && getVelocity().y <= 0) gliding = false;
             else if (getVelocity().y < -0.12) setVelocity(getVelocity().x, -0.12, getVelocity().z);
-            if (age % 4 == 0) particles(ParticleTypes.END_ROD, getX(), getY() + 2.4, getZ(), 2, 0.9, 0.3, 0.9, 0.01);
+            if (age % 4 == 0) particles(ParticleTypes.END_ROD, getX(), getY() + getHeight() * 0.6, getZ(), 2, 0.9, 0.3, 0.9, 0.01);
         }
         // The halo of the last phase burns brighter.
         if (phase >= 3 && age % 3 == 0) particles(ParticleTypes.END_ROD, getX(), getY() + getHeight() + 0.1, getZ(), 2, 0.35, 0.05, 0.35, 0.005);
@@ -174,7 +174,7 @@ public final class ArchangelEntity extends SacredBoss {
             setVelocity(spot.add(0, 7, 0).subtract(getPos()).multiply(0.15));
             velocityModified = true;
             if (left == warn) { sound(SoundEvents.ENTITY_ENDER_DRAGON_FLAP, 2.5f, 0.8f); sound(SoundEvents.ENTITY_PHANTOM_FLAP, 2f, 0.6f); }
-            if (left % 3 == 0) particles(ParticleTypes.END_ROD, getX(), getY() + 1.5, getZ(), 3, 1.2, 0.5, 1.2, 0.02);
+            if (left % 3 == 0) particles(ParticleTypes.END_ROD, getX(), getY() + getHeight() * 0.4, getZ(), 3, 1.6, 1.2, 1.6, 0.02);
         }, () -> {
             setNoGravity(false);
             gliding = false;
@@ -253,7 +253,7 @@ public final class ArchangelEntity extends SacredBoss {
     @Override protected void onPhase(int phase) {
         if (phase == 2) {
             sound(SoundEvents.ENTITY_ENDER_DRAGON_GROWL, 1.5f, 1.4f);
-            particles(ParticleTypes.END_ROD, getX(), getY() + 2.4, getZ(), 60, 2.5, 1, 2.5, 0.05);
+            particles(ParticleTypes.END_ROD, getX(), getY() + getHeight() * 0.6, getZ(), 60, 2.5, 1, 2.5, 0.05);
             leapCooldown = 0;
         }
         if (phase == 3) {
@@ -265,7 +265,7 @@ public final class ArchangelEntity extends SacredBoss {
 
     @Override protected void onDefeated() {
         for (LivingEntity victim : victims(getPos(), 32)) victim.removeStatusEffect(BossEffects.SCORCH);
-        particles(ParticleTypes.END_ROD, getX(), getY() + 2, getZ(), 80, 1.5, 2, 1.5, 0.1);
+        particles(ParticleTypes.END_ROD, getX(), getY() + getHeight() * 0.5, getZ(), 120, 2.5, 3, 2.5, 0.1);
     }
 
     // ---- Geometry. ----
@@ -290,7 +290,7 @@ public final class ArchangelEntity extends SacredBoss {
     /** The trumpet lifted to his lips (on his left). */
     private Vec3d hornPos() {
         float yaw = bodyYaw * MathHelper.RADIANS_PER_DEGREE;
-        return new Vec3d(getX() - Math.sin(yaw) * 0.7 + Math.cos(yaw) * 0.5, getY() + 2.7, getZ() + Math.cos(yaw) * 0.7 + Math.sin(yaw) * 0.5);
+        return new Vec3d(getX() - Math.sin(yaw) * 0.7 + Math.cos(yaw) * 0.5, getY() + getHeight() * 0.78, getZ() + Math.cos(yaw) * 0.7 + Math.sin(yaw) * 0.5);
     }
 
     /** The ground under a point (down to 8 blocks), so circles lie on the floor even when the foe jumps. */

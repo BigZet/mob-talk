@@ -58,7 +58,7 @@ public final class DivineBosses {
     public static final EntityType<SeraphEntity> SERAPH = entity(BossKind.SERAPH, SeraphEntity::new, 1.6f, 2.6f, true);
     public static final EntityType<FacelessIconEntity> FACELESS_ICON = entity(BossKind.FACELESS_ICON, FacelessIconEntity::new, 2.4f, 3.4f, false);
     public static final EntityType<WailerEntity> WAILER = entity(BossKind.WAILER, WailerEntity::new, 0.9f, 2.9f, false);
-    public static final EntityType<ArchangelEntity> ARCHANGEL = entity(BossKind.ARCHANGEL, ArchangelEntity::new, 1.4f, 3.4f, true);
+    public static final EntityType<ArchangelEntity> ARCHANGEL = entity(BossKind.ARCHANGEL, ArchangelEntity::new, 2.2f, 7.4f, true);
     public static final EntityType<LeviathanEntity> LEVIATHAN = entity(BossKind.LEVIATHAN, LeviathanEntity::new, 4.0f, 2.0f, false);
     public static final EntityType<BehemothEntity> BEHEMOTH = entity(BossKind.BEHEMOTH, BehemothEntity::new, 3.2f, 3.0f, false);
     public static final EntityType<GoliathEntity> GOLIATH = entity(BossKind.GOLIATH, GoliathEntity::new, 1.6f, 4.6f, false);

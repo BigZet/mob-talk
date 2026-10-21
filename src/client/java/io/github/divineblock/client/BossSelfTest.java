@@ -98,6 +98,7 @@ public final class BossSelfTest {
                 log("создаю мир " + name);
                 phase = 1; ticks = 0;
                 client.options.hudHidden = false;
+                client.options.tutorialStep = net.minecraft.client.tutorial.TutorialStep.NONE;
                 client.createIntegratedServerLoader().createAndStart(name, info, new GeneratorOptions(20261021L, true, false), WorldPresets::createDemoOptions, new TitleScreen());
             }
             case 1 -> {
@@ -138,6 +139,12 @@ public final class BossSelfTest {
         String only = System.getProperty("divineblock.bosstest.only", "");
         List<BossKind> kinds = Arrays.stream(BossKind.values()).filter(k -> only.isBlank() || Arrays.asList(only.split(",")).contains(k.id)).toList();
         List<Step> steps = new ArrayList<>();
+        if (Boolean.getBoolean("divineblock.bosstest.showcase")) {
+            for (BossKind kind : kinds) showcase(steps, player, kind);
+            steps.add(new Step(20, () -> { write(); finished = true; }));
+            run(steps, 0);
+            return;
+        }
         for (BossKind kind : kinds) fight(steps, server, player, kind);
         steps.add(new Step(20, () -> { home(player); fallback(player); }));
         steps.add(new Step(60, () -> { screenshot = "fallback"; clear(player.getServerWorld()); seal(player); }));
@@ -240,6 +247,47 @@ public final class BossSelfTest {
                     BossEffects.MARK_OF_BEAST, BossEffects.CONFUSION)) player.removeStatusEffect(effect);
             BossEffects.lift(player);
         }));
+    }
+
+    /** A posed portrait for scale: the boss stands still (no AI) beside an armoured stand of a player's size, the player
+     * watches as a spectator with the HUD hidden, once from the front and once from the side. */
+    private static void showcase(List<Step> steps, ServerPlayerEntity player, BossKind kind) {
+        SacredBoss[] boss = new SacredBoss[1];
+        steps.add(new Step(20, () -> {
+            ServerWorld world = player.getServerWorld();
+            clear(world);
+            for (var stand : world.getEntitiesByClass(net.minecraft.entity.decoration.ArmorStandEntity.class, new Box(base).expand(64), s -> true)) stand.discard();
+            world.setTimeOfDay(kind == BossKind.DESTROYING_ANGEL ? 14000 : 6000);
+            BlockPos at = kind == BossKind.LEVIATHAN ? base.add(0, -3, -18) : base.add(0, 0, -8);
+            LivingEntity spawned = DivineBosses.spawn(kind, world, at, 3, null);
+            if (!(spawned instanceof SacredBoss sacred)) { fail("нет босса для портрета: " + kind.id); return; }
+            boss[0] = sacred;
+            sacred.setAiDisabled(true);
+            sacred.refreshPositionAndAngles(sacred.getX(), sacred.getY(), sacred.getZ(), 0f, 0f);
+            sacred.setHeadYaw(0f); sacred.setBodyYaw(0f);
+            var stand = net.minecraft.entity.EntityType.ARMOR_STAND.create(world);
+            if (stand != null) {
+                stand.refreshPositionAndAngles(sacred.getX() + sacred.getWidth() / 2 + 2, base.getY(), sacred.getZ() + 1, 0f, 0f);
+                stand.equipStack(net.minecraft.entity.EquipmentSlot.HEAD, new net.minecraft.item.ItemStack(net.minecraft.item.Items.IRON_HELMET));
+                stand.equipStack(net.minecraft.entity.EquipmentSlot.CHEST, new net.minecraft.item.ItemStack(net.minecraft.item.Items.IRON_CHESTPLATE));
+                stand.equipStack(net.minecraft.entity.EquipmentSlot.LEGS, new net.minecraft.item.ItemStack(net.minecraft.item.Items.IRON_LEGGINGS));
+                stand.equipStack(net.minecraft.entity.EquipmentSlot.FEET, new net.minecraft.item.ItemStack(net.minecraft.item.Items.IRON_BOOTS));
+                world.spawnEntity(stand);
+            }
+            player.changeGameMode(GameMode.SPECTATOR);
+            MinecraftClient.getInstance().execute(() -> MinecraftClient.getInstance().options.hudHidden = true);
+            watched = null;
+            double distance = sacred.getHeight() * 0.8 + 5;
+            player.teleport(world, sacred.getX() + 1, sacred.getY() + sacred.getHeight() * 0.4, sacred.getZ() + distance, 180f, -4f);
+        }));
+        steps.add(new Step(40, () -> { if (boss[0] != null) screenshot = "showcase-" + kind.id + "-front"; }));
+        steps.add(new Step(10, () -> {
+            if (boss[0] == null) return;
+            double distance = boss[0].getHeight() * 0.8 + 5;
+            player.teleport(player.getServerWorld(), boss[0].getX() + distance, boss[0].getY() + boss[0].getHeight() * 0.4, boss[0].getZ() + 1, 90f, -4f);
+        }));
+        steps.add(new Step(30, () -> { if (boss[0] != null) screenshot = "showcase-" + kind.id + "-side"; }));
+        steps.add(new Step(10, () -> log("портрет: " + kind.id)));
     }
 
     private static final java.util.Set<String> SEEN = new java.util.HashSet<>();
