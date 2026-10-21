@@ -164,8 +164,9 @@ final class SelfTestLooks {
     /** Живот трека N на человеке: у одной жительницы срок как в конце, снимок в профиль; позже тот же живот на ванильной модели. */
     private UUID mother;
     private void belly() {
-        mother = tagged().stream().filter(v -> !v.isBaby() && v.getEquippedStack(EquipmentSlot.HEAD).isEmpty() && !v.isSleeping()
-                && SocialProfile.genderOf(v.getUuid()) == io.github.mobtalk.core.Gender.FEMALE).map(VillagerEntity::getUuid).findFirst().orElse(null);
+        // Лучше жительница без убора; если женщин в ряду мало — хоть невеста или подружка (живот рисуется поверх наряда).
+        mother = tagged().stream().filter(v -> !v.isBaby() && !v.isSleeping() && SocialProfile.genderOf(v.getUuid()) == io.github.mobtalk.core.Gender.FEMALE)
+                .sorted(Comparator.comparing((VillagerEntity v) -> !v.getEquippedStack(EquipmentSlot.HEAD).isEmpty())).map(VillagerEntity::getUuid).findFirst().orElse(null);
         if (mother == null) { test.fail("no woman left for the belly"); vanilla(); return; }
         ChildView.forceBelly(Map.of(mother, 1f));
         test.command("tp " + mother + " " + (fx + 0.5) + " " + fy + " " + (fz + 4.5) + " 0 0"); // Лицом на юг.
