@@ -141,7 +141,7 @@ public final class HorsemenEntity extends SacredBoss {
     @Override public BossKind kind() { return BossKind.HORSEMEN; }
     @Override protected String theme() { return "punishment_20"; }
     @Override protected int phaseCount() { return 4; }
-    @Override protected double meleeReach() { return 3.6; }
+    @Override protected double meleeReach() { return 4.4; }
     @Override protected float meleeDamage() { return phase == 2 ? 9f : 7f; }
     private int rider() { return Math.max(0, Math.min(3, phase - 1)); }
 
@@ -202,15 +202,15 @@ public final class HorsemenEntity extends SacredBoss {
         getNavigation().stop();
         LightningEntity bolt = EntityType.LIGHTNING_BOLT.create(world);
         if (bolt != null) { bolt.setCosmetic(true); bolt.refreshPositionAfterTeleport(getPos()); world.spawnEntity(bolt); }
-        particles(ParticleTypes.FLASH, getX(), getY() + 2, getZ(), 3, 0.5, 0.5, 0.5, 0);
-        particles(ParticleTypes.END_ROD, getX(), getY() + 2, getZ(), 160, 1.5, 2, 1.5, 0.25);
+        particles(ParticleTypes.FLASH, getX(), getY() + getHeight() * 0.45, getZ(), 3, 0.5, 0.5, 0.5, 0);
+        particles(ParticleTypes.END_ROD, getX(), getY() + getHeight() * 0.45, getZ(), 160, 1.5, 2, 1.5, 0.25);
         sound(SoundEvents.BLOCK_BEACON_ACTIVATE, 3f, 0.6f);
         sound(SoundEvents.ENTITY_HORSE_ANGRY, 2.5f, 0.6f);
         announce(phase);
         int rider = rider();
         cast(null, SEAL_PAUSE, true, left -> {
             for (double y = 0; y < 14; y += 0.7) particles(SEAL_DUST[rider], getX(), getY() + y, getZ(), 1, 0.25, 0.1, 0.25, 0);
-            if (left % 10 == 0) particles(ParticleTypes.END_ROD, getX(), getY() + 1.5, getZ(), 20, 1.2, 1.2, 1.2, 0.08);
+            if (left % 10 == 0) particles(ParticleTypes.END_ROD, getX(), getY() + getHeight() * 0.35, getZ(), 20, 1.2, 1.2, 1.2, 0.08);
             if (left == 20) sound(SoundEvents.BLOCK_BELL_RESONATE, 2.5f, 0.5f + 0.15f * rider);
         }, () -> arrive(phase));
         removeStatusEffect(StatusEffects.SPEED);
@@ -298,7 +298,7 @@ public final class HorsemenEntity extends SacredBoss {
         World world = getWorld();
         for (double s = 0.5; s <= max; s += 0.5) {
             Vec3d at = from.add(dir.multiply(s));
-            for (double up : new double[] { 1.2, 2.4 }) {
+            for (double up : new double[] { getHeight() * 0.25, getHeight() * 0.5 }) {
                 BlockPos pos = BlockPos.ofFloored(at.x, at.y + up, at.z);
                 if (!world.getBlockState(pos).getCollisionShape(world, pos).isEmpty()) return s - 1;
             }
@@ -318,7 +318,7 @@ public final class HorsemenEntity extends SacredBoss {
             particles(trail, getX(), getY() + 0.4, getZ(), 6, 0.6, 0.3, 0.6, 0.02);
             particles(ParticleTypes.CLOUD, getX(), getY() + 0.1, getZ(), 3, 0.5, 0, 0.5, 0.02);
             if (step % 2 == 0) sound(SoundEvents.ENTITY_HORSE_GALLOP, 2f, 0.6f);
-            for (LivingEntity victim : victims(getPos(), 2.6))
+            for (LivingEntity victim : victims(getPos(), getWidth() * 0.5 + 1.6))
                 if (struck.add(victim) && hurt(victim, damage)) {
                     push(victim, getPos().subtract(dir), 1.3, 0.45);
                     sound(SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK, 2f, 0.6f);
@@ -523,7 +523,7 @@ public final class HorsemenEntity extends SacredBoss {
     private void famine(double radius, int ticks, boolean all) {
         for (LivingEntity victim : victims(getPos(), radius))
             if (all || !victim.hasStatusEffect(BossEffects.FAMINE)) starve(victim, ticks);
-        particles(new ItemStackParticleEffect(ParticleTypes.ITEM, new ItemStack(Items.WHEAT)), getX(), getY() + 2, getZ(), 40, radius * 0.3, 1, radius * 0.3, 0.05);
+        particles(new ItemStackParticleEffect(ParticleTypes.ITEM, new ItemStack(Items.WHEAT)), getX(), getY() + getHeight() * 0.45, getZ(), 40, radius * 0.3, 1, radius * 0.3, 0.05);
     }
 
     private void starve(LivingEntity victim, int ticks) {
@@ -595,7 +595,7 @@ public final class HorsemenEntity extends SacredBoss {
         castUltimate(left -> {
             for (int i = 0; i < 4; i++) {
                 double angle = age * 0.15 + i * Math.PI / 2;
-                particles(SEAL_DUST[i], getX() + Math.cos(angle) * 2.5, getY() + 4.2, getZ() + Math.sin(angle) * 2.5, 3, 0.1, 0.1, 0.1, 0);
+                particles(SEAL_DUST[i], getX() + Math.cos(angle) * 3.2, getY() + getHeight() * 0.9, getZ() + Math.sin(angle) * 3.2, 3, 0.1, 0.1, 0.1, 0);
             }
             if (left % 15 == 0) sound(SoundEvents.BLOCK_BELL_RESONATE, 2.5f, 0.5f + 0.1f * (4 - left / 15));
             if (left == 30) setStance(STANCE_REAR);
@@ -661,7 +661,7 @@ public final class HorsemenEntity extends SacredBoss {
     /** The rider's hand, up on the horse's back. */
     private Vec3d handPos() {
         float yaw = bodyYaw * MathHelper.RADIANS_PER_DEGREE;
-        return new Vec3d(getX() - Math.sin(yaw) * 0.8 + Math.cos(yaw) * 0.4, getY() + 2.3, getZ() + Math.cos(yaw) * 0.8 + Math.sin(yaw) * 0.4);
+        return new Vec3d(getX() - Math.sin(yaw) * 0.6 + Math.cos(yaw) * 0.5, getY() + getHeight() * 0.7, getZ() + Math.cos(yaw) * 0.6 + Math.sin(yaw) * 0.5);
     }
 
     @Override protected void onDefeated() {

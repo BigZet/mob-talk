@@ -62,7 +62,7 @@ public final class DivineBosses {
     public static final EntityType<LeviathanEntity> LEVIATHAN = entity(BossKind.LEVIATHAN, LeviathanEntity::new, 5.0f, 4.0f, false);
     public static final EntityType<BehemothEntity> BEHEMOTH = entity(BossKind.BEHEMOTH, BehemothEntity::new, 5.0f, 5.8f, false);
     public static final EntityType<GoliathEntity> GOLIATH = entity(BossKind.GOLIATH, GoliathEntity::new, 2.4f, 6.3f, false);
-    public static final EntityType<HorsemenEntity> HORSEMEN = entity(BossKind.HORSEMEN, HorsemenEntity::new, 1.6f, 3.2f, true);
+    public static final EntityType<HorsemenEntity> HORSEMEN = entity(BossKind.HORSEMEN, HorsemenEntity::new, 2.6f, 4.8f, true);
     public static final EntityType<DestroyingAngelEntity> DESTROYING_ANGEL = entity(BossKind.DESTROYING_ANGEL, DestroyingAngelEntity::new, 1.6f, 5.6f, true);
     public static final EntityType<CherubEntity> CHERUB = entity(BossKind.CHERUB, CherubEntity::new, 2.0f, 5.8f, true);
     public static final EntityType<BeastEntity> BEAST = entity(BossKind.BEAST, BeastEntity::new, 4.4f, 4.6f, true);
