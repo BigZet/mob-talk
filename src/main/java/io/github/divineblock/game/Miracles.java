@@ -74,7 +74,7 @@ public final class Miracles {
             case IGNORE -> { burst(world, altar.up(), ParticleTypes.SMOKE, 15); sound(world, altar, SoundEvents.BLOCK_FIRE_EXTINGUISH, 1f, 0.6f); yield "бог молчит"; }
             case HEAL -> heal(player, power);
             case FEED -> feed(world, player, power);
-            case WEATHER_CLEAR -> clearWeather(world, power);
+            case WEATHER_CLEAR -> clearWeather(world, player, power);
             case BUFF -> buff(player, power);
             case GIFT_ITEM -> gift(world, player, prayer, power);
             case ORE_VEIN -> oreVein(world, player, power);
@@ -118,6 +118,13 @@ public final class Miracles {
             case WITHER -> Wrath.withers(world, player, altar, severity);
             case DRAGON -> Wrath.dragons(world, player, severity);
             case FLIP -> Jests.flip(world, player, power);
+            case TIME_RUSH -> Jests.timeRush(world, player, power);
+            case SHEEP_PARTY -> Jests.sheepParty(world, player, power);
+            case FISH_RAIN -> Jests.fishRain(world, player, power);
+            case CREEPER_PRANK -> Jests.creeperPrank(world, player);
+            case PUMPKIN_HEAD -> Jests.pumpkinHead(world, player);
+            case LEVITATE -> Jests.levitate(world, player);
+            case DIZZY -> Jests.dizzy(world, player);
         };
     }
 
@@ -206,8 +213,13 @@ public final class Miracles {
         return "сытость и " + pieces + " кусков еды с неба";
     }
 
-    private static String clearWeather(ServerWorld world, int power) {
-        if (world.getRegistryKey() != World.OVERWORLD) return null;
+    private static String clearWeather(ServerWorld world, ServerPlayerEntity player, int power) {
+        if (world.getRegistryKey() != World.OVERWORLD) {
+            // No sky to clear in the Nether or the End: the mercy cools the air around him instead.
+            effect(player, StatusEffects.FIRE_RESISTANCE, 20 * 60 * 3 * power, 0);
+            column(world, player.getBlockPos(), ParticleTypes.END_ROD);
+            return "прохлада посреди чужого неба";
+        }
         world.setWeather(12_000 * power, 0, false, false);
         long time = world.getTimeOfDay();
         boolean night = time % 24_000 >= 12_500;
@@ -249,7 +261,13 @@ public final class Miracles {
             world.setBlockState(pos, deep ? deepslate(ore).getDefaultState() : ore.getDefaultState());
             placed++;
         }
-        if (placed == 0) return null;
+        if (placed == 0) {
+            // Nothing to turn into ore under his feet (sand, water, air): the vein falls from the sky as raw ore.
+            Item[] raw = power >= 3 ? new Item[] { Items.DIAMOND, Items.RAW_GOLD } : new Item[] { Items.RAW_IRON, Items.COAL, Items.RAW_GOLD, Items.RAW_COPPER };
+            for (int i = 0; i < wanted; i++) drop(world, player.getPos().add(world.random.nextGaussian(), 5, world.random.nextGaussian()), new ItemStack(raw[i % raw.length]));
+            sound(world, player.getBlockPos(), SoundEvents.BLOCK_AMETHYST_BLOCK_RESONATE, 1.5f, 0.7f);
+            return "руда с неба: " + wanted + " шт.";
+        }
         sound(world, player.getBlockPos(), SoundEvents.BLOCK_AMETHYST_BLOCK_RESONATE, 1.5f, 0.7f);
         return "жила руды в " + (4 + power) + " блоках под ногами (" + placed + " шт.)";
     }
@@ -260,10 +278,17 @@ public final class Miracles {
     }
 
     private static String enchant(ServerWorld world, ServerPlayerEntity player, int power) {
+        // The thing in hand, else the first enchantable thing he wears or carries, else a book.
         ItemStack held = player.getMainHandStack();
-        if (held.isEmpty() || !held.isEnchantable()) return null;
+        if (held.isEmpty() || !held.isEnchantable()) held = firstStack(player, ItemStack::isEnchantable);
+        if (held == null) {
+            ItemStack book = EnchantmentHelper.enchant(world.random, new ItemStack(Items.BOOK), 10 * power, world.getRegistryManager(), Optional.empty());
+            give(world, player, book);
+            sound(world, player.getBlockPos(), SoundEvents.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1f);
+            return "зачарованная книга";
+        }
         ItemStack result = EnchantmentHelper.enchant(world.random, held.copy(), 10 * power, world.getRegistryManager(), Optional.empty());
-        player.setStackInHand(net.minecraft.util.Hand.MAIN_HAND, result);
+        replace(player, held, result);
         sound(world, player.getBlockPos(), SoundEvents.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1f);
         burst(world, player.getBlockPos().up(), ParticleTypes.ENCHANT, 60);
         return "зачарован " + result.getName().getString();
@@ -275,7 +300,15 @@ public final class Miracles {
             ItemStack stack = player.getEquippedStack(slot);
             if (!stack.isEmpty() && stack.isDamageable() && stack.getDamage() > 0) { stack.setDamage(0); repaired++; }
         }
-        if (repaired == 0) return null;
+        for (ItemStack stack : player.getInventory().main)
+            if (!stack.isEmpty() && stack.isDamageable() && stack.getDamage() > 0) { stack.setDamage(0); repaired++; }
+        if (repaired == 0) {
+            // Nothing is worn out: the mercy comes as experience instead.
+            give(player.getServerWorld(), player, new ItemStack(Items.EXPERIENCE_BOTTLE, 8));
+            sound(player.getServerWorld(), player.getBlockPos(), SoundEvents.ENTITY_PLAYER_LEVELUP, 1f, 1.2f);
+            return "чинить нечего — 8 пузырьков опыта";
+        }
+        player.currentScreenHandler.sendContentUpdates();
         sound(player.getServerWorld(), player.getBlockPos(), SoundEvents.BLOCK_ANVIL_USE, 1f, 1.2f);
         return "починено предметов: " + repaired;
     }
@@ -313,7 +346,20 @@ public final class Miracles {
             world.spawnParticles(ParticleTypes.HAPPY_VILLAGER, fixed.getX() + 0.5, fixed.getY() + 0.5, fixed.getZ() + 0.5, 4, 0.3, 0.3, 0.3, 0);
             grown++;
         }
-        return grown == 0 ? null : "выросло растений: " + grown;
+        if (grown > 0) return "выросло растений: " + grown;
+        // No crops around: the grass around him bursts into flowers, and seeds and bone meal fall into his hands.
+        int bloomed = 0;
+        for (BlockPos pos : BlockPos.iterate(player.getBlockPos().add(-4, -2, -4), player.getBlockPos().add(4, 1, 4))) {
+            BlockState state = world.getBlockState(pos);
+            if (bloomed < 3 && state.isOf(Blocks.GRASS_BLOCK) && world.getBlockState(pos.up()).isAir()) {
+                ((Fertilizable) state.getBlock()).grow(world, world.random, pos.toImmutable(), state);
+                bloomed++;
+            }
+        }
+        give(world, player, new ItemStack(Items.BONE_MEAL, 8 * power));
+        give(world, player, new ItemStack(Items.WHEAT_SEEDS, 8));
+        burst(world, player.getBlockPos(), ParticleTypes.HAPPY_VILLAGER, 40);
+        return "сеять нечего — цветы вокруг, семена и костная мука";
     }
 
     private static String smite(ServerWorld world, ServerPlayerEntity player, int power) {
@@ -325,7 +371,13 @@ public final class Miracles {
             enemy.damage(world.getDamageSources().lightningBolt(), power >= 3 ? 1000 : 10f * power);
             struck++;
         }
-        return struck == 0 ? null : "молнии поразили врагов: " + struck;
+        if (struck > 0) return "молнии поразили врагов: " + struck;
+        // No enemy in sight: a ring of harmless lightning and the god's shield for the fights to come.
+        int[][] ring = { { 6, 0 }, { -6, 0 }, { 0, 6 }, { 0, -6 } };
+        for (int[] offset : ring) bolt(world, player.getBlockPos().add(offset[0], 0, offset[1]), true);
+        effect(player, StatusEffects.RESISTANCE, 20 * 60 * 3, 0);
+        effect(player, StatusEffects.STRENGTH, 20 * 60 * 3, 0);
+        return "врагов нет — кольцо молний и щит на 3 мин";
     }
 
     private static String safeHome(ServerWorld world, ServerPlayerEntity player) {
@@ -377,13 +429,16 @@ public final class Miracles {
     }
 
     private static String transmute(ServerWorld world, ServerPlayerEntity player, int power) {
+        // The thing in hand if it has a "likeness", else the first such thing in his bags, else whatever he holds turns to dust.
         ItemStack held = player.getMainHandStack();
-        if (held.isEmpty()) return null;
+        if (held.isEmpty() || likeness(held) == null) {
+            ItemStack valuable = firstStack(player, stack -> likeness(stack) != null);
+            if (valuable != null) held = valuable;
+        }
+        if (held.isEmpty()) held = firstStack(player, stack -> true);
+        if (held == null || held.isEmpty()) return null;
         Item from = held.getItem();
-        Item into = from == Items.DIAMOND ? Items.GLASS : from == Items.EMERALD ? Items.LIME_DYE : from == Items.GOLD_INGOT ? Items.COPPER_INGOT
-                : from == Items.IRON_INGOT ? Items.BRICK : from == Items.BREAD ? Items.WHEAT_SEEDS : from == Items.COOKED_BEEF ? Items.ROTTEN_FLESH
-                : held.isIn(net.minecraft.registry.tag.ItemTags.SWORDS) ? Items.STICK : held.isIn(net.minecraft.registry.tag.ItemTags.PICKAXES) ? Items.WOODEN_PICKAXE : null;
-        if (into == null) return null;
+        Item into = likeness(held) != null ? likeness(held) : Items.DEAD_BUSH;
         int count = Math.min(held.getCount(), 2 * power); // A jest stings; it does not empty the vault.
         held.decrement(count);
         give(world, player, new ItemStack(into, count));
@@ -392,11 +447,24 @@ public final class Miracles {
         return new ItemStack(from).getName().getString() + " ×" + count + " → " + new ItemStack(into).getName().getString();
     }
 
+    /** What a treasure turns into under the god's jest; null for things without a "likeness". */
+    private static Item likeness(ItemStack stack) {
+        Item from = stack.getItem();
+        return from == Items.DIAMOND ? Items.GLASS : from == Items.EMERALD ? Items.LIME_DYE : from == Items.GOLD_INGOT ? Items.COPPER_INGOT
+                : from == Items.IRON_INGOT ? Items.BRICK : from == Items.BREAD ? Items.WHEAT_SEEDS : from == Items.COOKED_BEEF ? Items.ROTTEN_FLESH
+                : from == Items.NETHERITE_INGOT ? Items.COAL : from == Items.DIAMOND_BLOCK ? Items.GLASS : from == Items.GOLD_NUGGET ? Items.IRON_NUGGET
+                : stack.isIn(net.minecraft.registry.tag.ItemTags.SWORDS) ? Items.STICK : stack.isIn(net.minecraft.registry.tag.ItemTags.PICKAXES) ? Items.WOODEN_PICKAXE
+                : stack.isIn(net.minecraft.registry.tag.ItemTags.AXES) ? Items.WOODEN_AXE : null;
+    }
+
     private static String randomTeleport(ServerWorld world, ServerPlayerEntity player, int power) {
-        if (world.getDimension().hasCeiling()) return null;
-        for (int attempt = 0; attempt < 8; attempt++) {
-            double angle = world.random.nextDouble() * Math.PI * 2, distance = 100 + world.random.nextInt(50 * power);
+        if (world.getDimension().hasCeiling()) return caveTeleport(world, player, power);
+        for (int attempt = 0; attempt < 16; attempt++) {
+            // Far tries first; if the land out there is all water, nearer ones.
+            double angle = world.random.nextDouble() * Math.PI * 2, distance = attempt < 10 ? 100 + world.random.nextInt(50 * power) : 30 + world.random.nextInt(40);
             BlockPos column = BlockPos.ofFloored(player.getX() + Math.cos(angle) * distance, 0, player.getZ() + Math.sin(angle) * distance);
+            // The heightmap of a chunk nobody has loaded reads as the bottom of the world: load it first.
+            world.getChunk(column.getX() >> 4, column.getZ() >> 4);
             BlockPos top = world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, column);
             if (!world.getFluidState(top.down()).isEmpty() || top.getY() <= world.getBottomY() + 1) continue;
             player.teleport(world, top.getX() + 0.5, top.getY() + 0.1, top.getZ() + 0.5, player.getYaw(), player.getPitch());
@@ -407,15 +475,39 @@ public final class Miracles {
         return null;
     }
 
+    /** Under a roof of rock (the Nether): a safe pocket of air 50–100 blocks away, searched from the roof down. */
+    private static String caveTeleport(ServerWorld world, ServerPlayerEntity player, int power) {
+        for (int attempt = 0; attempt < 32; attempt++) {
+            double angle = world.random.nextDouble() * Math.PI * 2, distance = attempt < 20 ? 50 + world.random.nextInt(25 * power) : 12 + world.random.nextInt(30);
+            int x = (int) Math.floor(player.getX() + Math.cos(angle) * distance), z = (int) Math.floor(player.getZ() + Math.sin(angle) * distance);
+            world.getChunk(x >> 4, z >> 4);
+            for (int y = world.getBottomY() + world.getLogicalHeight() - 10; y > world.getBottomY() + 8; y--) {
+                BlockPos feet = new BlockPos(x, y, z);
+                if (world.getBlockState(feet).isAir() && world.getBlockState(feet.up()).isAir() && world.getBlockState(feet.down()).isSolidBlock(world, feet.down())
+                        && world.getFluidState(feet.down()).isEmpty()) {
+                    player.teleport(world, x + 0.5, y + 0.1, z + 0.5, player.getYaw(), player.getPitch());
+                    sound(world, feet, SoundEvents.ENTITY_ENDERMAN_TELEPORT, 1f, 0.6f);
+                    return "заброшен за " + (int) distance + " блоков";
+                }
+            }
+        }
+        return null;
+    }
+
     // ---- Wrath. ----
 
     private static String lightning(ServerWorld world, ServerPlayerEntity player, BlockPos altar, int power, DivineConfig config) {
-        BlockPos at = power >= 2 ? player.getBlockPos() : player.getBlockPos().add(3 + world.random.nextInt(3), 0, 3 + world.random.nextInt(3));
+        // Always into the sinner himself. Where the land is protected (at the altar, by the bed) the bolt sets nothing alight,
+        // but the blow and the fire on him are the same.
+        strike(world, player, altar, power, config);
+        if (power >= 3) Scheduler.repeat(15, 2, i -> { if (player.isAlive() && player.getServerWorld() == world) strike(world, player, altar, power, config); });
+        return power >= 3 ? "три молнии в грешника" : "молния в грешника";
+    }
+    private static void strike(ServerWorld world, ServerPlayerEntity player, BlockPos altar, int power, DivineConfig config) {
+        BlockPos at = player.getBlockPos();
         boolean spare = Protection.spares(world, player, altar, at, config);
         bolt(world, at, spare);
-        if (spare && power >= 2) player.damage(world.getDamageSources().lightningBolt(), 3f * power);
-        if (power >= 3) Scheduler.repeat(15, 2, i -> bolt(world, player.getBlockPos(), Protection.spares(world, player, altar, player.getBlockPos(), config)));
-        return power >= 2 ? "молния в грешника" : "молния рядом";
+        if (spare) { player.damage(world.getDamageSources().lightningBolt(), 3f + 2f * power); player.setOnFireFor(4); }
     }
 
     private static String curse(ServerPlayerEntity player, int power) {
@@ -451,8 +543,10 @@ public final class Miracles {
     }
 
     private static String curseTool(ServerWorld world, ServerPlayerEntity player) {
+        // The tool in hand, else the first tool or armour he carries; with nothing to curse, the curse falls on him.
         ItemStack held = player.getMainHandStack();
-        if (held.isEmpty() || !held.isDamageable()) return null;
+        if (held.isEmpty() || !held.isDamageable()) held = firstStack(player, ItemStack::isDamageable);
+        if (held == null) return curse(player, 1) + " (проклинать было нечего)";
         var enchantments = world.getRegistryManager().get(RegistryKeys.ENCHANTMENT);
         boolean wearable = held.getItem() instanceof ArmorItem;
         RegistryEntry<net.minecraft.enchantment.Enchantment> curse = enchantments.entryOf(wearable ? Enchantments.BINDING_CURSE : Enchantments.VANISHING_CURSE);
@@ -463,7 +557,16 @@ public final class Miracles {
     }
 
     private static String acidRain(ServerWorld world, BlockPos altar, int power) {
-        if (world.getRegistryKey() != World.OVERWORLD) return null;
+        if (world.getRegistryKey() != World.OVERWORLD) {
+            // No rain under a stone sky: a poisonous cloud settles round him instead.
+            for (ServerPlayerEntity victim : world.getPlayers(p -> p.isAlive() && p.getBlockPos().isWithinDistance(altar, 96))) {
+                var cloud = new net.minecraft.entity.AreaEffectCloudEntity(world, victim.getX(), victim.getY(), victim.getZ());
+                cloud.setRadius(4f); cloud.setDuration(20 * 20); cloud.setRadiusGrowth(-0.005f);
+                cloud.addEffect(new StatusEffectInstance(StatusEffects.POISON, 100, power >= 3 ? 1 : 0));
+                world.spawnEntity(cloud);
+            }
+            return "ядовитое облако";
+        }
         world.setWeather(0, 1_400, true, false);
         Scheduler.repeat(40, 30, i -> {
             for (ServerPlayerEntity victim : world.getPlayers(p -> p.isAlive() && p.getBlockPos().isWithinDistance(altar, 96)))
@@ -514,6 +617,20 @@ public final class Miracles {
         bolt.setCosmetic(cosmetic);
         world.spawnEntity(bolt);
     }
+    /** The first stack in his hands, armour and bags that matches; null when none does. */
+    static ItemStack firstStack(ServerPlayerEntity player, java.util.function.Predicate<ItemStack> wanted) {
+        for (EquipmentSlot slot : EquipmentSlot.values()) { ItemStack stack = player.getEquippedStack(slot); if (!stack.isEmpty() && wanted.test(stack)) return stack; }
+        for (ItemStack stack : player.getInventory().main) if (!stack.isEmpty() && wanted.test(stack)) return stack;
+        return null;
+    }
+    /** Puts {@code result} where {@code old} lay (a hand, an armour slot or the bags). */
+    static void replace(ServerPlayerEntity player, ItemStack old, ItemStack result) {
+        for (EquipmentSlot slot : EquipmentSlot.values()) if (player.getEquippedStack(slot) == old) { player.equipStack(slot, result); return; }
+        var main = player.getInventory().main;
+        for (int i = 0; i < main.size(); i++) if (main.get(i) == old) { main.set(i, result); player.currentScreenHandler.sendContentUpdates(); return; }
+        give(player.getServerWorld(), player, result);
+    }
+
     static void give(ServerWorld world, ServerPlayerEntity player, ItemStack stack) {
         player.getInventory().insertStack(stack);
         if (!stack.isEmpty()) drop(world, player.getPos().add(0, 1, 0), stack);

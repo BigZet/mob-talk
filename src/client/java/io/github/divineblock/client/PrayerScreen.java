@@ -26,7 +26,10 @@ public final class PrayerScreen extends Screen {
         addDrawableChild(field);
         setInitialFocus(field);
         addDrawableChild(ButtonWidget.builder(Text.literal("Молиться"), button -> send()).dimensions(left, top + 28, width / 2 - 4, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Почему?"), button -> { field.setText("Почему?"); send(); })
+        addDrawableChild(ButtonWidget.builder(Text.literal("Почему?"), button -> {
+                    if (ClientPlayNetworking.canSend(PrayPayload.ID)) ClientPlayNetworking.send(new PrayPayload(altar, "Почему?", true));
+                    close();
+                })
                 .dimensions(left + width / 2 + 4, top + 28, width / 2 - 4, 20).build());
     }
 
@@ -45,7 +48,7 @@ public final class PrayerScreen extends Screen {
         super.render(context, mouseX, mouseY, delta);
         int top = this.height / 2 - 20;
         context.drawCenteredTextWithShadow(textRenderer, Text.literal("Обратись к богу").formatted(Formatting.GOLD), this.width / 2, top - 34, 0xFFFFFF);
-        context.drawCenteredTextWithShadow(textRenderer, Text.literal("Дары брось на алтарь заранее. «Почему?» — и бог объяснит своё решение."),
+        context.drawCenteredTextWithShadow(textRenderer, Text.literal("Дары брось на алтарь заранее. Кнопка «Почему?» — и бог объяснит прошлое решение."),
                 this.width / 2, top - 18, 0xAAAAAA);
     }
 

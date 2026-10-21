@@ -48,7 +48,10 @@ public final class DivineBlockMod implements ModInitializer {
         PayloadTypeRegistry.playC2S().register(io.github.divineblock.game.VoiceStartPayload.ID, io.github.divineblock.game.VoiceStartPayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(io.github.divineblock.game.VoiceStartPayload.ID,
                 (payload, context) -> Prayers.voiceStarted(context.player(), payload.id(), payload.seconds()));
-        ServerPlayNetworking.registerGlobalReceiver(PrayPayload.ID, (payload, context) -> Prayers.handle(context.player(), payload.altar(), payload.text()));
+        ServerPlayNetworking.registerGlobalReceiver(PrayPayload.ID, (payload, context) -> {
+            if (payload.why()) Prayers.explain(context.player(), payload.altar());
+            else Prayers.handle(context.player(), payload.altar(), payload.text());
+        });
         JevGodDecider.diagnostics = line -> LOG.info("Божественный блок: {}", line);
         GameHooks.register();
         LOG.info("Божественный блок загружен");

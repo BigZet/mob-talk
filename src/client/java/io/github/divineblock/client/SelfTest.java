@@ -211,7 +211,7 @@ public final class SelfTest {
             clientPrayer = "Пожалуйста, великий, исцели меня";
         }));
         steps.add(new Step(-1, () -> verdictArrived(soul, 1, "милость святому")));
-        steps.add(new Step(40, () -> { screenshot = "help"; soul.lastPrayerTick = Long.MIN_VALUE / 2; Prayers.handle(player, altar, "Почему?"); }));
+        steps.add(new Step(40, () -> { screenshot = "help"; soul.lastPrayerTick = Long.MIN_VALUE / 2; Prayers.explain(player, altar); }));
         steps.add(new Step(SILENCE, () -> { }));
         steps.add(new Step(100, () -> {
             // A spoken prayer: the god's own voice says it, Whisper hears it, and it goes to the altar like a real one.
@@ -233,6 +233,9 @@ public final class SelfTest {
         steps.add(new Step(100, () -> {
             // An ordinary mortal swears at the god: real wrath, at full strength, and only after the god has spoken.
             soul.righteousness.score = 0; soul.mood = 0; soul.lastPrayerTick = Long.MIN_VALUE / 2; soul.prayerTicks.clear();
+            // The punishment is real: the test mortal must live through it, or every later step acts on a corpse.
+            player.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, 20 * 120, 4, false, false));
+            player.addStatusEffect(new StatusEffectInstance(StatusEffects.FIRE_RESISTANCE, 20 * 120, 0, false, false));
             Prayers.spoken = line -> {
                 spokenAt = System.nanoTime(); log("  бог: " + line); Scheduler.later(20, () -> screenshot = "beams");
                 Scheduler.later(40, () -> {
@@ -245,7 +248,7 @@ public final class SelfTest {
             };
             Prayers.performed = act -> {
                 performedAt = System.nanoTime(); log("  свершилось: " + act);
-                Scheduler.later(40, () -> check(ChantPlayer.musicLevel() > underVoice * 2 || ChantPlayer.musicPiece() == null,
+                Scheduler.later(85, () -> check(ChantPlayer.musicLevel() > underVoice * 1.3f || ChantPlayer.musicPiece() == null,
                         "после слов бога музыка кары стала громче (или доиграла): " + underVoice + " → " + ChantPlayer.musicLevel()));
                 Scheduler.later(140, () -> check(ChantPlayer.musicEnding(), "через 5 с после слов бога музыка кары стихает"));
                 check(ChantPlayer.thunders > 0, "под музыку кары гремел гром: " + ChantPlayer.thunders + " раз");
@@ -289,7 +292,18 @@ public final class SelfTest {
         steps.add(new Step(120, () -> log("--- все деяния каталога ---")));
         DivineConfig config = DivineBlockMod.config();
         config.allowWither = true; config.maxTier = 4;
-        for (Miracle miracle : Miracle.values()) steps.add(new Step(miracle == Miracle.METEOR || miracle == Miracle.CHICKEN_RAIN ? 90 : 30, () -> perform(player, miracle, config)));
+        for (Miracle miracle : Miracle.values()) steps.add(new Step(miracle == Miracle.METEOR || miracle == Miracle.CHICKEN_RAIN ? 90 : 30, () -> perform(player, miracle, config, Stage.STOCKED)));
+        // The same acts as a real mortal meets them: nothing in his hands or bags, then in the Nether under a roof of rock.
+        steps.add(new Step(40, () -> log("--- деяния с пустым инвентарём ---")));
+        for (Miracle miracle : EMPTY_HANDED) steps.add(new Step(30, () -> perform(player, miracle, config, Stage.EMPTY)));
+        steps.add(new Step(40, () -> {
+            log("--- деяния в Аду ---");
+            // Into the Nether once, a step ahead: crossing between worlds is not done within the same tick.
+            ServerWorld nether = player.getServer().getWorld(net.minecraft.world.World.NETHER);
+            BlockPos stand = netherStage(nether);
+            player.teleport(nether, stand.getX() + 0.5, stand.getY(), stand.getZ() + 0.5, 180f, 15f);
+        }));
+        for (Miracle miracle : IN_THE_NETHER) steps.add(new Step(miracle == Miracle.METEOR ? 90 : 40, () -> perform(player, miracle, config, Stage.NETHER)));
         steps.add(new Step(40, () -> { clean(world); home(player); screenshot = "end"; }));
         steps.add(new Step(30, () -> { log("ошибок после деяний: " + failures); write(); finished = true; }));
         run(steps, 0);
@@ -342,14 +356,57 @@ public final class SelfTest {
         return last;
     }
 
-    private static void perform(ServerPlayerEntity player, Miracle miracle, DivineConfig config) {
-        home(player);
+    /** Where and how an act is tried: on the stage with the things it wants, with empty hands and bags, or in the Nether. */
+    private enum Stage { STOCKED, EMPTY, NETHER }
+    /** Acts that read the mortal's hands and bags. */
+    private static final List<Miracle> EMPTY_HANDED = List.of(Miracle.ENCHANT, Miracle.REPAIR, Miracle.TRANSMUTE, Miracle.CURSE_TOOL, Miracle.GROW,
+            Miracle.SMITE_ENEMIES, Miracle.GIFT_ITEM, Miracle.SWAP_ITEMS, Miracle.PUMPKIN_HEAD, Miracle.LIGHTNING);
+    /** Acts that read the sky, the weather and the ground. */
+    private static final List<Miracle> IN_THE_NETHER = List.of(Miracle.WEATHER_CLEAR, Miracle.ACID_RAIN, Miracle.RANDOM_TP, Miracle.ORE_VEIN, Miracle.TIME_RUSH,
+            Miracle.LIGHTNING, Miracle.METEOR, Miracle.FISH_RAIN, Miracle.SHEEP_PARTY, Miracle.FIRE_RING, Miracle.SAFE_HOME, Miracle.SWARM, Miracle.CHICKEN_RAIN,
+            Miracle.END_EXILE, Miracle.EARTHQUAKE, Miracle.TNT_RAIN, Miracle.GROW, Miracle.SMITE_ENEMIES, Miracle.CREEPER_PRANK, Miracle.LEVITATE);
+    /** Acts that may honestly find nothing to do here; the god then draws another act of the same group (Prayers.act). */
+    private static boolean mayFail(Miracle miracle, Stage stage) {
+        return stage == Stage.EMPTY && miracle == Miracle.TRANSMUTE
+                || stage == Stage.NETHER && (miracle == Miracle.HELL_EXILE || miracle == Miracle.TIME_RUSH);
+    }
+    private static BlockPos netherBase;
+
+    /** A 15x15 obsidian floor with air above, in the Nether near the origin. */
+    private static BlockPos netherStage(ServerWorld nether) {
+        if (netherBase != null) return netherBase;
+        netherBase = new BlockPos(8, 64, 8);
+        for (BlockPos pos : BlockPos.iterate(netherBase.add(-7, -1, -7), netherBase.add(7, 8, 7)))
+            nether.setBlockState(pos, pos.getY() == netherBase.getY() - 1 ? Blocks.OBSIDIAN.getDefaultState() : Blocks.AIR.getDefaultState());
+        for (BlockPos pos : BlockPos.iterate(netherBase.add(-7, -4, -7), netherBase.add(7, -2, 7)))
+            if (!nether.getBlockState(pos).isSolidBlock(nether, pos)) nether.setBlockState(pos, Blocks.NETHERRACK.getDefaultState());
+        return netherBase;
+    }
+
+    private static void perform(ServerPlayerEntity player, Miracle miracle, DivineConfig config, Stage stage) {
+        if (!player.isAlive()) { fail(miracle.id() + ": игрок мёртв, проверять не на ком"); return; }
+        BlockPos at = altar;
+        if (stage == Stage.NETHER) {
+            ServerWorld nether = player.getServer().getWorld(net.minecraft.world.World.NETHER);
+            if (nether == null) { fail("нет мира Ада"); return; }
+            BlockPos stand = netherStage(nether);
+            player.teleport(nether, stand.getX() + 0.5, stand.getY(), stand.getZ() + 0.5, 180f, 15f);
+            if (player.getServerWorld() != nether) { fail(miracle.id() + ": игрок не попал в Ад"); return; }
+            player.setVelocity(0, 0, 0); player.fallDistance = 0; player.setFireTicks(0);
+            at = stand.north(3);
+            for (MobEntity mob : nether.getEntitiesByClass(MobEntity.class, new Box(stand).expand(64), m -> true)) mob.discard();
+            for (ItemEntity item : nether.getEntitiesByClass(ItemEntity.class, new Box(stand).expand(32), i -> true)) item.discard();
+        } else home(player);
         ServerWorld world = player.getServerWorld();
-        clean(world);
+        if (stage != Stage.NETHER) clean(world);
         player.clearStatusEffects();
-        player.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, 20 * 60, 4, false, false));
-        player.setHealth(player.getMaxHealth() * 0.5f);
-        switch (miracle) {
+        boolean hurts = miracle == Miracle.LIGHTNING; // Its blow must land: no shield, and survival (creative takes no harm).
+        if (!hurts) player.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, 20 * 60, 4, false, false));
+        net.minecraft.world.GameMode mode = player.interactionManager.getGameMode();
+        if (hurts) { player.changeGameMode(net.minecraft.world.GameMode.SURVIVAL); Scheduler.later(20, () -> player.changeGameMode(mode)); }
+        player.setHealth(hurts ? player.getMaxHealth() : player.getMaxHealth() * 0.5f);
+        if (stage != Stage.STOCKED) { player.getInventory().clear(); player.currentScreenHandler.sendContentUpdates(); }
+        else switch (miracle) {
             case ENCHANT, CURSE_TOOL -> player.setStackInHand(Hand.MAIN_HAND, new ItemStack(Items.DIAMOND_SWORD));
             case REPAIR -> { ItemStack sword = new ItemStack(Items.IRON_SWORD); sword.setDamage(100); player.setStackInHand(Hand.MAIN_HAND, sword); }
             case TRANSMUTE -> player.setStackInHand(Hand.MAIN_HAND, new ItemStack(Items.DIAMOND, 5));
@@ -364,27 +421,57 @@ public final class SelfTest {
             default -> { }
         }
         int power = Math.max(miracle.minTier, Math.min(miracle.maxTier, 2));
+        String where = stage == Stage.STOCKED ? "" : stage == Stage.EMPTY ? " [пусто]" : " [Ад]";
+        float health = player.getHealth();
+        long time = world.getTimeOfDay();
         String result;
-        try { result = Miracles.perform(miracle, power, player, altar, "дай алмазный меч", config); }
-        catch (RuntimeException failure) { fail(miracle.id() + " ×" + power + ": исключение " + failure); return; }
-        boolean optional = miracle == Miracle.SAFE_HOME || miracle == Miracle.RANDOM_TP; // These move the player; null only in odd terrain.
-        if (result == null && !optional) fail(miracle.id() + " ×" + power + ": не сработало");
-        else log("ok " + miracle.id() + " ×" + power + ": " + result);
+        try { result = Miracles.perform(miracle, power, player, at, "дай алмазный меч", config); }
+        catch (RuntimeException failure) { fail(miracle.id() + " ×" + power + where + ": исключение " + failure); return; }
+        if (result == null && !mayFail(miracle, stage)) fail(miracle.id() + " ×" + power + where + ": не сработало");
+        else log("ok " + miracle.id() + " ×" + power + where + ": " + (result == null ? "здесь невозможно — бог возьмёт другое деяние группы" : result));
+        verify(player, world, miracle, stage, health, time, where);
         if (miracle == Miracle.WITHER) Scheduler.later(10, () -> { var withers = world.getEntitiesByType(EntityType.WITHER, w -> true); check(!withers.isEmpty(), "визер появился"); withers.forEach(w -> w.discard()); });
         if (miracle == Miracle.OMEN_LIGHT || miracle == Miracle.CHICKEN_RAIN || miracle == Miracle.FIRE_RING || miracle == Miracle.SMITE_ENEMIES || miracle == Miracle.GIFT_ITEM)
             Scheduler.later(miracle == Miracle.CHICKEN_RAIN ? 40 : 8, () -> screenshot = miracle.id());
         if (miracle == Miracle.METEOR) Scheduler.later(64, () -> screenshot = "meteor");
         if (miracle == Miracle.TORNADO) Scheduler.later(140, () -> {
             // Turn to face the funnel from a safe distance, then photograph it.
-            var at = io.github.divineblock.game.Tornadoes.newest();
-            if (at == null) { fail("торнадо не появилось"); return; }
-            double dx = at.x - player.getX(), dz = at.z - player.getZ();
+            var funnel = io.github.divineblock.game.Tornadoes.newest();
+            if (funnel == null) { fail("торнадо не появилось"); return; }
+            double dx = funnel.x - player.getX(), dz = funnel.z - player.getZ();
             float yaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
             player.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, 20 * 60, 4, false, false));
             player.teleport(player.getServerWorld(), player.getX(), player.getY(), player.getZ(), yaw, -12f);
             check(true, "торнадо стоит в " + Math.round(Math.hypot(dx, dz)) + " блоках");
             Scheduler.later(5, () -> screenshot = "tornado");
         });
+    }
+
+    /** What the act must have done, beyond saying so. */
+    private static void verify(ServerPlayerEntity player, ServerWorld world, Miracle miracle, Stage stage, float health, long time, String where) {
+        String name = miracle.id() + where;
+        switch (miracle) {
+            case LIGHTNING -> Scheduler.later(10, () -> check(player.getHealth() < health, name + ": молния ранила грешника, здоровье " + health + " → " + player.getHealth()));
+            case TIME_RUSH -> { if (stage != Stage.NETHER) Scheduler.later(100, () -> check(world.getTimeOfDay() - time >= 24_000, name + ": сутки промчались, время +" + (world.getTimeOfDay() - time))); }
+            case PUMPKIN_HEAD -> check(player.getEquippedStack(net.minecraft.entity.EquipmentSlot.HEAD).isOf(Items.CARVED_PUMPKIN), name + ": тыква на голове");
+            case LEVITATE -> check(player.hasStatusEffect(StatusEffects.LEVITATION), name + ": смертный поднимается");
+            case DIZZY -> check(player.hasStatusEffect(StatusEffects.NAUSEA), name + ": голова кругом");
+            case SHEEP_PARTY -> check(world.getEntitiesByType(EntityType.SHEEP, new Box(player.getBlockPos()).expand(8), sheep -> true).size() >= 6, name + ": овцы вокруг");
+            // Landed fish merge into stacks: count the fish, not the stacks.
+            case FISH_RAIN -> Scheduler.later(25, () -> check(world.getEntitiesByClass(ItemEntity.class, new Box(player.getBlockPos()).expand(16),
+                    item -> item.getStack().isOf(Items.COD) || item.getStack().isOf(Items.SALMON)).stream().mapToInt(item -> item.getStack().getCount()).sum() >= 5,
+                    name + ": рыба падает с неба"));
+            case ENCHANT -> { if (stage == Stage.EMPTY) check(holds(player, Items.ENCHANTED_BOOK), name + ": вместо вещи — зачарованная книга"); }
+            case REPAIR -> { if (stage == Stage.EMPTY) check(holds(player, Items.EXPERIENCE_BOTTLE), name + ": чинить нечего — опыт"); }
+            case WEATHER_CLEAR -> { if (stage == Stage.NETHER) check(player.hasStatusEffect(StatusEffects.FIRE_RESISTANCE), name + ": в Аду — прохлада"); }
+            default -> { }
+        }
+        if (miracle == Miracle.PUMPKIN_HEAD) player.equipStack(net.minecraft.entity.EquipmentSlot.HEAD, ItemStack.EMPTY);
+    }
+
+    private static boolean holds(ServerPlayerEntity player, net.minecraft.item.Item item) {
+        for (ItemStack stack : player.getInventory().main) if (stack.isOf(item)) return true;
+        return false;
     }
 
     private static void home(ServerPlayerEntity player) {

@@ -8,8 +8,8 @@ import java.util.Random;
  * drawn at random, never one of the last few done to this mortal. Escalation opens the heavier groups: a first insult opens
  * К1–К3, repeated insults and sins open К4, and К5 — the end of the world — waits for the third blasphemy or a damned soul. */
 public enum MiracleGroup {
-    K1(Miracle.Kind.WRATH, "знак гнева", "молния рядом, гром и тьма, проклятие голода и слабости, проклятие предмета",
-            Miracle.LIGHTNING, Miracle.OMEN_THUNDER, Miracle.CURSE_MINOR, Miracle.CURSE_TOOL),
+    K1(Miracle.Kind.WRATH, "знак гнева", "молния в грешника, проклятие голода и слабости, проклятие предмета",
+            Miracle.LIGHTNING, Miracle.CURSE_MINOR, Miracle.CURSE_TOOL),
     K2(Miracle.Kind.WRATH, "казни египетские", "рой насекомых и фантомов, ядовитый дождь, дождь наковален, кольцо огня, золото и алмазы в мусор",
             Miracle.SWARM, Miracle.ACID_RAIN, Miracle.ANVIL_RAIN, Miracle.FIRE_RING, Miracle.TRANSMUTE),
     K3(Miracle.Kind.WRATH, "гнев земли и неба", "метеориты, землетрясение, провал земли, горящий динамит с неба, смерч",
@@ -26,10 +26,10 @@ public enum MiracleGroup {
             Miracle.BUFF, Miracle.GUARDIAN, Miracle.SMITE_ENEMIES, Miracle.SAFE_HOME),
     B4(Miracle.Kind.HELP, "великое благословение", "тотем бессмертия, благословение на целый день",
             Miracle.TOTEM, Miracle.BLESSING),
-    J1(Miracle.Kind.JEST, "лёгкая шутка", "куры с неба, перемешанный хотбар, лунная гравитация",
-            Miracle.CHICKEN_RAIN, Miracle.SWAP_ITEMS, Miracle.MOON_GRAVITY),
-    J2(Miracle.Kind.JEST, "злая шутка", "мир вверх ногами, телепорт куда попало",
-            Miracle.FLIP, Miracle.RANDOM_TP);
+    J1(Miracle.Kind.JEST, "лёгкая шутка", "куры или рыба с неба, перемешанный хотбар, лунная гравитация, круговорот дней, радужные овцы, шипение крипера",
+            Miracle.CHICKEN_RAIN, Miracle.SWAP_ITEMS, Miracle.MOON_GRAVITY, Miracle.TIME_RUSH, Miracle.SHEEP_PARTY, Miracle.FISH_RAIN, Miracle.CREEPER_PRANK),
+    J2(Miracle.Kind.JEST, "злая шутка", "мир вверх ногами, телепорт куда попало, тыква на голову, подъём в воздух, небесный хмель",
+            Miracle.FLIP, Miracle.RANDOM_TP, Miracle.PUMPKIN_HEAD, Miracle.LEVITATE, Miracle.DIZZY);
 
     public final Miracle.Kind kind;
     public final String label, description;

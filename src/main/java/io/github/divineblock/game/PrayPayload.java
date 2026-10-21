@@ -7,11 +7,14 @@ import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 
-/** A prayer from the client: which altar and the words. */
-public record PrayPayload(BlockPos altar, String text) implements CustomPayload {
+/** A prayer from the client: which altar and the words; {@code why} is the "Почему?" button, the only way to ask the god to
+ * explain his last verdict. */
+public record PrayPayload(BlockPos altar, String text, boolean why) implements CustomPayload {
+    public PrayPayload(BlockPos altar, String text) { this(altar, text, false); }
     public static final int MAX_TEXT = 600;
     public static final Id<PrayPayload> ID = new Id<>(Identifier.of("divineblock", "pray"));
     public static final PacketCodec<RegistryByteBuf, PrayPayload> CODEC = PacketCodec.tuple(
-            BlockPos.PACKET_CODEC, PrayPayload::altar, PacketCodecs.string(MAX_TEXT * 4), PrayPayload::text, PrayPayload::new);
+            BlockPos.PACKET_CODEC, PrayPayload::altar, PacketCodecs.string(MAX_TEXT * 4), PrayPayload::text,
+            PacketCodecs.BOOL, PrayPayload::why, PrayPayload::new);
     @Override public Id<? extends CustomPayload> getId() { return ID; }
 }

@@ -35,9 +35,16 @@ public enum Miracle {
     MOON_GRAVITY(Kind.JEST, 1, 2, false, "лунная гравитация: прыжки и медленное падение на минуту", List.of("летать", "прыг", "крыль", "полёт", "полет")),
     TRANSMUTE(Kind.JEST, 2, 2, false, "предмет в руке превращается во что-то «похожее» (алмаз в стекло, меч в палку)", List.of("преврат", "золото", "алхим")),
     RANDOM_TP(Kind.JEST, 2, 3, false, "телепорт в случайное место за 100–200 блоков", List.of("далеко", "путешеств", "уйти", "телепорт")),
+    TIME_RUSH(Kind.JEST, 1, 2, false, "круговорот дней: солнце и луна мчатся по небу, сутки за три секунды", List.of("время", "день", "ночь", "солнц", "рассвет")),
+    SHEEP_PARTY(Kind.JEST, 1, 2, false, "радужные овцы водят хоровод вокруг смертного", List.of("овц", "радуг", "праздник", "весел")),
+    FISH_RAIN(Kind.JEST, 1, 2, false, "дождь из рыбы: треска и лосось шлёпаются с неба", List.of("рыб", "улов", "ужин")),
+    CREEPER_PRANK(Kind.JEST, 1, 1, false, "шипение крипера за спиной и дым — но взрыва нет", List.of("испуг", "страх", "крипер")),
+    PUMPKIN_HEAD(Kind.JEST, 2, 2, false, "на голову смертного садится тыква, шлем падает в инвентарь", List.of("тыкв", "голов", "шлем", "красот")),
+    LEVITATE(Kind.JEST, 2, 2, false, "смертного поднимает в воздух на несколько секунд и мягко опускает", List.of("взлет", "взлёт", "небес", "вознес")),
+    DIZZY(Kind.JEST, 2, 2, false, "хмель небесный: голова кругом, ноги несут сами", List.of("вино", "пьян", "хмел", "мёд", "мед")),
 
     // Wrath.
-    LIGHTNING(Kind.WRATH, 1, 3, false, "молния рядом (на силе 2 и выше в самого грешника)", List.of("молни", "гром")),
+    LIGHTNING(Kind.WRATH, 1, 3, false, "молния в самого грешника (на силе 3 — три удара)", List.of("молни", "гром")),
     CURSE_MINOR(Kind.WRATH, 1, 2, false, "голод, слабость, медлительность и неудача на несколько минут", List.of("прокля", "сдохни")),
     SWARM(Kind.WRATH, 1, 3, false, "рой: чешуйницы, злые пчёлы, на силе 3 фантомы", List.of("пчёл", "пчел", "насеком")),
     CURSE_TOOL(Kind.WRATH, 2, 2, false, "проклятие несъёмности или утраты на предмет в руке", List.of("меч", "инструмент")),
@@ -94,8 +101,8 @@ public enum Miracle {
             case ORE_VEIN, ENCHANT, GUARDIAN, SMITE_ENEMIES, SAFE_HOME -> 3;
             case TOTEM -> 4;
             case BLESSING -> 5;
-            case SWAP_ITEMS, CHICKEN_RAIN, MOON_GRAVITY -> 1;
-            case FLIP, TRANSMUTE -> 2;
+            case SWAP_ITEMS, CHICKEN_RAIN, MOON_GRAVITY, TIME_RUSH, SHEEP_PARTY, FISH_RAIN, CREEPER_PRANK -> 1;
+            case FLIP, TRANSMUTE, PUMPKIN_HEAD, LEVITATE, DIZZY -> 2;
             case RANDOM_TP -> 3;
             case LIGHTNING, CURSE_MINOR -> 1;
             case SWARM, CURSE_TOOL -> 2;

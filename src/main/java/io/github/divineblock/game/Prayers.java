@@ -48,6 +48,20 @@ public final class Prayers {
 
     private Prayers() { }
 
+    /** The "Почему?" button: the god retells his last verdict and its reasons. Words alone, even "почему", are a prayer. */
+    public static void explain(ServerPlayerEntity player, BlockPos altar) {
+        ServerWorld world = player.getServerWorld();
+        if (!(world.getBlockState(altar).getBlock() instanceof AltarBlock) || !altar.isWithinDistance(player.getBlockPos(), 8)) return;
+        MinecraftServer server = world.getServer();
+        DivineConfig config = DivineBlockMod.config();
+        Verdict last = DivineState.of(server).ledger.soul(player.getUuid()).lastVerdict();
+        if (last == null) { say(player, "Я ещё ничего о тебе не решал, смертный."); return; }
+        WORKER.execute(() -> {
+            String line = new GodSpeech(config, DivineBlockMod.configDirectory()).explain(last);
+            server.execute(() -> { if (!player.isRemoved()) say(player, line); });
+        });
+    }
+
     public static void handle(ServerPlayerEntity player, BlockPos altar, String rawText) {
         ServerWorld world = player.getServerWorld();
         String text = rawText == null ? "" : rawText.replaceAll("\\p{Cntrl}", " ").strip();
@@ -56,16 +70,6 @@ public final class Prayers {
         MinecraftServer server = world.getServer();
         DivineConfig config = DivineBlockMod.config();
         GodLedger.Soul soul = DivineState.of(server).ledger.soul(player.getUuid());
-
-        if (PrayerTone.isWhyQuestion(text)) {
-            Verdict last = soul.lastVerdict();
-            if (last == null) { say(player, "Я ещё ничего о тебе не решал, смертный."); return; }
-            WORKER.execute(() -> {
-                String line = new GodSpeech(config, DivineBlockMod.configDirectory()).explain(last);
-                server.execute(() -> { if (!player.isRemoved()) say(player, line); });
-            });
-            return;
-        }
 
         if (THINKING.contains(player.getUuid())) { hint(player, "Бог ещё размышляет над прежней молитвой…"); return; }
         long now = server.getOverworld().getTime();
@@ -256,7 +260,19 @@ public final class Prayers {
         try { done = Miracles.perform(miracle, verdict.power, player, altar, verdict.prayer, config, verdict.severity()); }
         catch (RuntimeException failure) { DivineBlockMod.LOG.warn("Божественный блок: чудо {} не удалось", miracle.id(), failure); done = null; }
         if (done == null) {
-            // Nothing to act on here (empty hand, the Nether's roof): the god answers with a sign instead of half a miracle.
+            // The act cannot happen here (the Nether has no sky, the altar's land is protected): another act of the same
+            // group takes its place, so the verdict is still kept in full. Only when none of them can does an omen answer.
+            MiracleGroup group = MiracleGroup.byId(verdict.group);
+            List<Miracle> others = group == null ? List.of() : new java.util.ArrayList<>(group.allowed(verdict, config));
+            java.util.Collections.shuffle(others);
+            for (Miracle other : others) {
+                if (other == miracle) continue;
+                try { done = Miracles.perform(other, GodDecider.power(other, verdict.power, verdict.budget), player, altar, verdict.prayer, config, verdict.severity()); }
+                catch (RuntimeException failure) { DivineBlockMod.LOG.warn("Божественный блок: чудо {} не удалось", other.id(), failure); done = null; }
+                if (done != null) { DivineBlockMod.LOG.info("Божественный блок: {} здесь невозможно, вместо него {}", miracle.id(), other.id()); miracle = other; break; }
+            }
+        }
+        if (done == null) {
             Miracle omen = miracle.kind == Miracle.Kind.WRATH ? Miracle.OMEN_THUNDER : Miracle.OMEN_LIGHT;
             done = Miracles.perform(omen, 0, player, altar, verdict.prayer, config) + " (" + miracle.id() + " не вышло)";
         }
