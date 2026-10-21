@@ -68,7 +68,7 @@ public final class FacelessIconEntity extends SacredBoss {
             pos.set(getX(), getY() - dy, getZ());
             if (!world.getBlockState(pos).getCollisionShape(world, pos).isEmpty()) { ground = pos.getY() + 1; break; }
         }
-        double wanted = ground + 1.4 + Math.sin(age * 0.05) * 0.25;
+        double wanted = ground + 0.8 + Math.sin(age * 0.05) * 0.25;
         Vec3d v = getVelocity();
         setVelocity(v.x, MathHelper.clamp((wanted - getY()) * 0.08, -0.12, 0.12), v.z);
     }
@@ -98,7 +98,7 @@ public final class FacelessIconEntity extends SacredBoss {
     /** Where the blank face is: the beams come out of it. */
     Vec3d facePos() {
         float yaw = getYaw() * MathHelper.RADIANS_PER_DEGREE;
-        return new Vec3d(getX() - MathHelper.sin(yaw) * 0.3, getY() + getHeight() * 0.68, getZ() + MathHelper.cos(yaw) * 0.3);
+        return new Vec3d(getX() - MathHelper.sin(yaw) * 0.3, getY() + getHeight() * 0.71, getZ() + MathHelper.cos(yaw) * 0.3);
     }
 
     // ---- «Взор лика». ----
@@ -166,16 +166,17 @@ public final class FacelessIconEntity extends SacredBoss {
         Vec3d to = null;
         for (int tries = 0; tries < 6 && to == null; tries++, angle += 1.1) {
             BlockPos at = DivineBosses.room(world, BlockPos.ofFloored(from.add(Math.cos(angle) * 9, 1, Math.sin(angle) * 9)), 3);
-            if (at != null) to = Vec3d.ofBottomCenter(at);
+            // The icon is tall: the whole of it must fit where it appears, not only three blocks.
+            if (at != null && world.isSpaceEmpty(this, getDimensions(getPose()).getBoxAt(Vec3d.ofBottomCenter(at)))) to = Vec3d.ofBottomCenter(at);
         }
         if (to == null) { gazeBeam(target); return; }
         Vec3d dest = to, old = getPos();
         cast("Сокрытие", 18, true, left -> {
-            particles(GOLD_DUST, dest.x, dest.y + 1.5, dest.z, 6, 0.8, 1.4, 0.8, 0);
-            particles(GOLD_DUST, getX(), getY() + 1.5, getZ(), 4, 1, 1.4, 1, 0);
+            particles(GOLD_DUST, dest.x, dest.y + getHeight() * 0.45, dest.z, 6, 0.8, 1.4, 0.8, 0);
+            particles(GOLD_DUST, getX(), getY() + getHeight() * 0.45, getZ(), 4, 1, 1.4, 1, 0);
             if (left == 18) sound(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, 2f, 0.6f);
         }, () -> {
-            particles(ParticleTypes.END_ROD, getX(), getY() + 1.5, getZ(), 30, 0.8, 1.4, 0.8, 0.05);
+            particles(ParticleTypes.END_ROD, getX(), getY() + getHeight() * 0.45, getZ(), 30, 0.8, 1.4, 0.8, 0.05);
             requestTeleport(dest.x, dest.y, dest.z);
             sound(SoundEvents.ENTITY_ILLUSIONER_MIRROR_MOVE, 2f, 0.7f);
             hazards.zone(old, 2.5, 12, GOLD_DUST, at -> particles(ParticleTypes.FLASH, at.x, at.y + 1, at.z, 1, 0, 0, 0, 0),
@@ -186,7 +187,7 @@ public final class FacelessIconEntity extends SacredBoss {
     /** «Лики»: two or three small flying faces (vexes) leave the icon; never more than {@link #MAX_FACES}. */
     private void summonFaces(LivingEntity target) {
         cast("Лики", 24, true, left -> {
-            particles(GOLD_DUST, getX(), getY() + 2, getZ(), 6, 1, 1.2, 1, 0);
+            particles(GOLD_DUST, getX(), getY() + getHeight() * 0.55, getZ(), 6, 1, 1.2, 1, 0);
             if (left == 24) sound(SoundEvents.ENTITY_EVOKER_PREPARE_SUMMON, 2f, 1.3f);
         }, () -> {
             if (!(getWorld() instanceof ServerWorld world)) return;
@@ -222,7 +223,7 @@ public final class FacelessIconEntity extends SacredBoss {
         castUltimate(left -> {
             // The frames gather faintly where they will stand.
             if (left % 5 == 0) for (Vec3d frame : frames(center, target.getPos(), count)) drawFrame(frame, target.getPos(), PALE_DUST, false);
-            particles(ParticleTypes.END_ROD, getX(), getY() + 2, getZ(), 2, 1, 1.5, 1, 0.02);
+            particles(ParticleTypes.END_ROD, getX(), getY() + getHeight() * 0.55, getZ(), 2, 1, 1.5, 1, 0.02);
             if (left % 20 == 0) sound(SoundEvents.BLOCK_BELL_RESONATE, 2f, 1.2f);
         }, () -> iconostasis(target, center, count));
     }
@@ -283,7 +284,7 @@ public final class FacelessIconEntity extends SacredBoss {
 
     @Override protected void onPhase(int phase) {
         sound(SoundEvents.BLOCK_BELL_USE, 2f, 0.6f);
-        particles(ParticleTypes.END_ROD, getX(), getY() + 2, getZ(), 40, 1, 1.5, 1, 0.1);
+        particles(ParticleTypes.END_ROD, getX(), getY() + getHeight() * 0.55, getZ(), 40, 1, 1.5, 1, 0.1);
     }
 
     @Override protected void onDefeated() {
