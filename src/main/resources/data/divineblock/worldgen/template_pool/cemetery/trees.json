@@ -4,7 +4,7 @@
     {
       "element": {
         "element_type": "minecraft:feature_pool_element",
-        "feature": "divineblock:cemetery_birch",
+        "feature": "divineblock:cemetery_tree",
         "projection": "rigid"
       },
       "weight": 1

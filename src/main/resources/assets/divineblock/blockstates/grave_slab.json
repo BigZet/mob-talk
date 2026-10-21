@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "divineblock:block/grave_slab"
+    },
+    "facing=east": {
+      "model": "divineblock:block/grave_slab",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "divineblock:block/grave_slab",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "divineblock:block/grave_slab",
+      "y": 270
+    }
+  }
+}

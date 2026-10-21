@@ -10,6 +10,15 @@
     "divineblock:black_grave_gate",
     "divineblock:blue_grave_fence",
     "divineblock:blue_grave_gate",
-    "divineblock:grave_lampada"
+    "divineblock:rusty_grave_fence",
+    "divineblock:rusty_grave_gate",
+    "divineblock:grave_lampada",
+    "divineblock:granite_cross",
+    "divineblock:white_metal_cross",
+    "divineblock:stone_trunk_cross",
+    "divineblock:gothic_marble_stone",
+    "divineblock:grave_slab",
+    "divineblock:sector_sign",
+    "divineblock:cemetery_bin"
   ]
 }

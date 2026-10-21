@@ -21,5 +21,14 @@
   "block.divineblock.grave_table": "Grave Table",
   "block.divineblock.funeral_wreath": "Funeral Wreath",
   "block.divineblock.artificial_flowers": "Artificial Flowers",
-  "block.divineblock.grave_lampada": "Grave Lampada"
+  "block.divineblock.grave_lampada": "Grave Lampada",
+  "block.divineblock.granite_cross": "Granite Trefoil Cross",
+  "block.divineblock.white_metal_cross": "White Metal Cross",
+  "block.divineblock.stone_trunk_cross": "Stone Tree-Trunk Cross",
+  "block.divineblock.gothic_marble_stone": "Old Marble Tombstone",
+  "block.divineblock.grave_slab": "Granite Grave Slab",
+  "block.divineblock.rusty_grave_fence": "Rusty Grave Fence",
+  "block.divineblock.rusty_grave_gate": "Rusty Grave Fence Gate",
+  "block.divineblock.sector_sign": "Cemetery Sector Sign",
+  "block.divineblock.cemetery_bin": "Cemetery Bin"
 }

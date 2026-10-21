@@ -66,10 +66,24 @@ public final class CemeteryBlocks {
     public static final Block GRAVE_MOUND = block("grave_mound", new GraveMoundBlock(AbstractBlock.Settings.create().mapColor(MapColor.DIRT_BROWN)
             .strength(0.6f).sounds(BlockSoundGroup.ROOTED_DIRT).nonOpaque(),
             box(1, 0, 0, 15, 3, 16), box(2.5, 3, 0, 13.5, 5, 16), box(4, 5, 0, 12, 6, 16)));
+    public static final Block GRANITE_CROSS = block("granite_cross", new TallGraveBlock(stone(MapColor.BLACK),
+            new double[][] { box(4, 0, 5, 12, 3, 11), box(5, 3, 6, 11, 5, 10), box(7, 5, 7, 9, 16, 9), box(4.5, 9.5, 7, 11.5, 12, 9) },
+            new double[][] { box(7, 0, 7, 9, 14, 9), box(1, 2.5, 7, 15, 6, 9), box(5.5, 8, 7, 10.5, 9.5, 9) }));
+    public static final Block WHITE_METAL_CROSS = block("white_metal_cross", new TallGraveBlock(iron(MapColor.WHITE),
+            new double[][] { box(7, 0, 7, 9, 16, 9), box(4, 6, 7, 12, 9, 9), box(5.5, 0, 6, 10.5, 1, 10) },
+            new double[][] { box(7, 0, 7, 9, 6, 9), box(5.5, 2, 7, 10.5, 3.5, 9) }));
+    public static final Block STONE_TRUNK_CROSS = block("stone_trunk_cross", new TallGraveBlock(stone(MapColor.STONE_GRAY),
+            new double[][] { box(3, 0, 3, 13, 10.5, 13), box(6.5, 10.5, 6.5, 9.5, 16, 9.5) },
+            new double[][] { box(6.5, 0, 6.5, 9.5, 14, 9.5), box(3, 7, 6.5, 13, 11, 9.5) }));
+    public static final Block GOTHIC_MARBLE_STONE = block("gothic_marble_stone", new GraveBlock(stone(MapColor.WHITE).sounds(BlockSoundGroup.CALCITE), true,
+            box(3, 0, 4, 13, 2, 12), box(4, 2, 6.5, 12, 15.5, 9.5)));
+    public static final Block GRAVE_SLAB = block("grave_slab", new GraveBlock(stone(MapColor.BLACK), true, box(2, 0, 0, 14, 2, 16)));
     public static final Block BLACK_GRAVE_FENCE = block("black_grave_fence", new GraveFenceBlock(iron(MapColor.BLACK)));
     public static final Block BLACK_GRAVE_GATE = block("black_grave_gate", new GraveGateBlock(iron(MapColor.BLACK)));
     public static final Block BLUE_GRAVE_FENCE = block("blue_grave_fence", new GraveFenceBlock(iron(MapColor.LIGHT_BLUE)));
     public static final Block BLUE_GRAVE_GATE = block("blue_grave_gate", new GraveGateBlock(iron(MapColor.LIGHT_BLUE)));
+    public static final Block RUSTY_GRAVE_FENCE = block("rusty_grave_fence", new GraveFenceBlock(iron(MapColor.BROWN)));
+    public static final Block RUSTY_GRAVE_GATE = block("rusty_grave_gate", new GraveGateBlock(iron(MapColor.BROWN)));
     public static final Block GRAVE_BENCH = block("grave_bench", new GraveBlock(wood(), true,
             box(1, 7, 5, 15, 8.5, 11), box(2, 0, 5.5, 3, 7, 10.5), box(13, 0, 5.5, 14, 7, 10.5)));
     public static final Block GRAVE_TABLE = block("grave_table", new GraveBlock(wood(), true,
@@ -82,6 +96,10 @@ public final class CemeteryBlocks {
             .strength(0.5f).sounds(BlockSoundGroup.GLASS).nonOpaque().luminance(state -> 7).pistonBehavior(PistonBehavior.DESTROY),
             box(6, 0, 6, 10, 8, 10)));
 
+    public static final Block SECTOR_SIGN = block("sector_sign", new TallGraveBlock(iron(MapColor.BLUE),
+            new double[][] { box(7.5, 0, 7.5, 8.5, 16, 8.5) }, new double[][] { box(3.5, 3.5, 6.8, 12.5, 12.5, 8.5) }));
+    public static final Block CEMETERY_BIN = block("cemetery_bin", new GraveBlock(iron(MapColor.BLUE), true, box(3, 0, 3, 13, 12, 13)));
+
     private CemeteryBlocks() { }
 
     private static Block block(String name, Block block) {
@@ -91,7 +109,8 @@ public final class CemeteryBlocks {
         return block;
     }
 
-    /** Called from the mod initializer: the static fields above register the blocks, this adds the creative tab. */
+    /** Called from the mod initializer: the static fields above register the blocks, this adds the creative tab, the cemetery's
+     * tree feature and the /divineblock cemetery command. */
     public static void register() {
         ItemGroup tab = FabricItemGroup.builder().icon(() -> new ItemStack(WOODEN_CROSS)).displayName(Text.translatable("itemGroup.divineblock"))
                 .entries((context, entries) -> {
@@ -99,6 +118,8 @@ public final class CemeteryBlocks {
                     TAB.forEach(entries::add);
                 }).build();
         Registry.register(Registries.ITEM_GROUP, Identifier.of(DivineBlockMod.ID, "main"), tab);
+        Registry.register(Registries.FEATURE, Identifier.of(DivineBlockMod.ID, "cemetery_tree"), new CemeteryTreeFeature());
+        CemeteryCommand.register();
     }
 
     /** Every cemetery block, for the client's render layers and the self-test showcase. */

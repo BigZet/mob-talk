@@ -105,12 +105,14 @@ public final class CemeteryTest {
             BlockPos spawn = player.getBlockPos();
             int y = world.getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, spawn.getX(), spawn.getZ());
             base = new BlockPos(spawn.getX(), y, spawn.getZ());
-            field = base.add(48, 0, 0);
+            field = base.add(72, 0, 0);
             run(server, "gamemode spectator @a");
             run(server, "time set noon");
             run(server, "weather clear");
-            lawn(server, base.add(-4, 0, -8), base.add(38, 0, 10));
-            lawn(server, field.add(-4, 0, -6), field.add(26, 0, 32));
+            lawn(server, base.add(-4, 0, -8), base.add(28, 0, 10));
+            lawn(server, base.add(29, 0, -8), base.add(56, 0, 10));
+            lawn(server, field.add(-4, 0, -6), field.add(26, 0, 22));
+            lawn(server, field.add(-4, 0, 23), field.add(26, 0, 32));
             for (int i = 0; i < blocks.size(); i++) place(world, base.add(2 * i, 1, 0), blocks.get(i), Direction.SOUTH);
             // A small plot by hand: a fence ring with a gate, a cross on a two block mound.
             BlockPos plot = base.add(0, 1, 5);
@@ -145,7 +147,7 @@ public final class CemeteryTest {
             camera(cx - 4.2, 2.6, 4.2, -135, 18, "angle-" + (group + 1));
             camera(cx + 0.5, 2.4, -5.2, 0, 14, "back-" + (group + 1));
         }
-        for (int page = 0; page < 2; page++) {
+        for (int page = 0; page < 3; page++) {
             int first = page * 9;
             String name = "items-" + (page + 1);
             on(5, client -> serverDo(client, server -> {
@@ -173,18 +175,41 @@ public final class CemeteryTest {
         on(160, client -> serverDo(client, server -> {
             ServerWorld world = server.getOverworld();
             BlockPos at = base.add(260, 0, 40);
+            // Structures generate before grass and flowers do; clear them so the heightmap the cemetery follows is the ground.
+            for (int dx = -48; dx < 48; dx += 24) for (int dz = -16; dz < 80; dz += 24)
+                for (String plant : new String[] { "minecraft:short_grass", "minecraft:tall_grass", "minecraft:fern", "minecraft:large_fern",
+                        "#minecraft:small_flowers", "#minecraft:tall_flowers", "minecraft:sweet_berry_bush", "minecraft:snow" })
+                    run(server, String.format("fill %d %d %d %d %d %d minecraft:air replace %s", at.getX() + dx, base.getY() - 12, at.getZ() + dz,
+                            at.getX() + dx + 23, base.getY() + 30, at.getZ() + dz + 23, plant));
             int y = world.getTopY(Heightmap.Type.WORLD_SURFACE, at.getX(), at.getZ());
             wild = new BlockPos(at.getX(), y, at.getZ());
-            run(server, String.format("place structure divineblock:cemetery %d %d %d", at.getX(), y, at.getZ()));
-            wildBounds = bounds(world, wild, 48);
+            ServerPlayerEntity player = server.getPlayerManager().getPlayerList().get(0);
+            player.teleport(world, at.getX() + 0.5, y + 30, at.getZ() + 0.5, 180, 30);
+            server.getCommandManager().executeWithPrefix(player.getCommandSource().withLevel(4), "divineblock cemetery");
+            wildBounds = bounds(world, wild, 72);
             if (check(wildBounds != null, "структура кладбища сгенерирована на природном рельефе"))
                 log(String.format("  границы: x %d..%d, y %d..%d, z %d..%d", wildBounds[0], wildBounds[3], wildBounds[1], wildBounds[4], wildBounds[2], wildBounds[5]));
+            if (wildBounds != null) {
+                int gates = 0, trees = 0;
+                BlockPos.Mutable p = new BlockPos.Mutable();
+                for (int x = wildBounds[0]; x <= wildBounds[3]; x++) for (int z = wildBounds[2]; z <= wildBounds[5]; z++)
+                    for (int yy = wildBounds[1] - 2; yy <= wildBounds[4] + 2; yy++) {
+                        BlockState state = world.getBlockState(p.set(x, yy, z));
+                        if (state.getBlock() instanceof net.minecraft.block.FenceGateBlock) gates++;
+                        if (state.isIn(net.minecraft.registry.tag.BlockTags.LOGS) && world.getBlockState(p.down()).isIn(net.minecraft.registry.tag.BlockTags.DIRT)) {
+                            trees++;
+                            log("  дерево: " + Registries.BLOCK.getId(state.getBlock()) + " в биоме " + world.getBiome(p).getKey().map(k -> k.getValue().toString()).orElse("?"));
+                        }
+                    }
+                check(gates >= 30, "оградок с калитками на кладбище: " + gates);
+                log("  деревьев: " + trees);
+            }
         }));
         on(20, client -> {
             if (wildBounds == null) return;
             int[] b = wildBounds;
             double cx = (b[0] + b[3]) / 2.0, cz = (b[2] + b[5]) / 2.0;
-            tp(client, cx, b[4] + 30, b[5] + 22, 180, 50);
+            tp(client, cx, b[4] + 44, b[5] + 26, 180, 52);
         });
         on(140, client -> screenshot = "wild-overview");
         on(5, client -> { if (wildBounds != null) tp(client, wildBounds[3] + 8, wildBounds[4] + 6, wildBounds[5] + 8, 135, 22); });
@@ -199,8 +224,8 @@ public final class CemeteryTest {
             Identifier id = Registries.BLOCK.getId(block);
             check(server.getRecipeManager().get(id).isPresent(), "рецепт " + id);
         }
-        for (int i = 1; i <= 3; i++) {
-            Identifier id = Identifier.of(DivineBlockMod.ID, "cemetery/cemetery_" + i);
+        for (String piece : new String[] { "cemetery_1", "cemetery_2", "cemetery_3", "rows_1", "rows_2", "rows_3", "end_1", "end_2" }) {
+            Identifier id = Identifier.of(DivineBlockMod.ID, "cemetery/" + piece);
             check(server.getStructureTemplateManager().getTemplate(id).isPresent(), "шаблон " + id);
         }
         check(server.getRegistryManager().get(net.minecraft.registry.RegistryKeys.TEMPLATE_POOL)
@@ -237,7 +262,7 @@ public final class CemeteryTest {
     private static int[] bounds(ServerWorld world, BlockPos center, int radius) {
         int[] b = null;
         BlockPos.Mutable at = new BlockPos.Mutable();
-        for (int x = -radius; x <= radius; x++) for (int z = -radius; z <= radius; z++) for (int y = -20; y <= 20; y++) {
+        for (int x = -radius; x <= radius; x++) for (int z = -radius; z <= radius; z++) for (int y = -16; y <= 16; y++) {
             at.set(center.getX() + x, center.getY() + y, center.getZ() + z);
             if (!Registries.BLOCK.getId(world.getBlockState(at).getBlock()).getNamespace().equals(DivineBlockMod.ID)) continue;
             if (b == null) b = new int[] { at.getX(), at.getY(), at.getZ(), at.getX(), at.getY(), at.getZ() };

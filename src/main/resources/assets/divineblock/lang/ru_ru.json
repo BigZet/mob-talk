@@ -21,5 +21,14 @@
   "block.divineblock.grave_table": "Кладбищенский столик",
   "block.divineblock.funeral_wreath": "Траурный венок",
   "block.divineblock.artificial_flowers": "Искусственные цветы",
-  "block.divineblock.grave_lampada": "Лампадка"
+  "block.divineblock.grave_lampada": "Лампадка",
+  "block.divineblock.granite_cross": "Гранитный крест с трилистниками",
+  "block.divineblock.white_metal_cross": "Белый металлический крестик",
+  "block.divineblock.stone_trunk_cross": "Каменный крест-дерево на постаменте",
+  "block.divineblock.gothic_marble_stone": "Старое мраморное надгробие",
+  "block.divineblock.grave_slab": "Гранитная плита на могилу",
+  "block.divineblock.rusty_grave_fence": "Ржавая оградка",
+  "block.divineblock.rusty_grave_gate": "Калитка ржавой оградки",
+  "block.divineblock.sector_sign": "Табличка участка",
+  "block.divineblock.cemetery_bin": "Кладбищенский мусорный бак"
 }

@@ -2,77 +2,148 @@
   "parent": "minecraft:block/block",
   "textures": {
     "iron": "divineblock:block/painted_iron_black",
-    "gold": "divineblock:block/painted_gold",
     "particle": "#iron"
   },
   "elements": [
     {
       "from": [
-        7.25,
+        7.5,
         0,
-        7.25
+        7.5
       ],
       "to": [
-        8.75,
-        13,
-        8.75
+        8.5,
+        11.5,
+        8.5
       ],
       "faces": {
         "north": {
-          "texture": "#iron"
+          "texture": "#iron",
+          "uv": [
+            7.5,
+            4.5,
+            8.5,
+            16
+          ]
         },
         "south": {
-          "texture": "#iron"
+          "texture": "#iron",
+          "uv": [
+            7.5,
+            4.5,
+            8.5,
+            16
+          ]
         },
         "east": {
-          "texture": "#iron"
+          "texture": "#iron",
+          "uv": [
+            7.5,
+            4.5,
+            8.5,
+            16
+          ]
         },
         "west": {
-          "texture": "#iron"
+          "texture": "#iron",
+          "uv": [
+            7.5,
+            4.5,
+            8.5,
+            16
+          ]
         },
         "up": {
-          "texture": "#iron"
+          "texture": "#iron",
+          "uv": [
+            7.5,
+            7.5,
+            8.5,
+            8.5
+          ]
         },
         "down": {
-          "texture": "#iron"
+          "texture": "#iron",
+          "uv": [
+            7.5,
+            7.5,
+            8.5,
+            8.5
+          ]
         }
       }
     },
     {
       "from": [
-        7.6,
-        13,
-        7.6
+        7.35,
+        11.5,
+        7.35
       ],
       "to": [
-        8.4,
-        14.2,
-        8.4
+        8.65,
+        12.8,
+        8.65
       ],
       "faces": {
         "north": {
-          "texture": "#gold"
+          "texture": "#iron",
+          "uv": [
+            7.35,
+            3.2,
+            8.65,
+            4.5
+          ]
         },
         "south": {
-          "texture": "#gold"
+          "texture": "#iron",
+          "uv": [
+            7.35,
+            3.2,
+            8.65,
+            4.5
+          ]
         },
         "east": {
-          "texture": "#gold"
+          "texture": "#iron",
+          "uv": [
+            7.35,
+            3.2,
+            8.65,
+            4.5
+          ]
         },
         "west": {
-          "texture": "#gold"
+          "texture": "#iron",
+          "uv": [
+            7.35,
+            3.2,
+            8.65,
+            4.5
+          ]
         },
         "up": {
-          "texture": "#gold"
+          "texture": "#iron",
+          "uv": [
+            7.35,
+            7.35,
+            8.65,
+            8.65
+          ]
         },
         "down": {
-          "texture": "#gold"
+          "texture": "#iron",
+          "uv": [
+            7.35,
+            7.35,
+            8.65,
+            8.65
+          ]
         }
       },
       "rotation": {
         "origin": [
           8,
-          13.6,
+          12.15,
           8
         ],
         "axis": "y",

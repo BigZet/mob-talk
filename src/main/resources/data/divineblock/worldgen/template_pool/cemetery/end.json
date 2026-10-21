@@ -1,0 +1,23 @@
+{
+  "fallback": "minecraft:empty",
+  "elements": [
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "divineblock:cemetery/end_1",
+        "processors": "divineblock:cemetery",
+        "projection": "terrain_matching"
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "divineblock:cemetery/end_2",
+        "processors": "divineblock:cemetery",
+        "projection": "terrain_matching"
+      },
+      "weight": 1
+    }
+  ]
+}
