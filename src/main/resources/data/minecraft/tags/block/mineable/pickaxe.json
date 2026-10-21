@@ -1,1 +1,15 @@
-{ "replace": false, "values": ["divineblock:altar"] }
+{
+  "replace": false,
+  "values": [
+    "divineblock:altar",
+    "divineblock:iron_cross",
+    "divineblock:star_obelisk",
+    "divineblock:granite_stele",
+    "divineblock:marble_stone",
+    "divineblock:black_grave_fence",
+    "divineblock:black_grave_gate",
+    "divineblock:blue_grave_fence",
+    "divineblock:blue_grave_gate",
+    "divineblock:grave_lampada"
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "variants": {
+    "facing=north,overgrown=false": {
+      "model": "divineblock:block/grave_mound"
+    },
+    "facing=north,overgrown=true": {
+      "model": "divineblock:block/grave_mound_overgrown"
+    },
+    "facing=east,overgrown=false": {
+      "model": "divineblock:block/grave_mound",
+      "y": 90
+    },
+    "facing=east,overgrown=true": {
+      "model": "divineblock:block/grave_mound_overgrown",
+      "y": 90
+    },
+    "facing=south,overgrown=false": {
+      "model": "divineblock:block/grave_mound",
+      "y": 180
+    },
+    "facing=south,overgrown=true": {
+      "model": "divineblock:block/grave_mound_overgrown",
+      "y": 180
+    },
+    "facing=west,overgrown=false": {
+      "model": "divineblock:block/grave_mound",
+      "y": 270
+    },
+    "facing=west,overgrown=true": {
+      "model": "divineblock:block/grave_mound_overgrown",
+      "y": 270
+    }
+  }
+}

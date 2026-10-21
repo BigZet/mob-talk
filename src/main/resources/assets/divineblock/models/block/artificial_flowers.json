@@ -1,0 +1,158 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "flowers": "divineblock:block/artificial_flowers",
+    "vase": "divineblock:block/vase_green",
+    "particle": "#flowers"
+  },
+  "elements": [
+    {
+      "from": [
+        2,
+        1.5,
+        8
+      ],
+      "to": [
+        14,
+        12.5,
+        8
+      ],
+      "faces": {
+        "north": {
+          "texture": "#flowers",
+          "uv": [
+            2,
+            3.5,
+            14,
+            14.5
+          ]
+        },
+        "south": {
+          "texture": "#flowers",
+          "uv": [
+            2,
+            3.5,
+            14,
+            14.5
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          8,
+          8
+        ],
+        "axis": "y",
+        "angle": 45
+      },
+      "shade": false
+    },
+    {
+      "from": [
+        2,
+        1.5,
+        8
+      ],
+      "to": [
+        14,
+        12.5,
+        8
+      ],
+      "faces": {
+        "north": {
+          "texture": "#flowers",
+          "uv": [
+            2,
+            3.5,
+            14,
+            14.5
+          ]
+        },
+        "south": {
+          "texture": "#flowers",
+          "uv": [
+            2,
+            3.5,
+            14,
+            14.5
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          8,
+          8
+        ],
+        "axis": "y",
+        "angle": -45
+      },
+      "shade": false
+    },
+    {
+      "from": [
+        6.5,
+        0,
+        6.5
+      ],
+      "to": [
+        9.5,
+        3,
+        9.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#vase"
+        },
+        "south": {
+          "texture": "#vase"
+        },
+        "east": {
+          "texture": "#vase"
+        },
+        "west": {
+          "texture": "#vase"
+        },
+        "up": {
+          "texture": "#vase"
+        },
+        "down": {
+          "texture": "#vase"
+        }
+      }
+    },
+    {
+      "from": [
+        6,
+        2.5,
+        6
+      ],
+      "to": [
+        10,
+        3.25,
+        10
+      ],
+      "faces": {
+        "north": {
+          "texture": "#vase"
+        },
+        "south": {
+          "texture": "#vase"
+        },
+        "east": {
+          "texture": "#vase"
+        },
+        "west": {
+          "texture": "#vase"
+        },
+        "up": {
+          "texture": "#vase"
+        },
+        "down": {
+          "texture": "#vase"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "decorations",
+  "pattern": [
+    " R ",
+    " I ",
+    "IGI"
+  ],
+  "key": {
+    "R": {
+      "item": "minecraft:red_dye"
+    },
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "G": {
+      "item": "minecraft:paper"
+    }
+  },
+  "result": {
+    "id": "divineblock:star_obelisk",
+    "count": 1
+  }
+}

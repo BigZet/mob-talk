@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "divineblock:block/grave_lampada"
+    },
+    "facing=east": {
+      "model": "divineblock:block/grave_lampada",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "divineblock:block/grave_lampada",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "divineblock:block/grave_lampada",
+      "y": 270
+    }
+  }
+}

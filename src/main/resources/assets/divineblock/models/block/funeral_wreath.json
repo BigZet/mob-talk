@@ -1,0 +1,51 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "wreath": "divineblock:block/funeral_wreath",
+    "particle": "#wreath"
+  },
+  "elements": [
+    {
+      "from": [
+        1,
+        0.5,
+        8
+      ],
+      "to": [
+        15,
+        14.5,
+        8.01
+      ],
+      "faces": {
+        "north": {
+          "texture": "#wreath",
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ]
+        },
+        "south": {
+          "texture": "#wreath",
+          "uv": [
+            15,
+            1,
+            1,
+            15
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          0.5,
+          8
+        ],
+        "axis": "x",
+        "angle": 22.5
+      },
+      "shade": false
+    }
+  ]
+}

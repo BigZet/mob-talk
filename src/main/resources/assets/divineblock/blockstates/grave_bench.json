@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "divineblock:block/grave_bench"
+    },
+    "facing=east": {
+      "model": "divineblock:block/grave_bench",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "divineblock:block/grave_bench",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "divineblock:block/grave_bench",
+      "y": 270
+    }
+  }
+}

@@ -19,6 +19,9 @@ public final class DivineBlockClient implements ClientModInitializer {
         FxTest.register();
         ChurchSelfTest.register();
         CruelTest.register();
+        CemeteryTest.register();
+        net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.INSTANCE.putBlocks(net.minecraft.client.render.RenderLayer.getCutout(),
+                io.github.divineblock.cemetery.CemeteryBlocks.all().toArray(net.minecraft.block.Block[]::new));
         settingsKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.divineblock.settings", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_F9, "key.categories.divineblock"));
         prayKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.divineblock.pray", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_R, "key.categories.divineblock"));
         GodVoicePlayer.register();

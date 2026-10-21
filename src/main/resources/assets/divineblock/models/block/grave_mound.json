@@ -1,0 +1,107 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "soil": "divineblock:block/grave_soil",
+    "top": "divineblock:block/grave_soil",
+    "tufts": "divineblock:block/grave_tufts",
+    "particle": "#soil"
+  },
+  "elements": [
+    {
+      "from": [
+        1,
+        0,
+        0
+      ],
+      "to": [
+        15,
+        3,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#soil"
+        },
+        "south": {
+          "texture": "#soil"
+        },
+        "east": {
+          "texture": "#soil"
+        },
+        "west": {
+          "texture": "#soil"
+        },
+        "up": {
+          "texture": "#top"
+        },
+        "down": {
+          "texture": "#soil"
+        }
+      }
+    },
+    {
+      "from": [
+        2.5,
+        3,
+        0
+      ],
+      "to": [
+        13.5,
+        5,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#soil"
+        },
+        "south": {
+          "texture": "#soil"
+        },
+        "east": {
+          "texture": "#soil"
+        },
+        "west": {
+          "texture": "#soil"
+        },
+        "up": {
+          "texture": "#top"
+        },
+        "down": {
+          "texture": "#soil"
+        }
+      }
+    },
+    {
+      "from": [
+        4,
+        5,
+        0
+      ],
+      "to": [
+        12,
+        6,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#soil"
+        },
+        "south": {
+          "texture": "#soil"
+        },
+        "east": {
+          "texture": "#soil"
+        },
+        "west": {
+          "texture": "#soil"
+        },
+        "up": {
+          "texture": "#top"
+        },
+        "down": {
+          "texture": "#soil"
+        }
+      }
+    }
+  ]
+}
