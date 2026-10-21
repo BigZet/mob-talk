@@ -40,7 +40,9 @@ function Enter-GameSlot([string]$Owner, [int]$Max = 3, [int]$TimeoutMinutes = 90
     $deadline = (Get-Date).AddMinutes($TimeoutMinutes)
     $told = $false
     while ((Get-Date) -lt $deadline) {
-        for ($i = 1; $i -le $Max; $i++) {
+        $gate = $null   # scripts\restart-prism-clean.ps1 holds restart.lock exclusively while it restarts Prism
+        try { $gate = [IO.File]::Open((Join-Path $script:SlotDir 'restart.lock'), 'OpenOrCreate', 'Read', 'ReadWrite'); $gate.Dispose() } catch { }
+        for ($i = 1; $gate -and $i -le $Max; $i++) {
             $path = Join-Path $script:SlotDir "slot-$i.lock"
             try { $stream = [IO.File]::Open($path, 'OpenOrCreate', 'ReadWrite', 'Read') } catch { continue }
             if (@(Get-AllGames).Count -ge $Max) { $stream.Dispose(); break }
