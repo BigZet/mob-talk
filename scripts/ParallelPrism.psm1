@@ -8,6 +8,7 @@ $ErrorActionPreference = 'Stop'
 $script:PrismExe = 'C:\Users\bigze\AppData\Local\Programs\PrismLauncher\prismlauncher.exe'
 $script:Instances = Join-Path $env:APPDATA 'PrismLauncher\instances'
 $script:SlotDir = Join-Path $env:LOCALAPPDATA 'PrismParallel\slots'
+$script:Staging = Join-Path $env:APPDATA 'PrismLauncher\parallel-staging'
 
 function Assert-TestName([string]$Name) {
     if ($Name -notmatch '^t-[A-Za-z0-9._-]{1,60}$') { throw "Test instance names start with 't-' and use [A-Za-z0-9._-]: '$Name'" }
@@ -68,9 +69,13 @@ function New-TestInstance {
         [string]$World = '', [string]$WorldName = '', [int]$WhisperPort = 0)
     Assert-TestName $Name
     $src = Join-Path $script:Instances $Base
-    $dst = Join-Path $script:Instances $Name
+    $final = Join-Path $script:Instances $Name
     if (-not (Test-Path -LiteralPath "$src\instance.cfg")) { throw "Base instance missing: $src" }
-    if (Test-Path -LiteralPath $dst) { Remove-TestInstance $Name }
+    if (Test-Path -LiteralPath $final) { Remove-TestInstance $Name }
+    # Built outside instances\ and moved in whole: Prism rescans when a folder appears there, and a half-copied folder
+    # (no instance.cfg yet) would be skipped until some later rescan.
+    $dst = Join-Path $script:Staging $Name
+    if (Test-Path -LiteralPath $dst) { Remove-Item -Recurse -Force -LiteralPath $dst }
     New-Item -ItemType Directory -Force "$dst\minecraft\saves" | Out-Null
     Get-ChildItem -LiteralPath $src -File | Where-Object Name -ne 'instance.cfg' | Copy-Item -Destination $dst
     if (Test-Path -LiteralPath "$src\patches") { Copy-Item -Recurse -LiteralPath "$src\patches" $dst }
@@ -106,7 +111,16 @@ function New-TestInstance {
         Copy-Item -Recurse -LiteralPath "$src\minecraft\saves\$World" "$dst\minecraft\saves\$WorldName"
         Remove-Item -Force -LiteralPath "$dst\minecraft\saves\$WorldName\session.lock" -ErrorAction SilentlyContinue
     }
-    $dst
+    Move-Item -LiteralPath $dst $final
+    $final
+}
+
+# Makes a running Prism rescan instances\ (it does so when a folder appears or disappears there).
+function Invoke-PrismRescan {
+    $poke = Join-Path $script:Instances "t-rescan-$(Get-Random)"
+    New-Item -ItemType Directory $poke | Out-Null
+    Start-Sleep -Seconds 2
+    Remove-Item -LiteralPath $poke -Force
 }
 
 # Removes only t-* instances whose own game is not running.
@@ -121,22 +135,22 @@ function Remove-TestInstance([string]$Name) {
 }
 
 # Hands the launch to the running PrismLauncher (or starts it) and returns this instance's javaw process.
-# A running Prism notices a new instance folder only after its watcher fires (seconds later) and answers
-# 'Launch command requires an valid instance ID ... resolves to nothing' before that; an old-style script elsewhere may also
-# kill Prism mid-launch. Both cases are retried; a launch Prism accepted is never sent twice.
-function Start-TestInstance([string]$Name, [int]$TimeoutSeconds = 600) {
+# A running Prism that has not rescanned instances\ yet answers 'Launch command requires an valid instance ID ... resolves to
+# nothing' in its log: then we make it rescan and send again. An old-style script elsewhere may kill Prism mid-launch: sent
+# again too. A launch Prism accepted gets $QuietSeconds to produce a javaw before it is sent once more.
+function Start-TestInstance([string]$Name, [int]$TimeoutSeconds = 600, [int]$QuietSeconds = 180) {
     Assert-TestName $Name
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     $log = Join-Path $env:APPDATA 'PrismLauncher\logs\PrismLauncher-0.log'   # the running Prism's own log
     $refusal = "`"$Name`" resolves to nothing"
     while ((Get-Date) -lt $deadline) {
-        Start-Sleep -Seconds 5
         $prism = @(Get-Process prismlauncher -ErrorAction SilentlyContinue | ForEach-Object Id)
-        # Send the launch only once the running Prism has loaded this folder; a fresh Prism scans it on start anyway.
-        $loaded = "Loaded instance `"$Name`""
-        for ($w = 0; $prism.Count -and $w -lt 6 -and -not ((Test-Path $log) -and (Select-String -LiteralPath $log -SimpleMatch $loaded -Quiet)); $w++) { Start-Sleep -Seconds 2 }
+        if ($prism.Count -and -not ((Test-Path $log) -and (Select-String -LiteralPath $log -SimpleMatch "Loaded instance `"$Name`"" -Quiet))) {
+            Invoke-PrismRescan; Start-Sleep -Seconds 3
+        }
         $before = if (Test-Path $log) { @(Select-String -LiteralPath $log -SimpleMatch $refusal).Count } else { 0 }
         Start-Process $script:PrismExe -ArgumentList '--launch', $Name
+        $quiet = (Get-Date).AddSeconds($QuietSeconds)
         $retry = $false
         while (-not $retry -and (Get-Date) -lt $deadline) {
             Start-Sleep -Seconds 3
@@ -145,7 +159,9 @@ function Start-TestInstance([string]$Name, [int]$TimeoutSeconds = 600) {
             $now = @(Get-Process prismlauncher -ErrorAction SilentlyContinue | ForEach-Object Id)
             if ($prism.Count -and -not @($now | Where-Object { $prism -contains $_ }).Count) { $retry = $true }   # Prism was restarted
             elseif ((Test-Path $log) -and @(Select-String -LiteralPath $log -SimpleMatch $refusal).Count -gt $before) { $retry = $true }
+            elseif ((Get-Date) -gt $quiet) { $retry = $true }
         }
+        if ($retry) { Start-Sleep -Seconds 2 }
     }
     $null
 }
@@ -183,4 +199,4 @@ function Save-GameWindowShot([string]$Name, [string]$Path) {
 }
 
 Export-ModuleMember -Function New-TestInstanceName, Get-InstanceGame, Get-AllGames, Enter-GameSlot, Exit-GameSlot,
-    New-TestInstance, Remove-TestInstance, Start-TestInstance, Get-WhisperHelper, Save-GameWindowShot
+    New-TestInstance, Remove-TestInstance, Start-TestInstance, Invoke-PrismRescan, Get-WhisperHelper, Save-GameWindowShot
