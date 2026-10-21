@@ -67,7 +67,7 @@ public final class Miracles {
     /** {@code severity} 1..5 sets how many bosses come and how much land is cut away in great fury. */
     public static String perform(Miracle miracle, int power, ServerPlayerEntity player, BlockPos altar, String prayer, DivineConfig config, int severity) {
         ServerWorld world = player.getServerWorld();
-        return switch (miracle) {
+        String done = switch (miracle) {
             case OMEN_LIGHT -> { column(world, altar, ParticleTypes.END_ROD); sound(world, altar, SoundEvents.BLOCK_BEACON_ACTIVATE, 1.5f, 0.8f); yield "столб света"; }
             case OMEN_THUNDER -> { sound(world, player.getBlockPos(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, 2f, 0.6f); effect(player, StatusEffects.DARKNESS, 50, 0); yield "гром и тьма"; }
             case OMEN_LAUGH -> { sound(world, altar, SoundEvents.ENTITY_WITCH_CELEBRATE, 2f, 0.5f); burst(world, altar.up(), ParticleTypes.LARGE_SMOKE, 40); yield "хохот с неба"; }
@@ -136,6 +136,8 @@ public final class Miracles {
             case LEVITATE -> Jests.levitate(world, player);
             case DIZZY -> Jests.dizzy(world, player);
         };
+        if (done != null) Portents.fall(world, player, altar, miracle, power);
+        return done;
     }
 
     // ---- Omens and the warning before wrath. ----
