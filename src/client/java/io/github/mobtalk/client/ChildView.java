@@ -78,7 +78,7 @@ final class ChildView {
                 helper.register(new Belly<VillagerEntity, VillagerResemblingModel<VillagerEntity>>(villager, model -> model.getPart().getChild("body"), true, 9f, -3.5f,
                         19, 26, ChildView::robe, 3, 50, null)); // Ниже сложенных рук.
             else if (renderer instanceof HumanVillagerRenderer human) // Трек M: туловище человека, сверху его одежда, кожа своего цвета.
-                helper.register(new Belly<VillagerEntity, HumanModel>(human, model -> model.body, false, 5f, -2.25f,
+                helper.register(new Belly<VillagerEntity, HumanModel>(human, model -> model.body, false, 6f, -2.25f,
                         17, 22, v -> HumanTextures.clothes(HumanLooks.of(v)), 17, 22, v -> HumanTextures.skinColor(HumanLooks.of(v))));
             else if (renderer instanceof PlayerEntityRenderer player)
                 helper.register(new Belly<AbstractClientPlayerEntity, PlayerEntityModel<AbstractClientPlayerEntity>>(player, model -> model.body, false, 5f, -2.25f,
