@@ -145,6 +145,22 @@ public final class CemeteryTest {
             camera(cx - 4.2, 2.6, 4.2, -135, 18, "angle-" + (group + 1));
             camera(cx + 0.5, 2.4, -5.2, 0, 14, "back-" + (group + 1));
         }
+        for (int page = 0; page < 2; page++) {
+            int first = page * 9;
+            String name = "items-" + (page + 1);
+            on(5, client -> serverDo(client, server -> {
+                ServerPlayerEntity player = server.getPlayerManager().getPlayerList().get(0);
+                player.changeGameMode(GameMode.CREATIVE);
+                for (int slot = 0; slot < 9; slot++) {
+                    int i = first + slot;
+                    player.getInventory().setStack(slot, i < blocks.size() ? new net.minecraft.item.ItemStack(blocks.get(i)) : net.minecraft.item.ItemStack.EMPTY);
+                }
+            }));
+            on(5, client -> tp(client, base.getX() + 2.5, base.getY() + 3, base.getZ() + 9, 180, -10));
+            on(1, client -> client.options.hudHidden = false);
+            on(60, client -> screenshot = name);
+        }
+        on(5, client -> { client.options.hudHidden = true; serverDo(client, server -> run(server, "gamemode spectator @a")); });
         camera(2.5, 5.5, 13.5, 180, 38, "plot");
         camera(-3, 3.5, 11.5, -135, 25, "plot-angle");
         camera(10.5, 40, 40, 180, 60, "template-top", true);

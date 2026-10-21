@@ -32,8 +32,10 @@ if (Test-Path "$mc\saves\$world") { Remove-Item -Recurse -Force "$mc\saves\$worl
 Say 'stop Prism and arm instance.cfg'
 Get-Process prismlauncher -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Seconds 3
+$cfg = Get-Content "$inst\instance.cfg" -Raw -Encoding UTF8
+# Another thread's run leaves its flag in instance.cfg while it is in progress: never back that up as the clean config.
+if ($cfg -match '(?m)^JvmArgs=.*-D(divineblock|mobtalk)\.') { Start-Process $prism; throw 'instance.cfg is armed by another test run' }
 Copy-Item "$inst\instance.cfg" "$scratch\instance.cfg.bak" -Force
-$cfg = Get-Content "$inst\instance.cfg" -Raw
 $cfg = $cfg -replace '(?m)^OverrideJavaArgs=.*\r?\n', '' -replace '(?m)^JvmArgs=.*\r?\n', ''
 $cfg = $cfg -replace '\[General\]\r?\n', "[General]`nOverrideJavaArgs=true`nJvmArgs=-Ddivineblock.cemeterytest=true`n"
 [System.IO.File]::WriteAllText("$inst\instance.cfg", $cfg)
