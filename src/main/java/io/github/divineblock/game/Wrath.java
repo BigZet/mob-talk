@@ -13,7 +13,6 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.block.SculkShriekerBlock;
 import net.minecraft.component.type.PotionContentsComponent;
 import net.minecraft.entity.AreaEffectCloudEntity;
 import net.minecraft.entity.EntityType;
@@ -524,7 +523,7 @@ final class Wrath {
     }
 
     /** The Warden from the depths, and the deep dark coming up with him: sculk spreads around the sinner for fifteen seconds,
-     * with sensors and shriekers that can call another. */
+     * with sensors, and a second Warden if he stays on it. */
     static String warden(ServerWorld world, ServerPlayerEntity player) {
         BlockPos at = ahead(world, player, 7);
         WardenEntity warden = EntityType.WARDEN.spawn(world, at, SpawnReason.TRIGGERED);
@@ -549,16 +548,22 @@ final class Wrath {
                 last = top;
             }
             if (i % 4 == 0) Miracles.sound(world, center, SoundEvents.BLOCK_SCULK_SPREAD, 2f, 0.6f);
-            // Sensors to hear him, shriekers to call: the deep dark's own alarm.
+            // Sensors to hear him (no shriekers: their darkness is the blindness the author does not want).
             if (last != null && (i == 6 || i == 12 || i == 18 || i == 24)) {
                 BlockPos above = last.up();
                 BlockState free = world.getBlockState(above);
-                if ((free.isAir() || free.isReplaceable()) && !Protection.spares(world, player, null, above, config)) {
-                    BlockState device = i % 12 == 0 ? Blocks.SCULK_SHRIEKER.getDefaultState().with(SculkShriekerBlock.CAN_SUMMON, true)
-                            : Blocks.SCULK_SENSOR.getDefaultState();
-                    world.setBlockState(above, device, Block.NOTIFY_ALL);
-                }
+                if ((free.isAir() || free.isReplaceable()) && !Protection.spares(world, player, null, above, config))
+                    world.setBlockState(above, Blocks.SCULK_SENSOR.getDefaultState(), Block.NOTIFY_ALL);
             }
+        });
+        // The deep dark calls a second one if the sinner is still on its sculk after forty seconds.
+        Scheduler.later(20 * 40, () -> {
+            if (!present(world, player) || !player.getBlockPos().isWithinDistance(origin, 24)) return;
+            WardenEntity second = EntityType.WARDEN.spawn(world, ahead(world, player, 9), SpawnReason.TRIGGERED);
+            if (second == null) return;
+            second.increaseAngerAt(player, 150, false);
+            second.setPersistent();
+            Miracles.sound(world, player.getBlockPos(), SoundEvents.ENTITY_WARDEN_EMERGE, 3f, 0.8f);
         });
         return "Хранитель восстал из глубин, и скалк ползёт за ним";
     }
