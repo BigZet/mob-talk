@@ -52,12 +52,17 @@ public final class CemeteryTest {
     private static int phase, ticks, wait, failures;
     private static volatile String screenshot;
     private static volatile BlockPos base, field;
+    /** -Ddivineblock.cemeterytest=models: only the blocks, close up from four sides at eye height, in a bigger window. */
+    private static boolean models;
+    private static final int SPACING = 3;
 
     private CemeteryTest() { }
 
     public static void register() {
-        if (!Boolean.getBoolean("divineblock.cemeterytest")) return;
-        log("тест кладбища включён");
+        String mode = System.getProperty("divineblock.cemeterytest", "");
+        if (!mode.equals("true") && !mode.equals("models")) return;
+        models = mode.equals("models");
+        log("тест кладбища включён" + (models ? " (только модели крупно)" : ""));
         ClientTickEvents.END_CLIENT_TICK.register(CemeteryTest::tick);
     }
 
@@ -104,15 +109,16 @@ public final class CemeteryTest {
             BlockPos spawn = player.getBlockPos();
             int y = world.getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, spawn.getX(), spawn.getZ());
             base = new BlockPos(spawn.getX(), y, spawn.getZ());
-            field = base.add(72, 0, 0);
+            field = base.add(96, 0, 0);
+            run(server, String.format("forceload add %d %d %d %d", base.getX() - 8, base.getZ() - 12, base.getX() + SPACING * blocks.size() + 8, base.getZ() + 14));
+            run(server, String.format("forceload add %d %d %d %d", field.getX() - 8, field.getZ() - 8, field.getX() + 30, field.getZ() + 36));
             run(server, "gamemode spectator @a");
             run(server, "time set noon");
             run(server, "weather clear");
-            lawn(server, base.add(-4, 0, -8), base.add(28, 0, 10));
-            lawn(server, base.add(29, 0, -8), base.add(56, 0, 10));
+            for (int x = -4; x < SPACING * blocks.size() + 4; x += 30) lawn(server, base.add(x, 0, -8), base.add(x + 29, 0, 10));
             lawn(server, field.add(-4, 0, -6), field.add(26, 0, 22));
             lawn(server, field.add(-4, 0, 23), field.add(26, 0, 32));
-            for (int i = 0; i < blocks.size(); i++) place(world, base.add(2 * i, 1, 0), blocks.get(i), Direction.SOUTH);
+            for (int i = 0; i < blocks.size(); i++) place(world, base.add(SPACING * i, 1, 0), blocks.get(i), Direction.SOUTH);
             // A small plot by hand: a fence ring with a gate, a cross on a two block mound.
             BlockPos plot = base.add(0, 1, 5);
             Block fence = CemeteryBlocks.BLUE_GRAVE_FENCE;
@@ -138,13 +144,14 @@ public final class CemeteryTest {
             checks(server);
         }));
         on(10, client -> client.options.hudHidden = true);
+        if (models) { closeUps(blocks); return; }
         int groups = (blocks.size() + 4) / 5;
         for (int g = 0; g < groups; g++) {
             int group = g;
-            double cx = 2 * (5 * g + 2);
-            camera(cx, 2.2, 5.2, 180, 14, "front-" + (group + 1));
-            camera(cx - 4.2, 2.6, 4.2, -135, 18, "angle-" + (group + 1));
-            camera(cx + 0.5, 2.4, -5.2, 0, 14, "back-" + (group + 1));
+            double cx = SPACING * (5 * g + 2) + 0.5;
+            camera(cx, 2.4, 8, 180, 12, "front-" + (group + 1));
+            camera(cx - 6, 2.8, 6.5, -135, 15, "angle-" + (group + 1));
+            camera(cx, 2.6, -7, 0, 12, "back-" + (group + 1));
         }
         for (int page = 0; page < 3; page++) {
             int first = page * 9;
@@ -157,9 +164,9 @@ public final class CemeteryTest {
                     player.getInventory().setStack(slot, i < blocks.size() ? new net.minecraft.item.ItemStack(blocks.get(i)) : net.minecraft.item.ItemStack.EMPTY);
                 }
             }));
-            on(5, client -> tp(client, base.getX() + 2.5, base.getY() + 3, base.getZ() + 9, 180, -10));
+            on(60, client -> tp(client, base.getX() + 2.5, base.getY() + 3, base.getZ() + 9, 180, -10));
             on(1, client -> client.options.hudHidden = false);
-            on(60, client -> screenshot = name);
+            on(5, client -> screenshot = name);
         }
         on(5, client -> { client.options.hudHidden = true; serverDo(client, server -> run(server, "gamemode spectator @a")); });
         camera(2.5, 5.5, 13.5, 180, 38, "plot");
@@ -229,33 +236,53 @@ public final class CemeteryTest {
             check(gates >= 30, "оградок с калитками на кладбище (" + tag + "): " + gates);
             log("  деревьев: " + trees);
         }));
-        on(20, client -> {
+        on(160, client -> {
             int[] b = box[0];
             if (b == null) return;
             double cx = (b[0] + b[3]) / 2.0, cz = (b[2] + b[5]) / 2.0;
             boolean alongX = b[3] - b[0] > b[5] - b[2];
             if (alongX) tp(client, cx, b[4] + 40, b[5] + 30, 180, 55); else tp(client, b[3] + 30, b[4] + 40, cz, 90, 55);
         });
-        on(160, client -> screenshot = tag + "-overview");
-        on(5, client -> { int[] b = box[0]; if (b != null) tp(client, b[3] + 7, b[4] + 7, b[5] + 7, 135, 24); });
-        on(110, client -> screenshot = tag + "-corner");
+        on(5, client -> screenshot = tag + "-overview");
+        on(110, client -> { int[] b = box[0]; if (b != null) tp(client, b[3] + 7, b[4] + 7, b[5] + 7, 135, 24); });
+        on(5, client -> screenshot = tag + "-corner");
         // Along the path at eye level: the path runs down the middle of the long side.
-        on(5, client -> {
+        on(110, client -> {
             int[] b = box[0];
             if (b == null) return;
             boolean alongX = b[3] - b[0] > b[5] - b[2];
             double mid = alongX ? (b[2] + b[5]) / 2.0 + 0.5 : (b[0] + b[3]) / 2.0 + 0.5;
             if (alongX) tpGround(client, b[0] + 1.5, mid, -90, 8); else tpGround(client, mid, b[2] + 1.5, 0, 8);
         });
-        on(110, client -> screenshot = tag + "-path");
-        on(5, client -> {
+        on(5, client -> screenshot = tag + "-path");
+        on(110, client -> {
             int[] b = box[0];
             if (b == null) return;
             boolean alongX = b[3] - b[0] > b[5] - b[2];
             double mid = alongX ? (b[2] + b[5]) / 2.0 + 0.5 : (b[0] + b[3]) / 2.0 + 0.5;
             if (alongX) tpGround(client, b[3] - 1.5, mid, 90, 8); else tpGround(client, mid, b[5] - 1.5, 180, 8);
         });
-        on(110, client -> screenshot = tag + "-path-back");
+        on(5, client -> screenshot = tag + "-path-back");
+    }
+
+    /** Each block from the front, at an angle, from the side and from behind, at a standing player's eye height. */
+    private static void closeUps(List<Block> blocks) {
+        on(1, client -> client.getWindow().setWindowedSize(1600, 900));
+        on(40, client -> { });
+        for (int i = 0; i < blocks.size(); i++) {
+            String id = Registries.BLOCK.getId(blocks.get(i)).getPath();
+            boolean tall = blocks.get(i) instanceof TallGraveBlock;
+            double x = SPACING * i + 0.5, z = 0.5, eye = 1 + 1.62, target = tall ? 2.0 : 1.4, d = tall ? 2.8 : 2.2;
+            float pitch = (float) Math.toDegrees(Math.atan2(eye - target, d));
+            double[][] views = { { 0, d, 180 }, { -d * 0.72, d * 0.72, -135 }, { d, 0, 90 }, { 0, -d, 0 } };
+            String[] names = { "front", "angle", "side", "back" };
+            for (int v = 0; v < views.length; v++) {
+                double[] view = views[v];
+                String name = "model-" + id + "-" + names[v];
+                on(22, client -> tp(client, base.getX() + x + view[0], base.getY() + 1, base.getZ() + z + view[1], (float) view[2], pitch)); // feet on the lawn
+                on(3, client -> screenshot = name);
+            }
+        }
     }
 
     private static void checks(MinecraftServer server) {
@@ -294,7 +321,8 @@ public final class CemeteryTest {
     private static void lawn(MinecraftServer server, BlockPos from, BlockPos to) {
         run(server, String.format("fill %d %d %d %d %d %d minecraft:dirt", from.getX(), from.getY() - 3, from.getZ(), to.getX(), to.getY() - 1, to.getZ()));
         run(server, String.format("fill %d %d %d %d %d %d minecraft:grass_block", from.getX(), from.getY(), from.getZ(), to.getX(), to.getY(), to.getZ()));
-        run(server, String.format("fill %d %d %d %d %d %d minecraft:air", from.getX(), from.getY() + 1, from.getZ(), to.getX(), to.getY() + 14, to.getZ()));
+        for (int y = 1; y < 40; y += 13)  // clear overhanging hills too, in slices the fill command accepts
+            run(server, String.format("fill %d %d %d %d %d %d minecraft:air", from.getX(), from.getY() + y, from.getZ(), to.getX(), to.getY() + y + 12, to.getZ()));
     }
 
     /** The box around the cemetery blocks found near the point, or null when there are none. */
@@ -314,11 +342,11 @@ public final class CemeteryTest {
     private static void camera(double dx, double dy, double dz, float yaw, float pitch, String name) { camera(dx, dy, dz, yaw, pitch, name, false); }
 
     private static void camera(double dx, double dy, double dz, float yaw, float pitch, String name, boolean onField) {
-        on(5, client -> {
+        on(70, client -> {
             BlockPos o = onField ? field : base;
             tp(client, o.getX() + dx, o.getY() + dy, o.getZ() + dz, yaw, pitch);
         });
-        on(70, client -> screenshot = name);
+        on(5, client -> screenshot = name);
     }
 
     private static void tp(MinecraftClient client, double x, double y, double z, float yaw, float pitch) {

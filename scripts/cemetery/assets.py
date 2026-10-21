@@ -441,10 +441,12 @@ def write_models(shapes):
 
     roof = cross_elements("post", "bar", top=31)
     ridge = 31.3
+    # A small gable roof (голубец): the ridge runs front to back, the two boards slope to the left and the right, so the
+    # cross seen from the front stands under a "^".
     roof += [
-        el((2.5, ridge - 0.5, 8), (13.5, ridge + 0.5, 14), "bar", rot=((8, ridge, 8), "x", 45)),
-        el((2.5, ridge - 0.5, 2), (13.5, ridge + 0.5, 8), "bar", rot=((8, ridge, 8), "x", -45)),
-        el((2.5, ridge - 0.2, 7.4), (13.5, ridge + 0.6, 8.6), "post"),
+        el((8, ridge - 0.5, 4), (14.5, ridge + 0.5, 12), "post", rot=((8, ridge, 8), "z", -45)),
+        el((1.5, ridge - 0.5, 4), (8, ridge + 0.5, 12), "post", rot=((8, ridge, 8), "z", 45)),
+        el((7.4, ridge - 0.2, 3.8), (8.6, ridge + 0.6, 12.2), "bar"),
     ]
     model("roofed_cross", w, roof, tall=True, ao=False)
 
