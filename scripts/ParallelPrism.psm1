@@ -194,6 +194,7 @@ using System; using System.Drawing; using System.Runtime.InteropServices;
 public static class ParallelPrismWindow {
     [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h, out RECT r);
     [DllImport("user32.dll")] static extern bool PrintWindow(IntPtr h, IntPtr dc, uint flags);
+    [StructLayout(LayoutKind.Sequential)] struct RECT { public int L, T, R, B; }
     public static bool Save(IntPtr h, string path) {
         RECT r; if (h == IntPtr.Zero || !GetWindowRect(h, out r) || r.R - r.L < 50) return false;
         using (var bmp = new Bitmap(r.R - r.L, r.B - r.T)) using (var g = Graphics.FromImage(bmp)) {
