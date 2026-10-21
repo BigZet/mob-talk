@@ -1,6 +1,0 @@
-{
-  "parent": "rusflora:block/shrub_leaves",
-  "textures": {
-    "all": "rusflora:block/white_lilac_leaves_flowering"
-  }
-}

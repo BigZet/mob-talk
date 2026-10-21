@@ -57,6 +57,8 @@ public final class Hogweed {
 
     private Hogweed() { }
 
+    public static final net.minecraft.world.gen.placementmodifier.PlacementModifierType<NearWaterPlacement> NEAR_WATER = () -> NearWaterPlacement.CODEC;
+
     public static void register() {
         HogweedConfig.load();
         Registry.register(Registries.BLOCK, RusFlora.id("hogweed"), BLOCK);
@@ -80,6 +82,7 @@ public final class Hogweed {
         });
 
         Registry.register(Registries.FEATURE, RusFlora.id("hogweed_patch"), PATCH);
+        Registry.register(Registries.PLACEMENT_MODIFIER_TYPE, RusFlora.id("near_water"), NEAR_WATER);
         Predicate<BiomeSelectionContext> meadows = BiomeSelectors.includeByKey(BiomeKeys.PLAINS, BiomeKeys.SUNFLOWER_PLAINS, BiomeKeys.MEADOW);
         Predicate<BiomeSelectionContext> forests = BiomeSelectors.includeByKey(BiomeKeys.FOREST, BiomeKeys.FLOWER_FOREST, BiomeKeys.BIRCH_FOREST,
                 BiomeKeys.TAIGA);

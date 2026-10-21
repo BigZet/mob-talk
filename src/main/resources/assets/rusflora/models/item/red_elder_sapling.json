@@ -1,6 +1,0 @@
-{
-  "parent": "minecraft:item/generated",
-  "textures": {
-    "layer0": "rusflora:block/red_elder_sapling"
-  }
-}

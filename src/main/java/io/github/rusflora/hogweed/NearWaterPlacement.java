@@ -1,4 +1,4 @@
-package io.github.rusflora.world;
+package io.github.rusflora.hogweed;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
@@ -9,8 +9,8 @@ import net.minecraft.world.gen.feature.FeaturePlacementContext;
 import net.minecraft.world.gen.placementmodifier.AbstractConditionalPlacementModifier;
 import net.minecraft.world.gen.placementmodifier.PlacementModifierType;
 
-/** Keeps a spot only if open water lies within radius blocks around it at ground level: willow and bird cherry grow along
- * river banks, lakes and swamp edges. */
+/** Keeps a spot only if open water lies within radius blocks around it at ground level: hogweed thickets along river banks,
+ * lakes and swamp edges. */
 public final class NearWaterPlacement extends AbstractConditionalPlacementModifier {
     public static final MapCodec<NearWaterPlacement> CODEC = Codec.intRange(1, 12).fieldOf("radius").xmap(NearWaterPlacement::new, p -> p.radius);
     private final int radius;
@@ -26,5 +26,5 @@ public final class NearWaterPlacement extends AbstractConditionalPlacementModifi
         return false;
     }
 
-    @Override public PlacementModifierType<?> getType() { return RusFloraWorldgen.NEAR_WATER; }
+    @Override public PlacementModifierType<?> getType() { return Hogweed.NEAR_WATER; }
 }

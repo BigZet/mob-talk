@@ -1,6 +1,0 @@
-{
-  "parent": "minecraft:block/cross",
-  "textures": {
-    "cross": "rusflora:block/bird_cherry_sapling"
-  }
-}

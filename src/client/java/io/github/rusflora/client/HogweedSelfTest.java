@@ -178,7 +178,7 @@ public final class HogweedSelfTest {
         for (Group group : groups) {
             Pair<BlockPos, RegistryEntry<Biome>> hit = world.locateBiome(e -> group.biomes().stream().anyMatch(e::matchesKey), player.getBlockPos(), 6400, 32, 64);
             if (hit == null) { log("  " + group.name() + ": биом не найден рядом"); continue; }
-            int count = count(world, hit.getFirst(), 5);
+            int count = count(world, hit.getFirst(), 5, group.biomes());
             log("  " + group.name() + " у " + hit.getFirst().toShortString() + ": растений борщевика " + count);
             if (group.russian()) russian += count;
             else check(count == 0, group.name() + ": борщевика нет");
@@ -188,7 +188,8 @@ public final class HogweedSelfTest {
     }
 
     /** Generates chunks within radius chunks around at and counts hogweed roots; remembers a flowering one. */
-    private static int count(ServerWorld world, BlockPos at, int radius) {
+    /** Hogweed plants standing in the group's own biomes around at (not in neighbouring biomes sharing these chunks). */
+    private static int count(ServerWorld world, BlockPos at, int radius, List<RegistryKey<Biome>> biomes) {
         int count = 0;
         BlockPos.Mutable pos = new BlockPos.Mutable();
         for (int cx = (at.getX() >> 4) - radius; cx <= (at.getX() >> 4) + radius; cx++)
@@ -200,6 +201,8 @@ public final class HogweedSelfTest {
                         for (int y = top; y > top - 6; y--) {
                             BlockState state = chunk.getBlockState(pos.set(x, y, z));
                             if (!state.isOf(Hogweed.BLOCK) || state.get(HogweedBlock.PART) != 0) continue;
+                            var biome = world.getBiome(new BlockPos((cx << 4) + x, y, (cz << 4) + z));
+                            if (biomes.stream().noneMatch(biome::matchesKey)) continue;
                             count++;
                             if (wild == null && state.get(HogweedBlock.STAGE) == HogweedBlock.FLOWERING) wild = new BlockPos((cx << 4) + x, y, (cz << 4) + z);
                         }

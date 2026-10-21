@@ -1,6 +1,0 @@
-{
-  "parent": "rusflora:block/shrub_stems",
-  "textures": {
-    "bark": "rusflora:block/red_elder_stems"
-  }
-}
