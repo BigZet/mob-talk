@@ -430,17 +430,33 @@ public final class BossSelfTest {
             player.changeGameMode(GameMode.SPECTATOR);
             MinecraftClient.getInstance().execute(() -> MinecraftClient.getInstance().options.hudHidden = true);
             watched = null;
-            double distance = sacred.getHeight() * 0.8 + 5;
-            player.teleport(world, sacred.getX() + 1, sacred.getY() + sacred.getHeight() * 0.4, sacred.getZ() + distance, 180f, -4f);
         }));
-        steps.add(new Step(40, () -> { if (boss[0] != null) screenshot = "showcase-" + kind.id + "-front"; }));
-        steps.add(new Step(10, () -> {
-            if (boss[0] == null) return;
-            double distance = boss[0].getHeight() * 0.8 + 5;
-            player.teleport(player.getServerWorld(), boss[0].getX() + distance, boss[0].getY() + boss[0].getHeight() * 0.4, boss[0].getZ() + 1, 90f, -4f);
-        }));
-        steps.add(new Step(30, () -> { if (boss[0] != null) screenshot = "showcase-" + kind.id + "-side"; }));
+        // Seven views: the whole figure from the front, side and back, from below at a player's eye level (how players see a
+        // boss), and close-ups of the head, the hands with the weapon, and the top (halo, wing tips).
+        String[][] views = {
+            { "front", "0", "1.0", "0.45", "0.45" }, { "side", "90", "1.0", "0.45", "0.45" }, { "back", "180", "1.0", "0.45", "0.45" },
+            { "below", "35", "0.75", "-1", "0.6" }, { "head", "0", "0.32", "0.86", "0.86" }, { "hands", "20", "0.5", "0.55", "0.5" },
+            { "top", "-30", "0.55", "1.05", "0.9" }, { "upper", "-20", "0.28", "1.05", "1.08" } };
+        for (String[] view : views) {
+            steps.add(new Step(view[0].equals("front") ? 40 : 12, () -> { if (boss[0] != null) aim(player, boss[0], view); }));
+            steps.add(new Step(18, () -> { if (boss[0] != null) screenshot = "showcase-" + kind.id + "-" + view[0]; }));
+        }
         steps.add(new Step(10, () -> log("портрет: " + kind.id)));
+    }
+
+    /** Puts the spectator camera around the boss: {angle} degrees from its front, {distance} times its size (plus a margin)
+     * away, at {height} of its height (-1: a player's eye level), looking at {look} of its height. */
+    private static void aim(ServerPlayerEntity player, SacredBoss boss, String[] view) {
+        double angle = Math.toRadians(Double.parseDouble(view[1])), size = Math.max(boss.getHeight(), boss.getWidth() * 1.5);
+        double distance = size * Double.parseDouble(view[2]) + 3, height = Double.parseDouble(view[3]), look = Double.parseDouble(view[4]);
+        // The boss faces +Z (yaw 0): its front is toward +Z.
+        double x = boss.getX() + Math.sin(angle) * distance, z = boss.getZ() + Math.cos(angle) * distance;
+        double y = height < 0 ? boss.getY() + 1.62 : boss.getY() + boss.getHeight() * height;
+        Vec3d eye = new Vec3d(x, y, z), target = new Vec3d(boss.getX(), boss.getY() + boss.getHeight() * look, boss.getZ());
+        Vec3d to = target.subtract(eye);
+        float yaw = (float) (MathHelper.atan2(to.z, to.x) * 57.2957763671875) - 90f;
+        float pitch = (float) -(MathHelper.atan2(to.y, Math.sqrt(to.x * to.x + to.z * to.z)) * 57.2957763671875);
+        player.teleport(player.getServerWorld(), x, y - 1.62, z, yaw, pitch);
     }
 
     private static final java.util.Set<String> SEEN = new java.util.HashSet<>();
