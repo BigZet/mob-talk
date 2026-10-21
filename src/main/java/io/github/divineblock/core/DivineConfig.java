@@ -69,6 +69,10 @@ public final class DivineConfig {
     public String microphoneName = "";
     /** Ids of acts the player switched off. */
     public List<String> disabled = new ArrayList<>();
+    /** Orthodox churches with an altar inside appear in newly generated chunks; off generates none (old ones stay). */
+    public boolean churches = true;
+    /** How rare churches are: one per this many chunks square at most, 32..256 (the vanilla village is 34). */
+    public int churchSpacing = 64;
     public boolean debug = false;
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -104,6 +108,7 @@ public final class DivineConfig {
         try { LocalWhisper.local(whisperUrl); } catch (IllegalArgumentException invalid) { whisperUrl = new DivineConfig().whisperUrl; }
         if (microphoneName == null) microphoneName = "";
         chantVolume = clamp(chantVolume, 0, 200);
+        churchSpacing = clamp(churchSpacing, 32, 256);
         voiceEffects(voiceEffects());
         return this;
     }

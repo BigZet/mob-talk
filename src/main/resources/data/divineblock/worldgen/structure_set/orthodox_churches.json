@@ -1,0 +1,8 @@
+{
+  "structures": [ { "structure": "divineblock:orthodox_church", "weight": 1 } ],
+  "placement": {
+    "type": "divineblock:church_spread",
+    "salt": 20261021,
+    "exclusion_zone": { "other_set": "minecraft:villages", "chunk_count": 10 }
+  }
+}
