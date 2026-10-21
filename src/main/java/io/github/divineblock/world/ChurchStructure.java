@@ -7,6 +7,7 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.registry.tag.BiomeTags;
+import net.minecraft.registry.tag.TagKey;
 import net.minecraft.structure.PoolStructurePiece;
 import net.minecraft.structure.StructureLiquidSettings;
 import net.minecraft.structure.StructurePiece;
@@ -74,8 +75,10 @@ public final class ChurchStructure extends Structure {
 
         ChurchPiece.Frame frame = new ChurchPiece.Frame(new BlockPos(ox, floor, oz), rotation);
         BlockPos center = frame.world(ChurchBuilder.NAVE_X, 0, ChurchBuilder.NAVE_Z);
-        RegistryEntry<Biome> biome = context.biomeSource().getBiome(BiomeCoords.fromBlock(center.getX()), BiomeCoords.fromBlock(center.getY()),
-                BiomeCoords.fromBlock(center.getZ()), context.noiseConfig().getMultiNoiseSampler());
+        // The whole site in the biomes of the tag, the churchyard's far end too: no beach, river or sea at its edge.
+        for (int[] point : BIOME_SAMPLES)
+            if (!biomeAt(context, frame.world(point[0], 0, point[1])).isIn(BIOMES)) return Optional.empty();
+        RegistryEntry<Biome> biome = biomeAt(context, center);
         boolean north = biome.isIn(BiomeTags.IS_TAIGA) || biome.getKey().map(key -> key.getValue().getPath().matches(".*snowy.*")).orElse(false);
         ChurchBuilder.Variant variant = context.random().nextFloat() < (north ? 0.7f : 0.25f) ? ChurchBuilder.Variant.WOOD : ChurchBuilder.Variant.STONE;
         long seed = context.random().nextLong();
@@ -83,7 +86,7 @@ public final class ChurchStructure extends Structure {
         int lift = floor - 1 - groundAtEntrance;
         cemetery.forEach(piece -> piece.translate(0, lift, 0));
         List<StructurePiece> yardPieces = cemetery;
-        BlockBox yardBox = yardPieces.isEmpty() ? null : StructurePiece.boundingBox(yardPieces.stream()).expand(1);
+        BlockBox yardBox = yardPieces.isEmpty() ? null : StructurePiece.boundingBox(yardPieces.stream()).expand(3); // ponds and trees right at the fence too
         ClearingPiece clearing = yardBox == null ? null
                 : new ClearingPiece(new BlockBox(yardBox.getMinX(), yardBox.getMinY() - 2, yardBox.getMinZ(), yardBox.getMaxX(), floor + 34, yardBox.getMaxZ()),
                         yardPieces.stream().filter(p -> p instanceof PoolStructurePiece element && element.getPoolElement() instanceof FeaturePoolElement)
@@ -93,6 +96,16 @@ public final class ChurchStructure extends Structure {
             if (yardPieces.isEmpty()) collector.addPiece(new CemeteryPiece(frame, seed ^ 0x5DEECE66DL));
             else { collector.addPiece(clearing); yardPieces.forEach(collector::addPiece); }
         }));
+    }
+
+    /** Where the biome must be one of the tag's: the nave, the churchyard's corners, middle and far end (21 x 58 from its
+     * entrance at z = 10). */
+    private static final int[][] BIOME_SAMPLES = { { ChurchBuilder.NAVE_X, 0 }, { 8, 10 }, { 28, 10 }, { 18, 39 }, { 8, 68 }, { 28, 68 }, { 18, 68 } };
+    private static final TagKey<Biome> BIOMES = TagKey.of(RegistryKeys.BIOME, Identifier.of("divineblock", "has_structure/orthodox_church"));
+
+    private static RegistryEntry<Biome> biomeAt(Context context, BlockPos at) {
+        return context.biomeSource().getBiome(BiomeCoords.fromBlock(at.getX()), BiomeCoords.fromBlock(at.getY()), BiomeCoords.fromBlock(at.getZ()),
+                context.noiseConfig().getMultiNoiseSampler());
     }
 
     /** Surface heights at the samples, or null where water stands (a river or a lake in the terrain). */
