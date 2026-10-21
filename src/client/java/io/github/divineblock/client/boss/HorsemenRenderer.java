@@ -11,7 +11,7 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
 
 /** Draws the Four Horsemen: one model, four colourings. The texture and its glow follow the boss's phase: the white,
- * the red, the black and the pale rider. */
+ * the red, the black and the pale rider. The model is built about 55 units tall and drawn at {@link #SCALE}: five blocks. */
 public final class HorsemenRenderer extends MobEntityRenderer<HorsemenEntity, HorsemenModel> {
     private static final String[] RIDERS = { "white", "red", "black", "pale" };
     private static final Identifier[] TEXTURES = new Identifier[4];
@@ -22,10 +22,10 @@ public final class HorsemenRenderer extends MobEntityRenderer<HorsemenEntity, Ho
             GLOWS[i] = RenderLayer.getEyes(Identifier.of("divineblock", "textures/entity/boss/horsemen_" + RIDERS[i] + "_glow.png"));
         }
     }
-    private static final float SCALE = 1.1f;
+    private static final float SCALE = 1.45f;
 
     public HorsemenRenderer(EntityRendererFactory.Context context) {
-        super(context, new HorsemenModel(context.getPart(HorsemenModel.LAYER)), 1.3f);
+        super(context, new HorsemenModel(context.getPart(HorsemenModel.LAYER)), 2.2f);
         addFeature(new FeatureRenderer<>(this) {
             @Override public void render(MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, HorsemenEntity boss,
                                          float limbAngle, float limbDistance, float tickDelta, float animationProgress, float headYaw, float headPitch) {
