@@ -34,4 +34,4 @@ powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 [-Mode true|cr
 
 Prism из оболочки Codex видит подменённый `%LOCALAPPDATA%` и не находит `DivineBlock\openrouter-key.dpapi`
 (голос и вердикты бога падают с «Нет ключа OpenRouter»). Скрипт поднимает Prism через `explorer.exe`, а уже
-открытый перезапускает `scriptsestart-prism-clean.ps1` (ждёт, пока доиграют все игры, держа все слоты).
+открытый перезапускает `scripts\restart-prism-clean.ps1` (ждёт, пока доиграют все игры, держа все слоты).
