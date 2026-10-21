@@ -17,26 +17,29 @@ import net.minecraft.sound.SoundEvent;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 
-/** Church chants, kept quiet so they never cover the god: singing from the altar itself when the player comes near (heard
- * only within some sixteen blocks, with pauses between pieces), and music for a blessing or a punishment, starting low
- * under the god's words and rising once he has spoken. Whatever plays sinks to a whisper while his voice sounds. */
+/** Church chants, all sounding from the altar itself and never covering the god: a piece greets the player who comes back
+ * to the altar after a long while (and now and then sings again while he stays), and a blessing or a punishment gets its
+ * music, low under the god's words and rising once he has spoken. Whatever plays sinks to a whisper while his voice
+ * sounds. Each scene deals its pieces like a shuffled deck: none comes again before all the others have been heard. */
 final class ChantPlayer {
     private static final List<String> ALTAR = List.of("altar_01", "altar_17", "altar_33", "altar_35", "altar_53", "altar_60");
     private static final List<String> BLESSING = List.of("blessing_03", "blessing_11", "blessing_15", "blessing_45", "blessing_46");
     private static final List<String> PUNISHMENT = List.of("punishment_02", "punishment_06", "punishment_20", "punishment_21",
             "punishment_39", "punishment_56", "punishment_57", "punishment_59");
     /** Loudness at the default setting: the altar's singing, and the music of a verdict. */
-    private static final float ALTAR_VOLUME = 0.32f, MUSIC_VOLUME = 0.30f;
+    private static final float ALTAR_VOLUME = 0.85f, MUSIC_VOLUME = 0.9f;
     /** How much of it is left while the god speaks. */
     private static final float UNDER_VOICE = 0.22f;
     private static final int NEAR = 12, FAR = 22;
+    /** Away this long, the altar greets the player again when he returns; staying, he hears it again after a long pause. */
+    private static final int AWAY_TICKS = 20 * 120, STAY_PAUSE = 20 * 240, STAY_PAUSE_SPREAD = 20 * 120;
     private static final Random RANDOM = new Random();
-    private static final Deque<String> recent = new ArrayDeque<>();
+    private static final java.util.Map<List<String>, Deque<String>> decks = new java.util.HashMap<>();
 
     private static Chant altarChant, music;
     private static BlockPos altar;
     private static ClientWorld world;
-    private static long nextAltarChant, nextScan;
+    private static long nextAltarChant, nextScan, lastNear = Long.MIN_VALUE / 2;
 
     private ChantPlayer() { }
 
@@ -46,16 +49,16 @@ final class ChantPlayer {
 
     /** The god has begun to speak a verdict (his beams rise, in the colour of what is coming): a blessing or a punishment
      * gets its music; jests and omens keep the altar's song. */
-    static void verdict(MinecraftClient client, int kind) {
+    static void verdict(MinecraftClient client, int kind, BlockPos at) {
         List<String> pieces = kind == BeamsPayload.BLESSING ? BLESSING : kind == BeamsPayload.PUNISHMENT ? PUNISHMENT : null;
         if (pieces == null || volume() <= 0 || client.world == null || client.player == null) return;
         if (music != null) music.fadeOut();
         if (altarChant != null) altarChant.fadeOut();
         client.getMusicTracker().stop();
-        music = new Chant(pick(pieces), MUSIC_VOLUME, null, 30);
+        music = new Chant(pick(pieces), MUSIC_VOLUME, at.toImmutable(), 30);
         client.getSoundManager().play(music);
         // The altar keeps quiet for a while after the verdict's music.
-        nextAltarChant = client.world.getTime() + 20 * 60;
+        nextAltarChant = client.world.getTime() + STAY_PAUSE;
     }
 
     private static void tick(MinecraftClient client) {
@@ -68,11 +71,14 @@ final class ChantPlayer {
         if (now >= nextScan) { nextScan = now + 20; altar = nearestAltar(client); }
         boolean near = altar != null && client.player.getBlockPos().isWithinDistance(altar, FAR);
         if (altarChant != null && (!near || !altarChant.pos.equals(altar))) { altarChant.fadeOut(); altarChant = null; }
-        if (altarChant == null && music == null && altar != null && client.player.getBlockPos().isWithinDistance(altar, NEAR) && now >= nextAltarChant) {
+        boolean close = altar != null && client.player.getBlockPos().isWithinDistance(altar, NEAR);
+        // Coming back after a long absence: the altar greets him at once, whatever pause was pending.
+        if (close && now - lastNear > AWAY_TICKS) nextAltarChant = now;
+        if (near) lastNear = now;
+        if (altarChant == null && music == null && close && now >= nextAltarChant) {
             altarChant = new Chant(pick(ALTAR), ALTAR_VOLUME, altar, 40);
             client.getSoundManager().play(altarChant);
-            // The next piece after this one (about 35 s) and a pause of 10–40 s.
-            nextAltarChant = now + 20 * (35 + 10 + RANDOM.nextInt(31));
+            nextAltarChant = now + STAY_PAUSE + RANDOM.nextInt(STAY_PAUSE_SPREAD);
         }
     }
 
@@ -82,6 +88,7 @@ final class ChantPlayer {
         music = altarChant = null;
         altar = null;
         nextAltarChant = 0;
+        lastNear = Long.MIN_VALUE / 2;
     }
 
     private static BlockPos nearestAltar(MinecraftClient client) {
@@ -97,14 +104,20 @@ final class ChantPlayer {
         return best;
     }
 
-    /** A piece of this scene not heard among the last few. */
+    /** The next card of this scene's deck; a fresh shuffle never starts with the piece that ended the last one. */
     private static String pick(List<String> pieces) {
-        List<String> fresh = pieces.stream().filter(piece -> !recent.contains(piece)).toList();
-        String piece = (fresh.isEmpty() ? pieces : fresh).get(RANDOM.nextInt((fresh.isEmpty() ? pieces : fresh).size()));
-        recent.addFirst(piece);
-        while (recent.size() > 6) recent.removeLast();
+        Deque<String> deck = decks.computeIfAbsent(pieces, key -> new ArrayDeque<>());
+        if (deck.isEmpty()) {
+            List<String> shuffled = new java.util.ArrayList<>(pieces);
+            java.util.Collections.shuffle(shuffled, RANDOM);
+            if (shuffled.size() > 1 && shuffled.get(0).equals(lastDealt.get(pieces))) java.util.Collections.swap(shuffled, 0, shuffled.size() - 1);
+            deck.addAll(shuffled);
+        }
+        String piece = deck.removeFirst();
+        lastDealt.put(pieces, piece);
         return piece;
     }
+    private static final java.util.Map<List<String>, String> lastDealt = new java.util.HashMap<>();
 
     /** For the self-test: what sings now, and how loud the verdict's music is at this moment. */
     static String altarPiece() { Chant chant = altarChant; return chant == null ? null : chant.piece; }
@@ -114,7 +127,8 @@ final class ChantPlayer {
 
     static float volume() { return DivineBlockMod.config().chantVolume / 100f; }
 
-    /** One piece: fades in, sinks under the god's voice, fades out when told to; positional at the altar or heard everywhere. */
+    /** One piece from the altar: fades in, sinks under the god's voice, fades out when told to. How far it carries is set
+     * per sound in sounds.json (attenuation_distance). */
     static final class Chant extends MovingSoundInstance {
         final BlockPos pos;
         final String piece;
@@ -131,14 +145,8 @@ final class ChantPlayer {
             this.base = base;
             this.fadeIn = fadeIn;
             this.repeat = false;
-            if (pos == null) {
-                this.relative = true;
-                this.attenuationType = AttenuationType.NONE;
-                this.x = 0; this.y = 0; this.z = 0;
-            } else {
-                this.attenuationType = AttenuationType.LINEAR;
-                this.x = pos.getX() + 0.5; this.y = pos.getY() + 0.5; this.z = pos.getZ() + 0.5;
-            }
+            this.attenuationType = AttenuationType.LINEAR;
+            this.x = pos.getX() + 0.5; this.y = pos.getY() + 0.5; this.z = pos.getZ() + 0.5;
             this.volume = 0.001f;
         }
 
