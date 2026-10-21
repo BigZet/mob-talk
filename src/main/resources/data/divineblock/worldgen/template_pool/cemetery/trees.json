@@ -3,11 +3,102 @@
   "elements": [
     {
       "element": {
-        "element_type": "minecraft:feature_pool_element",
-        "feature": "divineblock:cemetery_tree",
+        "element_type": "minecraft:single_pool_element",
+        "location": "divineblock:cemetery/tree_oak_1",
+        "processors": "divineblock:cemetery_broadleaf",
         "projection": "rigid"
       },
-      "weight": 1
+      "weight": 2
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "divineblock:cemetery/tree_oak_2",
+        "processors": "divineblock:cemetery_broadleaf",
+        "projection": "rigid"
+      },
+      "weight": 2
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "divineblock:cemetery/tree_oak_3",
+        "processors": "divineblock:cemetery_broadleaf",
+        "projection": "rigid"
+      },
+      "weight": 2
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "divineblock:cemetery/tree_birch_1",
+        "processors": "divineblock:cemetery_broadleaf",
+        "projection": "rigid"
+      },
+      "weight": 3
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "divineblock:cemetery/tree_birch_2",
+        "processors": "divineblock:cemetery_broadleaf",
+        "projection": "rigid"
+      },
+      "weight": 3
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "divineblock:cemetery/tree_birch_3",
+        "processors": "divineblock:cemetery_broadleaf",
+        "projection": "rigid"
+      },
+      "weight": 3
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "divineblock:cemetery/tree_spruce_1",
+        "processors": "divineblock:cemetery_conifer",
+        "projection": "rigid"
+      },
+      "weight": 3
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "divineblock:cemetery/tree_spruce_2",
+        "processors": "divineblock:cemetery_conifer",
+        "projection": "rigid"
+      },
+      "weight": 3
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "divineblock:cemetery/tree_spruce_3",
+        "processors": "divineblock:cemetery_conifer",
+        "projection": "rigid"
+      },
+      "weight": 3
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "divineblock:cemetery/tree_pine_1",
+        "processors": "divineblock:cemetery_conifer",
+        "projection": "rigid"
+      },
+      "weight": 2
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "divineblock:cemetery/tree_pine_2",
+        "processors": "divineblock:cemetery_conifer",
+        "projection": "rigid"
+      },
+      "weight": 2
     }
   ]
 }

@@ -1,7 +1,7 @@
-"""Generates the village cemetery templates (data/divineblock/structure/cemetery/*.nbt), their jigsaw pools, the birch feature
-and a standalone test structure. Each variant is laid out from its own seed: a gravel alley from the entrance, a cross path,
-fenced family plots on both sides with crosses, monuments, mounds, benches and tables, abandoned overgrown plots, old
-unfenced graves at the back, lilacs and birches. Run from the repository root: python scripts/cemetery/structures.py
+"""Generates the village cemetery templates (data/divineblock/structure/cemetery/*.nbt), their jigsaw pools, the tree
+templates and a standalone test structure. Each piece is laid out from its own seed: one main path from the entrance,
+fenced family plots packed along it and behind them, squeeze lanes, crosses, monuments, mounds and slabs, benches and
+tables, abandoned overgrown plots, old unfenced graves at the edges, lilacs and a few trees. Run from the repository root: python scripts/cemetery/structures.py
 
 Template frame (before the jigsaw rotates it): x 0..20 across, z along the path, y 0 is the ground layer (paths replace the top
 block, everything else stands on y 1). The entrance jigsaw sits at (10, 0, 0) facing north."""
@@ -303,6 +303,100 @@ def piece(seed, depth, entrance, exit_to=None, kind="rows", style=MODERN):
     return t, stats
 
 
+class TreeTemplate(Template):
+    """A tree on its own small template, trunk at (R, 0, R); a jigsaw at the trunk's foot hooks it onto the ground jigsaw."""
+    def __init__(self, radius, height):
+        super().__init__(2 * radius + 1)
+        self.radius, self.height, self.width = radius, height, 2 * radius + 1
+
+    def set(self, x, y, z, name, nbt_data=None, **props):
+        if 0 <= x < self.width and 0 <= y < self.height and 0 <= z < self.width:
+            self.blocks[(x, y, z)] = (name if ":" in name else "minecraft:" + name, {k: str(v).lower() for k, v in props.items()}, nbt_data)
+
+    def write(self, path):
+        global W, H
+        saved = W, H
+        W, H = self.width, self.height
+        try: super().write(path)
+        finally: W, H = saved
+
+
+def leaves(t, x, y, z, kind):
+    if t.get(x, y, z) is None:
+        t.set(x, y, z, kind + "_leaves", distance=1, persistent=True, waterlogged=False)
+
+
+def tree(kind, seed):
+    """Hand-rolled shapes in the vanilla spirit: a round oak, a tall thin birch, a spruce cone, a pine with a high crown."""
+    rnd = random.Random(seed)
+    if kind == "oak":
+        trunk = rnd.randint(5, 7); r = 3; t = TreeTemplate(r, trunk + 3)
+        log, leaf = "oak_log", "oak"
+        for y in range(trunk - 3, trunk + 2):
+            rad = 3 if y < trunk else 2 if y == trunk else 1
+            for dx in range(-rad, rad + 1):
+                for dz in range(-rad, rad + 1):
+                    if abs(dx) == rad and abs(dz) == rad and rnd.random() < 0.7: continue
+                    if dx * dx + dz * dz > rad * rad + 1 and rnd.random() < 0.5: continue
+                    leaves(t, r + dx, y, r + dz, leaf)
+    elif kind == "birch":
+        trunk = rnd.randint(8, 11); r = 2; t = TreeTemplate(r, trunk + 2)
+        log, leaf = "birch_log", "birch"
+        for y in range(trunk - 4, trunk + 2):
+            rad = 2 if y < trunk - 1 else 1
+            for dx in range(-rad, rad + 1):
+                for dz in range(-rad, rad + 1):
+                    if abs(dx) == rad and abs(dz) == rad and (rad == 1 or rnd.random() < 0.6): continue
+                    leaves(t, r + dx, y, r + dz, leaf)
+    elif kind == "spruce":
+        trunk = rnd.randint(8, 11); r = 3; t = TreeTemplate(r, trunk + 2)
+        log, leaf = "spruce_log", "spruce"
+        rad = 1
+        for y in range(trunk + 1, 1, -1):  # from the tip down, widening every other layer
+            for dx in range(-rad, rad + 1):
+                for dz in range(-rad, rad + 1):
+                    if abs(dx) + abs(dz) > rad + (1 if rad > 1 else 0): continue
+                    leaves(t, r + dx, y, r + dz, leaf)
+            if (trunk + 1 - y) % 2 == 1: rad = min(3, rad + 1)
+            elif rad > 1 and rnd.random() < 0.5: rad -= 1
+        t.set(r, trunk + 1, r, "spruce_leaves", distance=1, persistent=True, waterlogged=False)
+    else:  # pine
+        trunk = rnd.randint(11, 14); r = 2; t = TreeTemplate(r, trunk + 2)
+        log, leaf = "spruce_log", "spruce"
+        for y in range(trunk - 3, trunk + 2):
+            rad = 2 if trunk - 2 <= y < trunk else 1
+            for dx in range(-rad, rad + 1):
+                for dz in range(-rad, rad + 1):
+                    if abs(dx) == rad and abs(dz) == rad: continue
+                    leaves(t, r + dx, y, r + dz, leaf)
+    for y in range(trunk):
+        t.set(t.radius, y, t.radius, log, axis="y")
+    # Leaves were placed around the trunk; the trunk wins where they met.
+    jigsaw(t, t.radius, 0, t.radius, "down_north", "minecraft:bottom", "minecraft:empty", "minecraft:empty", f"minecraft:{log}[axis=y]")
+    return t
+
+
+TREE_KINDS = (("oak", False, 3), ("birch", False, 3), ("spruce", True, 3), ("pine", True, 2))
+
+
+def write_trees():
+    elements = []
+    for kind, cold, variants in TREE_KINDS:
+        for i in range(1, variants + 1):
+            name = f"tree_{kind}_{i}"
+            tree(kind, 500 + 101 * i + 7 * len(kind)).write(os.path.join(ROOT, "structure", "cemetery", name + ".nbt"))
+            weight = {"oak": 2, "birch": 3, "spruce": 3, "pine": 2}[kind]
+            elements.append({"element": {"element_type": "minecraft:single_pool_element", "location": f"{NS}:cemetery/{name}",
+                                         "processors": f"{NS}:cemetery_{'conifer' if cold else 'broadleaf'}", "projection": "rigid"}, "weight": weight})
+    wg = os.path.join(ROOT, "worldgen")
+    save_json(os.path.join(wg, "template_pool", "cemetery", "trees.json"), {"fallback": "minecraft:empty", "elements": elements})
+    for name, cold in (("conifer", True), ("broadleaf", False)):
+        save_json(os.path.join(wg, "processor_list", f"cemetery_{name}.json"),
+                  {"processors": [{"processor_type": f"{NS}:cemetery_tree", "cold": cold}]})
+    for old in (os.path.join(wg, "configured_feature", "cemetery_tree.json"), os.path.join(wg, "placed_feature", "cemetery_tree.json")):
+        if os.path.exists(old): os.remove(old)
+
+
 def main():
     wg = os.path.join(ROOT, "worldgen")
     pools = {"start": [], "rows": [], "end": []}
@@ -320,12 +414,7 @@ def main():
                                             "processors": f"{NS}:cemetery", "projection": "terrain_matching"}, "weight": 1})
     for kind, elements in pools.items():
         save_json(os.path.join(wg, "template_pool", "cemetery", kind + ".json"), {"fallback": "minecraft:empty", "elements": elements})
-    save_json(os.path.join(wg, "template_pool", "cemetery", "trees.json"), {"fallback": "minecraft:empty", "elements": [
-        {"element": {"element_type": "minecraft:feature_pool_element", "feature": f"{NS}:cemetery_tree", "projection": "rigid"}, "weight": 1}]})
-    old = os.path.join(wg, "placed_feature", "cemetery_birch.json")
-    if os.path.exists(old): os.remove(old)
-    save_json(os.path.join(wg, "configured_feature", "cemetery_tree.json"), {"type": f"{NS}:cemetery_tree", "config": {}})
-    save_json(os.path.join(wg, "placed_feature", "cemetery_tree.json"), {"feature": f"{NS}:cemetery_tree", "placement": []})
+    write_trees()
     save_json(os.path.join(wg, "processor_list", "cemetery.json"), {"processors": [{"processor_type": "minecraft:rule", "rules": [
         {"input_predicate": {"predicate_type": "minecraft:random_block_match", "block": "minecraft:gravel", "probability": 0.12},
          "location_predicate": {"predicate_type": "minecraft:always_true"}, "output_state": {"Name": "minecraft:coarse_dirt"}},

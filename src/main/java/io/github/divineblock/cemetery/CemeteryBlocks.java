@@ -110,7 +110,7 @@ public final class CemeteryBlocks {
     }
 
     /** Called from the mod initializer: the static fields above register the blocks, this adds the creative tab, the cemetery's
-     * tree feature and the /divineblock cemetery command. */
+     * tree processor and the /divineblock cemetery command. */
     public static void register() {
         ItemGroup tab = FabricItemGroup.builder().icon(() -> new ItemStack(WOODEN_CROSS)).displayName(Text.translatable("itemGroup.divineblock"))
                 .entries((context, entries) -> {
@@ -118,7 +118,7 @@ public final class CemeteryBlocks {
                     TAB.forEach(entries::add);
                 }).build();
         Registry.register(Registries.ITEM_GROUP, Identifier.of(DivineBlockMod.ID, "main"), tab);
-        Registry.register(Registries.FEATURE, Identifier.of(DivineBlockMod.ID, "cemetery_tree"), new CemeteryTreeFeature());
+        CemeteryTreeProcessor.register();
         CemeteryCommand.register();
     }
 
