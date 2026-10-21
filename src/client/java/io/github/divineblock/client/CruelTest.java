@@ -101,6 +101,9 @@ public final class CruelTest {
         }
         switch (phase) {
             case 0 -> {
+                // A fresh game directory opens on the accessibility onboarding first: step past it to the title.
+                if (client.world == null && client.currentScreen != null && !(client.currentScreen instanceof TitleScreen) && ticks > 100
+                        && client.getOverlay() == null) { client.options.onboardAccessibility = false; client.setScreen(new TitleScreen()); }
                 if (!(client.currentScreen instanceof TitleScreen)) return;
                 prepareConfig();
                 GameRules rules = new GameRules();
@@ -123,7 +126,7 @@ public final class CruelTest {
                 } else if (ticks > 20 * 300) { fail("мир не открылся"); finish(client); }
             }
             case 2 -> {
-                if (actsDone) { phase = 10; ticks = 0; }
+                if (actsDone) { phase = Boolean.getBoolean("divineblock.cruel.skipban") ? 40 : 10; ticks = 0; }
                 else if (ticks > 20 * 60 * 45) { fail("кары не уложились в 45 минут"); finish(client); }
             }
             // The settings screen of the punishments.
@@ -135,7 +138,6 @@ public final class CruelTest {
             // The ban: the god speaks the sentence, the world is copied, the mortal is thrown out.
             case 20 -> {
                 if (ticks == 1) { MinecraftServer server = client.getServer(); var uuid = client.player.getUuid(); server.execute(() -> ban(server, server.getPlayerManager().getPlayer(uuid))); }
-                if (ticks == 60) screenshot = "ban-judgement";
                 if (client.currentScreen instanceof DisconnectedScreen) { phase = 21; ticks = 0; }
                 else if (ticks > 20 * 120) { fail("изгнание не выкинуло из мира"); phase = 30; ticks = 0; }
             }
@@ -189,6 +191,11 @@ public final class CruelTest {
             }
             case 28 -> admittedThen(client, "unban-switch", () -> log("ok с выключенным изгнанием мир впускает"), 30);
             case 30 -> { if (ticks == 20) { log("ошибок всего: " + failures); finish(client); } }
+            // -Ddivineblock.cruel.skipban=true: after all the acts the player just leaves; the world must close and save.
+            case 40 -> {
+                if (ticks == 1) { log("выхожу из мира после всех кар"); long t = System.currentTimeMillis(); quit(client); check(true, "мир закрылся и сохранился за " + (System.currentTimeMillis() - t) / 1000 + " с"); }
+                if (ticks == 40) { phase = 30; ticks = 0; }
+            }
             default -> { }
         }
     }
@@ -244,6 +251,8 @@ public final class CruelTest {
 
     private static void acts(MinecraftServer server, ServerPlayerEntity player) {
         if (player == null) { fail("нет игрока"); actsDone = true; return; }
+        // -Ddivineblock.cruel.skipacts=true: straight to the ban (to check it, and the shutdown after it, in a clean world).
+        if (Boolean.getBoolean("divineblock.cruel.skipacts")) { log("--- кары пропущены ---"); actsDone = true; return; }
         ServerWorld world = server.getOverworld();
         world.setTimeOfDay(6000);
         world.setWeather(100_000, 0, false, false);
@@ -440,6 +449,8 @@ public final class CruelTest {
         DivineState.of(server).markDirty();
         log("изгнание: приговор в тестовом мире");
         server.getCommandManager().executeWithPrefix(player.getCommandSource().withLevel(4).withSilent(), "divineblock act eternal_ban 4 5");
+        // The mortal hanging in judgement, the title over him, before he is cast out (real time: the save may stall ticks).
+        new Thread(() -> { try { Thread.sleep(3000); } catch (InterruptedException ignored) { } screenshot = "ban-judgement"; }, "cruel-shot").start();
     }
 
     private static void fakeBan(MinecraftServer server, java.util.UUID player) {

@@ -128,9 +128,9 @@ public final class Banishment {
         });
         Miracles.sound(world, player.getBlockPos(), SoundEvents.ENTITY_WITHER_DEATH, 2f, 0.4f);
 
-        long started = System.currentTimeMillis();
-        Runnable castOut = () -> Scheduler.later(Math.max(1, SENTENCE_TICKS - (int) ((System.currentTimeMillis() - started) / 50)), () -> castOut(server, player, ban));
-        if (!config.banBackup) { castOut.run(); return "приговор: вечное изгнание (без копии мира)"; }
+        // The sentence hangs over him for real seconds, not ticks: after a long save the server races through missed ticks.
+        long due = System.currentTimeMillis() + SENTENCE_TICKS * 50L;
+        if (!config.banBackup) { Scheduler.later(SENTENCE_TICKS, () -> castOut(server, player, ban)); return "приговор: вечное изгнание (без копии мира)"; }
         // The copy is the way back if the god was wrong: saved now, copied off the game thread, and no copy — no ban.
         server.saveAll(true, true, true);
         Path worldDir = server.getSavePath(WorldSavePath.ROOT).toAbsolutePath().normalize();
@@ -138,8 +138,10 @@ public final class Banishment {
             try {
                 Path backup = backup(worldDir);
                 ban.backup = backup.getFileName().toString();
-                server.execute(castOut);
-            } catch (IOException | RuntimeException failure) {
+                long wait = due - System.currentTimeMillis();
+                if (wait > 0) Thread.sleep(wait);
+                server.execute(() -> castOut(server, player, ban));
+            } catch (IOException | RuntimeException | InterruptedException failure) {
                 DivineBlockMod.LOG.warn("Божественный блок: копия мира не сделана — изгнание отменено", failure);
                 server.execute(() -> {
                     if (player.isRemoved()) return;
@@ -172,7 +174,9 @@ public final class Banishment {
     static Text sentence(Ban ban) {
         MutableText out = Text.literal("ПРИГОВОР\n\n").formatted(Formatting.DARK_RED, Formatting.BOLD);
         out.append(Text.literal("Смертный " + ban.name + ".\n").formatted(Formatting.RED));
-        out.append(Text.literal((ban.blasphemies > 1 ? "Ты хулил меня " + ban.blasphemies + " раз" : "Ты хулил меня") + " — " + ban.reason + ".\n")
+        int n = ban.blasphemies, tens = n % 100 / 10, last = n % 10;
+        String times = tens != 1 && last >= 2 && last <= 4 ? " раза" : " раз";
+        out.append(Text.literal((n > 1 ? "Ты хулил меня " + n + times : "Ты хулил меня") + " — " + ban.reason + ".\n")
                 .formatted(Formatting.RED));
         out.append(Text.literal("Изгнан из мира сего навеки. Врата его для тебя закрыты.\n\n").formatted(Formatting.GOLD));
         if (!ban.speech.isBlank()) out.append(Text.literal("«" + trim(ban.speech, 240) + "»").formatted(Formatting.GRAY, Formatting.ITALIC));
