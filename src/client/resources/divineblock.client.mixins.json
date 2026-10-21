@@ -3,5 +3,6 @@
   "package": "io.github.divineblock.client.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": ["UpsideDownMixin", "WrathSkyMixin", "WrathFogMixin", "ShakeCameraMixin", "GodBoltMixin"],
+  "client": ["UpsideDownMixin", "WrathSkyMixin", "WrathFogMixin", "BloodWaterMixin"],
   "injectors": { "defaultRequire": 1 }
 }

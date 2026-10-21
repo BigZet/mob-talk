@@ -122,6 +122,17 @@ public final class VerdictBuilder {
         verdict.budget = Math.min(config.maxTier, Math.max(verdict.budget, Math.min(4, verdict.budget + steps)));
     }
 
+    /** Sincere repentance under a burden (punishments in a row or a curse still on him), even mid-escalation: the god forgives,
+     * the curses are lifted and the ladder starts again. Blasphemy in the same breath is no repentance. */
+    public static void forgiveBurden(Verdict verdict, boolean repents, boolean burdened) {
+        if (!repents || !burdened || verdict.fury || verdict.forgiveness || verdict.favor <= -10) return;
+        verdict.reasons.add(new Verdict.Reason("искреннее покаяние снимает кару и проклятия", 4, 0));
+        verdict.favor += 4;
+        verdict.forgiveness = true;
+        verdict.inclination = Miracle.Kind.OMEN;
+        verdict.budget = 0;
+    }
+
     static Miracle.Kind inclination(int favor, int force, DivineConfig.Personality personality) {
         if (favor >= 2) return Miracle.Kind.HELP;
         if (favor <= -2) return Miracle.Kind.WRATH;
