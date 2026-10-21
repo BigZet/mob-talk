@@ -34,7 +34,9 @@ final class SelfTestLooks {
     private ServerWorld world() { return (ServerWorld) test.serverPlayer().getWorld(); }
     private String at(int dx, int dy, int dz) { return (fx + dx) + " " + (fy + dy) + " " + (fz + dz); }
     private List<VillagerEntity> tagged() {
-        return world().getEntitiesByClass(VillagerEntity.class, new Box(fx - 12, fy - 2, fz - 9, fx + 12, fy + 6, fz + 9), v -> v.isAlive() && v.getCommandTags().contains(TAG));
+        // Метки команд есть только на сервере; спрашиваем его в его же потоке, иначе выборка с клиентского потока бывает пустой.
+        Box box = new Box(fx - 12, fy - 2, fz - 9, fx + 12, fy + 6, fz + 9);
+        return test.server().submit(() -> world().getEntitiesByClass(VillagerEntity.class, box, v -> v.isAlive() && v.getCommandTags().contains(TAG))).join();
     }
     private List<VillagerEntity> clientTagged() {
         Set<UUID> ids = new HashSet<>(); for (VillagerEntity v : tagged()) ids.add(v.getUuid());
@@ -154,8 +156,15 @@ final class SelfTestLooks {
         if (mother == null) { test.fail("no woman left for the belly"); vanilla(); return; }
         ChildView.forceBelly(Map.of(mother, 1f));
         test.command("tp " + mother + " " + (fx + 0.5) + " " + fy + " " + (fz + 4.5) + " 0 0"); // Лицом на юг.
-        test.command("tp " + name() + " " + (fx + 3.5) + " " + fy + " " + (fz + 4.5) + " 90 10"); // Сбоку от неё: она смотрит на юг, игрок на запад.
-        test.await("pause: the camera beside her", 2, () -> false, () -> shot("mobtalk-looks-belly.png", this::vanilla));
+        // Куда она смотрит, у неподвижного жителя видно не сразу: снимки с трёх сторон, в двух из них профиль.
+        test.command("tp " + name() + " " + (fx + 3.5) + " " + fy + " " + (fz + 4.5) + " 90 10");
+        test.await("pause: the camera east of her", 2, () -> false, () -> shot("mobtalk-looks-belly-east.png", () -> {
+            test.command("tp " + name() + " " + (fx - 2.5) + " " + fy + " " + (fz + 4.5) + " -90 10");
+            test.await("pause: the camera west of her", 2, () -> false, () -> shot("mobtalk-looks-belly-west.png", () -> {
+                test.command("tp " + name() + " " + (fx + 0.5) + " " + fy + " " + (fz + 7.5) + " 180 10");
+                test.await("pause: the camera south of her", 2, () -> false, () -> shot("mobtalk-looks-belly-south.png", this::vanilla));
+            }));
+        }));
     }
 
     /** Выключено в F7 — тот же ряд ванильной моделью, без перезагрузки. */
