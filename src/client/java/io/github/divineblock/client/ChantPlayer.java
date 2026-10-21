@@ -30,7 +30,7 @@ final class ChantPlayer {
     private static final float ALTAR_VOLUME = 0.85f, MUSIC_VOLUME = 0.9f;
     /** How much of it is left while the god speaks. */
     private static final float UNDER_VOICE = 0.22f;
-    private static final int NEAR = 12, FAR = 22;
+    private static final int NEAR = 12, FAR = 22, AFTER_WORDS = 20 * 5;
     /** Away this long, the altar greets the player again when he returns; staying, he hears it again after a long pause. */
     private static final int AWAY_TICKS = 20 * 120, STAY_PAUSE = 20 * 240, STAY_PAUSE_SPREAD = 20 * 120;
     private static final Random RANDOM = new Random();
@@ -61,11 +61,18 @@ final class ChantPlayer {
         nextAltarChant = client.world.getTime() + STAY_PAUSE;
     }
 
+    /** The god's last word: the verdict's music plays on for five seconds more (or to its own end), then fades. A new
+     * prayer in those seconds cuts it at once with music of its own ({@link #verdict}). */
+    static void wordsEnded(MinecraftClient client) {
+        if (music != null && client.world != null && music.stopAt == 0) music.stopAt = client.world.getTime() + AFTER_WORDS;
+    }
+
     private static void tick(MinecraftClient client) {
         if (client.world != world) { stopAll(client); world = client.world; }
         if (client.world == null || client.player == null) return;
         long now = client.world.getTime();
         if (volume() <= 0) { stopAll(client); return; }
+        if (music != null && music.stopAt > 0 && now >= music.stopAt) music.fadeOut();
         if (music != null && music.over(client)) music = null;
         if (altarChant != null && altarChant.over(client)) altarChant = null;
         if (now >= nextScan) { nextScan = now + 20; altar = nearestAltar(client); }
@@ -122,6 +129,7 @@ final class ChantPlayer {
     /** For the self-test: what sings now, and how loud the verdict's music is at this moment. */
     static String altarPiece() { Chant chant = altarChant; return chant == null ? null : chant.piece; }
     static String musicPiece() { Chant chant = music; return chant == null ? null : chant.piece; }
+    static boolean musicEnding() { Chant chant = music; return chant == null || chant.fading(); }
     static float musicLevel() { Chant chant = music; return chant == null ? -1 : chant.level(); }
     static List<String> allPieces() { return java.util.stream.Stream.of(ALTAR, BLESSING, PUNISHMENT).flatMap(List::stream).toList(); }
 
@@ -132,6 +140,8 @@ final class ChantPlayer {
     static final class Chant extends MovingSoundInstance {
         final BlockPos pos;
         final String piece;
+        /** World tick at which the verdict's music starts to fade; 0 while the god still speaks. */
+        long stopAt;
         private final float base;
         private final int fadeIn;
         private final long born = System.nanoTime();
@@ -155,7 +165,8 @@ final class ChantPlayer {
         /** Faded out, or played to its end: the sound engine drops a finished stream without telling the instance. */
         boolean over(MinecraftClient client) { return isDone() || System.nanoTime() - born > 3_000_000_000L && !client.getSoundManager().isPlaying(this); }
 
-        void fadeOut() { if (fading < 0) fading = 40; }
+        void fadeOut() { if (fading < 0) fading = 30; }
+        boolean fading() { return fading >= 0; }
 
         @Override public boolean shouldAlwaysPlay() { return true; }
 
@@ -166,7 +177,7 @@ final class ChantPlayer {
             duck += (wantDuck - duck) * (wantDuck < duck ? 0.2f : 0.05f);
             float fade = Math.min(1f, age / (float) fadeIn);
             if (fading >= 0) {
-                fade *= fading / 40f;
+                fade *= fading / 30f;
                 if (fading-- == 0) { setDone(); return; }
             }
             this.volume = Math.max(0.001f, base * volume() * duck * fade);

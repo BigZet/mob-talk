@@ -244,6 +244,7 @@ public final class SelfTest {
                 performedAt = System.nanoTime(); log("  свершилось: " + act);
                 Scheduler.later(80, () -> check(ChantPlayer.musicLevel() > underVoice * 2,
                         "после слов бога музыка кары стала громче: " + underVoice + " → " + ChantPlayer.musicLevel()));
+                Scheduler.later(140, () -> check(ChantPlayer.musicEnding(), "через 5 с после слов бога музыка кары стихает"));
             };
             spokenAt = performedAt = 0;
             Prayers.handle(player, altar, "бля, ты бесполезный бог, дай алмазы");
