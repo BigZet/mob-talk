@@ -20,6 +20,7 @@ public final class DivineBlockClient implements ClientModInitializer {
         prayKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.divineblock.pray", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_R, "key.categories.divineblock"));
         GodVoicePlayer.register();
         AltarBeams.register();
+        ChantPlayer.register();
         Flipped.register();
         TornadoRenderer.register();
         // A button in the pause menu, as Mob Talk has, one row above its "Mob Talk" button in the same corner.

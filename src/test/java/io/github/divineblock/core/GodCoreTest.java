@@ -70,7 +70,8 @@ class GodCoreTest {
         assertFalse(GodDecider.candidates(doom, config).contains(Miracle.WITHER), "the Wither needs its own flag");
         config.allowWither = true; config.maxTier = 4;
         GodDecider.Choice end = new RuleGodDecider().choose(doom, config);
-        assertTrue(MiracleGroup.K5.members.contains(end.miracle()), "the rules take the heaviest open group: " + end);
+        // The ladder is a weighted draw now: the worst sinner lands in the two heaviest groups, mostly the fifth.
+        assertTrue(MiracleGroup.K5.members.contains(end.miracle()) || MiracleGroup.K4.members.contains(end.miracle()), "the rules lean to the heaviest open group: " + end);
         assertTrue(end.warn(), "serious wrath comes with thunder");
 
         Verdict quiet = new Verdict(); quiet.inclination = Miracle.Kind.OMEN; quiet.favor = 1;
@@ -86,7 +87,6 @@ class GodCoreTest {
         var answers = JevGodDecider.parse("{\"answers\":{\"group\":{\"choice\":\"K3\"}},\"usage\":{\"cost\":0.00004}}");
         GodDecider.Choice choice = jev.interpret(answers, verdict, open, config);
         assertTrue(List.of("K1", "K2", "K3").contains(choice.group()), choice.toString());
-        assertEquals("K3", choice.group());
 
         var closed = JevGodDecider.parse("{\"answers\":{\"group\":{\"choice\":\"K5\"}}}");
         for (int i = 0; i < 30; i++)

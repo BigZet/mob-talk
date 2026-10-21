@@ -54,6 +54,9 @@ public final class DivineConfig {
         voiceRoomSize = settings.roomSize(); voiceReverb = settings.reverbLevel(); voiceEchoMs = settings.echoMs();
         voiceEchoLevel = settings.echoLevel(); voiceEchoRepeats = settings.echoRepeats();
     }
+    /** Church chants (quiet singing near the altar, music under a blessing or a punishment, always below the god's voice):
+     * percent of their already quiet default, 0..200; 0 switches them off. */
+    public int chantVolume = 100;
     public String voiceId = GodVoice.VOICES[0][0];
     public String ttsModel = "elevenlabs/eleven-flash-v2.5";
     /** Prayers by voice: the local Whisper helper (shared with Mob Talk) and the microphone; "" is the system default. */
@@ -95,6 +98,7 @@ public final class DivineConfig {
         if (ttsModel == null || ttsModel.isBlank()) ttsModel = new DivineConfig().ttsModel;
         try { LocalWhisper.local(whisperUrl); } catch (IllegalArgumentException invalid) { whisperUrl = new DivineConfig().whisperUrl; }
         if (microphoneName == null) microphoneName = "";
+        chantVolume = clamp(chantVolume, 0, 200);
         voiceEffects(voiceEffects());
         return this;
     }

@@ -1,6 +1,163 @@
 {
   "god_voice": {
     "subtitle": "subtitle.divineblock.god_voice",
-    "sounds": [ { "name": "fabric-sound-api-v1:empty", "stream": true } ]
+    "sounds": [
+      {
+        "name": "fabric-sound-api-v1:empty",
+        "stream": true
+      }
+    ]
+  },
+  "chant.altar_01": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/altar_01",
+        "stream": true
+      }
+    ]
+  },
+  "chant.altar_17": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/altar_17",
+        "stream": true
+      }
+    ]
+  },
+  "chant.altar_33": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/altar_33",
+        "stream": true
+      }
+    ]
+  },
+  "chant.altar_35": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/altar_35",
+        "stream": true
+      }
+    ]
+  },
+  "chant.altar_53": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/altar_53",
+        "stream": true
+      }
+    ]
+  },
+  "chant.altar_60": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/altar_60",
+        "stream": true
+      }
+    ]
+  },
+  "chant.blessing_03": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/blessing_03",
+        "stream": true
+      }
+    ]
+  },
+  "chant.blessing_11": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/blessing_11",
+        "stream": true
+      }
+    ]
+  },
+  "chant.blessing_15": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/blessing_15",
+        "stream": true
+      }
+    ]
+  },
+  "chant.blessing_45": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/blessing_45",
+        "stream": true
+      }
+    ]
+  },
+  "chant.blessing_46": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/blessing_46",
+        "stream": true
+      }
+    ]
+  },
+  "chant.punishment_02": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/punishment_02",
+        "stream": true
+      }
+    ]
+  },
+  "chant.punishment_06": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/punishment_06",
+        "stream": true
+      }
+    ]
+  },
+  "chant.punishment_20": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/punishment_20",
+        "stream": true
+      }
+    ]
+  },
+  "chant.punishment_21": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/punishment_21",
+        "stream": true
+      }
+    ]
+  },
+  "chant.punishment_39": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/punishment_39",
+        "stream": true
+      }
+    ]
+  },
+  "chant.punishment_56": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/punishment_56",
+        "stream": true
+      }
+    ]
+  },
+  "chant.punishment_57": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/punishment_57",
+        "stream": true
+      }
+    ]
+  },
+  "chant.punishment_59": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/punishment_59",
+        "stream": true
+      }
+    ]
   }
 }

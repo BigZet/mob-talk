@@ -49,6 +49,8 @@ final class VoiceSettingsScreen extends Screen {
             status = "Звучит…";
             GodVoicePlayer.preview(client, config, line -> status = line);
         }).dimensions(left, y, column, 20).build());
+        y += row;
+        addDrawableChild(slider(left, y, column, "Песнопения", 0, 200, () -> config.chantVolume, v -> config.chantVolume = v, v -> v == 0 ? "выкл" : v + "%"));
 
         y = top;
         addDrawableChild(slider(right, y, column, "Зал", 0, 100, () -> config.voiceRoomSize, v -> config.voiceRoomSize = v, v -> v + "%"));
@@ -77,7 +79,7 @@ final class VoiceSettingsScreen extends Screen {
     @Override public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
         context.drawCenteredTextWithShadow(textRenderer, title.copy().formatted(Formatting.GOLD), this.width / 2, 12, 0xFFFFFF);
-        if (!status.isBlank()) context.drawCenteredTextWithShadow(textRenderer, Text.literal(status).formatted(Formatting.GRAY), this.width / 2, 30 + 23 * 5 + 10, 0xFFFFFF);
+        if (!status.isBlank()) context.drawCenteredTextWithShadow(textRenderer, Text.literal(status).formatted(Formatting.GRAY), this.width / 2, 30 + 23 * 6 + 10, 0xFFFFFF);
     }
 
     @Override public void close() { if (client != null) client.setScreen(parent); }

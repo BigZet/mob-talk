@@ -56,6 +56,7 @@ public final class SelfTest {
     private static volatile String screenshot, clientPrayer, heardText, unheardText;
     private static volatile int voiced;
     private static volatile long spokenAt, performedAt;
+    private static volatile float underVoice;
     private static volatile boolean finished;
     private static BlockPos altar, base;
 
@@ -184,6 +185,14 @@ public final class SelfTest {
         GodLedger.Soul soul = DivineState.of(server).ledger.soul(player.getUuid());
 
         List<Step> steps = new ArrayList<>();
+        steps.add(new Step(60, () -> {
+            // The altar sings quietly to whoever stands by it; every chant is a real sound of the mod.
+            MinecraftClient client = MinecraftClient.getInstance();
+            List<String> missing = ChantPlayer.allPieces().stream().filter(piece -> client.getSoundManager()
+                    .get(net.minecraft.util.Identifier.of("divineblock", "chant." + piece)) == null).toList();
+            check(missing.isEmpty(), "песнопения есть в звуках мода: " + ChantPlayer.allPieces().size() + (missing.isEmpty() ? "" : ", нет " + missing));
+            check(ChantPlayer.altarPiece() != null, "у алтаря звучит песнопение: " + ChantPlayer.altarPiece());
+        }));
         steps.add(new Step(40, () -> {
             VillagerEntity villager = EntityType.VILLAGER.create(world);
             villager.refreshPositionAndAngles(base.getX() + 4, base.getY(), base.getZ(), 0, 0);
@@ -222,8 +231,20 @@ public final class SelfTest {
         steps.add(new Step(100, () -> {
             // An ordinary mortal swears at the god: real wrath, at full strength, and only after the god has spoken.
             soul.righteousness.score = 0; soul.mood = 0; soul.lastPrayerTick = Long.MIN_VALUE / 2; soul.prayerTicks.clear();
-            Prayers.spoken = line -> { spokenAt = System.nanoTime(); log("  бог: " + line); Scheduler.later(20, () -> screenshot = "beams"); };
-            Prayers.performed = act -> { performedAt = System.nanoTime(); log("  свершилось: " + act); };
+            Prayers.spoken = line -> {
+                spokenAt = System.nanoTime(); log("  бог: " + line); Scheduler.later(20, () -> screenshot = "beams");
+                Scheduler.later(40, () -> {
+                    underVoice = ChantPlayer.musicLevel();
+                    check(String.valueOf(ChantPlayer.musicPiece()).startsWith("punishment") && GodVoicePlayer.speaking(),
+                            "под голос бога звучит музыка кары: " + ChantPlayer.musicPiece() + ", громкость " + underVoice);
+                    check(ChantPlayer.altarPiece() == null, "песнопение алтаря уступило музыке кары");
+                });
+            };
+            Prayers.performed = act -> {
+                performedAt = System.nanoTime(); log("  свершилось: " + act);
+                Scheduler.later(80, () -> check(ChantPlayer.musicLevel() > underVoice * 2,
+                        "после слов бога музыка кары стала громче: " + underVoice + " → " + ChantPlayer.musicLevel()));
+            };
             spokenAt = performedAt = 0;
             Prayers.handle(player, altar, "бля, ты бесполезный бог, дай алмазы");
         }));

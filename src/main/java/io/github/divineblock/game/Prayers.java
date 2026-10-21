@@ -180,14 +180,16 @@ public final class Prayers {
         if (config.debug) player.sendMessage(Text.literal(verdict.breakdown()).formatted(Formatting.DARK_GRAY), false);
         if (verdict.chosen() == Miracle.IGNORE) { act(player, altar, verdict, config); return; } // Silence: no word at all.
         int color = beamColor(verdict.chosen().kind);
+        // The music follows the verdict, not the act: wrath that fell back to a thunder omen is still a punishment.
+        int music = verdict.inclination == Miracle.Kind.HELP ? BeamsPayload.BLESSING : verdict.inclination == Miracle.Kind.WRATH ? BeamsPayload.PUNISHMENT : BeamsPayload.NO_MUSIC;
         double estimate = Math.max(3, verdict.speech.split("\s+").length * 0.45); // Seconds the words may take, for the glow.
         speakThen(player, verdict.speech, () -> {
             if (player.isRemoved() || player.getServerWorld() != world) return;
             Miracles.speaking(player, altar, verdict.chosen().kind, estimate);
             if (ServerPlayNetworking.canSend(player, BeamsPayload.ID))
-                ServerPlayNetworking.send(player, new BeamsPayload(altar, 20 * 45, color));
+                ServerPlayNetworking.send(player, new BeamsPayload(altar, 20 * 45, color, music));
         }, () -> {
-            if (ServerPlayNetworking.canSend(player, BeamsPayload.ID)) ServerPlayNetworking.send(player, new BeamsPayload(altar, 0, color));
+            if (ServerPlayNetworking.canSend(player, BeamsPayload.ID)) ServerPlayNetworking.send(player, new BeamsPayload(altar, 0, color, music));
             if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) return;
             Miracles.flourish(player, altar, verdict.chosen().kind, verdict.power);
             if (verdict.warned) {

@@ -122,6 +122,11 @@ final class GodVoicePlayer {
         client.getSoundManager().play(playing);
     }
 
+    /** Whether the god's voice is sounding now: the chants sink under it. */
+    static boolean speaking() {
+        return playing != null && MinecraftClient.getInstance().getSoundManager().isPlaying(playing);
+    }
+
     /** Tells the server the voice began ({@code -1}) or the words are over ({@code >= 0}), so the act can follow the words. */
     static void ack(int id, float seconds) {
         if (id == 0) return;
