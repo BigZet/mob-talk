@@ -9,6 +9,9 @@ $dir = Join-Path $env:LOCALAPPDATA 'PrismParallel\slots'
 New-Item -ItemType Directory -Force $dir | Out-Null
 $deadline = (Get-Date).AddMinutes($TimeoutMinutes)
 $held = @{}
+# The gate makes Enter-GameSlot of current scripts wait, so the restart is not starved by back-to-back runs.
+$gate = $null
+while (-not $gate) { try { $gate = [IO.File]::Open((Join-Path $dir 'restart.lock'), 'OpenOrCreate', 'ReadWrite', 'None') } catch { Start-Sleep -Milliseconds 200 } }
 try {
     while ($held.Count -lt $Slots) {
         if ((Get-Date) -gt $deadline) { throw 'timed out waiting for the game slots' }
@@ -20,7 +23,8 @@ try {
                 $held[$i] = $s
             } catch { }
         }
-        if ($held.Count -lt $Slots) { Write-Host "$(Get-Date -Format HH:mm:ss) holding $($held.Count)/$Slots slots, waiting for the rest"; Start-Sleep -Seconds 15 }
+        # Poll fast: a thread that just finished a run may start the next one within seconds.
+        if ($held.Count -lt $Slots) { Start-Sleep -Milliseconds 500 }
     }
     while (@(Get-AllGames).Count) {
         if ((Get-Date) -gt $deadline) { throw 'timed out waiting for running games' }
@@ -33,4 +37,5 @@ try {
     Write-Host "$(Get-Date -Format HH:mm:ss) PrismLauncher $($p.Id) started through explorer.exe"
 } finally {
     foreach ($s in $held.Values) { $s.Dispose() }
+    $gate.Dispose()
 }
