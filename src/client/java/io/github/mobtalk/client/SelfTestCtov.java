@@ -9,10 +9,12 @@ import io.github.mobtalk.core.MobCard;
 import io.github.mobtalk.core.MobSnapshot;
 import io.github.mobtalk.core.PlacePrompt;
 import io.github.mobtalk.core.SocialProfile;
+import io.github.mobtalk.core.Wedding;
 import io.github.mobtalk.core.WeddingFaults;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -25,23 +27,26 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.poi.PointOfInterestStorage;
+import net.minecraft.world.poi.PointOfInterestTypes;
 
 /** Self-test stages for a village of CTOV (ChoiceTheorem's Overhauled Village), skipped when that mod is not installed: the nearest
  * CTOV village located through the registry, the cow taken into one of its houses (the structure facts name it in Russian, no raw
- * ids), its villagers read on the server thread (bell and home remembered, the village structure found around them, the wedding
- * bell found in the same structure), two real conversations (the first villager founds a Mob Talk village keyed by the CTOV
- * structure, the second joins the same one) and a villagers' wedding at the CTOV bell on fallback texts. Screenshots go to
- * screenshots/mobtalk-ctov-*.png. */
+ * ids), its villagers read on the server thread once they settle (bell or home remembered, the village structure found around
+ * them), two real conversations (the first villager founds a Mob Talk village keyed by the CTOV structure, the second joins the
+ * same one) and a villagers' wedding at a CTOV bell on fallback texts: the bell of the same village, the ceremony on the ground at
+ * its foot, the guests on the square and not on roofs, a marriage at the end. Screenshots go to screenshots/mobtalk-ctov-*.png. */
 final class SelfTestCtov {
     private final SelfTest test;
     private final UUID cow;
     private final int homeX, homeY, homeZ;
     private Runnable next = () -> { };
-    private BlockPos spot, bell;
+    private BlockPos spot;
     private UUID first, second;
     private String siteKey = "";
     private int before;
     private int savedWeddingChance = -1;
+    private int settleTicks;
 
     SelfTestCtov(SelfTest test, UUID cow, int stageX, int stageY, int stageZ) {
         this.test = test; this.cow = cow;
@@ -49,8 +54,9 @@ final class SelfTestCtov {
     }
 
     /** What the server thread read about the village's residents. */
-    private record Residents(int all, int settled, UUID first, UUID second, String site, BlockPos bell, String bellSite, UUID groom, UUID bride,
-                             WeddingController.Venue venue, String venueSite) { }
+    private record Residents(int all, int settled, int belled, UUID first, UUID second, String site, BlockPos bell, String bellSite, UUID groom, UUID bride) { }
+    /** Where the groom's wedding would stand, read on the server thread, with what was around it. */
+    private record Place(WeddingController.Venue venue, String venueSite, int bellsAround) { }
 
     void run(Runnable then) {
         next = then;
@@ -64,7 +70,7 @@ final class SelfTestCtov {
             if (spot == null) { test.fail("no CTOV village house within 1600 blocks"); back(); return; }
             test.log("CTOV village house spot " + spot.toShortString());
             test.command("time set 1000"); test.command("weather clear");
-            test.command("effect give " + player() + " minecraft:slow_falling 600 1 true");
+            test.command("effect give " + player() + " minecraft:slow_falling 900 1 true");
             // Player and cow move together, as in the place stage: the stage up in the sky unloads once the player is gone, and an
             // unloaded cow can no longer be teleported.
             test.command("tp " + player() + " " + (spot.getX() + 2) + " " + spot.getY() + " " + spot.getZ());
@@ -74,17 +80,6 @@ final class SelfTestCtov {
                 test.command("tp " + player() + " " + (spot.getX() + 2) + " " + spot.getY() + " " + spot.getZ() + " facing entity " + cow + " eyes");
                 test.await("pause: the cow in a CTOV house", 3, () -> false, () -> shot("mobtalk-ctov-house.png", this::house));
             });
-        });
-    }
-
-    /** A look over the village from above its centre, for the eyes of whoever reads the run. */
-    private void overview(Runnable then) {
-        CompletableFuture<ConversationStore.Site> site = test.bridge().onServer(() -> VillageSites.at(world(), spot));
-        test.await("the CTOV village centre", 10, site::isDone, () -> {
-            ConversationStore.Site s = site.isCompletedExceptionally() ? null : site.join();
-            int cx = s == null ? spot.getX() : s.x(), cz = s == null ? spot.getZ() : s.z();
-            test.command("tp " + player() + " " + cx + " " + (spot.getY() + 45) + " " + (cz - 45) + " facing " + cx + " " + spot.getY() + " " + cz);
-            test.await("pause: above the CTOV village", 4, () -> false, () -> shot("mobtalk-ctov-village.png", then));
         });
     }
 
@@ -109,33 +104,54 @@ final class SelfTestCtov {
                 test.check(structures.contains("деревня"), "the registry names the CTOV village in Russian: " + structures);
                 test.check(!structures.contains("ctov") && !structures.contains("village_") && !structures.contains("/"), "no raw CTOV ids in the facts");
             }
-            overview(() -> test.await("two CTOV villagers remember their bell or home", 120, this::residentsReady, this::residents));
+            overview(() -> {
+                // Back down among the houses: the villagers of a freshly generated village take a while to find their beds and bells.
+                test.command("tp " + player() + " " + (spot.getX() + 2) + " " + spot.getY() + " " + spot.getZ());
+                settleTicks = 0;
+                test.await("the CTOV villagers settle (bells, or homes after a minute)", 150, this::residentsReady, this::residents);
+            });
         });
     }
 
-    /** Adult villagers around the house, nearest first. Server thread only. */
+    /** A look over the village from above its centre, for the eyes of whoever reads the run. */
+    private void overview(Runnable then) {
+        CompletableFuture<ConversationStore.Site> site = test.bridge().onServer(() -> VillageSites.at(world(), spot));
+        test.await("the CTOV village centre", 10, site::isDone, () -> {
+            ConversationStore.Site s = site.isCompletedExceptionally() ? null : site.join();
+            int cx = s == null ? spot.getX() : s.x(), cz = s == null ? spot.getZ() : s.z();
+            test.command("tp " + player() + " " + cx + " " + (spot.getY() + 45) + " " + (cz - 45) + " facing " + cx + " " + spot.getY() + " " + cz);
+            test.await("pause: above the CTOV village", 8, () -> false, () -> shot("mobtalk-ctov-village.png", then));
+        });
+    }
+
+    /** Adult villagers around the house, those remembering a bell first, then the nearest. Server thread only. */
     private List<VillagerEntity> villagers(ServerWorld world) {
         List<VillagerEntity> found = new ArrayList<>(world.getEntitiesByClass(VillagerEntity.class, Box.of(spot.toCenterPos(), 192, 96, 192),
                 v -> v.isAlive() && !v.isBaby()));
-        found.sort(Comparator.comparingDouble(v -> v.getBlockPos().getSquaredDistance(spot)));
+        found.sort(Comparator.comparing((VillagerEntity v) -> !belled(v)).thenComparingDouble(v -> v.getBlockPos().getSquaredDistance(spot)));
         return found;
     }
-    private static boolean settled(VillagerEntity v) {
-        return v.getBrain().hasMemoryModule(MemoryModuleType.MEETING_POINT) || v.getBrain().hasMemoryModule(MemoryModuleType.HOME);
-    }
-    private CompletableFuture<Long> settledCount;
+    private static boolean belled(VillagerEntity v) { return v.getBrain().hasMemoryModule(MemoryModuleType.MEETING_POINT); }
+    private static boolean settled(VillagerEntity v) { return belled(v) || v.getBrain().hasMemoryModule(MemoryModuleType.HOME); }
+    private CompletableFuture<long[]> counting;
+    /** Two villagers remember a bell, or a minute went by and two remember at least a home (a CTOV village may have few bells). */
     private boolean residentsReady() {
-        if (settledCount == null) settledCount = test.bridge().onServer(() -> villagers(world()).stream().filter(SelfTestCtov::settled).count());
-        if (!settledCount.isDone()) return false;
-        boolean ready = !settledCount.isCompletedExceptionally() && settledCount.join() >= 2;
-        settledCount = null;
-        return ready;
+        settleTicks++;
+        if (counting == null) counting = test.bridge().onServer(() -> {
+            List<VillagerEntity> all = villagers(world());
+            return new long[]{all.stream().filter(SelfTestCtov::belled).count(), all.stream().filter(SelfTestCtov::settled).count()};
+        });
+        if (!counting.isDone()) return false;
+        long[] counts = counting.isCompletedExceptionally() ? new long[]{0, 0} : counting.join();
+        counting = null;
+        return counts[0] >= 2 || settleTicks > 60 * 20 && counts[1] >= 2;
     }
 
     private Residents read(ServerWorld world) {
         List<VillagerEntity> all = villagers(world);
         List<VillagerEntity> settled = all.stream().filter(SelfTestCtov::settled).toList();
-        if (settled.isEmpty()) return new Residents(all.size(), 0, null, null, "", null, "", null, null, null, "");
+        int belled = (int) all.stream().filter(SelfTestCtov::belled).count();
+        if (settled.isEmpty()) return new Residents(all.size(), 0, belled, null, null, "", null, "", null, null);
         VillagerEntity a = settled.getFirst();
         ConversationStore.Site site = VillageSites.of(world, a);
         String key = site == null ? "" : site.key();
@@ -147,11 +163,8 @@ final class SelfTestCtov {
                 && test.bridge().memory.social().household(v.getUuid()).spouse() == null).findFirst().orElse(null);
         VillagerEntity bride = neighbours.stream().filter(v -> SocialProfile.genderOf(v.getUuid()) == Gender.FEMALE
                 && test.bridge().memory.social().household(v.getUuid()).spouse() == null).findFirst().orElse(null);
-        // Where the groom's wedding would stand: the bell chosen among the village's bells and the ground at its foot.
-        WeddingController.Venue venue = groom == null ? null : test.bridge().wedding.venue(world, groom);
-        ConversationStore.Site venueSite = venue == null ? null : VillageSites.at(world, venue.bell());
-        return new Residents(all.size(), settled.size(), a.getUuid(), b == null ? null : b.getUuid(), key, bell, bellSite == null ? "" : bellSite.key(),
-                groom == null ? null : groom.getUuid(), bride == null ? null : bride.getUuid(), venue, venueSite == null ? "" : venueSite.key());
+        return new Residents(all.size(), settled.size(), belled, a.getUuid(), b == null ? null : b.getUuid(), key, bell, bellSite == null ? "" : bellSite.key(),
+                groom == null ? null : groom.getUuid(), bride == null ? null : bride.getUuid());
     }
 
     private void residents() {
@@ -159,21 +172,14 @@ final class SelfTestCtov {
         test.await("CTOV residents read on the server", 10, read::isDone, () -> {
             if (read.isCompletedExceptionally()) { test.fail("reading the CTOV residents failed: " + read.exceptionNow().getMessage()); back(); return; }
             Residents r = read.join();
-            test.log("CTOV villagers near the house: " + r.all() + ", settled " + r.settled());
+            test.log("CTOV villagers near the house: " + r.all() + ", with a bell or home " + r.settled() + ", with a bell " + r.belled());
             test.check(r.all() > 0, "the CTOV village has villagers");
             if (r.first() == null) { test.fail("no CTOV villager remembers a bell or home"); back(); return; }
             test.check(r.site().startsWith("ctov:"), "the village structure is found around the villager: " + (r.site().isEmpty() ? "none" : r.site()));
             siteKey = r.site();
             test.check(r.second() != null, "a second villager of the same CTOV village");
-            test.check(r.bell() != null, "the villager remembers a bell of the CTOV village: " + (r.bell() == null ? "none" : r.bell().toShortString()));
-            test.check(r.bell() == null || r.bellSite().equals(siteKey), "the bell stands in the same CTOV village (" + r.bellSite() + ")");
-            if (r.venue() != null) {
-                test.log("CTOV wedding venue: bell " + r.venue().bell().toShortString() + ", ground at its foot " + BlockPos.ofFloored(r.venue().plaza()).toShortString()
-                        + ", open cells " + r.venue().openness() + " of 112");
-                test.check(r.venueSite().equals(siteKey), "the wedding bell belongs to the same CTOV village (" + r.venueSite() + ")");
-                test.check(r.venue().openness() >= 20, "the wedding square is open enough for guests (" + r.venue().openness() + " cells)");
-            }
-            bell = r.venue() == null ? null : r.venue().bell();
+            if (r.bell() != null) test.check(r.bellSite().equals(siteKey), "the bell the villager remembers stands in the same CTOV village (" + r.bellSite() + ")");
+            else test.log("the villager remembers no bell (CTOV villages may have few): the village is found by its home");
             if (r.second() == null) { back(); return; }
             first = r.first(); second = r.second();
             talk(first, "Здравствуй! Как называется ваша деревня и давно ты тут живёшь?", "mobtalk-ctov-talk-1.png", () -> {
@@ -216,40 +222,72 @@ final class SelfTestCtov {
 
     /** Two villagers of the CTOV village marry as a scene at its bell, on fallback texts (fast, no network). */
     private void wedding(Residents r, ConversationStore.Village village) {
-        if (r.groom() == null || r.bride() == null || bell == null) { test.log("no unmarried man and woman or no bell in the CTOV village: its wedding is skipped"); back(); return; }
-        savedWeddingChance = test.bridge().config.weddingChance;
-        test.bridge().config.weddingChance = 0;
-        test.command("time set 1000");
-        test.command("tp " + player() + " " + (bell.getX() + 6) + " " + bell.getY() + " " + (bell.getZ() + 6) + " facing " + bell.getX() + " " + bell.getY() + " " + bell.getZ());
-        WeddingFaults.llm = true; WeddingFaults.tts = true;
-        test.await("pause: the player at the CTOV bell", 3, () -> false, () -> {
-            CompletableFuture<Boolean> began = test.bridge().onServer(() -> test.bridge().wedding.startVillageForTest(world(), r.groom(), r.bride(), test.serverPlayer()));
-            test.await("the CTOV wedding starts", 10, began::isDone, () -> {
-                test.check(!began.isCompletedExceptionally() && began.join(), "two CTOV villagers marry as a scene at their bell");
-                WeddingController.Scene scene = test.bridge().wedding.scene();
-                if (scene == null) { WeddingFaults.clear(); back(); return; }
-                double off = scene.couple().subtract(r.venue().plaza()).horizontalLength();
-                test.check(off < 6, "the couple stands at the CTOV bell (" + String.format(java.util.Locale.ROOT, "%.1f", off) + " blocks)");
-                test.check(scene.anchor().distanceTo(r.venue().plaza()) < 0.01, "the ceremony stands on the ground at the bell's foot " + BlockPos.ofFloored(scene.anchor()).toShortString());
-                long level = scene.seatSpots().stream().filter(spot -> Math.abs(spot.y - scene.anchor().y) <= 2).count();
-                test.check(level * 10 >= scene.seatSpots().size() * 7L, "the guests stand on the square, not on roofs: " + level + " of " + scene.seatSpots().size() + " places within 2 blocks of its level");
-                String named = scene.input.names().village();
-                test.check(village == null || village.name().equals(named), "the wedding is in the Mob Talk village of this CTOV village: " + named);
-                test.await("the CTOV wedding service", 150, () -> test.bridge().wedding.scene() == null
-                        || test.bridge().wedding.scene().ceremony.phase() == io.github.mobtalk.core.Wedding.Ceremony.Phase.SERVICE, () -> {
-                    WeddingController.Scene running = test.bridge().wedding.scene();
-                    test.check(running != null, "the guests gathered at the CTOV bell and the service began");
-                    if (running != null) {
-                        Vec3d eye = running.couple().add(running.forward().multiply(7)).add(0, 2, 0), couple = running.couple();
-                        test.command(String.format(java.util.Locale.ROOT, "tp %s %.1f %.1f %.1f facing %.1f %.1f %.1f", player(), eye.x, eye.y, eye.z, couple.x, couple.y + 1, couple.z));
-                    }
-                    test.await("pause: facing the CTOV wedding", 3, () -> false, () -> shot("mobtalk-ctov-wedding.png", () ->
-                            test.await("the CTOV villagers are married", 240, () -> test.bridge().wedding.scene() == null, () -> {
-                                test.check(r.bride().equals(test.bridge().memory.social().household(r.groom()).spouse()), "the CTOV wedding ended in a marriage");
-                                WeddingFaults.clear();
-                                back();
-                            })));
-                });
+        if (r.groom() == null || r.bride() == null) { test.log("no unmarried man and woman among the settled CTOV villagers: its wedding is skipped"); back(); return; }
+        CompletableFuture<Vec3d> groomAt = test.bridge().onServer(() -> world().getEntity(r.groom()) instanceof VillagerEntity v && v.isAlive() ? v.getPos() : null);
+        test.await("the CTOV groom found", 10, groomAt::isDone, () -> {
+            Vec3d at = groomAt.isCompletedExceptionally() ? null : groomAt.join();
+            if (at == null) { test.fail("the CTOV groom is gone"); back(); return; }
+            // Stand by the groom so the chunks around his bells are loaded: the venue is never read from a chunk still loading.
+            test.command(String.format(Locale.ROOT, "tp %s %.1f %.1f %.1f", player(), at.x + 2, at.y, at.z));
+            test.await("pause: the area around the CTOV groom loads", 6, () -> false, () -> venue(r, village));
+        });
+    }
+
+    private void venue(Residents r, ConversationStore.Village village) {
+        CompletableFuture<Place> read = test.bridge().onServer(() -> {
+            ServerWorld world = world();
+            if (!(world.getEntity(r.groom()) instanceof VillagerEntity groom)) return new Place(null, "", 0);
+            int bells = (int) world.getPointOfInterestStorage().getInCircle(type -> type.matchesKey(PointOfInterestTypes.MEETING), groom.getBlockPos(), 96,
+                    PointOfInterestStorage.OccupationStatus.ANY).count();
+            WeddingController.Venue venue = test.bridge().wedding.venue(world, groom);
+            ConversationStore.Site site = venue == null ? null : VillageSites.at(world, venue.bell());
+            return new Place(venue, site == null ? "" : site.key(), bells);
+        });
+        test.await("the CTOV wedding venue read on the server", 10, read::isDone, () -> {
+            Place place = read.isCompletedExceptionally() ? new Place(null, "", 0) : read.join();
+            WeddingController.Venue venue = place.venue();
+            test.check(venue != null, "the wedding finds a bell for the CTOV groom (bells within 96 blocks: " + place.bellsAround() + ")");
+            if (venue == null) { back(); return; }
+            test.log("CTOV wedding venue: bell " + venue.bell().toShortString() + ", ground at its foot " + BlockPos.ofFloored(venue.plaza()).toShortString()
+                    + ", open cells " + venue.openness() + " of 112, bells within 96 blocks " + place.bellsAround());
+            test.check(place.venueSite().equals(siteKey), "the wedding bell belongs to the same CTOV village (" + place.venueSite() + ")");
+            test.check(venue.openness() >= 20, "the wedding square is open enough for guests (" + venue.openness() + " cells)");
+            savedWeddingChance = test.bridge().config.weddingChance;
+            test.bridge().config.weddingChance = 0;
+            test.command("time set 1000");
+            Vec3d plaza = venue.plaza();
+            test.command(String.format(Locale.ROOT, "tp %s %.1f %.1f %.1f facing %.1f %.1f %.1f", player(), plaza.x + 6, plaza.y, plaza.z + 6, plaza.x, plaza.y + 1, plaza.z));
+            WeddingFaults.llm = true; WeddingFaults.tts = true;
+            test.await("pause: the player at the CTOV bell", 3, () -> false, () -> marry(r, village, venue));
+        });
+    }
+
+    private void marry(Residents r, ConversationStore.Village village, WeddingController.Venue venue) {
+        CompletableFuture<Boolean> began = test.bridge().onServer(() -> test.bridge().wedding.startVillageForTest(world(), r.groom(), r.bride(), test.serverPlayer()));
+        test.await("the CTOV wedding starts", 10, began::isDone, () -> {
+            test.check(!began.isCompletedExceptionally() && began.join(), "two CTOV villagers marry as a scene at their bell");
+            WeddingController.Scene scene = test.bridge().wedding.scene();
+            if (scene == null) { back(); return; }
+            double off = scene.couple().subtract(venue.plaza()).horizontalLength();
+            test.check(off < 6, "the couple stands at the CTOV bell (" + String.format(Locale.ROOT, "%.1f", off) + " blocks)");
+            test.check(scene.anchor().distanceTo(venue.plaza()) < 0.01, "the ceremony stands on the ground at the bell's foot " + BlockPos.ofFloored(scene.anchor()).toShortString());
+            long level = scene.seatSpots().stream().filter(seat -> Math.abs(seat.y - scene.anchor().y) <= 2).count();
+            test.check(level * 10 >= scene.seatSpots().size() * 7L, "the guests stand on the square, not on roofs: " + level + " of " + scene.seatSpots().size() + " places within 2 blocks of its level");
+            String named = scene.input.names().village();
+            test.check(village == null || village.name().equals(named), "the wedding is in the Mob Talk village of this CTOV village: " + named);
+            test.await("the CTOV wedding service", 150, () -> test.bridge().wedding.scene() == null
+                    || test.bridge().wedding.scene().ceremony.phase() == Wedding.Ceremony.Phase.SERVICE, () -> {
+                WeddingController.Scene running = test.bridge().wedding.scene();
+                test.check(running != null, "the guests gathered at the CTOV bell and the service began");
+                if (running != null) {
+                    Vec3d eye = running.couple().add(running.forward().multiply(7)).add(0, 2, 0), couple = running.couple();
+                    test.command(String.format(Locale.ROOT, "tp %s %.1f %.1f %.1f facing %.1f %.1f %.1f", player(), eye.x, eye.y, eye.z, couple.x, couple.y + 1, couple.z));
+                }
+                test.await("pause: facing the CTOV wedding", 3, () -> false, () -> shot("mobtalk-ctov-wedding.png", () ->
+                        test.await("the CTOV villagers are married", 240, () -> test.bridge().wedding.scene() == null, () -> {
+                            test.check(r.bride().equals(test.bridge().memory.social().household(r.groom()).spouse()), "the CTOV wedding ended in a marriage");
+                            back();
+                        })));
             });
         });
     }
