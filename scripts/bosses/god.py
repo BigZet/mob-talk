@@ -3,8 +3,8 @@ with a long white beard and hair of many strands, a noble face with glowing eyes
 gold assist lines, a cross-inscribed nimbus with rays of glory, and an enormous gold flanged mace in his right hand.
 
 Model space: y down, the waist (the cloud bank) is y = 0, the figure faces -Z. Built about 48 units from the waist to the top
-of the nimbus and drawn at scale 11 (about 33 blocks of upper body over a 50-block cloud bank). Density 4. The clouds are
-soft translucent planes (drawn by the renderer in a translucent pass); everything else is drawn cut out."""
+of the nimbus and drawn at scale 11 (about 33 blocks of upper body). Density 4. The cloud bank round his waist is not part
+of the model: the renderer draws it as soft billboards (GodClouds.java, textures from god_sky.py)."""
 from boxtex import *
 
 SKIN = (222, 186, 146)
@@ -13,28 +13,7 @@ WHITE_SHADOW = (176, 178, 190)
 HAIR_WHITE = (246, 244, 238)
 HAIR_GREY = (168, 168, 178)
 OCHRE = (214, 164, 72)
-CLOUD_TOP = (250, 250, 252)
-CLOUD_BOTTOM = (176, 180, 194)
 EYE = (255, 246, 196)
-
-
-def put_rgba(p, f, u, v, rgba, glow=None):
-    """Paints a pixel with its own alpha (soft cloud edges); the base painter only knows opaque or clear."""
-    if 0 <= u < f.w and 0 <= v < f.h:
-        if rgba[3] <= 3:
-            p.img.putpixel((f.x + u, f.y + v), (0, 0, 0, 0))
-            return
-        p.img.putpixel((f.x + u, f.y + v), tuple(clamp(c) for c in rgba))
-        if glow:
-            p.glow.putpixel((f.x + u, f.y + v), tuple(int(c) for c in glow[:3]) + (255,))
-
-
-def big_faces(f):
-    """The two faces of a thin plane worth painting (the others are edges)."""
-    b = f.box
-    sx, sy, sz = b.size
-    thin = min(range(3), key=lambda i: b.size[i])
-    return {0: ("left", "right"), 1: ("top", "bottom"), 2: ("front", "back")}[thin]
 
 
 def robe(base, line=GOLD_LIGHT, hem=GOLD, hem_width=2, assist=True):
@@ -112,11 +91,10 @@ def elder_face(p, f, opts):
                 c = mix(c, (40, 26, 20), 0.75 - 0.35 * abs(dx))
             p.put(f, u, v, shade(c, p.noise(0.025)))
     # The brow's lines.
-    for k, frac in enumerate((0.16, 0.21, 0.26)):
+    for k, frac in enumerate((0.19, 0.25)):
         v = int(H * frac)
-        for u in range(int(W * (0.28 + 0.04 * k)), int(W * (0.72 - 0.04 * k))):
-            if math.sin(u * 0.9) > -0.6:
-                p.put(f, u, v + int(1.2 * math.sin(u * 0.35)), shade(SKIN, 0.74))
+        for u in range(int(W * (0.3 + 0.05 * k)), int(W * (0.7 - 0.05 * k))):
+            p.put(f, u, v + int(0.8 * math.sin((u - W / 2) * 0.12)), shade(SKIN, 0.86))
     # Hair over the forehead's top.
     for v in range(int(H * 0.12)):
         for u in range(W):
@@ -202,63 +180,33 @@ def glory_ray(p, f, opts):
                 p.put(f, u, v, None)
                 continue
             c = mix((255, 252, 230), GOLD_LIGHT, t)
-            if p.rand.random() < t * 0.35:
-                p.put(f, u, v, None)
-                continue
             p.put(f, u, v, c, shade(c, 1 - 0.5 * t))
 
 
-def cloud(seed):
-    """A billow of cloud on a thin plane: a soft lumpy blob, bright where the light falls and grey underneath, with feathered
-    translucent edges. Painted on both big faces; the edges stay clear."""
-    rnd = random.Random(seed)
-    lumps = [(rnd.uniform(-0.6, 0.6), rnd.uniform(-0.5, 0.5), rnd.uniform(0.3, 0.6)) for _ in range(7)]
-    waves = [(rnd.randint(3, 7), rnd.uniform(0, 6), rnd.uniform(0.04, 0.1)) for _ in range(3)]
-
-    def paint(p, f, opts):
-        if f.side not in big_faces(f):
-            for v in range(f.h):
-                for u in range(f.w):
-                    p.put(f, u, v, None)
-            return
-        W, H = f.w, f.h
-        flat = f.side in ("top", "bottom")
-        for v in range(H):
-            for u in range(W):
-                x, y = (u + 0.5) / W * 2 - 1, (v + 0.5) / H * 2 - 1
-                ang = math.atan2(y, x)
-                edge = 0.86 + sum(a * math.sin(n * ang + ph) for n, ph, a in waves)
-                r = math.hypot(x, y) / edge
-                billow = max(1 - math.hypot(x - lx, y - ly) / lr for lx, ly, lr in lumps)
-                k = max(0.0, 1 - r) * 1.4 + max(0.0, billow) * 0.6
-                alpha = 235 * min(1.0, max(0.0, (k - 0.12) / 0.55))
-                if alpha <= 3:
-                    p.put(f, u, v, None)
-                    continue
-                light = 0.5 + 0.5 * max(0.0, billow) - (0 if flat else 0.35 * (y + 1) / 2)
-                if f.side == "bottom":
-                    light -= 0.25
-                c = mix(CLOUD_BOTTOM, CLOUD_TOP, max(0.0, min(1.0, light)))
-                c = shade(c, 1 + (p.rand.random() - 0.5) * 0.04)
-                put_rgba(p, f, u, v, c + (alpha,))
-    return paint
-
-
 def mace_flange(p, f, opts):
-    """A flange of the mace head: burnished gold with a dark rim and a cinnabar stone set in it."""
-    gold_leaf(ornament=False)(p, f, opts)
+    """A flange blade of the mace: burnished gold, a bright honed edge line and a dark rim, so it reads crisp."""
     d = opts.get("density", 1)
     for v in range(f.h):
         for u in range(f.w):
-            if u < d // 2 or v < d // 2 or u >= f.w - d // 2 or v >= f.h - d // 2:
-                p.put(f, u, v, GOLD_DARK)
-    if f.side in ("left", "right") and f.w > 3 * d and f.h > 3 * d:
-        cx, cy = f.w // 2, f.h // 2
-        for v in range(f.h):
-            for u in range(f.w):
-                r = math.hypot(u - cx, v - cy)
-                if r < d * 0.9:
-                    p.put(f, u, v, (226, 70, 50) if r < d * 0.5 else CINNABAR)
+            t = (u + v) / max(1, f.w + f.h)
+            c = mix(GOLD_LIGHT, GOLD, t)
+            edge = min(u, v, f.w - 1 - u, f.h - 1 - v)
+            if edge == 0:
+                c = GOLD_DARK
+            elif edge == 1 and f.side in ("left", "right"):
+                c = (255, 240, 176)
+            p.put(f, u, v, c)
+
+
+def knuckles(p, f, opts):
+    """A finger round the haft: flesh with a lit knuckle ridge and a dark crease below it."""
+    d = opts.get("density", 1)
+    for v in range(f.h):
+        for u in range(f.w):
+            c = shade(SKIN, 1.05 - 0.3 * v / max(1, f.h - 1))
+            if v == f.h - 1:
+                c = shade(SKIN, 0.6)
+            p.put(f, u, v, shade(c, p.noise(0.03)))
 
 
 def ornament_band(p, f, opts):
@@ -315,11 +263,6 @@ def beard(name, pivot, seed=11):
                                       boxes=[Box((-0.85, 0, -0.45), (1.7 * rnd.uniform(0.9, 1.2), l, 0.9),
                                                  strand(HAIR_WHITE if layer != 1 else (236, 236, 236), HAIR_GREY))]))
             k += 1
-    # The moustache: two locks sweeping down from under the nose into the beard.
-    for side in (-1, 1):
-        part.children.append(Part("%s_moustache_%s" % (name, "r" if side < 0 else "l"), pivot=(side * 0.6, -2.8, -0.6),
-                                  rotation=(-0.1, 0, side * 0.95),
-                                  boxes=[Box((-0.7, 0, -0.4), (1.4, 5.5, 0.8), strand(HAIR_WHITE, HAIR_GREY))]))
     return part
 
 
@@ -345,53 +288,68 @@ def arm(label, side, children, sleeve=WHITE, forearm_children=()):
         Box((-3.8, 6.5, -3.8), (7.6, 5, 7.6), robe(sleeve, hem=GOLD, hem_width=3)),
         Box((-2.1, 11, -2.1), (4.2, 3, 4.2), solid(SKIN, k=0.05)),
     ], children=list(forearm_children) + children)
-    return Part(label, pivot=(side * 13.5, -23.5, 0), rotation=(0.15, 0, -side * 0.18), boxes=[
+    return Part(label, pivot=(side * 13.5, -23.5, 0), rotation=(0.15, 0, -side * (0.42 if side < 0 else 0.18)), boxes=[
         Box((-3.6, -1.5, -3.6), (7.2, 15, 7.2), robe(sleeve, hem=None)),
         Box((-4.4, -2.5, -4.2), (8.8, 7, 8.4), robe(OCHRE, line=(255, 236, 170), hem=GOLD, hem_width=1)),
     ], children=[forearm])
 
 
 def hand(label, fingers_up=False):
-    """A fist round the haft, or the blessing hand with two fingers raised (двуперстие)."""
-    boxes = [Box((-2.4, 0, -2.6), (4.8, 4.2, 5.2), solid(SKIN, k=0.05))]
+    """The blessing hand with two fingers raised (двуперстие), or just the wrist when the fist is the mace's grip."""
+    boxes = [Box((-1.9, 0, -1.9), (3.8, 1.6, 3.8), solid(SKIN, k=0.05))]
     children = []
     if fingers_up:
-        for i, (x, l) in enumerate(((-1.2, 4.6), (0.2, 5.0))):
-            children.append(Part("%s_finger_%d" % (label, i), pivot=(x, 0.5, -1.2), boxes=[Box((-0.6, -l, -0.6), (1.2, l, 1.2), solid(SKIN, k=0.05))]))
+        boxes = [Box((-1.9, 0, -0.9), (3.8, 4.2, 1.8), knuckles)]
+        # Index and middle fingers raised, the ring and little fingers folded onto the palm, the thumb over them.
+        for i, (x, l) in enumerate(((-1.25, 4.4), (-0.05, 4.8))):
+            children.append(Part("%s_finger_%d" % (label, i), pivot=(x, 4.0, -0.2), rotation=(0.12, 0, 0),
+                                 boxes=[Box((-0.55, 0, -0.5), (1.1, l, 1.0), knuckles)]))
+        boxes.append(Box((0.7, 3.4, -1.5), (1.2, 1.6, 1.0), knuckles))
+        boxes.append(Box((-0.2, 2.6, -1.6), (2.4, 0.9, 0.9), knuckles))
         children.append(Part(label + "_glow", pivot=(0, 1.5, -2.8), boxes=[Box((-2.5, -2.5, 0), (5, 5, 0.1), halo_disc(rim=(255, 236, 160), fill=(255, 252, 230)), flat=True)]))
     return Part(label, pivot=(0, 13.5, 0), boxes=boxes, children=children)
 
 
 def mace(name):
-    """The enormous mace: a gold haft with ornament bands and a pommel, a round head with eight flanges set with stones, and
-    a small cross on top. The haft runs up (-Y) from the fist."""
+    """The enormous mace: a solid gold haft with ornament bands and a pommel, a compact head with six crisp flanges —
+    thin stepped blades narrowing to a point — and the eight-pointed Orthodox cross on top. The haft runs up (-Y) from the
+    fist, and the fist itself is part of the mace: the palm behind the haft, four fingers wrapped round it, the thumb over them."""
     flanges = []
-    for i in range(8):
-        a = 2 * math.pi * i / 8
-        flanges.append(Part("%s_flange_%d" % (name, i), pivot=(0, -37.5, 0), rotation=(0, a, 0),
-                            boxes=[Box((-0.6, -6.5, -8.2), (1.2, 13, 4.6), mace_flange)]))
-    bands = [Box((-1.8, y, -1.8), (3.6, 1.4, 3.6), ornament_band) for y in (-30, -22, -12, -4, 3)]
-    return Part(name, pivot=(0, 2, -0.5), rotation=(1.25, 0, 0), boxes=[
-        Box((-1.25, -32, -1.25), (2.5, 39, 2.5), shaft),
-        Box((-2.2, 6.5, -2.2), (4.4, 3, 4.4), gold_leaf(ornament=False)),
-        Box((-2.6, -33.5, -2.6), (5.2, 2.2, 5.2), gold_leaf(ornament=False)),
-        Box((-4.8, -42.5, -4.8), (9.6, 10, 9.6), gold_leaf()),
-        Box((-3.2, -44.5, -3.2), (6.4, 2.4, 6.4), gold_leaf(ornament=False)),
-        # The finial: an eight-pointed cross — upright, titulus, crossbar and the slanted footrest.
-        Box((-0.6, -54, -0.6), (1.2, 9.6, 1.2), gold_leaf(ornament=False)),
-        Box((-1.3, -52.6, -0.5), (2.6, 0.8, 1.0), gold_leaf(ornament=False)),
-        Box((-2.8, -50.9, -0.5), (5.6, 1.1, 1.0), gold_leaf(ornament=False)),
-    ] + bands, children=flanges + [Part(name + "_footrest", pivot=(0, -47.2, 0), rotation=(0, 0, 0.42),
-                                        boxes=[Box((-1.8, -0.4, -0.5), (3.6, 0.8, 1.0), gold_leaf(ornament=False))])])
+    for i in range(6):
+        a = 2 * math.pi * i / 6 + math.pi / 6
+        flanges.append(Part("%s_flange_%d" % (name, i), pivot=(0, -32.2, 0), rotation=(0, a, 0), boxes=[
+            Box((-0.4, -4.4, -6.4), (0.8, 8.8, 3.2), mace_flange),
+            Box((-0.4, -2.4, -7.8), (0.8, 4.8, 1.4), mace_flange),
+        ]))
+    bands = [Box((-1.5, y, -1.5), (3.0, 1.2, 3.0), ornament_band) for y in (-25, -17, -9, 5.6)]
+    grip = [Box((-1.6, -0.4, 0.95), (3.2, 4.6, 1.5), solid(SKIN, k=0.05)),
+            Box((-2.0, -0.4, -1.3), (0.8, 4.6, 2.6), solid(SKIN, k=0.05)),
+            Box((1.2, -0.9, -1.4), (0.85, 2.6, 2.6), solid(shade(SKIN, 0.95), k=0.05))]
+    grip += [Box((-1.6, 0.05 + k * 1.1, -1.95), (3.0, 0.95, 0.8), knuckles) for k in range(4)]
+    return Part(name, pivot=(0, 2, -0.3), rotation=(1.2, 0, -0.3), boxes=[
+        Box((-1.0, -26, -1.0), (2.0, 32, 2.0), shaft),
+        Box((-1.8, 6, -1.8), (3.6, 2.6, 3.6), gold_leaf(ornament=False)),
+        Box((-2.1, -28.6, -2.1), (4.2, 2.6, 4.2), ornament_band),
+        Box((-3.4, -36.0, -3.4), (6.8, 7.6, 6.8), gold_leaf()),
+        Box((-2.4, -37.6, -2.4), (4.8, 1.6, 4.8), gold_leaf(ornament=False)),
+        # The finial: upright, titulus, crossbar (the slanted footrest is its own part below).
+        Box((-0.5, -46.4, -0.5), (1.0, 8.8, 1.0), gold_leaf(ornament=False)),
+        Box((-1.1, -45.0, -0.4), (2.2, 0.7, 0.8), gold_leaf(ornament=False)),
+        Box((-2.4, -43.4, -0.4), (4.8, 0.9, 0.8), gold_leaf(ornament=False)),
+    ] + bands + grip, children=flanges + [
+        # The footrest: its left end, as one sees the cross from the front, raised.
+        Part(name + "_footrest", pivot=(0, -40.4, 0), rotation=(0, 0, 0.45),
+             boxes=[Box((-1.5, -0.35, -0.4), (3.0, 0.7, 0.8), gold_leaf(ornament=False))])])
 
 
 def himation(name):
-    """The gold-ochre himation thrown over the left shoulder and across the chest, in heavy diagonal folds."""
+    """The gold-ochre himation thrown over the left shoulder and down across the chest: a few broad overlapping panels in
+    heavy diagonal folds, reading as one cloth."""
     part = Part(name, pivot=(0, -24, 0))
-    for i in range(9):
-        part.children.append(Part("%s_%d" % (name, i), pivot=(9 - i * 2.2, -1 + i * 0.4, -7.2 - 0.25 * math.sin(i)),
-                                  rotation=(-0.06, 0.08 * math.sin(i * 1.3), 0.62 + 0.03 * math.sin(i * 2.1)),
-                                  boxes=[Box((-1.4, 0, -0.4), (2.8, 20 - abs(i - 4) * 1.2, 0.8),
+    for i in range(5):
+        part.children.append(Part("%s_%d" % (name, i), pivot=(8.5 - i * 3.6, -0.5 + i * 0.6, -7.0 - 0.15 * i),
+                                  rotation=(-0.05, 0.05 * math.sin(i * 1.3), 0.6),
+                                  boxes=[Box((-2.9, 0, -0.4), (5.8, 19 - abs(i - 2) * 2.0, 0.8),
                                              robe(OCHRE, line=(255, 238, 176), hem=GOLD, hem_width=1))]))
     return part
 
@@ -410,11 +368,8 @@ figure = Part("figure", pivot=(0, 0, 0), children=[
         Part("neck", pivot=(0, -27.5, 0), boxes=[Box((-3, -3.5, -3), (6, 4, 6), solid(SKIN, k=0.05))], children=[
             Part("head", pivot=(0, -3, -0.5), boxes=[
                 Box((-4.6, -11.5, -4.6), (9.2, 11.5, 9.2), elder_face),
-                Box((-5, -12.6, -3.6), (10, 3.4, 9), strand(HAIR_WHITE, HAIR_GREY, tip_clear=False)),
+                Box((-4.9, -12.3, -4.1), (9.8, 1.6, 9.0), strand(HAIR_WHITE, HAIR_GREY, tip_clear=False)),
                 Box((-1, -6.6, -5.4), (2, 3.6, 1), solid(SKIN, k=0.04)),
-                # The strong brow: a ridge of bushy white brows that casts the eyes into shadow.
-                Box((-4.2, -8.6, -5.3), (3.8, 1.3, 1.0), strand(HAIR_WHITE, HAIR_GREY, tip_clear=False)),
-                Box((0.4, -8.6, -5.3), (3.8, 1.3, 1.0), strand(HAIR_WHITE, HAIR_GREY, tip_clear=False)),
             ], children=[
                 locks("hair", pivot=(0, -9.5, 0.4), count=26, arc=(-2.0, 2.0), radius=4.8, length=19, width=2.0, tilt=0.16,
                       color=HAIR_WHITE, shadow=HAIR_GREY, seed=5),
@@ -435,29 +390,7 @@ figure = Part("figure", pivot=(0, 0, 0), children=[
 right_hand = [c for c in figure.walk() if c.name == "right_hand"][0]
 right_hand.children.append(mace("mace"))
 
-# ---- The cloud bank round his waist: billows standing all round and a deck underneath that hides what is below. ----
-rnd = random.Random(42)
-puffs = []
-k = 0
-for ring, (count, radius, size, y) in enumerate(((16, 15, 18, -1), (20, 24, 22, 1), (24, 34, 26, 3), (14, 11, 15, -5), (18, 44, 24, 5))):
-    for i in range(count):
-        a = 2 * math.pi * (i + rnd.random() * 0.5) / count
-        w = size * rnd.uniform(0.8, 1.25)
-        h = w * rnd.uniform(0.45, 0.7)
-        puffs.append(Part("cloud_%d" % k, pivot=(math.sin(a) * radius, y + rnd.uniform(-1.5, 1.5), -math.cos(a) * radius),
-                          rotation=(rnd.uniform(-0.15, 0.15), -a + rnd.uniform(-0.5, 0.5), rnd.uniform(-0.1, 0.1)),
-                          boxes=[Box((-w / 2, -h / 2, 0), (w, h, 0.1), cloud(1000 + k), flat=True)]))
-        k += 1
-for i in range(22):
-    a = 2 * math.pi * i / 22 + rnd.random() * 0.3
-    r = 6 + (i % 4) * 11
-    w = rnd.uniform(22, 32)
-    puffs.append(Part("cloud_deck_%d" % i, pivot=(math.sin(a) * r, 5 + rnd.uniform(-1, 1), -math.cos(a) * r),
-                      rotation=(rnd.uniform(-0.08, 0.08), a, rnd.uniform(-0.08, 0.08)),
-                      boxes=[Box((-w / 2, 0, -w * 0.35), (w, 0.1, w * 0.7), cloud(2000 + i), flat=True)]))
-clouds = Part("clouds", pivot=(0, 0, 0), children=puffs)
-
-parts = [Part("god", pivot=(0, 0, 0), children=[figure, clouds])]
+parts = [Part("god", pivot=(0, 0, 0), children=[figure])]
 
 if __name__ == "__main__":
-    build("God", "god_avatar", parts, size=512, seed=77, density=4)
+    build("God", "god_avatar", parts, size=320, seed=77, density=4)

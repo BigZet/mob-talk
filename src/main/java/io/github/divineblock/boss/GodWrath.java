@@ -45,8 +45,9 @@ public final class GodWrath {
     /** One hit never takes more than this share of a player's maximum health (as with the bosses). */
     private static final float MAX_HIT_SHARE = SacredBoss.MAX_HIT_SHARE;
     private static final int ARRIVE_TICKS = 90, LEAVE_TICKS = 90, STRIKE_TICKS = 16, IMPACT_AT = 5;
-    /** The cloud bank (his waist) this far above the sinner, and the figure this far off to one side. */
-    private static final double HEIGHT = 44, DISTANCE = 30;
+    /** The cloud bank (his waist) this far above the sinner and this far off to one side: the mortal looks up at him at
+     * some 35–45 degrees, and the figure leans over the clouds toward him (on the client). */
+    private static final double HEIGHT = 28, DISTANCE = 34;
     private static final List<String> CHANTS = List.of("punishment_02", "punishment_06", "punishment_20", "punishment_21",
             "punishment_39", "punishment_56", "punishment_57", "punishment_59");
     private static final List<String> LINES = List.of("Аз есмь Сущий. Склонись, смертный!", "Сам пришёл Я судить тебя.",
@@ -131,6 +132,9 @@ public final class GodWrath {
     /** His strikes fall on {@code focus} instead of the player (null: the player again). */
     public void aimAt(net.minecraft.entity.Entity focus) { this.focus = focus; }
     /** The next strike is {@code kind} ({@link GodAvatarEntity#OVERHEAD} ...) and, when he waits between strikes, begins now. */
+    /** Holds him between strikes (a staged portrait); false lets him strike again. */
+    public void hold(boolean held) { this.held = held; }
+    private boolean held;
     public void strikeNow(int kind) { forced = kind; if (stage == Stage.HOVER) left = 1; }
     private Vec3d aim() { return focus != null && !focus.isRemoved() ? focus.getPos() : player.getPos(); }
 
@@ -150,7 +154,8 @@ public final class GodWrath {
         world.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, SoundCategory.WEATHER, 4f, 0.5f);
         world.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMBIENT_CAVE.value(), SoundCategory.HOSTILE, 2f, 0.5f);
         if (world.getRegistryKey() == World.OVERWORLD && !world.isThundering()) { world.setWeather(0, duration + ARRIVE_TICKS + LEAVE_TICKS + 200, true, true); stormed = true; }
-        Fx.smoke(world, station, STORM_GREY, 22);
+        // The bank itself is drawn by the client round his figure; a puff of storm smoke marks where it gathers.
+        Fx.smoke(world, station.add(0, 4, 0), STORM_GREY, 14);
         Fx.embers(world, station, Fx.GOLD, 18, ARRIVE_TICKS);
         int volume = DivineBlockMod.config().chantVolume;
         if (volume > 0) world.playSound(null, player.getX(), player.getY(), player.getZ(), RegistryEntry.of(chantEvent()), SoundCategory.HOSTILE,
@@ -167,12 +172,17 @@ public final class GodWrath {
         left--;
         switch (stage) {
             case ARRIVE -> {
-                if (age % 20 == 10) Fx.smoke(world, station.add(0, -2, 0), STORM_GREY, 18);
-                if (age == ARRIVE_TICKS / 2) world.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, SoundCategory.WEATHER, 3f, 0.6f);
+                if (age == ARRIVE_TICKS / 2) {
+                    // He is heard from where he comes, and light falls round the mortal.
+                    world.playSound(null, station.x, station.y, station.z, SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, SoundCategory.WEATHER, 8f, 0.6f);
+                    world.playSound(null, station.x, station.y, station.z, SoundEvents.BLOCK_BEACON_ACTIVATE, SoundCategory.HOSTILE, 8f, 0.5f);
+                    Fx.pillar(world, player.getPos(), Fx.HOLY, 60);
+                }
                 if (left <= 0) hover(30);
             }
             case HOVER -> {
                 if (!spoke && age > ARRIVE_TICKS + 10) { spoke = true; speak(); }
+                if (held && forced < 0) left = Math.max(left, 1);
                 if (left > 0) return;
                 if ((age - ARRIVE_TICKS >= duration || dismissed) && forced < 0) leave();
                 else warn();
@@ -186,7 +196,7 @@ public final class GodWrath {
                 if (left <= 0) hover(forced >= 0 ? 2 : Math.max(22, 50 - power * 6) + world.random.nextInt(20));
             }
             case LEAVE -> {
-                if (age % 25 == 0) Fx.smoke(world, station, STORM_GREY, 16);
+                if (left == LEAVE_TICKS / 2) Fx.smoke(world, station.add(0, 4, 0), STORM_GREY, 12);
                 if (left <= 0) end();
             }
             case DONE -> { }
@@ -309,7 +319,7 @@ public final class GodWrath {
         switch (strikeKind) {
             case GodAvatarEntity.OVERHEAD -> {
                 Fx.pillar(world, target, Fx.HOLY, 10);
-                Fx.impact(world, target, Fx.GOLD, 3.5f + power * 0.3f);
+                Fx.impact(world, target, Fx.GOLD, 2.6f + power * 0.2f);
                 Fx.flash(world, target, Fx.HOLY, 0.6f);
                 Fx.shake(world, target, 0.9f, 28);
                 Fx.ring(world, target, Fx.GOLD, 16);

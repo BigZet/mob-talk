@@ -12,21 +12,20 @@ import net.minecraft.util.math.MathHelper;
  * looks down on the mortal. For each strike the arm moves as the server's stage says: the mace raised over the head and
  * brought down (the whole figure lunging after it), drawn back to the side and swept across, or the blessing hand raised
  * and thrust forward to throw lightning. Coming and going, he rises out of and sinks back into the cloud bank. Every
- * motion is added to the generated rest pose. */
+ * motion is added to the generated rest pose. The cloud bank is drawn by {@link GodClouds}. */
 public final class GodModel {
     public static final EntityModelLayer LAYER = new EntityModelLayer(Identifier.of("divineblock", "god_avatar"), "main");
-    final ModelPart root, figure, clouds;
-    private final ModelPart torso, head, halo, rays, rightArm, rightFore, leftArm, leftFore, handGlow, mace, robe;
-    private final List<ModelPart> beard = new ArrayList<>(), hair = new ArrayList<>(), puffs = new ArrayList<>();
+    final ModelPart root, figure;
+    private final ModelPart torso, head, halo, rays, rightArm, rightFore, leftArm, leftFore, leftHand, handGlow, mace, robe;
+    private final List<ModelPart> beard = new ArrayList<>(), hair = new ArrayList<>();
 
     public GodModel(ModelPart root) {
         this.root = root;
-        figure = part("figure"); clouds = part("clouds"); torso = part("torso"); head = part("head"); halo = part("halo");
+        figure = part("figure"); torso = part("torso"); head = part("head"); halo = part("halo");
         rays = part("halo_rays"); rightArm = part("right_arm"); rightFore = part("right_arm_fore"); leftArm = part("left_arm");
-        leftFore = part("left_arm_fore"); handGlow = part("left_hand_glow"); mace = part("mace"); robe = part("robe");
+        leftFore = part("left_arm_fore"); leftHand = part("left_hand"); handGlow = part("left_hand_glow"); mace = part("mace"); robe = part("robe");
         for (int i = 0; i < 40; i++) { ModelPart lock = find(root, "beard_" + i); if (lock != null) beard.add(lock); }
         for (int i = 0; i < 26; i++) { ModelPart lock = find(root, "hair_" + i); if (lock != null) hair.add(lock); }
-        for (int i = 0; i < 120; i++) { ModelPart puff = find(root, "cloud_" + i); if (puff != null) puffs.add(puff); }
     }
 
     private ModelPart part(String name) {
@@ -56,27 +55,31 @@ public final class GodModel {
     }
     static float smooth(float t) { t = MathHelper.clamp(t, 0f, 1f); return t * t * (3 - 2 * t); }
 
-    void animate(GodAvatarEntity god, float tickDelta) {
+    /** {@code lean} (radians) pitches the whole figure forward over the edge of the clouds toward the watching camera. */
+    void animate(GodAvatarEntity god, float tickDelta, float lean) {
         root.traverse().forEach(ModelPart::resetTransform);
         float age = god.age + tickDelta, p = god.stageProgress(tickDelta);
         int stage = god.stage(), kind = god.strikeKind();
-        float emerge = emerge(god, tickDelta), gather = gather(god, tickDelta);
+        float emerge = emerge(god, tickDelta);
 
         // Rising out of the cloud bank: sunk and smaller at first.
         figure.pivotY += (1 - emerge) * 16f;
         float grow = 0.45f + 0.55f * emerge;
         figure.xScale = figure.yScale = figure.zScale = grow;
-        float cloudScale = 0.35f + 0.65f * gather;
-        clouds.xScale = clouds.zScale = cloudScale;
-        clouds.yScale = 0.6f + 0.4f * gather;
-        clouds.yaw += age * 0.0015f;
-        for (int i = 0; i < puffs.size(); i++) puffs.get(i).pivotY += MathHelper.sin(age * 0.03f + i * 1.3f) * 0.5f;
 
         // Breath, the beard and hair stirring, the glory turning, the gaze down on the mortal.
         float breath = MathHelper.sin(age * 0.05f);
         torso.pitch += breath * 0.012f;
         figure.pivotY += breath * 0.3f;
-        head.pitch += 0.22f;
+        // Leaning over the clouds toward the mortal below: the head bends further, the arms come forward and down,
+        // and the head, hands and mace are drawn a little larger (the icon's forced perspective).
+        figure.pitch += lean;
+        head.pitch += 0.18f + lean * 0.35f;
+        rightArm.pitch -= lean * 0.45f;
+        leftArm.pitch -= lean * 0.55f;
+        head.xScale = head.yScale = head.zScale = 1.22f;
+        mace.xScale = mace.yScale = mace.zScale = 1.15f;
+        leftHand.xScale = leftHand.yScale = leftHand.zScale = 1.2f;
         head.yaw += MathHelper.sin(age * 0.02f) * 0.04f;
         for (int i = 0; i < beard.size(); i++) beard.get(i).roll += MathHelper.sin(age * 0.045f + i * 0.7f) * 0.025f;
         for (int i = 0; i < hair.size(); i++) hair.get(i).pitch += MathHelper.sin(age * 0.04f + i * 0.9f) * 0.03f;

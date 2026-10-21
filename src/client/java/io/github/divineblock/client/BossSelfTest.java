@@ -265,6 +265,40 @@ public final class BossSelfTest {
         }));
     }
 
+    /** A view from the ground at eye level, {@code distance} blocks before him (south of his place), looking up at his chest. */
+    private static void ground(List<Step> steps, io.github.divineblock.boss.GodWrath[] wrath, ServerPlayerEntity player, String name,
+                               double distance, long time, boolean storm) {
+        steps.add(new Step(5, () -> {
+            if (wrath[0] == null) return;
+            ServerWorld world = player.getServerWorld();
+            Vec3d at = wrath[0].station();
+            if (storm) world.setWeather(0, 20 * 600, true, true); else world.setWeather(20 * 600, 0, false, false);
+            world.setTimeOfDay(time);
+            MinecraftClient.getInstance().execute(() -> MinecraftClient.getInstance().options.getFov().setValue(70));
+            double x = at.x, z = at.z + distance;
+            double y = world.getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, (int) Math.floor(x), (int) Math.floor(z)) + 1.62;
+            double rise = at.y + 17 - y;
+            float pitch = (float) -Math.toDegrees(Math.atan2(rise, distance)) + 4f;
+            player.teleport(world, x, y, z, 180f, Math.max(-75f, pitch));
+        }));
+        steps.add(new Step(45, () -> screenshot = "god-" + name));
+    }
+
+    /** One portrait of the god from {@code (dx, dy, dz)} blocks off his waist, looking at {@code yaw}/{@code pitch}, in clear
+     * weather at {@code time}. */
+    private static void portrait(List<Step> steps, io.github.divineblock.boss.GodWrath[] wrath, ServerPlayerEntity player, String name,
+                                 double dx, double dy, double dz, float yaw, float pitch, long time) {
+        steps.add(new Step(5, () -> {
+            if (wrath[0] == null) return;
+            Vec3d at = wrath[0].station();
+            player.getServerWorld().setWeather(20 * 60, 0, false, false);
+            player.getServerWorld().setTimeOfDay(time);
+            MinecraftClient.getInstance().execute(() -> MinecraftClient.getInstance().options.getFov().setValue(70));
+            player.teleport(player.getServerWorld(), at.x + dx, at.y + dy, at.z + dz, yaw, pitch);
+        }));
+        steps.add(new Step(25, () -> screenshot = "god-portrait-" + name));
+    }
+
     /** «Бог с булавой» (-Ddivineblock.bosstest.god=true): an armour stand where the sinner stands, the player watching as a
      * spectator from behind and below; the god comes out of the clouds to the north, strikes the stand with each of his
      * three blows, is sent back early and the sky clears. Then the storm without the figure (F9 off) and the deed by command. */
@@ -290,7 +324,7 @@ public final class BossSelfTest {
             }
             player.teleport(world, spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5, 180f, 0f);
             io.github.divineblock.boss.GodWrath.placeNextAt(-Math.PI / 2);
-            wrath[0] = DivineBosses.spawnGodAvatar(world, player, 4, 20 * 60);
+            wrath[0] = DivineBosses.spawnGodAvatar(world, player, 4, 20 * 90);
             check(wrath[0] != null && wrath[0].hasFigure(), "Бог с булавой явился с фигурой");
             if (wrath[0] == null) return;
             if (stand[0] != null) wrath[0].aimAt(stand[0]);
@@ -303,49 +337,39 @@ public final class BossSelfTest {
                 MinecraftClient.getInstance().options.getFov().setValue(90);
             });
             watched = null;
-            player.teleport(world, spot.getX() + 0.5, spot.getY() + 7, spot.getZ() + 28.5, 180f, -20f);
+            player.teleport(world, spot.getX() + 0.5, spot.getY() + 4, spot.getZ() + 16.5, 180f, -32f);
         }));
-        steps.add(new Step(45, () -> screenshot = "god-1-gathering"));
+        steps.add(new Step(45, () -> screenshot = "god-1-descent"));
         steps.add(new Step(40, () -> {
             screenshot = "god-2-emerged";
             check(io.github.divineblock.client.SkyTint.godAmount() > 0.5f, "небо потемнело: " + io.github.divineblock.client.SkyTint.godAmount());
         }));
-        // Portraits at his height, from the front and from the side, then back behind the stand.
-        steps.add(new Step(5, () -> {
-            if (wrath[0] == null) return;
-            Vec3d at = wrath[0].station();
-            player.getServerWorld().setWeather(20 * 60, 0, false, false);
-            MinecraftClient.getInstance().execute(() -> MinecraftClient.getInstance().options.getFov().setValue(70));
-            player.teleport(player.getServerWorld(), at.x, at.y + 16, at.z + 40, 180f, 4f);
-        }));
-        steps.add(new Step(25, () -> {
-            screenshot = "god-portrait-front";
-            MinecraftClient client = MinecraftClient.getInstance();
-            client.execute(() -> {
-                if (client.world == null) return;
-                for (var entity : client.world.getEntities())
-                    if (entity instanceof io.github.divineblock.boss.GodAvatarEntity god)
-                        log("фигура у клиента: " + god.getBlockPos().toShortString() + ", стадия " + god.stage() + ", " + god.stageAge() + "/" + god.stageTicks());
-            });
-        }));
-        steps.add(new Step(5, () -> {
-            if (wrath[0] == null) return;
-            Vec3d at = wrath[0].station();
-            player.teleport(player.getServerWorld(), at.x + 40, at.y + 16, at.z, 90f, 4f);
-        }));
-        steps.add(new Step(25, () -> screenshot = "god-portrait-side"));
-        steps.add(new Step(5, () -> {
-            if (wrath[0] == null) return;
-            Vec3d at = wrath[0].station();
-            player.teleport(player.getServerWorld(), at.x, at.y + 26, at.z + 16, 180f, 8f);
-        }));
-        steps.add(new Step(25, () -> screenshot = "god-portrait-face"));
-        steps.add(new Step(5, () -> {
+        // From the ground at eye level, as the mortal sees him: 10, 30 and 60 blocks before him in daylight, then at 30 in
+        // the storm and at night, and a strike seen from the ground. He faces the watcher (no stand to aim at meanwhile).
+        steps.add(new Step(5, () -> { if (wrath[0] != null) { wrath[0].aimAt(null); wrath[0].hold(true); } }));
+        ground(steps, wrath, player, "ground-10", 10, 6000, false);
+        ground(steps, wrath, player, "ground-30", 30, 6000, false);
+        ground(steps, wrath, player, "ground-60", 60, 6000, false);
+        ground(steps, wrath, player, "ground-30-storm", 30, 6000, true);
+        ground(steps, wrath, player, "ground-30-night", 30, 18000, false);
+        // Close-ups at his height: the face, the mace, the clouds.
+        portrait(steps, wrath, player, "front", 0, 16, 40, 180f, 4f, 6000);
+        portrait(steps, wrath, player, "face", 0, 22, 18, 180f, 14f, 6000);
+        portrait(steps, wrath, player, "mace", -14, 24, 20, -150f, 16f, 6000);
+        portrait(steps, wrath, player, "clouds", 14, -2, 36, 160f, 0f, 6000);
+        ground(steps, wrath, player, "ground-45-strike-raised", 45, 6000, true);
+        steps.add(new Step(2, () -> { if (wrath[0] != null) { if (stand[0] != null) wrath[0].aimAt(stand[0]); wrath[0].hold(false); wrath[0].strikeNow(io.github.divineblock.boss.GodAvatarEntity.OVERHEAD); } }));
+        steps.add(new Step(24, () -> screenshot = "god-ground-45-strike-raised"));
+        steps.add(new Step(16, () -> screenshot = "god-ground-45-strike"));
+        steps.add(new Step(30, () -> {
+            if (wrath[0] != null) { wrath[0].hold(true); if (stand[0] != null) wrath[0].aimAt(stand[0]); }
+            player.getServerWorld().setTimeOfDay(6000);
             player.getServerWorld().setWeather(0, 20 * 600, true, true);
             MinecraftClient.getInstance().execute(() -> MinecraftClient.getInstance().options.getFov().setValue(90));
             BlockPos spot = base.add(0, 0, -10);
-            player.teleport(player.getServerWorld(), spot.getX() + 0.5, spot.getY() + 7, spot.getZ() + 28.5, 180f, -20f);
+            player.teleport(player.getServerWorld(), spot.getX() + 0.5, spot.getY() + 4, spot.getZ() + 16.5, 180f, -32f);
         }));
+        steps.add(new Step(10, () -> { if (wrath[0] != null) wrath[0].hold(false); }));
         steps.add(new Step(10, () -> { if (wrath[0] != null) wrath[0].strikeNow(io.github.divineblock.boss.GodAvatarEntity.OVERHEAD); }));
         steps.add(new Step(22, () -> {
             screenshot = "god-3-raised";
