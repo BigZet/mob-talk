@@ -354,6 +354,8 @@
   "mobtalk.settings.group.rumors": "Rumours",
   "mobtalk.settings.group.initiative": "Initiative",
   "mobtalk.settings.group.chatter": "Small talk and announcements",
+  "mobtalk.settings.villageSites": "Villages by their buildings",
+  "mobtalk.settings.villageSites.tooltip": "A villager belongs to the village whose buildings hold its bell or home (vanilla, or a village mod such as CTOV). Two neighbouring villages do not merge and a large one does not split. Off: the nearest known village within 160 blocks, as before.",
   "mobtalk.settings.villageChatter": "Villagers chat among themselves",
   "mobtalk.settings.villageChatter.tooltip": "Two villagers of one village standing together sometimes trade 2–3 voiced lines while you are near: rumours, weather, work, your fame. It introduces them and passes a rumour on. Cheap background model.",
   "mobtalk.settings.villageNotices": "Villager chat announcements",

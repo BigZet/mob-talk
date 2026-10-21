@@ -401,7 +401,7 @@ public final class ConversationEngine implements AutoCloseable {
         boolean villager = "minecraft:villager".equals(snapshot.type()), golem = "minecraft:iron_golem".equals(snapshot.type());
         int[] anchor = villager || golem ? villageAnchor(snapshot) : null;
         // A golem belongs to the village it stands in but never founds one: villages are born with their first villager.
-        ConversationStore.Village village = anchor == null ? null : store.villageNear(snapshot.dimension(), anchor[0], anchor[1]);
+        ConversationStore.Village village = anchor == null ? null : store.villageFor(snapshot.dimension(), anchor[0], anchor[1], villageSite(snapshot));
         BiographyWriter.Biography written = llm.biography(snapshot, profile, village, store.givenNames(snapshot.type()),
                 store.storyOpenings(snapshot.type()), store.villageNames());
         adopt(snapshot, written);
@@ -412,9 +412,12 @@ public final class ConversationEngine implements AutoCloseable {
         if (closed || written == null || written.story().isBlank() || store.hasBackstory(snapshot.id())) return;
         boolean villager = "minecraft:villager".equals(snapshot.type()), golem = "minecraft:iron_golem".equals(snapshot.type());
         int[] anchor = villager || golem ? villageAnchor(snapshot) : null;
-        ConversationStore.Village village = anchor == null ? null : store.villageNear(snapshot.dimension(), anchor[0], anchor[1]);
+        ConversationStore.Site site = villageSite(snapshot);
+        ConversationStore.Village village = anchor == null ? null : store.villageFor(snapshot.dimension(), anchor[0], anchor[1], site);
+        // A village founded in a known structure is anchored at its centre, where the player asking "which village is this" stands.
         if (villager && village == null && anchor != null && !written.villageStory().isBlank())
-            village = store.createVillage(snapshot.dimension(), anchor[0], anchor[1], written.villageName(), written.villageStory());
+            village = site == null ? store.createVillage(snapshot.dimension(), anchor[0], anchor[1], written.villageName(), written.villageStory())
+                    : store.createVillage(snapshot.dimension(), site.x(), site.z(), written.villageName(), written.villageStory(), site.key());
         store.setBackstory(snapshot.id(), written.name(), written.story(), written.desire(), written.secret(), village == null ? "" : village.id());
     }
 
@@ -427,6 +430,17 @@ public final class ConversationEngine implements AutoCloseable {
                 return new int[]{x.intValue(), z.intValue()};
         }
         return null;
+    }
+
+    /** The village structure the game found around this villager's bell, home or feet ({@code mobDetails.villageSite}); null
+     * when there is none, when the option is off, or for snapshots taken before sites were read. */
+    static ConversationStore.Site villageSite(MobSnapshot snapshot) {
+        if (!(snapshot.mobDetails().get("villageSite") instanceof java.util.Map<?,?> site) || !(site.get("key") instanceof String key) || key.isBlank()
+                || !(site.get("x") instanceof Number x) || !(site.get("z") instanceof Number z)) return null;
+        // Bounds missing (an older capture): the centre alone, which holds no other village's anchor.
+        int minX = site.get("minX") instanceof Number n ? n.intValue() : x.intValue(), minZ = site.get("minZ") instanceof Number n ? n.intValue() : z.intValue();
+        int maxX = site.get("maxX") instanceof Number n ? n.intValue() : x.intValue(), maxZ = site.get("maxZ") instanceof Number n ? n.intValue() : z.intValue();
+        return new ConversationStore.Site(key, x.intValue(), z.intValue(), minX, minZ, maxX, maxZ);
     }
 
     public void resetPersonality(java.util.UUID mobId) { store.resetPersonality(mobId); }

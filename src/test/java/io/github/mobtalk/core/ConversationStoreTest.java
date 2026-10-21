@@ -455,6 +455,65 @@ class ConversationStoreTest {
         } finally { ConversationStore.closeWorld(directory); }
     }
 
+    // Villages by their structure (CTOV and vanilla): neighbours within the radius stay apart, a large village stays whole, an old
+    // village without a site takes the site of the structure its anchor lies in, and the site survives reload.
+    @Test void villagesFollowTheirStructures() throws Exception {
+        String world = "minecraft:overworld";
+        ConversationStore store = ConversationStore.open(directory, config);
+        ConversationStore.Site big = new ConversationStore.Site("ctov:large/village_plains@0,0", 0, 0, -80, -80, 80, 80);
+        ConversationStore.Site next = new ConversationStore.Site("minecraft:village_plains@8,0", 140, 0, 110, -30, 170, 30);
+        ConversationStore.Village ctov = store.createVillage(world, big.x(), big.z(), "Большие Луга", "Стоит у дороги.", big.key());
+        assertEquals(big.key(), ctov.site());
+        assertEquals(ctov, store.villageFor(world, 75, 75, big), "a resident at the far edge of a large village still belongs to it");
+        assertNull(store.villageFor(world, 140, 0, next), "the neighbour within 160 blocks is another village");
+        assertEquals(ctov, store.villageNear(world, 140, 0), "without a site the old rule still answers");
+        ConversationStore.Village vanilla = store.createVillage(world, 140, 0, "Ручеёк", "Маленькая.", next.key());
+        assertEquals(vanilla, store.villageFor(world, 120, 10, next));
+        assertEquals(ctov, store.villageFor(world, 120, 10, big), "the structure decides, not the nearest anchor");
+        ConversationStore.Village old = store.createVillage(world, 1000, 1000, "Старый Затон", "Давняя.");
+        assertEquals("", old.site());
+        ConversationStore.Site far = new ConversationStore.Site("ctov:small/village_taiga@70,70", 1200, 1200, 1150, 1150, 1250, 1250);
+        assertNull(store.villageFor(world, 1150, 1150, far), "an old village outside this structure is not adopted");
+        ConversationStore.Site home = new ConversationStore.Site("minecraft:village_taiga@62,62", 1000, 1000, 960, 960, 1040, 1040);
+        assertEquals(old.id(), store.villageFor(world, 1010, 990, home).id(), "an old village inside this structure is adopted");
+        assertEquals(home.key(), store.village(old.id()).site());
+        assertEquals(old.id(), store.villageFor(world, 1000, 1000, null).id(), "no site: as before");
+        ConversationStore.Village fields = store.createVillage(world, 2000, 2000, "Полевая", "Основана в поле.");
+        ConversationStore.Site justBy = new ConversationStore.Site("minecraft:village_plains@127,127", 2060, 2060, 2030, 2030, 2100, 2100);
+        assertEquals(fields.id(), store.villageFor(world, 2050, 2050, justBy, false).id(), "a lookup finds the old village by its anchor");
+        assertEquals("", store.village(fields.id()).site(), "a lookup changes nothing");
+        assertEquals(fields.id(), store.villageFor(world, 2050, 2050, justBy).id(), "an old village founded just outside the houses is still this one");
+        assertEquals(justBy.key(), store.village(fields.id()).site(), "a resident's site is adopted");
+        ConversationStore.Village apart = store.createVillage(world, 3000, 3000, "Хутор", "Сам по себе.");
+        ConversationStore.Site beyond = new ConversationStore.Site("ctov:small/village_plains@190,190", 3100, 3100, 3050, 3050, 3150, 3150);
+        assertEquals(apart.id(), store.villageFor(world, 3060, 3060, beyond).id(), "an old village 50 blocks off: the old rule, the nearest within 160 blocks");
+        assertEquals("", store.village(apart.id()).site(), "but it does not take a structure its anchor is not in");
+        ConversationStore.closeWorld(directory);
+        ConversationStore reopened = ConversationStore.open(directory, config);
+        try {
+            assertEquals(big.key(), reopened.village(ctov.id()).site());
+            assertEquals(home.key(), reopened.village(old.id()).site());
+        } finally { ConversationStore.closeWorld(directory); }
+        // A save from before sites: villages load with an empty site.
+        Path file = directory.resolve("data/mobtalk/conversations.json");
+        String saved = Files.readString(file).replaceAll(",?\\s*\"site\"\\s*:\\s*\"[^\"]*\"", "");
+        Files.writeString(file, saved);
+        ConversationStore legacy = ConversationStore.open(directory, config);
+        try { assertEquals("", legacy.village(ctov.id()).site()); } finally { ConversationStore.closeWorld(directory); }
+    }
+
+    // The site is bookkeeping: the engine reads it back, the model never sees it.
+    @Test void villageSiteStaysOutOfThePrompt() {
+        MobSnapshot snapshot = cow(UUID.randomUUID(), UUID.randomUUID(), 0, Map.of("villageSite",
+                Map.of("key", "ctov:large/village_plains@3,4", "x", 60, "z", 70, "minX", 0, "minZ", 10, "maxX", 120, "maxZ", 130), "tamed", false));
+        ConversationStore.Site site = ConversationEngine.villageSite(snapshot);
+        assertEquals(new ConversationStore.Site("ctov:large/village_plains@3,4", 60, 70, 0, 10, 120, 130), site);
+        String data = MobPrompt.data(snapshot).toString();
+        assertFalse(data.contains("villageSite") || data.contains("ctov:"), data);
+        assertTrue(data.contains("tamed"));
+        assertNull(ConversationEngine.villageSite(cow(UUID.randomUUID(), UUID.randomUUID(), 0, Map.of())));
+    }
+
     // A world saved before 0.3 has relations without deal/quest maps; it must load and start trading from scratch.
     @Test void loadsPreTradingFilesAndDropsDamagedTradeEntries() throws Exception {
         UUID mob = UUID.randomUUID(), player = UUID.randomUUID();

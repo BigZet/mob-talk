@@ -79,7 +79,7 @@ final class InitiativeVoice {
         ConversationEngine engine = owner.engine();
         if (engine == null) return;
         var player = owner.client.player;
-        ConversationStore.Village village = game.memory.villageNear(owner.world.getRegistryKey().getValue().toString(), (int) player.getX(), (int) player.getZ());
+        ConversationStore.Village village = game.villageWhereStanding(player.getUuid(), owner.world.getRegistryKey().getValue().toString(), (int) player.getX(), (int) player.getZ());
         if (village == null) return;
         long day = Math.floorDiv(owner.world.getTimeOfDay(), 24_000L);
         String name = MobGameBridge.playerName(player);

@@ -109,6 +109,11 @@ final class MobContextCapture {
                     "available", !offer.isDisabled())).toList());
             mobDetails.put("tradingWithPlayer", merchant.getCustomer() == player);
         }
+        // The village structure this villager or golem lives in, for the world memory only (MobPrompt leaves it out of the prompt).
+        if (bridge.config.villageSites && (mob instanceof VillagerEntity || mob instanceof net.minecraft.entity.passive.IronGolemEntity)) {
+            io.github.mobtalk.core.ConversationStore.Site site = VillageSites.of(world, mob);
+            if (site != null) mobDetails.put("villageSite", VillageSites.details(site));
+        }
         speciesState(mob, mobDetails);
         if (mob instanceof VariantHolder<?> variant) {
             Object value = variant.getVariant();

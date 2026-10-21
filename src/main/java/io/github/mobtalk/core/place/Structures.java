@@ -7,11 +7,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
-/** Vanilla structures around a creature, read from the world's structure registry rather than guessed from blocks: which
+/** Structures around a creature, read from the world's structure registry rather than guessed from blocks: which
  * structure (a plains village, a mineshaft, a pillager outpost) and which piece of it (a church, a smithy, a corridor) the
  * creature stands in or next to. The server side collects {@link Piece}s; this class names them in Russian and turns them into
- * a few short facts. Unknown structures and pieces fall back to their ids. */
+ * a few short facts. Vanilla ids and those of village mods laid out the same way (CTOV: {@code ctov:large/village_plains},
+ * {@code ctov:village/plains/jobsite/tavern}) are named; unknown structures and pieces fall back to their ids. */
 public final class Structures {
     private Structures() { }
 
@@ -29,10 +31,21 @@ public final class Structures {
         }
     }
 
+    /** Village kinds by the part after "village_": vanilla's five and the variants of CTOV. */
+    private static final Map<String, String> VILLAGES = Map.ofEntries(
+            Map.entry("plains", "равнинная деревня"), Map.entry("desert", "пустынная деревня"), Map.entry("savanna", "саванная деревня"),
+            Map.entry("snowy", "снежная деревня"), Map.entry("taiga", "таёжная деревня"), Map.entry("plains_fortified", "укреплённая равнинная деревня"),
+            Map.entry("desert_oasis", "деревня в оазисе"), Map.entry("savanna_na", "саванная деревня с типи"), Map.entry("snowy_igloo", "снежная деревня"),
+            Map.entry("taiga_fortified", "укреплённая таёжная деревня"), Map.entry("jungle", "деревня в джунглях"),
+            Map.entry("jungle_tree", "деревня на деревьях джунглей"), Map.entry("mesa", "деревня в пустошах"),
+            Map.entry("mesa_fortified", "укреплённая деревня в пустошах"), Map.entry("mountain", "горная деревня"),
+            Map.entry("mountain_alpine", "альпийская деревня"), Map.entry("mushroom", "грибная деревня"), Map.entry("swamp", "болотная деревня"),
+            Map.entry("swamp_fortified", "укреплённая болотная деревня"), Map.entry("beach", "прибрежная деревня"),
+            Map.entry("christmas", "праздничная снежная деревня"), Map.entry("dark_forest", "деревня в тёмном лесу"),
+            Map.entry("underground", "подземная деревня"));
+
     private static final Map<String, String> STRUCTURES = Map.ofEntries(
-            Map.entry("village_plains", "равнинная деревня"), Map.entry("village_desert", "пустынная деревня"),
-            Map.entry("village_savanna", "саванная деревня"), Map.entry("village_snowy", "снежная деревня"),
-            Map.entry("village_taiga", "таёжная деревня"), Map.entry("pillager_outpost", "аванпост разбойников"),
+            Map.entry("pillager_outpost", "аванпост разбойников"),
             Map.entry("mineshaft", "заброшенная шахта"), Map.entry("mineshaft_mesa", "заброшенная шахта"),
             Map.entry("stronghold", "подземная крепость"), Map.entry("fortress", "адская крепость"),
             Map.entry("bastion_remnant", "бастион"), Map.entry("desert_pyramid", "пустынный храм"),
@@ -47,8 +60,22 @@ public final class Structures {
             Map.entry("trial_chambers", "испытательные палаты"), Map.entry("buried_treasure", "клад"), Map.entry("end_city", "город Края"),
             Map.entry("nether_fossil", "окаменелость"));
 
-    /** Template path fragments and what the piece is, most specific first. */
+    /** Template path fragments and what the piece is, most specific first. The first block names CTOV's buildings (a few of these
+     * words also name vanilla pieces, the same way: an ancient city's barracks, a trial chamber's vault); vanilla follows; the last
+     * lines hold the folders CTOV sorts its pieces into and the outposts' generic parts. */
     private static final String[][] TEMPLATE_WORDS = {
+            {"tavern", "таверна"}, {"bakery", "пекарня"}, {"restaurant", "харчевня"}, {"market_stall", "рыночный прилавок"}, {"stall", "прилавок"},
+            {"church", "церковь"}, {"priest_tower", "колокольня"}, {"sanctuary", "святилище"}, {"wizard_tower", "башня мага"},
+            {"alchemist", "лавка алхимика"}, {"water_mill", "водяная мельница"}, {"windmill", "мельница"}, {"sawmill", "лесопилка"},
+            {"woodworker", "столярная мастерская"}, {"warehouse", "склад"}, {"vineyard", "виноградник"}, {"orchard", "сад"},
+            {"greenhouse", "теплица"}, {"horticultur", "теплица"}, {"flower_farm", "цветочная ферма"}, {"chicken_coop", "курятник"},
+            {"coop", "курятник"}, {"sheep_farm", "овчарня"}, {"barracks", "казарма"}, {"archery_range", "стрельбище"}, {"archer", "дом лучника"},
+            {"fishmonger", "рыбная лавка"}, {"fishing", "дом рыбака"}, {"fishery", "рыбный промысел"}, {"leather", "кожевня"},
+            {"loomhouse", "ткацкая мастерская"}, {"observatory", "обсерватория"}, {"scriber", "писарня"}, {"hunter", "дом охотника"},
+            {"botanist", "дом ботаника"}, {"vault", "хранилище"}, {"gazebo", "беседка"}, {"cemetary", "кладбище"}, {"cemetery", "кладбище"},
+            {"grave", "могила"}, {"gallow", "виселица"}, {"pier", "причал"}, {"statue", "статуя"}, {"obelisk", "обелиск"}, {"campfire", "костёр"},
+            {"bench", "скамейка"}, {"wagon", "повозка"}, {"tipi", "типи"}, {"longhouse", "длинный дом"}, {"large_wall", "крепостная стена"},
+            {"small_wall", "стена"}, {"jobsite/pen", "загон"}, {"animal_shop", "лавка животных"}, {"smith", "кузница"},
             {"fountain", "колодец"}, {"meeting_point", "площадь"}, {"town_center", "площадь"}, {"streets", "улица"}, {"temple", "церковь"},
             {"weaponsmith", "кузница"}, {"armorer", "кузница"}, {"tool_smith", "кузница"}, {"toolsmith", "кузница"}, {"library", "библиотека"},
             {"cartographer", "дом картографа"}, {"butcher", "мясная лавка"}, {"fisher", "дом рыбака"}, {"fletcher", "дом лучника"},
@@ -64,7 +91,9 @@ public final class Structures {
             {"atrium", "атриум"}, {"entrance", "вход"}, {"igloo/top", "иглу"}, {"igloo/middle", "лаз вниз"}, {"igloo/bottom", "подвал"},
             {"shipwreck", "корабль"}, {"underwater_ruin", "руины"}, {"ruined_portal", "портал"}, {"nether_fossils", "скелет"},
             {"end_city/ship", "корабль Края"}, {"end_city/tower", "башня"}, {"end_city/bridge", "мост"}, {"end_city/base", "основание башни"},
-            {"woodland_mansion", "особняк"}};
+            {"woodland_mansion", "особняк"},
+            {"jobsite/", "мастерская"}, {"roads/", "улица"}, {"wall/", "стена"}, {"deco", "украшение"},
+            {"tower", "башня"}, {"cage", "клетка"}, {"target", "мишени"}, {"tent", "палатка"}};
 
     /** Piece types of the hand-coded structures (mineshafts, strongholds, fortresses, temples). */
     private static final Map<String, String> PIECE_TYPES = Map.ofEntries(
@@ -82,25 +111,48 @@ public final class Structures {
             Map.entry("omsimple", "зал"), Map.entry("omsimplet", "зал"), Map.entry("omwr", "крыло"), Map.entry("btp", "клад"));
 
     /** Pieces that are ground rather than a place: streets, lamps, decorations. Named when the creature stands on them, never listed as "nearby". */
-    private static final Set<String> MINOR = Set.of("улица", "фонарь", "украшение", "дорога", "поленница", "мишени", "площадка");
+    private static final Set<String> MINOR = Set.of("улица", "фонарь", "украшение", "дорога", "поленница", "мишени", "площадка",
+            "скамейка", "повозка", "костёр");
+
+    /** "village/plains/" or "pillager_outpost/mesa/" in front of a deeper path: the biome folder, whose name says nothing about the
+     * piece and can fool the word search ("halloween" holds "well"). Two-level vanilla paths such as "pillager_outpost/watchtower" stay. */
+    private static final Pattern KIND_FOLDER = Pattern.compile("^(village|pillager_outpost)/[^/]+/(?=.)");
 
     public static String bare(String id) { return id == null ? "" : id.startsWith("minecraft:") ? id.substring(10) : id; }
 
-    /** "равнинная деревня", or the id for a structure the table does not know. */
+    /** "равнинная деревня", "большая деревня в оазисе", or the id for a structure the table does not know. The name is read from
+     * the last part of the path, so {@code ctov:large/village_plains} is a village like {@code minecraft:village_plains}. */
     public static String structureName(String structure) {
-        String bare = bare(structure);
-        String known = STRUCTURES.get(bare);
+        String path = path(structure), last = path.substring(path.lastIndexOf('/') + 1);
+        String known = STRUCTURES.get(last);
         if (known != null) return known;
-        if (bare.startsWith("village_")) return "деревня";
-        if (bare.startsWith("ruined_portal")) return "разрушенный портал";
-        if (bare.startsWith("shipwreck")) return "затонувший корабль";
-        return bare.substring(bare.indexOf(':') + 1).replace('_', ' ').toLowerCase(Locale.ROOT);
+        if (village(structure)) {
+            String kind = VILLAGES.getOrDefault(last.length() > 8 ? last.substring(8) : "", "деревня");
+            return path.startsWith("large/") ? "большая " + kind : path.startsWith("small/") ? "маленькая " + kind : kind;
+        }
+        if (last.startsWith("pillager_outpost")) return "аванпост разбойников";
+        if (last.startsWith("ruined_portal")) return "разрушенный портал";
+        if (last.startsWith("shipwreck")) return "затонувший корабль";
+        return last.replace('_', ' ');
+    }
+
+    /** Whether the structure is a village of vanilla or of a mod that names its villages the same way ("ctov:small/village_taiga"). */
+    public static boolean village(String structure) {
+        String path = path(structure), last = path.substring(path.lastIndexOf('/') + 1);
+        return last.startsWith("village_") || last.equals("village");
+    }
+
+    /** The id without its namespace, lower case: "large/village_plains". */
+    private static String path(String id) {
+        String bare = bare(id);
+        return bare.substring(bare.indexOf(':') + 1).toLowerCase(Locale.ROOT);
     }
 
     /** "кузница", "коридор"; null when nothing more specific than the structure itself is known. */
     public static String pieceName(String pieceType, String template) {
-        String path = template == null ? "" : bare(template).toLowerCase(Locale.ROOT);
+        String path = template == null ? "" : KIND_FOLDER.matcher(path(template)).replaceFirst("");
         if (!path.isEmpty()) {
+            if (path.startsWith("zombie/")) path = path.substring(7);
             if (path.contains("/zombie/")) path = path.replace("/zombie/", "/");
             for (String[] word : TEMPLATE_WORDS) if (path.contains(word[0])) return word[1];
         }

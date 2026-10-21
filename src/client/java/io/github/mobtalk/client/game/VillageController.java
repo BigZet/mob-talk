@@ -29,7 +29,8 @@ final class VillageController {
         long now = System.currentTimeMillis();
         String village = bridge.memory.villageOf(villager.getUuid());
         if (!village.isBlank()) return bridge.memory.social().standing(village, player.getUuid(), now);
-        return bridge.memory.social().standingAt(villager.getWorld().getRegistryKey().getValue().toString(), villager.getBlockX(), villager.getBlockZ(), player.getUuid(), now);
+        ConversationStore.Village here = villager.getWorld() instanceof ServerWorld world ? bridge.villageAt(world, villager.getBlockPos()) : null;
+        return here == null ? VillageStanding.View.NONE : bridge.memory.social().standing(here.id(), player.getUuid(), now);
     }
 
     /** From the interaction mixin: an exile's right click on a villager gets a shake of the head instead of the trade window. */
@@ -44,10 +45,10 @@ final class VillageController {
     void tick(ServerWorld world) {
         if (!enabled() || world.getTime() % PERIOD != PHASE) return;
         long now = System.currentTimeMillis();
-        String dimension = world.getRegistryKey().getValue().toString();
         for (ServerPlayerEntity player : world.getPlayers()) {
             if (!player.isAlive() || player.isSpectator() || player.isCreative()) continue;
-            VillageStanding.View view = bridge.memory.social().standingAt(dimension, player.getBlockX(), player.getBlockZ(), player.getUuid(), now);
+            ConversationStore.Village here = bridge.villageAt(world, player.getBlockPos());
+            VillageStanding.View view = here == null ? VillageStanding.View.NONE : bridge.memory.social().standing(here.id(), player.getUuid(), now);
             if (!view.golemAlert()) continue;
             for (IronGolemEntity golem : world.getEntitiesByClass(IronGolemEntity.class, player.getBoundingBox().expand(GOLEM_RANGE),
                     g -> g.isAlive() && !g.isPlayerCreated() && g.getTarget() == null)) {
