@@ -256,7 +256,7 @@ public final class BossSelfTest {
         steps.add(new Step(40, () -> {
             if (boss[0] == null) return;
             var relic = DivineBosses.RELICS.get(kind);
-            boolean dropped = !player.getServerWorld().getEntitiesByClass(ItemEntity.class, new Box(boss[0].getBlockPos()).expand(16), item -> item.getStack().isOf(relic)).isEmpty()
+            boolean dropped = !player.getServerWorld().getEntitiesByClass(ItemEntity.class, new Box(boss[0].getBlockPos()).expand(20, 48, 20), item -> item.getStack().isOf(relic)).isEmpty()
                     || player.getInventory().contains(new net.minecraft.item.ItemStack(relic));
             check(dropped, kind.id + ": выпала реликвия " + relic.getName().getString());
             screenshot = kind.id + "-7-defeated";

@@ -35,11 +35,14 @@ public final class BossPunishment {
         for (int attempt = 0; attempt < 8; attempt++) {
             double angle = world.random.nextDouble() * Math.PI * 2, distance = 10 + world.random.nextInt(5);
             BlockPos column = BlockPos.ofFloored(player.getX() + Math.cos(angle) * distance, player.getY(), player.getZ() + Math.sin(angle) * distance);
-            BlockPos ground = world.getDimension().hasCeiling() ? column : world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, column);
+            // The ground under any water: a flood or a lake must not hide the earth from the god's servant.
+            BlockPos ground = world.getDimension().hasCeiling() ? column : world.getTopPosition(Heightmap.Type.OCEAN_FLOOR, column);
             if (Math.abs(ground.getY() - player.getBlockY()) > 8) continue;
             LivingEntity boss = DivineBosses.spawn(kind, world, ground, strength, player);
             if (boss != null) return "явился " + kind.title + " ×" + strength;
         }
-        return null;
+        // Nowhere around (cliffs, caves, a drowned land): he comes beside the sinner.
+        LivingEntity boss = DivineBosses.spawn(kind, world, player.getBlockPos(), strength, player);
+        return boss == null ? null : "явился " + kind.title + " ×" + strength;
     }
 }
