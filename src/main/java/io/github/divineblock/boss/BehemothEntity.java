@@ -57,6 +57,9 @@ public final class BehemothEntity extends SacredBoss {
     /** On the client too: whether he is charging right now. */
     public boolean isCharging() { return dataTracker.get(CHARGING); }
 
+    /** An attack came due during a charge; it follows right after the charge. */
+    private boolean attackWaiting;
+
     @Override public BossKind kind() { return BossKind.BEHEMOTH; }
     @Override protected String theme() { return "punishment_02"; }
     @Override protected float meleeDamage() { return 10f; }
@@ -68,7 +71,9 @@ public final class BehemothEntity extends SacredBoss {
     }
 
     @Override protected int attack(LivingEntity target) {
-        if (chargeLeft > 0 || stunned > 0) return 20;
+        if (chargeLeft > 0) { attackWaiting = true; return 20; }
+        // Dazed after a crash he cannot move, but he can still spit the swamp at whoever comes close.
+        if (stunned > 0) { mud(target); return 60; }
         double distance = distanceTo(target);
         int roll = random.nextInt(4), faster = 12 * (phase - 1);
         if (distance < 7 && roll == 0) { stomp(phase >= 2 ? 2 : 1); return 70 - faster; }
@@ -239,7 +244,14 @@ public final class BehemothEntity extends SacredBoss {
                 LivingEntity target = getTarget();
                 if (target != null && isAlive() && !isCasting()) { chainLeft = 1; ram(target, next); }
             });
+        } else if (attackWaiting) {
+            // An attack fell due while he was charging: he turns on the foe as soon as he stops (telegraphed as always).
+            hazards.later(6, () -> {
+                LivingEntity target = getTarget();
+                if (target != null && isAlive() && !isCasting() && chargeLeft == 0) attack(target);
+            });
         }
+        attackWaiting = false;
         chainLeft = 0;
     }
 

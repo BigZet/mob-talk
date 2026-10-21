@@ -119,6 +119,14 @@ public final class LeviathanEntity extends SacredBoss {
         if (squaredDistanceTo(to) > 4) getMoveControl().moveTo(to.x, to.y, to.z, 0.5 + 0.1 * (phase - 1));
     }
 
+    /** Posed without a mind (the showcase portrait), it rises until its back rides on the water instead of lying on the
+     * bottom of the pool, the way it surfaces when it hunts. */
+    @Override public void tick() {
+        super.tick();
+        if (!getWorld().isClient && isAiDisabled() && getWorld().getFluidState(BlockPos.ofFloored(getX(), getY() + getHeight() * 0.18, getZ())).isIn(FluidTags.WATER))
+            setPosition(getX(), getY() + 0.2, getZ());
+    }
+
     @Override protected void mobTick() {
         super.mobTick();
         if (!(getWorld() instanceof ServerWorld world)) return;

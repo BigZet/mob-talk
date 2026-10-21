@@ -62,11 +62,15 @@ public final class LeviathanModel extends BossModel<LeviathanEntity> {
         frillLeft.yaw += flare; frillRight.yaw -= flare;
 
         if (posed) {
-            // Surfaced for the portrait: the back rides on the water in humps, the neck rears, the maw is open.
-            serpent.pivotY -= 15.5f;
-            for (int i = 0; i < SEGMENTS; i++) body[i].pitch += MathHelper.sin(i * 0.85f + 0.4f) * 0.16f;
-            neck.pitch -= 0.42f;
-            head.pitch += 0.22f;
+            // Surfaced for the portrait (the entity floats up itself): the back rides on the water in humps, the neck rears.
+            for (int i = 0; i < SEGMENTS; i++) {
+                body[i].pitch += MathHelper.sin(i * 0.85f + 0.4f) * 0.16f;
+                body[i].yaw += MathHelper.sin(i * 0.6f + 0.8f) * 0.13f;
+            }
+            trunk.yaw -= 0.2f;
+            neck.yaw += 0.15f;
+            neck.pitch -= 0.55f;
+            head.pitch += 0.3f;
             jaw.pitch += 0.32f;
             frillLeft.yaw += 0.2f; frillRight.yaw -= 0.2f;
         }

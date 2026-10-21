@@ -1,7 +1,7 @@
 """Бегемот (Job 40:15-24): the beast of the earth. A colossal river-horse and ox in one, about ten and a half blocks long and
 over six tall: a barrel body made of rings of hide plates (round, not a crate), mossy on the back, caked with swamp mud
 below, with "bones as strong pieces of brass" (40:18) showing as brass rib hoops along the flanks and brass vertebrae along
-the spine; four pillar legs "like bars of iron" with plated knees, iron bands and toenails; a huge head with a broad muzzle,
+the spine; four round pillar legs "like bars of iron" with brass-plated knees and pointed toenails; a huge head with a broad muzzle,
 heavy brows, small ember eyes, curved tusks and great aurochs horns; and a tail "like a cedar" (40:17): a bark trunk of
 five pieces with branch-like spines hung with needles. Built about 72 units long and drawn at scale 2.4, 4 pixels per unit."""
 import random as _random
@@ -422,15 +422,15 @@ for part in ring("neck", -29, -20.5, (9.0, 9.5, -26), (9.8, 10.5, -27.5), 12, hi
 
 def horn(label, side):
     first, last = chain("horn_" + label, (side * 5.6, -6.2, -4.0), (0.35, side * 1.85, 0),
-                        [(6.0, 3.8, 0, 0, 0), (5.2, 3.2, 0.26, side * 0.3, 0), (4.6, 2.5, 0.28, side * 0.3, 0),
+                        [(6.0, 3.2, 0, 0, 0), (5.2, 2.8, 0.26, side * 0.3, 0), (4.6, 2.5, 0.28, side * 0.3, 0),
                          (4.0, 1.8, 0.3, side * 0.2, 0), (3.2, 1.2, 0.32, 0, 0), (2.2, 0.6, 0.3, 0, 0), (1.4, 0.28, 0.25, 0, 0)],
-                        [brass, horn_style, horn_style, horn_style, horn_tip])
+                        [horn_style, horn_style, horn_style, horn_style, horn_tip])
     return first
 
 
 def tusk_piece(label, side):
     first, last = chain("tusk_" + label, (side * 8.3, -0.2, -15.2), (1.25, 0, side * 0.35),
-                        [(3.4, 2.0, 0, 0, 0), (3.0, 1.6, -0.35, 0, side * 0.08), (2.6, 1.2, -0.38, 0, 0), (2.0, 0.8, -0.4, 0, 0),
+                        [(3.4, 1.6, 0, 0, 0), (3.0, 1.3, -0.35, 0, side * 0.08), (2.6, 1.2, -0.38, 0, 0), (2.0, 0.8, -0.4, 0, 0),
                          (1.4, 0.45, -0.35, 0, 0), (0.9, 0.2, -0.3, 0, 0)],
                         [tusk])
     return first
@@ -456,24 +456,27 @@ def lid(p, f, opts):
 
 
 jaw = Part("jaw", pivot=(0, 4.5, -4), rotation=(0.06, 0, 0), children=ring(
-    "jaw_p", -17.6, 1.0, (7.4, 3.8, 0), (7.8, 5.0, 0), 12, hide_for, keep=lambda a: math.cos(a) < 0.01) + [
-    Part("jaw_tip", pivot=(0, 0, -17.6), boxes=[Box((-7.2, -0.3, -0.9), (14.4, 3.8, 1.2), head_hide)]),
-    Part("tongue", pivot=(0, -0.3, 0), boxes=[Box((-7.0, 0, -17.2), (14.0, 0.6, 17.6), lid)]),
+    "jaw_p", -17.6, 1.0, (7.4, 3.8, 0), (7.8, 5.0, 0), 12, hide_for, keep=lambda a: math.cos(a) < 0.01) + ring(
+    "chin_p", -20.2, -17.4, (4.4, 2.4, 0), (7.4, 3.8, 0), 12, hide_for, keep=lambda a: math.cos(a) < 0.01) + [
+    Part("jaw_tip", pivot=(0, 0, -20.2), boxes=[Box((-4.2, -0.3, -0.5), (8.4, 2.5, 0.7), head_hide)]),
+    Part("tongue", pivot=(0, -0.3, 0), boxes=[Box((-6.8, 0, -19.8), (13.6, 0.6, 20.2), lid)]),
     tusk_piece("r", -1), tusk_piece("l", 1),
 ])
 
-head = Part("head", pivot=rel(0, -25.5, -28), children=ring("skull", -10.8, 2.0, (7.4, 7.0, -1.5), (7.0, 7.4, -1.0), 12, hide_for) +
+head = Part("head", pivot=rel(0, -27.0, -28), rotation=(0.1, 0, 0), children=ring("skull", -10.8, 2.0, (7.4, 7.0, -1.5), (7.0, 7.4, -1.0), 12, hide_for) +
+    ring("nose", -24.2, -20.8, (4.4, 3.8, 4.5), (7.6, 7.2, 4.5), 12, hide_for, keep=lambda a: math.cos(a) > -0.01) +
     ring("muzzle", -21.0, -9.6, (7.6, 7.2, 4.5), (8.2, 9.6, 4.5), 12, hide_for, keep=lambda a: math.cos(a) > -0.01) + [
     jaw,
     horn("r", -1), horn("l", 1),
     Part("ear_r", pivot=(-6.6, -5.8, 0.5), rotation=(0.2, -0.5, -0.7), boxes=[Box((-3.6, -1, -0.5), (3.6, 2.4, 1), head_hide)]),
     Part("ear_l", pivot=(6.6, -5.8, 0.5), rotation=(0.2, 0.5, 0.7), boxes=[Box((0, -1, -0.5), (3.6, 2.4, 1), head_hide)]),
 ], boxes=[
-    Box((-7.6, -2.8, -21.7), (15.2, 7.4, 1.0), muzzle),
-    Box((-5.2, -3.6, -20.6), (3.4, 1.4, 3.0), nostrils),
-    Box((1.8, -3.6, -20.6), (3.4, 1.4, 3.0), nostrils),
-    Box((-7.8, -8.0, -12.2), (15.6, 2.6, 3.4), head_hide),
+    Box((-4.2, 0.8, -24.5), (8.4, 3.6, 0.7), muzzle),
+    Box((-3.9, -1.6, -23.0), (2.8, 1.1, 2.4), nostrils),
+    Box((1.1, -1.6, -23.0), (2.8, 1.1, 2.4), nostrils),
     Box((-7.0, -6.0, -11.0), (1.5, 1.2, 1.6), ember_eye, flat=True),
+    Box((-7.4, -7.4, -11.6), (3.6, 1.4, 2.8), head_hide),
+    Box((3.8, -7.4, -11.6), (3.6, 1.4, 2.8), head_hide),
     Box((5.5, -6.0, -11.0), (1.5, 1.2, 1.6), ember_eye, flat=True),
 ])
 
@@ -514,23 +517,33 @@ tail_parent.children.append(Part("tail_tuft", pivot=(0, 0, TAIL[-1][0] * 0.9), c
 # ---- The legs: pillars like bars of iron, plated at the knee, with pointed nails. ----
 
 
+def leg_for(style):
+    return lambda i, a, arc0, arc1, z0, z1: style
+
+
+def tube(name, z0, z1, r0, r1, style, n=10):
+    """A round vertical column: a ring of plates built along Z and turned to hang straight down from its part."""
+    return Part(name, rotation=(-math.pi / 2, 0, 0), children=ring(name + "_p", z0, z1, (r0, r0, 0), (r1, r1, 0), n, leg_for(style), thickness=1.0))
+
+
 def leg(label, x, z, body_relative):
-    knee = Part("shin_" + label, pivot=(0, 9.5, 0), children=[
-        pillar("shin_" + label + "_col", 0, 0, 0, 9.4, 7.2, leg_hide),
-        Part("knee_" + label, pivot=(0, 0.2, -4.4), rotation=(-0.18, 0, 0), boxes=[
-            Box((-4.4, -2.6, -1.2), (8.8, 5.0, 1.6), brass),
-            Box((-3.0, -3.6, -1.5), (6.0, 1.4, 1.4), brass)]),
-        Part("band_" + label, pivot=(0, 4.0, 0), boxes=[Box((-5.0, 0, -5.0), (10, 1.3, 10), iron)]),
-        Part("foot_" + label, pivot=(0, 6.0, 0), boxes=[Box((-5.6, 0, -5.8), (11.2, 2.0, 11.4), hoof)], children=[
-            Part("nail_%s_%d" % (label, i), pivot=(i * 3.2, 0.4, -5.6), boxes=[
-                Box((-1.2, 0, -1.2), (2.4, 1.6, 1.4), nail), Box((-0.8, 0.5, -1.9), (1.6, 1.1, 0.8), nail),
-                Box((-0.4, 1.0, -2.5), (0.8, 0.6, 0.7), nail)]) for i in (-1, 0, 1)]),
-    ])
-    thigh = pillar("leg_" + label, *(rel(x, -18.5, z) if body_relative else (x, -18.5, z)), 10.6, 11, leg_hide, children=[
-        Part("thigh_band_" + label, pivot=(0, 7.5, 0), boxes=[Box((-6.0, 0, -6.0), (12, 1.4, 12), iron)]),
+    """A pillar leg like a bar of iron: a round thigh and shin of folded hide, a brass knee plate, a broad foot
+    with a sole and three pointed nails."""
+    knee = Part("shin_" + label, pivot=(0, 10.5, 0), children=[
+        tube("shin_" + label + "_col", -0.4, 6.4, 5.0, 4.3, leg_hide),
+        tube("foot_" + label, 6.0, 8.0, 4.9, 5.8, hoof),
+        Part("sole_" + label, pivot=(0, 7.0, 0), boxes=[Box((-4.6, 0, -4.6), (9.2, 1.0, 9.2), hoof)]),
+        Part("knee_" + label, pivot=(0, 0.2, -4.6), rotation=(-0.18, 0, 0), boxes=[
+            Box((-3.6, -2.4, -1.0), (7.2, 4.6, 1.4), brass),
+            Box((-2.4, -3.4, -1.3), (4.8, 1.2, 1.2), brass)]),
+    ] + [Part("nail_%s_%d" % (label, i), pivot=(i * 2.9, 6.6, -5.3), rotation=(0, i * 0.3, 0), boxes=[
+        Box((-1.1, 0, -1.0), (2.2, 1.4, 1.4), nail), Box((-0.7, 0.4, -1.8), (1.4, 1.0, 0.9), nail),
+        Box((-0.35, 0.8, -2.4), (0.7, 0.6, 0.7), nail)]) for i in (-1, 0, 1)])
+    thigh = Part("leg_" + label, pivot=rel(x, -18.5, z) if body_relative else (x, -18.5, z), children=[
+        tube("leg_" + label + "_col", 0, 7.0, 6.0, 5.2, leg_hide),
+        tube("leg_" + label + "_knee", 6.8, 11.0, 5.2, 5.3, leg_hide),
         knee,
     ])
-    knee.pivot = (0, 10.5, 0)
     return thigh
 
 

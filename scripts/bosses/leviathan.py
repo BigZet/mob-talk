@@ -216,15 +216,17 @@ def upper_jaw(p, f, opts):
 
 
 def lower_jaw(p, f, opts):
-    """The lower jaw: scutes outside, a pale scaled throat beneath, a mouth full of fire on top."""
+    """The lower jaw: scutes outside, a dark red tongue on top with a seam of fire down its middle."""
     if f.side == "top":
         for v in range(f.h):
             for u in range(f.w):
                 x, y, z = canon(f, u, v)
                 across = abs(x - 0.5) * 2
-                c = mix((255, 236, 170), FLAME, across) if across < 0.75 else mix(EMBER, BLOOD, (across - 0.75) * 4)
-                c = shade(c, p.noise(0.1))
-                p.put(f, u, v, c, c if across < 0.9 else None)
+                if across < 0.14:
+                    c = shade(mix(FLAME, EMBER, across * 6), p.noise(0.12))
+                    p.put(f, u, v, c, shade(c, 0.85))
+                else:
+                    p.put(f, u, v, shade(mix((110, 30, 26), (50, 12, 12), across), p.noise(0.08)))
     else:
         scutes()(p, f, opts)
 
@@ -391,31 +393,34 @@ def edge_fangs(z_back, r_back, z_front, r_front, count, k_big):
 
 
 def palate(p, f, opts):
-    """The roof of the mouth: burning (the burning lamps of Job 41:19)."""
+    """The roof of the mouth: dark ridged flesh with embers glowing in the folds (the burning lamps of Job 41:19)."""
     for v in range(f.h):
         for u in range(f.w):
             x, y, z = canon(f, u, v)
             if f.side != "bottom":
                 p.put(f, u, v, shade(SEA_DARK, p.noise(0.06)))
                 continue
-            c = mix(CANDLE, FLAME, 0.3 + 0.6 * abs(x - 0.5) * 2)
-            if int(z * 14) % 3 == 0:
-                c = mix(c, EMBER, 0.5)
-            c = shade(c, p.noise(0.1))
-            p.put(f, u, v, c, c)
+            c = mix((92, 22, 20), (50, 10, 10), abs(x - 0.5) * 2)
+            if int(z * 16) % 3 == 0:
+                c = shade(c, 0.7)
+            if p.rand.random() < 0.05 + 0.1 * (1 - abs(x - 0.5) * 2):
+                p.put(f, u, v, EMBER, shade(EMBER, 0.8))
+                continue
+            p.put(f, u, v, shade(c, p.noise(0.08)))
 
 
 upper = edge_fangs(-10.0, 4.9, -21.6, 3.0, 9, 6)
 upper_fangs = fang_row("fang_ur", [(-x, z, s) for x, z, s in upper], 1.4, 2.5) + fang_row("fang_ul", upper, 1.4, 2.5) + \
-    fang_row("fang_uf", [(-1.3, -22.3, 1.3), (1.3, -22.3, 1.3)], 1.3, 1.9)
+    fang_row("fang_uf", [(-1.1, -23.4, 1.1), (1.1, -23.4, 1.1)], 1.3, 1.9)
 lower = edge_fangs(-2.0, 4.6, -19.6, 3.0, 9, 6)
 lower_fangs = fang_row("fang_lr", [(-x, z, s) for x, z, s in lower], -0.1, 2.2, down=False) + \
     fang_row("fang_ll", lower, -0.1, 2.2, down=False)
 
 jaw = Part("jaw", pivot=(0, 1.6, -0.5), rotation=(0.16, 0, 0), children=ring(
-    "jaw_p", -20.6, 0.6, (3.0, 2.0, 0), (4.8, 3.4, 0), 10, plates_for, keep=lambda a: math.cos(a) < 0.0) + lower_fangs + [
-    Part("jaw_tip", pivot=(0, 0, -20.6), boxes=[Box((-3.0, -0.3, -0.8), (6.0, 2.3, 1.0), scutes())]),
-    Part("tongue", pivot=(0, -0.2, 0), boxes=[Box((-3.6, 0, -19.8), (7.2, 0.4, 19.6), lower_jaw)]),
+    "jaw_p", -20.6, 0.6, (3.0, 2.0, 0), (4.8, 3.4, 0), 10, plates_for, keep=lambda a: math.cos(a) < 0.0) + ring(
+    "chin_p", -22.8, -20.4, (1.8, 1.3, 0), (3.0, 2.0, 0), 10, plates_for, keep=lambda a: math.cos(a) < 0.0) + lower_fangs + [
+    Part("jaw_tip", pivot=(0, 0, -22.9), boxes=[Box((-1.8, -0.3, -0.5), (3.6, 1.6, 0.6), scutes())]),
+    Part("tongue", pivot=(0, -0.2, 0), boxes=[Box((-3.4, 0, -21.6), (6.8, 0.4, 21.4), lower_jaw)]),
     Part("lamp_0", pivot=(-2.0, -0.9, -6.5), rotation=(0.3, 0.4, 0.2), boxes=[Box((-0.8, -0.8, -0.8), (1.6, 1.6, 1.6), lamp, flat=True)]),
     Part("lamp_1", pivot=(1.9, -0.8, -8.8), rotation=(0.6, 0.2, 0.5), boxes=[Box((-0.7, -0.7, -0.7), (1.4, 1.4, 1.4), lamp, flat=True)]),
     Part("lamp_2", pivot=(0.0, -1.0, -4.2), rotation=(0.2, 0.7, 0.1), boxes=[Box((-0.9, -0.9, -0.9), (1.8, 1.8, 1.8), lamp, flat=True)]),
@@ -443,12 +448,14 @@ def brow(label, side):
 head = Part("head", pivot=(0, -1.8, -6.2), boxes=[
     Box((-6.2, -3.6, -9.8), (1.8, 1.6, 3.4), morning_eye, flat=True),
     Box((4.4, -3.6, -9.8), (1.8, 1.6, 3.4), morning_eye, flat=True),
-    Box((-3.0, -1.9, -23.0), (6.0, 3.5, 1.0), scutes()),
-    Box((-2.4, -2.5, -21.9), (1.7, 0.9, 1.9), nostril),
-    Box((0.7, -2.5, -21.9), (1.7, 0.9, 1.9), nostril),
+    Box((-1.8, -0.7, -24.6), (3.6, 2.2, 0.6), scutes()),
+    Box((-2.0, -1.7, -23.4), (1.5, 0.8, 1.7), nostril),
+    Box((0.5, -1.7, -23.4), (1.5, 0.8, 1.7), nostril),
+    Box((-2.2, 1.2, -24.2), (4.4, 0.4, 1.9), palate),
     Box((-4.4, 1.3, -15.6), (8.8, 0.4, 6.2), palate),
     Box((-3.0, 1.2, -22.4), (6.0, 0.4, 7.0), palate),
 ], children=ring("skull", -9.8, 1.6, (5.8, 4.4, -0.8), (5.4, 4.8, -0.4), 10, plates_for) +
+    ring("snout_tip", -24.2, -22.4, (1.8, 2.0, 1.4), (3.0, 3.4, 1.5), 10, plates_for, keep=lambda a: math.cos(a) > 0.0) +
     ring("snout", -22.5, -9.4, (3.0, 3.4, 1.5), (4.9, 5.2, 1.6), 10, plates_for, keep=lambda a: math.cos(a) > 0.0) +
     upper_fangs + [
     jaw,
