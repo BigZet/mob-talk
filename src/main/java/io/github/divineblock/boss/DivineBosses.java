@@ -53,11 +53,11 @@ import net.minecraft.util.math.random.Random;
  * check the settings. Structures place a {@link BossSealBlock}: the boss rises from it when a player comes near. */
 public final class DivineBosses {
     private static final Map<BossKind, EntityType<? extends SacredBoss>> TYPES = new EnumMap<>(BossKind.class);
-    public static final EntityType<SchemnikEntity> BLACK_SCHEMNIK = entity(BossKind.BLACK_SCHEMNIK, SchemnikEntity::new, 1.1f, 2.7f, false);
+    public static final EntityType<SchemnikEntity> BLACK_SCHEMNIK = entity(BossKind.BLACK_SCHEMNIK, SchemnikEntity::new, 1.6f, 4.9f, false);
     public static final EntityType<BellRingerEntity> BELL_RINGER = entity(BossKind.BELL_RINGER, BellRingerEntity::new, 2.4f, 3.4f, false);
     public static final EntityType<SeraphEntity> SERAPH = entity(BossKind.SERAPH, SeraphEntity::new, 1.6f, 2.6f, true);
     public static final EntityType<FacelessIconEntity> FACELESS_ICON = entity(BossKind.FACELESS_ICON, FacelessIconEntity::new, 2.4f, 3.4f, false);
-    public static final EntityType<WailerEntity> WAILER = entity(BossKind.WAILER, WailerEntity::new, 0.9f, 2.9f, false);
+    public static final EntityType<WailerEntity> WAILER = entity(BossKind.WAILER, WailerEntity::new, 1.4f, 5.3f, false);
     public static final EntityType<ArchangelEntity> ARCHANGEL = entity(BossKind.ARCHANGEL, ArchangelEntity::new, 2.2f, 7.4f, true);
     public static final EntityType<LeviathanEntity> LEVIATHAN = entity(BossKind.LEVIATHAN, LeviathanEntity::new, 4.0f, 2.0f, false);
     public static final EntityType<BehemothEntity> BEHEMOTH = entity(BossKind.BEHEMOTH, BehemothEntity::new, 3.2f, 3.0f, false);

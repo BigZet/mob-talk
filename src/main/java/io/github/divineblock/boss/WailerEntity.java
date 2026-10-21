@@ -43,7 +43,9 @@ public final class WailerEntity extends SacredBoss {
     /** The command tag her risen dead carry, so they can be counted and laid to rest. */
     static final String RISEN = "divineblock_risen_dead";
     static final int MAX_DEAD = 12;
-    static final double CONE_LENGTH = 10, CONE_HALF = Math.toRadians(32), FUNERAL_RADIUS = 20;
+    static final double CONE_LENGTH = 11, CONE_HALF = Math.toRadians(32), FUNERAL_RADIUS = 20;
+    /** How far her long arms rake: she is over five blocks tall and her arms nearly reach the ground. */
+    static final double REACH = 5.4;
     static final int PANIKHIDA_TICKS = 20 * 180;
     private int wailTimer;
 
@@ -68,7 +70,7 @@ public final class WailerEntity extends SacredBoss {
     /** She glides to a few blocks from her foe and hovers there. */
     @Override protected void pursue(LivingEntity target) {
         if (age % 10 != 0) return;
-        if (squaredDistanceTo(target) > 3.2 * 3.2) getNavigation().startMovingTo(target, 1.0);
+        if (squaredDistanceTo(target) > REACH * REACH * 0.7) getNavigation().startMovingTo(target, 1.0);
         else getNavigation().stop();
     }
 
@@ -98,7 +100,7 @@ public final class WailerEntity extends SacredBoss {
     @Override protected int attack(LivingEntity target) {
         double distance = distanceTo(target);
         int quick = phase >= 3 ? 10 : 0;
-        if (distance < 4.5 && random.nextInt(3) != 0) { grasp(target); return 40 - quick; }
+        if (distance < REACH && random.nextInt(3) != 0) { grasp(target); return 40 - quick; }
         int roll = random.nextInt(4);
         if (roll == 0) { glide(target); return 45 - quick; }
         if (roll == 1 || distance > CONE_LENGTH) { candles(target); return 70 - quick; }
@@ -124,12 +126,12 @@ public final class WailerEntity extends SacredBoss {
                     particles(ParticleTypes.SOUL_FIRE_FLAME, at.x, at.y + 0.15, at.z, 1, 0, 0, 0, 0);
                 }
             }
-            particles(ParticleTypes.SOUL, getX(), getY() + 2.6, getZ(), 1, 0.2, 0.1, 0.2, 0.01);
+            particles(ParticleTypes.SOUL, getX(), getY() + getHeight() * 0.8, getZ(), 1, 0.2, 0.1, 0.2, 0.01);
         }, () -> {
             sound(SoundEvents.ENTITY_GHAST_SCREAM, 3f, 0.45f);
             for (double r = 1; r <= CONE_LENGTH; r += 1.5) {
                 Vec3d at = from.add(dir.multiply(r));
-                particles(ParticleTypes.SCULK_SOUL, at.x, at.y + 1.2, at.z, 4, r * 0.25, 0.4, r * 0.25, 0.02);
+                particles(ParticleTypes.SCULK_SOUL, at.x, at.y + 1.4, at.z, 4, r * 0.25, 0.4, r * 0.25, 0.02);
             }
             for (LivingEntity victim : victims(from, CONE_LENGTH + 1)) {
                 Vec3d rel = victim.getPos().subtract(from).multiply(1, 0, 1);
@@ -152,16 +154,16 @@ public final class WailerEntity extends SacredBoss {
         cast("Долгие руки", warn, true, left -> {
             if (left == warn) sound(SoundEvents.ENTITY_VEX_CHARGE, 1.6f, 0.5f);
             if (left % 3 == 0) for (int i = -2; i <= 2; i++) {
-                Vec3d at = from.add(dir.rotateY(i * 0.35f).multiply(4));
+                Vec3d at = from.add(dir.rotateY(i * 0.35f).multiply(REACH - 0.6));
                 particles(ParticleTypes.SOUL, at.x, at.y + 0.3, at.z, 1, 0, 0, 0, 0);
             }
         }, () -> {
             swingHand(net.minecraft.util.Hand.MAIN_HAND);
             sound(SoundEvents.ENTITY_PHANTOM_BITE, 1.5f, 0.5f);
-            for (LivingEntity victim : victims(from, 6)) {
+            for (LivingEntity victim : victims(from, REACH + 1.5)) {
                 Vec3d rel = victim.getPos().subtract(from).multiply(1, 0, 1);
                 double length = rel.length();
-                if (length <= 4.6 && (length < 1.2 || rel.normalize().dotProduct(dir) > 0.3) && hurt(victim, 8f))
+                if (length <= REACH + 0.2 && (length < 1.4 || rel.normalize().dotProduct(dir) > 0.3) && hurt(victim, 8f))
                     push(victim, from, -0.6, 0.15);
             }
         });
@@ -172,17 +174,17 @@ public final class WailerEntity extends SacredBoss {
         if (!(getWorld() instanceof ServerWorld world)) return;
         setMove(MOVE_GLIDE);
         double angle = random.nextDouble() * Math.PI * 2, radius = 4 + random.nextDouble() * 3;
-        BlockPos spot = ground(world, BlockPos.ofFloored(target.getX() + Math.cos(angle) * radius, target.getY(), target.getZ() + Math.sin(angle) * radius));
+        BlockPos spot = ground(world, BlockPos.ofFloored(target.getX() + Math.cos(angle) * radius, target.getY(), target.getZ() + Math.sin(angle) * radius), MathHelper.ceil(getHeight()));
         Vec3d to = spot == null ? getPos() : Vec3d.ofBottomCenter(spot);
         int warn = 20;
         cast("Скольжение", warn, true, left -> {
-            particles(ParticleTypes.SOUL, to.x, to.y + 0.5, to.z, 2, 0.3, 0.8, 0.3, 0.01);
+            particles(ParticleTypes.SOUL, to.x, to.y + 1, to.z, 3, 0.4, getHeight() * 0.25, 0.4, 0.01);
             particles(ParticleTypes.SOUL_FIRE_FLAME, getX(), getY() + 0.3, getZ(), 2, 0.4, 0.2, 0.4, 0.01);
             if (left == warn) sound(SoundEvents.PARTICLE_SOUL_ESCAPE, 2f, 0.6f);
         }, () -> {
-            particles(ParticleTypes.SOUL, getX(), getY() + 1.4, getZ(), 30, 0.4, 1, 0.4, 0.03);
+            particles(ParticleTypes.SOUL, getX(), getY() + getHeight() * 0.45, getZ(), 40, 0.5, getHeight() * 0.3, 0.5, 0.03);
             requestTeleport(to.x, to.y, to.z);
-            particles(ParticleTypes.SOUL, to.x, to.y + 1.4, to.z, 30, 0.4, 1, 0.4, 0.03);
+            particles(ParticleTypes.SOUL, to.x, to.y + getHeight() * 0.45, to.z, 40, 0.5, getHeight() * 0.3, 0.5, 0.03);
             sound(SoundEvents.ENTITY_ENDERMAN_TELEPORT, 1.2f, 0.4f);
         });
     }
@@ -221,7 +223,7 @@ public final class WailerEntity extends SacredBoss {
             int spots = Math.max(4, Math.min(8, Math.max(rise, 3 + power)));
             for (int i = 0, tries = 0; graves.size() < spots && tries < spots * 4; tries++, i++) {
                 double angle = Math.PI * 2 * i / spots + random.nextDouble() * 0.5, radius = 3 + random.nextDouble() * 4;
-                BlockPos at = ground(world, BlockPos.ofFloored(target.getX() + Math.cos(angle) * radius, target.getY(), target.getZ() + Math.sin(angle) * radius));
+                BlockPos at = ground(world, BlockPos.ofFloored(target.getX() + Math.cos(angle) * radius, target.getY(), target.getZ() + Math.sin(angle) * radius), 2);
                 if (at != null) graves.add(at);
             }
         }
@@ -237,7 +239,7 @@ public final class WailerEntity extends SacredBoss {
                 sound(SoundEvents.BLOCK_BELL_RESONATE, 2f, 0.45f);
                 sound(SoundEvents.BLOCK_ROOTED_DIRT_BREAK, 2f, 0.5f);
             }
-            particles(ParticleTypes.SOUL, getX(), getY() + 2.4, getZ(), 2, 0.4, 0.4, 0.4, 0.02);
+            particles(ParticleTypes.SOUL, getX(), getY() + getHeight() * 0.75, getZ(), 2, 0.5, 0.5, 0.5, 0.02);
         }, () -> funeral(graves, count));
     }
 
@@ -313,19 +315,23 @@ public final class WailerEntity extends SacredBoss {
         return new Vec3d(-Math.sin(yaw), 0, Math.cos(yaw));
     }
 
-    /** A standing spot near {@code pos}: solid ground below, two free blocks above; null when there is none. */
-    private static BlockPos ground(ServerWorld world, BlockPos pos) {
+    /** A standing spot near {@code pos}: solid ground below and {@code clear} free blocks above; null when there is none. */
+    private static BlockPos ground(ServerWorld world, BlockPos pos, int clear) {
+        search:
         for (int dy = 3; dy >= -4; dy--) {
             BlockPos at = pos.up(dy);
-            if (world.getBlockState(at.down()).isSolidBlock(world, at.down())
-                    && world.getBlockState(at).getCollisionShape(world, at).isEmpty()
-                    && world.getBlockState(at.up()).getCollisionShape(world, at.up()).isEmpty()) return at;
+            if (!world.getBlockState(at.down()).isSolidBlock(world, at.down())) continue;
+            for (int up = 0; up < clear; up++) if (!world.getBlockState(at.up(up)).getCollisionShape(world, at.up(up)).isEmpty()) continue search;
+            return at;
         }
         return null;
     }
 
+    /** The flame of the candle she holds up before her face (scaled with the model). */
     private Vec3d candlePos() {
         float yaw = bodyYaw * MathHelper.RADIANS_PER_DEGREE;
-        return new Vec3d(getX() - Math.sin(yaw) * 0.5 + Math.cos(yaw) * 0.4, getY() + 1.6, getZ() + Math.cos(yaw) * 0.5 + Math.sin(yaw) * 0.4);
+        double ahead = getWidth() * 0.95, side = getWidth() * 0.4;
+        return new Vec3d(getX() - Math.sin(yaw) * ahead + Math.cos(yaw) * side, getY() + getHeight() * 0.8,
+                getZ() + Math.cos(yaw) * ahead + Math.sin(yaw) * side);
     }
 }

@@ -42,7 +42,7 @@ public final class SchemnikEntity extends SacredBoss {
     @Override public BossKind kind() { return BossKind.BLACK_SCHEMNIK; }
     @Override protected String theme() { return "punishment_39"; }
     @Override protected float meleeDamage() { return 8f; }
-    @Override protected double meleeReach() { return 3.4; }
+    @Override protected double meleeReach() { return 4.4; }
 
     @Override protected int attack(LivingEntity target) {
         double distance = distanceTo(target);
@@ -75,11 +75,11 @@ public final class SchemnikEntity extends SacredBoss {
         });
     }
 
-    /** «Земной поклон»: he bows; the ground around him (4 blocks) is marked, then struck. */
+    /** «Земной поклон»: he bows; the ground around him (4.5 blocks) is marked, then struck. */
     private void bow() {
         Vec3d center = getPos();
         cast("Земной поклон", 22, true, left -> { if (left == 22) sound(SoundEvents.ENTITY_WARDEN_ATTACK_IMPACT, 1.5f, 0.5f); }, () -> { });
-        hazards.zone(center, 4, 22, ParticleTypes.SQUID_INK, at -> {
+        hazards.zone(center, 4.5, 22, ParticleTypes.SQUID_INK, at -> {
             particles(ParticleTypes.LARGE_SMOKE, at.x, at.y + 0.3, at.z, 40, 2, 0.2, 2, 0.05);
             sound(SoundEvents.ENTITY_GENERIC_EXPLODE.value(), 1.2f, 0.6f);
         }, victim -> { if (hurt(victim, 7f)) push(victim, center, 1.1, 0.35); });
@@ -87,15 +87,15 @@ public final class SchemnikEntity extends SacredBoss {
 
     /** «Шаг сквозь тьму»: ink pools behind the foe; a second later he stands there, and the ground around him is struck. */
     private void stepThroughDark(LivingEntity target) {
-        Vec3d behind = target.getPos().subtract(target.getRotationVector().multiply(2.5, 0, 2.5));
+        Vec3d behind = target.getPos().subtract(target.getRotationVector().multiply(3, 0, 3));
         BlockPos ground = BlockPos.ofFloored(behind);
         if (!getWorld().getBlockState(ground).getCollisionShape(getWorld(), ground).isEmpty()) behind = target.getPos();
         Vec3d to = behind;
         cast("Шаг сквозь тьму", 26, true, left -> {
-            particles(ParticleTypes.SQUID_INK, to.x, to.y + 1, to.z, 4, 0.3, 0.6, 0.3, 0.01);
-            particles(ParticleTypes.LARGE_SMOKE, getX(), getY() + 1, getZ(), 3, 0.4, 0.8, 0.4, 0.01);
+            particles(ParticleTypes.SQUID_INK, to.x, to.y + getHeight() * 0.3, to.z, 5, 0.4, getHeight() * 0.25, 0.4, 0.01);
+            particles(ParticleTypes.LARGE_SMOKE, getX(), getY() + getHeight() * 0.3, getZ(), 3, 0.5, getHeight() * 0.25, 0.5, 0.01);
         }, () -> {
-            particles(ParticleTypes.LARGE_SMOKE, getX(), getY() + 1, getZ(), 30, 0.5, 1, 0.5, 0.02);
+            particles(ParticleTypes.LARGE_SMOKE, getX(), getY() + getHeight() * 0.4, getZ(), 40, 0.6, getHeight() * 0.3, 0.6, 0.02);
             requestTeleport(to.x, to.y, to.z);
             sound(SoundEvents.ENTITY_ENDERMAN_TELEPORT, 1.5f, 0.5f);
             hazards.zone(to, 2.6, 14, ParticleTypes.SOUL_FIRE_FLAME, at -> particles(ParticleTypes.SWEEP_ATTACK, at.x, at.y + 1, at.z, 6, 1.2, 0.3, 1.2, 0),
@@ -112,7 +112,7 @@ public final class SchemnikEntity extends SacredBoss {
                 particles(ParticleTypes.SQUID_INK, center.x + Math.cos(yaw) * Math.cos(pitch) * DOME, center.y + Math.sin(pitch) * DOME,
                         center.z + Math.sin(yaw) * Math.cos(pitch) * DOME, 1, 0, 0, 0, 0);
             }
-            particles(ParticleTypes.SOUL, getX(), getY() + 1.5, getZ(), 3, 1, 1, 1, 0.05);
+            particles(ParticleTypes.SOUL, getX(), getY() + getHeight() * 0.55, getZ(), 3, 1, 1, 1, 0.05);
             if (left % 20 == 0) sound(SoundEvents.BLOCK_BELL_RESONATE, 2f, 0.4f);
         }, () -> eternalSchema(center));
     }
@@ -175,7 +175,7 @@ public final class SchemnikEntity extends SacredBoss {
         SkeletonEntity novice = EntityType.SKELETON.create(world);
         if (novice == null) return;
         double angle = random.nextDouble() * Math.PI * 2;
-        BlockPos at = DivineBosses.room(world, BlockPos.ofFloored(getX() + Math.cos(angle) * 3, getY(), getZ() + Math.sin(angle) * 3), 2);
+        BlockPos at = DivineBosses.room(world, BlockPos.ofFloored(getX() + Math.cos(angle) * 3.5, getY(), getZ() + Math.sin(angle) * 3.5), 2);
         if (at == null) return;
         novice.refreshPositionAndAngles(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, getYaw(), 0);
         ItemStack robe = new ItemStack(Items.LEATHER_CHESTPLATE), hood = new ItemStack(Items.LEATHER_HELMET);
@@ -195,8 +195,11 @@ public final class SchemnikEntity extends SacredBoss {
         for (LivingEntity victim : victims(getPos(), 32)) victim.removeStatusEffect(BossEffects.VOW_OF_SILENCE);
     }
 
+    /** The candle in his left hand, held out before his chest (scaled with the model). */
     private Vec3d handPos() {
         float yaw = bodyYaw * MathHelper.RADIANS_PER_DEGREE;
-        return new Vec3d(getX() + Math.cos(yaw) * 0.6 - Math.sin(yaw) * 0.5, getY() + 1.6, getZ() + Math.sin(yaw) * 0.6 + Math.cos(yaw) * 0.5);
+        double side = getWidth() * 0.45, ahead = getWidth() * 0.85;
+        return new Vec3d(getX() + Math.cos(yaw) * side - Math.sin(yaw) * ahead, getY() + getHeight() * 0.6,
+                getZ() + Math.sin(yaw) * side + Math.cos(yaw) * ahead);
     }
 }
