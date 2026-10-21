@@ -69,6 +69,16 @@ public enum Miracle {
     GREAT_CRATER(Kind.WRATH, 4, 4, true, "великий взрыв в алтаре: воронка в 30–150 блоков стирает всё, и сам алтарь", List.of("взрыв", "воронк", "конец света", "апокалип", "уничтож")),
     WITHER(Kind.WRATH, 4, 4, true, "визеры у алтаря: один, а в великом гневе до пяти", List.of("визер", "wither", "конец света", "апокалип")),
     DRAGON(Kind.WRATH, 4, 4, false, "драконы Края кружат над грешником: один, а в великом гневе до пяти", List.of("дракон", "конец света", "апокалип", "энд")),
+    // Lingering and ultra-cruel wrath: curses that stay for days, the great biblical punishments, and the eternal ban.
+    BLIGHT(Kind.WRATH, 3, 4, true, "порча земли вокруг дома на несколько дней: трава чернеет, посевы гибнут, скот дохнет", List.of("урожа", "земл", "порч", "скот", "голод")),
+    CAIN(Kind.WRATH, 3, 4, false, "проклятие Каина на несколько дней: все твари враждебны грешнику, жители бегут от него и не торгуют", List.of("каин", "брат", "изгна", "один", "проклят")),
+    PLAGUES(Kind.WRATH, 4, 4, false, "казни египетские: вода в кровь, жабы, саранча, тьма на три дня, мор скота — одна за другой", List.of("казн", "египет", "кров", "жаб", "саранч", "тьм", "мор")),
+    SODOM(Kind.WRATH, 4, 4, true, "Содом: огненный дождь по всей округе, а твари вокруг обращаются в соляные столпы", List.of("содом", "гоморр", "сер", "огонь", "соль", "соля")),
+    FLOOD(Kind.WRATH, 4, 4, true, "потоп: ливень сорок дней, вода поднимается до неба вокруг грешника и сходит не скоро", List.of("потоп", "вод", "ной", "ковчег", "дождь", "лив")),
+    BABEL(Kind.WRATH, 4, 4, true, "Вавилон: ближние постройки рушатся сверху вниз, камень за камнем", List.of("вавилон", "башн", "строй", "дом", "город", "гордын")),
+    MEMORY_WIPE(Kind.WRATH, 4, 4, true, "стирание памяти: кровать, точка возрождения и рецепты забыты, смертный нагим за 5000 блоков, вещи в запечатанном сундуке у алтаря", List.of("памят", "забы", "забудь", "кто я", "потерял")),
+    JUDGEMENT(Kind.WRATH, 4, 4, false, "суд: смертного возносит в небо взглянуть на мир с высоты, и он падает", List.of("суд", "небес", "вознес", "взлет", "взлёт", "высот")),
+    ETERNAL_BAN(Kind.WRATH, 4, 4, false, "вечное изгнание: бог выкидывает смертного из мира с приговором, и мир больше его не впускает", List.of("изгна", "навсегда", "вечн", "прочь", "уйди")),
     // Sacred bosses (io.github.divineblock.boss): the god sends one of his terrible servants.
     BOSS_SCHEMNIK(Kind.WRATH, 3, 4, false, "Чёрный Схимник: тьма гасит свет, обет молчания запрещает есть и молиться", List.of("схимн", "монах", "тьма", "молчан")),
     BOSS_BELL_RINGER(Kind.WRATH, 3, 4, false, "Звонарь погоста: набат кольцами сбивает с ног, звон в ушах", List.of("колокол", "звон", "набат")),
@@ -128,6 +138,11 @@ public enum Miracle {
             case END_EXILE, WARDEN -> 7;
             case METEOR_SHOWER, RIFTS -> 8;
             case CHUNK_VOID, WITHER -> 9;
+                        case BLIGHT -> 5;
+            case CAIN -> 6;
+            case BABEL, JUDGEMENT -> 8;
+            case PLAGUES, SODOM, FLOOD, MEMORY_WIPE -> 9;
+            case ETERNAL_BAN -> 10;
             case DRAGON, GREAT_CRATER, BOSS_ARCHANGEL -> 10;
             case BOSS_SCHEMNIK, BOSS_BELL_RINGER, BOSS_SERAPH, BOSS_FACELESS, BOSS_WAILER, BOSS_LEVIATHAN, BOSS_BEHEMOTH, BOSS_GOLIATH,
                  BOSS_DESTROYING_ANGEL, BOSS_CHERUB, BOSS_NIMROD -> 7;

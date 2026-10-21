@@ -17,6 +17,7 @@ import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.FallingBlockEntity;
 import net.minecraft.item.ArmorItem;
 import net.minecraft.item.ArmorMaterials;
 import net.minecraft.item.ItemStack;
@@ -55,7 +56,7 @@ public final class Tornadoes {
     static String summon(ServerWorld world, ServerPlayerEntity player, BlockPos altar, int stage, int ticks, DivineConfig config) {
         double angle = world.random.nextDouble() * Math.PI * 2, distance = 45 + world.random.nextInt(15);
         Tornado tornado = new Tornado(nextId++, world, player, altar, stage, ticks, config,
-                player.getX() + Math.cos(angle) * distance, player.getZ() + Math.sin(angle) * distance);
+                player.getX() + Math.cos(angle) * distance, player.getZ() + Math.sin(angle) * distance, false);
         ACTIVE.add(tornado);
         if (world.getRegistryKey() == World.OVERWORLD) world.setWeather(0, ticks + 200, true, true);
         Miracles.sound(world, player.getBlockPos(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, 4f, 0.5f);
@@ -94,10 +95,15 @@ public final class Tornadoes {
         final Set<BlockPos> queued = new HashSet<>();
         final List<BlockPos> rip = new ArrayList<>();
         final List<Debris> debris = new ArrayList<>();
+        /** Where the base has been on the ground, sampled every second: the hail falls along it. */
+        final List<double[]> path = new ArrayList<>();
+        /** A funnel born of another one's death does not beget a third. */
+        final boolean offspring;
 
-        Tornado(int id, ServerWorld world, ServerPlayerEntity target, BlockPos altar, int stage, int life, DivineConfig config, double x, double z) {
+        Tornado(int id, ServerWorld world, ServerPlayerEntity target, BlockPos altar, int stage, int life, DivineConfig config, double x, double z,
+                boolean offspring) {
             this.id = id; this.world = world; this.target = target; this.altar = altar; this.stage = stage; this.life = life; this.config = config;
-            this.x = x; this.z = z;
+            this.x = x; this.z = z; this.offspring = offspring;
             this.funnel = new TornadoFunnel(stage);
             this.heading = Math.atan2(target.getZ() - z, target.getX() - x);
         }
@@ -114,6 +120,10 @@ public final class Tornadoes {
             funnel.tick(x, baseY, z);
             sync(true);
             if (age > 60) { pull(); peel(); }
+            if (age > 100 && age % 20 == 0) {
+                path.add(new double[] { x, z });
+                if (path.size() > 30) path.remove(0);
+            }
             debris();
             effects(ground);
             return true;
@@ -294,6 +304,54 @@ public final class Tornadoes {
             for (Debris piece : debris) piece.entity().discard();
             debris.clear();
             for (BlockPos pos : rip) world.setBlockState(pos, Blocks.AIR.getDefaultState());
+            if (age > life && world.getServer() != null) { hail(); offspring(); }
+        }
+
+        /** What the funnel carried comes down along its last path: gravel and cobblestone falling from the sky for a few
+         * seconds, no drops. Where blocks are spared only dust falls. */
+        private void hail() {
+            if (path.isEmpty()) return;
+            List<double[]> trail = new ArrayList<>(path);
+            BlockState[] stones = { Blocks.GRAVEL.getDefaultState(), Blocks.COBBLESTONE.getDefaultState(), Blocks.GRAVEL.getDefaultState(),
+                    Blocks.MOSSY_COBBLESTONE.getDefaultState(), Blocks.DIRT.getDefaultState() };
+            Scheduler.repeat(3, 8 + 4 * stage, i -> {
+                if (world.getServer() == null) return;
+                for (int n = 0; n < 2; n++) {
+                    double[] at = trail.get(world.random.nextInt(trail.size()));
+                    int bx = MathHelper.floor(at[0] + world.random.nextGaussian() * 5), bz = MathHelper.floor(at[1] + world.random.nextGaussian() * 5);
+                    BlockPos ground = Aftermath.surface(world, bx, bz);
+                    if (ground == null) continue;
+                    BlockPos sky = ground.up(22 + world.random.nextInt(14));
+                    if (sky.getY() >= world.getTopY() - 1 || !world.getBlockState(sky).isAir()) continue;
+                    if (spared(ground)) {
+                        world.spawnParticles(ParticleTypes.CLOUD, sky.getX() + 0.5, sky.getY(), sky.getZ() + 0.5, 6, 0.4, 0.4, 0.4, 0.02);
+                        continue;
+                    }
+                    FallingBlockEntity stone = FallingBlockEntity.spawnFromBlock(world, sky, stones[world.random.nextInt(stones.length)]);
+                    stone.dropItem = false;
+                    stone.setHurtEntities(1.0f, 4);
+                }
+                if (i % 5 == 0 && !target.isRemoved() && target.getServerWorld() == world)
+                    world.playSound(null, target.getBlockPos(), SoundEvents.BLOCK_GRAVEL_FALL, SoundCategory.WEATHER, 2f, 0.6f);
+            });
+        }
+
+        /** The sinner is still close when it dies: a lesser funnel forms a little later and comes for him again. */
+        private void offspring() {
+            if (offspring || stage < 2 || world.random.nextInt(2) == 0) return;
+            if (!near()) return;
+            Scheduler.later(60, () -> {
+                if (world.getServer() == null || !near()) return;
+                double angle = world.random.nextDouble() * Math.PI * 2, distance = 40 + world.random.nextInt(15);
+                ACTIVE.add(new Tornado(nextId++, world, target, altar, stage - 1, Math.max(400, life / 2), config,
+                        target.getX() + Math.cos(angle) * distance, target.getZ() + Math.sin(angle) * distance, true));
+                if (world.getRegistryKey() == World.OVERWORLD) world.setWeather(0, Math.max(400, life / 2) + 200, true, true);
+                Miracles.sound(world, target.getBlockPos(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, 4f, 0.4f);
+            });
+        }
+
+        private boolean near() {
+            return target.isAlive() && !target.isRemoved() && target.getServerWorld() == world && Math.hypot(target.getX() - x, target.getZ() - z) < 90;
         }
     }
 }

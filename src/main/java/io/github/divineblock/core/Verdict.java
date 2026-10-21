@@ -33,6 +33,8 @@ public final class Verdict {
     /** How many times this mortal blasphemed in the last days before this prayer, and whether his soul is damned. */
     public int blasphemiesBefore;
     public boolean damned;
+    /** How many punishments this mortal has had in a row without being forgiven: each one makes the next a rung worse. */
+    public int escalation;
     /** The group the act was drawn from (К1…, Б1…, Ш1…), for the log and the self-test. */
     public String group = "";
     /** "jev" or "rules", and what Jev said, for the debug view. */
@@ -50,7 +52,8 @@ public final class Verdict {
      * anger and pestering; mercy climbs with favour; jests with force. */
     public int level() {
         return switch (inclination) {
-            case WRATH -> Math.max(fury ? 4 : 1, Math.min(10, (int) Math.round((-favor - 2) / 2.0))); // Fury starts above mere curses.
+            // Fury starts above mere curses; every unforgiven punishment before this one lifts it a group (two rungs).
+            case WRATH -> Math.min(10, Math.max(fury ? 4 : 1, Math.min(10, (int) Math.round((-favor - 2) / 2.0))) + 2 * escalation);
             case HELP -> Math.max(1, Math.min(5, (int) Math.round(favor / 2.0)));
             case JEST -> Math.max(1, Math.min(3, force));
             case OMEN -> 0;
@@ -59,7 +62,7 @@ public final class Verdict {
 
     /** How cruel the fury is, 1..5: how many dragons or withers, how much land is cut away. Grows with the weight of the
      * reasons against the sinner (repeated blasphemy, sins, anger); 1 outside fury. */
-    public int severity() { return fury ? Math.max(1, Math.min(5, 1 + (-favor - 10) / 3)) : 1; }
+    public int severity() { return Math.min(5, (fury ? Math.max(1, Math.min(5, 1 + (-favor - 10) / 3)) : 1) + (inclination == Miracle.Kind.WRATH ? escalation : 0)); }
 
     public Miracle chosen() { Miracle m = Miracle.byId(miracle); return m == null ? Miracle.IGNORE : m; }
 

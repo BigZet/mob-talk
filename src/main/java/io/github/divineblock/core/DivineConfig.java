@@ -67,6 +67,18 @@ public final class DivineConfig {
     public String whisperUrl = "http://127.0.0.1:63919";
     public boolean whisperAutoStart = true;
     public String microphoneName = "";
+    /** Each punishment in a row, unforgiven, makes the next one a rung worse. */
+    public boolean escalation = true;
+    /** After an escalated or great punishment more acts follow it, with pauses: up to this many extra acts (0 = none). */
+    public int comboActs = 2;
+    /** Curses that stay for days (blight, Cain, darkness, blood water, the flood); off makes them pass in minutes. */
+    public boolean lingeringCurses = true;
+    /** How many game days a lingering curse lasts, 1..7. */
+    public int curseDays = 3;
+    /** The eternal ban (group К6): off by default. When off, the god never bans and a world with a ban lets the player in. */
+    public boolean allowEternalBan = false;
+    /** Copy the world into saves/ before the ban falls. */
+    public boolean banBackup = true;
     /** Ids of acts the player switched off. */
     public List<String> disabled = new ArrayList<>();
     /** Orthodox churches with an altar inside appear in newly generated chunks; off generates none (old ones stay). */
@@ -116,6 +128,8 @@ public final class DivineConfig {
         if (disabledBosses == null) disabledBosses = new ArrayList<>();
         bossDifficulty = clamp(bossDifficulty, 50, 300);
         churchSpacing = clamp(churchSpacing, 32, 256);
+        comboActs = clamp(comboActs, 0, 2);
+        curseDays = clamp(curseDays, 1, 7);
         voiceEffects(voiceEffects());
         return this;
     }
@@ -127,6 +141,7 @@ public final class DivineConfig {
         if (miracle == null || disabled.contains(miracle.id())) return false;
         if (miracle == Miracle.WITHER && !allowWither) return false;
         if (miracle == Miracle.DRAGON && !allowDragon) return false;
+        if (miracle == Miracle.ETERNAL_BAN && !allowEternalBan) return false;
         return miracle.minTier <= maxTier;
     }
 

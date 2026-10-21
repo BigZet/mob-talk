@@ -80,10 +80,12 @@ public final class DivineSettingsScreen extends Screen {
         addDrawableChild(ButtonWidget.builder(Text.literal("Сохр."), b -> storeKey(ApiKeys.Provider.VENICE, veniceKey)).dimensions(right + column - 40, y, 40, 20).build());
 
         addDrawableChild(ButtonWidget.builder(Text.literal("Голос и микрофон…"), b -> client.setScreen(new VoiceSettingsScreen(this, config)))
-                .dimensions(this.width / 2 - 154, this.height - 28, 100, 20).build());
+                .dimensions(this.width / 2 - 154, this.height - 28, 76, 20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Кары…"), b -> client.setScreen(new WrathSettingsScreen(this, config)))
+                .dimensions(this.width / 2 - 76, this.height - 28, 74, 20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Боссы…"), b -> client.setScreen(new BossSettingsScreen(this, config)))
-                .dimensions(this.width / 2 - 50, this.height - 28, 100, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Готово"), b -> close()).dimensions(this.width / 2 + 54, this.height - 28, 100, 20).build());
+                .dimensions(this.width / 2, this.height - 28, 74, 20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Готово"), b -> close()).dimensions(this.width / 2 + 78, this.height - 28, 76, 20).build());
         refreshKeyStatus();
         soul = readSoul();
     }

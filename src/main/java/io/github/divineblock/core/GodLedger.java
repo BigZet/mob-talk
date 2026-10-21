@@ -24,6 +24,13 @@ public final class GodLedger {
         public List<Verdict> chronicle = new ArrayList<>();
         /** Last seen values of the player's statistics (breeding, trading, raids, planting), for the deed watcher. */
         public Map<String, Integer> statBaselines = new HashMap<>();
+        /** Punishments in a row not yet forgiven, and the game day of the last one: a week of peace lets the streak go. */
+        public int wrathStreak;
+        public long lastWrathDay = -100;
+
+        public int wrathStreak(long day) { if (day - lastWrathDay > 7) wrathStreak = 0; return wrathStreak; }
+        public void punished(long day) { wrathStreak(day); wrathStreak++; lastWrathDay = day; }
+        public void forgiven() { wrathStreak = 0; }
 
         public int recentPrayers(long now) {
             prayerTicks.removeIf(tick -> now - tick > REPEAT_WINDOW_TICKS || tick > now);

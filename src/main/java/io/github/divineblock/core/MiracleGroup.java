@@ -6,24 +6,29 @@ import java.util.Random;
 
 /** The god's acts in groups by strength, agreed with the author: Jev (or the rules) picks a group, and the act inside it is
  * drawn at random, never one of the last few done to this mortal. Escalation opens the heavier groups: a first insult opens
- * К1–К3, repeated insults and sins open К4, and К5 — the end of the world — waits for the third blasphemy or a damned soul. */
+ * К1–К3, repeated insults and sins open К4, К5 — the end of the world — waits for the third blasphemy or a damned soul, and
+ * К6 — the eternal ban — for the fourth, and only when the player switched it on. */
 public enum MiracleGroup {
     K1(Miracle.Kind.WRATH, "знак гнева", "молния в грешника, проклятие голода и слабости, проклятие предмета",
             Miracle.LIGHTNING, Miracle.CURSE_MINOR, Miracle.CURSE_TOOL),
     K2(Miracle.Kind.WRATH, "казни египетские", "рой насекомых и фантомов, ядовитый дождь, дождь наковален, кольцо огня, золото и алмазы в мусор",
             Miracle.SWARM, Miracle.ACID_RAIN, Miracle.ANVIL_RAIN, Miracle.FIRE_RING, Miracle.TRANSMUTE),
-    K3(Miracle.Kind.WRATH, "гнев земли и неба", "метеориты, землетрясение, провал земли, горящий динамит с неба, смерч",
-            Miracle.METEOR, Miracle.EARTHQUAKE, Miracle.SINKHOLE, Miracle.TNT_RAIN, Miracle.TORNADO),
-    K4(Miracle.Kind.WRATH, "воинство тьмы", "орда нежити, разбойники с разорителями, всадники-скелеты, ифриты, Хранитель",
-            Miracle.UNDEAD_HORDE, Miracle.RAID, Miracle.SKELETON_RIDERS, Miracle.BLAZE_HORDE, Miracle.WARDEN),
+    K3(Miracle.Kind.WRATH, "гнев земли и неба", "метеориты, землетрясение, провал земли, горящий динамит с неба, смерч, порча земли у дома на дни",
+            Miracle.METEOR, Miracle.EARTHQUAKE, Miracle.SINKHOLE, Miracle.TNT_RAIN, Miracle.TORNADO, Miracle.BLIGHT),
+    K4(Miracle.Kind.WRATH, "воинство тьмы", "орда нежити, разбойники с разорителями, всадники-скелеты, ифриты, Хранитель, проклятие Каина",
+            Miracle.UNDEAD_HORDE, Miracle.RAID, Miracle.SKELETON_RIDERS, Miracle.BLAZE_HORDE, Miracle.WARDEN, Miracle.CAIN),
     /** The god's terrible servants: one sacred boss, at random among those not sent lately. */
     KS(Miracle.Kind.WRATH, "святые стражи", "босс: Чёрный Схимник, Звонарь погоста, Шестикрылый серафим, Безликий лик, Плакальщица погоста, "
             + "Левиафан, Бегемот, Голиаф, Ангел-губитель, Херувим с пламенным мечом, Нимрод",
             Miracle.BOSS_SCHEMNIK, Miracle.BOSS_BELL_RINGER, Miracle.BOSS_SERAPH, Miracle.BOSS_FACELESS, Miracle.BOSS_WAILER,
             Miracle.BOSS_LEVIATHAN, Miracle.BOSS_BEHEMOTH, Miracle.BOSS_GOLIATH, Miracle.BOSS_DESTROYING_ANGEL, Miracle.BOSS_CHERUB, Miracle.BOSS_NIMROD),
-    K5(Miracle.Kind.WRATH, "конец света", "изгнание в Ад или Край, визеры, великая воронка, драконы, разломы до бездны, вырезание земли, метеоритный дождь, Архангел гнева, Четыре всадника, Зверь из бездны",
+    K5(Miracle.Kind.WRATH, "конец света", "изгнание в Ад или Край, визеры, великая воронка, драконы, разломы до бездны, вырезание земли, метеоритный дождь, "
+            + "казни египетские, Содом, потоп, Вавилон, стирание памяти, суд в небесах, Архангел гнева, Четыре всадника, Зверь из бездны",
             Miracle.HELL_EXILE, Miracle.END_EXILE, Miracle.WITHER, Miracle.GREAT_CRATER, Miracle.DRAGON, Miracle.RIFTS, Miracle.CHUNK_VOID, Miracle.METEOR_SHOWER,
+            Miracle.PLAGUES, Miracle.SODOM, Miracle.FLOOD, Miracle.BABEL, Miracle.MEMORY_WIPE, Miracle.JUDGEMENT,
             Miracle.BOSS_ARCHANGEL, Miracle.BOSS_HORSEMEN, Miracle.BOSS_BEAST),
+    K6(Miracle.Kind.WRATH, "вечное изгнание", "бог навсегда выкидывает смертного из мира с приговором (только если изгнание включено в настройках)",
+            Miracle.ETERNAL_BAN),
     B1(Miracle.Kind.HELP, "малая милость", "исцеление, еда, ясное небо, починка",
             Miracle.HEAL, Miracle.FEED, Miracle.WEATHER_CLEAR, Miracle.REPAIR),
     B2(Miracle.Kind.HELP, "дары", "предмет по просьбе, зачарование, жила руды, мгновенный урожай",
@@ -71,6 +76,9 @@ public enum MiracleGroup {
                 case K4 -> level >= 6 || verdict.fury && verdict.blasphemiesBefore >= 1;
                 case KS -> level >= 7 || verdict.fury && verdict.blasphemiesBefore >= 1;
                 case K5 -> config.maxTier >= 4 && (verdict.blasphemiesBefore >= 2 || verdict.damned || level >= 9);
+                // The last group: only a soul that keeps blaspheming after the end of the world (or climbed the ladder to its top).
+                case K6 -> config.maxTier >= 4 && verdict.fury && (verdict.blasphemiesBefore >= 3 || verdict.damned && verdict.blasphemiesBefore >= 2
+                        || verdict.escalation >= 4);
                 case B1, J1 -> true;
                 case B2, J2 -> level >= 2;
                 case B3 -> level >= 3;
