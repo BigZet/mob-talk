@@ -300,7 +300,9 @@ final class SelfTestCtov {
                     test.check(running != null, "the guests gathered at the CTOV bell and the service began");
                     if (running != null) {
                         // From the guests' side, a little above them: the couple under the arch and the officiant facing them.
-                        Vec3d eye = running.couple().add(running.forward().multiply(7)).add(0, 2, 0), couple = running.couple();
+                        // A guest's place far from the couple, raised a little: on the square, never inside a house.
+                        Vec3d couple = running.couple(), eye = running.seatSpots().stream().filter(p -> p.distanceTo(couple) <= 9)
+                                .max(java.util.Comparator.comparingDouble(p -> p.distanceTo(couple))).orElse(couple.add(running.forward().multiply(5))).add(0, 2.2, 0);
                         test.command(String.format(Locale.ROOT, "tp %s %.1f %.1f %.1f facing %.1f %.1f %.1f", player(), eye.x, eye.y, eye.z, couple.x, couple.y + 1, couple.z));
                     }
                     test.await("pause: facing the CTOV wedding", 3, () -> false, () -> shot("mobtalk-ctov-wedding.png", () ->
