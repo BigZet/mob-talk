@@ -197,10 +197,12 @@ public final class CemeteryTest {
             ServerWorld world = server.getOverworld();
             BlockPos at = spot[0];
             int top = world.getTopY(Heightmap.Type.WORLD_SURFACE, at.getX(), at.getZ());
-            // Structures generate before grass and flowers do; clear them so the heightmap the cemetery follows is the ground.
+            // Structures generate before grass, flowers and trees do (and the church clears its site of them); clear them so the
+            // heightmap the cemetery follows is the ground.
             for (int dx = -72; dx < 72; dx += 24) for (int dz = -72; dz < 72; dz += 24)
                 for (String plant : new String[] { "minecraft:short_grass", "minecraft:tall_grass", "minecraft:fern", "minecraft:large_fern",
-                        "#minecraft:small_flowers", "#minecraft:tall_flowers", "minecraft:sweet_berry_bush", "minecraft:snow" })
+                        "#minecraft:small_flowers", "#minecraft:tall_flowers", "minecraft:sweet_berry_bush", "minecraft:snow",
+                        "#minecraft:logs", "#minecraft:leaves" })
                     run(server, String.format("fill %d %d %d %d %d %d minecraft:air replace %s", at.getX() + dx, top - 14, at.getZ() + dz,
                             at.getX() + dx + 23, top + 26, at.getZ() + dz + 23, plant));
             int y = world.getTopY(Heightmap.Type.WORLD_SURFACE, at.getX(), at.getZ());

@@ -53,7 +53,7 @@ class Template:
                 if props: entry["Properties"] = nbt.Compound({k: nbt.String(v) for k, v in props.items()})
                 palette.append(nbt.Compound(entry))
             b = {"pos": nbt.List(nbt.INT, [nbt.Int(x), nbt.Int(y), nbt.Int(z)]), "state": nbt.Int(index[key])}
-            if data: b["nbt"] = nbt.Compound({k: nbt.String(v) for k, v in data.items()})
+            if data: b["nbt"] = nbt.Compound({k: nbt.Int(v) if isinstance(v, int) else nbt.String(v) for k, v in data.items()})
             blocks.append(nbt.Compound(b))
         os.makedirs(os.path.dirname(path), exist_ok=True)
         nbt.write(path, {
@@ -65,9 +65,11 @@ class Template:
         })
 
 
-def jigsaw(t, x, y, z, orientation, name, pool, target, final_state, joint="rollable"):
-    t.set(x, y, z, "jigsaw", {"id": "minecraft:jigsaw", "name": name, "pool": pool, "target": target,
-                               "final_state": final_state, "joint": joint}, orientation=orientation)
+def jigsaw(t, x, y, z, orientation, name, pool, target, final_state, joint="rollable", priority=0):
+    """priority: the jigsaw's selection priority. Children are placed in the order their jigsaws were picked, so the next
+    stretch of the path goes first and a tree never grows where a later piece then follows the crown instead of the ground."""
+    t.set(x, y, z, "jigsaw", {"id": "minecraft:jigsaw", "name": name, "pool": pool, "target": target, "final_state": final_state,
+                               "joint": joint, "selection_priority": priority, "placement_priority": 0}, orientation=orientation)
 
 
 # Two kinds of section, as on the reference photos: a modern dense one (black granite, black fences, varnished crosses, few
@@ -296,7 +298,7 @@ def piece(seed, depth, entrance, exit_to=None, kind="rows", style=MODERN):
         stats["trees"] = trees(t, rnd, rnd.choice(STYLE["trees"]))
     jigsaw(t, PATH_X, 0, 0, "north_up", entrance, "minecraft:empty", "minecraft:empty", "minecraft:coarse_dirt")
     if exit_to:
-        jigsaw(t, PATH_X, 0, depth - 1, "south_up", f"{NS}:cemetery_next", exit_to[0], exit_to[1], "minecraft:coarse_dirt")
+        jigsaw(t, PATH_X, 0, depth - 1, "south_up", f"{NS}:cemetery_next", exit_to[0], exit_to[1], "minecraft:coarse_dirt", priority=10)
     connect(t)
     return t, stats
 
