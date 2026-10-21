@@ -39,7 +39,8 @@ Copy-Item "$inst\instance.cfg" "$scratch\instance.cfg.bak" -Force
 # Disarming strips only the lines this script adds, so a config that Prism or someone else changed meanwhile survives.
 function Disarm {
   $now = Get-Content "$inst\instance.cfg" -Raw -Encoding UTF8
-  $now = $now -replace '(?m)^OverrideJavaArgs=true\r?\n(?=JvmArgs=-Ddivineblock\.cemeterytest=true)', '' -replace '(?m)^JvmArgs=-Ddivineblock\.cemeterytest=true\r?\n', ''
+  # Prism saves the value quoted (JvmArgs="-D..."), so both spellings go.
+  $now = $now -replace '(?m)^OverrideJavaArgs=true\r?\n(?="?JvmArgs="?-Ddivineblock\.cemeterytest=true)', '' -replace '(?m)^JvmArgs="?-Ddivineblock\.cemeterytest=true"?\r?\n', ''
   [System.IO.File]::WriteAllText("$inst\instance.cfg", $now)
 }
 try {
@@ -51,7 +52,7 @@ try {
   Say 'launch'
   Start-Process $prism -ArgumentList '--launch', $name
   $game = $null
-  for ($i = 0; $i -lt 30; $i++) { Start-Sleep -Seconds 5; $game = Get-CimInstance Win32_Process -Filter "name='javaw.exe'" | Select-Object -First 1; if ($game) { break } }
+  for ($i = 0; $i -lt 30; $i++) { Start-Sleep -Seconds 5; $game = Get-CimInstance Win32_Process -Filter "name='javaw.exe'" | Where-Object { $_.CommandLine -match 'divineblock\.cemeterytest' } | Select-Object -First 1; if ($game) { break } }
   if (-not $game) { Say 'javaw did not start' } else {
     Say 'javaw running; waiting for the cemetery test to quit the game'
     for ($i = 0; $i -lt 90; $i++) {
