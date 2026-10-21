@@ -33,6 +33,8 @@ public final class BeastEntity extends SacredBoss {
     private static final TrackedData<Boolean> HEALED = DataTracker.registerData(BeastEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     public static final int HEADS = 7;
     static final int MARK_TICKS = 20 * 120;
+    /** How far in front of its body the heads bite. */
+    private static final double BITE_REACH = 7.5;
     private static final DustParticleEffect BLOOD = new DustParticleEffect(new Vector3f(0.6f, 0.02f, 0.04f), 1.8f);
     private static final DustParticleEffect SIX = new DustParticleEffect(new Vector3f(0.9f, 0.1f, 0.1f), 2.2f);
 
@@ -55,7 +57,7 @@ public final class BeastEntity extends SacredBoss {
     @Override public BossKind kind() { return BossKind.BEAST; }
     @Override protected String theme() { return "punishment_56"; }
     @Override protected float meleeDamage() { return 9f; }
-    @Override protected double meleeReach() { return 4.6; }
+    @Override protected double meleeReach() { return getWidth() / 2 + 3.2; }
 
     @Override protected void mobTick() {
         super.mobTick();
@@ -64,7 +66,7 @@ public final class BeastEntity extends SacredBoss {
         if (lost > headsLost()) {
             dataTracker.set(HEADS_LOST, (byte) lost);
             sound(SoundEvents.ENTITY_RAVAGER_HURT, 2f, 0.5f);
-            particles(BLOOD, getX(), getY() + 3.4, getZ(), 30, 1.2, 0.4, 1.2, 0);
+            particles(BLOOD, getX(), getY() + getHeight() * 0.9, getZ(), 30, 1.6, 0.6, 1.6, 0);
             for (var player : playersNear(32)) player.sendMessage(Text.literal("Одна из голов зверя поникла").formatted(Formatting.DARK_RED), true);
         }
     }
@@ -75,8 +77,8 @@ public final class BeastEntity extends SacredBoss {
         double distance = distanceTo(target);
         int roll = random.nextInt(4);
         int quick = phase >= 3 ? 12 : phase == 2 ? 6 : 0;
-        if (distance < 6 && roll < 2) { if (roll == 0) bite(); else claw(); return 55 - quick; }
-        if (roll == 3 && distance < 12) { roar(); return 80 - quick; }
+        if (distance < getWidth() / 2 + 4.5 && roll < 2) { if (roll == 0) bite(); else claw(); return 55 - quick; }
+        if (roll == 3 && distance < 14) { roar(); return 80 - quick; }
         breath(target);
         return 85 - quick;
     }
@@ -85,13 +87,13 @@ public final class BeastEntity extends SacredBoss {
     private void bite() {
         float yaw = bodyYaw * MathHelper.RADIANS_PER_DEGREE;
         cast("Семь пастей", 20, true, left -> {
-            if (left % 2 == 0) cone(ParticleTypes.CRIMSON_SPORE, yaw, 6.5, 0.6);
+            if (left % 2 == 0) cone(ParticleTypes.CRIMSON_SPORE, yaw, BITE_REACH, 0.6);
             if (left == 20) sound(SoundEvents.ENTITY_HOGLIN_ANGRY, 2f, 0.5f);
         }, () -> {
             sound(SoundEvents.ENTITY_RAVAGER_ATTACK, 2f, 0.6f);
-            cone(ParticleTypes.CRIT, yaw, 6.5, 0.6);
-            for (LivingEntity victim : victims(getPos(), 7.5))
-                if (inCone(victim, yaw, 6.5, 0.6) && hurt(victim, 4f + headsAlive() * 1.2f)) {
+            cone(ParticleTypes.CRIT, yaw, BITE_REACH, 0.6);
+            for (LivingEntity victim : victims(getPos(), BITE_REACH + getWidth() / 2))
+                if (inCone(victim, yaw, BITE_REACH, 0.6) && hurt(victim, 4f + headsAlive() * 1.2f)) {
                     push(victim, getPos(), 0.6, 0.2);
                     if (phase >= 3) markOf(victim);
                 }
@@ -100,7 +102,7 @@ public final class BeastEntity extends SacredBoss {
 
     /** «Медвежья лапа»: a circle in front of it, a raised paw, a crushing blow. */
     private void claw() {
-        Vec3d at = getPos().add(facing().multiply(3));
+        Vec3d at = getPos().add(facing().multiply(getWidth() / 2 + 1.6));
         cast("Медвежья лапа", 18, true, left -> { if (left == 18) sound(SoundEvents.ENTITY_POLAR_BEAR_WARNING, 2f, 0.5f); }, () -> { });
         hazards.zone(at, 2.6, 18, ParticleTypes.CRIMSON_SPORE, center -> {
             particles(ParticleTypes.SWEEP_ATTACK, center.x, center.y + 1, center.z, 4, 1.2, 0.3, 1.2, 0);
@@ -110,7 +112,7 @@ public final class BeastEntity extends SacredBoss {
 
     /** «Пасть льва»: lines of fire from the lions' mouths toward the foe, shown before they burn. */
     private void breath(LivingEntity target) {
-        Vec3d mouth = getPos().add(facing().multiply(2.2)).add(0, 3, 0);
+        Vec3d mouth = getPos().add(facing().multiply(getWidth() * 0.8)).add(0, getHeight() * 0.95, 0);
         Vec3d aim = target.getPos().add(0, 0.8, 0).subtract(mouth);
         if (aim.lengthSquared() < 1e-3) aim = facing();
         Vec3d dir = aim.normalize();
@@ -122,7 +124,7 @@ public final class BeastEntity extends SacredBoss {
         for (int i = 0; i < lines; i++) {
             double spread = (i - (lines - 1) / 2.0) * 0.35;
             Vec3d d = new Vec3d(dir.x * Math.cos(spread) - dir.z * Math.sin(spread), dir.y, dir.x * Math.sin(spread) + dir.z * Math.cos(spread));
-            hazards.beam(mouth, mouth.add(d.multiply(14)), 22, 24, 0.9, ParticleTypes.SMOKE, ParticleTypes.FLAME, victim -> {
+            hazards.beam(mouth, mouth.add(d.multiply(17)), 22, 24, 0.9, ParticleTypes.SMOKE, ParticleTypes.FLAME, victim -> {
                 if (hurt(victim, 5f)) victim.setOnFireFor(3);
             });
         }
@@ -131,13 +133,13 @@ public final class BeastEntity extends SacredBoss {
     /** «Рёв зверя»: every head lifts; then a roar that weakens and slows all near it. */
     private void roar() {
         cast("Рёв зверя", 22, true, left -> {
-            particles(ParticleTypes.SMOKE, getX(), getY() + 3.5, getZ(), 4, 1.2, 0.5, 1.2, 0.02);
+            particles(ParticleTypes.SMOKE, getX(), getY() + getHeight() * 0.9, getZ(), 6, 1.8, 0.6, 1.8, 0.02);
             if (left == 22) sound(SoundEvents.ENTITY_RAVAGER_ROAR, 1.2f, 0.7f);
         }, () -> {
             sound(SoundEvents.ENTITY_RAVAGER_ROAR, 3f, 0.4f);
             sound(SoundEvents.ENTITY_WARDEN_ROAR, 1.5f, 0.8f);
-            particles(ParticleTypes.SONIC_BOOM, getX(), getY() + 2, getZ(), 1, 0, 0, 0, 0);
-            for (LivingEntity victim : victims(getPos(), 11)) {
+            particles(ParticleTypes.SONIC_BOOM, getX(), getY() + getHeight() * 0.6, getZ(), 1, 0, 0, 0, 0);
+            for (LivingEntity victim : victims(getPos(), 12)) {
                 victim.addStatusEffect(new StatusEffectInstance(StatusEffects.WEAKNESS, 160, 1));
                 victim.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 80, 1));
                 push(victim, getPos(), 0.9, 0.2);
@@ -156,8 +158,8 @@ public final class BeastEntity extends SacredBoss {
                 if (left > 60 - ring * 20) continue;
                 for (int i = 0; i < 6; i++) {
                     double angle = Math.PI * 2 * i / 6 + age * 0.03 * (ring % 2 == 0 ? 1 : -1);
-                    double r = 2.5 + ring * 2;
-                    particles(SIX, center.x + Math.cos(angle) * r, center.y + 5 + ring * 0.8, center.z + Math.sin(angle) * r, 1, 0, 0, 0, 0);
+                    double r = 3.5 + ring * 2;
+                    particles(SIX, center.x + Math.cos(angle) * r, center.y + getHeight() * 1.4 + ring * 0.8, center.z + Math.sin(angle) * r, 1, 0, 0, 0, 0);
                 }
             }
             if (left % 20 == 0) sound(SoundEvents.ENTITY_WITHER_AMBIENT, 2f, 0.4f);
@@ -168,11 +170,11 @@ public final class BeastEntity extends SacredBoss {
     private void numberOfBeast(LivingEntity target) {
         announce("Шесть: пламя из пастей");
         sound(SoundEvents.ENTITY_WITHER_SHOOT, 2f, 0.5f);
-        Vec3d mouths = getPos().add(0, 3.6, 0);
+        Vec3d mouths = getPos().add(facing().multiply(getWidth() * 0.6)).add(0, getHeight() * 0.95, 0);
         for (int i = 0; i < 6; i++) {
             LivingEntity aimAt = aim(target);
             double angle = Math.PI * 2 * i / 6;
-            Vec3d from = mouths.add(Math.cos(angle) * 1.5, 0, Math.sin(angle) * 1.5);
+            Vec3d from = mouths.add(Math.cos(angle) * 2.2, 0, Math.sin(angle) * 2.2);
             Vec3d dir = aimAt.getEyePos().subtract(from).normalize();
             int delay = i * 4;
             hazards.later(1 + delay, () -> {
@@ -240,8 +242,8 @@ public final class BeastEntity extends SacredBoss {
             dataTracker.set(HEALED, true);
             heal(getMaxHealth() * 0.06f);
             sound(SoundEvents.ENTITY_ZOMBIE_VILLAGER_CURE, 2f, 0.5f);
-            particles(BLOOD, getX(), getY() + 3.6, getZ(), 40, 1, 0.5, 1, 0);
-            particles(ParticleTypes.TOTEM_OF_UNDYING, getX(), getY() + 3, getZ(), 40, 1.2, 0.8, 1.2, 0.3);
+            particles(BLOOD, getX(), getY() + getHeight() * 0.95, getZ(), 40, 1.6, 0.6, 1.6, 0);
+            particles(ParticleTypes.TOTEM_OF_UNDYING, getX(), getY() + getHeight() * 0.8, getZ(), 40, 1.6, 0.8, 1.6, 0.3);
             for (var player : playersNear(48)) player.sendMessage(Text.literal("Смертельная рана зверя исцелела").formatted(Formatting.DARK_RED));
             addStatusEffect(new StatusEffectInstance(StatusEffects.SPEED, StatusEffectInstance.INFINITE, 0, false, false));
         }
@@ -271,7 +273,7 @@ public final class BeastEntity extends SacredBoss {
 
     /** Draws a cone in front of it: {@code half} is the half-angle in radians. */
     private void cone(net.minecraft.particle.ParticleEffect effect, float yaw, double reach, double half) {
-        for (double r = 1.5; r <= reach; r += 1.25)
+        for (double r = getWidth() / 2; r <= reach + getWidth() / 2; r += 1.25)
             for (int i = -4; i <= 4; i++) {
                 double a = yaw + half * i / 4;
                 particles(effect, getX() - Math.sin(a) * r, getY() + 0.3, getZ() + Math.cos(a) * r, 1, 0, 0, 0, 0);
