@@ -1,4 +1,4 @@
-"""Шестикрылый серафим (Isaiah 6:2): a small radiant face of light in a core of fire, a burning nimbus behind it, and six great
+"""Шестикрылый серафим (Isaiah 6:2): a small face of light that is one great eye, in a core of fire, a nimbus right behind it, and six great
 wings of individual feathers in red, orange and gold, every feather painted with an eye that shines in the dark. Two wings
 cross over the face, two cross over the feet and two are spread for flight; tongues of flame lick between them.
 Built about 44 units tall and drawn at scale 2.4 (wings about ten blocks across), at 4 pixels per unit."""
@@ -63,9 +63,9 @@ def fiery_wing(name, pivot, rotation, span, rows=3, feathers=10, side=1, glow_ti
     crimson primaries burning at the tips, and an eye on every feather."""
     w = wing(name, pivot, rotation, span, rows=rows, feathers=feathers, base=ORANGE, tip=CRIMSON, side=side)
     styles = {
-        0: eye_feather(SCARLET, (255, 150, 40), glow_tip=glow_tip, eye_chance=eyes),
-        1: eye_feather(ORANGE, CRIMSON, eye_chance=eyes),
-        2: eye_feather(AMBER, ORANGE, eye_chance=eyes * 0.8, at=0.5),
+        0: eye_feather(CRIMSON, (255, 150, 40), glow_tip=glow_tip, eye_chance=eyes),
+        1: eye_feather(SCARLET, CRIMSON, eye_chance=eyes),
+        2: eye_feather(ORANGE, SCARLET, eye_chance=eyes * 0.8, at=0.5),
     }
     bone = w.boxes[0]
     bone.origin, bone.size = (bone.origin[0], -0.8, -0.2), (span, 1.6, 1.4)
@@ -80,14 +80,41 @@ def fiery_wing(name, pivot, rotation, span, rows=3, feathers=10, side=1, glow_ti
     return w
 
 
-def radiant_face(p, f, opts):
-    """A face of light: an icon's face in pale gold with burning eyes, and the whole of it shining."""
-    icon_face(FACE_LIGHT, hair_color=(255, 150, 40), eye=(255, 255, 255), stern=False, glow_eyes=(255, 255, 240))(p, f, opts)
-    for v in range(f.h):
-        for u in range(f.w):
-            r, g, b, a = p.img.getpixel((f.x + u, f.y + v))
-            if a and p.glow.getpixel((f.x + u, f.y + v))[3] == 0:
-                p.glow.putpixel((f.x + u, f.y + v), (int(r * 0.75), int(g * 0.7), int(b * 0.6), 255))
+def great_eye(p, f, opts):
+    """The face of light: one great open eye in a pale gold glare, with a burning iris and a dark pupil, all of it shining
+    (the seraph is no cartoon face, only light and sight). The other sides are plain light."""
+    W, H = f.w, f.h
+    for v in range(H):
+        for u in range(W):
+            dx, dy = (u + 0.5 - W / 2) / (W / 2), (v + 0.5 - H / 2) / (H / 2)
+            if f.side in ("front", "back") and dx * dx + dy * dy > 1.0:
+                p.put(f, u, v, None)
+                continue
+            c = mix((255, 250, 226), FACE_LIGHT, min(1.0, dx * dx + dy * dy))
+            p.put(f, u, v, c, shade(c, 0.85))
+    if f.side != "front":
+        return
+    cx, cy = W / 2, H / 2
+    ew, eh = W * 0.46, H * 0.27
+    for v in range(H):
+        for u in range(W):
+            x, y = (u + 0.5 - cx) / ew, (v + 0.5 - cy) / eh
+            # Almond: two arcs meeting at sharp corners.
+            if abs(x) > 1 or abs(y) > (1 - x * x) ** 0.8:
+                if abs(x) <= 1.08 and abs(y) <= (1 - min(1, x * x)) ** 0.8 + 0.28:
+                    p.put(f, u, v, LID, (200, 60, 30))
+                continue
+            r = math.hypot(u + 0.5 - cx, (v + 0.5 - cy) * 1.0)
+            if r < eh * 0.42:
+                p.put(f, u, v, PUPIL)
+                p.glow.putpixel((f.x + u, f.y + v), (0, 0, 0, 0))
+            elif r < eh * 0.95:
+                c = mix((255, 236, 120), (255, 120, 20), r / eh)
+                p.put(f, u, v, c, c)
+            else:
+                p.put(f, u, v, SCLERA, SCLERA)
+    # A glint in the pupil.
+    p.put(f, int(cx - eh * 0.2), int(cy - eh * 0.2), (255, 255, 255), (255, 255, 255))
 
 
 def core_fire(p, f, opts):
@@ -129,14 +156,14 @@ def flame(name, pivot, rotation, length, width):
 wings = []
 for side, label in ((-1, "right"), (1, "left")):
     # The flight pair: spread out and up behind the face, a tip joint for the stroke.
-    flight = fiery_wing(label + "_wing", pivot=(side * 3.2, -2.5, 3.0), rotation=(0.1, -side * 0.15, -side * 0.62), span=15,
+    flight = fiery_wing(label + "_wing", pivot=(side * 3.2, -2.5, 3.0), rotation=(0.1, -side * 0.15, -side * 0.42), span=15,
                         rows=3, feathers=12, side=side)
-    flight.children.append(fiery_wing(label + "_wing_tip", pivot=(side * 15, 0, 0), rotation=(0, 0, -side * 0.15), span=14,
+    flight.children.append(fiery_wing(label + "_wing_tip", pivot=(side * 15, 0, 0), rotation=(0, 0, -side * 0.25), span=14,
                                       rows=3, feathers=12, side=side))
     wings.append(flight)
     # Over the face: from above its corner the bone slopes across the brow to the other side; the two cross in front.
-    wings.append(fiery_wing("upper_%s_wing" % label, pivot=(side * 9, -12, -3.6 - 0.5 * (side > 0)),
-                            rotation=(0.18, side * 0.15, -side * 0.55), span=15, rows=3, feathers=9, side=-side, glow_tip=False))
+    wings.append(fiery_wing("upper_%s_wing" % label, pivot=(side * 10, -14.5, -3.6 - 0.5 * (side > 0)),
+                            rotation=(0.18, side * 0.15, -side * 0.5), span=15, rows=3, feathers=9, side=-side, glow_tip=False))
     # Over the feet: from below the face the bone slopes down across, the feathers hanging to the ground.
     wings.append(fiery_wing("lower_%s_wing" % label, pivot=(side * 4.5, 3.0, -2.6 - 0.5 * (side > 0)),
                             rotation=(-0.12, side * 0.1, -side * 1.05), span=15, rows=3, feathers=9, side=-side, glow_tip=False))
@@ -144,17 +171,16 @@ for side, label in ((-1, "right"), (1, "left")):
 # ---- Flames between the wings. ----
 flames = []
 for i, (x, y, z, roll, length) in enumerate([
-        (-4, -5, 1.5, 0.9, 9), (4, -5, 1.5, -0.9, 9), (-5, 2, 1.0, 1.7, 8), (5, 2, 1.0, -1.7, 8),
-        (-2.5, -7, 2.5, 0.35, 11), (2.5, -7, 2.5, -0.35, 11), (-3, 6, 0.5, 2.6, 9), (3, 6, 0.5, -2.6, 9),
-        (0, 9, -1.0, 3.14, 10), (-1.5, -8, 1.8, 0.1, 8), (1.5, -8, 1.8, -0.1, 8), (0, 5, 2.0, 3.0, 7)]):
+        (-4.5, -5, 1.5, 0.9, 9), (4.5, -5, 1.5, -0.9, 9), (-5.5, 2, 1.0, 1.7, 8), (5.5, 2, 1.0, -1.7, 8),
+        (-3.5, 6, 0.8, 2.5, 8), (3.5, 6, 0.8, -2.5, 8), (-5, -2, 1.2, 1.25, 10), (5, -2, 1.2, -1.25, 10)]):
     flames.append(flame("flame_%d" % i, pivot=(x, y, z), rotation=(0, 0, roll), length=length, width=2.6))
 
-# ---- The nimbus: a disc of light and a crown of rays. ----
+# ---- The nimbus: a disc of light right behind the face, and a crown of rays round it. ----
 rays = []
 for i in range(16):
     a = 2 * math.pi * i / 16
-    long = 7.5 if i % 2 == 0 else 5
-    rays.append(Part("ray_%d" % i, pivot=(math.sin(a) * 11.5, -math.cos(a) * 11.5, 0.05), rotation=(0, 0, a),
+    long = 6 if i % 2 == 0 else 3.8
+    rays.append(Part("ray_%d" % i, pivot=(math.sin(a) * 7.2, -math.cos(a) * 7.2, 0.05), rotation=(0, 0, a),
                      boxes=[Box((-1.2, -long, 0), (2.4, long, 0.1), sun_ray, flat=True)]))
 corona = []
 for i in range(12):
@@ -164,15 +190,14 @@ for i in range(12):
 parts = [
     Part("seraph", pivot=(0, -6, 0), children=[
         Part("core", pivot=(0, 0, 0), boxes=[
-            Box((-4, -5, -1), (8, 10, 5), core_fire),
-            Box((-3, -6.5, -0.5), (6, 2, 4), core_fire),
+            Box((-4, -5, 1.2), (8, 10, 4), core_fire),
         ], children=[
-            Part("face", pivot=(0, 0, -1.2), boxes=[Box((-3, -3.6, -1.6), (6, 7.2, 2.2), radiant_face, flat=True)],
-                 children=corona),
-            Part("nimbus", pivot=(0, -1, 5.2), children=[
-                Part("nimbus_disc", boxes=[Box((-12, -12, 0), (24, 24, 0.1), halo_disc(), flat=True)]),
-                Part("nimbus_rays", children=rays),
-            ]),
+            Part("face", pivot=(0, 0, -1.2), boxes=[Box((-3.6, -4.0, -1.6), (7.2, 8.0, 2.0), great_eye, flat=True)], children=[
+                Part("nimbus", pivot=(0, 0, 1.2), children=[
+                    Part("nimbus_disc", boxes=[Box((-7, -7, 0), (14, 14, 0.1), halo_disc(), flat=True)]),
+                    Part("nimbus_rays", children=rays),
+                ]),
+            ] + corona),
         ] + flames),
     ] + wings),
 ]

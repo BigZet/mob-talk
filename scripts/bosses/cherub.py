@@ -198,7 +198,7 @@ def flame(name, pivot, rotation, length, width):
 
 def man():
     return Part("face_man", children=[], boxes=[
-        Box((-2.6, -7.0, -3.5), (5.2, 6.4, 1.0), icon_face(SKIN, HAIR, eye=(48, 34, 24), stern=True)),
+        Box((-2.6, -7.0, -3.5), (5.2, 6.4, 1.0), icon_face(SKIN, HAIR, eye=(48, 34, 24), stern=True, glow_eyes=(255, 214, 110))),
         Box((-0.45, -4.6, -3.95), (0.9, 2.2, 0.5), solid(SKIN, k=0.04)),
         Box((-2.4, -1.3, -3.6), (4.8, 2.6, 1.4), hair(HAIR)),
         Box((-1.4, 1.2, -3.3), (2.8, 1.4, 1.1), hair(HAIR)),
@@ -245,9 +245,7 @@ def ox():
 def eagle():
     hook = Part("beak_hook", pivot=(0, -3.9, -6.6), rotation=(0.9, 0, 0),
                 boxes=[Box((-0.6, 0, -0.6), (1.2, 1.7, 1.0), solid(shade(BEAK, 0.9), k=0.05))])
-    crest = [Part("crest_%d" % i, pivot=(-1.5 + i * 1.0, -6.8, -2.6), rotation=(-0.5, 0, -0.3 + i * 0.15),
-                  boxes=[Box((-0.6, -3.2, 0), (1.2, 3.2, 0.2), feather(EAGLE, EAGLE_DARK))]) for i in range(4)]
-    return Part("face_eagle", rotation=(0, math.pi, 0), children=[hook] + crest, boxes=[
+    return Part("face_eagle", rotation=(0, math.pi, 0), children=[hook], boxes=[
         Box((-2.5, -7.0, -3.5), (5.0, 5.6, 1.0), eagle_face),
         Box((-2.8, -5.9, -3.8), (5.6, 0.8, 0.5), solid(EAGLE_DARK, k=0.06)),
         Box((-0.9, -4.6, -6.6), (1.8, 1.4, 3.2), gold_leaf(ornament=False)),
@@ -282,6 +280,9 @@ blade = Part("blade", children=[
     Box((-0.05, -33, -1.9), (0.1, 30.5, 3.8), flame_blade(), flat=True),
     Box((-0.6, -32, -0.6), (1.2, 29.5, 1.2), solid((255, 246, 220), glow=True, k=0.03), flat=True),
 ])
+# The point: a white-hot diamond turned on its corner where the core of the blade ends, so the sword reads sharp.
+blade.children.append(Part("sword_tip", pivot=(0, -32.4, 0), rotation=(0, 0, 0.785),
+                           boxes=[Box((-1.0, -1.0, -0.3), (2.0, 2.0, 0.6), solid((255, 246, 214), glow=True, k=0.03), flat=True)]))
 sword = Part("sword", pivot=(0, 13.6, -0.6), rotation=(0.9, 0, -0.15), children=[blade], boxes=[
     Box((-0.6, -2.2, -0.6), (1.2, 5.2, 1.2), solid((70, 40, 24), k=0.1)),
     Box((-4.2, -3.3, -0.8), (8.4, 1.2, 1.6), gold_leaf(ornament=False)),

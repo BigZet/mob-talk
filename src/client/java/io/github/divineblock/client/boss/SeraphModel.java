@@ -12,7 +12,7 @@ import net.minecraft.util.math.MathHelper;
  * the feet's wings open a little), baring the face of light, and the nimbus flares. Every motion is added to the rest pose. */
 public final class SeraphModel extends BossModel<SeraphEntity> {
     public static final EntityModelLayer LAYER = new EntityModelLayer(Identifier.of("divineblock", "seraph"), "main");
-    private static final int FLAMES = 12, CORONA = 12, PRIMARIES = 12;
+    private static final int FLAMES = 8, CORONA = 12, PRIMARIES = 12;
     private final ModelPart seraph, core, face, nimbusDisc, nimbusRays, left, right, leftTip, rightTip, upperLeft, upperRight, lowerLeft, lowerRight;
     private final ModelPart[] flames = new ModelPart[FLAMES], corona = new ModelPart[CORONA];
     private final ModelPart[][] primaries = new ModelPart[4][PRIMARIES];
@@ -50,7 +50,7 @@ public final class SeraphModel extends BossModel<SeraphEntity> {
 
         // The flight pair: strong beats aloft, slow ones on the ground; the tips lag behind the stroke.
         float speed = down ? 0.1f : 0.26f;
-        float beat = MathHelper.sin(age * speed) * (down ? 0.12f : 0.32f);
+        float beat = MathHelper.sin(age * speed) * (down ? 0.1f : 0.24f);
         float lag = MathHelper.sin(age * speed - 1.0f) * (down ? 0.08f : 0.22f);
         right.roll += beat; left.roll -= beat;
         rightTip.roll += lag; leftTip.roll -= lag;
