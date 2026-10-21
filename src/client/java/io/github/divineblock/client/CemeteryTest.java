@@ -170,8 +170,9 @@ public final class CemeteryTest {
         scene("wild", world -> base.add(260, 0, 40));
         // A cemetery in taiga: spruces, pines and birches instead of oaks.
         scene("taiga", world -> {
-            var found = world.locateBiome(biome -> biome.isIn(net.minecraft.registry.tag.BiomeTags.IS_TAIGA), base, 4000, 32, 64);
-            if (found == null) { fail("тайга не нашлась в 4000 блоках"); return null; }
+            var found = world.locateBiome(biome -> biome.isIn(net.minecraft.registry.tag.BiomeTags.IS_TAIGA), base.add(-700, 0, 700), 4000, 32, 64);
+            if (found == null) { fail("тайга не нашлась"); return null; }
+            if (found.getFirst().getSquaredDistance(base) < 300 * 300) { fail("тайга слишком близко к выставке блоков"); return null; }
             log("  тайга: " + found.getFirst().toShortString() + " " + found.getSecond().getKey().map(k -> k.getValue().toString()).orElse("?"));
             return found.getFirst();
         });
@@ -236,7 +237,7 @@ public final class CemeteryTest {
             if (b == null) return;
             boolean alongX = b[3] - b[0] > b[5] - b[2];
             double mid = alongX ? (b[2] + b[5]) / 2.0 + 0.5 : (b[0] + b[3]) / 2.0 + 0.5;
-            if (alongX) tp(client, b[0] + 1.5, b[1] + 2.6, mid, -90, 8); else tp(client, mid, b[1] + 2.6, b[2] + 1.5, 0, 8);
+            if (alongX) tpGround(client, b[0] + 1.5, mid, -90, 8); else tpGround(client, mid, b[2] + 1.5, 0, 8);
         });
         on(110, client -> screenshot = tag + "-path");
         on(5, client -> {
@@ -244,7 +245,7 @@ public final class CemeteryTest {
             if (b == null) return;
             boolean alongX = b[3] - b[0] > b[5] - b[2];
             double mid = alongX ? (b[2] + b[5]) / 2.0 + 0.5 : (b[0] + b[3]) / 2.0 + 0.5;
-            if (alongX) tp(client, b[3] - 1.5, b[1] + 2.6, mid, 90, 8); else tp(client, mid, b[1] + 2.6, b[5] - 1.5, 180, 8);
+            if (alongX) tpGround(client, b[3] - 1.5, mid, 90, 8); else tpGround(client, mid, b[5] - 1.5, 180, 8);
         });
         on(110, client -> screenshot = tag + "-path-back");
     }
@@ -314,6 +315,14 @@ public final class CemeteryTest {
 
     private static void tp(MinecraftClient client, double x, double y, double z, float yaw, float pitch) {
         serverDo(client, server -> run(server, String.format(java.util.Locale.ROOT, "tp @a %.2f %.2f %.2f %.1f %.1f", x, y, z, yaw, pitch)));
+    }
+
+    /** Eye level over the ground (the top of the path, not the grass or a fence) at that column. */
+    private static void tpGround(MinecraftClient client, double x, double z, float yaw, float pitch) {
+        serverDo(client, server -> {
+            int top = server.getOverworld().getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, (int) Math.floor(x), (int) Math.floor(z));
+            run(server, String.format(java.util.Locale.ROOT, "tp @a %.2f %.2f %.2f %.1f %.1f", x, top + 1.7, z, yaw, pitch));
+        });
     }
 
     private static void on(int delay, Consumer<MinecraftClient> action) { steps.add(new Step(delay, action)); }
