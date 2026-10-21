@@ -196,8 +196,8 @@ public final class ChurchSelfTest {
             String nbt = entity == null ? "нет" : entity.createNbt(world.getRegistryManager()).toString();
             check(world.getBlockState(sealAt).isOf(seal.get()) && nbt.contains("church"), "печать босса в полу алтаря: " + nbt);
         } else log("  блока divineblock:boss_seal нет в сборке — печать не ставится");
-        long trees = structureStart.getChildren().stream().filter(p -> p instanceof PoolStructurePiece pool
-                && pool.getPoolElement() instanceof net.minecraft.structure.pool.FeaturePoolElement).count();
+        long trees = structureStart.getChildren().stream().filter(p -> p instanceof PoolStructurePiece element
+                && element.getPoolElement() instanceof net.minecraft.structure.pool.FeaturePoolElement).count();
         log("  кладбище: кусков " + yard + ", из них деревьев " + trees + ", бокс " + net.minecraft.structure.StructurePiece.boundingBox(
                 structureStart.getChildren().stream().filter(p -> p instanceof PoolStructurePiece)));
         for (StructurePiece piece : structureStart.getChildren()) log("    часть " + piece.getClass().getSimpleName() + " " + piece.getBoundingBox());
