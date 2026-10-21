@@ -34,6 +34,9 @@ public final class ApiKeys {
     private static final String ENCRYPT = SECURITY_MODULE
             + "ConvertFrom-SecureString (ConvertTo-SecureString ([Console]::In.ReadToEnd().Trim()) -AsPlainText -Force)";
 
+    /** Each PowerShell decrypt takes seconds (tens beside a loading Whisper), so a decrypted key is kept in memory. */
+    private static final java.util.Map<Provider, String> DECRYPTED = new java.util.concurrent.ConcurrentHashMap<>();
+
     private ApiKeys() { }
 
     public static String load(Path configDirectory, Provider provider) throws IOException {
@@ -44,8 +47,10 @@ public final class ApiKeys {
             String token = Files.readString(plain, StandardCharsets.UTF_8).replace("﻿", "").strip();
             if (!token.isBlank()) return validate(token, provider);
         }
+        String cached = DECRYPTED.get(provider);
+        if (cached != null) return cached;
         String token = decrypt(provider.encryptedFile, provider);
-        if (!token.isBlank()) return validate(token, provider);
+        if (!token.isBlank()) { token = validate(token, provider); DECRYPTED.put(provider, token); return token; }
         throw new IOException("Нет ключа " + provider.label + ": вставьте его в настройках Божественного блока.");
     }
 
@@ -63,6 +68,7 @@ public final class ApiKeys {
 
     /** Saves a key from the settings screen: DPAPI-encrypted for the Windows user, else a local token file. */
     public static void store(Path configDirectory, Provider provider, String key) throws IOException {
+        DECRYPTED.remove(provider);
         String token = validate(key == null ? "" : key, provider);
         if (token.chars().anyMatch(Character::isWhitespace)) throw new IOException("Ключ " + provider.label + " не должен содержать пробелов.");
         Path local = localAppData(), windows = windows();
@@ -77,6 +83,7 @@ public final class ApiKeys {
 
     /** Removes this mod's keys; the environment variable and Mob Talk's key stay as they are. */
     public static void remove(Path configDirectory, Provider provider) throws IOException {
+        DECRYPTED.remove(provider);
         Files.deleteIfExists(configDirectory.resolve(provider.plainFile));
         Path local = localAppData();
         if (local != null) Files.deleteIfExists(local.resolve(provider.encryptedFile));
