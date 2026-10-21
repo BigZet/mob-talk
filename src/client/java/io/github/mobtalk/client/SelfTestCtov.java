@@ -64,12 +64,26 @@ final class SelfTestCtov {
             test.log("CTOV village house spot " + spot.toShortString());
             test.command("time set 1000"); test.command("weather clear");
             test.command("effect give " + player() + " minecraft:slow_falling 600 1 true");
-            test.command("tp " + player() + " " + spot.getX() + " " + (spot.getY() + 24) + " " + (spot.getZ() - 24) + " facing " + spot.getX() + " " + spot.getY() + " " + spot.getZ());
-            test.await("pause: the CTOV village loads around the player", 12, () -> false, () -> shot("mobtalk-ctov-village.png", () -> {
+            // Player and cow move together, as in the place stage: the stage up in the sky unloads once the player is gone, and an
+            // unloaded cow can no longer be teleported.
+            test.command("tp " + player() + " " + (spot.getX() + 2) + " " + spot.getY() + " " + spot.getZ());
+            test.command("tp " + cow + " " + spot.getX() + " " + spot.getY() + " " + spot.getZ());
+            test.await("pause: the CTOV village loads around the player", 12, () -> false, () -> {
                 test.command("tp " + cow + " " + spot.getX() + " " + spot.getY() + " " + spot.getZ());
                 test.command("tp " + player() + " " + (spot.getX() + 2) + " " + spot.getY() + " " + spot.getZ() + " facing entity " + cow + " eyes");
                 test.await("pause: the cow in a CTOV house", 3, () -> false, () -> shot("mobtalk-ctov-house.png", this::house));
-            }));
+            });
+        });
+    }
+
+    /** A look over the village from above its centre, for the eyes of whoever reads the run. */
+    private void overview(Runnable then) {
+        CompletableFuture<ConversationStore.Site> site = test.bridge().onServer(() -> VillageSites.at(world(), spot));
+        test.await("the CTOV village centre", 10, site::isDone, () -> {
+            ConversationStore.Site s = site.isCompletedExceptionally() ? null : site.join();
+            int cx = s == null ? spot.getX() : s.x(), cz = s == null ? spot.getZ() : s.z();
+            test.command("tp " + player() + " " + cx + " " + (spot.getY() + 45) + " " + (cz - 45) + " facing " + cx + " " + spot.getY() + " " + cz);
+            test.await("pause: above the CTOV village", 4, () -> false, () -> shot("mobtalk-ctov-village.png", then));
         });
     }
 
@@ -94,7 +108,7 @@ final class SelfTestCtov {
                 test.check(structures.contains("деревня"), "the registry names the CTOV village in Russian: " + structures);
                 test.check(!structures.contains("ctov") && !structures.contains("village_") && !structures.contains("/"), "no raw CTOV ids in the facts");
             }
-            test.await("two CTOV villagers remember their bell or home", 120, this::residentsReady, this::residents);
+            overview(() -> test.await("two CTOV villagers remember their bell or home", 120, this::residentsReady, this::residents));
         });
     }
 
@@ -208,12 +222,21 @@ final class SelfTestCtov {
                 test.check(off < 6, "the couple stands at the CTOV bell (" + String.format(java.util.Locale.ROOT, "%.1f", off) + " blocks)");
                 String named = scene.input.names().village();
                 test.check(village == null || village.name().equals(named), "the wedding is in the Mob Talk village of this CTOV village: " + named);
-                test.await("the CTOV wedding service", 120, () -> test.bridge().wedding.scene() == null || test.bridge().wedding.scene().ready, () -> shot("mobtalk-ctov-wedding.png", () ->
-                        test.await("the CTOV villagers are married", 240, () -> test.bridge().wedding.scene() == null, () -> {
-                            test.check(r.bride().equals(test.bridge().memory.social().household(r.groom()).spouse()), "the CTOV wedding ended in a marriage");
-                            WeddingFaults.clear();
-                            back();
-                        })));
+                test.await("the CTOV wedding service", 150, () -> test.bridge().wedding.scene() == null
+                        || test.bridge().wedding.scene().ceremony.phase() == io.github.mobtalk.core.Wedding.Ceremony.Phase.SERVICE, () -> {
+                    WeddingController.Scene running = test.bridge().wedding.scene();
+                    test.check(running != null, "the guests gathered at the CTOV bell and the service began");
+                    if (running != null) {
+                        Vec3d eye = running.couple().add(running.forward().multiply(7)).add(0, 2, 0), couple = running.couple();
+                        test.command(String.format(java.util.Locale.ROOT, "tp %s %.1f %.1f %.1f facing %.1f %.1f %.1f", player(), eye.x, eye.y, eye.z, couple.x, couple.y + 1, couple.z));
+                    }
+                    test.await("pause: facing the CTOV wedding", 3, () -> false, () -> shot("mobtalk-ctov-wedding.png", () ->
+                            test.await("the CTOV villagers are married", 240, () -> test.bridge().wedding.scene() == null, () -> {
+                                test.check(r.bride().equals(test.bridge().memory.social().household(r.groom()).spouse()), "the CTOV wedding ended in a marriage");
+                                WeddingFaults.clear();
+                                back();
+                            })));
+                });
             });
         });
     }
