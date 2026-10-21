@@ -50,13 +50,17 @@ final class SelfTestLooks {
         next = then;
         test.log("looks stages (track M): human villagers, wedding attire, sleep, the vanilla fallback");
         test.owner.config().humanVillagers = true;
-        test.command("fill " + at(-12, -1, -8) + " " + at(12, -1, 8) + " minecraft:smooth_stone");
-        test.command("fill " + at(-12, 0, -8) + " " + at(12, 6, 8) + " minecraft:air");
-        for (String wall : List.of(at(-12, 0, -8) + " " + at(12, 1, -8), at(-12, 0, 8) + " " + at(12, 1, 8), at(-12, 0, -8) + " " + at(-12, 1, 8), at(12, 0, -8) + " " + at(12, 1, 8)))
-            test.command("fill " + wall + " minecraft:barrier"); // Только стены: в полу из барьера жители задохнулись бы.
         test.command("time set 6000"); test.command("weather clear");
+        // Сначала игрок на месте (с медленным падением, пока пола нет), потом пол: заливка в незагруженных чанках молча не срабатывает.
+        test.command("effect give " + name() + " minecraft:slow_falling 20 1 true");
         test.command("tp " + name() + " " + at(0, 0, 6) + " 180 10");
         test.await("pause: the stage chunks load", 3, () -> false, () -> {
+            test.command("fill " + at(-12, -1, -8) + " " + at(12, -1, 8) + " minecraft:smooth_stone");
+            test.command("fill " + at(-12, 0, -8) + " " + at(12, 6, 8) + " minecraft:air");
+            for (String wall : List.of(at(-12, 0, -8) + " " + at(12, 1, -8), at(-12, 0, 8) + " " + at(12, 1, 8), at(-12, 0, -8) + " " + at(-12, 1, 8), at(12, 0, -8) + " " + at(12, 1, 8)))
+                test.command("fill " + wall + " minecraft:barrier"); // Только стены: в полу из барьера жители задохнулись бы.
+            test.command("tp " + name() + " " + at(0, 0, 6) + " 180 10");
+            test.check(test.server().submit(() -> world().getBlockState(new net.minecraft.util.math.BlockPos(fx, fy - 1, fz)).isOf(net.minecraft.block.Blocks.SMOOTH_STONE)).join(), "the stage floor is built");
             for (int i = 0; i < LINEUP.length; i++)
                 test.command("summon minecraft:villager " + at(-9 + i * 2, 0, -3) + " {NoAI:1b,PersistenceRequired:1b,Rotation:[0f,0f],Tags:[\"" + TAG
                         + "\"],VillagerData:{profession:\"minecraft:" + LINEUP[i][0] + "\",type:\"minecraft:" + LINEUP[i][1] + "\",level:2}}");
