@@ -2,6 +2,6 @@
   "required": true,
   "package": "io.github.divineblock.client.mixin",
   "compatibilityLevel": "JAVA_21",
-  "client": ["UpsideDownMixin", "WrathSkyMixin", "WrathFogMixin", "ConfusedChatMixin", "ConfusedHudMixin", "ConfusedSubtitlesMixin", "ConfusedItemNameMixin", "CameraShakeMixin", "CrosshairWobbleMixin", "MuffledSoundMixin"],
+  "client": ["UpsideDownMixin", "WrathSkyMixin", "WrathFogMixin", "ShakeCameraMixin", "GodBoltMixin", "ConfusedChatMixin", "ConfusedHudMixin", "ConfusedSubtitlesMixin", "ConfusedItemNameMixin", "CameraShakeMixin", "CrosshairWobbleMixin", "MuffledSoundMixin"],
   "injectors": { "defaultRequire": 1 }
 }
