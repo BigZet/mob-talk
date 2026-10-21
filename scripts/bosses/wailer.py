@@ -335,7 +335,7 @@ parts = [
                    highlight=SHROUD_HL, arc=(2.0, 2 * math.pi - 2.0), segs=4, seed=21, width_k=1.0, holes=0.01, lace=True),
             head,
             arm("right_arm", -1, R_ARM, R_FORE, 0.35, 0.22, []),
-            arm("left_arm", 1, L_ARM, L_FORE, 0.9, 0.08, [candle]),
+            arm("left_arm", 1, L_ARM, L_FORE, 1.25, 0.05, [candle]),
         ]),
     ]),
 ]

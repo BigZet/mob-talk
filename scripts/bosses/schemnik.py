@@ -181,7 +181,7 @@ def hood_cloth(p, f, opts):
 
 
 def kukol_cape(p, f, opts):
-    """The cape of the кукуль over the shoulders: black with small white crosses and a red hem."""
+    """The cape of the кукуль over the shoulders: black wool with a red-and-white embroidered hem."""
     drapery(ROBE, highlight=ROBE_HL)(p, f, opts)
     if f.side not in ("front", "back"):
         return
@@ -189,8 +189,6 @@ def kukol_cape(p, f, opts):
     for u in range(W):
         p.put(f, u, H - 3, EMB_RED)
         p.put(f, u, H - 4, EMB_WHITE if u % 3 else EMB_RED)
-    if W >= 10 and f.side == "front" and (f.x // 7) % 2 == 0:
-        orthodox_cross(p, f, W // 2, H // 2 - 2, min(16, H - 12), EMB_WHITE, 1)
 
 
 def lappet(p, f, opts):
