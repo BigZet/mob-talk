@@ -15,7 +15,8 @@ import nbt  # noqa: E402
 
 ROOT = os.path.join(os.path.dirname(__file__), "..", "..", "src", "main", "resources", "data", "divineblock")
 NS = "divineblock"
-W, H = 21, 8
+W, H = 21, 24  # tall enough (with room for slopes) for a tree child: the jigsaw only lets a child grow inside its parent's box
+CLEAR = 8  # air from y 1 up to here clears the ground the cemetery stands on
 PATH_X = 10
 START_DEPTH, ROWS_DEPTH, END_DEPTH = 27, 24, 7
 DATA_VERSION = 3955
@@ -220,7 +221,7 @@ def lane(t, rnd, z):
         if x in PATH: continue
         if rnd.random() < 0.35: ground(t, x, z, rnd, "path")
         plants(t, rnd, x, z, rnd.random() < 0.3 + STYLE["wild"])
-        if x in (0, W - 1): t.tree_spots.append((x, z))
+        if x in (3, W - 4): t.tree_spots.append((x, z))
 
 
 def old_graves_row(t, rnd, z):
@@ -242,7 +243,9 @@ def old_graves_row(t, rnd, z):
 
 def trees(t, rnd, count):
     """A few trees here and there, never in rows: one per eight to twelve plots, at spots no grave or fence took."""
-    spots = [(x, z) for x, z in t.tree_spots if t.free(x, z) or t.get(x, 1, z) in ("minecraft:short_grass", "minecraft:tall_grass")]
+    # A crown reaches 3 blocks around the trunk and must stay inside this piece, or the jigsaw drops the tree.
+    spots = [(x, z) for x, z in t.tree_spots if 3 <= x <= W - 4 and 3 <= z <= t.depth - 4
+             and (t.free(x, z) or t.get(x, 1, z) in ("minecraft:short_grass", "minecraft:tall_grass"))]
     rnd.shuffle(spots)
     placed = []
     for x, z in spots:
@@ -265,7 +268,7 @@ def piece(seed, depth, entrance, exit_to=None, kind="rows", style=MODERN):
     stats = {"plots": 0, "abandoned": 0}
     for x in range(W):
         for z in range(depth):
-            for y in range(1, H): t.set(x, y, z, "air")
+            for y in range(1, CLEAR): t.set(x, y, z, "air")
     path_end = depth - 1 if exit_to else 3
     for z in range(path_end + 1):
         for x in PATH: ground(t, x, z, rnd, "path" if x == PATH_X else "edge")
@@ -274,11 +277,10 @@ def piece(seed, depth, entrance, exit_to=None, kind="rows", style=MODERN):
         old_graves_row(t, rnd, 1)
         old_graves_row(t, rnd, 3)
         monument(t, PATH_X, 4, "roofed_cross", "north")  # a tall memorial cross where the path ends
-        t.tree_spots += [(PATH_X - 2, 5), (PATH_X + 2, 5), (3, 6), (17, 6)]
         for x in range(W):
             for z in (2, 5, 6):
                 if x not in PATH or z > 4: plants(t, rnd, x, z, True)
-        stats["trees"] = trees(t, rnd, rnd.choice((1, 2)))
+        stats["trees"] = 0  # too shallow for a crown; lilacs stand here instead
     else:
         lane(t, rnd, 0)
         for zs in range(1, depth - 6, 8):
@@ -351,13 +353,13 @@ def tree(kind, seed):
     elif kind == "spruce":
         trunk = rnd.randint(8, 11); r = 3; t = TreeTemplate(r, trunk + 2)
         log, leaf = "spruce_log", "spruce"
-        rad = 1
+        rad = 0
         for y in range(trunk + 1, 1, -1):  # from the tip down, widening every other layer
             for dx in range(-rad, rad + 1):
                 for dz in range(-rad, rad + 1):
                     if abs(dx) + abs(dz) > rad + (1 if rad > 1 else 0): continue
                     leaves(t, r + dx, y, r + dz, leaf)
-            if (trunk + 1 - y) % 2 == 1: rad = min(3, rad + 1)
+            if rad == 0 or (trunk + 1 - y) % 2 == 1: rad = min(3, rad + 1)
             elif rad > 1 and rnd.random() < 0.5: rad -= 1
         t.set(r, trunk + 1, r, "spruce_leaves", distance=1, persistent=True, waterlogged=False)
     else:  # pine
