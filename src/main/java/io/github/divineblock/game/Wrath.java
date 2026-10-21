@@ -57,15 +57,24 @@ final class Wrath {
         return "метеоритный дождь: " + count + " камней";
     }
 
-    /** One burning stone from 70 blocks up and aslant, with a trail of fire; on impact an explosion and a crater. */
+    /** One burning stone from far away in the sky, beyond where it lands, flying in towards the sinner: a faint spark over
+     * the horizon at first, a fireball rushing down at the end; on impact an explosion and a crater. */
     private static void fall(ServerWorld world, ServerPlayerEntity player, BlockPos altar, BlockPos ground, int power, DivineConfig config) {
         Vec3d end = Vec3d.ofCenter(ground);
-        Vec3d start = end.add(world.random.nextBoolean() ? 25 : -25, 70, world.random.nextBoolean() ? 25 : -25);
-        Miracles.sound(world, player.getBlockPos(), SoundEvents.ENTITY_WITHER_SHOOT, 3f, 0.4f);
-        Miracles.sound(world, player.getBlockPos(), SoundEvents.ITEM_TRIDENT_THUNDER.value(), 2f, 0.6f);
-        int steps = 40;
-        // The stone, its tail and its smoke are drawn by the clients (Fx), faster as it falls (t²); here only the landing.
+        Vec3d away = end.subtract(player.getPos()).multiply(1, 0, 1);
+        if (away.lengthSquared() < 4) away = player.getRotationVector().multiply(1, 0, 1);
+        if (away.lengthSquared() < 1e-4) away = new Vec3d(0, 0, 1);
+        double turn = (world.random.nextDouble() - 0.5) * 1.2, distance = 340 + world.random.nextInt(100);
+        away = away.normalize().rotateY((float) turn);
+        Vec3d start = end.add(away.multiply(distance)).add(0, 200 + world.random.nextInt(60), 0);
+        int steps = 110;
+        // The stone, its tail and its smoke are drawn by the clients (Fx); here the sounds and the landing.
         Fx.meteor(world, start, end, steps, 0.8f + 0.3f * power);
+        Miracles.sound(world, player.getBlockPos(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, 0.8f, 0.4f);
+        Scheduler.later(steps - 30, () -> {
+            Miracles.sound(world, player.getBlockPos(), SoundEvents.ENTITY_WITHER_SHOOT, 3f, 0.4f);
+            Miracles.sound(world, player.getBlockPos(), SoundEvents.ITEM_TRIDENT_THUNDER.value(), 2f, 0.6f);
+        });
         Scheduler.later(steps, () -> impact(world, player, altar, ground, power, config));
     }
 

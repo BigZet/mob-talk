@@ -136,7 +136,8 @@ final class FxTest {
                 Miracles.flourish(player, altar, Miracle.Kind.HELP, 3); });
             case 560 -> server(() -> player.teleport(player.getServerWorld(), base.getX() + 0.5, base.getY(), base.getZ() + 7.5, 180f, -5f));
             case 600 -> shot(client, "4-blessing-feathers");
-            case 680 -> shot(client, "5-feathers-ground");
+            case 640 -> shot(client, "4b-feathers-falling");
+            case 700 -> shot(client, "5-feathers-ground");
             // A jest: confetti.
             case 720 -> server(() -> Miracles.flourish(player, altar, Miracle.Kind.JEST, 2));
             case 740 -> shot(client, "6-confetti");
@@ -151,16 +152,19 @@ final class FxTest {
                 bolt.setCosmetic(true);
                 world.spawnEntity(bolt);
             });
-            case 863 -> shot(client, "8-bolt");
+            case 866 -> shot(client, "8-bolt");
             // A meteor in front of the eyes, the blast and the embers in the crater.
             case 900 -> server(FxTest::home);
-            case 920 -> command("divineblock act meteor 2");
-            case 942 -> shot(client, "9-meteor");
-            case 961 -> shot(client, "10-impact");
-            case 1040 -> shot(client, "11-crater-embers");
-            case 1060 -> client.setScreen(new DivineSettingsScreen(null));
-            case 1080 -> shot(client, "12-settings");
-            case 1090 -> { client.setScreen(null); log("ошибок всего: " + failures); finish(client); }
+            case 920 -> command("divineblock act meteor 1");
+            case 960 -> shot(client, "9-meteor-far");
+            case 1010 -> shot(client, "10-meteor-near");
+            case 1026 -> shot(client, "11-meteor-close");
+            case 1033 -> shot(client, "12-impact");
+            case 1100 -> shot(client, "13-smoke");
+            case 1200 -> shot(client, "14-crater-embers");
+            case 1220 -> client.setScreen(new DivineSettingsScreen(null));
+            case 1240 -> shot(client, "15-settings");
+            case 1250 -> { client.setScreen(null); log("ошибок всего: " + failures); finish(client); }
             default -> { }
         }
     }

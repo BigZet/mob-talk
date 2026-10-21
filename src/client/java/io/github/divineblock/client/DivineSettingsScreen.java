@@ -131,8 +131,8 @@ public final class DivineSettingsScreen extends Screen {
     @Override public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
         context.drawCenteredTextWithShadow(textRenderer, title.copy().formatted(Formatting.GOLD), this.width / 2, 12, 0xFFFFFF);
-        int y = 28 + 22 * 6 + 6 + 22 + 2;
-        context.drawTextWithShadow(textRenderer, Text.literal(keyStatus).formatted(Formatting.GRAY), this.width / 2 - 154, y, 0xFFFFFF);
+        int y = 28 + 22 * 7 + 6 + 22 + 2;
+        if (y <= this.height - 38) context.drawTextWithShadow(textRenderer, Text.literal(keyStatus).formatted(Formatting.GRAY), this.width / 2 - 154, y, 0xFFFFFF);
         y += 12;
         String[] lines = soul.split("\n");
         int shown = 0;

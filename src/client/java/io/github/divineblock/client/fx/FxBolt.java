@@ -85,8 +85,9 @@ final class FxBolt implements FxEffect {
             p.gravity = 0.04f; p.drag = 0.93f; p.size = 0.09f + random.nextFloat() * 0.08f; p.color = FxDraw.mix(color, 0xFFFFFF, 0.6f);
         }
         for (int i = FxQuality.count(8); i > 0; i--) {
-            FxParticle p = FxEngine.add(FxSprite.SMOKE, false, x + FxEngine.spread(1.5), y + 0.4, z + FxEngine.spread(1.5), 50 + random.nextInt(40));
-            p.vy = 0.03 + random.nextDouble() * 0.04; p.size = 0.8f; p.endSize = 2.6f; p.color = 0x3A3836; p.alpha = 0.6f; p.rollSpeed = 0.02f;
+            FxParticle p = FxEngine.add(FxSprite.smoke(random), false, x + FxEngine.spread(1.5), y + 0.4, z + FxEngine.spread(1.5), 50 + random.nextInt(40));
+            p.vy = 0.02 + random.nextDouble() * 0.03; p.size = 0.6f; p.endSize = 2.2f; p.color = 0x5A5654; p.alpha = 0.45f; p.roll = random.nextFloat() * 6.28f;
+            p.rollSpeed = 0.01f; p.fadeIn = 0.15f; p.fadeOut = 0.6f;
         }
         FxCamera.flashFrom(x, y, z, 0xE8F0FF, 0.55f, 90);
         FxCamera.shakeFrom(x, y, z, 0.45f, 18, 48);

@@ -36,6 +36,20 @@ final class FxDraw {
         out.vertex(cx + rx - ux, cy + ry - uy, cz + rz - uz).color(r, g, b, a).texture(sprite.u1, sprite.v1).light(light);
     }
 
+    /** A sprite standing in the world (not turned to the camera): turned by {@code yaw} about the vertical, tipped by
+     * {@code tilt} and its own {@code roll}; a feather in the air. */
+    void oriented(FxSprite sprite, double x, double y, double z, float size, float yaw, float tilt, float roll, int rgb, float alpha, int light) {
+        if (alpha <= 0.003f) return;
+        Quaternionf q = new Quaternionf().rotationY(yaw).rotateZ(tilt).rotateX(roll);
+        Vector3f r = q.transform(new Vector3f(size, 0, 0)), u = q.transform(new Vector3f(0, size, 0));
+        float cx = (float) (x - camX), cy = (float) (y - camY), cz = (float) (z - camZ);
+        int cr = rgb >> 16 & 0xFF, cg = rgb >> 8 & 0xFF, cb = rgb & 0xFF, a = alpha(alpha);
+        out.vertex(cx - r.x - u.x, cy - r.y - u.y, cz - r.z - u.z).color(cr, cg, cb, a).texture(sprite.u0, sprite.v1).light(light);
+        out.vertex(cx - r.x + u.x, cy - r.y + u.y, cz - r.z + u.z).color(cr, cg, cb, a).texture(sprite.u0, sprite.v0).light(light);
+        out.vertex(cx + r.x + u.x, cy + r.y + u.y, cz + r.z + u.z).color(cr, cg, cb, a).texture(sprite.u1, sprite.v0).light(light);
+        out.vertex(cx + r.x - u.x, cy + r.y - u.y, cz + r.z - u.z).color(cr, cg, cb, a).texture(sprite.u1, sprite.v1).light(light);
+    }
+
     /** A sprite lying flat (on the ground), turned by {@code yaw}. */
     void flat(FxSprite sprite, double x, double y, double z, float size, float yaw, int rgb, float alpha, int light) {
         if (alpha <= 0.003f) return;

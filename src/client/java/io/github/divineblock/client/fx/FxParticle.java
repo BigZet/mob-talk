@@ -28,7 +28,7 @@ final class FxParticle {
     double cx, cz;
     float radius, spin, phase, flip, flipSpeed;
     boolean landed;
-    float flatYaw;
+    float flatYaw, tilt;
 
     void at(double x, double y, double z) { this.x = px = x; this.y = py = y; this.z = pz = z; }
 
@@ -48,11 +48,15 @@ final class FxParticle {
                 return true;
             }
             case FLUTTER -> {
-                vy = Math.max(vy - gravity, -0.05);
-                double sway = MathHelper.sin(phase + age * 0.11f);
-                x += vx + sway * 0.045; z += vz + MathHelper.cos(phase * 1.3f + age * 0.09f) * 0.03;
-                y += vy + Math.abs(sway) * 0.012;
-                roll = (float) (sway * 0.9) + phase;
+                // A feather rocks like a pendulum: it slides sideways, tips up at each end of the swing and drops fastest
+                // through the middle, while slowly turning about itself.
+                float swing = (age + phase * 10) * 0.16f;
+                float side = MathHelper.cos(swing);
+                vy = Math.max(vy - gravity, -0.035);
+                x += vx + MathHelper.cos(spin) * side * 0.05; z += vz + MathHelper.sin(spin) * side * 0.05;
+                y += vy * (0.4f + 0.9f * Math.abs(side)) + (1 - Math.abs(side)) * 0.006;
+                tilt = MathHelper.sin(swing) * 0.75f;
+                spin += rollSpeed;
             }
             case TUMBLE -> {
                 vy = Math.max(vy - gravity, -0.11);
@@ -69,7 +73,7 @@ final class FxParticle {
         }
         if ((mode == FLUTTER || mode == TUMBLE) && vy < 0 && solidAt(world)) {
             landed = true;
-            flatYaw = roll + flip;
+            flatYaw = roll + flip + spin;
             // Lie a while, then fade: the rest of the life, at most five seconds.
             life = Math.min(life, age + 100);
         }

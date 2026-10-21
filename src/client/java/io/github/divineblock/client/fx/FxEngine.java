@@ -97,13 +97,14 @@ public final class FxEngine {
     }
 
     static void feathers(double x, double y, double z, float amount) {
-        for (int i = FxQuality.count(22 * amount); i > 0; i--) {
-            double a = RANDOM.nextDouble() * MathHelper.TAU, r = 0.6 + RANDOM.nextDouble() * 3.4;
-            FxParticle p = add(FxSprite.FEATHER, false, x + Math.cos(a) * r, y + 3.5 + RANDOM.nextDouble() * 4, z + Math.sin(a) * r, 180 + RANDOM.nextInt(100));
-            p.mode = FxParticle.FLUTTER; p.gravity = 0.0025f; p.vy = 0.02;
-            p.size = 0.22f + RANDOM.nextFloat() * 0.14f; p.color = RANDOM.nextInt(3) == 0 ? 0xFFE9A8 : 0xFFFFFF; p.fadeIn = 0.06f; p.fadeOut = 0.2f;
+        for (int i = FxQuality.count(9 * amount); i > 0; i--) {
+            double a = RANDOM.nextDouble() * MathHelper.TAU, r = 0.5 + RANDOM.nextDouble() * 3;
+            FxParticle p = add(FxSprite.FEATHER, false, x + Math.cos(a) * r, y + 4 + RANDOM.nextDouble() * 5, z + Math.sin(a) * r, 400 + RANDOM.nextInt(200));
+            p.mode = FxParticle.FLUTTER; p.gravity = 0.0015f; p.vy = 0;
+            p.spin = RANDOM.nextFloat() * MathHelper.TAU; p.rollSpeed = (RANDOM.nextFloat() - 0.5f) * 0.03f;
+            p.size = 0.3f + RANDOM.nextFloat() * 0.1f; p.color = RANDOM.nextInt(4) == 0 ? 0xFFF4DE : 0xFFFFFF; p.fadeIn = 0.03f; p.fadeOut = 0.12f;
         }
-        for (int i = FxQuality.count(26 * amount); i > 0; i--) {
+        for (int i = FxQuality.count(14 * amount); i > 0; i--) {
             FxParticle p = add(RANDOM.nextInt(3) == 0 ? FxSprite.STAR : FxSprite.SPARK, true, x + spread(2.5), y + RANDOM.nextDouble() * 4, z + spread(2.5), 30 + RANDOM.nextInt(40));
             p.vy = 0.01 + RANDOM.nextDouble() * 0.03; p.drag = 0.99f; p.size = 0.1f + RANDOM.nextFloat() * 0.18f; p.color = 0xFFD86A; p.flicker = 0.6f;
         }
@@ -121,9 +122,9 @@ public final class FxEngine {
             p.fadeIn = 0.01f; p.fadeOut = 0.15f;
         }
         for (int i = FxQuality.count(24 * amount); i > 0; i--) {
-            FxParticle p = add(FxSprite.STAR, true, x + spread(1.5), y + 2.2 + spread(1), z + spread(1.5), 16 + RANDOM.nextInt(16));
+            FxParticle p = add(FxSprite.SPARK, true, x + spread(1.5), y + 2.2 + spread(1), z + spread(1.5), 16 + RANDOM.nextInt(16));
             p.vx = spread(0.15); p.vy = 0.1 + RANDOM.nextDouble() * 0.15; p.vz = spread(0.15); p.drag = 0.92f;
-            p.size = 0.25f + RANDOM.nextFloat() * 0.2f; p.color = CONFETTI[RANDOM.nextInt(CONFETTI.length)]; p.rollSpeed = 0.1f;
+            p.size = 0.12f + RANDOM.nextFloat() * 0.1f; p.color = CONFETTI[RANDOM.nextInt(CONFETTI.length)]; p.rollSpeed = 0.1f;
         }
     }
 
@@ -137,9 +138,10 @@ public final class FxEngine {
 
     static void smoke(double x, double y, double z, int color, float radius) {
         for (int i = FxQuality.count(10 * Math.max(1, radius)); i > 0; i--) {
-            FxParticle p = add(FxSprite.SMOKE, false, x + spread(radius), y + RANDOM.nextDouble() * radius * 0.5, z + spread(radius), 60 + RANDOM.nextInt(60));
-            p.vy = 0.02 + RANDOM.nextDouble() * 0.03; p.vx = spread(0.02); p.vz = spread(0.02); p.drag = 0.99f;
-            p.size = 0.8f + radius * 0.15f; p.endSize = p.size * 3; p.color = color; p.alpha = 0.7f; p.rollSpeed = (RANDOM.nextFloat() - 0.5f) * 0.04f;
+            FxParticle p = add(FxSprite.smoke(RANDOM), false, x + spread(radius), y + RANDOM.nextDouble() * radius * 0.5, z + spread(radius), 90 + RANDOM.nextInt(80));
+            p.vy = 0.015 + RANDOM.nextDouble() * 0.025; p.vx = spread(0.015); p.vz = spread(0.015); p.drag = 0.995f;
+            p.size = 0.6f + radius * 0.12f; p.endSize = p.size * 2.6f; p.color = color; p.alpha = 0.5f; p.roll = RANDOM.nextFloat() * MathHelper.TAU;
+            p.rollSpeed = (RANDOM.nextFloat() - 0.5f) * 0.012f; p.fadeIn = 0.15f; p.fadeOut = 0.6f;
         }
     }
 
@@ -169,10 +171,13 @@ public final class FxEngine {
             p.vx = Math.cos(a) * speed; p.vz = Math.sin(a) * speed; p.vy = 0.3 + RANDOM.nextDouble() * 0.7 * Math.sqrt(s);
             p.gravity = 0.045f; p.drag = 0.95f; p.size = 0.12f + RANDOM.nextFloat() * 0.18f; p.color = 0xFFD080; p.endColor = 0xB01A04;
         }
-        for (int i = FxQuality.count(16 * s); i > 0; i--) {
-            FxParticle p = add(FxSprite.SMOKE, false, x + spread(1.5 * s), y + 0.5 + RANDOM.nextDouble() * 2 * s, z + spread(1.5 * s), 90 + RANDOM.nextInt(80));
-            p.vx = spread(0.12); p.vy = 0.05 + RANDOM.nextDouble() * 0.1; p.vz = spread(0.12); p.drag = 0.97f;
-            p.size = 1.2f * s; p.endSize = 4.5f * s; p.color = RANDOM.nextBoolean() ? 0x2E2A28 : 0x4E4844; p.alpha = 0.8f; p.rollSpeed = (RANDOM.nextFloat() - 0.5f) * 0.05f;
+        // A dust-and-smoke column: billows pushed out low, then rising and spreading slowly, lit by the world.
+        for (int i = FxQuality.count(30 * s); i > 0; i--) {
+            double a = RANDOM.nextDouble() * MathHelper.TAU, out = RANDOM.nextDouble();
+            FxParticle p = add(FxSprite.smoke(RANDOM), false, x + Math.cos(a) * out * s, y + 0.5 + RANDOM.nextDouble() * 1.5 * s, z + Math.sin(a) * out * s, 140 + RANDOM.nextInt(140));
+            p.vx = Math.cos(a) * (0.08 + 0.12 * out); p.vy = 0.04 + RANDOM.nextDouble() * 0.08; p.vz = Math.sin(a) * (0.08 + 0.12 * out); p.drag = 0.96f; p.gravity = -0.0015f;
+            p.size = 0.9f * s; p.endSize = 3.8f * s; int grey = 0x52 + RANDOM.nextInt(0x30); p.color = grey << 16 | (grey - 6) << 8 | (grey - 12);
+            p.alpha = 0.55f; p.roll = RANDOM.nextFloat() * MathHelper.TAU; p.rollSpeed = (RANDOM.nextFloat() - 0.5f) * 0.01f; p.fadeIn = 0.06f; p.fadeOut = 0.6f;
         }
         // Embers smouldering in the pit for a minute.
         for (int i = FxQuality.count(25 * s); i > 0; i--) {
@@ -207,13 +212,13 @@ public final class FxEngine {
         float red = SkyTint.amount();
         int depth = SkyTint.depth();
         if (red > 0 && depth > 0) {
-            for (int i = FxQuality.count(depth * 2.5 * red); i > 0; i--) {
-                double x = eye.x + spread(26), z = eye.z + spread(26), y = eye.y + 8 + RANDOM.nextDouble() * 14;
-                boolean ember = RANDOM.nextInt(6) == 0;
+            for (int i = FxQuality.count(depth * 4 * red); i > 0; i--) {
+                double x = eye.x + spread(20), z = eye.z + spread(20), y = eye.y + 4 + RANDOM.nextDouble() * 14;
+                boolean ember = RANDOM.nextInt(4) == 0;
                 FxParticle p = add(ember ? FxSprite.EMBER : FxSprite.ASH, ember, x, y, z, 260 + RANDOM.nextInt(120));
                 p.mode = FxParticle.TUMBLE; p.gravity = 0.0015f; p.vy = -0.02; p.vx = 0.015 + spread(0.01); p.vz = spread(0.01); p.drag = 1f;
                 p.flipSpeed = 0.05f + RANDOM.nextFloat() * 0.1f; p.rollSpeed = (float) spread(0.04);
-                p.size = ember ? 0.05f + RANDOM.nextFloat() * 0.05f : 0.06f + RANDOM.nextFloat() * 0.07f;
+                p.size = ember ? 0.07f + RANDOM.nextFloat() * 0.07f : 0.1f + RANDOM.nextFloat() * 0.1f;
                 p.color = ember ? (depth >= 3 ? 0xFF3A10 : 0xFF7A2A) : (depth >= 3 ? 0x3A3434 : 0x6A6462);
                 p.flicker = ember ? 0.6f : 0; p.fadeIn = 0.08f; p.fadeOut = 0.15f;
             }
@@ -279,6 +284,7 @@ public final class FxEngine {
         float alpha = p.alphaAt(delta), size = p.sizeAt(delta);
         int color = p.colorAt(delta);
         if (p.landed) { draw.flat(p.sprite, x, y, z, size, p.flatYaw, color, alpha, light); return; }
+        if (p.mode == FxParticle.FLUTTER) { draw.oriented(p.sprite, x, y, z, size, p.spin, p.tilt, 1.0f, color, alpha, light); return; }
         float roll = p.roll + p.rollSpeed * delta;
         float squeeze = p.mode == FxParticle.TUMBLE ? Math.max(0.15f, Math.abs(MathHelper.cos(p.flip + p.flipSpeed * delta))) : 1;
         draw.sprite(p.sprite, x, y, z, size, roll, squeeze, color, alpha, light);

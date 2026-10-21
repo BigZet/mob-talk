@@ -28,8 +28,8 @@ public final class Fx {
     public static void confetti(ServerWorld world, Vec3d at, int amount) { send(world, CONFETTI, at, at, 0, amount, 0); }
     /** A branching bolt from the sky into {@code at}, with a flash; a vanilla lightning entity at the same spot is not drawn. */
     public static void bolt(ServerWorld world, Vec3d at, int color) { send(world, BOLT, at, at, color, 1, 12); }
-    /** A burning stone from {@code from} to {@code to} over {@code ticks}, falling faster as it goes (t²), with a fire tail;
-     * the client draws the impact when it lands. */
+    /** A burning stone from {@code from} (far off in the sky) to {@code to} over {@code ticks}, quickening as it comes
+     * (0.55t + 0.45t² of the way), with a fire tail and smoke; the client draws the impact when it lands. */
     public static void meteor(ServerWorld world, Vec3d from, Vec3d to, int ticks, float size) { send(world, METEOR, from, to, FIRE, size, ticks); }
     /** A blast: flash, shock ring, embers and smoke; {@code size} about the explosion's power. */
     public static void impact(ServerWorld world, Vec3d at, int color, float size) { send(world, IMPACT, at, at, color, size, 0); }
@@ -46,11 +46,11 @@ public final class Fx {
     /** Rolling smoke around {@code at} within {@code radius}. */
     public static void smoke(ServerWorld world, Vec3d at, int color, float radius) { send(world, SMOKE, at, at, color, radius, 0); }
 
-    /** Sends any kind to every player in this world within sight of {@code at}. */
+    /** Sends any kind to every player in this world within sight of {@code at} or {@code to}. */
     public static void send(ServerWorld world, int kind, Vec3d at, Vec3d to, int color, float size, int ticks) {
         FxPayload payload = new FxPayload(kind, at.x, at.y, at.z, to.x, to.y, to.z, color, size, ticks);
         for (ServerPlayerEntity player : world.getPlayers())
-            if (player.squaredDistanceTo(at) < SIGHT * SIGHT && ServerPlayNetworking.canSend(player, FxPayload.ID))
+            if (Math.min(player.squaredDistanceTo(at), player.squaredDistanceTo(to)) < SIGHT * SIGHT && ServerPlayNetworking.canSend(player, FxPayload.ID))
                 ServerPlayNetworking.send(player, payload);
     }
 }
