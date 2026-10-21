@@ -51,7 +51,7 @@ powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 [-Only wedding
 Prism, запущенный из оболочки Codex, наследует её подменённый `%LOCALAPPDATA%`
 (`Packages\OpenAI.Codex_*\LocalCache\Local`) и не видит, например, `DivineBlock\openrouter-key.dpapi`.
 Если Prism не запущен, `Start-TestInstance` поднимает его через `explorer.exe` (окружение рабочего стола).
-Перезапустить уже открытый Prism так же: `scriptsestart-prism-clean.ps1` займёт все слоты, дождётся, пока
+Перезапустить уже открытый Prism так же: `scripts\restart-prism-clean.ps1` займёт все слоты, дождётся, пока
 доиграют все игры Prism, закроет его, запустит через `explorer.exe` и освободит слоты.
 
 ## Наблюдение и уборка
