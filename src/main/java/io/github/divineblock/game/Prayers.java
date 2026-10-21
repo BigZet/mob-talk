@@ -347,6 +347,8 @@ public final class Prayers {
 
     /** A line with nothing to follow it (the answer to "why?", a refusal): voiced and shown together. */
     static void say(ServerPlayerEntity player, String line) { speakThen(player, line, () -> { }, () -> { }); }
+    /** A line of the god outside a verdict (the god with the mace): voiced when the voice works, always shown in chat. */
+    public static void proclaim(ServerPlayerEntity player, String line) { say(player, line); }
 
     private static void chat(ServerPlayerEntity player, String line) {
         spoken.accept(line);

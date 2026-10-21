@@ -67,6 +67,12 @@ public final class DivineBosses {
     public static final EntityType<CherubEntity> CHERUB = entity(BossKind.CHERUB, CherubEntity::new, 2.0f, 5.8f, true);
     public static final EntityType<BeastEntity> BEAST = entity(BossKind.BEAST, BeastEntity::new, 4.4f, 4.6f, true);
     public static final EntityType<NimrodEntity> NIMROD = entity(BossKind.NIMROD, NimrodEntity::new, 1.6f, 4.5f, false);
+    /** «Бог с булавой»: not a boss, the god's own figure over the clouds (see {@link GodWrath}). Its id in
+     * {@code disabledBosses} switches the figure off (F9): the punishment comes as a storm without it. */
+    public static final String GOD_AVATAR_ID = "god_avatar";
+    public static final EntityType<GodAvatarEntity> GOD_AVATAR = Registry.register(Registries.ENTITY_TYPE, Identifier.of(DivineBlockMod.ID, GOD_AVATAR_ID),
+            EntityType.Builder.<GodAvatarEntity>create(GodAvatarEntity::new, SpawnGroup.MISC).dimensions(2f, 2f).makeFireImmune()
+                    .maxTrackingRange(16).trackingTickInterval(2).disableSaving().disableSummon().build(DivineBlockMod.ID + ":" + GOD_AVATAR_ID));
 
     /** Holy relics: one from each boss, for the altar's great craft (item tag {@code divineblock:holy_relics}). */
     public static final Map<BossKind, Item> RELICS = new EnumMap<>(BossKind.class);
@@ -125,6 +131,26 @@ public final class DivineBosses {
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.INGREDIENTS).register(entries -> RELICS.values().forEach(entries::add));
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.OPERATOR).register(entries -> entries.add(sealItem));
         BossCommands.register();
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(GodWrath::tickAll);
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STOPPING.register(server -> GodWrath.clearAll());
+    }
+
+    /** «Бог с булавой»: the god comes out of the clouds over {@code player} with power 1..5 and strikes with his mace for
+     * {@code durationTicks} (10..90 s), then goes back. Null where he cannot come (a world with a roof). Switched off in F9,
+     * he comes as a storm of lightning and shockwaves without the figure. A second call for the same player replaces the first. */
+    public static GodWrath spawnGodAvatar(ServerWorld world, net.minecraft.server.network.ServerPlayerEntity player, int power, int durationTicks) {
+        return spawnGodAvatar(world, player, power, durationTicks, null);
+    }
+    /** The same, sparing the altar at {@code altar} (may be null) from craters. */
+    public static GodWrath spawnGodAvatar(ServerWorld world, net.minecraft.server.network.ServerPlayerEntity player, int power, int durationTicks, BlockPos altar) {
+        return GodWrath.start(world, player, power, durationTicks, altar);
+    }
+    /** Repentance: the god over {@code player} goes back into the clouds now. False when there is none. */
+    public static boolean dismissGodAvatar(net.minecraft.server.network.ServerPlayerEntity player) {
+        GodWrath wrath = GodWrath.of(player);
+        if (wrath == null || wrath.finished()) return false;
+        wrath.dismiss();
+        return true;
     }
 
     private static void attributes(EntityType<? extends SacredBoss> type, double health, double speed, double armor) {

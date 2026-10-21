@@ -32,7 +32,16 @@ public final class BossSettingsScreen extends Screen {
                         b.setMessage(label(kind, on));
                     })).setMessage(label(kind, !config.disabledBosses.contains(kind.id)));
         }
-        y += ((kinds.length + columns - 1) / columns) * row + 8;
+        // «Бог с булавой» (not a boss, the god himself): off brings his storm of lightning and shockwaves without the figure.
+        String god = io.github.divineblock.boss.DivineBosses.GOD_AVATAR_ID;
+        int slot = kinds.length;
+        addDrawableChild(CyclingButtonWidget.onOffBuilder(!config.disabledBosses.contains(god)).omitKeyText()
+                .build(left + (slot % columns) * (column + gap), y + (slot / columns) * row, column, 20, Text.literal("Бог с булавой"), (b, on) -> {
+                    config.disabledBosses.remove(god);
+                    if (!on) config.disabledBosses.add(god);
+                    b.setMessage(godLabel(on));
+                })).setMessage(godLabel(!config.disabledBosses.contains(god)));
+        y += ((kinds.length + 1 + columns - 1) / columns) * row + 8;
         int half = (columns * column + (columns - 1) * gap - gap) / 2;
         addDrawableChild(CyclingButtonWidget.<Integer>builder(v -> Text.literal(v + "%")).values(List.of(50, 75, 100, 150, 200, 300))
                 .initially(nearest(config.bossDifficulty)).build(left, y, half, 20, Text.literal("Сила боссов"), (b, v) -> config.bossDifficulty = v));
@@ -40,6 +49,8 @@ public final class BossSettingsScreen extends Screen {
                 (b, v) -> config.bossBlockDamage = v));
         addDrawableChild(ButtonWidget.builder(Text.literal("Готово"), b -> close()).dimensions(this.width / 2 - 75, this.height - 28, 150, 20).build());
     }
+
+    private static Text godLabel(boolean on) { return Text.literal("Бог с булавой").formatted(on ? Formatting.GOLD : Formatting.DARK_GRAY); }
 
     private static Text label(BossKind kind, boolean on) {
         int cut = kind.title.indexOf(" с ");

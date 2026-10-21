@@ -23,10 +23,10 @@ public enum MiracleGroup {
             Miracle.BOSS_SCHEMNIK, Miracle.BOSS_BELL_RINGER, Miracle.BOSS_SERAPH, Miracle.BOSS_FACELESS, Miracle.BOSS_WAILER,
             Miracle.BOSS_LEVIATHAN, Miracle.BOSS_BEHEMOTH, Miracle.BOSS_GOLIATH, Miracle.BOSS_DESTROYING_ANGEL, Miracle.BOSS_CHERUB, Miracle.BOSS_NIMROD),
     K5(Miracle.Kind.WRATH, "конец света", "изгнание в Ад или Край, визеры, великая воронка, драконы, разломы до бездны, вырезание земли, метеоритный дождь, "
-            + "казни египетские, Содом, потоп, Вавилон, стирание памяти, суд в небесах, Архангел гнева, Четыре всадника, Зверь из бездны",
+            + "казни египетские, Содом, потоп, Вавилон, стирание памяти, суд в небесах, Архангел гнева, Четыре всадника, Зверь из бездны, Бог с булавой",
             Miracle.HELL_EXILE, Miracle.END_EXILE, Miracle.WITHER, Miracle.GREAT_CRATER, Miracle.DRAGON, Miracle.RIFTS, Miracle.CHUNK_VOID, Miracle.METEOR_SHOWER,
             Miracle.PLAGUES, Miracle.SODOM, Miracle.FLOOD, Miracle.BABEL, Miracle.MEMORY_WIPE, Miracle.JUDGEMENT,
-            Miracle.BOSS_ARCHANGEL, Miracle.BOSS_HORSEMEN, Miracle.BOSS_BEAST),
+            Miracle.BOSS_ARCHANGEL, Miracle.BOSS_HORSEMEN, Miracle.BOSS_BEAST, Miracle.GOD_MACE),
     K6(Miracle.Kind.WRATH, "вечное изгнание", "бог навсегда выкидывает смертного из мира с приговором (только если изгнание включено в настройках)",
             Miracle.ETERNAL_BAN),
     B1(Miracle.Kind.HELP, "малая милость", "исцеление, еда, ясное небо, починка",

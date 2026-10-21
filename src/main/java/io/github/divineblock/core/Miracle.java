@@ -93,7 +93,10 @@ public enum Miracle {
     BOSS_CHERUB(Kind.WRATH, 3, 4, false, "Херувим с пламенным мечом (Быт 3:24): обращающийся меч, изгнание из рая", List.of("херувим", "рай", "эдем", "меч")),
     BOSS_NIMROD(Kind.WRATH, 3, 4, false, "Нимрод (Быт 11): башня до небес и смешение языков", List.of("нимрод", "вавилон", "башн", "язык")),
     BOSS_HORSEMEN(Kind.WRATH, 4, 4, false, "Четыре всадника (Откр 6): снятие печатей — победа, война, голод и смерть", List.of("всадник", "печат", "конец света", "апокалип", "откровен")),
-    BOSS_BEAST(Kind.WRATH, 4, 4, false, "Зверь из бездны (Откр 13): семь голов, число зверя, начертание запрещает торговлю", List.of("зверь", "бездн", "666", "антихрист", "апокалип"));
+    BOSS_BEAST(Kind.WRATH, 4, 4, false, "Зверь из бездны (Откр 13): семь голов, число зверя, начертание запрещает торговлю", List.of("зверь", "бездн", "666", "антихрист", "апокалип")),
+    // The god himself.
+    GOD_MACE(Kind.WRATH, 4, 4, false, "Бог с булавой: сам Ветхий денми выходит из туч по пояс и бьёт огромной булавой — круг на земле, удар, ударная волна, молнии из десницы; воронки только где можно ломать блоки",
+            List.of("булав", "сам бог", "ветх", "десниц", "конец света", "апокалип"));
 
     public enum Kind {
         OMEN("знамение"), HELP("помощь"), JEST("шутка"), WRATH("кара");
@@ -143,7 +146,7 @@ public enum Miracle {
             case BABEL, JUDGEMENT -> 8;
             case PLAGUES, SODOM, FLOOD, MEMORY_WIPE -> 9;
             case ETERNAL_BAN -> 10;
-            case DRAGON, GREAT_CRATER, BOSS_ARCHANGEL -> 10;
+            case DRAGON, GREAT_CRATER, BOSS_ARCHANGEL, GOD_MACE -> 10;
             case BOSS_SCHEMNIK, BOSS_BELL_RINGER, BOSS_SERAPH, BOSS_FACELESS, BOSS_WAILER, BOSS_LEVIATHAN, BOSS_BEHEMOTH, BOSS_GOLIATH,
                  BOSS_DESTROYING_ANGEL, BOSS_CHERUB, BOSS_NIMROD -> 7;
             case BOSS_HORSEMEN, BOSS_BEAST -> 10;
