@@ -54,7 +54,7 @@ import net.minecraft.util.math.random.Random;
 public final class DivineBosses {
     private static final Map<BossKind, EntityType<? extends SacredBoss>> TYPES = new EnumMap<>(BossKind.class);
     public static final EntityType<SchemnikEntity> BLACK_SCHEMNIK = entity(BossKind.BLACK_SCHEMNIK, SchemnikEntity::new, 1.6f, 4.9f, false);
-    public static final EntityType<BellRingerEntity> BELL_RINGER = entity(BossKind.BELL_RINGER, BellRingerEntity::new, 3.2f, 5.0f, false);
+    public static final EntityType<BellRingerEntity> BELL_RINGER = entity(BossKind.BELL_RINGER, BellRingerEntity::new, 3.2f, 4.6f, false);
     public static final EntityType<SeraphEntity> SERAPH = entity(BossKind.SERAPH, SeraphEntity::new, 3.4f, 7.2f, true);
     public static final EntityType<FacelessIconEntity> FACELESS_ICON = entity(BossKind.FACELESS_ICON, FacelessIconEntity::new, 3.0f, 4.5f, false);
     public static final EntityType<WailerEntity> WAILER = entity(BossKind.WAILER, WailerEntity::new, 1.4f, 5.3f, false);

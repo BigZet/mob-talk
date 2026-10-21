@@ -2,10 +2,10 @@
 cast panels: a domed shoulder, a band of pseudo-Slavonic lettering, a long waist with a cast mournful face whose eyes are
 two burning candles, raised Orthodox crosses on the other three sides, a second band of lettering, a frieze on the sound
 bow and a flared lip; green patina runs down from every cast rim. It hangs from crown loops on an iron-strapped oak beam,
-and its heavy iron clapper on a chain is the foot it hops on. On the crown squats the ringer, a gaunt hunched thing in
+and its heavy iron clapper hangs inside on a chain. On the crown squats the ringer, a gaunt hunched thing in
 rotten sackcloth whose long arms grip the two bell ropes that hang from the beam ends.
 
-Built about 56 units tall and drawn at scale 1.75 (about six blocks), at 4 pixels per unit."""
+Built about 56 units tall and drawn at scale 1.65 (about six blocks), at 4 pixels per unit."""
 from boxtex import *
 
 BR_DARK = (70, 46, 26)
@@ -210,7 +210,7 @@ def ring(name, y0, r0, y1, r1, thick, kind, extra_for=None, n=N):
     tilt = math.atan2(r1 - r0, y1 - y0)
     length = math.hypot(y1 - y0, r1 - r0)
     width = 2 * max(r0, r1) * math.tan(math.pi / n) * 1.05
-    sx, sy = math.ceil(width) / width, math.ceil(length) / length
+    sx = sy = 1.0  # box faces are painted at their exact size
     for i in range(n):
         a = 2 * math.pi * i / n
         rc = r0 - thick / 2
@@ -313,44 +313,6 @@ def flesh(p, f, opts):
             p.put(f, u, v, c)
 
 
-def ringer_face(p, f, opts):
-    """The face deep in the hood: sunken grey skin, hollow cheeks, a long nose and two embers for eyes."""
-    W, H = f.w, f.h
-    for v in range(H):
-        for u in range(W):
-            dx = (u - W / 2) / (W / 2)
-            c = shade(FLESH, 1.0 - 0.45 * dx * dx - 0.3 * v / H)
-            if 0.55 * H < v < 0.85 * H and 0.3 < abs(dx) < 0.75:
-                c = shade(c, 0.6)
-            p.put(f, u, v, shade(c, p.noise(0.05)))
-    if f.side != "front":
-        return
-    for side in (-1, 1):
-        ex, ey = W / 2 + side * W * 0.24, H * 0.36
-        for v in range(H):
-            for u in range(W):
-                q = ((u - ex) / (W * 0.17)) ** 2 + ((v - ey) / (H * 0.13)) ** 2
-                if q <= 1:
-                    p.put(f, u, v, (12, 8, 8))
-                if q <= 0.3:
-                    p.put(f, u, v, EMBER_EYE, EMBER_EYE)
-    for v in range(int(H * 0.36), int(H * 0.7)):
-        p.put(f, W // 2, v, shade(FLESH, 1.15))
-        p.put(f, W // 2 - 1, v, shade(FLESH, 0.7))
-    for u in range(int(W * 0.3), int(W * 0.7)):
-        p.put(f, u, int(H * 0.82), (30, 20, 18))
-
-
-def hood_style(p, f, opts):
-    sackcloth(patch=False)(p, f, opts)
-    if f.side == "front":
-        for v in range(f.h):
-            for u in range(f.w):
-                q = ((u - f.w / 2) / (f.w * 0.42)) ** 2 + ((v - f.h * 0.62) / (f.h * 0.52)) ** 2
-                if q <= 1:
-                    p.put(f, u, v, None)
-
-
 # ---- The bell. Bell-local space: the pivot is the beam's axis; the body runs from y = 6.2 down to the lip at y = 34. ----
 
 PROFILE = [(6.2, 6.6), (7.4, 8.2), (9, 8.9), (12, 9.3), (22, 10.5), (25.5, 11.7), (28.5, 13.3), (31, 14.6), (32.6, 15.4), (34, 15.6)]
@@ -399,13 +361,15 @@ face = relief("face_relief", 0, 12, 9.3, [
 ])
 
 crosses = []
+cross_bronze = solid(BR_WORN, k=0.06)
 for idx, a in enumerate((math.pi / 2, math.pi, 3 * math.pi / 2)):
+    # Raised eight-pointed crosses: the upright, a distinct titulus, the crossbar, and one footrest through the upright
+    # with its left end (as the viewer sees it) raised.
     crosses.append(relief("cross_%d" % idx, a, 12, 9.3, [
-        Box((-0.45, 1.4, -0.7), (0.9, 7.8, 0.7), relief_bronze),
-        Box((-1.0, 2.3, -0.7), (2.0, 0.6, 0.7), relief_bronze),
-        Box((-2.3, 3.5, -0.7), (4.6, 0.8, 0.7), relief_bronze),
-        Box((-1.8, 8.6, -0.6), (3.6, 0.8, 0.6), relief_bronze),
-    ], children=[Part("cross_%d_foot" % idx, pivot=(0, 6.6, 0), rotation=(0, 0, 0.35), boxes=[Box((-1.5, -0.35, -0.7), (3.0, 0.7, 0.7), relief_bronze)])]))
+        Box((-0.5, 1.2, -1.0), (1.0, 8.0, 1.0), cross_bronze),
+        Box((-1.1, 2.0, -1.0), (2.2, 0.7, 1.0), cross_bronze),
+        Box((-2.6, 3.6, -1.0), (5.2, 0.9, 1.0), cross_bronze),
+    ], children=[Part("cross_%d_foot" % idx, pivot=(0, 7.0, -0.5), rotation=(0, 0, 0.38), boxes=[Box((-1.7, -0.35, -0.5), (3.4, 0.7, 1.0), cross_bronze)])]))
 
 crown_bronze = panel_style("rim", 0)
 cap = (octagon("cap_a", 5.2, 6.1, 1.2, panel_style("shoulder", 3)) + octagon("cap_b", 4.0, 4.8, 1.3, panel_style("shoulder", 4))
@@ -436,26 +400,34 @@ beam = Part("beam", boxes=[
     Box((17.4, -1.2, -1.2), (1.2, 2.4, 2.4), iron_style(True)),
 ])
 
-# The clapper hangs from inside the crown; its ball sits in the mouth and its flight is the foot the bell hops on.
+# The clapper hangs from inside the crown on a chain and a rod; its iron ball sits just inside the mouth.
+ball_iron = metal((86, 82, 80), (40, 38, 38), (150, 144, 136), streaks=(96, 52, 30))
 clapper = Part("clapper", pivot=(0, 7.4, 0), boxes=[
-    Box((-0.8, 13.5, -0.8), (1.6, 8.5, 1.6), iron),
-    Box((-1.4, 21, -1.4), (2.8, 1.4, 2.8), iron_style(True)),
-    Box((-0.9, 27.6, -0.9), (1.8, 3.6, 1.8), iron),
-    Box((-2.2, 30.8, -2.2), (4.4, 0.8, 4.4), iron_style(True)),
-], children=chain_links("clink", 0, 14) + octagon("cball_a", 21.6, 2.2, 1.2, iron_style(True))
-            + octagon("cball_b", 22.8, 3.1, 3.6, iron_style(True)) + octagon("cball_c", 26.4, 2.2, 1.2, iron))
+    Box((-0.8, 13.5, -0.8), (1.6, 7.6, 1.6), iron),
+    Box((-1.4, 19.8, -1.4), (2.8, 1.2, 2.8), iron_style(True)),
+], children=chain_links("clink", 0, 14) + octagon("cball_a", 20.6, 2.2, 1.0, ball_iron)
+            + octagon("cball_b", 21.6, 3.2, 3.2, ball_iron) + octagon("cball_c", 24.8, 2.2, 1.0, ball_iron))
 
 ropes = []
 for side, label in ((-1, "right"), (1, "left")):
     ropes.append(Part(label + "_rope", pivot=(side * 16.6, 1.0, 0), boxes=[
         Box((-0.6, 0, -0.6), (1.2, 6, 1.2), rope_style()),
         Box((-0.75, 6, -0.75), (1.5, 9, 1.5), rope_style(sally=True)),
-        Box((-0.6, 15, -0.6), (1.2, 21, 1.2), rope_style()),
-        Box((-1.0, 35.2, -1.0), (2.0, 1.4, 2.0), rope_style()),
+        Box((-0.6, 15, -0.6), (1.2, 16, 1.2), rope_style()),
+        Box((-1.0, 30.6, -1.0), (2.0, 1.4, 2.0), rope_style()),
     ]))
 
 
-# ---- The ringer: squatting on the crown loop, hunched forward, arms reaching down to the ropes. ----
+# ---- The ringer: squatting on the crown loop, knees up and splayed, a hunched spine, arms reaching down to the ropes. ----
+
+BONE_SHADOW = (150, 142, 116)
+
+
+def rotx(v, a):
+    """Turns a (y, z) offset by pitch `a`, as a model part does."""
+    y, z = v
+    return (y * math.cos(a) - z * math.sin(a), y * math.sin(a) + z * math.cos(a))
+
 
 def arm_angles(shoulder, hand, upper, lower):
     """Angles from straight down for a two-bone arm reaching from shoulder to hand in the XY plane, the elbow out."""
@@ -468,67 +440,160 @@ def arm_angles(shoulder, hand, upper, lower):
 
 
 RINGER_Y = -4.8
-SHOULDER = (3.9, RINGER_Y - 9.4, -4.6)
+SPINE_LOW, SPINE_HIGH = 0.18, 0.75    # pitch of the lower back, and of the hunched upper back in total
+_chest = rotx((-5.0, 0), SPINE_LOW)
+_sh = rotx((-4.4, -0.3), SPINE_HIGH)
+SHOULDER_LOCAL = (3.6, -2.4 + _chest[0] + _sh[0], _chest[1] + _sh[1])   # ringer-local
+SHOULDER = (SHOULDER_LOCAL[0], RINGER_Y + SHOULDER_LOCAL[1], SHOULDER_LOCAL[2] + 0.3)   # bell-local
 HAND = (16.6, 9.5)
-UPPER, LOWER = 13.0, 14.6
+UPPER, LOWER = 12.6, 15.2
 PHI1, PHI2 = arm_angles(SHOULDER, HAND, UPPER, LOWER)
-ARM_PITCH = math.atan2(-SHOULDER[2] - 0.3, HAND[1] - SHOULDER[1])
+ARM_PITCH = math.atan2(-SHOULDER[2], HAND[1] - SHOULDER[1])
+
+
+def bone(shadow=0.85):
+    """Bone-grey skin stretched over bone, darker in the cowl's shadow."""
+    def paint(p, f, opts):
+        for v in range(f.h):
+            for u in range(f.w):
+                c = shade(BONE_SHADOW, shadow * p.noise(0.06) * (1.05 - 0.2 * v / max(1, f.h)))
+                p.put(f, u, v, c)
+    return paint
+
+
+def jaw_style(p, f, opts):
+    """The long jaw: bone with a dark slit of a mouth and a row of teeth."""
+    d = opts.get("density", 1)
+    bone(0.72)(p, f, opts)
+    if f.side != "front":
+        return
+    my = int(f.h * 0.55)
+    for u in range(1, f.w - 1):
+        p.put(f, u, my, (20, 14, 12))
+        if u % 2 == 0:
+            p.put(f, u, my - 1, (196, 186, 150))
+            p.put(f, u, my + 1, (180, 170, 136))
+
+
+def eyes_style(p, f, opts):
+    """Sunken sockets under the brow, each with a small ember deep inside."""
+    for v in range(f.h):
+        for u in range(f.w):
+            p.put(f, u, v, (14, 10, 10))
+    if f.side != "front":
+        return
+    for cx in (f.w * 0.25, f.w * 0.75):
+        for v in range(f.h):
+            for u in range(f.w):
+                if abs(u + 0.5 - cx) <= 1 and abs(v + 0.5 - f.h / 2) <= 1:
+                    p.put(f, u, v, EMBER_EYE, EMBER_EYE)
+
+
+def chest_style(p, f, opts):
+    """The torn sackcloth gapes over the chest: the front is shadowed grey skin, the rest is cloth."""
+    if f.side == "front":
+        for v in range(f.h):
+            for u in range(f.w):
+                p.put(f, u, v, shade(FLESH_DARK, p.noise(0.08) * (0.9 + 0.2 * abs(u / max(1, f.w) - 0.5))))
+        return
+    sackcloth(patch=False)(p, f, opts)
+
+
+cloak = sackcloth(patch=False)
+rags = sackcloth(ragged=True, patch=False)
+
+
+def finger(name, side, z):
+    """A long finger in two joints, curled round the rope."""
+    return Part(name, pivot=(side * 0.55, LOWER - 0.5, z), rotation=(0, 0, side * 0.8), boxes=[Box((-0.22, 0, -0.22), (0.44, 1.5, 0.44), flesh)],
+                children=[Part(name + "_tip", pivot=(0, 1.4, 0), rotation=(0, 0, side * 1.5), boxes=[Box((-0.2, 0, -0.2), (0.4, 1.3, 0.4), flesh)])])
 
 
 def ringer_arm(label, side):
-    claw = [Part("%s_finger_%d" % (label, k), pivot=(0, LOWER - 0.8, -1.0 + k * 0.62), rotation=(0, 0, side * 1.2),
-                 boxes=[Box((-0.3, 0, -0.28), (0.6, 2.6, 0.56), flesh)]) for k in range(4)]
+    fingers = [finger("%s_finger_%d" % (label, k), side, -0.8 + k * 0.53) for k in range(4)]
+    fingers.append(Part(label + "_thumb", pivot=(-side * 0.5, LOWER - 1.2, -0.9), rotation=(-0.6, 0, -side * 0.5),
+                        boxes=[Box((-0.22, 0, -0.22), (0.44, 1.6, 0.44), flesh)]))
     forearm = Part(label + "_forearm", pivot=(0, UPPER, 0), rotation=(0, 0, side * (PHI1 - PHI2)), boxes=[
-        Box((-0.85, 0, -0.85), (1.7, LOWER - 2.2, 1.7), flesh),
-        Box((-1.2, LOWER - 2.4, -1.3), (2.4, 2.4, 2.6), flesh),
-        Box((-1.15, -0.9, -1.15), (2.3, 1.8, 2.3), flesh),
-    ], children=claw)
-    return Part(label + "_arm", pivot=(side * SHOULDER[0], SHOULDER[1] - RINGER_Y, SHOULDER[2]), rotation=(ARM_PITCH, 0, -side * PHI1), boxes=[
-        Box((-1.6, -1.2, -1.6), (3.2, 4.8, 3.2), sackcloth(ragged=True, patch=False)),
-        Box((-0.95, 0, -0.95), (1.9, UPPER, 1.9), flesh),
+        Box((-1.15, -1.0, -1.15), (2.3, 2.0, 2.3), bone(1.0)),               # the elbow knob
+        Box((-0.85, 0.8, -0.85), (1.7, 5.6, 1.7), flesh),
+        Box((-0.6, 6.2, -0.6), (1.2, LOWER - 8.4, 1.2), flesh),             # tapering to the wrist
+        Box((-0.9, LOWER - 2.4, -1.1), (1.8, 2.0, 2.2), flesh),              # the palm
+    ], children=fingers)
+    return Part(label + "_arm", pivot=(side * SHOULDER_LOCAL[0], SHOULDER_LOCAL[1], SHOULDER_LOCAL[2]), rotation=(ARM_PITCH, 0, -side * PHI1), boxes=[
+        Box((-1.6, -1.2, -1.6), (3.2, 4.6, 3.2), rags),
+        Box((-0.95, 0, -0.95), (1.9, 6.4, 1.9), flesh),
+        Box((-0.75, 6.2, -0.75), (1.5, UPPER - 6.2, 1.5), flesh),
     ], children=[forearm])
 
 
 def leg(label, side):
-    return Part(label + "_leg", pivot=(side * 2.1, -1.2, -0.8), rotation=(-1.35, side * -0.25, 0), boxes=[
-        Box((-1.1, 0, -1.1), (2.2, 6.2, 2.2), sackcloth(patch=False)),
+    """Thigh about level and splayed, the shin angled down in front of the beam, a long bony foot."""
+    return Part(label + "_leg", pivot=(side * 2.2, -1.4, -1.0), rotation=(-1.5, -side * 0.45, 0), boxes=[
+        Box((-1.2, 0, -1.2), (2.4, 6.4, 2.4), cloak),
     ], children=[
-        Part(label + "_shin", pivot=(0, 6.0, 0), rotation=(1.45, 0, 0), boxes=[
-            Box((-0.9, 0, -0.9), (1.8, 6.4, 1.8), flesh),
-            Box((-1.1, 6.0, -2.6), (2.2, 0.9, 3.4), flesh),
+        Part(label + "_shin", pivot=(0, 6.2, 0), rotation=(1.78, 0, 0), boxes=[
+            Box((-1.0, -0.8, -1.0), (2.0, 1.6, 2.0), bone(1.0)),           # the knee
+            Box((-0.75, 0.6, -0.75), (1.5, 5.6, 1.5), flesh),
+            Box((-0.9, 6.0, -3.0), (1.8, 0.8, 3.6), flesh),
         ]),
     ])
 
 
+# The sackcloth hangs from his hips all round the crown loop he squats on.
 robe_panels = []
-for i in range(9):
-    a = math.pi * 2 * i / 9
-    robe_panels.append(Part("robe_%d" % i, pivot=(math.sin(a) * 2.8, -1.8, -math.cos(a) * 2.6), rotation=(-0.45, -a, 0),
-                            boxes=[Box((-1.6, 0, -0.3), (3.2, 4.8 + 1.2 * math.sin(i * 2.1), 0.6), sackcloth(ragged=True, patch=False))]))
+for i in range(10):
+    a = math.pi * 2 * i / 10
+    robe_panels.append(Part("robe_%d" % i, pivot=(math.sin(a) * 3.2, -2.2, -math.cos(a) * 3.0), rotation=(-0.22, -a, 0),
+                            boxes=[Box((-1.6, 0, -0.3), (3.2, 7.4 + 1.0 * math.sin(i * 2.1), 0.6), rags)]))
 
-hood_lappets = [Part("lappet_%d" % (s + 1), pivot=(s * 2.4, -1.5, -1.4), rotation=(0.2, 0, s * 0.25),
-                     boxes=[Box((-0.9, 0, -1.5), (1.8, 5.5, 3.0), sackcloth(ragged=True, patch=False))]) for s in (-1, 1)]
+# The skull: a narrow cranium, a jutting brow, high cheekbones and a long jaw; small embers deep in the sockets.
+skull = [
+    Box((-1.5, -5.4, -1.7), (3.0, 3.4, 3.5), bone(0.55)),
+    Box((-1.75, -3.25, -2.25), (3.5, 0.7, 0.9), bone(0.95)),
+    Box((-1.3, -2.6, -1.85), (2.6, 0.75, 0.2), eyes_style, flat=True),
+    Box((-1.75, -1.95, -2.0), (0.9, 0.7, 1.0), bone(0.9)),
+    Box((0.85, -1.95, -2.0), (0.9, 0.7, 1.0), bone(0.9)),
+    Box((-1.0, -2.0, -2.0), (2.0, 3.0, 2.4), jaw_style),
+]
+# The cowl: open in front, deep enough to shadow the face, its peak tapering forward over the brow to a point.
+cowl = [
+    Box((-2.4, -6.3, -3.0), (4.8, 1.0, 5.8), cloak),
+    Box((-2.4, -5.4, -2.8), (0.7, 5.4, 5.4), cloak),
+    Box((1.7, -5.4, -2.8), (0.7, 5.4, 5.4), cloak),
+    Box((-2.4, -5.4, 2.0), (4.8, 5.4, 0.7), cloak),
+    Box((-2.4, -5.6, -3.6), (4.8, 1.3, 0.8), cloak),         # the brim, low over the brow: the face stays in shadow
+    Box((-1.6, -6.4, -4.4), (3.2, 0.9, 1.4), cloak),         # the peak, tapering forward to a point
+    Box((-0.9, -6.2, -5.4), (1.8, 0.7, 1.1), cloak),
+    Box((-0.35, -6.0, -6.2), (0.7, 0.5, 0.9), cloak),
+    Box((-0.12, -5.9, -6.8), (0.24, 0.3, 0.6), cloak),
+]
+hood_lappets = [Part("lappet_%d" % (s + 1), pivot=(s * 2.2, -0.6, -0.6), rotation=(0.15, 0, s * 0.3),
+                     boxes=[Box((-0.9, 0, -1.6), (1.8, 4.6, 3.2), rags)]) for s in (-1, 1)]
+
+ribs = [Box((-2.4, -4.3 + k * 1.0, -2.4), (4.8, 0.35, 0.35), bone(1.0)) for k in range(4)] + [Box((-0.25, -4.5, -2.45), (0.5, 3.8, 0.4), bone(1.0))]
 
 ringer = Part("ringer", pivot=(0, RINGER_Y, 0.3), children=[
-    Part("hips", boxes=[Box((-3.2, -2.8, -2.4), (6.4, 2.8, 4.8), sackcloth())]),
+    Part("hips", boxes=[Box((-3.2, -2.8, -2.4), (6.4, 2.8, 4.8), cloak)]),
     Part("robe", children=robe_panels),
     leg("right", -1), leg("left", 1),
-    Part("torso", pivot=(0, -2.4, 0), rotation=(0.62, 0, 0), boxes=[
-        Box((-3.4, -9.2, -2.2), (6.8, 9.4, 4.4), sackcloth()),
-        Box((-3.0, -9.6, 0.4), (6.0, 3.6, 3.0), sackcloth()),
-        Box((-3.6, -1.6, -2.45), (7.2, 1.0, 4.9), rope_style()),
-    ] + [Box((-0.5, -8.5 + k * 1.8, 2.1), (1.0, 1.0, 0.7), flesh) for k in range(4)], children=[
-        Part("head", pivot=(0, -9.2, -1.2), rotation=(-0.75, 0, 0), boxes=[
-            Box((-2.7, -5.8, -3.1), (5.4, 6.0, 5.6), hood_style),
-            Box((-1.9, -5.0, -2.6), (3.8, 4.4, 0.6), ringer_face),
-            Box((-1.3, -7.0, -0.2), (2.6, 1.6, 2.6), sackcloth(patch=False)),
-        ], children=hood_lappets),
+    Part("torso", pivot=(0, -2.4, 0), rotation=(SPINE_LOW, 0, 0), boxes=[
+        Box((-3.0, -5.2, -2.0), (6.0, 5.4, 4.0), cloak),
+        Box((-3.3, -1.4, -2.25), (6.6, 1.0, 4.5), rope_style()),
+    ], children=[
+        Part("chest", pivot=(0, -5.0, 0), rotation=(SPINE_HIGH - SPINE_LOW, 0, 0), boxes=[
+            Box((-3.2, -5.0, -2.1), (6.4, 5.2, 4.2), chest_style),
+            Box((-3.5, -5.1, -2.4), (1.3, 5.3, 0.6), rags),
+            Box((2.2, -5.1, -2.4), (1.3, 5.3, 0.6), rags),
+            Box((-2.9, -5.6, 0.6), (5.8, 3.2, 2.6), cloak),
+        ] + ribs, children=[
+            Part("head", pivot=(0, -4.8, -1.0), rotation=(-0.5, 0, 0), boxes=skull + cowl, children=hood_lappets),
+        ]),
     ]),
     ringer_arm("right", -1),
     ringer_arm("left", 1),
 ])
 
-bell = Part("bell", pivot=(0, -39, 0), children=rings + rims + cap + loops + [face] + crosses + [beam, clapper, ringer] + ropes)
+bell = Part("bell", pivot=(0, -34, 0), children=rings + rims + cap + loops + [face] + crosses + [beam, clapper, ringer] + ropes)
 
 parts = [Part("figure", pivot=(0, 24, 0), children=[bell])]
 
