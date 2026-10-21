@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "decorations",
+  "ingredients": [
+    {
+      "tag": "minecraft:candles"
+    },
+    {
+      "item": "minecraft:red_stained_glass_pane"
+    },
+    {
+      "item": "minecraft:iron_nugget"
+    }
+  ],
+  "result": {
+    "id": "divineblock:grave_lampada",
+    "count": 1
+  }
+}

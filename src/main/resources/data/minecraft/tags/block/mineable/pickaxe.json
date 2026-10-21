@@ -1,1 +1,24 @@
-{ "replace": false, "values": ["divineblock:altar"] }
+{
+  "replace": false,
+  "values": [
+    "divineblock:altar",
+    "divineblock:iron_cross",
+    "divineblock:star_obelisk",
+    "divineblock:granite_stele",
+    "divineblock:marble_stone",
+    "divineblock:black_grave_fence",
+    "divineblock:black_grave_gate",
+    "divineblock:blue_grave_fence",
+    "divineblock:blue_grave_gate",
+    "divineblock:rusty_grave_fence",
+    "divineblock:rusty_grave_gate",
+    "divineblock:grave_lampada",
+    "divineblock:granite_cross",
+    "divineblock:white_metal_cross",
+    "divineblock:stone_trunk_cross",
+    "divineblock:gothic_marble_stone",
+    "divineblock:grave_slab",
+    "divineblock:sector_sign",
+    "divineblock:cemetery_bin"
+  ]
+}

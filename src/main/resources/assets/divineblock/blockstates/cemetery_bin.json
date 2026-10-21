@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "divineblock:block/cemetery_bin"
+    },
+    "facing=east": {
+      "model": "divineblock:block/cemetery_bin",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "divineblock:block/cemetery_bin",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "divineblock:block/cemetery_bin",
+      "y": 270
+    }
+  }
+}

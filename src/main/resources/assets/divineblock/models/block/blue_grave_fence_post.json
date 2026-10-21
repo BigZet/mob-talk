@@ -1,0 +1,154 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "iron": "divineblock:block/painted_iron_blue",
+    "particle": "#iron"
+  },
+  "elements": [
+    {
+      "from": [
+        7.5,
+        0,
+        7.5
+      ],
+      "to": [
+        8.5,
+        11.5,
+        8.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#iron",
+          "uv": [
+            7.5,
+            4.5,
+            8.5,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#iron",
+          "uv": [
+            7.5,
+            4.5,
+            8.5,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#iron",
+          "uv": [
+            7.5,
+            4.5,
+            8.5,
+            16
+          ]
+        },
+        "west": {
+          "texture": "#iron",
+          "uv": [
+            7.5,
+            4.5,
+            8.5,
+            16
+          ]
+        },
+        "up": {
+          "texture": "#iron",
+          "uv": [
+            7.5,
+            7.5,
+            8.5,
+            8.5
+          ]
+        },
+        "down": {
+          "texture": "#iron",
+          "uv": [
+            7.5,
+            7.5,
+            8.5,
+            8.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        7.35,
+        11.5,
+        7.35
+      ],
+      "to": [
+        8.65,
+        12.8,
+        8.65
+      ],
+      "faces": {
+        "north": {
+          "texture": "#iron",
+          "uv": [
+            7.35,
+            3.2,
+            8.65,
+            4.5
+          ]
+        },
+        "south": {
+          "texture": "#iron",
+          "uv": [
+            7.35,
+            3.2,
+            8.65,
+            4.5
+          ]
+        },
+        "east": {
+          "texture": "#iron",
+          "uv": [
+            7.35,
+            3.2,
+            8.65,
+            4.5
+          ]
+        },
+        "west": {
+          "texture": "#iron",
+          "uv": [
+            7.35,
+            3.2,
+            8.65,
+            4.5
+          ]
+        },
+        "up": {
+          "texture": "#iron",
+          "uv": [
+            7.35,
+            7.35,
+            8.65,
+            8.65
+          ]
+        },
+        "down": {
+          "texture": "#iron",
+          "uv": [
+            7.35,
+            7.35,
+            8.65,
+            8.65
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          12.15,
+          8
+        ],
+        "axis": "y",
+        "angle": 45
+      }
+    }
+  ]
+}

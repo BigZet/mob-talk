@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "decorations",
+  "pattern": [
+    "BBB"
+  ],
+  "key": {
+    "B": {
+      "item": "minecraft:polished_blackstone_slab"
+    }
+  },
+  "result": {
+    "id": "divineblock:grave_slab",
+    "count": 2
+  }
+}

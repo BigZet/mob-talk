@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "divineblock:block/gothic_marble_stone"
+    },
+    "facing=east": {
+      "model": "divineblock:block/gothic_marble_stone",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "divineblock:block/gothic_marble_stone",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "divineblock:block/gothic_marble_stone",
+      "y": 270
+    }
+  }
+}
