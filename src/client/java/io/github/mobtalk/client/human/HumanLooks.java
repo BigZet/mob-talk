@@ -5,6 +5,8 @@ import io.github.mobtalk.core.ConversationStore;
 import io.github.mobtalk.core.Gender;
 import io.github.mobtalk.core.SocialProfile;
 import io.github.mobtalk.human.HumanGenes;
+import io.github.mobtalk.client.game.WeddingItems;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.registry.Registries;
 
@@ -25,7 +27,7 @@ public final class HumanLooks {
     private static final Map<UUID, Cached> CACHE = new ConcurrentHashMap<>();
     private static final int DEPTH = 4;
 
-    private record Key(String type, String profession, boolean baby, ConversationStore.Lineage lineage) { }
+    private record Key(String type, String profession, boolean baby, ConversationStore.Lineage lineage, String outfit) { }
     private record Cached(Key key, HumanLook look) { }
 
     private HumanLooks() { }
@@ -39,10 +41,12 @@ public final class HumanLooks {
         UUID id = villager.getUuid();
         String type = Registries.VILLAGER_TYPE.getId(villager.getVillagerData().getType()).getPath();
         String profession = Registries.VILLAGER_PROFESSION.getId(villager.getVillagerData().getProfession()).getPath();
-        Key key = new Key(type, profession, villager.isBaby(), lineages.get(id));
+        // Свадебный убор на голове (трек L) — праздничный наряд: невеста, жених, подружка, дружка.
+        String outfit = WeddingItems.outfit(villager.getEquippedStack(EquipmentSlot.HEAD));
+        Key key = new Key(type, profession, villager.isBaby(), lineages.get(id), outfit);
         Cached cached = CACHE.get(id);
         if (cached != null && cached.key.equals(key)) return cached.look;
-        HumanLook look = new HumanLook(genes(id, HumanGenes.temperature(type), DEPTH), gender(id), profession, age(villager.isBaby(), key.lineage));
+        HumanLook look = new HumanLook(genes(id, HumanGenes.temperature(type), DEPTH), gender(id), profession, age(villager.isBaby(), key.lineage), outfit);
         CACHE.put(id, new Cached(key, look));
         return look;
     }

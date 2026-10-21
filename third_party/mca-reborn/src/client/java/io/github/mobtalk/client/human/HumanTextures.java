@@ -56,6 +56,8 @@ public final class HumanTextures {
      * the neutral ones, or everyday clothes when the profession has none (modded professions). */
     public static Identifier clothes(HumanLook look) {
         List<Identifier> pool;
+        if (!look.outfit().isEmpty() && look.age() == HumanLook.Age.ADULT && !pool("clothing/wedding/" + look.outfit()).isEmpty())
+            return HumanGenes.pick(pool("clothing/wedding/" + look.outfit()), look.genes().clothes()); // Свадебный наряд Mob Talk.
         if (look.age() != HumanLook.Age.ADULT) pool = pool("clothing/" + look.gender() + "/" + (look.age() == HumanLook.Age.TODDLER ? "toddler" : "child"));
         else {
             pool = new ArrayList<>(pool("clothing/" + look.gender() + "/" + look.profession()));
