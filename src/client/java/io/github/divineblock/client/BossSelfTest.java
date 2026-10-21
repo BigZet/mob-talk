@@ -84,7 +84,11 @@ public final class BossSelfTest {
         }
         switch (phase) {
             case 0 -> {
-                if (!(client.currentScreen instanceof TitleScreen)) return;
+                // A fresh game directory first shows the accessibility onboarding: skip it.
+                if (!(client.currentScreen instanceof TitleScreen)) {
+                    if (ticks > 100 && client.world == null && client.getOverlay() == null) { client.options.onboardAccessibility = false; client.setScreen(new TitleScreen()); }
+                    return;
+                }
                 GameRules rules = new GameRules();
                 rules.get(GameRules.DO_MOB_SPAWNING).set(false, null);
                 rules.get(GameRules.DO_DAYLIGHT_CYCLE).set(false, null);
