@@ -133,16 +133,12 @@ public final class Banishment {
         if (!config.banBackup) { Scheduler.later(SENTENCE_TICKS, () -> castOut(server, player, ban)); return "приговор: вечное изгнание (без копии мира)"; }
         // The copy is the way back if the god was wrong: saved now, copied off the game thread, and no copy — no ban.
         // Saved without blocking the game: a flushing save stalls the server for seconds in a big world and, with chunks still
-        // generating, once left the world unable to close. The copy waits for the chunk writes off the game thread instead.
+        // generating, once left the world unable to close. The copy waits for the writes to settle off the game thread instead.
         server.saveAll(true, false, true);
-        java.util.List<java.util.concurrent.CompletableFuture<Void>> writes = new java.util.ArrayList<>();
-        for (ServerWorld each : server.getWorlds()) writes.add(each.getChunkManager().chunkLoadingManager.completeAll(false));
         Path worldDir = server.getSavePath(WorldSavePath.ROOT).toAbsolutePath().normalize();
         Thread copier = new Thread(() -> {
             try {
-                try { java.util.concurrent.CompletableFuture.allOf(writes.toArray(new java.util.concurrent.CompletableFuture[0])).get(60, java.util.concurrent.TimeUnit.SECONDS); }
-                catch (java.util.concurrent.ExecutionException | java.util.concurrent.TimeoutException slow) { DivineBlockMod.LOG.warn("Божественный блок: запись мира перед копией не дождалась", slow); }
-                Thread.sleep(1500); // Entities and points of interest are written a moment later.
+                settle(worldDir);
                 Path backup = backup(worldDir);
                 ban.backup = backup.getFileName().toString();
                 long wait = due - System.currentTimeMillis();
@@ -198,6 +194,21 @@ public final class Banishment {
                 + " или запустить игру с -D" + UNBAN_PROPERTY + "=1" + (ban.backup.isEmpty() ? "" : ". Копия мира до изгнания: " + ban.backup))
                 .formatted(Formatting.DARK_GRAY));
         return out;
+    }
+
+    /** Waits (up to a minute) until nothing in the world folder has been written for two seconds: the save just queued
+     * goes to disk on the game's own writer threads. */
+    static void settle(Path worldDir) throws IOException, InterruptedException {
+        long deadline = System.currentTimeMillis() + 60_000;
+        while (System.currentTimeMillis() < deadline) {
+            long newest = 0;
+            try (Stream<Path> files = Files.walk(worldDir)) {
+                for (Path file : (Iterable<Path>) files::iterator) if (Files.isRegularFile(file)) newest = Math.max(newest, Files.getLastModifiedTime(file).toMillis());
+            }
+            if (System.currentTimeMillis() - newest > 2000) return;
+            Thread.sleep(500);
+        }
+        DivineBlockMod.LOG.warn("Божественный блок: мир всё ещё пишется — копирую как есть");
     }
 
     /** Copies the world folder next to itself (without its lock) and names the copy so it is told apart in the world list. */
