@@ -43,8 +43,13 @@ public final class NimrodEntity extends SacredBoss {
     static final int TOWER_LIFE = 45 * 20;
     static final double GRAVITY = 0.04;
 
+    private static final net.minecraft.entity.data.TrackedData<Byte> MOVE =
+            net.minecraft.entity.data.DataTracker.registerData(NimrodEntity.class, net.minecraft.entity.data.TrackedDataHandlerRegistry.BYTE);
+    /** Which move the model should pose: none, drawing the bow, throwing a brick, stamping. */
+    public static final int MOVE_NONE = 0, MOVE_DRAW = 1, MOVE_THROW = 2, MOVE_STOMP = 3;
+
     private final List<BlockPos> tower = new ArrayList<>();
-    private int towerAge = -1, perched;
+    private int towerAge = -1, perched, moveTicks;
     private boolean levitating;
     private double perchY;
 
@@ -53,14 +58,23 @@ public final class NimrodEntity extends SacredBoss {
     /** The confusion of tongues is shown on the client only: nothing to hook on the server. */
     static void registerHooks() { }
 
+    @Override protected void initDataTracker(net.minecraft.entity.data.DataTracker.Builder builder) {
+        super.initDataTracker(builder);
+        builder.add(MOVE, (byte) 0);
+    }
+    /** On the client too: the move being made, for the model's pose. */
+    public int move() { return dataTracker.get(MOVE); }
+    private void pose(int move, int ticks) { dataTracker.set(MOVE, (byte) move); moveTicks = ticks; }
+
     @Override public BossKind kind() { return BossKind.NIMROD; }
     @Override protected String theme() { return "punishment_02"; }
     @Override protected float meleeDamage() { return 7f; }
-    @Override protected double meleeReach() { return perched > 0 ? 0 : 3.2; }
+    @Override protected double meleeReach() { return perched > 0 ? 0 : getWidth() * 0.5 + 2.6; }
 
     // ---- The fight loop. ----
 
     @Override protected void mobTick() {
+        if (moveTicks > 0 && --moveTicks == 0) dataTracker.set(MOVE, (byte) MOVE_NONE);
         super.mobTick();
         if (!(getWorld() instanceof ServerWorld)) return;
         if (towerAge >= 0 && ++towerAge > TOWER_LIFE) demolish();
@@ -117,6 +131,7 @@ public final class NimrodEntity extends SacredBoss {
     private void volley(LivingEntity target) {
         int warn = phase >= 2 ? 14 : 20;
         int count = phase >= 2 ? 5 : 3;
+        pose(MOVE_DRAW, warn + count * (phase >= 2 ? 3 : 5) + 6);
         cast("Залп зверолова", warn, true, left -> {
             Vec3d bow = bowPos();
             particles(ParticleTypes.CRIT, bow.x, bow.y, bow.z, 2, 0.2, 0.3, 0.2, 0.01);
@@ -145,6 +160,7 @@ public final class NimrodEntity extends SacredBoss {
 
     /** «Обожжённый кирпич»: he weighs a brick in his hand, then hurls one or more in an arc; the landing spot is marked. */
     private void bricks(LivingEntity target, int count, int warn) {
+        pose(MOVE_THROW, warn + 8);
         cast("Обожжённый кирпич", warn, true, left -> {
             Vec3d hand = handPos();
             particles(BRICK_DUST, hand.x, hand.y, hand.z, 3, 0.15, 0.15, 0.15, 0);
@@ -160,6 +176,7 @@ public final class NimrodEntity extends SacredBoss {
             arc(hand, spot);
         }
         sound(SoundEvents.ENTITY_WITCH_THROW, 2f, 0.5f);
+        swingHand(net.minecraft.util.Hand.MAIN_HAND);
     }
 
     /** A clay brick flying in an arc from {@code from} to land at {@code to}; smoke trails it and its landing spot is marked.
@@ -202,6 +219,7 @@ public final class NimrodEntity extends SacredBoss {
 
     /** «Поступь царя»: he lifts his foot (the ground shakes), then stamps, and a low ring runs out through the dust; jump it. */
     private void stomp() {
+        pose(MOVE_STOMP, 26);
         cast("Поступь царя", 20, true, left -> {
             particles(MUD_DUST, getX(), getY() + 0.1, getZ(), 6, 1.5, 0.05, 1.5, 0);
             if (left % 6 == 0) sound(SoundEvents.ENTITY_RAVAGER_STEP, 2f, 0.5f);
@@ -215,6 +233,7 @@ public final class NimrodEntity extends SacredBoss {
 
     /** From the top of the tower: bricks (two to four) and a couple of arrows. */
     private void bombard(LivingEntity target) {
+        pose(MOVE_THROW, (phase >= 2 ? 12 : 16) + 8);
         cast("Град с башни", phase >= 2 ? 12 : 16, true, left -> {
             Vec3d hand = handPos();
             particles(BRICK_DUST, hand.x, hand.y, hand.z, 3, 0.2, 0.2, 0.2, 0);
@@ -266,7 +285,8 @@ public final class NimrodEntity extends SacredBoss {
     /** Lifts him one block and lays a 3×3 course of bricks under his feet, only into air and never into anyone. */
     private void buildLayer(ServerWorld world, BlockPos base, int layer) {
         BlockPos center = base.up(layer);
-        for (int up = 1; up <= 3; up++)
+        // He stands on the course just laid: the air must be free for his whole height.
+        for (int up = 1; up <= MathHelper.ceil(getHeight()) + 1; up++)
             if (!world.getBlockState(center.up(up)).getCollisionShape(world, center.up(up)).isEmpty()) return;
         if (getY() < center.getY() - 1.5) return;
         requestTeleport(base.getX() + 0.5, center.getY() + 1, base.getZ() + 0.5);
@@ -352,11 +372,11 @@ public final class NimrodEntity extends SacredBoss {
 
     private Vec3d bowPos() {
         float yaw = bodyYaw * MathHelper.RADIANS_PER_DEGREE;
-        return new Vec3d(getX() - Math.cos(yaw) * 0.5 - Math.sin(yaw) * 0.6, getY() + 1.6, getZ() - Math.sin(yaw) * 0.5 + Math.cos(yaw) * 0.6);
+        return new Vec3d(getX() - Math.cos(yaw) * 0.3 - Math.sin(yaw) * 1.4, getY() + getHeight() * 0.7, getZ() - Math.sin(yaw) * 0.3 + Math.cos(yaw) * 1.4);
     }
 
     private Vec3d handPos() {
         float yaw = bodyYaw * MathHelper.RADIANS_PER_DEGREE;
-        return new Vec3d(getX() + Math.cos(yaw) * 0.5 - Math.sin(yaw) * 0.4, getY() + 1.9, getZ() + Math.sin(yaw) * 0.5 + Math.cos(yaw) * 0.4);
+        return new Vec3d(getX() + Math.cos(yaw) * 0.8 - Math.sin(yaw) * 0.4, getY() + getHeight() * 0.85, getZ() + Math.sin(yaw) * 0.8 + Math.cos(yaw) * 0.4);
     }
 }
