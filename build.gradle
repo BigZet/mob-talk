@@ -12,6 +12,13 @@ loom {
             programArgs '--width', '1600', '--height', '900'
             runDir 'run-selftest'
         }
+        hogweedtest {
+            client()
+            name 'Hogweed self-test'
+            vmArg '-Drusflora.hogweedtest=true'
+            programArgs '--width', '1600', '--height', '900'
+            runDir 'run-hogweedtest'
+        }
     }
     mods {
         rusflora {

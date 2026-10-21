@@ -14,6 +14,7 @@ public final class RusFloraClient implements ClientModInitializer {
             BlockRenderLayerMap.INSTANCE.putBlock(RusFlora.stem(kind), RenderLayer.getCutout());
             BlockRenderLayerMap.INSTANCE.putBlock(RusFlora.sapling(kind), RenderLayer.getCutout());
         }
+        HogweedClient.register();
         ShrubSelfTest.register();
     }
 }

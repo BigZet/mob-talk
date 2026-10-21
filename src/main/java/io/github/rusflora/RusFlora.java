@@ -4,6 +4,7 @@ import io.github.rusflora.block.ShrubKind;
 import io.github.rusflora.block.ShrubLeavesBlock;
 import io.github.rusflora.block.ShrubSaplingBlock;
 import io.github.rusflora.block.ShrubStemBlock;
+import io.github.rusflora.hogweed.Hogweed;
 import io.github.rusflora.world.RusFloraWorldgen;
 import java.util.EnumMap;
 import java.util.Map;
@@ -73,6 +74,7 @@ public final class RusFlora implements ModInitializer {
         });
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.FOOD_AND_DRINK).register(entries -> FRUITS.values().forEach(entries::add));
         RusFloraWorldgen.register();
+        Hogweed.register();
         LOG.info("Русская флора загружена: {} видов кустов", ShrubKind.values().length);
     }
 

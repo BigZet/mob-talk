@@ -28,5 +28,13 @@
   "item.rusflora.bird_cherry": "Ягоды черёмухи",
   "item.rusflora.red_elderberry": "Ягоды красной бузины",
   "item.rusflora.juniper_berry": "Шишкоягоды можжевельника",
-  "itemGroup.rusflora": "Русская флора"
+  "itemGroup.rusflora": "Русская флора",
+  "block.rusflora.hogweed": "Борщевик Сосновского",
+  "item.rusflora.hogweed_seeds": "Семена борщевика",
+  "item.rusflora.hogweed_stalk": "Полый стебель борщевика",
+  "block.rusflora.dry_hogweed_umbel": "Сухой зонтик борщевика",
+  "effect.rusflora.hogweed_sap": "Сок борщевика",
+  "effect.rusflora.hogweed_burn": "Ожог борщевиком",
+  "death.attack.rusflora.hogweed_burn": "%1$s сгорел от сока борщевика на солнце",
+  "death.attack.rusflora.hogweed_burn.player": "%1$s сгорел от сока борщевика, убегая от %2$s"
 }

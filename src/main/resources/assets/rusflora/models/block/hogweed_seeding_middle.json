@@ -1,0 +1,157 @@
+{
+  "ambientocclusion": false,
+  "textures": {
+    "stem": "rusflora:block/hogweed_stem",
+    "leaf": "rusflora:block/hogweed_leaf_late",
+    "particle": "rusflora:block/hogweed_stem"
+  },
+  "elements": [
+    {
+      "from": [
+        7.1,
+        0,
+        7.1
+      ],
+      "to": [
+        8.9,
+        16,
+        8.9
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            0,
+            9,
+            16
+          ],
+          "texture": "#stem"
+        },
+        "south": {
+          "uv": [
+            6,
+            0,
+            9,
+            16
+          ],
+          "texture": "#stem"
+        },
+        "east": {
+          "uv": [
+            6,
+            0,
+            9,
+            16
+          ],
+          "texture": "#stem"
+        },
+        "west": {
+          "uv": [
+            6,
+            0,
+            9,
+            16
+          ],
+          "texture": "#stem"
+        },
+        "up": {
+          "uv": [
+            6,
+            6,
+            9,
+            9
+          ],
+          "texture": "#stem"
+        }
+      }
+    },
+    {
+      "from": [
+        8,
+        4,
+        4.0
+      ],
+      "to": [
+        17,
+        4,
+        12.0
+      ],
+      "shade": false,
+      "faces": {
+        "up": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#leaf",
+          "rotation": 90
+        },
+        "down": {
+          "uv": [
+            0,
+            16,
+            16,
+            0
+          ],
+          "texture": "#leaf",
+          "rotation": 90
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          4,
+          8
+        ],
+        "axis": "z",
+        "angle": 45
+      }
+    },
+    {
+      "from": [
+        1,
+        11,
+        4.5
+      ],
+      "to": [
+        8,
+        11,
+        11.5
+      ],
+      "shade": false,
+      "faces": {
+        "up": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#leaf",
+          "rotation": 270
+        },
+        "down": {
+          "uv": [
+            0,
+            16,
+            16,
+            0
+          ],
+          "texture": "#leaf",
+          "rotation": 270
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          11,
+          8
+        ],
+        "axis": "z",
+        "angle": -45
+      }
+    }
+  ]
+}
