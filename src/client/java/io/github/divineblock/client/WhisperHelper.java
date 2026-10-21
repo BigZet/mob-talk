@@ -56,7 +56,17 @@ final class WhisperHelper {
         // This mod's own Python environment (scripts/setup-whisper.ps1); an existing Mob Talk environment is only a fallback,
         // so the 3 GB model is not downloaded twice on a machine that has both mods.
         Path home = null, python = null;
-        for (Path candidate : new Path[] { directory, local.resolve("MobTalk") }) {
+        // Mob Talk's setup may have run inside the Codex app, whose writes to LOCALAPPDATA land in its package folder;
+        // a game started outside that app sees the real LOCALAPPDATA, so look there too (as Mob Talk's WhisperProcess does).
+        java.util.List<Path> candidates = new java.util.ArrayList<>(java.util.List.of(directory, local.resolve("MobTalk")));
+        Path packages = local.resolve("Packages");
+        if (Files.isDirectory(packages)) {
+            try (var entries = Files.list(packages)) {
+                entries.filter(path -> path.getFileName().toString().startsWith("OpenAI.Codex_")).sorted()
+                        .map(path -> path.resolve("LocalCache/Local/MobTalk")).forEach(candidates::add);
+            }
+        }
+        for (Path candidate : candidates) {
             for (String exe : new String[] { "venv/Scripts/pythonw.exe", "venv/Scripts/python.exe" })
                 if (python == null && Files.isRegularFile(candidate.resolve(exe))) { python = candidate.resolve(exe); home = candidate; }
         }
