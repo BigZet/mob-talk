@@ -49,7 +49,7 @@ import net.minecraft.world.level.LevelInfo;
 
 /** The unattended in-game self-test, on with -Ddivineblock.selftest=true: makes a fresh world, places an altar, prays through
  * the real packet, kills a villager to see the deed counted, angers the god and repents, performs every act of the catalogue,
- * takes screenshots and quits. Report: %LOCALAPPDATA%\DivineBlock\selftest\report.txt; screenshots in the game's screenshots. */
+ * takes screenshots and quits. Report: %LOCALAPPDATA%\DivineBlock\selftest\report.txt (or -Ddivineblock.selftest.report=<folder>); screenshots in the game's screenshots. */
 public final class SelfTest {
     private static final List<String> report = new ArrayList<>();
     private static int phase, ticks, failures;
@@ -502,8 +502,9 @@ public final class SelfTest {
         DivineBlockMod.LOG.info("[самотест] {}", line);
     }
     private static synchronized void write() {
-        String local = System.getenv("LOCALAPPDATA");
-        Path dir = Path.of(local == null ? "." : local, "DivineBlock", "selftest");
+        // Parallel runs (scripts/run-selftest.ps1) give each copy its own folder through -Ddivineblock.selftest.report.
+        String local = System.getenv("LOCALAPPDATA"), own = System.getProperty("divineblock.selftest.report");
+        Path dir = own != null && !own.isBlank() ? Path.of(own) : Path.of(local == null ? "." : local, "DivineBlock", "selftest");
         try { Files.createDirectories(dir); Files.write(dir.resolve("report.txt"), report, StandardCharsets.UTF_8); }
         catch (IOException failure) { DivineBlockMod.LOG.warn("самотест: отчёт не записан", failure); }
     }
