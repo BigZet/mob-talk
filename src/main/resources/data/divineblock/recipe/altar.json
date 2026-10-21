@@ -1,12 +1,13 @@
 {
   "type": "minecraft:crafting_shaped",
   "category": "misc",
-  "pattern": ["GGG", "QDQ", "OOO"],
+  "pattern": ["GBG", "DND", "OOO"],
   "key": {
-    "G": { "item": "minecraft:gold_ingot" },
-    "Q": { "item": "minecraft:quartz_block" },
+    "G": { "item": "minecraft:gold_block" },
+    "B": { "item": "minecraft:book" },
     "D": { "item": "minecraft:diamond" },
-    "O": { "item": "minecraft:obsidian" }
+    "N": { "item": "minecraft:netherite_ingot" },
+    "O": { "item": "minecraft:crying_obsidian" }
   },
   "result": { "id": "divineblock:altar", "count": 1 }
 }

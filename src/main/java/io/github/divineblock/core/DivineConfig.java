@@ -65,6 +65,10 @@ public final class DivineConfig {
     public String microphoneName = "";
     /** Ids of acts the player switched off. */
     public List<String> disabled = new ArrayList<>();
+    /** Orthodox churches with an altar inside appear in newly generated chunks; off generates none (old ones stay). */
+    public boolean churches = true;
+    /** How rare churches are: one per this many chunks square at most, 32..256 (the vanilla village is 34). */
+    public int churchSpacing = 64;
     public boolean debug = false;
     /** Sacred bosses ({@code io.github.divineblock.boss}): ids switched off (a buffed vanilla mob comes instead), strength in
      * percent (50..300) and whether their ultimates may break glass, put out lights and set fires. */
@@ -106,6 +110,7 @@ public final class DivineConfig {
         chantVolume = clamp(chantVolume, 0, 200);
         if (disabledBosses == null) disabledBosses = new ArrayList<>();
         bossDifficulty = clamp(bossDifficulty, 50, 300);
+        churchSpacing = clamp(churchSpacing, 32, 256);
         voiceEffects(voiceEffects());
         return this;
     }

@@ -6,6 +6,7 @@ import io.github.divineblock.game.AltarBlock;
 import io.github.divineblock.game.GameHooks;
 import io.github.divineblock.game.PrayPayload;
 import io.github.divineblock.game.Prayers;
+import io.github.divineblock.world.ChurchWorldgen;
 import java.nio.file.Path;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
@@ -55,6 +56,8 @@ public final class DivineBlockMod implements ModInitializer {
         JevGodDecider.diagnostics = line -> LOG.info("Божественный блок: {}", line);
         GameHooks.register();
         io.github.divineblock.boss.DivineBosses.register();
+        ChurchWorldgen.register();
+        config(); // world generation reads the church settings from its own threads
         LOG.info("Божественный блок загружен");
     }
 
@@ -63,9 +66,9 @@ public final class DivineBlockMod implements ModInitializer {
 
     public static DivineConfig config() {
         DivineConfig current = config;
-        if (current == null) { current = DivineConfig.load(configFile()); config = current; }
+        if (current == null) { current = DivineConfig.load(configFile()); config = current; ChurchWorldgen.apply(current); }
         return current.copy();
     }
     /** The settings screen saved a new config: the next prayer reads it. */
-    public static void reloadConfig() { config = DivineConfig.load(configFile()); }
+    public static void reloadConfig() { DivineConfig loaded = DivineConfig.load(configFile()); config = loaded; ChurchWorldgen.apply(loaded); }
 }
