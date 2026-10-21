@@ -200,8 +200,11 @@ def man():
     return Part("face_man", children=[], boxes=[
         Box((-2.6, -7.0, -3.5), (5.2, 6.4, 1.0), icon_face(SKIN, HAIR, eye=(48, 34, 24), stern=True, glow_eyes=(255, 214, 110))),
         Box((-0.45, -4.6, -3.95), (0.9, 2.2, 0.5), solid(SKIN, k=0.04)),
-        Box((-2.4, -1.3, -3.6), (4.8, 2.6, 1.4), hair(HAIR)),
-        Box((-1.4, 1.2, -3.3), (2.8, 1.4, 1.1), hair(HAIR)),
+        Box((-2.4, -1.4, -3.9), (4.8, 2.4, 1.2), hair(HAIR)),
+        Box((-1.6, 0.9, -3.8), (3.2, 1.8, 1.0), hair(HAIR)),
+        Box((-0.8, 2.6, -3.6), (1.6, 1.0, 0.8), hair(HAIR)),
+        Box((-3.3, -6.6, -3.7), (0.9, 5.4, 1.4), hair(HAIR)),
+        Box((2.4, -6.6, -3.7), (0.9, 5.4, 1.4), hair(HAIR)),
         Box((-3.0, -7.8, -3.7), (6.0, 1.0, 0.6), gold_leaf(ornament=False)),
     ])
 
@@ -223,10 +226,10 @@ def lion():
 
 
 def horn(name, x, sign):
-    """A horn of three pieces turning outward, then up and forward, paling to the tip."""
-    seg3 = Part(name + "_3", pivot=(sign * 2.0, 0, 0), rotation=(0.5, 0, -sign * 0.6),
+    """A horn of three pieces turning outward, then forward and a little up, paling to the tip."""
+    seg3 = Part(name + "_3", pivot=(sign * 2.0, 0, 0), rotation=(0, sign * 0.5, -sign * 0.35),
                 boxes=[Box((0 if sign > 0 else -2.0, -0.45, -0.45), (2.0, 0.9, 0.9), solid(shade(BONE, 1.05), k=0.04))])
-    seg2 = Part(name + "_2", pivot=(sign * 2.4, 0, 0), rotation=(0.2, 0, -sign * 0.6), children=[seg3],
+    seg2 = Part(name + "_2", pivot=(sign * 2.4, 0, 0), rotation=(0, sign * 0.5, -sign * 0.3), children=[seg3],
                 boxes=[Box((0 if sign > 0 else -2.4, -0.65, -0.65), (2.4, 1.3, 1.3), solid(BONE, k=0.05))])
     return Part(name, pivot=(x, -6.2, -2.8), rotation=(0, sign * 0.3, -sign * 0.25), children=[seg2],
                 boxes=[Box((0 if sign > 0 else -2.4, -0.85, -0.85), (2.4, 1.7, 1.7), solid(shade(BONE, 0.85), k=0.06))])
@@ -264,25 +267,40 @@ def scaled(part, k):
     return part
 
 
-head = Part("head", pivot=(0, -14.6, 0), boxes=[
-    Box((-3.0, -7.6, -3.0), (6.0, 7.6, 6.0), hair(HAIR)),
-    Box((-1.4, 0.0, -1.4), (2.8, 1.2, 2.8), solid(SKIN, k=0.05)),
-], children=[man(), lion(), ox(), eagle()])
+head = Part("head", pivot=(0, -15.4, 0), boxes=[
+    Box((-2.7, -7.6, -2.7), (5.4, 7.6, 5.4), hair(HAIR)),
+    Box((-1.4, 0.0, -1.4), (2.8, 1.8, 2.8), solid(SKIN, k=0.05)),
+], children=[Part("head_round", rotation=(0, math.pi / 4, 0), boxes=[Box((-2.5, -7.4, -2.5), (5.0, 7.2, 5.0), hair(HAIR))]),
+             man(), lion(), ox(), eagle()])
 scaled(head, 1.25)
 
 
 # ---- The flaming sword. ----
+
+def sword_blade(p, f, opts):
+    """boxtex `burning_blade` (sharp point, burning edges), but white-hot: the steel itself shines and the fire runs wider."""
+    burning_blade(core=(255, 232, 170))(p, f, opts)
+    if f.side not in ("front", "back"):
+        return
+    for v in range(f.h):
+        for u in range(f.w):
+            r, g, b, a = p.img.getpixel((f.x + u, f.y + v))
+            if not a:
+                continue
+            x = abs(u + 0.5 - f.w / 2) / (f.w / 2)
+            if 0.5 < x <= 0.72:
+                c = mix(CANDLE, FLAME, 0.5 + 0.5 * math.sin(v * 0.7 - u))
+                p.put(f, u, v, c, c)
+            elif p.glow.getpixel((f.x + u, f.y + v))[3] == 0:
+                p.glow.putpixel((f.x + u, f.y + v), (int(r * 0.5), int(g * 0.45), int(b * 0.35), 255))
+
 blade = Part("blade", children=[
-    flame("blade_flame_%d" % i, pivot=(side * 1.4, -6 - i * 3.6, 0), rotation=(0, 0, side * 0.5), length=3.2 + (i % 3) * 0.6, width=1.4)
+    flame("blade_flame_%d" % i, pivot=(side * 1.6, -6 - i * 3.4, 0), rotation=(0, 0, side * 0.35), length=2.2 + (i % 3) * 0.5, width=1.2)
     for i, side in ((i, 1 if i % 2 else -1) for i in range(8))
 ], boxes=[
-    Box((-1.9, -34, -0.05), (3.8, 31.5, 0.1), flame_blade(), flat=True),
-    Box((-0.05, -33, -1.9), (0.1, 30.5, 3.8), flame_blade(), flat=True),
-    Box((-0.6, -32, -0.6), (1.2, 29.5, 1.2), solid((255, 246, 220), glow=True, k=0.03), flat=True),
+    Box((-2.0, -34, -0.1), (4.0, 31.5, 0.2), sword_blade, flat=True),
+    Box((-0.1, -32.5, -1.5), (0.2, 30, 3.0), sword_blade, flat=True),
 ])
-# The point: a white-hot diamond turned on its corner where the core of the blade ends, so the sword reads sharp.
-blade.children.append(Part("sword_tip", pivot=(0, -32.4, 0), rotation=(0, 0, 0.785),
-                           boxes=[Box((-1.0, -1.0, -0.3), (2.0, 2.0, 0.6), solid((255, 246, 214), glow=True, k=0.03), flat=True)]))
 sword = Part("sword", pivot=(0, 13.6, -0.6), rotation=(0.9, 0, -0.15), children=[blade], boxes=[
     Box((-0.6, -2.2, -0.6), (1.2, 5.2, 1.2), solid((70, 40, 24), k=0.1)),
     Box((-4.2, -3.3, -0.8), (8.4, 1.2, 1.6), gold_leaf(ornament=False)),
