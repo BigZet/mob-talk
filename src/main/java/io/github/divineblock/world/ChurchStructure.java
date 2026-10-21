@@ -15,6 +15,7 @@ import net.minecraft.structure.pool.StructurePoolBasedGenerator;
 import net.minecraft.structure.pool.alias.StructurePoolAliasLookup;
 import net.minecraft.util.BlockRotation;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.Heightmap;
@@ -32,14 +33,16 @@ public final class ChurchStructure extends Structure {
     public static final MapCodec<ChurchStructure> CODEC = createCodec(ChurchStructure::new);
     public static final RegistryKey<StructurePool> CEMETERY_POOL = RegistryKey.of(RegistryKeys.TEMPLATE_POOL, Identifier.of("divineblock", "cemetery/start"));
     public static final Identifier CEMETERY_ENTRANCE = Identifier.of("divineblock", "cemetery_entrance");
-    /** Jigsaw depth: the churchyard is the start, its birches one level below; room to spare. */
-    private static final int CEMETERY_DEPTH = 4;
+    /** Jigsaw depth and reach: the churchyard grows in a chain of sections along its path away from the church, birches one
+     * level below each; room to spare for a large one. */
+    private static final int CEMETERY_DEPTH = 7, CEMETERY_REACH = 116;
 
     public ChurchStructure(Config config) { super(config); }
 
-    /** Points sampled for the height in church coordinates: the church's corners and middle, then the churchyard's. */
+    /** Points sampled for the height in church coordinates: the church's corners and middle, then a 40 x 60 churchyard ground
+     * beyond it (dry, not too steep), room for a large cemetery growing away from the church. */
     private static final int[][] CHURCH_SAMPLES = { { -3, -7 }, { 35, -7 }, { -3, 7 }, { 35, 7 }, { 22, 0 }, { 3, 0 } },
-            CEMETERY_SAMPLES = { { 8, 10 }, { 28, 10 }, { 8, 36 }, { 28, 36 }, { 18, 23 } };
+            CEMETERY_SAMPLES = { { -2, 10 }, { 38, 10 }, { -2, 40 }, { 38, 40 }, { -2, 70 }, { 38, 70 }, { 18, 25 }, { 18, 55 } };
 
     @Override protected Optional<StructurePosition> getStructurePosition(Context context) {
         if (!ChurchWorldgen.enabled()) return Optional.empty();
@@ -53,7 +56,7 @@ public final class ChurchStructure extends Structure {
         BlockRotation rotation;
         Optional<RegistryEntry.Reference<StructurePool>> pool = context.dynamicRegistryManager().get(RegistryKeys.TEMPLATE_POOL).getEntry(CEMETERY_POOL);
         Optional<StructurePosition> yard = pool.flatMap(p -> StructurePoolBasedGenerator.generate(context, p, Optional.of(CEMETERY_ENTRANCE), CEMETERY_DEPTH,
-                entrance, false, Optional.empty(), 80, StructurePoolAliasLookup.EMPTY, DimensionPadding.NONE, StructureLiquidSettings.APPLY_WATERLOGGING));
+                entrance, false, Optional.empty(), CEMETERY_REACH, StructurePoolAliasLookup.EMPTY, DimensionPadding.NONE, StructureLiquidSettings.APPLY_WATERLOGGING));
         if (yard.isPresent()) {
             cemetery = yard.get().generate().toList().pieces();
             rotation = cemetery.isEmpty() || !(cemetery.getFirst() instanceof PoolStructurePiece start) ? BlockRotation.NONE : start.getRotation();
@@ -65,24 +68,27 @@ public final class ChurchStructure extends Structure {
         int[] church = heights(context, ox, oz, rotation, CHURCH_SAMPLES), yardHeights = heights(context, ox, oz, rotation, CEMETERY_SAMPLES);
         if (church == null || yardHeights == null) return Optional.empty();
         int floor = Math.round((float) mean(church));
-        if (max(church) - min(church) > 9 || max(yardHeights) - floor > 4 || floor - min(yardHeights) > 4) return Optional.empty();
+        if (max(church) - min(church) > 9 || max(yardHeights) - floor > 8 || floor - min(yardHeights) > 8) return Optional.empty();
         if (floor - 1 <= context.chunkGenerator().getSeaLevel()) return Optional.empty();
 
         ChurchPiece.Frame frame = new ChurchPiece.Frame(new BlockPos(ox, floor, oz), rotation);
         BlockPos center = frame.world(ChurchBuilder.NAVE_X, 0, ChurchBuilder.NAVE_Z);
         RegistryEntry<Biome> biome = context.biomeSource().getBiome(BiomeCoords.fromBlock(center.getX()), BiomeCoords.fromBlock(center.getY()),
                 BiomeCoords.fromBlock(center.getZ()), context.noiseConfig().getMultiNoiseSampler());
-        boolean north = biome.isIn(BiomeTags.IS_TAIGA) || biome.getKey().map(key -> key.getValue().getPath().matches(".*(snowy|grove).*")).orElse(false);
+        boolean north = biome.isIn(BiomeTags.IS_TAIGA) || biome.getKey().map(key -> key.getValue().getPath().matches(".*snowy.*")).orElse(false);
         ChurchBuilder.Variant variant = context.random().nextFloat() < (north ? 0.7f : 0.25f) ? ChurchBuilder.Variant.WOOD : ChurchBuilder.Variant.STONE;
         long seed = context.random().nextLong();
         // The churchyard was started at the ground by its entrance; its gate belongs one under the church floor.
         int lift = floor - 1 - groundAtEntrance;
         cemetery.forEach(piece -> piece.translate(0, lift, 0));
         List<StructurePiece> yardPieces = cemetery;
+        BlockBox yardBox = yardPieces.isEmpty() ? null : StructurePiece.boundingBox(yardPieces.stream()).expand(1);
+        ClearingPiece clearing = yardBox == null ? null
+                : new ClearingPiece(new BlockBox(yardBox.getMinX(), yardBox.getMinY() - 2, yardBox.getMinZ(), yardBox.getMaxX(), floor + 34, yardBox.getMaxZ()));
         return Optional.of(new StructurePosition(center, collector -> {
             collector.addPiece(new ChurchPiece(frame, variant, seed));
             if (yardPieces.isEmpty()) collector.addPiece(new CemeteryPiece(frame, seed ^ 0x5DEECE66DL));
-            else yardPieces.forEach(collector::addPiece);
+            else { collector.addPiece(clearing); yardPieces.forEach(collector::addPiece); }
         }));
     }
 

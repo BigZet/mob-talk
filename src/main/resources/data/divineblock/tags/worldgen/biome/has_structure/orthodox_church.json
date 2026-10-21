@@ -5,6 +5,7 @@
     "minecraft:sunflower_plains",
     "minecraft:meadow",
     "minecraft:forest",
+    "minecraft:flower_forest",
     "minecraft:birch_forest",
     "minecraft:old_growth_birch_forest",
     "minecraft:dark_forest",
@@ -13,6 +14,6 @@
     "minecraft:old_growth_spruce_taiga",
     "minecraft:snowy_plains",
     "minecraft:snowy_taiga",
-    "minecraft:grove"
+    "minecraft:windswept_forest"
   ]
 }

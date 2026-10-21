@@ -10,7 +10,6 @@ import net.minecraft.block.ChestBlock;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.block.GlazedTerracottaBlock;
 import net.minecraft.block.LadderBlock;
-import net.minecraft.block.LanternBlock;
 import net.minecraft.block.LecternBlock;
 import net.minecraft.block.PaneBlock;
 import net.minecraft.block.PillarBlock;
@@ -405,19 +404,19 @@ public final class ChurchBuilder {
         for (int y = horosY + 1; y <= chainTop; y++) canvas.set(NAVE_X, y, 0, Blocks.CHAIN.getDefaultState());
         BlockState slab = Blocks.DARK_OAK_SLAB.getDefaultState().with(SlabBlock.TYPE, SlabType.TOP);
         canvas.set(NAVE_X, horosY, 0, Blocks.GOLD_BLOCK.getDefaultState());
-        canvas.set(NAVE_X, horosY - 1, 0, Blocks.LANTERN.getDefaultState().with(LanternBlock.HANGING, true));
         for (Direction side : new Direction[] { Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST })
             for (int r = 1; r <= 2; r++) {
                 canvas.set(NAVE_X + side.getOffsetX() * r, horosY, side.getOffsetZ() * r, slab);
-                if (r == 2) canvas.set(NAVE_X + side.getOffsetX() * r, horosY + 1, side.getOffsetZ() * r, candles(2, true));
+                if (r == 2) canvas.set(NAVE_X + side.getOffsetX() * r, horosY + 1, side.getOffsetZ() * r, candles(1, true));
             }
         // Candle stands before the iconostasis and the memorial table at the west end.
-        for (int z : new int[] { -3, 3 }) candleStand(25, z, 3);
-        candleStand(24, -5, 2);
-        candleStand(24, 5, 2);
+        // Few, low flames: the church is dark, the candles only pick out the iconostasis.
+        for (int z : new int[] { -3, 3 }) candleStand(25, z, 2);
+        candleStand(24, -5, 1);
+        candleStand(24, 5, 1);
         for (int x = 17; x <= 19; x++) {
             canvas.set(x, 1, -4, Blocks.DARK_OAK_SLAB.getDefaultState().with(SlabBlock.TYPE, SlabType.TOP));
-            if (random.nextInt(3) > 0) canvas.set(x, 2, -4, candles(1 + random.nextInt(3), random.nextInt(3) > 0));
+            if (random.nextInt(3) > 0) canvas.set(x, 2, -4, candles(1 + random.nextInt(2), random.nextInt(2) > 0));
         }
         // The lectern with the gospel stands before the royal doors.
         canvas.set(25, 1, 0, Blocks.LECTERN.getDefaultState().with(LecternBlock.FACING, Direction.WEST));
@@ -429,7 +428,6 @@ public final class ChurchBuilder {
         // The refectory: a long table and a single lamp; the porch tower dark but for one candle.
         for (int x = 9; x <= 12; x++) canvas.set(x, 1, -2, Blocks.SPRUCE_SLAB.getDefaultState().with(SlabBlock.TYPE, SlabType.TOP));
         canvas.set(11, 2, -2, candles(3, true));
-        canvas.set(10, 5, 0, Blocks.LANTERN.getDefaultState().with(LanternBlock.HANGING, true));
         canvas.set(5, 1, 2, Blocks.SPRUCE_SLAB.getDefaultState().with(SlabBlock.TYPE, SlabType.TOP));
         canvas.set(5, 2, 2, candles(1, true));
         // Cobwebs and dust where no one reaches.
@@ -492,7 +490,7 @@ public final class ChurchBuilder {
         canvas.set(ALTAR_X, 1, ALTAR_Z, DivineBlockMod.ALTAR.getDefaultState());
         for (int z : new int[] { -1, 1 }) canvas.set(ALTAR_X, 1, z, Blocks.RED_CARPET.getDefaultState());
         canvas.set(33, 1, 0, Blocks.POLISHED_BLACKSTONE_WALL.getDefaultState());
-        canvas.set(33, 2, 0, candles(4, true));
+        canvas.set(33, 2, 0, candles(3, true));
         canvas.chest(CHEST_X, 1, CHEST_Z, Blocks.CHEST.getDefaultState().with(ChestBlock.FACING, Direction.SOUTH));
         canvas.set(30, 1, 3, Blocks.DARK_OAK_SLAB.getDefaultState().with(SlabBlock.TYPE, SlabType.TOP));
         canvas.set(30, 2, 3, candles(1, false));
