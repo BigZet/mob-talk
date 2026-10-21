@@ -41,11 +41,11 @@ public final class BossClient {
         EntityModelLayerRegistry.registerModelLayer(CherubModel.LAYER, CherubModelData::create);
         EntityModelLayerRegistry.registerModelLayer(BeastModel.LAYER, BeastModelData::create);
         EntityModelLayerRegistry.registerModelLayer(NimrodModel.LAYER, NimrodModelData::create);
-        EntityRendererRegistry.register(DivineBosses.BLACK_SCHEMNIK, context -> new SacredBossRenderer<>(context, new SchemnikModel(context.getPart(SchemnikModel.LAYER)), "black_schemnik", 0.8f, 1f));
+        EntityRendererRegistry.register(DivineBosses.BLACK_SCHEMNIK, context -> new SacredBossRenderer<>(context, new SchemnikModel(context.getPart(SchemnikModel.LAYER)), "black_schemnik", 1.5f, 2f));
         EntityRendererRegistry.register(DivineBosses.BELL_RINGER, context -> new SacredBossRenderer<>(context, new BellRingerModel(context.getPart(BellRingerModel.LAYER)), "bell_ringer", 1.8f, 1.65f));
         EntityRendererRegistry.register(DivineBosses.SERAPH, context -> new SacredBossRenderer<>(context, new SeraphModel(context.getPart(SeraphModel.LAYER)), "seraph", 1f, 1f));
         EntityRendererRegistry.register(DivineBosses.FACELESS_ICON, context -> new SacredBossRenderer<>(context, new FacelessIconModel(context.getPart(FacelessIconModel.LAYER)), "faceless_icon", 1.5f, 0.8f));
-        EntityRendererRegistry.register(DivineBosses.WAILER, context -> new SacredBossRenderer<>(context, new WailerModel(context.getPart(WailerModel.LAYER)), "wailer", 1f, 1f));
+        EntityRendererRegistry.register(DivineBosses.WAILER, context -> new SacredBossRenderer<>(context, new WailerModel(context.getPart(WailerModel.LAYER)), "wailer", 1.3f, 2f));
         EntityRendererRegistry.register(DivineBosses.ARCHANGEL, context -> new SacredBossRenderer<>(context, new ArchangelModel(context.getPart(ArchangelModel.LAYER)), "archangel", 2.2f, 2.5f));
         EntityRendererRegistry.register(DivineBosses.LEVIATHAN, context -> new SacredBossRenderer<>(context, new LeviathanModel(context.getPart(LeviathanModel.LAYER)), "leviathan", 2f, 1f));
         EntityRendererRegistry.register(DivineBosses.BEHEMOTH, context -> new SacredBossRenderer<>(context, new BehemothModel(context.getPart(BehemothModel.LAYER)), "behemoth", 2f, 1.2f));
