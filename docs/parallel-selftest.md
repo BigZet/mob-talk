@@ -32,8 +32,8 @@ powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 [-Only wedding
 
 ## Запуск через Prism
 
-Копия запускается командой `prismlauncher --launch <копия>`, которую принимает уже открытый Prism. Он замечает
-папки в `instances` пересканирует, когда там появляется или исчезает папка; полузаписанную копию он
+Копия запускается командой `prismlauncher --launch <копия>`, которую принимает уже открытый Prism. Он
+пересканирует `instances`, когда там появляется или исчезает папка; полузаписанную копию он
 пропускает и потом отвечает в логе «resolves to nothing». Поэтому копия собирается в
 `PrismLauncher\parallel-staging` и переносится в `instances` целиком, а `Start-TestInstance`, если в
 `PrismLauncher\logs\PrismLauncher-0.log` нет «Loaded instance» копии, заставляет Prism пересканировать
