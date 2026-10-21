@@ -117,6 +117,16 @@ public final class Miracles {
             case CHUNK_VOID -> Wrath.chunkVoid(world, player, altar, severity, config);
             case WITHER -> Wrath.withers(world, player, altar, severity);
             case DRAGON -> Wrath.dragons(world, player, severity);
+            case BLIGHT -> Curses.layBlight(world, player, altar, power, config);
+            case CAIN -> Curses.layCain(world, player, power, config);
+            case SACRED_BOSS -> Bosses.summon(world, player, power, severity);
+            case PLAGUES -> Plagues.plagues(world, player, altar, power, severity, config);
+            case SODOM -> Plagues.sodom(world, player, altar, power, severity, config);
+            case FLOOD -> Ultra.flood(world, player, altar, power, severity, config);
+            case BABEL -> Ultra.babel(world, player, altar, power, severity, config);
+            case MEMORY_WIPE -> Ultra.memoryWipe(world, player, altar, power, severity, config);
+            case JUDGEMENT -> Ultra.judgement(world, player, altar, power, severity, config);
+            case ETERNAL_BAN -> Banishment.banish(world, player, altar, config);
             case FLIP -> Jests.flip(world, player, power);
             case TIME_RUSH -> Jests.timeRush(world, player, power);
             case SHEEP_PARTY -> Jests.sheepParty(world, player, power);
