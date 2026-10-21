@@ -186,9 +186,13 @@ public final class CemeteryTest {
         int[][] box = new int[1][];
         on(10, client -> serverDo(client, server -> {
             spot[0] = where.apply(server.getOverworld());
-            if (spot[0] != null) run(server, String.format("tp @a %d %d %d 180 30", spot[0].getX(), base.getY() + 40, spot[0].getZ()));
+            if (spot[0] == null) return;
+            BlockPos at = spot[0];
+            // /place needs every chunk the cemetery may cover, in any rotation: keep them loaded.
+            run(server, String.format("forceload add %d %d %d %d", at.getX() - 80, at.getZ() - 80, at.getX() + 80, at.getZ() + 80));
+            run(server, String.format("tp @a %d %d %d 180 30", at.getX(), 200, at.getZ()));
         }));
-        on(200, client -> serverDo(client, server -> {
+        on(400, client -> serverDo(client, server -> {
             if (spot[0] == null) return;
             ServerWorld world = server.getOverworld();
             BlockPos at = spot[0];
@@ -202,7 +206,9 @@ public final class CemeteryTest {
             int y = world.getTopY(Heightmap.Type.WORLD_SURFACE, at.getX(), at.getZ());
             ServerPlayerEntity player = server.getPlayerManager().getPlayerList().get(0);
             player.teleport(world, at.getX() + 0.5, y + 30, at.getZ() + 0.5, 180, 30);
-            server.getCommandManager().executeWithPrefix(player.getCommandSource().withLevel(4), "divineblock cemetery");
+            // From the server's own source at that spot, so the command's answer lands in the log.
+            server.getCommandManager().executeWithPrefix(server.getCommandSource().withWorld(world).withLevel(4)
+                    .withPosition(net.minecraft.util.math.Vec3d.ofBottomCenter(new BlockPos(at.getX(), y, at.getZ()))), "divineblock cemetery");
             int[] b = bounds(world, new BlockPos(at.getX(), y, at.getZ()), 72);
             box[0] = b;
             if (!check(b != null, "кладбище (" + tag + ") сгенерировано на природном рельефе")) return;
