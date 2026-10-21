@@ -15,8 +15,8 @@ import net.minecraft.world.gen.StructureAccessor;
 import net.minecraft.world.gen.chunk.ChunkGenerator;
 
 /** Clears trees and bushes over the churchyard before its pieces are placed: the church is generated after the forest has
- * grown (top layer step), and the cemetery's own pieces only lay their blocks on the ground. Logs, leaves and plants go;
- * the ground stays. */
+ * grown (top layer step), and the cemetery's own pieces only lay their blocks on the ground. Logs, leaves and plants go,
+ * ponds are filled with earth; the ground stays. */
 public final class ClearingPiece extends StructurePiece {
     public ClearingPiece(BlockBox box) { super(ChurchWorldgen.CLEARING_PIECE, 0, box); }
 
@@ -32,10 +32,16 @@ public final class ClearingPiece extends StructurePiece {
                 for (int y = boundingBox.getMaxY(); y >= boundingBox.getMinY(); y--) {
                     at.set(x, y, z);
                     BlockState state = world.getBlockState(at);
+                    // Ponds and lakes are placed after the terrain the site was judged by: fill them, grass on top.
+                    if (state.isOf(Blocks.WATER) || state.isOf(Blocks.ICE)) {
+                        boolean top = world.getBlockState(at.up()).isAir();
+                        world.setBlockState(at, (top ? Blocks.GRASS_BLOCK : Blocks.DIRT).getDefaultState(), 2);
+                        continue;
+                    }
                     if (state.isIn(BlockTags.LOGS) || state.isIn(BlockTags.LEAVES) || state.isOf(Blocks.VINE) || state.isOf(Blocks.SNOW)
                             || state.isOf(Blocks.MUSHROOM_STEM) || state.isOf(Blocks.BROWN_MUSHROOM_BLOCK) || state.isOf(Blocks.RED_MUSHROOM_BLOCK)
                             || state.isIn(BlockTags.REPLACEABLE_BY_TREES) && !state.isAir())
-                        world.setBlockState(at, state.getFluidState().isEmpty() ? Blocks.AIR.getDefaultState() : state.getFluidState().getBlockState(), 2);
+                        world.setBlockState(at, (state.getFluidState().isEmpty() ? Blocks.AIR : Blocks.DIRT).getDefaultState(), 2);
                 }
     }
 }
