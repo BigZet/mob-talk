@@ -354,8 +354,9 @@ public final class CemeteryTest {
     }
     private static void finish(MinecraftClient client) {
         phase = 3;
-        String local = System.getenv("LOCALAPPDATA");
-        Path dir = Path.of(local == null ? "." : local, "DivineBlock", "cemeterytest");
+        // scripts/run-selftest.ps1 gives each throwaway copy its own folder through -Ddivineblock.selftest.report.
+        String local = System.getenv("LOCALAPPDATA"), own = System.getProperty("divineblock.selftest.report");
+        Path dir = own != null && !own.isBlank() ? Path.of(own) : Path.of(local == null ? "." : local, "DivineBlock", "cemeterytest");
         try { Files.createDirectories(dir); synchronized (CemeteryTest.class) { Files.write(dir.resolve("report.txt"), report, StandardCharsets.UTF_8); } }
         catch (IOException failure) { DivineBlockMod.LOG.warn("тест кладбища: отчёт не записан", failure); }
         client.execute(client::scheduleStop);
