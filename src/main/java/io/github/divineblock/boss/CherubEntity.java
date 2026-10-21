@@ -92,6 +92,8 @@ public final class CherubEntity extends SacredBoss {
     // ---- Attacks. ----
 
     @Override protected int attack(LivingEntity target) {
+        // The turning sword is the whole of his attention: no throws or lunges until it stops.
+        if (spinLeft > 0) return 20;
         double distance = distanceTo(target);
         int roll = random.nextInt(3);
         if (distance > 8 || roll == 0 && distance > 4) { throwSword(target); return 80; }
