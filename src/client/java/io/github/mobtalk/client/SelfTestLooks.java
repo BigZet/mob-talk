@@ -33,14 +33,17 @@ final class SelfTestLooks {
     private String name() { return test.owner.client.player.getName().getString(); }
     private ServerWorld world() { return (ServerWorld) test.serverPlayer().getWorld(); }
     private String at(int dx, int dy, int dz) { return (fx + dx) + " " + (fy + dy) + " " + (fz + dz); }
+    /** Жители площадки на сервере (по жителям клиента: см. {@link #clientTagged}). */
     private List<VillagerEntity> tagged() {
-        // Метки команд есть только на сервере; спрашиваем его в его же потоке, иначе выборка с клиентского потока бывает пустой.
-        Box box = new Box(fx - 12, fy - 2, fz - 9, fx + 12, fy + 6, fz + 9);
-        return test.server().submit(() -> world().getEntitiesByClass(VillagerEntity.class, box, v -> v.isAlive() && v.getCommandTags().contains(TAG))).join();
+        List<UUID> ids = clientTagged().stream().map(VillagerEntity::getUuid).toList();
+        return test.server().submit(() -> ids.stream().map(id -> world().getEntity(id)).filter(e -> e instanceof VillagerEntity v && v.isAlive())
+                .map(e -> (VillagerEntity) e).toList()).join();
     }
+    /** Жители площадки на клиенте: неподвижные (NoAI) в её границах. Метки команд клиент не видит, а выборка сервера по меткам
+     * под нагрузкой приходила пустой. */
     private List<VillagerEntity> clientTagged() {
-        Set<UUID> ids = new HashSet<>(); for (VillagerEntity v : tagged()) ids.add(v.getUuid());
-        return test.owner.client.world.getEntitiesByClass(VillagerEntity.class, test.owner.client.player.getBoundingBox().expand(24), v -> ids.contains(v.getUuid()));
+        Box box = new Box(fx - 12, fy - 2, fz - 9, fx + 12, fy + 6, fz + 9);
+        return test.owner.client.world.getEntitiesByClass(VillagerEntity.class, box, v -> v.isAlive() && v.isAiDisabled());
     }
 
     void run(Runnable then) {
@@ -125,11 +128,14 @@ final class SelfTestLooks {
             test.check(clientTagged().stream().anyMatch(v -> HumanLooks.of(v).outfit().equals("bride") && HumanTextures.clothes(HumanLooks.of(v)).getPath().contains("wedding/bride")), "the bride wears a wedding dress");
             test.check(clientTagged().stream().anyMatch(v -> HumanLooks.of(v).outfit().equals("groom") && HumanTextures.clothes(HumanLooks.of(v)).getPath().contains("wedding/groom")), "the groom wears a suit");
             shot("mobtalk-looks-wedding.png", () -> {
+            test.command("tp " + name() + " " + (fx + 4.5) + " " + fy + " " + (fz + 2.5) + " 90 10");
+            test.await("pause: the couple from the side", 2, () -> false, () -> shot("mobtalk-looks-wedding-side.png", () -> {
             test.owner.client.options.setPerspective(Perspective.THIRD_PERSON_FRONT);
             test.command("tp " + name() + " " + at(0, 0, 4) + " 0 15");
             test.await("pause: the couple from behind", 2, () -> false, () -> shot("mobtalk-looks-wedding-back.png", () -> {
                 test.owner.client.options.setPerspective(Perspective.FIRST_PERSON);
                 then.run();
+            }));
             }));
             });
         });
