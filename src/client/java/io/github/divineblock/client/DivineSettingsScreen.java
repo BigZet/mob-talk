@@ -60,6 +60,11 @@ public final class DivineSettingsScreen extends Screen {
         java.util.List<String> voices = java.util.Arrays.stream(io.github.divineblock.core.GodVoice.VOICES).map(v -> v[0]).toList();
         addDrawableChild(CyclingButtonWidget.<String>builder(id -> Text.literal(voiceName(id))).values(voices)
                 .initially(voices.contains(config.voiceId) ? config.voiceId : voices.get(0)).build(right, y, column, 20, Text.literal("Голос"), (b, v) -> config.voiceId = v));
+        y += row;
+        // The god's drawn effects: off leaves the vanilla particles of before.
+        addDrawableChild(CyclingButtonWidget.<Integer>builder(v -> Text.literal(new String[] { "выкл", "низко", "средне", "высоко" }[v])).values(List.of(0, 1, 2, 3))
+                .initially(config.effects).build(left, y, column, 20, Text.literal("Эффекты"), (b, v) -> config.effects = v));
+        addDrawableChild(CyclingButtonWidget.onOffBuilder(config.cameraShake).build(right, y, column, 20, Text.literal("Тряска камеры"), (b, v) -> config.cameraShake = v));
         y += row + 6;
 
         // Both keys on one row: a field and its save button in each column.
@@ -142,7 +147,7 @@ public final class DivineSettingsScreen extends Screen {
     }
 
     @Override public void close() {
-        try { config.save(DivineBlockMod.configFile()); DivineBlockMod.reloadConfig(); }
+        try { config.save(DivineBlockMod.configFile()); DivineBlockMod.reloadConfig(); io.github.divineblock.client.fx.FxQuality.reload(); }
         catch (IOException failure) { DivineBlockMod.LOG.warn("Божественный блок: настройки не сохранены", failure); }
         if (client != null) client.setScreen(parent);
     }

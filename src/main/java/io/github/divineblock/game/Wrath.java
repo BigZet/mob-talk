@@ -64,15 +64,9 @@ final class Wrath {
         Miracles.sound(world, player.getBlockPos(), SoundEvents.ENTITY_WITHER_SHOOT, 3f, 0.4f);
         Miracles.sound(world, player.getBlockPos(), SoundEvents.ITEM_TRIDENT_THUNDER.value(), 2f, 0.6f);
         int steps = 40;
-        Scheduler.repeat(1, steps, i -> {
-            double t = (i + 1) / (double) steps;
-            Vec3d at = start.lerp(end, t * t); // Faster as it falls.
-            world.spawnParticles(ParticleTypes.FLAME, at.x, at.y, at.z, 40, 0.9, 0.9, 0.9, 0.04);
-            world.spawnParticles(ParticleTypes.LAVA, at.x, at.y, at.z, 6, 0.6, 0.6, 0.6, 0);
-            world.spawnParticles(ParticleTypes.LARGE_SMOKE, at.x, at.y, at.z, 20, 1.2, 1.2, 1.2, 0.02);
-            world.spawnParticles(ParticleTypes.EXPLOSION, at.x, at.y, at.z, 1, 0.3, 0.3, 0.3, 0);
-            if (i == steps - 1) impact(world, player, altar, ground, power, config);
-        });
+        // The stone, its tail and its smoke are drawn by the clients (Fx), faster as it falls (t²); here only the landing.
+        Fx.meteor(world, start, end, steps, 0.8f + 0.3f * power);
+        Scheduler.later(steps, () -> impact(world, player, altar, ground, power, config));
     }
 
     private static void impact(ServerWorld world, ServerPlayerEntity player, BlockPos altar, BlockPos ground, int power, DivineConfig config) {
@@ -80,6 +74,7 @@ final class Wrath {
         Vec3d at = Vec3d.ofCenter(ground);
         world.createExplosion(null, at.x, at.y, at.z, 4f + 2 * power, !spare, spare ? World.ExplosionSourceType.NONE : World.ExplosionSourceType.TNT);
         world.spawnParticles(ParticleTypes.EXPLOSION_EMITTER, at.x, at.y + 1, at.z, 3, 2, 1, 2, 0);
+        Fx.impact(world, at, Fx.FIRE, 1 + power * 0.6f);
         if (!spare) crater(world, player, altar, ground, 3 + 2 * power, config);
     }
 

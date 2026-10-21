@@ -16,6 +16,8 @@ public final class AltarBlock extends Block {
     public static final MapCodec<AltarBlock> CODEC = createCodec(AltarBlock::new);
     /** Set by the client entrypoint: opens the prayer screen for this altar. A plain hook keeps client classes off the server. */
     public static volatile java.util.function.Consumer<BlockPos> openPrayer = pos -> { };
+    /** Set by the client entrypoint: an altar was seen nearby, for the motes of light that circle it. */
+    public static volatile java.util.function.BiConsumer<World, BlockPos> ambience = (world, pos) -> { };
 
     public AltarBlock(Settings settings) { super(settings); }
     @Override protected MapCodec<? extends Block> getCodec() { return CODEC; }
@@ -26,6 +28,7 @@ public final class AltarBlock extends Block {
     }
 
     @Override public void randomDisplayTick(BlockState state, World world, BlockPos pos, Random random) {
+        ambience.accept(world, pos);
         for (int i = 0; i < 2; i++)
             world.addParticle(ParticleTypes.ENCHANT, pos.getX() + 0.5, pos.getY() + 2.0, pos.getZ() + 0.5,
                     random.nextFloat() - 0.5, random.nextFloat() - 1.2, random.nextFloat() - 0.5);

@@ -1,5 +1,6 @@
 package io.github.divineblock.client;
 
+import io.github.divineblock.client.fx.FxEngine;
 import io.github.divineblock.game.BeamsPayload;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,8 +15,9 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RotationAxis;
 import net.minecraft.util.math.Vec3d;
 
-/** Beacon beams out of the altar while the god speaks: forty of them, each leaning at its own random angle of 45–90° from the
- * ground, all spinning fast around the altar's vertical axis. Drawn with the beacon's own beam renderer. */
+/** Rays out of the altar while the god speaks: forty of them, each leaning at its own random angle of 45–90° from the
+ * ground, all spinning fast around the altar's vertical axis. Drawn in light by the effects engine ({@link FxEngine#rays});
+ * with effects off, with the beacon's own beam renderer. */
 final class AltarBeams {
     private record Beam(float elevation, float azimuth) { }
     private record Show(BlockPos altar, long start, long end, int color, List<Beam> beams, float spin) { }
@@ -37,6 +39,7 @@ final class AltarBeams {
         if (client.world == null) return;
         if (ticks <= 0) {
             // The last word: the beams at this altar fade out over half a second.
+            FxEngine.raysFade(altar);
             long fade = client.world.getTime() + 10;
             SHOWS.replaceAll(show -> show.altar().equals(altar) && show.end() > fade
                     ? new Show(show.altar(), show.start(), fade, show.color(), show.beams(), show.spin()) : show);
@@ -46,8 +49,13 @@ final class AltarBeams {
         List<Beam> beams = new ArrayList<>();
         int count = 40;
         for (int i = 0; i < count; i++) beams.add(new Beam(45 + random.nextFloat() * 45, i * 360f / count + random.nextFloat() * 20));
+        // Drawn in light by the effects engine; with effects off, the beacon's beams as before.
+        float[] elevations = new float[count], azimuths = new float[count];
+        for (int i = 0; i < count; i++) { elevations[i] = beams.get(i).elevation(); azimuths[i] = beams.get(i).azimuth(); }
+        float spin = random.nextBoolean() ? 9f : -9f;
+        if (FxEngine.rays(altar, Math.max(20, ticks), color, elevations, azimuths, spin)) return;
         long now = client.world.getTime();
-        SHOWS.add(new Show(altar.toImmutable(), now, now + Math.max(20, ticks), color, beams, random.nextBoolean() ? 9f : -9f));
+        SHOWS.add(new Show(altar.toImmutable(), now, now + Math.max(20, ticks), color, beams, spin));
     }
 
     private static void render(WorldRenderContext context) {
