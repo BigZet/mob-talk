@@ -171,12 +171,16 @@ public final class Miracles {
                 sound(world, at, SoundEvents.BLOCK_BEACON_POWER_SELECT, 1.5f, 1.2f);
                 sound(world, at, SoundEvents.BLOCK_AMETHYST_BLOCK_RESONATE, 2f, 0.7f);
                 effect(player, StatusEffects.GLOWING, 60, 0);
+                Fx.pillar(world, player.getPos(), Fx.GOLD, 50);
+                Fx.ring(world, player.getPos(), Fx.GOLD, 7);
+                Fx.feathers(world, player.getPos(), power >= 3 ? 3 : 2);
             }
             case JEST -> {
                 world.spawnParticles(ParticleTypes.FIREWORK, player.getX(), player.getY() + 2, player.getZ(), 80, 1.5, 1, 1.5, 0.15);
                 world.spawnParticles(ParticleTypes.NOTE, altar.getX() + 0.5, altar.getY() + 1.5, altar.getZ() + 0.5, 12, 0.8, 0.5, 0.8, 1);
                 sound(world, at, SoundEvents.ENTITY_EVOKER_CAST_SPELL, 1.5f, 1.3f);
                 sound(world, altar, SoundEvents.ENTITY_WITCH_CELEBRATE, 2f, 0.8f);
+                Fx.confetti(world, player.getPos(), power >= 2 ? 3 : 2);
             }
             case WRATH -> {
                 warn(player, altar);
@@ -184,6 +188,8 @@ public final class Miracles {
                 world.spawnParticles(ParticleTypes.EXPLOSION_EMITTER, player.getX(), player.getY() + 3, player.getZ(), 1, 0, 0, 0, 0);
                 world.spawnParticles(ParticleTypes.LARGE_SMOKE, player.getX(), player.getY() + 1, player.getZ(), 80, 2, 1, 2, 0.05);
                 sound(world, at, SoundEvents.ENTITY_ELDER_GUARDIAN_CURSE, 1.5f, 0.6f);
+                Fx.shake(world, player.getPos(), 0.35f + 0.1f * power, 30);
+                Fx.smoke(world, player.getPos(), 0xFF2A2224, 3);
                 if (power >= 3) {
                     sound(world, at, SoundEvents.ENTITY_WITHER_AMBIENT, 1.5f, 0.5f);
                     if (world.getRegistryKey() == World.OVERWORLD && !world.isThundering()) world.setWeather(0, 20 * 40, true, true);
@@ -616,6 +622,7 @@ public final class Miracles {
     static void bolt(ServerWorld world, BlockPos pos, boolean cosmetic) {
         LightningEntity bolt = EntityType.LIGHTNING_BOLT.create(world);
         if (bolt == null) return;
+        Fx.bolt(world, Vec3d.ofBottomCenter(pos), 0xFFB8D4FF);
         bolt.refreshPositionAfterTeleport(Vec3d.ofBottomCenter(pos));
         bolt.setCosmetic(cosmetic);
         world.spawnEntity(bolt);

@@ -19,6 +19,6 @@ abstract class CameraShakeMixin {
 
     @Inject(method = "update", at = @At("TAIL"))
     private void divineblock$shake(BlockView area, Entity focused, boolean thirdPerson, boolean inverseView, float tickDelta, CallbackInfo info) {
-        if (BossClient.ringing) setRotation(getYaw() + BossClient.shakeYaw(), getPitch() + BossClient.shakePitch());
+        if (BossClient.ringing && BossClient.shakeAllowed) setRotation(getYaw() + BossClient.shakeYaw(), getPitch() + BossClient.shakePitch());
     }
 }
