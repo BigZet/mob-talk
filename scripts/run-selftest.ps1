@@ -1,69 +1,70 @@
-# Runs the in-game self-test unattended: builds the mod, installs it into the Prism instance, copies the source world,
-# arms -Dmobtalk.selftest in instance.cfg while PrismLauncher is closed, launches the game, waits for it to quit,
-# restores instance.cfg, deletes the world copy and reopens PrismLauncher. Logs: %LOCALAPPDATA%\MobTalk\selftest\
-# (selftest-run.log is UTF-16 from Tee-Object; read it with Get-Content or iconv -f UTF-16). Refuses to run while javaw.exe is up.
+# Runs the in-game self-test unattended on a throwaway copy of the Prism instance, so several branches can test at once:
+# builds this checkout, waits for a free game slot (scripts\ParallelPrism.psm1, max 3 games machine-wide), copies the base
+# instance 1.21.1-fabric-dev into instances\t-mt-<branch>-<time> with this branch's JAR, a copy of the world "stream 1" and
+# its own Whisper port (63919 + slot), launches it through the running PrismLauncher, waits for this copy's javaw only,
+# then deletes the copy. Never closes Prism, never touches the base instance, its mods or its worlds.
+# Logs, latest.log and screenshots: %LOCALAPPDATA%\MobTalk\selftest\<copy name>\ (selftest-run.log is UTF-8).
 # Usage (Windows PowerShell): powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 [-Only wedding|family|place|names|voices|looks]
-param([string]$Only = '')
+#   [-Keep] keeps the copy for inspection (delete later with scripts\clean-test-instances.ps1); [-MaxGames 3]; [-ShotEverySeconds 60]
+param([string]$Only = '', [switch]$Keep, [int]$MaxGames = 3, [int]$ShotEverySeconds = 0, [string]$Base = '1.21.1-fabric-dev')
 $ErrorActionPreference = 'Stop'
-$scratch = Join-Path $env:LOCALAPPDATA "MobTalk\selftest"
-New-Item -ItemType Directory -Force $scratch | Out-Null
+Import-Module (Join-Path $PSScriptRoot 'ParallelPrism.psm1') -Force
 $repo = Split-Path -Parent $PSScriptRoot
-$inst = "$env:APPDATA\PrismLauncher\instances\1.21.1-fabric-dev"
-$mc = "$inst\minecraft"
-$prism = 'C:\Users\bigze\AppData\Local\Programs\PrismLauncher\prismlauncher.exe'
+$branch = (git -C $repo rev-parse --abbrev-ref HEAD).Trim()
+$name = New-TestInstanceName 'mt' $branch
+$scratch = Join-Path $env:LOCALAPPDATA "MobTalk\selftest\$name"
+New-Item -ItemType Directory -Force $scratch | Out-Null
+$mc = "$env:APPDATA\PrismLauncher\instances\$name\minecraft"
 $world = 'mobtalk-selftest'
 $log = "$scratch\selftest-run.log"
-function Say($t) { $line = "$(Get-Date -Format HH:mm:ss) $t"; $line | Tee-Object -FilePath $log -Append }
-"" | Out-File $log
+function Say($t) { $line = "$(Get-Date -Format HH:mm:ss) $t"; Write-Host $line; Add-Content -Path $log -Value $line -Encoding UTF8 }
+Say "copy $name of $Base, branch $branch"
 
-if (Get-CimInstance Win32_Process -Filter "name='javaw.exe'") { throw 'Minecraft is running' }
-
-Say 'build + install'
+Say 'build'
 Set-Location $repo
-.\gradlew.bat build -x test -q 2>&1 | Where-Object { $_ -match 'error|FAIL' }
+# cmd merges gradle's stderr notes (deprecated API) so PowerShell's Stop preference does not turn them into errors.
+cmd /c '.\gradlew.bat build -x test -q 2>&1' | Where-Object { $_ -match 'error|FAIL' }
 if ($LASTEXITCODE -ne 0) { throw 'build failed' }
-powershell -ExecutionPolicy Bypass -File scripts\install-prism.ps1 -Instance '1.21.1-fabric-dev' | Out-Null
-Get-ChildItem "$mc\mods\mobtalk*.jar" | ForEach-Object { Say "mod: $($_.Name) $($_.LastWriteTime)" }
+$jar = Get-ChildItem "$repo\build\libs\mobtalk-*.jar" | Where-Object { $_.Name -notmatch '-sources|-dev' } | Sort-Object LastWriteTime -Descending | Select-Object -First 1
 
-Say 'world copy'
-if (Test-Path "$mc\saves\$world") { Remove-Item -Recurse -Force "$mc\saves\$world" }
-Copy-Item -Recurse "$mc\saves\stream 1" "$mc\saves\$world"
-Remove-Item -Force "$mc\saves\$world\session.lock" -ErrorAction SilentlyContinue
-python -I (Join-Path $PSScriptRoot "rename_level.py") "$mc\saves\$world\level.dat" $world | ForEach-Object { Say $_ }
+$slot = Enter-GameSlot -Owner $name -Max $MaxGames -Say ${function:Say}
+try {
+  $port = 63919 + $slot.Index
+  Say "slot $($slot.Index), Whisper port $port"
+  # A helper left on this slot's port by a crashed run belongs to no live game of this slot: stop it.
+  Get-WhisperHelper $port | ForEach-Object { Say "stopping a stale Whisper helper $($_.ProcessId) on $port"; Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 
-Say 'stop Prism and arm instance.cfg'
-Get-Process prismlauncher -ErrorAction SilentlyContinue | Stop-Process -Force
-Start-Sleep -Seconds 3
-Copy-Item "$inst\instance.cfg" "$scratch\instance.cfg.bak" -Force
-$cfg = Get-Content "$inst\instance.cfg" -Raw
-$cfg = $cfg -replace '(?m)^OverrideJavaArgs=.*\r?\n', '' -replace '(?m)^JvmArgs=.*\r?\n', ''
-$jvm = "-Dmobtalk.selftest=$world"
-if ($Only) { $jvm = "$jvm -Dmobtalk.selftest.only=$Only" }
-$cfg = $cfg -replace '\[General\]\r?\n', "[General]`nOverrideJavaArgs=true`nJvmArgs=$jvm`n"
-[System.IO.File]::WriteAllText("$inst\instance.cfg", $cfg)
-Say ((Get-Content "$inst\instance.cfg" | Select-String 'JvmArgs|OverrideJavaArgs') -join ' | ')
+  $jvm = "-Dmobtalk.selftest=$world"
+  if ($Only) { $jvm = "$jvm -Dmobtalk.selftest.only=$Only" }
+  New-TestInstance -Base $Base -Name $name -JvmArgs $jvm -World 'stream 1' -WorldName $world -WhisperPort $port | Out-Null
+  Get-ChildItem "$mc\mods\mobtalk-*.jar" | Remove-Item -Force
+  Copy-Item $jar.FullName "$mc\mods\"
+  Say "mod: $($jar.Name) $($jar.LastWriteTime)"
+  python -I (Join-Path $PSScriptRoot 'rename_level.py') "$mc\saves\$world\level.dat" $world | ForEach-Object { Say $_ }
 
-Say 'launch'
-Start-Process $prism -ArgumentList '--launch', '1.21.1-fabric-dev'
-$started = $false
-for ($i = 0; $i -lt 30; $i++) { Start-Sleep -Seconds 5; if (Get-CimInstance Win32_Process -Filter "name='javaw.exe'") { $started = $true; break } }
-if (-not $started) { Say 'javaw did not start' } else {
-  Say 'javaw running; waiting for the self-test to quit the game'
-  for ($i = 0; $i -lt 180; $i++) {
-    Start-Sleep -Seconds 10
-    if (-not (Get-CimInstance Win32_Process -Filter "name='javaw.exe'")) { Say 'javaw exited'; break }
-    if ($i % 6 -eq 5) { $last = Get-Content "$mc\logs\latest.log" -ErrorAction SilentlyContinue | Select-String '\[selftest\]' | Select-Object -Last 1; Say "… $last" }
+  Say 'launch'
+  $game = Start-TestInstance $name
+  if (-not $game) { Say 'javaw did not start' } else {
+    Say "javaw $($game.ProcessId) running; waiting for the self-test to quit the game"
+    $deadline = (Get-Date).AddMinutes(30); $nextShot = (Get-Date).AddSeconds($ShotEverySeconds); $i = 0
+    while (Get-Process -Id $game.ProcessId -ErrorAction SilentlyContinue) {
+      if ((Get-Date) -gt $deadline) { Say 'timeout: killing this copy''s javaw'; Stop-Process -Id $game.ProcessId -Force; break }
+      Start-Sleep -Seconds 10; $i++
+      if ($ShotEverySeconds -gt 0 -and (Get-Date) -gt $nextShot) {
+        Save-GameWindowShot $name "$scratch\window-$(Get-Date -Format HHmmss).png" | Out-Null; $nextShot = (Get-Date).AddSeconds($ShotEverySeconds)
+      }
+      if ($i % 6 -eq 0) { $last = Get-Content "$mc\logs\latest.log" -Encoding UTF8 -ErrorAction SilentlyContinue | Select-String '\[selftest\]' | Select-Object -Last 1; Say "... $last" }
+    }
+    Say 'javaw exited'
   }
-  if (Get-CimInstance Win32_Process -Filter "name='javaw.exe'") { Say 'timeout: killing javaw'; Get-Process javaw | Stop-Process -Force }
+  Start-Sleep -Seconds 3
+  Copy-Item "$mc\logs\latest.log" "$scratch\selftest-latest.log" -Force -ErrorAction SilentlyContinue
+  if (Test-Path "$mc\screenshots") { Copy-Item "$mc\screenshots\*" $scratch -Force -ErrorAction SilentlyContinue }
+  Get-WhisperHelper $port | ForEach-Object { Say "stopping this copy's Whisper helper $($_.ProcessId)"; Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+} finally {
+  Exit-GameSlot $slot
+  if ($Keep) { Say "kept $name (scripts\clean-test-instances.ps1 -Name $name deletes it)" }
+  else { try { Remove-TestInstance $name; Say "deleted $name" } catch { Say "could not delete ${name}: $_" } }
 }
-Start-Sleep -Seconds 3
-Copy-Item "$mc\logs\latest.log" "$scratch\selftest-latest.log" -Force
-
-Say 'restore instance.cfg and the world'
-Get-Process prismlauncher -ErrorAction SilentlyContinue | Stop-Process -Force
-Start-Sleep -Seconds 3
-Copy-Item "$scratch\instance.cfg.bak" "$inst\instance.cfg" -Force
-Remove-Item -Recurse -Force "$mc\saves\$world" -ErrorAction SilentlyContinue
-Start-Process $prism
-Say 'done'
-Get-Content "$scratch\selftest-latest.log" | Select-String '\[selftest\]' | ForEach-Object { $_.Line }
+Say "done; logs in $scratch"
+Get-Content "$scratch\selftest-latest.log" -Encoding UTF8 -ErrorAction SilentlyContinue | Select-String '\[selftest\]' | ForEach-Object { $_.Line }

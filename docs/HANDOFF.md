@@ -32,12 +32,12 @@ docs/space-analysis.md (зрение и классификатор), docs/whispe
   без `MOBTALK_LIVE=1`.
 - Установка в Prism только при закрытой игре (нет процесса `javaw.exe`):
   `powershell -ExecutionPolicy Bypass -File scripts\install-prism.ps1 -Instance '1.21.1-fabric-dev'`.
-- Игровой самотест целиком (сборка, установка, копия мира `stream 1`, запуск игры с флагом,
-  ожидание, восстановление): `powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1`.
-  Около 6–7 минут, 21 этап, в конце `[selftest] ALL CHECKS PASSED` в `minecraft\logs\latest.log`.
-  Лог прогона `%LOCALAPPDATA%\MobTalk\selftest\selftest-run.log` в UTF-16.
-  Prism переписывает `instance.cfg` при выходе, поэтому скрипт закрывает PrismLauncher перед правкой и открывает после.
-  После каждого прогона проверять, что `llmProvider` в `config/mobtalk.json` вернулся на `openrouter`.
+- Игровой самотест целиком: `powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 [-Only ...]`.
+  С 21 октября идёт в одноразовой копии инстанса `t-mt-<ветка>-<время>` (сборка ветки, её JAR, копия мира
+  `stream 1`, свой порт Whisper), несколько тредов могут гонять самотесты одновременно (до 3 игр на машине),
+  Prism не закрывается, основной инстанс и его мир не меняются. Подробно и инструкция для тредов:
+  docs/parallel-selftest.md. Около 6–7 минут, в конце `[selftest] ALL CHECKS PASSED`; логи и снимки в
+  `%LOCALAPPDATA%\MobTalk\selftest\<копия>\` (UTF-8).
 - Живые пробы без игры: `LiveProbeTest`, `SocialLiveProbeTest` (`MOBTALK_LIVE=1`), либо харнесс против
   `build/classes/java/main` + gson 2.10.1 + jlayer 1.0.1 с ключом из DPAPI, модель `openai/gpt-6-luna`.
 - Баланс OpenRouter: `GET https://openrouter.ai/api/v1/credits` с ключом. 19 октября пополнен до 120 $,
