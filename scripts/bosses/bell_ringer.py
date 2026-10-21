@@ -125,11 +125,7 @@ def letters(p, f, d, index):
     u = rnd.randrange(3)
     while u + 3 * s <= f.w:
         if rnd.random() < 0.14:
-            cx = u + s
-            for v in range(5 * s):
-                p.put(f, cx, top + v, BR_WORN)
-            for du in range(-s, s + 1):
-                p.put(f, cx + du, top + s, BR_WORN)
+            orthodox_cross(p, f, u + s, top + 5 * s / 2, 5 * s, BR_WORN, 1)
             u += 3 * s + 1
             continue
         glyph = rnd.choice(GLYPHS)
@@ -165,7 +161,7 @@ FACE_PANELS = 5
 
 def face_overlay(k):
     """Paints this panel's slice (k = -2..2, +X is the viewer's right) of the face: eye sockets lit by the candles, hollow
-    cheeks, the folds from nose to mouth and a downturned mouth. The relief (brows, nose, moustache) is modelled."""
+    cheeks, the folds from nose to mouth and a downturned mouth. The relief (brows, nose, lip) is modelled."""
     def extra(p, f, ux, uy):
         W = f.w * FACE_PANELS
         off = (k + FACE_PANELS // 2) * f.w
@@ -352,7 +348,7 @@ def hood_style(p, f, opts):
             for u in range(f.w):
                 q = ((u - f.w / 2) / (f.w * 0.42)) ** 2 + ((v - f.h * 0.62) / (f.h * 0.52)) ** 2
                 if q <= 1:
-                    p.put(f, u, v, (10, 8, 8))
+                    p.put(f, u, v, None)
 
 
 # ---- The bell. Bell-local space: the pivot is the beam's axis; the body runs from y = 6.2 down to the lip at y = 34. ----
@@ -392,8 +388,6 @@ face = relief("face_relief", 0, 12, 9.3, [
 ], children=[
     Part("brow_r", pivot=(-3.2, 2.5, 0), rotation=(0, 0, -0.26), boxes=[Box((-2.8, -0.6, -1.1), (5.6, 1.2, 1.1), relief_bronze)]),
     Part("brow_l", pivot=(3.2, 2.5, 0), rotation=(0, 0, 0.26), boxes=[Box((-2.8, -0.6, -1.1), (5.6, 1.2, 1.1), relief_bronze)]),
-    Part("moustache_r", pivot=(-0.6, 7.6, -0.4), rotation=(0, 0, -0.55), boxes=[Box((-4.2, -0.5, -0.8), (4.2, 1.0, 0.8), relief_bronze)]),
-    Part("moustache_l", pivot=(0.6, 7.6, -0.4), rotation=(0, 0, 0.55), boxes=[Box((0, -0.5, -0.8), (4.2, 1.0, 0.8), relief_bronze)]),
     Part("candle_r", pivot=(-3.3, 0, 0), boxes=[
         Box((-0.45, 5.0, -0.9), (0.9, 1.6, 0.8), candle()),
         Box((-0.35, 3.4, -0.75), (0.7, 1.6, 0.5), fire(), flat=True),
@@ -411,7 +405,7 @@ for idx, a in enumerate((math.pi / 2, math.pi, 3 * math.pi / 2)):
         Box((-1.0, 2.3, -0.7), (2.0, 0.6, 0.7), relief_bronze),
         Box((-2.3, 3.5, -0.7), (4.6, 0.8, 0.7), relief_bronze),
         Box((-1.8, 8.6, -0.6), (3.6, 0.8, 0.6), relief_bronze),
-    ], children=[Part("cross_%d_foot" % idx, pivot=(0, 6.6, 0), rotation=(0, 0, -0.35), boxes=[Box((-1.5, -0.35, -0.7), (3.0, 0.7, 0.7), relief_bronze)])]))
+    ], children=[Part("cross_%d_foot" % idx, pivot=(0, 6.6, 0), rotation=(0, 0, 0.35), boxes=[Box((-1.5, -0.35, -0.7), (3.0, 0.7, 0.7), relief_bronze)])]))
 
 crown_bronze = panel_style("rim", 0)
 cap = (octagon("cap_a", 5.2, 6.1, 1.2, panel_style("shoulder", 3)) + octagon("cap_b", 4.0, 4.8, 1.3, panel_style("shoulder", 4))
@@ -476,7 +470,7 @@ def arm_angles(shoulder, hand, upper, lower):
 RINGER_Y = -4.8
 SHOULDER = (3.9, RINGER_Y - 9.4, -4.6)
 HAND = (16.6, 9.5)
-UPPER, LOWER = 13.0, 13.4
+UPPER, LOWER = 13.0, 14.6
 PHI1, PHI2 = arm_angles(SHOULDER, HAND, UPPER, LOWER)
 ARM_PITCH = math.atan2(-SHOULDER[2] - 0.3, HAND[1] - SHOULDER[1])
 
@@ -528,9 +522,7 @@ ringer = Part("ringer", pivot=(0, RINGER_Y, 0.3), children=[
             Box((-2.7, -5.8, -3.1), (5.4, 6.0, 5.6), hood_style),
             Box((-1.9, -5.0, -2.6), (3.8, 4.4, 0.6), ringer_face),
             Box((-1.3, -7.0, -0.2), (2.6, 1.6, 2.6), sackcloth(patch=False)),
-        ], children=hood_lappets + [
-            Part("hood_peak", pivot=(0, -6.8, 1.0), rotation=(-0.6, 0, 0), boxes=[Box((-0.8, -2.6, -0.8), (1.6, 2.6, 1.6), sackcloth(patch=False))]),
-        ]),
+        ], children=hood_lappets),
     ]),
     ringer_arm("right", -1),
     ringer_arm("left", 1),

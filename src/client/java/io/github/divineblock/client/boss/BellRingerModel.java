@@ -29,7 +29,8 @@ public final class BellRingerModel extends BossModel<BellRingerEntity> {
     @Override protected void animate(BellRingerEntity boss, float limbAngle, float limbDistance, float age, float headYaw, float headPitch) {
         int cast = boss.castState(), move = boss.move();
         float pace = boss.syncedPhase() >= 2 ? 1.5f : 1f;
-        boolean airborne = !boss.isOnGround();
+        // Off the ground and moving up or down: a hop (a still boss can read as off the ground on the client).
+        boolean airborne = !boss.isOnGround() && Math.abs(boss.getY() - boss.prevY) > 0.02;
         float breath = MathHelper.sin(age * 0.06f);
 
         // The swing of the bell, side to side, and its phase, so the clapper can lag behind it.
@@ -60,7 +61,7 @@ public final class BellRingerModel extends BossModel<BellRingerEntity> {
             bell.pitch += 0.12f;
             clapper.pitch += 0.45f;
             clapper.roll += MathHelper.sin(age * 0.4f) * 0.15f;
-            rightArm.roll -= 0.35f; leftArm.roll += 0.35f;
+            rightArm.roll += 0.3f; leftArm.roll -= 0.3f;
             torso.pitch += 0.2f;
             rightLeg.pitch -= 0.3f; leftLeg.pitch -= 0.3f;
         }

@@ -66,6 +66,15 @@ def paint_board():
         if outline:
             dr.line([P(*q) for q in points] + [P(*points[0])], fill=outline, width=width)
 
+    def ocross(x, y, h, color, w):
+        """An eight-pointed Orthodox cross centred at (x, y), `h` units tall: the upright, the titulus, the crossbar and the
+        footrest with its left end (as the viewer sees it) raised."""
+        top = y - h / 2
+        dr.line([P(x, top), P(x, top + h)], fill=color, width=w)
+        dr.line([P(x - h * 0.17, top + h * 0.14), P(x + h * 0.17, top + h * 0.14)], fill=color, width=w)
+        dr.line([P(x - h * 0.36, top + h * 0.32), P(x + h * 0.36, top + h * 0.32)], fill=color, width=w)
+        dr.line([P(x - h * 0.22, top + h * 0.7), P(x + h * 0.22, top + h * 0.82)], fill=color, width=w)
+
     # The nimbus: a glowing disc with tooled rays and a cinnabar double rim.
     cx, cy = P(*NIMBUS_C)
     R = NIMBUS_R * D
@@ -74,13 +83,13 @@ def paint_board():
             r = math.hypot(x - cx, y - cy)
             if r <= R:
                 ang = math.atan2(y - cy, x - cx)
-                c = mix(FACE_LIGHT, NIMBUS, r / R)
+                c = mix(NIMBUS, GOLD, r / R * 0.7)
                 if int((ang + math.pi) / (2 * math.pi) * 36) % 2 == 0 and r > R * 0.45:
                     c = shade(c, 0.93)
                 if abs(r - R + 2) < 1.2 or abs(r - R + 6) < 0.8:
                     c = CINNABAR
                 pix[x, y] = c
-                g = shade(c, 0.85 if r < R - 3 else 0.0)
+                g = shade(c, 0.42 if r < R - 3 else 0.0)
                 if r < R - 3:
                     glow.putpixel((x, y), g + (255,))
     # Hair and a long beard framing the face (the face itself is the raised blank oval).
@@ -90,8 +99,6 @@ def paint_board():
           (hx - 7.4, hy + 3)], HAIR)
     for k in range(-5, 6):
         dr.line([P(hx + k * 1.1, hy + 6), P(hx + k * 0.8, hy + 13.5 - abs(k) * 0.5)], fill=shade(HAIR, 1.4), width=1)
-    # Neck and the collar of the podriznik.
-    poly([(hx - 2.4, hy + 9), (hx + 2.4, hy + 9), (hx + 2.8, hy + 14), (hx - 2.8, hy + 14)], SKIN)
     # The phelonion: a wide cinnabar bell from the shoulders, beyond the frame at the bottom.
     shoulders = [(-21.5, 30.5), (-21.5, 6), (-19, 1.5), (-12, -0.5), (-5, 0.5), (0, 2.5), (5, 0.5), (12, -0.5), (19, 1.5), (21.5, 6), (21.5, 30.5)]
     poly(shoulders, PHELONION)
@@ -115,9 +122,8 @@ def paint_board():
     band = [(-18.5, 3.2), (-11, 1.6), (-3, 3.4), (0, 6.6), (3, 3.4), (11, 1.6), (18.5, 3.2), (18.5, 7.2), (11, 5.6), (3, 8.4),
             (2.8, 30.5), (-2.8, 30.5), (-3, 8.4), (-11, 5.6), (-18.5, 7.2)]
     poly(band, WHITE, outline=shade(WHITE, 0.6), width=2)
-    for (x, y) in [(-14, 4.2), (14, 4.2), (0, 13), (0, 23)]:
-        for (dx0, dy0, dx1, dy1) in [(-1.3, 0, 1.3, 0), (0, -1.3, 0, 1.3)]:
-            dr.line([P(x + dx0, y + dy0), P(x + dx1, y + dy1)], fill=(20, 16, 16), width=D)
+    for (x, y, h) in [(-14, 4.6, 3.4), (14, 4.6, 3.4), (0, 14, 5), (0, 24, 5)]:
+        ocross(x, y, h, (20, 16, 16), 3)
     for y in range(9, 31, 3):
         dr.line([P(-2.8, y), P(2.8, y)], fill=shade(WHITE, 0.82), width=1)
     # The blessing hand (the saint's right, the viewer's left) raised before the chest.
@@ -133,10 +139,9 @@ def paint_board():
     poly([(gx0 + 0.6, gy0 + 0.6), (gx1 - 0.6, gy0 + 0.6), (gx1 - 0.6, gy1 - 0.6), (gx0 + 0.6, gy1 - 0.6)], GOLD_LIGHT, outline=GOLD_DARK, width=2)
     poly([(gx1 - 0.6, gy0 + 0.6), (gx1 + 0.8, gy0 + 1.2), (gx1 + 0.8, gy1 + 0.6), (gx1 - 0.6, gy1 - 0.6)], CINNABAR)
     mx, my = (gx0 + gx1) / 2, (gy0 + gy1) / 2
-    dr.line([P(mx, gy0 + 2), P(mx, gy1 - 2)], fill=CINNABAR, width=D)
-    dr.line([P(mx - 2.6, my - 1.6), P(mx + 2.6, my - 1.6)], fill=CINNABAR, width=D)
+    ocross(mx, my, 9, CINNABAR, 4)
     for (sx, sy, col) in [(gx0 + 1.8, gy0 + 1.8, GEM_BLUE), (gx1 - 1.8, gy0 + 1.8, GEM_GREEN), (gx0 + 1.8, gy1 - 1.8, GEM_GREEN),
-                          (gx1 - 1.8, gy1 - 1.8, GEM_BLUE), (mx, my - 1.6, GEM_RED)]:
+                          (gx1 - 1.8, gy1 - 1.8, GEM_BLUE), ]:
         dr.ellipse([P(sx - 0.8, sy - 0.8), P(sx + 0.8, sy + 0.8)], fill=col, outline=GOLD_DARK)
     poly([(gx0 - 1.5, gy1 - 1), (gx1 + 1.5, gy1 - 1), (gx1 + 2, gy1 + 4), (gx0 - 2, gy1 + 4)], WHITE, outline=shade(WHITE, 0.6), width=2)
     # Faded cinnabar lettering either side of the nimbus.
@@ -347,14 +352,15 @@ def lampada(name, x, y, chain, k=1.0):
 
 
 def votive(name, x, y, side):
-    """A votive chain at the frame's side: links, a medallion and a little gold cross that swing and lag."""
+    """A votive chain at the frame's side: links, a medallion and a little eight-pointed gold cross that swing and lag."""
     lower = Part(name + "_lower", pivot=(0, 12.4, 0), boxes=[
         Box((-1.6, 10.2, -0.4), (3.2, 3.2, 0.8), gold_trim),
         Box((-0.9, 10.9, -0.7), (1.8, 1.8, 0.4), gem(GEM_RED if side < 0 else GEM_BLUE)),
-        Box((-0.35, 13.4, -0.3), (0.7, 5.6, 0.6), gold_trim),
-        Box((-1.6, 14.8, -0.3), (3.2, 0.7, 0.6), gold_trim),
-        Box((-0.9, 13.9, -0.3), (1.8, 0.5, 0.6), gold_trim),
-    ], children=chain_links(name + "_llink", 0, 10.4))
+        Box((-0.35, 13.4, -0.3), (0.7, 6.2, 0.6), gold_trim),
+        Box((-0.8, 14.0, -0.3), (1.6, 0.5, 0.6), gold_trim),
+        Box((-1.7, 15.1, -0.3), (3.4, 0.7, 0.6), gold_trim),
+    ], children=chain_links(name + "_llink", 0, 10.4) + [
+        Part(name + "_foot", pivot=(0, 17.8, 0), rotation=(0, 0, 0.35), boxes=[Box((-1.1, -0.25, -0.3), (2.2, 0.5, 0.6), gold_trim)])])
     return Part(name, pivot=(x, y, -1.5), children=chain_links(name + "_link", 0, 12.6) + [lower])
 
 
@@ -399,7 +405,7 @@ def leaf(name, s):
                 Box((1.9, -0.5, -0.7), (1.0, 1.0, 0.7), pearl),
             ]))
             n += 1
-    # Carved corners: a diamond plate with a big stone and four pearls, and acanthus leaves breaking the outline.
+    # Carved corners: a diamond plate, a round rosette, a big stone and four pearls.
     for cy in (-36, 36):
         cx = s * 28
         corner = Part("%s_corner_%d" % (name, 0 if cy < 0 else 1), pivot=o(cx, cy, -3.5), children=[
@@ -409,14 +415,10 @@ def leaf(name, s):
             Box((-3.6, -0.5, -1.9), (1.0, 1.0, 0.7), pearl), Box((2.6, -0.5, -1.9), (1.0, 1.0, 0.7), pearl),
             Box((-0.5, -3.6, -1.9), (1.0, 1.0, 0.7), pearl), Box((-0.5, 2.6, -1.9), (1.0, 1.0, 0.7), pearl),
         ])
-        out = math.atan2(cy, cx)  # pointing away from the icon's centre
-        for k, da in enumerate((-0.55, 0, 0.55)):
-            a = out + da
-            corner.children.append(Part("%s_acanthus_%d_%d" % (name, 0 if cy < 0 else 1, k), pivot=(math.cos(a) * 3.5, math.sin(a) * 3.5, -0.6),
-                                        rotation=(0, 0, a - math.pi / 2 + (0.25 if k != 1 else 0) * (1 if da > 0 else -1)),
-                                        boxes=[Box((-1.2, 0, -0.5), (2.4, 5.5 - abs(da) * 2, 1.0), gold_leaf(ornament=False))],
-                                        children=[Part("%s_acanthus_tip_%d_%d" % (name, 0 if cy < 0 else 1, k), pivot=(0, 5.2 - abs(da) * 2, 0),
-                                                       rotation=(0, 0, 0.5 * (1 if k != 0 else -1)), boxes=[Box((-0.7, 0, -0.4), (1.4, 2.4, 0.8), gold_trim)])]))
+        # A round rosette under the stone, so the corner reads as one carved boss on the frame.
+        corner.children += octagon("%s_rosette_%d" % (name, 0 if cy < 0 else 1), 0, 3.0, 1.0, chased)
+        for part in corner.children[-4:]:
+            part.pivot, part.rotation = (0, 0, -1.6), (math.pi / 2, 0, part.rotation[1])
         children.append(corner)
     return Part(name, pivot=(hinge, 0, 0), boxes=boxes, children=children)
 
@@ -428,9 +430,6 @@ def crest():
     for w, h in tiers:
         boxes.append(Box((-w / 2, y - h, -2.5), (w, h, 5), chased if w > 12 else gold_trim))
         y -= h
-    # Scroll ends of the lowest tier.
-    scrolls = [Part("crest_scroll_%d" % (s + 1), pivot=(s * 17, -39.5, -2.0), rotation=(0, 0, s * 0.7),
-                    boxes=[Box((-1.2, -5, -0.6), (2.4, 5, 1.2), gold_leaf(ornament=False))]) for s in (-1, 1)]
     medallion = Part("crest_medallion", pivot=(0, -44, -2.5), boxes=[
         Box((-2.2, -2.2, -1.4), (4.4, 4.4, 1.4), gem(GEM_RED)),
         Box((-3.2, -3.2, -0.6), (6.4, 6.4, 0.6), gold_trim),
@@ -445,7 +444,7 @@ def crest():
         Box((5.0, -10.7, -1.0), (1.2, 2.4, 2.0), gold_trim),
         Box((-1.0, -16.0, -1.0), (2.0, 1.2, 2.0), gold_trim),
     ], children=[Part("crest_cross_foot", pivot=(0, -4.6, 0), rotation=(0, 0, 0.32), boxes=[Box((-3.2, -0.65, -0.8), (6.4, 1.3, 1.6), gold_trim)])])
-    return Part("crest", boxes=boxes, children=scrolls + [medallion, cross])
+    return Part("crest", boxes=boxes, children=[medallion, cross])
 
 
 def venets():
