@@ -93,6 +93,31 @@ def cold_flame(p, f, opts):
             p.put(f, u, v, c, c)
 
 
+def cold_blade(p, f, opts):
+    """The drawn sword (after `burning_blade`): pale steel with a dark fuller, its edges burning with cold blue fire, and the
+    top of the face cut to a sharp point."""
+    W, H = f.w, f.h
+    point = min(H, int(W * 1.6))
+    for v in range(H):
+        for u in range(W):
+            x = abs(u + 0.5 - W / 2) / (W / 2) if W > 1 else 0
+            if v < point and x > v / max(1, point):
+                p.put(f, u, v, None)
+                continue
+            if f.side not in ("front", "back"):
+                p.put(f, u, v, shade((200, 214, 230), 0.8))
+                continue
+            c = mix((222, 232, 244), (150, 164, 184), x * 0.6)
+            if x < 0.12:
+                c = (120, 134, 156)
+            if x > 0.66:
+                lick = 0.5 + 0.5 * math.sin(v * 0.9 + u)
+                c = mix(COLD, COLD_MID, lick)
+                p.put(f, u, v, c, c)
+                continue
+            p.put(f, u, v, c, shade(c, 0.35))
+
+
 def glimmer(p, f, opts):
     """The faint cold glow around the single light: a few dim pixels fading out, transparent outside."""
     R = min(f.w, f.h) / 2
@@ -196,16 +221,15 @@ def hand(name, side, grip, held=()):
     return Part(name, pivot=(0, 9.0, 0), boxes=[Box((-1.0, 0, -0.9), (2.0, 2.1, 1.8), bony)], children=fingers + list(held))
 
 
-sword = Part("sword", pivot=(0, 2.2, -0.6), rotation=(0.95, 0, 0.18), boxes=[
+sword = Part("sword", pivot=(0, 2.2, -0.6), rotation=(0.85, 0, -0.35), boxes=[
     Box((-0.5, -1.8, -0.5), (1.0, 4.6, 1.0), solid((30, 20, 18), k=0.08)),
     Box((-3.2, -2.8, -0.65), (6.4, 1.0, 1.3), iron),
     Box((-0.8, 2.8, -0.8), (1.6, 1.4, 1.6), iron),
     Box((-0.45, -2.75, -0.8), (0.9, 0.9, 0.2), solid(BLOOD_LIGHT, glow=True), flat=True),
-    Box((-1.6, -29.5, -0.2), (3.2, 26.8, 0.4), cold_flame, flat=True),
-    Box((-0.2, -28.0, -1.1), (0.4, 25.0, 2.2), cold_flame, flat=True),
+    Box((-1.6, -29.5, -0.2), (3.2, 26.8, 0.4), cold_blade, flat=True),
 ], children=[
     Part("sword_quillon_r", pivot=(-3.2, -2.3, 0), rotation=(0, 0, -0.5), boxes=[Box((-1.6, -0.4, -0.5), (1.6, 0.8, 1.0), iron)]),
-    Part("sword_tip", pivot=(0, -30.2, 0), rotation=(0, 0, 0.785), boxes=[Box((-0.7, -0.7, -0.15), (1.4, 1.4, 0.3), solid((236, 246, 255), glow=True), flat=True)]),
+    Part("sword_tip", pivot=(0, -29.6, 0), rotation=(0, 0, 0.785), boxes=[Box((-0.45, -0.45, -0.15), (0.9, 0.9, 0.3), solid((236, 246, 255), glow=True), flat=True)]),
     Part("sword_quillon_l", pivot=(3.2, -2.3, 0), rotation=(0, 0, 0.5), boxes=[Box((0, -0.4, -0.5), (1.6, 0.8, 1.0), iron)]),
 ])
 
