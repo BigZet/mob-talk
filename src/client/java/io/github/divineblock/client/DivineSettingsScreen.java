@@ -60,6 +60,11 @@ public final class DivineSettingsScreen extends Screen {
         java.util.List<String> voices = java.util.Arrays.stream(io.github.divineblock.core.GodVoice.VOICES).map(v -> v[0]).toList();
         addDrawableChild(CyclingButtonWidget.<String>builder(id -> Text.literal(voiceName(id))).values(voices)
                 .initially(voices.contains(config.voiceId) ? config.voiceId : voices.get(0)).build(right, y, column, 20, Text.literal("Голос"), (b, v) -> config.voiceId = v));
+        y += row;
+        // Churches in newly generated chunks and how rare they are (one per N x N chunks at most).
+        addDrawableChild(CyclingButtonWidget.onOffBuilder(config.churches).build(left, y, column, 20, Text.literal("Церкви в мире"), (b, v) -> config.churches = v));
+        addDrawableChild(CyclingButtonWidget.<Integer>builder(v -> Text.literal(v + " чанков")).values(List.of(32, 48, 64, 80, 100, 150, 256))
+                .initially(nearest(config.churchSpacing, 32, 48, 64, 80, 100, 150, 256)).build(right, y, column, 20, Text.literal("Редкость"), (b, v) -> config.churchSpacing = v));
         y += row + 6;
 
         // Both keys on one row: a field and its save button in each column.
@@ -126,7 +131,7 @@ public final class DivineSettingsScreen extends Screen {
     @Override public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
         context.drawCenteredTextWithShadow(textRenderer, title.copy().formatted(Formatting.GOLD), this.width / 2, 12, 0xFFFFFF);
-        int y = 28 + 22 * 6 + 6 + 22 + 2;
+        int y = 28 + 22 * 7 + 6 + 22 + 2;
         context.drawTextWithShadow(textRenderer, Text.literal(keyStatus).formatted(Formatting.GRAY), this.width / 2 - 154, y, 0xFFFFFF);
         y += 12;
         String[] lines = soul.split("\n");

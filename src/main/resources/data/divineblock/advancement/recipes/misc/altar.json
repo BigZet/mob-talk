@@ -1,0 +1,10 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_netherite_ingot": { "trigger": "minecraft:inventory_changed", "conditions": { "items": [ { "items": "minecraft:netherite_ingot" } ] } },
+    "visited_church": { "trigger": "minecraft:location", "conditions": { "player": [ { "condition": "minecraft:entity_properties", "entity": "this", "predicate": { "location": { "structures": "divineblock:orthodox_church" } } } ] } },
+    "has_the_recipe": { "trigger": "minecraft:recipe_unlocked", "conditions": { "recipe": "divineblock:altar" } }
+  },
+  "requirements": [ [ "has_netherite_ingot", "visited_church", "has_the_recipe" ] ],
+  "rewards": { "recipes": [ "divineblock:altar" ] }
+}
