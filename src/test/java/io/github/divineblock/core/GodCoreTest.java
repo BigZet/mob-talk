@@ -262,4 +262,46 @@ class GodCoreTest {
                 0, 0, false, 2, false, false, 2), config);
         assertTrue(mock.fury, mock.breakdown());
     }
+
+    @Test void eachPunishmentInARowIsARungWorse() {
+        DivineConfig config = config();
+        Verdict plain = VerdictBuilder.build(context("ты тупой бог", 0, 0, 0), config);
+        Verdict again = VerdictBuilder.build(context("ты тупой бог", 0, 0, 0), config);
+        VerdictBuilder.escalate(again, 2, config);
+        assertTrue(again.level() >= Math.min(10, plain.level() + 4), "two punishments before: at least two groups up: " + again.breakdown());
+        assertTrue(again.severity() > plain.severity());
+        assertTrue(again.reasons.stream().anyMatch(r -> r.text().startsWith("кара за карой")), "escalation is a named reason");
+        assertTrue(MiracleGroup.open(again, config).contains(MiracleGroup.K4), "the streak opens the armies");
+        config.escalation = false;
+        Verdict off = VerdictBuilder.build(context("ты тупой бог", 0, 0, 0), config);
+        VerdictBuilder.escalate(off, 2, config);
+        assertEquals(plain.level(), off.level(), "escalation can be switched off");
+    }
+
+    @Test void repentanceUnderABurdenIsForgivenEvenMidEscalation() {
+        DivineConfig config = config();
+        String apology = "Прости меня, господи, каюсь";
+        Verdict verdict = VerdictBuilder.build(context(apology, -40, 0, 0), config);
+        VerdictBuilder.forgiveBurden(verdict, PrayerTone.of(apology).repents(), true);
+        VerdictBuilder.escalate(verdict, 3, config);
+        assertTrue(verdict.forgiveness, verdict.breakdown());
+        assertEquals(0, verdict.escalation, "forgiven, not escalated");
+        Verdict rude = VerdictBuilder.build(context("прости, тупой бог", 0, 0, 0), config);
+        VerdictBuilder.forgiveBurden(rude, true, true);
+        assertFalse(rude.forgiveness, "an insult is no repentance");
+    }
+
+    @Test void theEternalBanIsOffUntilSwitchedOn() {
+        DivineConfig config = config();
+        assertFalse(new DivineConfig().allowEternalBan, "off by default");
+        Verdict damned = new Verdict(); damned.inclination = Miracle.Kind.WRATH; damned.budget = 4; damned.favor = -30; damned.fury = true; damned.blasphemiesBefore = 3;
+        assertFalse(MiracleGroup.open(damned, config).contains(MiracleGroup.K6));
+        assertFalse(GodDecider.candidates(damned, config).contains(Miracle.ETERNAL_BAN));
+        config.allowEternalBan = true;
+        assertTrue(MiracleGroup.open(damned, config).contains(MiracleGroup.K6), "the fourth blasphemy opens the ban");
+        damned.blasphemiesBefore = 1;
+        assertFalse(MiracleGroup.open(damned, config).contains(MiracleGroup.K6), "not for the second");
+        for (Miracle miracle : Miracle.values()) if (miracle.kind == Miracle.Kind.WRATH)
+            assertTrue(java.util.Arrays.stream(MiracleGroup.values()).anyMatch(g -> g.members.contains(miracle)), "every punishment is in a group: " + miracle);
+    }
 }

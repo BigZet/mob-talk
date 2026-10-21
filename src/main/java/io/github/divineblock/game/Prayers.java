@@ -140,6 +140,16 @@ public final class Prayers {
                 storm, world.getMoonPhase(), danger, judgement.insult(),
                 righteousness.memories.stream().filter(m -> m.deed == Righteousness.Deed.BLASPHEMY && day - m.day <= 3).mapToInt(m -> m.count).sum());
         Verdict verdict = VerdictBuilder.build(context, config);
+        // Punishments in a row climb the ladder; sincere repentance under them (or under a lingering curse) is forgiven.
+        int streak = soul.wrathStreak(day);
+        VerdictBuilder.forgiveBurden(verdict, tone.repents(), streak > 0 || !Curses.of(server, player.getUuid()).isEmpty());
+        VerdictBuilder.escalate(verdict, streak, config);
+        if (verdict.forgiveness) {
+            soul.forgiven();
+            int lifted = Curses.lift(server, player.getUuid());
+            COMBO.merge(player.getUuid(), 1, Integer::sum); // Punishments still on their way are called back.
+            if (lifted > 0) hint(player, "Проклятия сняты: " + lifted);
+        }
 
         soul.prayed(now);
         if (insult) soul.shiftMood(now, -15);
@@ -194,6 +204,7 @@ public final class Prayers {
         speakThen(player, verdict.speech, () -> {
             if (player.isRemoved() || player.getServerWorld() != world) return;
             Miracles.speaking(player, altar, verdict.chosen().kind, estimate);
+            Portents.before(player, altar, verdict.chosen(), estimate);
             if (ServerPlayNetworking.canSend(player, BeamsPayload.ID))
                 ServerPlayNetworking.send(player, new BeamsPayload(altar, 20 * 90, color, music, sky));
         }, () -> {
@@ -272,12 +283,57 @@ public final class Prayers {
                 if (done != null) { DivineBlockMod.LOG.info("Божественный блок: {} здесь невозможно, вместо него {}", miracle.id(), other.id()); miracle = other; break; }
             }
         }
+        boolean fell = done != null;
         if (done == null) {
             Miracle omen = miracle.kind == Miracle.Kind.WRATH ? Miracle.OMEN_THUNDER : Miracle.OMEN_LIGHT;
             done = Miracles.perform(omen, 0, player, altar, verdict.prayer, config) + " (" + miracle.id() + " не вышло)";
         }
         hint(player, "✦ " + done);
         performed.accept(miracle.id());
+        if (fell && miracle.kind == Miracle.Kind.WRATH && miracle != Miracle.ETERNAL_BAN) {
+            MinecraftServer server = player.getServer();
+            DivineState.of(server).ledger.soul(player.getUuid()).punished(DeedWatcher.day(server));
+            DivineState.of(server).markDirty();
+            combo(player, altar, verdict, miracle, config);
+        }
+    }
+
+    /** Generation of each mortal's combo: forgiveness bumps it and the punishments still waiting see they were called back. */
+    private static final java.util.Map<UUID, Integer> COMBO = new java.util.HashMap<>();
+    /** Acts that move the mortal away or end the scene: they never come as a follow-up. */
+    private static final java.util.Set<Miracle> NO_FOLLOW_UP = java.util.EnumSet.of(Miracle.HELL_EXILE, Miracle.END_EXILE, Miracle.MEMORY_WIPE,
+            Miracle.JUDGEMENT, Miracle.ETERNAL_BAN, Miracle.RANDOM_TP, Miracle.GREAT_CRATER, Miracle.CHUNK_VOID, Miracle.FLOOD, Miracle.PLAGUES);
+
+    /** The combo: an escalated or great punishment does not come alone. One or two more acts from the lighter open groups
+     * follow it, each after a pause and a roll of thunder, unless the mortal is forgiven, dies or leaves meanwhile. */
+    private static void combo(ServerPlayerEntity player, BlockPos altar, Verdict verdict, Miracle first, DivineConfig config) {
+        MiracleGroup group = MiracleGroup.byId(verdict.group);
+        if (config.comboActs <= 0 || group == null || group.kind != Miracle.Kind.WRATH || NO_FOLLOW_UP.contains(first)) return;
+        int heavy = group.ordinal() - MiracleGroup.K1.ordinal();
+        int extra = Math.min(config.comboActs, (verdict.escalation >= 1 ? 1 : 0) + (heavy >= 3 ? 1 : 0) + (verdict.escalation >= 3 ? 1 : 0));
+        if (extra <= 0) return;
+        List<Miracle> pool = new ArrayList<>();
+        for (MiracleGroup lighter : MiracleGroup.open(verdict, config))
+            if (lighter.kind == Miracle.Kind.WRATH && lighter.ordinal() <= group.ordinal())
+                for (Miracle m : lighter.allowed(verdict, config)) if (m != first && !NO_FOLLOW_UP.contains(m) && !pool.contains(m)) pool.add(m);
+        java.util.Collections.shuffle(pool);
+        UUID id = player.getUuid();
+        int generation = COMBO.getOrDefault(id, 0);
+        ServerWorld world = player.getServerWorld();
+        for (int i = 0; i < Math.min(extra, pool.size()); i++) {
+            Miracle next = pool.get(i);
+            int delay = 20 * (14 + 16 * i);
+            Scheduler.later(delay - 60, () -> { if (!player.isRemoved() && player.isAlive() && player.getServerWorld() == world && COMBO.getOrDefault(id, 0) == generation) Miracles.warn(player, altar); });
+            Scheduler.later(delay, () -> {
+                if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world || COMBO.getOrDefault(id, 0) != generation) return;
+                String done;
+                try { done = Miracles.perform(next, GodDecider.power(next, verdict.power, verdict.budget), player, altar, verdict.prayer, config, verdict.severity()); }
+                catch (RuntimeException failure) { DivineBlockMod.LOG.warn("Божественный блок: продолжение кары {} упало", next.id(), failure); return; }
+                DivineBlockMod.LOG.info("Божественный блок: кара продолжается — {}: {}", next.id(), done);
+                hint(player, "✦ и ещё: " + (done == null ? next.id() + " не вышло" : done));
+                if (done != null) performed.accept(next.id());
+            });
+        }
     }
 
     /** Every line the god says, every utterance he did not count as a prayer and every act, for the self-test's report. */
@@ -304,5 +360,5 @@ public final class Prayers {
     }
 
     /** Forgets in-flight prayers and unvoiced lines when the server stops. */
-    static void clear() { THINKING.clear(); WAITING.clear(); }
+    static void clear() { THINKING.clear(); WAITING.clear(); COMBO.clear(); }
 }

@@ -67,7 +67,7 @@ public final class Miracles {
     /** {@code severity} 1..5 sets how many bosses come and how much land is cut away in great fury. */
     public static String perform(Miracle miracle, int power, ServerPlayerEntity player, BlockPos altar, String prayer, DivineConfig config, int severity) {
         ServerWorld world = player.getServerWorld();
-        return switch (miracle) {
+        String done = switch (miracle) {
             case OMEN_LIGHT -> { column(world, altar, ParticleTypes.END_ROD); sound(world, altar, SoundEvents.BLOCK_BEACON_ACTIVATE, 1.5f, 0.8f); yield "столб света"; }
             case OMEN_THUNDER -> { sound(world, player.getBlockPos(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, 2f, 0.6f); effect(player, StatusEffects.DARKNESS, 50, 0); yield "гром и тьма"; }
             case OMEN_LAUGH -> { sound(world, altar, SoundEvents.ENTITY_WITCH_CELEBRATE, 2f, 0.5f); burst(world, altar.up(), ParticleTypes.LARGE_SMOKE, 40); yield "хохот с неба"; }
@@ -94,8 +94,8 @@ public final class Miracles {
             case LIGHTNING -> lightning(world, player, altar, power, config);
             case CURSE_MINOR -> curse(player, power);
             case SWARM -> swarm(world, player, power);
-            case CURSE_TOOL -> curseTool(world, player);
-            case ACID_RAIN -> acidRain(world, altar, power);
+            case CURSE_TOOL -> curseTool(world, player, power);
+            case ACID_RAIN -> acidRain(world, player, altar, power, config);
             case FIRE_RING -> fireRing(world, player, altar, power, config);
             case METEOR -> Wrath.meteors(world, player, altar, power, severity, config);
             case ANVIL_RAIN -> Wrath.anvilRain(world, player, altar, power, config);
@@ -117,6 +117,16 @@ public final class Miracles {
             case CHUNK_VOID -> Wrath.chunkVoid(world, player, altar, severity, config);
             case WITHER -> Wrath.withers(world, player, altar, severity);
             case DRAGON -> Wrath.dragons(world, player, severity);
+            case BLIGHT -> Curses.layBlight(world, player, altar, power, config);
+            case CAIN -> Curses.layCain(world, player, power, config);
+            case SACRED_BOSS -> Bosses.summon(world, player, power, severity);
+            case PLAGUES -> Plagues.plagues(world, player, altar, power, severity, config);
+            case SODOM -> Plagues.sodom(world, player, altar, power, severity, config);
+            case FLOOD -> Ultra.flood(world, player, altar, power, severity, config);
+            case BABEL -> Ultra.babel(world, player, altar, power, severity, config);
+            case MEMORY_WIPE -> Ultra.memoryWipe(world, player, altar, power, severity, config);
+            case JUDGEMENT -> Ultra.judgement(world, player, altar, power, severity, config);
+            case ETERNAL_BAN -> Banishment.banish(world, player, altar, config);
             case FLIP -> Jests.flip(world, player, power);
             case TIME_RUSH -> Jests.timeRush(world, player, power);
             case SHEEP_PARTY -> Jests.sheepParty(world, player, power);
@@ -126,6 +136,8 @@ public final class Miracles {
             case LEVITATE -> Jests.levitate(world, player);
             case DIZZY -> Jests.dizzy(world, player);
         };
+        if (done != null) Portents.fall(world, player, altar, miracle, power);
+        return done;
     }
 
     // ---- Omens and the warning before wrath. ----
@@ -502,12 +514,25 @@ public final class Miracles {
 
     // ---- Wrath. ----
 
+    /** The bolt into the sinner, then his own storm cloud for half a minute: thunder, near misses ever closer, the last bolt
+     * into him again. On power 3 the near misses set the ground alight. */
     private static String lightning(ServerWorld world, ServerPlayerEntity player, BlockPos altar, int power, DivineConfig config) {
         // Always into the sinner himself. Where the land is protected (at the altar, by the bed) the bolt sets nothing alight,
         // but the blow and the fire on him are the same.
         strike(world, player, altar, power, config);
-        if (power >= 3) Scheduler.repeat(15, 2, i -> { if (player.isAlive() && player.getServerWorld() == world) strike(world, player, altar, power, config); });
-        return power >= 3 ? "три молнии в грешника" : "молния в грешника";
+        if (power >= 3) Scheduler.repeat(15, 2, i -> { if (!gone(world, player)) strike(world, player, altar, power, config); });
+        int steps = 60; // Every half second for 30 s.
+        Scheduler.repeat(10, steps, i -> {
+            if (gone(world, player)) return;
+            world.spawnParticles(ParticleTypes.CLOUD, player.getX(), player.getY() + 4.5, player.getZ(), 14, 1.3, 0.25, 1.3, 0.01);
+            world.spawnParticles(ParticleTypes.LARGE_SMOKE, player.getX(), player.getY() + 4.8, player.getZ(), 5, 1.1, 0.2, 1.1, 0.005);
+            world.spawnParticles(ParticleTypes.FALLING_WATER, player.getX(), player.getY() + 4, player.getZ(), 6, 1, 0.1, 1, 0);
+            if (i == steps - 1) {
+                sound(world, player.getBlockPos(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, 2f, 0.5f);
+                strike(world, player, altar, power, config);
+            } else if (i % 8 == 4) nearMiss(world, player, altar, Math.max(2, 7 - i / 8), power, config);
+        });
+        return (power >= 3 ? "три молнии в грешника" : "молния в грешника") + " и грозовая туча над ним на полминуты";
     }
     private static void strike(ServerWorld world, ServerPlayerEntity player, BlockPos altar, int power, DivineConfig config) {
         BlockPos at = player.getBlockPos();
@@ -515,29 +540,113 @@ public final class Miracles {
         bolt(world, at, spare);
         if (spare) { player.damage(world.getDamageSources().lightningBolt(), 3f + 2f * power); player.setOnFireFor(4); }
     }
+    /** A harmless bolt {@code distance} blocks from him; on power 3 the ground where it lands catches fire. */
+    private static void nearMiss(ServerWorld world, ServerPlayerEntity player, BlockPos altar, int distance, int power, DivineConfig config) {
+        double angle = world.random.nextDouble() * Math.PI * 2;
+        BlockPos column = player.getBlockPos().add((int) Math.round(Math.cos(angle) * distance), 0, (int) Math.round(Math.sin(angle) * distance));
+        BlockPos ground = surface(world, column);
+        bolt(world, ground == null ? column : ground, true);
+        sound(world, player.getBlockPos(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, 1.5f, 0.7f + world.random.nextFloat() * 0.3f);
+        if (power < 3 || ground == null) return;
+        for (BlockPos pos : List.of(ground, ground.east(), ground.west(), ground.north(), ground.south())) {
+            BlockPos spot = surface(world, pos);
+            if (spot != null && !Protection.spares(world, player, altar, spot, config)) world.setBlockState(spot, Blocks.FIRE.getDefaultState());
+        }
+    }
+    /** The air block on solid ground in this column, two blocks up or down from it; null when there is none. */
+    private static BlockPos surface(ServerWorld world, BlockPos column) {
+        for (int dy = 2; dy >= -2; dy--) {
+            BlockPos pos = column.up(dy);
+            if (world.getBlockState(pos).isAir() && world.getBlockState(pos.down()).isSideSolidFullSquare(world, pos.down(), net.minecraft.util.math.Direction.UP)) return pos;
+        }
+        return null;
+    }
 
+    /** Hunger, weakness and bad luck; his cooked food rots, and now and then the thing in his hand slips from it. */
     private static String curse(ServerPlayerEntity player, int power) {
+        ServerWorld world = player.getServerWorld();
         int ticks = 20 * 60 * (power + 1);
         effect(player, StatusEffects.HUNGER, ticks, power - 1);
         effect(player, StatusEffects.WEAKNESS, ticks, 0);
         effect(player, StatusEffects.SLOWNESS, ticks, 0);
         effect(player, StatusEffects.UNLUCK, ticks, power);
         if (power >= 2) effect(player, StatusEffects.MINING_FATIGUE, ticks, 0);
-        burst(player.getServerWorld(), player.getBlockPos().up(), ParticleTypes.SQUID_INK, 30);
-        return "проклятие на " + ticks / 1200 + " мин";
-    }
-
-    private static String swarm(ServerWorld world, ServerPlayerEntity player, int power) {
-        int spawned = 0;
-        if (power == 1) for (int i = 0; i < 4; i++) spawned += hostile(world, player, EntityType.SILVERFISH.create(world), 3, 0);
-        if (power >= 2) for (int i = 0; i < 5; i++) {
-            BeeEntity bee = EntityType.BEE.create(world);
-            if (bee == null) continue;
-            bee.setAngryAt(player.getUuid()); bee.chooseRandomAngerTime();
-            spawned += hostile(world, player, bee, 3, 2);
+        burst(world, player.getBlockPos().up(), ParticleTypes.SQUID_INK, 30);
+        int rotten = rot(player, power);
+        if (rotten > 0) sound(world, player.getBlockPos(), SoundEvents.ENTITY_ZOMBIE_AMBIENT, 1f, 0.6f);
+        // Butterfingers: a few slips spread over the curse, not one after another. Milk lifts the curse and the slips with it.
+        int slips = 1 + power;
+        for (int k = 0; k < slips; k++) {
+            int due = ticks * (k + 1) / (slips + 1) + world.random.nextInt(200) - 100;
+            Scheduler.later(due, () -> {
+                if (gone(world, player) || !player.hasStatusEffect(StatusEffects.UNLUCK) || player.getMainHandStack().isEmpty()) return;
+                if (player.dropSelectedItem(true)) {
+                    sound(world, player.getBlockPos(), SoundEvents.ENTITY_ITEM_PICKUP, 1f, 0.4f);
+                    burst(world, player.getBlockPos().up(), ParticleTypes.SQUID_INK, 8);
+                    Prayers.hint(player, "Проклятие: предмет выскользнул из руки");
+                }
+            });
         }
-        if (power >= 3) for (int i = 0; i < 3; i++) spawned += hostile(world, player, EntityType.PHANTOM.create(world), 6, 10);
-        return spawned == 0 ? null : "рой: " + spawned;
+        return "проклятие на " + ticks / 1200 + " мин" + (rotten > 0 ? ", сгнило еды: " + rotten + " стоп." : "") + ", руки не держат";
+    }
+    /** Turns up to {@code stacks} stacks of cooked food in his bags into rotten flesh; returns how many rotted. */
+    private static int rot(ServerPlayerEntity player, int stacks) {
+        var inventory = player.getInventory();
+        int rotted = 0;
+        for (var list : List.of(inventory.main, inventory.offHand))
+            for (int i = 0; i < list.size() && rotted < stacks; i++) {
+                ItemStack stack = list.get(i);
+                if (stack.isEmpty() || !COOKED.contains(stack.getItem())) continue;
+                list.set(i, new ItemStack(Items.ROTTEN_FLESH, stack.getCount()));
+                rotted++;
+            }
+        if (rotted > 0) { inventory.markDirty(); player.currentScreenHandler.sendContentUpdates(); }
+        return rotted;
+    }
+    private static final java.util.Set<Item> COOKED = java.util.Set.of(Items.COOKED_BEEF, Items.COOKED_PORKCHOP, Items.COOKED_CHICKEN,
+            Items.COOKED_MUTTON, Items.COOKED_RABBIT, Items.COOKED_COD, Items.COOKED_SALMON, Items.BREAD, Items.BAKED_POTATO,
+            Items.PUMPKIN_PIE, Items.COOKIE, Items.RABBIT_STEW, Items.MUSHROOM_STEW, Items.BEETROOT_SOUP);
+
+    /** The swarm comes in waves nine seconds apart, each larger than the last; on power 3 the last brings phantoms that
+     * do not burn by day. */
+    private static String swarm(ServerWorld world, ServerPlayerEntity player, int power) {
+        int waves = power == 1 ? 2 : 3;
+        int first = wave(world, player, power, 0, waves);
+        if (first == 0) return null;
+        for (int w = 1; w < waves; w++) {
+            int index = w;
+            Scheduler.later(20 * 9 * w, () -> { if (!gone(world, player)) wave(world, player, power, index, waves); });
+        }
+        return "рой: " + waves + " волны, первая — " + first;
+    }
+    private static int wave(ServerWorld world, ServerPlayerEntity player, int power, int index, int waves) {
+        int spawned = 0, size = 3 + index * 2 + (power - 1);
+        boolean last = index == waves - 1;
+        if (power == 1) {
+            for (int i = 0; i < size; i++) spawned += hostile(world, player, EntityType.SILVERFISH.create(world), 3, 0);
+            if (last) for (int i = 0; i < 2; i++) spawned += hostile(world, player, EntityType.ENDERMITE.create(world), 3, 0);
+            sound(world, player.getBlockPos(), SoundEvents.ENTITY_SILVERFISH_AMBIENT, 1.5f, 0.7f);
+        } else {
+            for (int i = 0; i < size; i++) {
+                BeeEntity bee = EntityType.BEE.create(world);
+                if (bee == null) continue;
+                bee.setAngryAt(player.getUuid()); bee.chooseRandomAngerTime();
+                spawned += hostile(world, player, bee, 3, 2);
+            }
+            if (index >= 1) for (int i = 0; i < index + 1; i++) spawned += hostile(world, player, EntityType.CAVE_SPIDER.create(world), 4, 0);
+            sound(world, player.getBlockPos(), SoundEvents.ENTITY_BEE_LOOP_AGGRESSIVE, 2f, 0.8f);
+        }
+        if (power >= 3 && last) {
+            for (int i = 0; i < 3; i++) {
+                MobEntity phantom = EntityType.PHANTOM.create(world);
+                if (phantom == null) continue;
+                phantom.addStatusEffect(new StatusEffectInstance(StatusEffects.FIRE_RESISTANCE, 20 * 60 * 3, 0));
+                spawned += hostile(world, player, phantom, 6, 10);
+            }
+            sound(world, player.getBlockPos(), SoundEvents.ENTITY_PHANTOM_SWOOP, 2f, 0.6f);
+        }
+        burst(world, player.getBlockPos().up(), ParticleTypes.ANGRY_VILLAGER, 6);
+        return spawned;
     }
     private static int hostile(ServerWorld world, ServerPlayerEntity player, MobEntity mob, int spread, int above) {
         if (mob == null) return 0;
@@ -548,21 +657,43 @@ public final class Miracles {
         return 1;
     }
 
-    private static String curseTool(ServerWorld world, ServerPlayerEntity player) {
+    /** Curses the tool (vanishing) or armour (binding) and eats half of what is left of it; on power 2 a worn armour piece
+     * shares its fate. */
+    private static String curseTool(ServerWorld world, ServerPlayerEntity player, int power) {
         // The tool in hand, else the first tool or armour he carries; with nothing to curse, the curse falls on him.
         ItemStack held = player.getMainHandStack();
         if (held.isEmpty() || !held.isDamageable()) held = firstStack(player, ItemStack::isDamageable);
         if (held == null) return curse(player, 1) + " (проклинать было нечего)";
-        var enchantments = world.getRegistryManager().get(RegistryKeys.ENCHANTMENT);
-        boolean wearable = held.getItem() instanceof ArmorItem;
-        RegistryEntry<net.minecraft.enchantment.Enchantment> curse = enchantments.entryOf(wearable ? Enchantments.BINDING_CURSE : Enchantments.VANISHING_CURSE);
-        held.addEnchantment(curse, 1);
+        String result = "проклят " + blight(world, held);
+        if (power >= 2) {
+            ItemStack first = held;
+            ItemStack worn = null;
+            for (EquipmentSlot slot : new EquipmentSlot[] { EquipmentSlot.CHEST, EquipmentSlot.HEAD, EquipmentSlot.LEGS, EquipmentSlot.FEET }) {
+                ItemStack stack = player.getEquippedStack(slot);
+                if (!stack.isEmpty() && stack != first && stack.isDamageable()) { worn = stack; break; }
+            }
+            if (worn != null) result += " и " + blight(world, worn);
+        }
+        player.currentScreenHandler.sendContentUpdates();
         burst(world, player.getBlockPos().up(), ParticleTypes.SOUL, 20);
         sound(world, player.getBlockPos(), SoundEvents.ENTITY_ELDER_GUARDIAN_CURSE, 1f, 1f);
-        return "проклят " + held.getName().getString();
+        sound(world, player.getBlockPos(), SoundEvents.ENTITY_ITEM_BREAK, 1f, 0.6f);
+        return result;
+    }
+    /** Lays the curse on one item and takes half its remaining durability; returns its name and the loss. */
+    private static String blight(ServerWorld world, ItemStack stack) {
+        var enchantments = world.getRegistryManager().get(RegistryKeys.ENCHANTMENT);
+        boolean wearable = stack.getItem() instanceof ArmorItem;
+        RegistryEntry<net.minecraft.enchantment.Enchantment> curse = enchantments.entryOf(wearable ? Enchantments.BINDING_CURSE : Enchantments.VANISHING_CURSE);
+        stack.addEnchantment(curse, 1);
+        int left = stack.getMaxDamage() - stack.getDamage(), eaten = left / 2;
+        if (eaten > 0) stack.setDamage(stack.getDamage() + eaten);
+        return stack.getName().getString() + (eaten > 0 ? " (−" + eaten + " прочности)" : "");
     }
 
-    private static String acidRain(ServerWorld world, BlockPos altar, int power) {
+    /** Poisonous rain for a minute; where it falls near the sinner the grass burns to coarse dirt, flowers to dead bushes
+     * and crops back to seedlings. */
+    private static String acidRain(ServerWorld world, ServerPlayerEntity player, BlockPos altar, int power, DivineConfig config) {
         if (world.getRegistryKey() != World.OVERWORLD) {
             // No rain under a stone sky: a poisonous cloud settles round him instead.
             for (ServerPlayerEntity victim : world.getPlayers(p -> p.isAlive() && p.getBlockPos().isWithinDistance(altar, 96))) {
@@ -577,28 +708,70 @@ public final class Miracles {
         Scheduler.repeat(40, 30, i -> {
             for (ServerPlayerEntity victim : world.getPlayers(p -> p.isAlive() && p.getBlockPos().isWithinDistance(altar, 96)))
                 if (world.hasRain(victim.getBlockPos().up())) effect(victim, StatusEffects.POISON, 60, power >= 3 ? 1 : 0);
+            if (!gone(world, player)) scorch(world, player, altar, power, config);
         });
-        return "ядовитый дождь на минуту";
+        return config.protectBlocks ? "ядовитый дождь на минуту" : "ядовитый дождь на минуту, земля под ним выгорает";
     }
-
-    private static String fireRing(ServerWorld world, ServerPlayerEntity player, BlockPos altar, int power, DivineConfig config) {
-        BlockPos center = player.getBlockPos();
-        int placed = 0, radius = 3 + power;
-        for (int step = 0; step < 32; step++) {
-            double angle = Math.PI * 2 * step / 32;
-            BlockPos column = center.add((int) Math.round(Math.cos(angle) * radius), 0, (int) Math.round(Math.sin(angle) * radius));
-            for (int dy = 2; dy >= -2; dy--) {
-                BlockPos pos = column.up(dy);
-                if (world.getBlockState(pos).isAir() && world.getBlockState(pos.down()).isSideSolidFullSquare(world, pos.down(), net.minecraft.util.math.Direction.UP)) {
-                    if (!Protection.spares(world, player, altar, pos, config)) { world.setBlockState(pos, Blocks.FIRE.getDefaultState()); placed++; }
-                    else world.spawnParticles(ParticleTypes.FLAME, pos.getX() + 0.5, pos.getY() + 0.2, pos.getZ() + 0.5, 6, 0.2, 0.4, 0.2, 0.01);
-                    break;
-                }
+    /** A few scorched patches under the rain round the sinner; never more than a handful of blocks a step. */
+    private static void scorch(ServerWorld world, ServerPlayerEntity player, BlockPos altar, int power, DivineConfig config) {
+        int radius = 4 + power, burnt = 0;
+        for (int patch = 0; patch < 2 + power; patch++) {
+            BlockPos center = player.getBlockPos().add(world.random.nextInt(radius * 2 + 1) - radius, 0, world.random.nextInt(radius * 2 + 1) - radius);
+            for (BlockPos column : List.of(center, center.add(world.random.nextInt(3) - 1, 0, world.random.nextInt(3) - 1))) {
+                BlockPos top = world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, column);
+                if (Math.abs(top.getY() - player.getBlockY()) > 6 || !world.hasRain(top)) continue; // Under a roof the rain does not reach.
+                if (burn(world, player, altar, top, config) | burn(world, player, altar, top.down(), config)) burnt++;
             }
         }
+        if (burnt > 0) sound(world, player.getBlockPos(), SoundEvents.BLOCK_FIRE_EXTINGUISH, 0.6f, 1.4f);
+    }
+    /** What the acid does to one block; false when it leaves it be. */
+    private static boolean burn(ServerWorld world, ServerPlayerEntity player, BlockPos altar, BlockPos pos, DivineConfig config) {
+        if (Protection.spares(world, player, altar, pos, config)) return false;
+        BlockState state = world.getBlockState(pos);
+        BlockState into = null;
+        if (state.isOf(Blocks.GRASS_BLOCK) || state.isOf(Blocks.PODZOL) || state.isOf(Blocks.MYCELIUM)) into = Blocks.COARSE_DIRT.getDefaultState();
+        else if (state.isOf(Blocks.SHORT_GRASS) || state.isOf(Blocks.FERN) || state.isIn(BlockTags.SMALL_FLOWERS)) into = Blocks.DEAD_BUSH.getDefaultState();
+        else if (state.getBlock() instanceof CropBlock crop && crop.getAge(state) > 0) into = crop.withAge(0);
+        if (into == null) return false;
+        world.setBlockState(pos, into);
+        world.spawnParticles(ParticleTypes.SMOKE, pos.getX() + 0.5, pos.getY() + 1.1, pos.getZ() + 0.5, 5, 0.3, 0.1, 0.3, 0.01);
+        return true;
+    }
+
+    /** A ring of fire round the sinner that closes in: one block nearer every two seconds, down to one block from him. */
+    private static String fireRing(ServerWorld world, ServerPlayerEntity player, BlockPos altar, int power, DivineConfig config) {
+        BlockPos center = player.getBlockPos();
+        int start = 3 + power;
+        int placed = ring(world, player, altar, center, start, config);
+        for (int radius = start - 1; radius >= 1; radius--) {
+            int r = radius;
+            Scheduler.later(40 * (start - radius), () -> {
+                if (gone(world, player)) return;
+                ring(world, player, altar, center, r, config);
+                if (r == 1) player.setOnFireFor(3 + power);
+            });
+        }
         player.setOnFireFor(2 + power);
-        sound(world, center, SoundEvents.ITEM_FIRECHARGE_USE, 1.5f, 0.6f);
-        return placed > 0 ? "кольцо огня" : "кольцо призрачного огня";
+        return (placed > 0 ? "кольцо огня" : "кольцо призрачного огня") + " сжимается от " + start + " блоков к грешнику";
+    }
+    /** One ring of fire of this radius; where the land is spared only flames in the air. Returns the fires laid. */
+    private static int ring(ServerWorld world, ServerPlayerEntity player, BlockPos altar, BlockPos center, int radius, DivineConfig config) {
+        int placed = 0, points = Math.max(8, Math.min(32, radius * 7));
+        for (int step = 0; step < points; step++) {
+            double angle = Math.PI * 2 * step / points;
+            BlockPos pos = surface(world, center.add((int) Math.round(Math.cos(angle) * radius), 0, (int) Math.round(Math.sin(angle) * radius)));
+            if (pos == null) continue;
+            if (!Protection.spares(world, player, altar, pos, config)) { world.setBlockState(pos, Blocks.FIRE.getDefaultState()); placed++; }
+            else world.spawnParticles(ParticleTypes.FLAME, pos.getX() + 0.5, pos.getY() + 0.2, pos.getZ() + 0.5, 6, 0.2, 0.4, 0.2, 0.01);
+        }
+        sound(world, center, SoundEvents.ITEM_FIRECHARGE_USE, 1.5f, 0.6f + 0.1f * (6 - Math.min(6, radius)));
+        return placed;
+    }
+
+    /** True when a delayed step must stop: he died, left, or went to another world. */
+    private static boolean gone(ServerWorld world, ServerPlayerEntity player) {
+        return player.isRemoved() || !player.isAlive() || player.getServerWorld() != world;
     }
 
     // ---- Helpers. ----

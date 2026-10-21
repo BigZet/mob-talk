@@ -110,6 +110,29 @@ public final class VerdictBuilder {
         return verdict;
     }
 
+    /** Escalation: {@code streak} punishments in a row, none forgiven, make this wrath a named rung worse each (a group up
+     * the ladder, a step of severity, and a deeper budget). Mercy, jests and forgiveness are not touched. */
+    public static void escalate(Verdict verdict, int streak, DivineConfig config) {
+        if (!config.escalation || streak <= 0 || verdict.inclination != Miracle.Kind.WRATH || verdict.forgiveness) return;
+        int steps = Math.min(4, streak);
+        verdict.escalation = steps;
+        verdict.reasons.add(new Verdict.Reason("кара за карой: " + (streak + 1) + "-я подряд, гнев на ступень хуже", -2 * steps, 1));
+        verdict.favor -= 2 * steps;
+        verdict.force += 1;
+        verdict.budget = Math.min(config.maxTier, Math.max(verdict.budget, Math.min(4, verdict.budget + steps)));
+    }
+
+    /** Sincere repentance under a burden (punishments in a row or a curse still on him), even mid-escalation: the god forgives,
+     * the curses are lifted and the ladder starts again. Blasphemy in the same breath is no repentance. */
+    public static void forgiveBurden(Verdict verdict, boolean repents, boolean burdened) {
+        if (!repents || !burdened || verdict.fury || verdict.forgiveness || verdict.favor <= -10) return;
+        verdict.reasons.add(new Verdict.Reason("искреннее покаяние снимает кару и проклятия", 4, 0));
+        verdict.favor += 4;
+        verdict.forgiveness = true;
+        verdict.inclination = Miracle.Kind.OMEN;
+        verdict.budget = 0;
+    }
+
     static Miracle.Kind inclination(int favor, int force, DivineConfig.Personality personality) {
         if (favor >= 2) return Miracle.Kind.HELP;
         if (favor <= -2) return Miracle.Kind.WRATH;
