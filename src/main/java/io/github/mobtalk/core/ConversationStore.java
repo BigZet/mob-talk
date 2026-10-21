@@ -63,6 +63,18 @@ public final class ConversationStore {
     public WeddingLedger wedding() { return wedding; }
     /** Трек N: особая ночь, беременность, роды и экран семьи; см. {@link ChildLedger}. */
     public ChildLedger children() { return children; }
+    /** Трек M: пол, родители (мать первой) и стадия роста жителя с профилем — облик людей-жителей; рендер читает копию. */
+    public record Lineage(Gender gender, List<UUID> parents, String stage) { }
+    public synchronized Map<UUID, Lineage> lineages() {
+        Map<UUID, Lineage> out = new HashMap<>();
+        for (Map.Entry<String, Profile> e : state.profiles.entrySet()) {
+            Profile p = e.getValue();
+            if (p.social == null) continue;
+            UUID id; try { id = UUID.fromString(e.getKey()); } catch (RuntimeException bad) { continue; }
+            out.put(id, new Lineage(p.social.gender(), state.family.parents(id), p.social.stage == null ? "" : p.social.stage));
+        }
+        return out;
+    }
     /** The preferences this store was opened with, for the social layer. */
     synchronized MobTalkConfig config() { return config; }
     /** Blocking writer barrier for shutdown/tests, never the game thread. */

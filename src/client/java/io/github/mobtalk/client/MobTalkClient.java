@@ -155,6 +155,12 @@ public final class MobTalkClient implements ClientModInitializer {
                 InputUtil.UNKNOWN_KEY.getCode(), "category.mobtalk"));
         net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_ENTITIES.register(labels::render);
         ChildView.register();
+        io.github.mobtalk.client.human.VillagerLooks.register();
+        net.fabricmc.fabric.api.resource.ResourceManagerHelper.get(net.minecraft.resource.ResourceType.CLIENT_RESOURCES).registerReloadListener(
+                new net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener() {
+                    @Override public net.minecraft.util.Identifier getFabricId() { return net.minecraft.util.Identifier.of("mobtalk", "human_textures"); }
+                    @Override public void reload(net.minecraft.resource.ResourceManager manager) { io.github.mobtalk.client.human.HumanTextures.reload(); }
+                });
         net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback.EVENT.register(children::renderFade);
         ScreenEvents.AFTER_INIT.register((minecraft, screen, width, height) -> {
             if (screen instanceof GameMenuScreen) {
@@ -290,6 +296,14 @@ public final class MobTalkClient implements ClientModInitializer {
         });
     }
 
+    /** Трек M: переключатель людей-жителей и копия пола, родителей и стадий для их облика. */
+    private void updateLooks() {
+        io.github.mobtalk.client.human.HumanLooks.enabled = config == null || config.humanVillagers;
+        MobGameBridge game = client.getServer() == null ? null : MobGameBridge.active(client.getServer());
+        if (game == null) io.github.mobtalk.client.human.HumanLooks.clear();
+        else io.github.mobtalk.client.human.HumanLooks.update(game.memory.lineages());
+    }
+
     private void tick() {
         ticks++;
         if (ticks % 200 == 0) keepConnectionWarm();
@@ -347,7 +361,7 @@ public final class MobTalkClient implements ClientModInitializer {
             runDeferredAction();
         }
         if (selected != null && ticks % 20 == 0) showHud();
-        if (ticks % 10 == 7) { children.tick(); labels.tick(); }
+        if (ticks % 10 == 7) { children.tick(); labels.tick(); updateLooks(); }
         if (conversationMob != null && ticks % 20 == 0 && System.currentTimeMillis() - lastReplyMillis > config.conversationSilenceMinutes * 60_000L) endConversation(conversationMob);
     }
 
