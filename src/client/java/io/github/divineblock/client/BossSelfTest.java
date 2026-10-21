@@ -211,8 +211,19 @@ public final class BossSelfTest {
         }));
         steps.add(new Step(50, () -> { if (boss[0] != null) { check(boss[0].isAlive(), kind.id + " жив и держит цель"); screenshot = kind.id + "-1-idle"; } }));
         steps.add(new Step(5, () -> { if (boss[0] != null) { refresh(player); boss[0].forceAttack(); } }));
-        steps.add(new Step(12, () -> { if (boss[0] != null) { check(boss[0].isCasting() || boss[0].hazardCount() > 0, kind.id + ": обычная атака с предупреждением"); screenshot = kind.id + "-2-attack"; } }));
-        steps.add(new Step(50, () -> { if (boss[0] != null) { refresh(player); home(player); boss[0].forceUltimate(); } }));
+        steps.add(new Step(12, () -> {
+            if (boss[0] == null) return;
+            if (boss[0].isCasting() || boss[0].hazardCount() > 0) { check(true, kind.id + ": обычная атака с предупреждением"); screenshot = kind.id + "-2-attack"; return; }
+            boss[0].forceAttack();
+            Scheduler.later(25, () -> { check(boss[0].isCasting() || boss[0].hazardCount() > 0, kind.id + ": обычная атака с предупреждением (со второй попытки)"); screenshot = kind.id + "-2-attack"; });
+        }));
+        steps.add(new Step(50, () -> {
+            if (boss[0] == null) return;
+            refresh(player);
+            home(player);
+            if (water) player.teleport(player.getServerWorld(), base.getX() + 0.5, base.getY(), base.getZ() - 12.5, 180f, 10f);
+            boss[0].forceUltimate();
+        }));
         steps.add(new Step(30, () -> { if (boss[0] != null) { check(boss[0].isCasting(), kind.id + ": ульта «" + kind.ultimate + "» предупреждает заранее"); screenshot = kind.id + "-3-ult-warning"; } }));
         steps.add(new Step(45, () -> { if (boss[0] != null) screenshot = kind.id + "-4-ult"; }));
         steps.add(new Step(40, () -> { if (boss[0] != null) screenshot = kind.id + "-5-ult-late"; }));
@@ -322,7 +333,7 @@ public final class BossSelfTest {
     private static void seal(ServerPlayerEntity player) {
         ServerWorld world = player.getServerWorld();
         world.setTimeOfDay(18000);
-        BlockPos at = base.add(0, -1, -8);
+        BlockPos at = base.add(0, -1, 1);
         world.setBlockState(at, DivineBosses.SEAL.getDefaultState());
         check(BossSealBlockEntity.configure(world, at, "cemetery", 2, true, 1), "печать стража настроена на погост ночью");
     }

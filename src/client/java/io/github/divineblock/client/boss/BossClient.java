@@ -20,6 +20,8 @@ import net.minecraft.util.math.Vec3d;
 public final class BossClient {
     /** Read by the mixins every frame. */
     public static volatile boolean ringing;
+    /** The F9 «Тряска камеры» setting, read now and then (the camera asks every frame). */
+    public static volatile boolean shakeAllowed = true;
     private static SoundInstance tinnitus;
 
     private BossClient() { }
@@ -73,6 +75,7 @@ public final class BossClient {
         ClientPlayerEntity player = client.player;
         if (player == null || client.world == null) { ringing = false; return; }
         ringing = player.hasStatusEffect(BossEffects.RINGING);
+        if (player.age % 40 == 0) shakeAllowed = io.github.divineblock.DivineBlockMod.config().cameraShake;
         if (ringing && player.age % 40 == 0 && (tinnitus == null || !client.getSoundManager().isPlaying(tinnitus))) {
             tinnitus = PositionedSoundInstance.master(SoundEvents.BLOCK_AMETHYST_BLOCK_RESONATE, 2.0f, 0.5f);
             client.getSoundManager().play(tinnitus);
