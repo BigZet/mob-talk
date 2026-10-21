@@ -21,13 +21,16 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.Heightmap;
 
-/** The hook for the sacred bosses of the god (made in their own branch): {@code DivineBosses.spawn(id, world, pos, power)}
- * is called by reflection when that class is in the mod; until then a stand-in, the Black Schemamonk, answers. */
+/** The hook for the sacred bosses of the god (made in their own branch): {@code boss.DivineBosses.spawn(id, world, pos, power)}
+ * is called by reflection when that class is in the mod; until then a stand-in, the Black Schemamonk, answers. Once the
+ * bosses have their own acts in the catalogue this hook may go. */
 final class Bosses {
     /** The bosses of the wrath groups; the archangel of wrath comes only in the greatest fury. */
-    static final List<String> IDS = List.of("divineblock:black_schemnik", "divineblock:bell_ringer", "divineblock:seraph", "divineblock:faceless_icon",
-            "divineblock:mourner");
-    static final String ARCHANGEL = "divineblock:wrath_archangel";
+    static final List<String> IDS = List.of("black_schemnik", "bell_ringer", "seraph", "faceless_icon", "wailer", "leviathan", "behemoth", "goliath",
+            "destroying_angel", "cherub", "nimrod");
+    /** The bosses of the end of the world: only in the greatest fury. */
+    static final List<String> GREATEST = List.of("archangel", "horsemen", "beast");
+    static final String CLASS = "io.github.divineblock.boss.DivineBosses";
 
     private Bosses() { }
 
@@ -36,7 +39,7 @@ final class Bosses {
         if (look.lengthSquared() < 1e-4) look = new Vec3d(0, 0, 1);
         look = look.normalize().multiply(9);
         BlockPos at = world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, BlockPos.ofFloored(player.getX() + look.x, 0, player.getZ() + look.z));
-        String id = severity >= 4 && world.random.nextBoolean() ? ARCHANGEL : IDS.get(world.random.nextInt(IDS.size()));
+        String id = severity >= 4 && world.random.nextBoolean() ? GREATEST.get(world.random.nextInt(GREATEST.size())) : IDS.get(world.random.nextInt(IDS.size()));
         Miracles.bolt(world, at, true);
         Miracles.sound(world, at, SoundEvents.BLOCK_BELL_RESONATE, 4f, 0.5f);
         world.spawnParticles(ParticleTypes.END_ROD, at.getX() + 0.5, at.getY() + 1, at.getZ() + 0.5, 120, 0.6, 3, 0.6, 0.05);
@@ -47,11 +50,11 @@ final class Bosses {
     /** The real boss, when the bosses' class is in the mod; null otherwise or when it fails. */
     private static String sacred(String id, ServerWorld world, BlockPos at, int power) {
         try {
-            Class<?> bosses = Class.forName("io.github.divineblock.game.DivineBosses");
+            Class<?> bosses = Class.forName(CLASS);
             Method spawn = bosses.getMethod("spawn", String.class, ServerWorld.class, BlockPos.class, int.class);
-            Object result = spawn.invoke(null, id, world, at, power);
+            Object result = spawn.invoke(null, id, world, at, Math.max(1, Math.min(5, power)));
             if (result == null || Boolean.FALSE.equals(result)) return null;
-            return "священный босс: " + id.substring(id.indexOf(':') + 1);
+            return "священный босс: " + id;
         } catch (ClassNotFoundException absent) {
             return null;
         } catch (ReflectiveOperationException | RuntimeException | LinkageError failure) {

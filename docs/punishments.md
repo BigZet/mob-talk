@@ -57,9 +57,10 @@
   (крикунов нет: их «тьма» — лишняя слепота).
 - **Печать Каина** *(новая, затяжная)* — несколько дней всё, что умеет злиться, злится на грешника (големы и волки охотятся,
   даже приручённые), звери бегут, жители бегут и не торгуют.
-- **Священный босс** *(хук)* — зовёт `io.github.divineblock.game.DivineBosses.spawn(id, world, pos, power)` через
-  reflection, когда боссы появятся в моде (`black_schemnik`, `bell_ringer`, `seraph`, `faceless_icon`, `mourner`;
-  `wrath_archangel` — только при ярости 4–5). Пока их нет — Чёрный схимник (визер-скелет в незерите, 140–220 ОЗ).
+- **Священный босс** *(хук)* — зовёт `io.github.divineblock.boss.DivineBosses.spawn(id, world, pos, power)` через
+  reflection, когда боссы есть в моде (`black_schemnik`, `bell_ringer`, `seraph`, `faceless_icon`, `wailer`, `leviathan`,
+  `behemoth`, `goliath`, `destroying_angel`, `cherub`, `nimrod`; `archangel`, `horsemen`, `beast` — только при ярости 4–5).
+  Пока их нет — Чёрный схимник (визер-скелет в незерите, 140–220 ОЗ).
 
 ### К5 «конец света»
 - **Изгнание в Ад** — через 3 с встречают 2–3 гаста; портала домой нет.
