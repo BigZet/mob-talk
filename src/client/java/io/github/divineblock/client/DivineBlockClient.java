@@ -18,6 +18,7 @@ public final class DivineBlockClient implements ClientModInitializer {
         SelfTest.register();
         FxTest.register();
         ChurchSelfTest.register();
+        CruelTest.register();
         settingsKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.divineblock.settings", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_F9, "key.categories.divineblock"));
         prayKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.divineblock.pray", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_R, "key.categories.divineblock"));
         GodVoicePlayer.register();
