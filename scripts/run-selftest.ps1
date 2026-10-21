@@ -36,7 +36,8 @@ try {
   Get-WhisperHelper $port | ForEach-Object { Say "stopping a stale Whisper helper $($_.ProcessId) on $port"; Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 
   $flag = if ($Church) { '-Ddivineblock.churchtest=true' } else { "-Ddivineblock.selftest=$Mode" }
-  $jvmArgs = "$flag -Ddivineblock.selftest.report=`"$scratch`""
+  # Prism reads backslashes in JvmArgs as escapes: the report folder goes with forward slashes.
+  $jvmArgs = "$flag -Ddivineblock.selftest.report=$($scratch.Replace('\', '/'))"
   if ($Jvm) { $jvmArgs = "$jvmArgs $Jvm" }
   New-TestInstance -Base $Base -Name $name -JvmArgs $jvmArgs -WhisperPort $port | Out-Null
   Get-ChildItem "$mc\mods\divineblock-*.jar" | Remove-Item -Force

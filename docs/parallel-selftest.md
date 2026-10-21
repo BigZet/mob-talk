@@ -14,8 +14,9 @@ powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 [-Mode true|cr
 - Скрипт собирает ветку, ждёт свободный слот (не больше 3 игр на машине, считая чужие и игры пользователя),
   копирует `divine-block-test` в `%APPDATA%\PrismLauncher\instances\t-db-<ветка>-<время>-<nn>` с JAR ветки,
   запускает с `-Ddivineblock.selftest=<Mode>` и ждёт только свой `javaw`, затем удаляет копию.
-- `-Mode` — значение флага самотеста (по умолчанию `true`), `-Jvm` — дополнительные флаги для этого прогона.
-  Флаги живут только в копии: в `divine-block-test` ничего не остаётся.
+- `-Mode` — значение флага самотеста (по умолчанию `true`), `-Church` — самотест церкви (`-Shots <папка>`
+  копирует её снимки), `-Jvm` — дополнительные флаги для этого прогона. Флаги живут только в копии:
+  в `divine-block-test` ничего не остаётся. Пути во флагах пишите через `/`: Prism читает `\` в JvmArgs как экранирование.
 - Отчёт, `latest.log` и снимки: `%LOCALAPPDATA%\DivineBlock\selftest\<копия>\` (мод пишет `report.txt`
   туда по `-Ddivineblock.selftest.report`).
 - Whisper Mob Talk и Божественного блока в копии слота N ходит на порт `63919 + N`.
