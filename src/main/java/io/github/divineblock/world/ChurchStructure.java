@@ -10,6 +10,7 @@ import net.minecraft.registry.tag.BiomeTags;
 import net.minecraft.structure.PoolStructurePiece;
 import net.minecraft.structure.StructureLiquidSettings;
 import net.minecraft.structure.StructurePiece;
+import net.minecraft.structure.pool.FeaturePoolElement;
 import net.minecraft.structure.pool.StructurePool;
 import net.minecraft.structure.pool.StructurePoolBasedGenerator;
 import net.minecraft.structure.pool.alias.StructurePoolAliasLookup;
@@ -84,7 +85,9 @@ public final class ChurchStructure extends Structure {
         List<StructurePiece> yardPieces = cemetery;
         BlockBox yardBox = yardPieces.isEmpty() ? null : StructurePiece.boundingBox(yardPieces.stream()).expand(1);
         ClearingPiece clearing = yardBox == null ? null
-                : new ClearingPiece(new BlockBox(yardBox.getMinX(), yardBox.getMinY() - 2, yardBox.getMinZ(), yardBox.getMaxX(), floor + 34, yardBox.getMaxZ()));
+                : new ClearingPiece(new BlockBox(yardBox.getMinX(), yardBox.getMinY() - 2, yardBox.getMinZ(), yardBox.getMaxX(), floor + 34, yardBox.getMaxZ()),
+                        yardPieces.stream().filter(p -> p instanceof PoolStructurePiece element && element.getPoolElement() instanceof FeaturePoolElement)
+                                .map(p -> ((PoolStructurePiece) p).getPos()).toList());
         return Optional.of(new StructurePosition(center, collector -> {
             collector.addPiece(new ChurchPiece(frame, variant, seed));
             if (yardPieces.isEmpty()) collector.addPiece(new CemeteryPiece(frame, seed ^ 0x5DEECE66DL));
