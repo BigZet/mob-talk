@@ -480,11 +480,14 @@ class ConversationStoreTest {
         assertEquals(old.id(), store.villageFor(world, 1000, 1000, null).id(), "no site: as before");
         ConversationStore.Village fields = store.createVillage(world, 2000, 2000, "Полевая", "Основана в поле.");
         ConversationStore.Site justBy = new ConversationStore.Site("minecraft:village_plains@127,127", 2060, 2060, 2030, 2030, 2100, 2100);
+        assertEquals(fields.id(), store.villageFor(world, 2050, 2050, justBy, false).id(), "a lookup finds the old village by its anchor");
+        assertEquals("", store.village(fields.id()).site(), "a lookup changes nothing");
         assertEquals(fields.id(), store.villageFor(world, 2050, 2050, justBy).id(), "an old village founded just outside the houses is still this one");
+        assertEquals(justBy.key(), store.village(fields.id()).site(), "a resident's site is adopted");
         ConversationStore.Village apart = store.createVillage(world, 3000, 3000, "Хутор", "Сам по себе.");
         ConversationStore.Site beyond = new ConversationStore.Site("ctov:small/village_plains@190,190", 3100, 3100, 3050, 3050, 3150, 3150);
-        assertNull(store.villageFor(world, 3060, 3060, beyond), "an old village 50 blocks off this structure is a neighbour, though within 160 blocks");
-        assertEquals("", store.village(apart.id()).site());
+        assertEquals(apart.id(), store.villageFor(world, 3060, 3060, beyond).id(), "an old village 50 blocks off: the old rule, the nearest within 160 blocks");
+        assertEquals("", store.village(apart.id()).site(), "but it does not take a structure its anchor is not in");
         ConversationStore.closeWorld(directory);
         ConversationStore reopened = ConversationStore.open(directory, config);
         try {

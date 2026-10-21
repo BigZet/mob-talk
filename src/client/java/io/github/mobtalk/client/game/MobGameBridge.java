@@ -488,12 +488,13 @@ public final class MobGameBridge {
         });
         return future;
     }
-    /** The known village at this spot: the one founded in the village structure there (with the option on), else the nearest
-     * within the village radius; null outside any. Server thread only. */
+    /** The known village at this spot: the one founded in the village structure there (with the option on), an old village by the
+     * old rule, else the nearest within the village radius; null outside any. Only looks: an old village takes a structure only
+     * from its residents. Server thread only. */
     public ConversationStore.Village villageAt(ServerWorld world, BlockPos pos) {
         String dimension = world.getRegistryKey().getValue().toString();
         ConversationStore.Site site = config.villageSites ? VillageSites.at(world, pos) : null;
-        return site != null ? memory.villageFor(dimension, pos.getX(), pos.getZ(), site) : memory.villageNear(dimension, pos.getX(), pos.getZ());
+        return site != null ? memory.villageFor(dimension, pos.getX(), pos.getZ(), site, false) : memory.villageNear(dimension, pos.getX(), pos.getZ());
     }
 
     /** /mobtalk village forgive: the village where the player stands, found like {@link #villageAt}, forgives them. */

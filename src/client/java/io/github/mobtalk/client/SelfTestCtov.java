@@ -268,20 +268,23 @@ final class SelfTestCtov {
             test.check(!began.isCompletedExceptionally() && began.join(), "two CTOV villagers marry as a scene at their bell");
             WeddingController.Scene scene = test.bridge().wedding.scene();
             if (scene == null) { back(); return; }
-            double off = scene.couple().subtract(venue.plaza()).horizontalLength();
-            test.check(off < 6, "the couple stands at the square (" + String.format(Locale.ROOT, "%.1f", off) + " blocks from its point)");
-            test.check(scene.anchor().distanceTo(venue.plaza()) < 0.01, "the ceremony stands at the chosen square " + BlockPos.ofFloored(scene.anchor()).toShortString());
-            double fromBell = scene.anchor().subtract(Vec3d.ofBottomCenter(venue.bell())).horizontalLength();
-            test.check(fromBell <= 10, "the square is by the bell (" + String.format(Locale.ROOT, "%.1f", fromBell) + " blocks)");
+            test.check(scene.bell() != null, "the CTOV wedding has a bell: " + (scene.bell() == null ? "none" : scene.bell().toShortString()));
+            double fromBell = scene.bell() == null ? 99 : scene.anchor().subtract(Vec3d.ofBottomCenter(scene.bell())).horizontalLength();
+            test.check(fromBell <= 10, "the square is by the bell (" + String.format(Locale.ROOT, "%.1f", fromBell) + " blocks), at " + BlockPos.ofFloored(scene.anchor()).toShortString());
+            test.check(scene.seatSpots().size() >= 4, "places were found for the couple, the officiant and the guests (" + scene.seatSpots().size() + ")");
             long level = scene.seatSpots().stream().filter(seat -> Math.abs(seat.y - scene.anchor().y) <= 2).count();
             test.check(level * 10 >= scene.seatSpots().size() * 8L, "the guests stand on the square's level: " + level + " of " + scene.seatSpots().size() + " places within 2 blocks of it");
             String named = scene.input.names().village();
             test.check(village == null || village.name().equals(named), "the wedding is in the Mob Talk village of this CTOV village: " + named);
-            CompletableFuture<long[]> ground = test.bridge().onServer(() -> new long[]{scene.seatSpots().stream()
-                    .filter(seat -> WeddingController.solidUnder(world(), BlockPos.ofFloored(seat))).count(), scene.seatSpots().size()});
+            CompletableFuture<long[]> ground = test.bridge().onServer(() -> {
+                ConversationStore.Site bellSite = scene.bell() == null ? null : VillageSites.at(world(), scene.bell());
+                return new long[]{scene.seatSpots().stream().filter(seat -> WeddingController.solidUnder(world(), BlockPos.ofFloored(seat))).count(),
+                        scene.seatSpots().size(), bellSite != null && bellSite.key().equals(siteKey) ? 1 : 0};
+            });
             test.await("the CTOV wedding places read on the server", 10, ground::isDone, () -> {
-                long[] counts = ground.isCompletedExceptionally() ? new long[]{0, 1} : ground.join();
+                long[] counts = ground.isCompletedExceptionally() ? new long[]{0, 1, 0} : ground.join();
                 test.check(counts[0] * 10 >= counts[1] * 9, "no one stands on a roof: " + counts[0] + " of " + counts[1] + " places are on the ground");
+                test.check(counts[2] == 1, "the wedding bell belongs to this CTOV village");
                 test.await("the CTOV wedding service", 150, () -> test.bridge().wedding.scene() == null
                         || test.bridge().wedding.scene().ceremony.phase() == Wedding.Ceremony.Phase.SERVICE, () -> {
                     WeddingController.Scene running = test.bridge().wedding.scene();

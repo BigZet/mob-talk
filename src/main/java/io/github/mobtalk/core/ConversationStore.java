@@ -524,10 +524,13 @@ public final class ConversationStore {
         return best;
     }
     /** The village of a resident whose structure is known: the one founded in that structure wherever its anchor is (a large
-     * village does not split), else an old village without a site whose anchor lies in (or just by) this structure, which takes the site from
-     * now on; any other village nearby is a neighbour, not this one (null: the resident founds its own). Without a site, as
-     * {@link #villageNear}. */
-    public synchronized Village villageFor(String dimension, int x, int z, Site site) {
+     * village does not split); else an old village without a site whose anchor lies in (or just by) this structure, which takes
+     * the site from now on; else an old village without a site within the radius, by the old rule, so old worlds keep their
+     * villages. A village founded in another structure is a neighbour, not this one (null: the resident founds its own).
+     * Without a site, as {@link #villageNear}. */
+    public synchronized Village villageFor(String dimension, int x, int z, Site site) { return villageFor(dimension, x, z, site, true); }
+    /** As above; {@code adopt} false only looks (a lookup by position never changes the memory, only a resident does). */
+    public synchronized Village villageFor(String dimension, int x, int z, Site site, boolean adopt) {
         if (site == null || site.key() == null || site.key().isBlank()) return villageNear(dimension, x, z);
         Village legacy = null; long best = Long.MAX_VALUE;
         for (Village village : state.villages.values()) {
@@ -536,10 +539,14 @@ public final class ConversationStore {
             long dx = village.x() - x, dz = village.z() - z, distance = dx * dx + dz * dz;
             if (village.site().isBlank() && site.holds(village.x(), village.z(), ADOPT_MARGIN) && distance < best) { legacy = village; best = distance; }
         }
-        if (legacy == null) return null;
-        Village adopted = new Village(legacy.id(), legacy.dimension(), legacy.x(), legacy.z(), legacy.name(), legacy.story(), site.key());
-        state.villages.put(adopted.id(), adopted); scheduleSave();
-        return adopted;
+        if (legacy != null) {
+            if (!adopt) return legacy;
+            Village adopted = new Village(legacy.id(), legacy.dimension(), legacy.x(), legacy.z(), legacy.name(), legacy.story(), site.key());
+            state.villages.put(adopted.id(), adopted); scheduleSave();
+            return adopted;
+        }
+        Village near = villageNear(dimension, x, z);
+        return near != null && near.site().isBlank() ? near : null;
     }
     public synchronized Village createVillage(String dimension, int x, int z, String name, String story) { return createVillage(dimension, x, z, name, story, ""); }
     public synchronized Village createVillage(String dimension, int x, int z, String name, String story, String site) {
