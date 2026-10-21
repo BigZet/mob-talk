@@ -14,6 +14,7 @@ public final class ArchangelModel extends BossModel<ArchangelEntity> {
     public static final EntityModelLayer LAYER = new EntityModelLayer(Identifier.of("divineblock", "archangel"), "main");
     private final ModelPart figure, body, head, halo, rightArm, leftArm, trumpet, rightLeg, leftLeg, leftWing, rightWing, leftTip, rightTip, cloak, tunic;
     private final ModelPart[] cloakPanels = new ModelPart[7];
+    private final ModelPart torokiRight, torokiLeft, eye;
 
     public ArchangelModel(ModelPart root) {
         super(root);
@@ -21,6 +22,7 @@ public final class ArchangelModel extends BossModel<ArchangelEntity> {
         trumpet = part("trumpet"); rightLeg = part("right_leg"); leftLeg = part("left_leg"); cloak = part("cloak"); tunic = part("tunic");
         leftWing = part("left_wing"); rightWing = part("right_wing"); leftTip = part("left_wing_tip"); rightTip = part("right_wing_tip");
         for (int i = 0; i < cloakPanels.length; i++) cloakPanels[i] = part("cloak_" + i);
+        torokiRight = part("toroki_r"); torokiLeft = part("toroki_l"); eye = part("eye");
     }
 
     /** «Опаление» is a server rule: nothing to hook on the client. */
@@ -35,6 +37,12 @@ public final class ArchangelModel extends BossModel<ArchangelEntity> {
         figure.pivotY -= 3f + breath * 0.8f;
         head.yaw += headYaw * 0.8f;
         head.pitch += headPitch * 0.5f;
+        // The great eye follows the foe a little further than the head turns.
+        eye.pivotX += MathHelper.clamp(headYaw, -0.6f, 0.6f) * -0.25f;
+        eye.pivotY += MathHelper.clamp(headPitch, -0.6f, 0.6f) * 0.25f;
+        float flutter = MathHelper.sin(age * 0.25f) * 0.12f + limbDistance * 0.3f;
+        torokiRight.pitch += flutter;
+        torokiLeft.pitch += MathHelper.sin(age * 0.25f + 1.3f) * 0.12f + limbDistance * 0.3f;
         body.pitch += breath * 0.015f;
 
         float walk = MathHelper.cos(limbAngle * 0.5f) * limbDistance;
@@ -64,7 +72,6 @@ public final class ArchangelModel extends BossModel<ArchangelEntity> {
         leftTip.roll -= lag + open * 0.3f;
 
         // The halo turns slowly; in the last phase it pulses larger.
-        halo.roll += age * 0.01f;
         if (phase >= 3) { float pulse = 1.08f + MathHelper.sin(age * 0.3f) * 0.07f; halo.xScale = halo.yScale = pulse; }
 
         if (cast == 1) {
