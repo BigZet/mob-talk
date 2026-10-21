@@ -4,25 +4,26 @@
     "stem": "rusflora:block/hogweed_stem_dry",
     "dome": "rusflora:block/hogweed_dry_side",
     "top": "rusflora:block/hogweed_dry_top",
+    "under": "rusflora:block/hogweed_dry_under",
     "particle": "rusflora:block/hogweed_stem_dry"
   },
   "elements": [
     {
       "from": [
-        7.25,
+        7.5,
         0,
-        7.25
+        7.5
       ],
       "to": [
-        8.75,
-        9,
-        8.75
+        8.5,
+        11,
+        8.5
       ],
       "faces": {
         "north": {
           "uv": [
             6,
-            7,
+            5,
             9,
             16
           ],
@@ -31,7 +32,7 @@
         "south": {
           "uv": [
             6,
-            7,
+            5,
             9,
             16
           ],
@@ -40,7 +41,7 @@
         "east": {
           "uv": [
             6,
-            7,
+            5,
             9,
             16
           ],
@@ -49,7 +50,7 @@
         "west": {
           "uv": [
             6,
-            7,
+            5,
             9,
             16
           ],
@@ -68,13 +69,13 @@
     },
     {
       "from": [
-        1.0,
-        8,
+        2.0,
+        9.5,
         8
       ],
       "to": [
-        15.0,
-        13,
+        14.0,
+        14,
         8
       ],
       "shade": false,
@@ -102,13 +103,13 @@
     {
       "from": [
         8,
-        8,
-        1.0
+        9.5,
+        2.0
       ],
       "to": [
         8,
-        13,
-        15.0
+        14,
+        14.0
       ],
       "shade": false,
       "faces": {
@@ -134,14 +135,14 @@
     },
     {
       "from": [
-        1,
-        12,
-        1
+        3,
+        13.8,
+        3
       ],
       "to": [
-        15,
-        12,
-        15
+        13,
+        13.8,
+        13
       ],
       "shade": false,
       "faces": {
@@ -161,7 +162,82 @@
             16,
             0
           ],
+          "texture": "#under"
+        }
+      }
+    },
+    {
+      "from": [
+        9,
+        6,
+        5.0
+      ],
+      "to": [
+        9,
+        9,
+        11.0
+      ],
+      "rotation": {
+        "origin": [
+          9,
+          6,
+          8
+        ],
+        "axis": "z",
+        "angle": -45
+      },
+      "faces": {
+        "east": {
+          "uv": [
+            0,
+            0,
+            16,
+            6
+          ],
+          "texture": "#dome"
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            16,
+            6
+          ],
+          "texture": "#dome"
+        }
+      },
+      "shade": false
+    },
+    {
+      "from": [
+        2.0,
+        8.6,
+        -2.5
+      ],
+      "to": [
+        7.0,
+        8.6,
+        2.5
+      ],
+      "shade": false,
+      "faces": {
+        "up": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
           "texture": "#top"
+        },
+        "down": {
+          "uv": [
+            0,
+            16,
+            16,
+            0
+          ],
+          "texture": "#under"
         }
       }
     }

@@ -4,6 +4,7 @@
     "stem": "rusflora:block/hogweed_stem_dry",
     "dome": "rusflora:block/hogweed_dry_side",
     "top": "rusflora:block/hogweed_dry_top",
+    "under": "rusflora:block/hogweed_dry_under",
     "particle": "rusflora:block/hogweed_stem_dry"
   },
   "elements": [
@@ -161,7 +162,7 @@
             16,
             0
           ],
-          "texture": "#top"
+          "texture": "#under"
         }
       }
     },
@@ -236,7 +237,7 @@
             16,
             0
           ],
-          "texture": "#top"
+          "texture": "#under"
         }
       }
     },
@@ -311,7 +312,7 @@
             16,
             0
           ],
-          "texture": "#top"
+          "texture": "#under"
         }
       }
     }
