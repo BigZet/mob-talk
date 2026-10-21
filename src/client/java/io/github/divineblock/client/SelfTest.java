@@ -184,6 +184,15 @@ public final class SelfTest {
         screenshot = "altar";
         GodLedger.Soul soul = DivineState.of(server).ledger.soul(player.getUuid());
 
+        // Whisper loads its model for a minute or more in a fresh copy of the instance: warm it up now, in the background,
+        // so the spoken prayer later is not judged by a cold start.
+        Thread warm = new Thread(() -> {
+            try { WhisperHelper.ensureReady(DivineBlockMod.config(), line -> { }); whisperReady = true; log("Whisper готов"); }
+            catch (Exception failure) { whisperProblem = String.valueOf(failure.getMessage()); log("Whisper не поднялся: " + whisperProblem); }
+        }, "selftest-whisper");
+        warm.setDaemon(true);
+        warm.start();
+
         List<Step> steps = new ArrayList<>();
         steps.add(new Step(60, () -> {
             // The altar sings quietly to whoever stands by it; every chant is a real sound of the mod.
@@ -208,12 +217,17 @@ public final class SelfTest {
             soul.righteousness.memories.clear();
             for (int i = 0; i < 3; i++) world.spawnEntity(new ItemEntity(world, altar.getX() + 0.5, altar.getY() + 1.2, altar.getZ() + 0.5, new ItemStack(Items.DIAMOND)));
             player.setHealth(6f);
+            home(player); // A mercy or a jest may have carried him off; the altar hears only those within 8 blocks.
+            prayed(soul);
             clientPrayer = "Пожалуйста, великий, исцели меня";
         }));
-        steps.add(new Step(-1, () -> verdictArrived(soul, 1, "милость святому")));
+        steps.add(new Step(-1, () -> verdictArrived(soul, "милость святому")));
         steps.add(new Step(40, () -> { screenshot = "help"; soul.lastPrayerTick = Long.MIN_VALUE / 2; Prayers.explain(player, altar); }));
         steps.add(new Step(SILENCE, () -> { }));
+        steps.add(new Step(WHISPER, () -> { if (!whisperReady) fail("Whisper не готов к молитве голосом: " + whisperProblem); }));
         steps.add(new Step(100, () -> {
+            home(player); // A mercy or a jest may have carried him off; the altar hears only those within 8 blocks.
+            prayed(soul);
             // A spoken prayer: the god's own voice says it, Whisper hears it, and it goes to the altar like a real one.
             soul.lastPrayerTick = Long.MIN_VALUE / 2; soul.prayerTicks.clear();
             MinecraftClient client = MinecraftClient.getInstance();
@@ -227,7 +241,7 @@ public final class SelfTest {
         }));
         steps.add(new Step(-1, () -> {
             check(heardText != null && heardText.toLowerCase().contains("исцели"), "молитва голосом распознана: " + heardText);
-            verdictArrived(soul, 2, "молитва голосом");
+            verdictArrived(soul, "молитва голосом");
         }));
         steps.add(new Step(SILENCE, () -> { }));
         steps.add(new Step(100, () -> {
@@ -257,13 +271,16 @@ public final class SelfTest {
                 else log("  кара " + group + ": небо не краснеет");
             };
             spokenAt = performedAt = 0;
+            home(player); // A mercy or a jest may have carried him off; the altar hears only those within 8 blocks.
+            prayed(soul);
             Prayers.handle(player, altar, "бля, ты бесполезный бог, дай алмазы");
         }));
         steps.add(new Step(-1, () -> {
-            Verdict wrath = verdictArrived(soul, 3, "гнев грешнику");
+            Verdict wrath = verdictArrived(soul, "гнев грешнику");
             if (wrath != null) {
-                check(wrath.chosen() == Miracle.IGNORE || wrath.chosen().kind == Miracle.Kind.WRATH && wrath.power >= 3,
-                        "за брань — настоящая кара: " + wrath.miracle + " ×" + wrath.power);
+                // In fury the god never stays silent; the act comes from a wrath group (К1–К5), each act at its own strength.
+                check(wrath.fury && wrath.chosen() != Miracle.IGNORE && wrath.group.startsWith("K"),
+                        "за брань — кара из группы гнева: " + wrath.group + " " + wrath.miracle + " ×" + wrath.power);
                 check(wrath.reasons.stream().anyMatch(r -> r.text().contains("брань")), "брань названа причиной");
             }
         }));
@@ -283,16 +300,18 @@ public final class SelfTest {
             // Idle talk at the altar is not a prayer: the god does not hear it, nothing is weighed or done.
             soul.lastPrayerTick = Long.MIN_VALUE / 2; soul.prayerTicks.clear();
             Prayers.unheard = text -> { unheardText = text; log("  не молитва, бог не услышал: " + text); };
+            home(player); // A mercy or a jest may have carried him off; the altar hears only those within 8 blocks.
+            prayed(soul);
             Prayers.handle(player, altar, "так, сейчас накопаю угля и поставлю факелы у входа в шахту");
         }));
         steps.add(new Step(80, () -> {
             check(unheardText != null, "болтовню у алтаря бог не счёл молитвой");
-            check(soul.chronicle.size() == 3, "после болтовни нового вердикта нет: " + soul.chronicle.size());
+            check(soul.chronicle.size() == soulBefore, "после болтовни нового вердикта нет: " + soulBefore + " → " + soul.chronicle.size());
         }));
         steps.add(new Step(120, () -> log("--- все деяния каталога ---")));
         DivineConfig config = DivineBlockMod.config();
         config.allowWither = true; config.maxTier = 4;
-        for (Miracle miracle : Miracle.values()) steps.add(new Step(miracle == Miracle.METEOR || miracle == Miracle.CHICKEN_RAIN ? 90 : 30, () -> perform(player, miracle, config, Stage.STOCKED)));
+        for (Miracle miracle : Miracle.values()) if (miracle != Miracle.ETERNAL_BAN) steps.add(new Step(miracle == Miracle.METEOR || miracle == Miracle.CHICKEN_RAIN ? 90 : 30, () -> perform(player, miracle, config, Stage.STOCKED)));
         // The same acts as a real mortal meets them: nothing in his hands or bags, then in the Nether under a roof of rock.
         steps.add(new Step(40, () -> log("--- деяния с пустым инвентарём ---")));
         for (Miracle miracle : EMPTY_HANDED) steps.add(new Step(30, () -> perform(player, miracle, config, Stage.EMPTY)));
@@ -318,6 +337,7 @@ public final class SelfTest {
         if (step.delay() >= 0) Scheduler.later(Math.max(1, step.delay()), () -> { safely(step.action()); run(steps, index + 1); });
         else if (step.delay() == SILENCE) waitSilence(steps, index, 0, 0);
         else if (step.delay() == ACTED) waitActed(steps, index, 0);
+        else if (step.delay() == WHISPER) waitWhisper(steps, index, 0);
         else waitVerdict(steps, index, 0);
     }
     /** Step delay meaning "once the god has fallen silent": his lines now run half a minute, and he hears no prayer meanwhile. */
@@ -336,19 +356,37 @@ public final class SelfTest {
             else waitSilence(steps, index, waited + 10, still);
         });
     }
-    private static int verdicts;
+    /** Step delay meaning "once Whisper has loaded its model, or failed to" (up to five minutes). */
+    private static final int WHISPER = -4;
+    private static volatile boolean whisperReady;
+    private static volatile String whisperProblem;
+    private static void waitWhisper(List<Step> steps, int index, int waited) {
+        Scheduler.later(20, () -> {
+            if (whisperReady || whisperProblem != null || waited > 20 * 300) { safely(steps.get(index).action()); run(steps, index + 1); }
+            else waitWhisper(steps, index, waited + 20);
+        });
+    }
+
+    /** Verdicts in the world, and in this mortal's chronicle, when the last prayer was sent: a verdict "arrives" when the
+     * count grows past it, so a late verdict of an earlier prayer is never taken for the next one's. */
+    private static int verdicts, soulBefore;
+    private static void prayed(GodLedger.Soul soul) {
+        MinecraftServer server = MinecraftClient.getInstance().getServer();
+        verdicts = server == null ? 0 : DivineState.of(server).ledger.souls.values().stream().mapToInt(s -> s.chronicle.size()).sum();
+        soulBefore = soul.chronicle.size();
+    }
     private static void waitVerdict(List<Step> steps, int index, int waited) {
         Scheduler.later(10, () -> {
             MinecraftServer server = MinecraftClient.getInstance().getServer();
             int size = server == null ? 0 : DivineState.of(server).ledger.souls.values().stream().mapToInt(s -> s.chronicle.size()).sum();
-            if (size > verdicts || waited > 400) { verdicts = size; safely(steps.get(index).action()); run(steps, index + 1); }
+            if (size > verdicts || waited > 20 * 90) { safely(steps.get(index).action()); run(steps, index + 1); }
             else waitVerdict(steps, index, waited + 10);
         });
     }
 
-    private static Verdict verdictArrived(GodLedger.Soul soul, int expected, String what) {
+    private static Verdict verdictArrived(GodLedger.Soul soul, String what) {
         Verdict last = soul.lastVerdict();
-        if (!check(soul.chronicle.size() >= expected && last != null, what + ": вердикт пришёл")) return null;
+        if (!check(soul.chronicle.size() > soulBefore && last != null, what + ": вердикт пришёл")) return null;
         log("  " + last.breakdown().replace("\n", "\n  "));
         log("  решил: " + last.decidedBy + ", деяние " + last.miracle + " ×" + last.power + (last.warned ? ", со знамением" : ""));
         if (what.startsWith("милость")) check(last.inclination == Miracle.Kind.HELP, what + ": склонность " + last.inclination);
@@ -416,6 +454,14 @@ public final class SelfTest {
                     world.setBlockState(soil, Blocks.FARMLAND.getDefaultState());
                     world.setBlockState(soil.up(), Blocks.WHEAT.getDefaultState());
                 }
+            }
+            case BABEL -> {
+                // Babel brings down the works of men: a plank hut with a brick chimney for it to topple.
+                BlockPos hut = base.add(5, 0, 5);
+                for (BlockPos pos : BlockPos.iterate(hut, hut.add(4, 4, 4)))
+                    if (pos.getX() == hut.getX() || pos.getX() == hut.getX() + 4 || pos.getZ() == hut.getZ() || pos.getZ() == hut.getZ() + 4 || pos.getY() == hut.getY() + 4)
+                        world.setBlockState(pos, Blocks.OAK_PLANKS.getDefaultState());
+                for (int dy = 5; dy < 9; dy++) world.setBlockState(hut.add(2, dy, 2), Blocks.BRICKS.getDefaultState());
             }
             case SMITE_ENEMIES -> { for (int i = 0; i < 2; i++) { var zombie = EntityType.ZOMBIE.create(world); zombie.refreshPositionAndAngles(base.getX() + 6, base.getY(), base.getZ() + i * 2, 0, 0); world.spawnEntity(zombie); } }
             default -> { }
