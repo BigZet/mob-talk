@@ -109,8 +109,13 @@
 
 ## Самотест
 
-`powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 -Mode cruel` — на экземпляре Prism
-`divine-block-test` создаёт мир `divineblock-cruel`, для каждой кары строит сцену (дом, башня, поле, пруд, скот, житель,
-алтарь), вызывает `/divineblock act`, фотографирует, потом проверяет изгнание в этом тестовом мире и все пути назад. Отчёт:
-`%LOCALAPPDATA%\DivineBlock\selftest\cruel-report.txt`, скриншоты — `artifacts/cruel/`. Настройки экземпляра
-возвращаются, тестовые миры удаляются.
+`CruelTest` (включается `-Ddivineblock.selftest=cruel`) создаёт мир `divineblock-cruel`, для каждой кары строит сцену
+(дом, башня, поле, пруд, скот, житель, алтарь), вызывает `/divineblock act`, фотографирует, потом проверяет изгнание в этом
+тестовом мире и все пути назад. Настройки игрока возвращаются в конце.
+
+- В Prism: `powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 -Mode cruel` (копия `divine-block-test`,
+  см. docs/parallel-selftest.md).
+- Без Prism: `$env:JAVA_TOOL_OPTIONS='-Ddivineblock.selftest=cruel'; .\gradlew.bat runClient` — мир и скриншоты в `run/`.
+- `-Ddivineblock.cruel.skipacts=true` — только изгнание; `-Ddivineblock.cruel.skipban=true` — только кары и выход из мира.
+
+Отчёт: `%LOCALAPPDATA%\DivineBlock\selftest\cruel-report.txt`, скриншоты `divineblock-cruel-*.png`.

@@ -256,10 +256,13 @@ public final class CruelTest {
         ServerWorld world = server.getOverworld();
         world.setTimeOfDay(6000);
         world.setWeather(100_000, 0, false, false);
+        // -Ddivineblock.cruel.only=meteor,flood,...: just these acts.
+        String only = System.getProperty("divineblock.cruel.only", "");
+        List<Act> acts = only.isBlank() ? ACTS : ACTS.stream().filter(a -> java.util.Arrays.asList(only.split(",")).contains(a.id())).toList();
         List<Runnable> steps = new ArrayList<>();
-        int[] delays = new int[ACTS.size()];
-        for (int i = 0; i < ACTS.size(); i++) {
-            Act act = ACTS.get(i);
+        int[] delays = new int[acts.size()];
+        for (int i = 0; i < acts.size(); i++) {
+            Act act = acts.get(i);
             BlockPos origin = new BlockPos(400 * (i + 1), 0, 300 * (i % 3));
             steps.add(() -> stage(server, player, origin, act));
             delays[i] = 140 + act.shots()[act.shots().length - 1] + 60;
