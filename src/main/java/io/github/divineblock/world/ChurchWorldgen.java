@@ -16,7 +16,7 @@ import net.minecraft.world.gen.structure.StructureType;
 /** Registers the church structure (data: worldgen/structure/orthodox_church, worldgen/structure_set/orthodox_churches) and
  * keeps the two settings world generation reads on its own threads: whether churches appear and how far apart. */
 public final class ChurchWorldgen {
-    public static final int DEFAULT_SPACING = 80;
+    public static final int DEFAULT_SPACING = 64;
     public static final StructureType<ChurchStructure> CHURCH_TYPE = () -> ChurchStructure.CODEC;
     public static final StructurePieceType CHURCH_PIECE = ChurchPiece::new, CEMETERY_PIECE = CemeteryPiece::new;
     public static final StructurePlacementType<ChurchPlacement> PLACEMENT_TYPE = () -> ChurchPlacement.CODEC;

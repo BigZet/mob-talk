@@ -40,7 +40,7 @@ public final class CemeteryPiece extends StructurePiece {
     }
 
     static BlockBox box(ChurchPiece.Frame church) {
-        return church.box(ChurchBuilder.CEMETERY_MIN_X, -1, ChurchBuilder.CEMETERY_MIN_Z, ChurchBuilder.CEMETERY_MAX_X, HEIGHT, ChurchBuilder.CEMETERY_MAX_Z);
+        return church.box(ChurchBuilder.CEMETERY_MIN_X, 0, ChurchBuilder.CEMETERY_MIN_Z, ChurchBuilder.CEMETERY_MAX_X, HEIGHT, ChurchBuilder.CEMETERY_MAX_Z);
     }
 
     @Override protected void writeNbt(StructureContext context, NbtCompound nbt) { frame.write(nbt); nbt.putLong("Seed", seed); }
@@ -57,7 +57,7 @@ public final class CemeteryPiece extends StructurePiece {
             for (int z = 0; z < DEPTH; z++) {
                 plot.foundation(x, -2, z, Blocks.DIRT.getDefaultState());
                 plot.set(x, -1, z, Blocks.GRASS_BLOCK.getDefaultState());
-                for (int y = 0; y < HEIGHT + 8; y++) plot.set(x, y, z, Blocks.AIR.getDefaultState());
+                for (int y = 0; y < 32; y++) plot.set(x, y, z, Blocks.AIR.getDefaultState()); // tall spruce crowns too
             }
         placeholder(plot, seed);
     }

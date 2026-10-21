@@ -63,8 +63,8 @@ public final class DivineSettingsScreen extends Screen {
         y += row;
         // Churches in newly generated chunks and how rare they are (one per N x N chunks at most).
         addDrawableChild(CyclingButtonWidget.onOffBuilder(config.churches).build(left, y, column, 20, Text.literal("Церкви в мире"), (b, v) -> config.churches = v));
-        addDrawableChild(CyclingButtonWidget.<Integer>builder(v -> Text.literal(v + " чанков")).values(List.of(48, 64, 80, 100, 150))
-                .initially(nearest(config.churchSpacing, 48, 64, 80, 100, 150)).build(right, y, column, 20, Text.literal("Редкость"), (b, v) -> config.churchSpacing = v));
+        addDrawableChild(CyclingButtonWidget.<Integer>builder(v -> Text.literal(v + " чанков")).values(List.of(32, 48, 64, 80, 100, 150, 256))
+                .initially(nearest(config.churchSpacing, 32, 48, 64, 80, 100, 150, 256)).build(right, y, column, 20, Text.literal("Редкость"), (b, v) -> config.churchSpacing = v));
         y += row + 6;
 
         // Both keys on one row: a field and its save button in each column.

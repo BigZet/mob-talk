@@ -18,7 +18,8 @@ import net.minecraft.world.gen.StructureAccessor;
 import net.minecraft.world.gen.chunk.ChunkGenerator;
 
 /** The church itself, drawn by {@link ChurchBuilder} from its origin (the floor under the tower's west door is x = 0) and
- * turned as its churchyard is turned. Its box starts one block under the floor, so the terrain adaptation levels the ground. */
+ * turned as its churchyard is turned. Its box starts at the floor: the terrain adaptation fills the ground up to just under it
+ * (its level is the box's lowest y). */
 public final class ChurchPiece extends StructurePiece {
     final Frame frame;
     final ChurchBuilder.Variant variant;
@@ -52,7 +53,7 @@ public final class ChurchPiece extends StructurePiece {
     }
 
     static BlockBox box(Frame frame) {
-        return frame.box(ChurchBuilder.MIN_X, -1, ChurchBuilder.MIN_Z, ChurchBuilder.MAX_X, ChurchBuilder.MAX_Y, ChurchBuilder.MAX_Z);
+        return frame.box(ChurchBuilder.MIN_X, 0, ChurchBuilder.MIN_Z, ChurchBuilder.MAX_X, ChurchBuilder.MAX_Y, ChurchBuilder.MAX_Z);
     }
 
     @Override protected void writeNbt(StructureContext context, NbtCompound nbt) {

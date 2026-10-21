@@ -68,7 +68,7 @@ public final class DivineConfig {
     /** Orthodox churches with an altar inside appear in newly generated chunks; off generates none (old ones stay). */
     public boolean churches = true;
     /** How rare churches are: one per this many chunks square at most, 32..256 (the vanilla village is 34). */
-    public int churchSpacing = 80;
+    public int churchSpacing = 64;
     public boolean debug = false;
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();

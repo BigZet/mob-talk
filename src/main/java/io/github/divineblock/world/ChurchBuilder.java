@@ -386,7 +386,7 @@ public final class ChurchBuilder {
         for (int x : new int[] { 17, 22, 27 }) { window(x, -7, Direction.Axis.X, 3, 6); window(x, 7, Direction.Axis.X, 3, 6); }
         if (variant == Variant.STONE) for (int x : new int[] { 17, 22, 27 }) { window(x, -7, Direction.Axis.X, 9, 10); window(x, 7, Direction.Axis.X, 9, 10); }
         for (int y = 3; y <= 5; y++) { canvas.set(35, y, 0, pane(Direction.Axis.Z)); canvas.set(34, y, 0, Blocks.AIR.getDefaultState()); }
-        for (int y = 6; y <= 8; y++) for (int z : new int[] { -1, 1 }) { canvas.set(0, y, z * 2, pane(Direction.Axis.Z)); }
+        for (int y = 6; y <= 8; y++) canvas.set(0, y, 1, pane(Direction.Axis.Z)); // not over the ladder at z = -2
     }
     private void window(int x, int z, Direction.Axis along, int y0, int y1) {
         int in = z < 0 ? 1 : -1;

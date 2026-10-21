@@ -65,7 +65,7 @@ public final class ChurchStructure extends Structure {
         int[] church = heights(context, ox, oz, rotation, CHURCH_SAMPLES), yardHeights = heights(context, ox, oz, rotation, CEMETERY_SAMPLES);
         if (church == null || yardHeights == null) return Optional.empty();
         int floor = Math.round((float) mean(church));
-        if (max(church) - min(church) > 9 || max(yardHeights) - min(yardHeights) > 12 || Math.abs(mean(yardHeights) - floor) > 6) return Optional.empty();
+        if (max(church) - min(church) > 9 || max(yardHeights) - floor > 4 || floor - min(yardHeights) > 4) return Optional.empty();
         if (floor - 1 <= context.chunkGenerator().getSeaLevel()) return Optional.empty();
 
         ChurchPiece.Frame frame = new ChurchPiece.Frame(new BlockPos(ox, floor, oz), rotation);
@@ -75,6 +75,9 @@ public final class ChurchStructure extends Structure {
         boolean north = biome.isIn(BiomeTags.IS_TAIGA) || biome.getKey().map(key -> key.getValue().getPath().matches(".*(snowy|grove).*")).orElse(false);
         ChurchBuilder.Variant variant = context.random().nextFloat() < (north ? 0.7f : 0.25f) ? ChurchBuilder.Variant.WOOD : ChurchBuilder.Variant.STONE;
         long seed = context.random().nextLong();
+        // The churchyard was started at the ground by its entrance; its gate belongs one under the church floor.
+        int lift = floor - 1 - groundAtEntrance;
+        cemetery.forEach(piece -> piece.translate(0, lift, 0));
         List<StructurePiece> yardPieces = cemetery;
         return Optional.of(new StructurePosition(center, collector -> {
             collector.addPiece(new ChurchPiece(frame, variant, seed));
