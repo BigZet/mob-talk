@@ -72,7 +72,7 @@ public final class LeviathanEntity extends SacredBoss {
     @Override public BossKind kind() { return BossKind.LEVIATHAN; }
     @Override protected String theme() { return "punishment_57"; }
     @Override protected float meleeDamage() { return 9f; }
-    @Override protected double meleeReach() { return 4.6; }
+    @Override protected double meleeReach() { return 5.0; }
 
     // ---- A creature of the sea: no floating up, swims by itself, breathes water. ----
 
@@ -209,7 +209,7 @@ public final class LeviathanEntity extends SacredBoss {
     @Override protected int attack(LivingEntity target) {
         double distance = distanceTo(target);
         int roll = random.nextInt(4);
-        if (distance < 7 && roll == 0) tailSweep();
+        if (distance < 8 && roll == 0) tailSweep();
         else if (distance < 14 && roll == 1) bite(target);
         else if (distance < 12 && roll == 2) steam(target);
         else lamps(target);
@@ -245,7 +245,7 @@ public final class LeviathanEntity extends SacredBoss {
 
     /** «Удар хвоста»: the water behind it is marked, then the tail sweeps it. */
     private void tailSweep() {
-        Vec3d back = getPos().subtract(forward().multiply(3.5));
+        Vec3d back = getPos().subtract(forward().multiply(5.5));
         double radius = phase >= 3 ? 6.5 : 5.5;
         cast("Удар хвоста", 22, true, left -> { if (left == 22) sound(SoundEvents.ENTITY_DOLPHIN_SPLASH, 2.5f, 0.4f); }, () -> { });
         hazards.zone(back, radius, 22, ParticleTypes.SPLASH, at -> {
@@ -422,8 +422,8 @@ public final class LeviathanEntity extends SacredBoss {
     // ---- Where its parts are. ----
 
     private Vec3d forward() { return Vec3d.fromPolar(0, getBodyYaw()); }
-    /** The maw: three blocks ahead of its middle, a little above the ground. */
-    private Vec3d mouthPos() { Vec3d f = forward(); return getPos().add(f.x * 3.0, 0.8, f.z * 3.0); }
+    /** The maw: about four blocks ahead of its middle (the head reaches past the hitbox), at the height of the jaws. */
+    private Vec3d mouthPos() { Vec3d f = forward(); return getPos().add(f.x * 3.9, getHeight() * 0.42, f.z * 3.9); }
     private void face(Vec3d dir) {
         float yaw = (float) (MathHelper.atan2(dir.z, dir.x) * MathHelper.DEGREES_PER_RADIAN) - 90f;
         setYaw(yaw); setBodyYaw(yaw); setHeadYaw(yaw);
