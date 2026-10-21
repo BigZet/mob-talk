@@ -71,8 +71,12 @@ def cold_flame(p, f, opts):
     """A blade of cold fire: a narrow white core, pale ice-blue flame around it, steel-blue licks at the edges that flicker
     out into transparency."""
     W, H = f.w, f.h
+    point = min(H, int(W * 2.4))
     for v in range(H):
         for u in range(W):
+            if v < point and abs(u + 0.5 - W / 2) > (W / 2) * (v / max(1, point)):
+                p.put(f, u, v, None)
+                continue
             across = abs(u + 0.5 - W / 2) / (W / 2) if W > 1 else 0
             lick = 0.3 * math.sin(v * 0.45 + u * 0.9) + 0.18 * math.sin(v * 1.3 + 2)
             t = min(1.0, across * (1 + lick))
@@ -201,6 +205,7 @@ sword = Part("sword", pivot=(0, 2.2, -0.6), rotation=(0.95, 0, 0.18), boxes=[
     Box((-0.2, -28.0, -1.1), (0.4, 25.0, 2.2), cold_flame, flat=True),
 ], children=[
     Part("sword_quillon_r", pivot=(-3.2, -2.3, 0), rotation=(0, 0, -0.5), boxes=[Box((-1.6, -0.4, -0.5), (1.6, 0.8, 1.0), iron)]),
+    Part("sword_tip", pivot=(0, -30.2, 0), rotation=(0, 0, 0.785), boxes=[Box((-0.7, -0.7, -0.15), (1.4, 1.4, 0.3), solid((236, 246, 255), glow=True), flat=True)]),
     Part("sword_quillon_l", pivot=(3.2, -2.3, 0), rotation=(0, 0, 0.5), boxes=[Box((0, -0.4, -0.5), (1.6, 0.8, 1.0), iron)]),
 ])
 

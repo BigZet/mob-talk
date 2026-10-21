@@ -193,9 +193,6 @@ def muzzle(p, f, opts):
                 p.put(f, u, v, c, c)
                 continue
             p.put(f, u, v, shade(c, p.noise(0.05)))
-    if f.side in ("left", "right", "front"):
-        for i in range(6):
-            p.put(f, (i * 3 * d // 2 + d) % max(1, f.w), f.h - 1 - d - (i % 2) * d, SPOT)
     if f.side == "front":
         for v in range(f.h // 2):
             p.put(f, f.w // 2, f.h // 2 + v, NOSE)
@@ -314,6 +311,9 @@ def horn(name, pivot, rotation, segments=4, length=2.4, width=1.5):
         else:
             parent.children.append(seg)
         parent = seg
+    # The point: a thin last piece, so every horn ends sharp.
+    parent.children.append(Part(name + "_point", pivot=(0, -length + 0.2, 0), rotation=(-0.25, 0, 0), boxes=[
+        Box((-0.18, -1.8, -0.18), (0.36, 1.9, 0.36), horn_style(1.0))]))
     return root
 
 
@@ -345,36 +345,32 @@ def lion_head(i, pitch, yaw, roll):
                            boxes=[Box((0, 0, 0), (6.0, 5.0, 0.1), wound, flat=True)]))
         extras.append(Part("scar_%d" % i, pivot=(3.62, -6.8, -4.2), rotation=(0, -math.pi / 2, 0),
                            boxes=[Box((0, 0, 0), (6.0, 5.0, 0.1), scar, flat=True)]))
-    fangs = [
-        Box((-1.75, -0.9, -9.0), (0.7, 2.0, 0.7), solid(BONE, k=0.05)),
-        Box((1.05, -0.9, -9.0), (0.7, 2.0, 0.7), solid(BONE, k=0.05)),
-        Box((-1.0, -0.9, -9.3), (2.0, 0.6, 0.5), solid(BONE, k=0.05)),
-    ]
     return Part("head_%d" % i, pivot=(0, -0.5, 0), rotation=(pitch, yaw, roll), boxes=[
-        Box((-3.6, -7.2, -4.4), (7.2, 6.4, 6.8), skull(wounded)),
-        Box((-3.9, -6.4, -5.4), (7.8, 1.4, 1.6), skull(wounded)),
-        Box((-3.3, -4.6, -6.6), (6.6, 3.4, 2.6), muzzle),
-        Box((-2.3, -3.9, -9.8), (4.6, 3.0, 3.4), muzzle),
-        Box((-1.1, -4.1, -10.1), (2.2, 1.3, 1.0), solid(NOSE, k=0.08)),
-        Box((-1.9, -2.8, -5.0), (3.8, 2.2, 0.1), throat, flat=True),
-        Box((-3.0, -5.0, -4.65), (1.8, 1.1, 0.3), eye, flat=True),
-        Box((1.2, -5.0, -4.65), (1.8, 1.1, 0.3), eye, flat=True),
-        Box((-4.4, -8.6, -1.6), (8.8, 9.6, 5.2), mane_core),
-        Box((-3.4, -8.4, -0.6), (1.4, 1.8, 1.0), skull(wounded, letters=False)),
-        Box((2.0, -8.4, -0.6), (1.4, 1.8, 1.0), skull(wounded, letters=False)),
-    ] + fangs, children=[
-        Part("brow_r_%d" % i, pivot=(-2.0, -5.6, -5.0), rotation=(0, 0.1, 0.28), boxes=[Box((-2.0, -0.7, -0.8), (4.0, 1.2, 1.4), skull(wounded, letters=False))]),
-        Part("brow_l_%d" % i, pivot=(2.0, -5.6, -5.0), rotation=(0, -0.1, -0.28), boxes=[Box((-2.0, -0.7, -0.8), (4.0, 1.2, 1.4), skull(wounded, letters=False))]),
-        Part("cheek_r_%d" % i, pivot=(-3.2, -2.8, -5.2), rotation=(0, 0.42, 0.1), boxes=[Box((-1.0, -1.9, -2.8), (2.0, 3.4, 3.6), muzzle)]),
-        Part("cheek_l_%d" % i, pivot=(3.2, -2.8, -5.2), rotation=(0, -0.42, -0.1), boxes=[Box((-1.0, -1.9, -2.8), (2.0, 3.4, 3.6), muzzle)]),
+        Box((-3.6, -7.8, -4.4), (7.2, 6.8, 6.8), skull(wounded)),
+        Box((-3.3, -6.9, -4.6), (6.6, 2.0, 0.2), solid((22, 10, 6), k=0.05), flat=True),
+        Box((-3.0, -6.6, -4.75), (2.1, 1.4, 0.2), eye, flat=True),
+        Box((0.9, -6.6, -4.75), (2.1, 1.4, 0.2), eye, flat=True),
+        Box((-1.9, -3.0, -5.0), (3.8, 2.4, 0.1), throat, flat=True),
+        Box((-4.4, -9.0, -1.6), (8.8, 9.8, 5.2), mane_core),
+    ], children=[
+        Part("brow_r_%d" % i, pivot=(-2.0, -7.0, -4.8), rotation=(0, 0.1, 0.25), boxes=[Box((-2.1, -0.9, -0.8), (4.2, 1.1, 1.5), skull(wounded, letters=False))]),
+        Part("brow_l_%d" % i, pivot=(2.0, -7.0, -4.8), rotation=(0, -0.1, -0.25), boxes=[Box((-2.1, -0.9, -0.8), (4.2, 1.1, 1.5), skull(wounded, letters=False))]),
+        Part("snout_%d" % i, pivot=(0, -5.1, -4.4), rotation=(0.3, 0, 0), boxes=[
+            Box((-3.0, 0, -2.6), (6.0, 3.0, 2.8), muzzle),
+            Box((-2.2, 0.2, -5.8), (4.4, 2.7, 3.4), muzzle),
+            Box((-1.1, -0.05, -6.1), (2.2, 1.2, 0.9), solid(NOSE, k=0.08)),
+            Box((-1.8, 2.7, -5.4), (0.6, 2.0, 0.6), solid(BONE, k=0.05)),
+            Box((1.2, 2.7, -5.4), (0.6, 2.0, 0.6), solid(BONE, k=0.05)),
+            Box((-1.1, 2.7, -5.6), (2.2, 0.6, 0.5), solid(BONE, k=0.05)),
+        ]),
         Part("jaw_%d" % i, pivot=(0, -0.9, -4.8), boxes=[
             Box((-2.1, 0, -4.8), (4.2, 1.7, 5.0), jaw_style),
             Box((-1.75, -1.3, -4.4), (0.6, 1.3, 0.6), solid(BONE, k=0.05)),
             Box((1.15, -1.3, -4.4), (0.6, 1.3, 0.6), solid(BONE, k=0.05)),
             Box((-1.2, 1.5, -3.6), (2.4, 1.4, 2.4), strand),
         ]),
-    ] + mane_ring(i, 0, 13, 4.1, 5.0, -1.2, 0.55, 100 + i) + mane_ring(i, 1, 15, 4.6, 6.4, 0.6, 0.85, 200 + i)
-       + mane_ring(i, 2, 9, 3.0, 6.0, 1.8, 0.3, 300 + i) + horns + extras)
+    ] + mane_ring(i, 0, 13, 4.1, 4.0, -1.2, 0.45, 100 + i) + mane_ring(i, 1, 15, 4.6, 5.0, 0.6, 0.7, 200 + i)
+       + mane_ring(i, 2, 9, 3.0, 5.0, 1.8, 0.25, 300 + i) + horns + extras)
 
 
 def neck(i):
@@ -407,7 +403,7 @@ def neck(i):
         else:
             parent.children.append(seg)
         parent = seg
-    parent.children.append(lion_head(i, -total + 0.12, side * 0.16, -side * 0.15))
+    parent.children.append(lion_head(i, -total - 0.05, side * 0.16, -side * 0.15))
     return first
 
 
@@ -422,14 +418,15 @@ def leg(name, x, z, front):
                 Box((-0.35, -0.35, -2.2), (0.7, 0.8, 2.3), claw()),
             ], children=[Part("%s_claw_%d_end" % (name, k), pivot=(0, 0, -2.0), rotation=(0.5, 0, 0), boxes=[
                 Box((-0.2, -0.2, -1.3), (0.4, 0.5, 1.4), claw(tip=True)),
+                Box((-0.1, -0.1, -2.1), (0.2, 0.25, 0.9), claw(tip=True)),
             ])]),
         ]))
     thigh = ((-3.6, -4, -4.2), (7.2, 13, 8.4)) if front else ((-3.8, -5, -4.6), (7.6, 13.5, 9.2))
     return Part(name, pivot=(x, 8, z), boxes=[
-        Box(thigh[0], thigh[1], bear_fur()),
+        Box(thigh[0], thigh[1], leopard()),
         Box((-3.0, 5, -3.6), (6.0, 4, 7.0), bear_fur()),
     ], children=[
-        Part(name + "_muscle", pivot=(0, -1, 0), rotation=(0.12 if front else -0.12, 0, 0), boxes=[Box((-4.0, -3, -3.4), (8.0, 8, 6.8), bear_fur())]),
+        Part(name + "_muscle", pivot=(0, -1, 0), rotation=(0.12 if front else -0.12, 0, 0), boxes=[Box((-4.0, -3, -3.4), (8.0, 7, 6.8), leopard())]),
         Part(name + "_lower", pivot=(0, 8, 0.2 if front else 1.0), boxes=[
             Box((-2.7, 0, -2.7), (5.4, 5.6, 5.4), bear_fur()),
             Box((-3.0, 0.4, 1.6), (6.0, 3.0, 1.6), bear_fur()),

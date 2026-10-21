@@ -79,9 +79,9 @@ public final class BeastModel extends BossModel<BeastEntity> {
             if (dead[i] || i == WOUNDED && woundOpen) {
                 // The neck falls forward and curls down, the head hangs, the jaw slack; a faint twitch is all that is left.
                 float droop = i == WOUNDED ? 0.85f : 1.0f;
-                neck[0].pitch += droop * 0.9f;
-                neck[0].roll += side * 0.08f;
-                for (int k = 1; k < neck.length; k++) neck[k].pitch += droop * 0.26f + MathHelper.sin(age * 0.03f + k) * 0.01f;
+                neck[0].pitch += droop * 0.65f;
+                neck[0].roll += side * 0.22f;
+                for (int k = 1; k < neck.length; k++) neck[k].pitch += droop * 0.2f + MathHelper.sin(age * 0.03f + k) * 0.01f;
                 head.pitch += 0.8f;
                 jaw.pitch += 0.55f;
                 continue;

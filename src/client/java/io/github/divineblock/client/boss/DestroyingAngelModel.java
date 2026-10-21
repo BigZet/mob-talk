@@ -37,7 +37,7 @@ public final class DestroyingAngelModel extends BossModel<DestroyingAngelEntity>
         float bob = MathHelper.sin(age * 0.06f);
 
         // He never touches the ground: a hover, a slow rise and fall, a lean into his flight.
-        figure.pivotY -= 4f + bob * 1.1f;
+        figure.pivotY -= 6f + bob * 1.1f;
         figure.pitch += limbDistance * 0.18f;
         figure.roll += MathHelper.sin(age * 0.035f) * 0.02f;
         head.yaw += headYaw * 0.85f;
