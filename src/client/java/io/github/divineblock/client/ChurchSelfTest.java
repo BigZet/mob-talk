@@ -189,6 +189,13 @@ public final class ChurchSelfTest {
         boolean pool = world.getRegistryManager().get(RegistryKeys.TEMPLATE_POOL).getEntry(ChurchStructure.CEMETERY_POOL).isPresent();
         if (pool) check(yard > 0 && !stand, "кладбище из пула divineblock:cemetery/start пристроено: частей " + yard);
         else check(stand, "пула кладбища нет — стоит заглушка кладбища");
+        var seal = net.minecraft.registry.Registries.BLOCK.getOrEmpty(Identifier.of(DivineBlockMod.ID, "boss_seal"));
+        BlockPos sealAt = frame.world(ChurchBuilder.SEAL_X, 0, ChurchBuilder.SEAL_Z);
+        if (seal.isPresent()) {
+            var entity = world.getBlockEntity(sealAt);
+            String nbt = entity == null ? "нет" : entity.createNbt(world.getRegistryManager()).toString();
+            check(world.getBlockState(sealAt).isOf(seal.get()) && nbt.contains("church"), "печать босса в полу алтаря: " + nbt);
+        } else log("  блока divineblock:boss_seal нет в сборке — печать не ставится");
         for (StructurePiece piece : structureStart.getChildren()) log("    часть " + piece.getClass().getSimpleName() + " " + piece.getBoundingBox());
         return site;
     }
