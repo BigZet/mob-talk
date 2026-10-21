@@ -56,7 +56,7 @@ public final class SelfTest {
     private static volatile String screenshot, clientPrayer, heardText, unheardText;
     private static volatile int voiced;
     private static volatile long spokenAt, performedAt;
-    private static volatile float underVoice;
+    private static volatile float underVoice, skyUnderVoice;
     private static volatile boolean finished;
     private static BlockPos altar, base;
 
@@ -212,6 +212,7 @@ public final class SelfTest {
         }));
         steps.add(new Step(-1, () -> verdictArrived(soul, 1, "милость святому")));
         steps.add(new Step(40, () -> { screenshot = "help"; soul.lastPrayerTick = Long.MIN_VALUE / 2; Prayers.handle(player, altar, "Почему?"); }));
+        steps.add(new Step(SILENCE, () -> { }));
         steps.add(new Step(100, () -> {
             // A spoken prayer: the god's own voice says it, Whisper hears it, and it goes to the altar like a real one.
             soul.lastPrayerTick = Long.MIN_VALUE / 2; soul.prayerTicks.clear();
@@ -228,6 +229,7 @@ public final class SelfTest {
             check(heardText != null && heardText.toLowerCase().contains("исцели"), "молитва голосом распознана: " + heardText);
             verdictArrived(soul, 2, "молитва голосом");
         }));
+        steps.add(new Step(SILENCE, () -> { }));
         steps.add(new Step(100, () -> {
             // An ordinary mortal swears at the god: real wrath, at full strength, and only after the god has spoken.
             soul.righteousness.score = 0; soul.mood = 0; soul.lastPrayerTick = Long.MIN_VALUE / 2; soul.prayerTicks.clear();
@@ -238,13 +240,18 @@ public final class SelfTest {
                     check(String.valueOf(ChantPlayer.musicPiece()).startsWith("punishment") && GodVoicePlayer.speaking(),
                             "под голос бога звучит музыка кары: " + ChantPlayer.musicPiece() + ", громкость " + underVoice);
                     check(ChantPlayer.altarPiece() == null, "песнопение алтаря уступило музыке кары");
+                    skyUnderVoice = SkyTint.amount();
                 });
             };
             Prayers.performed = act -> {
                 performedAt = System.nanoTime(); log("  свершилось: " + act);
-                Scheduler.later(80, () -> check(ChantPlayer.musicLevel() > underVoice * 2,
-                        "после слов бога музыка кары стала громче: " + underVoice + " → " + ChantPlayer.musicLevel()));
+                Scheduler.later(40, () -> check(ChantPlayer.musicLevel() > underVoice * 2 || ChantPlayer.musicPiece() == null,
+                        "после слов бога музыка кары стала громче (или доиграла): " + underVoice + " → " + ChantPlayer.musicLevel()));
                 Scheduler.later(140, () -> check(ChantPlayer.musicEnding(), "через 5 с после слов бога музыка кары стихает"));
+                check(ChantPlayer.thunders > 0, "под музыку кары гремел гром: " + ChantPlayer.thunders + " раз");
+                String group = String.valueOf(DivineState.of(player.getServer()).ledger.soul(player.getUuid()).chronicle.getLast().group);
+                if (group.matches("K[2-5]")) check(skyUnderVoice > 0.5f && SkyTint.depth() >= 1, "при каре " + group + " небо покраснело: " + skyUnderVoice);
+                else log("  кара " + group + ": небо не краснеет");
             };
             spokenAt = performedAt = 0;
             Prayers.handle(player, altar, "бля, ты бесполезный бог, дай алмазы");
@@ -257,12 +264,18 @@ public final class SelfTest {
                 check(wrath.reasons.stream().anyMatch(r -> r.text().contains("брань")), "брань названа причиной");
             }
         }));
-        steps.add(new Step(800, () -> { // The god may speak for up to twenty seconds before the act falls.
+        steps.add(new Step(ACTED, () -> { }));
+        steps.add(new Step(60, () -> { // The god speaks for up to half a minute before the act falls.
             screenshot = "wrath";
             check(voiced >= 1, "голос бога прозвучал до конца: " + voiced + " раз");
             check(spokenAt > 0 && performedAt > spokenAt, "кара пала после слов бога: слова → дело через "
                     + (performedAt > 0 && spokenAt > 0 ? (performedAt - spokenAt) / 1_000_000 + " мс" : "—"));
         }));
+        steps.add(new Step(20, () -> MinecraftClient.getInstance().execute(() -> SkyTint.verdict(MinecraftClient.getInstance(), 4))));
+        steps.add(new Step(60, () -> { check(SkyTint.amount() > 0.9f, "небо конца света (К5) красное: " + SkyTint.amount()); screenshot = "sky-k5"; }));
+        steps.add(new Step(30, () -> MinecraftClient.getInstance().execute(() -> SkyTint.verdict(MinecraftClient.getInstance(), 2))));
+        steps.add(new Step(50, () -> { screenshot = "sky-k3"; MinecraftClient.getInstance().execute(() -> SkyTint.verdict(MinecraftClient.getInstance(), 0)); }));
+        steps.add(new Step(80, () -> check(SkyTint.amount() == 0, "небо снова чистое: " + SkyTint.amount())));
         steps.add(new Step(80, () -> {
             // Idle talk at the altar is not a prayer: the god does not hear it, nothing is weighed or done.
             soul.lastPrayerTick = Long.MIN_VALUE / 2; soul.prayerTicks.clear();
@@ -289,7 +302,25 @@ public final class SelfTest {
         if (index >= steps.size()) return;
         Step step = steps.get(index);
         if (step.delay() >= 0) Scheduler.later(Math.max(1, step.delay()), () -> { safely(step.action()); run(steps, index + 1); });
+        else if (step.delay() == SILENCE) waitSilence(steps, index, 0, 0);
+        else if (step.delay() == ACTED) waitActed(steps, index, 0);
         else waitVerdict(steps, index, 0);
+    }
+    /** Step delay meaning "once the god has fallen silent": his lines now run half a minute, and he hears no prayer meanwhile. */
+    private static final int SILENCE = -2, ACTED = -3;
+    /** Step delay meaning "once the punishment has fallen" (up to 90 s). */
+    private static void waitActed(List<Step> steps, int index, int waited) {
+        Scheduler.later(10, () -> {
+            if (performedAt > 0 || waited > 1800) { safely(steps.get(index).action()); run(steps, index + 1); }
+            else waitActed(steps, index, waited + 10);
+        });
+    }
+    private static void waitSilence(List<Step> steps, int index, int waited, int quiet) {
+        Scheduler.later(10, () -> {
+            int still = GodVoicePlayer.speaking() ? 0 : quiet + 1;
+            if (still >= 3 || waited > 1800) { safely(steps.get(index).action()); run(steps, index + 1); }
+            else waitSilence(steps, index, waited + 10, still);
+        });
     }
     private static int verdicts;
     private static void waitVerdict(List<Step> steps, int index, int waited) {

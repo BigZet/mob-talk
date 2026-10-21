@@ -21,6 +21,7 @@ public final class DivineBlockClient implements ClientModInitializer {
         GodVoicePlayer.register();
         AltarBeams.register();
         ChantPlayer.register();
+        SkyTint.register();
         Flipped.register();
         TornadoRenderer.register();
         // A button in the pause menu, as Mob Talk has, one row above its "Mob Talk" button in the same corner.

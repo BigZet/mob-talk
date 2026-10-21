@@ -27,8 +27,8 @@ final class AltarBeams {
     static void register() {
         ClientPlayNetworking.registerGlobalReceiver(BeamsPayload.ID, (payload, context) -> {
             start(context.client(), payload.altar(), payload.ticks(), payload.color());
-            if (payload.ticks() > 0) ChantPlayer.verdict(context.client(), payload.music(), payload.altar());
-            else ChantPlayer.wordsEnded(context.client());
+            if (payload.ticks() > 0) { ChantPlayer.verdict(context.client(), payload.music(), payload.altar()); SkyTint.verdict(context.client(), payload.sky()); }
+            else { ChantPlayer.wordsEnded(context.client()); SkyTint.wordsEnded(context.client()); }
         });
         WorldRenderEvents.AFTER_TRANSLUCENT.register(AltarBeams::render);
     }

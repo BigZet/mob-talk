@@ -8,6 +8,7 @@ import io.github.divineblock.core.GodLedger;
 import io.github.divineblock.core.GodSpeech;
 import io.github.divineblock.core.JevGodDecider;
 import io.github.divineblock.core.Miracle;
+import io.github.divineblock.core.MiracleGroup;
 import io.github.divineblock.core.Offerings;
 import io.github.divineblock.core.PrayerTone;
 import io.github.divineblock.core.Righteousness;
@@ -182,14 +183,17 @@ public final class Prayers {
         int color = beamColor(verdict.chosen().kind);
         // The music follows the verdict, not the act: wrath that fell back to a thunder omen is still a punishment.
         int music = verdict.inclination == Miracle.Kind.HELP ? BeamsPayload.BLESSING : verdict.inclination == Miracle.Kind.WRATH ? BeamsPayload.PUNISHMENT : BeamsPayload.NO_MUSIC;
+        // From the second wrath group on (whatever the act's own kind: a transmuted treasure is still a punishment), the sky reddens while he speaks and while the punishment falls.
+        MiracleGroup group = MiracleGroup.byId(verdict.group);
+        int sky = group != null && group.kind == Miracle.Kind.WRATH ? Math.max(0, group.ordinal() - MiracleGroup.K1.ordinal()) : 0;
         double estimate = Math.max(3, verdict.speech.split("\s+").length * 0.45); // Seconds the words may take, for the glow.
         speakThen(player, verdict.speech, () -> {
             if (player.isRemoved() || player.getServerWorld() != world) return;
             Miracles.speaking(player, altar, verdict.chosen().kind, estimate);
             if (ServerPlayNetworking.canSend(player, BeamsPayload.ID))
-                ServerPlayNetworking.send(player, new BeamsPayload(altar, 20 * 45, color, music));
+                ServerPlayNetworking.send(player, new BeamsPayload(altar, 20 * 90, color, music, sky));
         }, () -> {
-            if (ServerPlayNetworking.canSend(player, BeamsPayload.ID)) ServerPlayNetworking.send(player, new BeamsPayload(altar, 0, color, music));
+            if (ServerPlayNetworking.canSend(player, BeamsPayload.ID)) ServerPlayNetworking.send(player, new BeamsPayload(altar, 0, color, music, sky));
             if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) return;
             Miracles.flourish(player, altar, verdict.chosen().kind, verdict.power);
             if (verdict.warned) {
@@ -216,7 +220,7 @@ public final class Prayers {
     private static final java.util.Map<String, Speaking> WAITING = new java.util.HashMap<>();
     private static int nextLine = 1;
     /** How long to wait for the voice to begin, and then to end, before acting anyway (no mod on the client, a stalled service). */
-    static final int VOICE_START_TIMEOUT_TICKS = 20 * 20, VOICE_END_TIMEOUT_TICKS = 20 * 45;
+    static final int VOICE_START_TIMEOUT_TICKS = 20 * 20, VOICE_END_TIMEOUT_TICKS = 20 * 90;
 
     /** Sends the line to be voiced. The chat text and {@code onStart} come when the voice starts; {@code onEnd} when it ends. */
     private static void speakThen(ServerPlayerEntity player, String line, Runnable onStart, Runnable onEnd) {
@@ -226,7 +230,7 @@ public final class Prayers {
         int id = nextLine++;
         String key = player.getUuid() + "/" + id;
         WAITING.put(key, speaking);
-        ServerPlayNetworking.send(player, new GodLinePayload(id, line.length() > 600 ? line.substring(0, 600) : line));
+        ServerPlayNetworking.send(player, new GodLinePayload(id, line.length() > 900 ? line.substring(0, 900) : line));
         Scheduler.later(VOICE_START_TIMEOUT_TICKS, () -> {
             if (!speaking.started && WAITING.remove(key) != null) speaking.end();
         });

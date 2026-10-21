@@ -53,7 +53,11 @@ public final class GodSpeech {
             "изречение: одна тяжёлая, как камень, мудрость с двойным дном",
             "насмешка оракула: лукавая полуулыбка, где милость или кара скрыта в шутке",
             "знамение природы: говори через небо, ветер, камень, воду или огонь",
-            "летопись: будто вписываешь его деяния в древнюю книгу судеб" };
+            "летопись: будто вписываешь его деяния в древнюю книгу судеб",
+            "суд: зачитай приговор небесного суда, где свидетели — звёзды, камни и звери",
+            "плач пророка: скорби над смертным, как над павшим городом, и в скорби — решение",
+            "беседа со стихией: обратись к ветру, огню или морю и вели им сделать то, что решено",
+            "сказание: начни с древних дней мира и приведи их к этому смертному" };
 
     /** The form for this verdict: drawn by the moment, never by the decision, which is already made. */
     static String form(Verdict verdict) { return FORMS[Math.floorMod((int) (System.nanoTime() / 1_000_000) ^ verdict.prayer.hashCode(), FORMS.length)]; }
@@ -67,7 +71,9 @@ public final class GodSpeech {
                 + "Вплетай библейские образы и отсылки к месту и простыми словами. "
                 + "Каждая реплика звучит по-новому: не начинай одинаково, не начинай со «Слышу», «Внемли», «Узри», «Ныне», не повторяй "
                 + "начала и обороты прежних реплик; начинай с образа, имени явления или действия. "
-                + "Одна-две короткие фразы, не длиннее 30 слов, без кавычек, эмодзи и пояснений. Решение уже принято и свершится сразу "
+                + "Реплика — три-четыре фразы, 35–55 слов, живая и неожиданная: начни ярким образом, разверни его — притчей, видением, "
+                + "загадкой или приговором, — вплети в него причину и скрытый смысл деяния, а последней фразой ударь, как колокол, "
+                + "так, чтобы её хотелось запомнить. Без кавычек, эмодзи и пояснений. Решение уже принято и свершится сразу "
                 + "после твоих слов: ты возвещаешь его и поминаешь хотя бы одну главную причину — иносказанием, но узнаваемо. Второго "
                 + "шанса нет: не переспрашиваешь, не задаёшь вопросов, не грозишь на будущее и не зовёшь каяться. Не обещай того, чего нет "
                 + "в решении, и не называй чисел. Если смертный бранился или хулил тебя — ответ твой холоден и страшен.";
@@ -171,20 +177,20 @@ public final class GodSpeech {
         } catch (RuntimeException malformed) { throw new IOException("ответ модели не разобран"); }
     }
 
-    /** One or two sentences of plain text, or null when the model said nothing usable. */
+    /** Up to four sentences of plain text, or null when the model said nothing usable. */
     static String clean(String text) {
         if (text == null) return null;
         String line = text.replaceAll("(?s)<think>.*?</think>", "").replaceAll("[*_#`]", "").replaceAll("\\s+", " ").strip();
         if (line.startsWith("«") && line.endsWith("»") || line.startsWith("\"") && line.endsWith("\"")) line = line.substring(1, line.length() - 1).strip();
         if (line.isBlank()) return null;
-        // Spoken aloud, a god keeps it short: two sentences at most.
+        // Spoken aloud, the god may unfold an image, but not a sermon: four sentences at most.
         java.util.regex.Matcher sentences = java.util.regex.Pattern.compile("[^.!?…]+[.!?…]+").matcher(line);
         StringBuilder kept = new StringBuilder();
-        for (int count = 0; count < 2 && sentences.find(); count++) kept.append(sentences.group());
+        for (int count = 0; count < 4 && sentences.find(); count++) kept.append(sentences.group());
         // A reply cut off by the token limit ends mid-word: only whole sentences are spoken, and none at all means the template.
         if (kept.isEmpty()) return null;
         line = kept.toString().strip();
-        return line.length() > 320 ? line.substring(0, 320).replaceAll("\\s+\\S*$", "") + "…" : line;
+        return line.length() > 700 ? line.substring(0, 700).replaceAll("\\s+\\S*$", "") + "…" : line;
     }
 
     private static JsonObject message(String role, String content) {

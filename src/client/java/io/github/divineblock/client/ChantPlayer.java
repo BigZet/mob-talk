@@ -39,7 +39,9 @@ final class ChantPlayer {
     private static Chant altarChant, music;
     private static BlockPos altar;
     private static ClientWorld world;
-    private static long nextAltarChant, nextScan, lastNear = Long.MIN_VALUE / 2;
+    private static long nextAltarChant, nextScan, nextThunder, lastNear = Long.MIN_VALUE / 2;
+    /** The punishment's music comes with thunder rolling round the sky: quiet under the god's words, full after them. */
+    private static final float THUNDER_UNDER_VOICE = 0.18f, THUNDER = 0.55f;
 
     private ChantPlayer() { }
 
@@ -56,6 +58,9 @@ final class ChantPlayer {
         if (altarChant != null) altarChant.fadeOut();
         client.getMusicTracker().stop();
         music = new Chant(pick(pieces), MUSIC_VOLUME, at.toImmutable(), 30);
+        music.thunder = pieces == PUNISHMENT;
+        music.scene = pieces;
+        nextThunder = client.world.getTime() + 20 + RANDOM.nextInt(40);
         client.getSoundManager().play(music);
         // The altar keeps quiet for a while after the verdict's music.
         nextAltarChant = client.world.getTime() + STAY_PAUSE;
@@ -73,7 +78,21 @@ final class ChantPlayer {
         long now = client.world.getTime();
         if (volume() <= 0) { stopAll(client); return; }
         if (music != null && music.stopAt > 0 && now >= music.stopAt) music.fadeOut();
-        if (music != null && music.over(client)) music = null;
+        if (music != null && music.over(client)) {
+            // A piece over while the god still speaks: the next one of the same scene carries his words to their end.
+            Chant ended = music;
+            music = null;
+            if (!ended.fading() && ended.stopAt == 0 && ended.scene != null) {
+                music = new Chant(pick(ended.scene), MUSIC_VOLUME, ended.pos, 30);
+                music.scene = ended.scene;
+                music.thunder = ended.thunder;
+                client.getSoundManager().play(music);
+            }
+        }
+        if (music != null && music.thunder && !music.fading() && now >= nextThunder) {
+            thunder(client);
+            nextThunder = now + 20 * 4 + RANDOM.nextInt(20 * 7);
+        }
         if (altarChant != null && altarChant.over(client)) altarChant = null;
         if (now >= nextScan) { nextScan = now + 20; altar = nearestAltar(client); }
         boolean near = altar != null && client.player.getBlockPos().isWithinDistance(altar, FAR);
@@ -88,6 +107,18 @@ final class ChantPlayer {
             nextAltarChant = now + STAY_PAUSE + RANDOM.nextInt(STAY_PAUSE_SPREAD);
         }
     }
+
+    /** A distant roll of thunder from a random side of the sky, low and slow. */
+    private static void thunder(MinecraftClient client) {
+        double angle = RANDOM.nextDouble() * Math.PI * 2, distance = 6;
+        float volume = (GodVoicePlayer.speaking() ? THUNDER_UNDER_VOICE : THUNDER) * Math.min(1f, volume());
+        client.getSoundManager().play(new net.minecraft.client.sound.PositionedSoundInstance(
+                net.minecraft.sound.SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER.getId(), SoundCategory.WEATHER, volume, 0.55f + RANDOM.nextFloat() * 0.3f,
+                SoundInstance.createRandom(), false, 0, SoundInstance.AttenuationType.NONE,
+                Math.cos(angle) * distance, 4 + RANDOM.nextDouble() * 6, Math.sin(angle) * distance, true));
+        thunders++;
+    }
+    static int thunders;
 
     private static void stopAll(MinecraftClient client) {
         if (music != null) client.getSoundManager().stop(music);
@@ -142,6 +173,10 @@ final class ChantPlayer {
         final String piece;
         /** World tick at which the verdict's music starts to fade; 0 while the god still speaks. */
         long stopAt;
+        /** Thunder rolls under this music (a punishment). */
+        boolean thunder;
+        /** The verdict's scene this music was dealt from (null for the altar's own singing). */
+        List<String> scene;
         private final float base;
         private final int fadeIn;
         private final long born = System.nanoTime();
