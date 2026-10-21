@@ -55,6 +55,8 @@ public final class GodWrath {
     private static final DustParticleEffect GOLD_DUST = new DustParticleEffect(new Vector3f(1f, 0.82f, 0.3f), 2.2f);
     private static final DustParticleEffect PALE_DUST = new DustParticleEffect(new Vector3f(0.75f, 0.85f, 1f), 1.8f);
 
+    private static final int STORM_GREY = 0xFF6E6E7A;
+
     private enum Stage { ARRIVE, HOVER, WARN, STRIKE, LEAVE, DONE }
 
     private final ServerWorld world;
@@ -148,7 +150,7 @@ public final class GodWrath {
         world.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, SoundCategory.WEATHER, 4f, 0.5f);
         world.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMBIENT_CAVE.value(), SoundCategory.HOSTILE, 2f, 0.5f);
         if (world.getRegistryKey() == World.OVERWORLD && !world.isThundering()) { world.setWeather(0, duration + ARRIVE_TICKS + LEAVE_TICKS + 200, true, true); stormed = true; }
-        Fx.smoke(world, station, Fx.BLACK, 22);
+        Fx.smoke(world, station, STORM_GREY, 22);
         Fx.embers(world, station, Fx.GOLD, 18, ARRIVE_TICKS);
         int volume = DivineBlockMod.config().chantVolume;
         if (volume > 0) world.playSound(null, player.getX(), player.getY(), player.getZ(), RegistryEntry.of(chantEvent()), SoundCategory.HOSTILE,
@@ -165,7 +167,7 @@ public final class GodWrath {
         left--;
         switch (stage) {
             case ARRIVE -> {
-                if (age % 20 == 10) Fx.smoke(world, station.add(0, -2, 0), Fx.BLACK, 18);
+                if (age % 20 == 10) Fx.smoke(world, station.add(0, -2, 0), STORM_GREY, 18);
                 if (age == ARRIVE_TICKS / 2) world.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, SoundCategory.WEATHER, 3f, 0.6f);
                 if (left <= 0) hover(30);
             }
@@ -181,10 +183,10 @@ public final class GodWrath {
             }
             case STRIKE -> {
                 if (left == STRIKE_TICKS - IMPACT_AT) impact();
-                if (left <= 0) hover(Math.max(22, 50 - power * 6) + world.random.nextInt(20));
+                if (left <= 0) hover(forced >= 0 ? 2 : Math.max(22, 50 - power * 6) + world.random.nextInt(20));
             }
             case LEAVE -> {
-                if (age % 25 == 0) Fx.smoke(world, station, Fx.BLACK, 16);
+                if (age % 25 == 0) Fx.smoke(world, station, STORM_GREY, 16);
                 if (left <= 0) end();
             }
             case DONE -> { }

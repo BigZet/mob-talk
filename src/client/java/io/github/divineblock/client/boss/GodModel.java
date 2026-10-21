@@ -26,7 +26,7 @@ public final class GodModel {
         leftFore = part("left_arm_fore"); handGlow = part("left_hand_glow"); mace = part("mace"); robe = part("robe");
         for (int i = 0; i < 40; i++) { ModelPart lock = find(root, "beard_" + i); if (lock != null) beard.add(lock); }
         for (int i = 0; i < 26; i++) { ModelPart lock = find(root, "hair_" + i); if (lock != null) hair.add(lock); }
-        for (int i = 0; i < 80; i++) { ModelPart puff = find(root, "cloud_" + i); if (puff != null) puffs.add(puff); }
+        for (int i = 0; i < 120; i++) { ModelPart puff = find(root, "cloud_" + i); if (puff != null) puffs.add(puff); }
     }
 
     private ModelPart part(String name) {

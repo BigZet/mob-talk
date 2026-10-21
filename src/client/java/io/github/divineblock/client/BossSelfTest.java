@@ -280,6 +280,7 @@ public final class BossSelfTest {
             var made = net.minecraft.entity.EntityType.ARMOR_STAND.create(world);
             if (made != null) {
                 made.refreshPositionAndAngles(spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5, 180f, 0f);
+                made.setInvulnerable(true);
                 made.equipStack(net.minecraft.entity.EquipmentSlot.HEAD, new net.minecraft.item.ItemStack(net.minecraft.item.Items.GOLDEN_HELMET));
                 made.equipStack(net.minecraft.entity.EquipmentSlot.CHEST, new net.minecraft.item.ItemStack(net.minecraft.item.Items.IRON_CHESTPLATE));
                 made.equipStack(net.minecraft.entity.EquipmentSlot.LEGS, new net.minecraft.item.ItemStack(net.minecraft.item.Items.IRON_LEGGINGS));
@@ -313,16 +314,35 @@ public final class BossSelfTest {
         steps.add(new Step(5, () -> {
             if (wrath[0] == null) return;
             Vec3d at = wrath[0].station();
-            player.teleport(player.getServerWorld(), at.x, at.y + 14, at.z + 52, 180f, 2f);
+            player.getServerWorld().setWeather(20 * 60, 0, false, false);
+            MinecraftClient.getInstance().execute(() -> MinecraftClient.getInstance().options.getFov().setValue(70));
+            player.teleport(player.getServerWorld(), at.x, at.y + 16, at.z + 40, 180f, 4f);
         }));
-        steps.add(new Step(25, () -> screenshot = "god-portrait-front"));
+        steps.add(new Step(25, () -> {
+            screenshot = "god-portrait-front";
+            MinecraftClient client = MinecraftClient.getInstance();
+            client.execute(() -> {
+                if (client.world == null) return;
+                for (var entity : client.world.getEntities())
+                    if (entity instanceof io.github.divineblock.boss.GodAvatarEntity god)
+                        log("фигура у клиента: " + god.getBlockPos().toShortString() + ", стадия " + god.stage() + ", " + god.stageAge() + "/" + god.stageTicks());
+            });
+        }));
         steps.add(new Step(5, () -> {
             if (wrath[0] == null) return;
             Vec3d at = wrath[0].station();
-            player.teleport(player.getServerWorld(), at.x + 52, at.y + 14, at.z, 90f, 2f);
+            player.teleport(player.getServerWorld(), at.x + 40, at.y + 16, at.z, 90f, 4f);
         }));
         steps.add(new Step(25, () -> screenshot = "god-portrait-side"));
         steps.add(new Step(5, () -> {
+            if (wrath[0] == null) return;
+            Vec3d at = wrath[0].station();
+            player.teleport(player.getServerWorld(), at.x, at.y + 26, at.z + 16, 180f, 8f);
+        }));
+        steps.add(new Step(25, () -> screenshot = "god-portrait-face"));
+        steps.add(new Step(5, () -> {
+            player.getServerWorld().setWeather(0, 20 * 600, true, true);
+            MinecraftClient.getInstance().execute(() -> MinecraftClient.getInstance().options.getFov().setValue(90));
             BlockPos spot = base.add(0, 0, -10);
             player.teleport(player.getServerWorld(), spot.getX() + 0.5, spot.getY() + 7, spot.getZ() + 28.5, 180f, -20f);
         }));

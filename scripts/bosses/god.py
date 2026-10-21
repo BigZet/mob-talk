@@ -14,7 +14,7 @@ HAIR_WHITE = (246, 244, 238)
 HAIR_GREY = (168, 168, 178)
 OCHRE = (214, 164, 72)
 CLOUD_TOP = (250, 250, 252)
-CLOUD_BOTTOM = (132, 136, 152)
+CLOUD_BOTTOM = (176, 180, 194)
 EYE = (255, 246, 196)
 
 
@@ -80,29 +80,73 @@ def strand(base, shadow, tip_clear=True):
 
 
 def elder_face(p, f, opts):
-    """The face of the Ancient of Days: warm ochre flesh with light modelling, high brows, deep-set eyes burning white-gold,
-    a long straight nose and a white moustache over the beard (which covers the mouth and chin)."""
-    icon_face(SKIN, HAIR_WHITE, eye=EYE, stern=True, glow_eyes=EYE)(p, f, opts)
+    """The face of the Ancient of Days: warm ochre flesh modelled with light, a high lined brow, the eyes deep in shadow
+    under it with only their light showing (white-gold, glowing), a long straight nose, hollow cheeks, and the white
+    moustache and beard over the mouth and chin. The other sides are white hair (back, top) or flesh."""
+    d = opts.get("density", 1)
     if f.side != "front":
+        col = HAIR_WHITE if f.side in ("back", "top") else SKIN
+        for v in range(f.h):
+            for u in range(f.w):
+                if col == HAIR_WHITE:
+                    w = math.sin(u * 1.9 / max(1, d) + v * 0.05)
+                    c = mix(HAIR_GREY, HAIR_WHITE, 0.5 + 0.5 * max(0.0, w))
+                else:
+                    c = shade(SKIN, 0.9 - 0.25 * v / max(1, f.h))
+                p.put(f, u, v, shade(c, p.noise(0.03)))
         return
     W, H = f.w, f.h
-    d = opts.get("density", 1)
-    # Wrinkles of the brow and the glow around the eyes.
-    for v in (int(H * 0.22), int(H * 0.26)):
-        for u in range(int(W * 0.3), int(W * 0.7)):
-            if (u // d) % 3:
-                p.put(f, u, v, shade(SKIN, 0.78))
-    ey = int(H * 0.42)
+    ey = int(H * 0.46)
+    for v in range(H):
+        for u in range(W):
+            dx, dy = (u + 0.5 - W / 2) / (W / 2), (v + 0.5) / H
+            c = shade(SKIN, 1.08 - 0.4 * dx * dx)
+            # Light on the brow, the bridge of the nose and the cheekbones (движки).
+            if (dy < 0.3 and abs(dx) < 0.5) or (abs(dx) < 0.1 and 0.4 < dy < 0.66) or (0.35 < abs(dx) < 0.62 and 0.55 < dy < 0.62):
+                c = mix(c, (255, 238, 206), 0.3)
+            # Hollow cheeks.
+            if 0.3 < abs(dx) < 0.75 and 0.62 < dy < 0.75:
+                c = shade(c, 0.86)
+            # The sockets: a band of deep shadow under the brow.
+            if abs(dy - ey / H) < 0.075 and abs(dx) < 0.82 and not (abs(dx) < 0.1):
+                c = mix(c, (40, 26, 20), 0.75 - 0.35 * abs(dx))
+            p.put(f, u, v, shade(c, p.noise(0.025)))
+    # The brow's lines.
+    for k, frac in enumerate((0.16, 0.21, 0.26)):
+        v = int(H * frac)
+        for u in range(int(W * (0.28 + 0.04 * k)), int(W * (0.72 - 0.04 * k))):
+            if math.sin(u * 0.9) > -0.6:
+                p.put(f, u, v + int(1.2 * math.sin(u * 0.35)), shade(SKIN, 0.74))
+    # Hair over the forehead's top.
+    for v in range(int(H * 0.12)):
+        for u in range(W):
+            if v < H * 0.12 - 0.8 * abs(math.sin(u * 0.5)):
+                p.put(f, u, v, mix(HAIR_GREY, HAIR_WHITE, 0.6))
+    # The eyes: deep, glowing, almond-shaped, with a hot core.
     for side in (-1, 1):
-        cx = int(W / 2 + side * W * 0.22)
-        for u in range(cx - d, cx + d + 1):
-            for v in range(ey - d // 2, ey + d // 2 + 1):
-                p.put(f, u, v, (255, 255, 236), EYE)
+        cx = W / 2 + side * W * 0.22
+        ew, eh = W * 0.1, max(1.0, H * 0.028)
+        for u in range(int(cx - ew - 1), int(cx + ew + 2)):
+            for v in range(int(ey - eh - 1), int(ey + eh + 2)):
+                q = ((u + 0.5 - cx) / ew) ** 2 + ((v + 0.5 - ey) / eh) ** 2
+                if q <= 1.0:
+                    c = (255, 255, 240) if q < 0.35 else EYE
+                    p.put(f, u, v, c, c)
+                elif q <= 1.9:
+                    p.put(f, u, v, (120, 92, 40), (90, 70, 30))
+    # The long straight nose with its shadow side.
+    nx = W // 2
+    for v in range(int(H * 0.42), int(H * 0.67)):
+        for k in range(max(1, d // 2)):
+            p.put(f, nx + k, v, mix(SKIN, (255, 238, 206), 0.35))
+            p.put(f, nx - 1 - k, v, shade(SKIN, 0.72))
+    for u in range(nx - d, nx + d):
+        p.put(f, u, int(H * 0.67), shade(SKIN, 0.6))
     # The moustache and the beard's start over the lower face.
-    for v in range(int(H * 0.68), H):
+    for v in range(int(H * 0.66), H):
         for u in range(W):
             dx = (u - W / 2) / (W / 2)
-            top = 0.68 + 0.08 * (1 - abs(dx)) - 0.05 * abs(math.sin(u * 0.7))
+            top = 0.7 + 0.06 * abs(dx) - 0.03 * abs(math.sin(u * 0.7))
             if v >= H * top:
                 w = math.sin(u * 1.7 / max(1, d) + v * 0.05)
                 p.put(f, u, v, mix(HAIR_GREY, HAIR_WHITE, 0.5 + 0.5 * max(0.0, w)))
@@ -333,9 +377,12 @@ def mace(name):
         Box((-2.6, -33.5, -2.6), (5.2, 2.2, 5.2), gold_leaf(ornament=False)),
         Box((-4.8, -42.5, -4.8), (9.6, 10, 9.6), gold_leaf()),
         Box((-3.2, -44.5, -3.2), (6.4, 2.4, 6.4), gold_leaf(ornament=False)),
-        Box((-0.6, -50, -0.6), (1.2, 6, 1.2), gold_leaf(ornament=False)),
-        Box((-2.4, -48.4, -0.5), (4.8, 1.1, 1.0), gold_leaf(ornament=False)),
-    ] + bands, children=flanges)
+        # The finial: an eight-pointed cross — upright, titulus, crossbar and the slanted footrest.
+        Box((-0.6, -54, -0.6), (1.2, 9.6, 1.2), gold_leaf(ornament=False)),
+        Box((-1.3, -52.6, -0.5), (2.6, 0.8, 1.0), gold_leaf(ornament=False)),
+        Box((-2.8, -50.9, -0.5), (5.6, 1.1, 1.0), gold_leaf(ornament=False)),
+    ] + bands, children=flanges + [Part(name + "_footrest", pivot=(0, -47.2, 0), rotation=(0, 0, 0.42),
+                                        boxes=[Box((-1.8, -0.4, -0.5), (3.6, 0.8, 1.0), gold_leaf(ornament=False))])])
 
 
 def himation(name):
@@ -365,8 +412,11 @@ figure = Part("figure", pivot=(0, 0, 0), children=[
                 Box((-4.6, -11.5, -4.6), (9.2, 11.5, 9.2), elder_face),
                 Box((-5, -12.6, -3.6), (10, 3.4, 9), strand(HAIR_WHITE, HAIR_GREY, tip_clear=False)),
                 Box((-1, -6.6, -5.4), (2, 3.6, 1), solid(SKIN, k=0.04)),
+                # The strong brow: a ridge of bushy white brows that casts the eyes into shadow.
+                Box((-4.2, -8.6, -5.3), (3.8, 1.3, 1.0), strand(HAIR_WHITE, HAIR_GREY, tip_clear=False)),
+                Box((0.4, -8.6, -5.3), (3.8, 1.3, 1.0), strand(HAIR_WHITE, HAIR_GREY, tip_clear=False)),
             ], children=[
-                locks("hair", pivot=(0, -9.5, 0.4), count=26, arc=(-2.0, 2.0), radius=4.8, length=19, width=2.0, tilt=0.32,
+                locks("hair", pivot=(0, -9.5, 0.4), count=26, arc=(-2.0, 2.0), radius=4.8, length=19, width=2.0, tilt=0.16,
                       color=HAIR_WHITE, shadow=HAIR_GREY, seed=5),
                 locks("hair_front", pivot=(0, -10.5, -0.5), count=10, arc=(-2.5, -1.7), radius=4.6, length=15, width=1.6, tilt=0.15,
                       color=HAIR_WHITE, shadow=HAIR_GREY, seed=8),
@@ -389,7 +439,7 @@ right_hand.children.append(mace("mace"))
 rnd = random.Random(42)
 puffs = []
 k = 0
-for ring, (count, radius, size, y) in enumerate(((14, 14, 15, 0), (18, 22, 19, 2), (20, 30, 22, 3.5), (12, 8, 13, -2))):
+for ring, (count, radius, size, y) in enumerate(((16, 15, 18, -1), (20, 24, 22, 1), (24, 34, 26, 3), (14, 11, 15, -5), (18, 44, 24, 5))):
     for i in range(count):
         a = 2 * math.pi * (i + rnd.random() * 0.5) / count
         w = size * rnd.uniform(0.8, 1.25)
@@ -398,10 +448,10 @@ for ring, (count, radius, size, y) in enumerate(((14, 14, 15, 0), (18, 22, 19, 2
                           rotation=(rnd.uniform(-0.15, 0.15), -a + rnd.uniform(-0.5, 0.5), rnd.uniform(-0.1, 0.1)),
                           boxes=[Box((-w / 2, -h / 2, 0), (w, h, 0.1), cloud(1000 + k), flat=True)]))
         k += 1
-for i in range(16):
-    a = 2 * math.pi * i / 16 + rnd.random() * 0.3
-    r = 6 + (i % 3) * 9
-    w = rnd.uniform(18, 26)
+for i in range(22):
+    a = 2 * math.pi * i / 22 + rnd.random() * 0.3
+    r = 6 + (i % 4) * 11
+    w = rnd.uniform(22, 32)
     puffs.append(Part("cloud_deck_%d" % i, pivot=(math.sin(a) * r, 5 + rnd.uniform(-1, 1), -math.cos(a) * r),
                       rotation=(rnd.uniform(-0.08, 0.08), a, rnd.uniform(-0.08, 0.08)),
                       boxes=[Box((-w / 2, 0, -w * 0.35), (w, 0.1, w * 0.7), cloud(2000 + i), flat=True)]))
