@@ -87,7 +87,7 @@ public final class ConversationStore {
             detached.takenNames = givenNames(p.type);
             boolean villager = "minecraft:villager".equals(p.type), golem = "minecraft:iron_golem".equals(p.type);
             int[] anchor = villager || golem ? ConversationEngine.villageAnchor(snapshot) : null;
-            if (anchor != null && detached.village == null) detached.village = villageNear(snapshot.dimension(), anchor[0], anchor[1]);
+            if (anchor != null && detached.village == null) detached.village = villageFor(snapshot.dimension(), anchor[0], anchor[1], ConversationEngine.villageSite(snapshot));
             detached.founds = villager && detached.village == null;
         }
         MobCard current = card(snapshot.id(), snapshot.playerId());
@@ -431,8 +431,17 @@ public final class ConversationStore {
     private static String dealName(Profile p, String dealId) { TradeDeal deal = TradeCatalog.deal(p.type, dealId); return deal == null ? String.valueOf(dealId) : deal.name(); }
     // ---- Generated life stories: one per mob at first meeting, one per village at its first villager. ----
 
-    /** A village the player has met, anchored where its first villager stood (or its bell). */
-    public record Village(String id, String dimension, int x, int z, String name, String story) { }
+    /** A village the player has met, anchored where its first villager stood (or its bell, or the centre of its structure).
+     * {@code site} names the village structure it was founded in ("ctov:large/village_plains@12,-40"), "" for villages founded
+     * before sites were known or outside any structure. */
+    public record Village(String id, String dimension, int x, int z, String name, String story, String site) {
+        public Village { site = site == null ? "" : site; }
+    }
+    /** The village structure a villager lives in, as the game read it: a key unique in the world, the structure's centre and its
+     * bounds on the ground. */
+    public record Site(String key, int x, int z, int minX, int minZ, int maxX, int maxZ) {
+        public boolean holds(int px, int pz) { return px >= minX && px <= maxX && pz >= minZ && pz <= maxZ; }
+    }
     /** How far (blocks, same dimension) a villager may stand from a village's anchor and still belong to it. */
     public static final int VILLAGE_RADIUS = 160;
 
@@ -508,9 +517,28 @@ public final class ConversationStore {
         }
         return best;
     }
-    public synchronized Village createVillage(String dimension, int x, int z, String name, String story) {
+    /** The village of a resident whose structure is known: the one founded in that structure wherever its anchor is (a large
+     * village does not split), else an old village without a site whose anchor lies in this structure, which takes the site from
+     * now on; any other village nearby is a neighbour, not this one (null: the resident founds its own). Without a site, as
+     * {@link #villageNear}. */
+    public synchronized Village villageFor(String dimension, int x, int z, Site site) {
+        if (site == null || site.key() == null || site.key().isBlank()) return villageNear(dimension, x, z);
+        Village legacy = null; long best = Long.MAX_VALUE;
+        for (Village village : state.villages.values()) {
+            if (!village.dimension().equals(dimension)) continue;
+            if (site.key().equals(village.site())) return village;
+            long dx = village.x() - x, dz = village.z() - z, distance = dx * dx + dz * dz;
+            if (village.site().isBlank() && site.holds(village.x(), village.z()) && distance < best) { legacy = village; best = distance; }
+        }
+        if (legacy == null) return null;
+        Village adopted = new Village(legacy.id(), legacy.dimension(), legacy.x(), legacy.z(), legacy.name(), legacy.story(), site.key());
+        state.villages.put(adopted.id(), adopted); scheduleSave();
+        return adopted;
+    }
+    public synchronized Village createVillage(String dimension, int x, int z, String name, String story) { return createVillage(dimension, x, z, name, story, ""); }
+    public synchronized Village createVillage(String dimension, int x, int z, String name, String story, String site) {
         Village village = new Village("village-" + UUID.randomUUID().toString().substring(0, 8), dimension, x, z,
-                TextBounds.characters(name == null || name.isBlank() ? "Безымянная деревня" : name, 60), TextBounds.characters(story, 1500));
+                TextBounds.characters(name == null || name.isBlank() ? "Безымянная деревня" : name, 60), TextBounds.characters(story, 1500), site);
         state.villages.put(village.id(), village); scheduleSave();
         return village;
     }

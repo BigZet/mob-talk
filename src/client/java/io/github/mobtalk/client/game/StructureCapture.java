@@ -25,7 +25,7 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.gen.structure.Structure;
 
-/** Reads the vanilla structures around a position from the world's own records: every loaded chunk nearby lists the structure
+/** Reads the structures (vanilla and modded) around a position from the world's own records: every loaded chunk nearby lists the structure
  * starts that reach into it, and each start lists its pieces with their boxes and templates. Nothing is loaded or generated: a
  * start whose chunk is not loaded is skipped. Runs on the server thread. */
 public final class StructureCapture {
@@ -104,11 +104,16 @@ public final class StructureCapture {
 
     /** For the self-test: a spot a creature could stand on inside a house of the village nearest to {@code near} (located through the
      * registry, generating chunks when needed), or null when no village is within {@code radiusChunks}. */
-    public static BlockPos villageHouseSpot(ServerWorld world, BlockPos near, int radiusChunks) {
+    public static BlockPos villageHouseSpot(ServerWorld world, BlockPos near, int radiusChunks) { return villageHouseSpot(world, near, radiusChunks, null); }
+
+    /** As above, among the villages of one namespace only ("ctov"), or of any when {@code namespace} is null. */
+    public static BlockPos villageHouseSpot(ServerWorld world, BlockPos near, int radiusChunks, String namespace) {
         var registry = world.getRegistryManager().get(RegistryKeys.STRUCTURE);
         List<net.minecraft.registry.entry.RegistryEntry<Structure>> villages = new ArrayList<>();
         for (var key : registry.getKeys())
-            if (key.getValue().getPath().startsWith("village_")) registry.getEntry(key).ifPresent(villages::add);
+            if (Structures.village(key.getValue().toString()) && (namespace == null || namespace.equals(key.getValue().getNamespace())))
+                registry.getEntry(key).ifPresent(villages::add);
+        if (villages.isEmpty()) return null;
         var found = world.getChunkManager().getChunkGenerator().locateStructure(world, net.minecraft.registry.entry.RegistryEntryList.of(villages), near, radiusChunks, false);
         if (found == null) return null;
         ChunkPos at = new ChunkPos(found.getFirst());
@@ -116,7 +121,7 @@ public final class StructureCapture {
         if (start == null || !start.hasChildren()) return null;
         for (StructurePiece piece : start.getChildren()) {
             String template = template(world, piece);
-            if (template == null || !template.contains("/houses/")) continue;
+            if (template == null || !template.contains("/houses/") && !template.contains("/house/")) continue; // vanilla, CTOV
             BlockBox box = piece.getBoundingBox();
             for (int cx = box.getMinX() - 16 >> 4; cx <= box.getMaxX() + 16 >> 4; cx++)
                 for (int cz = box.getMinZ() - 16 >> 4; cz <= box.getMaxZ() + 16 >> 4; cz++) world.getChunk(cx, cz);

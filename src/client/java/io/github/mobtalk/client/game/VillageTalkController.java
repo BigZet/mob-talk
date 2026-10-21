@@ -62,9 +62,9 @@ public final class VillageTalkController {
             for (int i = 0; i < around.size(); i++) for (int j = i + 1; j < around.size(); j++) {
                 VillagerEntity a = around.get(i), b = around.get(j);
                 if (a.distanceTo(b) > VillageChatter.PAIR_RANGE || !a.canSee(b) || !b.canSee(a)) continue;
-                ConversationStore.Village village = village(dimension, a);
-                String key = village != null ? village.id() : area(dimension, a);
-                if (!key.equals(village(dimension, b) != null ? village(dimension, b).id() : area(dimension, b))) continue;
+                ConversationStore.Village village = village(world, a), other = village(world, b);
+                String key = key(world, a, village);
+                if (!key.equals(key(world, b, other))) continue;
                 if (!budget.allows(key, a.getUuid(), b.getUuid(), bridge.config.villageChatterSeconds, now)) continue;
                 budget.spent(key, a.getUuid(), b.getUuid(), now);
                 VillageChatter.Input input = bridge.memory.chatterInput(seat(a), seat(b), key, village == null ? "" : village.name(),
@@ -81,7 +81,19 @@ public final class VillageTalkController {
         return villager.isAlive() && !villager.isRemoved() && !villager.isAiDisabled() && !villager.isBaby() && !villager.isSleeping() && !villager.isPanicking()
                 && villager.getTarget() == null && !villager.hasVehicle() && !villager.hasCustomer() && !bridge.actions.busy(villager) && !bridge.wedding.involved(villager.getUuid());
     }
-    private ConversationStore.Village village(String dimension, VillagerEntity villager) { return bridge.memory.villageNear(dimension, villager.getBlockX(), villager.getBlockZ()); }
+    /** The known village of this villager: by its village structure when the option reads sites, else the nearest within the radius. */
+    private ConversationStore.Village village(ServerWorld world, VillagerEntity villager) {
+        String dimension = world.getRegistryKey().getValue().toString();
+        ConversationStore.Site site = bridge.config.villageSites ? VillageSites.of(world, villager) : null;
+        return site != null ? bridge.memory.villageFor(dimension, villager.getBlockX(), villager.getBlockZ(), site)
+                : bridge.memory.villageNear(dimension, villager.getBlockX(), villager.getBlockZ());
+    }
+    /** The budget key of a villager's talk: its known village, else its village structure, else a square of the village radius. */
+    private String key(ServerWorld world, VillagerEntity villager, ConversationStore.Village village) {
+        if (village != null) return village.id();
+        ConversationStore.Site site = bridge.config.villageSites ? VillageSites.of(world, villager) : null;
+        return site != null ? "site:" + site.key() : area(world.getRegistryKey().getValue().toString(), villager);
+    }
     /** A village the world memory has not met yet still keeps its talk apart from the next one: a square of the village radius. */
     private static String area(String dimension, VillagerEntity villager) {
         int size = ConversationStore.VILLAGE_RADIUS;
@@ -112,7 +124,7 @@ public final class VillageTalkController {
             Collections.shuffle(known, random);
             for (VillagerEntity villager : known) {
                 UUID id = villager.getUuid(), playerId = player.getUuid();
-                String key = bridge.memory.villageOf(id).isBlank() ? area(dimension, villager) : bridge.memory.villageOf(id);
+                String key = bridge.memory.villageOf(id).isBlank() ? key(world, villager, null) : bridge.memory.villageOf(id);
                 Long last = noticed.get(key);
                 if (last != null && now - last < bridge.config.noticeMinutes * 60_000L) continue;
                 long own = bridge.memory.lastNotice(id);

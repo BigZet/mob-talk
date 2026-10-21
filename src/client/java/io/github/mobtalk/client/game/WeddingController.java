@@ -134,7 +134,7 @@ public final class WeddingController {
         String dimension = world.getRegistryKey().getValue().toString();
         VillageStanding.View standing = bridge.memory.social().standingAt(dimension, (int) anchor.x, (int) anchor.z, player.getUuid(), now);
         Wedding.Cast cast = Wedding.cast(bride, null, people, asked[0], asked[1], standing.banished(), bridge.config.weddingGuests);
-        ConversationStore.Village village = bridge.memory.villageNear(dimension, (int) anchor.x, (int) anchor.z);
+        ConversationStore.Village village = village(world, spouse, anchor);
         Wedding.Names names = new Wedding.Names(MobGameBridge.playerName(player), Gender.ofPlayer(bridge.config.playerGender), village == null ? "" : village.name());
         MobCard card = bridge.memory.card(spouse.getUuid(), player.getUuid());
         WeddingScript.Input input = new WeddingScript.Input(cast, names, VillageStanding.describe(standing), card == null ? "" : card.memory(), bridge.config.weddingWishes);
@@ -170,7 +170,7 @@ public final class WeddingController {
         if (pa == null || pb == null) return false;
         Wedding.Cast cast = Wedding.cast(pb, pa, people, null, null, false, bridge.config.weddingGuests);
         String dimension = world.getRegistryKey().getValue().toString();
-        ConversationStore.Village village = bridge.memory.villageNear(dimension, (int) anchor.x, (int) anchor.z);
+        ConversationStore.Village village = village(world, a, anchor);
         Wedding.Names names = new Wedding.Names("", null, village == null ? "" : village.name());
         WeddingScript.Input input = new WeddingScript.Input(cast, names, "", "", bridge.config.weddingWishes);
         begin(world, cast, names, input, null, anchor, forward, false, true, pa.gender(), now);
@@ -563,17 +563,29 @@ public final class WeddingController {
 
     private static boolean daytime(ServerWorld world) { return world.getTimeOfDay() % DAY < 12_000; }
     /** Колокол деревни: тот, что житель помнит местом сбора, иначе ближайший в 48 блоках; null — колокола нет. */
-    static BlockPos bell(ServerWorld world, VillagerEntity villager) {
+    /** The village the wedding takes place in: the villager's own, else the one whose structure holds the bell (with the option on),
+     * else the nearest known one. */
+    private ConversationStore.Village village(ServerWorld world, VillagerEntity villager, Vec3d anchor) {
+        ConversationStore.Village own = bridge.memory.village(bridge.memory.villageOf(villager.getUuid()));
+        if (own != null) return own;
+        String dimension = world.getRegistryKey().getValue().toString();
+        ConversationStore.Site site = bridge.config.villageSites ? VillageSites.at(world, BlockPos.ofFloored(anchor)) : null;
+        return site != null ? bridge.memory.villageFor(dimension, (int) anchor.x, (int) anchor.z, site) : bridge.memory.villageNear(dimension, (int) anchor.x, (int) anchor.z);
+    }
+
+    /** The bell this villager gathers at: the one it remembers, else the nearest within 96 blocks (a large CTOV village holds its
+     * bell up to some 80 blocks from its edge houses). */
+    public static BlockPos bell(ServerWorld world, VillagerEntity villager) {
         if (MobActionController.registered(villager, MemoryModuleType.MEETING_POINT)) {
             Optional<GlobalPos> remembered = villager.getBrain().getOptionalRegisteredMemory(MemoryModuleType.MEETING_POINT);
             if (remembered.isPresent() && remembered.get().dimension() == world.getRegistryKey() && remembered.get().pos().isWithinDistance(villager.getBlockPos(), 96))
                 return remembered.get().pos();
         }
-        return world.getPointOfInterestStorage().getNearestPosition(type -> type.matchesKey(PointOfInterestTypes.MEETING), villager.getBlockPos(), 48,
+        return world.getPointOfInterestStorage().getNearestPosition(type -> type.matchesKey(PointOfInterestTypes.MEETING), villager.getBlockPos(), 96,
                 PointOfInterestStorage.OccupationStatus.ANY).orElse(null);
     }
     private List<VillagerEntity> villagers(ServerWorld world, Vec3d center, double range) {
-        return new ArrayList<>(world.getEntitiesByClass(VillagerEntity.class, Box.of(center, range * 2, 32, range * 2),
+        return new ArrayList<>(world.getEntitiesByClass(VillagerEntity.class, Box.of(center, range * 2, 48, range * 2),
                 v -> v.isAlive() && !v.isRemoved() && !v.isAiDisabled() && !v.isBaby() && v.squaredDistanceTo(center) <= range * range));
     }
     /** Где стоять: ближайшая по высоте клетка с твёрдым полом и свободным местом для тела; рядом, если в точке не встать. */

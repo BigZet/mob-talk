@@ -55,6 +55,8 @@ final class SelfTest {
     /** {@code -Dmobtalk.selftest.only=voices}: new villagers get an age and a pool voice of their sex and age with no early repeats,
      * and one villager of each age is voiced through OpenRouter (no LLM). */
     static final boolean ONLY_VOICES = "voices".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=ctov}: only the CTOV village stages (structure names, villagers, two conversations). */
+    static final boolean ONLY_CTOV = "ctov".equals(System.getProperty("mobtalk.selftest.only"));
     final MobTalkClient owner;
     private final String world;
     private int stage, ticks, stageStart;
@@ -148,6 +150,7 @@ final class SelfTest {
             villager = nearest(VillagerEntity.class); cow = nearest(CowEntity.class);
             return villager != null && cow != null && MobSpeechSound.find(owner.world, villager) != null && MobSpeechSound.find(owner.world, cow) != null;
         }, ONLY_PLACE ? () -> new SelfTestPlace(this, cow, sx, SY, sz).run(this::finish)
+                : ONLY_CTOV ? () -> new SelfTestCtov(this, cow, sx, SY, sz).run(this::finish)
                 : ONLY_WEDDING ? () -> new SelfTestWedding(this, sx, SY, sz).run(this::finish)
                 : ONLY_FAMILY ? () -> new SelfTestFamily(this, sx, SY, sz).run(this::finish) : ONLY_NAMES ? this::names : ONLY_VOICES ? this::voices : this::aim);
     }
@@ -572,7 +575,7 @@ final class SelfTest {
                     command("fill " + (px - 2) + " " + (SY - 1) + " " + (pz - 2) + " " + (px + 2) + " " + (SY - 1) + " " + (pz + 2) + " minecraft:smooth_stone");
                     command("tp " + cow + " " + at(3, 0));
                     command("tp " + owner.client.player.getName().getString() + " " + at(0, 0));
-                    new SelfTestPlace(this, cow, sx, SY, sz).run(this::relations);
+                    new SelfTestPlace(this, cow, sx, SY, sz).run(() -> new SelfTestCtov(this, cow, sx, SY, sz).run(this::relations));
                 });
             });
         });

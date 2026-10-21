@@ -28,6 +28,36 @@ class StructuresTest {
         assertNull(Structures.pieceName("minecraft:something", ""));
     }
 
+    @Test void ctovVillagesAndPiecesAreNamedLikeVanillaOnes() {
+        assertEquals("равнинная деревня", Structures.structureName("ctov:medium/village_plains"));
+        assertEquals("большая деревня в оазисе", Structures.structureName("ctov:large/village_desert_oasis"));
+        assertEquals("маленькая укреплённая таёжная деревня", Structures.structureName("ctov:small/village_taiga_fortified"));
+        assertEquals("деревня", Structures.structureName("ctov:medium/village_new_kind"), "an unknown variant is still a village");
+        assertEquals("аванпост разбойников", Structures.structureName("ctov:pillager_outpost_mesa"));
+        assertEquals("big castle", Structures.structureName("othermod:castles/big_castle"));
+        assertTrue(Structures.village("ctov:large/village_swamp") && Structures.village("minecraft:village_snowy"));
+        assertFalse(Structures.village("ctov:pillager_outpost_plains") || Structures.village("minecraft:mineshaft"));
+        assertEquals("дом", Structures.pieceName("minecraft:jigsaw", "ctov:village/plains/house/small_1"));
+        assertEquals("дом", Structures.pieceName("minecraft:jigsaw", "ctov:village/halloween/house/big_2"), "the biome folder 'halloween' is no well");
+        assertEquals("таверна", Structures.pieceName("minecraft:jigsaw", "ctov:village/plains/jobsite/tavern"));
+        assertEquals("кузница", Structures.pieceName("minecraft:jigsaw", "ctov:village/taiga/jobsite/smith"));
+        assertEquals("дом рыбака", Structures.pieceName("minecraft:jigsaw", "ctov:village/beach/jobsite/fishing_hut"));
+        assertEquals("мастерская", Structures.pieceName("minecraft:jigsaw", "ctov:village/plains/jobsite/pokecenter"));
+        assertEquals("площадь", Structures.pieceName("minecraft:jigsaw", "ctov:village/plains/town_center"));
+        assertEquals("улица", Structures.pieceName("minecraft:jigsaw", "ctov:village/plains/roads/t_2"));
+        assertEquals("фонарь", Structures.pieceName("minecraft:jigsaw", "ctov:village/plains/decos/lamp_3"));
+        assertEquals("украшение", Structures.pieceName("minecraft:jigsaw", "ctov:village/plains/deco/picnic_mat"));
+        assertEquals("кладбище", Structures.pieceName("minecraft:jigsaw", "ctov:village/halloween/decos/cemetary"));
+        assertEquals("крепостная стена", Structures.pieceName("minecraft:jigsaw", "ctov:village/underground/wall/large_wall"));
+        assertEquals("башня", Structures.pieceName("minecraft:jigsaw", "ctov:pillager_outpost/mesa/tower"));
+        assertEquals(List.of("Ты внутри: таверна — большая равнинная деревня.", "Рядом: дом (большая равнинная деревня) в 7 блоках к западу."),
+                Structures.facts(List.of(
+                        piece("ctov:large/village_plains", "minecraft:jigsaw", "ctov:village/plains/roads/straight", 0, 0, 0, true, 300),
+                        piece("ctov:large/village_plains", "minecraft:jigsaw", "ctov:village/plains/jobsite/tavern", 0, 0, 0, true, 900),
+                        piece("ctov:large/village_plains", "minecraft:jigsaw", "ctov:village/plains/house/med_1", -7, 0, 1, false, 500),
+                        piece("ctov:large/village_plains", "minecraft:jigsaw", "ctov:village/plains/decos/lamp_1", 2, 0, 0, false, 10))));
+    }
+
     @Test void insideTheSmallestBuildingAndNeighboursNearby() {
         List<Structures.Piece> pieces = List.of(
                 piece("minecraft:village_plains", "minecraft:jigsaw", "minecraft:village/plains/streets/straight_01", 0, 0, 0, true, 300),

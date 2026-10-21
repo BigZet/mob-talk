@@ -2,13 +2,14 @@
 # arms -Dmobtalk.selftest in instance.cfg while PrismLauncher is closed, launches the game, waits for it to quit,
 # restores instance.cfg, deletes the world copy and reopens PrismLauncher. Logs: %LOCALAPPDATA%\MobTalk\selftest\
 # (selftest-run.log is UTF-16 from Tee-Object; read it with Get-Content or iconv -f UTF-16). Refuses to run while javaw.exe is up.
-# Usage (Windows PowerShell): powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 [-Only wedding|family|place|names|voices]
-param([string]$Only = '')
+# Usage (Windows PowerShell): powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 [-Only wedding|family|place|names|voices|ctov]
+#   [-Instance <Prism instance>] [-SourceWorld <world folder to copy>]; defaults 1.21.1-fabric-dev and "stream 1", which is only copied.
+param([string]$Only = '', [string]$Instance = '1.21.1-fabric-dev', [string]$SourceWorld = 'stream 1')
 $ErrorActionPreference = 'Stop'
 $scratch = Join-Path $env:LOCALAPPDATA "MobTalk\selftest"
 New-Item -ItemType Directory -Force $scratch | Out-Null
 $repo = Split-Path -Parent $PSScriptRoot
-$inst = "$env:APPDATA\PrismLauncher\instances\1.21.1-fabric-dev"
+$inst = "$env:APPDATA\PrismLauncher\instances\$Instance"
 $mc = "$inst\minecraft"
 $prism = 'C:\Users\bigze\AppData\Local\Programs\PrismLauncher\prismlauncher.exe'
 $world = 'mobtalk-selftest'
@@ -22,12 +23,12 @@ Say 'build + install'
 Set-Location $repo
 .\gradlew.bat build -x test -q 2>&1 | Where-Object { $_ -match 'error|FAIL' }
 if ($LASTEXITCODE -ne 0) { throw 'build failed' }
-powershell -ExecutionPolicy Bypass -File scripts\install-prism.ps1 -Instance '1.21.1-fabric-dev' | Out-Null
+powershell -ExecutionPolicy Bypass -File scripts\install-prism.ps1 -Instance $Instance | Out-Null
 Get-ChildItem "$mc\mods\mobtalk*.jar" | ForEach-Object { Say "mod: $($_.Name) $($_.LastWriteTime)" }
 
 Say 'world copy'
 if (Test-Path "$mc\saves\$world") { Remove-Item -Recurse -Force "$mc\saves\$world" }
-Copy-Item -Recurse "$mc\saves\stream 1" "$mc\saves\$world"
+Copy-Item -Recurse "$mc\saves\$SourceWorld" "$mc\saves\$world"
 Remove-Item -Force "$mc\saves\$world\session.lock" -ErrorAction SilentlyContinue
 python -I (Join-Path $PSScriptRoot "rename_level.py") "$mc\saves\$world\level.dat" $world | ForEach-Object { Say $_ }
 
@@ -44,7 +45,7 @@ $cfg = $cfg -replace '\[General\]\r?\n', "[General]`nOverrideJavaArgs=true`nJvmA
 Say ((Get-Content "$inst\instance.cfg" | Select-String 'JvmArgs|OverrideJavaArgs') -join ' | ')
 
 Say 'launch'
-Start-Process $prism -ArgumentList '--launch', '1.21.1-fabric-dev'
+Start-Process $prism -ArgumentList '--launch', $Instance
 $started = $false
 for ($i = 0; $i -lt 30; $i++) { Start-Sleep -Seconds 5; if (Get-CimInstance Win32_Process -Filter "name='javaw.exe'") { $started = $true; break } }
 if (-not $started) { Say 'javaw did not start' } else {
