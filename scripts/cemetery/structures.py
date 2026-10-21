@@ -289,6 +289,9 @@ def piece(seed, depth, entrance, exit_to=None, kind="rows", style=MODERN):
         if kind == "start":
             old_graves_row(t, rnd, 25)
             for x in range(W): plants(t, rnd, x, 26, rnd.random() < 0.4)
+            # The guardian's seal at the end of the first path (the bosses thread): a cemetery boss rises from it at night,
+            # again each night after the last one died.
+            t.set(PATH_X, 0, 24, NS + ":boss_seal", {"boss": "cemetery", "power": 2, "night": 1, "cooldownDays": 1, "radius": 14})
         # A blue sector sign by the path at one of the lanes, and a bin at the first one.
         lanes = [z for z in range(0, depth, 8)]
         sz = rnd.choice(lanes[1:] or lanes)
