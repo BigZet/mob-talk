@@ -277,19 +277,29 @@ final class SelfTestCtov {
             String named = scene.input.names().village();
             test.check(village == null || village.name().equals(named), "the wedding is in the Mob Talk village of this CTOV village: " + named);
             CompletableFuture<long[]> ground = test.bridge().onServer(() -> {
-                ConversationStore.Site bellSite = scene.bell() == null ? null : VillageSites.at(world(), scene.bell());
-                return new long[]{scene.seatSpots().stream().filter(seat -> WeddingController.solidUnder(world(), BlockPos.ofFloored(seat))).count(),
-                        scene.seatSpots().size(), bellSite != null && bellSite.key().equals(siteKey) ? 1 : 0};
+                ServerWorld world = world();
+                ConversationStore.Site bellSite = scene.bell() == null ? null : VillageSites.at(world, scene.bell());
+                long flowers = 0, buried = 0;
+                for (UUID id : scene.archFlowers()) {
+                    if (!(world.getEntity(id) instanceof net.minecraft.entity.Entity flower)) continue;
+                    flowers++;
+                    BlockPos cell = flower.getBlockPos();
+                    if (!world.getBlockState(cell).getCollisionShape(world, cell).isEmpty()) buried++;
+                }
+                return new long[]{scene.seatSpots().stream().filter(seat -> WeddingController.solidUnder(world, BlockPos.ofFloored(seat))).count(),
+                        scene.seatSpots().size(), bellSite != null && bellSite.key().equals(siteKey) ? 1 : 0, flowers, buried};
             });
             test.await("the CTOV wedding places read on the server", 10, ground::isDone, () -> {
-                long[] counts = ground.isCompletedExceptionally() ? new long[]{0, 1, 0} : ground.join();
+                long[] counts = ground.isCompletedExceptionally() ? new long[]{0, 1, 0, 0, 1} : ground.join();
                 test.check(counts[0] * 10 >= counts[1] * 9, "no one stands on a roof: " + counts[0] + " of " + counts[1] + " places are on the ground");
                 test.check(counts[2] == 1, "the wedding bell belongs to this CTOV village");
+                test.check(counts[3] >= 9 && counts[4] == 0, "the flower arch stands free: " + counts[3] + " of 13 flowers, none inside a block (" + counts[4] + ")");
                 test.await("the CTOV wedding service", 150, () -> test.bridge().wedding.scene() == null
                         || test.bridge().wedding.scene().ceremony.phase() == Wedding.Ceremony.Phase.SERVICE, () -> {
                     WeddingController.Scene running = test.bridge().wedding.scene();
                     test.check(running != null, "the guests gathered at the CTOV bell and the service began");
                     if (running != null) {
+                        // From the guests' side, a little above them: the couple under the arch and the officiant facing them.
                         Vec3d eye = running.couple().add(running.forward().multiply(7)).add(0, 2, 0), couple = running.couple();
                         test.command(String.format(Locale.ROOT, "tp %s %.1f %.1f %.1f facing %.1f %.1f %.1f", player(), eye.x, eye.y, eye.z, couple.x, couple.y + 1, couple.z));
                     }

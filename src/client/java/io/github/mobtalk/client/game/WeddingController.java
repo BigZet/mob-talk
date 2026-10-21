@@ -102,6 +102,8 @@ public final class WeddingController {
         /** Для самотеста: площадь у колокола и места участников. */
         public Vec3d anchor() { return anchor; }
         public BlockPos bell() { return bell; }
+        /** Для самотеста: витрины с цветами арки. */
+        public List<UUID> archFlowers() { return List.copyOf(displays); }
         public Collection<Vec3d> seatSpots() { return Collections.unmodifiableCollection(seats.values()); }
     }
     /** Идущая свадьба или null; можно читать из клиентского потока. */
@@ -131,6 +133,7 @@ public final class WeddingController {
         forward = forward.normalize();
         // Тихая свадьба без колокола: «колокол» — за спиной у пары, пара стоит, где стоит невеста.
         Vec3d anchor = quiet ? spouse.getPos().subtract(forward.multiply(Wedding.COUPLE_FORWARD)) : venue.plaza();
+        if (!quiet) forward = fit(world, anchor, forward, venue.walkable());
         double range = quiet ? 16 : bridge.config.weddingRange;
         long now = System.currentTimeMillis();
         List<VillagerEntity> around = villagers(world, anchor, range);
@@ -170,7 +173,7 @@ public final class WeddingController {
         if (venue == null) return false;
         Vec3d anchor = venue.plaza();
         Vec3d forward = flat(near.getPos().subtract(anchor));
-        forward = forward.lengthSquared() < 0.25 ? new Vec3d(0, 0, 1) : forward.normalize();
+        forward = fit(world, anchor, forward.lengthSquared() < 0.25 ? new Vec3d(0, 0, 1) : forward.normalize(), venue.walkable());
         long now = System.currentTimeMillis();
         List<VillagerEntity> around = villagers(world, anchor, bridge.config.weddingRange);
         for (VillagerEntity v : List.of(a, b)) if (!around.contains(v)) around.add(v);
@@ -496,13 +499,19 @@ public final class WeddingController {
         }
     }
     /** Цветочная арка над парой: полукруг из витрин с цветами. Без блоков: мир не меняется. */
+    private static final List<Item> ARCH_FLOWERS = List.of(Items.POPPY, Items.OXEYE_DAISY, Items.PINK_TULIP, Items.LILAC, Items.AZURE_BLUET, Items.PEONY,
+            Items.ROSE_BUSH, Items.ALLIUM, Items.LILY_OF_THE_VALLEY, Items.CORNFLOWER, Items.WHITE_TULIP, Items.POPPY, Items.PINK_TULIP);
+    /** Где {@code i}-й из цветов арки: полукруг над парой поперёк взгляда гостей. */
+    private static Vec3d archPoint(Vec3d couple, Vec3d forward, Vec3d right, int i) {
+        double angle = Math.PI * i / (ARCH_FLOWERS.size() - 1);
+        return couple.add(right.multiply(Math.cos(angle) * 2.2)).add(0, 0.3 + Math.sin(angle) * 2.6, 0).subtract(forward.multiply(0.3));
+    }
     private void arch(Scene s, ServerWorld world) {
-        List<Item> flowers = List.of(Items.POPPY, Items.OXEYE_DAISY, Items.PINK_TULIP, Items.LILAC, Items.AZURE_BLUET, Items.PEONY, Items.ROSE_BUSH,
-                Items.ALLIUM, Items.LILY_OF_THE_VALLEY, Items.CORNFLOWER, Items.WHITE_TULIP, Items.POPPY, Items.PINK_TULIP);
+        List<Item> flowers = ARCH_FLOWERS;
         int count = flowers.size();
         for (int i = 0; i < count; i++) {
-            double angle = Math.PI * i / (count - 1);
-            Vec3d at = s.couple.add(s.right.multiply(Math.cos(angle) * 2.2)).add(0, 0.3 + Math.sin(angle) * 2.6, 0).subtract(s.forward.multiply(0.3));
+            Vec3d at = archPoint(s.couple, s.forward, s.right, i);
+            if (!clear(world, BlockPos.ofFloored(at))) continue; // Цветок не врастает в стену или крышу.
             DisplayEntity.ItemDisplayEntity display = new DisplayEntity.ItemDisplayEntity(EntityType.ITEM_DISPLAY, world);
             display.setItemStack(new ItemStack(flowers.get(i)));
             display.setBillboardMode(DisplayEntity.BillboardMode.CENTER);
@@ -667,6 +676,31 @@ public final class WeddingController {
             }
         }
         return out;
+    }
+
+    /** Куда обернуть свадьбу на площади: из восьми направлений (сначала к игроку, потом всё дальше от этого) то, где цветы арки над
+     * парой не задевают блоков, а ведущий, пара, свидетели и первый ряд гостей стоят на клетках площади. Узкая улица CTOV
+     * поворачивает свадьбу вдоль себя; на просторной ванильной площади остаётся направление к игроку. */
+    static Vec3d fit(ServerWorld world, Vec3d anchor, Vec3d forward, Set<BlockPos> walkable) {
+        if (walkable.isEmpty()) return forward;
+        Vec3d best = forward; int bestScore = -1;
+        double base = Math.atan2(forward.z, forward.x);
+        for (int k : new int[]{0, 1, -1, 2, -2, 3, -3, 4}) {
+            double a = base + k * Math.PI / 4;
+            Vec3d f = new Vec3d(Math.cos(a), 0, Math.sin(a)), r = new Vec3d(-f.z, 0, f.x), couple = anchor.add(f.multiply(Wedding.COUPLE_FORWARD));
+            int score = 0;
+            for (int i = 0; i < ARCH_FLOWERS.size(); i++) if (clear(world, BlockPos.ofFloored(archPoint(couple, f, r, i)))) score++;
+            double[][] places = {{Wedding.OFFICIANT_FORWARD, 0}, {Wedding.COUPLE_FORWARD, -Wedding.PARTNER_SIDE}, {Wedding.COUPLE_FORWARD, Wedding.PARTNER_SIDE},
+                    {Wedding.COUPLE_FORWARD, -Wedding.WITNESS_SIDE}, {Wedding.COUPLE_FORWARD, Wedding.WITNESS_SIDE},
+                    {Wedding.COUPLE_FORWARD + 2.5, -1.5}, {Wedding.COUPLE_FORWARD + 2.5, 0}, {Wedding.COUPLE_FORWARD + 2.5, 1.5}};
+            for (double[] p : places) if (onSquare(walkable, anchor.add(f.multiply(p[0])).add(r.multiply(p[1])))) score += 2;
+            if (score > bestScore) { bestScore = score; best = f; }
+        }
+        return best;
+    }
+    private static boolean onSquare(Set<BlockPos> walkable, Vec3d point) {
+        BlockPos cell = BlockPos.ofFloored(point);
+        return walkable.contains(cell) || walkable.contains(cell.down()) || walkable.contains(cell.up());
     }
 
     /** Место участника: клетка площади, ближайшая к задуманной точке (на земле под небом лучше, ступень вверх — дороже), не занятая
