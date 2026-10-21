@@ -81,13 +81,14 @@ public final class StructureCapture {
         BlockBox area = new BlockBox(origin.getX() - radius, origin.getY() - radius, origin.getZ() - radius, origin.getX() + radius, origin.getY() + radius, origin.getZ() + radius);
         for (int cx = (origin.getX() - radius) >> 4; cx <= (origin.getX() + radius) >> 4; cx++)
             for (int cz = (origin.getZ() - radius) >> 4; cz <= (origin.getZ() + radius) >> 4; cz++) {
-                if (!world.getChunkManager().isChunkLoaded(cx, cz)) continue;
-                Chunk chunk = world.getChunk(cx, cz);
+                // Fully loaded chunks only, never waited for: a chunk still loading at the edge would stall the server thread.
+                Chunk chunk = world.getChunkManager().getWorldChunk(cx, cz);
+                if (chunk == null) continue;
                 for (Map.Entry<Structure, LongSet> entry : chunk.getStructureReferences().entrySet()) {
                     for (long reference : entry.getValue()) {
                         ChunkPos at = new ChunkPos(reference);
-                        if (!world.getChunkManager().isChunkLoaded(at.x, at.z)) continue;
-                        StructureStart start = world.getChunk(at.x, at.z).getStructureStart(entry.getKey());
+                        Chunk holder = world.getChunkManager().getWorldChunk(at.x, at.z);
+                        StructureStart start = holder == null ? null : holder.getStructureStart(entry.getKey());
                         if (start == null || !start.hasChildren() || !seen.add(start) || !start.getBoundingBox().intersects(area)) continue;
                         Identifier id = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getId(entry.getKey());
                         String structure = id == null ? "unknown" : id.toString();

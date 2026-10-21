@@ -18,6 +18,7 @@ import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.GlobalPos;
+import net.minecraft.world.chunk.WorldChunk;
 import net.minecraft.world.gen.structure.Structure;
 
 /** Which village structure a spot belongs to, read from the world's structure records: a vanilla village or one of a village mod
@@ -39,19 +40,21 @@ public final class VillageSites {
     }
 
     /** The village structure whose bounds hold {@code pos}; a piece holding it wins over the whole start's box, and the nearest
-     * centre breaks a tie between overlapping villages. Null outside any village or in an unloaded chunk. */
+     * centre breaks a tie between overlapping villages. Null outside any village, or when the chunk here or the one holding the
+     * village's start is not fully loaded (it is never waited for: this runs on the server thread). */
     public static ConversationStore.Site at(ServerWorld world, BlockPos pos) {
-        if (!world.getChunkManager().isChunkLoaded(pos.getX() >> 4, pos.getZ() >> 4)) return null;
+        WorldChunk here = world.getChunkManager().getWorldChunk(pos.getX() >> 4, pos.getZ() >> 4);
+        if (here == null) return null;
         var registry = world.getRegistryManager().get(RegistryKeys.STRUCTURE);
         StructureStart best = null; Identifier bestId = null; boolean bestInPiece = false; long bestDistance = Long.MAX_VALUE;
-        for (Map.Entry<Structure, LongSet> entry : world.getChunk(pos.getX() >> 4, pos.getZ() >> 4).getStructureReferences().entrySet()) {
+        for (Map.Entry<Structure, LongSet> entry : here.getStructureReferences().entrySet()) {
             Identifier id = registry.getId(entry.getKey());
             boolean village = id != null && (Structures.village(id.toString()) || registry.getEntry(entry.getKey()).isIn(StructureTags.VILLAGE));
             if (!village) continue;
             for (long reference : entry.getValue()) {
                 ChunkPos at = new ChunkPos(reference);
-                if (!world.getChunkManager().isChunkLoaded(at.x, at.z)) continue;
-                StructureStart start = world.getChunk(at.x, at.z).getStructureStart(entry.getKey());
+                WorldChunk holder = world.getChunkManager().getWorldChunk(at.x, at.z);
+                StructureStart start = holder == null ? null : holder.getStructureStart(entry.getKey());
                 if (start == null || !start.hasChildren() || !flat(start.getBoundingBox(), pos)) continue;
                 boolean inPiece = false;
                 for (StructurePiece piece : start.getChildren()) if (piece.getBoundingBox().contains(pos)) { inPiece = true; break; }

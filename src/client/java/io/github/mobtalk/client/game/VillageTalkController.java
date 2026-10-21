@@ -52,7 +52,6 @@ public final class VillageTalkController {
     private void chatter(ServerWorld world) {
         if (talking || !talks.isEmpty() || bridge.initiative.playerBusy || bridge.wedding.active()) return;
         long now = System.currentTimeMillis();
-        String dimension = world.getRegistryKey().getValue().toString();
         for (ServerPlayerEntity player : world.getPlayers()) {
             if (!player.isAlive() || player.isSpectator()) continue;
             double range = bridge.config.villageChatterRange;
@@ -113,11 +112,10 @@ public final class VillageTalkController {
     private void notice(ServerWorld world) {
         if (bridge.wedding.active()) return;
         long now = System.currentTimeMillis();
-        String dimension = world.getRegistryKey().getValue().toString();
         for (ServerPlayerEntity player : world.getPlayers()) {
             if (!player.isAlive() || player.isSpectator()) continue;
             double range = bridge.config.noticeRange;
-            ConversationStore.Village here = bridge.memory.villageNear(dimension, player.getBlockX(), player.getBlockZ());
+            ConversationStore.Village here = bridge.villageAt(world, player.getBlockPos());
             List<VillagerEntity> known = new ArrayList<>(world.getEntitiesByClass(VillagerEntity.class, player.getBoundingBox().expand(Math.max(range, ConversationStore.VILLAGE_RADIUS)),
                     v -> v.isAlive() && !v.isRemoved() && !v.isBaby() && bridge.memory.acquainted(v.getUuid())
                             && (v.squaredDistanceTo(player) <= range * range || here != null && here.id().equals(bridge.memory.villageOf(v.getUuid())))));

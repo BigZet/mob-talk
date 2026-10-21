@@ -45,7 +45,7 @@ $cfg = $cfg -replace '\[General\]\r?\n', "[General]`nOverrideJavaArgs=true`nJvmA
 Say ((Get-Content "$inst\instance.cfg" | Select-String 'JvmArgs|OverrideJavaArgs') -join ' | ')
 
 Say 'launch'
-Start-Process $prism -ArgumentList '--launch', $Instance
+Start-Process $prism -ArgumentList '--launch', "`"$Instance`""
 $started = $false
 for ($i = 0; $i -lt 30; $i++) { Start-Sleep -Seconds 5; if (Get-CimInstance Win32_Process -Filter "name='javaw.exe'") { $started = $true; break } }
 if (-not $started) { Say 'javaw did not start' } else {

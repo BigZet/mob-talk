@@ -440,8 +440,13 @@ public final class ConversationStore {
     /** The village structure a villager lives in, as the game read it: a key unique in the world, the structure's centre and its
      * bounds on the ground. */
     public record Site(String key, int x, int z, int minX, int minZ, int maxX, int maxZ) {
-        public boolean holds(int px, int pz) { return px >= minX && px <= maxX && pz >= minZ && pz <= maxZ; }
+        public boolean holds(int px, int pz) { return holds(px, pz, 0); }
+        /** Within the bounds widened by {@code margin} blocks on every side. */
+        public boolean holds(int px, int pz, int margin) { return px >= minX - margin && px <= maxX + margin && pz >= minZ - margin && pz <= maxZ + margin; }
     }
+    /** An old village without a site is the village of a structure when its anchor lies this close to the structure's bounds: its
+     * first villager may have stood in the fields or on a path just outside the houses. */
+    static final int ADOPT_MARGIN = 32;
     /** How far (blocks, same dimension) a villager may stand from a village's anchor and still belong to it. */
     public static final int VILLAGE_RADIUS = 160;
 
@@ -471,8 +476,9 @@ public final class ConversationStore {
 
     /** The village around a point forgives the player: residents' relationships below zero go to zero, blows and witnessed deeds
      * are forgotten, and the village's rumours and what its residents heard are dropped. Returns a line for the chat. */
-    public synchronized String forgiveVillage(String dimension, int x, int z, UUID player) {
-        Village village = villageNear(dimension, x, z);
+    public synchronized String forgiveVillage(String dimension, int x, int z, UUID player) { return forgiveVillage(villageNear(dimension, x, z), player); }
+    /** As above for a village the game already found (by its structure); null: no known village around. */
+    public synchronized String forgiveVillage(Village village, UUID player) {
         if (village == null || player == null) return "Рядом нет известной деревни";
         int residents = 0, forgiven = 0;
         List<String> ids = new ArrayList<>();
@@ -518,7 +524,7 @@ public final class ConversationStore {
         return best;
     }
     /** The village of a resident whose structure is known: the one founded in that structure wherever its anchor is (a large
-     * village does not split), else an old village without a site whose anchor lies in this structure, which takes the site from
+     * village does not split), else an old village without a site whose anchor lies in (or just by) this structure, which takes the site from
      * now on; any other village nearby is a neighbour, not this one (null: the resident founds its own). Without a site, as
      * {@link #villageNear}. */
     public synchronized Village villageFor(String dimension, int x, int z, Site site) {
@@ -528,7 +534,7 @@ public final class ConversationStore {
             if (!village.dimension().equals(dimension)) continue;
             if (site.key().equals(village.site())) return village;
             long dx = village.x() - x, dz = village.z() - z, distance = dx * dx + dz * dz;
-            if (village.site().isBlank() && site.holds(village.x(), village.z()) && distance < best) { legacy = village; best = distance; }
+            if (village.site().isBlank() && site.holds(village.x(), village.z(), ADOPT_MARGIN) && distance < best) { legacy = village; best = distance; }
         }
         if (legacy == null) return null;
         Village adopted = new Village(legacy.id(), legacy.dimension(), legacy.x(), legacy.z(), legacy.name(), legacy.story(), site.key());

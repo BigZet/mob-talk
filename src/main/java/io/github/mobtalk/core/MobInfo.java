@@ -42,6 +42,12 @@ public final class MobInfo {
      * mob's own wish and hidden truth — are folded unless {@code secrets}. */
     public static String report(ConversationStore store, UUID mob, UUID player, String dimension, int x, int z, long now,
                                 boolean secrets, List<String> duties, Map<String, Object> place) {
+        return report(store, mob, player, dimension, x, z, null, now, secrets, duties, place);
+    }
+    /** As above, with the village where the player stands already found by the game ({@code hereId}: its id, "" for none, null to
+     * take the nearest known village within the radius of x, z). */
+    public static String report(ConversationStore store, UUID mob, UUID player, String dimension, int x, int z, String hereId, long now,
+                                boolean secrets, List<String> duties, Map<String, Object> place) {
         List<String> out = new ArrayList<>();
         synchronized (store) {
             ConversationStore.State state = store.state;
@@ -51,7 +57,7 @@ public final class MobInfo {
                 out.add(mob == null ? "Моб не выбран: наведите прицел на моба и нажмите V." : "Этот моб ещё незнаком: заговорите с ним.");
             } else mob(out, store, state, p, mob, player, now, secrets, duties == null ? List.of() : duties, place == null ? Map.of() : place);
 
-            ConversationStore.Village here = store.villageNear(dimension, x, z);
+            ConversationStore.Village here = hereId == null ? store.villageNear(dimension, x, z) : store.village(hereId);
             section(out, "Деревня, где вы стоите");
             out.addAll(standingLines(here == null ? null : SocialLedger.standing(state, here.id(), player, now), here == null ? "" : here.name()));
             ConversationStore.Village own = p == null || p.villageId == null || p.villageId.isBlank() ? null : store.village(p.villageId);

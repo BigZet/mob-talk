@@ -60,8 +60,9 @@ public final class Structures {
             Map.entry("trial_chambers", "испытательные палаты"), Map.entry("buried_treasure", "клад"), Map.entry("end_city", "город Края"),
             Map.entry("nether_fossil", "окаменелость"));
 
-    /** Template path fragments and what the piece is, most specific first. The first block names CTOV's buildings (none of these
-     * fragments occurs in vanilla paths); vanilla follows; the last line holds the folders CTOV sorts its pieces into. */
+    /** Template path fragments and what the piece is, most specific first. The first block names CTOV's buildings (a few of these
+     * words also name vanilla pieces, the same way: an ancient city's barracks, a trial chamber's vault); vanilla follows; the last
+     * lines hold the folders CTOV sorts its pieces into and the outposts' generic parts. */
     private static final String[][] TEMPLATE_WORDS = {
             {"tavern", "таверна"}, {"bakery", "пекарня"}, {"restaurant", "харчевня"}, {"market_stall", "рыночный прилавок"}, {"stall", "прилавок"},
             {"church", "церковь"}, {"priest_tower", "колокольня"}, {"sanctuary", "святилище"}, {"wizard_tower", "башня мага"},

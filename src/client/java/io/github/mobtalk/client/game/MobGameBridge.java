@@ -15,6 +15,7 @@ import net.minecraft.registry.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -152,6 +153,7 @@ public final class MobGameBridge {
                 bridge.bargaining.tick(world);
                 bridge.trades.tick(world);
                 bridge.changes.tick(bridge, world);
+                if (world.getTime() % 20 == 7) bridge.refreshStandingIn(world);
             }
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
@@ -486,6 +488,38 @@ public final class MobGameBridge {
         });
         return future;
     }
+    /** The known village at this spot: the one founded in the village structure there (with the option on), else the nearest
+     * within the village radius; null outside any. Server thread only. */
+    public ConversationStore.Village villageAt(ServerWorld world, BlockPos pos) {
+        String dimension = world.getRegistryKey().getValue().toString();
+        ConversationStore.Site site = config.villageSites ? VillageSites.at(world, pos) : null;
+        return site != null ? memory.villageFor(dimension, pos.getX(), pos.getZ(), site) : memory.villageNear(dimension, pos.getX(), pos.getZ());
+    }
+
+    /** /mobtalk village forgive: the village where the player stands, found like {@link #villageAt}, forgives them. */
+    public CompletableFuture<String> forgiveVillage(UUID playerId) {
+        return onServer(() -> {
+            ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
+            if (player == null) return "Мир ещё не загружен";
+            return memory.forgiveVillage(villageAt(player.getServerWorld(), player.getBlockPos()), playerId);
+        });
+    }
+
+    /** The village each player stood in at the last refresh (once a second), "" for none, for the client's status lines. */
+    private final Map<UUID, String> standingIn = new java.util.concurrent.ConcurrentHashMap<>();
+    private void refreshStandingIn(ServerWorld world) {
+        for (ServerPlayerEntity player : world.getPlayers()) {
+            ConversationStore.Village village = villageAt(world, player.getBlockPos());
+            standingIn.put(player.getUuid(), village == null ? "" : village.id());
+        }
+    }
+    /** The known village the player stood in at the last refresh, by the same rule as {@link #villageAt}; until the first refresh,
+     * the nearest within the radius of this point. Safe from any thread. */
+    public ConversationStore.Village villageWhereStanding(UUID player, String dimension, int x, int z) {
+        String id = player == null ? null : standingIn.get(player);
+        return id == null ? memory.villageNear(dimension, x, z) : memory.village(id);
+    }
+
     private ServerWorld world(String dimension) {
         for (ServerWorld world : server.getWorlds())
             if (world.getRegistryKey().getValue().toString().equals(dimension)) return world;
@@ -538,7 +572,7 @@ public final class MobGameBridge {
     /** The «Моб и деревня» panel ({@link MobInfo}): the place is captured on the server thread like before a reply (without making the
      * mob stop and listen), classified and written up off it. {@code mobId} may be null: only the village where the player stands. */
     public CompletableFuture<String> info(UUID mobId, UUID playerId, String dimension, int x, int z, boolean secrets) {
-        record Seen(List<String> duties, Map<String, Object> place, byte[] cube) { }
+        record Seen(List<String> duties, Map<String, Object> place, byte[] cube, String here) { }
         return onServer(() -> {
             ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
             ServerWorld world = world(dimension);
@@ -555,7 +589,9 @@ public final class MobGameBridge {
                 place = PlaceCapture.details(captured);
                 if (config.placeClassifier) cube = captured.grid().cube();
             }
-            return new Seen(duties, place, cube);
+            // The village where the player stands, by its structure like everywhere on the server; "" for none.
+            ConversationStore.Village here = world == null ? null : villageAt(world, player != null && player.getWorld() == world ? player.getBlockPos() : new BlockPos(x, 64, z));
+            return new Seen(duties, place, cube, here == null ? "" : here.id());
         }).thenApplyAsync(seen -> {
             Map<String, Object> place = new LinkedHashMap<>(seen.place());
             io.github.mobtalk.core.place.PlaceClassifier classifier = seen.cube() == null ? null : io.github.mobtalk.core.place.PlaceClassifier.bundled();
@@ -563,7 +599,7 @@ public final class MobGameBridge {
                 io.github.mobtalk.core.place.PlaceClassifier.Guess guess = classifier.guess(seen.cube());
                 place.put("looksLike", guess.label()); place.put("looksLikeConfidence", (double) guess.confidence());
             }
-            return MobInfo.report(memory, mobId, playerId, dimension, x, z, System.currentTimeMillis(), secrets, seen.duties(), place);
+            return MobInfo.report(memory, mobId, playerId, dimension, x, z, seen.here(), System.currentTimeMillis(), secrets, seen.duties(), place);
         });
     }
     /** The STAY/GUARD/SPARE leases of this mob for /mobtalk state; safe from the client thread. */

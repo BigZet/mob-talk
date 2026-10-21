@@ -1126,10 +1126,7 @@ public final class MobTalkClient implements ClientModInitializer {
     void forgiveVillage() {
         MobGameBridge game = client.getServer() == null ? null : MobGameBridge.active(client.getServer());
         if (game == null || client.player == null) { notice("Мир ещё не загружен"); return; }
-        UUID player = client.player.getUuid();
-        String dimension = client.player.getWorld().getRegistryKey().getValue().toString();
-        int x = client.player.getBlockX(), z = client.player.getBlockZ();
-        game.onServer(() -> game.memory.forgiveVillage(dimension, x, z, player)).thenAccept(result -> client.execute(() -> notice(result)));
+        game.forgiveVillage(client.player.getUuid()).thenAccept(result -> client.execute(() -> notice(result)));
     }
 
     /** «Моб и деревня» over {@code parent}: the selected mob (or none) and the village where the player stands. */
@@ -1150,8 +1147,8 @@ public final class MobTalkClient implements ClientModInitializer {
         String dimension = world.getRegistryKey().getValue().toString();
         int x = client.player.getBlockX(), z = client.player.getBlockZ();
         return CompletableFuture.supplyAsync(() -> {
-            ConversationStore.Village village = game.memory.villageNear(dimension, x, z);
-            return io.github.mobtalk.core.MobInfo.standingLines(village == null ? null : game.memory.social().standingAt(dimension, x, z, player, System.currentTimeMillis()),
+            ConversationStore.Village village = game.villageWhereStanding(player, dimension, x, z);
+            return io.github.mobtalk.core.MobInfo.standingLines(village == null ? null : game.memory.social().standing(village.id(), player, System.currentTimeMillis()),
                     village == null ? "" : village.name());
         }, maintenance);
     }
@@ -1181,9 +1178,9 @@ public final class MobTalkClient implements ClientModInitializer {
         if (!social.isBlank()) text.append(" · нрав: ").append(social);
         if (client.player != null && world != null) {
             String dimension = world.getRegistryKey().getValue().toString();
-            ConversationStore.Village village = game.memory.villageNear(dimension, client.player.getBlockX(), client.player.getBlockZ());
-            if (village != null) text.append(" · ").append(io.github.mobtalk.core.MobInfo.standingLine(game.memory.social().standingAt(dimension,
-                    client.player.getBlockX(), client.player.getBlockZ(), client.player.getUuid(), System.currentTimeMillis()), village.name()));
+            ConversationStore.Village village = game.villageWhereStanding(client.player.getUuid(), dimension, client.player.getBlockX(), client.player.getBlockZ());
+            if (village != null) text.append(" · ").append(io.github.mobtalk.core.MobInfo.standingLine(game.memory.social().standing(village.id(),
+                    client.player.getUuid(), System.currentTimeMillis()), village.name()));
         }
         text.append(" · решатель: ").append(decider.name());
         return text.toString();

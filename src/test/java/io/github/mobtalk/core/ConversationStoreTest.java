@@ -478,6 +478,13 @@ class ConversationStoreTest {
         assertEquals(old.id(), store.villageFor(world, 1010, 990, home).id(), "an old village inside this structure is adopted");
         assertEquals(home.key(), store.village(old.id()).site());
         assertEquals(old.id(), store.villageFor(world, 1000, 1000, null).id(), "no site: as before");
+        ConversationStore.Village fields = store.createVillage(world, 2000, 2000, "Полевая", "Основана в поле.");
+        ConversationStore.Site justBy = new ConversationStore.Site("minecraft:village_plains@127,127", 2060, 2060, 2030, 2030, 2100, 2100);
+        assertEquals(fields.id(), store.villageFor(world, 2050, 2050, justBy).id(), "an old village founded just outside the houses is still this one");
+        ConversationStore.Village apart = store.createVillage(world, 3000, 3000, "Хутор", "Сам по себе.");
+        ConversationStore.Site beyond = new ConversationStore.Site("ctov:small/village_plains@190,190", 3100, 3100, 3050, 3050, 3150, 3150);
+        assertNull(store.villageFor(world, 3060, 3060, beyond), "an old village 50 blocks off this structure is a neighbour, though within 160 blocks");
+        assertEquals("", store.village(apart.id()).site());
         ConversationStore.closeWorld(directory);
         ConversationStore reopened = ConversationStore.open(directory, config);
         try {

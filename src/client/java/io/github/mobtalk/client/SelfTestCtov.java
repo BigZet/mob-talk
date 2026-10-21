@@ -49,7 +49,8 @@ final class SelfTestCtov {
     }
 
     /** What the server thread read about the village's residents. */
-    private record Residents(int all, int settled, UUID first, UUID second, String site, BlockPos bell, String bellSite, UUID groom, UUID bride) { }
+    private record Residents(int all, int settled, UUID first, UUID second, String site, BlockPos bell, String bellSite, UUID groom, UUID bride,
+                             WeddingController.Venue venue, String venueSite) { }
 
     void run(Runnable then) {
         next = then;
@@ -134,20 +135,23 @@ final class SelfTestCtov {
     private Residents read(ServerWorld world) {
         List<VillagerEntity> all = villagers(world);
         List<VillagerEntity> settled = all.stream().filter(SelfTestCtov::settled).toList();
-        if (settled.isEmpty()) return new Residents(all.size(), 0, null, null, "", null, "", null, null);
+        if (settled.isEmpty()) return new Residents(all.size(), 0, null, null, "", null, "", null, null, null, "");
         VillagerEntity a = settled.getFirst();
         ConversationStore.Site site = VillageSites.of(world, a);
         String key = site == null ? "" : site.key();
         List<VillagerEntity> neighbours = settled.stream().filter(v -> { ConversationStore.Site s = VillageSites.of(world, v); return s != null && s.key().equals(key); }).toList();
         VillagerEntity b = neighbours.stream().filter(v -> v != a).findFirst().orElse(null);
-        BlockPos bell = WeddingController.bell(world, a);
+        BlockPos bell = WeddingController.rememberedBell(world, a);
         ConversationStore.Site bellSite = bell == null ? null : VillageSites.at(world, bell);
         VillagerEntity groom = neighbours.stream().filter(v -> SocialProfile.genderOf(v.getUuid()) == Gender.MALE
                 && test.bridge().memory.social().household(v.getUuid()).spouse() == null).findFirst().orElse(null);
         VillagerEntity bride = neighbours.stream().filter(v -> SocialProfile.genderOf(v.getUuid()) == Gender.FEMALE
                 && test.bridge().memory.social().household(v.getUuid()).spouse() == null).findFirst().orElse(null);
+        // Where the groom's wedding would stand: the bell chosen among the village's bells and the ground at its foot.
+        WeddingController.Venue venue = groom == null ? null : test.bridge().wedding.venue(world, groom);
+        ConversationStore.Site venueSite = venue == null ? null : VillageSites.at(world, venue.bell());
         return new Residents(all.size(), settled.size(), a.getUuid(), b == null ? null : b.getUuid(), key, bell, bellSite == null ? "" : bellSite.key(),
-                groom == null ? null : groom.getUuid(), bride == null ? null : bride.getUuid());
+                groom == null ? null : groom.getUuid(), bride == null ? null : bride.getUuid(), venue, venueSite == null ? "" : venueSite.key());
     }
 
     private void residents() {
@@ -161,9 +165,15 @@ final class SelfTestCtov {
             test.check(r.site().startsWith("ctov:"), "the village structure is found around the villager: " + (r.site().isEmpty() ? "none" : r.site()));
             siteKey = r.site();
             test.check(r.second() != null, "a second villager of the same CTOV village");
-            test.check(r.bell() != null, "the wedding finds the CTOV village bell: " + (r.bell() == null ? "none" : r.bell().toShortString()));
+            test.check(r.bell() != null, "the villager remembers a bell of the CTOV village: " + (r.bell() == null ? "none" : r.bell().toShortString()));
             test.check(r.bell() == null || r.bellSite().equals(siteKey), "the bell stands in the same CTOV village (" + r.bellSite() + ")");
-            bell = r.bell();
+            if (r.venue() != null) {
+                test.log("CTOV wedding venue: bell " + r.venue().bell().toShortString() + ", ground at its foot " + BlockPos.ofFloored(r.venue().plaza()).toShortString()
+                        + ", open cells " + r.venue().openness() + " of 112");
+                test.check(r.venueSite().equals(siteKey), "the wedding bell belongs to the same CTOV village (" + r.venueSite() + ")");
+                test.check(r.venue().openness() >= 20, "the wedding square is open enough for guests (" + r.venue().openness() + " cells)");
+            }
+            bell = r.venue() == null ? null : r.venue().bell();
             if (r.second() == null) { back(); return; }
             first = r.first(); second = r.second();
             talk(first, "Здравствуй! Как называется ваша деревня и давно ты тут живёшь?", "mobtalk-ctov-talk-1.png", () -> {
@@ -218,8 +228,11 @@ final class SelfTestCtov {
                 test.check(!began.isCompletedExceptionally() && began.join(), "two CTOV villagers marry as a scene at their bell");
                 WeddingController.Scene scene = test.bridge().wedding.scene();
                 if (scene == null) { WeddingFaults.clear(); back(); return; }
-                double off = scene.couple().subtract(Vec3d.ofBottomCenter(bell)).horizontalLength();
+                double off = scene.couple().subtract(r.venue().plaza()).horizontalLength();
                 test.check(off < 6, "the couple stands at the CTOV bell (" + String.format(java.util.Locale.ROOT, "%.1f", off) + " blocks)");
+                test.check(scene.anchor().distanceTo(r.venue().plaza()) < 0.01, "the ceremony stands on the ground at the bell's foot " + BlockPos.ofFloored(scene.anchor()).toShortString());
+                long level = scene.seatSpots().stream().filter(spot -> Math.abs(spot.y - scene.anchor().y) <= 2).count();
+                test.check(level * 10 >= scene.seatSpots().size() * 7L, "the guests stand on the square, not on roofs: " + level + " of " + scene.seatSpots().size() + " places within 2 blocks of its level");
                 String named = scene.input.names().village();
                 test.check(village == null || village.name().equals(named), "the wedding is in the Mob Talk village of this CTOV village: " + named);
                 test.await("the CTOV wedding service", 150, () -> test.bridge().wedding.scene() == null
