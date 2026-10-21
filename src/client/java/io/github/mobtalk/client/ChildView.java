@@ -30,10 +30,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.ToIntFunction;
+import io.github.mobtalk.client.human.HumanLooks;
+import io.github.mobtalk.client.human.HumanModel;
+import io.github.mobtalk.client.human.HumanTextures;
+import io.github.mobtalk.client.human.HumanVillagerRenderer;
 
 /** Трек N на клиенте: что видно глазами. Беременность — строка под именем (её рисует {@link MobLabels}) и округлый живот на фигурке
- * отдельным слоем рендера поверх ванильной модели: модель не меняется, в мире ничего не хранится, слой можно перевесить на другую
- * модель (будущие люди-жители). Затемнения особой ночи и родов — поверх экрана. Данные раз в полсекунды берутся из памяти мира;
+ * отдельным слоем рендера поверх модели жительницы (ванильной или человека трека M) и игрока: модель не меняется, в мире ничего
+ * не хранится. Затемнения особой ночи и родов — поверх экрана. Данные раз в полсекунды берутся из памяти мира;
  * рендер только рисует. */
 final class ChildView {
     private static volatile Map<UUID, Float> bellies = Map.of();
@@ -43,7 +48,10 @@ final class ChildView {
 
     /** Строка под именем у носящей ("" — нет). */
     static String status(UUID id) { return statuses.getOrDefault(id, ""); }
-    static float belly(UUID id) { return bellies.getOrDefault(id, 0f); }
+    static float belly(UUID id) { Float f = forced.get(id); return f != null ? f : bellies.getOrDefault(id, 0f); }
+    /** Самотест облика (трек M): живот без беременности в памяти мира; пустая карта — снять. */
+    private static volatile Map<UUID, Float> forced = Map.of();
+    static void forceBelly(Map<UUID, Float> bellies) { forced = Map.copyOf(bellies); }
 
     void tick() {
         MinecraftClient client = owner.client;
@@ -68,10 +76,13 @@ final class ChildView {
         LivingEntityFeatureRendererRegistrationCallback.EVENT.register((type, renderer, helper, context) -> {
             if (renderer instanceof VillagerEntityRenderer villager)
                 helper.register(new Belly<VillagerEntity, VillagerResemblingModel<VillagerEntity>>(villager, model -> model.getPart().getChild("body"), true, 9f, -3.5f,
-                        19, 26, ChildView::robe, 3, 50)); // Ниже сложенных рук.
+                        19, 26, ChildView::robe, 3, 50, null)); // Ниже сложенных рук.
+            else if (renderer instanceof HumanVillagerRenderer human) // Трек M: туловище человека, сверху его одежда, кожа своего цвета.
+                helper.register(new Belly<VillagerEntity, HumanModel>(human, model -> model.body, false, 5f, -2.25f,
+                        17, 22, v -> HumanTextures.clothes(HumanLooks.of(v)), 17, 22, v -> HumanTextures.skinColor(HumanLooks.of(v))));
             else if (renderer instanceof PlayerEntityRenderer player)
                 helper.register(new Belly<AbstractClientPlayerEntity, PlayerEntityModel<AbstractClientPlayerEntity>>(player, model -> model.body, false, 5f, -2.25f,
-                        17, 22, null, 0, 0));
+                        17, 22, null, 0, 0, null));
         });
     }
     /** Роба жителя его типа (равнины, снега…): в базовой текстуре жителя роба прозрачна, её рисует слой типа. */
@@ -88,10 +99,11 @@ final class ChildView {
         private final ModelPart part, cover;
         private final Function<T, Identifier> coverTexture;
         private final float front;
+        private final ToIntFunction<T> tint;
         Belly(FeatureRendererContext<T, M> context, Function<M, ModelPart> body, boolean fromRoot, float top, float front,
-              int u, int v, Function<T, Identifier> coverTexture, int cu, int cv) {
+              int u, int v, Function<T, Identifier> coverTexture, int cu, int cv, ToIntFunction<T> tint) {
             super(context);
-            this.body = body; this.fromRoot = fromRoot; this.front = front; this.coverTexture = coverTexture;
+            this.body = body; this.fromRoot = fromRoot; this.front = front; this.coverTexture = coverTexture; this.tint = tint;
             part = cube(u, v, top, Dilation.NONE);
             cover = coverTexture == null ? null : cube(cu, cv, top, new Dilation(0.05f));
         }
@@ -111,8 +123,9 @@ final class ChildView {
             matrices.translate(0, 0, front / 16f);
             matrices.scale(1f, 1f, amount);
             int overlay = LivingEntityRenderer.getOverlay(entity, 0);
-            part.render(matrices, consumers.getBuffer(RenderLayer.getEntityCutoutNoCull(getTexture(entity))), light, overlay);
-            if (cover != null) cover.render(matrices, consumers.getBuffer(RenderLayer.getEntityCutoutNoCull(coverTexture.apply(entity))), light, overlay);
+            part.render(matrices, consumers.getBuffer(RenderLayer.getEntityCutoutNoCull(getTexture(entity))), light, overlay, tint == null ? -1 : tint.applyAsInt(entity));
+            Identifier coverId = cover == null ? null : coverTexture.apply(entity);
+            if (coverId != null) cover.render(matrices, consumers.getBuffer(RenderLayer.getEntityCutoutNoCull(coverId)), light, overlay);
             matrices.pop();
         }
     }

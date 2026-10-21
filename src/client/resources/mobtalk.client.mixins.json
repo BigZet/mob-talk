@@ -24,7 +24,8 @@
     "VillagerFamilyMixin",
     "VillageTradeRefusalMixin",
     "NightHoldMixin",
-    "ChatScreenAccessor"
+    "ChatScreenAccessor",
+    "LivingEntityRendererInvoker"
   ],
   "injectors": {
     "defaultRequire": 1

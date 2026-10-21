@@ -62,6 +62,8 @@ public final class MobTalkConfig {
     public String vision = "unusual";
     /** A line over every known creature: name, word of its state, relationship. */
     public boolean showNameTags = true;
+    /** Трек M: жители — люди в духе MCA Reborn (кожа, лицо, одежда, волосы, гены); выключено — ванильная модель. */
+    public boolean humanVillagers = true;
     /** Creatures the player talked to, gave to or helped never despawn. */
     public boolean keepAcquainted = true;
     /** One word of how the haggle goes («склоняется», «не уверен», «против») in the Mob Talk line while a bargain is on. */
@@ -201,7 +203,7 @@ public final class MobTalkConfig {
         copy.firstTokenSeconds = firstTokenSeconds;
         copy.maxDistance = maxDistance;
         copy.witnessReplies = witnessReplies;
-        copy.showStateHud = showStateHud; copy.vision = vision; copy.showNameTags = showNameTags; copy.keepAcquainted = keepAcquainted;
+        copy.showStateHud = showStateHud; copy.vision = vision; copy.showNameTags = showNameTags; copy.humanVillagers = humanVillagers; copy.keepAcquainted = keepAcquainted;
         copy.showBargainHud = showBargainHud;
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;

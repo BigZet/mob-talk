@@ -11,6 +11,11 @@ loom {
         }
     }
 }
+// Трек M: перенесённый из MCA Reborn рендер людей-жителей и его текстуры (GPL-3.0), см. third_party/mca-reborn/NOTICE.md.
+sourceSets {
+    main { java { srcDir 'third_party/mca-reborn/src/main/java' } }
+    client { java { srcDir 'third_party/mca-reborn/src/client/java' }; resources { srcDir 'third_party/mca-reborn/src/client/resources' } }
+}
 dependencies {
     minecraft "com.mojang:minecraft:${minecraft_version}"
     mappings "net.fabricmc:yarn:${yarn_mappings}:v2"
