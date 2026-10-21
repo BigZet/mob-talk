@@ -308,7 +308,12 @@ public final class SelfTest {
             check(unheardText != null, "болтовню у алтаря бог не счёл молитвой");
             check(soul.chronicle.size() == soulBefore, "после болтовни нового вердикта нет: " + soulBefore + " → " + soul.chronicle.size());
         }));
-        steps.add(new Step(120, () -> log("--- все деяния каталога ---")));
+        steps.add(new Step(120, () -> {
+            // The wrath step's checks on the god's voice are done: from here a line of the god (the god with the mace speaks) is just logged.
+            Prayers.spoken = line -> log("  бог: " + line);
+            Prayers.performed = act -> { };
+            log("--- все деяния каталога ---");
+        }));
         DivineConfig config = DivineBlockMod.config();
         config.allowWither = true; config.maxTier = 4;
         for (Miracle miracle : Miracle.values()) if (miracle != Miracle.ETERNAL_BAN) steps.add(new Step(miracle == Miracle.METEOR || miracle == Miracle.CHICKEN_RAIN ? 90 : 30, () -> perform(player, miracle, config, Stage.STOCKED)));
