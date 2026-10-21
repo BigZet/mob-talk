@@ -37,6 +37,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.AffineTransformation;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.GlobalPos;
 import net.minecraft.util.math.Vec3d;
@@ -145,7 +146,8 @@ public final class WeddingController {
         Vec3d couple = anchor.add(forward.multiply(Wedding.COUPLE_FORWARD));
         Vec3d right = new Vec3d(-forward.z, 0, forward.x);
         boolean playerRight = player.getPos().subtract(couple).dotProduct(right) >= 0;
-        Scene s = begin(world, cast, names, input, player.getUuid(), anchor, forward, quiet, playerRight, names.playerGender(), now);
+        Set<BlockPos> walkable = quiet ? walkable(world, standingNear(world, spouse.getBlockPos()), REACH) : venue.walkable();
+        Scene s = begin(world, cast, names, input, player.getUuid(), anchor, forward, quiet, playerRight, names.playerGender(), walkable, now);
         Vec3d spot = s.playerSpot;
         for (ServerPlayerEntity listener : world.getPlayers())
             if (listener.squaredDistanceTo(anchor) <= 96 * 96) listener.sendMessage(Text.literal("§d[Mob Talk] В деревне свадьба! " + bride.name() + " и " + names.player()
@@ -176,7 +178,7 @@ public final class WeddingController {
         ConversationStore.Village village = village(world, a, anchor);
         Wedding.Names names = new Wedding.Names("", null, village == null ? "" : village.name());
         WeddingScript.Input input = new WeddingScript.Input(cast, names, "", "", bridge.config.weddingWishes);
-        begin(world, cast, names, input, null, anchor, forward, false, true, pa.gender(), now);
+        begin(world, cast, names, input, null, anchor, forward, false, true, pa.gender(), venue.walkable(), now);
         for (ServerPlayerEntity listener : world.getPlayers())
             if (listener.squaredDistanceTo(anchor) <= 96 * 96) listener.sendMessage(Text.literal("§d[Mob Talk] В деревне свадьба: " + pa.name() + " и " + pb.name() + " — у колокола."), false);
         return true;
@@ -187,17 +189,23 @@ public final class WeddingController {
         return startVillage(world, first, second, near);
     }
 
+    /** {@code walkable}: клетки, куда от площади можно дойти пешком; места ставятся только на них (не на крышах и не в закрытых
+     * домах). Пусто — по-старому, ближайшая по высоте клетка у задуманной точки. */
     private Scene begin(ServerWorld world, Wedding.Cast cast, Wedding.Names names, WeddingScript.Input input, UUID player, Vec3d anchor, Vec3d forward,
-                        boolean quiet, boolean playerRight, Gender playerGender, long now) {
+                        boolean quiet, boolean playerRight, Gender playerGender, Set<BlockPos> walkable, long now) {
         Vec3d right = new Vec3d(-forward.z, 0, forward.x);
         Map<UUID, Vec3d> seats = new HashMap<>();
+        Set<BlockPos> good = new HashSet<>(), used = new HashSet<>();
+        for (BlockPos p : walkable) if (sky(world, p) && solidUnder(world, p)) good.add(p);
         for (Wedding.Seat seat : Wedding.seats(cast, playerRight, playerGender)) {
-            Vec3d spot = ground(world, anchor.add(forward.multiply(seat.forward())).add(right.multiply(seat.right())), anchor.y);
+            Vec3d ideal = anchor.add(forward.multiply(seat.forward())).add(right.multiply(seat.right()));
+            Vec3d spot = walkable.isEmpty() ? ground(world, ideal, anchor.y) : nearest(walkable, good, used, ideal);
             if (spot != null) seats.put(seat.id(), spot);
         }
         Vec3d couple = anchor.add(forward.multiply(Wedding.COUPLE_FORWARD));
         Wedding.Seat mine = Wedding.playerSeat(playerRight);
-        Vec3d playerSpot = player == null ? null : ground(world, anchor.add(forward.multiply(mine.forward())).add(right.multiply(mine.right())), anchor.y);
+        Vec3d mineIdeal = anchor.add(forward.multiply(mine.forward())).add(right.multiply(mine.right()));
+        Vec3d playerSpot = player == null ? null : walkable.isEmpty() ? ground(world, mineIdeal, anchor.y) : nearest(walkable, good, used, mineIdeal);
         Wedding.Ceremony ceremony = new Wedding.Ceremony(cast, names, bridge.config.weddingGatherSeconds * 1000L, bridge.config.weddingVowWaitSeconds * 1000L,
                 bridge.config.weddingWishes, now);
         Scene s = new Scene(ceremony, input, player, world, anchor, forward, right, couple, playerSpot, quiet, seats);
@@ -571,8 +579,12 @@ public final class WeddingController {
         return own != null ? own : bridge.villageAt(world, BlockPos.ofFloored(anchor));
     }
 
-    /** Где играть свадьбу: колокол и земля у его подножия; {@code openness} — сколько вокруг ровных клеток под открытым небом. */
-    public record Venue(BlockPos bell, Vec3d plaza, int openness) { }
+    /** Где играть свадьбу: колокол, точка площади (земля у подножия колокола или открытая земля рядом), простор — сколько клеток
+     * площади под открытым небом, — и клетки, куда от площади можно дойти пешком: только на них встают пара и гости. */
+    public record Venue(BlockPos bell, Vec3d plaza, int openness, Set<BlockPos> walkable) { }
+    /** Как далеко от точки площади ищутся места: ряды гостей уходят от неё на 10 блоков. */
+    private static final int REACH = 11;
+    private static final int[][] EIGHT = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}};
 
     /** Колокол свадьбы этого жителя и место у его подножия. В деревнях CTOV колокол висит под аркой, на башне, на стене дома: из
      * колоколов в 96 блоках (своей деревни-постройки, если она известна) берётся тот, что житель помнит, если вокруг него не сильно
@@ -589,14 +601,96 @@ public final class WeddingController {
         if (site != null && bells.stream().anyMatch(pos -> site.holds(pos.getX(), pos.getZ()))) bells.removeIf(pos -> !site.holds(pos.getX(), pos.getZ()));
         Venue best = null, own = null;
         for (BlockPos bell : bells) {
-            if (!loaded(world, bell, 6)) continue; // Не грузить чанки ради свадьбы.
-            Vec3d plaza = plaza(world, bell);
-            Venue venue = new Venue(bell, plaza, openness(world, plaza));
+            if (!loaded(world, bell, 10)) continue; // Не грузить чанки ради свадьбы.
+            Venue venue = square(world, bell);
+            if (venue == null) continue;
             if (bell.equals(remembered)) own = venue;
             if (best == null || venue.openness() > best.openness()) best = venue;
         }
         return own != null && own.openness() * 10 >= best.openness() * 6 ? own : best;
     }
+
+    /** Площадь у колокола: земля у его подножия, а если там тесно (колокол на башне, в доме, на обелиске) — открытая земля в 3–9
+     * блоках от него; подножие выигрывает, если не сильно теснее. null — встать негде. Ванильный колокол стоит на площади: точкой
+     * остаётся он сам, как раньше. */
+    static Venue square(ServerWorld world, BlockPos bell) {
+        Vec3d foot = plaza(world, bell);
+        BlockPos footStart = standingNear(world, BlockPos.ofFloored(foot));
+        List<BlockPos> starts = new ArrayList<>();
+        if (footStart != null) starts.add(footStart);
+        for (int r : new int[]{3, 6, 9})
+            for (int[] d : EIGHT) {
+                int x = bell.getX() + d[0] * r, z = bell.getZ() + d[1] * r;
+                BlockPos top = new BlockPos(x, world.getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, x, z), z);
+                if (Math.abs(top.getY() - (int) Math.floor(foot.y)) <= 8 && standable(world, top) && solidUnder(world, top)) starts.add(top);
+            }
+        Venue atFoot = null, best = null;
+        Set<BlockPos> explored = new HashSet<>();
+        for (BlockPos start : starts) {
+            if (explored.contains(start)) continue; // Та же площадь, что уже обойдена.
+            Set<BlockPos> walkable = walkable(world, start, REACH);
+            explored.addAll(walkable);
+            int open = (int) walkable.stream().filter(p -> sky(world, p)).count();
+            boolean isFoot = start == footStart;
+            Venue venue = new Venue(bell, isFoot ? foot : Vec3d.ofBottomCenter(start), open, Collections.unmodifiableSet(walkable));
+            if (isFoot) atFoot = venue;
+            if (best == null || open > best.openness()) best = venue;
+        }
+        if (best == null) return null;
+        return atFoot != null && atFoot.openness() * 10 >= best.openness() * 7 ? atFoot : best;
+    }
+
+    /** Клетки, куда от {@code start} можно дойти пешком (шаг вверх или вниз не больше блока, над головой свободно), не дальше
+     * {@code reach} блоков от неё и только в загруженных чанках. Крыша и закрытый дом от площади так не достижимы. */
+    static Set<BlockPos> walkable(ServerWorld world, BlockPos start, int reach) {
+        Set<BlockPos> out = new HashSet<>();
+        if (start == null || world.getChunkManager().getWorldChunk(start.getX() >> 4, start.getZ() >> 4) == null || !standable(world, start)) return out;
+        ArrayDeque<BlockPos> queue = new ArrayDeque<>();
+        out.add(start); queue.add(start);
+        while (!queue.isEmpty()) {
+            BlockPos at = queue.poll();
+            for (Direction side : Direction.Type.HORIZONTAL) {
+                BlockPos next = at.offset(side);
+                if (Math.abs(next.getX() - start.getX()) > reach || Math.abs(next.getZ() - start.getZ()) > reach
+                        || world.getChunkManager().getWorldChunk(next.getX() >> 4, next.getZ() >> 4) == null) continue;
+                BlockPos step = standable(world, next) ? next
+                        : clear(world, at.up(2)) && standable(world, next.up()) ? next.up()
+                        : clear(world, next.up()) && standable(world, next.down()) ? next.down() : null;
+                if (step != null && out.add(step)) queue.add(step);
+            }
+        }
+        return out;
+    }
+
+    /** Место участника: клетка площади, ближайшая к задуманной точке (на земле под небом лучше), не занятая другим. */
+    private static Vec3d nearest(Set<BlockPos> walkable, Set<BlockPos> good, Set<BlockPos> used, Vec3d ideal) {
+        BlockPos best = null; double bestScore = Double.MAX_VALUE;
+        for (BlockPos p : walkable) {
+            if (used.contains(p)) continue;
+            double dx = p.getX() + 0.5 - ideal.x, dz = p.getZ() + 0.5 - ideal.z, dy = p.getY() - ideal.y;
+            double score = dx * dx + dz * dz + dy * dy * 0.5 + (good.contains(p) ? 0 : 9);
+            if (score < bestScore) { best = p; bestScore = score; }
+        }
+        if (best == null) return null;
+        used.add(best);
+        return Vec3d.ofBottomCenter(best);
+    }
+
+    /** Клетка, где можно стоять, в самой точке или рядом (колокол на площади сам занимает свою клетку); null — негде. */
+    private static BlockPos standingNear(ServerWorld world, BlockPos cell) {
+        if (standable(world, cell)) return cell;
+        for (int dy : new int[]{0, -1, 1})
+            for (int[] d : EIGHT) {
+                BlockPos near = cell.add(d[0], dy, d[1]);
+                if (standable(world, near)) return near;
+            }
+        return null;
+    }
+    private static boolean clear(ServerWorld world, BlockPos pos) { return world.getBlockState(pos).getCollisionShape(world, pos).isEmpty(); }
+    /** Над клеткой открытое небо (листва не в счёт). */
+    private static boolean sky(ServerWorld world, BlockPos feet) { return feet.getY() >= world.getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, feet.getX(), feet.getZ()); }
+    /** Под полом клетки ещё блок: это земля, а не настил крыши или помост. */
+    public static boolean solidUnder(ServerWorld world, BlockPos feet) { return !clear(world, feet.down()) && !clear(world, feet.down(2)); }
 
     /** Колокол, который житель помнит местом сбора (в этом мире и в 96 блоках), или null. Для самотеста и выбора места. */
     public static BlockPos rememberedBell(ServerWorld world, VillagerEntity villager) {
@@ -617,20 +711,6 @@ public final class WeddingController {
         return Vec3d.ofBottomCenter(bell);
     }
 
-    /** Простор площади: клетки квадрата 11×11 вокруг (без середины 3×3), где гостю встать на её уровне ±1 под открытым небом. */
-    static int openness(ServerWorld world, Vec3d plaza) {
-        int x0 = (int) Math.floor(plaza.x), y0 = (int) Math.floor(plaza.y), z0 = (int) Math.floor(plaza.z), open = 0;
-        for (int dx = -5; dx <= 5; dx++)
-            for (int dz = -5; dz <= 5; dz++) {
-                if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) continue;
-                for (int dy : new int[]{0, -1, 1}) {
-                    BlockPos feet = new BlockPos(x0 + dx, y0 + dy, z0 + dz);
-                    if (standable(world, feet) && feet.getY() >= world.getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, feet.getX(), feet.getZ())) { open++; break; }
-                }
-            }
-        return open;
-    }
-
     /** Все чанки квадрата {@code reach} вокруг точки загружены целиком: читать блоки можно, не дожидаясь загрузки. */
     private static boolean loaded(ServerWorld world, BlockPos center, int reach) {
         for (int cx = center.getX() - reach >> 4; cx <= center.getX() + reach >> 4; cx++)
@@ -642,8 +722,8 @@ public final class WeddingController {
         return new ArrayList<>(world.getEntitiesByClass(VillagerEntity.class, Box.of(center, range * 2, 48, range * 2),
                 v -> v.isAlive() && !v.isRemoved() && !v.isAiDisabled() && !v.isBaby() && v.squaredDistanceTo(center) <= range * range));
     }
-    /** Где стоять: клетка с твёрдым полом и свободным местом для тела, ближайшая по высоте к площади (сначала её уровень, потом
-     * на блок ниже и выше и так далее: крыша над площадью проигрывает земле), в точке или рядом с ней. */
+    /** Где стоять, когда площадь не обойти (свадьба без загруженной площади): клетка с твёрдым полом и свободным местом для тела,
+     * ближайшая по высоте к площади (сначала её уровень, потом на блок ниже и выше), в точке или рядом с ней. */
     static Vec3d ground(ServerWorld world, Vec3d point, double baseY) {
         int[][] around = {{0, 0}, {1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}};
         for (int dy : new int[]{0, -1, 1, -2, 2, -3, 3, -4, -5})
