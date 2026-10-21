@@ -292,7 +292,7 @@ def hand(label, side, pivot, curl=1.3, children=()):
 def robe(name, pivot, top_radius, bottom_radius, height, panels, style, front_short=0.0, back_long=0.0, sway=0.05):
     """A bell of tilted cloth panels like `skirt`, but the hem may rise in front (to show the feet) and trail behind."""
     part = Part(name, pivot=pivot)
-    width = 2 * math.pi * max(top_radius, bottom_radius) / panels * 1.18
+    width = 2 * math.pi * max(top_radius, bottom_radius) / panels * 1.32
     for i in range(panels):
         a = 2 * math.pi * i / panels
         h = height - front_short * max(0.0, math.cos(a)) ** 2 + back_long * max(0.0, -math.cos(a)) ** 2
@@ -453,7 +453,14 @@ crown = Part("crown", pivot=(0, -7.8, 0), boxes=[
     ]),
 ])
 
-head = Part("head", pivot=(0, -16.6, -0.4), boxes=[Box((-4, -8, -4), (8, 8, 8), nimrod_face)], children=[beard, hair, crown])
+head = Part("head", pivot=(0, -16.6, -0.4), boxes=[
+    Box((-4, -8, -4), (8, 8, 8), nimrod_face),
+    # The brow ridge and the hooked nose in relief.
+    Box((-3.4, -5.6, -4.45), (6.8, 0.7, 0.5), solid(HAIR, k=0.1)),
+], children=[
+    Part("nose", pivot=(0, -4.6, -4.0), rotation=(-0.22, 0, 0), boxes=[Box((-0.55, 0, -1.0), (1.1, 2.0, 1.0), flesh()),
+                                                                        Box((-0.85, 1.5, -0.75), (1.7, 0.6, 0.75), flesh())]),
+    beard, hair, crown])
 
 quiver = Part("quiver", pivot=(1.0, -7.0, 4.4), rotation=(0.12, 0, -0.38), boxes=[
     Box((-1.9, -8.0, -1.4), (3.8, 15.0, 3.2), leather()),
@@ -523,8 +530,8 @@ parts = [
         Part("hips", pivot=(0, -24, 0), children=[
             leg("right_leg", -2.6),
             leg("left_leg", 2.6),
-            robe("robe_under", (0, -0.5, 0), 5.4, 7.6, 23.0, 18, under, front_short=1.6, back_long=1.4),
-            robe("robe_over", (0, -1.0, 0), 5.8, 8.2, 19.0, 16, over, front_short=2.0, back_long=3.5, sway=0.04),
+            robe("robe_under", (0, -0.5, 0), 5.4, 7.6, 23.0, 18, under, front_short=1.6, back_long=1.4, sway=0.01),
+            robe("robe_over", (0, -1.0, 0), 5.8, 8.2, 19.0, 16, over, front_short=2.0, back_long=3.5, sway=0.012),
             robe("shawl_skirt", (0, -0.6, 0), 6.3, 7.1, 7.5, 14, royal(LAPIS, border=GOLD_DARK, border_w=1.2), sway=0.02),
             apron,
             body,

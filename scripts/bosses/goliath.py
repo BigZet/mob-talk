@@ -446,7 +446,11 @@ beard = Part("beard", pivot=(0, -1.6, -3.6), boxes=[Box((-3.6, -0.6, -0.4), (7.2
 
 head = Part("head", pivot=(0, -20.4, -0.6), boxes=[
     Box((-4, -8, -4), (8, 8, 8), goliath_face),
+    # A jutting brow ridge and a broad nose in relief, so the face is not painted flat on a box.
+    Box((-3.4, -5.7, -4.5), (6.8, 0.8, 0.6), solid(BEARD, k=0.12)),
 ], children=[
+    Part("nose", pivot=(0, -4.7, -4.0), rotation=(-0.18, 0, 0), boxes=[Box((-0.65, 0, -0.9), (1.3, 2.0, 0.9), flesh(SKIN)),
+                                                                        Box((-0.95, 1.5, -0.7), (1.9, 0.7, 0.7), flesh(SKIN))]),
     beard,
     Part("helmet", boxes=[
         Box((-4.5, -10.6, -4.5), (9, 2.8, 9.2), plate),

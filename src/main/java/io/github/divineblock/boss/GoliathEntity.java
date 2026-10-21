@@ -28,9 +28,9 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.joml.Vector3f;
 
-/** Ð“Ð¾Ð»Ð¸Ð°Ñ„ (1 Samuel 17): a giant of Gath in a brass helmet and scale mail. He thrusts with a spear like a weaver's beam (a
+/** Голиаф (1 Samuel 17): a giant of Gath in a brass helmet and scale mail. He thrusts with a spear like a weaver's beam (a
  * telegraphed line; twice in a row from phase 2), bashes with his shield, hurls the brass javelin from between his shoulders at
- * those who keep away, and roars a taunt that stuns (Â«ÐžÐ³Ð»ÑƒÑˆÐµÐ½Ð¸ÐµÂ»: no striking, heavy feet). Ultimate Â«Ð’Ñ‹Ð·Ð¾Ð² Ð²Ð¾Ð¸Ð½ÑÑ‚Ð²ÑƒÂ»: he
+ * those who keep away, and roars a taunt that stuns («Оглушение»: no striking, heavy feet). Ultimate «Вызов воинству»: he
  * calls for a man to fight him, throws his great spear at the challenger's place (two spears in phase 3) and slams the
  * ground, sending out a stunning ring. His armour shrugs off swords, but not his bare forehead: a projectile that hits his head
  * (a snowball or an egg too, like David's stone) deals heavy damage and brings him to his knees for two seconds. */
@@ -50,11 +50,11 @@ public final class GoliathEntity extends SacredBoss {
 
     public GoliathEntity(EntityType<? extends GoliathEntity> type, World world) { super(type, world, BossBar.Color.YELLOW); }
 
-    /** Â«ÐžÐ³Ð»ÑƒÑˆÐµÐ½Ð¸ÐµÂ»: a stunned player cannot strike anything. */
+    /** «Оглушение»: a stunned player cannot strike anything. */
     static void registerHooks() {
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hit) -> {
             if (!player.hasStatusEffect(BossEffects.STUN)) return ActionResult.PASS;
-            if (!world.isClient) player.sendMessage(Text.literal("ÐžÐ³Ð»ÑƒÑˆÐµÐ½Ð¸Ðµ: Ñ€ÑƒÐºÐ¸ Ð½Ðµ ÑÐ»ÑƒÑˆÐ°ÑŽÑ‚ÑÑ").formatted(Formatting.GRAY), true);
+            if (!world.isClient) player.sendMessage(Text.literal("Оглушение: руки не слушаются").formatted(Formatting.GRAY), true);
             return ActionResult.FAIL;
         });
     }
@@ -116,7 +116,7 @@ public final class GoliathEntity extends SacredBoss {
         } else if (direct instanceof LivingEntity && direct == source.getAttacker()) {
             amount *= 0.55f;
             if (armourHint == 0 && direct instanceof ServerPlayerEntity player) {
-                player.sendMessage(Text.literal("ÐœÐµÐ´Ð½Ñ‹Ð¹ Ð´Ð¾ÑÐ¿ÐµÑ… Ð´ÐµÑ€Ð¶Ð¸Ñ‚ ÑƒÐ´Ð°Ñ€â€¦ Ñ†ÐµÐ»ÑŒÑÑ ÐµÐ¼Ñƒ Ð² Ð»Ð¾Ð±").formatted(Formatting.GOLD), true);
+                player.sendMessage(Text.literal("Медный доспех держит удар… целься ему в лоб").formatted(Formatting.GOLD), true);
                 armourHint = 200;
             }
         }
@@ -143,9 +143,9 @@ public final class GoliathEntity extends SacredBoss {
         sound(SoundEvents.BLOCK_ANVIL_LAND, 2f, 1.6f);
         sound(SoundEvents.ENTITY_IRON_GOLEM_DAMAGE, 2f, 0.5f);
         for (ServerPlayerEntity player : playersNear(48))
-            player.sendMessage(Text.literal(player == shooter ? "ÐšÐ°Ð¼ÐµÐ½ÑŒ Ð²Ð¾Ð½Ð·Ð¸Ð»ÑÑ ÐµÐ¼Ñƒ Ð² Ð»Ð¾Ð±! Ð“Ð¾Ð»Ð¸Ð°Ñ„ Ð¿Ð°Ð» Ð½Ð° ÐºÐ¾Ð»ÐµÐ½Ð¸" : "Ð“Ð¾Ð»Ð¸Ð°Ñ„ Ð¿Ð°Ð» Ð½Ð° ÐºÐ¾Ð»ÐµÐ½Ð¸")
+            player.sendMessage(Text.literal(player == shooter ? "Камень вонзился ему в лоб! Голиаф пал на колени" : "Голиаф пал на колени")
                     .formatted(Formatting.YELLOW, Formatting.BOLD), true);
-        debug("Ð¿Ð¾Ð¿Ð°Ð´Ð°Ð½Ð¸Ðµ Ð² Ð»Ð¾Ð±, Ð½Ð° ÐºÐ¾Ð»ÐµÐ½ÑÑ… " + STAGGER + " Ñ‚Ð¸ÐºÐ¾Ð²");
+        debug("попадание в лоб, на коленях " + STAGGER + " тиков");
     }
 
     /** A blow that comes while he kneels is lost: the stone took his strength. */
@@ -168,18 +168,18 @@ public final class GoliathEntity extends SacredBoss {
         return phase >= 2 ? 65 : 75;
     }
 
-    /** Â«Ð£Ð´Ð°Ñ€ ÐºÐ¾Ð¿ÑŒÑ‘Ð¼Â»: a red line along the spear's way, then the thrust; from phase 2 a second one follows at once. */
+    /** «Удар копьём»: a red line along the spear's way, then the thrust; from phase 2 a second one follows at once. */
     private void thrust(LivingEntity target) {
         int warn = phase >= 2 ? 14 : 20;
         pose(MOVE_THRUST, warn + 12);
-        cast("Ð£Ð´Ð°Ñ€ ÐºÐ¾Ð¿ÑŒÑ‘Ð¼", warn, true, left -> {
+        cast("Удар копьём", warn, true, left -> {
             if (left == warn) sound(SoundEvents.ITEM_TRIDENT_RETURN, 2f, 0.5f);
         }, () -> { if (!fizzled()) { swingHand(Hand.MAIN_HAND); sound(SoundEvents.ITEM_TRIDENT_THROW.value(), 2f, 0.5f); } });
         spearLine(target, warn);
         if (phase >= 2) hazards.later(warn + 8, () -> {
             if (!target.isAlive() || staggered() || isCasting()) return;
             pose(MOVE_THRUST, 26);
-            cast("Ð’Ñ‚Ð¾Ñ€Ð¾Ð¹ ÑƒÐ´Ð°Ñ€ ÐºÐ¾Ð¿ÑŒÑ‘Ð¼", 14, true, left -> { }, () -> { if (!fizzled()) { swingHand(Hand.MAIN_HAND); sound(SoundEvents.ITEM_TRIDENT_THROW.value(), 2f, 0.6f); } });
+            cast("Второй удар копьём", 14, true, left -> { }, () -> { if (!fizzled()) { swingHand(Hand.MAIN_HAND); sound(SoundEvents.ITEM_TRIDENT_THROW.value(), 2f, 0.6f); } });
             spearLine(target, 14);
         });
     }
@@ -192,11 +192,11 @@ public final class GoliathEntity extends SacredBoss {
         });
     }
 
-    /** Â«Ð£Ð´Ð°Ñ€ Ñ‰Ð¸Ñ‚Ð¾Ð¼Â»: the ground before him is marked, then the round shield knocks everyone there away. */
+    /** «Удар щитом»: the ground before him is marked, then the round shield knocks everyone there away. */
     private void bash(LivingEntity target) {
         Vec3d front = getPos().add(flat(target).multiply(getWidth() * 0.5 + 1.8));
         pose(MOVE_BASH, 30);
-        cast("Ð£Ð´Ð°Ñ€ Ñ‰Ð¸Ñ‚Ð¾Ð¼", 18, true, left -> { if (left == 18) sound(SoundEvents.ITEM_SHIELD_BLOCK, 2f, 0.5f); }, () -> { });
+        cast("Удар щитом", 18, true, left -> { if (left == 18) sound(SoundEvents.ITEM_SHIELD_BLOCK, 2f, 0.5f); }, () -> { });
         hazards.zone(front, 2.8, 18, ParticleTypes.CRIT, at -> {
             if (fizzled()) return;
             swingHand(Hand.OFF_HAND);
@@ -210,13 +210,13 @@ public final class GoliathEntity extends SacredBoss {
         });
     }
 
-    /** Â«Ð Ñ‹Ðº Ð“Ð¾Ð»Ð¸Ð°Ñ„Ð°Â»: his taunt from the valley of Elah; whoever stands within seven blocks is stunned. */
+    /** «Рык Голиафа»: his taunt from the valley of Elah; whoever stands within seven blocks is stunned. */
     private void roar() {
         Vec3d center = getPos();
         pose(MOVE_ROAR, 40);
-        cast("Ð Ñ‹Ðº Ð“Ð¾Ð»Ð¸Ð°Ñ„Ð°", 26, true, left -> {
+        cast("Рык Голиафа", 26, true, left -> {
             if (left == 26) for (ServerPlayerEntity player : playersNear(32))
-                player.sendMessage(Text.literal("Ð“Ð¾Ð»Ð¸Ð°Ñ„: Â«Ð§Ñ‚Ð¾ Ñ‚Ñ‹ Ð¸Ð´Ñ‘ÑˆÑŒ Ð½Ð° Ð¼ÐµÐ½Ñ Ñ Ð¿Ð°Ð»ÐºÐ¾ÑŽ? Ð Ð°Ð·Ð²Ðµ Ñ ÑÐ¾Ð±Ð°ÐºÐ°?Â»").formatted(Formatting.GOLD));
+                player.sendMessage(Text.literal("Голиаф: «Что ты идёшь на меня с палкою? Разве я собака?»").formatted(Formatting.GOLD));
             if (left % 6 == 0) particles(ParticleTypes.ANGRY_VILLAGER, getX(), getY() + getHeight() * 0.9, getZ(), 2, 0.5, 0.3, 0.5, 0);
         }, () -> { });
         hazards.zone(center, 7, 26, ParticleTypes.CRIT, at -> {
@@ -231,10 +231,10 @@ public final class GoliathEntity extends SacredBoss {
         });
     }
 
-    /** Â«ÐœÐµÐ´Ð½Ñ‹Ð¹ Ð´Ñ€Ð¾Ñ‚Ð¸ÐºÂ»: the javelin from between his shoulders, at a foe who keeps away. */
+    /** «Медный дротик»: the javelin from between his shoulders, at a foe who keeps away. */
     private void javelin(LivingEntity target) {
         pose(MOVE_JAVELIN, 30);
-        cast("ÐœÐµÐ´Ð½Ñ‹Ð¹ Ð´Ñ€Ð¾Ñ‚Ð¸Ðº", 22, true, left -> {
+        cast("Медный дротик", 22, true, left -> {
             Vec3d hand = handPos();
             if (left % 3 == 0) particles(BRASS, hand.x, hand.y, hand.z, 2, 0.2, 0.2, 0.2, 0);
         }, () -> { });
@@ -246,7 +246,7 @@ public final class GoliathEntity extends SacredBoss {
     @Override protected void ultimate(LivingEntity target) {
         castUltimate(left -> {
             if (left == ULT_WARNING) for (ServerPlayerEntity player : playersNear(48))
-                player.sendMessage(Text.literal("Ð“Ð¾Ð»Ð¸Ð°Ñ„: Â«Ð”Ð°Ð¹Ñ‚Ðµ Ð¼Ð½Ðµ Ñ‡ÐµÐ»Ð¾Ð²ÐµÐºÐ°, Ð¸ Ð¼Ñ‹ ÑÑ€Ð°Ð·Ð¸Ð¼ÑÑ Ð²Ð´Ð²Ð¾Ñ‘Ð¼!Â»").formatted(Formatting.GOLD, Formatting.BOLD));
+                player.sendMessage(Text.literal("Голиаф: «Дайте мне человека, и мы сразимся вдвоём!»").formatted(Formatting.GOLD, Formatting.BOLD));
             Vec3d hand = handPos();
             particles(BRASS, hand.x, hand.y, hand.z, 3, 0.3, 0.3, 0.3, 0);
             if (left % 4 == 0 && target.isAlive()) dotted(hand, target.getPos().add(0, 0.8, 0));
@@ -283,7 +283,7 @@ public final class GoliathEntity extends SacredBoss {
     private void slam() {
         if (staggered() || isDead() || isCasting()) return;
         pose(MOVE_SLAM, 30);
-        cast("Ð£Ð´Ð°Ñ€ Ð¾ Ð·ÐµÐ¼Ð»ÑŽ", 22, true, left -> {
+        cast("Удар о землю", 22, true, left -> {
             if (left == 22) sound(SoundEvents.ENTITY_WARDEN_ROAR, 2f, 0.6f);
             particles(ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, getX(), getY() + 0.2, getZ(), 2, 1, 0.1, 1, 0.01);
         }, () -> {
@@ -300,7 +300,7 @@ public final class GoliathEntity extends SacredBoss {
     @Override protected void onPhase(int phase) {
         sound(SoundEvents.ENTITY_RAVAGER_ROAR, 3f, 0.5f);
         for (ServerPlayerEntity player : playersNear(48))
-            player.sendMessage(Text.literal(phase == 2 ? "Ð“Ð¾Ð»Ð¸Ð°Ñ„: Â«Ð¡ÐµÐ³Ð¾Ð´Ð½Ñ Ñ Ð¿Ð¾ÑÑ€Ð°Ð¼Ð»ÑŽ Ð¿Ð¾Ð»ÐºÐ¸ Ð˜Ð·Ñ€Ð°Ð¸Ð»ÑŒÑÐºÐ¸Ðµ!Â»" : "Ð“Ð¾Ð»Ð¸Ð°Ñ„: Â«ÐžÑ‚Ð´Ð°Ð¼ Ñ‚ÐµÐ»Ð¾ Ñ‚Ð²Ð¾Ñ‘ Ð¿Ñ‚Ð¸Ñ†Ð°Ð¼ Ð½ÐµÐ±ÐµÑÐ½Ñ‹Ð¼!Â»")
+            player.sendMessage(Text.literal(phase == 2 ? "Голиаф: «Сегодня я посрамлю полки Израильские!»" : "Голиаф: «Отдам тело твоё птицам небесным!»")
                     .formatted(Formatting.GOLD));
         if (phase == 3) addStatusEffect(new StatusEffectInstance(StatusEffects.SPEED, StatusEffectInstance.INFINITE, 0, false, false));
     }
@@ -308,7 +308,7 @@ public final class GoliathEntity extends SacredBoss {
     @Override protected void onDefeated() {
         for (LivingEntity victim : victims(getPos(), 32)) {
             victim.removeStatusEffect(BossEffects.STUN);
-            if (victim instanceof PlayerEntity player) player.sendMessage(Text.literal("Ð˜ÑÐ¿Ð¾Ð»Ð¸Ð½ Ð¿Ð°Ð» Ð»Ð¸Ñ†Ð¾Ð¼ Ð½Ð° Ð·ÐµÐ¼Ð»ÑŽ").formatted(Formatting.GOLD), true);
+            if (victim instanceof PlayerEntity player) player.sendMessage(Text.literal("Исполин пал лицом на землю").formatted(Formatting.GOLD), true);
         }
     }
 
