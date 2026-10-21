@@ -66,7 +66,7 @@ public final class DivineBosses {
     public static final EntityType<DestroyingAngelEntity> DESTROYING_ANGEL = entity(BossKind.DESTROYING_ANGEL, DestroyingAngelEntity::new, 1.0f, 2.8f, true);
     public static final EntityType<CherubEntity> CHERUB = entity(BossKind.CHERUB, CherubEntity::new, 1.4f, 2.8f, true);
     public static final EntityType<BeastEntity> BEAST = entity(BossKind.BEAST, BeastEntity::new, 3.2f, 3.6f, true);
-    public static final EntityType<NimrodEntity> NIMROD = entity(BossKind.NIMROD, NimrodEntity::new, 1.0f, 2.4f, false);
+    public static final EntityType<NimrodEntity> NIMROD = entity(BossKind.NIMROD, NimrodEntity::new, 1.1f, 2.7f, false);
 
     /** Holy relics: one from each boss, for the altar's great craft (item tag {@code divineblock:holy_relics}). */
     public static final Map<BossKind, Item> RELICS = new EnumMap<>(BossKind.class);
