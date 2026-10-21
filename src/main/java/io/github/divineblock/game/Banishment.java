@@ -132,10 +132,17 @@ public final class Banishment {
         long due = System.currentTimeMillis() + SENTENCE_TICKS * 50L;
         if (!config.banBackup) { Scheduler.later(SENTENCE_TICKS, () -> castOut(server, player, ban)); return "приговор: вечное изгнание (без копии мира)"; }
         // The copy is the way back if the god was wrong: saved now, copied off the game thread, and no copy — no ban.
-        server.saveAll(true, true, true);
+        // Saved without blocking the game: a flushing save stalls the server for seconds in a big world and, with chunks still
+        // generating, once left the world unable to close. The copy waits for the chunk writes off the game thread instead.
+        server.saveAll(true, false, true);
+        java.util.List<java.util.concurrent.CompletableFuture<Void>> writes = new java.util.ArrayList<>();
+        for (ServerWorld each : server.getWorlds()) writes.add(each.getChunkManager().chunkLoadingManager.completeAll(false));
         Path worldDir = server.getSavePath(WorldSavePath.ROOT).toAbsolutePath().normalize();
         Thread copier = new Thread(() -> {
             try {
+                try { java.util.concurrent.CompletableFuture.allOf(writes.toArray(new java.util.concurrent.CompletableFuture[0])).get(60, java.util.concurrent.TimeUnit.SECONDS); }
+                catch (java.util.concurrent.ExecutionException | java.util.concurrent.TimeoutException slow) { DivineBlockMod.LOG.warn("Божественный блок: запись мира перед копией не дождалась", slow); }
+                Thread.sleep(1500); // Entities and points of interest are written a moment later.
                 Path backup = backup(worldDir);
                 ban.backup = backup.getFileName().toString();
                 long wait = due - System.currentTimeMillis();
