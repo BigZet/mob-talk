@@ -117,6 +117,9 @@ public final class Miracles {
             case CHUNK_VOID -> Wrath.chunkVoid(world, player, altar, severity, config);
             case WITHER -> Wrath.withers(world, player, altar, severity);
             case DRAGON -> Wrath.dragons(world, player, severity);
+            case BOSS_SCHEMNIK, BOSS_BELL_RINGER, BOSS_SERAPH, BOSS_FACELESS, BOSS_WAILER, BOSS_ARCHANGEL, BOSS_LEVIATHAN, BOSS_BEHEMOTH,
+                 BOSS_GOLIATH, BOSS_DESTROYING_ANGEL, BOSS_CHERUB, BOSS_NIMROD, BOSS_HORSEMEN, BOSS_BEAST ->
+                    io.github.divineblock.boss.BossPunishment.summon(miracle, world, player, power, severity);
             case FLIP -> Jests.flip(world, player, power);
             case TIME_RUSH -> Jests.timeRush(world, player, power);
             case SHEEP_PARTY -> Jests.sheepParty(world, player, power);

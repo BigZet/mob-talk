@@ -16,8 +16,14 @@ public enum MiracleGroup {
             Miracle.METEOR, Miracle.EARTHQUAKE, Miracle.SINKHOLE, Miracle.TNT_RAIN, Miracle.TORNADO),
     K4(Miracle.Kind.WRATH, "воинство тьмы", "орда нежити, разбойники с разорителями, всадники-скелеты, ифриты, Хранитель",
             Miracle.UNDEAD_HORDE, Miracle.RAID, Miracle.SKELETON_RIDERS, Miracle.BLAZE_HORDE, Miracle.WARDEN),
-    K5(Miracle.Kind.WRATH, "конец света", "изгнание в Ад или Край, визеры, великая воронка, драконы, разломы до бездны, вырезание земли, метеоритный дождь",
-            Miracle.HELL_EXILE, Miracle.END_EXILE, Miracle.WITHER, Miracle.GREAT_CRATER, Miracle.DRAGON, Miracle.RIFTS, Miracle.CHUNK_VOID, Miracle.METEOR_SHOWER),
+    /** The god's terrible servants: one sacred boss, at random among those not sent lately. */
+    KS(Miracle.Kind.WRATH, "святые стражи", "босс: Чёрный Схимник, Звонарь погоста, Шестикрылый серафим, Безликий лик, Плакальщица погоста, "
+            + "Левиафан, Бегемот, Голиаф, Ангел-губитель, Херувим с пламенным мечом, Нимрод",
+            Miracle.BOSS_SCHEMNIK, Miracle.BOSS_BELL_RINGER, Miracle.BOSS_SERAPH, Miracle.BOSS_FACELESS, Miracle.BOSS_WAILER,
+            Miracle.BOSS_LEVIATHAN, Miracle.BOSS_BEHEMOTH, Miracle.BOSS_GOLIATH, Miracle.BOSS_DESTROYING_ANGEL, Miracle.BOSS_CHERUB, Miracle.BOSS_NIMROD),
+    K5(Miracle.Kind.WRATH, "конец света", "изгнание в Ад или Край, визеры, великая воронка, драконы, разломы до бездны, вырезание земли, метеоритный дождь, Архангел гнева, Четыре всадника, Зверь из бездны",
+            Miracle.HELL_EXILE, Miracle.END_EXILE, Miracle.WITHER, Miracle.GREAT_CRATER, Miracle.DRAGON, Miracle.RIFTS, Miracle.CHUNK_VOID, Miracle.METEOR_SHOWER,
+            Miracle.BOSS_ARCHANGEL, Miracle.BOSS_HORSEMEN, Miracle.BOSS_BEAST),
     B1(Miracle.Kind.HELP, "малая милость", "исцеление, еда, ясное небо, починка",
             Miracle.HEAL, Miracle.FEED, Miracle.WEATHER_CLEAR, Miracle.REPAIR),
     B2(Miracle.Kind.HELP, "дары", "предмет по просьбе, зачарование, жила руды, мгновенный урожай",
@@ -63,6 +69,7 @@ public enum MiracleGroup {
                 case K2 -> level >= 2 || verdict.fury;
                 case K3 -> level >= 3 || verdict.fury;
                 case K4 -> level >= 6 || verdict.fury && verdict.blasphemiesBefore >= 1;
+                case KS -> level >= 7 || verdict.fury && verdict.blasphemiesBefore >= 1;
                 case K5 -> config.maxTier >= 4 && (verdict.blasphemiesBefore >= 2 || verdict.damned || level >= 9);
                 case B1, J1 -> true;
                 case B2, J2 -> level >= 2;

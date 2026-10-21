@@ -66,6 +66,10 @@ public final class Prayers {
         ServerWorld world = player.getServerWorld();
         String text = rawText == null ? "" : rawText.replaceAll("\\p{Cntrl}", " ").strip();
         if (text.isEmpty() || text.length() > PrayPayload.MAX_TEXT) return;
+        if (io.github.divineblock.boss.BossEffects.silenced(player)) {
+            player.sendMessage(Text.literal("Обет молчания: уста запечатаны, бог не слышит").formatted(Formatting.DARK_GRAY), true);
+            return;
+        }
         if (!(world.getBlockState(altar).getBlock() instanceof AltarBlock) || !altar.isWithinDistance(player.getBlockPos(), 8)) return;
         MinecraftServer server = world.getServer();
         DivineConfig config = DivineBlockMod.config();

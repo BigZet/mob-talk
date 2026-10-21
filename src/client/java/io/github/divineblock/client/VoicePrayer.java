@@ -46,6 +46,10 @@ final class VoicePrayer {
 
     private static void start(MinecraftClient client) {
         if (busy) { debug(client, "Бог ещё внимает прежней молитве…"); return; }
+        if (io.github.divineblock.boss.BossEffects.silenced(client.player)) {
+            client.player.sendMessage(Text.literal("Обет молчания: уста запечатаны").formatted(Formatting.DARK_GRAY), true);
+            return;
+        }
         BlockPos found = findAltar(client);
         if (found == null) { debug(client, "Молиться вслух можно лишь у алтаря."); return; }
         DivineConfig config = DivineBlockMod.config();

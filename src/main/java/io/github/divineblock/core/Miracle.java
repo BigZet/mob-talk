@@ -68,7 +68,22 @@ public enum Miracle {
     RIFTS(Kind.WRATH, 4, 4, true, "земля раскалывается: гигантские разломы до самой коренной породы", List.of("разлом", "раскол", "трещин", "земл", "апокалип")),
     GREAT_CRATER(Kind.WRATH, 4, 4, true, "великий взрыв в алтаре: воронка в 30–150 блоков стирает всё, и сам алтарь", List.of("взрыв", "воронк", "конец света", "апокалип", "уничтож")),
     WITHER(Kind.WRATH, 4, 4, true, "визеры у алтаря: один, а в великом гневе до пяти", List.of("визер", "wither", "конец света", "апокалип")),
-    DRAGON(Kind.WRATH, 4, 4, false, "драконы Края кружат над грешником: один, а в великом гневе до пяти", List.of("дракон", "конец света", "апокалип", "энд"));
+    DRAGON(Kind.WRATH, 4, 4, false, "драконы Края кружат над грешником: один, а в великом гневе до пяти", List.of("дракон", "конец света", "апокалип", "энд")),
+    // Sacred bosses (io.github.divineblock.boss): the god sends one of his terrible servants.
+    BOSS_SCHEMNIK(Kind.WRATH, 3, 4, false, "Чёрный Схимник: тьма гасит свет, обет молчания запрещает есть и молиться", List.of("схимн", "монах", "тьма", "молчан")),
+    BOSS_BELL_RINGER(Kind.WRATH, 3, 4, false, "Звонарь погоста: набат кольцами сбивает с ног, звон в ушах", List.of("колокол", "звон", "набат")),
+    BOSS_SERAPH(Kind.WRATH, 3, 4, false, "Шестикрылый серафим: пламень с небес, опаление обращает исцеление в боль", List.of("серафим", "ангел", "крыл", "пламя")),
+    BOSS_FACELESS(Kind.WRATH, 3, 4, false, "Безликий лик: живая икона, иконостас лучей, взор лика ранит смотрящего", List.of("икон", "лик", "образ", "взор")),
+    BOSS_WAILER(Kind.WRATH, 3, 4, false, "Плакальщица погоста: отпевание поднимает мёртвых, панихида тянет силы", List.of("плач", "мертв", "кладбищ", "похорон", "погост")),
+    BOSS_ARCHANGEL(Kind.WRATH, 4, 4, false, "Архангел гнева: последний суд — огонь, молнии и меч", List.of("архангел", "суд", "конец света", "апокалип")),
+    BOSS_LEVIATHAN(Kind.WRATH, 3, 4, false, "Левиафан (Иов 41): змей пучины, водоворот тянет на дно", List.of("левиафан", "мор", "пучин", "змей", "вод")),
+    BOSS_BEHEMOTH(Kind.WRATH, 3, 4, false, "Бегемот (Иов 40): зверь земли, таран и землетрясение, прах земной не даёт прыгать", List.of("бегемот", "зверь", "земл", "болот")),
+    BOSS_GOLIATH(Kind.WRATH, 3, 4, false, "Голиаф (1 Цар 17): исполин с копьём; камень в лоб валит его", List.of("голиаф", "великан", "исполин", "давид", "филистим")),
+    BOSS_DESTROYING_ANGEL(Kind.WRATH, 3, 4, false, "Ангел-губитель (Исх 12): десятая казнь, печать первенца снимает лишь кровь на дверях", List.of("губител", "первен", "казн", "египет")),
+    BOSS_CHERUB(Kind.WRATH, 3, 4, false, "Херувим с пламенным мечом (Быт 3:24): обращающийся меч, изгнание из рая", List.of("херувим", "рай", "эдем", "меч")),
+    BOSS_NIMROD(Kind.WRATH, 3, 4, false, "Нимрод (Быт 11): башня до небес и смешение языков", List.of("нимрод", "вавилон", "башн", "язык")),
+    BOSS_HORSEMEN(Kind.WRATH, 4, 4, false, "Четыре всадника (Откр 6): снятие печатей — победа, война, голод и смерть", List.of("всадник", "печат", "конец света", "апокалип", "откровен")),
+    BOSS_BEAST(Kind.WRATH, 4, 4, false, "Зверь из бездны (Откр 13): семь голов, число зверя, начертание запрещает торговлю", List.of("зверь", "бездн", "666", "антихрист", "апокалип"));
 
     public enum Kind {
         OMEN("знамение"), HELP("помощь"), JEST("шутка"), WRATH("кара");
@@ -113,7 +128,10 @@ public enum Miracle {
             case END_EXILE, WARDEN -> 7;
             case METEOR_SHOWER, RIFTS -> 8;
             case CHUNK_VOID, WITHER -> 9;
-            case DRAGON, GREAT_CRATER -> 10;
+            case DRAGON, GREAT_CRATER, BOSS_ARCHANGEL -> 10;
+            case BOSS_SCHEMNIK, BOSS_BELL_RINGER, BOSS_SERAPH, BOSS_FACELESS, BOSS_WAILER, BOSS_LEVIATHAN, BOSS_BEHEMOTH, BOSS_GOLIATH,
+                 BOSS_DESTROYING_ANGEL, BOSS_CHERUB, BOSS_NIMROD -> 7;
+            case BOSS_HORSEMEN, BOSS_BEAST -> 10;
         };
     }
 
