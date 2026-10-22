@@ -59,10 +59,13 @@ public final class Multiplayer {
 
     // ---- The punishment that waits. ----
 
-    /** Whether the mortal left the server (and did not merely die or change worlds). */
+    /** Whether the mortal logged out (and did not merely die or change worlds), even if he is already back under a new
+     * entity: a disconnect unloads the player with his reason, a respawn discards him. */
     static boolean left(ServerPlayerEntity player) {
         MinecraftServer server = player.getServer();
-        return server != null && server.getPlayerManager().getPlayer(player.getUuid()) == null;
+        if (server == null) return false;
+        if (player.getRemovalReason() == net.minecraft.entity.Entity.RemovalReason.UNLOADED_WITH_PLAYER) return true;
+        return player.isRemoved() && player.getHealth() > 0 && server.getPlayerManager().getPlayer(player.getUuid()) == null;
     }
 
     /** The mortal left before the god's last word: a punishment waits for his return, anything else is cancelled. */
@@ -72,11 +75,15 @@ public final class Multiplayer {
         DivineState state = DivineState.of(server);
         boolean kept = state.ledger.deferred.hold(player.getUuid(), name, verdict, world.getRegistryKey().getValue().toString(),
                 new int[] { altar.getX(), altar.getY(), altar.getZ() }, server.getOverworld().getTime());
-        if (kept) state.ledger.soul(player.getUuid()).remember(verdict); // the ban reads its reasons from here
+        var soul = state.ledger.soul(player.getUuid());
+        if (kept && soul.lastVerdict() != verdict) soul.remember(verdict); // the ban reads its reasons from here
         state.markDirty();
         String act = verdict.chosen().id();
         DivineBlockMod.LOG.info("Божественный блок: {} ушёл до конца речи — {} {}", name, act, kept ? "ждёт его возвращения" : "отменено");
         journal(GodJournal.Kind.VERDICT, name, kept ? "ушёл до кары «" + act + "»: она ждёт его входа до игрового дня" : "ушёл, «" + act + "» отменено");
+        // Already back (he left and came in again while the god was still speaking): it falls now.
+        ServerPlayerEntity back = server.getPlayerManager().getPlayer(player.getUuid());
+        if (kept && back != null) returned(back);
     }
 
     /** A mortal came back: what waited for him falls after a short while, or is written off when its day has passed. */
