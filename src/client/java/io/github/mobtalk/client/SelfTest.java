@@ -673,11 +673,22 @@ final class SelfTest {
             });
         });
     }
+    /** A villager near the player that posted an announcement after {@code since}, or null. */
+    private UUID noticer(long since) {
+        ServerPlayerEntity player = serverPlayer();
+        return ((ServerWorld) player.getWorld()).getEntitiesByClass(VillagerEntity.class, player.getBoundingBox().expand(96), VillagerEntity::isAlive).stream()
+                .map(MobEntity::getUuid).filter(id -> bridge().memory.lastNotice(id) >= since).findFirst().orElse(null);
+    }
     private void notices() {
         acquaint(talker2, "minecraft:villager", "Фома", "Ты библиотекарь этой площадки и любишь поговорить.");
         UUID player = owner.client.player.getUuid();
-        await("a known villager wrote to the chat", 90, () -> bridge().memory.lastNotice(talker2) >= 0, () -> {
-            check(bridge().memory.lastNotice(talker2) >= 0, "a known villager wrote to the chat in its own name: " + bridge().memory.events(talker2).getLast());
+        long since = System.currentTimeMillis();
+        // Any villager the player knows may take the village's turn to post (the wedding guests of earlier stages too): the test
+        // follows whoever wrote first, since one announcement per village holds the others back for minutes.
+        await("a known villager wrote to the chat", 90, () -> noticer(since) != null, () -> {
+            UUID wrote = noticer(since);
+            if (wrote != null) talker2 = wrote;
+            check(wrote != null, "a known villager wrote to the chat in its own name: " + (wrote == null ? "none" : bridge().memory.displayName(wrote) + ": " + bridge().memory.events(wrote).getLast()));
             if (!bridge().memory.invited(talker2, player, System.currentTimeMillis())) { log("the announcement was news, not a call to work"); voicePath(); return; }
             command("tp " + talker2 + " " + at(2, 0));
             await("the call to work became a favour", 20, () -> bridge().memory.favor(talker2, player) != null, () -> {
