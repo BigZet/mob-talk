@@ -5,7 +5,8 @@
 
 ## Общее
 
-- Адрес по умолчанию `https://127.0.0.1:8787/` (настройка `admin.bind`, `admin.port`). На `0.0.0.0` админка пишет предупреждение в лог.
+- Адрес по умолчанию `https://127.0.0.1:8787/` (`bind`, `port` в `config/mobtalk-admin.json`; там же PBKDF2-хэш пароля, срок истории
+  `historyDays` и `keepPrompts` — отдельный файл, чтобы хэш не попадал в общий серверный конфиг). На `0.0.0.0` админка пишет предупреждение в лог.
   Сертификат самоподписанный (`config/mobtalk-admin.p12`), отпечаток SHA-256 печатается в консоль и в `/mobtalk admin web`.
 - Статика: `GET /` → `assets/mobtalk/web/index.html`, `GET /<путь>` → `assets/mobtalk/web/<путь>` (подкаталоги можно, `..` нельзя).
   Типы по расширению (`.js` → `text/javascript`, `.css`, `.svg`, `.png`, `.woff2`, `.json`). Всё, что не `/api/*` и не найдено, → 404.
@@ -118,8 +119,8 @@ Append-only журнал по дням: `data/mobtalk/history/<вид>/<день
  "sizes":{"promptChars":6120,"tokensIn":1830,"tokensOut":64,"audioBytes":48211},"error":null}
 ```
 
-`ms` — от приёма реплики. Шаги в этом порядке, пропущенный шаг (нет озвучки, отказ бюджета) просто отсутствует; при ошибке `error` —
-текст и шаг, на котором она случилась.
+`ms` — от приёма реплики. Шаги в этом порядке, пропущенный шаг (нет озвучки, отказ бюджета) просто отсутствует; при ошибке
+`trace.error` = `{"step":"llm_first","message":"…"}`, а `data.error` — тот же текст строкой.
 
 | Запрос | Ответ |
 | --- | --- |
@@ -137,7 +138,9 @@ Append-only журнал по дням: `data/mobtalk/history/<вид>/<день
 
 ## Настройки
 
-Источники — Mob Talk (`mobtalk`) и другие моды по протоколу `mobtalk-admin` (раздел 12.3 плана), например `divineblock`.
+Источники — Mob Talk (`mobtalk`), сама админка (`admin`: срок истории, `keepPrompts`) и другие моды по протоколу `mobtalk-admin`
+(раздел 12.3 плана), например `divineblock`. Порядок групп `mobtalk` — как вкладки F7; личные поля (микрофон, Whisper, HUD, обращения)
+не показываются и `PATCH` их отвергает.
 
 | Запрос | Ответ |
 | --- | --- |
@@ -232,5 +235,5 @@ gradlew runAdminStub                       # http://127.0.0.1:8788/, парол�
 gradlew runAdminStub --args="--port 8790 --web C:/путь/к/assets/mobtalk/web"
 ```
 
-Заглушка слушает только loopback и по HTTP (cookie без `Secure`), страницу берёт с диска из `src/main/resources/assets/mobtalk/web`
+Без `index.html` в папке страница отвечает 404, API работает. Заглушка слушает только loopback и по HTTP (cookie без `Secure`), страницу берёт с диска из `src/main/resources/assets/mobtalk/web`
 текущего worktree — правки видны после обновления страницы. Изменения через `PATCH`/`POST` держатся в памяти до перезапуска.
