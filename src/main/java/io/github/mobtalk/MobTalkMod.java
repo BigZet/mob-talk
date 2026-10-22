@@ -32,6 +32,8 @@ import io.github.mobtalk.server.SpeechService;
 import io.github.mobtalk.server.StubSpeech;
 import io.github.mobtalk.server.StubTranscription;
 import io.github.mobtalk.server.TranscriptionService;
+import io.github.mobtalk.server.VoiceIntake;
+import io.github.mobtalk.server.VoiceServices;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -46,7 +48,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -107,6 +108,7 @@ public final class MobTalkMod implements ModInitializer {
             ServerConfig.listen(Tuning::apply);
         }
         ServerConfig.listen(MobTalkMod::reconfigure);
+        VoiceServices.install(); // Трек B: распознавание и озвучка на сервере вместо заглушек.
         ServerLifecycleEvents.SERVER_STARTED.register(MobTalkMod::started);
         ServerLifecycleEvents.SERVER_STOPPING.register(MobTalkMod::stopping);
         ServerTickEvents.END_SERVER_TICK.register(server -> { DialogueService service = dialogue; if (service != null && server == current) service.tick(); });
@@ -205,7 +207,8 @@ public final class MobTalkMod implements ModInitializer {
         MobTalkConfig config = ServerConfig.get();
         UUID streamer = ServerConfig.streamer();
         ServerPlayerEntity star = streamer == null || player.getServer() == null ? null : player.getServer().getPlayerManager().getPlayer(streamer);
-        return new ServerFeatures(version(), config.enabled, dialogue != null, false, false, List.of("local", "text"), config.maxRecordingSeconds,
+        return new ServerFeatures(version(), config.enabled, dialogue != null,
+                VoiceServices.transcription(config), VoiceServices.speech(config), VoiceServices.sttPaths(config), config.maxRecordingSeconds,
                 permissions.level(player).name(), star == null ? "" : star.getGameProfile().getName());
     }
     private static void sendFeatures(ServerPlayerEntity player) {
@@ -225,7 +228,11 @@ public final class MobTalkMod implements ModInitializer {
     private static void registerReceivers() {
         ServerPlayNetworking.registerGlobalReceiver(TalkStartC2S.ID, (payload, context) -> withDialogue(context.player(), s -> s.talkStart(context.player().getUuid(), payload.mobId())));
         ServerPlayNetworking.registerGlobalReceiver(TalkTextC2S.ID, (payload, context) -> withDialogue(context.player(), s -> s.talkText(context.player().getUuid(), payload.mobId(), payload.text(), payload.fromVoice(), payload.picture())));
-        ServerPlayNetworking.registerGlobalReceiver(TalkAudioC2S.ID, (payload, context) -> withDialogue(context.player(), s -> s.talkAudio(context.player().getUuid(), payload.mobId(), payload.format(), payload.seconds(), payload.audio())));
+        // Трек B: mobId < 0 — проверка микрофона из F7, текст уходит в ScreenDataS2C("stt-test"); иначе трек A: диалог распознаёт и отвечает.
+        ServerPlayNetworking.registerGlobalReceiver(TalkAudioC2S.ID, (payload, context) -> {
+            if (payload.mobId() < 0) { VoiceIntake.receive(context.player(), payload, text -> { }); return; }
+            withDialogue(context.player(), s -> s.talkAudio(context.player().getUuid(), payload.mobId(), payload.format(), payload.seconds(), payload.audio()));
+        });
         ServerPlayNetworking.registerGlobalReceiver(TalkCancelC2S.ID, (payload, context) -> withDialogue(context.player(), s -> s.cancel(context.player().getUuid(), payload.reason())));
         ServerPlayNetworking.registerGlobalReceiver(GiftC2S.ID, (payload, context) -> withDialogue(context.player(), s -> s.gift(context.player().getUuid(), payload.mobId())));
         ServerPlayNetworking.registerGlobalReceiver(MobActionC2S.ID, (payload, context) -> withDialogue(context.player(), s -> s.action(context.player().getUuid(), payload.mobId(), payload.intentJson())));

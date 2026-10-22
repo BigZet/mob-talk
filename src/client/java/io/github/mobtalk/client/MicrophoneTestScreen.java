@@ -98,7 +98,7 @@ final class MicrophoneTestScreen extends Screen {
             stopPlayback(); worker.execute(helper::stopOwned); openingChild = true; client.setScreen(new ReadOnlyTextScreen(this, Text.translatable("mobtalk.test.summary"), comparisonText()));
         }); summary.active = !results.isEmpty() && !busy;
         ButtonWidget use = button("mobtalk.test.use", left, 144, half, ignored -> { applyModel.accept(resultModel); close(); });
-        use.active = view != null && view.error().isBlank() && !busy;
+        use.active = view != null && view.error().isBlank() && !busy && !SERVER_RESULT.equals(resultModel);
         ButtonWidget play = button(audioBusy ? "mobtalk.test.play.stop" : "mobtalk.test.play", left + half + 6, 144, half, ignored -> { if (audioBusy) stopPlayback(); else play(); }); play.active = lastWav != null && capture == null;
     }
 
@@ -131,9 +131,24 @@ final class MicrophoneTestScreen extends Screen {
         if (captureError != null) { busy = false; error = true; status = Text.literal(failureMessage(captureError)); refreshOnTick = true; return; }
         byte[] wav = capturedWav; capturedWav = null;
         if (wav == null) { busy = false; status = Text.translatable("mobtalk.test.too_short", keyName); refreshOnTick = true; return; }
+        if (io.github.mobtalk.core.SttRoute.SERVER.equals(VoiceInput.route(config).path())) { lastWav = wav; testOnServer(wav); return; }
         lastWav = wav; results.clear(); resultModel = config.whisperModel; status = Text.translatable("mobtalk.test.whisper");
         long token = generation; worker.execute(() -> runModels(token, wav, List.of(config.whisperModel)));
     }
+    /** Путь «сервер»: та же запись уходит серверу как вопрос без моба, текст возвращается сюда (трек B). */
+    private void testOnServer(byte[] wav) {
+        long token = generation; results.clear(); resultModel = SERVER_RESULT;
+        VoiceInput.onTestResult(result -> client.execute(() -> {
+            if (!current(token)) return; VoiceInput.onTestResult(null);
+            results.put(SERVER_RESULT, new ResultView(SERVER_RESULT, result.model(), 0, result.millis() / 1000.0, result.text(), result.error()));
+            busy = false; error = !result.error().isBlank();
+            status = error ? Text.literal(result.error()) : Text.translatable("mobtalk.test.server.result", String.format(Locale.ROOT, "%.1f", result.millis() / 1000.0), result.text());
+            refreshOnTick = true;
+        }));
+        if (VoiceInput.sendAudio(VoiceInput.TEST_MOB, wav)) { status = Text.translatable("mobtalk.test.server"); refreshOnTick = true; return; }
+        VoiceInput.onTestResult(null); busy = false; error = true; status = Text.literal("Сервер не принимает запись: она длиннее 15 с или на сервере нет Mob Talk"); refreshOnTick = true;
+    }
+    private static final String SERVER_RESULT = "server";
     private void compare() {
         if (lastWav == null || busy || selected.isEmpty()) return; stopPlayback();
         List<String> models = MobTalkSettingsScreen.WHISPER_MODELS.stream().filter(selected::contains).toList();
@@ -203,7 +218,7 @@ final class MicrophoneTestScreen extends Screen {
     }
     @Override public void removed() {
         if (openingChild) { openingChild = false; return; }
-        if (closed) return; closed = true; cancel(Text.translatable("mobtalk.test.cancelled")); microphone.close(); worker.shutdown(); audioWorker.shutdown();
+        if (closed) return; closed = true; VoiceInput.onTestResult(null); cancel(Text.translatable("mobtalk.test.cancelled")); microphone.close(); worker.shutdown(); audioWorker.shutdown();
     }
     @Override public void close() { client.setScreen(parent); }
     @Override public boolean shouldPause() { return true; }

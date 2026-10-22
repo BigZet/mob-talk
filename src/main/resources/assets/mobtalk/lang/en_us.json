@@ -626,5 +626,14 @@
   "item.mobtalk.wedding_ring": "Wedding Ring",
   "item.mobtalk.flower_wreath": "Flower Wreath",
   "item.mobtalk.bridal_veil": "Bridal Veil",
-  "item.mobtalk.wedding_crown": "Wedding Crown"
+  "item.mobtalk.wedding_crown": "Wedding Crown",
+  "mobtalk.tune.sttTimeoutSeconds": "Server recognition wait: %s s",
+  "mobtalk.tune.sttTimeoutSeconds.tooltip": "How long the server waits for OpenRouter STT before asking the fallback model once.",
+  "mobtalk.settings.group.sttServer": "Recognition on the server",
+  "mobtalk.voice.path.auto": "Recognition: automatic (local → server → text)",
+  "mobtalk.voice.path.local": "Recognition: local Whisper",
+  "mobtalk.voice.path.server": "Recognition: on the server",
+  "mobtalk.voice.path.text": "Recognition: text only",
+  "mobtalk.test.server": "The recording went to the server, waiting for the text…",
+  "mobtalk.test.server.result": "The server heard (%s s): %s"
 }

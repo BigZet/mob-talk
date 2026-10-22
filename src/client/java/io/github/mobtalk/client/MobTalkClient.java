@@ -451,8 +451,14 @@ public final class MobTalkClient implements ClientModInitializer {
                 boolean fromVoice = wav != null;
                 if (wav != null) {
                     if (io.github.mobtalk.core.WeddingFaults.whisper && wedding.takesVow()) throw new java.io.IOException("самотест: Whisper недоступен");
-                    boolean local = ClientNet.features().sttPaths().isEmpty() || ClientNet.features().sttPaths().contains("local");
-                    boolean server = ClientNet.features().transcription() && ClientNet.features().sttPaths().contains("server");
+                    // Трек B: личный sttPath ∩ пути сервера ∩ установлен ли Whisper (SttRoute); локальный путь при сбое падает на сервер.
+                    io.github.mobtalk.core.SttRoute.Choice route = VoiceInput.route(request.config);
+                    boolean serverAllowed = ClientNet.features().transcription() && ClientNet.features().sttPaths().contains(io.github.mobtalk.core.SttRoute.SERVER);
+                    boolean local = io.github.mobtalk.core.SttRoute.LOCAL.equals(route.path())
+                            || !serverAllowed && !io.github.mobtalk.core.SttRoute.TEXT.equals(route.path());
+                    boolean server = serverAllowed && !io.github.mobtalk.core.SttRoute.TEXT.equals(route.path());
+                    if (!route.hint().isEmpty()) client.execute(() -> notice(route.hint()));
+                    if (!local && !server) throw new java.io.IOException(route.hint().isEmpty() ? "Голос недоступен: пишите текстом (T)" : route.hint());
                     if (local) {
                         try {
                             updateStatus(request, "Whisper запускается и распознаёт…");

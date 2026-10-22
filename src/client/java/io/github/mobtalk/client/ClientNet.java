@@ -42,7 +42,10 @@ final class ClientNet {
         ClientPlayNetworking.registerGlobalReceiver(SpeechClipS2C.ID, (payload, context) -> owner.onClip(payload));
         ClientPlayNetworking.registerGlobalReceiver(MobStateS2C.ID, (payload, context) -> owner.onState(payload));
         ClientPlayNetworking.registerGlobalReceiver(MobLabelS2C.ID, (payload, context) -> owner.onLabel(payload));
-        ClientPlayNetworking.registerGlobalReceiver(ScreenDataS2C.ID, (payload, context) -> owner.onScreen(payload.screen(), payload.json()));
+        ClientPlayNetworking.registerGlobalReceiver(ScreenDataS2C.ID, (payload, context) -> {
+            if (VoiceInput.screenData(payload)) return; // Трек B: ответ проверки микрофона через сервер.
+            owner.onScreen(payload.screen(), payload.json());
+        });
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             features = ServerFeatures.none();
             sendSettings(owner);

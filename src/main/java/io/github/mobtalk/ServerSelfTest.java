@@ -51,6 +51,9 @@ final class ServerSelfTest {
             PlayerSettingsStore.flush();
         } catch (RuntimeException failure) { failures.add("хранилище игроков: " + failure); }
         check(failures, "серверные настройки читаются", ServerConfig.get() != null && ServerConfig.get().maxDistance > 0);
+        // Трек B: настоящие службы голоса вместо заглушек S1, сервер объявляет распознавание.
+        check(failures, "распознавание на сервере подключено", MobTalkMod.transcription() instanceof io.github.mobtalk.server.Transcriptions);
+        check(failures, "озвучка на сервере подключена", MobTalkMod.speech() instanceof io.github.mobtalk.server.ServerSpeech);
         if (failures.isEmpty()) MobTalkMod.LOGGER.info("{} ALL CHECKS PASSED", TAG);
         else for (String failure : failures) MobTalkMod.LOGGER.error("{} FAIL {}", TAG, failure);
         MobTalkMod.LOGGER.info("{} остановка сервера", TAG);
