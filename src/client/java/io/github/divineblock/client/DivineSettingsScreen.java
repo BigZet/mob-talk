@@ -5,107 +5,109 @@ import io.github.divineblock.core.ApiKeys;
 import io.github.divineblock.core.DivineConfig;
 import io.github.divineblock.game.GameHooks;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.CyclingButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.server.integrated.IntegratedServer;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 
-/** The god's settings (F9): temper, the ceiling of wrath, protection, Jev, the speech provider and the keys. In single player
- * it also shows how the god sees you. Keys are stored by {@link ApiKeys}, never in the JSON. */
-public final class DivineSettingsScreen extends Screen {
-    private final Screen parent;
-    private final DivineConfig config = DivineConfig.load(DivineBlockMod.configFile());
-    private TextFieldWidget openRouterKey, veniceKey;
+/** The god's settings (F9), the first page of the panel: temper, the ceiling of wrath, protection, Jev, the speech provider,
+ * the voice and effects, churches and the keys. In single player it also shows how the god sees you. Keys are stored by
+ * {@link ApiKeys}, never in the JSON. The other pages («Голос и микрофон», «Кары», «Боссы») are in the sidebar. */
+public final class DivineSettingsScreen extends DivinePanel {
+    private static final String[] TIERS = { "знамения", "малое", "среднее", "большое", "апокалипсис" };
+    private String openRouterKey = "", veniceKey = "";
     private volatile String keyStatus = "";
-    private String soul = "";
+    private String soul;
 
-    public DivineSettingsScreen(Screen parent) { super(Text.literal("Божественный блок")); this.parent = parent; }
+    /** Opened by F9, the pause menu and Mob Talk's hub (by reflection): keep this constructor. */
+    public DivineSettingsScreen(Screen parent) { this(parent, DivineConfig.load(DivineBlockMod.configFile())); }
+
+    DivineSettingsScreen(Screen parent, DivineConfig config) { super(parent, config); }
+
+    @Override protected int section() { return 0; }
 
     @Override protected void init() {
-        // Eight rows of settings and the keys: on a small window (GUI height under 280) the rows close up so the keys stay above the bottom buttons.
-        int column = 150, gap = 8, left = this.width / 2 - column - gap / 2, right = this.width / 2 + gap / 2, y = 28, row = row();
-        addDrawableChild(CyclingButtonWidget.<DivineConfig.Personality>builder(p -> Text.literal(p.label)).values(DivineConfig.Personality.values())
-                .initially(config.personality).build(left, y, column, 20, Text.literal("Нрав"), (b, v) -> config.personality = v));
-        addDrawableChild(CyclingButtonWidget.<Integer>builder(v -> Text.literal(v + " — " + new String[] { "знамения", "малое", "среднее", "большое", "апокалипсис" }[v]))
-                .values(List.of(0, 1, 2, 3, 4)).initially(config.maxTier).build(right, y, column, 20, Text.literal("Потолок"), (b, v) -> config.maxTier = v));
-        y += row;
-        addDrawableChild(CyclingButtonWidget.onOffBuilder(config.allowWither || config.allowDragon).build(left, y, column, 20, Text.literal("Визеры и драконы"),
-                (b, v) -> { config.allowWither = v; config.allowDragon = v; }));
-        addDrawableChild(CyclingButtonWidget.onOffBuilder(config.protectBlocks).build(right, y, column, 20, Text.literal("Беречь блоки"), (b, v) -> config.protectBlocks = v));
-        y += row;
-        addDrawableChild(CyclingButtonWidget.<Integer>builder(v -> Text.literal(v == 0 ? "нет" : String.valueOf(v))).values(List.of(0, 1, 2, 3))
-                .initially(config.whimWeight).build(left, y, column, 20, Text.literal("Прихоть бога"), (b, v) -> config.whimWeight = v));
-        addDrawableChild(CyclingButtonWidget.onOffBuilder(!config.disabled.contains("ignore")).build(right, y, column, 20, Text.literal("Может промолчать"),
-                (b, v) -> { config.disabled.remove("ignore"); if (!v) config.disabled.add("ignore"); }));
-        y += row;
-        addDrawableChild(CyclingButtonWidget.<Integer>builder(v -> Text.literal(v + " с")).values(List.of(0, 10, 20, 60))
-                .initially(nearest(config.cooldownSeconds, 0, 10, 20, 60)).build(left, y, column, 20, Text.literal("Пауза алтаря"), (b, v) -> config.cooldownSeconds = v));
-        addDrawableChild(CyclingButtonWidget.onOffBuilder(config.useJev).build(right, y, column, 20, Text.literal("Решатель Jev"), (b, v) -> config.useJev = v));
-        y += row;
-        addDrawableChild(CyclingButtonWidget.<DivineConfig.Provider>builder(p -> Text.literal(p == DivineConfig.Provider.VENICE ? "Venice → OpenRouter" : "OpenRouter"))
-                .values(DivineConfig.Provider.values()).initially(config.provider).build(left, y, column, 20, Text.literal("Речь"), (b, v) -> config.provider = v));
-        addDrawableChild(CyclingButtonWidget.onOffBuilder(config.debug).build(right, y, column, 20, Text.literal("Отладка"), (b, v) -> config.debug = v));
-        y += row;
-        // Off, plain, or ringing as in a temple (reverb and a quiet echo).
-        addDrawableChild(CyclingButtonWidget.<Integer>builder(v -> Text.literal(new String[] { "выкл", "без эха", "с эхом" }[v])).values(List.of(0, 1, 2))
-                .initially(!config.voice ? 0 : config.voiceTemple ? 2 : 1).build(left, y, column, 20, Text.literal("Голос бога"),
-                        (b, v) -> { config.voice = v > 0; config.voiceTemple = v == 2; }));
-        java.util.List<String> voices = java.util.Arrays.stream(io.github.divineblock.core.GodVoice.VOICES).map(v -> v[0]).toList();
-        addDrawableChild(CyclingButtonWidget.<String>builder(id -> Text.literal(voiceName(id))).values(voices)
-                .initially(voices.contains(config.voiceId) ? config.voiceId : voices.get(0)).build(right, y, column, 20, Text.literal("Голос"), (b, v) -> config.voiceId = v));
-        y += row;
-        // The god's drawn effects: off leaves the vanilla particles of before.
-        addDrawableChild(CyclingButtonWidget.<Integer>builder(v -> Text.literal(new String[] { "выкл", "низко", "средне", "высоко" }[v])).values(List.of(0, 1, 2, 3))
-                .initially(config.effects).build(left, y, column, 20, Text.literal("Эффекты"), (b, v) -> config.effects = v));
-        addDrawableChild(CyclingButtonWidget.onOffBuilder(config.cameraShake).build(right, y, column, 20, Text.literal("Тряска камеры"), (b, v) -> config.cameraShake = v));
-        y += row;
-        // Churches in newly generated chunks and how rare they are (one per N x N chunks at most).
-        addDrawableChild(CyclingButtonWidget.onOffBuilder(config.churches).build(left, y, column, 20, Text.literal("Церкви в мире"), (b, v) -> config.churches = v));
-        addDrawableChild(CyclingButtonWidget.<Integer>builder(v -> Text.literal(v + " чанков")).values(List.of(32, 48, 64, 80, 100, 150, 256))
-                .initially(nearest(config.churchSpacing, 32, 48, 64, 80, 100, 150, 256)).build(right, y, column, 20, Text.literal("Редкость"), (b, v) -> config.churchSpacing = v));
-        y += row + keysGap();
-
-        // Both keys on one row: a field and its save button in each column.
-        openRouterKey = keyField(left, y, column - 44, "Ключ OpenRouter");
-        addDrawableChild(ButtonWidget.builder(Text.literal("Сохр."), b -> storeKey(ApiKeys.Provider.OPENROUTER, openRouterKey)).dimensions(left + column - 40, y, 40, 20).build());
-        veniceKey = keyField(right, y, column - 44, "Ключ Venice");
-        addDrawableChild(ButtonWidget.builder(Text.literal("Сохр."), b -> storeKey(ApiKeys.Provider.VENICE, veniceKey)).dimensions(right + column - 40, y, 40, 20).build());
-
-        addDrawableChild(ButtonWidget.builder(Text.literal("Голос и микрофон…"), b -> client.setScreen(new VoiceSettingsScreen(this, config)))
-                .dimensions(this.width / 2 - 154, this.height - 28, 76, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Кары…"), b -> client.setScreen(new WrathSettingsScreen(this, config)))
-                .dimensions(this.width / 2 - 76, this.height - 28, 74, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Боссы…"), b -> client.setScreen(new BossSettingsScreen(this, config)))
-                .dimensions(this.width / 2, this.height - 28, 74, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Готово"), b -> close()).dimensions(this.width / 2 + 78, this.height - 28, 76, 20).build());
-        refreshKeyStatus();
-        soul = readSoul();
+        if (soul == null) { soul = readSoul(); refreshKeyStatus(); }
+        super.init();
     }
 
-    private int row() { return this.height < 280 ? 20 : 22; }
-    private int keysGap() { return this.height < 280 ? 2 : 6; }
+    @Override protected void content() {
+        heading("Характер бога");
+        cycle("Нрав", "Как бог отвечает на молитвы и обиды.", Arrays.asList(DivineConfig.Personality.values()), config.personality, p -> p.label, v -> config.personality = v);
+        cycle("Потолок кар", "Самая тяжёлая кара, до которой бог может дойти.", List.of(0, 1, 2, 3, 4), config.maxTier, v -> v + " — " + TIERS[v], v -> config.maxTier = v);
+        cycle("Прихоть бога", "Насколько часто бог поступает по своей прихоти, а не по заслугам.", List.of(0, 1, 2, 3), config.whimWeight,
+                v -> v == 0 ? "нет" : String.valueOf(v), v -> config.whimWeight = v);
+        toggle("Может промолчать", "Бог иногда не отвечает на молитву.", !config.disabled.contains("ignore"),
+                v -> { config.disabled.remove("ignore"); if (!v) config.disabled.add("ignore"); });
+        cycle("Пауза алтаря", "Сколько ждать между молитвами у алтаря.", List.of(0, 10, 20, 60), nearest(config.cooldownSeconds, 0, 10, 20, 60),
+                v -> v + " с", v -> config.cooldownSeconds = v);
+        toggle("Визеры и драконы", "Разрешить богу призывать визеров и драконов.", config.allowWither || config.allowDragon,
+                v -> { config.allowWither = v; config.allowDragon = v; });
+        toggle("Беречь блоки", "Кары не ломают постройки игрока.", config.protectBlocks, v -> config.protectBlocks = v);
 
-    private TextFieldWidget keyField(int x, int y, int width, String placeholder) {
-        TextFieldWidget field = new TextFieldWidget(textRenderer, x, y, width, 20, Text.literal(placeholder));
+        heading("Речь и решения");
+        cycle("Речь", "Кто пишет слова бога: OpenRouter или Venice с запасным OpenRouter.", Arrays.asList(DivineConfig.Provider.values()), config.provider,
+                p -> p == DivineConfig.Provider.VENICE ? "Venice → OpenRouter" : "OpenRouter", v -> config.provider = v);
+        toggle("Решатель Jev", "Решения бога принимает отдельная быстрая модель.", config.useJev, v -> config.useJev = v);
+        toggle("Отладка", "Показывать числа: как бог считает твою душу.", config.debug, v -> { config.debug = v; rebuild(); });
+
+        heading("Голос и эффекты");
+        // Off, plain, or ringing as in a temple (reverb and a quiet echo).
+        cycle("Голос бога", "Озвучка ответов: выключена, без эха или с эхом храма. Эхо и микрофон — на странице «Голос и микрофон».",
+                List.of(0, 1, 2), !config.voice ? 0 : config.voiceTemple ? 2 : 1, v -> new String[] { "выкл", "без эха", "с эхом" }[v],
+                v -> { config.voice = v > 0; config.voiceTemple = v == 2; });
+        List<String> voices = Arrays.stream(io.github.divineblock.core.GodVoice.VOICES).map(v -> v[0]).toList();
+        cycle("Голос", "Чьим голосом говорит бог.", voices, voices.contains(config.voiceId) ? config.voiceId : voices.get(0), DivineSettingsScreen::voiceName, v -> config.voiceId = v);
+        // The god's drawn effects: off leaves the vanilla particles of before.
+        cycle("Эффекты", "Нарисованные эффекты бога; «выкл» оставляет обычные частицы.", List.of(0, 1, 2, 3), config.effects,
+                v -> new String[] { "выкл", "низко", "средне", "высоко" }[v], v -> config.effects = v);
+        toggle("Тряска камеры", "Камера дрожит от гнева бога.", config.cameraShake, v -> config.cameraShake = v);
+
+        heading("Мир");
+        // Churches in newly generated chunks and how rare they are (one per N x N chunks at most).
+        toggle("Церкви в мире", "Церкви появляются в новых чанках.", config.churches, v -> config.churches = v);
+        cycle("Редкость церквей", "Не больше одной церкви на столько чанков по каждой стороне.", List.of(32, 48, 64, 80, 100, 150, 256),
+                nearest(config.churchSpacing, 32, 48, 64, 80, 100, 150, 256), v -> v + " чанков", v -> config.churchSpacing = v);
+
+        heading("Ключи");
+        keyRow("Ключ OpenRouter", ApiKeys.Provider.OPENROUTER, openRouterKey, v -> openRouterKey = v);
+        keyRow("Ключ Venice", ApiKeys.Provider.VENICE, veniceKey, v -> veniceKey = v);
+        info("Состояние ключей", "Ключи хранятся зашифрованными отдельно от настроек.", () -> keyStatus);
+
+        if (!soul.isBlank()) {
+            heading("Как бог видит тебя");
+            for (String line : soul.split("\n")) {
+                if (line.isBlank()) continue;
+                boolean numbers = line.startsWith("•") || line.startsWith("Итог") || line.startsWith("Последний");
+                if (numbers && !config.debug) continue;
+                note(line, numbers ? DIM : 0xFFFF55);
+            }
+        }
+    }
+
+    /** A masked key field and «Сохранить»: an empty field removes the stored key. */
+    private void keyRow(String label, ApiKeys.Provider provider, String value, java.util.function.Consumer<String> changed) {
+        TextFieldWidget field = new TextFieldWidget(textRenderer, 0, 0, 100, 20, Text.literal(label));
         field.setMaxLength(512);
-        field.setPlaceholder(Text.literal(placeholder).formatted(Formatting.DARK_GRAY));
+        field.setText(value);
+        field.setPlaceholder(Text.literal("вставьте ключ").withColor(DIM));
         field.setRenderTextProvider((text, start) -> net.minecraft.text.OrderedText.styledForwardsVisitedString("•".repeat(text.length()), net.minecraft.text.Style.EMPTY));
-        addDrawableChild(field);
-        return field;
+        field.setChangedListener(changed);
+        ButtonWidget store = ButtonWidget.builder(Text.literal("Сохранить"), b -> { storeKey(provider, field.getText()); field.setText(""); }).size(60, 20).build();
+        control(label, "Вставьте ключ и нажмите «Сохранить»; пустое поле удаляет сохранённый ключ. Ключ не показывается.", field, store);
     }
 
     /** Encrypting with DPAPI runs PowerShell: off the render thread. */
-    private void storeKey(ApiKeys.Provider provider, TextFieldWidget field) {
-        String key = field.getText().strip();
-        field.setText("");
+    private void storeKey(ApiKeys.Provider provider, String text) {
+        String key = text.strip();
+        if (provider == ApiKeys.Provider.OPENROUTER) openRouterKey = ""; else veniceKey = "";
+        keyStatus = "Сохранение…";
         CompletableFuture.runAsync(() -> {
             try {
                 if (key.isEmpty()) ApiKeys.remove(DivineBlockMod.configDirectory(), provider);
@@ -121,7 +123,7 @@ public final class DivineSettingsScreen extends Screen {
             ApiKeys.Status open = ApiKeys.status(DivineBlockMod.configDirectory(), ApiKeys.Provider.OPENROUTER);
             ApiKeys.Status venice = ApiKeys.status(DivineBlockMod.configDirectory(), ApiKeys.Provider.VENICE);
             String line = "OpenRouter: " + describe(open) + "; Venice: " + describe(venice);
-            keyStatus = keyStatus.isBlank() || keyStatus.startsWith("OpenRouter: ") ? line : keyStatus + "  " + line;
+            keyStatus = keyStatus.isBlank() || keyStatus.startsWith("OpenRouter: ") || keyStatus.startsWith("Сохранение") ? line : keyStatus + "  " + line;
         });
     }
     private static String describe(ApiKeys.Status status) {
@@ -141,28 +143,10 @@ public final class DivineSettingsScreen extends Screen {
         catch (Exception unavailable) { return ""; }
     }
 
-    @Override public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
-        context.drawCenteredTextWithShadow(textRenderer, title.copy().formatted(Formatting.GOLD), this.width / 2, 12, 0xFFFFFF);
-        int y = 28 + row() * 8 + keysGap() + 22 + 2;
-        if (y <= this.height - 38) context.drawTextWithShadow(textRenderer, Text.literal(keyStatus).formatted(Formatting.GRAY), this.width / 2 - 154, y, 0xFFFFFF);
-        y += 12;
-        String[] lines = soul.split("\n");
-        int shown = 0;
-        for (String line : lines) {
-            if (line.isBlank()) continue;
-            boolean numbers = line.startsWith("•") || line.startsWith("Итог") || line.startsWith("Последний");
-            if (numbers && !config.debug) continue;
-            if (y > this.height - 38 || shown++ > 12) break;
-            context.drawTextWithShadow(textRenderer, Text.literal(line).formatted(numbers ? Formatting.DARK_GRAY : Formatting.YELLOW), this.width / 2 - 154, y, 0xFFFFFF);
-            y += 10;
-        }
-    }
-
+    /** Saves the config and returns to the screen F9 was opened from. */
     @Override public void close() {
-        try { config.save(DivineBlockMod.configFile()); DivineBlockMod.reloadConfig(); io.github.divineblock.client.fx.FxQuality.reload(); }
-        catch (IOException failure) { DivineBlockMod.LOG.warn("Божественный блок: настройки не сохранены", failure); }
-        if (client != null) client.setScreen(parent);
+        save();
+        if (client != null) client.setScreen(exit);
     }
 
     private static String voiceName(String id) {
