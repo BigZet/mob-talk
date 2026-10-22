@@ -82,26 +82,9 @@ final class WhisperHelper {
 
     private static synchronized void launch(URI base) throws IOException {
         if (owned != null && owned.isAlive()) return;
-        String localAppData = System.getenv("LOCALAPPDATA");
-        Path local = localAppData == null ? Path.of(System.getProperty("user.home"), "AppData", "Local") : Path.of(localAppData);
-        Path directory = local.resolve("DivineBlock");
-        // This mod's own Python environment (scripts/setup-whisper.ps1); an existing Mob Talk environment is only a fallback,
-        // so the 3 GB model is not downloaded twice on a machine that has both mods.
-        Path home = null, python = null;
-        // Mob Talk's setup may have run inside the Codex app, whose writes to LOCALAPPDATA land in its package folder;
-        // a game started outside that app sees the real LOCALAPPDATA, so look there too (as Mob Talk's WhisperProcess does).
-        java.util.List<Path> candidates = new java.util.ArrayList<>(java.util.List.of(directory, local.resolve("MobTalk")));
-        Path packages = local.resolve("Packages");
-        if (Files.isDirectory(packages)) {
-            try (var entries = Files.list(packages)) {
-                entries.filter(path -> path.getFileName().toString().startsWith("OpenAI.Codex_")).sorted()
-                        .map(path -> path.resolve("LocalCache/Local/MobTalk")).forEach(candidates::add);
-            }
-        }
-        for (Path candidate : candidates) {
-            for (String exe : new String[] { "venv/Scripts/pythonw.exe", "venv/Scripts/python.exe" })
-                if (python == null && Files.isRegularFile(candidate.resolve(exe))) { python = candidate.resolve(exe); home = candidate; }
-        }
+        Path directory = home();
+        Path[] found = python();
+        Path python = found == null ? null : found[0], home = found == null ? null : found[1];
         if (python == null) throw new IOException("Whisper не установлен: выполните scripts/setup-whisper.ps1 из папки Божественного блока.");
         Path mobTalk = home;
         Files.createDirectories(directory);
@@ -113,6 +96,38 @@ final class WhisperHelper {
         owned = new ProcessBuilder(python.toString(), script.toString(), "--port", Integer.toString(base.getPort()),
                 "--model", "large-v3", "--device", "auto", "--language", "ru", "--model-dir", mobTalk.resolve("models").toString())
                 .directory(directory.toFile()).redirectOutput(ProcessBuilder.Redirect.DISCARD).redirectError(ProcessBuilder.Redirect.DISCARD).start();
+    }
+
+    private static Path localAppData() {
+        String localAppData = System.getenv("LOCALAPPDATA");
+        return localAppData == null ? Path.of(System.getProperty("user.home"), "AppData", "Local") : Path.of(localAppData);
+    }
+    private static Path home() { return localAppData().resolve("DivineBlock"); }
+
+    /** Whether a Whisper environment (this mod's or Mob Talk's) is installed: the voice path "local" can work here. */
+    static boolean installed() {
+        try { return python() != null; } catch (IOException unreadable) { return false; }
+    }
+
+    /** The Python of the helper and the folder it lives in, or null when Whisper is not installed. */
+    private static Path[] python() throws IOException {
+        Path local = localAppData(), directory = home();
+        // This mod's own Python environment (scripts/setup-whisper.ps1); an existing Mob Talk environment is only a fallback,
+        // so the 3 GB model is not downloaded twice on a machine that has both mods.
+        // Mob Talk's setup may have run inside the Codex app, whose writes to LOCALAPPDATA land in its package folder;
+        // a game started outside that app sees the real LOCALAPPDATA, so look there too (as Mob Talk's WhisperProcess does).
+        java.util.List<Path> candidates = new java.util.ArrayList<>(java.util.List.of(directory, local.resolve("MobTalk")));
+        Path packages = local.resolve("Packages");
+        if (Files.isDirectory(packages)) {
+            try (var entries = Files.list(packages)) {
+                entries.filter(path -> path.getFileName().toString().startsWith("OpenAI.Codex_")).sorted()
+                        .map(path -> path.resolve("LocalCache/Local/MobTalk")).forEach(candidates::add);
+            }
+        }
+        for (Path candidate : candidates)
+            for (String exe : new String[] { "venv/Scripts/pythonw.exe", "venv/Scripts/python.exe" })
+                if (Files.isRegularFile(candidate.resolve(exe))) return new Path[] { candidate.resolve(exe), candidate };
+        return null;
     }
 
     static synchronized void stopOwned() {
