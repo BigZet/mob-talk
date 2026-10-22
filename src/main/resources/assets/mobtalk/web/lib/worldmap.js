@@ -2,7 +2,7 @@
 // поверх — следы игроков, метки и сами игроки. Перетаскивание, колесо и щипок для масштаба, стрелки и +/− с клавиатуры.
 import { h, icon } from './dom.js';
 
-const TILE = 256, MAX_Z = 4, MIN_SCALE = 1 / 32, MAX_SCALE = 8;
+const TILE = 256, MAX_Z = 4, MIN_SCALE = 1 / 16, MAX_SCALE = 8;
 const SVGNS = 'http://www.w3.org/2000/svg';
 const svg = (tag, attrs = {}) => { const el = document.createElementNS(SVGNS, tag); for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v); return el; };
 const colorOf = i => `var(--s${(i % 8) + 1})`;
@@ -174,7 +174,7 @@ export class WorldMap {
       const g = svg('g', { class: `marker ${m.kind}` });
       const title = svg('title'); title.textContent = m.name; g.append(title);
       g.append(svg('rect', { x: sx - 5, y: sy - 5, width: 10, height: 10, transform: `rotate(45 ${sx} ${sy})` }));
-      const label = svg('text', { x: sx + 9, y: sy + 4 }); label.textContent = m.name; g.append(label);
+      if (this.scale >= 1 / 8) { const label = svg('text', { x: sx + 9, y: sy + 4 }); label.textContent = m.name; g.append(label); }
       o.append(g);
     }
     this.players.forEach((p, i) => {
