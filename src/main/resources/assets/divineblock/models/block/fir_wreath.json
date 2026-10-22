@@ -1,0 +1,129 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "wreath": "divineblock:block/fir_wreath",
+    "wood": "divineblock:block/dark_grave_wood",
+    "particle": "#wreath"
+  },
+  "elements": [
+    {
+      "from": [
+        1,
+        0.5,
+        8
+      ],
+      "to": [
+        15,
+        14.5,
+        8.01
+      ],
+      "faces": {
+        "north": {
+          "texture": "#wreath",
+          "uv": [
+            0.5,
+            0.5,
+            15.5,
+            15.5
+          ]
+        },
+        "south": {
+          "texture": "#wreath",
+          "uv": [
+            15.5,
+            0.5,
+            0.5,
+            15.5
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          0.5,
+          8
+        ],
+        "axis": "x",
+        "angle": 22.5
+      },
+      "shade": false
+    },
+    {
+      "from": [
+        7.5,
+        0,
+        10
+      ],
+      "to": [
+        8.5,
+        10,
+        11
+      ],
+      "faces": {
+        "north": {
+          "texture": "#wood",
+          "uv": [
+            7.5,
+            6,
+            8.5,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#wood",
+          "uv": [
+            7.5,
+            6,
+            8.5,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#wood",
+          "uv": [
+            5,
+            6,
+            6,
+            16
+          ]
+        },
+        "west": {
+          "texture": "#wood",
+          "uv": [
+            10,
+            6,
+            11,
+            16
+          ]
+        },
+        "up": {
+          "texture": "#wood",
+          "uv": [
+            7.5,
+            10,
+            8.5,
+            11
+          ]
+        },
+        "down": {
+          "texture": "#wood",
+          "uv": [
+            7.5,
+            5,
+            8.5,
+            6
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          0,
+          10.5
+        ],
+        "axis": "x",
+        "angle": -22.5
+      }
+    }
+  ]
+}

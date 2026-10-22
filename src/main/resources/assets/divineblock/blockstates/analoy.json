@@ -1,0 +1,19 @@
+{
+ "variants": {
+  "facing=north": {
+   "model": "divineblock:block/analoy"
+  },
+  "facing=east": {
+   "model": "divineblock:block/analoy",
+   "y": 90
+  },
+  "facing=south": {
+   "model": "divineblock:block/analoy",
+   "y": 180
+  },
+  "facing=west": {
+   "model": "divineblock:block/analoy",
+   "y": 270
+  }
+ }
+}

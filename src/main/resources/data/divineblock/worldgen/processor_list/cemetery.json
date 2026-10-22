@@ -1,6 +1,9 @@
 {
   "processors": [
     {
+      "processor_type": "divineblock:cemetery_ground"
+    },
+    {
       "processor_type": "minecraft:rule",
       "rules": [
         {

@@ -62,6 +62,159 @@
       }
     ]
   },
+  "chant.altar_61": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/altar_61",
+        "stream": true,
+        "attenuation_distance": 24
+      }
+    ]
+  },
+  "chant.altar_62": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/altar_62",
+        "stream": true,
+        "attenuation_distance": 24
+      }
+    ]
+  },
+  "chant.altar_63": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/altar_63",
+        "stream": true,
+        "attenuation_distance": 24
+      }
+    ]
+  },
+  "chant.altar_64": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/altar_64",
+        "stream": true,
+        "attenuation_distance": 24
+      }
+    ]
+  },
+  "chant.altar_65": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/altar_65",
+        "stream": true,
+        "attenuation_distance": 24
+      }
+    ]
+  },
+  "chant.altar_66": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/altar_66",
+        "stream": true,
+        "attenuation_distance": 24
+      }
+    ]
+  },
+  "chant.altar_67": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/altar_67",
+        "stream": true,
+        "attenuation_distance": 24
+      }
+    ]
+  },
+  "chant.altar_68": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/altar_68",
+        "stream": true,
+        "attenuation_distance": 24
+      }
+    ]
+  },
+  "chant.altar_69": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/altar_69",
+        "stream": true,
+        "attenuation_distance": 24
+      }
+    ]
+  },
+  "chant.altar_70": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/altar_70",
+        "stream": true,
+        "attenuation_distance": 24
+      }
+    ]
+  },
+  "chant.altar_71": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/altar_71",
+        "stream": true,
+        "attenuation_distance": 24
+      }
+    ]
+  },
+  "chant.altar_72": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/altar_72",
+        "stream": true,
+        "attenuation_distance": 24
+      }
+    ]
+  },
+  "chant.altar_74": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/altar_74",
+        "stream": true,
+        "attenuation_distance": 24
+      }
+    ]
+  },
+  "chant.altar_75": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/altar_75",
+        "stream": true,
+        "attenuation_distance": 24
+      }
+    ]
+  },
+  "chant.altar_77": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/altar_77",
+        "stream": true,
+        "attenuation_distance": 24
+      }
+    ]
+  },
+  "chant.altar_78": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/altar_78",
+        "stream": true,
+        "attenuation_distance": 24
+      }
+    ]
+  },
+  "chant.altar_79": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/altar_79",
+        "stream": true,
+        "attenuation_distance": 24
+      }
+    ]
+  },
   "chant.blessing_03": {
     "sounds": [
       {
@@ -102,6 +255,87 @@
     "sounds": [
       {
         "name": "divineblock:chants/blessing_46",
+        "stream": true,
+        "attenuation_distance": 40
+      }
+    ]
+  },
+  "chant.blessing_61": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/blessing_61",
+        "stream": true,
+        "attenuation_distance": 40
+      }
+    ]
+  },
+  "chant.blessing_62": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/blessing_62",
+        "stream": true,
+        "attenuation_distance": 40
+      }
+    ]
+  },
+  "chant.blessing_63": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/blessing_63",
+        "stream": true,
+        "attenuation_distance": 40
+      }
+    ]
+  },
+  "chant.blessing_64": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/blessing_64",
+        "stream": true,
+        "attenuation_distance": 40
+      }
+    ]
+  },
+  "chant.blessing_68": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/blessing_68",
+        "stream": true,
+        "attenuation_distance": 40
+      }
+    ]
+  },
+  "chant.blessing_69": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/blessing_69",
+        "stream": true,
+        "attenuation_distance": 40
+      }
+    ]
+  },
+  "chant.blessing_71": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/blessing_71",
+        "stream": true,
+        "attenuation_distance": 40
+      }
+    ]
+  },
+  "chant.blessing_72": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/blessing_72",
+        "stream": true,
+        "attenuation_distance": 40
+      }
+    ]
+  },
+  "chant.blessing_73": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/blessing_73",
         "stream": true,
         "attenuation_distance": 40
       }
@@ -174,6 +408,60 @@
     "sounds": [
       {
         "name": "divineblock:chants/punishment_59",
+        "stream": true,
+        "attenuation_distance": 40
+      }
+    ]
+  },
+  "chant.punishment_61": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/punishment_61",
+        "stream": true,
+        "attenuation_distance": 40
+      }
+    ]
+  },
+  "chant.punishment_62": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/punishment_62",
+        "stream": true,
+        "attenuation_distance": 40
+      }
+    ]
+  },
+  "chant.punishment_63": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/punishment_63",
+        "stream": true,
+        "attenuation_distance": 40
+      }
+    ]
+  },
+  "chant.punishment_64": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/punishment_64",
+        "stream": true,
+        "attenuation_distance": 40
+      }
+    ]
+  },
+  "chant.punishment_65": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/punishment_65",
+        "stream": true,
+        "attenuation_distance": 40
+      }
+    ]
+  },
+  "chant.punishment_67": {
+    "sounds": [
+      {
+        "name": "divineblock:chants/punishment_67",
         "stream": true,
         "attenuation_distance": 40
       }

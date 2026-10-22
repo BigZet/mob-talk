@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "divineblock:block/carnations"
+    },
+    "facing=east": {
+      "model": "divineblock:block/carnations",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "divineblock:block/carnations",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "divineblock:block/carnations",
+      "y": 270
+    }
+  }
+}

@@ -3,6 +3,8 @@
   "values": [
     "divineblock:black_grave_gate",
     "divineblock:blue_grave_gate",
-    "divineblock:rusty_grave_gate"
+    "divineblock:rusty_grave_gate",
+    "divineblock:green_grave_gate",
+    "divineblock:silver_grave_gate"
   ]
 }

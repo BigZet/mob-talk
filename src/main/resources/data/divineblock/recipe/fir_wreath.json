@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "decorations",
+  "pattern": [
+    " L ",
+    "LRL",
+    " L "
+  ],
+  "key": {
+    "L": {
+      "item": "minecraft:spruce_leaves"
+    },
+    "R": {
+      "item": "minecraft:red_dye"
+    }
+  },
+  "result": {
+    "id": "divineblock:fir_wreath",
+    "count": 2
+  }
+}

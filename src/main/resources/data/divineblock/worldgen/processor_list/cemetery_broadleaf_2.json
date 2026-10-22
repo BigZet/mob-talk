@@ -1,0 +1,12 @@
+{
+  "processors": [
+    {
+      "processor_type": "divineblock:cemetery_ground",
+      "trunk": 2
+    },
+    {
+      "processor_type": "divineblock:cemetery_tree",
+      "cold": false
+    }
+  ]
+}

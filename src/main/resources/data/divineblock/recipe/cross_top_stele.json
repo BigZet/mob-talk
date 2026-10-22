@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "decorations",
+  "pattern": [
+    " S ",
+    "PGP",
+    "GGG"
+  ],
+  "key": {
+    "S": {
+      "item": "minecraft:stick"
+    },
+    "P": {
+      "item": "minecraft:paper"
+    },
+    "G": {
+      "item": "minecraft:polished_andesite"
+    }
+  },
+  "result": {
+    "id": "divineblock:cross_top_stele",
+    "count": 1
+  }
+}

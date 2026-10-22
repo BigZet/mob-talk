@@ -1,0 +1,93 @@
+{
+ "parent": "minecraft:block/block",
+ "ambientocclusion": true,
+ "textures": {
+  "gold": "divineblock:block/church_gold",
+  "art": "divineblock:block/icon_theotokos_large",
+  "particle": "divineblock:block/icon_theotokos_large"
+ },
+ "elements": [
+  {
+   "from": [
+    0,
+    0,
+    15
+   ],
+   "to": [
+    16,
+    16,
+    16
+   ],
+   "faces": {
+    "south": {
+     "texture": "#gold",
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ]
+    },
+    "east": {
+     "texture": "#gold",
+     "uv": [
+      0,
+      0,
+      1,
+      16
+     ]
+    },
+    "west": {
+     "texture": "#gold",
+     "uv": [
+      0,
+      0,
+      1,
+      16
+     ]
+    },
+    "up": {
+     "texture": "#gold",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    },
+    "down": {
+     "texture": "#gold",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    }
+   }
+  },
+  {
+   "from": [
+    0,
+    0,
+    14.9
+   ],
+   "to": [
+    16,
+    16,
+    16
+   ],
+   "faces": {
+    "north": {
+     "texture": "#art",
+     "uv": [
+      8,
+      8,
+      16,
+      16
+     ]
+    }
+   }
+  }
+ ]
+}

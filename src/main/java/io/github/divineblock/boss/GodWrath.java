@@ -48,8 +48,10 @@ public final class GodWrath {
     /** The cloud bank (his waist) this far above the sinner and this far off to one side: the mortal looks up at him at
      * some 35–45 degrees, and the figure leans over the clouds toward him (on the client). */
     private static final double HEIGHT = 28, DISTANCE = 34;
-    private static final List<String> CHANTS = List.of("punishment_02", "punishment_06", "punishment_20", "punishment_21",
-            "punishment_39", "punishment_56", "punishment_57", "punishment_59");
+    private static final List<String> CHANTS = List.of("altar_01", "altar_61", "altar_62", "altar_63", "altar_64", "altar_65", "altar_66", "altar_70",
+            "altar_71", "altar_78", "altar_79", "blessing_63", "blessing_64", "punishment_02", "punishment_06",
+            "punishment_20", "punishment_21", "punishment_39", "punishment_56", "punishment_57", "punishment_59",
+            "punishment_61", "punishment_62", "punishment_63", "punishment_64", "punishment_65", "punishment_67");
     private static final List<String> LINES = List.of("Аз есмь Сущий. Склонись, смертный!", "Сам пришёл Я судить тебя.",
             "Узри десницу Мою и трепещи!", "Не пред идолом стоишь — пред Ветхим денми.", "Покайся, пока булава Моя в воздухе.");
     private static final Map<UUID, GodWrath> ACTIVE = new HashMap<>();

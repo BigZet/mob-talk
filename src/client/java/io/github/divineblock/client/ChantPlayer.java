@@ -22,10 +22,16 @@ import net.minecraft.util.math.BlockPos;
  * music, low under the god's words and rising once he has spoken. Whatever plays sinks to a whisper while his voice
  * sounds. Each scene deals its pieces like a shuffled deck: none comes again before all the others have been heard. */
 final class ChantPlayer {
-    private static final List<String> ALTAR = List.of("altar_01", "altar_17", "altar_33", "altar_35", "altar_53", "altar_60");
-    private static final List<String> BLESSING = List.of("blessing_03", "blessing_11", "blessing_15", "blessing_45", "blessing_46");
-    private static final List<String> PUNISHMENT = List.of("punishment_02", "punishment_06", "punishment_20", "punishment_21",
-            "punishment_39", "punishment_56", "punishment_57", "punishment_59");
+    // Scenes as Dmitriy marked them on 22.10 (the file name keeps the scene it was first cut for).
+    private static final List<String> ALTAR = List.of("altar_35", "altar_53", "altar_60", "altar_68", "altar_69", "blessing_68", "blessing_69",
+            "blessing_71", "blessing_73");
+    private static final List<String> BLESSING = List.of("altar_17", "altar_33", "altar_67", "altar_72", "altar_74", "altar_75", "altar_77", "blessing_03",
+            "blessing_11", "blessing_15", "blessing_45", "blessing_46", "blessing_61", "blessing_62",
+            "blessing_72");
+    private static final List<String> PUNISHMENT = List.of("altar_01", "altar_61", "altar_62", "altar_63", "altar_64", "altar_65", "altar_66", "altar_70",
+            "altar_71", "altar_78", "altar_79", "blessing_63", "blessing_64", "punishment_02", "punishment_06",
+            "punishment_20", "punishment_21", "punishment_39", "punishment_56", "punishment_57", "punishment_59",
+            "punishment_61", "punishment_62", "punishment_63", "punishment_64", "punishment_65", "punishment_67");
     /** Loudness at the default setting: the altar's singing, and the music of a verdict. */
     private static final float ALTAR_VOLUME = 0.85f, MUSIC_VOLUME = 0.9f;
     /** How much of it is left while the god speaks. */
@@ -33,6 +39,8 @@ final class ChantPlayer {
     private static final int NEAR = 12, FAR = 22, AFTER_WORDS = 20 * 5;
     /** Away this long, the altar greets the player again when he returns; staying, he hears it again after a long pause. */
     private static final int AWAY_TICKS = 20 * 120, STAY_PAUSE = 20 * 240, STAY_PAUSE_SPREAD = 20 * 120;
+    /** Silence after an altar piece has sung to its end, before the next may begin. */
+    private static final int AFTER_PIECE = 20 * 90;
     private static final Random RANDOM = new Random();
     private static final java.util.Map<List<String>, Deque<String>> decks = new java.util.HashMap<>();
 
@@ -93,7 +101,11 @@ final class ChantPlayer {
             thunder(client);
             nextThunder = now + 20 * 4 + RANDOM.nextInt(20 * 7);
         }
-        if (altarChant != null && altarChant.over(client)) altarChant = null;
+        if (altarChant != null && altarChant.over(client)) {
+            // The pieces run for minutes now: after one has sung to its end the altar keeps quiet for a while.
+            altarChant = null;
+            nextAltarChant = Math.max(nextAltarChant, now + AFTER_PIECE);
+        }
         if (now >= nextScan) { nextScan = now + 20; altar = nearestAltar(client); }
         boolean near = altar != null && client.player.getBlockPos().isWithinDistance(altar, FAR);
         if (altarChant != null && (!near || !altarChant.pos.equals(altar))) { altarChant.fadeOut(); altarChant = null; }

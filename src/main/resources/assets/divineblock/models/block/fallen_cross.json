@@ -1,0 +1,290 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "post": "divineblock:block/old_grave_wood",
+    "bar": "divineblock:block/old_grave_wood_bar",
+    "tufts": "divineblock:block/grave_tufts",
+    "particle": "#post"
+  },
+  "elements": [
+    {
+      "from": [
+        7,
+        0,
+        0.5
+      ],
+      "to": [
+        9,
+        1.5,
+        15.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#post",
+          "uv": [
+            7,
+            14.5,
+            9,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#post",
+          "uv": [
+            7,
+            14.5,
+            9,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#post",
+          "uv": [
+            0.5,
+            14.5,
+            15.5,
+            16
+          ]
+        },
+        "west": {
+          "texture": "#post",
+          "uv": [
+            0.5,
+            14.5,
+            15.5,
+            16
+          ]
+        },
+        "up": {
+          "texture": "#post",
+          "uv": [
+            7,
+            0.5,
+            9,
+            15.5
+          ]
+        },
+        "down": {
+          "texture": "#post",
+          "uv": [
+            7,
+            0.5,
+            9,
+            15.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.5,
+        0,
+        9
+      ],
+      "to": [
+        14.5,
+        1.25,
+        11
+      ],
+      "faces": {
+        "north": {
+          "texture": "#bar",
+          "uv": [
+            1.5,
+            14.75,
+            14.5,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#bar",
+          "uv": [
+            1.5,
+            14.75,
+            14.5,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#bar",
+          "uv": [
+            5,
+            14.75,
+            7,
+            16
+          ]
+        },
+        "west": {
+          "texture": "#bar",
+          "uv": [
+            9,
+            14.75,
+            11,
+            16
+          ]
+        },
+        "up": {
+          "texture": "#bar",
+          "uv": [
+            1.5,
+            9,
+            14.5,
+            11
+          ]
+        },
+        "down": {
+          "texture": "#bar",
+          "uv": [
+            1.5,
+            5,
+            14.5,
+            7
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.5,
+        0,
+        3.5
+      ],
+      "to": [
+        11.5,
+        1,
+        5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#bar",
+          "uv": [
+            4.5,
+            15,
+            11.5,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#bar",
+          "uv": [
+            4.5,
+            15,
+            11.5,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#bar",
+          "uv": [
+            11,
+            15,
+            12.5,
+            16
+          ]
+        },
+        "west": {
+          "texture": "#bar",
+          "uv": [
+            3.5,
+            15,
+            5,
+            16
+          ]
+        },
+        "up": {
+          "texture": "#bar",
+          "uv": [
+            4.5,
+            3.5,
+            11.5,
+            5
+          ]
+        },
+        "down": {
+          "texture": "#bar",
+          "uv": [
+            4.5,
+            11,
+            11.5,
+            12.5
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          0.5,
+          4.25
+        ],
+        "axis": "y",
+        "angle": 22.5
+      }
+    },
+    {
+      "from": [
+        3.5,
+        0,
+        1
+      ],
+      "to": [
+        3.5,
+        7,
+        15
+      ],
+      "faces": {
+        "east": {
+          "texture": "#tufts",
+          "uv": [
+            1,
+            8,
+            15,
+            15
+          ]
+        },
+        "west": {
+          "texture": "#tufts",
+          "uv": [
+            1,
+            8,
+            15,
+            15
+          ]
+        }
+      },
+      "shade": false
+    },
+    {
+      "from": [
+        12.5,
+        0,
+        1
+      ],
+      "to": [
+        12.5,
+        7,
+        15
+      ],
+      "faces": {
+        "east": {
+          "texture": "#tufts",
+          "uv": [
+            1,
+            8,
+            15,
+            15
+          ]
+        },
+        "west": {
+          "texture": "#tufts",
+          "uv": [
+            1,
+            8,
+            15,
+            15
+          ]
+        }
+      },
+      "shade": false
+    }
+  ]
+}

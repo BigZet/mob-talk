@@ -3,6 +3,8 @@
   "values": [
     "divineblock:black_grave_fence",
     "divineblock:blue_grave_fence",
-    "divineblock:rusty_grave_fence"
+    "divineblock:rusty_grave_fence",
+    "divineblock:green_grave_fence",
+    "divineblock:silver_grave_fence"
   ]
 }

@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "decorations",
+  "ingredients": [
+    {
+      "item": "divineblock:old_cross"
+    },
+    {
+      "item": "minecraft:short_grass"
+    }
+  ],
+  "result": {
+    "id": "divineblock:fallen_cross",
+    "count": 1
+  }
+}

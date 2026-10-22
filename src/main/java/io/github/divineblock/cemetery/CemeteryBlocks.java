@@ -100,6 +100,42 @@ public final class CemeteryBlocks {
             new double[][] { box(7.5, 0, 7.5, 8.5, 16, 8.5) }, new double[][] { box(3.5, 3.5, 6.8, 12.5, 12.5, 8.5) }));
     public static final Block CEMETERY_BIN = block("cemetery_bin", new GraveBlock(iron(MapColor.BLUE), true, box(3, 0, 3, 13, 12, 13)));
 
+    // More kinds of grave (22 October): crosses of every size, stones of other shapes, a blue Soviet pyramid, fallen crosses on
+    // abandoned graves, a bench with a back, live flowers, a fir wreath, green and silver fences.
+    public static final Block GOLUBETS = block("golubets", new TallGraveBlock(wood(),
+            new double[][] { box(5.5, 0, 5.5, 10.5, 1, 10.5), box(6.5, 1, 6.5, 9.5, 16, 9.5) },
+            new double[][] { box(6.5, 0, 6.5, 9.5, 6, 9.5), box(3, 6, 3.5, 13, 16, 12.5) }));
+    public static final Block FORGED_CROSS = block("forged_cross", new TallGraveBlock(iron(MapColor.BLACK),
+            new double[][] { box(5, 0, 5, 11, 3, 11), box(7, 3, 7, 9, 16, 9), box(4, 10, 7, 12, 12, 9) },
+            new double[][] { box(7, 0, 7, 9, 15, 9), box(1, 0.5, 7, 15, 9.5, 9) }));
+    public static final Block BIG_OAK_CROSS = block("big_oak_cross", new TallGraveBlock(wood(),
+            new double[][] { box(6.5, 0, 6.5, 9.5, 16, 9.5), box(3, 9, 7, 13, 13, 9) },
+            new double[][] { box(6.5, 0, 6.5, 9.5, 16, 9.5), box(0.5, 5, 6.75, 15.5, 7.5, 9.25), box(4, 11.5, 7, 12, 13.5, 9) }));
+    public static final Block BLUE_STAR_OBELISK = block("blue_star_obelisk", new TallGraveBlock(iron(MapColor.LIGHT_BLUE),
+            new double[][] { box(3, 0, 3, 13, 2, 13), box(4, 2, 4, 12, 12, 12), box(5, 12, 5, 11, 16, 11) },
+            new double[][] { box(6, 0, 6, 10, 9.5, 10), box(5, 9.5, 7.5, 11, 16, 8.5) }));
+    public static final Block CROSS_TOP_STELE = block("cross_top_stele", new TallGraveBlock(stone(MapColor.STONE_GRAY),
+            new double[][] { box(2, 0, 4, 14, 2, 12), box(3, 2, 6.5, 13, 16, 9.5) },
+            new double[][] { box(3, 0, 6.5, 13, 1, 9.5), box(7, 1, 7, 9, 13.5, 9), box(4.5, 8, 7, 11.5, 9.5, 9) }));
+    public static final Block SMALL_WOODEN_CROSS = block("small_wooden_cross", new GraveBlock(wood(), true,
+            box(7, 0, 7, 9, 15, 9), box(3.5, 10, 7.25, 12.5, 11.5, 8.75)));
+    public static final Block PORTRAIT_STELE = block("portrait_stele", new GraveBlock(stone(MapColor.BLACK), true,
+            box(1.5, 0, 4.5, 14.5, 1.5, 11.5), box(2.5, 1.5, 7, 13.5, 16, 9)));
+    public static final Block RED_GRANITE_STELE = block("red_granite_stele", new GraveBlock(stone(MapColor.TERRACOTTA_RED), true,
+            box(2, 0, 4, 14, 2, 12), box(3, 2, 7, 13, 15, 9)));
+    public static final Block FALLEN_CROSS = block("fallen_cross", new GraveBlock(wood().mapColor(MapColor.GRAY), true,
+            box(1.5, 0, 0.5, 14.5, 1.5, 15.5)));
+    public static final Block BACKED_BENCH = block("backed_bench", new GraveBlock(wood(), true,
+            box(1, 7, 4, 15, 8.5, 10), box(1, 8.5, 10, 15, 14.5, 12), box(2, 0, 4.5, 3, 7, 10), box(13, 0, 4.5, 14, 7, 10)));
+    public static final Block CARNATIONS = block("carnations", new GraveBlock(soft(MapColor.RED, BlockSoundGroup.GRASS), false,
+            box(3, 0, 3, 13, 9, 13)));
+    public static final Block FIR_WREATH = block("fir_wreath", new GraveBlock(soft(MapColor.DARK_GREEN, BlockSoundGroup.AZALEA_LEAVES), false,
+            box(1, 0, 5, 15, 15, 11)));
+    public static final Block GREEN_GRAVE_FENCE = block("green_grave_fence", new GraveFenceBlock(iron(MapColor.DARK_GREEN)));
+    public static final Block GREEN_GRAVE_GATE = block("green_grave_gate", new GraveGateBlock(iron(MapColor.DARK_GREEN)));
+    public static final Block SILVER_GRAVE_FENCE = block("silver_grave_fence", new GraveFenceBlock(iron(MapColor.LIGHT_GRAY)));
+    public static final Block SILVER_GRAVE_GATE = block("silver_grave_gate", new GraveGateBlock(iron(MapColor.LIGHT_GRAY)));
+
     private CemeteryBlocks() { }
 
     private static Block block(String name, Block block) {

@@ -18,7 +18,8 @@ import net.minecraft.world.gen.structure.StructureType;
 public final class ChurchWorldgen {
     public static final int DEFAULT_SPACING = 64;
     public static final StructureType<ChurchStructure> CHURCH_TYPE = () -> ChurchStructure.CODEC;
-    public static final StructurePieceType CHURCH_PIECE = ChurchPiece::new, CEMETERY_PIECE = CemeteryPiece::new, CLEARING_PIECE = ClearingPiece::new;
+    public static final StructurePieceType CHURCH_PIECE = ChurchPiece::new, CEMETERY_PIECE = CemeteryPiece::new, CLEARING_PIECE = ClearingPiece::new,
+            YARD_PIECE = ChurchYard::new, LEVELING_PIECE = LevelingPiece::new;
     public static final StructurePlacementType<ChurchPlacement> PLACEMENT_TYPE = () -> ChurchPlacement.CODEC;
     public static final RegistryKey<Structure> STRUCTURE = RegistryKey.of(RegistryKeys.STRUCTURE, Identifier.of(DivineBlockMod.ID, "orthodox_church"));
     public static final RegistryKey<LootTable> LOOT = RegistryKey.of(RegistryKeys.LOOT_TABLE, Identifier.of(DivineBlockMod.ID, "chests/orthodox_church"));
@@ -29,10 +30,15 @@ public final class ChurchWorldgen {
     private ChurchWorldgen() { }
 
     public static void register() {
+        ChurchBlocks.register();
         Registry.register(Registries.STRUCTURE_TYPE, Identifier.of(DivineBlockMod.ID, "orthodox_church"), CHURCH_TYPE);
         Registry.register(Registries.STRUCTURE_PIECE, Identifier.of(DivineBlockMod.ID, "church"), CHURCH_PIECE);
         Registry.register(Registries.STRUCTURE_PIECE, Identifier.of(DivineBlockMod.ID, "church_cemetery"), CEMETERY_PIECE);
         Registry.register(Registries.STRUCTURE_PIECE, Identifier.of(DivineBlockMod.ID, "church_clearing"), CLEARING_PIECE);
+        Registry.register(Registries.STRUCTURE_PIECE, Identifier.of(DivineBlockMod.ID, "church_yard"), YARD_PIECE);
+        Registry.register(Registries.STRUCTURE_PIECE, Identifier.of(DivineBlockMod.ID, "cemetery_leveling"), LEVELING_PIECE);
+        Registry.register(Registries.STRUCTURE_TYPE, Identifier.of(DivineBlockMod.ID, "cemetery"), CemeteryStructure.TYPE);
+        CemeteryGroundProcessor.register();
         Registry.register(Registries.STRUCTURE_PLACEMENT, Identifier.of(DivineBlockMod.ID, "church_spread"), PLACEMENT_TYPE);
     }
 
