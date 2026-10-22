@@ -111,22 +111,38 @@ public final class ChurchArea {
      * with room for a big boss. Candidates west of the porch, then north, south-west and east; the porch as the last resort. */
     public static Vec3d yardSpot(ServerWorld world, ChurchSites.Site site) {
         ChurchPiece.Frame frame = new ChurchPiece.Frame(site.origin(), site.rotation());
-        int[][] candidates = { { -18, 0 }, { -16, -14 }, { -16, 14 }, { 18, -24 }, { 50, 0 }, { -26, 0 }, { 0, -26 } };
+        int[][] candidates = { { -18, 0 }, { -16, -14 }, { -16, 14 }, { 18, -24 }, { 50, 0 }, { -26, 0 }, { 0, -26 }, { -30, 12 }, { -30, -12 }, { 36, -22 } };
         int floor = site.origin().getY();
         List<Vec3d> good = new ArrayList<>();
-        for (int[] c : candidates) {
-            BlockPos column = frame.world(c[0], 0, c[1]);
-            world.getChunk(column);
-            BlockPos top = world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, column);
-            if (Math.abs(top.getY() - floor) > 7 || site.church().contains(top)) continue;
-            BlockState ground = world.getBlockState(top.down());
-            if (!ground.getFluidState().isEmpty() || !world.getBlockState(top).getCollisionShape(world, top).isEmpty()
-                    || !world.getBlockState(top.up()).getCollisionShape(world, top.up()).isEmpty()) continue;
-            good.add(Vec3d.ofBottomCenter(top));
-            break;
+        // First open sky (no tree crown over the spot or around it), then any dry ground; the cemetery's alley is cleared of trees.
+        for (int pass = 0; pass < 2 && good.isEmpty(); pass++) {
+            List<BlockPos> columns = new ArrayList<>();
+            for (int[] c : candidates) columns.add(frame.world(c[0], 0, c[1]));
+            if (site.bossPoints().size() > 3) columns.add(3, site.bossPoints().get(3));
+            for (BlockPos column : columns) {
+                world.getChunk(column);
+                BlockPos top = world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, column);
+                if (Math.abs(top.getY() - floor) > 7 || site.church().contains(top)) continue;
+                BlockState ground = world.getBlockState(top.down());
+                if (!ground.getFluidState().isEmpty() || !world.getBlockState(top).getCollisionShape(world, top).isEmpty()
+                        || !world.getBlockState(top.up()).getCollisionShape(world, top.up()).isEmpty()) continue;
+                if (pass == 0 && !openSky(world, top)) continue;
+                good.add(Vec3d.ofBottomCenter(top));
+                break;
+            }
         }
         if (!good.isEmpty()) return good.get(0);
         BlockPos porch = site.bossPoints().size() > 2 ? site.bossPoints().get(2) : site.origin().west(6);
         return Vec3d.ofBottomCenter(world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, porch));
+    }
+
+    /** No leaves over the spot and the eight around it, two blocks out. */
+    private static boolean openSky(ServerWorld world, BlockPos top) {
+        for (int dx = -2; dx <= 2; dx += 2) for (int dz = -2; dz <= 2; dz += 2) {
+            BlockPos column = top.add(dx, 0, dz);
+            if (world.getTopPosition(Heightmap.Type.MOTION_BLOCKING, column).getY() > world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, column).getY() + 0)
+                return false;
+        }
+        return true;
     }
 }

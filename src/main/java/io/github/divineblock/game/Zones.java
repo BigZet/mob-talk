@@ -197,13 +197,23 @@ public final class Zones {
         if (spot == null) { home = false; spot = openLand(world, site); }
         if (spot == null) { DivineBlockMod.LOG.info("Божественный блок: {} — нет ни дома, ни чистого поля вдали от церкви", miracle.id()); return null; }
         BlockPos center = home ? bed : BlockPos.ofFloored(spot);
+        // What wipes out its own centre (the great crater, the cut-out land) opens beside the home, not under the bed.
+        BlockPos strike = center;
+        if (home && (miracle == Miracle.GREAT_CRATER || miracle == Miracle.CHUNK_VOID)) {
+            int reach = (miracle == Miracle.GREAT_CRATER ? Cataclysm.CRATER_RADIUS[Math.max(1, Math.min(5, severity)) - 1] : 16) + Math.max(8, config.protectRadius);
+            double angle = world.random.nextDouble() * Math.PI * 2;
+            BlockPos column = center.add((int) Math.round(Math.cos(angle) * reach), 0, (int) Math.round(Math.sin(angle) * reach));
+            world.getChunk(column);
+            strike = world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, column);
+        }
+        BlockPos target = strike;
         String what = name(miracle);
         decided.accept(miracle.id() + " → " + (home ? "дом у кровати " + bed.toShortString() : "чистое поле " + center.toShortString()));
         if (miracle == Miracle.BLIGHT) {
             String done = Miracles.perform(miracle, power, player, center, prayer, config, severity);
             if (done == null) return null;
             title(player, Text.literal(home ? "Порча на доме твоём" : "Порча на земле").formatted(Formatting.DARK_RED),
-                    Text.literal("Узри, что сталось с жилищем твоим").formatted(Formatting.RED));
+                    Text.literal("Ступай и узри, что сталось с жилищем твоим").formatted(Formatting.RED));
             Prayers.godChat(player, home ? "Не трону храм мой — но земля у дома твоего почернеет. Ступай и узри." : "Нет у тебя дома — так почернеет земля в чистом поле. Ступай и узри.");
             pointTo(player, center, what, 40);
             return done + " (вдали, указан путь)";
@@ -222,12 +232,12 @@ public final class Zones {
             Miracles.sound(world, BlockPos.ofFloored(to), SoundEvents.ENTITY_ENDERMAN_TELEPORT, 1.5f, 0.6f);
             Scheduler.later(40, () -> {
                 if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) return;
-                String done = performWithFallback(miracle, power, player, center, prayer, config, severity, Miracle.Place.HOME);
+                String done = performWithFallback(miracle, power, player, target, prayer, config, severity, Miracle.Place.HOME);
                 DivineBlockMod.LOG.info("Божественный блок: у дома {} — {}", miracle.id(), done);
-                title(player, Text.literal(atHome ? "Узри, что сталось с жилищем твоим" : "Узри гнев мой").formatted(Formatting.DARK_RED),
-                        Text.literal(what).formatted(Formatting.RED));
+                title(player, Text.literal("Узри гнев мой").formatted(Formatting.DARK_RED),
+                        Text.literal((atHome ? "что сталось с жилищем твоим: " : "") + what).formatted(Formatting.RED));
                 Prayers.godChat(player, (atHome ? "Узри, что сталось с жилищем твоим: " : "Узри гнев мой: ") + what + ".");
-                if (player.getPos().distanceTo(Vec3d.ofCenter(center)) > 32) pointTo(player, center, what, 30);
+                if (player.getPos().distanceTo(Vec3d.ofCenter(target)) > 32) pointTo(player, target, what, 30);
             });
         });
         return "кара у " + (home ? "дома" : "чистого поля") + ": " + miracle.id();

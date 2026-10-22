@@ -43,7 +43,7 @@ import net.minecraft.world.World;
  * court. Defeat the foe and the god returns you to the church; die and you rise as always. */
 public final class SkyCourt {
     /** Radius of the stone floor; the clouds of the rim go a few blocks further, the invisible wall stands at WALL. */
-    static final int RADIUS = 32, RIM = 6, WALL = RADIUS + RIM + 2, CLEAR_HEIGHT = 16;
+    static final int RADIUS = 42, RIM = 7, WALL = RADIUS + RIM + 2, CLEAR_HEIGHT = 16;
     /** The longest a court lasts before the god lets the mortal go anyway. */
     static final int TIMEOUT_TICKS = 20 * 60 * 6;
 
@@ -76,7 +76,7 @@ public final class SkyCourt {
     }
 
     /** Where the mortal stands when he comes: on the floor, a dozen blocks south of the centre, facing it. */
-    public static Vec3d arrival(BlockPos center) { return Vec3d.ofBottomCenter(center.add(0, 1, 12)); }
+    public static Vec3d arrival(BlockPos center) { return Vec3d.ofBottomCenter(center.add(0, 1, 16)); }
 
     /** The god takes the mortal up and the act falls there. Returns what was done (the act itself comes a few seconds later). */
     public static String summon(Miracle miracle, int power, ServerPlayerEntity player, BlockPos altar, String prayer, DivineConfig config, int severity,
@@ -195,7 +195,8 @@ public final class SkyCourt {
             if (d > edge) { set(world, at.set(x, cy, z), Blocks.BARRIER.getDefaultState(), flags); continue; }
             set(world, at.set(x, cy, z), floor(dx, dz, d, x, z), flags);
             // The puffy underside: deepest under the middle.
-            int depth = 2 + (int) Math.round(Math.pow(Math.max(0, 1 - d / edge), 0.6) * 9 * (0.55 + 0.45 * m));
+            double lump = noise(x - 5000, z + 2000, 4);
+            int depth = 1 + (int) Math.round(Math.pow(Math.max(0, 1 - d / edge), 0.5) * 13 * (0.3 + 0.7 * m) + lump * 3);
             for (int k = 0; k < depth; k++) set(world, at.set(x, cy - 2 - k, z), cloud(x, cy - 2 - k, z), flags);
             // The cloud bank of the rim: puffs one to three high, thinning inward.
             if (d > RADIUS - 2) {
@@ -228,7 +229,8 @@ public final class SkyCourt {
         double angle = Math.toDegrees(Math.atan2(dz, dx));
         double ray = Math.abs(MathHelper.wrapDegrees(angle - Math.round(angle / 45.0) * 45.0));
         if (d < 11 && ray * d / 57.3 < 0.7) return Blocks.QUARTZ_BRICKS.getDefaultState();
-        if (Math.abs(d - 20) < 0.6 && ray * 20 / 57.3 < 0.6) return Blocks.SEA_LANTERN.getDefaultState();
+        if ((Math.abs(d - 20) < 0.6 || Math.abs(d - 31) < 0.6) && ray * d / 57.3 < 0.6) return Blocks.SEA_LANTERN.getDefaultState();
+        if (d >= 24 && d < 25) return Blocks.GOLD_BLOCK.getDefaultState();
         int h = hash(x, z) & 0xFF;
         if (h < 140) return Blocks.SMOOTH_QUARTZ.getDefaultState();
         if (h < 200) return Blocks.CALCITE.getDefaultState();

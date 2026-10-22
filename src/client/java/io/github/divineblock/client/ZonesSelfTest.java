@@ -67,6 +67,9 @@ public final class ZonesSelfTest {
     private static volatile String screenshot;
     private static volatile boolean finished, hud = true;
     private static volatile Runnable clientAction;
+    private record Later(int at, Runnable action) { }
+    private static final List<Later> clientQueue = new ArrayList<>();
+    private static void clientLater(int delay, Runnable action) { clientQueue.add(new Later(ticks + delay, action)); }
     private static DivineConfig saved;
 
     private ZonesSelfTest() { }
@@ -83,6 +86,7 @@ public final class ZonesSelfTest {
         client.options.hudHidden = !hud;
         Runnable action = clientAction;
         if (action != null) { clientAction = null; action.run(); }
+        for (Later later : new ArrayList<>(clientQueue)) if (later.at() <= ticks) { clientQueue.remove(later); later.action().run(); }
         if (screenshot != null && client.world != null && !client.worldRenderer.isTerrainRenderComplete() && waited++ < 200) return;
         if (screenshot != null) {
             waited = 0;
@@ -243,8 +247,11 @@ public final class ZonesSelfTest {
         steps.add(new Step(20, () -> { lookAt(Vec3d.ofCenter(bed).add(12, 0, 0)); screenshot = "4-home-disaster-title"; }));
         steps.add(new Step(20 * 8, () -> {
             int air = 0;
-            for (int dx = -26; dx <= 26; dx += 4) { BlockPos column = bed.add(dx, 0, 22); if (world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, column).getY() < bed.getY() - 5) air++; }
-            check(air > 0, "у дома воронка (колонн ниже земли на 5+: " + air + ")");
+            for (int dx = -80; dx <= 80; dx += 6) for (int dz = -80; dz <= 80; dz += 6) {
+                BlockPos column = bed.add(dx, 0, dz);
+                if (world.isChunkLoaded(column.getX() >> 4, column.getZ() >> 4) && world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, column).getY() < bed.getY() - 8) air++;
+            }
+            check(air > 0, "рядом с домом воронка (колонн ниже земли на 8+: " + air + ")");
             check(world.getBlockState(bed).getBlock() instanceof BedBlock, "сам дом с кроватью цел (защита дома)");
             player.changeGameMode(GameMode.SPECTATOR); hud = false;
             look(Vec3d.ofCenter(bed).add(-40, 35, -40), Vec3d.ofCenter(bed));
@@ -305,16 +312,16 @@ public final class ZonesSelfTest {
             check(changed == 0, "блоки церкви после всех кар не изменились: изменено " + changed + " " + first);
             screenshot = "7-church-after";
         }));
-        // 8. The F9 switch, then the replacement it makes.
-        steps.add(new Step(20, () -> clientAction = () -> MinecraftClient.getInstance().setScreen(new WrathSettingsScreen(null, DivineBlockMod.config().copy()))));
-        steps.add(new Step(30, () -> screenshot = "8-f9-landscape-yes"));
-        steps.add(new Step(10, () -> clientAction = () -> {
-            DivineConfig off = DivineBlockMod.config().copy(); off.landscapeWrath = false;
-            MinecraftClient.getInstance().setScreen(new WrathSettingsScreen(null, off));
+        // 8. The F9 switch, then the replacement it makes. A screen pauses the integrated server: the client drives this part.
+        steps.add(new Step(20, () -> clientAction = () -> {
+            MinecraftClient client = MinecraftClient.getInstance();
+            client.setScreen(new WrathSettingsScreen(null, DivineBlockMod.config().copy()));
+            clientLater(40, () -> screenshot = "8-f9-landscape-yes");
+            clientLater(70, () -> { DivineConfig off = DivineBlockMod.config().copy(); off.landscapeWrath = false; client.setScreen(new WrathSettingsScreen(null, off)); });
+            clientLater(110, () -> screenshot = "8-f9-landscape-no");
+            clientLater(140, () -> client.setScreen(null));
         }));
-        steps.add(new Step(30, () -> screenshot = "8-f9-landscape-no"));
         steps.add(new Step(10, () -> {
-            clientAction = () -> MinecraftClient.getInstance().setScreen(null);
             DivineConfig off = DivineBlockMod.config().copy(); off.landscapeWrath = false;
             List<String> k5 = MiracleGroup.K5.members.stream().filter(off::allows).map(Miracle::id).toList();
             check(k5.stream().noneMatch(id -> Miracle.byId(id).landscape()) && !k5.isEmpty(), "без ландшафта в К5 остаются: " + k5);
