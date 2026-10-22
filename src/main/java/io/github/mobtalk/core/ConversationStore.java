@@ -644,6 +644,76 @@ public final class ConversationStore {
     }
     public synchronized List<MobCard> cards(UUID player) { return state.profiles.keySet().stream().map(UUID::fromString).map(id -> card(id, player)).toList(); }
 
+    // ---- Для веб-админки (трек H): чтение без игры и правка карточки. ----
+
+    /** Something that happened to a mob, with its time. */
+    public record Happening(long time, String text) { }
+    /** Every mob the world remembers. */
+    public synchronized List<UUID> knownMobs() { return state.profiles.keySet().stream().map(UUID::fromString).toList(); }
+    /** The mob's relation score with every player it knows, by player UUID. */
+    public synchronized Map<UUID, Integer> relations(UUID mob) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        Map<UUID, Integer> out = new LinkedHashMap<>();
+        if (p != null) p.relations.forEach((id, r) -> { try { out.put(UUID.fromString(id), r.score); } catch (IllegalArgumentException ignored) { } });
+        return out;
+    }
+    /** The mob's events newest first, with times. */
+    public synchronized List<Happening> happenings(UUID mob, int limit) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        if (p == null) return List.of();
+        List<Happening> out = new ArrayList<>();
+        for (int i = p.events.size() - 1; i >= 0 && out.size() < limit; i--) out.add(new Happening(p.events.get(i).time(), p.events.get(i).text()));
+        return out;
+    }
+    /** A word for the mob's character: the villager's first trait or the custom personality; "" for a stranger. */
+    public synchronized String traitOf(UUID mob) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        if (p == null) return "";
+        if (p.social != null && p.social.traits() != null && !p.social.traits().isEmpty()) return p.social.traits().stream().filter(trait -> trait.spoken && !trait.fact.isBlank()).map(trait -> trait.fact).findFirst().orElse("");
+        return p.customPersonality == null ? "" : p.customPersonality;
+    }
+    public synchronized String givenNameOf(UUID mob) { Profile p = mob == null ? null : state.profiles.get(mob.toString()); return p == null ? "" : p.givenName.isBlank() ? p.name : p.givenName; }
+    public synchronized String typeOf(UUID mob) { Profile p = mob == null ? null : state.profiles.get(mob.toString()); return p == null ? "" : p.type == null ? "" : p.type; }
+    public synchronized String backstoryOf(UUID mob) { Profile p = mob == null ? null : state.profiles.get(mob.toString()); return p == null ? "" : p.backstory; }
+    /** Relatives from the family tree (spouse, children, parents), empty outside the social layer. */
+    public synchronized List<FamilyTree.Kin> kin(UUID mob) { return mob == null ? List.of() : state.family.kin(mob); }
+    public synchronized UUID spouseOf(UUID mob) { return mob == null ? null : state.family.spouse(mob); }
+    public synchronized List<UUID> childrenOf(UUID mob) { return mob == null ? List.of() : state.family.children(mob); }
+    /** Every village the world knows. */
+    public synchronized List<Village> villages() { return List.copyOf(state.villages.values()); }
+    /** How many mobs live in a village. */
+    public synchronized int residents(String villageId) {
+        int n = 0;
+        for (Profile p : state.profiles.values()) if (villageId != null && villageId.equals(p.villageId)) n++;
+        return n;
+    }
+    /** What the village says right now, weightiest first. */
+    public synchronized List<VillageRumors.View> villageRumors(String villageId, long now) { return villageId == null ? List.of() : state.rumors.village(villageId, now); }
+    /** A player's fame in a village from its rumours. */
+    public synchronized VillageRumors.Reputation reputation(String villageId, UUID player, long now) {
+        return villageId == null ? VillageRumors.Reputation.NONE : state.rumors.reputation(villageId, player, now);
+    }
+    /** The admin edits a mob's card; blank fields are left as they are. */
+    public synchronized void editCard(UUID mob, String name, String personality, String voiceId, String memory) {
+        Profile p = require(mob);
+        if (name != null && !name.isBlank()) p.givenName = TextBounds.characters(name.strip(), 40);
+        if (personality != null && !personality.isBlank()) p.customPersonality = TextBounds.characters(personality.strip(), 600);
+        if (voiceId != null && !voiceId.isBlank() && voiceId.matches("[A-Za-z0-9_.:-]{1,64}")) p.voiceId = voiceId;
+        if (memory != null) {
+            p.memory = TextBounds.characters(memory.strip(), 4000);
+            p.facts.clear();
+            for (String line : p.memory.split("\n")) if (!line.isBlank()) p.facts.add(new MemoryFact(line.strip(), MemoryFact.ORDINARY, System.currentTimeMillis(), false));
+        }
+        p.revision++; scheduleSave();
+    }
+    /** State and memory back to a fresh mob; the name, species and personality stay. */
+    public synchronized void resetMob(UUID mob) {
+        Profile p = require(mob);
+        p.memory = ""; p.facts.clear(); p.summaries.clear(); p.turns.clear(); p.turnsDropped = 0; p.summarizedTurns = 0;
+        p.events.clear(); p.relations.clear(); p.state = new MobState(); p.reflection = new Reflection.Counters();
+        p.revision++; scheduleSave();
+    }
+
     /** Null edit fields retain their current values. */
     public synchronized void updateCard(UUID mob, String name, String personality, String voiceId, String memory) {
         Profile p = require(mob);

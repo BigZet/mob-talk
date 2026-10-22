@@ -20,6 +20,7 @@ import io.github.mobtalk.net.TalkCancelC2S;
 import io.github.mobtalk.net.TalkStartC2S;
 import io.github.mobtalk.net.TalkStatusS2C;
 import io.github.mobtalk.net.TalkTextC2S;
+import io.github.mobtalk.server.AdminLink;
 import io.github.mobtalk.server.AllowAllBudget;
 import io.github.mobtalk.server.DialogueService;
 import io.github.mobtalk.server.OpsOnlyPermissions;
@@ -143,6 +144,7 @@ public final class MobTalkMod implements ModInitializer {
                     try {
                         MobGameBridge bridge = MobGameBridge.attach(server, memory, ServerConfig.get());
                         dialogue = openDialogue(server, bridge, directory);
+                        if (dedicated()) AdminLink.start(server, bridge, dialogue); // Трек W: веб-админка на выделенном сервере.
                         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
                             dialogue.join(player.getUuid(), player.getGameProfile().getName());
                             sendFeatures(player);
@@ -160,7 +162,8 @@ public final class MobTalkMod implements ModInitializer {
     }
 
     /** Трек A: служба диалога на этом мосту. Ключи LLM и озвучки движок читает из окружения или DPAPI папки настроек сервера;
-     * на выделенном сервере семья и свадьба (вторая версия) и снимки экрана выключены. */
+     * семья и свадьба — по серверной настройке {@code familyLife} (решение Дмитрия: житель женат на одном игроке, имена и пол игрока
+     * берутся из его личных настроек, трек C); снимки экрана на выделенном сервере выключены. */
     private static DialogueService openDialogue(MinecraftServer server, MobGameBridge bridge, Path worldDirectory) {
         Path configDirectory = FabricLoader.getInstance().getConfigDir();
         ConversationEngine.setDiagnostics(line -> LOGGER.info("Mob Talk: {}", line));
@@ -168,7 +171,7 @@ public final class MobTalkMod implements ModInitializer {
                 (config, directory) -> new ConversationEngine(config, directory, configDirectory),
                 config -> JevDecider.forConfig(config, configDirectory),
                 MobTalkMod::budget, MobTalkMod::transcription,
-                new DialogueService.Options(!dedicated(), !dedicated()), 4);
+                new DialogueService.Options(ServerConfig.get().familyLife, !dedicated()), 4);
     }
 
     private static void stopping(MinecraftServer server) {
@@ -179,6 +182,7 @@ public final class MobTalkMod implements ModInitializer {
         CompletableFuture<MobGameBridge> ready = bridgeReady;
         bridgeReady = new CompletableFuture<>();
         ready.completeExceptionally(new IllegalStateException("Сервер остановлен"));
+        AdminLink.stop();
         DialogueService service = dialogue;
         dialogue = null;
         if (service != null) service.close();

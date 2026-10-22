@@ -75,6 +75,24 @@ public final class DialogueService {
     public interface Engines { ConversationEngine open(MobTalkConfig config, Path worldDirectory) throws Exception; }
     /** Что выключено на выделенном сервере: семья и свадьба (вторая версия), снимки экрана. */
     public record Options(boolean family, boolean pictures) { }
+    /** Журнал админки (трек W, подключает интегратор): каждый ответ собеседнику — трасса шагов; остальное — события. Все вызовы на
+     * потоке сервера, кроме {@link #step} (поток пула). Заглушка {@link #NONE} ничего не пишет. */
+    public interface Journal {
+        /** Начало ответа собеседнику; возвращает ключ записи для {@link #step}, {@link #finished}, {@link #failed}. */
+        Object started(UUID player, String playerName, UUID mob, String mobName, String species, String question, String stt);
+        void step(Object run, String step);
+        void finished(Object run, String answer, List<String> actions, String model, String stt);
+        void failed(Object run, String step, String message);
+        /** Событие без трассы: подарок, торг, слух, очевидец. */
+        void event(String kind, UUID player, String playerName, UUID mob, String mobName, String species, String text, Map<String, Object> data);
+        Journal NONE = new Journal() {
+            @Override public Object started(UUID player, String playerName, UUID mob, String mobName, String species, String question, String stt) { return null; }
+            @Override public void step(Object run, String step) { }
+            @Override public void finished(Object run, String answer, List<String> actions, String model, String stt) { }
+            @Override public void failed(Object run, String step, String message) { }
+            @Override public void event(String kind, UUID player, String playerName, UUID mob, String mobName, String species, String text, Map<String, Object> data) { }
+        };
+    }
 
     private final GameBridge bridge;
     private final Path worldDirectory;
@@ -93,6 +111,7 @@ public final class DialogueService {
     private volatile MobTalkConfig engineConfig;
     private volatile Decider decider = new RuleDecider();
     private volatile boolean closed;
+    private volatile Journal journal = Journal.NONE;
     final SpontaneousVoices spontaneous;
     private final MobStateSync states;
     private long ticks;
@@ -131,6 +150,8 @@ public final class DialogueService {
         final Map<UUID, Long> bargainUntil = new HashMap<>();
         String status = AIM_HINT;
         final MobStateSync.Tracker tracker = new MobStateSync.Tracker();
+        /** Путь, которым пришла последняя реплика (text/local/server), и ключ её записи в журнале админки. */
+        volatile String stt = "text"; volatile Object run;
         Session(UUID player) { this.player = player; }
 
         boolean voiceOn() { return voicesPending > 0 || System.currentTimeMillis() < floorUntil; }
@@ -157,6 +178,9 @@ public final class DialogueService {
     Decider decider() { return decider; }
     DialoguePool pool() { return pool; }
     public ConversationEngine engine() { return engine; }
+    /** Точка подключения админки: журнал диалогов и событий. */
+    public void setJournal(Journal journal) { this.journal = journal == null ? Journal.NONE : journal; }
+    Journal journal() { return journal; }
     MobTalkConfig config() { return bridge.config(); }
 
     public void join(UUID player, String name) { Session session = session(player); session.name = name; }
@@ -192,6 +216,7 @@ public final class DialogueService {
     public void talkText(UUID player, int entityId, String text, boolean fromVoice, byte[] picture) {
         Session session = session(player);
         if (text == null || text.isBlank()) { session.status("Речь не распознана: удерживайте голосовую клавишу и произнесите вопрос"); return; }
+        if (!"server".equals(session.stt) || !fromVoice) session.stt = fromVoice ? "local" : "text";
         bridge.mobByEntityId(player, entityId).whenComplete((mob, error) -> onServer(() -> {
             if (error != null) { session.status(plain(error, "Моб погиб или выгрузился")); return; }
             if (!mob.id().equals(session.target)) select(session, mob);
@@ -226,6 +251,7 @@ public final class DialogueService {
                     if (failure != null) { reportFailure(session, null, failure); return; }
                     if (text == null || text.isBlank()) { session.status("Речь не распознана: удерживайте голосовую клавишу и произнесите вопрос"); return; }
                     budget.get().charge(player, PlayerBudget.Kind.TRANSCRIPTION, 0, seconds);
+                    session.stt = "server";
                     talkText(player, entityId, text, true, new byte[0]);
                 }));
             }));
@@ -238,7 +264,10 @@ public final class DialogueService {
     /** Подарок из руки (G): мост берёт предмет, реакция моба придёт поводом инициативы. */
     public void gift(UUID player, int entityId) {
         Session session = session(player);
-        bridge.mobByEntityId(player, entityId).thenCompose(mob -> bridge.giftFromHand(mob.id(), player))
+        bridge.mobByEntityId(player, entityId).thenCompose(mob -> bridge.giftFromHand(mob.id(), player).thenApply(result -> {
+                    journal.event("gift", player, session.name, mob.id(), mob.name(), mob.type(), session.name + " → " + mob.name() + ": " + result, Map.of("reaction", result));
+                    return result;
+                }))
                 .whenComplete((result, error) -> onServer(() -> out.chat(player, "[Mob Talk] " + (error != null ? "Подарок не удался: " + plain(error, "моб недоступен") : result))));
     }
     /** STAY/следуй/GUARD/стоп из экрана или команды: {@code intentJson} — {@link ActionIntent}; цель {@code all} у STOP — все мобы. */
@@ -444,27 +473,38 @@ public final class DialogueService {
         busyMobs.put(request.target, session);
         session.requestActive = true;
         session.status("Моб думает…");
+        String stt = session.stt;
+        Object run = journal.started(session.player, request.playerName, request.target, request.mobName,
+                request.snapshot == null ? "" : request.snapshot.type(), question, stt);
+        session.run = run;
+        session.stt = "text";
         pool.submit(DialoguePool.Priority.ANSWER, () -> {
             session.pipelineThread = Thread.currentThread();
             long began = System.nanoTime();
             try {
                 checkCurrent(session, request);
+                journal.step(run, "budget");
                 if (request.merchant != null) {
                     UUID merchant = bridge.currentMerchant(request.player).get(10, TimeUnit.SECONDS);
                     if (!request.target.equals(merchant)) throw new InterruptedException("Торговец сменился");
                 }
                 MobSnapshot snapshot = request.snapshot == null ? bridge.capture(request.target, request.player, request.dimension).get(10, TimeUnit.SECONDS) : request.snapshot;
+                journal.step(run, "context");
                 checkCurrent(session, request);
                 ConversationEngine localEngine = ensureEngine(request.config);
                 checkCurrent(session, request);
                 EarlyState early = new EarlyState();
                 long thinking = System.nanoTime();
+                journal.step(run, "prompt");
                 ConversationEngine.EarlyListener earlyListener = (line, name, audio, claim) -> {
                     early.offeredNanos = System.nanoTime();
+                    journal.step(run, "llm_first");
                     onServer(() -> showEarly(session, request, early, question, line, name, audio, claim));
                 };
                 ConversationEngine.PreparedReply prepared = localEngine.prepare(snapshot, question, null, pictureFor(request, snapshot, question), earlyListener);
                 long done = System.nanoTime();
+                journal.step(run, "llm_done");
+                journal.step(run, "parsed");
                 LOGGER.info("Mob Talk timing ({}): {} ms before the model, line out {}, whole answer {} ms", request.playerName, (thinking - began) / 1_000_000,
                         early.offeredNanos == 0 ? "with the answer" : "at " + (early.offeredNanos - thinking) / 1_000_000 + " ms", (done - thinking) / 1_000_000);
                 try { checkCurrent(session, request); } catch (InterruptedException cancelled) { prepared.reply().discardSpeech(); throw cancelled; }
@@ -472,6 +512,7 @@ public final class DialogueService {
                 onServer(() -> { session.pendingDeliveries++; deliver(session, observed, localEngine, prepared, early); });
             } catch (InterruptedException cancelled) {
                 Thread.currentThread().interrupt();
+                journal.failed(run, "llm_done", "Ответ отменён: " + (cancelled.getMessage() == null ? "состояние изменилось" : cancelled.getMessage()));
                 onServer(() -> {
                     if (session.generation == request.generation) {
                         session.status("Состояние моба изменилось: ответ отменён");
@@ -556,6 +597,7 @@ public final class DialogueService {
                     if (error != null) { reply.discardSpeech(); reportFailure(session, request, error); return; }
                     if (!localEngine.commitDelivered(prepared, delivery.revision())) {
                         reply.discardSpeech();
+                        if (request.overheard == null) { journal.failed(session.run, "delivered", "Моб исчез: ответ отменён"); session.run = null; }
                         session.status("Моб исчез: ответ отменён");
                         if (session.actionRequest != null) session.actionRequest.completeExceptionally(new CancellationException(session.status));
                         session.actionRequest = null; endRequest(session, request); return;
@@ -584,6 +626,17 @@ public final class DialogueService {
                     request.config.voiceSilentRange, kind, 0, "", ""));
             session.status(READY); endRequest(session, request); return;
         }
+        if (request.overheard == null) {
+            if (reply.speech() != null) journal.step(session.run, "tts");
+            journal.step(session.run, "delivered");
+            List<String> acts = new ArrayList<>();
+            if (reply.action() != null && reply.action().type() != ActionType.NONE) acts.add(reply.action().type().name());
+            if (actionMessage != null && !actionMessage.isBlank()) acts.add(actionMessage);
+            journal.finished(session.run, reply.responseText(), acts, request.config.llmModel, null);
+            session.run = null;
+        } else journal.event(request.overheard.kind() == ConversationEngine.Overheard.Kind.BYSTANDER ? "witness" : "village_talk", request.player, request.playerName,
+                request.target, reply.speakerName(), request.snapshot == null ? "" : request.snapshot.type(), reply.speakerName() + ": " + reply.responseText(),
+                Map.of("line", reply.responseText(), "about", request.playerName));
         if (!shownEarly) {
             speak(session, request, reply.speakerName(), reply.responseText(), request.overheard == null ? reply.recognizedText() : "", reply.speech(), kind, request.overheard != null);
             session.status(request.overheard == null ? reply.speech() != null ? "Говорит…" : "Ответ в чате; озвучка недоступна. Повторите позже"
@@ -648,6 +701,7 @@ public final class DialogueService {
     }
 
     void reportFailure(Session session, Request request, Throwable failure) {
+        if (request != null && request.overheard == null && session.run != null) { journal.failed(session.run, "llm_done", Failures.plain(failure)); session.run = null; }
         if (request != null && !isCurrent(session, request)) return;
         if (session.actionRequest != null) session.actionRequest.completeExceptionally(failure);
         session.actionRequest = null;
