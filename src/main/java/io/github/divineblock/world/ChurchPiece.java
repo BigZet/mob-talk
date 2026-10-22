@@ -41,19 +41,38 @@ public final class ChurchPiece extends StructurePiece {
     }
 
     public ChurchPiece(Frame frame, ChurchBuilder.Variant variant, long seed) {
-        super(ChurchWorldgen.CHURCH_PIECE, 0, box(frame));
+        super(ChurchWorldgen.CHURCH_PIECE, 0, box(frame, variant));
         this.frame = frame; this.variant = variant; this.seed = seed;
     }
 
     public ChurchPiece(StructureContext context, NbtCompound nbt) {
         super(ChurchWorldgen.CHURCH_PIECE, nbt);
         frame = Frame.read(nbt);
-        variant = nbt.getString("Variant").equals("WOOD") ? ChurchBuilder.Variant.WOOD : ChurchBuilder.Variant.STONE;
+        variant = ChurchBuilder.Variant.of(nbt.getString("Variant"));
         seed = nbt.getLong("Seed");
     }
 
-    static BlockBox box(Frame frame) {
+    static BlockBox box(Frame frame, ChurchBuilder.Variant variant) {
+        if (variant == ChurchBuilder.Variant.SLAVIC)
+            return frame.box(SlavicChurch.MIN_X, 0, SlavicChurch.MIN_Z, SlavicChurch.MAX_X, SlavicChurch.MAX_Y, SlavicChurch.MAX_Z);
         return frame.box(ChurchBuilder.MIN_X, 0, ChurchBuilder.MIN_Z, ChurchBuilder.MAX_X, ChurchBuilder.MAX_Y, ChurchBuilder.MAX_Z);
+    }
+
+    /** The places that move with the plan, in the church's own coordinates: the altar (on the holy table's floor), the chest,
+     * the boss seal (in the floor), and two free points for bosses inside (the nave's middle and the west part). */
+    public static BlockPos altar(ChurchBuilder.Variant v) {
+        return v == ChurchBuilder.Variant.SLAVIC ? new BlockPos(SlavicChurch.ALTAR_X, SlavicChurch.ALTAR_Y, 0) : new BlockPos(ChurchBuilder.ALTAR_X, 1, ChurchBuilder.ALTAR_Z);
+    }
+    public static BlockPos chest(ChurchBuilder.Variant v) {
+        return v == ChurchBuilder.Variant.SLAVIC ? new BlockPos(SlavicChurch.CHEST_X, SlavicChurch.CHEST_Y, SlavicChurch.CHEST_Z) : new BlockPos(ChurchBuilder.CHEST_X, 1, ChurchBuilder.CHEST_Z);
+    }
+    public static BlockPos seal(ChurchBuilder.Variant v) {
+        return v == ChurchBuilder.Variant.SLAVIC ? new BlockPos(SlavicChurch.SEAL_X, SlavicChurch.SEAL_Y, SlavicChurch.SEAL_Z) : new BlockPos(ChurchBuilder.SEAL_X, 0, ChurchBuilder.SEAL_Z);
+    }
+    /** The middle of the yard north of the church: open grass for a fight (the Slavic church's tower stands where it is for the others). */
+    public static BlockPos yardNorth(ChurchBuilder.Variant v) {
+        // KAIZEN87's church fills the yard's middle from x -6 to 72: its open ground is the west yard by the Holy Gate.
+        return v == ChurchBuilder.Variant.SLAVIC ? new BlockPos(-20, 0, -20) : new BlockPos(28, 0, -25);
     }
 
     @Override protected void writeNbt(StructureContext context, NbtCompound nbt) {
@@ -66,7 +85,10 @@ public final class ChurchPiece extends StructurePiece {
 
     @Override public void generate(StructureWorldAccess world, StructureAccessor structures, ChunkGenerator generator, Random random,
                                    BlockBox chunkBox, ChunkPos chunk, BlockPos pivot) {
-        new ChurchBuilder(canvas(world, chunkBox, frame, random), seed, variant).build();
+        if (variant == ChurchBuilder.Variant.SLAVIC) {
+            SlavicChurch.place(world, chunkBox, frame, random);
+            SlavicChurch.fit(canvas(world, chunkBox, frame, random));
+        } else new ChurchBuilder(canvas(world, chunkBox, frame, random), seed, variant).build();
         bossSeal(world, chunkBox);
         ChurchSites.decorate(world, chunkBox, site(), random);
     }
@@ -74,7 +96,7 @@ public final class ChurchPiece extends StructurePiece {
     /** The bosses thread's seal (divineblock:boss_seal) under the sanctuary floor: it wakes the church's guardian. Looked up by
      * id only, so the church builds without that code; absent, nothing is placed. */
     private void bossSeal(StructureWorldAccess world, BlockBox chunkBox) {
-        BlockPos at = frame.world(ChurchBuilder.SEAL_X, 0, ChurchBuilder.SEAL_Z);
+        BlockPos local = seal(variant), at = frame.world(local.getX(), local.getY(), local.getZ());
         if (!chunkBox.contains(at)) return;
         var block = Registries.BLOCK.getOrEmpty(BOSS_SEAL);
         if (block.isEmpty()) return;
@@ -83,7 +105,7 @@ public final class ChurchPiece extends StructurePiece {
         if (seal == null) return;
         NbtCompound nbt = new NbtCompound();
         nbt.putString("boss", "church");
-        nbt.putInt("power", variant == ChurchBuilder.Variant.STONE ? 3 : 2);
+        nbt.putInt("power", variant == ChurchBuilder.Variant.WOOD ? 2 : 3);
         nbt.putInt("radius", 20);
         nbt.putBoolean("night", false);
         nbt.putInt("cooldownDays", 1);

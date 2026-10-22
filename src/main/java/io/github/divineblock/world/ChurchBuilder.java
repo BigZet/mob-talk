@@ -37,7 +37,16 @@ import net.minecraft.util.math.random.Random;
  * The whole drawing runs again for every chunk the church touches; the canvas keeps only that chunk's blocks, so the random
  * choices must come in the same order every time (one seeded random, no branching on what the world holds). */
 public final class ChurchBuilder {
-    public enum Variant { STONE, WOOD }
+    /** STONE and WOOD are drawn here; SLAVIC is KAIZEN87's "Slavic Church" placed from its template ({@link SlavicChurch}). */
+    public enum Variant {
+        STONE, WOOD, SLAVIC;
+        /** The height of feet standing on the church floor (the floor itself is one lower). */
+        public int stand() { return this == SLAVIC ? SlavicChurch.STAND : 1; }
+        static Variant of(String name) {
+            for (Variant v : values()) if (v.name().equals(name)) return v;
+            return STONE;
+        }
+    }
 
     /** The open churchyard inside the white wall (the wall itself stands one block outside these bounds), ground at y = -1. */
     public static final int YARD_MIN_X = -32, YARD_MAX_X = 88, YARD_MIN_Z = -38, YARD_MAX_Z = 38;
@@ -65,6 +74,16 @@ public final class ChurchBuilder {
         void chest(int x, int y, int z, BlockState state);
         /** Whether anything in this column can land in the chunk being drawn: lets the big loops skip the rest. */
         default boolean column(int x, int z) { return true; }
+    }
+
+    /** The same canvas with everything moved by (dx, dy, dz): lets a church of another plan reuse the fittings. */
+    static Canvas shifted(Canvas canvas, int dx, int dy, int dz) {
+        return new Canvas() {
+            @Override public void set(int x, int y, int z, BlockState state) { canvas.set(x + dx, y + dy, z + dz, state); }
+            @Override public void foundation(int x, int y, int z, BlockState state) { canvas.foundation(x + dx, y + dy, z + dz, state); }
+            @Override public void chest(int x, int y, int z, BlockState state) { canvas.chest(x + dx, y + dy, z + dz, state); }
+            @Override public boolean column(int x, int z) { return canvas.column(x + dx, z + dz); }
+        };
     }
 
     private final Canvas canvas;
@@ -110,7 +129,7 @@ public final class ChurchBuilder {
         porch();
         openings();
         interior();
-        iconostasis();
+        iconostasis(canvas, stone);
         sanctuary();
     }
 
@@ -417,7 +436,7 @@ public final class ChurchBuilder {
     // ---- Doors, windows. ----
 
     private void openings() {
-        door(0, 0, Direction.EAST);
+        door(canvas, 0, 0, Direction.EAST);
         for (int y = 1; y <= 4; y++) { canvas.set(0, y, -1, accent()); canvas.set(0, y, 1, accent()); }
         canvas.set(0, 3, 0, accent());
         canvas.set(0, 4, 0, accent());
@@ -426,7 +445,7 @@ public final class ChurchBuilder {
         for (int y = 1; y <= 4; y++) for (int z = -1; z <= 1; z++) for (int x = 11; x <= 13; x++) canvas.set(x, y, z, Blocks.AIR.getDefaultState());
         for (int y = 1; y <= 8; y++) for (int z = -4; z <= 4; z++) for (int x = 29; x <= 31; x++) canvas.set(x, y, z, Blocks.AIR.getDefaultState());
         for (int z : new int[] { -9, 9 }) {
-            door(21, z, z < 0 ? Direction.NORTH : Direction.SOUTH);
+            door(canvas, 21, z, z < 0 ? Direction.NORTH : Direction.SOUTH);
             for (int y = 1; y <= 2; y++) canvas.set(21, y, z < 0 ? -8 : 8, Blocks.AIR.getDefaultState());
             for (int y = 1; y <= 3; y++) { canvas.set(20, y, z, accent()); canvas.set(22, y, z, accent()); }
             canvas.set(21, 3, z, accent());
@@ -450,7 +469,7 @@ public final class ChurchBuilder {
         canvas.set(x, y0 - 1, z, accent());
         canvas.set(x, y1 + 1, z, accent());
     }
-    private void door(int x, int z, Direction facing) {
+    static void door(Canvas canvas, int x, int z, Direction facing) {
         canvas.set(x, 1, z, Blocks.DARK_OAK_DOOR.getDefaultState().with(DoorBlock.FACING, facing).with(DoorBlock.HALF, DoubleBlockHalf.LOWER).with(DoorBlock.HINGE, DoorHinge.LEFT));
         canvas.set(x, 2, z, Blocks.DARK_OAK_DOOR.getDefaultState().with(DoorBlock.FACING, facing).with(DoorBlock.HALF, DoubleBlockHalf.UPPER).with(DoorBlock.HINGE, DoorHinge.LEFT));
     }
@@ -510,10 +529,10 @@ public final class ChurchBuilder {
         // A few cobwebs high in the tower.
         for (int k = 0; k < 4; k++) canvas.set(2 + random.nextInt(8), 11 + random.nextInt(3), random.nextBoolean() ? -4 : 4, Blocks.COBWEB.getDefaultState());
     }
-    private static BlockState candles(int count, boolean lit) {
+    static BlockState candles(int count, boolean lit) {
         return Blocks.CANDLE.getDefaultState().with(CandleBlock.CANDLES, count).with(CandleBlock.LIT, lit);
     }
-    private static BlockState icon(int art, Direction facing) {
+    static BlockState icon(int art, Direction facing) {
         return ChurchBlocks.ICON_PANEL.getDefaultState().with(ChurchBlocks.IconBlock.ART, art).with(ChurchBlocks.Facing.FACING, facing);
     }
 
@@ -521,7 +540,7 @@ public final class ChurchBuilder {
      * icons of the Saviour and the Theotokos, the deacon doors with archangels, the temple's icon), the Deesis, the feasts and
      * the prophets on gilded beams, the Crucifixion over all. Icons hang on its west face (x = 47); the royal doors stand in
      * its line. */
-    private void iconostasis() {
+    static void iconostasis(Canvas canvas, boolean stone) {
         int x = ICONOSTASIS_X, top = stone ? 15 : 13;
         BlockState back = stone ? Blocks.GOLD_BLOCK.getDefaultState() : Blocks.DARK_OAK_PLANKS.getDefaultState();
         BlockState beam = stone ? Blocks.GOLD_BLOCK.getDefaultState() : Blocks.STRIPPED_DARK_OAK_LOG.getDefaultState().with(PillarBlock.AXIS, Direction.Axis.Z);
@@ -535,8 +554,8 @@ public final class ChurchBuilder {
         // -4..-3 the Theotokos, -2 col, -1..0 the royal doors, 1 col, 2..3 the Saviour, 4 col, 5 south deacon door, 6 col,
         // 7..8 the Baptist and Michael, 9..10 col.
         for (int z : new int[] { -10, -7, -5, -2, 1, 4, 6, 9, 10 }) for (int y = 1; y <= 4; y++) canvas.set(x - 1, y, z, column);
-        large(x - 1, -4, ChurchBlocks.IconBlock.THEOTOKOS_LARGE);
-        large(x - 1, 2, ChurchBlocks.IconBlock.CHRIST_LARGE);
+        large(canvas, x - 1, -4, ChurchBlocks.IconBlock.THEOTOKOS_LARGE);
+        large(canvas, x - 1, 2, ChurchBlocks.IconBlock.CHRIST_LARGE);
         for (int y = 2; y <= 3; y++) {
             canvas.set(x - 1, y, -9, icon(y == 3 ? ChurchBlocks.IconBlock.NICHOLAS : ChurchBlocks.IconBlock.TRINITY, Direction.WEST));
             canvas.set(x - 1, y, -8, icon(y == 3 ? ChurchBlocks.IconBlock.TRINITY : ChurchBlocks.IconBlock.NICHOLAS, Direction.WEST));
@@ -549,7 +568,7 @@ public final class ChurchBuilder {
         canvas.set(x, 4, -1, beam); canvas.set(x, 4, 0, beam);
         // The deacon doors: real doors through to the sanctuary, an archangel over each.
         for (int z : new int[] { -6, 5 }) {
-            door(x, z, Direction.EAST);
+            door(canvas, x, z, Direction.EAST);
             canvas.set(x - 1, 3, z, icon(ChurchBlocks.IconBlock.MICHAEL, Direction.WEST));
         }
         // The upper tiers: Deesis (y 6..7, larger: two icons a saint), the feasts (y 9..10), the prophets (y 12..13).
@@ -574,7 +593,7 @@ public final class ChurchBuilder {
         for (int z : new int[] { -6, 5 }) { canvas.set(46, 1, z, Blocks.AIR.getDefaultState()); canvas.set(47, 1, z, Blocks.AIR.getDefaultState()); }
     }
     /** A great 2 x 2 icon at x, its left (north) column at z, its bottom at y = 2. */
-    private void large(int x, int z, int first) {
+    private static void large(Canvas canvas, int x, int z, int first) {
         canvas.set(x, 3, z, icon(first, Direction.WEST)); canvas.set(x, 3, z + 1, icon(first + 1, Direction.WEST));
         canvas.set(x, 2, z, icon(first + 2, Direction.WEST)); canvas.set(x, 2, z + 1, icon(first + 3, Direction.WEST));
     }

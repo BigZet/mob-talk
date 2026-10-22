@@ -30,13 +30,15 @@ public final class ChurchSites {
     public record Site(ChurchBuilder.Variant variant, BlockPos origin, BlockRotation rotation, BlockPos altar, BlockPos naveCenter, BlockPos chest,
                        List<BlockPos> bossPoints, BlockBox church, BlockBox cemetery, BlockBox yard, BlockPos outdoorSpot) {
         static Site of(ChurchPiece.Frame frame, ChurchBuilder.Variant variant) {
-            BlockPos nave = frame.world(ChurchBuilder.NAVE_X, 1, ChurchBuilder.NAVE_Z);
+            int stand = variant.stand();
+            BlockPos nave = frame.world(ChurchBuilder.NAVE_X, stand, ChurchBuilder.NAVE_Z);
             int middle = (ChurchBuilder.CEMETERY_MIN_Z + ChurchBuilder.CEMETERY_MAX_Z) / 2;
             BlockPos outdoor = frame.world(ChurchBuilder.OUTDOOR_X, 0, ChurchBuilder.OUTDOOR_Z);
-            return new Site(variant, frame.origin(), frame.rotation(), frame.world(ChurchBuilder.ALTAR_X, 1, ChurchBuilder.ALTAR_Z), nave,
-                    frame.world(ChurchBuilder.CHEST_X, 1, ChurchBuilder.CHEST_Z),
-                    List.of(nave, frame.world(21, 1, 0), outdoor, frame.world(28, 0, -25), frame.world(ChurchBuilder.CEMETERY_ENTRANCE_X, 0, middle)),
-                    ChurchPiece.box(frame), CemeteryPiece.box(frame), ChurchYard.open(frame), outdoor);
+            BlockPos altar = ChurchPiece.altar(variant), chest = ChurchPiece.chest(variant), north = ChurchPiece.yardNorth(variant);
+            return new Site(variant, frame.origin(), frame.rotation(), frame.world(altar.getX(), altar.getY(), altar.getZ()), nave,
+                    frame.world(chest.getX(), chest.getY(), chest.getZ()),
+                    List.of(nave, frame.world(21, stand, 0), outdoor, frame.world(north.getX(), 0, north.getZ()), frame.world(ChurchBuilder.CEMETERY_ENTRANCE_X, 0, middle)),
+                    ChurchPiece.box(frame, variant), CemeteryPiece.box(frame), ChurchYard.open(frame), outdoor);
         }
     }
 

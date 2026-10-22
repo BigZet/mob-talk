@@ -9,6 +9,7 @@ import io.github.divineblock.world.ChurchPiece;
 import io.github.divineblock.world.ChurchStructure;
 import io.github.divineblock.world.ChurchSites;
 import io.github.divineblock.world.ChurchWorldgen;
+import io.github.divineblock.world.SlavicChurch;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -131,19 +132,23 @@ public final class ChurchSelfTest {
         // Up to three churches, looking for both kinds.
         Map<ChurchBuilder.Variant, ChurchSites.Site> sites = new TreeMap<>();
         List<ChurchSites.Site> all = new ArrayList<>();
+        // -Ddivineblock.churchtest.only=SLAVIC (or a comma list) photographs only those kinds, each forced far away.
+        String onlyProperty = System.getProperty("divineblock.churchtest.only", "");
+        java.util.Set<ChurchBuilder.Variant> only = java.util.EnumSet.noneOf(ChurchBuilder.Variant.class);
+        for (String name : onlyProperty.split(",")) for (ChurchBuilder.Variant v : ChurchBuilder.Variant.values()) if (v.name().equalsIgnoreCase(name.trim())) only.add(v);
         BlockPos[] from = { player.getBlockPos(), player.getBlockPos().add(4000, 0, 0), player.getBlockPos().add(0, 0, 4000), player.getBlockPos().add(-4000, 0, -4000) };
-        for (BlockPos start : from) {
+        for (BlockPos start : only.isEmpty() ? from : new BlockPos[0]) {
             ChurchSites.Site site = locate(world, start);
             if (site == null) continue;
             all.add(site);
             sites.putIfAbsent(site.variant(), site);
-            if (sites.size() == 2) break;
+            if (sites.size() == ChurchBuilder.Variant.values().length) break;
         }
-        // The kind not met yet is forced for churches in untouched land far away, so both are always photographed.
+        // The kinds not met yet are forced for churches in untouched land far away (each kind its own), so all are photographed.
         for (ChurchBuilder.Variant kind : ChurchBuilder.Variant.values()) {
-            if (sites.containsKey(kind) || sites.isEmpty()) continue;
+            if (sites.containsKey(kind) || sites.isEmpty() && only.isEmpty() || !only.isEmpty() && !only.contains(kind)) continue;
             ChurchStructure.forceVariant = kind;
-            ChurchSites.Site forced = locate(world, player.getBlockPos().add(12_000, 0, -12_000));
+            ChurchSites.Site forced = locate(world, player.getBlockPos().add(12_000 + 5_000 * kind.ordinal(), 0, -12_000));
             ChurchStructure.forceVariant = null;
             if (forced != null) { all.add(forced); sites.putIfAbsent(forced.variant(), forced); log("  вид " + kind + " получен принудительно: " + forced.variant()); }
         }
@@ -185,17 +190,21 @@ public final class ChurchSelfTest {
         check(world.getBlockEntity(site.chest()) instanceof ChestBlockEntity, "сундук с лутом на месте");
         check(world.getBlockState(site.naveCenter()).isAir() && world.getBlockState(site.naveCenter().up()).isAir(), "точка босса в центре храма свободна");
         ChurchPiece.Frame frame = new ChurchPiece.Frame(site.origin(), site.rotation());
-        int bells = 0;
-        var belfry = frame.box(0, 15, -6, 12, 28, 6);
-        for (BlockPos pos : BlockPos.iterate(belfry.getMinX(), belfry.getMinY(), belfry.getMinZ(), belfry.getMaxX(), belfry.getMaxY(), belfry.getMaxZ()))
-            if (world.getBlockState(pos).isOf(io.github.divineblock.world.ChurchBlocks.CHURCH_BELL)) bells++;
-        check(bells == 7, "колоколов на звоннице: " + bells + " (ждём 7), поворот " + site.rotation());
-        int crosses = 0;
-        var whole = frame.box(ChurchBuilder.MIN_X, 0, ChurchBuilder.MIN_Z, ChurchBuilder.MAX_X, ChurchBuilder.MAX_Y, ChurchBuilder.MAX_Z);
-        for (BlockPos pos : BlockPos.iterate(whole.getMinX(), whole.getMinY(), whole.getMinZ(), whole.getMaxX(), whole.getMaxY(), whole.getMaxZ()))
-            if (world.getBlockState(pos).isOf(io.github.divineblock.world.ChurchBlocks.DOME_CROSS)) crosses++;
-        check(crosses >= 6, "восьмиконечных крестов на церкви: " + crosses);
-        BlockPos wallAt = frame.world(30, 5, -12), yardAt = frame.world(28, 0, -25), gateWall = frame.world(ChurchBuilder.YARD_MIN_X - 1, 2, 10);
+        boolean slavic = site.variant() == ChurchBuilder.Variant.SLAVIC;
+        int bells = 0, crosses = 0;
+        var whole = site.church();
+        for (BlockPos pos : BlockPos.iterate(whole.getMinX(), whole.getMinY(), whole.getMinZ(), whole.getMaxX(), whole.getMaxY(), whole.getMaxZ())) {
+            var state = world.getBlockState(pos);
+            if (state.isOf(io.github.divineblock.world.ChurchBlocks.CHURCH_BELL)) bells++;
+            else if (state.isOf(io.github.divineblock.world.ChurchBlocks.DOME_CROSS)) crosses++;
+        }
+        int bellsWanted = slavic ? SlavicChurch.BELLS : 7;
+        check(bells == bellsWanted, "колоколов на звоннице: " + bells + " (ждём " + bellsWanted + "), поворот " + site.rotation());
+        // KAIZEN87's church keeps the author's own crosses on its spires; ours stand on the drawn churches.
+        if (slavic) log("  восьмиконечных крестов мода на церкви: " + crosses + " (у купола свои кресты автора)");
+        else check(crosses >= 6, "восьмиконечных крестов на церкви: " + crosses);
+        BlockPos north = ChurchPiece.yardNorth(site.variant());
+        BlockPos wallAt = slavic ? frame.world(SlavicChurch.ALTAR_X, SlavicChurch.ALTAR_Y, 0) : frame.world(30, 5, -12), yardAt = frame.world(north.getX(), 0, north.getZ()), gateWall = frame.world(ChurchBuilder.YARD_MIN_X - 1, 2, 10);
         check(ChurchSites.isChurchBlock(world, wallAt) && ChurchSites.isChurchBlock(world, gateWall) && !ChurchSites.isChurchBlock(world, yardAt),
                 "isChurchBlock: стена церкви и ограда — да, трава двора — нет");
         check(ChurchSites.yard(world, yardAt).isPresent() && ChurchSites.outdoorSpot(world, yardAt).isPresent(),
@@ -211,7 +220,9 @@ public final class ChurchSelfTest {
         int yardBlocked = 0;
         for (int x = ChurchBuilder.YARD_MIN_X; x <= ChurchBuilder.YARD_MAX_X; x += 4)
             for (int z = ChurchBuilder.YARD_MIN_Z; z <= ChurchBuilder.YARD_MAX_Z; z += 4) {
-                if (x >= ChurchBuilder.MIN_X - 1 && x <= ChurchBuilder.MAX_X + 1 && Math.abs(z) <= 14) continue;
+                int x0 = slavic ? SlavicChurch.MIN_X : ChurchBuilder.MIN_X, x1 = slavic ? SlavicChurch.MAX_X : ChurchBuilder.MAX_X;
+                int z0 = slavic ? SlavicChurch.MIN_Z : ChurchBuilder.MIN_Z, z1 = slavic ? SlavicChurch.MAX_Z : ChurchBuilder.MAX_Z;
+                if (x >= x0 - 1 && x <= x1 + 1 && z >= z0 - 1 && z <= z1 + 1) continue;
                 // The towers, the gates, the trees and the little buildings keep to a band along the wall.
                 int band = io.github.divineblock.world.ChurchYard.BAND;
                 if (x < ChurchBuilder.YARD_MIN_X + band || x > ChurchBuilder.YARD_MAX_X - band || Math.abs(z) > ChurchBuilder.YARD_MAX_Z - band) continue;
@@ -229,7 +240,7 @@ public final class ChurchSelfTest {
         if (pool) check(yard > 0 && !stand, "кладбище из пула divineblock:cemetery/start пристроено: частей " + yard);
         else check(stand, "пула кладбища нет — стоит заглушка кладбища");
         var seal = net.minecraft.registry.Registries.BLOCK.getOrEmpty(Identifier.of(DivineBlockMod.ID, "boss_seal"));
-        BlockPos sealAt = frame.world(ChurchBuilder.SEAL_X, 0, ChurchBuilder.SEAL_Z);
+        BlockPos sealLocal = ChurchPiece.seal(site.variant()), sealAt = frame.world(sealLocal.getX(), sealLocal.getY(), sealLocal.getZ());
         if (seal.isPresent()) {
             var entity = world.getBlockEntity(sealAt);
             String nbt = entity == null ? "нет" : entity.createNbt(world.getRegistryManager()).toString();
@@ -287,13 +298,22 @@ public final class ChurchSelfTest {
         shot.accept("24-cemetery", new double[] { 28, 42, 26, 28, 0, 62, 100 });
         shot.accept("25-cemetery-top", new double[] { 28, 95, 62, 28, 0, 64, 140 });
         // The churchyard: the Holy Gate from outside, the north side with the spring and the chapel, the south side.
-        shot.accept("26-holy-gate-outside", new double[] { -52, 6, 6, -33, 10, 0, 120 });
+        // Outside the wall the ground is the natural one: the camera stands two blocks over it (never inside a hill).
+        steps.add(new Step(10, () -> {
+            BlockPos column = frame.world(-52, 0, 6);
+            world.getChunk(column);
+            int ground = world.getTopPosition(net.minecraft.world.Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, column).getY();
+            double eye = Math.max(6, ground - site.origin().getY() + 2.6);
+            look(player, at.apply(new double[] { -52, eye, 6 }), at.apply(new double[] { -33, 10, 0 }));
+        }));
+        steps.add(new Step(120, () -> screenshot = kind + "-26-holy-gate-outside"));
         shot.accept("27-yard-north", new double[] { -14, 9, -18, 30, 4, -32, 120 });
         shot.accept("28-yard-south", new double[] { 6, 9, 18, 50, 3, 34, 120 });
         shot.accept("29-yard-air", new double[] { -60, 45, -60, 20, 0, 0, 140 });
         // Ring the great bell once.
         steps.add(new Step(10, () -> {
-            BlockPos bell = frame.world(ChurchBuilder.BELL_X, ChurchBuilder.BELL_Y, ChurchBuilder.BELL_Z);
+            BlockPos bell = site.variant() == ChurchBuilder.Variant.SLAVIC
+                    ? frame.world(SlavicChurch.BELL_X, SlavicChurch.BEAM_Y - 2, SlavicChurch.BELL_Z) : frame.world(ChurchBuilder.BELL_X, ChurchBuilder.BELL_Y, ChurchBuilder.BELL_Z);
             boolean ok = world.getBlockState(bell).isOf(io.github.divineblock.world.ChurchBlocks.CHURCH_BELL);
             if (ok) io.github.divineblock.world.ChurchBlocks.ChurchBellBlock.ring(world, bell, 2);
             check(ok, "великий колокол на месте и звонит: " + world.getBlockState(bell));

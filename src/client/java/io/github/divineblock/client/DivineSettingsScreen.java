@@ -74,6 +74,11 @@ public final class DivineSettingsScreen extends DivinePanel {
         toggle("Церкви в мире", "Церкви появляются в новых чанках.", config.churches, v -> config.churches = v);
         cycle("Редкость церквей", "Не больше одной церкви на столько чанков по каждой стороне.", List.of(32, 48, 64, 80, 100, 150, 256),
                 nearest(config.churchSpacing, 32, 48, 64, 80, 100, 150, 256), v -> v + " чанков", v -> config.churchSpacing = v);
+        // Which of the three churches new chunks get: all mixed, or one kind only to compare them.
+        cycle("Вид церквей", "Какие церкви ставятся в новых чанках: все вперемешку или только один вид, чтобы сравнить.",
+                List.of("", "STONE", "WOOD", "SLAVIC"), config.churchVariant,
+                v -> switch (v) { case "STONE" -> "каменная"; case "WOOD" -> "деревянная"; case "SLAVIC" -> "Slavic Church"; default -> "все вперемешку"; },
+                v -> config.churchVariant = v);
 
         heading("Ключи");
         keyRow("Ключ OpenRouter", ApiKeys.Provider.OPENROUTER, openRouterKey, v -> openRouterKey = v);

@@ -10,3 +10,6 @@ __pycache__/
 *key.txt
 .env
 config/
+
+# Imported reference worlds (local only)
+/import/
