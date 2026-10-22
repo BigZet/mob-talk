@@ -21,6 +21,15 @@ public final class SpeechStream implements AutoCloseable {
         return stream;
     }
 
+    /** An empty stream that something outside this package fills: the client feeds it the chunks of a clip from the server. */
+    public static SpeechStream open(int maxBytes) { return new SpeechStream(Math.max(2, maxBytes)); }
+    /** Appends received audio; false once the stream was closed or ended. */
+    public boolean feed(byte[] pcm) { return pcm == null || append(ByteBuffer.wrap(pcm)); }
+    /** No more audio will come. */
+    public void end() { finish(); }
+    /** Bytes received so far (the server slices the growing stream into chunks). */
+    public synchronized int size() { return size & ~1; }
+
     synchronized void onCancel(Runnable action) { cancel = action; if (closed) action.run(); }
 
     /** Returns false when the stream was closed or grew past its limit, telling the download to stop. */

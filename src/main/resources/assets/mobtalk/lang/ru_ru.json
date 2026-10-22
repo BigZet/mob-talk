@@ -626,5 +626,14 @@
   "item.mobtalk.wedding_ring": "Обручальное кольцо",
   "item.mobtalk.flower_wreath": "Венок из цветов",
   "item.mobtalk.bridal_veil": "Фата с венком",
-  "item.mobtalk.wedding_crown": "Свадебный венец"
+  "item.mobtalk.wedding_crown": "Свадебный венец",
+  "mobtalk.tune.sttTimeoutSeconds": "Ожидание распознавания на сервере: %s с",
+  "mobtalk.tune.sttTimeoutSeconds.tooltip": "Сколько секунд сервер ждёт OpenRouter STT, прежде чем один раз спросить запасную модель.",
+  "mobtalk.settings.group.sttServer": "Распознавание на сервере",
+  "mobtalk.voice.path.auto": "Распознавание: само (локально → сервер → текст)",
+  "mobtalk.voice.path.local": "Распознавание: локальный Whisper",
+  "mobtalk.voice.path.server": "Распознавание: на сервере",
+  "mobtalk.voice.path.text": "Распознавание: только текст",
+  "mobtalk.test.server": "Запись ушла на сервер, ждём текст…",
+  "mobtalk.test.server.result": "Сервер распознал (%s с): %s"
 }

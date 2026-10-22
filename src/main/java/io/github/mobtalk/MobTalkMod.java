@@ -28,6 +28,8 @@ import io.github.mobtalk.server.SpeechService;
 import io.github.mobtalk.server.StubSpeech;
 import io.github.mobtalk.server.StubTranscription;
 import io.github.mobtalk.server.TranscriptionService;
+import io.github.mobtalk.server.VoiceIntake;
+import io.github.mobtalk.server.VoiceServices;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -41,7 +43,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -99,6 +100,7 @@ public final class MobTalkMod implements ModInitializer {
             ServerConfig.listen(Tuning::apply);
         }
         ServerConfig.listen(MobTalkMod::reconfigure);
+        VoiceServices.install(); // Трек B: распознавание и озвучка на сервере вместо заглушек.
         ServerLifecycleEvents.SERVER_STARTED.register(MobTalkMod::started);
         ServerLifecycleEvents.SERVER_STOPPING.register(MobTalkMod::stopping);
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> sendFeatures(handler.getPlayer()));
@@ -168,7 +170,8 @@ public final class MobTalkMod implements ModInitializer {
         MobTalkConfig config = ServerConfig.get();
         UUID streamer = ServerConfig.streamer();
         ServerPlayerEntity star = streamer == null || player.getServer() == null ? null : player.getServer().getPlayerManager().getPlayer(streamer);
-        return new ServerFeatures(version(), config.enabled, false, false, false, List.of("local", "text"), config.maxRecordingSeconds,
+        return new ServerFeatures(version(), config.enabled, false,
+                VoiceServices.transcription(config), VoiceServices.speech(config), VoiceServices.sttPaths(config), config.maxRecordingSeconds,
                 permissions.level(player).name(), star == null ? "" : star.getGameProfile().getName());
     }
     private static void sendFeatures(ServerPlayerEntity player) {
@@ -187,7 +190,9 @@ public final class MobTalkMod implements ModInitializer {
     private static void registerReceivers() {
         ServerPlayNetworking.registerGlobalReceiver(TalkStartC2S.ID, (payload, context) -> notYet(context.player(), "TalkStartC2S " + payload.mobId()));
         ServerPlayNetworking.registerGlobalReceiver(TalkTextC2S.ID, (payload, context) -> notYet(context.player(), "TalkTextC2S " + payload.mobId()));
-        ServerPlayNetworking.registerGlobalReceiver(TalkAudioC2S.ID, (payload, context) -> notYet(context.player(), "TalkAudioC2S " + payload.seconds() + " с"));
+        // Трек B: аудио распознаётся здесь; трек A вместо notYet отдаёт текст диалогу (как TalkTextC2S с fromVoice=true).
+        ServerPlayNetworking.registerGlobalReceiver(TalkAudioC2S.ID, (payload, context) ->
+                VoiceIntake.receive(context.player(), payload, text -> notYet(context.player(), "TalkAudioC2S «" + text + "»")));
         ServerPlayNetworking.registerGlobalReceiver(TalkCancelC2S.ID, (payload, context) -> LOGGER.info("Mob Talk: TalkCancelC2S от {}: {}", context.player().getGameProfile().getName(), payload.reason()));
         ServerPlayNetworking.registerGlobalReceiver(GiftC2S.ID, (payload, context) -> notYet(context.player(), "GiftC2S " + payload.mobId()));
         ServerPlayNetworking.registerGlobalReceiver(MobActionC2S.ID, (payload, context) -> notYet(context.player(), "MobActionC2S " + payload.mobId()));

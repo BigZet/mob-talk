@@ -30,6 +30,18 @@ public final class MobTalkConfig {
     public String veniceTtsModel = "tts-kokoro";
     /** The Venice voice every mob speaks with; Kokoro has no Russian voices, so this is an accent at best. */
     public String veniceVoice = "af_sky";
+    /** Как распознаётся речь этого игрока (раздел 3 плана сервера, личная настройка): {@code auto} — локальный Whisper, если он
+     * установлен, иначе сервер, иначе текст; {@code local}, {@code server}, {@code text} — явно (см. {@link SttRoute}). */
+    public String sttPath = SttRoute.AUTO;
+    /** Распознавание на сервере через OpenRouter: модель и запасная, на которую уходит одна повторная попытка (разведка F). */
+    public String sttModel = "mistralai/voxtral-mini-transcribe-3-0";
+    public String sttFallbackModel = "openai/whisper-large-v3";
+    /** Сервер принимает аудио игроков и распознаёт его через OpenRouter (путь {@code server}). */
+    public boolean sttServer = true;
+    /** Сервер с видеокартой распознаёт аудио игроков своим локальным Whisper ({@code server-local}); OpenRouter — запасной. */
+    public boolean sttServerLocal = false;
+    /** Своё ожидание OpenRouter STT: у voxtral бывают выбросы по 25 с, лучше сразу спросить запасную модель. */
+    public int sttTimeoutSeconds = 8;
     public String whisperUrl = "http://127.0.0.1:63919";
     public boolean whisperAutoStart = true;
     public String whisperModel = "large-v3-turbo";
@@ -181,6 +193,7 @@ public final class MobTalkConfig {
         copy.ttsProvider = ttsProvider; copy.ttsModel = ttsModel; copy.veniceTtsModel = veniceTtsModel; copy.veniceVoice = veniceVoice;
         copy.reasoningEffort = reasoningEffort;
         copy.backgroundModel = backgroundModel;
+        copy.sttPath = sttPath; copy.sttModel = sttModel; copy.sttFallbackModel = sttFallbackModel; copy.sttServer = sttServer; copy.sttServerLocal = sttServerLocal;
         copy.whisperUrl = whisperUrl;
         copy.whisperAutoStart = whisperAutoStart;
         copy.whisperModel = whisperModel;
@@ -299,6 +312,11 @@ public final class MobTalkConfig {
         config.veniceTtsModel = textOrDefault(config.veniceTtsModel, defaults.veniceTtsModel);
         config.veniceVoice = textOrDefault(config.veniceVoice, defaults.veniceVoice);
         if (!config.veniceVoice.matches("[A-Za-z0-9_.-]{1,64}")) throw new IOException("Голос Venice: только латиница, цифры, _ . -");
+        config.sttPath = SttRoute.normalize(config.sttPath);
+        config.sttModel = textOrDefault(config.sttModel, defaults.sttModel);
+        if (!SttRoute.validModel(config.sttModel)) config.sttModel = defaults.sttModel;
+        config.sttFallbackModel = config.sttFallbackModel == null ? "" : config.sttFallbackModel.strip();
+        if (!config.sttFallbackModel.isEmpty() && !SttRoute.validModel(config.sttFallbackModel)) config.sttFallbackModel = defaults.sttFallbackModel;
         config.whisperModel = textOrDefault(config.whisperModel, defaults.whisperModel);
         // A catalogue name, a fine-tuned model folder in Whisper's models directory, or its absolute path.
         if (!validWhisperModel(config.whisperModel)) config.whisperModel = defaults.whisperModel;

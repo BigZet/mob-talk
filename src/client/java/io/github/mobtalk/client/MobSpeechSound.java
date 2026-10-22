@@ -18,7 +18,8 @@ import java.util.concurrent.CompletableFuture;
 
 /** A mob's voice, coming from the mob: the source follows it every tick and its volume falls off smoothly with distance
  * ({@link VoiceFalloff}) instead of OpenAL's 16-block linear attenuation and a hard stop at the conversation range. It stops
- * only when the mob dies or unloads, the world changes, or the player is past the point where it is already silent. */
+ * only when the mob dies or unloads, the world changes, or the player is past the point where it is already silent. It plays in the
+ * «Voice/Speech» sound category: every player sets the loudness of mob voices in their own sound options. */
 final class MobSpeechSound extends MovingSoundInstance {
     private final MinecraftClient client;
     private final ClientWorld world;
@@ -31,7 +32,7 @@ final class MobSpeechSound extends MovingSoundInstance {
     private String stopReason = "";
 
     MobSpeechSound(MinecraftClient client, ClientWorld world, UUID target, VoiceFalloff.Curve curve, SpeechStream speech) {
-        super(SoundEvent.of(Identifier.of("mobtalk", "mob_speech")), SoundCategory.NEUTRAL, SoundInstance.createRandom());
+        super(SoundEvent.of(Identifier.of("mobtalk", "mob_speech")), SoundCategory.VOICE, SoundInstance.createRandom());
         this.client = client;
         this.world = world;
         this.target = target;

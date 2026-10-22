@@ -57,6 +57,7 @@ public final class Tunables {
         integer("whisperBeamSize", v, "whisper", 1, 10, 1, c -> c.whisperBeamSize, (c, x) -> c.whisperBeamSize = x);
         integer("whisperVadSilenceMs", v, "whisper", 150, 1500, 1, c -> c.whisperVadSilenceMs, (c, x) -> c.whisperVadSilenceMs = x);
         integer("whisperCpuThreads", v, "whisper", 1, 16, 1, c -> c.whisperCpuThreads, (c, x) -> c.whisperCpuThreads = x);
+        integer("sttTimeoutSeconds", v, "sttServer", 3, 30, 1, c -> c.sttTimeoutSeconds, (c, x) -> c.sttTimeoutSeconds = x);
         integer("requestTimeoutSeconds", m, "requests", 5, 90, 1, c -> c.requestTimeoutSeconds, (c, x) -> c.requestTimeoutSeconds = x);
         integer("firstTokenSeconds", m, "requests", 0, 60, 1, c -> c.firstTokenSeconds, (c, x) -> c.firstTokenSeconds = x);
 

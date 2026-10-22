@@ -44,10 +44,14 @@ final class ClientNet {
             else owner.notice(payload.text());
         });
         ClientPlayNetworking.registerGlobalReceiver(MobSpeechS2C.ID, (payload, context) -> LOGGER.info("Mob Talk: MobSpeechS2C {} «{}» (трек A)", payload.speaker(), payload.text()));
-        ClientPlayNetworking.registerGlobalReceiver(SpeechClipS2C.ID, (payload, context) -> LOGGER.debug("Mob Talk: SpeechClipS2C {} {}/{} (трек B)", payload.clipId(), payload.index(), payload.count()));
+        ClientPlayNetworking.registerGlobalReceiver(SpeechClipS2C.ID, (payload, context) -> SpeechClips.accept(payload));
+        SpeechClips.register();
         ClientPlayNetworking.registerGlobalReceiver(MobStateS2C.ID, (payload, context) -> LOGGER.debug("Mob Talk: MobStateS2C {} (трек A)", payload.mobId()));
         ClientPlayNetworking.registerGlobalReceiver(MobLabelS2C.ID, (payload, context) -> LOGGER.debug("Mob Talk: MobLabelS2C {} (трек A)", payload.mobId()));
-        ClientPlayNetworking.registerGlobalReceiver(ScreenDataS2C.ID, (payload, context) -> LOGGER.debug("Mob Talk: ScreenDataS2C {} (трек A)", payload.screen()));
+        ClientPlayNetworking.registerGlobalReceiver(ScreenDataS2C.ID, (payload, context) -> {
+            if (VoiceInput.screenData(payload)) return; // Трек B: ответ проверки микрофона через сервер.
+            LOGGER.debug("Mob Talk: ScreenDataS2C {} (трек A)", payload.screen());
+        });
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             features = ServerFeatures.none();
             hinted = false;
