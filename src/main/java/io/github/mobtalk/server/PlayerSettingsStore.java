@@ -28,7 +28,9 @@ public final class PlayerSettingsStore {
     });
 
     /** При старте мира: читает {@code <мир>/data/mobtalk/players.json}; повреждённый файл даёт пустое хранилище и предупреждение. */
-    public static synchronized void open(Path worldDirectory) {
+    private static final Object lock = new Object();
+
+    public static void open(Path worldDirectory) {
         players.clear();
         file = worldDirectory.resolve("data").resolve("mobtalk").resolve(FILE);
         if (!Files.exists(file)) return;
@@ -45,7 +47,7 @@ public final class PlayerSettingsStore {
     }
 
     /** При остановке мира: дописать и забыть. */
-    public static synchronized void close() { flush(); players.clear(); file = null; }
+    public static void close() { flush(); players.clear(); file = null; }
 
     /** Настройки игрока; по умолчанию, если он ничего не присылал. */
     public static PlayerSettings of(UUID player) { return players.getOrDefault(player, PlayerSettings.defaults()); }
@@ -62,7 +64,8 @@ public final class PlayerSettingsStore {
         catch (Exception failure) { org.slf4j.LoggerFactory.getLogger("mobtalk-server").warn("Не удалось дописать {}: {}", FILE, failure.toString()); }
     }
 
-    private static synchronized void save() {
+    private static void save() { synchronized (lock) { write(); } }
+    private static void write() {
         Path target = file;
         if (target == null) return;
         JsonObject tree = new JsonObject();

@@ -255,6 +255,33 @@ Mob Talk сам реализует тот же протокол для себя 
 - Секреты только из окружения или DPAPI; в коде, логах, конфигах, журнале админки их нет.
 - В конце — короткий отчёт в треде: что сделано, что проверено, что не доделано, какие точки подключения нужны от интегратора.
 
+### 12.5 Уточнения контракта от трека S1 (22 октября, вечер; код в ветке `bigzet/server-skeleton`)
+
+- **`GameBridge`** (`io.github.mobtalk.game`) — без единого класса Minecraft, чтобы `DialogueService` тестировался с `FakeGameBridge`
+  (он лежит в `src/test/java/io/github/mobtalk/game`). Отличия от списка в брифе: `villageAt(UUID player, String dimension, int x, int z)`
+  (координатная форма `villageWhereStanding`; форма с `ServerWorld` осталась только у `MobGameBridge`), `event(UUID mob, String text)`
+  (моб по памяти, незнакомец пропускается), добавлены `memory()` и `config()`; `Outcome` — вложенный record интерфейса
+  (`GameBridge.Outcome`, у `MobGameBridge` он наследуется). `apply` — короткая форма с 7 аргументами, `applyWithRevision` — полная с 13.
+- **`ServerFeatures`** и **`PlayerSettings`** лежат в `core` (чистые данные с Gson, нужны обеим сторонам). `PlayerSettings` — JSON с одними
+  личными полями `MobTalkConfig` (`of(config)`, `fromJson`, `toJson`, `applyTo(serverSnapshot)`), чужие и серверные ключи отбрасываются.
+  `ServerFeatures(version, enabled, dialogue, transcription, speech, sttPaths, maxRecordingSeconds, level, streamer)`; сейчас сервер шлёт
+  `dialogue/transcription/speech = false` и `sttPaths = [local, text]` — треки A и B меняют это в `MobTalkMod.features`.
+- **`SettingsScope`**: личные поля по настоящим именам — `whisper*`, `microphoneName`, `showStateHud`, `showBargainHud`, `showNameTags`,
+  `playerNames*`, `playerGender`, `humanVillagers`; по префиксу личными станут и будущие `mic*`, `hud*`, `labels*`, `keys*`, `voiceVolume`,
+  `sttPath`. Кроме `personal(field)` есть `fields()`, `personalFields()`, `serverFields()`, `serverOnly(config)`, `merge(server, personal)`.
+- **`ServerConfig`**: к списку брифа добавлены `init(Path configDir)` (выделенный сервер; файл `mobtalk-server.json` хранит серверные поля
+  плюс ключи `streamer` и `admins`), `adopt(MobTalkConfig)` (одиночка: клиент отдаёт встроенному серверу серверные поля своего
+  `mobtalk.json`, файл не пишется), `persistent()`, `setStreamer`, `setAdmins`. `get()` — копия при каждой записи: взятый снимок не меняется.
+- **`PlayerSettingsStore`**: `open(worldDir)`, `close()`, `of`, `put`, `remove`, `size`, `flush()`; запись на своём потоке.
+- **`MobTalkMod`**: службы подменяются `setTranscription/setSpeech/setBudget/setPermissions` (треки B и C), мост ждут через
+  `bridgeReady(server)`, возможности собирает `features(player)`, приёмники C2S трек A заменяет в `registerReceivers`. Клиентские приёмники
+  S2C и отправка `PlayerSettingsC2S` при входе — `client/ClientNet` (трек A и B заменяют тела приёмников своими).
+- **Миксины**: общие теперь в `io.github.mobtalk.game.mixin` (`mobtalk.mixins.json`), клиентские — в `io.github.mobtalk.client.game.mixin`.
+- **Скрипты**: `run-local-server.ps1` целиком за треком E (он уже есть в его ветке); S1 добавил `scripts/run-server-selftest.ps1`
+  (`gradlew runServer -PmobtalkSelftest=true`, раздел 16.3) и конфигурацию `runs.server` в `build.gradle`.
+- **Entrypoint `mobtalk-admin`** в `fabric.mod.json` Mob Talk не объявлен: класс `MobTalkAdminSource` делает трек W1, строку
+  `"mobtalk-admin": ["io.github.mobtalk.server.MobTalkAdminSource"]` в `entrypoints` добавляет интегратор при слиянии W.
+
 ## 13. Брифы тредов
 
 ### S1 «Каркас сервера» — Fable, волна 0, ветка `bigzet/server-skeleton`
