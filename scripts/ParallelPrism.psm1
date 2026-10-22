@@ -98,6 +98,9 @@ function New-TestInstance {
     $opt = "$dst\minecraft\options.txt"
     $o = if (Test-Path -LiteralPath $opt) { @([IO.File]::ReadAllLines($opt) | Where-Object { $_ -notmatch '^pauseOnLostFocus:' }) } else { @() }
     [IO.File]::WriteAllLines($opt, [string[]]($o + 'pauseOnLostFocus:false'), (New-Object Text.UTF8Encoding($false)))
+    # selftest-guard (mob-talk tools\selftest-guard): the game window takes neither focus nor the cursor during a self-test.
+    $guard = Join-Path $env:LOCALAPPDATA 'PrismParallel\selftest-guard.jar'
+    if ((Test-Path -LiteralPath $guard) -and (Test-Path -LiteralPath "$dst\minecraft\mods")) { Copy-Item -LiteralPath $guard "$dst\minecraft\mods\selftest-guard.jar" -Force }
 
     # Mob Talk (mobtalk.json) and Divine Block (divineblock.json) both keep whisperUrl; point every one at this copy's port.
     if ($WhisperPort -gt 0) {
