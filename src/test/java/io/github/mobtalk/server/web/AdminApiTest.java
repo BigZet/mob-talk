@@ -40,7 +40,7 @@ class AdminApiTest {
 
     static final List<String> GETS = List.of("overview", "metrics", "metrics/now", "latency?kind=llm", "history", "history/stats?kind=dialogue",
             "history/export?format=jsonl", "costs", "sources", "sources/mobtalk/values", "sources/divineblock/actions", "config/history", "players",
-            "players/" + DevStubServer.BIGZET, "players/positions", "players/" + DevStubServer.BIGZET + "/position", "waypoints", "mobs", "mobs/fb57b8eb-d3e2-4f1e-8da3-2101caf9f459", "villages", "divine/souls", "divine/active",
+            "players/" + DevStubServer.BIGZET, "players/positions", "players/tracks", "map/info", "map/markers", "players/" + DevStubServer.BIGZET + "/position", "waypoints", "mobs", "mobs/fb57b8eb-d3e2-4f1e-8da3-2101caf9f459", "villages", "divine/souls", "divine/active",
             "server", "server/commands", "logs", "logs/export", "logs/export?filter=mobtalk&level=WARN", "diagnostics", "errors", "backups");
 
     @BeforeEach void start() throws Exception {
@@ -195,6 +195,36 @@ class AdminApiTest {
         assertFalse(history.contains("100.0") || history.contains("-50.0"), "координаты не в истории");
         assertEquals(200, send("DELETE", "/api/waypoints/" + id, null, true).statusCode());
         assertEquals(404, send("DELETE", "/api/waypoints/" + id, null, true).statusCode());
+    }
+
+    @Test void mapTilesTracksAndMarkers() throws Exception {
+        stub.seedMap(64);
+        login("correct horse");
+        String tile = "/api/map/tiles/minecraft%3Aoverworld/0/0/0.png";
+        HttpResponse<byte[]> png = client.send(HttpRequest.newBuilder(URI.create(base + tile)).header("Cookie", cookie).build(), HttpResponse.BodyHandlers.ofByteArray());
+        assertEquals(200, png.statusCode());
+        assertEquals("image/png", png.headers().firstValue("Content-Type").orElse(""));
+        assertEquals("max-age=60", png.headers().firstValue("Cache-Control").orElse(""));
+        String etag = png.headers().firstValue("ETag").orElseThrow();
+        assertNotNull(javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(png.body())));
+        HttpResponse<byte[]> same = client.send(HttpRequest.newBuilder(URI.create(base + tile)).header("Cookie", cookie).header("If-None-Match", etag).build(),
+                HttpResponse.BodyHandlers.ofByteArray());
+        assertEquals(304, same.statusCode());
+        assertEquals(204, send("GET", "/api/map/tiles/minecraft%3Aoverworld/0/90/90.png", null, false).statusCode(), "неисследованный тайл");
+        assertEquals(400, send("GET", "/api/map/tiles/minecraft%3Aoverworld/9/0/0.png", null, false).statusCode());
+        assertEquals(404, send("GET", "/api/map/tiles/minecraft%3Aoverworld/0/0/0.jpg", null, false).statusCode());
+        JsonObject info = json(send("GET", "/api/map/info?world=minecraft:overworld", null, false));
+        assertEquals(-256, info.get("minX").getAsInt(), "границы — по целым тайлам");
+        assertEquals(0, info.getAsJsonObject("spawn").get("x").getAsInt());
+        assertTrue(info.getAsJsonArray("worlds").toString().contains("the_nether"));
+        send("POST", "/api/waypoints", "{\"name\":\"Шахта\",\"world\":\"minecraft:overworld\",\"x\":10,\"y\":20,\"z\":30}", true);
+        String markers = send("GET", "/api/map/markers?world=minecraft:overworld", null, false).body();
+        assertTrue(markers.contains("\"kind\":\"village\"") && markers.contains("Шахта"), markers);
+        JsonObject tracks = json(send("GET", "/api/players/tracks?from=0&points=100", null, false));
+        assertEquals(2, tracks.getAsJsonArray("tracks").size());
+        assertTrue(tracks.getAsJsonArray("tracks").get(0).getAsJsonObject().getAsJsonArray("points").size() <= 101);
+        String history = send("GET", "/api/history?limit=500", null, false).body();
+        assertFalse(history.contains("\"x\":"), "координаты путей не в истории");
     }
 
     @Test void plainHttpIsRefusedOnTheHttpsPort() {

@@ -228,6 +228,15 @@ public final class FixtureGame implements GameView {
         return Json.ok(Json.string(player, "name") + " перемещён");
     }
 
+    @Override public JsonArray mapMarkers(String world) {
+        if (!"minecraft:overworld".equals(world)) return new JsonArray();
+        return Json.array(List.of(
+                Json.obj("kind", "spawn", "id", "spawn", "name", "Спавн мира", "x", 0, "z", 0),
+                Json.obj("kind", "village", "id", "v1", "name", "Берёзовка", "x", 60, "z", -250),
+                Json.obj("kind", "village", "id", "v2", "name", "Заречье", "x", 300, "z", 120),
+                Json.obj("kind", "boss", "id", "wither_saint", "name", "Священный иссушитель", "x", -200, "z", 180)));
+    }
+
     @Override public JsonObject mobs(String village, String query, String cursor, int limit) {
         List<JsonObject> items = new ArrayList<>();
         String q = query == null ? null : query.toLowerCase(Locale.ROOT);
