@@ -206,7 +206,7 @@ public final class DialogueService {
     public void talkStart(UUID player, int entityId) {
         Session session = session(player);
         bridge.mobByEntityId(player, entityId).whenComplete((mob, error) -> onServer(() -> {
-            if (error != null) { session.status(plain(error, "Моб погиб или выгрузился: наведите прицел на другого")); return; }
+            if (error != null) { refuse(session, plain(error, "Моб погиб или выгрузился: наведите прицел на другого")); return; }
             select(session, mob);
             bridge.attend(mob.id(), player, 60);
             session.status(READY);
@@ -215,10 +215,10 @@ public final class DialogueService {
     /** Реплика текстом: от локального Whisper игрока или из чата. */
     public void talkText(UUID player, int entityId, String text, boolean fromVoice, byte[] picture) {
         Session session = session(player);
-        if (text == null || text.isBlank()) { session.status("Речь не распознана: удерживайте голосовую клавишу и произнесите вопрос"); return; }
+        if (text == null || text.isBlank()) { refuse(session, "Речь не распознана: удерживайте голосовую клавишу и произнесите вопрос"); return; }
         if (!"server".equals(session.stt) || !fromVoice) session.stt = fromVoice ? "local" : "text";
         bridge.mobByEntityId(player, entityId).whenComplete((mob, error) -> onServer(() -> {
-            if (error != null) { session.status(plain(error, "Моб погиб или выгрузился")); return; }
+            if (error != null) { refuse(session, plain(error, "Моб погиб или выгрузился")); return; }
             if (!mob.id().equals(session.target)) select(session, mob);
             readyForRequest(session, mob).thenAccept(ready -> onServer(() -> {
                 if (!ready) return;
@@ -235,7 +235,7 @@ public final class DialogueService {
     public void talkAudio(UUID player, int entityId, String format, int seconds, byte[] audio) {
         Session session = session(player);
         bridge.mobByEntityId(player, entityId).whenComplete((mob, error) -> onServer(() -> {
-            if (error != null) { session.status(plain(error, "Моб погиб или выгрузился")); return; }
+            if (error != null) { refuse(session, plain(error, "Моб погиб или выгрузился")); return; }
             if (!mob.id().equals(session.target)) select(session, mob);
             readyForRequest(session, mob).thenAccept(ready -> onServer(() -> {
                 if (!ready) return;
@@ -249,7 +249,7 @@ public final class DialogueService {
                     if (session.generation != generation) return;
                     session.requestActive = false;
                     if (failure != null) { reportFailure(session, null, failure); return; }
-                    if (text == null || text.isBlank()) { session.status("Речь не распознана: удерживайте голосовую клавишу и произнесите вопрос"); return; }
+                    if (text == null || text.isBlank()) { refuse(session, "Речь не распознана: удерживайте голосовую клавишу и произнесите вопрос"); return; }
                     budget.get().charge(player, PlayerBudget.Kind.TRANSCRIPTION, 0, seconds);
                     session.stt = "server";
                     talkText(player, entityId, text, true, new byte[0]);
@@ -403,15 +403,15 @@ public final class DialogueService {
         session.dimension = mob.dimension();
     }
     private CompletableFuture<Boolean> readyForRequest(Session session, MobView mob) {
-        if (!config().enabled) { session.status("Mob Talk выключен на сервере"); return CompletableFuture.completedFuture(false); }
+        if (!config().enabled) { refuse(session, "Mob Talk выключен на сервере"); return CompletableFuture.completedFuture(false); }
         return bridge.player(session.player).handle((player, error) -> {
-            if (error != null || !player.alive()) { session.status("Игрок недоступен"); return false; }
+            if (error != null || !player.alive()) { refuse(session, "Игрок недоступен"); return false; }
             if (!player.dimension().equals(mob.dimension()) || mob.squaredDistanceTo(player) > config().maxDistance * config().maxDistance) {
-                session.status("Подойдите к мобу ближе (до " + Math.round(config().maxDistance) + " блоков)"); return false;
+                refuse(session, "Подойдите к мобу ближе (до " + Math.round(config().maxDistance) + " блоков)"); return false;
             }
-            if (session.pipelineBusy.get()) { session.status("Предыдущий разговор ещё завершается"); return false; }
+            if (session.pipelineBusy.get()) { refuse(session, "Предыдущий разговор ещё завершается"); return false; }
             Session holder = busyMobs.get(mob.id());
-            if (holder != null && holder != session) { session.status(mob.name() + " занят разговором с " + holder.name); return false; }
+            if (holder != null && holder != session) { refuse(session, mob.name() + " занят разговором с " + holder.name); return false; }
             return true;
         });
     }
@@ -465,7 +465,7 @@ public final class DialogueService {
     private void submit(Session session, Request request, String question) {
         if (session.generation != request.generation) return;
         if (!session.pipelineBusy.compareAndSet(false, true)) {
-            session.status("Предыдущий разговор ещё завершается");
+            refuse(session, "Предыдущий разговор ещё завершается");
             if (session.actionRequest != null) session.actionRequest.completeExceptionally(new IllegalStateException(session.status));
             session.actionRequest = null;
             return;

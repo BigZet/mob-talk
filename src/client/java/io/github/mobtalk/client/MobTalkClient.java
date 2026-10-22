@@ -113,6 +113,8 @@ public final class MobTalkClient implements ClientModInitializer {
     private boolean stopped;
     boolean keyHeld;
     private boolean requestActive;
+    /** Сервер подтвердил запрос статусом «занят»: только после этого статус «свободен» снимает запрос (устаревший «Готов» от выбора цели — нет). */
+    private boolean requestAcked;
     private final MerchantSession merchant = new MerchantSession(this);
     private final BedTalk bed = new BedTalk(this);
     final InitiativeVoice initiatives = new InitiativeVoice(this);
@@ -478,7 +480,7 @@ public final class MobTalkClient implements ClientModInitializer {
                     if ((question == null || question.isBlank()) && server) {
                         updateStatus(request, "Сервер распознаёт…");
                         byte[] audio = wav.length > MobTalkNet.MAX_AUDIO ? java.util.Arrays.copyOf(wav, MobTalkNet.MAX_AUDIO) : wav;
-                        client.execute(() -> { if (isCurrent(request)) send(new TalkAudioC2S(request.entityId, "wav16k", Math.max(1, wav.length / 32_000), audio)); });
+                        client.execute(() -> { if (isCurrent(request)) { requestAcked = false; send(new TalkAudioC2S(request.entityId, "wav16k", Math.max(1, wav.length / 32_000), audio)); } });
                         return;
                     }
                     if (question == null || question.isBlank()) {
@@ -501,6 +503,7 @@ public final class MobTalkClient implements ClientModInitializer {
                 client.execute(() -> {
                     if (!isCurrent(request)) return;
                     status = "Моб думает…"; showHud();
+                    requestAcked = false;
                     if (!send(new TalkTextC2S(request.entityId, asked, voice, picture))) requestActive = false;
                 });
             } catch (InterruptedException cancelled) {
@@ -550,7 +553,8 @@ public final class MobTalkClient implements ClientModInitializer {
     void onStatus(String text, boolean busy, String error) {
         if (!error.isEmpty()) { requestActive = false; status = error; notice(error); return; }
         status = text;
-        if (!busy) requestActive = false;
+        if (busy) requestAcked = true;
+        else if (requestAcked || !requestActive) requestActive = false;
         showHud();
     }
     void onSpeech(MobSpeechS2C packet) {

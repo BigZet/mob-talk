@@ -92,7 +92,7 @@ class DialogueServiceTest {
         service.talkText(dima, 11, "Привет", false, new byte[0]);
         assertTrue(RecordingOutbox.await(service, 3_000, () -> dima.equals(service.holderOf(villager))), "моб заперт за Димой");
         service.talkText(vasya, 11, "И мне ответь", false, new byte[0]);
-        assertEquals("Марфа занят разговором с Дима", out.lastStatus(vasya));
+        assertEquals("Марфа занят разговором с Дима", out.lastError(vasya));
         assertTrue(RecordingOutbox.await(service, 10_000, () -> answered(dima)));
         assertFalse(answered(vasya) && out.speechesTo(vasya).stream().anyMatch(s -> s.packet().toYou()), "Васе не ответили как собеседнику");
         assertEquals(1, provider.chatCalls.get(), "модель звали один раз");
