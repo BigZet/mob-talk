@@ -582,7 +582,12 @@ public final class MobTalkClient implements ClientModInitializer {
         if (!voice.background) status = "Говорит…";
     }
     void onState(MobStateS2C packet) { views.accept(packet); }
-    void onLabel(MobLabelS2C packet) { views.accept(packet); }
+    void onLabel(MobLabelS2C packet) {
+        boolean fresh = !packet.name().isEmpty() && (views.label(packet.mob()) == null || !packet.name().equals(views.name(packet.mob())));
+        views.accept(packet);
+        if (fresh) LOGGER.info("Mob Talk: подпись «{}» для {} (entity {}){}", packet.name(), packet.mob(), packet.mobId(),
+                world != null && world.getEntityById(packet.mobId()) == null ? ", сущности нет на клиенте" : "");
+    }
     void onScreen(String screen, String json) {
         if ("deal".equals(screen)) { merchant.resolved(json); return; }
         CompletableFuture<String> waiting = screenRequests.remove(screen);
