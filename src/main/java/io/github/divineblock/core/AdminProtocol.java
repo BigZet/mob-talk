@@ -11,7 +11,7 @@ import java.util.Map;
 
 /** The web admin's protocol, Mob Talk's entrypoint {@code mobtalk-admin}: one JSON request in, one JSON answer out, without
  * any shared code between the two mods. Requests: {@code describe}, {@code values}, {@code patch} (applied at once, without a
- * restart), {@code journal}, {@code actions} and {@code action}. The game behind it is a {@link Host}, so the protocol itself is
+ * restart), {@code journal}, {@code actions}, {@code action}, {@code souls} and {@code active} (the admin's «Бог» tab). The game behind it is a {@link Host}, so the protocol itself is
  * plain Java and tested without Minecraft. */
 public final class AdminProtocol {
     /** One button of the admin: its id, title and the arguments it takes (each a string). */
@@ -26,6 +26,10 @@ public final class AdminProtocol {
         List<Action> actions();
         /** Performs an action; returns what happened in a few words, or throws with a reason the admin can show. */
         String run(String id, Map<String, String> args);
+        /** The souls for the admin's «Бог» tab: {@code souls} of {player:{uuid,name}, sins, ladder, banned, curses:[{title, until}]}, until in epoch ms. */
+        default JsonObject souls() { throw new IllegalStateException("души недоступны"); }
+        /** What goes on now: {@code bosses} of {id, title, health, maxHealth, since} and {@code curses} of {player, title, until}. */
+        default JsonObject active() { throw new IllegalStateException("нет данных"); }
     }
 
     private final Host host;
@@ -44,6 +48,8 @@ public final class AdminProtocol {
                 case "journal" -> journal(in).toString();
                 case "actions" -> actions().toString();
                 case "action" -> action(in).toString();
+                case "souls" -> guarded(host::souls).toString();
+                case "active" -> guarded(host::active).toString();
                 default -> error("неизвестный запрос: " + op);
             };
         } catch (RuntimeException broken) {
@@ -112,6 +118,11 @@ public final class AdminProtocol {
         } catch (RuntimeException refused) {
             return errorObject(refused.getMessage() == null ? refused.getClass().getSimpleName() : refused.getMessage());
         }
+    }
+
+    private static JsonObject guarded(java.util.function.Supplier<JsonObject> read) {
+        try { return read.get(); }
+        catch (RuntimeException refused) { return errorObject(refused.getMessage() == null ? refused.getClass().getSimpleName() : refused.getMessage()); }
     }
 
     private static JsonObject errorObject(String why) {
