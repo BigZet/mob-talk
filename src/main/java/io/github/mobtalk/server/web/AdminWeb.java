@@ -32,6 +32,8 @@ public final class AdminWeb {
     private final AdminJournal journal;
     private final ErrorLog errors;
     private final ConfigSources sources;
+    private final MapTiles map;
+    private final Tracks tracks;
     private final AdminApi api;
     private final AdminAuth auth;
     private final AdminHttpServer server;
@@ -61,9 +63,11 @@ public final class AdminWeb {
         sources = new ConfigSources(history);
         sources.add(MobTalkAdminSource.ID, new MobTalkAdminSource(hooks.config(), hooks.updateConfig(), hooks.personal()));
         sources.add("admin", AdminSettings.source(settings, settingsFile, history));
+        map = new MapTiles(data.resolve("map"), log);
+        tracks = new Tracks(data.resolve("admin-tracks"), System::currentTimeMillis, 7, log);
         Backups backups = new Backups(hooks.world(), gameDir.resolve("backups"), hooks.saver(), System::currentTimeMillis, zone);
         api = new AdminApi(new AdminApi.Parts(history, metrics, latency, journal, errors, sources, hooks.game(), backups,
-                new Waypoints(gameDir.resolve("config").resolve("mobtalk-waypoints.json")),
+                new Waypoints(gameDir.resolve("config").resolve("mobtalk-waypoints.json")), map, tracks,
                 gameDir.resolve("logs").resolve("latest.log"), hooks.limits(),
                 () -> Json.obj("bind", settings.bind, "port", settings.port, "fingerprint", fingerprint), System::currentTimeMillis));
         auth = new AdminAuth(settings.passwordHash, System::currentTimeMillis);
@@ -73,7 +77,7 @@ public final class AdminWeb {
             Thread thread = new Thread(task, "mobtalk-admin-chores"); thread.setDaemon(true); return thread;
         });
         chores.execute(metrics::load);
-        chores.scheduleAtFixedRate(() -> { history.prune(); auth.sweep(); }, 1, 360, TimeUnit.MINUTES);
+        chores.scheduleAtFixedRate(() -> { history.prune(); tracks.prune(); auth.sweep(); }, 1, 360, TimeUnit.MINUTES);
     }
 
     /** Starts the admin page, or logs why it could not; a broken admin never stops the server. */
@@ -95,6 +99,8 @@ public final class AdminWeb {
         chores.shutdownNow();
         history.close();
         metrics.close();
+        map.close();
+        tracks.close();
     }
 
     /** {@code /mobtalk admin web password <новый>}: works at once; sessions of the old password stay until they expire. */
@@ -116,4 +122,6 @@ public final class AdminWeb {
     public AdminJournal journal() { return journal; }
     public ErrorLog errors() { return errors; }
     public ConfigSources sources() { return sources; }
+    /** Where the map sampler (wave 1) hands in chunk colours. */
+    public MapTiles map() { return map; }
 }

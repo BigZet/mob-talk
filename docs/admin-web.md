@@ -22,7 +22,7 @@
   `409 conflict`, `429 too_many` (+ `retryAfter` в секундах и заголовок `Retry-After`), `500 internal`, `503 unavailable`
   (сервис ещё не подключён: например, Божественного блока нет в сборке).
 - Игрок в ответах — `{"uuid":"…","name":"Ник"}`, моб — `{"uuid":"…","name":"Имя","species":"villager"}`. Seed, ключи и пароли не попадают
-  ни в один ответ и ни в одну запись истории. Координаты — только в разделе «Местоположение» (просьба Дмитрия); в историю, лог и
+  ни в один ответ и ни в одну запись истории. Координаты — только в разделах «Местоположение» и «Карта» (просьба Дмитрия); в историю, лог и
   остальные ответы они не попадают.
 - Списки с пагинацией: параметры `cursor` (непрозрачная строка из прошлого ответа) и `limit` (по умолчанию 50, максимум 500), ответ
   `{"items":[…],"next":"курсор или null"}`. Порядок — новые первыми, если не сказано иное.
@@ -178,6 +178,25 @@ Append-only журнал по дням: `data/mobtalk/history/<вид>/<день
 | `POST /api/waypoints` | `{"name","world","x","y","z"}` → `{"ok":true,"waypoint":{…}}` |
 | `DELETE /api/waypoints/{id}` | `{"ok":true}`; `404` — нет такой |
 
+## Карта
+
+Вид сверху, как ванильная карта: цвет верхнего блока (`MapColor`), светлее на подъёме к северу, темнее на спуске, вода темнее с
+глубиной. Рисуется из **загруженных** чанков по мере игры: чанк попадает в очередь при загрузке и раз в 30 с вокруг каждого игрока
+(построенное и вскопанное); на серверном тике снимаются цвета не больше 2 чанков (микросекунды), тайлы и PNG — на фоновом потоке.
+Всё, где игроки побывали, оказывается на карте; чтение region-файлов целиком (неисследованные игроками места) — не делается.
+Тайлы лежат в `data/mobtalk/map/<мир>/<zoom>/<tx>_<tz>.png`.
+
+| Запрос | Ответ |
+| --- | --- |
+| `GET /api/map/tiles/{world}/{zoom}/{tx}/{tz}.png` | PNG 256×256, `zoom` 0..4 (1 px = 2^zoom блоков), левый верхний угол — блок (`tx·256·2^zoom`, `tz·256·2^zoom`), `world` URL-кодированный (`minecraft%3Aoverworld`). Неисследованное прозрачно; тайла нет — `204`. `ETag` + `Cache-Control: max-age=60`, `If-None-Match` → `304` |
+| `GET /api/map/info?world=` | `{"world","minX","minZ","maxX","maxZ","spawn":{"x","z"},"worlds":["minecraft:overworld",…],"tileSize":256,"maxZoom":4}`; границы — по целым тайлам зума 0, `null`, если тайлов нет |
+| `GET /api/map/markers?world=` | `{"world","markers":[{"kind":"village|waypoint|boss|spawn","id","name","x","z"}]}` |
+| `GET /api/players/tracks?world=&from=&to=&player=&points=2000` | `{"world","from","to","tracks":[{"player":{…},"points":[[t,x,y,z],…]}]}`; без `world` — overworld, без `from` — последний час; каждый игрок прорежен до ~`points` (первая и последняя точки остаются) |
+
+Пути: точка раз в 5 с или сразу при сдвиге больше 4 блоков, стоящий на месте пишется раз в минуту; хранятся 7 дней в
+`data/mobtalk/admin-tracks/` (своё хранилище админки, не история). В `/api/events` при перерисовке тайла приходит `map`
+`{"world","zoom","tx","tz"}` — перезагрузить этот тайл.
+
 ## Мобы и деревни
 
 | Запрос | Ответ |
@@ -232,6 +251,7 @@ Append-only журнал по дням: `data/mobtalk/history/<вид>/<день
 | `error` | группа ошибок после изменения |
 | `backup` | `{"name","size","t"}` |
 | `positions` | как `GET /api/players/positions`, каждые 2 с |
+| `map` | `{"world","zoom","tx","tz"}` — тайл перерисован |
 
 `GET /api/live/dialogues` — SSE для вкладки «Сейчас»: `snapshot` сразу и при каждом изменении,
 `data` = `{"dialogues":[{"id","player":{…},"mob":{…},"step":"llm_first","stepSince":t,"startedAt":t,"question":"…"}],"activities":[{"player":{…},"activity":"talking"}]}`.
@@ -242,7 +262,8 @@ Append-only журнал по дням: `data/mobtalk/history/<вид>/<день
 ## DevStubServer
 
 Заглушка для разработки страницы без Minecraft: тот же `AdminHttpServer` (вход, CSRF, заголовки, маршруты), но данные из фикстур
-`src/test/resources/admin-stub/*.json` и синтетические метрики (синусоиды с шумом, живые точки по SSE каждые 2 с, новые записи истории
+`src/test/resources/admin-stub/*.json`, шумовой рельеф ±1024 блока вокруг спавна (вода, песок, трава, лес, горы; кусок незера),
+шесть часов путей по кругу у двух игроков и синтетические метрики (синусоиды с шумом, живые точки по SSE каждые 2 с, новые записи истории
 и диалоги «Сейчас» раз в несколько секунд).
 
 ```
@@ -263,4 +284,6 @@ gradlew runAdminStub --args="--port 8790 --web C:/путь/к/assets/mobtalk/web
   `journal.drainStarted()`, `drainSpent()`, `errors.drain()`), источники других модов из entrypoint `mobtalk-admin` в `sources().add`.
 - `DialogueService`: `journal().dialogueStarted(...)` → `step(...)` по шагам трассы → `finish(...)`/`fail(...)`; расходы — `journal().cost(...)`,
   распознавание — `journal().transcribed(ms)`; остальные события (подарок, торг, слух, вход/выход) — `journal().event(kind, …)`.
+- Карта: `MapSampler.register(web.map())` в `MobTalkMod.onInitialize` (события загрузки чанков и тика). `GameView.mapMarkers(world)` —
+  деревни (центр по `VillageStanding`/POI), живые боссы, спавн мира.
 - Команда `/mobtalk admin web` → `AdminWeb.describe()`, `/mobtalk admin web password <новый>` → `setPassword`.
