@@ -4,13 +4,15 @@
 # Refuses when the port is taken. -Fresh moves the old world to world-backups\ and starts a new one; -World copies a world
 # of the pack instance (saves\<name>, e.g. "stream 1 (сборка)") in as the server world. The base instance is never read.
 # -Public: online-mode=true and the allowlist on, for friends over the internet (port forwarded on the router).
-# -Smoke: start, wait until the server is up, stop it and list the log's ERROR lines (for tests and the integrator).
+# -Smoke: start, wait until the server is up, stop it and list the log's ERROR lines (for tests and the integrator);
+# -SmokeCommand sends console commands once it is up ('a;b' for several when called through -File), -SmokeHoldSeconds keeps it running that long before "stop".
 # -SetSecret <VARIABLE>: asks for a value (hidden input) and saves it DPAPI-encrypted for this Windows user, then exits.
 # Usage: powershell -ExecutionPolicy Bypass -File scripts\run-local-server.ps1 [-Fresh] [-World <name>] [-Public]
 #        [-Memory 6G] [-NewWindow] [-Dir <folder>] | -SetSecret ELEVENLABS_API_KEY
 param([string]$Dir = (Join-Path $env:LOCALAPPDATA 'MobTalkPack\server'), [switch]$Fresh, [string]$World = '', [switch]$Public,
     [string]$Memory = '6G', [int]$Port = 0, [switch]$NewWindow, [string]$Pack = 'mob-talk-pack',
-    [string]$Instances = (Join-Path $env:APPDATA 'PrismLauncher\instances'), [string]$SetSecret = '', [switch]$CheckOnly, [switch]$Smoke, [int]$SmokeSeconds = 900)
+    [string]$Instances = (Join-Path $env:APPDATA 'PrismLauncher\instances'), [string]$SetSecret = '', [switch]$CheckOnly, [switch]$Smoke, [int]$SmokeSeconds = 900,
+    [string[]]$SmokeCommand = @(), [int]$SmokeHoldSeconds = 0, [string]$SmokeWaitFor = '')
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'PackBuild.psm1') -Force
 function Say($t) { Write-Host "$(Get-Date -Format HH:mm:ss) $t" }
@@ -106,6 +108,15 @@ if ($Smoke) {
     while (-not $p.HasExited -and ((Get-Date) - $started).TotalSeconds -lt $SmokeSeconds) {
         Start-Sleep -Seconds 5
         if ((Test-Path $log) -and (Get-Item $log).LastWriteTime -ge $started -and (Select-String -LiteralPath $log -Pattern 'Done \(\d' -Quiet)) { $up = $true; break }
+    }
+    if ($up -and -not $p.HasExited) {
+        if ($SmokeWaitFor) {   # e.g. 'BlueMap loaded': mods that finish loading after "Done" ignore commands until then
+            $until = (Get-Date).AddSeconds(180)
+            while (-not $p.HasExited -and (Get-Date) -lt $until -and -not (Select-String -LiteralPath $log -Pattern $SmokeWaitFor -Quiet)) { Start-Sleep -Seconds 2 }
+        }
+        foreach ($c in @($SmokeCommand | ForEach-Object { $_ -split ';' } | Where-Object { $_ })) { Say "console: $c"; $p.StandardInput.WriteLine($c); $p.StandardInput.Flush() }
+        $hold = (Get-Date).AddSeconds($SmokeHoldSeconds)
+        while (-not $p.HasExited -and (Get-Date) -lt $hold) { Start-Sleep -Seconds 2 }
     }
     if (-not $p.HasExited) { $p.StandardInput.WriteLine('stop'); $p.StandardInput.Flush() }
     if (-not $p.WaitForExit(180000)) { $p.Kill(); Say 'server did not stop in 3 minutes: killed' }

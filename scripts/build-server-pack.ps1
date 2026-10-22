@@ -86,6 +86,35 @@ foreach ($name in @('mobtalk.json', 'divineblock.json', 'ctov.json', 'lithostitc
     Copy-Item -LiteralPath $from $to
 }
 if (-not (Test-Path -LiteralPath "$Out\config\mobtalk-server.json")) { Write-Utf8Text "$Out\config\mobtalk-server.json" "{}`n" }
+# squaremap (2D map of the admin): no web server of its own, the admin serves squaremap\web\tiles behind its password;
+# overworld and nether only. Written once; squaremap fills in every other key with its defaults on the first start.
+if (-not (Test-Path -LiteralPath "$Out\squaremap\config.yml")) {
+    New-Item -ItemType Directory -Force "$Out\squaremap" | Out-Null
+    Write-Utf8Lines "$Out\squaremap\config.yml" @(
+        'settings:', '    internal-webserver:', '        enabled: false', '    update-checker: false',
+        'world-settings:', '    default:', '        map:', '            max-render-threads: 2',
+        "    'minecraft:the_end':", '        map:', '            enabled: false')
+}
+# BlueMap (3D map of the admin): no web server of its own (the admin serves bluemap\web behind its password), one
+# render thread, overworld and nether. accept-download fetches Minecraft's client jar for textures: Dmitriy accepted the
+# Minecraft EULA for it on 22 October. Rendering is paused (pluginState.json) until the admin starts it while the map
+# is open. Written once; BlueMap generates plugin.conf, webapp.conf and storages\ with defaults on the first start.
+$bm = "$Out\config\bluemap"
+if (-not (Test-Path -LiteralPath $bm)) {
+    New-Item -ItemType Directory -Force "$bm\maps" | Out-Null
+    Write-Utf8Lines "$bm\core.conf" @('accept-download: true', 'data: "bluemap"', 'render-thread-count: 1',
+        'scan-for-mod-resources: true', 'metrics: false', 'log: {', '  file: "bluemap/logs/debug.log"', '  append: false', '}')
+    Write-Utf8Lines "$bm\webserver.conf" @('enabled: false', 'webroot: "bluemap/web"', 'port: 8100')
+    Write-Utf8Lines "$bm\maps\world.conf" @('world: "world"', 'dimension: "minecraft:overworld"', 'name: "Обычный мир"',
+        'sorting: 0', 'sky-color: "#7dabff"', 'void-color: "#000000"', 'ambient-light: 0.1', 'remove-caves-below-y: 55', 'storage: "file"')
+    Write-Utf8Lines "$bm\maps\world_the_nether.conf" @('world: "world"', 'dimension: "minecraft:the_nether"', 'name: "Незер"',
+        'sorting: 100', 'sky-color: "#290000"', 'void-color: "#150000"', 'ambient-light: 0.6', 'remove-caves-below-y: -10000',
+        'max-y: 90', 'storage: "file"')
+}
+if (-not (Test-Path -LiteralPath "$Out\bluemap\pluginState.json")) {
+    New-Item -ItemType Directory -Force "$Out\bluemap" | Out-Null
+    Write-Utf8Text "$Out\bluemap\pluginState.json" "{`"render-threads-enabled`": false}`n"
+}
 # In Docker the admin must listen on all interfaces of the container; the host publishes 8787 on loopback only.
 # Written once without a password hash: the admin generates the password on its first start.
 if ($Docker -and -not (Test-Path -LiteralPath "$Out\config\mobtalk-admin.json")) {
