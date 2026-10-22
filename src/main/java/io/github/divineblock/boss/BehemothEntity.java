@@ -233,6 +233,7 @@ public final class BehemothEntity extends SacredBoss {
         setVelocity(getVelocity().multiply(0.2, 1, 0.2));
         if (crashed) {
             stunned = 40;
+            if (weakReady()) { stunned = EXPOSED_TICKS; expose(EXPOSED_TICKS, "Бегемот врезался в стену и оглушён — бей!"); }
             sound(SoundEvents.BLOCK_ANVIL_LAND, 2f, 0.5f);
             sound(SoundEvents.ENTITY_RAVAGER_STUNNED, 2.5f, 0.6f);
             particles(ground(), getX(), getY() + 1, getZ(), 40, 1.5, 0.8, 1.5, 0.2);
@@ -334,6 +335,26 @@ public final class BehemothEntity extends SacredBoss {
             if (left % 20 == 0) sound(SoundEvents.ENTITY_RAVAGER_ROAR, 3f, 0.4f + 0.1f * (3 - left / 20));
             if (left % 10 == 5) sound(SoundEvents.ENTITY_WARDEN_HEARTBEAT, 3f, 0.5f);
         }, () -> startCharge(dir, ULT_LENGTH, true, 0));
+    }
+
+    @Override protected String weakHint() { return "встань спиной к скале или стене и уйди от тарана — он врежется и оглохнет"; }
+    @Override protected String ultHint() { return "уйди с полосы тарана; стена за спиной оглушит его"; }
+    @Override protected String phaseName(int phase) { return phase == 2 ? "Кости как медь" : "Сила чресл его"; }
+    @Override protected Vec3d weakSpot() { return new Vec3d(getX(), getY() + getHeight() * 0.85, getZ()); }
+    /** Tests: a stone wall between him and the player, then the ram (he crashes into it). */
+    @Override public void provokeWeakPoint(net.minecraft.server.network.ServerPlayerEntity player) {
+        if (!(getWorld() instanceof ServerWorld world)) return;
+        Vec3d dir = player.getPos().subtract(getPos()).multiply(1, 0, 1);
+        dir = dir.lengthSquared() < 0.01 ? forward() : dir.normalize();
+        Vec3d mid = getPos().add(dir.multiply(getWidth() * 0.5 + 3));
+        Vec3d side = new Vec3d(-dir.z, 0, dir.x);
+        java.util.List<BlockPos> wall = new java.util.ArrayList<>();
+        for (int w = -4; w <= 4; w++) for (int h = 0; h < 6; h++) {
+            BlockPos at = BlockPos.ofFloored(mid.add(side.multiply(w))).up(h);
+            if (world.getBlockState(at).isAir()) { world.setBlockState(at, Blocks.STONE.getDefaultState()); wall.add(at); }
+        }
+        hazards.later(20 * 9, () -> { for (BlockPos at : wall) if (world.getBlockState(at).isOf(Blocks.STONE)) world.setBlockState(at, Blocks.AIR.getDefaultState()); });
+        ram(player, 0);
     }
 
     @Override protected void onPhase(int phase) {

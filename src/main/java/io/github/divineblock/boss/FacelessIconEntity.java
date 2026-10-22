@@ -36,6 +36,7 @@ public final class FacelessIconEntity extends SacredBoss {
     static final double GAZE_RANGE = 32, GAZE_DOT = 0.97;
 
     private final List<UUID> faces = new ArrayList<>();
+    private int facesSlain;
 
     public FacelessIconEntity(EntityType<? extends FacelessIconEntity> type, World world) {
         super(type, world, BossBar.Color.WHITE);
@@ -58,6 +59,10 @@ public final class FacelessIconEntity extends SacredBoss {
         LivingEntity target = getTarget();
         if (target != null) face(target.getPos());
         if (age % 10 == 0) gaze();
+        if (age % 10 == 5 && !faces.isEmpty() && liveFaces() == 0 && facesSlain > 0) {
+            facesSlain = 0;
+            if (weakReady()) expose(EXPOSED_TICKS, "Лики повержены — доска пуста, бей!");
+        }
     }
 
     /** Hangs about a block and a half above the ground and bobs slowly. */
@@ -211,7 +216,11 @@ public final class FacelessIconEntity extends SacredBoss {
 
     private int liveFaces() {
         if (!(getWorld() instanceof ServerWorld world)) return 0;
-        faces.removeIf(id -> { Entity face = world.getEntity(id); return face == null || !face.isAlive(); });
+        faces.removeIf(id -> {
+            Entity face = world.getEntity(id);
+            if (face instanceof LivingEntity living && !living.isAlive() && living.getAttacker() instanceof net.minecraft.entity.player.PlayerEntity) facesSlain++;
+            return face == null || !face.isAlive();
+        });
         return faces.size();
     }
 
@@ -238,6 +247,8 @@ public final class FacelessIconEntity extends SacredBoss {
         int every = phase >= 3 ? 10 : 14;
         hazards.repeat(5, (every * count + 40) / 5, step -> { for (Vec3d frame : frames) drawFrame(frame, target.getPos(), GOLD_DUST, true); });
         // Each frame in turn: a flash, then a telegraphed beam at where the foe stands now.
+        // When the last frame has burnt out the icon hangs blank for a few seconds.
+        hazards.later(every * count + 30, () -> expose(90, "Иконостас погас, лик пуст — бей!"));
         hazards.repeat(every, count, i -> {
             if (!target.isAlive()) return;
             Vec3d eye = frames.get(i).add(0, 0.4, 0);
@@ -281,6 +292,27 @@ public final class FacelessIconEntity extends SacredBoss {
     }
 
     private void point(ParticleEffect effect, Vec3d at) { particles(effect, at.x, at.y, at.z, 1, 0, 0, 0, 0); }
+
+    // ---- The weak point: its faces. ----
+
+    @Override protected String weakHint() { return "убей все его лики (летающие лица) — или переживи «Иконостас»"; }
+    @Override protected String ultHint() { return "не смотри в лики и уходи с линий взора; когда рамы погаснут — он пуст"; }
+    @Override protected String phaseName(int phase) { return phase == 2 ? "Лики" : "Слепой взор"; }
+    @Override protected Vec3d weakSpot() { return facePos(); }
+    /** Tests: two faces leave the icon and the player strikes them down. */
+    @Override public void provokeWeakPoint(net.minecraft.server.network.ServerPlayerEntity player) {
+        if (!(getWorld() instanceof ServerWorld world)) return;
+        for (int i = 0; i < 2; i++) {
+            VexEntity face = EntityType.VEX.create(world);
+            if (face == null) continue;
+            Vec3d at = facePos().add(i - 0.5, 0.5, 0);
+            face.refreshPositionAndAngles(at.x, at.y, at.z, getYaw(), 0);
+            face.setOwner(this);
+            world.spawnEntity(face);
+            faces.add(face.getUuid());
+            face.damage(world.getDamageSources().playerAttack(player), 100f);
+        }
+    }
 
     @Override protected void onPhase(int phase) {
         sound(SoundEvents.BLOCK_BELL_USE, 2f, 0.6f);

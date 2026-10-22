@@ -22,6 +22,8 @@ import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.packet.s2c.play.StopSoundS2CPacket;
+import net.minecraft.particle.ParticleTypes;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.network.packet.s2c.play.SubtitleS2CPacket;
 import net.minecraft.network.packet.s2c.play.TitleFadeS2CPacket;
 import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
@@ -47,6 +49,15 @@ public abstract class SacredBoss extends HostileEntity {
     public static final float MAX_HIT_SHARE = 0.45f;
     /** The ultimate is announced this many ticks before it strikes. */
     public static final int ULT_WARNING = 60;
+    /** Share of a blow the boss takes normally, and while its weak point is open (five times as much). Its armour attribute
+     * is light, so the weapon's tier counts: a normal fight is long but finite, one that uses the weak point takes minutes. */
+    public static final float TAKEN_NORMAL = 0.22f, TAKEN_EXPOSED = TAKEN_NORMAL * 5f;
+    /** How long the weak point stays open, how soon it can open again, and how long a phase change staggers the boss. */
+    public static final int EXPOSED_TICKS = 120, WEAK_COOLDOWN = 200, TRANSITION_TICKS = 40;
+    /** How long the boss keeps a foe it cannot see, searching where it saw it last. */
+    public static final int MEMORY_TICKS = 200;
+    /** How long a chant runs (the longest piece is ~34 s): it is never started again over itself. */
+    static final int CHANT_TICKS = 20 * 34;
 
     /** What the client animates: 0 nothing, 1 an ordinary cast, 2 the ultimate; and the boss's phase. */
     private static final net.minecraft.entity.data.TrackedData<Byte> CAST_STATE =
@@ -65,6 +76,9 @@ public abstract class SacredBoss extends HostileEntity {
     private record Cast(String name, int total, boolean holdStill, IntConsumer warning, Runnable strike) { }
     private int castLeft;
     private boolean ultimateNext;
+    private int transition, exposedTicks, weakCooldown, hintCooldown, unseenTicks, weakOpened;
+    private BossBar.Color barColor;
+    private Vec3d lastSeen;
 
     protected SacredBoss(EntityType<? extends HostileEntity> type, World world, BossBar.Color color) {
         super(type, world);
@@ -87,7 +101,7 @@ public abstract class SacredBoss extends HostileEntity {
         return HostileEntity.createHostileAttributes()
                 .add(EntityAttributes.GENERIC_MAX_HEALTH, health)
                 .add(EntityAttributes.GENERIC_MOVEMENT_SPEED, speed)
-                .add(EntityAttributes.GENERIC_ARMOR, armor)
+                .add(EntityAttributes.GENERIC_ARMOR, armor * 0.35)
                 .add(EntityAttributes.GENERIC_ATTACK_DAMAGE, 6)
                 .add(EntityAttributes.GENERIC_FOLLOW_RANGE, 48)
                 .add(EntityAttributes.GENERIC_KNOCKBACK_RESISTANCE, 0.9)
@@ -99,7 +113,13 @@ public abstract class SacredBoss extends HostileEntity {
         goalSelector.add(8, new LookAtEntityGoal(this, PlayerEntity.class, 24f));
         goalSelector.add(9, new LookAroundGoal(this));
         targetSelector.add(1, new RevengeGoal(this));
-        targetSelector.add(2, new ActiveTargetGoal<>(this, PlayerEntity.class, true));
+        targetSelector.add(2, targetGoal());
+    }
+    /** Hunts players and keeps one out of sight for {@link #MEMORY_TICKS} (behind a tree it is not forgotten at once). */
+    protected ActiveTargetGoal<PlayerEntity> targetGoal() {
+        ActiveTargetGoal<PlayerEntity> goal = new ActiveTargetGoal<>(this, PlayerEntity.class, true);
+        goal.setMaxTimeWithoutVisibility(MEMORY_TICKS);
+        return goal;
     }
 
     // ---- What each boss defines. ----
@@ -111,8 +131,25 @@ public abstract class SacredBoss extends HostileEntity {
     protected abstract void ultimate(LivingEntity target);
     /** The boss's chant (a piece from the mod's sounds), looped while it fights. */
     protected abstract String theme();
-    /** How many phases the fight has, split evenly by health (the Four Horsemen have four). */
+    /** How many phases the fight has (the Four Horsemen have four, split evenly; three are 100–60 %, 60–25 %, below 25 %). */
     protected int phaseCount() { return 3; }
+    /** The phase for a share of health left. */
+    protected int phaseFor(float share) {
+        if (phaseCount() == 3) return share > 0.6f ? 1 : share > 0.25f ? 2 : 3;
+        return Math.min(phaseCount(), 1 + (int) ((1f - share) * phaseCount()));
+    }
+    /** The name a new phase is announced by (the title over the screen). */
+    protected String phaseName(int phase) { return phase >= phaseCount() ? "Ярость" : "Гнев"; }
+    /** One line for the subtitle of the ultimate's title: how to live through it. */
+    protected String ultHint() { return "уходи из отмеченного!"; }
+    /** One line for the player who hits the boss outside its weak window: what opens it. */
+    protected String weakHint() { return "ищи слабое место"; }
+    /** Where the weak point glows (particles while it is open). */
+    protected Vec3d weakSpot() { return new Vec3d(getX(), getY() + getHeight() * 0.6, getZ()); }
+    /** Whether {@code source} (already known not to bypass invulnerability) is the boss's counter: it opens the weak point. */
+    protected boolean weakTrigger(DamageSource source, float amount) { return false; }
+    /** Tests and the command: does what a player would do to open the weak point (or the nearest thing to it in code). */
+    public void provokeWeakPoint(ServerPlayerEntity player) { expose(EXPOSED_TICKS, weakReason()); }
     /** A new phase began (2, 3, ...): announce it, toughen up, call help. */
     protected void onPhase(int phase) { }
     /** Melee reach in blocks; 0 for bosses that never strike in melee. */
@@ -120,6 +157,11 @@ public abstract class SacredBoss extends HostileEntity {
     protected float meleeDamage() { return 7f; }
     /** Moves toward or around the target; the default walks up to melee reach. */
     protected void pursue(LivingEntity target) {
+        if (unseenTicks > 10 && lastSeen != null) {
+            // Out of sight: it goes to where it saw the foe last and searches there.
+            if (age % 10 == 0) getNavigation().startMovingTo(lastSeen.x, lastSeen.y, lastSeen.z, 1.0);
+            return;
+        }
         if (age % 10 == 0) {
             if (squaredDistanceTo(target) > meleeReach() * meleeReach() * 0.6) getNavigation().startMovingTo(target, 1.0);
             else getNavigation().stop();
@@ -150,7 +192,7 @@ public abstract class SacredBoss extends HostileEntity {
         return config;
     }
     /** How hard the boss hits: power and the difficulty setting. */
-    protected float scale() { return (0.7f + 0.15f * power) * config().bossDifficulty / 100f; }
+    protected float scale() { return (0.7f + 0.15f * power) * config().bossDifficulty / 100f * (1f + 0.12f * (phase - 1)); }
     /** Whether ultimates may break glass, put out lights and light fires here. */
     protected boolean mayBreakBlocks() {
         return config().bossBlockDamage && getWorld() instanceof ServerWorld world && world.getGameRules().getBoolean(GameRules.DO_MOB_GRIEFING);
@@ -204,7 +246,7 @@ public abstract class SacredBoss extends HostileEntity {
     protected void castUltimate(IntConsumer warning, Runnable strike) {
         for (ServerPlayerEntity player : playersNear(48)) {
             player.networkHandler.sendPacket(new TitleFadeS2CPacket(5, 50, 10));
-            player.networkHandler.sendPacket(new SubtitleS2CPacket(Text.literal(kind().title + " готовит удар — уходи!").formatted(Formatting.GOLD)));
+            player.networkHandler.sendPacket(new SubtitleS2CPacket(Text.literal(kind().title + ": " + ultHint()).formatted(Formatting.GOLD)));
             player.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("«" + kind().ultimate + "»").formatted(Formatting.DARK_RED, Formatting.BOLD)));
         }
         ultimateNext = true;
@@ -233,18 +275,24 @@ public abstract class SacredBoss extends HostileEntity {
         if (!(getWorld() instanceof ServerWorld world)) return;
         hazards.tick(world);
         bar.setPercent(getHealth() / getMaxHealth());
-        int now = Math.min(phaseCount(), 1 + (int) ((1f - getHealth() / getMaxHealth()) * phaseCount()));
-        if (now > phase) {
-            phase = now;
-            dataTracker.set(PHASE, (byte) phase);
-            for (ServerPlayerEntity player : playersNear(48))
-                player.sendMessage(Text.literal(kind().title + ": фаза " + phase).formatted(Formatting.DARK_RED), true);
-            onPhase(phase);
-            ultTimer = Math.min(ultTimer, 60);
-        }
+        int now = phaseFor(getHealth() / getMaxHealth());
+        if (now > phase) beginPhase(now);
         LivingEntity target = getTarget();
         if (target != null && (!target.isAlive() || target.isSpectator() || target instanceof PlayerEntity p && p.isCreative())) { setTarget(null); target = null; }
+        remember(target);
         playTheme(world, target != null);
+        if (exposedTicks > 0) tickExposed();
+        else if (weakCooldown > 0) weakCooldown--;
+        if (hintCooldown > 0) hintCooldown--;
+        if (transition > 0) {
+            transition--;
+            getNavigation().stop();
+            if (age % 2 == 0) particles(phase >= phaseCount() ? ParticleTypes.FLAME : ParticleTypes.ENCHANT, getX(), getY() + getHeight() * 0.5, getZ(), 6,
+                    getWidth() * 0.6, getHeight() * 0.4, getWidth() * 0.6, 0.08);
+            return;
+        }
+        if (phase >= phaseCount() && phaseCount() > 1 && age % 8 == 0)
+            particles(ParticleTypes.ANGRY_VILLAGER, getX(), getY() + getHeight() * 1.02, getZ(), 1, getWidth() * 0.3, 0.1, getWidth() * 0.3, 0);
 
         if (casting != null) {
             Cast cast = casting;
@@ -260,6 +308,7 @@ public abstract class SacredBoss extends HostileEntity {
         }
         if (target == null) { idle(); return; }
         idleTicks = 0;
+        if (exposedTicks > 0) { getNavigation().stop(); return; }
         pursue(target);
         getLookControl().lookAt(target, 30, 30);
         if (meleeTimer > 0) meleeTimer--;
@@ -269,7 +318,129 @@ public abstract class SacredBoss extends HostileEntity {
             meleeTimer = 30;
         }
         if (--ultTimer <= 0) { ultimate(target); ultTimer = (phase == 1 ? 30 : phase == 2 ? 24 : 18) * 20; return; }
-        if (--attackTimer <= 0) attackTimer = Math.max(20, attack(target));
+        if (--attackTimer <= 0) attackTimer = Math.max(20, Math.round(attack(target) * (phase <= 1 ? 1f : phase >= phaseCount() ? 0.7f : 0.85f)));
+    }
+
+    // ---- Phases, the weak point and the foe out of sight. ----
+
+    /** A new phase: a title for everyone around, a short stagger in which it takes no harm, then its own changes. */
+    private void beginPhase(int now) {
+        phase = now;
+        dataTracker.set(PHASE, (byte) phase);
+        casting = null;
+        dataTracker.set(CAST_STATE, (byte) 0);
+        if (exposedTicks > 0) closeWeakPoint();
+        transition = TRANSITION_TICKS;
+        boolean last = phase >= phaseCount();
+        for (ServerPlayerEntity player : playersNear(48)) {
+            player.networkHandler.sendPacket(new TitleFadeS2CPacket(5, 30, 10));
+            player.networkHandler.sendPacket(new SubtitleS2CPacket(Text.literal(kind().title + " — фаза " + phase + (last ? ": сильнее и быстрее" : ": новые удары"))
+                    .formatted(Formatting.GOLD)));
+            player.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("«" + phaseName(phase) + "»").formatted(last ? Formatting.DARK_RED : Formatting.RED, Formatting.BOLD)));
+        }
+        sound(SoundEvents.ENTITY_WITHER_SPAWN, 1.0f, 0.7f + 0.15f * phase);
+        sound(SoundEvents.ITEM_TOTEM_USE, 1.4f, 0.6f);
+        particles(ParticleTypes.EXPLOSION_EMITTER, getX(), getY() + getHeight() * 0.5, getZ(), 1, 0, 0, 0, 0);
+        particles(last ? ParticleTypes.SOUL_FIRE_FLAME : ParticleTypes.TOTEM_OF_UNDYING, getX(), getY() + getHeight() * 0.5, getZ(), 80,
+                getWidth() * 0.5, getHeight() * 0.4, getWidth() * 0.5, 0.4);
+        debug("фаза " + phase);
+        try { onPhase(phase); } catch (RuntimeException failure) { DivineBlockMod.LOG.warn("Божественный блок: смена фазы упала", failure); }
+        ultTimer = Math.min(ultTimer, 60 + TRANSITION_TICKS);
+        attackTimer = Math.max(attackTimer, TRANSITION_TICKS + 10);
+    }
+    /** Tests: whether a phase change stagger is running. */
+    public boolean inTransition() { return transition > 0; }
+
+    /** Opens the weak point for {@code ticks}: it stops, glows, its bar turns white, and blows hurt it five times as much. */
+    public void expose(int ticks, String why) {
+        if (!(getWorld() instanceof ServerWorld) || !isAlive() || transition > 0) return;
+        boolean fresh = exposedTicks == 0;
+        exposedTicks = Math.max(exposedTicks, ticks);
+        if (!fresh) return;
+        weakOpened++;
+        casting = null;
+        dataTracker.set(CAST_STATE, (byte) 0);
+        getNavigation().stop();
+        setGlowing(true);
+        barColor = bar.getColor();
+        bar.setColor(BossBar.Color.WHITE);
+        bar.setName(Text.literal("").append(getDisplayName()).append(Text.literal("  ✦ слабое место ✦").formatted(Formatting.WHITE, Formatting.BOLD)));
+        Vec3d spot = weakSpot();
+        particles(ParticleTypes.FLASH, spot.x, spot.y, spot.z, 1, 0, 0, 0, 0);
+        particles(ParticleTypes.END_ROD, spot.x, spot.y, spot.z, 40, 0.4, 0.4, 0.4, 0.15);
+        sound(SoundEvents.BLOCK_AMETHYST_BLOCK_RESONATE, 2.5f, 0.6f);
+        sound(SoundEvents.BLOCK_BEACON_DEACTIVATE, 2f, 1.4f);
+        for (ServerPlayerEntity player : playersNear(48)) {
+            player.networkHandler.sendPacket(new TitleFadeS2CPacket(2, 30, 8));
+            player.networkHandler.sendPacket(new SubtitleS2CPacket(Text.literal(why).formatted(Formatting.YELLOW)));
+            player.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("✦ Слабое место! ✦").formatted(Formatting.WHITE, Formatting.BOLD)));
+        }
+        debug("слабое место открыто на " + ticks + " тиков: " + why);
+    }
+    /** On the server: whether the weak point is open. */
+    public boolean exposed() { return exposedTicks > 0; }
+    /** Tests: how many times the weak point has opened. */
+    public int weakOpened() { return weakOpened; }
+    /** Whether the weak point may open now (not right after the last time, not in a phase change). */
+    protected boolean weakReady() { return exposedTicks == 0 && weakCooldown == 0 && transition == 0; }
+    /** Tests: let the weak point open again at once. */
+    public void rearmWeakPoint() { weakCooldown = 0; }
+
+    private void tickExposed() {
+        getNavigation().stop();
+        Vec3d spot = weakSpot();
+        if (age % 2 == 0) particles(ParticleTypes.END_ROD, spot.x, spot.y, spot.z, 2, 0.35, 0.35, 0.35, 0.01);
+        if (age % 5 == 0) particles(ParticleTypes.ENCHANTED_HIT, spot.x, spot.y, spot.z, 4, 0.5, 0.5, 0.5, 0.1);
+        if (age % 20 == 0) {
+            sound(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, 2f, 0.8f);
+            for (ServerPlayerEntity player : playersNear(48))
+                player.sendMessage(Text.literal("✦ Слабое место открыто: " + (exposedTicks / 20 + 1) + " с — бей! ✦").formatted(Formatting.WHITE, Formatting.BOLD), true);
+        }
+        if (--exposedTicks <= 0) closeWeakPoint();
+    }
+    private void closeWeakPoint() {
+        exposedTicks = 0;
+        weakCooldown = WEAK_COOLDOWN;
+        setGlowing(false);
+        if (barColor != null) bar.setColor(barColor);
+        bar.setName(getDisplayName());
+        sound(SoundEvents.BLOCK_BEACON_POWER_SELECT, 1.5f, 0.6f);
+        attackTimer = Math.min(attackTimer, 20);
+    }
+
+    /** Harm to the boss: none while a phase changes; the counter opens the weak point; then the share by the window. */
+    @Override public boolean damage(DamageSource source, float amount) {
+        if (getWorld().isClient || isInvulnerableTo(source) || source.isIn(net.minecraft.registry.tag.DamageTypeTags.BYPASSES_INVULNERABILITY))
+            return super.damage(source, amount);
+        if (transition > 0) {
+            if (age % 4 == 0) sound(SoundEvents.ITEM_SHIELD_BLOCK, 1.2f, 0.6f);
+            return false;
+        }
+        if (weakReady() && weakTrigger(source, amount)) expose(EXPOSED_TICKS, weakReason());
+        if (exposedTicks > 0) {
+            amount *= TAKEN_EXPOSED;
+            Vec3d spot = weakSpot();
+            particles(ParticleTypes.CRIT, spot.x, spot.y, spot.z, 14, 0.4, 0.4, 0.4, 0.4);
+            if (source.getAttacker() instanceof PlayerEntity) sound(SoundEvents.ENTITY_PLAYER_ATTACK_CRIT, 1.5f, 0.7f);
+        } else {
+            amount *= TAKEN_NORMAL;
+            if (hintCooldown == 0 && source.getAttacker() instanceof ServerPlayerEntity player) {
+                player.sendMessage(Text.literal(kind().title + " почти неуязвим: " + weakHint()).formatted(Formatting.GOLD), true);
+                hintCooldown = 20 * 25;
+            }
+        }
+        return super.damage(source, amount);
+    }
+    /** The subtitle when the counter opened the weak point. */
+    protected String weakReason() { return "бей сейчас — урон впятеро!"; }
+
+    /** Keeps where the foe was seen last, and counts how long it has been hidden. */
+    private void remember(LivingEntity target) {
+        if (target == null) { unseenTicks = 0; return; }
+        if (age % 5 != 0) return;
+        if (canSee(target)) { lastSeen = target.getPos(); unseenTicks = 0; }
+        else unseenTicks += 5;
+        if (unseenTicks > 10 && lastSeen != null && squaredDistanceTo(lastSeen) < 4) lastSeen = target.getPos();
     }
 
     private void idle() {
@@ -278,14 +449,18 @@ public abstract class SacredBoss extends HostileEntity {
         if (idleTicks > 200) ultTimer = Math.max(ultTimer, 20 * 12);
     }
 
+    /** The chant comes from the boss itself (it follows it and fades with distance) and plays to its end: losing the foe,
+     * the foe's death and respawn never start it again over a piece still sounding, and never cut it off. */
     private void playTheme(ServerWorld world, boolean fighting) {
-        if (!fighting) { if (musicTimer > 0) stopTheme(world); musicTimer = 0; return; }
-        if (musicTimer-- > 0) return;
-        musicTimer = 20 * 34;
+        if (musicTimer > 0) musicTimer--;
+        if (!fighting || musicTimer > 0) return;
+        musicTimer = CHANT_TICKS;
         if (config().chantVolume <= 0) return;
         SoundEvent chant = SoundEvent.of(Identifier.of(DivineBlockMod.ID, "chant." + theme()));
-        world.playSound(null, getX(), getY(), getZ(), RegistryEntry.of(chant), SoundCategory.HOSTILE, 1.6f * config().chantVolume / 100f, 1f, world.random.nextLong());
+        world.playSoundFromEntity(null, this, RegistryEntry.of(chant), SoundCategory.HOSTILE, Math.max(1f, 1.6f * config().chantVolume / 100f), 1f, world.random.nextLong());
     }
+    /** Tests: ticks until the chant may start again (0: silent). */
+    public int chantLeft() { return musicTimer; }
     private void stopTheme(ServerWorld world) {
         Identifier id = Identifier.of(DivineBlockMod.ID, "chant." + theme());
         for (ServerPlayerEntity player : playersNear(64)) player.networkHandler.sendPacket(new StopSoundS2CPacket(id, SoundCategory.HOSTILE));

@@ -172,7 +172,7 @@ public final class HorsemenEntity extends SacredBoss {
         }
         if (phase < phaseCount() && !absolute) {
             float floor = getMaxHealth() * (1f - (phase + 1) / (float) phaseCount()) + 1f;
-            amount = Math.min(amount, getHealth() - floor);
+            amount = Math.min(amount, (getHealth() - floor) / (exposed() ? TAKEN_EXPOSED : TAKEN_NORMAL));
             if (amount <= 0) return false;
         }
         return super.damage(source, amount);
@@ -193,6 +193,34 @@ public final class HorsemenEntity extends SacredBoss {
     }
 
     // ---- Seals. ----
+
+    // ---- The weak point: the rider. ----
+
+    /** An arrow or a trident in the rider (above the horse's back) throws him back in the saddle. */
+    @Override protected boolean weakTrigger(DamageSource source, float amount) {
+        if (!(source.getSource() instanceof net.minecraft.entity.projectile.ProjectileEntity projectile)) return false;
+        Vec3d pos = projectile.getPos(), velocity = projectile.getVelocity();
+        Vec3d at = getBoundingBox().expand(0.3).raycast(pos.subtract(velocity), pos.add(velocity.multiply(1.5))).orElse(pos);
+        return at.y >= getY() + getHeight() * 0.6;
+    }
+    @Override protected String weakHint() { return "конь в броне — стреляй во всадника (стрела или трезубец выше конской спины)"; }
+    @Override protected String weakReason() { return "Всадник сбит в седле — бей!"; }
+    @Override protected String ultHint() { return "печати падают на тебя по одной — не стой на месте"; }
+    @Override protected String phaseName(int phase) { return switch (phase) { case 2 -> "Конь рыжий"; case 3 -> "Конь вороной"; default -> "Конь бледный"; }; }
+    @Override protected Vec3d weakSpot() { return new Vec3d(getX(), getY() + getHeight() * 0.8, getZ()); }
+    @Override public void provokeWeakPoint(net.minecraft.server.network.ServerPlayerEntity player) { arrowAt(player, 0.8, false); }
+    /** Tests: an arrow from {@code player} that strikes at {@code share} of the boss's height. */
+    private void arrowAt(net.minecraft.server.network.ServerPlayerEntity player, double share, boolean burning) {
+        var arrow = new net.minecraft.entity.projectile.ArrowEntity(getWorld(), player, new net.minecraft.item.ItemStack(net.minecraft.item.Items.ARROW), null);
+        Vec3d at = new Vec3d(getX(), getY() + getHeight() * share, getZ());
+        Vec3d from = player.getEyePos().multiply(1, 0, 1).add(0, at.y, 0);
+        Vec3d dir = at.subtract(from).lengthSquared() < 1e-3 ? new Vec3d(0, 0, 1) : at.subtract(from).normalize();
+        arrow.setPosition(at.subtract(dir.multiply(getWidth() * 0.5 + 0.8)));
+        arrow.setVelocity(dir.multiply(2.5));
+        if (burning) arrow.setOnFireFor(5);
+        damage(getDamageSources().arrow(arrow, player), 6f);
+        arrow.discard();
+    }
 
     @Override protected void onPhase(int phase) {
         if (!(getWorld() instanceof ServerWorld world)) return;

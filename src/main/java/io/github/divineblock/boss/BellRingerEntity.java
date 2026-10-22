@@ -60,7 +60,21 @@ public final class BellRingerEntity extends SacredBoss {
     private void setMove(int move) { dataTracker.set(MOVE, (byte) move); }
 
     /** «Звон в ушах» is drawn by the client (BossClient and the mixins): nothing to hook here. */
-    static void registerHooks() { }
+    static void registerHooks() {
+        net.fabricmc.fabric.api.event.player.UseBlockCallback.EVENT.register((player, world, hand, hit) -> {
+            if (!world.isClient && world.getBlockState(hit.getBlockPos()).isOf(Blocks.BELL))
+                for (BellRingerEntity ringer : world.getEntitiesByClass(BellRingerEntity.class, new net.minecraft.util.math.Box(hit.getBlockPos()).expand(24), e -> e.isAlive()))
+                    ringer.bellRung();
+            return net.minecraft.util.ActionResult.PASS;
+        });
+    }
+
+    /** A church bell rung within 24 blocks drowns his ringing: the bronze shudders and he stands open. */
+    void bellRung() {
+        if (!weakReady()) return;
+        sound(SoundEvents.BLOCK_BELL_RESONATE, 3f, 1.2f);
+        expose(EXPOSED_TICKS, "Настоящий колокол перебил его звон — бей!");
+    }
 
     @Override public BossKind kind() { return BossKind.BELL_RINGER; }
     @Override protected String theme() { return "punishment_57"; }
@@ -232,6 +246,8 @@ public final class BellRingerEntity extends SacredBoss {
             toll(center, 0.55, 20, 7f, 1.8, 0.55);
             if (phase >= 3) hazards.later(5, () -> toll(center, 0.55, 20, 7f, 1.8, 0.55));
         });
+        // The tocsin rung out, the bronze is hot and the bell hangs open for a few seconds.
+        hazards.later(12 * 5 + 20, () -> expose(80, "Набат отзвонил, медь раскалена — бей!"));
     }
 
     /** One stroke: its sound and a ring on the ground that deafens and throws back whoever it catches. */
@@ -282,6 +298,22 @@ public final class BellRingerEntity extends SacredBoss {
     }
 
     // ---- Phases and death. ----
+
+    @Override protected String weakHint() { return "ударь в настоящий колокол рядом (24 блока) или дождись конца набата"; }
+    @Override protected String ultHint() { return "перепрыгивай звуковые кольца; после набата он открыт"; }
+    @Override protected String phaseName(int phase) { return phase == 2 ? "Осколки меди" : "Двойной звон"; }
+    @Override protected Vec3d weakSpot() { return crownPos(); }
+
+    /** Tests: a bell beside the player, rung by the player's hand as in the game (the {@code UseBlockCallback} above). */
+    @Override public void provokeWeakPoint(net.minecraft.server.network.ServerPlayerEntity player) {
+        if (!(getWorld() instanceof ServerWorld world)) return;
+        BlockPos at = player.getBlockPos().east(2);
+        BlockState was = world.getBlockState(at);
+        world.setBlockState(at, Blocks.BELL.getDefaultState());
+        var hit = new net.minecraft.util.hit.BlockHitResult(Vec3d.ofCenter(at), net.minecraft.util.math.Direction.WEST, at, false);
+        player.interactionManager.interactBlock(player, world, net.minecraft.item.ItemStack.EMPTY, net.minecraft.util.Hand.MAIN_HAND, hit);
+        hazards.later(60, () -> world.setBlockState(at, was));
+    }
 
     @Override protected void onPhase(int phase) {
         sound(SoundEvents.BLOCK_BELL_RESONATE, 3f, 0.4f + 0.1f * phase);

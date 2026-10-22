@@ -48,6 +48,7 @@ public final class WailerEntity extends SacredBoss {
     static final double REACH = 5.4;
     static final int PANIKHIDA_TICKS = 20 * 180;
     private int wailTimer;
+    private boolean deadRisen;
 
     public WailerEntity(EntityType<? extends WailerEntity> type, World world) { super(type, world, BossBar.Color.BLUE); }
 
@@ -84,6 +85,10 @@ public final class WailerEntity extends SacredBoss {
 
     @Override protected void mobTick() {
         super.mobTick();
+        if (deadRisen && age % 10 == 0 && getWorld() instanceof ServerWorld world && risenCount(world) == 0) {
+            deadRisen = false;
+            expose(EXPOSED_TICKS, "Последний покойник упокоен — плакальщица рыдает, бей!");
+        }
         // Phase 3: she never stops wailing; everyone near her is slowed.
         if (phase < 3 || getTarget() == null || isDead() || ++wailTimer < 50) return;
         wailTimer = 0;
@@ -251,6 +256,7 @@ public final class WailerEntity extends SacredBoss {
         int risen = 0;
         for (int i = 0; i < count && !graves.isEmpty(); i++) if (raise(world, graves.get(i % graves.size()), i)) risen++;
         debug("Отпевание: поднялось " + risen);
+        if (risen > 0) deadRisen = true;
         for (ServerPlayerEntity player : playersNear(FUNERAL_RADIUS)) {
             if (player.isCreative()) continue;
             BossEffects.afflict(player, BossEffects.PANIKHIDA, PANIKHIDA_TICKS);
@@ -288,6 +294,20 @@ public final class WailerEntity extends SacredBoss {
     }
 
     // ---- Phases and death. ----
+
+    // ---- The weak point: her dead laid to rest. ----
+
+    @Override protected String weakHint() { return "упокой всех её покойников — тогда она падёт на колени в плаче"; }
+    @Override protected String ultHint() { return "мёртвые встанут из могил вокруг тебя: перебей их всех — она откроется"; }
+    @Override protected String phaseName(int phase) { return phase == 2 ? "Больше мёртвых" : "Вой не смолкает"; }
+    /** Tests: one of her dead rises by the player and the player lays it to rest. */
+    @Override public void provokeWeakPoint(net.minecraft.server.network.ServerPlayerEntity player) {
+        if (!(getWorld() instanceof ServerWorld world)) return;
+        if (risenCount(world) == 0 && raise(world, player.getBlockPos().north(2), 0)) deadRisen = true;
+        deadRisen = true;
+        for (HostileEntity dead : world.getEntitiesByClass(HostileEntity.class, new Box(getBlockPos()).expand(96), e -> e.isAlive() && e.getCommandTags().contains(RISEN)))
+            dead.damage(world.getDamageSources().playerAttack(player), 1000f);
+    }
 
     @Override protected void onPhase(int phase) {
         sound(SoundEvents.ENTITY_GHAST_HURT, 2f, 0.4f);

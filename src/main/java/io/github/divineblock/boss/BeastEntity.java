@@ -235,6 +235,34 @@ public final class BeastEntity extends SacredBoss {
 
     // ---- Phases. ----
 
+    // ---- The weak point: the heads. ----
+
+    /** An arrow or a trident in its heads (the crowned top) makes it rear back, open. */
+    @Override protected boolean weakTrigger(net.minecraft.entity.damage.DamageSource source, float amount) {
+        if (!(source.getSource() instanceof net.minecraft.entity.projectile.ProjectileEntity projectile)) return false;
+        Vec3d pos = projectile.getPos(), velocity = projectile.getVelocity();
+        Vec3d at = getBoundingBox().expand(0.3).raycast(pos.subtract(velocity), pos.add(velocity.multiply(1.5))).orElse(pos);
+        return at.y >= getY() + getHeight() * 0.72;
+    }
+    @Override protected String weakHint() { return "шкура как броня — стреляй в головы (стрела или трезубец в верх)"; }
+    @Override protected String weakReason() { return woundHealed() ? "Стрела в голову: зверь вздыбился — бей!" : "Стрела в смертельную рану — бей!"; }
+    @Override protected String ultHint() { return "шесть сфер, шесть кругов, шесть лучей — каждое объявлено, уходи по очереди"; }
+    @Override protected String phaseName(int phase) { return phase == 2 ? "Хула" : "Рана исцелела"; }
+    @Override protected Vec3d weakSpot() { return new Vec3d(getX(), getY() + getHeight() * 0.9, getZ()); }
+    @Override public void provokeWeakPoint(net.minecraft.server.network.ServerPlayerEntity player) { arrowAt(player, 0.85, false); }
+    /** Tests: an arrow from {@code player} that strikes at {@code share} of the boss's height. */
+    private void arrowAt(net.minecraft.server.network.ServerPlayerEntity player, double share, boolean burning) {
+        var arrow = new net.minecraft.entity.projectile.ArrowEntity(getWorld(), player, new net.minecraft.item.ItemStack(net.minecraft.item.Items.ARROW), null);
+        Vec3d at = new Vec3d(getX(), getY() + getHeight() * share, getZ());
+        Vec3d from = player.getEyePos().multiply(1, 0, 1).add(0, at.y, 0);
+        Vec3d dir = at.subtract(from).lengthSquared() < 1e-3 ? new Vec3d(0, 0, 1) : at.subtract(from).normalize();
+        arrow.setPosition(at.subtract(dir.multiply(getWidth() * 0.5 + 0.8)));
+        arrow.setVelocity(dir.multiply(2.5));
+        if (burning) arrow.setOnFireFor(5);
+        damage(getDamageSources().arrow(arrow, player), 6f);
+        arrow.discard();
+    }
+
     @Override protected void onPhase(int phase) {
         sound(SoundEvents.ENTITY_RAVAGER_ROAR, 3f, 0.5f);
         if (phase == 3 && !woundHealed()) {

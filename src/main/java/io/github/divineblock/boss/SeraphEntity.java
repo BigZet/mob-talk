@@ -62,6 +62,17 @@ public final class SeraphEntity extends SacredBoss {
     @Override protected double meleeReach() { return 4.0; }
     @Override public boolean handleFallDamage(float fallDistance, float damageMultiplier, DamageSource source) { return false; }
     @Override public boolean hasNoGravity() { return true; }
+    /** Water hurts the flame: a splash bottle of water, rain and water itself reach it (and open its weak point). */
+    @Override public boolean hurtByWater() { return true; }
+    @Override public boolean damage(DamageSource source, float amount) {
+        if (!getWorld().isClient && source.isOf(net.minecraft.entity.damage.DamageTypes.DROWN)) {
+            // Rain or water: it opens the flame, but harms nothing by itself.
+            if (weakReady()) expose(EXPOSED_TICKS, "Вода погасила пламень — бей!");
+            return false;
+        }
+        if (!getWorld().isClient && source.getSource() instanceof net.minecraft.entity.projectile.thrown.SnowballEntity) amount = Math.max(amount, 3f);
+        return super.damage(source, amount);
+    }
 
     // ---- Flight. ----
 
@@ -259,6 +270,25 @@ public final class SeraphEntity extends SacredBoss {
         if (!world.getBlockState(pos).isAir()) return;
         BlockState fire = AbstractFireBlock.getState(world, pos);
         if (fire.canPlaceAt(world, pos)) world.setBlockState(pos, fire);
+    }
+
+    // ---- The weak point: water and snow. ----
+
+    @Override protected boolean weakTrigger(DamageSource source, float amount) {
+        var direct = source.getSource();
+        return direct instanceof net.minecraft.entity.projectile.thrown.SnowballEntity || direct instanceof net.minecraft.entity.projectile.thrown.PotionEntity;
+    }
+    @Override protected String weakHint() { return "пламень гасит вода — снежок, взрывная бутылка воды или дождь"; }
+    @Override protected String weakReason() { return "Вода погасила пламень — бей!"; }
+    @Override protected String ultHint() { return "не стой в отмеченных кругах: огненные столпы падают по очереди"; }
+    @Override protected String phaseName(int phase) { return phase == 2 ? "Шесть крыл" : "Свят, свят, свят"; }
+    @Override protected Vec3d weakSpot() { return new Vec3d(getX(), getY() + getHeight() * FACE, getZ()); }
+    @Override public void provokeWeakPoint(net.minecraft.server.network.ServerPlayerEntity player) {
+        var ball = new net.minecraft.entity.projectile.thrown.SnowballEntity(getWorld(), player);
+        Vec3d face = weakSpot();
+        ball.setPosition(face.x, face.y, face.z - 0.8);
+        damage(getDamageSources().thrown(ball, player), 0f);
+        ball.discard();
     }
 
     @Override protected void onPhase(int phase) {
