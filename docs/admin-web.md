@@ -184,7 +184,7 @@ Append-only журнал по дням: `data/mobtalk/history/<вид>/<день
 файлы `web/tiles/<namespace>_<path>/<zoom>/<x>_<z>.png` (папка ищется в `squaremap/web/tiles`, `config/squaremap/web/tiles` или задаётся
 `squaremapTiles` в `mobtalk-admin.json`): тайлы 512×512, zoom API = `zoom.max` из `settings.json` мира (3 по умолчанию) − zoom squaremap.
 Изменённые squaremap тайлы находятся просмотром папки раз в 10 с, пока открыта страница, и приходят событием `map`. Без squaremap
-(или пока он ничего не нарисовал) — свой рендер ниже, 256×256. Страница берёт `tileSize`, `maxZoom` и `source` (`squaremap`/`mobtalk`)
+(или для мира, которого он не рисовал, например энда) — свой рендер ниже, 256×256; выбор — по каждому миру. Страница берёт `tileSize`, `maxZoom` и `source` (`squaremap`/`mobtalk`)
 из `/api/map/info`; формула тайла та же: zoom 0 — 1 px = 1 блок, тайл покрывает `tileSize·2^zoom` блоков.
 
 **Свой рендер.** Вид сверху, как ванильная карта: цвет верхнего блока (`MapColor`), светлее на подъёме к северу, темнее на спуске, вода темнее с
@@ -214,8 +214,9 @@ BlueMap стоит на сервере со своим веб-сервером �
 | `POST /api/map3d/keepalive` | `{"ok":true,"rendering":true}`: первый запуск — `bluemap start`; слать раз в 30–60 с, пока вкладка открыта. Без BlueMap — `503` |
 | `GET /api/map3d/status` | `{"available","rendering","progress":0..1|null,"lastRender":t|null}`; `progress` — первое `NN%` из вывода `/bluemap` (читается не чаще раза в 10 с), `lastRender` — самая свежая папка карт |
 
-Через 3 минуты без keepalive админка шлёт `bluemap stop`; при старте админки (первый обход через 30 с) — тоже `stop`, на случай
-рендера, оставленного прошлым запуском (BlueMap помнит start/stop между перезапусками). Не проверено на настоящем BlueMap: нужен ли
+Через 3 минуты без keepalive админка шлёт `bluemap stop`. Команды уходят только после строки `BlueMap loaded!` в `latest.log`; до неё
+keepalive и status отвечают `"loading":true`. Сразу после загрузки — `bluemap stop` (BlueMap помнит start/stop между перезапусками),
+а если вкладку уже смотрят — `bluemap start`. Не проверено на настоящем BlueMap: нужен ли
 `'unsafe-eval'` (оставлен на всякий случай, только для `/map3d/`), формат прогресса в выводе `/bluemap` и точные поля `live/players.json`.
 
 ## Мобы и деревни

@@ -35,8 +35,8 @@ class SquaremapTilesTest {
         assertEquals(tiles, SquaremapTiles.find(dir, ""));
         SquaremapTiles map = new SquaremapTiles(tiles, message -> fail(message));
         assertTrue(map.available());
-        assertEquals(512, map.tileSize());
-        assertEquals(3, map.maxZoom());
+        assertEquals(512, map.tileSize("minecraft:overworld"));
+        assertEquals(3, map.maxZoom("minecraft:overworld"));
         assertArrayEquals(new byte[]{1}, map.tile("minecraft:overworld", 0, 0, 0), "zoom 0 = самая подробная папка squaremap (3)");
         assertArrayEquals(new byte[]{3}, map.tile("minecraft:overworld", 2, 0, 0), "zoom 2 = папка 1");
         assertNull(map.tile("minecraft:overworld", 0, 5, 5));
@@ -69,12 +69,14 @@ class SquaremapTilesTest {
         own.flush();
         SquaremapTiles absent = new SquaremapTiles(SquaremapTiles.find(dir, ""), message -> fail(message));
         MapSource map = MapSource.choose(absent, own);
-        assertEquals("mobtalk", map.name());
-        assertEquals(256, map.tileSize());
+        assertEquals("mobtalk", map.name("minecraft:overworld"));
+        assertEquals(256, map.tileSize("minecraft:overworld"));
         assertNotNull(map.tile("minecraft:overworld", 0, 0, 0));
         tiles();
-        assertEquals("squaremap", map.name(), "squaremap начал рисовать — карта переключилась");
-        assertEquals(512, map.tileSize());
+        assertEquals("squaremap", map.name("minecraft:overworld"), "squaremap начал рисовать — карта переключилась");
+        assertEquals(512, map.tileSize("minecraft:overworld"));
+        assertEquals("mobtalk", map.name("minecraft:the_end"), "энд squaremap не рисует — свой рендер");
+        assertFalse(absent.has("minecraft:the_nether"), "пустая папка мира — не нарисовано");
         own.close();
     }
 }

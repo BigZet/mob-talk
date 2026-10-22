@@ -118,6 +118,7 @@ public final class DevStubServer {
             Files.writeString(log, String.join("\n",
                     "[19:30:01] [main/INFO] (FabricLoader) Loading 14 mods",
                     "[19:30:05] [Server thread/INFO] (mobtalk) Mob Talk: сервер поднят, админка на 127.0.0.1:8787",
+                    "[19:30:09] [BlueMap-Plugin-Loading/INFO] (bluemap) BlueMap loaded!",
                     "[19:31:12] [mobtalk-dialogue/WARN] (mobtalk) OpenRouter ответил 429, повтор через 2 с",
                     "[19:32:40] [Server thread/INFO] (divineblock) Вердикт для Тест2: кара «Тяжёлые ноги»",
                     "[19:33:02] [Server thread/ERROR] (mobtalk) Не удалось озвучить реплику",
@@ -126,7 +127,7 @@ public final class DevStubServer {
                     "[19:34:10] [Server thread/INFO] (Minecraft) BigZet joined the game",
                     "[19:35:18] [Server thread/INFO] (Minecraft) <BigZet> привет") + "\n");
             api = new AdminApi(new AdminApi.Parts(history, metrics, latency, journal, errors, sources, game, backups, new Waypoints(data.resolve("waypoints.json")), map, tracks,
-                    new BlueMapControl(bluemap, game, clock), log,
+                    new BlueMapControl(bluemap, log, game, clock), log,
                     () -> Json.obj("perPlayerMinute", 0, "perPlayerDayUsd", 0, "serverDayUsd", 0, "maxDialoguesPerPlayer", 2),
                     () -> Json.obj("bind", "127.0.0.1", "port", 8788, "fingerprint", "заглушка без TLS"), clock));
         }

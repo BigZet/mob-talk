@@ -40,17 +40,23 @@ public final class SquaremapTiles implements MapSource {
 
     public boolean available() { return Files.isDirectory(tiles); }
 
-    @Override public int tileSize() { return SIZE; }
-    @Override public String name() { return "squaremap"; }
+    @Override public int tileSize(String world) { return SIZE; }
+    @Override public String name(String world) { return "squaremap"; }
 
-    /** squaremap's most detailed zoom: the highest of the worlds' {@code settings.json}, 3 when none says. */
-    @Override public int maxZoom() {
-        int max = -1;
-        try {
-            for (String world : worlds()) max = Math.max(max, squaremapMax(world));
-        } catch (IOException unreadable) { /* The default. */ }
-        return max < 0 ? 3 : max;
+    /** Whether squaremap has drawn anything of this world (it skips the End). */
+    public boolean has(String world) {
+        Path dir = folder(world);
+        if (dir == null || !Files.isDirectory(dir)) return false;
+        try (Stream<Path> zooms = Files.list(dir)) {
+            return zooms.filter(Files::isDirectory).anyMatch(zoom -> {
+                try (Stream<Path> files = Files.list(zoom)) { return files.anyMatch(f -> f.getFileName().toString().endsWith(".png")); }
+                catch (IOException unreadable) { return false; }
+            });
+        } catch (IOException unreadable) { return false; }
     }
+
+    /** squaremap's zoom levels of the world, from its {@code settings.json} (3 when it says nothing). */
+    @Override public int maxZoom(String world) { return squaremapMax(world); }
 
     @Override public byte[] tile(String world, int zoom, int tx, int tz) throws IOException {
         Path file = file(world, zoom, tx, tz);
@@ -136,7 +142,7 @@ public final class SquaremapTiles implements MapSource {
     }
 
     private Path file(String world, int zoom, int tx, int tz) {
-        if (zoom < 0 || zoom > 8) throw ApiException.badRequest("zoom — от 0 до " + maxZoom() + ".");
+        if (zoom < 0 || zoom > 8) throw ApiException.badRequest("zoom — от 0 до " + maxZoom(world) + ".");
         Path dir = folder(world);
         if (dir == null) return null;
         int squaremapZoom = squaremapMax(world) - zoom;

@@ -69,7 +69,7 @@ public final class AdminWeb {
         api = new AdminApi(new AdminApi.Parts(history, metrics, latency, journal, errors, sources, hooks.game(), backups,
                 new Waypoints(gameDir.resolve("config").resolve("mobtalk-waypoints.json")),
                 MapSource.choose(new SquaremapTiles(SquaremapTiles.find(gameDir, settings.squaremapTiles), log), map), tracks,
-                new BlueMapControl(gameDir.resolve(settings.bluemapWebroot), hooks.game(), System::currentTimeMillis),
+                new BlueMapControl(gameDir.resolve(settings.bluemapWebroot), gameDir.resolve("logs").resolve("latest.log"), hooks.game(), System::currentTimeMillis),
                 gameDir.resolve("logs").resolve("latest.log"), hooks.limits(),
                 () -> Json.obj("bind", settings.bind, "port", settings.port, "fingerprint", fingerprint), System::currentTimeMillis));
         auth = new AdminAuth(settings.passwordHash, System::currentTimeMillis);
