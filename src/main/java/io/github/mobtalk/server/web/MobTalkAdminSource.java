@@ -5,6 +5,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.mobtalk.core.MobTalkConfig;
+import io.github.mobtalk.core.SettingsScope;
+import io.github.mobtalk.server.ServerConfig;
 import io.github.mobtalk.core.Tunables;
 
 import java.io.IOException;
@@ -28,13 +30,8 @@ import java.util.function.UnaryOperator;
 public final class MobTalkAdminSource implements UnaryOperator<String> {
     public static final String ID = "mobtalk";
 
-    /** Interim list of the personal layer from plan 12.2, until {@code core.SettingsScope} (track S1) takes its place. */
-    public static boolean personal(String field) {
-        return field.startsWith("whisper") || field.startsWith("hud") || field.startsWith("playerNames") || field.startsWith("labels")
-                || field.startsWith("keys") || field.equals("microphoneName") || field.equals("micDevice") || field.equals("micGain")
-                || field.equals("voiceVolume") || field.equals("sttPath") || field.equals("playerGender") || field.equals("humanVillagers")
-                || field.equals("showStateHud") || field.equals("showBargainHud") || field.equals("showNameTags");
-    }
+    /** The personal layer of plan 12.2: {@link SettingsScope}. */
+    public static boolean personal(String field) { return SettingsScope.personal(field); }
 
     private record Extra(String field, Tunables.Section section, String group, String type, List<String> options, String title, String help) { }
 
@@ -83,6 +80,9 @@ public final class MobTalkAdminSource implements UnaryOperator<String> {
     private final Consumer<UnaryOperator<MobTalkConfig>> update;
     private final Map<String, Spec> specs = new LinkedHashMap<>();
     private final JsonObject description;
+
+    /** The Fabric entrypoint {@code mobtalk-admin}: the server layer of {@link ServerConfig}. */
+    public MobTalkAdminSource() { this(ServerConfig::get, ServerConfig::update, SettingsScope::personal); }
 
     /** {@code update} is {@code ServerConfig.update} on a server: it saves and tells the listeners. */
     public MobTalkAdminSource(Supplier<MobTalkConfig> current, Consumer<UnaryOperator<MobTalkConfig>> update, Predicate<String> personal) {

@@ -252,3 +252,15 @@ gradlew runAdminStub --args="--port 8790 --web C:/путь/к/assets/mobtalk/web
 
 Без `index.html` в папке страница отвечает 404, API работает. Заглушка слушает только loopback и по HTTP (cookie без `Secure`), страницу берёт с диска из `src/main/resources/assets/mobtalk/web`
 текущего worktree — правки видны после обновления страницы. Изменения через `PATCH`/`POST` держатся в памяти до перезапуска.
+
+## Подключение к серверу (волна 1, для интегратора)
+
+- `fabric.mod.json`: `"mobtalk-admin": ["io.github.mobtalk.server.web.MobTalkAdminSource"]` (класс в пакете `server.web`, а не `server`).
+- `MobTalkMod`: на `SERVER_STARTED` — `AdminWeb.start(runDir, new AdminWeb.Hooks(game, saver, worldDir, ServerConfig::get, ServerConfig::update,
+  SettingsScope::personal, limits), LOGGER::info)`, на `SERVER_STOPPING` — `stop()`. Нужны: `GameView` на живом сервере (игроки, мобы из
+  `ConversationStore`, деревни, бог через источник `divineblock`, позиции и телепорт), `Backups.Saver` (команды `save-off`/`save-all flush`/
+  `save-on` на серверном потоке), сэмплер метрик раз в 10 с через `ServerTickEvents` (`Metrics.record`, MSPT/TPS, память, чанки, сущности,
+  `journal.drainStarted()`, `drainSpent()`, `errors.drain()`), источники других модов из entrypoint `mobtalk-admin` в `sources().add`.
+- `DialogueService`: `journal().dialogueStarted(...)` → `step(...)` по шагам трассы → `finish(...)`/`fail(...)`; расходы — `journal().cost(...)`,
+  распознавание — `journal().transcribed(ms)`; остальные события (подарок, торг, слух, вход/выход) — `journal().event(kind, …)`.
+- Команда `/mobtalk admin web` → `AdminWeb.describe()`, `/mobtalk admin web password <новый>` → `setPassword`.
