@@ -112,7 +112,7 @@ public final class CemeteryTest {
             BlockPos spawn = player.getBlockPos();
             int y = world.getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, spawn.getX(), spawn.getZ());
             base = new BlockPos(spawn.getX(), y, spawn.getZ());
-            field = base.add(96, 0, 0);
+            field = base.add(SPACING * blocks.size() + 24, 0, 0); // past the row of blocks
             run(server, String.format("forceload add %d %d %d %d", base.getX() - 8, base.getZ() - 12, base.getX() + SPACING * blocks.size() + 8, base.getZ() + 14));
             run(server, String.format("forceload add %d %d %d %d", field.getX() - 8, field.getZ() - 8, field.getX() + 30, field.getZ() + 36));
             run(server, "gamemode spectator @a");
@@ -183,7 +183,7 @@ public final class CemeteryTest {
         camera(10.5, 40, 40, 180, 60, "template-top", true);
         camera(-4, 6, 30, -140, 18, "template-ground", true);
         camera(13, 4, -4, 25, 15, "template-entrance", true);
-        scene("wild", world -> base.add(260, 0, 40));
+        scene("wild", world -> base.add(420, 0, 40));
         // Hilly country: the cemetery finds a level patch and levels it gently.
         scene("hills", world -> {
             var found = world.locateBiome(biome -> biome.matchesKey(net.minecraft.world.biome.BiomeKeys.WINDSWEPT_FOREST)
@@ -370,7 +370,7 @@ public final class CemeteryTest {
     private static int[] bounds(ServerWorld world, BlockPos center, int radius) {
         int[] b = null;
         BlockPos.Mutable at = new BlockPos.Mutable();
-        for (int x = -radius; x <= radius; x++) for (int z = -radius; z <= radius; z++) for (int y = -16; y <= 16; y++) {
+        for (int x = -radius; x <= radius; x++) for (int z = -radius; z <= radius; z++) for (int y = -48; y <= 16; y++) {  // the cemetery may settle on a level patch well below the spot
             at.set(center.getX() + x, center.getY() + y, center.getZ() + z);
             if (!Registries.BLOCK.getId(world.getBlockState(at).getBlock()).getNamespace().equals(DivineBlockMod.ID)) continue;
             if (b == null) b = new int[] { at.getX(), at.getY(), at.getZ(), at.getX(), at.getY(), at.getZ() };
