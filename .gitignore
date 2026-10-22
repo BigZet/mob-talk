@@ -13,3 +13,6 @@ config/
 
 # Imported reference worlds (local only)
 /import/
+
+# Serena MCP index
+.serena/
