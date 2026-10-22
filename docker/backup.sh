@@ -5,7 +5,7 @@ set -eu
 cd "$(dirname "$0")"
 mkdir -p backups
 stamp=$(date +%Y%m%d-%H%M%S)
-console() { docker exec mobtalk-mc mc-send-to-console "$@" || true; }
+console() { docker exec --user 1000 mobtalk-mc mc-send-to-console "$@" || true; }
 console save-off
 console save-all flush
 sleep 10

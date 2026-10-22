@@ -52,13 +52,14 @@ scripts\new-test-client.ps1 -Nick Test2
 
 ## Ключи
 
-Сервер берёт `OPENROUTER_API_KEY`, `VENICE_API_KEY`, `ELEVENLABS_API_KEY`, `MOBTALK_ADMIN_TOKEN` из окружения. Если
+Сервер берёт `OPENROUTER_API_KEY`, `VENICE_API_KEY`, `ELEVENLABS_API_KEY` из окружения. Если
 переменной нет, `run-local-server.ps1` расшифровывает DPAPI-файл, который сохранило меню мода (`MobTalk\…-key.dpapi`,
 затем `DivineBlock\…-key.dpapi`), и передаёт значение только процессу сервера — на диск и в лог ничего не пишется.
-Сохранить ключ или пароль админки для этого пользователя Windows:
+Сохранить ключ для этого пользователя Windows (пароль админки не ключ: админка создаёт его при первом старте и один раз
+печатает в лог, сменить — `/mobtalk admin web password <новый>`):
 
 ```powershell
-scripts\run-local-server.ps1 -SetSecret MOBTALK_ADMIN_TOKEN    # спросит значение скрытым вводом
+scripts\run-local-server.ps1 -SetSecret ELEVENLABS_API_KEY     # спросит значение скрытым вводом
 scripts\run-local-server.ps1 -CheckOnly                         # покажет, откуда взялся каждый ключ, без запуска
 ```
 

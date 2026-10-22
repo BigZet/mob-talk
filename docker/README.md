@@ -19,7 +19,7 @@ scp -r docker user@vps:/opt/mobtalk/
 sudo apt install -y docker.io docker-compose-v2
 sudo usermod -aG docker $USER        # перелогиниться
 cd /opt/mobtalk/docker
-cp .env.example .env && chmod 600 .env && nano .env   # ключи, MOBTALK_ADMIN_TOKEN, WHITELIST, OPS
+cp .env.example .env && chmod 600 .env && nano .env   # ключи, WHITELIST, OPS
 docker compose up -d
 docker compose logs -f mc            # ждать "Done (...)! For help, type \"help\""
 ```
@@ -39,12 +39,14 @@ docker compose logs -f mc            # ждать "Done (...)! For help, type \"
 ssh -L 8787:127.0.0.1:8787 user@vps
 ```
 
-и открыть `https://127.0.0.1:8787` в браузере.
+и открыть `https://127.0.0.1:8787` в браузере. Пароль создаётся при первом старте и один раз печатается в лог
+(`docker compose logs mc | grep -i админка`); сменить — `/mobtalk admin web password <новый>`. Внутри контейнера админка
+слушает `0.0.0.0` (`data/config/mobtalk-admin.json` пишет `build-server-pack.ps1 -Docker`), снаружи порт открыт только на loopback.
 
 ## Консоль, логи, обновление
 
 - Логи: `docker compose logs -f mc` или `data/logs/latest.log`.
-- Команда в консоль сервера: `docker exec mobtalk-mc mc-send-to-console "whitelist add Nick"`; интерактивно —
+- Команда в консоль сервера: `docker exec --user 1000 mobtalk-mc mc-send-to-console "whitelist add Nick"`; интерактивно —
   `docker attach mobtalk-mc` (выход Ctrl+P, Ctrl+Q, не Ctrl+C).
 - Обновить сборку: на Windows снова `build-server-pack.ps1 -FromPack mob-talk-pack -Docker`, затем
   `docker compose stop`, скопировать только `docker/data/mods` поверх `data/mods` на VPS (`rsync -a --delete`),
