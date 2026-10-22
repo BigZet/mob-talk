@@ -3,9 +3,13 @@
 # Takes a game slot (Enter-GameSlot, max 6 games on the machine), waits for this copy's own game to close, then deletes the
 # copy (-Keep leaves it). Needs the server started with online-mode=false (run-local-server.ps1 without -Public).
 # Usage: powershell -ExecutionPolicy Bypass -File scripts\new-test-client.ps1 [-Nick Test2] [-Server 127.0.0.1:25565]
-#        [-Base mob-talk-pack] [-Keep] [-NoWait]
+#        [-Base mob-talk-pack] [-Keep] [-NoWait] [-Jar <our jar>...] [-ModsFrom <server mods folder>]
+# Our jars (mobtalk, divineblock, rusflora, parrotcages) in the copy are replaced with -Jar, else with the ones in the
+# local server's mods folder, so the client matches the server it joins; -ModsFrom '' keeps the base instance's jars.
 param([string]$Nick = 'Test2', [string]$Server = '127.0.0.1:25565', [string]$Base = 'mob-talk-pack', [switch]$Keep,
-    [switch]$NoWait, [int]$TimeoutSeconds = 600)
+    [switch]$NoWait, [int]$TimeoutSeconds = 600, [string[]]$Jar = @(),
+    [string]$ModsFrom = (Join-Path $env:LOCALAPPDATA 'MobTalkPack\server\mods'))
+$ours = '^(mobtalk|divineblock|rusflora|parrotcages)-'
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'ParallelPrism.psm1') -Force
 function Say($t) { Write-Host "$(Get-Date -Format HH:mm:ss) $t" }
@@ -24,7 +28,18 @@ $slot = Enter-GameSlot -Owner "new-test-client $Nick" -Say ${function:Say}
 $name = New-TestInstanceName 'client' $Nick
 try {
     Say "copy $Base -> $name"
-    New-TestInstance -Base $Base -Name $name -JvmArgs $jvm | Out-Null
+    $copy = @(New-TestInstance -Base $Base -Name $name -JvmArgs $jvm)[-1]
+    # Our mods in the copy are swapped for the server's (or -Jar's) so client and server run the same build.
+    $fresh = @($Jar | ForEach-Object { Get-Item -LiteralPath $_ })
+    if (-not $fresh.Count -and $ModsFrom -and (Test-Path -LiteralPath $ModsFrom)) {
+        $fresh = @(Get-ChildItem -LiteralPath $ModsFrom -Filter '*.jar' | Where-Object { $_.Name -match $ours })
+    }
+    foreach ($j in $fresh) {
+        $prefix = ($j.Name -split '-')[0]
+        Get-ChildItem "$copy\minecraft\mods\$prefix-*.jar" -ErrorAction SilentlyContinue | Remove-Item -Force
+        Copy-Item -LiteralPath $j.FullName "$copy\minecraft\mods\"
+        Say "mod $($j.Name) from $(Split-Path -Parent $j.FullName)"
+    }
     Invoke-PrismRescan
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     $game = $null
