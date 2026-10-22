@@ -82,7 +82,7 @@ public final class ChurchBuilder {
         if (stone) {
             mainDome = random.nextInt(3) > 0 ? Blocks.GOLD_BLOCK.getDefaultState() : Blocks.BLUE_CONCRETE.getDefaultState();
             smallDome = mainDome.isOf(Blocks.GOLD_BLOCK) && random.nextBoolean() ? Blocks.BLUE_CONCRETE.getDefaultState()
-                    : random.nextBoolean() ? Blocks.GOLD_BLOCK.getDefaultState() : Blocks.GREEN_CONCRETE.getDefaultState();
+                    : random.nextBoolean() ? Blocks.GOLD_BLOCK.getDefaultState() : Blocks.LIGHT_BLUE_CONCRETE.getDefaultState(); // green read as tree crowns
             // Grey iron roofs mostly (as on the user's reference church), sometimes green copper.
             boolean green = random.nextInt(3) == 0;
             roofStairs = green ? Blocks.WAXED_OXIDIZED_CUT_COPPER_STAIRS : Blocks.POLISHED_ANDESITE_STAIRS;
