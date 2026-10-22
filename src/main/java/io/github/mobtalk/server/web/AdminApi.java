@@ -27,7 +27,7 @@ import java.util.function.Supplier;
 public final class AdminApi {
     /** Everything the routes read; built by {@code AdminWeb} on a server and by {@code DevStubServer} in development. */
     public record Parts(HistoryStore history, Metrics metrics, Latency latency, AdminJournal journal, ErrorLog errors, ConfigSources sources,
-                        GameView game, Backups backups, Waypoints waypoints, Path log, Supplier<JsonObject> limits, Supplier<JsonObject> adminInfo, LongSupplier clock) { }
+                        GameView game, Backups backups, Waypoints waypoints, MapTiles map, Tracks tracks, Path log, Supplier<JsonObject> limits, Supplier<JsonObject> adminInfo, LongSupplier clock) { }
 
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final String[] MONTHS = {"янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"};
@@ -52,10 +52,14 @@ public final class AdminApi {
         parts.errors().listen(group -> events.publish("error", group));
         parts.journal().listenLive(snapshot -> live.publish("snapshot", snapshot));
         routes();
+        parts.map().listen(tile -> events.publish("map", tile));
+        // Every 2 s: the paths always grow, the page gets the places only while someone looks.
         positions.scheduleWithFixedDelay(() -> {
-            if (events.subscribers() == 0) return;
-            try { events.publish("positions", parts.game().positions()); }
-            catch (RuntimeException | LinkageError failure) { /* The next tick tries again. */ }
+            try {
+                JsonObject now = parts.game().positions();
+                parts.tracks().observe(now);
+                if (events.subscribers() > 0) events.publish("positions", now);
+            } catch (RuntimeException | LinkageError failure) { /* The next tick tries again. */ }
         }, 2, 2, java.util.concurrent.TimeUnit.SECONDS);
     }
 
@@ -166,6 +170,44 @@ public final class AdminApi {
             parts.history().append("command", null, null, "Админка: телепорт " + player + " " + described,
                     Json.obj("command", "teleport " + described, "by", by(r), "result", 1, "output", List.of(String.valueOf(Json.string(answer, "message")))));
             return Response.json(answer);
+        });
+        router.get("/api/players/tracks", r -> {
+            long to = r.longQuery("to", now()), from = r.longQuery("from", to - 3_600_000);
+            String player = r.query("player");
+            return Response.json(parts.tracks().query(world(r), from, to, player == null ? null : uuid(player), r.intQuery("points", 2000, 2, 20_000)));
+        });
+        router.get("/api/map/tiles/{world}/{zoom}/{tx}/{tz}", r -> {
+            String world = java.net.URLDecoder.decode(r.param("world"), java.nio.charset.StandardCharsets.UTF_8), last = r.param("tz");
+            if (!last.endsWith(".png")) throw ApiException.notFound("Тайл — .png.");
+            int zoom, tx, tz;
+            try { zoom = Integer.parseInt(r.param("zoom")); tx = Integer.parseInt(r.param("tx")); tz = Integer.parseInt(last.substring(0, last.length() - 4)); }
+            catch (NumberFormatException bad) { throw ApiException.badRequest("zoom, tx, tz — целые числа."); }
+            long modified = parts.map().modified(world, zoom, tx, tz);
+            byte[] png = modified == 0 ? null : parts.map().tile(world, zoom, tx, tz);
+            if (png == null) return Response.bytes(204, "image/png", new byte[0]).header("Cache-Control", "max-age=60");
+            String etag = "\"" + Long.toString(modified, 36) + "\"";
+            if (etag.equals(r.header("If-None-Match"))) return Response.bytes(304, "image/png", new byte[0]).header("ETag", etag).header("Cache-Control", "max-age=60");
+            return Response.bytes(200, "image/png", png).header("ETag", etag).header("Cache-Control", "max-age=60");
+        });
+        router.get("/api/map/info", r -> {
+            String world = world(r);
+            int[] box = parts.map().bounds(world);
+            JsonObject spawn = null;
+            for (JsonElement marker : parts.game().mapMarkers(world))
+                if ("spawn".equals(Json.string(marker.getAsJsonObject(), "kind"))) { spawn = Json.obj("x", marker.getAsJsonObject().get("x"), "z", marker.getAsJsonObject().get("z")); break; }
+            return Response.json(Json.obj("world", world, "minX", box == null ? null : box[0], "minZ", box == null ? null : box[1],
+                    "maxX", box == null ? null : box[2], "maxZ", box == null ? null : box[3], "spawn", spawn, "worlds", parts.map().worlds(),
+                    "tileSize", MapTiles.SIZE, "maxZoom", MapTiles.MAX_ZOOM));
+        });
+        router.get("/api/map/markers", r -> {
+            String world = world(r);
+            JsonArray markers = parts.game().mapMarkers(world).deepCopy();
+            for (JsonElement point : parts.waypoints().list().getAsJsonArray("waypoints")) {
+                JsonObject waypoint = point.getAsJsonObject();
+                if (world.equals(Json.string(waypoint, "world")))
+                    markers.add(Json.obj("kind", "waypoint", "id", waypoint.get("id"), "name", waypoint.get("name"), "x", waypoint.get("x"), "z", waypoint.get("z")));
+            }
+            return Response.json(Json.obj("world", world, "markers", markers));
         });
         router.get("/api/waypoints", r -> Response.json(parts.waypoints().list()));
         router.post("/api/waypoints", r -> Response.json(Json.obj("ok", true, "waypoint", parts.waypoints().add(r.json()))));
@@ -427,6 +469,8 @@ public final class AdminApi {
         Long from = r.query("from") == null ? null : r.longQuery("from", 0), to = r.query("to") == null ? null : r.longQuery("to", 0);
         return new HistoryStore.Query(kinds, r.query("player"), r.query("mob"), r.query("q"), from, to, r.query("cursor"), r.intQuery("limit", 50, 1, 500));
     }
+
+    private static String world(Request r) { return r.query("world", "minecraft:overworld"); }
 
     private static JsonObject page(HistoryStore.Page page) { return Json.obj("items", page.items(), "next", page.next()); }
 

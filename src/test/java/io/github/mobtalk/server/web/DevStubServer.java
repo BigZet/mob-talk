@@ -53,6 +53,7 @@ public final class DevStubServer {
         Path data = Files.createTempDirectory("mobtalk-admin-stub");
         Stub stub = create(data, System::currentTimeMillis, new Random(7));
         stub.seed();
+        stub.seedMap(1024);
         AdminHttpServer server = new AdminHttpServer(new AdminHttpServer.Options("127.0.0.1", port, null, false),
                 new AdminAuth(AdminAuth.hash(password), System::currentTimeMillis), stub.api.router(), StaticFiles.folder(web), System.out::println);
         server.start();
@@ -72,6 +73,8 @@ public final class DevStubServer {
         final ErrorLog errors;
         final ConfigSources sources;
         final FixtureGame game;
+        final MapTiles map;
+        final Tracks tracks;
         final AdminApi api;
         final AtomicReference<MobTalkConfig> config = new AtomicReference<>(new MobTalkConfig());
         final AdminSettings settings = new AdminSettings();
@@ -89,6 +92,8 @@ public final class DevStubServer {
             errors = new ErrorLog(history, clock);
             sources = new ConfigSources(history);
             game = new FixtureGame(clock);
+            map = new MapTiles(data.resolve("map"), System.err::println);
+            tracks = new Tracks(data.resolve("tracks"), clock, 7, System.err::println);
             sources.add(MobTalkAdminSource.ID, new MobTalkAdminSource(config::get, config::updateAndGet, MobTalkAdminSource::personal));
             sources.add("divineblock", game.divineSource());
             sources.add("admin", AdminSettings.source(settings, null, history));
@@ -112,7 +117,7 @@ public final class DevStubServer {
                     "\tat io.github.mobtalk.server.SpeechService.synthesize(SpeechService.java:42)",
                     "[19:34:10] [Server thread/INFO] (Minecraft) BigZet joined the game",
                     "[19:35:18] [Server thread/INFO] (Minecraft) <BigZet> привет") + "\n");
-            api = new AdminApi(new AdminApi.Parts(history, metrics, latency, journal, errors, sources, game, backups, new Waypoints(data.resolve("waypoints.json")), log,
+            api = new AdminApi(new AdminApi.Parts(history, metrics, latency, journal, errors, sources, game, backups, new Waypoints(data.resolve("waypoints.json")), map, tracks, log,
                     () -> Json.obj("perPlayerMinute", 0, "perPlayerDayUsd", 0, "serverDayUsd", 0, "maxDialoguesPerPlayer", 2),
                     () -> Json.obj("bind", "127.0.0.1", "port", 8788, "fingerprint", "заглушка без TLS"), clock));
         }
@@ -139,6 +144,67 @@ public final class DevStubServer {
             }
             history.flush();
             metrics.flush();
+        }
+
+        /** A made-up land around spawn (±{@code radius} blocks) and six hours of walking in circles for both online players. */
+        void seedMap(int radius) {
+            for (int cz = -radius / 16; cz < radius / 16; cz++) for (int cx = -radius / 16; cx < radius / 16; cx++) map.update("minecraft:overworld", cx, cz, terrain(cx, cz));
+            for (int cz = -8; cz < 8; cz++) for (int cx = -8; cx < 8; cx++) map.update("minecraft:the_nether", cx, cz, nether(cx, cz));
+            long now = clock.getAsLong();
+            for (long t = now - 6 * 3_600_000L; t < now; t += Tracks.EVERY) {
+                double a = (t % 1_800_000L) / 1_800_000.0 * 2 * Math.PI;
+                tracks.record(BIGZET, "BigZet", t, "minecraft:overworld", 60 + 140 * Math.cos(a), 66, -250 + 90 * Math.sin(a));
+                tracks.record(TEST2, "Тест2", t, "minecraft:overworld", 300 + 60 * Math.cos(-a * 2), 64, 120 + 60 * Math.sin(-a * 2) - 0.01 * ((t / 1000) % 600));
+            }
+            map.flush();
+            tracks.flush();
+        }
+
+        static int[] terrain(int cx, int cz) {
+            int[] colors = new int[256];
+            double[] heights = new double[256];
+            for (int z = 0; z < 16; z++) for (int x = 0; x < 16; x++) {
+                int bx = cx * 16 + x, bz = cz * 16 + z;
+                double h = 64 + 22 * noise(bx / 180.0, bz / 180.0) + 7 * noise(bx / 40.0 + 9, bz / 40.0 - 3);
+                double trees = noise(bx / 60.0 - 20, bz / 60.0 + 11);
+                heights[z * 16 + x] = h;
+                int rgb;
+                if (h < 62) rgb = h < 56 ? 0x2C3EAE : 0x4040FF;
+                else if (h < 64) rgb = 0xF7E9A3;
+                else if (h > 86) rgb = 0xFFFFFF;
+                else if (h > 78) rgb = 0x707070;
+                else if (trees > 0.25) rgb = 0x007C00;
+                else rgb = 0x7FB238;
+                double north = z > 0 ? heights[(z - 1) * 16 + x] : h;
+                int brightness = h < 62 ? 220 : Math.floor(h) > Math.floor(north) ? 255 : Math.floor(h) < Math.floor(north) ? 180 : 220;
+                int r = ((rgb >> 16) & 0xFF) * brightness / 255, g = ((rgb >> 8) & 0xFF) * brightness / 255, b = (rgb & 0xFF) * brightness / 255;
+                colors[z * 16 + x] = 0xFF000000 | (r << 16) | (g << 8) | b;
+            }
+            if (cx == 3 && cz == -16) for (int i = 0; i < 256; i += 3) colors[i] = 0xFF8F7748; // Берёзовка: дорожки
+            return colors;
+        }
+
+        static int[] nether(int cx, int cz) {
+            int[] colors = new int[256];
+            for (int i = 0; i < 256; i++) {
+                double n = noise((cx * 16 + i % 16) / 30.0, (cz * 16 + i / 16) / 30.0);
+                colors[i] = n > 0.35 ? 0xFFD15C06 : n < -0.3 ? 0xFF4A1A1A : 0xFF701414;
+            }
+            return colors;
+        }
+
+        /** Smooth value noise in [-1, 1]. */
+        static double noise(double x, double z) {
+            int x0 = (int) Math.floor(x), z0 = (int) Math.floor(z);
+            double fx = x - x0, fz = z - z0, sx = fx * fx * (3 - 2 * fx), sz = fz * fz * (3 - 2 * fz);
+            double a = lattice(x0, z0), b = lattice(x0 + 1, z0), c = lattice(x0, z0 + 1), d = lattice(x0 + 1, z0 + 1);
+            return (a + (b - a) * sx) + ((c + (d - c) * sx) - (a + (b - a) * sx)) * sz;
+        }
+
+        private static double lattice(int x, int z) {
+            long h = x * 374761393L + z * 668265263L;
+            h = (h ^ (h >>> 13)) * 1274126177L;
+            return ((h ^ (h >>> 16)) & 0xFFFF) / 32767.5 - 1;
         }
 
         private void seedEvent(long t) {

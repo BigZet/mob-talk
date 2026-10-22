@@ -28,6 +28,9 @@ public interface GameView {
     JsonObject position(UUID player);
     /** Moves an online player to {"world","x","y","z"}, {"toPlayer":uuid}, {"to":"spawn"} or {"to":"respawn"}; 409 when offline. */
     JsonObject teleport(UUID player, JsonObject target);
+    /** Map markers of a world besides the admin's waypoints: [{"kind":"village|boss|spawn","id","name","x","z"}]; the first spawn is
+     * the world's spawn in {@code /api/map/info}. */
+    JsonArray mapMarkers(String world);
 
     JsonObject mobs(String village, String query, String cursor, int limit);
     /** One mob in full; null when unknown. */
