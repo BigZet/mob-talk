@@ -448,10 +448,10 @@ public final class HogweedSelfTest {
 
     /** Five patches from the world generation feature on an open field: each is a group of 10 to 25 plants. */
     private static void patches(ServerWorld world, ServerPlayerEntity player) {
-        BlockPos base = field(world, plot.add(0, 0, 120), 60, 14);
+        BlockPos base = field(world, plot.add(0, 0, 120), 92, 14);
         var feature = world.getRegistryManager().get(net.minecraft.registry.RegistryKeys.CONFIGURED_FEATURE).get(RusFlora.id("hogweed_patch"));
         for (int i = 0; i < 5; i++) {
-            BlockPos origin = base.add(6 + i * 12, 0, 7);
+            BlockPos origin = base.add(7 + i * 18, 0, 7); // 18 apart, so the counted squares of two patches never overlap
             feature.generate(world, world.getChunkManager().getChunkGenerator(), world.getRandom(), origin);
             int n = 0;
             for (BlockPos pos : BlockPos.iterate(origin.add(-6, -2, -6), origin.add(6, 3, 6))) {
@@ -460,7 +460,7 @@ public final class HogweedSelfTest {
             }
             check(n >= 10 && n <= 25, "очаг генерации: группа из " + n + " растений (10–25)");
         }
-        look(player, Vec3d.ofCenter(base).add(30, 12, 26), Vec3d.ofCenter(base).add(30, 1, 7));
+        look(player, Vec3d.ofCenter(base).add(43, 14, 30), Vec3d.ofCenter(base).add(43, 1, 7));
     }
 
     /** Under a roof a rosette never grows; the same rosette under open sky does. */
