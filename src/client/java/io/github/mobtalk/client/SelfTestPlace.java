@@ -1,6 +1,6 @@
 package io.github.mobtalk.client;
 
-import io.github.mobtalk.client.game.StructureCapture;
+import io.github.mobtalk.game.StructureCapture;
 import io.github.mobtalk.core.MobSnapshot;
 import io.github.mobtalk.core.PlacePrompt;
 import io.github.mobtalk.core.place.PlaceClassifier;

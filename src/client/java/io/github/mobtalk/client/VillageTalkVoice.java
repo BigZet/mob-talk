@@ -1,6 +1,6 @@
 package io.github.mobtalk.client;
 
-import io.github.mobtalk.client.game.MobGameBridge;
+import io.github.mobtalk.game.MobGameBridge;
 import io.github.mobtalk.core.ConversationEngine;
 import io.github.mobtalk.core.VillageChatter;
 import io.github.mobtalk.core.VillageNotices;

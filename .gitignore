@@ -13,3 +13,4 @@ config/
 
 # Serena MCP index
 .serena/
+logs/

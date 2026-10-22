@@ -1,6 +1,6 @@
 package io.github.mobtalk.client;
 
-import io.github.mobtalk.client.game.ChildController;
+import io.github.mobtalk.game.ChildController;
 import io.github.mobtalk.core.*;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;

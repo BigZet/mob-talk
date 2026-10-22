@@ -116,3 +116,35 @@
 - **F7.** Восемь вкладок: Общее, Голос, Модель, Общение, Социум, Действия, Виды, Моб. Ползунок `TunableSlider` показывает значение с единицей, подсказка — объяснение, диапазон и значение по умолчанию.
 - **«Моб и деревня».** `/mobtalk info` и кнопка в F7 открывают `InfoScreen` — прокручиваемый текст из `MobInfo.report`. Сервер снимает место без «внимания» моба, классификатор работает вне игрового потока, текст собирается под замком памяти мира. Секреты свёрнуты до кнопки. Статус игрока в деревне, где он стоит (`SocialLedger.standingAt`, `VillageStanding.describe`): ранг, очки, знакомые, средний балл, последствия — в панели, на вкладке «Общее» и короткой строкой в `/mobtalk state`.
 - **Не проверено в игре**: вид вкладок и ползунков на разных масштабах интерфейса, панель на живом мире, имена в настоящих ответах модели.
+
+## Каркас сервера (трек S1, план docs/server-plan.md)
+
+Ветка `bigzet/server-skeleton`, 22 октября 2026 года. Mob Talk — мод `environment: *`: один jar, входы `main` (`MobTalkMod`, сервер и одиночка)
+и `client` (`MobTalkClient`). Одиночка работает тем же серверным кодом на встроенном сервере.
+
+- **Пакеты.** `src/client/.../client/game/**` переехал в `src/main/.../game/**` (`MobGameBridge` и контроллеры; `DatasetHarvester` остался
+  в клиенте — он один использует `MinecraftClient`). 21 общий миксин — `mobtalk.mixins.json` (`io.github.mobtalk.game.mixin`), два
+  клиентских (`ChatScreenAccessor`, `LivingEntityRendererInvoker`) — `mobtalk.client.mixins.json` с `environment: client`.
+- **Сеть** (`io.github.mobtalk.net`, канал `mobtalk:<имя>`, кодеки вручную, каждый пакет — record в своём файле; `NetCodecTest`).
+  Клиент → сервер: `TalkStartC2S`, `TalkTextC2S` (текст и JPEG ≤ 200 КБ), `TalkAudioC2S` (≤ 900 КБ), `TalkCancelC2S`, `GiftC2S`,
+  `MobActionC2S`, `PlayerSettingsC2S`, `ScreenRequestC2S`. Сервер → клиент: `TalkStatusS2C`, `MobSpeechS2C`, `SpeechClipS2C` (чанки
+  ≤ 512 КБ), `MobStateS2C`, `MobLabelS2C`, `ServerFeaturesS2C`, `ScreenDataS2C`, `NoticeS2C`. Типы регистрирует `MobTalkNet.registerPayloads`
+  из `MobTalkMod`; приёмники C2S — `MobTalkMod` (пока отвечают «сервер ещё не умеет диалог», трек A), S2C — `ClientNet`.
+- **Мост.** `GameBridge` — интерфейс без классов Minecraft (`capture`, `apply`/`applyWithRevision`, `giftFromHand`, `openTrade`,
+  `witnesses`, `villageAt(игрок, мир, x, z)`, `info`, `event(UUID, текст)`, `onServer`, `memory()`, `config()`); `MobGameBridge implements GameBridge`,
+  в тестах — `FakeGameBridge`. Мост создаёт `MobTalkMod` на `SERVER_STARTED` (память мира открывается на своём потоке, затем `attach`
+  на потоке сервера), снимает на `SERVER_STOPPING`; клиент одиночки берёт его через `MobTalkMod.bridgeReady(server)`.
+- **Настройки: два слоя.** `SettingsScope` (ядро) делит поля `MobTalkConfig`: личные — `whisper*`, `microphoneName`, `showStateHud`,
+  `showBargainHud`, `showNameTags`, `playerNames*`, `playerGender`, `humanVillagers` (и будущие `mic*`, `hud*`, `labels*`, `keys*`,
+  `voiceVolume`, `sttPath`); остальные — серверные. `ServerConfig` — серверный снимок (копия при каждой записи, слушатели);
+  на выделенном сервере читает `config/mobtalk-server.json` (нет — переносит серверные поля из `mobtalk.json` и создаёт файл; в файле
+  ещё `streamer` и `admins`), в одиночке живёт по серверным полям клиентского `mobtalk.json` через `ServerConfig.adopt` без своего файла.
+  `PlayerSettings` — личные поля в JSON, `PlayerSettingsStore` — по UUID в `data/mobtalk/players.json` мира; клиент шлёт их при входе.
+  `ServerFeatures` (JSON в `ServerFeaturesS2C`) — версия, что включено, пути распознавания, лимит записи, уровень прав, стример.
+- **Службы** (`io.github.mobtalk.server`): `TranscriptionService`, `SpeechService`, `PlayerBudget`, `Permissions` с заглушками
+  `StubTranscription` («не настроено»), `StubSpeech` (пустой клип; рассылка чанками уже рабочая), `AllowAllBudget` (считает расходы),
+  `OpsOnlyPermissions` (операторы — ADMIN). Подмена: `MobTalkMod.setTranscription/setSpeech/setBudget/setPermissions`.
+- **Прогон без клиента.** `scripts\run-server-selftest.ps1` → `gradlew runServer -PmobtalkSelftest=true`: сервер в `run\server`
+  поднимает мост, гоняет кодеки, JSON и хранилище игроков (`ServerSelfTest`), пишет `[mobtalk-server-selftest] ALL CHECKS PASSED`
+  и останавливается. Полный локальный сервер с Fabric API и остальными модами — `scripts\run-local-server.ps1` трека E.
+- **Не проверено в игре**: подключение клиента к выделенному серверу и одиночка на новом каркасе (ждут разрешения на запуск игры).

@@ -1,8 +1,8 @@
 package io.github.mobtalk.client;
 
-import io.github.mobtalk.client.game.StructureCapture;
-import io.github.mobtalk.client.game.VillageSites;
-import io.github.mobtalk.client.game.WeddingController;
+import io.github.mobtalk.game.StructureCapture;
+import io.github.mobtalk.game.VillageSites;
+import io.github.mobtalk.game.WeddingController;
 import io.github.mobtalk.core.ConversationStore;
 import io.github.mobtalk.core.Gender;
 import io.github.mobtalk.core.MobCard;

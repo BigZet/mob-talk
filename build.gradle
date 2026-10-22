@@ -4,6 +4,15 @@ group = 'io.github.mobtalk'
 base { archivesName = 'mobtalk' }
 loom {
     splitEnvironmentSourceSets()
+    // Трек S1: `gradlew runServer -PmobtalkSelftest=true` — выделенный сервер без клиента, который проверяет мост и пакеты и
+    // останавливается (ServerSelfTest, раздел 16.3 плана); scripts/run-server-selftest.ps1 готовит run/server и читает лог.
+    runs {
+        server {
+            runDir 'run/server'
+            programArg 'nogui'
+            vmArg '-Dmobtalk.selftest.server=' + (project.findProperty('mobtalkSelftest') ?: 'false')
+        }
+    }
     mods {
         mobtalk {
             sourceSet sourceSets.main

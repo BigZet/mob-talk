@@ -1,8 +1,8 @@
 package io.github.mobtalk.client;
 
 import io.github.mobtalk.audio.PcmWav;
-import io.github.mobtalk.client.game.WeddingController;
-import io.github.mobtalk.client.game.WeddingItems;
+import io.github.mobtalk.game.WeddingController;
+import io.github.mobtalk.game.WeddingItems;
 import io.github.mobtalk.core.*;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;

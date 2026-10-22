@@ -1,6 +1,6 @@
 package io.github.mobtalk.client;
 
-import io.github.mobtalk.client.game.MobGameBridge;
+import io.github.mobtalk.game.MobGameBridge;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
