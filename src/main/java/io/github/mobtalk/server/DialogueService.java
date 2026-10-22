@@ -355,9 +355,19 @@ public final class DialogueService {
                     out.chat(player, "[Mob Talk] " + (error != null ? "Мир ещё не загружен" : ScreenReports.stateLine(bridge, session.target, player, view, decider)))));
             case "trade" -> bridge.mobByEntityId(player, mobId).thenCompose(mob -> { select(session, mob); return bridge.openTrade(mob.id(), player, mob.dimension()); })
                     .whenComplete((ignored, error) -> onServer(() -> { if (error != null) out.chat(player, "[Mob Talk] " + plain(error, "Не удалось открыть сделки: моб недоступен")); }));
-            case "forgive" -> bridge.forgiveVillage(player).whenComplete((result, error) -> onServer(() -> out.chat(player, "[Mob Talk] " + (error == null ? result : plain(error, "не удалось")))));
+            case "card" -> bridge.mobByEntityId(player, mobId).thenCompose(mob -> bridge.capture(mob.id(), player, mob.dimension()))
+                    .whenComplete((snapshot, error) -> onServer(() -> out.screen(player, "card", error != null ? answer("", plain(error, "Моб недоступен")) : card(snapshot))));
+            case "forgive" ->bridge.forgiveVillage(player).whenComplete((result, error) -> onServer(() -> out.chat(player, "[Mob Talk] " + (error == null ? result : plain(error, "не удалось")))));
             default -> out.screen(player, screen, answer("", "Неизвестный экран: " + screen));
         }
+    }
+    /** Вкладка F7 «Выбранный моб»: снимок моба и его карточка для этого игрока ({@link MobCard}, без карточки — моб ещё незнаком). */
+    private String card(MobSnapshot snapshot) {
+        MobCard card = bridge.memory().observe(snapshot);
+        JsonObject json = new JsonObject();
+        json.add("snapshot", GSON.toJsonTree(snapshot));
+        if (card != null) json.add("card", GSON.toJsonTree(card));
+        return json.toString();
     }
     static String answer(String message, String error) {
         JsonObject json = new JsonObject();

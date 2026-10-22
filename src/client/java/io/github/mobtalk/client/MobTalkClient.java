@@ -612,15 +612,30 @@ public final class MobTalkClient implements ClientModInitializer {
 
     // ---- Действия, экраны, команды. ----
 
+    /** На выделенном сервере снимок и карточка выбранного моба приходят одним ответом экрана {@code card}; снимок и карточку
+     * вкладка F7 просит разом, поэтому идущий запрос того же моба делится. */
+    private CompletableFuture<JsonObject> remoteCard;
+    private UUID remoteCardMob;
+    private CompletableFuture<JsonObject> remoteCard() {
+        MobEntity mob = target();
+        if (mob == null) return CompletableFuture.failedFuture(new IllegalStateException("Моб не выбран или далеко"));
+        if (remoteCard != null && !remoteCard.isDone() && mob.getUuid().equals(remoteCardMob)) return remoteCard;
+        remoteCardMob = mob.getUuid();
+        remoteCard = ask("card", mob.getId()).thenApply(json -> JsonParser.parseString(json).getAsJsonObject());
+        return remoteCard;
+    }
     public CompletableFuture<MobSnapshot> selectedSnapshot() {
         if (selected == null || client.player == null || world == null) return CompletableFuture.failedFuture(new IllegalStateException("Сначала наведите прицел на моба и нажмите V"));
-        if (client.getServer() == null) return CompletableFuture.failedFuture(new IllegalStateException("Снимок моба доступен в одиночной игре"));
+        if (client.getServer() == null) return remoteCard().thenApply(json -> GSON.fromJson(json.get("snapshot"), MobSnapshot.class));
         UUID mob = selected, player = client.player.getUuid();
         String dimension = world.getRegistryKey().getValue().toString();
         return io.github.mobtalk.MobTalkMod.bridgeReady(client.getServer()).thenCompose(game -> game.capture(mob, player, dimension));
     }
     public CompletableFuture<MobCard> selectedCard() {
-        if (client.getServer() == null) return CompletableFuture.failedFuture(new IllegalStateException("Карточка доступна в одиночной игре"));
+        if (client.getServer() == null) {
+            if (selected == null) return CompletableFuture.failedFuture(new IllegalStateException("Сначала наведите прицел на моба и нажмите V"));
+            return remoteCard().thenApply(json -> json.has("card") ? GSON.fromJson(json.get("card"), MobCard.class) : null);
+        }
         CompletableFuture<MobGameBridge> ready = io.github.mobtalk.MobTalkMod.bridgeReady(client.getServer());
         return selectedSnapshot().thenCompose(snapshot -> ready.thenApply(game -> { game.memory.observe(snapshot); return game.memory.card(snapshot.id(), snapshot.playerId()); }));
     }

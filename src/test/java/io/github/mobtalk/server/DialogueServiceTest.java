@@ -169,4 +169,22 @@ class DialogueServiceTest {
         service.action(dima, 11, "{\"type\":\"STOP\",\"target\":\"player\"}");
         assertTrue(RecordingOutbox.await(service, 2_000, () -> bridge.called("apply " + villager + " STOP")));
     }
+
+    @Test void selectedMobCardComesWholeForTheF7Tab() throws Exception {
+        service.talkText(dima, 11, "Привет", false, new byte[0]);
+        assertTrue(RecordingOutbox.await(service, 10_000, () -> answered(dima)));
+        service.screen(dima, "card", 11);
+        assertTrue(RecordingOutbox.await(service, 3_000, () -> out.screens.stream().anyMatch(s -> s.screen().equals("card"))));
+        String json = out.screens.stream().filter(s -> s.screen().equals("card")).findFirst().orElseThrow().json();
+        var object = com.google.gson.JsonParser.parseString(json).getAsJsonObject();
+        com.google.gson.Gson gson = new com.google.gson.Gson();
+        MobSnapshot snapshot = gson.fromJson(object.get("snapshot"), MobSnapshot.class);
+        io.github.mobtalk.core.MobCard card = gson.fromJson(object.get("card"), io.github.mobtalk.core.MobCard.class);
+        assertEquals(villager, snapshot.id());
+        assertEquals(villager, card.id());
+        assertEquals(1, card.turns().size(), "история разговора видна в карточке");
+        service.screen(dima, "card", 999);
+        assertTrue(RecordingOutbox.await(service, 3_000, () -> out.screens.stream().anyMatch(s -> s.screen().equals("card") && s.json().contains("\"error\":\"") && !s.json().contains("\"error\":\"\""))),
+                "нет моба — понятная ошибка");
+    }
 }
