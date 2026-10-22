@@ -250,6 +250,14 @@ public final class Zones {
     /** Where to stand by the bed: a free spot with ground under it, or the bed's column top. */
     static Vec3d standNear(ServerWorld world, BlockPos bed) {
         world.getChunk(bed);
+        // Outside first, under the open sky by the house, so he sees what falls on it; else by the bed.
+        for (int r = 2; r <= 7; r++) for (int dy = 1; dy >= -2; dy--) for (int dx = -r; dx <= r; dx++) for (int dz = -r; dz <= r; dz++) {
+            if (Math.max(Math.abs(dx), Math.abs(dz)) != r) continue;
+            BlockPos at = bed.add(dx, dy, dz);
+            if (world.isSkyVisible(at) && world.getBlockState(at.down()).isSideSolidFullSquare(world, at.down(), Direction.UP)
+                    && world.getBlockState(at).getCollisionShape(world, at).isEmpty() && world.getBlockState(at.up()).getCollisionShape(world, at.up()).isEmpty()
+                    && world.getBlockState(at).getFluidState().isEmpty() && world.getBlockState(at.down()).getFluidState().isEmpty()) return Vec3d.ofBottomCenter(at);
+        }
         for (int r = 1; r <= 3; r++) for (int dy = 0; dy >= -1; dy--) for (int dx = -r; dx <= r; dx++) for (int dz = -r; dz <= r; dz++) {
             BlockPos at = bed.add(dx, dy, dz);
             if (world.getBlockState(at.down()).isSideSolidFullSquare(world, at.down(), Direction.UP)

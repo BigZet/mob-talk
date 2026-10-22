@@ -195,13 +195,15 @@ public final class SkyCourt {
             if (d > edge) { set(world, at.set(x, cy, z), Blocks.BARRIER.getDefaultState(), flags); continue; }
             set(world, at.set(x, cy, z), floor(dx, dz, d, x, z), flags);
             // The puffy underside: deepest under the middle.
-            double lump = noise(x - 5000, z + 2000, 4);
-            int depth = 1 + (int) Math.round(Math.pow(Math.max(0, 1 - d / edge), 0.5) * 13 * (0.3 + 0.7 * m) + lump * 3);
+            double lump = noise(x - 5000, z + 2000, 4), bulge = noise(x + 7000, z - 3000, 9);
+            int depth = 1 + (int) Math.round(Math.pow(Math.max(0, 1 - d / edge), 0.5) * 13 * (0.3 + 0.7 * m) + lump * 3
+                    + Math.max(0, bulge - 0.55) * 22 * Math.max(0, 1 - d / edge));
             for (int k = 0; k < depth; k++) set(world, at.set(x, cy - 2 - k, z), cloud(x, cy - 2 - k, z), flags);
             // The cloud bank of the rim: puffs one to three high, thinning inward.
             if (d > RADIUS - 2) {
                 double rise = (d - (RADIUS - 2)) / (edge - (RADIUS - 2) + 0.01);
-                int puff = (int) Math.round((0.4 + 0.6 * m) * 3.2 * Math.sin(Math.PI * Math.min(1, rise)));
+                double tuft = noise(x + 300, z + 900, 4);
+                int puff = (int) Math.round((0.2 + 0.8 * tuft) * 4.5 * Math.sin(Math.PI * Math.min(1, rise))) - 1;
                 for (int y = 1; y <= puff; y++) set(world, at.set(x, cy + y, z), cloud(x, cy + y, z), flags);
             }
         }
