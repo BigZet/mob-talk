@@ -5,7 +5,9 @@ import io.github.divineblock.core.DivineConfig;
 import io.github.divineblock.core.LocalWhisper;
 import io.github.divineblock.core.PcmWav;
 import io.github.divineblock.game.AltarBlock;
+import io.github.divineblock.game.PrayAudioPayload;
 import io.github.divineblock.game.PrayPayload;
+import io.github.divineblock.core.PrayerVoicePath;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -20,7 +22,8 @@ import net.minecraft.util.math.BlockPos;
 
 /** Praying aloud: hold the key near an altar (15 seconds at most), release, and Whisper turns the words into the prayer.
  * The microphone records only while the key is held; recognition runs on a worker, and the prayer is dropped if the player
- * left the world or the altar meanwhile. */
+ * left the world or the altar meanwhile. Where it is recognised follows the player's Mob Talk choice ({@link PrayerVoicePath}):
+ * the local helper, or the server through Mob Talk's recognition ({@link PrayAudioPayload}); "text" turns voice prayer off. */
 final class VoicePrayer {
     private static final ExecutorService WORKER = Executors.newSingleThreadExecutor(r -> { Thread t = new Thread(r, "divineblock-whisper"); t.setDaemon(true); return t; });
     private static final MicrophoneRecorder RECORDER = new MicrophoneRecorder();
@@ -35,6 +38,7 @@ final class VoicePrayer {
 
     static void tick(MinecraftClient client, KeyBinding key) {
         if (client.player == null || client.world == null) { cancel(); return; }
+        route(); // keeps the Mob Talk choice fresh off-thread before the key is pressed
         boolean held = key.isPressed() && client.currentScreen == null;
         if (capture == null && held) start(client);
         else if (capture != null && !held) finish(client);
@@ -52,6 +56,10 @@ final class VoicePrayer {
         }
         BlockPos found = findAltar(client);
         if (found == null) { debug(client, "Молиться вслух можно лишь у алтаря."); return; }
+        if (route() == PrayerVoicePath.Route.TEXT) {
+            client.player.sendMessage(Text.literal("Голос выключен в Mob Talk: молись текстом у алтаря").formatted(Formatting.GRAY), true);
+            return;
+        }
         DivineConfig config = DivineBlockMod.config();
         try { capture = RECORDER.start(config.microphoneName, PcmWav.MAX_SECONDS); }
         catch (RuntimeException occupied) { client.player.sendMessage(Text.literal(occupied.getMessage()).formatted(Formatting.RED), true); return; }
@@ -75,6 +83,15 @@ final class VoicePrayer {
             try {
                 if (failure != null) throw failure instanceof Exception e ? e : new Exception(failure);
                 if (wav == null) problem = "Слишком коротко: держи клавишу, пока молишься.";
+                else if (route() == PrayerVoicePath.Route.SERVER) {
+                    // The server recognises it and prays for the player; its answer comes as the god's word or a line above the hotbar.
+                    client.execute(() -> {
+                        busy = false;
+                        if (client.player == null || client.world != where || !ClientPlayNetworking.canSend(PrayAudioPayload.ID)) return;
+                        ClientPlayNetworking.send(new PrayAudioPayload(target, wav, false));
+                    });
+                    return;
+                }
                 else {
                     WhisperHelper.ensureReady(config, line -> client.execute(() -> { if (client.player != null) client.player.sendMessage(Text.literal(line).formatted(Formatting.GRAY), true); }));
                     text = new LocalWhisper(config.whisperUrl).transcribe(wav);
@@ -117,6 +134,15 @@ final class VoicePrayer {
             try {
                 if (failure != null) { status.accept(failure.getMessage() == null ? "Микрофон недоступен." : failure.getMessage()); return; }
                 if (wav == null) { status.accept("Микрофон молчит: тишина или нет доступа."); return; }
+                if (route() == PrayerVoicePath.Route.SERVER) {
+                    MinecraftClient client = MinecraftClient.getInstance();
+                    client.execute(() -> {
+                        if (client.player == null || !ClientPlayNetworking.canSend(PrayAudioPayload.ID)) { status.accept("Сервер не принимает запись."); return; }
+                        ClientPlayNetworking.send(new PrayAudioPayload(client.player.getBlockPos(), wav, true));
+                        status.accept("Запись ушла на сервер: что он расслышал, появится над панелью.");
+                    });
+                    return;
+                }
                 status.accept("Распознаю…");
                 WhisperHelper.ensureReady(settings, status);
                 String text = new LocalWhisper(settings.whisperUrl).transcribe(wav);
@@ -125,6 +151,22 @@ final class VoicePrayer {
             catch (Exception error) { status.accept(error.getMessage()); }
         }));
     }
+
+    /** The recognition path for this prayer: the player's Mob Talk choice, what is installed here, what the server accepts.
+     * The disk part (mobtalk.json, the Whisper install) is read on the worker every few seconds, never on the game thread. */
+    static PrayerVoicePath.Route route() {
+        long now = System.nanoTime();
+        if (now - checkedAt > 5_000_000_000L) { checkedAt = now; WORKER.execute(VoicePrayer::refreshRoute); }
+        boolean server = MinecraftClient.getInstance().getNetworkHandler() != null && ClientPlayNetworking.canSend(PrayAudioPayload.ID);
+        return PrayerVoicePath.choose(mobTalkPath, localInstalled, server);
+    }
+    private static void refreshRoute() {
+        mobTalkPath = PrayerVoicePath.mobTalkPath(DivineBlockMod.configDirectory());
+        localInstalled = WhisperHelper.installed();
+    }
+    private static volatile String mobTalkPath = "";
+    private static volatile boolean localInstalled = true;
+    private static volatile long checkedAt = System.nanoTime() - 10_000_000_000L;
 
     /** A service line for the action bar: only in debug mode. */
     private static void debug(MinecraftClient client, String line) {
