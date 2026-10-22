@@ -89,7 +89,7 @@ public final class DivineCommands {
         for (BlockPos pos : BlockPos.iterateOutwards(player.getBlockPos(), 12, 6, 12))
             if (player.getServerWorld().getBlockState(pos).getBlock() instanceof AltarBlock) { altar = pos.toImmutable(); break; }
         int strength = power < 0 ? miracle.maxTier : Math.max(miracle.minTier, Math.min(miracle.maxTier, power));
-        String done = Miracles.perform(miracle, strength, player, altar, "", DivineBlockMod.config(), severity);
+        String done = Zones.perform(miracle, strength, player, altar, "", DivineBlockMod.config(), severity);
         source.sendFeedback(() -> Text.literal(miracle.id() + " ×" + strength + ": " + (done == null ? "не вышло здесь" : done)), false);
         acted.accept(miracle.id() + " ×" + strength + " /" + severity + ": " + (done == null ? "не вышло здесь" : done));
         return done == null ? 0 : 1;

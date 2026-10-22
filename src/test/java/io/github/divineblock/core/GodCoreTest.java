@@ -304,4 +304,24 @@ class GodCoreTest {
         for (Miracle miracle : Miracle.values()) if (miracle.kind == Miracle.Kind.WRATH)
             assertTrue(java.util.Arrays.stream(MiracleGroup.values()).anyMatch(g -> g.members.contains(miracle)), "every punishment is in a group: " + miracle);
     }
+
+    @Test void everyPunishmentHasItsPlaceAndLandscapeCanBeSwitchedOff() {
+        assertEquals(Miracle.Place.CHURCH, Miracle.CURSE_MINOR.place());
+        assertEquals(Miracle.Place.YARD, Miracle.BOSS_GOLIATH.place());
+        assertEquals(Miracle.Place.SKY, Miracle.GOD_MACE.place());
+        assertEquals(Miracle.Place.HOME, Miracle.GREAT_CRATER.place());
+        for (Miracle m : MiracleGroup.KS.members) assertEquals(Miracle.Place.YARD, m.place(), m.id());
+        for (MiracleGroup group : List.of(MiracleGroup.K3)) for (Miracle m : group.members) assertTrue(m.landscape(), m.id());
+        // Every act that changes blocks, but the few that are held back by the protection on the spot, strikes at home.
+        for (Miracle m : Miracle.values())
+            if (m.destructive && m != Miracle.FIRE_RING && m != Miracle.ANVIL_RAIN && m != Miracle.WITHER && m != Miracle.MEMORY_WIPE)
+                assertTrue(m.landscape(), m.id());
+        DivineConfig config = config();
+        assertTrue(config.allows(Miracle.RIFTS));
+        config.landscapeWrath = false;
+        assertFalse(config.allows(Miracle.RIFTS));
+        assertFalse(config.allows(Miracle.TORNADO));
+        assertTrue(config.allows(Miracle.BOSS_ARCHANGEL));
+        assertTrue(config.allows(Miracle.LIGHTNING));
+    }
 }

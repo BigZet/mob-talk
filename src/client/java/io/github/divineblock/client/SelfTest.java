@@ -147,7 +147,9 @@ public final class SelfTest {
             case 250 -> {
                 boolean button = client.currentScreen != null && net.fabricmc.fabric.api.client.screen.v1.Screens.getButtons(client.currentScreen).stream()
                         .anyMatch(b -> b.getMessage().getString().equals("Божественный блок"));
-                check(button, "кнопка «Божественный блок» есть в меню Esc");
+                boolean hub = client.currentScreen != null && DivineBlockClient.hasHub(client.currentScreen);
+                // With Mob Talk's "Моды сборки" hub the mod is reached from there; without it, by its own button.
+                check(button != hub, hub ? "в меню Esc хаб «Моды сборки», своей кнопки нет" : "кнопка «Божественный блок» есть в меню Esc");
                 screenshot = "pause-menu";
             }
             case 270 -> { client.setScreen(null); log("ошибок всего: " + failures); finish(client); }
@@ -274,11 +276,12 @@ public final class SelfTest {
                 // Without speech there is nothing to duck under: only the fade after the words is checked.
                 if (!GodVoicePlayer.TEST_WITHOUT_SPEECH) Scheduler.later(85, () -> check(ChantPlayer.musicLevel() > underVoice * 1.3f || ChantPlayer.musicPiece() == null,
                         "после слов бога музыка кары стала громче (или доиграла): " + underVoice + " → " + ChantPlayer.musicLevel()));
-                Scheduler.later(140, () -> check(ChantPlayer.musicEnding(), "через 5 с после слов бога музыка кары стихает"));
+                Scheduler.later(140, () -> check(ChantPlayer.musicEnding(), "через 5 с после слов бога музыка кары стихает: " + ChantPlayer.musicDebug()));
                 // Thunder rolls every few seconds under the music; without speech the act comes at once, so look a little later.
                 Scheduler.later(GodVoicePlayer.TEST_WITHOUT_SPEECH ? 90 : 1, () -> check(ChantPlayer.thunders > 0, "под музыку кары гремел гром: " + ChantPlayer.thunders + " раз"));
                 String group = String.valueOf(DivineState.of(player.getServer()).ledger.soul(player.getUuid()).chronicle.getLast().group);
-                if (group.matches("K[2-5]")) check(skyUnderVoice > 0.5f && SkyTint.depth() >= 1, "при каре " + group + " небо покраснело: " + skyUnderVoice);
+                // The sky reddens over two seconds and holds after the words: look a little after the act (without speech it comes at once).
+                if (group.matches("K[2-5]")) Scheduler.later(50, () -> check(SkyTint.amount() > 0.5f && SkyTint.depth() >= 1, "при каре " + group + " небо покраснело: " + SkyTint.amount()));
                 else log("  кара " + group + ": небо не краснеет");
             };
             spokenAt = performedAt = 0;

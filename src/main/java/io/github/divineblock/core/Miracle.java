@@ -153,6 +153,36 @@ public enum Miracle {
         };
     }
 
+    /** Where the act may fall when the mortal prays in a church (see game/Zones): the church itself is inviolable. */
+    public enum Place {
+        /** Small and local: may fall inside the church (curses, a bolt at the threshold, mercy and jests). */
+        CHURCH,
+        /** Fights and open-sky acts: the mortal is cast out of the church into the churchyard first. */
+        YARD,
+        /** The strongest: the mortal is taken up to the Sky Court, a cloud arena high over the world. */
+        SKY,
+        /** Changes the land: never near a church; it strikes the mortal's home (or open land far from the church). */
+        HOME,
+        /** Takes the mortal away by itself (exiles, the ban): wherever he stands. */
+        ANYWHERE
+    }
+
+    public Place place() {
+        return switch (this) {
+            case SWARM, ACID_RAIN, ANVIL_RAIN, FIRE_RING, UNDEAD_HORDE, RAID, SKELETON_RIDERS, BLAZE_HORDE, WARDEN, JUDGEMENT,
+                 BOSS_SCHEMNIK, BOSS_BELL_RINGER, BOSS_SERAPH, BOSS_FACELESS, BOSS_WAILER, BOSS_LEVIATHAN, BOSS_BEHEMOTH, BOSS_GOLIATH,
+                 BOSS_DESTROYING_ANGEL, BOSS_CHERUB, BOSS_NIMROD -> Place.YARD;
+            case BOSS_ARCHANGEL, BOSS_HORSEMEN, BOSS_BEAST, GOD_MACE, WITHER, DRAGON -> Place.SKY;
+            case METEOR, EARTHQUAKE, SINKHOLE, TNT_RAIN, TORNADO, BLIGHT, METEOR_SHOWER, CHUNK_VOID, RIFTS, GREAT_CRATER, SODOM, FLOOD,
+                 BABEL, PLAGUES -> Place.HOME;
+            case HELL_EXILE, END_EXILE, MEMORY_WIPE, ETERNAL_BAN -> Place.ANYWHERE;
+            default -> Place.CHURCH;
+        };
+    }
+
+    /** Craters, rifts, floods and the like: the settings may forbid them («Кары меняют ландшафт»). */
+    public boolean landscape() { return place() == Place.HOME; }
+
     public static Miracle byId(String id) {
         if (id == null) return null;
         for (Miracle miracle : values()) if (miracle.id().equalsIgnoreCase(id.strip())) return miracle;

@@ -272,7 +272,7 @@ public final class Prayers {
     private static void act(ServerPlayerEntity player, BlockPos altar, Verdict verdict, DivineConfig config) {
         Miracle miracle = verdict.chosen();
         String done;
-        try { done = Miracles.perform(miracle, verdict.power, player, altar, verdict.prayer, config, verdict.severity()); }
+        try { done = Zones.perform(miracle, verdict.power, player, altar, verdict.prayer, config, verdict.severity()); }
         catch (RuntimeException failure) { DivineBlockMod.LOG.warn("Божественный блок: чудо {} не удалось", miracle.id(), failure); done = null; }
         if (done == null) {
             // The act cannot happen here (the Nether has no sky, the altar's land is protected): another act of the same
@@ -282,7 +282,7 @@ public final class Prayers {
             java.util.Collections.shuffle(others);
             for (Miracle other : others) {
                 if (other == miracle) continue;
-                try { done = Miracles.perform(other, GodDecider.power(other, verdict.power, verdict.budget), player, altar, verdict.prayer, config, verdict.severity()); }
+                try { done = Zones.perform(other, GodDecider.power(other, verdict.power, verdict.budget), player, altar, verdict.prayer, config, verdict.severity()); }
                 catch (RuntimeException failure) { DivineBlockMod.LOG.warn("Божественный блок: чудо {} не удалось", other.id(), failure); done = null; }
                 if (done != null) { DivineBlockMod.LOG.info("Божественный блок: {} здесь невозможно, вместо него {}", miracle.id(), other.id()); miracle = other; break; }
             }
@@ -313,13 +313,15 @@ public final class Prayers {
     private static void combo(ServerPlayerEntity player, BlockPos altar, Verdict verdict, Miracle first, DivineConfig config) {
         MiracleGroup group = MiracleGroup.byId(verdict.group);
         if (config.comboActs <= 0 || group == null || group.kind != Miracle.Kind.WRATH || NO_FOLLOW_UP.contains(first)) return;
+        // The Sky Court is a fight of its own; a disaster at home is enough without more falling there.
+        if (first.place() == Miracle.Place.SKY || first.place() == Miracle.Place.HOME && SkyCourt.inCourt(player)) return;
         int heavy = group.ordinal() - MiracleGroup.K1.ordinal();
         int extra = Math.min(config.comboActs, (verdict.escalation >= 1 ? 1 : 0) + (heavy >= 3 ? 1 : 0) + (verdict.escalation >= 3 ? 1 : 0));
         if (extra <= 0) return;
         List<Miracle> pool = new ArrayList<>();
         for (MiracleGroup lighter : MiracleGroup.open(verdict, config))
             if (lighter.kind == Miracle.Kind.WRATH && lighter.ordinal() <= group.ordinal())
-                for (Miracle m : lighter.allowed(verdict, config)) if (m != first && !NO_FOLLOW_UP.contains(m) && !pool.contains(m)) pool.add(m);
+                for (Miracle m : lighter.allowed(verdict, config)) if (m != first && !NO_FOLLOW_UP.contains(m) && m.place() != Miracle.Place.SKY && !pool.contains(m)) pool.add(m);
         java.util.Collections.shuffle(pool);
         UUID id = player.getUuid();
         int generation = COMBO.getOrDefault(id, 0);
@@ -331,7 +333,7 @@ public final class Prayers {
             Scheduler.later(delay, () -> {
                 if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world || COMBO.getOrDefault(id, 0) != generation) return;
                 String done;
-                try { done = Miracles.perform(next, GodDecider.power(next, verdict.power, verdict.budget), player, altar, verdict.prayer, config, verdict.severity()); }
+                try { done = Zones.perform(next, GodDecider.power(next, verdict.power, verdict.budget), player, altar, verdict.prayer, config, verdict.severity()); }
                 catch (RuntimeException failure) { DivineBlockMod.LOG.warn("Божественный блок: продолжение кары {} упало", next.id(), failure); return; }
                 DivineBlockMod.LOG.info("Божественный блок: кара продолжается — {}: {}", next.id(), done);
                 hint(player, "✦ и ещё: " + (done == null ? next.id() + " не вышло" : done));
@@ -349,6 +351,9 @@ public final class Prayers {
     static void say(ServerPlayerEntity player, String line) { speakThen(player, line, () -> { }, () -> { }); }
     /** A line of the god outside a verdict (the god with the mace): voiced when the voice works, always shown in chat. */
     public static void proclaim(ServerPlayerEntity player, String line) { say(player, line); }
+
+    /** A line of the god in chat only, without the voice: what the zones of punishment explain (where, why). */
+    public static void godChat(ServerPlayerEntity player, String line) { chat(player, line); }
 
     private static void chat(ServerPlayerEntity player, String line) {
         spoken.accept(line);

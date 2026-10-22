@@ -100,6 +100,15 @@ public final class ChurchSites {
         return boxes;
     }
 
+    /** The same boxes for one known church: the church with its foundation and the yard's wall strips. */
+    public static List<BlockBox> protectedBoxes(Site site) {
+        ChurchPiece.Frame frame = new ChurchPiece.Frame(site.origin(), site.rotation());
+        BlockBox b = site.church();
+        List<BlockBox> boxes = new ArrayList<>(walls(frame));
+        boxes.add(new BlockBox(b.getMinX(), b.getMinY() + ChurchBuilder.MIN_Y, b.getMinZ(), b.getMaxX(), b.getMaxY(), b.getMaxZ()));
+        return boxes;
+    }
+
     /** The yard's wall strips, each 7 blocks thick across the wall line (the towers and the gates stand in them). */
     static List<BlockBox> walls(ChurchPiece.Frame frame) {
         int x0 = ChurchBuilder.YARD_MIN_X - 1, x1 = ChurchBuilder.YARD_MAX_X + 1, z0 = ChurchBuilder.YARD_MIN_Z - 1, z1 = ChurchBuilder.YARD_MAX_Z + 1;
