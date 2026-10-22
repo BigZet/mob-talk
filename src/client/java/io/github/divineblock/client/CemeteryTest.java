@@ -51,6 +51,8 @@ public final class CemeteryTest {
     private static final Deque<Step> steps = new ArrayDeque<>();
     private static int phase, ticks, wait, failures;
     private static volatile String screenshot;
+    /** Server steps still running: the next client step waits for them (world generation can lag the server by a minute). */
+    private static final java.util.concurrent.atomic.AtomicInteger pending = new java.util.concurrent.atomic.AtomicInteger();
     private static volatile BlockPos base, field;
     /** -Ddivineblock.cemeterytest=models: only the blocks, close up from four sides at eye height, in a bigger window. */
     private static boolean models;
@@ -91,6 +93,7 @@ public final class CemeteryTest {
                 else if (ticks > 20 * 240) { fail("мир не открылся"); finish(client); }
             }
             case 2 -> {
+                if (pending.get() > 0) return;
                 if (wait > 0) { wait--; return; }
                 Step step = steps.poll();
                 if (step == null) { log("ошибок всего: " + failures); finish(client); return; }
@@ -144,7 +147,13 @@ public final class CemeteryTest {
             checks(server);
         }));
         on(10, client -> client.options.hudHidden = true);
-        if (models) { closeUps(blocks); return; }
+        if (models) {
+            // -Ddivineblock.cemeterytest.only=golubets,forged_cross: only those blocks close up.
+            String only = System.getProperty("divineblock.cemeterytest.only", "");
+            List<String> wanted = List.of(only.split(","));
+            closeUps(blocks, only.isBlank() ? null : wanted);
+            return;
+        }
         int groups = (blocks.size() + 4) / 5;
         for (int g = 0; g < groups; g++) {
             int group = g;
@@ -175,6 +184,15 @@ public final class CemeteryTest {
         camera(-4, 6, 30, -140, 18, "template-ground", true);
         camera(13, 4, -4, 25, 15, "template-entrance", true);
         scene("wild", world -> base.add(260, 0, 40));
+        // Hilly country: the cemetery finds a level patch and levels it gently.
+        scene("hills", world -> {
+            var found = world.locateBiome(biome -> biome.matchesKey(net.minecraft.world.biome.BiomeKeys.WINDSWEPT_FOREST)
+                    || biome.matchesKey(net.minecraft.world.biome.BiomeKeys.WINDSWEPT_HILLS), base.add(700, 0, -700), 4000, 32, 64);
+            if (found == null) { fail("холмы не нашлись"); return null; }
+            if (found.getFirst().getSquaredDistance(base) < 300 * 300) { fail("холмы слишком близко к выставке блоков"); return null; }
+            log("  холмы: " + found.getFirst().toShortString() + " " + found.getSecond().getKey().map(k -> k.getValue().toString()).orElse("?"));
+            return found.getFirst();
+        });
         // A cemetery in taiga: spruces, pines and birches instead of oaks.
         scene("taiga", world -> {
             var found = world.locateBiome(biome -> biome.isIn(net.minecraft.registry.tag.BiomeTags.IS_TAIGA), base.add(-700, 0, 700), 4000, 32, 64);
@@ -196,7 +214,9 @@ public final class CemeteryTest {
             if (spot[0] == null) return;
             BlockPos at = spot[0];
             // /place needs every chunk the cemetery may cover, in any rotation: keep them loaded.
-            run(server, String.format("forceload add %d %d %d %d", at.getX() - 80, at.getZ() - 80, at.getX() + 80, at.getZ() + 80));
+            // The cemetery moves to the most level spot within 40 blocks: it may reach 100 blocks away.
+            run(server, String.format("forceload add %d %d %d %d", at.getX() - 112, at.getZ() - 112, at.getX(), at.getZ() + 112));
+            run(server, String.format("forceload add %d %d %d %d", at.getX() + 1, at.getZ() - 112, at.getX() + 112, at.getZ() + 112));
             run(server, String.format("tp @a %d %d %d 180 30", at.getX(), 200, at.getZ()));
         }));
         on(400, client -> serverDo(client, server -> {
@@ -218,7 +238,7 @@ public final class CemeteryTest {
             // From the server's own source at that spot, so the command's answer lands in the log.
             server.getCommandManager().executeWithPrefix(server.getCommandSource().withWorld(world).withLevel(4)
                     .withPosition(net.minecraft.util.math.Vec3d.ofBottomCenter(new BlockPos(at.getX(), y, at.getZ()))), "divineblock cemetery");
-            int[] b = bounds(world, new BlockPos(at.getX(), y, at.getZ()), 72);
+            int[] b = bounds(world, new BlockPos(at.getX(), y, at.getZ()), 104);
             box[0] = b;
             if (!check(b != null, "кладбище (" + tag + ") сгенерировано на природном рельефе")) return;
             log(String.format("  границы: x %d..%d, y %d..%d, z %d..%d (%d × %d)", b[0], b[3], b[1], b[4], b[2], b[5], b[3] - b[0] + 1, b[5] - b[2] + 1));
@@ -234,6 +254,26 @@ public final class CemeteryTest {
                     }
                 }
             check(gates >= 30, "оградок с калитками на кладбище (" + tag + "): " + gates);
+            // Nothing of the cemetery hangs in the air or sits in the ground, and the blue sector sign is gone.
+            int floating = 0, buried = 0, signs = 0, columns = 0, lo = Integer.MAX_VALUE, hi = Integer.MIN_VALUE;
+            for (int x = b[0]; x <= b[3]; x++) for (int z = b[2]; z <= b[5]; z++) {
+                int surface = world.getTopY(Heightmap.Type.OCEAN_FLOOR, x, z);
+                for (int yy = b[1] - 3; yy <= b[4] + 3; yy++) {
+                    BlockState state = world.getBlockState(p.set(x, yy, z));
+                    if (state.isOf(CemeteryBlocks.SECTOR_SIGN)) signs++;
+                    if (!Registries.BLOCK.getId(state.getBlock()).getNamespace().equals(DivineBlockMod.ID)) continue;
+                    if (state.getBlock() instanceof TallGraveBlock && state.get(TallGraveBlock.HALF) == DoubleBlockHalf.UPPER) continue;
+                    if (state.getBlock() instanceof io.github.divineblock.boss.BossSealBlock) continue;
+                    BlockState below = world.getBlockState(p.down());
+                    if (below.isAir() || !below.getFluidState().isEmpty()) { floating++; if (floating <= 5) log("  висит: " + p.toShortString() + " " + Registries.BLOCK.getId(state.getBlock())); }
+                    if (world.getBlockState(p.up()).isSolidBlock(world, p.up())) { buried++; if (buried <= 5) log("  засыпано: " + p.toShortString()); }
+                }
+                columns++; lo = Math.min(lo, surface); hi = Math.max(hi, surface);
+            }
+            check(floating == 0, "на кладбище (" + tag + ") ничего не висит в воздухе: " + floating);
+            check(buried == 0, "на кладбище (" + tag + ") ничего не засыпано землёй: " + buried);
+            check(signs == 0, "на кладбище (" + tag + ") нет таблички «1 1»: " + signs);
+            log("  перепад верха на кладбище (" + tag + "): " + (hi - lo) + " блоков");
             log("  деревьев: " + trees);
         }));
         on(160, client -> {
@@ -266,11 +306,12 @@ public final class CemeteryTest {
     }
 
     /** Each block from the front, at an angle, from the side and from behind, at a standing player's eye height. */
-    private static void closeUps(List<Block> blocks) {
+    private static void closeUps(List<Block> blocks, List<String> wanted) {
         on(1, client -> client.getWindow().setWindowedSize(1600, 900));
         on(40, client -> { });
         for (int i = 0; i < blocks.size(); i++) {
             String id = Registries.BLOCK.getId(blocks.get(i)).getPath();
+            if (wanted != null && !wanted.contains(id)) continue;
             boolean tall = blocks.get(i) instanceof TallGraveBlock;
             double x = SPACING * i + 0.5, z = 0.5, eye = 1 + 1.62, target = tall ? 2.0 : 1.4, d = tall ? 2.8 : 2.2;
             float pitch = (float) Math.toDegrees(Math.atan2(eye - target, d));
@@ -365,8 +406,10 @@ public final class CemeteryTest {
 
     private static void serverDo(MinecraftClient client, Consumer<MinecraftServer> action) {
         MinecraftServer server = client.getServer();
+        pending.incrementAndGet();
         server.execute(() -> {
             try { action.accept(server); } catch (RuntimeException failure) { fail("шаг сервера упал: " + failure); DivineBlockMod.LOG.warn("тест кладбища", failure); }
+            finally { pending.decrementAndGet(); }
         });
     }
 

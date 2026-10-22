@@ -19,6 +19,15 @@
     "divineblock:gothic_marble_stone",
     "divineblock:grave_slab",
     "divineblock:sector_sign",
-    "divineblock:cemetery_bin"
+    "divineblock:cemetery_bin",
+    "divineblock:forged_cross",
+    "divineblock:blue_star_obelisk",
+    "divineblock:cross_top_stele",
+    "divineblock:portrait_stele",
+    "divineblock:red_granite_stele",
+    "divineblock:green_grave_fence",
+    "divineblock:green_grave_gate",
+    "divineblock:silver_grave_fence",
+    "divineblock:silver_grave_gate"
   ]
 }

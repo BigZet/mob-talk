@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "divineblock:block/backed_bench"
+    },
+    "facing=east": {
+      "model": "divineblock:block/backed_bench",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "divineblock:block/backed_bench",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "divineblock:block/backed_bench",
+      "y": 270
+    }
+  }
+}

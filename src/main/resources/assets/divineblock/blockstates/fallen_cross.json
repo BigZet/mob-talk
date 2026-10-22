@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "divineblock:block/fallen_cross"
+    },
+    "facing=east": {
+      "model": "divineblock:block/fallen_cross",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "divineblock:block/fallen_cross",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "divineblock:block/fallen_cross",
+      "y": 270
+    }
+  }
+}

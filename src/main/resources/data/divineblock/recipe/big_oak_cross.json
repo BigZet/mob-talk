@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "decorations",
+  "pattern": [
+    " L ",
+    "LLL",
+    " L "
+  ],
+  "key": {
+    "L": {
+      "item": "minecraft:dark_oak_log"
+    }
+  },
+  "result": {
+    "id": "divineblock:big_oak_cross",
+    "count": 1
+  }
+}

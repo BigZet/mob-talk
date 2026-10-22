@@ -5,6 +5,11 @@
     "divineblock:roofed_cross",
     "divineblock:old_cross",
     "divineblock:grave_bench",
-    "divineblock:grave_table"
+    "divineblock:grave_table",
+    "divineblock:golubets",
+    "divineblock:big_oak_cross",
+    "divineblock:small_wooden_cross",
+    "divineblock:fallen_cross",
+    "divineblock:backed_bench"
   ]
 }

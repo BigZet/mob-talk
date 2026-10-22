@@ -74,5 +74,21 @@
   "item.divineblock.babel_brick": "Brick of Babel",
   "effect.divineblock.confusion_of_tongues": "Confusion of Tongues",
   "block.divineblock.boss_seal": "Guardian's Seal",
-  "tag.item.divineblock.holy_relics": "Holy Relics"
+  "tag.item.divineblock.holy_relics": "Holy Relics",
+  "block.divineblock.golubets": "Golubets (Roofed Grave Post)",
+  "block.divineblock.forged_cross": "Forged Openwork Cross",
+  "block.divineblock.big_oak_cross": "Big Dark Oak Cross",
+  "block.divineblock.blue_star_obelisk": "Blue Pyramid with a Star",
+  "block.divineblock.cross_top_stele": "Grey Granite Stone with a Cross",
+  "block.divineblock.small_wooden_cross": "Small Wooden Cross",
+  "block.divineblock.portrait_stele": "Black Granite Stone with an Engraved Portrait",
+  "block.divineblock.red_granite_stele": "Red Granite Stone",
+  "block.divineblock.fallen_cross": "Fallen Old Cross",
+  "block.divineblock.backed_bench": "Cemetery Bench with a Back",
+  "block.divineblock.carnations": "Red Carnations",
+  "block.divineblock.fir_wreath": "Fir Wreath",
+  "block.divineblock.green_grave_fence": "Green Grave Fence",
+  "block.divineblock.green_grave_gate": "Green Grave Gate",
+  "block.divineblock.silver_grave_fence": "Silver Grave Fence",
+  "block.divineblock.silver_grave_gate": "Silver Grave Gate"
 }

@@ -75,15 +75,18 @@ def jigsaw(t, x, y, z, orientation, name, pool, target, final_state, joint="roll
 
 # Two kinds of section, as on the reference photos: a modern dense one (black granite, black fences, varnished crosses, few
 # trees) and an old overgrown one (rusty fences, marble, stone crosses, ferns, more trees).
-MODERN = dict(monuments=[("granite_stele", 30), ("roofed_cross", 18), ("wooden_cross", 12), ("granite_cross", 14), ("white_metal_cross", 8),
-                         ("iron_cross", 8), ("star_obelisk", 6), ("marble_stone", 4)],
-              colors=["black"] * 7 + ["blue"] * 2 + ["rusty"], abandoned=0.06, slab=0.45, wild=0.1, trees=(0, 1, 1, 2))
-OLD = dict(monuments=[("old_cross", 20), ("gothic_marble_stone", 18), ("stone_trunk_cross", 10), ("marble_stone", 12), ("iron_cross", 14),
-                      ("white_metal_cross", 10), ("wooden_cross", 8), ("star_obelisk", 8)],
-           colors=["rusty"] * 6 + ["black"] * 3 + ["blue"] * 2, abandoned=0.3, slab=0.05, wild=0.45, trees=(2, 2, 3))
+MODERN = dict(monuments=[("granite_stele", 22), ("roofed_cross", 14), ("wooden_cross", 10), ("granite_cross", 10), ("white_metal_cross", 6),
+                         ("iron_cross", 6), ("star_obelisk", 4), ("marble_stone", 3), ("portrait_stele", 16), ("cross_top_stele", 10),
+                         ("big_oak_cross", 8), ("forged_cross", 8), ("red_granite_stele", 8), ("small_wooden_cross", 6), ("golubets", 4),
+                         ("blue_star_obelisk", 2)],
+              colors=["black"] * 7 + ["blue"] * 2 + ["rusty"] + ["silver"] * 2 + ["green"], abandoned=0.06, slab=0.45, wild=0.1, trees=(0, 1, 1, 2))
+OLD = dict(monuments=[("old_cross", 18), ("gothic_marble_stone", 14), ("stone_trunk_cross", 8), ("marble_stone", 10), ("iron_cross", 10),
+                      ("white_metal_cross", 8), ("wooden_cross", 6), ("star_obelisk", 6), ("blue_star_obelisk", 7), ("golubets", 8),
+                      ("forged_cross", 6), ("small_wooden_cross", 5), ("big_oak_cross", 4), ("red_granite_stele", 4)],
+           colors=["rusty"] * 6 + ["black"] * 3 + ["blue"] * 2 + ["green"] * 2 + ["silver"], abandoned=0.3, slab=0.05, wild=0.45, trees=(2, 2, 3))
 STYLE = MODERN
 TALL = {"wooden_cross", "roofed_cross", "old_cross", "iron_cross", "star_obelisk", "granite_cross", "white_metal_cross", "stone_trunk_cross",
-        "sector_sign"}
+        "sector_sign", "golubets", "forged_cross", "big_oak_cross", "blue_star_obelisk", "cross_top_stele"}
 PATH = (9, 10, 11)
 
 
@@ -104,7 +107,7 @@ def grave(t, rnd, x_head, z, toward, name=None, overgrown=False):
     facing = "east" if toward > 0 else "west"
     name = name or pick(rnd, STYLE["monuments"])
     monument(t, x_head, z, name, facing)
-    slab = not overgrown and name in ("granite_stele", "granite_cross") and rnd.random() < STYLE["slab"] * 2
+    slab = not overgrown and name in ("granite_stele", "granite_cross", "portrait_stele", "red_granite_stele", "cross_top_stele") and rnd.random() < STYLE["slab"] * 2
     for dx in (1, 2):
         if slab: t.set(x_head + dx * toward, 1, z, NS + ":grave_slab", facing=facing, waterlogged=False)
         else: t.set(x_head + dx * toward, 1, z, NS + ":grave_mound", facing=facing, waterlogged=False, overgrown=overgrown)
@@ -167,9 +170,10 @@ def plot_inside(t, rnd, f, z0, z1, gate, abandoned):
     """Graves at the head, toward the gate; flowers, a wreath, a lampada, a bench or a table in what is left."""
     rows = list(range(z0 + 1, z1))
     gz = gate[1]
-    graves = rows if rnd.random() < 0.55 else [rnd.choice(rows)]
+    if len(rows) > 3: graves = rows[1:4] if rnd.random() < 0.7 else rows[1:3]  # a family plot: two or three side by side
+    else: graves = rows if rnd.random() < 0.55 else [rnd.choice(rows)]
     for z in graves:
-        name = "old_cross" if abandoned and rnd.random() < 0.75 else None
+        name = (rnd.choice(["old_cross", "old_cross", "fallen_cross"]) if rnd.random() < 0.75 else None) if abandoned else None
         grave(t, rnd, f["head"], z, f["toward"], name=name, overgrown=abandoned or rnd.random() < 0.08)
     facing = "east" if f["toward"] > 0 else "west"
     for z in rows:
@@ -177,10 +181,11 @@ def plot_inside(t, rnd, f, z0, z1, gate, abandoned):
         t.tree_spots.append((f["head"] + f["toward"], z))
         if not abandoned and rnd.random() < 0.55:
             t.set(f["head"] + f["toward"], 1, z, NS + ":grave_table", facing="north", waterlogged=False)
-            t.set(f["head"] + 2 * f["toward"], 1, z, NS + ":grave_bench", facing="north", waterlogged=False)
+            t.set(f["head"] + 2 * f["toward"], 1, z, NS + (":backed_bench" if rnd.random() < 0.4 else ":grave_bench"), facing="north", waterlogged=False)
             if rnd.random() < 0.6: t.set(f["head"], 1, z, NS + ":artificial_flowers", facing=facing, waterlogged=False)
             continue
-        for i, item in enumerate(("funeral_wreath", "grave_lampada", "artificial_flowers")):
+        items = [rnd.choice(("funeral_wreath", "fir_wreath")), "grave_lampada", rnd.choice(("artificial_flowers", "artificial_flowers", "carnations"))]
+        for i, item in enumerate(items):
             x = f["head"] + i * f["toward"]
             if t.free(x, z) and rnd.random() < (0.35 if abandoned else 0.7):
                 t.set(x, 1, z, NS + ":" + item, facing=facing, waterlogged=False)
@@ -200,10 +205,12 @@ def block_of_plots(t, rnd, zs, side, stats):
     """Four plots: two along the path, two behind them; z zs..zs+6, lanes at zs-1 and zs+7."""
     plots = []
     for f, kind in ((FRONT[side], "front"), (BACK[side], "back")):
-        for i, (z0, z1) in enumerate(((zs, zs + 3), (zs + 3, zs + 6))):
+        # A family plot now and then: one long fence around both, three or four graves side by side.
+        spans = ((zs, zs + 6),) if kind == "front" and rnd.random() < 0.3 else ((zs, zs + 3), (zs + 3, zs + 6))
+        for i, (z0, z1) in enumerate(spans):
             abandoned = rnd.random() < STYLE["abandoned"]
             if kind == "front":
-                gate = (f["gate_x"], rnd.choice((z0 + 1, z0 + 2)), "east" if side < 0 else "west")
+                gate = (f["gate_x"], rnd.choice(range(z0 + 1, z1)), "east" if side < 0 else "west")
             else:
                 gate = (f["gate_x"], z0 if i == 0 else z1, "north" if i == 0 else "south")
             plots.append((f, z0, z1, gate, abandoned, rnd.choice(STYLE["colors"])))
@@ -231,7 +238,8 @@ def old_graves_row(t, rnd, z):
         for head in heads:
             roll = rnd.random()
             if roll < 0.7:
-                grave(t, rnd, head, z, toward, name=rnd.choice(["old_cross", "old_cross", "wooden_cross", "marble_stone", "roofed_cross"]),
+                grave(t, rnd, head, z, toward, name=rnd.choice(["old_cross", "old_cross", "wooden_cross", "marble_stone", "roofed_cross",
+                                                                "fallen_cross", "small_wooden_cross", "golubets"]),
                       overgrown=rnd.random() < 0.7)
             elif roll < 0.85:
                 t.set(head + toward, 1, z, "lilac", half="lower"); t.set(head + toward, 2, z, "lilac", half="upper")
@@ -386,7 +394,7 @@ def write_trees():
         for i in range(1, variants + 1):
             name = f"tree_{kind}_{i}"
             tree(kind, 500 + 101 * i + 7 * len(kind)).write(os.path.join(ROOT, "structure", "cemetery", name + ".nbt"))
-            weight = {"oak": 2, "birch": 3, "spruce": 3, "pine": 2}[kind]
+            weight = {"oak": 2, "birch": 4, "spruce": 3, "pine": 2}[kind]
             radius = {"oak": 3, "birch": 2, "spruce": 3, "pine": 2}[kind]
             elements.append({"element": {"element_type": "minecraft:single_pool_element", "location": f"{NS}:cemetery/{name}",
                                          "processors": f"{NS}:cemetery_{'conifer' if cold else 'broadleaf'}_{radius}", "projection": "rigid"}, "weight": weight})
