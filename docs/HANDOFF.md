@@ -43,6 +43,11 @@ docs/space-analysis.md (зрение и классификатор), docs/whispe
 - Баланс OpenRouter: `GET https://openrouter.ai/api/v1/credits` с ключом. 19 октября пополнен до 120 $,
   дневной лимит ключа 15 $.
 
+- С 22 октября 2026 все моды вместе в отдельном инстансе Prism `mob-talk-pack` («Наша сборка (все моды)»):
+  сборка `scriptsuild-pack.ps1`, самотесты `run-selftest.ps1 -Base mob-talk-pack [-Only pack|voicefix]` и
+  `run-pack-modtest.ps1 -Mod divine|church|cages|hogweed`, TTS в самотестах выключен, окно самотеста не берёт фокус и
+  мышь (selftest-guard), не больше 6 игр на машине. Подробно: docs/pack.md.
+
 ## 3. Что сделано (всё в main, установлено в Prism, самотест пройден)
 
 Подтверждено самотестом в игре: диалог голосом и текстом с озвучкой, очевидцы и штрафы, ненависть
