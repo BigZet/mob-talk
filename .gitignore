@@ -10,3 +10,6 @@ __pycache__/
 *key.txt
 .env
 config/
+
+# Serena MCP index
+.serena/
