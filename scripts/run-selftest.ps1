@@ -6,9 +6,9 @@
 # Never closes Prism and never touches divine-block-test, its mods or its worlds.
 # Report, latest.log and screenshots: %LOCALAPPDATA%\DivineBlock\selftest\<copy name>\ (report.txt, selftest-run.log in UTF-8).
 # Usage: powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 [-Mode true|cruel|...] [-Jvm '-Dmore=1']
-#   [-Keep] keeps the copy (delete later with scripts\clean-test-instances.ps1); [-MaxGames 3]; [-ShotEverySeconds 60]
+#   [-Keep] keeps the copy (delete later with scripts\clean-test-instances.ps1); [-MaxGames 6]; [-ShotEverySeconds 60]
 # -Church runs the church self-test instead (ChurchSelfTest) and copies its screenshots to -Shots when given.
-param([switch]$Church, [string]$Shots = '', [string]$Mode = 'true', [string]$Jvm = '', [switch]$Keep, [int]$MaxGames = 3, [int]$ShotEverySeconds = 0,
+param([switch]$Church, [string]$Shots = '', [string]$Mode = 'true', [string]$Jvm = '', [switch]$Keep, [int]$MaxGames = 6, [int]$ShotEverySeconds = 0,
   [string]$Base = 'divine-block-test', [int]$TimeoutMinutes = 20)
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'ParallelPrism.psm1') -Force
@@ -51,6 +51,7 @@ try {
     $deadline = (Get-Date).AddMinutes($TimeoutMinutes); $nextShot = (Get-Date).AddSeconds($ShotEverySeconds); $i = 0
     while (Get-Process -Id $game.ProcessId -ErrorAction SilentlyContinue) {
       if ((Get-Date) -gt $deadline) { Say 'timeout: killing this copy''s javaw'; Stop-Process -Id $game.ProcessId -Force; break }
+      $stall = Get-TestGameStall $name; if ($stall) { Say "stalled ($stall): killing this copy's javaw"; Stop-Process -Id $game.ProcessId -Force; break }
       Start-Sleep -Seconds 10; $i++
       if ($ShotEverySeconds -gt 0 -and (Get-Date) -gt $nextShot) {
         Save-GameWindowShot $name "$scratch\window-$(Get-Date -Format HHmmss).png" | Out-Null; $nextShot = (Get-Date).AddSeconds($ShotEverySeconds)
