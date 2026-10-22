@@ -8,11 +8,11 @@
 # -SmokeCommand sends console commands once it is up ('a;b' for several when called through -File), -SmokeHoldSeconds keeps it running that long before "stop".
 # -SetSecret <VARIABLE>: asks for a value (hidden input) and saves it DPAPI-encrypted for this Windows user, then exits.
 # Usage: powershell -ExecutionPolicy Bypass -File scripts\run-local-server.ps1 [-Fresh] [-World <name>] [-Public]
-#        [-Memory 6G] [-NewWindow] [-Dir <folder>] | -SetSecret ELEVENLABS_API_KEY
+#        [-Memory 6G] [-NewWindow] [-Dir <folder>] [-JvmArgs '-Dname=value ...'] | -SetSecret ELEVENLABS_API_KEY
 param([string]$Dir = (Join-Path $env:LOCALAPPDATA 'MobTalkPack\server'), [switch]$Fresh, [string]$World = '', [switch]$Public,
     [string]$Memory = '6G', [int]$Port = 0, [switch]$NewWindow, [string]$Pack = 'mob-talk-pack',
     [string]$Instances = (Join-Path $env:APPDATA 'PrismLauncher\instances'), [string]$SetSecret = '', [switch]$CheckOnly, [switch]$Smoke, [int]$SmokeSeconds = 900,
-    [string[]]$SmokeCommand = @(), [int]$SmokeHoldSeconds = 0, [string]$SmokeWaitFor = '')
+    [string[]]$SmokeCommand = @(), [int]$SmokeHoldSeconds = 0, [string]$SmokeWaitFor = '', [string]$JvmArgs = '')
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'PackBuild.psm1') -Force
 function Say($t) { Write-Host "$(Get-Date -Format HH:mm:ss) $t" }
@@ -88,7 +88,8 @@ foreach ($name in $secrets.Keys) {
 if ($CheckOnly) { Say 'check only: not starting'; return }
 
 $java = if ($env:JAVA_HOME -and (Test-Path "$env:JAVA_HOME\bin\java.exe")) { "$env:JAVA_HOME\bin\java.exe" } else { (Get-Command java -ErrorAction Stop).Source }
-$javaArgs = @("-Xms2G", "-Xmx$Memory", '-XX:+UseG1GC', '-Dfile.encoding=UTF-8', '-jar', $launcher.Name, 'nogui')
+# -JvmArgs: extra JVM flags before -jar, e.g. the self-test's -Dmobtalk.selftest.play=Test1,Test2 (space-separated).
+$javaArgs = @("-Xms2G", "-Xmx$Memory", '-XX:+UseG1GC', '-Dfile.encoding=UTF-8') + @($JvmArgs -split '\s+' | Where-Object { $_ }) + @('-jar', $launcher.Name, 'nogui')
 Say "start: $java $($javaArgs -join ' ') in $Dir ($(if ($Public) { 'public' } else { 'local test, online-mode=false' }), port $Port)"
 if ($NewWindow) {
     Start-Process -FilePath $java -ArgumentList $javaArgs -WorkingDirectory $Dir

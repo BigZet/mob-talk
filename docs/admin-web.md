@@ -298,6 +298,11 @@ gradlew runAdminStub --args="--port 8790 --web C:/путь/к/assets/mobtalk/web
 
 ## Подключение к серверу (волна 1, для интегратора)
 
+Сделано треком H (23 октября): `io.github.mobtalk.server.AdminLink` (старт/стоп вместе с выделенным сервером, метрики, журнал, карта,
+источники из entrypoint, `/mobtalk admin web`) и `io.github.mobtalk.server.LiveGameView` (живой `GameView`). Пункты ниже — исходный
+список точек; из них не сделано: `divineSouls`/`divineActive` (503, нет операций у источника `divineblock`), расход LLM в `journal().cost`
+(клиент диалога не читает `usage.cost`), `hearts` в отношениях (0).
+
 - `fabric.mod.json`: `"mobtalk-admin": ["io.github.mobtalk.server.web.MobTalkAdminSource"]` (класс в пакете `server.web`, а не `server`).
 - `MobTalkMod`: на `SERVER_STARTED` — `AdminWeb.start(runDir, new AdminWeb.Hooks(game, saver, worldDir, ServerConfig::get, ServerConfig::update,
   SettingsScope::personal, limits), LOGGER::info)`, на `SERVER_STOPPING` — `stop()`. Нужны: `GameView` на живом сервере (игроки, мобы из

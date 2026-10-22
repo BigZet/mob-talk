@@ -9,10 +9,10 @@ $script:UserAgent = 'BigZet/mob-talk pack-scripts (github.com/BigZet)'
 function Write-Utf8Lines([string]$Path, [string[]]$Lines) { [IO.File]::WriteAllLines($Path, $Lines, $script:Utf8) }
 function Write-Utf8Text([string]$Path, [string]$Text) { [IO.File]::WriteAllText($Path, $Text, $script:Utf8) }
 
-function Invoke-GradleBuild([string]$Dir, [string]$Label) {
+function Invoke-GradleBuild([string]$Dir, [string]$Label, [string]$Extra = '') {
     Push-Location $Dir
     try {
-        cmd /c '.\gradlew.bat build -x test -q 2>&1' | Where-Object { $_ -match 'error|FAIL' }
+        cmd /c ".\gradlew.bat build -x test $Extra -q 2>&1" | Where-Object { $_ -match 'error|FAIL' }
         if ($LASTEXITCODE -ne 0) { throw "$Label build failed" }
     } finally { Pop-Location }
 }
@@ -36,10 +36,11 @@ function Get-NewestJar([string]$Dir, [string]$Pattern) {
 }
 
 # Our repos besides Mob Talk, each with its jar pattern.
-$script:OwnRepos = @(@('divine-block', 'divineblock-*.jar'), @('rusflora', 'rusflora-*.jar'), @('parrot-cages', 'parrotcages-*.jar'))
+$script:OwnRepos = @(@('divine-block', 'divineblock-*.jar'), @('rusflora', 'rusflora-*.jar'), @('parrot-cages', 'parrotcages-*.jar'),
+    @('minecraft-parrot', 'viewerparrots-*.jar'))
 
 # Builds (unless -NoBuild) and collects every jar of the pack: Mob Talk from $Repo (this checkout), our other mods from
-# their repos' main, Viewer Parrots, CTOV + Lithostitched, the video mods and Fabric API as original jars from Prism.
+# their repos' main (Viewer Parrots too), CTOV + Lithostitched, the video mods and Fabric API as original jars from Prism.
 # Returns @{ Jars = FileInfo[]; Manifest = string[] } — the manifest lines name the commits (pack-manifest.txt format).
 function Get-PackJars {
     param([Parameter(Mandatory)][string]$Repo, [Parameter(Mandatory)][string]$Repos, [Parameter(Mandatory)][string]$Work,
@@ -55,14 +56,14 @@ function Get-PackJars {
         if (-not $NoBuild) {
             & $Say "export and build $($r[0]) main"
             $dir = Export-RepoMain $Repos $Work $r[0]
-            Invoke-GradleBuild $dir $r[0]
+            Invoke-GradleBuild $dir $r[0] $(if ($r.Count -gt 2) { $r[2] } else { '' })
             $src = Join-Path $Repos $r[0]
             $manifest += "$($r[0]) main $((git -C $src rev-parse --short main).Trim()) $((git -C $src log -1 --format=%s main).Trim())"
         }
         $jars += Get-NewestJar "$dir\build\libs" $r[1]
     }
+    # Viewer Parrots builds from its repo's main like our other mods (Twitch guest mode for the dedicated server, 22 October).
     $third = @(
-        (Get-NewestJar "$Instances\parrot-cages-test\minecraft\mods" 'viewerparrots-*.jar'),
         (Get-NewestJar "$Instances\mob-talk-ctov\minecraft\mods" 'ctov-*.jar'),
         (Get-NewestJar "$Instances\mob-talk-ctov\minecraft\mods" 'lithostitched-*.jar')) +
         @(Get-ChildItem "$Instances\$Base\minecraft\mods\*.jar" | Where-Object { $_.Name -notmatch '^(mobtalk|viewerparrots|divineblock|rusflora|parrotcages|selftest-guard)' })

@@ -113,7 +113,7 @@ public final class ConversationStore {
         String villageId = detached.village != null ? detached.village.id() : p.villageId;
         if (villageId != null && !villageId.isBlank()) {
             detached.rumors = p.turns.isEmpty() ? state.rumors.newcomer(p.id, villageId, now) : state.rumors.heardBy(p.id, villageId, now);
-            detached.repute = state.rumors.reputation(villageId, now);
+            detached.repute = state.rumors.reputation(villageId, snapshot.playerId(), now);
             if (p.turns.isEmpty() && !detached.rumors.isEmpty()) scheduleSave();
         }
         // Whole and not under attack: the nerves settle a little, however the player is regarded.
@@ -142,14 +142,14 @@ public final class ConversationStore {
         r.score = r.hits++ == 0 ? Math.min(-80, r.score) : Math.max(-100, Math.min(r.score, 0) - 20);
         feel(p, r, MobState.Event.HIT, nowMillis);
         p.revision++;
-        event(p, nowMillis, "Игрок " + safePlayer(playerName) + " ударил моба; отношение " + r.score, MemoryRanking.HIT); scheduleSave();
+        event(p, nowMillis, "Игрок " + named(player, playerName) + " ударил моба; отношение " + r.score, MemoryRanking.HIT); scheduleSave();
     }
 
     public synchronized void recordHelp(UUID mob, String type, String name, UUID player, String playerName, long nowMillis) {
         Profile p = ensure(mob, type, name); Relation r = relation(p, player);
         if (!cooledDown(r.lastHelp, nowMillis, 30_000)) return;
         r.lastHelp = nowMillis; r.score = clamp(r.score + 20, hostile(p)); feel(p, r, MobState.Event.HELP, nowMillis); p.revision++;
-        event(p, nowMillis, "Игрок " + safePlayer(playerName) + " помог мобу; отношение " + r.score, MemoryRanking.HELP); scheduleSave();
+        event(p, nowMillis, "Игрок " + named(player, playerName) + " помог мобу; отношение " + r.score, MemoryRanking.HELP); scheduleSave();
     }
 
     /** A mob that saw what the player did to another: a smaller drop than the victim's, once per {@code WITNESS_COOLDOWN}, and a
@@ -175,7 +175,7 @@ public final class ConversationStore {
         boolean kill = seen != null && seen.startsWith("убил");
         feel(p, r, felt != null ? felt : kill ? MobState.Event.WITNESSED_KILL : MobState.Event.WITNESSED_HIT, nowMillis);
         // No revision bump: what the mob saw happen to another must not cancel the reply it is giving right now.
-        event(p, nowMillis, "Видел, как игрок " + safePlayer(playerName) + " " + seen + "; отношение " + r.score, kill ? MemoryRanking.WITNESSED_KILL : MemoryRanking.WITNESSED_HIT); scheduleSave();
+        event(p, nowMillis, "Видел, как игрок " + named(player, playerName) + " " + seen + "; отношение " + r.score, kill ? MemoryRanking.WITNESSED_KILL : MemoryRanking.WITNESSED_HIT); scheduleSave();
     }
     /** What others call this mob: the name the model gave it, else what the game shows; "" for a stranger. */
     public synchronized String displayName(UUID mob) {
@@ -229,7 +229,7 @@ public final class ConversationStore {
             for (Event event : q.events) if (event.importance() >= VillageRumors.MIN_IMPORTANCE && event.time() > since) facts.add(new VillageRumors.Fact(who, event.text(), event.importance(), event.time()));
             for (MemoryFact fact : q.facts) if (!fact.reflection() && fact.importance() >= VillageRumors.MIN_IMPORTANCE && fact.time() > since) facts.add(new VillageRumors.Fact(who, fact.text(), fact.importance(), fact.time()));
         }
-        VillageRumors.Input input = new VillageRumors.Input(villageId, village.name(), village.story(), names, facts, safePlayer(playerName), day);
+        VillageRumors.Input input = new VillageRumors.Input(villageId, village.name(), village.story(), names, facts, safePlayer(playerName), day, List.copyOf(state.players.values()));
         if (!state.rumors.due(villageId, day, input.importance(), !facts.isEmpty(), now)) return null;
         state.rumors.started(villageId, day, now); scheduleSave();
         return input;
@@ -238,7 +238,7 @@ public final class ConversationStore {
     public synchronized int addRumors(String villageId, List<VillageRumors.View> rumors, long now) {
         Map<String, String> ids = new HashMap<>();
         for (Profile q : state.profiles.values()) if (villageId.equals(q.villageId)) ids.put(q.givenName.isBlank() ? q.name : q.givenName, q.id.toString());
-        int added = state.rumors.add(villageId, rumors, ids, now);
+        int added = state.rumors.add(villageId, rumors, ids, playerIdsByName(), now);
         if (added > 0) scheduleSave();
         return added;
     }
@@ -280,7 +280,7 @@ public final class ConversationStore {
         }
         VillageChatter.Speaker a = speaker(p), b = speaker(q);
         String recent = p.events.isEmpty() ? "" : p.events.getLast().text();
-        String repute = village.isBlank() ? "" : state.rumors.reputation(village, now).describe();
+        String repute = village.isBlank() ? "" : state.rumors.reputation(village, playerByName(playerName), now).describe();
         if (repute.indexOf(':') >= 0) repute = repute.substring(0, repute.indexOf(':'));
         UUID other = q.id;
         boolean acquainted = state.relations.views(p.id, now).stream().anyMatch(v -> v.other().equals(other));
@@ -425,7 +425,7 @@ public final class ConversationStore {
         TradeDeal deal = TradeCatalog.deal(p.type, dealId);
         String what = deal == null ? "товар «" + dealId + "»"
                 : deal.sell().count() + "× " + deal.sell().name() + " за " + Trading.currentPrice(deal, before) + "× " + deal.price().name();
-        event(p, nowMillis, "Игрок " + safePlayer(playerName) + " купил " + what + "; отношение " + r.score, MemoryRanking.PURCHASE); scheduleSave();
+        event(p, nowMillis, "Игрок " + named(player, playerName) + " купил " + what + "; отношение " + r.score, MemoryRanking.PURCHASE); scheduleSave();
     }
     /** The player bought what the villager promised in conversation ({@link SpokenOffer}) in its vanilla window: a kept bargain —
      * the same small gain and warmth as a catalog purchase, and a memory of what changed hands. */
@@ -434,7 +434,7 @@ public final class ConversationStore {
         if (cooledDown(r.lastPurchase, nowMillis, 60_000)) { r.lastPurchase = nowMillis; r.score = clamp(r.score + 5, hostile(p)); }
         feel(p, r, MobState.Event.PURCHASE, nowMillis);
         p.revision++;
-        event(p, nowMillis, "Игрок " + safePlayer(playerName) + " купил по договорённости " + TextBounds.characters(what, 200) + "; отношение " + r.score); scheduleSave();
+        event(p, nowMillis, "Игрок " + named(player, playerName) + " купил по договорённости " + TextBounds.characters(what, 200) + "; отношение " + r.score); scheduleSave();
     }
     private Relation tradingRelation(Profile p, UUID player) {
         if (player == null) throw new IllegalArgumentException("Сделки и задания требуют игрока.");
@@ -601,7 +601,7 @@ public final class ConversationStore {
             r.deals.put(promised.id(), new TradeState(lowered < paying ? lowered : s.price(), s.unlocked() || promised.secret(), s.rounds(), s.sessionStartMillis(), s.boughtToday(), s.boughtDay()));
         }
         p.revision++;
-        event(p, nowMillis, "Игрок " + safePlayer(playerName) + " выполнил услугу: " + favor.title() + "; отношение " + r.score, MemoryRanking.FAVOR_DONE); scheduleSave();
+        event(p, nowMillis, "Игрок " + named(player, playerName) + " выполнил услугу: " + favor.title() + "; отношение " + r.score, MemoryRanking.FAVOR_DONE); scheduleSave();
         return favor;
     }
     /** Village gossip: what the player owes to, or did for, the other villagers of this mob's village, one line each.
@@ -643,6 +643,76 @@ public final class ConversationStore {
                 p.social == null || p.social.age() == null ? "" : p.social.age().word(p.social.gender()));
     }
     public synchronized List<MobCard> cards(UUID player) { return state.profiles.keySet().stream().map(UUID::fromString).map(id -> card(id, player)).toList(); }
+
+    // ---- Для веб-админки (трек H): чтение без игры и правка карточки. ----
+
+    /** Something that happened to a mob, with its time. */
+    public record Happening(long time, String text) { }
+    /** Every mob the world remembers. */
+    public synchronized List<UUID> knownMobs() { return state.profiles.keySet().stream().map(UUID::fromString).toList(); }
+    /** The mob's relation score with every player it knows, by player UUID. */
+    public synchronized Map<UUID, Integer> relations(UUID mob) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        Map<UUID, Integer> out = new LinkedHashMap<>();
+        if (p != null) p.relations.forEach((id, r) -> { try { out.put(UUID.fromString(id), r.score); } catch (IllegalArgumentException ignored) { } });
+        return out;
+    }
+    /** The mob's events newest first, with times. */
+    public synchronized List<Happening> happenings(UUID mob, int limit) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        if (p == null) return List.of();
+        List<Happening> out = new ArrayList<>();
+        for (int i = p.events.size() - 1; i >= 0 && out.size() < limit; i--) out.add(new Happening(p.events.get(i).time(), p.events.get(i).text()));
+        return out;
+    }
+    /** A word for the mob's character: the villager's first trait or the custom personality; "" for a stranger. */
+    public synchronized String traitOf(UUID mob) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        if (p == null) return "";
+        if (p.social != null && p.social.traits() != null && !p.social.traits().isEmpty()) return p.social.traits().stream().filter(trait -> trait.spoken && !trait.fact.isBlank()).map(trait -> trait.fact).findFirst().orElse("");
+        return p.customPersonality == null ? "" : p.customPersonality;
+    }
+    public synchronized String givenNameOf(UUID mob) { Profile p = mob == null ? null : state.profiles.get(mob.toString()); return p == null ? "" : p.givenName.isBlank() ? p.name : p.givenName; }
+    public synchronized String typeOf(UUID mob) { Profile p = mob == null ? null : state.profiles.get(mob.toString()); return p == null ? "" : p.type == null ? "" : p.type; }
+    public synchronized String backstoryOf(UUID mob) { Profile p = mob == null ? null : state.profiles.get(mob.toString()); return p == null ? "" : p.backstory; }
+    /** Relatives from the family tree (spouse, children, parents), empty outside the social layer. */
+    public synchronized List<FamilyTree.Kin> kin(UUID mob) { return mob == null ? List.of() : state.family.kin(mob); }
+    public synchronized UUID spouseOf(UUID mob) { return mob == null ? null : state.family.spouse(mob); }
+    public synchronized List<UUID> childrenOf(UUID mob) { return mob == null ? List.of() : state.family.children(mob); }
+    /** Every village the world knows. */
+    public synchronized List<Village> villages() { return List.copyOf(state.villages.values()); }
+    /** How many mobs live in a village. */
+    public synchronized int residents(String villageId) {
+        int n = 0;
+        for (Profile p : state.profiles.values()) if (villageId != null && villageId.equals(p.villageId)) n++;
+        return n;
+    }
+    /** What the village says right now, weightiest first. */
+    public synchronized List<VillageRumors.View> villageRumors(String villageId, long now) { return villageId == null ? List.of() : state.rumors.village(villageId, now); }
+    /** A player's fame in a village from its rumours. */
+    public synchronized VillageRumors.Reputation reputation(String villageId, UUID player, long now) {
+        return villageId == null ? VillageRumors.Reputation.NONE : state.rumors.reputation(villageId, player, now);
+    }
+    /** The admin edits a mob's card; blank fields are left as they are. */
+    public synchronized void editCard(UUID mob, String name, String personality, String voiceId, String memory) {
+        Profile p = require(mob);
+        if (name != null && !name.isBlank()) p.givenName = TextBounds.characters(name.strip(), 40);
+        if (personality != null && !personality.isBlank()) p.customPersonality = TextBounds.characters(personality.strip(), 600);
+        if (voiceId != null && !voiceId.isBlank() && voiceId.matches("[A-Za-z0-9_.:-]{1,64}")) p.voiceId = voiceId;
+        if (memory != null) {
+            p.memory = TextBounds.characters(memory.strip(), 4000);
+            p.facts.clear();
+            for (String line : p.memory.split("\n")) if (!line.isBlank()) p.facts.add(new MemoryFact(line.strip(), MemoryFact.ORDINARY, System.currentTimeMillis(), false));
+        }
+        p.revision++; scheduleSave();
+    }
+    /** State and memory back to a fresh mob; the name, species and personality stay. */
+    public synchronized void resetMob(UUID mob) {
+        Profile p = require(mob);
+        p.memory = ""; p.facts.clear(); p.summaries.clear(); p.turns.clear(); p.turnsDropped = 0; p.summarizedTurns = 0;
+        p.events.clear(); p.relations.clear(); p.state = new MobState(); p.reflection = new Reflection.Counters();
+        p.revision++; scheduleSave();
+    }
 
     /** Null edit fields retain their current values. */
     public synchronized void updateCard(UUID mob, String name, String personality, String voiceId, String memory) {
@@ -784,6 +854,26 @@ public final class ConversationStore {
     static int clamp(int score, boolean hostile) { return Math.max(-100, Math.min(100, score)); }
     private static boolean cooledDown(long last, long now, long delay) { return last < 0 || now >= last && now - last >= delay; }
     private static String safePlayer(String name) { return TextBounds.characters(name == null || name.isBlank() ? "неизвестный" : name, 120); }
+    /** The name for a memory line, and the world learns which player goes by it (rumours name players, {@link #playerIdsByName}). */
+    private String named(UUID player, String playerName) {
+        String name = safePlayer(playerName);
+        if (player != null && playerName != null && !playerName.isBlank() && !name.equals(state.players.put(player.toString(), name))) scheduleSave();
+        return name;
+    }
+    /** Every player the world knows by name, name to UUID: the last name each went by. */
+    public synchronized Map<String, String> playerIdsByName() {
+        Map<String, String> out = new LinkedHashMap<>();
+        state.players.forEach((id, name) -> out.put(name, id));
+        return out;
+    }
+    /** The UUID of the player who goes by this name, or null. */
+    public synchronized UUID playerByName(String name) {
+        if (name == null || name.isBlank()) return null;
+        for (Map.Entry<String, String> known : state.players.entrySet()) if (known.getValue().equalsIgnoreCase(name.strip())) {
+            try { return UUID.fromString(known.getKey()); } catch (IllegalArgumentException bad) { return null; }
+        }
+        return null;
+    }
     private static String canonical(String type) { return type.contains(":") ? type : "minecraft:" + type; }
     private Profile require(UUID id) { Profile p = state.profiles.get(id.toString()); if (p == null) throw new IllegalArgumentException("Профиль моба ещё не создан."); return p; }
     private static void event(Profile p, long time, String text) { event(p, time, text, MemoryFact.ORDINARY); }
@@ -974,8 +1064,12 @@ public final class ConversationStore {
         FamilyTree family = new FamilyTree();
         /** Villagers' chat announcements and open calls to work; absent in files written before them. */
         VillageNotices notices = new VillageNotices();
+        /** Players the world knows by name, UUID to the name they last went by (rumours name them); absent in files written before it. */
+        Map<String,String> players = new LinkedHashMap<>();
         void sanitize() {
             if (notices == null) notices = new VillageNotices();
+            if (players == null) players = new LinkedHashMap<>();
+            players.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null || e.getValue().isBlank());
             notices.sanitize();
             if (family == null) family = new FamilyTree();
             family.sanitize();
@@ -991,7 +1085,7 @@ public final class ConversationStore {
             State c = new State(); c.version = version;
             profiles.forEach((key, p) -> c.profiles.put(key, p.copy()));
             c.bargains.putAll(bargains); c.villages.putAll(villages); // Immutable records.
-            c.relations = relations.copy(); c.rumors = rumors.copy(); c.family = family.copy(); c.notices = notices.copy();
+            c.relations = relations.copy(); c.rumors = rumors.copy(); c.family = family.copy(); c.notices = notices.copy(); c.players = new LinkedHashMap<>(players);
             return c;
         }
     }

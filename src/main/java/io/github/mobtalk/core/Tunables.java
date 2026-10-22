@@ -57,6 +57,7 @@ public final class Tunables {
         integer("whisperBeamSize", v, "whisper", 1, 10, 1, c -> c.whisperBeamSize, (c, x) -> c.whisperBeamSize = x);
         integer("whisperVadSilenceMs", v, "whisper", 150, 1500, 1, c -> c.whisperVadSilenceMs, (c, x) -> c.whisperVadSilenceMs = x);
         integer("whisperCpuThreads", v, "whisper", 1, 16, 1, c -> c.whisperCpuThreads, (c, x) -> c.whisperCpuThreads = x);
+        integer("sttTimeoutSeconds", v, "sttServer", 3, 30, 1, c -> c.sttTimeoutSeconds, (c, x) -> c.sttTimeoutSeconds = x);
         integer("requestTimeoutSeconds", m, "requests", 5, 90, 1, c -> c.requestTimeoutSeconds, (c, x) -> c.requestTimeoutSeconds = x);
         integer("firstTokenSeconds", m, "requests", 0, 60, 1, c -> c.firstTokenSeconds, (c, x) -> c.firstTokenSeconds = x);
 
@@ -182,6 +183,13 @@ public final class Tunables {
         // Trade.
         integer("spokenOfferMinutes", a, "trade", 1, 60, 1, c -> c.spokenOfferMinutes, (c, x) -> c.spokenOfferMinutes = x);
         integer("bargainCooldownMinutes", a, "trade", 1, 120, 1, c -> c.bargainCooldownMinutes, (c, x) -> c.bargainCooldownMinutes = x);
+        // Сервер (трек C): лимиты расходов, 0 — без ограничения; одновременные ответы на сервере.
+        integer("budgetPlayerPerMinute", m, "budget", 0, 60, 1, c -> c.budgetPlayerPerMinute, (c, x) -> c.budgetPlayerPerMinute = x);
+        decimal("budgetPlayerDailyUsd", m, "budget", 0, 20, 0.05, c -> c.budgetPlayerDailyUsd, (c, x) -> c.budgetPlayerDailyUsd = x);
+        integer("budgetServerPerMinute", m, "budget", 0, 300, 1, c -> c.budgetServerPerMinute, (c, x) -> c.budgetServerPerMinute = x);
+        decimal("budgetServerDailyUsd", m, "budget", 0, 100, 0.1, c -> c.budgetServerDailyUsd, (c, x) -> c.budgetServerDailyUsd = x);
+        decimal("budgetStreamerMultiplier", m, "budget", 1, 10, 0.5, c -> c.budgetStreamerMultiplier, (c, x) -> c.budgetStreamerMultiplier = x);
+        integer("maxConcurrentDialogues", m, "budget", 1, 32, 1, c -> c.maxConcurrentDialogues, (c, x) -> c.maxConcurrentDialogues = x);
     }
 
     public static final List<Tunable> ALL = List.copyOf(TABLE);

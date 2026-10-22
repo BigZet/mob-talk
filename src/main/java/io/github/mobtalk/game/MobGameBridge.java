@@ -207,7 +207,7 @@ public final class MobGameBridge implements GameBridge {
     }
     /** The name mobs know this player by: the one set in the settings, else the nick ({@link PlayerIdentity}). Use it wherever the
      * name goes into a prompt, a memory, a rumour or a family record — never for commands or the real account. */
-    public static String playerName(net.minecraft.entity.player.PlayerEntity player) { return player == null ? "" : PlayerIdentity.name(player.getName().getString()); }
+    public static String playerName(net.minecraft.entity.player.PlayerEntity player) { return player == null ? "" : PlayerIdentity.name(player.getUuid(), player.getName().getString()); }
     public static String type(Entity entity) { return Registries.ENTITY_TYPE.getId(entity.getType()).toString(); }
     /** From the placement mixins: a block or a bucket of fluid the player put down. */
     public static void blockPlaced(ServerWorld world, net.minecraft.util.math.BlockPos pos, ServerPlayerEntity player) {
@@ -618,6 +618,131 @@ public final class MobGameBridge implements GameBridge {
         });
     }
     /** The STAY/GUARD/SPARE leases of this mob for /mobtalk state; safe from the client thread. */
-    public List<FriendActions.Status> friendStatus(UUID mob) { return actions.friends.status(mob); }
+    @Override public List<FriendActions.Status> friendStatus(UUID mob) { return actions.friends.status(mob); }
     record Heard(long tick, Vec3d position, UUID source, String event) { }
+
+    // ---- Трек A: взгляды на мир и очереди поводов для DialogueService. ----
+
+    private MobView view(MobEntity mob) {
+        String given = memory.displayName(mob.getUuid());
+        return new MobView(mob.getId(), mob.getUuid(), given.isBlank() ? mob.getName().getString() : given, type(mob),
+                mob.getWorld().getRegistryKey().getValue().toString(), mob.getX(), mob.getY(), mob.getZ());
+    }
+    private static boolean living(Entity entity) { return entity instanceof MobEntity mob && mob.isAlive() && !mob.isRemoved(); }
+    private ServerPlayerEntity online(UUID playerId) {
+        ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
+        if (player == null) throw new IllegalStateException("Игрок вышел");
+        return player;
+    }
+    @Override public CompletableFuture<MobView> mobByEntityId(UUID playerId, int entityId) {
+        return onServer(() -> {
+            Entity entity = ((ServerWorld) online(playerId).getWorld()).getEntityById(entityId);
+            if (entity instanceof net.minecraft.entity.boss.dragon.EnderDragonPart part) entity = part.owner;
+            if (!living(entity)) throw new IllegalStateException("Моб погиб или выгрузился");
+            return view((MobEntity) entity);
+        });
+    }
+    @Override public CompletableFuture<MobView> mob(UUID mobId, String dimension) {
+        return onServer(() -> {
+            ServerWorld world = world(dimension);
+            Entity entity = world == null ? null : world.getEntity(mobId);
+            if (!living(entity)) throw new IllegalStateException("Моб погиб или выгрузился");
+            return view((MobEntity) entity);
+        });
+    }
+    @Override public CompletableFuture<PlayerView> player(UUID playerId) {
+        return onServer(() -> {
+            ServerPlayerEntity player = online(playerId);
+            MobMerchant own = MobMerchant.of(player);
+            UUID merchant = own != null ? own.mob.getUuid() : null;
+            if (merchant == null && player.currentScreenHandler instanceof net.minecraft.screen.MerchantScreenHandler handler) {
+                try { merchant = VillagerBargaining.selected(player, handler.syncId).getUuid(); } catch (RuntimeException none) { merchant = null; }
+            }
+            return new PlayerView(playerId, player.getGameProfile().getName(), player.getWorld().getRegistryKey().getValue().toString(),
+                    player.getX(), player.getY(), player.getZ(), player.isAlive() && !player.isSpectator(), merchant,
+                    player.getWorld().getTimeOfDay());
+        });
+    }
+    @Override public CompletableFuture<List<UUID>> playersNear(UUID mobId, String dimension, double range) {
+        return onServer(() -> {
+            ServerWorld world = world(dimension);
+            Entity entity = world == null ? null : world.getEntity(mobId);
+            if (!living(entity)) return List.of();
+            double limit = range * range;
+            List<UUID> near = new ArrayList<>();
+            for (ServerPlayerEntity player : world.getPlayers())
+                if (player.isAlive() && !player.isSpectator() && player.squaredDistanceTo(entity) <= limit) near.add(player.getUuid());
+            return near;
+        });
+    }
+    @Override public CompletableFuture<List<UUID>> knownMobsNear(UUID playerId, double range) {
+        return onServer(() -> {
+            ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
+            if (player == null || !player.isAlive()) return List.of();
+            List<MobEntity> around = ((ServerWorld) player.getWorld()).getEntitiesByClass(MobEntity.class, player.getBoundingBox().expand(range),
+                    mob -> mob.isAlive() && !mob.isRemoved() && mob.squaredDistanceTo(player) <= range * range && memory.acquainted(mob.getUuid()));
+            around.sort(Comparator.comparingDouble(player::squaredDistanceTo));
+            return around.stream().map(Entity::getUuid).toList();
+        });
+    }
+    @Override public CompletableFuture<UUID> currentMerchant(UUID playerId) { return player(playerId).thenApply(PlayerView::merchant); }
+    /** Трек A: слова семьи и свадьбы после ответа — то, что раньше делал клиент в {@code weddingWords}/{@code familyWords}. */
+    @Override public CompletableFuture<String> afterWords(UUID mobId, UUID playerId, String said, GestureIntent gesture) {
+        return onServer(() -> {
+            List<CompletableFuture<String>> parts = new ArrayList<>();
+            ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
+            if (player == null) return CompletableFuture.completedFuture("");
+            // Служба свадьбы игрока (тексты, голоса, приём клятвы — WeddingVoice) пока живёт на клиенте через встроенный сервер одиночки:
+            // на выделенном сервере она доходила до клятвы и застревала (самотест трека G), поэтому там помолвка есть, а венчание — после
+            // серверного водителя церемонии (раздел 12.6 плана). Свадьбы жителей между собой идут на сервере как раньше.
+            boolean ceremony = config.weddingCeremony && !io.github.mobtalk.MobTalkMod.dedicated();
+            if (config.weddingCeremony) {
+                if (gesture != null && gesture.gesture() == Gesture.PROPOSE && gesture.outcome() == Gesture.Outcome.ACCEPTED)
+                    parts.add(CompletableFuture.completedFuture("§d[Mob Talk] Вы помолвлены с " + memory.displayName(mobId)
+                            + (ceremony ? ". Свадьбу играют у колокола днём: скажите «идём на свадьбу». Свидетелей зовите словами «будь моим свидетелем»."
+                            : ". Венчание у колокола на сервере появится в следующей версии.")));
+                if (ceremony && Wedding.calls(said)) parts.add(startWedding(mobId, playerId).thenApply(m -> m.isBlank() ? "" : "[Mob Talk] " + m));
+                if (ceremony && Wedding.asksWitness(said)) parts.add(appointWitness(mobId, playerId).thenApply(m -> m.isBlank() ? "" : "[Mob Talk] " + m));
+                if (!ceremony && Wedding.calls(said)) parts.add(CompletableFuture.completedFuture("[Mob Talk] Венчание у колокола на сервере появится в следующей версии."));
+            }
+            if (config.coSleep && CoSleep.invites(said)) parts.add(inviteToBed(mobId, playerId).thenApply(v -> ""));
+            if (config.familyLife && config.socialLayer) {
+                parts.add(eveningSpoke(playerId).thenApply(v -> ""));
+                if (SpecialEvening.invites(said)) parts.add(startEvening(mobId, playerId).thenApply(m -> m.isBlank() ? "" : "§d[Mob Talk] " + m));
+            }
+            return CompletableFuture.allOf(parts.toArray(CompletableFuture[]::new)).thenApply(ignored -> {
+                StringBuilder text = new StringBuilder();
+                for (CompletableFuture<String> part : parts) {
+                    String line = part.join();
+                    if (!line.isBlank()) text.append(text.isEmpty() ? "" : "\n").append(line);
+                }
+                return text.toString();
+            });
+        }).thenCompose(future -> future);
+    }
+    @Override public CompletableFuture<String> stopAllFollowers(UUID playerId) { return stopAllFollowers(); }
+    @Override public CompletableFuture<Integer> countInHand(UUID playerId, String itemId) {
+        return onServer(() -> {
+            ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
+            net.minecraft.util.Identifier id = net.minecraft.util.Identifier.tryParse(itemId);
+            if (player == null || id == null || !Registries.ITEM.containsId(id)) return 0;
+            net.minecraft.item.Item wanted = Registries.ITEM.get(id);
+            int have = 0;
+            for (var stack : player.getInventory().main) if (stack.isOf(wanted)) have += stack.getCount();
+            for (var stack : player.getInventory().offHand) if (stack.isOf(wanted)) have += stack.getCount();
+            return have;
+        });
+    }
+    @Override public Initiative.Cue pollInitiative(boolean floorBusy, Set<UUID> inFlight) {
+        return floorBusy ? config.giftsFirst ? initiative.pollGift(inFlight) : null : initiative.poll();
+    }
+    @Override public void refundInitiative(Initiative.Cue cue) { initiative.refund(cue); }
+    @Override public int pendingInitiatives() { return initiative.pending(); }
+    @Override public void floorBusy(boolean busy) { initiative.playerBusy = busy; }
+    @Override public VillageChatter.Cue pollTalk() { return talk.pollTalk(); }
+    @Override public void refundTalk(VillageChatter.Cue cue) { talk.refund(cue); }
+    @Override public boolean talkWaiting() { return talk.waiting(); }
+    @Override public void talking(boolean on) { talk.talking = on; }
+    @Override public VillageNotices.Cue pollNotice() { return talk.pollNotice(); }
+    @Override public boolean weddingActive() { return wedding.active(); }
 }

@@ -48,6 +48,18 @@ docs/space-analysis.md (зрение и классификатор), docs/whispe
   `run-pack-modtest.ps1 -Mod divine|church|cages|hogweed`, TTS в самотестах выключен, окно самотеста не берёт фокус и
   мышь (selftest-guard), не больше 6 игр на машине. Подробно: docs/pack.md.
 
+- **Серверная сборка (слита в main 23 октября 2026 по слову Дмитрия после живой проверки).** Один jar,
+  `environment: *`: диалог, голос, права и админка работают на выделенном сервере, одиночка — тот же код на встроенном сервере.
+  План и контракты: docs/server-plan.md (раздел 12.6 — что сделал интегратор), админка: docs/admin-web.md, сборка сервера:
+  docs/server.md и docker/README.md. Команды: `scriptsuild-server-pack.ps1 [-Out <папка>] [-Port <порт>]` (пак сервера из текущего
+  worktree и main остальных репозиториев), `scripts
+un-local-server.ps1 -Dir <папка> [-Smoke]`, `scripts
+ew-test-client.ps1 -Nick Test1
+  -Server 127.0.0.1:<порт> -NoWait -ModsFrom <папка>\mods` (одноразовый клиент; закрывать и чистить `clean-test-instances.ps1`),
+  `scripts
+un-server-selftest.ps1` (сервер без клиента, `ALL CHECKS PASSED`). Пароль админки печатается в лог при первом старте
+  (`config/mobtalk-admin.json` хранит только хэш), адрес `https://127.0.0.1:8787/`.
+
 ## 3. Что сделано (всё в main, установлено в Prism, самотест пройден)
 
 Подтверждено самотестом в игре: диалог голосом и текстом с озвучкой, очевидцы и штрафы, ненависть

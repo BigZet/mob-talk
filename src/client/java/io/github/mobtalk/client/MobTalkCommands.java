@@ -21,7 +21,7 @@ final class MobTalkCommands {
                 .then(literal("status").executes(context -> { client.notice(client.statusLine()); return 1; }))
                 .then(literal("info").executes(context -> { client.requestInfo(); return 1; }))
                 .then(literal("family").executes(context -> { client.requestFamily(); return 1; }))
-                .then(literal("state").executes(context -> { client.chat("[Mob Talk] " + client.stateLine()); return 1; }))
+                .then(literal("state").executes(context -> { client.requestState(); return 1; }))
                 .then(literal("village").then(literal("forgive").executes(context -> { client.forgiveVillage(); return 1; })))
                 .then(literal("clear").executes(context -> { client.clearSelection("Собеседник снят"); return 1; }))
                 .then(literal("trade").executes(context -> { client.openTrade(); return 1; }))
@@ -33,7 +33,15 @@ final class MobTalkCommands {
                     action(client, new ActionIntent(ActionType.ATTACK, StringArgumentType.getString(context, "target"))); return 1;
                 })))
                 .then(literal("reload").executes(context -> { client.reload(); return 1; }))
-                .then(literal("mic").then(literal("list").executes(context -> { listMicrophones(client); return 1; })))));
+                .then(literal("mic").then(literal("list").executes(context -> { listMicrophones(client); return 1; })))
+                // Трек C: /mobtalk admin — серверная команда; у клиента тот же корень, поэтому пересылаем её серверу как есть.
+                .then(literal("admin").executes(context -> admin(client, ""))
+                        .then(argument("args", StringArgumentType.greedyString()).executes(context -> admin(client, StringArgumentType.getString(context, "args")))))));
+    }
+
+    private static int admin(MobTalkClient client, String args) {
+        if (!io.github.mobtalk.client.settings.ServerSettingsView.sendToServer("mobtalk admin " + args)) client.notice("Команда не ушла серверу");
+        return 1;
     }
 
     private static void action(MobTalkClient client, ActionIntent action) {

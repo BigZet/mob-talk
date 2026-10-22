@@ -23,7 +23,8 @@
     "FluidPlacedMixin",
     "VillagerFamilyMixin",
     "VillageTradeRefusalMixin",
-    "NightHoldMixin"
+    "NightHoldMixin",
+    "CommandFilterMixin"
   ],
   "injectors": {
     "defaultRequire": 1

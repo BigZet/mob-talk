@@ -66,9 +66,9 @@ public final class JealousyLedger {
                 r.score = ConversationStore.clamp(r.score - hearts, q.hostile());
                 ConversationStore.feel(q, r, MobState.Event.JEALOUSY, now);
                 // Нет повышения ревизии: что игрок делал с другим, не отменяет реплику, которую пара говорит сейчас.
-                ConversationStore.event(q, now, memoryLine(playerName, cause, rivalName, rivalGender, Gender.ofPlayer(config.playerGender), detail, source,
+                ConversationStore.event(q, now, memoryLine(playerName, cause, rivalName, rivalGender, PlayerIdentity.gender(config, player), detail, source,
                         jealousy.level(now), r.score), importance(cause));
-                notices.add(new Notice(partner.id(), applied, source, rivalName, Jealousy.deed(cause, rivalGender, Gender.ofPlayer(config.playerGender), detail)));
+                notices.add(new Notice(partner.id(), applied, source, rivalName, Jealousy.deed(cause, rivalGender, PlayerIdentity.gender(config, player), detail)));
             }
             if (!notices.isEmpty()) store.scheduleSave();
             return notices;

@@ -21,6 +21,15 @@ public final class SpeechStream implements AutoCloseable {
         return stream;
     }
 
+    /** An empty stream that something outside this package fills: the client feeds it the chunks of a clip from the server. */
+    public static SpeechStream open(int maxBytes) { return new SpeechStream(Math.max(2, maxBytes)); }
+    /** Appends received audio; false once the stream was closed or ended. */
+    public boolean feed(byte[] pcm) { return pcm == null || append(ByteBuffer.wrap(pcm)); }
+    /** No more audio will come. */
+    public void end() { finish(); }
+    /** Bytes received so far (the server slices the growing stream into chunks). */
+    public synchronized int size() { return size & ~1; }
+
     synchronized void onCancel(Runnable action) { cancel = action; if (closed) action.run(); }
 
     /** Returns false when the stream was closed or grew past its limit, telling the download to stop. */
@@ -52,6 +61,20 @@ public final class SpeechStream implements AutoCloseable {
             java.util.concurrent.TimeUnit.NANOSECONDS.timedWait(this, remaining);
         }
         return !closed && (size & ~1) >= 2;
+    }
+
+    /** Zero crossings per second of 24 kHz 16-bit mono PCM: speech is well over a thousand, a plain tone is twice its pitch (the
+     * self-test tone gives ~440), silence is 0. For logs that tell what kind of audio really went through. */
+    public static long crossingsPerSecond(byte[] pcm) {
+        int samples = pcm == null ? 0 : pcm.length / 2;
+        if (samples < 2) return 0;
+        int crossings = 0; boolean negative = false;
+        for (int i = 0; i < samples; i++) {
+            boolean now = (short) ((pcm[2 * i] & 0xff) | (pcm[2 * i + 1] << 8)) < 0;
+            if (i > 0 && now != negative) crossings++;
+            negative = now;
+        }
+        return Math.round(crossings * 24_000.0 / samples);
     }
 
     /** The whole audio once the download ends; for callers that cannot play a growing stream. */

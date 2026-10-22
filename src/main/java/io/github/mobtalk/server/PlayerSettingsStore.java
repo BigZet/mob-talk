@@ -51,6 +51,8 @@ public final class PlayerSettingsStore {
 
     /** Настройки игрока; по умолчанию, если он ничего не присылал. */
     public static PlayerSettings of(UUID player) { return players.getOrDefault(player, PlayerSettings.defaults()); }
+    /** Настройки, если игрок их присылал; пусто — нет (тогда имена и пол идут по общим настройкам, как в одиночке). */
+    public static java.util.Optional<PlayerSettings> find(UUID player) { return player == null ? java.util.Optional.empty() : java.util.Optional.ofNullable(players.get(player)); }
     public static void put(UUID player, PlayerSettings settings) {
         players.put(player, settings == null ? PlayerSettings.defaults() : settings);
         writer.execute(PlayerSettingsStore::save);

@@ -42,11 +42,13 @@ class NetCodecTest {
         same(TalkStatusS2C.CODEC, new TalkStatusS2C("Моб думает…", true, ""));
         same(TalkStatusS2C.CODEC, new TalkStatusS2C("", false, "Лимит на сегодня исчерпан"));
         same(MobSpeechS2C.CODEC, new MobSpeechS2C(42, UUID.randomUUID(), "Марфа", "Му-у, чего надо?", true, 0, 16.5));
-        same(MobSpeechS2C.CODEC, new MobSpeechS2C(42, UUID.randomUUID(), "Марфа", "Му-у", false, 9, 48));
+        same(MobSpeechS2C.CODEC, new MobSpeechS2C(42, UUID.randomUUID(), "Марфа", "Му-у", false, 9, 48, MobSpeechS2C.WITNESS, 1200, "Привет", "Дима"));
+        same(MobSpeechS2C.CODEC, new MobSpeechS2C(42, UUID.randomUUID(), "Марфа", "", true, 0, 48, MobSpeechS2C.INITIATIVE, 0, "", ""));
         same(SpeechClipS2C.CODEC, new SpeechClipS2C(9, 0, 2, "mp3", bytes(MobTalkNet.MAX_CHUNK)));
         same(SpeechClipS2C.CODEC, new SpeechClipS2C(9, 1, 2, "mp3", bytes(17)));
-        same(MobStateS2C.CODEC, new MobStateS2C(42, 50, 60, 70, 80, "в духе", 35, "подруга", 2));
-        same(MobLabelS2C.CODEC, new MobLabelS2C(42, "Марфа", "ждёт ребёнка"));
+        same(MobStateS2C.CODEC, new MobStateS2C(42, UUID.randomUUID(), 50, 60, 70, 80, "glad", 1, 35, "отношение +35", 2, "услуга: Колокол 0/1", "leaning", 1));
+        same(MobStateS2C.CODEC, new MobStateS2C(42, UUID.randomUUID(), 50, 60, 70, 80, "", 0, -3, "", 0, "", "", 0));
+        same(MobLabelS2C.CODEC, new MobLabelS2C(42, UUID.randomUUID(), "Марфа", "ждёт ребёнка"));
         same(ServerFeaturesS2C.CODEC, new ServerFeaturesS2C("{\"version\":\"0.7.0\",\"sttPaths\":[\"local\",\"text\"]}"));
         same(ScreenDataS2C.CODEC, new ScreenDataS2C("info", "{\"mob\":\"Марфа\"}"));
         same(NoticeS2C.CODEC, new NoticeS2C("Настройки приняты", true));
