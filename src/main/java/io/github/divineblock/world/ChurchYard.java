@@ -160,13 +160,13 @@ public final class ChurchYard extends StructurePiece {
             for (int x = wx - 2; x <= wx + 2; x++)
                 for (int z = -2; z <= 2; z++)
                     if (Math.hypot(x - wx, z) <= 1.6) canvas.set(x, y, z, y == 13 ? Blocks.QUARTZ_BRICKS.getDefaultState() : Blocks.SMOOTH_QUARTZ.getDefaultState());
-        double[] onion = { 1.8, 2.4, 2.4, 1.9, 1.2, 0.5 };
+        double[] onion = { 1.8, 2.6, 2.8, 2.5, 1.9, 1.1, 0.5 };
         for (int h = 0; h < onion.length; h++)
             for (int x = wx - 3; x <= wx + 3; x++)
                 for (int z = -3; z <= 3; z++)
                     if (Math.hypot(x - wx, z) <= onion[h]) canvas.set(x, 14 + h, z, Blocks.GOLD_BLOCK.getDefaultState());
-        canvas.set(wx, 20, 0, ChurchBlocks.CROSS_APPLE.getDefaultState());
-        canvas.set(wx, 22, 0, ChurchBlocks.DOME_CROSS.getDefaultState().with(ChurchBlocks.DomeCrossBlock.AXIS, Direction.Axis.Z));
+        canvas.set(wx, 21, 0, ChurchBlocks.CROSS_APPLE.getDefaultState());
+        canvas.set(wx, 23, 0, ChurchBlocks.DOME_CROSS.getDefaultState().with(ChurchBlocks.DomeCrossBlock.AXIS, Direction.Axis.Z));
         // The icons over the arch, outside and in.
         canvas.set(wx - 3, 6, 0, ChurchBlocks.ICON_PANEL.getDefaultState().with(ChurchBlocks.IconBlock.ART, ChurchBlocks.IconBlock.TRINITY).with(ChurchBlocks.Facing.FACING, Direction.WEST));
         canvas.set(wx + 3, 6, 0, ChurchBlocks.ICON_PANEL.getDefaultState().with(ChurchBlocks.IconBlock.ART, ChurchBlocks.IconBlock.THEOTOKOS).with(ChurchBlocks.Facing.FACING, Direction.EAST));

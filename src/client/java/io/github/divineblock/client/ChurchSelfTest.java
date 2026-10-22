@@ -208,6 +208,8 @@ public final class ChurchSelfTest {
         for (int x = ChurchBuilder.YARD_MIN_X; x <= ChurchBuilder.YARD_MAX_X; x += 4)
             for (int z = ChurchBuilder.YARD_MIN_Z; z <= ChurchBuilder.YARD_MAX_Z; z += 4) {
                 if (x >= ChurchBuilder.MIN_X - 1 && x <= ChurchBuilder.MAX_X + 1 && Math.abs(z) <= 14) continue;
+                // The corner towers and the Holy Gate stand a little into the yard's edge.
+                if (x < ChurchBuilder.YARD_MIN_X + 3 || x > ChurchBuilder.YARD_MAX_X - 3 || Math.abs(z) > ChurchBuilder.YARD_MAX_Z - 3) continue;
                 BlockPos p = frame.world(x, 0, z);
                 if (!world.getBlockState(p).isAir() && !world.getBlockState(p).isReplaceable()) {
                     if (yardBlocked++ < 6) log("    во дворе на (" + x + ", 0, " + z + "): " + world.getBlockState(p).getBlock());
@@ -252,7 +254,7 @@ public final class ChurchSelfTest {
         };
         steps.add(new Step(10, () -> { player.changeGameMode(GameMode.SPECTATOR); world.setTimeOfDay(4000); hud = false; moody = true; }));
         int nave = ChurchBuilder.NAVE_X, mainCross = stone ? 48 : 55, cornerCross = stone ? 39 : 28;
-        shot.accept("01-west-gate", new double[] { -62, 30, -26, 22, 18, 0, 160 });
+        shot.accept("01-west-gate", new double[] { -30, 30, -35, 22, 16, 0, 160 });
         shot.accept("02-northwest-yard", new double[] { -26, 12, -30, 30, 18, 0, 120 });
         shot.accept("03-south", new double[] { 25, 24, 64, 25, 20, 0, 140 });
         shot.accept("04-north", new double[] { 25, 24, -64, 25, 20, 0, 140 });
@@ -277,7 +279,7 @@ public final class ChurchSelfTest {
         shot.accept("22-night", new double[] { -26, 12, -30, 30, 18, 0, 90 });
         shot.accept("23-night-interior", new double[] { 33, 3.5, 0.5, 48, 6, 0.5, 90 });
         steps.add(new Step(10, () -> world.setTimeOfDay(4000)));
-        shot.accept("24-cemetery", new double[] { 28, 22, 30, 28, 0, 55, 100 });
+        shot.accept("24-cemetery", new double[] { 28, 42, 26, 28, 0, 62, 100 });
         shot.accept("25-cemetery-top", new double[] { 28, 95, 62, 28, 0, 64, 140 });
         // Ring the great bell once.
         steps.add(new Step(10, () -> {
