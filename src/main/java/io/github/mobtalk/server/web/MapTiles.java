@@ -50,9 +50,9 @@ public final class MapTiles implements MapSource {
 
     public MapTiles(Path root, Consumer<String> log) { this.root = root; this.log = log; }
 
-    @Override public int tileSize() { return SIZE; }
-    @Override public int maxZoom() { return MAX_ZOOM; }
-    @Override public String name() { return "mobtalk"; }
+    @Override public int tileSize(String world) { return SIZE; }
+    @Override public int maxZoom(String world) { return MAX_ZOOM; }
+    @Override public String name(String world) { return "mobtalk"; }
 
     /** Called with {"world","zoom","tx","tz"} for every tile that changed. */
     @Override public void listen(Consumer<JsonObject> listener) { listeners.add(listener); }

@@ -70,7 +70,7 @@ class BlueMapControlTest {
     }
 
     @Test void rendersOnlyWhileSomeoneLooks() {
-        BlueMapControl control = new BlueMapControl(dir.resolve("bluemap").resolve("web"), stub.game, clock::get);
+        BlueMapControl control = new BlueMapControl(dir.resolve("bluemap").resolve("web"), dir.resolve("latest.log"), stub.game, clock::get);
         control.sweep();
         assertEquals("bluemap stop", last(), "при старте админки рендер на паузе");
         assertFalse(control.status().get("rendering").getAsBoolean());
@@ -91,11 +91,28 @@ class BlueMapControlTest {
     }
 
     @Test void withoutBlueMap() {
-        BlueMapControl absent = new BlueMapControl(dir.resolve("nothing"), stub.game, clock::get);
+        BlueMapControl absent = new BlueMapControl(dir.resolve("nothing"), dir.resolve("latest.log"), stub.game, clock::get);
         assertFalse(absent.status().get("available").getAsBoolean());
         assertEquals(503, assertThrows(ApiException.class, absent::keepalive).status);
         absent.sweep();
         assertFalse(stub.game.commands.contains("bluemap stop"));
+    }
+
+    @Test void waitsForBlueMapToLoad() throws Exception {
+        Path log = dir.resolve("starting.log");
+        java.nio.file.Files.writeString(log, "[19:30:01] [main/INFO] (FabricLoader) Loading 14 mods\n");
+        BlueMapControl control = new BlueMapControl(dir.resolve("bluemap").resolve("web"), log, stub.game, clock::get);
+        control.sweep();
+        JsonObject early = control.keepalive();
+        assertTrue(early.get("loading").getAsBoolean());
+        assertFalse(stub.game.commands.stream().anyMatch(c -> c.startsWith("bluemap")), "до «BlueMap loaded!» команд нет");
+        assertTrue(control.status().get("loading").getAsBoolean());
+        java.nio.file.Files.writeString(log, "[19:30:09] [BlueMap-Plugin-Loading/INFO] (bluemap) BlueMap loaded!\n", java.nio.file.StandardOpenOption.APPEND);
+        control.sweep();
+        assertEquals("bluemap start", last(), "страницу уже смотрят — после загрузки сразу рендер");
+        clock.addAndGet(BlueMapControl.IDLE + 1);
+        control.sweep();
+        assertEquals("bluemap stop", last());
     }
 
     private String last() { return stub.game.commands.get(stub.game.commands.size() - 1); }

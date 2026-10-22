@@ -206,7 +206,7 @@ public final class AdminApi {
                 if ("spawn".equals(Json.string(marker.getAsJsonObject(), "kind"))) { spawn = Json.obj("x", marker.getAsJsonObject().get("x"), "z", marker.getAsJsonObject().get("z")); break; }
             return Response.json(Json.obj("world", world, "minX", box == null ? null : box[0], "minZ", box == null ? null : box[1],
                     "maxX", box == null ? null : box[2], "maxZ", box == null ? null : box[3], "spawn", spawn, "worlds", parts.map().worlds(),
-                    "tileSize", parts.map().tileSize(), "maxZoom", parts.map().maxZoom(), "source", parts.map().name()));
+                    "tileSize", parts.map().tileSize(world), "maxZoom", parts.map().maxZoom(world), "source", parts.map().name(world)));
         });
         router.get("/api/map/markers", r -> {
             String world = world(r);
