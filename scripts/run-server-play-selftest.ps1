@@ -19,7 +19,11 @@ $scratch = Join-Path $env:LOCALAPPDATA "MobTalk\selftest\$name"
 $srv = Join-Path $scratch 'server'
 New-Item -ItemType Directory -Force $scratch | Out-Null
 $log = Join-Path $scratch 'selftest-run.log'
-function Say($t) { $line = "$(Get-Date -Format HH:mm:ss) $t"; Write-Host $line; Add-Content -Path $log -Value $line -Encoding UTF8 }
+# Appends with shared access, so a reader tailing the log never makes the run fail.
+function Say($t) {
+    $line = "$(Get-Date -Format HH:mm:ss) $t"; Write-Host $line
+    try { $f = [IO.File]::Open($log, 'Append', 'Write', 'ReadWrite'); $b = [Text.Encoding]::UTF8.GetBytes("$line`r`n"); $f.Write($b, 0, $b.Length); $f.Dispose() } catch { }
+}
 $nicks = @('Test1', 'Test2')
 $ours = '^(mobtalk|divineblock|rusflora|parrotcages|viewerparrots)-'
 Say "server stage $name, branch $branch"

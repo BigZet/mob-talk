@@ -14,6 +14,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
+import net.minecraft.client.gui.screen.ingame.MerchantScreen;
 import net.minecraft.client.util.ScreenshotRecorder;
 import net.minecraft.command.argument.EntityAnchorArgumentType;
 import net.minecraft.entity.Entity;
@@ -54,16 +55,32 @@ final class SelfTestServer {
         SelfTestServer test = new SelfTestServer(owner);
         active = test;
         ClientPlayNetworking.registerGlobalReceiver(SelfTestLine.ID, (payload, context) -> test.cue(payload.line()));
-        ClientReceiveMessageEvents.GAME.register((message, overlay) -> test.send("chat", Formatting.strip(message.getString())));
+        // The action bar (Mob Talk's HUD line every second) is not chat: only real chat lines are reported.
+        ClientReceiveMessageEvents.GAME.register((message, overlay) -> { if (!overlay) test.send("chat", Formatting.strip(message.getString())); });
         ClientReceiveMessageEvents.CHAT.register((message, signed, sender, params, time) -> test.send("chat", Formatting.strip(message.getString())));
-        ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> { if (screen instanceof HandledScreen<?>) test.send("screen", screen.getClass().getSimpleName()); });
-        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> { test.connectedAt = test.ticks; test.lostAt = -1; test.log("joined the server"); });
+        // The release jar keeps intermediary class names: the merchant screen is named by type, not by its class.
+        ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
+            if (screen instanceof MerchantScreen) test.send("screen", "MerchantScreen");
+            else if (screen instanceof HandledScreen<?>) test.send("screen", "HandledScreen");
+        });
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> { test.connectedAt = test.ticks; test.lostAt = -1; test.log("joined the server"); test.ownNames(); });
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> { test.lostAt = test.ticks; test.log("disconnected"); });
         ClientTickEvents.END_CLIENT_TICK.register(ignored -> test.tick());
         LOGGER.info("[selftest] server play client armed");
     }
 
     private void log(String text) { LOGGER.info("[selftest] {}", text); }
+
+    /** The test copies inherit the pack owner's personal names ("Дима"): each client is called by its own nick instead, so
+     * villagers can tell the two players apart in memory and rumours. Sent after ClientNet's own settings on join. */
+    private void ownNames() {
+        var config = owner.config();
+        String nick = System.getProperty(PROPERTY, "");
+        if (config == null || nick.isBlank()) return;
+        config.playerNamesHostile = nick; config.playerNamesNeutral = nick; config.playerNamesClose = nick;
+        ClientNet.sendSettings(owner);
+        log("personal names set to " + nick);
+    }
 
     /** Сторож: без сервера дольше 10 минут после старта или 15 секунд после разрыва — игра закрывается, слот освобождается. */
     private void tick() {

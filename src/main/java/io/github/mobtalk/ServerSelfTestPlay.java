@@ -301,15 +301,17 @@ final class ServerSelfTestPlay {
                 check(heard != null && heard.field(6).equals(streamerName), playerName + " видит, кто спросил (asker " + (heard == null ? "—" : heard.field(6)) + ")");
                 check(!saw(playerName, "speech", p, speechOf(talker, true, null)), "у соседа реплика не помечена «вам»");
                 check(saw(streamerName, "state", s, st -> st.field(0).equals(talker.getUuidAsString())), streamerName + " получил MobStateS2C собеседника (HUD)");
-                check(saw(streamerName, "label", 0, st -> st.field(0).equals(talker.getUuidAsString()) && !st.field(1).isEmpty())
-                        || saw(playerName, "label", 0, st -> st.field(0).equals(talker.getUuidAsString()) && !st.field(1).isEmpty()), "подпись над жителем пришла (MobLabelS2C)");
-                log("подписи у " + playerName + ": " + since(playerName, "label", 0).size() + ", у " + streamerName + ": " + since(streamerName, "label", 0).size());
+                Predicate<Seen> named = st -> st.field(0).equals(talker.getUuidAsString()) && !st.field(1).isEmpty();
+                await("подпись с именем у обоих", 10, () -> saw(streamerName, "label", 0, named) && saw(playerName, "label", 0, named), () -> {
+                check(saw(streamerName, "label", 0, named) && saw(playerName, "label", 0, named), "подпись с именем жителя пришла обоим (MobLabelS2C): "
+                        + (first(playerName, "label", 0, named) == null ? "нет у " + playerName : first(playerName, "label", 0, named).field(1)));
                 cue(streamerName, "shot", "mobtalk-server-dialogue-" + streamerName + ".png"); cue(playerName, "shot", "mobtalk-server-dialogue-" + playerName + ".png");
                 CompletableFuture<String> history = adminHistory();
                 await("история админки", 20, history::isDone, () -> {
                     String body = history.isCompletedExceptionally() ? "ошибка " + history.exceptionNow() : history.join();
                     check(body.startsWith("200") && body.contains(streamerName), "журнал админки записал диалог (" + body.substring(0, Math.min(140, body.length())).replace('\n', ' ') + "…)");
                     busy();
+                });
                 });
             });
         });
@@ -576,7 +578,7 @@ final class ServerSelfTestPlay {
                             if (scene() == null || !scene().ceremony.awaitingVow()) { check(false, "ведущий не дошёл до клятвы"); leave(); return; }
                             int s3 = mark(streamerName);
                             cue(streamerName, "say", String.valueOf(bride.getId()), "Да, я согласен. Клянусь быть с тобой в радости и в беде и заботиться о тебе всю жизнь.");
-                            await("брак заключён", 150, () -> scene() == null || scene().ceremony.phase() == Wedding.Ceremony.Phase.DONE
+                            await("брак заключён", 60, () -> scene() == null || scene().ceremony.phase() == Wedding.Ceremony.Phase.DONE
                                     || bridge.memory.jealousy().partners(streamer).stream().anyMatch(x -> x.married()), () -> {
                                 boolean married = bridge.memory.jealousy().partners(streamer).stream().anyMatch(x -> x.married());
                                 check(married, "клятва текстом на сервере довела до брака (статусы: " + since(streamerName, "status", s3).stream().map(x -> x.field(2)).toList() + ")");
