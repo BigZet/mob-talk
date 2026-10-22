@@ -274,9 +274,13 @@ public final class SeraphEntity extends SacredBoss {
 
     // ---- The weak point: water and snow. ----
 
+    /** A snowball, or a splash bottle of plain water (the harmful potions are only potions). */
     @Override protected boolean weakTrigger(DamageSource source, float amount) {
         var direct = source.getSource();
-        return direct instanceof net.minecraft.entity.projectile.thrown.SnowballEntity || direct instanceof net.minecraft.entity.projectile.thrown.PotionEntity;
+        if (direct instanceof net.minecraft.entity.projectile.thrown.SnowballEntity) return true;
+        return direct instanceof net.minecraft.entity.projectile.thrown.PotionEntity potion
+                && potion.getStack().getOrDefault(net.minecraft.component.DataComponentTypes.POTION_CONTENTS, net.minecraft.component.type.PotionContentsComponent.DEFAULT)
+                        .matches(net.minecraft.potion.Potions.WATER);
     }
     @Override protected String weakHint() { return "пламень гасит вода — снежок, взрывная бутылка воды или дождь"; }
     @Override protected String weakReason() { return "Вода погасила пламень — бей!"; }

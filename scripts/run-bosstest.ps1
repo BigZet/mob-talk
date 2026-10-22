@@ -1,66 +1,74 @@
-﻿# Runs the in-game BOSS test (BossSelfTest) like run-selftest.ps1 runs the self-test.
-# Runs the in-game self-test unattended on the Prism instance divine-block-test (Fabric 1.21.1 with Mob Talk and Viewer
-# Parrots beside this mod): builds, installs the JAR, arms -Ddivineblock.selftest=true in instance.cfg while PrismLauncher is
-# closed, launches, waits for the game to quit, restores instance.cfg, deletes the test world and reopens PrismLauncher.
-# Report: %LOCALAPPDATA%\DivineBlock\bosstest\report.txt; screenshots in the instance's screenshots folder.
-# Refuses to run while javaw.exe is up. Usage: powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1
+﻿﻿# Runs the in-game BOSS test (BossSelfTest) unattended on a throwaway copy of the Prism instance divine-block-test, the way
+# run-selftest.ps1 runs the self-test: builds this checkout, waits for a free game slot (scripts\ParallelPrism.psm1, max
+# -MaxGames games machine-wide, shared with mob-talk), copies the base instance into instances\t-dbboss-<branch>-<time> with
+# this branch's JAR, launches it through the running PrismLauncher with -Ddivineblock.bosstest=true, waits for this copy's
+# javaw only (killing it when latest.log is silent for 6 minutes or a crash report appears), then deletes the copy.
+# Never closes Prism and never touches divine-block-test, its instance.cfg, mods or worlds.
+# Every boss in turn: spawn, an ordinary attack, the ultimate, its affliction, the weak point opened by its counter-play, a
+# later phase, death and its relic, then a model of the whole fight (time and blows to kill through the weak points).
+# Results: -Shots (default %LOCALAPPDATA%\DivineBlock\boss-shots) gets the screenshots boss-<id>-<n>-<stage>.png, report.txt
+# and the game's latest.log; the run's own log is bosstest-run.log there.
+# Usage: powershell -ExecutionPolicy Bypass -File scripts\run-bosstest.ps1 [-Only id,id] [-Showcase] [-God] [-Shots dir]
+#   [-Keep] keeps the copy (scripts\clean-test-instances.ps1 deletes it later); [-MaxGames 6]; [-TimeoutMinutes 30]
+param([string]$Only = '', [switch]$Showcase, [switch]$God, [string]$Shots = '', [switch]$Keep, [int]$MaxGames = 6,
+  [string]$Base = 'divine-block-test', [int]$TimeoutMinutes = 30)
 $ErrorActionPreference = 'Stop'
-$scratch = Join-Path $env:LOCALAPPDATA "DivineBlock\bosstest"
-New-Item -ItemType Directory -Force $scratch | Out-Null
+Import-Module (Join-Path $PSScriptRoot 'ParallelPrism.psm1') -Force
 $repo = Split-Path -Parent $PSScriptRoot
-$name = 'divine-block-test'
-$inst = "$env:APPDATA\PrismLauncher\instances\$name"
-$mc = "$inst\minecraft"
-$prism = 'C:\Users\bigze\AppData\Local\Programs\PrismLauncher\prismlauncher.exe'
-$world = 'divineblock-bosstest'
-$log = "$scratch\bosstest-run.log"
-$only = if ($args.Count -gt 0) { " -Ddivineblock.bosstest.only=$($args[0])" } else { '' }
-function Say($t) { $line = "$(Get-Date -Format HH:mm:ss) $t"; $line | Tee-Object -FilePath $log -Append }
-"" | Out-File $log
+$branch = (git -C $repo rev-parse --abbrev-ref HEAD).Trim()
+$name = New-TestInstanceName 'dbboss' $branch
+if (-not $Shots) { $Shots = Join-Path $env:LOCALAPPDATA 'DivineBlock\boss-shots' }
+New-Item -ItemType Directory -Force $Shots | Out-Null
+$report = Join-Path $env:LOCALAPPDATA 'DivineBlock\bosstest\report.txt'   # BossSelfTest writes it here
+$mc = "$env:APPDATA\PrismLauncher\instances\$name\minecraft"
+$log = Join-Path $Shots 'bosstest-run.log'
+function Say($t) { $line = "$(Get-Date -Format HH:mm:ss) $t"; Write-Host $line; Add-Content -Path $log -Value $line -Encoding UTF8 }
+"" | Out-File $log -Encoding UTF8
+Say "copy $name of $Base, branch $branch"
 
-if (Get-CimInstance Win32_Process -Filter "name='javaw.exe'") { throw 'Minecraft is running' }
-if (-not (Test-Path "$mc\mods")) { throw "Prism instance missing: $inst" }
-
-Say 'build + install'
+Say 'build'
 Set-Location $repo
-.\gradlew.bat build -x test -q 2>&1 | Where-Object { $_ -match 'error|FAIL' }
+# cmd merges gradle's stderr notes so PowerShell's Stop preference does not turn them into errors.
+cmd /c '.\gradlew.bat build -x test -q 2>&1' | Where-Object { $_ -match 'error|FAIL' }
 if ($LASTEXITCODE -ne 0) { throw 'build failed' }
-$jar = Get-ChildItem "$repo\build\libs\divineblock-*.jar" | Where-Object { $_.Name -notmatch '-sources' } | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-Get-ChildItem "$mc\mods\divineblock-*.jar" | Remove-Item -Force
-Copy-Item $jar.FullName "$mc\mods\"
-Get-ChildItem "$mc\mods\*.jar" | ForEach-Object { Say "mod: $($_.Name)" }
-Remove-Item "$scratch\report.txt" -Force -ErrorAction SilentlyContinue
-if (Test-Path "$mc\saves\$world") { Remove-Item -Recurse -Force "$mc\saves\$world" }
+$jar = Get-ChildItem "$repo\build\libs\divineblock-*.jar" | Where-Object { $_.Name -notmatch '-sources|-dev' } | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+Remove-Item $report -Force -ErrorAction SilentlyContinue
 
-Say 'stop Prism and arm instance.cfg'
-Get-Process prismlauncher -ErrorAction SilentlyContinue | Stop-Process -Force
-Start-Sleep -Seconds 3
-Copy-Item "$inst\instance.cfg" "$scratch\instance.cfg.bak" -Force
-$cfg = Get-Content "$inst\instance.cfg" -Raw
-$cfg = $cfg -replace '(?m)^OverrideJavaArgs=.*\r?\n', '' -replace '(?m)^JvmArgs=.*\r?\n', ''
-$cfg = $cfg -replace '\[General\]\r?\n', "[General]`nOverrideJavaArgs=true`nJvmArgs=-Ddivineblock.bosstest=true$only`n"
-[System.IO.File]::WriteAllText("$inst\instance.cfg", $cfg)
+$slot = Enter-GameSlot -Owner $name -Max $MaxGames -Say ${function:Say}
+try {
+  Say "slot $($slot.Index)"
+  $jvmArgs = '-Ddivineblock.bosstest=true'
+  if ($Only) { $jvmArgs = "$jvmArgs -Ddivineblock.bosstest.only=$Only" }
+  if ($Showcase) { $jvmArgs = "$jvmArgs -Ddivineblock.bosstest.showcase=true" }
+  if ($God) { $jvmArgs = "$jvmArgs -Ddivineblock.bosstest.god=true" }
+  New-TestInstance -Base $Base -Name $name -JvmArgs $jvmArgs | Out-Null
+  Get-ChildItem "$mc\mods\divineblock-*.jar" | Remove-Item -Force
+  Copy-Item $jar.FullName "$mc\mods\"
+  Get-ChildItem "$mc\mods\*.jar" | ForEach-Object { Say "mod: $($_.Name)" }
 
-Say 'launch'
-Start-Process $prism -ArgumentList '--launch', $name
-$started = $false
-for ($i = 0; $i -lt 30; $i++) { Start-Sleep -Seconds 5; if (Get-CimInstance Win32_Process -Filter "name='javaw.exe'") { $started = $true; break } }
-if (-not $started) { Say 'javaw did not start' } else {
-  Say 'javaw running; waiting for the self-test to quit the game'
-  for ($i = 0; $i -lt 180; $i++) {
-    Start-Sleep -Seconds 10
-    if (-not (Get-CimInstance Win32_Process -Filter "name='javaw.exe'")) { Say 'javaw exited'; break }
-    if ($i % 3 -eq 2) { $last = Get-Content "$mc\logs\latest.log" -Encoding UTF8 -ErrorAction SilentlyContinue | Select-String 'тест боссов' | Select-Object -Last 1; Say "… $last" }
+  Say 'launch'
+  $game = Start-TestInstance $name
+  if (-not $game) { Say 'javaw did not start' } else {
+    Say "javaw $($game.ProcessId) running; waiting for the boss test to quit the game"
+    $deadline = (Get-Date).AddMinutes($TimeoutMinutes); $i = 0
+    while (Get-Process -Id $game.ProcessId -ErrorAction SilentlyContinue) {
+      if ((Get-Date) -gt $deadline) { Say 'timeout: killing this copy''s javaw'; Stop-Process -Id $game.ProcessId -Force; break }
+      $stall = Get-TestGameStall $name; if ($stall) { Say "stalled ($stall): killing this copy's javaw"; Stop-Process -Id $game.ProcessId -Force; break }
+      Start-Sleep -Seconds 10; $i++
+      if ($i % 3 -eq 0) { $last = Get-Content "$mc\logs\latest.log" -Encoding UTF8 -ErrorAction SilentlyContinue | Select-String 'тест боссов' | Select-Object -Last 1; Say "… $last" }
+    }
+    Say 'javaw exited'
   }
-  if (Get-CimInstance Win32_Process -Filter "name='javaw.exe'") { Say 'timeout: killing javaw'; Get-Process javaw | Stop-Process -Force }
+  Start-Sleep -Seconds 3
+  Copy-Item "$mc\logs\latest.log" (Join-Path $Shots 'bosstest-latest.log') -Force -ErrorAction SilentlyContinue
+  Copy-Item $report $Shots -Force -ErrorAction SilentlyContinue
+  $pngs = @(Get-ChildItem "$mc\screenshots\boss-*.png" -ErrorAction SilentlyContinue)
+  $pngs | Copy-Item -Destination $Shots -Force
+  Say "screenshots: $($pngs.Count) -> $Shots"
+} finally {
+  Exit-GameSlot $slot
+  if ($Keep) { Say "kept $name (scripts\clean-test-instances.ps1 -Name $name deletes it)" }
+  else { try { Remove-TestInstance $name; Say "deleted $name" } catch { Say "could not delete ${name}: $_" } }
 }
-Start-Sleep -Seconds 3
-Copy-Item "$mc\logs\latest.log" "$scratch\bosstest-latest.log" -Force
-
-Say 'restore instance.cfg, delete the test world'
-Get-Process prismlauncher -ErrorAction SilentlyContinue | Stop-Process -Force
-Start-Sleep -Seconds 3
-Copy-Item "$scratch\instance.cfg.bak" "$inst\instance.cfg" -Force
-Remove-Item -Recurse -Force "$mc\saves\$world" -ErrorAction SilentlyContinue
-Start-Process $prism
-Say 'done'
+Say "done; report in $Shots\report.txt"
+Get-Content (Join-Path $Shots 'report.txt') -Encoding UTF8 -ErrorAction SilentlyContinue | Select-String 'FAIL|модель боя|ошибок' | Select-Object -Last 40

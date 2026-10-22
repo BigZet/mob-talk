@@ -338,32 +338,33 @@ public final class NimrodEntity extends SacredBoss {
 
     // ---- The weak point: the hunter's bow. ----
 
-    /** An arrow while he draws his bow snaps the string; on the tower it throws him down. */
+    /** An arrow while he draws his bow snaps the string; on the tower it throws him down and the tower falls with him. */
     @Override protected boolean weakTrigger(net.minecraft.entity.damage.DamageSource source, float amount) {
         if (!(source.getSource() instanceof net.minecraft.entity.projectile.ProjectileEntity)) return false;
-        if (perched > 0) { perched = 1; return true; }
-        return isCasting();
+        if (perched > 0) { knockedOff = true; knockOff(); return true; }
+        return isCasting() && move() == MOVE_DRAW;
+    }
+    private boolean knockedOff;
+    /** Shot off the top: the perch ends at once, the bricks come down behind him and he floats down on the dust. */
+    private void knockOff() {
+        perched = 0;
+        sound(SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK, 2f, 0.6f);
+        if (levitating) { land(); return; }
+        demolish();
+        addStatusEffect(new StatusEffectInstance(StatusEffects.SLOW_FALLING, 200, 0, false, false));
     }
     @Override protected String weakHint() { return "выстрели в него, пока он натягивает лук или стоит на башне"; }
-    @Override protected String weakReason() { return perched > 0 ? "Нимрод сбит с башни — бей!" : "Тетива лопнула — бей!"; }
+    @Override protected String weakReason() {
+        boolean fell = knockedOff;
+        knockedOff = false;
+        return fell ? "Нимрод сбит с башни — бей!" : "Тетива лопнула — бей!";
+    }
     @Override protected String ultHint() { return "сбей его с башни стрелой — он упадёт и будет открыт"; }
     @Override protected String phaseName(int phase) { return phase == 2 ? "Зверолов" : "Вавилон"; }
     /** Tests: he draws for a volley and the player's arrow strikes him. */
     @Override public void provokeWeakPoint(net.minecraft.server.network.ServerPlayerEntity player) {
         volley(player);
-        arrowAt(player, 0.6, false);
-    }
-    /** Tests: an arrow from {@code player} that strikes at {@code share} of the boss's height. */
-    private void arrowAt(net.minecraft.server.network.ServerPlayerEntity player, double share, boolean burning) {
-        var arrow = new net.minecraft.entity.projectile.ArrowEntity(getWorld(), player, new net.minecraft.item.ItemStack(net.minecraft.item.Items.ARROW), null);
-        Vec3d at = new Vec3d(getX(), getY() + getHeight() * share, getZ());
-        Vec3d from = player.getEyePos().multiply(1, 0, 1).add(0, at.y, 0);
-        Vec3d dir = at.subtract(from).lengthSquared() < 1e-3 ? new Vec3d(0, 0, 1) : at.subtract(from).normalize();
-        arrow.setPosition(at.subtract(dir.multiply(getWidth() * 0.5 + 0.8)));
-        arrow.setVelocity(dir.multiply(2.5));
-        if (burning) arrow.setOnFireFor(5);
-        damage(getDamageSources().arrow(arrow, player), 6f);
-        arrow.discard();
+        testArrow(player, 0.6, false);
     }
 
     @Override protected void onPhase(int phase) {

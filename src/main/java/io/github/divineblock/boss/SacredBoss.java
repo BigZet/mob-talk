@@ -264,6 +264,8 @@ public abstract class SacredBoss extends HostileEntity {
     }
     /** Tests: how many of its attacks are in flight. */
     public int hazardCount() { return hazards.count(); }
+    /** Tests: drops every attack in flight (and every delayed window), so the next check starts clean. */
+    public void hazardsClear() { hazards.clear(); }
     /** Tests: cast an ordinary attack on the next tick. */
     public void forceAttack() { attackTimer = 1; }
     /** 0..1: how far the current cast has come. */
@@ -409,7 +411,8 @@ public abstract class SacredBoss extends HostileEntity {
         attackTimer = Math.min(attackTimer, 20);
     }
 
-    /** Harm to the boss: none while a phase changes; the counter opens the weak point; then the share by the window. */
+    /** Harm to the boss: none while a phase changes; the counter opens the weak point; then the share by the window, and
+     * whatever the boss's own limit ({@link #limitTaken}) leaves of it. */
     @Override public boolean damage(DamageSource source, float amount) {
         if (getWorld().isClient || isInvulnerableTo(source) || source.isIn(net.minecraft.registry.tag.DamageTypeTags.BYPASSES_INVULNERABILITY))
             return super.damage(source, amount);
@@ -430,10 +433,61 @@ public abstract class SacredBoss extends HostileEntity {
                 hintCooldown = 20 * 25;
             }
         }
+        amount = limitTaken(amount);
+        if (amount <= 0) return false;
         return super.damage(source, amount);
     }
+    /** The last word on a blow already scaled by the window: a boss may cap it (the Horsemen never lose a seal to one hit). */
+    protected float limitTaken(float amount) { return amount; }
     /** The subtitle when the counter opened the weak point. */
     protected String weakReason() { return "бей сейчас — урон впятеро!"; }
+
+    /** Tests and {@link #provokeWeakPoint}: an arrow shot by {@code player} that strikes the boss at {@code share} of its
+     * height (burning when asked), through the ordinary damage path, so the boss's own projectile rules decide. */
+    protected void testArrow(ServerPlayerEntity player, double share, boolean burning) {
+        var arrow = new net.minecraft.entity.projectile.ArrowEntity(getWorld(), player, new net.minecraft.item.ItemStack(net.minecraft.item.Items.ARROW), null);
+        Vec3d at = new Vec3d(getX(), getY() + getHeight() * share, getZ());
+        Vec3d from = player.getEyePos().multiply(1, 0, 1).add(0, at.y, 0);
+        Vec3d dir = at.subtract(from).lengthSquared() < 1e-3 ? new Vec3d(0, 0, 1) : at.subtract(from).normalize();
+        arrow.setPosition(at.subtract(dir.multiply(getWidth() * 0.5 + 0.8)));
+        arrow.setVelocity(dir.multiply(2.5));
+        if (burning) arrow.setOnFireFor(5);
+        damage(getDamageSources().arrow(arrow, player), 6f);
+        arrow.discard();
+    }
+
+    /** Tests: keeps ordinary attacks and the ultimate away for {@code ticks}, so a provoked weak point is not overwritten. */
+    public void holdFire(int ticks) { attackTimer = Math.max(attackTimer, ticks); ultTimer = Math.max(ultTimer, ticks); }
+
+    /** The result of {@link #simulateKill}: how long the model fight took, how many blows landed and how many weak windows
+     * opened; {@code dead} is false when the time ran out first. */
+    public record Simulation(int ticks, int hits, int windows, boolean dead) {
+        public String describe() { return (dead ? "убит за " + ticks / 20 + " с" : "жив после " + ticks / 20 + " с") + ", ударов " + hits + ", окон " + windows; }
+    }
+    /** Tests: a model of the whole fight in one call, through the real {@link #damage} path (the window shares, the phase
+     * stagger, each boss's own limit) with the timers advanced by hand: the weak point opens as soon as it is ready, and
+     * {@code player} lands {@code hit} every {@code hitEvery} ticks, always or only while the window is open. The boss's own
+     * counters move in {@link #simulateTick}. It is a lower bound on a real fight (no dodging, no misses). */
+    public Simulation simulateKill(ServerPlayerEntity player, float hit, int hitEvery, boolean onlyInWindows, int maxTicks) {
+        int hits = 0, windows = 0, ticks;
+        DamageSource blow = getDamageSources().playerAttack(player);
+        for (ticks = 1; ticks <= maxTicks && isAlive(); ticks++) {
+            if (transition > 0) transition--;
+            else if (exposedTicks > 0) { if (--exposedTicks == 0) closeWeakPoint(); }
+            else if (weakCooldown > 0) weakCooldown--;
+            simulateTick();
+            int now = phaseFor(getHealth() / getMaxHealth());
+            if (now > phase) beginPhase(now);
+            if (weakReady()) { expose(EXPOSED_TICKS, "модель боя"); windows++; }
+            if (ticks % hitEvery == 0 && (!onlyInWindows || exposedTicks > 0)) {
+                timeUntilRegen = 0;
+                if (damage(blow, hit)) hits++;
+            }
+        }
+        return new Simulation(ticks - 1, hits, windows, !isAlive());
+    }
+    /** One tick of the boss's own counters inside {@link #simulateKill} (nothing by default). */
+    protected void simulateTick() { }
 
     /** Keeps where the foe was seen last, and counts how long it has been hidden. */
     private void remember(LivingEntity target) {
