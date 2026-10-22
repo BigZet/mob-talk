@@ -29,7 +29,13 @@ final class SettingsController implements MobTalkSettingsScreen.Controller {
         });
     }
 
-    @Override public void save(MobTalkConfig draft, Consumer<String> completion) { owner.saveConfig(draft, completion); }
+    /** After a save the server gets the player's personal layer again (names, sex), as at joining. */
+    @Override public void save(MobTalkConfig draft, Consumer<String> completion) {
+        owner.saveConfig(draft, failure -> {
+            if (failure == null) owner.client.execute(() -> ClientNet.sendSettings(owner));
+            completion.accept(failure);
+        });
+    }
 
     @Override public int talkKeyCode() {
         InputUtil.Key key = KeyBindingHelper.getBoundKeyOf(owner.talkKey);

@@ -44,10 +44,12 @@ final class ClientNet {
         ClientPlayNetworking.registerGlobalReceiver(MobLabelS2C.ID, (payload, context) -> owner.onLabel(payload));
         ClientPlayNetworking.registerGlobalReceiver(ScreenDataS2C.ID, (payload, context) -> {
             if (VoiceInput.screenData(payload)) return; // Трек B: ответ проверки микрофона через сервер.
+            if (io.github.mobtalk.client.settings.ServerSettingsView.SCREEN.equals(payload.screen())) { io.github.mobtalk.client.settings.ServerSettingsView.accept(payload.json()); return; } // Трек C: серверные настройки для F7.
             owner.onScreen(payload.screen(), payload.json());
         });
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             features = ServerFeatures.none();
+            io.github.mobtalk.client.settings.ServerSettingsView.reset();
             sendSettings(owner);
         });
     }

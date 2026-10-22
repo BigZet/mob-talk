@@ -33,7 +33,15 @@ final class MobTalkCommands {
                     action(client, new ActionIntent(ActionType.ATTACK, StringArgumentType.getString(context, "target"))); return 1;
                 })))
                 .then(literal("reload").executes(context -> { client.reload(); return 1; }))
-                .then(literal("mic").then(literal("list").executes(context -> { listMicrophones(client); return 1; })))));
+                .then(literal("mic").then(literal("list").executes(context -> { listMicrophones(client); return 1; })))
+                // Трек C: /mobtalk admin — серверная команда; у клиента тот же корень, поэтому пересылаем её серверу как есть.
+                .then(literal("admin").executes(context -> admin(client, ""))
+                        .then(argument("args", StringArgumentType.greedyString()).executes(context -> admin(client, StringArgumentType.getString(context, "args")))))));
+    }
+
+    private static int admin(MobTalkClient client, String args) {
+        if (!io.github.mobtalk.client.settings.ServerSettingsView.sendToServer("mobtalk admin " + args)) client.notice("Команда не ушла серверу");
+        return 1;
     }
 
     private static void action(MobTalkClient client, ActionIntent action) {

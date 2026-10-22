@@ -95,7 +95,7 @@ public final class MobInfo {
         String step = villager ? Hearts.step(score) : "";
         String truce = species.hostile() ? score >= CombatRules.ALLY ? " · свой" : score >= CombatRules.TRUCE ? " · перемирие" : " · враждебен" : "";
         out.add((score >= 0 ? "+" : "") + score + (hearts.isEmpty() ? "" : " " + hearts) + (step.isEmpty() ? "" : " (" + step + ")") + truce
-                + " · обращается к вам: " + String.join(", ", PlayerIdentity.forms(Tuning.get(), "по нику", score)));
+                + " · обращается к вам: " + String.join(", ", PlayerIdentity.forms(PlayerIdentity.configOf(player), "по нику", score)));
         if (r != null && r.hits > 0) out.add("Ударов от вас: " + r.hits);
 
         section(out, "Состояние");

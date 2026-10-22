@@ -207,7 +207,7 @@ public final class MobGameBridge implements GameBridge {
     }
     /** The name mobs know this player by: the one set in the settings, else the nick ({@link PlayerIdentity}). Use it wherever the
      * name goes into a prompt, a memory, a rumour or a family record — never for commands or the real account. */
-    public static String playerName(net.minecraft.entity.player.PlayerEntity player) { return player == null ? "" : PlayerIdentity.name(player.getName().getString()); }
+    public static String playerName(net.minecraft.entity.player.PlayerEntity player) { return player == null ? "" : PlayerIdentity.name(player.getUuid(), player.getName().getString()); }
     public static String type(Entity entity) { return Registries.ENTITY_TYPE.getId(entity.getType()).toString(); }
     /** From the placement mixins: a block or a bucket of fluid the player put down. */
     public static void blockPlaced(ServerWorld world, net.minecraft.util.math.BlockPos pos, ServerPlayerEntity player) {

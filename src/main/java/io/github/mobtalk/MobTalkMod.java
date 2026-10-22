@@ -123,6 +123,7 @@ public final class MobTalkMod implements ModInitializer {
             PlayerSettingsStore.flush();
         });
         registerReceivers();
+        io.github.mobtalk.server.PlayerServices.initialize(); // Трек C: права, фильтр команд, расходы, /mobtalk admin, имена игроков.
         LOGGER.info("Mob Talk {}: {}", version(), dedicated() ? "выделенный сервер" : "клиент с встроенным сервером");
     }
 

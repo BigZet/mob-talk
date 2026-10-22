@@ -30,8 +30,12 @@ public final class ChildLedger {
             SocialProfile s = social(villager);
             if (s == null) return Pregnancy.Carrier.NONE;
             Pregnancy.Carrier set = carrierOf(s);
-            return set != null ? set : Pregnancy.carrier(s.gender(), Gender.ofPlayer(store.config().playerGender));
+            return set != null ? set : Pregnancy.carrier(s.gender(), PlayerIdentity.gender(store.config(), expecting(s)));
         }
+    }
+    /** The player this villager expects a child with, or null. */
+    private static UUID expecting(SocialProfile s) {
+        try { return s.expectingWith == null || s.expectingWith.isBlank() ? null : UUID.fromString(s.expectingWith); } catch (IllegalArgumentException bad) { return null; }
     }
     private static Pregnancy.Carrier carrierOf(SocialProfile s) {
         try { return s.carrier.isBlank() ? null : Pregnancy.Carrier.valueOf(s.carrier); } catch (IllegalArgumentException bad) { return null; }
@@ -53,7 +57,7 @@ public final class ChildLedger {
             MobTalkConfig config = store.config();
             SocialProfile s = social(villager);
             if (!config.pregnancy || s == null || !trying(s, player)) return null;
-            Pregnancy.Carrier carrier = Pregnancy.carrier(s.gender(), Gender.ofPlayer(config.playerGender));
+            Pregnancy.Carrier carrier = Pregnancy.carrier(s.gender(), PlayerIdentity.gender(config, player));
             if (carrier == Pregnancy.Carrier.NONE) return null;
             Evening evening = evenings.get(villager);
             boolean special = evening != null && evening.player().equals(player);
@@ -252,7 +256,7 @@ public final class ChildLedger {
             r.score = 95;
             if (r.rapport == null) r.rapport = new Rapport();
             r.rapport.courtship(Courtship.MARRIED);
-            store.state.family.marry(player, playerName, Gender.ofPlayer(store.config().playerGender), true, p.id, SocialLedger.name(p), p.social.gender(), false);
+            store.state.family.marry(player, playerName, PlayerIdentity.gender(store.config(), player), true, p.id, SocialLedger.name(p), p.social.gender(), false);
             store.scheduleSave();
             return true;
         }
