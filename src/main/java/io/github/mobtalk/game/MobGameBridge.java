@@ -692,18 +692,13 @@ public final class MobGameBridge implements GameBridge {
             List<CompletableFuture<String>> parts = new ArrayList<>();
             ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
             if (player == null) return CompletableFuture.completedFuture("");
-            // Служба свадьбы игрока (тексты, голоса, приём клятвы — WeddingVoice) пока живёт на клиенте через встроенный сервер одиночки:
-            // на выделенном сервере она доходила до клятвы и застревала (самотест трека G), поэтому там помолвка есть, а венчание — после
-            // серверного водителя церемонии (раздел 12.6 плана). Свадьбы жителей между собой идут на сервере как раньше.
-            boolean ceremony = config.weddingCeremony && !io.github.mobtalk.MobTalkMod.dedicated();
+            // Службу свадьбы игрока ведёт в одиночке клиентский WeddingVoice, на выделенном сервере — WeddingHost.
             if (config.weddingCeremony) {
                 if (gesture != null && gesture.gesture() == Gesture.PROPOSE && gesture.outcome() == Gesture.Outcome.ACCEPTED)
                     parts.add(CompletableFuture.completedFuture("§d[Mob Talk] Вы помолвлены с " + memory.displayName(mobId)
-                            + (ceremony ? ". Свадьбу играют у колокола днём: скажите «идём на свадьбу». Свидетелей зовите словами «будь моим свидетелем»."
-                            : ". Венчание у колокола на сервере появится в следующей версии.")));
-                if (ceremony && Wedding.calls(said)) parts.add(startWedding(mobId, playerId).thenApply(m -> m.isBlank() ? "" : "[Mob Talk] " + m));
-                if (ceremony && Wedding.asksWitness(said)) parts.add(appointWitness(mobId, playerId).thenApply(m -> m.isBlank() ? "" : "[Mob Talk] " + m));
-                if (!ceremony && Wedding.calls(said)) parts.add(CompletableFuture.completedFuture("[Mob Talk] Венчание у колокола на сервере появится в следующей версии."));
+                            + ". Свадьбу играют у колокола днём: скажите «идём на свадьбу». Свидетелей зовите словами «будь моим свидетелем»."));
+                if (Wedding.calls(said)) parts.add(startWedding(mobId, playerId).thenApply(m -> m.isBlank() ? "" : "[Mob Talk] " + m));
+                if (Wedding.asksWitness(said)) parts.add(appointWitness(mobId, playerId).thenApply(m -> m.isBlank() ? "" : "[Mob Talk] " + m));
             }
             if (config.coSleep && CoSleep.invites(said)) parts.add(inviteToBed(mobId, playerId).thenApply(v -> ""));
             if (config.familyLife && config.socialLayer) {
@@ -745,4 +740,9 @@ public final class MobGameBridge implements GameBridge {
     @Override public void talking(boolean on) { talk.talking = on; }
     @Override public VillageNotices.Cue pollNotice() { return talk.pollNotice(); }
     @Override public boolean weddingActive() { return wedding.active(); }
+    @Override public WeddingView wedding() {
+        WeddingController.Scene scene = wedding.scene();
+        return scene == null ? null : new WeddingView(scene.ceremony, scene.input, scene.player, scene.world.getRegistryKey().getValue().toString());
+    }
+    @Override public io.github.mobtalk.core.WeddingScript.Input takeWeddingScript() { return wedding.takeScriptRequest(); }
 }

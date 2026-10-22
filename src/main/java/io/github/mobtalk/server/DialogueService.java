@@ -73,8 +73,11 @@ public final class DialogueService {
     }
     /** Фабрика движка: на сервере — настоящий {@link ConversationEngine} с ключами из окружения или DPAPI; в тестах — фейковый HTTP. */
     public interface Engines { ConversationEngine open(MobTalkConfig config, Path worldDirectory) throws Exception; }
-    /** Что выключено на выделенном сервере: семья и свадьба (вторая версия), снимки экрана. */
-    public record Options(boolean family, boolean pictures) { }
+    /** Что включено: семья и свадьба ({@code familyLife}), снимки экрана (одиночка), ведущий свадьбы на сервере ({@code ceremony}: на
+     * выделенном; в одиночке службу ведёт клиентский {@code WeddingVoice}). */
+    public record Options(boolean family, boolean pictures, boolean ceremony) {
+        public Options(boolean family, boolean pictures) { this(family, pictures, false); }
+    }
     /** Журнал админки (трек W, подключает интегратор): каждый ответ собеседнику — трасса шагов; остальное — события. Все вызовы на
      * потоке сервера, кроме {@link #step} (поток пула). Заглушка {@link #NONE} ничего не пишет. */
     public interface Journal {
@@ -114,6 +117,7 @@ public final class DialogueService {
     private volatile Journal journal = Journal.NONE;
     final SpontaneousVoices spontaneous;
     private final MobStateSync states;
+    final WeddingHost wedding;
     private long ticks;
 
     public DialogueService(GameBridge bridge, Path worldDirectory, Outbox out, Engines engines, Function<MobTalkConfig, Decider> deciders,
@@ -123,6 +127,7 @@ public final class DialogueService {
         this.pool = new DialoguePool(threads);
         this.spontaneous = new SpontaneousVoices(this, bridge);
         this.states = new MobStateSync(bridge, out);
+        this.wedding = new WeddingHost(this, bridge);
     }
 
     // ---- Сессии. ----
@@ -181,6 +186,7 @@ public final class DialogueService {
     /** Точка подключения админки: журнал диалогов и событий. */
     public void setJournal(Journal journal) { this.journal = journal == null ? Journal.NONE : journal; }
     Journal journal() { return journal; }
+    int nextClipId() { return clipIds.incrementAndGet(); }
     MobTalkConfig config() { return bridge.config(); }
 
     public void join(UUID player, String name) { Session session = session(player); session.name = name; }
@@ -217,6 +223,7 @@ public final class DialogueService {
         Session session = session(player);
         if (text == null || text.isBlank()) { refuse(session, "Речь не распознана: удерживайте голосовую клавишу и произнесите вопрос"); return; }
         if (!"server".equals(session.stt) || !fromVoice) session.stt = fromVoice ? "local" : "text";
+        if (options.family && options.ceremony && wedding.takesVow(player)) { onServer(() -> wedding.vowHeard(player, text)); return; } // Клятва — службе, не в разговор.
         bridge.mobByEntityId(player, entityId).whenComplete((mob, error) -> onServer(() -> {
             if (error != null) { refuse(session, plain(error, "Моб погиб или выгрузился")); return; }
             if (!mob.id().equals(session.target)) select(session, mob);
@@ -384,6 +391,7 @@ public final class DialogueService {
             }
         }
         spontaneous.tick(ticks);
+        if (options.family && options.ceremony) wedding.tick();
     }
     private Map<UUID, BargainMeter.Move> bargainFor(Session session, long now) {
         session.bargainUntil.entrySet().removeIf(e -> e.getValue() < now);

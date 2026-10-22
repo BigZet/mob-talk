@@ -401,7 +401,7 @@ public final class MobTalkClient implements ClientModInitializer {
         Request seed = request(requestGeneration);
         captureShot(requestGeneration);
         try {
-            int seconds = wedding.takesVow() ? config.weddingVowSeconds : config.maxRecordingSeconds;
+            int seconds = wedding.takesVow() ? wedding.vowSeconds() : config.maxRecordingSeconds;
             MicrophoneRecorder.Capture capture = microphone.start(config.microphoneName, seconds);
             recording = capture;
             merchant.setWork(seed.merchant);
@@ -491,7 +491,7 @@ public final class MobTalkClient implements ClientModInitializer {
                         return;
                     }
                 }
-                if (wedding.takesVow() && question != null && !question.isBlank()) {
+                if (wedding.takesVow() && !wedding.serverVowOpen() && question != null && !question.isBlank()) {
                     String vow = question;
                     client.execute(() -> { wedding.vowHeard(vow); requestActive = false; });
                     updateStatus(request, "Клятва произнесена");
@@ -590,6 +590,7 @@ public final class MobTalkClient implements ClientModInitializer {
     }
     void onScreen(String screen, String json) {
         if ("deal".equals(screen)) { merchant.resolved(json); return; }
+        if ("wedding_vow".equals(screen)) { if (!wedding.serverVow(json)) requestActive = false; return; }
         CompletableFuture<String> waiting = screenRequests.remove(screen);
         if (waiting == null) return;
         try {

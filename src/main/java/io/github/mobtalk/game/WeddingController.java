@@ -147,7 +147,7 @@ public final class WeddingController {
         ConversationStore.Village village = village(world, spouse, anchor);
         VillageStanding.View standing = village == null ? VillageStanding.View.NONE : bridge.memory.social().standing(village.id(), player.getUuid(), now);
         Wedding.Cast cast = Wedding.cast(bride, null, people, asked[0], asked[1], standing.banished(), bridge.config.weddingGuests);
-        Wedding.Names names = new Wedding.Names(MobGameBridge.playerName(player), Gender.ofPlayer(bridge.config.playerGender), village == null ? "" : village.name());
+        Wedding.Names names = new Wedding.Names(MobGameBridge.playerName(player), io.github.mobtalk.core.PlayerIdentity.gender(bridge.config, player.getUuid()), village == null ? "" : village.name());
         MobCard card = bridge.memory.card(spouse.getUuid(), player.getUuid());
         WeddingScript.Input input = new WeddingScript.Input(cast, names, VillageStanding.describe(standing), card == null ? "" : card.memory(), bridge.config.weddingWishes);
         Vec3d couple = anchor.add(forward.multiply(Wedding.COUPLE_FORWARD));
