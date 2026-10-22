@@ -18,7 +18,8 @@ import java.util.regex.Pattern;
 public final class LogTail {
     private LogTail() { }
 
-    private static final Pattern LINE = Pattern.compile("^\\[([0-9:.]+)] \\[([^/\\]]+)/([A-Z]+)] (?:\\(([^)]+)\\) |\\[([^\\]]+)]: )?(.*)$");
+    /** Dev run: {@code [12:00:00] [Server thread/INFO] (mobtalk) text}; a built server (the launcher's log4j): {@code [12:00:00] [Server thread/INFO]: text}. */
+    private static final Pattern LINE = Pattern.compile("^\\[([0-9:.]+)] \\[([^/\\]]+)/([A-Z]+)]:? (?:\\(([^)]+)\\) |\\[([^\\]]+)]: )?(.*)$");
     private static final List<String> LEVELS = List.of("TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL");
 
     public static JsonObject tail(Path log, int lines, List<String> filters, String minLevel) throws IOException {

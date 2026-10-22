@@ -60,6 +60,8 @@ Mob Talk поднимает Whisper при старте игры и держит
 
 ## Сервер
 
+Viewer Parrots с 23 октября собирается из `main` репозитория `minecraft-parrot` (как остальные наши моды), а не берётся из инстанса.
+
 Та же сборка ставится на выделенный сервер: `scripts\build-server-pack.ps1 -FromPack mob-talk-pack` раскладывает те же jar
 (без чисто клиентских) плюс админ-моды в `%LOCALAPPDATA%\MobTalkPack\server`, `scripts\run-local-server.ps1` запускает,
 `scripts\export-mrpack.ps1` делает файл для друзей. Подробно — `docs/server.md`, для VPS — `docker/README.md`.

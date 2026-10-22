@@ -326,6 +326,30 @@ Mob Talk сам реализует тот же протокол для себя 
 - **Семья и свадьба на сервере выключены** (`DialogueService.Options.family=false` на выделенном сервере); в одиночке экраны семьи,
   свадьба (`WeddingVoice` с клиентским движком), кровать и правка карточки в F7 по-прежнему идут через встроенный сервер — трек второй версии.
 
+### 12.6 Что сделал интегратор (трек H, ночь на 23 октября; ветка `bigzet/server-integration`)
+
+- Слиты по порядку: main (W1 карта, E Docker, squaremap/BlueMap) → A `bigzet/server-dialogue` → B `bigzet/server-voice` (и в `divine-block` main) →
+  C `bigzet/server-players` (с фиксом 5298b0f) → F `bigzet/server-research`. Конфликты A/B/C разрешены объединением: `ServerFeatures`
+  объявляет пути распознавания B и `dialogue` A; `TalkAudioC2S` с `mobId < 0` (проверка микрофона из F7) идёт в `VoiceIntake`, остальное —
+  в `DialogueService.talkAudio`; на клиенте приёмники A, ответ `stt-test` — B, экран `server-settings` — C; путь записи выбирает `SttRoute`.
+  Звук реплик идёт путём A (`DialogueService.speak` → `ServerOutbox.clip` чанками после полной загрузки озвучки); потоковая отдача B
+  (`ServerSpeech.stream`, `SpeechClips` на клиенте) собрана, но не подключена — хвост.
+- Админка подключена к живому серверу: `server/AdminLink` поднимает `AdminWeb` на `SERVER_STARTED` выделенного сервера (в одиночке не
+  поднимается), `server/LiveGameView` реализует `GameView` (игроки, мобы и деревни из `ConversationStore`, позиции, телепорт, бан, белый список,
+  стример, консоль, метки карты), резервные копии через `save-off`/`save-all flush`/`save-on`, метрики раз в 10 с из `getTickTimes()`,
+  `MapSampler`, источники других модов из entrypoint `mobtalk-admin` (divineblock подключается), `/mobtalk admin web`.
+  `DialogueService.Journal` — трасса каждого ответа (`accepted → budget → context → prompt → llm_first → llm_done → parsed → tts → delivered`),
+  события `gift`, `witness`, `village_talk`, `player_join/leave`. Расход LLM пока 0: клиент диалога не читает `usage.cost` — хвост.
+  `GameView.divineSouls/divineActive` отвечают 503: у `AdminBridge` Божественного блока нет операций `souls`/`active` — точка подключения для D.
+- Семья и свадьба на выделенном сервере включены серверной настройкой `familyLife` (`DialogueService.Options.family`); пол и обращения
+  игрока — из его личных настроек (C). В игре с двумя игроками не проверено.
+- Сборка: Viewer Parrots теперь собирается из `main` репозитория `minecraft-parrot` (как остальные наши моды; его игровые тесты при сборке jar
+  не гоняются), а не берётся из инстанса `parrot-cages-test`.
+- Проверено: `gradlew test` зелёный (510), `run-server-selftest.ps1` — `ALL CHECKS PASSED`, серверный пак `build-server-pack.ps1 -Out … -Port 25566`
+  поднят с двумя клиентами `new-test-client.ps1`; админка в браузере: обзор, игроки, карта (тайлы squaremap), консоль, телепорт, стример,
+  белый список, правка настройки и откат, резервная копия, история, SSE, `/api/diagnostics`; остановка через консоль админки чистая.
+  Не проверено руками: диалог, подарок, торг и права из клиентов (нужны руки за клавиатурой или этап `-Only server` трека G).
+
 ## 13. Брифы тредов
 
 ### S1 «Каркас сервера» — Fable, волна 0, ветка `bigzet/server-skeleton`
