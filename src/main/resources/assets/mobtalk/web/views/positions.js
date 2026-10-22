@@ -97,7 +97,7 @@ export function positionsTab(box, { onOpen, params = {}, setParams = () => {} } 
   });
   let centered = params.mx != null;
   followSel.addEventListener('change', () => { if (followSel.value) map.followPlayer(followSel.value); else map.follow = null; });
-  const switchWorld = w => { if (w === world) return; world = w; setParams({ world: w }); map.setWorld(w); worldsKey = ''; centered = false; loadTracks(); loadMarkers(); if (lastData) tick(false, lastData); };
+  const switchWorld = w => { if (w === world) return; world = w; setParams({ world: w }); map.setWorld(w); worldsKey = ''; centered = false; loadInfo(); loadTracks(); loadMarkers(); if (lastData) tick(false, lastData); };
 
   let worldsKey = '';
   function drawWorlds(worlds, ps) {
@@ -112,7 +112,7 @@ export function positionsTab(box, { onOpen, params = {}, setParams = () => {} } 
       if (stopped) return;
       lastData = r;
       const ps = (r.players || []).filter(p => p.online !== false);
-      if (!world) { world = ps[0]?.world || 'minecraft:overworld'; map.setWorld(world); }
+      if (!world) { world = ps[0]?.world || 'minecraft:overworld'; map.setWorld(world); loadInfo(); }
       const worlds = [...new Set([...(knownWorlds || []), ...ps.map(p => p.world), world])];
       drawWorlds(worlds, ps);
       stamp.textContent = `обновлено ${fmt.timeSec(r.t || Date.now())}`;
@@ -163,12 +163,15 @@ export function positionsTab(box, { onOpen, params = {}, setParams = () => {} } 
     try { const r = await api.get('map/markers', { world: world || 'minecraft:overworld' }); if (!stopped) map.setMarkers(r.markers || []); }
     catch { map.setMarkers(waypoints.filter(w => w.world === world).map(w => ({ kind: 'waypoint', id: w.id, name: w.name, x: w.x, z: w.z }))); }
   }
-  api.get('map/info', { world: world || 'minecraft:overworld' }).then(i => {
-    knownWorlds = i.worlds || null;
+  // Источник карты свой у каждого мира (squaremap 512 или свой рендер 256): info перечитываем при смене мира.
+  const loadInfo = () => api.get('map/info', { world: world || 'minecraft:overworld' }).then(i => {
+    if (i.world && world && i.world !== world) return;
+    knownWorlds = i.worlds || knownWorlds;
     map.setTiling(i.tileSize, i.maxZoom);
     if (!centered && i.spawn && !(lastData?.players || []).some(p => p.world === world)) { centered = true; map.center(i.spawn.x, i.spawn.z, 0.5); }
     if (lastData) tick(false, lastData);
   }).catch(() => {});
+  loadInfo();
 
   // Точки телепорта: список, добавить (вручную, где стоит игрок или центр карты), показать, удалить.
   function drawWaypoints() {
