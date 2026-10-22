@@ -209,7 +209,9 @@ public final class ChurchSelfTest {
             for (int z = ChurchBuilder.YARD_MIN_Z; z <= ChurchBuilder.YARD_MAX_Z; z += 4) {
                 if (x >= ChurchBuilder.MIN_X - 1 && x <= ChurchBuilder.MAX_X + 1 && Math.abs(z) <= 14) continue;
                 BlockPos p = frame.world(x, 0, z);
-                if (!world.getBlockState(p).isAir() && !world.getBlockState(p).isReplaceable()) yardBlocked++;
+                if (!world.getBlockState(p).isAir() && !world.getBlockState(p).isReplaceable()) {
+                    if (yardBlocked++ < 6) log("    во дворе на (" + x + ", 0, " + z + "): " + world.getBlockState(p).getBlock());
+                }
             }
         check(yardBlocked < 12, "двор открыт: занятых точек в сетке 4×4 — " + yardBlocked);
         var structureStart = world.getStructureAccessor().getStructureContaining(site.naveCenter(),
@@ -256,7 +258,7 @@ public final class ChurchSelfTest {
         shot.accept("04-north", new double[] { 25, 24, -64, 25, 20, 0, 140 });
         shot.accept("05-east", new double[] { 112, 24, 0, 25, 20, 0, 140 });
         shot.accept("06-southwest-air", new double[] { -40, 55, 62, 28, 10, 0, 140 });
-        shot.accept("07-top", new double[] { 28, 130, 0.2, 28, 0, 0, 160 });
+        shot.accept("07-top", new double[] { 28, 98, 0.2, 28, 0, 0, 160 });
         shot.accept("08-cross-main", new double[] { nave - 8, mainCross + 1, 3, nave, mainCross, 0, 80 });
         shot.accept("09-cross-corner", new double[] { 34 - 7, cornerCross + 1, -8 + 3, 34, cornerCross, -8, 80 });
         shot.accept("10-cross-tower", new double[] { 6 - 8, 58, 3, 6, 57, 0, 80 });
