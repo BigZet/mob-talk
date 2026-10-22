@@ -34,6 +34,8 @@ public final class AdminHttpServer {
     private final Consumer<String> log;
     private final HttpServer server;
     private final ExecutorService workers;
+    private volatile String mountPrefix, mountCsp;
+    private volatile Router.Handler mountHandler;
 
     public AdminHttpServer(Options options, AdminAuth auth, Router router, StaticFiles files, Consumer<String> log) throws IOException {
         this.auth = auth; this.router = router; this.files = files; this.log = log;
@@ -52,6 +54,9 @@ public final class AdminHttpServer {
         server.createContext("/", exchange -> serve(exchange, secure));
     }
 
+    /** Files under {@code prefix} (e.g. {@code /map3d/}) for a signed-in admin, with their own CSP and framing allowed from the admin page. */
+    public void mount(String prefix, String csp, Router.Handler handler) { mountPrefix = prefix; mountCsp = csp; mountHandler = handler; }
+
     public void start() { server.start(); }
     public int port() { return server.getAddress().getPort(); }
     public void stop() { server.stop(0); workers.shutdownNow(); }
@@ -65,8 +70,15 @@ public final class AdminHttpServer {
             out.set("Referrer-Policy", "no-referrer");
             String path = exchange.getRequestURI().getRawPath();
             Response response;
+            String prefix = mountPrefix;
+            boolean mounted = prefix != null && (path.startsWith(prefix) || path.equals(prefix.substring(0, prefix.length() - 1)));
+            if (mounted) {
+                out.set("Content-Security-Policy", mountCsp);
+                out.set("X-Frame-Options", "SAMEORIGIN");
+            }
             try {
-                response = path.equals("/api") || path.startsWith("/api/") ? api(exchange, secureCookie) : page(exchange.getRequestMethod(), path);
+                if (mounted) response = mounted(exchange, prefix, path);
+                else response = path.equals("/api") || path.startsWith("/api/") ? api(exchange, secureCookie) : page(exchange.getRequestMethod(), path);
             } catch (ApiException failure) {
                 response = error(failure);
             } catch (Exception | LinkageError failure) {
@@ -85,6 +97,15 @@ public final class AdminHttpServer {
         byte[] body = clean == null ? null : files.read(clean);
         if (body == null) return Response.text(404, "text/plain; charset=utf-8", "Не найдено");
         return Response.bytes(200, StaticFiles.type(clean), body).header("Cache-Control", "no-cache");
+    }
+
+    private Response mounted(HttpExchange exchange, String prefix, String path) throws Exception {
+        if (!exchange.getRequestMethod().equals("GET") && !exchange.getRequestMethod().equals("HEAD")) throw new ApiException(405, "method_not_allowed", "Только GET.");
+        if (auth.session(cookie(exchange.getRequestHeaders().getFirst("Cookie"))) == null)
+            return Response.text(401, "text/plain; charset=utf-8", "Нужно войти в админку.");
+        String rest = path.length() <= prefix.length() ? "" : java.net.URLDecoder.decode(path.substring(prefix.length()), java.nio.charset.StandardCharsets.UTF_8);
+        return mountHandler.handle(new Request("GET", rest, Request.parseQuery(exchange.getRequestURI().getRawQuery()), Map.of(),
+                exchange.getRequestHeaders(), new byte[0], exchange.getRemoteAddress().getAddress().getHostAddress(), null));
     }
 
     private Response api(HttpExchange exchange, boolean secureCookie) throws Exception {

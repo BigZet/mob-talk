@@ -67,12 +67,15 @@ public final class AdminWeb {
         tracks = new Tracks(data.resolve("admin-tracks"), System::currentTimeMillis, 7, log);
         Backups backups = new Backups(hooks.world(), gameDir.resolve("backups"), hooks.saver(), System::currentTimeMillis, zone);
         api = new AdminApi(new AdminApi.Parts(history, metrics, latency, journal, errors, sources, hooks.game(), backups,
-                new Waypoints(gameDir.resolve("config").resolve("mobtalk-waypoints.json")), map, tracks,
+                new Waypoints(gameDir.resolve("config").resolve("mobtalk-waypoints.json")),
+                MapSource.choose(new SquaremapTiles(SquaremapTiles.find(gameDir, settings.squaremapTiles), log), map), tracks,
+                new BlueMapControl(gameDir.resolve(settings.bluemapWebroot), hooks.game(), System::currentTimeMillis),
                 gameDir.resolve("logs").resolve("latest.log"), hooks.limits(),
                 () -> Json.obj("bind", settings.bind, "port", settings.port, "fingerprint", fingerprint), System::currentTimeMillis));
         auth = new AdminAuth(settings.passwordHash, System::currentTimeMillis);
         server = new AdminHttpServer(new AdminHttpServer.Options(settings.bind, settings.port, tls.context(), true), auth, api.router(),
                 StaticFiles.classpath("assets/mobtalk/web/"), log);
+        server.mount("/map3d/", BlueMapControl.CSP, api.map3dFiles());
         chores = Executors.newSingleThreadScheduledExecutor(task -> {
             Thread thread = new Thread(task, "mobtalk-admin-chores"); thread.setDaemon(true); return thread;
         });

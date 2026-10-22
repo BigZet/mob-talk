@@ -180,7 +180,14 @@ Append-only журнал по дням: `data/mobtalk/history/<вид>/<день
 
 ## Карта
 
-Вид сверху, как ванильная карта: цвет верхнего блока (`MapColor`), светлее на подъёме к северу, темнее на спуске, вода темнее с
+**Источник тайлов.** Если на сервере стоит squaremap (выбор Дмитрия — подробная карта; его веб-сервер выключен), админка отдаёт его
+файлы `web/tiles/<namespace>_<path>/<zoom>/<x>_<z>.png` (папка ищется в `squaremap/web/tiles`, `config/squaremap/web/tiles` или задаётся
+`squaremapTiles` в `mobtalk-admin.json`): тайлы 512×512, zoom API = `zoom.max` из `settings.json` мира (3 по умолчанию) − zoom squaremap.
+Изменённые squaremap тайлы находятся просмотром папки раз в 10 с, пока открыта страница, и приходят событием `map`. Без squaremap
+(или пока он ничего не нарисовал) — свой рендер ниже, 256×256. Страница берёт `tileSize`, `maxZoom` и `source` (`squaremap`/`mobtalk`)
+из `/api/map/info`; формула тайла та же: zoom 0 — 1 px = 1 блок, тайл покрывает `tileSize·2^zoom` блоков.
+
+**Свой рендер.** Вид сверху, как ванильная карта: цвет верхнего блока (`MapColor`), светлее на подъёме к северу, темнее на спуске, вода темнее с
 глубиной. Рисуется из **загруженных** чанков по мере игры: чанк попадает в очередь при загрузке и раз в 30 с вокруг каждого игрока
 (построенное и вскопанное); на серверном тике снимаются цвета не больше 2 чанков (микросекунды), тайлы и PNG — на фоновом потоке.
 Всё, где игроки побывали, оказывается на карте; чтение region-файлов целиком (неисследованные игроками места) — не делается.
@@ -188,14 +195,28 @@ Append-only журнал по дням: `data/mobtalk/history/<вид>/<день
 
 | Запрос | Ответ |
 | --- | --- |
-| `GET /api/map/tiles/{world}/{zoom}/{tx}/{tz}.png` | PNG 256×256, `zoom` 0..4 (1 px = 2^zoom блоков), левый верхний угол — блок (`tx·256·2^zoom`, `tz·256·2^zoom`), `world` URL-кодированный (`minecraft%3Aoverworld`). Неисследованное прозрачно; тайла нет — `204`. `ETag` + `Cache-Control: max-age=60`, `If-None-Match` → `304` |
-| `GET /api/map/info?world=` | `{"world","minX","minZ","maxX","maxZ","spawn":{"x","z"},"worlds":["minecraft:overworld",…],"tileSize":256,"maxZoom":4}`; границы — по целым тайлам зума 0, `null`, если тайлов нет |
+| `GET /api/map/tiles/{world}/{zoom}/{tx}/{tz}.png` | PNG `tileSize`×`tileSize` (512 squaremap, 256 свой), `zoom` 0..`maxZoom` (1 px = 2^zoom блоков), левый верхний угол — блок (`tx·tileSize·2^zoom`, `tz·tileSize·2^zoom`), `world` URL-кодированный (`minecraft%3Aoverworld`). Неисследованное прозрачно; тайла нет — `204`. `ETag` + `Cache-Control: max-age=60`, `If-None-Match` → `304` |
+| `GET /api/map/info?world=` | `{"world","minX","minZ","maxX","maxZ","spawn":{"x","z"},"worlds":["minecraft:overworld",…],"tileSize":512,"maxZoom":3,"source":"squaremap"}`; границы — по целым тайлам зума 0, `null`, если тайлов нет |
 | `GET /api/map/markers?world=` | `{"world","markers":[{"kind":"village|waypoint|boss|spawn","id","name","x","z"}]}` |
 | `GET /api/players/tracks?world=&from=&to=&player=&points=2000` | `{"world","from","to","tracks":[{"player":{…},"points":[[t,x,y,z],…]}]}`; без `world` — overworld, без `from` — последний час; каждый игрок прорежен до ~`points` (первая и последняя точки остаются) |
 
 Пути: точка раз в 5 с или сразу при сдвиге больше 4 блоков, стоящий на месте пишется раз в минуту; хранятся 7 дней в
 `data/mobtalk/admin-tracks/` (своё хранилище админки, не история). В `/api/events` при перерисовке тайла приходит `map`
 `{"world","zoom","tx","tz"}` — перезагрузить этот тайл.
+
+## 3D-карта (BlueMap)
+
+BlueMap стоит на сервере со своим веб-сервером выключенным; рендер работает, только пока кто-то смотрит вкладку «3D».
+
+| Запрос | Ответ |
+| --- | --- |
+| `GET /map3d/…` | файлы webroot BlueMap (`bluemapWebroot` в `mobtalk-admin.json`, по умолчанию `bluemap/web`) за той же сессией (без неё `401`). Файл `X`, если его нет — `X.gz` с `Content-Encoding: gzip` (так BlueMap хранит `.prbm` и `textures.json`); неотрисованный тайл `maps/*/tiles/…` — `204`. `maps/<id>/live/players.json` отвечает админка (`{"players":[{"uuid","name","foreign","position":{x,y,z},"rotation":{pitch,yaw,roll}}]}`, мир по id карты: `*nether*`, `*end*`, иначе overworld), `live/markers.json` — `{}`. Свой CSP: `script-src 'self' 'unsafe-eval'; worker-src 'self' blob:; img-src 'self' data: blob:; frame-ancestors 'self'`, `X-Frame-Options: SAMEORIGIN` — только здесь, остальная админка как была |
+| `POST /api/map3d/keepalive` | `{"ok":true,"rendering":true}`: первый запуск — `bluemap start`; слать раз в 30–60 с, пока вкладка открыта. Без BlueMap — `503` |
+| `GET /api/map3d/status` | `{"available","rendering","progress":0..1|null,"lastRender":t|null}`; `progress` — первое `NN%` из вывода `/bluemap` (читается не чаще раза в 10 с), `lastRender` — самая свежая папка карт |
+
+Через 3 минуты без keepalive админка шлёт `bluemap stop`; при старте админки (первый обход через 30 с) — тоже `stop`, на случай
+рендера, оставленного прошлым запуском (BlueMap помнит start/stop между перезапусками). Не проверено на настоящем BlueMap: нужен ли
+`'unsafe-eval'` (оставлен на всякий случай, только для `/map3d/`), формат прогресса в выводе `/bluemap` и точные поля `live/players.json`.
 
 ## Мобы и деревни
 
