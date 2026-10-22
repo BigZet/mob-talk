@@ -1,0 +1,25 @@
+{
+  "_comment": "Фикстура DevStubServer. Отрицательные времена — миллисекунды назад от запуска заглушки.",
+  "players": [
+    {"uuid": "461baa90-bc98-4f86-b889-50f67d759b9a", "name": "BigZet", "online": true, "level": "ADMIN", "streamer": true, "op": true,
+     "whitelisted": true, "banned": false, "banReason": null, "onlineSeconds": 7260, "lastSeen": -1000, "activity": "talking",
+     "settings": {"sttPath": "local", "voiceVolume": 100, "playerGender": "male", "humanVillagers": true, "showStateHud": true, "playerNamesClose": "Дима, Димон"},
+     "relations": [
+       {"mob": {"uuid": "fb57b8eb-d3e2-4f1e-8da3-2101caf9f459", "name": "Тереза", "species": "villager"}, "relationship": 72, "label": "подруга", "hearts": 7},
+       {"mob": {"uuid": "551637c3-f0e2-4a47-ba1c-9ea236681fb5", "name": "Гаврила", "species": "villager"}, "relationship": 15, "label": "знакомый", "hearts": 2},
+       {"mob": {"uuid": "47bdae92-388e-4d9c-8a4f-c8942a59f1cb", "name": "Бурёнка", "species": "cow"}, "relationship": 40, "label": "друг", "hearts": 4}
+     ]},
+    {"uuid": "2f83646d-2eeb-4a75-8358-03e02e2ef99f", "name": "Тест2", "online": true, "level": "PLAYER", "streamer": false, "op": false,
+     "whitelisted": true, "banned": false, "banReason": null, "onlineSeconds": 1800, "lastSeen": -1000, "activity": "trading",
+     "settings": {"sttPath": "server", "voiceVolume": 80, "playerGender": "any", "humanVillagers": false, "showStateHud": true, "playerNamesClose": ""},
+     "relations": [
+       {"mob": {"uuid": "551637c3-f0e2-4a47-ba1c-9ea236681fb5", "name": "Гаврила", "species": "villager"}, "relationship": -35, "label": "недруг", "hearts": 0},
+       {"mob": {"uuid": "0bb92b7d-a00e-47e8-b8a3-70d44fc135dd", "name": "Пётр", "species": "villager"}, "relationship": 20, "label": "знакомый", "hearts": 2}
+     ]},
+    {"uuid": "51a7640e-4899-4753-b8d2-90b0c715341b", "name": "Друг", "online": false, "level": "PLAYER", "streamer": false, "op": false,
+     "whitelisted": true, "banned": true, "banReason": "Вечный бан Божественного блока: «чтоб тебя земля не носила»", "onlineSeconds": 0,
+     "lastSeen": -172800000, "activity": "idle",
+     "settings": {"sttPath": "text", "voiceVolume": 100, "playerGender": "female", "humanVillagers": true, "showStateHud": false, "playerNamesClose": "Подруга"},
+     "relations": []}
+  ]
+}

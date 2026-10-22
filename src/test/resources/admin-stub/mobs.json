@@ -1,0 +1,53 @@
+{
+  "mobs": [
+    {"mob": {"uuid": "fb57b8eb-d3e2-4f1e-8da3-2101caf9f459", "name": "Тереза", "species": "villager"}, "village": {"id": "v1", "name": "Берёзовка"},
+     "trait": "болтушка", "alive": true, "loaded": true,
+     "card": {"name": "Тереза", "character": "Библиотекарь, любит сплетни и пироги, боится грозы.", "voice": "rSfuQoQ3FY8SVKeraMAp", "memory": "BigZet подарил ей книгу. Тест2 спрашивал про кузнеца."},
+     "state": {"calm": 70, "trust": 66, "interest": 58, "mood": 74, "word": "в духе"},
+     "relations": [
+       {"player": {"uuid": "461baa90-bc98-4f86-b889-50f67d759b9a", "name": "BigZet"}, "relationship": 72, "label": "подруга", "hearts": 7}
+     ],
+     "facts": [
+       {"t": -86400000, "text": "BigZet подарил книгу с зачарованием", "importance": 12},
+       {"t": -7200000, "text": "Гаврила снова поругался с Петром", "importance": 6}
+     ],
+     "events": [
+       {"t": -600000, "text": "Говорила с BigZet о пирогах"},
+       {"t": -3600000, "text": "Получила подарок: книга"}
+     ],
+     "family": {"spouse": {"uuid": "551637c3-f0e2-4a47-ba1c-9ea236681fb5", "name": "Гаврила", "species": "villager"}, "children": []}},
+    {"mob": {"uuid": "551637c3-f0e2-4a47-ba1c-9ea236681fb5", "name": "Гаврила", "species": "villager"}, "village": {"id": "v1", "name": "Берёзовка"},
+     "trait": "ворчун", "alive": true, "loaded": true,
+     "card": {"name": "Гаврила", "character": "Кузнец, ворчит, но помогает; не любит, когда трогают его наковальню.", "voice": "pNInz6obpgDQGcFmaJgB", "memory": "Тест2 ударил его вчера."},
+     "state": {"calm": 30, "trust": 25, "interest": 40, "mood": 35, "word": "насторожен"},
+     "relations": [
+       {"player": {"uuid": "461baa90-bc98-4f86-b889-50f67d759b9a", "name": "BigZet"}, "relationship": 15, "label": "знакомый", "hearts": 2},
+       {"player": {"uuid": "2f83646d-2eeb-4a75-8358-03e02e2ef99f", "name": "Тест2"}, "relationship": -35, "label": "недруг", "hearts": 0}
+     ],
+     "facts": [{"t": -90000000, "text": "Тест2 ударил его у кузницы", "importance": 20}],
+     "events": [{"t": -90000000, "text": "Получил удар от Тест2"}],
+     "family": {"spouse": {"uuid": "fb57b8eb-d3e2-4f1e-8da3-2101caf9f459", "name": "Тереза", "species": "villager"}, "children": []}},
+    {"mob": {"uuid": "944f77dc-f20d-426e-a913-b173d77d0632", "name": "Марфа", "species": "villager"}, "village": {"id": "v1", "name": "Берёзовка"},
+     "trait": "добрая", "alive": true, "loaded": false,
+     "card": {"name": "Марфа", "character": "Фермер, растит морковь и всех кормит.", "voice": "XrExE9yKIg1WjnnlVkGX", "memory": ""},
+     "state": {"calm": 80, "trust": 50, "interest": 30, "mood": 60, "word": "спокойна"},
+     "relations": [], "facts": [], "events": [], "family": {"spouse": null, "children": []}},
+    {"mob": {"uuid": "0bb92b7d-a00e-47e8-b8a3-70d44fc135dd", "name": "Пётр", "species": "villager"}, "village": {"id": "v2", "name": "Заречье"},
+     "trait": "хитрец", "alive": true, "loaded": true,
+     "card": {"name": "Пётр", "character": "Торговец, торгуется до последнего изумруда.", "voice": "TxGEqnHWrfWFTfGW9XjX", "memory": "Тест2 купил у него хлеб."},
+     "state": {"calm": 60, "trust": 45, "interest": 80, "mood": 55, "word": "заинтересован"},
+     "relations": [{"player": {"uuid": "2f83646d-2eeb-4a75-8358-03e02e2ef99f", "name": "Тест2"}, "relationship": 20, "label": "знакомый", "hearts": 2}],
+     "facts": [], "events": [{"t": -1200000, "text": "Сделка с Тест2: хлеб за изумруд"}], "family": {"spouse": null, "children": []}},
+    {"mob": {"uuid": "64c45041-c9c5-450f-9876-3b45bd34ce0d", "name": "Шуршик", "species": "creeper"}, "village": null,
+     "trait": "нервный", "alive": true, "loaded": true,
+     "card": {"name": "Шуршик", "character": "Крипер, мечтает о дружбе, но очень нервничает.", "voice": "VR6AewLTigWG4xSOukaG", "memory": ""},
+     "state": {"calm": 20, "trust": 30, "interest": 70, "mood": 50, "word": "взвинчен"},
+     "relations": [], "facts": [], "events": [], "family": {"spouse": null, "children": []}},
+    {"mob": {"uuid": "47bdae92-388e-4d9c-8a4f-c8942a59f1cb", "name": "Бурёнка", "species": "cow"}, "village": {"id": "v1", "name": "Берёзовка"},
+     "trait": "мечтательная", "alive": true, "loaded": true,
+     "card": {"name": "Бурёнка", "character": "Корова, философ, видела, как Тест2 обижал Гаврилу.", "voice": "EXAVITQu4vr4xnSDxMaL", "memory": "Видела драку у кузницы."},
+     "state": {"calm": 75, "trust": 60, "interest": 45, "mood": 70, "word": "задумчива"},
+     "relations": [{"player": {"uuid": "461baa90-bc98-4f86-b889-50f67d759b9a", "name": "BigZet"}, "relationship": 40, "label": "друг", "hearts": 4}],
+     "facts": [{"t": -90000000, "text": "Видела, как Тест2 ударил Гаврилу", "importance": 15}], "events": [], "family": {"spouse": null, "children": []}}
+  ]
+}

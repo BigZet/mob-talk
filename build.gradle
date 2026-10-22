@@ -49,3 +49,11 @@ jar {
     from('THIRD_PARTY_NOTICES.md')
     from('licenses') { into 'licenses' }
 }
+// Трек W1: заглушка API админки без Minecraft для разработки страницы (docs/admin-web.md, «DevStubServer»).
+tasks.register('runAdminStub', JavaExec) {
+    group = 'application'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'io.github.mobtalk.server.web.DevStubServer'
+    workingDir = projectDir
+    jvmArgs '-Dfile.encoding=UTF-8', '-Dstdout.encoding=UTF-8'
+}
