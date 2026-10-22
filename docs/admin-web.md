@@ -180,7 +180,14 @@ Append-only журнал по дням: `data/mobtalk/history/<вид>/<день
 
 ## Карта
 
-Вид сверху, как ванильная карта: цвет верхнего блока (`MapColor`), светлее на подъёме к северу, темнее на спуске, вода темнее с
+**Источник тайлов.** Если на сервере стоит squaremap (выбор Дмитрия — подробная карта; его веб-сервер выключен), админка отдаёт его
+файлы `web/tiles/<namespace>_<path>/<zoom>/<x>_<z>.png` (папка ищется в `squaremap/web/tiles`, `config/squaremap/web/tiles` или задаётся
+`squaremapTiles` в `mobtalk-admin.json`): тайлы 512×512, zoom API = `zoom.max` из `settings.json` мира (3 по умолчанию) − zoom squaremap.
+Изменённые squaremap тайлы находятся просмотром папки раз в 10 с, пока открыта страница, и приходят событием `map`. Без squaremap
+(или пока он ничего не нарисовал) — свой рендер ниже, 256×256. Страница берёт `tileSize`, `maxZoom` и `source` (`squaremap`/`mobtalk`)
+из `/api/map/info`; формула тайла та же: zoom 0 — 1 px = 1 блок, тайл покрывает `tileSize·2^zoom` блоков.
+
+**Свой рендер.** Вид сверху, как ванильная карта: цвет верхнего блока (`MapColor`), светлее на подъёме к северу, темнее на спуске, вода темнее с
 глубиной. Рисуется из **загруженных** чанков по мере игры: чанк попадает в очередь при загрузке и раз в 30 с вокруг каждого игрока
 (построенное и вскопанное); на серверном тике снимаются цвета не больше 2 чанков (микросекунды), тайлы и PNG — на фоновом потоке.
 Всё, где игроки побывали, оказывается на карте; чтение region-файлов целиком (неисследованные игроками места) — не делается.
@@ -188,8 +195,8 @@ Append-only журнал по дням: `data/mobtalk/history/<вид>/<день
 
 | Запрос | Ответ |
 | --- | --- |
-| `GET /api/map/tiles/{world}/{zoom}/{tx}/{tz}.png` | PNG 256×256, `zoom` 0..4 (1 px = 2^zoom блоков), левый верхний угол — блок (`tx·256·2^zoom`, `tz·256·2^zoom`), `world` URL-кодированный (`minecraft%3Aoverworld`). Неисследованное прозрачно; тайла нет — `204`. `ETag` + `Cache-Control: max-age=60`, `If-None-Match` → `304` |
-| `GET /api/map/info?world=` | `{"world","minX","minZ","maxX","maxZ","spawn":{"x","z"},"worlds":["minecraft:overworld",…],"tileSize":256,"maxZoom":4}`; границы — по целым тайлам зума 0, `null`, если тайлов нет |
+| `GET /api/map/tiles/{world}/{zoom}/{tx}/{tz}.png` | PNG `tileSize`×`tileSize` (512 squaremap, 256 свой), `zoom` 0..`maxZoom` (1 px = 2^zoom блоков), левый верхний угол — блок (`tx·tileSize·2^zoom`, `tz·tileSize·2^zoom`), `world` URL-кодированный (`minecraft%3Aoverworld`). Неисследованное прозрачно; тайла нет — `204`. `ETag` + `Cache-Control: max-age=60`, `If-None-Match` → `304` |
+| `GET /api/map/info?world=` | `{"world","minX","minZ","maxX","maxZ","spawn":{"x","z"},"worlds":["minecraft:overworld",…],"tileSize":512,"maxZoom":3,"source":"squaremap"}`; границы — по целым тайлам зума 0, `null`, если тайлов нет |
 | `GET /api/map/markers?world=` | `{"world","markers":[{"kind":"village|waypoint|boss|spawn","id","name","x","z"}]}` |
 | `GET /api/players/tracks?world=&from=&to=&player=&points=2000` | `{"world","from","to","tracks":[{"player":{…},"points":[[t,x,y,z],…]}]}`; без `world` — overworld, без `from` — последний час; каждый игрок прорежен до ~`points` (первая и последняя точки остаются) |
 

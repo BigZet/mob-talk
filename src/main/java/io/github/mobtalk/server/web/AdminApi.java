@@ -27,7 +27,7 @@ import java.util.function.Supplier;
 public final class AdminApi {
     /** Everything the routes read; built by {@code AdminWeb} on a server and by {@code DevStubServer} in development. */
     public record Parts(HistoryStore history, Metrics metrics, Latency latency, AdminJournal journal, ErrorLog errors, ConfigSources sources,
-                        GameView game, Backups backups, Waypoints waypoints, MapTiles map, Tracks tracks, Path log, Supplier<JsonObject> limits, Supplier<JsonObject> adminInfo, LongSupplier clock) { }
+                        GameView game, Backups backups, Waypoints waypoints, MapSource map, Tracks tracks, Path log, Supplier<JsonObject> limits, Supplier<JsonObject> adminInfo, LongSupplier clock) { }
 
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final String[] MONTHS = {"янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"};
@@ -35,6 +35,7 @@ public final class AdminApi {
     private final Parts parts;
     private final SseHub events = new SseHub(16, 15_000), live = new SseHub(16, 15_000);
     private final Router router = new Router();
+    private int polls;
     private final java.util.concurrent.ScheduledExecutorService positions = java.util.concurrent.Executors.newSingleThreadScheduledExecutor(task -> {
         Thread thread = new Thread(task, "mobtalk-admin-positions"); thread.setDaemon(true); return thread;
     });
@@ -58,7 +59,10 @@ public final class AdminApi {
             try {
                 JsonObject now = parts.game().positions();
                 parts.tracks().observe(now);
-                if (events.subscribers() > 0) events.publish("positions", now);
+                if (events.subscribers() > 0) {
+                    events.publish("positions", now);
+                    if (++polls % 5 == 0) parts.map().poll();
+                }
             } catch (RuntimeException | LinkageError failure) { /* The next tick tries again. */ }
         }, 2, 2, java.util.concurrent.TimeUnit.SECONDS);
     }
@@ -197,7 +201,7 @@ public final class AdminApi {
                 if ("spawn".equals(Json.string(marker.getAsJsonObject(), "kind"))) { spawn = Json.obj("x", marker.getAsJsonObject().get("x"), "z", marker.getAsJsonObject().get("z")); break; }
             return Response.json(Json.obj("world", world, "minX", box == null ? null : box[0], "minZ", box == null ? null : box[1],
                     "maxX", box == null ? null : box[2], "maxZ", box == null ? null : box[3], "spawn", spawn, "worlds", parts.map().worlds(),
-                    "tileSize", MapTiles.SIZE, "maxZoom", MapTiles.MAX_ZOOM));
+                    "tileSize", parts.map().tileSize(), "maxZoom", parts.map().maxZoom(), "source", parts.map().name()));
         });
         router.get("/api/map/markers", r -> {
             String world = world(r);

@@ -67,7 +67,8 @@ public final class AdminWeb {
         tracks = new Tracks(data.resolve("admin-tracks"), System::currentTimeMillis, 7, log);
         Backups backups = new Backups(hooks.world(), gameDir.resolve("backups"), hooks.saver(), System::currentTimeMillis, zone);
         api = new AdminApi(new AdminApi.Parts(history, metrics, latency, journal, errors, sources, hooks.game(), backups,
-                new Waypoints(gameDir.resolve("config").resolve("mobtalk-waypoints.json")), map, tracks,
+                new Waypoints(gameDir.resolve("config").resolve("mobtalk-waypoints.json")),
+                MapSource.choose(new SquaremapTiles(SquaremapTiles.find(gameDir, settings.squaremapTiles), log), map), tracks,
                 gameDir.resolve("logs").resolve("latest.log"), hooks.limits(),
                 () -> Json.obj("bind", settings.bind, "port", settings.port, "fingerprint", fingerprint), System::currentTimeMillis));
         auth = new AdminAuth(settings.passwordHash, System::currentTimeMillis);
