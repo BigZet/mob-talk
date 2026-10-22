@@ -36,7 +36,9 @@ public final class BossPunishment {
             double angle = world.random.nextDouble() * Math.PI * 2, distance = 10 + world.random.nextInt(5);
             BlockPos column = BlockPos.ofFloored(player.getX() + Math.cos(angle) * distance, player.getY(), player.getZ() + Math.sin(angle) * distance);
             // The ground under any water: a flood or a lake must not hide the earth from the god's servant.
-            BlockPos ground = world.getDimension().hasCeiling() ? column : world.getTopPosition(Heightmap.Type.OCEAN_FLOOR, column);
+            BlockPos ground = world.getDimension().hasCeiling() ? column : world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, column);
+            // Under the crowns of a forest, not on them; under water when the land is drowned.
+            if (!world.getDimension().hasCeiling() && !world.getFluidState(ground.down()).isEmpty()) ground = world.getTopPosition(Heightmap.Type.OCEAN_FLOOR, column);
             if (Math.abs(ground.getY() - player.getBlockY()) > 8) continue;
             // Never inside the church or against its walls: the boss would stand in the blocks of an inviolable house.
             if (io.github.divineblock.game.ChurchArea.nearChurchBox(world, ground, 3)) continue;
