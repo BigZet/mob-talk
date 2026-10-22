@@ -112,7 +112,11 @@ final class SelfTestPack {
             test.command("summon minecraft:villager " + at(0, 0, 5) + " {NoAI:1b,PersistenceRequired:1b,Rotation:[0f,0f],VillagerData:{profession:\"minecraft:librarian\",type:\"minecraft:taiga\",level:2}}");
             test.command("summon minecraft:parrot " + at(4, 0, 5) + " {NoAI:1b,PersistenceRequired:1b,Variant:1}");
             test.command("tp " + name() + " " + at(0, 5, 12) + " 180 32");
-            test.await("pause: the showcase settles", 4, () -> false, () -> shot("mobtalk-pack-content.png", this::menus));
+            test.await("pause: the showcase settles", 4, () -> false, () -> shot("mobtalk-pack-content.png", () -> {
+                // Villagers as people, close up: faces, hair and clothes are easy to judge here.
+                test.command("tp " + name() + " " + at(-2, 0, 8) + " 180 5");
+                test.await("pause: close to the villagers", 3, () -> false, () -> shot("mobtalk-pack-villagers.png", this::menus));
+            }));
         });
     }
 
