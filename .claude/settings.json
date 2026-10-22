@@ -41,7 +41,16 @@
       "Bash(./gradlew.bat *)",
       "PowerShell(.\\gradlew.bat *)",
       "Bash(curl *)",
-      "Bash(iconv *)"
+      "Bash(iconv *)",
+      "PowerShell(.\\scripts\\run-selftest.ps1 *)",
+      "PowerShell(& *run-selftest.ps1 *)",
+      "PowerShell(Start-Process *prismlauncher*)",
+      "Bash(git checkout *)",
+      "Bash(git switch *)",
+      "Bash(git worktree *)",
+      "Bash(git fetch *)",
+      "Bash(git stash push *)",
+      "PowerShell(Start-Sleep *)"
     ]
   }
 }
