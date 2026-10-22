@@ -41,6 +41,12 @@ final class GodVoicePlayer {
 
     private GodVoicePlayer() { }
 
+    /** Self-tests run without paid speech unless -Ddivineblock.selftest.tts=true: the lines are shown and the acts follow at
+     * once, as with the voice switched off. Any of the mod's test modes counts. */
+    static final boolean TEST_WITHOUT_SPEECH = !Boolean.getBoolean("divineblock.selftest.tts")
+            && java.util.stream.Stream.of("divineblock.selftest", "divineblock.bosstest", "divineblock.churchtest", "divineblock.cemeterytest", "divineblock.fxtest")
+                    .anyMatch(flag -> !System.getProperty(flag, "").isEmpty() && !"false".equalsIgnoreCase(System.getProperty(flag)));
+
     static void register() {
         ClientPlayNetworking.registerGlobalReceiver(GodLinePayload.ID, (payload, context) -> speak(context.client(), payload.id(), payload.line()));
     }
@@ -51,6 +57,7 @@ final class GodVoicePlayer {
 
     /** Plays the preview line with the given (unsaved) settings, in a world or in a menu. */
     static void preview(MinecraftClient client, DivineConfig config, java.util.function.Consumer<String> status) {
+        if (TEST_WITHOUT_SPEECH) { status.accept("Самотест без озвучки: прослушивание пропущено."); return; }
         int mine = generation.incrementAndGet();
         DivineConfig settings = config.copy();
         WORKER.execute(() -> {
@@ -77,7 +84,7 @@ final class GodVoicePlayer {
     /** Voices a line from the server; {@code id} is acknowledged on start (-1) and on the last word (its length in seconds). */
     static void speak(MinecraftClient client, int id, String line) {
         DivineConfig config = DivineBlockMod.config();
-        if (!config.voice || line == null || line.isBlank()) { ack(id, 0); return; }
+        if (!config.voice || TEST_WITHOUT_SPEECH || line == null || line.isBlank()) { ack(id, 0); return; }
         int mine = generation.incrementAndGet();
         ClientWorld world = client.world;
         Buffer buffer = new Buffer(id);

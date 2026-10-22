@@ -231,9 +231,18 @@ public final class SelfTest {
             // A spoken prayer: the god's own voice says it, Whisper hears it, and it goes to the altar like a real one.
             soul.lastPrayerTick = Long.MIN_VALUE / 2; soul.prayerTicks.clear();
             MinecraftClient client = MinecraftClient.getInstance();
+            // Without paid speech the prayer is a recording made once with the same voice (24 kHz PCM in the test resources).
             java.util.concurrent.CompletableFuture<byte[]> wav = java.util.concurrent.CompletableFuture.supplyAsync(() -> {
-                try { return io.github.divineblock.core.PcmWav.encode(io.github.divineblock.core.PcmWav.from24k(
-                        new io.github.divineblock.core.GodVoice(DivineBlockMod.config(), DivineBlockMod.configDirectory()).synthesize("Господи, молю тебя, исцели меня."))); }
+                try {
+                    byte[] pcm;
+                    if (GodVoicePlayer.TEST_WITHOUT_SPEECH) {
+                        try (var in = SelfTest.class.getResourceAsStream("/divineblock-selftest/prayer-24k.pcm")) {
+                            if (in == null) throw new IOException("нет записи молитвы в ресурсах теста");
+                            pcm = in.readAllBytes();
+                        }
+                    } else pcm = new io.github.divineblock.core.GodVoice(DivineBlockMod.config(), DivineBlockMod.configDirectory()).synthesize("Господи, молю тебя, исцели меня.");
+                    return io.github.divineblock.core.PcmWav.encode(io.github.divineblock.core.PcmWav.from24k(pcm));
+                }
                 catch (Exception failure) { throw new java.util.concurrent.CompletionException(failure); }
             });
             BlockPos at = altar;
@@ -254,18 +263,20 @@ public final class SelfTest {
                 spokenAt = System.nanoTime(); log("  бог: " + line); Scheduler.later(20, () -> screenshot = "beams");
                 Scheduler.later(40, () -> {
                     underVoice = ChantPlayer.musicLevel();
-                    check(String.valueOf(ChantPlayer.musicPiece()).startsWith("punishment") && GodVoicePlayer.speaking(),
-                            "под голос бога звучит музыка кары: " + ChantPlayer.musicPiece() + ", громкость " + underVoice);
+                    check(String.valueOf(ChantPlayer.musicPiece()).startsWith("punishment") && (GodVoicePlayer.TEST_WITHOUT_SPEECH || GodVoicePlayer.speaking()),
+                            (GodVoicePlayer.TEST_WITHOUT_SPEECH ? "звучит музыка кары: " : "под голос бога звучит музыка кары: ") + ChantPlayer.musicPiece() + ", громкость " + underVoice);
                     check(ChantPlayer.altarPiece() == null, "песнопение алтаря уступило музыке кары");
                     skyUnderVoice = SkyTint.amount();
                 });
             };
             Prayers.performed = act -> {
                 performedAt = System.nanoTime(); log("  свершилось: " + act);
-                Scheduler.later(85, () -> check(ChantPlayer.musicLevel() > underVoice * 1.3f || ChantPlayer.musicPiece() == null,
+                // Without speech there is nothing to duck under: only the fade after the words is checked.
+                if (!GodVoicePlayer.TEST_WITHOUT_SPEECH) Scheduler.later(85, () -> check(ChantPlayer.musicLevel() > underVoice * 1.3f || ChantPlayer.musicPiece() == null,
                         "после слов бога музыка кары стала громче (или доиграла): " + underVoice + " → " + ChantPlayer.musicLevel()));
                 Scheduler.later(140, () -> check(ChantPlayer.musicEnding(), "через 5 с после слов бога музыка кары стихает"));
-                check(ChantPlayer.thunders > 0, "под музыку кары гремел гром: " + ChantPlayer.thunders + " раз");
+                // Thunder rolls every few seconds under the music; without speech the act comes at once, so look a little later.
+                Scheduler.later(GodVoicePlayer.TEST_WITHOUT_SPEECH ? 90 : 1, () -> check(ChantPlayer.thunders > 0, "под музыку кары гремел гром: " + ChantPlayer.thunders + " раз"));
                 String group = String.valueOf(DivineState.of(player.getServer()).ledger.soul(player.getUuid()).chronicle.getLast().group);
                 if (group.matches("K[2-5]")) check(skyUnderVoice > 0.5f && SkyTint.depth() >= 1, "при каре " + group + " небо покраснело: " + skyUnderVoice);
                 else log("  кара " + group + ": небо не краснеет");
@@ -287,8 +298,9 @@ public final class SelfTest {
         steps.add(new Step(ACTED, () -> { }));
         steps.add(new Step(60, () -> { // The god speaks for up to half a minute before the act falls.
             screenshot = "wrath";
-            check(voiced >= 1, "голос бога прозвучал до конца: " + voiced + " раз");
-            check(spokenAt > 0 && performedAt > spokenAt, "кара пала после слов бога: слова → дело через "
+            if (GodVoicePlayer.TEST_WITHOUT_SPEECH) log("  озвучка в самотесте выключена (-Ddivineblock.selftest.tts=true включает)");
+            else check(voiced >= 1, "голос бога прозвучал до конца: " + voiced + " раз");
+            check(spokenAt > 0 && performedAt >= spokenAt, "кара пала после слов бога: слова → дело через "
                     + (performedAt > 0 && spokenAt > 0 ? (performedAt - spokenAt) / 1_000_000 + " мс" : "—"));
         }));
         steps.add(new Step(20, () -> MinecraftClient.getInstance().execute(() -> SkyTint.verdict(MinecraftClient.getInstance(), 4))));

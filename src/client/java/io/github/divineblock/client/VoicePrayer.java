@@ -80,7 +80,7 @@ final class VoicePrayer {
                     text = new LocalWhisper(config.whisperUrl).transcribe(wav);
                 }
             } catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); problem = "Молитва прервана."; }
-            catch (Exception error) { problem = error.getMessage(); }
+            catch (Exception error) { problem = error.getMessage(); io.github.divineblock.DivineBlockMod.LOG.warn("Божественный блок: молитва голосом не распознана: {}", problem); }
             String prayer = text, message = problem;
             client.execute(() -> {
                 busy = false;

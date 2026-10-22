@@ -21,15 +21,41 @@ import java.util.function.Consumer;
  * mod's copy of the script. Only a process started here is stopped here. Never on the game thread. */
 final class WhisperHelper {
     private static Process owned;
+    /** The model is loaded once at game start and kept until the game closes: the first prayer never waits for it. */
+    private static volatile String state = "не загружен";
 
     private WhisperHelper() { }
+
+    /** Mob Talk runs the same helper on the same port and keeps it for the whole game: with it installed, only wait for it. */
+    static boolean sharedWithMobTalk() { return net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("mobtalk"); }
+
+    static String state() { return state; }
+
+    /** At game start: loads the model in the background (or waits for Mob Talk's helper) so it is ready before any prayer. */
+    static void warmUp(DivineConfig config) {
+        Thread thread = new Thread(() -> {
+            try {
+                state = "загружается";
+                ensureReady(config, line -> { });
+                state = "готов";
+                io.github.divineblock.DivineBlockMod.LOG.info("Божественный блок: Whisper готов на {}", config.whisperUrl);
+            } catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); }
+            catch (Exception failure) {
+                state = "ошибка: " + failure.getMessage();
+                io.github.divineblock.DivineBlockMod.LOG.warn("Божественный блок: Whisper не поднялся: {}", failure.getMessage());
+            }
+        }, "divineblock-whisper-warmup");
+        thread.setDaemon(true);
+        thread.start();
+    }
 
     static void ensureReady(DivineConfig config, Consumer<String> progress) throws IOException, InterruptedException {
         URI base = LocalWhisper.local(config.whisperUrl);
         HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(1)).build();
         JsonObject health = health(http, base);
         if (ready(health)) return;
-        if (health == null) {
+        // With Mob Talk in the game its helper owns the port: never start a second copy of the model, wait for it instead.
+        if (health == null && !sharedWithMobTalk()) {
             if (!config.whisperAutoStart) throw new IOException("Whisper не запущен: включите автозапуск или запустите Mob Talk.");
             launch(base);
         }
