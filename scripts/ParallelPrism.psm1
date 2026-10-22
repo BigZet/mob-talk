@@ -222,9 +222,6 @@ function Save-GameWindowShot([string]$Name, [string]$Path) {
     [ParallelPrismWindow]::Save($p.MainWindowHandle, $Path)
 }
 
-Export-ModuleMember -Function Get-TestGameStall, New-TestInstanceName, Get-InstanceGame, Get-AllGames, Enter-GameSlot, Exit-GameSlot,
-    New-TestInstance, Remove-TestInstance, Start-TestInstance, Invoke-PrismRescan, Start-PrismClean, Get-WhisperHelper, Save-GameWindowShot
-
 # Watchdog for a running test copy: returns a reason when the game looks stuck, else $null. Stuck means a crash report
 # appeared, or latest.log has not grown for $StallMinutes (a hung load, an endless screen, a frozen client).
 function Get-TestGameStall([string]$Name, [int]$StallMinutes = 6) {
@@ -234,3 +231,6 @@ function Get-TestGameStall([string]$Name, [int]$StallMinutes = 6) {
     if ($log -and ((Get-Date) - $log.LastWriteTime).TotalMinutes -gt $StallMinutes) { return "latest.log silent for $StallMinutes min" }
     $null
 }
+
+Export-ModuleMember -Function Get-TestGameStall, New-TestInstanceName, Get-InstanceGame, Get-AllGames, Enter-GameSlot, Exit-GameSlot,
+    New-TestInstance, Remove-TestInstance, Start-TestInstance, Invoke-PrismRescan, Start-PrismClean, Get-WhisperHelper, Save-GameWindowShot
