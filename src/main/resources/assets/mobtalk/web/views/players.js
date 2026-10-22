@@ -8,6 +8,7 @@ import { timeChart } from '../lib/chart.js';
 import { speciesTitle } from '../lib/record.js';
 import { navigate, setParams, parseRoute } from '../app.js';
 import { positionsTab, positionBlock } from './positions.js';
+import { map3dTab } from './map3d.js';
 
 const LEVEL = { ADMIN: 'админ', STREAMER: 'стример', PLAYER: 'игрок' };
 const ACTIVITY = { talking: 'говорит с мобом', trading: 'торгуется', praying: 'молится', idle: 'свободен' };
@@ -28,7 +29,7 @@ export default function players(root, route) {
   let q = route.params.q || '';
   let all = [];
   const cleanup = [];
-  let view = route.params.view === 'map' ? 'map' : 'list';
+  let view = ['map', '3d'].includes(route.params.view) ? route.params.view : 'list';
   let stopMap = null;
   const listBox = h('div.card.flush');
   const search = h('input.input', { type: 'search', placeholder: 'Ник или UUID', value: q, 'aria-label': 'Поиск игрока' });
@@ -38,11 +39,12 @@ export default function players(root, route) {
   const showView = () => {
     stopMap?.(); stopMap = null;
     listTools.hidden = listBox.hidden = view !== 'list';
-    mapBox.hidden = view !== 'map';
+    mapBox.hidden = view === 'list';
+    if (view === '3d') stopMap = map3dTab(mapBox);
     if (view === 'map') stopMap = positionsTab(mapBox, { onOpen: uuid => navigate('players', uuid, parseRoute().params), params: parseRoute().params, setParams });
   };
   replace(root,
-    h('div.page-head', h('h1', 'Игроки'), seg([{ value: 'list', title: 'Список' }, { value: 'map', title: 'Где игроки' }], view, v => { view = v; setParams({ view: v === 'map' ? 'map' : '' }); showView(); }, 'Вид')),
+    h('div.page-head', h('h1', 'Игроки'), seg([{ value: 'list', title: 'Список' }, { value: 'map', title: 'Карта' }, { value: '3d', title: '3D' }], view, v => { view = v; setParams({ view: v === 'list' ? '' : v }); showView(); }, 'Вид')),
     listTools, listBox, mapBox);
   cleanup.push(() => stopMap?.());
   search.addEventListener('input', debounce(() => { q = search.value.trim(); setParams({ q }); draw(); }, 150));
@@ -66,7 +68,7 @@ export default function players(root, route) {
 
   let open = null;
   function update(r) {
-    const v = r.params.view === 'map' ? 'map' : 'list';
+    const v = ['map', '3d'].includes(r.params.view) ? r.params.view : 'list';
     if (v !== view) { view = v; root.querySelectorAll('.page-head .seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === v))); showView(); }
     if (open && open.uuid !== r.id) { open.d.close(); open = null; }
     if (r.id && !open) open = { uuid: r.id, d: card(r.id, () => { open = null; setTimeout(() => { if (location.hash.includes(`/players/${encodeURIComponent(r.id)}`)) navigate('players', null, r.params); }); },() => api.get('players').then(x => { all = x.players || []; draw(); })) };
