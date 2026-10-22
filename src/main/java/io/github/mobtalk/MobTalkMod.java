@@ -104,6 +104,7 @@ public final class MobTalkMod implements ModInitializer {
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> sendFeatures(handler.getPlayer()));
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> { });
         registerReceivers();
+        io.github.mobtalk.server.PlayerServices.initialize(); // Трек C: права, фильтр команд, расходы, /mobtalk admin, имена игроков.
         LOGGER.info("Mob Talk {}: {}", version(), dedicated() ? "выделенный сервер" : "клиент с встроенным сервером");
     }
 

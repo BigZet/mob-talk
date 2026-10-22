@@ -47,10 +47,15 @@ final class ClientNet {
         ClientPlayNetworking.registerGlobalReceiver(SpeechClipS2C.ID, (payload, context) -> LOGGER.debug("Mob Talk: SpeechClipS2C {} {}/{} (трек B)", payload.clipId(), payload.index(), payload.count()));
         ClientPlayNetworking.registerGlobalReceiver(MobStateS2C.ID, (payload, context) -> LOGGER.debug("Mob Talk: MobStateS2C {} (трек A)", payload.mobId()));
         ClientPlayNetworking.registerGlobalReceiver(MobLabelS2C.ID, (payload, context) -> LOGGER.debug("Mob Talk: MobLabelS2C {} (трек A)", payload.mobId()));
-        ClientPlayNetworking.registerGlobalReceiver(ScreenDataS2C.ID, (payload, context) -> LOGGER.debug("Mob Talk: ScreenDataS2C {} (трек A)", payload.screen()));
+        ClientPlayNetworking.registerGlobalReceiver(ScreenDataS2C.ID, (payload, context) -> {
+            // Трек C: серверные настройки для F7; трек A оставляет эту ветку, когда заменит приёмник экранов своим.
+            if (io.github.mobtalk.client.settings.ServerSettingsView.SCREEN.equals(payload.screen())) io.github.mobtalk.client.settings.ServerSettingsView.accept(payload.json());
+            else LOGGER.debug("Mob Talk: ScreenDataS2C {} (трек A)", payload.screen());
+        });
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             features = ServerFeatures.none();
             hinted = false;
+            io.github.mobtalk.client.settings.ServerSettingsView.reset();
             sendSettings(owner);
         });
         ClientTickEvents.END_CLIENT_TICK.register(client -> hint(owner, client));

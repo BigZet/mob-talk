@@ -43,17 +43,19 @@ public final class VillageRumors {
     /** One rumour as the village keeps it. */
     static final class Rumor {
         String id, text = "", source = "", sourceId = "";
+        /** The player the rumour is about, by name and UUID; "" when it is about nobody in particular (and in files written before players had names). */
+        String subject = "", subjectId = "";
         /** 1–5, and -1/0/+1: whether the rumour shows the player in a bad, neutral or good light. */
         int importance = 2, sign;
         long time;
-        Rumor copy() { Rumor c = new Rumor(); c.id = id; c.text = text; c.source = source; c.sourceId = sourceId; c.importance = importance; c.sign = sign; c.time = time; return c; }
+        Rumor copy() { Rumor c = new Rumor(); c.id = id; c.text = text; c.source = source; c.sourceId = sourceId; c.subject = subject; c.subjectId = subjectId; c.importance = importance; c.sign = sign; c.time = time; return c; }
         /** importance × (1 − age/forget): a rumour weighs less every day and nothing on its fifth. */
         double weight(long now) {
             double days = Math.max(0, now - time) / (double) DAY_MILLIS;
             return Math.max(0, importance * (1 - days / forgetDays()));
         }
         boolean forgotten(long now) { return now - time >= forgetDays() * DAY_MILLIS; }
-        View view(long now) { return new View(id, text, source, importance, sign, time, weight(now)); }
+        View view(long now) { return new View(id, text, source, importance, sign, time, weight(now), subject); }
     }
     /** One village's chronicle: the rumours and when it was last written. */
     static final class Chronicle {
@@ -64,7 +66,10 @@ public final class VillageRumors {
     }
 
     /** A rumour as the prompt and the debug line read it. */
-    public record View(String id, String text, String source, int importance, int sign, long time, double weight) {
+    public record View(String id, String text, String source, int importance, int sign, long time, double weight, String subject) {
+        public View { subject = subject == null ? "" : subject; }
+        /** A rumour about nobody in particular (or written before players had names). */
+        public View(String id, String text, String source, int importance, int sign, long time, double weight) { this(id, text, source, importance, sign, time, weight, ""); }
         /** «Ладко говорил, что …» */
         public String line() { return source.isBlank() ? text : source + " говорит, что " + text; }
         /** «Ладко: игрок … (3)» for /mobtalk state. */
@@ -85,10 +90,26 @@ public final class VillageRumors {
     /** One event or fact of a villager, as the chronicle request reads it. */
     public record Fact(String who, String text, int importance, long time) { }
     /** Everything one chronicle request needs: the village, its inhabitants by name, and the day's facts. */
-    public record Input(String villageId, String villageName, String villageStory, List<String> villagers, List<Fact> facts, String playerName, long day) {
+    public record Input(String villageId, String villageName, String villageStory, List<String> villagers, List<Fact> facts, String playerName, long day,
+                        List<String> players) {
         public Input {
             villagers = villagers == null ? List.of() : List.copyOf(villagers);
             facts = facts == null ? List.of() : List.copyOf(facts);
+            List<String> known = new ArrayList<>();
+            if (players != null) for (String name : players) if (name != null && !name.isBlank() && known.stream().noneMatch(name::equalsIgnoreCase)) known.add(name);
+            if (playerName != null && !playerName.isBlank() && known.stream().noneMatch(playerName::equalsIgnoreCase)) known.addFirst(playerName);
+            players = List.copyOf(known);
+        }
+        /** One player: the one whose talk triggered the chronicle. */
+        public Input(String villageId, String villageName, String villageStory, List<String> villagers, List<Fact> facts, String playerName, long day) {
+            this(villageId, villageName, villageStory, villagers, facts, playerName, day, List.of());
+        }
+        /** The player a rumour names, as the list spells them; "" when it names none of them. A single known player is meant by
+         * a rumour that judges "the player" without a name. */
+        public String player(String named, int sign) {
+            String wanted = named == null ? "" : named.strip();
+            for (String name : players) if (name.equalsIgnoreCase(wanted)) return name;
+            return players.size() == 1 && sign != 0 ? players.getFirst() : "";
         }
         /** The importance that piled up since the last chronicle. */
         public int importance() { int sum = 0; for (Fact fact : facts) sum += fact.importance(); return sum; }
@@ -122,7 +143,9 @@ public final class VillageRumors {
         chronicle.lastDay = day; chronicle.sinceMillis = now;
     }
     /** Adds the rumours a request produced; the teller knows each at once. Returns how many were added. */
-    public int add(String villageId, List<View> fresh, Map<String, String> villagerIdsByName, long now) {
+    public int add(String villageId, List<View> fresh, Map<String, String> villagerIdsByName, long now) { return add(villageId, fresh, villagerIdsByName, Map.of(), now); }
+    /** The same; {@code playerIdsByName} turns the player a rumour names into their UUID (names compared without case). */
+    public int add(String villageId, List<View> fresh, Map<String, String> villagerIdsByName, Map<String, String> playerIdsByName, long now) {
         if (villageId == null || fresh == null || fresh.isEmpty()) return 0;
         Chronicle chronicle = villages.computeIfAbsent(villageId, ignored -> new Chronicle());
         int added = 0;
@@ -135,6 +158,9 @@ public final class VillageRumors {
             rumor.text = text; rumor.source = TextBounds.characters(view.source() == null ? "" : view.source().strip(), 60);
             rumor.sourceId = villagerIdsByName == null ? "" : villagerIdsByName.getOrDefault(rumor.source, "");
             rumor.importance = MemoryFact.clamp(view.importance()); rumor.sign = Integer.signum(view.sign()); rumor.time = now;
+            rumor.subject = TextBounds.characters(view.subject().strip(), 60);
+            if (!rumor.subject.isBlank() && playerIdsByName != null) for (Map.Entry<String, String> known : playerIdsByName.entrySet())
+                if (known.getKey() != null && known.getKey().equalsIgnoreCase(rumor.subject)) { rumor.subjectId = known.getValue() == null ? "" : known.getValue(); break; }
             chronicle.rumors.add(rumor); added++;
             if (!rumor.sourceId.isBlank()) hear(rumor.sourceId, rumor.id);
         }
@@ -272,6 +298,21 @@ public final class VillageRumors {
         for (View view : village(villageId, now)) { balance += view.sign() * view.weight(); weight += view.weight(); }
         return weight <= 0 ? Reputation.NONE : new Reputation(balance / weight, weight);
     }
+    /** What the village thinks of one player: only rumours about them count, plus those about nobody named (older files, where
+     * the one player was meant). Another player's deeds do not colour this one's fame. Null {@code player} — every rumour. */
+    public Reputation reputation(String villageId, UUID player, long now) {
+        if (player == null) return reputation(villageId, now);
+        Chronicle chronicle = villageId == null ? null : villages.get(villageId);
+        if (chronicle == null) return Reputation.NONE;
+        String id = player.toString();
+        double balance = 0, weight = 0;
+        for (Rumor rumor : chronicle.rumors) {
+            if (rumor.forgotten(now) || !(rumor.subjectId.isBlank() && rumor.subject.isBlank() || rumor.subjectId.equals(id))) continue;
+            double w = rumor.weight(now);
+            balance += rumor.sign * w; weight += w;
+        }
+        return weight <= 0 ? Reputation.NONE : new Reputation(balance / weight, weight);
+    }
     /** The block the model reads: at most {@link #PROMPT_LIMIT} rumours, one line each. */
     public static List<String> lines(List<View> views) {
         if (views == null) return List.of();
@@ -308,7 +349,7 @@ public final class VillageRumors {
                 int importance = MemoryFact.ORDINARY, sign = 0;
                 try { importance = MemoryFact.clamp(ReplySchema.integer(rumor, "importance")); } catch (RuntimeException ignored) { }
                 try { sign = Integer.signum(ReplySchema.integer(rumor, "sign")); } catch (RuntimeException ignored) { }
-                rumors.add(new View("", text, source, importance, sign, 0, importance));
+                rumors.add(new View("", text, source, importance, sign, 0, importance, input.player(ReplySchema.optional(rumor, "player"), sign)));
             }
             return rumors;
         } catch (RuntimeException malformed) { throw new IOException(client.service() + " не написал хронику деревни."); }
@@ -316,8 +357,8 @@ public final class VillageRumors {
     static JsonObject format() {
         JsonObject item = new JsonObject();
         item.add("text", ReplySchema.property("string")); item.add("source", ReplySchema.property("string"));
-        item.add("importance", ReplySchema.property("integer")); item.add("sign", ReplySchema.property("integer"));
-        JsonObject items = ReplySchema.property("array"); items.add("items", ReplySchema.objectSchema(item, "text", "source", "importance", "sign"));
+        item.add("importance", ReplySchema.property("integer")); item.add("sign", ReplySchema.property("integer")); item.add("player", ReplySchema.property("string"));
+        JsonObject items = ReplySchema.property("array"); items.add("items", ReplySchema.objectSchema(item, "text", "source", "importance", "sign", "player"));
         JsonObject fields = new JsonObject(); fields.add("rumors", items);
         return ReplySchema.format("village_chronicle", ReplySchema.objectSchema(fields, "rumors"));
     }
@@ -325,11 +366,12 @@ public final class VillageRumors {
         return "Ты — летописец деревни «" + input.villageName() + "» из мира Minecraft" + (input.villageStory().isBlank() ? "" : " (" + TextBounds.characters(input.villageStory(), 300) + ")")
                 + ". Жители деревни: " + String.join(", ", input.villagers()) + ". По событиям и фактам за день составь 2–4 коротких слуха — то, что жители будут "
                 + "пересказывать друг другу: от третьего лица, по-русски, одно предложение каждый, конкретно (кто, что сделал, с кем), без выдумок сверх данных; "
-                + "игрока называй по имени (" + input.playerName() + "). В факте «моба» или «ему» — это сам рассказчик (who): пиши его имя. "
+                + "игроков называй по именам, как они названы в фактах (игроки: " + String.join(", ", input.players()) + "), и не путай их между собой. В факте «моба» или «ему» — это сам рассказчик (who): пиши его имя. "
                 + "text — только суть, без вступлений «рассказывает, что», «видел, как» и без имени рассказчика в начале: его подставят из source. "
                 + "source — имя жителя из списка, который это видел или рассказывает (чьё событие — тот и источник). "
                 + "importance — насколько это важно деревне, 1–5 (5 — убийство, удар, угроза; 4 — сделка, помощь, услуга; 3 — договорённость; 2 — мелочь). "
-                + "sign — как слух показывает игрока: -1 дурно (удар, убийство, угроза, воровство), 0 никак, 1 хорошо (помощь, услуга, покупка). "
+                + "player — имя игрока из списка, о ком этот слух, или пусто, если слух не об игроке; один слух — об одном игроке. "
+                + "sign — как слух показывает этого игрока: -1 дурно (удар, убийство, угроза, воровство), 0 никак, 1 хорошо (помощь, услуга, покупка). "
                 + "Похожие события объединяй в один слух. Ответ — JSON с массивом rumors.";
     }
     static JsonObject factsJson(Input input) {
@@ -352,6 +394,7 @@ public final class VillageRumors {
             for (Rumor rumor : chronicle.rumors) {
                 rumor.importance = MemoryFact.clamp(rumor.importance); rumor.sign = Integer.signum(rumor.sign);
                 if (rumor.source == null) rumor.source = ""; if (rumor.sourceId == null) rumor.sourceId = "";
+                if (rumor.subject == null) rumor.subject = ""; if (rumor.subjectId == null) rumor.subjectId = "";
             }
             while (chronicle.rumors.size() > perVillage()) chronicle.rumors.removeFirst();
         }

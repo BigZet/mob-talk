@@ -97,14 +97,15 @@ public final class SocialLedger {
         else {
             UUID spouse = state.family.spouse(p.id);
             Romance.Suit suit = new Romance.Suit(adult, related, courtship, p.id, partner(state, player), player.equals(spouse) ? null : spouse,
-                    score, p.social.gender(), p.social.traits(), Gender.ofPlayer(config.playerGender), holds ? held : "");
+                    score, p.social.gender(), p.social.traits(), PlayerIdentity.gender(config, player), holds ? held : "");
+            String taken = takenBy(state, p, player); // Сервер: житель — пара только одного игрока.
             if (!courtship.partners()) {
-                String refusal = Romance.refuseDate(suit);
+                String refusal = taken != null ? taken : Romance.refuseDate(suit);
                 rolled.put(Gesture.DATE, new GestureIntent(Gesture.DATE, refusal == null ? Gesture.Outcome.ACCEPTED : Gesture.Outcome.REFUSED,
                         refusal == null ? DATE_HEARTS : 0, refusal == null ? held : "", refusal == null ? "" : refusal));
             }
             if (courtship != Courtship.MARRIED && courtship != Courtship.ENGAGED) {
-                String refusal = Romance.refusePropose(suit);
+                String refusal = taken != null ? taken : Romance.refusePropose(suit);
                 rolled.put(Gesture.PROPOSE, new GestureIntent(Gesture.PROPOSE, refusal == null ? Gesture.Outcome.ACCEPTED : Gesture.Outcome.REFUSED,
                         refusal == null ? WEDDING_HEARTS + Romance.ringHearts(held) : 0, refusal == null ? held : "", refusal == null ? "" : refusal));
             }
@@ -118,10 +119,26 @@ public final class SocialLedger {
             }
         }
         List<String> facts = SocialPrompt.playerFacts(courtship, state.family, p.id, player, config);
-        facts.addAll(JealousyLedger.facts(p, rapport, config, now)); // Трек J: ревность и ночь вместе.
+        facts.addAll(JealousyLedger.facts(p, rapport, PlayerIdentity.configOf(player, config), now)); // Трек J: ревность и ночь вместе.
         facts.addAll(WeddingLedger.facts(state, p, r, player, snapshot, config, now)); // Трек L: помолвка, свидетели, свадьба.
         facts.addAll(ChildLedger.facts(state, p, r, player, config, children)); // Трек N: особый вечер, беременность.
         detached.socialTurn = new SocialTurn(rolled, closed, facts);
+    }
+    /** Why this villager will not court {@code player}: another player already courts, is engaged to or married it; null when free.
+     * A villager is the partner of one player only. */
+    static String takenBy(ConversationStore.State state, ConversationStore.Profile p, UUID player) {
+        UUID spouse = state.family.spouse(p.id);
+        UUID other = spouse != null && !spouse.equals(player) && state.players.containsKey(spouse.toString()) ? spouse : null;
+        if (other == null) for (Map.Entry<String, ConversationStore.Relation> entry : p.relations.entrySet()) {
+            ConversationStore.Relation r = entry.getValue();
+            if (!entry.getKey().equals(player.toString()) && r != null && r.rapport != null && r.rapport.courtship().partners()) {
+                try { other = UUID.fromString(entry.getKey()); } catch (IllegalArgumentException bad) { continue; }
+                break;
+            }
+        }
+        if (other == null) return null;
+        String name = state.players.getOrDefault(other.toString(), "");
+        return "сердце уже занято: у него пара — другой игрок" + (name.isBlank() ? "" : " (" + name + ")") + ", и это не ты";
     }
     /** The villager the player courts or married, or null: the living spouse in the tree, else any courtship in the relations. */
     static UUID partner(ConversationStore.State state, UUID player) {
@@ -236,7 +253,7 @@ public final class SocialLedger {
                     if (config.weddingCeremony) r.rapport.courtship(Courtship.ENGAGED);
                     else {
                         r.rapport.courtship(Courtship.MARRIED);
-                        tree.marry(player, playerName, Gender.ofPlayer(config.playerGender), true, p.id, name(p), p.social == null ? null : p.social.gender(), false);
+                        tree.marry(player, playerName, PlayerIdentity.gender(config, player), true, p.id, name(p), p.social == null ? null : p.social.gender(), false);
                     }
                 }
                 felt = accepted ? MobState.Event.ROMANCE : null;
@@ -415,7 +432,7 @@ public final class SocialLedger {
                 if (playerName == null || playerName.isBlank() || state.profiles.containsKey(parent.toString())) continue;
                 ConversationStore.Relation r = store.relation(kid, parent);
                 r.score = Hearts.OWN_CHILD;
-                state.family.node(parent, playerName, Gender.ofPlayer(config.playerGender), true);
+                state.family.node(parent, playerName, PlayerIdentity.gender(config, parent), true);
             }
             ConversationStore.event(kid, now, "Ты родился в семье: " + String.join(", ", state.family.kin(child).stream()
                     .map(k -> k.word() + (k.name().isBlank() ? "" : " " + k.name())).toList()), 5);
@@ -431,7 +448,7 @@ public final class SocialLedger {
         FamilyTree.Node node = state.family.nodes.get(id.toString());
         Gender known = node == null ? null : Gender.of(node.gender);
         if (known != null) return known;
-        return node != null && node.player ? Gender.ofPlayer(config.playerGender) : p != null ? SocialProfile.genderOf(id) : Gender.ofPlayer(config.playerGender);
+        return node != null && node.player ? PlayerIdentity.gender(config, id) : p != null ? SocialProfile.genderOf(id) : PlayerIdentity.gender(config, id);
     }
     /** For each loaded villager the tree tracks as a child: its stage at {@code worldTick} (saved in its profile). Grown ones are ADULT. */
     public Map<UUID, ChildGrowth.Stage> grow(Collection<UUID> loaded, long worldTick) {
@@ -472,7 +489,7 @@ public final class SocialLedger {
             ConversationStore.Relation r = q.relations.get(player.toString());
             if (r != null) scores.add(r.score);
         }
-        return VillageStanding.of(scores, residents, state.rumors.reputation(villageId, now));
+        return VillageStanding.of(scores, residents, state.rumors.reputation(villageId, player, now));
     }
 
     /** The living spouse of a villager, for the game (village weddings, births); null for none. */

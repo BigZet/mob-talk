@@ -2,6 +2,9 @@ package io.github.mobtalk.core;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Function;
 
 /** The names mobs know the player by, set in the settings as three comma-separated lists of forms of address: hostile or
  * mocking, ordinary, close. Facts, memories, witnesses and rumours use one name — the first ordinary one, else the Minecraft
@@ -24,6 +27,29 @@ public final class PlayerIdentity {
     }
     /** With the live settings ({@link Tuning}). */
     public static String name(String nick) { return name(Tuning.get(), nick); }
+
+    /** On a server every player has their own forms of address and sex (the personal layer, {@link PlayerSettings}): the server
+     * sets a lookup by UUID that gives the server snapshot with the player's personal fields, or empty when the player sent none.
+     * Without a lookup, and for a player it does not know, everything goes by the shared settings, as in single player. */
+    private static volatile Function<UUID, Optional<MobTalkConfig>> personal = null;
+    public static void resolver(Function<UUID, Optional<MobTalkConfig>> lookup) { personal = lookup; }
+
+    /** The settings the world names this player by: their personal fields over the server's, else {@code fallback}. */
+    public static MobTalkConfig configOf(UUID player, MobTalkConfig fallback) {
+        Function<UUID, Optional<MobTalkConfig>> lookup = personal;
+        if (lookup == null || player == null) return fallback;
+        try { return lookup.apply(player).orElse(fallback); }
+        catch (RuntimeException failure) { return fallback; }
+    }
+    /** The same over the live settings ({@link Tuning}). */
+    public static MobTalkConfig configOf(UUID player) { return configOf(player, Tuning.get()); }
+    /** One particular player's name for facts, rumours and witnesses: their first ordinary form, else the nick. */
+    public static String name(UUID player, String nick) { return name(configOf(player), nick); }
+    /** One particular player's sex from their personal settings; {@code fallback} is the shared config (single player). */
+    public static Gender gender(MobTalkConfig fallback, UUID player) {
+        MobTalkConfig config = configOf(player, fallback);
+        return Gender.ofPlayer(config == null ? null : config.playerGender);
+    }
 
     /** Which list a relationship calls for; {@code friendFrom} is the friend heart ({@link MobTalkConfig#heartsFriend}). */
     public static Tone tone(int relationship, int friendFrom) {

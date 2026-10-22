@@ -16,6 +16,7 @@ import net.minecraft.client.gui.widget.*;
 import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.sound.SoundEvents;
 import io.github.mobtalk.client.settings.PanelScreen;
+import io.github.mobtalk.client.settings.ServerSettingsView;
 import io.github.mobtalk.client.settings.TunableSlider;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Style;
@@ -98,15 +99,24 @@ final class MobTalkSettingsScreen extends Screen {
     private final String initialJson;
     private boolean changed;
     private int ticks;
+    /** Трек C: on a dedicated server, what the server said about its settings (null in single player or before it answered), the
+     * player's own config as opened (its server fields stay in mobtalk.json untouched), and the setting each control edits. */
+    private final ServerSettingsView.Snapshot server;
+    private final MobTalkConfig local;
+    private final Map<ClickableWidget, String> bound = new IdentityHashMap<>();
 
     MobTalkSettingsScreen(Screen parent, MobTalkConfig initial, Controller controller) {
         super(Text.translatable("mobtalk.settings.title")); this.parent = parent; this.controller = controller;
-        draft = initial.copy(); originalMicrophone = initial.microphoneName == null ? "" : initial.microphoneName;
+        ServerSettingsView.Snapshot view = ServerSettingsView.get();
+        server = view != null && net.minecraft.client.MinecraftClient.getInstance().getServer() == null ? view : null;
+        local = initial.copy();
+        draft = server == null ? initial.copy() : SettingsScope.merge(server.config(), initial);
+        originalMicrophone = initial.microphoneName == null ? "" : initial.microphoneName;
         initialJson = new Gson().toJson(draft);
     }
 
     @Override protected void init() {
-        widgets.clear(); tips.clear(); captions.clear(); speciesPicker = null; searchField = null; findField = null; refreshButton = null;
+        widgets.clear(); tips.clear(); captions.clear(); bound.clear(); speciesPicker = null; searchField = null; findField = null; refreshButton = null;
         // The layout of Viewer Parrots' panel: sections on the left, the list on the right up to a small margin.
         left = Math.min(157, Math.max(119, width / 4)); contentWidth = width - 13 - left;
         int step = Math.max(17, Math.min(24, (height - 95) / TABS.length));
@@ -126,6 +136,7 @@ final class MobTalkSettingsScreen extends Screen {
             if (section(tab) != null && !Tunables.of(section(tab)).isEmpty()) foldButtons(section(tab));
             build(tab);
         }
+        lockServerFields();
         addDrawableChild(list);
         if (!searching()) list.restore(scrolls[tab]);
         if (tab == SPECIES && noSpeciesMatches) for (ClickableWidget widget : widgets) if (widget != searchField) widget.active = false;
@@ -145,6 +156,7 @@ final class MobTalkSettingsScreen extends Screen {
     }
 
     private void build(int which) {
+        if (server != null && which != SPECIES && which != MOB) serverNote();
         switch (which) {
             case VOICE -> voice(); case MODEL -> model(); case TALK -> talk(); case SOCIAL -> social(); case ACTIONS -> actions();
             case SPECIES -> speciesTab(); case MOB -> selectedMob(); default -> general();
@@ -271,6 +283,7 @@ final class MobTalkSettingsScreen extends Screen {
 
         header("mobtalk.settings.section.keys");
         for (String line : controller.keyHints()) note(Text.literal(line), 0xBBBBBB);
+        if (server != null && server.admin()) players();
         resetSection(Tunables.Section.GENERAL);
     }
     private List<String> village;
@@ -397,7 +410,7 @@ final class MobTalkSettingsScreen extends Screen {
                 Runnable extra = before.get(group);
                 if (extra != null) extra.run();
             }
-            if (!folded) wide(track(new TunableSlider(tunable, draft)));
+            if (!folded) { TunableSlider slider = track(new TunableSlider(tunable, draft)); bound.put(slider, tunable.field()); wide(slider); }
         }
     }
     /** «Сбросить раздел»: this tab's numbers and switches back to their defaults in the draft; texts typed by hand stay. */
@@ -721,8 +734,12 @@ final class MobTalkSettingsScreen extends Screen {
         saveSettings();
     }
     private void saveSettings() {
-        try { controller.save(draft.copy(), failure -> client.execute(() -> {
+        // On a dedicated server only the personal layer is the player's: the server fields of mobtalk.json stay as they were, and an
+        // admin's changes to server fields go to the server as /mobtalk admin set.
+        MobTalkConfig saved = server == null ? draft.copy() : SettingsScope.withServerFields(draft, local);
+        try { controller.save(saved, failure -> client.execute(() -> {
             if (failure != null) { saveFailed(failure); return; }
+            if (server != null && server.admin()) pushServerChanges();
             CompletableFuture<String> edits = dirtyCard && card != null ? controller.editSelectedCard(cardName, cardPersonality, cardVoice, cardMemory) : CompletableFuture.completedFuture(null);
             edits.thenCompose(message -> resetPersonality ? controller.resetSelectedPersonality() : CompletableFuture.completedFuture(message))
                     .thenCompose(message -> clearHistory ? controller.clearSelectedHistory() : CompletableFuture.completedFuture(message))
@@ -755,6 +772,73 @@ final class MobTalkSettingsScreen extends Screen {
     }
     private void microphoneTooltip(ClickableWidget picker) { picker.setTooltip(Tooltip.of(Text.literal((draft.microphoneName == null || draft.microphoneName.isBlank()
             ? Text.translatable("mobtalk.settings.microphone.default").getString() : draft.microphoneName) + "\n" + Text.translatable("mobtalk.settings.microphone.cycle").getString()))); }
+
+    // ---- Трек C: серверные и личные настройки на выделенном сервере ----
+
+    /** Controls whose lang key names a different field than {@code mobtalk.settings.<field>}. */
+    private static final Map<String, String> FIELD_ALIASES = Map.of("stateHud", "showStateHud", "bargainHud", "showBargainHud", "nameTags", "showNameTags",
+            "provider", "llmProvider", "tts", "ttsProvider", "microphone", "microphoneName", "whisper.model", "whisperModel", "whisper.device", "whisperDevice",
+            "whisper.autostart", "whisperAutoStart", "whisper.language", "whisperLanguage");
+    /** Remembers which setting a control edits, by its lang key; keys that name no field stay unbound (and editable). */
+    private void bind(String key, ClickableWidget... controls) {
+        String field = fieldFor(key);
+        if (field == null) return;
+        for (ClickableWidget control : controls) bound.putIfAbsent(control, field);
+    }
+    private static String fieldFor(String key) {
+        if (key == null || !key.startsWith("mobtalk.settings.")) return null;
+        String name = key.substring("mobtalk.settings.".length());
+        name = FIELD_ALIASES.getOrDefault(name, name);
+        return SettingsScope.fields().contains(name) ? name : null;
+    }
+    /** A player or streamer sees the server's settings but cannot move them; the admin can. */
+    private void lockServerFields() {
+        if (server == null || server.admin()) return;
+        Tooltip locked = Tooltip.of(Text.translatable("mobtalk.settings.serverLocked"));
+        for (Map.Entry<ClickableWidget, String> entry : bound.entrySet()) {
+            if (SettingsScope.personal(entry.getValue())) continue;
+            entry.getKey().active = false;
+            entry.getKey().setTooltip(locked);
+        }
+    }
+    private void serverNote() {
+        note(Text.translatable(server.admin() ? "mobtalk.settings.serverAdmin" : "mobtalk.settings.serverLocked"), server.admin() ? 0xD5D5D5 : 0x9A9A9A);
+        if (!server.spentToday().isBlank()) note(Text.translatable("mobtalk.settings.spent", server.spentToday()), 0x9A9A9A);
+    }
+    /** For the admin: the players online, each with «Сделать стримером»; the server keeps one streamer. */
+    private void players() {
+        header("mobtalk.settings.players");
+        var network = client == null ? null : client.getNetworkHandler();
+        if (network == null) return;
+        for (var entry : network.getPlayerList()) {
+            String name = entry.getProfile().getName();
+            boolean streamer = name.equalsIgnoreCase(server.streamer());
+            ButtonWidget make = track(ButtonWidget.builder(Text.translatable("mobtalk.settings.players.streamer"),
+                    ignored -> { ServerSettingsView.sendToServer("mobtalk admin streamer " + name); close(); }).size(100, 20).build());
+            make.active = !streamer;
+            add(new Row(Text.literal(name + (streamer ? " — стример" : "")), RowKind.CONTROLS, TEXT, null, List.of(make)));
+        }
+        if (!server.streamer().isBlank())
+            wide(track(ButtonWidget.builder(Text.translatable("mobtalk.settings.players.clearStreamer"),
+                    ignored -> { ServerSettingsView.sendToServer("mobtalk admin streamer clear"); close(); }).size(100, 20).build()));
+    }
+    /** The admin's changes to server fields, one {@code /mobtalk admin set} each; long or multi-line texts are left to the web admin. */
+    private void pushServerChanges() {
+        int skipped = 0;
+        for (String name : SettingsScope.serverFields()) {
+            try {
+                java.lang.reflect.Field field = MobTalkConfig.class.getField(name);
+                Object now = field.get(draft), before = field.get(server.config());
+                if (Objects.equals(now, before)) continue;
+                Class<?> type = field.getType();
+                if (type != boolean.class && type != int.class && type != double.class && type != String.class) { skipped++; continue; }
+                String value = type == boolean.class ? ((Boolean) now ? "on" : "off") : String.valueOf(now);
+                if (value.contains("\n") || !ServerSettingsView.sendToServer("mobtalk admin set " + name + " " + value)) skipped++;
+            } catch (ReflectiveOperationException impossible) { skipped++; }
+        }
+        if (skipped > 0 && client != null && client.inGameHud != null)
+            client.inGameHud.getChatHud().addMessage(Text.literal("[Mob Talk] Не ушло на сервер настроек: " + skipped + " (длинные тексты и списки меняйте в веб-админке)"));
+    }
 
     // ---- Строки списка и виджеты ----
 
@@ -789,10 +873,10 @@ final class MobTalkSettingsScreen extends Screen {
         if (!plain.isEmpty()) add(new Row(null, RowKind.CONTROLS, 0, null, List.copyOf(plain)));
     }
     private void labeled(String key, ClickableWidget... controls) { labeled(key, null, controls); }
-    private void labeled(String key, int[] weights, ClickableWidget... controls) { add(new Row(Text.translatable(key), RowKind.CONTROLS, TEXT, weights, List.of(controls))); }
+    private void labeled(String key, int[] weights, ClickableWidget... controls) { bind(key, controls); add(new Row(Text.translatable(key), RowKind.CONTROLS, TEXT, weights, List.of(controls))); }
 
     private <T extends ClickableWidget> T track(T widget) { widgets.add(widget); return widget; }
-    private <T extends ClickableWidget> T caption(T widget, String key) { captions.put(widget, Text.translatable(key)); return widget; }
+    private <T extends ClickableWidget> T caption(T widget, String key) { captions.put(widget, Text.translatable(key)); bind(key, widget); return widget; }
     private ButtonWidget button(String key, ButtonWidget.PressAction action) { return track(ButtonWidget.builder(Text.translatable(key), action).size(100, 20).build()); }
     private CyclingButtonWidget<Boolean> toggle(String key, boolean value, Consumer<Boolean> changed) {
         return caption(track(CyclingButtonWidget.onOffBuilder(value).omitKeyText().build(0, 0, 100, 20, Text.translatable(key), (button, chosen) -> changed.accept(chosen))), key);
