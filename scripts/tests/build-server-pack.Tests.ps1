@@ -62,12 +62,25 @@ Describe 'build-server-pack.ps1' {
         ([IO.File]::ReadAllText("$out\config\mobtalk-server.json")).Trim() | Should Be '{}'
     }
 
+    It 'prepares the maps for the admin: no web servers of their own, overworld and nether, BlueMap paused' {
+        $sq = [IO.File]::ReadAllText("$out\squaremap\config.yml")
+        $sq | Should Match 'internal-webserver:\s+enabled: false'
+        $sq | Should Match "'minecraft:the_end':\s+map:\s+enabled: false"
+        $core = [IO.File]::ReadAllText("$out\config\bluemap\core.conf")
+        $core | Should Match 'accept-download: true'
+        $core | Should Match 'render-thread-count: 1'
+        [IO.File]::ReadAllText("$out\config\bluemap\webserver.conf") | Should Match 'enabled: false'
+        @(Get-ChildItem "$out\config\bluemap\maps").Name -join ',' | Should Be 'world.conf,world_the_nether.conf'
+        ([IO.File]::ReadAllText("$out\bluemap\pluginState.json") | ConvertFrom-Json).'render-threads-enabled' | Should Be $false
+    }
+
     It 'goes public on -Public and keeps the world and admin edits on a rebuild' {
         $props = Read-Lines "$out\server.properties" | ForEach-Object { $_ -replace '^motd=.*', 'motd=Наш сервер' }
         Write-Utf8Lines "$out\server.properties" $props
         New-Item -ItemType Directory -Force "$out\world" | Out-Null
         Set-Content "$out\world\level.dat" 'world'
         Set-Content "$out\config\divineblock.json" '{"wrath": 9}'
+        Set-Content "$out\config\bluemap\core.conf" 'render-thread-count: 3'
         & $build -FromPack fake-pack -Instances $inst -ConfigFrom fake-pack -Out $out -Pins $pins -Cache $cache -Public -WithLuckPerms *> $null
         Get-Prop $out 'online-mode' | Should Be 'true'
         Get-Prop $out 'white-list' | Should Be 'true'
@@ -75,6 +88,7 @@ Describe 'build-server-pack.ps1' {
         Get-Prop $out 'motd' | Should Be 'Наш сервер'
         (Get-Content "$out\world\level.dat") | Should Be 'world'
         (Get-Content "$out\config\divineblock.json") | Should Be '{"wrath": 9}'
+        (Get-Content "$out\config\bluemap\core.conf") | Should Be 'render-thread-count: 3'
         Test-Path "$out\mods\luckperms-test.jar" | Should Be $true
     }
 
@@ -118,11 +132,13 @@ Describe 'server-mods.json' {
     It 'pins Minecraft 1.21.1, the loader of the client pack and the admin mods' {
         $p.minecraft | Should Be '1.21.1'
         $p.fabricLoader | Should Be '0.19.5'
-        ($p.mods | ForEach-Object id) -join ',' | Should Be 'lithium,ferrite-core,spark,chunky'
+        ($p.mods | ForEach-Object id) -join ',' | Should Be 'lithium,ferrite-core,spark,chunky,squaremap,bluemap'
         ($p.mods | Where-Object id -eq 'lithium').version | Should Be 'mc1.21.1-0.15.4-fabric'
         ($p.mods | Where-Object id -eq 'ferrite-core').version | Should Be '7.0.3-fabric'
         ($p.mods | Where-Object id -eq 'spark').version | Should Be '1.10.109-fabric'
         ($p.mods | Where-Object id -eq 'chunky').version | Should Be '1.4.23'
+        ($p.mods | Where-Object id -eq 'squaremap').fileName | Should Be 'squaremap-fabric-mc1.21.1-1.3.2.jar'
+        ($p.mods | Where-Object id -eq 'bluemap').fileName | Should Be 'bluemap-5.7-fabric.jar'
         $p.launcher.url | Should Match '/loader/1\.21\.1/0\.19\.5/1\.1\.2/server/jar$'
     }
     It 'has a SHA-512 and a Modrinth download for every mod' {
