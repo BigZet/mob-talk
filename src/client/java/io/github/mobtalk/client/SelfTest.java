@@ -59,6 +59,8 @@ final class SelfTest {
     static final boolean ONLY_VOICES = "voices".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=ctov}: only the CTOV village stages (structure names, villagers, two conversations). */
     static final boolean ONLY_CTOV = "ctov".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=voicefix}: the voice from the mob — falloff, grace out of sight, one voice after death (synthetic PCM, no LLM, no TTS). */
+    static final boolean ONLY_VOICEFIX = "voicefix".equals(System.getProperty("mobtalk.selftest.only"));
     final MobTalkClient owner;
     private final String world;
     private int stage, ticks, stageStart;
@@ -151,7 +153,8 @@ final class SelfTest {
         await("villager and cow summoned", 10, () -> {
             villager = nearest(VillagerEntity.class); cow = nearest(CowEntity.class);
             return villager != null && cow != null && MobSpeechSound.find(owner.world, villager) != null && MobSpeechSound.find(owner.world, cow) != null;
-        }, ONLY_PLACE ? () -> new SelfTestPlace(this, cow, sx, SY, sz).run(this::finish)
+        }, ONLY_VOICEFIX ? () -> new SelfTestVoiceFix(this, villager, cow, sx, SY, sz).run(this::finish)
+                : ONLY_PLACE ? () -> new SelfTestPlace(this, cow, sx, SY, sz).run(this::finish)
                 : ONLY_CTOV ? () -> new SelfTestCtov(this, cow, sx, SY, sz).run(this::finish)
                 : ONLY_WEDDING ? () -> new SelfTestWedding(this, sx, SY, sz).run(this::finish)
                 : ONLY_FAMILY ? () -> new SelfTestFamily(this, sx, SY, sz).run(this::finish)
