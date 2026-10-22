@@ -188,8 +188,9 @@ final class SelfTestWedding {
             MobTalkConfig config = test.owner.config().copy();
             CompletableFuture<byte[]> wav = CompletableFuture.supplyAsync(() -> {
                 try {
-                    byte[] pcm24 = SpeechPreview.synthesize(config, test.owner.configDirectory, config.defaultVoice,
-                            "Да, я согласен. Клянусь быть с тобой в радости и в беде, в ссоре и в мире, и заботиться о тебе всю жизнь.");
+                    byte[] pcm24 = io.github.mobtalk.core.SelfTestSpeech.fixture(SelfTest.fixtures(), config.defaultVoice, "Да, я согласен. Клянусь быть с тобой в радости и в беде, в ссоре и в мире, и заботиться о тебе всю жизнь.",
+                            () -> SpeechPreview.synthesize(config, test.owner.configDirectory, config.defaultVoice,
+                            "Да, я согласен. Клянусь быть с тобой в радости и в беде, в ссоре и в мире, и заботиться о тебе всю жизнь."));
                     int samples = pcm24.length / 2 * 2 / 3;
                     byte[] pcm16 = new byte[samples * 2];
                     for (int i = 0; i < samples; i++) { int j = (int) ((long) i * 3 / 2) * 2; pcm16[i * 2] = pcm24[j]; pcm16[i * 2 + 1] = pcm24[j + 1]; }

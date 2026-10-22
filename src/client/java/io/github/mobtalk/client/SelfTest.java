@@ -59,6 +59,14 @@ final class SelfTest {
     static final boolean ONLY_VOICES = "voices".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=ctov}: only the CTOV village stages (structure names, villagers, two conversations). */
     static final boolean ONLY_CTOV = "ctov".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=pack}: the whole pack together — mods, hotkeys, menus, content of every mod, one Whisper. */
+    static final boolean ONLY_PACK = "pack".equals(System.getProperty("mobtalk.selftest.only"));
+    /** Phrases voiced once for Whisper stages and reused by later runs ({@code -Dmobtalk.selftest.notts=true} keeps TTS off otherwise). */
+    static java.nio.file.Path fixtures() {
+        String local = System.getenv("LOCALAPPDATA");
+        java.nio.file.Path base = local == null || local.isBlank() ? java.nio.file.Path.of(System.getProperty("user.home"), "AppData", "Local") : java.nio.file.Path.of(local);
+        return base.resolve("MobTalk").resolve("selftest-fixtures");
+    }
     final MobTalkClient owner;
     private final String world;
     private int stage, ticks, stageStart;
@@ -153,6 +161,7 @@ final class SelfTest {
             return villager != null && cow != null && MobSpeechSound.find(owner.world, villager) != null && MobSpeechSound.find(owner.world, cow) != null;
         }, ONLY_PLACE ? () -> new SelfTestPlace(this, cow, sx, SY, sz).run(this::finish)
                 : ONLY_CTOV ? () -> new SelfTestCtov(this, cow, sx, SY, sz).run(this::finish)
+                : ONLY_PACK ? () -> new SelfTestPack(this, sx, SY, sz).run(this::finish)
                 : ONLY_WEDDING ? () -> new SelfTestWedding(this, sx, SY, sz).run(this::finish)
                 : ONLY_FAMILY ? () -> new SelfTestFamily(this, sx, SY, sz).run(this::finish)
                 : ONLY_LOOKS ? () -> new SelfTestLooks(this, sx, SY, sz).run(this::finish) : ONLY_NAMES ? this::names : ONLY_VOICES ? this::voices : this::aim);
@@ -688,7 +697,8 @@ final class SelfTest {
         if (!VENICE) config.ttsProvider = "openrouter";
         CompletableFuture<byte[]> wav = CompletableFuture.supplyAsync(() -> {
             try {
-                byte[] pcm24 = SpeechPreview.synthesize(config, owner.configDirectory, config.defaultVoice, "Как тебя зовут и что ты здесь делаешь?");
+                byte[] pcm24 = io.github.mobtalk.core.SelfTestSpeech.fixture(fixtures(), config.defaultVoice, "Как тебя зовут и что ты здесь делаешь?",
+                        () -> SpeechPreview.synthesize(config, owner.configDirectory, config.defaultVoice, "Как тебя зовут и что ты здесь делаешь?"));
                 int samples = pcm24.length / 2 * 2 / 3;
                 byte[] pcm16 = new byte[samples * 2];
                 for (int i = 0; i < samples; i++) { int j = (int) ((long) i * 3 / 2) * 2; pcm16[i * 2] = pcm24[j]; pcm16[i * 2 + 1] = pcm24[j + 1]; }

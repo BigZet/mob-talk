@@ -35,7 +35,7 @@ function Get-AllGames {
 
 # Holds one of $Max lock files open for the caller's lifetime (a crashed script frees its slot). Also waits while
 # $Max games of any kind are already running, so runs from older scripts and the user's own game count too.
-function Enter-GameSlot([string]$Owner, [int]$Max = 3, [int]$TimeoutMinutes = 90, [scriptblock]$Say = { param($t) Write-Host $t }) {
+function Enter-GameSlot([string]$Owner, [int]$Max = 6, [int]$TimeoutMinutes = 90, [scriptblock]$Say = { param($t) Write-Host $t }) {
     New-Item -ItemType Directory -Force $script:SlotDir | Out-Null
     $deadline = (Get-Date).AddMinutes($TimeoutMinutes)
     $told = $false
@@ -98,6 +98,11 @@ function New-TestInstance {
     $opt = "$dst\minecraft\options.txt"
     $o = if (Test-Path -LiteralPath $opt) { @([IO.File]::ReadAllLines($opt) | Where-Object { $_ -notmatch '^pauseOnLostFocus:' }) } else { @() }
     [IO.File]::WriteAllLines($opt, [string[]]($o + 'pauseOnLostFocus:false'), (New-Object Text.UTF8Encoding($false)))
+
+    # selftest-guard.jar (mob-talk tools\selftest-guard): the test window opens without taking focus and never grabs the
+    # mouse cursor, so the player can keep working while self-tests run. It acts only when a *selftest*/*test* JVM property is set.
+    $guard = Join-Path $env:LOCALAPPDATA 'PrismParallel\selftest-guard.jar'
+    if ((Test-Path -LiteralPath $guard) -and (Test-Path -LiteralPath "$dst\minecraft\mods")) { Copy-Item -LiteralPath $guard "$dst\minecraft\mods\selftest-guard.jar" -Force }
 
     # Mob Talk (mobtalk.json) and Divine Block (divineblock.json) both keep whisperUrl; point every one at this copy's port.
     if ($WhisperPort -gt 0) {
@@ -219,3 +224,13 @@ function Save-GameWindowShot([string]$Name, [string]$Path) {
 
 Export-ModuleMember -Function New-TestInstanceName, Get-InstanceGame, Get-AllGames, Enter-GameSlot, Exit-GameSlot,
     New-TestInstance, Remove-TestInstance, Start-TestInstance, Invoke-PrismRescan, Start-PrismClean, Get-WhisperHelper, Save-GameWindowShot
+
+# Watchdog for a running test copy: returns a reason when the game looks stuck, else $null. Stuck means a crash report
+# appeared, or latest.log has not grown for $StallMinutes (a hung load, an endless screen, a frozen client).
+function Get-TestGameStall([string]$Name, [int]$StallMinutes = 6) {
+    $mc = Join-Path $script:Instances "$Name\minecraft"
+    if (@(Get-ChildItem -LiteralPath "$mc\crash-reports" -Filter '*.txt' -ErrorAction SilentlyContinue).Count -gt 0) { return 'crash report written' }
+    $log = Get-Item -LiteralPath "$mc\logs\latest.log" -ErrorAction SilentlyContinue
+    if ($log -and ((Get-Date) - $log.LastWriteTime).TotalMinutes -gt $StallMinutes) { return "latest.log silent for $StallMinutes min" }
+    $null
+}

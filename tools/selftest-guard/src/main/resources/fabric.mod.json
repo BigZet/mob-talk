@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "selftest_guard",
+  "version": "${version}",
+  "name": "Self-test guard",
+  "description": "Только для одноразовых копий самотестов: окно игры не забирает фокус и не захватывает курсор мыши.",
+  "license": "GPL-3.0-only",
+  "environment": "client",
+  "mixins": ["selftest_guard.mixins.json"],
+  "depends": { "fabricloader": ">=0.16", "minecraft": "~1.21.1" }
+}

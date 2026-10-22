@@ -79,6 +79,12 @@ public final class MobTalkClient implements ClientModInitializer {
     private volatile ConversationEngine engine;
     private volatile WhisperClient whisper;
     private volatile CompletableFuture<Void> helperCleanup = CompletableFuture.completedFuture(null);
+    private volatile long whisperPreloads;
+    private final java.util.concurrent.ExecutorService whisperLoader = java.util.concurrent.Executors.newSingleThreadExecutor(task -> {
+        Thread thread = new Thread(task, "Mob Talk Whisper preload");
+        thread.setDaemon(true);
+        return thread;
+    });
     volatile CompletableFuture<MobGameBridge> gameReady;
     private MinecraftServer gameServer;
     private MobTalkConfig gameConfig;
@@ -164,7 +170,10 @@ public final class MobTalkClient implements ClientModInitializer {
         net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback.EVENT.register(children::renderFade);
         ScreenEvents.AFTER_INIT.register((minecraft, screen, width, height) -> {
             if (screen instanceof GameMenuScreen) {
-                Screens.getButtons(screen).add(ButtonWidget.builder(Text.literal("Mob Talk"), button -> openSettings(screen))
+                // With the other mods of the pack installed, one "Моды сборки" hub replaces the per-mod buttons.
+                boolean pack = ModHubScreen.packInstalled();
+                Screens.getButtons(screen).add(ButtonWidget.builder(Text.literal(pack ? "Моды сборки" : "Mob Talk"),
+                                button -> { if (pack) client.setScreen(new ModHubScreen(screen, () -> openSettings(client.currentScreen))); else openSettings(screen); })
                         .dimensions(width - 128, height - 26, 120, 20).build());
             }
             if (screen instanceof MerchantScreen trading) merchant.initialize(trading);
@@ -399,7 +408,7 @@ public final class MobTalkClient implements ClientModInitializer {
         selected = null;
         world = null;
         if (client.getServer() == null) releaseMemory();
-        if (!stopped) helperCleanup = CompletableFuture.runAsync(helper::stopOwned, maintenance);
+        // Whisper stays loaded between worlds: it is started with the game and stopped only when the game closes.
     }
 
     void select(MobEntity mob) {
@@ -1280,7 +1289,16 @@ public final class MobTalkClient implements ClientModInitializer {
         }));
     }
 
-    private void openSettings(Screen parent) {
+    /** Self-test (pack stage): loads the shared Whisper helper now, as a game outside self-tests does at start. */
+    CompletableFuture<Void> warmWhisper() {
+        MobTalkConfig settings = config;
+        return CompletableFuture.runAsync(() -> {
+            try { helper.ensureAvailable(settings, () -> stopped); }
+            catch (Exception failure) { throw new java.util.concurrent.CompletionException(failure); }
+        }, whisperLoader);
+    }
+
+    void openSettings(Screen parent) {
         if (stopped || reloading || parent instanceof MobTalkSettingsScreen) return;
         cancelWork("Настройки Mob Talk", true);
         client.setScreen(new MobTalkSettingsScreen(parent, config.copy(), new SettingsController(this)));
@@ -1302,7 +1320,6 @@ public final class MobTalkClient implements ClientModInitializer {
                 MobTalkConfig.save(configDirectory.resolve("mobtalk.json"), snapshot);
                 MobTalkConfig loaded = MobTalkConfig.load(configDirectory.resolve("mobtalk.json"));
                 long saved = System.nanoTime();
-                helper.stopOwned();
                 long stoppedAt = System.nanoTime();
                 if (stoppedAt - queued > 2_000_000_000L) LOGGER.info("Mob Talk settings save: waited in queue {} ms, wrote {} ms, stopped Whisper {} ms",
                         (started - queued) / 1_000_000, (saved - started) / 1_000_000, (stoppedAt - saved) / 1_000_000);
@@ -1311,6 +1328,7 @@ public final class MobTalkClient implements ClientModInitializer {
                     if (stopped) return;
                     config = loaded; io.github.mobtalk.core.Tuning.apply(loaded);
                     configReady = true;
+                    preloadWhisper(loaded);
                     status = !loaded.enabled ? "Mob Talk выключен" : selected == null ? AIM_HINT : readyStatus();
                     completion.accept(null);
                 });
@@ -1330,7 +1348,6 @@ public final class MobTalkClient implements ClientModInitializer {
         reloading = true;
         cancelWork("Загрузка настроек…", true);
         maintenance.execute(() -> {
-            helper.stopOwned();
             try {
                 MobTalkConfig loaded = MobTalkConfig.load(configDirectory.resolve("mobtalk.json"));
                 client.execute(() -> {
@@ -1338,6 +1355,7 @@ public final class MobTalkClient implements ClientModInitializer {
                     config = loaded; io.github.mobtalk.core.Tuning.apply(loaded);
                     configReady = true;
                     reloading = false;
+                    preloadWhisper(loaded);
                     status = selected == null ? AIM_HINT : readyStatus();
                     if (world != null) notice("Настройки загружены");
                 });
@@ -1349,6 +1367,24 @@ public final class MobTalkClient implements ClientModInitializer {
                     status = "Не удалось прочитать config/mobtalk.json: исправьте JSON и /mobtalk reload";
                     if (world != null) notice(status);
                 });
+            }
+        });
+    }
+
+    /** Whisper is loaded once, when the game starts (and again after its settings change), and kept until the game closes,
+     * so the first spoken question does not wait for the model. Other mods of the pack (Divine Block) use the same helper on
+     * the same port. Self-test copies load it lazily: several test games at once would not fit their models in video memory. */
+    private void preloadWhisper(MobTalkConfig settings) {
+        if (stopped || !settings.enabled || !settings.whisperAutoStart || System.getProperty("mobtalk.selftest") != null) return;
+        long ticket = ++whisperPreloads;
+        whisperLoader.execute(() -> {
+            try {
+                helper.ensureAvailable(settings, () -> stopped || ticket != whisperPreloads);
+                LOGGER.info("Mob Talk: Whisper {} loaded at start and kept loaded", settings.whisperModel);
+            } catch (InterruptedException cancelled) {
+                // Game closing or newer settings.
+            } catch (Exception failure) {
+                LOGGER.warn("Mob Talk: Whisper preload failed: {}", failure.getMessage());
             }
         });
     }
@@ -1365,6 +1401,7 @@ public final class MobTalkClient implements ClientModInitializer {
             try { detached.get(5, TimeUnit.SECONDS); } catch (Exception ignored) { }
             try { ConversationStore.closeWorld(directory); } catch (Exception ignored) { }
         });
+        whisperLoader.shutdownNow();
         maintenance.execute(helper::stopOwned);
         maintenance.shutdown();
     }

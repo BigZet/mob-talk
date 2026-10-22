@@ -155,6 +155,7 @@ final class OpenRouterSpeechClient implements AutoCloseable {
     /** A lost connection (a connect timeout included) gets two more tries: Venice's endpoint drops connects now and then. */
     static final int CONNECT_ATTEMPTS = 3;
     SpeechStream stream(String voiceId, String text) throws IOException, InterruptedException {
+        if (SelfTestSpeech.stubbed()) return SpeechStream.of(SelfTestSpeech.tone(text));
         // A model that speaks only MP3 or WAV is downloaded whole and decoded; PCM streams as it is generated.
         if (!"pcm".equals(format())) return SpeechStream.of(synthesize(voiceId, text));
         for (int attempt = 1; ; attempt++) {
@@ -176,6 +177,7 @@ final class OpenRouterSpeechClient implements AutoCloseable {
     }
 
     byte[] synthesize(String voiceId, String text) throws IOException, InterruptedException {
+        if (SelfTestSpeech.stubbed()) return SelfTestSpeech.tone(text);
         byte[] audio = null;
         for (int attempt = 1; audio == null; attempt++) {
             try { audio = http.send(request(voiceId, text), MAX_AUDIO_BYTES, service()); }
