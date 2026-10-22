@@ -204,6 +204,10 @@ public final class ChurchSelfTest {
         BlockPos spot = site.outdoorSpot();
         check(world.getBlockState(spot).isAir() && world.getBlockState(spot.up()).isAir() && !world.getBlockState(spot.down()).isAir() && !world.getBlockState(spot.down()).isReplaceable(),
                 "место у входа свободно и стоит на земле: " + world.getBlockState(spot.down()));
+        Vec3d fight = io.github.divineblock.game.ChurchArea.yardSpot(world, site);
+        BlockPos fightAt = BlockPos.ofFloored(fight), door = frame.world(0, 0, 0);
+        check(site.yard().contains(fightAt.getX(), site.yard().getMinY(), fightAt.getZ()),
+                "ChurchArea.yardSpot во дворе: " + fightAt.toShortString() + ", от двери " + Math.round(Math.sqrt(door.getSquaredDistance(fightAt))) + " блоков");
         int yardBlocked = 0;
         for (int x = ChurchBuilder.YARD_MIN_X; x <= ChurchBuilder.YARD_MAX_X; x += 4)
             for (int z = ChurchBuilder.YARD_MIN_Z; z <= ChurchBuilder.YARD_MAX_Z; z += 4) {
