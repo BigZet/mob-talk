@@ -5,6 +5,7 @@ import io.github.rusflora.RusFlora;
 import io.github.rusflora.hogweed.Hogweed;
 import io.github.rusflora.hogweed.HogweedBlock;
 import io.github.rusflora.hogweed.HogweedConfig;
+import io.github.rusflora.hogweed.ThicketLimits;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -156,9 +157,20 @@ public final class HogweedSelfTest {
         steps.add(new Step(80, () -> screenshot = "invasion-above"));
         steps.add(new Step(10, () -> spreadOff(world)));
         steps.add(new Step(10, () -> removal(world, player)));
+        steps.add(new Step(10, () -> patches(world, player)));
+        steps.add(new Step(100, () -> screenshot = "patches"));
+        steps.add(new Step(10, () -> shade(world)));
+        steps.add(new Step(10, () -> villagers(world, player)));
+        steps.add(new Step(60, () -> screenshot = "villager"));
+        steps.add(new Step(10, () -> villagersCheck(world)));
+        steps.add(new Step(10, () -> cows(world, player)));
+        steps.add(new Step(100, () -> screenshot = "cows-before"));
+        steps.add(new Step(500, () -> cowsCheck(world)));
+        steps.add(new Step(10, () -> screenshot = "cows-after"));
         burns(world, player);
         steps.add(new Step(10, () -> {
-            check(FlammableBlockRegistry.getDefaultInstance().get(Hogweed.BLOCK).getBurnChance() > 0, "борщевик горит");
+            var fire = FlammableBlockRegistry.getDefaultInstance().get(Hogweed.BLOCK);
+            check(fire.getBurnChance() == 100 && fire.getSpreadChance() == 100, "борщевик горит и быстро передаёт огонь (100/100)");
             log("ошибок всего: " + failures); finished = true;
         }));
         wait = 1;
@@ -167,10 +179,11 @@ public final class HogweedSelfTest {
     private static void worldgen(ServerWorld world, ServerPlayerEntity player) {
         record Group(String name, List<RegistryKey<Biome>> biomes, boolean russian) { }
         List<Group> groups = List.of(
-                new Group("равнина и луг", List.of(BiomeKeys.PLAINS, BiomeKeys.MEADOW, BiomeKeys.SUNFLOWER_PLAINS), true),
-                new Group("лес", List.of(BiomeKeys.FOREST, BiomeKeys.BIRCH_FOREST, BiomeKeys.FLOWER_FOREST), true),
-                new Group("тайга", List.of(BiomeKeys.TAIGA), true),
-                new Group("река", List.of(BiomeKeys.RIVER), true),
+                new Group("равнина", List.of(BiomeKeys.PLAINS, BiomeKeys.SUNFLOWER_PLAINS), true),
+                new Group("дубовый и берёзовый лес", List.of(BiomeKeys.FOREST, BiomeKeys.BIRCH_FOREST), true),
+                new Group("луг", List.of(BiomeKeys.MEADOW), false),
+                new Group("тайга", List.of(BiomeKeys.TAIGA), false),
+                new Group("цветочный лес", List.of(BiomeKeys.FLOWER_FOREST), false),
                 new Group("пустыня", List.of(BiomeKeys.DESERT), false),
                 new Group("джунгли", List.of(BiomeKeys.JUNGLE), false),
                 new Group("саванна", List.of(BiomeKeys.SAVANNA), false));
@@ -178,12 +191,15 @@ public final class HogweedSelfTest {
         for (Group group : groups) {
             Pair<BlockPos, RegistryEntry<Biome>> hit = world.locateBiome(e -> group.biomes().stream().anyMatch(e::matchesKey), player.getBlockPos(), 6400, 32, 64);
             if (hit == null) { log("  " + group.name() + ": биом не найден рядом"); continue; }
-            int count = count(world, hit.getFirst(), 5, group.biomes());
+            int count = count(world, hit.getFirst(), 8, group.biomes());
             log("  " + group.name() + " у " + hit.getFirst().toShortString() + ": растений борщевика " + count);
             if (group.russian()) russian += count;
-            else check(count == 0, group.name() + ": борщевика нет");
+            // Deserts, jungles and savannas must stay clean. A meadow, taiga or flower forest bordering an oak forest may get a
+            // few plants of a patch that started in the forest, so those are only reported.
+            else if (List.of("пустыня", "джунгли", "саванна").contains(group.name())) check(count == 0, group.name() + ": борщевика нет");
         }
-        check(russian > 0, "борщевик есть в средней полосе (" + russian + ")");
+        // Patches are rare now (a forest chunk in 320, a plains chunk in 1280), so a few hundred chunks may hold none.
+        log("  в лесах и на равнинах рядом: " + russian + " растений");
         log("  дикий очаг: " + (wild == null ? "не найден" : wild.toShortString()));
     }
 
@@ -247,6 +263,17 @@ public final class HogweedSelfTest {
             steps.add(new Step(5, () -> look(player, at(s).add(-3.5, h + 1.5, -2), at(s).add(0, h * 0.6, 0))));
             steps.add(new Step(30, () -> screenshot = "m-stage" + s + "-high"));
         }
+        // A close group, as in a thicket: umbels of neighbours must not cut through each other.
+        steps.add(new Step(5, () -> {
+            for (int x = 0; x < 3; x++) for (int z = 0; z < 3; z++)
+                Hogweed.BLOCK.setStage(world, row.add(4 + x, 0, 6 + z), (x + z) % 3 == 2 ? HogweedBlock.SEEDING : HogweedBlock.FLOWERING);
+            look(player, Vec3d.ofCenter(row.add(5, 0, 7)).add(0.5, 1.62, 5), Vec3d.ofCenter(row.add(5, 2, 7)));
+        }));
+        steps.add(new Step(40, () -> screenshot = "m-group-eye"));
+        steps.add(new Step(5, () -> look(player, Vec3d.ofCenter(row.add(5, 0, 7)).add(4, 4.5, 4), Vec3d.ofCenter(row.add(5, 0, 7)).add(0, 2.5, 0))));
+        steps.add(new Step(30, () -> screenshot = "m-group-high"));
+        steps.add(new Step(5, () -> look(player, at(3).add(1.4, 2.0, 1.6), at(3).add(0, 2.2, 0))));
+        steps.add(new Step(30, () -> screenshot = "m-side-umbels"));
         steps.add(new Step(5, () -> look(player, at(3).add(0.6, 0.4, 1.4), at(3).add(0, 2.2, 0))));
         steps.add(new Step(30, () -> screenshot = "m-umbel-below"));
         steps.add(new Step(5, () -> look(player, at(6).add(1.2, 0.8, 1.6), at(6))));
@@ -319,6 +346,8 @@ public final class HogweedSelfTest {
 
     private static void invade(ServerWorld world) {
         Map<String, Integer> before = census(world);
+        // Items already lying about (flowers washed off by the water channel while the plot settled) are not the thicket's.
+        int lying = world.getEntitiesByClass(ItemEntity.class, new Box(plot).expand(20, 8, 20), e -> true).size();
         rounds(world, plot, 16, 300);
         Map<String, Integer> after = census(world);
         log("  участок после 300 кругов: " + after);
@@ -328,6 +357,10 @@ public final class HogweedSelfTest {
         check(greenAfter < greenBefore / 2, "трава и цветы задавлены (" + greenBefore + " → " + greenAfter + ")");
         check(after.getOrDefault("сухие кусты", 0) > 0, "саженцы засохли");
         check(after.getOrDefault("пшеница", 0) < before.getOrDefault("пшеница", 0), "пшеница вянет");
+        var dropped = world.getEntitiesByClass(ItemEntity.class, new Box(plot).expand(20, 8, 20), e -> true);
+        int items = dropped.size() - lying;
+        if (items > 0) dropped.stream().map(e -> e.getStack().toString()).distinct().forEach(name -> log("  выпало: " + name));
+        check(items == 0, "при разрастании ничего не выпало (" + items + " предметов)");
     }
 
     private static void spreadOff(ServerWorld world) {
@@ -354,6 +387,22 @@ public final class HogweedSelfTest {
             if (state.isOf(Hogweed.BLOCK) && state.get(HogweedBlock.PART) == 0) roots++;
         }
         check(roots == 1, "предел тесноты не пускает новые всходы (" + roots + ")");
+        // The chunk limit: with five allowed per chunk, a field sown densely ends with no more than five in its chunk.
+        BlockPos chunkSpot = field(world, plot.add(60, 0, 40), 40, 40);
+        BlockPos centre = new BlockPos((chunkSpot.getX() & ~15) + 24, chunkSpot.getY(), (chunkSpot.getZ() & ~15) + 24);
+        config.maxPlantsPerChunk = 5; config.maxPlantsNearby = 49;
+        ThicketLimits.forget(world);
+        Hogweed.BLOCK.setStage(world, centre, HogweedBlock.SEEDING);
+        for (int i = 0; i < 400; i++) Hogweed.BLOCK.scatterSeeds(world, centre, world.getRandom(), 2);
+        config.maxPlantsPerChunk = 48; config.maxPlantsNearby = 16;
+        int inChunk = 0;
+        for (BlockPos pos : BlockPos.iterate(new BlockPos(centre.getX() & ~15, centre.getY() - 2, centre.getZ() & ~15),
+                new BlockPos((centre.getX() & ~15) + 15, centre.getY() + 3, (centre.getZ() & ~15) + 15))) {
+            BlockState state = world.getBlockState(pos);
+            if (state.isOf(Hogweed.BLOCK) && state.get(HogweedBlock.PART) == 0) inChunk++;
+        }
+        log("  счётчик чанка: " + ThicketLimits.count(world, centre.getX() >> 4, centre.getZ() >> 4) + ", по факту " + inChunk);
+        check(inChunk <= 5, "предел на чанк держится (" + inChunk + " из 5)");
     }
 
     private static void removal(ServerWorld world, ServerPlayerEntity player) {
@@ -394,6 +443,78 @@ public final class HogweedSelfTest {
         player.removeStatusEffect(Hogweed.SAP);
     }
 
+    /** Five patches from the world generation feature on an open field: each is a group of 10 to 25 plants. */
+    private static void patches(ServerWorld world, ServerPlayerEntity player) {
+        BlockPos base = field(world, plot.add(0, 0, 120), 60, 14);
+        var feature = world.getRegistryManager().get(net.minecraft.registry.RegistryKeys.CONFIGURED_FEATURE).get(RusFlora.id("hogweed_patch"));
+        for (int i = 0; i < 5; i++) {
+            BlockPos origin = base.add(6 + i * 12, 0, 7);
+            feature.generate(world, world.getChunkManager().getChunkGenerator(), world.getRandom(), origin);
+            int n = 0;
+            for (BlockPos pos : BlockPos.iterate(origin.add(-6, -2, -6), origin.add(6, 3, 6))) {
+                BlockState state = world.getBlockState(pos);
+                if (state.isOf(Hogweed.BLOCK) && state.get(HogweedBlock.PART) == 0) n++;
+            }
+            check(n >= 10 && n <= 25, "очаг генерации: группа из " + n + " растений (10–25)");
+        }
+        look(player, Vec3d.ofCenter(base).add(30, 12, 26), Vec3d.ofCenter(base).add(30, 1, 7));
+    }
+
+    /** Under a roof a rosette never grows; the same rosette under open sky does. */
+    private static void shade(ServerWorld world) {
+        BlockPos base = field(world, plot.add(-60, 0, 60), 10, 4);
+        BlockPos dark = base.add(2, 0, 2), open = base.add(8, 0, 2);
+        for (BlockPos pos : BlockPos.iterate(dark.add(-2, 4, -2), dark.add(2, 4, 2))) world.setBlockState(pos, Blocks.STONE.getDefaultState(), Block.NOTIFY_ALL);
+        Hogweed.BLOCK.setStage(world, dark, HogweedBlock.ROSETTE);
+        Hogweed.BLOCK.setStage(world, open, HogweedBlock.ROSETTE);
+        HogweedConfig.get().villagersMow = false;
+        for (int i = 0; i < 120; i++) {
+            BlockState d = world.getBlockState(dark), o = world.getBlockState(open);
+            if (d.isOf(Hogweed.BLOCK)) d.randomTick(world, dark, world.getRandom());
+            if (o.isOf(Hogweed.BLOCK) && o.get(HogweedBlock.STAGE) < HogweedBlock.FLOWERING) o.randomTick(world, open, world.getRandom());
+        }
+        HogweedConfig.get().villagersMow = true;
+        BlockState d = world.getBlockState(dark), o = world.getBlockState(open);
+        check(d.isOf(Hogweed.BLOCK) && d.get(HogweedBlock.STAGE) == HogweedBlock.ROSETTE, "под крышей розетка не растёт");
+        check(o.isOf(Hogweed.BLOCK) && o.get(HogweedBlock.STAGE) > HogweedBlock.ROSETTE, "под открытым небом растёт (стадия " + (o.isOf(Hogweed.BLOCK) ? o.get(HogweedBlock.STAGE) : -1) + ")");
+    }
+
+    private static BlockPos village;
+    private static void villagers(ServerWorld world, ServerPlayerEntity player) {
+        village = field(world, plot.add(160, 0, 120), 12, 12).add(6, 0, 6);
+        for (int i = 0; i < 4; i++) Hogweed.BLOCK.setStage(world, village.add(i * 2 - 3, 0, 3), HogweedBlock.FLOWERING);
+        var villager = net.minecraft.entity.EntityType.VILLAGER.spawn(world, village.add(0, 0, -2), net.minecraft.entity.SpawnReason.COMMAND);
+        if (villager != null) villager.setAiDisabled(true);
+        look(player, Vec3d.ofCenter(village).add(0, 3, -8), Vec3d.ofCenter(village).add(0, 1, 2));
+    }
+    private static void villagersCheck(ServerWorld world) {
+        int left = 0;
+        for (int i = 0; i < 4; i++) {
+            BlockPos root = village.add(i * 2 - 3, 0, 3);
+            BlockState state = world.getBlockState(root);
+            if (state.isOf(Hogweed.BLOCK)) state.randomTick(world, root, world.getRandom());
+            if (world.getBlockState(root).isOf(Hogweed.BLOCK)) left++;
+        }
+        var dropped = world.getEntitiesByClass(ItemEntity.class, new Box(village).expand(10), e -> true);
+        int items = dropped.size();
+        dropped.forEach(e -> log("  предмет у деревни: " + e.getStack()));
+        check(left == 0 && items == 0, "житель скосил борщевик рядом с собой без дропа (осталось " + left + ", предметов " + items + ")");
+        world.getEntitiesByClass(net.minecraft.entity.passive.VillagerEntity.class, new Box(village).expand(10), e -> true).forEach(e -> e.discard());
+    }
+
+    private static BlockPos pasture;
+    private static void cows(ServerWorld world, ServerPlayerEntity player) {
+        pasture = field(world, plot.add(-60, 0, 120), 14, 14).add(7, 0, 7);
+        for (int i = 0; i < 3; i++) Hogweed.BLOCK.setStage(world, pasture.add(i * 3 - 3, 0, 4), HogweedBlock.BIG);
+        net.minecraft.entity.EntityType.COW.spawn(world, pasture.add(0, 0, -5), net.minecraft.entity.SpawnReason.COMMAND);
+        look(player, Vec3d.ofCenter(pasture).add(0, 6, -11), Vec3d.ofCenter(pasture).add(0, 0, 1));
+    }
+    private static void cowsCheck(ServerWorld world) {
+        int left = 0;
+        for (int i = 0; i < 3; i++) if (world.getBlockState(pasture.add(i * 3 - 3, 0, 4)).isOf(Hogweed.BLOCK)) left++;
+        check(left < 3, "корова подошла и съела борщевик (осталось " + left + " из 3)");
+    }
+
     private static void burns(ServerWorld world, ServerPlayerEntity player) {
         HogweedConfig config = HogweedConfig.get();
         BlockPos[] thicket = new BlockPos[1];
@@ -413,12 +534,24 @@ public final class HogweedSelfTest {
         }));
         steps.add(new Step(20, () -> {
             check(player.hasStatusEffect(Hogweed.SAP) && !player.hasStatusEffect(Hogweed.BURN), "в зарослях сок попал на кожу, ожога ещё нет");
-            player.teleport(world, thicket[0].getX() + 0.5, thicket[0].getY(), thicket[0].getZ() - 4.5, 0, 10);
+            check(player.getStatusEffect(Hogweed.SAP).shouldShowIcon() && player.getStatusEffect(Hogweed.SAP).getDuration() <= 60,
+                    "сок виден с отсчётом до ожога (" + player.getStatusEffect(Hogweed.SAP).getDuration() / 20 + " с)");
+            hud = true;
+            look(player, Vec3d.ofCenter(thicket[0]).add(0, 1.6, -4), Vec3d.ofCenter(thicket[0]).add(0, 1, 0));
             health[0] = player.getHealth();
         }));
+        steps.add(new Step(5, () -> screenshot = "sap-countdown"));
         steps.add(new Step(110, () -> {
             check(player.hasStatusEffect(Hogweed.BURN), "через 3 с на солнце появился ожог");
-            check(player.getHealth() < health[0], "ожог ранит (" + health[0] + " → " + player.getHealth() + ")");
+            check(player.getHealth() < health[0], "ожог ранит на солнце (" + health[0] + " → " + player.getHealth() + ")");
+            // Into the shade under a roof: the damage stops at once.
+            for (BlockPos pos : BlockPos.iterate(thicket[0].add(-3, 3, -9), thicket[0].add(3, 3, -6))) world.setBlockState(pos, Blocks.STONE.getDefaultState(), Block.NOTIFY_ALL);
+            player.teleport(world, thicket[0].getX() + 0.5, thicket[0].getY(), thicket[0].getZ() - 7.5, 0, 10);
+            health[0] = player.getHealth();
+        }));
+        steps.add(new Step(80, () -> {
+            check(player.hasStatusEffect(Hogweed.BURN) && player.getHealth() >= health[0], "в тени ожог не ранит (" + health[0] + " → " + player.getHealth() + ")");
+            player.teleport(world, thicket[0].getX() + 0.5, thicket[0].getY(), thicket[0].getZ() - 4.5, 0, 10);
             hud = true;
             look(player, Vec3d.ofCenter(thicket[0]).add(0, 1.6, -4), Vec3d.ofCenter(thicket[0]).add(0, 1, 0));
         }));
@@ -427,6 +560,7 @@ public final class HogweedSelfTest {
             hud = false;
             player.clearStatusEffects();
             player.setHealth(20);
+            health[0] = 20;
             world.setTimeOfDay(18000);
             walkInto(player, thicket[0]);
         }));
@@ -435,7 +569,7 @@ public final class HogweedSelfTest {
             player.teleport(world, thicket[0].getX() + 0.5, thicket[0].getY(), thicket[0].getZ() - 4.5, 0, 10);
         }));
         steps.add(new Step(110, () -> {
-            check(!player.hasStatusEffect(Hogweed.BURN), "ночью ожога нет");
+            check(player.getHealth() >= health[0], "ночью ожог не ранит (" + health[0] + " → " + player.getHealth() + ")");
             player.clearStatusEffects();
             world.setTimeOfDay(6000);
             walkInto(player, thicket[0]);
@@ -445,7 +579,7 @@ public final class HogweedSelfTest {
             player.teleport(world, thicket[0].getX() + 7.5, thicket[0].getY() - 1, thicket[0].getZ() + 0.5, 0, 10);
         }));
         steps.add(new Step(50, () -> {
-            check(!player.hasStatusEffect(Hogweed.SAP), "вода смыла сок");
+            check(!player.hasStatusEffect(Hogweed.SAP) && !player.hasStatusEffect(Hogweed.BURN), "вода смыла сок, ожога не будет");
             player.clearStatusEffects();
             player.equipStack(EquipmentSlot.CHEST, new ItemStack(Items.IRON_CHESTPLATE));
             player.equipStack(EquipmentSlot.LEGS, new ItemStack(Items.IRON_LEGGINGS));

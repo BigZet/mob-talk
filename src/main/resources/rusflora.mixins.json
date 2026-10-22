@@ -1,0 +1,7 @@
+{
+  "required": true,
+  "package": "io.github.rusflora.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": ["MobEntityAccessor"],
+  "injectors": { "defaultRequire": 1 }
+}

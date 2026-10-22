@@ -18,7 +18,14 @@ import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.state.StateManager;
+import net.minecraft.block.enums.DoubleBlockHalf;
+import net.minecraft.entity.passive.VillagerEntity;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.state.property.IntProperty;
+import net.minecraft.state.property.Properties;
+import net.minecraft.util.math.Box;
+import net.minecraft.world.Heightmap;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
@@ -35,6 +42,8 @@ import net.minecraft.world.WorldView;
  * throws them about, so a single plant turns a meadow into a thicket. Like the real one it flowers once and dies.
  * Cutting the stalk leaves the rosette, breaking the root without a shovel leaves a seedling: only digging it out kills it. */
 public class HogweedBlock extends Block implements Fertilizable {
+    /** Block updates for the client only: no neighbour or shape updates (which would break loose parts off as items), no drops. */
+    private static final int QUIET = NOTIFY_LISTENERS | SKIP_DROPS | FORCE_STATE;
     public static final int SEEDLING = 0, ROSETTE = 1, BIG = 2, FLOWERING = 3, SEEDING = 4, DRY = 5;
     public static final IntProperty STAGE = IntProperty.of("stage", 0, 5);
     public static final IntProperty PART = IntProperty.of("part", 0, 2);
@@ -112,16 +121,50 @@ public class HogweedBlock extends Block implements Fertilizable {
     @Override protected void randomTick(BlockState state, ServerWorld world, BlockPos pos, Random random) {
         HogweedConfig config = HogweedConfig.get();
         int stage = state.get(STAGE);
+        if (mowed(world, pos)) return;
         if (stage >= ROSETTE && stage <= SEEDING) smother(world, pos, stage == ROSETTE ? 1 : 2, random);
         if (stage >= SEEDING) scatterSeeds(world, pos, random, stage == SEEDING ? config.seedsPerTick : 1);
         if (stage == DRY) {
-            if (random.nextInt(14) == 0) world.setBlockState(pos, Blocks.AIR.getDefaultState(), NOTIFY_ALL);
+            if (random.nextInt(14) == 0) removePlant(world, pos);
             return;
         }
-        if (world.getLightLevel(pos.up()) < 9) return;
+        // It grows only by day and under open sky: at night, under a roof or a dense canopy it stands still, and a seedling
+        // in deep shade slowly dies.
+        if (!sunlit(world, pos, stage)) {
+            if (stage == SEEDLING && world.isDay() && random.nextInt(12) == 0) removePlant(world, pos);
+            return;
+        }
         // Chance per tick to move to the next stage: seedlings rise fast, a rosette takes its time, the flowers are short-lived.
         double chance = switch (stage) { case SEEDLING -> 0.25; case ROSETTE -> 0.12; case BIG -> 0.08; case FLOWERING -> 0.2; default -> 0.15; };
         if (random.nextDouble() < chance * config.growthSpeed) advance(world, pos, state);
+    }
+
+    /** Daylight with nothing solid above the plant: no roof, no tree crown (leaves count). Read from the heightmap, which is
+     * exact at once and cheaper than the light engine. */
+    public static boolean sunlit(ServerWorld world, BlockPos root, int stage) {
+        return world.isDay() && openSky(world, root);
+    }
+
+    public static boolean openSky(WorldView world, BlockPos pos) {
+        return world.getTopY(Heightmap.Type.MOTION_BLOCKING, pos.getX(), pos.getZ()) <= pos.getY();
+    }
+
+    /** Villagers keep their village clear: a plant with a villager within 16 blocks is mowed down to the ground. */
+    private boolean mowed(ServerWorld world, BlockPos pos) {
+        if (!HogweedConfig.get().villagersMow) return false;
+        if (world.getEntitiesByClass(VillagerEntity.class, new Box(pos).expand(16, 6, 16), LivingEntity::isAlive).isEmpty()) return false;
+        removePlant(world, pos);
+        world.playSound(null, pos, SoundEvents.ENTITY_SHEEP_SHEAR, SoundCategory.BLOCKS, 0.6f, 1.1f);
+        return true;
+    }
+
+    /** Takes the whole plant away from its root up, without dropping anything (eaten, mowed, rotted away). */
+    public void removePlant(WorldAccess world, BlockPos root) {
+        BlockState state = world.getBlockState(root);
+        int height = state.isOf(this) ? height(state.get(STAGE)) : 1;
+        for (int part = height - 1; part >= 0; part--)
+            if (world.getBlockState(root.up(part)).isOf(this)) world.setBlockState(root.up(part), Blocks.AIR.getDefaultState(), QUIET);
+        if (world instanceof ServerWorld server) ThicketLimits.removed(server, root);
     }
 
     /** Moves the plant to its next stage if there is room above. True if it changed. */
@@ -144,7 +187,8 @@ public class HogweedBlock extends Block implements Fertilizable {
         return (there.isAir() || there.isReplaceable() && !there.isOf(Hogweed.BLOCK)) && world.getFluidState(pos).isEmpty();
     }
 
-    /** One random spot in the shade around the plant loses its grass, flowers, sapling or crop. The bare ground is soon seeded. */
+    /** One random spot in the shade around the plant loses its grass, flowers, sapling or crop. The bare ground is soon seeded.
+     * Nothing is dropped: a spreading thicket must not litter the ground with items. */
     private void smother(ServerWorld world, BlockPos pos, int radius, Random random) {
         HogweedConfig config = HogweedConfig.get();
         if (!config.suppressPlants) return;
@@ -155,22 +199,33 @@ public class HogweedBlock extends Block implements Fertilizable {
             if (!world.isChunkLoaded(at)) return;
             BlockState there = world.getBlockState(at);
             if (there.isOf(this)) return;
-            if (there.isIn(BlockTags.SAPLINGS)) { world.setBlockState(at, Blocks.DEAD_BUSH.getDefaultState(), NOTIFY_ALL); return; }
+            if (there.isIn(BlockTags.SAPLINGS)) { world.setBlockState(at, Blocks.DEAD_BUSH.getDefaultState(), QUIET); return; }
             if (there.getBlock() instanceof CropBlock crop) {
                 if (!config.suppressCrops) return;
                 int age = crop.getAge(there);
-                world.setBlockState(at, age > 0 && random.nextBoolean() ? crop.withAge(age - 1) : Blocks.AIR.getDefaultState(), NOTIFY_ALL);
+                world.setBlockState(at, age > 0 && random.nextBoolean() ? crop.withAge(age - 1) : Blocks.AIR.getDefaultState(), QUIET);
                 return;
             }
             if (there.isOf(Blocks.SHORT_GRASS) || there.isOf(Blocks.FERN) || there.isOf(Blocks.TALL_GRASS) || there.isOf(Blocks.LARGE_FERN)
                     || there.isIn(BlockTags.SMALL_FLOWERS) || there.isIn(BlockTags.TALL_FLOWERS)) {
-                world.setBlockState(at, Blocks.AIR.getDefaultState(), NOTIFY_ALL);
+                clear(world, at, there);
                 return;
             }
             if (there.isOf(Blocks.GRASS_BLOCK) && world.getBlockState(at.up()).isAir() && random.nextInt(3) == 0) {
-                world.setBlockState(at, Blocks.DIRT.getDefaultState(), NOTIFY_ALL);
+                world.setBlockState(at, Blocks.DIRT.getDefaultState(), QUIET);
                 return;
             }
+        }
+    }
+
+    /** Removes a plant without drops; for a two-block plant the upper half goes first, so it never breaks off as an item. */
+    private static void clear(ServerWorld world, BlockPos at, BlockState there) {
+        if (there.contains(Properties.DOUBLE_BLOCK_HALF)) {
+            BlockPos lower = there.get(Properties.DOUBLE_BLOCK_HALF) == DoubleBlockHalf.LOWER ? at : at.down();
+            world.setBlockState(lower.up(), Blocks.AIR.getDefaultState(), QUIET);
+            world.setBlockState(lower, Blocks.AIR.getDefaultState(), QUIET);
+        } else {
+            world.setBlockState(at, Blocks.AIR.getDefaultState(), QUIET);
         }
     }
 
@@ -185,7 +240,12 @@ public class HogweedBlock extends Block implements Fertilizable {
             int dx = Math.round((random.nextFloat() - random.nextFloat()) * radius), dz = Math.round((random.nextFloat() - random.nextFloat()) * radius);
             if (dx == 0 && dz == 0) continue;
             BlockPos landing = surface(world, pos.add(dx, 0, dz));
-            if (landing != null && crowd(world, landing) < config.maxPlantsNearby) world.setBlockState(landing, getDefaultState(), NOTIFY_ALL);
+            if (landing == null || !openSky(world, landing) || crowd(world, landing) >= config.maxPlantsNearby || !ThicketLimits.allows(world, landing))
+                continue;
+            BlockState there = world.getBlockState(landing);
+            if (!there.isAir()) clear(world, landing, there);
+            world.setBlockState(landing, getDefaultState(), NOTIFY_LISTENERS);
+            ThicketLimits.added(world, landing);
         }
     }
 

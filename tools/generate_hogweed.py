@@ -343,15 +343,49 @@ def rosette(scale, tilt=45):
             *(leaf('#leaf', s, tilt, 13 * scale, 15 * scale, 0, 0.8) for s in 'nsew')]
 
 
-def umbel_top_parts(w=0.9):
+def ray(texture, side, y0, length, w=0.35):
+    """A thin side ray growing out of the stalk at 45 degrees towards side e or n; its tip is where a small umbel sits."""
+    el = {'from': [8 - w, y0, 8 - w], 'to': [8 + w, y0 + length, 8 + w],
+          'faces': {d: {'uv': [7, 0, 8, 16], 'texture': texture} for d in ['north', 'south', 'east', 'west']}}
+    el['rotation'] = {'origin': [8, y0, 8], 'axis': 'z' if side == 'e' else 'x', 'angle': -45}
+    return el
+
+
+def ray_tip(side, y0, length):
+    """Where a ray from ray() ends: (x, y, z)."""
+    d = length * math.sqrt(0.5)
+    return (8 + d, y0 + d, 8) if side == 'e' else (8, y0 + d, 8 - d)
+
+
+def small_umbel(side, y0, length, width=8):
+    """A small umbel on the tip of a side ray: a disc of umbellets and a low dome under it, both touching the ray tip."""
+    x, y, z = ray_tip(side, y0, length)
+    h = width * 12 / 32  # the dome texture rows over the plane width keep the pixels square
+    uv = [0, 0, 16, 6]
+    if side == 'e':
+        dome_el = {'from': [x - width / 2, y - h + 0.3, z], 'to': [x + width / 2, y + 0.3, z], 'shade': False,
+                   'faces': {'north': {'uv': uv, 'texture': '#dome'}, 'south': {'uv': uv, 'texture': '#dome'}}}
+    else:
+        dome_el = {'from': [x, y - h + 0.3, z - width / 2], 'to': [x, y + 0.3, z + width / 2], 'shade': False,
+                   'faces': {'east': {'uv': uv, 'texture': '#dome'}, 'west': {'uv': uv, 'texture': '#dome'}}}
+    return [ray('#stem', side, y0, length), dome_el, plane('#top', y + 0.3, -width / 2, width / 2, 0, (x, z), '#under')]
+
+
+def umbel_top_parts(w=0.9, lift=0.0, width=22):
     """Top block of a flowering, seeding or dry plant: the stalk ends in a wide flat-topped central umbel (rays fanning out
     under a flat disc of umbellets; from below one sees the spokes, not the flowers) with two smaller umbels on side rays
-    below it."""
+    that grow out of the stalk. lift and width vary per position (several blockstate variants), so the umbels of plants
+    standing side by side sit at different heights instead of cutting through each other."""
     uv = [0, 0, 16, 6]
-    return [stalk('#stem', 0, 7, w), upright('#dome', 'x', 26, 6.25, 16, uv), upright('#dome', 'z', 26, 6.25, 16, uv),
-            plane('#top', 15.2, -5, 21, under='#under'),
-            leaf('#dome', 'e', 45, 10, 4, 4, 2.5, uv), plane('#top', 7.4, -4, 4, 0, (14, 8), '#under'),
-            leaf('#dome', 'n', 45, 9, 4, 2, 2.5, uv), plane('#top', 5.4, -4, 4, 0, (8, 2.5), '#under')]
+    half = width / 2
+    top = 15.2 + lift
+    return [stalk('#stem', 0, top - 8.2, w),
+            upright('#dome', 'x', width, top - 9, top + 0.8, uv), upright('#dome', 'z', width, top - 9, top + 0.8, uv),
+            plane('#top', top, 8 - half, 8 + half, under='#under'),
+            *small_umbel('e', 1 + lift, 8.5), *small_umbel('n', 0 + lift, 7.8)]
+
+
+UMBEL_VARIANTS = [('', 0.0, 22), ('_b', -1.5, 20), ('_c', -3.0, 21)]
 
 
 def main():
@@ -385,20 +419,22 @@ def main():
         model(f'hogweed_{stage}_bottom', {'stem': 'hogweed_stem', 'leaf': f'hogweed_leaf{late}'}, [stalk('#stem', 0, 16, 0.9), *rosette(1.4)])
         model(f'hogweed_{stage}_middle', {'stem': 'hogweed_stem', 'leaf': f'hogweed_leaf{late}'},
               [stalk('#stem', 0, 16, 0.9), flat_leaf('#leaf', 'e', 9, 8, 4, 45), flat_leaf('#leaf', 'w', 7, 7, 11, 45)])
-        model(f'hogweed_{stage}_top', {'stem': 'hogweed_stem', 'dome': f'hogweed_{top}_side', 'top': f'hogweed_{top}_top',
-                                               'under': f'hogweed_{top}_under'}, umbel_top_parts())
+        for suffix, lift, width in UMBEL_VARIANTS:
+            model(f'hogweed_{stage}_top{suffix}', {'stem': 'hogweed_stem', 'dome': f'hogweed_{top}_side', 'top': f'hogweed_{top}_top',
+                                                   'under': f'hogweed_{top}_under'}, umbel_top_parts(0.9, lift, width))
     model('hogweed_dry_bottom', {'stem': 'hogweed_stem_dry', 'leaf': 'hogweed_dry_leaf'},
-          [stalk('#stem', 0, 16, 0.8), *(leaf('#leaf', s, 22.5, 7, -9, 11, 1.0) for s in 'nsew')])
+          [stalk('#stem', 0, 16, 0.8), *(leaf('#leaf', s, 22.5, 7, -9, 11, 0.7) for s in 'nsew')])
     model('hogweed_dry_middle', {'stem': 'hogweed_stem_dry', 'leaf': 'hogweed_dry_leaf'},
-          [stalk('#stem', 0, 16, 0.75), leaf('#leaf', 'e', 22.5, 6, -8, 12, 1.0)])
-    model('hogweed_dry_top', {'stem': 'hogweed_stem_dry', 'dome': 'hogweed_dry_side', 'top': 'hogweed_dry_top', 'under': 'hogweed_dry_under'},
-          umbel_top_parts(0.7))
+          [stalk('#stem', 0, 16, 0.75), leaf('#leaf', 'e', 22.5, 6, -8, 12, 0.6)])
+    for suffix, lift, width in UMBEL_VARIANTS:
+        model(f'hogweed_dry_top{suffix}', {'stem': 'hogweed_stem_dry', 'dome': 'hogweed_dry_side', 'top': 'hogweed_dry_top',
+                                           'under': 'hogweed_dry_under'}, umbel_top_parts(0.7, lift, width))
     write_json(ASSETS / 'models' / 'block' / 'hogweed_none.json', {'textures': {'particle': 'rusflora:block/hogweed_stem'}, 'elements': []})
     uv = [0, 0, 16, 6]
     # A cut dry umbel on its stalk, slender, with one small side umbel, so it reads as a dried flower and not a mushroom.
     model('dry_hogweed_umbel', {'stem': 'hogweed_stem_dry', 'dome': 'hogweed_dry_side', 'top': 'hogweed_dry_top', 'under': 'hogweed_dry_under'},
           [stalk('#stem', 0, 11, 0.5), upright('#dome', 'x', 12, 9.5, 14, uv), upright('#dome', 'z', 12, 9.5, 14, uv),
-           plane('#top', 13.8, 3, 13, under='#under'), leaf('#dome', 'e', 45, 6, 3, 6, 1, uv), plane('#top', 8.6, -2.5, 2.5, 0, (12.5, 8), '#under')])
+           plane('#top', 13.8, 3, 13, under='#under'), *small_umbel('e', 3, 6, 5)])
 
     names = {(0, 0): 'seedling', (1, 0): 'rosette', (2, 0): 'big_bottom'}
     for s, stage in [(3, 'flowering'), (4, 'seeding'), (5, 'dry')]:
@@ -406,7 +442,11 @@ def main():
     variants = {}
     for stage in range(6):
         for part in range(3):
-            variants[f'part={part},stage={stage}'] = {'model': f'rusflora:block/hogweed_{names.get((stage, part), "none")}'}
+            name = names.get((stage, part), 'none')
+            if name.endswith('_top'):  # one of the umbel variants, picked per position
+                variants[f'part={part},stage={stage}'] = [{'model': f'rusflora:block/hogweed_{name}{suffix}'} for suffix, _, _ in UMBEL_VARIANTS]
+            else:
+                variants[f'part={part},stage={stage}'] = {'model': f'rusflora:block/hogweed_{name}'}
     write_json(ASSETS / 'blockstates' / 'hogweed.json', {'variants': variants})
     write_json(ASSETS / 'blockstates' / 'dry_hogweed_umbel.json', {'variants': {'': {'model': 'rusflora:block/dry_hogweed_umbel'}}})
     for item in ['hogweed_seeds', 'hogweed_stalk']:
@@ -437,16 +477,16 @@ def main():
     write_json(MC / 'tags' / 'damage_type' / 'bypasses_armor.json', {'replace': False, 'values': ['rusflora:hogweed_burn']})
     write_json(MC / 'tags' / 'damage_type' / 'no_knockback.json', {'replace': False, 'values': ['rusflora:hogweed_burn']})
 
-    # World generation: rare patches in meadows and at forest edges, more on river banks.
+    # World generation: rare patches in oak and birch forests and on plains.
     write_json(DATA / 'worldgen' / 'configured_feature' / 'hogweed_patch.json', {'type': 'rusflora:hogweed_patch', 'config': {}})
     def placed(name, rarity, extra=()):
         mods = [{'type': 'minecraft:rarity_filter', 'chance': rarity}, {'type': 'minecraft:in_square'},
                 {'type': 'minecraft:surface_water_depth_filter', 'max_water_depth': 0},
                 {'type': 'minecraft:heightmap', 'heightmap': 'MOTION_BLOCKING_NO_LEAVES'}, *extra, {'type': 'minecraft:biome'}]
         write_json(DATA / 'worldgen' / 'placed_feature' / f'{name}.json', {'feature': 'rusflora:hogweed_patch', 'placement': mods})
-    placed('hogweed_meadow', 24)
-    placed('hogweed_forest_edge', 48)
-    placed('hogweed_river', 8, [{'type': 'rusflora:near_water', 'radius': 6}])
+    # Seven times rarer than at first, but each patch is a group of 10 to 25 plants; on plains four times rarer than in forests.
+    placed('hogweed_forest', 320)
+    placed('hogweed_plains', 1280)
 
     ru = {'block.rusflora.hogweed': 'Борщевик Сосновского', 'item.rusflora.hogweed_seeds': 'Семена борщевика',
           'item.rusflora.hogweed_stalk': 'Полый стебель борщевика', 'block.rusflora.dry_hogweed_umbel': 'Сухой зонтик борщевика',

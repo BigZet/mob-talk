@@ -12,5 +12,6 @@
     "main": ["io.github.rusflora.RusFlora"],
     "client": ["io.github.rusflora.client.RusFloraClient"]
   },
+  "mixins": ["rusflora.mixins.json"],
   "depends": { "fabricloader": ">=0.19.5", "minecraft": "1.21.1", "java": ">=21", "fabric-api": "*" }
 }

@@ -20,6 +20,14 @@ public final class HogweedConfig {
     public int seedsPerTick = 2;
     /** No new seedling where this many hogweed plants already stand in the 7x7 square around it. */
     public int maxPlantsNearby = 16;
+    /** At most this many hogweed plants in one chunk. */
+    public int maxPlantsPerChunk = 48;
+    /** At most this many in the 7x7 chunks (112 by 112 blocks) around a landing seed: a big thicket, but a bounded one. */
+    public int maxPlantsPerRegion = 400;
+    /** Villagers mow hogweed within 16 blocks of themselves, so villages stay clear. */
+    public boolean villagersMow = true;
+    /** Cows walk to hogweed within 10 blocks and eat it. */
+    public boolean cowsEat = true;
     /** Shade under the leaves smothers grass, flowers, ferns and saplings. */
     public boolean suppressPlants = true;
     /** The shade also withers crops on farmland. */
@@ -53,6 +61,8 @@ public final class HogweedConfig {
         spreadRadius = Math.clamp(spreadRadius, 1, 16);
         seedsPerTick = Math.clamp(seedsPerTick, 1, 8);
         maxPlantsNearby = Math.clamp(maxPlantsNearby, 1, 49);
+        maxPlantsPerChunk = Math.clamp(maxPlantsPerChunk, 1, 256);
+        maxPlantsPerRegion = Math.clamp(maxPlantsPerRegion, 1, 12544);
         burnDelaySeconds = Math.clamp(burnDelaySeconds, 0, 600);
         growthSpeed = Math.clamp(growthSpeed, 0.05, 20);
     }

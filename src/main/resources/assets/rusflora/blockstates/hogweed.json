@@ -33,26 +33,50 @@
     "part=1,stage=3": {
       "model": "rusflora:block/hogweed_flowering_middle"
     },
-    "part=2,stage=3": {
-      "model": "rusflora:block/hogweed_flowering_top"
-    },
+    "part=2,stage=3": [
+      {
+        "model": "rusflora:block/hogweed_flowering_top"
+      },
+      {
+        "model": "rusflora:block/hogweed_flowering_top_b"
+      },
+      {
+        "model": "rusflora:block/hogweed_flowering_top_c"
+      }
+    ],
     "part=0,stage=4": {
       "model": "rusflora:block/hogweed_seeding_bottom"
     },
     "part=1,stage=4": {
       "model": "rusflora:block/hogweed_seeding_middle"
     },
-    "part=2,stage=4": {
-      "model": "rusflora:block/hogweed_seeding_top"
-    },
+    "part=2,stage=4": [
+      {
+        "model": "rusflora:block/hogweed_seeding_top"
+      },
+      {
+        "model": "rusflora:block/hogweed_seeding_top_b"
+      },
+      {
+        "model": "rusflora:block/hogweed_seeding_top_c"
+      }
+    ],
     "part=0,stage=5": {
       "model": "rusflora:block/hogweed_dry_bottom"
     },
     "part=1,stage=5": {
       "model": "rusflora:block/hogweed_dry_middle"
     },
-    "part=2,stage=5": {
-      "model": "rusflora:block/hogweed_dry_top"
-    }
+    "part=2,stage=5": [
+      {
+        "model": "rusflora:block/hogweed_dry_top"
+      },
+      {
+        "model": "rusflora:block/hogweed_dry_top_b"
+      },
+      {
+        "model": "rusflora:block/hogweed_dry_top_c"
+      }
+    ]
   }
 }

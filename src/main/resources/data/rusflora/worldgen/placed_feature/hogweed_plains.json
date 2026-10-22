@@ -3,7 +3,7 @@
   "placement": [
     {
       "type": "minecraft:rarity_filter",
-      "chance": 8
+      "chance": 1280
     },
     {
       "type": "minecraft:in_square"
@@ -15,10 +15,6 @@
     {
       "type": "minecraft:heightmap",
       "heightmap": "MOTION_BLOCKING_NO_LEAVES"
-    },
-    {
-      "type": "rusflora:near_water",
-      "radius": 6
     },
     {
       "type": "minecraft:biome"

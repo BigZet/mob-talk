@@ -9,7 +9,7 @@ import net.minecraft.world.gen.feature.DefaultFeatureConfig;
 import net.minecraft.world.gen.feature.Feature;
 import net.minecraft.world.gen.feature.util.FeatureContext;
 
-/** A young invasion focus as world generation leaves it: a few to a dozen plants of mixed ages within a few blocks, rosettes
+/** An invasion focus as world generation leaves it: 10 to 25 plants of mixed ages within six blocks, rosettes
  * around a core of flowering plants and dry stalks from the year before. From here it spreads on its own. */
 public final class HogweedPatchFeature extends Feature<DefaultFeatureConfig> {
     public HogweedPatchFeature() { super(DefaultFeatureConfig.CODEC); }
@@ -18,11 +18,13 @@ public final class HogweedPatchFeature extends Feature<DefaultFeatureConfig> {
         StructureWorldAccess world = context.getWorld();
         Random random = context.getRandom();
         BlockPos origin = context.getOrigin();
-        int plants = 4 + random.nextInt(9), placed = 0;
-        for (int i = 0; i < plants * 2 && placed < plants; i++) {
-            int spread = i < 3 ? 1 : 4;
+        int plants = 10 + random.nextInt(16), placed = 0;
+        for (int i = 0; i < plants * 3 && placed < plants; i++) {
+            int spread = i < 3 ? 1 : i < 12 ? 4 : 6;
             int x = origin.getX() + random.nextBetween(-spread, spread), z = origin.getZ() + random.nextBetween(-spread, spread);
             BlockPos root = new BlockPos(x, world.getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, x, z), z);
+            // Not under a tree crown: there it would never grow.
+            if (world.getTopY(Heightmap.Type.MOTION_BLOCKING, x, z) != root.getY()) continue;
             BlockState ground = world.getBlockState(root.down());
             if (!HogweedBlock.isSoil(ground)) continue;
             int stage = stage(random, i < 3);
