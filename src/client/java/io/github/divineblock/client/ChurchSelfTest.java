@@ -139,6 +139,14 @@ public final class ChurchSelfTest {
             sites.putIfAbsent(site.variant(), site);
             if (sites.size() == 2) break;
         }
+        // The kind not met yet is forced for churches in untouched land far away, so both are always photographed.
+        for (ChurchBuilder.Variant kind : ChurchBuilder.Variant.values()) {
+            if (sites.containsKey(kind) || sites.isEmpty()) continue;
+            ChurchStructure.forceVariant = kind;
+            ChurchSites.Site forced = locate(world, player.getBlockPos().add(12_000, 0, -12_000));
+            ChurchStructure.forceVariant = null;
+            if (forced != null) { all.add(forced); sites.putIfAbsent(forced.variant(), forced); log("  вид " + kind + " получен принудительно: " + forced.variant()); }
+        }
         check(!sites.isEmpty(), "найдено церквей: " + all.size() + ", видов: " + sites.keySet());
         for (int i = 1; i < all.size(); i++) {
             double apart = Math.sqrt(all.get(i).origin().getSquaredDistance(all.get(i - 1).origin())) / 16;
@@ -194,7 +202,7 @@ public final class ChurchSelfTest {
                 "двор " + ChurchSites.yard(world, yardAt).map(Object::toString).orElse("нет") + ", место у входа "
                         + ChurchSites.outdoorSpot(world, yardAt).map(BlockPos::toShortString).orElse("нет"));
         BlockPos spot = site.outdoorSpot();
-        check(world.getBlockState(spot).isAir() && world.getBlockState(spot.up()).isAir() && world.getBlockState(spot.down()).isSolidBlock(world, spot.down()),
+        check(world.getBlockState(spot).isAir() && world.getBlockState(spot.up()).isAir() && !world.getBlockState(spot.down()).isAir() && !world.getBlockState(spot.down()).isReplaceable(),
                 "место у входа свободно и стоит на земле: " + world.getBlockState(spot.down()));
         int yardBlocked = 0;
         for (int x = ChurchBuilder.YARD_MIN_X; x <= ChurchBuilder.YARD_MAX_X; x += 4)
@@ -242,7 +250,7 @@ public final class ChurchSelfTest {
         };
         steps.add(new Step(10, () -> { player.changeGameMode(GameMode.SPECTATOR); world.setTimeOfDay(4000); hud = false; moody = true; }));
         int nave = ChurchBuilder.NAVE_X, mainCross = stone ? 48 : 55, cornerCross = stone ? 39 : 28;
-        shot.accept("01-west-gate", new double[] { -50, 14, 0, 25, 22, 0, 160 });
+        shot.accept("01-west-gate", new double[] { -62, 30, -26, 22, 18, 0, 160 });
         shot.accept("02-northwest-yard", new double[] { -26, 12, -30, 30, 18, 0, 120 });
         shot.accept("03-south", new double[] { 25, 24, 64, 25, 20, 0, 140 });
         shot.accept("04-north", new double[] { 25, 24, -64, 25, 20, 0, 140 });

@@ -167,7 +167,8 @@ public final class ChurchBuilder {
         if (!stone) return y <= 2 ? Blocks.DARK_OAK_PLANKS.getDefaultState() : Blocks.STRIPPED_SPRUCE_LOG.getDefaultState().with(PillarBlock.AXIS, along);
         if (y <= 2) return Blocks.DARK_OAK_PLANKS.getDefaultState();
         if (y % 6 == 3) return Blocks.YELLOW_TERRACOTTA.getDefaultState(); // ochre bands between the fresco registers
-        return pick(Blocks.WHITE_TERRACOTTA, 6, Blocks.LIGHT_BLUE_TERRACOTTA, 3, Blocks.TERRACOTTA, 2, Blocks.RED_TERRACOTTA, 1);
+        if (y % 6 == 0) return Blocks.LIGHT_BLUE_TERRACOTTA.getDefaultState();
+        return pick(Blocks.SMOOTH_SANDSTONE, 12, Blocks.WHITE_TERRACOTTA, 3, Blocks.TERRACOTTA, 1);
     }
     /** The cream carved trim of the brick church (pilasters, cornices, frames), dark oak in the log church. */
     private BlockState accent() { return stone ? Blocks.SMOOTH_SANDSTONE.getDefaultState() : Blocks.STRIPPED_DARK_OAK_LOG.getDefaultState(); }
@@ -486,8 +487,6 @@ public final class ChurchBuilder {
         for (int z : new int[] { -10, 10 })
             for (int x : new int[] { 37, 38, 46 }) {
                 canvas.set(x, 4, z, icon(saints[i++ % saints.length], z < 0 ? Direction.SOUTH : Direction.NORTH));
-                canvas.set(x, 5, z, accent());
-                canvas.set(x, 3, z, accent());
             }
         for (int z : new int[] { -9, 9 }) canvas.set(37, 1, z, ChurchBlocks.CANDLE_STAND.getDefaultState());
         // Benches for the old and the weak, only along the walls.

@@ -265,11 +265,19 @@ def face(tex, uv=None, cull=None):
 
 def box(frm, to, tex, rot=None, faces=("north", "south", "east", "west", "up", "down"), down=None, up=None, uvs=None):
     e = {"from": [round(v, 3) for v in frm], "to": [round(v, 3) for v in to], "faces": {}}
+    span = [abs(to[i] - frm[i]) for i in range(3)]
+    dims = {"north": (span[0], span[1]), "south": (span[0], span[1]), "east": (span[2], span[1]), "west": (span[2], span[1]),
+            "up": (span[0], span[2]), "down": (span[0], span[2])}
     for f in faces:
         t = tex
         if f == "down" and down: t = down
         if f == "up" and up: t = up
-        e["faces"][f] = face(t, uvs.get(f) if uvs else None)
+        # Always an explicit UV inside the texture: the automatic one runs off the sprite for parts outside the block.
+        uv = uvs.get(f) if uvs and uvs.get(f) else None
+        if uv is None:
+            a, b = dims[f]
+            uv = [0, 0, 16, round(min(16, max(1, b)), 3)] if t == "#band" else [0, 0, round(min(16, max(0.5, a)), 3), round(min(16, max(0.5, b)), 3)]
+        e["faces"][f] = face(t, uv)
     if rot: e["rotation"] = rot
     return e
 

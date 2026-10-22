@@ -6,6 +6,7 @@ import static io.github.divineblock.world.ChurchBuilder.YARD_MIN_X;
 import static io.github.divineblock.world.ChurchBuilder.YARD_MIN_Z;
 
 import net.minecraft.block.BlockState;
+import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.LanternBlock;
 import net.minecraft.block.SlabBlock;
@@ -56,6 +57,28 @@ public final class ChurchYard extends StructurePiece {
     @Override public void generate(StructureWorldAccess world, StructureAccessor structures, ChunkGenerator generator, Random random,
                                    BlockBox chunkBox, ChunkPos chunk, BlockPos pivot) {
         draw(ChurchPiece.canvas(world, chunkBox, frame, random));
+        sweep(world, chunkBox);
+    }
+
+    /** Trees decorated in a neighbouring chunk after this one was drawn reach into the yard and the church with their crowns:
+     * every chunk of the yard sweeps leaves (and loose tree trunks outside the church, and the snow on them) out of itself
+     * and its eight neighbours, which world generation lets it touch. */
+    private void sweep(StructureWorldAccess world, BlockBox chunkBox) {
+        BlockBox yard = open(frame), church = ChurchPiece.box(frame);
+        int floor = frame.origin().getY();
+        int x0 = Math.max(yard.getMinX(), chunkBox.getMinX() - 16), x1 = Math.min(yard.getMaxX(), chunkBox.getMaxX() + 16);
+        int z0 = Math.max(yard.getMinZ(), chunkBox.getMinZ() - 16), z1 = Math.min(yard.getMaxZ(), chunkBox.getMaxZ() + 16);
+        BlockPos.Mutable at = new BlockPos.Mutable();
+        for (int x = x0; x <= x1; x++)
+            for (int z = z0; z <= z1; z++)
+                for (int y = floor; y <= floor + 44; y++) {
+                    at.set(x, y, z);
+                    BlockState state = world.getBlockState(at);
+                    if (state.isAir()) continue;
+                    boolean tree = state.isIn(BlockTags.LEAVES) || state.isOf(Blocks.VINE)
+                            || (state.isIn(BlockTags.LOGS) || state.isOf(Blocks.SNOW) && y > floor) && !church.contains(at);
+                    if (tree) world.setBlockState(at, Blocks.AIR.getDefaultState(), 2);
+                }
     }
 
     static void draw(ChurchBuilder.Canvas canvas) {

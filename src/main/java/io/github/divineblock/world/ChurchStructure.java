@@ -41,6 +41,9 @@ public final class ChurchStructure extends Structure {
 
     public ChurchStructure(Config config) { super(config); }
 
+    /** The church self-test's switch: churches placed while it is set are all of this kind. Never set in play. */
+    public static volatile ChurchBuilder.Variant forceVariant;
+
     /** Points sampled for the height in church coordinates: the church's corners and middle, then a 40 x 60 churchyard ground
      * beyond it (dry, not too steep), room for a large cemetery growing away from the church. */
     private static final int[][] CHURCH_SAMPLES = { { -6, -12 }, { 62, -12 }, { -6, 12 }, { 62, 12 }, { 42, 0 }, { 6, 0 }, { 21, 0 } },
@@ -86,7 +89,8 @@ public final class ChurchStructure extends Structure {
             if (!biomeAt(context, frame.world(point[0], 0, point[1])).isIn(BIOMES)) return Optional.empty();
         RegistryEntry<Biome> biome = biomeAt(context, center);
         boolean north = biome.isIn(BiomeTags.IS_TAIGA) || biome.getKey().map(key -> key.getValue().getPath().matches(".*snowy.*")).orElse(false);
-        ChurchBuilder.Variant variant = context.random().nextFloat() < (north ? 0.7f : 0.25f) ? ChurchBuilder.Variant.WOOD : ChurchBuilder.Variant.STONE;
+        ChurchBuilder.Variant chance = context.random().nextFloat() < (north ? 0.7f : 0.25f) ? ChurchBuilder.Variant.WOOD : ChurchBuilder.Variant.STONE;
+        ChurchBuilder.Variant variant = forceVariant != null ? forceVariant : chance;
         long seed = context.random().nextLong();
         // The churchyard was started at the ground by its entrance; its gate belongs one under the church floor.
         int lift = floor - 1 - groundAtEntrance;
