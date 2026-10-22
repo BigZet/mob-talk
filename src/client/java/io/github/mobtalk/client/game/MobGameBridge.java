@@ -28,6 +28,12 @@ public final class MobGameBridge {
     public final ConversationStore memory;
     public volatile MobTalkConfig config;
     final MobActionController actions;
+    /** Who saw the player last and when: a mob that loses sight for a moment (a tree, a corner) keeps its attention (Grace). */
+    private final io.github.mobtalk.core.Grace<UUID> sight = new io.github.mobtalk.core.Grace<>();
+    /** The mob sees the player now, or saw them within voiceGraceSeconds. Server thread. */
+    public boolean sees(MobEntity mob, net.minecraft.entity.LivingEntity player) {
+        return sight.hold(mob.getUuid(), mob.canSee(player), System.currentTimeMillis(), Math.max(0, config.voiceGraceSeconds) * 1000L);
+    }
     final VillagerBargaining bargaining;
     final MobTrading trading;
     /** Spoken promises of villagers as one-use rows in their vanilla window. */
@@ -189,7 +195,7 @@ public final class MobGameBridge {
                 bridge.memory.recordAction(card.id(), ActionIntent.none());
         if (server.isStopped()) return CompletableFuture.completedFuture(null);
         CompletableFuture<Void> done = new CompletableFuture<>();
-        server.execute(() -> { bridge.actions.clearRuntime(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
+        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
         return done;
     }
     public static MobGameBridge forEntity(Entity entity) {
@@ -319,7 +325,7 @@ public final class MobGameBridge {
             List<MobEntity> around = world.getEntitiesByClass(MobEntity.class, player.getBoundingBox().expand(range + 4),
                     mob -> !mob.getUuid().equals(speakerId) && mob.isAlive() && !mob.isRemoved() && !mob.isAiDisabled()
                             && (mob.squaredDistanceTo(player) <= range * range || speaker != null && mob.squaredDistanceTo(speaker) <= range * range)
-                            && mob.squaredDistanceTo(player) <= config.maxDistance * config.maxDistance && mob.canSee(player));
+                            && mob.squaredDistanceTo(player) <= config.maxDistance * config.maxDistance && sees(mob, player));
             around.sort(Comparator.comparingInt((MobEntity mob) -> memory.known(mob.getUuid()) ? 0 : 1).thenComparingDouble(player::squaredDistanceTo));
             return around.stream().limit(limit).map(Entity::getUuid).toList();
         });

@@ -215,7 +215,7 @@ final class FriendActionController {
     private void hold(Duty duty, boolean afterBrain) {
         MobEntity mob = duty.mob;
         ServerPlayerEntity player = player(duty.playerId);
-        if (player != null && player.getWorld() == mob.getWorld() && mob.squaredDistanceTo(player) <= LOOK_RANGE * LOOK_RANGE && mob.canSee(player)) {
+        if (player != null && player.getWorld() == mob.getWorld() && mob.squaredDistanceTo(player) <= LOOK_RANGE * LOOK_RANGE && bridge.sees(mob, player)) {
             mob.getLookControl().lookAt(player, 30f, 30f);
             if (MobActionController.registered(mob, MemoryModuleType.LOOK_TARGET))
                 mob.getBrain().remember(MemoryModuleType.LOOK_TARGET, new EntityLookTarget(player, true), 20);

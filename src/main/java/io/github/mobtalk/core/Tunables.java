@@ -50,6 +50,10 @@ public final class Tunables {
         decimal("maxDistance", t, "reply", 2, 64, 0.5, c -> c.maxDistance, (c, x) -> c.maxDistance = x);
         integer("maxReplyWords", t, "reply", 5, 120, 1, c -> c.maxReplyWords, (c, x) -> c.maxReplyWords = x);
         integer("maxRecordingSeconds", v, "recording", 1, 15, 1, c -> c.maxRecordingSeconds, (c, x) -> c.maxRecordingSeconds = x);
+        // Голос из моба: затухание по расстоянию и отсрочка потери из виду.
+        decimal("voiceFullRange", v, "voiceDistance", 1, 16, 0.5, c -> c.voiceFullRange, (c, x) -> c.voiceFullRange = x);
+        decimal("voiceSilentRange", v, "voiceDistance", 8, 96, 1, c -> c.voiceSilentRange, (c, x) -> c.voiceSilentRange = x);
+        integer("voiceGraceSeconds", v, "voiceDistance", 0, 20, 1, c -> c.voiceGraceSeconds, (c, x) -> c.voiceGraceSeconds = x);
         integer("whisperBeamSize", v, "whisper", 1, 10, 1, c -> c.whisperBeamSize, (c, x) -> c.whisperBeamSize = x);
         integer("whisperVadSilenceMs", v, "whisper", 150, 1500, 1, c -> c.whisperVadSilenceMs, (c, x) -> c.whisperVadSilenceMs = x);
         integer("whisperCpuThreads", v, "whisper", 1, 16, 1, c -> c.whisperCpuThreads, (c, x) -> c.whisperCpuThreads = x);

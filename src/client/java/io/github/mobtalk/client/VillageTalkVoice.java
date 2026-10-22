@@ -26,6 +26,8 @@ final class VillageTalkVoice {
     VillageTalkVoice(MobTalkClient owner) { this.owner = owner; }
 
     private long busySince, busyLogged;
+    /** Speakers last within earshot: a short absence keeps the talk (voiceGraceSeconds). */
+    private final io.github.mobtalk.core.Grace<java.util.UUID> earshot = new io.github.mobtalk.core.Grace<>();
 
     /** A talk is being written or played. */
     boolean active() { return writing || lines != null; }
@@ -61,6 +63,8 @@ final class VillageTalkVoice {
         VillageChatter.Cue cue = game.talk.pollTalk();
         if (cue == null) return;
         if (!near(cue.input().a()) || !near(cue.input().b())) { LOGGER.info("Mob Talk: small talk of {} and {} dropped: out of earshot", cue.input().a().name(), cue.input().b().name()); return; }
+        long seen = System.currentTimeMillis();
+        earshot.hold(cue.input().a().id(), true, seen, owner.graceMillis()); earshot.hold(cue.input().b().id(), true, seen, owner.graceMillis());
         long generation = owner.generation();
         Supplier<ConversationEngine> engines = owner.engineSupplier();
         writing = true; game.talk.talking = true;
@@ -88,7 +92,11 @@ final class VillageTalkVoice {
         if (next >= lines.size()) { lines = null; input = null; return; }
         ConversationEngine.ChatterLine line = lines.get(next);
         MobEntity speaker = MobSpeechSound.find(owner.world, line.speaker());
-        if (speaker == null || owner.client.player.squaredDistanceTo(speaker) > range() * range()) { cancel(); return; }
+        if (speaker == null) { cancel(); return; } // Died or unloaded: the talk is over.
+        // Out of earshot for a moment (a tree, a corner, a step back) the talk waits; only after the grace is it over.
+        boolean near = owner.client.player.squaredDistanceTo(speaker) <= range() * range();
+        if (!earshot.hold(line.speaker(), near, System.currentTimeMillis(), owner.graceMillis())) { cancel(); return; }
+        if (!near) return;
         next++;
         if (!recorded) {
             recorded = true;
@@ -133,6 +141,9 @@ final class VillageTalkVoice {
     private static void discard(List<ConversationEngine.ChatterLine> lines, int from) {
         for (int i = from; i < lines.size(); i++) if (lines.get(i).audio() != null) lines.get(i).audio().close();
     }
+    /** Self-test: a talk already written (synthetic voices), voiced by the same path as a real one. */
+    void playForTest(List<ConversationEngine.ChatterLine> written) { cancel(); lines = written; input = null; next = 0; recorded = true; }
+
     /** The player spoke or the world changed: the talk still on is over, its unplayed voices are dropped. */
     void cancel() {
         if (lines != null) discard(lines, next);

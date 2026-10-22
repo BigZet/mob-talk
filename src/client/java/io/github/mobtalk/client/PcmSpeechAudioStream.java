@@ -8,11 +8,14 @@ import java.nio.ByteBuffer;
 /** ElevenLabs PCM 24 kHz played by Minecraft's sound executor while the rest of it still downloads. */
 final class PcmSpeechAudioStream implements AudioStream {
     private static final AudioFormat FORMAT = new AudioFormat(24_000, 16, 1, true, false);
-    // Small chunks keep several OpenAL buffers queued, so each tick refills them instead of one long buffer draining.
-    private static final int CHUNK = 4_800, SILENCE = 960;
+    // Several OpenAL buffers stay queued and each tick refills them. Half a second per buffer (up to two seconds queued): with 0.1 s
+    // buffers a stall of the game thread over 0.4 s (death screen, respawn, chunk loading) starved the source, OpenAL stopped it and
+    // the line ended mid-word as if it were over.
+    private static final int CHUNK = 24_000, SILENCE = 960;
     private final SpeechStream speech;
     private int offset;
     private ByteBuffer buffer;
+    private volatile boolean ended;
 
     PcmSpeechAudioStream(SpeechStream speech) { this.speech = speech; }
     @Override public AudioFormat getFormat() { return FORMAT; }
@@ -23,7 +26,7 @@ final class PcmSpeechAudioStream implements AudioStream {
         if (buffer == null) buffer = ByteBuffer.allocateDirect(CHUNK);
         buffer.clear();
         int amount = speech.read(offset, buffer, max);
-        if (amount < 0) return null;
+        if (amount < 0) { ended = true; return null; }
         if (amount == 0) {
             // The download is behind playback: 20 ms of silence keeps the source alive instead of ending the speech.
             for (int i = 0; i < SILENCE; i++) buffer.put((byte) 0);
@@ -33,5 +36,7 @@ final class PcmSpeechAudioStream implements AudioStream {
         return buffer;
     }
 
+    /** The whole speech was read out (it ended by itself, not cut). */
+    boolean ended() { return ended; }
     @Override public void close() { speech.close(); buffer = null; }
 }
