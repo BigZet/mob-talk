@@ -36,10 +36,11 @@ function Get-NewestJar([string]$Dir, [string]$Pattern) {
 }
 
 # Our repos besides Mob Talk, each with its jar pattern.
-$script:OwnRepos = @(@('divine-block', 'divineblock-*.jar'), @('rusflora', 'rusflora-*.jar'), @('parrot-cages', 'parrotcages-*.jar'))
+$script:OwnRepos = @(@('divine-block', 'divineblock-*.jar'), @('rusflora', 'rusflora-*.jar'), @('parrot-cages', 'parrotcages-*.jar'),
+    @('minecraft-parrot', 'viewerparrots-*.jar'))
 
 # Builds (unless -NoBuild) and collects every jar of the pack: Mob Talk from $Repo (this checkout), our other mods from
-# their repos' main, Viewer Parrots, CTOV + Lithostitched, the video mods and Fabric API as original jars from Prism.
+# their repos' main (Viewer Parrots too), CTOV + Lithostitched, the video mods and Fabric API as original jars from Prism.
 # Returns @{ Jars = FileInfo[]; Manifest = string[] } — the manifest lines name the commits (pack-manifest.txt format).
 function Get-PackJars {
     param([Parameter(Mandatory)][string]$Repo, [Parameter(Mandatory)][string]$Repos, [Parameter(Mandatory)][string]$Work,
@@ -61,8 +62,8 @@ function Get-PackJars {
         }
         $jars += Get-NewestJar "$dir\build\libs" $r[1]
     }
+    # Viewer Parrots builds from its repo's main like our other mods (Twitch guest mode for the dedicated server, 22 October).
     $third = @(
-        (Get-NewestJar "$Instances\parrot-cages-test\minecraft\mods" 'viewerparrots-*.jar'),
         (Get-NewestJar "$Instances\mob-talk-ctov\minecraft\mods" 'ctov-*.jar'),
         (Get-NewestJar "$Instances\mob-talk-ctov\minecraft\mods" 'lithostitched-*.jar')) +
         @(Get-ChildItem "$Instances\$Base\minecraft\mods\*.jar" | Where-Object { $_.Name -notmatch '^(mobtalk|viewerparrots|divineblock|rusflora|parrotcages|selftest-guard)' })
