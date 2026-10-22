@@ -63,6 +63,7 @@ public final class AdminWeb {
         sources.add("admin", AdminSettings.source(settings, settingsFile, history));
         Backups backups = new Backups(hooks.world(), gameDir.resolve("backups"), hooks.saver(), System::currentTimeMillis, zone);
         api = new AdminApi(new AdminApi.Parts(history, metrics, latency, journal, errors, sources, hooks.game(), backups,
+                new Waypoints(gameDir.resolve("config").resolve("mobtalk-waypoints.json")),
                 gameDir.resolve("logs").resolve("latest.log"), hooks.limits(),
                 () -> Json.obj("bind", settings.bind, "port", settings.port, "fingerprint", fingerprint), System::currentTimeMillis));
         auth = new AdminAuth(settings.passwordHash, System::currentTimeMillis);

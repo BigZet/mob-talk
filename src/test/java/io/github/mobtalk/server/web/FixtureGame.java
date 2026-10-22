@@ -175,6 +175,59 @@ public final class FixtureGame implements GameView {
         return Json.ok(uuid == null ? "Стример снят" : "Стример назначен");
     }
 
+    /** Where each fixture player stands: [x, y, z, yaw]; online ones wander a little with every look. */
+    private final Map<String, double[]> places = new java.util.concurrent.ConcurrentHashMap<>(Map.of(
+            "461baa90-bc98-4f86-b889-50f67d759b9a", new double[]{12.5, 64, -301.2, 90},
+            "2f83646d-2eeb-4a75-8358-03e02e2ef99f", new double[]{40.0, 70, -280.0, 180},
+            "51a7640e-4899-4753-b8d2-90b0c715341b", new double[]{-120.0, 63, 15.5, 0}));
+    private final Map<String, String> worlds = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private JsonObject place(JsonObject player, boolean drift) {
+        String uuid = Json.string(player, "uuid");
+        double[] at = places.computeIfAbsent(uuid, k -> new double[]{0, 64, 0, 0});
+        boolean online = player.get("online").getAsBoolean();
+        if (drift && online) {
+            double angle = Math.toRadians(at[3]);
+            at[0] += Math.cos(angle) * 0.6; at[2] += Math.sin(angle) * 0.6; at[3] = (at[3] + 7) % 360;
+        }
+        return Json.obj("player", Json.player(UUID.fromString(uuid), Json.string(player, "name")), "online", online,
+                "world", worlds.getOrDefault(uuid, "minecraft:overworld"), "x", Math.round(at[0] * 10) / 10.0, "y", at[1], "z", Math.round(at[2] * 10) / 10.0,
+                "yaw", at[3], "biome", at[2] < -290 ? "minecraft:birch_forest" : "minecraft:plains", "health", 18, "food", 20, "gamemode", "survival");
+    }
+
+    @Override public synchronized JsonObject positions() {
+        List<JsonObject> list = new ArrayList<>();
+        for (JsonElement p : players) if (p.getAsJsonObject().get("online").getAsBoolean()) list.add(place(p.getAsJsonObject(), true));
+        return Json.obj("t", clock.getAsLong(), "players", list);
+    }
+
+    @Override public synchronized JsonObject position(UUID uuid) {
+        JsonObject player = find(players, uuid);
+        if (player == null) return null;
+        JsonObject place = place(player, false);
+        place.add("respawn", Json.obj("world", "minecraft:overworld", "x", 0, "y", 70, "z", 0));
+        place.addProperty("t", player.get("online").getAsBoolean() ? clock.getAsLong() : player.get("lastSeen").getAsLong());
+        return place;
+    }
+
+    @Override public synchronized JsonObject teleport(UUID uuid, JsonObject target) {
+        JsonObject player = find(players, uuid);
+        if (player == null) throw ApiException.notFound("Нет такого игрока.");
+        if (!player.get("online").getAsBoolean()) throw ApiException.conflict(Json.string(player, "name") + " не в игре.");
+        double[] at = places.get(uuid.toString());
+        if (target.has("toPlayer")) {
+            double[] other = places.get(Json.string(target, "toPlayer"));
+            if (other == null) throw ApiException.notFound("Нет такого игрока.");
+            System.arraycopy(other, 0, at, 0, 3);
+        } else if (target.has("to")) {
+            at[0] = 0; at[1] = 70; at[2] = 0;
+        } else {
+            worlds.put(uuid.toString(), Json.string(target, "world"));
+            at[0] = target.get("x").getAsDouble(); at[1] = target.get("y").getAsDouble(); at[2] = target.get("z").getAsDouble();
+        }
+        return Json.ok(Json.string(player, "name") + " перемещён");
+    }
+
     @Override public JsonObject mobs(String village, String query, String cursor, int limit) {
         List<JsonObject> items = new ArrayList<>();
         String q = query == null ? null : query.toLowerCase(Locale.ROOT);

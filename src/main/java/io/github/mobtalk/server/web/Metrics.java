@@ -62,17 +62,18 @@ public final class Metrics {
     /** Reads what earlier runs kept and rolls up any five minutes they left open. Call once, off the game thread. */
     public synchronized void load() {
         long now = clock.getAsLong() / 1000;
+        List<MetricsFile.Point> stored = new ArrayList<>();
         try {
-            for (Path file : files(dir.resolve("raw"))) for (MetricsFile.Point point : MetricsFile.read(file)) if (point.t() >= now - RAW_KEEP) raw.add(point);
+            for (Path file : files(dir.resolve("raw"))) stored.addAll(MetricsFile.read(file));
             for (Path file : files(dir)) for (MetricsFile.Point point : MetricsFile.read(file)) if (point.t() >= now - ROLLUP_KEEP) rollups.add(point);
         } catch (IOException failure) { log.accept("метрики: не прочитались: " + failure.getMessage()); }
-        List<MetricsFile.Point> sortedRaw = new ArrayList<>(raw);
-        sortedRaw.sort((a, b) -> Long.compare(a.t(), b.t()));
-        raw.clear(); raw.addAll(sortedRaw);
+        stored.sort((a, b) -> Long.compare(a.t(), b.t()));
+        for (MetricsFile.Point point : stored) if (point.t() >= now - RAW_KEEP) raw.add(point);
         rollups.sort((a, b) -> Long.compare(a.t(), b.t()));
+        // Five-minute buckets the last run did not close (it stopped mid-bucket) are rolled up from its raw points.
         long lastRollup = rollups.isEmpty() ? Long.MIN_VALUE : rollups.get(rollups.size() - 1).t();
         List<MetricsFile.Point> closed = new ArrayList<>();
-        for (MetricsFile.Point point : raw) {
+        for (MetricsFile.Point point : stored) {
             long start = point.t() - Math.floorMod(point.t(), ROLLUP);
             if (start <= lastRollup) continue;
             if (start != bucketStart && bucketStart >= 0) closed.add(foldBucket());

@@ -58,7 +58,8 @@ public final class AdminJournal {
             if (trace.at("delivered") >= 0) latency.record("total", trace.at("delivered"));
             JsonObject data = Json.obj("question", question, "answer", answer, "actions", actions, "usd", usd, "tokensIn", tokensIn,
                     "tokensOut", tokensOut, "model", model, "stt", stt, "ms", trace.elapsed(), "trace", trace.toJson());
-            JsonObject error = trace.toJson().getAsJsonObject("error");
+            com.google.gson.JsonElement traced = trace.toJson().get("error");
+            JsonObject error = traced != null && traced.isJsonObject() ? traced.getAsJsonObject() : null;
             data.add("error", error == null ? null : error.get("message"));
             if (keepPrompts.getAsBoolean()) { data.addProperty("prompt", prompt); data.addProperty("raw", raw); }
             String text = HistoryStore.nameOf(player) + " → " + HistoryStore.nameOf(mob) + ": «" + clip(question) + "» — "

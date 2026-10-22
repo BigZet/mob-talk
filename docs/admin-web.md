@@ -21,8 +21,9 @@
   `400 bad_request` (неверные параметры), `401 unauthorized` (нет сессии), `403 forbidden` / `csrf`, `404 not_found`,
   `409 conflict`, `429 too_many` (+ `retryAfter` в секундах и заголовок `Retry-After`), `500 internal`, `503 unavailable`
   (сервис ещё не подключён: например, Божественного блока нет в сборке).
-- Игрок в ответах — `{"uuid":"…","name":"Ник"}`, моб — `{"uuid":"…","name":"Имя","species":"villager"}`. Координаты, seed, ключи и пароли
-  не попадают ни в один ответ и ни в одну запись истории.
+- Игрок в ответах — `{"uuid":"…","name":"Ник"}`, моб — `{"uuid":"…","name":"Имя","species":"villager"}`. Seed, ключи и пароли не попадают
+  ни в один ответ и ни в одну запись истории. Координаты — только в разделе «Местоположение» (просьба Дмитрия); в историю, лог и
+  остальные ответы они не попадают.
 - Списки с пагинацией: параметры `cursor` (непрозрачная строка из прошлого ответа) и `limit` (по умолчанию 50, максимум 500), ответ
   `{"items":[…],"next":"курсор или null"}`. Порядок — новые первыми, если не сказано иное.
 
@@ -166,6 +167,17 @@ Append-only журнал по дням: `data/mobtalk/history/<вид>/<день
 
 Ответ действий — `{"ok":true,"message":"…"}`; игрок офлайн и действие требует онлайна (кик) → `409`.
 
+## Местоположение и телепорт
+
+| Запрос | Ответ |
+| --- | --- |
+| `GET /api/players/positions` | `{"t":t,"players":[{"player":{…},"online":true,"world":"minecraft:overworld","x":12.5,"y":64,"z":-301.2,"yaw":90,"biome":"minecraft:plains","health":18,"food":20,"gamemode":"survival"}]}` — только онлайн. То же приходит событием `positions` в `/api/events` каждые 2 с, пока открыта хоть одна вкладка |
+| `GET /api/players/{uuid}/position` | то же для одного игрока плюс `"respawn":{"world","x","y","z"}` или `null`; для офлайн — последняя известная точка, `online:false`, `t` — когда он там был |
+| `POST /api/players/{uuid}/teleport` | тело — одно из: `{"world","x","y","z"}`, `{"toPlayer":"<uuid>"}`, `{"to":"spawn"}`, `{"to":"respawn"}`, `{"waypoint":"<id>"}` → `{"ok":true,"message":"…"}`; `409` — игрок не в игре; запись `command` в историю без координат |
+| `GET /api/waypoints` | `{"waypoints":[{"id","name","world","x","y","z"}]}` (хранятся в `config/mobtalk-waypoints.json`) |
+| `POST /api/waypoints` | `{"name","world","x","y","z"}` → `{"ok":true,"waypoint":{…}}` |
+| `DELETE /api/waypoints/{id}` | `{"ok":true}`; `404` — нет такой |
+
 ## Мобы и деревни
 
 | Запрос | Ответ |
@@ -198,6 +210,8 @@ Append-only журнал по дням: `data/mobtalk/history/<вид>/<день
 | `GET /api/server/commands` | `{"roots":["mobtalk","divineblock","vp","whitelist",…]}` для автодополнения |
 | `POST /api/server/command` | `{"command":"say привет"}` (без `/`) → `{"ok":true,"result":1,"output":["строки ответа"]}`; запись `command` в историю |
 | `GET /api/logs?lines=200&filter=mobtalk,divineblock&level=WARN` | хвост `logs/latest.log`: `{"lines":[{"t":"19:35:18","level":"INFO","logger":"mobtalk","text":"…"}]}`; `lines` ≤ 2000, `filter` — подстроки имени логгера, `level` — минимальный |
+| `GET /api/logs/export?filter=&level=&lines=` | `text/plain; charset=utf-8`, `Content-Disposition: attachment; filename="mobtalk-log-<yyyyMMdd-HHmm>.txt"`. Без параметров — весь `latest.log`; с ними — те же фильтры, что `/api/logs`, `lines` ≤ 200 000. Ключи и координаты вычищены |
+| `GET /api/diagnostics` | `application/zip`, `mobtalk-diagnostics-<yyyyMMdd-HHmm>.zip`: `latest.log`, `errors.json`, `server.json`, `overview.json`, `settings.json` (значения всех источников), `history.jsonl` (последние 500 записей за сутки). Всё через `Redact` |
 | `GET /api/errors` | `{"groups":[{"id","type":"java.lang.IllegalStateException","message","where":"DialogueService.accept","count":3,"first":t,"last":t,"stack":"…","context":"…"}]}` |
 | `POST /api/errors/clear` | обнулить группы → `{"ok":true}` |
 | `POST /api/server/backup` | снимок мира без остановки (`save-off` → `save-all flush` → zip → `save-on`) → `{"ok":true,"backup":{"name":"20261022-193518.zip","size":104857600,"t":t}}`; второй, пока идёт первый, → `409` |
@@ -217,6 +231,7 @@ Append-only журнал по дням: `data/mobtalk/history/<вид>/<день
 | `config` | запись `config_change` |
 | `error` | группа ошибок после изменения |
 | `backup` | `{"name","size","t"}` |
+| `positions` | как `GET /api/players/positions`, каждые 2 с |
 
 `GET /api/live/dialogues` — SSE для вкладки «Сейчас»: `snapshot` сразу и при каждом изменении,
 `data` = `{"dialogues":[{"id","player":{…},"mob":{…},"step":"llm_first","stepSince":t,"startedAt":t,"question":"…"}],"activities":[{"player":{…},"activity":"talking"}]}`.

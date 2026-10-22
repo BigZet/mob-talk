@@ -16,6 +16,7 @@ public final class Router {
     public Router get(String template, Handler handler) { return add("GET", template, handler); }
     public Router post(String template, Handler handler) { return add("POST", template, handler); }
     public Router patch(String template, Handler handler) { return add("PATCH", template, handler); }
+    public Router delete(String template, Handler handler) { return add("DELETE", template, handler); }
 
     public Router add(String method, String template, Handler handler) {
         routes.add(new Route(method, split(template), handler));

@@ -29,7 +29,7 @@ public final class Redact {
             Pattern.compile("[A-Za-z0-9+/_=-]{40,}"),
     };
     private static final Pattern NAMED_SECRET = Pattern.compile(
-            "(?i)\\b(api[_ -]?key|token|password|passwd|secret|пароль|ключ|токен)(\\s*[:=]\\s*|\\s+)(\"?)[^\\s\",;]{4,}\\3");
+            "(?iu)(?<![\\p{L}\\d_])(api[_ -]?key|token|password|passwd|secret|пароль|ключ|токен)(\\s*[:=]\\s*|\\s+)(\"?)[^\\s\",;]{4,}\\3");
     private static final Pattern AXES = Pattern.compile("(?i)(?<![\\p{L}\\d])([xyz])\\s*[=:]\\s*-?\\d+(?:[.,]\\d+)?");
     private static final Pattern TRIPLE = Pattern.compile(
             "[\\[(]?\\s*-?\\d{1,8}(?:\\.\\d+)?\\s*[,;]\\s*-?\\d{1,3}(?:\\.\\d+)?\\s*[,;]\\s*-?\\d{1,8}(?:\\.\\d+)?\\s*[\\])]?"

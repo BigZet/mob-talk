@@ -22,7 +22,27 @@ public final class LogTail {
     private static final List<String> LEVELS = List.of("TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL");
 
     public static JsonObject tail(Path log, int lines, List<String> filters, String minLevel) throws IOException {
-        int wanted = Math.max(1, Math.min(2000, lines));
+        return parse(log, Math.max(1, Math.min(2000, lines)), filters, minLevel);
+    }
+
+    /** The log as a file to download: the whole of it without filters, or its last {@code lines} matching ones, cleaned. */
+    public static String export(Path log, Integer lines, List<String> filters, String minLevel) throws IOException {
+        if (!Files.isRegularFile(log)) return "";
+        if (lines == null && (filters == null || filters.isEmpty()) && minLevel == null) {
+            StringBuilder out = new StringBuilder();
+            for (String line : Files.readAllLines(log, StandardCharsets.UTF_8)) out.append(Redact.text(line)).append('\n');
+            return out.toString();
+        }
+        StringBuilder out = new StringBuilder();
+        for (com.google.gson.JsonElement element : parse(log, lines == null ? 200_000 : Math.max(1, Math.min(200_000, lines)), filters, minLevel).getAsJsonArray("lines")) {
+            JsonObject line = element.getAsJsonObject();
+            out.append('[').append(Json.string(line, "t")).append("] [").append(Json.string(line, "level")).append("] (")
+                    .append(Json.string(line, "logger")).append(") ").append(Json.string(line, "text")).append('\n');
+        }
+        return out.toString();
+    }
+
+    private static JsonObject parse(Path log, int wanted, List<String> filters, String minLevel) throws IOException {
         int floor = minLevel == null ? 0 : Math.max(0, LEVELS.indexOf(minLevel.toUpperCase(Locale.ROOT)));
         List<JsonObject> out = new ArrayList<>();
         if (!Files.isRegularFile(log)) return Json.obj("lines", out);

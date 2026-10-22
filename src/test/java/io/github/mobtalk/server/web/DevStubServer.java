@@ -112,7 +112,7 @@ public final class DevStubServer {
                     "\tat io.github.mobtalk.server.SpeechService.synthesize(SpeechService.java:42)",
                     "[19:34:10] [Server thread/INFO] (Minecraft) BigZet joined the game",
                     "[19:35:18] [Server thread/INFO] (Minecraft) <BigZet> привет") + "\n");
-            api = new AdminApi(new AdminApi.Parts(history, metrics, latency, journal, errors, sources, game, backups, log,
+            api = new AdminApi(new AdminApi.Parts(history, metrics, latency, journal, errors, sources, game, backups, new Waypoints(data.resolve("waypoints.json")), log,
                     () -> Json.obj("perPlayerMinute", 0, "perPlayerDayUsd", 0, "serverDayUsd", 0, "maxDialoguesPerPlayer", 2),
                     () -> Json.obj("bind", "127.0.0.1", "port", 8788, "fingerprint", "заглушка без TLS"), clock));
         }

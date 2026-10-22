@@ -21,6 +21,13 @@ public interface GameView {
     /** {@code level}, {@code kick}, {@code ban}, {@code unban}, {@code whitelist}; answers {@code {"ok":true,"message":…}}. */
     JsonObject playerAction(UUID player, String action, JsonObject body);
     JsonObject setStreamer(UUID player);
+    /** Online players where they are: {"t":…,"players":[{"player","online","world","x","y","z","yaw","biome","health","food","gamemode"}]}.
+     * The only answers with coordinates (docs/admin-web.md, «Местоположение»); they never go into the history or logs. */
+    JsonObject positions();
+    /** One player; offline — the last known place and {@code respawn}; null when unknown. */
+    JsonObject position(UUID player);
+    /** Moves an online player to {"world","x","y","z"}, {"toPlayer":uuid}, {"to":"spawn"} or {"to":"respawn"}; 409 when offline. */
+    JsonObject teleport(UUID player, JsonObject target);
 
     JsonObject mobs(String village, String query, String cursor, int limit);
     /** One mob in full; null when unknown. */

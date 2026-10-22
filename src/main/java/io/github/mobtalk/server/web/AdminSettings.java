@@ -41,7 +41,7 @@ public final class AdminSettings {
 
     AdminSettings normalized() {
         if (bind == null || bind.isBlank()) bind = "127.0.0.1";
-        port = Math.max(1, Math.min(65535, port));
+        port = Math.max(0, Math.min(65535, port));
         historyDays = Math.max(1, Math.min(3650, historyDays));
         if (passwordHash == null) passwordHash = "";
         return this;

@@ -27,7 +27,7 @@ import java.util.function.Supplier;
 public final class AdminApi {
     /** Everything the routes read; built by {@code AdminWeb} on a server and by {@code DevStubServer} in development. */
     public record Parts(HistoryStore history, Metrics metrics, Latency latency, AdminJournal journal, ErrorLog errors, ConfigSources sources,
-                        GameView game, Backups backups, Path log, Supplier<JsonObject> limits, Supplier<JsonObject> adminInfo, LongSupplier clock) { }
+                        GameView game, Backups backups, Waypoints waypoints, Path log, Supplier<JsonObject> limits, Supplier<JsonObject> adminInfo, LongSupplier clock) { }
 
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final String[] MONTHS = {"янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"};
@@ -35,6 +35,9 @@ public final class AdminApi {
     private final Parts parts;
     private final SseHub events = new SseHub(16, 15_000), live = new SseHub(16, 15_000);
     private final Router router = new Router();
+    private final java.util.concurrent.ScheduledExecutorService positions = java.util.concurrent.Executors.newSingleThreadScheduledExecutor(task -> {
+        Thread thread = new Thread(task, "mobtalk-admin-positions"); thread.setDaemon(true); return thread;
+    });
 
     public AdminApi(Parts parts) {
         this.parts = parts;
@@ -49,11 +52,16 @@ public final class AdminApi {
         parts.errors().listen(group -> events.publish("error", group));
         parts.journal().listenLive(snapshot -> live.publish("snapshot", snapshot));
         routes();
+        positions.scheduleWithFixedDelay(() -> {
+            if (events.subscribers() == 0) return;
+            try { events.publish("positions", parts.game().positions()); }
+            catch (RuntimeException | LinkageError failure) { /* The next tick tries again. */ }
+        }, 2, 2, java.util.concurrent.TimeUnit.SECONDS);
     }
 
     public Router router() { return router; }
     public SseHub events() { return events; }
-    public void close() { events.close(); live.close(); }
+    public void close() { positions.shutdownNow(); events.close(); live.close(); }
 
     private ZoneId zone() { return parts.history().zone(); }
     private long now() { return parts.clock().getAsLong(); }
@@ -124,6 +132,47 @@ public final class AdminApi {
         router.post("/api/config/rollback/{id}", r -> Response.json(parts.sources().rollback(r.param("id"), by(r))));
 
         router.get("/api/players", r -> Response.json(Json.obj("players", players())));
+        // Местоположение: the only answers with coordinates; the history records a teleport without them.
+        router.get("/api/players/positions", r -> Response.json(parts.game().positions()));
+        router.get("/api/players/{uuid}/position", r -> {
+            JsonObject position = parts.game().position(uuid(r.param("uuid")));
+            if (position == null) throw ApiException.notFound("Нет такого игрока.");
+            return Response.json(position);
+        });
+        router.post("/api/players/{uuid}/teleport", r -> {
+            UUID player = uuid(r.param("uuid"));
+            JsonObject body = r.json(), target;
+            String described;
+            if (body.has("waypoint")) {
+                JsonObject point = parts.waypoints().find(String.valueOf(Json.string(body, "waypoint")));
+                if (point == null) throw ApiException.notFound("Нет такой точки.");
+                target = Json.obj("world", point.get("world"), "x", point.get("x"), "y", point.get("y"), "z", point.get("z"));
+                described = "к точке «" + Json.string(point, "name") + "»";
+            } else if (body.has("toPlayer")) {
+                target = Json.obj("toPlayer", uuid(Json.string(body, "toPlayer")).toString());
+                described = "к игроку " + Json.string(body, "toPlayer");
+            } else if (body.has("to")) {
+                String to = Json.string(body, "to");
+                if (!"spawn".equals(to) && !"respawn".equals(to)) throw ApiException.badRequest("to — spawn или respawn.");
+                target = Json.obj("to", to);
+                described = "spawn".equals(to) ? "на спавн мира" : "к точке возрождения";
+            } else {
+                String world = Json.string(body, "world");
+                if (world == null || world.isBlank()) throw ApiException.badRequest("Нужен мир или другая цель телепорта.");
+                target = Json.obj("world", world, "x", Waypoints.coordinate(body, "x"), "y", Waypoints.coordinate(body, "y"), "z", Waypoints.coordinate(body, "z"));
+                described = "по координатам в " + world;
+            }
+            JsonObject answer = parts.game().teleport(player, target);
+            parts.history().append("command", null, null, "Админка: телепорт " + player + " " + described,
+                    Json.obj("command", "teleport " + described, "by", by(r), "result", 1, "output", List.of(String.valueOf(Json.string(answer, "message")))));
+            return Response.json(answer);
+        });
+        router.get("/api/waypoints", r -> Response.json(parts.waypoints().list()));
+        router.post("/api/waypoints", r -> Response.json(Json.obj("ok", true, "waypoint", parts.waypoints().add(r.json()))));
+        router.delete("/api/waypoints/{id}", r -> {
+            if (!parts.waypoints().remove(r.param("id"))) throw ApiException.notFound("Нет такой точки.");
+            return Response.json(Json.ok("Точка удалена."));
+        });
         router.get("/api/players/{uuid}", r -> Response.json(player(uuid(r.param("uuid")))));
         router.post("/api/players/{uuid}/{action}", r -> {
             String action = r.param("action");
@@ -177,6 +226,14 @@ public final class AdminApi {
             if (parts.log() == null) return Response.json(Json.obj("lines", new JsonArray()));
             return Response.json(LogTail.tail(parts.log(), r.intQuery("lines", 200, 1, 2000), list(r.query("filter")), r.query("level")));
         });
+        router.get("/api/logs/export", r -> {
+            String text = parts.log() == null ? "" : LogTail.export(parts.log(), r.query("lines") == null ? null : r.intQuery("lines", 0, 1, 200_000),
+                    list(r.query("filter")), r.query("level"));
+            return Response.text(200, "text/plain; charset=utf-8", text)
+                    .header("Content-Disposition", "attachment; filename=\"mobtalk-log-" + stamp() + ".txt\"");
+        });
+        router.get("/api/diagnostics", r -> Response.bytes(200, "application/zip", diagnostics())
+                .header("Content-Disposition", "attachment; filename=\"mobtalk-diagnostics-" + stamp() + ".zip\""));
         router.get("/api/errors", r -> Response.json(parts.errors().groups()));
         router.post("/api/errors/clear", r -> { parts.errors().clear(); return Response.json(Json.ok(null)); });
         router.post("/api/server/backup", r -> {
@@ -203,6 +260,44 @@ public final class AdminApi {
             if (!stopped) throw ApiException.notFound("Этот диалог уже закончился.");
             return Response.json(Json.ok("Диалог отменён."));
         });
+    }
+
+    private String stamp() { return java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmm").format(Instant.ofEpochMilli(now()).atZone(zone())); }
+
+    /** «Отчёт для разработчика»: the log, errors, server, overview, every source's settings and the last day's history, all cleaned. */
+    byte[] diagnostics() throws java.io.IOException {
+        java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
+        try (java.util.zip.ZipOutputStream zip = new java.util.zip.ZipOutputStream(bytes)) {
+            java.util.function.BiConsumer<String, String> put = (name, text) -> {
+                try {
+                    zip.putNextEntry(new java.util.zip.ZipEntry(name));
+                    zip.write(text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    zip.closeEntry();
+                } catch (java.io.IOException failure) { throw new java.io.UncheckedIOException(failure); }
+            };
+            com.google.gson.Gson pretty = new com.google.gson.GsonBuilder().setPrettyPrinting().disableHtmlEscaping().serializeNulls().create();
+            put.accept("latest.log", parts.log() == null ? "" : LogTail.export(parts.log(), null, List.of(), null));
+            put.accept("errors.json", pretty.toJson(parts.errors().groups()));
+            JsonObject server = Redact.object(parts.game().server());
+            server.add("admin", parts.adminInfo().get());
+            put.accept("server.json", pretty.toJson(server));
+            put.accept("overview.json", pretty.toJson(Redact.object(overview())));
+            JsonObject settings = new JsonObject();
+            for (JsonElement source : parts.sources().describeAll().getAsJsonArray("sources")) {
+                String id = Json.string(source.getAsJsonObject(), "id");
+                try { settings.add(id, Redact.object(parts.sources().values(id).getAsJsonObject("values"))); }
+                catch (ApiException broken) { settings.addProperty(id, broken.getMessage()); }
+            }
+            put.accept("settings.json", pretty.toJson(settings));
+            StringBuilder history = new StringBuilder();
+            int[] count = {0};
+            parts.history().scan(new HistoryStore.Query(Set.of(), null, null, null, now() - 86_400_000L, now(), null, 0), record -> {
+                history.append(Json.GSON.toJson(record)).append('\n');
+                return ++count[0] < 500;
+            });
+            put.accept("history.jsonl", history.toString());
+        } catch (java.io.UncheckedIOException failure) { throw failure.getCause(); }
+        return bytes.toByteArray();
     }
 
     private JsonObject liveSnapshot() {
