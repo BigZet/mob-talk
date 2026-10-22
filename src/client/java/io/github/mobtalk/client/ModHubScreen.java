@@ -45,30 +45,27 @@ final class ModHubScreen extends Screen {
     }
 
     @Override protected void init() {
-        int x = width / 2 - 110, y = 34;
-        addDrawableChild(ButtonWidget.builder(Text.literal("Mob Talk: настройки (F7)"), b -> mobTalkSettings.run())
-                .dimensions(x, y, 220, 20).build());
-        y += 24;
-        if (FabricLoader.getInstance().isModLoaded("divineblock")) {
-            addDrawableChild(ButtonWidget.builder(Text.literal("Божественный блок: настройки (F9)"), b -> openDivine())
-                    .dimensions(x, y, 220, 20).build());
-            y += 24;
-        }
+        // One button per mod, two in a row: the hotkey list below keeps its room on a small window.
+        List<ButtonWidget> buttons = new ArrayList<>();
+        buttons.add(ButtonWidget.builder(Text.literal("Mob Talk (F7)"), b -> mobTalkSettings.run()).build());
+        if (FabricLoader.getInstance().isModLoaded("divineblock"))
+            buttons.add(ButtonWidget.builder(Text.literal("Божественный блок (F9)"), b -> openDivine()).build());
         KeyBinding parrots = find(PARROT_PANEL_KEY);
-        if (FabricLoader.getInstance().isModLoaded("viewerparrots") && parrots != null) {
-            addDrawableChild(ButtonWidget.builder(Text.literal("Попугаи: панель (" + parrots.getBoundKeyLocalizedText().getString() + ")"),
-                    b -> pressLater(parrots)).dimensions(x, y, 220, 20).build());
-            y += 24;
-        }
+        if (FabricLoader.getInstance().isModLoaded("viewerparrots") && parrots != null)
+            buttons.add(ButtonWidget.builder(Text.literal("Попугаи (" + parrots.getBoundKeyLocalizedText().getString() + ")"), b -> pressLater(parrots)).build());
         // Борщевик своего экрана не имеет: его настройки — файл, открываем его в системном редакторе.
         java.nio.file.Path hogweed = FabricLoader.getInstance().getConfigDir().resolve("rusflora-hogweed.json");
-        if (FabricLoader.getInstance().isModLoaded("rusflora") && java.nio.file.Files.isRegularFile(hogweed)) {
-            addDrawableChild(ButtonWidget.builder(Text.literal("Борщевик: файл настроек"), b -> net.minecraft.util.Util.getOperatingSystem().open(hogweed.toFile()))
-                    .dimensions(x, y, 220, 20).build());
-            y += 24;
+        if (FabricLoader.getInstance().isModLoaded("rusflora") && java.nio.file.Files.isRegularFile(hogweed))
+            buttons.add(ButtonWidget.builder(Text.literal("Борщевик: файл настроек"), b -> net.minecraft.util.Util.getOperatingSystem().open(hogweed.toFile())).build());
+        int y = 32, left = width / 2 - 204;
+        for (int i = 0; i < buttons.size(); i++) {
+            ButtonWidget button = buttons.get(i);
+            button.setDimensionsAndPosition(200, 20, left + (i % 2) * 208, y + (i / 2) * 24);
+            addDrawableChild(button);
         }
-        addDrawableChild(ButtonWidget.builder(Text.literal("Назад"), b -> close()).dimensions(x, height - 28, 220, 20).build());
-        keysTop = y + 8;
+        y += (buttons.size() + 1) / 2 * 24;
+        addDrawableChild(ButtonWidget.builder(Text.literal("Назад"), b -> close()).dimensions(width / 2 - 100, height - 28, 200, 20).build());
+        keysTop = y + 6;
         collectKeys();
     }
 
