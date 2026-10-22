@@ -97,6 +97,26 @@ class MapTilesTest {
         assertEquals(0xFFFF0000, image(map.tile("minecraft:overworld", 0, 0, 0)).getRGB(3, 3));
     }
 
+    @Test void aFilledSquareHasNoHolesOnAnyZoom() throws IOException {
+        MapTiles map = new MapTiles(dir, message -> fail(message));
+        for (int cz = -64; cz < 64; cz++) for (int cx = -64; cx < 64; cx++) map.update("minecraft:overworld", cx, cz, fill(0xFF7FB238));
+        map.flush();
+        for (int zoom = 0; zoom <= MapTiles.MAX_ZOOM; zoom++) {
+            int span = MapTiles.SIZE << zoom, tiles = Math.max(1, 1024 / span);
+            for (int tz = -tiles; tz < tiles; tz++) for (int tx = -tiles; tx < tiles; tx++) {
+                byte[] png = map.tile("minecraft:overworld", zoom, tx, tz);
+                assertNotNull(png, "нет тайла " + zoom + "/" + tx + "/" + tz);
+                BufferedImage image = image(png);
+                int holes = 0;
+                int from = Math.max(0, (-1024 - tx * span) >> zoom), to = Math.min(MapTiles.SIZE, (1024 - tx * span) >> zoom);
+                int zFrom = Math.max(0, (-1024 - tz * span) >> zoom), zTo = Math.min(MapTiles.SIZE, (1024 - tz * span) >> zoom);
+                for (int z = zFrom; z < zTo; z++) for (int x = from; x < to; x++) if ((image.getRGB(x, z) >>> 24) == 0) holes++;
+                assertEquals(0, holes, "дырки в тайле " + zoom + "/" + tx + "/" + tz);
+            }
+        }
+        map.close();
+    }
+
     @Test void thousandsOfChunksStayCheapForTheCaller() {
         MapTiles map = new MapTiles(dir, message -> fail(message));
         long start = System.nanoTime();
