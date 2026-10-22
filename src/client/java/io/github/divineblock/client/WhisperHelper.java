@@ -55,7 +55,13 @@ final class WhisperHelper {
         JsonObject health = health(http, base);
         if (ready(health)) return;
         // With Mob Talk in the game its helper owns the port: never start a second copy of the model, wait for it instead.
-        if (health == null && !sharedWithMobTalk()) {
+        // An older Mob Talk starts its helper only at its first need, so after half a minute of silence start our own.
+        if (health == null && sharedWithMobTalk()) {
+            long waitMobTalk = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+            while (health == null && System.nanoTime() < waitMobTalk) { progress.accept("Ждём Whisper из Mob Talk…"); Thread.sleep(1000); health = health(http, base); }
+            if (ready(health)) return;
+        }
+        if (health == null) {
             if (!config.whisperAutoStart) throw new IOException("Whisper не запущен: включите автозапуск или запустите Mob Talk.");
             launch(base);
         }

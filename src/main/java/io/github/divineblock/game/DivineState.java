@@ -19,6 +19,8 @@ public final class DivineState extends PersistentState {
     public Curses.Book curses = new Curses.Book();
     /** Player UUID → the sentence of the eternal ban (see {@link Banishment}). */
     public Map<String, Banishment.Ban> banned = new HashMap<>();
+    /** The Sky Court's centre (x, y, z of the floor), chosen once per world; null until the god first holds court. */
+    public int[] skyCourt;
 
     public static DivineState of(MinecraftServer server) {
         return server.getWorld(World.OVERWORLD).getPersistentStateManager().getOrCreate(TYPE, "divineblock");
@@ -35,6 +37,7 @@ public final class DivineState extends PersistentState {
             Banishment.Book bans = GSON.fromJson(nbt.getString("banned"), Banishment.Book.class);
             if (bans != null && bans.souls != null) state.banned = bans.souls;
         } catch (RuntimeException broken) { state.banned = new HashMap<>(); }
+        if (nbt.contains("skyCourt")) { int[] court = nbt.getIntArray("skyCourt"); if (court.length == 3) state.skyCourt = court; }
         return state;
     }
 
@@ -44,6 +47,7 @@ public final class DivineState extends PersistentState {
         Banishment.Book bans = new Banishment.Book();
         bans.souls = banned;
         nbt.putString("banned", GSON.toJson(bans));
+        if (skyCourt != null) nbt.putIntArray("skyCourt", skyCourt);
         return nbt;
     }
 }

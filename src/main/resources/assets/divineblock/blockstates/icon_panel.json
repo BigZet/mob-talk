@@ -1,0 +1,304 @@
+{
+ "variants": {
+  "art=0,facing=north": {
+   "model": "divineblock:block/icon_panel_0"
+  },
+  "art=0,facing=east": {
+   "model": "divineblock:block/icon_panel_0",
+   "y": 90
+  },
+  "art=0,facing=south": {
+   "model": "divineblock:block/icon_panel_0",
+   "y": 180
+  },
+  "art=0,facing=west": {
+   "model": "divineblock:block/icon_panel_0",
+   "y": 270
+  },
+  "art=1,facing=north": {
+   "model": "divineblock:block/icon_panel_1"
+  },
+  "art=1,facing=east": {
+   "model": "divineblock:block/icon_panel_1",
+   "y": 90
+  },
+  "art=1,facing=south": {
+   "model": "divineblock:block/icon_panel_1",
+   "y": 180
+  },
+  "art=1,facing=west": {
+   "model": "divineblock:block/icon_panel_1",
+   "y": 270
+  },
+  "art=2,facing=north": {
+   "model": "divineblock:block/icon_panel_2"
+  },
+  "art=2,facing=east": {
+   "model": "divineblock:block/icon_panel_2",
+   "y": 90
+  },
+  "art=2,facing=south": {
+   "model": "divineblock:block/icon_panel_2",
+   "y": 180
+  },
+  "art=2,facing=west": {
+   "model": "divineblock:block/icon_panel_2",
+   "y": 270
+  },
+  "art=3,facing=north": {
+   "model": "divineblock:block/icon_panel_3"
+  },
+  "art=3,facing=east": {
+   "model": "divineblock:block/icon_panel_3",
+   "y": 90
+  },
+  "art=3,facing=south": {
+   "model": "divineblock:block/icon_panel_3",
+   "y": 180
+  },
+  "art=3,facing=west": {
+   "model": "divineblock:block/icon_panel_3",
+   "y": 270
+  },
+  "art=4,facing=north": {
+   "model": "divineblock:block/icon_panel_4"
+  },
+  "art=4,facing=east": {
+   "model": "divineblock:block/icon_panel_4",
+   "y": 90
+  },
+  "art=4,facing=south": {
+   "model": "divineblock:block/icon_panel_4",
+   "y": 180
+  },
+  "art=4,facing=west": {
+   "model": "divineblock:block/icon_panel_4",
+   "y": 270
+  },
+  "art=5,facing=north": {
+   "model": "divineblock:block/icon_panel_5"
+  },
+  "art=5,facing=east": {
+   "model": "divineblock:block/icon_panel_5",
+   "y": 90
+  },
+  "art=5,facing=south": {
+   "model": "divineblock:block/icon_panel_5",
+   "y": 180
+  },
+  "art=5,facing=west": {
+   "model": "divineblock:block/icon_panel_5",
+   "y": 270
+  },
+  "art=6,facing=north": {
+   "model": "divineblock:block/icon_panel_6"
+  },
+  "art=6,facing=east": {
+   "model": "divineblock:block/icon_panel_6",
+   "y": 90
+  },
+  "art=6,facing=south": {
+   "model": "divineblock:block/icon_panel_6",
+   "y": 180
+  },
+  "art=6,facing=west": {
+   "model": "divineblock:block/icon_panel_6",
+   "y": 270
+  },
+  "art=7,facing=north": {
+   "model": "divineblock:block/icon_panel_7"
+  },
+  "art=7,facing=east": {
+   "model": "divineblock:block/icon_panel_7",
+   "y": 90
+  },
+  "art=7,facing=south": {
+   "model": "divineblock:block/icon_panel_7",
+   "y": 180
+  },
+  "art=7,facing=west": {
+   "model": "divineblock:block/icon_panel_7",
+   "y": 270
+  },
+  "art=8,facing=north": {
+   "model": "divineblock:block/icon_panel_8"
+  },
+  "art=8,facing=east": {
+   "model": "divineblock:block/icon_panel_8",
+   "y": 90
+  },
+  "art=8,facing=south": {
+   "model": "divineblock:block/icon_panel_8",
+   "y": 180
+  },
+  "art=8,facing=west": {
+   "model": "divineblock:block/icon_panel_8",
+   "y": 270
+  },
+  "art=9,facing=north": {
+   "model": "divineblock:block/icon_panel_9"
+  },
+  "art=9,facing=east": {
+   "model": "divineblock:block/icon_panel_9",
+   "y": 90
+  },
+  "art=9,facing=south": {
+   "model": "divineblock:block/icon_panel_9",
+   "y": 180
+  },
+  "art=9,facing=west": {
+   "model": "divineblock:block/icon_panel_9",
+   "y": 270
+  },
+  "art=10,facing=north": {
+   "model": "divineblock:block/icon_panel_10"
+  },
+  "art=10,facing=east": {
+   "model": "divineblock:block/icon_panel_10",
+   "y": 90
+  },
+  "art=10,facing=south": {
+   "model": "divineblock:block/icon_panel_10",
+   "y": 180
+  },
+  "art=10,facing=west": {
+   "model": "divineblock:block/icon_panel_10",
+   "y": 270
+  },
+  "art=11,facing=north": {
+   "model": "divineblock:block/icon_panel_11"
+  },
+  "art=11,facing=east": {
+   "model": "divineblock:block/icon_panel_11",
+   "y": 90
+  },
+  "art=11,facing=south": {
+   "model": "divineblock:block/icon_panel_11",
+   "y": 180
+  },
+  "art=11,facing=west": {
+   "model": "divineblock:block/icon_panel_11",
+   "y": 270
+  },
+  "art=12,facing=north": {
+   "model": "divineblock:block/icon_panel_12"
+  },
+  "art=12,facing=east": {
+   "model": "divineblock:block/icon_panel_12",
+   "y": 90
+  },
+  "art=12,facing=south": {
+   "model": "divineblock:block/icon_panel_12",
+   "y": 180
+  },
+  "art=12,facing=west": {
+   "model": "divineblock:block/icon_panel_12",
+   "y": 270
+  },
+  "art=13,facing=north": {
+   "model": "divineblock:block/icon_panel_13"
+  },
+  "art=13,facing=east": {
+   "model": "divineblock:block/icon_panel_13",
+   "y": 90
+  },
+  "art=13,facing=south": {
+   "model": "divineblock:block/icon_panel_13",
+   "y": 180
+  },
+  "art=13,facing=west": {
+   "model": "divineblock:block/icon_panel_13",
+   "y": 270
+  },
+  "art=14,facing=north": {
+   "model": "divineblock:block/icon_panel_14"
+  },
+  "art=14,facing=east": {
+   "model": "divineblock:block/icon_panel_14",
+   "y": 90
+  },
+  "art=14,facing=south": {
+   "model": "divineblock:block/icon_panel_14",
+   "y": 180
+  },
+  "art=14,facing=west": {
+   "model": "divineblock:block/icon_panel_14",
+   "y": 270
+  },
+  "art=15,facing=north": {
+   "model": "divineblock:block/icon_panel_15"
+  },
+  "art=15,facing=east": {
+   "model": "divineblock:block/icon_panel_15",
+   "y": 90
+  },
+  "art=15,facing=south": {
+   "model": "divineblock:block/icon_panel_15",
+   "y": 180
+  },
+  "art=15,facing=west": {
+   "model": "divineblock:block/icon_panel_15",
+   "y": 270
+  },
+  "art=16,facing=north": {
+   "model": "divineblock:block/icon_panel_16"
+  },
+  "art=16,facing=east": {
+   "model": "divineblock:block/icon_panel_16",
+   "y": 90
+  },
+  "art=16,facing=south": {
+   "model": "divineblock:block/icon_panel_16",
+   "y": 180
+  },
+  "art=16,facing=west": {
+   "model": "divineblock:block/icon_panel_16",
+   "y": 270
+  },
+  "art=17,facing=north": {
+   "model": "divineblock:block/icon_panel_17"
+  },
+  "art=17,facing=east": {
+   "model": "divineblock:block/icon_panel_17",
+   "y": 90
+  },
+  "art=17,facing=south": {
+   "model": "divineblock:block/icon_panel_17",
+   "y": 180
+  },
+  "art=17,facing=west": {
+   "model": "divineblock:block/icon_panel_17",
+   "y": 270
+  },
+  "art=18,facing=north": {
+   "model": "divineblock:block/icon_panel_18"
+  },
+  "art=18,facing=east": {
+   "model": "divineblock:block/icon_panel_18",
+   "y": 90
+  },
+  "art=18,facing=south": {
+   "model": "divineblock:block/icon_panel_18",
+   "y": 180
+  },
+  "art=18,facing=west": {
+   "model": "divineblock:block/icon_panel_18",
+   "y": 270
+  },
+  "art=19,facing=north": {
+   "model": "divineblock:block/icon_panel_19"
+  },
+  "art=19,facing=east": {
+   "model": "divineblock:block/icon_panel_19",
+   "y": 90
+  },
+  "art=19,facing=south": {
+   "model": "divineblock:block/icon_panel_19",
+   "y": 180
+  },
+  "art=19,facing=west": {
+   "model": "divineblock:block/icon_panel_19",
+   "y": 270
+  }
+ }
+}

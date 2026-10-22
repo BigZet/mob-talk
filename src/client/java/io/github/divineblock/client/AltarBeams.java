@@ -27,11 +27,12 @@ final class AltarBeams {
     private AltarBeams() { }
 
     static void register() {
-        ClientPlayNetworking.registerGlobalReceiver(BeamsPayload.ID, (payload, context) -> {
-            start(context.client(), payload.altar(), payload.ticks(), payload.color());
+        // On the client thread, music and sky first: a failure in the beams must never leave the music playing on.
+        ClientPlayNetworking.registerGlobalReceiver(BeamsPayload.ID, (payload, context) -> context.client().execute(() -> {
             if (payload.ticks() > 0) { ChantPlayer.verdict(context.client(), payload.music(), payload.altar()); SkyTint.verdict(context.client(), payload.sky()); }
             else { ChantPlayer.wordsEnded(context.client()); SkyTint.wordsEnded(context.client()); }
-        });
+            start(context.client(), payload.altar(), payload.ticks(), payload.color());
+        }));
         WorldRenderEvents.AFTER_TRANSLUCENT.register(AltarBeams::render);
     }
 

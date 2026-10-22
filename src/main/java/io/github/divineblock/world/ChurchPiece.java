@@ -109,6 +109,10 @@ public final class ChurchPiece extends StructurePiece {
                     world.setBlockState(at, state, 2);
                 }
             }
+            @Override public boolean column(int x, int z) {
+                BlockPos at = frame.world(x, 0, z);
+                return at.getX() >= chunkBox.getMinX() && at.getX() <= chunkBox.getMaxX() && at.getZ() >= chunkBox.getMinZ() && at.getZ() <= chunkBox.getMaxZ();
+            }
             @Override public void chest(int x, int y, int z, BlockState state) {
                 BlockPos at = frame.world(x, y, z);
                 if (!chunkBox.contains(at)) return;

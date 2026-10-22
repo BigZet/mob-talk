@@ -1,6 +1,6 @@
 Церковные песнопения в assets/divineblock/sounds/chants/ — фрагменты чужих записей.
 Каждый файл сохраняет лицензию оригинала (не GPL мода); фрагменты обрезаны, сведены в моно,
-выровнены по громкости и перекодированы в Ogg Vorbis. Отпевание (punishment_20) обрезано до молитвы с именем.
+выровнены по громкости (-18 LUFS) и перекодированы в Ogg Vorbis. Отпевание (punishment_20) обрезано до молитвы с именем.
 
 blessing_03.ogg — «Богородице Дево, радуйся», знаменный распев (благословение)
   Исполнитель: Moscow Patriarchal Choir of the Russian Orthodox Church
@@ -115,3 +115,245 @@ altar_60.ogg — Украинский тропарь, детский хор Ра
   Лицензия: CC BY-SA 4.0 (http://creativecommons.org/licenses/by-sa/4.0/)
   Источник: https://culturalia.ro/entities/3e5f2af4-3c01-4bd5-9147-e730898c026b/view
   Фрагмент с 81.3 с оригинала
+
+# Добавлено: длинные фрагменты (2–5 мин у алтаря, 1–3 мин для благословения и кары)
+
+altar_61.ogg — Византийские церковные гимны, ч. 1 — заключительное песнопение (фон у алтаря)
+  Исполнитель: неизвестный византийский хор
+  Лицензия: CC0 (http://creativecommons.org/publicdomain/zero/1.0/)
+  Источник: https://commons.wikimedia.org/wiki/File:Byzantine_Ecclesiastical_Hymn_part1.ogg
+  Фрагмент с 1163.6 с оригинала
+
+altar_62.ogg — Византийские церковные гимны, ч. 2 — третье песнопение (фон у алтаря)
+  Исполнитель: неизвестный византийский хор
+  Лицензия: CC0 (http://creativecommons.org/publicdomain/zero/1.0/)
+  Источник: https://commons.wikimedia.org/wiki/File:Byzantine_Ecclesiastical_Hymns_Part2.ogg
+  Фрагмент с 270.0 с оригинала
+
+altar_63.ogg — Византийские церковные гимны, ч. 2 — десятое песнопение (фон у алтаря)
+  Исполнитель: неизвестный византийский хор
+  Лицензия: CC0 (http://creativecommons.org/publicdomain/zero/1.0/)
+  Источник: https://commons.wikimedia.org/wiki/File:Byzantine_Ecclesiastical_Hymns_Part2.ogg
+  Фрагмент с 980.9 с оригинала
+
+altar_64.ogg — Рождественское пение в русском православном храме, 1 (фон у алтаря)
+  Исполнитель: Choir of Russian Orthodox Church
+  Лицензия: CC0 (http://creativecommons.org/publicdomain/zero/1.0/)
+  Источник: https://commons.wikimedia.org/wiki/File:Russian_Orthodox_Christmas_Church_singing_1.ogg
+  Фрагмент с 0.0 с оригинала
+
+altar_65.ogg — «Дал еси украшение Церкви Твоей, Господи» (фон у алтаря)
+  Исполнитель: Moscow Patriarchal Choir of the Russian Orthodox Church
+  Лицензия: CC0 (http://creativecommons.org/publicdomain/zero/1.0/)
+  Источник: https://commons.wikimedia.org/wiki/File:06_Dal_esi_ukrashenie_cerkvi_Tvoej_Gospodi_grind_Moscow_Patriarchal_Choir.ogg
+  Фрагмент с 0.0 с оригинала
+
+altar_66.ogg — «Да молчит всякая плоть человеча», знаменный распев — вторая половина (фон у алтаря)
+  Исполнитель: Moscow Patriarchal Choir of the Russian Orthodox Church
+  Лицензия: CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+  Источник: https://commons.wikimedia.org/wiki/File:07_Da_molchit_vsjaka_plot_chelovecha_znamennyj_raspev_grind_Moscow_Patriarchal_Choir.ogg
+  Фрагмент с 197.4 с оригинала
+
+altar_67.ogg — Церковное пение, хор и священник, кассетная запись 1992 г. (городок в России) (фон у алтаря)
+  Исполнитель: TRP (freesound)
+  Лицензия: CC0 (http://creativecommons.org/publicdomain/zero/1.0/)
+  Источник: https://freesound.org/people/TRP/sounds/567331/
+  Фрагмент с 131.0 с оригинала
+
+altar_68.ogg — Херувимская песнь А. Алябьева (фон у алтаря)
+  Исполнитель: Daniel Johnson
+  Лицензия: Public domain
+  Источник: https://commons.wikimedia.org/wiki/File:Cherubic_Hymn_by_Alexander_Alyabyev.ogg
+  Фрагмент с 0.0 с оригинала
+
+altar_69.ogg — Служба в православном храме (ortochurch) (фон у алтаря)
+  Исполнитель: Gvido (freesound)
+  Лицензия: CC BY 3.0 (http://creativecommons.org/licenses/by/3.0/)
+  Источник: https://freesound.org/people/Gvido/sounds/58302/
+  Фрагмент с 302.0 с оригинала
+
+altar_70.ogg — Византийское пение (Byzantine Chant) (фон у алтаря)
+  Исполнитель: RTB45 (freesound)
+  Лицензия: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+  Источник: https://freesound.org/people/RTB45/sounds/157294/
+  Фрагмент с 206.0 с оригинала
+
+altar_71.ogg — Колокольный звон православного храма (вблизи) (фон у алтаря)
+  Исполнитель: newlocknew (freesound)
+  Лицензия: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+  Источник: https://freesound.org/people/newlocknew/sounds/592873/
+  Фрагмент с 80.0 с оригинала
+
+altar_72.ogg — Православные песнопения, Иерусалим (фон у алтаря)
+  Исполнитель: Oh_my_dear_deer (freesound)
+  Лицензия: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+  Источник: https://freesound.org/people/Oh_my_dear_deer/sounds/524353/
+  Фрагмент с 50.0 с оригинала
+
+altar_73.ogg — Пение в храме (Singing in Church) (фон у алтаря)
+  Исполнитель: tripjazz (freesound)
+  Лицензия: CC0 (http://creativecommons.org/publicdomain/zero/1.0/)
+  Источник: https://freesound.org/people/tripjazz/sounds/586045/
+  Фрагмент с 7.0 с оригинала
+
+altar_74.ogg — Песнопения и служба в православном храме в Крещенский сочельник (Екатеринбург) (фон у алтаря)
+  Исполнитель: newlocknew (freesound)
+  Лицензия: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+  Источник: https://freesound.org/people/newlocknew/sounds/787720/
+  Фрагмент с 0.0 с оригинала
+
+altar_75.ogg — Православный священник и хор монахинь (фон у алтаря)
+  Исполнитель: bruno.auzet (freesound)
+  Лицензия: CC0 (http://creativecommons.org/publicdomain/zero/1.0/)
+  Источник: https://freesound.org/people/bruno.auzet/sounds/721890/
+  Фрагмент с 0.0 с оригинала
+
+altar_76.ogg — Собор Александра Невского, Таллин, 2 апреля 2023 (фон у алтаря)
+  Исполнитель: ilmari_freesound (freesound)
+  Лицензия: CC0 (http://creativecommons.org/publicdomain/zero/1.0/)
+  Источник: https://freesound.org/people/ilmari_freesound/sounds/709609/
+  Фрагмент с 30.0 с оригинала
+
+altar_77.ogg — Отпустительный тропарь Пятидесятницы (по-гречески) (фон у алтаря)
+  Исполнитель: David W. Solomons (аранжировка и исполнение)
+  Лицензия: CC BY-SA 3.0 (http://creativecommons.org/licenses/by-sa/3.0/)
+  Источник: https://commons.wikimedia.org/wiki/File:Apolytikion_tis_Pentikostis_arranged_and_performed_by_David_W_Solomons.ogg
+  Фрагмент с 0.0 с оригинала
+
+altar_78.ogg — Строчное многоголосие на Пятидесятницу (фон у алтаря)
+  Исполнитель: Upupka
+  Лицензия: CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+  Источник: https://commons.wikimedia.org/wiki/File:Strochnoy_chant_of_Pentacost.ogg
+  Фрагмент с 0.0 с оригинала
+
+altar_79.ogg — «Достойно есть», болгарский хор (фон у алтаря)
+  Исполнитель: Хор «Йоан Кукузел»
+  Лицензия: Public domain
+  Источник: https://commons.wikimedia.org/wiki/File:%D0%94%D0%BE%D1%81%D1%82%D0%BE%D0%B9%D0%BD%D0%BE_%D0%B5%D1%81%D1%82%D1%8C.ogg
+  Фрагмент с 0.0 с оригинала
+
+altar_80.ogg — «Иже Херувимы» № 7 Бортнянского, дореволюционная запись «Звукописи» (фон у алтаря)
+  Исполнитель: Духовный хор А. А. Архангельского
+  Лицензия: Public domain (PD-RusEmpire)
+  Источник: https://commons.wikimedia.org/wiki/File:%D0%98%D0%B6%D0%B5_%D0%A5%D0%B5%D1%80%D1%83%D0%B2%D0%B8%D0%BC%D1%8B,_%E2%84%967._%D0%91%D0%BE%D1%80%D1%82%D0%BD%D1%8F%D0%BD%D1%81%D0%BA%D0%B0%D0%B3%D0%BE.ogg
+  Фрагмент с 0.0 с оригинала
+
+blessing_61.ogg — Византийские церковные гимны, ч. 1 — третье песнопение (благословение)
+  Исполнитель: неизвестный византийский хор
+  Лицензия: CC0 (http://creativecommons.org/publicdomain/zero/1.0/)
+  Источник: https://commons.wikimedia.org/wiki/File:Byzantine_Ecclesiastical_Hymn_part1.ogg
+  Фрагмент с 212.8 с оригинала
+
+blessing_62.ogg — Византийские церковные гимны, ч. 2 — первое песнопение (благословение)
+  Исполнитель: неизвестный византийский хор
+  Лицензия: CC0 (http://creativecommons.org/publicdomain/zero/1.0/)
+  Источник: https://commons.wikimedia.org/wiki/File:Byzantine_Ecclesiastical_Hymns_Part2.ogg
+  Фрагмент с 1.6 с оригинала
+
+blessing_63.ogg — Рождественское пение в русском православном храме, 2 (благословение)
+  Исполнитель: Choir of Russian Orthodox Church
+  Лицензия: CC0 (http://creativecommons.org/publicdomain/zero/1.0/)
+  Источник: https://commons.wikimedia.org/wiki/File:Russian_Orthodox_Christmas_Church_singing_2.ogg
+  Фрагмент с 0.0 с оригинала
+
+blessing_64.ogg — Величание, обиходный распев (благословение)
+  Исполнитель: Moscow Patriarchal Choir of the Russian Orthodox Church
+  Лицензия: CC0 (http://creativecommons.org/publicdomain/zero/1.0/)
+  Источник: https://commons.wikimedia.org/wiki/File:01_Velichanie_Obihod_grind_Moscow_Patriarchal_Choir.ogg
+  Фрагмент с 0.0 с оригинала
+
+blessing_65.ogg — Петербургские колокола (благословение)
+  Исполнитель: Veridiansunrise (freesound)
+  Лицензия: CC0 (http://creativecommons.org/publicdomain/zero/1.0/)
+  Источник: https://freesound.org/people/Veridiansunrise/sounds/376473/
+  Фрагмент с 0.0 с оригинала
+
+blessing_66.ogg — Песнопения Русской православной церкви (запись в Берлине) (благословение)
+  Исполнитель: cartavetrata (freesound)
+  Лицензия: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+  Источник: https://freesound.org/people/cartavetrata/sounds/830355/
+  Фрагмент с 0.0 с оригинала
+
+blessing_67.ogg — Русская православная литургия (запись во Франции) (благословение)
+  Исполнитель: kevp888 (freesound)
+  Лицензия: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+  Источник: https://freesound.org/people/kevp888/sounds/650735/
+  Фрагмент с 0.0 с оригинала
+
+blessing_68.ogg — Мужской вокальный ансамбль, храм Василия Блаженного (Москва) (благословение)
+  Исполнитель: Clément_Baudet (freesound)
+  Лицензия: CC0 (http://creativecommons.org/publicdomain/zero/1.0/)
+  Источник: https://freesound.org/people/Cl%C3%A9ment_Baudet/sounds/840661/
+  Фрагмент с 0.0 с оригинала
+
+blessing_69.ogg — «Отче наш» Дубенского, болгарский хор (благословение)
+  Исполнитель: Хор при православном храме «Света Троица», Пловдив, дир. Весела Гелева (продюсер д-р Емилиян Станков)
+  Лицензия: CC BY 2.5 (https://creativecommons.org/licenses/by/2.5/)
+  Источник: https://commons.wikimedia.org/wiki/File:3.Otche_Nach.ogg
+  Фрагмент с 0.0 с оригинала
+
+blessing_70.ogg — «О Тебе радуется, Обрадованная, всякая тварь» (благословение)
+  Исполнитель: Хор храма св. Михаила (Украинская православная церковь, Вунсокет), дир. Donna Eichorn; свящ. Fr. Anthony Perkins
+  Лицензия: CC BY 2.5 (http://creativecommons.org/licenses/by/2.5/)
+  Источник: https://archive.org/details/Fr.AnthonyPerkinsAll_Creation_Rejoices_in_Thee.mp3
+  Фрагмент с 0.0 с оригинала
+
+blessing_71.ogg — «Плотию уснув», галицкий напев (церковнославянский) (благословение)
+  Исполнитель: Edward Yong
+  Лицензия: Public domain (http://creativecommons.org/licenses/publicdomain/)
+  Источник: https://archive.org/details/EdwardYongPaschalChants
+  Фрагмент с 0.0 с оригинала
+
+blessing_72.ogg — Демественный распев на Пасху (благословение)
+  Исполнитель: Upupka
+  Лицензия: CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+  Источник: https://commons.wikimedia.org/wiki/File:Demestvenny_chant_of_Easter.ogg
+  Фрагмент с 0.0 с оригинала
+
+blessing_73.ogg — «К Богородице прилежно ныне притецем» А. Архангельского (благословение)
+  Исполнитель: Daniel Johnson
+  Лицензия: Public domain
+  Источник: https://commons.wikimedia.org/wiki/File:To_the_Mother_of_God_Let_Us_Earnestly_Hasten_By_Alexander_Arkhangelsky.ogg
+  Фрагмент с 0.0 с оригинала
+
+punishment_61.ogg — Византийские церковные гимны, ч. 1 — девятое песнопение (кара)
+  Исполнитель: неизвестный византийский хор
+  Лицензия: CC0 (http://creativecommons.org/publicdomain/zero/1.0/)
+  Источник: https://commons.wikimedia.org/wiki/File:Byzantine_Ecclesiastical_Hymn_part1.ogg
+  Фрагмент с 793.2 с оригинала
+
+punishment_62.ogg — Византийские церковные гимны, ч. 2 — девятое песнопение (кара)
+  Исполнитель: неизвестный византийский хор
+  Лицензия: CC0 (http://creativecommons.org/publicdomain/zero/1.0/)
+  Источник: https://commons.wikimedia.org/wiki/File:Byzantine_Ecclesiastical_Hymns_Part2.ogg
+  Фрагмент с 829.1 с оригинала
+
+punishment_63.ogg — «Се Жених грядет в полунощи», знаменный распев (кара)
+  Исполнитель: Moscow Patriarchal Choir of the Russian Orthodox Church
+  Лицензия: CC0 (http://creativecommons.org/publicdomain/zero/1.0/)
+  Источник: https://commons.wikimedia.org/wiki/File:05_Se_Zhenih_grjadet_v_polunowi_znamennyj_raspev_grind_Moscow_Patriarchal_Choir.ogg
+  Фрагмент с 0.0 с оригинала
+
+punishment_64.ogg — Колокола храма Святых Петра и Павла (Сербия) (кара)
+  Исполнитель: SignatureSoundsOrg (freesound)
+  Лицензия: CC0 (http://creativecommons.org/publicdomain/zero/1.0/)
+  Источник: https://freesound.org/people/SignatureSoundsOrg/sounds/870015/
+  Фрагмент с 117.0 с оригинала
+
+punishment_65.ogg — Колокола Ново-Валаамского монастыря (Финляндия) (кара)
+  Исполнитель: vollkornbrot (freesound)
+  Лицензия: CC0 (http://creativecommons.org/publicdomain/zero/1.0/)
+  Источник: https://freesound.org/people/vollkornbrot/sounds/149967/
+  Фрагмент с 0.0 с оригинала
+
+punishment_66.ogg — «Господи, услыши молитву мою» А. Архангельского, запись 1931 г. (кара)
+  Исполнитель: А. Григорович и хор русского кафедрального собора в Париже, дир. Н. П. Афонский
+  Лицензия: Public domain (http://creativecommons.org/publicdomain/mark/1.0/)
+  Источник: https://commons.wikimedia.org/wiki/File:PDP-CH_-_A._Grigorovitch_and_the_Choir_of_the_Russian_Metropolitan_Church,_Paris_-_Nicholas_P._Afonsky_-_Lord,_hear_my_prayer_-_Alexander_Arkhangelsky_-_Hmv-c2206-32-2043.flac
+  Фрагмент с 2.0 с оригинала
+
+punishment_67.ogg — Большой колокол (25 т) Кафедрального собора Спасения нации, Бухарест (кара)
+  Исполнитель: MIHAIL
+  Лицензия: CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+  Источник: https://commons.wikimedia.org/wiki/File:Clopot_25T_-_Catedralei_M%C3%A2ntuirii_Neamului_(Bucure%C8%99ti).wav
+  Фрагмент с 66.0 с оригинала

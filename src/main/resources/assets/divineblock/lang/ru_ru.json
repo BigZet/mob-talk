@@ -90,5 +90,12 @@
   "block.divineblock.green_grave_fence": "Зелёная оградка",
   "block.divineblock.green_grave_gate": "Калитка зелёной оградки",
   "block.divineblock.silver_grave_fence": "Серебристая оградка",
-  "block.divineblock.silver_grave_gate": "Калитка серебристой оградки"
+  "block.divineblock.silver_grave_gate": "Калитка серебристой оградки",
+  "block.divineblock.dome_cross": "Восьмиконечный крест",
+  "block.divineblock.cross_apple": "Яблоко под крест",
+  "block.divineblock.church_bell": "Церковный колокол",
+  "block.divineblock.icon_panel": "Икона",
+  "block.divineblock.candle_stand": "Подсвечник",
+  "block.divineblock.chandelier": "Паникадило",
+  "block.divineblock.analoy": "Аналой"
 }

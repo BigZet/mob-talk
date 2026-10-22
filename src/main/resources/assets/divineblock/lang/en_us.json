@@ -90,5 +90,12 @@
   "block.divineblock.green_grave_fence": "Green Grave Fence",
   "block.divineblock.green_grave_gate": "Green Grave Gate",
   "block.divineblock.silver_grave_fence": "Silver Grave Fence",
-  "block.divineblock.silver_grave_gate": "Silver Grave Gate"
+  "block.divineblock.silver_grave_gate": "Silver Grave Gate",
+  "block.divineblock.dome_cross": "Eight-Pointed Cross",
+  "block.divineblock.cross_apple": "Cross Apple",
+  "block.divineblock.church_bell": "Church Bell",
+  "block.divineblock.icon_panel": "Icon",
+  "block.divineblock.candle_stand": "Candle Stand",
+  "block.divineblock.chandelier": "Panikadilo",
+  "block.divineblock.analoy": "Analoy"
 }
