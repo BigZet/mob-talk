@@ -170,15 +170,6 @@
       }
     ]
   },
-  "chant.altar_73": {
-    "sounds": [
-      {
-        "name": "divineblock:chants/altar_73",
-        "stream": true,
-        "attenuation_distance": 24
-      }
-    ]
-  },
   "chant.altar_74": {
     "sounds": [
       {
@@ -192,15 +183,6 @@
     "sounds": [
       {
         "name": "divineblock:chants/altar_75",
-        "stream": true,
-        "attenuation_distance": 24
-      }
-    ]
-  },
-  "chant.altar_76": {
-    "sounds": [
-      {
-        "name": "divineblock:chants/altar_76",
         "stream": true,
         "attenuation_distance": 24
       }
@@ -228,15 +210,6 @@
     "sounds": [
       {
         "name": "divineblock:chants/altar_79",
-        "stream": true,
-        "attenuation_distance": 24
-      }
-    ]
-  },
-  "chant.altar_80": {
-    "sounds": [
-      {
-        "name": "divineblock:chants/altar_80",
         "stream": true,
         "attenuation_distance": 24
       }
@@ -323,33 +296,6 @@
       }
     ]
   },
-  "chant.blessing_65": {
-    "sounds": [
-      {
-        "name": "divineblock:chants/blessing_65",
-        "stream": true,
-        "attenuation_distance": 40
-      }
-    ]
-  },
-  "chant.blessing_66": {
-    "sounds": [
-      {
-        "name": "divineblock:chants/blessing_66",
-        "stream": true,
-        "attenuation_distance": 40
-      }
-    ]
-  },
-  "chant.blessing_67": {
-    "sounds": [
-      {
-        "name": "divineblock:chants/blessing_67",
-        "stream": true,
-        "attenuation_distance": 40
-      }
-    ]
-  },
   "chant.blessing_68": {
     "sounds": [
       {
@@ -363,15 +309,6 @@
     "sounds": [
       {
         "name": "divineblock:chants/blessing_69",
-        "stream": true,
-        "attenuation_distance": 40
-      }
-    ]
-  },
-  "chant.blessing_70": {
-    "sounds": [
-      {
-        "name": "divineblock:chants/blessing_70",
         "stream": true,
         "attenuation_distance": 40
       }
@@ -516,15 +453,6 @@
     "sounds": [
       {
         "name": "divineblock:chants/punishment_65",
-        "stream": true,
-        "attenuation_distance": 40
-      }
-    ]
-  },
-  "chant.punishment_66": {
-    "sounds": [
-      {
-        "name": "divineblock:chants/punishment_66",
         "stream": true,
         "attenuation_distance": 40
       }

@@ -22,16 +22,16 @@ import net.minecraft.util.math.BlockPos;
  * music, low under the god's words and rising once he has spoken. Whatever plays sinks to a whisper while his voice
  * sounds. Each scene deals its pieces like a shuffled deck: none comes again before all the others have been heard. */
 final class ChantPlayer {
-    private static final List<String> ALTAR = List.of("altar_01", "altar_17", "altar_33", "altar_35", "altar_53",
-            "altar_60", "altar_61", "altar_62", "altar_63", "altar_64", "altar_65", "altar_66", "altar_67", "altar_68",
-            "altar_69", "altar_70", "altar_71", "altar_72", "altar_73", "altar_74", "altar_75", "altar_76", "altar_77",
-            "altar_78", "altar_79", "altar_80");
-    private static final List<String> BLESSING = List.of("blessing_03", "blessing_11", "blessing_15", "blessing_45",
-            "blessing_46", "blessing_61", "blessing_62", "blessing_63", "blessing_64", "blessing_65", "blessing_66",
-            "blessing_67", "blessing_68", "blessing_69", "blessing_70", "blessing_71", "blessing_72", "blessing_73");
-    private static final List<String> PUNISHMENT = List.of("punishment_02", "punishment_06", "punishment_20",
-            "punishment_21", "punishment_39", "punishment_56", "punishment_57", "punishment_59", "punishment_61",
-            "punishment_62", "punishment_63", "punishment_64", "punishment_65", "punishment_66", "punishment_67");
+    // Scenes as Dmitriy marked them on 22.10 (the file name keeps the scene it was first cut for).
+    private static final List<String> ALTAR = List.of("altar_35", "altar_53", "altar_60", "altar_68", "altar_69", "blessing_68", "blessing_69",
+            "blessing_71", "blessing_73");
+    private static final List<String> BLESSING = List.of("altar_17", "altar_33", "altar_67", "altar_72", "altar_74", "altar_75", "altar_77", "blessing_03",
+            "blessing_11", "blessing_15", "blessing_45", "blessing_46", "blessing_61", "blessing_62",
+            "blessing_72");
+    private static final List<String> PUNISHMENT = List.of("altar_01", "altar_61", "altar_62", "altar_63", "altar_64", "altar_65", "altar_66", "altar_70",
+            "altar_71", "altar_78", "altar_79", "blessing_63", "blessing_64", "punishment_02", "punishment_06",
+            "punishment_20", "punishment_21", "punishment_39", "punishment_56", "punishment_57", "punishment_59",
+            "punishment_61", "punishment_62", "punishment_63", "punishment_64", "punishment_65", "punishment_67");
     /** Loudness at the default setting: the altar's singing, and the music of a verdict. */
     private static final float ALTAR_VOLUME = 0.85f, MUSIC_VOLUME = 0.9f;
     /** How much of it is left while the god speaks. */
