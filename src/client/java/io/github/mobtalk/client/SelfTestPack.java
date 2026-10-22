@@ -95,7 +95,7 @@ final class SelfTestPack {
         test.owner.client.options.setPerspective(Perspective.FIRST_PERSON);
         test.command("effect give " + name() + " minecraft:slow_falling 30 1 true");
         test.command("tp " + name() + " " + at(0, 1, 9) + " 180 15");
-        test.await("pause: the showcase chunks load", 3, () -> false, () -> {
+        test.await("pause: the showcase chunks load", 5, () -> false, () -> {
             test.command("fill " + at(-14, -1, -6) + " " + at(14, -1, 10) + " minecraft:grass_block");
             test.command("fill " + at(-14, 0, -6) + " " + at(14, 8, 10) + " minecraft:air");
             // A row per mod, a step apart, seen from above: every block of the pack in one picture.
@@ -112,7 +112,7 @@ final class SelfTestPack {
             test.command("summon minecraft:villager " + at(0, 0, 5) + " {NoAI:1b,PersistenceRequired:1b,Rotation:[0f,0f],VillagerData:{profession:\"minecraft:librarian\",type:\"minecraft:taiga\",level:2}}");
             test.command("summon minecraft:parrot " + at(4, 0, 5) + " {NoAI:1b,PersistenceRequired:1b,Variant:1}");
             test.command("tp " + name() + " " + at(0, 5, 12) + " 180 32");
-            test.await("pause: the showcase settles", 4, () -> false, () -> shot("mobtalk-pack-content.png", () -> {
+            test.await("pause: the showcase settles", 10, () -> false, () -> shot("mobtalk-pack-content.png", () -> {
                 // Villagers as people, close up: faces, hair and clothes are easy to judge here.
                 test.command("tp " + name() + " " + at(-2, 0, 8) + " 180 5");
                 test.await("pause: close to the villagers", 3, () -> false, () -> shot("mobtalk-pack-villagers.png", this::menus));
