@@ -475,7 +475,7 @@ public final class DialogueService {
         session.status("Моб думает…");
         String stt = session.stt;
         Object run = journal.started(session.player, request.playerName, request.target, request.mobName,
-                request.snapshot == null ? "" : request.snapshot.type(), question, stt);
+                request.snapshot == null ? bridge.memory().typeOf(request.target) : request.snapshot.type(), question, stt);
         session.run = run;
         session.stt = "text";
         pool.submit(DialoguePool.Priority.ANSWER, () -> {
