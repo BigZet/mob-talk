@@ -6,7 +6,7 @@
         "element_type": "minecraft:single_pool_element",
         "location": "divineblock:cemetery/end_1",
         "processors": "divineblock:cemetery",
-        "projection": "terrain_matching"
+        "projection": "rigid"
       },
       "weight": 1
     },
@@ -15,7 +15,7 @@
         "element_type": "minecraft:single_pool_element",
         "location": "divineblock:cemetery/end_2",
         "processors": "divineblock:cemetery",
-        "projection": "terrain_matching"
+        "projection": "rigid"
       },
       "weight": 1
     }

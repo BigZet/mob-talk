@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "decorations",
+  "pattern": [
+    " R ",
+    " I ",
+    "IBI"
+  ],
+  "key": {
+    "R": {
+      "item": "minecraft:red_dye"
+    },
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "B": {
+      "item": "minecraft:light_blue_dye"
+    }
+  },
+  "result": {
+    "id": "divineblock:blue_star_obelisk",
+    "count": 1
+  }
+}

@@ -1,6 +1,10 @@
 {
   "processors": [
     {
+      "processor_type": "divineblock:cemetery_ground",
+      "trunk": 3
+    },
+    {
       "processor_type": "divineblock:cemetery_tree",
       "cold": false
     }

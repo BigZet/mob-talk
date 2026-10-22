@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "decorations",
+  "pattern": [
+    " G ",
+    "GNG",
+    "SSS"
+  ],
+  "key": {
+    "G": {
+      "item": "minecraft:polished_granite"
+    },
+    "N": {
+      "item": "minecraft:gold_nugget"
+    },
+    "S": {
+      "item": "minecraft:stone_slab"
+    }
+  },
+  "result": {
+    "id": "divineblock:red_granite_stele",
+    "count": 1
+  }
+}

@@ -285,6 +285,75 @@ def bin_blue(seed):
     return img
 
 
+def portrait_engraving(seed):
+    """Black granite with a portrait engraved by hand in pale grey, the way the modern stones are: the face drawn in fine
+    lines and stippled shade, the shoulders below, two lines of name and dates under it."""
+    rnd = random.Random(seed); img = speckled(hexc("#141416"), seed, ["#2c2c31", "#3a3a40"], 18)
+    light, mid = hexc("#c9c7c0"), hexc("#7d7b76")
+    for y in range(1, 11):
+        for x in range(3, 13):
+            fx, fy = (x - 7.5) / 3.2, (y - 5.0) / 3.9
+            e = fx * fx + fy * fy
+            if e <= 1.0:
+                if y <= 2 or (y <= 3 and abs(x - 7.5) > 1.5): img.putpixel((x, y), shade(light, rnd.uniform(0.85, 1.0)))  # hair
+                elif abs(x - 7.5) > 2.2 and rnd.random() < 0.6: img.putpixel((x, y), mid)  # shade at the cheeks
+                elif rnd.random() < 0.18: img.putpixel((x, y), mid)  # stipple
+            elif e <= 1.35 and y < 9: img.putpixel((x, y), shade(mid, 0.8))
+    for x in (6, 9): img.putpixel((x, 5), light)  # eyes
+    img.putpixel((7, 7), mid); img.putpixel((8, 7), mid)
+    for x in range(6, 10): img.putpixel((x, 8), shade(light, 0.8))  # mouth
+    for y in range(10, 13):  # shoulders
+        for x in range(2 + (12 - y), 14 - (12 - y)):
+            if rnd.random() < 0.7: img.putpixel((x, y), shade(mid, rnd.uniform(0.85, 1.1)))
+    engraved_lines(img, [(13, 3, 13), (14, 5, 11)], light, seed + 1)
+    return img
+
+
+def icon_board():
+    """A small icon under the roof of a golubets: a gilded halo and a dark figure on ochre."""
+    img = noise(hexc("#c49a4a"), 0.05, 41)
+    for x in range(16):
+        for y in (0, 15): img.putpixel((x, y), hexc("#6b4a26"))
+    for y in range(16):
+        for x in (0, 15): img.putpixel((x, y), hexc("#6b4a26"))
+    for y in range(3, 8):
+        for x in range(5, 11):
+            if (x - 7.5) ** 2 + (y - 5) ** 2 <= 6.5: img.putpixel((x, y), hexc("#f0cd5a"))
+    for y in range(4, 7):
+        for x in range(6, 10): img.putpixel((x, y), hexc("#b77e58"))
+    for y in range(7, 14):
+        for x in range(4 + max(0, 9 - y) // 2, 12 - max(0, 9 - y) // 2): img.putpixel((x, y), hexc("#7a2a24" if x < 8 else "#5f1f1b"))
+    return img
+
+
+def carnations():
+    """Red carnations, a bunch laid on the grave: frilled heads on long stems."""
+    rnd = random.Random(43); img = new()
+    for x, top in ((3, 3), (5, 2), (7, 4), (9, 2), (11, 3), (13, 5), (6, 6), (10, 6)):
+        for y in range(top + 2, 16):
+            img.putpixel((x, y), hexc("#3f7a34" if y % 4 else "#2f6128"))
+        for dx, dy in ((0, 0), (-1, 0), (1, 0), (0, 1), (-1, 1), (1, 1), (0, -1)):
+            px, py = x + dx, top + dy
+            if 0 <= px < 16 and 0 <= py < 16: img.putpixel((px, py), shade(hexc("#c3162a"), rnd.uniform(0.8, 1.15)))
+    return img
+
+
+def fir_wreath():
+    """A wreath of fir with red and white ribbons across it."""
+    rnd = random.Random(44); img = new()
+    greens = [hexc("#1f4528"), hexc("#2a5a33"), hexc("#18381f"), hexc("#356b3c")]
+    for y in range(16):
+        for x in range(16):
+            r = math.hypot(x - 7.5, y - 7.5)
+            if 3.0 <= r <= 7.6 and rnd.random() < 0.95: img.putpixel((x, y), rnd.choice(greens))
+    for i in range(16):  # a red ribbon across, a white one beside it
+        for x, y, col in ((i, i, "#b3141f"), (i + 1, i, "#e8e4da")):
+            if 0 <= x < 16 and 3.0 <= math.hypot(x - 7.5, y - 7.5) <= 7.6: img.putpixel((x, y), hexc(col))
+    for x, y in ((4, 3), (11, 4), (3, 10), (12, 11), (7, 13)):  # cones
+        img.putpixel((x, y), hexc("#6b4524")); img.putpixel((x, y + 1), hexc("#563619"))
+    return img
+
+
 def write_textures():
     T = {}
     T["grave_wood"] = wood(hexc("#a8693a"), 1)
@@ -340,6 +409,25 @@ def write_textures():
     T["grave_slab_top"] = slab
     T["sector_sign"] = sector_sign()
     T["painted_bin_blue"] = bin_blue(24)
+    # 22 October: more kinds of grave.
+    T["dark_grave_wood"] = wood(hexc("#5b3a24"), 31)
+    T["dark_grave_wood_bar"] = T["dark_grave_wood"].transpose(Image.Transpose.ROTATE_90)
+    T["painted_iron_green"] = painted(hexc("#3f6e4c"), 32, chips=hexc("#22402b"), rust=4)
+    T["polished_gray_granite"] = speckled(hexc("#8a8784"), 33, ["#6e6b69", "#a5a19d", "#5c5a58"], 40)
+    gfront = T["polished_gray_granite"].copy()
+    engraved_lines(gfront, [(6, 4, 12), (8, 5, 11), (11, 4, 12), (13, 6, 10)], hexc("#2e2c2b"), 34)
+    T["gray_stele_front"] = gfront
+    T["red_granite"] = speckled(hexc("#7a3a2c"), 35, ["#5a271d", "#9a5544", "#3f1d17", "#b0705c"], 50)
+    rfront = T["red_granite"].copy()
+    for y in range(5, 13): rfront.putpixel((8, y), hexc("#d9b44a"))  # a gilded cross with its footrest
+    for x in range(6, 11): rfront.putpixel((x, 7), hexc("#d9b44a"))
+    for x in (7, 9): rfront.putpixel((x, 6), hexc("#d9b44a"))
+    rfront.putpixel((7, 11), hexc("#d9b44a")); rfront.putpixel((9, 10), hexc("#d9b44a"))
+    T["red_granite_front"] = rfront
+    T["granite_portrait_front"] = portrait_engraving(38)
+    T["icon_board"] = icon_board()
+    T["carnations"] = carnations()
+    T["fir_wreath"] = fir_wreath()
     out = os.path.join(ASSETS, "textures", "block")
     os.makedirs(out, exist_ok=True)
     for name, img in T.items(): img.save(os.path.join(out, name + ".png"))
@@ -506,7 +594,8 @@ def write_models(shapes):
                 els.append(el((xx, 1, 0.5), (xx, 9, 15.5), "tufts", faces=("east", "west"), uv={"east": [0, 7, 15, 15], "west": [0, 7, 15, 15]}, shade=False))
         model(name, t, els)
 
-    for color, metal in (("black", "painted_iron_black"), ("blue", "painted_iron_blue"), ("rusty", "rusty_iron")):
+    for color, metal in (("black", "painted_iron_black"), ("blue", "painted_iron_blue"), ("rusty", "rusty_iron"),
+                         ("green", "painted_iron_green"), ("silver", "painted_iron_silver")):
         t = {"iron": tex(metal)}
         ball = lambda x, y, z: el((x - 0.65, y, z - 0.65), (x + 0.65, y + 1.3, z + 0.65), "iron", rot=((x, y + 0.65, z), "y", 45))
         model(f"{color}_grave_fence_post", t, [el((7.5, 0, 7.5), (8.5, 11.5, 8.5), "iron"), ball(8, 11.5, 8)])
@@ -614,10 +703,118 @@ def write_models(shapes):
                                el((3, 1, 4), (4, 12, 12), "bin"), el((12, 1, 4), (13, 12, 12), "bin"),
                                el((2.5, 11, 2.5), (13.5, 12, 3.5), "bin"), el((2.5, 11, 12.5), (13.5, 12, 13.5), "bin")])
 
-    for name in ("wooden_cross", "roofed_cross", "old_cross", "iron_cross", "star_obelisk", "granite_cross", "white_metal_cross",
-                 "stone_trunk_cross", "sector_sign"):
+    write_new_models()
+
+    for name in sorted(TALL):
         save_json(os.path.join(ASSETS, "models", "block", name + "_top.json"),
                   {"textures": {"particle": shapes[name]}})
+
+
+def write_new_models():
+    """The grave kinds added on 22 October."""
+    # Golubets: a thick post with a little gabled house on top, an icon under its roof.
+    gw = {"post": tex("grave_wood"), "bar": tex("grave_wood_bar"), "icon": tex("icon_board"), "roof": tex("dark_grave_wood")}
+    ridge = 31.5
+    gol = [el((5.5, 0, 5.5), (10.5, 1, 10.5), "post"), el((6.5, 1, 6.5), (9.5, 22, 9.5), "post"),
+           el((4, 22, 4.5), (12, 27, 11.5), "post"), el((5, 27, 4.5), (11, 28.5, 11.5), "post"), el((6.5, 28.5, 4.5), (9.5, 30, 11.5), "post"),
+           el((5.25, 22.75, 4.3), (10.75, 26.5, 4.5), "icon", uv={"north": [1, 1, 15, 15]}, skip=("south",)),
+           el((8, ridge - 0.5, 3.5), (14.5, ridge + 0.5, 12.5), "roof", rot=((8, ridge, 8), "z", -45)),
+           el((1.5, ridge - 0.5, 3.5), (8, ridge + 0.5, 12.5), "roof", rot=((8, ridge, 8), "z", 45)),
+           el((7.4, ridge - 0.2, 3.3), (8.6, ridge + 0.5, 12.7), "bar")]
+    model("golubets", gw, gol, tall=True, ao=False)
+
+    # A forged cross: an openwork ring around the crossing, gilded tips, on a stepped iron foot.
+    fi = {"iron": tex("painted_iron_black"), "gold": tex("painted_gold")}
+    cy = 21
+    forged = [el((5, 0, 5), (11, 2, 11), "iron"), el((6, 2, 6), (10, 3, 10), "iron"),
+              el((7.25, 3, 7.25), (8.75, 30, 8.75), "iron"), el((1.5, cy - 0.75, 7.25), (14.5, cy + 0.75, 8.75), "iron"),
+              el((4.5, 25.75, 7.4), (11.5, 26.75, 8.6), "iron"),
+              el((4, 10.5, 7.4), (12, 11.75, 8.6), "iron", rot=((8, 11.1, 8), "z", 22.5))]
+    a, half = 4.0, 1.66
+    for cx_, cy_, ang in ((8, cy + a, 0), (8, cy - a, 0), (8 - a, cy, 90), (8 + a, cy, 90)):
+        if ang == 0: forged.append(el((cx_ - half, cy_ - 0.35, 7.6), (cx_ + half, cy_ + 0.35, 8.4), "iron"))
+        else: forged.append(el((cx_ - 0.35, cy_ - half, 7.6), (cx_ + 0.35, cy_ + half, 8.4), "iron"))
+    d = a * math.sqrt(0.5)
+    for sx_, sy_ in ((1, 1), (-1, -1), (-1, 1), (1, -1)):
+        px, py = 8 + sx_ * d, cy + sy_ * d
+        ang = -45 if sx_ == sy_ else 45
+        forged.append(el((px - half, py - 0.35, 7.6), (px + half, py + 0.35, 8.4), "iron", rot=((px, py, 8), "z", ang)))
+    for kx, ky in ((8, 30.4), (1.2, cy), (14.8, cy)):
+        forged.append(el((kx - 0.9, ky - 0.9, 7.5), (kx + 0.9, ky + 0.9, 8.5), "gold", rot=((kx, ky, 8), "z", 45)))
+    model("forged_cross", fi, forged, tall=True, ao=False)
+
+    # A big cross of dark stained oak, thick beams, a plaque.
+    dw = {"post": tex("dark_grave_wood"), "bar": tex("dark_grave_wood_bar"), "plaque": tex("grave_plaque")}
+    big = [el((6.5, 0, 6.5), (9.5, 32, 9.5), "post"), el((0.5, 21, 6.75), (15.5, 23.5, 9.25), "bar"),
+           el((4, 27.5, 7), (12, 29.5, 9), "bar"), el((3.5, 10, 7), (12.5, 12, 9), "bar", rot=((8, 11, 8), "z", 22.5)),
+           el((6.75, 15, 6.3), (9.25, 18, 6.5), "plaque", uv={"north": [1, 4, 15, 12]}, skip=("south",))]
+    model("big_oak_cross", dw, big, tall=True, ao=False)
+
+    # A Soviet pyramid painted sky blue, the red star on top.
+    s = {"body": tex("painted_iron_blue"), "star": tex("red_star"), "photo": tex("grave_photo"), "base": tex("gray_granite")}
+    levels = [(4, 2, 7), (4.5, 7, 12), (5, 12, 16.5), (5.5, 16.5, 20.5), (6, 20.5, 23.5), (6.5, 23.5, 25.5), (7, 25.5, 27)]
+    ob = [el((3, 0, 3), (13, 2, 13), "base")]
+    for inset, y1, y2 in levels: ob.append(el((inset, y1, inset), (16 - inset, y2, 16 - inset), "body"))
+    ob.append(el((6.5, 8, 4.3), (9.5, 12, 4.5), "photo", uv={"north": [0, 0, 4, 5]}, skip=("south",)))
+    ob.append(el((7.6, 27, 7.6), (8.4, 28, 8.4), "body"))
+    ob.append(el((5, 26.5, 7.9), (11, 32, 8.1), "star", uv={"north": [0, 0, 16, 16], "south": [0, 0, 16, 16]},
+                 faces=("north", "south"), shade=False))
+    model("blue_star_obelisk", s, ob, tall=True, ao=False)
+
+    # A grey granite stele with a cross standing on it.
+    gs = {"stone": tex("polished_gray_granite"), "front": tex("gray_stele_front"), "base": tex("gray_granite")}
+    body = el((3, 2, 6.5), (13, 17, 9.5), "stone", uv={"north": [0, 0, 16, 16]}); body["faces"]["north"]["texture"] = "#front"
+    model("cross_top_stele", gs, [el((2, 0, 4), (14, 2, 12), "base"), body, el((6.5, 17, 7), (9.5, 18, 9), "stone"),
+                                  el((7.25, 18, 7.25), (8.75, 29.5, 8.75), "stone"), el((4.5, 24, 7.25), (11.5, 25.5, 8.75), "stone"),
+                                  el((5.75, 20, 7.4), (10.25, 21, 8.6), "stone", rot=((8, 20.5, 8), "z", 22.5))], tall=True, ao=False)
+
+    # A small eight-pointed cross, a block high: a fresh grave or a child's.
+    w = {"post": tex("grave_wood"), "bar": tex("grave_wood_bar")}
+    model("small_wooden_cross", w, [el((7.25, 0, 7.25), (8.75, 15, 8.75), "post"), el((3.5, 10, 7.4), (12.5, 11.5, 8.6), "bar"),
+                                    el((5.5, 13, 7.4), (10.5, 14, 8.6), "bar"),
+                                    el((5, 4.5, 7.4), (11, 5.5, 8.6), "bar", rot=((8, 5, 8), "z", 22.5))])
+
+    # A tall rectangular black granite stone with an engraved portrait.
+    rp = {"stone": tex("black_granite"), "front": tex("granite_portrait_front"), "base": tex("gray_granite")}
+    rb = el((2.5, 1.5, 7), (13.5, 16, 9), "stone", uv={"north": [0, 0, 16, 16]}); rb["faces"]["north"]["texture"] = "#front"
+    model("portrait_stele", rp, [el((1.5, 0, 4.5), (14.5, 1.5, 11.5), "base"), rb])
+
+    # Red granite with an arched top and a gilded cross.
+    rg = {"stone": tex("red_granite"), "front": tex("red_granite_front"), "base": tex("gray_granite")}
+    rbody = el((3, 2, 7), (13, 12, 9), "stone"); rbody["faces"]["north"]["texture"] = "#front"
+    model("red_granite_stele", rg, [el((2, 0, 4), (14, 2, 12), "base"), rbody, el((4, 12, 7), (12, 13.5, 9), "stone"),
+                                    el((5.5, 13.5, 7), (10.5, 14.5, 9), "stone"), el((6.75, 14.5, 7), (9.25, 15, 9), "stone")])
+
+    # An old cross fallen in the grass of an abandoned grave.
+    fo = {"post": tex("old_grave_wood"), "bar": tex("old_grave_wood_bar"), "tufts": tex("grave_tufts")}
+    fallen = [el((7, 0, 0.5), (9, 1.5, 15.5), "post"), el((1.5, 0, 9), (14.5, 1.25, 11), "bar"),
+              el((4.5, 0, 3.5), (11.5, 1, 5), "bar", rot=((8, 0.5, 4.25), "y", 22.5))]
+    for xx in (3.5, 12.5):
+        fallen.append(el((xx, 0, 1), (xx, 7, 15), "tufts", faces=("east", "west"), uv={"east": [1, 8, 15, 15], "west": [1, 8, 15, 15]}, shade=False))
+    model("fallen_cross", fo, fallen)
+
+    # A bench with a back.
+    b = {"wood": tex("grave_wood_bar"), "iron": tex("painted_iron_black")}
+    bench = [el((1, 7, 4), (15, 8.25, 6.75), "wood"), el((1, 7, 7.25), (15, 8.25, 10), "wood"),
+             el((1, 10, 10.25), (15, 11.5, 11.25), "wood"), el((1, 12.5, 10.25), (15, 14, 11.25), "wood")]
+    for x in (2, 13):
+        bench += [el((x, 0, 4.5), (x + 1, 7, 5.5), "iron"), el((x, 0, 9), (x + 1, 7, 10), "iron"),
+                  el((x, 6, 5.5), (x + 1, 7, 9), "iron"), el((x, 0, 4), (x + 1, 1, 10), "iron"),
+                  el((x, 7, 11.25), (x + 1, 14.5, 12), "iron")]
+    model("backed_bench", b, bench)
+
+    # Red carnations laid on the grave, and a fir wreath leaning on its stand.
+    cf = {"flowers": tex("carnations")}
+    planes = []
+    for ang in (45, -45):
+        planes.append(el((2, 0, 8), (14, 9, 8), "flowers", faces=("north", "south"),
+                         uv={"north": [1, 3, 15, 16], "south": [1, 3, 15, 16]}, rot=((8, 4.5, 8), "y", ang), shade=False))
+    model("carnations", cf, planes)
+    model("fir_wreath", {"wreath": tex("fir_wreath"), "wood": tex("dark_grave_wood")}, [
+        el((1, 0.5, 8), (15, 14.5, 8.01), "wreath", faces=("north", "south"), uv={"north": [0.5, 0.5, 15.5, 15.5], "south": [15.5, 0.5, 0.5, 15.5]},
+           rot=((8, 0.5, 8), "x", 22.5), shade=False),
+        el((7.5, 0, 10), (8.5, 10, 11), "wood", rot=((8, 0, 10.5), "x", -22.5)),
+    ])
 
 
 # ---------------------------------------------------------------- blockstates, items, data
@@ -641,14 +838,14 @@ def write_states():
             vs[f"facing={f},half=upper"] = variant(name + "_top", f)
         save_json(os.path.join(bs, name + ".json"), {"variants": vs})
     for name in ("granite_stele", "marble_stone", "grave_bench", "grave_table", "funeral_wreath", "artificial_flowers", "grave_lampada",
-                 "gothic_marble_stone", "grave_slab", "cemetery_bin"):
+                 "gothic_marble_stone", "grave_slab", "cemetery_bin") + SINGLE_NEW:
         save_json(os.path.join(bs, name + ".json"), {"variants": {f"facing={f}": variant(name, f) for f in Y}})
     vs = {}
     for f in Y:
         vs[f"facing={f},overgrown=false"] = variant("grave_mound", f)
         vs[f"facing={f},overgrown=true"] = variant("grave_mound_overgrown", f)
     save_json(os.path.join(bs, "grave_mound.json"), {"variants": vs})
-    for color in ("black", "blue", "rusty"):
+    for color in COLORS:
         post, side = f"{NS}:block/{color}_grave_fence_post", f"{NS}:block/{color}_grave_fence_side"
         parts = [{"apply": {"model": post}}]
         for f, y in Y.items():
@@ -671,8 +868,12 @@ BLOCKS = ["wooden_cross", "roofed_cross", "old_cross", "iron_cross", "star_obeli
           "granite_cross", "white_metal_cross", "stone_trunk_cross", "gothic_marble_stone", "grave_slab",
           "black_grave_fence", "black_grave_gate", "blue_grave_fence", "blue_grave_gate", "rusty_grave_fence", "rusty_grave_gate",
           "grave_bench", "grave_table", "funeral_wreath", "artificial_flowers", "grave_lampada", "sector_sign", "cemetery_bin"]
+TALL_NEW = ("golubets", "forged_cross", "big_oak_cross", "blue_star_obelisk", "cross_top_stele")
+SINGLE_NEW = ("small_wooden_cross", "portrait_stele", "red_granite_stele", "fallen_cross", "backed_bench", "carnations", "fir_wreath")
+COLORS = ("black", "blue", "rusty", "green", "silver")
+BLOCKS += list(TALL_NEW) + list(SINGLE_NEW) + ["green_grave_fence", "green_grave_gate", "silver_grave_fence", "silver_grave_gate"]
 TALL = {"wooden_cross", "roofed_cross", "old_cross", "iron_cross", "star_obelisk", "granite_cross", "white_metal_cross",
-        "stone_trunk_cross", "sector_sign"}
+        "stone_trunk_cross", "sector_sign"} | set(TALL_NEW)
 
 
 def write_items_and_data():
@@ -687,16 +888,18 @@ def write_items_and_data():
         save_json(os.path.join(DATA, NS, "loot_table", "blocks", name + ".json"), {"type": "minecraft:block", "pools": [pool]})
 
     tags = os.path.join(DATA, "minecraft", "tags", "block")
-    axe = [f"{NS}:{n}" for n in ("wooden_cross", "roofed_cross", "old_cross", "grave_bench", "grave_table")]
+    axe = [f"{NS}:{n}" for n in ("wooden_cross", "roofed_cross", "old_cross", "grave_bench", "grave_table", "golubets", "big_oak_cross",
+                                 "small_wooden_cross", "fallen_cross", "backed_bench")]
     pick = [f"{NS}:{n}" for n in ("iron_cross", "star_obelisk", "granite_stele", "marble_stone", "black_grave_fence", "black_grave_gate",
                                   "blue_grave_fence", "blue_grave_gate", "rusty_grave_fence", "rusty_grave_gate", "grave_lampada",
                                   "granite_cross", "white_metal_cross", "stone_trunk_cross", "gothic_marble_stone", "grave_slab",
-                                  "sector_sign", "cemetery_bin")]
+                                  "sector_sign", "cemetery_bin", "forged_cross", "blue_star_obelisk", "cross_top_stele", "portrait_stele",
+                                  "red_granite_stele", "green_grave_fence", "green_grave_gate", "silver_grave_fence", "silver_grave_gate")]
     save_json(os.path.join(tags, "mineable", "axe.json"), {"replace": False, "values": axe})
     save_json(os.path.join(tags, "mineable", "pickaxe.json"), {"replace": False, "values": ["divineblock:altar"] + pick})
     save_json(os.path.join(tags, "mineable", "shovel.json"), {"replace": False, "values": [f"{NS}:grave_mound"]})
-    save_json(os.path.join(tags, "fences.json"), {"replace": False, "values": [f"{NS}:{c}_grave_fence" for c in ("black", "blue", "rusty")]})
-    save_json(os.path.join(tags, "fence_gates.json"), {"replace": False, "values": [f"{NS}:{c}_grave_gate" for c in ("black", "blue", "rusty")]})
+    save_json(os.path.join(tags, "fences.json"), {"replace": False, "values": [f"{NS}:{c}_grave_fence" for c in COLORS]})
+    save_json(os.path.join(tags, "fence_gates.json"), {"replace": False, "values": [f"{NS}:{c}_grave_gate" for c in COLORS]})
 
     def item(i): return {"tag": i[1:]} if i.startswith("#") else {"item": i}
 
@@ -736,13 +939,30 @@ def write_items_and_data():
     shaped("sector_sign", [" D ", " P ", " S "], {"D": "minecraft:blue_dye", "P": "minecraft:paper", "S": "minecraft:stick"})
     shaped("cemetery_bin", ["N N", "NDN", "NNN"], {"N": "minecraft:iron_nugget", "D": "minecraft:blue_dye"})
     shapeless("grave_lampada", ["#minecraft:candles", "minecraft:red_stained_glass_pane", "minecraft:iron_nugget"])
+    shaped("golubets", [" S ", "PLP", " P "], {"S": "#minecraft:wooden_slabs", "P": "#minecraft:planks", "L": "minecraft:paper"})
+    shaped("forged_cross", ["NIN", "IDI", " I "], {"N": "minecraft:gold_nugget", "I": "minecraft:iron_ingot", "D": "minecraft:black_dye"})
+    shaped("big_oak_cross", [" L ", "LLL", " L "], {"L": "minecraft:dark_oak_log"})
+    shaped("blue_star_obelisk", [" R ", " I ", "IBI"], {"R": "minecraft:red_dye", "I": "minecraft:iron_ingot", "B": "minecraft:light_blue_dye"})
+    shaped("cross_top_stele", [" S ", "PGP", "GGG"], {"S": "minecraft:stick", "P": "minecraft:paper", "G": "minecraft:polished_andesite"})
+    shaped("small_wooden_cross", [" S ", "SSS", " S "], {"S": "minecraft:stick"}, 2)
+    shaped("portrait_stele", ["BPB", "BBB", "SSS"], {"B": "minecraft:polished_blackstone", "P": "minecraft:paper", "S": "minecraft:stone_slab"})
+    shaped("red_granite_stele", [" G ", "GNG", "SSS"], {"G": "minecraft:polished_granite", "N": "minecraft:gold_nugget", "S": "minecraft:stone_slab"})
+    shapeless("fallen_cross", [f"{NS}:old_cross", "minecraft:short_grass"])
+    shapeless("backed_bench", [f"{NS}:grave_bench", "#minecraft:wooden_slabs"])
+    shapeless("carnations", ["minecraft:poppy", "minecraft:poppy", "minecraft:poppy"], 2)
+    shaped("fir_wreath", [" L ", "LRL", " L "], {"L": "minecraft:spruce_leaves", "R": "minecraft:red_dye"}, 2)
+    for color, dye in (("green", "minecraft:green_dye"), ("silver", "minecraft:light_gray_dye")):
+        shaped(f"{color}_grave_fence", ["NDN", "NIN"], {"N": "minecraft:iron_nugget", "I": "minecraft:iron_ingot", "D": dye}, 6)
+        shaped(f"{color}_grave_gate", ["IDI", "INI"], {"N": "minecraft:iron_nugget", "I": "minecraft:iron_ingot", "D": dye})
 
 
 if __name__ == "__main__":
     write_textures()
     particles = {"wooden_cross": tex("grave_wood"), "roofed_cross": tex("grave_wood"), "old_cross": tex("old_grave_wood"),
                  "iron_cross": tex("painted_iron_black"), "star_obelisk": tex("painted_iron_silver"), "granite_cross": tex("black_granite"),
-                 "white_metal_cross": tex("painted_iron_white"), "stone_trunk_cross": tex("stone_bark"), "sector_sign": tex("sector_sign")}
+                 "white_metal_cross": tex("painted_iron_white"), "stone_trunk_cross": tex("stone_bark"), "sector_sign": tex("sector_sign"),
+                 "golubets": tex("grave_wood"), "forged_cross": tex("painted_iron_black"), "big_oak_cross": tex("dark_grave_wood"),
+                 "blue_star_obelisk": tex("painted_iron_blue"), "cross_top_stele": tex("polished_gray_granite")}
     write_models(particles)
     write_states()
     write_items_and_data()

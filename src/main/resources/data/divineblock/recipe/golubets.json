@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "decorations",
+  "pattern": [
+    " S ",
+    "PLP",
+    " P "
+  ],
+  "key": {
+    "S": {
+      "tag": "minecraft:wooden_slabs"
+    },
+    "P": {
+      "tag": "minecraft:planks"
+    },
+    "L": {
+      "item": "minecraft:paper"
+    }
+  },
+  "result": {
+    "id": "divineblock:golubets",
+    "count": 1
+  }
+}
