@@ -36,7 +36,10 @@ scripts\build-server-pack.ps1                             # или собрат�
 scripts\run-local-server.ps1                      # online-mode=false, порт 25565, -Xmx6G
 scripts\run-local-server.ps1 -World "stream 1 (сборка)"   # копия мира из инстанса сборки как мир сервера
 scripts\run-local-server.ps1 -Fresh               # новый мир (старый уходит в world-backups\)
+scripts\run-local-server.ps1 -Smoke               # проверка: поднять, дождаться "Done", остановить, показать ERROR из лога
 ```
+
+Строки `No data fixer registered for divineblock:…` в логе — обычный шум ванильного сервера для модовых сущностей, не ошибка.
 
 Клиент 1 — инстанс «Наша сборка» в Prism, «Сетевая игра» → `127.0.0.1`. Клиент 2:
 

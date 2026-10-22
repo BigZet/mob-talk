@@ -99,6 +99,8 @@ if ($Smoke) {
     $psi.Arguments = ($javaArgs | ForEach-Object { if ($_ -match '\s') { "`"$_`"" } else { $_ } }) -join ' '
     $psi.WorkingDirectory = $Dir; $psi.UseShellExecute = $false; $psi.RedirectStandardInput = $true
     $started = Get-Date
+    # .NET Framework writes the child's stdin in Console.InputEncoding; UTF-8 there carries a BOM the console would not know.
+    [Console]::InputEncoding = New-Object Text.UTF8Encoding($false)
     $p = [Diagnostics.Process]::Start($psi)
     $log = Join-Path $Dir 'logs\latest.log'
     $up = $false
@@ -108,7 +110,8 @@ if ($Smoke) {
     }
     if (-not $p.HasExited) { $p.StandardInput.WriteLine('stop'); $p.StandardInput.Flush() }
     if (-not $p.WaitForExit(180000)) { $p.Kill(); Say 'server did not stop in 3 minutes: killed' }
-    $errors = @(if (Test-Path $log) { Select-String -LiteralPath $log -Pattern '/(ERROR|FATAL)\]' | ForEach-Object Line })
+    $errors = @(if (Test-Path $log) { Select-String -LiteralPath $log -Pattern '/(ERROR|FATAL)\]' | ForEach-Object Line |
+        Where-Object { $_ -notmatch 'No data fixer registered for' } })   # vanilla noise for every modded entity
     Say "smoke: $(if ($up) { 'server came up' } else { 'server did NOT come up' }), exit $($p.ExitCode), $($errors.Count) ERROR lines in latest.log"
     $errors | Select-Object -First 40 | ForEach-Object { Write-Host $_ }
     if (-not $up) { exit 1 }
