@@ -60,6 +60,13 @@ final class ModHubScreen extends Screen {
                     b -> pressLater(parrots)).dimensions(x, y, 220, 20).build());
             y += 24;
         }
+        // Борщевик своего экрана не имеет: его настройки — файл, открываем его в системном редакторе.
+        java.nio.file.Path hogweed = FabricLoader.getInstance().getConfigDir().resolve("rusflora-hogweed.json");
+        if (FabricLoader.getInstance().isModLoaded("rusflora") && java.nio.file.Files.isRegularFile(hogweed)) {
+            addDrawableChild(ButtonWidget.builder(Text.literal("Борщевик: файл настроек"), b -> net.minecraft.util.Util.getOperatingSystem().open(hogweed.toFile()))
+                    .dimensions(x, y, 220, 20).build());
+            y += 24;
+        }
         addDrawableChild(ButtonWidget.builder(Text.literal("Назад"), b -> close()).dimensions(x, height - 28, 220, 20).build());
         keysTop = y + 8;
         collectKeys();
