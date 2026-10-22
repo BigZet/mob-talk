@@ -492,7 +492,7 @@ public final class ChurchBuilder {
         for (int z : new int[] { -9, 9 }) canvas.set(37, 1, z, ChurchBlocks.CANDLE_STAND.getDefaultState());
         // Benches for the old and the weak, only along the walls.
         for (int x = 31; x <= 35; x++) {
-            if (x > 32) canvas.set(x, 1, -10, stair(Blocks.DARK_OAK_STAIRS, Direction.NORTH, StairShape.STRAIGHT));
+            if (x > 34) canvas.set(x, 1, -10, stair(Blocks.DARK_OAK_STAIRS, Direction.NORTH, StairShape.STRAIGHT));
             canvas.set(x, 1, 10, stair(Blocks.DARK_OAK_STAIRS, Direction.SOUTH, StairShape.STRAIGHT));
         }
         for (int x = 14; x <= 28; x++) {
@@ -569,8 +569,10 @@ public final class ChurchBuilder {
         canvas.set(x, top + 1, 0, beam);
         canvas.set(x, top + 3, 0, ChurchBlocks.DOME_CROSS.getDefaultState().with(ChurchBlocks.DomeCrossBlock.AXIS, Direction.Axis.Z));
         // Tall candle stands on the soleas by the royal doors.
-        canvas.set(46, 2, -2, ChurchBlocks.CANDLE_STAND.getDefaultState());
-        canvas.set(46, 2, 1, ChurchBlocks.CANDLE_STAND.getDefaultState());
+        canvas.set(46, 1, -2, ChurchBlocks.CANDLE_STAND.getDefaultState());
+        canvas.set(46, 1, 1, ChurchBlocks.CANDLE_STAND.getDefaultState());
+        // Before the deacon doors the soleas steps down to the floor, so one walks through them upright.
+        for (int z : new int[] { -6, 5 }) { canvas.set(46, 1, z, Blocks.AIR.getDefaultState()); canvas.set(47, 1, z, Blocks.AIR.getDefaultState()); }
     }
     /** A great 2 x 2 icon at x, its left (north) column at z, its bottom at y = 2. */
     private void large(int x, int z, int first) {
