@@ -33,7 +33,7 @@ final class ServerSelfTest {
         try {
             TalkTextC2S text = new TalkTextC2S(7, "Привет, Марфа", true, new byte[] {1, 2, 3});
             check(failures, "кодек TalkTextC2S", roundTrip(TalkTextC2S.CODEC, text).equals(text));
-            MobSpeechS2C speech = new MobSpeechS2C(7, UUID.randomUUID(), "Марфа", "Му-у", true, 0, 16);
+            MobSpeechS2C speech = new MobSpeechS2C(7, UUID.randomUUID(), "Марфа", "Му-у", true, 0, 16, MobSpeechS2C.ANSWER, 0, "Привет", "");
             check(failures, "кодек MobSpeechS2C", roundTrip(MobSpeechS2C.CODEC, speech).equals(speech));
             TalkStatusS2C status = new TalkStatusS2C(MobTalkMod.NOT_YET, false, "");
             check(failures, "кодек TalkStatusS2C", roundTrip(TalkStatusS2C.CODEC, status).equals(status));

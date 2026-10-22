@@ -1,8 +1,7 @@
 package io.github.mobtalk.client;
 
-import io.github.mobtalk.game.MobGameBridge;
-import io.github.mobtalk.core.MobCard;
-import io.github.mobtalk.core.MobState;
+import io.github.mobtalk.net.MobLabelS2C;
+import io.github.mobtalk.net.MobStateS2C;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
@@ -20,8 +19,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-/** A line over every creature the player knows: its name, the word of its state and the relationship, drawn like a name tag.
- * The text is rebuilt twice a second from the world memory on the client tick; the render pass only draws. */
+/** Строка над каждым знакомым существом: имя, слово состояния и отношение, как табличка с именем. Что писать, решает сервер
+ * ({@link MobLabelS2C}, {@link MobStateS2C} в {@link MobViews}); текст пересобирается дважды в секунду на тике клиента, рендер только рисует. */
 final class MobLabels {
     static final double RANGE = 24;
     private final MobTalkClient owner;
@@ -34,29 +33,21 @@ final class MobLabels {
     void tick() {
         labels.clear(); statuses.clear();
         MinecraftClient client = owner.client;
-        if (!owner.enabled() || !owner.config().showNameTags || client.player == null || client.world == null || client.getServer() == null) return;
-        MobGameBridge game = MobGameBridge.active(client.getServer());
-        if (game == null) return;
-        UUID player = client.player.getUuid();
+        if (!owner.enabled() || !owner.config().showNameTags || client.player == null || client.world == null) return;
         for (MobEntity mob : client.world.getEntitiesByClass(MobEntity.class, client.player.getBoundingBox().expand(RANGE), Entity::isAlive)) {
-            // Only creatures the player has a history with (a conversation or a life story) and a name of their own: a stranger
-            // that merely saw something gets no label.
-            if (!game.memory.acquainted(mob.getUuid())) continue;
-            MobCard card = game.memory.card(mob.getUuid(), player);
-            if (card == null) continue;
-            String name = game.memory.displayName(mob.getUuid());
-            if (name.isBlank()) continue;
-            MobState.Descriptor marker = card.state() == null ? null : card.state().marker();
-            String word = marker == null ? "ровно" : Text.translatable("mobtalk.state." + marker.key()).getString();
-            int sign = marker == null ? 0 : marker.sign();
-            int relation = card.relationship();
-            Text label = Text.literal(name).formatted(Formatting.WHITE)
+            MobLabelS2C label = owner.views.label(mob.getUuid());
+            if (label == null || label.name().isBlank()) continue;
+            MobStateS2C state = owner.views.state(mob.getUuid());
+            String word = state == null || state.word().isEmpty() ? "ровно" : Text.translatable("mobtalk.state." + state.word()).getString();
+            int sign = state == null ? 0 : state.wordSign();
+            int relation = state == null ? 0 : state.relationship();
+            Text line = Text.literal(label.name()).formatted(Formatting.WHITE)
                     .append(Text.literal(" · ").formatted(Formatting.DARK_GRAY))
                     .append(Text.literal(word).formatted(sign > 0 ? Formatting.GREEN : sign < 0 ? Formatting.RED : Formatting.GRAY))
                     .append(Text.literal(" · ").formatted(Formatting.DARK_GRAY))
                     .append(Text.literal((relation > 0 ? "+" : "") + relation).formatted(relation > 0 ? Formatting.GREEN : relation < 0 ? Formatting.RED : Formatting.GRAY));
-            labels.put(mob.getUuid(), label);
-            String status = ChildView.status(mob.getUuid());
+            labels.put(mob.getUuid(), line);
+            String status = label.line().isBlank() ? ChildView.status(mob.getUuid()) : label.line();
             if (!status.isBlank()) statuses.put(mob.getUuid(), Text.literal(status).formatted(Formatting.LIGHT_PURPLE));
         }
     }
@@ -77,7 +68,6 @@ final class MobLabels {
             if (label == null || !entity.isAlive() || entity.isInvisible() || entity == camera.getFocusedEntity()) continue;
             if (entity.squaredDistanceTo(eye) > RANGE * RANGE) continue;
             Vec3d position = entity.getLerpedPos(tickDelta);
-            // Above the vanilla name tag when the creature has one, else where the tag would be.
             double height = entity.getHeight() + 0.5 + (entity.hasCustomName() && entity.isCustomNameVisible() ? 0.3 : 0);
             matrices.push();
             matrices.translate(position.x - eye.x, position.y + height - eye.y, position.z - eye.z);

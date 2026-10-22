@@ -282,6 +282,31 @@ Mob Talk сам реализует тот же протокол для себя 
 - **Entrypoint `mobtalk-admin`** в `fabric.mod.json` Mob Talk не объявлен: класс `MobTalkAdminSource` делает трек W1, строку
   `"mobtalk-admin": ["io.github.mobtalk.server.MobTalkAdminSource"]` в `entrypoints` добавляет интегратор при слиянии W.
 
+### 12.6 Уточнения контракта от трека A (22 октября, ночь; код в ветке `bigzet/server-dialogue`)
+
+- **Пакеты расширены** (старые формы остались конструкторами): `MobSpeechS2C(mobId, mob, speaker, text, toYou, clipId, range, kind, millis,
+  heard, asker)` — `kind` ∈ `answer|witness|initiative|village|notice|fallback`, `heard` — слова игрока (у соседей вместе с `asker`),
+  пустой `text` — моб промолчал; `MobStateS2C(mobId, mob, calm, trust, interest, mood, word, wordSign, relationship, label, hearts,
+  favor, bargain, bargainSign)` — `word` и `bargain` ключи `mobtalk.state.*`/`mobtalk.bargain.*`, `favor` готовая строка услуги;
+  `MobLabelS2C(mobId, mob, name, line)` — пустое имя снимает подпись. Звук: клип целиком чанками `SpeechClipS2C` в формате `pcm24k`
+  (PCM движка, 48 байт в мс); трек B может слать `mp3`/`wav` — клиент декодирует `AudioDecode`.
+- **Экраны** (`ScreenRequestC2S(screen, mobId)` → `ScreenDataS2C(screen, json)`): `info`/`info_secrets` → `{"message","error"}`,
+  `village` → JSON-массив строк, `state` → строка в чат, `deal` (mobId = syncId) → `{"mob","syncId","entityId","name"}`, `trade` → открыть
+  сделки, `forgive`. `MobActionC2S.intentJson` — `ActionIntent` в JSON; STOP с `target:"all"` — все мобы; ответ `ScreenDataS2C("action")`.
+  `NoticeS2C(text, false)` — строка в чат как есть (сервер сам ставит «[Mob Talk]»).
+- **`GameBridge`** дополнен: `MobView(entityId, id, name, type, dimension, x, y, z)`, `PlayerView(id, name, dimension, x, y, z, alive,
+  merchant, timeOfDay)`; `mobByEntityId`, `mob`, `player`, `playersNear`, `knownMobsNear`, `attend`, `currentMerchant`, `afterWords`
+  (слова семьи и свадьбы после ответа), `stopAllFollowers(игрок)`, `forgiveVillage`, `countInHand`, `friendStatus`; очереди поводов
+  `pollInitiative/refundInitiative/pendingInitiatives/floorBusy`, `pollTalk/refundTalk/talkWaiting/talking`, `pollNotice`, `weddingActive`.
+  `FakeGameBridge` держит мобов и игроков с позициями (`addMob`, `addPlayer`).
+- **`MobTalkMod`**: `dialogue()` — служба этого сервера (создаётся вместе с мостом, закрывается на остановке), `features().dialogue = true`;
+  приёмники C2S целиком в `DialogueService`. Точки для B: `TalkAudioC2S` → `MobTalkMod.transcription()` (службу подменить `setTranscription`,
+  в `features` добавить `transcription=true` и путь `server` в `sttPaths`); озвучка — заменить ветку `audio.awaitAll` в
+  `DialogueService.speak` на `SpeechService.synthesize` + `Outbox.clip`. Для C: `budget().allow` зовётся перед `DIALOGUE`, `TRANSCRIPTION`,
+  `WITNESS`; `charge` пока только за секунды распознавания — расходы LLM/TTS считать в движке (точка: `finishDelivery`).
+- **Семья и свадьба на сервере выключены** (`DialogueService.Options.family=false` на выделенном сервере); в одиночке экраны семьи,
+  свадьба (`WeddingVoice` с клиентским движком), кровать и правка карточки в F7 по-прежнему идут через встроенный сервер — трек второй версии.
+
 ## 13. Брифы тредов
 
 ### S1 «Каркас сервера» — Fable, волна 0, ветка `bigzet/server-skeleton`

@@ -148,3 +148,45 @@
   поднимает мост, гоняет кодеки, JSON и хранилище игроков (`ServerSelfTest`), пишет `[mobtalk-server-selftest] ALL CHECKS PASSED`
   и останавливается. Полный локальный сервер с Fabric API и остальными модами — `scripts\run-local-server.ps1` трека E.
 - **Не проверено в игре**: подключение клиента к выделенному серверу и одиночка на новом каркасе (ждут разрешения на запуск игры).
+
+## Диалог по сети (трек A, план docs/server-plan.md, бриф A)
+
+Ветка `bigzet/server-dialogue`, 22 октября 2026 года. Разговор, очевидцы, подарки, торг, инициатива, болтовня деревни, HUD и подписи
+живут на сервере; клиент только ввод и показ. Одиночка идёт тем же путём через встроенный сервер.
+
+- **`DialogueService`** (`io.github.mobtalk.server`, без классов Minecraft, мир — `GameBridge`): всё, что раньше делал `MobTalkClient`
+  вокруг разговора, с `Session` на игрока (своя цель, поколение запроса, очередь очевидцев, эфир). Один `ConversationEngine` на мир,
+  ключи LLM и озвучки читает сервер из окружения или DPAPI своей папки `config`. Моб, с которым идёт запрос, заперт за игроком
+  (`busyMobs`): второй получает «Марфа занят разговором с Димой». Пул `DialoguePool` с приоритетами: ответ собеседнику > реакция на
+  подарок > очевидцы > болтовня деревни > обслуживание. Эфир игрока — время звучания клипа (PCM 24 кГц: 48 байт в мс) плюс 250 мс;
+  посторонние реплики ждут, пока он свободен. Отмена: `TalkCancelC2S`, смена цели, выход игрока (`leave`) — поколение растёт, задачи
+  прерываются, замок моба снимается. Вход: `talkStart/talkText/talkAudio/cancel/gift/action/screen` из приёмников `MobTalkMod`;
+  выход — `Outbox` (`ServerOutbox` на пакетах, `RecordingOutbox` в тестах). Тик — `ServerTickEvents.END_SERVER_TICK`.
+- **Реплика всем в радиусе.** `MobSpeechS2C` ушёл всем игрокам в `voiceSilentRange` от моба: `toYou` у собеседника, `heard` — слова
+  игрока (у соседей вместе с `asker`), `kind` — `answer`/`witness`/`initiative`/`village`/`fallback`, `clipId` обещает звук. Звук —
+  PCM движка целиком через `SpeechClipS2C` (`pcm24k`, чанки `StubSpeech.chunks`), когда докачается; клиент собирает клип
+  (`ClipAssembler`) и играет от моба (`MobSpeechSound`). Ранняя строка (текст до конца ответа) идёт как раньше, звук — следом.
+  Трек B подменит на `SpeechService` с кэшем, не трогая клиента (форматы `mp3`/`wav` клиент декодирует через `AudioDecode`).
+- **HUD и подписи решает сервер.** `MobStateSync` раз в секунду шлёт `MobStateS2C` (оси, ключ слова и его знак, отношение и подпись,
+  сердечки, строка услуги с учётом инвентаря игрока, вердикт торга) и `MobLabelS2C` (имя из памяти, строка беременности) для знакомых
+  мобов в 24 блоках и для собеседника, только при изменении или раз в 5 с; пустое имя снимает подпись. Клиент держит их в `MobViews`.
+- **Посторонние реплики** — `SpontaneousVoices`: поводы инициативы, сцены между существами, болтовня пар и объявления берутся из
+  контроллеров моста (`pollInitiative/pollTalk/pollNotice`), адресат — ближайший игрок к мобу в радиусе разговора; эфир занят, если
+  занята хоть одна сессия. Промолчавший инициатор шлёт спросившему пустую реплику вида `initiative` (журнал, самотест семьи).
+- **Экраны и команды.** `ScreenRequestC2S`: `info`/`info_secrets` → `ScreenDataS2C("info", {message|error})`, `village` → список строк,
+  `state` → строка в чат (`ScreenReports`), `deal` (mobId = syncId окна) → `{mob, syncId, entityId, name}` для `MerchantSession`,
+  `trade` → `openTrade`, `forgive`. `MobActionC2S` с JSON `ActionIntent` (STOP с целью `all` — все мобы) отвечает `ScreenDataS2C("action")`.
+- **Контракт расширен** (раздел 12.6 плана): `MobSpeechS2C` + `kind, millis, heard, asker`; `MobStateS2C` + `mob, wordSign, favor,
+  bargain, bargainSign`; `MobLabelS2C` + `mob`; `GameBridge` + `MobView`/`PlayerView`, `mobByEntityId`, `mob`, `player`, `playersNear`,
+  `knownMobsNear`, `attend`, `currentMerchant`, `afterWords` (слова семьи и свадьбы), `stopAllFollowers(игрок)`, `countInHand`,
+  `friendStatus`, очереди поводов.
+- **Клиент.** `MobTalkClient` оставил микрофон, выбор цели, локальный Whisper (подсказки — имена из `MobViews`), снимок экрана
+  (JPEG в `TalkTextC2S`, нужен ли — решает сервер по `Vision.wanted`), отправку пакетов, приём и показ, настройки. При сбое локального
+  Whisper и разрешённом пути `server` аудио уходит `TalkAudioC2S` (трек B). `InitiativeVoice` и `VillageTalkVoice` — тонкие (журнал
+  реплик и путь самотеста). На встроенном сервере одиночки остались экраны второй версии: семья, свадьба (`WeddingVoice` с клиентским
+  движком), кровать, правка карточки в F7 — на выделенном сервере они отвечают «пока только в одиночной игре».
+- **На выделенном сервере** семья/свадьба и снимки экрана выключены (`DialogueService.Options`), `ServerFeatures.dialogue = true`.
+- **Тесты** (`src/test/.../server`): `DialogueServiceTest` (ответ собеседнику и соседу, не далёкому; занятый моб; отказ бюджета без
+  вызова модели; отмена на полпути; выход игрока; погибший моб; очевидцы всем в радиусе после ответа; подарок, экраны, STOP),
+  `MobStateSyncTest`; фикстура `FakeProvider` (фейковый OpenRouter) и `FakeGameBridge` с мобами и игроками на позициях.
+- **Не проверено в игре**: два клиента на локальном сервере и одиночка на новом пути (ждут разрешения на запуск игры).
