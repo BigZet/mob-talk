@@ -160,7 +160,8 @@ final class MobPrompt {
     /** How to address the player at this relationship, when the settings give forms of address; "" otherwise. */
     static String names(MobTalkConfig config, MobSnapshot snapshot, int relationship) {
         String nick = snapshot.playerDetails().get("name") instanceof String name ? name : "";
-        String line = PlayerIdentity.promptLine(PlayerIdentity.configOf(snapshot.playerId(), config), nick, relationship);
+        String line = PlayerIdentity.promptLine(PlayerIdentity.configOf(snapshot.playerId(), config), nick, relationship,
+                PlayerIdentity.name(snapshot.playerId(), config, nick));
         return line.isEmpty() ? "" : "\n" + line;
     }
 

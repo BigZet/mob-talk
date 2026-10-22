@@ -103,4 +103,14 @@ class PlayerIdentityTest {
             assertNull(SocialLedger.takenBy(store.state, p, dima), "her own partner is welcome");
         }
     }
+
+    @Test void twoPlayersWithTheSameNameDifferByNick() {
+        MobTalkConfig mine = new MobTalkConfig(); mine.playerNamesNeutral = "Дима";
+        MobTalkConfig theirs = new MobTalkConfig(); theirs.playerNamesNeutral = "Дима";
+        PlayerIdentity.resolver(id -> id.equals(dima) ? Optional.of(mine) : id.equals(test2) ? Optional.of(theirs) : Optional.empty());
+        assertEquals("Дима", PlayerIdentity.name(dima, "BigZet"), "alone so far: just the name");
+        assertEquals("Дима (Test2)", PlayerIdentity.name(test2, "Test2"));
+        assertEquals("Дима (BigZet)", PlayerIdentity.name(dima, "BigZet"));
+        assertTrue(MobPrompt.names(new MobTalkConfig(), villager(UUID.randomUUID(), test2, "Test2"), 0).contains("Игрока зовут Дима (Test2)"));
+    }
 }
