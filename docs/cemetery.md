@@ -92,7 +92,7 @@
   — с предупреждением). То же: `/place structure divineblock:cemetery` (сама в мире не появляется: нет structure_set).
 - `/place template divineblock:cemetery/cemetery_1` — сырой шаблон без подгонки по рельефу и без деревьев (поля высот нет —
   процессор ничего не двигает).
-- Крупные планы моделей: `-Jvm '-Ddivineblock.cemeterytest=models -Ddivineblock.cemeterytest.only=golubets,forged_cross'`
+- Крупные планы моделей: `-Jvm '-Ddivineblock.cemeterytest=models -Ddivineblock.cemeterytest.only=golubets+forged_cross'`
   (без `.only` — все блоки).
 - Автотест в одноразовой копии Prism: `powershell -ExecutionPolicy Bypass -File scripts
 un-selftest.ps1 -Mode off -Jvm

@@ -148,9 +148,9 @@ public final class CemeteryTest {
         }));
         on(10, client -> client.options.hudHidden = true);
         if (models) {
-            // -Ddivineblock.cemeterytest.only=golubets,forged_cross: only those blocks close up.
+            // -Ddivineblock.cemeterytest.only=golubets+forged_cross: only those blocks close up (a comma breaks run-selftest -Jvm).
             String only = System.getProperty("divineblock.cemeterytest.only", "");
-            List<String> wanted = List.of(only.split(","));
+            List<String> wanted = List.of(only.split("[,+]"));
             closeUps(blocks, only.isBlank() ? null : wanted);
             return;
         }
