@@ -178,6 +178,8 @@ public final class MobTalkClient implements ClientModInitializer {
             if (screen instanceof GameMenuScreen) {
                 // With the other mods of the pack installed, one "Моды сборки" hub replaces the per-mod buttons.
                 boolean pack = ModHubScreen.packInstalled();
+                // The hub replaces the other mods' corner buttons (Divine Block adds its own when it runs before us).
+                if (pack) Screens.getButtons(screen).removeIf(widget -> "Божественный блок".equals(widget.getMessage().getString()));
                 Screens.getButtons(screen).add(ButtonWidget.builder(Text.literal(pack ? "Моды сборки" : "Mob Talk"),
                                 button -> { if (pack) client.setScreen(new ModHubScreen(screen, () -> openSettings(client.currentScreen))); else openSettings(screen); })
                         .dimensions(width - 128, height - 26, 120, 20).build());

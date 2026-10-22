@@ -58,6 +58,15 @@ final class WhisperProcess {
                         .timeout(Duration.ofSeconds(5)).header("Content-Type", "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString(settings.toString())).build();
                 int code = http.send(configure, HttpResponse.BodyHandlers.discarding()).statusCode();
+                // Another mod of the pack (Divine Block) may have started the shared helper and still be loading its model:
+                // wait for it to finish, then ask for Mob Talk's settings.
+                long busyUntil = System.nanoTime() + TimeUnit.MINUTES.toNanos(5);
+                while (code == 409 && System.nanoTime() < busyUntil) {
+                    progress.accept("Whisper занят: ждём, пока он освободится");
+                    Thread.sleep(1000);
+                    checkCancelled(cancelled);
+                    code = http.send(configure, HttpResponse.BodyHandlers.discarding()).statusCode();
+                }
                 if (code == 409) throw new IOException("Whisper занят загрузкой или распознаванием. Дождитесь завершения или отмените текущую загрузку.");
                 if (code != 202) throw new IOException("Whisper не принял настройки модели.");
                 initiatedLoad = true;
