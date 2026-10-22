@@ -10,6 +10,7 @@ $ErrorActionPreference = 'Stop'
 # git prints commit subjects in UTF-8: read them so, or the manifest gets mojibake.
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
 Import-Module (Join-Path $PSScriptRoot 'ParallelPrism.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'PackBuild.psm1') -Force
 $repo = Split-Path -Parent $PSScriptRoot
 if (-not (Test-Path "$Repos\divine-block")) { $Repos = Split-Path -Parent $repo }
 if (-not (Test-Path "$Repos\divine-block")) { $Repos = 'C:\Users\bigze\Documents\GH' }
@@ -21,46 +22,9 @@ function Say($t) { Write-Host "$(Get-Date -Format HH:mm:ss) $t" }
 if (@(Get-InstanceGame $Name).Count -gt 0) { throw "The pack '$Name' is running: close the game first." }
 
 $manifest = @("Сборка $Name, собрана $(Get-Date -Format 'yyyy-MM-dd HH:mm')")
-function Build-Repo([string]$Dir, [string]$Label) {
-    Push-Location $Dir
-    try {
-        cmd /c '.\gradlew.bat build -x test -q 2>&1' | Where-Object { $_ -match 'error|FAIL' }
-        if ($LASTEXITCODE -ne 0) { throw "$Label build failed" }
-    } finally { Pop-Location }
-}
-function Export-Main([string]$RepoName) {
-    $src = Join-Path $Repos $RepoName
-    $dst = Join-Path $work "src\$RepoName"
-    if (Test-Path $dst) { Remove-Item -Recurse -Force -LiteralPath $dst }
-    New-Item -ItemType Directory -Force $dst | Out-Null
-    $commit = (git -C $src rev-parse --short main).Trim()
-    $tar = Join-Path $work "$RepoName.tar"
-    git -C $src archive -o $tar main
-    & "$env:SystemRoot\System32\tar.exe" -xf $tar -C $dst
-    Remove-Item $tar
-    $script:manifest += "$RepoName main $commit $((git -C $src log -1 --format=%s main).Trim())"
-    $dst
-}
-function Newest-Jar([string]$Dir, [string]$Pattern) {
-    Get-ChildItem (Join-Path $Dir $Pattern) | Where-Object { $_.Name -notmatch '-sources|-dev' } | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-}
-
-$jars = @()
-if (-not $NoBuild) { Say 'build Mob Talk'; Build-Repo $repo 'Mob Talk' }
-$manifest += "mob-talk $((git -C $repo rev-parse --abbrev-ref HEAD).Trim()) $((git -C $repo rev-parse --short HEAD).Trim())"
-$jars += Newest-Jar "$repo\build\libs" 'mobtalk-*.jar'
-foreach ($r in @(@('divine-block', 'divineblock-*.jar'), @('rusflora', 'rusflora-*.jar'), @('parrot-cages', 'parrotcages-*.jar'))) {
-    $dir = Join-Path $work "src\$($r[0])"
-    if (-not $NoBuild) { Say "export and build $($r[0]) main"; $dir = Export-Main $r[0]; Build-Repo $dir $r[0] }
-    $jars += Newest-Jar "$dir\build\libs" $r[1]
-}
-# Original third-party jars: Viewer Parrots 1.2.1 (knows the cages), CTOV + Lithostitched, the video mods and Fabric API.
-$third = @(
-    (Newest-Jar "$instances\parrot-cages-test\minecraft\mods" 'viewerparrots-*.jar'),
-    (Newest-Jar "$instances\mob-talk-ctov\minecraft\mods" 'ctov-*.jar'),
-    (Newest-Jar "$instances\mob-talk-ctov\minecraft\mods" 'lithostitched-*.jar')) +
-    @(Get-ChildItem "$instances\$Base\minecraft\mods\*.jar" | Where-Object { $_.Name -notmatch '^(mobtalk|viewerparrots|divineblock|rusflora|parrotcages|selftest-guard)' })
-$jars += $third | Where-Object { $_ }
+$pack = Get-PackJars -Repo $repo -Repos $Repos -Work $work -Base $Base -Instances $instances -NoBuild:$NoBuild -Say ${function:Say}
+$jars = $pack.Jars
+$manifest += $pack.Manifest
 
 if (-not (Test-Path "$inst\instance.cfg")) {
     Say "create instance $Name from $Base"
@@ -99,6 +63,6 @@ if ((Test-Path $mt) -and (Test-Path $db)) {
     $json = [IO.File]::ReadAllText($db, [Text.Encoding]::UTF8) -replace '"whisperUrl":\s*"[^"]*"', "`"whisperUrl`": `"$url`""
     [IO.File]::WriteAllText($db, $json, (New-Object Text.UTF8Encoding($false)))
 }
-[IO.File]::WriteAllLines("$inst\pack-manifest.txt", [string[]]$manifest, (New-Object Text.UTF8Encoding($false)))
+Write-Utf8Lines "$inst\pack-manifest.txt" $manifest
 $manifest | ForEach-Object { Say $_ }
 Say "pack ready: Prism instance '$Name'"

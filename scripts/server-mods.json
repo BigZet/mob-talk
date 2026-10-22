@@ -1,0 +1,39 @@
+{
+  "minecraft": "1.21.1",
+  "fabricLoader": "0.19.5",
+  "fabricInstaller": "1.1.2",
+  "launcher": {
+    "fileName": "fabric-server-mc.1.21.1-loader.0.19.5-launcher.1.1.2.jar",
+    "url": "https://meta.fabricmc.net/v2/versions/loader/1.21.1/0.19.5/1.1.2/server/jar",
+    "sha512": "a250b831235b6d196ea64b8302b89b9dab29108fe86e24cf3068cb3048b795fd92d4c00cc212e48f6c696c8d3e74c79a3febf7d184e1922a428f62558c629f18"
+  },
+  "mods": [
+    {
+      "id": "lithium", "title": "Lithium", "version": "mc1.21.1-0.15.4-fabric", "fileName": "lithium-fabric-0.15.4+mc1.21.1.jar",
+      "url": "https://cdn.modrinth.com/data/gvQqBUqZ/versions/N08Z8wog/lithium-fabric-0.15.4%2Bmc1.21.1.jar",
+      "sha512": "182064b00e6315e2255b857eaab8eb759e6b042ebd4cc8b855ff0d93f875a5a7188fac49f878d7b29d4ef7e6b6341190ad7f6f6f39f4a6d2c62003468b08e4c6"
+    },
+    {
+      "id": "ferrite-core", "title": "FerriteCore", "version": "7.0.3-fabric", "fileName": "ferritecore-7.0.3-fabric.jar",
+      "url": "https://cdn.modrinth.com/data/uXXizFIs/versions/sOzRw3CG/ferritecore-7.0.3-fabric.jar",
+      "sha512": "3ad31620fac4ff44327dc7dedbe162b2d978f3f246dc16255a6e400ce9592a0d326fe36a626f3c1bf30a11f813093cbb4dcc107af039cff724d0cdf648541fdf"
+    },
+    {
+      "id": "spark", "title": "spark", "version": "1.10.109-fabric", "fileName": "spark-1.10.109-fabric.jar",
+      "url": "https://cdn.modrinth.com/data/l6YH9Als/versions/cALUj9l1/spark-1.10.109-fabric.jar",
+      "sha512": "367f574f6d28432067f09737577d799ced9c309c1725da1d09ffdfe10eacf461a66967205cc938131afbcc8b8255c8c25f8aa516e15f061c6481b6e7b8c94250"
+    },
+    {
+      "id": "chunky", "title": "Chunky", "version": "1.4.23", "fileName": "Chunky-Fabric-1.4.23.jar",
+      "url": "https://cdn.modrinth.com/data/fALzjamp/versions/RVFHfo1D/Chunky-Fabric-1.4.23.jar",
+      "sha512": "02ca6af1ed31e9ebc51af20948a2afb670fe653c80aaeb990947caf6b655d6ab8eda3f1b64ef478633b67ef5d2fd0d1fe67e2107a4a522ef45fd1f183c9a6c9c"
+    }
+  ],
+  "optional": [
+    {
+      "id": "luckperms", "title": "LuckPerms", "version": "v5.4.140-fabric", "fileName": "LuckPerms-Fabric-5.4.140.jar",
+      "url": "https://cdn.modrinth.com/data/Vebnzrzj/versions/l47d4ZWk/LuckPerms-Fabric-5.4.140.jar",
+      "sha512": "386ff4d18981c830d21ddaa599d70c1c5430c1475e2c5960275bad535cbd572c77e38b3841f0a71e3ea4a795c56d45ff8c4a8dba3799dae26bff5a382c6e0a64"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+# Mob Talk server on a VPS (Ubuntu + Docker). Mods and configs come from scripts\build-server-pack.ps1 -Docker
+# (copied to the VPS as ./data); keys and the admin password come from ./.env (copy .env.example, never commit it).
+# See docker/README.md.
+name: mobtalk
+services:
+  mc:
+    image: itzg/minecraft-server:2026.10.0-java21
+    container_name: mobtalk-mc
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    env_file: .env
+    environment:
+      EULA: "TRUE"
+      TYPE: FABRIC
+      VERSION: "1.21.1"
+      FABRIC_LOADER_VERSION: "0.19.5"
+      FABRIC_LAUNCHER_VERSION: "1.1.2"
+      MEMORY: 6G
+      USE_AIKAR_FLAGS: "true"
+      ONLINE_MODE: "true"
+      ENABLE_RCON: "false"
+      ENABLE_WHITELIST: "true"
+      ENFORCE_WHITELIST: "true"
+      MAX_PLAYERS: "8"
+      VIEW_DISTANCE: "8"
+      SIMULATION_DISTANCE: "6"
+      SPAWN_PROTECTION: "0"
+      MOTD: "Mob Talk: деревня, которая отвечает"
+      # Lets docker/backup.sh and `docker exec mobtalk-mc mc-send-to-console ...` reach the console without RCON.
+      CREATE_CONSOLE_IN_PIPE: "true"
+      # Mods come only from ./data/mods (build-server-pack.ps1 -Docker); the image downloads nothing else.
+      REMOVE_OLD_MODS: "false"
+      # The web admin listens inside the container on all interfaces; the host publishes it on loopback only (below),
+      # so from outside it is reached through an SSH tunnel.
+      MOBTALK_ADMIN_BIND: 0.0.0.0
+      MOBTALK_ADMIN_PORT: "8787"
+    ports:
+      - "25565:25565"
+      - "127.0.0.1:8787:8787"
+    volumes:
+      - ./data:/data
