@@ -141,7 +141,19 @@ public final class OpenRouterToken {
         try {
             if (Files.size(encrypted) > 65536) return "";
             String blob = Files.readString(encrypted, StandardCharsets.UTF_8).strip().replace("﻿", "");
-            return powershell(environment.windows(), DECRYPT, blob, 513, provider);
+            // A busy machine (several games, builds) sometimes loses the first PowerShell: a broken pipe or a slow start.
+            // Two more tries before telling the player the key is missing.
+            IOException last = null;
+            for (int attempt = 1; attempt <= 3; attempt++) {
+                try {
+                    String token = powershell(environment.windows(), DECRYPT, blob, 513, provider);
+                    if (!token.isBlank()) return token;
+                } catch (IOException failure) { last = failure; }
+                try { Thread.sleep(400L * attempt); }
+                catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); throw new IOException("Операция с ключом " + provider.label + " отменена."); }
+            }
+            if (last != null) throw last;
+            return "";
         } catch (IOException failure) {
             throw new IOException("Не удалось открыть сохранённый локальный ключ " + provider.label + ".");
         }
@@ -156,7 +168,7 @@ public final class OpenRouterToken {
                     .redirectError(ProcessBuilder.Redirect.DISCARD).start();
             try (var stdin = process.getOutputStream()) { stdin.write(input.getBytes(StandardCharsets.UTF_8)); }
             // Outputs are a few hundred bytes and fit the pipe buffer, so a hung PowerShell cannot block the read.
-            if (!process.waitFor(10, TimeUnit.SECONDS) || process.exitValue() != 0) return "";
+            if (!process.waitFor(20, TimeUnit.SECONDS) || process.exitValue() != 0) return "";
             return new String(process.getInputStream().readNBytes(maximum), StandardCharsets.UTF_8).strip();
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
