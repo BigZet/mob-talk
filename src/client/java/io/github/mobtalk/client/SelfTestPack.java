@@ -98,17 +98,20 @@ final class SelfTestPack {
         test.await("pause: the showcase chunks load", 3, () -> false, () -> {
             test.command("fill " + at(-14, -1, -6) + " " + at(14, -1, 10) + " minecraft:grass_block");
             test.command("fill " + at(-14, 0, -6) + " " + at(14, 8, 10) + " minecraft:air");
-            int x = -12;
+            // A row per mod, a step apart, seen from above: every block of the pack in one picture.
+            int z = -5;
             for (String namespace : CONTENT) {
                 List<Identifier> ids = Registries.BLOCK.getIds().stream().filter(id -> id.getNamespace().equals(namespace))
-                        .filter(id -> !id.getPath().contains("fire") && !id.getPath().contains("portal")).sorted().limit(8).toList();
+                        .filter(id -> !id.getPath().contains("fire") && !id.getPath().contains("portal")).sorted().limit(12).toList();
                 test.log(namespace + " showcase: " + ids);
-                for (Identifier id : ids) { test.command("setblock " + at(x, 0, -2) + " " + id); x += 3; if (x > 13) break; }
+                int x = -11;
+                for (Identifier id : ids) { test.command("setblock " + at(x, 0, z) + " " + id); x += 2; }
+                z += 3;
             }
-            test.command("summon minecraft:villager " + at(-4, 0, 3) + " {NoAI:1b,PersistenceRequired:1b,Rotation:[0f,0f],VillagerData:{profession:\"minecraft:farmer\",type:\"minecraft:plains\",level:2}}");
-            test.command("summon minecraft:villager " + at(0, 0, 3) + " {NoAI:1b,PersistenceRequired:1b,Rotation:[0f,0f],VillagerData:{profession:\"minecraft:librarian\",type:\"minecraft:taiga\",level:2}}");
-            test.command("summon minecraft:parrot " + at(4, 0, 3) + " {NoAI:1b,PersistenceRequired:1b,Variant:1}");
-            test.command("tp " + name() + " " + at(0, 1, 9) + " 180 15");
+            test.command("summon minecraft:villager " + at(-4, 0, 5) + " {NoAI:1b,PersistenceRequired:1b,Rotation:[0f,0f],VillagerData:{profession:\"minecraft:farmer\",type:\"minecraft:plains\",level:2}}");
+            test.command("summon minecraft:villager " + at(0, 0, 5) + " {NoAI:1b,PersistenceRequired:1b,Rotation:[0f,0f],VillagerData:{profession:\"minecraft:librarian\",type:\"minecraft:taiga\",level:2}}");
+            test.command("summon minecraft:parrot " + at(4, 0, 5) + " {NoAI:1b,PersistenceRequired:1b,Variant:1}");
+            test.command("tp " + name() + " " + at(0, 5, 12) + " 180 32");
             test.await("pause: the showcase settles", 4, () -> false, () -> shot("mobtalk-pack-content.png", this::menus));
         });
     }

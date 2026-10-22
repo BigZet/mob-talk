@@ -115,13 +115,20 @@ final class ModHubScreen extends Screen {
     @Override public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
         context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 14, 0xFFFFFF);
-        int y = keysTop, x = Math.max(8, width / 2 - 170), bottom = height - 34;
-        context.drawTextWithShadow(textRenderer, Text.literal("Клавиши модов"), x, y, 0xFFD27F);
-        y += 12;
-        for (Line line : lines) {
-            if (y + 10 > bottom) { context.drawTextWithShadow(textRenderer, Text.literal("…"), x, y, 0xA0A0A0); break; }
-            context.drawTextWithShadow(textRenderer, line.text(), x, y, line.conflict() ? 0xFF6060 : 0xE0E0E0);
-            y += 10;
+        int top = keysTop, bottom = height - 34;
+        context.drawCenteredTextWithShadow(textRenderer, Text.literal("Клавиши модов (переназначить: Настройки → Управление)"), width / 2, top, 0xFFD27F);
+        top += 12;
+        // Two columns when the list does not fit in one.
+        int rows = Math.max(1, (bottom - top) / 10);
+        int columns = lines.size() > rows && width >= 520 ? 2 : 1;
+        int columnWidth = columns == 2 ? (width - 24) / 2 : Math.min(width - 16, 360);
+        int left = columns == 2 ? 12 : (width - columnWidth) / 2;
+        for (int i = 0; i < lines.size(); i++) {
+            int column = i / rows, row = i % rows;
+            if (column >= columns) { context.drawTextWithShadow(textRenderer, Text.literal("…"), left + columnWidth * (columns - 1), bottom, 0xA0A0A0); break; }
+            Line line = lines.get(i);
+            context.drawTextWithShadow(textRenderer, Text.literal(textRenderer.trimToWidth(line.text().getString(), columnWidth - 6)),
+                    left + column * columnWidth, top + row * 10, line.conflict() ? 0xFF6060 : 0xE0E0E0);
         }
     }
 

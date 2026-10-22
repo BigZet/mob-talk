@@ -222,7 +222,7 @@ function Save-GameWindowShot([string]$Name, [string]$Path) {
     [ParallelPrismWindow]::Save($p.MainWindowHandle, $Path)
 }
 
-Export-ModuleMember -Function New-TestInstanceName, Get-InstanceGame, Get-AllGames, Enter-GameSlot, Exit-GameSlot,
+Export-ModuleMember -Function Get-TestGameStall, New-TestInstanceName, Get-InstanceGame, Get-AllGames, Enter-GameSlot, Exit-GameSlot,
     New-TestInstance, Remove-TestInstance, Start-TestInstance, Invoke-PrismRescan, Start-PrismClean, Get-WhisperHelper, Save-GameWindowShot
 
 # Watchdog for a running test copy: returns a reason when the game looks stuck, else $null. Stuck means a crash report
