@@ -355,7 +355,10 @@ public final class HogweedSelfTest {
         int greenBefore = before.getOrDefault("трава", 0) + before.getOrDefault("цветы", 0);
         int greenAfter = after.getOrDefault("трава", 0) + after.getOrDefault("цветы", 0);
         check(greenAfter < greenBefore / 2, "трава и цветы задавлены (" + greenBefore + " → " + greenAfter + ")");
-        check(after.getOrDefault("сухие кусты", 0) > 0, "саженцы засохли");
+        // A sapling in the shade turns into a dead bush, which is replaceable: a later seed may take its place, so what counts
+        // is that the saplings are gone, not that the dead bushes are still there.
+        check(after.getOrDefault("саженцы", 0) < before.getOrDefault("саженцы", 0),
+                "саженцы засохли (" + before.getOrDefault("саженцы", 0) + " → " + after.getOrDefault("саженцы", 0) + ", сухих кустов " + after.getOrDefault("сухие кусты", 0) + ")");
         check(after.getOrDefault("пшеница", 0) < before.getOrDefault("пшеница", 0), "пшеница вянет");
         var dropped = world.getEntitiesByClass(ItemEntity.class, new Box(plot).expand(20, 8, 20), e -> true);
         int items = dropped.size() - lying;
