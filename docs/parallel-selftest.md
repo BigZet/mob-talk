@@ -71,3 +71,28 @@ Prism, запущенный из оболочки Codex, наследует её
 > не запущен, больше не нужно; старый скрипт из своей ветки не запускайте. Логи и снимки:
 > `%LOCALAPPDATA%\MobTalk\selftest\<копия>\`. Снимки окна по ходу: `-ShotEverySeconds 60`.
 > Чужие `javaw` и Whisper не останавливать. Подробности: docs/parallel-selftest.md.
+
+## Этап `server`: выделенный сервер и два клиента (трек G)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 -Only server [-Keep] [-ShotEverySeconds 60]
+```
+
+Скрипт `scripts\run-server-play-selftest.ps1` собирает Mob Talk из этой ветки, кладёт сервер в
+`%LOCALAPPDATA%\MobTalk\selftest\t-srv-<ветка>-<время>\server` (`build-server-pack.ps1 -FromPack mob-talk-pack`, наш jar и
+остальные наши моды из `%LOCALAPPDATA%\MobTalkPack\server-integration\mods`, без BlueMap), копирует мир сборки
+`stream 1 (сборка)`, берёт свободные порты (игра от 25570, админка от 8797), запускает сервер с
+`-Dmobtalk.selftest.play=Test1,Test2 -Dmobtalk.selftest.notts=true` и двух клиентов `new-test-client.ps1`
+(`-Dmobtalk.selftest.play.client=<ник>`). Голос бога в копии конфига выключен, Whisper не грузится, озвучка — тон.
+
+Сервер — дирижёр (`ServerSelfTestPlay`): строит площадку на y=200 над точкой появления, призывает жителей и шлёт клиентам
+реплики сценария пакетом `mobtalk:selftest`; клиенты (`SelfTestServer`) делают это своими настоящими пакетами и докладывают,
+что получили. Test1 — стример, Test2 — игрок, оператор — сам сервер. Клиенты называют себя своим ником (личные имена пакета
+«Дима» у копий подменяются). Шаги: уровни и админка (`/api/sources`, журнал), диалог и соседи, занятый моб, подарок, окно
+сделки и торг, имя обидчика в памяти и ответе, лимит 3 в минуту, права на команды, голос через сервер (фраза из кэша
+`selftest-fixtures`), молитва и мировая кара, отмена при смене мира, свадьба, выход игрока посреди разговора.
+Итог `[selftest-play] ALL CHECKS PASSED` в `server.log` и `[selftest] ALL CHECKS PASSED (server stage)` в
+`selftest-run.log`, если в логе сервера нет ERROR от наших модов. Около 8 минут, вызовы LLM — несколько десятков.
+
+Рядом лежат `server.log`, `client-Test1-latest.log`, `client-Test2-latest.log`, снимки клиентов `mobtalk-server-*.png` и снимки
+окон `window-*.png`. Копии клиентов ищутся только созданные этим прогоном: чужие `t-client-Test1-*` не трогаются.

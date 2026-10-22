@@ -125,6 +125,7 @@ public final class MobTalkMod implements ModInitializer {
         });
         registerReceivers();
         io.github.mobtalk.server.PlayerServices.initialize(); // Трек C: права, фильтр команд, расходы, /mobtalk admin, имена игроков.
+        if (dedicated()) ServerSelfTestPlay.register(); // Трек G: сквозной самотест с двумя клиентами (только с -Dmobtalk.selftest.play).
         LOGGER.info("Mob Talk {}: {}", version(), dedicated() ? "выделенный сервер" : "клиент с встроенным сервером");
     }
 
@@ -152,6 +153,7 @@ public final class MobTalkMod implements ModInitializer {
                         ready.complete(bridge);
                         LOGGER.info("Mob Talk: мост к миру поднят ({}), диалог на сервере", directory.getFileName());
                         if (Boolean.getBoolean(SELFTEST_PROPERTY)) ServerSelfTest.run(server, bridge);
+                        if (dedicated() && !System.getProperty(ServerSelfTestPlay.PROPERTY, "").isBlank()) ServerSelfTestPlay.start(server, bridge);
                     } catch (Throwable failure) { ready.completeExceptionally(failure); LOGGER.error("Mob Talk: мост не поднялся", failure); }
                 });
             } catch (Throwable failure) {
