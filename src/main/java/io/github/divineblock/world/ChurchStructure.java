@@ -43,6 +43,9 @@ public final class ChurchStructure extends Structure {
 
     /** The church self-test's switch: churches placed while it is set are all of this kind. Never set in play. */
     public static volatile ChurchBuilder.Variant forceVariant;
+    /** -Ddivineblock.churchVariant=STONE|WOOD|SLAVIC: every new church is of that kind (for looking at one kind in play). */
+    static final ChurchBuilder.Variant FORCED = System.getProperty("divineblock.churchVariant") == null ? null
+            : ChurchBuilder.Variant.of(System.getProperty("divineblock.churchVariant").trim().toUpperCase());
 
     /** Points sampled for the height in church coordinates: the church's corners and middle, then a 40 x 60 churchyard ground
      * beyond it (dry, not too steep), room for a large cemetery growing away from the church. */
@@ -89,8 +92,11 @@ public final class ChurchStructure extends Structure {
             if (!biomeAt(context, frame.world(point[0], 0, point[1])).isIn(BIOMES)) return Optional.empty();
         RegistryEntry<Biome> biome = biomeAt(context, center);
         boolean north = biome.isIn(BiomeTags.IS_TAIGA) || biome.getKey().map(key -> key.getValue().getPath().matches(".*snowy.*")).orElse(false);
-        ChurchBuilder.Variant chance = context.random().nextFloat() < (north ? 0.7f : 0.25f) ? ChurchBuilder.Variant.WOOD : ChurchBuilder.Variant.STONE;
-        ChurchBuilder.Variant variant = forceVariant != null ? forceVariant : chance;
+        // A third of the churches are KAIZEN87's Slavic Church; of the rest the north favours the log church.
+        float roll = context.random().nextFloat();
+        ChurchBuilder.Variant chance = roll < 1 / 3f ? ChurchBuilder.Variant.SLAVIC
+                : (roll - 1 / 3f) * 1.5f < (north ? 0.7f : 0.25f) ? ChurchBuilder.Variant.WOOD : ChurchBuilder.Variant.STONE;
+        ChurchBuilder.Variant variant = forceVariant != null ? forceVariant : FORCED != null ? FORCED : chance;
         long seed = context.random().nextLong();
         // The churchyard was started at the ground by its entrance; its gate belongs one under the church floor.
         int lift = floor - 1 - groundAtEntrance;

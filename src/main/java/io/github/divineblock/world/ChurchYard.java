@@ -56,7 +56,7 @@ public final class ChurchYard extends StructurePiece {
     public ChurchYard(StructureContext context, NbtCompound nbt) {
         super(ChurchWorldgen.YARD_PIECE, nbt);
         frame = ChurchPiece.Frame.read(nbt);
-        variant = nbt.getString("Variant").equals("WOOD") ? ChurchBuilder.Variant.WOOD : ChurchBuilder.Variant.STONE;
+        variant = ChurchBuilder.Variant.of(nbt.getString("Variant"));
     }
 
     /** The whole yard with its wall and towers (the box starts at the floor level: the ground is levelled up to under it). */
@@ -70,7 +70,7 @@ public final class ChurchYard extends StructurePiece {
 
     @Override public void generate(StructureWorldAccess world, StructureAccessor structures, ChunkGenerator generator, Random random,
                                    BlockBox chunkBox, ChunkPos chunk, BlockPos pivot) {
-        draw(ChurchPiece.canvas(world, chunkBox, frame, random));
+        draw(ChurchPiece.canvas(world, chunkBox, frame, random), variant);
         sweep(world, chunkBox);
     }
 
@@ -79,7 +79,7 @@ public final class ChurchYard extends StructurePiece {
      * and its eight neighbours, which world generation lets it touch. The yard's own trees stay: their leaves are persistent
      * and their trunks stand on the planted spots. */
     private void sweep(StructureWorldAccess world, BlockBox chunkBox) {
-        BlockBox yard = open(frame), church = ChurchPiece.box(frame);
+        BlockBox yard = open(frame), church = ChurchPiece.box(frame, variant);
         int floor = frame.origin().getY();
         int x0 = Math.max(yard.getMinX(), chunkBox.getMinX() - 16), x1 = Math.min(yard.getMaxX(), chunkBox.getMaxX() + 16);
         int z0 = Math.max(yard.getMinZ(), chunkBox.getMinZ() - 16), z1 = Math.min(yard.getMaxZ(), chunkBox.getMaxZ() + 16);
@@ -122,7 +122,7 @@ public final class ChurchYard extends StructurePiece {
         return false;
     }
 
-    static void draw(ChurchBuilder.Canvas canvas) {
+    static void draw(ChurchBuilder.Canvas canvas, ChurchBuilder.Variant variant) {
         // Level grass inside, cleared of trees and hills up to the top of the box.
         for (int x = WX0 - 1; x <= WX1 + 1; x++)
             for (int z = WZ0 - 1; z <= WZ1 + 1; z++) {
@@ -139,7 +139,7 @@ public final class ChurchYard extends StructurePiece {
                 for (int y = 0; y <= TOP; y++) canvas.set(x, y, z, Blocks.AIR.getDefaultState());
             }
         walls(canvas);
-        paths(canvas);
+        paths(canvas, variant);
         for (int[] c : new int[][] { { WX0, WZ0 }, { WX1, WZ0 }, { WX0, WZ1 }, { WX1, WZ1 } }) tower(canvas, c[0], c[1]);
         holyGate(canvas, WX0);
         southGate(canvas, WZ1);
@@ -340,16 +340,24 @@ public final class ChurchYard extends StructurePiece {
             }
     }
 
-    private static void paths(ChurchBuilder.Canvas canvas) {
+    private static void paths(ChurchBuilder.Canvas canvas, ChurchBuilder.Variant variant) {
+        boolean slavic = variant == ChurchBuilder.Variant.SLAVIC;
         pave(canvas, YARD_MIN_X, -7, -2, 2, true);              // Holy Gate to the porch
-        pave(canvas, 26, 30, 13, YARD_MAX_Z, false);             // south gate north to the refectory's south door
-        pave(canvas, 19, 30, 10, 13, true);
-        pave(canvas, 19, 23, -27, -10, false);                   // the north door out to the chapel and the spring
-        pave(canvas, -22, 44, -28, -26, true);
-        pave(canvas, 43, 45, -29, -28, false);
+        if (slavic) {
+            // KAIZEN87's church: the south gate to its south porch, its north porch (by the tower) to the chapel.
+            pave(canvas, 26, 30, 31, YARD_MAX_Z, false);
+            pave(canvas, 26, 41, 29, 32, true);
+            pave(canvas, 33, 45, -30, -28, true);
+        } else {
+            pave(canvas, 26, 30, 13, YARD_MAX_Z, false);         // south gate north to the refectory's south door
+            pave(canvas, 19, 30, 10, 13, true);
+            pave(canvas, 19, 23, -27, -10, false);               // the north door out to the chapel and the spring
+            pave(canvas, -22, 44, -28, -26, true);
+            pave(canvas, 43, 45, -29, -28, false);
+        }
         // Lantern posts along the west and south paths.
         for (int x : new int[] { -28, -20, -12 }) for (int z : new int[] { -3, 3 }) lanternPost(canvas, x, z);
-        for (int z : new int[] { 18, 26, 34 }) for (int x : new int[] { 25, 31 }) lanternPost(canvas, x, z);
+        for (int z : slavic ? new int[] { 34 } : new int[] { 18, 26, 34 }) for (int x : new int[] { 25, 31 }) lanternPost(canvas, x, z);
         for (int x : new int[] { 7, 31 }) lanternPost(canvas, x, -29);
         // Benches along the west path, facing it, and by the chapel.
         for (int side : new int[] { -1, 1 })
@@ -361,6 +369,7 @@ public final class ChurchYard extends StructurePiece {
             canvas.set(-15, 0, 4 * side, Blocks.SPRUCE_TRAPDOOR.getDefaultState().with(net.minecraft.block.TrapdoorBlock.OPEN, true)
                     .with(net.minecraft.block.TrapdoorBlock.FACING, Direction.EAST));
         }
+        if (slavic) return; // its porches stand where the bench and the flower beds go
         for (int x = 37; x <= 39; x++) canvas.set(x, 0, -30, stair(Blocks.DARK_OAK_STAIRS, Direction.NORTH, StairShape.STRAIGHT));
         // Flower beds either side of the south path.
         BlockState[] flowers = { Blocks.POPPY.getDefaultState(), Blocks.CORNFLOWER.getDefaultState(), Blocks.OXEYE_DAISY.getDefaultState(),
