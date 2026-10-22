@@ -147,7 +147,9 @@ public final class SelfTest {
             case 250 -> {
                 boolean button = client.currentScreen != null && net.fabricmc.fabric.api.client.screen.v1.Screens.getButtons(client.currentScreen).stream()
                         .anyMatch(b -> b.getMessage().getString().equals("Божественный блок"));
-                check(button, "кнопка «Божественный блок» есть в меню Esc");
+                boolean hub = client.currentScreen != null && DivineBlockClient.hasHub(client.currentScreen);
+                // With Mob Talk's "Моды сборки" hub the mod is reached from there; without it, by its own button.
+                check(button != hub, hub ? "в меню Esc хаб «Моды сборки», своей кнопки нет" : "кнопка «Божественный блок» есть в меню Esc");
                 screenshot = "pause-menu";
             }
             case 270 -> { client.setScreen(null); log("ошибок всего: " + failures); finish(client); }

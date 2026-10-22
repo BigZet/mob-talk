@@ -249,8 +249,9 @@ public final class FxEngine {
 
     /** His last word: the rays at this altar fade. */
     public static void raysFade(BlockPos altar) {
+        // A copy: the packet may land while the render pass is adding or removing effects.
         for (List<FxEffect> list : List.of(EFFECTS, PENDING))
-            for (FxEffect effect : list) if (effect instanceof AltarRays rays && rays.altar.equals(altar)) rays.fade();
+            for (FxEffect effect : new java.util.ArrayList<>(list)) if (effect instanceof AltarRays rays && rays.altar.equals(altar)) rays.fade();
     }
 
     /** For the lightning renderer: a vanilla bolt where one of ours struck is not drawn. */

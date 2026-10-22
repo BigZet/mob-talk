@@ -13,6 +13,11 @@ import org.lwjgl.glfw.GLFW;
 public final class DivineBlockClient implements ClientModInitializer {
     private static KeyBinding settingsKey, prayKey;
 
+    /** The pause menu already has Mob Talk's "Моды сборки" hub, which lists this mod too. */
+    static boolean hasHub(net.minecraft.client.gui.screen.Screen screen) {
+        return net.fabricmc.fabric.api.client.screen.v1.Screens.getButtons(screen).stream().anyMatch(b -> b.getMessage().getString().contains("Моды сборки"));
+    }
+
     @Override public void onInitializeClient() {
         AltarBlock.openPrayer = pos -> MinecraftClient.getInstance().setScreen(new PrayerScreen(pos));
         SelfTest.register();
@@ -34,14 +39,16 @@ public final class DivineBlockClient implements ClientModInitializer {
         io.github.divineblock.client.boss.BossClient.register();
         io.github.divineblock.client.fx.FxEngine.register();
         BloodWater.register();
-        // A button in the pause menu, as Mob Talk has, one row above its "Mob Talk" button in the same corner. With Mob Talk
-        // installed its "Моды сборки" hub opens DivineSettingsScreen(Screen) instead, so no second button here.
-        boolean hub = net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("mobtalk");
+        // A button in the pause menu, one row above Mob Talk's in the same corner. A Mob Talk with the "Моды сборки" hub opens
+        // DivineSettingsScreen(Screen) from there instead: checked a moment after the menu is built, once every mod added its buttons.
         net.fabricmc.fabric.api.client.screen.v1.ScreenEvents.AFTER_INIT.register((minecraft, screen, width, height) -> {
-            if (!hub && screen instanceof net.minecraft.client.gui.screen.GameMenuScreen)
+            if (!(screen instanceof net.minecraft.client.gui.screen.GameMenuScreen)) return;
+            minecraft.execute(() -> {
+                if (minecraft.currentScreen != screen || hasHub(screen)) return;
                 net.fabricmc.fabric.api.client.screen.v1.Screens.getButtons(screen).add(net.minecraft.client.gui.widget.ButtonWidget
                         .builder(net.minecraft.text.Text.literal("Божественный блок"), button -> minecraft.setScreen(new DivineSettingsScreen(screen)))
                         .dimensions(width - 128, height - 50, 120, 20).build());
+            });
         });
         // Whisper's model is loaded once when the game starts and stays loaded until it closes.
         net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents.CLIENT_STARTED.register(client -> WhisperHelper.warmUp(io.github.divineblock.DivineBlockMod.config()));
