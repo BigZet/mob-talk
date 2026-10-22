@@ -15,7 +15,7 @@ export function map3dTab(box) {
 
   function paint(s) {
     replace(state,
-      h(`span.badge${s.rendering ? '.good' : ''}`, s.rendering ? 'рендер идёт' : 'рендер на паузе'),
+      s.loading ? h('span.badge.warn', 'BlueMap загружается…') : h(`span.badge${s.rendering ? '.good' : ''}`, s.rendering ? 'рендер идёт' : 'рендер на паузе'),
       s.progress != null && s.progress < 1 ? h('span.text-2', `готово ${fmt.num(s.progress * 100)}%`) : null,
       h('span.muted', s.lastRender ? `карта на ${fmt.ago(s.lastRender)}` : 'карта ещё не отрисована'),
       h('span.spacer'),
@@ -24,7 +24,7 @@ export function map3dTab(box) {
   }
   async function keepalive() {
     if (stopped || document.visibilityState !== 'visible') return;
-    try { const r = await api.post('map3d/keepalive'); paint({ ...last, rendering: r.rendering ?? true }); } catch { /* статус покажет */ }
+    try { const r = await api.post('map3d/keepalive'); last = { ...last, rendering: r.rendering ?? true, loading: r.loading ?? last.loading }; paint(last); } catch { /* статус покажет */ }
   }
   let last = {};
   async function status(first) {
