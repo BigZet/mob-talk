@@ -51,7 +51,7 @@ class PlayerIdentityTest {
     @Test void memoryAndRumoursNameTheRightPlayerAndFameIsPersonal() throws Exception {
         twoPlayers();
         ConversationStore store = ConversationStore.open(directory, new MobTalkConfig());
-        UUID anna = UUID.randomUUID(), boris = UUID.randomUUID();
+        UUID anna = Sexed.id(Gender.FEMALE), boris = Sexed.id(Gender.MALE);
         ConversationStore.Village village = store.createVillage("minecraft:overworld", 0, 0, "Ольховка", "");
         store.observe(villager(anna, dima, "BigZet")); store.observe(villager(boris, test2, "Тест2"));
         store.setBackstory(anna, "Анна", "", "", "", village.id());

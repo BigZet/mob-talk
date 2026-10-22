@@ -429,7 +429,7 @@ public final class DialogueService {
             }
             if (session.pipelineBusy.get()) { refuse(session, "Предыдущий разговор ещё завершается"); return false; }
             Session holder = busyMobs.get(mob.id());
-            if (holder != null && holder != session) { refuse(session, mob.name() + " занят разговором с " + holder.name); return false; }
+            if (holder != null && holder != session) { refuse(session, mob.name() + " сейчас говорит с " + holder.name); return false; }
             return true;
         });
     }

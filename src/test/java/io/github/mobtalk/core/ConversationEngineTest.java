@@ -1088,7 +1088,7 @@ class ConversationEngineTest {
         first.add("biography", life);
         queuedAnswers.add(first);
         try (ConversationEngine engine = engine()) {
-            MobSnapshot founder = villager(UUID.randomUUID(), 500, 500, true);
+            MobSnapshot founder = villager(Sexed.id(Gender.MALE), 500, 500, true);
             ConversationEngine.Reply reply = engine.converse(founder, "Кто ты?");
             assertEquals(1, chatCalls.get(), "no separate biography request");
             assertEquals("Прохор", reply.speakerName(), "the invented name is used for the very first line");
@@ -1142,7 +1142,7 @@ class ConversationEngineTest {
             founder.addProperty("name", "Прохор"); founder.addProperty("story", "Ты пришёл сюда первым.");
             founder.addProperty("villageName", "Тихие Грядки"); founder.addProperty("villageStory", "Деревню поставили на месте сгоревшего леса.");
             queuedAnswers.add(founder);
-            engine.ensureBackstory(villager(UUID.randomUUID(), 100, 100, true));
+            engine.ensureBackstory(villager(Sexed.id(Gender.MALE), 100, 100, true));
             ConversationStore.Village village = engine.memory().villageNear("minecraft:overworld", 110, 90);
             assertEquals("Тихие Грядки", village.name()); assertEquals(100, village.x()); assertEquals(100, village.z());
             JsonObject neighbour = new JsonObject();

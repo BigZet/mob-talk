@@ -28,6 +28,8 @@ public final class VillagerNames {
 
     /** The UUID's own choice, ignoring everyone else: for a villager the store has no profile of (a name only shown in passing). */
     public static String pick(UUID id, Gender gender) { return order(id, gender).getFirst(); }
+    /** Чьё это имя по спискам: мужское, женское или null (не из списков). */
+    static Gender sexOf(String name) { return name == null ? null : MALE.contains(name.strip()) ? Gender.MALE : FEMALE.contains(name.strip()) ? Gender.FEMALE : null; }
 
     /** The name for a new villager: the least worn in {@code wear} (name → weight, see {@link #wear}); ties go by the UUID's order. */
     public static String pick(UUID id, Gender gender, Map<String, Integer> wear) {
