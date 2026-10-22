@@ -165,6 +165,7 @@ export function positionsTab(box, { onOpen, params = {}, setParams = () => {} } 
   }
   api.get('map/info', { world: world || 'minecraft:overworld' }).then(i => {
     knownWorlds = i.worlds || null;
+    map.setTiling(i.tileSize, i.maxZoom);
     if (!centered && i.spawn && !(lastData?.players || []).some(p => p.world === world)) { centered = true; map.center(i.spawn.x, i.spawn.z, 0.5); }
     if (lastData) tick(false, lastData);
   }).catch(() => {});
