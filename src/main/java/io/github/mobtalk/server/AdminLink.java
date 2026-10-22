@@ -100,7 +100,6 @@ public final class AdminLink {
         AdminWeb admin = web;
         web = null; view = null; current = null;
         runs.clear();
-        game.sources(started.sources());
         AdminCommands.setWebAddress(() -> "");
         if (admin != null) admin.stop();
     }
