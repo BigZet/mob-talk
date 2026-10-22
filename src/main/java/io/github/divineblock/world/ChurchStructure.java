@@ -91,10 +91,22 @@ public final class ChurchStructure extends Structure {
                 : new ClearingPiece(new BlockBox(yardBox.getMinX(), yardBox.getMinY() - 2, yardBox.getMinZ(), yardBox.getMaxX(), floor + 34, yardBox.getMaxZ()),
                         yardPieces.stream().filter(p -> p instanceof PoolStructurePiece element && element.getPoolElement() instanceof FeaturePoolElement)
                                 .map(p -> ((PoolStructurePiece) p).getPos()).toList());
+        ChurchPiece churchPiece = new ChurchPiece(frame, variant, seed);
+        // The cemetery thread: the churchyard only on fairly level ground, levelled to a gentle field before its plots are laid
+        // (CemeteryGround, LevelingPiece); the church's own box is never dug or filled.
+        LevelingPiece leveling = null;
+        if (yardBox != null) {
+            BlockBox site = StructurePiece.boundingBox(yardPieces.stream());
+            BlockPos gate = frame.world(ChurchBuilder.CEMETERY_ENTRANCE_X, -1, ChurchBuilder.CEMETERY_MIN_Z);
+            CemeteryGround.Plan plan = CemeteryGround.plan(context.chunkGenerator(), context.world(), context.noiseConfig(), site, floor - 1, gate);
+            if (!plan.level()) return Optional.empty();
+            leveling = new LevelingPiece(plan.field(), List.of(churchPiece.getBoundingBox()), site.getMinY() - 20, site.getMaxY() + 12);
+        }
+        LevelingPiece levelingPiece = leveling;
         return Optional.of(new StructurePosition(center, collector -> {
-            collector.addPiece(new ChurchPiece(frame, variant, seed));
+            collector.addPiece(churchPiece);
             if (yardPieces.isEmpty()) collector.addPiece(new CemeteryPiece(frame, seed ^ 0x5DEECE66DL));
-            else { collector.addPiece(clearing); yardPieces.forEach(collector::addPiece); }
+            else { collector.addPiece(clearing); collector.addPiece(levelingPiece); yardPieces.forEach(collector::addPiece); }
         }));
     }
 

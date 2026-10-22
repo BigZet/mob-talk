@@ -292,11 +292,7 @@ def piece(seed, depth, entrance, exit_to=None, kind="rows", style=MODERN):
             # The guardian's seal at the end of the first path (the bosses thread): a cemetery boss rises from it at night,
             # again each night after the last one died.
             t.set(PATH_X, 0, 24, NS + ":boss_seal", {"boss": "cemetery", "power": 2, "night": 1, "cooldownDays": 1, "radius": 14})
-        # A blue sector sign by the path at one of the lanes, and a bin at the first one.
-        lanes = [z for z in range(0, depth, 8)]
-        sz = rnd.choice(lanes[1:] or lanes)
-        sx, sf = rnd.choice(((8, "east"), (12, "west")))
-        monument(t, sx, sz, "sector_sign", sf)
+        # A bin at the first lane. (The blue sector sign "1 1" by the path is gone: it read as a strange road sign.)
         if kind == "start" or rnd.random() < 0.4:
             bx = rnd.choice((7, 13))
             t.set(bx, 1, 0, NS + ":cemetery_bin", facing="north", waterlogged=False)
@@ -391,13 +387,19 @@ def write_trees():
             name = f"tree_{kind}_{i}"
             tree(kind, 500 + 101 * i + 7 * len(kind)).write(os.path.join(ROOT, "structure", "cemetery", name + ".nbt"))
             weight = {"oak": 2, "birch": 3, "spruce": 3, "pine": 2}[kind]
+            radius = {"oak": 3, "birch": 2, "spruce": 3, "pine": 2}[kind]
             elements.append({"element": {"element_type": "minecraft:single_pool_element", "location": f"{NS}:cemetery/{name}",
-                                         "processors": f"{NS}:cemetery_{'conifer' if cold else 'broadleaf'}", "projection": "rigid"}, "weight": weight})
+                                         "processors": f"{NS}:cemetery_{'conifer' if cold else 'broadleaf'}_{radius}", "projection": "rigid"}, "weight": weight})
     wg = os.path.join(ROOT, "worldgen")
     save_json(os.path.join(wg, "template_pool", "cemetery", "trees.json"), {"fallback": "minecraft:empty", "elements": elements})
     for name, cold in (("conifer", True), ("broadleaf", False)):
-        save_json(os.path.join(wg, "processor_list", f"cemetery_{name}.json"),
-                  {"processors": [{"processor_type": f"{NS}:cemetery_tree", "cold": cold}]})
+        old = os.path.join(wg, "processor_list", f"cemetery_{name}.json")
+        if os.path.exists(old): os.remove(old)
+        for radius in (2, 3):
+            # The tree stands whole on the levelled ground under its trunk (CemeteryGroundProcessor), then keeps to its biomes.
+            save_json(os.path.join(wg, "processor_list", f"cemetery_{name}_{radius}.json"),
+                      {"processors": [{"processor_type": f"{NS}:cemetery_ground", "trunk": radius},
+                                      {"processor_type": f"{NS}:cemetery_tree", "cold": cold}]})
     for old in (os.path.join(wg, "configured_feature", "cemetery_tree.json"), os.path.join(wg, "placed_feature", "cemetery_tree.json")):
         if os.path.exists(old): os.remove(old)
 
@@ -416,21 +418,20 @@ def main():
             t.write(os.path.join(ROOT, "structure", "cemetery", name + ".nbt"))
             print(f"{name} ({'old' if style is OLD else 'modern'}): {W}x{depth}, plots {stats['plots']} (abandoned {stats['abandoned']}), trees {stats['trees']}")
             pools[kind].append({"element": {"element_type": "minecraft:single_pool_element", "location": f"{NS}:cemetery/{name}",
-                                            "processors": f"{NS}:cemetery", "projection": "terrain_matching"}, "weight": 1})
+                                            "processors": f"{NS}:cemetery", "projection": "rigid"}, "weight": 1})
     for kind, elements in pools.items():
         save_json(os.path.join(wg, "template_pool", "cemetery", kind + ".json"), {"fallback": "minecraft:empty", "elements": elements})
     write_trees()
-    save_json(os.path.join(wg, "processor_list", "cemetery.json"), {"processors": [{"processor_type": "minecraft:rule", "rules": [
+    # Rigid pieces, stood column by column on the ground the leveller made (CemeteryGroundProcessor, CemeteryGround).
+    save_json(os.path.join(wg, "processor_list", "cemetery.json"), {"processors": [{"processor_type": f"{NS}:cemetery_ground"}, {"processor_type": "minecraft:rule", "rules": [
         {"input_predicate": {"predicate_type": "minecraft:random_block_match", "block": "minecraft:gravel", "probability": 0.12},
          "location_predicate": {"predicate_type": "minecraft:always_true"}, "output_state": {"Name": "minecraft:coarse_dirt"}},
         {"input_predicate": {"predicate_type": "minecraft:block_match", "block": "minecraft:gravel"},
          "location_predicate": {"predicate_type": "minecraft:block_match", "block": "minecraft:water"}, "output_state": {"Name": "minecraft:spruce_planks"}},
     ]}]})
     save_json(os.path.join(wg, "structure", "cemetery.json"), {
-        "type": "minecraft:jigsaw", "biomes": "#minecraft:is_overworld", "step": "surface_structures", "spawn_overrides": {},
-        "terrain_adaptation": "beard_thin", "start_pool": f"{NS}:cemetery/start", "size": 4,
-        "start_height": {"absolute": 0}, "project_start_to_heightmap": "WORLD_SURFACE_WG", "max_distance_from_center": 80,
-        "use_expansion_hack": False})
+        "type": f"{NS}:cemetery", "biomes": "#minecraft:is_overworld", "step": "surface_structures", "spawn_overrides": {},
+        "terrain_adaptation": "none"})
     print("cemetery structures written")
 
 
