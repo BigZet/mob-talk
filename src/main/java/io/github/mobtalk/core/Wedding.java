@@ -56,6 +56,28 @@ public final class Wedding {
     }
     public enum Role { SPOUSE, PARTNER, OFFICIANT, WITNESS_MAN, WITNESS_WOMAN, GUEST }
 
+    /** Строка в промпт жителю, пока в деревне свадьба: кто женится, что сейчас идёт и кто он на ней ({@code mob}). Пусто — служба
+     * кончилась. */
+    public static String contextLine(Cast cast, Names names, Ceremony.Phase phase, UUID mob) {
+        String couple = cast.spouse().name() + " и " + (cast.playerWedding() ? names.player() : cast.partner().name());
+        String now = switch (phase) {
+            case GATHER -> "гости собираются у колокола";
+            case SERVICE -> "у колокола идёт служба";
+            case DONE -> "молодые только что поженились, идёт праздник";
+            case JILTED -> "свадьба сорвалась: у алтаря прозвучало «нет»";
+            case CANCELLED -> "";
+        };
+        if (now.isEmpty()) return "";
+        Role role = cast.role(mob);
+        String you = role == null ? "Тебя на церемонии нет, но ты о ней знаешь." : switch (role) {
+            case SPOUSE, PARTNER -> "Это твоя свадьба.";
+            case OFFICIANT -> "Ты ведёшь службу.";
+            case WITNESS_MAN, WITNESS_WOMAN -> "Ты свидетель.";
+            case GUEST -> "Ты среди гостей.";
+        };
+        return "Сейчас в деревне свадьба: женятся " + couple + "; " + now + ". " + you + " Говори об этом к месту, если речь зайдёт.";
+    }
+
     /** Состав свадьбы из жителей вокруг колокола. Свидетели, которых назвал игрок ({@code askedMan}, {@code askedWoman}), идут первыми,
      * затем ведущий — священник, иначе старейшина (больше детей, при равенстве лучшее отношение), затем недостающие свидетели из
      * лучших друзей нужного пола, затем гости: родня, потом по отношению; недолюбливающие игрока не приходят. Изгнанника навещает

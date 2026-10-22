@@ -113,6 +113,13 @@ public final class WeddingController {
     public boolean involved(UUID id) { Scene s = scene; return s != null && s.ceremony.cast().find(id) != null; }
     /** Тексты для клиента: один раз за свадьбу. */
     public WeddingScript.Input takeScriptRequest() { Scene s = scene; return s != null && s.ceremony.takeScriptRequest() ? s.input : null; }
+    /** Что житель знает об идущей свадьбе (строка в промпт), если он в её мире и не дальше {@link #CONTEXT_RANGE} от колокола; "" — нет. */
+    public String contextFor(ServerWorld world, Entity mob) {
+        Scene s = scene;
+        if (s == null || s.world != world || !(mob instanceof VillagerEntity) || mob.squaredDistanceTo(s.anchor) > CONTEXT_RANGE * CONTEXT_RANGE) return "";
+        return Wedding.contextLine(s.ceremony.cast(), s.ceremony.names(), s.ceremony.phase(), mob.getUuid());
+    }
+    private static final double CONTEXT_RANGE = 128;
 
     // ---- Начало. ----
 

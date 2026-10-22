@@ -59,6 +59,7 @@ final class MobPrompt {
                 + "\n\n" + state.describe() + "\n" + PromptTexts.STATE_RULE
                 + "\n\n" + Situation.of(snapshot, profile).describe()
                 + PlacePrompt.block(snapshot)
+                + wedding(snapshot)
                 + kin(profile, snapshot)
                 + rumors(profile)
                 + "\n\nЭтот игрок:\nОтношение (-100..100): " + profile.relationship + " — " + attitude(profile.relationship) + "."
@@ -155,6 +156,11 @@ final class MobPrompt {
         if (view.windowOpen()) return PromptTexts.BARGAINING_RULES;
         if (view.spokenAvailable()) return PromptTexts.SPOKEN_BARGAINING_RULES;
         return view.villagerOffers() ? PromptTexts.TRADE_CLOSED : PromptTexts.NO_TRADE;
+    }
+
+    /** Идущая свадьба в деревне ({@code Wedding.contextLine}, кладёт снимок жителя); "" — свадьбы нет. */
+    static String wedding(MobSnapshot snapshot) {
+        return snapshot.environmentDetails().get("wedding") instanceof String line && !line.isBlank() ? "\n\n" + line : "";
     }
 
     /** How to address the player at this relationship, when the settings give forms of address; "" otherwise. */
