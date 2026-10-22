@@ -367,16 +367,23 @@ final class ServerSelfTestPlay {
         cue(playerName, "trade", String.valueOf(trader.getId()));
         await("окно сделки открылось у игрока", 20, () -> saw(playerName, "screen", p, s -> s.field(0).contains("Merchant")), () -> {
             check(saw(playerName, "screen", p, s -> s.field(0).contains("Merchant")), "окно сделки открылось у " + playerName);
-            int q = mark(playerName);
-            cue(playerName, "say", String.valueOf(trader.getId()), "Уступи в цене, пожалуйста! Я у тебя постоянный покупатель, сделай скидку.");
-            await("ответ торговца", 120, () -> saw(playerName, "speech", q, speechOf(trader, true, null)), () -> {
-                check(saw(playerName, "speech", q, speechOf(trader, true, null)), "торговец ответил в окне сделки: «" + lastAnswer(playerName, trader, q) + "»");
-                await("индикатор торга", 8, () -> saw(playerName, "state", q, st -> st.field(0).equals(trader.getUuidAsString()) && !st.field(2).isEmpty()), () -> {
-                    Seen state = first(playerName, "state", q, st -> st.field(0).equals(trader.getUuidAsString()) && !st.field(2).isEmpty());
-                    check(state != null, "индикатор торга пришёл в MobStateS2C: " + (state == null ? "пусто" : state.field(2)));
-                    cue(playerName, "shot", "mobtalk-server-trade-" + playerName + ".png");
-                    pause(2, () -> { cue(playerName, "close"); pause(1, this::rumour); });
-                });
+            bargain(1);
+        });
+    }
+    /** Слова в торге: индикатор торга появляется, когда торговец сдвинулся (или упёрся); если первый ответ торг не начал — вторая просьба. */
+    private void bargain(int attempt) {
+        int q = mark(playerName);
+        cue(playerName, "say", String.valueOf(trader.getId()), attempt == 1 ? "Уступи в цене, пожалуйста! Я у тебя постоянный покупатель, сделай скидку."
+                : "Давай поторгуемся: самую дорогую сделку отдай на пару изумрудов дешевле, и я возьму сразу.");
+        await("ответ торговца " + attempt, 120, () -> saw(playerName, "speech", q, speechOf(trader, true, null)), () -> {
+            check(saw(playerName, "speech", q, speechOf(trader, true, null)), "торговец ответил в окне сделки: «" + lastAnswer(playerName, trader, q) + "»");
+            Predicate<Seen> moved = st -> st.field(0).equals(trader.getUuidAsString()) && !st.field(2).isEmpty();
+            await("индикатор торга", 8, () -> saw(playerName, "state", 0, moved), () -> {
+                Seen state = first(playerName, "state", 0, moved);
+                if (state == null && attempt < 2) { log("торговец не начал торг, просим ещё раз"); bargain(attempt + 1); return; }
+                check(state != null, "индикатор торга пришёл в MobStateS2C: " + (state == null ? "пусто после двух просьб" : state.field(2)));
+                cue(playerName, "shot", "mobtalk-server-trade-" + playerName + ".png");
+                pause(2, () -> { cue(playerName, "close"); pause(1, this::rumour); });
             });
         });
     }
@@ -568,8 +575,11 @@ final class ServerSelfTestPlay {
                     check(scene() != null && scene().ready, "свадьба на выделенном сервере началась (ответ невесты: «" + lastAnswer(streamerName, bride, s2) + "»)");
                     if (scene() == null) { leave(); return; }
                     var spot = scene().playerSpot();
-                    if (spot != null) command("tp " + streamerName + " " + spot.x + " " + spot.y + " " + spot.z);
-                    command("tp " + playerName + " " + at(2, 0, wz - 6) + " 0 10");
+                    var couple = scene().couple();
+                    String facing = " facing " + couple.x + " " + (couple.y + 1.5) + " " + couple.z;
+                    if (spot != null) command("tp " + streamerName + " " + spot.x + " " + spot.y + " " + spot.z + facing);
+                    // The guest stands back and aside, clear of the seated villagers, looking at the couple.
+                    command("tp " + playerName + " " + at(9, 0, wz - 9) + facing);
                     await("служба началась", 110, () -> scene() == null || scene().ceremony.phase() == Wedding.Ceremony.Phase.SERVICE, () -> {
                         check(scene() != null && scene().ceremony.phase() == Wedding.Ceremony.Phase.SERVICE, "гости собрались, служба идёт");
                         cue(streamerName, "shot", "mobtalk-server-wedding-" + streamerName + ".png"); cue(playerName, "shot", "mobtalk-server-wedding-" + playerName + ".png");
