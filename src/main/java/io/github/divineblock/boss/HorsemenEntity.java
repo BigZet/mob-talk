@@ -163,20 +163,22 @@ public final class HorsemenEntity extends SacredBoss {
         else getNavigation().stop();
     }
 
-    /** No harm while a seal breaks, and no blow takes him past the next seal. */
+    /** No harm while a seal breaks. */
     @Override public boolean damage(DamageSource source, float amount) {
-        boolean absolute = source.isIn(DamageTypeTags.BYPASSES_INVULNERABILITY);
-        if (sealTicks > 0 && !absolute) {
+        if (sealTicks > 0 && !source.isIn(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
             if (!getWorld().isClient && age % 4 == 0) sound(SoundEvents.ITEM_SHIELD_BLOCK, 1.2f, 0.5f);
             return false;
         }
-        if (phase < phaseCount() && !absolute) {
-            float floor = getMaxHealth() * (1f - (phase + 1) / (float) phaseCount()) + 1f;
-            amount = Math.min(amount, getHealth() - floor);
-            if (amount <= 0) return false;
-        }
         return super.damage(source, amount);
     }
+    /** No blow (even in the weak window) takes him past the next seal: it stops just under the seal's line, so the seal
+     * breaks on the next tick and the next rider gets his whole quarter. */
+    @Override protected float limitTaken(float amount) {
+        if (phase >= phaseCount()) return amount;
+        float line = getMaxHealth() * (1f - phase / (float) phaseCount()) - 0.5f;
+        return Math.min(amount, getHealth() - line);
+    }
+    @Override protected void simulateTick() { if (sealTicks > 0) sealTicks--; }
 
     @Override protected void mobTick() {
         super.mobTick();
@@ -193,6 +195,22 @@ public final class HorsemenEntity extends SacredBoss {
     }
 
     // ---- Seals. ----
+
+    // ---- The weak point: the rider. ----
+
+    /** An arrow or a trident in the rider (above the horse's back) throws him back in the saddle. */
+    @Override protected boolean weakTrigger(DamageSource source, float amount) {
+        if (!(source.getSource() instanceof net.minecraft.entity.projectile.ProjectileEntity projectile)) return false;
+        Vec3d pos = projectile.getPos(), velocity = projectile.getVelocity();
+        Vec3d at = getBoundingBox().expand(0.3).raycast(pos.subtract(velocity), pos.add(velocity.multiply(1.5))).orElse(pos);
+        return at.y >= getY() + getHeight() * 0.6;
+    }
+    @Override protected String weakHint() { return "конь в броне — стреляй во всадника (стрела или трезубец выше конской спины)"; }
+    @Override protected String weakReason() { return "Всадник сбит в седле — бей!"; }
+    @Override protected String ultHint() { return "печати падают на тебя по одной — не стой на месте"; }
+    @Override protected String phaseName(int phase) { return switch (phase) { case 2 -> "Конь рыжий"; case 3 -> "Конь вороной"; default -> "Конь бледный"; }; }
+    @Override protected Vec3d weakSpot() { return new Vec3d(getX(), getY() + getHeight() * 0.8, getZ()); }
+    @Override public void provokeWeakPoint(net.minecraft.server.network.ServerPlayerEntity player) { testArrow(player, 0.8, false); }
 
     @Override protected void onPhase(int phase) {
         if (!(getWorld() instanceof ServerWorld world)) return;

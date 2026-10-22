@@ -54,7 +54,7 @@ public final class LeviathanEntity extends SacredBoss {
 
     private Vec3d swimTo;
     private BlockPos waterNear;
-    private int scanTimer, poolLeft, poolCooldown, poolTop;
+    private int scanTimer, poolLeft, poolCooldown, poolTop, landTicks;
     /** The pool dug on land: the ground it replaced and the plants that stood on it, put back when it drains. */
     private final Map<BlockPos, BlockState> poolGround = new LinkedHashMap<>(), poolPlants = new LinkedHashMap<>();
 
@@ -80,7 +80,7 @@ public final class LeviathanEntity extends SacredBoss {
         goalSelector.add(8, new LookAtEntityGoal(this, PlayerEntity.class, 24f));
         goalSelector.add(9, new LookAroundGoal(this));
         targetSelector.add(1, new RevengeGoal(this));
-        targetSelector.add(2, new ActiveTargetGoal<>(this, PlayerEntity.class, true));
+        targetSelector.add(2, targetGoal());
     }
     @Override protected EntityNavigation createNavigation(World world) { return new SwimNavigation(this, world); }
     @Override protected int getNextAirUnderwater(int air) { return air; }
@@ -138,6 +138,17 @@ public final class LeviathanEntity extends SacredBoss {
         if (poolLeft > 0 && --poolLeft == 0) drainPool(world);
         if (poolCooldown > 0) poolCooldown--;
         if (--scanTimer <= 0) { scanTimer = 40; lookForWater(world); }
+        // Out of the water for a second it gasps, open; a fishing hook in it (Job 41:1) does the same and drags it ashore.
+        landTicks = isTouchingWater() ? 0 : landTicks + 1;
+        if (landTicks == 20 && weakReady()) expose(EXPOSED_TICKS + 40, "Левиафан выброшен на сушу — бей!");
+        if (age % 5 == 0) for (var bobber : world.getEntitiesByClass(net.minecraft.entity.projectile.FishingBobberEntity.class, getBoundingBox().expand(4), b -> b.getHookedEntity() == this)) {
+            var angler = bobber.getPlayerOwner();
+            if (angler == null) continue;
+            Vec3d pull = angler.getPos().subtract(getPos());
+            if (pull.lengthSquared() > 1) addVelocity(pull.normalize().multiply(0.25).add(0, 0.12, 0));
+            velocityModified = true;
+            if (weakReady()) expose(EXPOSED_TICKS, "«Можешь ли ты удою вытащить левиафана?» — бей!");
+        }
     }
 
     /** Out of water: remember the nearest water, or dig a pool when there is none and the settings allow it. */
@@ -377,6 +388,16 @@ public final class LeviathanEntity extends SacredBoss {
     }
 
     private static ParticleEffect sand() { return new BlockStateParticleEffect(ParticleTypes.FALLING_DUST, Blocks.SAND.getDefaultState()); }
+
+    @Override protected String weakHint() { return "вымани его на сушу (за тобой из воды) или зацепи удочкой — на берегу он беззащитен"; }
+    @Override protected String ultHint() { return "водоворот тянет вниз: вылезай на берег, на суше пучины нет"; }
+    @Override protected String phaseName(int phase) { return phase == 2 ? "Чешуя щитом" : "Кипящая пучина"; }
+    @Override protected Vec3d weakSpot() { return mouthPos(); }
+    /** Tests: it is lured onto the stone beside the player (the open window comes a second later). */
+    @Override public void provokeWeakPoint(net.minecraft.server.network.ServerPlayerEntity player) {
+        swimTo = null;
+        requestTeleport(player.getX() + 4, player.getY(), player.getZ());
+    }
 
     @Override protected void onPhase(int phase) {
         sound(SoundEvents.ENTITY_RAVAGER_ROAR, 3f, 0.4f);

@@ -35,7 +35,9 @@ public final class FacelessIconEntity extends SacredBoss {
     /** How far the gaze reaches and how straight a look must be to meet it. */
     static final double GAZE_RANGE = 32, GAZE_DOT = 0.97;
 
-    private final List<UUID> faces = new ArrayList<>();
+    /** The faces out now, each with the age at which it would have faded by itself: one gone before that was struck down. */
+    private final java.util.Map<UUID, Integer> faces = new java.util.LinkedHashMap<>();
+    private int facesSlain;
 
     public FacelessIconEntity(EntityType<? extends FacelessIconEntity> type, World world) {
         super(type, world, BossBar.Color.WHITE);
@@ -58,6 +60,10 @@ public final class FacelessIconEntity extends SacredBoss {
         LivingEntity target = getTarget();
         if (target != null) face(target.getPos());
         if (age % 10 == 0) gaze();
+        if (age % 10 == 5 && !faces.isEmpty() && liveFaces() == 0 && facesSlain > 0) {
+            facesSlain = 0;
+            if (weakReady()) expose(EXPOSED_TICKS, "Лики повержены — доска пуста, бей!");
+        }
     }
 
     /** Hangs about a block and a half above the ground and bobs slowly. */
@@ -198,11 +204,12 @@ public final class FacelessIconEntity extends SacredBoss {
                 Vec3d at = facePos().add(random.nextGaussian() * 0.8, random.nextGaussian() * 0.5, random.nextGaussian() * 0.8);
                 face.refreshPositionAndAngles(at.x, at.y, at.z, getYaw(), 0);
                 face.setOwner(this);
-                face.setLifeTicks(20 * (25 + random.nextInt(10)));
+                int life = 20 * (25 + random.nextInt(10));
+                face.setLifeTicks(life);
                 face.setCustomName(Text.literal("Лик").formatted(Formatting.GOLD));
                 face.setTarget(target);
                 world.spawnEntity(face);
-                faces.add(face.getUuid());
+                faces.put(face.getUuid(), age + life);
                 particles(ParticleTypes.END_ROD, at.x, at.y, at.z, 10, 0.2, 0.2, 0.2, 0.05);
             }
             sound(SoundEvents.ENTITY_EVOKER_CAST_SPELL, 2f, 1.4f);
@@ -211,7 +218,12 @@ public final class FacelessIconEntity extends SacredBoss {
 
     private int liveFaces() {
         if (!(getWorld() instanceof ServerWorld world)) return 0;
-        faces.removeIf(id -> { Entity face = world.getEntity(id); return face == null || !face.isAlive(); });
+        faces.entrySet().removeIf(entry -> {
+            Entity face = world.getEntity(entry.getKey());
+            boolean gone = face == null || !face.isAlive();
+            if (gone && age < entry.getValue() - 10) facesSlain++;
+            return gone;
+        });
         return faces.size();
     }
 
@@ -238,6 +250,8 @@ public final class FacelessIconEntity extends SacredBoss {
         int every = phase >= 3 ? 10 : 14;
         hazards.repeat(5, (every * count + 40) / 5, step -> { for (Vec3d frame : frames) drawFrame(frame, target.getPos(), GOLD_DUST, true); });
         // Each frame in turn: a flash, then a telegraphed beam at where the foe stands now.
+        // When the last frame has burnt out the icon hangs blank for a few seconds.
+        hazards.later(every * count + 30, () -> expose(90, "Иконостас погас, лик пуст — бей!"));
         hazards.repeat(every, count, i -> {
             if (!target.isAlive()) return;
             Vec3d eye = frames.get(i).add(0, 0.4, 0);
@@ -282,6 +296,27 @@ public final class FacelessIconEntity extends SacredBoss {
 
     private void point(ParticleEffect effect, Vec3d at) { particles(effect, at.x, at.y, at.z, 1, 0, 0, 0, 0); }
 
+    // ---- The weak point: its faces. ----
+
+    @Override protected String weakHint() { return "убей все его лики (летающие лица) — или переживи «Иконостас»"; }
+    @Override protected String ultHint() { return "не смотри в лики и уходи с линий взора; когда рамы погаснут — он пуст"; }
+    @Override protected String phaseName(int phase) { return phase == 2 ? "Лики" : "Слепой взор"; }
+    @Override protected Vec3d weakSpot() { return facePos(); }
+    /** Tests: two faces leave the icon and the player strikes them down. */
+    @Override public void provokeWeakPoint(net.minecraft.server.network.ServerPlayerEntity player) {
+        if (!(getWorld() instanceof ServerWorld world)) return;
+        for (int i = 0; i < 2; i++) {
+            VexEntity face = EntityType.VEX.create(world);
+            if (face == null) continue;
+            Vec3d at = facePos().add(i - 0.5, 0.5, 0);
+            face.refreshPositionAndAngles(at.x, at.y, at.z, getYaw(), 0);
+            face.setOwner(this);
+            world.spawnEntity(face);
+            faces.put(face.getUuid(), age + 20 * 30);
+            face.damage(world.getDamageSources().playerAttack(player), 100f);
+        }
+    }
+
     @Override protected void onPhase(int phase) {
         sound(SoundEvents.BLOCK_BELL_USE, 2f, 0.6f);
         particles(ParticleTypes.END_ROD, getX(), getY() + getHeight() * 0.55, getZ(), 40, 1, 1.5, 1, 0.1);
@@ -290,7 +325,7 @@ public final class FacelessIconEntity extends SacredBoss {
     @Override protected void onDefeated() {
         for (LivingEntity victim : victims(getPos(), 48)) victim.removeStatusEffect(BossEffects.GAZE);
         if (getWorld() instanceof ServerWorld world)
-            for (UUID id : faces) { Entity face = world.getEntity(id); if (face != null) face.discard(); }
+            for (UUID id : faces.keySet()) { Entity face = world.getEntity(id); if (face != null) face.discard(); }
         faces.clear();
     }
 }

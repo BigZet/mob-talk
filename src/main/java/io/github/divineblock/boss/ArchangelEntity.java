@@ -158,7 +158,10 @@ public final class ArchangelEntity extends SacredBoss {
     }
 
     /** He is never struck by his own lightning. */
-    @Override public void onStruckByLightning(ServerWorld world, LightningEntity lightning) { }
+    @Override public void onStruckByLightning(ServerWorld world, LightningEntity lightning) {
+        // Wrath on wrath: the lightning of a channeling trident stuns him.
+        if (lightning.getChanneler() != null && weakReady()) expose(EXPOSED_TICKS, "Молния трезубца оглушила архангела — бей!");
+    }
 
     /** «Падение с небес»: a circle under the foe; he rises above it, hangs a moment and dives. */
     private void dive(LivingEntity target) {
@@ -230,6 +233,8 @@ public final class ArchangelEntity extends SacredBoss {
             sound(SoundEvents.BLOCK_BEACON_ACTIVATE, 3f, 0.6f);
             hazards.beam(from, to, 22, 30, 1.0, ParticleTypes.END_ROD, ParticleTypes.FLAME, this::judge);
             hazards.later(22, () -> sound(SoundEvents.ENTITY_BLAZE_SHOOT, 3f, 0.4f));
+            // The sword's fire spent, the blade stands in the ground and he wrenches at it.
+            hazards.later(34, () -> expose(EXPOSED_TICKS, "Меч гнева ушёл в землю — бей, пока он вырывает его!"));
         });
     }
 
@@ -249,6 +254,19 @@ public final class ArchangelEntity extends SacredBoss {
     }
 
     // ---- Phases. ----
+
+    @Override protected String weakHint() { return "переживи «Последний суд» — меч застрянет в земле; или ударь его молнией трезубца"; }
+    @Override protected String ultHint() { return "огонь в кругах → перепрыгни кольцо → уйди с линии меча; потом он открыт"; }
+    @Override protected String phaseName(int phase) { return phase == 2 ? "Труба гнева" : "День гнева"; }
+    @Override public void provokeWeakPoint(net.minecraft.server.network.ServerPlayerEntity player) {
+        if (!(getWorld() instanceof ServerWorld world)) return;
+        LightningEntity bolt = net.minecraft.entity.EntityType.LIGHTNING_BOLT.create(world);
+        if (bolt == null) return;
+        bolt.refreshPositionAfterTeleport(getPos());
+        bolt.setChanneler(player);
+        bolt.setCosmetic(true);
+        onStruckByLightning(world, bolt);
+    }
 
     @Override protected void onPhase(int phase) {
         if (phase == 2) {

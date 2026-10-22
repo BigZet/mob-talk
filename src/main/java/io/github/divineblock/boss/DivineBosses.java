@@ -94,20 +94,22 @@ public final class DivineBosses {
 
     /** Called once from the mod initializer. */
     public static void register() {
-        attributes(BLACK_SCHEMNIK, 320, 0.26, 10);
-        attributes(BELL_RINGER, 420, 0.2, 16);
-        attributes(SERAPH, 280, 0.3, 6);
-        attributes(FACELESS_ICON, 300, 0.18, 12);
-        attributes(WAILER, 260, 0.28, 6);
-        attributes(ARCHANGEL, 600, 0.3, 20);
-        attributes(LEVIATHAN, 520, 0.3, 14);
-        attributes(BEHEMOTH, 560, 0.24, 18);
-        attributes(GOLIATH, 380, 0.25, 14);
+        // Health is tuned to the blow shares in SacredBoss (15 % outside the weak window, 75 % in it): with a netherite sword
+        // of Sharpness V the model fight (BossSelfTest) takes about 1–2.5 minutes at power 3, a real one with dodging longer.
+        attributes(BLACK_SCHEMNIK, 420, 0.26, 10);
+        attributes(BELL_RINGER, 520, 0.2, 16);
+        attributes(SERAPH, 380, 0.3, 6);
+        attributes(FACELESS_ICON, 400, 0.18, 12);
+        attributes(WAILER, 360, 0.28, 6);
+        attributes(ARCHANGEL, 640, 0.3, 20);
+        attributes(LEVIATHAN, 560, 0.3, 14);
+        attributes(BEHEMOTH, 600, 0.24, 18);
+        attributes(GOLIATH, 460, 0.25, 14);
         attributes(HORSEMEN, 720, 0.32, 10);
-        attributes(DESTROYING_ANGEL, 260, 0.3, 6);
-        attributes(CHERUB, 340, 0.28, 12);
-        attributes(BEAST, 620, 0.26, 16);
-        attributes(NIMROD, 300, 0.26, 8);
+        attributes(DESTROYING_ANGEL, 360, 0.3, 6);
+        attributes(CHERUB, 440, 0.28, 12);
+        attributes(BEAST, 660, 0.26, 16);
+        attributes(NIMROD, 400, 0.26, 8);
         BossEffects.register();
         // Each boss keeps the event listeners of its own affliction in its class.
         SchemnikEntity.registerHooks(); BellRingerEntity.registerHooks(); SeraphEntity.registerHooks(); FacelessIconEntity.registerHooks();

@@ -336,6 +336,37 @@ public final class NimrodEntity extends SacredBoss {
             player.sendMessage(Text.literal("Смешение языков").formatted(Formatting.GOLD), true);
     }
 
+    // ---- The weak point: the hunter's bow. ----
+
+    /** An arrow while he draws his bow snaps the string; on the tower it throws him down and the tower falls with him. */
+    @Override protected boolean weakTrigger(net.minecraft.entity.damage.DamageSource source, float amount) {
+        if (!(source.getSource() instanceof net.minecraft.entity.projectile.ProjectileEntity)) return false;
+        if (perched > 0) { knockedOff = true; knockOff(); return true; }
+        return isCasting() && move() == MOVE_DRAW;
+    }
+    private boolean knockedOff;
+    /** Shot off the top: the perch ends at once, the bricks come down behind him and he floats down on the dust. */
+    private void knockOff() {
+        perched = 0;
+        sound(SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK, 2f, 0.6f);
+        if (levitating) { land(); return; }
+        demolish();
+        addStatusEffect(new StatusEffectInstance(StatusEffects.SLOW_FALLING, 200, 0, false, false));
+    }
+    @Override protected String weakHint() { return "выстрели в него, пока он натягивает лук или стоит на башне"; }
+    @Override protected String weakReason() {
+        boolean fell = knockedOff;
+        knockedOff = false;
+        return fell ? "Нимрод сбит с башни — бей!" : "Тетива лопнула — бей!";
+    }
+    @Override protected String ultHint() { return "сбей его с башни стрелой — он упадёт и будет открыт"; }
+    @Override protected String phaseName(int phase) { return phase == 2 ? "Зверолов" : "Вавилон"; }
+    /** Tests: he draws for a volley and the player's arrow strikes him. */
+    @Override public void provokeWeakPoint(net.minecraft.server.network.ServerPlayerEntity player) {
+        volley(player);
+        testArrow(player, 0.6, false);
+    }
+
     @Override protected void onPhase(int phase) {
         sound(SoundEvents.ENTITY_RAVAGER_ROAR, 1.6f, 0.7f);
         if (phase >= 2) addStatusEffect(new StatusEffectInstance(StatusEffects.SPEED, StatusEffectInstance.INFINITE, 0, false, false));
