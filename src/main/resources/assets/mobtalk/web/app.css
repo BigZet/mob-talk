@@ -474,3 +474,7 @@ svg.map .wp text { fill: var(--text-2); font-size: 11.5px; }
 .wmap-zoom .btn { box-shadow: var(--shadow); font-size: 18px; font-weight: 600; }
 .wmap-readout { position: absolute; left: 10px; bottom: 8px; padding: 2px 8px; border-radius: 6px; background: rgba(0, 0, 0, 0.55); color: #fff; font: 12px var(--mono); pointer-events: none; }
 .wmap-readout:empty { display: none; }
+
+/* 3D-карта */
+.map3d-card { height: min(75vh, 760px); min-height: 360px; }
+iframe.map3d { width: 100%; height: 100%; border: 0; display: block; }
