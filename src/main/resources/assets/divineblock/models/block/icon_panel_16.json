@@ -1,0 +1,63 @@
+{
+ "parent": "minecraft:block/block",
+ "ambientocclusion": true,
+ "textures": {
+  "gold": "divineblock:block/church_gold",
+  "art": "divineblock:block/royal_doors",
+  "particle": "divineblock:block/royal_doors"
+ },
+ "elements": [
+  {
+   "from": [
+    0,
+    0,
+    15
+   ],
+   "to": [
+    16,
+    16,
+    16
+   ],
+   "faces": {
+    "south": {
+     "texture": "#gold"
+    },
+    "east": {
+     "texture": "#gold"
+    },
+    "west": {
+     "texture": "#gold"
+    },
+    "up": {
+     "texture": "#gold"
+    },
+    "down": {
+     "texture": "#gold"
+    }
+   }
+  },
+  {
+   "from": [
+    0,
+    0,
+    14.9
+   ],
+   "to": [
+    16,
+    16,
+    16
+   ],
+   "faces": {
+    "north": {
+     "texture": "#art",
+     "uv": [
+      0.0,
+      5.3333,
+      5.3333,
+      10.6667
+     ]
+    }
+   }
+  }
+ ]
+}

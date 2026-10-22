@@ -43,8 +43,11 @@ public final class ChurchStructure extends Structure {
 
     /** Points sampled for the height in church coordinates: the church's corners and middle, then a 40 x 60 churchyard ground
      * beyond it (dry, not too steep), room for a large cemetery growing away from the church. */
-    private static final int[][] CHURCH_SAMPLES = { { -3, -7 }, { 35, -7 }, { -3, 7 }, { 35, 7 }, { 22, 0 }, { 3, 0 } },
-            CEMETERY_SAMPLES = { { -2, 10 }, { 38, 10 }, { -2, 40 }, { 38, 40 }, { -2, 70 }, { 38, 70 }, { 18, 25 }, { 18, 55 } };
+    private static final int[][] CHURCH_SAMPLES = { { -6, -12 }, { 62, -12 }, { -6, 12 }, { 62, 12 }, { 42, 0 }, { 6, 0 }, { 21, 0 } },
+            YARD_SAMPLES = { { ChurchBuilder.YARD_MIN_X, ChurchBuilder.YARD_MIN_Z }, { ChurchBuilder.YARD_MAX_X, ChurchBuilder.YARD_MIN_Z },
+                    { ChurchBuilder.YARD_MIN_X, ChurchBuilder.YARD_MAX_Z }, { ChurchBuilder.YARD_MAX_X, ChurchBuilder.YARD_MAX_Z },
+                    { 28, ChurchBuilder.YARD_MIN_Z }, { 28, ChurchBuilder.YARD_MAX_Z }, { ChurchBuilder.YARD_MIN_X, 0 }, { ChurchBuilder.YARD_MAX_X, 0 } },
+            CEMETERY_SAMPLES = { { 8, 41 }, { 48, 41 }, { 8, 71 }, { 48, 71 }, { 8, 101 }, { 48, 101 }, { 28, 56 }, { 28, 86 } };
 
     @Override protected Optional<StructurePosition> getStructurePosition(Context context) {
         if (!ChurchWorldgen.enabled()) return Optional.empty();
@@ -67,10 +70,13 @@ public final class ChurchStructure extends Structure {
         ChurchPiece.Frame probe = new ChurchPiece.Frame(BlockPos.ORIGIN, rotation);
         BlockPos fromEntrance = probe.world(ChurchBuilder.CEMETERY_ENTRANCE_X, 0, ChurchBuilder.CEMETERY_MIN_Z);
         int ox = ex - fromEntrance.getX(), oz = ez - fromEntrance.getZ();
-        int[] church = heights(context, ox, oz, rotation, CHURCH_SAMPLES), yardHeights = heights(context, ox, oz, rotation, CEMETERY_SAMPLES);
-        if (church == null || yardHeights == null) return Optional.empty();
+        int[] church = heights(context, ox, oz, rotation, CHURCH_SAMPLES), yardHeights = heights(context, ox, oz, rotation, CEMETERY_SAMPLES),
+                court = heights(context, ox, oz, rotation, YARD_SAMPLES);
+        if (church == null || yardHeights == null || court == null) return Optional.empty();
         int floor = Math.round((float) mean(church));
-        if (max(church) - min(church) > 9 || max(yardHeights) - floor > 8 || floor - min(yardHeights) > 8) return Optional.empty();
+        if (max(church) - min(church) > 10 || max(yardHeights) - floor > 8 || floor - min(yardHeights) > 8) return Optional.empty();
+        // The walled churchyard is levelled by the terrain adaptation and cut by its own piece: a fair slope is fine.
+        if (max(court) - floor > 14 || floor - min(court) > 12) return Optional.empty();
         if (floor - 1 <= context.chunkGenerator().getSeaLevel()) return Optional.empty();
 
         ChurchPiece.Frame frame = new ChurchPiece.Frame(new BlockPos(ox, floor, oz), rotation);
@@ -92,15 +98,18 @@ public final class ChurchStructure extends Structure {
                         yardPieces.stream().filter(p -> p instanceof PoolStructurePiece element && element.getPoolElement() instanceof FeaturePoolElement)
                                 .map(p -> ((PoolStructurePiece) p).getPos()).toList());
         return Optional.of(new StructurePosition(center, collector -> {
+            collector.addPiece(new ChurchYard(frame, variant)); // first: the church draws over the levelled yard
             collector.addPiece(new ChurchPiece(frame, variant, seed));
             if (yardPieces.isEmpty()) collector.addPiece(new CemeteryPiece(frame, seed ^ 0x5DEECE66DL));
             else { collector.addPiece(clearing); yardPieces.forEach(collector::addPiece); }
         }));
     }
 
-    /** Where the biome must be one of the tag's: the nave, the churchyard's corners, middle and far end (21 x 58 from its
-     * entrance at z = 10). */
-    private static final int[][] BIOME_SAMPLES = { { ChurchBuilder.NAVE_X, 0 }, { 8, 10 }, { 28, 10 }, { 18, 39 }, { 8, 68 }, { 28, 68 }, { 18, 68 } };
+    /** Where the biome must be one of the tag's: the nave, the walled yard's corners, the cemetery's corners, middle and far
+     * end (21 x 58 from its entrance at z = 41). */
+    private static final int[][] BIOME_SAMPLES = { { ChurchBuilder.NAVE_X, 0 }, { ChurchBuilder.YARD_MIN_X, ChurchBuilder.YARD_MIN_Z },
+            { ChurchBuilder.YARD_MAX_X, ChurchBuilder.YARD_MIN_Z }, { ChurchBuilder.YARD_MIN_X, ChurchBuilder.YARD_MAX_Z }, { ChurchBuilder.YARD_MAX_X, ChurchBuilder.YARD_MAX_Z },
+            { 18, 41 }, { 38, 41 }, { 28, 70 }, { 18, 99 }, { 38, 99 }, { 28, 99 } };
     private static final TagKey<Biome> BIOMES = TagKey.of(RegistryKeys.BIOME, Identifier.of("divineblock", "has_structure/orthodox_church"));
 
     private static RegistryEntry<Biome> biomeAt(Context context, BlockPos at) {

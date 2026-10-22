@@ -74,5 +74,12 @@
   "item.divineblock.babel_brick": "Brick of Babel",
   "effect.divineblock.confusion_of_tongues": "Confusion of Tongues",
   "block.divineblock.boss_seal": "Guardian's Seal",
-  "tag.item.divineblock.holy_relics": "Holy Relics"
+  "tag.item.divineblock.holy_relics": "Holy Relics",
+  "block.divineblock.dome_cross": "Eight-Pointed Cross",
+  "block.divineblock.cross_apple": "Cross Apple",
+  "block.divineblock.church_bell": "Church Bell",
+  "block.divineblock.icon_panel": "Icon",
+  "block.divineblock.candle_stand": "Candle Stand",
+  "block.divineblock.chandelier": "Panikadilo",
+  "block.divineblock.analoy": "Analoy"
 }

@@ -1,0 +1,13 @@
+{
+ "variants": {
+  "size=0": {
+   "model": "divineblock:block/church_bell_small"
+  },
+  "size=1": {
+   "model": "divineblock:block/church_bell_medium"
+  },
+  "size=2": {
+   "model": "divineblock:block/church_bell_large"
+  }
+ }
+}
