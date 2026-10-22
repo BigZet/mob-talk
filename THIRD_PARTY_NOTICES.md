@@ -5,3 +5,5 @@ JLayer 1.0.1 (JavaZoom), GNU Lesser General Public License 2.1, is included unch
 Voice names, IDs and descriptive metadata originate from the public ElevenLabs Voice Library. Public preview access and OpenRouter synthesis availability are tracked separately. The mod does not bundle generated voice audio or voice recordings.
 
 MCA Reborn (Minecraft Comes Alive Reborn, https://github.com/Luke100000/minecraft-comes-alive), Copyright (C) WildBamaBoy, Luke100000 (Conczin) and the MCA Reborn contributors, GNU General Public License 3.0: the human-villager renderer (model, skin, face, clothing and hair layers, genetics) is ported and modified, and its skin, face, hair, clothing and colour-map textures are included unchanged under `assets/mobtalk/human`. Details and the list of derived files: `third_party/mca-reborn/NOTICE.md` in the source tree.
+
+uPlot 1.6.31 (https://github.com/leeoniya/uPlot), Copyright (c) 2022 Leon Sorokin, MIT License: the chart library of the web admin page, included unchanged as `assets/mobtalk/web/uplot.min.js` and `uplot.min.css`. The license text is included as `licenses/uPlot-MIT.txt`.
