@@ -4,9 +4,9 @@
 # its own Whisper port (63919 + slot), launches it through the running PrismLauncher, waits for this copy's javaw only,
 # then deletes the copy. Never closes Prism, never touches the base instance, its mods or its worlds.
 # Logs, latest.log and screenshots: %LOCALAPPDATA%\MobTalk\selftest\<copy name>\ (selftest-run.log is UTF-8).
-# Usage (Windows PowerShell): powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 [-Only wedding|family|place|names|voices|looks|ctov]
-#   [-Keep] keeps the copy for inspection (delete later with scripts\clean-test-instances.ps1); [-MaxGames 3]; [-ShotEverySeconds 60]
-param([string]$Only = '', [switch]$Keep, [int]$MaxGames = 3, [int]$ShotEverySeconds = 0, [string]$Base = '1.21.1-fabric-dev')
+# Usage (Windows PowerShell): powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 [-Only wedding|family|place|names|voices|looks|ctov|voicefix|pack]
+#   [-Keep] keeps the copy for inspection (delete later with scripts\clean-test-instances.ps1); [-MaxGames 6]; [-ShotEverySeconds 60]; [-WithTts] real TTS (paid); [-Base <instance>]
+param([string]$Only = '', [switch]$Keep, [int]$MaxGames = 6, [int]$ShotEverySeconds = 0, [string]$Base = '1.21.1-fabric-dev', [switch]$WithTts, [string]$SourceWorld = '')
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'ParallelPrism.psm1') -Force
 $repo = Split-Path -Parent $PSScriptRoot
@@ -36,10 +36,15 @@ try {
 
   $jvm = "-Dmobtalk.selftest=$world"
   if ($Only) { $jvm = "$jvm -Dmobtalk.selftest.only=$Only" }
-  New-TestInstance -Base $Base -Name $name -JvmArgs $jvm -World 'stream 1' -WorldName $world -WhisperPort $port | Out-Null
+  # Paid TTS stays off unless -WithTts: replies get a tone of the same length; Whisper phrases are voiced once and cached.
+  if (-not $WithTts) { $jvm = "$jvm -Dmobtalk.selftest.notts=true" }
+  # The base's copy of "stream 1" (the pack keeps a renamed copy).
+  if (-not $SourceWorld) { $SourceWorld = @(Get-ChildItem "$env:APPDATA\PrismLauncher\instances\$Base\minecraft\saves" -Directory | Where-Object Name -like 'stream 1*' | Sort-Object Name | ForEach-Object Name)[0] }
+  New-TestInstance -Base $Base -Name $name -JvmArgs $jvm -World $SourceWorld -WorldName $world -WhisperPort $port | Out-Null
   Get-ChildItem "$mc\mods\mobtalk-*.jar" | Remove-Item -Force
   Copy-Item $jar.FullName "$mc\mods\"
   Say "mod: $($jar.Name) $($jar.LastWriteTime)"
+  $env:PYTHONIOENCODING = 'utf-8'
   python -I (Join-Path $PSScriptRoot 'rename_level.py') "$mc\saves\$world\level.dat" $world | ForEach-Object { Say $_ }
 
   Say 'launch'
@@ -49,6 +54,7 @@ try {
     $deadline = (Get-Date).AddMinutes(30); $nextShot = (Get-Date).AddSeconds($ShotEverySeconds); $i = 0
     while (Get-Process -Id $game.ProcessId -ErrorAction SilentlyContinue) {
       if ((Get-Date) -gt $deadline) { Say 'timeout: killing this copy''s javaw'; Stop-Process -Id $game.ProcessId -Force; break }
+      $stall = Get-TestGameStall $name; if ($stall) { Say "watchdog: $stall; killing this copy's javaw"; Save-GameWindowShot $name "$scratch\window-stuck.png" | Out-Null; Stop-Process -Id $game.ProcessId -Force; break }
       Start-Sleep -Seconds 10; $i++
       if ($ShotEverySeconds -gt 0 -and (Get-Date) -gt $nextShot) {
         Save-GameWindowShot $name "$scratch\window-$(Get-Date -Format HHmmss).png" | Out-Null; $nextShot = (Get-Date).AddSeconds($ShotEverySeconds)
