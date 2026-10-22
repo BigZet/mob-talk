@@ -74,6 +74,7 @@ public final class AdminLink {
                 MobTalkMod.LOGGER.info("Админка: источник настроек «{}» подключён", id);
             } catch (Throwable failure) { MobTalkMod.LOGGER.warn("Админка: источник «{}» не подключён ({})", id, failure.toString()); }
         }
+        game.sources(started.sources());
         AdminCommands.setWebAddress(() -> { AdminWeb current = web; return current == null ? "" : String.join("  ", current.describe()); });
         if (dialogue != null) dialogue.setJournal(new JournalAdapter(started.journal()));
         if (sampler == null) sampler = MapSampler.register(started.map());
@@ -99,6 +100,7 @@ public final class AdminLink {
         AdminWeb admin = web;
         web = null; view = null; current = null;
         runs.clear();
+        game.sources(started.sources());
         AdminCommands.setWebAddress(() -> "");
         if (admin != null) admin.stop();
     }
