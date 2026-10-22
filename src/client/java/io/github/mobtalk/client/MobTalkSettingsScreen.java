@@ -157,6 +157,8 @@ final class MobTalkSettingsScreen extends Screen {
         field.setPlaceholder(Text.translatable("mobtalk.settings.find").formatted(Formatting.DARK_GRAY));
         field.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.find.tooltip")));
         field.setChangedListener(value -> {
+            // Restoring the caret below notifies the new field with the same text: only a real edit rebuilds, or the rebuilds never end.
+            if (value.equals(find)) return;
             boolean was = searching(); find = value;
             if (!was && !searching()) return;
             int cursor = field.getCursor(); clearAndInit();

@@ -18,6 +18,7 @@ import net.minecraft.client.gui.screen.GameMenuScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.gui.widget.PressableWidget;
+import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.option.Perspective;
 import net.minecraft.client.util.ScreenshotRecorder;
@@ -135,9 +136,9 @@ final class SelfTestPack {
                 test.await("hub open", 5, () -> client.currentScreen instanceof ModHubScreen, () -> {
                     Screen hub = client.currentScreen;
                     test.log("hub buttons: " + labels(hub));
-                    shot("mobtalk-pack-hub.png", () -> openFromHub(hub, "Mob Talk", "MobTalkSettingsScreen", "mobtalk-pack-f7.png",
-                            () -> openFromHub(hub, "Божественный блок", "DivineSettingsScreen", "mobtalk-pack-f9.png",
-                                    () -> openFromHub(hub, "Попугаи", "", "mobtalk-pack-parrots.png", this::whisper))));
+                    shot("mobtalk-pack-hub.png", () -> openFromHub(hub, "Mob Talk", "MobTalkSettingsScreen", "mobtalk-pack-f7.png", F7_TABS, true,
+                            () -> openFromHub(hub, "Божественный блок", "DivineSettingsScreen", "mobtalk-pack-f9.png", F9_PAGES, false,
+                                    () -> openFromHub(hub, "Попугаи", "", "mobtalk-pack-parrots.png", List.of(), false, this::whisper))));
                 });
             });
         });
@@ -145,7 +146,7 @@ final class SelfTestPack {
 
     /** Presses the hub button starting with {@code label}; expects a screen whose class name contains {@code screenClass}
      * (empty: any screen), screenshots it and returns to the game. */
-    private void openFromHub(Screen hub, String label, String screenClass, String file, Runnable then) {
+    private void openFromHub(Screen hub, String label, String screenClass, String file, List<String[]> pages, boolean search, Runnable then) {
         var client = test.owner.client;
         if (!labels(hub).stream().anyMatch(text -> text.startsWith(label))) { test.log("hub has no " + label + " button"); then.run(); return; }
         client.setScreen(hub);
@@ -154,8 +155,49 @@ final class SelfTestPack {
             test.await(label + " screen open", 6, () -> client.currentScreen != null && !(client.currentScreen instanceof ModHubScreen)
                     && (screenClass.isEmpty() || client.currentScreen.getClass().getSimpleName().contains(screenClass)), () -> {
                 test.check(client.currentScreen != null, label + " opened " + (client.currentScreen == null ? "nothing" : client.currentScreen.getClass().getSimpleName()));
-                shot(file, () -> { client.setScreen(null); test.await("pause: back in game", 1, () -> false, then); });
+                Screen opened = client.currentScreen;
+                Runnable done = () -> { client.setScreen(null); test.await("pause: back in game", 1, () -> false, then); };
+                shot(file, () -> pages(opened, pages, 0, search ? () -> search(opened, done) : done));
             });
+        });
+    }
+
+    /** Tabs of F7 and pages of F9 photographed too: {button label, file}. */
+    private static final List<String[]> F7_TABS = List.of(new String[] {"Голос", "mobtalk-pack-f7-voice.png"}, new String[] {"Модель", "mobtalk-pack-f7-model.png"},
+            new String[] {"Социум", "mobtalk-pack-f7-social.png"}, new String[] {"Виды мобов", "mobtalk-pack-f7-species.png"},
+            new String[] {"Выбранный моб", "mobtalk-pack-f7-mob.png"}, new String[] {"Общее", "mobtalk-pack-f7-general.png"});
+    private static final List<String[]> F9_PAGES = List.of(new String[] {"Голос и микрофон", "mobtalk-pack-f9-voice.png"},
+            new String[] {"Кары", "mobtalk-pack-f9-wrath.png"}, new String[] {"Боссы", "mobtalk-pack-f9-bosses.png"});
+
+    /** Presses each page's button on {@code root} (a tab of the same screen or a sub-screen), photographs it and returns to {@code root}. */
+    private void pages(Screen root, List<String[]> pages, int index, Runnable then) {
+        var client = test.owner.client;
+        if (index >= pages.size()) { then.run(); return; }
+        String[] page = pages.get(index);
+        if (client.currentScreen != root) client.setScreen(root);
+        test.await("pause: " + page[0], 1, () -> false, () -> {
+            if (labels(client.currentScreen).stream().noneMatch(text -> text.startsWith(page[0]))) { test.log("no page " + page[0]); pages(root, pages, index + 1, then); return; }
+            press(client.currentScreen, page[0]);
+            test.await("pause: " + page[0] + " drawn", 2, () -> false, () -> {
+                test.log(page[0] + " page: " + (client.currentScreen == null ? "none" : client.currentScreen.getClass().getSimpleName()));
+                shot(page[1], () -> pages(root, pages, index + 1, then));
+            });
+        });
+    }
+
+    /** Types a word into F7's search over all settings and photographs the matches. */
+    private void search(Screen root, Runnable then) {
+        var client = test.owner.client;
+        if (client.currentScreen != root) client.setScreen(root);
+        test.await("pause: search field", 1, () -> false, () -> {
+            for (ClickableWidget widget : Screens.getButtons(client.currentScreen))
+                if (widget instanceof TextFieldWidget field && widget.getMessage().getString().startsWith("Поиск по всем")) {
+                    field.setText("звук");
+                    test.await("pause: search results", 2, () -> false, () -> shot("mobtalk-pack-f7-search.png", then));
+                    return;
+                }
+            test.log("no search field on " + client.currentScreen.getClass().getSimpleName());
+            then.run();
         });
     }
 
