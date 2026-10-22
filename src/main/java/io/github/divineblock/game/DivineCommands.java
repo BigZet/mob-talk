@@ -29,6 +29,25 @@ public final class DivineCommands {
                     context.getSource().sendFeedback(() -> Text.literal(out.toString().strip()), false);
                     return 1;
                 }))
+                // Who is on the stream: the god knows it (one streamer per server), without special favour or wrath.
+                .then(CommandManager.literal("streamer")
+                        .executes(context -> {
+                            String name = Multiplayer.streamerName(context.getSource().getServer());
+                            context.getSource().sendFeedback(() -> Text.literal(name.isEmpty() ? "Стример не назначен" : "Стример: " + name), false);
+                            return 1;
+                        })
+                        .then(CommandManager.literal("clear").executes(context -> {
+                            Multiplayer.streamer(context.getSource().getServer(), null, null);
+                            context.getSource().sendFeedback(() -> Text.literal("Стример снят"), true);
+                            return 1;
+                        }))
+                        .then(CommandManager.argument("name", StringArgumentType.word())
+                                .suggests((context, builder) -> {
+                                    for (String name : context.getSource().getServer().getPlayerNames())
+                                        if (name.toLowerCase(Locale.ROOT).startsWith(builder.getRemainingLowerCase())) builder.suggest(name);
+                                    return builder.buildFuture();
+                                })
+                                .executes(context -> streamer(context.getSource(), StringArgumentType.getString(context, "name")))))
                 // The way back from the eternal ban, for an operator (or in single player with cheats, from a copy of the world).
                 .then(CommandManager.literal("unban")
                         .executes(context -> unban(context.getSource(), null))
@@ -67,6 +86,14 @@ public final class DivineCommands {
                                         .then(CommandManager.argument("severity", IntegerArgumentType.integer(1, 5))
                                                 .executes(context -> act(context.getSource(), StringArgumentType.getString(context, "id"),
                                                         IntegerArgumentType.getInteger(context, "power"), IntegerArgumentType.getInteger(context, "severity")))))))));
+    }
+
+    private static int streamer(ServerCommandSource source, String name) {
+        var profile = Multiplayer.profile(source.getServer(), name);
+        if (profile.isEmpty()) { source.sendError(Text.literal("Игрок " + name + " не найден: он должен хоть раз зайти на сервер")); return 0; }
+        Multiplayer.streamer(source.getServer(), profile.get().getId(), profile.get().getName());
+        source.sendFeedback(() -> Text.literal("Стример: " + profile.get().getName()), true);
+        return 1;
     }
 
     private static int unban(ServerCommandSource source, String name) {

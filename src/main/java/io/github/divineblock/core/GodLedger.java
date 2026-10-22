@@ -53,6 +53,8 @@ public final class GodLedger {
     }
 
     public Map<String, Soul> souls = new HashMap<>();
+    /** Punishments that waited for a mortal who left before the god's last word (see {@link DeferredWrath}). */
+    public DeferredWrath deferred = new DeferredWrath();
 
     public Soul soul(java.util.UUID player) { return souls.computeIfAbsent(player.toString(), id -> new Soul()); }
 
@@ -63,6 +65,7 @@ public final class GodLedger {
             GodLedger ledger = json == null || json.isBlank() ? null : GSON.fromJson(json, GodLedger.class);
             if (ledger == null) return new GodLedger();
             if (ledger.souls == null) ledger.souls = new HashMap<>();
+            if (ledger.deferred == null || ledger.deferred.waiting == null) ledger.deferred = new DeferredWrath();
             return ledger;
         } catch (RuntimeException broken) { return new GodLedger(); }
     }

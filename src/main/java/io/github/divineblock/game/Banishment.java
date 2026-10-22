@@ -89,6 +89,7 @@ public final class Banishment {
                 server.getPlayerManager().getUserBanList().remove(profile);
             }
             DivineBlockMod.LOG.info("Божественный блок: изгнание {} снято ({})", ban.name, why);
+            Multiplayer.journal(io.github.divineblock.core.GodJournal.Kind.BAN, ban.name, "изгнание снято: " + why);
         }
         if (lifted > 0) state.markDirty();
         // The file is a one-time key: once used, it is gone, so the next ban is real again.
@@ -160,7 +161,9 @@ public final class Banishment {
     }
 
     private static void castOut(MinecraftServer server, ServerPlayerEntity player, Ban ban) {
-        if (player.isRemoved()) return;
+        // On a server the sentence holds even if the mortal logs out or dies while it is read: the ban falls on his UUID, and
+        // whoever plays under it now is thrown out.
+        ServerPlayerEntity online = server.getPlayerManager().getPlayer(player.getUuid());
         ban.at = System.currentTimeMillis();
         DivineState state = DivineState.of(server);
         state.banned.put(player.getUuidAsString(), ban);
@@ -169,8 +172,9 @@ public final class Banishment {
         if (server.isDedicated())
             server.getPlayerManager().getUserBanList().add(new BannedPlayerEntry(player.getGameProfile(), null, "Божественный блок", null, ban.reason));
         DivineBlockMod.LOG.info("Божественный блок: {} изгнан навеки (копия мира: {})", ban.name, ban.backup.isEmpty() ? "нет" : ban.backup);
+        Multiplayer.journal(io.github.divineblock.core.GodJournal.Kind.BAN, ban.name, "изгнан навеки: " + ban.reason);
         Prayers.performed.accept("eternal_ban");
-        player.networkHandler.disconnect(sentence);
+        if (online != null) online.networkHandler.disconnect(sentence);
     }
 
     /** The screen the mortal is thrown out to. */

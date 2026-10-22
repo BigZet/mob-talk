@@ -44,6 +44,10 @@ public final class Verdict {
     /** Kept for verdicts saved before the god stopped giving second chances; always false now. */
     public boolean forgiven;
     public long day;
+    /** The streamer of this server by name ("" when none is set) and whether he is the one praying: the god knows who is
+     * on the stream, without any special favour or wrath for it. */
+    public String streamer = "";
+    public boolean byStreamer;
 
     /** The acts the god used on this mortal lately (newest last), so he does not repeat himself; not saved. */
     public transient List<String> recentActs = List.of();

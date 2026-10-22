@@ -144,6 +144,8 @@ public final class Prayers {
                 storm, world.getMoonPhase(), danger, judgement.insult(),
                 righteousness.memories.stream().filter(m -> m.deed == Righteousness.Deed.BLASPHEMY && day - m.day <= 3).mapToInt(m -> m.count).sum());
         Verdict verdict = VerdictBuilder.build(context, config);
+        Multiplayer.stamp(server, player, verdict);
+        Multiplayer.journal(io.github.divineblock.core.GodJournal.Kind.PRAYER, player.getName().getString(), text);
         // Punishments in a row climb the ladder; sincere repentance under them (or under a lingering curse) is forgiven.
         int streak = soul.wrathStreak(day);
         VerdictBuilder.forgiveBurden(verdict, tone.repents(), streak > 0 || !Curses.of(server, player.getUuid()).isEmpty());
@@ -191,7 +193,11 @@ public final class Prayers {
 
     /** Back on the game thread: the player must still be here. The god speaks first; the act falls when his voice ends. */
     private static void deliver(ServerPlayerEntity player, BlockPos altar, ServerWorld world, Verdict verdict, DivineConfig config) {
+        if (Multiplayer.left(player)) { Multiplayer.heldBack(player, world, altar, verdict); return; }
         if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) return;
+        List<Verdict.Reason> why = verdict.mainReasons(1);
+        Multiplayer.journal(io.github.divineblock.core.GodJournal.Kind.VERDICT, player.getName().getString(), verdict.chosen().kind.label + " «"
+                + verdict.chosen().id() + "», сила " + verdict.power + (why.isEmpty() ? "" : ": " + why.get(0).text()));
         MinecraftServer server = world.getServer();
         DivineState.of(server).ledger.soul(player.getUuid()).remember(verdict);
         DivineState.of(server).markDirty();
@@ -213,6 +219,8 @@ public final class Prayers {
                 ServerPlayNetworking.send(player, new BeamsPayload(altar, 20 * 90, color, music, sky));
         }, () -> {
             if (ServerPlayNetworking.canSend(player, BeamsPayload.ID)) ServerPlayNetworking.send(player, new BeamsPayload(altar, 0, color, music, sky));
+            // Logged out while the god spoke: the punishment waits for him; death or another world still cancels it.
+            if (Multiplayer.left(player)) { Multiplayer.heldBack(player, world, altar, verdict); return; }
             if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) return;
             Miracles.flourish(player, altar, verdict.chosen().kind, verdict.power);
             if (verdict.warned) {
@@ -222,6 +230,18 @@ public final class Prayers {
             }
             act(player, altar, verdict, config);
         });
+    }
+
+    /** A sinner who logged out before his punishment fell is back: the god names it and it falls at once, without a second
+     * speech (the first was already said). */
+    static void strikeReturned(ServerPlayerEntity player, BlockPos altar, Verdict verdict) {
+        DivineConfig config = DivineBlockMod.config();
+        chat(player, "Ты бежал от суда, но суд дождался тебя.");
+        List<Verdict.Reason> main = verdict.mainReasons(1);
+        title(player, Text.literal("Гнев небес").formatted(Formatting.DARK_RED),
+                Text.literal(main.isEmpty() ? "Мене, мене, текел, упарсин" : main.get(0).text()).formatted(Formatting.RED));
+        Miracles.flourish(player, altar, verdict.chosen().kind, verdict.power);
+        act(player, altar, verdict, config);
     }
 
     static int beamColor(Miracle.Kind kind) {
@@ -294,6 +314,7 @@ public final class Prayers {
         }
         hint(player, "✦ " + done);
         performed.accept(miracle.id());
+        Multiplayer.journal(io.github.divineblock.core.GodJournal.Kind.MIRACLE, player.getName().getString(), miracle.id() + ": " + done);
         if (fell && miracle.kind == Miracle.Kind.WRATH && miracle != Miracle.ETERNAL_BAN) {
             MinecraftServer server = player.getServer();
             DivineState.of(server).ledger.soul(player.getUuid()).punished(DeedWatcher.day(server));

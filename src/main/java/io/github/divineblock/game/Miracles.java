@@ -411,10 +411,13 @@ public final class Miracles {
 
     private static String safeHome(ServerWorld world, ServerPlayerEntity player) {
         var server = world.getServer();
-        BlockPos spawn = player.getSpawnPointPosition();
-        ServerWorld target = spawn == null ? null : server.getWorld(player.getSpawnPointDimension());
-        if (target == null) { target = server.getOverworld(); spawn = target.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, target.getSpawnPos()); }
-        else spawn = spawn.up();
+        // The asker's own respawn point, never another mortal's: on a server each one goes to his own home.
+        BlockPos own = player.getSpawnPointPosition();
+        ServerWorld overworld = server.getOverworld();
+        var home = io.github.divineblock.core.MiracleScope.home(own, own == null ? null : server.getWorld(player.getSpawnPointDimension()), overworld,
+                overworld.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, overworld.getSpawnPos()));
+        ServerWorld target = home.world();
+        BlockPos spawn = home.own() ? home.pos().up() : home.pos();
         player.teleport(target, spawn.getX() + 0.5, spawn.getY() + 0.1, spawn.getZ() + 0.5, player.getYaw(), player.getPitch());
         burst(target, spawn, ParticleTypes.PORTAL, 60);
         sound(target, spawn, SoundEvents.ENTITY_ENDERMAN_TELEPORT, 1f, 0.8f);

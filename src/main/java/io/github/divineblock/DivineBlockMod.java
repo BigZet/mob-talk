@@ -27,8 +27,8 @@ import net.minecraft.util.Rarity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Registers the altar, the prayer packet and the god's watchers. The mod runs in single player: the altar and the acts live
- * on the integrated server, the screens on the client. */
+/** Registers the altar, the prayer packet and the god's watchers. The altar and the acts live on the server (the integrated
+ * one in single player, or a dedicated one), the screens on the client. */
 public final class DivineBlockMod implements ModInitializer {
     public static final String ID = "divineblock";
     public static final Logger LOG = LoggerFactory.getLogger("divineblock");
@@ -50,6 +50,8 @@ public final class DivineBlockMod implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(io.github.divineblock.game.FxPayload.ID, io.github.divineblock.game.FxPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(io.github.divineblock.game.CursePayload.ID, io.github.divineblock.game.CursePayload.CODEC);
         PayloadTypeRegistry.playC2S().register(io.github.divineblock.game.VoiceStartPayload.ID, io.github.divineblock.game.VoiceStartPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(io.github.divineblock.game.SettingsPayload.ID, io.github.divineblock.game.SettingsPayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(io.github.divineblock.game.SettingsPatchPayload.ID, io.github.divineblock.game.SettingsPatchPayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(io.github.divineblock.game.VoiceStartPayload.ID,
                 (payload, context) -> Prayers.voiceStarted(context.player(), payload.id(), payload.seconds()));
         ServerPlayNetworking.registerGlobalReceiver(PrayPayload.ID, (payload, context) -> {
@@ -69,9 +71,20 @@ public final class DivineBlockMod implements ModInitializer {
 
     public static DivineConfig config() {
         DivineConfig current = config;
-        if (current == null) { current = DivineConfig.load(configFile()); config = current; ChurchWorldgen.apply(current); }
+        if (current == null) { current = loaded(); config = current; ChurchWorldgen.apply(current); }
         return current.copy();
     }
     /** The settings screen saved a new config: the next prayer reads it. */
-    public static void reloadConfig() { DivineConfig loaded = DivineConfig.load(configFile()); config = loaded; ChurchWorldgen.apply(loaded); }
+    public static void reloadConfig() { DivineConfig loaded = loaded(); config = loaded; ChurchWorldgen.apply(loaded); }
+
+    /** The server's settings a client got from a dedicated server (null in single player and on the server itself): laid over
+     * the player's own file, so his game plays with the server's god and his own voice, microphone and effects. */
+    private static volatile String serverValues;
+    public static void serverValues(String json) { serverValues = json; reloadConfig(); }
+    public static boolean onRemoteServer() { return serverValues != null; }
+    private static DivineConfig loaded() {
+        DivineConfig own = DivineConfig.load(configFile());
+        String server = serverValues;
+        return server == null ? own : io.github.divineblock.core.DivineSettings.overlay(own, server);
+    }
 }

@@ -21,6 +21,8 @@ public final class DivineState extends PersistentState {
     public Map<String, Banishment.Ban> banned = new HashMap<>();
     /** The Sky Court's centre (x, y, z of the floor), chosen once per world; null until the god first holds court. */
     public int[] skyCourt;
+    /** The streamer of this server (UUID and name, "" when none), set by {@code /divineblock streamer} or the web admin. */
+    public String streamer = "", streamerName = "";
 
     public static DivineState of(MinecraftServer server) {
         return server.getWorld(World.OVERWORLD).getPersistentStateManager().getOrCreate(TYPE, "divineblock");
@@ -37,6 +39,8 @@ public final class DivineState extends PersistentState {
             Banishment.Book bans = GSON.fromJson(nbt.getString("banned"), Banishment.Book.class);
             if (bans != null && bans.souls != null) state.banned = bans.souls;
         } catch (RuntimeException broken) { state.banned = new HashMap<>(); }
+        state.streamer = nbt.getString("streamer");
+        state.streamerName = nbt.getString("streamerName");
         if (nbt.contains("skyCourt")) { int[] court = nbt.getIntArray("skyCourt"); if (court.length == 3) state.skyCourt = court; }
         return state;
     }
@@ -47,6 +51,8 @@ public final class DivineState extends PersistentState {
         Banishment.Book bans = new Banishment.Book();
         bans.souls = banned;
         nbt.putString("banned", GSON.toJson(bans));
+        nbt.putString("streamer", streamer);
+        nbt.putString("streamerName", streamerName);
         if (skyCourt != null) nbt.putIntArray("skyCourt", skyCourt);
         return nbt;
     }
