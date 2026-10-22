@@ -96,7 +96,9 @@ public final class ChurchStructure extends Structure {
         float roll = context.random().nextFloat();
         ChurchBuilder.Variant chance = roll < 1 / 3f ? ChurchBuilder.Variant.SLAVIC
                 : (roll - 1 / 3f) * 1.5f < (north ? 0.7f : 0.25f) ? ChurchBuilder.Variant.WOOD : ChurchBuilder.Variant.STONE;
-        ChurchBuilder.Variant variant = forceVariant != null ? forceVariant : FORCED != null ? FORCED : chance;
+        ChurchBuilder.Variant chosen = ChurchBuilder.Variant.of(io.github.divineblock.DivineBlockMod.config().churchVariant);
+        ChurchBuilder.Variant variant = forceVariant != null ? forceVariant : FORCED != null ? FORCED
+                : !io.github.divineblock.DivineBlockMod.config().churchVariant.isEmpty() && chosen != null ? chosen : chance;
         long seed = context.random().nextLong();
         // The churchyard was started at the ground by its entrance; its gate belongs one under the church floor.
         int lift = floor - 1 - groundAtEntrance;

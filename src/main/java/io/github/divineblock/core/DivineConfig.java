@@ -88,6 +88,8 @@ public final class DivineConfig {
     public boolean churches = true;
     /** How rare churches are: one per this many chunks square at most, 32..256 (the vanilla village is 34). */
     public int churchSpacing = 64;
+    /** Which church new chunks get: "" mixes all three, else STONE, WOOD or SLAVIC (KAIZEN87's) only — to compare them. */
+    public String churchVariant = "";
     public boolean debug = false;
     /** Sacred bosses ({@code io.github.divineblock.boss}): ids switched off (a buffed vanilla mob comes instead), strength in
      * percent (50..300) and whether their ultimates may break glass, put out lights and set fires. */
@@ -131,6 +133,7 @@ public final class DivineConfig {
         if (disabledBosses == null) disabledBosses = new ArrayList<>();
         bossDifficulty = clamp(bossDifficulty, 50, 300);
         churchSpacing = clamp(churchSpacing, 32, 256);
+        if (churchVariant == null || !java.util.List.of("", "STONE", "WOOD", "SLAVIC").contains(churchVariant)) churchVariant = "";
         comboActs = clamp(comboActs, 0, 2);
         curseDays = clamp(curseDays, 1, 7);
         voiceEffects(voiceEffects());
