@@ -1,6 +1,6 @@
 package io.github.mobtalk.client;
 
-import io.github.mobtalk.client.game.WeddingItems;
+import io.github.mobtalk.game.WeddingItems;
 import io.github.mobtalk.client.human.HumanLook;
 import io.github.mobtalk.client.human.HumanLooks;
 import io.github.mobtalk.client.human.HumanTextures;

@@ -1,6 +1,8 @@
 package io.github.mobtalk.client.game;
 
 import com.google.gson.Gson;
+import io.github.mobtalk.game.PlaceCapture;
+import io.github.mobtalk.game.StructureCapture;
 import io.github.mobtalk.core.place.BlockFamily;
 import io.github.mobtalk.core.place.Material;
 import io.github.mobtalk.core.place.Trees;

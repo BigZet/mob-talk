@@ -1,6 +1,6 @@
 package io.github.mobtalk.client;
 
-import io.github.mobtalk.client.game.MobGameBridge;
+import io.github.mobtalk.game.MobGameBridge;
 import io.github.mobtalk.core.CombatRules;
 import io.github.mobtalk.core.MobCard;
 import io.github.mobtalk.core.Gender;
