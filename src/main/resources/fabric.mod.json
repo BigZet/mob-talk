@@ -9,8 +9,7 @@
   "environment": "*",
   "entrypoints": {
     "main": ["io.github.mobtalk.MobTalkMod"],
-    "client": ["io.github.mobtalk.client.MobTalkClient"],
-    "mobtalk-admin": ["io.github.mobtalk.server.MobTalkAdminSource"]
+    "client": ["io.github.mobtalk.client.MobTalkClient"]
   },
   "mixins": [
     "mobtalk.mixins.json",
