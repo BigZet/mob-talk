@@ -138,7 +138,8 @@ final class SelfTestPack {
                     test.log("hub buttons: " + labels(hub));
                     shot("mobtalk-pack-hub.png", () -> openFromHub(hub, "Mob Talk", "MobTalkSettingsScreen", "mobtalk-pack-f7.png", F7_TABS, true,
                             () -> openFromHub(hub, "Божественный блок", "DivineSettingsScreen", "mobtalk-pack-f9.png", F9_PAGES, false,
-                                    () -> openFromHub(hub, "Попугаи", "", "mobtalk-pack-parrots.png", List.of(), false, this::whisper))));
+                                    () -> openFromHub(hub, "Борщевик", "HogweedSettingsScreen", "mobtalk-pack-hogweed.png", List.of(), false,
+                                            () -> openFromHub(hub, "Попугаи", "", "mobtalk-pack-parrots.png", List.of(), false, this::whisper)))));
                 });
             });
         });
@@ -149,6 +150,8 @@ final class SelfTestPack {
     private void openFromHub(Screen hub, String label, String screenClass, String file, List<String[]> pages, boolean search, Runnable then) {
         var client = test.owner.client;
         if (!labels(hub).stream().anyMatch(text -> text.startsWith(label))) { test.log("hub has no " + label + " button"); then.run(); return; }
+        // An older Rusflora has no screen: its button would open the settings file in the system editor.
+        if (label.equals("Борщевик") && !ModHubScreen.exists(ModHubScreen.HOGWEED_SCREEN)) { test.log("Rusflora has no settings screen here"); then.run(); return; }
         client.setScreen(hub);
         test.await("pause: hub again", 1, () -> false, () -> {
             press(client.currentScreen, label);
@@ -192,7 +195,7 @@ final class SelfTestPack {
         test.await("pause: search field", 1, () -> false, () -> {
             for (ClickableWidget widget : Screens.getButtons(client.currentScreen))
                 if (widget instanceof TextFieldWidget field && widget.getMessage().getString().startsWith("Поиск по всем")) {
-                    field.setText("звук");
+                    field.setText("голос");
                     test.await("pause: search results", 2, () -> false, () -> shot("mobtalk-pack-f7-search.png", then));
                     return;
                 }

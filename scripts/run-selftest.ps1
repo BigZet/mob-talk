@@ -45,7 +45,8 @@ try {
   Get-ChildItem "$mc\mods\mobtalk-*.jar" | Remove-Item -Force
   Copy-Item $jar.FullName "$mc\mods\"
   Say "mod: $($jar.Name) $($jar.LastWriteTime)"
-  foreach ($extra in $ModJars) {
+  # powershell -File passes "a.jar,b.jar" as one string.
+  foreach ($extra in @($ModJars | ForEach-Object { $_ -split ',' } | Where-Object { $_ })) {
     $file = Get-Item $extra; $prefix = ($file.Name -split '-')[0]
     Get-ChildItem "$mc\mods\$prefix-*.jar" | Remove-Item -Force
     Copy-Item $file.FullName "$mc\mods\"
