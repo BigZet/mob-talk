@@ -86,6 +86,11 @@ foreach ($name in @('mobtalk.json', 'divineblock.json', 'ctov.json', 'lithostitc
     Copy-Item -LiteralPath $from $to
 }
 if (-not (Test-Path -LiteralPath "$Out\config\mobtalk-server.json")) { Write-Utf8Text "$Out\config\mobtalk-server.json" "{}`n" }
+# In Docker the admin must listen on all interfaces of the container; the host publishes 8787 on loopback only.
+# Written once without a password hash: the admin generates the password on its first start.
+if ($Docker -and -not (Test-Path -LiteralPath "$Out\config\mobtalk-admin.json")) {
+    Write-Utf8Text "$Out\config\mobtalk-admin.json" "{`"bind`": `"0.0.0.0`", `"port`": 8787}`n"
+}
 
 Write-Utf8Lines "$Out\server-manifest.txt" $manifest
 $manifest | ForEach-Object { Say $_ }

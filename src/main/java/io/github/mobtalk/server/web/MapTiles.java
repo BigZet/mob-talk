@@ -181,7 +181,11 @@ public final class MapTiles {
         cache.put(key, image);
         if (cache.size() > CACHE) {
             var oldest = cache.keySet().iterator();
-            while (cache.size() > CACHE && oldest.hasNext()) if (!unsaved.contains(oldest.next())) oldest.remove();
+            // Never the tile just asked for: with every other one unsaved it would be the only candidate, and its paint would be lost.
+            while (cache.size() > CACHE && oldest.hasNext()) {
+                Key candidate = oldest.next();
+                if (!candidate.equals(key) && !unsaved.contains(candidate)) oldest.remove();
+            }
         }
         return image;
     }

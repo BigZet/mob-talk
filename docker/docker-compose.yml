@@ -27,14 +27,12 @@ services:
       SIMULATION_DISTANCE: "6"
       SPAWN_PROTECTION: "0"
       MOTD: "Mob Talk: деревня, которая отвечает"
-      # Lets docker/backup.sh and `docker exec mobtalk-mc mc-send-to-console ...` reach the console without RCON.
+      # Lets docker/backup.sh and `docker exec --user 1000 mobtalk-mc mc-send-to-console ...` reach the console without RCON.
       CREATE_CONSOLE_IN_PIPE: "true"
       # Mods come only from ./data/mods (build-server-pack.ps1 -Docker); the image downloads nothing else.
       REMOVE_OLD_MODS: "false"
-      # The web admin listens inside the container on all interfaces; the host publishes it on loopback only (below),
-      # so from outside it is reached through an SSH tunnel.
-      MOBTALK_ADMIN_BIND: 0.0.0.0
-      MOBTALK_ADMIN_PORT: "8787"
+    # The web admin listens on all interfaces inside the container (data/config/mobtalk-admin.json, written by
+    # build-server-pack.ps1 -Docker); the host publishes it on loopback only, reached from outside through an SSH tunnel.
     ports:
       - "25565:25565"
       - "127.0.0.1:8787:8787"

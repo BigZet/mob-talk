@@ -94,6 +94,18 @@ Describe 'build-server-pack.ps1' {
         Test-Path "$out2\mods\divineblock-0.1.0.jar" | Should Be $true
     }
 
+    It 'opens the admin to the container on -Docker only, without a password hash' {
+        Test-Path "$out\config\mobtalk-admin.json" | Should Be $false
+        $out3 = Join-Path $TestDrive 'docker-data'
+        & $build -FromPack fake-pack -Instances $inst -ConfigFrom fake-pack -Out $out3 -Pins $pins -Cache $cache -Docker *> $null
+        $admin = [IO.File]::ReadAllText("$out3\config\mobtalk-admin.json") | ConvertFrom-Json
+        $admin.bind | Should Be '0.0.0.0'
+        $admin.port | Should Be 8787
+        $admin.PSObject.Properties.Name -contains 'passwordHash' | Should Be $false
+        Get-Prop $out3 'online-mode' | Should Be 'true'
+        Test-Path "$out3\eula.txt" | Should Be $false
+    }
+
     It 'refuses while the server holds its world lock' {
         $lock = [IO.File]::Open("$out\world\session.lock", 'OpenOrCreate', 'ReadWrite', 'None')
         try { { & $build -FromPack fake-pack -Instances $inst -Out $out -Pins $pins -Cache $cache *> $null } | Should Throw 'running' }
