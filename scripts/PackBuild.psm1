@@ -37,7 +37,7 @@ function Get-NewestJar([string]$Dir, [string]$Pattern) {
 
 # Our repos besides Mob Talk, each with its jar pattern.
 $script:OwnRepos = @(@('divine-block', 'divineblock-*.jar'), @('rusflora', 'rusflora-*.jar'), @('parrot-cages', 'parrotcages-*.jar'),
-    @('minecraft-parrot', 'viewerparrots-*.jar', '-x runGameTest'))   # its game tests need a full test server, not a jar
+    @('minecraft-parrot', 'viewerparrots-*.jar'))
 
 # Builds (unless -NoBuild) and collects every jar of the pack: Mob Talk from $Repo (this checkout), our other mods from
 # their repos' main (Viewer Parrots too), CTOV + Lithostitched, the video mods and Fabric API as original jars from Prism.
