@@ -212,8 +212,9 @@ public final class ChurchSelfTest {
         for (int x = ChurchBuilder.YARD_MIN_X; x <= ChurchBuilder.YARD_MAX_X; x += 4)
             for (int z = ChurchBuilder.YARD_MIN_Z; z <= ChurchBuilder.YARD_MAX_Z; z += 4) {
                 if (x >= ChurchBuilder.MIN_X - 1 && x <= ChurchBuilder.MAX_X + 1 && Math.abs(z) <= 14) continue;
-                // The corner towers and the Holy Gate stand a little into the yard's edge.
-                if (x < ChurchBuilder.YARD_MIN_X + 3 || x > ChurchBuilder.YARD_MAX_X - 3 || Math.abs(z) > ChurchBuilder.YARD_MAX_Z - 3) continue;
+                // The towers, the gates, the trees and the little buildings keep to a band along the wall.
+                int band = io.github.divineblock.world.ChurchYard.BAND;
+                if (x < ChurchBuilder.YARD_MIN_X + band || x > ChurchBuilder.YARD_MAX_X - band || Math.abs(z) > ChurchBuilder.YARD_MAX_Z - band) continue;
                 BlockPos p = frame.world(x, 0, z);
                 if (!world.getBlockState(p).isAir() && !world.getBlockState(p).isReplaceable()) {
                     if (yardBlocked++ < 6) log("    во дворе на (" + x + ", 0, " + z + "): " + world.getBlockState(p).getBlock());
@@ -285,6 +286,11 @@ public final class ChurchSelfTest {
         steps.add(new Step(10, () -> world.setTimeOfDay(4000)));
         shot.accept("24-cemetery", new double[] { 28, 42, 26, 28, 0, 62, 100 });
         shot.accept("25-cemetery-top", new double[] { 28, 95, 62, 28, 0, 64, 140 });
+        // The churchyard: the Holy Gate from outside, the north side with the spring and the chapel, the south side.
+        shot.accept("26-holy-gate-outside", new double[] { -52, 6, 6, -33, 10, 0, 120 });
+        shot.accept("27-yard-north", new double[] { -14, 9, -18, 30, 4, -32, 120 });
+        shot.accept("28-yard-south", new double[] { 6, 9, 18, 50, 3, 34, 120 });
+        shot.accept("29-yard-air", new double[] { -60, 45, -60, 20, 0, 0, 140 });
         // Ring the great bell once.
         steps.add(new Step(10, () -> {
             BlockPos bell = frame.world(ChurchBuilder.BELL_X, ChurchBuilder.BELL_Y, ChurchBuilder.BELL_Z);
