@@ -92,6 +92,7 @@ public final class Zones {
     static String performWithFallback(Miracle miracle, int power, ServerPlayerEntity player, BlockPos altar, String prayer, DivineConfig config, int severity,
                                       Miracle.Place place) {
         String done = safely(miracle, power, player, altar, prayer, config, severity);
+        lastPerformed = miracle;
         if (done != null) return done;
         List<Miracle> others = new ArrayList<>();
         for (MiracleGroup group : MiracleGroup.values())
@@ -99,10 +100,12 @@ public final class Zones {
         Collections.shuffle(others);
         for (Miracle other : others) {
             done = safely(other, Math.max(other.minTier, Math.min(other.maxTier, power)), player, altar, prayer, config, severity);
-            if (done != null) { DivineBlockMod.LOG.info("Божественный блок: {} здесь невозможно, вместо него {}", miracle.id(), other.id()); return done; }
+            if (done != null) { lastPerformed = other; DivineBlockMod.LOG.info("Божественный блок: {} здесь невозможно, вместо него {}", miracle.id(), other.id()); return done; }
         }
         return null;
     }
+    /** The act {@link #performWithFallback} really did (the asked one or its replacement), for the god's title. */
+    static Miracle lastPerformed;
     private static String safely(Miracle miracle, int power, ServerPlayerEntity player, BlockPos altar, String prayer, DivineConfig config, int severity) {
         try { return Miracles.perform(miracle, power, player, altar, prayer, config, severity); }
         catch (RuntimeException failure) { DivineBlockMod.LOG.warn("Божественный блок: чудо {} не удалось", miracle.id(), failure); return null; }
@@ -150,7 +153,7 @@ public final class Zones {
     /** «Изыди из храма»: a few seconds to walk out, then the god throws him out into the yard, and the act falls there. */
     static String castOut(Miracle miracle, int power, ServerPlayerEntity player, BlockPos altar, String prayer, DivineConfig config, int severity, ChurchSites.Site site) {
         ServerWorld world = player.getServerWorld();
-        title(player, Text.literal("Изыди из храма!").formatted(Formatting.DARK_RED), Text.literal("Не в доме моём свершится суд — ступай во двор").formatted(Formatting.RED));
+        title(player, Text.literal("Изыди из храма!").formatted(Formatting.DARK_RED), Text.literal("Ступай во двор — там свершится суд").formatted(Formatting.RED));
         Prayers.godChat(player, "Изыди из храма! Не оскверню дом мой кровью твоей — во дворе примешь кару.");
         Miracles.sound(world, site.naveCenter().up(10), SoundEvents.BLOCK_BELL_USE, 3f, 0.5f);
         step(miracle, power, player, altar, prayer, config, severity, site, world, 0);
@@ -207,7 +210,6 @@ public final class Zones {
             strike = world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, column);
         }
         BlockPos target = strike;
-        String what = name(miracle);
         decided.accept(miracle.id() + " → " + (home ? "дом у кровати " + bed.toShortString() : "чистое поле " + center.toShortString()));
         if (miracle == Miracle.BLIGHT) {
             String done = Miracles.perform(miracle, power, player, center, prayer, config, severity);
@@ -215,7 +217,7 @@ public final class Zones {
             title(player, Text.literal(home ? "Порча на доме твоём" : "Порча на земле").formatted(Formatting.DARK_RED),
                     Text.literal("Ступай и узри, что сталось с жилищем твоим").formatted(Formatting.RED));
             Prayers.godChat(player, home ? "Не трону храм мой — но земля у дома твоего почернеет. Ступай и узри." : "Нет у тебя дома — так почернеет земля в чистом поле. Ступай и узри.");
-            pointTo(player, center, what, 40);
+            pointTo(player, center, name(miracle), 40);
             return done + " (вдали, указан путь)";
         }
         title(player, Text.literal(home ? "Ступай в дом свой" : "Нет у тебя дома").formatted(Formatting.DARK_RED),
@@ -234,6 +236,8 @@ public final class Zones {
                 if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) return;
                 String done = performWithFallback(miracle, power, player, target, prayer, config, severity, Miracle.Place.HOME);
                 DivineBlockMod.LOG.info("Божественный блок: у дома {} — {}", miracle.id(), done);
+                if (done == null) { Prayers.godChat(player, "Но земля здесь не подалась гневу моему. Помни же, куда я мог обратить его."); return; }
+                String what = name(lastPerformed == null ? miracle : lastPerformed);
                 title(player, Text.literal("Узри гнев мой").formatted(Formatting.DARK_RED),
                         Text.literal((atHome ? "что сталось с жилищем твоим: " : "") + what).formatted(Formatting.RED));
                 Prayers.godChat(player, (atHome ? "Узри, что сталось с жилищем твоим: " : "Узри гнев мой: ") + what + ".");
@@ -266,6 +270,7 @@ public final class Zones {
             BlockPos top = world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, column);
             BlockState ground = world.getBlockState(top.down());
             if (ChurchArea.inZone(world, top) || !ground.getFluidState().isEmpty() || ground.isIn(BlockTags.LEAVES) || top.getY() <= world.getSeaLevel() - 2) continue;
+            if (attempt < 10 && !ChurchArea.openSky(world, top)) continue; // open land first, a forest clearing only if there is none
             return Vec3d.ofBottomCenter(top);
         }
         return null;

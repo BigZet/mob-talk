@@ -137,7 +137,7 @@ public final class ChurchArea {
     }
 
     /** No leaves over the spot and the eight around it, two blocks out. */
-    private static boolean openSky(ServerWorld world, BlockPos top) {
+    static boolean openSky(ServerWorld world, BlockPos top) {
         for (int dx = -2; dx <= 2; dx += 2) for (int dz = -2; dz <= 2; dz += 2) {
             BlockPos column = top.add(dx, 0, dz);
             if (world.getTopPosition(Heightmap.Type.MOTION_BLOCKING, column).getY() > world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, column).getY() + 0)
