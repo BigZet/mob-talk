@@ -1,5 +1,6 @@
 package io.github.mobtalk.client;
 
+import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import io.github.mobtalk.core.*;
 import java.util.*;
@@ -14,6 +15,7 @@ import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.*;
 import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.sound.SoundEvents;
+import io.github.mobtalk.client.settings.PanelScreen;
 import io.github.mobtalk.client.settings.TunableSlider;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Style;
@@ -47,8 +49,10 @@ final class MobTalkSettingsScreen extends Screen {
     }
     static final List<String> WHISPER_MODELS = List.of("small", "medium", "large-v2", "large-v3", "large-v3-turbo");
     private static final String[] TABS = {"general", "voice", "model", "talk", "social", "actions", "species", "mob"};
-    /** Two rows of four tabs above the list. */
-    private static final int GENERAL = 0, VOICE = 1, MODEL = 2, TALK = 3, SOCIAL = 4, ACTIONS = 5, SPECIES = 6, MOB = 7, PER_ROW = 4, ROW = 24, LIST_TOP = 70;
+    /** The tabs stand in the sidebar «Разделы»; the search (or the species pickers) sits at {@code LIST_TOP} above the list. */
+    private static final int GENERAL = 0, VOICE = 1, MODEL = 2, TALK = 3, SOCIAL = 4, ACTIONS = 5, SPECIES = 6, MOB = 7, ROW = 24, LIST_TOP = 34;
+    /** The panel palette of Viewer Parrots' control panel. */
+    private static final int GOLD = PanelScreen.GOLD, TEXT = PanelScreen.TEXT, MUTED = PanelScreen.MUTED, DIM = PanelScreen.DIM, ERROR = PanelScreen.ERROR;
     private final Screen parent;
     private final Controller controller;
     private final String originalMicrophone;
@@ -88,26 +92,34 @@ final class MobTalkSettingsScreen extends Screen {
     private List<Row> collecting;
     /** Tooltip text of a control, so the search also finds a setting by its explanation. */
     private final Map<ClickableWidget, String> tips = new IdentityHashMap<>();
+    /** The label a switch or choice gets at the left of its own row, instead of «Name: value» on the button. */
+    private final Map<ClickableWidget, Text> captions = new IdentityHashMap<>();
+    /** The settings as opened, to tell «Сохранено» from «Есть изменения». */
+    private final String initialJson;
+    private boolean changed;
+    private int ticks;
 
     MobTalkSettingsScreen(Screen parent, MobTalkConfig initial, Controller controller) {
         super(Text.translatable("mobtalk.settings.title")); this.parent = parent; this.controller = controller;
         draft = initial.copy(); originalMicrophone = initial.microphoneName == null ? "" : initial.microphoneName;
+        initialJson = new Gson().toJson(draft);
     }
 
     @Override protected void init() {
-        widgets.clear(); tips.clear(); speciesPicker = null; searchField = null; findField = null; refreshButton = null;
-        contentWidth = Math.min(460, width - 40); left = (width - contentWidth) / 2;
-        int tabWidth = (contentWidth - 4 * (PER_ROW - 1)) / PER_ROW;
+        widgets.clear(); tips.clear(); captions.clear(); speciesPicker = null; searchField = null; findField = null; refreshButton = null;
+        // The layout of Viewer Parrots' panel: sections on the left, the list on the right up to a small margin.
+        left = Math.min(157, Math.max(119, width / 4)); contentWidth = width - 13 - left;
+        int step = Math.max(17, Math.min(24, (height - 95) / TABS.length));
         for (int i = 0; i < TABS.length; i++) {
             int chosen = i;
             ButtonWidget button = addDrawableChild(ButtonWidget.builder(Text.translatable("mobtalk.settings.tab." + TABS[i]),
                     ignored -> { stopPreview(); tab = chosen; find = ""; status = Text.empty(); error = false; clearAndInit(); })
-                    .dimensions(left + i % PER_ROW * (tabWidth + 4), 22 + i / PER_ROW * 22, tabWidth, 20).build());
+                    .dimensions(8, 47 + i * step, left - 21, Math.min(20, step - 1)).build());
             button.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.tab." + TABS[i] + ".full")));
             button.active = (i != tab || searching()) && !saving;
         }
-        int top = switch (tab) { case SPECIES -> LIST_TOP + 50; case MOB -> LIST_TOP + 26; default -> LIST_TOP + 24; };
-        list = new SettingsList(top, height - 56);
+        int top = switch (tab) { case SPECIES -> LIST_TOP + 50; default -> LIST_TOP + 26; };
+        list = new SettingsList(top, height - 50);
         if (section(tab) != null) findHeader();
         if (searching()) searchAll();
         else {
@@ -118,14 +130,15 @@ final class MobTalkSettingsScreen extends Screen {
         if (!searching()) list.restore(scrolls[tab]);
         if (tab == SPECIES && noSpeciesMatches) for (ClickableWidget widget : widgets) if (widget != searchField) widget.active = false;
 
-        int footer = Math.min(150, (contentWidth - 12) / 3), footerLeft = (width - footer * 3 - 12) / 2;
-        addDrawableChild(ButtonWidget.builder(Text.translatable("mobtalk.settings.save"), ignored -> save()).dimensions(footerLeft, height - 26, footer, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.translatable("gui.cancel"), ignored -> close()).dimensions(footerLeft + footer + 6, height - 26, footer, 20).build());
+        // Bottom right, as in the parrots' panel: «Сбросить», «Сохранить», «Отмена».
+        int footer = footerWidth(), cancelX = width - 12 - footer;
+        addDrawableChild(ButtonWidget.builder(Text.translatable("gui.cancel"), ignored -> close()).dimensions(cancelX, height - 28, footer, 20).build());
+        addDrawableChild(ButtonWidget.builder(Text.translatable("mobtalk.settings.save"), ignored -> save()).dimensions(cancelX - footer - 6, height - 28, footer, 20).build());
         addDrawableChild(ButtonWidget.builder(Text.translatable("mobtalk.settings.reset"), ignored -> {
             draft = new MobTalkConfig(); dirtyCard = false; clearHistory = false; resetPersonality = false;
             if (card != null) { cardName = card.name(); cardPersonality = card.personality(); cardVoice = card.voiceId(); cardMemory = card.memory(); }
             clearAndInit(); status = Text.translatable("mobtalk.settings.reset.draft"); error = false;
-        }).dimensions(footerLeft + 2 * (footer + 6), height - 26, footer, 20).tooltip(Tooltip.of(Text.translatable("mobtalk.settings.reset.tooltip"))).build());
+        }).dimensions(cancelX - 2 * (footer + 6), height - 28, footer, 20).tooltip(Tooltip.of(Text.translatable("mobtalk.settings.reset.tooltip"))).build());
         if (saving) controls(false);
         if (!enumerated) refreshMicrophones();
         if (!keyRequested) loadKeyStatus();
@@ -157,6 +170,8 @@ final class MobTalkSettingsScreen extends Screen {
         field.setPlaceholder(Text.translatable("mobtalk.settings.find").formatted(Formatting.DARK_GRAY));
         field.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.find.tooltip")));
         field.setChangedListener(value -> {
+            // Restoring the caret below notifies the new field with the same text: only a real edit rebuilds, or the rebuilds never end.
+            if (value.equals(find)) return;
             boolean was = searching(); find = value;
             if (!was && !searching()) return;
             int cursor = field.getCursor(); clearAndInit();
@@ -232,8 +247,8 @@ final class MobTalkSettingsScreen extends Screen {
         wide(tip(toggle("mobtalk.settings.enabled", draft.enabled, value -> draft.enabled = value), "mobtalk.settings.enabled.tooltip"));
         CyclingButtonWidget<String> vision = track(CyclingButtonWidget.<String>builder(value -> Text.translatable("mobtalk.settings.vision." + value))
                 .values(io.github.mobtalk.core.Vision.MODES).initially(io.github.mobtalk.core.Vision.normalize(draft.vision))
-                .build(0, 0, 100, 20, Text.translatable("mobtalk.settings.vision"), (button, chosen) -> draft.vision = chosen));
-        vision.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.vision.tooltip")));
+                .omitKeyText().build(0, 0, 100, 20, Text.translatable("mobtalk.settings.vision"), (button, chosen) -> draft.vision = chosen));
+        caption(vision, "mobtalk.settings.vision").setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.vision.tooltip")));
         wide(vision);
         wide(tip(toggle("mobtalk.settings.stateHud", draft.showStateHud, value -> draft.showStateHud = value), "mobtalk.settings.stateHud.tooltip"),
                 tip(toggle("mobtalk.settings.bargainHud", draft.showBargainHud, value -> draft.showBargainHud = value), "mobtalk.settings.bargainHud.tooltip"));
@@ -282,8 +297,8 @@ final class MobTalkSettingsScreen extends Screen {
         header("mobtalk.settings.section.llm");
         CyclingButtonWidget<Boolean> provider = track(CyclingButtonWidget.<Boolean>builder(venice -> Text.literal(venice ? "Venice" : "OpenRouter"))
                 .values(false, true).initially(draft.usesVenice())
-                .build(0, 0, 100, 20, Text.translatable("mobtalk.settings.provider"), (button, venice) -> { draft.llmProvider = venice ? "venice" : "openrouter"; refreshOnTick = true; }));
-        provider.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.provider.tooltip")));
+                .omitKeyText().build(0, 0, 100, 20, Text.translatable("mobtalk.settings.provider"), (button, venice) -> { draft.llmProvider = venice ? "venice" : "openrouter"; refreshOnTick = true; }));
+        caption(provider, "mobtalk.settings.provider").setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.provider.tooltip")));
         ButtonWidget check = button("mobtalk.settings.connection", ignored -> withKeys(() -> operation(voiceService().connection(draft.copy()), false)));
         check.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.connection.tooltip")));
         check.active = !keyBusy;
@@ -294,16 +309,16 @@ final class MobTalkSettingsScreen extends Screen {
         if (draft.usesVenice()) note(Text.translatable("mobtalk.settings.provider.veniceModels"), 0x9A9A9A);
         CyclingButtonWidget<String> reasoning = track(CyclingButtonWidget.<String>builder(value -> Text.translatable("mobtalk.settings.reasoning." + (value.isEmpty() ? "default" : value)))
                 .values(retain(List.of("", "none", "minimal", "low", "medium", "high"), draft.reasoningEffort)).initially(draft.reasoningEffort == null ? "" : draft.reasoningEffort)
-                .build(0, 0, 100, 20, Text.translatable("mobtalk.settings.reasoning"), (button, value) -> draft.reasoningEffort = value));
-        reasoning.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.reasoning.tooltip")));
+                .omitKeyText().build(0, 0, 100, 20, Text.translatable("mobtalk.settings.reasoning"), (button, value) -> draft.reasoningEffort = value));
+        caption(reasoning, "mobtalk.settings.reasoning").setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.reasoning.tooltip")));
         wide(reasoning);
         TextFieldWidget background = field(draft.backgroundModel, 160, value -> draft.backgroundModel = value);
         background.setPlaceholder(Text.translatable("mobtalk.settings.backgroundModel.placeholder").formatted(Formatting.DARK_GRAY));
         background.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.backgroundModel.tooltip")));
         labeled("mobtalk.settings.backgroundModel", background);
         CyclingButtonWidget<Boolean> decider = track(CyclingButtonWidget.<Boolean>builder(jev -> Text.translatable(jev ? "mobtalk.settings.decider.jev" : "mobtalk.settings.decider.rules"))
-                .values(false, true).initially(draft.usesJev()).build(0, 0, 100, 20, Text.translatable("mobtalk.settings.decider"), (button, jev) -> draft.decider = jev ? "jev" : "rules"));
-        decider.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.decider.tooltip")));
+                .values(false, true).initially(draft.usesJev()).omitKeyText().build(0, 0, 100, 20, Text.translatable("mobtalk.settings.decider"), (button, jev) -> draft.decider = jev ? "jev" : "rules"));
+        caption(decider, "mobtalk.settings.decider").setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.decider.tooltip")));
         wide(decider);
         tunables(Tunables.Section.MODEL, Map.of());
 
@@ -321,8 +336,8 @@ final class MobTalkSettingsScreen extends Screen {
         header("mobtalk.settings.section.style");
         CyclingButtonWidget<Integer> rudeness = track(CyclingButtonWidget.<Integer>builder(value -> Text.translatable("mobtalk.settings.rudeness." + value))
                 .values(0, 1, 2, 3).initially(Math.max(0, Math.min(3, draft.rudeness)))
-                .build(0, 0, 100, 20, Text.translatable("mobtalk.settings.rudeness"), (button, value) -> draft.rudeness = value));
-        rudeness.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.rudeness.tooltip")));
+                .omitKeyText().build(0, 0, 100, 20, Text.translatable("mobtalk.settings.rudeness"), (button, value) -> draft.rudeness = value));
+        caption(rudeness, "mobtalk.settings.rudeness").setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.rudeness.tooltip")));
         ButtonWidget prompt = button("mobtalk.settings.commonPrompt", ignored -> edit("mobtalk.settings.commonPrompt", draft.commonPrompt, 8000, value -> draft.commonPrompt = value, ""));
         prompt.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.commonPrompt.tooltip")));
         wide(rudeness, prompt);
@@ -337,8 +352,8 @@ final class MobTalkSettingsScreen extends Screen {
                 "family", () -> {
                     CyclingButtonWidget<String> gender = track(CyclingButtonWidget.<String>builder(value -> Text.translatable("mobtalk.settings.playerGender." + value))
                             .values("any", "male", "female").initially(draft.playerGender == null ? "any" : draft.playerGender)
-                            .build(0, 0, 100, 20, Text.translatable("mobtalk.settings.playerGender"), (button, value) -> draft.playerGender = value));
-                    gender.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.playerGender.tooltip")));
+                            .omitKeyText().build(0, 0, 100, 20, Text.translatable("mobtalk.settings.playerGender"), (button, value) -> draft.playerGender = value));
+                    caption(gender, "mobtalk.settings.playerGender").setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.playerGender.tooltip")));
                     wide(tip(toggle("mobtalk.settings.socialLayer", draft.socialLayer, value -> draft.socialLayer = value), "mobtalk.settings.socialLayer.tooltip"), gender);
                     wide(tip(toggle("mobtalk.settings.familyLife", draft.familyLife, value -> draft.familyLife = value), "mobtalk.settings.familyLife.tooltip"));
                 },
@@ -505,8 +520,8 @@ final class MobTalkSettingsScreen extends Screen {
         header("mobtalk.settings.section.tts");
         CyclingButtonWidget<Boolean> tts = track(CyclingButtonWidget.<Boolean>builder(venice -> Text.literal(venice ? "Venice" : "OpenRouter"))
                 .values(false, true).initially(draft.usesVeniceSpeech())
-                .build(0, 0, 100, 20, Text.translatable("mobtalk.settings.tts"), (button, venice) -> { draft.ttsProvider = venice ? "venice" : "openrouter"; refreshOnTick = true; }));
-        tts.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.tts.tooltip")));
+                .omitKeyText().build(0, 0, 100, 20, Text.translatable("mobtalk.settings.tts"), (button, venice) -> { draft.ttsProvider = venice ? "venice" : "openrouter"; refreshOnTick = true; }));
+        caption(tts, "mobtalk.settings.tts").setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.tts.tooltip")));
         wide(tts);
         if (draft.usesVeniceSpeech()) {
             labeled("mobtalk.settings.ttsModel", field(draft.veniceTtsModel, 160, value -> draft.veniceTtsModel = value));
@@ -744,7 +759,7 @@ final class MobTalkSettingsScreen extends Screen {
     // ---- Строки списка и виджеты ----
 
     private void add(Row row) { if (collecting != null) collecting.add(row); else list.add(row); }
-    private void header(String key) { add(new Row(Text.literal(prefix + Text.translatable(key).getString()), RowKind.HEADER, 0xFFD37F, null, List.of())); }
+    private void header(String key) { add(new Row(Text.literal(prefix + Text.translatable(key).getString()), RowKind.HEADER, GOLD, null, List.of())); }
     /** A slider group's header: a click folds or unfolds it; the right side counts its numbers and those moved off their defaults. */
     private void groupHeader(Tunables.Section section, String group, boolean folded) {
         int count = 0, changed = 0;
@@ -752,25 +767,41 @@ final class MobTalkSettingsScreen extends Screen {
             count++; if (tunable.normalize(tunable.get(draft)) != tunable.defaultValue()) changed++;
         }
         String name = prefix + Text.translatable("mobtalk.settings.group." + group).getString();
-        Row row = new Row(Text.literal(collecting != null ? name : (folded ? "▶ " : "▼ ") + name), RowKind.HEADER, 0xFFD37F, null, List.of());
+        Row row = new Row(Text.literal(collecting != null ? name : (folded ? "▶ " : "▼ ") + name), RowKind.HEADER, GOLD, null, List.of());
         row.side = changed == 0 ? Text.translatable("mobtalk.settings.group.count", count) : Text.translatable("mobtalk.settings.group.changed", count, changed);
         if (collecting == null) row.group = group;
         add(row);
     }
-    private void note(Text text, int color) { add(new Row(text, RowKind.NOTE, color, null, List.of())); }
-    private void wide(ClickableWidget... controls) { add(new Row(null, RowKind.CONTROLS, 0, null, List.of(controls))); }
+    /** The old greys of the notes in the panel's blue-grey palette. */
+    private void note(Text text, int color) {
+        int shade = switch (color) { case 0x9A9A9A -> DIM; case 0xBBBBBB -> MUTED; case 0xD5D5D5 -> TEXT; case 0xFF9999 -> ERROR; default -> color; };
+        add(new Row(text, RowKind.NOTE, shade, null, List.of()));
+    }
+    /** A row of controls; a switch or choice with a caption gets its own row «caption — value», the rest share a row. */
+    private void wide(ClickableWidget... controls) {
+        List<ClickableWidget> plain = new ArrayList<>();
+        for (ClickableWidget control : controls) {
+            Text label = captions.get(control);
+            if (label == null) { plain.add(control); continue; }
+            if (!plain.isEmpty()) { add(new Row(null, RowKind.CONTROLS, 0, null, List.copyOf(plain))); plain.clear(); }
+            add(new Row(label, RowKind.CONTROLS, TEXT, null, List.of(control)));
+        }
+        if (!plain.isEmpty()) add(new Row(null, RowKind.CONTROLS, 0, null, List.copyOf(plain)));
+    }
     private void labeled(String key, ClickableWidget... controls) { labeled(key, null, controls); }
-    private void labeled(String key, int[] weights, ClickableWidget... controls) { add(new Row(Text.translatable(key), RowKind.CONTROLS, 0xD5D5D5, weights, List.of(controls))); }
+    private void labeled(String key, int[] weights, ClickableWidget... controls) { add(new Row(Text.translatable(key), RowKind.CONTROLS, TEXT, weights, List.of(controls))); }
 
     private <T extends ClickableWidget> T track(T widget) { widgets.add(widget); return widget; }
+    private <T extends ClickableWidget> T caption(T widget, String key) { captions.put(widget, Text.translatable(key)); return widget; }
     private ButtonWidget button(String key, ButtonWidget.PressAction action) { return track(ButtonWidget.builder(Text.translatable(key), action).size(100, 20).build()); }
     private CyclingButtonWidget<Boolean> toggle(String key, boolean value, Consumer<Boolean> changed) {
-        return track(CyclingButtonWidget.onOffBuilder(value).build(0, 0, 100, 20, Text.translatable(key), (button, chosen) -> changed.accept(chosen)));
+        return caption(track(CyclingButtonWidget.onOffBuilder(value).omitKeyText().build(0, 0, 100, 20, Text.translatable(key), (button, chosen) -> changed.accept(chosen))), key);
     }
     private CyclingButtonWidget<String> cycling(String key, List<String> values, String current, Consumer<String> changed) {
-        return track(CyclingButtonWidget.<String>builder(Text::literal).values(values).initially(current == null ? values.getFirst() : current)
-                .build(0, 0, 100, 20, Text.translatable(key), (button, chosen) -> changed.accept(chosen)));
+        return caption(track(CyclingButtonWidget.<String>builder(Text::literal).values(values).initially(current == null ? values.getFirst() : current).omitKeyText()
+                .build(0, 0, 100, 20, Text.translatable(key), (button, chosen) -> changed.accept(chosen))), key);
     }
+    private int footerWidth() { return Math.max(60, Math.min(100, (width - left - 30) / 3)); }
     private TextFieldWidget field(String value, int maximum, Consumer<String> changed) {
         TextFieldWidget field = track(new TextFieldWidget(textRenderer, 0, 0, 100, 20, Text.empty()));
         field.setMaxLength(Math.max(maximum, value == null ? 0 : value.length())); field.setText(value == null ? "" : value); field.setChangedListener(changed); return field;
@@ -791,33 +822,68 @@ final class MobTalkSettingsScreen extends Screen {
     @Override public void close() { if (!saving) client.setScreen(parent); }
     @Override public boolean shouldCloseOnEsc() { return !saving; }
     @Override public boolean shouldPause() { return true; }
-    @Override public void tick() { if (refreshOnTick && !saving) { refreshOnTick = false; clearAndInit(); } }
+    @Override public void tick() {
+        // «Есть изменения» is checked twice a second, not every frame: it serialises the draft.
+        if (ticks++ % 10 == 0) changed = !new Gson().toJson(draft).equals(initialJson) || dirtyCard || clearHistory || resetPersonality
+                || pendingKey.values().stream().anyMatch(key -> !key.isBlank());
+        if (refreshOnTick && !saving) { refreshOnTick = false; clearAndInit(); }
+    }
     @Override public void removed() { stopPreview(); if (openingChild) { openingChild = false; return; } disposed = true; if (voices != null) voices.close(); }
+    /** The dark backdrop and the list's panel of the parrots' control panel, under every widget. */
+    @Override public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
+        super.renderBackground(context, mouseX, mouseY, delta);
+        context.fill(0, 0, width, height, 0xDD11151C);
+        context.fill(left - 3, list.getY() - 3, left + contentWidth + 3, list.getBottom() + 3, 0xB019202A);
+    }
     @Override public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta); context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 8, 0xFFFFFF);
+        super.render(context, mouseX, mouseY, delta);
+        context.drawTextWithShadow(textRenderer, clipped(title.getString(), contentWidth), left, 14, GOLD);
+        context.drawTextWithShadow(textRenderer, Text.translatable("mobtalk.settings.sections"), 11, 32, MUTED);
         if (tab == MOB && card != null) {
-            context.drawTextWithShadow(textRenderer, clipped(cardName + " · " + SpeciesCatalog.get(card.type()).name(), contentWidth), left, LIST_TOP + 1, 0xFFFFFF);
+            context.drawTextWithShadow(textRenderer, clipped(cardName + " · " + SpeciesCatalog.get(card.type()).name(), contentWidth), left, LIST_TOP + 1, TEXT);
             context.drawTextWithShadow(textRenderer, clipped(Text.translatable("mobtalk.settings.mob.summary", card.relationship(), card.turns().size(),
-                    Text.translatable("mobtalk.action." + card.action().type().name().toLowerCase(Locale.ROOT))).getString(), contentWidth), left, LIST_TOP + 13, 0xBBBBBB);
+                    Text.translatable("mobtalk.action." + card.action().type().name().toLowerCase(Locale.ROOT))).getString(), contentWidth), left, LIST_TOP + 13, MUTED);
         }
+        // Bottom left, under the sections: whether the draft differs from what was opened.
+        int badgeWidth = Math.max(30, width - 12 - 3 * footerWidth() - 12 - 18 - 11);
+        context.drawTextWithShadow(textRenderer, textRenderer.trimToWidth(Text.translatable(saving ? "mobtalk.settings.saving" : changed ? "mobtalk.settings.badge.changed" : "mobtalk.settings.badge.saved").getString(),
+                badgeWidth), 11, height - 22, changed ? GOLD : MUTED);
         if (!status.getString().isEmpty()) {
-            context.drawCenteredTextWithShadow(textRenderer, clipped(status.getString(), contentWidth), width / 2, height - 44, error ? 0xFF9999 : 0xBBBBBB);
-            if (mouseY >= height - 47 && mouseY < height - 32) setTooltip(textRenderer.wrapLines(status, Math.min(360, width - 24)));
+            context.drawTextWithShadow(textRenderer, clipped(status.getString(), contentWidth), left, height - 42, error ? ERROR : MUTED);
+            if (mouseY >= height - 45 && mouseY < height - 32 && mouseX >= left) setTooltip(textRenderer.wrapLines(status, Math.min(360, width - 24)));
         }
     }
     static String cleanMessage(String message) { String clean = message == null ? "" : message.replace('\n', ' ').replace('\r', ' ').strip(); return clean.length() > 1000 ? clean.substring(0, 1000) : clean; }
 
     private enum RowKind { HEADER, NOTE, CONTROLS }
 
+    /** The list in the panel on the right: no vanilla backdrop or separators, a thin gold scrollbar at the panel's edge. */
     private final class SettingsList extends ElementListWidget<Row> {
-        private boolean restored;
-        SettingsList(int top, int bottom) { super(MobTalkSettingsScreen.this.client, MobTalkSettingsScreen.this.width, Math.max(ROW, bottom - top), top, ROW); }
+        private boolean restored, drawing;
+        SettingsList(int top, int bottom) {
+            // Eight pixels wider on the left, so the centred rows start at the panel's padding and end before the scrollbar.
+            super(MobTalkSettingsScreen.this.client, contentWidth + 8, Math.max(ROW, bottom - top), top, ROW);
+            setX(left - 8);
+        }
         void add(Row row) { addEntry(row); }
         /** Rebuilding after an edit, a child screen, or an async refresh keeps the reader's place. */
         void restore(double amount) { setScrollAmount(amount); restored = true; }
         @Override public void setScrollAmount(double amount) { super.setScrollAmount(amount); if (restored && !searching()) scrolls[tab] = getScrollAmount(); }
-        @Override public int getRowWidth() { return contentWidth; }
-        @Override protected int getScrollbarX() { return getRowRight() + 6; }
+        @Override public int getRowWidth() { return contentWidth - 12; }
+        @Override protected int getScrollbarX() { return left + contentWidth - 4; }
+        @Override protected void drawMenuListBackground(DrawContext context) { }
+        @Override protected void drawHeaderAndFooterSeparators(DrawContext context) { }
+        /** The vanilla scrollbar is hidden while drawing only: dragging it still works. */
+        @Override protected boolean isScrollbarVisible() { return !drawing && super.isScrollbarVisible(); }
+        @Override public void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+            drawing = true;
+            try { super.renderWidget(context, mouseX, mouseY, delta); } finally { drawing = false; }
+            if (getMaxScroll() <= 0) return;
+            int x = left + contentWidth, track = getHeight(), thumb = Math.max(12, Math.min(track - 4, track * track / Math.max(1, getMaxPosition())));
+            int y = getY() + (int) (getScrollAmount() * (track - thumb) / getMaxScroll());
+            context.fill(x, getY(), x + 2, getBottom(), 0x884A5362);
+            context.fill(x, y, x + 2, y + thumb, 0xFF000000 | GOLD);
+        }
     }
 
     private final class Row extends ElementListWidget.Entry<Row> {
@@ -839,25 +905,29 @@ final class MobTalkSettingsScreen extends Screen {
         @Override public void render(DrawContext context, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY, boolean hovered, float delta) {
             int textY = y + (entryHeight - 8) / 2;
             if (kind == RowKind.HEADER) {
+                // A gold group title over a thin rule, as in the parrots' panel; a slider group still folds on a click.
                 if (group != null && hovered) {
-                    context.fill(x - 2, y + 2, x + entryWidth + 2, y + entryHeight, 0x22FFFFFF);
+                    context.fill(x - 2, y + 2, x + entryWidth + 2, y + entryHeight, 0x18FFFFFF);
                     setTooltip(textRenderer.wrapLines(Text.translatable("mobtalk.settings.group.toggle"), Math.min(360, width - 24)));
                 }
                 int sideWidth = side == null ? 0 : textRenderer.getWidth(side);
-                if (side != null) context.drawTextWithShadow(textRenderer, side, x + entryWidth - sideWidth, textY + 2, 0x8A8A8A);
-                context.drawTextWithShadow(textRenderer, clipped(label.getString(), entryWidth - sideWidth - 8), x, textY + 2, color);
-                context.fill(x, y + entryHeight, x + entryWidth, y + entryHeight + 1, 0x55FFFFFF);
+                if (side != null) context.drawTextWithShadow(textRenderer, side, x + entryWidth - sideWidth, textY + 2, DIM);
+                context.drawTextWithShadow(textRenderer, clipped(label.getString(), entryWidth - sideWidth - 8), x + 1, textY + 2, color);
+                context.fill(x + 1, y + entryHeight, x + entryWidth, y + entryHeight + 1, 0x665D6570);
                 return;
             }
             if (kind == RowKind.NOTE) {
-                context.drawTextWithShadow(textRenderer, clipped(label.getString(), entryWidth), x, textY, color);
+                context.drawTextWithShadow(textRenderer, clipped(label.getString(), entryWidth), x + 1, textY, color);
                 if (hovered && textRenderer.getWidth(label) > entryWidth) setTooltip(textRenderer.wrapLines(label, Math.min(360, width - 24)));
                 return;
             }
+            // A thin separator under every row of controls.
+            context.fill(x + 1, y + entryHeight + 1, x + entryWidth, y + entryHeight + 2, 0x303F4857);
             int controlsX = x, controlsWidth = entryWidth;
             if (label != null) {
-                int labelWidth = entryWidth * 2 / 5;
-                context.drawTextWithShadow(textRenderer, clipped(label.getString(), labelWidth - 6), x, textY, color);
+                int labelWidth = entryWidth / 2;
+                context.drawTextWithShadow(textRenderer, clipped(label.getString(), labelWidth - 6), x + 1, textY, color);
+                if (hovered && mouseX < x + labelWidth && textRenderer.getWidth(label) > labelWidth - 6) setTooltip(textRenderer.wrapLines(label, Math.min(360, width - 24)));
                 controlsX += labelWidth; controlsWidth -= labelWidth;
             }
             int total = 0; for (int i = 0; i < controls.size(); i++) total += weight(i);

@@ -5,8 +5,9 @@
 # then deletes the copy. Never closes Prism, never touches the base instance, its mods or its worlds.
 # Logs, latest.log and screenshots: %LOCALAPPDATA%\MobTalk\selftest\<copy name>\ (selftest-run.log is UTF-8).
 # Usage (Windows PowerShell): powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 [-Only wedding|family|place|names|voices|looks|ctov|voicefix|pack]
+#   [-ModJars a.jar,b.jar] puts other mods' freshly built JARs into the copy in place of the base's (same name before the first '-');
 #   [-Keep] keeps the copy for inspection (delete later with scripts\clean-test-instances.ps1); [-MaxGames 6]; [-ShotEverySeconds 60]; [-WithTts] real TTS (paid); [-Base <instance>]
-param([string]$Only = '', [switch]$Keep, [int]$MaxGames = 6, [int]$ShotEverySeconds = 0, [string]$Base = '1.21.1-fabric-dev', [switch]$WithTts, [string]$SourceWorld = '')
+param([string]$Only = '', [switch]$Keep, [int]$MaxGames = 6, [int]$ShotEverySeconds = 0, [string]$Base = '1.21.1-fabric-dev', [switch]$WithTts, [string]$SourceWorld = '', [string[]]$ModJars = @())
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'ParallelPrism.psm1') -Force
 $repo = Split-Path -Parent $PSScriptRoot
@@ -44,6 +45,13 @@ try {
   Get-ChildItem "$mc\mods\mobtalk-*.jar" | Remove-Item -Force
   Copy-Item $jar.FullName "$mc\mods\"
   Say "mod: $($jar.Name) $($jar.LastWriteTime)"
+  # powershell -File passes "a.jar,b.jar" as one string.
+  foreach ($extra in @($ModJars | ForEach-Object { $_ -split ',' } | Where-Object { $_ })) {
+    $file = Get-Item $extra; $prefix = ($file.Name -split '-')[0]
+    Get-ChildItem "$mc\mods\$prefix-*.jar" | Remove-Item -Force
+    Copy-Item $file.FullName "$mc\mods\"
+    Say "mod: $($file.Name) $($file.LastWriteTime) in place of the base's $prefix"
+  }
   $env:PYTHONIOENCODING = 'utf-8'
   python -I (Join-Path $PSScriptRoot 'rename_level.py') "$mc\saves\$world\level.dat" $world | ForEach-Object { Say $_ }
 
