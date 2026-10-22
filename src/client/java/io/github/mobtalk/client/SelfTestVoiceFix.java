@@ -203,6 +203,7 @@ final class SelfTestVoiceFix {
                 test.command("kill " + name());
                 test.await("the player died", 5, () -> test.owner.client.player != null && !test.owner.client.player.isAlive(), () ->
                         test.await("pause: on the death screen", 1, () -> false, () -> {
+                            test.log(state("after death"));
                             test.check(playing(before), "the background line goes on after the player's death");
                             test.check(test.owner.speechCutoffs == cutoffsBefore, "the death cut nothing off");
                             test.check(!test.owner.village.voicing(), "the rest of that talk is dropped");
@@ -215,7 +216,12 @@ final class SelfTestVoiceFix {
         });
     }
     private void afterRespawn() {
-        test.log("respawned; the old line still playing: " + playing(before));
+        test.log("respawned; " + state("after respawn"));
+        test.command("tp " + name() + " " + at(sx + 0.5, sz + 0.5)); // A respawn far away would fade the old line out by distance.
+        test.await("pause: back on the stage after the respawn", 1, () -> false, this::newLine);
+    }
+    private void newLine() {
+        test.log(state("on the stage again"));
         startsBefore = test.owner.speechStarts;
         test.owner.village.playForTest(List.of(new ConversationEngine.ChatterLine(cow, "Корова", "самотест: после возрождения", sine(3, 587))));
         test.await("the new background line waits for the old one, then plays", 30, () -> {
@@ -238,6 +244,11 @@ final class SelfTestVoiceFix {
         });
     }
 
+    private String state(String when) {
+        return when + ": old line playing " + playing(before) + (before == null ? "" : ", done " + before.isDone() + " (" + before.stopReason() + "), gain "
+                + Math.round(before.gain() * 1000) / 1000.0 + " at " + Math.round(before.distance()) + " blocks, read out " + before.fullyRead())
+                + "; voices " + test.owner.voices.count() + ", speaking " + test.owner.speaking();
+    }
     private ServerWorld world() { return (ServerWorld) test.serverPlayer().getWorld(); }
     private <T> T server(java.util.function.Supplier<T> work) { return test.server().submit(work::get).join(); }
 }

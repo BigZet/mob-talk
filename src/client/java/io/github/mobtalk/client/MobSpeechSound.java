@@ -27,6 +27,8 @@ final class MobSpeechSound extends MovingSoundInstance {
     private final PcmSpeechAudioStream stream;
     private final SpeechStream speech;
     private double distance;
+    /** Why it stopped (self-test log): world, mob, edge, stop. */
+    private String stopReason = "";
 
     MobSpeechSound(MinecraftClient client, ClientWorld world, UUID target, VoiceFalloff.Curve curve, SpeechStream speech) {
         super(SoundEvent.of(Identifier.of("mobtalk", "mob_speech")), SoundCategory.NEUTRAL, SoundInstance.createRandom());
@@ -51,27 +53,47 @@ final class MobSpeechSound extends MovingSoundInstance {
     }
 
     @Override public boolean canPlay() {
-        return client.world == world && client.player != null && find(world, target) != null && !(curve.beyond(distance) && volume <= VoiceFalloff.INAUDIBLE);
+        return client.world == world && client.player != null && !isDone() && !(curve.beyond(distance) && volume <= VoiceFalloff.INAUDIBLE);
     }
     /** Started far away it is quiet, not skipped: the player may come closer while it speaks. */
     @Override public boolean shouldAlwaysPlay() { return true; }
 
     @Override public void tick() {
-        if (client.world != world || client.player == null) { setDone(); return; }
+        if (client.world != world || client.player == null) { stopReason = "world"; setDone(); return; }
         if (!updatePosition()) return;
         volume = (float) VoiceFalloff.approach(volume, curve.gain(distance), VoiceFalloff.STEP_PER_TICK);
         // Past the edge and already faded: nothing audible is cut.
-        if (curve.beyond(distance) && volume <= VoiceFalloff.INAUDIBLE) setDone();
+        if (curve.beyond(distance) && volume <= VoiceFalloff.INAUDIBLE) { stopReason = "edge"; setDone(); }
     }
 
     private boolean updatePosition() {
         MobEntity mob = find(world, target);
-        if (mob == null) { setDone(); return false; } // The mob died or unloaded: a real reason to stop.
+        if (mob == null) {
+            // Died, or unloaded: a real reason to stop. But while the player lies dead and just after the respawn the client briefly
+            // loses track of every creature around (seen in the voicefix self-test): the line goes on from where its mob stood.
+            if (diedOrGone() || !playerAway()) { stopReason = "mob"; setDone(); return false; }
+            if (missingSince == 0) missingSince = System.currentTimeMillis();
+            if (System.currentTimeMillis() - missingSince > MISSING_HOLD_MILLIS) { stopReason = "mob"; setDone(); return false; }
+            if (client.player != null) distance = Math.sqrt(client.player.squaredDistanceTo(x, y, z));
+            return true;
+        }
+        missingSince = 0;
         x = mob.getX();
         y = mob.getY() + mob.getHeight() * 0.5;
         z = mob.getZ();
         distance = client.player == null ? 0 : Math.sqrt(client.player.squaredDistanceTo(x, y, z));
         return true;
+    }
+
+    private long missingSince;
+    private static final long MISSING_HOLD_MILLIS = 15_000;
+    /** The player is dead or has just respawned (the creatures around are being sent again). */
+    private boolean playerAway() { return client.player == null || !client.player.isAlive() || client.player.age < 60; }
+    /** The mob is still known to the client but dead or removed for good. */
+    private boolean diedOrGone() {
+        for (Entity entity : world.getEntities())
+            if (entity.getUuid().equals(target)) return !entity.isAlive() || entity.isRemoved();
+        return false;
     }
 
     @Override public CompletableFuture<AudioStream> getAudioStream(SoundLoader loader, Identifier id, boolean repeatInstantly) {
@@ -85,7 +107,10 @@ final class MobSpeechSound extends MovingSoundInstance {
     /** All of the speech was handed to the sound system (self-test: it ended by itself, not cut). */
     boolean fullyRead() { return stream.ended(); }
 
+    String stopReason() { return stopReason; }
+
     void stop() {
+        stopReason = "stop";
         setDone();
         speech.close();
         client.getSoundManager().stop(this);
