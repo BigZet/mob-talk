@@ -27,6 +27,16 @@
       "id": "chunky", "title": "Chunky", "version": "1.4.23", "fileName": "Chunky-Fabric-1.4.23.jar",
       "url": "https://cdn.modrinth.com/data/fALzjamp/versions/RVFHfo1D/Chunky-Fabric-1.4.23.jar",
       "sha512": "02ca6af1ed31e9ebc51af20948a2afb670fe653c80aaeb990947caf6b655d6ab8eda3f1b64ef478633b67ef5d2fd0d1fe67e2107a4a522ef45fd1f183c9a6c9c"
+    },
+    {
+      "id": "squaremap", "title": "squaremap", "version": "1.3.2", "fileName": "squaremap-fabric-mc1.21.1-1.3.2.jar",
+      "url": "https://cdn.modrinth.com/data/PFb7ZqK6/versions/RerxbGKf/squaremap-fabric-mc1.21.1-1.3.2.jar",
+      "sha512": "fdf56e23bb596c660d7e3b898e6fda57222d66b2a8babfced8e1277678f7e0b6da455a31bed9d2c7fcb0e8e82346e80feb1cb43d3dd7048aadb172e3010fa9eb"
+    },
+    {
+      "id": "bluemap", "title": "BlueMap", "version": "5.7", "fileName": "bluemap-5.7-fabric.jar",
+      "url": "https://cdn.modrinth.com/data/swbUV1cr/versions/Dr2hvJBc/bluemap-5.7-fabric.jar",
+      "sha512": "b7483d6ff90f09258f994a6f487846c1dfe814f1d0af931bd50426fd0afc98ccad033c5f440705edc08a8ced03cf216171ba1571db2221aca4ec620d676443a4"
     }
   ],
   "optional": [

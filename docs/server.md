@@ -23,12 +23,22 @@ scripts\build-server-pack.ps1                             # или собрат�
 ```
 
 В папке: `fabric-server-mc.1.21.1-loader.0.19.5-launcher.1.1.2.jar`, `mods\` (наши моды и сторонние jar сборки, кроме
-чисто клиентских, плюс Lithium, FerriteCore, spark, Chunky; `-WithLuckPerms` добавит LuckPerms), `config\`
+чисто клиентских, плюс Lithium, FerriteCore, spark, Chunky, squaremap, BlueMap; `-WithLuckPerms` добавит LuckPerms), `config\`
 (конфиги сборки копируются один раз, `mobtalk-server.json` пустой — все поля по умолчанию), `server.properties`
-(`view-distance=8`, `simulation-distance=6`, `max-players=8`), `eula.txt` и `server-manifest.txt` — коммиты, имена и SHA-512
+(`view-distance=8`, `simulation-distance=6`, `max-players=8`), конфиги карт squaremap и BlueMap, `eula.txt` и `server-manifest.txt` — коммиты, имена и SHA-512
 всех jar. Повторная сборка меняет только jar и манифест: мир, allowlist и правки конфигов остаются. Пока сервер запущен,
 скрипт отказывается работать. Mob Talk, пока он клиентский (`environment: client`), в сервер не попадает сам;
 `-NoMobTalk` пропускает его явно.
+
+## Карты для админки
+
+- **squaremap 1.3.2** (2D): свой веб-сервер выключен, тайлы overworld и nether пишутся в `squaremap\web\tiles`
+  (край не рисуется, 2 потока). Их отдаёт админка за паролем. Конфиг `squaremap\config.yml` пишется один раз.
+- **BlueMap 5.7** (3D): свой веб-сервер выключен, webroot `bluemap\web`, 1 поток рендера, карты overworld и nether.
+  `accept-download: true` в `config\bluemap\core.conf`: BlueMap скачивает клиент Minecraft ради текстур, с EULA Mojang
+  Дмитрий согласился 22 октября. После сборки рендер на паузе (`bluemap\pluginState.json`, `render-threads-enabled: false`):
+  админка шлёт в консоль `bluemap start`, пока карта открыта, и `bluemap stop`, когда её закрыли. Команды принимаются только
+  после строки `BlueMap loaded!` в логе; состояние BlueMap запоминает между перезапусками.
 
 ## Локальный тест (один компьютер)
 

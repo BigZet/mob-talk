@@ -23,6 +23,10 @@ public final class AdminSettings {
     /** Keep the whole prompt and the model's raw answer in each dialogue record; off by default so history stays small. */
     public boolean keepPrompts = false;
     public String passwordHash = "";
+    /** squaremap's tiles folder relative to the server; empty — looked up in {@code squaremap/web/tiles}, {@code config/squaremap/web/tiles}. */
+    public String squaremapTiles = "";
+    /** BlueMap's webroot relative to the server (its {@code webserver.conf} default). */
+    public String bluemapWebroot = "bluemap/web";
 
     public static AdminSettings load(Path file) throws IOException {
         if (!Files.isRegularFile(file)) return new AdminSettings();

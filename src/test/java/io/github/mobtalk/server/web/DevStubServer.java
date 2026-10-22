@@ -56,6 +56,7 @@ public final class DevStubServer {
         stub.seedMap(1024);
         AdminHttpServer server = new AdminHttpServer(new AdminHttpServer.Options("127.0.0.1", port, null, false),
                 new AdminAuth(AdminAuth.hash(password), System::currentTimeMillis), stub.api.router(), StaticFiles.folder(web), System.out::println);
+        server.mount("/map3d/", BlueMapControl.CSP, stub.api.map3dFiles());
         server.start();
         stub.simulate();
         System.out.println("Заглушка админки: http://127.0.0.1:" + server.port() + "/  пароль: " + password);
@@ -106,6 +107,13 @@ public final class DevStubServer {
                 @Override public void pauseAndFlush() { game.commands.add("save-off"); game.commands.add("save-all flush"); }
                 @Override public void resume() { game.commands.add("save-on"); }
             }, clock, zone);
+            // A stand-in BlueMap webroot: a page instead of the real webapp, one stored gzip tile, keepalive and status work for real.
+            Path bluemap = data.resolve("bluemap").resolve("web");
+            Files.createDirectories(bluemap.resolve("maps").resolve("world").resolve("tiles").resolve("0").resolve("x0"));
+            Files.writeString(bluemap.resolve("index.html"), "<!doctype html><meta charset=utf-8><title>BlueMap</title>"
+                    + "<body style=\"font:16px system-ui;background:#1b1d22;color:#ddd;display:grid;place-items:center;height:100vh;margin:0\">"
+                    + "<p>Здесь будет 3D-карта BlueMap (заглушка: настоящий webroot появится на сервере).</p>");
+            try (var gz = new java.util.zip.GZIPOutputStream(Files.newOutputStream(bluemap.resolve("maps/world/tiles/0/x0/z0.prbm.gz")))) { gz.write(new byte[]{1, 2, 3}); }
             Path log = data.resolve("latest.log");
             Files.writeString(log, String.join("\n",
                     "[19:30:01] [main/INFO] (FabricLoader) Loading 14 mods",
@@ -117,7 +125,8 @@ public final class DevStubServer {
                     "\tat io.github.mobtalk.server.SpeechService.synthesize(SpeechService.java:42)",
                     "[19:34:10] [Server thread/INFO] (Minecraft) BigZet joined the game",
                     "[19:35:18] [Server thread/INFO] (Minecraft) <BigZet> привет") + "\n");
-            api = new AdminApi(new AdminApi.Parts(history, metrics, latency, journal, errors, sources, game, backups, new Waypoints(data.resolve("waypoints.json")), map, tracks, log,
+            api = new AdminApi(new AdminApi.Parts(history, metrics, latency, journal, errors, sources, game, backups, new Waypoints(data.resolve("waypoints.json")), map, tracks,
+                    new BlueMapControl(bluemap, game, clock), log,
                     () -> Json.obj("perPlayerMinute", 0, "perPlayerDayUsd", 0, "serverDayUsd", 0, "maxDialoguesPerPlayer", 2),
                     () -> Json.obj("bind", "127.0.0.1", "port", 8788, "fingerprint", "заглушка без TLS"), clock));
         }

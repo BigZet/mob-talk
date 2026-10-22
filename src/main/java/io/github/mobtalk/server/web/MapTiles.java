@@ -29,7 +29,7 @@ import java.util.function.Consumer;
 /** The world seen from above for the admin map: {@code <root>/<world>/<zoom>/<tx>_<tz>.png}, 256×256 pixels, 1 px = 2^zoom blocks.
  * The game hands in a chunk's top colours ({@link #update}, cheap: a queue); one background thread paints them into zoom 0 tiles,
  * then rebuilds the coarser zooms from their four children. Unexplored pixels stay transparent. */
-public final class MapTiles {
+public final class MapTiles implements MapSource {
     public static final int SIZE = 256, MAX_ZOOM = 4;
     private static final int CACHE = 24;
 
@@ -50,8 +50,12 @@ public final class MapTiles {
 
     public MapTiles(Path root, Consumer<String> log) { this.root = root; this.log = log; }
 
+    @Override public int tileSize() { return SIZE; }
+    @Override public int maxZoom() { return MAX_ZOOM; }
+    @Override public String name() { return "mobtalk"; }
+
     /** Called with {"world","zoom","tx","tz"} for every tile that changed. */
-    public void listen(Consumer<JsonObject> listener) { listeners.add(listener); }
+    @Override public void listen(Consumer<JsonObject> listener) { listeners.add(listener); }
 
     /** One chunk's top view: 256 ARGB colours, row by row (z, then x); alpha 0 means «not known». Safe from the game thread. */
     public void update(String world, int cx, int cz, int[] colors) {
@@ -61,21 +65,21 @@ public final class MapTiles {
     }
 
     /** The PNG of a tile, or null when nothing of it is explored. */
-    public byte[] tile(String world, int zoom, int tx, int tz) throws IOException {
+    @Override public byte[] tile(String world, int zoom, int tx, int tz) throws IOException {
         if (zoom < 0 || zoom > MAX_ZOOM) throw ApiException.badRequest("zoom — от 0 до " + MAX_ZOOM + ".");
         Path file = file(new Key(world, zoom, tx, tz));
         return file == null || !Files.isRegularFile(file) ? null : Files.readAllBytes(file);
     }
 
     /** When a tile last changed, for the ETag; 0 when there is none. */
-    public long modified(String world, int zoom, int tx, int tz) throws IOException {
+    @Override public long modified(String world, int zoom, int tx, int tz) throws IOException {
         if (zoom < 0 || zoom > MAX_ZOOM) throw ApiException.badRequest("zoom — от 0 до " + MAX_ZOOM + ".");
         Path file = file(new Key(world, zoom, tx, tz));
         return file == null || !Files.isRegularFile(file) ? 0 : Files.getLastModifiedTime(file).toMillis();
     }
 
     /** Worlds that have tiles. */
-    public List<String> worlds() throws IOException {
+    @Override public List<String> worlds() throws IOException {
         List<String> worlds = new ArrayList<>();
         if (!Files.isDirectory(root)) return worlds;
         try (DirectoryStream<Path> dirs = Files.newDirectoryStream(root, Files::isDirectory)) {
@@ -86,7 +90,7 @@ public final class MapTiles {
     }
 
     /** The explored area of a world in blocks, from its zoom 0 tiles: {minX, minZ, maxX, maxZ} or null. */
-    public int[] bounds(String world) throws IOException {
+    @Override public int[] bounds(String world) throws IOException {
         Path dir = root.resolve(fold(world)).resolve("0");
         if (!Files.isDirectory(dir)) return null;
         int[] box = null;

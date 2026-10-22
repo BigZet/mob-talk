@@ -325,6 +325,8 @@ public final class FixtureGame implements GameView {
         commands.add(command);
         String root = command.split(" ", 2)[0];
         if (!commandRoots().contains(root)) return Json.obj("ok", false, "result", 0, "output", List.of("Неизвестная команда: " + root));
+        if (command.equals("bluemap"))
+            return Json.obj("ok", true, "result", 1, "output", List.of("BlueMap — 1 карта", "Рендер: " + (commands.contains("bluemap start") ? "идёт" : "на паузе") + ", 42.5% готово"));
         return Json.obj("ok", true, "result", 1, "output", List.of("[заглушка] выполнено: /" + command));
     }
 

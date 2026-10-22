@@ -1,8 +1,8 @@
-// Карта мира сверху: тайлы /api/map/tiles/{мир}/{zoom}/{tx}/{tz}.png (1 пиксель = 2^zoom блоков, тайл 256 пикселей),
+// Карта мира сверху: тайлы /api/map/tiles/{мир}/{zoom}/{tx}/{tz}.png (1 пиксель = 2^zoom блоков, размер тайла из /api/map/info),
 // поверх — следы игроков, метки и сами игроки. Перетаскивание, колесо и щипок для масштаба, стрелки и +/− с клавиатуры.
 import { h, icon } from './dom.js';
 
-const TILE = 256, MAX_Z = 4, MIN_SCALE = 1 / 16, MAX_SCALE = 8;
+const MIN_SCALE = 1 / 16, MAX_SCALE = 8;
 const SVGNS = 'http://www.w3.org/2000/svg';
 const svg = (tag, attrs = {}) => { const el = document.createElementNS(SVGNS, tag); for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v); return el; };
 const colorOf = i => `var(--s${(i % 8) + 1})`;
@@ -13,6 +13,7 @@ export class WorldMap {
     this.world = opts.world || 'minecraft:overworld';
     this.cx = opts.center?.x ?? 0; this.cz = opts.center?.z ?? 0;
     this.scale = opts.scale ?? 1;
+    this.tileSize = 256; this.maxZoom = 4;
     this.opts = opts;
     this.players = []; this.tracks = []; this.markers = []; this.showTracks = true; this.follow = null;
     this.tiles = new Map(); this.empty = new Set();
@@ -102,6 +103,12 @@ export class WorldMap {
   }
 
   // ---------- данные ----------
+  /** Размер тайла и число уровней из /api/map/info (свой рендер — 256 и 4, squaremap — 512 и 3). */
+  setTiling(tileSize, maxZoom) {
+    if (!tileSize || (tileSize === this.tileSize && maxZoom === this.maxZoom)) return;
+    this.tileSize = tileSize; this.maxZoom = maxZoom ?? this.maxZoom;
+    this.refreshTiles();
+  }
   setWorld(world) { if (world === this.world) return; this.world = world; for (const img of this.tiles.values()) img.remove(); this.tiles.clear(); this.empty.clear(); this.draw(); }
   setPlayers(list) {
     this.players = list;
@@ -128,8 +135,8 @@ export class WorldMap {
     this.drawOverlay();
   }
   drawTiles() {
-    const z = Math.min(MAX_Z, Math.max(0, Math.floor(Math.log2(1 / this.scale))));
-    const blocks = TILE * 2 ** z, px = blocks * this.scale;
+    const z = Math.min(this.maxZoom, Math.max(0, Math.floor(Math.log2(1 / this.scale))));
+    const blocks = this.tileSize * 2 ** z, px = blocks * this.scale;
     const [x0, z0] = this.toWorld(0, 0), [x1, z1] = this.toWorld(this.w, this.hgt);
     const want = new Set();
     for (let tx = Math.floor(x0 / blocks); tx <= Math.floor(x1 / blocks); tx++) {
