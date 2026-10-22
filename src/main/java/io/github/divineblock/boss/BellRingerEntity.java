@@ -310,7 +310,8 @@ public final class BellRingerEntity extends SacredBoss {
         BlockPos at = player.getBlockPos().east(2);
         BlockState was = world.getBlockState(at);
         world.setBlockState(at, Blocks.BELL.getDefaultState());
-        var hit = new net.minecraft.util.hit.BlockHitResult(Vec3d.ofCenter(at), net.minecraft.util.math.Direction.WEST, at, false);
+        // A floor bell facing north rings from its north or south face, struck below its crown.
+        var hit = new net.minecraft.util.hit.BlockHitResult(Vec3d.ofCenter(at).add(0, -0.1, -0.4), net.minecraft.util.math.Direction.NORTH, at, false);
         player.interactionManager.interactBlock(player, world, net.minecraft.item.ItemStack.EMPTY, net.minecraft.util.Hand.MAIN_HAND, hit);
         hazards.later(60, () -> world.setBlockState(at, was));
     }

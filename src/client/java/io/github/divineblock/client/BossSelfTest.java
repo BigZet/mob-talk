@@ -311,7 +311,7 @@ public final class BossSelfTest {
             fresh.holdFire(20 * 60);
             SacredBoss.Simulation always = fresh.simulateKill(player, 12f, 12, false, 20 * 600);
             log("модель боя " + kind.id + " (сила 3, здоровье " + Math.round(fresh.getMaxHealth()) + "): бить всегда — " + always.describe());
-            check(always.dead() && always.ticks() <= 20 * 300 && always.ticks() >= 20 * 30, kind.id + ": через слабые места убиваем за 0,5–5 мин");
+            check(always.dead() && always.ticks() <= 20 * 300 && always.ticks() >= 20 * 45, kind.id + ": через слабые места убиваем за 0,75–5 мин");
             fresh.discard();
             spawned = DivineBosses.spawn(kind, world, at, 3, null);
             if (!(spawned instanceof SacredBoss windows)) return;

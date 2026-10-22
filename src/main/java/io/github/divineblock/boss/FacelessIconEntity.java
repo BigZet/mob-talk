@@ -35,7 +35,8 @@ public final class FacelessIconEntity extends SacredBoss {
     /** How far the gaze reaches and how straight a look must be to meet it. */
     static final double GAZE_RANGE = 32, GAZE_DOT = 0.97;
 
-    private final List<UUID> faces = new ArrayList<>();
+    /** The faces out now, each with the age at which it would have faded by itself: one gone before that was struck down. */
+    private final java.util.Map<UUID, Integer> faces = new java.util.LinkedHashMap<>();
     private int facesSlain;
 
     public FacelessIconEntity(EntityType<? extends FacelessIconEntity> type, World world) {
@@ -203,11 +204,12 @@ public final class FacelessIconEntity extends SacredBoss {
                 Vec3d at = facePos().add(random.nextGaussian() * 0.8, random.nextGaussian() * 0.5, random.nextGaussian() * 0.8);
                 face.refreshPositionAndAngles(at.x, at.y, at.z, getYaw(), 0);
                 face.setOwner(this);
-                face.setLifeTicks(20 * (25 + random.nextInt(10)));
+                int life = 20 * (25 + random.nextInt(10));
+                face.setLifeTicks(life);
                 face.setCustomName(Text.literal("Лик").formatted(Formatting.GOLD));
                 face.setTarget(target);
                 world.spawnEntity(face);
-                faces.add(face.getUuid());
+                faces.put(face.getUuid(), age + life);
                 particles(ParticleTypes.END_ROD, at.x, at.y, at.z, 10, 0.2, 0.2, 0.2, 0.05);
             }
             sound(SoundEvents.ENTITY_EVOKER_CAST_SPELL, 2f, 1.4f);
@@ -216,10 +218,11 @@ public final class FacelessIconEntity extends SacredBoss {
 
     private int liveFaces() {
         if (!(getWorld() instanceof ServerWorld world)) return 0;
-        faces.removeIf(id -> {
-            Entity face = world.getEntity(id);
-            if (face instanceof LivingEntity living && !living.isAlive() && living.getAttacker() instanceof net.minecraft.entity.player.PlayerEntity) facesSlain++;
-            return face == null || !face.isAlive();
+        faces.entrySet().removeIf(entry -> {
+            Entity face = world.getEntity(entry.getKey());
+            boolean gone = face == null || !face.isAlive();
+            if (gone && age < entry.getValue() - 10) facesSlain++;
+            return gone;
         });
         return faces.size();
     }
@@ -309,7 +312,7 @@ public final class FacelessIconEntity extends SacredBoss {
             face.refreshPositionAndAngles(at.x, at.y, at.z, getYaw(), 0);
             face.setOwner(this);
             world.spawnEntity(face);
-            faces.add(face.getUuid());
+            faces.put(face.getUuid(), age + 20 * 30);
             face.damage(world.getDamageSources().playerAttack(player), 100f);
         }
     }
@@ -322,7 +325,7 @@ public final class FacelessIconEntity extends SacredBoss {
     @Override protected void onDefeated() {
         for (LivingEntity victim : victims(getPos(), 48)) victim.removeStatusEffect(BossEffects.GAZE);
         if (getWorld() instanceof ServerWorld world)
-            for (UUID id : faces) { Entity face = world.getEntity(id); if (face != null) face.discard(); }
+            for (UUID id : faces.keySet()) { Entity face = world.getEntity(id); if (face != null) face.discard(); }
         faces.clear();
     }
 }

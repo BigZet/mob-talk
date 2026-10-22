@@ -51,9 +51,9 @@ public abstract class SacredBoss extends HostileEntity {
     public static final int ULT_WARNING = 60;
     /** Share of a blow the boss takes normally, and while its weak point is open (five times as much). Its armour attribute
      * is light, so the weapon's tier counts: a normal fight is long but finite, one that uses the weak point takes minutes. */
-    public static final float TAKEN_NORMAL = 0.22f, TAKEN_EXPOSED = TAKEN_NORMAL * 5f;
+    public static final float TAKEN_NORMAL = 0.15f, TAKEN_EXPOSED = TAKEN_NORMAL * 5f;
     /** How long the weak point stays open, how soon it can open again, and how long a phase change staggers the boss. */
-    public static final int EXPOSED_TICKS = 120, WEAK_COOLDOWN = 200, TRANSITION_TICKS = 40;
+    public static final int EXPOSED_TICKS = 120, WEAK_COOLDOWN = 300, TRANSITION_TICKS = 40;
     /** How long the boss keeps a foe it cannot see, searching where it saw it last. */
     public static final int MEMORY_TICKS = 200;
     /** How long a chant runs (the longest piece is ~34 s): it is never started again over itself. */
@@ -386,8 +386,8 @@ public abstract class SacredBoss extends HostileEntity {
     public int weakOpened() { return weakOpened; }
     /** Whether the weak point may open now (not right after the last time, not in a phase change). */
     protected boolean weakReady() { return exposedTicks == 0 && weakCooldown == 0 && transition == 0; }
-    /** Tests: let the weak point open again at once. */
-    public void rearmWeakPoint() { weakCooldown = 0; }
+    /** Tests: shuts an open window and lets the weak point open again at once. */
+    public void rearmWeakPoint() { if (exposedTicks > 0) closeWeakPoint(); weakCooldown = 0; }
 
     private void tickExposed() {
         getNavigation().stop();
