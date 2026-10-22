@@ -287,7 +287,15 @@ public final class ChurchSelfTest {
         shot.accept("24-cemetery", new double[] { 28, 42, 26, 28, 0, 62, 100 });
         shot.accept("25-cemetery-top", new double[] { 28, 95, 62, 28, 0, 64, 140 });
         // The churchyard: the Holy Gate from outside, the north side with the spring and the chapel, the south side.
-        shot.accept("26-holy-gate-outside", new double[] { -52, 6, 6, -33, 10, 0, 120 });
+        // Outside the wall the ground is the natural one: the camera stands two blocks over it (never inside a hill).
+        steps.add(new Step(10, () -> {
+            BlockPos column = frame.world(-52, 0, 6);
+            world.getChunk(column);
+            int ground = world.getTopPosition(net.minecraft.world.Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, column).getY();
+            double eye = Math.max(6, ground - site.origin().getY() + 2.6);
+            look(player, at.apply(new double[] { -52, eye, 6 }), at.apply(new double[] { -33, 10, 0 }));
+        }));
+        steps.add(new Step(120, () -> screenshot = kind + "-26-holy-gate-outside"));
         shot.accept("27-yard-north", new double[] { -14, 9, -18, 30, 4, -32, 120 });
         shot.accept("28-yard-south", new double[] { 6, 9, 18, 50, 3, 34, 120 });
         shot.accept("29-yard-air", new double[] { -60, 45, -60, 20, 0, 0, 140 });
