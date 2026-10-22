@@ -130,9 +130,8 @@ public final class ChurchYard extends StructurePiece {
                 boolean outside = x < WX0 || x > WX1 || z < WZ0 || z > WZ1;
                 boolean wall = !outside && (x == WX0 || x == WX1 || z == WZ0 || z == WZ1);
                 if (outside) {
-                    // The wall's outer face: a stone footing, open above.
+                    // The wall's outer face: a stone footing (the woods outside stay whole: a cut trunk leaves its crown hanging).
                     canvas.foundation(x, -1, z, Blocks.STONE_BRICKS.getDefaultState());
-                    for (int y = 0; y <= 8; y++) canvas.set(x, y, z, Blocks.AIR.getDefaultState());
                     continue;
                 }
                 canvas.foundation(x, -2, z, wall ? Blocks.STONE_BRICKS.getDefaultState() : Blocks.DIRT.getDefaultState());
@@ -562,7 +561,7 @@ public final class ChurchYard extends StructurePiece {
                     if (Math.hypot(dx, dz) <= Math.max(0.5, r)) canvas.set(cx + dx, y, cz + dz, leaf);
         }
         canvas.set(cx, 10, cz, leaf);
-        for (int y = 0; y <= 8; y++) canvas.set(cx, y, cz, Blocks.SPRUCE_LOG.getDefaultState());
+        for (int y = 0; y <= 6; y++) canvas.set(cx, y, cz, Blocks.SPRUCE_LOG.getDefaultState());
         canvas.set(cx, -1, cz, Blocks.DIRT.getDefaultState());
     }
 
