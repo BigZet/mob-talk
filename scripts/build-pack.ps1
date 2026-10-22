@@ -7,6 +7,8 @@
 param([string]$Name = 'mob-talk-pack', [string]$Base = '1.21.1-fabric-dev', [switch]$NoBuild,
     [string]$Repos = (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))))
 $ErrorActionPreference = 'Stop'
+# git prints commit subjects in UTF-8: read them so, or the manifest gets mojibake.
+[Console]::OutputEncoding = [Text.Encoding]::UTF8
 Import-Module (Join-Path $PSScriptRoot 'ParallelPrism.psm1') -Force
 $repo = Split-Path -Parent $PSScriptRoot
 if (-not (Test-Path "$Repos\divine-block")) { $Repos = Split-Path -Parent $repo }
