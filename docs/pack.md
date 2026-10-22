@@ -57,3 +57,9 @@ Mob Talk поднимает Whisper при старте игры и держит
 - Сторож зависаний `Get-TestGameStall` (ParallelPrism.psm1): краш-отчёт или `latest.log` молчит 6 минут — скрипт
   убивает только javaw своей копии и снимает окно в `window-stuck.png`.
 - Общий потолок — 6 игр Minecraft на машине (`Enter-GameSlot`, `-MaxGames 6`).
+
+## Сервер
+
+Та же сборка ставится на выделенный сервер: `scripts\build-server-pack.ps1 -FromPack mob-talk-pack` раскладывает те же jar
+(без чисто клиентских) плюс админ-моды в `%LOCALAPPDATA%\MobTalkPack\server`, `scripts\run-local-server.ps1` запускает,
+`scripts\export-mrpack.ps1` делает файл для друзей. Подробно — `docs/server.md`, для VPS — `docker/README.md`.
