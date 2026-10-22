@@ -678,6 +678,7 @@ public final class DialogueService {
                     session.voicesPending = Math.max(0, session.voicesPending - 1);
                     if (data.length == 0 || session.generation != request.generation && !background) return;
                     int millis = data.length / PCM_BYTES_PER_MILLI;
+                    LOGGER.info("Mob Talk: clip {} for {} listeners: {} bytes ({} ms, {} crossings/s)", clipId, audience.size(), data.length, millis, SpeechStream.crossingsPerSecond(data));
                     SpeechService.Clip clip = new SpeechService.Clip(clipId, PCM_FORMAT, data, millis);
                     for (UUID listener : audience) out.clip(listener, clip);
                     session.floorUntil = Math.max(session.floorUntil, System.currentTimeMillis() + millis + 250);

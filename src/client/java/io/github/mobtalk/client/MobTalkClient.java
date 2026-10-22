@@ -574,6 +574,8 @@ public final class MobTalkClient implements ClientModInitializer {
         byte[] pcm = clips.offer(chunk);
         if (pcm == null) return;
         PendingVoice voice = pendingVoices.remove(chunk.clipId());
+        LOGGER.info("Mob Talk: clip {} {} {} bytes ({} ms, {} crossings/s){}", chunk.clipId(), chunk.format(), pcm.length, pcm.length / 48,
+                io.github.mobtalk.core.SpeechStream.crossingsPerSecond(pcm), voice == null ? ", nobody waits for it" : "");
         if (voice == null || pcm.length == 0 || world == null) return;
         startVoice(voice.mob, SpeechStream.of(pcm), voice.background);
         if (!voice.background) status = "Говорит…";

@@ -63,6 +63,20 @@ public final class SpeechStream implements AutoCloseable {
         return !closed && (size & ~1) >= 2;
     }
 
+    /** Zero crossings per second of 24 kHz 16-bit mono PCM: speech is well over a thousand, a plain tone is twice its pitch (the
+     * self-test tone gives ~440), silence is 0. For logs that tell what kind of audio really went through. */
+    public static long crossingsPerSecond(byte[] pcm) {
+        int samples = pcm == null ? 0 : pcm.length / 2;
+        if (samples < 2) return 0;
+        int crossings = 0; boolean negative = false;
+        for (int i = 0; i < samples; i++) {
+            boolean now = (short) ((pcm[2 * i] & 0xff) | (pcm[2 * i + 1] << 8)) < 0;
+            if (i > 0 && now != negative) crossings++;
+            negative = now;
+        }
+        return Math.round(crossings * 24_000.0 / samples);
+    }
+
     /** The whole audio once the download ends; for callers that cannot play a growing stream. */
     public synchronized byte[] awaitAll(long timeoutNanos) throws InterruptedException {
         long deadline = System.nanoTime() + timeoutNanos;
