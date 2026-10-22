@@ -153,7 +153,8 @@ public abstract class SacredBoss extends HostileEntity {
     protected float scale() { return (0.7f + 0.15f * power) * config().bossDifficulty / 100f; }
     /** Whether ultimates may break glass, put out lights and light fires here. */
     protected boolean mayBreakBlocks() {
-        return config().bossBlockDamage && getWorld() instanceof ServerWorld world && world.getGameRules().getBoolean(GameRules.DO_MOB_GRIEFING);
+        return config().bossBlockDamage && getWorld() instanceof ServerWorld world && world.getGameRules().getBoolean(GameRules.DO_MOB_GRIEFING)
+                && !io.github.divineblock.game.ChurchArea.inZone(world, getBlockPos()); // the church's yard and cemetery stay whole
     }
     protected void debug(String line) { if (config().debug) DivineBlockMod.LOG.info("Божественный блок: {} — {}", kind().title, line); }
 

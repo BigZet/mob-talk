@@ -172,13 +172,13 @@ public final class Curses {
     static String layBlight(ServerWorld world, ServerPlayerEntity player, BlockPos altar, int power, DivineConfig config) {
         if (config.protectBlocks) return null;
         BlockPos bed = player.getSpawnPointPosition();
-        BlockPos home = bed != null && player.getSpawnPointDimension() == world.getRegistryKey() ? bed : altar;
+        BlockPos home = bed != null && player.getSpawnPointDimension() == world.getRegistryKey() && !ChurchArea.inZone(world, bed) ? bed : altar;
         Curse curse = add(player, Type.BLIGHT, home, 24 + 8 * power, config);
         for (int wave = 0; wave < 6; wave++) blight(world, curse);
         Miracles.sound(world, player.getBlockPos(), SoundEvents.ENTITY_ELDER_GUARDIAN_CURSE, 1.5f, 0.4f);
         Miracles.sound(world, home, SoundEvents.BLOCK_SCULK_SPREAD, 3f, 0.5f);
         world.spawnParticles(ParticleTypes.LARGE_SMOKE, home.getX() + 0.5, home.getY() + 2, home.getZ() + 0.5, 120, curse.radius / 3.0, 2, curse.radius / 3.0, 0.01);
-        return "порча земли у " + (home == altar ? "алтаря" : "дома") + " на " + days(curse) + ", скот болеет";
+        return "порча земли у " + (home.equals(bed) ? "дома" : "алтаря") + " на " + days(curse) + ", скот болеет";
     }
 
     /** The mark of Cain: for days every beast is his enemy and every villager runs. */
