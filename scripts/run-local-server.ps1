@@ -7,7 +7,7 @@
 # -Smoke: start, wait until the server is up, stop it and list the log's ERROR lines (for tests and the integrator).
 # -SetSecret <VARIABLE>: asks for a value (hidden input) and saves it DPAPI-encrypted for this Windows user, then exits.
 # Usage: powershell -ExecutionPolicy Bypass -File scripts\run-local-server.ps1 [-Fresh] [-World <name>] [-Public]
-#        [-Memory 6G] [-NewWindow] [-Dir <folder>] | -SetSecret MOBTALK_ADMIN_TOKEN
+#        [-Memory 6G] [-NewWindow] [-Dir <folder>] | -SetSecret ELEVENLABS_API_KEY
 param([string]$Dir = (Join-Path $env:LOCALAPPDATA 'MobTalkPack\server'), [switch]$Fresh, [string]$World = '', [switch]$Public,
     [string]$Memory = '6G', [int]$Port = 0, [switch]$NewWindow, [string]$Pack = 'mob-talk-pack',
     [string]$Instances = (Join-Path $env:APPDATA 'PrismLauncher\instances'), [string]$SetSecret = '', [switch]$CheckOnly, [switch]$Smoke, [int]$SmokeSeconds = 900)
@@ -20,7 +20,6 @@ $secrets = [ordered]@{
     'OPENROUTER_API_KEY' = @('MobTalk\openrouter-key.dpapi', 'DivineBlock\openrouter-key.dpapi')
     'VENICE_API_KEY' = @('MobTalk\venice-key.dpapi', 'DivineBlock\venice-key.dpapi')
     'ELEVENLABS_API_KEY' = @('MobTalk\elevenlabs-key.dpapi')
-    'MOBTALK_ADMIN_TOKEN' = @('MobTalk\admin-token.dpapi')
 }
 
 if ($SetSecret) {
