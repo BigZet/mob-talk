@@ -44,8 +44,21 @@ public final class HogweedConfig {
 
     public static HogweedConfig get() { return current; }
 
+    /** A detached copy to edit in the settings screen. */
+    public HogweedConfig copy() { return GSON.fromJson(GSON.toJson(this), HogweedConfig.class); }
+
+    /** Makes edited settings the current ones and writes them to the file. In single player they apply at once. */
+    public static void apply(HogweedConfig edited) {
+        edited.clamp();
+        current = edited;
+        try { Files.writeString(file(), GSON.toJson(edited), StandardCharsets.UTF_8); }
+        catch (IOException failure) { RusFlora.LOG.warn("Настройки борщевика не сохранены", failure); }
+    }
+
+    private static Path file() { return FabricLoader.getInstance().getConfigDir().resolve("rusflora-hogweed.json"); }
+
     static void load() {
-        Path file = FabricLoader.getInstance().getConfigDir().resolve("rusflora-hogweed.json");
+        Path file = file();
         try {
             if (Files.exists(file)) current = GSON.fromJson(Files.readString(file, StandardCharsets.UTF_8), HogweedConfig.class);
             if (current == null) current = new HogweedConfig();

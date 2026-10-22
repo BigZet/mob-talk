@@ -492,12 +492,14 @@ def main():
           'item.rusflora.hogweed_stalk': 'Полый стебель борщевика', 'block.rusflora.dry_hogweed_umbel': 'Сухой зонтик борщевика',
           'effect.rusflora.hogweed_sap': 'Сок борщевика', 'effect.rusflora.hogweed_burn': 'Ожог борщевиком',
           'death.attack.rusflora.hogweed_burn': '%1$s сгорел от сока борщевика на солнце',
-          'death.attack.rusflora.hogweed_burn.player': '%1$s сгорел от сока борщевика, убегая от %2$s'}
+          'death.attack.rusflora.hogweed_burn.player': '%1$s сгорел от сока борщевика, убегая от %2$s',
+          'key.rusflora.hogweed_settings': 'Настройки борщевика', 'key.categories.rusflora': 'Русская флора'}
     en = {'block.rusflora.hogweed': "Sosnowsky's Hogweed", 'item.rusflora.hogweed_seeds': 'Hogweed Seeds',
           'item.rusflora.hogweed_stalk': 'Hollow Hogweed Stalk', 'block.rusflora.dry_hogweed_umbel': 'Dry Hogweed Umbel',
           'effect.rusflora.hogweed_sap': 'Hogweed Sap', 'effect.rusflora.hogweed_burn': 'Hogweed Burn',
           'death.attack.rusflora.hogweed_burn': '%1$s was burned by hogweed sap in the sun',
-          'death.attack.rusflora.hogweed_burn.player': '%1$s was burned by hogweed sap while fleeing %2$s'}
+          'death.attack.rusflora.hogweed_burn.player': '%1$s was burned by hogweed sap while fleeing %2$s',
+          'key.rusflora.hogweed_settings': 'Hogweed settings', 'key.categories.rusflora': 'Russian Flora'}
     write_json(TOOLS / 'lang' / 'hogweed.ru_ru.json', ru)
     write_json(TOOLS / 'lang' / 'hogweed.en_us.json', en)
     print('ok')

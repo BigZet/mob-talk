@@ -6,5 +6,7 @@
   "effect.rusflora.hogweed_sap": "Сок борщевика",
   "effect.rusflora.hogweed_burn": "Ожог борщевиком",
   "death.attack.rusflora.hogweed_burn": "%1$s сгорел от сока борщевика на солнце",
-  "death.attack.rusflora.hogweed_burn.player": "%1$s сгорел от сока борщевика, убегая от %2$s"
+  "death.attack.rusflora.hogweed_burn.player": "%1$s сгорел от сока борщевика, убегая от %2$s",
+  "key.rusflora.hogweed_settings": "Настройки борщевика",
+  "key.categories.rusflora": "Русская флора"
 }

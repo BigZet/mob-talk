@@ -75,16 +75,23 @@ public final class HogweedSelfTest {
         if (!Boolean.getBoolean("rusflora.hogweedtest")) return;
         log("самотест борщевика включён");
         ClientTickEvents.END_CLIENT_TICK.register(HogweedSelfTest::tick);
-        ServerTickEvents.END_SERVER_TICK.register(server -> {
-            if (steps.isEmpty() || --wait > 0) return;
-            Step step = steps.poll();
-            try { step.action().run(); } catch (RuntimeException failure) { fail("шаг упал: " + failure); RusFlora.LOG.warn("самотест", failure); }
-            wait = steps.isEmpty() ? 0 : Math.max(1, steps.peek().delay());
-        });
+        ServerTickEvents.END_SERVER_TICK.register(server -> { if (!clientSteps) step(); });
     }
+
+    /** Runs the next queued step when its delay is over: on the server tick, or on the client tick for the menu shots
+     * (an open settings screen pauses the integrated server). */
+    private static void step() {
+        if (steps.isEmpty() || --wait > 0) return;
+        Step step = steps.poll();
+        try { step.action().run(); } catch (RuntimeException failure) { fail("шаг упал: " + failure); RusFlora.LOG.warn("самотест", failure); }
+        wait = steps.isEmpty() ? 0 : Math.max(1, steps.peek().delay());
+    }
+
+    private static boolean clientSteps;
 
     private static void tick(MinecraftClient mc) {
         ticks++;
+        if (clientSteps && phase == 2) step();
         mc.options.hudHidden = phase == 2 && !hud;
         if (screenshot != null && !mc.worldRenderer.isTerrainRenderComplete() && waited++ < 200) return;
         if (screenshot != null) {
@@ -140,6 +147,7 @@ public final class HogweedSelfTest {
         log("настройки: разлёт " + config.spread + ", радиус " + config.spreadRadius + ", предел " + config.maxPlantsNearby + " на 7x7");
 
         if (Files.exists(Path.of("hogweed-models-only"))) { models(world, player); wait = 1; return; }
+        if (Files.exists(Path.of("hogweed-menu-only"))) { menu(); wait = 1; return; }
         worldgen(world, player);
         if (wild != null) {
             steps.add(new Step(10, () -> look(player, Vec3d.ofCenter(world.getTopPosition(Heightmap.Type.MOTION_BLOCKING, wild.add(8, 0, 8))).add(0, 4, 0), Vec3d.ofCenter(wild).add(0, 1.5, 0))));
@@ -246,6 +254,21 @@ public final class HogweedSelfTest {
         }
         world.setBlockState(row.add(24, 0, 0), Hogweed.DRY_UMBEL.getDefaultState(), Block.NOTIFY_ALL);
         look(player, Vec3d.ofCenter(row).add(11, 3, 15), Vec3d.ofCenter(row).add(11, 1.5, 0));
+    }
+
+    /** Quick look at the settings screen only (run folder has a file hogweed-menu-only): as it opens, with every group
+     * unfolded, and with a search. */
+    private static void menu() {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        clientSteps = true;
+        steps.add(new Step(20, () -> mc.execute(() -> mc.setScreen(new HogweedSettingsScreen(null)))));
+        steps.add(new Step(30, () -> screenshot = "menu-folded"));
+        steps.add(new Step(10, () -> mc.execute(() -> { HogweedSettingsScreen.unfoldAll(); mc.setScreen(new HogweedSettingsScreen(null)); })));
+        steps.add(new Step(30, () -> screenshot = "menu-open"));
+        steps.add(new Step(10, () -> mc.execute(() -> { if (mc.currentScreen instanceof HogweedSettingsScreen screen) screen.searchFor("кор"); })));
+        steps.add(new Step(30, () -> screenshot = "menu-search"));
+        steps.add(new Step(10, () -> mc.execute(() -> mc.setScreen(null))));
+        steps.add(new Step(10, () -> { log("меню снято"); finished = true; }));
     }
 
     /** Quick look at the models only (run folder has a file hogweed-models-only): every stage from several sides, at a
