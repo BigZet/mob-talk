@@ -30,13 +30,22 @@ final class MobLabels {
 
     MobLabels(MobTalkClient owner) { this.owner = owner; }
 
+    private long diagnosticTicks;
     void tick() {
         labels.clear(); statuses.clear();
         MinecraftClient client = owner.client;
-        if (!owner.enabled() || !owner.config().showNameTags || client.player == null || client.world == null) return;
+        boolean diagnose = ++diagnosticTicks % 20 == 0; // раз в ~10 с: почему подписей нет, пока ищем пропавшие таблички на сервере
+        if (!owner.enabled() || !owner.config().showNameTags || client.player == null || client.world == null) {
+            if (diagnose) org.slf4j.LoggerFactory.getLogger("mobtalk").info("Mob Talk: подписи выключены (enabled {}, showNameTags {}, игрок {}, мир {})", owner.enabled(),
+                    owner.config() != null && owner.config().showNameTags, client.player != null, client.world != null);
+            return;
+        }
+        int around = 0, known = 0;
         for (MobEntity mob : client.world.getEntitiesByClass(MobEntity.class, client.player.getBoundingBox().expand(RANGE), Entity::isAlive)) {
+            around++;
             MobLabelS2C label = owner.views.label(mob.getUuid());
             if (label == null || label.name().isBlank()) continue;
+            known++;
             MobStateS2C state = owner.views.state(mob.getUuid());
             String word = state == null || state.word().isEmpty() ? "ровно" : Text.translatable("mobtalk.state." + state.word()).getString();
             int sign = state == null ? 0 : state.wordSign();
@@ -50,6 +59,7 @@ final class MobLabels {
             String status = label.line().isBlank() ? ChildView.status(mob.getUuid()) : label.line();
             if (!status.isBlank()) statuses.put(mob.getUuid(), Text.literal(status).formatted(Formatting.LIGHT_PURPLE));
         }
+        if (diagnose) org.slf4j.LoggerFactory.getLogger("mobtalk").info("Mob Talk: подписи: мобов рядом {}, с именем от сервера {}, строк к отрисовке {}, подписей в памяти клиента {}", around, known, labels.size(), owner.views.names().size());
     }
 
     void render(WorldRenderContext context) {

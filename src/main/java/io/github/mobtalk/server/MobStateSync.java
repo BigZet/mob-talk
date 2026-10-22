@@ -73,7 +73,10 @@ final class MobStateSync {
         Long sent = tracker.sentMillis.get(mob.id());
         boolean stale = sent == null || now - sent > REFRESH_MILLIS;
         if (stale || !label.equals(tracker.labels.get(mob.id()))) { tracker.labels.put(mob.id(), label); out.label(player, label); }
-        if (card == null) { tracker.sentMillis.put(mob.id(), now); return; }
+        // Время повтора сдвигается только когда повтор ушёл: иначе подпись уходила один раз, клиент снимал её через 15 с без
+        // обновления (или при смене мира на входе) и таблички над головами пропадали (живая проверка 23 октября).
+        if (stale) tracker.sentMillis.put(mob.id(), now);
+        if (card == null) return;
         Favor favor = bridge.memory().favor(mob.id(), player);
         if (favor == null) send(player, mob, card, tracker, move, "", stale, now);
         else bridge.countInHand(player, favor.item()).whenComplete((have, error) -> bridge.onServer(() -> {
@@ -95,7 +98,6 @@ final class MobStateSync {
                 state == null ? 50 : state.interest(), state == null ? 50 : state.mood(), marker == null ? "" : marker.key(), marker == null ? 0 : marker.sign(),
                 card.relationship(), ScreenReports.relationshipLabel(card), hearts(card), favor, bargain, bargainSign);
         if (stale || !packet.equals(tracker.states.get(mob.id()))) { tracker.states.put(mob.id(), packet); out.state(player, packet); }
-        tracker.sentMillis.put(mob.id(), now);
     }
 
     private static int hearts(MobCard card) {
