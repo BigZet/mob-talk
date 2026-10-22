@@ -26,7 +26,7 @@ public final class DivineSettingsScreen extends DivinePanel {
     private String soul;
 
     /** Opened by F9, the pause menu and Mob Talk's hub (by reflection): keep this constructor. */
-    public DivineSettingsScreen(Screen parent) { this(parent, DivineConfig.load(DivineBlockMod.configFile())); }
+    public DivineSettingsScreen(Screen parent) { this(parent, ServerSettings.forScreen(DivineConfig.load(DivineBlockMod.configFile()))); }
 
     DivineSettingsScreen(Screen parent, DivineConfig config) { super(parent, config); }
 
@@ -38,24 +38,25 @@ public final class DivineSettingsScreen extends DivinePanel {
     }
 
     @Override protected void content() {
+        serverNote();
         heading("Характер бога");
-        cycle("Нрав", "Как бог отвечает на молитвы и обиды.", Arrays.asList(DivineConfig.Personality.values()), config.personality, p -> p.label, v -> config.personality = v);
-        cycle("Потолок кар", "Самая тяжёлая кара, до которой бог может дойти.", List.of(0, 1, 2, 3, 4), config.maxTier, v -> v + " — " + TIERS[v], v -> config.maxTier = v);
-        cycle("Прихоть бога", "Насколько часто бог поступает по своей прихоти, а не по заслугам.", List.of(0, 1, 2, 3), config.whimWeight,
-                v -> v == 0 ? "нет" : String.valueOf(v), v -> config.whimWeight = v);
-        toggle("Может промолчать", "Бог иногда не отвечает на молитву.", !config.disabled.contains("ignore"),
-                v -> { config.disabled.remove("ignore"); if (!v) config.disabled.add("ignore"); });
-        cycle("Пауза алтаря", "Сколько ждать между молитвами у алтаря.", List.of(0, 10, 20, 60), nearest(config.cooldownSeconds, 0, 10, 20, 60),
-                v -> v + " с", v -> config.cooldownSeconds = v);
-        toggle("Визеры и драконы", "Разрешить богу призывать визеров и драконов.", config.allowWither || config.allowDragon,
-                v -> { config.allowWither = v; config.allowDragon = v; });
-        toggle("Беречь блоки", "Кары не ломают постройки игрока.", config.protectBlocks, v -> config.protectBlocks = v);
+        server(cycle("Нрав", "Как бог отвечает на молитвы и обиды.", Arrays.asList(DivineConfig.Personality.values()), config.personality, p -> p.label, v -> config.personality = v));
+        server(cycle("Потолок кар", "Самая тяжёлая кара, до которой бог может дойти.", List.of(0, 1, 2, 3, 4), config.maxTier, v -> v + " — " + TIERS[v], v -> config.maxTier = v));
+        server(cycle("Прихоть бога", "Насколько часто бог поступает по своей прихоти, а не по заслугам.", List.of(0, 1, 2, 3), config.whimWeight,
+                v -> v == 0 ? "нет" : String.valueOf(v), v -> config.whimWeight = v));
+        server(toggle("Может промолчать", "Бог иногда не отвечает на молитву.", !config.disabled.contains("ignore"),
+                v -> { config.disabled.remove("ignore"); if (!v) config.disabled.add("ignore"); }));
+        server(cycle("Пауза алтаря", "Сколько ждать между молитвами у алтаря.", List.of(0, 10, 20, 60), nearest(config.cooldownSeconds, 0, 10, 20, 60),
+                v -> v + " с", v -> config.cooldownSeconds = v));
+        server(toggle("Визеры и драконы", "Разрешить богу призывать визеров и драконов.", config.allowWither || config.allowDragon,
+                v -> { config.allowWither = v; config.allowDragon = v; }));
+        server(toggle("Беречь блоки", "Кары не ломают постройки игрока.", config.protectBlocks, v -> config.protectBlocks = v));
 
         heading("Речь и решения");
-        cycle("Речь", "Кто пишет слова бога: OpenRouter или Venice с запасным OpenRouter.", Arrays.asList(DivineConfig.Provider.values()), config.provider,
-                p -> p == DivineConfig.Provider.VENICE ? "Venice → OpenRouter" : "OpenRouter", v -> config.provider = v);
-        toggle("Решатель Jev", "Решения бога принимает отдельная быстрая модель.", config.useJev, v -> config.useJev = v);
-        toggle("Отладка", "Показывать числа: как бог считает твою душу.", config.debug, v -> { config.debug = v; rebuild(); });
+        server(cycle("Речь", "Кто пишет слова бога: OpenRouter или Venice с запасным OpenRouter.", Arrays.asList(DivineConfig.Provider.values()), config.provider,
+                p -> p == DivineConfig.Provider.VENICE ? "Venice → OpenRouter" : "OpenRouter", v -> config.provider = v));
+        server(toggle("Решатель Jev", "Решения бога принимает отдельная быстрая модель.", config.useJev, v -> config.useJev = v));
+        server(toggle("Отладка", "Показывать числа: как бог считает твою душу.", config.debug, v -> { config.debug = v; rebuild(); }));
 
         heading("Голос и эффекты");
         // Off, plain, or ringing as in a temple (reverb and a quiet echo).
@@ -71,16 +72,17 @@ public final class DivineSettingsScreen extends DivinePanel {
 
         heading("Мир");
         // Churches in newly generated chunks and how rare they are (one per N x N chunks at most).
-        toggle("Церкви в мире", "Церкви появляются в новых чанках.", config.churches, v -> config.churches = v);
-        cycle("Редкость церквей", "Не больше одной церкви на столько чанков по каждой стороне.", List.of(32, 48, 64, 80, 100, 150, 256),
-                nearest(config.churchSpacing, 32, 48, 64, 80, 100, 150, 256), v -> v + " чанков", v -> config.churchSpacing = v);
+        server(toggle("Церкви в мире", "Церкви появляются в новых чанках.", config.churches, v -> config.churches = v));
+        server(cycle("Редкость церквей", "Не больше одной церкви на столько чанков по каждой стороне.", List.of(32, 48, 64, 80, 100, 150, 256),
+                nearest(config.churchSpacing, 32, 48, 64, 80, 100, 150, 256), v -> v + " чанков", v -> config.churchSpacing = v));
         // Which of the three churches new chunks get: all mixed, or one kind only to compare them.
-        cycle("Вид церквей", "Какие церкви ставятся в новых чанках: все вперемешку или только один вид, чтобы сравнить.",
+        server(cycle("Вид церквей", "Какие церкви ставятся в новых чанках: все вперемешку или только один вид, чтобы сравнить.",
                 List.of("", "STONE", "WOOD", "SLAVIC"), config.churchVariant,
                 v -> switch (v) { case "STONE" -> "каменная"; case "WOOD" -> "деревянная"; case "SLAVIC" -> "Slavic Church"; default -> "все вперемешку"; },
-                v -> config.churchVariant = v);
+                v -> config.churchVariant = v));
 
         heading("Ключи");
+        if (ServerSettings.remote()) note("На сервере речь и решения бога идут через ключи хостера; твои ключи нужны только для голоса бога у тебя.", MUTED);
         keyRow("Ключ OpenRouter", ApiKeys.Provider.OPENROUTER, openRouterKey, v -> openRouterKey = v);
         keyRow("Ключ Venice", ApiKeys.Provider.VENICE, veniceKey, v -> veniceKey = v);
         info("Состояние ключей", "Ключи хранятся зашифрованными отдельно от настроек.", () -> keyStatus);

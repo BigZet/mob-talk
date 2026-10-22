@@ -31,6 +31,7 @@ public final class DivineBlockClient implements ClientModInitializer {
                 io.github.divineblock.cemetery.CemeteryBlocks.all().toArray(net.minecraft.block.Block[]::new));
         settingsKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.divineblock.settings", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_F9, "key.categories.divineblock"));
         prayKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.divineblock.pray", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_R, "key.categories.divineblock"));
+        ServerSettings.register();
         GodVoicePlayer.register();
         AltarBeams.register();
         ChantPlayer.register();

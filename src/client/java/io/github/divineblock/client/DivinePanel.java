@@ -61,8 +61,9 @@ abstract class DivinePanel extends PanelScreen {
     /** Writes the config and reloads it in the game, as closing F9 always did. */
     protected final boolean save() {
         try {
-            config.save(DivineBlockMod.configFile());
-            DivineBlockMod.reloadConfig();
+            // On a server only the personal fields are the player's; an operator's server fields go to the server.
+            if (ServerSettings.remote()) ServerSettings.save(config);
+            else { config.save(DivineBlockMod.configFile()); DivineBlockMod.reloadConfig(); }
             io.github.divineblock.client.fx.FxQuality.reload();
             saved[0] = GSON.toJson(config);
             return true;
@@ -71,6 +72,18 @@ abstract class DivinePanel extends PanelScreen {
             notify("Настройки не сохранены: " + failure.getMessage(), true);
             return false;
         }
+    }
+
+    /** A control of a server field: inactive on a server for a player who is not an operator. */
+    protected final <T extends net.minecraft.client.gui.widget.ClickableWidget> T server(T widget) {
+        if (ServerSettings.locked()) widget.active = false;
+        return widget;
+    }
+
+    /** At the top of a page with server fields, on a server: who sets them. */
+    protected final void serverNote() {
+        if (ServerSettings.locked()) note("Сервер: настройки бога задаёт админ, здесь они только для чтения. Твои — голос, микрофон, эффекты и тряска.", MUTED);
+        else if (ServerSettings.remote()) note("Сервер: ты оператор, серверные настройки бога уйдут на сервер при сохранении.", MUTED);
     }
 
     private void apply() { if (save()) notify("Сохранено", false); }

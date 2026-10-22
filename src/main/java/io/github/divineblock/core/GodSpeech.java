@@ -88,12 +88,22 @@ public final class GodSpeech {
         out.append("Главные причины: ").append(reasonList(verdict.mainReasons(3))).append(".\n");
         if (verdict.forgiveness) out.append("Смертный, что прежде хулил тебя, искренне кается. Ты прощаешь его — сурово, но прощаешь; кары не будет.\n");
         if (verdict.fury) out.append("Смертный хулил тебя. Ты в бешенстве: хулы ты не терпишь, гнев твой страшен и немедлен.\n");
+        out.append(streamerLine(verdict));
         out.append("Форма этой реплики — ").append(form).append(".");
         if (recentLines != null && !recentLines.isEmpty()) {
             out.append("\nТвои прежние реплики (не повторяй их начала, слов и оборотов):");
             for (String line : recentLines) out.append("\n— ").append(clip(line, 200));
         }
         return out.toString();
+    }
+
+    /** Who is on the stream and whether he is the one praying; empty when the server has no streamer. Knowledge only: the
+     * decision is already made and does not change for it. */
+    static String streamerLine(Verdict verdict) {
+        if (verdict.streamer == null || verdict.streamer.isBlank()) return "";
+        return "В этом мире идёт трансляция, её ведёт смертный " + clip(verdict.streamer, 40)
+                + (verdict.byStreamer ? ". Молится сам ведущий трансляции." : ". Молится не ведущий трансляции, а другой смертный.")
+                + " Ни милости, ни гнева за это нет.\n";
     }
 
     static String explanation(Verdict verdict) {

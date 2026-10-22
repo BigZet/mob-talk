@@ -9,7 +9,8 @@
   "environment": "*",
   "entrypoints": {
     "main": ["io.github.divineblock.DivineBlockMod"],
-    "client": ["io.github.divineblock.client.DivineBlockClient"]
+    "client": ["io.github.divineblock.client.DivineBlockClient"],
+    "mobtalk-admin": ["io.github.divineblock.game.AdminBridge"]
   },
   "mixins": [ "divineblock.mixins.json", { "config": "divineblock.client.mixins.json", "environment": "client" } ],
   "depends": { "fabricloader": ">=0.19.5", "minecraft": "1.21.1", "java": ">=21", "fabric-api": "*" }
