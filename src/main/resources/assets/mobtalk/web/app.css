@@ -450,3 +450,27 @@ svg.map .pl .dir { stroke-width: 2.5; stroke-linecap: round; }
 svg.map .pl .name { fill: var(--text); font-weight: 600; paint-order: stroke; stroke: var(--surface-2); stroke-width: 3px; }
 svg.map .wp rect { fill: var(--surface); stroke: var(--text-2); stroke-width: 1.5; }
 svg.map .wp text { fill: var(--text-2); font-size: 11.5px; }
+
+/* карта мира */
+.wmap-host { height: min(68vh, 640px); min-height: 340px; }
+.wmap { position: relative; width: 100%; height: 100%; overflow: hidden; touch-action: none; cursor: grab; user-select: none;
+  background-color: var(--surface-2);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px); background-size: 64px 64px; }
+.wmap:active { cursor: grabbing; }
+.wmap:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.wmap-tiles { position: absolute; inset: 0; }
+.wmap-tiles img { position: absolute; max-width: none; pointer-events: none; }
+.wmap-tiles.pixelated img { image-rendering: pixelated; }
+.wmap-overlay { position: absolute; inset: 0; width: 100%; height: 100%; font: 12px var(--font); }
+.wmap-overlay .track { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; opacity: 0.85; }
+.wmap-overlay .player { cursor: pointer; }
+.wmap-overlay .player circle { stroke: #fff; stroke-width: 2; }
+.wmap-overlay .player .dir { stroke-width: 3; stroke-linecap: round; }
+.wmap-overlay .player .name { fill: #fff; font-weight: 700; paint-order: stroke; stroke: rgba(0, 0, 0, 0.75); stroke-width: 3px; }
+.wmap-overlay .marker rect { fill: #fff; stroke: #222; stroke-width: 1.5; }
+.wmap-overlay .marker.village rect { fill: #f2c14e; } .wmap-overlay .marker.boss rect { fill: #e34948; } .wmap-overlay .marker.spawn rect { fill: #34b37a; }
+.wmap-overlay .marker text { fill: #fff; font-weight: 600; paint-order: stroke; stroke: rgba(0, 0, 0, 0.7); stroke-width: 3px; }
+.wmap-zoom { position: absolute; right: 10px; top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.wmap-zoom .btn { box-shadow: var(--shadow); font-size: 18px; font-weight: 600; }
+.wmap-readout { position: absolute; left: 10px; bottom: 8px; padding: 2px 8px; border-radius: 6px; background: rgba(0, 0, 0, 0.55); color: #fff; font: 12px var(--mono); pointer-events: none; }
+.wmap-readout:empty { display: none; }

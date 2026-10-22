@@ -6,7 +6,7 @@ import * as fmt from '../lib/fmt.js';
 import { seg, table, load, drawer, confirm, ask, busy, toast, empty, hearts, kv, switchInput } from '../lib/ui.js';
 import { timeChart } from '../lib/chart.js';
 import { speciesTitle } from '../lib/record.js';
-import { navigate, setParams } from '../app.js';
+import { navigate, setParams, parseRoute } from '../app.js';
 import { positionsTab, positionBlock } from './positions.js';
 
 const LEVEL = { ADMIN: 'админ', STREAMER: 'стример', PLAYER: 'игрок' };
@@ -39,7 +39,7 @@ export default function players(root, route) {
     stopMap?.(); stopMap = null;
     listTools.hidden = listBox.hidden = view !== 'list';
     mapBox.hidden = view !== 'map';
-    if (view === 'map') stopMap = positionsTab(mapBox, { onOpen: uuid => navigate('players', uuid, { view: 'map' }) });
+    if (view === 'map') stopMap = positionsTab(mapBox, { onOpen: uuid => navigate('players', uuid, parseRoute().params), params: parseRoute().params, setParams });
   };
   replace(root,
     h('div.page-head', h('h1', 'Игроки'), seg([{ value: 'list', title: 'Список' }, { value: 'map', title: 'Где игроки' }], view, v => { view = v; setParams({ view: v === 'map' ? 'map' : '' }); showView(); }, 'Вид')),

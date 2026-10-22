@@ -150,6 +150,7 @@ function startEvents(conn) {
     error: d => { emit('error-group', d); if (current.route?.section !== 'debug') { errorsBadge++; markNav(); } },
     backup: d => emit('backup', d),
     positions: d => emit('positions', d),
+    map: d => emit('map-tile', d),
   }, { onState: s => { conn.className = `conn${s === 'ok' ? '' : '.' + s}`.replace('.', ' '); conn.textContent = label[s]; } });
 }
 

@@ -5,14 +5,13 @@ import { api } from '../lib/api.js';
 import * as fmt from '../lib/fmt.js';
 import { seg, busy, toast, empty, errorBox, skeleton, table, openDialog, copyText } from '../lib/ui.js';
 import { pname } from '../lib/record.js';
+import { WorldMap } from '../lib/worldmap.js';
 import { on } from '../lib/sse.js';
 import { confirm, ask } from '../lib/ui.js';
 
 export const WORLDS = { 'minecraft:overworld': 'Верхний мир', 'minecraft:the_nether': 'Незер', 'minecraft:the_end': 'Энд' };
 export const worldTitle = w => WORLDS[w] || String(w || '—').replace(/^minecraft:/, '');
 export const coords = p => (p && p.x != null ? `${Math.round(p.x)} ${Math.round(p.y)} ${Math.round(p.z)}` : '—');
-const SVGNS = 'http://www.w3.org/2000/svg';
-const svg = (tag, attrs = {}, ...kids) => { const el = document.createElementNS(SVGNS, tag); for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v); el.append(...kids); return el; };
 
 export const unavailable = e => e?.status === 404 || e?.status === 503;
 const NOT_YET = { status: 503, message: 'Сервер пока не отдаёт местоположение игроков: эту часть API ещё подключают.' };
@@ -80,84 +79,111 @@ export async function teleportDialog(target, { positions = [], waypoints = null,
   openDialog(dlg);
 }
 
-/** Карта сверху: точки игроков (и сохранённые точки) одного мира. */
-function mapView(list, waypoints, width = 800) {
-  const W = Math.max(320, Math.round(width)), H = W < 600 ? Math.round(W * 0.85) : Math.round(W * 0.5), pad = W < 600 ? 34 : 40;
-  const pts = [...list.map(p => ({ x: p.x, z: p.z })), ...waypoints.map(w => ({ x: w.x, z: w.z }))];
-  if (!pts.length) return empty('В этом мире никого нет.');
-  let minX = Math.min(...pts.map(p => p.x)), maxX = Math.max(...pts.map(p => p.x)), minZ = Math.min(...pts.map(p => p.z)), maxZ = Math.max(...pts.map(p => p.z));
-  const span = Math.max(64, maxX - minX, (maxZ - minZ) * (W / H)) * 1.15;
-  const cx = (minX + maxX) / 2, cz = (minZ + maxZ) / 2, spanZ = span * (H / W);
-  minX = cx - span / 2; maxX = cx + span / 2; minZ = cz - spanZ / 2; maxZ = cz + spanZ / 2;
-  const sx = v => pad + ((v - minX) / (maxX - minX)) * (W - 2 * pad), sz = v => pad + ((v - minZ) / (maxZ - minZ)) * (H - 2 * pad);
-  const step = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192].find(s => span / s <= 8) || 16384;
-  const grid = [];
-  for (let gx = Math.ceil(minX / step) * step; gx <= maxX; gx += step) grid.push(svg('line', { x1: sx(gx), x2: sx(gx), y1: pad, y2: H - pad, class: 'grid' }), svg('text', { x: sx(gx), y: H - pad + 16, 'text-anchor': 'middle', class: 'tick' }, String(gx)));
-  for (let gz = Math.ceil(minZ / step) * step; gz <= maxZ; gz += step) grid.push(svg('line', { x1: pad, x2: W - pad, y1: sz(gz), y2: sz(gz), class: 'grid' }), svg('text', { x: pad - 6, y: sz(gz) + 4, 'text-anchor': 'end', class: 'tick' }, String(gz)));
-  const marks = waypoints.map(w => svg('g', { class: 'wp' }, svg('rect', { x: sx(w.x) - 5, y: sz(w.z) - 5, width: 10, height: 10, transform: `rotate(45 ${sx(w.x)} ${sz(w.z)})` }), svg('text', { x: sx(w.x) + 10, y: sz(w.z) + 4 }, w.name)));
-  const people = list.map((p, i) => svg('g', { class: 'pl' }, svg('title', {}, `${pname(p.player)}: ${coords(p)}`),
-    svg('circle', { cx: sx(p.x), cy: sz(p.z), r: 7, style: `fill: var(--s${(i % 8) + 1})` }),
-    p.yaw != null ? svg('line', { x1: sx(p.x), y1: sz(p.z), x2: sx(p.x) - Math.sin((p.yaw * Math.PI) / 180) * 16, y2: sz(p.z) + Math.cos((p.yaw * Math.PI) / 180) * 16, class: 'dir', style: `stroke: var(--s${(i % 8) + 1})` }) : '',
-    svg('text', { x: sx(p.x) + 11, y: sz(p.z) - 9, class: 'name' }, pname(p.player))));
-  return h('div.map-wrap', svg('svg', { viewBox: `0 0 ${W} ${H}`, class: 'map', role: 'img', 'aria-label': `Карта: ${list.map(p => `${pname(p.player)} ${coords(p)}`).join('; ')}` },
-    svg('rect', { x: pad, y: pad, width: W - 2 * pad, height: H - 2 * pad, class: 'frame' }), ...grid, ...marks, ...people,
-    svg('text', { x: W - pad, y: pad - 10, 'text-anchor': 'end', class: 'tick' }, 'север ↑ · X вправо, Z вниз')));
-}
+const TRACKS = [{ value: 'off', title: 'Без следов' }, { value: '1h', title: '1 ч', ms: 3600e3 }, { value: '6h', title: '6 ч', ms: 6 * 3600e3 }, { value: '24h', title: '24 ч', ms: 86400e3 }, { value: '7d', title: '7 д', ms: 7 * 86400e3 }];
 
-/** Вкладка «Где игроки» раздела «Игроки». Возвращает функцию остановки опроса. */
-export function positionsTab(box, { onOpen } = {}) {
-  let world = null, timer = null, stopped = false, waypoints = [], lastHead = '';
+/** Вкладка «Где игроки» раздела «Игроки»: карта мира сверху со следами, таблица координат, точки телепорта. */
+export function positionsTab(box, { onOpen, params = {}, setParams = () => {} } = {}) {
+  let world = params.world || null, stopped = false, waypoints = [], lastData = null, lastEvent = 0, trackRange = params.tracks || '6h', knownWorlds = null;
   const stamp = h('span.muted', { style: { fontSize: '12.5px' } });
-  const head = h('div.toolbar'), mapBox = h('section.card'), listBox = h('section.card.flush');
-  replace(box, head, h('div.stack.lg', mapBox, listBox));
-  replace(mapBox, skeleton(1, 300));
-  let lastData = null, lastEvent = 0;
+  const worldBox = h('span'), followSel = h('select.select', { 'aria-label': 'Следить за игроком', style: { width: 'auto' } });
+  const head = h('div.toolbar', worldBox, followSel, seg(TRACKS, trackRange, v => { trackRange = v; setParams({ tracks: v }); loadTracks(); }, 'Следы'), h('span.spacer'), stamp);
+  const host = h('div.wmap-host');
+  const mapCard = h('section.card.flush', host);
+  const listBox = h('section.card.flush'), wpBox = h('section.card');
+  replace(box, head, h('div.stack.lg', mapCard, listBox, wpBox));
+  const map = new WorldMap(host, {
+    world: world || 'minecraft:overworld', center: params.mx != null ? { x: +params.mx, z: +params.mz } : null, scale: params.ms ? +params.ms : 1,
+    onView: v => setParams({ mx: v.x, mz: v.z, ms: v.scale }), onPick: uuid => onOpen?.(uuid),
+  });
+  let centered = params.mx != null;
+  followSel.addEventListener('change', () => { if (followSel.value) map.followPlayer(followSel.value); else map.follow = null; });
+  const switchWorld = w => { if (w === world) return; world = w; setParams({ world: w }); map.setWorld(w); worldsKey = ''; centered = false; loadTracks(); loadMarkers(); if (lastData) tick(false, lastData); };
+
+  let worldsKey = '';
+  function drawWorlds(worlds, ps) {
+    const key = worlds.join(',') + '|' + world + '|' + ps.map(p => p.world).join(',');
+    if (key === worldsKey) return;
+    worldsKey = key;
+    replace(worldBox, worlds.length > 1 ? seg(worlds.map(w => ({ value: w, title: `${worldTitle(w)} · ${ps.filter(p => p.world === w).length}` })), world, switchWorld, 'Мир') : h('b', worldTitle(world)));
+  }
   async function tick(first, pushed) {
     try {
       const r = pushed || await api.get('players/positions');
       if (stopped) return;
       lastData = r;
       const ps = (r.players || []).filter(p => p.online !== false);
-      const worlds = [...new Set(ps.map(p => p.world))];
-      if (!world || !worlds.includes(world)) world = worlds[0] || 'minecraft:overworld';
-      const headKey = worlds.map(w => `${w}:${ps.filter(p => p.world === w).length}`).join(',') + '|' + world;
-      if (headKey !== lastHead) {
-        lastHead = headKey;
-        replace(head, worlds.length > 1 ? seg(worlds.map(w => ({ value: w, title: `${worldTitle(w)} · ${ps.filter(p => p.world === w).length}` })), world, v => { world = v; tick(false, lastData); }, 'Мир') : h('span.text-2', worldTitle(world)),
-          h('span.spacer'), stamp);
-      }
+      if (!world) { world = ps[0]?.world || 'minecraft:overworld'; map.setWorld(world); }
+      const worlds = [...new Set([...(knownWorlds || []), ...ps.map(p => p.world), world])];
+      drawWorlds(worlds, ps);
       stamp.textContent = `обновлено ${fmt.timeSec(r.t || Date.now())}`;
-      replace(mapBox, mapView(ps.filter(p => p.world === world), waypoints.filter(w => w.world === world), mapBox.clientWidth - 32 || 800));
+      const here = ps.filter(p => p.world === world);
+      map.setPlayers(here);
+      if (!centered && here.length) { centered = true; map.fit(); }
+      const options = ['', ...here.map(p => p.player.uuid)].join(',');
+      if (followSel.dataset.k !== options) {
+        followSel.dataset.k = options;
+        replace(followSel, h('option', { value: '' }, 'Не следить'), here.map(p => h('option', { value: p.player.uuid, selected: map.follow === p.player.uuid }, `Следить: ${pname(p.player)}`)));
+      }
+      // Свежие точки дописываем к следам, чтобы путь рос без перезапроса.
+      if (trackRange !== 'off') {
+        for (const p of here) {
+          let t = map.tracks.find(x => x.player.uuid === p.player.uuid);
+          if (!t) { t = { player: p.player, points: [] }; map.tracks.push(t); }
+          const lastPt = t.points[t.points.length - 1];
+          if (!lastPt || Math.hypot(lastPt[1] - p.x, lastPt[3] - p.z) > 2) t.points.push([r.t || Date.now(), p.x, p.y, p.z]);
+        }
+        map.drawOverlay();
+      }
       if (!listBox.contains(document.activeElement)) replace(listBox, ps.length ? table([
         { key: 'name', title: 'Игрок', value: p => pname(p.player).toLowerCase(), render: p => h('a', { href: `#/players/${encodeURIComponent(p.player.uuid)}`, onclick: e => { if (onOpen) { e.preventDefault(); onOpen(p.player.uuid); } } }, pname(p.player)) },
         { key: 'world', title: 'Мир', render: p => worldTitle(p.world) },
         { key: 'xyz', title: 'X Y Z', sortable: false, render: p => h('button.btn.ghost.sm.mono', { type: 'button', title: 'Скопировать команду /tp', onclick: () => copyText(`/execute in ${p.world} run tp ${pname(p.player)} ${coords(p)}`) }, coords(p), icon('copy', 'sm')) },
         { key: 'biome', title: 'Биом', render: p => (p.biome ? String(p.biome).replace(/^minecraft:/, '').replaceAll('_', ' ') : '—') },
         { key: 'health', title: 'Здоровье', r: true, render: p => (p.health != null ? `${Math.round(p.health / 2 * 10) / 10} ♥` : '—') },
-        { key: 'tp', title: '', sortable: false, render: p => h('button.btn.sm', { type: 'button', onclick: () => teleportDialog(p.player, { positions: ps, waypoints, onDone: () => tick() }) }, 'Телепорт…') },
+        { key: 'tp', title: '', sortable: false, render: p => h('div.row.nowrap',
+          h('button.btn.sm.ghost', { type: 'button', onclick: () => { switchWorld(p.world); map.followPlayer(p.player.uuid); followSel.value = p.player.uuid; mapCard.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }, 'На карте'),
+          h('button.btn.sm', { type: 'button', onclick: () => teleportDialog(p.player, { positions: ps, waypoints, onDone: () => tick() }) }, 'Телепорт…')) },
       ], ps, { sort: { key: 'name', dir: 1 } }) : h('div', empty('Онлайн никого нет.')));
     } catch (e) {
       if (stopped) return;
-      if (unavailable(e)) { replace(mapBox, errorBox(NOT_YET)); replace(listBox); replace(head); stopped = true; return; }
-      if (first) replace(mapBox, errorBox(e, () => tick(true)));
+      if (unavailable(e)) { replace(mapCard, errorBox(NOT_YET)); replace(listBox); stopped = true; return; }
+      if (first) replace(listBox, errorBox(e, () => tick(true)));
     }
   }
-  // Точки телепорта: список, добавить (вручную или где стоит игрок), удалить.
-  const wpBox = h('section.card');
-  box.querySelector('.stack.lg').append(wpBox);
+  async function loadTracks() {
+    map.showTracks = trackRange !== 'off';
+    if (trackRange === 'off') { map.setTracks([]); return; }
+    const to = Date.now();
+    try {
+      const r = await api.get('players/tracks', { world: world || 'minecraft:overworld', from: to - TRACKS.find(t => t.value === trackRange).ms, to, points: 2000 });
+      if (!stopped) map.setTracks(r.tracks || []);
+    } catch { map.setTracks([]); }
+  }
+  async function loadMarkers() {
+    try { const r = await api.get('map/markers', { world: world || 'minecraft:overworld' }); if (!stopped) map.setMarkers(r.markers || []); }
+    catch { map.setMarkers(waypoints.filter(w => w.world === world).map(w => ({ kind: 'waypoint', id: w.id, name: w.name, x: w.x, z: w.z }))); }
+  }
+  api.get('map/info', { world: world || 'minecraft:overworld' }).then(i => {
+    knownWorlds = i.worlds || null;
+    if (!centered && i.spawn && !(lastData?.players || []).some(p => p.world === world)) { centered = true; map.center(i.spawn.x, i.spawn.z, 0.5); }
+    if (lastData) tick(false, lastData);
+  }).catch(() => {});
+
+  // Точки телепорта: список, добавить (вручную, где стоит игрок или центр карты), показать, удалить.
   function drawWaypoints() {
     const add = h('button.btn.sm', { type: 'button' }, 'Добавить точку');
     add.addEventListener('click', async () => {
       const ps = lastData?.players || [];
       const r = await ask({ title: 'Новая точка', ok: 'Сохранить', fields: [
         { key: 'name', title: 'Название', placeholder: 'Колокол в Дубках' },
-        { key: 'from', title: 'Откуда взять координаты', options: [{ value: '', title: 'Ввести вручную' }, ...ps.map(p => ({ value: p.player.uuid, title: `Где стоит ${pname(p.player)}` }))] },
+        { key: 'from', title: 'Откуда взять координаты', options: [{ value: 'center', title: 'Центр карты' }, ...ps.map(p => ({ value: p.player.uuid, title: `Где стоит ${pname(p.player)}` })), { value: '', title: 'Ввести вручную' }] },
         { key: 'world', title: 'Мир (если вручную)', options: Object.entries(WORLDS).map(([value, title]) => ({ value, title })) },
         { key: 'xyz', title: 'X Y Z (если вручную)', placeholder: '120 64 -300' }] });
       if (!r || !r.name.trim()) return;
       let body;
       const src = ps.find(p => p.player.uuid === r.from);
       if (src) body = { name: r.name.trim(), world: src.world, x: Math.round(src.x), y: Math.round(src.y), z: Math.round(src.z) };
+      else if (r.from === 'center') body = { name: r.name.trim(), world: world || 'minecraft:overworld', x: Math.round(map.cx), y: 80, z: Math.round(map.cz) };
       else {
         const v = r.xyz.trim().split(/[\s,;]+/).map(Number);
         if (v.length !== 3 || v.some(n => !Number.isFinite(n))) return toast('Нужны три числа через пробел: X Y Z', 'bad');
@@ -172,18 +198,25 @@ export function positionsTab(box, { onOpen } = {}) {
           if (await confirm({ title: `Удалить «${w.name}»?`, consequence: 'Точка пропадёт из списка телепорта. Игроков это не затронет.', ok: 'Удалить', danger: true }))
             busy(del, async () => { await api.del(`waypoints/${encodeURIComponent(w.id)}`); toast('Удалено'); await loadWaypoints(); });
         });
-        return h('div.list-item', { style: { padding: '8px 0' } }, h('div.body', h('div', { style: { fontWeight: 600 } }, w.name), h('div.meta', worldTitle(w.world), h('span.mono', coords(w)))), del);
+        const show = h('button.btn.sm.ghost', { type: 'button', onclick: () => { switchWorld(w.world); map.follow = null; centered = true; map.center(w.x, w.z, Math.max(map.scale, 2)); mapCard.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }, 'На карте');
+        return h('div.list-item', { style: { padding: '8px 0' } }, h('div.body', h('div', { style: { fontWeight: 600 } }, w.name), h('div.meta', worldTitle(w.world), h('span.mono', coords(w)))), show, del);
       })) : h('p.muted', 'Точек нет. Сохраните важные места — дом, деревню, храм — чтобы переносить туда в одно касание.'));
   }
   async function loadWaypoints() {
-    try { waypoints = (await api.get('waypoints')).waypoints || []; drawWaypoints(); if (lastData) tick(false, lastData); } catch (e) { if (unavailable(e)) wpBox.hidden = true; else replace(wpBox, errorBox(e, loadWaypoints)); }
+    try { waypoints = (await api.get('waypoints')).waypoints || []; drawWaypoints(); loadMarkers(); } catch (e) { if (unavailable(e)) wpBox.hidden = true; else replace(wpBox, errorBox(e, loadWaypoints)); }
   }
+
   loadWaypoints();
-  const off = on('positions', d => { lastEvent = Date.now(); if (!stopped) tick(false, d); });
+  loadTracks();
+  const offs = [
+    on('positions', d => { lastEvent = Date.now(); if (!stopped) tick(false, d); }),
+    on('map-tile', d => d && map.refreshTile(d.world, d.zoom, d.tx, d.tz)),
+  ];
   tick(true);
   // Основной путь — событие positions по SSE; опрос — запасной, если событий нет.
-  timer = setInterval(() => { if (!stopped && document.visibilityState === 'visible' && Date.now() - lastEvent > 4000) tick(); }, 2000);
-  return () => { stopped = true; clearInterval(timer); off(); };
+  const timer = setInterval(() => { if (!stopped && document.visibilityState === 'visible' && Date.now() - lastEvent > 4000) tick(); }, 2000);
+  const trackTimer = setInterval(() => { if (!stopped && document.visibilityState === 'visible') loadTracks(); }, 60_000);
+  return () => { stopped = true; clearInterval(timer); clearInterval(trackTimer); offs.forEach(f => f()); map.destroy(); };
 }
 
 /** Блок «Местоположение» в карточке игрока. */
