@@ -27,7 +27,7 @@ import java.util.function.Supplier;
 public final class AdminApi {
     /** Everything the routes read; built by {@code AdminWeb} on a server and by {@code DevStubServer} in development. */
     public record Parts(HistoryStore history, Metrics metrics, Latency latency, AdminJournal journal, ErrorLog errors, ConfigSources sources,
-                        GameView game, Backups backups, Waypoints waypoints, MapSource map, Tracks tracks, Path log, Supplier<JsonObject> limits, Supplier<JsonObject> adminInfo, LongSupplier clock) { }
+                        GameView game, Backups backups, Waypoints waypoints, MapSource map, Tracks tracks, BlueMapControl map3d, Path log, Supplier<JsonObject> limits, Supplier<JsonObject> adminInfo, LongSupplier clock) { }
 
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final String[] MONTHS = {"янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"};
@@ -65,9 +65,14 @@ public final class AdminApi {
                 }
             } catch (RuntimeException | LinkageError failure) { /* The next tick tries again. */ }
         }, 2, 2, java.util.concurrent.TimeUnit.SECONDS);
+        positions.scheduleWithFixedDelay(() -> {
+            try { parts.map3d().sweep(); } catch (RuntimeException | LinkageError failure) { /* Next time. */ }
+        }, 30, 30, java.util.concurrent.TimeUnit.SECONDS);
     }
 
     public Router router() { return router; }
+    /** {@code /map3d/}: BlueMap's webapp and maps, for {@link AdminHttpServer#mount}. */
+    public Router.Handler map3dFiles() { return r -> parts.map3d().file(r.path()); }
     public SseHub events() { return events; }
     public void close() { positions.shutdownNow(); events.close(); live.close(); }
 
@@ -213,6 +218,8 @@ public final class AdminApi {
             }
             return Response.json(Json.obj("world", world, "markers", markers));
         });
+        router.post("/api/map3d/keepalive", r -> Response.json(parts.map3d().keepalive()));
+        router.get("/api/map3d/status", r -> Response.json(parts.map3d().status()));
         router.get("/api/waypoints", r -> Response.json(parts.waypoints().list()));
         router.post("/api/waypoints", r -> Response.json(Json.obj("ok", true, "waypoint", parts.waypoints().add(r.json()))));
         router.delete("/api/waypoints/{id}", r -> {

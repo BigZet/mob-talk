@@ -47,5 +47,5 @@
              {"id": "lithium", "name": "Lithium", "version": "0.15.0"}, {"id": "spark", "name": "spark", "version": "1.10.119"}],
     "world": {"name": "world", "difficulty": "normal", "dayTime": 6000}, "players": {"online": 2, "max": 8},
     "pack": ["mobtalk 0.7.0 8a8fba4", "divineblock 0.4.0 1c2d3e4", "rusflora 0.2.0 9f8e7d6"]},
-  "commandRoots": ["mobtalk", "divineblock", "vp", "say", "time", "weather", "whitelist", "kick", "ban", "pardon", "tp", "gamemode", "spark", "chunky"]
+  "commandRoots": ["bluemap", "mobtalk", "divineblock", "vp", "say", "time", "weather", "whitelist", "kick", "ban", "pardon", "tp", "gamemode", "spark", "chunky"]
 }
