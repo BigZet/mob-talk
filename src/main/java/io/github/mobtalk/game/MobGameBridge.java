@@ -352,6 +352,16 @@ public final class MobGameBridge implements GameBridge {
         MobGameBridge bridge = forEntity(player);
         return bridge != null && (bridge.coSleep.holdsNight(player) || bridge.children.holdsNight(player));
     }
+    /** Сделка в окне торговли состоялась: запись «Торг» в журнал админки (на выделенном сервере; в одиночке журнал пуст). */
+    public static void journalTrade(MobEntity merchant, ServerPlayerEntity player, net.minecraft.village.TradeOffer offer) {
+        io.github.mobtalk.server.DialogueService dialogue = io.github.mobtalk.MobTalkMod.dialogue();
+        MobGameBridge bridge = forEntity(merchant);
+        if (dialogue == null || bridge == null || offer == null) return;
+        String known = bridge.memory.displayName(merchant.getUuid());
+        String gave = stack(offer.getDisplayedFirstBuyItem()) + (offer.getDisplayedSecondBuyItem().isEmpty() ? "" : " + " + stack(offer.getDisplayedSecondBuyItem()));
+        dialogue.traded(player.getUuid(), playerName(player), merchant.getUuid(), known.isBlank() ? merchant.getName().getString() : known, type(merchant), gave, stack(offer.getSellItem()));
+    }
+    private static String stack(net.minecraft.item.ItemStack stack) { return stack.getCount() + " " + Registries.ITEM.getId(stack.getItem()).getPath(); }
     public static void helped(MobEntity mob, ServerPlayerEntity player, String reason) {
         MobGameBridge bridge = forEntity(mob);
         if (bridge == null) return;

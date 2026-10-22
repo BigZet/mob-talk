@@ -43,6 +43,8 @@ public final class FakeProvider implements AutoCloseable {
             choices.add(choice);
             JsonObject body = new JsonObject();
             body.add("choices", choices);
+            JsonObject usage = new JsonObject(); usage.addProperty("cost", 0.0012); usage.addProperty("prompt_tokens", 800); usage.addProperty("completion_tokens", 60);
+            body.add("usage", usage);
             byte[] bytes = body.toString().getBytes(StandardCharsets.UTF_8);
             exchange.sendResponseHeaders(200, bytes.length);
             exchange.getResponseBody().write(bytes);

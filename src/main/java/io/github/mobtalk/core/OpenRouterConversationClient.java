@@ -172,6 +172,8 @@ final class OpenRouterConversationClient implements AutoCloseable {
         }
         if (jsonObjectOnly) ReplySchema.useJsonObject(body);
         if (stream) body.addProperty("stream", true);
+        // Учёт OpenRouter: цена запроса в ответе ({@code usage.cost}) — для журнала админки и бюджета игрока на сервере.
+        if (!config.usesVenice()) { JsonObject usage = new JsonObject(); usage.addProperty("include", true); body.add("usage", usage); }
         return body;
     }
 
@@ -242,14 +244,16 @@ final class OpenRouterConversationClient implements AutoCloseable {
      * as an ordinary completion for the validator. */
     private byte[] exchange(JsonObject body, long remainingNanos, Consumer<String> spoken) throws IOException, InterruptedException {
         HttpRequest request = request(body, Duration.ofNanos(remainingNanos));
-        if (!body.has("stream")) return http.send(request, 256 * 1024, service());
+        if (!body.has("stream")) { byte[] whole = http.send(request, 256 * 1024, service()); LlmSpend.add(usage(whole)); return whole; }
         StringBuilder content = new StringBuilder();
         boolean[] seen = new boolean[2]; // [0] any event, [1] reply already handed over
         String[] error = new String[1];
+        JsonObject[] usage = new JsonObject[1];
         byte[] raw = http.sendEvents(request, 4 * 1024 * 1024, service(), data -> {
             JsonObject event = JsonParser.parseString(data).getAsJsonObject();
             seen[0] = true;
             if (event.has("error")) { error[0] = service() + ": ошибка провайдера во время ответа."; return; }
+            if (event.has("usage") && event.get("usage").isJsonObject()) usage[0] = event.getAsJsonObject("usage");
             JsonArray choices = event.getAsJsonArray("choices");
             if (choices == null || choices.isEmpty()) return;
             JsonObject delta = choices.get(0).getAsJsonObject().getAsJsonObject("delta");
@@ -260,6 +264,7 @@ final class OpenRouterConversationClient implements AutoCloseable {
                 if (reply != null) { seen[1] = true; spoken.accept(reply); }
             }
         });
+        LlmSpend.add(usage[0] != null || seen[0] ? usage[0] : usage(raw)); // Без событий провайдер ответил целиком.
         if (error[0] != null) throw new IOException(error[0]);
         if (!seen[0]) return raw;
         JsonObject message = new JsonObject(); message.addProperty("content", content.toString());
@@ -267,6 +272,14 @@ final class OpenRouterConversationClient implements AutoCloseable {
         JsonArray choices = new JsonArray(); choices.add(choice);
         JsonObject completion = new JsonObject(); completion.add("choices", choices);
         return completion.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    /** {@code usage} of a whole completion, null when it has none or is unreadable. */
+    private static JsonObject usage(byte[] completion) {
+        try {
+            JsonObject response = JsonParser.parseString(new String(completion, StandardCharsets.UTF_8)).getAsJsonObject();
+            return response.has("usage") && response.get("usage").isJsonObject() ? response.getAsJsonObject("usage") : null;
+        } catch (RuntimeException unreadable) { return null; }
     }
 
     /** The reply string of a completion the validator refused: what the player already heard, "" when even that is unreadable. */

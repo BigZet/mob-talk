@@ -187,4 +187,24 @@ class DialogueServiceTest {
         assertTrue(RecordingOutbox.await(service, 3_000, () -> out.screens.stream().anyMatch(s -> s.screen().equals("card") && s.json().contains("\"error\":\"") && !s.json().contains("\"error\":\"\""))),
                 "нет моба — понятная ошибка");
     }
+
+    @Test void theAnswersPriceAndTradesReachTheJournal() throws Exception {
+        List<String> events = new java.util.concurrent.CopyOnWriteArrayList<>();
+        java.util.concurrent.atomic.AtomicReference<io.github.mobtalk.core.LlmSpend.Tally> spent = new java.util.concurrent.atomic.AtomicReference<>();
+        service.setJournal(new DialogueService.Journal() {
+            @Override public Object started(UUID player, String playerName, UUID mob, String mobName, String species, String question, String stt) { return "run"; }
+            @Override public void step(Object run, String step) { }
+            @Override public void finished(Object run, String answer, List<String> actions, String model, String stt, io.github.mobtalk.core.LlmSpend.Tally spend) { spent.set(spend); }
+            @Override public void failed(Object run, String step, String message) { }
+            @Override public void event(String kind, UUID player, String playerName, UUID mob, String mobName, String species, String text, Map<String, Object> data) { events.add(kind + ": " + text); }
+        });
+        service.talkText(dima, 11, "Привет", false, new byte[0]);
+        assertTrue(RecordingOutbox.await(service, 10_000, () -> spent.get() != null));
+        assertEquals(0.0012, spent.get().usd(), 1e-9, "цена ответа из usage.cost");
+        assertEquals(800, spent.get().tokensIn());
+        assertEquals("уступка 1 изумр., сделка «bread» за 3", DialogueService.tradeWords(new io.github.mobtalk.core.BargainIntent(io.github.mobtalk.core.BargainIntent.Type.OFFER, 0, 1),
+                new io.github.mobtalk.core.DealIntent(io.github.mobtalk.core.DealIntent.Type.OFFER, "bread", 3)));
+        service.traded(dima, "Дима", villager, "Марфа", "minecraft:villager", "1 emerald", "12 wheat");
+        assertTrue(events.contains("trade: Дима ↔ Марфа: 1 emerald → 12 wheat"), events.toString());
+    }
 }
