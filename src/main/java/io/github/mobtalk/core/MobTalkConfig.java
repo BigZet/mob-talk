@@ -54,6 +54,10 @@ public final class MobTalkConfig {
     /** How long a streamed reply may stay silent before its first token; a stalled provider is cancelled and asked once more. 0 waits the whole timeout. */
     public int firstTokenSeconds = 12;
     public double maxDistance = 16;
+    /** Голос моба звучит из моба: до {@code voiceFullRange} блоков в полную силу, к {@code voiceSilentRange} плавно стихает (VoiceFalloff). */
+    public double voiceFullRange = 4, voiceSilentRange = 48;
+    /** Сколько секунд моб, потерявший игрока из виду или из дальности (дерево, угол, шаг назад), ещё держит внимание и разговор (Grace). */
+    public int voiceGraceSeconds = 6;
     /** Bystanders that may answer after the mob spoken to, one after another (0–2): three voices in a row at most. */
     public int witnessReplies = 2;
     /** One word of the selected mob's emotional state («встревожен», «в духе») in the Mob Talk line. */

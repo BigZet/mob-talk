@@ -113,7 +113,9 @@ final class MobActionController {
             if (!player.isAlive() || player.isSpectator() || player.isCreative()) continue;
             for (MobEntity mob : world.getEntitiesByClass(MobEntity.class, player.getBoundingBox().expand(range),
                     other -> other.isAlive() && !other.isRemoved() && bridge.memory.acquainted(other.getUuid()) && other.squaredDistanceTo(player) <= range * range)) {
-                if (leases.containsKey(mob.getUuid()) || !mob.canSee(player)) continue;
+                // Attention survives a moment out of sight (a tree, a corner); hatred acts only on what the mob sees right now.
+                boolean seesNow = mob.canSee(player);
+                if (leases.containsKey(mob.getUuid()) || !(bridge.sees(mob, player) || seesNow)) continue;
                 int relationship = bridge.memory.relationship(mob.getUuid(), player.getUuid());
                 // A mob the player has caught the interest of turns to them and watches while they are close: no walking, no spam,
                 // just the attention a conversation would give it, renewed every stance period while the interest lasts.
@@ -121,7 +123,7 @@ final class MobActionController {
                     MobState.View state = bridge.memory.stateView(mob.getUuid(), player.getUuid());
                     if (state != null && state.keen()) attend(mob, player, (int) STANCE_PERIOD + 5);
                 }
-                if (SpeciesCatalog.get(MobGameBridge.type(mob)).hostile() || relationship > CombatRules.HATRED) continue;
+                if (!seesNow || SpeciesCatalog.get(MobGameBridge.type(mob)).hostile() || relationship > CombatRules.HATRED) continue;
                 if (mob instanceof Tameable tameable && player.getUuid().equals(tameable.getOwnerUuid())) continue;
                 Situation.Verdict verdict = Situation.verdict(combatant(mob), combatant(player));
                 boolean fights = fighter(mob) && (verdict == Situation.Verdict.EVEN || verdict == Situation.Verdict.STRONGER)

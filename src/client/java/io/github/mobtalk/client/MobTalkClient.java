@@ -138,6 +138,12 @@ public final class MobTalkClient implements ClientModInitializer {
     private long ticks;
     String status = "Загрузка настроек…";
     private MobSpeechSound speech;
+    /** Every mob voice still sounding (the latest is {@link #speech}): background lines wait for a free floor, see {@link VoiceFloor}. */
+    final io.github.mobtalk.core.VoiceFloor<MobSpeechSound> voices = new io.github.mobtalk.core.VoiceFloor<>();
+    /** The conversation partner stepping briefly out of range (a tree, a corner) keeps the conversation for voiceGraceSeconds. */
+    private final io.github.mobtalk.core.Grace<UUID> reach = new io.github.mobtalk.core.Grace<>();
+    /** The player's death was handled once (pending work dropped, the voice left to finish). */
+    private boolean deathHandled;
 
     @Override public void onInitializeClient() {
         io.github.mobtalk.client.game.WeddingItems.register(); // Свои предметы — до загрузки любого мира.
@@ -182,8 +188,10 @@ public final class MobTalkClient implements ClientModInitializer {
     /** Settings are on and loaded. */
     boolean enabled() { return configReady && config.enabled; }
     /** A recording, a request or a spoken reply is in flight. */
-    boolean busyTalking() { return recording != null || requestActive || speech != null; }
-    boolean speaking() { return speech != null; }
+    boolean busyTalking() { return recording != null || requestActive || voiceOn(); }
+    boolean speaking() { return voiceOn(); }
+    /** A mob voice is sounding: the latest one, or an earlier one still finishing. */
+    private boolean voiceOn() { return speech != null || !voices.free(); }
     boolean recordingNow() { return recording != null; }
     MobTalkConfig config() { return config; }
     /** Self-test only: opens the configured microphone and records for up to {@code seconds} (stop() ends it earlier). */
@@ -203,7 +211,7 @@ public final class MobTalkClient implements ClientModInitializer {
     boolean witnessPending() { return witnessesInFlight > 0 || !readyWitnesses.isEmpty() || pendingDeliveries > 0; }
     /** Чем сейчас занят голос (для лога, когда реплика инициативы долго ждёт очереди). */
     String busyReason() {
-        return "recording=" + (recording != null) + " request=" + requestActive + " speech=" + (speech != null) + " inFlight=" + witnessesInFlight
+        return "recording=" + (recording != null) + " request=" + requestActive + " speech=" + (speech != null) + " voices=" + voices.count() + " inFlight=" + witnessesInFlight
                 + " ready=" + readyWitnesses.size() + " deliveries=" + pendingDeliveries;
     }
     ConversationEngine engine() { return engine; }
@@ -323,12 +331,16 @@ public final class MobTalkClient implements ClientModInitializer {
         boolean held = merchant.windowOpen() ? merchant.keyHeld() : bed.open() ? bed.keyHeld() : talkKey.isPressed();
         MobEntity mob = target();
         if (selected != null && mob == null) clearSelection("Моб погиб или выгрузился: наведите прицел на другого");
-        if (client.player != null && !client.player.isAlive()
-                && (recording != null || requestActive || speech != null)) cancelWork("Игрок погиб: разговор отменён");
-        if (mob != null) {
-            if (!withinRange(mob) && (recording != null || requestActive || speech != null))
-                cancelWork("Подойдите к мобу ближе: разговор отменён");
+        // The player died: what is pending is dropped, but a line already sounding finishes from its mob (it fades with distance)
+        // and nothing new starts over it after the respawn.
+        boolean dead = client.player != null && !client.player.isAlive();
+        if (!dead) deathHandled = false;
+        else if (!deathHandled) {
+            deathHandled = true;
+            if (recording != null || requestActive || witnessPending() || village.active() || initiatives.sceneOn()) cancelWork("Игрок погиб: разговор отменён", false, true);
         }
+        // Out of range only after the grace: a step behind a tree does not end the question in flight; the voice fades by itself.
+        if (mob != null && !inReach(mob) && (recording != null || requestActive)) cancelWork("Подойдите к мобу ближе: разговор отменён");
         if (merchant.work() != null && !client.isWindowFocused()) {
             cancelWork("Окно неактивно: торговый разговор отменён");
             merchant.clearKeyHeld();
@@ -355,6 +367,7 @@ public final class MobTalkClient implements ClientModInitializer {
             recording.stop();
         }
         keyHeld = held;
+        voices.prune(client.getSoundManager()::isPlaying, MobSpeechSound::release);
         if (speech != null && !client.getSoundManager().isPlaying(speech)) {
             speech = null; speakingMob = null;
             if (!requestActive && recording == null) status = readyStatus();
@@ -397,6 +410,7 @@ public final class MobTalkClient implements ClientModInitializer {
         cancelWork(AIM_HINT, true);
         wedding.reset();
         selected = null;
+        reach.clear();
         world = null;
         if (client.getServer() == null) releaseMemory();
         if (!stopped) helperCleanup = CompletableFuture.runAsync(helper::stopOwned, maintenance);
@@ -427,11 +441,13 @@ public final class MobTalkClient implements ClientModInitializer {
         showHud();
     }
 
-    void cancelWork(String reason) { cancelWork(reason, false); }
+    void cancelWork(String reason) { cancelWork(reason, false, false); }
+    private void cancelWork(String reason, boolean dropEngine) { cancelWork(reason, dropEngine, false); }
 
     /** Interrupting the worker cancels in-flight requests; the engine itself is kept across mob switches and trade windows,
      * since rebuilding it reloads the key and relearns provider quirks. Settings, reloads and world changes drop it. */
-    private void cancelWork(String reason, boolean dropEngine) {
+    /** {@code keepVoice}: the line already sounding finishes (the player died: the mob was not interrupted). */
+    private void cancelWork(String reason, boolean dropEngine, boolean keepVoice) {
         generation++;
         armRecording = false; deferredAction = null;
         initiatives.cancel();
@@ -449,7 +465,7 @@ public final class MobTalkClient implements ClientModInitializer {
         merchant.setWork(null);
         if (recording != null) recording.cancel();
         recording = null;
-        stopSpeech();
+        if (!keepVoice) stopSpeech();
         Thread running = pipelineThread;
         if (running != null) running.interrupt();
         WhisperClient oldWhisper = whisper;
@@ -606,7 +622,7 @@ public final class MobTalkClient implements ClientModInitializer {
 
     /** The floor is free: the next ready bystander speaks. */
     private void playNextWitness() {
-        if (speech != null || requestActive || recording != null || pendingDeliveries > 0 || village.voicing()) return;
+        if (voiceOn() || requestActive || recording != null || pendingDeliveries > 0 || village.voicing()) return;
         Ready next = readyWitnesses.poll();
         if (next == null) return;
         // Трек L: на свадьбе посторонние реплики (очевидцы, инициатива), задуманные до неё, не звучат.
@@ -790,9 +806,7 @@ public final class MobTalkClient implements ClientModInitializer {
         early.shown = true;
         chat("Вы: " + asked);
         chat(name + ": " + text); repliesShown++;
-        stopSpeech();
-        speech = new MobSpeechSound(client, world, request.target, request.config.maxDistance, audio);
-        client.getSoundManager().play(speech); speechStarts++; speakingMob = request.target;
+        startVoice(request.target, audio, false);
         status = "Говорит…";
         showHud();
     }
@@ -912,10 +926,9 @@ public final class MobTalkClient implements ClientModInitializer {
             if (speech == null) status = readyStatus();
         } else {
             chat(reply.speakerName() + ": " + reply.responseText()); repliesShown++;
-            stopSpeech();
+            if (reply.speech() == null) stopSpeech();
             if (reply.speech() != null) {
-                speech = new MobSpeechSound(client, world, request.target, request.config.maxDistance, reply.speech());
-                client.getSoundManager().play(speech); speechStarts++; speakingMob = request.target;
+                startVoice(request.target, reply.speech(), request.overheard != null);
                 status = request.overheard == null ? "Говорит…" : spontaneous ? reply.speakerName() + " заговаривает…" : reply.speakerName() + " вмешивается…";
             } else {
                 status = request.overheard == null ? "Ответ в чате; озвучка недоступна. Повторите позже" : "Ответ в чате; озвучка недоступна";
@@ -978,7 +991,7 @@ public final class MobTalkClient implements ClientModInitializer {
         MobEntity subject = request.overheard == null ? target() : MobSpeechSound.find(world, request.target);
         return !stopped && generation == request.generation && (request.overheard != null || request.target.equals(selected))
                 && world != null && client.world == world && client.getServer() != null
-                && client.player != null && client.player.isAlive() && withinRange(subject)
+                && client.player != null && client.player.isAlive() && inReach(subject)
                 && (request.merchant == null || request.merchant.equals(merchant.context()) && merchant.allowedRecordingScreen());
     }
 
@@ -1218,7 +1231,25 @@ public final class MobTalkClient implements ClientModInitializer {
     void stopSpeech() {
         if (speech != null && client.getSoundManager().isPlaying(speech)) speechCutoffs++;
         if (speech != null) speech.stop();
+        voices.stopAll(voice -> { if (voice != speech && client.getSoundManager().isPlaying(voice)) speechCutoffs++; voice.stop(); });
         speech = null;
+    }
+
+    /** A mob's voice from the mob. The player's own answer cuts whatever sounds; a background line (bystander, initiative, small
+     * talk, wedding) only comes when the floor is free — callers wait for {@link #speaking()} — so two never sound together. */
+    void startVoice(UUID mob, io.github.mobtalk.core.SpeechStream audio, boolean background) {
+        if (background && !voices.mayStart(true)) LOGGER.warn("Mob Talk: a background voice of {} starts over {} sounding", mob, voices.count());
+        stopSpeech();
+        if (audio == null || world == null) return;
+        speech = new MobSpeechSound(client, world, mob, io.github.mobtalk.core.VoiceFalloff.Curve.of(config), audio);
+        client.getSoundManager().play(speech); speechStarts++; speakingMob = mob;
+        voices.started(speech, mob, background);
+    }
+
+    long graceMillis() { return Math.max(0, config.voiceGraceSeconds) * 1000L; }
+    /** In conversation range now, or was within the last voiceGraceSeconds (a tree, a corner, a step back). */
+    boolean inReach(MobEntity mob) {
+        return mob != null && client.player != null && reach.hold(mob.getUuid(), withinRange(mob), System.currentTimeMillis(), graceMillis());
     }
 
     /** A line of village small talk: into the chat, and voiced at the speaker when there is audio. Only while nobody speaks. */
@@ -1228,10 +1259,8 @@ public final class MobTalkClient implements ClientModInitializer {
     }
     /** A voice at the speaker without a chat line (the wedding prints the whole line once and voices it phrase by phrase). */
     void playVoice(UUID mob, io.github.mobtalk.core.SpeechStream audio, double range) {
-        stopSpeech();
-        if (audio == null || world == null) return;
-        speech = new MobSpeechSound(client, world, mob, Math.max(range, config.maxDistance), audio);
-        client.getSoundManager().play(speech); speechStarts++; speakingMob = mob;
+        if (audio == null || world == null) { stopSpeech(); return; }
+        startVoice(mob, audio, true);
     }
 
     /** The engine for background village talk, created on the calling worker the first time (it loads the key), like for a first question. */

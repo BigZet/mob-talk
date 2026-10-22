@@ -13,6 +13,7 @@ final class PcmSpeechAudioStream implements AudioStream {
     private final SpeechStream speech;
     private int offset;
     private ByteBuffer buffer;
+    private volatile boolean ended;
 
     PcmSpeechAudioStream(SpeechStream speech) { this.speech = speech; }
     @Override public AudioFormat getFormat() { return FORMAT; }
@@ -23,7 +24,7 @@ final class PcmSpeechAudioStream implements AudioStream {
         if (buffer == null) buffer = ByteBuffer.allocateDirect(CHUNK);
         buffer.clear();
         int amount = speech.read(offset, buffer, max);
-        if (amount < 0) return null;
+        if (amount < 0) { ended = true; return null; }
         if (amount == 0) {
             // The download is behind playback: 20 ms of silence keeps the source alive instead of ending the speech.
             for (int i = 0; i < SILENCE; i++) buffer.put((byte) 0);
@@ -33,5 +34,7 @@ final class PcmSpeechAudioStream implements AudioStream {
         return buffer;
     }
 
+    /** The whole speech was read out (it ended by itself, not cut). */
+    boolean ended() { return ended; }
     @Override public void close() { speech.close(); buffer = null; }
 }
