@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 /** The web admin's protocol ({@code mobtalk-admin}) over a fake game: describe, values, patch, journal and the actions. */
 class AdminBridgeTest {
     /** The game as the protocol sees it: a config in memory, a journal and a ban list. */
-    private static final class FakeHost implements AdminProtocol.Host {
+    private static class FakeHost implements AdminProtocol.Host {
         DivineConfig config = new DivineConfig();
         int saves;
         final GodJournal journal = new GodJournal();
@@ -149,5 +149,17 @@ class AdminBridgeTest {
         DivineConfig saved = DivineSettings.withPersonal(own, played);
         assertEquals(70, saved.chantVolume);
         assertEquals(1, saved.maxTier, "the server's value never lands in his own file");
+    }
+
+    @Test void soulsAndActiveComeFromTheHostOrAnswerAnError() {
+        JsonObject missing = JsonParser.parseString(protocol.handle("{\"op\":\"souls\"}")).getAsJsonObject();
+        assertFalse(missing.get("ok").getAsBoolean(), "a host without souls says so instead of failing");
+        AdminProtocol.Host souls = new FakeHost() {
+            @Override public JsonObject souls() { return JsonParser.parseString("{\"souls\":[{\"sins\":2}]}").getAsJsonObject(); }
+            @Override public JsonObject active() { return JsonParser.parseString("{\"bosses\":[],\"curses\":[]}").getAsJsonObject(); }
+        };
+        AdminProtocol withSouls = new AdminProtocol(souls);
+        assertEquals(2, JsonParser.parseString(withSouls.handle("{\"op\":\"souls\"}")).getAsJsonObject().getAsJsonArray("souls").get(0).getAsJsonObject().get("sins").getAsInt());
+        assertTrue(JsonParser.parseString(withSouls.handle("{\"op\":\"active\"}")).getAsJsonObject().has("bosses"));
     }
 }

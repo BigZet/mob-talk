@@ -5,6 +5,8 @@ import io.github.divineblock.core.AdminProtocol;
 import io.github.divineblock.core.DivineConfig;
 import io.github.divineblock.core.DivineSettings;
 import io.github.divineblock.core.GodJournal;
+import io.github.divineblock.core.GodLedger;
+import io.github.divineblock.core.Righteousness;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -136,10 +138,91 @@ public final class AdminBridge implements UnaryOperator<String> {
             });
         }
 
+        @Override public com.google.gson.JsonObject souls() {
+            MinecraftServer running = server;
+            if (running == null) throw new IllegalStateException("сервер не запущен");
+            return onServer(running, () -> {
+                DivineState state = DivineState.of(running);
+                long tick = running.getOverworld().getTime(), now = System.currentTimeMillis();
+                java.util.Set<String> ids = new java.util.LinkedHashSet<>(state.ledger.souls.keySet());
+                ids.addAll(state.banned.keySet());
+                for (Curses.Curse curse : state.curses.active) ids.add(curse.player);
+                com.google.gson.JsonArray souls = new com.google.gson.JsonArray();
+                for (String id : ids) {
+                    GodLedger.Soul soul = state.ledger.souls.get(id);
+                    com.google.gson.JsonObject one = new com.google.gson.JsonObject();
+                    one.add("player", player(running, state, id));
+                    int sins = 0;
+                    if (soul != null) for (Righteousness.Memory memory : soul.righteousness.memories) if (memory.deed != null && memory.deed.weight < 0) sins += Math.max(1, memory.count);
+                    one.addProperty("sins", sins);
+                    one.addProperty("ladder", soul == null ? 0 : soul.wrathStreak(tick / 24_000));
+                    one.addProperty("banned", state.banned.containsKey(id));
+                    com.google.gson.JsonArray curses = new com.google.gson.JsonArray();
+                    for (Curses.Curse curse : state.curses.active) if (id.equals(curse.player)) curses.add(curse(curse, tick, now));
+                    one.add("curses", curses);
+                    souls.add(one);
+                }
+                com.google.gson.JsonObject out = new com.google.gson.JsonObject();
+                out.add("souls", souls);
+                return out;
+            });
+        }
+
+        @Override public com.google.gson.JsonObject active() {
+            MinecraftServer running = server;
+            if (running == null) throw new IllegalStateException("сервер не запущен");
+            return onServer(running, () -> {
+                DivineState state = DivineState.of(running);
+                long tick = running.getOverworld().getTime(), now = System.currentTimeMillis();
+                com.google.gson.JsonArray bosses = new com.google.gson.JsonArray();
+                for (ServerWorld world : running.getWorlds())
+                    for (Entity entity : world.iterateEntities())
+                        if (entity instanceof io.github.divineblock.boss.SacredBoss boss && boss.isAlive()) {
+                            com.google.gson.JsonObject one = new com.google.gson.JsonObject();
+                            one.addProperty("id", boss.kind().id); one.addProperty("title", boss.kind().title);
+                            one.addProperty("health", Math.round(boss.getHealth())); one.addProperty("maxHealth", Math.round(boss.getMaxHealth()));
+                            one.addProperty("since", now - boss.age * 50L);
+                            bosses.add(one);
+                        }
+                com.google.gson.JsonArray curses = new com.google.gson.JsonArray();
+                for (Curses.Curse curse : state.curses.active) {
+                    com.google.gson.JsonObject one = curse(curse, tick, now);
+                    one.add("player", player(running, state, curse.player));
+                    curses.add(one);
+                }
+                com.google.gson.JsonObject out = new com.google.gson.JsonObject();
+                out.add("bosses", bosses); out.add("curses", curses);
+                return out;
+            });
+        }
+
+        /** A curse for the admin: its name and when it ends, in epoch ms (the world's ticks are 50 ms). */
+        private static com.google.gson.JsonObject curse(Curses.Curse curse, long tick, long now) {
+            com.google.gson.JsonObject one = new com.google.gson.JsonObject();
+            one.addProperty("title", curse.type == null ? "" : curse.type.label);
+            one.addProperty("until", now + Math.max(0, curse.until - tick) * 50L);
+            return one;
+        }
+        /** {uuid, name}: the name from the ban book, the online list or the server's user cache. */
+        private static com.google.gson.JsonObject player(MinecraftServer running, DivineState state, String id) {
+            String name = "";
+            Banishment.Ban ban = state.banned.get(id);
+            if (ban != null) name = ban.name;
+            try {
+                UUID uuid = UUID.fromString(id);
+                ServerPlayerEntity online = running.getPlayerManager().getPlayer(uuid);
+                if (online != null) name = online.getName().getString();
+                else if (name.isBlank() && running.getUserCache() != null) name = running.getUserCache().getByUuid(uuid).map(com.mojang.authlib.GameProfile::getName).orElse("");
+            } catch (IllegalArgumentException notUuid) { }
+            com.google.gson.JsonObject player = new com.google.gson.JsonObject();
+            player.addProperty("uuid", id); player.addProperty("name", name.isBlank() ? id : name);
+            return player;
+        }
+
         private static Map<String, String> args(String key, String title) { Map<String, String> out = new LinkedHashMap<>(); out.put(key, title); return out; }
 
         /** Runs on the server thread and waits a little for the answer (directly when already there). */
-        private static String onServer(MinecraftServer running, Supplier<String> work) {
+        private static <T> T onServer(MinecraftServer running, Supplier<T> work) {
             if (running.isOnThread()) return work.get();
             try { return running.submit(work).get(5, TimeUnit.SECONDS); }
             catch (java.util.concurrent.ExecutionException failure) {
