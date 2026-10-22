@@ -162,6 +162,7 @@ public final class MobTalkClient implements ClientModInitializer {
         ClientLifecycleEvents.CLIENT_STOPPING.register(ignored -> shutdown());
         MobTalkCommands.register(this);
         SelfTest.install(this);
+        SelfTestServer.install(this);
         io.github.mobtalk.client.game.DatasetHarvester.install(client);
         reload();
     }
@@ -856,7 +857,7 @@ public final class MobTalkClient implements ClientModInitializer {
         });
     }
     private void preloadWhisper(MobTalkConfig settings) {
-        if (stopped || !settings.enabled || !settings.whisperAutoStart || System.getProperty("mobtalk.selftest") != null) return;
+        if (stopped || !settings.enabled || !settings.whisperAutoStart || System.getProperty("mobtalk.selftest") != null || SelfTestServer.on()) return;
         long ticket = ++whisperPreloads;
         whisperLoader.execute(() -> {
             try {

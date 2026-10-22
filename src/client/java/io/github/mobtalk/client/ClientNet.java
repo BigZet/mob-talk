@@ -32,16 +32,21 @@ final class ClientNet {
         ClientPlayNetworking.registerGlobalReceiver(ServerFeaturesS2C.ID, (payload, context) -> {
             features = ServerFeatures.fromJson(payload.json());
             LOGGER.info("Mob Talk: сервер {} (уровень {}, диалог {}, пути распознавания {})", features.version(), features.level(), features.dialogue(), features.sttPaths());
+            SelfTestServer.features(features);
         });
-        ClientPlayNetworking.registerGlobalReceiver(TalkStatusS2C.ID, (payload, context) -> owner.onStatus(payload.status(), payload.busy(), payload.error()));
+        ClientPlayNetworking.registerGlobalReceiver(TalkStatusS2C.ID, (payload, context) -> {
+            SelfTestServer.status(payload.status(), payload.busy(), payload.error());
+            owner.onStatus(payload.status(), payload.busy(), payload.error());
+        });
         ClientPlayNetworking.registerGlobalReceiver(NoticeS2C.ID, (payload, context) -> {
             if (payload.toast()) SystemToast.add(context.client().getToastManager(), SystemToast.Type.PERIODIC_NOTIFICATION, Text.literal("Mob Talk"), Text.literal(payload.text()));
             else owner.chat(payload.text());
+            SelfTestServer.notice(payload.text());
         });
-        ClientPlayNetworking.registerGlobalReceiver(MobSpeechS2C.ID, (payload, context) -> owner.onSpeech(payload));
+        ClientPlayNetworking.registerGlobalReceiver(MobSpeechS2C.ID, (payload, context) -> { SelfTestServer.speech(payload); owner.onSpeech(payload); });
         ClientPlayNetworking.registerGlobalReceiver(SpeechClipS2C.ID, (payload, context) -> owner.onClip(payload));
-        ClientPlayNetworking.registerGlobalReceiver(MobStateS2C.ID, (payload, context) -> owner.onState(payload));
-        ClientPlayNetworking.registerGlobalReceiver(MobLabelS2C.ID, (payload, context) -> owner.onLabel(payload));
+        ClientPlayNetworking.registerGlobalReceiver(MobStateS2C.ID, (payload, context) -> { SelfTestServer.state(payload); owner.onState(payload); });
+        ClientPlayNetworking.registerGlobalReceiver(MobLabelS2C.ID, (payload, context) -> { SelfTestServer.label(payload); owner.onLabel(payload); });
         ClientPlayNetworking.registerGlobalReceiver(ScreenDataS2C.ID, (payload, context) -> {
             if (VoiceInput.screenData(payload)) return; // Трек B: ответ проверки микрофона через сервер.
             if (io.github.mobtalk.client.settings.ServerSettingsView.SCREEN.equals(payload.screen())) { io.github.mobtalk.client.settings.ServerSettingsView.accept(payload.json()); return; } // Трек C: серверные настройки для F7.
