@@ -39,7 +39,12 @@ public final class CommandFilter {
         Permissions permissions = MobTalkMod.permissions();
         if (parent instanceof RootCommandNode<ServerCommandSource>) {
             if (!PermissionsImpl.modRoot(child.getName())) return true;
-            return permissions instanceof PermissionsImpl impl ? impl.mayRun(source, child.getName(), null) : permissions.mayRun(source, child.getName());
+            if (!(permissions instanceof PermissionsImpl impl)) return permissions.mayRun(source, child.getName());
+            // Корень остаётся в дереве, если разрешена хоть одна его подкоманда (у стримера «divineblock list» под админским корнем).
+            if (impl.mayRun(source, child.getName(), null)) return true;
+            for (CommandNode<ServerCommandSource> sub : child.getChildren())
+                if (sub instanceof LiteralCommandNode<ServerCommandSource> && impl.mayRun(source, child.getName(), sub.getName())) return true;
+            return false;
         }
         if (parent instanceof LiteralCommandNode<ServerCommandSource> && PermissionsImpl.modRoot(parent.getName()) && permissions instanceof PermissionsImpl impl)
             return impl.mayRun(source, parent.getName(), child.getName());
