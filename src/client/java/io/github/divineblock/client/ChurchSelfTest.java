@@ -107,7 +107,7 @@ public final class ChurchSelfTest {
             }
             case 2 -> {
                 if (finished) { phase = 3; moody = false; client.execute(() -> { write(); client.scheduleStop(); }); }
-                else if (ticks > 20 * 900) { fail("самотест не уложился в 15 минут"); phase = 3; write(); client.execute(client::scheduleStop); }
+                else if (ticks > 20 * 1500) { fail("самотест не уложился в 25 минут"); phase = 3; write(); client.execute(client::scheduleStop); }
             }
             default -> { }
         }
@@ -139,6 +139,14 @@ public final class ChurchSelfTest {
             sites.putIfAbsent(site.variant(), site);
             if (sites.size() == 2) break;
         }
+        // The kind not met yet is forced for churches in untouched land far away, so both are always photographed.
+        for (ChurchBuilder.Variant kind : ChurchBuilder.Variant.values()) {
+            if (sites.containsKey(kind) || sites.isEmpty()) continue;
+            ChurchStructure.forceVariant = kind;
+            ChurchSites.Site forced = locate(world, player.getBlockPos().add(12_000, 0, -12_000));
+            ChurchStructure.forceVariant = null;
+            if (forced != null) { all.add(forced); sites.putIfAbsent(forced.variant(), forced); log("  вид " + kind + " получен принудительно: " + forced.variant()); }
+        }
         check(!sites.isEmpty(), "найдено церквей: " + all.size() + ", видов: " + sites.keySet());
         for (int i = 1; i < all.size(); i++) {
             double apart = Math.sqrt(all.get(i).origin().getSquaredDistance(all.get(i - 1).origin())) / 16;
@@ -165,8 +173,8 @@ public final class ChurchSelfTest {
         BlockPos at = hit.getFirst();
         log("  от " + start.toShortString() + " найдена церковь у " + at.toShortString() + " за " + (System.nanoTime() - began) / 1_000_000 + " мс, "
                 + Math.round(Math.sqrt(start.getSquaredDistance(at)) / 16) + " чанков");
-        for (int cx = (at.getX() >> 4) - 3; cx <= (at.getX() >> 4) + 4; cx++)
-            for (int cz = (at.getZ() >> 4) - 2; cz <= (at.getZ() >> 4) + 4; cz++) world.getChunk(cx, cz);
+        for (int cx = (at.getX() >> 4) - 7; cx <= (at.getX() >> 4) + 7; cx++)
+            for (int cz = (at.getZ() >> 4) - 7; cz <= (at.getZ() >> 4) + 7; cz++) world.getChunk(cx, cz);
         ChurchSites.Site site = ChurchSites.at(world, at.withY(world.getTopY() - 1)).or(() -> ChurchSites.at(world, at)).orElse(null);
         if (site == null) {
             for (int y = world.getBottomY(); y < world.getTopY() && site == null; y += 8) site = ChurchSites.at(world, at.withY(y)).orElse(null);
@@ -178,10 +186,40 @@ public final class ChurchSelfTest {
         check(world.getBlockState(site.naveCenter()).isAir() && world.getBlockState(site.naveCenter().up()).isAir(), "точка босса в центре храма свободна");
         ChurchPiece.Frame frame = new ChurchPiece.Frame(site.origin(), site.rotation());
         int bells = 0;
-        var belfry = frame.box(0, 10, -3, 6, 17, 3);
+        var belfry = frame.box(0, 15, -6, 12, 28, 6);
         for (BlockPos pos : BlockPos.iterate(belfry.getMinX(), belfry.getMinY(), belfry.getMinZ(), belfry.getMaxX(), belfry.getMaxY(), belfry.getMaxZ()))
-            if (world.getBlockState(pos).isOf(Blocks.BELL)) bells++;
-        check(bells == 1, "колокол на колокольне: " + bells + ", поворот " + site.rotation());
+            if (world.getBlockState(pos).isOf(io.github.divineblock.world.ChurchBlocks.CHURCH_BELL)) bells++;
+        check(bells == 7, "колоколов на звоннице: " + bells + " (ждём 7), поворот " + site.rotation());
+        int crosses = 0;
+        var whole = frame.box(ChurchBuilder.MIN_X, 0, ChurchBuilder.MIN_Z, ChurchBuilder.MAX_X, ChurchBuilder.MAX_Y, ChurchBuilder.MAX_Z);
+        for (BlockPos pos : BlockPos.iterate(whole.getMinX(), whole.getMinY(), whole.getMinZ(), whole.getMaxX(), whole.getMaxY(), whole.getMaxZ()))
+            if (world.getBlockState(pos).isOf(io.github.divineblock.world.ChurchBlocks.DOME_CROSS)) crosses++;
+        check(crosses >= 6, "восьмиконечных крестов на церкви: " + crosses);
+        BlockPos wallAt = frame.world(30, 5, -12), yardAt = frame.world(28, 0, -25), gateWall = frame.world(ChurchBuilder.YARD_MIN_X - 1, 2, 10);
+        check(ChurchSites.isChurchBlock(world, wallAt) && ChurchSites.isChurchBlock(world, gateWall) && !ChurchSites.isChurchBlock(world, yardAt),
+                "isChurchBlock: стена церкви и ограда — да, трава двора — нет");
+        check(ChurchSites.yard(world, yardAt).isPresent() && ChurchSites.outdoorSpot(world, yardAt).isPresent(),
+                "двор " + ChurchSites.yard(world, yardAt).map(Object::toString).orElse("нет") + ", место у входа "
+                        + ChurchSites.outdoorSpot(world, yardAt).map(BlockPos::toShortString).orElse("нет"));
+        BlockPos spot = site.outdoorSpot();
+        check(world.getBlockState(spot).isAir() && world.getBlockState(spot.up()).isAir() && !world.getBlockState(spot.down()).isAir() && !world.getBlockState(spot.down()).isReplaceable(),
+                "место у входа свободно и стоит на земле: " + world.getBlockState(spot.down()));
+        Vec3d fight = io.github.divineblock.game.ChurchArea.yardSpot(world, site);
+        BlockPos fightAt = BlockPos.ofFloored(fight), door = frame.world(0, 0, 0);
+        check(site.yard().contains(fightAt.getX(), site.yard().getMinY(), fightAt.getZ()),
+                "ChurchArea.yardSpot во дворе: " + fightAt.toShortString() + ", от двери " + Math.round(Math.sqrt(door.getSquaredDistance(fightAt))) + " блоков");
+        int yardBlocked = 0;
+        for (int x = ChurchBuilder.YARD_MIN_X; x <= ChurchBuilder.YARD_MAX_X; x += 4)
+            for (int z = ChurchBuilder.YARD_MIN_Z; z <= ChurchBuilder.YARD_MAX_Z; z += 4) {
+                if (x >= ChurchBuilder.MIN_X - 1 && x <= ChurchBuilder.MAX_X + 1 && Math.abs(z) <= 14) continue;
+                // The corner towers and the Holy Gate stand a little into the yard's edge.
+                if (x < ChurchBuilder.YARD_MIN_X + 3 || x > ChurchBuilder.YARD_MAX_X - 3 || Math.abs(z) > ChurchBuilder.YARD_MAX_Z - 3) continue;
+                BlockPos p = frame.world(x, 0, z);
+                if (!world.getBlockState(p).isAir() && !world.getBlockState(p).isReplaceable()) {
+                    if (yardBlocked++ < 6) log("    во дворе на (" + x + ", 0, " + z + "): " + world.getBlockState(p).getBlock());
+                }
+            }
+        check(yardBlocked < 12, "двор открыт: занятых точек в сетке 4×4 — " + yardBlocked);
         var structureStart = world.getStructureAccessor().getStructureContaining(site.naveCenter(),
                 world.getRegistryManager().get(RegistryKeys.STRUCTURE).get(ChurchWorldgen.STRUCTURE));
         long yard = structureStart.getChildren().stream().filter(p -> p instanceof PoolStructurePiece).count();
@@ -213,33 +251,47 @@ public final class ChurchSelfTest {
             BlockPos block = frame.world((int) Math.floor(p[0]), (int) Math.floor(p[1]), (int) Math.floor(p[2]));
             return Vec3d.ofCenter(block).add(0, p[1] - Math.floor(p[1]) - 0.5, 0);
         };
-        Vec3d nave = at.apply(new double[] { ChurchBuilder.NAVE_X, 12, 0 });
+        boolean stone = site.variant() == ChurchBuilder.Variant.STONE;
+        java.util.function.BiConsumer<String, double[]> shot = (name, v) -> {
+            steps.add(new Step(10, () -> look(player, at.apply(new double[] { v[0], v[1], v[2] }), at.apply(new double[] { v[3], v[4], v[5] }))));
+            steps.add(new Step(v.length > 6 ? (int) v[6] : 90, () -> screenshot = kind + "-" + name));
+        };
+        steps.add(new Step(10, () -> { player.changeGameMode(GameMode.SPECTATOR); world.setTimeOfDay(4000); hud = false; moody = true; }));
+        int nave = ChurchBuilder.NAVE_X, mainCross = stone ? 48 : 55, cornerCross = stone ? 39 : 28;
+        shot.accept("01-west-gate", new double[] { -30, 30, -35, 22, 16, 0, 160 });
+        shot.accept("02-northwest-yard", new double[] { -26, 12, -30, 30, 18, 0, 120 });
+        shot.accept("03-south", new double[] { 25, 24, 64, 25, 20, 0, 140 });
+        shot.accept("04-north", new double[] { 25, 24, -64, 25, 20, 0, 140 });
+        shot.accept("05-east", new double[] { 112, 24, 0, 25, 20, 0, 140 });
+        shot.accept("06-southwest-air", new double[] { -40, 55, 62, 28, 10, 0, 140 });
+        shot.accept("07-top", new double[] { 28, 98, 0.2, 28, 0, 0, 160 });
+        shot.accept("08-cross-main", new double[] { nave - 8, mainCross + 1, 3, nave, mainCross, 0, 80 });
+        shot.accept("09-cross-corner", new double[] { 34 - 7, cornerCross + 1, -8 + 3, 34, cornerCross, -8, 80 });
+        shot.accept("10-cross-tower", new double[] { 6 - 8, 58, 3, 6, 57, 0, 80 });
+        shot.accept("11-bell-close", new double[] { -2.5, 22.5, 0.5, 6.5, 22, 0.5, 80 });
+        shot.accept("12-belfry", new double[] { -14, 26, -12, 6, 22, 0, 80 });
+        shot.accept("13-holy-gate-inside", new double[] { -20, 5, 9, -33, 7, 0, 80 });
+        shot.accept("14-south-gate", new double[] { 20, 6, 28, 28, 4, 39, 80 });
+        shot.accept("15-wall-corner", new double[] { 70, 8, 26, 89, 6, 39, 80 });
+        shot.accept("16-interior-entrance", new double[] { 14, 4.2, 0, 48, 6, 0, 80 });
+        shot.accept("17-iconostasis", new double[] { 37, 4.5, 0.5, 48, 7, 0.5, 80 });
+        shot.accept("18-chandelier", new double[] { 35, 6, 6, 42, 12.5, 0.5, 80 });
+        shot.accept("19-interior-from-soleas", new double[] { 46, 4.5, 0.5, 20, 4, 0.5, 80 });
+        shot.accept("20-altar", new double[] { 51, 3.6, 3.5, 55.5, 1.5, 0.5, 80 });
+        shot.accept("21-refectory", new double[] { 27, 4, 5, 13, 3, -2, 80 });
+        steps.add(new Step(10, () -> world.setTimeOfDay(18000)));
+        shot.accept("22-night", new double[] { -26, 12, -30, 30, 18, 0, 90 });
+        shot.accept("23-night-interior", new double[] { 33, 3.5, 0.5, 48, 6, 0.5, 90 });
+        steps.add(new Step(10, () -> world.setTimeOfDay(4000)));
+        shot.accept("24-cemetery", new double[] { 28, 42, 26, 28, 0, 62, 100 });
+        shot.accept("25-cemetery-top", new double[] { 28, 95, 62, 28, 0, 64, 140 });
+        // Ring the great bell once.
         steps.add(new Step(10, () -> {
-            player.changeGameMode(GameMode.SPECTATOR);
-            world.setTimeOfDay(6000);
-            hud = false; moody = true;
-            look(player, at.apply(new double[] { -26, 16, -30 }), nave);
+            BlockPos bell = frame.world(ChurchBuilder.BELL_X, ChurchBuilder.BELL_Y, ChurchBuilder.BELL_Z);
+            boolean ok = world.getBlockState(bell).isOf(io.github.divineblock.world.ChurchBlocks.CHURCH_BELL);
+            if (ok) io.github.divineblock.world.ChurchBlocks.ChurchBellBlock.ring(world, bell, 2);
+            check(ok, "великий колокол на месте и звонит: " + world.getBlockState(bell));
         }));
-        steps.add(new Step(140, () -> screenshot = kind + "-day-northwest"));
-        steps.add(new Step(10, () -> look(player, at.apply(new double[] { 56, 22, 50 }), at.apply(new double[] { 18, 4, 14 }))));
-        steps.add(new Step(120, () -> screenshot = kind + "-day-southeast"));
-        steps.add(new Step(10, () -> look(player, at.apply(new double[] { -34, 7, 4 }), at.apply(new double[] { ChurchBuilder.NAVE_X, 8, 0 }))));
-        steps.add(new Step(120, () -> screenshot = kind + "-day-west"));
-        steps.add(new Step(10, () -> { world.setTimeOfDay(18000); look(player, at.apply(new double[] { -26, 16, -30 }), nave); }));
-        steps.add(new Step(80, () -> screenshot = kind + "-night"));
-        steps.add(new Step(10, () -> look(player, at.apply(new double[] { 17, 2.6, 0 }), at.apply(new double[] { 31, 2, 0 }))));
-        steps.add(new Step(80, () -> screenshot = kind + "-night-interior"));
-        steps.add(new Step(10, () -> { world.setTimeOfDay(6000); look(player, at.apply(new double[] { 16, 3.2, 3 }), at.apply(new double[] { 27, 5, 0 })); }));
-        steps.add(new Step(80, () -> screenshot = kind + "-interior-iconostasis"));
-        steps.add(new Step(10, () -> look(player, at.apply(new double[] { 28, 2.4, 2 }), at.apply(new double[] { 31, 1.5, 0 }))));
-        steps.add(new Step(60, () -> screenshot = kind + "-interior-altar"));
-        steps.add(new Step(10, () -> look(player, at.apply(new double[] { 18, 2.5, 0 }), at.apply(new double[] { -2, 12, 0 }))));
-        steps.add(new Step(60, () -> screenshot = kind + "-interior-west"));
-        steps.add(new Step(10, () -> look(player, at.apply(new double[] { 18, 24, 50 }), at.apply(new double[] { 18, 0, 22 }))));
-        steps.add(new Step(100, () -> screenshot = kind + "-cemetery"));
-        // The whole churchyard from straight above, the church at the top edge of the picture.
-        steps.add(new Step(10, () -> look(player, at.apply(new double[] { 18, 90, 36 }), at.apply(new double[] { 18, 0, 38 }))));
-        steps.add(new Step(140, () -> screenshot = kind + "-cemetery-top"));
         steps.add(new Step(10, () -> { hud = true; moody = false; }));
     }
 

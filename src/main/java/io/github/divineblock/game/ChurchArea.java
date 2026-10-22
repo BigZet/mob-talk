@@ -26,7 +26,8 @@ import net.minecraft.world.gen.structure.Structure;
 /** Where the churches are, for the punishments: the church box (inviolable), the protected zone around it (church, yard and
  * cemetery: no landscape punishment), whether a mortal is inside, and a standing spot in the churchyard.
  *
- * <p>Our own fallback until the church thread's helpers (the enlarged church with its walled churchyard) arrive: it reads the
+ * <p>The church thread's bounds are used: the church box, the walled yard ({@link ChurchSites.Site#yard}) with its wall,
+ * gates and towers ({@link ChurchSites#protectedBoxes(ChurchSites.Site)}), the cemetery. It reads the
  * {@code divineblock:orthodox_church} structure through {@link ChurchSites#at} and remembers every church it has met (on
  * chunk load and on lookups), so the hot checks ({@link #isChurchBlock}, {@link #inZone}) never touch the structure accessor.
  * Swap the bodies of {@link #near}, {@link #yardSpot} and {@link #inside} for the church thread's helpers when they land. */
@@ -74,13 +75,18 @@ public final class ChurchArea {
 
     /** A block of the church itself: nothing but the player may change it. Fast: known churches only. */
     public static boolean isChurchBlock(World world, BlockPos pos) {
-        for (ChurchSites.Site site : known(world)) if (site.church().contains(pos)) return true;
+        for (ChurchSites.Site site : known(world)) {
+            if (site.church().contains(pos)) return true;
+            if (!site.yard().expand(4).contains(pos.getX(), site.yard().getMinY(), pos.getZ())) continue;
+            for (BlockBox box : ChurchSites.protectedBoxes(site)) if (box.contains(pos)) return true; // foundation, yard wall, gates, towers
+        }
         return false;
     }
 
     /** Inside the protected zone of any known church (horizontally within {@link #ZONE_RADIUS} of the church box). */
     public static boolean inZone(World world, BlockPos pos) {
-        for (ChurchSites.Site site : known(world)) if (distance(site.church(), pos) <= ZONE_RADIUS) return true;
+        for (ChurchSites.Site site : known(world))
+            if (distance(site.church(), pos) <= ZONE_RADIUS || distance(site.yard().expand(4), pos) == 0 || distance(site.cemetery(), pos) == 0) return true;
         return false;
     }
 
@@ -111,14 +117,15 @@ public final class ChurchArea {
      * with room for a big boss. Candidates west of the porch, then north, south-west and east; the porch as the last resort. */
     public static Vec3d yardSpot(ServerWorld world, ChurchSites.Site site) {
         ChurchPiece.Frame frame = new ChurchPiece.Frame(site.origin(), site.rotation());
-        int[][] candidates = { { -18, 0 }, { -16, -14 }, { -16, 14 }, { 18, -24 }, { 50, 0 }, { -26, 0 }, { 0, -26 }, { -30, 12 }, { -30, -12 }, { 36, -22 } };
+        // Inside the walled yard (x -32..88, z -38..38 in church coordinates): before the west door first, 12-15 blocks out.
+        int[][] candidates = { { -14, 0 }, { -13, -7 }, { -13, 7 }, { -20, 0 }, { 28, -25 }, { 28, 25 }, { 75, 0 }, { -24, -20 }, { -24, 20 }, { 60, -26 } };
         int floor = site.origin().getY();
         List<Vec3d> good = new ArrayList<>();
         // First open sky (no tree crown over the spot or around it), then any dry ground; the cemetery's alley is cleared of trees.
         for (int pass = 0; pass < 2 && good.isEmpty(); pass++) {
             List<BlockPos> columns = new ArrayList<>();
             for (int[] c : candidates) columns.add(frame.world(c[0], 0, c[1]));
-            if (site.bossPoints().size() > 3) columns.add(3, site.bossPoints().get(3));
+            if (site.bossPoints().size() > 3) columns.add(4, site.bossPoints().get(3));
             for (BlockPos column : columns) {
                 world.getChunk(column);
                 BlockPos top = world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, column);
