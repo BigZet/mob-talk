@@ -435,6 +435,19 @@ public final class ZonesSelfTest {
         Path dir = own != null && !own.isBlank() ? Path.of(own) : Path.of(local == null ? "." : local, "DivineBlock", "selftest");
         try { Files.createDirectories(dir); Files.write(dir.resolve("zones-report.txt"), report, StandardCharsets.UTF_8); Files.write(dir.resolve("report.txt"), report, StandardCharsets.UTF_8); }
         catch (IOException failure) { DivineBlockMod.LOG.warn("самотест мест кар: отчёт не записан", failure); }
+        // -Ddivineblock.zones.shots=<folder>: the screenshots and the report also go there (the game sees the real %LOCALAPPDATA%).
+        String shots = System.getProperty("divineblock.zones.shots");
+        if (shots == null || shots.isBlank()) return;
+        try {
+            Path to = Path.of(shots);
+            Files.createDirectories(to);
+            Path from = MinecraftClient.getInstance().runDirectory.toPath().resolve("screenshots");
+            try (var files = Files.list(from)) {
+                for (Path file : files.filter(f -> f.getFileName().toString().startsWith("divineblock-zones-")).toList())
+                    Files.copy(file, to.resolve(file.getFileName()), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+            Files.write(to.resolve("zones-report.txt"), report, StandardCharsets.UTF_8);
+        } catch (IOException failure) { DivineBlockMod.LOG.warn("самотест мест кар: снимки не скопированы", failure); }
     }
     private static void finish(MinecraftClient client) { phase = 3; write(); client.execute(client::scheduleStop); }
 }
