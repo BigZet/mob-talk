@@ -5,7 +5,7 @@ import io.github.mobtalk.core.ConversationStore;
 import io.github.mobtalk.core.Gender;
 import io.github.mobtalk.core.SocialProfile;
 import io.github.mobtalk.human.HumanGenes;
-import io.github.mobtalk.client.game.WeddingItems;
+import io.github.mobtalk.game.WeddingItems;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.registry.Registries;

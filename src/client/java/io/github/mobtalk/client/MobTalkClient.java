@@ -14,7 +14,7 @@ import io.github.mobtalk.core.JevDecider;
 import io.github.mobtalk.core.MobCard;
 import io.github.mobtalk.core.OpenRouterConnection;
 import io.github.mobtalk.core.RuleDecider;
-import io.github.mobtalk.client.game.MobGameBridge;
+import io.github.mobtalk.game.MobGameBridge;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -87,8 +87,6 @@ public final class MobTalkClient implements ClientModInitializer {
     });
     volatile CompletableFuture<MobGameBridge> gameReady;
     private MinecraftServer gameServer;
-    private MobTalkConfig gameConfig;
-    private Path memoryWorld;
     private Path engineWorld;
     private MobTalkConfig engineConfig;
     private MobTalkConfig config = new MobTalkConfig();
@@ -152,8 +150,8 @@ public final class MobTalkClient implements ClientModInitializer {
     private boolean deathHandled;
 
     @Override public void onInitializeClient() {
-        io.github.mobtalk.client.game.WeddingItems.register(); // Свои предметы — до загрузки любого мира.
-        MobGameBridge.initialize();
+        // Предметы, миксины и пакеты регистрирует общий вход MobTalkMod; здесь только клиентская сторона.
+        ClientNet.register(this);
         ConversationEngine.setDiagnostics(line -> LOGGER.info("Mob Talk: {}", line));
         talkKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.talk", InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_V, "category.mobtalk"));
@@ -654,37 +652,16 @@ public final class MobTalkClient implements ClientModInitializer {
         for (Ready ready : readyWitnesses) game.attend(ready.request.target, player, 40);
     }
 
+    /** Трек S1: мост создаёт {@code MobTalkMod} на старте сервера (и встроенного тоже); клиент только ждёт его. На выделенном сервере
+     * {@code client.getServer()} пуст, и всё, что требует моста, остаётся без дела до трека A ({@link ClientNet}). */
     void ensureGameBridge() {
         MinecraftServer server = client.getServer();
         if (server == null) { releaseMemory(); return; }
-        if (world == null || !configReady || stopped || gameServer == server && gameConfig == config) return;
-        gameServer = server; gameConfig = config;
-        Path directory = server.getSavePath(WorldSavePath.ROOT);
-        memoryWorld = directory;
-        MobTalkConfig preferences = config;
-        CompletableFuture<MobGameBridge> ready = new CompletableFuture<>();
-        gameReady = ready;
-        maintenance.execute(() -> {
-            try {
-                ConversationStore memory = ConversationStore.open(directory, preferences);
-                server.execute(() -> {
-                    if (gameReady != ready || stopped) { ready.completeExceptionally(new IllegalStateException("Мир сменился")); return; }
-                    try { ready.complete(MobGameBridge.attach(server, memory, preferences)); }
-                    catch (Throwable failure) { ready.completeExceptionally(failure); }
-                });
-            } catch (Throwable failure) { ready.completeExceptionally(failure); }
-        });
+        if (world == null || !configReady || stopped || gameServer == server) return;
+        gameServer = server;
+        gameReady = io.github.mobtalk.MobTalkMod.bridgeReady(server);
     }
-    private void releaseMemory() {
-        Path leaving = memoryWorld;
-        MinecraftServer leavingServer = gameServer;
-        if (leaving == null) return;
-        memoryWorld = null; gameServer = null; gameConfig = null; gameReady = null;
-        if (!stopped) MobGameBridge.detach(leavingServer).thenRunAsync(() -> {
-            try { ConversationStore.closeWorld(leaving); }
-            catch (Exception failure) { LOGGER.warn("Mob Talk memory flush failed ({})", failure.getClass().getSimpleName()); }
-        }, maintenance);
-    }
+    private void releaseMemory() { gameServer = null; gameReady = null; }
 
     private void submit(Request request, byte[] wav, String text) {
         if (!pipelineBusy.compareAndSet(false, true)) {
@@ -1358,6 +1335,7 @@ public final class MobTalkClient implements ClientModInitializer {
                     reloading = false;
                     if (stopped) return;
                     config = loaded; io.github.mobtalk.core.Tuning.apply(loaded);
+                    io.github.mobtalk.server.ServerConfig.adopt(loaded); // Встроенный сервер живёт по серверным полям этого файла.
                     configReady = true;
                     preloadWhisper(loaded);
                     status = !loaded.enabled ? "Mob Talk выключен" : selected == null ? AIM_HINT : readyStatus();
@@ -1384,6 +1362,7 @@ public final class MobTalkClient implements ClientModInitializer {
                 client.execute(() -> {
                     if (stopped) return;
                     config = loaded; io.github.mobtalk.core.Tuning.apply(loaded);
+                    io.github.mobtalk.server.ServerConfig.adopt(loaded); // Встроенный сервер живёт по серверным полям этого файла.
                     configReady = true;
                     reloading = false;
                     preloadWhisper(loaded);
@@ -1426,12 +1405,7 @@ public final class MobTalkClient implements ClientModInitializer {
         stopped = true;
         microphone.close();
         pipeline.shutdownNow(); witnesses.shutdownNow(); reactions.shutdownNow();
-        Path directory = memoryWorld;
-        CompletableFuture<Void> detached = gameServer == null ? CompletableFuture.completedFuture(null) : MobGameBridge.detach(gameServer);
-        if (directory != null) maintenance.execute(() -> {
-            try { detached.get(5, TimeUnit.SECONDS); } catch (Exception ignored) { }
-            try { ConversationStore.closeWorld(directory); } catch (Exception ignored) { }
-        });
+        // Память мира закрывает MobTalkMod при остановке встроенного сервера.
         whisperLoader.shutdownNow();
         maintenance.execute(helper::stopOwned);
         maintenance.shutdown();
