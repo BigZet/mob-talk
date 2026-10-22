@@ -1,4 +1,4 @@
-﻿﻿# Runs the in-game BOSS test (BossSelfTest) unattended on a throwaway copy of the Prism instance divine-block-test, the way
+﻿# Runs the in-game BOSS test (BossSelfTest) unattended on a throwaway copy of the Prism instance divine-block-test, the way
 # run-selftest.ps1 runs the self-test: builds this checkout, waits for a free game slot (scripts\ParallelPrism.psm1, max
 # -MaxGames games machine-wide, shared with mob-talk), copies the base instance into instances\t-dbboss-<branch>-<time> with
 # this branch's JAR, launches it through the running PrismLauncher with -Ddivineblock.bosstest=true, waits for this copy's
