@@ -128,6 +128,11 @@ public final class SchemnikEntity extends SacredBoss {
                         center.y + Math.sin(pitch) * DOME, center.z + Math.sin(yaw) * Math.cos(pitch) * DOME, 1, 0, 0, 0, 0);
             }
             for (LivingEntity victim : victims(center, DOME)) {
+                // A light in hand keeps the vow off (but not the dark): the counter to the dome.
+                if (holdsLight(victim)) {
+                    if (step == 0 && victim instanceof net.minecraft.entity.player.PlayerEntity player) player.sendMessage(Text.literal("Свет в руке хранит от обета").formatted(Formatting.YELLOW), true);
+                    continue;
+                }
                 victim.addStatusEffect(new StatusEffectInstance(StatusEffects.DARKNESS, 70, 0, false, false));
                 if (!victim.hasStatusEffect(BossEffects.VOW_OF_SILENCE)) {
                     BossEffects.afflict(victim, BossEffects.VOW_OF_SILENCE, 20 * 20);
@@ -162,6 +167,28 @@ public final class SchemnikEntity extends SacredBoss {
         }
         return out;
     }
+
+    // ---- The weak point: fire and light. ----
+
+    /** Darkness fears fire: a burning arrow, a burning blade (he catches fire) or a light in the striking hand open him. */
+    @Override protected boolean weakTrigger(net.minecraft.entity.damage.DamageSource source, float amount) {
+        if (source.isIn(net.minecraft.registry.tag.DamageTypeTags.IS_FIRE)) return true;
+        if (source.getSource() instanceof net.minecraft.entity.projectile.ProjectileEntity projectile && projectile.isOnFire()) return true;
+        return source.getAttacker() instanceof LivingEntity attacker && source.getSource() == attacker && holdsLight(attacker);
+    }
+    /** A torch, a lantern or a candle in either hand. */
+    static boolean holdsLight(LivingEntity who) {
+        for (ItemStack stack : new ItemStack[] { who.getMainHandStack(), who.getOffHandStack() })
+            if (stack.isOf(Items.TORCH) || stack.isOf(Items.SOUL_TORCH) || stack.isOf(Items.LANTERN) || stack.isOf(Items.SOUL_LANTERN)
+                    || stack.isIn(net.minecraft.registry.tag.ItemTags.CANDLES)) return true;
+        return false;
+    }
+    @Override protected String weakHint() { return "тьма боится огня — горящая стрела, Заговор огня или факел в левой руке"; }
+    @Override protected String weakReason() { return "Огонь опалил схиму — бей!"; }
+    @Override protected String ultHint() { return "выбеги из купола (12 блоков) или держи свет в руке — он хранит от обета"; }
+    @Override protected String phaseName(int phase) { return phase == 2 ? "Послушники" : "Великая схима"; }
+    @Override protected Vec3d weakSpot() { return handPos(); }
+    @Override public void provokeWeakPoint(net.minecraft.server.network.ServerPlayerEntity player) { testArrow(player, 0.6, true); }
 
     @Override protected void onPhase(int phase) {
         sound(SoundEvents.ENTITY_EVOKER_PREPARE_SUMMON, 2f, 0.5f);

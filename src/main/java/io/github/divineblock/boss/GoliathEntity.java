@@ -46,7 +46,7 @@ public final class GoliathEntity extends SacredBoss {
     /** How long the roar and the slam stun. */
     static final int STUN = 60;
 
-    private int stagger, headCooldown, armourHint, moveTicks;
+    private int stagger, moveTicks;
 
     public GoliathEntity(EntityType<? extends GoliathEntity> type, World world) { super(type, world, BossBar.Color.YELLOW); }
 
@@ -89,8 +89,6 @@ public final class GoliathEntity extends SacredBoss {
     }
 
     @Override protected void mobTick() {
-        if (headCooldown > 0) headCooldown--;
-        if (armourHint > 0) armourHint--;
         if (moveTicks > 0 && --moveTicks == 0) dataTracker.set(MOVE, (byte) MOVE_NONE);
         if (stagger > 0 && --stagger == 0) dataTracker.set(KNEELING, false);
         super.mobTick();
@@ -102,25 +100,32 @@ public final class GoliathEntity extends SacredBoss {
 
     // ---- The weak point: the forehead. ----
 
+    /** A snowball or an egg hurts nothing by itself: in his forehead it hits like David's stone. */
     @Override public boolean damage(DamageSource source, float amount) {
-        if (getWorld().isClient || isInvulnerableTo(source)) return super.damage(source, amount);
-        Entity direct = source.getSource();
-        if (direct instanceof ProjectileEntity projectile) {
-            if (headCooldown == 0 && headHit(projectile)) {
-                // David's stone: an arrow (or a trident) five times over; a snowball or an egg, which hurt nothing, a share of his health.
-                amount = projectile instanceof PersistentProjectileEntity || amount >= 2
-                        ? Math.max(amount * 5f, getMaxHealth() * 0.10f) : getMaxHealth() * 0.12f;
-                timeUntilRegen = 0;
-                headshot(source.getAttacker());
-            } else amount *= 0.7f;
-        } else if (direct instanceof LivingEntity && direct == source.getAttacker()) {
-            amount *= 0.55f;
-            if (armourHint == 0 && direct instanceof ServerPlayerEntity player) {
-                player.sendMessage(Text.literal("Медный доспех держит удар… целься ему в лоб").formatted(Formatting.GOLD), true);
-                armourHint = 200;
-            }
-        }
+        if (!getWorld().isClient && source.getSource() instanceof ProjectileEntity projectile && amount < 2 && headHit(projectile)) amount = 6f;
         return super.damage(source, amount);
+    }
+
+    /** The weak point: a projectile in the bare forehead brings him to his knees (the window of {@link SacredBoss}). */
+    @Override protected boolean weakTrigger(DamageSource source, float amount) {
+        if (!(source.getSource() instanceof ProjectileEntity projectile) || !headHit(projectile)) return false;
+        headshot(source.getAttacker());
+        return true;
+    }
+    @Override protected String weakHint() { return "медный доспех держит удар — целься ему в открытый лоб (стрела, снежок, яйцо)"; }
+    @Override protected String weakReason() { return "Камень в лоб: Голиаф на коленях — бей!"; }
+    @Override protected String ultHint() { return "уйди с линии копья, перепрыгни кольцо удара о землю"; }
+    @Override protected Vec3d weakSpot() { return getEyePos(); }
+    @Override protected String phaseName(int phase) { return phase == 2 ? "Посрамлю полки Израильские" : "Отдам тело твоё птицам"; }
+
+    @Override public void provokeWeakPoint(ServerPlayerEntity player) {
+        // A snowball thrown at his forehead, as David's stone.
+        var ball = new net.minecraft.entity.projectile.thrown.SnowballEntity(getWorld(), player);
+        Vec3d head = getEyePos();
+        ball.setPosition(head.x, head.y, head.z - 0.6);
+        ball.setVelocity(0, 0, 1.2);
+        damage(getDamageSources().thrown(ball, player), 0f);
+        ball.discard();
     }
 
     /** Whether a projectile struck his head: where its flight crosses his box (or where it is) lies above his shoulders
@@ -132,8 +137,7 @@ public final class GoliathEntity extends SacredBoss {
     }
 
     private void headshot(Entity shooter) {
-        stagger = STAGGER;
-        headCooldown = HEAD_COOLDOWN;
+        stagger = EXPOSED_TICKS;
         dataTracker.set(KNEELING, true);
         pose(MOVE_NONE, 1);
         getNavigation().stop();

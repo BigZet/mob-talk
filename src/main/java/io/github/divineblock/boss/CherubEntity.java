@@ -224,6 +224,7 @@ public final class CherubEntity extends SacredBoss {
         sound(SoundEvents.ENTITY_WITHER_SHOOT, 2f, 0.5f);
         Map<LivingEntity, Integer> lastHit = new HashMap<>();
         double start = random.nextDouble() * Math.PI * 2;
+        hazards.later(total + 10, () -> expose(EXPOSED_TICKS, "Пламенный меч угас — херувим открыт, бей!"));
         hazards.repeat(1, total, step -> {
             Vec3d center = getPos();
             double t = step / (double) total;
@@ -319,6 +320,27 @@ public final class CherubEntity extends SacredBoss {
             player.sendMessage(Text.literal("Изгнание из рая: пламенный меч охраняет путь").formatted(Formatting.GOLD), true);
         }
     }
+
+    // ---- The weak point: the parry. ----
+
+    /** A blow of the sword taken on a raised shield is parried: the cherub reels, open. */
+    @Override public boolean hurt(LivingEntity victim, float base) {
+        if (victim instanceof net.minecraft.entity.player.PlayerEntity player && player.isBlocking() && spinLeft == 0 && weakReady()) {
+            parried(player);
+            return false;
+        }
+        return super.hurt(victim, base);
+    }
+    private void parried(LivingEntity by) {
+        sound(SoundEvents.ITEM_SHIELD_BLOCK, 2.5f, 0.6f);
+        sound(SoundEvents.BLOCK_ANVIL_LAND, 1.5f, 1.4f);
+        particles(ParticleTypes.FLASH, by.getX(), by.getEyeY(), by.getZ(), 1, 0, 0, 0, 0);
+        expose(EXPOSED_TICKS, "Удар отражён щитом — херувим потерял равновесие, бей!");
+    }
+    @Override protected String weakHint() { return "прими его удар на поднятый щит — отражённый, он открывается"; }
+    @Override protected String ultHint() { return "перепрыгивай вращающийся клинок; когда меч угаснет — он открыт"; }
+    @Override protected String phaseName(int phase) { return phase == 2 ? "Меч за спиной" : "Два клинка"; }
+    @Override public void provokeWeakPoint(net.minecraft.server.network.ServerPlayerEntity player) { parried(player); }
 
     @Override protected void onPhase(int phase) {
         sound(SoundEvents.ITEM_FIRECHARGE_USE, 3f, 0.5f);

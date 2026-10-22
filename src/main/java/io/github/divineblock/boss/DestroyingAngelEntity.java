@@ -7,6 +7,8 @@ import net.minecraft.block.Blocks;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.entity.boss.BossBar;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
@@ -274,6 +276,25 @@ public final class DestroyingAngelEntity extends SacredBoss {
         player.addStatusEffect(new StatusEffectInstance(StatusEffects.DARKNESS, 60, 0, false, false));
         player.sendMessage(Text.literal("Печать первенца на тебе! Кровь на косяке дверей спасёт…").formatted(Formatting.DARK_RED, Formatting.BOLD));
         particles(BLOOD, player.getX(), player.getY() + 1.9, player.getZ(), 20, 0.2, 0.1, 0.2, 0);
+    }
+
+    // ---- The weak point: the sign of blood. ----
+
+    /** Struck by one who holds a red banner, or who stands under a doorway with the red sign: he recoils, open. */
+    @Override protected boolean weakTrigger(net.minecraft.entity.damage.DamageSource source, float amount) {
+        if (!(source.getAttacker() instanceof LivingEntity attacker)) return false;
+        if (attacker.getMainHandStack().isOf(Items.RED_BANNER) || attacker.getOffHandStack().isOf(Items.RED_BANNER)) return true;
+        return attacker instanceof PlayerEntity player && underBloodLintel(getWorld(), player);
+    }
+    @Override protected String weakHint() { return "знак крови: красное знамя в левой руке или бей из-под двери с красным над косяком"; }
+    @Override protected String weakReason() { return "Знак крови: ангел отпрянул — бей!"; }
+    @Override protected String ultHint() { return "печать первенца: встань под дверь с красным знаменем над косяком"; }
+    @Override protected String phaseName(int phase) { return phase == 2 ? "Ветер смерти" : "Полночь"; }
+    @Override public void provokeWeakPoint(ServerPlayerEntity player) {
+        ItemStack held = player.getOffHandStack();
+        player.setStackInHand(net.minecraft.util.Hand.OFF_HAND, new ItemStack(Items.RED_BANNER));
+        damage(getDamageSources().playerAttack(player), 6f);
+        player.setStackInHand(net.minecraft.util.Hand.OFF_HAND, held);
     }
 
     @Override protected void onPhase(int phase) {

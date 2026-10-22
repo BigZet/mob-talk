@@ -240,12 +240,43 @@ public final class BossSelfTest {
             check(afflicted, kind.id + ": эффект «" + kind.affliction + "» на игроке");
             check(player.isAlive(), kind.id + ": игрок пережил ульту (урон ограничен), здоровье " + Math.round(player.getHealth()));
             check(boss[0].isAlive(), kind.id + ": босс жив после ульты");
+        }));
+        // The weak point: what a player would do to open it (a stone in the forehead, a bell, a shield, a wall for the ram...),
+        // then the window must be open: the boss glows, stands still and its bar is white.
+        int[] opened = new int[1];
+        steps.add(new Step(30, () -> {
+            if (boss[0] == null) return;
+            refresh(player);
+            home(player);
+            if (water) player.teleport(player.getServerWorld(), base.getX() + 0.5, base.getY(), base.getZ() - 12.5, 180f, 10f);
+            boss[0].hazardsClear();
+            boss[0].holdFire(20 * 8);
+            boss[0].rearmWeakPoint();
+            opened[0] = boss[0].weakOpened();
+            boss[0].provokeWeakPoint(player);
+        }));
+        steps.add(new Step(50, () -> {
+            if (boss[0] == null) return;
+            boolean open = boss[0].weakOpened() > opened[0];
+            check(open, kind.id + ": контр-игра открыла слабое место (" + (boss[0].exposed() ? "открыто сейчас" : "уже закрылось") + ")");
+            screenshot = kind.id + "-6-weak";
+        }));
+        steps.add(new Step(30, () -> {
+            if (boss[0] == null) return;
+            // Blows in the window hurt five times as much as outside it.
+            boss[0].rearmWeakPoint();
+            boss[0].expose(SacredBoss.EXPOSED_TICKS, "проверка");
+            float before = boss[0].getHealth();
+            boss[0].timeUntilRegen = 0;
+            boss[0].damage(player.getServerWorld().getDamageSources().playerAttack(player), 10f);
+            float inWindow = before - boss[0].getHealth();
+            check(inWindow > 10f * SacredBoss.TAKEN_EXPOSED * 0.6f, kind.id + ": удар в окно снял " + String.format(Locale.ROOT, "%.1f", inWindow) + " из 10");
             boss[0].setHealth(boss[0].getMaxHealth() * 0.3f);
         }));
-        steps.add(new Step(40, () -> {
+        steps.add(new Step(20, () -> { if (boss[0] != null) screenshot = kind.id + "-7-phase"; }));
+        steps.add(new Step(20, () -> {
             if (boss[0] == null) return;
             check(boss[0].phase() >= 2, kind.id + ": новая фаза при 30% здоровья: " + boss[0].phase());
-            screenshot = kind.id + "-6-phase";
             refresh(player);
         }));
         steps.add(new Step(60, () -> {
@@ -259,11 +290,38 @@ public final class BossSelfTest {
             boolean dropped = !player.getServerWorld().getEntitiesByClass(ItemEntity.class, new Box(boss[0].getBlockPos()).expand(20, 48, 20), item -> item.getStack().isOf(relic)).isEmpty()
                     || player.getInventory().contains(new net.minecraft.item.ItemStack(relic));
             check(dropped, kind.id + ": выпала реликвия " + relic.getName().getString());
-            screenshot = kind.id + "-7-defeated";
+            screenshot = kind.id + "-8-defeated";
             for (RegistryEntry<StatusEffect> effect : List.of(BossEffects.VOW_OF_SILENCE, BossEffects.RINGING, BossEffects.SCORCH, BossEffects.GAZE,
                     BossEffects.DEPTHS, BossEffects.DUST, BossEffects.STUN, BossEffects.FAMINE, BossEffects.FIRSTBORN_MARK, BossEffects.EXILE,
                     BossEffects.MARK_OF_BEAST, BossEffects.CONFUSION)) player.removeStatusEffect(effect);
             BossEffects.lift(player);
+        }));
+        // A model of the whole fight on a fresh boss: a netherite sword with Sharpness V (~12 a blow with the odd critical)
+        // every 12 ticks, the weak point opened as soon as it is ready. Through the weak points the boss must fall within five
+        // minutes, and not within half a minute (then it is too soft); only in the windows it must still fall within ten.
+        steps.add(new Step(30, () -> {
+            ServerWorld world = player.getServerWorld();
+            clear(world);
+            home(player);
+            BlockPos at = water ? base.add(0, -3, -18) : base.add(0, 0, -11);
+            LivingEntity spawned = DivineBosses.spawn(kind, world, at, 3, null);
+            if (!(spawned instanceof SacredBoss fresh)) { fail(kind.id + ": нет босса для модели боя"); return; }
+            watched = fresh;
+            fresh.setTarget(player);
+            fresh.holdFire(20 * 60);
+            SacredBoss.Simulation always = fresh.simulateKill(player, 12f, 12, false, 20 * 600);
+            log("модель боя " + kind.id + " (сила 3, здоровье " + Math.round(fresh.getMaxHealth()) + "): бить всегда — " + always.describe());
+            check(always.dead() && always.ticks() <= 20 * 300 && always.ticks() >= 20 * 45, kind.id + ": через слабые места убиваем за 0,75–5 мин");
+            fresh.discard();
+            spawned = DivineBosses.spawn(kind, world, at, 3, null);
+            if (!(spawned instanceof SacredBoss windows)) return;
+            windows.setTarget(player);
+            windows.holdFire(20 * 60);
+            SacredBoss.Simulation only = windows.simulateKill(player, 12f, 12, true, 20 * 600);
+            log("модель боя " + kind.id + ": бить только в окна — " + only.describe());
+            check(only.dead(), kind.id + ": одними окнами убиваем за " + only.ticks() / 20 + " с");
+            windows.discard();
+            clear(world);
         }));
     }
 
