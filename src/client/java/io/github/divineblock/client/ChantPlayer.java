@@ -160,6 +160,10 @@ final class ChantPlayer {
     /** For the self-test: what sings now, and how loud the verdict's music is at this moment. */
     static String altarPiece() { Chant chant = altarChant; return chant == null ? null : chant.piece; }
     static String musicPiece() { Chant chant = music; return chant == null ? null : chant.piece; }
+    static String musicDebug() {
+        Chant chant = music; MinecraftClient client = MinecraftClient.getInstance();
+        return chant == null ? "нет музыки" : chant.piece + " stopAt=" + chant.stopAt + " fading=" + chant.fading() + " now=" + (client.world == null ? -1 : client.world.getTime());
+    }
     static boolean musicEnding() { Chant chant = music; return chant == null || chant.fading(); }
     static float musicLevel() { Chant chant = music; return chant == null ? -1 : chant.level(); }
     static List<String> allPieces() { return java.util.stream.Stream.of(ALTAR, BLESSING, PUNISHMENT).flatMap(List::stream).toList(); }
