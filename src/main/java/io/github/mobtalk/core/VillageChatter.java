@@ -90,6 +90,10 @@ public final class VillageChatter {
         private boolean rested(UUID mob, long now) { Long last = mobs.get(mob); return last == null || now - last >= MOB_COOLDOWN_MILLIS; }
         public void spent(String villageKey, UUID a, UUID b, long now) { villages.put(villageKey, now); mobs.put(a, now); mobs.put(b, now); }
         public void forget(UUID mob) { mobs.remove(mob); }
+        /** A talk that was never heard (dropped out of earshot before a word): the village and the pair may talk again at once. */
+        public void refund(String villageKey, UUID a, UUID b, long spentAt) {
+            villages.remove(villageKey, spentAt); mobs.remove(a, spentAt); mobs.remove(b, spentAt);
+        }
         public void clear() { villages.clear(); mobs.clear(); }
     }
 

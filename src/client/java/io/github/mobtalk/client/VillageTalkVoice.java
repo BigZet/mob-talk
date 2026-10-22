@@ -62,7 +62,7 @@ final class VillageTalkVoice {
     private void write(MobGameBridge game) {
         VillageChatter.Cue cue = game.talk.pollTalk();
         if (cue == null) return;
-        if (!near(cue.input().a()) || !near(cue.input().b())) { LOGGER.info("Mob Talk: small talk of {} and {} dropped: out of earshot", cue.input().a().name(), cue.input().b().name()); return; }
+        if (!near(cue.input().a()) || !near(cue.input().b())) { LOGGER.info("Mob Talk: small talk of {} and {} dropped: out of earshot", cue.input().a().name(), cue.input().b().name()); game.talk.refund(cue); return; }
         long seen = System.currentTimeMillis();
         earshot.hold(cue.input().a().id(), true, seen, owner.graceMillis()); earshot.hold(cue.input().b().id(), true, seen, owner.graceMillis());
         long generation = owner.generation();

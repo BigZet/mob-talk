@@ -34,6 +34,9 @@ public final class VillageTalkController {
 
     /** The next talk for the client, or null. */
     public VillageChatter.Cue pollTalk() { return talks.poll(); }
+    /** The client dropped this talk unheard (a speaker out of earshot): its budget is given back on the next server tick. */
+    public void refund(VillageChatter.Cue cue) { refunds.add(cue); }
+    private final ConcurrentLinkedQueue<VillageChatter.Cue> refunds = new ConcurrentLinkedQueue<>();
     /** A pair is queued for the client to write. */
     public boolean waiting() { return !talks.isEmpty(); }
     /** The next announcement for the client, or null. */
@@ -42,6 +45,8 @@ public final class VillageTalkController {
     void tick(ServerWorld world) {
         if (!bridge.config.enabled) return;
         long time = world.getTime();
+        for (VillageChatter.Cue cue; (cue = refunds.poll()) != null; )
+            budget.refund(cue.input().villageKey(), cue.input().a().id(), cue.input().b().id(), cue.createdMillis());
         if (bridge.config.villageChatter && time % CHATTER_PERIOD == CHATTER_PHASE) chatter(world);
         if (bridge.config.villageNotices && time % NOTICE_PERIOD == NOTICE_PHASE) notice(world);
         if (time % ARRIVE_PERIOD == ARRIVE_PHASE) arrivals(world);
