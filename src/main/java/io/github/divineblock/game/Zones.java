@@ -238,8 +238,7 @@ public final class Zones {
                 DivineBlockMod.LOG.info("Божественный блок: у дома {} — {}", miracle.id(), done);
                 if (done == null) { Prayers.godChat(player, "Но земля здесь не подалась гневу моему. Помни же, куда я мог обратить его."); return; }
                 String what = name(lastPerformed == null ? miracle : lastPerformed);
-                title(player, Text.literal("Узри гнев мой").formatted(Formatting.DARK_RED),
-                        Text.literal((atHome ? "что сталось с жилищем твоим: " : "") + what).formatted(Formatting.RED));
+                title(player, Text.literal(atHome ? "Узри жилище своё" : "Узри гнев мой").formatted(Formatting.DARK_RED), Text.literal(what).formatted(Formatting.RED));
                 Prayers.godChat(player, (atHome ? "Узри, что сталось с жилищем твоим: " : "Узри гнев мой: ") + what + ".");
                 if (player.getPos().distanceTo(Vec3d.ofCenter(target)) > 32) pointTo(player, target, what, 30);
             });

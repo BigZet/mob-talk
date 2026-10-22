@@ -244,7 +244,18 @@ public final class ZonesSelfTest {
         }));
         steps.add(new Step(20, () -> screenshot = "4-home-go-title"));
         steps.add(new Step(90, () -> check(player.getBlockPos().isWithinDistance(bed, 6), "грешник перенесён домой: " + player.getBlockPos().toShortString())));
-        steps.add(new Step(20, () -> { lookAt(Vec3d.ofCenter(bed).add(12, 0, 0)); screenshot = "4-home-disaster-title"; }));
+        steps.add(new Step(20, () -> {
+            // Towards the deepest ground around the home: the crater.
+            BlockPos deepest = bed.add(12, 0, 0); int low = Integer.MAX_VALUE;
+            for (int dx = -80; dx <= 80; dx += 4) for (int dz = -80; dz <= 80; dz += 4) {
+                BlockPos column = bed.add(dx, 0, dz);
+                if (!world.isChunkLoaded(column.getX() >> 4, column.getZ() >> 4)) continue;
+                int y = world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, column).getY();
+                if (y < low) { low = y; deepest = column.withY(y); }
+            }
+            lookAt(Vec3d.ofCenter(deepest).add(0, (player.getY() - deepest.getY()) * 0.6, 0));
+            screenshot = "4-home-disaster-title";
+        }));
         steps.add(new Step(20 * 8, () -> {
             int air = 0;
             for (int dx = -80; dx <= 80; dx += 6) for (int dz = -80; dz <= 80; dz += 6) {
