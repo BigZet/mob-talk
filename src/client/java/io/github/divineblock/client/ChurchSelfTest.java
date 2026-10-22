@@ -204,7 +204,7 @@ public final class ChurchSelfTest {
         if (slavic) log("  восьмиконечных крестов мода на церкви: " + crosses + " (у купола свои кресты автора)");
         else check(crosses >= 6, "восьмиконечных крестов на церкви: " + crosses);
         BlockPos north = ChurchPiece.yardNorth(site.variant());
-        BlockPos wallAt = frame.world(30, 5, -12), yardAt = frame.world(north.getX(), 0, north.getZ()), gateWall = frame.world(ChurchBuilder.YARD_MIN_X - 1, 2, 10);
+        BlockPos wallAt = slavic ? frame.world(SlavicChurch.ALTAR_X, SlavicChurch.ALTAR_Y, 0) : frame.world(30, 5, -12), yardAt = frame.world(north.getX(), 0, north.getZ()), gateWall = frame.world(ChurchBuilder.YARD_MIN_X - 1, 2, 10);
         check(ChurchSites.isChurchBlock(world, wallAt) && ChurchSites.isChurchBlock(world, gateWall) && !ChurchSites.isChurchBlock(world, yardAt),
                 "isChurchBlock: стена церкви и ограда — да, трава двора — нет");
         check(ChurchSites.yard(world, yardAt).isPresent() && ChurchSites.outdoorSpot(world, yardAt).isPresent(),
@@ -312,7 +312,8 @@ public final class ChurchSelfTest {
         shot.accept("29-yard-air", new double[] { -60, 45, -60, 20, 0, 0, 140 });
         // Ring the great bell once.
         steps.add(new Step(10, () -> {
-            BlockPos bell = frame.world(ChurchBuilder.BELL_X, ChurchBuilder.BELL_Y, ChurchBuilder.BELL_Z);
+            BlockPos bell = site.variant() == ChurchBuilder.Variant.SLAVIC
+                    ? frame.world(SlavicChurch.BELL_X, SlavicChurch.BEAM_Y - 2, SlavicChurch.BELL_Z) : frame.world(ChurchBuilder.BELL_X, ChurchBuilder.BELL_Y, ChurchBuilder.BELL_Z);
             boolean ok = world.getBlockState(bell).isOf(io.github.divineblock.world.ChurchBlocks.CHURCH_BELL);
             if (ok) io.github.divineblock.world.ChurchBlocks.ChurchBellBlock.ring(world, bell, 2);
             check(ok, "великий колокол на месте и звонит: " + world.getBlockState(bell));

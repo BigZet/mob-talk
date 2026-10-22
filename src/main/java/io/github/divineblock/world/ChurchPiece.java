@@ -71,7 +71,8 @@ public final class ChurchPiece extends StructurePiece {
     }
     /** The middle of the yard north of the church: open grass for a fight (the Slavic church's tower stands where it is for the others). */
     public static BlockPos yardNorth(ChurchBuilder.Variant v) {
-        return v == ChurchBuilder.Variant.SLAVIC ? new BlockPos(60, 0, -25) : new BlockPos(28, 0, -25);
+        // KAIZEN87's church fills the yard's middle from x -6 to 72: its open ground is the west yard by the Holy Gate.
+        return v == ChurchBuilder.Variant.SLAVIC ? new BlockPos(-20, 0, -20) : new BlockPos(28, 0, -25);
     }
 
     @Override protected void writeNbt(StructureContext context, NbtCompound nbt) {
