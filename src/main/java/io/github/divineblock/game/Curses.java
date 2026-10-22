@@ -172,7 +172,7 @@ public final class Curses {
     static String layBlight(ServerWorld world, ServerPlayerEntity player, BlockPos altar, int power, DivineConfig config) {
         if (config.protectBlocks) return null;
         BlockPos bed = player.getSpawnPointPosition();
-        BlockPos home = bed != null && player.getSpawnPointDimension() == world.getRegistryKey() ? bed : altar;
+        BlockPos home = bed != null && player.getSpawnPointDimension() == world.getRegistryKey() && !ChurchArea.inZone(world, bed) ? bed : altar;
         Curse curse = add(player, Type.BLIGHT, home, 24 + 8 * power, config);
         for (int wave = 0; wave < 6; wave++) blight(world, curse);
         Miracles.sound(world, player.getBlockPos(), SoundEvents.ENTITY_ELDER_GUARDIAN_CURSE, 1.5f, 0.4f);

@@ -33,6 +33,10 @@ public final class WrathSettingsScreen extends Screen {
         y += row;
         addDrawableChild(CyclingButtonWidget.onOffBuilder(config.allowEternalBan).build(left, y, column, 20, Text.literal("Вечное изгнание"), (b, v) -> config.allowEternalBan = v));
         addDrawableChild(CyclingButtonWidget.onOffBuilder(config.banBackup).build(right, y, column, 20, Text.literal("Копия мира"), (b, v) -> config.banBackup = v));
+        y += row;
+        // Craters, rifts, floods: off puts another act of the same group in their place.
+        addDrawableChild(CyclingButtonWidget.<Boolean>builder(v -> Text.literal(v ? "да" : "нет")).values(List.of(true, false))
+                .initially(config.landscapeWrath).build(this.width / 2 - 154, y, 308, 20, Text.literal("Кары меняют ландшафт"), (b, v) -> config.landscapeWrath = v));
         y += row + 32;
         for (int i = 0; i < CRUEL.size(); i++) {
             Miracle miracle = CRUEL.get(i);
@@ -55,7 +59,7 @@ public final class WrathSettingsScreen extends Screen {
     @Override public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
         context.drawCenteredTextWithShadow(textRenderer, title.copy().formatted(Formatting.DARK_RED), this.width / 2, 12, 0xFFFFFF);
-        int y = 28 + 22 * 3 + 2;
+        int y = 28 + 22 * 4 + 2;
         String ban = config.allowEternalBan
                 ? "Изгнание включено: за четвёртую хулу бог выкинет тебя из мира, и мир больше не впустит. Снять: выключить здесь, файл config/divineblock-unban.txt или -Ddivineblock.unban=1."
                 : "Изгнание выключено: бог никогда не изгоняет, а изгнанный прежде снова может войти.";

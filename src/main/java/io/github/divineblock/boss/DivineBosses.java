@@ -145,6 +145,11 @@ public final class DivineBosses {
     public static GodWrath spawnGodAvatar(ServerWorld world, net.minecraft.server.network.ServerPlayerEntity player, int power, int durationTicks, BlockPos altar) {
         return GodWrath.start(world, player, power, durationTicks, altar);
     }
+    /** Whether the god with the mace is still over {@code player}. */
+    public static boolean godAvatarActive(net.minecraft.server.network.ServerPlayerEntity player) {
+        GodWrath wrath = GodWrath.of(player);
+        return wrath != null && !wrath.finished();
+    }
     /** Repentance: the god over {@code player} goes back into the clouds now. False when there is none. */
     public static boolean dismissGodAvatar(net.minecraft.server.network.ServerPlayerEntity player) {
         GodWrath wrath = GodWrath.of(player);

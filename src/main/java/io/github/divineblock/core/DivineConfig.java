@@ -79,6 +79,9 @@ public final class DivineConfig {
     public boolean allowEternalBan = false;
     /** Copy the world into saves/ before the ban falls. */
     public boolean banBackup = true;
+    /** Punishments that change the land (craters, rifts, floods…) may fall — at the sinner's home, never by a church; off
+     * puts another act of the same group in their place. */
+    public boolean landscapeWrath = true;
     /** Ids of acts the player switched off. */
     public List<String> disabled = new ArrayList<>();
     /** Orthodox churches with an altar inside appear in newly generated chunks; off generates none (old ones stay). */
@@ -142,6 +145,7 @@ public final class DivineConfig {
         if (miracle == Miracle.WITHER && !allowWither) return false;
         if (miracle == Miracle.DRAGON && !allowDragon) return false;
         if (miracle == Miracle.ETERNAL_BAN && !allowEternalBan) return false;
+        if (miracle.landscape() && !landscapeWrath) return false;
         return miracle.minTier <= maxTier;
     }
 

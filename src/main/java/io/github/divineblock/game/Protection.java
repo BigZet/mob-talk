@@ -15,6 +15,8 @@ public final class Protection {
 
     public static boolean spares(ServerWorld world, ServerPlayerEntity player, BlockPos altar, BlockPos target, DivineConfig config) {
         if (config.protectBlocks) return true;
+        // The church, its yard and its cemetery: no punishment changes the land there.
+        if (ChurchArea.inZone(world, target)) return true;
         if (altar != null && altar.isWithinDistance(target, ALTAR_RADIUS)) return true;
         BlockPos bed = player.getSpawnPointPosition();
         return bed != null && player.getSpawnPointDimension() == world.getRegistryKey() && bed.isWithinDistance(target, config.protectRadius);

@@ -19,6 +19,7 @@ public final class DivineBlockClient implements ClientModInitializer {
         BossSelfTest.register();
         FxTest.register();
         ChurchSelfTest.register();
+        ZonesSelfTest.register();
         CruelTest.register();
         CemeteryTest.register();
         net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.INSTANCE.putBlocks(net.minecraft.client.render.RenderLayer.getCutout(),
