@@ -101,7 +101,7 @@ function dataView(rec) {
       d.stack && h('div.stack', h('div.row', h('h4.grow', 'Стек'), h('button.btn.sm', { type: 'button', onclick: () => copyText(d.stack) }, icon('copy', 'sm'), 'Скопировать')), h('pre.stack', d.stack))],
     command: () => [kv([['Команда', h('code', d.command)], ['Кто', d.by], ['Результат', d.result]]), d.output?.length ? h('pre.block', d.output.join('\n')) : null],
     config_change: () => [kv([['Источник', d.source], ['Ключ', h('code', d.key)], ['Было', fmt.value(d.before)], ['Стало', fmt.value(d.after)], ['Кто', d.by], d.rollbackOf && ['Откат записи', d.rollbackOf]])],
-    verdict: () => [kv([['Молитва', d.prayer], ['Вердикт', d.verdict], ['Итог', { wrath: 'кара', miracle: 'благо', none: 'ничего' }[d.act] || d.act], ['Деяние', d.deed], ['Сила', d.power], ['Ярость', d.fury]])],
+    verdict: () => [kv([['Молитва', d.prayer], ['Вердикт', d.verdict], ['Итог', { wrath: 'кара', miracle: 'благо', warning: 'знамение', jest: 'шутка', none: 'молчание' }[d.act] || d.act], ['Тон', d.tone], ['Деяние', d.deed], ['Сила', d.power], ['Ярость', d.fury]])],
   };
   if (known[rec.kind]) return known[rec.kind]();
   const pairs = Object.entries(d).filter(([k]) => k !== 'trace').map(([k, v]) => [k, fmt.value(v)]);

@@ -223,8 +223,8 @@ public final class DevStubServer {
                 case 0 -> history.append(t, "gift", player, mob, HistoryStore.nameOf(player) + " подарил " + HistoryStore.nameOf(mob) + " хлеб",
                         Json.obj("item", "minecraft:bread", "count", 1, "reaction", "Ой, спасибо!", "heartsBefore", 3, "heartsAfter", 4));
                 case 1 -> history.append(t, "verdict", player, null, "Молитва " + HistoryStore.nameOf(player) + ": " + (random.nextBoolean() ? "кара" : "чудо"),
-                        Json.obj("prayer", "Господи, дай алмазов", "verdict", "Наглость наказуема", "act", random.nextBoolean() ? "wrath" : "miracle",
-                                "deed", List.of("slowness", "lightning", "diamonds", "hunger").get(random.nextInt(4)), "power", 1 + random.nextInt(3), "fury", random.nextInt(100)));
+                        Json.obj("prayer", "Господи, дай алмазов", "verdict", "Наглость наказуема", "act", List.of("wrath", "wrath", "miracle", "jest", "warning", "none").get(random.nextInt(6)),
+                                "deed", List.of("Молния", "Малое проклятие", "Исцеление", "Куриный дождь").get(random.nextInt(4)), "power", 1 + random.nextInt(3), "fury", random.nextInt(100)));
                 case 2 -> history.append(t, "rumor", player, mob, "Слух: " + HistoryStore.nameOf(player) + " ходит с мечом по деревне",
                         Json.obj("village", "Берёзовка", "about", player, "line", "ходит с мечом по деревне"));
                 case 3 -> history.append(t, random.nextBoolean() ? "player_join" : "player_leave", player, null, HistoryStore.nameOf(player) + " зашёл/вышел",

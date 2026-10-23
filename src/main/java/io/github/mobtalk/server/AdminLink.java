@@ -43,6 +43,8 @@ public final class AdminLink {
     private static boolean hooked;
     private static final List<Long> tickNanos = new ArrayList<>();
     private static int ticks;
+    /** Молитвы бога уже перенесены в историю до этого времени (журнал молитв мода живёт в памяти и начинается с запуска сервера). */
+    private static long prayersSince;
     /** Открытые записи диалогов: id записи → игрок, чтобы админка могла отменить диалог. */
     private static final Map<String, UUID> runs = new ConcurrentHashMap<>();
 
@@ -65,6 +67,7 @@ public final class AdminLink {
         if (started == null) return;
         web = started; view = game; current = server;
         runs.clear();
+        prayersSince = System.currentTimeMillis();
         for (var entry : FabricLoader.getInstance().getEntrypointContainers("mobtalk-admin", UnaryOperator.class)) {
             String id = entry.getProvider().getMetadata().getId();
             if ("mobtalk".equals(id) || started.sources().has(id)) continue;
@@ -180,6 +183,32 @@ public final class AdminLink {
             if (p95 > 0) values.put(MetricSeries.latency(kind, true), (double) p95);
         }
         admin.metrics().record(values, worlds);
+        pullVerdicts(admin);
+    }
+
+    /** Вердикты бога в историю: молитвы источника divineblock (операция prayers) становятся записями «verdict» с data.act — по ним
+     * рисуются графики и «Последние вердикты» на вкладке «Бог», и они переживают перезапуск. Журнал молитв в памяти и мал, поэтому раз в 10 с. */
+    private static void pullVerdicts(AdminWeb admin) {
+        if (!admin.sources().has("divineblock")) return;
+        try {
+            JsonObject answer = admin.sources().call("divineblock", Json.obj("op", "prayers", "since", prayersSince, "limit", 300));
+            if (!answer.has("items")) return;
+            var items = answer.getAsJsonArray("items");
+            for (int i = items.size() - 1; i >= 0; i--) { // новые первыми — пишем по порядку
+                JsonObject p = items.get(i).getAsJsonObject();
+                long t = Json.number(p, "t", 0);
+                prayersSince = Math.max(prayersSince, t);
+                JsonObject who = p.has("player") ? p.getAsJsonObject("player") : new JsonObject();
+                JsonObject choice = p.has("choice") ? p.getAsJsonObject("choice") : new JsonObject();
+                String name = Json.string(who, "name"), act = Json.string(choice, "kind"), deed = Json.string(choice, "deedTitle");
+                UUID uuid = null;
+                try { uuid = UUID.fromString(Json.string(who, "uuid")); } catch (IllegalArgumentException | NullPointerException none) { }
+                String what = switch (act == null ? "" : act) { case "wrath" -> "кара"; case "miracle" -> "благо"; case "warning" -> "знамение"; case "jest" -> "шутка"; default -> "без ответа"; };
+                admin.journal().event("verdict", Json.player(uuid, name), null, name + ": " + what + (deed == null || deed.isBlank() || "none".equals(act) ? "" : " «" + deed + "»"),
+                        Json.obj("prayer", Json.string(p, "text"), "verdict", Json.string(p, "answer"), "act", act, "deed", deed,
+                                "power", Json.number(choice, "power", 0), "tone", Json.string(p, "toneTitle")));
+            }
+        } catch (RuntimeException failure) { MobTalkMod.LOGGER.debug("Админка: вердикты бога не перенесены ({})", failure.toString()); }
     }
 
     // ---- Журнал диалогов. ----
