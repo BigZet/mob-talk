@@ -517,6 +517,12 @@ final class MobTalkSettingsScreen extends Screen {
         wide(refreshButton, test);
 
         header("mobtalk.settings.section.whisper");
+        // Куда идёт запись: свой Whisper, сервер (OpenRouter) или только текст; «авто» — свой Whisper, если установлен, иначе сервер.
+        CyclingButtonWidget<String> sttPath = track(CyclingButtonWidget.<String>builder(value -> Text.translatable("mobtalk.settings.sttPath." + value))
+                .values(SttRoute.AUTO, SttRoute.LOCAL, SttRoute.SERVER, SttRoute.TEXT).initially(SttRoute.normalize(draft.sttPath)).omitKeyText()
+                .build(0, 0, 100, 20, Text.translatable("mobtalk.settings.sttPath"), (button, value) -> draft.sttPath = value));
+        sttPath.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.sttPath.tooltip")));
+        labeled("mobtalk.settings.sttPath", sttPath);
         wide(cycling("mobtalk.settings.whisper.model", retain(WHISPER_MODELS, draft.whisperModel), draft.whisperModel, value -> draft.whisperModel = value));
         wide(cycling("mobtalk.settings.whisper.device", retain(List.of("auto", "cpu", "cuda"), draft.whisperDevice), draft.whisperDevice, value -> draft.whisperDevice = value),
                 toggle("mobtalk.settings.whisper.autostart", draft.whisperAutoStart, value -> draft.whisperAutoStart = value));
