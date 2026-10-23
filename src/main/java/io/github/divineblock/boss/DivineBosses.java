@@ -69,7 +69,7 @@ public final class DivineBosses {
     public static final EntityType<NimrodEntity> NIMROD = entity(BossKind.NIMROD, NimrodEntity::new, 1.6f, 4.5f, false);
     /** «Бог с булавой»: not a boss, the god's own figure over the clouds (see {@link GodWrath}). Its id in
      * {@code disabledBosses} switches the figure off (F9): the punishment comes as a storm without it. */
-    public static final String GOD_AVATAR_ID = "god_avatar";
+    public static final String GOD_AVATAR_ID = io.github.divineblock.core.DivineSettings.GOD_AVATAR_ID;
     public static final EntityType<GodAvatarEntity> GOD_AVATAR = Registry.register(Registries.ENTITY_TYPE, Identifier.of(DivineBlockMod.ID, GOD_AVATAR_ID),
             EntityType.Builder.<GodAvatarEntity>create(GodAvatarEntity::new, SpawnGroup.MISC).dimensions(2f, 2f).makeFireImmune()
                     .maxTrackingRange(16).trackingTickInterval(2).disableSaving().disableSummon().build(DivineBlockMod.ID + ":" + GOD_AVATAR_ID));
@@ -152,6 +152,8 @@ public final class DivineBosses {
         GodWrath wrath = GodWrath.of(player);
         return wrath != null && !wrath.finished();
     }
+    /** The mortals the god with the mace stands over now (the web admin's «Бог» tab). */
+    public static List<net.minecraft.server.network.ServerPlayerEntity> godAvatarPlayers() { return GodWrath.players(); }
     /** Repentance: the god over {@code player} goes back into the clouds now. False when there is none. */
     public static boolean dismissGodAvatar(net.minecraft.server.network.ServerPlayerEntity player) {
         GodWrath wrath = GodWrath.of(player);

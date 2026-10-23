@@ -41,7 +41,8 @@ import net.minecraft.world.World;
  *       мой» — the mortal is taken home (his bed), or 60–100 blocks out into open land if he has none, and it strikes there.</li>
  * </ul>
  * The god always says what is happening: a title and a line in chat. Away from a church the acts fall as they always did, but
- * the zone around every church is still spared ({@link Protection}). */
+ * the zone around every church is still spared ({@link Protection}). One punishment moves the mortal at most once
+ * ({@link io.github.divineblock.core.Penance#mayRelocate}): an act that would move him again falls where he stands or not at all. */
 public final class Zones {
     /** Seconds to walk out of the church before the god throws the mortal out. */
     static final int CAST_OUT_SECONDS = 5;
@@ -57,6 +58,16 @@ public final class Zones {
         Miracle.Place place = miracle.place();
         Optional<ChurchSites.Site> church = ChurchArea.near(world, player.getBlockPos());
         if (church.isEmpty() && altar != null) church = ChurchArea.near(world, altar);
+        // This punishment already moved him (cast out, taken home or up): no second move. The act falls where he stands when it
+        // can (out of the church), or not at all and the caller picks another.
+        if (!mayRelocate(player) && !SkyCourt.inCourt(player)) {
+            boolean inChurch = church.isPresent() && ChurchArea.inside(church.get(), player.getBlockPos());
+            if (place == Miracle.Place.SKY || place == Miracle.Place.HOME || place == Miracle.Place.YARD && inChurch) {
+                decided.accept(miracle.id() + " → не переносит второй раз");
+                return null;
+            }
+            if (place == Miracle.Place.YARD) return Miracles.perform(miracle, power, player, altar, prayer, config, severity);
+        }
         if (place == Miracle.Place.SKY && world.getRegistryKey() == World.OVERWORLD) {
             decided.accept(miracle.id() + " → небесный суд");
             return SkyCourt.summon(miracle, power, player, altar, prayer, config, severity, church.orElse(null));
@@ -87,6 +98,13 @@ public final class Zones {
             default -> { return Miracles.perform(miracle, power, player, altar, prayer, config, severity); }
         }
     }
+
+    /** Whether the running punishment may still move him (once per punishment). */
+    static boolean mayRelocate(ServerPlayerEntity player) {
+        return Prayers.PENANCE.mayRelocate(player.getUuid(), player.getServer().getOverworld().getTime());
+    }
+    /** The running punishment moves him now: the only move it makes. */
+    static void relocating(ServerPlayerEntity player) { Prayers.PENANCE.relocated(player.getUuid(), player.getServer().getOverworld().getTime()); }
 
     /** The act, or (if it cannot happen here) another of its group that falls in the same place. */
     static String performWithFallback(Miracle miracle, int power, ServerPlayerEntity player, BlockPos altar, String prayer, DivineConfig config, int severity,
@@ -153,6 +171,7 @@ public final class Zones {
     /** «Изыди из храма»: a few seconds to walk out, then the god throws him out into the yard, and the act falls there. */
     static String castOut(Miracle miracle, int power, ServerPlayerEntity player, BlockPos altar, String prayer, DivineConfig config, int severity, ChurchSites.Site site) {
         ServerWorld world = player.getServerWorld();
+        relocating(player);
         title(player, Text.literal("Изыди из храма!").formatted(Formatting.DARK_RED), Text.literal("Ступай во двор — там свершится суд").formatted(Formatting.RED));
         Prayers.godChat(player, "Изыди из храма! Не оскверню дом мой кровью твоей — во дворе примешь кару.");
         Miracles.sound(world, site.naveCenter().up(10), SoundEvents.BLOCK_BELL_USE, 3f, 0.5f);
@@ -210,6 +229,7 @@ public final class Zones {
             strike = world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, column);
         }
         BlockPos target = strike;
+        if (miracle != Miracle.BLIGHT) relocating(player); // the blight only shows him the way
         decided.accept(miracle.id() + " → " + (home ? "дом у кровати " + bed.toShortString() : "чистое поле " + center.toShortString()));
         if (miracle == Miracle.BLIGHT) {
             String done = Miracles.perform(miracle, power, player, center, prayer, config, severity);

@@ -24,6 +24,24 @@ public record PrayerTone(boolean polite, boolean rude, boolean profane, boolean 
         return new PrayerTone(any(text, POLITE) && !profane, any(text, RUDE) || profane, profane, any(text, REPENTS), any(text, WHY), any(text, URGENT));
     }
 
+    /** The tone for the web admin, the strongest first: profane, rude, penitent, urgent, why, polite, plain. */
+    public String id() {
+        if (profane) return "profane";
+        if (rude) return "rude";
+        if (repents) return "penitent";
+        if (urgent) return "urgent";
+        if (asksWhy) return "why";
+        if (polite) return "polite";
+        return "plain";
+    }
+    /** {@link #id} in Russian. */
+    public static String title(String id) {
+        return switch (id) {
+            case "profane" -> "брань"; case "rude" -> "грубо"; case "penitent" -> "покаяние"; case "urgent" -> "срочно";
+            case "why" -> "вопрос"; case "polite" -> "вежливо"; default -> "обычно";
+        };
+    }
+
     /** A bare "why?" asks the god to explain his last verdict; a "why" inside a longer request is just a prayer. */
     public static boolean isWhyQuestion(String prayer) {
         if (prayer == null) return false;

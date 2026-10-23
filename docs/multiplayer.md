@@ -55,13 +55,24 @@
 
 | Запрос | Ответ |
 | --- | --- |
-| `{"op":"describe"}` | группы и поля серверных настроек: ключ, название, тип `int/bool/enum/string`, границы, варианты, подсказка |
-| `{"op":"values"}` | `{"ключ": значение}`; списки (`disabled`, `disabledBosses`) — id через запятую |
+| `{"op":"describe"}` | группы и поля серверных настроек: ключ, название, тип `int/bool/enum/string/flags`, границы, варианты, подсказка |
+| `{"op":"values"}` | `{"ключ": значение}`; `flags` (`disabled`, `disabledBosses`) — id **выключенных** через запятую |
 | `{"op":"patch","values":{…}}` | `{"ok","applied","errors"}`: применяет сразу, без перезапуска; неизвестный ключ, личный ключ и выход за границы отвергаются с причиной |
 | `{"op":"journal","since":<мс>,"limit":200}` | последние молитвы, вердикты, деяния и баны; без ключей и координат |
-| `{"op":"actions"}` / `{"op":"action","id":…,"args":{"player":…}}` | `unban`, `lift` (снять проклятия и лестницу кар), `clear` (убрать священных боссов), `streamer` |
+| `{"op":"actions"}` / `{"op":"action","id":…,"args":{…}}` | `unban`, `lift` (снять проклятия и лестницу кар), `boss_remove` (`uuid`: убрать одного босса), `boss_clear` (убрать всех священных боссов; старое имя `clear` работает), `god_recall` (отозвать Бога с булавой), `court_end` (закончить Небесный суд — грешника возвращают, как по истечении суда), `streamer`; каждое пишет строку в журнал бога |
+| `{"op":"souls"}` | `souls:[{player:{uuid,name}, sins, ladder, banned, curses:[{title,until}], mercy, label, deeds:[{text,t,day}]}]` — `mercy` праведность −100…100, `label` её словами, `deeds` заметные поступки последних 7 дней |
+| `{"op":"active"}` | `bosses:[{uuid,id,title,health,maxHealth,since,phase,target:{uuid,name}\|null,dimension,x,y,z}]`, `curses:[{player,title,until}]`, `godAvatar:{active,player\|null}`, `skyCourt:{active,player\|null}`, `blessings:[{player,title,until}]` (сила и скорость, великое благословение) |
+| `{"op":"prayers","since":<мс>,"limit":100,"player":"ник или uuid"}` | `items` новыми вперёд: `{t, player:{uuid,name}, text, tone, toneTitle, offering, offeringValue, answer, choice:{kind,deed,deedTitle,power,decidedBy,note}, reasons:[{title,mercy,power}]}`; `tone` — `profane/rude/penitent/urgent/why/polite/plain`, `choice.kind` — `miracle/wrath/jest/warning/none`, `decidedBy` — `rules/jev` |
 
-Журнал хранится в памяти (последние 1000 записей) и начинается заново при запуске мира; память бога о душах — в мире.
+Тип `flags` — набор тумблеров: в `describe` поле несёт `"options":[{"id","title","help","group","groupTitle"}]`. У `disabled`
+все деяния каталога по видам (`wrath` «Кары», `miracle` «Блага», `jest` «Шутки», `omen` «Знамения»), у `disabledBosses` все
+боссы по месту, откуда приходят (`church`, `cemetery`, `god`, `final` — с ним и `god_avatar` «Бог с булавой», `water`, `wild`,
+`night`). Значение и `patch` прежние: строка id выключенных через запятую. В F9 это страницы «Деяния» и «Боссы»: тумблеры по
+группам, «Вся группа — Включить/Выключить», поиск.
+
+Журнал хранится в памяти (последние 1000 записей), лента молитв — тоже (последние 300, `core/PrayerLog`); обе начинаются
+заново при запуске мира; память бога о душах — в мире. Время везде — мс эпохи, игрок — `{uuid, name}`. Под карой новая
+хула кары не кладёт (`core/Penance`): в ленте у такой молитвы `choice.kind` — `warning` (гром) и заметка «кара уже идёт».
 
 ## Права
 

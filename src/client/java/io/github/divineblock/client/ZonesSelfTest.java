@@ -140,7 +140,7 @@ public final class ZonesSelfTest {
         world.setTimeOfDay(5000);
         DivineConfig config = DivineBlockMod.config();
         saved = config.copy();
-        config.protectBlocks = false; config.landscapeWrath = true; config.bossBlockDamage = true; config.comboActs = 0; config.protectRadius = 16;
+        config.protectBlocks = false; config.landscapeWrath = true; config.bossBlockDamage = true; config.protectRadius = 16;
         site = locate(world, player.getBlockPos());
         if (site == null) site = locate(world, player.getBlockPos().add(4000, 0, 0));
         if (site == null) { fail("церковь не найдена"); finished = true; return; }
@@ -340,7 +340,7 @@ public final class ZonesSelfTest {
         steps.add(new Step(20, () -> {
             DivineConfig restore = DivineBlockMod.config();
             restore.protectBlocks = saved.protectBlocks; restore.landscapeWrath = saved.landscapeWrath; restore.bossBlockDamage = saved.bossBlockDamage;
-            restore.comboActs = saved.comboActs; restore.protectRadius = saved.protectRadius;
+            restore.protectRadius = saved.protectRadius;
             log("ошибок всего: " + failures); finished = true;
         }));
         run(steps, 0);

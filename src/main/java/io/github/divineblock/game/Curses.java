@@ -1,6 +1,7 @@
 package io.github.divineblock.game;
 
 import io.github.divineblock.DivineBlockMod;
+import io.github.divineblock.core.CurseTerm;
 import io.github.divineblock.core.DivineConfig;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,7 +43,8 @@ import org.joml.Vector3f;
 
 /** Curses that stay: the land around the home blighted, the cattle dying, the mark of Cain, the Egyptian darkness and blood
  * in the water, a flood that has not yet gone down. Saved with the world, measured in game ticks (they pass while the game
- * runs), worked a little every two seconds on the server thread, and all lifted at once by sincere repentance. */
+ * runs), never longer than twenty minutes ({@link CurseTerm}), worked a little every two seconds on the server thread, and
+ * all lifted at once by sincere repentance. */
 public final class Curses {
     public enum Type {
         BLIGHT("порча земли"), MURRAIN("мор скота"), FEAR("жители боятся"), CAIN("печать Каина"), DARKNESS("тьма египетская"),
@@ -90,19 +92,21 @@ public final class Curses {
 
     // ---- Laying and lifting. ----
 
-    /** Lays a curse for the days the settings allow (minutes when lingering curses are off). */
+    /** Lays a curse for the minutes the settings allow (three when lingering curses are off). */
     public static Curse add(ServerPlayerEntity player, Type type, BlockPos center, int radius, DivineConfig config) {
-        return add(player, type, center, radius, config.lingeringCurses ? 24_000L * config.curseDays : SHORT_TICKS);
+        return add(player, type, center, radius, CurseTerm.ticks(config, SHORT_TICKS));
     }
 
+    /** Lays a curse for {@code ticks}, never more than twenty minutes. */
     public static Curse add(ServerPlayerEntity player, Type type, BlockPos center, int radius, long ticks) {
+        ticks = CurseTerm.cap(ticks);
         MinecraftServer server = player.getServer();
         DivineState state = DivineState.of(server);
         long now = server.getOverworld().getTime();
         // The same curse again only lasts longer and reaches further.
         for (Curse curse : state.curses.active)
             if (curse.type == type && curse.player.equals(player.getUuidAsString()) && type != Type.FLOOD) {
-                curse.until = Math.max(curse.until, now + ticks);
+                curse.until = CurseTerm.trim(Math.max(curse.until, now + ticks), now);
                 curse.radius = Math.max(curse.radius, radius);
                 state.markDirty();
                 return curse;
@@ -129,6 +133,16 @@ public final class Curses {
         List<Curse> out = new ArrayList<>();
         for (Curse curse : DivineState.of(server).curses.active) if (curse.player.equals(player.toString())) out.add(curse);
         return out;
+    }
+
+    /** A sin under a running punishment: every curse on this mortal lasts {@code extra} ticks longer, within the twenty
+     * minutes. Returns how many were prolonged. */
+    public static int prolong(MinecraftServer server, UUID player, long extra) {
+        long now = server.getOverworld().getTime();
+        List<Curse> mine = of(server, player);
+        for (Curse curse : mine) curse.until = CurseTerm.prolong(curse.until, now, extra);
+        if (!mine.isEmpty()) DivineState.of(server).markDirty();
+        return mine.size();
     }
 
     /** Sincere repentance: every curse on this mortal ends now (the flood goes down, the sun comes up). Returns how many. */
@@ -191,10 +205,7 @@ public final class Curses {
         return "печать Каина на " + days(curse) + ": все твари враждебны, жители бегут";
     }
 
-    private static String days(Curse curse) {
-        long ticks = curse.until - curse.start;
-        return ticks >= 24_000 ? ticks / 24_000 + " дн." : ticks / 1200 + " мин";
-    }
+    private static String days(Curse curse) { return Math.max(1, (curse.until - curse.start) / CurseTerm.TICKS_PER_MINUTE) + " мин"; }
 
     // ---- The work of the curses. ----
 
@@ -205,6 +216,9 @@ public final class Curses {
         long now = server.getOverworld().getTime();
         List<Curse> over = new ArrayList<>();
         for (Curse curse : new ArrayList<>(state.curses.active)) {
+            // Curses saved by an older version could last days: none outlasts twenty minutes from now.
+            long trimmed = CurseTerm.trim(curse.until, now);
+            if (trimmed != curse.until) { curse.until = trimmed; state.markDirty(); }
             if (now >= curse.until) { over.add(curse); continue; }
             ServerWorld world = world(server, curse);
             ServerPlayerEntity player = server.getPlayerManager().getPlayer(UUID.fromString(curse.player));

@@ -61,6 +61,22 @@ public final class SkyCourt {
     private SkyCourt() { }
 
     public static boolean inCourt(ServerPlayerEntity player) { return SESSIONS.containsKey(player.getUuid()); }
+    /** The mortals in court now. */
+    public static List<UUID> judged() { return new ArrayList<>(SESSIONS.keySet()); }
+
+    /** The admin ends every court: the god lets each mortal go and returns him as when a court runs out of time (the foes
+     * left in the arena go with it). Returns how many courts ended. */
+    public static int endAll(MinecraftServer server) {
+        int ended = 0;
+        for (Session session : new ArrayList<>(SESSIONS.values())) {
+            if (session.ending) continue;
+            ServerPlayerEntity player = server.getPlayerManager().getPlayer(session.player);
+            if (player == null || !player.isAlive()) end(server.getOverworld(), session);
+            else victory(server, player, session, true);
+            ended++;
+        }
+        return ended;
+    }
 
     /** The floor's centre in the overworld (y is the floor block), chosen once: over the world spawn, high in the sky. */
     public static BlockPos center(MinecraftServer server) {
@@ -86,6 +102,7 @@ public final class SkyCourt {
         BlockPos center = center(server);
         if (inCourt(player)) return Zones.performWithFallback(miracle, power, player, center.up(), prayer, config, severity, Miracle.Place.SKY);
         ServerWorld from = player.getServerWorld();
+        Zones.relocating(player);
         Zones.title(player, Text.literal("Небесный суд").formatted(Formatting.GOLD), Text.literal("Восстань пред престолом моим").formatted(Formatting.YELLOW));
         Prayers.godChat(player, "Не в малом храме судить тебя. Восстань на небесный суд — там примешь кару свою.");
         player.addStatusEffect(new StatusEffectInstance(StatusEffects.LEVITATION, 50, 1, false, false));

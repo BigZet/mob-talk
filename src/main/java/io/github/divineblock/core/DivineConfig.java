@@ -69,12 +69,11 @@ public final class DivineConfig {
     public String microphoneName = "";
     /** Each punishment in a row, unforgiven, makes the next one a rung worse. */
     public boolean escalation = true;
-    /** After an escalated or great punishment more acts follow it, with pauses: up to this many extra acts (0 = none). */
-    public int comboActs = 2;
-    /** Curses that stay for days (blight, Cain, darkness, blood water, the flood); off makes them pass in minutes. */
+    /** Curses that stay (blight, Cain, darkness, blood water, the flood) for {@link #curseMinutes}; off makes them pass in three minutes. */
     public boolean lingeringCurses = true;
-    /** How many game days a lingering curse lasts, 1..7. */
-    public int curseDays = 3;
+    /** How many real minutes a lingering curse lasts, 1..20 ({@link CurseTerm}: no curse ever lasts longer). It replaced
+     * {@code curseDays}: an old file's days are ignored and the default of twenty minutes applies. */
+    public int curseMinutes = CurseTerm.MAX_MINUTES;
     /** The eternal ban (group К6): off by default. When off, the god never bans and a world with a ban lets the player in. */
     public boolean allowEternalBan = false;
     /** Copy the world into saves/ before the ban falls. */
@@ -90,6 +89,8 @@ public final class DivineConfig {
     public int churchSpacing = 64;
     /** Which church new chunks get: "" mixes all three, else STONE, WOOD or SLAVIC (KAIZEN87's) only — to compare them. */
     public String churchVariant = "";
+    /** A new world starts at the Slavic Church: its world spawn is moved to the path before the porch (ChurchSpawn). */
+    public boolean spawnAtChurch = true;
     public boolean debug = false;
     /** Sacred bosses ({@code io.github.divineblock.boss}): ids switched off (a buffed vanilla mob comes instead), strength in
      * percent (50..300) and whether their ultimates may break glass, put out lights and set fires. */
@@ -134,8 +135,7 @@ public final class DivineConfig {
         bossDifficulty = clamp(bossDifficulty, 50, 300);
         churchSpacing = clamp(churchSpacing, 32, 256);
         if (churchVariant == null || !java.util.List.of("", "STONE", "WOOD", "SLAVIC").contains(churchVariant)) churchVariant = "";
-        comboActs = clamp(comboActs, 0, 2);
-        curseDays = clamp(curseDays, 1, 7);
+        curseMinutes = CurseTerm.minutes(curseMinutes);
         voiceEffects(voiceEffects());
         return this;
     }

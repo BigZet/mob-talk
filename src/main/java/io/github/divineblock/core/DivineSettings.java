@@ -6,6 +6,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
+import io.github.divineblock.boss.BossKind;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -21,18 +22,26 @@ import java.util.regex.Pattern;
  * and looks to him, his microphone and Whisper) and stay in his F9; every other field is the server's: the host or the web
  * admin sets it, and a player's F9 shows it read-only. This class lists the server's fields with their titles, types and
  * bounds (the groups follow F9), reads them as JSON and applies a JSON patch that refuses unknown keys, personal keys and
- * values out of bounds instead of clamping them. Plain Java, for the tests and the web admin. */
+ * values out of bounds instead of clamping them. A {@code flags} field is a list of switches: described with every option
+ * (id, Russian title, help, group), valued as the comma-joined ids switched off. Plain Java, for the tests and the web admin. */
 public final class DivineSettings {
     /** Fields that stay with the player. The god's voice is synthesised by each player's own game for now, so his voice and
      * its model are personal too; they move to the server once the server speaks for him. */
     public static final Set<String> PERSONAL = Set.of("voice", "voiceTemple", "voiceRoomSize", "voiceReverb", "voiceEchoMs", "voiceEchoLevel",
             "voiceEchoRepeats", "chantVolume", "effects", "cameraShake", "voiceId", "ttsModel", "whisperUrl", "whisperAutoStart", "microphoneName");
 
-    public enum Type { INT, BOOL, ENUM, STRING, LIST;
-        String id() { return switch (this) { case INT -> "int"; case BOOL -> "bool"; case ENUM -> "enum"; case STRING, LIST -> "string"; }; } }
+    public enum Type { INT, BOOL, ENUM, STRING, LIST, FLAGS;
+        String id() { return switch (this) { case INT -> "int"; case BOOL -> "bool"; case ENUM -> "enum"; case STRING, LIST -> "string"; case FLAGS -> "flags"; }; } }
 
-    /** One server field: its JSON key (the field's name), group, title, type and bounds. */
-    public record Setting(String key, String group, String title, Type type, int min, int max, int step, List<String> options, String help) { }
+    /** One switch of a {@code flags} field: the id that goes into the list when it is off, its Russian title and help, and
+     * the group it is shown in (all of a group come together). */
+    public record Flag(String id, String title, String help, String group, String groupTitle) { }
+
+    /** One server field: its JSON key (the field's name), group, title, type and bounds; {@code flags} for {@link Type#FLAGS}. */
+    public record Setting(String key, String group, String title, Type type, int min, int max, int step, List<String> options, String help, List<Flag> flags) { }
+
+    /** «Бог с булавой» in {@code disabledBosses}: the god himself, not a boss (the same id as {@code DivineBosses.GOD_AVATAR_ID}). */
+    public static final String GOD_AVATAR_ID = "god_avatar";
     public record Group(String id, String title) { }
 
     public static final List<Group> GROUPS = List.of(new Group("god", "Характер бога"), new Group("speech", "Речь и решения"),
@@ -58,15 +67,16 @@ public final class DivineSettings {
             flag("churches", "world", "Церкви в мире", "Церкви появляются в новых чанках."),
             number("churchSpacing", "world", "Редкость церквей", "Не больше одной церкви на столько чанков по каждой стороне.", 32, 256, 1),
             choice("churchVariant", "world", "Вид церквей", "Пусто — все вперемешку, иначе один вид.", List.of("", "STONE", "WOOD", "SLAVIC")),
+            flag("spawnAtChurch", "world", "Спавн у Славянской церкви", "Новый мир начинается у входа в Славянскую церковь: она ставится у спавна, туда приходят новые игроки."),
             flag("escalation", "wrath", "Кара за карой хуже", "Каждая следующая кара тяжелее прежней."),
-            number("comboActs", "wrath", "Продолжения", "Сколько кар может последовать за первой подряд.", 0, 2, 1),
-            flag("lingeringCurses", "wrath", "Проклятия на дни", "Проклятия держатся несколько игровых дней; выкл — минуты."),
-            number("curseDays", "wrath", "Срок проклятий, дн.", "Сколько игровых дней держится проклятие.", 1, 7, 1),
+            flag("lingeringCurses", "wrath", "Долгие проклятия", "Проклятия держатся срок ниже; выкл — три минуты."),
+            number("curseMinutes", "wrath", "Срок проклятий, мин", "Сколько минут реального времени держится проклятие; дольше 20 минут не бывает.",
+                    CurseTerm.MIN_MINUTES, CurseTerm.MAX_MINUTES, 1),
             flag("landscapeWrath", "wrath", "Кары меняют ландшафт", "Воронки, разломы, потопы; выкл ставит на их место другую кару той же группы."),
             flag("allowEternalBan", "wrath", "Вечное изгнание", "За четвёртую хулу бог банит игрока на сервере навсегда; снимает админ."),
             flag("banBackup", "wrath", "Копия мира перед изгнанием", "Перед баном сохраняется копия мира."),
-            list("disabled", "wrath", "Выключенные деяния", "Id деяний через запятую (список — /divineblock list); выключенное не выпадает."),
-            list("disabledBosses", "bosses", "Выключенные боссы", "Id боссов через запятую; вместо выключенного приходит усиленный обычный моб."),
+            flags("disabled", "wrath", "Деяния бога", "Выключенное деяние не выпадает: бог берёт другое из той же группы.", deedFlags()),
+            flags("disabledBosses", "bosses", "Боссы", "Вместо выключенного босса приходит усиленный обычный моб с его именем.", bossFlags()),
             number("bossDifficulty", "bosses", "Сила боссов, %", "Здоровье и урон боссов относительно обычного.", 50, 300, 1),
             flag("bossBlockDamage", "bosses", "Боссы ломают блоки", "Удары и ульты боссов могут разрушать блоки."));
 
@@ -103,6 +113,16 @@ public final class DivineSettings {
                 f.addProperty("key", setting.key()); f.addProperty("title", setting.title()); f.addProperty("type", setting.type().id());
                 if (setting.type() == Type.INT) { f.addProperty("min", setting.min()); f.addProperty("max", setting.max()); f.addProperty("step", setting.step()); }
                 if (setting.type() == Type.ENUM) { JsonArray options = new JsonArray(); setting.options().forEach(options::add); f.add("options", options); }
+                if (setting.type() == Type.FLAGS) {
+                    JsonArray options = new JsonArray();
+                    for (Flag flag : setting.flags()) {
+                        JsonObject o = new JsonObject();
+                        o.addProperty("id", flag.id()); o.addProperty("title", flag.title()); o.addProperty("help", flag.help());
+                        o.addProperty("group", flag.group()); o.addProperty("groupTitle", flag.groupTitle());
+                        options.add(o);
+                    }
+                    f.add("options", options);
+                }
                 f.addProperty("help", setting.help());
                 fields.add(f);
             }
@@ -171,7 +191,7 @@ public final class DivineSettings {
             case BOOL -> new JsonPrimitive((Boolean) value);
             case ENUM -> new JsonPrimitive(value instanceof Enum<?> e ? e.name() : String.valueOf(value));
             case STRING -> new JsonPrimitive(String.valueOf(value));
-            case LIST -> { @SuppressWarnings("unchecked") List<String> ids = (List<String>) value; yield new JsonPrimitive(String.join(",", ids)); }
+            case LIST, FLAGS -> { @SuppressWarnings("unchecked") List<String> ids = (List<String>) value; yield new JsonPrimitive(String.join(",", ids)); }
         };
     }
 
@@ -203,7 +223,7 @@ public final class DivineSettings {
                 if (text.isEmpty() || text.length() > 120 || text.chars().anyMatch(Character::isISOControl)) return "нужна непустая строка до 120 знаков";
                 set(config, setting.key(), text);
             }
-            case LIST -> {
+            case LIST, FLAGS -> {
                 List<String> ids = new ArrayList<>();
                 for (String part : primitive.getAsString().split(",")) {
                     String id = part.strip().toLowerCase(Locale.ROOT);
@@ -231,14 +251,54 @@ public final class DivineSettings {
 
     private static List<String> names(Enum<?>[] values) { return Arrays.stream(values).map(Enum::name).toList(); }
     private static Setting number(String key, String group, String title, String help, int min, int max, int step) {
-        return new Setting(key, group, title, Type.INT, min, max, step, List.of(), help);
+        return new Setting(key, group, title, Type.INT, min, max, step, List.of(), help, List.of());
     }
-    private static Setting flag(String key, String group, String title, String help) { return new Setting(key, group, title, Type.BOOL, 0, 0, 0, List.of(), help); }
+    private static Setting flag(String key, String group, String title, String help) { return new Setting(key, group, title, Type.BOOL, 0, 0, 0, List.of(), help, List.of()); }
     private static Setting choice(String key, String group, String title, String help, List<String> options) {
-        return new Setting(key, group, title, Type.ENUM, 0, 0, 0, options, help);
+        return new Setting(key, group, title, Type.ENUM, 0, 0, 0, options, help, List.of());
     }
-    private static Setting text(String key, String group, String title, String help) { return new Setting(key, group, title, Type.STRING, 0, 0, 0, List.of(), help); }
-    private static Setting list(String key, String group, String title, String help) { return new Setting(key, group, title, Type.LIST, 0, 0, 0, List.of(), help); }
+    private static Setting text(String key, String group, String title, String help) { return new Setting(key, group, title, Type.STRING, 0, 0, 0, List.of(), help, List.of()); }
+    private static Setting flags(String key, String group, String title, String help, List<Flag> flags) {
+        return new Setting(key, group, title, Type.FLAGS, 0, 0, 0, List.of(), help, flags);
+    }
+
+    /** Every act of the god by kind: punishments, mercies, jests, then the omens; the help names its group of strength. */
+    static List<Flag> deedFlags() {
+        List<Flag> out = new ArrayList<>();
+        for (Miracle.Kind kind : List.of(Miracle.Kind.WRATH, Miracle.Kind.HELP, Miracle.Kind.JEST, Miracle.Kind.OMEN))
+            for (Miracle miracle : Miracle.values()) {
+                if (miracle.kind != kind) continue;
+                MiracleGroup group = null;
+                for (MiracleGroup g : MiracleGroup.values()) if (g.members.contains(miracle)) { group = g; break; }
+                String help = (group == null ? "" : group.name() + " «" + group.label + "»: ") + miracle.description;
+                String[] where = switch (kind) {
+                    case WRATH -> new String[] { "wrath", "Кары" }; case HELP -> new String[] { "miracle", "Блага" };
+                    case JEST -> new String[] { "jest", "Шутки" }; case OMEN -> new String[] { "omen", "Знамения" };
+                };
+                out.add(new Flag(miracle.id(), miracle.title(), help, where[0], where[1]));
+            }
+        return List.copyOf(out);
+    }
+
+    /** Every sacred boss by where he comes from first, and the god with the mace with the end of the world. */
+    static List<Flag> bossFlags() {
+        List<Flag> out = new ArrayList<>();
+        for (BossKind.Place place : BossKind.Place.values()) {
+            String title = switch (place) {
+                case CHURCH -> "Храм"; case CEMETERY -> "Погост"; case GOD -> "Посланники бога"; case FINAL -> "Конец света";
+                case WATER -> "Пучина"; case WILD -> "Дикие земли"; case NIGHT -> "Ночь";
+            };
+            String group = place.name().toLowerCase(Locale.ROOT);
+            for (BossKind kind : BossKind.values())
+                if (kind.places.get(0) == place)
+                    out.add(new Flag(kind.id, kind.title, "Ульта «" + kind.ultimate + "», недуг «" + kind.affliction + "». Выключенный приходит обычным усиленным мобом с его именем.",
+                            group, title));
+            if (place == BossKind.Place.FINAL)
+                out.add(new Flag(GOD_AVATAR_ID, "Бог с булавой", "Сам бог выходит из туч и бьёт булавой. Выключенный: остаются его молнии и ударные волны без фигуры.",
+                        group, title));
+        }
+        return List.copyOf(out);
+    }
 
     /** The JSON text of {@link #values}. */
     public static String valuesJson(DivineConfig config) { return GSON.toJson(values(config)); }
