@@ -5,7 +5,7 @@ import io.github.divineblock.core.Miracle;
 import java.util.List;
 import net.minecraft.client.gui.screen.Screen;
 
-/** «Кары» of the panel: escalation, combos, lingering curses, the eternal ban and each of the cruel acts on or off.
+/** «Кары» of the panel: escalation, lingering curses, the eternal ban and each of the cruel acts on or off.
  * Edits the panel's config. */
 public final class WrathSettingsScreen extends DivinePanel {
     /** The cruel acts the player may switch off one by one (the ban has its own switch). */
@@ -20,7 +20,6 @@ public final class WrathSettingsScreen extends DivinePanel {
         serverNote();
         heading("Как растёт гнев");
         server(toggle("Кара за карой хуже", "Каждая следующая кара тяжелее прежней.", config.escalation, v -> config.escalation = v));
-        server(cycle("Продолжения", "Сколько кар может последовать за первой подряд.", List.of(0, 1, 2), config.comboActs, v -> v == 0 ? "нет" : "до " + v, v -> config.comboActs = v));
         server(toggle("Долгие проклятия", "Проклятия держатся срок ниже; выкл — три минуты.", config.lingeringCurses, v -> config.lingeringCurses = v));
         List<Integer> minutes = List.of(1, 3, 5, 10, 15, 20);
         server(cycle("Срок проклятий", "Сколько минут реального времени держится проклятие; дольше 20 минут не бывает.", minutes,

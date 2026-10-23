@@ -10,6 +10,8 @@ import io.github.divineblock.core.JevGodDecider;
 import io.github.divineblock.core.Miracle;
 import io.github.divineblock.core.MiracleGroup;
 import io.github.divineblock.core.Offerings;
+import io.github.divineblock.core.Penance;
+import io.github.divineblock.core.PrayerLog;
 import io.github.divineblock.core.PrayerTone;
 import io.github.divineblock.core.Righteousness;
 import io.github.divineblock.core.RuleGodDecider;
@@ -39,12 +41,15 @@ import net.minecraft.util.math.Box;
 /** A prayer from words to deed. A worker first asks Jev whether the words are a prayer at all (the god does not hear idle
  * talk); then the game thread gathers the facts and the gifts, a worker asks Jev for the act and the chat model for the line,
  * and the game thread performs the act at once if the player is still there, alive, in the same world. The god gives no
- * second chance: he never asks back, never delays, and an announced punishment cannot be talked away. */
+ * second chance: he never asks back, never delays, and an announced punishment cannot be talked away. One sin is one
+ * punishment ({@link Penance}): a new sin while it runs makes it heavier and longer instead of laying another. */
 public final class Prayers {
     private static final ExecutorService WORKER = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "divineblock-worker"); thread.setDaemon(true); return thread;
     });
     private static final java.util.Set<UUID> THINKING = new java.util.HashSet<>();
+    /** The punishment running on each mortal (server thread). */
+    static final Penance PENANCE = new Penance();
 
     private Prayers() { }
 
@@ -121,13 +126,14 @@ public final class Prayers {
 
         // Gifts thrown on the altar are taken whatever the answer.
         int offeringValue = 0; boolean insult = false;
-        List<String> gifts = new ArrayList<>();
+        List<String> gifts = new ArrayList<>(), giftIds = new ArrayList<>();
         for (ItemEntity item : world.getEntitiesByClass(ItemEntity.class, new Box(altar.up()).expand(0.75, 0.5, 0.75), ItemEntity::isAlive)) {
             String id = Registries.ITEM.getId(item.getStack().getItem()).toString();
             int count = item.getStack().getCount();
             offeringValue += Offerings.value(id, count);
             insult |= Offerings.insults(id);
             if (gifts.size() < 4) gifts.add(item.getStack().getName().getString() + " ×" + count);
+            if (!giftIds.contains(id)) giftIds.add(id);
             item.discard();
         }
         if (!gifts.isEmpty()) {
@@ -153,7 +159,7 @@ public final class Prayers {
         if (verdict.forgiveness) {
             soul.forgiven();
             int lifted = Curses.lift(server, player.getUuid());
-            COMBO.merge(player.getUuid(), 1, Integer::sum); // Punishments still on their way are called back.
+            PENANCE.end(player.getUuid()); // The punishment under way is forgiven too: the next sin starts a new one.
             if (lifted > 0) hint(player, "Проклятия сняты: " + lifted);
         }
 
@@ -166,6 +172,18 @@ public final class Prayers {
         else if (tone.polite()) soul.shiftMood(now, 3);
         if (recent >= 2) soul.shiftMood(now, -5);
         state.markDirty();
+
+        // One sin, one punishment: wrath while a punishment of his still runs makes that one heavier instead of laying another.
+        String offering = String.join(",", giftIds);
+        int offered = offeringValue;
+        boolean jevInsult = judgement.insult();
+        Penance.Outcome outcome = Penance.decide(verdict, PENANCE.running(player.getUuid(), now, lasting(player)));
+        if (outcome == Penance.Outcome.STRENGTHEN) {
+            THINKING.remove(player.getUuid());
+            strengthen(player, altar, world, verdict, config, tone, jevInsult, offering, offered);
+            return;
+        }
+        if (outcome == Penance.Outcome.PUNISH) PENANCE.begin(player.getUuid(), "", now);
 
         verdict.recentActs = soul.chronicle.stream().map(v -> v.miracle).skip(Math.max(0, soul.chronicle.size() - 3)).toList();
         List<String> recentLines = soul.chronicle.stream().map(v -> v.speech).filter(line -> line != null && !line.isBlank())
@@ -180,7 +198,11 @@ public final class Prayers {
                 DivineBlockMod.LOG.warn("Божественный блок: решение не принято", failure);
                 verdict.miracle = Miracle.OMEN_LAUGH.id(); verdict.power = 0; verdict.warned = false; verdict.speech = "…";
             }
-            server.execute(() -> { THINKING.remove(player.getUuid()); deliver(player, altar, world, verdict, config); });
+            server.execute(() -> {
+                THINKING.remove(player.getUuid());
+                record(player, verdict, tone, jevInsult, offering, offered);
+                deliver(player, altar, world, verdict, config);
+            });
         });
     }
 
@@ -194,7 +216,7 @@ public final class Prayers {
     /** Back on the game thread: the player must still be here. The god speaks first; the act falls when his voice ends. */
     private static void deliver(ServerPlayerEntity player, BlockPos altar, ServerWorld world, Verdict verdict, DivineConfig config) {
         if (Multiplayer.left(player)) { Multiplayer.heldBack(player, world, altar, verdict); return; }
-        if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) return;
+        if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) { cancelled(player, verdict); return; }
         List<Verdict.Reason> why = verdict.mainReasons(1);
         Multiplayer.journal(io.github.divineblock.core.GodJournal.Kind.VERDICT, player.getName().getString(), verdict.chosen().kind.label + " «"
                 + verdict.chosen().id() + "», сила " + verdict.power + (why.isEmpty() ? "" : ": " + why.get(0).text()));
@@ -221,7 +243,7 @@ public final class Prayers {
             if (ServerPlayNetworking.canSend(player, BeamsPayload.ID)) ServerPlayNetworking.send(player, new BeamsPayload(altar, 0, color, music, sky));
             // Logged out while the god spoke: the punishment waits for him; death or another world still cancels it.
             if (Multiplayer.left(player)) { Multiplayer.heldBack(player, world, altar, verdict); return; }
-            if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) return;
+            if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) { cancelled(player, verdict); return; }
             Miracles.flourish(player, altar, verdict.chosen().kind, verdict.power);
             if (verdict.warned) {
                 List<Verdict.Reason> main = verdict.mainReasons(1);
@@ -291,8 +313,13 @@ public final class Prayers {
 
     private static void act(ServerPlayerEntity player, BlockPos altar, Verdict verdict, DivineConfig config) {
         Miracle miracle = verdict.chosen();
+        MinecraftServer server = player.getServer();
+        long now = server.getOverworld().getTime();
+        // Sins said while the god was still speaking made this punishment heavier: a rung of power for each.
+        Penance.Running running = miracle.kind == Miracle.Kind.WRATH ? PENANCE.of(player.getUuid(), now) : null;
+        int power = Math.min(miracle.maxTier, verdict.power + (running == null ? 0 : running.strengthened));
         String done;
-        try { done = Zones.perform(miracle, verdict.power, player, altar, verdict.prayer, config, verdict.severity()); }
+        try { done = Zones.perform(miracle, power, player, altar, verdict.prayer, config, verdict.severity()); }
         catch (RuntimeException failure) { DivineBlockMod.LOG.warn("Божественный блок: чудо {} не удалось", miracle.id(), failure); done = null; }
         if (done == null) {
             // The act cannot happen here (the Nether has no sky, the altar's land is protected): another act of the same
@@ -315,52 +342,64 @@ public final class Prayers {
         hint(player, "✦ " + done);
         performed.accept(miracle.id());
         Multiplayer.journal(io.github.divineblock.core.GodJournal.Kind.MIRACLE, player.getName().getString(), miracle.id() + ": " + done);
+        if (fell && miracle.kind == Miracle.Kind.WRATH) PENANCE.fell(player.getUuid(), miracle.id(), now);
+        else if (verdict.inclination == Miracle.Kind.WRATH) PENANCE.end(player.getUuid()); // only an omen came: nothing runs
         if (fell && miracle.kind == Miracle.Kind.WRATH && miracle != Miracle.ETERNAL_BAN) {
-            MinecraftServer server = player.getServer();
             DivineState.of(server).ledger.soul(player.getUuid()).punished(DeedWatcher.day(server));
             DivineState.of(server).markDirty();
-            combo(player, altar, verdict, miracle, config);
         }
     }
 
-    /** Generation of each mortal's combo: forgiveness bumps it and the punishments still waiting see they were called back. */
-    private static final java.util.Map<UUID, Integer> COMBO = new java.util.HashMap<>();
-    /** Acts that move the mortal away or end the scene: they never come as a follow-up. */
-    private static final java.util.Set<Miracle> NO_FOLLOW_UP = java.util.EnumSet.of(Miracle.HELL_EXILE, Miracle.END_EXILE, Miracle.MEMORY_WIPE,
-            Miracle.JUDGEMENT, Miracle.ETERNAL_BAN, Miracle.RANDOM_TP, Miracle.GREAT_CRATER, Miracle.CHUNK_VOID, Miracle.FLOOD, Miracle.PLAGUES);
+    /** The punishment was announced but cannot fall (the sinner died or went to another world): nothing runs any more. */
+    private static void cancelled(ServerPlayerEntity player, Verdict verdict) {
+        if (verdict.inclination == Miracle.Kind.WRATH) PENANCE.end(player.getUuid());
+    }
 
-    /** The combo: an escalated or great punishment does not come alone. One or two more acts from the lighter open groups
-     * follow it, each after a pause and a roll of thunder, unless the mortal is forgiven, dies or leaves meanwhile. */
-    private static void combo(ServerPlayerEntity player, BlockPos altar, Verdict verdict, Miracle first, DivineConfig config) {
-        MiracleGroup group = MiracleGroup.byId(verdict.group);
-        if (config.comboActs <= 0 || group == null || group.kind != Miracle.Kind.WRATH || NO_FOLLOW_UP.contains(first)) return;
-        // The Sky Court is a fight of its own; a disaster at home is enough without more falling there.
-        if (first.place() == Miracle.Place.SKY || first.place() == Miracle.Place.HOME && SkyCourt.inCourt(player)) return;
-        int heavy = group.ordinal() - MiracleGroup.K1.ordinal();
-        int extra = Math.min(config.comboActs, (verdict.escalation >= 1 ? 1 : 0) + (heavy >= 3 ? 1 : 0) + (verdict.escalation >= 3 ? 1 : 0));
-        if (extra <= 0) return;
-        List<Miracle> pool = new ArrayList<>();
-        for (MiracleGroup lighter : MiracleGroup.open(verdict, config))
-            if (lighter.kind == Miracle.Kind.WRATH && lighter.ordinal() <= group.ordinal())
-                for (Miracle m : lighter.allowed(verdict, config)) if (m != first && !NO_FOLLOW_UP.contains(m) && m.place() != Miracle.Place.SKY && !pool.contains(m)) pool.add(m);
-        java.util.Collections.shuffle(pool);
-        UUID id = player.getUuid();
-        int generation = COMBO.getOrDefault(id, 0);
-        ServerWorld world = player.getServerWorld();
-        for (int i = 0; i < Math.min(extra, pool.size()); i++) {
-            Miracle next = pool.get(i);
-            int delay = 20 * (14 + 16 * i);
-            Scheduler.later(delay - 60, () -> { if (!player.isRemoved() && player.isAlive() && player.getServerWorld() == world && COMBO.getOrDefault(id, 0) == generation) Miracles.warn(player, altar); });
-            Scheduler.later(delay, () -> {
-                if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world || COMBO.getOrDefault(id, 0) != generation) return;
-                String done;
-                try { done = Zones.perform(next, GodDecider.power(next, verdict.power, verdict.budget), player, altar, verdict.prayer, config, verdict.severity()); }
-                catch (RuntimeException failure) { DivineBlockMod.LOG.warn("Божественный блок: продолжение кары {} упало", next.id(), failure); return; }
-                DivineBlockMod.LOG.info("Божественный блок: кара продолжается — {}: {}", next.id(), done);
-                hint(player, "✦ и ещё: " + (done == null ? next.id() + " не вышло" : done));
-                if (done != null) performed.accept(next.id());
-            });
-        }
+    /** What his punishment left on him still runs: a curse, a sacred boss after him, the god with the mace, the Sky Court. */
+    private static boolean lasting(ServerPlayerEntity player) {
+        MinecraftServer server = player.getServer();
+        return !Curses.of(server, player.getUuid()).isEmpty() || SkyCourt.inCourt(player)
+                || io.github.divineblock.boss.DivineBosses.godAvatarActive(player) || !hunters(player).isEmpty();
+    }
+
+    /** The sacred bosses near him that are after him. */
+    static List<io.github.divineblock.boss.SacredBoss> hunters(ServerPlayerEntity player) {
+        return io.github.divineblock.boss.DivineBosses.near(player.getServerWorld(), player.getBlockPos(), 128).stream()
+                .filter(boss -> boss.getTarget() != null && boss.getTarget().getUuid().equals(player.getUuid())).toList();
+    }
+
+    /** A sin under a running punishment: no new act. Its curses last longer (within twenty minutes), the bosses after him
+     * get a quarter of their health back, an act still on its way falls a rung harder, the god says so and thunder rolls. */
+    private static void strengthen(ServerPlayerEntity player, BlockPos altar, ServerWorld world, Verdict verdict, DivineConfig config,
+                                   PrayerTone tone, boolean insult, String offering, int offeringValue) {
+        MinecraftServer server = world.getServer();
+        long now = server.getOverworld().getTime();
+        Penance.Running running = PENANCE.strengthen(player.getUuid(), "", now);
+        int prolonged = Curses.prolong(server, player.getUuid(), Penance.PROLONG_TICKS);
+        List<io.github.divineblock.boss.SacredBoss> bosses = hunters(player);
+        for (io.github.divineblock.boss.SacredBoss boss : bosses) boss.heal(boss.getMaxHealth() * 0.25f);
+        String what = "кара" + (running.miracle.isBlank() ? "" : " «" + running.miracle + "»") + " усилена (" + running.strengthened + "-й раз)"
+                + (prolonged > 0 ? ", проклятия продлены: " + prolonged : "") + (bosses.isEmpty() ? "" : ", боссы окрепли: " + bosses.size());
+        verdict.miracle = Miracle.OMEN_THUNDER.id(); verdict.power = 0; verdict.warned = false; verdict.group = "";
+        verdict.decidedBy = "rules"; verdict.decisionNote = "кара уже идёт — новой нет: " + what;
+        verdict.speech = Penance.line(running.strengthened);
+        DivineState state = DivineState.of(server);
+        state.ledger.soul(player.getUuid()).remember(verdict);
+        state.markDirty();
+        record(player, verdict, tone, insult, offering, offeringValue);
+        Multiplayer.journal(io.github.divineblock.core.GodJournal.Kind.VERDICT, player.getName().getString(), what);
+        DivineBlockMod.LOG.info("Божественный блок: {} грешит под карой — {}", player.getName().getString(), what);
+        hint(player, "✦ " + what);
+        speakThen(player, verdict.speech, () -> { }, () -> {
+            if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) return;
+            Miracles.perform(Miracle.OMEN_THUNDER, 0, player, altar, verdict.prayer, config);
+        });
+    }
+
+    /** The heard prayer and the god's answer, for the web admin. */
+    private static void record(ServerPlayerEntity player, Verdict verdict, PrayerTone tone, boolean insult, String offering, int offeringValue) {
+        PrayerLog.shared().add(PrayerLog.of(System.currentTimeMillis(), player.getUuidAsString(), player.getName().getString(), verdict, tone, insult,
+                offering, offeringValue));
     }
 
     /** Every line the god says, every utterance he did not count as a prayer and every act, for the self-test's report. */
@@ -392,5 +431,5 @@ public final class Prayers {
     }
 
     /** Forgets in-flight prayers and unvoiced lines when the server stops. */
-    static void clear() { THINKING.clear(); WAITING.clear(); COMBO.clear(); }
+    static void clear() { THINKING.clear(); WAITING.clear(); PENANCE.clear(); }
 }

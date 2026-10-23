@@ -86,6 +86,7 @@ public final class SkyCourt {
         BlockPos center = center(server);
         if (inCourt(player)) return Zones.performWithFallback(miracle, power, player, center.up(), prayer, config, severity, Miracle.Place.SKY);
         ServerWorld from = player.getServerWorld();
+        Zones.relocating(player);
         Zones.title(player, Text.literal("Небесный суд").formatted(Formatting.GOLD), Text.literal("Восстань пред престолом моим").formatted(Formatting.YELLOW));
         Prayers.godChat(player, "Не в малом храме судить тебя. Восстань на небесный суд — там примешь кару свою.");
         player.addStatusEffect(new StatusEffectInstance(StatusEffects.LEVITATION, 50, 1, false, false));

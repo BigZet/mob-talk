@@ -69,8 +69,6 @@ public final class DivineConfig {
     public String microphoneName = "";
     /** Each punishment in a row, unforgiven, makes the next one a rung worse. */
     public boolean escalation = true;
-    /** After an escalated or great punishment more acts follow it, with pauses: up to this many extra acts (0 = none). */
-    public int comboActs = 2;
     /** Curses that stay (blight, Cain, darkness, blood water, the flood) for {@link #curseMinutes}; off makes them pass in three minutes. */
     public boolean lingeringCurses = true;
     /** How many real minutes a lingering curse lasts, 1..20 ({@link CurseTerm}: no curse ever lasts longer). It replaced
@@ -135,7 +133,6 @@ public final class DivineConfig {
         bossDifficulty = clamp(bossDifficulty, 50, 300);
         churchSpacing = clamp(churchSpacing, 32, 256);
         if (churchVariant == null || !java.util.List.of("", "STONE", "WOOD", "SLAVIC").contains(churchVariant)) churchVariant = "";
-        comboActs = clamp(comboActs, 0, 2);
         curseMinutes = CurseTerm.minutes(curseMinutes);
         voiceEffects(voiceEffects());
         return this;

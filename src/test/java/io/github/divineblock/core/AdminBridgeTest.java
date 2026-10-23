@@ -93,9 +93,10 @@ class AdminBridgeTest {
         assertEquals(20, host.config.cooldownSeconds, "a refused value leaves the old one");
         assertEquals(new DivineConfig().whisperUrl, host.config.whisperUrl);
 
-        JsonObject clean = ask("{\"op\":\"patch\",\"values\":{\"comboActs\":0}}");
+        JsonObject clean = ask("{\"op\":\"patch\",\"values\":{\"curseMinutes\":5}}");
         assertTrue(clean.get("ok").getAsBoolean(), clean.toString());
-        assertEquals(0, host.config.comboActs);
+        assertEquals(5, host.config.curseMinutes);
+        assertFalse(ask("{\"op\":\"patch\",\"values\":{\"curseMinutes\":21}}").get("ok").getAsBoolean(), "never longer than twenty minutes");
         assertFalse(ask("{\"op\":\"patch\",\"values\":{\"disabled\":\"no_such_act\"}}").get("ok").getAsBoolean(), "unknown act ids are refused");
     }
 

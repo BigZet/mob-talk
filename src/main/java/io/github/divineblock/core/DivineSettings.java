@@ -59,7 +59,6 @@ public final class DivineSettings {
             number("churchSpacing", "world", "Редкость церквей", "Не больше одной церкви на столько чанков по каждой стороне.", 32, 256, 1),
             choice("churchVariant", "world", "Вид церквей", "Пусто — все вперемешку, иначе один вид.", List.of("", "STONE", "WOOD", "SLAVIC")),
             flag("escalation", "wrath", "Кара за карой хуже", "Каждая следующая кара тяжелее прежней."),
-            number("comboActs", "wrath", "Продолжения", "Сколько кар может последовать за первой подряд.", 0, 2, 1),
             flag("lingeringCurses", "wrath", "Долгие проклятия", "Проклятия держатся срок ниже; выкл — три минуты."),
             number("curseMinutes", "wrath", "Срок проклятий, мин", "Сколько минут реального времени держится проклятие; дольше 20 минут не бывает.",
                     CurseTerm.MIN_MINUTES, CurseTerm.MAX_MINUTES, 1),

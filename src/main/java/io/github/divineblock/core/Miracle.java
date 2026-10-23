@@ -70,8 +70,8 @@ public enum Miracle {
     WITHER(Kind.WRATH, 4, 4, true, "визеры у алтаря: один, а в великом гневе до пяти", List.of("визер", "wither", "конец света", "апокалип")),
     DRAGON(Kind.WRATH, 4, 4, false, "драконы Края кружат над грешником: один, а в великом гневе до пяти", List.of("дракон", "конец света", "апокалип", "энд")),
     // Lingering and ultra-cruel wrath: curses that stay for days, the great biblical punishments, and the eternal ban.
-    BLIGHT(Kind.WRATH, 3, 4, true, "порча земли вокруг дома на несколько дней: трава чернеет, посевы гибнут, скот дохнет", List.of("урожа", "земл", "порч", "скот", "голод")),
-    CAIN(Kind.WRATH, 3, 4, false, "проклятие Каина на несколько дней: все твари враждебны грешнику, жители бегут от него и не торгуют", List.of("каин", "брат", "изгна", "один", "проклят")),
+    BLIGHT(Kind.WRATH, 3, 4, true, "порча земли вокруг дома до двадцати минут: трава чернеет, посевы гибнут, скот дохнет", List.of("урожа", "земл", "порч", "скот", "голод")),
+    CAIN(Kind.WRATH, 3, 4, false, "проклятие Каина до двадцати минут: все твари враждебны грешнику, жители бегут от него и не торгуют", List.of("каин", "брат", "изгна", "один", "проклят")),
     PLAGUES(Kind.WRATH, 4, 4, false, "казни египетские: вода в кровь, жабы, саранча, тьма на три дня, мор скота — одна за другой", List.of("казн", "египет", "кров", "жаб", "саранч", "тьм", "мор")),
     SODOM(Kind.WRATH, 4, 4, true, "Содом: огненный дождь по всей округе, а твари вокруг обращаются в соляные столпы", List.of("содом", "гоморр", "сер", "огонь", "соль", "соля")),
     FLOOD(Kind.WRATH, 4, 4, true, "потоп: ливень сорок дней, вода поднимается до неба вокруг грешника и сходит не скоро", List.of("потоп", "вод", "ной", "ковчег", "дождь", "лив")),
@@ -118,6 +118,34 @@ public enum Miracle {
     }
 
     public String id() { return name().toLowerCase(Locale.ROOT); }
+
+    /** A short Russian name for the settings' lists (F9 and the web admin); {@link #description} says what it does. */
+    public String title() {
+        return switch (this) {
+            case OMEN_LIGHT -> "Столб света"; case OMEN_THUNDER -> "Гром"; case OMEN_LAUGH -> "Хохот с неба"; case IGNORE -> "Молчание бога";
+            case HEAL -> "Исцеление"; case FEED -> "Насыщение"; case WEATHER_CLEAR -> "Ясное небо"; case BUFF -> "Сила и скорость";
+            case GIFT_ITEM -> "Дар по просьбе"; case ORE_VEIN -> "Жила руды"; case ENCHANT -> "Зачарование"; case REPAIR -> "Починка";
+            case GUARDIAN -> "Страж"; case GROW -> "Мгновенный урожай"; case SMITE_ENEMIES -> "Молнии по врагам"; case SAFE_HOME -> "Перенос домой";
+            case TOTEM -> "Тотем бессмертия"; case BLESSING -> "Великое благословение";
+            case CHICKEN_RAIN -> "Дождь из куриц"; case SWAP_ITEMS -> "Перемешанный хотбар"; case FLIP -> "Мир вверх ногами";
+            case MOON_GRAVITY -> "Лунная гравитация"; case TRANSMUTE -> "Превращение предмета"; case RANDOM_TP -> "Телепорт куда попало";
+            case TIME_RUSH -> "Круговорот дней"; case SHEEP_PARTY -> "Радужные овцы"; case FISH_RAIN -> "Дождь из рыбы";
+            case CREEPER_PRANK -> "Шипение крипера"; case PUMPKIN_HEAD -> "Тыква на голову"; case LEVITATE -> "Подъём в воздух"; case DIZZY -> "Небесный хмель";
+            case LIGHTNING -> "Молния"; case CURSE_MINOR -> "Малое проклятие"; case SWARM -> "Рой"; case CURSE_TOOL -> "Проклятие предмета";
+            case ACID_RAIN -> "Ядовитый дождь"; case FIRE_RING -> "Кольцо огня"; case METEOR -> "Метеориты"; case SKELETON_RIDERS -> "Всадники смерти";
+            case ANVIL_RAIN -> "Дождь наковален"; case EARTHQUAKE -> "Землетрясение"; case SINKHOLE -> "Провал земли"; case TNT_RAIN -> "Огненный динамит";
+            case UNDEAD_HORDE -> "Орда нежити"; case RAID -> "Разбойники"; case HELL_EXILE -> "Изгнание в Ад"; case BLAZE_HORDE -> "Орда ифритов";
+            case METEOR_SHOWER -> "Метеоритный дождь"; case WARDEN -> "Хранитель"; case END_EXILE -> "Изгнание в Край"; case CHUNK_VOID -> "Земля до бездны";
+            case TORNADO -> "Смерч"; case RIFTS -> "Разломы"; case GREAT_CRATER -> "Великая воронка"; case WITHER -> "Визеры"; case DRAGON -> "Драконы";
+            case BLIGHT -> "Порча земли"; case CAIN -> "Печать Каина"; case PLAGUES -> "Казни египетские"; case SODOM -> "Содом"; case FLOOD -> "Потоп";
+            case BABEL -> "Вавилон"; case MEMORY_WIPE -> "Стирание памяти"; case JUDGEMENT -> "Суд в небесах"; case ETERNAL_BAN -> "Вечное изгнание";
+            case BOSS_SCHEMNIK -> "Чёрный Схимник"; case BOSS_BELL_RINGER -> "Звонарь погоста"; case BOSS_SERAPH -> "Шестикрылый серафим";
+            case BOSS_FACELESS -> "Безликий лик"; case BOSS_WAILER -> "Плакальщица погоста"; case BOSS_ARCHANGEL -> "Архангел гнева";
+            case BOSS_LEVIATHAN -> "Левиафан"; case BOSS_BEHEMOTH -> "Бегемот"; case BOSS_GOLIATH -> "Голиаф"; case BOSS_DESTROYING_ANGEL -> "Ангел-губитель";
+            case BOSS_CHERUB -> "Херувим с пламенным мечом"; case BOSS_NIMROD -> "Нимрод"; case BOSS_HORSEMEN -> "Четыре всадника";
+            case BOSS_BEAST -> "Зверь из бездны"; case GOD_MACE -> "Бог с булавой";
+        };
+    }
 
     /** How heavy the act is on a ladder of 1..10, within its kind: the god climbs it as insult, sin and pestering grow (or,
      * for mercy, as favour grows), so punishments escalate instead of always being the biggest one at hand. */
