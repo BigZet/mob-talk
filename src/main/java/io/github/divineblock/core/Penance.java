@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** One sin, one punishment. A wrath verdict lays one punishment, and while it runs (from the verdict until a minute after
+/** One sin, one punishment. A wrath verdict lays one punishment, and while it runs (from the verdict until a few seconds after
  * the act fell, or longer while its curse, its boss, the god with the mace or the Sky Court is still on the sinner) a new
  * sin lays no second one: it makes the running punishment heavier or longer instead. One punishment also moves the sinner
  * at most once (cast out of the church, taken home, taken up to the Sky Court): relocations never chain. Kept in memory on
@@ -13,8 +13,9 @@ import java.util.UUID;
 public final class Penance {
     /** From the verdict until the act falls: the god's words, the walk out of the church, the way home. */
     public static final long IN_FLIGHT_TICKS = 20 * 60 * 3;
-    /** After the act fell, the punishment still counts as running for this long. */
-    public static final long AFTERMATH_TICKS = 20 * 60;
+    /** After the act fell, the punishment still counts as running for this long: a sin said in the same breath joins it. A punishment
+     * that is over (meteors fallen, nothing left on him) does not run: the next sin is a new punishment (Dmitriy'"'"'s test, 23 Oct). */
+    public static final long AFTERMATH_TICKS = 20 * 10;
     /** What one more sin under a running punishment adds to its curses (within their twenty minutes, {@link CurseTerm}). */
     public static final long PROLONG_TICKS = 20 * 60 * 5;
     /** How many times one punishment can be made heavier. */
@@ -61,7 +62,7 @@ public final class Penance {
         return one;
     }
 
-    /** The act fell (it may be another of its group than the one announced): it runs a minute more. */
+    /** The act fell (it may be another of its group than the one announced): it runs a few seconds more. */
     public void fell(UUID player, String miracle, long now) {
         Running one = of(player, now);
         if (one == null) one = begin(player, miracle, now);
@@ -69,13 +70,12 @@ public final class Penance {
         one.until = now + AFTERMATH_TICKS;
     }
 
-    /** One more sin under it: heavier (up to {@link #MAX_STRENGTH}) and a minute longer from now. Null when none runs here
-     * (it ran only by what it left: a curse, a boss), and then the caller starts a quiet record of it. */
+    /** One more sin under it: heavier (up to {@link #MAX_STRENGTH}), but not longer — sinning on does not keep a punishment going
+     * forever. When none runs here (it ran only by what it left: a curse, a boss), the caller starts a quiet record of it. */
     public Running strengthen(UUID player, String miracle, long now) {
         Running one = of(player, now);
         if (one == null) { one = begin(player, miracle, now); one.until = now + AFTERMATH_TICKS; }
         one.strengthened = Math.min(MAX_STRENGTH, one.strengthened + 1);
-        one.until = Math.max(one.until, now + AFTERMATH_TICKS);
         return one;
     }
 

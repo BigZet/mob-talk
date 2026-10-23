@@ -30,7 +30,7 @@ class PenanceTest {
         assertFalse(penance.running(OTHER, 1000, false), "only his");
         penance.fell(SINNER, "anvil_rain", 2000);
         assertTrue(penance.running(SINNER, 2000 + Penance.AFTERMATH_TICKS, false));
-        assertFalse(penance.running(SINNER, 2001 + Penance.AFTERMATH_TICKS, false), "over a minute after it fell");
+        assertFalse(penance.running(SINNER, 2001 + Penance.AFTERMATH_TICKS, false), "over a few seconds after it fell: the next sin is a new punishment");
         assertNull(penance.of(SINNER, 2001 + Penance.AFTERMATH_TICKS));
     }
 
@@ -42,7 +42,7 @@ class PenanceTest {
         for (int i = 0; i < 5; i++) one = penance.strengthen(SINNER, "", 20 + i);
         assertEquals(Penance.MAX_STRENGTH, one.strengthened);
         assertEquals("lightning", one.miracle, "the same punishment, not a new one");
-        assertEquals(24 + Penance.AFTERMATH_TICKS, one.until, "each sin keeps it running a minute more");
+        assertEquals(10 + Penance.AFTERMATH_TICKS, one.until, "sinning on makes it heavier, not longer: it ends as it would have");
         assertFalse(Penance.line(one.strengthened).isBlank());
         penance.end(SINNER);
         assertFalse(penance.running(SINNER, 30, false));
