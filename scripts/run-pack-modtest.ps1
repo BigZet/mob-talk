@@ -4,9 +4,11 @@
 # scripts\run-selftest.ps1 -Base mob-talk-pack. TTS stays off. The copy gets selftest-guard (no focus, no mouse grab) and
 # the watchdog kills only its own javaw when the game stalls. Results: %LOCALAPPDATA%\MobTalkPack\selftest\<copy>\.
 # Usage: powershell -ExecutionPolicy Bypass -File scripts\run-pack-modtest.ps1 -Mod divine|church|cages|hogweed [-Keep] [-ShotEverySeconds 60]
+#        [-Jar <jar>,...]: our mods' jars to use in the copy instead of the pack's (a branch build, the pack stays as it is)
 param([Parameter(Mandatory)][ValidateSet('divine', 'church', 'cages', 'hogweed')][string]$Mod, [string]$Base = 'mob-talk-pack',
-    [switch]$Keep, [int]$MaxGames = 6, [int]$ShotEverySeconds = 60, [int]$TimeoutMinutes = 30)
+    [switch]$Keep, [int]$MaxGames = 6, [int]$ShotEverySeconds = 60, [int]$TimeoutMinutes = 30, [string[]]$Jar = @())
 $ErrorActionPreference = 'Stop'
+$Jar = @($Jar | ForEach-Object { $_ -split ',' } | Where-Object { $_ })   # -File passes "a,b" as one string
 Import-Module (Join-Path $PSScriptRoot 'ParallelPrism.psm1') -Force
 $instances = Join-Path $env:APPDATA 'PrismLauncher\instances'
 $name = New-TestInstanceName 'pk' $Mod
@@ -33,6 +35,11 @@ try {
     if ($Mod -eq 'cages') {
         Copy-Item -Recurse -LiteralPath "$instances\parrot-cages-test\minecraft\saves\Parrot Cages QA" "$mc\saves\parrotcages-selftest"
         Remove-Item -Force -LiteralPath "$mc\saves\parrotcages-selftest\session.lock" -ErrorAction SilentlyContinue
+    }
+    foreach ($j in $Jar) {   # a branch build of one of our mods, without touching the pack instance
+        $prefix = ((Split-Path -Leaf $j) -split '-')[0]
+        Get-ChildItem "$mc\mods\$prefix-*.jar" -ErrorAction SilentlyContinue | Remove-Item -Force
+        Copy-Item -LiteralPath $j "$mc\mods\"
     }
     Get-ChildItem "$mc\mods\*.jar" | ForEach-Object { Say "mod: $($_.Name)" }
     Say 'launch'
