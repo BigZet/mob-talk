@@ -62,6 +62,7 @@ public final class DivineBlockMod implements ModInitializer {
         });
         JevGodDecider.diagnostics = line -> LOG.info("Божественный блок: {}", line);
         GameHooks.register();
+        io.github.divineblock.game.ChurchSpawn.register(); // Новый мир — у Славянской церкви.
         io.github.divineblock.boss.DivineBosses.register();
         ChurchWorldgen.register();
         config(); // world generation reads the church settings from its own threads

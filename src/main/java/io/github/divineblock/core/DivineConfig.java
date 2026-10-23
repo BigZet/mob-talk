@@ -89,6 +89,8 @@ public final class DivineConfig {
     public int churchSpacing = 64;
     /** Which church new chunks get: "" mixes all three, else STONE, WOOD or SLAVIC (KAIZEN87's) only — to compare them. */
     public String churchVariant = "";
+    /** A new world starts at the Slavic Church: its world spawn is moved to the path before the porch (ChurchSpawn). */
+    public boolean spawnAtChurch = true;
     public boolean debug = false;
     /** Sacred bosses ({@code io.github.divineblock.boss}): ids switched off (a buffed vanilla mob comes instead), strength in
      * percent (50..300) and whether their ultimates may break glass, put out lights and set fires. */

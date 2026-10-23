@@ -125,6 +125,9 @@ public final class ChurchSites {
         return world.getStructureAccessor().getStructureStarts(ChunkSectionPos.from(pos), structure).stream().filter(StructureStart::hasChildren).toList();
     }
 
+    /** The church of a structure start (its start chunk keeps it), or empty. */
+    public static Optional<Site> of(StructureStart start) { return start == null || !start.hasChildren() ? Optional.empty() : site(start); }
+
     private static Optional<Site> site(StructureStart start) {
         for (StructurePiece piece : start.getChildren()) if (piece instanceof ChurchPiece church) return Optional.of(church.site());
         return Optional.empty();
