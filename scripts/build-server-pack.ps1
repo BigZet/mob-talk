@@ -117,6 +117,12 @@ if (-not (Test-Path -LiteralPath "$Out\bluemap\pluginState.json")) {
     New-Item -ItemType Directory -Force "$Out\bluemap" | Out-Null
     Write-Utf8Text "$Out\bluemap\pluginState.json" "{`"render-threads-enabled`": false}`n"
 }
+# Simple Voice Chat: UDP on the game's own port number (port=-1), so one forwarded port (TCP + UDP) serves both and parallel
+# test servers never clash on 24454. Written once; the mod fills in its other keys on the first start.
+if (-not (Test-Path -LiteralPath "$Out\config\voicechat\voicechat-server.properties")) {
+    New-Item -ItemType Directory -Force "$Out\config\voicechat" | Out-Null
+    Write-Utf8Lines "$Out\config\voicechat\voicechat-server.properties" @('# UDP port of the voice chat; -1 = the server port', 'port=-1')
+}
 # In Docker the admin must listen on all interfaces of the container; the host publishes 8787 on loopback only.
 # Written once without a password hash: the admin generates the password on its first start.
 if ($Docker -and -not (Test-Path -LiteralPath "$Out\config\mobtalk-admin.json")) {

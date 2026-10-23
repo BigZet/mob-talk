@@ -75,9 +75,10 @@ scripts\run-local-server.ps1 -CheckOnly                         # покажет
 
 ## Игра с друзьями с домашнего компьютера
 
-1. Проброс порта TCP 25565 на роутере на этот компьютер, разрешение в брандмауэре Windows:
+1. Проброс порта 25565 по TCP и UDP на роутере на этот компьютер (UDP нужен голосовому чату Simple Voice Chat, он
+   слушает тот же номер порта), разрешение в брандмауэре Windows (от администратора):
    `New-NetFirewallRule -DisplayName "Minecraft server" -Direction Inbound -Protocol TCP -LocalPort 25565 -Action Allow`
-   (от администратора).
+   `New-NetFirewallRule -DisplayName "Minecraft voice chat" -Direction Inbound -Protocol UDP -LocalPort 25565 -Action Allow`
 2. `scripts\run-local-server.ps1 -Public` — `online-mode=true`, allowlist включён.
 3. В консоли сервера: `whitelist add <ник>` для каждого друга, `op <свой ник>`.
 4. Друзьям — файл из `scripts\export-mrpack.ps1` и внешний IP (`docs/friends.md`).
