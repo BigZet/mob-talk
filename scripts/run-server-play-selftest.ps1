@@ -85,7 +85,7 @@ try {
 
     foreach ($nick in $nicks) {
         $clients[$nick] = Start-Process powershell -PassThru -WindowStyle Hidden -RedirectStandardOutput "$scratch\client-$nick.log" -RedirectStandardError "$scratch\client-$nick.err" -ArgumentList (@(
-            '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $PSScriptRoot 'new-test-client.ps1'), '-Nick', $nick, '-Server', "127.0.0.1:$port",
+            '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $PSScriptRoot 'new-test-client.ps1'), '-Nick', $nick, '-Base', $Pack, '-Server', "127.0.0.1:$port",
             '-Keep', '-TimeoutSeconds', '900', '-JvmArgs', "`"-Dmobtalk.selftest.play.client=$nick -Dmobtalk.selftest.notts=true`"", '-Jar', "`"$($jars -join ',')`""))
         Say "client $nick launcher pid $($clients[$nick].Id)"
         Start-Sleep -Seconds 20   # Prism takes one launch at a time more reliably

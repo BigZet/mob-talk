@@ -23,12 +23,30 @@ scripts\build-server-pack.ps1                             # или собрат�
 ```
 
 В папке: `fabric-server-mc.1.21.1-loader.0.19.5-launcher.1.1.2.jar`, `mods\` (наши моды и сторонние jar сборки, кроме
-чисто клиентских, плюс Lithium, FerriteCore, spark, Chunky, squaremap, BlueMap; `-WithLuckPerms` добавит LuckPerms), `config\`
+чисто клиентских, плюс Lithium, FerriteCore, spark, Chunky, squaremap, BlueMap, WorldEdit, Universal Graves с Polymer;
+`-WithLuckPerms` добавит LuckPerms), `config\`
 (конфиги сборки копируются один раз, `mobtalk-server.json` пустой — все поля по умолчанию), `server.properties`
 (`view-distance=8`, `simulation-distance=6`, `max-players=8`), конфиги карт squaremap и BlueMap, `eula.txt` и `server-manifest.txt` — коммиты, имена и SHA-512
 всех jar. Повторная сборка меняет только jar и манифест: мир, allowlist и правки конфигов остаются. Пока сервер запущен,
 скрипт отказывается работать. Mob Talk, пока он клиентский (`environment: client`), в сервер не попадает сам;
 `-NoMobTalk` пропускает его явно.
+
+## Моды сборки из Modrinth
+
+Все закреплены в `scripts\server-mods.json` (версия, ссылка, SHA-512), качаются один раз в `%LOCALAPPDATA%\MobTalkPack\cache`.
+
+- Только сервер (`mods`): Lithium, FerriteCore, spark, Chunky, squaremap, BlueMap, **WorldEdit 7.3.8** (терраформинг,
+  команды `//` у операторов), **Universal Graves 3.4.4** (могила с вещами после смерти) и Polymer 0.9.19 для неё.
+- Клиент и сервер (`pack`, `side: both`): **JourneyMap 6.0.9** (карта, клавиша J), **Simple Voice Chat 2.6.22** (голос
+  между игроками; UDP на том же порту, что и игра: `config\voicechat\voicechat-server.properties`, `port=-1`).
+- Только клиент (`pack`, `side: client`): Inventory Profiles Next 2.2.6 с libIPN и Fabric Language Kotlin, Mouse Tweaks,
+  LambDynamicLights. `build-pack.ps1` кладёт их в сборку, сервер их пропускает, в `.mrpack` у них `server: unsupported`.
+- Для своего клиента админа (`optional`, в сборку не входит): WorldEditCUI — рамка выделения WorldEdit.
+
+Клавиши: Simple Voice Chat по умолчанию открывает своё окно на V и группы на G, JourneyMap ставит метку на B — это клавиши
+Mob Talk (говорить, подарок, сделка). Сборка переносит их (`keys` в `server-mods.json`): окно голосового чата Y, группы U,
+говорить в голосовой чат — Caps Lock (у мода она не назначена), метка JourneyMap — K. `build-pack.ps1` дописывает их в
+`options.txt` сборки, только если игрок их ещё не менял; `.mrpack` несёт `overrides/options.txt` только с этими строками.
 
 ## Карты для админки
 
@@ -75,9 +93,10 @@ scripts\run-local-server.ps1 -CheckOnly                         # покажет
 
 ## Игра с друзьями с домашнего компьютера
 
-1. Проброс порта TCP 25565 на роутере на этот компьютер, разрешение в брандмауэре Windows:
+1. Проброс порта 25565 по TCP и UDP на роутере на этот компьютер (UDP нужен голосовому чату Simple Voice Chat, он
+   слушает тот же номер порта), разрешение в брандмауэре Windows (от администратора):
    `New-NetFirewallRule -DisplayName "Minecraft server" -Direction Inbound -Protocol TCP -LocalPort 25565 -Action Allow`
-   (от администратора).
+   `New-NetFirewallRule -DisplayName "Minecraft voice chat" -Direction Inbound -Protocol UDP -LocalPort 25565 -Action Allow`
 2. `scripts\run-local-server.ps1 -Public` — `online-mode=true`, allowlist включён.
 3. В консоли сервера: `whitelist add <ник>` для каждого друга, `op <свой ник>`.
 4. Друзьям — файл из `scripts\export-mrpack.ps1` и внешний IP (`docs/friends.md`).
@@ -94,8 +113,12 @@ Register-ScheduledTask -TaskName 'Mob Talk server' -Action $a -Trigger (New-Sche
 ## Клиентская раздача
 
 ```powershell
-scripts\export-mrpack.ps1        # -> %LOCALAPPDATA%\MobTalkPack\dist\mob-talk-pack-<версия>+<коммит>.mrpack
+scripts\export-mrpack.ps1 -ServerAddress <адрес>    # -> %LOCALAPPDATA%\MobTalkPack\dist\mob-talk-pack-<версия>+<коммит>.mrpack
+scripts\build-installer.ps1 -ServerAddress <адрес>  # -> ...\dist\mob-talk-installer-<версия>+<коммит>.zip (установщик + .mrpack)
 ```
+
+`-ServerAddress` кладёт в пак `overrides/servers.dat`: после импорта сервер уже в «Сетевой игре». Установщик для игроков
+(Windows и macOS) описан в `docs/install-players.md`; zip и `.mrpack` прикладываются к релизу на GitHub.
 
 Сторонние jar, которые Modrinth знает по SHA-1 (CTOV, Lithostitched, Fabric API, видео-моды, CreativeCore), идут ссылками
 с SHA-1 и SHA-512; наши моды и Viewer Parrots — внутри файла в `overrides/mods`. CTOV и Lithostitched только ссылками:

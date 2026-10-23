@@ -68,7 +68,18 @@ function Get-PackJars {
         (Get-NewestJar "$Instances\mob-talk-ctov\minecraft\mods" 'lithostitched-*.jar')) +
         @(Get-ChildItem "$Instances\$Base\minecraft\mods\*.jar" | Where-Object { $_.Name -notmatch '^(mobtalk|viewerparrots|divineblock|rusflora|parrotcages|selftest-guard)' })
     $jars += $third | Where-Object { $_ }
+    # Pinned pack mods from Modrinth (server-mods.json "pack": JourneyMap, Simple Voice Chat, IPN, Mouse Tweaks,
+    # LambDynamicLights...): "both" also go to the server, "client" stay on the clients (Test-ClientOnlyJar).
+    foreach ($m in @((Get-ServerModPins).pack)) {
+        $jars += Save-PinnedFile -Url $m.url -FileName $m.fileName -Sha512 $m.sha512 -Cache (Join-Path $Work 'cache')
+        $manifest += "pinned $($m.title) $($m.version) ($($m.side))"
+    }
     @{ Jars = @($jars | Where-Object { $_ }); Manifest = $manifest }
+}
+
+# True for a jar that is one of the pinned client-only pack mods (server-mods.json "pack" with side "client").
+function Test-ClientOnlyJar([string]$Name, $Pins = (Get-ServerModPins)) {
+    [bool](@($Pins.pack) | Where-Object { $_.side -eq 'client' -and $_.fileName -eq $Name })
 }
 
 # Jars and commit lines of an already built Prism pack instance (the jars the clients run), for a server that matches them.
@@ -153,6 +164,43 @@ function Merge-ServerProperties([string[]]$Existing, [switch]$Public, [int]$Port
         @($values.Keys | ForEach-Object { "$_=$($values[$_])" })
 }
 
+# Key bindings the pack moves off our own keys (server-mods.json "pack" keys: Simple Voice Chat's V and G, JourneyMap's B
+# clash with Mob Talk's talk, gift and trade), as options.txt lines "key_<binding>:<key>".
+function Get-PackKeyLines($Pins = (Get-ServerModPins)) {
+    foreach ($m in @($Pins.pack)) {
+        if (-not $m.keys) { continue }
+        foreach ($p in $m.keys.PSObject.Properties) { "$($p.Name):$($p.Value)" }
+    }
+}
+
+# options.txt lines with the pack's key defaults added where the file has no line for that binding yet (a player's own
+# choice stays). Without a "version" line Minecraft would run old-format fixes, so a new file gets 1.21.1's data version.
+function Merge-PackKeyLines([string[]]$Existing, [string[]]$KeyLines) {
+    $lines = [Collections.Generic.List[string]]::new()
+    foreach ($l in @($Existing)) { if ($null -ne $l) { $lines.Add($l) } }
+    if (-not @($lines | Where-Object { $_ -like 'version:*' }).Count) { $lines.Insert(0, 'version:3955') }
+    foreach ($k in @($KeyLines)) {
+        $name = $k.Substring(0, $k.IndexOf(':') + 1)
+        if (-not @($lines | Where-Object { $_.StartsWith($name) }).Count) { $lines.Add($k) }
+    }
+    [string[]]$lines
+}
+
+# Minecraft's servers.dat (uncompressed NBT) with one entry, for the client pack's multiplayer list:
+# { servers: [ { name, ip, acceptTextures: 1 } ] }. Strings are length-prefixed UTF-8 (equal to Java's modified UTF-8 here).
+function New-ServersDat([string]$Name, [string]$Address) {
+    $ms = New-Object IO.MemoryStream
+    $put = { param([byte[]]$b) $ms.Write($b, 0, $b.Length) }
+    $str = { param([string]$s) $b = $script:Utf8.GetBytes($s); & $put ([byte[]]@([byte]($b.Length -shr 8), [byte]($b.Length -band 255))); & $put $b }
+    & $put ([byte[]]@(10)); & $str ''
+    & $put ([byte[]]@(9)); & $str 'servers'; & $put ([byte[]]@(10, 0, 0, 0, 1))
+    & $put ([byte[]]@(8)); & $str 'name'; & $str $Name
+    & $put ([byte[]]@(8)); & $str 'ip'; & $str $Address
+    & $put ([byte[]]@(1)); & $str 'acceptTextures'; & $put ([byte[]]@(1))
+    & $put ([byte[]]@(0, 0))
+    $ms.ToArray()
+}
+
 # Secrets never go into a server folder: refuses a config file that looks like it carries an API key or token.
 function Test-SecretFree([string]$Text) {
     -not ($Text -match 'sk-or-v1-[0-9a-f]{16}' -or $Text -match '"(api[_-]?key|token|secret|password)"\s*:\s*"[^"]{8,}"')
@@ -160,4 +208,4 @@ function Test-SecretFree([string]$Text) {
 
 Export-ModuleMember -Function Write-Utf8Lines, Write-Utf8Text, Invoke-GradleBuild, Export-RepoMain, Get-NewestJar, Get-PackJars,
     Get-InstancePackJars, Get-FabricModInfo, Get-FileSha, Get-ServerModPins, Save-PinnedFile, Find-ModrinthVersions,
-    Merge-ServerProperties, Test-SecretFree
+    Merge-ServerProperties, Test-SecretFree, Test-ClientOnlyJar, New-ServersDat, Get-PackKeyLines, Merge-PackKeyLines

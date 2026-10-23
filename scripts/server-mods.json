@@ -37,6 +37,59 @@
       "id": "bluemap", "title": "BlueMap", "version": "5.7", "fileName": "bluemap-5.7-fabric.jar",
       "url": "https://cdn.modrinth.com/data/swbUV1cr/versions/Dr2hvJBc/bluemap-5.7-fabric.jar",
       "sha512": "b7483d6ff90f09258f994a6f487846c1dfe814f1d0af931bd50426fd0afc98ccad033c5f440705edc08a8ced03cf216171ba1571db2221aca4ec620d676443a4"
+    },
+    {
+      "id": "worldedit", "title": "WorldEdit", "version": "7.3.8", "fileName": "worldedit-mod-7.3.8.jar",
+      "url": "https://cdn.modrinth.com/data/1u6JkXh5/versions/WTAFvuRx/worldedit-mod-7.3.8.jar",
+      "sha512": "e039492df0b486e7ce76d0eaf8cb11eadad2e78220600b8498ab8eef4642a29e310a6bcb4378257553b3639c6d0bc1ebf0f73df3a7a677c6af6baf86716b0bc7"
+    },
+    {
+      "id": "universal-graves", "title": "Universal Graves", "version": "3.4.4+1.21", "fileName": "graves-3.4.4+1.21.jar",
+      "url": "https://cdn.modrinth.com/data/yn9u3ypm/versions/Fg64B87Y/graves-3.4.4%2B1.21.jar",
+      "sha512": "a247df6557c4020ea5499a1be54d1b2a90b33fffcb94866bf682b40a6524708360ec4e1e912aa10754722761ccabcf3674bea1f82f5438f225eada983e59989a"
+    },
+    {
+      "id": "polymer", "title": "Polymer (for Universal Graves)", "version": "0.9.19+1.21.1", "fileName": "polymer-bundled-0.9.19+1.21.1.jar",
+      "url": "https://cdn.modrinth.com/data/xGdtZczs/versions/xqZ9fctS/polymer-bundled-0.9.19%2B1.21.1.jar",
+      "sha512": "6a804059be62ed312f6f3c8ef31fbda5889d2a0d088891966bf5a9ae18756198617b7fede322f596b1c98c0068638e28d9b6099037e00eca32a864f3441354cf"
+    }
+  ],
+  "pack": [
+    {
+      "id": "journeymap", "title": "JourneyMap", "side": "both", "keys": { "key_key.journeymap.create_waypoint": "key.keyboard.k" }, "version": "1.21.1-6.0.9+fabric", "fileName": "journeymap-fabric-1.21.1-6.0.9.jar",
+      "url": "https://cdn.modrinth.com/data/lfHFW1mp/versions/i7LuKuDl/journeymap-fabric-1.21.1-6.0.9.jar",
+      "sha512": "b0e110edb13fe16ecac78f6ad6d4fbadb1bedf28f406cea843cd44ff25aeea8504c7325d7776844f7d6f8d7634b8e373fe5cbb0cfd29bcfca592cbf109822138"
+    },
+    {
+      "id": "simple-voice-chat", "title": "Simple Voice Chat", "side": "both",
+      "keys": { "key_key.voice_chat": "key.keyboard.y", "key_key.voice_chat_group": "key.keyboard.u", "key_key.push_to_talk": "key.keyboard.caps.lock" }, "version": "fabric-1.21.1-2.6.22", "fileName": "voicechat-fabric-1.21.1-2.6.22.jar",
+      "url": "https://cdn.modrinth.com/data/9eGKb6K1/versions/VS5X7jZd/voicechat-fabric-1.21.1-2.6.22.jar",
+      "sha512": "c44e69400ac7349ad6d4699263bde4d87359e03233c31a872eb02542658cfc73a185b46e4361c54cb1ac029a2991bd8eb4d4ea59b1c3e3b43f234087520b325a"
+    },
+    {
+      "id": "fabric-language-kotlin", "title": "Fabric Language Kotlin (for Inventory Profiles Next)", "side": "client", "version": "1.14.2+kotlin.2.4.21", "fileName": "fabric-language-kotlin-1.14.2+kotlin.2.4.21.jar",
+      "url": "https://cdn.modrinth.com/data/Ha28R6CL/versions/SKW1BTL3/fabric-language-kotlin-1.14.2%2Bkotlin.2.4.21.jar",
+      "sha512": "7fb475c4a7e7bdf8d0aca4b5798a58a354c51443d5b1fbde3e8cf34dfbf7191ef4238b5f07d08ec9490ec180b371624523326c3ad45d4ed2b2be541de9407e5d"
+    },
+    {
+      "id": "libipn", "title": "libIPN", "side": "client", "version": "fabric-1.21.1-6.6.3", "fileName": "libIPN-fabric-1.21.1-6.6.3.jar",
+      "url": "https://cdn.modrinth.com/data/onSQdWhM/versions/PSscYPRs/libIPN-fabric-1.21.1-6.6.3.jar",
+      "sha512": "765991facc85b2cbc5a40c5ddc506da16f18a5c43de7c42757195dbc8d43e09573504602d3695de0054e5a868c6368fca7ad982738f509ba17a68d373532d16c"
+    },
+    {
+      "id": "inventory-profiles-next", "title": "Inventory Profiles Next", "side": "client", "version": "fabric-1.21.1-2.2.6", "fileName": "InventoryProfilesNext-fabric-1.21.1-2.2.6.jar",
+      "url": "https://cdn.modrinth.com/data/O7RBXm3n/versions/h1db7jG7/InventoryProfilesNext-fabric-1.21.1-2.2.6.jar",
+      "sha512": "329ba98932110af7905e0108f96aef2750a2cc6a6eec6fdc7c4a6b3682a9886d91b695ecc9677c2a619d829642a1f795dd01c32564f18e0151a861c9e3a158b1"
+    },
+    {
+      "id": "mouse-tweaks", "title": "Mouse Tweaks", "side": "client", "version": "1.21-2.26-fabric", "fileName": "MouseTweaks-fabric-mc1.21-2.26.jar",
+      "url": "https://cdn.modrinth.com/data/aC3cM3Vq/versions/ylmBQ38A/MouseTweaks-fabric-mc1.21-2.26.jar",
+      "sha512": "1744a48a47aedcbf19a0a93f78473cf0221fc4782852dca7fc02685719174664b4f9d95d353fcfc16902ac3815594511ba6d9ab14391f9b7e25ec9b2e777927a"
+    },
+    {
+      "id": "lambdynamiclights", "title": "LambDynamicLights", "side": "client", "version": "4.8.11+1.21.1", "fileName": "lambdynamiclights-4.8.11+1.21.1.jar",
+      "url": "https://cdn.modrinth.com/data/yBW8D80W/versions/ksaGCvSu/lambdynamiclights-4.8.11%2B1.21.1.jar",
+      "sha512": "0286076e8b2922dfbe90cd4544a0d16e6d07d7249c732a37479ea4281e9cf96c86dd2e1ce5261489bd5553ceba33044bc550a04b9eb582645eb97f15c9c6a64c"
     }
   ],
   "optional": [
@@ -44,6 +97,11 @@
       "id": "luckperms", "title": "LuckPerms", "version": "v5.4.140-fabric", "fileName": "LuckPerms-Fabric-5.4.140.jar",
       "url": "https://cdn.modrinth.com/data/Vebnzrzj/versions/l47d4ZWk/LuckPerms-Fabric-5.4.140.jar",
       "sha512": "386ff4d18981c830d21ddaa599d70c1c5430c1475e2c5960275bad535cbd572c77e38b3841f0a71e3ea4a795c56d45ff8c4a8dba3799dae26bff5a382c6e0a64"
+    },
+    {
+      "id": "worldedit-cui", "title": "WorldEditCUI (admin's own client, not in the pack)", "side": "client", "version": "1.21.1+01", "fileName": "WorldEditCUI-1.21.1+01.jar",
+      "url": "https://cdn.modrinth.com/data/NSLJJooQ/versions/KzDaAGw6/WorldEditCUI-1.21.1%2B01.jar",
+      "sha512": "0035796ce21b94207b6b9e1e2d19d63fad4b5e73e8afaba96a3628c8560395c16dfc32c76cde0c6f876d10c9eb9b124193fd28cd01a8855e46dfbbd30a9e9ab4"
     }
   ]
 }

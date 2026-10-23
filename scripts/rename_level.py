@@ -12,4 +12,6 @@ value = new.encode('utf-8')
 out = raw[:j] + struct.pack('>H', len(value)) + value + raw[j + 2 + old_len:]
 with gzip.open(path, 'wb') as f:
     f.write(out)
+# python -I ignores PYTHONIOENCODING: a Cyrillic name on a cp1252 console would fail after the write.
+sys.stdout.reconfigure(encoding='utf-8', errors='backslashreplace')
 print(f'LevelName: {old!r} -> {new!r}')

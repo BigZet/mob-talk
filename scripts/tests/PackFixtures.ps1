@@ -51,6 +51,9 @@ function New-FakePins([string]$Path, [string]$Cache) {
         mods = @(
             [ordered]@{ id = 'lithium'; title = 'Lithium'; version = 'mc1.21.1-0.15.4-fabric'; fileName = 'lithium-test.jar'; url = 'https://invalid.example/l.jar'; sha512 = (& $entry 'lithium-test.jar' 'lithium') },
             [ordered]@{ id = 'spark'; title = 'spark'; version = '1.10.109-fabric'; fileName = 'spark-test.jar'; url = 'https://invalid.example/s.jar'; sha512 = (& $entry 'spark-test.jar' 'spark') })
+        pack = @(
+            [ordered]@{ id = 'simple-voice-chat'; title = 'Simple Voice Chat'; side = 'both'; version = '2.6.22'; fileName = 'voicechat-test.jar'; url = 'https://invalid.example/v.jar'; sha512 = (& $entry 'voicechat-test.jar' 'voicechat') },
+            [ordered]@{ id = 'mouse-tweaks'; title = 'Mouse Tweaks'; side = 'client'; version = '2.26'; fileName = 'mousetweaks-test.jar'; url = 'https://invalid.example/m.jar'; sha512 = (& $entry 'mousetweaks-test.jar' 'mousetweaks') })
         optional = @([ordered]@{ id = 'luckperms'; title = 'LuckPerms'; version = 'v5.4.140-fabric'; fileName = 'luckperms-test.jar'; url = 'https://invalid.example/lp.jar'; sha512 = (& $entry 'luckperms-test.jar' 'luckperms') })
     }
     [IO.File]::WriteAllText($Path, ($pins | ConvertTo-Json -Depth 6), (New-Object Text.UTF8Encoding($false)))
