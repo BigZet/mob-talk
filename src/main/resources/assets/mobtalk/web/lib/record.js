@@ -17,6 +17,7 @@ export const KINDS = {
   boss: { title: 'Босс', icon: 'divine', k: 2 },
   player_join: { title: 'Вход игрока', icon: 'players' },
   player_leave: { title: 'Выход игрока', icon: 'players' },
+  death: { title: 'Смерть игрока', icon: 'warn', k: 8 },
   config_change: { title: 'Настройка', icon: 'settings', k: 1 },
   error: { title: 'Ошибка', icon: 'warn', k: 8 },
   command: { title: 'Команда', icon: 'server' },

@@ -59,10 +59,19 @@ final class LiveGameView implements GameView {
     private final Map<UUID, Long> joined = new ConcurrentHashMap<>(), left = new ConcurrentHashMap<>();
     /** Последняя известная точка вышедшего игрока: мир и координаты, только для «Местоположения». */
     private final Map<UUID, JsonObject> lastPlace = new ConcurrentHashMap<>();
+    /** Где игроки погибали: метки «death» на карте. */
+    private final io.github.mobtalk.server.web.Deaths deaths;
 
     LiveGameView(MinecraftServer server, MobGameBridge bridge, Supplier<DialogueService> dialogue, Path runDir) {
         this.server = server; this.bridge = bridge; this.dialogue = dialogue; this.runDir = runDir;
+        this.deaths = new io.github.mobtalk.server.web.Deaths(runDir.resolve("config").resolve("mobtalk-deaths.json"));
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) joined.putIfAbsent(player.getUuid(), startedMillis);
+    }
+
+    /** Игрок погиб: точка для карты; строку в историю (без координат) пишет {@link AdminLink}. */
+    void died(ServerPlayerEntity player, String cause) {
+        deaths.add(System.currentTimeMillis(), player.getUuid(), player.getGameProfile().getName(), player.getWorld().getRegistryKey().getValue().toString(),
+                player.getBlockX(), player.getBlockY(), player.getBlockZ(), cause);
     }
 
     void joined(ServerPlayerEntity player) { joined.put(player.getUuid(), System.currentTimeMillis()); left.remove(player.getUuid()); }
@@ -375,6 +384,7 @@ final class LiveGameView implements GameView {
             for (ConversationStore.Village village : memory().villages())
                 if (worldId == null || worldId.equals(village.dimension()))
                     out.add(Json.obj("kind", "village", "id", village.id(), "name", village.name(), "x", village.x(), "z", village.z()));
+            out.addAll(deaths.markers(worldId == null ? "minecraft:overworld" : worldId));
             return Json.array(out);
         });
     }

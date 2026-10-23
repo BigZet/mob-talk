@@ -472,7 +472,7 @@ svg.map .wp text { fill: var(--text-2); font-size: 11.5px; }
 .wmap-overlay .player .dir { stroke-width: 3; stroke-linecap: round; }
 .wmap-overlay .player .name { fill: #fff; font-weight: 700; paint-order: stroke; stroke: rgba(0, 0, 0, 0.75); stroke-width: 3px; }
 .wmap-overlay .marker rect { fill: #fff; stroke: #222; stroke-width: 1.5; }
-.wmap-overlay .marker.village rect { fill: #f2c14e; } .wmap-overlay .marker.boss rect { fill: #e34948; } .wmap-overlay .marker.spawn rect { fill: #34b37a; }
+.wmap-overlay .marker.village rect { fill: #f2c14e; } .wmap-overlay .marker.boss rect { fill: #e34948; } .wmap-overlay .marker.spawn rect { fill: #34b37a; } .wmap-overlay .marker.death rect { fill: #8a8f98; stroke: #e34948; }
 .wmap-overlay .marker text { fill: #fff; font-weight: 600; paint-order: stroke; stroke: rgba(0, 0, 0, 0.7); stroke-width: 3px; }
 .wmap-zoom { position: absolute; right: 10px; top: 10px; display: flex; flex-direction: column; gap: 6px; }
 .wmap-zoom .btn { box-shadow: var(--shadow); font-size: 18px; font-weight: 600; }

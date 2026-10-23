@@ -87,6 +87,14 @@ public final class AdminLink {
                 if (admin != null) admin.journal().event("player_join", Json.player(handler.getPlayer().getUuid(), handler.getPlayer().getGameProfile().getName()), null,
                         handler.getPlayer().getGameProfile().getName() + " вошёл", new JsonObject());
             });
+            // Смерти игроков: точка для карты админки (LiveGameView) и строка «death» в истории — без координат, как вся история.
+            net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
+                if (!(entity instanceof net.minecraft.server.network.ServerPlayerEntity player)) return;
+                LiveGameView live = view; AdminWeb admin = web;
+                String cause = source.getDeathMessage(player).getString();
+                if (live != null) live.died(player, cause);
+                if (admin != null) admin.journal().event("death", Json.player(player.getUuid(), player.getGameProfile().getName()), null, cause, new JsonObject());
+            });
             ServerPlayConnectionEvents.DISCONNECT.register((handler, s) -> {
                 LiveGameView live = view; AdminWeb admin = web;
                 if (live != null) live.left(handler.getPlayer());

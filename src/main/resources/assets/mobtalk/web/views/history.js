@@ -15,7 +15,7 @@ const PERIODS = [
 const KIND_GROUPS = [
   ['dialogue', 'witness', 'village_talk', 'gift', 'trade', 'relation_change', 'rumor'],
   ['verdict', 'ban', 'boss'],
-  ['player_join', 'player_leave', 'command', 'config_change', 'admin_login', 'error', 'cost'],
+  ['player_join', 'player_leave', 'death', 'command', 'config_change', 'admin_login', 'error', 'cost'],
 ];
 
 export default function historyView(root, route) {
