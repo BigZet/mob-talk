@@ -352,6 +352,13 @@ public final class FixtureGame implements GameView {
     /** Последняя заявка на новый мир (сид, тип, кто) — для тестов. */
     public volatile String newWorld = "";
     @Override public String worldDir() { return "world"; }
+    /** Ники, добавленные в whitelist по имени, — для тестов. */
+    public final List<String> whitelisted = new ArrayList<>();
+    @Override public synchronized JsonObject whitelistAdd(String nick) {
+        if (nick == null || !nick.matches("[A-Za-z0-9_]{3,16}")) throw ApiException.badRequest("Ник — 3–16 латинских букв, цифр или «_».");
+        whitelisted.add(nick);
+        return Json.ok(nick + " добавлен в whitelist");
+    }
     @Override public JsonObject newWorld(String seed, String type, String by) { newWorld = seed + "|" + type + "|" + by; return Json.ok("Новый мир (заглушка)"); }
 
     @Override public JsonArray activities() {

@@ -236,6 +236,13 @@ public final class AdminApi {
                     Json.obj("command", "player " + action, "by", by(r), "result", 1, "output", List.of(String.valueOf(Json.string(answer, "message")))));
             return Response.json(answer);
         });
+        router.post("/api/whitelist", r -> {
+            String nick = Json.string(r.json(), "name");
+            JsonObject answer = parts.game().whitelistAdd(nick);
+            parts.history().append("command", null, null, "Админка: whitelist add " + nick,
+                    Json.obj("command", "whitelist add", "by", by(r), "result", 1, "output", List.of(String.valueOf(Json.string(answer, "message")))));
+            return Response.json(answer);
+        });
         router.post("/api/streamer", r -> {
             String raw = Json.string(r.json(), "uuid");
             return Response.json(parts.game().setStreamer(raw == null ? null : uuid(raw)));

@@ -33,8 +33,15 @@ export default function players(root, route) {
   let stopMap = null;
   const listBox = h('div.card.flush');
   const search = h('input.input', { type: 'search', placeholder: 'Ник или UUID', value: q, 'aria-label': 'Поиск игрока' });
+  const addWl = h('button.btn', { type: 'button' }, icon('players', 'sm'), 'Добавить в whitelist');
+  addWl.addEventListener('click', async () => {
+    const r = await ask({ title: 'Добавить игрока в whitelist', fields: [{ key: 'name', title: 'Ник в Minecraft', value: '', placeholder: 'например, Steve_42' }], ok: 'Добавить',
+      text: 'Игрок может ещё ни разу не заходить на сервер.' });
+    if (!r || !r.name.trim()) return;
+    busy(addWl, async () => { const a = await api.post('whitelist', { name: r.name.trim() }); toast(a.message || 'Добавлен'); reload(); });
+  });
   const listTools = h('div.toolbar', h('div.search', icon('search'), search),
-    seg([{ value: 'all', title: 'Все' }, { value: 'online', title: 'Онлайн' }, { value: 'banned', title: 'Бан' }, { value: 'nowl', title: 'Вне whitelist' }], filterBy, v => { filterBy = v; setParams({ f: v }); draw(); }, 'Фильтр игроков'));
+    seg([{ value: 'all', title: 'Все' }, { value: 'online', title: 'Онлайн' }, { value: 'banned', title: 'Бан' }, { value: 'nowl', title: 'Вне whitelist' }], filterBy, v => { filterBy = v; setParams({ f: v }); draw(); }, 'Фильтр игроков'), addWl);
   const mapBox = h('div');
   const showView = () => {
     stopMap?.(); stopMap = null;

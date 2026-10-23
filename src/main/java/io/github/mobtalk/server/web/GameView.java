@@ -53,6 +53,8 @@ public interface GameView {
     JsonObject reloadConfig();
     /** «Новый мир»: заявка с сидом и типом ({@code NewWorld}) и остановка сервера; мир сменится при следующем запуске. */
     JsonObject newWorld(String seed, String type, String by);
+    /** Добавить ник в whitelist (игрок мог ещё ни разу не заходить). */
+    JsonObject whitelistAdd(String nick);
     /** Папка мира ({@code level-name}): её название админ вводит, подтверждая новый мир. */
     String worldDir();
 

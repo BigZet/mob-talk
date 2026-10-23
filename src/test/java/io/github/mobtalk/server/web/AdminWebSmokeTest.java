@@ -35,7 +35,7 @@ class AdminWebSmokeTest {
     static final Path WEB = Path.of("src/main/resources/assets/mobtalk/web");
     /** First segments of the routes in docs/admin-web.md. */
     static final Set<String> ROUTES = Set.of("login", "logout", "session", "overview", "metrics", "latency", "history", "costs", "sources", "config",
-            "players", "streamer", "waypoints", "mobs", "villages", "divine", "server", "logs", "diagnostics", "errors", "backups", "events", "live", "map", "map3d");
+            "players", "streamer", "whitelist", "waypoints", "mobs", "villages", "divine", "server", "logs", "diagnostics", "errors", "backups", "events", "live", "map", "map3d");
     /** Vendored files: checked for presence, not scanned. */
     static final Set<String> VENDORED = Set.of("uplot.min.js", "uplot.min.css");
     static final Pattern IMPORT = Pattern.compile("(?:import\\s[^'\"]*?from\\s*|import\\(\\s*`?)['\"`]([^'\"`$]+)['\"`]");

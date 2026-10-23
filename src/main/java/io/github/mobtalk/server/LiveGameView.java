@@ -161,6 +161,21 @@ final class LiveGameView implements GameView {
     }
 
 
+
+    @Override public JsonObject whitelistAdd(String nick) {
+        if (nick == null || !nick.strip().matches("[A-Za-z0-9_]{3,16}")) throw ApiException.badRequest("Ник — 3–16 латинских букв, цифр или «_».");
+        Optional<GameProfile> found;
+        try { found = AdminCommands.profile(server, nick.strip()).get(10, java.util.concurrent.TimeUnit.SECONDS); }
+        catch (Exception failure) { throw ApiException.conflict("Не удалось найти игрока «" + nick.strip() + "»: " + failure.getClass().getSimpleName()); }
+        if (found.isEmpty()) throw ApiException.notFound("Игрока «" + nick.strip() + "» нет: проверьте ник (на сервере с лицензией это ник аккаунта Minecraft).");
+        GameProfile profile = found.get();
+        return onServer(() -> {
+            var list = players_().getWhitelist();
+            if (list.isAllowed(profile)) return Json.ok(profile.getName() + " уже в whitelist");
+            list.add(new WhitelistEntry(profile));
+            return Json.ok(profile.getName() + " добавлен в whitelist");
+        });
+    }
     @Override public String worldDir() { return NewWorld.levelName(runDir); }
     @Override public JsonObject newWorld(String seed, String type, String by) {
         try { NewWorld.request(runDir, seed, type, by); }

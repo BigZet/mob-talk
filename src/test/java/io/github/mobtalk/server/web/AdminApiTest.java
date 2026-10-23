@@ -170,6 +170,8 @@ class AdminApiTest {
         assertEquals(200, send("POST", test2 + "/ban", "{\"reason\":\"тест\"}", true).statusCode());
         assertTrue(json(send("GET", test2, null, false)).get("banned").getAsBoolean());
         assertEquals(409, send("POST", test2 + "/kick", "{}", true).statusCode(), "кик офлайн-игрока");
+        assertEquals(200, send("POST", "/api/whitelist", "{\"name\":\"Friend_42\"}", true).statusCode(), "whitelist по нику");
+        assertEquals(400, send("POST", "/api/whitelist", "{\"name\":\"Друг\"}", true).statusCode(), "кириллица не ник");
         assertEquals(409, send("POST", test2 + "/gamemode", "{\"mode\":\"creative\"}", true).statusCode(), "режим офлайн-игрока");
         String bigzet = "/api/players/" + DevStubServer.BIGZET;
         assertEquals(400, send("POST", bigzet + "/gamemode", "{\"mode\":\"god\"}", true).statusCode());
