@@ -386,6 +386,8 @@ public final class Prayers {
         verdict.speech = Penance.line(running.strengthened);
         DivineState state = DivineState.of(server);
         state.ledger.soul(player.getUuid()).remember(verdict);
+        // A sin under a running punishment is still a sin: the ladder of punishments goes a rung up, the next one falls harder.
+        state.ledger.soul(player.getUuid()).punished(DeedWatcher.day(server));
         state.markDirty();
         record(player, verdict, tone, insult, offering, offeringValue);
         Multiplayer.journal(io.github.divineblock.core.GodJournal.Kind.VERDICT, player.getName().getString(), what);
