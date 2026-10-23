@@ -57,9 +57,10 @@ public final class BossSealBlockEntity extends BlockEntity {
         PlayerEntity near = world.getClosestPlayer(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, seal.radius,
                 entity -> entity instanceof PlayerEntity player && !player.isSpectator() && !player.isCreative());
         if (near == null) return;
-        // The church at the world spawn (ChurchSpawn) is where every new player comes to pray: no guardian rises there.
+        // A church keeps no guardian unless the settings ask for one, and the church at the world spawn (ChurchSpawn), where every
+        // new player comes to pray, never.
         if (seal.atSpawn == null) seal.atSpawn = "church".equals(seal.boss) && io.github.divineblock.game.ChurchSpawn.atSpawnChurch(server, pos);
-        if (seal.atSpawn) return;
+        if ("church".equals(seal.boss) && (!io.github.divineblock.DivineBlockMod.config().churchGuardians || seal.atSpawn)) return;
         LivingEntity risen = seal.wake(server, pos, near);
         if (risen == null) return;
         seal.risen = risen.getUuid();
