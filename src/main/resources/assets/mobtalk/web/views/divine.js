@@ -14,9 +14,9 @@ import { setParams } from '../app.js';
 /** Ответы бога: подпись и цвет графика (слот палитры). */
 const ACT = { wrath: ['Кары', 8], miracle: ['Блага', 3], warning: ['Знамения', 5], jest: ['Шутки', 6], none: ['Молчание', 7] };
 /** Действия, у которых своё место на вкладке (у боссов, у души), а не общий список действий. */
-const OWN_PLACE = new Set(['boss_remove', 'boss_clear', 'clear', 'god_recall', 'court_end', 'mercy', 'act']);
+const OWN_PLACE = new Set(['boss_remove', 'boss_clear', 'clear', 'god_recall', 'court_end', 'mercy', 'act', 'forget', 'forget_all']);
 /** Своя кнопка у души, а не общая кнопка действия по игроку. */
-const SOUL_OWN = new Set(['mercy', 'act']);
+const SOUL_OWN = new Set(['mercy', 'act', 'forget']);
 const CHOICE = { miracle: ['благо', '.good'], wrath: ['кара', '.bad'], warning: ['знамение', '.warn'], jest: ['шутка', ''], none: ['без ответа', ''] };
 const TONE = { profane: '.bad', rude: '.bad', urgent: '.warn', penitent: '.good' };
 /** Проклятия, которые держатся до двадцати минут (Curses.Type в моде), простыми словами. */
@@ -72,6 +72,7 @@ export default function divine(root, route) {
           h('section.card', h('div.card-head', h('h2', 'Частые деяния'), h('span.sub', 'за тот же период')), note('Что именно бог делал чаще всего.'), topBox)),
         h('section.card.flush', h('div.card-head', { style: { padding: '14px 16px 0' } }, h('h2', 'Последние вердикты'), h('a.btn.sm.ghost', { href: '#/history?kind=verdict' }, 'Все', icon('chevron', 'sm'))), verdicts),
         catalogBox,
+        memoryCard(),
         actionsBox));
     drawSouls(first);
     drawPrayers();
@@ -86,6 +87,19 @@ export default function divine(root, route) {
   const deedHelp = id => String(deeds.get(id)?.help || '').replace(/^[A-Z_]+ «[^»]*»: /, '');
   const loadVerdicts = () => load(verdicts, () => api.get('history', { kind: 'verdict', limit: 10 }),
     r => (r.items.length ? r.items.map(x => recordRow(x)) : empty('Вердиктов пока нет: с запуска сервера никто не молился.')), { lines: 5 });
+
+  /** Стереть память бога обо всех: своя карточка с подтверждением. */
+  function memoryCard() {
+    if (!has('forget_all')) return null;
+    const btn = h('button.btn.sm.danger', { type: 'button' }, 'Стереть память обо всех');
+    btn.addEventListener('click', async () => {
+      if (!(await confirm({ title: 'Стереть память бога обо всех игроках?', ok: 'Стереть', danger: true,
+        consequence: 'Бог забудет всех: милость, поступки, молитвы, настроение и кары подряд с нуля. Проклятия, изгнания и боссы останутся.' }))) return;
+      runAct({ id: 'forget_all', args: {} }, () => { reloadSouls(); drawActive(); });
+    });
+    return h('section.card', h('div.card-head', h('h2', 'Память бога'), btn),
+      note('Бог помнит о каждом милость, поступки за последние дни, молитвы, своё настроение и кары подряд. Стереть одного — кнопка «Забыть…» у души.'));
+  }
 
   // ---------- как устроен бог ----------
   function howTo() {
@@ -144,7 +158,12 @@ export default function divine(root, route) {
   function soulActions(s) {
     const perPlayer = actions.filter(a => a.args?.some(x => x.key === 'player') && !SOUL_OWN.has(a.id) && a.id !== 'streamer');
     const own = [has('mercy') && ownButton('Милость…', () => mercyDialog(s)), has('act') && ownButton('Кара…', () => actDialog(s, 'wrath'), '.danger'),
-      has('act') && ownButton('Благо…', () => actDialog(s, 'good'))].filter(Boolean);
+      has('act') && ownButton('Благо…', () => actDialog(s, 'good')),
+      has('forget') && ownButton('Забыть…', async () => {
+        if (!(await confirm({ title: `Стереть память бога о ${pname(s.player)}?`, ok: 'Стереть', danger: true,
+          consequence: 'Милость, запомненные поступки, молитвы, настроение бога и кары подряд начнутся с нуля. Проклятия и изгнание это не снимает.' }))) return;
+        runAct({ id: 'forget', args: { player: pname(s.player) } }, () => reloadSouls());
+      })].filter(Boolean);
     if (!perPlayer.length && !own.length) return null;
     return h('div.row', { style: { flexWrap: 'wrap', gap: '6px' } }, own, perPlayer.filter(a => a.id !== 'unban' || s.banned).map(a => {
       const btn = h(`button.btn.sm${a.danger ? '.danger' : ''}`, { type: 'button', title: a.help || '', onclick: async e => {

@@ -553,6 +553,24 @@
           }
         ],
         "danger": null
+      },
+      {
+        "id": "forget",
+        "title": "Стереть память бога об игроке",
+        "args": [
+          {
+            "key": "player",
+            "title": "Ник",
+            "type": "string"
+          }
+        ],
+        "danger": null
+      },
+      {
+        "id": "forget_all",
+        "title": "Стереть память бога обо всех",
+        "args": [],
+        "danger": null
       }
     ]
   },
