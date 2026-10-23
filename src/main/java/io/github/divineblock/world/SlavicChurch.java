@@ -50,6 +50,22 @@ public final class SlavicChurch {
         StructurePlacementData data = new StructurePlacementData().setRotation(frame.rotation().rotate(BlockRotation.CLOCKWISE_180))
                 .setBoundingBox(chunkBox).setIgnoreEntities(true).setUpdateNeighbors(false);
         template.get().place(world, at, at, data, random, Block.NOTIFY_LISTENERS);
+        underfill(world, chunkBox, frame);
+    }
+
+    /** The template's floor stands at y = 2 over the ground at y = -1 (its island was cut away): the gap under every floor block
+     * is filled with earth down to the ground, so no hollow shows under the church. */
+    private static void underfill(StructureWorldAccess world, BlockBox chunkBox, ChurchPiece.Frame frame) {
+        BlockBox box = ChurchPiece.box(frame, ChurchBuilder.Variant.SLAVIC);
+        int y0 = frame.origin().getY();
+        BlockPos.Mutable pos = new BlockPos.Mutable();
+        for (int x = Math.max(box.getMinX(), chunkBox.getMinX()); x <= Math.min(box.getMaxX(), chunkBox.getMaxX()); x++)
+            for (int z = Math.max(box.getMinZ(), chunkBox.getMinZ()); z <= Math.min(box.getMaxZ(), chunkBox.getMaxZ()); z++)
+                for (int y = y0 + 1; y >= y0 - 3; y--) {
+                    pos.set(x, y, z);
+                    if (!world.getBlockState(pos).isAir() || world.getBlockState(pos.up()).isAir()) continue; // only under something
+                    world.setBlockState(pos, Blocks.DIRT.getDefaultState(), Block.NOTIFY_LISTENERS);
+                }
     }
 
     /** This mod's fittings inside the author's church. */

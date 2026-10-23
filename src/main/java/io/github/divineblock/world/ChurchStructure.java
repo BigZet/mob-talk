@@ -106,7 +106,7 @@ public final class ChurchStructure extends Structure {
         List<StructurePiece> yardPieces = cemetery;
         BlockBox yardBox = yardPieces.isEmpty() ? null : StructurePiece.boundingBox(yardPieces.stream()).expand(3); // ponds and trees right at the fence too
         ClearingPiece clearing = yardBox == null ? null
-                : new ClearingPiece(new BlockBox(yardBox.getMinX(), yardBox.getMinY() - 2, yardBox.getMinZ(), yardBox.getMaxX(), floor + 34, yardBox.getMaxZ()),
+                : new ClearingPiece(new BlockBox(yardBox.getMinX(), floor - 1, yardBox.getMinZ(), yardBox.getMaxX(), floor + 34, yardBox.getMaxZ()),
                         yardPieces.stream().filter(p -> p instanceof PoolStructurePiece element && element.getPoolElement() instanceof FeaturePoolElement)
                                 .map(p -> ((PoolStructurePiece) p).getPos()).toList());
         ChurchPiece churchPiece = new ChurchPiece(frame, variant, seed);
@@ -119,7 +119,7 @@ public final class ChurchStructure extends Structure {
             BlockPos gate = frame.world(ChurchBuilder.CEMETERY_ENTRANCE_X, -1, ChurchBuilder.CEMETERY_MIN_Z);
             CemeteryGround.Plan plan = CemeteryGround.plan(context.chunkGenerator(), context.world(), context.noiseConfig(), site, floor - 1, gate);
             if (!plan.level()) return Optional.empty();
-            leveling = new LevelingPiece(plan.field(), List.of(churchPiece.getBoundingBox(), yardWall.getBoundingBox()), site.getMinY() - 20, site.getMaxY() + 12);
+            leveling = new LevelingPiece(plan.field(), List.of(churchPiece.getBoundingBox(), yardWall.getBoundingBox()), site.getMaxY() + 12);
         }
         LevelingPiece levelingPiece = leveling;
         return Optional.of(new StructurePosition(center, collector -> {
