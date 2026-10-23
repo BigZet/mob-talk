@@ -62,6 +62,9 @@ final class ClientNet {
     /** Личные настройки серверу: при входе и после сохранения в F7. */
     static void sendSettings(MobTalkClient owner) {
         if (owner.config() == null || !owner.connected() || !ClientPlayNetworking.canSend(PlayerSettingsC2S.ID)) return;
-        ClientPlayNetworking.send(new PlayerSettingsC2S(PlayerSettings.of(owner.config()).toJson()));
+        // Установлен ли свой Whisper — только для админки (какой путь распознавания игрок получит на «авто»).
+        com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(PlayerSettings.of(owner.config()).toJson()).getAsJsonObject();
+        json.addProperty(PlayerSettings.WHISPER_INSTALLED, VoiceInput.localReady());
+        ClientPlayNetworking.send(new PlayerSettingsC2S(json.toString()));
     }
 }
