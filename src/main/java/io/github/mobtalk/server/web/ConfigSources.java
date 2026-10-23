@@ -111,7 +111,7 @@ public final class ConfigSources {
 
     private synchronized List<String> ids() { return List.copyOf(sources.keySet()); }
 
-    JsonObject call(String id, JsonObject request) { return call(id, request, true); }
+    public JsonObject call(String id, JsonObject request) { return call(id, request, true); }
 
     private JsonObject call(String id, JsonObject request, boolean clean) {
         UnaryOperator<String> source;

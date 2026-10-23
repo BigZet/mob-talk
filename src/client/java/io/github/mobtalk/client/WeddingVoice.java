@@ -42,6 +42,8 @@ final class WeddingVoice {
     int voiced;
     /** Игрок, чья свадьба идёт, и ждёт ли служба его клятвы: читается конвейером разговора из другого потока. */
     private volatile boolean vowOpen;
+    /** Выделенный сервер ведёт службу сам (серверный {@code WeddingHost}): сколько секунд писать клятву, 0 — клятву не ждут. */
+    private volatile int serverVowSeconds;
 
     WeddingVoice(MobTalkClient owner) { this.owner = owner; }
 
@@ -49,6 +51,7 @@ final class WeddingVoice {
     boolean active() { return ceremony != null; }
     /** Служба ждёт клятвы этого игрока: запись идёт до {@link MobTalkConfig#weddingVowSeconds}, а распознанное уходит в службу. */
     boolean takesVow() {
+        if (serverVowSeconds > 0) return true;
         if (!vowOpen) {
             // Тик клиента мог ещё не увидеть, что служба уже ждёт клятву: смотрим на саму службу.
             var server = owner.client.getServer();
@@ -59,6 +62,23 @@ final class WeddingVoice {
         }
         return true;
     }
+
+    /** Сервер открыл клятву ({@code {"open":true,"seconds":…,"entityId":…}}: собеседником становится пара) или закрыл её.
+     * Возвращает, открыта ли клятва. Клятва дальше уходит серверу обычной репликой: он сам отдаёт её службе. */
+    boolean serverVow(String json) {
+        try {
+            com.google.gson.JsonObject object = com.google.gson.JsonParser.parseString(json).getAsJsonObject();
+            boolean open = object.has("open") && object.get("open").getAsBoolean();
+            serverVowSeconds = open ? Math.max(1, object.has("seconds") ? object.get("seconds").getAsInt() : owner.config().weddingVowSeconds) : 0;
+            int entityId = object.has("entityId") ? object.get("entityId").getAsInt() : -1;
+            if (open && owner.world != null && entityId >= 0 && owner.world.getEntityById(entityId) instanceof MobEntity spouse && !spouse.getUuid().equals(owner.selected))
+                owner.select(spouse);
+        } catch (RuntimeException malformed) { serverVowSeconds = 0; }
+        return serverVowSeconds > 0;
+    }
+    boolean serverVowOpen() { return serverVowSeconds > 0; }
+    /** Сколько секунд писать клятву: столько, сколько разрешил сервер, иначе по своим настройкам (одиночка). */
+    int vowSeconds() { return serverVowSeconds > 0 ? serverVowSeconds : owner.config().weddingVowSeconds; }
 
     void tick(long ticks) {
         MobGameBridge game = owner.client.getServer() == null ? null : MobGameBridge.active(owner.client.getServer());
@@ -136,7 +156,7 @@ final class WeddingVoice {
     }
     /** Клятву не удалось распознать (Whisper упал, тишина): подсказка написать её. Служба ждёт дальше. */
     void vowUnheard() {
-        if (ceremony == null || !ceremony.awaitingVow()) return;
+        if (serverVowSeconds <= 0 && (ceremony == null || !ceremony.awaitingVow())) return;
         owner.client.inGameHud.getChatHud().addMessage(Text.literal("§e[Mob Talk] Клятву не расслышали. Скажите ещё раз или ")
                 .append(Text.literal("[напишите её]").styled(style -> style.withColor(Formatting.AQUA)
                         .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/mobtalk say ")))));
@@ -238,5 +258,6 @@ final class WeddingVoice {
         for (Future<SpeechStream> future : prefetched.values()) closeLater(future);
         prefetched.clear();
         ceremony = null; input = null; line = null; audio = null; playing = false; textUntil = -1; promptedVow = -1; judgedVow = -1; vowOpen = false;
+        serverVowSeconds = 0;
     }
 }

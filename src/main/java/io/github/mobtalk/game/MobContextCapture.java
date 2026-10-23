@@ -187,6 +187,8 @@ final class MobContextCapture {
             environment.put("shelter", shelter(world, mob));
         }
         environment.put("dimension", world.getRegistryKey().getValue().toString());
+        String wedding = bridge.wedding.contextFor(world, mob);
+        if (!wedding.isEmpty()) environment.put("wedding", wedding);
         return new MobSnapshot(mob.getUuid(), MobGameBridge.type(mob), mob.getName().getString(), mob.getHealth(), mob.getMaxHealth(),
                 world.getRegistryKey().getValue().toString(), biome, time, weather, blind ? -1 : round(mob.distanceTo(player)),
                 blind ? "unknown (blind)" : Registries.ITEM.getId(player.getMainHandStack().getItem()).toString(), List.copyOf(nearby),

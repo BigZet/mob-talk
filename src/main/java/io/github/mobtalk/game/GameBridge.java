@@ -118,4 +118,12 @@ public interface GameBridge {
     VillageNotices.Cue pollNotice();
     /** Идёт свадьба у колокола: посторонние реплики молчат. */
     boolean weddingActive();
+    /** Идущая свадьба для серверного ведущего ({@code WeddingHost}): служба, тексты, жених-игрок (null — женятся жители) и измерение;
+     * null — свадьбы нет. */
+    record WeddingView(io.github.mobtalk.core.Wedding.Ceremony ceremony, io.github.mobtalk.core.WeddingScript.Input input, UUID player, String dimension) {
+        public UUID spouse() { return ceremony.cast().spouse().id(); }
+    }
+    default WeddingView wedding() { return null; }
+    /** Тексты свадьбы просить у модели: один раз за свадьбу, иначе null. */
+    default io.github.mobtalk.core.WeddingScript.Input takeWeddingScript() { return null; }
 }

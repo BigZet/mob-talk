@@ -113,6 +113,13 @@ public final class WeddingController {
     public boolean involved(UUID id) { Scene s = scene; return s != null && s.ceremony.cast().find(id) != null; }
     /** Тексты для клиента: один раз за свадьбу. */
     public WeddingScript.Input takeScriptRequest() { Scene s = scene; return s != null && s.ceremony.takeScriptRequest() ? s.input : null; }
+    /** Что житель знает об идущей свадьбе (строка в промпт), если он в её мире и не дальше {@link #CONTEXT_RANGE} от колокола; "" — нет. */
+    public String contextFor(ServerWorld world, Entity mob) {
+        Scene s = scene;
+        if (s == null || s.world != world || !(mob instanceof VillagerEntity) || mob.squaredDistanceTo(s.anchor) > CONTEXT_RANGE * CONTEXT_RANGE) return "";
+        return Wedding.contextLine(s.ceremony.cast(), s.ceremony.names(), s.ceremony.phase(), mob.getUuid());
+    }
+    private static final double CONTEXT_RANGE = 128;
 
     // ---- Начало. ----
 
@@ -147,7 +154,7 @@ public final class WeddingController {
         ConversationStore.Village village = village(world, spouse, anchor);
         VillageStanding.View standing = village == null ? VillageStanding.View.NONE : bridge.memory.social().standing(village.id(), player.getUuid(), now);
         Wedding.Cast cast = Wedding.cast(bride, null, people, asked[0], asked[1], standing.banished(), bridge.config.weddingGuests);
-        Wedding.Names names = new Wedding.Names(MobGameBridge.playerName(player), Gender.ofPlayer(bridge.config.playerGender), village == null ? "" : village.name());
+        Wedding.Names names = new Wedding.Names(MobGameBridge.playerName(player), io.github.mobtalk.core.PlayerIdentity.gender(bridge.config, player.getUuid()), village == null ? "" : village.name());
         MobCard card = bridge.memory.card(spouse.getUuid(), player.getUuid());
         WeddingScript.Input input = new WeddingScript.Input(cast, names, VillageStanding.describe(standing), card == null ? "" : card.memory(), bridge.config.weddingWishes);
         Vec3d couple = anchor.add(forward.multiply(Wedding.COUPLE_FORWARD));

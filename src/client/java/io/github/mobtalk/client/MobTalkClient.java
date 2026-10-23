@@ -401,7 +401,7 @@ public final class MobTalkClient implements ClientModInitializer {
         Request seed = request(requestGeneration);
         captureShot(requestGeneration);
         try {
-            int seconds = wedding.takesVow() ? config.weddingVowSeconds : config.maxRecordingSeconds;
+            int seconds = wedding.takesVow() ? wedding.vowSeconds() : config.maxRecordingSeconds;
             MicrophoneRecorder.Capture capture = microphone.start(config.microphoneName, seconds);
             recording = capture;
             merchant.setWork(seed.merchant);
@@ -491,7 +491,7 @@ public final class MobTalkClient implements ClientModInitializer {
                         return;
                     }
                 }
-                if (wedding.takesVow() && question != null && !question.isBlank()) {
+                if (wedding.takesVow() && !wedding.serverVowOpen() && question != null && !question.isBlank()) {
                     String vow = question;
                     client.execute(() -> { wedding.vowHeard(vow); requestActive = false; });
                     updateStatus(request, "Клятва произнесена");
@@ -590,6 +590,7 @@ public final class MobTalkClient implements ClientModInitializer {
     }
     void onScreen(String screen, String json) {
         if ("deal".equals(screen)) { merchant.resolved(json); return; }
+        if ("wedding_vow".equals(screen)) { if (!wedding.serverVow(json)) requestActive = false; return; }
         CompletableFuture<String> waiting = screenRequests.remove(screen);
         if (waiting == null) return;
         try {
@@ -611,15 +612,30 @@ public final class MobTalkClient implements ClientModInitializer {
 
     // ---- Действия, экраны, команды. ----
 
+    /** На выделенном сервере снимок и карточка выбранного моба приходят одним ответом экрана {@code card}; снимок и карточку
+     * вкладка F7 просит разом, поэтому идущий запрос того же моба делится. */
+    private CompletableFuture<JsonObject> remoteCard;
+    private UUID remoteCardMob;
+    private CompletableFuture<JsonObject> remoteCard() {
+        MobEntity mob = target();
+        if (mob == null) return CompletableFuture.failedFuture(new IllegalStateException("Моб не выбран или далеко"));
+        if (remoteCard != null && !remoteCard.isDone() && mob.getUuid().equals(remoteCardMob)) return remoteCard;
+        remoteCardMob = mob.getUuid();
+        remoteCard = ask("card", mob.getId()).thenApply(json -> JsonParser.parseString(json).getAsJsonObject());
+        return remoteCard;
+    }
     public CompletableFuture<MobSnapshot> selectedSnapshot() {
         if (selected == null || client.player == null || world == null) return CompletableFuture.failedFuture(new IllegalStateException("Сначала наведите прицел на моба и нажмите V"));
-        if (client.getServer() == null) return CompletableFuture.failedFuture(new IllegalStateException("Снимок моба доступен в одиночной игре"));
+        if (client.getServer() == null) return remoteCard().thenApply(json -> GSON.fromJson(json.get("snapshot"), MobSnapshot.class));
         UUID mob = selected, player = client.player.getUuid();
         String dimension = world.getRegistryKey().getValue().toString();
         return io.github.mobtalk.MobTalkMod.bridgeReady(client.getServer()).thenCompose(game -> game.capture(mob, player, dimension));
     }
     public CompletableFuture<MobCard> selectedCard() {
-        if (client.getServer() == null) return CompletableFuture.failedFuture(new IllegalStateException("Карточка доступна в одиночной игре"));
+        if (client.getServer() == null) {
+            if (selected == null) return CompletableFuture.failedFuture(new IllegalStateException("Сначала наведите прицел на моба и нажмите V"));
+            return remoteCard().thenApply(json -> json.has("card") ? GSON.fromJson(json.get("card"), MobCard.class) : null);
+        }
         CompletableFuture<MobGameBridge> ready = io.github.mobtalk.MobTalkMod.bridgeReady(client.getServer());
         return selectedSnapshot().thenCompose(snapshot -> ready.thenApply(game -> { game.memory.observe(snapshot); return game.memory.card(snapshot.id(), snapshot.playerId()); }));
     }

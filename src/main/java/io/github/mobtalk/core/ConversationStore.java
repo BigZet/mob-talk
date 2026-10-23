@@ -48,7 +48,8 @@ public final class ConversationStore {
         file = new WorldMemoryFile(WorldMemoryFile.of(worldDirectory), this::snapshot);
         boolean enriched = false;
         // Back up v1 before assigning its old shared voices to the new disjoint pools.
-        for (Profile profile : state.profiles.values()) enriched |= ProfileDefaults.refresh(profile, state.profiles, this.config);
+        for (Profile profile : state.profiles.values())
+            enriched |= SocialLedger.renameToSex(profile, state.family, state.profiles.values()) | ProfileDefaults.refresh(profile, state.profiles, this.config);
         if (loaded.migrated() || enriched) scheduleSave();
     }
 
@@ -466,8 +467,10 @@ public final class ConversationStore {
     /** The model's invented name and story for this mob; blank parts stay blank. villageId may be "". */
     public synchronized void setBackstory(UUID mob, String givenName, String story, String wish, String hidden, String villageId) {
         Profile p = require(mob);
-        // An explicit name (the model's story, the card in F7) replaces the one the social layer seeded; the prompt asks the model to keep it.
-        if (givenName != null && !givenName.isBlank() || p.social == null) p.givenName = TextBounds.characters(givenName, 60);
+        // An explicit name (the model's story, the card in F7) replaces the one the social layer seeded; the prompt asks the model to keep
+        // it, and a name of the other sex never goes on a villager (its body and voice follow its sex: «Валентина» with a man's voice).
+        boolean otherSex = p.social != null && VillagerNames.sexOf(givenName) == p.social.gender().opposite();
+        if (givenName != null && !givenName.isBlank() && !otherSex || p.social == null) p.givenName = TextBounds.characters(givenName, 60);
         p.backstory = TextBounds.characters(story, 1500);
         p.wish = TextBounds.characters(wish, 400); p.hidden = TextBounds.characters(hidden, 400);
         p.villageId = villageId == null ? "" : villageId;

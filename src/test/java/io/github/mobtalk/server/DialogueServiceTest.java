@@ -92,7 +92,7 @@ class DialogueServiceTest {
         service.talkText(dima, 11, "Привет", false, new byte[0]);
         assertTrue(RecordingOutbox.await(service, 3_000, () -> dima.equals(service.holderOf(villager))), "моб заперт за Димой");
         service.talkText(vasya, 11, "И мне ответь", false, new byte[0]);
-        assertEquals("Марфа занят разговором с Дима", out.lastError(vasya));
+        assertEquals("Марфа сейчас говорит с Дима", out.lastError(vasya));
         assertTrue(RecordingOutbox.await(service, 10_000, () -> answered(dima)));
         assertFalse(answered(vasya) && out.speechesTo(vasya).stream().anyMatch(s -> s.packet().toYou()), "Васе не ответили как собеседнику");
         assertEquals(1, provider.chatCalls.get(), "модель звали один раз");
@@ -168,5 +168,43 @@ class DialogueServiceTest {
         assertTrue(RecordingOutbox.await(service, 2_000, () -> out.screens.stream().anyMatch(s -> s.screen().equals("village"))));
         service.action(dima, 11, "{\"type\":\"STOP\",\"target\":\"player\"}");
         assertTrue(RecordingOutbox.await(service, 2_000, () -> bridge.called("apply " + villager + " STOP")));
+    }
+
+    @Test void selectedMobCardComesWholeForTheF7Tab() throws Exception {
+        service.talkText(dima, 11, "Привет", false, new byte[0]);
+        assertTrue(RecordingOutbox.await(service, 10_000, () -> answered(dima)));
+        service.screen(dima, "card", 11);
+        assertTrue(RecordingOutbox.await(service, 3_000, () -> out.screens.stream().anyMatch(s -> s.screen().equals("card"))));
+        String json = out.screens.stream().filter(s -> s.screen().equals("card")).findFirst().orElseThrow().json();
+        var object = com.google.gson.JsonParser.parseString(json).getAsJsonObject();
+        com.google.gson.Gson gson = new com.google.gson.Gson();
+        MobSnapshot snapshot = gson.fromJson(object.get("snapshot"), MobSnapshot.class);
+        io.github.mobtalk.core.MobCard card = gson.fromJson(object.get("card"), io.github.mobtalk.core.MobCard.class);
+        assertEquals(villager, snapshot.id());
+        assertEquals(villager, card.id());
+        assertEquals(1, card.turns().size(), "история разговора видна в карточке");
+        service.screen(dima, "card", 999);
+        assertTrue(RecordingOutbox.await(service, 3_000, () -> out.screens.stream().anyMatch(s -> s.screen().equals("card") && s.json().contains("\"error\":\"") && !s.json().contains("\"error\":\"\""))),
+                "нет моба — понятная ошибка");
+    }
+
+    @Test void theAnswersPriceAndTradesReachTheJournal() throws Exception {
+        List<String> events = new java.util.concurrent.CopyOnWriteArrayList<>();
+        java.util.concurrent.atomic.AtomicReference<io.github.mobtalk.core.LlmSpend.Tally> spent = new java.util.concurrent.atomic.AtomicReference<>();
+        service.setJournal(new DialogueService.Journal() {
+            @Override public Object started(UUID player, String playerName, UUID mob, String mobName, String species, String question, String stt) { return "run"; }
+            @Override public void step(Object run, String step) { }
+            @Override public void finished(Object run, String answer, List<String> actions, String model, String stt, io.github.mobtalk.core.LlmSpend.Tally spend) { spent.set(spend); }
+            @Override public void failed(Object run, String step, String message) { }
+            @Override public void event(String kind, UUID player, String playerName, UUID mob, String mobName, String species, String text, Map<String, Object> data) { events.add(kind + ": " + text); }
+        });
+        service.talkText(dima, 11, "Привет", false, new byte[0]);
+        assertTrue(RecordingOutbox.await(service, 10_000, () -> spent.get() != null));
+        assertEquals(0.0012, spent.get().usd(), 1e-9, "цена ответа из usage.cost");
+        assertEquals(800, spent.get().tokensIn());
+        assertEquals("уступка 1 изумр., сделка «bread» за 3", DialogueService.tradeWords(new io.github.mobtalk.core.BargainIntent(io.github.mobtalk.core.BargainIntent.Type.OFFER, 0, 1),
+                new io.github.mobtalk.core.DealIntent(io.github.mobtalk.core.DealIntent.Type.OFFER, "bread", 3)));
+        service.traded(dima, "Дима", villager, "Марфа", "minecraft:villager", "1 emerald", "12 wheat");
+        assertTrue(events.contains("trade: Дима ↔ Марфа: 1 emerald → 12 wheat"), events.toString());
     }
 }

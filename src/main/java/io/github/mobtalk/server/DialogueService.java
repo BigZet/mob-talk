@@ -4,12 +4,15 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import io.github.mobtalk.core.ActionIntent;
 import io.github.mobtalk.core.ActionType;
+import io.github.mobtalk.core.BargainIntent;
 import io.github.mobtalk.core.BargainMeter;
 import io.github.mobtalk.core.ConversationEngine;
+import io.github.mobtalk.core.DealIntent;
 import io.github.mobtalk.core.Decider;
 import io.github.mobtalk.core.DecisionState;
 import io.github.mobtalk.core.Failures;
 import io.github.mobtalk.core.FallbackLines;
+import io.github.mobtalk.core.LlmSpend;
 import io.github.mobtalk.core.MobCard;
 import io.github.mobtalk.core.MobSnapshot;
 import io.github.mobtalk.core.MobTalkConfig;
@@ -73,22 +76,28 @@ public final class DialogueService {
     }
     /** Фабрика движка: на сервере — настоящий {@link ConversationEngine} с ключами из окружения или DPAPI; в тестах — фейковый HTTP. */
     public interface Engines { ConversationEngine open(MobTalkConfig config, Path worldDirectory) throws Exception; }
-    /** Что выключено на выделенном сервере: семья и свадьба (вторая версия), снимки экрана. */
-    public record Options(boolean family, boolean pictures) { }
+    /** Что включено: семья и свадьба ({@code familyLife}), снимки экрана (одиночка), ведущий свадьбы на сервере ({@code ceremony}: на
+     * выделенном; в одиночке службу ведёт клиентский {@code WeddingVoice}). */
+    public record Options(boolean family, boolean pictures, boolean ceremony) {
+        public Options(boolean family, boolean pictures) { this(family, pictures, false); }
+    }
     /** Журнал админки (трек W, подключает интегратор): каждый ответ собеседнику — трасса шагов; остальное — события. Все вызовы на
      * потоке сервера, кроме {@link #step} (поток пула). Заглушка {@link #NONE} ничего не пишет. */
     public interface Journal {
         /** Начало ответа собеседнику; возвращает ключ записи для {@link #step}, {@link #finished}, {@link #failed}. */
         Object started(UUID player, String playerName, UUID mob, String mobName, String species, String question, String stt);
         void step(Object run, String step);
-        void finished(Object run, String answer, List<String> actions, String model, String stt);
+        /** {@code spend}: во что обошлась модель ({@link LlmSpend}). */
+        void finished(Object run, String answer, List<String> actions, String model, String stt, LlmSpend.Tally spend);
         void failed(Object run, String step, String message);
         /** Событие без трассы: подарок, торг, слух, очевидец. */
         void event(String kind, UUID player, String playerName, UUID mob, String mobName, String species, String text, Map<String, Object> data);
+        /** Расход модели не в ответе собеседнику ({@code kind}: witness, village_talk). */
+        default void cost(UUID player, String playerName, String kind, String model, LlmSpend.Tally spend) { }
         Journal NONE = new Journal() {
             @Override public Object started(UUID player, String playerName, UUID mob, String mobName, String species, String question, String stt) { return null; }
             @Override public void step(Object run, String step) { }
-            @Override public void finished(Object run, String answer, List<String> actions, String model, String stt) { }
+            @Override public void finished(Object run, String answer, List<String> actions, String model, String stt, LlmSpend.Tally spend) { }
             @Override public void failed(Object run, String step, String message) { }
             @Override public void event(String kind, UUID player, String playerName, UUID mob, String mobName, String species, String text, Map<String, Object> data) { }
         };
@@ -114,6 +123,7 @@ public final class DialogueService {
     private volatile Journal journal = Journal.NONE;
     final SpontaneousVoices spontaneous;
     private final MobStateSync states;
+    final WeddingHost wedding;
     private long ticks;
 
     public DialogueService(GameBridge bridge, Path worldDirectory, Outbox out, Engines engines, Function<MobTalkConfig, Decider> deciders,
@@ -123,6 +133,7 @@ public final class DialogueService {
         this.pool = new DialoguePool(threads);
         this.spontaneous = new SpontaneousVoices(this, bridge);
         this.states = new MobStateSync(bridge, out);
+        this.wedding = new WeddingHost(this, bridge);
     }
 
     // ---- Сессии. ----
@@ -152,6 +163,8 @@ public final class DialogueService {
         final MobStateSync.Tracker tracker = new MobStateSync.Tracker();
         /** Путь, которым пришла последняя реплика (text/local/server), и ключ её записи в журнале админки. */
         volatile String stt = "text"; volatile Object run;
+        /** Во что обошёлся последний ответ собеседника: пул пишет, доставка отдаёт в журнал. */
+        volatile LlmSpend.Tally spend = LlmSpend.Tally.NONE;
         Session(UUID player) { this.player = player; }
 
         boolean voiceOn() { return voicesPending > 0 || System.currentTimeMillis() < floorUntil; }
@@ -181,6 +194,7 @@ public final class DialogueService {
     /** Точка подключения админки: журнал диалогов и событий. */
     public void setJournal(Journal journal) { this.journal = journal == null ? Journal.NONE : journal; }
     Journal journal() { return journal; }
+    int nextClipId() { return clipIds.incrementAndGet(); }
     MobTalkConfig config() { return bridge.config(); }
 
     public void join(UUID player, String name) { Session session = session(player); session.name = name; }
@@ -217,6 +231,7 @@ public final class DialogueService {
         Session session = session(player);
         if (text == null || text.isBlank()) { refuse(session, "Речь не распознана: удерживайте голосовую клавишу и произнесите вопрос"); return; }
         if (!"server".equals(session.stt) || !fromVoice) session.stt = fromVoice ? "local" : "text";
+        if (options.family && options.ceremony && wedding.takesVow(player)) { onServer(() -> wedding.vowHeard(player, text)); return; } // Клятва — службе, не в разговор.
         bridge.mobByEntityId(player, entityId).whenComplete((mob, error) -> onServer(() -> {
             if (error != null) { refuse(session, plain(error, "Моб погиб или выгрузился")); return; }
             if (!mob.id().equals(session.target)) select(session, mob);
@@ -348,9 +363,19 @@ public final class DialogueService {
                     out.chat(player, "[Mob Talk] " + (error != null ? "Мир ещё не загружен" : ScreenReports.stateLine(bridge, session.target, player, view, decider)))));
             case "trade" -> bridge.mobByEntityId(player, mobId).thenCompose(mob -> { select(session, mob); return bridge.openTrade(mob.id(), player, mob.dimension()); })
                     .whenComplete((ignored, error) -> onServer(() -> { if (error != null) out.chat(player, "[Mob Talk] " + plain(error, "Не удалось открыть сделки: моб недоступен")); }));
-            case "forgive" -> bridge.forgiveVillage(player).whenComplete((result, error) -> onServer(() -> out.chat(player, "[Mob Talk] " + (error == null ? result : plain(error, "не удалось")))));
+            case "card" -> bridge.mobByEntityId(player, mobId).thenCompose(mob -> bridge.capture(mob.id(), player, mob.dimension()))
+                    .whenComplete((snapshot, error) -> onServer(() -> out.screen(player, "card", error != null ? answer("", plain(error, "Моб недоступен")) : card(snapshot))));
+            case "forgive" ->bridge.forgiveVillage(player).whenComplete((result, error) -> onServer(() -> out.chat(player, "[Mob Talk] " + (error == null ? result : plain(error, "не удалось")))));
             default -> out.screen(player, screen, answer("", "Неизвестный экран: " + screen));
         }
+    }
+    /** Вкладка F7 «Выбранный моб»: снимок моба и его карточка для этого игрока ({@link MobCard}, без карточки — моб ещё незнаком). */
+    private String card(MobSnapshot snapshot) {
+        MobCard card = bridge.memory().observe(snapshot);
+        JsonObject json = new JsonObject();
+        json.add("snapshot", GSON.toJsonTree(snapshot));
+        if (card != null) json.add("card", GSON.toJsonTree(card));
+        return json.toString();
     }
     static String answer(String message, String error) {
         JsonObject json = new JsonObject();
@@ -384,6 +409,7 @@ public final class DialogueService {
             }
         }
         spontaneous.tick(ticks);
+        if (options.family && options.ceremony) wedding.tick();
     }
     private Map<UUID, BargainMeter.Move> bargainFor(Session session, long now) {
         session.bargainUntil.entrySet().removeIf(e -> e.getValue() < now);
@@ -411,7 +437,7 @@ public final class DialogueService {
             }
             if (session.pipelineBusy.get()) { refuse(session, "Предыдущий разговор ещё завершается"); return false; }
             Session holder = busyMobs.get(mob.id());
-            if (holder != null && holder != session) { refuse(session, mob.name() + " занят разговором с " + holder.name); return false; }
+            if (holder != null && holder != session) { refuse(session, mob.name() + " сейчас говорит с " + holder.name); return false; }
             return true;
         });
     }
@@ -478,6 +504,7 @@ public final class DialogueService {
                 request.snapshot == null ? bridge.memory().typeOf(request.target) : request.snapshot.type(), question, stt);
         session.run = run;
         session.stt = "text";
+        session.spend = LlmSpend.Tally.NONE;
         pool.submit(DialoguePool.Priority.ANSWER, () -> {
             session.pipelineThread = Thread.currentThread();
             long began = System.nanoTime();
@@ -501,7 +528,10 @@ public final class DialogueService {
                     journal.step(run, "llm_first");
                     onServer(() -> showEarly(session, request, early, question, line, name, audio, claim));
                 };
-                ConversationEngine.PreparedReply prepared = localEngine.prepare(snapshot, question, null, pictureFor(request, snapshot, question), earlyListener);
+                LlmSpend.begin();
+                ConversationEngine.PreparedReply prepared;
+                try { prepared = localEngine.prepare(snapshot, question, null, pictureFor(request, snapshot, question), earlyListener); }
+                finally { charge(session, PlayerBudget.Kind.DIALOGUE, LlmSpend.take(), true); }
                 long done = System.nanoTime();
                 journal.step(run, "llm_done");
                 journal.step(run, "parsed");
@@ -532,6 +562,14 @@ public final class DialogueService {
         });
     }
 
+    /** Расход модели — в бюджет игрока; ответ собеседнику несёт его в журнал сам ({@link Journal#finished}), реплика очевидца — отдельной
+     * записью расхода. Поток пула. */
+    private void charge(Session session, PlayerBudget.Kind kind, LlmSpend.Tally spend, boolean answer) {
+        if (spend.usd() <= 0 && spend.tokensIn() + spend.tokensOut() <= 0) return;
+        budget.get().charge(session.player, kind, spend.usd(), 1);
+        if (answer) session.spend = spend;
+        else journal.cost(session.player, session.name, "witness", config().llmModel, spend);
+    }
     private synchronized ConversationEngine ensureEngine(MobTalkConfig config) throws Exception {
         ConversationEngine cached = engine;
         if (cached != null && config == engineConfig) return cached;
@@ -632,7 +670,8 @@ public final class DialogueService {
             List<String> acts = new ArrayList<>();
             if (reply.action() != null && reply.action().type() != ActionType.NONE) acts.add(reply.action().type().name());
             if (actionMessage != null && !actionMessage.isBlank()) acts.add(actionMessage);
-            journal.finished(session.run, reply.responseText(), acts, request.config.llmModel, null);
+            journal.finished(session.run, reply.responseText(), acts, request.config.llmModel, null, session.spend);
+            session.spend = LlmSpend.Tally.NONE;
             session.run = null;
         } else journal.event(request.overheard.kind() == ConversationEngine.Overheard.Kind.BYSTANDER ? "witness" : "village_talk", request.player, request.playerName,
                 request.target, reply.speakerName(), request.snapshot == null ? "" : request.snapshot.type(), reply.speakerName() + ": " + reply.responseText(),
@@ -646,6 +685,11 @@ public final class DialogueService {
         if (request.overheard == null) {
             BargainMeter.Move move = BargainMeter.move(reply.bargain(), reply.deal(), request.snapshot, reply.recognizedText());
             if (move != null) { session.bargainMoves.put(request.target, move); session.bargainUntil.put(request.target, System.currentTimeMillis() + BARGAIN_HUD_MILLIS); }
+            if (reply.bargain().type() != BargainIntent.Type.NONE || reply.deal().type() != DealIntent.Type.NONE)
+                journal.event("trade", request.player, request.playerName, request.target, reply.speakerName(), request.snapshot == null ? "" : request.snapshot.type(),
+                        request.playerName + " ↔ " + reply.speakerName() + ": " + tradeWords(reply.bargain(), reply.deal()) + (actionMessage == null || actionMessage.isBlank() ? "" : " — " + actionMessage),
+                        Map.of("bargain", reply.bargain().type().name(), "discount", reply.bargain().discount(), "deal", reply.deal().type().name(),
+                                "dealId", reply.deal().dealId(), "price", reply.deal().price(), "said", reply.recognizedText()));
         }
         queueWitnesses(session, request, reply);
         if (session.actionRequest != null) session.actionRequest.complete(actionMessage == null || actionMessage.isBlank() ? "Моб ответил без нового действия" : actionMessage);
@@ -653,6 +697,26 @@ public final class DialogueService {
         endRequest(session, request);
     }
 
+    /** Торг словами для журнала: что моб сделал с ценой. */
+    static String tradeWords(BargainIntent bargain, DealIntent deal) {
+        List<String> parts = new ArrayList<>();
+        switch (bargain.type()) {
+            case OFFER -> parts.add("уступка " + bargain.discount() + " изумр.");
+            case ACCEPT -> parts.add("согласие на цену");
+            case DECLINE -> parts.add("отказ уступить");
+            case NONE -> { }
+        }
+        switch (deal.type()) {
+            case OFFER -> parts.add("сделка «" + deal.dealId() + "» за " + deal.price());
+            case DECLINE -> parts.add("отказ от сделки «" + deal.dealId() + "»");
+            case NONE -> { }
+        }
+        return String.join(", ", parts);
+    }
+    /** Сделка в окне торговли состоялась (миксин торговца): запись в журнал админки. Поток сервера. */
+    public void traded(UUID player, String playerName, UUID mob, String mobName, String species, String gave, String got) {
+        journal.event("trade", player, playerName, mob, mobName, species, playerName + " ↔ " + mobName + ": " + gave + " → " + got, Map.of("gave", gave, "got", got));
+    }
     /** Реплика всем игрокам в {@code voiceSilentRange} от моба и её звук, когда докачается; возвращает номер клипа (0 — без звука). */
     int speak(Session session, Request request, String speaker, String text, String heard, SpeechStream audio, String kind, boolean background) {
         int clipId = audio == null ? 0 : clipIds.incrementAndGet();
@@ -801,7 +865,10 @@ public final class DialogueService {
                         bridge.attend(seed.target, seed.player, 100);
                         MobSnapshot snapshot = bridge.capture(seed.target, seed.player, seed.dimension).get(10, TimeUnit.SECONDS);
                         if (session.generation != seed.generation) return;
-                        ConversationEngine.PreparedReply prepared = localEngine.prepare(snapshot, "", heard);
+                        LlmSpend.begin();
+                        ConversationEngine.PreparedReply prepared;
+                        try { prepared = localEngine.prepare(snapshot, "", heard); }
+                        finally { charge(session, PlayerBudget.Kind.WITNESS, LlmSpend.take(), false); }
                         spoke = true;
                         Request observed = new Request(seed.generation, seed.target, seed.config, snapshot, seed.player, seed.playerName, seed.dimension,
                                 seed.mobName, seed.mobEntityId, null, heard, null);

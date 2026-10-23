@@ -18,6 +18,7 @@ abstract class MerchantTradeMixin {
         MerchantEntity merchant = (MerchantEntity) (Object) this;
         if (merchant.getCustomer() instanceof ServerPlayerEntity player) {
             MobGameBridge.helped(merchant, player, "The player completed a trade");
+            MobGameBridge.journalTrade(merchant, player, offer);
             if (merchant instanceof VillagerEntity villager) { VillagerBargaining.traded(villager, player); TradeBridge.traded(villager, player, offer); }
         }
     }

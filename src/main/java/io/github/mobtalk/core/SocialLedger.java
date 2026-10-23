@@ -47,6 +47,18 @@ public final class SocialLedger {
         }
         return changed;
     }
+    /** Old worlds: the biography writer renamed villagers without knowing their sex («Валентина» with a man's body and voice). The sex
+     * stays (the body, the voice and the clients' human looks follow the UUID); the name and the life story, written for the other sex,
+     * go when the world is opened: the villager gets a fitting name no neighbour wears and its story is written anew at the next talk. One in the family tree
+     * keeps its name: the tree, the wedding and the children carry it. */
+    static boolean renameToSex(ConversationStore.Profile p, FamilyTree family, Collection<ConversationStore.Profile> others) {
+        if (p.social == null || family != null && family.known(p.id)) return false;
+        Gender named = VillagerNames.sexOf(p.givenName);
+        if (named == null || named == p.social.gender()) return false;
+        p.givenName = VillagerNames.pick(p.id, p.social.gender(), VillagerNames.wear(others, p.id, p.villageId));
+        p.backstory = "";
+        return true;
+    }
     /** The character's one-time shift of the temperament. */
     static void temper(ConversationStore.Profile p) {
         Persona persona = p.social.persona();

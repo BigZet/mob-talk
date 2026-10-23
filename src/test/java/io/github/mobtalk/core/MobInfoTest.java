@@ -35,7 +35,7 @@ class MobInfoTest {
 
     @Test void reportCoversMobAndVillageAndFoldsSecrets() throws Exception {
         ConversationStore store = ConversationStore.open(directory, new MobTalkConfig());
-        UUID anna = UUID.randomUUID(), boris = UUID.randomUUID(), child = UUID.randomUUID(), player = UUID.randomUUID();
+        UUID anna = Sexed.id(Gender.FEMALE), boris = Sexed.id(Gender.MALE), child = UUID.randomUUID(), player = UUID.randomUUID();
         ConversationStore.Village village = store.createVillage("minecraft:overworld", 100, 100, "Ольховка", "Деревня у реки.");
         store.observe(villager(anna, player)); store.observe(villager(boris, player)); store.observe(villager(child, player));
         store.setBackstory(anna, "Анна", "Родилась у мельницы.", "Открыть пекарню", "Боится темноты", village.id());

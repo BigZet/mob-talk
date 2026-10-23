@@ -153,5 +153,12 @@ public final class FakeGameBridge implements GameBridge {
     @Override public synchronized boolean talkWaiting() { return !talks.isEmpty(); }
     @Override public void talking(boolean on) { talking = on; }
     @Override public synchronized VillageNotices.Cue pollNotice() { return notices.poll(); }
-    @Override public boolean weddingActive() { return wedding; }
+    @Override public boolean weddingActive() { return wedding || weddingView != null; }
+    /** Идущая свадьба для {@code WeddingHost}; тексты просят один раз. */
+    public volatile WeddingView weddingView;
+    @Override public WeddingView wedding() { return weddingView; }
+    @Override public io.github.mobtalk.core.WeddingScript.Input takeWeddingScript() {
+        WeddingView view = weddingView;
+        return view != null && view.ceremony().takeScriptRequest() ? view.input() : null;
+    }
 }

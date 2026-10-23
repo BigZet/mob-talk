@@ -173,7 +173,7 @@ public final class MobTalkMod implements ModInitializer {
                 (config, directory) -> new ConversationEngine(config, directory, configDirectory),
                 config -> JevDecider.forConfig(config, configDirectory),
                 MobTalkMod::budget, MobTalkMod::transcription,
-                new DialogueService.Options(ServerConfig.get().familyLife, !dedicated()), 4);
+                new DialogueService.Options(ServerConfig.get().familyLife, !dedicated(), dedicated()), 4);
     }
 
     private static void stopping(MinecraftServer server) {

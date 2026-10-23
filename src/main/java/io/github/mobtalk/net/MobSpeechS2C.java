@@ -14,7 +14,7 @@ public record MobSpeechS2C(int mobId, UUID mob, String speaker, String text, boo
                            String kind, int millis, String heard, String asker) implements CustomPayload {
     public static final Id<MobSpeechS2C> ID = MobTalkNet.payloadId("mob_speech");
     public static final PacketCodec<PacketByteBuf, MobSpeechS2C> CODEC = MobTalkNet.codec(MobSpeechS2C::write, MobSpeechS2C::read);
-    public static final String ANSWER = "answer", WITNESS = "witness", INITIATIVE = "initiative", VILLAGE = "village", NOTICE = "notice", FALLBACK = "fallback";
+    public static final String ANSWER = "answer", WITNESS = "witness", INITIATIVE = "initiative", VILLAGE = "village", NOTICE = "notice", FALLBACK = "fallback", WEDDING = "wedding";
 
     public MobSpeechS2C {
         speaker = speaker == null ? "" : speaker; text = text == null ? "" : text; kind = kind == null || kind.isEmpty() ? ANSWER : kind;

@@ -480,10 +480,22 @@ final class LiveGameView implements GameView {
         });
     }
 
-    // ---- Бог: своих данных у Mob Talk нет; журнал и действия идут через источник divineblock. ----
+    // ---- Бог: своих данных у Mob Talk нет; души и активное отдаёт источник divineblock (операции souls и active). ----
 
-    @Override public JsonObject divineSouls() { throw ApiException.unavailable("Души бога смотрите в журнале источника divineblock."); }
-    @Override public JsonObject divineActive() { throw ApiException.unavailable("Активные кары смотрите в журнале источника divineblock."); }
+    /** Источники других модов: ставит {@link AdminLink}, когда админка поднялась. */
+    private volatile io.github.mobtalk.server.web.ConfigSources sources;
+    void sources(io.github.mobtalk.server.web.ConfigSources sources) { this.sources = sources; }
+
+    @Override public JsonObject divineSouls() { return divine("souls"); }
+    @Override public JsonObject divineActive() { return divine("active"); }
+    private JsonObject divine(String op) {
+        io.github.mobtalk.server.web.ConfigSources known = sources;
+        if (known == null || !known.has("divineblock")) throw ApiException.unavailable("Божественного блока нет в этой сборке.");
+        JsonObject answer = known.call("divineblock", Json.obj("op", op));
+        if (answer.has("ok") && !answer.get("ok").getAsBoolean())
+            throw ApiException.unavailable("Божественный блок не отдал данные: " + Json.string(answer, "error") + ". Обновите мод до версии с вкладкой «Бог».");
+        return answer;
+    }
 
     // ---- Сейчас. ----
 

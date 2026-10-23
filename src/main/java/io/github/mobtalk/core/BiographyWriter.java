@@ -62,7 +62,8 @@ final class BiographyWriter {
     private static String instructions(Facts facts) {
         return "Ты сочиняешь биографию персонажа для мода Minecraft 1.21.1, где игрок разговаривает с мобами голосом. Аудитория взрослая. "
                 + "Пиши по-русски, конкретно и по-майнкрафтовски: места, события, вещи и мобы из игры, а не абстракции. Без упоминания игрока и без морали.\n"
-                + "name — имя или кличка в одно-два слова, в духе персонажа и вида (у животных — кличка, у жителя — имя, у монстров — прозвище); не из списка занятых.\n"
+                + "name — имя или кличка в одно-два слова, в духе персонажа и вида (у животных — кличка, у жителя — имя, у монстров — прозвище); не из списка занятых. "
+                + "Если в фактах уже есть name, это имя персонажа: верни его без изменений. Если есть sex — это пол персонажа: имя и story в этом роде («Ты родился» или «Ты родилась»).\n"
                 + "story — 3–4 коротких предложения во втором лице («Ты родился…»): откуда ты, одно событие, которое тебя изменило, кого или что ты потерял или ищешь, "
                 + "одна странность или привычка. Всё должно сочетаться с характером и с тем, где персонаж стоит сейчас.\n"
                 + "desire — одно-два предложения: чего именно ЭТОТ персонаж хочет от жизни (конкретная, достижимая в Minecraft цель). "
@@ -82,6 +83,7 @@ final class BiographyWriter {
         json.addProperty("species", species.name()); json.addProperty("speciesPrompt", species.prompt()); json.addProperty("archetype", archetype);
         json.addProperty("quirks", species.quirks()); json.addProperty("typicalDesire", species.desire()); json.addProperty("typicalSecret", species.secret());
         json.addProperty("preference", profile.preference); json.addProperty("fear", profile.fear);
+        if (profile.social != null) { json.addProperty("sex", profile.social.gender().adult); if (!profile.givenName.isBlank()) json.addProperty("name", profile.givenName); }
         json.addProperty("biome", snapshot.biome()); json.addProperty("dimension", snapshot.dimension()); json.addProperty("timeOfDay", snapshot.timeOfDay());
         for (String key : List.of("profession", "level", "baby", "tamed", "variant", "customName"))
             if (snapshot.mobDetails().get(key) != null) json.addProperty(key, String.valueOf(snapshot.mobDetails().get(key)));

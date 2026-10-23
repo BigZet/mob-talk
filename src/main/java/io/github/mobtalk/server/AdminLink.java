@@ -74,6 +74,7 @@ public final class AdminLink {
                 MobTalkMod.LOGGER.info("Админка: источник настроек «{}» подключён", id);
             } catch (Throwable failure) { MobTalkMod.LOGGER.warn("Админка: источник «{}» не подключён ({})", id, failure.toString()); }
         }
+        game.sources(started.sources());
         AdminCommands.setWebAddress(() -> { AdminWeb current = web; return current == null ? "" : String.join("  ", current.describe()); });
         if (dialogue != null) dialogue.setJournal(new JournalAdapter(started.journal()));
         if (sampler == null) sampler = MapSampler.register(started.map());
@@ -189,15 +190,18 @@ public final class AdminLink {
             return run;
         }
         @Override public void step(Object run, String step) { if (run instanceof AdminJournal.Run r) r.step(step); }
-        @Override public void finished(Object run, String answer, List<String> actions, String model, String stt) {
+        @Override public void finished(Object run, String answer, List<String> actions, String model, String stt, io.github.mobtalk.core.LlmSpend.Tally spend) {
             if (!(run instanceof AdminJournal.Run r)) return;
             runs.remove(r.id);
-            r.finish(answer, actions == null ? List.of() : actions, 0, 0, 0, model, stt, null, null);
+            r.finish(answer, actions == null ? List.of() : actions, spend.usd(), spend.tokensIn(), spend.tokensOut(), model, stt, null, null);
         }
         @Override public void failed(Object run, String step, String message) {
             if (!(run instanceof AdminJournal.Run r)) return;
             runs.remove(r.id);
             r.fail(step, message);
+        }
+        @Override public void cost(UUID player, String playerName, String kind, String model, io.github.mobtalk.core.LlmSpend.Tally spend) {
+            journal.cost(player == null ? null : Json.player(player, playerName), kind, model, spend.usd(), (int) (spend.tokensIn() + spend.tokensOut()));
         }
         @Override public void event(String kind, UUID player, String playerName, UUID mob, String mobName, String species, String text, Map<String, Object> data) {
             JsonObject json = new JsonObject();
