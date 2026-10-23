@@ -108,6 +108,7 @@ final class AnswerValidator {
                 throw new Rejected("В реплике ты принимаешь услугу («" + active.get("title") + "»), но quest не COMPLETE — игра ничего не забрала. "
                         + (Boolean.TRUE.equals(active.get("canComplete")) ? "Если принимаешь — верни quest COMPLETE."
                         : "Игрок ещё не принёс нужного (" + active.get("have") + " из " + active.get("count") + "): не говори, что принял или засчитал."), true, true);
+            if (view.villager() && !view.villagerOffers() && !view.ownTrading() && promisesDiscount(reply)) throw new Rejected(PromptTexts.NO_GOODS);
             int unbacked = unbackedPrice(reply, bargain, deal, snapshot);
             if (unbacked >= 0) {
                 boolean own = view.ownDeals() && !view.villager();
@@ -351,6 +352,12 @@ final class AnswerValidator {
     private static final Pattern DELIVERY_TALK = Pattern.compile("(?<!не )(?<!не\\s)(принимаю|засчитываю|засчитано|услуг[аи] оказан|дело сделано|выполнен[оа]\\b|принял[аи]?\\b)", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
     /** "Принимаю!" with nothing taken is the favour-world version of a voiced price the window never charged. */
     static boolean claimsDelivery(String reply) { return reply != null && DELIVERY_TALK.matcher(reply).find(); }
+
+    /** «Сделаю скидку», «отдам дешевле»: обещание уступки, а не отказ («скидку не дам»). */
+    private static final Pattern DISCOUNT_PROMISE = Pattern.compile("(?<!не )(?<!не\s)(сделаю|сделаем|дам|даю|отдам|уступлю|сбавлю|скину|могу)\s+(тебе\s+|вам\s+)?(скидк|дешевл|подешевле|уступ)"
+            + "|со\s+скидкой|скидк[ау]\s+(тебе|вам)\b", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    /** A villager with nothing to sell (no profession or no offers yet) promised a discount. */
+    static boolean promisesDiscount(String reply) { return reply != null && DISCOUNT_PROMISE.matcher(reply).find(); }
 
     private static final Pattern PRICE_TALK = Pattern.compile("скид|уступ|дешевл|сбав|скин|договорил|обновил|теперь|продам|отдам за|стоит|цен[аыу]",
             Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);

@@ -155,7 +155,7 @@ final class MobPrompt {
     private static String bargainingRules(TradingView view) {
         if (view.windowOpen()) return PromptTexts.BARGAINING_RULES;
         if (view.spokenAvailable()) return PromptTexts.SPOKEN_BARGAINING_RULES;
-        return view.villagerOffers() ? PromptTexts.TRADE_CLOSED : PromptTexts.NO_TRADE;
+        return view.villagerOffers() ? PromptTexts.TRADE_CLOSED : PromptTexts.NO_TRADE + (view.villager() && !view.ownTrading() ? "\n" + PromptTexts.NO_GOODS : "");
     }
 
     /** Идущая свадьба в деревне ({@code Wedding.contextLine}, кладёт снимок жителя); "" — свадьбы нет. */

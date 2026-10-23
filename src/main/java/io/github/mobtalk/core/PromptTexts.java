@@ -131,6 +131,9 @@ final class PromptTexts {
             + FRIEND_ACTIONS;
 
     static final String NO_TRADE = "bargain всегда {type:NONE,offerIndex:-1,price:0}: ты сейчас не торгуешь.";
+    /** A villager without goods (no profession, no offers yet): it must not promise prices or discounts the game cannot give. */
+    static final String NO_GOODS = "Торговать тебе пока нечем: товаров у тебя нет (нет ремесла или ты ещё не обжился у рабочего места). "
+            + "Не обещай скидок, цен, обменов и сделок; если просят продать или уступить — скажи, что торговать пока нечем.";
     /** Added to the system prompt of a bystander: it overheard the exchange and may add a line or keep quiet. */
     static final String OVERHEARD = """
             Сейчас ты не собеседник, а очевидец: игрок говорил с другим, и ты это слышал. Если разговор задевает тебя, твой вид, твою деревню, твоё желание \
