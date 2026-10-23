@@ -3,15 +3,18 @@ package io.github.divineblock.client;
 import com.google.gson.Gson;
 import io.github.divineblock.DivineBlockMod;
 import io.github.divineblock.core.DivineConfig;
+import io.github.divineblock.core.DivineSettings;
 import java.io.IOException;
+import java.util.List;
+import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.screen.Screen;
 
-/** The four pages of the god's settings (F9) as one panel: «Бог», «Голос и микрофон», «Кары», «Боссы» in the sidebar, each its
+/** The pages of the god's settings (F9) as one panel: «Бог», «Голос и микрофон», «Кары», «Боссы», «Деяния» in the sidebar, each its
  * own screen over one shared config. Opened from F9, «Закрыть» and Esc save the config and leave the panel, «Применить» saves
  * and stays; a page opened on its own (a self-test) returns to its parent without saving, as before. */
 abstract class DivinePanel extends PanelScreen {
     static final String TITLE = "Божественный блок — панель управления";
-    private static final String[] SECTIONS = { "Бог", "Голос и микрофон", "Кары", "Боссы" };
+    private static final String[] SECTIONS = { "Бог", "Голос и микрофон", "Кары", "Боссы", "Деяния" };
     private static final Gson GSON = new Gson();
     protected final DivineConfig config;
     /** F9 itself when this page was reached from it, else null. */
@@ -54,7 +57,8 @@ abstract class DivinePanel extends PanelScreen {
             case 0 -> client.setScreen(main != null ? main : new DivineSettingsScreen(this, config));
             case 1 -> client.setScreen(new VoiceSettingsScreen(this, config));
             case 2 -> client.setScreen(new WrathSettingsScreen(this, config));
-            default -> client.setScreen(new BossSettingsScreen(this, config));
+            case 3 -> client.setScreen(new BossSettingsScreen(this, config));
+            default -> client.setScreen(new DeedsSettingsScreen(this, config));
         }
     }
 
@@ -78,6 +82,28 @@ abstract class DivinePanel extends PanelScreen {
     protected final <T extends net.minecraft.client.gui.widget.ClickableWidget> T server(T widget) {
         if (ServerSettings.locked()) widget.active = false;
         return widget;
+    }
+
+    /** A {@code flags} setting ({@link DivineSettings.Type#FLAGS}): its groups as headings, at the top of each «Вся группа»
+     * with «Включить» and «Выключить», then a toggle per option. {@code off} is the config's list of ids switched off; the
+     * panel's search finds options by title, help and group. */
+    protected final void flags(String key, List<String> off) {
+        DivineSettings.Setting setting = DivineSettings.setting(key);
+        if (setting == null) return;
+        String group = null;
+        for (DivineSettings.Flag flag : setting.flags()) {
+            if (!flag.group().equals(group)) {
+                group = flag.group();
+                heading(flag.groupTitle());
+                String members = group;
+                List<String> ids = setting.flags().stream().filter(f -> f.group().equals(members)).map(DivineSettings.Flag::id).toList();
+                long on = ids.stream().filter(id -> !off.contains(id)).count();
+                ButtonWidget all = server(button("Включить", 0, 0, 60, () -> { off.removeAll(ids); rebuild(); }));
+                ButtonWidget none = server(button("Выключить", 0, 0, 60, () -> { for (String id : ids) if (!off.contains(id)) off.add(id); rebuild(); }));
+                control("Вся группа: включено " + on + " из " + ids.size(), "Включить или выключить все деяния группы «" + flag.groupTitle() + "» разом.", all, none);
+            }
+            server(toggle(flag.title(), flag.help(), !off.contains(flag.id()), v -> { off.remove(flag.id()); if (!v) off.add(flag.id()); }));
+        }
     }
 
     /** At the top of a page with server fields, on a server: who sets them. */

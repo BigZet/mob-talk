@@ -52,7 +52,7 @@ class AdminBridgeTest {
                 keys.add(f.get("key").getAsString());
                 assertFalse(f.get("title").getAsString().isBlank(), f.toString());
                 String type = f.get("type").getAsString();
-                assertTrue(List.of("int", "decimal", "bool", "enum", "string").contains(type), f.toString());
+                assertTrue(List.of("int", "decimal", "bool", "enum", "string", "flags").contains(type), f.toString());
                 if (type.equals("int")) assertTrue(f.get("min").getAsInt() <= f.get("max").getAsInt(), f.toString());
                 if (type.equals("enum")) assertFalse(f.getAsJsonArray("options").isEmpty(), f.toString());
             }
@@ -128,6 +128,41 @@ class AdminBridgeTest {
         assertFalse(again.get("ok").getAsBoolean());
         assertTrue(again.get("error").getAsString().contains("нет"));
         assertFalse(ask("{\"op\":\"action\",\"id\":\"rm -rf\"}").get("ok").getAsBoolean(), "unknown actions are refused");
+    }
+
+    @Test void disabledActsAndBossesAreToggleListsWithTheSameValues() {
+        JsonObject disabled = null, bosses = null;
+        for (JsonElement group : ask("{\"op\":\"describe\"}").getAsJsonArray("groups"))
+            for (JsonElement field : group.getAsJsonObject().getAsJsonArray("fields")) {
+                JsonObject f = field.getAsJsonObject();
+                if (f.get("key").getAsString().equals("disabled")) disabled = f;
+                if (f.get("key").getAsString().equals("disabledBosses")) bosses = f;
+            }
+        assertNotNull(disabled); assertNotNull(bosses);
+        assertEquals("flags", disabled.get("type").getAsString());
+        assertEquals("flags", bosses.get("type").getAsString());
+        // Every act of the catalogue, with a Russian title, a description and its kind's group.
+        Set<String> ids = new HashSet<>(), groups = new HashSet<>();
+        for (JsonElement option : disabled.getAsJsonArray("options")) {
+            JsonObject o = option.getAsJsonObject();
+            ids.add(o.get("id").getAsString()); groups.add(o.get("group").getAsString());
+            for (String key : List.of("title", "help", "groupTitle")) assertFalse(o.get(key).getAsString().isBlank(), o.toString());
+            assertFalse(o.get("title").getAsString().equals(o.get("id").getAsString()), "a Russian title: " + o);
+        }
+        for (Miracle miracle : Miracle.values()) assertTrue(ids.contains(miracle.id()), miracle.id());
+        assertTrue(groups.containsAll(List.of("wrath", "miracle", "jest")), groups.toString());
+        JsonObject first = disabled.getAsJsonArray("options").get(0).getAsJsonObject();
+        assertEquals("Кары", first.get("groupTitle").getAsString());
+        Set<String> bossIds = new HashSet<>();
+        for (JsonElement option : bosses.getAsJsonArray("options")) bossIds.add(option.getAsJsonObject().get("id").getAsString());
+        for (io.github.divineblock.boss.BossKind kind : io.github.divineblock.boss.BossKind.values()) assertTrue(bossIds.contains(kind.id), kind.id);
+        assertTrue(bossIds.contains(DivineSettings.GOD_AVATAR_ID), "the god with the mace can be switched off too");
+        // The value stays the comma-joined ids switched off, and a patch of it works as before.
+        host.config.disabledBosses = new ArrayList<>(List.of("seraph", "god_avatar"));
+        assertEquals("seraph,god_avatar", ask("{\"op\":\"values\"}").get("disabledBosses").getAsString());
+        assertTrue(ask("{\"op\":\"patch\",\"values\":{\"disabled\":\"flood,sodom,heal\",\"disabledBosses\":\"\"}}").get("ok").getAsBoolean());
+        assertEquals(List.of("flood", "sodom", "heal"), host.config.disabled);
+        assertTrue(host.config.disabledBosses.isEmpty());
     }
 
     @Test void brokenRequestsAnswerWithAnError() {

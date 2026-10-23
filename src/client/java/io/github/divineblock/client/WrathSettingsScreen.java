@@ -1,17 +1,12 @@
 package io.github.divineblock.client;
 
 import io.github.divineblock.core.DivineConfig;
-import io.github.divineblock.core.Miracle;
 import java.util.List;
 import net.minecraft.client.gui.screen.Screen;
 
-/** «Кары» of the panel: escalation, lingering curses, the eternal ban and each of the cruel acts on or off.
+/** «Кары» of the panel: escalation, lingering curses and the eternal ban; each act on or off is on «Деяния».
  * Edits the panel's config. */
 public final class WrathSettingsScreen extends DivinePanel {
-    /** The cruel acts the player may switch off one by one (the ban has its own switch). */
-    static final List<Miracle> CRUEL = List.of(Miracle.BLIGHT, Miracle.CAIN, Miracle.PLAGUES, Miracle.SODOM, Miracle.FLOOD,
-            Miracle.BABEL, Miracle.MEMORY_WIPE, Miracle.JUDGEMENT);
-
     public WrathSettingsScreen(Screen parent, DivineConfig config) { super(parent, config); }
 
     @Override protected int section() { return 2; }
@@ -34,18 +29,6 @@ public final class WrathSettingsScreen extends DivinePanel {
         note(config.allowEternalBan
                 ? "Изгнание включено: за четвёртую хулу бог выкинет тебя из мира, и мир больше не впустит. Снять: выключить здесь, файл config/divineblock-unban.txt или -Ddivineblock.unban=1."
                 : "Изгнание выключено: бог никогда не изгоняет, а изгнанный прежде снова может войти.", config.allowEternalBan ? 0xFF5555 : MUTED);
-
-        heading("Жестокие кары");
-        for (Miracle miracle : CRUEL)
-            server(toggle(name(miracle), "Выключенная кара не выпадает.", !config.disabled.contains(miracle.id()),
-                    v -> { config.disabled.remove(miracle.id()); if (!v) config.disabled.add(miracle.id()); }));
-    }
-
-    static String name(Miracle miracle) {
-        return switch (miracle) {
-            case BLIGHT -> "Порча земли"; case CAIN -> "Печать Каина"; case PLAGUES -> "Казни египетские";
-            case SODOM -> "Содом"; case FLOOD -> "Потоп"; case BABEL -> "Вавилон"; case MEMORY_WIPE -> "Стирание памяти"; case JUDGEMENT -> "Суд в небесах";
-            default -> miracle.id();
-        };
+        note("Каждую кару, благо и шутку можно выключить на странице «Деяния».", MUTED);
     }
 }
