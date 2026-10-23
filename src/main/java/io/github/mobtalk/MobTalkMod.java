@@ -103,6 +103,11 @@ public final class MobTalkMod implements ModInitializer {
         MobGameBridge.initialize();
         MobTalkNet.registerPayloads();
         if (dedicated()) {
+            // «Новый мир» из админки: заявку оставил прошлый запуск, мир ещё не открыт — старый уходит в резерв.
+            try {
+                String renewed = io.github.mobtalk.server.NewWorld.apply(FabricLoader.getInstance().getGameDir(), java.time.LocalDateTime.now());
+                if (!renewed.isEmpty()) LOGGER.info("Mob Talk: {}", renewed);
+            } catch (Exception failure) { LOGGER.error("Mob Talk: новый мир не подготовлен ({})", failure.toString()); }
             try { ServerConfig.init(FabricLoader.getInstance().getConfigDir()); }
             catch (IOException failure) { LOGGER.error("Не удалось прочитать настройки сервера: {}", failure.toString()); }
             Tuning.apply(ServerConfig.get());

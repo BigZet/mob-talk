@@ -3,7 +3,7 @@ import { h, icon, replace } from '../lib/dom.js';
 import { api } from '../lib/api.js';
 import { on } from '../lib/sse.js';
 import * as fmt from '../lib/fmt.js';
-import { load, confirm, busy, toast, toastError, empty, kv, switchInput, copyText } from '../lib/ui.js';
+import { load, confirm, ask, busy, toast, toastError, empty, kv, switchInput, copyText } from '../lib/ui.js';
 
 const HIST_KEY = 'mt-console-history';
 const store = {
@@ -106,8 +106,23 @@ function drawBackups(box) {
     if (await confirm({ title: 'Перечитать mobtalk-server.json?', consequence: 'Правки, сделанные в файле вручную, применятся сразу. Несохранённые изменения в админке не потеряются — они уже в файле.', ok: 'Перечитать' }))
       busy(reloadCfg, async () => { await api.post('server/reload-config'); toast('Конфиг перечитан'); });
   });
+  const fresh = h('button.btn.danger', { type: 'button' }, 'Новый мир');
+  fresh.addEventListener('click', async () => {
+    const s = await api.get('server').catch(() => ({}));
+    const world = s.world?.dir || s.world?.name || 'world';
+    const r = await ask({ title: 'Начать новый мир?', danger: true, ok: 'Создать новый мир',
+      consequence: `Сначала будет резервная копия, потом сервер остановится и выкинет игроков. Мир «${world}» вместе с памятью мобов уйдёт в папку world-backups/, при следующем запуске сервер создаст новый.`,
+      fields: [
+        { key: 'confirm', title: `Для подтверждения введите название мира: ${world}`, value: '' },
+        { key: 'seed', title: 'Сид (пусто — случайный)', value: '' },
+        { key: 'type', title: 'Тип мира', value: '', options: [{ value: '', title: 'как сейчас' }, { value: 'minecraft:normal', title: 'обычный' }, { value: 'minecraft:large_biomes', title: 'большие биомы' }, { value: 'minecraft:amplified', title: 'расширенный' }, { value: 'minecraft:flat', title: 'плоский' }] },
+      ] });
+    if (!r) return;
+    if (r.confirm !== world) { toast('Название мира не совпало — ничего не сделано', 'bad'); return; }
+    busy(fresh, async () => { const a = await api.post('server/new-world', r); toast(a.message || 'Сервер останавливается'); });
+  });
   const list = h('div');
-  replace(box, h('div.row', { style: { marginBottom: '12px' } }, create, reloadCfg), list);
+  replace(box, h('div.row', { style: { marginBottom: '12px' } }, create, reloadCfg, fresh), list);
   load(list, () => api.get('backups'), r => {
     const items = (r.backups || []).sort((a, b) => b.t - a.t);
     if (!items.length) return empty('Резервных копий ещё нет.');

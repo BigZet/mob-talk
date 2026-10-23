@@ -8,11 +8,14 @@
 # -SmokeCommand sends console commands once it is up ('a;b' for several when called through -File), -SmokeHoldSeconds keeps it running that long before "stop".
 # -SetSecret <VARIABLE>: asks for a value (hidden input) and saves it DPAPI-encrypted for this Windows user, then exits.
 # Usage: powershell -ExecutionPolicy Bypass -File scripts\run-local-server.ps1 [-Fresh] [-World <name>] [-Public]
-#        [-Memory 6G] [-NewWindow] [-Dir <folder>] [-JvmArgs '-Dname=value ...'] | -SetSecret ELEVENLABS_API_KEY
+#        [-Memory 6G] [-NewWindow] [-Dir <folder>] [-JvmArgs '-Dname=value ...'] [-Proxy 127.0.0.1:7897] | -SetSecret ELEVENLABS_API_KEY
+# -Proxy host:port: OpenRouter and the other providers through an HTTP proxy (OpenRouter refuses Russian IPs; at home the VPN
+# client's local proxy, e.g. Clash Verge 127.0.0.1:7897, on a VPS sing-box 127.0.0.1:8118); the game's own traffic stays direct.
+# "Новый мир" from the web admin stops the server with a request file; this script then starts it again (see NewWorld).
 param([string]$Dir = (Join-Path $env:LOCALAPPDATA 'MobTalkPack\server'), [switch]$Fresh, [string]$World = '', [switch]$Public,
     [string]$Memory = '6G', [int]$Port = 0, [switch]$NewWindow, [string]$Pack = 'mob-talk-pack',
     [string]$Instances = (Join-Path $env:APPDATA 'PrismLauncher\instances'), [string]$SetSecret = '', [switch]$CheckOnly, [switch]$Smoke, [int]$SmokeSeconds = 900,
-    [string[]]$SmokeCommand = @(), [int]$SmokeHoldSeconds = 0, [string]$SmokeWaitFor = '', [string]$JvmArgs = '')
+    [string[]]$SmokeCommand = @(), [int]$SmokeHoldSeconds = 0, [string]$SmokeWaitFor = '', [string]$JvmArgs = '', [string]$Proxy = '')
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'PackBuild.psm1') -Force
 function Say($t) { Write-Host "$(Get-Date -Format HH:mm:ss) $t" }
@@ -90,6 +93,12 @@ if ($CheckOnly) { Say 'check only: not starting'; return }
 $java = if ($env:JAVA_HOME -and (Test-Path "$env:JAVA_HOME\bin\java.exe")) { "$env:JAVA_HOME\bin\java.exe" } else { (Get-Command java -ErrorAction Stop).Source }
 # -JvmArgs: extra JVM flags before -jar, e.g. the self-test's -Dmobtalk.selftest.play=Test1,Test2 (space-separated).
 $javaArgs = @("-Xms2G", "-Xmx$Memory", '-XX:+UseG1GC', '-Dfile.encoding=UTF-8') + @($JvmArgs -split '\s+' | Where-Object { $_ }) + @('-jar', $launcher.Name, 'nogui')
+if ($Proxy) {
+    if ($Proxy -notmatch '^([\w.-]+):(\d+)$') { throw "-Proxy must be host:port, e.g. 127.0.0.1:7897" }
+    $proxyHost = $Matches[1]; $proxyPort = $Matches[2]
+    $javaArgs = @("-Dhttps.proxyHost=$proxyHost", "-Dhttps.proxyPort=$proxyPort", "-Dhttp.proxyHost=$proxyHost", "-Dhttp.proxyPort=$proxyPort",
+        '-Dhttp.nonProxyHosts=localhost|127.*|[::1]') + $javaArgs
+}
 Say "start: $java $($javaArgs -join ' ') in $Dir ($(if ($Public) { 'public' } else { 'local test, online-mode=false' }), port $Port)"
 if ($NewWindow) {
     Start-Process -FilePath $java -ArgumentList $javaArgs -WorkingDirectory $Dir
@@ -129,5 +138,12 @@ if ($Smoke) {
     return
 }
 Push-Location $Dir
-try { & $java @javaArgs } finally { Pop-Location }
+try {
+    do {
+        & $java @javaArgs
+        # "Новый мир" from the web admin: the server stopped itself and left its request; the next start makes the new world.
+        $again = Test-Path (Join-Path $Dir 'mobtalk-new-world.json')
+        if ($again) { Say 'new world requested from the web admin: starting again' }
+    } while ($again)
+} finally { Pop-Location }
 Say "server stopped (exit $LASTEXITCODE)"

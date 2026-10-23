@@ -338,6 +338,10 @@ public final class FixtureGame implements GameView {
     }
 
     @Override public JsonObject reloadConfig() { return Json.ok("Конфиг перечитан (заглушка)"); }
+    /** Последняя заявка на новый мир (сид, тип, кто) — для тестов. */
+    public volatile String newWorld = "";
+    @Override public String worldDir() { return "world"; }
+    @Override public JsonObject newWorld(String seed, String type, String by) { newWorld = seed + "|" + type + "|" + by; return Json.ok("Новый мир (заглушка)"); }
 
     @Override public JsonArray activities() {
         JsonArray out = new JsonArray();

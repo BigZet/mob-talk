@@ -175,6 +175,7 @@ class AdminApiTest {
         assertEquals(400, send("POST", bigzet + "/gamemode", "{\"mode\":\"god\"}", true).statusCode());
         assertEquals(200, send("POST", bigzet + "/gamemode", "{\"mode\":\"creative\"}", true).statusCode());
         assertEquals("creative", json(send("GET", bigzet, null, false)).get("gamemode").getAsString());
+        assertEquals(400, send("POST", "/api/server/new-world", "{\"confirm\":\"другой\"}", true).statusCode(), "без верного названия мира");
         assertEquals(200, send("POST", "/api/streamer", "{\"uuid\":\"" + DevStubServer.TEST2 + "\"}", true).statusCode());
         assertEquals(200, send("POST", "/api/mobs/fb57b8eb-d3e2-4f1e-8da3-2101caf9f459/card", "{\"name\":\"Тереза Ивановна\"}", true).statusCode());
         assertEquals("Тереза Ивановна", json(send("GET", "/api/mobs/fb57b8eb-d3e2-4f1e-8da3-2101caf9f459", null, false)).getAsJsonObject("card").get("name").getAsString());

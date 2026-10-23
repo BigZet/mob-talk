@@ -301,6 +301,17 @@ public final class AdminApi {
             if (parts.backups() == null) return Response.json(Json.obj("backups", new JsonArray()));
             return Response.json(parts.backups().list());
         });
+        router.post("/api/server/new-world", r -> {
+            JsonObject body = r.json();
+            String world = parts.game().worldDir();
+            if (!world.equals(Json.string(body, "confirm"))) throw ApiException.badRequest("Для подтверждения введите название мира: " + world + ".");
+            JsonObject backup = null;
+            if (parts.backups() != null) { backup = parts.backups().create(); events.publish("backup", backup); }
+            JsonObject answer = parts.game().newWorld(Json.string(body, "seed"), Json.string(body, "type"), by(r));
+            parts.history().append("command", null, null, "Новый мир вместо «" + world + "»" + (backup == null ? "" : ", копия " + Json.string(backup, "name")),
+                    Json.obj("command", "new-world", "by", by(r), "result", 1, "output", List.of(String.valueOf(Json.string(answer, "message")))));
+            return Response.json(answer);
+        });
         router.post("/api/server/reload-config", r -> Response.json(parts.game().reloadConfig()));
 
         router.get("/api/events", r -> events.stream(() -> List.of(SseHub.frame("hello", Json.obj("t", now())))));

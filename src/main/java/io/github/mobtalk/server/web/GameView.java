@@ -49,6 +49,10 @@ public interface GameView {
     /** Runs a command as the console: {@code {"ok":…,"result":n,"output":[…]}}. */
     JsonObject runCommand(String command);
     JsonObject reloadConfig();
+    /** «Новый мир»: заявка с сидом и типом ({@code NewWorld}) и остановка сервера; мир сменится при следующем запуске. */
+    JsonObject newWorld(String seed, String type, String by);
+    /** Папка мира ({@code level-name}): её название админ вводит, подтверждая новый мир. */
+    String worldDir();
 
     /** What each online player is doing, for «Сейчас»: [{"player":{…},"activity":"talking"}]. */
     JsonArray activities();

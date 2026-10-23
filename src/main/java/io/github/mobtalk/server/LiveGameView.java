@@ -120,7 +120,7 @@ final class LiveGameView implements GameView {
             return Json.obj("version", MobTalkMod.version(), "minecraft", server.getVersion(),
                     "loader", FabricLoader.getInstance().getModContainer("fabricloader").map(m -> m.getMetadata().getVersion().getFriendlyString()).orElse(""),
                     "mods", mods, "uptimeSeconds", (System.currentTimeMillis() - startedMillis) / 1000,
-                    "world", Json.obj("name", server.getSaveProperties().getLevelName(), "difficulty", server.getSaveProperties().getDifficulty().getName(),
+                    "world", Json.obj("name", server.getSaveProperties().getLevelName(), "dir", worldDir(), "difficulty", server.getSaveProperties().getDifficulty().getName(),
                             "dayTime", overworld == null ? 0 : overworld.getTimeOfDay() % 24000),
                     "players", Json.obj("online", players_().getCurrentPlayerCount(), "max", players_().getMaxPlayerCount()), "pack", pack);
         });
@@ -151,6 +151,22 @@ final class LiveGameView implements GameView {
         });
     }
 
+
+    @Override public String worldDir() { return NewWorld.levelName(runDir); }
+    @Override public JsonObject newWorld(String seed, String type, String by) {
+        try { NewWorld.request(runDir, seed, type, by); }
+        catch (IllegalArgumentException bad) { throw ApiException.badRequest(bad.getMessage()); }
+        catch (java.io.IOException failure) { throw ApiException.conflict("Заявка на новый мир не записана: " + failure.getMessage()); }
+        // Ответ успевает уйти в браузер, потом сервер останавливается как по /stop.
+        Thread.ofVirtual().name("mobtalk-new-world").start(() -> {
+            try { Thread.sleep(1500); } catch (InterruptedException ignored) { }
+            server.execute(() -> {
+                players_().getPlayerList().forEach(player -> player.networkHandler.disconnect(Text.literal("Сервер готовит новый мир — зайдите через минуту")));
+                server.stop(false);
+            });
+        });
+        return Json.ok("Сервер останавливается: мир «" + worldDir() + "» уйдёт в world-backups, новый создастся при запуске");
+    }
     @Override public JsonObject reloadConfig() {
         if (!ServerConfig.persistent()) return Json.obj("ok", false, "message", "В одиночной игре настройки сервера берутся из F7");
         try { ServerConfig.init(FabricLoader.getInstance().getConfigDir()); return Json.ok("Настройки сервера перечитаны из " + ServerConfig.FILE); }
