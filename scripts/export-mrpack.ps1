@@ -35,7 +35,7 @@ foreach ($jar in $jars) {
         $files += [ordered]@{
             path = "mods/$($jar.Name)"
             hashes = [ordered]@{ sha1 = $h; sha512 = Get-FileSha $jar.FullName SHA512 }
-            env = [ordered]@{ client = 'required'; server = 'required' }
+            env = [ordered]@{ client = 'required'; server = $(if (Test-ClientOnlyJar $jar.Name $pinned) { 'unsupported' } else { 'required' }) }
             downloads = @([string]$file.url)
             fileSize = [long]$jar.Length
         }
@@ -48,7 +48,7 @@ foreach ($jar in $jars) {
 }
 $index = [ordered]@{
     formatVersion = 1; game = 'minecraft'; versionId = $versionId; name = 'Mob Talk'
-    summary = 'Mob Talk, Божественный блок, борщевик, клетки для попугаев, Viewer Parrots, CTOV, видео-моды'
+    summary = 'Mob Talk, Божественный блок, борщевик, клетки для попугаев, Viewer Parrots, CTOV, видео-моды, JourneyMap, Simple Voice Chat, IPN, Mouse Tweaks, LambDynamicLights'
     files = $files
     dependencies = [ordered]@{ minecraft = $pinned.minecraft; 'fabric-loader' = $pinned.fabricLoader }
 }

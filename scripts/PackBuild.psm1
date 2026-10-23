@@ -68,7 +68,18 @@ function Get-PackJars {
         (Get-NewestJar "$Instances\mob-talk-ctov\minecraft\mods" 'lithostitched-*.jar')) +
         @(Get-ChildItem "$Instances\$Base\minecraft\mods\*.jar" | Where-Object { $_.Name -notmatch '^(mobtalk|viewerparrots|divineblock|rusflora|parrotcages|selftest-guard)' })
     $jars += $third | Where-Object { $_ }
+    # Pinned pack mods from Modrinth (server-mods.json "pack": JourneyMap, Simple Voice Chat, IPN, Mouse Tweaks,
+    # LambDynamicLights...): "both" also go to the server, "client" stay on the clients (Test-ClientOnlyJar).
+    foreach ($m in @((Get-ServerModPins).pack)) {
+        $jars += Save-PinnedFile -Url $m.url -FileName $m.fileName -Sha512 $m.sha512 -Cache (Join-Path $Work 'cache')
+        $manifest += "pinned $($m.title) $($m.version) ($($m.side))"
+    }
     @{ Jars = @($jars | Where-Object { $_ }); Manifest = $manifest }
+}
+
+# True for a jar that is one of the pinned client-only pack mods (server-mods.json "pack" with side "client").
+function Test-ClientOnlyJar([string]$Name, $Pins = (Get-ServerModPins)) {
+    [bool](@($Pins.pack) | Where-Object { $_.side -eq 'client' -and $_.fileName -eq $Name })
 }
 
 # Jars and commit lines of an already built Prism pack instance (the jars the clients run), for a server that matches them.
@@ -160,4 +171,4 @@ function Test-SecretFree([string]$Text) {
 
 Export-ModuleMember -Function Write-Utf8Lines, Write-Utf8Text, Invoke-GradleBuild, Export-RepoMain, Get-NewestJar, Get-PackJars,
     Get-InstancePackJars, Get-FabricModInfo, Get-FileSha, Get-ServerModPins, Save-PinnedFile, Find-ModrinthVersions,
-    Merge-ServerProperties, Test-SecretFree
+    Merge-ServerProperties, Test-SecretFree, Test-ClientOnlyJar

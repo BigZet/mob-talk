@@ -66,4 +66,18 @@ Describe 'export-mrpack.ps1' {
         $partial = New-Known @("$mods\lithostitched-1.8.1-fabric-21.1.jar")
         { & $export -FromPack fake-pack -Instances $inst -Out (Join-Path $TestDrive 'bad.mrpack') -Known $partial *> $null } | Should Throw 'only be linked'
     }
+
+    It 'marks the pinned client-only pack mods as unsupported on the server' {
+        $inst2 = Join-Path $TestDrive 'instances2'
+        $pack2 = New-FakePack $inst2
+        New-FakeJar "$pack2\minecraft\mods\mousetweaks-test.jar" 'mousetweaks' | Out-Null
+        New-FakeJar "$pack2\minecraft\mods\voicechat-test.jar" 'voicechat' | Out-Null
+        $pins = New-FakePins (Join-Path $TestDrive 'pins.json') (Join-Path $TestDrive 'cache')
+        $all = New-Known (@(Get-ChildItem "$pack2\minecraft\mods\*.jar" | Where-Object Name -notmatch '^(mobtalk|divineblock|viewerparrots|selftest)' | ForEach-Object FullName))
+        $file2 = Join-Path $TestDrive 'pack2.mrpack'
+        & $export -FromPack fake-pack -Instances $inst2 -Out $file2 -Known $all -Pins $pins *> $null
+        $files = ((Read-ZipText $file2 'modrinth.index.json') | ConvertFrom-Json).files
+        ($files | Where-Object path -eq 'mods/mousetweaks-test.jar').env.server | Should Be 'unsupported'
+        ($files | Where-Object path -eq 'mods/voicechat-test.jar').env.server | Should Be 'required'
+    }
 }

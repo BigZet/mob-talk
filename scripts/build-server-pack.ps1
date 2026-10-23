@@ -1,6 +1,7 @@
 ﻿# Builds the dedicated Fabric server folder from the same commits as build-pack.ps1: our mods and the original third-party
 # jars (client-only jars are left out), the pinned admin mods from Modrinth (scripts\server-mods.json: Lithium, FerriteCore,
-# spark, Chunky, -WithLuckPerms adds LuckPerms), the pinned Fabric server launcher, server.properties, eula.txt and the
+# spark, Chunky, squaremap, BlueMap, WorldEdit, Universal Graves with Polymer; -WithLuckPerms adds LuckPerms), the pinned
+# Fabric server launcher, server.properties, eula.txt and the
 # server configs. A rebuild replaces only the jars and the manifest: the world, the allowlist and config edits stay.
 # Secrets never land here: keys come from the environment at start (run-local-server.ps1, docker/.env).
 # Usage: powershell -ExecutionPolicy Bypass -File scripts\build-server-pack.ps1 [-FromPack mob-talk-pack] [-NoBuild]
@@ -42,6 +43,7 @@ $jars = @()
 foreach ($jar in $pack.Jars) {
     $info = Get-FabricModInfo $jar.FullName
     if ($NoMobTalk -and $jar.Name -like 'mobtalk-*') { Say "skip $($jar.Name) (-NoMobTalk)"; continue }
+    if (Test-ClientOnlyJar $jar.Name $pinned) { Say "skip $($jar.Name): client-only pack mod"; $manifest += "skip $($jar.Name) client-only"; continue }
     if ($info -and $info.Environment -eq 'client') { Say "skip $($jar.Name): client-only mod"; $manifest += "skip $($jar.Name) client-only"; continue }
     $jars += $jar
 }
