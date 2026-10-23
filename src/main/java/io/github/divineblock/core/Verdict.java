@@ -51,6 +51,9 @@ public final class Verdict {
 
     /** The acts the god used on this mortal lately (newest last), so he does not repeat himself; not saved. */
     public transient List<String> recentActs = List.of();
+    /** How the act's group was drawn, for the web admin: Jev's probabilities (empty without Jev), the ladder's wish and the final
+     * weights the draw used, each over the group ids (and "silence"); not saved. */
+    public transient java.util.Map<String, Double> oddsJev = java.util.Map.of(), oddsLadder = java.util.Map.of(), odds = java.util.Map.of();
 
     /** The rung of the ladder (1..10) the reasons earned for the chosen side: wrath climbs with every point of insult, sin,
      * anger and pestering; mercy climbs with favour; jests with force. */

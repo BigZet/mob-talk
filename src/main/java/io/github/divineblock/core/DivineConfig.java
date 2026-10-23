@@ -72,8 +72,8 @@ public final class DivineConfig {
     /** Curses that stay (blight, Cain, darkness, blood water, the flood) for {@link #curseMinutes}; off makes them pass in three minutes. */
     public boolean lingeringCurses = true;
     /** How many real minutes a lingering curse lasts, 1..20 ({@link CurseTerm}: no curse ever lasts longer). It replaced
-     * {@code curseDays}: an old file's days are ignored and the default of twenty minutes applies. */
-    public int curseMinutes = CurseTerm.MAX_MINUTES;
+     * {@code curseDays}: an old file's days are ignored and the default term applies. */
+    public int curseMinutes = CurseTerm.DEFAULT_MINUTES;
     /** The eternal ban (group К6): off by default. When off, the god never bans and a world with a ban lets the player in. */
     public boolean allowEternalBan = false;
     /** Copy the world into saves/ before the ban falls. */

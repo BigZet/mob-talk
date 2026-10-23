@@ -7,6 +7,10 @@ import io.github.divineblock.core.DivineSettings;
 import io.github.divineblock.core.GodJournal;
 import io.github.divineblock.core.GodLedger;
 import io.github.divineblock.core.Miracle;
+import io.github.divineblock.core.Penance;
+import io.github.divineblock.core.PrayerLog;
+import io.github.divineblock.core.PrayerTone;
+import io.github.divineblock.core.Verdict;
 import io.github.divineblock.core.Righteousness;
 import java.io.IOException;
 import java.util.LinkedHashMap;
@@ -24,6 +28,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.Formatting;
 
 /** The god's side of the web admin: Mob Talk finds this class by its entrypoint {@code mobtalk-admin} (fabric.mod.json) and
@@ -114,7 +119,9 @@ public final class AdminBridge implements UnaryOperator<String> {
                     new AdminProtocol.Action("boss_clear", "Убрать всех священных боссов", Map.of()),
                     new AdminProtocol.Action("god_recall", "Отозвать Бога с булавой", Map.of()),
                     new AdminProtocol.Action("court_end", "Закончить Небесный суд", Map.of()),
-                    new AdminProtocol.Action("streamer", "Назначить стримера", args("player", "Ник (пусто — снять)")));
+                    new AdminProtocol.Action("streamer", "Назначить стримера", args("player", "Ник (пусто — снять)")),
+                    new AdminProtocol.Action("mercy", "Изменить милость", args("player", "Ник", "amount", "На сколько (+10, -15) или =значение (=40)")),
+                    new AdminProtocol.Action("act", "Послать деяние", args("player", "Ник (в игре)", "deed", "Деяние (id)", "power", "Сила 1–4")));
         }
 
         @Override public String run(String id, Map<String, String> args) {
@@ -181,8 +188,57 @@ public final class AdminBridge implements UnaryOperator<String> {
                     Multiplayer.streamer(running, profile.getId(), profile.getName());
                     yield "стример: " + profile.getName();
                 }
+                case "mercy" -> {
+                    var profile = Multiplayer.profile(running, player).orElseThrow(() -> new IllegalArgumentException("игрок " + player + " не найден"));
+                    String amount = args.getOrDefault("amount", "").strip().replace(',', '.');
+                    boolean set = amount.startsWith("=");
+                    double value;
+                    try { value = Double.parseDouble(set ? amount.substring(1).strip() : amount); }
+                    catch (NumberFormatException broken) { throw new IllegalArgumentException("милость: нужно число, например +10, -15 или =40"); }
+                    DivineState state = DivineState.of(running);
+                    Righteousness righteousness = state.ledger.soul(profile.getId()).righteousness;
+                    righteousness.drift(running.getOverworld().getTime() / 24_000);
+                    double before = righteousness.score;
+                    double after = righteousness.adjust(set ? value - before : value);
+                    state.markDirty();
+                    String done = String.format(java.util.Locale.ROOT, "милость %s: %.0f → %.0f (%s)", profile.getName(), before, after, righteousness.label());
+                    Multiplayer.journal(GodJournal.Kind.VERDICT, profile.getName(), "админ изменил " + done);
+                    yield done;
+                }
+                case "act" -> {
+                    ServerPlayerEntity target = running.getPlayerManager().getPlayer(player);
+                    if (target == null) throw new IllegalArgumentException("игрока " + player + " нет в игре: деяние падает только на того, кто на сервере");
+                    Miracle miracle = Miracle.byId(args.getOrDefault("deed", "").strip().toLowerCase(java.util.Locale.ROOT));
+                    if (miracle == null) throw new IllegalArgumentException("нет такого деяния: " + args.get("deed"));
+                    int asked;
+                    try { asked = Integer.parseInt(args.getOrDefault("power", "").strip()); } catch (NumberFormatException none) { asked = miracle.maxTier; }
+                    yield actOn(target, miracle, Math.max(miracle.minTier, Math.min(miracle.maxTier, asked)));
+                }
                 default -> throw new IllegalArgumentException("нет такого действия: " + id);
             });
+        }
+
+        /** The admin's act on a mortal: performed where he stands (by the nearest altar), counted as his running punishment when it
+         * is wrath, and written to the prayer log as the admin's verdict so the «Бог» tab and the history show it. */
+        private static String actOn(ServerPlayerEntity target, Miracle miracle, int power) {
+            BlockPos altar = target.getBlockPos();
+            for (BlockPos pos : BlockPos.iterateOutwards(target.getBlockPos(), 12, 6, 12))
+                if (target.getServerWorld().getBlockState(pos).getBlock() instanceof AltarBlock) { altar = pos.toImmutable(); break; }
+            long tick = target.getServer().getOverworld().getTime();
+            if (miracle.kind == Miracle.Kind.WRATH) Prayers.PENANCE.begin(target.getUuid(), miracle.id(), tick);
+            String done = Zones.perform(miracle, power, target, altar, "", DivineBlockMod.config(), Math.max(1, power));
+            if (done == null) {
+                if (miracle.kind == Miracle.Kind.WRATH) Prayers.PENANCE.end(target.getUuid());
+                throw new IllegalArgumentException("«" + miracle.title() + "» здесь не выходит (место, защита церкви или настройки): выберите другое");
+            }
+            if (miracle.kind == Miracle.Kind.WRATH) Prayers.PENANCE.fell(target.getUuid(), miracle.id(), tick);
+            if (miracle.kind == Miracle.Kind.HELP) blessed(target, miracle, power);
+            Verdict verdict = new Verdict();
+            verdict.prayer = "(деяние послал админ)"; verdict.miracle = miracle.id(); verdict.power = power; verdict.inclination = miracle.kind;
+            verdict.decidedBy = "admin"; verdict.decisionNote = "веб-админка"; verdict.speech = done;
+            PrayerLog.shared().add(PrayerLog.of(System.currentTimeMillis(), target.getUuidAsString(), target.getName().getString(), verdict, PrayerTone.of(""), false, "", 0));
+            Multiplayer.journal(GodJournal.Kind.VERDICT, target.getName().getString(), "админ послал «" + miracle.title() + "» ×" + power + ": " + done);
+            return miracle.title() + " ×" + power + " → " + target.getName().getString() + ": " + done;
         }
 
         @Override public com.google.gson.JsonObject souls() {
@@ -273,6 +329,18 @@ public final class AdminBridge implements UnaryOperator<String> {
                 out.add("godAvatar", presence(running, state, avatar));
                 out.add("skyCourt", presence(running, state, SkyCourt.judged()));
                 out.add("blessings", blessings);
+                com.google.gson.JsonArray punishments = new com.google.gson.JsonArray();
+                for (var entry : Prayers.PENANCE.all(tick).entrySet()) {
+                    Penance.Running one = entry.getValue();
+                    Miracle miracle = Miracle.byId(one.miracle);
+                    com.google.gson.JsonObject p = new com.google.gson.JsonObject();
+                    p.add("player", player(running, state, entry.getKey().toString()));
+                    p.addProperty("deed", one.miracle); p.addProperty("title", miracle == null ? "бог решает" : miracle.title());
+                    p.addProperty("since", now - Math.max(0, tick - one.since) * 50L); p.addProperty("until", now + Math.max(0, one.until - tick) * 50L);
+                    p.addProperty("strengthened", one.strengthened); p.addProperty("moved", one.moved);
+                    punishments.add(p);
+                }
+                out.add("punishments", punishments);
                 return out;
             });
         }
@@ -321,7 +389,11 @@ public final class AdminBridge implements UnaryOperator<String> {
             return player;
         }
 
-        private static Map<String, String> args(String key, String title) { Map<String, String> out = new LinkedHashMap<>(); out.put(key, title); return out; }
+        private static Map<String, String> args(String... keysAndTitles) {
+            Map<String, String> out = new LinkedHashMap<>();
+            for (int i = 0; i + 1 < keysAndTitles.length; i += 2) out.put(keysAndTitles[i], keysAndTitles[i + 1]);
+            return out;
+        }
 
         /** Runs on the server thread and waits a little for the answer (directly when already there). */
         private static <T> T onServer(MinecraftServer running, Supplier<T> work) {

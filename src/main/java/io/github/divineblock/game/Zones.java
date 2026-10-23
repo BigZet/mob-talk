@@ -287,17 +287,17 @@ public final class Zones {
         return top.getY() > world.getBottomY() + 1 ? Vec3d.ofBottomCenter(top) : null;
     }
 
-    /** Open land 60–100 blocks from the church, dry, out of the protected zone. */
+    /** Open land about a thousand blocks from the church (far from the spawn and its people), dry, out of the protected zone. */
     static Vec3d openLand(ServerWorld world, ChurchSites.Site site) {
         Vec3d from = ChurchArea.center(site);
-        for (int attempt = 0; attempt < 16; attempt++) {
-            double angle = world.random.nextDouble() * Math.PI * 2, distance = 60 + world.random.nextInt(41);
+        for (int attempt = 0; attempt < 10; attempt++) {
+            double angle = world.random.nextDouble() * Math.PI * 2, distance = 950 + world.random.nextInt(101);
             BlockPos column = BlockPos.ofFloored(from.x + Math.cos(angle) * distance, 0, from.z + Math.sin(angle) * distance);
             world.getChunk(column);
             BlockPos top = world.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, column);
             BlockState ground = world.getBlockState(top.down());
             if (ChurchArea.inZone(world, top) || !ground.getFluidState().isEmpty() || ground.isIn(BlockTags.LEAVES) || top.getY() <= world.getSeaLevel() - 2) continue;
-            if (attempt < 10 && !ChurchArea.openSky(world, top)) continue; // open land first, a forest clearing only if there is none
+            if (attempt < 6 && !ChurchArea.openSky(world, top)) continue; // open land first, a forest clearing only if there is none
             return Vec3d.ofBottomCenter(top);
         }
         return null;

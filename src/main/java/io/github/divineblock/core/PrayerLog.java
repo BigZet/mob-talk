@@ -17,8 +17,22 @@ public final class PrayerLog {
     public record Reason(String title, int mercy, int power) { }
     /** {@code kind}: miracle (mercy), wrath, jest, warning (an omen) or none (silence). {@code decidedBy}: rules or jev. */
     public record Choice(String kind, String deed, String deedTitle, int power, String decidedBy, String note) { }
+    /** How the god weighed it: the reasons summed ({@code favor} toward mercy, {@code force} of the answer), the side and its
+     * rung (1..10), the power budget, punishments in a row, and the draw of the group: Jev's probabilities, the ladder's, the
+     * final weights ({@code odds}) with each group's label. */
+    public record Decision(int favor, int force, String inclination, int level, int budget, int escalation, boolean fury, boolean forgiveness,
+                           String group, java.util.Map<String, Double> jev, java.util.Map<String, Double> ladder, java.util.Map<String, Double> odds,
+                           java.util.Map<String, String> labels) {
+        static Decision of(Verdict v) {
+            java.util.Map<String, String> labels = new java.util.LinkedHashMap<>();
+            for (java.util.Map<String, Double> odds : List.of(v.oddsJev, v.oddsLadder, v.odds))
+                for (String id : odds.keySet()) { MiracleGroup g = MiracleGroup.byId(id); labels.put(id, g == null ? "молчание" : g.label); }
+            return new Decision(v.favor, v.force, v.inclination == null ? "" : v.inclination.label, v.level(), v.budget, v.escalation, v.fury, v.forgiveness,
+                    v.group == null ? "" : v.group, v.oddsJev, v.oddsLadder, v.odds, labels);
+        }
+    }
     public record Entry(long t, String uuid, String name, String text, String tone, String toneTitle, String offering, int offeringValue,
-                        String answer, Choice choice, List<Reason> reasons) { }
+                        String answer, Choice choice, List<Reason> reasons, Decision decision) { }
 
     private static final PrayerLog SHARED = new PrayerLog();
     private final Deque<Entry> entries = new ArrayDeque<>();
@@ -36,7 +50,7 @@ public final class PrayerLog {
         List<Reason> reasons = new ArrayList<>();
         for (Verdict.Reason reason : verdict.reasons) reasons.add(new Reason(GodJournal.redact(reason.text()), reason.favor(), reason.force()));
         return new Entry(millis, uuid == null ? "" : uuid, name == null ? "" : name, GodJournal.redact(verdict.prayer), toneId, PrayerTone.title(toneId),
-                offering == null ? "" : offering, Math.max(0, offeringValue), GodJournal.redact(verdict.speech), choice, List.copyOf(reasons));
+                offering == null ? "" : offering, Math.max(0, offeringValue), GodJournal.redact(verdict.speech), choice, List.copyOf(reasons), Decision.of(verdict));
     }
 
     /** The admin's word for what the god did. */

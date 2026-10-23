@@ -11,13 +11,14 @@ import java.util.UUID;
  * at most once (cast out of the church, taken home, taken up to the Sky Court): relocations never chain. Kept in memory on
  * the server thread; plain Java, for the tests. */
 public final class Penance {
-    /** From the verdict until the act falls: the god's words, the walk out of the church, the way home. */
-    public static final long IN_FLIGHT_TICKS = 20 * 60 * 3;
+    /** From the verdict until the act falls: the god's words, the walk out of the church, the way home. A minute at most: a
+     * punishment never blocks the next one for longer (Dmitriy, 23 Oct). */
+    public static final long IN_FLIGHT_TICKS = 20 * 60;
     /** After the act fell, the punishment still counts as running for this long: a sin said in the same breath joins it. A punishment
      * that is over (meteors fallen, nothing left on him) does not run: the next sin is a new punishment (Dmitriy'"'"'s test, 23 Oct). */
     public static final long AFTERMATH_TICKS = 20 * 10;
     /** What one more sin under a running punishment adds to its curses (within their twenty minutes, {@link CurseTerm}). */
-    public static final long PROLONG_TICKS = 20 * 60 * 5;
+    public static final long PROLONG_TICKS = 20 * 60;
     /** How many times one punishment can be made heavier. */
     public static final int MAX_STRENGTH = 3;
 
@@ -89,6 +90,12 @@ public final class Penance {
     public void relocated(UUID player, long now) {
         Running one = of(player, now);
         if (one != null) one.moved = true;
+    }
+
+    /** Every punishment running at {@code now}, for the web admin (a copy). */
+    public Map<UUID, Running> all(long now) {
+        running.values().removeIf(one -> now > one.until);
+        return new HashMap<>(running);
     }
 
     /** Forgiven, dead, the act cancelled: nothing runs any more. */

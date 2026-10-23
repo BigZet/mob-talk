@@ -5,8 +5,8 @@ package io.github.divineblock.core;
  * are cut down to it ({@link #trim}). Plain Java, for the tests. */
 public final class CurseTerm {
     public static final long TICKS_PER_MINUTE = 1200;
-    /** The settings' bounds in minutes; the default is the longest. */
-    public static final int MIN_MINUTES = 1, MAX_MINUTES = 20;
+    /** The settings' bounds in minutes and the default (five: twenty felt endless in play, Dmitriy 23 Oct). */
+    public static final int MIN_MINUTES = 1, MAX_MINUTES = 20, DEFAULT_MINUTES = 5;
     /** Twenty real minutes: the hard ceiling for every curse. */
     public static final long MAX_TICKS = MAX_MINUTES * TICKS_PER_MINUTE;
 
