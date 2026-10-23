@@ -37,7 +37,8 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
 /** «Небесный суд»: the strongest punishments (the Archangel, the Four Horsemen, the Beast, the god with the mace, withers
- * and dragons) are not fought by a little church. The god takes the mortal up to a cloud arena high over the world spawn —
+ * and dragons) are not fought by a little church. The god takes the mortal up to a cloud arena high in the sky, well away from
+ * the world spawn (a death without a bed must not rise on its floor) —
  * white stone, clouds and gold, a wide flat floor with a hidden layer of barrier under it (no fall-through, even when withers
  * blow the floor away) and an invisible wall at the rim. One arena per world (its centre is saved), mended before every
  * court. Defeat the foe and the god returns you to the church; die and you rise as always. */
@@ -78,17 +79,79 @@ public final class SkyCourt {
         return ended;
     }
 
-    /** The floor's centre in the overworld (y is the floor block), chosen once: over the world spawn, high in the sky. */
+    /** How far from the world spawn the arena hangs: a mortal who dies without a bed rises at the spawn, on whatever is highest
+     * there — once that was the arena's floor, with no way down (Dmitriy, 23 Oct). */
+    static final int FROM_SPAWN = 2000;
+    /** Arenas left over the spawn by older versions, taken down at start; mortals still on one are brought down. */
+    private static final List<BlockPos> OLD = new ArrayList<>();
+
+    /** The floor's centre in the overworld (y is the floor block), chosen once: high in the sky, {@link #FROM_SPAWN} east of the spawn. */
     public static BlockPos center(MinecraftServer server) {
         DivineState state = DivineState.of(server);
         if (state.skyCourt == null) {
             ServerWorld overworld = server.getOverworld();
             BlockPos spawn = overworld.getSpawnPos();
             int y = Math.min(overworld.getTopY() - 40, 280);
-            state.skyCourt = new int[] { spawn.getX(), y, spawn.getZ() };
+            state.skyCourt = new int[] { spawn.getX() + FROM_SPAWN, y, spawn.getZ() };
             state.markDirty();
         }
         return new BlockPos(state.skyCourt[0], state.skyCourt[1], state.skyCourt[2]);
+    }
+
+    /** At start: an arena an older version hung over the spawn is taken down and the next court builds a new one away from it. */
+    public static void relocateOld(MinecraftServer server) {
+        DivineState state = DivineState.of(server);
+        if (state.skyCourt == null) return;
+        ServerWorld overworld = server.getOverworld();
+        BlockPos spawn = overworld.getSpawnPos(), old = new BlockPos(state.skyCourt[0], state.skyCourt[1], state.skyCourt[2]);
+        double dx = old.getX() - spawn.getX(), dz = old.getZ() - spawn.getZ();
+        if (Math.sqrt(dx * dx + dz * dz) > FROM_SPAWN / 2.0) return;
+        long began = System.nanoTime();
+        demolish(overworld, old);
+        OLD.add(old);
+        state.skyCourt = null;
+        state.markDirty();
+        DivineBlockMod.LOG.info("Божественный блок: старая небесная арена над спавном {} разобрана за {} мс, новая будет в {} блоках",
+                old.toShortString(), (System.nanoTime() - began) / 1_000_000, FROM_SPAWN);
+    }
+
+    /** Takes an arena down to the air: the floor, the clouds under it, the pillars and the invisible walls. */
+    static void demolish(ServerWorld world, BlockPos center) {
+        int flags = Block.NOTIFY_LISTENERS | Block.FORCE_STATE;
+        int bottom = Math.max(world.getBottomY(), center.getY() - 48), top = Math.min(world.getTopY() - 1, center.getY() + 40);
+        BlockPos.Mutable at = new BlockPos.Mutable();
+        for (int dx = -WALL - 2; dx <= WALL + 2; dx++) for (int dz = -WALL - 2; dz <= WALL + 2; dz++) {
+            if (dx * dx + dz * dz > (WALL + 2) * (WALL + 2)) continue;
+            for (int y = bottom; y <= top; y++) {
+                at.set(center.getX() + dx, y, center.getZ() + dz);
+                if (!world.getBlockState(at).isAir()) world.setBlockState(at, Blocks.AIR.getDefaultState(), flags);
+            }
+        }
+    }
+
+    /** A mortal on an arena with no court of his (he died in court and rose at the spawn, or joined there): down to the
+     * ground at the world spawn, by the church. */
+    private static void rescue(MinecraftServer server) {
+        ServerWorld overworld = server.getOverworld();
+        List<BlockPos> arenas = new ArrayList<>(OLD);
+        DivineState state = DivineState.of(server);
+        if (state.skyCourt != null) arenas.add(new BlockPos(state.skyCourt[0], state.skyCourt[1], state.skyCourt[2]));
+        if (arenas.isEmpty()) return;
+        for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
+            if (player.getServerWorld() != overworld || !player.isAlive() || SESSIONS.containsKey(player.getUuid())) continue;
+            for (BlockPos arena : arenas) {
+                double dx = player.getX() - arena.getX() - 0.5, dz = player.getZ() - arena.getZ() - 0.5;
+                if (dx * dx + dz * dz > (WALL + 8) * (WALL + 8) || player.getY() < arena.getY() - 50) continue;
+                BlockPos spawn = overworld.getSpawnPos();
+                overworld.getChunk(spawn);
+                BlockPos ground = overworld.getTopPosition(net.minecraft.world.Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, spawn);
+                player.teleport(overworld, ground.getX() + 0.5, ground.getY(), ground.getZ() + 0.5, player.getYaw(), 0f);
+                player.fallDistance = 0;
+                Prayers.godChat(player, "Суд твой окончен. Ступай по земле.");
+                DivineBlockMod.LOG.info("Божественный блок: {} был на небесной арене без суда — спущен к спавну", player.getName().getString());
+                break;
+            }
+        }
     }
 
     /** Where the mortal stands when he comes: on the floor, a dozen blocks south of the centre, facing it. */
@@ -134,7 +197,9 @@ public final class SkyCourt {
     }
 
     public static void tick(MinecraftServer server) {
-        if (SESSIONS.isEmpty() || server.getTicks() % 10 != 0) return;
+        if (server.getTicks() % 10 != 0) return;
+        rescue(server);
+        if (SESSIONS.isEmpty()) return;
         for (Session session : new ArrayList<>(SESSIONS.values())) {
             session.age += 10;
             ServerPlayerEntity player = server.getPlayerManager().getPlayer(session.player);
@@ -188,7 +253,7 @@ public final class SkyCourt {
                         || e instanceof GodAvatarEntity || e instanceof net.minecraft.entity.ItemEntity))) foe.discard();
     }
 
-    static void clear() { SESSIONS.clear(); }
+    static void clear() { SESSIONS.clear(); OLD.clear(); }
 
     // ---- The arena. ----
 
