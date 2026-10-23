@@ -96,7 +96,7 @@ export default function divine(root, route) {
         h('ul', { style: { margin: '10px 0 0', paddingLeft: '18px', lineHeight: 1.5 } },
           li('Молитва', 'игрок говорит у алтаря голосом или в чат. Бог слышит слова, тон (смиренно, грубо, кощунственно) и подношение на алтаре, вспоминает поступки игрока и решает, как ответить.'),
           li('Ответ', 'благо (помощь), кара (наказание), знамение (знак без последствий), шутка (безобидный розыгрыш) или молчание. Сила от 1 до 4: чем выше, тем тяжелее кара или щедрее благо.'),
-          li('Милость', `счёт поступков от −100 до +100. Сажал деревья, разводил скот, торговал — растёт; убивал жителей, ломал церковь, богохульствовал — падает. Каждый день понемногу тянется к нулю. Метки: ${MERCY.join(', ')}.`),
+          li('Милость', `счёт поступков от −100 до +100. Сажал деревья, разводил скот, торговал — растёт; убивал жителей, ломал церковь, богохульствовал — падает. Каждый день понемногу тянется к нулю. Сама молитва милость не меняет (кроме хулы, она её роняет): «+5 к благу» у причин молитвы склоняет только этот ответ. Метки: ${MERCY.join(', ')}.`),
           li('Грехи', 'сколько дурных поступков бог помнит за игроком. Грех во время идущей кары продлевает её.'),
           li('Кары подряд', 'каждая новая кара без прощения делает следующую на ступень тяжелее, до четырёх ступеней. Неделя игровых дней без кар или искреннее покаяние сбрасывают счёт.'),
           li('Проклятия', 'кары, которые держатся до двадцати минут: порча земли, мор скота, печать Каина и другие. Искреннее покаяние снимает их все сразу.'),
@@ -242,7 +242,7 @@ export default function divine(root, route) {
   // ---------- молитвы ----------
   function prayerRow(p) {
     const [kind, cls] = CHOICE[p.choice?.kind] || [p.choice?.kind || '', ''];
-    const reasons = (p.reasons || []).map(r => `${r.title}${r.mercy ? ` (милость ${r.mercy > 0 ? '+' : ''}${r.mercy})` : ''}${r.power ? ` (сила ${r.power > 0 ? '+' : ''}${r.power})` : ''}`).join('; ');
+    const reasons = (p.reasons || []).map(r => `${r.title}${r.mercy ? ` (${r.mercy > 0 ? '+' : ''}${r.mercy} ${r.mercy > 0 ? 'к благу' : 'к каре'})` : ''}${r.power ? ` (сила ${r.power > 0 ? '+' : ''}${r.power})` : ''}`).join('; ');
     const help = p.choice?.deed && deedHelp(p.choice.deed);
     return h('div.list-item', { style: { alignItems: 'flex-start' } }, avatar(pname(p.player)),
       h('div.body',
@@ -254,7 +254,7 @@ export default function divine(root, route) {
           p.choice?.power ? h('span', `сила ${p.choice.power} из 4`) : null,
           p.choice?.decidedBy && h('span', { jev: 'решила нейросеть Jev', admin: 'послал админ' }[p.choice.decidedBy] || 'решили правила'), p.choice?.note && h('span', p.choice.note)),
         help && h('div.muted', { style: { fontSize: '12px' } }, help),
-        reasons && h('div.muted', { style: { fontSize: '12px' } }, 'Почему: ', reasons),
+        reasons && h('div.muted', { style: { fontSize: '12px' } }, 'Почему (склоняет этот ответ, милость души не меняет): ', reasons),
         p.decision && decisionBox(p.decision, p.choice)),
       h('time.time', { datetime: new Date(p.t).toISOString(), title: fmt.dateTimeFull(p.t) }, fmt.ago(p.t)));
   }
@@ -265,7 +265,7 @@ export default function divine(root, route) {
     const bar = (v, color) => h('div.meter', { style: { height: '6px', minWidth: '60px' } }, h('i', { style: { width: `${Math.round((v || 0) * 100)}%`, background: color } }));
     const jev = d.jev && Object.keys(d.jev).length;
     const facts = [
-      ['Итог причин', `${d.favor > 0 ? '+' : ''}${d.favor} к милости, сила ${d.force}`],
+      ['Итог причин', `${d.favor > 0 ? '+' : ''}${d.favor} ${d.favor >= 0 ? 'к благу' : 'к каре'}, сила ${d.force}`],
       ['Склонность', `${d.inclination || '—'}${d.fury ? ' (ярость)' : ''}${d.forgiveness ? ' (прощение)' : ''}`],
       ['Ступень', `${d.level} из 10`], ['Бюджет силы', `${d.budget} из 4`], ['Кар подряд', d.escalation ? `+${d.escalation} ступ.` : 'нет']];
     return h('details', { style: { marginTop: '6px' } },
