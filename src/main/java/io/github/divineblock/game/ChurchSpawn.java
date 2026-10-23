@@ -29,7 +29,7 @@ public final class ChurchSpawn {
     public static void register() {
         ServerLifecycleEvents.SERVER_STARTING.register(server -> {
             // Before the overworld is created: no chunk saved yet (level.dat is already written by now) means this start makes a new world.
-            fresh = DivineBlockMod.config().spawnAtChurch && DivineBlockMod.config().churches
+            fresh = DivineBlockMod.config().spawnAtChurch && DivineBlockMod.config().churches && !selfTest()
                     && noChunks(server.getSavePath(WorldSavePath.ROOT).resolve("region"));
             if (fresh) { ChurchStructure.forceVariant = ChurchBuilder.Variant.SLAVIC; DivineBlockMod.LOG.info("Божественный блок: новый мир — церкви при создании будут Славянскими, спавн у ближайшей"); }
         });
@@ -37,6 +37,11 @@ public final class ChurchSpawn {
             if (!fresh) return;
             try { place(server); } finally { fresh = false; ChurchStructure.forceVariant = null; }
         });
+    }
+
+    /** A self-test of one of the pack's mods makes its own world and builds its stage by the spawn: a church there would spare it. */
+    private static boolean selfTest() {
+        return System.getProperties().stringPropertyNames().stream().anyMatch(key -> key.matches("(divineblock|mobtalk|parrotcages|rusflora)\\..*test.*"));
     }
 
     private static boolean noChunks(java.nio.file.Path region) {
