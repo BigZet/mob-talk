@@ -13,8 +13,8 @@ import { setParams } from '../app.js';
 const ACT = { wrath: 'Кары', miracle: 'Блага', none: 'Отказы' };
 /** Действия с боссами рисуются у самих боссов, а не в общем списке действий. */
 const BOSS_ACTIONS = new Set(['boss_remove', 'boss_clear', 'clear', 'god_recall', 'court_end']);
-const CHOICE = { miracle: ['благо', '.good'], wrath: ['кара', '.bad'], warning: ['предупреждение', '.warn'], none: ['без ответа', ''] };
-const TONE = { rude: '.bad', urgent: '.warn', penitent: '.good' };
+const CHOICE = { miracle: ['благо', '.good'], wrath: ['кара', '.bad'], warning: ['знамение', '.warn'], jest: ['шутка', ''], none: ['без ответа', ''] };
+const TONE = { profane: '.bad', rude: '.bad', urgent: '.warn', penitent: '.good' };
 
 export default function divine(root, route) {
   let range = route.params.range || '7d';
