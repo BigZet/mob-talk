@@ -91,6 +91,9 @@ public final class DivineConfig {
     public String churchVariant = "";
     /** A new world starts at the Slavic Church: its world spawn is moved to the path before the porch (ChurchSpawn). */
     public boolean spawnAtChurch = true;
+    /** The church guardian rises from the seal under a church's altar when a mortal comes near (off by default: the owner wants
+     * no guardian inside a church; the church at the world spawn never has one). */
+    public boolean churchGuardians = false;
     public boolean debug = false;
     /** Sacred bosses ({@code io.github.divineblock.boss}): ids switched off (a buffed vanilla mob comes instead), strength in
      * percent (50..300) and whether their ultimates may break glass, put out lights and set fires. */
