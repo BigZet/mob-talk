@@ -110,6 +110,12 @@ public final class GodWrath {
         return wrath;
     }
     static GodWrath of(ServerPlayerEntity player) { return ACTIVE.get(player.getUuid()); }
+    /** The mortals the god with the mace stands over now. */
+    static List<ServerPlayerEntity> players() {
+        List<ServerPlayerEntity> out = new ArrayList<>();
+        for (GodWrath wrath : ACTIVE.values()) if (!wrath.finished()) out.add(wrath.player);
+        return out;
+    }
 
     /** The god goes back into the clouds now (the strike in flight still lands). */
     public void dismiss() { if (stage != Stage.LEAVE && stage != Stage.DONE && stage != Stage.STRIKE) leave(); else if (stage == Stage.STRIKE) left = Math.min(left, IMPACT_AT + 1); dismissed = true; }

@@ -152,6 +152,8 @@ public final class DivineBosses {
         GodWrath wrath = GodWrath.of(player);
         return wrath != null && !wrath.finished();
     }
+    /** The mortals the god with the mace stands over now (the web admin's «Бог» tab). */
+    public static List<net.minecraft.server.network.ServerPlayerEntity> godAvatarPlayers() { return GodWrath.players(); }
     /** Repentance: the god over {@code player} goes back into the clouds now. False when there is none. */
     public static boolean dismissGodAvatar(net.minecraft.server.network.ServerPlayerEntity player) {
         GodWrath wrath = GodWrath.of(player);

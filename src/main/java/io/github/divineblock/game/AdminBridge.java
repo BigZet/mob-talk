@@ -6,6 +6,7 @@ import io.github.divineblock.core.DivineConfig;
 import io.github.divineblock.core.DivineSettings;
 import io.github.divineblock.core.GodJournal;
 import io.github.divineblock.core.GodLedger;
+import io.github.divineblock.core.Miracle;
 import io.github.divineblock.core.Righteousness;
 import java.io.IOException;
 import java.util.LinkedHashMap;
@@ -43,6 +44,22 @@ public final class AdminBridge implements UnaryOperator<String> {
         ServerLifecycleEvents.SERVER_STOPPED.register(stopped -> { if (server == stopped) server = null; });
         ServerPlayConnectionEvents.JOIN.register((handler, sender, joined) -> joined.execute(() -> send(handler.player)));
         ServerPlayNetworking.registerGlobalReceiver(SettingsPatchPayload.ID, (payload, context) -> patchFromPlayer(context.player(), payload.json()));
+    }
+
+    /** A blessing that lasts, for the admin's «Бог» tab: whose, what and until when (epoch ms). Server thread only. */
+    private record Blessing(UUID player, String title, long until) { }
+    private static final List<Blessing> BLESSINGS = new java.util.ArrayList<>();
+
+    /** A mercy fell on {@code player}: the lasting ones (strength and speed, the great blessing) are kept until they end. */
+    static void blessed(ServerPlayerEntity player, Miracle miracle, int power) {
+        long ticks = switch (miracle) {
+            case BUFF -> 20L * 60 * (power <= 1 ? 3 : power == 2 ? 5 : 8);
+            case BLESSING -> 24_000;
+            default -> 0;
+        };
+        if (ticks <= 0) return;
+        BLESSINGS.removeIf(old -> old.player().equals(player.getUuid()) && old.title().equals(miracle.title()));
+        BLESSINGS.add(new Blessing(player.getUuid(), miracle.title(), System.currentTimeMillis() + ticks * 50));
     }
 
     /** Who may change the server's settings from F9: an operator for now (Mob Talk's admin level later). */
@@ -93,7 +110,10 @@ public final class AdminBridge implements UnaryOperator<String> {
             return List.of(
                     new AdminProtocol.Action("unban", "Снять вечное изгнание", args("player", "Ник (пусто — снять со всех)")),
                     new AdminProtocol.Action("lift", "Снять проклятия и лестницу кар", args("player", "Ник")),
-                    new AdminProtocol.Action("clear", "Убрать всех священных боссов", Map.of()),
+                    new AdminProtocol.Action("boss_remove", "Убрать босса", args("uuid", "UUID босса")),
+                    new AdminProtocol.Action("boss_clear", "Убрать всех священных боссов", Map.of()),
+                    new AdminProtocol.Action("god_recall", "Отозвать Бога с булавой", Map.of()),
+                    new AdminProtocol.Action("court_end", "Закончить Небесный суд", Map.of()),
                     new AdminProtocol.Action("streamer", "Назначить стримера", args("player", "Ник (пусто — снять)")));
         }
 
@@ -120,13 +140,40 @@ public final class AdminBridge implements UnaryOperator<String> {
                     Multiplayer.journal(GodJournal.Kind.VERDICT, profile.getName(), "админ снял проклятия: " + lifted);
                     yield "снято проклятий: " + lifted + ", лестница кар сброшена";
                 }
-                case "clear" -> {
-                    List<Entity> bosses = new java.util.ArrayList<>();
+                case "boss_remove" -> {
+                    UUID uuid;
+                    try { uuid = UUID.fromString(args.getOrDefault("uuid", "").strip()); }
+                    catch (IllegalArgumentException broken) { throw new IllegalArgumentException("нужен UUID босса"); }
                     for (ServerWorld world : running.getWorlds())
-                        for (Entity entity : world.iterateEntities())
-                            if (entity instanceof io.github.divineblock.boss.SacredBoss boss && boss.isAlive()) bosses.add(boss);
+                        if (world.getEntity(uuid) instanceof io.github.divineblock.boss.SacredBoss boss && boss.isAlive()) {
+                            String who = target(boss);
+                            boss.discard();
+                            Multiplayer.journal(GodJournal.Kind.VERDICT, who, "админ убрал босса «" + boss.kind().title + "»");
+                            yield "убран: " + boss.kind().title;
+                        }
+                    throw new IllegalArgumentException("такого босса нет: он уже пал или ушёл");
+                }
+                case "boss_clear", "clear" -> {
+                    List<io.github.divineblock.boss.SacredBoss> bosses = bosses(running);
                     bosses.forEach(Entity::discard);
+                    Multiplayer.journal(GodJournal.Kind.VERDICT, "", "админ убрал всех священных боссов: " + bosses.size());
                     yield "убрано боссов: " + bosses.size();
+                }
+                case "god_recall" -> {
+                    List<String> names = new java.util.ArrayList<>();
+                    for (ServerPlayerEntity over : io.github.divineblock.boss.DivineBosses.godAvatarPlayers())
+                        if (io.github.divineblock.boss.DivineBosses.dismissGodAvatar(over)) names.add(over.getName().getString());
+                    if (names.isEmpty()) yield "Бога с булавой нет ни над кем";
+                    for (String name : names) Multiplayer.journal(GodJournal.Kind.VERDICT, name, "админ отозвал Бога с булавой");
+                    yield "Бог с булавой отозван: " + String.join(", ", names);
+                }
+                case "court_end" -> {
+                    List<String> names = new java.util.ArrayList<>();
+                    for (UUID judged : SkyCourt.judged()) names.add(player(running, DivineState.of(running), judged.toString()).get("name").getAsString());
+                    int ended = SkyCourt.endAll(running);
+                    if (ended == 0) yield "Небесного суда сейчас нет";
+                    for (String name : names) Multiplayer.journal(GodJournal.Kind.VERDICT, name, "админ закончил Небесный суд");
+                    yield "Небесный суд окончен: " + String.join(", ", names);
                 }
                 case "streamer" -> {
                     if (player.isEmpty()) { Multiplayer.streamer(running, null, null); yield "стример снят"; }
@@ -157,6 +204,20 @@ public final class AdminBridge implements UnaryOperator<String> {
                     one.addProperty("sins", sins);
                     one.addProperty("ladder", soul == null ? 0 : soul.wrathStreak(tick / 24_000));
                     one.addProperty("banned", state.banned.containsKey(id));
+                    Righteousness righteousness = soul == null ? new Righteousness() : soul.righteousness;
+                    one.addProperty("mercy", Math.round(righteousness.score * 10) / 10.0);
+                    one.addProperty("label", righteousness.label());
+                    com.google.gson.JsonArray deeds = new com.google.gson.JsonArray();
+                    long today = tick / 24_000;
+                    for (Righteousness.Memory memory : righteousness.notable(today, 7, 5)) {
+                        com.google.gson.JsonObject deed = new com.google.gson.JsonObject();
+                        deed.addProperty("text", memory.describe(today));
+                        // The start of that game day, counted back in world ticks (50 ms) from now.
+                        deed.addProperty("t", now - Math.max(0, tick - memory.day * 24_000) * 50L);
+                        deed.addProperty("day", memory.day);
+                        deeds.add(deed);
+                    }
+                    one.add("deeds", deeds);
                     com.google.gson.JsonArray curses = new com.google.gson.JsonArray();
                     for (Curses.Curse curse : state.curses.active) if (id.equals(curse.player)) curses.add(curse(curse, tick, now));
                     one.add("curses", curses);
@@ -175,25 +236,66 @@ public final class AdminBridge implements UnaryOperator<String> {
                 DivineState state = DivineState.of(running);
                 long tick = running.getOverworld().getTime(), now = System.currentTimeMillis();
                 com.google.gson.JsonArray bosses = new com.google.gson.JsonArray();
-                for (ServerWorld world : running.getWorlds())
-                    for (Entity entity : world.iterateEntities())
-                        if (entity instanceof io.github.divineblock.boss.SacredBoss boss && boss.isAlive()) {
-                            com.google.gson.JsonObject one = new com.google.gson.JsonObject();
-                            one.addProperty("id", boss.kind().id); one.addProperty("title", boss.kind().title);
-                            one.addProperty("health", Math.round(boss.getHealth())); one.addProperty("maxHealth", Math.round(boss.getMaxHealth()));
-                            one.addProperty("since", now - boss.age * 50L);
-                            bosses.add(one);
-                        }
+                for (io.github.divineblock.boss.SacredBoss boss : bosses(running)) {
+                    com.google.gson.JsonObject one = new com.google.gson.JsonObject();
+                    one.addProperty("uuid", boss.getUuidAsString());
+                    one.addProperty("id", boss.kind().id); one.addProperty("title", boss.kind().title);
+                    one.addProperty("health", Math.round(boss.getHealth())); one.addProperty("maxHealth", Math.round(boss.getMaxHealth()));
+                    one.addProperty("since", now - boss.age * 50L);
+                    one.addProperty("phase", boss.phase());
+                    if (boss.getTarget() instanceof net.minecraft.entity.player.PlayerEntity target) one.add("target", player(running, state, target.getUuidAsString()));
+                    else one.add("target", com.google.gson.JsonNull.INSTANCE);
+                    one.addProperty("dimension", boss.getWorld().getRegistryKey().getValue().toString());
+                    one.addProperty("x", boss.getBlockX()); one.addProperty("y", boss.getBlockY()); one.addProperty("z", boss.getBlockZ());
+                    bosses.add(one);
+                }
                 com.google.gson.JsonArray curses = new com.google.gson.JsonArray();
                 for (Curses.Curse curse : state.curses.active) {
                     com.google.gson.JsonObject one = curse(curse, tick, now);
                     one.add("player", player(running, state, curse.player));
                     curses.add(one);
                 }
+                List<UUID> avatar = io.github.divineblock.boss.DivineBosses.godAvatarPlayers().stream().map(Entity::getUuid).toList();
+                // Blessings that ended, or that milk or death took away (every lasting one gives luck), are forgotten.
+                BLESSINGS.removeIf(blessing -> {
+                    ServerPlayerEntity online = running.getPlayerManager().getPlayer(blessing.player());
+                    return blessing.until() <= now || online != null && !online.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.LUCK);
+                });
+                com.google.gson.JsonArray blessings = new com.google.gson.JsonArray();
+                for (Blessing blessing : BLESSINGS) {
+                    com.google.gson.JsonObject one = new com.google.gson.JsonObject();
+                    one.add("player", player(running, state, blessing.player().toString()));
+                    one.addProperty("title", blessing.title()); one.addProperty("until", blessing.until());
+                    blessings.add(one);
+                }
                 com.google.gson.JsonObject out = new com.google.gson.JsonObject();
                 out.add("bosses", bosses); out.add("curses", curses);
+                out.add("godAvatar", presence(running, state, avatar));
+                out.add("skyCourt", presence(running, state, SkyCourt.judged()));
+                out.add("blessings", blessings);
                 return out;
             });
+        }
+
+        /** {active, player}: whether it goes on, and over whom (the first, when there are several). */
+        private static com.google.gson.JsonObject presence(MinecraftServer running, DivineState state, List<UUID> players) {
+            com.google.gson.JsonObject out = new com.google.gson.JsonObject();
+            out.addProperty("active", !players.isEmpty());
+            out.add("player", players.isEmpty() ? com.google.gson.JsonNull.INSTANCE : player(running, state, players.get(0).toString()));
+            return out;
+        }
+
+        /** Every sacred boss alive in every world. */
+        private static List<io.github.divineblock.boss.SacredBoss> bosses(MinecraftServer running) {
+            List<io.github.divineblock.boss.SacredBoss> out = new java.util.ArrayList<>();
+            for (ServerWorld world : running.getWorlds())
+                for (Entity entity : world.iterateEntities())
+                    if (entity instanceof io.github.divineblock.boss.SacredBoss boss && boss.isAlive()) out.add(boss);
+            return out;
+        }
+        /** The name of the player a boss is after, or "". */
+        private static String target(io.github.divineblock.boss.SacredBoss boss) {
+            return boss.getTarget() instanceof net.minecraft.entity.player.PlayerEntity target ? target.getName().getString() : "";
         }
 
         /** A curse for the admin: its name and when it ends, in epoch ms (the world's ticks are 50 ms). */

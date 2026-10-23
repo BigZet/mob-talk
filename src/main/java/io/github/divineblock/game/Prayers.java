@@ -344,6 +344,7 @@ public final class Prayers {
         Multiplayer.journal(io.github.divineblock.core.GodJournal.Kind.MIRACLE, player.getName().getString(), miracle.id() + ": " + done);
         if (fell && miracle.kind == Miracle.Kind.WRATH) PENANCE.fell(player.getUuid(), miracle.id(), now);
         else if (verdict.inclination == Miracle.Kind.WRATH) PENANCE.end(player.getUuid()); // only an omen came: nothing runs
+        if (fell && miracle.kind == Miracle.Kind.HELP) AdminBridge.blessed(player, miracle, power);
         if (fell && miracle.kind == Miracle.Kind.WRATH && miracle != Miracle.ETERNAL_BAN) {
             DivineState.of(server).ledger.soul(player.getUuid()).punished(DeedWatcher.day(server));
             DivineState.of(server).markDirty();

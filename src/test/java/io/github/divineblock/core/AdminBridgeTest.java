@@ -14,7 +14,8 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
-/** The web admin's protocol ({@code mobtalk-admin}) over a fake game: describe, values, patch, journal and the actions. */
+/** The web admin's protocol ({@code mobtalk-admin}) over a fake game: describe (with the toggle lists), values, patch,
+ * journal, the actions, souls, active and the prayers. */
 class AdminBridgeTest {
     /** The game as the protocol sees it: a config in memory, a journal and a ban list. */
     private static class FakeHost implements AdminProtocol.Host {
@@ -187,15 +188,90 @@ class AdminBridgeTest {
         assertEquals(1, saved.maxTier, "the server's value never lands in his own file");
     }
 
+    @Test void prayersComeNewestFirstWithTheChoiceAndReasons() {
+        PrayerLog log = new PrayerLog();
+        AdminProtocol.Host withLog = new FakeHost() { @Override public PrayerLog prayers() { return log; } };
+        AdminProtocol p = new AdminProtocol(withLog);
+        Verdict mercy = new Verdict();
+        mercy.prayer = "Господи, пожалуйста, дай хлеба"; mercy.inclination = Miracle.Kind.HELP; mercy.miracle = "feed"; mercy.power = 1;
+        mercy.decidedBy = "jev"; mercy.decisionNote = "Б1"; mercy.speech = "Ешь, смертный.";
+        mercy.reasons = new ArrayList<>(List.of(new Verdict.Reason("смиренная молитва", 1, 0), new Verdict.Reason("подношение: хлеб ×3", 1, 0)));
+        log.add(PrayerLog.of(1000, "uuid-dima", "Дима", mercy, PrayerTone.of(mercy.prayer), false, "minecraft:bread", 6));
+        Verdict wrath = new Verdict();
+        wrath.prayer = "ты никто, слышишь"; wrath.inclination = Miracle.Kind.WRATH; wrath.miracle = "anvil_rain"; wrath.power = 3; wrath.speech = "Падут наковальни.";
+        wrath.reasons = new ArrayList<>(List.of(new Verdict.Reason("хула и дерзость к богу — бог в бешенстве", -10, 3)));
+        log.add(PrayerLog.of(2000, "uuid-petya", "Петя", wrath, PrayerTone.of(wrath.prayer), true, "", 0));
+        Verdict silence = new Verdict(); silence.prayer = "эй"; silence.miracle = "ignore";
+        log.add(PrayerLog.of(3000, "uuid-dima", "Дима", silence, PrayerTone.of("эй"), false, "", 0));
+
+        JsonArray items = JsonParser.parseString(p.handle("{\"op\":\"prayers\",\"since\":0,\"limit\":50,\"player\":\"\"}")).getAsJsonObject().getAsJsonArray("items");
+        assertEquals(3, items.size());
+        assertEquals(3000, items.get(0).getAsJsonObject().get("t").getAsLong(), "newest first");
+        assertEquals("none", items.get(0).getAsJsonObject().getAsJsonObject("choice").get("kind").getAsString(), "silence");
+        JsonObject rude = items.get(1).getAsJsonObject();
+        assertEquals("Петя", rude.getAsJsonObject("player").get("name").getAsString());
+        assertEquals("rude", rude.get("tone").getAsString());
+        assertEquals("грубо", rude.get("toneTitle").getAsString());
+        JsonObject choice = rude.getAsJsonObject("choice");
+        assertEquals("wrath", choice.get("kind").getAsString());
+        assertEquals("anvil_rain", choice.get("deed").getAsString());
+        assertEquals("Дождь наковален", choice.get("deedTitle").getAsString());
+        assertEquals(3, choice.get("power").getAsInt());
+        assertEquals("rules", choice.get("decidedBy").getAsString());
+        assertEquals(-10, rude.getAsJsonArray("reasons").get(0).getAsJsonObject().get("mercy").getAsInt());
+        assertEquals(3, rude.getAsJsonArray("reasons").get(0).getAsJsonObject().get("power").getAsInt());
+
+        JsonArray dima = JsonParser.parseString(p.handle("{\"op\":\"prayers\",\"since\":0,\"limit\":50,\"player\":\"дима\"}")).getAsJsonObject().getAsJsonArray("items");
+        assertEquals(2, dima.size(), "by name, any case");
+        JsonObject bread = dima.get(1).getAsJsonObject();
+        assertEquals("polite", bread.get("tone").getAsString());
+        assertEquals("minecraft:bread", bread.get("offering").getAsString());
+        assertEquals(6, bread.get("offeringValue").getAsInt());
+        assertEquals("Ешь, смертный.", bread.get("answer").getAsString());
+        assertEquals("miracle", bread.getAsJsonObject("choice").get("kind").getAsString());
+        assertEquals("jev", bread.getAsJsonObject("choice").get("decidedBy").getAsString());
+        assertEquals(2, bread.getAsJsonArray("reasons").size());
+        assertEquals(1, JsonParser.parseString(p.handle("{\"op\":\"prayers\",\"player\":\"uuid-petya\"}")).getAsJsonObject().getAsJsonArray("items").size(), "by uuid");
+        assertEquals(1, JsonParser.parseString(p.handle("{\"op\":\"prayers\",\"since\":2500}")).getAsJsonObject().getAsJsonArray("items").size(), "since");
+        assertEquals(1, JsonParser.parseString(p.handle("{\"op\":\"prayers\",\"limit\":1}")).getAsJsonObject().getAsJsonArray("items").size(), "limit");
+        for (int i = 0; i < PrayerLog.LIMIT + 10; i++) log.add(PrayerLog.of(5000 + i, "u", "n", silence, PrayerTone.of(""), false, "", 0));
+        assertEquals(PrayerLog.LIMIT, log.query(0, 10_000, "").size(), "a ring of the last ones");
+    }
+
+    @Test void theOldClearStillRemovesTheBosses() {
+        List<String> ran = new ArrayList<>();
+        AdminProtocol.Host host = new FakeHost() {
+            @Override public List<AdminProtocol.Action> actions() {
+                Map<String, String> uuid = new LinkedHashMap<>(); uuid.put("uuid", "UUID босса");
+                return List.of(new AdminProtocol.Action("boss_remove", "Убрать босса", uuid), new AdminProtocol.Action("boss_clear", "Убрать всех", Map.of()),
+                        new AdminProtocol.Action("god_recall", "Отозвать Бога с булавой", Map.of()), new AdminProtocol.Action("court_end", "Закончить Небесный суд", Map.of()));
+            }
+            @Override public String run(String id, Map<String, String> args) { ran.add(id + args); return "ок"; }
+        };
+        AdminProtocol p = new AdminProtocol(host);
+        assertTrue(JsonParser.parseString(p.handle("{\"op\":\"action\",\"id\":\"clear\"}")).getAsJsonObject().get("ok").getAsBoolean());
+        assertTrue(JsonParser.parseString(p.handle("{\"op\":\"action\",\"id\":\"boss_remove\",\"args\":{\"uuid\":\"1-2-3\"}}")).getAsJsonObject().get("ok").getAsBoolean());
+        assertEquals(List.of("boss_clear{}", "boss_remove{uuid=1-2-3}"), ran, "clear is the old name of boss_clear");
+        JsonArray actions = JsonParser.parseString(p.handle("{\"op\":\"actions\"}")).getAsJsonObject().getAsJsonArray("actions");
+        assertEquals("uuid", actions.get(0).getAsJsonObject().getAsJsonArray("args").get(0).getAsJsonObject().get("key").getAsString());
+    }
+
     @Test void soulsAndActiveComeFromTheHostOrAnswerAnError() {
         JsonObject missing = JsonParser.parseString(protocol.handle("{\"op\":\"souls\"}")).getAsJsonObject();
         assertFalse(missing.get("ok").getAsBoolean(), "a host without souls says so instead of failing");
         AdminProtocol.Host souls = new FakeHost() {
-            @Override public JsonObject souls() { return JsonParser.parseString("{\"souls\":[{\"sins\":2}]}").getAsJsonObject(); }
-            @Override public JsonObject active() { return JsonParser.parseString("{\"bosses\":[],\"curses\":[]}").getAsJsonObject(); }
+            @Override public JsonObject souls() { return JsonParser.parseString("{\"souls\":[{\"sins\":2,\"mercy\":-12.5,\"label\":\"грешник\",\"deeds\":[]}]}").getAsJsonObject(); }
+            @Override public JsonObject active() {
+                return JsonParser.parseString("{\"bosses\":[],\"curses\":[],\"godAvatar\":{\"active\":false,\"player\":null},"
+                        + "\"skyCourt\":{\"active\":false,\"player\":null},\"blessings\":[]}").getAsJsonObject();
+            }
         };
         AdminProtocol withSouls = new AdminProtocol(souls);
         assertEquals(2, JsonParser.parseString(withSouls.handle("{\"op\":\"souls\"}")).getAsJsonObject().getAsJsonArray("souls").get(0).getAsJsonObject().get("sins").getAsInt());
-        assertTrue(JsonParser.parseString(withSouls.handle("{\"op\":\"active\"}")).getAsJsonObject().has("bosses"));
+        JsonObject soul = JsonParser.parseString(withSouls.handle("{\"op\":\"souls\"}")).getAsJsonObject().getAsJsonArray("souls").get(0).getAsJsonObject();
+        assertEquals("грешник", soul.get("label").getAsString());
+        JsonObject active = JsonParser.parseString(withSouls.handle("{\"op\":\"active\"}")).getAsJsonObject();
+        for (String key : List.of("bosses", "curses", "godAvatar", "skyCourt", "blessings")) assertTrue(active.has(key), key);
+        assertTrue(active.getAsJsonObject("skyCourt").get("player").isJsonNull());
     }
 }
