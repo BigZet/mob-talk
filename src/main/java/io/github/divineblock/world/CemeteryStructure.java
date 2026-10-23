@@ -67,8 +67,8 @@ public final class CemeteryStructure extends Structure {
         samples.sort(null);
         int base = samples.get(samples.size() / 2);
         CemeteryGround.Plan plan = CemeteryGround.plan(context.chunkGenerator(), context.world(), context.noiseConfig(), site, base, null);
-        LevelingPiece leveling = new LevelingPiece(plan.field(), List.of(), site.getMinY() - 20, site.getMaxY() + 12);
-        ClearingPiece clearing = new ClearingPiece(new BlockBox(site.getMinX() - 3, site.getMinY() - 20, site.getMinZ() - 3, site.getMaxX() + 3,
+        LevelingPiece leveling = new LevelingPiece(plan.field(), List.of(), site.getMaxY() + 12);
+        ClearingPiece clearing = new ClearingPiece(new BlockBox(site.getMinX() - 3, base, site.getMinZ() - 3, site.getMaxX() + 3,
                 site.getMaxY() + 30, site.getMaxZ() + 3), List.of());
         BlockPos center = new BlockPos(site.getCenter().getX(), base, site.getCenter().getZ());
         return Optional.of(new StructurePosition(center, collector -> {

@@ -27,8 +27,11 @@ public final class LevelingPiece extends StructurePiece {
     private final CemeteryGround.Field field;
     private final List<BlockBox> protect;
 
-    public LevelingPiece(CemeteryGround.Field field, List<BlockBox> protect, int minY, int maxY) {
-        super(ChurchWorldgen.LEVELING_PIECE, 0, field.box(minY, maxY).expand(CemeteryGround.MARGIN, 0, CemeteryGround.MARGIN));
+    /** The box starts at the field's lowest planned ground, not below it: the structure's terrain adaptation (beard) takes every
+     * piece's floor for ground and hollows the terrain out above it, so a box reaching under the ground left caves under the
+     * churchyard. The cut and fill still reach under it: the piece writes its columns outside its box's height. */
+    public LevelingPiece(CemeteryGround.Field field, List<BlockBox> protect, int maxY) {
+        super(ChurchWorldgen.LEVELING_PIECE, 0, field.box(lowest(field), maxY).expand(CemeteryGround.MARGIN, 0, CemeteryGround.MARGIN));
         this.field = field;
         this.protect = List.copyOf(protect);
         CemeteryGround.register(field);
@@ -52,6 +55,12 @@ public final class LevelingPiece extends StructurePiece {
         NbtList list = new NbtList();
         for (BlockBox b : protect) list.add(new NbtIntArray(new int[] { b.getMinX(), b.getMinY(), b.getMinZ(), b.getMaxX(), b.getMaxY(), b.getMaxZ() }));
         nbt.put("Protect", list);
+    }
+
+    private static int lowest(CemeteryGround.Field field) {
+        int min = Integer.MAX_VALUE;
+        for (int h : field.heights()) min = Math.min(min, h);
+        return min;
     }
 
     private boolean protectedColumn(int x, int z) {
