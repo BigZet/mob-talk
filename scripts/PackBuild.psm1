@@ -164,8 +164,8 @@ function Merge-ServerProperties([string[]]$Existing, [switch]$Public, [int]$Port
         @($values.Keys | ForEach-Object { "$_=$($values[$_])" })
 }
 
-# Key bindings the pack moves off our own keys (server-mods.json "pack" keys: Simple Voice Chat's V and G, JourneyMap's B
-# clash with Mob Talk's talk, gift and trade), as options.txt lines "key_<binding>:<key>".
+# Key bindings the pack moves so no two share a key (server-mods.json "pack" keys: Simple Voice Chat leaves V and G to Mob Talk;
+# JourneyMap creates waypoints on K and leaves G, B, N, M, F and C unbound), as options.txt lines "key_<binding>:<key>".
 function Get-PackKeyLines($Pins = (Get-ServerModPins)) {
     foreach ($m in @($Pins.pack)) {
         if (-not $m.keys) { continue }

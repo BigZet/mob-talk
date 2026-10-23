@@ -56,7 +56,7 @@
   ],
   "pack": [
     {
-      "id": "journeymap", "title": "JourneyMap", "side": "both", "keys": { "key_key.journeymap.create_waypoint": "key.keyboard.k" }, "version": "1.21.1-6.0.9+fabric", "fileName": "journeymap-fabric-1.21.1-6.0.9.jar",
+      "id": "journeymap", "title": "JourneyMap", "side": "both", "keys": { "key_key.journeymap.create_waypoint": "key.keyboard.k", "key_key.journeymap.toggle_entity_names": "key.keyboard.unknown", "key_key.journeymap.fullscreen_waypoints": "key.keyboard.unknown", "key_key.journeymap.fullscreen_create_waypoint": "key.keyboard.unknown", "key_key.journeymap.minimap_toggle_alt": "key.keyboard.unknown", "key_key.journeymap.fullscreen_follow_player": "key.keyboard.unknown", "key_key.journeymap.fullscreen_chat_position": "key.keyboard.unknown" }, "version": "1.21.1-6.0.9+fabric", "fileName": "journeymap-fabric-1.21.1-6.0.9.jar",
       "url": "https://cdn.modrinth.com/data/lfHFW1mp/versions/i7LuKuDl/journeymap-fabric-1.21.1-6.0.9.jar",
       "sha512": "b0e110edb13fe16ecac78f6ad6d4fbadb1bedf28f406cea843cd44ff25aeea8504c7325d7776844f7d6f8d7634b8e373fe5cbb0cfd29bcfca592cbf109822138"
     },
