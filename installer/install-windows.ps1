@@ -47,12 +47,17 @@ if ($exe) {
     $b = if ($builds.ContainsKey($arch)) { $builds[$arch] } else { $builds['AMD64'] }
     $zip = Join-Path $work $b.File
     Get-Checked "https://github.com/PrismLauncher/PrismLauncher/releases/download/$prismVersion/$($b.File)" $zip $b.Sha256
-    New-Item -ItemType Directory -Force $PrismDir | Out-Null
-    [IO.Compression.ZipFile]::ExtractToDirectory($zip, $PrismDir)
-    # Архив может лежать с папкой внутри: ищем prismlauncher.exe.
-    $found = Get-ChildItem -LiteralPath $PrismDir -Recurse -Filter 'prismlauncher.exe' | Select-Object -First 1
+    # Распаковка во временную папку и копирование поверх: повторный запуск после обрыва не спотыкается о старые файлы.
+    $unpack = Join-Path $work 'prism-unpack'
+    if (Test-Path -LiteralPath $unpack) { Remove-Item -Recurse -Force -LiteralPath $unpack }
+    [IO.Compression.ZipFile]::ExtractToDirectory($zip, $unpack)
+    # Архив может лежать с папкой внутри: берём папку, где prismlauncher.exe.
+    $found = Get-ChildItem -LiteralPath $unpack -Recurse -Filter 'prismlauncher.exe' | Select-Object -First 1
     if (-not $found) { throw "В архиве Prism нет prismlauncher.exe" }
-    $exe = $found.FullName
+    New-Item -ItemType Directory -Force $PrismDir | Out-Null
+    Copy-Item -Path (Join-Path $found.DirectoryName '*') -Destination $PrismDir -Recurse -Force
+    Remove-Item -Recurse -Force -LiteralPath $unpack
+    $exe = Join-Path $PrismDir 'prismlauncher.exe'
     # Портативный режим: настройки, аккаунты и сборки лежат рядом с программой, а не в %APPDATA%.
     $portable = Join-Path (Split-Path -Parent $exe) 'portable.txt'
     if (-not (Test-Path -LiteralPath $portable)) { [IO.File]::WriteAllText($portable, '') }

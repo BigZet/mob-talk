@@ -38,7 +38,7 @@ else
   fetch "$PRISM_URL" "$WORK/$PRISM_FILE" "$PRISM_SHA256"
   mkdir -p "$HOME/Applications"
   ditto -x -k "$WORK/$PRISM_FILE" "$WORK/prism" || fail "не удалось распаковать Prism"
-  FOUND="$(find "$WORK/prism" -maxdepth 2 -name 'Prism Launcher.app' -type d | head -n 1)"
+  FOUND="$(find "$WORK/prism" -maxdepth 2 -name 'Prism Launcher.app' -type d -not -path '*__MACOSX*' | head -n 1)"
   [ -n "$FOUND" ] || fail "в архиве Prism нет Prism Launcher.app"
   APP="$HOME/Applications/Prism Launcher.app"
   ditto "$FOUND" "$APP"
