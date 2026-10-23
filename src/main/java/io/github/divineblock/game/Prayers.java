@@ -98,6 +98,7 @@ public final class Prayers {
                     return;
                 }
                 if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) { THINKING.remove(player.getUuid()); return; }
+                echoPrayer(player, text);
                 pray(player, altar, world, text, config, judgement);
             });
         });
@@ -291,7 +292,11 @@ public final class Prayers {
         int id = nextLine++;
         String key = player.getUuid() + "/" + id;
         WAITING.put(key, speaking);
-        ServerPlayNetworking.send(player, new GodLinePayload(id, line.length() > 900 ? line.substring(0, 900) : line));
+        String said = line.length() > 900 ? line.substring(0, 900) : line;
+        // A dedicated server with a key voices the god itself, for everyone near: a friend without a key hears him too.
+        if (ServerGodVoice.available(player.getServer(), DivineBlockMod.config()) && ServerPlayNetworking.canSend(player, GodAudioPayload.ID))
+            ServerGodVoice.speak(player, id, said, () -> { if (!player.isRemoved()) ServerPlayNetworking.send(player, new GodLinePayload(id, said)); });
+        else ServerPlayNetworking.send(player, new GodLinePayload(id, said));
         Scheduler.later(VOICE_START_TIMEOUT_TICKS, () -> {
             if (!speaking.started && WAITING.remove(key) != null) speaking.end();
         });
@@ -419,8 +424,18 @@ public final class Prayers {
 
     private static void chat(ServerPlayerEntity player, String line) {
         spoken.accept(line);
-        player.sendMessage(Text.literal("[Бог] ").formatted(Formatting.GOLD, Formatting.BOLD)
-                .append(Text.literal(line == null || line.isBlank() ? "…" : line).formatted(Formatting.YELLOW, Formatting.ITALIC)), false);
+        String text = line == null || line.isBlank() ? "…" : line;
+        for (ServerPlayerEntity hearer : ServerGodVoice.listeners(player)) {
+            Text head = hearer == player ? Text.literal("[Бог] ").formatted(Formatting.GOLD, Formatting.BOLD)
+                    : Text.literal("[Бог → " + player.getName().getString() + "] ").formatted(Formatting.GOLD, Formatting.BOLD);
+            hearer.sendMessage(head.copy().append(Text.literal(text).formatted(Formatting.YELLOW, Formatting.ITALIC)), false);
+        }
+    }
+
+    /** The heard prayer, for the others near the altar: who prays and what he says (he himself knows). */
+    private static void echoPrayer(ServerPlayerEntity player, String text) {
+        for (ServerPlayerEntity hearer : ServerGodVoice.listeners(player))
+            if (hearer != player) hearer.sendMessage(Text.literal(player.getName().getString() + " молится: «" + text + "»").formatted(Formatting.GRAY, Formatting.ITALIC), false);
     }
     /** A service line (heard, ignored, what happened): only in debug mode, so the game itself shows nothing but the god. */
     static void hint(ServerPlayerEntity player, String line) {

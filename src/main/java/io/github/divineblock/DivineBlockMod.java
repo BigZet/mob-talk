@@ -45,6 +45,7 @@ public final class DivineBlockMod implements ModInitializer {
         PayloadTypeRegistry.playC2S().register(PrayPayload.ID, PrayPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(io.github.divineblock.game.PrayAudioPayload.ID, io.github.divineblock.game.PrayAudioPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(io.github.divineblock.game.GodLinePayload.ID, io.github.divineblock.game.GodLinePayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(io.github.divineblock.game.GodAudioPayload.ID, io.github.divineblock.game.GodAudioPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(io.github.divineblock.game.BeamsPayload.ID, io.github.divineblock.game.BeamsPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(io.github.divineblock.game.FlipPayload.ID, io.github.divineblock.game.FlipPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(io.github.divineblock.game.TornadoPayload.ID, io.github.divineblock.game.TornadoPayload.CODEC);

@@ -49,6 +49,46 @@ final class GodVoicePlayer {
 
     static void register() {
         ClientPlayNetworking.registerGlobalReceiver(GodLinePayload.ID, (payload, context) -> speak(context.client(), payload.id(), payload.line()));
+        ClientPlayNetworking.registerGlobalReceiver(io.github.divineblock.game.GodAudioPayload.ID, (payload, context) -> heard(context.client(), payload));
+    }
+
+    /** The line the server is voicing now (its pieces arrive in order) and the temple's reverb over it, per this player's taste. */
+    private static int incomingStream;
+    private static Buffer incoming;
+    private static VoiceEffects.Hall incomingHall;
+    private static boolean incomingStarted;
+
+    /** A piece of the god's voice from the server: played as it comes, through this player's own temple reverb. With the voice
+     * off here the words are only acknowledged, so the act does not wait for nothing. */
+    static void heard(MinecraftClient client, io.github.divineblock.game.GodAudioPayload piece) {
+        DivineConfig config = DivineBlockMod.config();
+        if (!config.voice || TEST_WITHOUT_SPEECH) {
+            if (piece.seq() == 0) ack(piece.ack(), -1);
+            if (piece.last()) ack(piece.ack(), 0);
+            return;
+        }
+        if (piece.seq() == 0) {
+            generation.incrementAndGet();
+            incomingStream = piece.stream();
+            incoming = new Buffer(piece.ack());
+            incomingHall = config.voiceTemple ? new VoiceEffects.Hall(GodVoice.SAMPLE_RATE, config.voiceEffects()) : null;
+            incomingStarted = false;
+        }
+        Buffer buffer = incoming;
+        if (buffer == null || piece.stream() != incomingStream || buffer.closed) return;
+        byte[] pcm = piece.pcm();
+        if (pcm.length > 0) { byte[] out = incomingHall != null ? incomingHall.process(pcm, 0, pcm.length) : pcm; buffer.append(out, out.length); }
+        if (piece.last()) {
+            buffer.wordsDone();
+            if (incomingHall != null && buffer.size() > 0) { byte[] tail = incomingHall.finish(); buffer.append(tail, tail.length); }
+            buffer.finish();
+            incoming = null;
+        }
+        if (!incomingStarted && (buffer.size() >= PREBUFFER || piece.last())) {
+            incomingStarted = true;
+            if (buffer.size() > 0 && client.world != null) { play(client, buffer); ack(buffer.id, -1); }
+            else ack(buffer.id, 0);
+        }
     }
 
     static final String PREVIEW_LINE = "Ты взвешен на весах и найден лёгким, смертный. Что посеял, то и пожнёшь.";
