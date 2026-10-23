@@ -5,7 +5,7 @@ import { h, icon, replace, avatar } from '../lib/dom.js';
 import { api } from '../lib/api.js';
 import { on } from '../lib/sse.js';
 import * as fmt from '../lib/fmt.js';
-import { RANGES, rangeMs, seg, load, confirm, busy, toast, empty, errorBox, skeleton, table, stat } from '../lib/ui.js';
+import { RANGES, rangeMs, seg, load, confirm, ask, busy, toast, empty, errorBox, skeleton, table, stat } from '../lib/ui.js';
 import { timeChart } from '../lib/chart.js';
 import { recordRow, pname } from '../lib/record.js';
 import { drawActions } from './settings.js';
@@ -13,8 +13,10 @@ import { setParams } from '../app.js';
 
 /** Ответы бога: подпись и цвет графика (слот палитры). */
 const ACT = { wrath: ['Кары', 8], miracle: ['Блага', 3], warning: ['Знамения', 5], jest: ['Шутки', 6], none: ['Молчание', 7] };
-/** Действия с боссами рисуются у самих боссов, а не в общем списке действий. */
-const BOSS_ACTIONS = new Set(['boss_remove', 'boss_clear', 'clear', 'god_recall', 'court_end']);
+/** Действия, у которых своё место на вкладке (у боссов, у души), а не общий список действий. */
+const OWN_PLACE = new Set(['boss_remove', 'boss_clear', 'clear', 'god_recall', 'court_end', 'mercy', 'act']);
+/** Своя кнопка у души, а не общая кнопка действия по игроку. */
+const SOUL_OWN = new Set(['mercy', 'act']);
 const CHOICE = { miracle: ['благо', '.good'], wrath: ['кара', '.bad'], warning: ['знамение', '.warn'], jest: ['шутка', ''], none: ['без ответа', ''] };
 const TONE = { profane: '.bad', rude: '.bad', urgent: '.warn', penitent: '.good' };
 /** Проклятия, которые держатся до двадцати минут (Curses.Type в моде), простыми словами. */
@@ -39,7 +41,7 @@ export default function divine(root, route) {
   let range = route.params.range || '7d';
   const cleanup = [], charts = [];
   let actions = [], deeds = new Map(), disabled = new Set();
-  const tiles = h('div.grid.stats.four'), soulsBox = h('div.card.flush'), activeBox = h('div'), verdicts = h('div.list'), statBox = h('div.chart'),
+  const tiles = h('div.grid.stats'), soulsBox = h('div.card.flush'), activeBox = h('div'), verdicts = h('div.list'), statBox = h('div.chart'),
     topBox = h('div'), actionsBox = h('div'), prayersBox = h('div.list'), catalogBox = h('div');
   let prayerPlayer = route.params.player || '';
   const playerSel = h('select.select', { 'aria-label': 'Игрок', style: { width: 'auto' }, onchange: e => { prayerPlayer = e.target.value; setParams({ player: prayerPlayer || null }); drawPrayers(); } }, h('option', { value: '' }, 'все игроки'));
@@ -77,7 +79,7 @@ export default function divine(root, route) {
     drawStats();
     drawCatalog();
     loadVerdicts();
-    drawActions({ id: 'divineblock', title: 'Божественный блок' }, actions.filter(a => !BOSS_ACTIONS.has(a.id)), actionsBox);
+    drawActions({ id: 'divineblock', title: 'Божественный блок' }, actions.filter(a => !OWN_PLACE.has(a.id)), actionsBox);
   }).catch(e => replace(root, h('div.page-head', h('h1', 'Бог')), errorBox(e.status === 503 ? { status: 503, message: 'Божественного блока нет в этой сборке или он ещё не подключён к админке.' } : e, () => divine(root, route))));
 
   /** Описание деяния из справочника, без технической приставки группы силы («METEOR «…»: »). */
@@ -112,6 +114,7 @@ export default function divine(root, route) {
     replace(tiles,
       stat({ label: 'Молитв за сутки', iconName: 'divine', value: day ? fmt.num(total) : '—', hint: total ? `благ ${fmt.num(sum('miracle'))} · шуток ${fmt.num(sum('jest'))} · молчал ${fmt.num(sum('none'))}` : 'никто не молился' }),
       stat({ label: 'Кар за сутки', iconName: 'divine', value: day ? fmt.num(sum('wrath')) : '—', tone: sum('wrath') ? 'bad' : '', hint: 'наказаний по молитвам' }),
+      stat({ label: 'Кары идут', iconName: 'live', value: fmt.num((a.punishments || []).length), tone: (a.punishments || []).length ? 'warn' : '', hint: (a.punishments || []).length ? (a.punishments || []).map(p => pname(p.player)).join(', ') : 'никого не карают' }),
       stat({ label: 'Под проклятием', iconName: 'players', value: fmt.num(cursed), tone: cursed ? 'warn' : '', hint: cursed ? `проклятий всего ${fmt.num(a.curses.length)}` : 'никого' }),
       stat({ label: 'Живых боссов', iconName: 'mobs', value: fmt.num(bosses), tone: bosses ? 'bad' : '', hint: a.godAvatar?.active ? 'бог сошёл на землю' : a.skyCourt?.active ? 'идёт небесный суд' : 'бог спокоен' }));
   }
@@ -135,13 +138,15 @@ export default function divine(root, route) {
       { key: 'ladder', title: 'Кары подряд', desc: true, render: s => ladderCell(s.ladder || 0) },
       { key: 'deeds', title: 'Что бог помнит', sortable: false, render: s => (s.deeds?.length ? h('div.muted', { style: { fontSize: '12.5px', maxWidth: '280px' } }, s.deeds.slice(0, 3).map(d => d.text).join('; ')) : h('span.muted', 'ничего')) },
       { key: 'curses', title: 'Проклятия', sortable: false, render: s => (s.curses?.length ? h('div.chips', s.curses.map(c => h('span.badge.warn', { title: curseHelp(c.title) }, c.title, ' ', h('span.num.countdown', { dataset: { until: c.until } }, fmt.countdown(c.until))))) : h('span.muted', 'нет')) },
-      { key: 'act', title: '', sortable: false, render: s => soulActions(s) },
+      { key: 'act', title: 'Управление', sortable: false, render: s => soulActions(s) },
     ], souls, { sort: { key: 'sins', dir: -1 } }) : empty('Душ пока нет: никто не молился.'));
   }
   function soulActions(s) {
-    const perPlayer = actions.filter(a => a.args?.some(x => x.key === 'player'));
-    if (!perPlayer.length) return null;
-    return h('div.row.nowrap', perPlayer.filter(a => a.id !== 'unban' || s.banned).map(a => {
+    const perPlayer = actions.filter(a => a.args?.some(x => x.key === 'player') && !SOUL_OWN.has(a.id) && a.id !== 'streamer');
+    const own = [has('mercy') && ownButton('Милость…', () => mercyDialog(s)), has('act') && ownButton('Кара…', () => actDialog(s, 'wrath'), '.danger'),
+      has('act') && ownButton('Благо…', () => actDialog(s, 'good'))].filter(Boolean);
+    if (!perPlayer.length && !own.length) return null;
+    return h('div.row', { style: { flexWrap: 'wrap', gap: '6px' } }, own, perPlayer.filter(a => a.id !== 'unban' || s.banned).map(a => {
       const btn = h(`button.btn.sm${a.danger ? '.danger' : ''}`, { type: 'button', title: a.help || '', onclick: async e => {
         e.stopPropagation();
         if (!(await confirm({ title: `${a.title}: ${pname(s.player)}?`, consequence: a.danger || 'Подействует сразу.', ok: a.title, danger: !!a.danger }))) return;
@@ -149,6 +154,34 @@ export default function divine(root, route) {
       } }, a.title);
       return btn;
     }));
+  }
+  function ownButton(title, run, cls = '') {
+    const btn = h(`button.btn.sm${cls}`, { type: 'button' }, title);
+    btn.addEventListener('click', e => { e.stopPropagation(); run(btn); });
+    return btn;
+  }
+  const runAct = (args, done) => api.post('sources/divineblock/actions/' + args.id, { args: args.args }).then(r => { toast(r.message || 'Готово'); done?.(); })
+    .catch(e => toast(e.message || String(e), 'bad'));
+  async function mercyDialog(s) {
+    const r = await ask({ title: `Милость: ${pname(s.player)}`, text: `Сейчас ${Math.round(s.mercy ?? 0)} (${s.label || '—'}). Шкала от −100 до +100; от неё зависит, карает бог или милует.`,
+      fields: [{ key: 'mode', title: 'Что сделать', options: [{ value: '+', title: 'Прибавить' }, { value: '-', title: 'Отнять' }, { value: '=', title: 'Установить ровно' }], value: '+' },
+        { key: 'n', title: 'Сколько', type: 'number', value: '10' }], ok: 'Применить' });
+    if (!r) return;
+    const n = Math.abs(Number(r.n));
+    if (!Number.isFinite(n)) return toast('Нужно число', 'bad');
+    runAct({ id: 'mercy', args: { player: pname(s.player), amount: r.mode === '=' ? `=${Number(r.n)}` : `${r.mode}${n}` } }, () => { reloadSouls(); });
+  }
+  async function actDialog(s, side) {
+    const pick = [...deeds.values()].filter(d => (side === 'wrath' ? d.group === 'wrath' : d.group !== 'wrath'));
+    const fields = [pick.length
+      ? { key: 'deed', title: side === 'wrath' ? 'Кара' : 'Благо, шутка или знамение', options: pick.map(d => ({ value: d.id, title: `${side === 'wrath' ? '' : d.groupTitle + ': '}${d.title}${disabled.has(d.id) ? ' (выключено в настройках)' : ''}` })) }
+      : { key: 'deed', title: 'Деяние (id)', placeholder: side === 'wrath' ? 'lightning' : 'heal' },
+      { key: 'power', title: 'Сила', options: [1, 2, 3, 4].map(p => ({ value: String(p), title: `${p}${p === 1 ? ' — слабо' : p === 4 ? ' — сильнее некуда' : ''}` })), value: '2' }];
+    const r = await ask({ title: `${side === 'wrath' ? 'Покарать' : 'Послать благо'}: ${pname(s.player)}`, fields, ok: side === 'wrath' ? 'Покарать' : 'Послать', danger: side === 'wrath',
+      text: 'Падёт сразу, если игрок сейчас на сервере. Сила обрезается до того, что деяние умеет. Описание деяния — в справочнике «Что может бог» ниже.',
+      consequence: side === 'wrath' ? 'Кара бьёт по-настоящему: может разрушить постройки и убить игрока.' : undefined });
+    if (!r) return;
+    runAct({ id: 'act', args: { player: pname(s.player), deed: r.deed, power: r.power } }, () => { drawActive(); drawPrayers(); });
   }
   const reloadSouls = () => api.get('divine/souls').then(drawSouls).catch(e => replace(soulsBox, errorBox(e, reloadSouls)));
 
@@ -185,7 +218,15 @@ export default function divine(root, route) {
       clearAll?.addEventListener('click', () => godAction(clearAll, has('boss_clear') ? 'boss_clear' : 'clear', {}, `Убрать всех боссов (${bosses.length})?`, 'Все священные боссы исчезнут сразу.'));
       const god = [godRow(a.godAvatar, 'Бог с булавой', 'god_recall', 'Отозвать бога', 'Аватар бога уйдёт, кара закончится.'),
         godRow(a.skyCourt, 'Небесный суд', 'court_end', 'Закончить суд', 'Суд закончится, игрок вернётся туда, откуда его забрали.')].filter(Boolean);
-      return h('div.grid.two',
+      const punishments = a.punishments || [];
+      const running = h('section.card', h('div.card-head', h('h2', 'Кары идут сейчас'), h('span.badge', punishments.length)),
+        note('Кара от вердикта до удара и ещё 10 секунд после (не дольше минуты). Пока идёт, новый грех не шлёт вторую кару, а утяжеляет эту.'),
+        punishments.length ? h('div.list', punishments.map(p => h('div.list-item', { style: { padding: '8px 0', alignItems: 'flex-start' } }, avatar(pname(p.player)),
+          h('div.body', h('div', { style: { fontWeight: 600 } }, p.title, h('span.muted', { style: { fontWeight: 400 } }, ` · ${pname(p.player)}`)),
+            h('div.meta', `началась ${fmt.ago(p.since)}`, p.strengthened ? h('span.badge.bad', `утяжелена ×${p.strengthened}`) : null, p.moved ? h('span', 'игрока уже переносили') : null,
+              p.deed && deedHelp(p.deed) ? h('span', deedHelp(p.deed)) : null)),
+          h('span.badge.warn.num.countdown', { dataset: { until: p.until }, title: 'до конца' }, fmt.countdown(p.until))))) : h('p.muted', 'Сейчас никого не карают.'));
+      return h('div.stack', running, h('div.grid.two',
         h('section.card', h('div.card-head', h('h2', 'Живые боссы'), h('span.badge', bosses.length), clearAll),
           note('Священные боссы и сам бог, посланные за грехи. Убранный босс исчезает без добычи.'),
           god.length ? h('div.stack', { style: { marginBottom: '12px' } }, god) : null,
@@ -194,7 +235,7 @@ export default function divine(root, route) {
           h('section.card', h('div.card-head', h('h2', 'Проклятия сейчас'), h('span.badge', curses.length)),
             note('Кары, которые ещё действуют. Справа — сколько осталось; покаяние снимает их раньше.'), timed(curses, 'Никто не проклят.', curseHelp)),
           h('section.card', h('div.card-head', h('h2', 'Блага сейчас'), h('span.badge', blessings.length)),
-            note('Долгие милости бога: сила, скорость, благословение.'), timed(blessings, 'Благ на время нет.', () => ''))));
+            note('Долгие милости бога: сила, скорость, благословение.'), timed(blessings, 'Благ на время нет.', () => '')))));
     }, { lines: 4 });
   }
 
@@ -211,10 +252,36 @@ export default function divine(root, route) {
         p.answer && h('div.muted', `Бог: «${p.answer}»`),
         h('div.meta', kind && h(`span.badge${cls}`, kind), p.choice?.deedTitle && h('span', { title: help || '', style: help ? { textDecoration: 'underline dotted', cursor: 'help' } : {} }, p.choice.deedTitle),
           p.choice?.power ? h('span', `сила ${p.choice.power} из 4`) : null,
-          p.choice?.decidedBy && h('span', p.choice.decidedBy === 'jev' ? 'решила нейросеть' : 'решили правила'), p.choice?.note && h('span', p.choice.note)),
+          p.choice?.decidedBy && h('span', { jev: 'решила нейросеть Jev', admin: 'послал админ' }[p.choice.decidedBy] || 'решили правила'), p.choice?.note && h('span', p.choice.note)),
         help && h('div.muted', { style: { fontSize: '12px' } }, help),
-        reasons && h('div.muted', { style: { fontSize: '12px' } }, 'Почему: ', reasons)),
+        reasons && h('div.muted', { style: { fontSize: '12px' } }, 'Почему: ', reasons),
+        p.decision && decisionBox(p.decision, p.choice)),
       h('time.time', { datetime: new Date(p.t).toISOString(), title: fmt.dateTimeFull(p.t) }, fmt.ago(p.t)));
+  }
+  /** «Как решал бог»: итог причин, склонность и ступень, бюджет силы и вероятности групп — Jev, лестница и итог. */
+  function decisionBox(d, choice) {
+    const ids = Object.keys(d.odds || {}).length ? Object.keys(d.odds) : Object.keys(d.ladder || {});
+    const pct = v => (v == null ? '—' : `${Math.round(v * 100)}%`);
+    const bar = (v, color) => h('div.meter', { style: { height: '6px', minWidth: '60px' } }, h('i', { style: { width: `${Math.round((v || 0) * 100)}%`, background: color } }));
+    const jev = d.jev && Object.keys(d.jev).length;
+    const facts = [
+      ['Итог причин', `${d.favor > 0 ? '+' : ''}${d.favor} к милости, сила ${d.force}`],
+      ['Склонность', `${d.inclination || '—'}${d.fury ? ' (ярость)' : ''}${d.forgiveness ? ' (прощение)' : ''}`],
+      ['Ступень', `${d.level} из 10`], ['Бюджет силы', `${d.budget} из 4`], ['Кар подряд', d.escalation ? `+${d.escalation} ступ.` : 'нет']];
+    return h('details', { style: { marginTop: '6px' } },
+      h('summary', { style: { cursor: 'pointer', fontSize: '12.5px', color: 'var(--text-2)' } }, 'Как решал бог'),
+      h('div', { style: { fontSize: '12.5px', marginTop: '6px' } },
+        h('div.chips', facts.map(([k, v]) => h('span.badge', { title: k }, `${k}: ${v}`))),
+        ids.length ? h('table', { style: { marginTop: '8px', borderCollapse: 'collapse', width: '100%', maxWidth: '560px' } },
+          h('thead', h('tr', ['Группа', jev ? 'Jev' : null, 'Лестница', 'Итог'].filter(Boolean).map(t => h('th', { style: { textAlign: 'left', fontWeight: 600, padding: '2px 6px' } }, t)))),
+          h('tbody', ids.map(id => h('tr', { style: id === d.group || (id === 'silence' && choice?.kind === 'none') ? { background: 'var(--accent-soft)' } : {} },
+            h('td', { style: { padding: '2px 6px' } }, d.labels?.[id] || id, id === d.group ? ' ✓' : ''),
+            jev ? h('td', { style: { padding: '2px 6px' } }, h('div.row.nowrap', bar(d.jev[id], 'var(--s5)'), pct(d.jev[id]))) : null,
+            h('td', { style: { padding: '2px 6px' } }, h('div.row.nowrap', bar(d.ladder?.[id], 'var(--s6)'), pct(d.ladder?.[id]))),
+            h('td', { style: { padding: '2px 6px' } }, h('div.row.nowrap', bar(d.odds?.[id], 'var(--s8)'), h('b', pct(d.odds?.[id])))))))) : h('div.muted', { style: { marginTop: '6px' } }, 'Выбора группы не было: знамение, прощение или молчание по правилам.'),
+        h('div.muted', { style: { marginTop: '6px' } }, jev
+          ? 'Итог = половина мнения Jev + половина лестницы (колокол вокруг ступени); из итога бог тянет жребий. ✓ — что выпало.'
+          : 'Jev не участвовал: решала лестница (колокол вокруг ступени), из неё бог тянет жребий. ✓ — что выпало.')));
   }
   function drawPrayers() {
     load(prayersBox, () => api.get('divine/prayers', { player: prayerPlayer, limit: 50 }), r => (r.items?.length ? r.items.map(prayerRow) : empty(prayerPlayer ? 'Этот игрок ещё не молился.' : 'Молитв ещё не было.')), { lines: 4 });
