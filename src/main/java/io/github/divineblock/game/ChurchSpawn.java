@@ -50,6 +50,16 @@ public final class ChurchSpawn {
         catch (java.io.IOException unreadable) { return false; }
     }
 
+
+    /** Whether pos lies in the church (or its walled yard) that stands at the world spawn: the spawn church keeps no guardian. */
+    public static boolean atSpawnChurch(ServerWorld world, BlockPos pos) {
+        if (world.getRegistryKey() != net.minecraft.world.World.OVERWORLD) return false;
+        var site = ChurchSites.near(world, pos);
+        if (site.isEmpty()) return false;
+        BlockPos spawn = world.getSpawnPos();
+        return site.get().yard().expand(24).contains(new BlockPos(spawn.getX(), site.get().yard().getMinY(), spawn.getZ()))
+                || site.get().church().expand(24).contains(new BlockPos(spawn.getX(), site.get().church().getMinY(), spawn.getZ()));
+    }
     private static void place(MinecraftServer server) {
         ServerWorld world = server.getOverworld();
         Structure church = world.getRegistryManager().get(RegistryKeys.STRUCTURE).get(ChurchWorldgen.STRUCTURE);
