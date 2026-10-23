@@ -56,6 +56,17 @@ public final class GodLedger {
     /** Punishments that waited for a mortal who left before the god's last word (see {@link DeferredWrath}). */
     public DeferredWrath deferred = new DeferredWrath();
 
+    /** The god forgets a player: righteousness, mood, prayers, the chronicle and the punishments in a row start anew. Only the
+     * statistics' last values stay, so the deed watcher does not count his whole past again as new deeds. False when there was nothing. */
+    public boolean forget(String player) {
+        Soul old = souls.remove(player);
+        if (old == null) return false;
+        Soul fresh = new Soul();
+        fresh.statBaselines = old.statBaselines;
+        souls.put(player, fresh);
+        return true;
+    }
+
     public Soul soul(java.util.UUID player) { return souls.computeIfAbsent(player.toString(), id -> new Soul()); }
 
     private static final Gson GSON = new GsonBuilder().create();

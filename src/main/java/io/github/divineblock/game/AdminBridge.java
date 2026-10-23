@@ -121,6 +121,8 @@ public final class AdminBridge implements UnaryOperator<String> {
                     new AdminProtocol.Action("court_end", "Закончить Небесный суд", Map.of()),
                     new AdminProtocol.Action("streamer", "Назначить стримера", args("player", "Ник (пусто — снять)")),
                     new AdminProtocol.Action("mercy", "Изменить милость", args("player", "Ник", "amount", "На сколько (+10, -15) или =значение (=40)")),
+                    new AdminProtocol.Action("forget", "Стереть память бога об игроке", args("player", "Ник")),
+                    new AdminProtocol.Action("forget_all", "Стереть память бога обо всех", Map.of()),
                     new AdminProtocol.Action("act", "Послать деяние", args("player", "Ник (в игре)", "deed", "Деяние (id)", "power", "Сила 1–4")));
         }
 
@@ -204,6 +206,24 @@ public final class AdminBridge implements UnaryOperator<String> {
                     String done = String.format(java.util.Locale.ROOT, "милость %s: %.0f → %.0f (%s)", profile.getName(), before, after, righteousness.label());
                     Multiplayer.journal(GodJournal.Kind.VERDICT, profile.getName(), "админ изменил " + done);
                     yield done;
+                }
+                case "forget" -> {
+                    var profile = Multiplayer.profile(running, player).orElseThrow(() -> new IllegalArgumentException("игрок " + player + " не найден"));
+                    DivineState state = DivineState.of(running);
+                    boolean known = state.ledger.forget(profile.getId().toString());
+                    Prayers.PENANCE.end(profile.getId());
+                    state.markDirty();
+                    Multiplayer.journal(GodJournal.Kind.VERDICT, profile.getName(), "админ стёр память бога об игроке");
+                    yield known ? "бог забыл " + profile.getName() + ": милость, поступки, молитвы и кары подряд с нуля" : "бог и так ничего не помнит о " + profile.getName();
+                }
+                case "forget_all" -> {
+                    DivineState state = DivineState.of(running);
+                    List<String> ids = new java.util.ArrayList<>(state.ledger.souls.keySet());
+                    for (String soul : ids) state.ledger.forget(soul);
+                    Prayers.PENANCE.clear();
+                    state.markDirty();
+                    Multiplayer.journal(GodJournal.Kind.VERDICT, "", "админ стёр память бога обо всех: " + ids.size());
+                    yield "бог забыл всех: " + ids.size();
                 }
                 case "act" -> {
                     ServerPlayerEntity target = running.getPlayerManager().getPlayer(player);
