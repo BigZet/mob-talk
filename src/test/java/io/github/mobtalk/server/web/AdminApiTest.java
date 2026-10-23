@@ -170,6 +170,11 @@ class AdminApiTest {
         assertEquals(200, send("POST", test2 + "/ban", "{\"reason\":\"тест\"}", true).statusCode());
         assertTrue(json(send("GET", test2, null, false)).get("banned").getAsBoolean());
         assertEquals(409, send("POST", test2 + "/kick", "{}", true).statusCode(), "кик офлайн-игрока");
+        assertEquals(409, send("POST", test2 + "/gamemode", "{\"mode\":\"creative\"}", true).statusCode(), "режим офлайн-игрока");
+        String bigzet = "/api/players/" + DevStubServer.BIGZET;
+        assertEquals(400, send("POST", bigzet + "/gamemode", "{\"mode\":\"god\"}", true).statusCode());
+        assertEquals(200, send("POST", bigzet + "/gamemode", "{\"mode\":\"creative\"}", true).statusCode());
+        assertEquals("creative", json(send("GET", bigzet, null, false)).get("gamemode").getAsString());
         assertEquals(200, send("POST", "/api/streamer", "{\"uuid\":\"" + DevStubServer.TEST2 + "\"}", true).statusCode());
         assertEquals(200, send("POST", "/api/mobs/fb57b8eb-d3e2-4f1e-8da3-2101caf9f459/card", "{\"name\":\"Тереза Ивановна\"}", true).statusCode());
         assertEquals("Тереза Ивановна", json(send("GET", "/api/mobs/fb57b8eb-d3e2-4f1e-8da3-2101caf9f459", null, false)).getAsJsonObject("card").get("name").getAsString());

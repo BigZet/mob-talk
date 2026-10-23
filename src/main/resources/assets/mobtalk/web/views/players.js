@@ -79,6 +79,11 @@ export default function players(root, route) {
 }
 
 /** Карточка игрока в шторке. */
+const GAMEMODES = { survival: 'выживание', creative: 'творческий', adventure: 'приключение', spectator: 'наблюдатель' };
+const STT = { auto: 'сам выбирает', local: 'свой Whisper', server: 'через сервер', text: 'только текст', '': '—' };
+/** Какой путь распознавания игрок выбрал в F7 и каким пришла его последняя реплика. */
+const sttLine = s => `выбран: ${STT[s.chosen] ?? s.chosen}${s.last ? ` · последняя реплика: ${STT[s.last] ?? s.last}` : ''}`;
+
 export function card(uuid, onClose, onChanged = () => {}) {
   const d = drawer('Игрок', { onClose });
   const charts = [];
@@ -109,13 +114,20 @@ export function card(uuid, onClose, onChanged = () => {}) {
       if (!on && !(await confirm({ title: `Убрать ${p.name} из whitelist?`, consequence: 'Игрок не сможет зайти, пока его не вернут в список.', ok: 'Убрать', danger: true }))) { wl.querySelector('input').checked = true; return; }
       act('whitelist', { on }, on ? 'Добавлен в whitelist' : 'Убран из whitelist').catch(e => { toast(e.message, 'bad'); reload(); });
     } });
+    const modeSel = h('select.select', { 'aria-label': 'Режим игры', style: { width: 'auto' }, disabled: !p.online, title: p.online ? '' : 'Игрок не в сети' },
+      Object.entries(GAMEMODES).map(([v, t]) => h('option', { value: v, selected: p.gamemode === v }, t)));
+    modeSel.addEventListener('change', async () => {
+      if (!(await confirm({ title: `Режим «${GAMEMODES[modeSel.value]}» для ${p.name}?`, consequence: 'Режим сменится сразу, игрок увидит это в игре.', ok: 'Сменить' }))) { modeSel.value = p.gamemode || 'survival'; return; }
+      busy(modeSel, () => act('gamemode', { mode: modeSel.value }, 'Режим изменён'));
+    });
     const chartEl = h('div.chart');
     const out = [
       h('div.row.nowrap', avatar(p.name, 'lg'), h('div.grow', h('h2', p.name), h('div.row', { style: { gap: '4px', marginTop: '4px' } }, badges(p)), h('div.muted.mono', { style: { marginTop: '4px', fontSize: '12px' } }, p.uuid))),
       kv([['Сейчас', p.online ? ACTIVITY[p.activity] || p.activity || 'в игре' : `не в сети, был ${fmt.ago(p.lastSeen)}`], ['Время в игре', fmt.duration(p.onlineSeconds)], ['Диалогов', fmt.num(p.dialogues)],
-        ['Расходы', `${fmt.usd(p.costTodayUsd)} сегодня · ${fmt.usd(p.costTotalUsd)} всего`], p.banned && ['Причина бана', p.banReason || '—']]),
+        ['Расходы', `${fmt.usd(p.costTodayUsd)} сегодня · ${fmt.usd(p.costTotalUsd)} всего`], p.stt && ['Распознавание речи', sttLine(p.stt)], p.banned && ['Причина бана', p.banReason || '—']]),
       h('section.stack', h('h3', 'Управление'),
         h('div.row', h('span.grow', 'Уровень прав'), levelSel),
+        h('div.row', h('span.grow', 'Режим игры'), modeSel),
         h('label.row', h('span.grow', 'В whitelist'), wl),
         h('div.row', streamerBtn, kick, ban)),
       h('section.stack', h('h3', 'Местоположение'), positionBlock({ uuid, name: p.name }, p.online)),

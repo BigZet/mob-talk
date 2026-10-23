@@ -216,6 +216,11 @@ final class LiveGameView implements GameView {
             out.add("relations", Json.array(relations));
             out.add("settings", PlayerSettingsStore.find(id).map(settings -> JsonParser.parseString(settings.toJson())).orElse(new JsonObject()));
             out.addProperty("activity", activity(id));
+            ServerPlayerEntity online = players_().getPlayer(id);
+            if (online != null) out.addProperty("gamemode", online.interactionManager.getGameMode().getName());
+            DialogueService service = dialogue.get();
+            String chosen = PlayerSettingsStore.find(id).map(settings -> settings.applyTo(ServerConfig.get()).sttPath).orElse("");
+            out.add("stt", Json.obj("chosen", chosen, "last", service == null ? "" : service.lastStt(id)));
             return out;
         });
     }
@@ -252,6 +257,13 @@ final class LiveGameView implements GameView {
                     return Json.ok(name + " забанен");
                 }
                 case "unban" -> { players_().getUserBanList().remove(profile); return Json.ok("Бан " + name + " снят"); }
+                case "gamemode" -> {
+                    if (online == null) throw ApiException.conflict(name + " не в игре: режим меняется, пока игрок на сервере.");
+                    net.minecraft.world.GameMode mode = net.minecraft.world.GameMode.byName(body == null ? "" : String.valueOf(Json.string(body, "mode")), null);
+                    if (mode == null) throw ApiException.badRequest("mode — survival, creative, adventure или spectator.");
+                    online.changeGameMode(mode);
+                    return Json.ok(name + ": режим " + mode.getName());
+                }
                 case "whitelist" -> {
                     boolean on = body != null && body.has("on") && body.get("on").getAsBoolean();
                     if (on) players_().getWhitelist().add(new WhitelistEntry(profile)); else players_().getWhitelist().remove(profile);

@@ -156,6 +156,13 @@ public final class FixtureGame implements GameView {
             }
             case "ban" -> { player.addProperty("banned", true); player.addProperty("banReason", Json.string(body, "reason")); player.addProperty("online", false); return Json.ok(name + " забанен"); }
             case "unban" -> { player.addProperty("banned", false); player.add("banReason", null); return Json.ok(name + " разбанен"); }
+            case "gamemode" -> {
+                if (!player.get("online").getAsBoolean()) throw ApiException.conflict(name + " не в игре.");
+                String mode = String.valueOf(Json.string(body, "mode"));
+                if (!java.util.Set.of("survival", "creative", "adventure", "spectator").contains(mode)) throw ApiException.badRequest("Нет такого режима.");
+                player.addProperty("gamemode", mode);
+                return Json.ok(name + ": режим " + mode);
+            }
             default -> {
                 boolean on = body.has("on") && body.get("on").getAsBoolean();
                 player.addProperty("whitelisted", on);

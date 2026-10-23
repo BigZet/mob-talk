@@ -229,7 +229,7 @@ public final class AdminApi {
         router.get("/api/players/{uuid}", r -> Response.json(player(uuid(r.param("uuid")))));
         router.post("/api/players/{uuid}/{action}", r -> {
             String action = r.param("action");
-            if (!Set.of("level", "kick", "ban", "unban", "whitelist").contains(action)) throw ApiException.notFound("Нет такого действия.");
+            if (!Set.of("level", "kick", "ban", "unban", "whitelist", "gamemode").contains(action)) throw ApiException.notFound("Нет такого действия.");
             UUID player = uuid(r.param("uuid"));
             JsonObject body = r.json(), answer = parts.game().playerAction(player, action, body);
             parts.history().append("command", null, null, "Админка: " + action + " " + player + " " + Json.GSON.toJson(body),

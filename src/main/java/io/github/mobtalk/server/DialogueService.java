@@ -163,6 +163,8 @@ public final class DialogueService {
         final MobStateSync.Tracker tracker = new MobStateSync.Tracker();
         /** Путь, которым пришла последняя реплика (text/local/server), и ключ её записи в журнале админки. */
         volatile String stt = "text"; volatile Object run;
+        /** Путь последней реплики игрока (для админки), "" — ещё не говорил. */
+        volatile String lastStt = "";
         /** Во что обошёлся последний ответ собеседника: пул пишет, доставка отдаёт в журнал. */
         volatile LlmSpend.Tally spend = LlmSpend.Tally.NONE;
         Session(UUID player) { this.player = player; }
@@ -500,6 +502,7 @@ public final class DialogueService {
         session.requestActive = true;
         session.status("Моб думает…");
         String stt = session.stt;
+        session.lastStt = stt;
         Object run = journal.started(session.player, request.playerName, request.target, request.mobName,
                 request.snapshot == null ? bridge.memory().typeOf(request.target) : request.snapshot.type(), question, stt);
         session.run = run;
@@ -937,4 +940,6 @@ public final class DialogueService {
     public boolean busyTalking(UUID player) { Session session = sessions.get(player); return session != null && session.busyTalking(); }
     public boolean witnessPending(UUID player) { Session session = sessions.get(player); return session != null && session.witnessPending(); }
     public UUID holderOf(UUID mob) { Session session = busyMobs.get(mob); return session == null ? null : session.player; }
+    /** Каким путём распознавания пришла последняя реплика игрока: local, server, text; "" — не говорил. */
+    public String lastStt(UUID player) { Session session = sessions.get(player); return session == null ? "" : session.lastStt; }
 }
