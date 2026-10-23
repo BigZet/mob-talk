@@ -18,7 +18,9 @@ public final class Protection {
         if (config.protectBlocks) return true;
         // The church, its walled yard and its cemetery: no punishment changes the land there.
         if (ChurchArea.inZone(world, target) || io.github.divineblock.world.ChurchSites.isChurchBlock(world, target)) return true;
-        if (altar != null && altar.isWithinDistance(target, ALTAR_RADIUS)) return true;
+        // The altar itself is spared — only a real one: an act taken home or into open land gets its strike point in the altar's
+        // place, and sparing that point left the burning dynamite and the craters without a single block to fall on.
+        if (altar != null && altar.isWithinDistance(target, ALTAR_RADIUS) && world.getBlockState(altar).isOf(io.github.divineblock.DivineBlockMod.ALTAR)) return true;
         BlockPos bed = player.getSpawnPointPosition();
         return bed != null && player.getSpawnPointDimension() == world.getRegistryKey() && bed.isWithinDistance(target, config.protectRadius);
     }
