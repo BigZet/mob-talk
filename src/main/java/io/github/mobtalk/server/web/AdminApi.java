@@ -257,6 +257,7 @@ public final class AdminApi {
 
         router.get("/api/divine/souls", r -> Response.json(parts.game().divineSouls()));
         router.get("/api/divine/active", r -> Response.json(parts.game().divineActive()));
+        router.get("/api/divine/prayers", r -> Response.json(parts.game().divinePrayers(r.query("player"), Math.max(0, r.longQuery("since", 0)), r.intQuery("limit", 100, 1, 300))));
 
         router.get("/api/server", r -> {
             JsonObject server = parts.game().server().deepCopy();

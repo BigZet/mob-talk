@@ -1,51 +1,541 @@
 {
   "villages": [
-    {"id": "v1", "name": "Берёзовка", "residents": 14,
-     "chronicle": [{"t": -86400000, "text": "Свадьба Терезы и Гаврилы"}, {"t": -90000000, "text": "Драка у кузницы"}],
-     "rumors": [{"t": -80000000, "text": "Говорят, Тест2 бьёт кузнецов", "about": {"uuid": "2f83646d-2eeb-4a75-8358-03e02e2ef99f", "name": "Тест2"}},
-                {"t": -3600000, "text": "BigZet щедрый: дарит книги", "about": {"uuid": "461baa90-bc98-4f86-b889-50f67d759b9a", "name": "BigZet"}}],
-     "standings": [{"player": {"uuid": "461baa90-bc98-4f86-b889-50f67d759b9a", "name": "BigZet"}, "points": 180, "rank": "друг деревни"},
-                   {"player": {"uuid": "2f83646d-2eeb-4a75-8358-03e02e2ef99f", "name": "Тест2"}, "points": -40, "rank": "подозреваемый"}]},
-    {"id": "v2", "name": "Заречье", "residents": 9, "chronicle": [], "rumors": [],
-     "standings": [{"player": {"uuid": "2f83646d-2eeb-4a75-8358-03e02e2ef99f", "name": "Тест2"}, "points": 20, "rank": "гость"}]}
+    {
+      "id": "v1",
+      "name": "Берёзовка",
+      "residents": 14,
+      "chronicle": [
+        {
+          "t": -86400000,
+          "text": "Свадьба Терезы и Гаврилы"
+        },
+        {
+          "t": -90000000,
+          "text": "Драка у кузницы"
+        }
+      ],
+      "rumors": [
+        {
+          "t": -80000000,
+          "text": "Говорят, Тест2 бьёт кузнецов",
+          "about": {
+            "uuid": "2f83646d-2eeb-4a75-8358-03e02e2ef99f",
+            "name": "Тест2"
+          }
+        },
+        {
+          "t": -3600000,
+          "text": "BigZet щедрый: дарит книги",
+          "about": {
+            "uuid": "461baa90-bc98-4f86-b889-50f67d759b9a",
+            "name": "BigZet"
+          }
+        }
+      ],
+      "standings": [
+        {
+          "player": {
+            "uuid": "461baa90-bc98-4f86-b889-50f67d759b9a",
+            "name": "BigZet"
+          },
+          "points": 180,
+          "rank": "друг деревни"
+        },
+        {
+          "player": {
+            "uuid": "2f83646d-2eeb-4a75-8358-03e02e2ef99f",
+            "name": "Тест2"
+          },
+          "points": -40,
+          "rank": "подозреваемый"
+        }
+      ]
+    },
+    {
+      "id": "v2",
+      "name": "Заречье",
+      "residents": 9,
+      "chronicle": [],
+      "rumors": [],
+      "standings": [
+        {
+          "player": {
+            "uuid": "2f83646d-2eeb-4a75-8358-03e02e2ef99f",
+            "name": "Тест2"
+          },
+          "points": 20,
+          "rank": "гость"
+        }
+      ]
+    }
   ],
   "divine": {
     "souls": [
-      {"player": {"uuid": "461baa90-bc98-4f86-b889-50f67d759b9a", "name": "BigZet"}, "sins": 1, "ladder": 0, "curses": [], "banned": false},
-      {"player": {"uuid": "2f83646d-2eeb-4a75-8358-03e02e2ef99f", "name": "Тест2"}, "sins": 4, "ladder": 2,
-       "curses": [{"id": "slowness", "title": "Тяжёлые ноги", "until": 900000}], "banned": false},
-      {"player": {"uuid": "51a7640e-4899-4753-b8d2-90b0c715341b", "name": "Друг"}, "sins": 9, "ladder": 5, "curses": [], "banned": true}
+      {
+        "player": {
+          "uuid": "461baa90-bc98-4f86-b889-50f67d759b9a",
+          "name": "BigZet"
+        },
+        "sins": 1,
+        "ladder": 0,
+        "curses": [],
+        "banned": false,
+        "mercy": -12,
+        "label": "грешник",
+        "deeds": [
+          {
+            "text": "сажал деревья и посевы",
+            "t": -3600000
+          }
+        ]
+      },
+      {
+        "player": {
+          "uuid": "2f83646d-2eeb-4a75-8358-03e02e2ef99f",
+          "name": "Тест2"
+        },
+        "sins": 4,
+        "ladder": 2,
+        "curses": [
+          {
+            "id": "slowness",
+            "title": "Тяжёлые ноги",
+            "until": 900000
+          }
+        ],
+        "banned": false,
+        "mercy": -12,
+        "label": "грешник",
+        "deeds": [
+          {
+            "text": "сажал деревья и посевы",
+            "t": -3600000
+          }
+        ]
+      },
+      {
+        "player": {
+          "uuid": "51a7640e-4899-4753-b8d2-90b0c715341b",
+          "name": "Друг"
+        },
+        "sins": 9,
+        "ladder": 5,
+        "curses": [],
+        "banned": true,
+        "mercy": -12,
+        "label": "грешник",
+        "deeds": [
+          {
+            "text": "сажал деревья и посевы",
+            "t": -3600000
+          }
+        ]
+      }
     ],
     "active": {
-      "curses": [{"player": {"uuid": "2f83646d-2eeb-4a75-8358-03e02e2ef99f", "name": "Тест2"}, "title": "Тяжёлые ноги", "until": 900000}],
-      "bosses": [{"id": "wither_saint", "title": "Священный иссушитель", "health": 180, "maxHealth": 300, "since": -1200000}]
-    }
-  },
-  "divineSource": {
-    "describe": {"id": "divineblock", "title": "Божественный блок", "groups": [
-      {"id": "wrath", "title": "Гнев", "section": "Божественный блок", "fields": [
-        {"key": "wrathChance", "title": "Шанс кары", "type": "int", "min": 0, "max": 100, "step": 1, "default": 35, "unit": "%", "help": "Как часто бог карает за дерзкую молитву.", "danger": null},
-        {"key": "furyDecayMinutes", "title": "Ярость остывает", "type": "int", "min": 1, "max": 240, "step": 1, "default": 30, "unit": "мин", "help": null, "danger": null},
-        {"key": "worldWrath", "title": "Кары мира", "type": "bool", "default": true, "help": "Мировые кары бьют всех игроков.", "danger": "Выключение убирает грозы и нашествия."},
-        {"key": "voice", "title": "Голос бога", "type": "enum", "options": [{"value": "thunder", "title": "Гром"}, {"value": "whisper", "title": "Шёпот"}], "default": "thunder", "help": null, "danger": null}
-      ]},
-      {"id": "mercy", "title": "Милость", "section": "Божественный блок", "fields": [
-        {"key": "miracleChance", "title": "Шанс чуда", "type": "int", "min": 0, "max": 100, "step": 1, "default": 20, "unit": "%", "help": null, "danger": null},
-        {"key": "diamondGift", "title": "Алмазов за чудо", "type": "decimal", "min": 0, "max": 16, "step": 0.5, "default": 2, "unit": "шт.", "help": null, "danger": null}
-      ]}
-    ]},
-    "values": {"wrathChance": 35, "furyDecayMinutes": 30, "worldWrath": true, "voice": "thunder", "miracleChance": 20, "diamondGift": 2},
-    "actions": [
-      {"id": "unban", "title": "Снять бан", "args": [{"key": "player", "title": "Игрок", "type": "string"}], "danger": "Игрок снова сможет войти."},
-      {"id": "lift", "title": "Снять проклятия", "args": [{"key": "player", "title": "Игрок", "type": "string"}], "danger": null},
-      {"id": "reset-ladder", "title": "Сбросить лестницу кар", "args": [{"key": "player", "title": "Игрок", "type": "string"}], "danger": null}
+      "curses": [
+        {
+          "player": {
+            "uuid": "2f83646d-2eeb-4a75-8358-03e02e2ef99f",
+            "name": "Тест2"
+          },
+          "title": "Тяжёлые ноги",
+          "until": 900000
+        }
+      ],
+      "bosses": [
+        {
+          "id": "wither_saint",
+          "title": "Священный иссушитель",
+          "health": 180,
+          "maxHealth": 300,
+          "since": -1200000,
+          "uuid": "8d6f3c1e-0b2a-4c7e-9a51-2f1e0c9b7a11",
+          "phase": 2,
+          "target": {
+            "uuid": "2f83646d-2eeb-4a75-8358-03e02e2ef99f",
+            "name": "Тест2"
+          },
+          "dimension": "minecraft:overworld",
+          "x": -120,
+          "y": 70,
+          "z": 44
+        }
+      ],
+      "blessings": [
+        {
+          "player": {
+            "uuid": "461baa90-bc98-4f86-b889-50f67d759b9a",
+            "name": "BigZet"
+          },
+          "title": "Благословение урожая",
+          "until": 600000
+        }
+      ],
+      "godAvatar": {
+        "active": false,
+        "player": null
+      },
+      "skyCourt": {
+        "active": false,
+        "player": null
+      }
+    },
+    "prayers": [
+      {
+        "t": -300000,
+        "player": {
+          "uuid": "2f83646d-2eeb-4a75-8358-03e02e2ef99f",
+          "name": "Тест2"
+        },
+        "text": "Боже, да ты вообще есть? Покажись, трус!",
+        "tone": "rude",
+        "toneTitle": "грубо",
+        "offering": "",
+        "offeringValue": 0,
+        "answer": "Ты звал — я пришёл. Пожалеешь.",
+        "choice": {
+          "kind": "wrath",
+          "deed": "curse_minor",
+          "deedTitle": "Малое проклятие",
+          "power": 2,
+          "decidedBy": "jev",
+          "note": "хула, без подношения"
+        },
+        "reasons": [
+          {
+            "title": "Хула в молитве",
+            "mercy": -8,
+            "power": 2
+          }
+        ]
+      },
+      {
+        "t": -900000,
+        "player": {
+          "uuid": "461baa90-bc98-4f86-b889-50f67d759b9a",
+          "name": "BigZet"
+        },
+        "text": "Господи, пошли нам дождь на поля, прошу.",
+        "tone": "polite",
+        "toneTitle": "вежливо",
+        "offering": "minecraft:wheat",
+        "offeringValue": 3,
+        "answer": "Да будет дождь.",
+        "choice": {
+          "kind": "miracle",
+          "deed": "weather_rain",
+          "deedTitle": "Дождь",
+          "power": 1,
+          "decidedBy": "rules",
+          "note": ""
+        },
+        "reasons": [
+          {
+            "title": "Вежливая просьба",
+            "mercy": 2,
+            "power": 0
+          },
+          {
+            "title": "Подношение",
+            "mercy": 3,
+            "power": 0
+          }
+        ]
+      }
     ]
   },
-  "server": {"version": "0.7.0", "minecraft": "1.21.1", "loader": "0.19.5",
-    "mods": [{"id": "mobtalk", "name": "Mob Talk", "version": "0.7.0"}, {"id": "divineblock", "name": "Божественный блок", "version": "0.4.0"},
-             {"id": "rusflora", "name": "Русская флора", "version": "0.2.0"}, {"id": "fabric-api", "name": "Fabric API", "version": "0.116.17+1.21.1"},
-             {"id": "lithium", "name": "Lithium", "version": "0.15.0"}, {"id": "spark", "name": "spark", "version": "1.10.119"}],
-    "world": {"name": "world", "difficulty": "normal", "dayTime": 6000}, "players": {"online": 2, "max": 8},
-    "pack": ["mobtalk 0.7.0 8a8fba4", "divineblock 0.4.0 1c2d3e4", "rusflora 0.2.0 9f8e7d6"]},
-  "commandRoots": ["bluemap", "mobtalk", "divineblock", "vp", "say", "time", "weather", "whitelist", "kick", "ban", "pardon", "tp", "gamemode", "spark", "chunky"]
+  "divineSource": {
+    "describe": {
+      "id": "divineblock",
+      "title": "Божественный блок",
+      "groups": [
+        {
+          "id": "wrath",
+          "title": "Гнев",
+          "section": "Божественный блок",
+          "fields": [
+            {
+              "key": "wrathChance",
+              "title": "Шанс кары",
+              "type": "int",
+              "min": 0,
+              "max": 100,
+              "step": 1,
+              "default": 35,
+              "unit": "%",
+              "help": "Как часто бог карает за дерзкую молитву.",
+              "danger": null
+            },
+            {
+              "key": "furyDecayMinutes",
+              "title": "Ярость остывает",
+              "type": "int",
+              "min": 1,
+              "max": 240,
+              "step": 1,
+              "default": 30,
+              "unit": "мин",
+              "help": null,
+              "danger": null
+            },
+            {
+              "key": "worldWrath",
+              "title": "Кары мира",
+              "type": "bool",
+              "default": true,
+              "help": "Мировые кары бьют всех игроков.",
+              "danger": "Выключение убирает грозы и нашествия."
+            },
+            {
+              "key": "voice",
+              "title": "Голос бога",
+              "type": "enum",
+              "options": [
+                {
+                  "value": "thunder",
+                  "title": "Гром"
+                },
+                {
+                  "value": "whisper",
+                  "title": "Шёпот"
+                }
+              ],
+              "default": "thunder",
+              "help": null,
+              "danger": null
+            },
+            {
+              "key": "disabled",
+              "title": "Деяния бога",
+              "type": "flags",
+              "help": "Выключенное не выпадает.",
+              "default": "",
+              "danger": null,
+              "options": [
+                {
+                  "id": "lightning",
+                  "title": "Молния",
+                  "help": "Бьёт молнией рядом",
+                  "group": "wrath",
+                  "groupTitle": "Кары"
+                },
+                {
+                  "id": "curse_minor",
+                  "title": "Малое проклятие",
+                  "help": "Тяжёлые ноги на время",
+                  "group": "wrath",
+                  "groupTitle": "Кары"
+                },
+                {
+                  "id": "tnt_rain",
+                  "title": "Дождь из динамита",
+                  "help": "",
+                  "group": "wrath",
+                  "groupTitle": "Кары"
+                },
+                {
+                  "id": "heal",
+                  "title": "Исцеление",
+                  "help": "",
+                  "group": "miracle",
+                  "groupTitle": "Блага"
+                },
+                {
+                  "id": "feed",
+                  "title": "Насыщение",
+                  "help": "",
+                  "group": "miracle",
+                  "groupTitle": "Блага"
+                },
+                {
+                  "id": "chicken_rain",
+                  "title": "Куриный дождь",
+                  "help": "Шутка бога",
+                  "group": "jest",
+                  "groupTitle": "Шутки"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "mercy",
+          "title": "Милость",
+          "section": "Божественный блок",
+          "fields": [
+            {
+              "key": "miracleChance",
+              "title": "Шанс чуда",
+              "type": "int",
+              "min": 0,
+              "max": 100,
+              "step": 1,
+              "default": 20,
+              "unit": "%",
+              "help": null,
+              "danger": null
+            },
+            {
+              "key": "diamondGift",
+              "title": "Алмазов за чудо",
+              "type": "decimal",
+              "min": 0,
+              "max": 16,
+              "step": 0.5,
+              "default": 2,
+              "unit": "шт.",
+              "help": null,
+              "danger": null
+            }
+          ]
+        }
+      ]
+    },
+    "values": {
+      "wrathChance": 35,
+      "furyDecayMinutes": 30,
+      "worldWrath": true,
+      "voice": "thunder",
+      "miracleChance": 20,
+      "diamondGift": 2,
+      "disabled": "tnt_rain"
+    },
+    "actions": [
+      {
+        "id": "unban",
+        "title": "Снять бан",
+        "args": [
+          {
+            "key": "player",
+            "title": "Игрок",
+            "type": "string"
+          }
+        ],
+        "danger": "Игрок снова сможет войти."
+      },
+      {
+        "id": "lift",
+        "title": "Снять проклятия",
+        "args": [
+          {
+            "key": "player",
+            "title": "Игрок",
+            "type": "string"
+          }
+        ],
+        "danger": null
+      },
+      {
+        "id": "reset-ladder",
+        "title": "Сбросить лестницу кар",
+        "args": [
+          {
+            "key": "player",
+            "title": "Игрок",
+            "type": "string"
+          }
+        ],
+        "danger": null
+      },
+      {
+        "id": "boss_remove",
+        "title": "Убрать босса",
+        "args": [
+          {
+            "key": "uuid",
+            "title": "UUID босса",
+            "type": "string"
+          }
+        ],
+        "danger": null
+      },
+      {
+        "id": "boss_clear",
+        "title": "Убрать всех боссов",
+        "args": [],
+        "danger": null
+      },
+      {
+        "id": "god_recall",
+        "title": "Отозвать Бога с булавой",
+        "args": [],
+        "danger": null
+      },
+      {
+        "id": "court_end",
+        "title": "Закончить Небесный суд",
+        "args": [],
+        "danger": null
+      }
+    ]
+  },
+  "server": {
+    "version": "0.7.0",
+    "minecraft": "1.21.1",
+    "loader": "0.19.5",
+    "mods": [
+      {
+        "id": "mobtalk",
+        "name": "Mob Talk",
+        "version": "0.7.0"
+      },
+      {
+        "id": "divineblock",
+        "name": "Божественный блок",
+        "version": "0.4.0"
+      },
+      {
+        "id": "rusflora",
+        "name": "Русская флора",
+        "version": "0.2.0"
+      },
+      {
+        "id": "fabric-api",
+        "name": "Fabric API",
+        "version": "0.116.17+1.21.1"
+      },
+      {
+        "id": "lithium",
+        "name": "Lithium",
+        "version": "0.15.0"
+      },
+      {
+        "id": "spark",
+        "name": "spark",
+        "version": "1.10.119"
+      }
+    ],
+    "world": {
+      "name": "world",
+      "difficulty": "normal",
+      "dayTime": 6000
+    },
+    "players": {
+      "online": 2,
+      "max": 8
+    },
+    "pack": [
+      "mobtalk 0.7.0 8a8fba4",
+      "divineblock 0.4.0 1c2d3e4",
+      "rusflora 0.2.0 9f8e7d6"
+    ]
+  },
+  "commandRoots": [
+    "bluemap",
+    "mobtalk",
+    "divineblock",
+    "vp",
+    "say",
+    "time",
+    "weather",
+    "whitelist",
+    "kick",
+    "ban",
+    "pardon",
+    "tp",
+    "gamemode",
+    "spark",
+    "chunky"
+  ]
 }

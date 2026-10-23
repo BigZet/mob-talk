@@ -516,10 +516,14 @@ final class LiveGameView implements GameView {
 
     @Override public JsonObject divineSouls() { return divine("souls"); }
     @Override public JsonObject divineActive() { return divine("active"); }
-    private JsonObject divine(String op) {
+    @Override public JsonObject divinePrayers(String player, long since, int limit) {
+        return divine(Json.obj("op", "prayers", "player", player == null ? "" : player, "since", since, "limit", limit));
+    }
+    private JsonObject divine(String op) { return divine(Json.obj("op", op)); }
+    private JsonObject divine(JsonObject request) {
         io.github.mobtalk.server.web.ConfigSources known = sources;
         if (known == null || !known.has("divineblock")) throw ApiException.unavailable("Божественного блока нет в этой сборке.");
-        JsonObject answer = known.call("divineblock", Json.obj("op", op));
+        JsonObject answer = known.call("divineblock", request);
         if (answer.has("ok") && !answer.get("ok").getAsBoolean())
             throw ApiException.unavailable("Божественный блок не отдал данные: " + Json.string(answer, "error") + ". Обновите мод до версии с вкладкой «Бог».");
         return answer;

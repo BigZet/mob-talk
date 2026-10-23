@@ -39,8 +39,40 @@ export function fieldControl(f, value, onInput) {
     const plus = h('button.btn', { type: 'button', 'aria-label': `Больше: ${f.title}`, onclick: () => commit(parseFloat(num.value) + step) }, '+');
     return { el: h('div.range-row', minus, range, num, plus), set };
   }
+  if (f.type === 'flags') return flagsControl(f, value, onInput);
   const input = h('input.input', { id, type: 'text', value: value ?? '', 'aria-label': f.title, oninput: e => onInput(e.target.value) });
   return { el: input, set: v => (input.value = v ?? '') };
+}
+
+/** Список с тумблерами (деяния бога, боссы): включённый — тот, кого нет в значении; значение — id выключенных через запятую.
+ * Группы со «включить/выключить всех» и поиск по названию и описанию. */
+function flagsControl(f, value, onInput) {
+  const options = f.options || [];
+  let off = new Set(String(value ?? '').split(',').map(s => s.trim()).filter(Boolean));
+  const emit = () => onInput(options.map(o => o.id).filter(id => off.has(id)).join(','));
+  const search = h('input.input', { type: 'search', placeholder: 'Поиск…', 'aria-label': `Поиск: ${f.title}` });
+  const list = h('div.stack', { style: { maxHeight: '420px', overflow: 'auto', marginTop: '8px' } });
+  const draw = () => {
+    const q = search.value.trim().toLowerCase();
+    const groups = new Map();
+    for (const o of options) {
+      if (q && !`${o.title} ${o.help || ''} ${o.id}`.toLowerCase().includes(q)) continue;
+      const g = o.group || '';
+      if (!groups.has(g)) groups.set(g, { title: o.groupTitle || g || 'Прочее', items: [] });
+      groups.get(g).items.push(o);
+    }
+    replace(list, [...groups.values()].map(g => {
+      const allOn = g.items.every(o => !off.has(o.id));
+      const toggleAll = h('button.btn.sm.ghost', { type: 'button', onclick: () => { g.items.forEach(o => (allOn ? off.add(o.id) : off.delete(o.id))); emit(); draw(); } }, allOn ? 'Выключить всех' : 'Включить всех');
+      return h('section', h('div.row', h('b.grow', `${g.title} · ${g.items.filter(o => !off.has(o.id)).length}/${g.items.length}`), toggleAll),
+        g.items.map(o => h('div.flag-row', { title: o.help || '' },
+          switchInput({ checked: !off.has(o.id), label: o.title, onChange: on => { on ? off.delete(o.id) : off.add(o.id); emit(); } }),
+          h('span.grow', o.title, o.help ? h('span.muted', { style: { fontSize: '12px' } }, ' — ' + o.help) : null))));
+    }).concat(groups.size ? [] : [h('p.muted', 'Ничего не найдено.')]));
+  };
+  search.addEventListener('input', debounce(draw, 150));
+  draw();
+  return { el: h('div', search, list), set: v => { off = new Set(String(v ?? '').split(',').map(s => s.trim()).filter(Boolean)); draw(); } };
 }
 
 /** Кнопки действий источника (снять бан, снять проклятия…) с подтверждением и вводом аргументов. */
@@ -136,7 +168,7 @@ export default function settings(root, route) {
         const def = f.default !== undefined && !same(saved[f.key], f.default)
           ? h('button.btn.ghost.sm', { type: 'button', title: `Вернуть значение по умолчанию: ${fmt.value(f.default)}`, onclick: () => { ctl.set(f.default); if (same(f.default, saved[f.key])) delete st.draft[f.key]; else st.draft[f.key] = f.default; repaint(); } }, icon('undo', 'sm'), h('span.sr-only', 'По умолчанию'))
           : null;
-        const row = h('div.field', { dataset: { key: f.key, search: `${f.title} ${f.key} ${f.help || ''}`.toLowerCase() } },
+        const row = h(`div.field${f.type === 'flags' ? '.wide' : ''}`, { dataset: { key: f.key, search: `${f.title} ${f.key} ${f.help || ''}`.toLowerCase() } },
           h('div',
             h('label.name', { for: `f-${f.key.replace(/[^\w-]/g, '_')}` }, f.title, f.unit && h('span.muted', `(${f.unit})`), f.danger && h('span.badge.warn', { title: f.danger }, icon('warn'), 'опасно')),
             f.help && h('div.help', f.help),

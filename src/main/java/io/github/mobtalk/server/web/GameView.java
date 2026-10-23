@@ -42,6 +42,8 @@ public interface GameView {
 
     JsonObject divineSouls();
     JsonObject divineActive();
+    /** Лента молитв и ответов бога: новые сверху; {@code player} — ник или UUID, пусто — все. */
+    JsonObject divinePrayers(String player, long since, int limit);
 
     /** Version, mods, uptime, world, players, pack lines; the API adds its own {@code admin} part. */
     JsonObject server();

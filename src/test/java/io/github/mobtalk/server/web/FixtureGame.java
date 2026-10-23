@@ -315,6 +315,17 @@ public final class FixtureGame implements GameView {
 
     @Override public JsonObject divineSouls() { return Json.obj("souls", world.getAsJsonObject("divine").getAsJsonArray("souls").deepCopy()); }
     @Override public JsonObject divineActive() { return world.getAsJsonObject("divine").getAsJsonObject("active").deepCopy(); }
+    @Override public JsonObject divinePrayers(String player, long since, int limit) {
+        JsonArray items = new JsonArray();
+        JsonObject divine = world.getAsJsonObject("divine");
+        if (divine.has("prayers")) for (JsonElement p : divine.getAsJsonArray("prayers")) {
+            JsonObject prayer = p.getAsJsonObject();
+            String who = Json.string(prayer.getAsJsonObject("player"), "name");
+            if (player != null && !player.isBlank() && !player.equalsIgnoreCase(who)) continue;
+            if (items.size() < limit) items.add(prayer.deepCopy());
+        }
+        return Json.obj("items", items);
+    }
 
     @Override public JsonObject server() {
         JsonObject server = world.getAsJsonObject("server").deepCopy();
