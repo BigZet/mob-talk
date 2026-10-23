@@ -478,7 +478,7 @@ public final class CruelTest {
         try { savedConfig = Files.isRegularFile(configFile) ? Files.readString(configFile, StandardCharsets.UTF_8) : null; } catch (IOException failure) { savedConfig = null; }
         DivineConfig config = DivineBlockMod.config();
         config.allowWither = true; config.allowDragon = true; config.maxTier = 4; config.protectBlocks = false;
-        config.allowEternalBan = true; config.banBackup = true; config.lingeringCurses = true; config.curseDays = 3;
+        config.allowEternalBan = true; config.banBackup = true; config.lingeringCurses = true; config.curseMinutes = 20;
         save(config);
     }
     private static void setBan(boolean on) { DivineConfig config = DivineBlockMod.config(); config.allowEternalBan = on; save(config); }

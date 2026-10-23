@@ -21,8 +21,10 @@ public final class WrathSettingsScreen extends DivinePanel {
         heading("Как растёт гнев");
         server(toggle("Кара за карой хуже", "Каждая следующая кара тяжелее прежней.", config.escalation, v -> config.escalation = v));
         server(cycle("Продолжения", "Сколько кар может последовать за первой подряд.", List.of(0, 1, 2), config.comboActs, v -> v == 0 ? "нет" : "до " + v, v -> config.comboActs = v));
-        server(toggle("Проклятия на дни", "Проклятия держатся несколько игровых дней.", config.lingeringCurses, v -> config.lingeringCurses = v));
-        server(cycle("Срок проклятий", "Сколько игровых дней держится проклятие.", List.of(1, 2, 3, 4, 5, 6, 7), config.curseDays, v -> v + " дн.", v -> config.curseDays = v));
+        server(toggle("Долгие проклятия", "Проклятия держатся срок ниже; выкл — три минуты.", config.lingeringCurses, v -> config.lingeringCurses = v));
+        List<Integer> minutes = List.of(1, 3, 5, 10, 15, 20);
+        server(cycle("Срок проклятий", "Сколько минут реального времени держится проклятие; дольше 20 минут не бывает.", minutes,
+                minutes.contains(config.curseMinutes) ? config.curseMinutes : 20, v -> v + " мин", v -> config.curseMinutes = v));
         // Craters, rifts, floods: off puts another act of the same group in their place.
         server(cycle("Кары меняют ландшафт", "Воронки, разломы, потопы; «нет» ставит на их место другую кару той же группы.", List.of(true, false), config.landscapeWrath,
                 v -> v ? "да" : "нет", v -> config.landscapeWrath = v));
