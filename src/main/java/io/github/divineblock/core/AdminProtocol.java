@@ -129,10 +129,28 @@ public final class AdminProtocol {
                 reasons.add(reason);
             }
             item.add("reasons", reasons);
+            PrayerLog.Decision d = entry.decision();
+            if (d != null) {
+                JsonObject decision = new JsonObject();
+                decision.addProperty("favor", d.favor()); decision.addProperty("force", d.force()); decision.addProperty("inclination", d.inclination());
+                decision.addProperty("level", d.level()); decision.addProperty("budget", d.budget()); decision.addProperty("escalation", d.escalation());
+                decision.addProperty("fury", d.fury()); decision.addProperty("forgiveness", d.forgiveness()); decision.addProperty("group", d.group());
+                decision.add("jev", odds(d.jev())); decision.add("ladder", odds(d.ladder())); decision.add("odds", odds(d.odds()));
+                JsonObject labels = new JsonObject();
+                d.labels().forEach(labels::addProperty);
+                decision.add("labels", labels);
+                item.add("decision", decision);
+            }
             items.add(item);
         }
         JsonObject out = new JsonObject();
         out.add("items", items);
+        return out;
+    }
+
+    private static JsonObject odds(Map<String, Double> odds) {
+        JsonObject out = new JsonObject();
+        if (odds != null) odds.forEach((id, p) -> out.addProperty(id, Math.round(p * 1000) / 1000.0));
         return out;
     }
 

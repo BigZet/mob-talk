@@ -356,11 +356,10 @@ public final class Prayers {
         if (verdict.inclination == Miracle.Kind.WRATH) PENANCE.end(player.getUuid());
     }
 
-    /** What his punishment left on him still runs: a curse, a sacred boss after him, the god with the mace, the Sky Court. */
+    /** What his punishment is still doing to him right now: the god with the mace over him, the Sky Court. A curse or a boss
+     * left behind does not hold the next punishment back (Dmitriy, 23 Oct: «кара не окончена» for minutes was wrong). */
     private static boolean lasting(ServerPlayerEntity player) {
-        MinecraftServer server = player.getServer();
-        return !Curses.of(server, player.getUuid()).isEmpty() || SkyCourt.inCourt(player)
-                || io.github.divineblock.boss.DivineBosses.godAvatarActive(player) || !hunters(player).isEmpty();
+        return SkyCourt.inCourt(player) || io.github.divineblock.boss.DivineBosses.godAvatarActive(player);
     }
 
     /** The sacred bosses near him that are after him. */

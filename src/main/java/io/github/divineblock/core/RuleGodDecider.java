@@ -14,12 +14,14 @@ public final class RuleGodDecider implements GodDecider {
         List<MiracleGroup> open = MiracleGroup.open(verdict, config);
         if (verdict.inclination == Miracle.Kind.OMEN || open.isEmpty()) return omen(verdict, config, name());
         // Without Jev the ladder alone decides, by weighted draw: escalation without sameness.
-        MiracleGroup group = MiracleGroup.byId(GodDecider.sample(GodDecider.ladder(verdict, open)));
+        java.util.Map<String, Double> ladder = GodDecider.ladder(verdict, open);
+        verdict.oddsJev = java.util.Map.of(); verdict.oddsLadder = java.util.Map.copyOf(ladder); verdict.odds = verdict.oddsLadder;
+        MiracleGroup group = MiracleGroup.byId(GodDecider.sample(ladder));
         // Mercy answers what was asked: the group holding the act named in the prayer, if one is open.
         if (verdict.inclination != Miracle.Kind.WRATH)
             for (MiracleGroup candidate : open)
                 if (candidate.allowed(verdict, config).stream().anyMatch(m -> m.hintMatches(verdict.prayer) > 0)) group = candidate;
-        return GodDecider.drawn(verdict, config, group, name(), "лестница " + GodDecider.percent(GodDecider.ladder(verdict, open)));
+        return GodDecider.drawn(verdict, config, group, name(), "лестница " + GodDecider.percent(ladder));
     }
 
     static Choice omen(Verdict verdict, DivineConfig config, String by) {

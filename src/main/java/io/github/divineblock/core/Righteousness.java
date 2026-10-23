@@ -50,6 +50,9 @@ public final class Righteousness {
     public Map<Deed, Double> today = new EnumMap<>(Deed.class);
     public long todayDay = -1;
 
+    /** The admin moves the score by hand (by {@code delta}), within ±{@link #LIMIT}; returns the new score. */
+    public double adjust(double delta) { score = clamp(score + delta); return score; }
+
     /** Records a deed and returns how much it actually moved the score (zero once today's cap is reached). */
     public double record(Deed deed, long day, String where) {
         drift(day);

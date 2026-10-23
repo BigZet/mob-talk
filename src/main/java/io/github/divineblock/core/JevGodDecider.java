@@ -179,6 +179,7 @@ public final class JevGodDecider implements GodDecider {
         for (MiracleGroup group : open)
             mixed.put(group.id(), 0.5 * (jevTotal > 0 ? jev.getOrDefault(group.id(), 0.0) / jevTotal : 0) + 0.5 * ladder.getOrDefault(group.id(), 0.0));
         if (silence > 0) mixed.put("silence", 0.5 * silence / jevTotal);
+        verdict.oddsJev = java.util.Map.copyOf(jev); verdict.oddsLadder = java.util.Map.copyOf(ladder); verdict.odds = java.util.Map.copyOf(mixed);
         String drawn = GodDecider.sample(mixed);
         String cost = answers.cost() > 0 ? String.format(java.util.Locale.ROOT, ", $%.5f", answers.cost()) : "";
         String note = "Jev " + GodDecider.percent(jev) + " ⊕ лестница → " + GodDecider.percent(mixed) + cost;

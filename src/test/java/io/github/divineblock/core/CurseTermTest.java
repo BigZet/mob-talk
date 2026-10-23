@@ -9,8 +9,8 @@ import org.junit.jupiter.api.Test;
 class CurseTermTest {
     @Test void theSettingIsMinutesAndNeverMoreThanTwenty() {
         DivineConfig config = new DivineConfig();
-        assertEquals(20, config.curseMinutes, "the longest term by default");
-        assertEquals(24_000, CurseTerm.ticks(config, 3600));
+        assertEquals(5, config.curseMinutes, "five minutes by default");
+        assertEquals(6_000, CurseTerm.ticks(config, 3600));
         config.curseMinutes = 5;
         assertEquals(6000, CurseTerm.ticks(config, 3600));
         config.curseMinutes = 600;
@@ -23,9 +23,9 @@ class CurseTermTest {
         assertNull(DivineSettings.setting("curseDays"), "the old days are gone");
     }
 
-    @Test void anOldConfigWithDaysGetsTwentyMinutes() {
+    @Test void anOldConfigWithDaysGetsTheDefaultTerm() {
         DivineConfig old = new Gson().fromJson("{\"curseDays\":7,\"lingeringCurses\":true}", DivineConfig.class).sanitized();
-        assertEquals(20, old.curseMinutes);
+        assertEquals(CurseTerm.DEFAULT_MINUTES, old.curseMinutes);
     }
 
     @Test void everyTermIsCappedAndOldCursesAreTrimmed() {
