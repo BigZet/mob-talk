@@ -165,6 +165,24 @@ Describe 'server-mods.json' {
 }
 
 Describe 'PackBuild helpers' {
+    It 'moves the pack mods off our keys V, G and B, and only to free keys' {
+        $keys = @(Get-PackKeyLines (Get-ServerModPins (Join-Path $scripts 'server-mods.json')))
+        $keys -contains 'key_key.voice_chat:key.keyboard.y' | Should Be $true
+        $keys -contains 'key_key.voice_chat_group:key.keyboard.u' | Should Be $true
+        $keys -contains 'key_key.journeymap.create_waypoint:key.keyboard.k' | Should Be $true
+        $ours = 'key.keyboard.(v|g|b|r|f7|f8|f9)$'
+        @($keys | Where-Object { ($_ -split ':', 2)[1] -match $ours }).Count | Should Be 0
+    }
+
+    It 'keeps a binding the player already set and adds the missing ones' {
+        $merged = Merge-PackKeyLines @('version:3955', 'key_key.voice_chat:key.keyboard.o') @('key_key.voice_chat:key.keyboard.y', 'key_key.push_to_talk:key.keyboard.caps.lock')
+        $merged -contains 'key_key.voice_chat:key.keyboard.o' | Should Be $true
+        $merged -contains 'key_key.voice_chat:key.keyboard.y' | Should Be $false
+        $merged -contains 'key_key.push_to_talk:key.keyboard.caps.lock' | Should Be $true
+        @($merged | Where-Object { $_ -like 'version:*' }).Count | Should Be 1
+        (Merge-PackKeyLines @() @('key_a:key.keyboard.k'))[0] | Should Be 'version:3955'
+    }
+
     It 'refuses a pinned file whose SHA-512 differs' {
         $src = Join-Path $TestDrive 'evil.jar'
         Set-Content $src 'not the pinned bytes'

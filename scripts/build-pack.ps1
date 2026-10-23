@@ -56,6 +56,10 @@ Say 'replace mods'
 New-Item -ItemType Directory -Force "$mc\mods" | Out-Null
 Get-ChildItem "$mc\mods\*.jar" | Remove-Item -Force
 foreach ($jar in $jars) { Copy-Item -LiteralPath $jar.FullName "$mc\mods\"; $manifest += "mod $($jar.Name)" }
+# Pack mods' keys off ours (Simple Voice Chat V/G, JourneyMap B): only bindings options.txt does not set yet.
+$opts = "$mc\options.txt"
+$existing = if (Test-Path -LiteralPath $opts) { [IO.File]::ReadAllLines($opts, [Text.Encoding]::UTF8) } else { @() }
+Write-Utf8Lines $opts (Merge-PackKeyLines $existing @(Get-PackKeyLines))
 # One Whisper for the pack: both mods on the port Mob Talk uses.
 $mt = "$mc\config\mobtalk.json"; $db = "$mc\config\divineblock.json"
 if ((Test-Path $mt) -and (Test-Path $db)) {

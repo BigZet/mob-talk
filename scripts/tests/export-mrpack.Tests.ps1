@@ -58,13 +58,37 @@ Describe 'export-mrpack.ps1' {
         $entries -contains 'overrides/mods/mobtalk-0.7.0.jar' | Should Be $true
         $entries -contains 'overrides/mods/divineblock-0.1.0.jar' | Should Be $true
         $entries -contains 'overrides/mods/viewerparrots-1.2.1.jar' | Should Be $true
-        @($entries | Where-Object { $_ -notmatch '^(modrinth\.index\.json|overrides/mods/[^/]+\.jar)$' }).Count | Should Be 0
+        @($entries | Where-Object { $_ -notmatch '^(modrinth\.index\.json|overrides/options\.txt|overrides/mods/[^/]+\.jar)$' }).Count | Should Be 0
         $entries -contains 'overrides/mods/selftest-guard.jar' | Should Be $false
     }
 
     It 'fails when CTOV is not a known Modrinth file' {
         $partial = New-Known @("$mods\lithostitched-1.8.1-fabric-21.1.jar")
         { & $export -FromPack fake-pack -Instances $inst -Out (Join-Path $TestDrive 'bad.mrpack') -Known $partial *> $null } | Should Throw 'only be linked'
+    }
+
+    It 'carries only the key defaults in overrides/options.txt' {
+        $lines = (Read-ZipText $file 'overrides/options.txt') -split "`n" | Where-Object { $_ }
+        $lines[0] | Should Be 'version:3955'
+        $lines -contains 'key_key.voice_chat:key.keyboard.y' | Should Be $true
+        $lines -contains 'key_key.journeymap.create_waypoint:key.keyboard.k' | Should Be $true
+        @($lines | Where-Object { $_ -notmatch '^(version|key_[^:]+):' }).Count | Should Be 0
+    }
+
+    It 'adds servers.dat with our server only when asked' {
+        $entries -contains 'overrides/servers.dat' | Should Be $false
+        $file3 = Join-Path $TestDrive 'pack3.mrpack'
+        & $export -FromPack fake-pack -Instances $inst -Out $file3 -Known $known -ServerAddress 'mc.example.org:25570' -ServerName 'Сервер' *> $null
+        $z = [IO.Compression.ZipFile]::OpenRead($file3)
+        try { $ms = New-Object IO.MemoryStream; $e = $z.GetEntry('overrides/servers.dat').Open(); $e.CopyTo($ms); $e.Dispose() } finally { $z.Dispose() }
+        $bytes = $ms.ToArray()
+        $bytes[0] | Should Be 10
+        $text = [Text.Encoding]::UTF8.GetString($bytes)
+        $text | Should Match 'servers'
+        $text | Should Match 'mc\.example\.org:25570'
+        $text | Should Match 'Сервер'
+        $bytes[-1] | Should Be 0
+        $bytes[-2] | Should Be 0
     }
 
     It 'marks the pinned client-only pack mods as unsupported on the server' {

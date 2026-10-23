@@ -1,9 +1,12 @@
 ﻿# Client pack for friends: a Modrinth .mrpack (Prism: Add Instance -> Import -> the file) with the jars of the built Prism
 # pack. Every jar Modrinth knows by its SHA-1 (CTOV, Lithostitched, Fabric API, the video mods, CreativeCore...) goes in as
 # a link with SHA-1 and SHA-512; the rest (our mods, Viewer Parrots) ride inside under overrides/mods. CTOV and
-# Lithostitched may only ever be links. No configs, keys or worlds go in.
+# Lithostitched may only ever be links. No configs, keys or worlds go in. -ServerAddress adds overrides/servers.dat, so the
+# imported instance lists our server under Multiplayer (-ServerName, default "Mob Talk"). overrides/options.txt carries only
+# the pack's key defaults (Simple Voice Chat and JourneyMap moved off Mob Talk's V, G and B), nobody's own settings.
 # Usage: powershell -ExecutionPolicy Bypass -File scripts\export-mrpack.ps1 [-FromPack mob-talk-pack] [-Out <file.mrpack>]
-param([string]$FromPack = 'mob-talk-pack', [string]$Out = '',
+#        [-ServerAddress host[:port]] [-ServerName 'Mob Talk']
+param([string]$FromPack = 'mob-talk-pack', [string]$Out = '', [string]$ServerAddress = '', [string]$ServerName = 'Mob Talk',
     [string]$Instances = (Join-Path $env:APPDATA 'PrismLauncher\instances'),
     [string]$Pins = (Join-Path $PSScriptRoot 'server-mods.json'), [hashtable]$Known = $null)
 $ErrorActionPreference = 'Stop'
@@ -61,6 +64,16 @@ try {
     $entry = $zip.CreateEntry('modrinth.index.json')
     $writer = New-Object IO.StreamWriter($entry.Open(), (New-Object Text.UTF8Encoding($false)))
     try { $writer.Write($json) } finally { $writer.Dispose() }
+    $keys = @(Get-PackKeyLines $pinned)
+    if ($keys.Count) {
+        $w = New-Object IO.StreamWriter($zip.CreateEntry('overrides/options.txt').Open(), (New-Object Text.UTF8Encoding($false)))
+        try { foreach ($l in (Merge-PackKeyLines @() $keys)) { $w.Write("$l`n") } } finally { $w.Dispose() }
+    }
+    if ($ServerAddress) {
+        $dat = New-ServersDat $ServerName $ServerAddress
+        $s = $zip.CreateEntry('overrides/servers.dat').Open()
+        try { $s.Write($dat, 0, $dat.Length) } finally { $s.Dispose() }
+    }
     foreach ($jar in $inside) { [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $jar.FullName, "overrides/mods/$($jar.Name)") | Out-Null }
 } finally { $zip.Dispose() }
 Say "mrpack ready: $Out ($($files.Count) links, $($inside.Count) jars inside)"
