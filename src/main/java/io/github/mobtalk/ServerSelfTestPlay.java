@@ -317,7 +317,7 @@ final class ServerSelfTestPlay {
         });
     }
 
-    // ---- Занятый моб: второй игрок получает «занят». ----
+    // ---- Занятый моб: второй игрок получает «сейчас говорит с …». ----
 
     private void busy() {
         int s = mark(streamerName), p = mark(playerName);
@@ -325,8 +325,8 @@ final class ServerSelfTestPlay {
         await("стример занял собеседника", 15, () -> streamer.equals(dialogue().holderOf(talker.getUuid())), () -> {
             check(streamer.equals(dialogue().holderOf(talker.getUuid())), "на сервере собеседник занят стримером");
             cue(playerName, "say", String.valueOf(talker.getId()), "Эй, а со мной поговоришь?");
-            await("игрок получил «занят»", 15, () -> saw(playerName, "status", p, contains(2, "занят")), () -> {
-                Seen busy = first(playerName, "status", p, contains(2, "занят"));
+            await("игрок получил «занят»", 15, () -> saw(playerName, "status", p, contains(2, "сейчас говорит с")), () -> {
+                Seen busy = first(playerName, "status", p, contains(2, "сейчас говорит с"));
                 check(busy != null, playerName + " получил отказ «занят»: " + (busy == null ? "нет" : busy.field(2)));
                 await("стример дождался ответа", 120, () -> saw(streamerName, "speech", s, speechOf(talker, true, null)), () -> {
                     check(saw(streamerName, "speech", s, speechOf(talker, true, null)), "стример получил ответ, несмотря на попытку соседа");
