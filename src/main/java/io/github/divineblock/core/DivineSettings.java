@@ -28,7 +28,8 @@ public final class DivineSettings {
     /** Fields that stay with the player. The god's voice is synthesised by each player's own game for now, so his voice and
      * its model are personal too; they move to the server once the server speaks for him. */
     public static final Set<String> PERSONAL = Set.of("voice", "voiceTemple", "voiceRoomSize", "voiceReverb", "voiceEchoMs", "voiceEchoLevel",
-            "voiceEchoRepeats", "chantVolume", "effects", "cameraShake", "voiceId", "ttsModel", "whisperUrl", "whisperAutoStart", "microphoneName");
+            "voiceEchoRepeats", "chantVolume", "effects", "cameraShake", "voiceId", "ttsModel", "whisperUrl", "whisperAutoStart", "microphoneName",
+            "rouletteShow", "rouletteVolume", "rouletteJackpotFx");
 
     public enum Type { INT, BOOL, ENUM, STRING, LIST, FLAGS;
         String id() { return switch (this) { case INT -> "int"; case BOOL -> "bool"; case ENUM -> "enum"; case STRING, LIST -> "string"; case FLAGS -> "flags"; }; } }
@@ -45,7 +46,7 @@ public final class DivineSettings {
     public record Group(String id, String title) { }
 
     public static final List<Group> GROUPS = List.of(new Group("god", "Характер бога"), new Group("speech", "Речь и решения"),
-            new Group("world", "Мир"), new Group("wrath", "Кары"), new Group("bosses", "Боссы"));
+            new Group("world", "Мир"), new Group("wrath", "Кары"), new Group("roulette", "Рулетка кары"), new Group("bosses", "Боссы"));
 
     private static final Pattern ID = Pattern.compile("[a-z0-9_]{1,40}");
     private static final Gson GSON = new Gson();
@@ -76,6 +77,17 @@ public final class DivineSettings {
             flag("landscapeWrath", "wrath", "Кары меняют ландшафт", "Воронки, разломы, потопы; выкл ставит на их место другую кару той же группы."),
             flag("allowEternalBan", "wrath", "Вечное изгнание", "За четвёртую хулу бог банит игрока на сервере навсегда; снимает админ."),
             flag("banBackup", "wrath", "Копия мира перед изгнанием", "Перед баном сохраняется копия мира."),
+            flag("rouletteEnabled", "roulette", "Рулетка кары", "Перед карой три барабана крутятся и встают на её символ; 777 — конец света."),
+            choice("rouletteMode", "roulette", "Длительность рулетки", "SHORT — около 3 с, NORMAL — около 6,5 с, DRAMATIC — около 9 с.",
+                    List.of(Roulette.Mode.SHORT.name(), Roulette.Mode.NORMAL.name(), Roulette.Mode.DRAMATIC.name())),
+            choice("rouletteAudience", "roulette", "Кому показывать", "SINNER — только грешнику, RADIUS — игрокам рядом, ALL — всем на сервере.",
+                    names(Roulette.Audience.values())),
+            number("rouletteRadius", "roulette", "Радиус показа, блоков", "Игроки ближе видят рулетку чужой кары («Кара для …»).", 16, 256, 1),
+            flag("rouletteTease", "roulette", "Дразнилка «почти 777»", "Для кар К3–К4 третий барабан иногда медленно проползает мимо семёрки."),
+            number("rouletteTeaseChance", "roulette", "Шанс дразнилки, %", "Как часто третий барабан дразнит семёркой.", 0, 100, 1),
+            choice("rouletteTails", "roulette", "Рулетка продолжений", "Перед второй волной и повторным толчком: OFF — нет, MINI — один барабан на 2 с, FULL — полная.",
+                    names(Roulette.Tails.values())),
+            flag("rouletteAdmin", "roulette", "Кары из админки через рулетку", "Деяние гнева, посланное из веб-админки, тоже падает после рулетки."),
             flags("disabled", "wrath", "Деяния бога", "Выключенное деяние не выпадает: бог берёт другое из той же группы.", deedFlags()),
             flags("disabledBosses", "bosses", "Боссы", "Вместо выключенного босса приходит усиленный обычный моб с его именем.", bossFlags()),
             number("bossDifficulty", "bosses", "Сила боссов, %", "Здоровье и урон боссов относительно обычного.", 50, 300, 1),

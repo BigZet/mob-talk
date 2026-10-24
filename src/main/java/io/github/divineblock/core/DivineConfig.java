@@ -81,6 +81,25 @@ public final class DivineConfig {
     /** Punishments that change the land (craters, rifts, floods…) may fall — at the sinner's home, never by a church; off
      * puts another act of the same group in their place. */
     public boolean landscapeWrath = true;
+    /** The punishment roulette ({@link Roulette}): three reels spin before a punishment falls and stop on its symbol. On a
+     * server the switch, the length, who sees it, the tease and the tails are the admin's; showing it and its sound are the player's. */
+    public boolean rouletteEnabled = true;
+    public Roulette.Mode rouletteMode = Roulette.Mode.NORMAL;
+    public Roulette.Audience rouletteAudience = Roulette.Audience.RADIUS;
+    /** How far others see a sinner's roulette («Кара для …»), 16..256 blocks. */
+    public int rouletteRadius = 64;
+    /** «Почти 777» for К3–К4: the third reel crawls past the seven, with this chance in percent. */
+    public boolean rouletteTease = true;
+    public int rouletteTeaseChance = 25;
+    /** The roulette before a punishment's tail (the second wave, an aftershock). */
+    public Roulette.Tails rouletteTails = Roulette.Tails.MINI;
+    /** Punishments sent from the web admin spin the roulette too. */
+    public boolean rouletteAdmin = true;
+    /** Personal: draw the roulette on this screen (off leaves the chat line), its sound in percent 0..200, and the golden flash
+     * with the camera shaking on 777. */
+    public boolean rouletteShow = true;
+    public int rouletteVolume = 100;
+    public boolean rouletteJackpotFx = true;
     /** Ids of acts the player switched off. */
     public List<String> disabled = new ArrayList<>();
     /** Orthodox churches with an altar inside appear in newly generated chunks; off generates none (old ones stay). */
@@ -139,6 +158,12 @@ public final class DivineConfig {
         churchSpacing = clamp(churchSpacing, 32, 256);
         if (churchVariant == null || !java.util.List.of("", "STONE", "WOOD", "SLAVIC").contains(churchVariant)) churchVariant = "";
         curseMinutes = CurseTerm.minutes(curseMinutes);
+        if (rouletteMode == null || rouletteMode == Roulette.Mode.MINI) rouletteMode = Roulette.Mode.NORMAL;
+        if (rouletteAudience == null) rouletteAudience = Roulette.Audience.RADIUS;
+        if (rouletteTails == null) rouletteTails = Roulette.Tails.MINI;
+        rouletteRadius = clamp(rouletteRadius, 16, 256);
+        rouletteTeaseChance = clamp(rouletteTeaseChance, 0, 100);
+        rouletteVolume = clamp(rouletteVolume, 0, 200);
         voiceEffects(voiceEffects());
         return this;
     }
