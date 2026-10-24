@@ -156,6 +156,12 @@ final class RouletteSelfTest {
         log("алтарь в " + altar.toShortString());
     }
 
+    /** Back on the stage before the altar, facing it. */
+    private static void home() {
+        player.teleport(player.getServerWorld(), base.getX() + 0.5, base.getY(), base.getZ() + 0.5, 180f, 10f);
+        player.setVelocity(0, 0, 0);
+    }
+
     private static void server(Runnable action) {
         server.execute(() -> { try { action.run(); } catch (RuntimeException failure) { fail("шаг упал: " + failure); DivineBlockMod.LOG.warn("самотест рулетки", failure); } });
     }
@@ -209,8 +215,9 @@ final class RouletteSelfTest {
             }
             // The god answers the first prayer when he answers (his words may take a while): the next waits for his act.
             case 11 -> { if (!answered && waited++ < 20 * 40) { step--; return; } log("  первая молитва отвечена: " + answered); wait = 20; }
-            case 12 -> { command("divineblock roulette undead_horde normal"); wait = 40; }
-            case 13 -> { recording = "pardon"; frame = 0; server(() -> Prayers.handle(player, altar, "Господи, прости меня грешного, каюсь")); wait = 10; }
+            // The first answer may have carried him off (a jest): back to the altar before the punishment and the repentance.
+            case 12 -> { server(RouletteSelfTest::home); command("divineblock roulette undead_horde normal"); wait = 40; }
+            case 13 -> { recording = "pardon"; frame = 0; server(() -> { home(); Prayers.handle(player, altar, "Господи, прости меня грешного, каюсь"); }); wait = 10; }
             case 14 -> {
                 check(saw("pardon:pardon"), "покаяние под рулеткой: барабаны заклинило, голуби");
                 check(!saw("pardon:final"), "помилованная кара не дошла до финала");
