@@ -39,6 +39,8 @@ public final class DivineBlockClient implements ClientModInitializer {
         Flipped.register();
         TornadoRenderer.register();
         io.github.divineblock.client.boss.BossClient.register();
+        io.github.divineblock.client.weapon.WeaponClient.register();
+        io.github.divineblock.client.weapon.WeaponSelfTest.register();
         io.github.divineblock.client.fx.FxEngine.register();
         BloodWater.register();
         // A button in the pause menu, one row above Mob Talk's in the same corner. A Mob Talk with the "Моды сборки" hub opens

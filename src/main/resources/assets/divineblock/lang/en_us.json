@@ -97,5 +97,21 @@
   "block.divineblock.icon_panel": "Icon",
   "block.divineblock.candle_stand": "Candle Stand",
   "block.divineblock.chandelier": "Panikadilo",
-  "block.divineblock.analoy": "Analoy"
+  "block.divineblock.analoy": "Analoy",
+  "item.divineblock.david_sling": "David's Sling",
+  "item.divineblock.cherub_sword": "Cherub's Flaming Sword",
+  "item.divineblock.archistrategos_sword": "Sword of the Archistrategos",
+  "item.divineblock.george_spear": "Spear of St George",
+  "item.divineblock.nimrod_bow": "Nimrod's Bow",
+  "item.divineblock.samson_jawbone": "Samson's Jawbone",
+  "item.divineblock.gideon_jar": "Gideon's Pitcher",
+  "item.divineblock.war_sword": "Great Sword of War",
+  "item.divineblock.jericho_horn": "Trumpets of Jericho",
+  "item.divineblock.aspen_stake": "Aspen Stake",
+  "item.divineblock.sling_stone": "Smooth Stone",
+  "item.divineblock.aspen_stake.tooltip": "A folk belief, not church teaching",
+  "effect.divineblock.rout": "Rout",
+  "entity.divineblock.sling_stone": "Sling Stone",
+  "entity.divineblock.thrown_spear": "Spear of St George",
+  "tag.block.divineblock.jericho_breakable": "Walls of Jericho"
 }

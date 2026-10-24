@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "BB ",
+    "BK ",
+    " L "
+  ],
+  "key": {
+    "B": {
+      "item": "minecraft:bone"
+    },
+    "K": {
+      "item": "minecraft:bone_block"
+    },
+    "L": {
+      "item": "minecraft:leather"
+    }
+  },
+  "result": {
+    "id": "divineblock:samson_jawbone",
+    "count": 1
+  }
+}

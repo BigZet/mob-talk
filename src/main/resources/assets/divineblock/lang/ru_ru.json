@@ -97,5 +97,21 @@
   "block.divineblock.icon_panel": "Икона",
   "block.divineblock.candle_stand": "Подсвечник",
   "block.divineblock.chandelier": "Паникадило",
-  "block.divineblock.analoy": "Аналой"
+  "block.divineblock.analoy": "Аналой",
+  "item.divineblock.david_sling": "Праща Давида",
+  "item.divineblock.cherub_sword": "Пламенный меч Херувима",
+  "item.divineblock.archistrategos_sword": "Меч архистратига",
+  "item.divineblock.george_spear": "Копьё Георгия",
+  "item.divineblock.nimrod_bow": "Лук Нимрода",
+  "item.divineblock.samson_jawbone": "Ослиная челюсть Самсона",
+  "item.divineblock.gideon_jar": "Кувшин Гедеона",
+  "item.divineblock.war_sword": "Большой меч Войны",
+  "item.divineblock.jericho_horn": "Трубы Иерихона",
+  "item.divineblock.aspen_stake": "Осиновый кол",
+  "item.divineblock.sling_stone": "Гладкий камень",
+  "item.divineblock.aspen_stake.tooltip": "Народное поверье, не церковное учение",
+  "effect.divineblock.rout": "Смятение",
+  "entity.divineblock.sling_stone": "Камень пращи",
+  "entity.divineblock.thrown_spear": "Копьё Георгия",
+  "tag.block.divineblock.jericho_breakable": "Стены Иерихона"
 }

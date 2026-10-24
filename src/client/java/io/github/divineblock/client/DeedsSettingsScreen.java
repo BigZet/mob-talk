@@ -8,7 +8,7 @@ import net.minecraft.client.gui.screen.Screen;
 public final class DeedsSettingsScreen extends DivinePanel {
     public DeedsSettingsScreen(Screen parent, DivineConfig config) { super(parent, config); }
 
-    @Override protected int section() { return 4; }
+    @Override protected int section() { return 5; }
 
     @Override protected void content() {
         serverNote();

@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    " W ",
+    "IDI",
+    " T "
+  ],
+  "key": {
+    "W": {
+      "item": "divineblock:wrath_sword_shard"
+    },
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "D": {
+      "item": "minecraft:diamond"
+    },
+    "T": {
+      "item": "minecraft:stick"
+    }
+  },
+  "result": {
+    "id": "divineblock:archistrategos_sword",
+    "count": 1
+  }
+}

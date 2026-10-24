@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "CC ",
+    "CTC"
+  ],
+  "key": {
+    "C": {
+      "item": "minecraft:copper_ingot"
+    },
+    "T": {
+      "item": "divineblock:tocsin_tongue"
+    }
+  },
+  "result": {
+    "id": "divineblock:jericho_horn",
+    "count": 1
+  }
+}

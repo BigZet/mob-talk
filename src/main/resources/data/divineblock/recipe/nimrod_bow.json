@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    " B ",
+    "SWS"
+  ],
+  "key": {
+    "B": {
+      "item": "divineblock:babel_brick"
+    },
+    "W": {
+      "item": "minecraft:bow"
+    },
+    "S": {
+      "item": "minecraft:string"
+    }
+  },
+  "result": {
+    "id": "divineblock:nimrod_bow",
+    "count": 1
+  }
+}

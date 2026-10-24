@@ -100,6 +100,11 @@ public final class DivineConfig {
     public List<String> disabledBosses = new ArrayList<>();
     public int bossDifficulty = 100;
     public boolean bossBlockDamage = true;
+    /** The weapons ({@code io.github.divineblock.weapon}): ids switched off (the war sword by default), whether the trumpets
+     * of Jericho bring walls down, and the weapons' own extra harm in percent (50..150). */
+    public List<String> disabledWeapons = new ArrayList<>(List.of("war_sword"));
+    public boolean jerichoBreaksBlocks = true;
+    public int weaponPower = 100;
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
@@ -136,6 +141,8 @@ public final class DivineConfig {
         chantVolume = clamp(chantVolume, 0, 200);
         if (disabledBosses == null) disabledBosses = new ArrayList<>();
         bossDifficulty = clamp(bossDifficulty, 50, 300);
+        if (disabledWeapons == null) disabledWeapons = new ArrayList<>();
+        weaponPower = clamp(weaponPower, 50, 150);
         churchSpacing = clamp(churchSpacing, 32, 256);
         if (churchVariant == null || !java.util.List.of("", "STONE", "WOOD", "SLAVIC").contains(churchVariant)) churchVariant = "";
         curseMinutes = CurseTerm.minutes(curseMinutes);

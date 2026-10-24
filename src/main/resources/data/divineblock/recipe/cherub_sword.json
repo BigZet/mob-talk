@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    " F ",
+    "GBG",
+    " T "
+  ],
+  "key": {
+    "F": {
+      "item": "divineblock:cherub_flame"
+    },
+    "G": {
+      "item": "minecraft:gold_ingot"
+    },
+    "B": {
+      "item": "minecraft:blaze_rod"
+    },
+    "T": {
+      "item": "minecraft:stick"
+    }
+  },
+  "result": {
+    "id": "divineblock:cherub_sword",
+    "count": 1
+  }
+}

@@ -45,7 +45,7 @@ public final class DivineSettings {
     public record Group(String id, String title) { }
 
     public static final List<Group> GROUPS = List.of(new Group("god", "Характер бога"), new Group("speech", "Речь и решения"),
-            new Group("world", "Мир"), new Group("wrath", "Кары"), new Group("bosses", "Боссы"));
+            new Group("world", "Мир"), new Group("wrath", "Кары"), new Group("bosses", "Боссы"), new Group("weapons", "Оружие"));
 
     private static final Pattern ID = Pattern.compile("[a-z0-9_]{1,40}");
     private static final Gson GSON = new Gson();
@@ -79,7 +79,10 @@ public final class DivineSettings {
             flags("disabled", "wrath", "Деяния бога", "Выключенное деяние не выпадает: бог берёт другое из той же группы.", deedFlags()),
             flags("disabledBosses", "bosses", "Боссы", "Вместо выключенного босса приходит усиленный обычный моб с его именем.", bossFlags()),
             number("bossDifficulty", "bosses", "Сила боссов, %", "Здоровье и урон боссов относительно обычного.", 50, 300, 1),
-            flag("bossBlockDamage", "bosses", "Боссы ломают блоки", "Удары и ульты боссов могут разрушать блоки."));
+            flag("bossBlockDamage", "bosses", "Боссы ломают блоки", "Удары и ульты боссов могут разрушать блоки."),
+            flags("disabledWeapons", "weapons", "Оружие", "Выключенное оружие в руке не действует: «бог не велит».", weaponFlags()),
+            flag("jerichoBreaksBlocks", "weapons", "Трубы Иерихона ломают стены", "Стеновые блоки перед трубачом рассыпаются; выкл — только звук и толчок."),
+            number("weaponPower", "weapons", "Сила оружия, %", "Собственный урон оружия бога (бонусы по нечисти, змиям, Голиафу) относительно обычного.", 50, 150, 1));
 
     private DivineSettings() { }
 
@@ -282,6 +285,13 @@ public final class DivineSettings {
     }
 
     /** Every sacred boss by where he comes from first, and the god with the mace with the end of the world. */
+    static List<Flag> weaponFlags() {
+        List<Flag> out = new ArrayList<>();
+        for (io.github.divineblock.weapon.WeaponKind kind : io.github.divineblock.weapon.WeaponKind.values())
+            out.add(new Flag(kind.id, kind.title, kind.help, "weapons", "Оружие"));
+        return out;
+    }
+
     static List<Flag> bossFlags() {
         List<Flag> out = new ArrayList<>();
         for (BossKind.Place place : BossKind.Place.values()) {
