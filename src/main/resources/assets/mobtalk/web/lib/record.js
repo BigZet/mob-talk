@@ -23,6 +23,8 @@ export const KINDS = {
   player_join: { title: 'Вход игрока', icon: 'players' },
   player_leave: { title: 'Выход игрока', icon: 'players' },
   death: { title: 'Смерть игрока', icon: 'warn', k: 8 },
+  parrot_jailed: { title: 'Попугай в клетке', icon: 'warn', k: 5 },
+  parrot_released: { title: 'Попугай на свободе', icon: 'check', k: 3 },
   config_change: { title: 'Настройка', icon: 'settings', k: 1 },
   error: { title: 'Ошибка', icon: 'warn', k: 8 },
   command: { title: 'Команда', icon: 'server' },
