@@ -36,6 +36,8 @@ final class ChantPlayer {
     private static final float ALTAR_VOLUME = 0.85f, MUSIC_VOLUME = 0.9f;
     /** How much of it is left while the god speaks. */
     private static final float UNDER_VOICE = 0.22f;
+    /** How much of it is left while the punishment roulette spins: its bells and fanfare play over the chant. */
+    private static final float UNDER_ROULETTE = 0.12f;
     private static final int NEAR = 12, FAR = 22, AFTER_WORDS = 20 * 5;
     /** Away this long, the altar greets the player again when he returns; staying, he hears it again after a long pause. */
     private static final int AWAY_TICKS = 20 * 120, STAY_PAUSE = 20 * 240, STAY_PAUSE_SPREAD = 20 * 120;
@@ -177,6 +179,7 @@ final class ChantPlayer {
         return chant == null ? "нет музыки" : chant.piece + " stopAt=" + chant.stopAt + " fading=" + chant.fading() + " now=" + (client.world == null ? -1 : client.world.getTime());
     }
     static boolean musicEnding() { Chant chant = music; return chant == null || chant.fading(); }
+    static float altarLevel() { Chant chant = altarChant; return chant == null ? -1 : chant.level(); }
     static float musicLevel() { Chant chant = music; return chant == null ? -1 : chant.level(); }
     static List<String> allPieces() { return java.util.stream.Stream.of(ALTAR, BLESSING, PUNISHMENT).flatMap(List::stream).toList(); }
 
@@ -223,8 +226,8 @@ final class ChantPlayer {
 
         @Override public void tick() {
             age++;
-            float wantDuck = GodVoicePlayer.speaking() ? UNDER_VOICE : 1f;
-            // Sinks within half a second when the god speaks, comes back over two seconds after.
+            float wantDuck = Math.min(GodVoicePlayer.speaking() ? UNDER_VOICE : 1f, RouletteHud.spinning() ? UNDER_ROULETTE : 1f);
+            // Sinks within half a second when the god speaks or the roulette spins, comes back over two seconds after.
             duck += (wantDuck - duck) * (wantDuck < duck ? 0.2f : 0.05f);
             float fade = Math.min(1f, age / (float) fadeIn);
             if (fading >= 0) {

@@ -82,7 +82,9 @@ public final class Prayers {
 
         if (THINKING.contains(player.getUuid())) { hint(player, "Бог ещё размышляет над прежней молитвой…"); return; }
         long now = server.getOverworld().getTime();
-        if (now - soul.lastPrayerTick < config.cooldownSeconds * 20L) { hint(player, "Алтарь ещё не остыл. Повремени, смертный."); return; }
+        // Repentance while the roulette of his punishment still spins is heard at once: the altar has no time to cool.
+        boolean repentsUnderRoulette = RouletteService.spinning(player) && PrayerTone.of(text).repents();
+        if (now - soul.lastPrayerTick < config.cooldownSeconds * 20L && !repentsUnderRoulette) { hint(player, "Алтарь ещё не остыл. Повремени, смертный."); return; }
 
         THINKING.add(player.getUuid());
         hint(player, "Бог внимает…");
@@ -155,7 +157,8 @@ public final class Prayers {
         Multiplayer.journal(io.github.divineblock.core.GodJournal.Kind.PRAYER, player.getName().getString(), text);
         // Punishments in a row climb the ladder; sincere repentance under them (or under a lingering curse) is forgiven.
         int streak = soul.wrathStreak(day);
-        VerdictBuilder.forgiveBurden(verdict, tone.repents(), streak > 0 || !Curses.of(server, player.getUuid()).isEmpty());
+        boolean spinning = RouletteService.spinning(player);
+        VerdictBuilder.forgiveBurden(verdict, tone.repents(), streak > 0 || !Curses.of(server, player.getUuid()).isEmpty() || spinning);
         VerdictBuilder.escalate(verdict, streak, config);
         if (verdict.forgiveness) {
             soul.forgiven();
@@ -163,6 +166,8 @@ public final class Prayers {
             int lifted = Curses.lift(server, player.getUuid(), ended, "покаялся");
             VillageEvents.forgiven(player, altar, ended);
             PENANCE.end(player.getUuid()); // The punishment under way is forgiven too: the next sin starts a new one.
+            // Its reels still spin: they jam into doves and it does not fall.
+            if (RouletteService.pardon(player)) hint(player, "Рулетка заклинила: помилован");
             if (lifted > 0) hint(player, "Проклятия сняты: " + lifted);
         }
 
@@ -236,6 +241,7 @@ public final class Prayers {
         MiracleGroup group = MiracleGroup.byId(verdict.group);
         int sky = group != null && group.kind == Miracle.Kind.WRATH ? Math.max(0, group.ordinal() - MiracleGroup.K1.ordinal()) : 0;
         double estimate = Math.max(3, verdict.speech.split("\s+").length * 0.45); // Seconds the words may take, for the glow.
+        if (RouletteService.applies(verdict.inclination, verdict.chosen(), config)) { spinThen(player, altar, world, verdict, config, color, music, sky, estimate); return; }
         speakThen(player, verdict.speech, () -> {
             if (player.isRemoved() || player.getServerWorld() != world) return;
             Miracles.speaking(player, altar, verdict.chosen().kind, estimate);
@@ -255,6 +261,47 @@ public final class Prayers {
             }
             act(player, altar, verdict, config);
         });
+    }
+
+    /** A punishment through the roulette: the portents and the red sky while the reels spin, the god's word at the final (his
+     * voice comes when it comes: the reels never wait for it), and the act exactly when the machine leaves, on the server's
+     * ticks. A sinner who leaves meanwhile is held back as before; death or another world cancel it; a pardon jams the reels. */
+    private static void spinThen(ServerPlayerEntity player, BlockPos altar, ServerWorld world, Verdict verdict, DivineConfig config,
+                                 int color, int music, int sky, double estimate) {
+        Miracle chosen = verdict.chosen();
+        List<Verdict.Reason> main = verdict.mainReasons(1);
+        RouletteService.spin(player, chosen, MiracleGroup.byId(verdict.group), main.isEmpty() ? "" : main.get(0).text(), config.rouletteMode, null,
+                new RouletteService.Steps() {
+                    @Override public void started(double seconds) {
+                        Portents.before(player, altar, chosen, seconds);
+                        if (ServerPlayNetworking.canSend(player, BeamsPayload.ID)) ServerPlayNetworking.send(player, new BeamsPayload(altar, 20 * 90, color, music, sky));
+                    }
+                    @Override public void fin() {
+                        Miracles.speaking(player, altar, chosen.kind, estimate);
+                        speakThen(player, verdict.speech, () -> { }, () -> { });
+                    }
+                    @Override public void act() {
+                        beamsOff();
+                        if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) { Prayers.cancelled(player, verdict); return; }
+                        Miracles.flourish(player, altar, chosen.kind, verdict.power);
+                        Prayers.act(player, altar, verdict, config);
+                    }
+                    @Override public void spared() {
+                        // Spared by chance: the punishment does not fall, the ladder of punishments stays (no forgiveness).
+                        beamsOff();
+                        verdict.decisionNote = verdict.decisionNote + "; рулетка: пощажён случаем";
+                        Prayers.cancelled(player, verdict);
+                        performed.accept("spared");
+                    }
+                    @Override public void cancelled(io.github.divineblock.core.RouletteQueue.Cancel why) {
+                        beamsOff();
+                        if (why == io.github.divineblock.core.RouletteQueue.Cancel.LEFT) Multiplayer.heldBack(player, world, altar, verdict);
+                        else if (why != io.github.divineblock.core.RouletteQueue.Cancel.PARDON) Prayers.cancelled(player, verdict);
+                    }
+                    private void beamsOff() {
+                        if (!player.isRemoved() && ServerPlayNetworking.canSend(player, BeamsPayload.ID)) ServerPlayNetworking.send(player, new BeamsPayload(altar, 0, color, music, sky));
+                    }
+                });
     }
 
     /** A sinner who logged out before his punishment fell is back: the god names it and it falls at once, without a second

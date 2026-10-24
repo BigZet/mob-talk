@@ -27,6 +27,7 @@ public final class DivineBlockClient implements ClientModInitializer {
         ZonesSelfTest.register();
         CruelTest.register();
         CemeteryTest.register();
+        RouletteSelfTest.register();
         net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.INSTANCE.putBlocks(net.minecraft.client.render.RenderLayer.getCutout(),
                 io.github.divineblock.cemetery.CemeteryBlocks.all().toArray(net.minecraft.block.Block[]::new));
         settingsKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.divineblock.settings", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_F9, "key.categories.divineblock"));
@@ -41,6 +42,7 @@ public final class DivineBlockClient implements ClientModInitializer {
         io.github.divineblock.client.boss.BossClient.register();
         io.github.divineblock.client.fx.FxEngine.register();
         BloodWater.register();
+        RouletteHud.register();
         // A button in the pause menu, one row above Mob Talk's in the same corner. A Mob Talk with the "Моды сборки" hub opens
         // DivineSettingsScreen(Screen) from there instead: checked a moment after the menu is built, once every mod added its buttons.
         net.fabricmc.fabric.api.client.screen.v1.ScreenEvents.AFTER_INIT.register((minecraft, screen, width, height) -> {

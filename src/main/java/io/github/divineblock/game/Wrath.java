@@ -265,14 +265,14 @@ final class Wrath {
         shake(world, player, altar, center, radius, 40, 4 + power, 0, cracks, config);
         for (int level = 1; level <= 2; level++) {
             int widen = level;
-            Scheduler.later(600 * level, () -> {
+            Scheduler.later(600 * level, () -> RouletteService.tail(player, io.github.divineblock.core.Miracle.EARTHQUAKE, () -> {
                 if (present(world, player) && player.getBlockPos().isWithinDistance(center, radius * 2)) {
                     Miracles.effect(player, StatusEffects.NAUSEA, 140, 0);
                     Miracles.effect(player, StatusEffects.SLOWNESS, 100, 0);
                 }
                 Miracles.sound(world, center, SoundEvents.ENTITY_WARDEN_ROAR, 2f, 0.3f);
                 shake(world, player, altar, center, radius * (4 - widen) / 4, 24 - 6 * widen, Math.max(2, (4 + power) / 2), widen, cracks, config);
-            });
+            }));
         }
         return "землетрясение и два афтершока";
     }
@@ -403,8 +403,9 @@ final class Wrath {
         int count = power >= 4 ? 20 : 12;
         int first = count / 2, second = count / 4, third = count - first - second;
         wave(world, player, first, power >= 4);
-        Scheduler.later(300, () -> { if (present(world, player)) wave(world, player, second, power >= 4); });
-        Scheduler.later(600, () -> { if (present(world, player)) wave(world, player, third, true); });
+        // Each later wave comes after the roulette of the tail (by the settings: none, one reel or the whole machine).
+        Scheduler.later(300, () -> { if (present(world, player)) RouletteService.tail(player, io.github.divineblock.core.Miracle.UNDEAD_HORDE, () -> { if (present(world, player)) wave(world, player, second, power >= 4); }); });
+        Scheduler.later(600, () -> { if (present(world, player)) RouletteService.tail(player, io.github.divineblock.core.Miracle.UNDEAD_HORDE, () -> { if (present(world, player)) wave(world, player, third, true); }); });
         return "восстала орда нежити: " + count + " в три волны, и павшие встают снова";
     }
 
@@ -468,7 +469,7 @@ final class Wrath {
             spawned++;
         }
         Miracles.sound(world, player.getBlockPos(), SoundEvents.EVENT_RAID_HORN.value(), 4f, 1f);
-        Scheduler.later(600, () -> {
+        Scheduler.later(600, () -> RouletteService.tail(player, io.github.divineblock.core.Miracle.RAID, () -> {
             if (!present(world, player)) return;
             for (int i = 0; i < (power >= 4 ? 8 : 5); i++) {
                 if (!(EntityType.VEX.create(world) instanceof net.minecraft.entity.mob.VexEntity vex)) continue;
@@ -479,7 +480,7 @@ final class Wrath {
             for (int i = 0; i < (power >= 4 ? 2 : 1); i++) if (EntityType.EVOKER.create(world) instanceof MobEntity evoker) ring(world, player, evoker, 8, 13, ParticleTypes.SMOKE);
             if (power >= 4 && EntityType.RAVAGER.create(world) instanceof MobEntity ravager) ring(world, player, ravager, 10, 15, ParticleTypes.SMOKE);
             Miracles.sound(world, player.getBlockPos(), SoundEvents.EVENT_RAID_HORN.value(), 4f, 0.8f);
-        });
+        }));
         return "войско разбойников: " + spawned + ", за ним вторая волна";
     }
 
