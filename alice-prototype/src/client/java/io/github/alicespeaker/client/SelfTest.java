@@ -1,0 +1,205 @@
+package io.github.alicespeaker.client;
+
+import io.github.alicespeaker.AliceSpeakerMod;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.TitleScreen;
+import net.minecraft.client.util.ScreenshotRecorder;
+import net.minecraft.registry.Registries;
+import net.minecraft.resource.DataConfiguration;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.Difficulty;
+import net.minecraft.world.GameMode;
+import net.minecraft.world.GameRules;
+import net.minecraft.world.gen.GeneratorOptions;
+import net.minecraft.world.gen.WorldPresets;
+import net.minecraft.world.level.LevelInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.util.function.BooleanSupplier;
+
+/**
+ * {@code -Dalicespeaker.selftest=<world>}: creates a fresh creative world, places a speaker and talks to the real Alice:
+ * a typed question, her own answer played back to her as voice input, a music request, and breaking the speaker
+ * mid-answer. Every step logs "[selftest]" lines and screenshots, then the game quits.
+ */
+final class SelfTest {
+    private static final Logger LOGGER = LoggerFactory.getLogger("alicespeaker");
+    private final AliceSpeakerClient owner;
+    private final MinecraftClient client = MinecraftClient.getInstance();
+    private final String world;
+    private int stage, ticks, deadline, asked;
+    private boolean failed;
+    private BlockPos speaker;
+    private byte[] firstVoice;
+    private String waitingFor = "";
+    private BooleanSupplier until = () -> true;
+    private Runnable then = () -> { };
+
+    private SelfTest(AliceSpeakerClient owner, String world) { this.owner = owner; this.world = world; }
+
+    static void install(AliceSpeakerClient owner) {
+        String world = System.getProperty("alicespeaker.selftest");
+        if (world == null || world.isBlank()) return;
+        SelfTest test = new SelfTest(owner, world);
+        ClientTickEvents.END_CLIENT_TICK.register(ignored -> test.tick());
+        LOGGER.info("[selftest] armed for a new world {}", world);
+    }
+
+    private void log(String text) { LOGGER.info("[selftest] {}", text); }
+    private void fail(String text) { failed = true; LOGGER.error("[selftest] FAIL: {}", text); }
+    private void check(boolean ok, String what) { if (ok) log("OK: " + what); else fail(what); }
+
+    private void await(String what, int seconds, BooleanSupplier condition, Runnable next) {
+        waitingFor = what; until = condition; then = next; deadline = ticks + seconds * 20;
+    }
+
+    private void tick() {
+        ticks++;
+        if (stage == 0) {
+            if (client.currentScreen instanceof TitleScreen && ticks > 40) {
+                stage = 1;
+                log("creating world " + world);
+                LevelInfo info = new LevelInfo(world, GameMode.CREATIVE, false, Difficulty.PEACEFUL, true, new GameRules(), DataConfiguration.SAFE_MODE);
+                client.createIntegratedServerLoader().createAndStart(world, info, GeneratorOptions.DEMO_OPTIONS, WorldPresets::createDemoOptions, new TitleScreen());
+                await("world joined", 180, () -> client.player != null && client.world != null && client.getServer() != null && client.player.age > 60, this::prepare);
+            }
+            return;
+        }
+        if (waitingFor.isEmpty()) return;
+        if (until.getAsBoolean()) { String done = waitingFor; waitingFor = ""; log("… " + done); then.run(); }
+        else if (ticks >= deadline) { String what = waitingFor; waitingFor = ""; fail("timeout waiting for " + what); then.run(); }
+    }
+
+    private void command(String line) {
+        MinecraftServer server = client.getServer();
+        server.execute(() -> server.getCommandManager().executeWithPrefix(server.getCommandSource().withSilent().withLevel(4), line));
+    }
+
+    private void shot(String name) {
+        ScreenshotRecorder.saveScreenshot(client.runDirectory, "alice-" + name + ".png", client.getFramebuffer(), text -> { });
+        log("screenshot alice-" + name + ".png");
+    }
+
+    // ---- Stage 1: a stone platform in the sky, the player facing a speaker two blocks away.
+    private void prepare() {
+        check(Registries.BLOCK.getId(AliceSpeakerMod.SPEAKER).toString().equals("alicespeaker:speaker"), "speaker block registered");
+        String name = client.player.getGameProfile().getName();
+        command("time set day");
+        command("weather clear");
+        command("gamerule doDaylightCycle false");
+        command("fill -4 199 -4 4 199 4 minecraft:smooth_stone");
+        command("fill -4 200 -4 4 203 4 minecraft:air");
+        command("tp " + name + " 0 200 -2 0 25");
+        speaker = new BlockPos(0, 200, 0);
+        command("setblock 0 200 0 alicespeaker:speaker");
+        await("speaker visible to the client", 20, () -> client.world.getBlockState(speaker).isOf(AliceSpeakerMod.SPEAKER) && client.player.getBlockPos().getY() == 200, this::askText);
+    }
+
+    private BooleanSupplier answered() {
+        int target = ++asked;
+        return () -> owner.finished >= target;
+    }
+
+    // ---- Stage 2: a typed question; Alice answers in text and in her own voice from the block.
+    private void askText() {
+        shot("1-speaker");
+        check(AliceSpeakerClient.findSpeaker(client) != null, "speaker found near the player");
+        log("asking (text): Расскажи короткий анекдот");
+        owner.ask(client, speaker, "Расскажи короткий анекдот", null);
+        await("Alice answered the typed question", 60, answered(), () -> {
+            AliceSpeakerClient.Reply reply = owner.lastReply;
+            check(reply != null, "answer without error" + (owner.lastError == null ? "" : ": " + owner.lastError));
+            if (reply == null) { askVoice(); return; }
+            log("Alice: " + reply.text());
+            check(!reply.text().isBlank(), "Alice's text answer is not empty");
+            check(reply.pcm() != null, "Alice's own voice arrived and decoded" + (reply.pcm() == null ? " (" + reply.voiceProblem() + ")" : ""));
+            if (reply.pcm() == null) { askVoice(); return; }
+            double seconds = reply.pcm().length / 2.0 / OggOpus.RATE;
+            log(String.format("voice %.1f s", seconds));
+            check(seconds > 0.5, "voice is longer than half a second");
+            firstVoice = reply.pcm();
+            await("voice playing from the speaker", 5, () -> owner.sound != null && client.getSoundManager().isPlaying(owner.sound), () -> {
+                check(owner.sound != null && client.getSoundManager().isPlaying(owner.sound), "voice plays from the speaker block");
+                shot("2-speaking");
+                await("voice finished", (int) seconds + 15, () -> owner.sound == null || !client.getSoundManager().isPlaying(owner.sound), this::askVoice);
+            });
+        });
+    }
+
+    // ---- Stage 3: Alice's own voice, downsampled to 16 kHz, is sent back as microphone input (Alice's own speech recognition).
+    private void askVoice() {
+        if (firstVoice == null) { log("voice input skipped: no voice from stage 2"); askMusic(); return; }
+        byte[] pcm16k = downsample3(firstVoice, Microphone.RATE * 2 * Microphone.MAX_SECONDS);
+        log("asking (voice): " + pcm16k.length / 2 / Microphone.RATE + " s of Alice's own speech");
+        owner.ask(client, speaker, null, pcm16k);
+        await("Alice answered the voice question", 60, answered(), () -> {
+            AliceSpeakerClient.Reply reply = owner.lastReply;
+            check(reply != null, "voice question answered without error" + (owner.lastError == null ? "" : ": " + owner.lastError));
+            if (reply != null) {
+                log("Alice heard: " + reply.heard());
+                log("Alice: " + reply.text());
+                check(!reply.heard().isBlank(), "Alice recognised the voice input");
+                check(reply.pcm() != null, "Alice answered the voice input with her voice");
+            }
+            owner.stopVoice();
+            askMusic();
+        });
+    }
+
+    // ---- Stage 4: a music request: the prototype only reports what Alice sends.
+    private void askMusic() {
+        log("asking (text): Включи музыку");
+        owner.ask(client, speaker, "Включи музыку", null);
+        await("Alice answered the music request", 60, answered(), () -> {
+            AliceSpeakerClient.Reply reply = owner.lastReply;
+            log("music request: " + (reply == null ? "error " + owner.lastError : "text=" + reply.text() + ", music directive=" + reply.music()
+                    + ", voice=" + (reply.pcm() != null)));
+            owner.stopVoice();
+            breakMidAnswer();
+        });
+    }
+
+    // ---- Stage 5: breaking the speaker while Alice talks silences her; without a speaker nearby nothing is asked.
+    private void breakMidAnswer() {
+        log("asking (text): Расскажи сказку");
+        owner.ask(client, speaker, "Расскажи сказку", null);
+        await("Alice started the fairy tale", 60, () -> owner.sound != null && client.getSoundManager().isPlaying(owner.sound) || owner.finished >= asked + 1 && owner.lastReply == null, () -> {
+            asked++;
+            if (owner.sound == null || !client.getSoundManager().isPlaying(owner.sound)) { fail("fairy tale did not start playing" + (owner.lastError == null ? "" : ": " + owner.lastError)); finish(); return; }
+            shot("3-fairy-tale");
+            command("setblock 0 200 0 minecraft:air");
+            await("speaker broken", 10, () -> !client.world.getBlockState(speaker).isOf(AliceSpeakerMod.SPEAKER), () ->
+                await("voice stopped", 3, () -> !client.getSoundManager().isPlaying(owner.sound), () -> {
+                    check(!client.getSoundManager().isPlaying(owner.sound), "breaking the speaker stops Alice's voice");
+                    check(AliceSpeakerClient.findSpeaker(client) == null, "no speaker nearby after breaking it");
+                    shot("4-broken");
+                    finish();
+                }));
+        });
+    }
+
+    private void finish() {
+        log(failed ? "FINISHED WITH FAILURES" : "ALL CHECKS PASSED");
+        int end = ticks + 40;
+        await("pause before quitting", 5, () -> ticks >= end, client::scheduleStop);
+    }
+
+    /** 48 kHz → 16 kHz by averaging every three samples (mono 16-bit little-endian), capped at {@code maxBytes}. */
+    static byte[] downsample3(byte[] pcm48k, int maxBytes) {
+        int samples = Math.min(pcm48k.length / 6, maxBytes / 2);
+        byte[] out = new byte[samples * 2];
+        for (int i = 0; i < samples; i++) {
+            int sum = 0;
+            for (int k = 0; k < 3; k++) {
+                int at = (i * 3 + k) * 2;
+                sum += (short) ((pcm48k[at] & 255) | (pcm48k[at + 1] << 8));
+            }
+            short value = (short) (sum / 3);
+            out[i * 2] = (byte) value;
+            out[i * 2 + 1] = (byte) (value >> 8);
+        }
+        return out;
+    }
+}

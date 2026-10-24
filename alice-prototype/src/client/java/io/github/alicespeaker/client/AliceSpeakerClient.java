@@ -48,12 +48,17 @@ public final class AliceSpeakerClient implements ClientModInitializer {
     private Microphone mic;
     private BlockPos micSpeaker;
     private AliceSession session;
-    private SpeakerVoiceSound sound;
+    SpeakerVoiceSound sound;
     private int generation;
+    /** Last finished answer or error, and how many asks have finished: read by the self-test. */
+    volatile Reply lastReply;
+    volatile String lastError;
+    volatile int finished;
 
     @Override public void onInitializeClient() {
         talkKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.alicespeaker.talk", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_B, "key.categories.alicespeaker"));
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
+        SelfTest.install(this);
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(this::cancelAll));
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registries) -> dispatcher.register(
                 ClientCommandManager.literal("alice").then(ClientCommandManager.argument("text", StringArgumentType.greedyString())
@@ -96,7 +101,7 @@ public final class AliceSpeakerClient implements ClientModInitializer {
         while (talkKey.wasPressed()) { }
     }
 
-    private void ask(MinecraftClient client, BlockPos speaker, String text, byte[] pcm) {
+    void ask(MinecraftClient client, BlockPos speaker, String text, byte[] pcm) {
         stopVoice();
         cancelSession();
         int expected = ++generation;
@@ -112,11 +117,16 @@ public final class AliceSpeakerClient implements ClientModInitializer {
                 .whenComplete((reply, failure) -> client.execute(() -> {
                     if (expected != generation || client.world != world) return;
                     session = null;
+                    finished++;
                     if (failure != null) {
                         Throwable cause = failure.getCause() != null ? failure.getCause() : failure;
-                        notice(client, cause.getMessage() == null ? "Алиса недоступна" : cause.getMessage(), Formatting.RED);
+                        lastReply = null;
+                        lastError = cause.getMessage() == null ? "Алиса недоступна" : cause.getMessage();
+                        notice(client, lastError, Formatting.RED);
                         return;
                     }
+                    lastReply = reply;
+                    lastError = null;
                     if (!reply.heard().isBlank()) notice(client, "Вы: " + reply.heard(), Formatting.GRAY);
                     notice(client, "Алиса: " + reply.text(), Formatting.LIGHT_PURPLE);
                     if (reply.music()) notice(client, "Алиса хочет включить музыку: в прототипе пока только голос (подробности в logs/alicespeaker-protocol.log)", Formatting.DARK_GRAY);
@@ -130,7 +140,7 @@ public final class AliceSpeakerClient implements ClientModInitializer {
                 }));
     }
 
-    private record Reply(String text, String heard, byte[] pcm, String voiceProblem, boolean music) { }
+    record Reply(String text, String heard, byte[] pcm, String voiceProblem, boolean music) { }
 
     private Reply decode(AliceSession.Answer answer) {
         boolean music = answer.notes().contains("music");
@@ -155,7 +165,7 @@ public final class AliceSpeakerClient implements ClientModInitializer {
         return out.toString();
     }
 
-    private static BlockPos findSpeaker(MinecraftClient client) {
+    static BlockPos findSpeaker(MinecraftClient client) {
         ClientWorld world = client.world;
         if (world == null || client.player == null) return null;
         if (client.crosshairTarget instanceof BlockHitResult hit && hit.getType() == HitResult.Type.BLOCK
@@ -165,7 +175,7 @@ public final class AliceSpeakerClient implements ClientModInitializer {
         return null;
     }
 
-    private void stopVoice() {
+    void stopVoice() {
         if (sound != null) sound.stop();
         sound = null;
     }

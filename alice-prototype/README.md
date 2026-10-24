@@ -19,6 +19,12 @@ alice.yandex.ru (`wss://uniproxy.alice.ya.ru/uni.ws`). Отдельный мод
 - `%USERPROFILE%\.alice-speaker\auth_token.txt` — `auth_token` из первого сообщения `SynchronizeState` сайта (необязательно);
 - или переменные окружения `YA_COOKIE` / `YA_AUTH`.
 
+## Самотест
+
+`powershell -ExecutionPolicy Bypass -File alice-prototype\scripts\run-selftest.ps1` (VPN выключен): одноразовая копия
+экземпляра `alice-speaker-test`, новый мир, вопрос текстом, ответ Алисы её же голосом обратно как голосовой ввод,
+«включи музыку», поломка колонки посреди ответа. Отчёт и снимки: `%LOCALAPPDATA%\AliceSpeaker\selftest\<копия>\`.
+
 ## Диагностика
 
 `logs/alicespeaker-protocol.log` в папке игры: имена директив Алисы и начало их содержимого (без cookies).
