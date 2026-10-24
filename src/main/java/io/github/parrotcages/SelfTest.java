@@ -425,14 +425,14 @@ final class SelfTest {
 					"the release button frees the prisoner and clears both tags");
 			check(events.stream().anyMatch(e -> "released".equals(e.get("event")) && "hands".equals(e.get("reason"))), "listeners hear the release (hands)");
 		});
-		pause("jail: cage by API", 2, () -> {
+		// Камера заранее: «АРЕСТОВАН» держится 3 секунды, снимок — сразу после ареста.
+		pause("jail: camera", 2, () -> look(sx - 2.0, SY + 2.4, sz + 0.8, 0f, 22f));
+		pause("jail: cage by API", 1, () -> {
 			ServerPlayerEntity p = player();
-			command("tp @s " + sx + " " + SY + " " + (sz - 2));
 			Object answer = Jail.call(java.util.Map.of("op", "cage", "parrot", serverWorld().getEntity(jailed), "center", new Vec3d(sx, SY, sz - 2),
 					"radius", 32, "minutes", 1, "jailer", p.getUuid(), "jailerName", p.getGameProfile().getName()));
 			check("".equals(answer), "op=cage puts the parrot into the nearest free cage (" + answer + ")");
 		});
-		pauseClient("jail: camera", 1, () -> look(sx - 2.0, SY + 1.0, sz + 1.6, 0f, 6f));
 		pauseClient("jail: screenshot arrest", 1, () -> screenshot("parrotcages-jail-arrest.png"));
 		pause("jail: info", 20, () -> {
 			Object info = Jail.call(java.util.Map.of("op", "info", "parrot", jailed));
