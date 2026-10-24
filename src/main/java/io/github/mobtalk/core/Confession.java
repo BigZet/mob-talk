@@ -34,6 +34,15 @@ public final class Confession {
         for (String word : words) if (DONE_WORDS.contains(word)) return true;
         return false;
     }
+    private static final Set<String> FILLER = Set.of("батюшка", "отче", "это", "вот", "и", "больше", "на", "этом", "я", "сказал", "сказала", "не",
+            "помню", "нечего", "все", "нет", "ничего", "аминь", "закончил", "закончила", "хватит", "пожалуй", "наверное", "уже");
+    /** В словах нет ничего, кроме «всё», «больше ничего» и обращений: заходом это не считается. */
+    public static boolean onlyDone(String said) {
+        if (said == null) return true;
+        for (String word : said.toLowerCase(Locale.ROOT).replace('ё', 'е').replaceAll("[^\\p{L}\\s]", " ").strip().split("\\s+"))
+            if (!word.isEmpty() && !FILLER.contains(word)) return false;
+        return true;
+    }
 
     /** Мат и худшие слова, как у Божественного блока: корни узнаются в любом месте слова, короткие — только в начале. */
     private static final Pattern PROFANITY = Pattern.compile(
@@ -178,7 +187,7 @@ public final class Confession {
     public static final String ABBOTS_ONLY = "Исповедь принимают в храме, у настоятеля. Ступай в церковь, чадо.";
     public static final String NOT_DONE_YET = "Епитимья твоя ещё не исполнена, чадо.";
     public static String matushka(String priest) {
-        return "Я матушка, чадо, а исповедь принимает батюшка." + (priest == null || priest.isBlank() ? " Ступай к батюшке." : " Ступай к " + priest + ".");
+        return "Я матушка, чадо, а исповедь принимает батюшка." + (priest == null || priest.isBlank() ? " Ступай к батюшке." : " Ступай к батюшке — " + priest + ".");
     }
     public static String pending(Penance penance) { return "Сперва исполни епитимью, чадо: " + penance.task + "."; }
     public static String cover(String priest) { return "* " + priest + " накрывает голову кающегося епитрахилью *"; }
@@ -341,7 +350,7 @@ public final class Confession {
             boolean finished = done(text);
             if (mocks(text)) mocked = true;
             if (Confession.sincerity(text) == 2) sincere = true;
-            boolean onlyDone = finished && text.strip().split("\\s+").length <= 3;
+            boolean onlyDone = finished && onlyDone(text);
             if (!onlyDone) {
                 words.add(text.strip());
                 classifyRequests.add(words.size() - 1);

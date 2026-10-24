@@ -243,6 +243,15 @@ keepalive и status отвечают `"loading":true`. Сразу после з�
 Вердикты — `/api/history?kind=verdict`, статистика кар — `/api/history/stats?kind=verdict&by=data.deed`, действия (снять проклятия,
 разбан, сбросить лестницу) — `/api/sources/divineblock/actions`.
 
+Исповедь (Б4, docs/confession.md): лента — `/api/history?kind=confession[&player=…]` (факт и числа; слова — только с тумблером
+`confessionHistoryText`), епитимьи Mob Talk:
+
+| Запрос | Ответ |
+| --- | --- |
+| `GET /api/confession/penances` | `{"items":[{"player":{…},"kind":"candle","title":"свеча","hud":"Епитимья: …","priest","place":"temple|village","progress","target","done","deeds","assigned":t,"due":t}]}` |
+| `POST /api/confession/penances/{uuid}/credit` | засчитать: игрок может вернуться к иерею за разрешением |
+| `POST /api/confession/penances/{uuid}/cancel` | снять без наказания: отложенные грехи снова ждут исповеди (`absolve_release` у бога) |
+
 ## Сервер и отладка
 
 | Запрос | Ответ |

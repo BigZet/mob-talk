@@ -172,6 +172,7 @@ public final class ConfessionController {
                 abbot ? Confession.Place.TEMPLE : Confession.Place.VILLAGE, returning, deeds, punished, bridge.config.confessionRounds, slavonic,
                 Confession.off(bridge.config.confessionPenancesOff), System.currentTimeMillis());
         String voice = bridge.memory.voiceOf(priest.getUuid());
+        if (voice == null || voice.isBlank()) voice = SpeciesCatalog.voiceFor("minecraft:villager", Gender.MALE, priest.getUuid()).id(); // Житель без профиля: мужской голос.
         Scene scene = new Scene(rite, world, analoy, priestSpot, penitentSpot, voice);
         scene.startedTick = world.getTime();
         byPriest.put(priest.getUuid(), scene);
@@ -499,7 +500,7 @@ public final class ConfessionController {
         completedMessage(player, p);
     }
     private static void completedMessage(ServerPlayerEntity player, ConfessionLedger.Penance p) {
-        player.sendMessage(Text.literal("§a[Mob Talk] Епитимья исполнена — вернитесь к " + p.priest() + " (любому иерею) и скажите «исполнил епитимью»."), false);
+        player.sendMessage(Text.literal("§a[Mob Talk] Епитимья исполнена — вернитесь к батюшке (" + p.priest() + " или любой иерей) и скажите «исполнил епитимью»."), false);
         player.getServerWorld().playSound(null, player.getBlockPos(), SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.PLAYERS, 0.8f, 1.4f);
     }
     /** Строка HUD епитимьи игрока ("" — нет). */

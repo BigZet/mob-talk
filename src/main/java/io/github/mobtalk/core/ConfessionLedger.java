@@ -53,7 +53,7 @@ public final class ConfessionLedger {
                           long fastSince, int baseline) {
         /** Строка HUD: что сделать и сколько сделано, а исполнив — к кому вернуться. */
         public String hud(long nowTick) {
-            if (done) return "Епитимья исполнена — вернись к " + priest;
+            if (done) return "Епитимья исполнена — вернись к батюшке (" + priest + ")";
             String count = kind.target > 1 ? " " + progress + "/" + kind.target : "";
             String fast = kind == Confession.Penance.FAST && fastSince >= 0 ? " ещё " + Math.max(1, (fastSince + 24_000 - nowTick + 1199) / 1200) + " мин" : "";
             long days = Math.max(0, dueTick - nowTick) / 24_000;

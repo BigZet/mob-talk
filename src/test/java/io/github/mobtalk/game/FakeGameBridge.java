@@ -161,4 +161,15 @@ public final class FakeGameBridge implements GameBridge {
         WeddingView view = weddingView;
         return view != null && view.ceremony().takeScriptRequest() ? view.input() : null;
     }
+
+    // ---- Б4: исповедь. ----
+    /** Идущие исповеди, которые видит ведущий. */
+    public final List<ConfessionView> confessionViews = new java.util.concurrent.CopyOnWriteArrayList<>();
+    /** Что мир отвечает на слова исповеди. */
+    public volatile java.util.function.Function<String, ConfessionAnswer> confessionAnswers = said -> ConfessionAnswer.NOT_MINE;
+    /** Итоги, которые ведущий отдал миру. */
+    public final List<io.github.mobtalk.core.DivineLink.Outcome> confessionResults = new java.util.concurrent.CopyOnWriteArrayList<>();
+    @Override public List<ConfessionView> confessions() { return List.copyOf(confessionViews); }
+    @Override public CompletableFuture<ConfessionAnswer> confessionAsk(UUID mobId, UUID playerId, String said) { return result("confessionAsk " + mobId, confessionAnswers.apply(said)); }
+    @Override public void confessionResult(io.github.mobtalk.core.Confession.Rite rite, io.github.mobtalk.core.DivineLink.Outcome outcome) { confessionResults.add(outcome); record("confessionResult " + rite.player); }
 }
