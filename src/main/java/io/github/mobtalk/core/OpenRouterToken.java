@@ -13,7 +13,9 @@ import java.util.concurrent.TimeUnit;
 public final class OpenRouterToken {
     public enum Provider {
         OPENROUTER("OpenRouter", "OPENROUTER_API_KEY", "mobtalk-openrouter-token.txt", "MobTalk/openrouter-key.dpapi"),
-        VENICE("Venice", "VENICE_API_KEY", "mobtalk-venice-token.txt", "MobTalk/venice-key.dpapi");
+        VENICE("Venice", "VENICE_API_KEY", "mobtalk-venice-token.txt", "MobTalk/venice-key.dpapi"),
+        /** Пароль obs-websocket для меток монтажа (идея З4): хранится как ключи, чтобы не светиться в mobtalk.json на стриме. */
+        OBS("OBS", "OBS_WEBSOCKET_PASSWORD", "mobtalk-obs-password.txt", "MobTalk/obs-password.dpapi");
 
         public final String label;
         final String variable, plainFile, encryptedFile;
@@ -44,6 +46,11 @@ public final class OpenRouterToken {
         return resolve(configDirectory, provider, Environment.current(provider)).token();
     }
 
+    /** Пароль OBS для клиента; пустая строка — OBS без пароля. */
+    public static String obsPassword(Path configDirectory) {
+        try { return load(configDirectory, Provider.OBS); } catch (IOException none) { return ""; }
+    }
+
     public static Status status(Path configDirectory) { return status(configDirectory, Provider.OPENROUTER); }
     public static Status status(Path configDirectory, Provider provider) { return status(configDirectory, provider, Environment.current(provider)); }
 
@@ -65,7 +72,7 @@ public final class OpenRouterToken {
     static Status status(Path configDirectory, Provider provider, Environment environment) {
         try {
             Loaded loaded = resolve(configDirectory, provider, environment);
-            return new Status(loaded.source(), mask(loaded.token()));
+            return new Status(loaded.source(), provider == Provider.OBS ? "****" : mask(loaded.token())); // A password is never half-shown.
         } catch (IOException missing) {
             return new Status(Source.NONE, "");
         }
