@@ -1,0 +1,8 @@
+numpy
+torch
+stable-baselines3==2.9.0
+gymnasium
+onnx
+onnxruntime
+matplotlib
+tensorboard

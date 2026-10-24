@@ -22,6 +22,7 @@ public final class DivineBlockClient implements ClientModInitializer {
         AltarBlock.openPrayer = pos -> MinecraftClient.getInstance().setScreen(new PrayerScreen(pos));
         SelfTest.register();
         BossSelfTest.register();
+        DodgeSelfTest.register();
         FxTest.register();
         ChurchSelfTest.register();
         ZonesSelfTest.register();

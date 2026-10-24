@@ -24,6 +24,8 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
+import io.github.divineblock.boss.ai.SeraphDodge;
+
 /** Шестикрылый серафим (Isaiah 6): a burning face in six wings full of eyes. It flies, circling its foe four to six blocks up,
  * throws volleys of burning feathers, sends a ring of fire over the ground beneath it, and now and then comes down for a few
  * seconds («Нисхождение»), the only time a sword can reach it. Ultimate «Пламень с небес»: marked circles fall around the
@@ -40,6 +42,9 @@ public final class SeraphEntity extends SacredBoss {
     private int descendLeft;
     private Vec3d landing;
     private double orbit;
+    /** The learned dodge and its last decision (null while it flies the old way). */
+    private final SeraphDodge dodge = new SeraphDodge();
+    private SeraphDodge.Move move;
 
     public SeraphEntity(EntityType<? extends SeraphEntity> type, World world) {
         super(type, world, BossBar.Color.RED);
@@ -92,27 +97,42 @@ public final class SeraphEntity extends SacredBoss {
     /** Keeps the height: hovering over the ground below (under the vault, if any), or down on it while descending. */
     private void hold() {
         double ground = groundBelow(getX(), getY() + 1, getZ(), 24);
-        double wanted = descendLeft > 0 ? ground + 0.05 : Math.min(ground + HOVER + Math.sin(age * 0.05) * 0.6, ceilingAbove() - getHeight() - 0.3);
+        double lift = move != null && descendLeft == 0 ? move.lift() : 0;
+        double wanted = descendLeft > 0 ? ground + 0.05
+                : Math.min(ground + HOVER + Math.sin(age * 0.05) * 0.6 + lift * SeraphDodge.LIFT, ceilingAbove() - getHeight() - 0.3);
         wanted = Math.max(wanted, ground + 0.05);
         Vec3d v = getVelocity();
         double dy = MathHelper.clamp((wanted - getY()) * 0.08, -0.35, 0.3);
-        setVelocity(v.x, v.y * 0.6 + dy, v.z);
+        setVelocity(v.x, v.y * 0.6 + dy + lift * 0.06, v.z);
+        move = null;
         fallDistance = 0;
     }
 
     /** Circles the foe at a distance, or settles on the landing spot while descending. */
     @Override protected void pursue(LivingEntity target) {
         Vec3d goal;
+        move = descendLeft == 0 && config().seraphDodge ? dodge.decide(this, target, groundBelow(getX(), getY() + 1, getZ(), 24), config().seraphDodgeSkill / 100.0) : null;
         if (descendLeft > 0 && landing != null) goal = landing;
         else {
             orbit += phase >= 3 ? 0.03 : 0.02;
-            goal = new Vec3d(target.getX() + Math.cos(orbit) * 7, getY(), target.getZ() + Math.sin(orbit) * 7);
+            double radius = move != null ? SeraphDodge.ORBIT : 7;
+            goal = new Vec3d(target.getX() + Math.cos(orbit) * radius, getY(), target.getZ() + Math.sin(orbit) * radius);
         }
         Vec3d flat = new Vec3d(goal.x - getX(), 0, goal.z - getZ());
         Vec3d v = getVelocity();
         double speed = descendLeft > 0 ? 0.15 : 0.32;
         Vec3d push = flat.lengthSquared() < 0.25 ? Vec3d.ZERO : flat.normalize().multiply(0.05);
         Vec3d next = new Vec3d(v.x * 0.9 + push.x, v.y, v.z * 0.9 + push.z);
+        if (move != null) {
+            // «Рывок крыльями»: the net steers a little all the time and now and then throws itself aside.
+            next = next.add(move.steerX() * SeraphDodge.STEER_ACC, 0, move.steerZ() * SeraphDodge.STEER_ACC);
+            speed += SeraphDodge.STEER_CAP * move.steerAmount();
+            if (move.dashing()) {
+                next = new Vec3d(move.dashDir().x * SeraphDodge.DASH_SPEED, v.y, move.dashDir().z * SeraphDodge.DASH_SPEED);
+                speed = SeraphDodge.DASH_SPEED;
+                if (age % 2 == 0) sound(SoundEvents.ENTITY_ENDER_DRAGON_FLAP, 1.6f, 1.5f);
+            }
+        }
         double horizontal = Math.hypot(next.x, next.z);
         if (horizontal > speed) next = new Vec3d(next.x * speed / horizontal, next.y, next.z * speed / horizontal);
         setVelocity(next);

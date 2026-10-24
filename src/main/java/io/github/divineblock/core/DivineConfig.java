@@ -100,6 +100,10 @@ public final class DivineConfig {
     public List<String> disabledBosses = new ArrayList<>();
     public int bossDifficulty = 100;
     public boolean bossBlockDamage = true;
+    /** The seraph dodges arrows, tridents and snowballs with its trained net ({@code boss.ai.SeraphDodge}) and circles farther. */
+    public boolean seraphDodge = true;
+    /** How many of the net's dashes it really makes, percent (0..100). */
+    public int seraphDodgeSkill = 70;
     /** «Бог на стриме» ({@link StreamOverlay}): the OBS overlay may read the god at all; with the main reasons of a verdict; the
      * mercy of every soul online, not only the streamer's; the count of sins; and the ids of the punishments and mercies it
      * names only «Тайное деяние». */
@@ -142,6 +146,7 @@ public final class DivineConfig {
         if (disabledBosses == null) disabledBosses = new ArrayList<>();
         if (overlayHidden == null) overlayHidden = new ArrayList<>();
         bossDifficulty = clamp(bossDifficulty, 50, 300);
+        seraphDodgeSkill = clamp(seraphDodgeSkill, 0, 100);
         churchSpacing = clamp(churchSpacing, 32, 256);
         if (churchVariant == null || !java.util.List.of("", "STONE", "WOOD", "SLAVIC").contains(churchVariant)) churchVariant = "";
         curseMinutes = CurseTerm.minutes(curseMinutes);
