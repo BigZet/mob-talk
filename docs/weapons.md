@@ -1,12 +1,9 @@
 # Оружие Divine Block
 
-Десять орудий по библейским сюжетам, каждое — из реликвии своего босса (см. `docs/bosses.md`). Вид ванильный: плоские
-пиксельные спрайты, нарисованные кодом (`scripts/weapons/sprites.py`). В инвентаре — иконка 16×16; у шести клинков (мечи
-Херувима, архистратига и Войны, копьё, кол, челюсть) в руке свой спрайт 32×32, нарисованный вдвое крупнее вокруг рукояти
-(как у трезубца и подзорной трубы своя модель в руке): пиксель ванильного размера, клинок ~1,7 блока (в своём первом лице 1,35×).
-Огонь и свет — отдельный анимированный слой `*_glow` на полной яркости; лук и праща меняют спрайт при натяге и раскрутке; в
-руке у других игроков и от третьего лица — частицы (пламя, искры света, красные капли, огонёк кувшина). Эффекты деяний —
-через `Fx`, настройки — F9 → «Оружие».
+Десять орудий по библейским сюжетам, каждое — из реликвии своего босса (см. `docs/bosses.md`). Спрайты 32×32 в позе
+ванильных мечей и лука, но богаче (золото, камни, гравировка), нарисованы кодом (`scripts/weapons/pixelart.py`); у огненных и
+святых второй спрайт света рисуется на полной яркости (`WeaponGlowRenderer`), огонь и натяг лука/пращи — кадрами; в руке
+оружие крупнее ванильного. Эффекты — через `Fx` и частицы у руки, настройки — F9 → «Оружие».
 Полный замысел: `/mnt/project-files/weapons/weapon-design.md` (в проекте), краткая сводка здесь.
 
 | Оружие | Крафт | Что делает |
@@ -31,8 +28,9 @@
 
 ## Файлы
 - `src/main/java/io/github/divineblock/weapon/` — предметы, `SlingStoneEntity`, `ThrownSpearEntity`, `RoutEffect`, `WeaponHooks` (события), `WeaponCommands`.
-- `src/client/java/io/github/divineblock/client/weapon/` — `WeaponRenderer` (спрайт в руке и в инвентаре, крупный спрайт клинков, свечение, натяг лука), `WeaponClient` (регистрация, частицы в руке), `ThrownSpearRenderer`, `WeaponSelfTest`.
-- `scripts/weapons/` — `sprites.py` (все спрайты, слои свечения с .mcmeta, модели `models/item/weapon/`; `--preview файл.png` — увеличенный лист без игры), `resources.py` (имена, крафты, модели предметов с ванильными положениями в руке, теги, иконки), `all.py` пересобирает всё.
+- `src/client/java/io/github/divineblock/client/weapon/` — `WeaponClient` (предикаты `pulling`/`pull` для лука и пращи, загрузка моделей `<id>_base`/`<id>_glow`), `WeaponGlowRenderer` (базовый спрайт + спрайт света на полной яркости), `ThrownSpearRenderer` (спрайт копья в полёте), `WeaponSelfTest`.
+- `scripts/weapons/` — `pixelart.py` (спрайты; `python scripts/weapons/pixelart.py preview.png` рисует все кадры ×8 для проверки), `resources.py` (имена, крафты, модели предметов, теги, иконки), `all.py` пересобирает всё.
+- Анимированные спрайты света: `cherub_sword_glow.png` (4 кадра огня), `gideon_jar_glow.png` (факел), `war_sword_glow.png` (пульс крови) с `.mcmeta`; `nimrod_bow_pulling_0..2`, `david_sling_pulling_0..1` — кадры натяга.
 
 ## Самотест
 `powershell -ExecutionPolicy Bypass -File scripts\run-weapontest.ps1` — сборка, одноразовая копия инстанса `divine-block-test`,

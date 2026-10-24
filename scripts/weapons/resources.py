@@ -1,6 +1,6 @@
-"""Writes the weapons' data: names (ru/en), crafts, item models (built-in renderer with hand-held transforms), the sling
+"""Writes the weapons' data: names (ru/en), crafts, item models (flat sprites held like the vanilla sword and bow), the sling
 stone's icon, the Rout affliction's icon and the block tag of walls the Trumpets of Jericho may bring down.
-Run: python scripts/weapons/resources.py (or scripts/weapons/all.py for the sprites as well)."""
+Run: python scripts/weapons/resources.py (or scripts/weapons/all.py for the models as well)."""
 import os
 import random
 import sys
@@ -69,32 +69,28 @@ JERICHO_BREAKABLE = [
     "minecraft:iron_bars", "minecraft:glass_pane", "minecraft:bookshelf", "minecraft:hay_block",
 ]
 
-# Vanilla display transforms: the item's own model is the built-in renderer (WeaponRenderer draws the sprite in it), so it
-# carries the transforms the sprite would have as an ordinary item: item/handheld for the swords, spear, stake and jawbone,
-# item/bow for the bow, item/generated for the sling, the pitcher and the horn.
-GENERATED_DISPLAY = {
+# Weapons with a second sprite of light drawn at full brightness over the first (WeaponGlowRenderer on the client).
+GLOWING = ["cherub_sword", "archistrategos_sword", "war_sword", "gideon_jar", "george_spear"]
+
+# The vanilla hand-held transforms, enlarged: these are the greatest arms in the game and sit big in the hand.
+BIG_DISPLAY = {
+    "thirdperson_righthand": {"rotation": [0, -90, 55], "translation": [0, 5.5, 0.5], "scale": [1.6, 1.6, 1.6]},
+    "thirdperson_lefthand": {"rotation": [0, 90, -55], "translation": [0, 5.5, 0.5], "scale": [1.6, 1.6, 1.6]},
+    "firstperson_righthand": {"rotation": [0, -90, 25], "translation": [1.13, 3.2, 1.13], "scale": [0.95, 0.95, 0.95]},
+    "firstperson_lefthand": {"rotation": [0, 90, -25], "translation": [1.13, 3.2, 1.13], "scale": [0.95, 0.95, 0.95]},
     "ground": {"rotation": [0, 0, 0], "translation": [0, 2, 0], "scale": [0.5, 0.5, 0.5]},
-    "head": {"rotation": [0, 180, 0], "translation": [0, 13, 7], "scale": [1, 1, 1]},
-    "thirdperson_righthand": {"rotation": [0, 0, 0], "translation": [0, 3, 1], "scale": [0.55, 0.55, 0.55]},
-    "thirdperson_lefthand": {"rotation": [0, 0, 0], "translation": [0, 3, 1], "scale": [0.55, 0.55, 0.55]},
-    "firstperson_righthand": {"rotation": [0, -90, 25], "translation": [1.13, 3.2, 1.13], "scale": [0.68, 0.68, 0.68]},
-    "firstperson_lefthand": {"rotation": [0, -90, 25], "translation": [1.13, 3.2, 1.13], "scale": [0.68, 0.68, 0.68]},
     "gui": {"rotation": [0, 0, 0], "translation": [0, 0, 0], "scale": [1, 1, 1]},
     "fixed": {"rotation": [0, 180, 0], "translation": [0, 0, 0], "scale": [1, 1, 1]},
+    "head": {"rotation": [0, 180, 0], "translation": [0, 13, 7], "scale": [1, 1, 1]},
 }
-HANDHELD_DISPLAY = dict(GENERATED_DISPLAY, **{
-    "thirdperson_righthand": {"rotation": [0, -90, 55], "translation": [0, 4.0, 0.5], "scale": [0.85, 0.85, 0.85]},
-    "thirdperson_lefthand": {"rotation": [0, 90, -55], "translation": [0, 4.0, 0.5], "scale": [0.85, 0.85, 0.85]},
-    "firstperson_righthand": {"rotation": [0, -90, 25], "translation": [1.13, 3.2, 1.13], "scale": [0.68, 0.68, 0.68]},
-    "firstperson_lefthand": {"rotation": [0, 90, -25], "translation": [1.13, 3.2, 1.13], "scale": [0.68, 0.68, 0.68]},
-})
-BOW_DISPLAY = dict(GENERATED_DISPLAY, **{
-    "thirdperson_righthand": {"rotation": [-80, 260, -40], "translation": [-1, -2, 2.5], "scale": [0.9, 0.9, 0.9]},
-    "thirdperson_lefthand": {"rotation": [-80, -280, 40], "translation": [-1, -2, 2.5], "scale": [0.9, 0.9, 0.9]},
-    "firstperson_righthand": {"rotation": [0, -90, 25], "translation": [1.13, 3.2, 1.13], "scale": [0.68, 0.68, 0.68]},
-    "firstperson_lefthand": {"rotation": [0, 90, -25], "translation": [1.13, 3.2, 1.13], "scale": [0.68, 0.68, 0.68]},
-})
-DISPLAY = {"nimrod_bow": BOW_DISPLAY, "david_sling": GENERATED_DISPLAY, "gideon_jar": GENERATED_DISPLAY, "jericho_horn": GENERATED_DISPLAY}
+IDENTITY_DISPLAY = {mode: {"rotation": [0, 0, 0], "translation": [0, 0, 0], "scale": [1, 1, 1]} for mode in BIG_DISPLAY}
+
+
+def handheld(texture, parent="minecraft:item/handheld", overrides=None, display=None):
+    model = {"parent": parent, "textures": {"layer0": "divineblock:item/" + texture}}
+    if display: model["display"] = display
+    if overrides: model["overrides"] = overrides
+    return model
 
 
 def stone_icon(seed):
@@ -125,11 +121,33 @@ def main():
             names["item.divineblock." + weapon[0]] = weapon[column]
         for key, value in EXTRA_NAMES.items():
             names[key] = value[column - 1]
+        with open(path, "rb") as f:
+            crlf = b"\r\n" in f.read()
         write_json(path, names)
+        if crlf:  # keep the file's own line endings, so the diff stays small
+            with open(path, "rb") as f: data = f.read()
+            with open(path, "wb") as f: f.write(data.replace(b"\n", b"\r\n"))
 
+    # Item models: flat sprites held like a sword, big. The glowing ones are built-in-rendered from two plain models,
+    # <id>_base and <id>_glow, whose own transforms are identity because the outer model's display has already been applied.
+    models = os.path.join(ASSETS, "models", "item")
     for weapon in WEAPONS:
-        write_json(os.path.join(ASSETS, "models", "item", weapon[0] + ".json"),
-                   {"parent": "minecraft:builtin/entity", "gui_light": "front", "display": DISPLAY.get(weapon[0], HANDHELD_DISPLAY)})
+        if weapon[0] in ("nimrod_bow", "david_sling"): continue
+        if weapon[0] in GLOWING:
+            write_json(os.path.join(models, weapon[0] + ".json"), {"parent": "minecraft:builtin/entity", "display": BIG_DISPLAY})
+            write_json(os.path.join(models, weapon[0] + "_base.json"), handheld(weapon[0], "minecraft:item/generated", display=IDENTITY_DISPLAY))
+            write_json(os.path.join(models, weapon[0] + "_glow.json"), handheld(weapon[0] + "_glow", "minecraft:item/generated", display=IDENTITY_DISPLAY))
+        else:
+            write_json(os.path.join(models, weapon[0] + ".json"), handheld(weapon[0], display=BIG_DISPLAY))
+    write_json(os.path.join(models, "nimrod_bow.json"), handheld("nimrod_bow", "minecraft:item/bow", [
+        {"predicate": {"pulling": 1}, "model": "divineblock:item/nimrod_bow_pulling_0"},
+        {"predicate": {"pulling": 1, "pull": 0.5}, "model": "divineblock:item/nimrod_bow_pulling_1"},
+        {"predicate": {"pulling": 1, "pull": 0.9}, "model": "divineblock:item/nimrod_bow_pulling_2"}]))
+    for i in range(3): write_json(os.path.join(models, "nimrod_bow_pulling_%d.json" % i), handheld("nimrod_bow_pulling_%d" % i, "minecraft:item/bow"))
+    write_json(os.path.join(models, "david_sling.json"), handheld("david_sling", "minecraft:item/handheld", display=BIG_DISPLAY, overrides=[
+        {"predicate": {"pulling": 1}, "model": "divineblock:item/david_sling_pulling_0"},
+        {"predicate": {"pulling": 1, "pull": 0.5}, "model": "divineblock:item/david_sling_pulling_1"}]))
+    for i in range(2): write_json(os.path.join(models, "david_sling_pulling_%d.json" % i), handheld("david_sling_pulling_%d" % i, display=BIG_DISPLAY))
     write_json(os.path.join(ASSETS, "models", "item", "sling_stone.json"), {"parent": "minecraft:item/generated", "textures": {"layer0": "divineblock:item/sling_stone"}})
     stone_icon(zlib.crc32(b"sling_stone")).save(os.path.join(ASSETS, "textures", "item", "sling_stone.png"))
 

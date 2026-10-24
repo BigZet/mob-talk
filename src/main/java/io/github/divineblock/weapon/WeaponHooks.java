@@ -44,6 +44,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.BlockPos;
 
 /** The weapons' rules that live outside a blow: what a weapon does while it is merely held (the archistrategos' weight on a
@@ -136,6 +137,23 @@ public final class WeaponHooks {
         if (nearest != null) mob.setTarget(nearest);
     }
 
+    /** The weapon's own light about the hand that holds it (every half second): the cherub's sword sheds flame, the
+     * archistrategos' a gold glint, the war sword a thread of smoke, the pitcher a lick of torch fire. */
+    private static void inHand(ServerWorld world, ServerPlayerEntity player, WeaponKind kind) {
+        double yaw = Math.toRadians(player.getYaw());
+        Vec3d hand = player.getPos().add(-Math.cos(yaw) * 0.45 - Math.sin(yaw) * 0.35, 1.0, -Math.sin(yaw) * 0.45 + Math.cos(yaw) * 0.35);
+        switch (kind) {
+            case CHERUB_SWORD -> {
+                world.spawnParticles(ParticleTypes.FLAME, hand.x, hand.y + 0.3, hand.z, 3, 0.15, 0.3, 0.15, 0.01);
+                if (ticks % 40 == 0) Fx.sparks(world, hand.add(0, 0.4, 0), Fx.FIRE, 0.3f);
+            }
+            case ARCHISTRATEGOS_SWORD -> { if (ticks % 30 == 0) Fx.sparks(world, hand.add(0, 0.4, 0), Fx.GOLD, 0.25f); }
+            case WAR_SWORD -> world.spawnParticles(ParticleTypes.SMOKE, hand.x, hand.y + 0.3, hand.z, 2, 0.1, 0.3, 0.1, 0.005);
+            case GIDEON_JAR -> world.spawnParticles(ParticleTypes.SMALL_FLAME, hand.x, hand.y + 0.4, hand.z, 2, 0.08, 0.1, 0.08, 0.01);
+            default -> { }
+        }
+    }
+
     private static void tick(MinecraftServer server) {
         if (++ticks % 10 != 0) return;
         // The rout: every half second the routed look for a new foe among their own.
@@ -152,6 +170,7 @@ public final class WeaponHooks {
             WeaponKind kind = DivineWeapons.kindOf(held);
             if (kind == null || !DivineWeapons.enabled(kind)) continue;
             ServerWorld world = player.getServerWorld();
+            inHand(world, player, kind);
             switch (kind) {
                 case ARCHISTRATEGOS_SWORD -> {
                     // Heavy in a sinner's hands, light in a saint's.
