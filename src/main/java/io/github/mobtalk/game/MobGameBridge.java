@@ -58,7 +58,7 @@ public final class MobGameBridge implements GameBridge {
     /** Трек J: ревность пар игрока и сон вместе. */
     final JealousyController jealousy;
     /** П3: соперники за одно сердце — уведомления, испытания, выбор у колокола. */
-    final RivalryController rivalry;
+    public final RivalryController rivalry;
     final CoSleepController coSleep;
     /** Трек L: свадьба у колокола. */
     public final WeddingController wedding;

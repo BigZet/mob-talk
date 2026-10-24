@@ -20,7 +20,7 @@ public final class RivalryLedger {
     /** Место имени предмета в строке {@link Notice}. */
     public static final String ITEM = "{item}";
     /** Начало отказа на кольцо, когда житель отвечает у колокола (по нему {@link #after} назначает выбор). */
-    static final String BELL_NOTE = "ты не отвечаешь на кольцо сразу";
+    public static final String BELL_NOTE ="ты не отвечаешь на кольцо сразу";
     /** Один ухажёр в силе: сердечки, счёт выбора, где пара стоит сейчас. */
     public record Suitor(UUID player, String name, int hearts, int score, Courtship courtship) { }
     /** Ответ на кольцо при соперниках: отказ (null — решать не соперникам) и сколько сердечек он стоит. */

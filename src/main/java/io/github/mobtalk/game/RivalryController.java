@@ -32,7 +32,7 @@ import java.util.*;
  * таймером у участников, подсказка «⚔ соперник впереди/наравне/позади», когда игрок смотрит на жителя, сдача предметов для
  * испытания (из рук, брошенных и в разговоре) и выбор у колокола: житель идёт к колоколу, ухажёры собираются, звон, сердечки,
  * титры и торжественная реплика. Решения — в {@link RivalryLedger}. Только серверный поток. */
-final class RivalryController {
+public final class RivalryController {
     /** Раз в секунду, в мире верхнего мира: общее для всех миров делается один раз. */
     private static final long PERIOD = 20, PHASE = 11;
     /** Подсказка о сопернике — если житель не дальше и почти в центре взгляда. */
@@ -150,7 +150,7 @@ final class RivalryController {
 
     /** Игрок отдаёт жителю стопку: если это предмет его испытания, житель берёт сколько не хватает (стопка уменьшается). Сколько
      * взято; 0 — не испытание, обычный подарок. {@code speak} — житель скажет об этом сам (в разговоре он и так отвечает). */
-    int deliver(MobEntity mob, ServerPlayerEntity player, ItemStack stack, boolean speak) {
+    public int deliver(MobEntity mob, ServerPlayerEntity player, ItemStack stack, boolean speak) {
         if (!enabled() || !bridge.config.rivalTrials || !(mob instanceof VillagerEntity villager) || stack == null || stack.isEmpty()) return 0;
         long now = System.currentTimeMillis();
         String item = Registries.ITEM.getId(stack.getItem()).toString();
