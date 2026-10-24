@@ -69,6 +69,7 @@ public final class MobTalkNet {
         PayloadTypeRegistry.playS2C().register(ServerFeaturesS2C.ID, ServerFeaturesS2C.CODEC);
         PayloadTypeRegistry.playS2C().register(ScreenDataS2C.ID, ScreenDataS2C.CODEC);
         PayloadTypeRegistry.playS2C().register(NoticeS2C.ID, NoticeS2C.CODEC);
+        PayloadTypeRegistry.playS2C().register(OverlayStateS2C.ID, OverlayStateS2C.CODEC);
         PayloadTypeRegistry.playS2C().register(SelfTestLine.ID, SelfTestLine.CODEC);
     }
     /** Обе стороны: вызывается из {@code main}-входа, который работает и у клиента, и у сервера. */
