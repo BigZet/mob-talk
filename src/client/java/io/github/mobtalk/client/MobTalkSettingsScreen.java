@@ -955,6 +955,25 @@ final class MobTalkSettingsScreen extends Screen {
 
     private enum RowKind { HEADER, NOTE, CONTROLS }
 
+    /** For the self-test: the tab {@code tabName} with the slider group {@code group} unfolded and scrolled to its header; returns
+     * its rows up to the next header (a switch by its caption, a slider by its text). */
+    List<String> showGroup(String tabName, String group) {
+        EXPANDED.add(group);
+        tab = Math.max(0, Arrays.asList(TABS).indexOf(tabName)); find = ""; clearAndInit();
+        List<Row> rows = list.children();
+        int start = -1;
+        for (int i = 0; i < rows.size() && start < 0; i++) if (group.equals(rows.get(i).group)) start = i;
+        if (start < 0) return List.of();
+        list.setScrollAmount(start * (double) ROW);
+        List<String> out = new ArrayList<>();
+        for (int i = start + 1; i < rows.size() && rows.get(i).kind != RowKind.HEADER; i++) {
+            Row row = rows.get(i);
+            if (row.label != null) out.add(row.label.getString());
+            else for (ClickableWidget control : row.controls) out.add(control.getMessage().getString());
+        }
+        return out;
+    }
+
     /** The list in the panel on the right: no vanilla backdrop or separators, a thin gold scrollbar at the panel's edge. */
     private final class SettingsList extends ElementListWidget<Row> {
         private boolean restored, drawing;
