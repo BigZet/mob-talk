@@ -147,7 +147,7 @@ public final class MomentClient {
     private static void onMoment(MinecraftClient client, MomentS2C moment) {
         if (moment.manual() && moment.mine() && !"none".equals(settings.notice) && client.inGameHud != null) {
             client.inGameHud.setOverlayMessage(Text.literal("✦ Момент отмечен: " + moment.title()), false);
-            if ("sound".equals(settings.notice)) client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.BLOCK_NOTE_BLOCK_CHIME, 1.6f, 0.4f));
+            if ("sound".equals(settings.notice)) client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.BLOCK_NOTE_BLOCK_CHIME.value(), 1.6f, 0.4f));
         }
         if (!obsOk() || !moment.mine() && !"all".equals(settings.scope)) return;
         if (settings.obsChapters && since.containsKey("record")) obs.chapter("★".repeat(Math.max(1, Math.min(3, moment.weight()))) + " " + moment.title());
