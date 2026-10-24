@@ -373,6 +373,12 @@ final class MobTalkSettingsScreen extends Screen {
                 "bonds", () -> wide(tip(toggle("mobtalk.settings.social", draft.socialBehavior, value -> draft.socialBehavior = value), "mobtalk.settings.social.tooltip")),
                 "jealousy", () -> wide(tip(toggle("mobtalk.settings.coSleep", draft.coSleep, value -> draft.coSleep = value), "mobtalk.settings.coSleep.tooltip")),
                 "wedding", () -> wide(tip(toggle("mobtalk.settings.weddingCeremony", draft.weddingCeremony, value -> draft.weddingCeremony = value), "mobtalk.settings.weddingCeremony.tooltip")),
+                "rivals", () -> {
+                    wide(tip(toggle("mobtalk.settings.rivals", draft.rivals, value -> draft.rivals = value), "mobtalk.settings.rivals.tooltip"),
+                            tip(toggle("mobtalk.settings.rivalSteal", draft.rivalSteal, value -> draft.rivalSteal = value), "mobtalk.settings.rivalSteal.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.rivalTrials", draft.rivalTrials, value -> draft.rivalTrials = value), "mobtalk.settings.rivalTrials.tooltip"),
+                            tip(toggle("mobtalk.settings.rivalBellScene", draft.rivalBellScene, value -> draft.rivalBellScene = value), "mobtalk.settings.rivalBellScene.tooltip"));
+                },
                 "child", () -> {
                     wide(tip(toggle("mobtalk.settings.pregnancy", draft.pregnancy, value -> draft.pregnancy = value), "mobtalk.settings.pregnancy.tooltip"),
                             tip(toggle("mobtalk.settings.familyFade", draft.familyFade, value -> draft.familyFade = value), "mobtalk.settings.familyFade.tooltip"));

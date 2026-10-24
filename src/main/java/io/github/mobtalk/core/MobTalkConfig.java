@@ -137,6 +137,14 @@ public final class MobTalkConfig {
      * в браке (проценты), какая доля ревности снимается с сердечек (процент), полураспад (минуты) и сколько гасит разговор с ревнующим. */
     public int jealousyTalk = 3, jealousySleep = 20, jealousyFavor = 8, jealousyGift = 12, jealousyRumorPercent = 50, jealousyMarriedPercent = 150;
     public int jealousyHeartsPercent = 30, jealousyHalfLifeMinutes = 60, jealousyAttention = 4;
+    /** Соперники за одно сердце (П3): до помолвки житель видит всех ухажёров и выбирает лучшего; можно ли отбить пару, испытания,
+     * выбор сценой у колокола (иначе сразу при кольце). Окно интереса (часы без романтического жеста), сколько ухажёров на одного
+     * жителя, сколько сердечек сверху нужно, чтобы отбить, награда за испытание (победителю и остальным), с каких сердечек соперник
+     * сильный (тогда кольцо не принимается без выбора), сколько ждать ухажёров у колокола (минуты), штраф проигравшему (сердечки) и
+     * пауза, пока он не может снова дарить букет и кольцо (часы). */
+    public boolean rivals = true, rivalSteal = true, rivalTrials = true, rivalBellScene = true;
+    public int rivalWindowHours = 24, rivalMaxSuitors = 3, rivalStealMargin = 15, rivalTrialWin = 8, rivalTrialTry = 2;
+    public int rivalStrong = 80, rivalGatherMinutes = 5, rivalLoserPenalty = 10, rivalLoserPauseHours = 2;
     /** Сон вместе: влюблённый житель ложится рядом, когда игрок спит; откуда он приходит (блоки) и сколько сердечек даёт ночь. */
     public boolean coSleep = true;
     public int coSleepRange = 12, coSleepHearts = 3;
@@ -240,6 +248,7 @@ public final class MobTalkConfig {
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;
         copy.familyLife = familyLife; copy.weddingChance = weddingChance; copy.birthChance = birthChance; copy.childGrowthDays = childGrowthDays;
         copy.coSleep = coSleep; copy.weddingCeremony = weddingCeremony;
+        copy.rivals = rivals; copy.rivalSteal = rivalSteal; copy.rivalTrials = rivalTrials; copy.rivalBellScene = rivalBellScene;
         copy.pregnancy = pregnancy; copy.pregnancyBelly = pregnancyBelly; copy.pregnancyStatus = pregnancyStatus; copy.familyFade = familyFade;
         Tunables.copy(this, copy);
         copy.commandLevels = commandLevels == null ? new LinkedHashMap<>() : new LinkedHashMap<>(commandLevels);

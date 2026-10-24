@@ -110,16 +110,24 @@ public final class SocialLedger {
             UUID spouse = state.family.spouse(p.id);
             Romance.Suit suit = new Romance.Suit(adult, related, courtship, p.id, partner(state, player), player.equals(spouse) ? null : spouse,
                     score, p.social.gender(), p.social.traits(), PlayerIdentity.gender(config, player), holds ? held : "");
-            String taken = takenBy(state, p, player); // Сервер: житель — пара только одного игрока.
+            // Сервер: житель — пара только одного игрока. С соперниками (П3) до помолвки сердце открыто: букет и кольцо решают они.
+            boolean rivals = RivalryLedger.on(config);
+            String taken = rivals ? RivalryLedger.closedBy(state, p, player) : takenBy(state, p, player);
             if (!courtship.partners()) {
                 String refusal = taken != null ? taken : Romance.refuseDate(suit);
+                if (refusal == null && rivals) refusal = RivalryLedger.dateRefusal(state, p, player, score, config, now);
                 rolled.put(Gesture.DATE, new GestureIntent(Gesture.DATE, refusal == null ? Gesture.Outcome.ACCEPTED : Gesture.Outcome.REFUSED,
                         refusal == null ? DATE_HEARTS : 0, refusal == null ? held : "", refusal == null ? "" : refusal));
             }
             if (courtship != Courtship.MARRIED && courtship != Courtship.ENGAGED) {
                 String refusal = taken != null ? taken : Romance.refusePropose(suit);
+                int cost = 0;
+                if (refusal == null && rivals) {
+                    RivalryLedger.Verdict verdict = RivalryLedger.proposeVerdict(state, p, r, player, config, now);
+                    if (verdict != null) { refusal = verdict.refusal(); cost = verdict.hearts(); }
+                }
                 rolled.put(Gesture.PROPOSE, new GestureIntent(Gesture.PROPOSE, refusal == null ? Gesture.Outcome.ACCEPTED : Gesture.Outcome.REFUSED,
-                        refusal == null ? WEDDING_HEARTS + Romance.ringHearts(held) : 0, refusal == null ? held : "", refusal == null ? "" : refusal));
+                        refusal == null ? WEDDING_HEARTS + Romance.ringHearts(held) : cost, refusal == null ? held : "", refusal == null ? "" : refusal));
             }
             if (courtship.partners()) rolled.put(Gesture.DIVORCE, new GestureIntent(Gesture.DIVORCE, Gesture.Outcome.ACCEPTED,
                     courtship == Courtship.MARRIED ? DIVORCE_HEARTS : BREAKUP_HEARTS, "", courtship.name()));
@@ -134,6 +142,7 @@ public final class SocialLedger {
         facts.addAll(JealousyLedger.facts(p, rapport, PlayerIdentity.configOf(player, config), now)); // Трек J: ревность и ночь вместе.
         facts.addAll(WeddingLedger.facts(state, p, r, player, snapshot, config, now)); // Трек L: помолвка, свидетели, свадьба.
         facts.addAll(ChildLedger.facts(state, p, r, player, config, children)); // Трек N: особый вечер, беременность.
+        facts.addAll(RivalryLedger.facts(state, p, r, player, config, now)); // П3: соперники за это сердце.
         detached.socialTurn = new SocialTurn(rolled, closed, facts);
     }
     /** Why this villager will not court {@code player}: another player already courts, is engaged to or married it; null when free.
@@ -285,6 +294,7 @@ public final class SocialLedger {
         }
         if (felt != null) ConversationStore.feel(p, r, felt, now);
         ConversationStore.event(p, now, SocialPrompt.memoryLine(intent, playerName, r.score), SocialPrompt.importance(intent));
+        store.rivalry().after(store.state, p, r, player, playerName, intent, config, now); // П3: ухажёры, отбитая пара, выбор.
     }
     /** The player left this villager for another: the old courtship ends without a scene. */
     private void leave(UUID villager, UUID player) {
