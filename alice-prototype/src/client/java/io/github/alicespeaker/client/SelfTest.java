@@ -82,19 +82,28 @@ final class SelfTest {
         log("screenshot alice-" + name + ".png");
     }
 
-    // ---- Stage 1: a stone platform in the sky, the player facing a speaker two blocks away.
+    // ---- Stage 1: a stone platform in the sky, the player facing a speaker two blocks away. Teleport first: commands
+    // in chunks that are not loaded yet (the world spawn can be far from 0,0) silently do nothing.
     private void prepare() {
         check(Registries.BLOCK.getId(AliceSpeakerMod.SPEAKER).toString().equals("alicespeaker:speaker"), "speaker block registered");
         String name = client.player.getGameProfile().getName();
         command("time set day");
         command("weather clear");
         command("gamerule doDaylightCycle false");
-        command("fill -4 199 -4 4 199 4 minecraft:smooth_stone");
-        command("fill -4 200 -4 4 203 4 minecraft:air");
-        command("tp " + name + " 0 200 -2 0 25");
+        command("effect give " + name + " minecraft:slow_falling 600 0 true");
+        command("tp " + name + " 0 201 -2 0 25");
         speaker = new BlockPos(0, 200, 0);
-        command("setblock 0 200 0 alicespeaker:speaker");
-        await("speaker visible to the client", 20, () -> client.world.getBlockState(speaker).isOf(AliceSpeakerMod.SPEAKER) && client.player.getBlockPos().getY() == 200, this::askText);
+        await("player at the test spot", 30, () -> client.player.squaredDistanceTo(0.5, 201, -1.5) < 4 && client.world.isChunkLoaded(0, 0), () -> {
+            command("fill -4 199 -4 4 199 4 minecraft:smooth_stone");
+            command("fill -4 200 -4 4 204 4 minecraft:air");
+            command("setblock 0 200 0 alicespeaker:speaker");
+            command("tp " + name + " 0.5 200 -1.5 0 25");
+            await("speaker visible to the client", 20, () -> client.world.getBlockState(speaker).isOf(AliceSpeakerMod.SPEAKER), () -> {
+                check(client.world.getBlockState(speaker).isOf(AliceSpeakerMod.SPEAKER), "speaker placed in the world");
+                int settle = ticks + 40;
+                await("player settled", 5, () -> ticks >= settle, this::askText);
+            });
+        });
     }
 
     private BooleanSupplier answered() {

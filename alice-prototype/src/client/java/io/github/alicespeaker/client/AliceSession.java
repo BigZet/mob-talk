@@ -45,7 +45,7 @@ final class AliceSession implements WebSocket.Listener {
     private static final int VOICE_STREAM = 1;
 
     /** What Alice said: final text, what she heard (voice input), her voice per audio stream, protocol notes. */
-    record Answer(String text, String heard, List<byte[]> voice, List<String> notes) { }
+    record Answer(String text, String heard, List<byte[]> voice, String voiceFormat, List<String> notes) { }
 
     private final String text;
     private final byte[] pcm16k;
@@ -63,6 +63,7 @@ final class AliceSession implements WebSocket.Listener {
     private int seq = 1, followUps;
     private String finalText = "", heard = "", lastRequestId, stackSessionId;
     private boolean speakSeen;
+    private String voiceFormat = "audio/opus";
 
     private AliceSession(String text, byte[] pcm16k, AliceAuth auth, Consumer<String> log) {
         this.text = text;
@@ -174,7 +175,7 @@ final class AliceSession implements WebSocket.Listener {
             case "System.InvalidAuth" -> fail(new IllegalStateException("Яндекс не принял cookies. Обновите ~/.alice-speaker/cookies.txt"));
             case "System.EventException" -> fail(new IllegalStateException("Ошибка Алисы: " + cut(payload.toString(), 200)));
             case "ASR.Result" -> heard = recognized(payload);
-            case "TTS.Speak" -> speakSeen = true;
+            case "TTS.Speak" -> { speakSeen = true; if (!str(payload, "format").isBlank()) voiceFormat = str(payload, "format"); }
             case "Vins.VinsResponse" -> onVinsResponse(payload);
             default -> { }
         }
@@ -319,7 +320,7 @@ final class AliceSession implements WebSocket.Listener {
             if (timeout && finalText.isBlank()) { fail(new IllegalStateException("Алиса не ответила за 40 секунд")); return; }
             List<byte[]> voice = new ArrayList<>();
             streams.forEach((stream, bytes) -> { if (!(pcm16k != null && stream == VOICE_STREAM) && bytes.size() > 0) voice.add(bytes.toByteArray()); });
-            answer = new Answer(finalText, heard, voice, List.copyOf(notes));
+            answer = new Answer(finalText, heard, voice, voiceFormat, List.copyOf(notes));
         }
         result.complete(answer);
         close();

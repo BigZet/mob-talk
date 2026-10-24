@@ -148,10 +148,11 @@ public final class AliceSpeakerClient implements ClientModInitializer {
         java.io.ByteArrayOutputStream pcm = new java.io.ByteArrayOutputStream();
         String problem = "";
         for (byte[] stream : answer.voice()) {
-            logLine("audio stream " + stream.length + " bytes, starts " + hex(stream));
+            logLine("audio stream " + stream.length + " bytes, " + answer.voiceFormat() + ", starts " + hex(stream));
             try {
                 if (OggOpus.isOgg(stream)) pcm.writeBytes(OggOpus.toPcm(stream));
-                else problem = "неизвестный формат аудио (" + hex(stream) + ")";
+                else if (answer.voiceFormat().startsWith("audio/x-pcm")) pcm.writeBytes(OggOpus.upsampleTo48k(stream, OggOpus.pcmRate(answer.voiceFormat())));
+                else problem = "неизвестный формат аудио " + answer.voiceFormat() + " (" + hex(stream) + ")";
             } catch (IOException broken) {
                 problem = broken.getMessage();
             }

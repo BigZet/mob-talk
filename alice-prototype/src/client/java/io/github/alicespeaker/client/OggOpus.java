@@ -48,6 +48,37 @@ final class OggOpus {
         return out.toByteArray();
     }
 
+    /** Rate from a format such as "audio/x-pcm;bit=16;rate=16000" (16 kHz if it says nothing). */
+    static int pcmRate(String format) {
+        for (String part : format.split(";")) {
+            String p = part.trim();
+            if (p.startsWith("rate=")) {
+                try { return Integer.parseInt(p.substring(5)); } catch (NumberFormatException ignored) { }
+            }
+        }
+        return 16_000;
+    }
+
+    /** Mono 16-bit PCM at {@code rate} to 48 kHz by linear interpolation, so every answer plays at one rate. */
+    static byte[] upsampleTo48k(byte[] pcm, int rate) {
+        int in = pcm.length / 2;
+        if (in == 0 || rate <= 0) return new byte[0];
+        if (rate == RATE) return java.util.Arrays.copyOf(pcm, in * 2);
+        int out = (int) ((long) in * RATE / rate);
+        byte[] result = new byte[out * 2];
+        for (int i = 0; i < out; i++) {
+            double at = (double) i * rate / RATE;
+            int a = Math.min((int) at, in - 1), b = Math.min(a + 1, in - 1);
+            double t = at - a;
+            short value = (short) Math.round(sample(pcm, a) * (1 - t) + sample(pcm, b) * t);
+            result[i * 2] = (byte) value;
+            result[i * 2 + 1] = (byte) (value >> 8);
+        }
+        return result;
+    }
+
+    private static int sample(byte[] pcm, int i) { return (short) ((pcm[i * 2] & 255) | (pcm[i * 2 + 1] << 8)); }
+
     private static List<byte[]> packets(byte[] data) {
         List<byte[]> packets = new ArrayList<>();
         ByteArrayOutputStream packet = new ByteArrayOutputStream();
