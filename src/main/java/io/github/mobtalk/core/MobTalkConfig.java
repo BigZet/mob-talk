@@ -98,6 +98,8 @@ public final class MobTalkConfig {
     public boolean villageChatter = true;
     /** Villagers the player knows write to the chat in their own name: village news, or a call to come over for work. */
     public boolean villageNotices = true;
+    /** A viewer's parrot jailed in a Parrot Cages cage is village news: villagers near the cage gossip and joke about it for a game day. */
+    public boolean villageParrotJokes = true;
     /** A village is the structure its residents live in (vanilla or a village mod such as CTOV), not only a point and a radius:
      * two neighbouring villages stay apart and a large one stays whole. Off: the old rule, the nearest known village within 160 blocks. */
     public boolean villageSites = true;
@@ -198,6 +200,22 @@ public final class MobTalkConfig {
      * Empty lists fall back to the ordinary one, then to the Minecraft nick ({@link PlayerIdentity}). */
     public String playerNamesHostile = "", playerNamesNeutral = "", playerNamesClose = "";
 
+    /** Оверлей для OBS (идея З3, docs/overlay.md), личное: игра поднимает страницу на 127.0.0.1:{@code overlayPort}, OBS берёт её
+     * источником «Браузер». Виджеты, слова игрока и болтовня в субтитрах, сколько держать строку, масштаб, стиль, меньше движения;
+     * {@code overlayShowMe} — показывать ли этого игрока в «Милости» и причинах вердикта у чужого оверлея. */
+    public boolean overlayEnabled = false;
+    public int overlayPort = 8790;
+    public boolean overlaySubtitles = true, overlayGod = true, overlayMercy = true, overlayNow = true;
+    public boolean overlayHeard = true, overlayChatter = true, overlayReduceMotion = false, overlayShowMe = true;
+    public int overlayHoldSeconds = 6, overlayScale = 100;
+    /** {@code cages} (как меню Parrot Cages), {@code parchment} или {@code minimal}. */
+    public String overlayStyle = "cages";
+    /** {@code card} — маленькая карточка в углу (по умолчанию) или {@code full} — все виджеты на весь экран. */
+    public String overlayLayout = "card";
+    /** Серверное: отдавать ли данные оверлея ({@code OverlayStateS2C}) и кому — {@code streamer} (стример и админы) или {@code all}. */
+    public boolean streamOverlay = true;
+    public String streamOverlayAudience = "streamer";
+
     /** A menu draft or worker snapshot; editing it does not change the live preferences. */
     public MobTalkConfig copy() {
         MobTalkConfig copy = new MobTalkConfig();
@@ -243,7 +261,7 @@ public final class MobTalkConfig {
         copy.showBargainHud = showBargainHud;
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
-        copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
+        copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites; copy.villageParrotJokes = villageParrotJokes;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;
         copy.familyLife = familyLife; copy.weddingChance = weddingChance; copy.birthChance = birthChance; copy.childGrowthDays = childGrowthDays;
@@ -254,6 +272,10 @@ public final class MobTalkConfig {
         copy.pregnancy = pregnancy; copy.pregnancyBelly = pregnancyBelly; copy.pregnancyStatus = pregnancyStatus; copy.familyFade = familyFade;
         Tunables.copy(this, copy);
         copy.commandLevels = commandLevels == null ? new LinkedHashMap<>() : new LinkedHashMap<>(commandLevels);
+        copy.overlayEnabled = overlayEnabled; copy.overlayPort = overlayPort; copy.overlaySubtitles = overlaySubtitles; copy.overlayGod = overlayGod;
+        copy.overlayMercy = overlayMercy; copy.overlayNow = overlayNow; copy.overlayHeard = overlayHeard; copy.overlayChatter = overlayChatter;
+        copy.overlayReduceMotion = overlayReduceMotion; copy.overlayShowMe = overlayShowMe; copy.overlayStyle = overlayStyle; copy.overlayLayout = overlayLayout;
+        copy.streamOverlay = streamOverlay; copy.streamOverlayAudience = streamOverlayAudience;
         copy.placeAnalysis = placeAnalysis; copy.placeClassifier = placeClassifier; copy.playerNamesHostile = playerNamesHostile; copy.playerNamesNeutral = playerNamesNeutral; copy.playerNamesClose = playerNamesClose;
         return copy;
     }
@@ -323,6 +345,10 @@ public final class MobTalkConfig {
         config.playerNamesClose = PlayerIdentity.clean(config.playerNamesClose);
         config.decider = "jev".equalsIgnoreCase(config.decider == null ? "" : config.decider.strip()) ? "jev" : "rules";
         config.vision = Vision.normalize(config.vision);
+        config.overlayStyle = java.util.List.of("cages", "parchment", "minimal").contains(config.overlayStyle) ? config.overlayStyle : "cages";
+        config.overlayLayout = "full".equals(config.overlayLayout) ? "full" : "card";
+        config.streamOverlayAudience = "all".equals(config.streamOverlayAudience) ? "all" : "streamer";
+        if (config.overlayPort < 1024 || config.overlayPort > 65535) config.overlayPort = 8790;
         MobTalkConfig defaults = new MobTalkConfig();
         config.llmModel = textOrDefault(config.llmModel, defaults.llmModel);
         config.veniceModel = textOrDefault(config.veniceModel, defaults.veniceModel);

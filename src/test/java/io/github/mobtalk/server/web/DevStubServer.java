@@ -81,6 +81,8 @@ public final class DevStubServer {
         final AdminSettings settings = new AdminSettings();
         final Random random;
         final java.util.function.LongSupplier clock;
+        final MomentRules momentRules = new MomentRules();
+        final Moments moments;
         final Path data;
 
         Stub(Path data, java.util.function.LongSupplier clock, Random random) throws IOException {
@@ -95,6 +97,7 @@ public final class DevStubServer {
             game = new FixtureGame(clock);
             map = new MapTiles(data.resolve("map"), System.err::println);
             tracks = new Tracks(data.resolve("tracks"), clock, 7, System.err::println);
+            moments = new Moments(history, clock, () -> momentRules, System.err::println);
             sources.add(MobTalkAdminSource.ID, new MobTalkAdminSource(config::get, config::updateAndGet, MobTalkAdminSource::personal));
             sources.add("divineblock", game.divineSource());
             sources.add("admin", AdminSettings.source(settings, null, history));
@@ -128,7 +131,7 @@ public final class DevStubServer {
                     "[19:35:18] [Server thread/INFO] (Minecraft) <BigZet> привет") + "\n");
             api = new AdminApi(new AdminApi.Parts(history, metrics, latency, journal, errors, sources, game, backups, new Waypoints(data.resolve("waypoints.json")), map, tracks,
                     new BlueMapControl(bluemap, log, game, clock), log,
-                    () -> Json.obj("perPlayerMinute", 0, "perPlayerDayUsd", 0, "serverDayUsd", 0, "maxDialoguesPerPlayer", 2),
+                    () -> Json.obj("perPlayerMinute", 0, "perPlayerDayUsd", 0, "serverDayUsd", 0, "maxDialoguesPerPlayer", 2), moments,
                     () -> Json.obj("bind", "127.0.0.1", "port", 8788, "fingerprint", "заглушка без TLS"), clock));
         }
 
@@ -136,6 +139,7 @@ public final class DevStubServer {
         void seed() {
             long now = clock.getAsLong();
             for (long t = now - 7 * 86_400_000L; t < now - 60_000; t += 600_000 + random.nextInt(1_800_000)) seedEvent(t);
+            seedMoments(now);
             history.append(now - 3_000_000, "config_change", null, null, "Настройка mobtalk.maxReplyWords: 45 → 60 (админка)",
                     Json.obj("source", "mobtalk", "key", "maxReplyWords", "before", 45, "after", 60, "by", "админка", "rollbackOf", null));
             config.updateAndGet(c -> { MobTalkConfig copy = c.copy(); copy.maxReplyWords = 60; return copy; });
@@ -215,6 +219,25 @@ public final class DevStubServer {
             long h = x * 374761393L + z * 668265263L;
             h = (h ^ (h >>> 13)) * 1274126177L;
             return ((h ^ (h >>> 16)) & 0xFFFF) / 32767.5 - 1;
+        }
+
+        /** A three-hour stream of the first player with deaths, scenes and a wedding, and a manual mark. */
+        private void seedMoments(long now) {
+            JsonObject streamer = PLAYERS.get(0), other = PLAYERS.get(1 % PLAYERS.size()), mob = MOBS.get(0);
+            moments.startSession(streamer, "command", 3 * 3600);
+            long t = now - 3 * 3_600_000L + 600_000;
+            history.append(t, "death", streamer, null, HistoryStore.nameOf(streamer) + " был взорван крипером", new JsonObject());
+            history.append(t += 1_200_000, "scene", streamer, mob, "Сцена: " + HistoryStore.nameOf(mob) + " сбежала от " + HistoryStore.nameOf(streamer),
+                    Json.obj("tags", List.of("flee", "insult"), "answer", "Отстань от меня, грубиян!"));
+            history.append(t += 900_000, "verdict", streamer, null, HistoryStore.nameOf(streamer) + ": кара «Молния»",
+                    Json.obj("prayer", "Господи, накажи Петю", "verdict", "Сам и получишь", "act", "wrath", "deed", "Молния", "power", 2));
+            history.append(t + 20_000, "death", streamer, null, HistoryStore.nameOf(streamer) + " был убит молнией", new JsonObject());
+            history.append(t += 1_800_000, "wedding", other, mob, "Свадьба: " + HistoryStore.nameOf(other) + " и " + HistoryStore.nameOf(mob),
+                    Json.obj("outcome", "married", "since", t - 240_000, "vow", "Буду с тобой до последнего блока"));
+            history.append(t += 1_500_000, "boss", null, null, "Босс: Архангел", Json.obj("boss", "Архангел", "event", "spawn"));
+            history.append(t + 300_000, "boss", null, null, "Босс повержен: Архангел", Json.obj("boss", "Архангел", "event", "death"));
+            moments.flushAll();
+            moments.mark(streamer, "Петя упал в лаву с алмазами", 20, "BigZet");
         }
 
         private void seedEvent(long t) {

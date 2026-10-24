@@ -27,7 +27,7 @@ import java.util.function.Supplier;
 public final class AdminApi {
     /** Everything the routes read; built by {@code AdminWeb} on a server and by {@code DevStubServer} in development. */
     public record Parts(HistoryStore history, Metrics metrics, Latency latency, AdminJournal journal, ErrorLog errors, ConfigSources sources,
-                        GameView game, Backups backups, Waypoints waypoints, MapSource map, Tracks tracks, BlueMapControl map3d, Path log, Supplier<JsonObject> limits, Supplier<JsonObject> adminInfo, LongSupplier clock) { }
+                        GameView game, Backups backups, Waypoints waypoints, MapSource map, Tracks tracks, BlueMapControl map3d, Path log, Supplier<JsonObject> limits, Moments moments, Supplier<JsonObject> adminInfo, LongSupplier clock) { }
 
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final String[] MONTHS = {"янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"};
@@ -120,6 +120,44 @@ public final class AdminApi {
             if (record == null) throw ApiException.notFound("Нет такой записи.");
             return Response.json(record);
         });
+
+        // Моменты для монтажа (идея З4): сессии записи, список с таймкодами, правки, ручные метки, экспорт.
+        router.get("/api/moments/sessions", r -> Response.json(parts.moments().sessions(r.query("player"))));
+        router.post("/api/moments/sessions", r -> {
+            JsonObject body = r.json();
+            JsonObject player = body.has("player") && body.get("player").isJsonObject() ? body.getAsJsonObject("player") : null;
+            if (player == null || Json.string(player, "uuid") == null) throw ApiException.badRequest("Нужен игрок.");
+            if ("stop".equals(Json.string(body, "action"))) {
+                JsonObject stopped = parts.moments().stopSession(Json.string(player, "uuid"), "admin");
+                if (stopped == null) throw ApiException.notFound("У игрока нет открытой сессии записи.");
+                return Response.json(Json.obj("ok", true, "session", stopped));
+            }
+            return Response.json(Json.obj("ok", true, "session", parts.moments().startSession(player, "admin", (int) Math.max(0, Math.min(86_400, Json.number(body, "back", 0))))));
+        });
+        router.post("/api/moments/sessions/{id}", r -> {
+            JsonObject body = r.json();
+            if (body.has("start")) return Response.json(Json.obj("ok", true, "session", parts.moments().setStart(r.param("id"), Json.number(body, "start", 0))));
+            if (body.has("shift")) return Response.json(Json.obj("ok", true, "session", parts.moments().shift(r.param("id"), Json.number(body, "shift", 0))));
+            throw ApiException.badRequest("Нужно start или shift.");
+        });
+        router.get("/api/moments/export", r -> {
+            String session = r.query("session");
+            if (session == null) throw ApiException.badRequest("Нужна сессия записи.");
+            Moments.Export file = parts.moments().export(session, r.query("format", "youtube"), "true".equals(r.query("starred")),
+                    r.intQuery("minWeight", 1, 1, 3), "true".equals(r.query("everyone")));
+            String ascii = file.filename().replaceAll("[^A-Za-z0-9._-]", "_");
+            return Response.bytes(200, file.contentType(), file.body()).header("Content-Disposition", "attachment; filename=\"" + ascii
+                    + "\"; filename*=UTF-8''" + java.net.URLEncoder.encode(file.filename(), java.nio.charset.StandardCharsets.UTF_8).replace("+", "%20"));
+        });
+        router.get("/api/moments", r -> Response.json(parts.moments().moments(r.query("session"), r.intQuery("minWeight", 1, 1, 3),
+                "true".equals(r.query("everyone")), "true".equals(r.query("hidden")), r.intQuery("hours", 24, 1, 24 * 90))));
+        router.post("/api/moments", r -> {
+            JsonObject body = r.json();
+            JsonObject player = body.has("player") && body.get("player").isJsonObject() ? body.getAsJsonObject("player") : null;
+            String title = Json.string(body, "title");
+            return Response.json(Json.obj("ok", true, "moment", parts.moments().mark(player, title, (int) Math.max(0, Math.min(600, Json.number(body, "back", 30))), by(r))));
+        });
+        router.patch("/api/moments/{id}", r -> Response.json(Json.obj("ok", true, "edit", parts.moments().edit(r.param("id"), r.json(), by(r)))));
 
         router.get("/api/costs", r -> Response.json(costs(r.longQuery("from", now() - 30 * 86_400_000L), r.longQuery("to", now()), r.query("group", "day"))));
 

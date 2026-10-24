@@ -20,7 +20,7 @@ public final class PermissionsImpl implements Permissions {
     public static final String ADMIN_ONLY = "Эта команда доступна только администратору";
 
     /** Корни команд модов сборки (у Viewer Parrots — {@code viewerparrot} и псевдоним {@code vp}, отчёт трека F). */
-    public static final Set<String> MOD_ROOTS = Set.of("mobtalk", "divineblock", "viewerparrot", "viewerparrots", "vp", "rusflora", "parrotcages");
+    public static final Set<String> MOD_ROOTS = Set.of("mobtalk", "divineblock", "viewerparrot", "viewerparrots", "vp", "rusflora", "parrotcages", "clip");
 
     /** Уровни по умолчанию: ключ — корень или «корень подкоманда». Неизвестная подкоманда берёт уровень корня, неизвестный корень
      * мода из {@link #MOD_ROOTS} — ADMIN. */
@@ -30,10 +30,14 @@ public final class PermissionsImpl implements Permissions {
         table.put("mobtalk", Level.STREAMER);
         for (String sub : new String[]{"admin", "web", "budget"}) table.put("mobtalk " + sub, Level.ADMIN);
         table.put("divineblock", Level.ADMIN);
+        table.put("clip", Level.STREAMER); // Метки для монтажа; игрокам открывает commandLevels «clip»: «PLAYER».
         for (String sub : new String[]{"act", "boss", "unban", "ult", "clear", "lift", "cemetery", "streamer"}) table.put("divineblock " + sub, Level.ADMIN);
         for (String sub : new String[]{"list", "curses"}) table.put("divineblock " + sub, Level.STREAMER);
         // Viewer Parrots сам пускает только оп-уровень ≥ 2, так что стримеру без опа фильтр /vp не откроет (трек F): только ADMIN.
         for (String root : new String[]{"viewerparrot", "viewerparrots", "vp", "rusflora", "parrotcages"}) table.put(root, Level.ADMIN);
+        // Тюрьма для попугаев-зрителей (Parrot Cages): сажает и продлевает срок стример, /vp uncage — администратор.
+        for (String root : new String[]{"viewerparrot", "viewerparrots", "vp"}) table.put(root + " cage", Level.STREAMER);
+        table.put("parrotcages jail", Level.STREAMER);
         DEFAULTS = java.util.Collections.unmodifiableMap(table);
     }
 

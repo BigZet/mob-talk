@@ -66,6 +66,7 @@ final class SettingsController implements MobTalkSettingsScreen.Controller {
     @Override public List<String> keyHints() {
         return List.of(hint(owner.talkKey, "mobtalk.settings.keys.talk"), hint(owner.settingsKey, "mobtalk.settings.keys.settings"),
                 hint(owner.tradeKey, "mobtalk.settings.keys.trade"), hint(owner.giftKey, "mobtalk.settings.keys.gift"),
+                hint(MomentClient.key(), "mobtalk.settings.keys.moment"),
                 net.minecraft.text.Text.translatable("mobtalk.settings.keys.commands").getString());
     }
     private static String hint(net.minecraft.client.option.KeyBinding key, String what) {

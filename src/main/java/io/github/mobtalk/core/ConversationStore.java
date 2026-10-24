@@ -246,6 +246,15 @@ public final class ConversationStore {
         if (added > 0) scheduleSave();
         return added;
     }
+    /** The game's own news for one village (a viewer's parrot jailed or freed): a short-lived rumour every listed villager knows at
+     * once, so small talk picks it up. {@code dropPrefix} first removes older news with that id prefix ("" — none). */
+    public synchronized void villageNews(String villageId, String id, String dropPrefix, String text, int importance, long lifeMillis,
+                                         java.util.Collection<UUID> hearers, long now) {
+        if (villageId == null || villageId.isBlank()) return;
+        if (dropPrefix != null && !dropPrefix.isBlank()) state.rumors.dropNews(dropPrefix);
+        state.rumors.news(villageId, id, text, importance, lifeMillis, hearers, now);
+        scheduleSave();
+    }
     /** Two inhabitants of one village stand together: rumours cross between them (faster between family and friends). */
     public synchronized boolean spreadRumors(UUID a, UUID b, java.util.function.DoubleSupplier roll, long now) {
         String village = villageOf(a);

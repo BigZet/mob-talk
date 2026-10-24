@@ -105,6 +105,11 @@ Append-only журнал по дням: `data/mobtalk/history/<вид>/<день
 | `ban` | `reason`, `by`, `lifted` (bool) |
 | `boss` | `boss`, `event` (`spawn`/`death`/`despawn`), `by` |
 | `player_join`, `player_leave` | `sessionSeconds` (для leave) |
+| `scene` | `tags` [`attack`, `flee`, `insult`, `threat`, `slap`, `kiss`, `date`, `propose`, `divorce`, `child`], `question`, `answer` — яркая реплика жителя |
+| `wedding` | `outcome` (`married`/`jilted`/`cancelled`), `since`, `village`, `vow` |
+| `moment` | момент для монтажа: `start`, `end`, `weight` (1–3), `type` (`god`/`combat`/`village`/`manual`), `title`, `quote`, `players`, `sources` [id записей], `keys`, `by`, `live` |
+| `moment_edit` | правка момента: `target` (id), `title`, `starred`, `hidden`, `replay` {uuid: путь} |
+| `rec_session` | сессия записи: `action` (`start`/`stop`/`reopen`/`resync`/`shift`), `session` (id; у `start` id — сама запись), `start`, `end`, `source`, `output`, `shift`, `why` |
 | `config_change` | `source`, `key`, `before`, `after`, `by` (`консоль`, `админка`, ник), `rollbackOf` (id или null) |
 | `error` | `type`, `message`, `where`, `stack`, `context`, `repeat` |
 | `command` | `command`, `by`, `result`, `output` [строки] |
@@ -251,6 +256,25 @@ keepalive и status отвечают `"loading":true`. Сразу после з�
 | `GET /api/confession/penances` | `{"items":[{"player":{…},"kind":"candle","title":"свеча","hud":"Епитимья: …","priest","place":"temple|village","progress","target","done","deeds","assigned":t,"due":t}]}` |
 | `POST /api/confession/penances/{uuid}/credit` | засчитать: игрок может вернуться к иерею за разрешением |
 | `POST /api/confession/penances/{uuid}/cancel` | снять без наказания: отложенные грехи снова ждут исповеди (`absolve_release` у бога) |
+
+## Моменты для монтажа (идея З4)
+
+Сервер сам собирает яркие моменты из истории (кары и чудеса, боссы, баны, свадьбы, смерти, сцены с жителями, сорванный торг):
+у каждого вида вес 0–3 и «разгон» — сколько секунд смотреть до события (`admin.moments.weights`, `.preroll` в `mobtalk-admin.json`).
+События одного игрока ближе `mergeSeconds` склеиваются, вес — наибольший (+1 при трёх и больше событиях), в список попадает момент
+не легче `threshold`. Ручная метка (`/clip`, клавиша «Отметить момент», кнопка в админке) — всегда, на `manualBackSeconds` назад.
+Таймкоды считаются от начала сессии записи: она открывается OBS игрока (F7 → «Метки для монтажа»), входом стримера
+(`sessionAuto`), `/clip start` или из админки. Поправки — `/clip shift <с>` или «Сдвиг»/«Начало» во вкладке «Моменты».
+
+| Запрос | Ответ |
+| --- | --- |
+| `GET /api/moments/sessions?player=` | `{"sessions":[{"id","player","start","end","open","source","output","shift","seconds","moments"}],"open":[…]}` |
+| `POST /api/moments/sessions` `{"player":{uuid,name},"action":"start"\|"stop","back":с}` | `{"ok":true,"session":{…}}` |
+| `POST /api/moments/sessions/{id}` `{"start":t}` или `{"shift":мс}` | `{"ok":true,"session":{…}}` |
+| `GET /api/moments?session=&minWeight=1..3&everyone=&hidden=&hours=` | `{"session","items":[{"id","t","start","end","timecode","weight","type","title","originalTitle","quote","players","mob","sources","by","starred","hidden","replay"}],"pending":[…]}` |
+| `POST /api/moments` `{"player","title","back"}` | ручная метка |
+| `PATCH /api/moments/{id}` `{"title"?,"starred"?,"hidden"?}` | правка |
+| `GET /api/moments/export?session=&format=youtube\|csv\|edl\|xml&starred=&minWeight=&everyone=` | файл: главы YouTube, CSV (`;`, BOM), EDL CMX3600 с маркерами Resolve, XML (xmeml, 30 fps) |
 
 ## Сервер и отладка
 
