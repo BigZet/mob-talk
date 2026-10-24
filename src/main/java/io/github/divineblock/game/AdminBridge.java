@@ -487,6 +487,8 @@ public final class AdminBridge implements UnaryOperator<String> {
         private static UUID uuid(String text) {
             try { return UUID.fromString(text == null ? "" : text.strip()); }
             catch (IllegalArgumentException broken) { throw new IllegalArgumentException("нужен UUID игрока"); }
+        }
+
         @Override public StreamOverlay.Snapshot overlay() {
             MinecraftServer running = server;
             if (running == null) throw new IllegalStateException("сервер не запущен");
