@@ -77,6 +77,7 @@ public final class AdminLink {
         game.sources(started.sources());
         AdminCommands.setWebAddress(() -> { AdminWeb current = web; return current == null ? "" : String.join("  ", current.describe()); });
         if (dialogue != null) dialogue.setJournal(new JournalAdapter(started.journal()));
+        MobGameBridge.divineJournal((text, data) -> { try { started.journal().event("divine", null, null, text, data); } catch (RuntimeException failure) { MobTalkMod.LOGGER.warn("Админка: событие бога не записано ({})", failure.toString()); } });
         if (sampler == null) sampler = MapSampler.register(started.map());
         if (!hooked) {
             hooked = true;
@@ -109,6 +110,7 @@ public final class AdminLink {
         web = null; view = null; current = null;
         runs.clear();
         AdminCommands.setWebAddress(() -> "");
+        MobGameBridge.divineJournal(null);
         if (admin != null) admin.stop();
     }
 

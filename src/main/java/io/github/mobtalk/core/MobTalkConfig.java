@@ -101,6 +101,10 @@ public final class MobTalkConfig {
     /** A village is the structure its residents live in (vanilla or a village mod such as CTOV), not only a point and a radius:
      * two neighbouring villages stay apart and a large one stays whole. Off: the old rule, the nearest known village within 160 blocks. */
     public boolean villageSites = true;
+    /** Idea Б1: the villages know the god's deeds (the divine block's events) — they panic, talk and blame the sinner by name;
+     * the scene in the moment (alarm bell, flight, shouts); the god alone may make an exile; the family of a villager killed by a
+     * curse turns against the sinner. */
+    public boolean divineTidings = true, divinePanic = true, divineMayExile = false, divineMourners = true;
     /** Who decides whether a creature speaks up, who answers next and whether a bystander cuts in: "rules" or "jev" (OpenRouter Decisions API). */
     public String decider = "rules";
     public String defaultVoice = "rSfuQoQ3FY8SVKeraMAp";
@@ -171,6 +175,11 @@ public final class MobTalkConfig {
     public int noticeMinutes = 4, noticeWorkPercent = 40, noticeRange = 64;
     /** The village's view: points at or below which the player is an exile or a suspect, and from which a friend, guard or head. */
     public int villageExilePoints = -150, villageSuspectPoints = -40, villageFriendPoints = 120, villageGuardPoints = 300, villageElderPoints = 600;
+    /** The god's deeds in the villages (Б1): the reaction's strength (percent of the table), the most a player loses in one village a
+     * game day, the village gossip the sinner gets while a curse lasts and the blessed one after a miracle (vanilla gossip points:
+     * higher or lower prices), the punishments of one player in one village a day that call the bell assembly (0 — never), and how
+     * far a personal punishment reaches the villages (blocks). */
+    public int divineStrength = 100, divineDailyCap = 60, divineSurcharge = 20, divineBlessDiscount = 10, divineAssemblyCurses = 3, divinePersonalRadius = 64;
     /** Friendly duties: a lease (minutes), how far the player may go (blocks), the guard's distances and the stay drift (blocks). */
     public int friendLeaseMinutes = 10, friendLeaveRange = 48, guardNear = 3, guardFar = 6, guardAlert = 8, guardChase = 16;
     public double stayDrift = 2.5;
@@ -236,6 +245,7 @@ public final class MobTalkConfig {
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
+        copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;
         copy.familyLife = familyLife; copy.weddingChance = weddingChance; copy.birthChance = birthChance; copy.childGrowthDays = childGrowthDays;

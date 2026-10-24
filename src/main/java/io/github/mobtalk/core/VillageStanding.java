@@ -30,6 +30,8 @@ public final class VillageStanding {
         /** Villagers warn a suspect; an exile is told to leave. */
         public boolean warns() { return rank == Rank.SUSPECT || rank == Rank.EXILE; }
         public boolean banished() { return rank == Rank.EXILE; }
+        /** The same standing with another rank (the god's part and the bell assembly decide it, see {@link DivineTidings}). */
+        public View as(Rank other) { return new View(other, points, residents, acquainted, average); }
     }
 
     /** {@code scores}: each resident's relationship with the player, for those who know them; {@code residents}: all known residents. */
