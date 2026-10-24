@@ -122,6 +122,16 @@ public final class Tunables {
         integer("coSleepRange", s, "jealousy", 2, 32, 1, c -> c.coSleepRange, (c, x) -> c.coSleepRange = x);
         integer("coSleepHearts", s, "jealousy", 0, 20, 1, c -> c.coSleepHearts, (c, x) -> c.coSleepHearts = x);
         integer("coSleepNightDelay", s, "jealousy", 0, 300, 5, c -> c.coSleepNightDelay, (c, x) -> c.coSleepNightDelay = x);
+        // Соперники за одно сердце (П3).
+        integer("rivalWindowHours", s, "rivals", 1, 168, 1, c -> c.rivalWindowHours, (c, x) -> c.rivalWindowHours = x);
+        integer("rivalMaxSuitors", s, "rivals", 2, 5, 1, c -> c.rivalMaxSuitors, (c, x) -> c.rivalMaxSuitors = x);
+        integer("rivalStealMargin", s, "rivals", 0, 50, 1, c -> c.rivalStealMargin, (c, x) -> c.rivalStealMargin = x);
+        integer("rivalTrialWin", s, "rivals", 0, 30, 1, c -> c.rivalTrialWin, (c, x) -> c.rivalTrialWin = x);
+        integer("rivalTrialTry", s, "rivals", 0, 10, 1, c -> c.rivalTrialTry, (c, x) -> c.rivalTrialTry = x);
+        integer("rivalStrong", s, "rivals", 40, 100, 1, c -> c.rivalStrong, (c, x) -> c.rivalStrong = x);
+        integer("rivalGatherMinutes", s, "rivals", 1, 15, 1, c -> c.rivalGatherMinutes, (c, x) -> c.rivalGatherMinutes = x);
+        integer("rivalLoserPenalty", s, "rivals", 0, 30, 1, c -> c.rivalLoserPenalty, (c, x) -> c.rivalLoserPenalty = x);
+        integer("rivalLoserPauseHours", s, "rivals", 0, 24, 1, c -> c.rivalLoserPauseHours, (c, x) -> c.rivalLoserPauseHours = x);
         // Свадьба у колокола (трек L).
         integer("weddingVowSeconds", s, "wedding", 15, 120, 5, c -> c.weddingVowSeconds, (c, x) -> c.weddingVowSeconds = x);
         integer("weddingVowWaitSeconds", s, "wedding", 10, 180, 5, c -> c.weddingVowWaitSeconds, (c, x) -> c.weddingVowWaitSeconds = x);
@@ -247,6 +257,7 @@ public final class Tunables {
             case TALK -> config.rudeness = d.rudeness;
             case SOCIAL -> {
                 config.socialLayer = d.socialLayer; config.playerGender = d.playerGender; config.familyLife = d.familyLife; config.coSleep = d.coSleep; config.weddingCeremony = d.weddingCeremony;
+                config.rivals = d.rivals; config.rivalSteal = d.rivalSteal; config.rivalTrials = d.rivalTrials; config.rivalBellScene = d.rivalBellScene; config.rivalHud = d.rivalHud;
                 config.pregnancy = d.pregnancy; config.pregnancyBelly = d.pregnancyBelly; config.pregnancyStatus = d.pregnancyStatus; config.familyFade = d.familyFade;
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices; config.villageSites = d.villageSites;

@@ -3,6 +3,7 @@ package io.github.mobtalk;
 import io.github.mobtalk.core.Gender;
 import io.github.mobtalk.core.Gesture;
 import io.github.mobtalk.core.GestureIntent;
+import io.github.mobtalk.core.RivalryLedger;
 import io.github.mobtalk.core.Romance;
 import io.github.mobtalk.core.SocialProfile;
 import io.github.mobtalk.core.Wedding;
@@ -201,6 +202,7 @@ final class ServerSelfTestPlay {
         // Без платной озвучки и с серверным распознаванием; лимитов нет, деревня сама никого не женит.
         ServerConfig.update(config -> {
             config.ttsProvider = "openrouter"; config.sttServer = true; config.familyLife = true; config.weddingChance = 0;
+            config.rivalGatherMinutes = 1; // Соперники: к колоколу через минуту, а не через пять.
             config.budgetPlayerPerMinute = 0; config.budgetServerPerMinute = 0; config.budgetPlayerDailyUsd = 0; config.budgetServerDailyUsd = 0;
             return config;
         });
@@ -535,9 +537,155 @@ final class ServerSelfTestPlay {
                 check(dialogue().holderOf(talker.getUuid()) == null, "собеседник освобождён");
                 log("статусы стримера после смены мира: " + since(streamerName, "status", moved).stream().map(x -> x.field(2)).toList());
                 command("execute in minecraft:overworld run tp " + streamerName + " " + at(-1, 0, 0) + " 180 10");
-                pause(6, this::wedding);
+                pause(6, this::rivals);
             });
         });
+    }
+
+    // ---- Соперники (П3, docs/rivals.md): оба игрока ухаживают за одним жителем — уведомление, испытание с полосой, «⚔» при
+    // взгляде, сдача предмета, кольцо при сильном сопернике и выбор у колокола. До свадьбы: побеждает Test2, стример остаётся свободен. ----
+
+    private static final int RX = -6, RZ = 9;
+    private VillagerEntity rival;
+    private RivalryLedger rivalry() { return bridge.memory.rivalry(); }
+    private RivalryLedger.TrialView rivalTrial() {
+        return rival == null ? null : rivalry().trials(System.currentTimeMillis()).stream().filter(t -> t.villager().equals(rival.getUuid())).findFirst().orElse(null);
+    }
+    private boolean rivalScene() { return rival != null && rivalry().scenes(System.currentTimeMillis()).stream().anyMatch(s -> s.villager().equals(rival.getUuid())); }
+    /** Сердечки к сопернику ровно до {@code target}: одним подарком, у обоих по одному (поправка жадного характера одинакова). */
+    private void hearts(UUID id, String nick, int target, long now) {
+        int delta = target - bridge.memory.relationship(rival.getUuid(), id);
+        bridge.memory.social().applyGesture(rival.getUuid(), id, nick, new GestureIntent(Gesture.GIFT, Gesture.Outcome.BEST, delta, "minecraft:diamond", ""), now);
+    }
+    private static Predicate<Seen> overlay(String... words) { return contains(0, words); }
+    /** Точка на площадке (внутри барьера) как можно ближе к {@code x, z}. */
+    private String onStage(double x, double z) {
+        return (Math.max(cx - 10.5, Math.min(cx + 10.5, x))) + " " + Y + " " + (Math.max(cz - 10.5, Math.min(cz + 28.5, z)));
+    }
+
+    private void rivals() {
+        Gender g1 = Gender.ofPlayer(PlayerSettingsStore.of(streamer).applyTo(ServerConfig.get()).playerGender);
+        Gender g2 = Gender.ofPlayer(PlayerSettingsStore.of(player).applyTo(ServerConfig.get()).playerGender);
+        for (int i = 0; i < 24 && rival == null; i++) {
+            VillagerEntity candidate = villager(RX, RZ, VillagerProfession.FARMER, 180);
+            if (SocialProfile.drawnTo(candidate.getUuid(), g1) && SocialProfile.drawnTo(candidate.getUuid(), g2)) rival = candidate; else candidate.discard();
+        }
+        if (rival == null) { check(false, "нет жителя, которого тянет к обоим игрокам (" + g1 + ", " + g2 + ")"); wedding(); return; }
+        command("setblock " + at(RX, 0, RZ + 4) + " minecraft:bell[attachment=floor,facing=north]");
+        long now = System.currentTimeMillis();
+        bridge.memory.recordEvent(rival.getUuid(), "minecraft:villager", "Житель", "Самотест: знакомство (соперники)", now);
+        // Стример 90 (можно свататься), игрок 84: оба сильные соперники (80), стример пока впереди.
+        hearts(streamer, streamerName, 88, now); hearts(player, playerName, 82, now);
+        int s = mark(streamerName), p = mark(playerName);
+        bridge.memory.social().applyGesture(rival.getUuid(), streamer, streamerName, new GestureIntent(Gesture.FLIRT, Gesture.Outcome.SUCCESS, 2, "", ""), now);
+        bridge.memory.social().applyGesture(rival.getUuid(), player, playerName, new GestureIntent(Gesture.FLIRT, Gesture.Outcome.SUCCESS, 2, "", ""), now + 1);
+        String name = bridge.memory.displayName(rival.getUuid());
+        log("соперничество за " + name + ": " + streamerName + " " + bridge.memory.relationship(rival.getUuid(), streamer) + ", " + playerName + " "
+                + bridge.memory.relationship(rival.getUuid(), player) + ", ухажёры " + rivalry().suitors(rival.getUuid(), now).stream().map(x -> x.name() + " " + x.score()).toList());
+        command("tp " + streamerName + " " + at(RX - 1, 0, RZ - 3) + " 0 10"); command("tp " + playerName + " " + at(RX + 1, 0, RZ - 3) + " 0 10");
+        await("оба узнали о сопернике", 15, () -> saw(streamerName, "overlay", s, overlay("соперник")) && saw(playerName, "overlay", p, overlay("соперник")), () -> {
+            check(saw(streamerName, "overlay", s, overlay("соперник")) && saw(playerName, "overlay", p, overlay("соперник")),
+                    "оба получили «у тебя соперник» над хотбаром: " + overlays(streamerName, s) + " / " + overlays(playerName, p));
+            RivalryLedger.TrialView trial = rivalTrial();
+            check(trial != null && trial.entries().size() == 2, "началось испытание ухажёров: " + (trial == null ? "нет" : trial.kind() + " " + trial.item() + " ×" + trial.count()));
+            check(saw(streamerName, "overlay", s, overlay("испытание")) && saw(playerName, "overlay", p, overlay("испытание")), "оба получили строку об испытании");
+            if (trial == null) { rivalsDone(); return; }
+            cue(streamerName, "find", ids(rival)); cue(playerName, "find", ids(rival));
+            // Подсказка «⚔» молчит, пока хотбар держит уведомление (3 с).
+            await("клиенты видят соперника", 15, () -> sees(streamerName, rival) && sees(playerName, rival), () -> pause(4, () -> {
+                int s2 = mark(streamerName), p2 = mark(playerName);
+                cue(streamerName, "look", String.valueOf(rival.getId())); cue(playerName, "look", String.valueOf(rival.getId()));
+                await("подсказка «⚔» у обоих", 10, () -> saw(streamerName, "overlay", s2, overlay("⚔")) && saw(playerName, "overlay", p2, overlay("⚔")), () -> {
+                    check(saw(streamerName, "overlay", s2, overlay("⚔ " + playerName + " позади")), streamerName + " видит «⚔ " + playerName + " позади»: " + overlays(streamerName, s2));
+                    check(saw(playerName, "overlay", p2, overlay("⚔ " + streamerName + " впереди")), playerName + " видит «⚔ " + streamerName + " впереди»: " + overlays(playerName, p2));
+                    int s3 = mark(streamerName), p3 = mark(playerName);
+                    cue(streamerName, "bars"); cue(playerName, "bars");
+                    cue(streamerName, "shot", "mobtalk-server-rivals-" + streamerName + ".png"); cue(playerName, "shot", "mobtalk-server-rivals-" + playerName + ".png");
+                    await("полосы у клиентов", 10, () -> saw(streamerName, "bars", s3, x -> true) && saw(playerName, "bars", p3, x -> true), () -> {
+                        Seen a = first(streamerName, "bars", s3, x -> true), b = first(playerName, "bars", p3, x -> true);
+                        check(a != null && a.field(0).contains(name) && b != null && b.field(0).contains(name),
+                                "полоса испытания у обоих: «" + (a == null ? "—" : a.field(0)) + "» / «" + (b == null ? "—" : b.field(0)) + "»");
+                        pause(2, () -> rivalDeliver(trial));
+                    });
+                });
+            }));
+        });
+    }
+    private String overlays(String nick, int from) {
+        List<String> lines = since(nick, "overlay", from).stream().map(x -> x.field(0)).toList();
+        return lines.isEmpty() ? "пусто" : String.join(" | ", lines.subList(Math.max(0, lines.size() - 4), lines.size()));
+    }
+    /** Игрок сдаёт весь предмет испытания из рук через контроллер: житель берёт, испытание закрыто победой. */
+    private void rivalDeliver(RivalryLedger.TrialView trial) {
+        int before = bridge.memory.relationship(rival.getUuid(), player);
+        int s = mark(streamerName), p = mark(playerName);
+        command("item replace entity " + playerName + " weapon.mainhand with " + trial.item() + " " + trial.count());
+        ServerPlayerEntity target = online(playerName);
+        net.minecraft.item.ItemStack stack = target.getMainHandStack();
+        int had = stack.getCount();
+        int taken = bridge.rivalry.deliver(rival, target, stack, false);
+        check(taken == trial.count() && had - stack.getCount() == taken, "сдача для испытания засчитана: взято " + taken + " из " + trial.count() + " (в руке было " + had + ", осталось " + stack.getCount() + ")");
+        check(rivalTrial() == null, "испытание закрыто победой " + playerName);
+        int after = bridge.memory.relationship(rival.getUuid(), player);
+        check(after > before, "победа в испытании подняла сердечки " + playerName + ": " + before + " → " + after);
+        await("итог испытания у обоих", 10, () -> saw(playerName, "overlay", p, overlay("испытание твоё")) && saw(streamerName, "overlay", s, overlay("испытание выиграл")), () -> {
+            check(saw(playerName, "overlay", p, overlay("испытание твоё")), playerName + " получил «испытание твоё»: " + overlays(playerName, p));
+            check(saw(streamerName, "overlay", s, overlay("испытание выиграл")), streamerName + " узнал, кто выиграл: " + overlays(streamerName, s));
+            rivalRing();
+        });
+    }
+    /** Стример протягивает кольцо при сильном сопернике: житель не отвечает сразу и зовёт к колоколу; там выбирает лучшего по счёту. */
+    private void rivalRing() {
+        command("item replace entity " + streamerName + " weapon.mainhand with " + Romance.ENGAGEMENT_RING);
+        int s = mark(streamerName), p = mark(playerName);
+        cue(streamerName, "say", String.valueOf(rival.getId()), "Выходи за меня замуж! Вот кольцо, оно твоё.");
+        await("ответ на кольцо", 120, () -> saw(streamerName, "speech", s, speechOf(rival, true, null)), () -> {
+            boolean scheduled = rivalScene();
+            check(scheduled, "кольцо при сильном сопернике назначило выбор у колокола: «" + lastAnswer(streamerName, rival, s) + "»");
+            if (!scheduled) bridge.memory.social().applyGesture(rival.getUuid(), streamer, streamerName, new GestureIntent(Gesture.PROPOSE, Gesture.Outcome.REFUSED, 0,
+                    Romance.ENGAGEMENT_RING, RivalryLedger.BELL_NOTE + ": самотест"), System.currentTimeMillis());
+            if (!rivalScene()) { check(false, "выбор у колокола не назначен и вручную"); rivalsDone(); return; }
+            await("оба позваны к колоколу", 10, () -> saw(streamerName, "overlay", s, overlay("у колокола")) && saw(playerName, "overlay", p, overlay("у колокола")), () -> {
+                check(saw(streamerName, "overlay", s, overlay("у колокола")) && saw(playerName, "overlay", p, overlay("у колокола")),
+                        "оба позваны к колоколу: " + overlays(streamerName, s) + " / " + overlays(playerName, p));
+                // Все у колокола: житель на площади, оба ухажёра рядом — выбор без ожидания таймера (не дольше минуты).
+                WeddingController.Venue venue = bridge.wedding.venue(world(), rival);
+                net.minecraft.util.math.Vec3d plaza = venue == null ? rival.getPos() : venue.plaza();
+                command("tp " + rival.getUuidAsString() + " " + plaza.x + " " + plaza.y + " " + plaza.z);
+                // Площадь бывает у края площадки: ухажёры встают рядом, но на ней, иначе падают вниз и выбор ждёт таймера.
+                command("tp " + streamerName + " " + onStage(plaza.x - 2, plaza.z - 2));
+                command("tp " + playerName + " " + onStage(plaza.x + 2, plaza.z - 2));
+                int s2 = mark(streamerName), p2 = mark(playerName);
+                int loserBefore = bridge.memory.relationship(rival.getUuid(), streamer);
+                long called = ticks;
+                // Итог: выбор сделан, и уведомления (они уходят на следующей секунде) и строка в чат дошли до обоих.
+                await("выбор у колокола", 80, () -> !rivalScene() && saw(playerName, "overlay", p2, overlay("тебя")) && saw(streamerName, "overlay", s2, overlay("другого"))
+                        && saw(streamerName, "chat", s2, contains(0, "при всех выбирает")) && saw(playerName, "chat", p2, contains(0, "при всех выбирает")), () -> {
+                    log("выбор у колокола через " + (ticks - called) / 20 + " с после сбора");
+                    check(!rivalScene(), "выбор у колокола состоялся (колокол " + (venue == null ? "не найден" : venue.bell().toShortString()) + ")");
+                    long now = System.currentTimeMillis();
+                    List<RivalryLedger.Suitor> left = rivalry().suitors(rival.getUuid(), now);
+                    check(left.size() == 1 && left.getFirst().player().equals(player) && left.getFirst().courtship() == io.github.mobtalk.core.Courtship.DATING,
+                            "победил " + playerName + " и стал парой; ухажёры теперь: " + left.stream().map(x -> x.name() + " " + x.courtship()).toList());
+                    int loserAfter = bridge.memory.relationship(rival.getUuid(), streamer);
+                    check(loserAfter == loserBefore - ServerConfig.get().rivalLoserPenalty, "проигравший " + streamerName + " потерял сердечки: " + loserBefore + " → " + loserAfter);
+                    check(saw(streamerName, "chat", s2, contains(0, "при всех выбирает: " + playerName)) && saw(playerName, "chat", p2, contains(0, "при всех выбирает: " + playerName)),
+                            "оба услышали выбор у колокола: " + chats(streamerName, s2));
+                    check(saw(playerName, "overlay", p2, overlay("тебя")) && saw(streamerName, "overlay", s2, overlay("другого")),
+                            "победителю «выбрал тебя», проигравшему «выбрал другого»: " + overlays(playerName, p2) + " / " + overlays(streamerName, s2));
+                    pause(6, this::rivalsDone);
+                });
+            });
+        });
+    }
+    /** Соперник уходит со сцены вместе со своим колоколом, игроки — на свои места: свадьба ищет свой колокол. */
+    private void rivalsDone() {
+        if (rival != null) rival.discard();
+        command("setblock " + at(RX, 0, RZ + 4) + " minecraft:air");
+        command("item replace entity " + streamerName + " weapon.mainhand with minecraft:air");
+        command("item replace entity " + playerName + " weapon.mainhand with minecraft:air");
+        place(streamerName, -1, 0, 180); place(playerName, 1, 0, 180);
+        pause(3, this::wedding);
     }
 
     // ---- Свадьба (familyLife): помолвка кольцом, зов на свадьбу, сбор у колокола; сосед видит и слышит. ----

@@ -13,6 +13,7 @@ public final class ConversationStore {
     private MobTalkConfig config;
     private final SocialLedger social = new SocialLedger(this);
     private final JealousyLedger jealousy = new JealousyLedger(this);
+    private final RivalryLedger rivalry = new RivalryLedger(this);
     private final WeddingLedger wedding = new WeddingLedger(this);
     private final ChildLedger children = new ChildLedger(this);
 
@@ -60,6 +61,8 @@ public final class ConversationStore {
     public SocialLedger social() { return social; }
     /** Ревность пар игрока и ночи вместе (трек J); см. {@link JealousyLedger}. */
     public JealousyLedger jealousy() { return jealousy; }
+    /** Соперники за одно сердце (П3); см. {@link RivalryLedger}. */
+    public RivalryLedger rivalry() { return rivalry; }
     /** Трек L: помолвка, свидетели и свадьба у колокола; см. {@link WeddingLedger}. */
     public WeddingLedger wedding() { return wedding; }
     /** Трек N: особая ночь, беременность, роды и экран семьи; см. {@link ChildLedger}. */
@@ -1113,6 +1116,8 @@ public final class ConversationStore {
         transient String divine = "";
         /** Sex, character, marks and growth of a villager in the social layer ({@link SocialProfile}); null for other mobs. */
         SocialProfile social;
+        /** Соперники за этого жителя ({@link Rivalry}, П3); null, пока за ним никто не ухаживал. */
+        Rivalry rivalry;
         String type, name, personality, voiceId; String memory = "";
         /** The memory as facts with importance and age ({@link MemoryRanking}); {@code memory} above is the same text, one line each. */
         List<MemoryFact> facts = new ArrayList<>();
@@ -1171,6 +1176,7 @@ public final class ConversationStore {
             if (state == null) state = new MobState();
             state.sanitize();
             if (social != null) social.sanitize();
+            if (rivalry != null) rivalry.sanitize();
         }
         Profile copy() {
             Profile p = new Profile(); p.id = id; p.type = type; p.name = name; p.personality = personality; p.state = state.copy();
@@ -1183,6 +1189,7 @@ public final class ConversationStore {
             p.turnsDropped = turnsDropped; p.summarizedTurns = summarizedTurns; p.lastTurnMillis = lastTurnMillis; p.reflection = reflection.copy();
             relations.forEach((key, r) -> p.relations.put(key, r.copy()));
             p.social = social == null ? null : social.copy();
+            p.rivalry = rivalry == null ? null : rivalry.copy();
             return p;
         }
         /** The index in {@code turns} where the current, unsummarised conversation begins. */

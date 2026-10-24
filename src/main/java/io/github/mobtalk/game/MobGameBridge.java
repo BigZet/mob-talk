@@ -59,6 +59,8 @@ public final class MobGameBridge implements GameBridge {
     final DivineController divine;
     /** Трек J: ревность пар игрока и сон вместе. */
     final JealousyController jealousy;
+    /** П3: соперники за одно сердце — уведомления, испытания, выбор у колокола. */
+    public final RivalryController rivalry;
     final CoSleepController coSleep;
     /** Трек L: свадьба у колокола. */
     public final WeddingController wedding;
@@ -74,6 +76,7 @@ public final class MobGameBridge implements GameBridge {
         villages = new VillageController(this);
         divine = new DivineController(this);
         jealousy = new JealousyController(this);
+        rivalry = new RivalryController(this);
         coSleep = new CoSleepController(this);
         wedding = new WeddingController(this);
         children = new ChildController(this);
@@ -156,6 +159,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.villages.tick(world);
                 bridge.divine.tick(world);
                 bridge.jealousy.tick(world);
+                bridge.rivalry.tick(world);
                 bridge.coSleep.tick(world);
                 bridge.wedding.tick(world);
                 bridge.children.tick(world);
@@ -200,7 +204,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.memory.recordAction(card.id(), ActionIntent.none());
         if (server.isStopped()) return CompletableFuture.completedFuture(null);
         CompletableFuture<Void> done = new CompletableFuture<>();
-        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.divine.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
+        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.divine.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.rivalry.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
         return done;
     }
     /** Б1: an event of the divine block (JSON), from any thread; dropped when no world is open. */
@@ -491,6 +495,9 @@ public final class MobGameBridge implements GameBridge {
                         else LOGGER.info("Mob Talk: предмет услуги в руке, но не хватает до {} шт.: подарок не засчитан, услуга открыта", owed.count());
                     }
                 }
+                // П3: предмет испытания соперников — сдача в испытание, а не подарок (житель уже отвечает, отдельной реплики не нужно).
+                if (handed != null && handed.takesItem() && Registries.ITEM.getId(player.getMainHandStack().getItem()).toString().equals(handed.item())
+                        && rivalry.deliver(mob, player, player.getMainHandStack(), false) > 0) handed = GestureIntent.none();
                 // First: a gift no longer in hand cancels the whole reply before anything else changes.
                 String gestured = society.apply(mob, player, handed);
                 jealousy.gift(mob, player, handed); // Трек J: подарок паре гасит ревность, сопернику — разжигает.

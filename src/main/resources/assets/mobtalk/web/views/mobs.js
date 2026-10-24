@@ -106,6 +106,12 @@ export function mobCard(uuid, onClose) {
         busy(clearH, async () => { await api.post(`mobs/${encodeURIComponent(uuid)}/clear-history`); toast('История очищена'); reload(); });
     });
     const fam = r.family || {};
+    const rivals = r.rivals;
+    const rivalAction = (label, action, done, danger) => {
+      const b = h(danger ? 'button.btn.sm.danger' : 'button.btn.sm', { type: 'button' }, label);
+      b.addEventListener('click', () => busy(b, async () => { await api.post(`mobs/${encodeURIComponent(uuid)}/${action}`); toast(done); reload(); }));
+      return b;
+    };
     return [
       h('div.row.nowrap', avatar(c.name || m.name, 'lg'), h('div.grow', h('h2', c.name || m.name), h('div.muted', speciesTitle(m.species), m.village?.name ? ` · ${m.village.name}` : '', m.trait ? ` · ${m.trait}` : ''),
         h('div.row', { style: { gap: '4px', marginTop: '4px' } }, m.alive === false && h('span.badge.bad', 'погиб'), m.loaded ? h('span.badge.good', 'загружен') : h('span.badge', 'выгружен')))),
@@ -115,6 +121,16 @@ export function mobCard(uuid, onClose) {
         r.relations?.length ? h('div.list.card.flush', r.relations.map(x => h('a.list-item', { href: `#/players/${encodeURIComponent(x.player?.uuid || '')}`, onclick: () => d.close() }, avatar(pname(x.player)),
           h('div.body', h('div', { style: { fontWeight: 600 } }, pname(x.player)), h('div.meta', x.label && h('span.badge', x.label), h('span.num', `отношение ${x.relationship}`))), hearts(x.hearts ?? 0))))
           : h('p.muted', 'Ни с кем не знаком.')),
+      rivals && h('section.stack', h('h3', 'Соперники'),
+        rivals.suitors?.length ? h('div.list.card.flush', rivals.suitors.map(x => h('div.list-item', avatar(pname(x.player)),
+          h('div.body', h('div', { style: { fontWeight: 600 } }, pname(x.player)), h('div.meta', h('span.badge', x.courtship), h('span.num', `сердечки ${x.hearts} · счёт выбора ${x.score}`))))))
+          : h('p.muted', 'Сейчас никто не ухаживает.'),
+        rivals.trial && kv([['Испытание', `${rivals.trial.kind === 'FAVORITE' ? 'первым подарить' : 'первым принести'} ${rivals.trial.item}${rivals.trial.count > 1 ? ' ×' + rivals.trial.count : ''}`],
+          ['Принесли', rivals.trial.entries.map(e => `${pname(e.player)}: ${e.progress}`).join(', ') || '—'], ['Конец', fmt.ago(rivals.trial.endsAt)]]),
+        rivals.sceneAt && kv([['Выбор у колокола', fmt.ago(rivals.sceneAt)]]),
+        h('div.row', rivals.trial && rivalAction('Закончить испытание', 'rivals-end-trial', 'Испытание закончено'),
+          !rivals.sceneAt && rivals.suitors?.length >= 2 && rivalAction('Позвать к колоколу', 'rivals-call', 'Ухажёры позваны'),
+          rivalAction('Сбросить соперничество', 'rivals-reset', 'Сброшено', true))),
       h('section.stack', h('h3', 'Факты'), r.facts?.length ? h('div.list.card.flush', r.facts.map(f => h('div.list-item', h('div.body', h('div.line', f.text), h('div.meta', fmt.ago(f.t), f.importance != null && h('span', `важность ${f.importance}`)))))) : h('p.muted', 'Фактов нет.')),
       h('section.stack', h('div.row', h('h3.grow', 'События'), h('a.btn.sm.ghost', { href: `#/history?mob=${encodeURIComponent(uuid)}`, onclick: () => d.close() }, 'Вся история моба', icon('chevron', 'sm'))),
         r.events?.length ? h('div.list.card.flush', r.events.map(ev => h('div.list-item', h('div.body.line', ev.text), h('time.time', fmt.ago(ev.t))))) : h('p.muted', 'Событий нет.')),

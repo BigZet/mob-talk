@@ -61,6 +61,7 @@ final class SocialController {
                 if (villager == null) continue;
                 judged.add(drop.getUuid());
                 while (judged.size() > 256) judged.remove(judged.iterator().next());
+                if (bridge.rivalry.deliverThrown(villager, player, drop)) continue; // П3: брошено для испытания.
                 gift(world, player, villager, drop, now);
             }
         }
@@ -101,6 +102,8 @@ final class SocialController {
         ItemStack stack = player.getMainHandStack();
         if (stack.isEmpty()) return "В руке ничего нет";
         if (!mob.isAlive() || mob.squaredDistanceTo(player) > bridge.config.maxDistance * bridge.config.maxDistance) return "Подойдите к мобу ближе";
+        int trial = bridge.rivalry.deliver(mob, player, stack, true); // П3: предмет испытания соперников.
+        if (trial > 0) return "Для испытания отдано: " + trial + " шт.";
         String item = Registries.ITEM.getId(stack.getItem()).toString();
         String profession = mob instanceof VillagerEntity villager ? Registries.VILLAGER_PROFESSION.getId(villager.getVillagerData().getProfession()).toString() : "";
         boolean favouriteFood = mob instanceof net.minecraft.entity.passive.AnimalEntity animal && animal.isBreedingItem(stack);
