@@ -45,6 +45,7 @@ public final class CageLinks {
 
 	static void unlink(Entity bird) {
 		bird.removeCommandTag(CAGED_TAG);
+		bird.removeCommandTag(Jail.JAILED_TAG);
 		bird.removeAttached(ParrotCages.CAGE_LINK);
 		TAGGED.remove(bird.getUuid());
 	}
@@ -87,6 +88,7 @@ public final class CageLinks {
 
 	private static void release(Entity bird) {
 		bird.removeCommandTag(CAGED_TAG);
+		bird.removeCommandTag(Jail.JAILED_TAG);
 		bird.removeAttached(ParrotCages.CAGE_LINK);
 		if (bird instanceof ParrotEntity parrot && parrot.isTamed()) {
 			parrot.setSitting(false);
