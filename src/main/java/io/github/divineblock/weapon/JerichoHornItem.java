@@ -101,7 +101,9 @@ public final class JerichoHornItem extends Item {
             FallingBlockEntity falling = FallingBlockEntity.spawnFromBlock(world, pos, state);
             falling.dropItem = false;
             falling.setHurtEntities(1f, 10);
-            falling.setVelocity(Vec3d.of(facing.getVector()).multiply(0.15 + world.getRandom().nextDouble() * 0.2).add(0, 0.1, 0));
+            // The higher the block, the farther it is thrown, so the wall falls flat instead of settling back into itself.
+            int up = pos.getY() - player.getBlockY();
+            falling.setVelocity(Vec3d.of(facing.getVector()).multiply(0.2 + 0.13 * up + world.getRandom().nextDouble() * 0.15).add(0, 0.12 + 0.03 * up, 0));
             fell++;
         }
         if (fell == 0) { player.sendMessage(Text.literal("Стена под защитой бога и устояла").formatted(Formatting.GOLD), true); return 0; }

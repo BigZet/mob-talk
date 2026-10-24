@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "divineblock:item/weapon/war_sword_hand_glow"
+  }
+}

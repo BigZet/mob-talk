@@ -1,6 +1,6 @@
 """Writes the weapons' data: names (ru/en), crafts, item models (built-in renderer with hand-held transforms), the sling
 stone's icon, the Rout affliction's icon and the block tag of walls the Trumpets of Jericho may bring down.
-Run: python scripts/weapons/resources.py (or scripts/weapons/all.py for the models as well)."""
+Run: python scripts/weapons/resources.py (or scripts/weapons/all.py for the sprites as well)."""
 import os
 import random
 import sys
@@ -69,17 +69,32 @@ JERICHO_BREAKABLE = [
     "minecraft:iron_bars", "minecraft:glass_pane", "minecraft:bookshelf", "minecraft:hay_block",
 ]
 
-# Vanilla sword-like hand transforms: the renderer lays the model on the diagonal, so these place it as a sword.
-HANDHELD_DISPLAY = {
+# Vanilla display transforms: the item's own model is the built-in renderer (WeaponRenderer draws the sprite in it), so it
+# carries the transforms the sprite would have as an ordinary item: item/handheld for the swords, spear, stake and jawbone,
+# item/bow for the bow, item/generated for the sling, the pitcher and the horn.
+GENERATED_DISPLAY = {
+    "ground": {"rotation": [0, 0, 0], "translation": [0, 2, 0], "scale": [0.5, 0.5, 0.5]},
+    "head": {"rotation": [0, 180, 0], "translation": [0, 13, 7], "scale": [1, 1, 1]},
+    "thirdperson_righthand": {"rotation": [0, 0, 0], "translation": [0, 3, 1], "scale": [0.55, 0.55, 0.55]},
+    "thirdperson_lefthand": {"rotation": [0, 0, 0], "translation": [0, 3, 1], "scale": [0.55, 0.55, 0.55]},
+    "firstperson_righthand": {"rotation": [0, -90, 25], "translation": [1.13, 3.2, 1.13], "scale": [0.68, 0.68, 0.68]},
+    "firstperson_lefthand": {"rotation": [0, -90, 25], "translation": [1.13, 3.2, 1.13], "scale": [0.68, 0.68, 0.68]},
+    "gui": {"rotation": [0, 0, 0], "translation": [0, 0, 0], "scale": [1, 1, 1]},
+    "fixed": {"rotation": [0, 180, 0], "translation": [0, 0, 0], "scale": [1, 1, 1]},
+}
+HANDHELD_DISPLAY = dict(GENERATED_DISPLAY, **{
     "thirdperson_righthand": {"rotation": [0, -90, 55], "translation": [0, 4.0, 0.5], "scale": [0.85, 0.85, 0.85]},
     "thirdperson_lefthand": {"rotation": [0, 90, -55], "translation": [0, 4.0, 0.5], "scale": [0.85, 0.85, 0.85]},
     "firstperson_righthand": {"rotation": [0, -90, 25], "translation": [1.13, 3.2, 1.13], "scale": [0.68, 0.68, 0.68]},
     "firstperson_lefthand": {"rotation": [0, 90, -25], "translation": [1.13, 3.2, 1.13], "scale": [0.68, 0.68, 0.68]},
-    "gui": {"rotation": [0, 0, 0], "translation": [0, 0, 0], "scale": [1, 1, 1]},
-    "ground": {"rotation": [0, 0, 0], "translation": [0, 2, 0], "scale": [0.5, 0.5, 0.5]},
-    "fixed": {"rotation": [0, 180, 0], "translation": [0, 0, 0], "scale": [1, 1, 1]},
-    "head": {"rotation": [0, 180, 0], "translation": [0, 13, 7], "scale": [1, 1, 1]},
-}
+})
+BOW_DISPLAY = dict(GENERATED_DISPLAY, **{
+    "thirdperson_righthand": {"rotation": [-80, 260, -40], "translation": [-1, -2, 2.5], "scale": [0.9, 0.9, 0.9]},
+    "thirdperson_lefthand": {"rotation": [-80, -280, 40], "translation": [-1, -2, 2.5], "scale": [0.9, 0.9, 0.9]},
+    "firstperson_righthand": {"rotation": [0, -90, 25], "translation": [1.13, 3.2, 1.13], "scale": [0.68, 0.68, 0.68]},
+    "firstperson_lefthand": {"rotation": [0, 90, -25], "translation": [1.13, 3.2, 1.13], "scale": [0.68, 0.68, 0.68]},
+})
+DISPLAY = {"nimrod_bow": BOW_DISPLAY, "david_sling": GENERATED_DISPLAY, "gideon_jar": GENERATED_DISPLAY, "jericho_horn": GENERATED_DISPLAY}
 
 
 def stone_icon(seed):
@@ -113,7 +128,8 @@ def main():
         write_json(path, names)
 
     for weapon in WEAPONS:
-        write_json(os.path.join(ASSETS, "models", "item", weapon[0] + ".json"), {"parent": "minecraft:builtin/entity", "display": HANDHELD_DISPLAY})
+        write_json(os.path.join(ASSETS, "models", "item", weapon[0] + ".json"),
+                   {"parent": "minecraft:builtin/entity", "gui_light": "front", "display": DISPLAY.get(weapon[0], HANDHELD_DISPLAY)})
     write_json(os.path.join(ASSETS, "models", "item", "sling_stone.json"), {"parent": "minecraft:item/generated", "textures": {"layer0": "divineblock:item/sling_stone"}})
     stone_icon(zlib.crc32(b"sling_stone")).save(os.path.join(ASSETS, "textures", "item", "sling_stone.png"))
 
