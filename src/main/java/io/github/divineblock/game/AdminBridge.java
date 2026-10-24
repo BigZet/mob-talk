@@ -404,6 +404,91 @@ public final class AdminBridge implements UnaryOperator<String> {
             });
         }
 
+        // ---- Confession (Mob Talk's priests): the sins to confess and the absolution; the scene itself is Mob Talk's. ----
+
+        @Override public com.google.gson.JsonObject soulDeeds(String player) {
+            MinecraftServer running = server;
+            if (running == null) throw new IllegalStateException("сервер не запущен");
+            UUID uuid = uuid(player);
+            return onServer(running, () -> {
+                DivineState state = DivineState.of(running);
+                long tick = running.getOverworld().getTime();
+                return AdminProtocol.deedsJson(player(running, state, uuid.toString()), state.ledger.soul(uuid).righteousness, tick / 24_000,
+                        punished(running, uuid, tick), DivineBlockMod.config());
+            });
+        }
+
+        @Override public com.google.gson.JsonObject absolve(com.google.gson.JsonObject request) {
+            MinecraftServer running = server;
+            if (running == null) throw new IllegalStateException("сервер не запущен");
+            UUID uuid = uuid(AdminProtocol.text(request, "player"));
+            java.util.Set<Long> named = AdminProtocol.ids(request, "named");
+            int sincerity = request.has("sincerity") ? Math.max(0, Math.min(2, request.get("sincerity").getAsInt())) : 1;
+            boolean temple = "temple".equals(AdminProtocol.text(request, "place"));
+            String priest = AdminProtocol.text(request, "priest");
+            // Кара, что шла, когда исповедь началась (батюшка уже назвал по ней епитимью), считается и после её конца.
+            boolean wasPunished = request.has("punished") && request.get("punished").getAsBoolean();
+            return onServer(running, () -> {
+                DivineConfig config = DivineBlockMod.config();
+                DivineState state = DivineState.of(running);
+                long tick = running.getOverworld().getTime();
+                Righteousness righteousness = state.ledger.soul(uuid).righteousness;
+                io.github.divineblock.core.Absolution.Result result = io.github.divineblock.core.Absolution.absolve(righteousness, tick / 24_000, named, sincerity,
+                        temple, wasPunished || punished(running, uuid, tick), config);
+                int curses = config.confessLiftsCurse ? Curses.liftSettled(running, uuid, righteousness) : 0;
+                state.markDirty();
+                String name = player(running, state, uuid.toString()).get("name").getAsString();
+                Multiplayer.journal(GodJournal.Kind.CONFESSION, name, AdminProtocol.confessionLine(priest.isBlank() ? "священника" : priest, temple, result, named.size(), sincerity, curses));
+                return AdminProtocol.resultJson(result, curses);
+            });
+        }
+
+        @Override public com.google.gson.JsonObject absolveRest(com.google.gson.JsonObject request) {
+            MinecraftServer running = server;
+            if (running == null) throw new IllegalStateException("сервер не запущен");
+            UUID uuid = uuid(AdminProtocol.text(request, "player"));
+            java.util.Set<Long> ids = AdminProtocol.ids(request, "deeds");
+            String priest = AdminProtocol.text(request, "priest");
+            return onServer(running, () -> {
+                DivineConfig config = DivineBlockMod.config();
+                DivineState state = DivineState.of(running);
+                long tick = running.getOverworld().getTime();
+                Righteousness righteousness = state.ledger.soul(uuid).righteousness;
+                io.github.divineblock.core.Absolution.Result result = io.github.divineblock.core.Absolution.absolveRest(righteousness, tick / 24_000, ids);
+                int curses = config.confessLiftsCurse ? Curses.liftSettled(running, uuid, righteousness) : 0;
+                state.markDirty();
+                String name = player(running, state, uuid.toString()).get("name").getAsString();
+                Multiplayer.journal(GodJournal.Kind.CONFESSION, name, AdminProtocol.restLine(priest.isBlank() ? "священника" : priest, result, curses));
+                return AdminProtocol.resultJson(result, curses);
+            });
+        }
+
+        @Override public com.google.gson.JsonObject absolveRelease(com.google.gson.JsonObject request) {
+            MinecraftServer running = server;
+            if (running == null) throw new IllegalStateException("сервер не запущен");
+            UUID uuid = uuid(AdminProtocol.text(request, "player"));
+            java.util.Set<Long> ids = AdminProtocol.ids(request, "deeds");
+            return onServer(running, () -> {
+                DivineState state = DivineState.of(running);
+                int released = io.github.divineblock.core.Absolution.release(state.ledger.soul(uuid).righteousness, ids);
+                state.markDirty();
+                if (released > 0) Multiplayer.journal(GodJournal.Kind.CONFESSION, player(running, state, uuid.toString()).get("name").getAsString(),
+                        "срок епитимьи вышел: грехов снова на душе " + released);
+                com.google.gson.JsonObject out = new com.google.gson.JsonObject();
+                out.addProperty("ok", true); out.addProperty("released", released);
+                return out;
+            });
+        }
+
+        /** A punishment still runs on him: the god's act under way, or a curse that stays. */
+        private static boolean punished(MinecraftServer running, UUID player, long tick) {
+            return Prayers.PENANCE.running(player, tick, !Curses.of(running, player).isEmpty());
+        }
+        private static UUID uuid(String text) {
+            try { return UUID.fromString(text == null ? "" : text.strip()); }
+            catch (IllegalArgumentException broken) { throw new IllegalArgumentException("нужен UUID игрока"); }
+        }
+
         @Override public StreamOverlay.Snapshot overlay() {
             MinecraftServer running = server;
             if (running == null) throw new IllegalStateException("сервер не запущен");

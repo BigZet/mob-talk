@@ -50,6 +50,15 @@ public final class DeedWatcher {
             if (!(source.getAttacker() instanceof ServerPlayerEntity player) || !(entity.getWorld() instanceof ServerWorld world)) return;
             onKill(player, world, entity);
         });
+        // The church's own blocks and the graves are holy: breaking them is desecration (checked before the break, while the
+        // block is still there to tell what it was).
+        PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, blockEntity) -> {
+            if (player instanceof ServerPlayerEntity serverPlayer && world instanceof ServerWorld serverWorld && !serverPlayer.isCreative()) {
+                String holy = holy(serverWorld, pos, state);
+                if (holy != null) record(serverPlayer, Righteousness.Deed.DESECRATION, holy);
+            }
+            return true;
+        });
         PlayerBlockBreakEvents.AFTER.register((world, player, pos, state, blockEntity) -> {
             if (player instanceof ServerPlayerEntity serverPlayer && world instanceof ServerWorld serverWorld && villageBlock(state) && nearVillagers(serverWorld, pos, 24))
                 record(serverPlayer, Righteousness.Deed.VANDALISM, "в деревне");
@@ -58,7 +67,7 @@ public final class DeedWatcher {
     }
 
     private static void onKill(ServerPlayerEntity player, ServerWorld world, LivingEntity victim) {
-        if (victim instanceof VillagerEntity) record(player, Righteousness.Deed.VILLAGER_KILLED, "");
+        if (victim instanceof VillagerEntity villager) record(player, killed(villager), "");
         else if (victim instanceof IronGolemEntity) record(player, Righteousness.Deed.GOLEM_KILLED, "");
         else if (victim instanceof TameableEntity pet && pet.isTamed()) record(player, Righteousness.Deed.PET_KILLED, "");
         else if (victim instanceof AnimalEntity) {
@@ -68,6 +77,22 @@ public final class DeedWatcher {
             if (++counter[1] > FREE_KILLS_PER_DAY) record(player, Righteousness.Deed.SLAUGHTER, "");
         } else if (victim instanceof HostileEntity && nearVillagers(world, victim.getBlockPos(), 32))
             record(player, Righteousness.Deed.DEFENDED_VILLAGE, "");
+    }
+
+    /** Which killing of a villager it was: a priest (a rector of a church, or any cleric), a child, or a villager. */
+    static Righteousness.Deed killed(VillagerEntity villager) {
+        if (villager.getCommandTags().contains(Abbots.TAG) || villager.getVillagerData().getProfession() == net.minecraft.village.VillagerProfession.CLERIC)
+            return Righteousness.Deed.PRIEST_KILLED;
+        return villager.isBaby() ? Righteousness.Deed.CHILD_KILLED : Righteousness.Deed.VILLAGER_KILLED;
+    }
+
+    /** "в храме" for a block of a church, "на кладбище" for a grave, else null. */
+    static String holy(ServerWorld world, BlockPos pos, BlockState state) {
+        if (state.isAir()) return null;
+        net.minecraft.block.Block block = state.getBlock();
+        if (block instanceof io.github.divineblock.cemetery.GraveBlock || block instanceof io.github.divineblock.cemetery.TallGraveBlock
+                || block instanceof io.github.divineblock.cemetery.GraveMoundBlock) return "на кладбище";
+        return ChurchArea.isChurchBlock(world, pos) ? "в храме" : null;
     }
 
     private static boolean villageBlock(BlockState state) {
@@ -103,7 +128,7 @@ public final class DeedWatcher {
         MinecraftServer server = player.getServer();
         if (server == null) return;
         DivineState state = DivineState.of(server);
-        state.ledger.soul(player.getUuid()).righteousness.record(deed, day(server), where);
+        state.ledger.soul(player.getUuid()).righteousness.record(deed, day(server), where, io.github.divineblock.DivineBlockMod.config().confessRelapseMultiplier);
         state.markDirty();
     }
 

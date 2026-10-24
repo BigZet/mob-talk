@@ -77,6 +77,11 @@ public final class GodLedger {
             if (ledger == null) return new GodLedger();
             if (ledger.souls == null) ledger.souls = new HashMap<>();
             if (ledger.deferred == null || ledger.deferred.waiting == null) ledger.deferred = new DeferredWrath();
+            ledger.souls.values().removeIf(soul -> soul == null);
+            for (Soul soul : ledger.souls.values()) {
+                if (soul.righteousness == null) soul.righteousness = new Righteousness();
+                soul.righteousness.number();
+            }
             return ledger;
         } catch (RuntimeException broken) { return new GodLedger(); }
     }

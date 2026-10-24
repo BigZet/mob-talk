@@ -167,6 +167,26 @@ public final class Curses {
         return mine.size();
     }
 
+    /** Curses on the land and the sky, not on the mortal himself: confession never ends them. */
+    static boolean worldly(Type type) { return type == Type.DARKNESS || type == Type.FLOOD; }
+
+    /** Confession: every personal curse of this mortal laid on a day by which all his sins are settled ends now (the world's
+     * curses stay). Returns how many. */
+    public static int liftSettled(MinecraftServer server, UUID player, io.github.divineblock.core.Righteousness righteousness) {
+        DivineState state = DivineState.of(server);
+        List<Curse> ended = new ArrayList<>();
+        for (Curse curse : of(server, player))
+            if (!worldly(curse.type) && io.github.divineblock.core.Absolution.clearUpTo(righteousness, curse.start / 24_000L)) ended.add(curse);
+        if (ended.isEmpty()) return 0;
+        for (Curse curse : ended) end(server, curse);
+        state.curses.active.removeAll(ended);
+        state.markDirty();
+        ServerPlayerEntity online = server.getPlayerManager().getPlayer(player);
+        if (online != null) sync(online);
+        DivineBlockMod.LOG.info("Божественный блок: исповедь сняла проклятий: {}", ended.size());
+        return ended.size();
+    }
+
     /** What happens when a curse runs out or is lifted. */
     private static void end(MinecraftServer server, Curse curse) {
         ServerWorld world = world(server, curse);

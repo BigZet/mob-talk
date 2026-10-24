@@ -47,7 +47,7 @@ public final class DivineSettings {
 
     public static final List<Group> GROUPS = List.of(new Group("god", "Характер бога"), new Group("speech", "Речь и решения"),
             new Group("world", "Мир"), new Group("wrath", "Кары"), new Group("roulette", "Рулетка кары"), new Group("bosses", "Боссы"),
-            new Group("stream", "Бог на стриме"));
+            new Group("stream", "Бог на стриме"), new Group("confession", "Исповедь и покаяние"));
 
     private static final Pattern ID = Pattern.compile("[a-z0-9_]{1,40}");
     private static final Gson GSON = new Gson();
@@ -101,7 +101,17 @@ public final class DivineSettings {
             flag("overlayReasons", "stream", "Причины вердикта", "Оверлей показывает до трёх главных причин, почему бог так решил."),
             flag("overlayOthersMercy", "stream", "Милость всех игроков", "Оверлей показывает милость каждого игрока в сети; выкл — только стримера."),
             flag("overlaySins", "stream", "Число грехов", "Оверлей показывает, сколько грехов на душе."),
-            flags("overlayHidden", "stream", "Деяния на стриме", "Выключенная кара или благо на оверлее зовётся «Тайное деяние»: зрители не знают, что падёт.", overlayFlags()));
+            flags("overlayHidden", "stream", "Деяния на стриме", "Выключенная кара или благо на оверлее зовётся «Тайное деяние»: зрители не знают, что падёт.", overlayFlags()),
+            flag("abbots", "confession", "Настоятели в церквях", "В каждой церкви у аналоя появляется настоятель (мужчина-клирик с именем из святцев): у него исповедуются в храме. Нужен Mob Talk."),
+            number("confessLightTemple", "confession", "Лёгкий грех в храме, %", "Сколько названного лёгкого греха отпускает настоятель храма.", 0, 100, 5),
+            number("confessLightVillage", "confession", "Лёгкий грех у сельского батюшки, %", "Сколько названного лёгкого греха отпускает сельский батюшка.", 0, 100, 5),
+            number("confessHeavyTemple", "confession", "Тяжкий грех в храме, %", "Сколько тяжкого греха отпускается сразу; остаток — после епитимьи и возвращения.", 0, 100, 5),
+            number("confessHeavyVillage", "confession", "Тяжкий грех у сельского батюшки, %", "То же у сельского батюшки.", 0, 100, 5),
+            number("confessHeavyWeight", "confession", "Порог тяжкого греха", "Грех, чей вид весит столько или больше, — тяжкий: убийство жителя (15), ребёнка (20), священника (25), осквернение храма или кладбища (12). Хула весит 8, убийство питомца 10.", 1, 30, 1),
+            number("confessSincerityBonus", "confession", "Бонус искренности, %", "Искренняя исповедь отпускает больше, но не больше самого греха.", 0, 100, 5),
+            flag("confessLiftsCurse", "confession", "Исповедь снимает личное проклятие", "Личное проклятие кончается, когда все грехи, бывшие на душе в день проклятия, отпущены. Мировые кары, бан и боссы — нет."),
+            flag("confessRemembersHidden", "confession", "Бог помнит скрытое", "Грех, утаённый на исповеди, остаётся на душе с пометкой, и бог называет его в вердикте."),
+            number("confessRelapseMultiplier", "confession", "Повторный грех, ×", "Тот же грех в два игровых дня после разрешения весит во столько раз больше и всегда тяжкий.", 1, 4, 1));
 
     private DivineSettings() { }
 
