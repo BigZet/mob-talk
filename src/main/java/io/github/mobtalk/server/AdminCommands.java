@@ -90,6 +90,10 @@ public final class AdminCommands {
                     String address = webAddress.get();
                     return reply(context, address == null || address.isBlank() ? "Веб-админка не запущена" : "Веб-админка: " + address);
                 }))
+                .then(literal("overlay")
+                        .then(literal("say").then(argument("minutes", IntegerArgumentType.integer(1, 120)).then(argument("text", StringArgumentType.greedyString())
+                                .executes(context -> reply(context, OverlayHub.banner(StringArgumentType.getString(context, "text"), IntegerArgumentType.getInteger(context, "minutes")))))))
+                        .then(literal("clear").executes(context -> reply(context, OverlayHub.clearBanner()))))
                 .then(literal("reload").executes(AdminCommands::reload))
                 .then(literal("players").executes(context -> reply(context, players(context.getSource().getServer()))))
                 .then(literal("whitelist")

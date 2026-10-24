@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mob Talk — оверлей</title>
+<link rel="stylesheet" href="overlay.css">
+</head>
+<body class="style-cages">
+<main id="stage" aria-live="polite">
+  <section id="god" class="widget panel" hidden>
+    <header class="panel-title">Бог</header>
+    <div class="mood">
+      <div class="mood-track"><div class="mood-mark" id="mood-mark"></div></div>
+      <div class="mood-ends"><span>гнев</span><span id="mood-word">спокоен</span><span>милость</span></div>
+    </div>
+    <div id="verdict" class="verdict" hidden>
+      <div class="verdict-head"><span id="verdict-act" class="act"></span><span id="verdict-title" class="verdict-title"></span></div>
+      <div id="verdict-who" class="verdict-who"></div>
+      <ul id="verdict-reasons" class="reasons"></ul>
+    </div>
+  </section>
+
+  <section id="mercy" class="widget panel" hidden>
+    <header class="panel-title">Милость</header>
+    <ol id="souls" class="souls"></ol>
+  </section>
+
+  <section id="now" class="widget" hidden>
+    <div id="bosses" class="bosses"></div>
+    <div id="events" class="events"></div>
+    <div id="flash" class="events"></div>
+    <div id="active" class="active"></div>
+  </section>
+
+  <section id="subtitles" class="widget" hidden>
+    <div id="lines" class="lines"></div>
+  </section>
+</main>
+<div id="vignette" class="vignette"></div>
+<div id="rays" class="rays"></div>
+<script src="overlay.js"></script>
+</body>
+</html>

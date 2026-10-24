@@ -284,7 +284,42 @@ final class MobTalkSettingsScreen extends Screen {
         header("mobtalk.settings.section.keys");
         for (String line : controller.keyHints()) note(Text.literal(line), 0xBBBBBB);
         if (server != null && server.admin()) players();
+        tunables(Tunables.Section.GENERAL, Map.of("overlay", this::overlay));
         resetSection(Tunables.Section.GENERAL);
+    }
+    /** Идея З3: оверлей для OBS — включение, порт, адрес и пробные данные, виджеты и вид; ползунки группы (строка, масштаб) идут следом. */
+    private void overlay() {
+        wide(tip(toggle("mobtalk.settings.overlayEnabled", draft.overlayEnabled, value -> draft.overlayEnabled = value), "mobtalk.settings.overlayEnabled.tooltip"),
+                tip(toggle("mobtalk.settings.overlayShowMe", draft.overlayShowMe, value -> draft.overlayShowMe = value), "mobtalk.settings.overlayShowMe.tooltip"));
+        TextFieldWidget port = field(String.valueOf(draft.overlayPort), 5, value -> {
+            try { draft.overlayPort = Integer.parseInt(value.strip()); } catch (NumberFormatException typing) { /* дописывают число */ }
+        });
+        port.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.overlayPort.tooltip")));
+        labeled("mobtalk.settings.overlayPort", port);
+        if (collecting == null) note(Text.literal(OverlayClient.status()), 0x9A9A9A);
+        ButtonWidget copy = button("mobtalk.settings.overlayCopy", ignored -> {
+            client.keyboard.setClipboard(OverlayClient.address());
+            status = Text.translatable("mobtalk.settings.overlayCopy.done", OverlayClient.address()); error = false;
+        });
+        ButtonWidget open = button("mobtalk.settings.overlayOpen", ignored -> net.minecraft.util.Util.getOperatingSystem().open(OverlayClient.address()));
+        ButtonWidget test = button("mobtalk.settings.overlayTest", ignored -> {
+            OverlayClient.test(client.player == null ? "" : client.player.getGameProfile().getName());
+            status = Text.translatable("mobtalk.settings.overlayTest.done"); error = false;
+        });
+        for (ButtonWidget button : List.of(copy, open, test)) button.active = OverlayClient.running();
+        tip(copy, "mobtalk.settings.overlayCopy.tooltip"); tip(open, "mobtalk.settings.overlayOpen.tooltip"); tip(test, "mobtalk.settings.overlayTest.tooltip");
+        wide(copy, open, test);
+        wide(tip(toggle("mobtalk.settings.overlaySubtitles", draft.overlaySubtitles, value -> draft.overlaySubtitles = value), "mobtalk.settings.overlaySubtitles.tooltip"),
+                tip(toggle("mobtalk.settings.overlayGod", draft.overlayGod, value -> draft.overlayGod = value), "mobtalk.settings.overlayGod.tooltip"));
+        wide(tip(toggle("mobtalk.settings.overlayMercy", draft.overlayMercy, value -> draft.overlayMercy = value), "mobtalk.settings.overlayMercy.tooltip"),
+                tip(toggle("mobtalk.settings.overlayNow", draft.overlayNow, value -> draft.overlayNow = value), "mobtalk.settings.overlayNow.tooltip"));
+        wide(tip(toggle("mobtalk.settings.overlayHeard", draft.overlayHeard, value -> draft.overlayHeard = value), "mobtalk.settings.overlayHeard.tooltip"),
+                tip(toggle("mobtalk.settings.overlayChatter", draft.overlayChatter, value -> draft.overlayChatter = value), "mobtalk.settings.overlayChatter.tooltip"));
+        CyclingButtonWidget<String> style = track(CyclingButtonWidget.<String>builder(value -> Text.translatable("mobtalk.settings.overlayStyle." + value))
+                .values(List.of("cages", "parchment", "minimal")).initially(draft.overlayStyle)
+                .omitKeyText().build(0, 0, 100, 20, Text.translatable("mobtalk.settings.overlayStyle"), (button, chosen) -> draft.overlayStyle = chosen));
+        caption(style, "mobtalk.settings.overlayStyle").setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.overlayStyle.tooltip")));
+        wide(style, tip(toggle("mobtalk.settings.overlayReduceMotion", draft.overlayReduceMotion, value -> draft.overlayReduceMotion = value), "mobtalk.settings.overlayReduceMotion.tooltip"));
     }
     private List<String> village;
     private boolean loadingVillage;

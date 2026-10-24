@@ -52,6 +52,8 @@ final class ClientNet {
             if (io.github.mobtalk.client.settings.ServerSettingsView.SCREEN.equals(payload.screen())) { io.github.mobtalk.client.settings.ServerSettingsView.accept(payload.json()); return; } // Трек C: серверные настройки для F7.
             owner.onScreen(payload.screen(), payload.json());
         });
+        ClientPlayNetworking.registerGlobalReceiver(io.github.mobtalk.net.OverlayStateS2C.ID, (payload, context) -> OverlayClient.serverState(payload.json()));
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(OverlayClient::disconnected));
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             features = ServerFeatures.none();
             io.github.mobtalk.client.settings.ServerSettingsView.reset();

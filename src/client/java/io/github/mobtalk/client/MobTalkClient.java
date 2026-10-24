@@ -295,6 +295,7 @@ public final class MobTalkClient implements ClientModInitializer {
 
     private void tick() {
         ticks++;
+        OverlayClient.tick();
         updateWorld();
         merchant.tick(ticks);
         while (settingsKey.wasPressed()) openSettingsRequested = true;
@@ -559,6 +560,7 @@ public final class MobTalkClient implements ClientModInitializer {
         showHud();
     }
     void onSpeech(MobSpeechS2C packet) {
+        OverlayClient.speech(packet);
         if (MobSpeechS2C.INITIATIVE.equals(packet.kind())) initiatives.record(packet.mob(), packet.text());
         if (packet.toYou() && (MobSpeechS2C.ANSWER.equals(packet.kind()) || MobSpeechS2C.FALLBACK.equals(packet.kind()))) requestActive = false;
         if (!packet.heard().isEmpty()) chat(packet.toYou() ? "Вы: " + packet.heard() : "§7" + packet.asker() + ": " + packet.heard());
@@ -574,6 +576,7 @@ public final class MobTalkClient implements ClientModInitializer {
     void onClip(SpeechClipS2C chunk) {
         byte[] pcm = clips.offer(chunk);
         if (pcm == null) return;
+        if (pcm.length > 0) OverlayClient.voiceStarted(chunk.clipId(), pcm.length / 48);
         PendingVoice voice = pendingVoices.remove(chunk.clipId());
         LOGGER.info("Mob Talk: clip {} {} {} bytes ({} ms, {} crossings/s){}", chunk.clipId(), chunk.format(), pcm.length, pcm.length / 48,
                 io.github.mobtalk.core.SpeechStream.crossingsPerSecond(pcm), voice == null ? ", nobody waits for it" : "");
@@ -856,6 +859,7 @@ public final class MobTalkClient implements ClientModInitializer {
         io.github.mobtalk.server.ServerConfig.adopt(loaded); // Встроенный сервер одиночки живёт по серверным полям этого файла.
         configReady = true;
         preloadWhisper(loaded);
+        OverlayClient.apply(loaded);
         ClientNet.sendSettings(this);
     }
     void reload() {

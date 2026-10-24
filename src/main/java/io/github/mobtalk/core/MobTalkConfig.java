@@ -190,6 +190,20 @@ public final class MobTalkConfig {
      * Empty lists fall back to the ordinary one, then to the Minecraft nick ({@link PlayerIdentity}). */
     public String playerNamesHostile = "", playerNamesNeutral = "", playerNamesClose = "";
 
+    /** Оверлей для OBS (идея З3, docs/overlay.md), личное: игра поднимает страницу на 127.0.0.1:{@code overlayPort}, OBS берёт её
+     * источником «Браузер». Виджеты, слова игрока и болтовня в субтитрах, сколько держать строку, масштаб, стиль, меньше движения;
+     * {@code overlayShowMe} — показывать ли этого игрока в «Милости» и причинах вердикта у чужого оверлея. */
+    public boolean overlayEnabled = false;
+    public int overlayPort = 8790;
+    public boolean overlaySubtitles = true, overlayGod = true, overlayMercy = true, overlayNow = true;
+    public boolean overlayHeard = true, overlayChatter = true, overlayReduceMotion = false, overlayShowMe = true;
+    public int overlayHoldSeconds = 6, overlayScale = 100;
+    /** {@code cages} (как меню Parrot Cages), {@code parchment} или {@code minimal}. */
+    public String overlayStyle = "cages";
+    /** Серверное: отдавать ли данные оверлея ({@code OverlayStateS2C}) и кому — {@code streamer} (стример и админы) или {@code all}. */
+    public boolean streamOverlay = true;
+    public String streamOverlayAudience = "streamer";
+
     /** A menu draft or worker snapshot; editing it does not change the live preferences. */
     public MobTalkConfig copy() {
         MobTalkConfig copy = new MobTalkConfig();
@@ -243,6 +257,10 @@ public final class MobTalkConfig {
         copy.pregnancy = pregnancy; copy.pregnancyBelly = pregnancyBelly; copy.pregnancyStatus = pregnancyStatus; copy.familyFade = familyFade;
         Tunables.copy(this, copy);
         copy.commandLevels = commandLevels == null ? new LinkedHashMap<>() : new LinkedHashMap<>(commandLevels);
+        copy.overlayEnabled = overlayEnabled; copy.overlayPort = overlayPort; copy.overlaySubtitles = overlaySubtitles; copy.overlayGod = overlayGod;
+        copy.overlayMercy = overlayMercy; copy.overlayNow = overlayNow; copy.overlayHeard = overlayHeard; copy.overlayChatter = overlayChatter;
+        copy.overlayReduceMotion = overlayReduceMotion; copy.overlayShowMe = overlayShowMe; copy.overlayStyle = overlayStyle;
+        copy.streamOverlay = streamOverlay; copy.streamOverlayAudience = streamOverlayAudience;
         copy.placeAnalysis = placeAnalysis; copy.placeClassifier = placeClassifier; copy.playerNamesHostile = playerNamesHostile; copy.playerNamesNeutral = playerNamesNeutral; copy.playerNamesClose = playerNamesClose;
         return copy;
     }
@@ -311,6 +329,9 @@ public final class MobTalkConfig {
         config.playerNamesClose = PlayerIdentity.clean(config.playerNamesClose);
         config.decider = "jev".equalsIgnoreCase(config.decider == null ? "" : config.decider.strip()) ? "jev" : "rules";
         config.vision = Vision.normalize(config.vision);
+        config.overlayStyle = java.util.List.of("cages", "parchment", "minimal").contains(config.overlayStyle) ? config.overlayStyle : "cages";
+        config.streamOverlayAudience = "all".equals(config.streamOverlayAudience) ? "all" : "streamer";
+        if (config.overlayPort < 1024 || config.overlayPort > 65535) config.overlayPort = 8790;
         MobTalkConfig defaults = new MobTalkConfig();
         config.llmModel = textOrDefault(config.llmModel, defaults.llmModel);
         config.veniceModel = textOrDefault(config.veniceModel, defaults.veniceModel);
