@@ -133,8 +133,8 @@ public final class Roulette {
         return landing + (x < 8 ? 0.16 * Math.sin(Math.PI * x / 8) * (1 - x / 8) : 0);
     }
 
-    /** The line in chat that stands in for the picture (and goes into the history): «🎰 ⚡⚡⚡ Молния». */
+    /** The line in chat that stands in for the picture (and goes into the history): «✦ ⚡⚡⚡ Молния». */
     public static String chatLine(RouletteSymbol symbol, String punishment) {
-        return "🎰 " + symbol.glyph.repeat(3) + " " + punishment;
+        return "✦ " + symbol.glyph.repeat(3) + " " + punishment;
     }
 }

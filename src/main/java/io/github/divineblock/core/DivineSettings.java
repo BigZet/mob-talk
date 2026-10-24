@@ -29,7 +29,7 @@ public final class DivineSettings {
      * its model are personal too; they move to the server once the server speaks for him. */
     public static final Set<String> PERSONAL = Set.of("voice", "voiceTemple", "voiceRoomSize", "voiceReverb", "voiceEchoMs", "voiceEchoLevel",
             "voiceEchoRepeats", "chantVolume", "effects", "cameraShake", "voiceId", "ttsModel", "whisperUrl", "whisperAutoStart", "microphoneName",
-            "rouletteShow", "rouletteVolume", "rouletteJackpotFx");
+            "rouletteShow", "rouletteVolume", "rouletteJackpotFx", "rouletteFx");
 
     public enum Type { INT, BOOL, ENUM, STRING, LIST, FLAGS;
         String id() { return switch (this) { case INT -> "int"; case BOOL -> "bool"; case ENUM -> "enum"; case STRING, LIST -> "string"; case FLAGS -> "flags"; }; } }

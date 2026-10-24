@@ -60,8 +60,13 @@ class RouletteTest {
     }
 
     @Test void theChatLineStandsInForThePicture() {
-        assertEquals("🎰 ⚡⚡⚡ Молния", Roulette.chatLine(RouletteSymbol.LIGHTNING, "Молния"));
-        assertEquals("🎰 777 Бог с булавой", Roulette.chatLine(RouletteSymbol.SEVEN, "Бог с булавой"));
+        assertEquals("✦ ⚡⚡⚡ Молния", Roulette.chatLine(RouletteSymbol.LIGHTNING, "Молния"));
+        assertEquals("✦ 777 Бог с булавой", Roulette.chatLine(RouletteSymbol.SEVEN, "Бог с булавой"));
+    }
+
+    @Test void theChatGlyphsAreInTheBasicPlane() {
+        for (RouletteSymbol symbol : RouletteSymbol.values())
+            assertTrue(symbol.glyph.codePoints().allMatch(c -> c < 0x10000), symbol + ": the game's font has no emoji above the basic plane");
     }
 
     @Test void oneSeedOneStripOnEveryScreen() {
@@ -225,7 +230,8 @@ class RouletteTest {
         assertEquals(16, config.rouletteRadius);
         assertEquals(200, config.rouletteVolume);
         assertEquals(Roulette.Mode.NORMAL, config.rouletteMode, "the mini spin is only for tails");
-        assertTrue(DivineSettings.personal("rouletteShow") && DivineSettings.personal("rouletteVolume") && DivineSettings.personal("rouletteJackpotFx"));
+        assertTrue(DivineSettings.personal("rouletteShow") && DivineSettings.personal("rouletteVolume") && DivineSettings.personal("rouletteJackpotFx")
+                && DivineSettings.personal("rouletteFx"));
         assertNotNull(DivineSettings.setting("rouletteEnabled"));
         assertNotNull(DivineSettings.setting("rouletteMode"));
         var patched = DivineSettings.patch(config, com.google.gson.JsonParser.parseString("{\"rouletteMode\":\"MINI\",\"rouletteRadius\":300,\"rouletteAudience\":\"ALL\"}").getAsJsonObject());

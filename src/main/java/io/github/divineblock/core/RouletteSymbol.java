@@ -6,18 +6,18 @@ import java.util.List;
  * eternal ban and the dove of a pardon. Each punishment lands on one of them; the golden seven is kept for the end of the world.
  * The order is the order of the sprites in {@code textures/gui/roulette/symbols.png}. */
 public enum RouletteSymbol {
-    LIGHTNING("⚡", "Молния"), FLAME("🔥", "Пламя"), METEOR("☄", "Метеорит"), CRACK("🪨", "Трещина"), WAVE("🌊", "Волна"),
-    LOCUST("🦗", "Саранча"), SKULL("💀", "Череп"), RIDER("🐎", "Всадник"), SCROLL("📜", "Свиток"), ANVIL("🔨", "Наковальня"),
-    TOWER("🗼", "Башня"), SEVEN("7", "Золотая семёрка"),
+    LIGHTNING("⚡", "Молния"), FLAME("♨", "Пламя"), METEOR("☄", "Метеорит"), CRACK("⛰", "Трещина"), WAVE("≋", "Волна"),
+    LOCUST("☣", "Саранча"), SKULL("☠", "Череп"), RIDER("♞", "Всадник"), SCROLL("✉", "Свиток"), ANVIL("⚒", "Наковальня"),
+    TOWER("♜", "Башня"), SEVEN("7", "Золотая семёрка"),
     /** Group К6, the eternal ban: three locked gates on a blackened strip. */
     GATE("⛓", "Запертые врата"),
     /** A pardon while the reels still spin: they jam and every symbol turns into a dove. */
-    DOVE("🕊", "Голубь");
+    DOVE("☮", "Голубь");
 
     /** The twelve symbols of an ordinary strip. */
     public static final List<RouletteSymbol> STRIP = List.of(LIGHTNING, FLAME, METEOR, CRACK, WAVE, LOCUST, SKULL, RIDER, SCROLL, ANVIL, TOWER, SEVEN);
 
-    /** For the chat line («🎰 ⚡⚡⚡ Молния»). */
+    /** For the chat line («✦ ⚡⚡⚡ Молния»): characters of the basic plane, which the game's font draws (emoji are boxes). */
     public final String glyph;
     public final String title;
 

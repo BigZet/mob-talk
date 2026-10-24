@@ -100,6 +100,8 @@ public final class DivineConfig {
     public boolean rouletteShow = true;
     public int rouletteVolume = 100;
     public boolean rouletteJackpotFx = true;
+    /** Personal: how much show the roulette puts on (rays, chase lights, sparks, coins, the big words), 0 plain .. 3 full. */
+    public int rouletteFx = 3;
     /** Ids of acts the player switched off. */
     public List<String> disabled = new ArrayList<>();
     /** Orthodox churches with an altar inside appear in newly generated chunks; off generates none (old ones stay). */
@@ -164,6 +166,7 @@ public final class DivineConfig {
         rouletteRadius = clamp(rouletteRadius, 16, 256);
         rouletteTeaseChance = clamp(rouletteTeaseChance, 0, 100);
         rouletteVolume = clamp(rouletteVolume, 0, 200);
+        rouletteFx = clamp(rouletteFx, 0, 3);
         voiceEffects(voiceEffects());
         return this;
     }

@@ -8,6 +8,113 @@
       }
     ]
   },
+  "roulette.lever": {
+    "subtitle": "subtitle.divineblock.roulette.lever",
+    "sounds": [
+      {
+        "name": "divineblock:roulette/lever"
+      }
+    ]
+  },
+  "roulette.tick": {
+    "sounds": [
+      {
+        "name": "divineblock:roulette/tick"
+      }
+    ]
+  },
+  "roulette.thud": {
+    "subtitle": "subtitle.divineblock.roulette.thud",
+    "sounds": [
+      {
+        "name": "divineblock:roulette/thud"
+      }
+    ]
+  },
+  "roulette.bell": {
+    "subtitle": "subtitle.divineblock.roulette.bell",
+    "sounds": [
+      {
+        "name": "divineblock:roulette/bell"
+      }
+    ]
+  },
+  "roulette.big_bell": {
+    "subtitle": "subtitle.divineblock.roulette.big_bell",
+    "sounds": [
+      {
+        "name": "divineblock:roulette/big_bell"
+      }
+    ]
+  },
+  "roulette.chime": {
+    "subtitle": "subtitle.divineblock.roulette.chime",
+    "sounds": [
+      {
+        "name": "divineblock:roulette/chime"
+      }
+    ]
+  },
+  "roulette.choir": {
+    "subtitle": "subtitle.divineblock.roulette.choir",
+    "sounds": [
+      {
+        "name": "divineblock:roulette/choir"
+      }
+    ]
+  },
+  "roulette.thunder": {
+    "subtitle": "subtitle.divineblock.roulette.thunder",
+    "sounds": [
+      {
+        "name": "minecraft:ambient/weather/thunder1"
+      },
+      {
+        "name": "minecraft:ambient/weather/thunder2"
+      },
+      {
+        "name": "minecraft:ambient/weather/thunder3"
+      }
+    ]
+  },
+  "roulette.fanfare": {
+    "subtitle": "subtitle.divineblock.roulette.fanfare",
+    "sounds": [
+      {
+        "name": "divineblock:roulette/fanfare"
+      }
+    ]
+  },
+  "roulette.coins": {
+    "subtitle": "subtitle.divineblock.roulette.coins",
+    "sounds": [
+      {
+        "name": "divineblock:roulette/coins"
+      }
+    ]
+  },
+  "roulette.riser": {
+    "sounds": [
+      {
+        "name": "divineblock:roulette/riser"
+      }
+    ]
+  },
+  "roulette.heartbeat": {
+    "subtitle": "subtitle.divineblock.roulette.heartbeat",
+    "sounds": [
+      {
+        "name": "divineblock:roulette/heartbeat"
+      }
+    ]
+  },
+  "roulette.whoosh": {
+    "sounds": [
+      {
+        "name": "divineblock:roulette/whoosh"
+      }
+    ]
+  },
   "chant.altar_01": {
     "sounds": [
       {
