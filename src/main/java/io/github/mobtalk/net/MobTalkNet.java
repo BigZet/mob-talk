@@ -72,6 +72,7 @@ public final class MobTalkNet {
         PayloadTypeRegistry.playS2C().register(ServerFeaturesS2C.ID, ServerFeaturesS2C.CODEC);
         PayloadTypeRegistry.playS2C().register(ScreenDataS2C.ID, ScreenDataS2C.CODEC);
         PayloadTypeRegistry.playS2C().register(NoticeS2C.ID, NoticeS2C.CODEC);
+        PayloadTypeRegistry.playS2C().register(OverlayStateS2C.ID, OverlayStateS2C.CODEC);
         PayloadTypeRegistry.playS2C().register(SelfTestLine.ID, SelfTestLine.CODEC);
         PayloadTypeRegistry.playS2C().register(MomentS2C.ID, MomentS2C.CODEC);
     }
