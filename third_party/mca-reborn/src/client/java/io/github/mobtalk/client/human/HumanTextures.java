@@ -60,8 +60,10 @@ public final class HumanTextures {
             return HumanGenes.pick(pool("clothing/wedding/" + look.outfit()), look.genes().clothes()); // Свадебный наряд Mob Talk.
         if (look.age() != HumanLook.Age.ADULT) pool = pool("clothing/" + look.gender() + "/" + (look.age() == HumanLook.Age.TODDLER ? "toddler" : "child"));
         else {
-            pool = new ArrayList<>(pool("clothing/" + look.gender() + "/" + look.profession()));
-            pool.addAll(pool("clothing/neutral/" + look.profession()));
+            // Mob Talk: the village archer (защита деревни) dresses like the fletcher.
+            String job = "archer".equals(look.profession()) ? "fletcher" : look.profession();
+            pool = new ArrayList<>(pool("clothing/" + look.gender() + "/" + job));
+            pool.addAll(pool("clothing/neutral/" + job));
             if (pool.isEmpty()) pool = pool("clothing/" + look.gender() + "/none");
         }
         return HumanGenes.pick(pool, look.genes().clothes());

@@ -110,6 +110,8 @@ public final class MobTalkConfig {
     public boolean alarmAgainstPlayers = true;
     /** The village's players hear of an alarm in the chat. */
     public boolean alarmChat = true;
+    /** Villages build watchtowers at their edge over a game day, and an archer comes to each tower's post. */
+    public boolean villageTowers = true;
     /** Who decides whether a creature speaks up, who answers next and whether a bystander cuts in: "rules" or "jev" (OpenRouter Decisions API). */
     public String decider = "rules";
     public String defaultVoice = "rSfuQoQ3FY8SVKeraMAp";
@@ -138,6 +140,9 @@ public final class MobTalkConfig {
     public int alarmPlayerRange = 48, alarmNoticeRange = 160;
     /** The village golem: health in percent of vanilla, health it regains per minute out of a fight, health a smith's ingot mends. */
     public int golemHealthPercent = 150, golemRegenPerMinute = 12, golemRepairHealth = 25;
+    /** Watchtowers: one per this many residents, at most this many per village, built over this many real minutes; the archers see and
+     * shoot this far (blocks), loose an arrow every this many tenths of a second, and a post empty this long (minutes) gets a newcomer. */
+    public int towerResidents = 8, towerMax = 4, towerBuildMinutes = 20, archerRange = 32, archerShotTenths = 20, archerReplaceMinutes = 20;
     /** The emotional state: half-lives of an ordinary and a strong impression (minutes), and the thresholds of its axes (0–100). */
     public int stateHalfLifeMinutes = 10, stateSlowHalfLifeMinutes = 30;
     public int waryCalm = 25, waryTrust = 25, keenInterest = 75, generousMood = 65, generousTrust = 65;
@@ -253,7 +258,7 @@ public final class MobTalkConfig {
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
-        copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat;
+        copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.villageTowers = villageTowers;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;
         copy.familyLife = familyLife; copy.weddingChance = weddingChance; copy.birthChance = birthChance; copy.childGrowthDays = childGrowthDays;

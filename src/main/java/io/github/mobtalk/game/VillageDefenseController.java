@@ -57,8 +57,10 @@ final class VillageDefenseController {
     private static final Set<VillagerProfession> SMITHS = Set.of(VillagerProfession.ARMORER, VillagerProfession.TOOLSMITH, VillagerProfession.WEAPONSMITH);
 
     /** One village as the defence sees it: the alarm key, its ground with the margin, its centre and bell, the known village (id and
-     * name, "" when the world memory has none) and whether a golem lives there. */
-    record Zone(String key, Box box, BlockPos center, BlockPos bell, String villageId, String name, boolean golem) {
+     * name, "" when the world memory has none), whether a golem lives there, the village's own bounds without the margin and how
+     * many grown residents it has. */
+    record Zone(String key, Box box, BlockPos center, BlockPos bell, String villageId, String name, boolean golem,
+                int minX, int minZ, int maxX, int maxZ, int residents) {
         boolean holds(BlockPos pos) { return box.contains(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5); }
         Text title() { return name.isBlank() ? Text.translatable("mobtalk.defense.village") : Text.literal(name); }
     }
@@ -71,8 +73,18 @@ final class VillageDefenseController {
     private final Map<UUID, Repair> repairs = new HashMap<>();
     private final Map<UUID, Long> smithRest = new HashMap<>();
     private final Random random = new Random();
+    /** Watchtowers and their archers. */
+    final VillageTowers towers;
 
-    VillageDefenseController(MobGameBridge bridge) { this.bridge = bridge; }
+    VillageDefenseController(MobGameBridge bridge) { this.bridge = bridge; towers = new VillageTowers(bridge, this); }
+
+    /** The alarm of this zone now, null when it is quiet. */
+    VillageAlarm.Alarm alarm(Zone zone) { return alarms.get(zone.key()); }
+    /** The zone with this key in this world, from the last refresh. */
+    Zone zone(ServerWorld world, String key) {
+        for (Zone zone : zones.getOrDefault(dimension(world), List.of())) if (zone.key().equals(key)) return zone;
+        return null;
+    }
 
     private boolean enabled() { return bridge.config.enabled && bridge.config.villageDefense; }
     private VillageAlarm.Rules rules() { return VillageAlarm.Rules.from(bridge.config); }
@@ -94,7 +106,7 @@ final class VillageDefenseController {
     }
 
     private void refreshZones(ServerWorld world) {
-        final class Found { BlockPos bell; int minX, minZ, maxX, maxZ, minY = Integer.MAX_VALUE, maxY = Integer.MIN_VALUE; }
+        final class Found { BlockPos bell; int minX, minZ, maxX, maxZ, minY = Integer.MAX_VALUE, maxY = Integer.MIN_VALUE, residents; }
         Map<String, Found> found = new LinkedHashMap<>();
         for (VillagerEntity villager : world.getEntitiesByType(EntityType.VILLAGER, v -> v.isAlive() && !v.isRemoved())) {
             BlockPos bell = bell(world, villager);
@@ -108,6 +120,7 @@ final class VillageDefenseController {
             Found zone = found.computeIfAbsent(key, k -> { Found f = new Found(); f.minX = minX; f.minZ = minZ; f.maxX = maxX; f.maxZ = maxZ; return f; });
             if (zone.bell == null && bell != null) zone.bell = bell;
             zone.minY = Math.min(zone.minY, villager.getBlockY()); zone.maxY = Math.max(zone.maxY, villager.getBlockY());
+            if (!villager.isBaby()) zone.residents++;
         }
         int margin = bridge.config.defenseZoneMargin;
         List<Zone> list = new ArrayList<>();
@@ -118,7 +131,7 @@ final class VillageDefenseController {
             ConversationStore.Village village = bridge.villageAt(world, center);
             boolean golem = !world.getEntitiesByClass(IronGolemEntity.class, box, g -> g.isAlive() && !g.isRemoved()).isEmpty();
             list.add(new Zone(dimension(world) + "|" + entry.getKey(), box, center, f.bell, village == null ? "" : village.id(),
-                    village == null || village.name() == null ? "" : village.name(), golem));
+                    village == null || village.name() == null ? "" : village.name(), golem, f.minX, f.minZ, f.maxX, f.maxZ, f.residents));
         }
         zones.put(dimension(world), list);
     }
@@ -136,6 +149,7 @@ final class VillageDefenseController {
         if (time % ZONE_PERIOD == ZONE_PHASE) refreshZones(world);
         if (time % GOLEM_PERIOD == GOLEM_PHASE) golems(world);
         if (!enabled()) { if (!alarms.isEmpty()) clearRuntime(); return; }
+        towers.tick(world, zones.getOrDefault(dimension(world), List.of()));
         if (time % SCAN_PERIOD != SCAN_PHASE) return;
         VillageAlarm.Rules rules = rules();
         String dimension = dimension(world);
@@ -150,15 +164,17 @@ final class VillageDefenseController {
 
     /** Monsters a resident sees, the targets still about, a raid at the bell. */
     private void scan(ServerWorld world, Zone zone, long now, VillageAlarm.Rules rules) {
-        List<MobEntity> monsters = world.getEntitiesByClass(MobEntity.class, zone.box(), this::threat);
+        List<MobEntity> monsters = world.getEntitiesByClass(MobEntity.class, zone.box().expand(bridge.config.archerRange / 2.0), this::threat);
         if (!monsters.isEmpty()) {
             List<LivingEntity> watchers = new ArrayList<>(world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !v.isSleeping()));
             watchers.addAll(world.getEntitiesByClass(IronGolemEntity.class, zone.box(), LivingEntity::isAlive));
-            double range = bridge.config.alarmMonsterRange;
+            double usual = bridge.config.alarmMonsterRange;
             int seen = 0; MobEntity first = null;
             for (MobEntity monster : monsters) {
-                for (LivingEntity watcher : watchers)
+                for (LivingEntity watcher : watchers) {
+                    double range = towers.sight(watcher, usual);
                     if (watcher.squaredDistanceTo(monster) <= range * range && watcher.canSee(monster)) { seen++; if (first == null) first = monster; break; }
+                }
             }
             if (seen > 0) {
                 VillageAlarm.Change change = alarms.monsters(zone.key(), seen, "монстры у деревни: " + seen + " (" + first.getName().getString() + ")", now, rules);
@@ -176,7 +192,7 @@ final class VillageDefenseController {
     }
 
     /** A monster worth an alarm: a hostile that is not a calm neutral, not in a conversation or on a player's errand. */
-    private boolean threat(MobEntity mob) {
+    boolean threat(MobEntity mob) {
         if (!mob.isAlive() || mob.isRemoved() || !(mob instanceof Monster)) return false;
         if (mob instanceof Angerable && mob.getTarget() == null) return false;
         return !bridge.actions.busy(mob);
@@ -299,6 +315,7 @@ final class VillageDefenseController {
         if (alarm == null) return;
         Entity near = enemy != null ? enemy : threat;
         String kind = enemy != null ? "player" : alarm.attack() ? "attack" : "monsters";
+        if (change == VillageAlarm.Change.RAISED || change == VillageAlarm.Change.ESCALATED) towers.horn(world, zone, near == null ? zone.center() : near.getBlockPos());
         shout(world, zone, near == null ? zone.center() : near.getBlockPos(), kind, enemy == null ? null : MobGameBridge.playerName(enemy));
         if (enemy != null) enemy.sendMessage(Text.translatable("mobtalk.defense.raised.you", zone.title(), alarm.targets.get(enemy.getUuid()).cause).formatted(Formatting.RED), false);
         if (!bridge.config.alarmChat || (!alarm.attack() && enemy == null)) return;
@@ -441,5 +458,6 @@ final class VillageDefenseController {
 
     void clearRuntime() {
         alarms.clear(); zones.clear(); lastBell.clear(); lastShout.clear(); exileSince.clear(); repairs.clear(); smithRest.clear();
+        towers.clearRuntime();
     }
 }

@@ -182,6 +182,13 @@ public final class Tunables {
         integer("golemHealthPercent", s, "defense", 100, 400, 10, c -> c.golemHealthPercent, (c, x) -> c.golemHealthPercent = x);
         integer("golemRegenPerMinute", s, "defense", 0, 120, 1, c -> c.golemRegenPerMinute, (c, x) -> c.golemRegenPerMinute = x);
         integer("golemRepairHealth", s, "defense", 0, 100, 1, c -> c.golemRepairHealth, (c, x) -> c.golemRepairHealth = x);
+        // Watchtowers and their archers.
+        integer("towerResidents", s, "towers", 2, 40, 1, c -> c.towerResidents, (c, x) -> c.towerResidents = x);
+        integer("towerMax", s, "towers", 0, 8, 1, c -> c.towerMax, (c, x) -> c.towerMax = x);
+        integer("towerBuildMinutes", s, "towers", 1, 120, 1, c -> c.towerBuildMinutes, (c, x) -> c.towerBuildMinutes = x);
+        integer("archerRange", s, "towers", 8, 64, 1, c -> c.archerRange, (c, x) -> c.archerRange = x);
+        integer("archerShotTenths", s, "towers", 5, 100, 1, c -> c.archerShotTenths, (c, x) -> c.archerShotTenths = x);
+        integer("archerReplaceMinutes", s, "towers", 1, 240, 1, c -> c.archerReplaceMinutes, (c, x) -> c.archerReplaceMinutes = x);
 
         // Friendly duties (STAY, GUARD, SPARE).
         integer("friendLeaseMinutes", a, "friends", 1, 60, 1, c -> c.friendLeaseMinutes, (c, x) -> c.friendLeaseMinutes = x);
@@ -251,7 +258,7 @@ public final class Tunables {
                 config.pregnancy = d.pregnancy; config.pregnancyBelly = d.pregnancyBelly; config.pregnancyStatus = d.pregnancyStatus; config.familyFade = d.familyFade;
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices; config.villageSites = d.villageSites;
-                config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat;
+                config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.villageTowers = d.villageTowers;
             }
             case ACTIONS -> { config.placeAnalysis = d.placeAnalysis; config.placeClassifier = d.placeClassifier; }
         }

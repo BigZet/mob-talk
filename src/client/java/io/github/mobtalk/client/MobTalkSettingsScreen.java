@@ -388,6 +388,7 @@ final class MobTalkSettingsScreen extends Screen {
                     wide(tip(toggle("mobtalk.settings.alarmAgainstPlayers", draft.alarmAgainstPlayers, value -> draft.alarmAgainstPlayers = value), "mobtalk.settings.alarmAgainstPlayers.tooltip"),
                             tip(toggle("mobtalk.settings.alarmChat", draft.alarmChat, value -> draft.alarmChat = value), "mobtalk.settings.alarmChat.tooltip"));
                 },
+                "towers", () -> wide(tip(toggle("mobtalk.settings.villageTowers", draft.villageTowers, value -> draft.villageTowers = value), "mobtalk.settings.villageTowers.tooltip")),
                 "chatter", () -> wide(tip(toggle("mobtalk.settings.villageChatter", draft.villageChatter, value -> draft.villageChatter = value), "mobtalk.settings.villageChatter.tooltip"),
                         tip(toggle("mobtalk.settings.villageNotices", draft.villageNotices, value -> draft.villageNotices = value), "mobtalk.settings.villageNotices.tooltip"))));
         resetSection(Tunables.Section.SOCIAL);
