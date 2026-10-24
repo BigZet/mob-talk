@@ -52,6 +52,8 @@ final class ClientNet {
             if (io.github.mobtalk.client.settings.ServerSettingsView.SCREEN.equals(payload.screen())) { io.github.mobtalk.client.settings.ServerSettingsView.accept(payload.json()); return; } // Трек C: серверные настройки для F7.
             owner.onScreen(payload.screen(), payload.json());
         });
+        ClientPlayNetworking.registerGlobalReceiver(io.github.mobtalk.net.OverlayStateS2C.ID, (payload, context) -> OverlayClient.serverState(payload.json()));
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(OverlayClient::disconnected));
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             features = ServerFeatures.none();
             io.github.mobtalk.client.settings.ServerSettingsView.reset();
@@ -62,6 +64,9 @@ final class ClientNet {
     /** Личные настройки серверу: при входе и после сохранения в F7. */
     static void sendSettings(MobTalkClient owner) {
         if (owner.config() == null || !owner.connected() || !ClientPlayNetworking.canSend(PlayerSettingsC2S.ID)) return;
-        ClientPlayNetworking.send(new PlayerSettingsC2S(PlayerSettings.of(owner.config()).toJson()));
+        // Установлен ли свой Whisper — только для админки (какой путь распознавания игрок получит на «авто»).
+        com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(PlayerSettings.of(owner.config()).toJson()).getAsJsonObject();
+        json.addProperty(PlayerSettings.WHISPER_INSTALLED, VoiceInput.localReady());
+        ClientPlayNetworking.send(new PlayerSettingsC2S(json.toString()));
     }
 }

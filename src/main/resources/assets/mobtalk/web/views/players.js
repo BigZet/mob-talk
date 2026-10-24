@@ -64,6 +64,7 @@ export default function players(root, route) {
       { key: 'name', title: 'Игрок', value: p => p.name.toLowerCase(), render: p => h('div.row.nowrap', avatar(p.name), h('div', h('div', { style: { fontWeight: 600 } }, p.name), h('div.row', { style: { gap: '4px', marginTop: '2px' } }, badges(p)))) },
       { key: 'lastSeen', title: 'Был', desc: true, value: p => (p.online ? Infinity : p.lastSeen), render: p => (p.online ? 'сейчас' : fmt.ago(p.lastSeen)) },
       { key: 'onlineSeconds', title: 'Время в игре', r: true, desc: true, render: p => fmt.duration(p.onlineSeconds) },
+      { key: 'stt', title: 'Распознавание', sortable: false, render: p => sttCell(p.stt) },
       { key: 'dialogues', title: 'Диалоги', r: true, desc: true, render: p => fmt.num(p.dialogues) },
       { key: 'costTodayUsd', title: 'Сегодня', r: true, desc: true, render: p => fmt.usd(p.costTodayUsd) },
       { key: 'costTotalUsd', title: 'Всего', r: true, desc: true, render: p => fmt.usd(p.costTotalUsd) },
@@ -87,9 +88,15 @@ export default function players(root, route) {
 
 /** Карточка игрока в шторке. */
 const GAMEMODES = { survival: 'выживание', creative: 'творческий', adventure: 'приключение', spectator: 'наблюдатель' };
-const STT = { auto: 'сам выбирает', local: 'свой Whisper', server: 'через сервер', text: 'только текст', '': '—' };
+const STT = { auto: 'авто', local: 'свой Whisper', server: 'сервер (OpenRouter)', text: 'только текст', '': '—' };
 /** Какой путь распознавания игрок выбрал в F7 и каким пришла его последняя реплика. */
-const sttLine = s => `выбран: ${STT[s.chosen] ?? s.chosen}${s.last ? ` · последняя реплика: ${STT[s.last] ?? s.last}` : ''}`;
+const WHISPER = s => (s.installed === true ? 'свой Whisper установлен' : s.installed === false ? 'своего Whisper нет' : 'про свой Whisper клиент не сообщил');
+const sttLine = s => [`в настройках: ${STT[s.chosen] ?? s.chosen}`, WHISPER(s), s.effective && `получает: ${STT[s.effective] ?? s.effective}`,
+  s.last && `последняя реплика: ${STT[s.last] ?? s.last}`].filter(Boolean).join(' · ');
+/** Короткая ячейка списка: что игрок получает (и что выбрал, если это «авто»). */
+const sttCell = s => (!s || !s.chosen ? h('span.muted', '—')
+  : h('div', { title: sttLine(s) }, h('div', STT[s.effective] ?? STT[s.chosen] ?? s.chosen),
+    h('div.muted', { style: { fontSize: '12px' } }, s.chosen === 'auto' ? 'авто' : 'выбрал сам', s.installed === true ? ' · Whisper есть' : s.installed === false ? ' · без Whisper' : '')));
 
 export function card(uuid, onClose, onChanged = () => {}) {
   const d = drawer('Игрок', { onClose });

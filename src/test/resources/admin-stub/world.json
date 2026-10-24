@@ -179,7 +179,21 @@
       "skyCourt": {
         "active": false,
         "player": null
-      }
+      },
+      "punishments": [
+        {
+          "player": {
+            "uuid": "2f83646d-2eeb-4a75-8358-03e02e2ef99f",
+            "name": "Тест2"
+          },
+          "deed": "curse_minor",
+          "title": "Малое проклятие",
+          "since": -20000,
+          "until": 40000,
+          "strengthened": 1,
+          "moved": false
+        }
+      ]
     },
     "prayers": [
       {
@@ -208,7 +222,40 @@
             "mercy": -8,
             "power": 2
           }
-        ]
+        ],
+        "decision": {
+          "favor": -9,
+          "force": 3,
+          "inclination": "кара",
+          "level": 4,
+          "budget": 2,
+          "escalation": 1,
+          "fury": false,
+          "forgiveness": false,
+          "group": "wrath_minor",
+          "jev": {
+            "wrath_minor": 0.7,
+            "wrath_mid": 0.2,
+            "silence": 0.1
+          },
+          "ladder": {
+            "wrath_minor": 0.24,
+            "wrath_mid": 0.52,
+            "wrath_heavy": 0.24
+          },
+          "odds": {
+            "wrath_minor": 0.47,
+            "wrath_mid": 0.37,
+            "wrath_heavy": 0.12,
+            "silence": 0.05
+          },
+          "labels": {
+            "wrath_minor": "лёгкий гнев",
+            "wrath_mid": "гнев",
+            "wrath_heavy": "тяжкий гнев",
+            "silence": "молчание"
+          }
+        }
       },
       {
         "t": -900000,
@@ -465,6 +512,63 @@
       {
         "id": "court_end",
         "title": "Закончить Небесный суд",
+        "args": [],
+        "danger": null
+      },
+      {
+        "id": "mercy",
+        "title": "Изменить милость",
+        "args": [
+          {
+            "key": "player",
+            "title": "Ник",
+            "type": "string"
+          },
+          {
+            "key": "amount",
+            "title": "На сколько",
+            "type": "string"
+          }
+        ],
+        "danger": null
+      },
+      {
+        "id": "act",
+        "title": "Послать деяние",
+        "args": [
+          {
+            "key": "player",
+            "title": "Ник",
+            "type": "string"
+          },
+          {
+            "key": "deed",
+            "title": "Деяние",
+            "type": "string"
+          },
+          {
+            "key": "power",
+            "title": "Сила",
+            "type": "string"
+          }
+        ],
+        "danger": null
+      },
+      {
+        "id": "forget",
+        "title": "Стереть память бога об игроке",
+        "args": [
+          {
+            "key": "player",
+            "title": "Ник",
+            "type": "string"
+          }
+        ],
+        "danger": null
+      },
+      {
+        "id": "forget_all",
+        "title": "Стереть память бога обо всех",
         "args": [],
         "danger": null
       }

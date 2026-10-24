@@ -47,6 +47,9 @@ public final class Tunables {
     static {
         Section v = Section.VOICE, m = Section.MODEL, t = Section.TALK, s = Section.SOCIAL, a = Section.ACTIONS;
         // The numbers the config always had, with the same ranges.
+        // Оверлей для OBS (личное): сколько держать строку субтитров после звука и масштаб страницы.
+        integer("overlayHoldSeconds", Section.GENERAL, "overlay", 2, 20, 1, c -> c.overlayHoldSeconds, (c, x) -> c.overlayHoldSeconds = x);
+        integer("overlayScale", Section.GENERAL, "overlay", 60, 200, 5, c -> c.overlayScale, (c, x) -> c.overlayScale = x);
         decimal("maxDistance", t, "reply", 2, 64, 0.5, c -> c.maxDistance, (c, x) -> c.maxDistance = x);
         integer("maxReplyWords", t, "reply", 5, 120, 1, c -> c.maxReplyWords, (c, x) -> c.maxReplyWords = x);
         integer("maxRecordingSeconds", v, "recording", 1, 15, 1, c -> c.maxRecordingSeconds, (c, x) -> c.maxRecordingSeconds = x);

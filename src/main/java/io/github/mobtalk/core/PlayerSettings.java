@@ -13,6 +13,8 @@ import java.util.Objects;
  * ({@code PlayerSettingsStore}). Чужие и серверные ключи при разборе отбрасываются. */
 public final class PlayerSettings {
     private static final Gson GSON = new GsonBuilder().create();
+    /** Сведение клиента: установлен ли у игрока свой Whisper (для админки; в конфиг не попадает). */
+    public static final String WHISPER_INSTALLED = "whisperInstalled";
     private final JsonObject values;
 
     private PlayerSettings(JsonObject values) { this.values = values; }
@@ -34,6 +36,8 @@ public final class PlayerSettings {
     private static JsonObject filter(JsonObject source) {
         JsonObject kept = new JsonObject();
         for (String name : SettingsScope.personalFields()) if (source.has(name)) kept.add(name, source.get(name));
+        // Не поле конфига, а сведение клиента для админки: стоит ли у игрока свой Whisper.
+        if (source.has(WHISPER_INSTALLED) && source.get(WHISPER_INSTALLED).isJsonPrimitive()) kept.addProperty(WHISPER_INSTALLED, source.get(WHISPER_INSTALLED).getAsBoolean());
         return kept;
     }
 

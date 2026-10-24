@@ -91,11 +91,20 @@ public final class ConfigSources {
     public JsonObject action(String id, String action, JsonObject args, String by) {
         JsonObject answer = call(id, Json.obj("op", "action", "id", action, "args", args));
         boolean ok = !answer.has("ok") || answer.get("ok").getAsBoolean();
+        // Источники пишут итог по-разному: message, text (Божественный блок) или error при отказе.
+        String message = firstOf(answer, "message", "text", "error");
         history.append("command", null, null, "Действие " + id + "." + action + " (" + by + "): " + (ok ? "выполнено" : "отказ"),
                 Json.obj("command", id + " " + action + " " + Json.GSON.toJson(args), "by", by, "result", ok ? 1 : 0,
-                        "output", List.of(String.valueOf(Json.string(answer, "message")))));
-        if (!answer.has("ok")) answer.addProperty("ok", true);
+                        "output", List.of(String.valueOf(message))));
+        if (!ok) throw ApiException.badRequest(message == null || message.isBlank() ? "Источник отказал." : message);
+        answer.addProperty("ok", true);
+        if (message != null) answer.addProperty("message", message);
         return answer;
+    }
+
+    private static String firstOf(JsonObject answer, String... keys) {
+        for (String key : keys) { String value = Json.string(answer, key); if (value != null && !value.isBlank()) return value; }
+        return null;
     }
 
     /** The source's journal ({@code {"op":"journal"}}), for the divine block's verdicts; empty when it keeps none. */

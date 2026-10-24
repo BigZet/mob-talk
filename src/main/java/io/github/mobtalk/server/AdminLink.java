@@ -43,6 +43,8 @@ public final class AdminLink {
     private static boolean hooked;
     private static final List<Long> tickNanos = new ArrayList<>();
     private static int ticks;
+    /** Молитвы бога уже перенесены в историю до этого времени (журнал молитв мода живёт в памяти и начинается с запуска сервера). */
+    private static long prayersSince;
     /** Открытые записи диалогов: id записи → игрок, чтобы админка могла отменить диалог. */
     private static final Map<String, UUID> runs = new ConcurrentHashMap<>();
 
@@ -65,6 +67,7 @@ public final class AdminLink {
         if (started == null) return;
         web = started; view = game; current = server;
         runs.clear();
+        prayersSince = System.currentTimeMillis();
         for (var entry : FabricLoader.getInstance().getEntrypointContainers("mobtalk-admin", UnaryOperator.class)) {
             String id = entry.getProvider().getMetadata().getId();
             if ("mobtalk".equals(id) || started.sources().has(id)) continue;
@@ -75,6 +78,7 @@ public final class AdminLink {
             } catch (Throwable failure) { MobTalkMod.LOGGER.warn("Админка: источник «{}» не подключён ({})", id, failure.toString()); }
         }
         game.sources(started.sources());
+        MomentLink.attach(started.moments(), server); // Идея З4: живые моменты игрокам, сессии записи по входу стримера.
         AdminCommands.setWebAddress(() -> { AdminWeb current = web; return current == null ? "" : String.join("  ", current.describe()); });
         if (dialogue != null) dialogue.setJournal(new JournalAdapter(started.journal()));
         MobGameBridge.divineJournal((text, data) -> { try { started.journal().event("divine", null, null, text, data); } catch (RuntimeException failure) { MobTalkMod.LOGGER.warn("Админка: событие бога не записано ({})", failure.toString()); } });
@@ -182,6 +186,91 @@ public final class AdminLink {
             if (p95 > 0) values.put(MetricSeries.latency(kind, true), (double) p95);
         }
         admin.metrics().record(values, worlds);
+        pullVerdicts(admin);
+        pullDivineEvents(admin);
+    }
+
+    /** Вердикты бога в историю: молитвы источника divineblock (операция prayers) становятся записями «verdict» с data.act — по ним
+     * рисуются графики и «Последние вердикты» на вкладке «Бог», и они переживают перезапуск. Журнал молитв в памяти и мал, поэтому раз в 10 с. */
+    private static void pullVerdicts(AdminWeb admin) {
+        if (!admin.sources().has("divineblock")) return;
+        try {
+            JsonObject answer = admin.sources().call("divineblock", Json.obj("op", "prayers", "since", prayersSince, "limit", 300));
+            if (!answer.has("items")) return;
+            var items = answer.getAsJsonArray("items");
+            for (int i = items.size() - 1; i >= 0; i--) { // новые первыми — пишем по порядку
+                JsonObject p = items.get(i).getAsJsonObject();
+                long t = Json.number(p, "t", 0);
+                prayersSince = Math.max(prayersSince, t);
+                JsonObject who = p.has("player") ? p.getAsJsonObject("player") : new JsonObject();
+                JsonObject choice = p.has("choice") ? p.getAsJsonObject("choice") : new JsonObject();
+                String name = Json.string(who, "name"), act = Json.string(choice, "kind"), deed = Json.string(choice, "deedTitle");
+                UUID uuid = null;
+                try { uuid = UUID.fromString(Json.string(who, "uuid")); } catch (IllegalArgumentException | NullPointerException none) { }
+                String what = switch (act == null ? "" : act) { case "wrath" -> "кара"; case "miracle" -> "благо"; case "warning" -> "знамение"; case "jest" -> "шутка"; default -> "без ответа"; };
+                admin.journal().event("verdict", Json.player(uuid, name), null, name + ": " + what + (deed == null || deed.isBlank() || "none".equals(act) ? "" : " «" + deed + "»"),
+                        Json.obj("prayer", Json.string(p, "text"), "verdict", Json.string(p, "answer"), "act", act, "deed", deed,
+                                "power", Json.number(choice, "power", 0), "tone", Json.string(p, "toneTitle")));
+            }
+        } catch (RuntimeException failure) { MobTalkMod.LOGGER.debug("Админка: вердикты бога не перенесены ({})", failure.toString()); }
+    }
+
+    /** Боссы и изгнания Божественного блока в историю (виды «boss» и «ban»): своего журнала у мода нет, поэтому раз в 10 с сравниваем
+     * операции active и souls с прошлым разом. Первый опрос только запоминает, что уже идёт. Из этих записей берутся моменты монтажа. */
+    private static final Map<String, JsonObject> bosses = new java.util.HashMap<>();
+    private static final Map<String, Boolean> banned = new java.util.HashMap<>();
+    private static boolean divineSeen;
+
+    private static void pullDivineEvents(AdminWeb admin) {
+        if (!admin.sources().has("divineblock")) return;
+        try {
+            JsonObject active = admin.sources().call("divineblock", Json.obj("op", "active"));
+            JsonObject souls = admin.sources().call("divineblock", Json.obj("op", "souls"));
+            Map<String, JsonObject> nowBosses = new java.util.HashMap<>();
+            if (active.has("bosses") && active.get("bosses").isJsonArray())
+                for (var element : active.getAsJsonArray("bosses")) if (element.isJsonObject()) {
+                    JsonObject boss = element.getAsJsonObject();
+                    String id = Json.string(boss, "id");
+                    if (id != null) nowBosses.put(id, boss);
+                }
+            Map<String, Boolean> nowBanned = new java.util.HashMap<>();
+            Map<String, JsonObject> who = new java.util.HashMap<>();
+            if (souls.has("souls") && souls.get("souls").isJsonArray())
+                for (var element : souls.getAsJsonArray("souls")) if (element.isJsonObject()) {
+                    JsonObject soul = element.getAsJsonObject();
+                    JsonObject player = soul.has("player") && soul.get("player").isJsonObject() ? soul.getAsJsonObject("player") : null;
+                    String uuid = Json.string(player, "uuid");
+                    if (uuid == null) continue;
+                    nowBanned.put(uuid, soul.has("banned") && soul.get("banned").isJsonPrimitive() && soul.get("banned").getAsBoolean());
+                    who.put(uuid, player);
+                }
+            if (divineSeen) {
+                for (var entry : nowBosses.entrySet()) if (!bosses.containsKey(entry.getKey())) {
+                    String title = Json.string(entry.getValue(), "title");
+                    admin.journal().event("boss", null, null, "Босс: " + title, Json.obj("boss", title, "event", "spawn", "id", entry.getKey(),
+                            "since", Json.number(entry.getValue(), "since", 0)));
+                }
+                for (var entry : bosses.entrySet()) if (!nowBosses.containsKey(entry.getKey())) {
+                    JsonObject last = entry.getValue();
+                    String title = Json.string(last, "title");
+                    long max = Math.max(1, Json.number(last, "maxHealth", 1)), health = Json.number(last, "health", max);
+                    boolean beaten = health * 100 <= max * 20; // в последнем опросе у него оставалось меньше пятой части
+                    admin.journal().event("boss", null, null, (beaten ? "Босс повержен: " : "Босс ушёл: ") + title,
+                            Json.obj("boss", title, "event", beaten ? "death" : "despawn", "id", entry.getKey()));
+                }
+                for (var entry : nowBanned.entrySet()) {
+                    Boolean before = banned.get(entry.getKey());
+                    if (before == null || before.equals(entry.getValue())) continue;
+                    JsonObject player = who.get(entry.getKey());
+                    String name = Json.string(player, "name");
+                    admin.journal().event("ban", player, null, (entry.getValue() ? "Изгнан богом: " : "Прощён и возвращён: ") + name,
+                            Json.obj("reason", "", "by", "бог", "lifted", !entry.getValue()));
+                }
+            }
+            bosses.clear(); bosses.putAll(nowBosses);
+            banned.putAll(nowBanned);
+            divineSeen = true;
+        } catch (RuntimeException failure) { MobTalkMod.LOGGER.debug("Админка: события бога не перенесены ({})", failure.toString()); }
     }
 
     // ---- Журнал диалогов. ----

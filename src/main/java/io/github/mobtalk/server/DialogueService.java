@@ -647,11 +647,42 @@ public final class DialogueService {
                         bridge.afterWords(request.target, request.player, reply.recognizedText(), prepared.gesture()).thenAccept(lines -> onServer(() -> {
                             if (lines != null && !lines.isBlank()) for (String line : lines.split("\n")) out.chat(request.player, line);
                         }));
+                    if (request.overheard == null) reportScene(request, reply, prepared.gesture());
                     finishDelivery(session, request, reply, delivery.message(), shownEarly);
                     if (defer) { session.deferred = new Deferred(request, action); if (!session.voiceOn()) runDeferredAction(session); }
                 } finally { session.pendingDeliveries--; }
             }));
         } finally { if (!async) session.pendingDeliveries--; }
+    }
+
+    /** Моменты для монтажа: заметная сцена разговора (удар, бегство, грубость, поцелуй, пощёчина, предложение, развод) — запись «scene»
+     * в истории админки; что из этого станет моментом, решают веса в админке. */
+    private void reportScene(Request request, ConversationEngine.Reply reply, io.github.mobtalk.core.GestureIntent gesture) {
+        List<String> tags = new ArrayList<>();
+        ActionType type = reply.action() == null ? ActionType.NONE : reply.action().type();
+        if (type == ActionType.ATTACK) tags.add("attack");
+        if (type == ActionType.FLEE) tags.add("flee");
+        if (reply.socialIntent() == SocialIntent.INSULT) tags.add("insult");
+        if (reply.socialIntent() == SocialIntent.THREAT) tags.add("threat");
+        String what = null;
+        if (gesture != null && gesture.gesture() != io.github.mobtalk.core.Gesture.NONE) {
+            io.github.mobtalk.core.Gesture.Outcome outcome = gesture.outcome();
+            if (outcome == io.github.mobtalk.core.Gesture.Outcome.SLAP) { tags.add("slap"); what = "пощёчина"; }
+            else if (outcome.warm()) switch (gesture.gesture()) {
+                case KISS -> { tags.add("kiss"); what = "поцелуй"; }
+                case DATE -> { tags.add("date"); what = "теперь встречаются"; }
+                case PROPOSE -> { tags.add("propose"); what = "помолвка"; }
+                case DIVORCE -> { tags.add("divorce"); what = "расставание"; }
+                case CHILD -> { tags.add("child"); what = "будет ребёнок"; }
+                default -> { }
+            }
+        }
+        if (tags.isEmpty()) return;
+        String mob = reply.speakerName() == null || reply.speakerName().isBlank() ? request.mobName : reply.speakerName();
+        if (what == null) what = tags.contains("attack") ? "напал" + (tags.size() > 1 ? " после ссоры" : "") : tags.contains("flee") ? "сбежал" : tags.contains("threat") ? "угрозы" : "ссора";
+        journal.event("scene", request.player, request.playerName, request.target, mob, request.snapshot == null ? "" : request.snapshot.type(),
+                "Сцена: " + mob + " и " + request.playerName + " — " + what, Map.of("tags", tags, "question", String.valueOf(reply.recognizedText()),
+                        "answer", String.valueOf(reply.responseText())));
     }
 
     private void finishDelivery(Session session, Request request, ConversationEngine.Reply reply, String actionMessage, boolean shownEarly) {

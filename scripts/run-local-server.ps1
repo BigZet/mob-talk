@@ -101,7 +101,13 @@ if ($Proxy) {
 }
 Say "start: $java $($javaArgs -join ' ') in $Dir ($(if ($Public) { 'public' } else { 'local test, online-mode=false' }), port $Port)"
 if ($NewWindow) {
-    Start-Process -FilePath $java -ArgumentList $javaArgs -WorkingDirectory $Dir
+    # This script again in its own window, not java alone: only the script starts the server again after "Новый мир".
+    $again = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"", '-Dir', "`"$Dir`"", '-Memory', $Memory)
+    if ($Port) { $again += @('-Port', $Port) }
+    if ($Public) { $again += '-Public' }
+    if ($Proxy) { $again += @('-Proxy', $Proxy) }
+    if ($JvmArgs) { $again += @('-JvmArgs', "`"$JvmArgs`"") }
+    Start-Process -FilePath 'powershell.exe' -ArgumentList $again -WorkingDirectory $Dir
     return
 }
 # -Smoke: start, wait for "Done", send "stop", then list ERROR lines of the log; exit 1 if it never came up.

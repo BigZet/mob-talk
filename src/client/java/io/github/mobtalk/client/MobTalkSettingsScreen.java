@@ -281,10 +281,74 @@ final class MobTalkSettingsScreen extends Screen {
         info.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.info.tooltip")));
         wide(info, button("mobtalk.settings.village.refresh", ignored -> { village = null; refreshOnTick = true; }));
 
+        moments();
         header("mobtalk.settings.section.keys");
         for (String line : controller.keyHints()) note(Text.literal(line), 0xBBBBBB);
         if (server != null && server.admin()) players();
+        tunables(Tunables.Section.GENERAL, Map.of("overlay", this::overlay));
         resetSection(Tunables.Section.GENERAL);
+    }
+    /** Метки для монтажа (идея З4): связь с OBS, главы, повторы, подтверждение метки. Личное: config/mobtalk-obs.json. */
+    private MomentClient.Settings obsDraft;
+    private void moments() {
+        if (obsDraft == null) obsDraft = MomentClient.settings();
+        header("mobtalk.settings.section.moments");
+        note(Text.translatable("mobtalk.settings.moments.hint"), 0x9A9A9A);
+        note(Text.literal(MomentClient.obsStatus()), MomentClient.obsOk() ? 0x9CE59C : 0xBBBBBB);
+        wide(tip(toggle("mobtalk.settings.moments.obs", obsDraft.obsEnabled, value -> obsDraft.obsEnabled = value), "mobtalk.settings.moments.obs.tooltip"),
+                tip(button("mobtalk.settings.moments.check", ignored -> refreshOnTick = true), "mobtalk.settings.moments.check.tooltip"));
+        labeled("mobtalk.settings.moments.address", tip(field(obsDraft.obsAddress, 128, value -> obsDraft.obsAddress = value), "mobtalk.settings.moments.address.tooltip"));
+        wide(tip(toggle("mobtalk.settings.moments.chapters", obsDraft.obsChapters, value -> obsDraft.obsChapters = value), "mobtalk.settings.moments.chapters.tooltip"),
+                tip(toggle("mobtalk.settings.moments.replay", obsDraft.obsReplay, value -> obsDraft.obsReplay = value), "mobtalk.settings.moments.replay.tooltip"));
+        wide(tip(choice("mobtalk.settings.moments.replayWeight", List.of(1, 2, 3), obsDraft.replayMinWeight, value -> "★".repeat(value), value -> obsDraft.replayMinWeight = value), "mobtalk.settings.moments.replayWeight.tooltip"),
+                tip(choice("mobtalk.settings.moments.replayDelay", List.of(0, 5, 10, 15, 20, 30), obsDraft.replayDelaySeconds, value -> value + " с", value -> obsDraft.replayDelaySeconds = value), "mobtalk.settings.moments.replayDelay.tooltip"));
+        wide(tip(choice("mobtalk.settings.moments.scope", List.of("mine", "all"), obsDraft.scope, value -> Text.translatable("mobtalk.settings.moments.scope." + value).getString(), value -> obsDraft.scope = value), "mobtalk.settings.moments.scope.tooltip"),
+                tip(choice("mobtalk.settings.moments.notice", List.of("line", "sound", "none"), obsDraft.notice, value -> Text.translatable("mobtalk.settings.moments.notice." + value).getString(), value -> obsDraft.notice = value), "mobtalk.settings.moments.notice.tooltip"));
+        keySection(OpenRouterToken.Provider.OBS, "mobtalk.settings.section.obsPassword");
+    }
+    /** A choice with a caption: values shown by {@code label}. */
+    private <T> CyclingButtonWidget<T> choice(String key, List<T> values, T current, java.util.function.Function<T, String> label, Consumer<T> changed) {
+        return caption(track(CyclingButtonWidget.<T>builder(value -> Text.literal(label.apply(value))).values(values).initially(values.contains(current) ? current : values.getFirst())
+                .omitKeyText().build(0, 0, 100, 20, Text.translatable(key), (button, chosen) -> changed.accept(chosen))), key);
+    }
+    /** Идея З3: оверлей для OBS — включение, порт, адрес и пробные данные, виджеты и вид; ползунки группы (строка, масштаб) идут следом. */
+    private void overlay() {
+        wide(tip(toggle("mobtalk.settings.overlayEnabled", draft.overlayEnabled, value -> draft.overlayEnabled = value), "mobtalk.settings.overlayEnabled.tooltip"),
+                tip(toggle("mobtalk.settings.overlayShowMe", draft.overlayShowMe, value -> draft.overlayShowMe = value), "mobtalk.settings.overlayShowMe.tooltip"));
+        TextFieldWidget port = field(String.valueOf(draft.overlayPort), 5, value -> {
+            try { draft.overlayPort = Integer.parseInt(value.strip()); } catch (NumberFormatException typing) { /* дописывают число */ }
+        });
+        port.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.overlayPort.tooltip")));
+        labeled("mobtalk.settings.overlayPort", port);
+        if (collecting == null) note(Text.literal(OverlayClient.status()), 0x9A9A9A);
+        ButtonWidget copy = button("mobtalk.settings.overlayCopy", ignored -> {
+            client.keyboard.setClipboard(OverlayClient.address());
+            status = Text.translatable("mobtalk.settings.overlayCopy.done", OverlayClient.address()); error = false;
+        });
+        ButtonWidget open = button("mobtalk.settings.overlayOpen", ignored -> net.minecraft.util.Util.getOperatingSystem().open(OverlayClient.address()));
+        ButtonWidget test = button("mobtalk.settings.overlayTest", ignored -> {
+            OverlayClient.test(client.player == null ? "" : client.player.getGameProfile().getName());
+            status = Text.translatable("mobtalk.settings.overlayTest.done"); error = false;
+        });
+        for (ButtonWidget button : List.of(copy, open, test)) button.active = OverlayClient.running();
+        tip(copy, "mobtalk.settings.overlayCopy.tooltip"); tip(open, "mobtalk.settings.overlayOpen.tooltip"); tip(test, "mobtalk.settings.overlayTest.tooltip");
+        wide(copy, open, test);
+        wide(tip(toggle("mobtalk.settings.overlaySubtitles", draft.overlaySubtitles, value -> draft.overlaySubtitles = value), "mobtalk.settings.overlaySubtitles.tooltip"),
+                tip(toggle("mobtalk.settings.overlayGod", draft.overlayGod, value -> draft.overlayGod = value), "mobtalk.settings.overlayGod.tooltip"));
+        wide(tip(toggle("mobtalk.settings.overlayMercy", draft.overlayMercy, value -> draft.overlayMercy = value), "mobtalk.settings.overlayMercy.tooltip"),
+                tip(toggle("mobtalk.settings.overlayNow", draft.overlayNow, value -> draft.overlayNow = value), "mobtalk.settings.overlayNow.tooltip"));
+        wide(tip(toggle("mobtalk.settings.overlayHeard", draft.overlayHeard, value -> draft.overlayHeard = value), "mobtalk.settings.overlayHeard.tooltip"),
+                tip(toggle("mobtalk.settings.overlayChatter", draft.overlayChatter, value -> draft.overlayChatter = value), "mobtalk.settings.overlayChatter.tooltip"));
+        CyclingButtonWidget<String> style = track(CyclingButtonWidget.<String>builder(value -> Text.translatable("mobtalk.settings.overlayStyle." + value))
+                .values(List.of("cages", "parchment", "minimal")).initially(draft.overlayStyle)
+                .omitKeyText().build(0, 0, 100, 20, Text.translatable("mobtalk.settings.overlayStyle"), (button, chosen) -> draft.overlayStyle = chosen));
+        caption(style, "mobtalk.settings.overlayStyle").setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.overlayStyle.tooltip")));
+        CyclingButtonWidget<String> layout = track(CyclingButtonWidget.<String>builder(value -> Text.translatable("mobtalk.settings.overlayLayout." + value))
+                .values(List.of("card", "full")).initially(draft.overlayLayout)
+                .omitKeyText().build(0, 0, 100, 20, Text.translatable("mobtalk.settings.overlayLayout"), (button, chosen) -> draft.overlayLayout = chosen));
+        caption(layout, "mobtalk.settings.overlayLayout").setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.overlayLayout.tooltip")));
+        wide(layout, style);
+        wide(tip(toggle("mobtalk.settings.overlayReduceMotion", draft.overlayReduceMotion, value -> draft.overlayReduceMotion = value), "mobtalk.settings.overlayReduceMotion.tooltip"));
     }
     private List<String> village;
     private boolean loadingVillage;
@@ -482,7 +546,7 @@ final class MobTalkSettingsScreen extends Screen {
         for (OpenRouterToken.Provider provider : OpenRouterToken.Provider.values())
             controller.keyStatus(provider).whenComplete((value, failure) -> client.execute(() -> {
                 if (disposed) return; keyStatus.put(provider, failure == null ? value : new OpenRouterToken.Status(OpenRouterToken.Source.NONE, ""));
-                if (client.currentScreen == this && tab == MODEL) refreshOnTick = true;
+                if (client.currentScreen == this && (tab == MODEL || tab == GENERAL)) refreshOnTick = true;
             }));
     }
     /** Saves every pasted key first, so the check and the conversation use them; runs next only when all succeeded. */
@@ -497,7 +561,7 @@ final class MobTalkSettingsScreen extends Screen {
         keyBusy = true; status = Text.translatable("mobtalk.settings.working"); error = false; refreshOnTick = true;
         future.whenComplete((value, failure) -> client.execute(() -> {
             keyBusy = false; if (disposed) return;
-            if (failure == null) { keyStatus.put(provider, value); error = false; success.run(); }
+            if (failure == null) { keyStatus.put(provider, value); error = false; if (provider == OpenRouterToken.Provider.OBS) MomentClient.reconnect(); success.run(); }
             else { status = Text.literal(failureMessage(failure, "mobtalk.settings.key.failed")); error = true; }
             refreshOnTick = true;
         }));
@@ -523,6 +587,12 @@ final class MobTalkSettingsScreen extends Screen {
         wide(refreshButton, test);
 
         header("mobtalk.settings.section.whisper");
+        // Куда идёт запись: свой Whisper, сервер (OpenRouter) или только текст; «авто» — свой Whisper, если установлен, иначе сервер.
+        CyclingButtonWidget<String> sttPath = track(CyclingButtonWidget.<String>builder(value -> Text.translatable("mobtalk.settings.sttPath." + value))
+                .values(SttRoute.AUTO, SttRoute.LOCAL, SttRoute.SERVER, SttRoute.TEXT).initially(SttRoute.normalize(draft.sttPath)).omitKeyText()
+                .build(0, 0, 100, 20, Text.translatable("mobtalk.settings.sttPath"), (button, value) -> draft.sttPath = value));
+        sttPath.setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.sttPath.tooltip")));
+        labeled("mobtalk.settings.sttPath", sttPath);
         wide(cycling("mobtalk.settings.whisper.model", retain(WHISPER_MODELS, draft.whisperModel), draft.whisperModel, value -> draft.whisperModel = value));
         wide(cycling("mobtalk.settings.whisper.device", retain(List.of("auto", "cpu", "cuda"), draft.whisperDevice), draft.whisperDevice, value -> draft.whisperDevice = value),
                 toggle("mobtalk.settings.whisper.autostart", draft.whisperAutoStart, value -> draft.whisperAutoStart = value));
@@ -740,6 +810,7 @@ final class MobTalkSettingsScreen extends Screen {
         saveSettings();
     }
     private void saveSettings() {
+        if (obsDraft != null) MomentClient.save(obsDraft);
         // On a dedicated server only the personal layer is the player's: the server fields of mobtalk.json stay as they were, and an
         // admin's changes to server fields go to the server as /mobtalk admin set.
         MobTalkConfig saved = server == null ? draft.copy() : SettingsScope.withServerFields(draft, local);

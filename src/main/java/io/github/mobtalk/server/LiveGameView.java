@@ -231,7 +231,19 @@ final class LiveGameView implements GameView {
                 "streamer", id.equals(ServerConfig.streamer()), "op", op, "whitelisted", players_().getWhitelist().isAllowed(profile),
                 "banned", ban != null, "banReason", ban == null ? null : ban.getReason(),
                 "onlineSeconds", online == null || since == null ? 0 : (System.currentTimeMillis() - since) / 1000,
-                "lastSeen", online != null ? System.currentTimeMillis() : left.getOrDefault(id, 0L));
+                "lastSeen", online != null ? System.currentTimeMillis() : left.getOrDefault(id, 0L), "stt", stt(id));
+    }
+
+    /** Распознавание речи игрока: выбор в F7 ({@code chosen}), стоит ли свой Whisper ({@code installed}, null — клиент не сообщил),
+     * что он получает на этом сервере ({@code effective}) и чем распознана последняя реплика ({@code last}). */
+    private JsonObject stt(UUID id) {
+        var settings = PlayerSettingsStore.find(id);
+        String chosen = settings.map(s -> s.applyTo(ServerConfig.get()).sttPath).orElse("");
+        com.google.gson.JsonElement flag = settings.map(s -> s.value(io.github.mobtalk.core.PlayerSettings.WHISPER_INSTALLED)).orElse(null);
+        Boolean installed = flag != null && flag.isJsonPrimitive() ? flag.getAsBoolean() : null;
+        String effective = settings.isEmpty() ? "" : io.github.mobtalk.core.SttRoute.choose(chosen, VoiceServices.sttPaths(ServerConfig.get()), Boolean.TRUE.equals(installed)).path();
+        DialogueService service = dialogue.get();
+        return Json.obj("chosen", chosen, "installed", installed, "effective", effective, "last", service == null ? "" : service.lastStt(id));
     }
 
     @Override public JsonArray players() {
@@ -258,9 +270,6 @@ final class LiveGameView implements GameView {
             out.addProperty("activity", activity(id));
             ServerPlayerEntity online = players_().getPlayer(id);
             if (online != null) out.addProperty("gamemode", online.interactionManager.getGameMode().getName());
-            DialogueService service = dialogue.get();
-            String chosen = PlayerSettingsStore.find(id).map(settings -> settings.applyTo(ServerConfig.get()).sttPath).orElse("");
-            out.add("stt", Json.obj("chosen", chosen, "last", service == null ? "" : service.lastStt(id)));
             return out;
         });
     }
