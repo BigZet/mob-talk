@@ -296,11 +296,15 @@ final class VillageDefenseController {
         return alarm != null && (alarm.attack() || alarm.against(player.getUuid()));
     }
 
-    /** /mobtalk village forgive: the village where the player stands drops its alarm against them. */
+    /** /mobtalk village forgive: the village where the player stands drops its alarm against them, and its golems their anger. */
     void forgive(ServerPlayerEntity player) {
         Zone zone = zoneAt(player.getServerWorld(), player.getBlockPos());
-        if (zone != null && alarms.release(zone.key(), player.getUuid()))
-            player.sendMessage(Text.translatable("mobtalk.defense.released", zone.title()).formatted(Formatting.GREEN), false);
+        if (zone == null || !alarms.release(zone.key(), player.getUuid())) return;
+        for (IronGolemEntity golem : player.getServerWorld().getEntitiesByClass(IronGolemEntity.class, zone.box(), g -> g.isAlive() && !g.isRemoved())) {
+            if (player.getUuid().equals(golem.getAngryAt())) golem.stopAnger();
+            if (golem.getTarget() == player) golem.setTarget(null);
+        }
+        player.sendMessage(Text.translatable("mobtalk.defense.released", zone.title()).formatted(Formatting.GREEN), false);
     }
 
     private void againstPlayer(ServerWorld world, Zone zone, ServerPlayerEntity player, VillageAlarm.Level level, String cause) {
@@ -351,12 +355,15 @@ final class VillageDefenseController {
         String key = zone.key() + "|" + kind;
         Long last = lastShout.get(key);
         if (last != null && now - last < SHOUT_TICKS) return;
+        // At night the village sleeps: an alarm wakes the nearest villager to shout it, when nobody is awake (the all-clear wakes nobody).
+        boolean wake = !kind.equals("clear");
         VillagerEntity speaker = null; double nearest = Double.MAX_VALUE;
-        for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !v.isBaby() && !v.isSleeping())) {
-            double distance = villager.getBlockPos().getSquaredDistance(at);
+        for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !v.isBaby() && (wake || !v.isSleeping()))) {
+            double distance = villager.getBlockPos().getSquaredDistance(at) + (villager.isSleeping() ? 1e9 : 0);
             if (distance < nearest) { nearest = distance; speaker = villager; }
         }
         if (speaker == null) return;
+        if (speaker.isSleeping()) speaker.wakeUp();
         lastShout.put(key, now);
         String name = bridge.memory.displayName(speaker.getUuid());
         if (name == null || name.isBlank()) name = speaker.getName().getString();

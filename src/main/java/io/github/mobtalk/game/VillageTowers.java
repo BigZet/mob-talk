@@ -355,6 +355,9 @@ final class VillageTowers {
         archer.initialize(world, world.getLocalDifficulty(stand), SpawnReason.MOB_SUMMONED, null);
         archer.setVillagerData(new VillagerData(VillagerType.forBiome(world.getBiome(post)), DefenseContent.ARCHER, 1));
         archer.setBreedingAge(0);
+        // The brain was built for a jobless villager: its tasks would forget the post and take the profession away (vanilla
+        // rebuilds the brain whenever a villager takes a job).
+        archer.reinitializeBrain(world);
         world.spawnEntityAndPassengers(archer);
         world.getPointOfInterestStorage().getPosition(entry -> entry.matchesKey(DefenseContent.ARCHER_POST_POI), (entry, pos) -> pos.equals(post), post, 1);
         archer.getBrain().remember(MemoryModuleType.JOB_SITE, GlobalPos.create(world.getRegistryKey(), post));

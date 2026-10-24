@@ -89,11 +89,6 @@ final class SelfTestDefense {
         test.command("fill " + at(-v, -1, -v) + " " + at(v, -1, v) + " minecraft:smooth_stone");
         test.command("fill " + at(-v, 0, -v) + " " + at(v, 6, v) + " minecraft:air");
         walls(-v, v, -v, v);
-        int c0 = CONTROL_X - CONTROL, c1 = CONTROL_X + CONTROL;
-        test.command("fill " + at(c0, -1, -CONTROL) + " " + at(c1, -1, CONTROL) + " minecraft:smooth_stone");
-        test.command("fill " + at(c0, 0, -CONTROL) + " " + at(c1, 6, CONTROL) + " minecraft:air");
-        walls(c0, c1, -CONTROL, CONTROL);
-        test.command("fill " + at(PLATFORM_X - 1, -1, -1) + " " + at(PLATFORM_X + 1, -1, 1) + " minecraft:smooth_stone");
         test.command("setblock " + at(0, 0, 0) + " minecraft:bell[attachment=floor,facing=north]");
         for (int[] bed : new int[][] { { -8, -8 }, { 8, -8 }, { -8, 8 } }) {
             test.command("setblock " + at(bed[0], 0, bed[1]) + " minecraft:red_bed[facing=north,part=foot]");
@@ -156,8 +151,24 @@ final class SelfTestDefense {
 
     /** (а) Natural spawning at night: the spawn routine is run by hand on random spots of both floors, the player between them. */
     private void spawning() {
+        // The control floor and the platform are built once the player is there: a fill in a chunk not loaded yet does nothing.
         test.command("tp " + name() + " " + at(PLATFORM_X, 0, 0) + " -90 10");
-        test.await("pause: the player between the floors", 2, () -> false, () -> {
+        test.await("pause: the control floor's chunks load", 3, () -> false, this::controlFloor);
+    }
+
+    private void controlFloor() {
+        int c0 = CONTROL_X - CONTROL, c1 = CONTROL_X + CONTROL;
+        test.command("fill " + at(c0, -1, -CONTROL) + " " + at(c1, -1, CONTROL) + " minecraft:smooth_stone");
+        test.command("fill " + at(c0, 0, -CONTROL) + " " + at(c1, 6, CONTROL) + " minecraft:air");
+        walls(c0, c1, -CONTROL, CONTROL);
+        test.command("fill " + at(PLATFORM_X - 1, -1, -1) + " " + at(PLATFORM_X + 1, -1, 1) + " minecraft:smooth_stone");
+        test.command("tp " + name() + " " + at(PLATFORM_X, 0, 0) + " -90 10");
+        // Both floors under a stone roof for the test: dark enough to spawn whatever the sky, moon and biome light.
+        String roofVillage = at(-VILLAGE, 4, -VILLAGE) + " " + at(VILLAGE, 4, VILLAGE), roofControl = at(CONTROL_X - CONTROL, 4, -CONTROL) + " " + at(CONTROL_X + CONTROL, 4, CONTROL);
+        test.command("fill " + roofVillage + " minecraft:stone"); test.command("fill " + roofControl + " minecraft:stone");
+        test.await("pause: the player between the floors, the roofs dark", 3, () -> false, () -> {
+            test.log("player at " + test.serverPlayer().getBlockPos() + " for the spawn routine");
+            test.check(onServer(() -> world().getBlockState(new BlockPos(fx + CONTROL_X, fy - 1, fz)).isOf(net.minecraft.block.Blocks.SMOOTH_STONE)), "the control floor is built");
             int[] counts = onServer(() -> {
                 int[] out = new int[2];
                 Random random = new Random(7);
@@ -175,7 +186,8 @@ final class SelfTestDefense {
             test.log("spawn routine, 200 tries each: village " + counts[0] + " monsters, control floor " + counts[1]);
             test.check(counts[0] == 0, "no monster spawns inside the village with a golem (" + counts[0] + ")");
             if (counts[1] > 0) test.log("OK: monsters do spawn on the control floor outside the village (" + counts[1] + ")");
-            else test.log("WARN: no monster spawned on the control floor either; the biome or light here may allow none");
+            else test.fail("no monster spawned on the control floor either: the spawn check proves nothing");
+            test.command("fill " + roofVillage + " minecraft:air"); test.command("fill " + roofControl + " minecraft:air");
             shot("mobtalk-defense-floors.png", this::attack);
         });
     }
@@ -225,6 +237,8 @@ final class SelfTestDefense {
                 .orElse(residents().isEmpty() ? null : residents().getFirst());
         if (target == null) { test.fail("no villager left to strike"); f7(); return; }
         UUID victim = target.getUuid();
+        // Held still for the blow and the trades: the bell sends villagers running home, and a sleeper stays in bed.
+        test.server().execute(() -> { if (target.isSleeping()) target.wakeUp(); target.setAiDisabled(true); });
         test.command("tp " + victim + " " + at(-3, 0, 12) + " 90 0");
         test.command("tp " + name() + " " + at(-1, 0, 12) + " 90 0");
         test.await("pause: face to face with the villager", 2, () -> false, () -> {
@@ -235,7 +249,7 @@ final class SelfTestDefense {
             mark();
             client.interactionManager.attackEntity(client.player, seen);
             client.player.swingHand(Hand.MAIN_HAND);
-            String player = name();
+            String player = MobGameBridge.playerName(test.serverPlayer()); // The name the village knows, not the account's.
             test.await("the village raises the alarm against the player", 10, () -> heard("подняла тревогу против вас"), () -> {
                 test.check(heard("подняла тревогу против вас"), "the player hears «Деревня подняла тревогу против вас»");
                 test.check(heard().stream().anyMatch(line -> line.startsWith("<") && line.contains(player)), "a villager shouts the player's name at once");
@@ -266,7 +280,7 @@ final class SelfTestDefense {
             else test.await("the trade window opens", 5, () -> client.currentScreen instanceof MerchantScreen, () -> {
                 test.check(client.currentScreen instanceof MerchantScreen, "after the all-clear the villager trades again"
                         + (heard("торг") ? " (heard: " + heard() + ")" : ""));
-                shot("mobtalk-defense-trade-again.png", () -> { client.setScreen(null); then.run(); });
+                shot("mobtalk-defense-trade-again.png", () -> { client.setScreen(null); test.server().execute(() -> { if (world().getEntity(villager) instanceof VillagerEntity v) v.setAiDisabled(false); }); then.run(); });
             });
         });
     }
