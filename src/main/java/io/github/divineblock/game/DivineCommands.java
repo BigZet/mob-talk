@@ -131,7 +131,7 @@ public final class DivineCommands {
         int strength = power < 0 ? miracle.maxTier : Math.max(miracle.minTier, Math.min(miracle.maxTier, power));
         BlockPos at = altar;
         ServerPlayerEntity target = player;
-        String done = VillageEvents.within(new VillageEvents.Context(false, "команда " + source.getName(), java.util.List.of()),
+        String done = VillageEvents.within(new VillageEvents.Context(false, "", java.util.List.of()),
                 () -> Zones.perform(miracle, strength, target, at, "", DivineBlockMod.config(), severity));
         source.sendFeedback(() -> Text.literal(miracle.id() + " ×" + strength + ": " + (done == null ? "не вышло здесь" : done)), false);
         acted.accept(miracle.id() + " ×" + strength + " /" + severity + ": " + (done == null ? "не вышло здесь" : done));

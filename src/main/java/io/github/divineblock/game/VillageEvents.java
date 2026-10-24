@@ -26,7 +26,8 @@ import net.minecraft.util.math.BlockPos;
 public final class VillageEvents {
     private VillageEvents() { }
 
-    /** Who asked for the act and why: a prayer (with the verdict's reasons and the altar), a command, the admin. */
+    /** Who asked for the act and why: a prayer (with the verdict's reasons, the first the culprit's sin), or a command or the admin
+     * (unprompted, no sin named: the villages say «за грехи» and the reason itself would read as one). */
     public record Context(boolean prompted, String reason, List<String> reasons) {
         static final Context NONE = new Context(true, "", List.of());
     }

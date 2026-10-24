@@ -247,7 +247,7 @@ public final class AdminBridge implements UnaryOperator<String> {
             long tick = target.getServer().getOverworld().getTime();
             if (miracle.kind == Miracle.Kind.WRATH) Prayers.PENANCE.begin(target.getUuid(), miracle.id(), tick);
             BlockPos at = altar;
-            String done = VillageEvents.within(new VillageEvents.Context(false, "деяние послал админ", List.of()),
+            String done = VillageEvents.within(new VillageEvents.Context(false, "", List.of()),
                     () -> Zones.perform(miracle, power, target, at, "", DivineBlockMod.config(), Math.max(1, power)));
             if (done == null) {
                 if (miracle.kind == Miracle.Kind.WRATH) Prayers.PENANCE.end(target.getUuid());
