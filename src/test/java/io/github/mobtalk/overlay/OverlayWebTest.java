@@ -26,7 +26,7 @@ class OverlayWebTest {
     }
 
     @Test void servesPageAndWidgets() throws Exception {
-        for (String path : new String[]{"/overlay/", "/overlay/subtitles", "/overlay/god", "/overlay/mercy", "/overlay/now", "/overlay/overlay.js", "/overlay/overlay.css"}) {
+        for (String path : new String[]{"/overlay/", "/overlay/card", "/overlay/full", "/overlay/subtitles", "/overlay/god", "/overlay/mercy", "/overlay/now", "/overlay/overlay.js", "/overlay/overlay.css"}) {
             HttpURLConnection connection = get(path);
             assertEquals(200, connection.getResponseCode(), path);
             assertTrue(connection.getHeaderField("Content-Security-Policy").contains("default-src 'self'"), path);

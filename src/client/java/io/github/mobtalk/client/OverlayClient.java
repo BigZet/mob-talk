@@ -66,7 +66,7 @@ final class OverlayClient {
         out.addProperty("mercy", config.overlayMercy); out.addProperty("now", config.overlayNow);
         out.addProperty("heard", config.overlayHeard); out.addProperty("chatter", config.overlayChatter);
         out.addProperty("holdSeconds", config.overlayHoldSeconds); out.addProperty("scale", config.overlayScale);
-        out.addProperty("style", config.overlayStyle); out.addProperty("reduceMotion", config.overlayReduceMotion);
+        out.addProperty("style", config.overlayStyle); out.addProperty("layout", config.overlayLayout); out.addProperty("reduceMotion", config.overlayReduceMotion);
         return out;
     }
 

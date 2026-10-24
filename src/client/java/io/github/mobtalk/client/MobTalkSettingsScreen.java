@@ -319,7 +319,12 @@ final class MobTalkSettingsScreen extends Screen {
                 .values(List.of("cages", "parchment", "minimal")).initially(draft.overlayStyle)
                 .omitKeyText().build(0, 0, 100, 20, Text.translatable("mobtalk.settings.overlayStyle"), (button, chosen) -> draft.overlayStyle = chosen));
         caption(style, "mobtalk.settings.overlayStyle").setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.overlayStyle.tooltip")));
-        wide(style, tip(toggle("mobtalk.settings.overlayReduceMotion", draft.overlayReduceMotion, value -> draft.overlayReduceMotion = value), "mobtalk.settings.overlayReduceMotion.tooltip"));
+        CyclingButtonWidget<String> layout = track(CyclingButtonWidget.<String>builder(value -> Text.translatable("mobtalk.settings.overlayLayout." + value))
+                .values(List.of("card", "full")).initially(draft.overlayLayout)
+                .omitKeyText().build(0, 0, 100, 20, Text.translatable("mobtalk.settings.overlayLayout"), (button, chosen) -> draft.overlayLayout = chosen));
+        caption(layout, "mobtalk.settings.overlayLayout").setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.overlayLayout.tooltip")));
+        wide(layout, style);
+        wide(tip(toggle("mobtalk.settings.overlayReduceMotion", draft.overlayReduceMotion, value -> draft.overlayReduceMotion = value), "mobtalk.settings.overlayReduceMotion.tooltip"));
     }
     private List<String> village;
     private boolean loadingVillage;

@@ -8,6 +8,19 @@
 </head>
 <body class="style-cages">
 <main id="stage" aria-live="polite">
+  <section id="card" class="infocard panel" hidden>
+    <div class="ic-head">
+      <span id="ic-dot" class="ic-dot"></span><span id="ic-god" class="ic-god"></span>
+      <span id="ic-mercy" class="ic-mercy"></span>
+    </div>
+    <div id="ic-now" class="ic-now" hidden>
+      <div class="ic-row"><span id="ic-title" class="ic-title"></span><span id="ic-time" class="ic-time"></span></div>
+      <div class="ic-row ic-sub"><span id="ic-who"></span><span id="ic-more"></span></div>
+      <div id="ic-bar" class="ic-bar" hidden><div id="ic-fill" class="ic-fill"></div></div>
+    </div>
+    <div id="ic-line" class="ic-line" hidden><span id="ic-speaker" class="ic-speaker"></span><span id="ic-text"></span></div>
+  </section>
+
   <section id="god" class="widget panel" hidden>
     <header class="panel-title">Бог</header>
     <div class="mood">

@@ -200,6 +200,8 @@ public final class MobTalkConfig {
     public int overlayHoldSeconds = 6, overlayScale = 100;
     /** {@code cages} (как меню Parrot Cages), {@code parchment} или {@code minimal}. */
     public String overlayStyle = "cages";
+    /** {@code card} — маленькая карточка в углу (по умолчанию) или {@code full} — все виджеты на весь экран. */
+    public String overlayLayout = "card";
     /** Серверное: отдавать ли данные оверлея ({@code OverlayStateS2C}) и кому — {@code streamer} (стример и админы) или {@code all}. */
     public boolean streamOverlay = true;
     public String streamOverlayAudience = "streamer";
@@ -259,7 +261,7 @@ public final class MobTalkConfig {
         copy.commandLevels = commandLevels == null ? new LinkedHashMap<>() : new LinkedHashMap<>(commandLevels);
         copy.overlayEnabled = overlayEnabled; copy.overlayPort = overlayPort; copy.overlaySubtitles = overlaySubtitles; copy.overlayGod = overlayGod;
         copy.overlayMercy = overlayMercy; copy.overlayNow = overlayNow; copy.overlayHeard = overlayHeard; copy.overlayChatter = overlayChatter;
-        copy.overlayReduceMotion = overlayReduceMotion; copy.overlayShowMe = overlayShowMe; copy.overlayStyle = overlayStyle;
+        copy.overlayReduceMotion = overlayReduceMotion; copy.overlayShowMe = overlayShowMe; copy.overlayStyle = overlayStyle; copy.overlayLayout = overlayLayout;
         copy.streamOverlay = streamOverlay; copy.streamOverlayAudience = streamOverlayAudience;
         copy.placeAnalysis = placeAnalysis; copy.placeClassifier = placeClassifier; copy.playerNamesHostile = playerNamesHostile; copy.playerNamesNeutral = playerNamesNeutral; copy.playerNamesClose = playerNamesClose;
         return copy;
@@ -330,6 +332,7 @@ public final class MobTalkConfig {
         config.decider = "jev".equalsIgnoreCase(config.decider == null ? "" : config.decider.strip()) ? "jev" : "rules";
         config.vision = Vision.normalize(config.vision);
         config.overlayStyle = java.util.List.of("cages", "parchment", "minimal").contains(config.overlayStyle) ? config.overlayStyle : "cages";
+        config.overlayLayout = "full".equals(config.overlayLayout) ? "full" : "card";
         config.streamOverlayAudience = "all".equals(config.streamOverlayAudience) ? "all" : "streamer";
         if (config.overlayPort < 1024 || config.overlayPort > 65535) config.overlayPort = 8790;
         MobTalkConfig defaults = new MobTalkConfig();

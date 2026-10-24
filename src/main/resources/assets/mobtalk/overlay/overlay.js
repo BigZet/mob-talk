@@ -6,17 +6,19 @@
   const CHATTER = new Set(['witness', 'village', 'initiative', 'notice']);
   const path = location.pathname.replace(/\/+$/, '').split('/').pop();
   const only = WIDGETS.includes(path) ? path : null;
+  // Вид: маленькая карточка (по умолчанию, /overlay/card) или весь экран (/overlay/full); один виджет — по его адресу.
+  const forced = path === 'full' || path === 'card' ? path : null;
+  const layout = () => only ? 'single' : forced || (config.layout === 'full' ? 'full' : 'card');
   const params = new URLSearchParams(location.search);
   const $ = id => document.getElementById(id);
   const el = (tag, cls, text) => { const node = document.createElement(tag); if (cls) node.className = cls; if (text != null) node.textContent = text; return node; };
 
-  let config = { subtitles: true, god: true, mercy: true, now: true, heard: true, chatter: true, holdSeconds: 6, scale: 100, style: 'cages', reduceMotion: false };
+  let config = { layout: 'card', subtitles: true, god: true, mercy: true, now: true, heard: true, chatter: true, holdSeconds: 6, scale: 100, style: 'cages', reduceMotion: false };
   let state = {};
   let lastGodLine = 0;
   const seenActive = new Map(); // ключ кары → {full: мс в момент первого показа, node}
   let lastSins = new Map(), lastBanned = null, lastVerdictT = 0;
 
-  document.body.classList.add(only ? 'single' : 'all');
 
   function applyConfig() {
     const style = params.get('theme') || config.style || 'cages';
@@ -25,7 +27,11 @@
     document.body.classList.toggle('calm', !!config.reduceMotion || params.get('calm') === '1');
     const scale = parseFloat(params.get('scale')) || (config.scale || 100) / 100;
     $('stage').style.zoom = String(Math.max(0.3, Math.min(3, scale)));
-    for (const name of WIDGETS) $(name).hidden = !(config[name] !== false && (!only || only === name)) || !hasContent(name);
+    const view = layout();
+    document.body.classList.remove('all', 'single', 'compact');
+    document.body.classList.add(view === 'full' ? 'all' : view === 'card' ? 'compact' : view);
+    for (const name of WIDGETS) $(name).hidden = view === 'card' || !(config[name] !== false && (!only || only === name)) || !hasContent(name);
+    $('card').hidden = view !== 'card';
   }
   function hasContent(name) {
     if (name === 'subtitles') return true;
@@ -38,6 +44,7 @@
   function subtitle(line, god) {
     if (config.subtitles === false || (only && only !== 'subtitles')) return;
     if (!god && config.chatter === false && CHATTER.has(line.kind)) return;
+    if (layout() === 'card') { cardLine(line, god); return; }
     const box = $('lines');
     const node = el('div', 'line' + (god ? ' god' : '') + (!god && (CHATTER.has(line.kind) || line.toYou === false) ? ' background' : ''));
     if (!god && config.heard !== false && line.heard) node.append(el('div', 'heard', (line.asker ? line.asker + ': ' : '— ') + line.heard));
@@ -66,6 +73,73 @@
     let hash = 0;
     for (const ch of String(name || '')) hash = (hash * 31 + ch.codePointAt(0)) | 0;
     return 'hsl(' + (Math.abs(hash) % 360) + ', 70%, ' + (document.body.classList.contains('style-parchment') ? '32%' : '72%') + ')';
+  }
+
+  // ---- Карточка: бог одним словом, своя милость, одно главное «сейчас» и последняя реплика ----
+  let cardToken = 0;
+  function cardLine(line, god) {
+    const token = ++cardToken;
+    const speaker = $('ic-speaker');
+    speaker.textContent = (god ? 'Глас Божий' : line.speaker || '') + ': ';
+    speaker.style.color = god ? '' : colour(line.speaker);
+    $('ic-line').classList.toggle('god', !!god);
+    $('ic-line').hidden = false;
+    const millis = Number(line.millis) > 0 ? Number(line.millis) : Math.max(1500, String(line.text || '').length * 65);
+    type($('ic-text'), line.text || '', millis);
+    setTimeout(() => { if (token === cardToken) $('ic-line').hidden = true; }, millis + (config.holdSeconds || 6) * 1000);
+  }
+  function moodClass(mood) { return mood <= -15 ? 'wrath' : mood >= 15 ? 'grace' : 'calm'; }
+  function renderCard() {
+    const god = config.god !== false ? state.god : null;
+    $('ic-dot').className = 'ic-dot ' + (god ? moodClass(god.mood || 0) : 'calm');
+    $('ic-god').textContent = god ? 'Бог ' + (god.word || 'молчит') : 'Mob Talk';
+    const me = config.mercy !== false && (state.souls || []).find(s => s.player && (s.player.uuid === state.you || s.player.uuid === state.streamer));
+    const mercy = $('ic-mercy');
+    mercy.replaceChildren();
+    if (me && me.mercy != null) {
+      const lit = Math.round(me.mercy / 20);
+      for (let i = 0; i < 5; i++) mercy.append(el('span', 'candle' + (i < lit ? ' lit' : '')));
+      mercy.title = me.label || '';
+    } else if (me) mercy.append(el('span', 'label', me.label || ''));
+    const items = config.now === false ? [] : nowItems();
+    $('ic-now').hidden = items.length === 0;
+    if (!items.length) { cardTop = null; return; }
+    const top = items[0];
+    $('ic-now').className = 'ic-now ' + top.kind;
+    $('ic-title').textContent = top.title;
+    $('ic-who').textContent = top.who || '';
+    $('ic-more').textContent = items.length > 1 ? 'ещё ' + (items.length - 1) : '';
+    $('ic-bar').hidden = top.share == null;
+    if (top.share != null) $('ic-fill').style.width = top.share * 100 + '%';
+    cardTop = top;
+    tickCard();
+  }
+  let cardTop = null;
+  function nowItems() {
+    // Порядок важности: суд, изгнание и объявления, потом босс, потом кары и блага (ближайшая к концу первой), свадьба последней.
+    const now = Date.now(), out = [];
+    const events = (state.events || []).filter(e => !e.until || e.until > now);
+    const event = e => ({ kind: e.kind === 'wedding' ? 'blessing' : 'curse', title: e.title, who: e.player ? e.player.name : '', until: e.until || 0 });
+    for (const e of events) if (e.kind !== 'wedding') out.push(event(e));
+    for (const a of state.active || []) if (a.kind === 'boss')
+      out.push({ kind: 'curse', title: a.title, who: a.target ? 'цель: ' + a.target.name : '', until: 0,
+        share: a.maxHealth > 0 ? Math.max(0, Math.min(1, a.health / a.maxHealth)) : 1 });
+    const cards = (state.active || []).filter(a => a.kind !== 'boss')
+      .sort((a, b) => (a.until || Infinity) - (b.until || Infinity));
+    for (const a of cards) out.push({ kind: a.kind === 'blessing' ? 'blessing' : 'curse', title: a.title,
+      who: a.target ? (a.kind === 'blessing' ? 'кому: ' : 'цель: ') + a.target.name : 'на всех', until: a.until || 0 });
+    for (const e of events) if (e.kind === 'wedding') out.push(event(e));
+    const verdict = state.verdict;
+    if (!out.length && verdict && now - (verdict.t || 0) < 60 * 1000 && verdict.title)
+      out.push({ kind: verdict.act === 'miracle' ? 'blessing' : 'curse', title: (ACTS[verdict.act] || '') + ': ' + verdict.title,
+        who: verdict.player ? 'молился: ' + verdict.player.name : '', until: 0 });
+    return out;
+  }
+  function tickCard() {
+    if (!cardTop) return;
+    const left = cardTop.until ? Math.max(0, cardTop.until - Date.now()) : 0, s = Math.ceil(left / 1000);
+    $('ic-time').textContent = cardTop.until ? Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0') : '';
+    $('ic-now').classList.toggle('urgent', !!cardTop.until && left < 60000);
   }
 
   // ---- Бог ----
@@ -198,7 +272,7 @@
     setTimeout(() => node.remove(), millis);
   }
   function effect(kind) {
-    if (!kind || document.body.classList.contains('calm') || (only && only !== 'now' && only !== 'god')) return;
+    if (!kind || layout() === 'card' || document.body.classList.contains('calm') || (only && only !== 'now' && only !== 'god')) return;
     const node = $(kind);
     node.classList.remove('on'); void node.offsetWidth; node.classList.add('on');
   }
@@ -207,19 +281,20 @@
   function onState(next) {
     state = next || {};
     for (const line of state.lines || []) if ((line.t || 0) > lastGodLine) { lastGodLine = line.t; subtitle(line, true); }
-    renderGod(); renderMercy(); renderNow(); applyConfig();
+    renderGod(); renderMercy(); renderNow(); renderCard(); applyConfig();
   }
   let silentSince = 0;
   function connect() {
     const source = new EventSource('/overlay/events');
-    source.addEventListener('config', e => { config = Object.assign(config, JSON.parse(e.data)); applyConfig(); });
+    source.addEventListener('config', e => { config = Object.assign(config, JSON.parse(e.data)); applyConfig(); renderCard(); });
     source.addEventListener('state', e => onState(JSON.parse(e.data)));
     source.addEventListener('line', e => subtitle(JSON.parse(e.data), false));
     source.onopen = () => { silentSince = 0; document.body.classList.remove('disconnected'); };
     source.onerror = () => { if (!silentSince) silentSince = Date.now(); };
   }
   setInterval(() => {
-    tickCards();
+    tickCards(); tickCard();
+    if (layout() === 'card' && cardTop && cardTop.until && cardTop.until <= Date.now()) renderCard();
     if (silentSince && Date.now() - silentSince > 10000) document.body.classList.add('disconnected');
     const events = $('events');
     if (events && (state.events || []).some(e => e.until && e.until <= Date.now())) renderNow();

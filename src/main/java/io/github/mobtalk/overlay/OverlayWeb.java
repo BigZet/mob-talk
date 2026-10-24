@@ -69,7 +69,7 @@ public final class OverlayWeb {
             switch (rest) {
                 case "events" -> events(exchange);
                 case "state" -> json(exchange, OverlayFeed.GSON.toJson(snapshot()));
-                case "", "subtitles", "god", "mercy", "now" -> asset(exchange, "index.html");
+                case "", "card", "full", "subtitles", "god", "mercy", "now" -> asset(exchange, "index.html");
                 default -> { if (rest.matches("[a-z0-9-]+\\.(js|css)")) asset(exchange, rest); else plain(exchange, 404, "Нет такого файла"); }
             }
         } catch (IOException closed) { /* страница закрылась */ }
