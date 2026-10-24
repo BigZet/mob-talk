@@ -129,6 +129,7 @@ public final class MobTalkMod implements ModInitializer {
             PlayerSettingsStore.flush();
         });
         registerReceivers();
+        io.github.mobtalk.game.ParrotJailNews.install(); // Тюрьма Parrot Cages: слухи деревни и история админки.
         io.github.mobtalk.server.PlayerServices.initialize(); // Трек C: права, фильтр команд, расходы, /mobtalk admin, имена игроков.
         if (dedicated()) ServerSelfTestPlay.register(); // Трек G: сквозной самотест с двумя клиентами (только с -Dmobtalk.selftest.play).
         LOGGER.info("Mob Talk {}: {}", version(), dedicated() ? "выделенный сервер" : "клиент с встроенным сервером");

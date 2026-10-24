@@ -34,6 +34,9 @@ public final class PermissionsImpl implements Permissions {
         for (String sub : new String[]{"list", "curses"}) table.put("divineblock " + sub, Level.STREAMER);
         // Viewer Parrots сам пускает только оп-уровень ≥ 2, так что стримеру без опа фильтр /vp не откроет (трек F): только ADMIN.
         for (String root : new String[]{"viewerparrot", "viewerparrots", "vp", "rusflora", "parrotcages"}) table.put(root, Level.ADMIN);
+        // Тюрьма для попугаев-зрителей (Parrot Cages): сажает и продлевает срок стример, /vp uncage — администратор.
+        for (String root : new String[]{"viewerparrot", "viewerparrots", "vp"}) table.put(root + " cage", Level.STREAMER);
+        table.put("parrotcages jail", Level.STREAMER);
         DEFAULTS = java.util.Collections.unmodifiableMap(table);
     }
 

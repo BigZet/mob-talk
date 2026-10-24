@@ -16,6 +16,7 @@ const KIND_GROUPS = [
   ['dialogue', 'witness', 'village_talk', 'gift', 'trade', 'relation_change', 'rumor'],
   ['verdict', 'ban', 'boss'],
   ['player_join', 'player_leave', 'death', 'command', 'config_change', 'admin_login', 'error', 'cost'],
+  ['parrot_jailed', 'parrot_released'],
 ];
 
 export default function historyView(root, route) {

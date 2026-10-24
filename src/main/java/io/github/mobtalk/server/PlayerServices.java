@@ -40,6 +40,7 @@ public final class PlayerServices {
         MobTalkMod.setBudget(budget);
         PlayerIdentity.resolver(player -> PlayerSettingsStore.find(player).map(settings -> settings.applyTo(ServerConfig.get())));
         AdminCommands.register();
+        RoleTags.register();
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             current = server;
             rights = rights();
