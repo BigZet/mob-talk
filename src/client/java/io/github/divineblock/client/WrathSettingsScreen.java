@@ -31,6 +31,9 @@ public final class WrathSettingsScreen extends DivinePanel {
         List<Integer> chances = List.of(5, 10, 25, 50, 75, 100);
         server(cycle("Шанс дразнилки", "Как часто третий барабан дразнит семёркой.", chances, nearest(config.rouletteTeaseChance, chances),
                 v -> v + "%", v -> config.rouletteTeaseChance = v));
+        List<Integer> mercies = List.of(0, 1, 2, 3, 5, 10, 15, 20, 25);
+        server(cycle("Случайное помилование", "Как часто третий барабан в последний миг проскакивает на голубя и кара не падает; ступень гнева при этом не сбрасывается. На вечное изгнание не действует.",
+                mercies, nearest(config.rouletteMercyChance, mercies), v -> v == 0 ? "никогда" : v + "%", v -> config.rouletteMercyChance = v));
         server(cycle("Продолжения", "Перед второй волной орды и разбойников и перед повторными толчками: без рулетки, мини (один барабан, 2 с) или полная.",
                 List.of(Roulette.Tails.values()), config.rouletteTails, t -> t.label, v -> config.rouletteTails = v));
         server(toggle("Кары из админки", "Деяние гнева, посланное из веб-админки, тоже падает после рулетки.", config.rouletteAdmin, v -> config.rouletteAdmin = v));

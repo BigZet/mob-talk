@@ -44,6 +44,9 @@ public final class RouletteService {
         default void fin() { }
         /** The punishment falls now. */
         void act();
+        /** The third reel slipped onto a dove: spared by chance, nothing falls (its tails neither); the ladder of punishments
+         * stays where it is. */
+        default void spared() { }
         /** It does not fall from here. */
         default void cancelled(RouletteQueue.Cancel why) { }
     }
@@ -54,13 +57,22 @@ public final class RouletteService {
                 && (miracle.kind == Miracle.Kind.WRATH || inclination == Miracle.Kind.WRATH && Roulette.groupOf(miracle) != null);
     }
 
-    /** Spins the roulette for {@code miracle} on {@code sinner}; {@code tease}: null — by the settings' chance. */
+    /** Spins the roulette for {@code miracle} on {@code sinner}; {@code tease}: null — by the settings' chance; the chance of
+     * mercy by the settings too. */
     public static RouletteQueue.Spin spin(ServerPlayerEntity sinner, Miracle miracle, MiracleGroup group, String reason, Roulette.Mode mode, Boolean tease, Steps steps) {
+        return spin(sinner, miracle, group, reason, mode, tease, null, steps);
+    }
+
+    /** As above; {@code mercy}: null — by the settings' chance ({@link Roulette#mercy}), true — spared (a test), false — never. */
+    public static RouletteQueue.Spin spin(ServerPlayerEntity sinner, Miracle miracle, MiracleGroup group, String reason, Roulette.Mode mode, Boolean tease,
+                                          Boolean mercy, Steps steps) {
         MinecraftServer server = sinner.getServer();
         DivineConfig config = DivineBlockMod.config();
         int severity = Roulette.severity(miracle, group);
         RouletteSymbol symbol = RouletteSymbol.result(miracle, group);
-        boolean teasing = mode != Roulette.Mode.MINI && (tease != null ? tease && (severity == 3 || severity == 4)
+        boolean spared = mode != Roulette.Mode.MINI && miracle != Miracle.ETERNAL_BAN && (mercy != null ? mercy
+                : Roulette.mercy(miracle, group, config.rouletteMercyChance, java.util.concurrent.ThreadLocalRandom.current()));
+        boolean teasing = !spared && mode != Roulette.Mode.MINI && (tease != null ? tease && (severity == 3 || severity == 4)
                 : Roulette.tease(severity, config.rouletteTease, config.rouletteTeaseChance, java.util.concurrent.ThreadLocalRandom.current()));
         long seed = java.util.concurrent.ThreadLocalRandom.current().nextLong();
         Roulette.Timing timing = Roulette.Timing.of(mode, severity);
@@ -75,20 +87,31 @@ public final class RouletteService {
                 List<ServerPlayerEntity> viewers = viewers(who, config);
                 SHOWN.put(spin.id, new Shown(id, name, who.getServerWorld().getRegistryKey(), viewers.stream().map(ServerPlayerEntity::getUuid).toList(), symbol, title));
                 RouletteSpinPayload payload = new RouletteSpinPayload(spin.id, id, name, miracle.id(), title, why, symbol.ordinal(), severity, seed,
-                        mode.ordinal(), teasing, spin.start);
+                        mode.ordinal(), teasing, spin.start, spared);
                 for (ServerPlayerEntity viewer : viewers) if (ServerPlayNetworking.canSend(viewer, RouletteSpinPayload.ID)) ServerPlayNetworking.send(viewer, payload);
-                DivineBlockMod.LOG.info("Божественный блок: рулетка {} для {} — {} ({}, тяжесть {}, {}{})", spin.id, name, miracle.id(), symbol, severity,
-                        mode, teasing ? ", почти 777" : "");
+                DivineBlockMod.LOG.info("Божественный блок: рулетка {} для {} — {} ({}, тяжесть {}, {}{}{})", spin.id, name, miracle.id(), symbol, severity,
+                        mode, teasing ? ", почти 777" : "", spared ? ", пощажён случаем" : "");
                 steps.started(timing.act() / 20.0);
             }
             @Override public void fin(RouletteQueue.Spin spin) {
-                chat(server, spin.id, Roulette.chatLine(symbol, title), symbol == RouletteSymbol.SEVEN ? Formatting.GOLD : Formatting.RED);
-                Multiplayer.journal(GodJournal.Kind.VERDICT, name, "рулетка: " + Roulette.chatLine(symbol, title));
+                if (spared) {
+                    chat(server, spin.id, Roulette.mercyLine(symbol), Formatting.AQUA);
+                    Multiplayer.journal(GodJournal.Kind.VERDICT, name, "рулетка: " + Roulette.mercyLine(symbol) + " — пощажён случаем, «" + title + "» не падает");
+                } else {
+                    chat(server, spin.id, Roulette.chatLine(symbol, title), symbol == RouletteSymbol.SEVEN ? Formatting.GOLD : Formatting.RED);
+                    Multiplayer.journal(GodJournal.Kind.VERDICT, name, "рулетка: " + Roulette.chatLine(symbol, title));
+                }
                 steps.fin();
             }
             @Override public void act(RouletteQueue.Spin spin) {
                 SHOWN.remove(spin.id);
                 steps.act();
+            }
+            @Override public void spared(RouletteQueue.Spin spin) {
+                SHOWN.remove(spin.id);
+                ServerPlayerEntity now = server.getPlayerManager().getPlayer(id);
+                if (now != null) history(now, miracle, Roulette.mercyLine(symbol));
+                steps.spared();
             }
             @Override public void cancelled(RouletteQueue.Spin spin, RouletteQueue.Cancel why) {
                 boolean pardon = why == RouletteQueue.Cancel.PARDON;
@@ -118,6 +141,16 @@ public final class RouletteService {
         if (!config.rouletteEnabled || config.rouletteTails == Roulette.Tails.OFF || sinner.isRemoved()) { then.run(); return; }
         Roulette.Mode mode = config.rouletteTails == Roulette.Tails.FULL ? config.rouletteMode : Roulette.Mode.MINI;
         spin(sinner, miracle, null, "кара продолжается", mode, false, then::run);
+    }
+
+    /** A spin that spared the sinner, in the prayer log the web admin's history reads: «пощажён случаем». */
+    private static void history(ServerPlayerEntity sinner, Miracle miracle, String line) {
+        io.github.divineblock.core.Verdict verdict = new io.github.divineblock.core.Verdict();
+        verdict.prayer = "(рулетка кары)"; verdict.miracle = miracle.id(); verdict.power = 0; verdict.inclination = Miracle.Kind.WRATH;
+        verdict.decidedBy = "roulette"; verdict.decisionNote = "пощажён случаем: третий барабан встал на голубя, «" + miracle.title() + "» не упала";
+        verdict.speech = line;
+        io.github.divineblock.core.PrayerLog.shared().add(io.github.divineblock.core.PrayerLog.of(System.currentTimeMillis(), sinner.getUuidAsString(),
+                sinner.getName().getString(), verdict, io.github.divineblock.core.PrayerTone.of(""), false, "", 0));
     }
 
     /** The sinner repented while his reels spin: they jam, the punishment does not fall. Whether a spin was stopped. */

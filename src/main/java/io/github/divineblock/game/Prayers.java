@@ -284,6 +284,13 @@ public final class Prayers {
                         Miracles.flourish(player, altar, chosen.kind, verdict.power);
                         Prayers.act(player, altar, verdict, config);
                     }
+                    @Override public void spared() {
+                        // Spared by chance: the punishment does not fall, the ladder of punishments stays (no forgiveness).
+                        beamsOff();
+                        verdict.decisionNote = verdict.decisionNote + "; рулетка: пощажён случаем";
+                        Prayers.cancelled(player, verdict);
+                        performed.accept("spared");
+                    }
                     @Override public void cancelled(io.github.divineblock.core.RouletteQueue.Cancel why) {
                         beamsOff();
                         if (why == io.github.divineblock.core.RouletteQueue.Cancel.LEFT) Multiplayer.heldBack(player, world, altar, verdict);

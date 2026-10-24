@@ -98,7 +98,7 @@ public final class DivineCommands {
                                                         IntegerArgumentType.getInteger(context, "power"), IntegerArgumentType.getInteger(context, "severity")))))))));
     }
 
-    private static final java.util.List<String> ROULETTE_MODES = java.util.List.of("short", "normal", "dramatic", "mini", "tease");
+    private static final java.util.List<String> ROULETTE_MODES = java.util.List.of("short", "normal", "dramatic", "mini", "tease", "mercy");
 
     private static com.mojang.brigadier.builder.RequiredArgumentBuilder<ServerCommandSource, String> rouletteArguments(boolean show) {
         return CommandManager.argument("id", StringArgumentType.word())
@@ -112,14 +112,15 @@ public final class DivineCommands {
                         .executes(context -> roulette(context.getSource(), StringArgumentType.getString(context, "id"), StringArgumentType.getString(context, "mode"), show)));
     }
 
-    /** {@code /divineblock roulette [show] <id> [short|normal|dramatic|mini|tease]}: the roulette for this act at its full power;
-     * «tease» is the normal spin with the third reel crawling past the seven (К3–К4 only). */
+    /** {@code /divineblock roulette [show] <id> [short|normal|dramatic|mini|tease|mercy]}: the roulette for this act at its full
+     * power; «tease» is the normal spin with the third reel crawling past the seven (К3–К4 only), «mercy» the spin that spares
+     * the sinner by chance (never for the ban). */
     private static int roulette(ServerCommandSource source, String id, String modeName, boolean show) {
         ServerPlayerEntity player = source.getPlayer();
         Miracle miracle = Miracle.byId(id.toLowerCase(Locale.ROOT));
         if (player == null || miracle == null) { source.sendError(Text.literal("Нет такого деяния: " + id + ". Список: /divineblock list")); return 0; }
-        boolean tease = "tease".equalsIgnoreCase(modeName);
-        io.github.divineblock.core.Roulette.Mode mode = modeName.isBlank() || tease ? DivineBlockMod.config().rouletteMode
+        boolean tease = "tease".equalsIgnoreCase(modeName), mercy = "mercy".equalsIgnoreCase(modeName);
+        io.github.divineblock.core.Roulette.Mode mode = modeName.isBlank() || tease || mercy ? DivineBlockMod.config().rouletteMode
                 : io.github.divineblock.core.Roulette.Mode.byName(modeName);
         if (mode == null) { source.sendError(Text.literal("Режим: " + String.join(", ", ROULETTE_MODES))); return 0; }
         BlockPos altar = player.getBlockPos();
@@ -128,16 +129,20 @@ public final class DivineCommands {
         BlockPos at = altar;
         int strength = miracle.maxTier;
         var spin = RouletteService.spin(player, miracle, null, show ? "проверка рулетки" : "проверка командой", mode, tease ? Boolean.TRUE : null,
-                new RouletteService.Steps() {
+                mercy ? Boolean.TRUE : null, new RouletteService.Steps() {
                     @Override public void act() {
                         if (show || player.isRemoved()) { acted.accept("roulette " + miracle.id() + ": показ окончен"); return; }
                         String done = Zones.perform(miracle, strength, player, at, "", DivineBlockMod.config(), strength);
                         player.sendMessage(Text.literal(miracle.id() + " ×" + strength + ": " + (done == null ? "не вышло здесь" : done)), false);
                         acted.accept("roulette " + miracle.id() + " ×" + strength + ": " + (done == null ? "не вышло здесь" : done));
                     }
+                    @Override public void spared() {
+                        player.sendMessage(Text.literal(miracle.id() + ": пощажён случаем, кара не упала"), false);
+                        acted.accept("roulette " + miracle.id() + ": пощажён случаем");
+                    }
                     @Override public void cancelled(io.github.divineblock.core.RouletteQueue.Cancel why) { acted.accept("roulette " + miracle.id() + ": остановлена — " + why); }
                 });
-        source.sendFeedback(() -> Text.literal("Рулетка «" + miracle.title() + "», " + mode.label + (tease ? ", почти 777" : "") + ": "
+        source.sendFeedback(() -> Text.literal("Рулетка «" + miracle.title() + "», " + mode.label + (tease ? ", почти 777" : "") + (spin.mercy ? ", помилование" : "") + ": "
                 + (show ? "только показ" : "кара упадёт") + " через " + String.format(Locale.ROOT, "%.2f", spin.timing.act() / 20.0) + " с"), false);
         return 1;
     }

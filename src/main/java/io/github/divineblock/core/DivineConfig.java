@@ -93,6 +93,9 @@ public final class DivineConfig {
     public int rouletteTeaseChance = 25;
     /** The roulette before a punishment's tail (the second wave, an aftershock). */
     public Roulette.Tails rouletteTails = Roulette.Tails.MINI;
+    /** «Пощажён случаем»: the chance in percent (0..25) that the third reel slips onto a dove and the punishment does not fall
+     * (never for the eternal ban). */
+    public int rouletteMercyChance = 5;
     /** Punishments sent from the web admin spin the roulette too. */
     public boolean rouletteAdmin = true;
     /** Personal: draw the roulette on this screen (off leaves the chat line), its sound in percent 0..200, and the golden flash
@@ -165,6 +168,7 @@ public final class DivineConfig {
         if (rouletteTails == null) rouletteTails = Roulette.Tails.MINI;
         rouletteRadius = clamp(rouletteRadius, 16, 256);
         rouletteTeaseChance = clamp(rouletteTeaseChance, 0, 100);
+        rouletteMercyChance = clamp(rouletteMercyChance, 0, 25);
         rouletteVolume = clamp(rouletteVolume, 0, 200);
         rouletteFx = clamp(rouletteFx, 0, 3);
         voiceEffects(voiceEffects());

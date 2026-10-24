@@ -263,6 +263,7 @@ public final class AdminBridge implements UnaryOperator<String> {
                         try { perform(now, miracle, power, at, now.getServer().getOverworld().getTime(), "рулетка: " + Roulette.chatLine(RouletteSymbol.result(miracle, null), miracle.title())); }
                         catch (IllegalArgumentException failed) { Multiplayer.journal(GodJournal.Kind.VERDICT, name, "админ послал «" + miracle.title() + "»: " + failed.getMessage()); }
                     }
+                    @Override public void spared() { Prayers.PENANCE.end(target.getUuid()); }
                     @Override public void cancelled(io.github.divineblock.core.RouletteQueue.Cancel why) { Prayers.PENANCE.end(target.getUuid()); }
                 });
                 return miracle.title() + " ×" + power + " → " + name + ": рулетка крутится, кара упадёт через "

@@ -22,6 +22,8 @@ public final class RouletteQueue {
         default void fin(Spin spin) { }
         /** The machine leaves: the punishment falls. */
         void act(Spin spin);
+        /** The machine leaves on a dove: the sinner is spared by chance, nothing falls. */
+        default void spared(Spin spin) { }
         /** It will not fall from here: what to do instead. */
         default void cancelled(Spin spin, Cancel why) { }
     }
@@ -31,9 +33,13 @@ public final class RouletteQueue {
         public final UUID player;
         public final Roulette.Timing timing;
         public final Hooks hooks;
+        /** Spared by chance: at its end nothing falls ({@link Hooks#spared} instead of {@link Hooks#act}). */
+        public final boolean mercy;
         public long start;
         boolean finished;
-        Spin(int id, UUID player, Roulette.Timing timing, Hooks hooks) { this.id = id; this.player = player; this.timing = timing; this.hooks = hooks; }
+        Spin(int id, UUID player, Roulette.Timing timing, Hooks hooks, boolean mercy) {
+            this.id = id; this.player = player; this.timing = timing; this.hooks = hooks; this.mercy = mercy;
+        }
         public long actTick() { return start + timing.act(); }
     }
 
@@ -42,8 +48,11 @@ public final class RouletteQueue {
     private int nextId = 1;
 
     /** A new spin for {@code player}: it starts at {@code now}, or after the ones already spinning or waiting for him. */
-    public Spin offer(UUID player, long now, Roulette.Timing timing, Hooks hooks) {
-        Spin spin = new Spin(nextId++, player, timing, hooks);
+    public Spin offer(UUID player, long now, Roulette.Timing timing, Hooks hooks) { return offer(player, now, timing, hooks, false); }
+
+    /** As above; a spin with {@code mercy} ends in sparing the sinner, its punishment is never laid. */
+    public Spin offer(UUID player, long now, Roulette.Timing timing, Hooks hooks, boolean mercy) {
+        Spin spin = new Spin(nextId++, player, timing, hooks, mercy);
         if (active.containsKey(player)) waiting.computeIfAbsent(player, p -> new ArrayDeque<>()).add(spin);
         else begin(spin, now);
         return spin;
@@ -63,7 +72,7 @@ public final class RouletteQueue {
             if (!spin.finished && now >= spin.start + spin.timing.fin()) { spin.finished = true; spin.hooks.fin(spin); }
             if (now < spin.actTick() || active.get(spin.player) != spin) continue;
             active.remove(spin.player);
-            spin.hooks.act(spin);
+            if (spin.mercy) spin.hooks.spared(spin); else spin.hooks.act(spin);
             Deque<Spin> next = waiting.get(spin.player);
             if (next != null && !next.isEmpty() && !active.containsKey(spin.player)) {
                 Spin following = next.poll();

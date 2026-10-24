@@ -108,9 +108,10 @@ public final class RouletteHud {
             landing = new int[timing.reels()];
             last = new double[timing.reels()];
             for (int reel = 0; reel < timing.reels(); reel++) {
-                List<RouletteSymbol> strip = Roulette.strip(spin.seed(), reel, symbol, spin.tease() && reel == timing.reels() - 1);
+                boolean lastReel = reel == timing.reels() - 1;
+                List<RouletteSymbol> strip = Roulette.strip(spin.seed(), reel, symbol, spin.tease() && lastReel, spin.mercy() && lastReel);
                 strips.add(strip);
-                landing[reel] = Math.max(0, strip.indexOf(symbol));
+                landing[reel] = Math.max(0, strip.indexOf(Roulette.landing(symbol, reel, timing.reels(), spin.mercy())));
                 last[reel] = Double.NaN;
             }
         }
@@ -125,7 +126,13 @@ public final class RouletteHud {
         double cancelledTick() { return cancelledAt < 0 ? Double.NaN : Math.max(0, cancelledAt - spin.start()); }
         boolean stopped(double t) { return cancelledAt >= 0 && t >= cancelledTick(); }
         boolean pardoned(double t) { return pardon && t >= cancelledTick(); }
-        boolean won(double t) { return t >= timing.fin() && !stopped(t); }
+        boolean won(double t) { return t >= timing.fin() && !stopped(t) && !spin.mercy(); }
+        /** Spared at the final by the third reel's dove. */
+        boolean spared(double t) { return spin.mercy() && t >= timing.fin() && !stopped(t); }
+        /** Mercy in either way, by repentance or by chance: the light, the banner and the words turn to grace. */
+        boolean graced(double t) { return pardoned(t) || spared(t); }
+        /** Ticks since grace came. */
+        double sinceGrace(double t) { return pardoned(t) ? t - cancelledTick() : t - timing.fin(); }
         /** When it is gone from the screen. */
         double over() { return cancelledAt < 0 ? timing.end() : cancelledTick() + (pardon ? PARDON_HOLD + Roulette.Timing.EXIT : Roulette.Timing.EXIT); }
         /** The moment it starts to leave. */
@@ -139,12 +146,13 @@ public final class RouletteHud {
                 double x = t - cancelledTick();
                 return jammed[reel] + (x < 5 ? Math.sin(x * 2.7 + reel) * 0.08 * (5 - x) / 5 : 0);
             }
-            return Roulette.position(timing, reel, spin.tease() && reel == timing.reels() - 1, landing[reel], t);
+            // The teasing reel and the sparing one crawl their last cells: past the seven, or up to the match and onto the dove.
+            return Roulette.position(timing, reel, (spin.tease() || spin.mercy()) && reel == timing.reels() - 1, landing[reel], t);
         }
         double speed(int reel, double t) { return Math.abs(position(reel, t + 0.5) - position(reel, Math.max(0, t - 0.5))); }
         /** The colours of this spin's light: the main one, the deep one and the bright one. */
         int[] palette(double t) {
-            if (pardoned(t)) return new int[] { 0xBFE0FF, 0x7FA8E0, 0xFFFFFF };
+            if (graced(t)) return new int[] { 0xBFE0FF, 0x7FA8E0, 0xFFFFFF };
             if (doom()) return new int[] { 0xFFC040, 0xD04018, 0xFFF0B0 };
             if (ban()) return new int[] { 0xC0101C, 0x500010, 0xFF5040 };
             return switch (Math.min(5, spin.severity())) {
@@ -294,6 +302,22 @@ public final class RouletteHud {
             return;
         }
         play(one, S_WHOOSH, 0.8f, 0.3f);
+        if (one.spin.mercy()) {
+            // Spared by chance: «Господи, помилуй», a bright chime, feathers and pale light instead of the punishment.
+            play(one, S_POMILUY, 1f, 1f);
+            play(one, S_CHIME, 1f, 0.7f);
+            if (drawn) {
+                for (int i = 0; i < 60 * fx; i++) feather(lastWidth * RANDOM.nextDouble(), -10 - RANDOM.nextDouble() * 80);
+                halo(machine(WIN_L + 2 * REEL_STEP + REEL / 2.0, LINE), 0xD0F0FF, 3);
+                halo(machine(EYE_X, EYE_Y), 0xFFFFFF, 2);
+                burst(machine(WIN_L + 2 * REEL_STEP + REEL / 2.0, LINE), (int) (40 * fx), 0xD8F0FF, 3.5, false);
+                for (int i = 0; i < 30 * fx; i++) star(machine(RANDOM.nextDouble() * W, TOP + RANDOM.nextDouble() * (BOTTOM - TOP)), 0xE8F4FF);
+            }
+            world(one, 2);
+            moment.accept("mercy");
+            moment.accept("final");
+            return;
+        }
         if (one.doom()) {
             for (float note : new float[] { 1.0f, 1.26f, 1.5f }) play(one, S_BELL, note, 0.45f);
             play(one, S_BLAGOVEST, 1f, 1f);
@@ -334,7 +358,7 @@ public final class RouletteHud {
         MinecraftClient client = MinecraftClient.getInstance();
         if (!one.own || client.player == null || fx <= 0 || FxHud.quality() <= 0) return;
         Vec3d at = client.player.getPos().add(0, 1.2, 0);
-        if (one.pardon) { FxHud.feathers(at.add(0, 2, 0), amount); return; }
+        if (one.pardon || one.spin.mercy()) { FxHud.feathers(at.add(0, 2, 0), amount); return; }
         FxHud.sparks(at, one.palette(0)[0], amount);
         if (one.doom()) FxHud.feathers(at.add(0, 2.5, 0), amount);
     }
@@ -596,7 +620,7 @@ public final class RouletteHud {
         int[] palette = one.palette(t);
         float cx = (float) (x0 + W / 2.0 * scale), cy = (float) (y0 + LINE * scale);
         float ex = (float) (x0 + EYE_X * scale), ey = (float) (y0 + EYE_Y * scale);
-        double since = one.won(t) ? t - one.timing.fin() : one.pardoned(t) ? t - one.cancelledTick() : -1;
+        double since = one.won(t) || one.graced(t) ? one.sinceGrace(t) : -1;
         float power = (float) (0.3 + 0.3 * one.tension(t) + (since >= 0 ? 0.7 * Math.max(0.5, 1 - since / 30) + 0.4 * Math.max(0, 1 - since / 6) : 0)) * presence * fx;
         FxHud.Batch light = FxHud.begin(context, true);
         // The glow round the kiot: big soft lights in the spin's colours, circling slowly and shading into each other.
@@ -667,8 +691,9 @@ public final class RouletteHud {
         var matrices = context.getMatrices();
         // Radiance behind the symbol under the line once the reels have won (or turned to doves): a glow, a halo breathing
         // round it and a slowly turning star.
-        if ((won || doves) && fx > 0) {
-            double since = won ? t - one.timing.fin() : t - one.cancelledTick();
+        boolean mercyDove = one.spared(t) && reel == last;
+        if ((won || doves || mercyDove) && fx > 0) {
+            double since = one.sinceGrace(t);
             float pulse = 0.6f + 0.4f * Math.abs(MathHelper.sin((float) (since * 0.32)));
             FxHud.begin(context, true)
                     .sprite(FxHud.Sprite.GLOW, x + 17, line, 64, 0, 1, palette[0], pulse * fx)
@@ -801,9 +826,9 @@ public final class RouletteHud {
             light.streak(FxHud.Sprite.BEAM, (l + r) / 2f, WIN_B + 1, 20, 4, MathHelper.HALF_PI, color, a);
             light.sprite(FxHud.Sprite.GLOW, (l + r) / 2f, LINE, 60 + 20 * tension, 0, 1, color, 0.35f * a);
         }
-        boolean pardoned = one.pardoned(t);
+        boolean pardoned = one.graced(t);
         if (one.won(t) || pardoned) {
-            double x = pardoned ? t - one.cancelledTick() : t - one.timing.fin();
+            double x = one.sinceGrace(t);
             int color = palette[0];
             float top = LINE - 19, bottom = LINE + 19, left = WIN_L - 2, right = WIN_R + 2;
             float glow = (float) (x < 14 ? 0.6 + 0.4 * Math.abs(Math.sin(x * 0.8)) : 0.7);
@@ -956,8 +981,8 @@ public final class RouletteHud {
             context.drawCenteredTextWithShadow(text, "Кара для " + one.spin.name(), W / 2, (int) y, 0xFFE0D0B0);
             y += 10;
         }
-        boolean pardoned = one.pardoned(t);
-        double since = pardoned ? t - one.cancelledTick() : t - one.timing.fin();
+        boolean pardoned = one.graced(t);
+        double since = one.sinceGrace(t);
         if (since < 0 || one.stopped(t) && !pardoned) return;
         double open = easeOutBack(Math.min(1, since / 7.0), 1.6);
         float half = Math.round(90 * Math.min(1.08, open));
@@ -981,7 +1006,7 @@ public final class RouletteHud {
         }
         if (since < 5) return;
         String title = fit(text, pardoned ? "Помилованъ" : one.spin.title(), 150);
-        String reason = pardoned ? "покаяние снимает кару" : one.spin.reason();
+        String reason = one.spared(t) ? "пощажён случаем" : pardoned ? "покаяние снимает кару" : one.spin.reason();
         int width = text.getWidth(title);
         float x = W / 2f - width / 2f;
         int baseColor = pardoned ? 0xF0F8FF : one.ban() ? 0xFF8080 : 0xFFE8B0;
@@ -1018,11 +1043,11 @@ public final class RouletteHud {
      * the verse of the Revelation; «ИЗГНАНІЕ» for the ban; «ПОМИЛОВАНЪ» with «Господи, помилуй» for a pardon. */
     private static void bigWords(DrawContext context, TextRenderer text, Show one, double t, int sw, double below, float base) {
         if (fx <= 0) return;
-        boolean pardoned = one.pardoned(t);
-        double since = pardoned ? t - one.cancelledTick() : t - one.timing.fin();
+        boolean pardoned = one.graced(t);
+        double since = one.sinceGrace(t);
         if (since < 1 || one.stopped(t) && !pardoned) return;
         since -= 1;
-        double hold = pardoned ? PARDON_HOLD - 8 : one.timing.act() - one.timing.fin() + 4;
+        double hold = one.pardoned(t) ? PARDON_HOLD - 8 : one.timing.act() - one.timing.fin() + 4;
         if (since > hold) return;
         String words = pardoned ? "ПОМИЛОВАНЪ" : one.doom() ? "СЕДМЬ ЧАШЪ ГНѢВА" : one.ban() ? "ИЗГНАНІЕ" : "ГНѢВЪ БОЖІЙ";
         String verse = pardoned ? "Господи, помилуй" : one.doom() ? "«Идите и вылейте семь чаш гнева Божия на землю» — Откр. 16:1" : null;

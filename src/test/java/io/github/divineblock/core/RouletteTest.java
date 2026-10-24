@@ -218,6 +218,59 @@ class RouletteTest {
         assertEquals(List.of("a start@0", "a DIED@10"), log.events);
     }
 
+    @Test void mercyByChanceFollowsItsChanceAndSparesNoBan() {
+        Random random = new Random(3);
+        for (int i = 0; i < 2000; i++) assertFalse(Roulette.mercy(Miracle.LIGHTNING, MiracleGroup.K1, 0, random), "chance 0: never");
+        for (int i = 0; i < 2000; i++) assertTrue(Roulette.mercy(Miracle.METEOR, MiracleGroup.K3, 100, random), "chance 100: always");
+        for (int i = 0; i < 2000; i++) {
+            assertFalse(Roulette.mercy(Miracle.ETERNAL_BAN, null, 100, random), "the eternal ban has no mercy");
+            assertFalse(Roulette.mercy(Miracle.ETERNAL_BAN, MiracleGroup.K6, 100, random));
+        }
+        int spared = 0;
+        for (int i = 0; i < 20000; i++) if (Roulette.mercy(Miracle.SWARM, MiracleGroup.K2, 5, random)) spared++;
+        assertTrue(spared > 800 && spared < 1200, "about one in twenty: " + spared);
+        DivineConfig config = new DivineConfig();
+        assertEquals(5, config.rouletteMercyChance, "5% by default");
+        config.rouletteMercyChance = 90;
+        assertEquals(25, config.sanitized().rouletteMercyChance, "at most 25%");
+        assertNotNull(DivineSettings.setting("rouletteMercyChance"));
+    }
+
+    @Test void theThirdReelSlipsPastTheMatchOntoADove() {
+        Roulette.Timing timing = Roulette.Timing.of(Roulette.Mode.NORMAL, 3);
+        for (long seed = 0; seed < 50; seed++)
+            for (RouletteSymbol target : List.of(RouletteSymbol.LIGHTNING, RouletteSymbol.SEVEN, RouletteSymbol.SKULL)) {
+                List<RouletteSymbol> strip = Roulette.strip(seed, 2, target, false, true);
+                assertEquals(RouletteSymbol.DOVE, Roulette.landing(target, 2, 3, true));
+                assertEquals(target, Roulette.landing(target, 1, 3, true), "the first two reels stop on the punishment");
+                int dove = strip.indexOf(RouletteSymbol.DOVE);
+                assertTrue(dove >= 0);
+                assertEquals(target, strip.get(Math.floorMod(dove - 1, 12)), "the match passes the line right before the dove");
+                assertEquals(Roulette.strip(seed, 2, target, false, true), strip, "one seed, the same reel everywhere");
+            }
+        // The crawl: at its middle the punishment's own symbol is under the line, then the reel slips on to the dove.
+        double stop = timing.stops()[2];
+        assertEquals(-1, Math.round(Roulette.position(timing, 2, true, 0, stop - timing.crawl() * 0.6)));
+        assertEquals(0, Roulette.position(timing, 2, true, 0, stop), 1e-9);
+        assertEquals("✦ ⚡⚡☮ Помилован", Roulette.mercyLine(RouletteSymbol.LIGHTNING));
+    }
+
+    @Test void aSpinOfMercyLaysNoPunishment() {
+        RouletteQueue queue = new RouletteQueue();
+        Roulette.Timing timing = Roulette.Timing.of(Roulette.Mode.NORMAL, 4);
+        List<String> events = new ArrayList<>();
+        RouletteQueue.Hooks hooks = new RouletteQueue.Hooks() {
+            @Override public void fin(RouletteQueue.Spin spin) { events.add("fin"); }
+            @Override public void act(RouletteQueue.Spin spin) { events.add("act"); }
+            @Override public void spared(RouletteQueue.Spin spin) { events.add("spared@" + spin.actTick()); }
+        };
+        RouletteQueue.Spin spin = queue.offer(SINNER, 100, timing, hooks, true);
+        assertTrue(spin.mercy);
+        for (long t = 100; t < 400; t++) queue.tick(t);
+        assertEquals(List.of("fin", "spared@" + (100 + timing.act())), events, "the reels end, nothing falls");
+        assertFalse(queue.spinning(SINNER));
+    }
+
     @Test void theSettingsKnowTheRoulette() {
         DivineConfig config = new DivineConfig();
         assertTrue(config.rouletteEnabled);

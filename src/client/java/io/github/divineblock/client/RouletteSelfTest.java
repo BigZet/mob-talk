@@ -35,7 +35,8 @@ import net.minecraft.world.level.LevelInfo;
 /** The punishment roulette's unattended test, on with -Ddivineblock.selftest=roulette (no paid speech, see GodVoicePlayer): a
  * fresh world with an altar, then spins of each kind with a screenshot at every reel's stop and at the final — silver К1, a
  * gold К3 with the tease, the 777 of the end of the world, the black gates of the ban, a pardon by a real prayer of
- * repentance under the roulette, a mini spin of a tail — a real punishment falling exactly when its spin ends, and the
+ * repentance under the roulette, a mini spin of a tail, a spin that spares by chance — a real punishment falling exactly
+ * when its spin ends, and the
  * roulette's group in F9. Report: report.txt in -Ddivineblock.selftest.report; screenshots divineblock-roulette-*.png. */
 final class RouletteSelfTest {
     private static final String WORLD = "divineblock-roulettetest";
@@ -56,7 +57,8 @@ final class RouletteSelfTest {
     private static volatile boolean answered;
     private static int waited;
     /** The steps that check a scene: they run once its machine is gone. */
-    private static final java.util.Set<Integer> AFTER_SPIN = java.util.Set.of(1, 3, 5, 7, 9, 10, 14, 16, 18);
+    private static final java.util.Set<Integer> AFTER_SPIN = java.util.Set.of(1, 3, 5, 7, 9, 10, 14, 16, 18, 19, 20);
+    private static volatile boolean spared;
     private static Path configFile;
     private static String savedConfig;
 
@@ -77,11 +79,12 @@ final class RouletteSelfTest {
                 case "777", "gates" -> shotLater(scene + "-" + name + "-flash", 2);
                 case "final" -> shotLater(scene + "-final", 12);
                 case "pardon" -> shotLater(scene + "-pardon", 14);
+                case "mercy" -> { shotLater(scene + "-dove", 3); shotLater(scene + "-spared", 16); }
                 default -> { }
             }
         };
         RouletteService.said = line -> log("  чат: " + line);
-        DivineCommands.acted = line -> log("  " + line);
+        DivineCommands.acted = line -> { log("  " + line); if (line.contains("пощажён случаем")) spared = true; };
         ClientTickEvents.END_CLIENT_TICK.register(RouletteSelfTest::tick);
     }
 
@@ -229,9 +232,16 @@ final class RouletteSelfTest {
             case 17 -> { scene = "mini"; command("divineblock roulette show raid mini"); shotAt("mini-spinning", 12); wait = 10; }
             case 18 -> { check(saw("mini:stop1") && saw("mini:final"), "мини-рулетка продолжения: один барабан"); wait = 10; }
             // Another sinner's spin as the others see it.
-            case 19 -> { client.setScreen(new WrathSettingsScreen(null, DivineBlockMod.config())); wait = 30; }
-            case 20 -> { shotLater("f9-settings", 1); wait = 10; }
-            case 21 -> { client.setScreen(null); log("ошибок всего: " + failures); finish(client); }
+            // Spared by chance: the third reel slips past the match onto a dove, the punishment does not fall.
+            case 19 -> { scene = "mercy"; recording = "mercy"; frame = 0; spared = false; command("divineblock roulette lightning mercy"); wait = 10; }
+            case 20 -> {
+                check(saw("mercy:stop3") && saw("mercy:mercy"), "случайное помилование: третий барабан встал на голубя");
+                check(spared, "пощажён случаем: кара не упала");
+                wait = 10;
+            }
+            case 21 -> { client.setScreen(new WrathSettingsScreen(null, DivineBlockMod.config())); wait = 30; }
+            case 22 -> { shotLater("f9-settings", 1); wait = 10; }
+            case 23 -> { client.setScreen(null); log("ошибок всего: " + failures); finish(client); }
             default -> { }
         }
     }
@@ -257,6 +267,7 @@ final class RouletteSelfTest {
         DivineConfig config = DivineBlockMod.config();
         config.useJev = false; config.rouletteEnabled = true; config.rouletteMode = Roulette.Mode.NORMAL; config.rouletteShow = true;
         config.rouletteVolume = 100; config.rouletteJackpotFx = true; config.cooldownSeconds = 20; config.protectBlocks = true; config.speechTimeoutSeconds = 3;
+        config.rouletteMercyChance = 0; // only the mercy scene spares, the others must fall
         try { config.save(configFile); DivineBlockMod.reloadConfig(); } catch (IOException failure) { fail("настройки не сохранены: " + failure); }
     }
 

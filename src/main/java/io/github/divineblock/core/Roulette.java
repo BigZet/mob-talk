@@ -85,12 +85,34 @@ public final class Roulette {
     /** Cells the teasing reel crawls in its last moments: the seven passes the line at a walking pace. */
     public static final int CRAWL_CELLS = 2;
 
+    /** «Пощажён случаем»: now and then (the settings' chance) the third reel slips past the punishment's symbol onto a dove and
+     * the punishment does not fall. Never for the eternal ban (К6): it has no mercy. */
+    public static boolean mercy(Miracle miracle, MiracleGroup group, int chancePercent, Random random) {
+        MiracleGroup at = group != null ? group : groupOf(miracle);
+        if (miracle == Miracle.ETERNAL_BAN || at == MiracleGroup.K6) return false;
+        return random.nextInt(100) < Math.max(0, Math.min(100, chancePercent));
+    }
+
+    /** The symbol the third reel lands on: the dove when the sinner is spared by chance, else the punishment's own. */
+    public static RouletteSymbol landing(RouletteSymbol target, int reel, int reels, boolean mercy) {
+        return mercy && reel == reels - 1 ? RouletteSymbol.DOVE : target;
+    }
+
     /** One reel's strip of twelve: the ordinary symbols shuffled by the seed. The ban's strip has the gates where the seven was;
      * a teasing reel has the seven right before its target, so it crawls past it. Same seed, same strip on every screen. */
-    public static List<RouletteSymbol> strip(long seed, int reel, RouletteSymbol target, boolean tease) {
+    public static List<RouletteSymbol> strip(long seed, int reel, RouletteSymbol target, boolean tease) { return strip(seed, reel, target, tease, false); }
+
+    /** As above; on a spared spin's last reel the dove takes the cell right after the punishment's symbol: the reel crawls
+     * up to the match and slips onto the dove at the last moment. */
+    public static List<RouletteSymbol> strip(long seed, int reel, RouletteSymbol target, boolean tease, boolean mercy) {
         List<RouletteSymbol> strip = new ArrayList<>(RouletteSymbol.STRIP);
         Collections.shuffle(strip, new Random(seed * 31 + reel * 7919L + 17));
         if (target == RouletteSymbol.GATE) strip.set(strip.indexOf(RouletteSymbol.SEVEN), RouletteSymbol.GATE);
+        if (mercy) {
+            int at = strip.indexOf(target), after = Math.floorMod(at + 1, strip.size());
+            strip.set(after, RouletteSymbol.DOVE);
+            return strip;
+        }
         if (tease && target != RouletteSymbol.SEVEN && strip.contains(target)) {
             int at = strip.indexOf(target), seven = strip.indexOf(RouletteSymbol.SEVEN), before = Math.floorMod(at - 1, strip.size());
             if (seven >= 0) Collections.swap(strip, seven, before);
@@ -136,5 +158,10 @@ public final class Roulette {
     /** The line in chat that stands in for the picture (and goes into the history): «✦ ⚡⚡⚡ Молния». */
     public static String chatLine(RouletteSymbol symbol, String punishment) {
         return "✦ " + symbol.glyph.repeat(3) + " " + punishment;
+    }
+
+    /** The line of a spin that spared the sinner by chance: «✦ ⚡⚡☮ Помилован». */
+    public static String mercyLine(RouletteSymbol symbol) {
+        return "✦ " + symbol.glyph.repeat(2) + RouletteSymbol.DOVE.glyph + " Помилован";
     }
 }
