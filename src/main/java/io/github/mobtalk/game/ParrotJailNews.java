@@ -18,14 +18,16 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 /** Тюрьма Parrot Cages глазами деревни и админки, без общего кода: подписка на общий список {@code parrotcages:jail_listeners}.
- * Арест и выход попугая-зрителя — новость деревни у клетки (слух на игровой день, его сразу знают жители в {@link #HEARING} блоках,
- * и болтовня его подхватывает; выключается {@code villageParrotJokes}), и записи {@code parrot_jailed} / {@code parrot_released}
+ * Арест и выход попугая-зрителя — новость деревни у клетки: слух на игровой день, его сразу знают {@link #WITNESSES} ближайших
+ * жителя в {@link #HEARING} блоках, а дальше его разносят болтовня и встречи (выключается {@code villageParrotJokes}); и записи {@code parrot_jailed} / {@code parrot_released}
  * в истории админки. События приходят на потоке сервера. */
 public final class ParrotJailNews {
     public static final String CAGED_TAG = "parrotcages.caged", JAILED_TAG = "parrotcages.jailed";
     static final String LISTENERS = "parrotcages:jail_listeners";
     /** Кто у клетки сразу слышит новость. */
     static final double HEARING = 32;
+    /** Сколько жителей видели сами: остальные узнают от них, иначе болтовне нечего пересказывать. */
+    static final int WITNESSES = 2;
 
     private ParrotJailNews() { }
 
@@ -49,7 +51,7 @@ public final class ParrotJailNews {
         ConversationStore.Village village = bridge.villageAt(world, pos);
         if (village == null) return;
         List<UUID> hearers = world.getEntitiesByClass(VillagerEntity.class, new Box(pos).expand(HEARING), VillagerEntity::isAlive).stream()
-                .map(VillagerEntity::getUuid).toList();
+                .sorted(java.util.Comparator.comparingDouble(v -> v.squaredDistanceTo(pos.toCenterPos()))).limit(WITNESSES).map(VillagerEntity::getUuid).toList();
         String prefix = "cage-" + parrot + "-";
         bridge.memory.villageNews(village.id(), prefix + (jailed ? "in" : "out"), prefix, jailed ? jailedText(name, minutes) : releasedText(name, reason),
                 3, VillageRumors.DAY_MILLIS, hearers, System.currentTimeMillis());
