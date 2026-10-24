@@ -24,7 +24,7 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
-import io.github.divineblock.boss.ai.SeraphDodge;
+import io.github.divineblock.boss.ai.SeraphMind;
 
 /** Шестикрылый серафим (Isaiah 6): a burning face in six wings full of eyes. It flies, circling its foe four to six blocks up,
  * throws volleys of burning feathers, sends a ring of fire over the ground beneath it, and now and then comes down for a few
@@ -42,9 +42,11 @@ public final class SeraphEntity extends SacredBoss {
     private int descendLeft;
     private Vec3d landing;
     private double orbit;
-    /** The learned dodge and its last decision (null while it flies the old way). */
-    private final SeraphDodge dodge = new SeraphDodge();
-    private SeraphDodge.Move move;
+    /** The trained mind (ml/seraph_dodge/v2) and its decision for this tick (null while it fights the old way). */
+    private final SeraphMind mind = new SeraphMind();
+    private SeraphMind.Move move;
+    private double featherSide, featherUp;
+    private boolean featherLead;
 
     public SeraphEntity(EntityType<? extends SeraphEntity> type, World world) {
         super(type, world, BossBar.Color.RED);
@@ -82,6 +84,7 @@ public final class SeraphEntity extends SacredBoss {
     // ---- Flight. ----
 
     @Override protected void mobTick() {
+        think();
         super.mobTick();
         if (!(getWorld() instanceof ServerWorld) || isDead()) return;
         if (descendLeft > 0 && --descendLeft == 0) {
@@ -94,28 +97,53 @@ public final class SeraphEntity extends SacredBoss {
         if (age % 12 == 0) particles(ParticleTypes.SMALL_FLAME, getX(), getY() + 0.2, getZ(), 3, 0.3, 0.1, 0.3, 0.02);
     }
 
+    /** The mind's tick, before the fight loop: it remembers every tick, decides, sweeps arrows back, starts the feathers. */
+    private void think() {
+        move = null;
+        LivingEntity target = getTarget();
+        if (!(getWorld() instanceof ServerWorld) || isDead() || target == null || descendLeft > 0 || !config().seraphDodge) return;
+        double ground = groundBelow(getX(), getY() + 1, getZ(), 24);
+        move = mind.tick(this, target, ground, isCasting() ? castProgress() : -1, config().seraphDodgeSkill / 100.0);
+        if (move == null) return;
+        if (move.startDeflect()) sound(SoundEvents.ENTITY_ENDER_DRAGON_FLAP, 2f, 0.6f);
+        if (mind.closingWings())
+            particles(ParticleTypes.FLAME, getX(), getY() + getHeight() * FACE, getZ(), 10, getWidth() * 0.5, getHeight() * 0.25, getWidth() * 0.5, 0.0);
+        if (mind.deflecting()) {
+            // «Огненный взмах»: arrows about to strike fly back at whoever shot them.
+            var box = getBoundingBox();
+            for (var arrow : getWorld().getEntitiesByClass(net.minecraft.entity.projectile.PersistentProjectileEntity.class, box.expand(6),
+                    a -> a.isAlive() && a.getOwner() != this && SeraphMind.strikesThisTick(a, box))) {
+                SeraphMind.throwBack(this, arrow);
+                particles(ParticleTypes.LAVA, arrow.getX(), arrow.getY(), arrow.getZ(), 4, 0.2, 0.2, 0.2, 0);
+                sound(SoundEvents.ITEM_SHIELD_BLOCK, 2f, 0.7f);
+            }
+        }
+        if (move.startFeathers() && !isCasting()) {
+            featherSide = move.aimSide(); featherUp = move.aimUp(); featherLead = true;
+            feathers(target);
+        }
+    }
+
     /** Keeps the height: hovering over the ground below (under the vault, if any), or down on it while descending. */
     private void hold() {
         double ground = groundBelow(getX(), getY() + 1, getZ(), 24);
         double lift = move != null && descendLeft == 0 ? move.lift() : 0;
         double wanted = descendLeft > 0 ? ground + 0.05
-                : Math.min(ground + HOVER + Math.sin(age * 0.05) * 0.6 + lift * SeraphDodge.LIFT, ceilingAbove() - getHeight() - 0.3);
+                : Math.min(ground + HOVER + Math.sin(age * 0.05) * 0.6 + lift * SeraphMind.LIFT, ceilingAbove() - getHeight() - 0.3);
         wanted = Math.max(wanted, ground + 0.05);
         Vec3d v = getVelocity();
         double dy = MathHelper.clamp((wanted - getY()) * 0.08, -0.35, 0.3);
         setVelocity(v.x, v.y * 0.6 + dy + lift * 0.06, v.z);
-        move = null;
         fallDistance = 0;
     }
 
     /** Circles the foe at a distance, or settles on the landing spot while descending. */
     @Override protected void pursue(LivingEntity target) {
         Vec3d goal;
-        move = descendLeft == 0 && config().seraphDodge ? dodge.decide(this, target, groundBelow(getX(), getY() + 1, getZ(), 24), config().seraphDodgeSkill / 100.0) : null;
         if (descendLeft > 0 && landing != null) goal = landing;
         else {
             orbit += phase >= 3 ? 0.03 : 0.02;
-            double radius = move != null ? SeraphDodge.ORBIT : 7;
+            double radius = move != null ? SeraphMind.ORBIT : 7;
             goal = new Vec3d(target.getX() + Math.cos(orbit) * radius, getY(), target.getZ() + Math.sin(orbit) * radius);
         }
         Vec3d flat = new Vec3d(goal.x - getX(), 0, goal.z - getZ());
@@ -124,13 +152,15 @@ public final class SeraphEntity extends SacredBoss {
         Vec3d push = flat.lengthSquared() < 0.25 ? Vec3d.ZERO : flat.normalize().multiply(0.05);
         Vec3d next = new Vec3d(v.x * 0.9 + push.x, v.y, v.z * 0.9 + push.z);
         if (move != null) {
-            // «Рывок крыльями»: the net steers a little all the time and now and then throws itself aside.
-            next = next.add(move.steerX() * SeraphDodge.STEER_ACC, 0, move.steerZ() * SeraphDodge.STEER_ACC);
-            speed += SeraphDodge.STEER_CAP * move.steerAmount();
+            // «Рывок крыльями»: the mind steers a little all the time and now and then throws itself aside.
+            next = next.add(move.steerX() * SeraphMind.STEER_ACC, 0, move.steerZ() * SeraphMind.STEER_ACC);
+            speed += SeraphMind.STEER_CAP * move.steerAmount();
             if (move.dashing()) {
-                next = new Vec3d(move.dashDir().x * SeraphDodge.DASH_SPEED, v.y, move.dashDir().z * SeraphDodge.DASH_SPEED);
-                speed = SeraphDodge.DASH_SPEED;
+                next = new Vec3d(move.dashDir().x * move.dashSpeed(), v.y, move.dashDir().z * move.dashSpeed());
+                speed = move.dashSpeed();
                 if (age % 2 == 0) sound(SoundEvents.ENTITY_ENDER_DRAGON_FLAP, 1.6f, 1.5f);
+                particles(ParticleTypes.FLAME, getX(), getY() + getHeight() * 0.5, getZ(), 12, getWidth() * 0.4, getHeight() * 0.3, getWidth() * 0.4, 0.0);
+                particles(ParticleTypes.CLOUD, getX(), getY() + getHeight() * 0.5, getZ(), 4, getWidth() * 0.3, getHeight() * 0.2, getWidth() * 0.3, 0.02);
             }
         }
         double horizontal = Math.hypot(next.x, next.z);
@@ -168,6 +198,12 @@ public final class SeraphEntity extends SacredBoss {
 
     @Override protected int attack(LivingEntity target) {
         if (descendLeft > 0) { fireRing(); return 45; }
+        if (move != null) {
+            // The mind looses the feathers itself; the timer brings only the ring and the descent, more rarely.
+            if (random.nextInt(2) == 0 && age > 200) { descend(target); return DESCENT_TICKS + 60; }
+            fireRing();
+            return 140;
+        }
         int roll = random.nextInt(4);
         if (roll == 0 && age > 200) { descend(target); return DESCENT_TICKS + 40; }
         if (roll == 1) { fireRing(); return 70; }
@@ -183,7 +219,10 @@ public final class SeraphEntity extends SacredBoss {
             if (left == 20) sound(SoundEvents.ENTITY_BLAZE_AMBIENT, 2f, 0.7f);
         }, () -> {
             Vec3d from = new Vec3d(getX(), getY() + getHeight() * FACE, getZ());
-            Vec3d aim = target.getEyePos().subtract(from).normalize();
+            Vec3d at = featherLead ? SeraphMind.featherAim(this, target, featherSide, featherUp) : target.getEyePos();
+            if (featherLead) mind.fired();
+            featherLead = false;
+            Vec3d aim = at.subtract(from).normalize();
             for (int i = 0; i < count; i++) {
                 double spread = (i - (count - 1) / 2.0) * 0.14;
                 Vec3d dir = new Vec3d(aim.x * Math.cos(spread) - aim.z * Math.sin(spread), aim.y + (random.nextDouble() - 0.5) * 0.08,

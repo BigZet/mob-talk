@@ -100,9 +100,10 @@ public final class DivineConfig {
     public List<String> disabledBosses = new ArrayList<>();
     public int bossDifficulty = 100;
     public boolean bossBlockDamage = true;
-    /** The seraph dodges arrows, tridents and snowballs with its trained net ({@code boss.ai.SeraphDodge}) and circles farther. */
+    /** The seraph fights with its trained mind ({@code boss.ai.SeraphMind}): remembers the last seconds, reads the draw, dashes away,
+     * sweeps arrows back with a burning wing and leads its feathers; circles 12 blocks out. Off — it fights the old way. */
     public boolean seraphDodge = true;
-    /** How many of the net's dashes it really makes, percent (0..100). */
+    /** How many of the net's dashes and sweeps it really makes, percent (0..100). */
     public int seraphDodgeSkill = 70;
     /** «Бог на стриме» ({@link StreamOverlay}): the OBS overlay may read the god at all; with the main reasons of a verdict; the
      * mercy of every soul online, not only the streamer's; the count of sins; and the ids of the punishments and mercies it

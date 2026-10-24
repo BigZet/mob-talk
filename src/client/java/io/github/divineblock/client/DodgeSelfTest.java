@@ -46,7 +46,7 @@ import net.minecraft.world.gen.WorldPresets;
 import net.minecraft.world.level.LevelInfo;
 
 /** The seraph's learned dodge in the real game, on with -Ddivineblock.dodgetest=true. The client player really draws a bow
- * and shoots at a Seraph the way the trainer's archer does (aims with lead and the arrow's drop, holds the string 12–30
+ * and shoots at a Seraph the way the trainer's archer does (aims with lead and the arrow's drop, holds the string 22–30
  * ticks, sometimes longer as a bait), first with the dodge off, then on. Arrows that strike are counted and do no harm,
  * so the seraph lives through the round. Report: %LOCALAPPDATA%\DivineBlock\dodgetest\report.txt; screenshots
  * dodge-off-NNN.png / dodge-on-NNN.png (a short burst every 2 ticks) in the game's screenshots folder. */
@@ -58,7 +58,7 @@ public final class DodgeSelfTest {
     private static volatile SeraphEntity seraph;
     private static volatile boolean roundLive, finished;
     private static int shots, hold, rest, frames, frameNo;
-    private static final int[] fired = new int[2], hits = new int[2];
+    private static final int[] fired = new int[2], hits = new int[2], back = new int[2], burned = new int[2];
     private static Vec3d lastPos;
     private static BlockPos base;
 
@@ -69,6 +69,11 @@ public final class DodgeSelfTest {
         log("тест уклонения Серафима включён");
         ClientTickEvents.END_CLIENT_TICK.register(DodgeSelfTest::tick);
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
+            if (entity instanceof ServerPlayerEntity && roundLive && round >= 0) {
+                if (source.getSource() instanceof PersistentProjectileEntity) back[round]++;       // своя стрела, отбитая взмахом
+                else if (source.getAttacker() instanceof SeraphEntity) burned[round]++;            // перья, огонь
+                return true;
+            }
             if (!(entity instanceof SeraphEntity) || !(source.getSource() instanceof PersistentProjectileEntity)) return true;
             if (roundLive && round >= 0) hits[round]++;
             return false;   // counted, harmless: the round goes on
@@ -116,9 +121,6 @@ public final class DodgeSelfTest {
         if (ticks > 20 * 600) { log("FAIL тест не уложился в 10 минут"); finish(client); phase = 3; return; }
         var player = client.player;
         SeraphEntity server = seraph;
-        if (ticks % 200 == 0) log("состояние: выстрелов " + shots + ", лук натянут " + (player != null && player.isUsingItem()) + ", отдых " + rest
-                + ", стрел у клиента " + (player == null ? -1 : player.getInventory().count(net.minecraft.item.Items.ARROW))
-                + ", экран " + (client.currentScreen == null ? "нет" : client.currentScreen.getClass().getSimpleName()) + ", раунд идёт " + roundLive);
         if (player == null || client.world == null || server == null || !roundLive) return;
         Entity target = client.world.getEntityById(server.getId());
         if (target == null) return;
@@ -126,8 +128,8 @@ public final class DodgeSelfTest {
         Vec3d vel = lastPos == null ? Vec3d.ZERO : pos.subtract(lastPos);
         lastPos = pos;
         // Aim like the trainer's archer: the centre, led by the flight time, raised for the arrow's drop.
-        float power = player.isUsingItem() ? net.minecraft.item.BowItem.getPullProgress(player.getItemUseTime()) : 1f;
-        double speed = 3.0 * Math.max(power, 0.3);
+        // the pitch is chosen for the arrow as it will leave at release (a full draw), so the bow is raised with distance
+        double speed = 3.0 * net.minecraft.item.BowItem.getPullProgress(Math.max(hold, 20));
         Vec3d eye = player.getEyePos();
         Vec3d aim = pos.add(0, target.getHeight() / 2, 0);
         for (int i = 0; i < 2; i++) aim = pos.add(0, target.getHeight() / 2, 0).add(vel.multiply(aim.distanceTo(eye) / speed));
@@ -143,7 +145,9 @@ public final class DodgeSelfTest {
         if (rest > 0) { rest--; return; }
         if (!player.isUsingItem()) {
             if (shots >= SHOTS) { roundLive = false; client.getServer().execute(DodgeSelfTest::nextRound); return; }
+            // Like a player: a full draw (20 ticks) and a little more, sometimes holding the shot.
             hold = 22 + random.nextInt(8) + (random.nextDouble() < 0.3 ? 10 + random.nextInt(40) : 0);
+            player.getInventory().selectedSlot = 0;
             client.interactionManager.interactItem(player, Hand.MAIN_HAND);
             return;
         }
@@ -181,6 +185,7 @@ public final class DodgeSelfTest {
         player.getInventory().setStack(9, new ItemStack(Items.ARROW, 64));
         player.getInventory().setStack(10, new ItemStack(Items.ARROW, 64));
         player.getInventory().selectedSlot = 0;
+        player.playerScreenHandler.syncState();   // otherwise the client never sees the arrows and the bow will not draw
         log("арена в " + base.toShortString() + ", выстрелов в раунде " + SHOTS);
         nextRound();
         // the player in the middle; the seraph circles it
@@ -193,7 +198,8 @@ public final class DodgeSelfTest {
         ServerPlayerEntity player = server.getPlayerManager().getPlayerList().get(0);
         ServerWorld world = player.getServerWorld();
         if (round >= 0) log("раунд " + (round == 0 ? "без сети" : "с сетью") + ": выстрелов " + fired[round] + ", попаданий " + hits[round]
-                + String.format(" (%.0f%%)", 100.0 * hits[round] / Math.max(1, fired[round])));
+                + String.format(" (%.0f%%)", 100.0 * hits[round] / Math.max(1, fired[round])) + ", отбито в стрелка " + back[round]
+                + ", ударов Серафима по игроку " + burned[round]);
         for (MobEntity mob : world.getEntitiesByClass(MobEntity.class, new Box(base).expand(64), m -> true)) mob.discard();
         for (PersistentProjectileEntity arrow : world.getEntitiesByClass(PersistentProjectileEntity.class, new Box(base).expand(64), a -> true)) arrow.discard();
         round++;
