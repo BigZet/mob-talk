@@ -139,6 +139,7 @@ public final class MobTalkClient implements ClientModInitializer {
         tradeKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.trade", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_B, "category.mobtalk"));
         giftKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.gift", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_G, "category.mobtalk"));
         familyKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.family", InputUtil.Type.KEYSYM, InputUtil.UNKNOWN_KEY.getCode(), "category.mobtalk"));
+        MomentClient.register(configDirectory); // Метки для монтажа: клавиша, OBS (идея З4).
         net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_ENTITIES.register(labels::render);
         ChildView.register();
         io.github.mobtalk.client.human.VillagerLooks.register();
@@ -295,6 +296,7 @@ public final class MobTalkClient implements ClientModInitializer {
 
     private void tick() {
         ticks++;
+        OverlayClient.tick();
         updateWorld();
         merchant.tick(ticks);
         while (settingsKey.wasPressed()) openSettingsRequested = true;
@@ -559,6 +561,7 @@ public final class MobTalkClient implements ClientModInitializer {
         showHud();
     }
     void onSpeech(MobSpeechS2C packet) {
+        OverlayClient.speech(packet);
         if (MobSpeechS2C.INITIATIVE.equals(packet.kind())) initiatives.record(packet.mob(), packet.text());
         if (packet.toYou() && (MobSpeechS2C.ANSWER.equals(packet.kind()) || MobSpeechS2C.FALLBACK.equals(packet.kind()))) requestActive = false;
         if (!packet.heard().isEmpty()) chat(packet.toYou() ? "Вы: " + packet.heard() : "§7" + packet.asker() + ": " + packet.heard());
@@ -574,6 +577,7 @@ public final class MobTalkClient implements ClientModInitializer {
     void onClip(SpeechClipS2C chunk) {
         byte[] pcm = clips.offer(chunk);
         if (pcm == null) return;
+        if (pcm.length > 0) OverlayClient.voiceStarted(chunk.clipId(), pcm.length / 48);
         PendingVoice voice = pendingVoices.remove(chunk.clipId());
         LOGGER.info("Mob Talk: clip {} {} {} bytes ({} ms, {} crossings/s){}", chunk.clipId(), chunk.format(), pcm.length, pcm.length / 48,
                 io.github.mobtalk.core.SpeechStream.crossingsPerSecond(pcm), voice == null ? ", nobody waits for it" : "");
@@ -856,6 +860,7 @@ public final class MobTalkClient implements ClientModInitializer {
         io.github.mobtalk.server.ServerConfig.adopt(loaded); // Встроенный сервер одиночки живёт по серверным полям этого файла.
         configReady = true;
         preloadWhisper(loaded);
+        OverlayClient.apply(loaded);
         ClientNet.sendSettings(this);
     }
     void reload() {

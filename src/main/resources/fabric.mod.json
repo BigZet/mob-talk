@@ -12,7 +12,8 @@
     "client": ["io.github.mobtalk.client.MobTalkClient"],
     "mobtalk-stt": ["io.github.mobtalk.server.MobTalkStt"],
     "mobtalk-stt-player": ["io.github.mobtalk.server.MobTalkPlayerStt"],
-    "mobtalk-admin": ["io.github.mobtalk.server.web.MobTalkAdminSource"]
+    "mobtalk-admin": ["io.github.mobtalk.server.web.MobTalkAdminSource"],
+    "mobtalk-events": ["io.github.mobtalk.server.DivineEvents"]
   },
   "mixins": [
     "mobtalk.mixins.json",

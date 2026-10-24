@@ -88,6 +88,7 @@ public final class SocialLedger {
         UUID player = snapshot.playerId();
         if (player == null) return;
         detached.standing = standing(state, p.villageId, player, now);
+        detached.divine = SocialPrompt.divine(state, p.villageId, player, now);
         Rapport rapport = r == null || r.rapport == null ? new Rapport() : r.rapport;
         int score = r == null ? 0 : r.score;
         boolean adult = adult(p, snapshot);
@@ -503,15 +504,21 @@ public final class SocialLedger {
     }
     static VillageStanding.View standing(ConversationStore.State state, String villageId, UUID player, long now) {
         if (villageId == null || villageId.isBlank() || player == null) return VillageStanding.View.NONE;
-        List<Integer> scores = new ArrayList<>();
+        List<Integer> scores = new ArrayList<>(), earthly = new ArrayList<>();
         int residents = 0;
         for (ConversationStore.Profile q : state.profiles.values()) {
             if (!villageId.equals(q.villageId) || !"minecraft:villager".equals(q.type) || state.family.dead(q.id)) continue;
             residents++;
             ConversationStore.Relation r = q.relations.get(player.toString());
-            if (r != null) scores.add(r.score);
+            if (r != null) { scores.add(r.score); earthly.add(r.score - r.divine); }
         }
-        return VillageStanding.of(scores, residents, state.rumors.reputation(villageId, player, now));
+        VillageStanding.View view = VillageStanding.of(scores, residents, state.rumors.reputation(villageId, player, now));
+        // Б1: the bell assembly exiles; the god's wrath alone does not (unless the setting allows it) — it leaves the player a suspect.
+        if (state.divine != null && state.divine.exiled(villageId, player)) return view.as(VillageStanding.Rank.EXILE);
+        if (view.rank() == VillageStanding.Rank.EXILE && !Tuning.get().divineMayExile
+                && VillageStanding.of(earthly, residents, state.rumors.reputation(villageId, player, now, false)).rank() != VillageStanding.Rank.EXILE)
+            return view.as(VillageStanding.Rank.SUSPECT);
+        return view;
     }
 
     /** The living spouse of a villager, for the game (village weddings, births); null for none. */

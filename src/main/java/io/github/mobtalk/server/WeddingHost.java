@@ -40,6 +40,9 @@ final class WeddingHost {
     private final java.util.Map<Integer, CompletableFuture<byte[]>> fetched = new java.util.HashMap<>();
     private long audioDeadline, speakingUntil = -1;
     private int promptedVow = -1, judgedVow = -1;
+    /** Для моментов монтажа: когда служба началась и сообщено ли уже, чем она кончилась. */
+    private long ceremonySince;
+    private boolean ceremonyReported;
 
     WeddingHost(DialogueService service, GameBridge bridge) { this.service = service; this.bridge = bridge; }
 
@@ -51,9 +54,10 @@ final class WeddingHost {
 
     void tick() {
         WeddingView now = bridge.wedding();
-        if (now == null) { if (ceremony != null) reset(); return; }
-        if (ceremony != now.ceremony()) { reset(); ceremony = now.ceremony(); }
+        if (now == null) { if (ceremony != null) { reportOutcome(); reset(); } return; }
+        if (ceremony != now.ceremony()) { reportOutcome(); reset(); ceremony = now.ceremony(); ceremonySince = System.currentTimeMillis(); ceremonyReported = false; }
         view = now;
+        if (ceremony.over()) reportOutcome();
         requestScript();
         if (now.player() != null) promptVow();
         voice();
@@ -221,6 +225,28 @@ final class WeddingHost {
     }
 
     /** Свадьба кончилась или сменилась: недоигранное бросается, клиенту жениха клятва закрывается. */
+    /** Чем кончилась свадьба — в историю админки (вид «wedding»): так она попадает в моменты для монтажа. */
+    private void reportOutcome() {
+        WeddingView now = view;
+        if (ceremonyReported || now == null) return;
+        ceremonyReported = true;
+        Wedding.Ceremony done = now.ceremony();
+        Wedding.Cast cast = done.cast();
+        String outcome = done.phase() == Wedding.Ceremony.Phase.JILTED ? "jilted" : done.phase() == Wedding.Ceremony.Phase.CANCELLED ? "cancelled" : done.married() ? "married" : "cancelled";
+        String first = cast.playerWedding() ? done.names().player() : cast.partner().name(), second = cast.spouse().name();
+        String text = switch (outcome) {
+            case "married" -> (cast.playerWedding() ? "Свадьба: " : "Свадьба жителей: ") + first + " и " + second;
+            case "jilted" -> "Сорванная свадьба: " + first + " и " + second;
+            default -> "Свадьба отменена: " + first + " и " + second;
+        };
+        java.util.Map<String, Object> data = new java.util.HashMap<>();
+        data.put("outcome", outcome);
+        data.put("since", ceremonySince);
+        data.put("village", done.names().village());
+        if (done.vowText() != null && !done.vowText().isBlank()) data.put("vow", done.vowText());
+        service.journal().event("wedding", now.player(), cast.playerWedding() ? done.names().player() : null, cast.spouse().id(), second, "villager", text, data);
+    }
+
     void reset() {
         fetched.clear();
         WeddingView old = view;

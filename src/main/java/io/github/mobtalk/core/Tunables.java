@@ -47,6 +47,9 @@ public final class Tunables {
     static {
         Section v = Section.VOICE, m = Section.MODEL, t = Section.TALK, s = Section.SOCIAL, a = Section.ACTIONS;
         // The numbers the config always had, with the same ranges.
+        // Оверлей для OBS (личное): сколько держать строку субтитров после звука и масштаб страницы.
+        integer("overlayHoldSeconds", Section.GENERAL, "overlay", 2, 20, 1, c -> c.overlayHoldSeconds, (c, x) -> c.overlayHoldSeconds = x);
+        integer("overlayScale", Section.GENERAL, "overlay", 60, 200, 5, c -> c.overlayScale, (c, x) -> c.overlayScale = x);
         decimal("maxDistance", t, "reply", 2, 64, 0.5, c -> c.maxDistance, (c, x) -> c.maxDistance = x);
         integer("maxReplyWords", t, "reply", 5, 120, 1, c -> c.maxReplyWords, (c, x) -> c.maxReplyWords = x);
         integer("maxRecordingSeconds", v, "recording", 1, 15, 1, c -> c.maxRecordingSeconds, (c, x) -> c.maxRecordingSeconds = x);
@@ -181,6 +184,13 @@ public final class Tunables {
         integer("villageFriendPoints", s, "village", 0, 1000, 10, c -> c.villageFriendPoints, (c, x) -> c.villageFriendPoints = x);
         integer("villageGuardPoints", s, "village", 0, 2000, 10, c -> c.villageGuardPoints, (c, x) -> c.villageGuardPoints = x);
         integer("villageElderPoints", s, "village", 0, 3000, 10, c -> c.villageElderPoints, (c, x) -> c.villageElderPoints = x);
+        // The god's deeds in the villages (Б1).
+        integer("divineStrength", s, "divine", 0, 200, 10, c -> c.divineStrength, (c, x) -> c.divineStrength = x);
+        integer("divineDailyCap", s, "divine", 0, 300, 5, c -> c.divineDailyCap, (c, x) -> c.divineDailyCap = x);
+        integer("divineSurcharge", s, "divine", 0, 100, 5, c -> c.divineSurcharge, (c, x) -> c.divineSurcharge = x);
+        integer("divineBlessDiscount", s, "divine", 0, 50, 5, c -> c.divineBlessDiscount, (c, x) -> c.divineBlessDiscount = x);
+        integer("divineAssemblyCurses", s, "divine", 0, 10, 1, c -> c.divineAssemblyCurses, (c, x) -> c.divineAssemblyCurses = x);
+        integer("divinePersonalRadius", s, "divine", 16, 256, 8, c -> c.divinePersonalRadius, (c, x) -> c.divinePersonalRadius = x);
 
         // Friendly duties (STAY, GUARD, SPARE).
         integer("friendLeaseMinutes", a, "friends", 1, 60, 1, c -> c.friendLeaseMinutes, (c, x) -> c.friendLeaseMinutes = x);
@@ -251,6 +261,7 @@ public final class Tunables {
                 config.pregnancy = d.pregnancy; config.pregnancyBelly = d.pregnancyBelly; config.pregnancyStatus = d.pregnancyStatus; config.familyFade = d.familyFade;
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices; config.villageSites = d.villageSites;
+                config.divineTidings = d.divineTidings; config.divinePanic = d.divinePanic; config.divineMayExile = d.divineMayExile; config.divineMourners = d.divineMourners;
             }
             case ACTIONS -> { config.placeAnalysis = d.placeAnalysis; config.placeClassifier = d.placeClassifier; }
         }
