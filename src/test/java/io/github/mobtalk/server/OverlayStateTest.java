@@ -88,6 +88,9 @@ class OverlayStateTest {
         JsonObject prayers = Json.parseObject("{\"items\":[{\"t\":1000,\"player\":{\"uuid\":\"" + GONE + "\",\"name\":\"x\"},\"choice\":{\"kind\":\"miracle\",\"deedTitle\":\"Дождь\"}}]}");
         JsonObject state = OverlayState.fromParts(null, null, prayers, Set.of(), new HashSet<>(), 1000 + OverlayState.VERDICT_MILLIS + 1);
         assertFalse(state.has("verdict"));
-        assertEquals("спокоен", state.getAsJsonObject("god").get("word").getAsString());
+        // Вердикт виден пять минут, а настроение помнит его пятнадцать: милость пятиминутной давности ещё греет.
+        assertEquals("благосклонен", state.getAsJsonObject("god").get("word").getAsString());
+        JsonObject later = OverlayState.fromParts(null, null, prayers, Set.of(), new HashSet<>(), 1000 + OverlayState.MOOD_MILLIS + 1);
+        assertEquals("спокоен", later.getAsJsonObject("god").get("word").getAsString());
     }
 }
