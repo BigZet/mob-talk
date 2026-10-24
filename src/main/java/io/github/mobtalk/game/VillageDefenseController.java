@@ -75,8 +75,10 @@ final class VillageDefenseController {
     private final Random random = new Random();
     /** Watchtowers and their archers. */
     final VillageTowers towers;
+    /** Guards with swords and shields. */
+    final VillageGuards guards;
 
-    VillageDefenseController(MobGameBridge bridge) { this.bridge = bridge; towers = new VillageTowers(bridge, this); }
+    VillageDefenseController(MobGameBridge bridge) { this.bridge = bridge; towers = new VillageTowers(bridge, this); guards = new VillageGuards(bridge, this); }
 
     /** The alarm of this zone now, null when it is quiet. */
     VillageAlarm.Alarm alarm(Zone zone) { return alarms.get(zone.key()); }
@@ -150,6 +152,7 @@ final class VillageDefenseController {
         if (time % GOLEM_PERIOD == GOLEM_PHASE) golems(world);
         if (!enabled()) { if (!alarms.isEmpty()) clearRuntime(); return; }
         towers.tick(world, zones.getOrDefault(dimension(world), List.of()));
+        guards.tick(world, zones.getOrDefault(dimension(world), List.of()));
         if (time % SCAN_PERIOD != SCAN_PHASE) return;
         VillageAlarm.Rules rules = rules();
         String dimension = dimension(world);
@@ -458,6 +461,6 @@ final class VillageDefenseController {
 
     void clearRuntime() {
         alarms.clear(); zones.clear(); lastBell.clear(); lastShout.clear(); exileSince.clear(); repairs.clear(); smithRest.clear();
-        towers.clearRuntime();
+        towers.clearRuntime(); guards.clearRuntime();
     }
 }

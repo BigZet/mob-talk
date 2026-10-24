@@ -92,6 +92,10 @@ public final class MobGameBridge implements GameBridge {
         // A favour may only ask for an item the game knows; the core checks the id shape alone.
         Trading.setItemChecker(id -> MobTrading.item(id) != null);
         MischiefWatch.initialize();
+        ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
+            MobGameBridge bridge = forEntity(entity);
+            return bridge == null || !bridge.defense.guards.shieldBlocks(entity, source); // a guard's shield turns half the arrows
+        });
         ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, base, amount, blocked) -> {
             MobGameBridge bridge = forEntity(entity);
             if (bridge == null || !(entity instanceof MobEntity mob)) return;

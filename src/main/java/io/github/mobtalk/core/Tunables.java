@@ -189,6 +189,14 @@ public final class Tunables {
         integer("archerRange", s, "towers", 8, 64, 1, c -> c.archerRange, (c, x) -> c.archerRange = x);
         integer("archerShotTenths", s, "towers", 5, 100, 1, c -> c.archerShotTenths, (c, x) -> c.archerShotTenths = x);
         integer("archerReplaceMinutes", s, "towers", 1, 240, 1, c -> c.archerReplaceMinutes, (c, x) -> c.archerReplaceMinutes = x);
+        // Guards with swords and shields.
+        integer("watchResidents", s, "guards", 2, 30, 1, c -> c.watchResidents, (c, x) -> c.watchResidents = x);
+        integer("watchMin", s, "guards", 0, 8, 1, c -> c.watchMin, (c, x) -> c.watchMin = x);
+        integer("watchMax", s, "guards", 0, 16, 1, c -> c.watchMax, (c, x) -> c.watchMax = x);
+        integer("watchHealth", s, "guards", 20, 100, 1, c -> c.watchHealth, (c, x) -> c.watchHealth = x);
+        integer("watchDamage", s, "guards", 1, 20, 1, c -> c.watchDamage, (c, x) -> c.watchDamage = x);
+        integer("watchSight", s, "guards", 8, 48, 1, c -> c.watchSight, (c, x) -> c.watchSight = x);
+        integer("watchReplaceMinutes", s, "guards", 1, 240, 1, c -> c.watchReplaceMinutes, (c, x) -> c.watchReplaceMinutes = x);
 
         // Friendly duties (STAY, GUARD, SPARE).
         integer("friendLeaseMinutes", a, "friends", 1, 60, 1, c -> c.friendLeaseMinutes, (c, x) -> c.friendLeaseMinutes = x);
@@ -228,6 +236,7 @@ public final class Tunables {
         config.villageElderPoints = Math.max(config.villageElderPoints, config.villageGuardPoints);
         config.guardFar = Math.max(config.guardFar, config.guardNear);
         config.guardChase = Math.max(config.guardChase, config.guardAlert);
+        config.watchMax = Math.max(config.watchMax, config.watchMin);
     }
 
     /** Copies every number as it is, unclamped: a draft keeps what the file said until it is saved. */
@@ -258,7 +267,7 @@ public final class Tunables {
                 config.pregnancy = d.pregnancy; config.pregnancyBelly = d.pregnancyBelly; config.pregnancyStatus = d.pregnancyStatus; config.familyFade = d.familyFade;
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices; config.villageSites = d.villageSites;
-                config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.villageTowers = d.villageTowers;
+                config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.villageTowers = d.villageTowers; config.villageGuards = d.villageGuards;
             }
             case ACTIONS -> { config.placeAnalysis = d.placeAnalysis; config.placeClassifier = d.placeClassifier; }
         }

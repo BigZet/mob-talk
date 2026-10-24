@@ -361,36 +361,37 @@ final class MobTalkSettingsScreen extends Screen {
     // ---- Социальное ----
 
     private void social() {
-        tunables(Tunables.Section.SOCIAL, Map.of(
-                "family", () -> {
+        tunables(Tunables.Section.SOCIAL, Map.ofEntries(
+                Map.<String, Runnable>entry("family", () -> {
                     CyclingButtonWidget<String> gender = track(CyclingButtonWidget.<String>builder(value -> Text.translatable("mobtalk.settings.playerGender." + value))
                             .values("any", "male", "female").initially(draft.playerGender == null ? "any" : draft.playerGender)
                             .omitKeyText().build(0, 0, 100, 20, Text.translatable("mobtalk.settings.playerGender"), (button, value) -> draft.playerGender = value));
                     caption(gender, "mobtalk.settings.playerGender").setTooltip(Tooltip.of(Text.translatable("mobtalk.settings.playerGender.tooltip")));
                     wide(tip(toggle("mobtalk.settings.socialLayer", draft.socialLayer, value -> draft.socialLayer = value), "mobtalk.settings.socialLayer.tooltip"), gender);
                     wide(tip(toggle("mobtalk.settings.familyLife", draft.familyLife, value -> draft.familyLife = value), "mobtalk.settings.familyLife.tooltip"));
-                },
-                "bonds", () -> wide(tip(toggle("mobtalk.settings.social", draft.socialBehavior, value -> draft.socialBehavior = value), "mobtalk.settings.social.tooltip")),
-                "jealousy", () -> wide(tip(toggle("mobtalk.settings.coSleep", draft.coSleep, value -> draft.coSleep = value), "mobtalk.settings.coSleep.tooltip")),
-                "wedding", () -> wide(tip(toggle("mobtalk.settings.weddingCeremony", draft.weddingCeremony, value -> draft.weddingCeremony = value), "mobtalk.settings.weddingCeremony.tooltip")),
-                "child", () -> {
+                }),
+                Map.<String, Runnable>entry("bonds", () -> wide(tip(toggle("mobtalk.settings.social", draft.socialBehavior, value -> draft.socialBehavior = value), "mobtalk.settings.social.tooltip"))),
+                Map.<String, Runnable>entry("jealousy", () -> wide(tip(toggle("mobtalk.settings.coSleep", draft.coSleep, value -> draft.coSleep = value), "mobtalk.settings.coSleep.tooltip"))),
+                Map.<String, Runnable>entry("wedding", () -> wide(tip(toggle("mobtalk.settings.weddingCeremony", draft.weddingCeremony, value -> draft.weddingCeremony = value), "mobtalk.settings.weddingCeremony.tooltip"))),
+                Map.<String, Runnable>entry("child", () -> {
                     wide(tip(toggle("mobtalk.settings.pregnancy", draft.pregnancy, value -> draft.pregnancy = value), "mobtalk.settings.pregnancy.tooltip"),
                             tip(toggle("mobtalk.settings.familyFade", draft.familyFade, value -> draft.familyFade = value), "mobtalk.settings.familyFade.tooltip"));
                     wide(tip(toggle("mobtalk.settings.pregnancyBelly", draft.pregnancyBelly, value -> draft.pregnancyBelly = value), "mobtalk.settings.pregnancyBelly.tooltip"),
                             tip(toggle("mobtalk.settings.pregnancyStatus", draft.pregnancyStatus, value -> draft.pregnancyStatus = value), "mobtalk.settings.pregnancyStatus.tooltip"));
-                },
-                "initiative", () -> wide(tip(toggle("mobtalk.settings.initiative", draft.initiative, value -> draft.initiative = value), "mobtalk.settings.initiative.tooltip"),
-                        tip(toggle("mobtalk.settings.giftsFirst", draft.giftsFirst, value -> draft.giftsFirst = value), "mobtalk.settings.giftsFirst.tooltip")),
-                "village", () -> wide(tip(toggle("mobtalk.settings.villageSites", draft.villageSites, value -> draft.villageSites = value), "mobtalk.settings.villageSites.tooltip")),
-                "defense", () -> {
+                }),
+                Map.<String, Runnable>entry("initiative", () -> wide(tip(toggle("mobtalk.settings.initiative", draft.initiative, value -> draft.initiative = value), "mobtalk.settings.initiative.tooltip"),
+                        tip(toggle("mobtalk.settings.giftsFirst", draft.giftsFirst, value -> draft.giftsFirst = value), "mobtalk.settings.giftsFirst.tooltip"))),
+                Map.<String, Runnable>entry("village", () -> wide(tip(toggle("mobtalk.settings.villageSites", draft.villageSites, value -> draft.villageSites = value), "mobtalk.settings.villageSites.tooltip"))),
+                Map.<String, Runnable>entry("defense", () -> {
                     wide(tip(toggle("mobtalk.settings.villageDefense", draft.villageDefense, value -> draft.villageDefense = value), "mobtalk.settings.villageDefense.tooltip"),
                             tip(toggle("mobtalk.settings.villageNoSpawn", draft.villageNoSpawn, value -> draft.villageNoSpawn = value), "mobtalk.settings.villageNoSpawn.tooltip"));
                     wide(tip(toggle("mobtalk.settings.alarmAgainstPlayers", draft.alarmAgainstPlayers, value -> draft.alarmAgainstPlayers = value), "mobtalk.settings.alarmAgainstPlayers.tooltip"),
                             tip(toggle("mobtalk.settings.alarmChat", draft.alarmChat, value -> draft.alarmChat = value), "mobtalk.settings.alarmChat.tooltip"));
-                },
-                "towers", () -> wide(tip(toggle("mobtalk.settings.villageTowers", draft.villageTowers, value -> draft.villageTowers = value), "mobtalk.settings.villageTowers.tooltip")),
-                "chatter", () -> wide(tip(toggle("mobtalk.settings.villageChatter", draft.villageChatter, value -> draft.villageChatter = value), "mobtalk.settings.villageChatter.tooltip"),
-                        tip(toggle("mobtalk.settings.villageNotices", draft.villageNotices, value -> draft.villageNotices = value), "mobtalk.settings.villageNotices.tooltip"))));
+                }),
+                Map.<String, Runnable>entry("towers", () -> wide(tip(toggle("mobtalk.settings.villageTowers", draft.villageTowers, value -> draft.villageTowers = value), "mobtalk.settings.villageTowers.tooltip"))),
+                Map.<String, Runnable>entry("guards", () -> wide(tip(toggle("mobtalk.settings.villageGuards", draft.villageGuards, value -> draft.villageGuards = value), "mobtalk.settings.villageGuards.tooltip"))),
+                Map.<String, Runnable>entry("chatter", () -> wide(tip(toggle("mobtalk.settings.villageChatter", draft.villageChatter, value -> draft.villageChatter = value), "mobtalk.settings.villageChatter.tooltip"),
+                        tip(toggle("mobtalk.settings.villageNotices", draft.villageNotices, value -> draft.villageNotices = value), "mobtalk.settings.villageNotices.tooltip")))));
         resetSection(Tunables.Section.SOCIAL);
     }
 
