@@ -59,6 +59,22 @@ public final class SocialLedger {
         p.backstory = "";
         return true;
     }
+    /** Исповедь: настоятель храма Божественного блока — всегда мужчина с именем из святцев («отец Сергий»), мужским голосом. Ставится
+     * один раз; повтор ничего не меняет. */
+    public void ordain(UUID villager, String name) {
+        synchronized (store) {
+            ConversationStore.Profile p = store.ensure(villager, "minecraft:villager", name == null || name.isBlank() ? "Житель" : name);
+            boolean changed = false;
+            if (p.social == null) { p.social = SocialProfile.of(villager, false); temper(p); changed = true; }
+            if (p.social.gender() != Gender.MALE) { p.social.gender = Gender.MALE.name(); p.voiceId = ""; changed = true; }
+            if (name != null && !name.isBlank() && !name.equals(p.givenName)) { p.givenName = name.strip(); p.backstory = ""; changed = true; }
+            if (!changed) return;
+            adopt(p, store.config(), store.state.profiles.values());
+            p.revision++;
+            store.scheduleSave();
+        }
+    }
+
     /** The character's one-time shift of the temperament. */
     static void temper(ConversationStore.Profile p) {
         Persona persona = p.social.persona();

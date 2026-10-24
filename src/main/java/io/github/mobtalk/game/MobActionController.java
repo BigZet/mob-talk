@@ -376,6 +376,7 @@ final class MobActionController {
                 && friends.spared(mob, mob.getBrain().getOptionalRegisteredMemory(MemoryModuleType.ATTACK_TARGET).orElse(null)))
             mob.getBrain().forget(MemoryModuleType.ATTACK_TARGET);
         if (bridge.wedding.afterBrain(mob)) return; // Трек L: идёт к месту у колокола или стоит на свадьбе.
+        if (bridge.confession.afterBrain(mob)) return; // Б4: батюшка идёт к аналою и стоит на исповеди.
         Lease lease = leases.get(mob.getUuid());
         if (lease == null && bridge.coSleep.afterBrain(mob)) return; // Трек J: идёт к кровати или спит рядом с игроком.
         if (lease == null && bridge.children.afterBrain(mob)) return; // Трек N: в схватках идёт к своей кровати.

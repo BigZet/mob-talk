@@ -93,6 +93,17 @@ public final class MobTalkMod implements ModInitializer {
     public static CompletableFuture<MobGameBridge> bridgeReady(MinecraftServer server) {
         return server != null && server == current ? bridgeReady : CompletableFuture.failedFuture(new IllegalStateException("Сервер не запущен"));
     }
+    /** Б4: исповеди нужен Божественный блок — его источник {@code mobtalk-admin} (JSON, без общего кода), в одиночке и на сервере. */
+    private static void linkDivine() {
+        try {
+            for (var entry : FabricLoader.getInstance().getEntrypointContainers("mobtalk-admin", java.util.function.UnaryOperator.class)) {
+                if (!"divineblock".equals(entry.getProvider().getMetadata().getId())) continue;
+                @SuppressWarnings("unchecked") java.util.function.UnaryOperator<String> source = (java.util.function.UnaryOperator<String>) entry.getEntrypoint();
+                io.github.mobtalk.core.DivineLink.set(source);
+                LOGGER.info("Mob Talk: исповедь связана с Божественным блоком");
+            }
+        } catch (Throwable failure) { LOGGER.warn("Mob Talk: Божественный блок не подключён к исповеди ({})", failure.toString()); }
+    }
     public static boolean dedicated() { return FabricLoader.getInstance().getEnvironmentType() == EnvType.SERVER; }
     public static String version() {
         return FabricLoader.getInstance().getModContainer("mobtalk").map(mod -> mod.getMetadata().getVersion().getFriendlyString()).orElse("");
@@ -114,6 +125,7 @@ public final class MobTalkMod implements ModInitializer {
             ServerConfig.listen(Tuning::apply);
         }
         ServerConfig.listen(MobTalkMod::reconfigure);
+        linkDivine();
         VoiceServices.install(); // Трек B: распознавание и озвучка на сервере вместо заглушек.
         ServerLifecycleEvents.SERVER_STARTED.register(MobTalkMod::started);
         ServerLifecycleEvents.SERVER_STOPPING.register(MobTalkMod::stopping);

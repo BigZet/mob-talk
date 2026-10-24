@@ -15,6 +15,7 @@ public final class ConversationStore {
     private final JealousyLedger jealousy = new JealousyLedger(this);
     private final WeddingLedger wedding = new WeddingLedger(this);
     private final ChildLedger children = new ChildLedger(this);
+    private final ConfessionLedger confession = new ConfessionLedger(this);
 
     /** Initial load touches disk: call from a maintenance/conversation worker. */
     public static ConversationStore open(Path worldDirectory, MobTalkConfig config) throws IOException {
@@ -64,6 +65,8 @@ public final class ConversationStore {
     public WeddingLedger wedding() { return wedding; }
     /** Трек N: особая ночь, беременность, роды и экран семьи; см. {@link ChildLedger}. */
     public ChildLedger children() { return children; }
+    /** Исповедь: откат, епитимьи; см. {@link ConfessionLedger}. Слов исповеди в памяти мира нет. */
+    public ConfessionLedger confession() { return confession; }
     /** Трек M: пол, родители (мать первой) и стадия роста жителя с профилем — облик людей-жителей; рендер читает копию. */
     public record Lineage(Gender gender, List<UUID> parents, String stage) { }
     public synchronized Map<UUID, Lineage> lineages() {
@@ -1069,7 +1072,11 @@ public final class ConversationStore {
         VillageNotices notices = new VillageNotices();
         /** Players the world knows by name, UUID to the name they last went by (rumours name them); absent in files written before it. */
         Map<String,String> players = new LinkedHashMap<>();
+        /** Исповедь: откат и епитимьи по игрокам; absent in files written before it. */
+        ConfessionLedger.Book confessions = new ConfessionLedger.Book();
         void sanitize() {
+            if (confessions == null) confessions = new ConfessionLedger.Book();
+            confessions.sanitize();
             if (notices == null) notices = new VillageNotices();
             if (players == null) players = new LinkedHashMap<>();
             players.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null || e.getValue().isBlank());
@@ -1089,6 +1096,7 @@ public final class ConversationStore {
             profiles.forEach((key, p) -> c.profiles.put(key, p.copy()));
             c.bargains.putAll(bargains); c.villages.putAll(villages); // Immutable records.
             c.relations = relations.copy(); c.rumors = rumors.copy(); c.family = family.copy(); c.notices = notices.copy(); c.players = new LinkedHashMap<>(players);
+            c.confessions = confessions.copy();
             return c;
         }
     }

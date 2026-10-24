@@ -93,6 +93,8 @@ public final class MobTalkClient implements ClientModInitializer {
     });
     /** Движок второй версии (свадьба у колокола в одиночке): создаётся лениво на вызывающем потоке. */
     private volatile ConversationEngine engine;
+    /** Б4: сервер ждёт слов исповеди — сколько секунд писать голос (0 — исповедь не слушает). */
+    private volatile int confessionSeconds;
     private Path engineWorld; private MobTalkConfig engineConfig;
     private volatile Decider decider = new RuleDecider();
     private MobTalkConfig config = new MobTalkConfig();
@@ -141,6 +143,7 @@ public final class MobTalkClient implements ClientModInitializer {
         familyKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.family", InputUtil.Type.KEYSYM, InputUtil.UNKNOWN_KEY.getCode(), "category.mobtalk"));
         net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_ENTITIES.register(labels::render);
         ChildView.register();
+        PenanceHud.register(this);
         io.github.mobtalk.client.human.VillagerLooks.register();
         net.fabricmc.fabric.api.resource.ResourceManagerHelper.get(net.minecraft.resource.ResourceType.CLIENT_RESOURCES).registerReloadListener(
                 new net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener() {
@@ -401,7 +404,7 @@ public final class MobTalkClient implements ClientModInitializer {
         Request seed = request(requestGeneration);
         captureShot(requestGeneration);
         try {
-            int seconds = wedding.takesVow() ? wedding.vowSeconds() : config.maxRecordingSeconds;
+            int seconds = wedding.takesVow() ? wedding.vowSeconds() : confessionSeconds > 0 ? confessionSeconds : config.maxRecordingSeconds;
             MicrophoneRecorder.Capture capture = microphone.start(config.microphoneName, seconds);
             recording = capture;
             merchant.setWork(seed.merchant);
@@ -588,9 +591,22 @@ public final class MobTalkClient implements ClientModInitializer {
         if (fresh) LOGGER.info("Mob Talk: подпись «{}» для {} (entity {}){}", packet.name(), packet.mob(), packet.mobId(),
                 world != null && world.getEntityById(packet.mobId()) == null ? ", сущности нет на клиенте" : "");
     }
+    /** Б4: исповедь слушает ({@code {"open","seconds","entityId"}}): батюшка — собеседник, запись длиннее обычной; или перестала. */
+    private void confessionListen(String json) {
+        try {
+            JsonObject object = JsonParser.parseString(json).getAsJsonObject();
+            boolean open = object.has("open") && object.get("open").getAsBoolean();
+            confessionSeconds = open ? Math.max(1, Math.min(120, object.has("seconds") ? object.get("seconds").getAsInt() : 60)) : 0;
+            int entityId = object.has("entityId") ? object.get("entityId").getAsInt() : -1;
+            if (open && world != null && entityId >= 0 && world.getEntityById(entityId) instanceof MobEntity priest && !priest.getUuid().equals(selected)) select(priest);
+            if (open) { requestActive = false; status = "Исповедь: удерживайте " + talkKey.getBoundKeyLocalizedText().getString() + " и говорите (до " + confessionSeconds + " с)"; showHud(); }
+        } catch (RuntimeException malformed) { confessionSeconds = 0; }
+    }
     void onScreen(String screen, String json) {
         if ("deal".equals(screen)) { merchant.resolved(json); return; }
         if ("wedding_vow".equals(screen)) { if (!wedding.serverVow(json)) requestActive = false; return; }
+        if ("confession_listen".equals(screen)) { confessionListen(json); return; }
+        if ("penance".equals(screen)) { PenanceHud.text(json); return; }
         CompletableFuture<String> waiting = screenRequests.remove(screen);
         if (waiting == null) return;
         try {
