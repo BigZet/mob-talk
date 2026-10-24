@@ -67,7 +67,7 @@ final class ConfessionHost {
                     MobSpeechS2C.ANSWER, 0, text, ""));
             if (track.view.open()) for (UUID other : listeners(track.view, false)) if (!other.equals(player))
                 service.out().speech(other, new MobSpeechS2C(track.view.priestEntityId(), rite.priest, rite.priestName, "", false, 0, track.view.secrecy(), KIND, 0, text, rite.playerName));
-            if (!rite.listening()) { service.out().status(player, "Батюшка ещё говорит — дослушайте", false, ""); return; }
+            if (rite.phase() != Confession.Rite.Phase.LISTEN) { service.out().status(player, "Батюшка ещё говорит — дослушайте", false, ""); return; }
             rite.heard(text, System.currentTimeMillis());
             service.out().status(player, rite.listening() ? "Батюшка слушает" : "Батюшка обдумывает…", false, "");
             return;
@@ -178,7 +178,7 @@ final class ConfessionHost {
             DivineLink.Outcome outcome;
             try {
                 outcome = rite.returning ? DivineLink.absolveRest(rite.player, rite.deeds.stream().map(Confession.Deed::id).toList(), rite.priestName)
-                        : DivineLink.absolve(rite.player, named, sincerity, rite.place, rite.priestName);
+                        : DivineLink.absolve(rite.player, named, sincerity, rite.place, rite.priestName, rite.punished);
             } catch (RuntimeException failure) { outcome = DivineLink.Outcome.NONE; }
             DivineLink.Outcome result = outcome;
             service.onServer(() -> {
@@ -195,7 +195,7 @@ final class ConfessionHost {
         java.util.Set<Long> named = rite.named();
         service.pool().submit(DialoguePool.Priority.ANSWER, () -> {
             DivineLink.Outcome outcome;
-            try { outcome = DivineLink.absolve(rite.player, named, 0, rite.place, rite.priestName); } catch (RuntimeException failure) { outcome = DivineLink.Outcome.NONE; }
+            try { outcome = DivineLink.absolve(rite.player, named, 0, rite.place, rite.priestName, rite.punished); } catch (RuntimeException failure) { outcome = DivineLink.Outcome.NONE; }
             DivineLink.Outcome result = outcome;
             service.onServer(() -> { bridge.confessionResult(rite, result); journal(track, result); });
         });
@@ -278,7 +278,7 @@ final class ConfessionHost {
             boolean penitent = listener.equals(rite.player);
             service.out().speech(listener, new MobSpeechS2C(view.priestEntityId(), rite.priest, rite.priestName, line.text(), penitent, clipId, view.secrecy(),
                     line.audible() ? PUBLIC_KIND : KIND, millis, "", ""));
-            if (!line.translation().isBlank()) service.out().chat(listener, "§8" + line.translation());
+            if (!line.translation().isBlank()) service.out().chat(listener, "§7" + line.translation());
         }
         if (clipId == 0) return;
         SpeechService.Clip clip = new SpeechService.Clip(clipId, DialogueService.PCM_FORMAT, pcm, millis);

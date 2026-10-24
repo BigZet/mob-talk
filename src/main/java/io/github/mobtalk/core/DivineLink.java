@@ -59,8 +59,10 @@ public final class DivineLink {
         /** Что-то отпущено сейчас: душе стало легче. */
         public boolean lighter() { return absolved.stream().anyMatch(i -> i.restored() > 0) || deferred.stream().anyMatch(i -> i.restored() > 0); }
     }
-    public static Outcome absolve(UUID player, Collection<Long> named, int sincerity, Confession.Place place, String priest) {
+    /** {@code punished}: на игроке шла кара, когда исповедь началась — бог считает так же, как сказал батюшка (епитимья уже названа). */
+    public static Outcome absolve(UUID player, Collection<Long> named, int sincerity, Confession.Place place, String priest, boolean punished) {
         JsonObject request = new JsonObject();
+        request.addProperty("punished", punished);
         request.addProperty("op", "absolve"); request.addProperty("player", player.toString());
         request.add("named", ids(named)); request.addProperty("sincerity", sincerity);
         request.addProperty("place", place.id()); request.addProperty("priest", priest == null ? "" : priest);

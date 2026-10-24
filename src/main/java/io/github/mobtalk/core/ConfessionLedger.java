@@ -56,8 +56,8 @@ public final class ConfessionLedger {
             if (done) return "Епитимья исполнена — вернись к батюшке (" + priest + ")";
             String count = kind.target > 1 ? " " + progress + "/" + kind.target : "";
             String fast = kind == Confession.Penance.FAST && fastSince >= 0 ? " ещё " + Math.max(1, (fastSince + 24_000 - nowTick + 1199) / 1200) + " мин" : "";
-            long days = Math.max(0, dueTick - nowTick) / 24_000;
-            return "Епитимья: " + kind.hud + count + fast + " (срок " + (days >= 1 ? days + " дн." : Math.max(1, (dueTick - nowTick) / 1200) + " мин") + ")";
+            long days = (Math.max(0, dueTick - nowTick) + 23_999) / 24_000;
+            return "Епитимья: " + kind.hud + count + fast + " (срок " + (dueTick - nowTick > 24_000 ? days + " дн." : Math.max(1, (dueTick - nowTick + 1199) / 1200) + " мин") + ")";
         }
     }
 

@@ -509,6 +509,10 @@ public final class ConfessionController {
         return p == null ? "" : p.hud(bridge.server.getOverworld().getTime());
     }
 
-    private String name(VillagerEntity v) { String given = bridge.memory.displayName(v.getUuid()); return given.isBlank() ? (v.hasCustomName() ? v.getCustomName().getString() : v.getName().getString()) : given; }
+    private String name(VillagerEntity v) {
+        String given = bridge.memory.displayName(v.getUuid());
+        if (given.isBlank() && !v.hasCustomName()) given = bridge.memory.social().named(v.getUuid(), v.getName().getString());
+        return given.isBlank() ? (v.hasCustomName() ? v.getCustomName().getString() : v.getName().getString()) : given;
+    }
     private static double sq(double value) { return value * value; }
 }

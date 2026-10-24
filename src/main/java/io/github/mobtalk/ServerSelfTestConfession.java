@@ -104,7 +104,8 @@ final class ServerSelfTestConfession {
                 c.await("бог записал хулу", 90, () -> deeds().stream().anyMatch(d -> d.kind().equals("blasphemy")), () -> {
                     c.check(deeds().stream().anyMatch(d -> d.kind().equals("blasphemy")), "бог записал хулу: " + kinds());
                     DivineLink.call(patch("maxTier", originalTier));
-                    c.pause(8, this::firstConfession);
+                    // Кара за хулу идёт до минуты: первая исповедь — когда она кончилась (иначе и лёгкое ждёт епитимьи).
+                    c.await("кара за хулу прошла", 120, () -> !DivineLink.soul(player).punished(), () -> c.pause(3, this::firstConfession));
                 });
             });
         });
@@ -135,7 +136,7 @@ final class ServerSelfTestConfession {
                     c.check(c.saw(playerName, "speech", p, x -> x.field(1).equals("confession") && x.field(4).startsWith("Се, чадо, Христос невидимо стоит")),
                             "увещание по Требнику пришло исповеднику");
                     c.cue(playerName, "say", String.valueOf(priest.getId()), "Каюсь, батюшка: ругал Бога у алтаря, хулил Его бранью.");
-                    c.await("«нет ли ещё чего на душе?»", 90, () -> listening() || first.phase() != Confession.Rite.Phase.LISTEN, () -> {
+                    c.await("«нет ли ещё чего на душе?»", 90, () -> first.rounds() >= 1 && (listening() || first.phase() != Confession.Rite.Phase.LISTEN), () -> {
                         c.cue(playerName, "say", String.valueOf(priest.getId()), "Больше ничего.");
                         c.await("наставление и «преклони главу»", 150, this::bowing, () -> {
                             c.check(bowing(), "батюшка сказал наставление и просит преклонить главу");
@@ -188,7 +189,7 @@ final class ServerSelfTestConfession {
                     c.cue(streamerName, "shot", "mobtalk-confession-temple-" + streamerName + ".png");
                     c.cue(playerName, "shot", "mobtalk-confession-temple-" + playerName + ".png");
                     c.cue(playerName, "say", String.valueOf(abbot.getId()), "Каюсь, отче: я убил жителя, зарезал его своими руками.");
-                    c.await("«нет ли ещё»", 90, () -> listening() || second.phase() != Confession.Rite.Phase.LISTEN, () -> {
+                    c.await("«нет ли ещё»", 90, () -> second.rounds() >= 1 && (listening() || second.phase() != Confession.Rite.Phase.LISTEN), () -> {
                         c.cue(playerName, "say", String.valueOf(abbot.getId()), "Это всё.");
                         c.await("епитимья и «преклони главу»", 150, this::bowing, () -> {
                             c.check(second.penance() == Confession.Penance.CANDLE, "за убийство епитимья «свеча» (" + second.penance() + ")");

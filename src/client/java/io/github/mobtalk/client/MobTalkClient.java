@@ -363,6 +363,7 @@ public final class MobTalkClient implements ClientModInitializer {
         merchant.end("Мир сменился: торговый разговор отменён");
         cancelWork(AIM_HINT, true, false);
         wedding.reset();
+        confessionSeconds = 0; PenanceHud.text("{}");
         selected = null;
         reach.clear();
         views.clear(); clips.clear(); pendingVoices.clear();

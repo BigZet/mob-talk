@@ -59,6 +59,14 @@ public final class SocialLedger {
         p.backstory = "";
         return true;
     }
+    /** Имя жителя, каким его знают в мире; у незнакомца профиль (пол, характер, имя) заводится сейчас. "" — слой выключен. */
+    public String named(UUID villager, String observedName) {
+        synchronized (store) {
+            ConversationStore.Profile p = store.ensure(villager, "minecraft:villager", observedName == null ? "Житель" : observedName);
+            return p.givenName == null ? "" : p.givenName;
+        }
+    }
+
     /** Исповедь: настоятель храма Божественного блока — всегда мужчина с именем из святцев («отец Сергий»), мужским голосом. Ставится
      * один раз; повтор ничего не меняет. */
     public void ordain(UUID villager, String name) {
