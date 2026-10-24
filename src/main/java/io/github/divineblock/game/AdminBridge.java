@@ -365,6 +365,72 @@ public final class AdminBridge implements UnaryOperator<String> {
             });
         }
 
+        // ---- Confession (Mob Talk's priests): the sins to confess and the absolution; the scene itself is Mob Talk's. ----
+
+        @Override public com.google.gson.JsonObject soulDeeds(String player) {
+            MinecraftServer running = server;
+            if (running == null) throw new IllegalStateException("сервер не запущен");
+            UUID uuid = uuid(player);
+            return onServer(running, () -> {
+                DivineState state = DivineState.of(running);
+                long tick = running.getOverworld().getTime();
+                return AdminProtocol.deedsJson(player(running, state, uuid.toString()), state.ledger.soul(uuid).righteousness, tick / 24_000,
+                        punished(running, uuid, tick), DivineBlockMod.config());
+            });
+        }
+
+        @Override public com.google.gson.JsonObject absolve(com.google.gson.JsonObject request) {
+            MinecraftServer running = server;
+            if (running == null) throw new IllegalStateException("сервер не запущен");
+            UUID uuid = uuid(AdminProtocol.text(request, "player"));
+            java.util.Set<Long> named = AdminProtocol.ids(request, "named");
+            int sincerity = request.has("sincerity") ? Math.max(0, Math.min(2, request.get("sincerity").getAsInt())) : 1;
+            boolean temple = "temple".equals(AdminProtocol.text(request, "place"));
+            String priest = AdminProtocol.text(request, "priest");
+            return onServer(running, () -> {
+                DivineConfig config = DivineBlockMod.config();
+                DivineState state = DivineState.of(running);
+                long tick = running.getOverworld().getTime();
+                Righteousness righteousness = state.ledger.soul(uuid).righteousness;
+                io.github.divineblock.core.Absolution.Result result = io.github.divineblock.core.Absolution.absolve(righteousness, tick / 24_000, named, sincerity,
+                        temple, punished(running, uuid, tick), config);
+                int curses = config.confessLiftsCurse ? Curses.liftSettled(running, uuid, righteousness) : 0;
+                state.markDirty();
+                String name = player(running, state, uuid.toString()).get("name").getAsString();
+                Multiplayer.journal(GodJournal.Kind.CONFESSION, name, AdminProtocol.confessionLine(priest.isBlank() ? "священника" : priest, temple, result, named.size(), sincerity, curses));
+                return AdminProtocol.resultJson(result, curses);
+            });
+        }
+
+        @Override public com.google.gson.JsonObject absolveRest(com.google.gson.JsonObject request) {
+            MinecraftServer running = server;
+            if (running == null) throw new IllegalStateException("сервер не запущен");
+            UUID uuid = uuid(AdminProtocol.text(request, "player"));
+            java.util.Set<Long> ids = AdminProtocol.ids(request, "deeds");
+            String priest = AdminProtocol.text(request, "priest");
+            return onServer(running, () -> {
+                DivineConfig config = DivineBlockMod.config();
+                DivineState state = DivineState.of(running);
+                long tick = running.getOverworld().getTime();
+                Righteousness righteousness = state.ledger.soul(uuid).righteousness;
+                io.github.divineblock.core.Absolution.Result result = io.github.divineblock.core.Absolution.absolveRest(righteousness, tick / 24_000, ids);
+                int curses = config.confessLiftsCurse ? Curses.liftSettled(running, uuid, righteousness) : 0;
+                state.markDirty();
+                String name = player(running, state, uuid.toString()).get("name").getAsString();
+                Multiplayer.journal(GodJournal.Kind.CONFESSION, name, AdminProtocol.restLine(priest.isBlank() ? "священника" : priest, result, curses));
+                return AdminProtocol.resultJson(result, curses);
+            });
+        }
+
+        /** A punishment still runs on him: the god's act under way, or a curse that stays. */
+        private static boolean punished(MinecraftServer running, UUID player, long tick) {
+            return Prayers.PENANCE.running(player, tick, !Curses.of(running, player).isEmpty());
+        }
+        private static UUID uuid(String text) {
+            try { return UUID.fromString(text == null ? "" : text.strip()); }
+            catch (IllegalArgumentException broken) { throw new IllegalArgumentException("нужен UUID игрока"); }
+        }
+
         /** {active, player}: whether it goes on, and over whom (the first, when there are several). */
         private static com.google.gson.JsonObject presence(MinecraftServer running, DivineState state, List<UUID> players) {
             com.google.gson.JsonObject out = new com.google.gson.JsonObject();

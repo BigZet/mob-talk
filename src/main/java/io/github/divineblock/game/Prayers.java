@@ -106,6 +106,13 @@ public final class Prayers {
 
     /** Whether the words are a prayer and whether they insult the god: Jev decides, the rules answer when Jev is off or silent. */
     record Judgement(boolean prayer, boolean insult, String by) { }
+    /** The notable deeds and, after them, what confession left on the conscience (sins kept back, relapses): the god names those too. */
+    static List<Righteousness.Memory> withConscience(List<Righteousness.Memory> notable, Righteousness righteousness) {
+        List<Righteousness.Memory> out = new ArrayList<>(notable);
+        for (Righteousness.Memory memory : righteousness.conscience(2)) if (!out.contains(memory)) out.add(memory);
+        return out;
+    }
+
     static Judgement judge(DivineConfig config, String text) {
         if (config.useJev) {
             try {
@@ -147,7 +154,7 @@ public final class Prayers {
         int recent = soul.recentPrayers(now);
         boolean storm = world.isThundering(), danger = player.getHealth() < player.getMaxHealth() * 0.3f;
         VerdictBuilder.Context context = new VerdictBuilder.Context(text, tone, offeringValue, String.join(", ", gifts), insult,
-                righteousness.score, righteousness.label(), righteousness.notable(day, 3, 2), day, (int) Math.round(soul.mood(now)), recent,
+                righteousness.score, righteousness.label(), withConscience(righteousness.notable(day, 3, 2), righteousness), day, (int) Math.round(soul.mood(now)), recent,
                 storm, world.getMoonPhase(), danger, judgement.insult(),
                 righteousness.memories.stream().filter(m -> m.deed == Righteousness.Deed.BLASPHEMY && day - m.day <= 3).mapToInt(m -> m.count).sum());
         Verdict verdict = VerdictBuilder.build(context, config);
@@ -168,7 +175,7 @@ public final class Prayers {
         if (insult) soul.shiftMood(now, -15);
         else if (offeringValue > 0) soul.shiftMood(now, Math.min(25, 3 + offeringValue / 3.0));
         // Blasphemy of any kind: the god's mood drops to the bottom at once, and the sin is remembered.
-        if (verdict.fury) { soul.shiftMood(now, -200); righteousness.record(Righteousness.Deed.BLASPHEMY, day, ""); }
+        if (verdict.fury) { soul.shiftMood(now, -200); righteousness.record(Righteousness.Deed.BLASPHEMY, day, "", config.confessRelapseMultiplier); }
         else if (verdict.forgiveness) soul.shiftMood(now, 60 - soul.mood(now)); // Anger let go: the mood returns to mild favour.
         else if (tone.polite()) soul.shiftMood(now, 3);
         if (recent >= 2) soul.shiftMood(now, -5);

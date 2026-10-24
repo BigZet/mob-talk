@@ -40,6 +40,11 @@ public final class ChurchSites {
                     List.of(nave, frame.world(21, stand, 0), outdoor, frame.world(north.getX(), 0, north.getZ()), frame.world(ChurchBuilder.CEMETERY_ENTRANCE_X, 0, middle)),
                     ChurchPiece.box(frame, variant), CemeteryPiece.box(frame), ChurchYard.open(frame), outdoor);
         }
+        /** The analoy in the nave before the iconostasis (church x 40, z 0 on the floor, facing the door): there the rector hears
+         * confessions. */
+        public BlockPos analoy() { return new ChurchPiece.Frame(origin, rotation).world(40, variant.stand(), 0); }
+        /** Where the rector stands when no one confesses: beside the analoy, on the carpet's edge. */
+        public BlockPos rectorSpot() { return new ChurchPiece.Frame(origin, rotation).world(39, variant.stand(), -1); }
     }
 
     /** Runs at the end of generating a church, once per chunk it touches: write blocks only inside chunkBox, and spawn

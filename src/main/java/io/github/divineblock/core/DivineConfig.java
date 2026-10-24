@@ -100,6 +100,22 @@ public final class DivineConfig {
     public List<String> disabledBosses = new ArrayList<>();
     public int bossDifficulty = 100;
     public boolean bossBlockDamage = true;
+    /** Confession (Mob Talk's priests, {@link Absolution}): every church gets its rector, a male cleric by the analoy (Abbots). */
+    public boolean abbots = true;
+    /** How much of a named sin a priest's absolution forgives at once, percent: a light sin in a church and by a village priest, a
+     * heavy sin likewise (its rest after the penance and the return). */
+    public int confessLightTemple = 100, confessLightVillage = 75, confessHeavyTemple = 50, confessHeavyVillage = 40;
+    /** A sin whose kind weighs at least this much (a villager, a child, a priest killed, a holy place desecrated) is heavy. */
+    public int confessHeavyWeight = 12;
+    /** A sincere confession forgives this many percent more, never beyond the whole sin. */
+    public int confessSincerityBonus = 25;
+    /** A personal curse ends once every sin on the soul when it was laid is settled at confession (world punishments, bans and
+     * bosses never). */
+    public boolean confessLiftsCurse = true;
+    /** A sin kept back at confession stays on the soul marked: the god names it in his verdicts. */
+    public boolean confessRemembersHidden = true;
+    /** The same sin within two game days of its absolution weighs this many times more and is always heavy. */
+    public int confessRelapseMultiplier = 2;
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
@@ -137,6 +153,11 @@ public final class DivineConfig {
         if (disabledBosses == null) disabledBosses = new ArrayList<>();
         bossDifficulty = clamp(bossDifficulty, 50, 300);
         churchSpacing = clamp(churchSpacing, 32, 256);
+        confessLightTemple = clamp(confessLightTemple, 0, 100); confessLightVillage = clamp(confessLightVillage, 0, 100);
+        confessHeavyTemple = clamp(confessHeavyTemple, 0, 100); confessHeavyVillage = clamp(confessHeavyVillage, 0, 100);
+        confessHeavyWeight = clamp(confessHeavyWeight, 1, 30);
+        confessSincerityBonus = clamp(confessSincerityBonus, 0, 100);
+        confessRelapseMultiplier = clamp(confessRelapseMultiplier, 1, 4);
         if (churchVariant == null || !java.util.List.of("", "STONE", "WOOD", "SLAVIC").contains(churchVariant)) churchVariant = "";
         curseMinutes = CurseTerm.minutes(curseMinutes);
         voiceEffects(voiceEffects());
