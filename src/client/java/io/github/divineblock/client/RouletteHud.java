@@ -2,6 +2,7 @@ package io.github.divineblock.client;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import io.github.divineblock.DivineBlockMod;
+import io.github.divineblock.client.fx.FxHud;
 import io.github.divineblock.core.DivineConfig;
 import io.github.divineblock.core.Roulette;
 import io.github.divineblock.core.RouletteSymbol;
@@ -23,32 +24,48 @@ import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.RotationAxis;
+import net.minecraft.util.math.Vec3d;
 
-/** The punishment roulette on the screen ({@link Roulette}), a slot machine in the manner of our iconostasis and of an online
- * casino at once: the gilded frame with the eight-pointed cross and lampadas rolls down on a spring, a golden hand pulls the
- * lever, chase lights run round the frame as fast as the reels, the reels blur, flash white and bounce as they stop, the
- * last one is awaited with a darkened screen, a heartbeat and a burning frame; then the win line runs with light, the
- * symbols pulse, god rays turn behind the machine, coins and sparks fly, big words slam onto the screen and the ribbon names
- * the punishment. 777 floods the screen with gold, throws sevens at the player and rains coins; the ban blackens it all; a
- * pardon jams the reels into doves under falling feathers. Timed from the server's start tick and drawn from its seed:
- * every screen shows the same spin, the client only draws it and plays its sounds. How much show is the player's own
- * «Интенсивность эффектов»; hidden with the HUD (F1) and by «Показывать у меня», the chat line stays. */
+/** The punishment roulette on the screen ({@link Roulette}): a kiot in the manner of an iconostasis, made a slot machine of
+ * the Last Judgement. Three onion domes with eight-pointed crosses crown it, the Eye of God shines on the central drum,
+ * candles burn on its top edge and lampadas glow down its sides; it comes down on a spring, the hand of God pulls the lever
+ * and the royal doors open on the reels. The reels turn as drums, their symbols in klejma on gold leaf; they blur, flash
+ * and bounce as they stop, each with a stroke of a bell, a halo and sparks; the last one is awaited with its window
+ * burning and a heartbeat. At the final, light streams from the Eye of God, the line runs with light, the bells ring out,
+ * golden stars, petals and feathers fly, incense rises from the pedestal, the words of judgement come down in Church
+ * Slavonic and a banner names the punishment; the psalm of repentance runs along the pedestal. 777 is the seven bowls of
+ * wrath (Rev 16) with the choir; the ban burns black and crimson; a pardon jams the reels into doves to «Господи,
+ * помилуй». The light is the mod's own effects atlas ({@link FxHud}); the world round the player answers the final through
+ * the same engine. Timed from the server's start tick and drawn from its seed, so every screen shows the same spin. How
+ * much show is the player's own «Интенсивность эффектов»; hidden with the HUD (F1) and by «Показывать у меня». */
 public final class RouletteHud {
-    private static final Identifier SYMBOLS = id("symbols"), LEVER = id("lever"), HAND = id("hand"), LAMPS = id("lamps"), RAYS = id("rays"),
-            VIGNETTE = id("vignette"), GLOW = id("glow"), COIN = id("coin"), SPARK = id("spark"), FEATHER = id("feather"), SHINE = id("shine");
+    private static final Identifier SYMBOLS = id("symbols"), LEVER = id("lever"), HAND = id("hand"), LAMPS = id("lamps"), DOORS = id("doors"),
+            BANNER = id("banner");
     private static final Identifier[] FRAMES = { id("frame_silver"), id("frame_gold"), id("frame_hot"), id("frame_black") };
-    /** The machine's texture and its parts, in its own pixels. */
-    private static final int W = 176, H = 112, WIN_L = 34, WIN_T = 38, WIN_B = 98, WIN_R = 142, REEL = 34, REEL_STEP = 37, LINE = 68, CELL = 36;
+    /** The machine in its own units, one texel each (Minecraft pixel art): the body is 176x112 from y 0, the crest rises 16
+     * above it and the pedestal ends at 126. It is drawn on a whole number of screen pixels per texel and moves by whole
+     * texels; only the light and particles over it are smooth. */
+    private static final int W = 176, H = 112, TOP = -16, BOTTOM = 126, WIN_L = 34, WIN_T = 38, WIN_B = 98, WIN_R = 142, REEL = 34, REEL_STEP = 37,
+            LINE = 68, CELL = 36, SYMBOL_TEX = 32;
+    /** The radius of the reels' drums: a cell turns by CELL / RADIUS radians. */
+    private static final double RADIUS = 34;
+    /** Where the light of the final comes from: the Eye of God on the central drum. */
+    private static final float EYE_X = 88, EYE_Y = 19;
     /** How long a pardoned machine stays with its doves, in ticks. */
-    private static final int PARDON_HOLD = 50;
+    private static final int PARDON_HOLD = 60;
     private static final SoundEvent S_LEVER = sound("lever"), S_TICK = sound("tick"), S_THUD = sound("thud"), S_BELL = sound("bell"),
             S_BIG_BELL = sound("big_bell"), S_CHIME = sound("chime"), S_CHOIR = sound("choir"), S_THUNDER = sound("thunder"),
-            S_FANFARE = sound("fanfare"), S_COINS = sound("coins"), S_RISER = sound("riser"), S_HEART = sound("heartbeat"), S_WHOOSH = sound("whoosh");
+            S_TREZVON = sound("trezvon"), S_BLAGOVEST = sound("blagovest"), S_CHOIR_DOOM = sound("choir_doom"), S_POMILUY = sound("pomiluy"),
+            S_RISER = sound("riser"), S_HEART = sound("heartbeat"), S_WHOOSH = sound("whoosh");
     private static final float[] NOTES = { 0.75f, 1.0f, 1.26f };
     private static final float[] FX = { 0f, 0.35f, 0.7f, 1f };
-    /** The chase lights round the frame, in its pixels, clockwise from the top left. */
-    private static final int[][] BULBS = bulbs();
+    /** Petals: gold, crimson, ivory, rose, pale gold. */
+    private static final int[] PETALS = { 0xE8B84A, 0xB0202C, 0xF4EEE0, 0xE8A0A8, 0xFFD978 };
+    /** The psalm of repentance along the pedestal (Ps 6:2–3, Church Slavonic). */
+    private static final String PSALM = "Господи, да не яростию Твоею обличиши мене, ниже гневом Твоим накажеши мене. Помилуй мя, Господи, яко немощен есмь.   ✠   ";
+    /** The lights that run round the kiot: the six candles on its top edge, then the lampada jewels down its sides. */
+    private static final float[][] LIGHTS = lights();
+    private static final int CANDLES = 6;
 
     private static final List<Show> SHOWS = new ArrayList<>();
     private static final List<Particle> PARTICLES = new ArrayList<>();
@@ -80,7 +97,7 @@ public final class RouletteHud {
         double[] jammed;
         // What was already played and announced.
         boolean leverPlayed, finPlayed, riserPlayed;
-        int stopsPlayed, lastBeat = -100, rained;
+        int stopsPlayed, lastBeat = -100;
         double[] last;
 
         Show(RouletteSpinPayload spin, boolean own) {
@@ -108,12 +125,14 @@ public final class RouletteHud {
         double cancelledTick() { return cancelledAt < 0 ? Double.NaN : Math.max(0, cancelledAt - spin.start()); }
         boolean stopped(double t) { return cancelledAt >= 0 && t >= cancelledTick(); }
         boolean pardoned(double t) { return pardon && t >= cancelledTick(); }
+        boolean won(double t) { return t >= timing.fin() && !stopped(t); }
         /** When it is gone from the screen. */
         double over() { return cancelledAt < 0 ? timing.end() : cancelledTick() + (pardon ? PARDON_HOLD + Roulette.Timing.EXIT : Roulette.Timing.EXIT); }
         /** The moment it starts to leave. */
         double leave() { return cancelledAt >= 0 ? cancelledTick() + (pardon ? PARDON_HOLD : 0) : timing.act(); }
         /** Between the second reel's stop and the last one's: everything waits for it. */
         boolean anticipating(double t) { return !mini() && !stopped(t) && t >= timing.stops()[1] && t < timing.stops()[2]; }
+        double tension(double t) { return anticipating(t) ? smooth((t - timing.stops()[1]) / Math.max(1, timing.stops()[2] - timing.stops()[1])) : 0; }
         /** Where reel {@code reel} stands at {@code t}: as the server laid it, or jammed where the pardon caught it. */
         double position(int reel, double t) {
             if (jammed != null && t >= cancelledTick()) {
@@ -123,11 +142,22 @@ public final class RouletteHud {
             return Roulette.position(timing, reel, spin.tease() && reel == timing.reels() - 1, landing[reel], t);
         }
         double speed(int reel, double t) { return Math.abs(position(reel, t + 0.5) - position(reel, Math.max(0, t - 0.5))); }
+        /** The colours of this spin's light: the main one, the deep one and the bright one. */
+        int[] palette(double t) {
+            if (pardoned(t)) return new int[] { 0xBFE0FF, 0x7FA8E0, 0xFFFFFF };
+            if (doom()) return new int[] { 0xFFC040, 0xD04018, 0xFFF0B0 };
+            if (ban()) return new int[] { 0xC0101C, 0x500010, 0xFF5040 };
+            return switch (Math.min(5, spin.severity())) {
+                case 1, 2 -> new int[] { 0xC8D8F0, 0x8098C8, 0xFFF8E8 };
+                case 3, 4 -> new int[] { 0xFFC048, 0xC06820, 0xFFEBB0 };
+                default -> new int[] { 0xFF8030, 0xC02020, 0xFFD878 };
+            };
+        }
     }
 
-    /** A spark, a coin, a feather or an ember flying over the screen, in screen pixels. */
+    /** A spark, a petal, a feather, an ember, a star, a halo, a wisp of incense or a big seven, in screen pixels. */
     private static final class Particle {
-        static final int SPARK = 0, COIN = 1, FEATHER = 2, EMBER = 3, SEVEN = 4;
+        static final int SPARK = 0, PETAL = 1, FEATHER = 2, EMBER = 3, SEVEN = 4, STAR = 6, HALO = 7, SMOKE = 8;
         int kind, age, life, color;
         double x, y, px, py, vx, vy, gravity, drag = 0.98, size = 1, spin, rot, prot;
     }
@@ -145,9 +175,14 @@ public final class RouletteHud {
                 one.jammed = new double[one.timing.reels()];
                 for (int reel = 0; reel < one.jammed.length; reel++) one.jammed[reel] = Math.round(one.position(reel, t));
                 if (one.pardon) {
-                    play(one, S_CHIME, 1f, 0.9f);
-                    play(one, S_WHOOSH, 1.2f, 0.4f);
-                    if (shown(one)) for (int i = 0; i < 70 * fx; i++) feather(lastWidth * RANDOM.nextDouble(), -10 - RANDOM.nextDouble() * 60);
+                    play(one, S_POMILUY, 1f, 1f);
+                    play(one, S_CHIME, 1f, 0.6f);
+                    if (shown(one)) {
+                        for (int i = 0; i < 60 * fx; i++) feather(lastWidth * RANDOM.nextDouble(), -10 - RANDOM.nextDouble() * 80);
+                        halo(machine(W / 2.0, LINE), 0xD0F0FF, 3);
+                        for (int i = 0; i < 30 * fx; i++) star(machine(RANDOM.nextDouble() * W, TOP + RANDOM.nextDouble() * (BOTTOM - TOP)), 0xE8F4FF);
+                    }
+                    world(one, 2);
                     moment.accept("pardon");
                 }
             }
@@ -164,6 +199,13 @@ public final class RouletteHud {
     }
     private static boolean shown(Show one) { return show && current() == one; }
 
+    /** Whether a roulette is on (the altar's chants sink under it). */
+    public static boolean spinning() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        for (Show one : SHOWS) if (one.at(client, 0) < one.leave() + 20) return true;
+        return false;
+    }
+
     // ---- Sound, particles and the moments, every client tick. ----
 
     private static void tick(MinecraftClient client) {
@@ -178,98 +220,123 @@ public final class RouletteHud {
         for (Show one : new ArrayList<>(SHOWS)) {
             double t = one.at(client, 0);
             if (t >= one.over()) { SHOWS.remove(one); moment.accept("gone"); continue; }
-            if (one.stopped(t)) continue;
+            if (one.stopped(t)) {
+                // Incense goes on rising round a pardon.
+                if (one.pardon && shown(one) && RANDOM.nextFloat() < 0.6f * fx) incense(one);
+                continue;
+            }
             boolean drawn = shown(one);
+            int[] palette = one.palette(t);
             if (!one.leverPlayed) {
                 one.leverPlayed = true;
                 if (!one.mini()) play(one, S_LEVER, 1f, 0.8f);
                 moment.accept("start");
             }
-            if (!one.mini() && drawn && t >= 5 && t < 6) burst(machine(160, 50), 8, 0xFFE070, 1.6, false);
+            if (!one.mini() && drawn && t >= 5 && t < 6) burst(machine(157, 30), (int) (14 * fx), 0xFFE070, 2.2, false);
             // The ratchet: a click for each cell that passed the line, so it slows down with the reels.
             for (int reel = 0; reel < one.timing.reels(); reel++) {
                 if (t >= one.timing.stops()[reel]) continue;
                 double p = one.position(reel, t);
                 if (!Double.isNaN(one.last[reel]) && Math.floor(p + 0.5) != Math.floor(one.last[reel] + 0.5) && !ticked) {
                     ticked = true;
-                    play(one, S_TICK, (one.anticipating(t) ? 1.15f : 0.9f) + RANDOM.nextFloat() * 0.2f, 0.35f);
+                    play(one, S_TICK, (one.anticipating(t) ? 1.15f : 0.9f) + RANDOM.nextFloat() * 0.2f, 0.3f);
                 }
                 one.last[reel] = p;
             }
             while (one.stopsPlayed < one.timing.reels() && t >= one.timing.stops()[one.stopsPlayed]) {
                 int reel = one.stopsPlayed++;
-                play(one, S_THUD, 1f, 0.8f);
-                play(one, S_BELL, one.mini() ? 1f : NOTES[Math.min(reel, NOTES.length - 1)], 0.55f);
+                // Each reel stops with a stroke of a bell, rising: low, middle, high.
+                play(one, S_THUD, 1f, 0.7f);
+                play(one, S_BELL, one.mini() ? 1f : NOTES[Math.min(reel, NOTES.length - 1)], 0.6f);
                 if (drawn) {
                     double rx = one.mini() ? 24 : WIN_L + reel * REEL_STEP + REEL / 2.0;
-                    double[] top = machine(rx, one.mini() ? 6 : WIN_T), bottom = machine(rx, one.mini() ? 42 : WIN_B);
-                    int sparks = (int) (14 * fx);
-                    burst(top, sparks, one.ban() ? 0xC02020 : 0xFFE9A0, 2.2, false);
-                    burst(bottom, sparks, one.ban() ? 0xC02020 : 0xFFD050, 2.2, false);
+                    int sparks = (int) (18 * fx);
+                    burst(machine(rx, one.mini() ? 6 : WIN_T), sparks, palette[0], 2.6, false);
+                    burst(machine(rx, one.mini() ? 42 : WIN_B), sparks, palette[2], 2.6, false);
+                    halo(machine(rx, one.mini() ? 24 : LINE), palette[0], 1);
                 }
                 moment.accept("stop" + (reel + 1));
             }
-            // Waiting for the last reel: a rising tone and a heartbeat.
+            // Waiting for the last reel: a rising tone and a heartbeat; stars gather round the third reel.
             if (one.anticipating(t)) {
-                if (!one.riserPlayed) { one.riserPlayed = true; play(one, S_RISER, 1f, 0.45f); }
+                if (!one.riserPlayed) { one.riserPlayed = true; play(one, S_RISER, 1f, 0.35f); }
                 int beat = (int) ((t - one.timing.stops()[1]) / 11);
                 if (beat != one.lastBeat) { one.lastBeat = beat; play(one, S_HEART, 1f, 0.9f); }
+                if (drawn && RANDOM.nextFloat() < 0.7f * fx) star(machine(WIN_L + 2 * REEL_STEP + RANDOM.nextDouble() * REEL, WIN_T + RANDOM.nextDouble() * (WIN_B - WIN_T)), palette[2]);
             }
             if (!one.finPlayed && t >= one.timing.fin()) {
                 one.finPlayed = true;
-                finale(one, drawn);
+                finale(one, drawn, palette);
             }
-            // After the final: coins keep raining on 777, embers rise from a burning frame.
             if (drawn && one.finPlayed && t < one.leave()) {
                 double since = t - one.timing.fin();
-                if (one.doom() && since < 40) for (int i = 0; i < 7 * fx; i++) coin(RANDOM.nextDouble() * lastWidth, -12, (RANDOM.nextDouble() - 0.5) * 1.2, 1 + RANDOM.nextDouble() * 2);
+                // Golden stars keep falling on 777; the ban's frame smoulders; petals drift down; incense rises.
+                if (one.doom() && since < 40) for (int i = 0; i < 4 * fx; i++) fallingStar(RANDOM.nextDouble() * lastWidth, -12);
                 if (one.ban() && RANDOM.nextFloat() < fx) ember(machine(RANDOM.nextDouble() * W, H));
+                if (!one.ban() && !one.mini() && since < 26) for (int i = 0; i < 2 * fx; i++) petal(RANDOM.nextDouble() * lastWidth, -8);
+                if (!one.mini() && RANDOM.nextFloat() < 0.7f * fx) incense(one);
+                if (RANDOM.nextFloat() < 0.5f * fx) star(machine(RANDOM.nextDouble() * W, TOP + RANDOM.nextDouble() * (BOTTOM - TOP)), palette[2]);
             }
-            if (drawn && !one.mini() && one.spin.severity() >= 5 && RANDOM.nextFloat() < 0.5f * fx) ember(machine(RANDOM.nextDouble() * W, 26 + RANDOM.nextDouble() * 80));
+            if (drawn && !one.mini() && one.spin.severity() >= 5 && RANDOM.nextFloat() < 0.4f * fx) ember(machine(RANDOM.nextDouble() * W, 26 + RANDOM.nextDouble() * 80));
+            // Glitter: stars twinkling on and round the gilding all the while it spins.
+            if (drawn && !one.mini()) for (int i = 0; i < 2; i++) if (RANDOM.nextFloat() < 0.6f * fx) star(machine(-6 + RANDOM.nextDouble() * (W + 12), TOP + RANDOM.nextDouble() * (BOTTOM - TOP)), RANDOM.nextBoolean() ? palette[2] : 0xFFFFFF);
         }
     }
 
-    /** The final: bells, fanfare and coins; the big bell and thunder; on 777 a chord, the choir, a long thunder, gold and a
-     * shaking camera; the ban: a low bell and thunder. */
-    private static void finale(Show one, boolean drawn) {
+    /** The final: the great bell and the bells ringing out, thunder; on 777 the choir and a long thunder, gold and a shaking
+     * camera; the ban: the great bell low, thunder and a heartbeat. */
+    private static void finale(Show one, boolean drawn, int[] palette) {
         if (one.mini()) {
             play(one, S_BIG_BELL, 1.3f, 0.35f);
-            play(one, S_COINS, 1.2f, 0.25f);
-            if (drawn) burst(machine(24, 48), (int) (16 * fx), 0xFFD050, 2.5, true);
+            play(one, S_TREZVON, 1.1f, 0.3f);
+            if (drawn) { burst(machine(24, 48), (int) (20 * fx), palette[0], 3, true); halo(machine(24, 24), palette[0], 1); }
             moment.accept("final");
             return;
         }
-        play(one, S_WHOOSH, 1f, 0.5f);
+        play(one, S_WHOOSH, 0.8f, 0.3f);
         if (one.doom()) {
-            for (float note : new float[] { 1.0f, 1.26f, 1.5f }) play(one, S_BELL, note, 0.5f);
-            play(one, S_FANFARE, 1f, 0.8f);
-            play(one, S_BIG_BELL, 1f, 0.9f);
-            play(one, S_CHOIR, 1f, 0.75f);
-            play(one, S_THUNDER, 0.55f, 0.9f);
-            play(one, S_COINS, 1f, 0.7f);
+            for (float note : new float[] { 1.0f, 1.26f, 1.5f }) play(one, S_BELL, note, 0.45f);
+            play(one, S_BLAGOVEST, 1f, 1f);
+            play(one, S_CHOIR_DOOM, 1f, 0.9f);
+            play(one, S_TREZVON, 1f, 0.7f);
+            play(one, S_THUNDER, 0.55f, 0.8f);
             if (one.own && jackpotFx) io.github.divineblock.client.fx.FxCamera.shake(0.85f, 50);
             moment.accept("777");
         } else if (one.ban()) {
-            play(one, S_BIG_BELL, 0.7f, 1f);
+            play(one, S_BLAGOVEST, 0.75f, 1f);
             play(one, S_THUNDER, 0.5f, 0.9f);
             play(one, S_HEART, 0.8f, 1f);
             moment.accept("gates");
         } else {
-            play(one, S_FANFARE, 0.9f + 0.05f * Math.min(4, one.spin.severity()), 0.55f);
-            play(one, S_BIG_BELL, 1f, 0.8f);
-            play(one, S_THUNDER, 0.8f, 0.6f);
-            play(one, S_COINS, 1.1f, 0.4f);
+            play(one, S_BLAGOVEST, 1f, 0.9f);
+            play(one, S_TREZVON, 1f, 0.55f);
+            play(one, S_THUNDER, 0.8f, 0.5f);
         }
         if (drawn) {
-            // A fountain of coins and sparks out of the plaque under the reels.
+            // Golden stars, sparks and petals out of the plaque under the reels; halos from the line; light from the Eye.
             double[] from = machine(W / 2.0, WIN_B + 6);
-            int coins = (int) ((one.doom() ? 60 : one.ban() ? 0 : 26) * fx);
-            for (int i = 0; i < coins; i++) coin(from[0], from[1], (RANDOM.nextDouble() - 0.5) * 7, -4 - RANDOM.nextDouble() * 6);
-            burst(from, (int) (40 * fx), one.ban() ? 0xB01818 : 0xFFE070, 4, true);
+            int stars = (int) ((one.doom() ? 50 : one.ban() ? 0 : 24) * fx);
+            for (int i = 0; i < stars; i++) fountainStar(from[0], from[1]);
+            burst(from, (int) (40 * fx), palette[0], 4.5, true);
+            burst(machine(EYE_X, EYE_Y), (int) (30 * fx), palette[2], 3.5, false);
+            if (!one.ban()) for (int i = 0; i < 40 * fx; i++) petal(from[0] + (RANDOM.nextDouble() - 0.5) * 40, from[1], (RANDOM.nextDouble() - 0.5) * 7, -3 - RANDOM.nextDouble() * 5);
+            halo(machine(W / 2.0, LINE), palette[0], one.doom() ? 4 : 2);
+            halo(machine(EYE_X, EYE_Y), palette[2], 2);
             if (one.doom() && fx > 0) for (int reel = 0; reel < 3; reel++) seven(machine(WIN_L + reel * REEL_STEP + REEL / 2.0, LINE), reel * 3);
             if (one.ban()) for (int i = 0; i < 40 * fx; i++) ember(machine(RANDOM.nextDouble() * W, 30 + RANDOM.nextDouble() * 80));
         }
+        world(one, one.doom() ? 3 : one.ban() ? 1 : 1.5f);
         moment.accept("final");
+    }
+
+    /** The world answers the final round the sinner (his own screen only): sparks, feathers on 777 and on a pardon. */
+    private static void world(Show one, float amount) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (!one.own || client.player == null || fx <= 0 || FxHud.quality() <= 0) return;
+        Vec3d at = client.player.getPos().add(0, 1.2, 0);
+        if (one.pardon) { FxHud.feathers(at.add(0, 2, 0), amount); return; }
+        FxHud.sparks(at, one.palette(0)[0], amount);
+        if (one.doom()) FxHud.feathers(at.add(0, 2.5, 0), amount);
     }
 
     private static void play(Show one, SoundEvent sound, float pitch, float loudness) {
@@ -280,43 +347,86 @@ public final class RouletteHud {
 
     // ---- Particles. ----
 
-    /** A point of the machine (its own pixels) on the screen, where it was last drawn. */
+    /** A point of the machine (its own units) on the screen, where it was last drawn. */
     private static double[] machine(double x, double y) { return new double[] { lastX + x * lastScale, lastY + y * lastScale }; }
 
     private static Particle add(int kind, double x, double y, double vx, double vy, int life) {
-        if (PARTICLES.size() > 900 || fx <= 0) return null;
+        if (PARTICLES.size() > 1400 || fx <= 0) return null;
         Particle p = new Particle();
         p.kind = kind; p.x = p.px = x; p.y = p.py = y; p.vx = vx; p.vy = vy; p.life = life;
         PARTICLES.add(p);
         return p;
     }
 
+    /** Sparks with trails, a third of them white-hot, the rest in the colour and its neighbours. */
     private static void burst(double[] at, int count, int color, double force, boolean up) {
         for (int i = 0; i < count; i++) {
-            double angle = up ? -Math.PI / 2 + (RANDOM.nextDouble() - 0.5) * 2.2 : RANDOM.nextDouble() * Math.PI * 2;
-            double speed = force * (0.4 + RANDOM.nextDouble());
-            Particle p = add(Particle.SPARK, at[0], at[1], Math.cos(angle) * speed, Math.sin(angle) * speed, 14 + RANDOM.nextInt(16));
+            double angle = up ? -Math.PI / 2 + (RANDOM.nextDouble() - 0.5) * 2.4 : RANDOM.nextDouble() * Math.PI * 2;
+            double speed = force * (0.4 + RANDOM.nextDouble()) * lastScale * 0.6;
+            Particle p = add(Particle.SPARK, at[0], at[1], Math.cos(angle) * speed, Math.sin(angle) * speed, 16 + RANDOM.nextInt(18));
             if (p == null) return;
-            p.gravity = 0.12; p.color = RANDOM.nextFloat() < 0.3f ? 0xFFFFFF : color; p.size = 0.6 + RANDOM.nextDouble() * 0.8;
+            p.gravity = 0.12 * lastScale * 0.6; p.drag = 0.95;
+            p.color = RANDOM.nextFloat() < 0.3f ? 0xFFFFFF : shift(color, (RANDOM.nextFloat() - 0.5f) * 0.06f);
+            p.size = (0.7 + RANDOM.nextDouble() * 0.8) * lastScale;
         }
     }
 
-    private static void coin(double x, double y, double vx, double vy) {
-        Particle p = add(Particle.COIN, x, y, vx, vy, 60 + RANDOM.nextInt(40));
+    /** A golden star thrown up out of the plaque, falling back with a twinkle. */
+    private static void fountainStar(double x, double y) {
+        Particle p = add(Particle.STAR, x, y, (RANDOM.nextDouble() - 0.5) * 6, -4 - RANDOM.nextDouble() * 6, 50 + RANDOM.nextInt(40));
         if (p == null) return;
-        p.gravity = 0.25; p.drag = 0.99; p.size = 0.8 + RANDOM.nextDouble() * 0.7; p.spin = RANDOM.nextInt(8);
+        p.gravity = 0.22; p.drag = 0.99; p.size = (10 + RANDOM.nextDouble() * 10) * Math.max(1, lastScale * 0.5); p.color = RANDOM.nextBoolean() ? 0xFFD24A : 0xFFF0B0;
+        p.rot = RANDOM.nextDouble(); p.spin = 1;
+    }
+
+    private static void fallingStar(double x, double y) {
+        Particle p = add(Particle.STAR, x, y, (RANDOM.nextDouble() - 0.5) * 1.2, 1.5 + RANDOM.nextDouble() * 2.5, 80 + RANDOM.nextInt(40));
+        if (p == null) return;
+        p.gravity = 0.04; p.drag = 1; p.size = (10 + RANDOM.nextDouble() * 12) * Math.max(1, lastScale * 0.5); p.color = 0xFFD860; p.spin = 1;
     }
 
     private static void feather(double x, double y) {
-        Particle p = add(Particle.FEATHER, x, y, (RANDOM.nextDouble() - 0.5) * 0.6, 0.6 + RANDOM.nextDouble() * 0.8, 120 + RANDOM.nextInt(60));
+        Particle p = add(Particle.FEATHER, x, y, (RANDOM.nextDouble() - 0.5) * 0.6, 0.6 + RANDOM.nextDouble() * 0.8, 130 + RANDOM.nextInt(60));
         if (p == null) return;
-        p.gravity = 0.0; p.drag = 1; p.size = 0.7 + RANDOM.nextDouble() * 0.6; p.spin = (RANDOM.nextDouble() - 0.5) * 8; p.rot = RANDOM.nextDouble() * 360;
+        p.drag = 1; p.size = (10 + RANDOM.nextDouble() * 8) * Math.max(1, lastScale * 0.5); p.spin = (RANDOM.nextDouble() - 0.5) * 0.12; p.rot = RANDOM.nextDouble() * 6;
+    }
+
+    private static void petal(double x, double y) { petal(x, y, (RANDOM.nextDouble() - 0.5) * 1.5, 0.8 + RANDOM.nextDouble() * 1.2); }
+    private static void petal(double x, double y, double vx, double vy) {
+        Particle p = add(Particle.PETAL, x, y, vx, vy, 90 + RANDOM.nextInt(60));
+        if (p == null) return;
+        p.gravity = 0.07; p.drag = 0.97; p.size = (5 + RANDOM.nextDouble() * 4) * Math.max(1, lastScale * 0.5); p.spin = (RANDOM.nextDouble() - 0.5) * 0.4;
+        p.rot = RANDOM.nextDouble() * 6; p.color = PETALS[RANDOM.nextInt(PETALS.length)];
     }
 
     private static void ember(double[] at) {
         Particle p = add(Particle.EMBER, at[0], at[1], (RANDOM.nextDouble() - 0.5) * 0.6, -0.4 - RANDOM.nextDouble() * 1.2, 30 + RANDOM.nextInt(30));
         if (p == null) return;
-        p.gravity = -0.01; p.color = RANDOM.nextBoolean() ? 0xFF5020 : 0xFFA030; p.size = 0.5 + RANDOM.nextDouble() * 0.6;
+        p.gravity = -0.01; p.color = RANDOM.nextBoolean() ? 0xFF5020 : 0xFFA030; p.size = (5 + RANDOM.nextDouble() * 5) * Math.max(1, lastScale * 0.5);
+    }
+
+    private static void star(double[] at, int color) {
+        Particle p = add(Particle.STAR, at[0], at[1], 0, -0.1, 12 + RANDOM.nextInt(12));
+        if (p == null) return;
+        p.color = color; p.drag = 1; p.size = (8 + RANDOM.nextDouble() * 10) * Math.max(1, lastScale * 0.5); p.rot = RANDOM.nextDouble();
+    }
+
+    /** Incense from the censers at the ends of the pedestal: a wisp rising and spreading. */
+    private static void incense(Show one) {
+        double[] at = machine(RANDOM.nextBoolean() ? 26 : 150, 112);
+        Particle p = add(Particle.SMOKE, at[0] + (RANDOM.nextDouble() - 0.5) * 4 * lastScale, at[1], (RANDOM.nextDouble() - 0.5) * 0.4, -0.5 - RANDOM.nextDouble() * 0.5, 50 + RANDOM.nextInt(30));
+        if (p == null) return;
+        p.gravity = -0.004; p.drag = 0.99; p.size = 10 * Math.max(1, lastScale * 0.6); p.rot = RANDOM.nextDouble() * 6; p.spin = (RANDOM.nextDouble() - 0.5) * 0.03;
+        p.color = one.ban() ? 0x6A5A5A : 0xE8E4DC;
+    }
+
+    /** {@code rings} halos spreading from a point, one after another. */
+    private static void halo(double[] at, int color, int rings) {
+        for (int i = 0; i < rings; i++) {
+            Particle p = add(Particle.HALO, at[0], at[1], 0, 0, 18);
+            if (p == null) return;
+            p.age = -i * 4; p.color = i % 2 == 0 ? color : 0xFFFFFF; p.drag = 1; p.size = 60 * lastScale;
+        }
     }
 
     /** A big seven flying at the player. */
@@ -332,63 +442,70 @@ public final class RouletteHud {
             p.px = p.x; p.py = p.y; p.prot = p.rot;
             p.age++;
             if (p.age < 0) continue;
-            if (p.kind == Particle.FEATHER) { p.vx = Math.sin((p.age + p.rot) * 0.08) * 0.9; p.rot += p.spin; }
+            if (p.kind == Particle.FEATHER) { p.vx = Math.sin((p.age + p.rot * 30) * 0.07) * 1.1; p.rot += p.spin; }
+            if (p.kind == Particle.PETAL) { p.rot += p.spin; p.vx += Math.sin((p.age + p.rot) * 0.2) * 0.05; }
+            if (p.kind == Particle.SMOKE) { p.rot += p.spin; p.size *= 1.012; p.vx += Math.sin(p.age * 0.08 + p.rot) * 0.02; }
             p.vy += p.gravity; p.vx *= p.drag; p.vy *= p.drag;
             p.x += p.vx; p.y += p.vy;
             if (p.age >= p.life || p.y > lastHeight + 40) it.remove();
         }
     }
 
+    /** Incense, feathers and petals see-through; sevens as the klejmo; sparks, embers, stars and halos as light. */
     private static void drawParticles(DrawContext context, float delta) {
+        FxHud.Batch soft = FxHud.begin(context, false);
+        for (Particle p : PARTICLES) {
+            if (p.age < 0 || p.kind != Particle.FEATHER && p.kind != Particle.PETAL && p.kind != Particle.SMOKE) continue;
+            float x = (float) MathHelper.lerp(delta, p.px, p.x), y = (float) MathHelper.lerp(delta, p.py, p.y);
+            float life = (float) (p.age + delta) / p.life, fade = MathHelper.clamp((1 - life) * 3, 0, 1);
+            float rot = (float) MathHelper.lerp(delta, p.prot, p.rot);
+            switch (p.kind) {
+                case Particle.FEATHER -> soft.sprite(FxHud.Sprite.FEATHER, x, y, (float) p.size, rot * 0.6f, 1, 0xFFFFFF, fade);
+                case Particle.PETAL -> soft.sprite(FxHud.Sprite.CONFETTI, x, y, (float) p.size, rot, Math.abs(MathHelper.cos(rot * 2.3f)) * 0.6f + 0.25f, p.color, fade * 0.95f);
+                default -> soft.sprite(FxHud.Sprite.SMOKE, x, y, (float) p.size * (1 + life * 2), rot, 1, p.color, 0.35f * MathHelper.sin(life * MathHelper.PI) * fx);
+            }
+        }
+        soft.draw();
         var matrices = context.getMatrices();
         for (Particle p : PARTICLES) {
-            if (p.age < 0) continue;
+            if (p.age < 0 || p.kind != Particle.SEVEN) continue;
             double x = MathHelper.lerp(delta, p.px, p.x), y = MathHelper.lerp(delta, p.py, p.y);
-            float life = (float) (p.age + delta) / p.life, fade = MathHelper.clamp(1 - life * life, 0, 1);
+            float life = (float) (p.age + delta) / p.life;
             matrices.push();
             matrices.translate(x, y, 0);
-            switch (p.kind) {
-                case Particle.SPARK -> {
-                    matrices.scale((float) p.size, (float) p.size, 1);
-                    color(context, p.color, fade * 0.7f);
-                    context.drawTexture(GLOW, -6, -6, 12, 12, 0, 0, 64, 64, 64, 64);
-                    color(context, 0xFFFFFF, fade);
-                    context.drawTexture(SPARK, -4, -4, (p.age / 3 % 2) * 9, 0, 9, 9, 18, 9);
-                }
-                case Particle.COIN -> {
-                    matrices.scale((float) p.size, (float) p.size, 1);
-                    color(context, 0xFFFFFF, Math.min(1, fade * 2));
-                    int frame = (int) ((p.age + p.spin) / 2) % 8;
-                    context.drawTexture(COIN, -8, -8, frame * 16, 0, 16, 16, 128, 16);
-                }
-                case Particle.FEATHER -> {
-                    matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees((float) MathHelper.lerp(delta, p.prot, p.rot)));
-                    matrices.scale((float) p.size, (float) p.size, 1);
-                    color(context, 0xFFFFFF, Math.min(1, fade * 3));
-                    context.drawTexture(FEATHER, -8, -8, 0, 0, 16, 16, 16, 16);
-                }
-                case Particle.EMBER -> {
-                    matrices.scale((float) p.size, (float) p.size, 1);
-                    color(context, p.color, fade);
-                    context.drawTexture(GLOW, -5, -5, 10, 10, 0, 0, 64, 64, 64, 64);
-                    context.fill(-1, -1, 1, 1, (int) (fade * 255) << 24 | 0xFFF0C0);
-                }
-                case Particle.SEVEN -> {
-                    float u = (float) (p.age + delta) / p.life;
-                    float scale = 1.2f + 7f * u * u;
-                    matrices.scale(scale * (float) lastScale, scale * (float) lastScale, 1);
-                    color(context, 0xFFFFFF, MathHelper.clamp(1.2f - u * 1.2f, 0, 1));
-                    context.drawTexture(SYMBOLS, -16, -16, RouletteSymbol.SEVEN.ordinal() * 32, 0, 32, 32, 32 * RouletteSymbol.values().length, 32);
-                }
-                default -> { }
-            }
+            float scale = (1.2f + 7f * life * life) * (float) lastScale;
+            matrices.scale(scale, scale, 1);
+            context.setShaderColor(1f, 1f, 1f, MathHelper.clamp(1.2f - life * 1.2f, 0, 1));
+            symbolQuad(context, RouletteSymbol.SEVEN, -16, -16, 32, 32);
             context.setShaderColor(1f, 1f, 1f, 1f);
             matrices.pop();
         }
-    }
-
-    private static void color(DrawContext context, int rgb, float alpha) {
-        context.setShaderColor((rgb >> 16 & 255) / 255f, (rgb >> 8 & 255) / 255f, (rgb & 255) / 255f, MathHelper.clamp(alpha, 0, 1));
+        FxHud.Batch light = FxHud.begin(context, true);
+        for (Particle p : PARTICLES) {
+            if (p.age < 0) continue;
+            float x = (float) MathHelper.lerp(delta, p.px, p.x), y = (float) MathHelper.lerp(delta, p.py, p.y);
+            float life = (float) (p.age + delta) / p.life, fade = MathHelper.clamp(1 - life * life, 0, 1);
+            switch (p.kind) {
+                case Particle.SPARK -> {
+                    double speed = Math.hypot(p.vx, p.vy);
+                    float angle = (float) Math.atan2(p.vy, p.vx) + MathHelper.HALF_PI;
+                    float length = (float) Math.max(p.size * 1.5, speed * 3.5);
+                    light.streak(FxHud.Sprite.BEAM, x - (float) (p.vx * 1.5), y - (float) (p.vy * 1.5), length, (float) p.size * 1.2f, angle, p.color, fade * 0.8f);
+                    light.sprite(FxHud.Sprite.SPARK, x, y, (float) p.size * 4f, 0, 1, p.color, fade);
+                }
+                case Particle.EMBER -> light.sprite(FxHud.Sprite.EMBER, x, y, (float) p.size, 0, 1, p.color, fade);
+                case Particle.STAR -> {
+                    // A golden star of the fountain twinkles all its life; a passing star blinks once.
+                    float twinkle = p.spin > 0 ? 0.65f + 0.35f * MathHelper.sin((p.age + delta) * 0.6f + (float) p.rot * 9) : MathHelper.sin(life * MathHelper.PI);
+                    float alpha = p.spin > 0 ? fade : twinkle;
+                    light.sprite(FxHud.Sprite.GLOW, x, y, (float) p.size * 1.1f, 0, 1, p.color, alpha * 0.45f);
+                    light.sprite(FxHud.Sprite.STAR, x, y, (float) p.size * twinkle, (float) p.rot, 1, p.color, alpha);
+                }
+                case Particle.HALO -> light.sprite(FxHud.Sprite.HALO, x, y, (float) p.size * (0.2f + 1.6f * (1 - (1 - life) * (1 - life))), 0, 1, p.color, (1 - life) * 0.9f);
+                default -> { }
+            }
+        }
+        light.draw();
     }
 
     // ---- The picture. ----
@@ -400,8 +517,6 @@ public final class RouletteHud {
         int sw = context.getScaledWindowWidth(), sh = context.getScaledWindowHeight();
         lastWidth = sw; lastHeight = sh;
         Show one = current();
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
         if (one != null && show) {
             double t = one.at(client, delta);
             if (t < one.over()) {
@@ -410,27 +525,33 @@ public final class RouletteHud {
             }
         }
         if (!PARTICLES.isEmpty()) drawParticles(context, delta);
+        context.draw();
         context.setShaderColor(1f, 1f, 1f, 1f);
-        RenderSystem.disableBlend();
+        RenderSystem.defaultBlendFunc();
     }
 
     private static void drawMachine(DrawContext context, TextRenderer text, Show one, double t, int sw, int sh) {
         int severity = MathHelper.clamp(one.spin.severity(), 1, 6);
-        float base = (float) MathHelper.clamp(Math.min(sw * 0.44 / W, sh * 0.38 / H), 0.45, 3.2);
-        // Rolling in on a spring, leaving upwards; a zoom while the last reel is awaited and a kick at the final.
-        double in = easeOutBack(Math.min(1, t / 12.0), 1.9);
+        // The kiot with its crest, pedestal and banner takes about 44% of the width and 45% of the height.
+        float base = (float) MathHelper.clamp(Math.min(sw * 0.44 / W, sh * 0.45 / (BOTTOM - TOP + 32)), 0.45, 3.2);
+        // Coming down on a spring, leaving upwards; a zoom while the last reel is awaited and a kick at the final.
+        double in = easeOutBack(Math.min(1, t / 12.0), 1.7);
         double leave = t > one.leave() ? Math.min(1, (t - one.leave()) / Roulette.Timing.EXIT) : 0;
-        double zoom = 0.82 + 0.18 * in;
-        if (one.anticipating(t)) zoom *= 1 + 0.07 * smooth((t - one.timing.stops()[1]) / Math.max(1, one.timing.stops()[2] - one.timing.stops()[1]));
-        else if (t >= one.timing.fin() && !one.stopped(t)) zoom *= 1 + 0.07 * Math.max(0, 1 - (t - one.timing.fin()) / 10) + 0.0;
-        float scale = (float) (base * zoom);
+        double zoom = (0.85 + 0.15 * in) * (1 + 0.06 * one.tension(t));
+        if (one.won(t)) zoom *= 1 + 0.06 * Math.max(0, 1 - (t - one.timing.fin()) / 10);
+        // A whole number of screen pixels per texel (zooms go in steps), and the kiot moves by whole texels.
+        double pixels = MinecraftClient.getInstance().getWindow().getScaleFactor();
+        float scale = (float) (Math.max(1, Math.round(base * zoom * pixels)) / pixels);
         double[] shake = shake(one, t);
-        double cx = sw / 2.0 + shake[0] * base, top = 4 + (in - 1) * (H + 30) * base - leave * leave * (H + 60) * base + shake[1] * base;
+        double cx = sw / 2.0 + shake[0] * base;
+        double top = 3 - TOP * base + (in - 1) * (BOTTOM - TOP + 40) * base - leave * leave * (BOTTOM - TOP + 80) * base + shake[1] * base;
         double x0 = cx - W * scale / 2.0, y0 = top + (H * base - H * scale) / 2.0;
+        x0 = Math.round(x0 * pixels / Math.round(scale * pixels)) * Math.round(scale * pixels) / pixels;
+        y0 = Math.round(y0 * pixels / Math.round(scale * pixels)) * Math.round(scale * pixels) / pixels;
         lastX = x0; lastY = y0; lastScale = scale;
+        float presence = (float) (Math.min(1, t / 8) * (1 - leave));
 
-        backdrop(context, one, t, sw, sh);
-        rays(context, one, t, x0 + W * scale / 2.0, y0 + LINE * scale, scale);
+        aura(context, one, t, x0, y0, scale, presence);
         flash(context, one, t, sw, sh);
 
         var matrices = context.getMatrices();
@@ -441,7 +562,7 @@ public final class RouletteHud {
         boolean doves = one.pardoned(t);
         for (int reel = 0; reel < 3; reel++) {
             int x = WIN_L + reel * REEL_STEP;
-            context.fillGradient(x, WIN_T, x + REEL, WIN_B, doves ? 0xFFF8FBFF : 0xFFFBF3DC, doves ? 0xFFDCE8F4 : 0xFFE6D6AE);
+            context.fillGradient(x, WIN_T, x + REEL, WIN_B, doves ? 0xFFE6EEF8 : 0xFF6A4A26, doves ? 0xFFC8D8EC : 0xFF3A2410);
         }
         matrices.pop();
         context.enableScissor((int) Math.floor(x0 + WIN_L * scale), (int) Math.floor(y0 + WIN_T * scale), (int) Math.ceil(x0 + WIN_R * scale), (int) Math.ceil(y0 + WIN_B * scale));
@@ -450,78 +571,75 @@ public final class RouletteHud {
         matrices.scale(scale, scale, 1);
         for (int reel = 0; reel < 3; reel++) drawReel(context, one, reel, t, WIN_L + reel * REEL_STEP, LINE);
         glass(context, one, t);
+        doors(context, t);
         matrices.pop();
         context.disableScissor();
 
         matrices.push();
         matrices.translate(x0, y0, 0);
         matrices.scale(scale, scale, 1);
-        anticipation(context, one, t);
-        winLine(context, one, t);
         Identifier frame = FRAMES[severity <= 2 ? 0 : severity <= 4 ? 1 : severity == 5 ? 2 : 3];
-        context.drawTexture(frame, 0, 0, 0, 0, W, H, W, H);
-        frameShine(context, one, t);
-        chaseLights(context, one, t);
+        tex(context, frame, 0, TOP, W, BOTTOM - TOP, 0, 0, W, BOTTOM - TOP, W, BOTTOM - TOP);
         lamps(context, one, t, severity);
         leverAndHand(context, one, t);
-        ribbon(context, text, one, t);
+        frameLight(context, one, t);
+        inscriptions(context, text, one, t, x0, y0, scale);
+        banner(context, text, one, t);
         matrices.pop();
-        bigWords(context, text, one, t, sw, y0 + (H + 34) * scale, base);
+        bigWords(context, text, one, t, sw, y0 + (BOTTOM + 40) * scale, base);
     }
 
-    /** The screen darkens round the machine while it spins, most of all while the last reel is awaited. */
-    private static void backdrop(DrawContext context, Show one, double t, int sw, int sh) {
-        if (fx <= 0 || !one.own) return;
-        double dim = Math.min(1, t / 10) * 0.35;
-        if (one.anticipating(t)) dim = 0.35 + 0.35 * smooth((t - one.timing.stops()[1]) / Math.max(1, one.timing.stops()[2] - one.timing.stops()[1]));
-        else if (t >= one.timing.fin()) dim = 0.7 * Math.max(0.4, 1 - (t - one.timing.fin()) / 20);
-        if (t > one.leave()) dim *= Math.max(0, 1 - (t - one.leave()) / Roulette.Timing.EXIT);
-        if (one.stopped(t) && !one.pardon) dim *= Math.max(0, 1 - (t - one.cancelledTick()) / Roulette.Timing.EXIT);
-        dim *= fx;
-        if (dim <= 0.01) return;
-        int tint = one.ban() ? 0x200000 : one.pardoned(t) ? 0x001830 : 0x000000;
-        context.fill(0, 0, sw, sh, (int) (dim * 0.35 * 255) << 24 | tint);
-        context.setShaderColor(1f, 1f, 1f, (float) dim);
-        context.drawTexture(VIGNETTE, 0, 0, sw, sh, 0, 0, 256, 256, 256, 256);
-        context.setShaderColor(1f, 1f, 1f, 1f);
-    }
-
-    /** God rays turning behind the machine: faint while it spins, blazing at the final. */
-    private static void rays(DrawContext context, Show one, double t, double cx, double cy, float scale) {
-        if (fx <= 0) return;
-        double strength = 0.18 + (one.anticipating(t) ? 0.2 : 0);
-        double size = 230;
-        if (t >= one.timing.fin() && !one.stopped(t)) {
-            double x = t - one.timing.fin();
-            strength = 0.95 * Math.max(0.55, 1 - x / 30);
-            size = 230 + 140 * Math.min(1, x / 6);
+    /** Behind the kiot: a warm glow drifting round it, and god rays from the Eye of God on its crest, turning slowly — faint
+     * while it spins, brighter while the last reel is awaited, streaming at the final. Added light: nothing darkens. */
+    private static void aura(DrawContext context, Show one, double t, double x0, double y0, float scale, float presence) {
+        if (fx <= 0 || presence <= 0.01f || one.stopped(t) && !one.pardon) return;
+        int[] palette = one.palette(t);
+        float cx = (float) (x0 + W / 2.0 * scale), cy = (float) (y0 + LINE * scale);
+        float ex = (float) (x0 + EYE_X * scale), ey = (float) (y0 + EYE_Y * scale);
+        double since = one.won(t) ? t - one.timing.fin() : one.pardoned(t) ? t - one.cancelledTick() : -1;
+        float power = (float) (0.3 + 0.3 * one.tension(t) + (since >= 0 ? 0.7 * Math.max(0.5, 1 - since / 30) + 0.4 * Math.max(0, 1 - since / 6) : 0)) * presence * fx;
+        FxHud.Batch light = FxHud.begin(context, true);
+        // The glow round the kiot: big soft lights in the spin's colours, circling slowly and shading into each other.
+        for (int i = 0; i < 6; i++) {
+            double a = t * 0.02 * (i % 2 == 0 ? 1 : -1.3) + i * Math.PI / 3;
+            float ox = (float) Math.cos(a) * W * 0.34f * scale, oy = (float) Math.sin(a * 1.3) * H * 0.26f * scale;
+            int color = mix(palette[i % 3], palette[(i + 1) % 3], 0.5f + 0.5f * MathHelper.sin((float) (t * 0.05 + i)));
+            light.sprite(FxHud.Sprite.GLOW, cx + ox, cy + oy, W * 0.95f * scale, 0, 1, color, 0.32f * power);
         }
-        if (one.pardoned(t)) { strength = 0.8; size = 300; }
-        else if (one.stopped(t)) return;
-        if (t > one.leave()) strength *= Math.max(0, 1 - (t - one.leave()) / Roulette.Timing.EXIT);
-        strength *= Math.min(1, t / 8) * fx;
-        int color = one.pardoned(t) ? 0xD8F0FF : one.doom() ? 0xFFD040 : one.ban() ? 0xB00818 : switch (Math.min(5, one.spin.severity())) {
-            case 1, 2 -> 0xD0E0FF; case 3, 4 -> 0xFFC850; default -> 0xFF7020; };
-        var matrices = context.getMatrices();
-        for (int layer = 0; layer < 2; layer++) {
-            matrices.push();
-            matrices.translate(cx, cy, 0);
-            float speed = (float) (t >= one.timing.fin() ? 2.2 : 0.8);
-            matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees((float) (layer == 0 ? t * speed : -t * speed * 0.7 + 15)));
-            float s = (float) (size * scale / 256.0 * (layer == 0 ? 1 : 0.8));
-            matrices.scale(s, s, 1);
-            color(context, color, (float) strength * (layer == 0 ? 0.7f : 0.5f));
-            context.drawTexture(RAYS, -128, -128, 0, 0, 256, 256, 256, 256);
-            matrices.pop();
+        // God rays from the Eye: two wheels turning against each other, long and short beams in shades of the light.
+        int rays = 20;
+        float reach = W * (0.85f + (since >= 0 ? 0.45f * (float) Math.min(1, since / 6) : 0.15f * (float) one.tension(t))) * scale;
+        for (int wheel = 0; wheel < 2; wheel++) {
+            float turn = (float) (t * (since >= 0 ? 0.012 : 0.005) * (wheel == 0 ? 1 : -0.7)) + wheel * 0.16f;
+            for (int i = 0; i < rays; i++) {
+                float angle = turn + i * MathHelper.TAU / rays;
+                float pulse = 0.55f + 0.45f * MathHelper.sin((float) (t * 0.1 + i * 1.7 + wheel));
+                float length = reach * (i % 2 == 0 ? 1f : 0.62f) * (wheel == 0 ? 1 : 0.8f);
+                int color = mix(palette[0], palette[2], 0.5f + 0.5f * MathHelper.sin((float) (t * 0.04 + i * 0.9)));
+                float dx = MathHelper.cos(angle), dy = MathHelper.sin(angle);
+                light.streak(FxHud.Sprite.BEAM, ex + dx * length / 2, ey + dy * length / 2, length / 2, 8 * scale * (i % 2 == 0 ? 1 : 0.6f),
+                        angle + MathHelper.HALF_PI, color, 0.3f * power * pulse);
+            }
         }
-        context.setShaderColor(1f, 1f, 1f, 1f);
+        light.sprite(FxHud.Sprite.GLOW, ex, ey, 46 * scale, 0, 1, palette[2], 0.6f * power);
+        // The Eye's halo breathes, and a star turns in it.
+        float breath = 0.6f + 0.4f * MathHelper.sin((float) (t * 0.25));
+        light.sprite(FxHud.Sprite.HALO, ex, ey, (26 + 8 * breath) * scale, 0, 1, palette[2], 0.5f * breath * power);
+        light.sprite(FxHud.Sprite.STAR, ex, ey, 30 * breath * scale, (float) (t * 0.03), 1, 0xFFFFFF, 0.6f * breath * power);
+        if (since >= 0) {
+            float burst = (float) Math.max(0, 1 - since / 14);
+            light.sprite(FxHud.Sprite.FLARE, ex, ey, W * (0.4f + 0.6f * burst) * scale, (float) (t * 0.02), 1, palette[2], (0.45f + 0.55f * burst) * presence * fx);
+            light.sprite(FxHud.Sprite.FLARE, cx, cy, W * (0.3f + 0.7f * burst) * scale, (float) (-t * 0.02), 1, palette[0], 0.6f * burst * presence * fx);
+            light.streak(FxHud.Sprite.BEAM, cx, cy, W * 1.1f * scale, 4 * scale, MathHelper.HALF_PI, palette[2], 0.5f * burst * presence * fx);
+        }
+        light.draw();
     }
 
-    /** The machine jolts: when the lever is pulled, at each stop, at the final. */
+    /** The kiot jolts: when the lever is pulled, at each stop, at the final; it trembles while the last reel is awaited. */
     private static double[] shake(Show one, double t) {
         double x = 0, y = 0;
-        double[][] kicks = one.mini() ? new double[0][] : new double[][] { { 5, 1.2 }, { one.timing.stops()[0], 1.8 }, { one.timing.stops()[1], 2.0 },
-                { one.timing.stops()[2], 3.0 }, { one.timing.fin(), one.doom() ? 5.0 : one.ban() ? 4.0 : 2.5 } };
+        double[][] kicks = one.mini() ? new double[0][] : new double[][] { { 5, 1.0 }, { one.timing.stops()[0], 1.5 }, { one.timing.stops()[1], 1.7 },
+                { one.timing.stops()[2], 2.6 }, { one.timing.fin(), one.doom() ? 4.5 : one.ban() ? 3.5 : 2.2 } };
         for (double[] kick : kicks) {
             double since = t - kick[0];
             if (since < 0 || since > 14) continue;
@@ -529,76 +647,93 @@ public final class RouletteHud {
             x += amp * Math.sin(since * 2.9 + kick[0]);
             y += amp * 0.7 * Math.cos(since * 3.7 + kick[0]);
         }
-        if (one.anticipating(t)) { x += Math.sin(t * 7.1) * 0.35 * fx; y += Math.cos(t * 6.3) * 0.25 * fx; }
+        if (one.anticipating(t)) { x += Math.sin(t * 7.1) * 0.35 * fx * one.tension(t); y += Math.cos(t * 6.3) * 0.25 * fx * one.tension(t); }
         return new double[] { x, y };
     }
 
+    /** One reel as a turning drum: its cells round the line, squeezed and darkened as they turn away. */
     private static void drawReel(DrawContext context, Show one, int reel, double t, int x, int line) {
         double p = one.position(reel, t);
-        // The last reel twitches just before it stops.
         int last = one.timing.reels() - 1;
         double stop = one.timing.stops()[reel];
+        // The last reel twitches just before it stops.
         if (reel == last && !one.mini() && t > stop - 22 && t < stop && !one.stopped(t)) p += Math.sin(t * 3.1) * 0.05 * fx;
         boolean doves = one.pardoned(t);
         double speed = one.stopped(t) ? 0 : one.speed(reel, t);
         List<RouletteSymbol> strip = one.strips.get(reel);
-        boolean won = t >= one.timing.fin() && !one.stopped(t);
+        boolean won = one.won(t);
+        int[] palette = one.palette(t);
         int base = (int) Math.floor(p);
         var matrices = context.getMatrices();
-        for (int k = base - 2; k <= base + 2; k++) {
+        // Radiance behind the symbol under the line once the reels have won (or turned to doves): a glow, a halo breathing
+        // round it and a slowly turning star.
+        if ((won || doves) && fx > 0) {
+            double since = won ? t - one.timing.fin() : t - one.cancelledTick();
+            float pulse = 0.6f + 0.4f * Math.abs(MathHelper.sin((float) (since * 0.32)));
+            FxHud.begin(context, true)
+                    .sprite(FxHud.Sprite.GLOW, x + 17, line, 64, 0, 1, palette[0], pulse * fx)
+                    .sprite(FxHud.Sprite.HALO, x + 17, line, 36 + 8 * pulse, 0, 1, palette[2], 0.55f * pulse * fx)
+                    .sprite(FxHud.Sprite.STAR, x + 17, line, 46 * pulse, (float) (since * 0.05), 1, palette[2], 0.5f * pulse * fx)
+                    .draw();
+        }
+        double step = CELL / RADIUS;
+        for (int k = base - 2; k <= base + 3; k++) {
+            double angle = (p - k) * step;
+            if (Math.abs(angle) >= Math.PI / 2 - 0.05) continue;
             RouletteSymbol symbol = doves ? RouletteSymbol.DOVE : strip.get(Math.floorMod(k, strip.size()));
-            double y = line + (p - k) * CELL;
-            boolean centre = Math.abs(y - line) < CELL / 2.0;
+            // By whole texels: the cell's place and its squeezed height are rounded to the grid.
+            double y = Math.round(line + RADIUS * Math.sin(angle));
+            float squeeze = Math.max(1, Math.round(32 * Math.cos(angle))) / 32f, light = 0.35f + 0.65f * (float) Math.cos(angle);
+            boolean centre = Math.abs(angle) < step / 2;
             matrices.push();
             matrices.translate(x + 17, y, 0);
             if (won && centre) {
-                // The winning symbols pulse over a glow.
                 double since = t - one.timing.fin();
-                float pulse = (float) (1 + 0.14 * Math.abs(Math.sin(since * 0.32)) + 0.25 * Math.max(0, 1 - since / 5));
-                color(context, one.ban() ? 0xC01020 : one.doom() ? 0xFFD040 : 0xFFF0B0, 0.55f + 0.3f * (float) Math.abs(Math.sin(since * 0.32)));
-                context.drawTexture(GLOW, -24, -24, 48, 48, 0, 0, 64, 64, 64, 64);
-                context.setShaderColor(1f, 1f, 1f, 1f);
+                float pulse = (float) (1 + 0.12 * Math.abs(Math.sin(since * 0.32)) + 0.2 * Math.max(0, 1 - since / 5));
                 matrices.scale(pulse, pulse, 1);
-            } else if (doves && centre) {
-                color(context, 0xFFFFFF, 0.6f);
-                context.drawTexture(GLOW, -24, -24, 48, 48, 0, 0, 64, 64, 64, 64);
-                context.setShaderColor(1f, 1f, 1f, 1f);
             }
+            matrices.scale(1, squeeze, 1);
             if (speed > 0.25 && !doves) {
                 // Motion blur: the symbol stretched along the reel, with faint ghosts behind it.
-                float stretch = (float) (1 + Math.min(1.6, (speed - 0.25) * 1.6));
-                color(context, 0xFFFFFF, 0.22f);
-                drawSymbol(context, symbol, 0, -speed * 10, stretch);
-                drawSymbol(context, symbol, 0, -speed * 20, stretch);
-                dark(context, one, symbol, doves, 0.85f);
+                float stretch = Math.round(32 * (1 + Math.min(1.4, (speed - 0.25) * 1.4))) / 32f;
+                // Pixel streaks: copies a whole number of texels behind, fainter and fainter.
+                context.setShaderColor(light, light, light, 0.22f);
+                drawSymbol(context, symbol, 0, -Math.round(speed * 10), stretch);
+                drawSymbol(context, symbol, 0, -Math.round(speed * 20), stretch);
+                dark(context, one, symbol, doves, light, 0.85f);
                 drawSymbol(context, symbol, 0, 0, stretch);
             } else {
-                dark(context, one, symbol, doves, 1f);
+                dark(context, one, symbol, doves, light, 1f);
                 drawSymbol(context, symbol, 0, 0, 1);
             }
             context.setShaderColor(1f, 1f, 1f, 1f);
             matrices.pop();
         }
-        // Streaks of light down the reel at full speed.
+        // Streaks of light down the reel at full speed, a flash as it stops.
+        FxHud.Batch flare = FxHud.begin(context, true);
         if (speed > 0.6 && fx > 0) {
-            int alpha = (int) (Math.min(1, (speed - 0.6) * 2) * 60 * fx);
+            float strength = (float) Math.min(1, (speed - 0.6) * 2) * fx;
             for (int i = 0; i < 3; i++) {
-                int sx = x + 6 + i * 10 + (int) (Math.sin(t * 1.7 + i * 2 + reel) * 2);
-                context.fill(sx, WIN_T, sx + 1, WIN_B, alpha << 24 | 0xFFFFFF);
+                float sx = x + 7 + i * 10 + (float) Math.sin(t * 1.7 + i * 2 + reel) * 2;
+                flare.streak(FxHud.Sprite.BEAM, sx, (WIN_T + WIN_B) / 2f, (WIN_B - WIN_T) / 2f, 3, 0, palette[2], 0.3f * strength);
             }
         }
-        // A white flash on the reel as it stops.
         double since = t - stop;
-        if (since >= 0 && since < 7 && !one.stopped(t)) context.fill(x, WIN_T, x + REEL, WIN_B, (int) ((1 - since / 7) * 200) << 24 | 0xFFFFFF);
-        // The cylinder: darker at the top and bottom of the window.
-        context.fillGradient(x, WIN_T, x + REEL, WIN_T + 16, 0xD0180C06, 0x00180C06);
-        context.fillGradient(x, WIN_B - 16, x + REEL, WIN_B, 0x00180C06, 0xD0180C06);
+        if (since >= 0 && since < 8 && !one.stopped(t)) {
+            float flash = (float) (1 - since / 8);
+            flare.sprite(FxHud.Sprite.GLOW, x + 17, line, 70, 0, 1, 0xFFFFFF, flash * 0.9f);
+            flare.streak(FxHud.Sprite.BEAM, x + 17, line, 30, 22 * flash, MathHelper.HALF_PI, palette[2], flash * 0.7f);
+        }
+        flare.draw();
+        // The drum's curve: darker towards the top and bottom of the window.
+        context.fillGradient(x, WIN_T, x + REEL, WIN_T + 18, 0xE0100804, 0x00100804);
+        context.fillGradient(x, WIN_B - 18, x + REEL, WIN_B, 0x00100804, 0xE0100804);
     }
 
-    /** The ban blackens every symbol but the gates. */
-    private static void dark(DrawContext context, Show one, RouletteSymbol symbol, boolean doves, float alpha) {
-        if (one.ban() && symbol != RouletteSymbol.GATE && !doves) context.setShaderColor(0.32f, 0.26f, 0.27f, alpha);
-        else context.setShaderColor(1f, 1f, 1f, alpha);
+    /** The ban blackens every symbol but the gates; {@code light} is the drum's shade at this cell. */
+    private static void dark(DrawContext context, Show one, RouletteSymbol symbol, boolean doves, float light, float alpha) {
+        if (one.ban() && symbol != RouletteSymbol.GATE && !doves) context.setShaderColor(0.32f * light, 0.26f * light, 0.27f * light, alpha);
+        else context.setShaderColor(light, light, light, alpha);
     }
 
     /** A symbol centred on the current point, stretched vertically by {@code stretch}. */
@@ -607,218 +742,280 @@ public final class RouletteHud {
         matrices.push();
         matrices.translate(dx, dy, 0);
         matrices.scale(1, stretch, 1);
-        context.drawTexture(SYMBOLS, -16, -16, symbol.ordinal() * 32, 0, 32, 32, 32 * RouletteSymbol.values().length, 32);
+        symbolQuad(context, symbol, -16, -16, 32, 32);
         matrices.pop();
+    }
+
+    private static void symbolQuad(DrawContext context, RouletteSymbol symbol, int x, int y, int width, int height) {
+        tex(context, SYMBOLS, x, y, width, height, symbol.ordinal() * SYMBOL_TEX, 0, SYMBOL_TEX, SYMBOL_TEX, SYMBOL_TEX * RouletteSymbol.values().length, SYMBOL_TEX);
     }
 
     /** The glass over the reels: a highlight at the top and a glint sweeping across now and then. */
     private static void glass(DrawContext context, Show one, double t) {
-        context.fillGradient(WIN_L, WIN_T, WIN_R, WIN_T + 8, 0x40FFFFFF, 0x00FFFFFF);
+        context.fillGradient(WIN_L, WIN_T, WIN_R, WIN_T + 8, 0x30FFFFFF, 0x00FFFFFF);
         if (fx <= 0) return;
         double period = 34, phase = (t % period) / period;
-        double gx = WIN_L - 40 + phase * (WIN_R - WIN_L + 80);
-        context.setShaderColor(1f, 1f, 1f, 0.55f * fx);
-        context.drawTexture(SHINE, (int) gx, WIN_T - 2, 0, 0, 32, 64, 32, 64);
-        context.setShaderColor(1f, 1f, 1f, 1f);
+        float gx = (float) (WIN_L - 30 + phase * (WIN_R - WIN_L + 60));
+        FxHud.begin(context, true).streak(FxHud.Sprite.BEAM, gx, LINE, 50, 8, 0.45f, 0xFFFFFF, 0.35f * fx).draw();
     }
 
-    /** While the last reel is awaited its window burns: a pulsing frame and light over the two symbols already standing. */
-    private static void anticipation(DrawContext context, Show one, double t) {
-        if (!one.anticipating(t)) return;
-        double x = t - one.timing.stops()[1];
-        float pulse = (float) (0.5 + 0.5 * Math.sin(x * 0.9));
-        int color = one.ban() ? 0xE01020 : one.spin.severity() >= 5 ? 0xFF6020 : 0xFFD040;
-        int l = WIN_L + 2 * REEL_STEP - 2, r = l + REEL + 4;
-        for (int i = 0; i < 3; i++) {
-            int a = (int) ((0.9f - i * 0.25f) * (0.5f + 0.5f * pulse) * 255 * Math.max(0.4f, fx));
-            context.fill(l - i, WIN_T - 2 - i, r + i, WIN_T - 1 - i, a << 24 | color);
-            context.fill(l - i, WIN_B + 1 + i, r + i, WIN_B + 2 + i, a << 24 | color);
-            context.fill(l - 1 - i, WIN_T - 2 - i, l - i, WIN_B + 2 + i, a << 24 | color);
-            context.fill(r + i, WIN_T - 2 - i, r + 1 + i, WIN_B + 2 + i, a << 24 | color);
+    /** The royal doors over the reels, opening outwards as the spin begins. */
+    private static void doors(DrawContext context, double t) {
+        double open = smooth(Math.max(0, (t - 2) / 9.0));
+        if (open >= 1 || Math.round(54 * (1 - open)) <= 0) return;
+        float leaf = Math.round(54 * (1 - open)); // whole texels
+        var matrices = context.getMatrices();
+        for (int side = 0; side < 2; side++) {
+            matrices.push();
+            // Hinged at the outer edges: each leaf narrows towards its hinge, as if it turned away.
+            matrices.translate(side == 0 ? WIN_L : WIN_R, WIN_T, 0);
+            matrices.scale((side == 0 ? 1 : -1) * leaf / 54f, 1, 1);
+            float shade = (float) (1 - 0.4 * open);
+            context.setShaderColor(shade, shade, shade, 1f);
+            if (side == 0) tex(context, DOORS, 0, 0, 54, 60, 0, 0, 54, 60, 108, 60);
+            else {
+                // The right leaf, mirrored back so its picture faces the right way.
+                matrices.translate(54, 0, 0);
+                matrices.scale(-1, 1, 1);
+                tex(context, DOORS, 0, 0, 54, 60, 54, 0, 54, 60, 108, 60);
+            }
+            context.setShaderColor(1f, 1f, 1f, 1f);
+            matrices.pop();
         }
-        context.fill(WIN_L + 2 * REEL_STEP, WIN_T, WIN_L + 2 * REEL_STEP + REEL, WIN_B, (int) (pulse * 40) << 24 | color);
     }
 
-    /** The win line: it flashes when the third reel stands, then light runs along it. */
-    private static void winLine(DrawContext context, Show one, double t) {
+    /** The light over the kiot: the third reel's window burning while it is awaited, the win line running with light, the
+     * candles and lampadas flickering in a running wave, the lamps' glow, the hand's nimbus and a glint over the gilding. */
+    private static void frameLight(DrawContext context, Show one, double t) {
+        int[] palette = one.palette(t);
+        FxHud.Batch light = FxHud.begin(context, true);
+        if (one.anticipating(t)) {
+            double x = t - one.timing.stops()[1];
+            float pulse = (float) (0.5 + 0.5 * Math.sin(x * 0.9)), tension = (float) one.tension(t);
+            int l = WIN_L + 2 * REEL_STEP - 1, r = l + REEL + 2;
+            int color = one.ban() ? 0xE01020 : palette[0];
+            float a = (0.5f + 0.5f * pulse) * (0.5f + 0.5f * tension) * Math.max(0.5f, fx);
+            light.streak(FxHud.Sprite.BEAM, l, LINE, 32, 4, 0, color, a);
+            light.streak(FxHud.Sprite.BEAM, r, LINE, 32, 4, 0, color, a);
+            light.streak(FxHud.Sprite.BEAM, (l + r) / 2f, WIN_T - 1, 20, 4, MathHelper.HALF_PI, color, a);
+            light.streak(FxHud.Sprite.BEAM, (l + r) / 2f, WIN_B + 1, 20, 4, MathHelper.HALF_PI, color, a);
+            light.sprite(FxHud.Sprite.GLOW, (l + r) / 2f, LINE, 60 + 20 * tension, 0, 1, color, 0.35f * a);
+        }
         boolean pardoned = one.pardoned(t);
-        if ((t < one.timing.fin() || one.stopped(t)) && !pardoned) return;
-        double x = pardoned ? t - one.cancelledTick() : t - one.timing.fin();
-        int color = one.doom() ? 0xFFD040 : one.ban() ? 0xC01020 : pardoned ? 0x9FE0FF : 0xFFE080;
-        int top = LINE - 19, bottom = LINE + 19, left = WIN_L - 2, right = WIN_R + 2;
-        int alpha = (int) ((x < 14 ? 0.55 + 0.45 * Math.abs(Math.sin(x * 0.8)) : 0.7) * 255);
-        context.fill(left, top, right, top + 1, alpha << 24 | color);
-        context.fill(left, bottom - 1, right, bottom, alpha << 24 | color);
-        context.fill(left, top, left + 1, bottom, alpha << 24 | color);
-        context.fill(right - 1, top, right, bottom, alpha << 24 | color);
-        if (x < 10) context.fill(left, top, right, bottom, (int) ((1 - x / 10) * 110) << 24 | color);
-        if (fx > 0) {
-            // A bright bead of light running round the line.
-            int perimeter = 2 * (right - left) + 2 * (bottom - top);
-            for (int bead = 0; bead < 2; bead++) {
-                double along = ((x * 6 + bead * perimeter / 2.0) % perimeter);
+        if (one.won(t) || pardoned) {
+            double x = pardoned ? t - one.cancelledTick() : t - one.timing.fin();
+            int color = palette[0];
+            float top = LINE - 19, bottom = LINE + 19, left = WIN_L - 2, right = WIN_R + 2;
+            float glow = (float) (x < 14 ? 0.6 + 0.4 * Math.abs(Math.sin(x * 0.8)) : 0.7);
+            light.streak(FxHud.Sprite.BEAM, (left + right) / 2, top, (right - left) / 2, 3, MathHelper.HALF_PI, color, glow);
+            light.streak(FxHud.Sprite.BEAM, (left + right) / 2, bottom, (right - left) / 2, 3, MathHelper.HALF_PI, color, glow);
+            double perimeter = 2 * (right - left) + 2 * (bottom - top);
+            for (int bead = 0; bead < 2 && fx > 0; bead++) {
+                double along = (x * 7 + bead * perimeter / 2.0) % perimeter;
                 double bx, by;
                 if (along < right - left) { bx = left + along; by = top; }
                 else if (along < right - left + bottom - top) { bx = right; by = top + along - (right - left); }
                 else if (along < 2 * (right - left) + bottom - top) { bx = right - (along - (right - left) - (bottom - top)); by = bottom; }
                 else { bx = left; by = bottom - (along - 2 * (right - left) - (bottom - top)); }
-                color(context, color, 0.9f * fx);
-                context.drawTexture(GLOW, (int) bx - 6, (int) by - 6, 12, 12, 0, 0, 64, 64, 64, 64);
-                context.setShaderColor(1f, 1f, 1f, 1f);
+                light.sprite(FxHud.Sprite.SPARK, (float) bx, (float) by, 18, 0, 1, palette[2], fx);
+                light.sprite(FxHud.Sprite.GLOW, (float) bx, (float) by, 16, 0, 1, color, 0.8f * fx);
             }
         }
-    }
-
-    /** A glint sweeping over the gilded frame. */
-    private static void frameShine(DrawContext context, Show one, double t) {
-        if (fx <= 0) return;
-        double period = one.finPlayed ? 22 : 50, phase = ((t + 20) % period) / period;
-        int gx = (int) (-40 + phase * (W + 80));
-        context.setShaderColor(1f, 0.95f, 0.8f, 0.35f * fx);
-        for (int band = 0; band < 2; band++) {
-            int bx = gx - band * 6;
-            if (bx < -32 || bx > W) continue;
-            // Only over the frame's band at the top and bottom, not across the reels.
-            context.drawTexture(SHINE, bx, 24, 32, 12, 0, 0, 32, 64, 32, 64);
-            context.drawTexture(SHINE, bx, H - 12, 32, 12, 0, 0, 32, 64, 32, 64);
-        }
-        context.setShaderColor(1f, 1f, 1f, 1f);
-    }
-
-    /** Lights running round the frame: as fast as the reels, all blinking at the final, soft blue for a pardon. */
-    private static void chaseLights(DrawContext context, Show one, double t) {
+        // Candles and lampadas: never out, they flare in a wave running round the kiot as fast as the reels, all at once at
+        // the final, softly for a pardon.
         double travel = t * 0.3;
         for (int reel = 0; reel < one.timing.reels(); reel++) travel += Math.max(0, one.position(reel, Math.min(t, one.timing.stops()[reel])) - one.position(reel, 0)) * 0.25;
-        boolean won = t >= one.timing.fin() && !one.stopped(t), pardoned = one.pardoned(t);
-        int color = pardoned ? 0xB8E8FF : one.ban() ? 0xFF2020 : one.doom() ? 0xFFE060 : one.spin.severity() <= 2 ? 0xE8F0FF : 0xFFD878;
-        for (int i = 0; i < BULBS.length; i++) {
-            boolean on;
-            if (pardoned) on = true;
-            else if (won) on = ((int) ((t - one.timing.fin()) / 3) + (one.doom() ? i : 0)) % 2 == 0;
-            else on = Math.floorMod(i - (int) Math.floor(travel), 4) < 2;
-            int bx = BULBS[i][0], by = BULBS[i][1];
-            if (on) {
-                if (fx > 0) {
-                    color(context, color, 0.75f * fx);
-                    context.drawTexture(GLOW, bx - 5, by - 5, 10, 10, 0, 0, 64, 64, 64, 64);
-                    context.setShaderColor(1f, 1f, 1f, 1f);
-                }
-                context.fill(bx - 1, by - 1, bx + 1, by + 1, 0xFF000000 | brighten(color));
-            } else context.fill(bx - 1, by - 1, bx + 1, by + 1, 0xFF3A2A18);
+        boolean won = one.won(t);
+        for (int i = 0; i < LIGHTS.length; i++) {
+            float wave = (float) (0.5 + 0.5 * Math.cos((i - travel) * MathHelper.TAU / 6));
+            float level = pardoned ? 0.75f : won ? 0.65f + 0.35f * (((int) ((t - one.timing.fin()) / 3) + i) % 2) : 0.3f + 0.7f * wave * wave;
+            float flicker = 0.85f + 0.15f * MathHelper.sin((float) (t * 1.9 + i * 2.7)) * MathHelper.sin((float) (t * 3.1 + i));
+            float lx = LIGHTS[i][0], ly = LIGHTS[i][1];
+            if (i < CANDLES) {
+                // A candle's flame: a warm glow, a teardrop of light, a white heart; it leans a little as it flickers.
+                float lean = 0.15f * MathHelper.sin((float) (t * 0.7 + i));
+                light.sprite(FxHud.Sprite.GLOW, lx, ly - 1, 14 * level, 0, 1, 0xFFB050, 0.7f * level * flicker * Math.max(0.5f, fx));
+                light.sprite(FxHud.Sprite.EMBER, lx, ly - 1.2f, 4.4f * (0.8f + 0.2f * flicker), lean, 0.55f, 0xFFC060, flicker);
+                light.sprite(FxHud.Sprite.SPARK, lx, ly - 0.6f, 2.2f, 0, 1, 0xFFFFF0, flicker);
+            } else {
+                int color = pardoned ? 0xC8E8FF : one.ban() ? 0xFF2030 : palette[0];
+                light.sprite(FxHud.Sprite.GLOW, lx, ly, 10 * level, 0, 1, color, 0.8f * level * flicker * Math.max(0.4f, fx));
+                light.sprite(FxHud.Sprite.SPARK, lx, ly, 3, 0, 1, 0xFFFFFF, 0.6f * level);
+            }
         }
+        // The lamps of the fury scale: lit ones glow, their flames flicker.
+        int level = Math.min(5, one.spin.severity()), lit = litLamps(one, t, level);
+        for (int j = 0; j < lit; j++) {
+            float flicker = 0.75f + 0.25f * (float) Math.sin(t * 1.3 + j * 2.1);
+            float lx = 19, ly = 86 - j * 12 + 4;
+            if (fx > 0) light.sprite(FxHud.Sprite.GLOW, lx, ly, 26, 0, 1, level >= 5 ? 0xFF5020 : 0xFFB040, 0.7f * flicker * fx);
+            light.sprite(FxHud.Sprite.EMBER, lx, ly - 2, 5 * flicker, 0.1f * MathHelper.sin((float) t + j), 0.6f, 0xFFD080, flicker);
+        }
+        double[] hand = hand(t);
+        if (hand != null && fx > 0) light.sprite(FxHud.Sprite.GLOW, (float) hand[0], (float) hand[1] - 14, 42, 0, 1, 0xFFE8A0, (float) (0.7 * hand[2] * fx));
+        if (fx > 0) {
+            double period = one.finPlayed ? 22 : 50, phase = ((t + 20) % period) / period;
+            float gx = (float) (-30 + phase * (W + 60));
+            light.streak(FxHud.Sprite.BEAM, gx, 28, 8, 5, 0.5f, 0xFFF4D0, 0.5f * fx);
+            light.streak(FxHud.Sprite.BEAM, gx - 10, H - 4, 8, 5, 0.5f, 0xFFF4D0, 0.5f * fx);
+        }
+        light.draw();
     }
 
-    private static int brighten(int rgb) {
-        int r = Math.min(255, (rgb >> 16 & 255) + 40), g = Math.min(255, (rgb >> 8 & 255) + 40), b = Math.min(255, (rgb & 255) + 40);
-        return r << 16 | g << 8 | b;
+    private static float[][] lights() {
+        List<float[]> out = new ArrayList<>();
+        for (int y = 100; y >= 40; y -= 12) out.add(new float[] { 4, y });
+        float[] candles = { 48, 56, 64, 112, 120, 128 };
+        List<float[]> top = new ArrayList<>();
+        for (float x : candles) top.add(new float[] { x, 12.2f });
+        for (int y = 40; y <= 100; y += 12) out.add(new float[] { 172, y });
+        // Candles first (the flames are drawn differently), then the jewels in running order: left up, right down.
+        List<float[]> ordered = new ArrayList<>(top);
+        ordered.addAll(out);
+        return ordered.toArray(new float[0][]);
     }
 
-    private static int[][] bulbs() {
-        List<int[]> out = new ArrayList<>();
-        for (int x = 8; x <= W - 9; x += 8) out.add(new int[] { x, 28 });
-        for (int y = 36; y <= H - 12; y += 8) out.add(new int[] { W - 5, y });
-        for (int x = W - 9; x >= 8; x -= 8) out.add(new int[] { x, H - 5 });
-        for (int y = H - 12; y >= 36; y -= 8) out.add(new int[] { 4, y });
-        return out.toArray(new int[0][]);
+    private static int litLamps(Show one, double t, int level) {
+        double from = one.timing.pull() + one.timing.spinUp(), to = one.timing.stops()[one.timing.reels() - 1];
+        return t <= from ? 0 : (int) Math.min(level, Math.floor((t - from) / Math.max(1, to - from) * level) + 1);
     }
 
     /** The fury scale: lamps light from the bottom while the reels spin, up to the punishment's weight. */
     private static void lamps(DrawContext context, Show one, double t, int severity) {
-        int level = Math.min(5, severity);
-        double from = one.timing.pull() + one.timing.spinUp(), to = one.timing.stops()[2];
-        int lit = t <= from ? 0 : (int) Math.min(level, Math.floor((t - from) / Math.max(1, to - from) * level) + 1);
-        for (int j = 0; j < 5; j++) {
-            int y = 86 - j * 12;
-            boolean on = j < lit;
-            if (on && fx > 0) {
-                float flicker = 0.75f + 0.25f * (float) Math.sin(t * 1.3 + j * 2.1);
-                color(context, severity >= 5 ? 0xFF5020 : 0xFFB040, 0.8f * flicker * fx);
-                context.drawTexture(GLOW, 19 - 12, y + 3 - 12, 24, 24, 0, 0, 64, 64, 64, 64);
-                context.setShaderColor(1f, 1f, 1f, 1f);
-            }
-            context.drawTexture(LAMPS, 12, y, on ? 14 : 0, 0, 14, 12, 28, 12);
-        }
+        int lit = litLamps(one, t, Math.min(5, severity));
+        for (int j = 0; j < 5; j++) tex(context, LAMPS, 12, 86 - j * 12, 14, 12, j < lit ? 14 : 0, 0, 14, 12, 28, 12);
     }
 
-    /** The lever on the right, pulled by a golden hand from a cloud at the start; it springs back with a bounce. */
+    /** Where the hand is (its fingertips) and how visible, or null once it is gone. */
+    private static double[] hand(double t) {
+        if (t >= 16) return null;
+        if (t < 3) { double u = easeOutBack(t / 3, 1.4); return new double[] { 155, 29 - (1 - u) * 34, 1 }; }
+        if (t < 8) { double u = Math.min(1, (t - 3) / 2.5); return new double[] { 155 + u * 11, 29 + u * 20, 1 }; }
+        double u = (t - 8) / 8;
+        return new double[] { 166, 49 - u * 40, 1 - u };
+    }
+
+    /** The lever on the right, pulled by the hand of God at the start; it springs back with a bounce. */
     private static void leverAndHand(DrawContext context, Show one, double t) {
         boolean down = t >= 4 && t < 11;
         double bounce = t >= 11 && t < 17 ? Math.sin((t - 11) * 1.6) * 2.5 * (1 - (t - 11) / 6) : 0;
         var matrices = context.getMatrices();
         matrices.push();
-        matrices.translate(0, bounce, 0);
-        context.drawTexture(LEVER, 145, 15, down ? 24 : 0, 0, 24, 80, 48, 80);
+        matrices.translate(0, Math.round(bounce), 0);
+        tex(context, LEVER, 145, 15, 24, 80, down ? 24 : 0, 0, 24, 80, 48, 80);
         matrices.pop();
-        if (t >= 16) return;
-        // The knob: up at (155, 29), down at (166, 49).
-        double kx, ky, alpha = 1;
-        if (t < 3) { double u = easeOutBack(t / 3, 1.4); kx = 155; ky = 29 - (1 - u) * 34; }
-        else if (t < 8) { double u = Math.min(1, (t - 3) / 2.5); kx = 155 + u * 11; ky = 29 + u * 20; }
-        else { double u = (t - 8) / 8; kx = 166; ky = 49 - u * 40; alpha = 1 - u; }
-        if (fx > 0) {
-            color(context, 0xFFE8A0, (float) (0.6 * alpha * fx));
-            context.drawTexture(GLOW, (int) kx - 18, (int) ky - 30, 36, 36, 0, 0, 64, 64, 64, 64);
-        }
-        context.setShaderColor(1f, 1f, 1f, (float) MathHelper.clamp(alpha, 0, 1));
+        double[] hand = hand(t);
+        if (hand == null) return;
+        context.setShaderColor(1f, 1f, 1f, (float) MathHelper.clamp(hand[2], 0, 1));
         matrices.push();
-        matrices.translate(kx - 16, ky - 26, 0);
-        context.drawTexture(HAND, 0, 0, 0, 0, 32, 32, 32, 32);
+        matrices.translate(Math.round(hand[0]) - 16, Math.round(hand[1]) - 30, 0);
+        tex(context, HAND, 0, 0, 32, 32, 0, 0, 32, 32, 32, 32);
         matrices.pop();
         context.setShaderColor(1f, 1f, 1f, 1f);
     }
 
-    /** Under the machine: whose punishment it is (for the others) and, after the final, the ribbon with its name lighting up
-     * letter by letter and the reason under it. */
-    private static void ribbon(DrawContext context, TextRenderer text, Show one, double t) {
-        int y = H + 2;
+    /** «СУДЪ БОЖІЙ» in the cartouche, and the psalm of repentance running along the pedestal. */
+    private static void inscriptions(DrawContext context, TextRenderer text, Show one, double t, double x0, double y0, float scale) {
+        var matrices = context.getMatrices();
+        String title = "СУДЪ БОЖІЙ";
+        matrices.push();
+        matrices.translate(88, 26.5, 0);
+        matrices.scale(0.5f, 0.5f, 1);
+        embossed(context, text, title, -text.getWidth(title) / 2f, 0, one.ban() ? 0xE04040 : 0xF0C860, one.ban() ? 0x200000 : 0x3A1A00);
+        matrices.pop();
+        // The psalm runs inside the dark plaque of the pedestal (clipped to it on the screen).
+        int left = (int) Math.floor(x0 + 41 * scale), right = (int) Math.ceil(x0 + 135 * scale);
+        int top = (int) Math.floor(y0 + 114 * scale), bottom = (int) Math.ceil(y0 + 122 * scale);
+        context.draw();
+        context.enableScissor(left, top, right, bottom);
+        float size = 0.5f, width = text.getWidth(PSALM) * size;
+        float shift = (float) ((t * 0.9) % width);
+        for (int copy = 0; copy < 3; copy++) {
+            matrices.push();
+            matrices.translate(136 - shift + copy * width - 94, 115.6, 0);
+            matrices.scale(size, size, 1);
+            context.drawText(text, PSALM, 0, 0, one.ban() ? 0xFFB04040 : 0xFFD8B060, false);
+            matrices.pop();
+        }
+        context.draw();
+        context.disableScissor();
+    }
+
+    /** Words in gold with a dark rim and a light upper edge, as if pressed into the metal. */
+    private static void embossed(DrawContext context, TextRenderer text, String words, float x, float y, int color, int rim) {
+        int ix = Math.round(x), iy = Math.round(y);
+        for (int[] d : new int[][] { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 }, { 1, 1 } }) context.drawText(text, words, ix + d[0], iy + d[1], 0xFF000000 | rim, false);
+        context.drawText(text, words, ix, iy, 0xFF000000 | color, false);
+    }
+
+    /** Under the pedestal: whose punishment it is (for the others) and, after the final, the banner with the punishment's name
+     * lighting up letter by letter, waving, and the reason under it. */
+    private static void banner(DrawContext context, TextRenderer text, Show one, double t) {
+        float y = BOTTOM + 3;
         if (!one.own) {
-            context.drawCenteredTextWithShadow(text, "Кара для " + one.spin.name(), W / 2, y, 0xFFE0D0B0);
-            y += 11;
+            context.drawCenteredTextWithShadow(text, "Кара для " + one.spin.name(), W / 2, (int) y, 0xFFE0D0B0);
+            y += 10;
         }
         boolean pardoned = one.pardoned(t);
         double since = pardoned ? t - one.cancelledTick() : t - one.timing.fin();
         if (since < 0 || one.stopped(t) && !pardoned) return;
-        double open = easeOutBack(Math.min(1, since / 7.0), 2.2);
-        int half = (int) (82 * open);
+        double open = easeOutBack(Math.min(1, since / 7.0), 1.6);
+        float half = Math.round(90 * Math.min(1.08, open));
         if (half < 4) return;
-        int border = pardoned ? 0xFFB8E8FF : one.ban() ? 0xFF8A1018 : 0xFFE6B840;
-        int fill = pardoned ? 0xEE1A3A5A : one.ban() ? 0xEE0C0606 : one.doom() ? 0xEE6A0A04 : 0xEE4A0A0C;
-        int cx = W / 2, top = y, bottom = y + 26;
-        for (int i = 0; i < 6; i++) {
-            context.fill(cx - half - 8 + i, top + 3 + i, cx - half, bottom - 3 - i, border);
-            context.fill(cx + half, top + 3 + i, cx + half + 8 - i, bottom - 3 - i, border);
+        int variant = pardoned ? 1 : one.ban() ? 2 : 0;
+        // The cloth in slices, each lifted by a slow wave so the banner ripples.
+        var matrices = context.getMatrices();
+        int slices = 20;
+        for (int i = 0; i < slices; i++) {
+            float u0 = i / (float) slices, u1 = (i + 1) / (float) slices;
+            float sx = W / 2f - half + u0 * 2 * half, sw = (u1 - u0) * 2 * half;
+            float wave = Math.round(Math.sin(u0 * 7 - since * 0.22) * 1.2 * Math.min(1, since / 8)); // by whole texels
+            float shade = (float) (0.88 + 0.12 * Math.cos(u0 * 7 - since * 0.22));
+            matrices.push();
+            matrices.translate(sx, y + wave, 0);
+            matrices.scale(sw / (180f / slices), 1, 1);
+            context.setShaderColor(shade, shade, shade, 1f);
+            tex(context, BANNER, 0, 0, 180 / slices, 28, i * 180f / slices, variant * 28, 180 / slices, 28, 180, 84);
+            context.setShaderColor(1f, 1f, 1f, 1f);
+            matrices.pop();
         }
-        context.fill(cx - half, top, cx + half, bottom, border);
-        context.fill(cx - half + 1, top + 1, cx + half - 1, bottom - 1, fill);
         if (since < 5) return;
-        String title = fit(text, pardoned ? "Помилован" : one.spin.title(), 150);
+        String title = fit(text, pardoned ? "Помилованъ" : one.spin.title(), 150);
         String reason = pardoned ? "покаяние снимает кару" : one.spin.reason();
-        // The letters light up one after another, then a shimmer runs through them.
-        int width = text.getWidth(title), x = cx - width / 2;
-        int base = pardoned ? 0xE8F8FF : one.doom() ? 0xFFD84A : one.ban() ? 0xFF6060 : 0xFFE8B0;
+        int width = text.getWidth(title);
+        float x = W / 2f - width / 2f;
+        int baseColor = pardoned ? 0xF0F8FF : one.ban() ? 0xFF8080 : 0xFFE8B0;
         double lit = (since - 5) * 2.2;
         int index = 0;
+        List<float[]> sparkles = new ArrayList<>();
         for (int i = 0; i < title.length(); ) {
             int cp = title.codePointAt(i);
             String ch = new String(Character.toChars(cp));
-            double glow = fx > 0 ? Math.max(0, Math.sin(index * 0.5 - since * 0.45)) : 0;
-            int color = index < lit ? mix(base, 0xFFFFFF, (float) (glow * 0.8)) : 0x6A5A40;
-            context.drawText(text, ch, x, top + 4, 0xFF000000 | color, true);
+            double shimmer = fx > 0 ? Math.max(0, Math.sin(index * 0.5 - since * 0.45)) : 0;
+            float wave = Math.round(Math.sin((x - (W / 2f - half)) / (2 * half) * 7 - since * 0.22) * 1.2 * Math.min(1, since / 8));
+            int color = index < lit ? mix(baseColor, 0xFFFFFF, (float) (shimmer * 0.7)) : 0x705838;
+            embossed(context, text, ch, x, y + 5 + wave, color, variant == 1 ? 0x10284A : 0x2A0800);
+            if (index < lit && index > lit - 1.5) sparkles.add(new float[] { x + text.getWidth(ch) / 2f, y + 9 + wave });
             x += text.getWidth(ch);
             i += Character.charCount(cp);
             index++;
         }
+        if (!sparkles.isEmpty() && fx > 0) {
+            FxHud.Batch light = FxHud.begin(context, true);
+            for (float[] s : sparkles) light.sprite(FxHud.Sprite.STAR, s[0], s[1], 16, (float) since * 0.2f, 1, 0xFFF4C0, fx);
+            light.draw();
+        }
         if (reason != null && !reason.isBlank() && lit > title.length()) {
-            var matrices = context.getMatrices();
             matrices.push();
-            matrices.translate(cx, top + 16, 0);
-            matrices.scale(0.7f, 0.7f, 1);
-            context.drawCenteredTextWithShadow(text, fit(text, reason, 220), 0, 0, 0xFFD8C8B0);
+            matrices.translate(W / 2f, y + 16.5, 0);
+            matrices.scale(0.5f, 0.5f, 1);
+            context.drawCenteredTextWithShadow(text, fit(text, reason, 250), 0, 0, 0xFFE8D8C0);
             matrices.pop();
         }
     }
 
-    /** The big words slamming onto the screen at the final: «КАРА!», «СТРАШНЫЙ СУД», «ИЗГНАНИЕ», «ПОМИЛОВАН». */
+    /** The words of judgement coming down at the final, in Church Slavonic: «ГНѢВЪ БОЖІЙ»; on 777 the seven bowls of wrath with
+     * the verse of the Revelation; «ИЗГНАНІЕ» for the ban; «ПОМИЛОВАНЪ» with «Господи, помилуй» for a pardon. */
     private static void bigWords(DrawContext context, TextRenderer text, Show one, double t, int sw, double below, float base) {
         if (fx <= 0) return;
         boolean pardoned = one.pardoned(t);
@@ -827,24 +1024,41 @@ public final class RouletteHud {
         since -= 1;
         double hold = pardoned ? PARDON_HOLD - 8 : one.timing.act() - one.timing.fin() + 4;
         if (since > hold) return;
-        String words = pardoned ? "ПОМИЛОВАН" : one.doom() ? "СТРАШНЫЙ СУД" : one.ban() ? "ИЗГНАНИЕ" : "КАРА!";
-        int color = pardoned ? 0xD8F4FF : one.doom() ? 0xFFD040 : one.ban() ? 0xE02020 : 0xFF7040;
-        double slam = since < 6 ? 1 + 2.4 * Math.pow(1 - since / 6, 3) : 1 + 0.05 * Math.sin((since - 6) * 0.5);
+        String words = pardoned ? "ПОМИЛОВАНЪ" : one.doom() ? "СЕДМЬ ЧАШЪ ГНѢВА" : one.ban() ? "ИЗГНАНІЕ" : "ГНѢВЪ БОЖІЙ";
+        String verse = pardoned ? "Господи, помилуй" : one.doom() ? "«Идите и вылейте семь чаш гнева Божия на землю» — Откр. 16:1" : null;
+        int[] palette = one.palette(t);
+        int color = pardoned ? 0xE0F2FF : one.doom() ? 0xFFD040 : one.ban() ? 0xE03030 : 0xF0B850;
+        // They come down from above and settle with a little swing, like the heavy letters of a bell's inscription.
+        double fall = since < 7 ? easeOutBack(since / 7, 1.4) : 1;
         float alpha = (float) (Math.min(1, since / 3) * Math.min(1, (hold - since) / 6));
-        float size = (float) (base * 1.9 * slam);
-        var matrices = context.getMatrices();
-        matrices.push();
-        matrices.translate(sw / 2.0, below + 10 * base, 0);
-        matrices.scale(size, size, 1);
+        float size = (float) (base * 1.55);
         int w = text.getWidth(words);
-        int a = (int) (alpha * 255) << 24;
-        if (a == 0) { matrices.pop(); return; }
-        // A dark outline, then the words; the colour flickers to white like a casino sign.
-        int outline = a | (one.ban() ? 0x000000 : 0x2A0A00);
-        for (int[] d : new int[][] { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 }, { 1, 1 } }) context.drawText(text, words, -w / 2 + d[0], -4 + d[1], outline, false);
-        float flicker = (float) Math.max(0, Math.sin(since * 0.9));
-        context.drawText(text, words, -w / 2, -4, a | mix(color, 0xFFFFFF, flicker * 0.5f), false);
-        matrices.pop();
+        float cy = (float) (below - (1 - fall) * 30 * base);
+        FxHud.begin(context, true)
+                .streak(FxHud.Sprite.GLOW, sw / 2f, cy, w * size * 0.65f, 12 * size, MathHelper.HALF_PI, palette[0], 0.55f * alpha)
+                .sprite(FxHud.Sprite.FLARE, sw / 2f, cy, 26 * size, (float) since * 0.03f, 1, palette[2], 0.4f * alpha * (float) Math.max(0.3, 1 - since / 10))
+                .draw();
+        var matrices = context.getMatrices();
+        if (alpha > 0.02f) {
+            matrices.push();
+            matrices.translate(sw / 2.0, cy, 0);
+            matrices.scale(size, size, 1);
+            int a = (int) (alpha * 255) << 24;
+            int rim = a | (one.ban() ? 0x000000 : pardoned ? 0x0A1A30 : 0x2A0A00);
+            for (int[] d : new int[][] { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 }, { 1, 1 } }) context.drawText(text, words, -w / 2 + d[0], -4 + d[1], rim, false);
+            float shimmer = (float) Math.max(0, Math.sin(since * 0.35));
+            context.drawText(text, words, -w / 2, -4, a | mix(color, 0xFFFFFF, shimmer * 0.3f), false);
+            matrices.pop();
+            if (verse != null) {
+                matrices.push();
+                matrices.translate(sw / 2.0, cy + 9 * size, 0);
+                matrices.scale(base * 0.75f, base * 0.75f, 1);
+                int vw = text.getWidth(verse);
+                context.drawText(text, verse, -vw / 2 + 1, 1, a | 0x200800, false);
+                context.drawText(text, verse, -vw / 2, 0, a | (pardoned ? 0xD8ECFF : 0xF0E0C0), false);
+                matrices.pop();
+            }
+        }
     }
 
     /** The golden flash of 777 over the whole screen. */
@@ -852,31 +1066,40 @@ public final class RouletteHud {
         if (!one.doom() || !one.own || !jackpotFx || one.cancelledAt >= 0) return;
         double x = t - one.timing.fin();
         if (x < 0 || x > 18) return;
-        int alpha = (int) (170 * (1 - x / 18) * (1 - x / 18));
-        context.fill(0, 0, sw, sh, alpha << 24 | 0xFFC830);
+        float strength = (float) ((1 - x / 18) * (1 - x / 18));
+        FxHud.begin(context, true).sprite(FxHud.Sprite.GLOW, sw / 2f, sh / 3f, Math.max(sw, sh) * 2.2f, 0, 1, 0xFFC830, strength).draw();
+        context.fill(0, 0, sw, sh, (int) (80 * strength) << 24 | 0xFFD040);
     }
 
-    /** A tail's spin: one reel in a small gilded box under the top edge, for two seconds. */
+    /** A tail's spin: one reel in a small gilded case under the top edge, for two seconds. */
     private static void drawMini(DrawContext context, TextRenderer text, Show one, double t, int sw) {
-        float scale = MathHelper.clamp(sw * 0.09f / 48f, 0.6f, 2.2f);
+        double pixels = MinecraftClient.getInstance().getWindow().getScaleFactor();
+        float scale = (float) (Math.max(1, Math.round(MathHelper.clamp(sw * 0.09f / 48f, 0.6f, 2.2f) * pixels)) / pixels);
         double in = easeOutBack(Math.min(1, t / 8.0), 2.0);
         double leave = t > one.leave() ? Math.min(1, (t - one.leave()) / Roulette.Timing.EXIT) : 0;
-        double y0 = 4 + (in - 1) * 70 * scale - leave * leave * 80 * scale, x0 = (sw - 48 * scale) / 2.0;
+        double y0 = 4 + Math.round(((in - 1) * 70 - leave * leave * 80)) * scale, x0 = Math.round((sw - 48 * scale) / 2.0 / scale) * scale;
         lastX = x0; lastY = y0; lastScale = scale;
+        int[] palette = one.palette(t);
+        if (fx > 0) {
+            float presence = (float) (Math.min(1, t / 6) * (1 - leave)) * fx;
+            FxHud.Batch light = FxHud.begin(context, true);
+            light.sprite(FxHud.Sprite.GLOW, (float) (x0 + 24 * scale), (float) (y0 + 24 * scale), 110 * scale, 0, 1, palette[0], 0.45f * presence);
+            for (int i = 0; i < 10; i++) {
+                float angle = (float) (t * 0.02) + i * MathHelper.TAU / 10;
+                float length = 50 * scale * (i % 2 == 0 ? 1 : 0.6f);
+                light.streak(FxHud.Sprite.BEAM, (float) (x0 + 24 * scale) + MathHelper.cos(angle) * length / 2, (float) (y0 + 24 * scale) + MathHelper.sin(angle) * length / 2,
+                        length / 2, 4 * scale, angle + MathHelper.HALF_PI, palette[i % 3], 0.3f * presence);
+            }
+            light.draw();
+        }
         var matrices = context.getMatrices();
         matrices.push();
         matrices.translate(x0, y0, 0);
         matrices.scale(scale, scale, 1);
         context.fill(0, 0, 48, 48, 0xFF60400E);
-        context.fill(1, 1, 47, 47, 0xFFD6AA3C);
+        context.fillGradient(1, 1, 47, 47, 0xFFF0C868, 0xFFB88A30);
         context.fill(4, 4, 44, 44, 0xFF60400E);
-        context.fillGradient(6, 6, 42, 42, 0xFFFBF3DC, 0xFFE6D6AE);
-        // Chase lights round the little box.
-        for (int i = 0; i < 12; i++) {
-            boolean on = Math.floorMod(i - (int) (t * 0.8), 3) == 0 || t >= one.timing.fin() && ((int) t / 3) % 2 == 0;
-            int bx = i < 6 ? 4 + i * 8 : 44 - (i - 6) * 8, by = i < 6 ? 2 : 46;
-            context.fill(bx - 1, by - 1, bx + 1, by + 1, on ? 0xFFFFF0B0 : 0xFF5A3A10);
-        }
+        context.fillGradient(6, 6, 42, 42, 0xFF6A4A26, 0xFF3A2410);
         matrices.pop();
         context.enableScissor((int) Math.floor(x0 + 6 * scale), (int) Math.floor(y0 + 6 * scale), (int) Math.ceil(x0 + 42 * scale), (int) Math.ceil(y0 + 42 * scale));
         matrices.push();
@@ -885,14 +1108,23 @@ public final class RouletteHud {
         drawReelMini(context, one, t);
         matrices.pop();
         context.disableScissor();
-        if (t >= one.timing.fin()) {
-            matrices.push();
-            matrices.translate(x0, y0, 0);
-            matrices.scale(scale, scale, 1);
-            String line = (one.own ? "" : one.spin.name() + ": ") + one.spin.title();
-            context.drawCenteredTextWithShadow(text, line, 24, 51, 0xFFFFE0A0);
-            matrices.pop();
+        matrices.push();
+        matrices.translate(x0, y0, 0);
+        matrices.scale(scale, scale, 1);
+        // Little lampadas round the case.
+        FxHud.Batch lamps = FxHud.begin(context, true);
+        for (int i = 0; i < 12; i++) {
+            float level = (float) (0.4 + 0.6 * Math.max(0, Math.cos((i - t * 0.6) * MathHelper.TAU / 4)));
+            if (t >= one.timing.fin()) level = 1;
+            int bx = i < 6 ? 4 + i * 8 : 44 - (i - 6) * 8, by = i < 6 ? 2 : 46;
+            lamps.sprite(FxHud.Sprite.GLOW, bx, by, 9 * level, 0, 1, palette[i % 3], 0.9f * level).sprite(FxHud.Sprite.SPARK, bx, by, 4, 0, 1, 0xFFFFFF, 0.8f * level);
         }
+        lamps.draw();
+        if (t >= one.timing.fin()) {
+            String line = (one.own ? "" : one.spin.name() + ": ") + one.spin.title();
+            embossed(context, text, line, 24 - text.getWidth(line) / 2f, 51, 0xF0C860, 0x2A0800);
+        }
+        matrices.pop();
     }
 
     private static void drawReelMini(DrawContext context, Show one, double t) {
@@ -900,17 +1132,35 @@ public final class RouletteHud {
         List<RouletteSymbol> strip = one.strips.get(0);
         var matrices = context.getMatrices();
         int base = (int) Math.floor(p);
-        for (int k = base - 2; k <= base + 2; k++) {
+        double step = CELL / RADIUS;
+        for (int k = base - 2; k <= base + 3; k++) {
+            double angle = (p - k) * step;
+            if (Math.abs(angle) >= Math.PI / 2 - 0.05) continue;
             RouletteSymbol symbol = one.pardoned(t) ? RouletteSymbol.DOVE : strip.get(Math.floorMod(k, strip.size()));
+            float squeeze = (float) Math.cos(angle), light = 0.35f + 0.65f * squeeze;
             matrices.push();
-            matrices.translate(24, 24 + (p - k) * CELL, 0);
+            matrices.translate(24, Math.round(24 + RADIUS * 0.6 * Math.sin(angle)), 0);
+            matrices.scale(1, Math.max(1, Math.round(32 * squeeze)) / 32f, 1);
+            context.setShaderColor(light, light, light, 1f);
             drawSymbol(context, symbol, 0, 0, speed > 0.25 ? (float) (1 + Math.min(1.4, (speed - 0.25) * 1.5)) : 1);
+            context.setShaderColor(1f, 1f, 1f, 1f);
             matrices.pop();
         }
         double since = t - one.timing.stops()[0];
-        if (since >= 0 && since < 7) context.fill(6, 6, 42, 42, (int) ((1 - since / 7) * 200) << 24 | 0xFFFFFF);
-        context.fillGradient(6, 6, 42, 16, 0xD0180C06, 0x00180C06);
-        context.fillGradient(6, 32, 42, 42, 0x00180C06, 0xD0180C06);
+        if (since >= 0 && since < 8) FxHud.begin(context, true).sprite(FxHud.Sprite.GLOW, 24, 24, 60, 0, 1, 0xFFFFFF, (float) (1 - since / 8)).draw();
+        context.fillGradient(6, 6, 42, 16, 0xE0100804, 0x00100804);
+        context.fillGradient(6, 32, 42, 42, 0x00100804, 0xE0100804);
+    }
+
+    // ---- Helpers. ----
+
+    /** A texture of the mod drawn with its alpha (the context's fills and text turn blending off): what it buffered goes first. */
+    private static void tex(DrawContext context, Identifier texture, int x, int y, int width, int height, float u, float v, int regionWidth, int regionHeight,
+                            int textureWidth, int textureHeight) {
+        context.draw();
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        context.drawTexture(texture, x, y, width, height, u, v, regionWidth, regionHeight, textureWidth, textureHeight);
     }
 
     private static double easeOutBack(double u, double c1) {
@@ -923,6 +1173,11 @@ public final class RouletteHud {
         k = MathHelper.clamp(k, 0, 1);
         int r = (int) MathHelper.lerp(k, a >> 16 & 255, b >> 16 & 255), g = (int) MathHelper.lerp(k, a >> 8 & 255, b >> 8 & 255), bl = (int) MathHelper.lerp(k, a & 255, b & 255);
         return r << 16 | g << 8 | bl;
+    }
+    /** The colour turned round the hue circle by {@code turn} (a whole turn is 1). */
+    private static int shift(int rgb, float turn) {
+        float[] hsb = java.awt.Color.RGBtoHSB(rgb >> 16 & 255, rgb >> 8 & 255, rgb & 255, null);
+        return java.awt.Color.HSBtoRGB(hsb[0] + turn, hsb[1], hsb[2]) & 0xFFFFFF;
     }
 
     private static String fit(TextRenderer text, String line, int width) {

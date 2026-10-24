@@ -52,6 +52,11 @@ final class RouletteSelfTest {
     private static MinecraftServer server;
     private static ServerPlayerEntity player;
     private static volatile long actAt = -1, actPlanned = -2;
+    private static volatile float chantBefore = -1, chantDuring = -1;
+    private static volatile boolean answered;
+    private static int waited;
+    /** The steps that check a scene: they run once its machine is gone. */
+    private static final java.util.Set<Integer> AFTER_SPIN = java.util.Set.of(1, 3, 5, 7, 9, 10, 14, 16, 18);
     private static Path configFile;
     private static String savedConfig;
 
@@ -65,7 +70,10 @@ final class RouletteSelfTest {
             // A screenshot a little after each moment: the reel has bounced and settled, the ribbon has rolled out.
             switch (name) {
                 case "stop1", "stop3" -> shotLater(scene + "-" + name, 4);
-                case "stop2" -> { shotLater(scene + "-stop2", 4); shotLater(scene + "-anticipation", 16); }
+                case "stop2" -> {
+                    shotLater(scene + "-stop2", 4); shotLater(scene + "-anticipation", 16);
+                    if (scene.equals("k1")) chantDuring = ChantPlayer.altarLevel();
+                }
                 case "777", "gates" -> shotLater(scene + "-" + name + "-flash", 2);
                 case "final" -> shotLater(scene + "-final", 12);
                 case "pardon" -> shotLater(scene + "-pardon", 14);
@@ -101,6 +109,10 @@ final class RouletteSelfTest {
                 if (client.world == null && client.currentScreen != null && !(client.currentScreen instanceof TitleScreen) && ticks > 100
                         && client.getOverlay() == null) { client.options.onboardAccessibility = false; client.setScreen(new TitleScreen()); }
                 if (!(client.currentScreen instanceof TitleScreen)) return;
+                // Big screenshots: a 1600x900 window, GUI scale 3.
+                client.getWindow().setWindowedSize(1600, 900);
+                client.options.getGuiScale().setValue(3);
+                client.onResolutionChanged();
                 prepareConfig();
                 GameRules rules = new GameRules();
                 rules.get(GameRules.DO_MOB_SPAWNING).set(false, null);
@@ -155,11 +167,24 @@ final class RouletteSelfTest {
     /** The scenes one after another: each starts, then waits until its spin is gone from the screen. */
     private static void script(MinecraftClient client) {
         if (wait > 0) { wait--; return; }
-        if (RouletteHud.showing() && step % 2 == 1) return; // a scene runs until its machine leaves
+        if (RouletteHud.showing() && AFTER_SPIN.contains(step)) return; // these steps wait until the machine has left
         switch (step++) {
-            case 0 -> { scene = "k1"; recording = "k1"; frame = 0; command("divineblock roulette show lightning normal"); wait = 10; }
-            case 1 -> { checkScene("k1", true); wait = 10; }
-            case 2 -> { scene = "k3tease"; command("divineblock roulette show earthquake tease"); shotAt("k3tease-crawl", Roulette.Timing.of(Roulette.Mode.NORMAL, 3).stops()[2] - 14); wait = 10; }
+            case 0 -> {
+                chantBefore = ChantPlayer.altarLevel();
+                log("  песнопение у алтаря: " + ChantPlayer.altarPiece() + ", громкость " + chantBefore);
+                scene = "k1"; recording = "k1"; frame = 0; command("divineblock roulette show lightning normal"); wait = 10;
+            }
+            case 1 -> {
+                checkScene("k1", true);
+                log("  песнопение во время рулетки: громкость " + chantDuring);
+                check(chantBefore <= 0 || chantDuring >= 0 && chantDuring < chantBefore * 0.4f, "песнопение у алтаря затихает под рулеткой: " + chantBefore + " → " + chantDuring);
+                wait = 60;
+            }
+            case 2 -> {
+                float after = ChantPlayer.altarLevel();
+                check(chantBefore <= 0 || after > chantDuring * 2, "и возвращается после неё: " + after);
+                scene = "k3tease"; command("divineblock roulette show earthquake tease"); shotAt("k3tease-crawl", Roulette.Timing.of(Roulette.Mode.NORMAL, 3).stops()[2] - 14); wait = 10;
+            }
             case 3 -> { checkScene("k3tease", true); wait = 10; }
             case 4 -> { scene = "k5"; recording = "k5"; frame = 0; command("divineblock roulette show god_mace normal"); wait = 10; }
             case 5 -> { checkScene("k5", true); check(saw("k5:777"), "777 на конце света"); wait = 10; }
@@ -170,18 +195,22 @@ final class RouletteSelfTest {
             // A pardon by a real prayer: a polite prayer first (the altar cools for 20 s), then the spin, then repentance at once.
             case 10 -> {
                 scene = "pardon";
+                answered = false;
+                Prayers.performed = act -> answered = true;
                 server(() -> Prayers.handle(player, altar, "Господи, благослови мой путь"));
-                wait = 20 * 8;
+                wait = 20 * 3;
             }
-            case 11 -> { command("divineblock roulette undead_horde normal"); wait = 40; }
-            case 12 -> { recording = "pardon"; frame = 0; server(() -> Prayers.handle(player, altar, "Господи, прости меня грешного, каюсь")); wait = 10; }
-            case 13 -> {
+            // The god answers the first prayer when he answers (his words may take a while): the next waits for his act.
+            case 11 -> { if (!answered && waited++ < 20 * 40) { step--; return; } log("  первая молитва отвечена: " + answered); wait = 20; }
+            case 12 -> { command("divineblock roulette undead_horde normal"); wait = 40; }
+            case 13 -> { recording = "pardon"; frame = 0; server(() -> Prayers.handle(player, altar, "Господи, прости меня грешного, каюсь")); wait = 10; }
+            case 14 -> {
                 check(saw("pardon:pardon"), "покаяние под рулеткой: барабаны заклинило, голуби");
                 check(!saw("pardon:final"), "помилованная кара не дошла до финала");
                 wait = 40;
             }
             // A real punishment: it falls exactly when its spin ends, counted in server ticks.
-            case 14 -> {
+            case 15 -> {
                 scene = "act";
                 server(() -> {
                     var spin = RouletteService.spin(player, Miracle.LIGHTNING, null, "самотест", Roulette.Mode.SHORT, false, new RouletteService.Steps() {
@@ -192,17 +221,17 @@ final class RouletteSelfTest {
                 });
                 wait = 10;
             }
-            case 15 -> {
+            case 16 -> {
                 check(actAt == actPlanned, "кара упала ровно через длительность рулетки: " + actAt + " = " + actPlanned);
                 wait = 10;
             }
             // A tail's mini spin before the second wave.
-            case 16 -> { scene = "mini"; command("divineblock roulette show raid mini"); shotAt("mini-spinning", 12); wait = 10; }
-            case 17 -> { check(saw("mini:stop1") && saw("mini:final"), "мини-рулетка продолжения: один барабан"); wait = 10; }
+            case 17 -> { scene = "mini"; command("divineblock roulette show raid mini"); shotAt("mini-spinning", 12); wait = 10; }
+            case 18 -> { check(saw("mini:stop1") && saw("mini:final"), "мини-рулетка продолжения: один барабан"); wait = 10; }
             // Another sinner's spin as the others see it.
-            case 18 -> { client.setScreen(new WrathSettingsScreen(null, DivineBlockMod.config())); wait = 30; }
-            case 19 -> { shotLater("f9-settings", 1); wait = 10; }
-            case 20 -> { client.setScreen(null); log("ошибок всего: " + failures); finish(client); }
+            case 19 -> { client.setScreen(new WrathSettingsScreen(null, DivineBlockMod.config())); wait = 30; }
+            case 20 -> { shotLater("f9-settings", 1); wait = 10; }
+            case 21 -> { client.setScreen(null); log("ошибок всего: " + failures); finish(client); }
             default -> { }
         }
     }

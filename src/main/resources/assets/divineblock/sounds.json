@@ -77,22 +77,6 @@
       }
     ]
   },
-  "roulette.fanfare": {
-    "subtitle": "subtitle.divineblock.roulette.fanfare",
-    "sounds": [
-      {
-        "name": "divineblock:roulette/fanfare"
-      }
-    ]
-  },
-  "roulette.coins": {
-    "subtitle": "subtitle.divineblock.roulette.coins",
-    "sounds": [
-      {
-        "name": "divineblock:roulette/coins"
-      }
-    ]
-  },
   "roulette.riser": {
     "sounds": [
       {
@@ -112,6 +96,38 @@
     "sounds": [
       {
         "name": "divineblock:roulette/whoosh"
+      }
+    ]
+  },
+  "roulette.trezvon": {
+    "subtitle": "subtitle.divineblock.roulette.trezvon",
+    "sounds": [
+      {
+        "name": "divineblock:roulette/trezvon"
+      }
+    ]
+  },
+  "roulette.blagovest": {
+    "subtitle": "subtitle.divineblock.roulette.blagovest",
+    "sounds": [
+      {
+        "name": "divineblock:roulette/blagovest"
+      }
+    ]
+  },
+  "roulette.choir_doom": {
+    "subtitle": "subtitle.divineblock.roulette.choir_doom",
+    "sounds": [
+      {
+        "name": "divineblock:roulette/choir_doom"
+      }
+    ]
+  },
+  "roulette.pomiluy": {
+    "subtitle": "subtitle.divineblock.roulette.pomiluy",
+    "sounds": [
+      {
+        "name": "divineblock:roulette/pomiluy"
       }
     ]
   },

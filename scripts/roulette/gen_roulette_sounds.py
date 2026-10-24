@@ -1,8 +1,8 @@
 """Synthesises the punishment roulette's sounds (original, made here in code) and encodes them to Ogg Vorbis with ffmpeg.
 
 Run from the repository root: python scripts/roulette/gen_roulette_sounds.py
-Writes src/main/resources/assets/divineblock/sounds/roulette/: lever, tick, thud, bell, big_bell, chime, choir, fanfare, coins,
-riser, heartbeat, whoosh (.ogg).
+Writes src/main/resources/assets/divineblock/sounds/roulette/: lever, tick, thud, bell, big_bell, chime, choir, riser, heartbeat,
+whoosh (.ogg). The bells and the choir of the final are cut from the mod's chants: scripts/roulette/cut_roulette_chants.py.
 The thunder of the final is the game's own (sounds.json points at minecraft:ambient/weather/thunder*).
 """
 import os
@@ -109,31 +109,6 @@ def choir():
     return (voiced + breath) * np.clip(shape, 0, 1)
 
 
-def fanfare():
-    """The win: bells running up a major arpeggio and ringing together, casino-bright."""
-    out = np.zeros(int(RATE * 3.0))
-    notes = (523.25, 659.25, 783.99, 1046.5, 1318.5, 1568.0, 2093.0)
-    for i, f in enumerate(notes):
-        note = bell(f, 2.0 if i == len(notes) - 1 else 1.0, brightness=0.9, hum=0.25) * (0.5 if i < len(notes) - 1 else 0.8)
-        at = int(RATE * 0.055 * i)
-        out[at:at + len(note)] += note[:len(out) - at]
-    return out
-
-
-def coins():
-    """A shower of coins: many small metal clinks, thick at first and thinning out."""
-    length = 2.4
-    out = np.zeros(int(RATE * length))
-    for i in range(70):
-        at = rng.uniform(0, length - 0.3) ** 1.6 / (length - 0.3) ** 0.6
-        f = rng.uniform(3200, 6200)
-        x = t(0.12)
-        clink = sum(a * np.sin(2 * np.pi * f * k * x) for k, a in ((1, 1.0), (1.48, 0.5), (2.13, 0.3))) * np.exp(-x / rng.uniform(0.02, 0.05))
-        start = int(RATE * at)
-        out[start:start + len(clink)] += clink[:len(out) - start] * rng.uniform(0.3, 1.0)
-    return highpass(out, 1500)
-
-
 def riser():
     """Tension before the last reel: a tone and a noise rising for three seconds."""
     length = 3.0
@@ -195,8 +170,6 @@ def main():
     write("big_bell", bell(130.8, 5.0, brightness=0.8, hum=0.9), 0.95, room=(2.0, 0.3))
     write("chime", chime(), 0.75, room=(1.2, 0.25))
     write("choir", choir(), 0.8, room=(2.0, 0.35))
-    write("fanfare", fanfare(), 0.8, room=(1.4, 0.25))
-    write("coins", coins(), 0.7, room=(0.8, 0.15))
     write("riser", riser(), 0.7)
     write("heartbeat", heartbeat(), 0.9)
     write("whoosh", whoosh(), 0.6)
