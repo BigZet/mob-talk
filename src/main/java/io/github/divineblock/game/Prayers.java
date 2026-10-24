@@ -159,7 +159,9 @@ public final class Prayers {
         VerdictBuilder.escalate(verdict, streak, config);
         if (verdict.forgiveness) {
             soul.forgiven();
-            int lifted = Curses.lift(server, player.getUuid());
+            List<String> ended = new ArrayList<>();
+            int lifted = Curses.lift(server, player.getUuid(), ended, "покаялся");
+            VillageEvents.forgiven(player, altar, ended);
             PENANCE.end(player.getUuid()); // The punishment under way is forgiven too: the next sin starts a new one.
             if (lifted > 0) hint(player, "Проклятия сняты: " + lifted);
         }
@@ -317,6 +319,12 @@ public final class Prayers {
     }
 
     private static void act(ServerPlayerEntity player, BlockPos altar, Verdict verdict, DivineConfig config) {
+        // What Mob Talk's villages hear of it: the god answered a prayer, for these reasons.
+        List<String> why = verdict.mainReasons(3).stream().map(Verdict.Reason::text).toList();
+        VillageEvents.within(new VillageEvents.Context(true, why.isEmpty() ? "" : why.get(0), why), () -> { actHere(player, altar, verdict, config); return null; });
+    }
+
+    private static void actHere(ServerPlayerEntity player, BlockPos altar, Verdict verdict, DivineConfig config) {
         Miracle miracle = verdict.chosen();
         MinecraftServer server = player.getServer();
         long now = server.getOverworld().getTime();

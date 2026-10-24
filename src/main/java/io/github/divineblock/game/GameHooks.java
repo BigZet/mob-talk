@@ -12,7 +12,7 @@ public final class GameHooks {
     public static void register() {
         ServerTickEvents.END_SERVER_TICK.register(server -> { Scheduler.tick(); Tornadoes.tick(); Curses.tick(server); SkyCourt.tick(server); Multiplayer.tick(server); });
         ServerLifecycleEvents.SERVER_STARTED.register(SkyCourt::relocateOld);
-        ServerLifecycleEvents.SERVER_STOPPING.register(server -> { Scheduler.clear(); Prayers.clear(); Tornadoes.clear(); Curses.clear(); SkyCourt.clear(); });
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> { Scheduler.clear(); Prayers.clear(); Tornadoes.clear(); Curses.clear(); SkyCourt.clear(); VillageEvents.clear(); });
         DeedWatcher.register();
         ChurchArea.register();
         Curses.register();

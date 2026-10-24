@@ -21,7 +21,8 @@ import java.util.Map;
  *   <li>{@code souls} — per soul {@code player, sins, ladder, banned, curses, mercy, label, deeds:[{text, t, day}]};</li>
  *   <li>{@code active} — {@code bosses:[{uuid, id, title, health, maxHealth, since, phase, target, dimension, x, y, z}],
  *       curses, godAvatar:{active, player}, skyCourt:{active, player}, blessings:[{player, title, until}]};</li>
- *   <li>{@code prayers} {@code {"since":ms,"limit":n,"player":"name or uuid"}} — heard prayers, newest first ({@link PrayerLog}).</li>
+ *   <li>{@code prayers} {@code {"since":ms,"limit":n,"player":"name or uuid"}} — heard prayers, newest first ({@link PrayerLog});</li>
+ *   <li>{@code events} {@code {"since":ms,"limit":n}} — the god's deeds for Mob Talk's villages, oldest first ({@link VillageNews}).</li>
  * </ul>
  * Times are epoch ms, a player is {@code {uuid, name}}. The game behind it is a {@link Host}, so the protocol itself is plain
  * Java and tested without Minecraft. */
@@ -46,6 +47,8 @@ public final class AdminProtocol {
         default JsonObject active() { throw new IllegalStateException("нет данных"); }
         /** The heard prayers ({@code prayers}): this game's log by default. */
         default PrayerLog prayers() { return PrayerLog.shared(); }
+        /** The deeds told to Mob Talk's villages ({@code events}): this game's buffer by default. */
+        default VillageNews news() { return VillageNews.shared(); }
     }
 
     private final Host host;
@@ -67,6 +70,7 @@ public final class AdminProtocol {
                 case "souls" -> guarded(host::souls).toString();
                 case "active" -> guarded(host::active).toString();
                 case "prayers" -> prayers(in).toString();
+                case "events" -> events(in).toString();
                 default -> error("неизвестный запрос: " + op);
             };
         } catch (RuntimeException broken) {
@@ -97,6 +101,16 @@ public final class AdminProtocol {
             item.addProperty("player", entry.player()); item.addProperty("text", entry.text());
             items.add(item);
         }
+        JsonObject out = new JsonObject();
+        out.add("items", items);
+        return out;
+    }
+
+    private JsonObject events(JsonObject in) {
+        long since = in.has("since") ? in.get("since").getAsLong() : 0;
+        int limit = in.has("limit") ? in.get("limit").getAsInt() : VillageNews.LIMIT;
+        JsonArray items = new JsonArray();
+        for (VillageNews.Event event : host.news().since(since, limit)) items.add(event.json());
         JsonObject out = new JsonObject();
         out.add("items", items);
         return out;

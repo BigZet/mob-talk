@@ -4,7 +4,7 @@ import io.github.divineblock.core.DivineConfig;
 import java.util.List;
 import net.minecraft.client.gui.screen.Screen;
 
-/** «Кары» of the panel: escalation, lingering curses and the eternal ban; each act on or off is on «Деяния».
+/** «Кары» of the panel: escalation, lingering curses, the eternal ban and what Mob Talk's villages hear; each act on or off is on «Деяния».
  * Edits the panel's config. */
 public final class WrathSettingsScreen extends DivinePanel {
     public WrathSettingsScreen(Screen parent, DivineConfig config) { super(parent, config); }
@@ -29,6 +29,10 @@ public final class WrathSettingsScreen extends DivinePanel {
         note(config.allowEternalBan
                 ? "Изгнание включено: за четвёртую хулу бог выкинет тебя из мира, и мир больше не впустит. Снять: выключить здесь, файл config/divineblock-unban.txt или -Ddivineblock.unban=1."
                 : "Изгнание выключено: бог никогда не изгоняет, а изгнанный прежде снова может войти.", config.allowEternalBan ? 0xFF5555 : MUTED);
+
+        heading("Жители Mob Talk");
+        server(toggle("Сообщать жителям Mob Talk", "Каждое деяние бога доходит до деревень Mob Talk: жители судачат, боятся и винят грешника.", config.tellVillages, v -> config.tellVillages = v));
+        server(toggle("Бог называет грешника вслух", "Деревня знает, за чьи грехи кара, даже если жители её не видели.", config.nameSinner, v -> config.nameSinner = v));
         note("Каждую кару, благо и шутку можно выключить на странице «Деяния».", MUTED);
     }
 }
