@@ -166,10 +166,13 @@ final class ServerSelfTestConfession {
         c.cue(playerName, "shot", "mobtalk-confession-village-" + playerName + ".png");
         // Между исповедями: откат снят, на Тест2 — печать Каина (личное проклятие).
         ServerConfig.update(config -> { config.confessionCooldownMinutes = 0; return config; });
-        JsonObject cain = DivineLink.call(json("op", "action", "id", "act", "args", json("player", playerName, "deed", "cain", "power", "3")));
+        JsonObject cain = DivineLink.call(json("op", "action", "id", "act", "args", json("player", playerName, "deed", "cain", "power", "3", "roulette", "нет")));
         c.log("печать Каина: " + cain);
-        c.check(cursed(), "на " + playerName + " легло личное проклятие (печать Каина): " + cain);
-        c.pause(4, this::secondConfession);
+        // Кару админа может разыграть рулетка: проклятие ложится через несколько секунд.
+        c.await("печать Каина легла", 30, this::cursed, () -> {
+            c.check(cursed(), "на " + playerName + " легло личное проклятие (печать Каина): " + cain);
+            c.pause(4, this::secondConfession);
+        });
     }
 
     // ---- Вторая исповедь: у настоятеля, убийство названо, епитимья «свеча». ----
