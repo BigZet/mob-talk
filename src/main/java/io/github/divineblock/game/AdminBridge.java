@@ -10,6 +10,7 @@ import io.github.divineblock.core.Miracle;
 import io.github.divineblock.core.Penance;
 import io.github.divineblock.core.PrayerLog;
 import io.github.divineblock.core.PrayerTone;
+import io.github.divineblock.core.StreamOverlay;
 import io.github.divineblock.core.Verdict;
 import io.github.divineblock.core.Righteousness;
 import java.io.IOException;
@@ -46,13 +47,14 @@ public final class AdminBridge implements UnaryOperator<String> {
 
     static void register() {
         ServerLifecycleEvents.SERVER_STARTED.register(started -> server = started);
-        ServerLifecycleEvents.SERVER_STOPPED.register(stopped -> { if (server == stopped) server = null; });
+        // Another world is another stream: its acts and lines are not carried over.
+        ServerLifecycleEvents.SERVER_STOPPED.register(stopped -> { if (server == stopped) server = null; StreamOverlay.shared().clear(); });
         ServerPlayConnectionEvents.JOIN.register((handler, sender, joined) -> joined.execute(() -> send(handler.player)));
         ServerPlayNetworking.registerGlobalReceiver(SettingsPatchPayload.ID, (payload, context) -> patchFromPlayer(context.player(), payload.json()));
     }
 
     /** A blessing that lasts, for the admin's «Бог» tab: whose, what and until when (epoch ms). Server thread only. */
-    private record Blessing(UUID player, String title, long until) { }
+    private record Blessing(UUID player, String deed, String title, long until) { }
     private static final List<Blessing> BLESSINGS = new java.util.ArrayList<>();
 
     /** A mercy fell on {@code player}: the lasting ones (strength and speed, the great blessing) are kept until they end. */
@@ -64,7 +66,14 @@ public final class AdminBridge implements UnaryOperator<String> {
         };
         if (ticks <= 0) return;
         BLESSINGS.removeIf(old -> old.player().equals(player.getUuid()) && old.title().equals(miracle.title()));
-        BLESSINGS.add(new Blessing(player.getUuid(), miracle.title(), System.currentTimeMillis() + ticks * 50));
+        BLESSINGS.add(new Blessing(player.getUuid(), miracle.id(), miracle.title(), System.currentTimeMillis() + ticks * 50));
+    }
+
+    /** An act of the god began on {@code player}: the overlay shows it from now on, with the main reasons of the verdict. */
+    static void shown(ServerPlayerEntity player, Verdict verdict, Miracle miracle) {
+        StreamOverlay.shared().verdict(new StreamOverlay.Shown(System.currentTimeMillis(),
+                new StreamOverlay.Player(player.getUuidAsString(), player.getName().getString()), StreamOverlay.act(miracle.kind),
+                miracle.id(), miracle.title(), StreamOverlay.reasons(verdict), verdict.fury));
     }
 
     /** Who may change the server's settings from F9: an operator for now (Mob Talk's admin level later). */
@@ -256,6 +265,7 @@ public final class AdminBridge implements UnaryOperator<String> {
             Verdict verdict = new Verdict();
             verdict.prayer = "(деяние послал админ)"; verdict.miracle = miracle.id(); verdict.power = power; verdict.inclination = miracle.kind;
             verdict.decidedBy = "admin"; verdict.decisionNote = "веб-админка"; verdict.speech = done;
+            shown(target, verdict, miracle);
             PrayerLog.shared().add(PrayerLog.of(System.currentTimeMillis(), target.getUuidAsString(), target.getName().getString(), verdict, PrayerTone.of(""), false, "", 0));
             Multiplayer.journal(GodJournal.Kind.VERDICT, target.getName().getString(), "админ послал «" + miracle.title() + "» ×" + power + ": " + done);
             return miracle.title() + " ×" + power + " → " + target.getName().getString() + ": " + done;
@@ -363,6 +373,68 @@ public final class AdminBridge implements UnaryOperator<String> {
                 out.add("punishments", punishments);
                 return out;
             });
+        }
+
+        @Override public StreamOverlay.Snapshot overlay() {
+            MinecraftServer running = server;
+            if (running == null) throw new IllegalStateException("сервер не запущен");
+            return onServer(running, () -> {
+                DivineState state = DivineState.of(running);
+                long tick = running.getOverworld().getTime(), now = System.currentTimeMillis();
+                List<StreamOverlay.Soul> souls = new java.util.ArrayList<>();
+                for (ServerPlayerEntity online : running.getPlayerManager().getPlayerList()) {
+                    String id = online.getUuidAsString();
+                    GodLedger.Soul soul = state.ledger.souls.get(id);
+                    int sins = 0;
+                    if (soul != null) for (Righteousness.Memory memory : soul.righteousness.memories) if (memory.deed != null && memory.deed.weight < 0) sins += Math.max(1, memory.count);
+                    souls.add(new StreamOverlay.Soul(who(online), soul == null ? 0 : soul.righteousness.score, sins,
+                            soul == null ? 0 : soul.wrathStreak(tick / 24_000), state.banned.containsKey(id)));
+                }
+                List<StreamOverlay.Active> active = new java.util.ArrayList<>();
+                for (Curses.Curse curse : state.curses.active) {
+                    if (curse.type == null) continue;
+                    active.add(new StreamOverlay.Active("curse", curseDeed(curse.type).id(), curse.type.label, soul(running, state, curse.player),
+                            now + Math.max(0, curse.until - tick) * 50L, 0, 0));
+                }
+                for (Blessing blessing : BLESSINGS)
+                    if (blessing.until() > now)
+                        active.add(new StreamOverlay.Active("blessing", blessing.deed(), blessing.title(), soul(running, state, blessing.player().toString()), blessing.until(), 0, 0));
+                for (io.github.divineblock.boss.SacredBoss boss : bosses(running)) {
+                    Miracle deed = io.github.divineblock.boss.BossPunishment.deed(boss.kind());
+                    StreamOverlay.Player target = boss.getTarget() instanceof ServerPlayerEntity hunted ? who(hunted) : null;
+                    active.add(new StreamOverlay.Active("boss", deed == null ? null : deed.id(), boss.kind().title, target, 0,
+                            Math.round(boss.getHealth()), Math.round(boss.getMaxHealth())));
+                }
+                for (ServerPlayerEntity over : io.github.divineblock.boss.DivineBosses.godAvatarPlayers())
+                    active.add(new StreamOverlay.Active("boss", Miracle.GOD_MACE.id(), Miracle.GOD_MACE.title(), who(over), 0, 0, 0));
+                List<StreamOverlay.Event> events = new java.util.ArrayList<>();
+                SkyCourt.remaining().forEach((judged, ticks) ->
+                        events.add(new StreamOverlay.Event("court", "Небесный суд", soul(running, state, judged.toString()), now + ticks * 50L)));
+                // A ban stays on the overlay for two minutes after it fell; the ban itself is eternal.
+                state.banned.forEach((id, ban) -> {
+                    if (ban.at > 0 && now - ban.at < BAN_SHOWN_MS)
+                        events.add(new StreamOverlay.Event("ban", "Вечное изгнание", soul(running, state, id), ban.at + BAN_SHOWN_MS));
+                });
+                return new StreamOverlay.Snapshot(state.streamer == null ? "" : state.streamer, souls, active, events);
+            });
+        }
+
+        /** How long the overlay shows a fresh eternal ban. */
+        private static final long BAN_SHOWN_MS = 120_000;
+
+        /** The act that laid a curse: the overlay hides it with that act. */
+        private static Miracle curseDeed(Curses.Type type) {
+            return switch (type) {
+                case BLIGHT -> Miracle.BLIGHT; case CAIN, FEAR -> Miracle.CAIN; case FLOOD -> Miracle.FLOOD;
+                case MURRAIN, DARKNESS, BLOOD -> Miracle.PLAGUES;
+            };
+        }
+        private static StreamOverlay.Player who(ServerPlayerEntity player) {
+            return new StreamOverlay.Player(player.getUuidAsString(), player.getName().getString());
+        }
+        private static StreamOverlay.Player soul(MinecraftServer running, DivineState state, String id) {
+            com.google.gson.JsonObject player = player(running, state, id);
+            return new StreamOverlay.Player(player.get("uuid").getAsString(), player.get("name").getAsString());
         }
 
         /** {active, player}: whether it goes on, and over whom (the first, when there are several). */

@@ -21,7 +21,9 @@ import java.util.Map;
  *   <li>{@code souls} — per soul {@code player, sins, ladder, banned, curses, mercy, label, deeds:[{text, t, day}]};</li>
  *   <li>{@code active} — {@code bosses:[{uuid, id, title, health, maxHealth, since, phase, target, dimension, x, y, z}],
  *       curses, godAvatar:{active, player}, skyCourt:{active, player}, blessings:[{player, title, until}]};</li>
- *   <li>{@code prayers} {@code {"since":ms,"limit":n,"player":"name or uuid"}} — heard prayers, newest first ({@link PrayerLog}).</li>
+ *   <li>{@code prayers} {@code {"since":ms,"limit":n,"player":"name or uuid"}} — heard prayers, newest first ({@link PrayerLog});</li>
+ *   <li>{@code overlay} {@code {"since":ms}} — the OBS overlay «Бог на стриме» ({@link StreamOverlay}): {@code god, verdict, souls,
+ *       active, events} and the god's lines after {@code since}; {@code {"ok":true,"disabled":true}} when it is switched off.</li>
  * </ul>
  * Times are epoch ms, a player is {@code {uuid, name}}. The game behind it is a {@link Host}, so the protocol itself is plain
  * Java and tested without Minecraft. */
@@ -46,6 +48,10 @@ public final class AdminProtocol {
         default JsonObject active() { throw new IllegalStateException("нет данных"); }
         /** The heard prayers ({@code prayers}): this game's log by default. */
         default PrayerLog prayers() { return PrayerLog.shared(); }
+        /** What goes on now for the overlay: the streamer, the souls online, curses, blessings, bosses, the court and bans. */
+        default StreamOverlay.Snapshot overlay() { throw new IllegalStateException("нет данных"); }
+        /** The acts as they began and the god's lines: this game's by default. */
+        default StreamOverlay stream() { return StreamOverlay.shared(); }
     }
 
     private final Host host;
@@ -67,6 +73,7 @@ public final class AdminProtocol {
                 case "souls" -> guarded(host::souls).toString();
                 case "active" -> guarded(host::active).toString();
                 case "prayers" -> prayers(in).toString();
+                case "overlay" -> overlay(in).toString();
                 default -> error("неизвестный запрос: " + op);
             };
         } catch (RuntimeException broken) {
@@ -146,6 +153,13 @@ public final class AdminProtocol {
         JsonObject out = new JsonObject();
         out.add("items", items);
         return out;
+    }
+
+    private JsonObject overlay(JsonObject in) {
+        long since = in.has("since") ? in.get("since").getAsLong() : 0;
+        DivineConfig config = host.config();
+        if (!config.overlayEnabled) return host.stream().json(config, null, since, System.currentTimeMillis());
+        return guarded(() -> host.stream().json(config, host.overlay(), since, System.currentTimeMillis()));
     }
 
     private static JsonObject odds(Map<String, Double> odds) {

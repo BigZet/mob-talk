@@ -45,7 +45,7 @@ public final class DivineSettings {
     public record Group(String id, String title) { }
 
     public static final List<Group> GROUPS = List.of(new Group("god", "Характер бога"), new Group("speech", "Речь и решения"),
-            new Group("world", "Мир"), new Group("wrath", "Кары"), new Group("bosses", "Боссы"));
+            new Group("world", "Мир"), new Group("wrath", "Кары"), new Group("bosses", "Боссы"), new Group("stream", "Бог на стриме"));
 
     private static final Pattern ID = Pattern.compile("[a-z0-9_]{1,40}");
     private static final Gson GSON = new Gson();
@@ -79,7 +79,12 @@ public final class DivineSettings {
             flags("disabled", "wrath", "Деяния бога", "Выключенное деяние не выпадает: бог берёт другое из той же группы.", deedFlags()),
             flags("disabledBosses", "bosses", "Боссы", "Вместо выключенного босса приходит усиленный обычный моб с его именем.", bossFlags()),
             number("bossDifficulty", "bosses", "Сила боссов, %", "Здоровье и урон боссов относительно обычного.", 50, 300, 1),
-            flag("bossBlockDamage", "bosses", "Боссы ломают блоки", "Удары и ульты боссов могут разрушать блоки."));
+            flag("bossBlockDamage", "bosses", "Боссы ломают блоки", "Удары и ульты боссов могут разрушать блоки."),
+            flag("overlayEnabled", "stream", "Оверлей для OBS", "Оверлей стрима видит бога: его настроение, вердикты, кары и реплики; выкл — не видит ничего."),
+            flag("overlayReasons", "stream", "Причины вердикта", "Оверлей показывает до трёх главных причин, почему бог так решил."),
+            flag("overlayOthersMercy", "stream", "Милость всех игроков", "Оверлей показывает милость каждого игрока в сети; выкл — только стримера."),
+            flag("overlaySins", "stream", "Число грехов", "Оверлей показывает, сколько грехов на душе."),
+            flags("overlayHidden", "stream", "Деяния на стриме", "Выключенная кара или благо на оверлее зовётся «Тайное деяние»: зрители не знают, что падёт.", overlayFlags()));
 
     private DivineSettings() { }
 
@@ -230,7 +235,7 @@ public final class DivineSettings {
                     String id = part.strip().toLowerCase(Locale.ROOT);
                     if (id.isEmpty()) continue;
                     if (!ID.matcher(id).matches()) return "неверный id: " + id;
-                    if (setting.key().equals("disabled") && Miracle.byId(id) == null) return "нет такого деяния: " + id;
+                    if ((setting.key().equals("disabled") || setting.key().equals("overlayHidden")) && Miracle.byId(id) == null) return "нет такого деяния: " + id;
                     if (!ids.contains(id)) ids.add(id);
                 }
                 set(config, setting.key(), ids);
@@ -279,6 +284,11 @@ public final class DivineSettings {
                 out.add(new Flag(miracle.id(), miracle.title(), help, where[0], where[1]));
             }
         return List.copyOf(out);
+    }
+
+    /** The punishments and mercies of {@link #deedFlags}: what the overlay may name or keep secret. */
+    static List<Flag> overlayFlags() {
+        return deedFlags().stream().filter(flag -> flag.group().equals("wrath") || flag.group().equals("miracle")).toList();
     }
 
     /** Every sacred boss by where he comes from first, and the god with the mace with the end of the world. */

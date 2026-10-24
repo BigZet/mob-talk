@@ -275,8 +275,10 @@ public final class Prayers {
     private static final class Speaking {
         final String line; final ServerPlayerEntity player; final Runnable onStart, onEnd;
         boolean started, ended;
+        /** The line as the overlay keeps it, for the length of its voice. */
+        io.github.divineblock.core.StreamOverlay.Line said;
         Speaking(ServerPlayerEntity player, String line, Runnable onStart, Runnable onEnd) { this.player = player; this.line = line; this.onStart = onStart; this.onEnd = onEnd; }
-        void start() { if (started) return; started = true; chat(player, line); onStart.run(); }
+        void start() { if (started) return; started = true; said = chat(player, line); onStart.run(); }
         void end() { if (ended) return; start(); ended = true; onEnd.run(); }
     }
     private static final java.util.Map<String, Speaking> WAITING = new java.util.HashMap<>();
@@ -313,6 +315,7 @@ public final class Prayers {
             return;
         }
         WAITING.remove(key);
+        io.github.divineblock.core.StreamOverlay.voiced(speaking.said, Math.round(seconds * 1000.0));
         speaking.end();
     }
 
@@ -346,6 +349,8 @@ public final class Prayers {
         }
         hint(player, "✦ " + done);
         performed.accept(miracle.id());
+        // The overlay learns of the act as it falls, never earlier (no spoiler while the god still speaks).
+        AdminBridge.shown(player, verdict, fell ? miracle : miracle.kind == Miracle.Kind.WRATH ? Miracle.OMEN_THUNDER : Miracle.OMEN_LIGHT);
         Multiplayer.journal(io.github.divineblock.core.GodJournal.Kind.MIRACLE, player.getName().getString(), miracle.id() + ": " + done);
         if (fell && miracle.kind == Miracle.Kind.WRATH) PENANCE.fell(player.getUuid(), miracle.id(), now);
         else if (verdict.inclination == Miracle.Kind.WRATH) PENANCE.end(player.getUuid()); // only an omen came: nothing runs
@@ -422,14 +427,17 @@ public final class Prayers {
     /** A line of the god in chat only, without the voice: what the zones of punishment explain (where, why). */
     public static void godChat(ServerPlayerEntity player, String line) { chat(player, line); }
 
-    private static void chat(ServerPlayerEntity player, String line) {
+    private static io.github.divineblock.core.StreamOverlay.Line chat(ServerPlayerEntity player, String line) {
         spoken.accept(line);
         String text = line == null || line.isBlank() ? "…" : line;
-        for (ServerPlayerEntity hearer : ServerGodVoice.listeners(player)) {
+        List<ServerPlayerEntity> hearers = ServerGodVoice.listeners(player);
+        for (ServerPlayerEntity hearer : hearers) {
             Text head = hearer == player ? Text.literal("[Бог] ").formatted(Formatting.GOLD, Formatting.BOLD)
                     : Text.literal("[Бог → " + player.getName().getString() + "] ").formatted(Formatting.GOLD, Formatting.BOLD);
             hearer.sendMessage(head.copy().append(Text.literal(text).formatted(Formatting.YELLOW, Formatting.ITALIC)), false);
         }
+        if (line == null || line.isBlank() || "…".equals(line)) return null;
+        return io.github.divineblock.core.StreamOverlay.shared().line(System.currentTimeMillis(), line, hearers.stream().map(ServerPlayerEntity::getUuidAsString).toList());
     }
 
     /** The heard prayer, for the others near the altar: who prays and what he says (he himself knows). */
