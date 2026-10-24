@@ -422,6 +422,23 @@ public final class AdminBridge implements UnaryOperator<String> {
             });
         }
 
+        @Override public com.google.gson.JsonObject absolveRelease(com.google.gson.JsonObject request) {
+            MinecraftServer running = server;
+            if (running == null) throw new IllegalStateException("сервер не запущен");
+            UUID uuid = uuid(AdminProtocol.text(request, "player"));
+            java.util.Set<Long> ids = AdminProtocol.ids(request, "deeds");
+            return onServer(running, () -> {
+                DivineState state = DivineState.of(running);
+                int released = io.github.divineblock.core.Absolution.release(state.ledger.soul(uuid).righteousness, ids);
+                state.markDirty();
+                if (released > 0) Multiplayer.journal(GodJournal.Kind.CONFESSION, player(running, state, uuid.toString()).get("name").getAsString(),
+                        "срок епитимьи вышел: грехов снова на душе " + released);
+                com.google.gson.JsonObject out = new com.google.gson.JsonObject();
+                out.addProperty("ok", true); out.addProperty("released", released);
+                return out;
+            });
+        }
+
         /** A punishment still runs on him: the god's act under way, or a curse that stays. */
         private static boolean punished(MinecraftServer running, UUID player, long tick) {
             return Prayers.PENANCE.running(player, tick, !Curses.of(running, player).isEmpty());

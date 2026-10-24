@@ -27,7 +27,8 @@ import java.util.Map;
  *   <li>{@code absolve} {@code {"player","named":[ids],"sincerity":0..2,"place":"temple|village","priest":name}} — the
  *       absolution by the F9 numbers ({@link Absolution}): {@code {ok, absolved:[…], deferred:[…], concealed:[ids], refused, curses,
  *       mercyBefore, mercyAfter}}, each item {@code {id, kind, text, heavy, percent, restored, remaining}};</li>
- *   <li>{@code absolve_rest} {@code {"player","deeds":[ids],"priest":name}} — the penance done: the rest of those sins.</li>
+ *   <li>{@code absolve_rest} {@code {"player","deeds":[ids],"priest":name}} — the penance done: the rest of those sins;</li>
+ *   <li>{@code absolve_release} {@code {"player","deeds":[ids]}} — the penance not done in time: those sins are to confess again.</li>
  * </ul>
  * A confession writes the journal kind {@code confession}: the place, the priest and the numbers, never the penitent's words.
  * Times are epoch ms, a player is {@code {uuid, name}}. The game behind it is a {@link Host}, so the protocol itself is plain
@@ -58,6 +59,8 @@ public final class AdminProtocol {
         /** {@code absolve} and {@code absolve_rest}: the request as it came; the answer {@link #resultJson}. */
         default JsonObject absolve(JsonObject request) { throw new IllegalStateException("исповедь недоступна"); }
         default JsonObject absolveRest(JsonObject request) { throw new IllegalStateException("исповедь недоступна"); }
+        /** {@code absolve_release}: the penance not done in time — the rest of those sins is to confess again. */
+        default JsonObject absolveRelease(JsonObject request) { throw new IllegalStateException("исповедь недоступна"); }
     }
 
     private final Host host;
@@ -82,6 +85,7 @@ public final class AdminProtocol {
                 case "soul_deeds" -> guarded(() -> host.soulDeeds(text(in, "player"))).toString();
                 case "absolve" -> guarded(() -> host.absolve(in)).toString();
                 case "absolve_rest" -> guarded(() -> host.absolveRest(in)).toString();
+                case "absolve_release" -> guarded(() -> host.absolveRelease(in)).toString();
                 default -> error("неизвестный запрос: " + op);
             };
         } catch (RuntimeException broken) {
@@ -220,6 +224,7 @@ public final class AdminProtocol {
             deed.addProperty("id", open.id()); deed.addProperty("kind", open.kind()); deed.addProperty("text", open.text());
             deed.addProperty("weight", open.weight()); deed.addProperty("heavy", open.heavy()); deed.addProperty("relapse", open.relapse());
             deed.addProperty("recent", memory != null && Absolution.recentlyAbsolved(righteousness, memory.deed, today));
+            deed.addProperty("concealed", memory != null && memory.concealed);
             deeds.add(deed);
         }
         JsonObject out = new JsonObject();

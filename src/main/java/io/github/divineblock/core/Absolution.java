@@ -103,6 +103,19 @@ public final class Absolution {
         return new Result(absolved, List.of(), List.of(), false, round(before), round(righteousness.score));
     }
 
+    /** The penance not done in time (no punishment for that): the rest of these sins is on the soul again, to be confessed anew
+     * (what was forgiven stays forgiven). Returns how many. */
+    public static int release(Righteousness righteousness, Collection<Long> ids) {
+        int released = 0;
+        for (long id : ids) {
+            Righteousness.Memory m = righteousness.memory(id);
+            if (m == null || !m.open() || m.awaiting <= 0) continue;
+            m.awaiting = 0;
+            released++;
+        }
+        return released;
+    }
+
     /** Whether every sin committed by {@code day} (inclusive) is settled: then a personal curse laid that day may end. */
     public static boolean clearUpTo(Righteousness righteousness, long day) {
         for (Righteousness.Memory m : righteousness.memories) if (m.open() && m.day <= day) return false;
