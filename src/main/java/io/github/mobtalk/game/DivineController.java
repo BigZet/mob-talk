@@ -164,6 +164,11 @@ final class DivineController {
         Set<String> near = new LinkedHashSet<>();
         BlockPos at = new BlockPos(deed.x(), deed.y(), deed.z());
         ConversationStore.Village here = world == null ? bridge.memory.villageNear(deed.dimension(), deed.x(), deed.z()) : bridge.villageAt(world, at);
+        if (here == null && world != null && bridge.config.villageSites) {
+            // Б1: a deed in a village structure nobody talked in yet founds the village; its first villager's biography names it.
+            ConversationStore.Site site = VillageSites.at(world, at);
+            if (site != null) here = bridge.memory.createVillage(deed.dimension(), site.x(), site.z(), "", "", site.key());
+        }
         if (here != null) near.add(here.id());
         int reach = deed.world() ? Math.max(deed.radius(), (int) WORLD_REACH) : bridge.config.divinePersonalRadius;
         for (ConversationStore.Village village : bridge.memory.villages()) {
@@ -215,7 +220,9 @@ final class DivineController {
     }
     private String name(VillagerEntity villager) {
         String known = bridge.memory.displayName(villager.getUuid());
-        return known.isBlank() ? villager.getName().getString() : known;
+        if (!known.isBlank()) return known;
+        if (villager.hasCustomName()) return villager.getName().getString();
+        return villager.getVillagerData().getProfession() == VillagerProfession.CLERIC ? "Священник" : "Житель"; // Not the vanilla «Villager».
     }
 
     // ---- Prices: vanilla gossip, so the trade window shows them without touching the offers. ----

@@ -122,4 +122,14 @@ class DivineTidingsTest {
         assertFalse(store.social().standing(village.id(), player, now).rank() == VillageStanding.Rank.SUSPECT, "a rumour about nobody blames nobody");
         ConversationStore.closeWorld(directory);
     }
+
+    @Test void aVillageTheGodFoundedTakesItsFirstBiography() throws Exception {
+        ConversationStore store = ConversationStore.open(directory, new MobTalkConfig());
+        ConversationStore.Village village = store.createVillage(OVERWORLD, 10, 10, "", "", "site-1");
+        assertEquals("Безымянная деревня", village.name());
+        ConversationStore.Village named = store.nameVillage(village.id(), "Ольховка", "Деревня у реки.");
+        assertEquals("Ольховка", named.name()); assertEquals("site-1", named.site());
+        assertEquals("Ольховка", store.nameVillage(village.id(), "Другая", "Другая история.").name(), "a named village keeps its name");
+        ConversationStore.closeWorld(directory);
+    }
 }

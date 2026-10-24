@@ -418,6 +418,7 @@ public final class ConversationEngine implements AutoCloseable {
         if (villager && village == null && anchor != null && !written.villageStory().isBlank())
             village = site == null ? store.createVillage(snapshot.dimension(), anchor[0], anchor[1], written.villageName(), written.villageStory())
                     : store.createVillage(snapshot.dimension(), site.x(), site.z(), written.villageName(), written.villageStory(), site.key());
+        else if (villager && village != null && village.story().isBlank()) village = store.nameVillage(village.id(), written.villageName(), written.villageStory());
         store.setBackstory(snapshot.id(), written.name(), written.story(), written.desire(), written.secret(), village == null ? "" : village.id());
     }
 

@@ -101,7 +101,7 @@ public final class ConversationStore {
             boolean villager = "minecraft:villager".equals(p.type), golem = "minecraft:iron_golem".equals(p.type);
             int[] anchor = villager || golem ? ConversationEngine.villageAnchor(snapshot) : null;
             if (anchor != null && detached.village == null) detached.village = villageFor(snapshot.dimension(), anchor[0], anchor[1], ConversationEngine.villageSite(snapshot));
-            detached.founds = villager && detached.village == null;
+            detached.founds = villager && (detached.village == null || detached.village.story().isBlank());
         }
         MobCard current = card(snapshot.id(), snapshot.playerId());
         detached.relationship = current.relationship();
@@ -596,7 +596,7 @@ public final class ConversationStore {
      * {@code site} names the village structure it was founded in ("ctov:large/village_plains@12,-40"), "" for villages founded
      * before sites were known or outside any structure. */
     public record Village(String id, String dimension, int x, int z, String name, String story, String site) {
-        public Village { site = site == null ? "" : site; }
+        public Village { site = site == null ? "" : site; story = story == null ? "" : story; name = name == null ? "" : name; }
     }
     /** The village structure a villager lives in, as the game read it: a key unique in the world, the structure's centre and its
      * bounds on the ground. */
@@ -711,6 +711,16 @@ public final class ConversationStore {
         }
         Village near = villageNear(dimension, x, z);
         return near != null && near.site().isBlank() ? near : null;
+    }
+    /** A village the god's deed founded before anyone talked there (no story yet) takes the name and story the first villager's
+     * biography wrote; any other village keeps its own. Returns the village as it is now. */
+    public synchronized Village nameVillage(String id, String name, String story) {
+        Village village = village(id);
+        if (village == null || !village.story().isBlank() || story == null || story.isBlank()) return village;
+        Village named = new Village(village.id(), village.dimension(), village.x(), village.z(),
+                TextBounds.characters(name == null || name.isBlank() ? village.name() : name, 60), TextBounds.characters(story, 1500), village.site());
+        state.villages.put(named.id(), named); scheduleSave();
+        return named;
     }
     public synchronized Village createVillage(String dimension, int x, int z, String name, String story) { return createVillage(dimension, x, z, name, story, ""); }
     public synchronized Village createVillage(String dimension, int x, int z, String name, String story, String site) {
