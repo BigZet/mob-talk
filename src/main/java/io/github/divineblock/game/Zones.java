@@ -79,7 +79,7 @@ public final class Zones {
             case CHURCH -> {
                 if (!inside || miracle.kind != Miracle.Kind.WRATH) return Miracles.perform(miracle, power, player, altar, prayer, config, severity);
                 decided.accept(miracle.id() + " → в храме");
-                String done = miracle == Miracle.LIGHTNING ? thresholdLightning(world, player, site, power) : Miracles.perform(miracle, power, player, altar, prayer, config, severity);
+                String done = miracle == Miracle.LIGHTNING ? thresholdLightningTold(world, player, site, power, altar) : Miracles.perform(miracle, power, player, altar, prayer, config, severity);
                 if (done != null) done += ", " + churchCurse(world, player, site);
                 return done;
             }
@@ -130,6 +130,16 @@ public final class Zones {
     }
 
     // ---- Inside the church. ----
+
+    /** {@link #thresholdLightning}, told to Mob Talk's villages like any act. */
+    private static String thresholdLightningTold(ServerWorld world, ServerPlayerEntity player, ChurchSites.Site site, int power, BlockPos altar) {
+        Object outer = VillageEvents.begin(Miracle.LIGHTNING);
+        try {
+            String done = thresholdLightning(world, player, site, power);
+            if (done != null) VillageEvents.performed(Miracle.LIGHTNING, power, player, altar);
+            return done;
+        } finally { VillageEvents.end(outer); }
+    }
 
     /** Lightning does not come through the dome: it strikes the threshold, and the sinner is scorched where he stands. */
     static String thresholdLightning(ServerWorld world, ServerPlayerEntity player, ChurchSites.Site site, int power) {

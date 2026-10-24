@@ -29,6 +29,9 @@ import java.util.Map;
  *       mercyBefore, mercyAfter}}, each item {@code {id, kind, text, heavy, percent, restored, remaining}};</li>
  *   <li>{@code absolve_rest} {@code {"player","deeds":[ids],"priest":name}} — the penance done: the rest of those sins;</li>
  *   <li>{@code absolve_release} {@code {"player","deeds":[ids]}} — the penance not done in time: those sins are to confess again.</li>
+ *   <li>{@code overlay} {@code {"since":ms}} — the OBS overlay «Бог на стриме» ({@link StreamOverlay}): {@code god, verdict, souls,
+ *       active, events} and the god's lines after {@code since}; {@code {"ok":true,"disabled":true}} when it is switched off;</li>
+ *   <li>{@code events} {@code {"since":ms,"limit":n}} — the god's deeds for Mob Talk's villages, oldest first ({@link VillageNews}).</li>
  * </ul>
  * A confession writes the journal kind {@code confession}: the place, the priest and the numbers, never the penitent's words.
  * Times are epoch ms, a player is {@code {uuid, name}}. The game behind it is a {@link Host}, so the protocol itself is plain
@@ -61,6 +64,12 @@ public final class AdminProtocol {
         default JsonObject absolveRest(JsonObject request) { throw new IllegalStateException("исповедь недоступна"); }
         /** {@code absolve_release}: the penance not done in time — the rest of those sins is to confess again. */
         default JsonObject absolveRelease(JsonObject request) { throw new IllegalStateException("исповедь недоступна"); }
+        /** What goes on now for the overlay: the streamer, the souls online, curses, blessings, bosses, the court and bans. */
+        default StreamOverlay.Snapshot overlay() { throw new IllegalStateException("нет данных"); }
+        /** The acts as they began and the god's lines: this game's by default. */
+        default StreamOverlay stream() { return StreamOverlay.shared(); }
+        /** The deeds told to Mob Talk's villages ({@code events}): this game's buffer by default. */
+        default VillageNews news() { return VillageNews.shared(); }
     }
 
     private final Host host;
@@ -86,6 +95,8 @@ public final class AdminProtocol {
                 case "absolve" -> guarded(() -> host.absolve(in)).toString();
                 case "absolve_rest" -> guarded(() -> host.absolveRest(in)).toString();
                 case "absolve_release" -> guarded(() -> host.absolveRelease(in)).toString();
+                case "overlay" -> overlay(in).toString();
+                case "events" -> events(in).toString();
                 default -> error("неизвестный запрос: " + op);
             };
         } catch (RuntimeException broken) {
@@ -116,6 +127,16 @@ public final class AdminProtocol {
             item.addProperty("player", entry.player()); item.addProperty("text", entry.text());
             items.add(item);
         }
+        JsonObject out = new JsonObject();
+        out.add("items", items);
+        return out;
+    }
+
+    private JsonObject events(JsonObject in) {
+        long since = in.has("since") ? in.get("since").getAsLong() : 0;
+        int limit = in.has("limit") ? in.get("limit").getAsInt() : VillageNews.LIMIT;
+        JsonArray items = new JsonArray();
+        for (VillageNews.Event event : host.news().since(since, limit)) items.add(event.json());
         JsonObject out = new JsonObject();
         out.add("items", items);
         return out;
@@ -165,6 +186,13 @@ public final class AdminProtocol {
         JsonObject out = new JsonObject();
         out.add("items", items);
         return out;
+    }
+
+    private JsonObject overlay(JsonObject in) {
+        long since = in.has("since") ? in.get("since").getAsLong() : 0;
+        DivineConfig config = host.config();
+        if (!config.overlayEnabled) return host.stream().json(config, null, since, System.currentTimeMillis());
+        return guarded(() -> host.stream().json(config, host.overlay(), since, System.currentTimeMillis()));
     }
 
     private static JsonObject odds(Map<String, Double> odds) {

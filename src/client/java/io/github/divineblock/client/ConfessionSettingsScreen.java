@@ -9,7 +9,7 @@ import net.minecraft.client.gui.screen.Screen;
 public final class ConfessionSettingsScreen extends DivinePanel {
     public ConfessionSettingsScreen(Screen parent, DivineConfig config) { super(parent, config); }
 
-    @Override protected int section() { return 5; }
+    @Override protected int section() { return 6; }
 
     @Override protected void content() {
         serverNote();

@@ -9,12 +9,12 @@ import java.util.List;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.screen.Screen;
 
-/** The pages of the god's settings (F9) as one panel: «Бог», «Голос и микрофон», «Кары», «Боссы», «Деяния» in the sidebar, each its
+/** The pages of the god's settings (F9) as one panel: «Бог», «Голос и микрофон», «Кары», «Боссы», «Деяния», «Бог на стриме» in the sidebar, each its
  * own screen over one shared config. Opened from F9, «Закрыть» and Esc save the config and leave the panel, «Применить» saves
  * and stays; a page opened on its own (a self-test) returns to its parent without saving, as before. */
 abstract class DivinePanel extends PanelScreen {
     static final String TITLE = "Божественный блок — панель управления";
-    private static final String[] SECTIONS = { "Бог", "Голос и микрофон", "Кары", "Боссы", "Деяния", "Исповедь" };
+    private static final String[] SECTIONS = { "Бог", "Голос и микрофон", "Кары", "Боссы", "Деяния", "Бог на стриме", "Исповедь" };
     private static final Gson GSON = new Gson();
     protected final DivineConfig config;
     /** F9 itself when this page was reached from it, else null. */
@@ -59,6 +59,7 @@ abstract class DivinePanel extends PanelScreen {
             case 2 -> client.setScreen(new WrathSettingsScreen(this, config));
             case 3 -> client.setScreen(new BossSettingsScreen(this, config));
             case 4 -> client.setScreen(new DeedsSettingsScreen(this, config));
+            case 5 -> client.setScreen(new StreamSettingsScreen(this, config));
             default -> client.setScreen(new ConfessionSettingsScreen(this, config));
         }
     }

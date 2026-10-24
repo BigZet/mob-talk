@@ -309,3 +309,12 @@ punishment_67.ogg — Большой колокол (25 т) Кафедральн
   Лицензия: CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
   Источник: https://commons.wikimedia.org/wiki/File:Clopot_25T_-_Catedralei_M%C3%A2ntuirii_Neamului_(Bucure%C8%99ti).wav
   Фрагмент с 66.0 с оригинала
+
+Рулетка кары (assets/divineblock/sounds/roulette/) — фрагменты тех же записей, с теми же лицензиями и авторами (см. выше),
+вырезаны scripts/roulette/cut_roulette_chants.py, затухание на концах, выровнены по пику:
+  trezvon.ogg — из punishment_65.ogg (колокола Ново-Валаамского монастыря), 5 с с 51.50 с
+  blagovest.ogg — из punishment_67.ogg (большой колокол собора Спасения нации, Бухарест), 6 с с 16.37 с
+  choir_doom.ogg — из punishment_63.ogg («Се Жених грядет в полунощи», знаменный распев), 5.5 с с 12.05 с
+  pomiluy.ogg — из blessing_46.ogg («Господи, помилуй» украинского напева), 5 с с 21.65 с
+Остальные звуки рулетки (рычаг, храповик, удар, колокол, хор-аккорд, перезвон, сердцебиение, нарастание, свист)
+синтезированы scripts/roulette/gen_roulette_sounds.py и распространяются под GPL-3.0 мода.
