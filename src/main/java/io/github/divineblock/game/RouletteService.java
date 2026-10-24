@@ -131,7 +131,7 @@ public final class RouletteService {
                 DivineBlockMod.LOG.info("Божественный блок: рулетка {} для {} остановлена — {}", spin.id, name, why);
                 steps.cancelled(why);
             }
-        });
+        }, spared);
     }
 
     /** A punishment's tail (the second wave, an aftershock): by the settings no roulette, one reel for two seconds, or the

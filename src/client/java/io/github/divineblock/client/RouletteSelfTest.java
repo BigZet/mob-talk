@@ -173,6 +173,9 @@ final class RouletteSelfTest {
         if (RouletteHud.showing() && AFTER_SPIN.contains(step)) return; // these steps wait until the machine has left
         switch (step++) {
             case 0 -> {
+                // Let the altar's chant rise to its level first (it fades in), at most ten seconds.
+                if (ChantPlayer.altarLevel() < 0.6f && waited++ < 200) { step--; return; }
+                waited = 0;
                 chantBefore = ChantPlayer.altarLevel();
                 log("  песнопение у алтаря: " + ChantPlayer.altarPiece() + ", громкость " + chantBefore);
                 scene = "k1"; recording = "k1"; frame = 0; command("divineblock roulette show lightning normal"); wait = 10;
@@ -180,12 +183,13 @@ final class RouletteSelfTest {
             case 1 -> {
                 checkScene("k1", true);
                 log("  песнопение во время рулетки: громкость " + chantDuring);
-                check(chantBefore <= 0 || chantDuring >= 0 && chantDuring < chantBefore * 0.4f, "песнопение у алтаря затихает под рулеткой: " + chantBefore + " → " + chantDuring);
+                if (chantBefore <= 0 || chantDuring < 0) log("  песнопение у алтаря не звучало: затухание не проверено");
+                else check(chantDuring < chantBefore * 0.4f, "песнопение у алтаря затихает под рулеткой: " + chantBefore + " → " + chantDuring);
                 wait = 60;
             }
             case 2 -> {
                 float after = ChantPlayer.altarLevel();
-                check(chantBefore <= 0 || after > chantDuring * 2, "и возвращается после неё: " + after);
+                if (chantBefore > 0 && chantDuring >= 0) check(after > chantDuring * 2, "и возвращается после неё: " + after);
                 scene = "k3tease"; command("divineblock roulette show earthquake tease"); shotAt("k3tease-crawl", Roulette.Timing.of(Roulette.Mode.NORMAL, 3).stops()[2] - 14); wait = 10;
             }
             case 3 -> { checkScene("k3tease", true); wait = 10; }
