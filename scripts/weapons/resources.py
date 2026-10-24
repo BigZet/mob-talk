@@ -74,10 +74,10 @@ GLOWING = ["cherub_sword", "archistrategos_sword", "war_sword", "gideon_jar", "g
 
 # The vanilla hand-held transforms, enlarged: these are the greatest arms in the game and sit big in the hand.
 BIG_DISPLAY = {
-    "thirdperson_righthand": {"rotation": [0, -90, 55], "translation": [0, 5.5, 0.5], "scale": [1.6, 1.6, 1.6]},
-    "thirdperson_lefthand": {"rotation": [0, 90, -55], "translation": [0, 5.5, 0.5], "scale": [1.6, 1.6, 1.6]},
-    "firstperson_righthand": {"rotation": [0, -90, 25], "translation": [1.13, 3.2, 1.13], "scale": [0.95, 0.95, 0.95]},
-    "firstperson_lefthand": {"rotation": [0, 90, -25], "translation": [1.13, 3.2, 1.13], "scale": [0.95, 0.95, 0.95]},
+    "thirdperson_righthand": {"rotation": [0, -90, 55], "translation": [0, 4.5, 0.5], "scale": [1.15, 1.15, 1.15]},
+    "thirdperson_lefthand": {"rotation": [0, 90, -55], "translation": [0, 4.5, 0.5], "scale": [1.15, 1.15, 1.15]},
+    "firstperson_righthand": {"rotation": [0, -90, 25], "translation": [1.0, 2.9, 1.0], "scale": [0.8, 0.8, 0.8]},
+    "firstperson_lefthand": {"rotation": [0, 90, -25], "translation": [1.0, 2.9, 1.0], "scale": [0.8, 0.8, 0.8]},
     "ground": {"rotation": [0, 0, 0], "translation": [0, 2, 0], "scale": [0.5, 0.5, 0.5]},
     "gui": {"rotation": [0, 0, 0], "translation": [0, 0, 0], "scale": [1, 1, 1]},
     "fixed": {"rotation": [0, 180, 0], "translation": [0, 0, 0], "scale": [1, 1, 1]},

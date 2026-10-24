@@ -35,9 +35,12 @@ public final class WeaponGlowRenderer implements BuiltinItemRendererRegistry.Dyn
         ItemRenderer items = client.getItemRenderer();
         BakedModel baseModel = client.getBakedModelManager().getModel(base);
         BakedModel glowModel = client.getBakedModelManager().getModel(glow);
+        matrices.push();
+        // The item renderer has already moved the origin to the model's corner for us; renderItem moves it again for
+        // each sprite, so step back to the centre first, or the sprite hangs half a block off the hand.
+        matrices.translate(0.5f, 0.5f, 0.5f);
         items.renderItem(stack, mode, false, matrices, vertexConsumers, light, overlay, baseModel);
         // A hair toward the viewer so the light lies over the sprite, not inside it.
-        matrices.push();
         matrices.translate(0, 0, 0.001f);
         items.renderItem(stack, mode, false, matrices, vertexConsumers, LightmapTextureManager.MAX_LIGHT_COORDINATE, overlay, glowModel);
         matrices.pop();
