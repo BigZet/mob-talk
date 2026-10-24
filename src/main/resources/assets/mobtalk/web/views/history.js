@@ -14,7 +14,7 @@ const PERIODS = [
 ];
 const KIND_GROUPS = [
   ['dialogue', 'witness', 'village_talk', 'gift', 'trade', 'relation_change', 'rumor', 'scene', 'wedding'],
-  ['verdict', 'ban', 'boss'],
+  ['verdict', 'confession', 'ban', 'boss'],
   ['moment', 'rec_session'],
   ['player_join', 'player_leave', 'death', 'command', 'config_change', 'admin_login', 'error', 'cost'],
   ['parrot_jailed', 'parrot_released'],

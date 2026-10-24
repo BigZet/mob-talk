@@ -138,6 +138,16 @@ public final class ConversationEngine implements AutoCloseable {
         if (WeddingFaults.llm) throw new IOException("самотест: модель недоступна");
         return WeddingScript.spouseVow(llm, input, playerVow);
     }
+    /** Исповедь: какие дела кающийся назвал в словах захода и насколько искренне ({@link ConfessionScript}). Блокирует. */
+    public ConfessionScript.Named confessionNamed(String words, List<Confession.Deed> deeds) throws IOException, InterruptedException {
+        if (closed) throw new IOException("Разговор Mob Talk уже завершён.");
+        return ConfessionScript.classify(llm, words, deeds);
+    }
+    /** Исповедь: наставление батюшки по одному названному (скрытого он не видит); "" — модель не дала пригодного. Блокирует. */
+    public String confessionCounsel(ConfessionScript.Input input) throws IOException, InterruptedException {
+        if (closed) throw new IOException("Разговор Mob Talk уже завершён.");
+        return ConfessionScript.counsel(llm, input);
+    }
     /** Одна фраза голосом {@code voiceId} (запасной — голос жителя); null — озвучка недоступна, тогда реплика идёт только текстом.
      * Блокирует до первых долей секунды звука. */
     public SpeechStream voice(String voiceId, String text) throws InterruptedException {

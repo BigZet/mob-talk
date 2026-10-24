@@ -62,6 +62,8 @@ public final class MobGameBridge implements GameBridge {
     public final WeddingController wedding;
     /** Трек N: особая ночь, беременность, роды. */
     public final ChildController children;
+    /** Б4: исповедь у священника и епитимьи. */
+    public final ConfessionController confession;
     private final Map<UUID, Deque<Heard>> heard = new HashMap<>();
 
     private MobGameBridge(MinecraftServer server, ConversationStore memory, MobTalkConfig config) {
@@ -74,6 +76,7 @@ public final class MobGameBridge implements GameBridge {
         coSleep = new CoSleepController(this);
         wedding = new WeddingController(this);
         children = new ChildController(this);
+        confession = new ConfessionController(this);
         initiative = new InitiativeController(this);
         talk = new VillageTalkController(this);
         actions = new MobActionController(this);
@@ -97,6 +100,7 @@ public final class MobGameBridge implements GameBridge {
                         MobGameBridge.playerName(player), System.currentTimeMillis());
                 bridge.witnessed(mob, player, Witness.HIT);
                 bridge.wedding.hurt(mob, player);
+                bridge.confession.hurt(mob);
                 if (mob instanceof VillagerEntity villager) bridge.bargaining.hurtBy(villager, player);
                 bridge.actions.hurtBy(mob, player);
             } else if (!blocked && amount > 0 && bridge.memory.known(mob.getUuid())) {
@@ -153,6 +157,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.jealousy.tick(world);
                 bridge.coSleep.tick(world);
                 bridge.wedding.tick(world);
+                bridge.confession.tick(world);
                 bridge.children.tick(world);
                 bridge.initiative.tick(world);
                 bridge.talk.tick(world);
@@ -195,7 +200,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.memory.recordAction(card.id(), ActionIntent.none());
         if (server.isStopped()) return CompletableFuture.completedFuture(null);
         CompletableFuture<Void> done = new CompletableFuture<>();
-        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
+        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.confession.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
         return done;
     }
     public static MobGameBridge forEntity(Entity entity) {
@@ -212,7 +217,7 @@ public final class MobGameBridge implements GameBridge {
     /** From the placement mixins: a block or a bucket of fluid the player put down. */
     public static void blockPlaced(ServerWorld world, net.minecraft.util.math.BlockPos pos, ServerPlayerEntity player) {
         MobGameBridge bridge = active(world.getServer());
-        if (bridge != null) bridge.changes.placed(world, pos, player);
+        if (bridge != null) { bridge.changes.placed(world, pos, player); bridge.confession.placed(world, pos, player); }
     }
     public void event(MobEntity mob, String text) {
         memory.recordEvent(mob.getUuid(), type(mob), mob.getName().getString(), text, System.currentTimeMillis());
@@ -250,7 +255,12 @@ public final class MobGameBridge implements GameBridge {
             ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
             Entity entity = player == null ? null : ((ServerWorld) player.getWorld()).getEntity(mobId);
             if (!(entity instanceof MobEntity mob) || !mob.isAlive()) return "Моб недоступен";
-            return society.giftFromHand((ServerWorld) player.getWorld(), player, mob);
+            String penance = confession.handOver(player, mob); // Б4: милостыня бедному и труд на храм — не подарок.
+            if (penance != null) return penance;
+            int before = player.getMainHandStack().getCount();
+            String result = society.giftFromHand((ServerWorld) player.getWorld(), player, mob);
+            if (player.getMainHandStack().getCount() < before || player.getMainHandStack().isEmpty() && before > 0) confession.gifted(player, mob);
+            return result;
         });
     }
 
@@ -755,4 +765,18 @@ public final class MobGameBridge implements GameBridge {
         return scene == null ? null : new WeddingView(scene.ceremony, scene.input, scene.player, scene.world.getRegistryKey().getValue().toString());
     }
     @Override public io.github.mobtalk.core.WeddingScript.Input takeWeddingScript() { return wedding.takeScriptRequest(); }
+
+    // ---- Б4: исповедь. ----
+
+    @Override public List<ConfessionView> confessions() { return server.isOnThread() ? confession.views() : List.of(); }
+    @Override public CompletableFuture<ConfessionAnswer> confessionAsk(UUID mobId, UUID playerId, String said) {
+        if (!Confession.asks(said) && !Confession.returns(said)) return CompletableFuture.completedFuture(ConfessionAnswer.NOT_MINE);
+        return onServer(() -> {
+            ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
+            Entity entity = player == null ? null : ((ServerWorld) player.getWorld()).getEntity(mobId);
+            return entity instanceof VillagerEntity villager && villager.isAlive() ? confession.ask(villager, player, said) : ConfessionAnswer.NOT_MINE;
+        });
+    }
+    @Override public void confessionResult(Confession.Rite rite, DivineLink.Outcome outcome) { confession.result(rite, outcome); }
+    @Override public String penanceHud(UUID playerId) { return confession.hud(playerId); }
 }
