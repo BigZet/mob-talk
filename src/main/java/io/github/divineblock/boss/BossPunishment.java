@@ -12,8 +12,9 @@ import net.minecraft.world.Heightmap;
 public final class BossPunishment {
     private BossPunishment() { }
 
-    public static String summon(Miracle miracle, ServerWorld world, ServerPlayerEntity player, int power, int severity) {
-        BossKind kind = switch (miracle) {
+    /** The boss a punishment of «святые стражи» sends, or null for any other act. */
+    public static BossKind kind(Miracle miracle) {
+        return switch (miracle) {
             case BOSS_SCHEMNIK -> BossKind.BLACK_SCHEMNIK;
             case BOSS_BELL_RINGER -> BossKind.BELL_RINGER;
             case BOSS_SERAPH -> BossKind.SERAPH;
@@ -30,6 +31,16 @@ public final class BossPunishment {
             case BOSS_BEAST -> BossKind.BEAST;
             default -> null;
         };
+    }
+
+    /** The act that sends this boss, or null (a church guardian, the night's bosses rise by themselves). */
+    public static Miracle deed(BossKind kind) {
+        for (Miracle miracle : Miracle.values()) if (kind(miracle) == kind) return miracle;
+        return null;
+    }
+
+    public static String summon(Miracle miracle, ServerWorld world, ServerPlayerEntity player, int power, int severity) {
+        BossKind kind = kind(miracle);
         if (kind == null) return null;
         int strength = Math.max(1, Math.min(5, power + severity - 2));
         for (int attempt = 0; attempt < 16; attempt++) {

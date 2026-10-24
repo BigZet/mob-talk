@@ -100,6 +100,11 @@ public final class DivineConfig {
     public List<String> disabledBosses = new ArrayList<>();
     public int bossDifficulty = 100;
     public boolean bossBlockDamage = true;
+    /** «Бог на стриме» ({@link StreamOverlay}): the OBS overlay may read the god at all; with the main reasons of a verdict; the
+     * mercy of every soul online, not only the streamer's; the count of sins; and the ids of the punishments and mercies it
+     * names only «Тайное деяние». */
+    public boolean overlayEnabled = true, overlayReasons = true, overlayOthersMercy = true, overlaySins = true;
+    public List<String> overlayHidden = new ArrayList<>();
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
@@ -135,6 +140,7 @@ public final class DivineConfig {
         if (microphoneName == null) microphoneName = "";
         chantVolume = clamp(chantVolume, 0, 200);
         if (disabledBosses == null) disabledBosses = new ArrayList<>();
+        if (overlayHidden == null) overlayHidden = new ArrayList<>();
         bossDifficulty = clamp(bossDifficulty, 50, 300);
         churchSpacing = clamp(churchSpacing, 32, 256);
         if (churchVariant == null || !java.util.List.of("", "STONE", "WOOD", "SLAVIC").contains(churchVariant)) churchVariant = "";
