@@ -295,6 +295,16 @@ public final class ChurchSelfTest {
         shot.accept("22-night", new double[] { -26, 12, -30, 30, 18, 0, 90 });
         shot.accept("23-night-interior", new double[] { 33, 3.5, 0.5, 48, 6, 0.5, 90 });
         steps.add(new Step(10, () -> world.setTimeOfDay(4000)));
+        // Исповедь: настоятель церкви у аналоя (Abbots), один на церковь.
+        steps.add(new Step(10, () -> {
+            net.minecraft.entity.passive.VillagerEntity rector = io.github.divineblock.game.Abbots.visit(world, site);
+            check(rector != null && rector.getCommandTags().contains(io.github.divineblock.game.Abbots.TAG)
+                    && rector.getVillagerData().getProfession() == net.minecraft.village.VillagerProfession.CLERIC && rector.hasCustomName()
+                    && rector.getCustomName().getString().startsWith("отец "), "в церкви появился настоятель: " + (rector == null ? "нет" : rector.getCustomName().getString()));
+            check(rector != null && rector.getBlockPos().isWithinDistance(site.analoy(), 3), "настоятель стоит у аналоя: " + (rector == null ? "—" : rector.getBlockPos().toShortString()) + ", аналой " + site.analoy().toShortString());
+            check(io.github.divineblock.game.Abbots.visit(world, site) == rector, "настоятель один: второе посещение не зовёт второго");
+        }));
+        shot.accept("24a-rector", new double[] { 35, 4.2, -3.5, 40, 2.5, -0.5, 80 });
         shot.accept("24-cemetery", new double[] { 28, 42, 26, 28, 0, 62, 100 });
         shot.accept("25-cemetery-top", new double[] { 28, 95, 62, 28, 0, 64, 140 });
         // The churchyard: the Holy Gate from outside, the north side with the spring and the chapel, the south side.

@@ -387,13 +387,15 @@ public final class AdminBridge implements UnaryOperator<String> {
             int sincerity = request.has("sincerity") ? Math.max(0, Math.min(2, request.get("sincerity").getAsInt())) : 1;
             boolean temple = "temple".equals(AdminProtocol.text(request, "place"));
             String priest = AdminProtocol.text(request, "priest");
+            // Кара, что шла, когда исповедь началась (батюшка уже назвал по ней епитимью), считается и после её конца.
+            boolean wasPunished = request.has("punished") && request.get("punished").getAsBoolean();
             return onServer(running, () -> {
                 DivineConfig config = DivineBlockMod.config();
                 DivineState state = DivineState.of(running);
                 long tick = running.getOverworld().getTime();
                 Righteousness righteousness = state.ledger.soul(uuid).righteousness;
                 io.github.divineblock.core.Absolution.Result result = io.github.divineblock.core.Absolution.absolve(righteousness, tick / 24_000, named, sincerity,
-                        temple, punished(running, uuid, tick), config);
+                        temple, wasPunished || punished(running, uuid, tick), config);
                 int curses = config.confessLiftsCurse ? Curses.liftSettled(running, uuid, righteousness) : 0;
                 state.markDirty();
                 String name = player(running, state, uuid.toString()).get("name").getAsString();

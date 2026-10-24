@@ -64,7 +64,7 @@ public final class Abbots {
     }
 
     /** A mortal is at this church: its rector is called, brought back inside the wall, or replaced a day after his death. */
-    static VillagerEntity visit(ServerWorld world, ChurchSites.Site site) {
+    public static VillagerEntity visit(ServerWorld world, ChurchSites.Site site) {
         DivineState state = DivineState.of(world.getServer());
         String key = key(world, site);
         Rector rector = state.abbots.computeIfAbsent(key, k -> new Rector());
