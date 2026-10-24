@@ -7,6 +7,8 @@ import io.github.divineblock.core.DivineSettings;
 import io.github.divineblock.core.GodJournal;
 import io.github.divineblock.core.GodLedger;
 import io.github.divineblock.core.Miracle;
+import io.github.divineblock.core.Roulette;
+import io.github.divineblock.core.RouletteSymbol;
 import io.github.divineblock.core.Penance;
 import io.github.divineblock.core.PrayerLog;
 import io.github.divineblock.core.PrayerTone;
@@ -132,7 +134,8 @@ public final class AdminBridge implements UnaryOperator<String> {
                     new AdminProtocol.Action("mercy", "Изменить милость", args("player", "Ник", "amount", "На сколько (+10, -15) или =значение (=40)")),
                     new AdminProtocol.Action("forget", "Стереть память бога об игроке", args("player", "Ник")),
                     new AdminProtocol.Action("forget_all", "Стереть память бога обо всех", Map.of()),
-                    new AdminProtocol.Action("act", "Послать деяние", args("player", "Ник (в игре)", "deed", "Деяние (id)", "power", "Сила 1–4")));
+                    new AdminProtocol.Action("act", "Послать деяние", args("player", "Ник (в игре)", "deed", "Деяние (id)", "power", "Сила 1–4",
+                            "roulette", "Рулетка: да / нет (пусто — как в настройках)")));
         }
 
         @Override public String run(String id, Map<String, String> args) {
@@ -241,7 +244,10 @@ public final class AdminBridge implements UnaryOperator<String> {
                     if (miracle == null) throw new IllegalArgumentException("нет такого деяния: " + args.get("deed"));
                     int asked;
                     try { asked = Integer.parseInt(args.getOrDefault("power", "").strip()); } catch (NumberFormatException none) { asked = miracle.maxTier; }
-                    yield actOn(target, miracle, Math.max(miracle.minTier, Math.min(miracle.maxTier, asked)));
+                    // «Рулетка»: да / нет; empty — as the settings say.
+                    String wheel = args.getOrDefault("roulette", "").strip().toLowerCase(java.util.Locale.ROOT);
+                    boolean roulette = wheel.isEmpty() ? DivineBlockMod.config().rouletteAdmin : wheel.startsWith("д") || wheel.equals("1") || wheel.startsWith("y") || wheel.equals("true");
+                    yield actOn(target, miracle, Math.max(miracle.minTier, Math.min(miracle.maxTier, asked)), roulette);
                 }
                 default -> throw new IllegalArgumentException("нет такого действия: " + id);
             });
@@ -249,15 +255,36 @@ public final class AdminBridge implements UnaryOperator<String> {
 
         /** The admin's act on a mortal: performed where he stands (by the nearest altar), counted as his running punishment when it
          * is wrath, and written to the prayer log as the admin's verdict so the «Бог» tab and the history show it. */
-        private static String actOn(ServerPlayerEntity target, Miracle miracle, int power) {
+        private static String actOn(ServerPlayerEntity target, Miracle miracle, int power, boolean roulette) {
             BlockPos altar = target.getBlockPos();
             for (BlockPos pos : BlockPos.iterateOutwards(target.getBlockPos(), 12, 6, 12))
                 if (target.getServerWorld().getBlockState(pos).getBlock() instanceof AltarBlock) { altar = pos.toImmutable(); break; }
             long tick = target.getServer().getOverworld().getTime();
             if (miracle.kind == Miracle.Kind.WRATH) Prayers.PENANCE.begin(target.getUuid(), miracle.id(), tick);
-            BlockPos at = altar;
+            if (roulette && RouletteService.applies(miracle.kind, miracle, DivineBlockMod.config())) {
+                // Through the roulette: the act falls when the machine leaves; what it did goes to the journal and the history then.
+                BlockPos at = altar;
+                String name = target.getName().getString();
+                var spin = RouletteService.spin(target, miracle, null, "по воле админа", DivineBlockMod.config().rouletteMode, null, new RouletteService.Steps() {
+                    @Override public void act() {
+                        ServerPlayerEntity now = target.getServer().getPlayerManager().getPlayer(target.getUuid());
+                        if (now == null) { Prayers.PENANCE.end(target.getUuid()); return; }
+                        try { perform(now, miracle, power, at, now.getServer().getOverworld().getTime(), "рулетка: " + Roulette.chatLine(RouletteSymbol.result(miracle, null), miracle.title())); }
+                        catch (IllegalArgumentException failed) { Multiplayer.journal(GodJournal.Kind.VERDICT, name, "админ послал «" + miracle.title() + "»: " + failed.getMessage()); }
+                    }
+                    @Override public void spared() { Prayers.PENANCE.end(target.getUuid()); }
+                    @Override public void cancelled(io.github.divineblock.core.RouletteQueue.Cancel why) { Prayers.PENANCE.end(target.getUuid()); }
+                });
+                return miracle.title() + " ×" + power + " → " + name + ": рулетка крутится, кара упадёт через "
+                        + String.format(java.util.Locale.ROOT, "%.1f", (spin.actTick() - tick) / 20.0) + " с";
+            }
+            return perform(target, miracle, power, altar, tick, "веб-админка");
+        }
+
+        /** The admin's act falls now: in the punishment book, the prayer log and the journal. */
+        private static String perform(ServerPlayerEntity target, Miracle miracle, int power, BlockPos altar, long tick, String note) {
             String done = VillageEvents.within(new VillageEvents.Context(false, "", List.of()),
-                    () -> Zones.perform(miracle, power, target, at, "", DivineBlockMod.config(), Math.max(1, power)));
+                    () -> Zones.perform(miracle, power, target, altar, "", DivineBlockMod.config(), Math.max(1, power)));
             if (done == null) {
                 if (miracle.kind == Miracle.Kind.WRATH) Prayers.PENANCE.end(target.getUuid());
                 throw new IllegalArgumentException("«" + miracle.title() + "» здесь не выходит (место, защита церкви или настройки): выберите другое");
@@ -266,7 +293,7 @@ public final class AdminBridge implements UnaryOperator<String> {
             if (miracle.kind == Miracle.Kind.HELP) blessed(target, miracle, power);
             Verdict verdict = new Verdict();
             verdict.prayer = "(деяние послал админ)"; verdict.miracle = miracle.id(); verdict.power = power; verdict.inclination = miracle.kind;
-            verdict.decidedBy = "admin"; verdict.decisionNote = "веб-админка"; verdict.speech = done;
+            verdict.decidedBy = "admin"; verdict.decisionNote = note; verdict.speech = done;
             shown(target, verdict, miracle);
             PrayerLog.shared().add(PrayerLog.of(System.currentTimeMillis(), target.getUuidAsString(), target.getName().getString(), verdict, PrayerTone.of(""), false, "", 0));
             Multiplayer.journal(GodJournal.Kind.VERDICT, target.getName().getString(), "админ послал «" + miracle.title() + "» ×" + power + ": " + done);
