@@ -378,6 +378,7 @@ final class MobTalkSettingsScreen extends Screen {
                             tip(toggle("mobtalk.settings.rivalSteal", draft.rivalSteal, value -> draft.rivalSteal = value), "mobtalk.settings.rivalSteal.tooltip"));
                     wide(tip(toggle("mobtalk.settings.rivalTrials", draft.rivalTrials, value -> draft.rivalTrials = value), "mobtalk.settings.rivalTrials.tooltip"),
                             tip(toggle("mobtalk.settings.rivalBellScene", draft.rivalBellScene, value -> draft.rivalBellScene = value), "mobtalk.settings.rivalBellScene.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.rivalHud", draft.rivalHud, value -> draft.rivalHud = value), "mobtalk.settings.rivalHud.tooltip"));
                 },
                 "child", () -> {
                     wide(tip(toggle("mobtalk.settings.pregnancy", draft.pregnancy, value -> draft.pregnancy = value), "mobtalk.settings.pregnancy.tooltip"),

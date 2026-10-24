@@ -15,6 +15,12 @@ public final class Rivalry {
     public static final int PERSONA_CAP = 5;
     /** Сколько после ухода к другому житель помнит, что должен сказать об этом брошенному. */
     public static final long LEFT_FRESH_MILLIS = 60 * 60_000L;
+    /** Испытание длится столько; следующее — не раньше чем через игровые сутки (20 минут) после конца прошлого. */
+    public static final long TRIAL_MILLIS = 10 * 60_000L, TRIAL_GAP_MILLIS = 20 * 60_000L;
+    /** Любимые подарки для испытания «кто первым подарит»: редкие, но добываемые вещи, по одной. */
+    public static final List<String> FAVORITES = List.of("minecraft:cake", "minecraft:pumpkin_pie", "minecraft:honey_bottle", "minecraft:golden_apple",
+            "minecraft:diamond", "minecraft:emerald", "minecraft:amethyst_shard", "minecraft:glow_berries", "minecraft:music_disc_cat",
+            "minecraft:spyglass", "minecraft:name_tag", "minecraft:enchanted_book", "minecraft:nautilus_shell", "minecraft:glow_ink_sac");
 
     /** Один ухажёр. */
     static final class Suitor {
@@ -40,10 +46,35 @@ public final class Rivalry {
         }
     }
 
+    /** Испытание соперников: кто первым принесёт {@code count} предмета ({@link #BRING}) или первым подарит любимую вещь
+     * ({@link #FAVORITE}, {@code count} = 1). Прогресс — сколько принёс каждый, по UUID игрока. Реальное время. */
+    static final class Trial {
+        static final String BRING = "BRING", FAVORITE = "FAVORITE";
+        String kind = BRING, item = "";
+        int count = 1;
+        long startedAt = -1, endsAt = -1;
+        Map<String, Integer> progress = new LinkedHashMap<>();
+        Trial copy() {
+            Trial c = new Trial(); c.kind = kind; c.item = item; c.count = count; c.startedAt = startedAt; c.endsAt = endsAt;
+            c.progress.putAll(progress);
+            return c;
+        }
+        boolean valid() {
+            if (progress == null) progress = new LinkedHashMap<>();
+            progress.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null);
+            count = Math.max(1, Math.min(64, count));
+            return item != null && item.contains(":") && startedAt >= 0 && endsAt > startedAt;
+        }
+    }
+
     /** Ухажёры по UUID игрока, в порядке появления. */
     Map<String, Suitor> suitors = new LinkedHashMap<>();
     /** Когда житель последний раз говорил о соперничестве по своей воле (оба рядом), реальные мс. */
     long lastTease = -1;
+    /** Идущее испытание или null; когда кончилось прошлое (реальные мс, −1 — не было). */
+    Trial trial; long lastTrialAt = -1;
+    /** Выбор у колокола назначен на это время (−1 — нет); кто принёс кольцо. */
+    long sceneAt = -1; String sceneBy = "";
 
     Suitor suitor(UUID player) { return player == null ? null : suitors.get(player.toString()); }
     Suitor ensure(UUID player, String name) {
@@ -125,6 +156,8 @@ public final class Rivalry {
         if (suitors == null) suitors = new LinkedHashMap<>();
         suitors.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null);
         suitors.values().forEach(Suitor::sanitize);
+        if (trial != null && !trial.valid()) trial = null;
+        if (sceneBy == null) sceneBy = "";
         // Не больше десятка записей: самые давние уходят.
         while (suitors.size() > 10) {
             String oldest = null; long at = Long.MAX_VALUE;
@@ -134,6 +167,7 @@ public final class Rivalry {
     }
     Rivalry copy() {
         Rivalry c = new Rivalry(); suitors.forEach((key, s) -> c.suitors.put(key, s.copy())); c.lastTease = lastTease;
+        c.trial = trial == null ? null : trial.copy(); c.lastTrialAt = lastTrialAt; c.sceneAt = sceneAt; c.sceneBy = sceneBy;
         return c;
     }
 }

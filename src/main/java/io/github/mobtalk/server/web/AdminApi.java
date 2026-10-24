@@ -256,7 +256,7 @@ public final class AdminApi {
         });
         router.post("/api/mobs/{uuid}/{action}", r -> {
             String action = r.param("action");
-            if (!Set.of("card", "reset", "clear-history").contains(action)) throw ApiException.notFound("Нет такого действия.");
+            if (!Set.of("card", "reset", "clear-history", "rivals-reset", "rivals-end-trial", "rivals-call").contains(action)) throw ApiException.notFound("Нет такого действия.");
             return Response.json(parts.game().mobAction(uuid(r.param("uuid")), action, r.json()));
         });
         router.get("/api/villages", r -> Response.json(parts.game().villages()));

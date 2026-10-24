@@ -12,8 +12,15 @@ public final class RivalryLedger {
     private final List<Notice> notices = new ArrayList<>();
     RivalryLedger(ConversationStore store) { this.store = store; }
 
-    /** Строка для одного игрока. {@code villager} — о каком жителе речь. */
-    public record Notice(UUID player, UUID villager, String text) { }
+    /** Строка для одного игрока. {@code villager} — о каком жителе речь; {@code item} — предмет, чьё имя игра подставит вместо
+     * {@link #ITEM} на языке игрока ("" — нет). */
+    public record Notice(UUID player, UUID villager, String text, String item) {
+        public Notice(UUID player, UUID villager, String text) { this(player, villager, text, ""); }
+    }
+    /** Место имени предмета в строке {@link Notice}. */
+    public static final String ITEM = "{item}";
+    /** Начало отказа на кольцо, когда житель отвечает у колокола (по нему {@link #after} назначает выбор). */
+    static final String BELL_NOTE = "ты не отвечаешь на кольцо сразу";
     /** Один ухажёр в силе: сердечки, счёт выбора, где пара стоит сейчас. */
     public record Suitor(UUID player, String name, int hearts, int score, Courtship courtship) { }
     /** Ответ на кольцо при соперниках: отказ (null — решать не соперникам) и сколько сердечек он стоит. */
@@ -137,8 +144,14 @@ public final class RivalryLedger {
         int hearts = own == null ? 0 : own.score;
         String steal = stealRefusal(state, p, player, hearts, c);
         if (steal != null) return new Verdict(steal, 0);
+        if (p.rivalry != null && p.rivalry.sceneAt >= 0)
+            return new Verdict("ты уже позвал" + female(p, "а") + " ухажёров к колоколу — ответишь там, при всех", 0);
         Rivalry.Choice choice = choice(state, p, own, player, c, now);
-        if (choice == null || !choice.tie() && choice.winner().player().equals(player)) return null;
+        if (choice == null) return null;
+        // Сцена у колокола: при сильном сопернике житель отвечает не сразу, а при всех.
+        if (c.rivalBellScene) return new Verdict(BELL_NOTE + ": позовёшь всех, кто за тобой ухаживает, к колоколу через "
+                + Math.max(1, c.rivalGatherMinutes) + " мин. и там при всех скажешь, кого выбираешь; кольцо пока не бери", 0);
+        if (!choice.tie() && choice.winner().player().equals(player)) return null;
         if (choice.tie()) {
             String names = String.join(" и ", choice.tied().stream().filter(t -> !t.player().equals(player)).map(Rivalry.Candidate::name).toList());
             return new Verdict("ты не можешь выбрать между этим игроком и " + names + " — оба тебе дороги; пусть проявят себя, потом решишь", 0);
@@ -176,9 +189,12 @@ public final class RivalryLedger {
             UUID other = dating(p, player);
             if (other != null) leave(state, p, other, player, playerName, now);
         }
-        if (g == Gesture.PROPOSE) decided(state, p, r, player, playerName, accepted, c, now);
+        boolean bell = g == Gesture.PROPOSE && !accepted && intent.note().startsWith(BELL_NOTE);
+        if (bell) schedule(state, p, player, playerName, c, now);
+        else if (g == Gesture.PROPOSE) decided(state, p, r, player, playerName, accepted, c, now);
         List<Suitor> after = suitors(state, p, c, now);
         if (!before.contains(player) && ids(after).contains(player) && after.size() >= 2) started(state, p, player, after, now);
+        if (after.size() >= 2 && p.rivalry.sceneAt < 0) startTrial(state, p, after, c, now);
     }
     private static Set<UUID> ids(List<Suitor> list) { Set<UUID> out = new HashSet<>(); for (Suitor s : list) out.add(s.player()); return out; }
 
@@ -241,7 +257,8 @@ public final class RivalryLedger {
             return;
         }
         Rivalry.Choice choice = choice(state, p, own, player, c, now);
-        if (choice == null || choice.tie() || choice.winner().player().equals(player)) return;
+        if (choice != null && choice.tie()) { startTrial(state, p, suitors(state, p, c, now), c, now); return; } // Пусть проявят себя.
+        if (choice == null || choice.winner().player().equals(player)) return;
         p.rivalry.ensure(player, playerName).pausedUntil = pause;
         ConversationStore.event(p, now, "Игрок " + playerName + " звал тебя замуж, но ты выбрал" + female(p, "а") + " " + choice.winner().name(), 4);
     }
@@ -260,6 +277,19 @@ public final class RivalryLedger {
         List<Suitor> suitors = suitors(state, p, c, now);
         Suitor me = suitors.stream().filter(s -> s.player().equals(player)).findFirst().orElse(null);
         if (me == null) return facts;
+        if (p.rivalry.sceneAt >= 0)
+            facts.add("ты позвал" + female(p, "а") + " ухажёров к колоколу и там при всех скажешь, кого выбираешь; до этого никому не отвечай «да»");
+        Rivalry.Trial trial = p.rivalry.trial;
+        if (trial != null && now < trial.endsAt) {
+            List<String> done = new ArrayList<>();
+            for (Map.Entry<String, Integer> e : trial.progress.entrySet()) {
+                UUID id = uuid(e.getKey());
+                if (id != null && e.getValue() > 0) done.add((id.equals(player) ? "этот игрок" : playerName(state, p, id)) + " — " + e.getValue());
+            }
+            facts.add("ты устроил" + female(p, "а") + " ухажёрам испытание: " + trialTask(trial) + "; осталось минут: " + Math.max(1, (trial.endsAt - now + 59_999) / 60_000)
+                    + (done.isEmpty() ? "; пока никто ничего не принёс" : "; уже принесли: " + String.join(", ", done))
+                    + ". Подзадоривай, но кто победил — решает игра");
+        }
         List<String> others = new ArrayList<>();
         for (Suitor s : suitors) {
             if (s.player().equals(player)) continue;
@@ -284,6 +314,234 @@ public final class RivalryLedger {
                 facts.add("если этот игрок сейчас предложит встречаться (с цветами в руке), ты уйдёшь к нему от " + playerName(state, p, other));
         }
         return facts;
+    }
+
+    // ---- Испытания (часть 2) ----
+
+    /** Испытание для HUD: чьё, что принести, сколько, до какого времени и кто сколько принёс. */
+    public record TrialView(UUID villager, String villagerName, String kind, String item, int count, long startedAt, long endsAt, List<Entry> entries) { }
+    public record Entry(UUID player, String name, int progress) { }
+    /** Сдача для испытания: сколько предметов житель взял, выиграно ли испытание, повод для реплики жителя. */
+    public record Delivery(int taken, boolean won, String cue) { }
+
+    static boolean trials(MobTalkConfig c) { return on(c) && c.rivalTrials; }
+    private static String trialTask(Rivalry.Trial t) {
+        return Rivalry.Trial.FAVORITE.equals(t.kind) ? "кто первым подарит тебе " + t.item + " (это твой любимый подарок)"
+                : "кто первым принесёт тебе " + t.count + " шт. " + t.item;
+    }
+    /** Новое испытание, если ухажёров двое и больше, испытания нет, а прошлое кончилось больше игровых суток назад. */
+    private void startTrial(ConversationStore.State state, ConversationStore.Profile p, List<Suitor> suitors, MobTalkConfig c, long now) {
+        if (!trials(c) || suitors.size() < 2 || p.rivalry == null || p.rivalry.trial != null) return;
+        if (p.rivalry.lastTrialAt >= 0 && now - p.rivalry.lastTrialAt < Rivalry.TRIAL_GAP_MILLIS) return;
+        java.util.concurrent.ThreadLocalRandom random = java.util.concurrent.ThreadLocalRandom.current();
+        Rivalry.Trial t = new Rivalry.Trial();
+        if (random.nextBoolean()) {
+            t.kind = Rivalry.Trial.FAVORITE; t.item = Rivalry.FAVORITES.get(random.nextInt(Rivalry.FAVORITES.size())); t.count = 1;
+        } else {
+            FavorItems.Candidate pick = FavorItems.draw(12, random).stream().filter(x -> x.count() >= 3).findFirst().orElse(new FavorItems.Candidate("minecraft:wheat", 16));
+            t.kind = Rivalry.Trial.BRING; t.item = pick.item(); t.count = Math.min(16, pick.count());
+        }
+        t.startedAt = now; t.endsAt = now + Rivalry.TRIAL_MILLIS;
+        for (Suitor s : suitors) t.progress.put(s.player().toString(), 0);
+        p.rivalry.trial = t;
+        String villager = SocialLedger.name(p);
+        String task = Rivalry.Trial.FAVORITE.equals(t.kind) ? "кто первым подарит " + ITEM : "кто первым принесёт " + ITEM + " ×" + t.count;
+        for (Suitor s : suitors) notices.add(new Notice(s.player(), p.id, villager + ": испытание — " + task + ", 10 минут", t.item));
+        ConversationStore.event(p, now, "Ты устроил" + female(p, "а") + " ухажёрам (" + String.join(", ", suitors.stream().map(Suitor::name).toList())
+                + ") испытание: " + trialTask(t), 3);
+    }
+    /** Игрок отдаёт жителю {@code available} шт. {@code item}: если это его испытание и игрок в нём участвует, житель берёт сколько
+     * не хватает; null — не испытание (обычный подарок). Первый, кто набрал нужное, выигрывает. */
+    public Delivery deliver(UUID villager, UUID player, String playerName, String item, int available, long now) {
+        if (villager == null || player == null || item == null || available <= 0) return null;
+        synchronized (store) {
+            MobTalkConfig c = store.config();
+            ConversationStore.Profile p = store.state.profiles.get(villager.toString());
+            if (!trials(c) || p == null || p.rivalry == null || p.rivalry.trial == null) return null;
+            Rivalry.Trial t = p.rivalry.trial;
+            if (!t.item.equals(item) || now >= t.endsAt) return null;
+            String key = player.toString();
+            if (!t.progress.containsKey(key) && !ids(suitors(store.state, p, c, now)).contains(player)) return null;
+            if (p.rivalry.paused(player, now)) return null;
+            int have = t.progress.getOrDefault(key, 0), taken = Math.min(available, t.count - have);
+            if (taken <= 0) return null;
+            t.progress.put(key, have + taken);
+            p.rivalry.ensure(player, playerName);
+            boolean won = have + taken >= t.count;
+            String cue = won ? "игрок первым выполнил твоё испытание ухажёров (" + trialTask(t) + ") — он победил; порадуйся вслух, соперников можно поддеть"
+                    : "игрок принёс тебе для испытания ухажёров " + taken + " шт. " + item + ", у него уже " + (have + taken) + " из " + t.count + "; подбодри его";
+            if (won) finish(store.state, p, player, c, now);
+            p.revision++; store.scheduleSave();
+            return new Delivery(taken, won, cue);
+        }
+    }
+    /** Конец испытания: победителю {@link MobTalkConfig#rivalTrialWin} и победа в счёт выбора, остальным, кто что-то принёс, —
+     * {@link MobTalkConfig#rivalTrialTry}. {@code winner} null — никто не выиграл. */
+    private void finish(ConversationStore.State state, ConversationStore.Profile p, UUID winner, MobTalkConfig c, long now) {
+        Rivalry.Trial t = p.rivalry.trial;
+        p.rivalry.trial = null; p.rivalry.lastTrialAt = now;
+        if (t == null) return;
+        String villager = SocialLedger.name(p), winnerName = winner == null ? "" : playerName(state, p, winner);
+        for (Map.Entry<String, Integer> e : t.progress.entrySet()) {
+            UUID id = uuid(e.getKey());
+            ConversationStore.Relation r = id == null ? null : p.relations.get(e.getKey());
+            if (r == null) continue;
+            if (id.equals(winner)) {
+                r.score = ConversationStore.clamp(r.score + Math.max(0, c.rivalTrialWin), p.hostile());
+                p.rivalry.ensure(id, winnerName).trialWins++;
+                notices.add(new Notice(id, p.id, villager + ": испытание твоё! +" + Math.max(0, c.rivalTrialWin)));
+            } else {
+                if (e.getValue() > 0) r.score = ConversationStore.clamp(r.score + Math.max(0, c.rivalTrialTry), p.hostile());
+                notices.add(new Notice(id, p.id, winner == null ? villager + ": испытание кончилось, никто не успел" : villager + ": испытание выиграл " + winnerName));
+            }
+        }
+        if (winner == null) return;
+        ConversationStore.event(p, now, "Испытание ухажёров (" + trialTask(t) + ") выиграл игрок " + winnerName, 4);
+        rumor(state, p, winnerName + " выиграл испытание за сердце " + villager, 1, 2, winnerName, now);
+    }
+    /** Испытания, чьё время вышло: побеждает тот, кто принёс больше (при равенстве — никто). Под замком, раз в секунду. */
+    public void expire(long now) {
+        synchronized (store) {
+            boolean changed = false;
+            for (ConversationStore.Profile p : store.state.profiles.values()) {
+                if (p.rivalry == null || p.rivalry.trial == null || now < p.rivalry.trial.endsAt) continue;
+                UUID best = null; int top = 0; boolean tie = false;
+                for (Map.Entry<String, Integer> e : p.rivalry.trial.progress.entrySet()) {
+                    if (e.getValue() > top) { top = e.getValue(); best = uuid(e.getKey()); tie = false; }
+                    else if (e.getValue() == top && top > 0) tie = true;
+                }
+                finish(store.state, p, tie ? null : best, store.config(), now);
+                p.revision++; changed = true;
+            }
+            if (changed) store.scheduleSave();
+        }
+    }
+    /** Идущие испытания для HUD (полоса с таймером у участников). */
+    public List<TrialView> trials(long now) {
+        synchronized (store) {
+            List<TrialView> out = new ArrayList<>();
+            for (ConversationStore.Profile p : store.state.profiles.values()) {
+                Rivalry.Trial t = p.rivalry == null ? null : p.rivalry.trial;
+                if (t == null || now >= t.endsAt) continue;
+                List<Entry> entries = new ArrayList<>();
+                for (Map.Entry<String, Integer> e : t.progress.entrySet()) {
+                    UUID id = uuid(e.getKey());
+                    if (id != null) entries.add(new Entry(id, playerName(store.state, p, id), e.getValue()));
+                }
+                out.add(new TrialView(p.id, SocialLedger.name(p), t.kind, t.item, t.count, t.startedAt, t.endsAt, entries));
+            }
+            return out;
+        }
+    }
+    /** Админ закончил испытание досрочно: итог как по времени. */
+    public boolean endTrial(UUID villager, long now) {
+        if (villager == null) return false;
+        synchronized (store) {
+            ConversationStore.Profile p = store.state.profiles.get(villager.toString());
+            if (p == null || p.rivalry == null || p.rivalry.trial == null) return false;
+            p.rivalry.trial.endsAt = now;
+        }
+        expire(now);
+        return true;
+    }
+
+    // ---- Выбор у колокола (часть 3) ----
+
+    /** Назначенный выбор: житель, когда, кто звал кольцом (null — позвал админ), кого ждут. */
+    public record Scene(UUID villager, String villagerName, long at, UUID proposer, List<UUID> suitors) { }
+    /** Итог выбора: победитель (null — ничья или некого выбирать), проигравшие, повод для торжественной реплики жителя. */
+    public record SceneResult(UUID villager, String villagerName, UUID winner, String winnerName, List<UUID> losers, boolean tie, String cue) { }
+
+    private void schedule(ConversationStore.State state, ConversationStore.Profile p, UUID proposer, String proposerName, MobTalkConfig c, long now) {
+        if (p.rivalry.sceneAt >= 0) return;
+        int minutes = Math.max(1, c.rivalGatherMinutes);
+        p.rivalry.sceneAt = now + minutes * 60_000L; p.rivalry.sceneBy = proposer == null ? "" : proposer.toString();
+        String villager = SocialLedger.name(p);
+        for (Suitor s : suitors(state, p, c, now))
+            notices.add(new Notice(s.player(), p.id, villager + " выберет у колокола через " + minutes + " мин. — приходи"));
+        if (proposer != null) {
+            ConversationStore.event(p, now, "Игрок " + proposerName + " протянул тебе кольцо; ты ответишь у колокола, при всех ухажёрах", 4);
+            rumor(state, p, proposerName + " позвал замуж " + villager + ", а " + villager + " выберет жениха у колокола", 0, 3, proposerName, now);
+        }
+    }
+    /** Админ позвал ухажёров к колоколу: false — ухажёров меньше двух или выбор уже назначен. */
+    public boolean callScene(UUID villager, long now) {
+        if (villager == null) return false;
+        synchronized (store) {
+            ConversationStore.Profile p = store.state.profiles.get(villager.toString());
+            MobTalkConfig c = store.config();
+            if (p == null || suitors(store.state, p, c, now).size() < 2) return false;
+            if (p.rivalry == null) p.rivalry = new Rivalry();
+            if (p.rivalry.sceneAt >= 0) return false;
+            schedule(store.state, p, null, "", c, now);
+            p.revision++; store.scheduleSave();
+            return true;
+        }
+    }
+    /** Назначенные выборы. */
+    public List<Scene> scenes(long now) {
+        synchronized (store) {
+            List<Scene> out = new ArrayList<>();
+            for (ConversationStore.Profile p : store.state.profiles.values()) {
+                if (p.rivalry == null || p.rivalry.sceneAt < 0) continue;
+                out.add(new Scene(p.id, SocialLedger.name(p), p.rivalry.sceneAt, uuid(p.rivalry.sceneBy),
+                        suitors(store.state, p, store.config(), now).stream().map(Suitor::player).toList()));
+            }
+            return out;
+        }
+    }
+    /** Житель объявляет выбор: среди сильных ухажёров, своей пары и того, кто звал кольцом, побеждает лучший по счёту. Победитель
+     * становится парой (кольцо, протянутое снова, будет принято), проигравшие теряют {@link MobTalkConfig#rivalLoserPenalty} и
+     * ухаживание на {@link MobTalkConfig#rivalLoserPauseHours}; ничья — новое испытание. null — выбора не было. */
+    public SceneResult resolveScene(UUID villager, long now) {
+        if (villager == null) return null;
+        synchronized (store) {
+            ConversationStore.Profile p = store.state.profiles.get(villager.toString());
+            if (p == null || p.rivalry == null || p.rivalry.sceneAt < 0) return null;
+            MobTalkConfig c = store.config();
+            UUID proposer = uuid(p.rivalry.sceneBy);
+            p.rivalry.sceneAt = -1; p.rivalry.sceneBy = "";
+            p.revision++; store.scheduleSave();
+            String name = SocialLedger.name(p);
+            List<Suitor> suitors = suitors(store.state, p, c, now);
+            List<Rivalry.Candidate> candidates = new ArrayList<>();
+            for (Suitor s : suitors)
+                if (s.hearts() >= c.rivalStrong || s.courtship().partners() || s.player().equals(proposer)) candidates.add(new Rivalry.Candidate(s.player(), s.name(), s.score()));
+            if (candidates.isEmpty()) return new SceneResult(p.id, name, null, "", List.of(), false, "");
+            Rivalry.Choice choice = Rivalry.choose(candidates);
+            if (choice.tie()) {
+                startTrial(store.state, p, suitors, c, now);
+                List<String> tied = choice.tied().stream().map(Rivalry.Candidate::name).toList();
+                for (Rivalry.Candidate t : candidates) notices.add(new Notice(t.player(), p.id, name + " не может выбрать между " + String.join(" и ", tied)));
+                ConversationStore.event(p, now, "У колокола ты не смог" + female(p, "ла") + " выбрать между " + String.join(" и ", tied), 4);
+                return new SceneResult(p.id, name, null, "", choice.tied().stream().map(Rivalry.Candidate::player).toList(), true,
+                        "ты стоишь у колокола перед ухажёрами (" + String.join(", ", tied) + ") и честно говоришь, что не можешь выбрать: они тебе одинаково дороги."
+                                + (trials(c) && p.rivalry.trial != null ? " Объяви им испытание: " + trialTask(p.rivalry.trial) : " Пусть ещё проявят себя"));
+            }
+            Rivalry.Candidate won = choice.winner();
+            ConversationStore.Relation wr = store.relation(p, won.player());
+            if (wr.rapport == null) wr.rapport = new Rapport();
+            UUID other = dating(p, won.player());
+            if (other != null) { ConversationStore.Relation or = p.relations.get(other.toString()); if (or != null && or.rapport != null) or.rapport.courtship(Courtship.NONE); }
+            if (!wr.rapport.courtship().partners()) wr.rapport.courtship(Courtship.DATING);
+            long pause = now + Math.max(0, c.rivalLoserPauseHours) * 3_600_000L;
+            List<UUID> losers = new ArrayList<>();
+            for (Rivalry.Candidate loser : choice.losers()) {
+                ConversationStore.Relation lr = p.relations.get(loser.player().toString());
+                if (lr != null) lr.score = ConversationStore.clamp(lr.score - Math.max(0, c.rivalLoserPenalty), p.hostile());
+                p.rivalry.ensure(loser.player(), loser.name()).pausedUntil = pause;
+                losers.add(loser.player());
+                notices.add(new Notice(loser.player(), p.id, name + " выбрал" + female(p, "а") + " другого: " + won.name()));
+            }
+            notices.add(new Notice(won.player(), p.id, name + " выбрал" + female(p, "а") + " тебя!" + (won.player().equals(proposer) ? " Протяни кольцо снова — ответ будет «да»" : "")));
+            String lost = String.join(" и ", choice.losers().stream().map(Rivalry.Candidate::name).toList());
+            ConversationStore.event(p, now, "У колокола ты при всех выбрал" + female(p, "а") + " игрока " + won.name() + (lost.isEmpty() ? "" : ", а не " + lost), 5);
+            rumor(store.state, p, name + " при всех выбрал" + female(p, "а") + " " + won.name() + (lost.isEmpty() ? "" : ", а " + lost + " остал" + (losers.size() > 1 ? "ись" : "ся") + " ни с чем"), 1, 3, won.name(), now);
+            return new SceneResult(p.id, name, won.player(), won.name(), List.copyOf(losers), false,
+                    "ты стоишь у колокола перед ухажёрами и при всех объявляешь выбор: ты выбираешь " + won.name()
+                            + (lost.isEmpty() ? "" : ", а не " + lost) + ". Скажи это торжественно и по характеру, проигравшим — пару слов утешения или колкости"
+                            + (won.player().equals(proposer) ? "; кольцо примешь, когда он протянет его снова" : ""));
+        }
     }
 
     // ---- Для HUD и админки ----
@@ -313,7 +571,7 @@ public final class RivalryLedger {
         synchronized (store) {
             ConversationStore.Profile p = store.state.profiles.get(villager.toString());
             if (p == null || p.rivalry == null) return false;
-            p.rivalry = null; p.revision++; store.scheduleSave();
+            p.rivalry = null; p.revision++; store.scheduleSave(); // Испытание и назначенный выбор уходят вместе с ухажёрами.
             return true;
         }
     }

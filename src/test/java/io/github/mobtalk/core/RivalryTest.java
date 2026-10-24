@@ -90,7 +90,7 @@ class RivalryTest {
     }
 
     @Test void aRingBeforeAStrongerRivalIsRefusedWithAPenaltyAndAPause() throws Exception {
-        MobTalkConfig config = new MobTalkConfig();
+        MobTalkConfig config = new MobTalkConfig(); config.rivalBellScene = false;
         ConversationStore store = world(config);
         hearts(store, dima, 95); hearts(store, petya, 90);
         flirt(store, dima, "Дима"); flirt(store, petya, "Петя");
@@ -116,7 +116,7 @@ class RivalryTest {
     }
 
     @Test void theWinnersRingCostsTheStrongLoserAndATieWaits() throws Exception {
-        MobTalkConfig config = new MobTalkConfig();
+        MobTalkConfig config = new MobTalkConfig(); config.rivalBellScene = false;
         ConversationStore store = world(config);
         hearts(store, dima, 90); hearts(store, petya, 89);
         flirt(store, dima, "Дима"); flirt(store, petya, "Петя");
@@ -149,5 +149,79 @@ class RivalryTest {
         // Ухажёр ниже дружбы — не ухажёр.
         hearts(store, dima, 20);
         assertNull(store.rivalry().rival(villager, petya, System.currentTimeMillis()));
+    }
+
+    @Test void aRingBeforeAStrongRivalCallsEveryoneToTheBell() throws Exception {
+        MobTalkConfig config = new MobTalkConfig(); config.rivalTrials = false;
+        ConversationStore store = world(config);
+        hearts(store, dima, 98); hearts(store, petya, 90);
+        flirt(store, dima, "Дима"); flirt(store, petya, "Петя");
+        store.rivalry().drain();
+        GestureIntent ring = offer(store, petya, "minecraft:gold_ingot", Gesture.PROPOSE);
+        assertEquals(Gesture.Outcome.REFUSED, ring.outcome());
+        assertEquals(0, ring.hearts(), "ответ у колокола, не штраф");
+        assertTrue(ring.note().startsWith(RivalryLedger.BELL_NOTE), ring.note());
+        long now = System.currentTimeMillis();
+        store.social().applyGesture(villager, petya, "Петя", ring, now);
+        List<RivalryLedger.Scene> scenes = store.rivalry().scenes(now);
+        assertEquals(1, scenes.size());
+        assertEquals(petya, scenes.getFirst().proposer());
+        assertTrue(store.rivalry().drain().stream().anyMatch(n -> n.player().equals(dima) && n.text().contains("у колокола")));
+        GestureIntent again = offer(store, dima, "minecraft:gold_ingot", Gesture.PROPOSE);
+        assertTrue(again.note().contains("ответишь там"), again.note());
+
+        RivalryLedger.SceneResult result = store.rivalry().resolveScene(villager, now);
+        assertEquals(dima, result.winner());
+        assertEquals(List.of(petya), result.losers());
+        assertEquals(Courtship.DATING, courtship(store, dima));
+        assertEquals(90 - config.rivalLoserPenalty, store.relationship(villager, petya));
+        assertTrue(store.rivalry().scenes(now).isEmpty());
+        // Петя на паузе — теперь кольцо Димы принимается сразу.
+        GestureIntent yes = offer(store, dima, "minecraft:gold_ingot", Gesture.PROPOSE);
+        assertEquals(Gesture.Outcome.ACCEPTED, yes.outcome(), yes.note());
+    }
+
+    @Test void aTrialIsWonByTheFirstWhoBringsEverything() throws Exception {
+        MobTalkConfig config = new MobTalkConfig();
+        ConversationStore store = world(config);
+        hearts(store, dima, 60); hearts(store, petya, 60);
+        flirt(store, dima, "Дима"); flirt(store, petya, "Петя");
+        long now = System.currentTimeMillis();
+        List<RivalryLedger.TrialView> trials = store.rivalry().trials(now);
+        assertEquals(1, trials.size(), "двое ухажёров — испытание");
+        RivalryLedger.TrialView trial = trials.getFirst();
+        assertEquals(2, trial.entries().size());
+        assertTrue(store.rivalry().drain().stream().anyMatch(n -> n.item().equals(trial.item()) && n.text().contains(RivalryLedger.ITEM)));
+        String facts = String.join("\n", store.profile(villager(dima, "minecraft:air")).socialTurn.facts());
+        assertTrue(facts.contains("испытание"), facts);
+        assertNull(store.rivalry().deliver(villager, dima, "Дима", "minecraft:stick_of_nothing", 5, now), "чужой предмет — обычный подарок");
+        if (trial.count() > 1) {
+            RivalryLedger.Delivery part = store.rivalry().deliver(villager, petya, "Петя", trial.item(), 1, now);
+            assertEquals(1, part.taken()); assertFalse(part.won());
+        }
+        RivalryLedger.Delivery all = store.rivalry().deliver(villager, dima, "Дима", trial.item(), 64, now);
+        assertEquals(trial.count(), all.taken(), "берёт сколько не хватает");
+        assertTrue(all.won());
+        assertEquals(60 + config.rivalTrialWin, store.relationship(villager, dima));
+        assertEquals(60 + (trial.count() > 1 ? config.rivalTrialTry : 0), store.relationship(villager, petya));
+        assertTrue(store.rivalry().trials(now).isEmpty());
+        assertNull(store.rivalry().deliver(villager, petya, "Петя", trial.item(), 1, now));
+        assertTrue(store.rivalry().drain().stream().anyMatch(n -> n.player().equals(petya) && n.text().contains("испытание выиграл Дима")));
+        // Следующее — не раньше игровых суток.
+        flirt(store, petya, "Петя");
+        assertTrue(store.rivalry().trials(now).isEmpty());
+    }
+
+    @Test void anExpiredTrialGoesToWhoBroughtMore() throws Exception {
+        ConversationStore store = world(new MobTalkConfig());
+        hearts(store, dima, 60); hearts(store, petya, 60);
+        flirt(store, dima, "Дима"); flirt(store, petya, "Петя");
+        long now = System.currentTimeMillis();
+        RivalryLedger.TrialView trial = store.rivalry().trials(now).getFirst();
+        if (trial.count() > 1) store.rivalry().deliver(villager, petya, "Петя", trial.item(), 1, now);
+        store.rivalry().expire(trial.endsAt());
+        assertTrue(store.rivalry().trials(now).isEmpty());
+        if (trial.count() > 1) assertTrue(store.relationship(villager, petya) > 60);
+        assertEquals(60, store.relationship(villager, dima));
     }
 }

@@ -65,6 +65,7 @@ public final class MobTalkAdminSource implements UnaryOperator<String> {
             new Extra("rivalSteal", Tunables.Section.SOCIAL, "rivals", "bool", null, null, null),
             new Extra("rivalTrials", Tunables.Section.SOCIAL, "rivals", "bool", null, null, null),
             new Extra("rivalBellScene", Tunables.Section.SOCIAL, "rivals", "bool", null, null, null),
+            new Extra("rivalHud", Tunables.Section.SOCIAL, "rivals", "bool", null, null, null),
             new Extra("pregnancy", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
             new Extra("pregnancyBelly", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
             new Extra("pregnancyStatus", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
