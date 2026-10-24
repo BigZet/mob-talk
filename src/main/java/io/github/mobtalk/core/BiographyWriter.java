@@ -22,7 +22,8 @@ final class BiographyWriter {
     record Facts(MobSnapshot snapshot, ConversationStore.Profile profile, ConversationStore.Village village,
                  List<String> takenNames, List<String> takenStories, List<String> takenVillages) {
         boolean villager() { return "minecraft:villager".equals(snapshot.type()); }
-        boolean founds() { return villager() && village == null; }
+        /** The first villager of a village nobody named yet: none known, or one the god's deed founded with no story (Б1). */
+        boolean founds() { return villager() && (village == null || village.story().isBlank()); }
     }
 
     /** The model answered, but not with a usable biography (cut off, empty story): worth one more try, unlike a dead network. */
@@ -87,7 +88,7 @@ final class BiographyWriter {
         json.addProperty("biome", snapshot.biome()); json.addProperty("dimension", snapshot.dimension()); json.addProperty("timeOfDay", snapshot.timeOfDay());
         for (String key : List.of("profession", "level", "baby", "tamed", "variant", "customName"))
             if (snapshot.mobDetails().get(key) != null) json.addProperty(key, String.valueOf(snapshot.mobDetails().get(key)));
-        if (facts.village() != null) { json.addProperty("villageName", facts.village().name()); json.addProperty("villageStory", facts.village().story()); }
+        if (facts.village() != null && !facts.founds()) { json.addProperty("villageName", facts.village().name()); json.addProperty("villageStory", facts.village().story()); }
         json.add("takenNames", JSON.toJsonTree(facts.takenNames())); json.add("takenStories", JSON.toJsonTree(facts.takenStories()));
         json.add("takenVillageNames", JSON.toJsonTree(facts.takenVillages()));
         return json;

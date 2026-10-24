@@ -83,7 +83,27 @@ final class SocialPrompt {
     /** How the village sees this player, one line; "" for a stranger or outside the layer. */
     static String standing(ConversationStore.Profile p) {
         String line = p == null ? "" : VillageStanding.describe(p.standing);
-        return line.isBlank() ? "" : "\nДеревня об этом игроке (факт, не пересказывай): " + line + ".";
+        String god = p == null || p.divine == null ? "" : p.divine;
+        return (line.isBlank() ? "" : "\nДеревня об этом игроке (факт, не пересказывай): " + line + ".")
+                + (god.isBlank() ? "" : "\nБожий суд (факт, говори с трепетом, крестись на словах, без насмешки над верой): " + god + ".");
+    }
+    /** Б1: what the village knows of the god's deeds about this player now — the curse over it and whose it is, a blessing, the bell
+     * assembly or the exile it decided; "" for nothing (or when the setting is off). */
+    static String divine(ConversationStore.State state, String villageId, java.util.UUID player, long now) {
+        if (!Tuning.get().divineTidings || state.divine == null || villageId == null || villageId.isBlank() || player == null) return "";
+        List<String> parts = new ArrayList<>();
+        DivineTidings.CurseView curse = state.divine.curseOn(villageId, now);
+        if (curse != null) {
+            if (curse.blames(player)) parts.add("на деревне сейчас божья кара «" + curse.title() + "» за ЕГО грехи — ты боишься и винишь его, просишь покаяться у алтаря");
+            else if (curse.known()) parts.add("на деревне сейчас божья кара «" + curse.title() + "» за грехи игрока " + curse.culpritName() + ", не этого");
+            else parts.add("на деревне сейчас божья кара «" + curse.title() + "», за чьи грехи — не знаешь");
+        }
+        String blessing = state.divine.blessing(player, now);
+        if (!blessing.isBlank()) parts.add("бог явил ему милость «" + blessing + "» — ты зовёшь его благословенным и рад ему");
+        if (state.divine.exiled(villageId, player)) parts.add("сход у колокола изгнал его за навлечённый гнев божий — прощение только через покаяние");
+        else for (DivineTidings.AssemblyView a : state.divine.assemblies())
+            if (a.village().equals(villageId) && a.player().equals(player)) { parts.add("староста созвал сход у колокола: если он не покается до заката, деревня его изгонит"); break; }
+        return String.join("; ", parts);
     }
     /** Why the spouse will not have a child now, or null when it agrees. */
     static String childRefusal(int score, boolean infertile, boolean expecting, boolean tooSoon) {

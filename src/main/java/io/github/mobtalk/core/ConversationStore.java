@@ -101,7 +101,7 @@ public final class ConversationStore {
             boolean villager = "minecraft:villager".equals(p.type), golem = "minecraft:iron_golem".equals(p.type);
             int[] anchor = villager || golem ? ConversationEngine.villageAnchor(snapshot) : null;
             if (anchor != null && detached.village == null) detached.village = villageFor(snapshot.dimension(), anchor[0], anchor[1], ConversationEngine.villageSite(snapshot));
-            detached.founds = villager && detached.village == null;
+            detached.founds = villager && (detached.village == null || detached.village.story().isBlank());
         }
         MobCard current = card(snapshot.id(), snapshot.playerId());
         detached.relationship = current.relationship();
@@ -265,6 +265,153 @@ public final class ConversationStore {
         List<VillageRumors.View> carried = state.rumors.carriedBy(mob, now);
         return carried.isEmpty() ? state.rumors.heardBy(mob, villageOf(mob), now) : carried;
     }
+    // ---- The god's deeds in the villages (idea Б1), see DivineTidings: the ledger and what one village makes of one deed. ----
+
+    /** Whether the divine block's event is new; it counts as seen from now on. */
+    public synchronized boolean divineFirst(String id, long now) { boolean first = state.divine.first(id, now); if (first) scheduleSave(); return first; }
+    /** The newest event time the pull fallback has already read. */
+    public synchronized long divinePulledSince() { return state.divine.pulledSince(); }
+    public synchronized void divinePulled(long time) { if (time > state.divine.pulledSince()) { state.divine.pulled(time); scheduleSave(); } }
+
+    /** What one village made of one deed: the rumour's id ("" none), the change to the blamed player's relationships there, and how
+     * many punishments for that player fell on the village today (0 when the village does not know whom to blame). */
+    public record DivineOutcome(String rumorId, int change, int wraths, String blamed) {
+        public static final DivineOutcome NONE = new DivineOutcome("", 0, 0, "");
+    }
+    /** One village learns of one deed ({@link DivineTidings}). {@code known}: the village knows whose sins (or whose prayer) it was;
+     * {@code far}: it only heard the news — a step quieter, nobody suffered or saw. {@code sufferers} and {@code witnesses}: the
+     * villagers (UUID → the name the game shows) whose homes or fields lay in the deed's reach, and those who saw it fall on the
+     * player. The rumour goes to every known resident; the relationship changes keep to the daily cap and, unless the god alone may
+     * exile, never take a villager below {@link DivineTidings#RELATION_FLOOR}. */
+    public synchronized DivineOutcome divineVillage(DivineTidings.Deed deed, String villageId, boolean known, boolean far,
+                                                    Map<UUID, String> sufferers, Map<UUID, String> witnesses, long now) {
+        Village village = village(villageId);
+        if (village == null || deed == null) return DivineOutcome.NONE;
+        MobTalkConfig tuning = Tuning.get();
+        DivineTidings.Reaction reaction = DivineTidings.reaction(deed, tuning.divineStrength);
+        if (far) reaction = reaction.far();
+        if (reaction.importance() <= 0) return DivineOutcome.NONE;
+        DivineTidings.Soul soul = deed.kind() == DivineTidings.Kind.MIRACLE ? deed.beneficiary() : deed.culprit();
+        boolean named = known && soul != null && !soul.name().isBlank();
+        String name = named ? soul.name() : "";
+        if (named) named(soul.id(), soul.name());
+        List<String> residents = new ArrayList<>();
+        for (Profile q : state.profiles.values()) if (villageId.equals(q.villageId)) residents.add(q.id.toString());
+        Map<UUID, String> everyone = new LinkedHashMap<>();
+        if (!far) { if (witnesses != null) everyone.putAll(witnesses); if (sufferers != null) sufferers.forEach(everyone::putIfAbsent); }
+        String teller = "", tellerId = "";
+        for (Map.Entry<UUID, String> one : everyone.entrySet()) {
+            Profile q = state.profiles.get(one.getKey().toString());
+            teller = q == null ? one.getValue() : q.givenName.isBlank() ? q.name : q.givenName; tellerId = one.getKey().toString();
+            break;
+        }
+        String text = DivineTidings.rumorText(deed, name);
+        String rumorId = state.rumors.addDivine(villageId, deed.id(), text, teller, tellerId, name, named ? soul.id().toString() : "",
+                reaction.importance(), named ? reaction.sign() : 0, residents, now);
+        int change = 0, wraths = 0;
+        if (named && !far) {
+            UUID player = soul.id(); String pid = player.toString();
+            Map<UUID, Integer> deltas = new LinkedHashMap<>();
+            if (sufferers != null) for (UUID id : sufferers.keySet()) deltas.merge(id, reaction.sufferer(), DivineTidings::stronger);
+            if (witnesses != null) for (UUID id : witnesses.keySet()) deltas.merge(id, reaction.witness(), DivineTidings::stronger);
+            for (Map.Entry<UUID, Integer> one : deltas.entrySet()) {
+                int delta = one.getValue();
+                if (delta == 0 || one.getKey().equals(player)) continue;
+                Profile p = ensure(one.getKey(), "minecraft:villager", everyone.getOrDefault(one.getKey(), ""));
+                if (p.villageId.isBlank()) p.villageId = villageId;
+                Relation r = relation(p, player);
+                int applied = delta;
+                if (delta < 0) {
+                    applied = -state.divine.allowance(villageId, pid, -delta, tuning.divineDailyCap, now);
+                    if (!tuning.divineMayExile) applied = Math.max(applied, Math.min(0, DivineTidings.RELATION_FLOOR - r.score));
+                }
+                int before = r.score;
+                r.score = clamp(r.score + applied, hostile(p));
+                applied = r.score - before;
+                boolean suffered = sufferers != null && sufferers.containsKey(one.getKey());
+                event(p, now, (suffered ? "Пострадал: " : "Видел своими глазами: ") + text, MemoryFact.ORDINARY);
+                if (applied == 0) continue;
+                if (applied < 0) state.divine.lose(villageId, pid, -applied, now);
+                r.divine += applied;
+                state.divine.record(deed.id(), pid, one.getKey().toString(), applied, now);
+                feel(p, r, applied < 0 ? MobState.Event.WITNESSED_HIT : MobState.Event.KIND, now);
+                change += applied;
+            }
+            if (deed.kind().wrath() && deed.kind() != DivineTidings.Kind.BAN) wraths = state.divine.punished(villageId, pid, now);
+        }
+        scheduleSave();
+        return new DivineOutcome(rumorId, change, wraths, name);
+    }
+    /** After every village had its say: a curse hangs over the villages it reached; a miracle blesses its beneficiary; penance gives
+     * back half of what the penitent's punishments of the last game day cost, lifts their curses and dismisses their assemblies; a
+     * curse that ended leaves its villages. Returns the villages whose curse lifted (for the «слава Богу» in the street). */
+    public synchronized List<String> divineSettle(DivineTidings.Deed deed, List<String> villages, long now) {
+        List<String> lifted = new ArrayList<>();
+        switch (deed.kind()) {
+            case WRATH, BOSS -> state.divine.curse(deed, villages == null ? List.of() : villages, now);
+            case MIRACLE -> { if (deed.beneficiary() != null) state.divine.bless(deed.beneficiary().id(), deed.title(), now); }
+            case FORGIVEN -> {
+                for (String id : deed.of()) lifted.addAll(state.divine.lift(id));
+                if (deed.culprit() != null) {
+                    UUID player = deed.culprit().id();
+                    for (DivineTidings.Delta d : state.divine.restore(player.toString(), now)) {
+                        Profile q = state.profiles.get(d.mob);
+                        Relation r = q == null ? null : q.relations.get(d.player);
+                        if (r == null) continue;
+                        int back = -d.delta / 2, before = r.score;
+                        r.score = clamp(r.score + back, hostile(q));
+                        r.divine += r.score - before;
+                        q.revision++;
+                    }
+                    lifted.addAll(state.divine.liftAll(player.toString()));
+                    state.divine.dismiss(player);
+                }
+            }
+            case CURSE_END -> { lifted.addAll(state.divine.lift(deed.id())); for (String id : deed.of()) lifted.addAll(state.divine.lift(id)); }
+            default -> { }
+        }
+        state.divine.trim(now);
+        scheduleSave();
+        return lifted.stream().distinct().toList();
+    }
+    /** The curse hanging over this village now, or null. */
+    public synchronized DivineTidings.CurseView divineCurse(String villageId, long now) { return villageId == null ? null : state.divine.curseOn(villageId, now); }
+    /** A villager died while a curse hung over its village: its living relatives blame the sinner hard (unless the setting is off).
+     * Returns the sinner's name, or "" when no known curse explains the death. */
+    public synchronized String divineMourn(UUID dead, String villageId, String deadName, long now) {
+        DivineTidings.CurseView curse = divineCurse(villageId, now);
+        if (curse == null || !curse.known() || dead == null) return "";
+        UUID player;
+        try { player = UUID.fromString(curse.culpritId()); } catch (IllegalArgumentException bad) { return ""; }
+        String text = deadName + " погиб во время божьей кары «" + curse.title() + "» за грехи игрока " + curse.culpritName();
+        Profile deadProfile = state.profiles.get(dead.toString());
+        if (deadProfile != null) event(deadProfile, now, text, MemoryRanking.WITNESSED_KILL);
+        if (!Tuning.get().divineMourners) { scheduleSave(); return curse.culpritName(); }
+        for (FamilyTree.Kin kin : state.family.kin(dead)) {
+            if (kin.player() || kin.dead()) continue;
+            Profile q = state.profiles.get(kin.id().toString());
+            if (q == null) continue;
+            Relation r = relation(q, player);
+            int applied = DivineTidings.MOURNER_DELTA;
+            if (!Tuning.get().divineMayExile) applied = Math.max(applied, Math.min(0, DivineTidings.RELATION_FLOOR - r.score));
+            int before = r.score;
+            r.score = clamp(r.score + applied, hostile(q));
+            r.divine += r.score - before;
+            feel(q, r, MobState.Event.WITNESSED_KILL, now);
+            event(q, now, "Мой " + kin.word() + " " + deadName + " погиб во время кары за грехи игрока " + curse.culpritName(), MemoryRanking.WITNESSED_KILL);
+            q.revision++;
+        }
+        scheduleSave();
+        return curse.culpritName();
+    }
+    /** The bell assembly: opened (true when new), told, decided; and what waits. */
+    public synchronized boolean divineAssemble(String villageId, UUID player, String name, long deadline) { boolean fresh = state.divine.assemble(villageId, player, name, deadline); if (fresh) scheduleSave(); return fresh; }
+    public synchronized void divineAnnounced(String villageId, UUID player) { state.divine.announced(villageId, player); scheduleSave(); }
+    public synchronized void divineExile(String villageId, UUID player) { state.divine.exile(villageId, player); scheduleSave(); }
+    public synchronized List<DivineTidings.AssemblyView> divineAssemblies() { return state.divine.assemblies(); }
+    /** Whether the bell assembly drove this player out of the village. */
+    public synchronized boolean divineExiled(String villageId, UUID player) { return state.divine.exiled(villageId, player); }
+
     // ---- Village small talk and announcements, see VillageChatter and VillageNotices. ----
 
     /** Two villagers about to talk: both get a profile on the spot (name, sex, character and voice from the social layer, the
@@ -285,7 +432,8 @@ public final class ConversationStore {
         if (repute.indexOf(':') >= 0) repute = repute.substring(0, repute.indexOf(':'));
         UUID other = q.id;
         boolean acquainted = state.relations.views(p.id, now).stream().anyMatch(v -> v.other().equals(other));
-        VillageChatter.Subject subject = VillageChatter.subject(a, b, new VillageChatter.Facts(told, repute, weather, recent), roll);
+        VillageRumors.View god = village.isBlank() || !Tuning.get().divineTidings ? null : state.rumors.latestDivine(village, VillageChatter.GOD_TOPIC_MILLIS, now);
+        VillageChatter.Subject subject = VillageChatter.subject(a, b, new VillageChatter.Facts(told, repute, weather, recent, god == null ? "" : god.text()), roll);
         scheduleSave();
         return new VillageChatter.Input(villageKey, villageName, a, b, subject, safePlayer(playerName), weather, acquainted);
     }
@@ -448,7 +596,7 @@ public final class ConversationStore {
      * {@code site} names the village structure it was founded in ("ctov:large/village_plains@12,-40"), "" for villages founded
      * before sites were known or outside any structure. */
     public record Village(String id, String dimension, int x, int z, String name, String story, String site) {
-        public Village { site = site == null ? "" : site; }
+        public Village { site = site == null ? "" : site; story = story == null ? "" : story; name = name == null ? "" : name; }
     }
     /** The village structure a villager lives in, as the game read it: a key unique in the world, the structure's centre and its
      * bounds on the ground. */
@@ -504,10 +652,11 @@ public final class ConversationStore {
             Relation r = p.relations.get(player.toString());
             if (r == null) continue;
             if (r.score < 0) { r.score = 0; forgiven++; }
-            r.hits = 0; r.lastWitnessDelta = 0; r.lastWitness = -1;
+            r.hits = 0; r.lastWitnessDelta = 0; r.lastWitness = -1; r.divine = 0;
             p.revision++;
         }
         state.rumors.forgetVillage(village.id(), ids);
+        state.divine.forgive(village.id(), player);
         scheduleSave();
         return "Деревня «" + village.name() + "» простила: жителей " + residents + ", обид снято " + forgiven + ", слухи забыты";
     }
@@ -562,6 +711,16 @@ public final class ConversationStore {
         }
         Village near = villageNear(dimension, x, z);
         return near != null && near.site().isBlank() ? near : null;
+    }
+    /** A village the god's deed founded before anyone talked there (no story yet) takes the name and story the first villager's
+     * biography wrote; any other village keeps its own. Returns the village as it is now. */
+    public synchronized Village nameVillage(String id, String name, String story) {
+        Village village = village(id);
+        if (village == null || !village.story().isBlank() || story == null || story.isBlank()) return village;
+        Village named = new Village(village.id(), village.dimension(), village.x(), village.z(),
+                TextBounds.characters(name == null || name.isBlank() ? village.name() : name, 60), TextBounds.characters(story, 1500), village.site());
+        state.villages.put(named.id(), named); scheduleSave();
+        return named;
     }
     public synchronized Village createVillage(String dimension, int x, int z, String name, String story) { return createVillage(dimension, x, z, name, story, ""); }
     public synchronized Village createVillage(String dimension, int x, int z, String name, String story, String site) {
@@ -950,6 +1109,8 @@ public final class ConversationStore {
         transient List<FamilyTree.Kin> family = List.of();
         /** How the village sees the current player ({@link VillageStanding}); NONE outside the social layer. */
         transient VillageStanding.View standing = VillageStanding.View.NONE;
+        /** Б1: what the village knows of the god's deeds about this player, for the prompt; set with {@link #standing}. */
+        transient String divine = "";
         /** Sex, character, marks and growth of a villager in the social layer ({@link SocialProfile}); null for other mobs. */
         SocialProfile social;
         String type, name, personality, voiceId; String memory = "";
@@ -1032,7 +1193,10 @@ public final class ConversationStore {
     private record Event(long time, String text, int importance) { }
     /** One player as this mob knows them: standing, what they did, their prices on its deals, the favour it waits for. */
     static final class Relation {
-        int score, hits, lastWitnessDelta; long lastHelp = -1, lastApology = -1, lastInsult = -1, lastThreat = -1, lastPurchase = -1, lastWitness = -1; boolean ownerKnown;
+        int score, hits, lastWitnessDelta;
+        /** The part of {@code score} the god's deeds made ({@link DivineTidings}): without it the village would not exile the player. */
+        int divine;
+        long lastHelp = -1, lastApology = -1, lastInsult = -1, lastThreat = -1, lastPurchase = -1, lastWitness = -1; boolean ownerKnown;
         Map<String,TradeState> deals = new LinkedHashMap<>();
         Favor favor; List<String> favorsDone = new ArrayList<>();
         /** Gestures, gifts and courtship with this player ({@link Rapport}); null until the first gesture. */
@@ -1047,7 +1211,7 @@ public final class ConversationStore {
         }
         Relation copy() {
             Relation c = new Relation(); c.score = score; c.hits = hits; c.lastHelp = lastHelp; c.lastApology = lastApology;
-            c.lastInsult = lastInsult; c.lastThreat = lastThreat; c.lastPurchase = lastPurchase; c.lastWitness = lastWitness; c.lastWitnessDelta = lastWitnessDelta; c.ownerKnown = ownerKnown;
+            c.lastInsult = lastInsult; c.lastThreat = lastThreat; c.lastPurchase = lastPurchase; c.lastWitness = lastWitness; c.lastWitnessDelta = lastWitnessDelta; c.ownerKnown = ownerKnown; c.divine = divine;
             c.deals = new LinkedHashMap<>(deals); c.favor = favor; c.favorsDone = new ArrayList<>(favorsDone); // Immutable records.
             c.rapport = rapport == null ? null : rapport.copy();
             return c;
@@ -1069,7 +1233,11 @@ public final class ConversationStore {
         VillageNotices notices = new VillageNotices();
         /** Players the world knows by name, UUID to the name they last went by (rumours name them); absent in files written before it. */
         Map<String,String> players = new LinkedHashMap<>();
+        /** What the villages know of the god's deeds (Б1); absent in files written before it. */
+        DivineTidings divine = new DivineTidings();
         void sanitize() {
+            if (divine == null) divine = new DivineTidings();
+            divine.sanitize();
             if (notices == null) notices = new VillageNotices();
             if (players == null) players = new LinkedHashMap<>();
             players.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null || e.getValue().isBlank());
@@ -1088,7 +1256,7 @@ public final class ConversationStore {
             State c = new State(); c.version = version;
             profiles.forEach((key, p) -> c.profiles.put(key, p.copy()));
             c.bargains.putAll(bargains); c.villages.putAll(villages); // Immutable records.
-            c.relations = relations.copy(); c.rumors = rumors.copy(); c.family = family.copy(); c.notices = notices.copy(); c.players = new LinkedHashMap<>(players);
+            c.relations = relations.copy(); c.rumors = rumors.copy(); c.family = family.copy(); c.notices = notices.copy(); c.players = new LinkedHashMap<>(players); c.divine = divine.copy();
             return c;
         }
     }

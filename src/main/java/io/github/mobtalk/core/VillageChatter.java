@@ -30,7 +30,9 @@ public final class VillageChatter {
     public static final int LINE_CHARS = 160;
 
     /** What the two talk about. */
-    public enum Topic { RUMOR, REPUTATION, WEATHER, EVENT, WORK }
+    public enum Topic { RUMOR, REPUTATION, WEATHER, EVENT, WORK, GOD }
+    /** How long the god's latest deed stays the village's first topic. */
+    public static final long GOD_TOPIC_MILLIS = 5 * 60_000L;
 
     /** A villager as the game sees it: its id, species and what the game shows (its profession). */
     public record Seat(UUID id, String type, String observedName) { }
@@ -51,13 +53,16 @@ public final class VillageChatter {
     public record Cue(Input input, long createdMillis) { }
 
     /** The facts the topic is chosen from, gathered by the store. {@code rumor}: one {@code a} knows and {@code b} has not heard, or null. */
-    public record Facts(VillageRumors.View rumor, String reputation, String weather, String recentEvent) {
-        public Facts { reputation = reputation == null ? "" : reputation; weather = weather == null ? "" : weather; recentEvent = recentEvent == null ? "" : recentEvent; }
+    public record Facts(VillageRumors.View rumor, String reputation, String weather, String recentEvent, String divine) {
+        public Facts { reputation = reputation == null ? "" : reputation; weather = weather == null ? "" : weather; recentEvent = recentEvent == null ? "" : recentEvent; divine = divine == null ? "" : divine; }
+        public Facts(VillageRumors.View rumor, String reputation, String weather, String recentEvent) { this(rumor, reputation, weather, recentEvent, ""); }
     }
 
     /** The topic: a fresh rumour most of the time when there is one, then the player's fame, the weather, a recent event, else work. */
     public static Subject subject(Speaker a, Speaker b, Facts facts, DoubleSupplier roll) {
         double r = roll.getAsDouble();
+        if (!facts.divine().isBlank() && r < 0.85)
+            return new Subject(Topic.GOD, "только что случилось божье знамение, его обсуждают с тревогой и молитвой: " + facts.divine(), "");
         if (facts.rumor() != null && r < 0.75)
             return new Subject(Topic.RUMOR, rumorTopic(a, b, facts.rumor()), facts.rumor().id());
         List<Subject> options = new ArrayList<>();

@@ -41,7 +41,7 @@ final class MobPrompt {
                 + names(config, snapshot, profile.relationship)
                 + speciesNotes(snapshot)
                 + (profile.backstory == null || profile.backstory.isBlank() ? "\n\n" + lifeToInvent(profile, species) : "\n\nТвоя история (только твоя, другие её не знают, пока ты не расскажешь):\n" + profile.backstory)
-                + (profile.village == null ? "" : "\n\nТвоя деревня «" + profile.village.name() + "» (эту историю знают все её жители):\n" + profile.village.story())
+                + (profile.village == null || profile.village.story().isBlank() ? "" : "\n\nТвоя деревня «" + profile.village.name() + "» (эту историю знают все её жители):\n" + profile.village.story())
                 + "\n\nТвой характер:\n" + archetype
                 + (custom ? "\nЛичная настройка именно этой особи (важнее характера выше): " + profile.customPersonality : "")
                 + SocialPrompt.persona(profile)

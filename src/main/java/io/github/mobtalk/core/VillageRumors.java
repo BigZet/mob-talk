@@ -48,14 +48,16 @@ public final class VillageRumors {
         /** 1–5, and -1/0/+1: whether the rumour shows the player in a bad, neutral or good light. */
         int importance = 2, sign;
         long time;
-        Rumor copy() { Rumor c = new Rumor(); c.id = id; c.text = text; c.source = source; c.sourceId = sourceId; c.subject = subject; c.subjectId = subjectId; c.importance = importance; c.sign = sign; c.time = time; return c; }
+        /** Told about a deed of the god ({@link DivineTidings}): kept apart so the god alone never makes an exile. */
+        boolean divine;
+        Rumor copy() { Rumor c = new Rumor(); c.id = id; c.text = text; c.source = source; c.sourceId = sourceId; c.subject = subject; c.subjectId = subjectId; c.importance = importance; c.sign = sign; c.time = time; c.divine = divine; return c; }
         /** importance × (1 − age/forget): a rumour weighs less every day and nothing on its fifth. */
         double weight(long now) {
             double days = Math.max(0, now - time) / (double) DAY_MILLIS;
             return Math.max(0, importance * (1 - days / forgetDays()));
         }
         boolean forgotten(long now) { return now - time >= forgetDays() * DAY_MILLIS; }
-        View view(long now) { return new View(id, text, source, importance, sign, time, weight(now), subject); }
+        View view(long now) { return new View(id, text, source, importance, sign, time, weight(now), subject, divine); }
     }
     /** One village's chronicle: the rumours and when it was last written. */
     static final class Chronicle {
@@ -66,8 +68,9 @@ public final class VillageRumors {
     }
 
     /** A rumour as the prompt and the debug line read it. */
-    public record View(String id, String text, String source, int importance, int sign, long time, double weight, String subject) {
+    public record View(String id, String text, String source, int importance, int sign, long time, double weight, String subject, boolean divine) {
         public View { subject = subject == null ? "" : subject; }
+        public View(String id, String text, String source, int importance, int sign, long time, double weight, String subject) { this(id, text, source, importance, sign, time, weight, subject, false); }
         /** A rumour about nobody in particular (or written before players had names). */
         public View(String id, String text, String source, int importance, int sign, long time, double weight) { this(id, text, source, importance, sign, time, weight, ""); }
         /** «Ладко говорил, что …» */
@@ -166,6 +169,34 @@ public final class VillageRumors {
         }
         trim(chronicle, now);
         return added;
+    }
+    /** A deed of the god became the village's news ({@link DivineTidings}): one rumour without a model, about {@code subjectId}
+     * ("" when the village does not know whose sins), known at once to every listed resident — the whole village saw the sky.
+     * A rumour of the same day about the same player and deed is replaced by the louder one. Returns the rumour's id. */
+    public String addDivine(String villageId, String eventId, String text, String source, String sourceId, String subject, String subjectId,
+                            int importance, int sign, java.util.Collection<String> residents, long now) {
+        if (villageId == null || text == null || text.isBlank()) return "";
+        Chronicle chronicle = villages.computeIfAbsent(villageId, ignored -> new Chronicle());
+        String clean = TextBounds.characters(text.strip(), 300);
+        chronicle.rumors.removeIf(known -> known.divine && known.text.equalsIgnoreCase(clean));
+        Rumor rumor = new Rumor();
+        rumor.id = "g" + Long.toHexString(now) + "-" + Integer.toHexString(Math.abs((eventId + villageId).hashCode()));
+        rumor.text = clean; rumor.source = TextBounds.characters(source == null ? "" : source.strip(), 60); rumor.sourceId = sourceId == null ? "" : sourceId;
+        rumor.subject = TextBounds.characters(subject == null ? "" : subject.strip(), 60); rumor.subjectId = subjectId == null ? "" : subjectId;
+        rumor.importance = MemoryFact.clamp(importance); rumor.sign = Integer.signum(sign); rumor.time = now; rumor.divine = true;
+        chronicle.rumors.add(rumor);
+        if (residents != null) for (String id : residents) hear(id, rumor.id);
+        if (!rumor.sourceId.isBlank()) hear(rumor.sourceId, rumor.id);
+        trim(chronicle, now);
+        return chronicle.rumors.contains(rumor) ? rumor.id : "";
+    }
+    /** The freshest rumour about the god's deeds in this village not older than {@code maxAgeMillis}, or null: small talk turns to it. */
+    public View latestDivine(String villageId, long maxAgeMillis, long now) {
+        Chronicle chronicle = villageId == null ? null : villages.get(villageId);
+        if (chronicle == null) return null;
+        Rumor best = null;
+        for (Rumor rumor : chronicle.rumors) if (rumor.divine && now - rumor.time <= maxAgeMillis && (best == null || rumor.time > best.time)) best = rumor;
+        return best == null ? null : best.view(now);
     }
     private void trim(Chronicle chronicle, long now) {
         chronicle.rumors.removeIf(rumor -> rumor.forgotten(now));
@@ -300,14 +331,16 @@ public final class VillageRumors {
     }
     /** What the village thinks of one player: only rumours about them count, plus those about nobody named (older files, where
      * the one player was meant). Another player's deeds do not colour this one's fame. Null {@code player} — every rumour. */
-    public Reputation reputation(String villageId, UUID player, long now) {
+    public Reputation reputation(String villageId, UUID player, long now) { return reputation(villageId, player, now, true); }
+    /** The same; {@code divine} false leaves out the rumours about the god's deeds (what the village would think without them). */
+    public Reputation reputation(String villageId, UUID player, long now, boolean divine) {
         if (player == null) return reputation(villageId, now);
         Chronicle chronicle = villageId == null ? null : villages.get(villageId);
         if (chronicle == null) return Reputation.NONE;
         String id = player.toString();
         double balance = 0, weight = 0;
         for (Rumor rumor : chronicle.rumors) {
-            if (rumor.forgotten(now) || !(rumor.subjectId.isBlank() && rumor.subject.isBlank() || rumor.subjectId.equals(id))) continue;
+            if (rumor.forgotten(now) || !divine && rumor.divine || rumor.divine && rumor.subjectId.isBlank() || !(rumor.subjectId.isBlank() && rumor.subject.isBlank() || rumor.subjectId.equals(id))) continue;
             double w = rumor.weight(now);
             balance += rumor.sign * w; weight += w;
         }
