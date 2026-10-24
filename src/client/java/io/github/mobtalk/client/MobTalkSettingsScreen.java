@@ -382,6 +382,12 @@ final class MobTalkSettingsScreen extends Screen {
                 "initiative", () -> wide(tip(toggle("mobtalk.settings.initiative", draft.initiative, value -> draft.initiative = value), "mobtalk.settings.initiative.tooltip"),
                         tip(toggle("mobtalk.settings.giftsFirst", draft.giftsFirst, value -> draft.giftsFirst = value), "mobtalk.settings.giftsFirst.tooltip")),
                 "village", () -> wide(tip(toggle("mobtalk.settings.villageSites", draft.villageSites, value -> draft.villageSites = value), "mobtalk.settings.villageSites.tooltip")),
+                "defense", () -> {
+                    wide(tip(toggle("mobtalk.settings.villageDefense", draft.villageDefense, value -> draft.villageDefense = value), "mobtalk.settings.villageDefense.tooltip"),
+                            tip(toggle("mobtalk.settings.villageNoSpawn", draft.villageNoSpawn, value -> draft.villageNoSpawn = value), "mobtalk.settings.villageNoSpawn.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.alarmAgainstPlayers", draft.alarmAgainstPlayers, value -> draft.alarmAgainstPlayers = value), "mobtalk.settings.alarmAgainstPlayers.tooltip"),
+                            tip(toggle("mobtalk.settings.alarmChat", draft.alarmChat, value -> draft.alarmChat = value), "mobtalk.settings.alarmChat.tooltip"));
+                },
                 "chatter", () -> wide(tip(toggle("mobtalk.settings.villageChatter", draft.villageChatter, value -> draft.villageChatter = value), "mobtalk.settings.villageChatter.tooltip"),
                         tip(toggle("mobtalk.settings.villageNotices", draft.villageNotices, value -> draft.villageNotices = value), "mobtalk.settings.villageNotices.tooltip"))));
         resetSection(Tunables.Section.SOCIAL);

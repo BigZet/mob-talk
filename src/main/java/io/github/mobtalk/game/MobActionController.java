@@ -155,6 +155,7 @@ final class MobActionController {
         Long last = alarms.get(villager.getUuid());
         if (last != null && now - last < ALARM_COOLDOWN) return;
         alarms.put(villager.getUuid(), now);
+        bridge.defense.hated(villager, player);
         boolean called = false;
         for (net.minecraft.entity.passive.IronGolemEntity golem : world.getEntitiesByClass(net.minecraft.entity.passive.IronGolemEntity.class,
                 villager.getBoundingBox().expand(16), other -> other.isAlive() && !other.isRemoved())) {

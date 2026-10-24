@@ -171,6 +171,17 @@ public final class Tunables {
         integer("villageFriendPoints", s, "village", 0, 1000, 10, c -> c.villageFriendPoints, (c, x) -> c.villageFriendPoints = x);
         integer("villageGuardPoints", s, "village", 0, 2000, 10, c -> c.villageGuardPoints, (c, x) -> c.villageGuardPoints = x);
         integer("villageElderPoints", s, "village", 0, 3000, 10, c -> c.villageElderPoints, (c, x) -> c.villageElderPoints = x);
+        // Village defence: the alarm and the golem.
+        integer("defenseZoneMargin", s, "defense", 0, 64, 1, c -> c.defenseZoneMargin, (c, x) -> c.defenseZoneMargin = x);
+        integer("alarmMonsterRange", s, "defense", 4, 48, 1, c -> c.alarmMonsterRange, (c, x) -> c.alarmMonsterRange = x);
+        integer("alarmAttackThreats", s, "defense", 1, 30, 1, c -> c.alarmAttackThreats, (c, x) -> c.alarmAttackThreats = x);
+        integer("alarmClearSeconds", s, "defense", 10, 600, 5, c -> c.alarmClearSeconds, (c, x) -> c.alarmClearSeconds = x);
+        integer("alarmPlayerClearMinutes", s, "defense", 1, 30, 1, c -> c.alarmPlayerClearMinutes, (c, x) -> c.alarmPlayerClearMinutes = x);
+        integer("alarmPlayerRange", s, "defense", 16, 160, 4, c -> c.alarmPlayerRange, (c, x) -> c.alarmPlayerRange = x);
+        integer("alarmNoticeRange", s, "defense", 32, 1024, 16, c -> c.alarmNoticeRange, (c, x) -> c.alarmNoticeRange = x);
+        integer("golemHealthPercent", s, "defense", 100, 400, 10, c -> c.golemHealthPercent, (c, x) -> c.golemHealthPercent = x);
+        integer("golemRegenPerMinute", s, "defense", 0, 120, 1, c -> c.golemRegenPerMinute, (c, x) -> c.golemRegenPerMinute = x);
+        integer("golemRepairHealth", s, "defense", 0, 100, 1, c -> c.golemRepairHealth, (c, x) -> c.golemRepairHealth = x);
 
         // Friendly duties (STAY, GUARD, SPARE).
         integer("friendLeaseMinutes", a, "friends", 1, 60, 1, c -> c.friendLeaseMinutes, (c, x) -> c.friendLeaseMinutes = x);
@@ -240,6 +251,7 @@ public final class Tunables {
                 config.pregnancy = d.pregnancy; config.pregnancyBelly = d.pregnancyBelly; config.pregnancyStatus = d.pregnancyStatus; config.familyFade = d.familyFade;
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices; config.villageSites = d.villageSites;
+                config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat;
             }
             case ACTIONS -> { config.placeAnalysis = d.placeAnalysis; config.placeClassifier = d.placeClassifier; }
         }

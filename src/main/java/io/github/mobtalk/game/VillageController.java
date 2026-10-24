@@ -33,12 +33,15 @@ final class VillageController {
         return here == null ? VillageStanding.View.NONE : bridge.memory.social().standing(here.id(), player.getUuid(), now);
     }
 
-    /** From the interaction mixin: an exile's right click on a villager gets a shake of the head instead of the trade window. */
+    /** From the interaction mixin: an exile's right click on a villager gets a shake of the head instead of the trade window, and so
+     * does anyone's while the village is under attack or on alarm against them (village defence). */
     boolean refuseTrade(VillagerEntity villager, ServerPlayerEntity player) {
-        if (!enabled() || villager.isBaby() || !standing(villager, player).refusesTrade()) return false;
+        if (villager.isBaby()) return false;
+        boolean alarm = bridge.defense.refusesTrade(villager, player);
+        if (!alarm && (!enabled() || !standing(villager, player).refusesTrade())) return false;
         villager.setHeadRollingTimeLeft(40);
         villager.getWorld().playSound(null, villager.getBlockPos(), SoundEvents.ENTITY_VILLAGER_NO, SoundCategory.NEUTRAL, 1f, 1f);
-        player.sendMessage(Text.translatable("mobtalk.village.noTrade"), true);
+        player.sendMessage(Text.translatable(alarm ? "mobtalk.defense.noTrade" : "mobtalk.village.noTrade"), true);
         return true;
     }
 
@@ -49,6 +52,7 @@ final class VillageController {
             if (!player.isAlive() || player.isSpectator() || player.isCreative()) continue;
             ConversationStore.Village here = bridge.villageAt(world, player.getBlockPos());
             VillageStanding.View view = here == null ? VillageStanding.View.NONE : bridge.memory.social().standing(here.id(), player.getUuid(), now);
+            if (view.banished()) bridge.defense.exile(world, player);
             if (!view.golemAlert()) continue;
             for (IronGolemEntity golem : world.getEntitiesByClass(IronGolemEntity.class, player.getBoundingBox().expand(GOLEM_RANGE),
                     g -> g.isAlive() && !g.isPlayerCreated() && g.getTarget() == null)) {
