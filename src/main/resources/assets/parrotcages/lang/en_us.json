@@ -11,5 +11,7 @@
   "parrotcages.message.need_bait": "Hold seeds to lure a parrot into the cage",
   "block.parrotcages.small_golden_parrot_cage": "Small Golden Parrot Cage",
   "block.parrotcages.medium_golden_parrot_cage": "Medium Golden Parrot Cage",
-  "block.parrotcages.large_golden_parrot_cage": "Large Golden Parrot Cage"
+  "block.parrotcages.large_golden_parrot_cage": "Large Golden Parrot Cage",
+  "parrotcages.message.jailed": "%s is in jail, time left: %s",
+  "parrotcages.message.streamer_lock": "Streamer's lock: only the streamer and admins jail and free viewer parrots"
 }

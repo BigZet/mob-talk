@@ -11,5 +11,7 @@
   "parrotcages.message.need_bait": "Возьмите семена в руку, чтобы приманить попугая в клетку",
   "block.parrotcages.small_golden_parrot_cage": "Маленькая золотая клетка для попугая",
   "block.parrotcages.medium_golden_parrot_cage": "Средняя золотая клетка для попугая",
-  "block.parrotcages.large_golden_parrot_cage": "Большая золотая клетка для попугая"
+  "block.parrotcages.large_golden_parrot_cage": "Большая золотая клетка для попугая",
+  "parrotcages.message.jailed": "%s сидит в тюрьме, срок: %s",
+  "parrotcages.message.streamer_lock": "Замок стримера: попугаев зрителей сажают и выпускают только стример и администратор"
 }

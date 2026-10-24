@@ -15,6 +15,9 @@
     ],
     "client": [
       "io.github.parrotcages.ParrotCagesClient"
+    ],
+    "mobtalk-admin": [
+      "io.github.parrotcages.AdminBridge"
     ]
   },
   "depends": {

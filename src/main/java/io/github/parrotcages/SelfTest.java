@@ -35,7 +35,8 @@ import java.util.function.BooleanSupplier;
  * Прогон в настоящей игре только для разработчика: {@code -Dparrotcages.selftest=<папка мира>}.
  * Загружает мир, строит площадку на y=200, ставит клетки трёх размеров настоящей установкой
  * предмета, сажает в них попугаев Viewer Parrots и ванильного попугая, проверяет команды
- * перемещения, освобождение и разрушение клетки, делает скриншоты и закрывает игру.
+ * перемещения, освобождение и разрушение клетки, тюрьму для попугая-зрителя (срок, кнопки, op=cage, конец срока),
+ * делает скриншоты и закрывает игру.
  * Каждый шаг пишется в лог как {@code [selftest]}.
  */
 final class SelfTest {
@@ -52,7 +53,9 @@ final class SelfTest {
 	private boolean started, failed;
 	private int sx, sz;
 	private BlockPos small, medium, large, vanillaCage, goldMedium, goldLarge;
-	private UUID vanilla;
+	private UUID vanilla, jailed;
+	/** События тюрьмы, услышанные через общий список подписчиков — так же, как их слышат другие моды. */
+	private final List<java.util.Map<String, Object>> events = new CopyOnWriteArrayList<>();
 
 	private SelfTest(MinecraftClient client, String world) { this.client = client; this.world = world; }
 
@@ -182,6 +185,13 @@ final class SelfTest {
 			use(cage, Direction.NORTH, ItemStack.EMPTY);
 			player().setSneaking(false);
 		});
+	}
+
+	@SuppressWarnings("unchecked")
+	private void subscribe() {
+		Object shared = net.fabricmc.loader.api.FabricLoader.getInstance().getObjectShare().get(Jail.LISTENERS);
+		if (shared instanceof List<?> list) ((List<java.util.function.Consumer<java.util.Map<String, Object>>>) list).add(events::add);
+		else check(false, "jail listeners are shared");
 	}
 
 	private void screenshot(String file) {
@@ -374,6 +384,68 @@ final class SelfTest {
 			long drops = serverWorld().getEntitiesByType(EntityType.ITEM, new net.minecraft.util.math.Box(large).expand(4),
 					item -> item.getStack().isOf(ParrotCages.LARGE_CAGE.asItem())).stream().mapToLong(i -> i.getStack().getCount()).sum();
 			check(drops == 1, "exactly one large cage item dropped (" + drops + ")");
+		});
+
+		// Тюрьма: попугай-зритель в клетке получает срок, кнопки продлевают и выпускают, срок кончается сам.
+		pause("jail: create", 2, () -> {
+			command("tp @s " + sx + " " + SY + " " + (sz - 2));
+			command("vp create cage_jail Арестант");
+			subscribe();
+		});
+		step("jail parrot exists", 30, () -> { }, () -> server().submit(() -> viewerParrot("cage_jail") != null).join());
+		pause("jail: lured", 2, () -> lure(viewerParrot("cage_jail"), medium));
+		pause("jail: checked", 2, () -> {
+			Entity bird = viewerParrot("cage_jail");
+			jailed = bird.getUuid();
+			ParrotCageBlockEntity cage = cage(medium);
+			check(holds(medium, bird) && cage.jailed() && bird.getCommandTags().contains(Jail.JAILED_TAG), "a viewer parrot in a cage is jailed and tagged");
+			check(Jail.minutesLeft(cage.releaseAt(), serverWorld().getTime()) == JailSettings.get().defaultMinutes, "the default term is " + JailSettings.get().defaultMinutes + " minutes");
+			check(events.stream().anyMatch(e -> "jailed".equals(e.get("event")) && jailed.equals(e.get("parrot"))), "listeners hear the jailing");
+			output.clear();
+			command("vp come cage_jail");
+			command("vp roulette cage_jail");
+		});
+		pause("jail: refusals checked", 2, () -> {
+			long rejected = output.stream().filter(l -> l.contains("клетке") || l.contains("in a cage")).count();
+			check(rejected >= 2, "!come and !roulette are rejected for a prisoner (" + rejected + " caged replies)");
+			command("parrotcages jail " + jailed + " extend 5");
+		});
+		pause("jail: extended", 1, () -> {
+			ParrotCageBlockEntity cage = cage(medium);
+			check(Jail.minutesLeft(cage.releaseAt(), serverWorld().getTime()) == JailSettings.get().defaultMinutes + 5, "the +5 min button extends the term");
+			command("parrotcages jail " + jailed + " forever");
+		});
+		pause("jail: indefinite", 1, () -> {
+			check(cage(medium).releaseAt() == Jail.INDEFINITE, "the indefinite button removes the end of the term");
+			command("parrotcages jail " + jailed + " release");
+		});
+		pause("jail: released by button", 2, () -> {
+			Entity bird = serverWorld().getEntity(jailed);
+			check(bird != null && !CageLinks.isCaged(bird) && !bird.getCommandTags().contains(Jail.JAILED_TAG) && cage(medium).occupant().isEmpty(),
+					"the release button frees the prisoner and clears both tags");
+			check(events.stream().anyMatch(e -> "released".equals(e.get("event")) && "hands".equals(e.get("reason"))), "listeners hear the release (hands)");
+		});
+		pause("jail: cage by API", 2, () -> {
+			ServerPlayerEntity p = player();
+			command("tp @s " + sx + " " + SY + " " + (sz - 2));
+			Object answer = Jail.call(java.util.Map.of("op", "cage", "parrot", serverWorld().getEntity(jailed), "center", new Vec3d(sx, SY, sz - 2),
+					"radius", 32, "minutes", 1, "jailer", p.getUuid(), "jailerName", p.getGameProfile().getName()));
+			check("".equals(answer), "op=cage puts the parrot into the nearest free cage (" + answer + ")");
+		});
+		pauseClient("jail: camera", 1, () -> look(sx - 2.0, SY + 1.0, sz + 1.6, 0f, 6f));
+		pauseClient("jail: screenshot arrest", 1, () -> screenshot("parrotcages-jail-arrest.png"));
+		pause("jail: info", 20, () -> {
+			Object info = Jail.call(java.util.Map.of("op", "info", "parrot", jailed));
+			check(info instanceof java.util.Map<?, ?> map && Long.valueOf(map.get("releaseAt").toString()) > 0, "op=info reports the term (" + info + ")");
+		});
+		pauseClient("jail: screenshot timer", 1, () -> screenshot("parrotcages-jail-timer.png"));
+		step("jail: term runs out", 70, () -> { }, () -> server().submit(() -> {
+			Entity bird = serverWorld().getEntity(jailed);
+			return bird != null && !CageLinks.isCaged(bird);
+		}).join());
+		pause("jail: term checked", 2, () -> {
+			check(events.stream().anyMatch(e -> "released".equals(e.get("event")) && "term".equals(e.get("reason"))), "the prisoner walks free when the term runs out");
+			command("vp remove cage_jail");
 		});
 
 		pause("cleanup", 3, () -> {
