@@ -78,6 +78,10 @@ public final class DivineConfig {
     public boolean allowEternalBan = false;
     /** Copy the world into saves/ before the ban falls. */
     public boolean banBackup = true;
+    /** Every deed is told to Mob Talk's villages ({@link VillageNews}), when Mob Talk is there: they talk, fear and blame. */
+    public boolean tellVillages = true;
+    /** The god names the sinner aloud: the villages know whose sins brought the punishment even without seeing it fall. */
+    public boolean nameSinner = true;
     /** Punishments that change the land (craters, rifts, floods…) may fall — at the sinner's home, never by a church; off
      * puts another act of the same group in their place. */
     public boolean landscapeWrath = true;

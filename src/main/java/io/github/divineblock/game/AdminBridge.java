@@ -255,7 +255,9 @@ public final class AdminBridge implements UnaryOperator<String> {
                 if (target.getServerWorld().getBlockState(pos).getBlock() instanceof AltarBlock) { altar = pos.toImmutable(); break; }
             long tick = target.getServer().getOverworld().getTime();
             if (miracle.kind == Miracle.Kind.WRATH) Prayers.PENANCE.begin(target.getUuid(), miracle.id(), tick);
-            String done = Zones.perform(miracle, power, target, altar, "", DivineBlockMod.config(), Math.max(1, power));
+            BlockPos at = altar;
+            String done = VillageEvents.within(new VillageEvents.Context(false, "", List.of()),
+                    () -> Zones.perform(miracle, power, target, at, "", DivineBlockMod.config(), Math.max(1, power)));
             if (done == null) {
                 if (miracle.kind == Miracle.Kind.WRATH) Prayers.PENANCE.end(target.getUuid());
                 throw new IllegalArgumentException("«" + miracle.title() + "» здесь не выходит (место, защита церкви или настройки): выберите другое");
