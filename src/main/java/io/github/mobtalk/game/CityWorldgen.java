@@ -51,10 +51,15 @@ public final class CityWorldgen {
     public static void register() {
         // The cities must be in the set before the overworld is built: it notes then which structures each set may place, and /locate
         // and the structure checks go by that note. The weights are counted again once the world loads, after the village mods.
-        ServerLifecycleEvents.SERVER_STARTING.register(server -> apply(server.getRegistryManager(), ServerConfig.get().cityPerVillages));
+        ServerLifecycleEvents.SERVER_STARTING.register(server -> apply(server.getRegistryManager(), perVillages()));
         ServerWorldEvents.LOAD.register((server, world) -> {
-            if (world.getRegistryKey() == World.OVERWORLD) apply(server.getRegistryManager(), ServerConfig.get().cityPerVillages);
+            if (world.getRegistryKey() == World.OVERWORLD) apply(server.getRegistryManager(), perVillages());
         });
+    }
+
+    /** The old cities give way to Cities 2.0 (game/city) while those are on. */
+    private static int perVillages() {
+        return ServerConfig.get().cities ? 0 : ServerConfig.get().cityPerVillages;
     }
 
     /** The entries this class put into the set: cities, and other structures' entries with their weight scaled (to the original weight). */

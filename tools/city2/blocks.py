@@ -290,10 +290,51 @@ def facade_textures():
     tex("roof_bitumen", img)
     r = rnd("asphalt")
     img = D.new()
-    fill(img, (70, 70, 72), 0.08, r)
-    for _ in range(24):
-        put(img, r.randrange(16), r.randrange(16), D.shade((110, 110, 112, 255), r.uniform(0.8, 1.15)))
+    fill(img, (72, 72, 74), 0.035, r)
+    for _ in range(12):
+        put(img, r.randrange(16), r.randrange(16), D.shade((92, 92, 94, 255), r.uniform(0.92, 1.06)))
     tex("asphalt", img)
+    street_textures()
+
+
+def street_textures():
+    """The street (stage 2): a road marking line, pavement slabs, the granite kerb, the square's granite paving."""
+    asphalt = TEX["asphalt"]
+    for axis in ("x", "z"):
+        r = rnd("line_" + axis)
+        img = asphalt.copy()
+        for a in range(16):
+            for b in range(6, 10):
+                c = D.shade((226, 224, 214, 255), r.uniform(0.9, 1.04)) if r.random() > 0.06 else asphalt.getpixel((a, b))
+                put(img, *((a, b) if axis == "x" else (b, a)), c)
+        tex("asphalt_line_" + axis, img)
+    r = rnd("sidewalk")
+    img = D.new()
+    for y in range(16):
+        for x in range(16):
+            slab = (x // 8, y // 8)
+            k = random.Random(f"sidewalk{slab}").uniform(0.95, 1.04)
+            if x % 8 == 7 or y % 8 == 7:
+                c = D.shade((118, 116, 110, 255), r.uniform(0.95, 1.05))
+            else:
+                c = D.shade((164, 162, 154, 255), k * r.uniform(0.95, 1.05))
+            put(img, x, y, c)
+    for _ in range(3):
+        x, y = r.randrange(16), r.randrange(16)
+        put(img, x, y, (128, 126, 120))
+    tex("sidewalk", img)
+    r = rnd("kerb")
+    img = D.new()
+    fill(img, (176, 174, 170), 0.05, r)
+    for x in range(16):
+        put(img, x, 0, D.shade((200, 198, 194, 255), r.uniform(0.97, 1.03)))
+        put(img, x, 15, D.shade((200, 198, 194, 255), r.uniform(0.97, 1.03)))
+        for y in (7,):
+            put(img, x, y, D.shade((150, 148, 144, 255), r.uniform(0.97, 1.03)) if x % 16 == 15 else img.getpixel((x, y)))
+    for y in range(16):
+        put(img, 15, y, (140, 138, 134))
+    tex("kerb", img)
+    tex("plaza", tiles("plaza", (170, 140, 132), size=8, grout=(132, 110, 104)))
 
 
 # ---------------------------------------------------------------- textures: windows, doors, rails, roof things
@@ -573,6 +614,11 @@ def floors():
     cube("roof_bitumen", "roof_bitumen", "Кровля (рубероид)", "Roofing felt", "BLACK", bottom="ceiling", side="slab_side")
     cube("plinth", "plinth", "Цоколь", "Plinth", "GRAY")
     cube("asphalt", "asphalt", "Асфальт", "Asphalt", "GRAY")
+    cube("asphalt_line_x", "asphalt_line_x", "Асфальт с разметкой (вдоль X)", "Asphalt with a marking line (along X)", "GRAY", bottom="asphalt", side="asphalt")
+    cube("asphalt_line_z", "asphalt_line_z", "Асфальт с разметкой (вдоль Z)", "Asphalt with a marking line (along Z)", "GRAY", bottom="asphalt", side="asphalt")
+    cube("sidewalk", "sidewalk", "Тротуарная плитка", "Pavement slabs", "STONE_GRAY")
+    cube("kerb", "kerb", "Бордюр (гранитный)", "Granite kerb", "LIGHT_GRAY")
+    cube("plaza", "plaza", "Гранитная плитка площади", "Granite paving of the square", "TERRACOTTA_PINK")
 
 
 def decor(name, textures, elements, ru, en, boxes=None, light=0, color="STONE_GRAY", sound="STONE", mount="GROUND", layer=None, ao=True):

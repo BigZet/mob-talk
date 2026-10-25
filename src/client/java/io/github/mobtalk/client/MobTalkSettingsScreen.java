@@ -467,6 +467,7 @@ final class MobTalkSettingsScreen extends Screen {
                     wide(tip(toggle("mobtalk.settings.alarmSound", draft.alarmSound, value -> draft.alarmSound = value), "mobtalk.settings.alarmSound.tooltip"),
                             tip(toggle("mobtalk.settings.villageNoConversion", draft.villageNoConversion, value -> draft.villageNoConversion = value), "mobtalk.settings.villageNoConversion.tooltip"));
                 }),
+                Map.<String, Runnable>entry("cities", () -> wide(tip(toggle("mobtalk.settings.cities", draft.cities, value -> draft.cities = value), "mobtalk.settings.cities.tooltip"))),
                 Map.<String, Runnable>entry("towers", () -> wide(tip(toggle("mobtalk.settings.villageTowers", draft.villageTowers, value -> draft.villageTowers = value), "mobtalk.settings.villageTowers.tooltip"))),
                 Map.<String, Runnable>entry("guards", () -> {
                     wide(tip(toggle("mobtalk.settings.villageGuards", draft.villageGuards, value -> draft.villageGuards = value), "mobtalk.settings.villageGuards.tooltip"));

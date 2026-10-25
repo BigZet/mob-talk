@@ -32,7 +32,12 @@ final class CityBuildBlocks {
             Map.entry("floor_concrete", MapColor.STONE_GRAY),
             Map.entry("roof_bitumen", MapColor.BLACK),
             Map.entry("plinth", MapColor.GRAY),
-            Map.entry("asphalt", MapColor.GRAY));
+            Map.entry("asphalt", MapColor.GRAY),
+            Map.entry("asphalt_line_x", MapColor.GRAY),
+            Map.entry("asphalt_line_z", MapColor.GRAY),
+            Map.entry("sidewalk", MapColor.STONE_GRAY),
+            Map.entry("kerb", MapColor.LIGHT_GRAY),
+            Map.entry("plaza", MapColor.TERRACOTTA_PINK));
     static final List<String> FACADES = List.of("facade_grey_lo", "facade_grey_hi", "facade_grey_jlo", "facade_grey_jhi", "facade_beige_lo", "facade_beige_hi", "facade_beige_jlo", "facade_beige_jhi", "facade_white_lo", "facade_white_hi", "facade_white_jlo", "facade_white_jhi", "facade_blue_lo", "facade_blue_hi", "facade_blue_jlo", "facade_blue_jhi");
     static final List<String> DOORS = List.of("door_room", "door_flat", "door_entrance", "door_balcony");
     static final List<String> SLABS = List.of("step_terrazzo");
