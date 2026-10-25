@@ -290,8 +290,6 @@ final class SelfTestCasino {
             test.check(w.getRegistryManager().get(net.minecraft.registry.RegistryKeys.TEMPLATE_POOL).containsId(Identifier.of("mobtalk", "casino/resort")),
                     "the resort's template pool");
             test.check(readSign(w, b, 47, 12, 16, 34).equals("★КАЗИНО★"), "the portico reads ★КАЗИНО★ (" + readSign(w, b, 47, 12, 16, 34) + ")");
-            String crown = readSign(w, b, 52, 63, 67, 29).replace("?", "");
-            test.check(crown.equals("★ФОРТУНА★"), "the hotel's crown reads ★ФОРТУНА★ (" + crown + ")");
             test.check(w.getBlockState(b.add(74, 34, 1)).isOf(CasinoContent.LETTER), "the pylon's letters");
             test.check(w.getBlockState(b.add(40, 20, 42)).isOf(CasinoContent.GRAND_CHANDELIER), "the great chandelier under the dome");
             test.check(w.getBlockState(b.add(32, 4, 40)).isOf(CasinoContent.BLACKJACK), "twenty-one in the pit");
@@ -317,8 +315,8 @@ final class SelfTestCasino {
             shot("mobtalk-casino-r08-twenty-one.png", () -> { rview(37, 6, 32, 35, 4, 35.5);
             shot("mobtalk-casino-r09-roulette.png", () -> { rview(38.5, 6.5, 47, 36, 4, 50.5);
             shot("mobtalk-casino-r10-cards.png", () -> { rview(46, 6, 47, 40, 5, 42);
-            shot("mobtalk-casino-r11-bar.png", () -> { rview(25, 4, 63, 40, 40, 74);
-            shot("mobtalk-casino-r12-hotel.png", () -> { rview(40, 55, 120, 40, 20, 40);
+            shot("mobtalk-casino-r11-bar.png", () -> { rview(26.2, 5.6, 42.5, 23.5, 5.2, 42.5);
+            shot("mobtalk-casino-r12-slot-machine.png", () -> { rview(40, 40, 110, 40, 15, 40);
             shot("mobtalk-casino-r13-back.png", () -> {
                 test.command("time set 18000");
                 test.await("pause: night falls", 3, () -> false, () -> { rview(40, 45, -40, 40, 15, 45);

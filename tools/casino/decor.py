@@ -281,96 +281,6 @@ CHERRY = [".#.", "#.#", "#.#"]
 BELL = [".#.", "###", "###"]
 
 
-def slot_screen():
-    """The slot machine's glass: three reels (7, cherries, 7) in white windows, a pay line, a gold bezel."""
-    img = new()
-    rect(img, (0, 0, 16, 16), (20, 22, 36))
-    px = img.load()
-    for x in range(16):
-        px[x, 0] = rgba(GOLD)
-        px[x, 15] = rgba(GOLD_DARK)
-    for y in range(16):
-        px[0, y] = rgba(GOLD)
-        px[15, y] = rgba(GOLD_DARK)
-    for i, sym in enumerate(("7", "cherry", "7")):
-        x0 = 2 + i * 4
-        rect(img, (x0, 3, x0 + 4, 12), (236, 232, 222))
-        for y in range(3, 12):  # reel curvature: darker top and bottom
-            k = 0.78 if y in (3, 11) else (0.9 if y in (4, 10) else 1.0)
-            for x in range(x0, x0 + 4):
-                px[x, y] = shade(px[x, y], k)
-        if sym == "7":
-            for gy, row in enumerate(SEVEN):
-                for gx, c in enumerate(row):
-                    if c == "#":
-                        px[x0 + gx, 5 + gy] = (210, 24, 30, 255)
-        else:
-            px[x0 + 2, 5] = (60, 140, 50, 255)
-            px[x0 + 1, 6] = (60, 140, 50, 255)
-            for (x, y) in ((x0, 8), (x0 + 1, 8), (x0, 9), (x0 + 1, 9), (x0 + 2, 7), (x0 + 3, 7), (x0 + 2, 8), (x0 + 3, 8)):
-                px[x, y] = (200, 20, 40, 255)
-            px[x0, 8] = (255, 120, 120, 255)
-            px[x0 + 2, 7] = (255, 120, 120, 255)
-        px[x0 + 3, 3] = shade(px[x0 + 3, 3], 0.7)
-    for x in range(1, 15):  # the pay line
-        if px[x, 7][0] > 200 and px[x, 7][1] > 200:
-            px[x, 7] = (250, 200, 70, 255)
-    for x in (1, 14):
-        px[x, 7] = (255, 220, 90, 255)
-    rect(img, (2, 13, 14, 14), (60, 40, 20))
-    for x in range(2, 14, 2):  # credit digits
-        px[x, 13] = (255, 120, 40, 255)
-    return tex("slot_screen", img)
-
-
-def slot_marquee():
-    """The lit topper (used rows 0..5, 14 wide): «777» in gold on a red field, chasing bulbs along the top."""
-    img = new()
-    rect(img, (0, 0, 16, 16), (176, 22, 30))
-    px = img.load()
-    for x in range(16):
-        for y in range(6):
-            px[x, y] = shade(px[x, y], 1.1 - y * 0.06)
-    for x in range(1, 15):
-        px[x, 0] = (255, 244, 180, 255) if x % 2 else rgba(GOLD_DARK)
-    sevens = ["###", "..#", ".#.", ".#."]
-    for i in range(3):
-        x0 = 2 + i * 4
-        for gy, row in enumerate(sevens):
-            for gx, c in enumerate(row):
-                if c == "#":
-                    px[x0 + gx, 1 + gy] = (255, 250, 200, 255) if gy == 0 else (255, 214, 70, 255)
-        px[x0 + 2, 5] = (120, 10, 16, 255)
-    for x in range(1, 15):
-        px[x, 5] = shade(px[x, 5], 0.75)
-    return tex("slot_marquee", img)
-
-
-def slot_body():
-    """The cabinet front: lacquered red, a gold coin tray slot and a chrome plate with the coin slot."""
-    img = lacquer("slot_body", LACQUER)
-    px = img.load()
-    rect(img, (3, 3, 13, 8), (190, 196, 204))
-    bevel(img, (3, 3, 13, 8), 1.2, 0.7)
-    rect(img, (7, 4, 9, 7), (30, 30, 34))  # coin slot
-    rect(img, (2, 11, 14, 14), (24, 22, 26))  # the payout tray mouth
-    for x in range(2, 14):
-        px[x, 10] = rgba(GOLD)
-        px[x, 14] = rgba(GOLD_DARK)
-    for x in (4, 7, 10):  # coins in the tray
-        px[x, 13] = (250, 210, 80, 255)
-        px[x + 1, 13] = (200, 150, 40, 255)
-    return img
-
-
-def slot_side():
-    img = lacquer("slot_side", (120, 14, 20))
-    px = img.load()
-    for y in range(2, 14):
-        px[8, y] = shade(px[8, y], 0.8)
-    return img
-
-
 def slot_buttons():
     """The button deck: spin, bet and max-bet buttons."""
     img = new()
@@ -567,10 +477,6 @@ def make_textures():
     velvet("velvet")
     chrome()
     neon_sign()
-    slot_screen()
-    slot_marquee()
-    slot_body()
-    slot_side()
     slot_buttons()
     roulette_wheel()
     roulette_layout()
@@ -733,73 +639,12 @@ def card(x, z, y, face=False, rot=0.0):
     return el
 
 
-def blackjack_table():
-    """The table for 21: three blocks wide, two deep, a half-moon with the dealer on the straight side (south), players on the curve."""
-    back = 14
-    bands = ellipse_bands(8, back, 24, 28)
-    els = []
-    for (x0, x1, z0, z1) in bands:
-        els.append(box((x0, 12, z0), (x1, 14, z1), {"up": "felt", "down": "walnut", "north": "mahogany", "south": "mahogany",
-                                                       "east": "mahogany", "west": "mahogany"}))
-    els += rail_for(bands, 14, 15.5, "leather")
-    els += rail_for([(b[0], b[1], b[2], b[3]) for b in bands], 11, 12, "gold_trim")  # gold band under the rail
-    # the dealer's edge: a wooden ledge with the chip tray sunk in it
-    els.append(box((-16, 12, back), (32, 14.5, 16), {"up": "mahogany", "north": "mahogany", "south": "mahogany", "east": "mahogany",
-                                                       "west": "mahogany", "down": "walnut"}))
-    els.append(box((1, 14, 10), (15, 14.6, 14), "walnut"))  # the tray
-    colours = ["red", "black", "blue", "green", "purple", "red", "black"]
-    for i, c in enumerate(colours):
-        els.append(box((1.5 + i * 2, 14.6, 10.5), (3.3 + i * 2, 15.2, 13.5), {"up": "chip_" + c + "_side", "north": "chip_" + c + "_top",
-                                                                               "south": "chip_" + c + "_side", "east": "chip_" + c + "_side",
-                                                                               "west": "chip_" + c + "_side", "down": "chip_" + c + "_side"}))
-    # the card shoe at the dealer's left (from the players' side: right)
-    els.append(box((21, 14, 8), (26, 16.5, 13), "black_box"))
-    els.append(box((21.5, 14, 7), (25.5, 15.5, 8), "black_box"))
-    els.append(box((22, 15.5, 7.6), (25, 16.3, 8.2), "card_back", rotation={"origin": [23.5, 16, 8], "axis": "x", "angle": -22.5}))
-    els.append(box((21, 16.5, 8), (26, 16.8, 13), "gold_trim"))
-    # betting boxes printed on the felt in front of three seats, and a hand dealt to the middle seat
-    for (x, z, rot) in ((-9, -2, 22.5), (6, -9, 0), (21, -2, -22.5)):
-        el = box((x, 14.02, z), (x + 4, 14.04, z + 4), "bet_spot", faces=("up",))
-        if rot:
-            el["rotation"] = {"origin": [x + 2, 14, z + 2], "axis": "y", "angle": rot}
-        els.append(el)
-    els.append(card(5.5, -4, 14.05, True, -22.5))
-    els.append(card(8.5, -4.5, 14.2, False, 22.5))
-    els.append(card(6.5, 4, 14.05, True, 0))  # the dealer's card
-    els += chip_stack(6.5, -8.5, 2, "red", 14.04, 3)
-    # three pedestals
-    for (x, z) in ((-6, 2), (8, -4), (22, 2)):
-        els += pedestal(x, z)
-    model("casino_blackjack_table", {"felt": "felt", "mahogany": "mahogany", "walnut": "walnut", "leather": "leather",
-                              "gold_trim": "gold_trim", "black_box": "leather", "card_back": "card_back", "card_face": "card_face",
-                              "bet_spot": "bet_spot", **chip_tex()}, els, particle="felt")
-
-
 def chip_tex():
     t = {}
     for c in CHIPS:
         t[c + "_side"] = c + "_side"
         t[c + "_top"] = c + "_top"
     return t
-
-
-def poker_table():
-    """A spare card table for games to come: an oval three blocks long and two deep, blue baize, padded rail all around."""
-    back = 0
-    bands = ellipse_bands(8, back, 24, 15, both=True)
-    els = []
-    for (x0, x1, z0, z1) in bands:
-        els.append(box((x0, 12, z0), (x1, 14, z1), {"up": "felt", "down": "walnut", "north": "mahogany", "south": "mahogany",
-                                                       "east": "mahogany", "west": "mahogany"}))
-    els += rail_for(bands, 14, 15.5, "leather", both=True)
-    els += rail_for(bands, 11, 12, "gold_trim", both=True)
-    els.append(box((4, 14.02, -2), (12, 14.04, 2), "bet_spot", faces=("up",)))  # the pot square in the middle
-    els += chip_stack(5, -1, 3, "black", 14.04, 3)
-    els += chip_stack(8.5, -0.5, 2, "blue", 14.04, 3)
-    for (x, z) in ((-5, 0), (8, 0), (21, 0)):
-        els += pedestal(x, z)
-    model("casino_poker_table", {"felt": "felt_blue", "mahogany": "mahogany", "walnut": "walnut", "leather": "leather",
-                          "gold_trim": "gold_trim", "bet_spot": "bet_spot", **chip_tex()}, els, particle="felt")
 
 
 def octagon(cx, cz, r, y0, y1, texture):
@@ -809,73 +654,6 @@ def octagon(cx, cz, r, y0, y1, texture):
     b = box((cx - s, y0 + 0.01, cz - s), (cx + s, y1 - 0.01, cz + s), texture,
             rotation={"origin": [cx, y0, cz], "axis": "y", "angle": 45})
     return [a, b]
-
-
-def roulette_table():
-    """Roulette: three blocks long, one deep; the wheel in a wooden bowl on the left, the betting layout over the other two."""
-    els = []
-    # the body: one long top, wooden apron
-    els.append(box((-16, 12, 1), (32, 14, 15), {"up": "felt", "down": "walnut", "north": "mahogany", "south": "mahogany",
-                                                 "east": "mahogany", "west": "mahogany"}))
-    els.append(box((0, 14.01, 2), (32, 14.03, 14), {"up": ("layout", [0, 0, 16, 16])}, faces=("up",)))
-    # the padded rail around
-    els.append(box((-16, 14, 0), (32, 15.5, 1.8), "leather"))
-    els.append(box((-16, 14, 14.2), (32, 15.5, 16), "leather"))
-    els.append(box((30.2, 14, 1.8), (32, 15.5, 14.2), "leather"))
-    els.append(box((-16, 14, 1.8), (-14.2, 15.5, 14.2), "leather"))
-    els.append(box((-16, 11, 0), (32, 12, 16), "gold_trim", faces=("north", "south", "east", "west", "down")))
-    # the wheel: a wooden bowl, the spinning head, the turret
-    els += octagon(-8, 8, 7, 14, 16, "mahogany")
-    wheel = box((-14, 16.01, 2), (-2, 16.03, 14), {"up": "wheel"}, faces=("up",))
-    els.append(wheel)
-    els.append(box((-9, 16, 7), (-7, 17.5, 9), "gold_trim"))
-    els.append(box((-10.5, 17, 7.6), (-5.5, 17.6, 8.4), "gold_trim"))
-    els.append(box((-8.4, 17, 5.5), (-7.6, 17.6, 10.5), "gold_trim"))
-    # the dolly (the marker on the last number) and a few chips on the layout
-    els.append(box((14, 14.03, 6), (15, 15.5, 7), "gold_trim"))
-    els += chip_stack(5, 4.5, 2, "red", 14.04, 2)
-    els += chip_stack(18, 9, 3, "black", 14.04, 2)
-    els += chip_stack(25, 4, 1, "purple", 14.04, 2)
-    for (x, z) in ((-8, 8), (8, 8), (24, 8)):
-        els += pedestal(x, z)
-    model("casino_roulette_table", {"felt": "felt", "layout": "roulette_layout", "wheel": "roulette_wheel", "mahogany": "mahogany",
-                             "walnut": "walnut", "leather": "leather", "gold_trim": "gold_trim", **chip_tex()}, els, particle="felt")
-
-
-def slot_machine():
-    """A slot machine two blocks tall: the lower block is the cabinet with the button deck and the payout tray, the upper block
-    the reels behind glass, the lit «777» topper and the lever on the right side."""
-    lower = [
-        box((1, 0, 2), (15, 1.5, 15), "black"),  # plinth
-        box((1.5, 1.5, 3), (14.5, 12, 14.5), {"north": "body", "south": "side", "east": "side", "west": "side", "down": "side"}),
-        box((1, 12, 0.5), (15, 13.5, 8), {"up": "buttons", "north": "gold_trim", "east": "side", "west": "side", "down": "side",
-                                          "south": "side"}),  # the button deck sticks out towards the player
-        box((1.5, 13.5, 3), (14.5, 16, 14.5), {"north": "side", "south": "side", "east": "side", "west": "side"}),
-        box((1, 11.4, 0.5), (15, 12, 8), "gold_trim"),
-    ]
-    model("casino_slot_machine_lower", {"body": "slot_body", "side": "slot_side", "buttons": "slot_buttons", "gold_trim": "gold_trim",
-                                 "black": "leather"}, lower, particle="side")
-    upper = [
-        box((1.5, 0, 3), (14.5, 10, 14.5), {"north": "side", "south": "side", "east": "side", "west": "side"}),
-        box((2, 0.5, 2.5), (14, 9.5, 3), {"north": ("screen", [2, 3.5, 14, 12.5])}),
-        box((1, 0, 2), (15, 0.8, 3), "gold_trim"),
-        box((1, 9.5, 2), (15, 10.3, 3), "gold_trim"),
-        box((1, 0.8, 2), (2, 9.5, 3), "gold_trim"),
-        box((14, 0.8, 2), (15, 9.5, 3), "gold_trim"),
-        # the lit topper, slightly wider, with «777»; a red lid edged in gold
-        box((1, 10.3, 2.5), (15, 15.5, 14.5), {"north": ("marquee", [1, 0, 15, 5.2]), "south": "side", "east": "side", "west": "side"}),
-        box((0.6, 15.5, 2.1), (15.4, 16, 14.9), {"up": "side", "north": "gold_trim", "south": "gold_trim", "east": "gold_trim",
-                                                 "west": "gold_trim", "down": "gold_trim"}),
-        # the lever: a chrome pivot on the right side, an arm and a red ball
-        box((14.5, 2, 7), (16, 4, 10), "chrome"),
-        box((15, 4, 8), (16, 12, 9), "chrome"),
-        box((14.6, 12, 7.1), (16.4, 13.8, 9.9), "ball"),
-    ]
-    model("casino_slot_machine_upper", {"side": "slot_side", "screen": "slot_screen", "marquee": "slot_marquee", "gold_trim": "gold_trim",
-                                 "chrome": "chrome", "ball": "slot_body"}, upper, particle="side", ao=False)
-    # the red ball: a corner of the lacquered side texture is plain red
-    upper[-1]["faces"] = {f: {"texture": "#palette", "uv": pal("red")} for f in FACES}
-    MODELS["casino_slot_machine_upper"]["textures"]["palette"] = NS + "palette"
 
 
 def bar_counter():
@@ -938,22 +716,6 @@ def bar_stool():
         pal_box((3.6, 9.6, 3.6), (12.4, 10.2, 12.4), "gold"),
     ]
     model("casino_bar_stool", {"chrome": "chrome", "velvet": "velvet", "leather": "leather", "palette": "palette"}, els, particle="velvet")
-
-
-def chair():
-    """The players' chair at the tables: gold legs, a red velvet seat and a rounded back with a gold top rail. Faces north."""
-    els = []
-    for (x, z) in ((3, 3), (12, 3), (3, 12), (12, 12)):
-        els.append(pal_box((x, 0, z), (x + 1, 7, z + 1), "gold"))
-    els.append(box((2.5, 7, 2.5), (13.5, 9.5, 13.5), {"up": "velvet", "north": "velvet", "south": "velvet", "east": "velvet",
-                                                      "west": "velvet", "down": "walnut"}))
-    els.append(box((3, 9.5, 12.5), (13, 19, 14.5), {"north": "velvet", "south": "walnut", "east": "walnut", "west": "walnut",
-                                                     "up": "walnut"}))
-    els.append(box((2.5, 19, 12.2), (13.5, 20, 14.8), "gold_trim"))
-    els.append(box((2.5, 9.5, 12.2), (3.5, 19, 14.8), "gold_trim"))
-    els.append(box((12.5, 9.5, 12.2), (13.5, 19, 14.8), "gold_trim"))
-    model("casino_chair", {"velvet": "velvet", "walnut": "walnut", "gold_trim": "gold_trim", "palette": "palette"}, els,
-          particle="velvet")
 
 
 def chips_models():
@@ -1019,14 +781,9 @@ def rope_post():
 
 def make_models():
     rope_post()
-    blackjack_table()
-    poker_table()
-    roulette_table()
-    slot_machine()
     bar_counter()
     bar_shelf()
     bar_stool()
-    chair()
     chips_models()
     sign()
     chandelier()

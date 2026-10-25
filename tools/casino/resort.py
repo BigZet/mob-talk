@@ -2,11 +2,11 @@
 
     python3 -I tools/casino/resort.py [plan OUT.png]
 
-Writes src/main/resources/data/mobtalk/structure/casino/resort.nbt (80 x 70 x 80), placed by CasinoResort as a rare standalone
+Writes src/main/resources/data/mobtalk/structure/casino/resort.nbt (80 x 40 x 74), placed by CasinoResort as a rare standalone
 structure. The ground is the plaza's paving at y = 2 (two layers of foundation under it, so the pool has a floor); the approach is
 from the north (z = 0).
 
-What stands there, front to back:
+What stands there, front to back (a hotel may come later as its own building):
   - the plaza: a long pool of dancing jets lit from under the water, a bridge over it to the casino, palms, two giant red dice,
     lamps, and at the corner the pylon sign, «ФОРТУНА» in neon letters from top to bottom between running lights;
   - the casino: a rotunda forty-six blocks across. A ring of fluted columns carries a lit cornice; behind it the round wall with
@@ -14,12 +14,10 @@ What stands there, front to back:
     The portico in front has «★КАЗИНО★» in its frieze under a pediment. Inside: a round bar in the middle under the great
     chandelier, the table pits (twenty-one, roulette, cards) round it, a ring of columns, and between them and the wall the
     slot machines under a lit coffered ceiling, jackpot boards on the walls and the cashiers' cage at the back;
-  - the hotel: a crescent tower seventeen storeys tall curving round the back, its glass in gold bands with lit rooms, and on
-    its crown «ФОРТУНА» again, framed in running lights; palms and loungers in the garden between it and the rotunda.
+  - behind the rotunda a lawn with palms and lamps.
 """
 import math
 import os
-import random
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -28,7 +26,7 @@ import nbt as N  # noqa: E402
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 OUT = os.path.join(ROOT, "src", "main", "resources", "data", "mobtalk", "structure", "casino")
 DATA_VERSION = 3955
-SX, SY, SZ = 80, 70, 80
+SX, SY, SZ = 80, 40, 74
 G = 2  # the plaza's paving
 F = G + 1  # the casino's floor, one step up; people stand at F + 1
 CX, CZ = 40, 42  # the rotunda's centre (the middle of block 40, 42)
@@ -36,8 +34,7 @@ CEIL = 13  # the coffered ceiling of the ring round the hall
 ROOF = CEIL + 1
 DRUM_R, DOME_Y, DOME_H = 12, 20, 11  # the dome: over the drum, a half-ellipsoid
 WALL_R, COLONNADE_R = 19, 22
-TOWER_IN, TOWER_OUT, TOWER_SPAN = 29, 34, 62  # the hotel's crescent: radii and half its arc in degrees
-TOWER_TOP = 57  # the last floor slab; the roof is one above
+GARDEN_R = 31  # the lawn behind the rotunda reaches this far from its axis
 
 QUARTZ, PILLAR, GOLD, DARK = "smooth_quartz", "quartz_pillar", "gold_block", "polished_blackstone"
 LETTERS = "КАЗИНО★ФРТУ"
@@ -204,7 +201,7 @@ def plaza(lot):
         palm(lot, SX - 4, z, 7 - z % 2)
     die(lot, 30, 16, (5, 3, 1))
     die(lot, 47, 16, (6, 2, 4))
-    for (x, z) in ((10, 19), (24, 19), (56, 19), (70, 19), (10, 70), (70, 70)):
+    for (x, z) in ((10, 19), (24, 19), (56, 19), (70, 19), (10, 66), (70, 66)):
         lamp(lot, x, G + 1, z, 4)
 
 
@@ -380,7 +377,7 @@ def hall(lot):
         if r < 5:
             continue
         carpet = "casino_carpet_red" if r < DRUM_R - 0.5 else "casino_carpet_purple"
-        if abs(r - (DRUM_R - 0.5)) < 0.5 or abs(r - 5.5) < 0.5:
+        if abs(r - (DRUM_R - 0.5)) < 0.5:
             carpet = "yellow_carpet"
         if (a < 5 or a > 355) and r >= 5:
             carpet = "red_carpet"  # the way in from the doors
@@ -446,7 +443,7 @@ def cards(lot, x, y, z, facing):
     for (dx, dz) in ((-1, 0), (1, 0), (-1, d), (0, d), (1, d)):
         lot.casino(x + dx, y, z + dz, "casino_part")
     for dx in (-1, 0, 1):
-        lot.casino(x + dx, y, z - d, "casino_chair", facing="south" if d < 0 else "north")
+        lot.casino(x + dx, y, z - d, "casino_chair", facing="north" if d < 0 else "south")
         lot.casino(x + dx, y, z + 2 * d, "casino_chair", facing="south" if d < 0 else "north")
 
 
@@ -526,125 +523,23 @@ def lights(lot):
         lot.casino(x, CEIL - 1, z, "casino_chandelier", facing="north")
 
 
-# ---------------------------------------------------------------- the hotel
-
-def TOPF():
-    return TOWER_TOP + 1
-
-
-def tower(lot):
-    """The crescent: floors every three blocks, glass in gold bands between them on both faces, lit rooms, quartz ends, a crown."""
-    rnd = random.Random(7)
-    lit = {}
-    cells = [(x, z) for x, z in ring(TOWER_IN, TOWER_OUT + 1)
-             if abs(180 - polar(x, z)[1]) <= TOWER_SPAN]
-    cellset = set(cells)
-    for (x, z) in cells:
-        r, a = polar(x, z)
-        face = r < TOWER_IN + 1 or r >= TOWER_OUT or not all((x + dx, z + dz) in cellset for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1)))
-        end = abs(180 - a) > TOWER_SPAN - 2.5
-        for y in range(F, TOWER_TOP + 1):
-            floor = (y - F) % 3 == 0
-            if floor:
-                lot.put(x, y, z, QUARTZ if face else "smooth_stone")
-            elif face:
-                if end:
-                    lot.put(x, y, z, QUARTZ)
-                else:
-                    lot.put(x, y, z, "yellow_stained_glass" if (y - F) % 3 == 1 else "orange_stained_glass")
-            elif (y - F) % 3 == 2 and (x * 3 + z * 5) % 4 == 0:
-                key = (y, round(a / 6))
-                if key not in lit:
-                    lit[key] = rnd.random() < 0.55
-                if lit[key]:
-                    lot.put(x, y, z, "sea_lantern")
-    # running lights up the ends of the crescent, on both faces
-    for (x, z) in cells:
-        r, a = polar(x, z)
-        if abs(180 - a) > TOWER_SPAN - 1.2 and (r < TOWER_IN + 1 or r >= TOWER_OUT):
-            facing = "east" if a < 180 else "west"
-            nx = x + (1 if facing == "east" else -1)
-            if (nx, z) not in cellset:
-                for y in range(F + 1, TOWER_TOP + 1):
-                    if lot.free(nx, y, z):
-                        lot.casino(nx, y, z, "casino_marquee", facing=facing)
-    # the lobby: the ground floor open to the garden on the inner face, gold columns
-    for (x, z) in cells:
-        r, a = polar(x, z)
-        if r < TOWER_IN + 1 and abs(180 - a) < TOWER_SPAN - 4:
-            for y in (F + 1, F + 2, F + 4, F + 5):
-                if (x + z) % 5 == 0:
-                    lot.put(x, y, z, GOLD)
-                else:
-                    lot.g.pop((x, y, z), None)
-            lot.put(x, F + 3, z, QUARTZ)
-    # the roof: a parapet with running lights, the crown with the name
-    for (x, z) in cells:
-        lot.put(x, TOPF(), z, QUARTZ)
-    step = {"north": (0, -1), "south": (0, 1), "east": (1, 0), "west": (-1, 0)}
-    for (x, z) in cells:
-        r, _ = polar(x, z)
-        if r < TOWER_IN + 1 or r >= TOWER_OUT:
-            lot.put(x, TOPF() + 1, z, "quartz_bricks")
-            facing = outward(x, z) if r >= TOWER_OUT else inward(x, z)
-            nx, nz = x + step[facing][0], z + step[facing][1]
-            for y in (TOPF(), TOPF() - 3):
-                if 0 <= nx < SX and 0 <= nz < SZ and (nx, nz) not in cellset and lot.free(nx, y, nz):
-                    lot.casino(nx, y, nz, "casino_marquee", facing=facing)
-    crown(lot)
-
-
-def crown(lot):
-    """A black board on the roof facing the plaza, «ФОРТУНА» in neon letters on it, running lights round them, gold edges."""
-    y0 = TOPF() + 1
-    x0, x1, z = 27, 53, 68
-    lot.fill(x0, y0, z, x1, y0 + 6, z + 2, DARK)
-    for x in range(x0, x1 + 1):
-        lot.put(x, y0 + 7, z, GOLD)
-        lot.put(x, y0 - 1, z, GOLD)
-    for y in range(y0 - 1, y0 + 8):
-        lot.put(x0 - 1, y, z, GOLD)
-        lot.put(x1 + 1, y, z, GOLD)
-    for x in range(x0, x1 + 1):
-        lot.casino(x, y0, z - 1, "casino_marquee", facing="north")
-        lot.casino(x, y0 + 6, z - 1, "casino_marquee", facing="north")
-    # «★ ФОРТУНА ★»: the letters two tall at y0 + 2..3, read from east (the viewer's left) to west
-    text = "★ФОРТУНА★"
-    width = sum(1 if c == "★" else 2 for c in text) + len(text) - 1
-    x = (x0 + x1) // 2 + width // 2
-    for ch in text:
-        word(lot, ch, x, y0 + 4, z - 1, "north", (-1, 0))
-        x -= (1 if ch == "★" else 2) + 1
-    # the same on the back, to the road behind the hotel (here the viewer's left is -x)
-    for xx in range(x0, x1 + 1):
-        lot.casino(xx, y0, z + 3, "casino_marquee", facing="south")
-        lot.casino(xx, y0 + 6, z + 3, "casino_marquee", facing="south")
-    x = (x0 + x1) // 2 - width // 2
-    for ch in text:
-        word(lot, ch, x, y0 + 4, z + 3, "south", (1, 0))
-        x += (1 if ch == "★" else 2) + 1
-    # spires at the ends
-    for xx in (x0 - 1, x1 + 1):
-        lot.put(xx, y0 + 8, z, GOLD)
-        lot.put(xx, y0 + 9, z, "end_rod", facing="up")
-
+# ---------------------------------------------------------------- the garden
 
 def garden(lot):
-    """Between the rotunda and the hotel: lawn, palms, a path of light."""
-    for x, z in ring(COLONNADE_R + 2.5, TOWER_IN):
-        _, a = polar(x, z)
-        if abs(180 - a) <= TOWER_SPAN + 6 and z > CZ:
+    """Behind the rotunda: a lawn in a half ring, palms round it, lamps along its edge."""
+    for x, z in ring(COLONNADE_R + 2.5, GARDEN_R):
+        if z > CZ - 4:
             lot.put(x, G, z, "grass_block", snowy=False)
     k = 0
     for x, z in sorted(ring(COLONNADE_R + 4.5, COLONNADE_R + 5.5), key=lambda c: polar(*c)[1]):
         _, a = polar(x, z)
-        if abs(180 - a) <= TOWER_SPAN and z > CZ:
+        if 100 <= a <= 260:
             k += 1
             if k % 4 == 0:
                 palm(lot, x, z, 5 + k % 3)
-    for x, z in ring(TOWER_IN - 2.5, TOWER_IN - 1.5):
+    for x, z in ring(GARDEN_R - 1.5, GARDEN_R - 0.5):
         _, a = polar(x, z)
-        if abs(180 - a) <= TOWER_SPAN - 4 and (x + z) % 7 == 0:
+        if 95 <= a <= 265 and (x + z) % 7 == 0:
             lamp(lot, x, G + 1, z, 2)
 
 
@@ -674,7 +569,6 @@ def build():
     rotunda(lot)
     portico(lot)
     hall(lot)
-    tower(lot)
     pylon(lot)
     return lot
 

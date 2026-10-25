@@ -95,7 +95,6 @@ def screen_frame(offsets, blur):
 def slot_screen():
     """Spinning reels that stop one by one on a pay line (7, cherries, 7), hold, and spin again."""
     frames, timed = [], []
-    stop = [(0, ), (0, ), (0, )]
     target = [6 * PITCH - 2, 5 * PITCH - 2, 0 * PITCH - 2]  # the strip offsets that put 7 / cherry / 7 on the pay line
     target = [t % (PITCH * len(REEL) * 2) for t in target]
     for step in range(12):
@@ -107,155 +106,132 @@ def slot_screen():
         frames.append(screen_frame(offs, blur))
         timed.append((step, 2))
     timed[-1] = (11, 80)  # hold the result
-    del stop
     return strip("slot_screen", frames, timed=timed)
 
 
 def slot_marquee():
-    """The topper: «777» in gold on a red field under an arch of bulbs that chase (two frames)."""
+    """The topper's lit sign (its top half is used): «777» in gold on a deep blue field, a row of bulbs above and below that
+    chase in two frames."""
     frames = []
     for phase in (0, 1):
         img = D.new()
-        D.rect(img, (0, 0, 16, 16), (176, 22, 30))
         px = img.load()
         for y in range(16):
             for x in range(16):
-                px[x, y] = D.shade(px[x, y], 1.15 - y * 0.03)
-        for x in range(16):  # the bulb row
-            lit = (x + phase) % 2 == 0
-            px[x, 0] = D.rgba((255, 250, 210) if lit else (150, 90, 40))
-            px[x, 1] = D.rgba(D.GOLD_DARK)
+                px[x, y] = D.rgba(D.shade((30, 40, 110), 1.2 - y * 0.05))
+        for x in range(16):
+            for y in (0, 7):
+                lit = (x + phase + y) % 2 == 0
+                px[x, y] = D.rgba((255, 244, 200) if lit else (170, 120, 50))
         sevens = ["###", "..#", ".#.", ".#."]
         for i in range(3):
             x0 = 2 + i * 4
             for gy, row in enumerate(sevens):
                 for gx, c in enumerate(row):
                     if c == "#":
-                        px[x0 + gx, 3 + gy] = D.rgba((255, 250, 200) if gy == 0 else (255, 214, 70))
-            px[x0 + 2, 7] = D.rgba((120, 10, 16))
-        for x in range(16):
-            px[x, 8] = D.rgba(D.GOLD)
-            px[x, 9] = D.rgba(D.GOLD_DARK)
-        # below the gold line: the game's name in small white dots, then the pay table rows
-        for x in range(2, 14):
-            if x % 2 == phase:
-                px[x, 11] = D.rgba((255, 255, 255))
-        for y in (13, 14):
-            for x in range(2, 14):
-                px[x, y] = D.rgba((250, 210, 80) if (x + y) % 3 else (110, 14, 20))
+                        px[x0 + gx, 2 + gy] = D.rgba((255, 236, 150) if gy == 0 else D.GOLD)
         frames.append(img)
-    return strip("slot_marquee", frames, 6)
+    return strip("slot_marquee", frames, 8)
 
 
 def led_strip():
-    """A rainbow light strip: colour bands that run along it (one column of it is used on a thin edge)."""
+    """The cabinet's edge light: a soft warm glow (amber to gold) that runs slowly up it."""
     frames = []
     for f in range(8):
         img = D.new()
         px = img.load()
         for y in range(16):
-            h = ((y + f * 2) % 16) / 16.0
-            r, g, b = colorsys.hsv_to_rgb(h, 0.75, 1.0)
+            k = 0.5 + 0.5 * math.cos((y / 16.0 + f / 8.0) * 2 * math.pi)
+            c = tuple(int(a + (b - a) * k) for a, b in zip((200, 90, 30), (255, 220, 120)))
             for x in range(16):
-                px[x, y] = (int(r * 255), int(g * 255), int(b * 255), 255)
+                px[x, y] = c + (255,)
         frames.append(img)
-    return strip("led_strip", frames, 2)
+    return strip("led_strip", frames, 3)
 
 
 def slot_body():
-    """The cabinet front: lacquered red, a lit belly glass with a lucky horseshoe, a chrome plate with the bill acceptor."""
-    img = D.lacquer("slot_body", D.LACQUER)
+    """The belly glass under the button deck: the game's art lit from behind, a big gold «777» with a red edge on deep blue,
+    soft rays round it."""
+    img = D.new()
     px = img.load()
-    D.rect(img, (3, 2, 13, 6), (190, 196, 204))
-    D.bevel(img, (3, 2, 13, 6), 1.2, 0.7)
-    D.rect(img, (5, 3, 11, 4), (24, 24, 28))  # the bill slot
-    px[11, 4] = D.rgba((60, 230, 90))  # its green light
-    D.rect(img, (2, 8, 14, 15), (250, 214, 120))  # the belly glass, lit from behind
-    D.bevel(img, (2, 8, 14, 15), 1.1, 0.75)
-    for (x, y) in ((5, 9), (4, 10), (4, 11), (5, 12), (10, 9), (11, 10), (11, 11), (10, 12), (6, 13), (9, 13), (7, 13), (8, 13)):
-        px[x, y] = D.rgba((150, 100, 40))  # a horseshoe
-    for (x, y) in ((6, 9), (9, 9)):
-        px[x, y] = D.rgba((255, 255, 230))
-    return img
+    for y in range(16):
+        for x in range(16):
+            ray = (math.atan2(y - 8, x - 7.5) * 8 / math.pi) % 2 < 1
+            px[x, y] = D.rgba(D.shade((36, 48, 128) if ray else (30, 40, 110), 1.15 - abs(y - 8) * 0.03))
+    big = ["####", "...#", "..#.", ".#..", ".#..", ".#.."]
+    for i, x0 in enumerate((1, 6, 11)):
+        for gy, row in enumerate(big):
+            for gx, c in enumerate(row):
+                if c == "#" and x0 + gx < 16:
+                    px[x0 + gx, 5 + gy] = D.rgba((255, 236, 150) if gy == 0 else D.GOLD)
+                    if 6 + gy < 16 and big[gy + 1 if gy + 1 < len(big) else gy][gx] != "#":
+                        px[x0 + gx, 6 + gy] = D.rgba((150, 24, 30))
+    for x in range(16):
+        px[x, 0] = D.rgba(D.CHROME)
+        px[x, 15] = D.shade(D.CHROME, 0.7)
+    return D.tex("slot_body", img)
 
 
 def slot_side():
-    img = D.lacquer("slot_side", (120, 14, 20))
+    """The cabinet's sides: glossy black with a soft highlight and a thin chrome edge."""
+    img = D.new()
+    D.noise_fill(img, (30, 28, 34), 0.02, D.rng("slot_side"))
     px = img.load()
-    for y in range(2, 14):
-        px[13, y] = D.rgba(D.GOLD)  # a gold pinstripe and a small 7 emblem
-    for (x, y) in ((6, 6), (7, 6), (8, 6), (8, 7), (7, 8), (7, 9)):
-        px[x, y] = D.rgba(D.GOLD)
-    return img
+    for y in range(16):
+        px[2, y] = D.rgba((54, 52, 60))
+        px[3, y] = D.rgba((42, 40, 48))
+        px[15, y] = D.shade(D.CHROME, 0.8)
+    return D.tex("slot_side", img)
 
 
 def slot_machine():
-    """A slot machine two blocks tall. Lower block: plinth with a chrome kick plate, the red cabinet with the lit belly glass and
-    the bill acceptor, a chrome payout tray full of coins, the button deck with real buttons and a big spin button, rainbow light
-    strips up the front corners. Upper block: the reels behind glass in a chrome bezel, a lit arched topper with «777» and a pay
-    table, a red-and-white candle lamp on top, the lever on the right."""
+    """A Vegas video slot two blocks tall, glossy black. Lower block: a plinth with a chrome kick strip, the lit belly glass,
+    the button deck sticking out towards the player, the bottom of the game screen. Upper block: the rest of the screen in a
+    chrome bezel (the reels spin and stop one by one), the lit topper with «777» between chasing bulbs, a candle lamp on top.
+    Warm light strips run up both front edges."""
     P = "palette"
     side = "side"
+    cut = 16 * 8.5 / 13  # the screen is 13 pixels tall over the two blocks: where the texture splits between them
     lower = [
-        D.box((1, 0, 2), (15, 1.5, 15), "black"),
-        D.pal_box((1, 1.2, 1.8), (15, 1.6, 2.2), "chrome"),
-        D.box((1.5, 1.5, 3), (14.5, 12, 14.5), {"north": "body", "south": side, "east": side, "west": side, "down": side}),
-        # the payout tray: a chrome bowl sticking out, coins in it
-        D.pal_box((3, 2.5, 1.2), (13, 3.2, 3), "chrome"),
-        D.pal_box((3, 3.2, 1.2), (3.6, 4.6, 3), "chrome"),
-        D.pal_box((12.4, 3.2, 1.2), (13, 4.6, 3), "chrome"),
-        D.pal_box((3, 3.2, 1.2), (13, 4.6, 1.6), "chrome"),
+        D.box((1.5, 0, 2), (14.5, 1.5, 15), "side"),
+        D.pal_box((1.5, 0.4, 1.8), (14.5, 1.0, 2.0), "chrome"),
+        D.box((2, 1.5, 3), (14, 16, 15), {"north": side, "south": side, "east": side, "west": side}),
+        D.box((2.6, 2, 2.6), (13.4, 9.4, 3), {"north": ("body", [0, 0, 16, 16])}),
+        D.pal_box((2.2, 1.6, 2.5), (13.8, 2, 3), "chrome"),
+        D.pal_box((2.2, 9.4, 2.5), (13.8, 9.8, 3), "chrome"),
+        # the deck: a ledge with the buttons on it, a chrome nose, a gold lip under it
+        D.box((1.5, 9.8, 0.8), (14.5, 11.2, 8), {"up": ("buttons", [0, 0, 16, 16]), "north": "chrome_t", "east": side, "west": side,
+                                                 "down": side}),
+        D.pal_box((1.5, 9.5, 0.8), (14.5, 9.8, 2.2), "gold"),
+        # the bottom of the screen in its bezel
+        D.pal_box((2, 11.2, 2.5), (14, 16, 3), "chrome_dark"),
+        D.box((2.8, 11.6, 2.4), (13.2, 16, 2.5), {"north": ("screen", [2, cut, 14, 16])}),
     ]
-    for (x, z) in ((4.5, 2), (6.8, 2.2), (9.5, 1.9), (11.2, 2.3)):
-        lower.append(D.pal_box((x, 3.2, z - 0.4), (x + 1.2, 3.6, z + 0.4), "gold"))
-    lower += [
-        # the button deck, sloping towards the player, and its buttons
-        D.box((1, 12, 0.5), (15, 13.5, 8), {"up": "buttons", "north": "gold_trim", "east": side, "west": side, "down": side, "south": side}),
-        D.box((1, 11.4, 0.5), (15, 12, 8), "gold_trim"),
-        D.box((1.5, 13.5, 3), (14.5, 16, 14.5), {"north": side, "south": side, "east": side, "west": side}),
-    ]
-    for (x, colour) in ((2, "yellow"), (4, "blue"), (6, "green"), (8, "white")):
-        lower.append(D.pal_box((x, 13.5, 3.5), (x + 1.4, 14.1, 4.9), colour))
-    lower.append(D.pal_box((10.5, 13.5, 3), (13.5, 14.4, 5.5), "red"))  # SPIN
-    lower.append(D.pal_box((10.8, 14.4, 3.3), (13.2, 14.6, 5.2), "flame_core"))
-    lower.append(D.pal_box((2, 13.5, 6), (6, 13.8, 7.5), "screen"))  # the card reader
-    for x0 in (1, 14.4):  # the light strips up the front corners
-        lower.append(D.box((x0, 1.5, 2.4), (x0 + 0.6, 16, 3), {f: ("led", [x0 % 16, 0, x0 % 16 + 0.6, 14.5]) for f in D.FACES}))
-    D.model("casino_slot_machine_lower", {"body": "slot_body", "side": "slot_side", "buttons": "slot_buttons", "gold_trim": "gold_trim",
-                                          "black": "leather", "led": "led_strip", P: P}, lower, particle="side")
+    lower.append(D.pal_box((10.6, 11.2, 1.4), (13.4, 11.7, 3.6), "red"))  # the big spin button
+    lower.append(D.pal_box((10.9, 11.7, 1.7), (13.1, 11.9, 3.3), "flame_core"))
+    for x0 in (1.6, 13.8):  # the light strips up the front edges
+        lower.append(D.box((x0, 1.5, 2.3), (x0 + 0.6, 16, 2.9), {f: ("led", [0, 0, 1, 16]) for f in D.FACES}))
+    D.model("casino_slot_machine_lower", {"body": "slot_body", "side": "slot_side", "buttons": "slot_buttons", "chrome_t": "chrome", "screen": "slot_screen",
+                                          "led": "led_strip", P: P}, lower, particle="side", ao=False)
     upper = [
-        D.box((1.5, 0, 3), (14.5, 10, 14.5), {"north": side, "south": side, "east": side, "west": side}),
-        D.box((2, 0.5, 2.5), (14, 9.5, 3), {"north": ("screen", [2, 3.5, 14, 12.5])}),
-        D.pal_box((1, 0, 2), (15, 0.8, 3), "chrome"),
-        D.pal_box((1, 9.5, 2), (15, 10.3, 3), "chrome"),
-        D.pal_box((1, 0.8, 2), (2, 9.5, 3), "chrome"),
-        D.pal_box((14, 0.8, 2), (15, 9.5, 3), "chrome"),
-        D.box((2.6, 0.8, 2.2), (13.4, 9.2, 2.4), {"north": ("screen", [0, 0, 16, 16])}),  # the reels, a hair behind the glass line
+        D.box((2, 0, 3), (14, 9, 15), {"north": side, "south": side, "east": side, "west": side}),
+        D.pal_box((2, 0, 2.5), (14, 9, 3), "chrome_dark"),
+        D.box((2.8, 0, 2.4), (13.2, 8.4, 2.5), {"north": ("screen", [2, 0, 14, cut])}),
+        D.pal_box((2, 8.4, 2.3), (14, 9, 3), "chrome"),
+        # the topper: a lit sign a little wider than the cabinet, chrome round it, a gold crown and the candle
+        D.box((1.5, 9, 2), (14.5, 14, 13), {"north": ("marquee", [1.5, 0, 14.5, 8]), "south": side, "east": side, "west": side,
+                                            "up": side}),
+        D.pal_box((1.3, 8.8, 1.8), (14.7, 9.2, 13.2), "chrome"),
+        D.pal_box((1.3, 13.8, 1.8), (14.7, 14.2, 13.2), "chrome"),
+        D.pal_box((4, 14.2, 3), (12, 15, 11), "gold"),
+        D.pal_box((7, 15, 6), (9, 15.6, 8), "chrome"),
+        D.pal_box((7.3, 15.6, 6.3), (8.7, 17.2, 7.7), "red"),
+        D.pal_box((7.3, 17.2, 6.3), (8.7, 18.4, 7.7), "flame_core"),
     ]
-    upper.pop()  # (the screen face above already shows them; kept out so the glass does not z-fight)
-    upper += [
-        # the topper: an arch of three steps, lit front, gold edges
-        D.box((1, 10.3, 2.5), (15, 13.5, 14.5), {"north": ("marquee", [1, 0, 15, 3.2]), "south": side, "east": side, "west": side}),
-        D.box((2.5, 13.5, 2.5), (13.5, 15, 14.5), {"north": ("marquee", [2.5, 3.2, 13.5, 4.7]), "south": side, "east": side, "west": side}),
-        D.box((4.5, 15, 2.5), (11.5, 16, 14.5), {"north": ("marquee", [4.5, 4.7, 11.5, 5.7]), "south": side, "east": side, "west": side,
-                                                 "up": side}),
-        D.pal_box((0.6, 10.1, 2.2), (15.4, 10.5, 14.8), "gold"),
-        D.pal_box((2.1, 13.4, 2.2), (13.9, 13.7, 14.8), "gold"),
-        D.pal_box((4.1, 14.9, 2.2), (11.9, 15.2, 14.8), "gold"),
-        # the candle lamp on top: a chrome foot, a red and a white lens
-        D.pal_box((6.8, 16, 7.8), (9.2, 16.6, 10.2), "chrome"),
-        D.pal_box((7.2, 16.6, 8.2), (8.8, 18.2, 9.8), "red"),
-        D.pal_box((7.2, 18.2, 8.2), (8.8, 19.4, 9.8), "flame_core"),
-        D.pal_box((7.5, 19.4, 8.5), (8.5, 19.8, 9.5), "chrome"),
-        # the lever
-        D.pal_box((14.5, 2, 7), (16, 4, 10), "chrome"),
-        D.pal_box((15, 4, 8), (16, 12, 9), "chrome"),
-        D.pal_box((14.6, 12, 7.1), (16.4, 13.8, 9.9), "red"),
-    ]
-    for x0 in (1, 14.4):
-        upper.append(D.box((x0, 0, 2.4), (x0 + 0.6, 10.3, 3), {f: ("led", [x0 % 16, 4, x0 % 16 + 0.6, 14.3]) for f in D.FACES}))
-    D.model("casino_slot_machine_upper", {"side": "slot_side", "screen": "slot_screen", "marquee": "slot_marquee", "gold_trim": "gold_trim",
-                                          "led": "led_strip", P: P}, upper, particle="side", ao=False)
+    for x0 in (1.6, 13.8):
+        upper.append(D.box((x0, 0, 2.3), (x0 + 0.6, 8.8, 2.9), {f: ("led", [0, 0, 1, 8.8]) for f in D.FACES}))
+    D.model("casino_slot_machine_upper", {"side": "slot_side", "screen": "slot_screen", "marquee": "slot_marquee", "led": "led_strip",
+                                          P: P}, upper, particle="side", ao=False)
 
 
 # ---------------------------------------------------------------- tables
@@ -441,50 +417,44 @@ def chair():
 
 # ---------------------------------------------------------------- resort decor
 
+def mix(a, b, t):
+    return tuple(int(x + (y - x) * t) for x, y in zip(a, b))
+
+
 def carpet(name, base, line, accent, dark):
-    """A patterned casino carpet that tiles: a gold lattice of diamonds, a medallion in each, flourishes between."""
+    """A casino carpet that tiles: a calm field with a faint lattice and one small medallion per tile, low contrast so a big
+    floor reads as rich colour rather than a flicker of dots."""
     img = D.new()
-    r = D.rng(name)
-    D.noise_fill(img, base, 0.05, r)
+    D.noise_fill(img, base, 0.025, D.rng(name))
     px = img.load()
+    soft = mix(base, line, 0.35)
     for y in range(16):
         for x in range(16):
-            u, v = (x + y) % 16, (x - y) % 16
-            if u in (0, 1) or v in (0, 1):
-                px[x, y] = D.rgba(line) if (u + v) % 3 else D.shade(line, 0.8)
-    for (cx, cy) in ((8, 0), (0, 8)):  # medallions in the diamonds
-        for dx in range(-2, 3):
-            for dy in range(-2, 3):
-                x, y = (cx + dx) % 16, (cy + dy) % 16
-                d = abs(dx) + abs(dy)
-                if d == 2:
-                    px[x, y] = D.rgba(accent)
-                elif d == 0:
-                    px[x, y] = D.rgba(line)
-                elif d == 1:
-                    px[x, y] = D.rgba(dark)
-    for (x, y) in ((4, 4), (12, 12), (4, 12), (12, 4)):  # little stars where the lines cross
-        for (dx, dy) in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)):
-            px[(x + dx) % 16, (y + dy) % 16] = D.rgba(accent)
+            if (x + y) % 16 == 0 or (x - y) % 16 == 0:
+                px[x, y] = D.rgba(soft)
+    for dx in range(-2, 3):
+        for dy in range(-2, 3):
+            d = abs(dx) + abs(dy)
+            if d == 2:
+                px[8 + dx, 8 + dy] = D.rgba(mix(base, accent, 0.45))
+            elif d == 0:
+                px[8, 8] = D.rgba(mix(base, accent, 0.6))
+            elif d == 1:
+                px[8 + dx, 8 + dy] = D.rgba(mix(base, dark, 0.5))
     return D.tex(name, img)
 
 
 def damask():
-    """Wallpaper: deep red damask, a gold fleur repeating on a diamond grid, a fine stripe."""
+    """Wallpaper: deep red damask, a fleur a shade lighter than the ground (tone on tone), one per tile."""
     img = D.new()
-    r = D.rng("damask")
     base = (110, 16, 26)
-    D.noise_fill(img, base, 0.04, r)
+    D.noise_fill(img, base, 0.02, D.rng("damask"))
     px = img.load()
-    fleur = ["..#..", ".###.", "#.#.#", "..#..", ".#.#.", "#...#"]
-    for (ox, oy) in ((1, 1), (9, 9)):
-        for gy, row in enumerate(fleur):
-            for gx, c in enumerate(row):
-                if c == "#":
-                    px[(ox + gx) % 16, (oy + gy) % 16] = D.rgba((196, 140, 56)) if gy < 3 else D.rgba((150, 96, 36))
-    for y in range(16):
-        px[0, y] = D.shade(base, 0.8)
-        px[8, y] = D.shade(base, 0.9)
+    fleur = ["...#...", "..###..", ".#.#.#.", "#..#..#", "..###..", ".#.#.#.", "#.....#"]
+    for gy, row in enumerate(fleur):
+        for gx, c in enumerate(row):
+            if c == "#":
+                px[4 + gx, 4 + gy] = D.rgba(mix(base, (196, 140, 56), 0.3 if gy < 4 else 0.22))
     return D.tex("damask", img)
 
 
@@ -506,10 +476,7 @@ def column_textures():
     px = img.load()
     for y in range(16):
         for x in range(16):
-            f = x % 4
-            px[x, y] = D.shade(ivory, (1.08, 0.95, 0.82, 0.95)[f])
-            if f == 2:
-                px[x, y] = D.shade(D.GOLD, 0.92 + 0.08 * ((y % 4) == 0))
+            px[x, y] = D.shade(ivory, (1.04, 1.0, 0.92, 1.0)[x % 4])  # soft flutes, ivory on ivory
     D.tex("column_shaft", img)
     base = D.new()
     D.noise_fill(base, D.GOLD, 0.04, D.rng("column_base"))
@@ -551,7 +518,7 @@ def coffer():
         ring = [(x, 3) for x in range(3, 13, 2)] + [(12, y) for y in range(5, 13, 2)] + [(x, 12) for x in range(11, 2, -2)] + \
                [(3, y) for y in range(11, 4, -2)]
         for i, (x, y) in enumerate(ring):
-            px[x, y] = D.rgba((255, 255, 255)) if (i + phase) % 3 == 0 else D.rgba((255, 220, 140))
+            px[x, y] = D.rgba((255, 248, 226)) if (i + phase) % 3 == 0 else D.rgba((246, 222, 160))
         frames.append(img)
     strip("coffer", frames, 6)
 
@@ -646,9 +613,13 @@ def die_faces():
 
 
 def textures():
+    slot_screen()
+    slot_marquee()
+    slot_body()
+    slot_side()
     led_strip()
     felt_print()
-    carpet("carpet_red", (138, 18, 30), (214, 168, 60), (250, 220, 120), (60, 10, 20))
+    carpet("carpet_red", (128, 20, 30), (214, 168, 60), (250, 220, 120), (60, 10, 20))
     carpet("carpet_blue", (24, 40, 110), (200, 160, 70), (240, 210, 110), (12, 18, 50))
     carpet("carpet_purple", (70, 22, 96), (210, 170, 70), (250, 220, 130), (34, 10, 48))
     damask()
