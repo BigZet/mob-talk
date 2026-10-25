@@ -5,6 +5,7 @@ python eval_v2.py runs/sp1/duel.pt                 # 256 арен, один эп
 Чистая мера: в обучении B_arrow_hit смешивает сценарного лучника и лучников из пула.
 """
 import argparse
+import sys
 
 import numpy as np
 import torch
@@ -48,6 +49,7 @@ def main():
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--threads", type=int, default=2)
     a = ap.parse_args()
+    sys.stdout.reconfigure(encoding="utf-8")
     torch.set_num_threads(a.threads)
     net = make("s").eval()
     net.load_state_dict(torch.load(a.ckpt, map_location="cpu")["s"])
