@@ -916,5 +916,16 @@
   "block.mobtalk.paving_grey": "Paving",
   "block.mobtalk.paving_red": "Red paving",
   "block.mobtalk.fence_green": "Green railing",
-  "block.mobtalk.fence_black": "Black railing"
+  "block.mobtalk.fence_black": "Black railing",
+  "block.mobtalk.lamp_black_pole": "Boulevard lamp post",
+  "block.mobtalk.lamp_black_top": "Boulevard lamp",
+  "block.mobtalk.long_bench": "Boulevard bench",
+  "block.mobtalk.car_volga_black": "Volga (black)",
+  "block.mobtalk.car_volga_beige": "Volga (beige)",
+  "block.mobtalk.car_moskvich": "Moskvich (orange)",
+  "block.mobtalk.car_moskvich_grey": "Moskvich (grey)",
+  "block.mobtalk.car_zaporozhets": "Zaporozhets (light blue)",
+  "block.mobtalk.car_zaporozhets_yellow": "Zaporozhets (yellow)",
+  "block.mobtalk.car_uaz": "UAZ van",
+  "block.mobtalk.car_uaz_ambulance": "UAZ ambulance"
 }

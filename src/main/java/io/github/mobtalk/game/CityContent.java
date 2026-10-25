@@ -73,6 +73,14 @@ public final class CityContent {
             new Spec("car_red", Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 16}}, 0, MapColor.RED, METAL, true),
             new Spec("car_green", Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 16}}, 0, MapColor.DARK_GREEN, METAL, true),
             new Spec("car_blue", Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 16}}, 0, MapColor.BLUE, METAL, true),
+            new Spec("car_volga_black", Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 16}}, 0, MapColor.BLACK, METAL, true),
+            new Spec("car_volga_beige", Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 16}}, 0, MapColor.PALE_YELLOW, METAL, true),
+            new Spec("car_moskvich", Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 16}}, 0, MapColor.ORANGE, METAL, true),
+            new Spec("car_moskvich_grey", Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 16}}, 0, MapColor.GRAY, METAL, true),
+            new Spec("car_zaporozhets", Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 16}}, 0, MapColor.LIGHT_BLUE, METAL, true),
+            new Spec("car_zaporozhets_yellow", Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 16}}, 0, MapColor.YELLOW, METAL, true),
+            new Spec("car_uaz", Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 16}}, 0, MapColor.DARK_GREEN, METAL, true),
+            new Spec("car_uaz_ambulance", Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 16}}, 0, MapColor.WHITE, METAL, true),
             // after the Pushchino panoramas
             new Spec("lamp_green_base", Mount.GROUND, new double[][] {{5.5, 0, 5.5, 10.5, 16, 10.5}}, 0, MapColor.GREEN, METAL, true),
             new Spec("lamp_green_pole", Mount.GROUND, new double[][] {{6.5, 0, 6.5, 9.5, 16, 9.5}}, 0, MapColor.GREEN, METAL, true),
@@ -81,7 +89,10 @@ public final class CityContent {
             new Spec("curb", Mount.GROUND, new double[][] {{0, 0, 0, 16, 5.5, 3.5}}, 0, MapColor.STONE_GRAY, STONE, true),
             new Spec("park_bench", Mount.GROUND, new double[][] {{0, 0, 4, 16, 9, 12.5}, {0, 9, 12.5, 16, 15, 13.5}}, 0, MapColor.ORANGE, WOOD, true),
             new Spec("bin_metal", Mount.GROUND, new double[][] {{4.5, 0, 4.5, 11.5, 11, 11.5}}, 0, MapColor.BROWN, METAL, true),
-            new Spec("bike_rack", Mount.GROUND, new double[][] {{0, 0, 4, 16, 11, 12}}, 0, MapColor.BLACK, METAL, true));
+            new Spec("bike_rack", Mount.GROUND, new double[][] {{0, 0, 4, 16, 11, 12}}, 0, MapColor.BLACK, METAL, true),
+            new Spec("lamp_black_pole", Mount.GROUND, new double[][] {{5.5, 0, 5.5, 10.5, 3, 10.5}, {6.5, 3, 6.5, 9.5, 16, 9.5}}, 0, MapColor.BLACK, METAL, true),
+            new Spec("lamp_black_top", Mount.GROUND, new double[][] {{5.5, 0, 5.5, 10.5, 13.5, 10.5}}, 15, MapColor.BLACK, METAL, true),
+            new Spec("long_bench", Mount.GROUND, new double[][] {{0, 0, 3, 16, 8, 13.1}}, 0, MapColor.ORANGE, WOOD, true));
     /** Plain full blocks: the pavers. */
     static final List<String> CUBES = List.of("paving_grey", "paving_red");
     /** Painted metal railings that join like fences (they are in #minecraft:fences, so they also join iron-free vanilla fences). */

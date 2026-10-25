@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/city/car_moskvich_grey"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/city/car_moskvich_grey",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/city/car_moskvich_grey",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/city/car_moskvich_grey",
+      "y": 270
+    }
+  }
+}

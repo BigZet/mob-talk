@@ -15,7 +15,9 @@ MID = SZ // 2
 YARDS = ("playground", "parking", "square", "alley")
 VARIANTS = 2
 DATA_VERSION = 3955
-CAR_COLORS = ("white", "red", "green", "blue")
+# what stands in a Soviet yard: mostly Zhiguli, then Moskvich, Volga, Zaporozhets, now and then a UAZ van
+CAR_COLORS = ("white", "red", "green", "blue") * 3 + ("moskvich", "moskvich_grey") * 2 + ("volga_black", "volga_beige",
+              "zaporozhets", "zaporozhets_yellow", "uaz")
 FLOWERS = ("minecraft:poppy", "minecraft:dandelion", "minecraft:cornflower", "minecraft:oxeye_daisy", "minecraft:azure_bluet",
            "minecraft:red_tulip", "minecraft:orange_tulip")
 
@@ -52,6 +54,12 @@ class Yard:
             self.set(x, G + k, z, "mobtalk:lamp_green_pole", {"facing": facing})
         self.set(x, G + 5, z, "mobtalk:lamp_green_double" if double else "mobtalk:lamp_green_single", {"facing": facing})
 
+    def post_lamp(self, x, z):
+        """The black post-top lamp of the boulevard: a pole, then the lantern with a round hat."""
+        self.set(x, G + 1, z, "mobtalk:lamp_black_pole", {"facing": "north"})
+        self.set(x, G + 2, z, "mobtalk:lamp_black_pole", {"facing": "north"})
+        self.set(x, G + 3, z, "mobtalk:lamp_black_top", {"facing": "north"})
+
     def linden(self, x, z, poplar=False):
         """A tall town tree as on the Pushchino boulevards: a bare trunk seven to nine blocks up, then a deep round crown
         (a linden), or a tall narrow one (a poplar)."""
@@ -59,23 +67,25 @@ class Yard:
         leaf = {"distance": "1", "persistent": "true", "waterlogged": "false"}
         trunk = r.randint(7, 9) if not poplar else r.randint(5, 6)
         top = trunk + (r.randint(6, 7) if not poplar else r.randint(10, 12))
-        rad = 3 if not poplar else 1.6
+        rad = 3.4 if not poplar else 1.6
         mid = (trunk + top) / 2
         half = (top - trunk) / 2 + 0.5
         leaves = "minecraft:oak_leaves" if not poplar else "minecraft:birch_leaves"
         for dy in range(trunk - 1, top + 1):
-            for dx in range(-3, 4):
-                for dz in range(-3, 4):
+            for dx in range(-4, 5):
+                for dz in range(-4, 5):
                     d = (dx / rad) ** 2 + (dz / rad) ** 2 + ((dy - mid) / half) ** 2
                     if d <= 1 and r.random() > 0.08 * d:
                         cell = (x + dx, G + 1 + dy, z + dz)
                         if self.cells.get(cell, ("?",))[0] == "minecraft:air":
                             self.set(*cell, leaves, leaf)
+        white = r.random() < 0.6  # the Soviet whitewash on the lower trunk
         for dy in range(top - 1):
-            self.set(x, G + 1 + dy, z, "minecraft:oak_log", {"axis": "y"})
-        for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1)):  # a few boughs into the crown
+            log = "minecraft:stripped_birch_log" if white and dy < 2 else "minecraft:oak_log"
+            self.set(x, G + 1 + dy, z, log, {"axis": "y"})
+        for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1)):  # a few boughs, hidden inside the crown, bark all round
             if r.random() < 0.6:
-                self.set(x + dx, G + trunk + 1, z + dz, "minecraft:oak_log", {"axis": "x" if dx else "z"})
+                self.set(x + dx, G + 1 + int(mid), z + dz, "minecraft:oak_wood", {"axis": "x" if dx else "z"})
         self.ground(x, z, "minecraft:dirt")
 
     def tree(self, x, z, height=None):
@@ -245,11 +255,20 @@ def alley(y):
     for x in (3, 8, 13):
         y.linden(x, 3, poplar=r.random() < 0.25)
         y.linden(x, SZ - 4, poplar=r.random() < 0.25)
-    for x, (z, facing) in ((5, (MID - 3, "south")), (10, (MID + 3, "north")), (11, (MID - 3, "south"))):
-        y.set(x, G + 1, z, "mobtalk:park_bench", {"facing": facing})
-        y.set(x + 1, G + 1, z, "mobtalk:bin_metal", {"facing": facing})
-    y.lamp(6, MID + 3, "north", double=True)
-    y.lamp(14, MID - 3, "south", double=True)
+    if r.random() < 0.5:  # bul. Nasibullina: long backless benches in a row and black post-top lamps
+        for x0, z, facing in ((4, MID - 3, "south"), (9, MID + 3, "north")):
+            for x in (x0, x0 + 1, x0 + 2):
+                y.set(x, G + 1, z, "mobtalk:long_bench", {"facing": facing})
+            y.set(x0 + 3, G + 1, z, "mobtalk:bin_metal", {"facing": facing})
+        y.post_lamp(2, MID + 3)
+        y.post_lamp(14, MID + 3)
+        y.post_lamp(8, MID - 3)
+    else:
+        for x, (z, facing) in ((5, (MID - 3, "south")), (10, (MID + 3, "north")), (11, (MID - 3, "south"))):
+            y.set(x, G + 1, z, "mobtalk:park_bench", {"facing": facing})
+            y.set(x + 1, G + 1, z, "mobtalk:bin_metal", {"facing": facing})
+        y.lamp(6, MID + 3, "north", double=True)
+        y.lamp(14, MID - 3, "south", double=True)
     y.set(1, G + 1, MID - 4, "mobtalk:bike_rack", {"facing": "east"})
     y.flowers(0, 0, SX - 1, 1, 0.12)
     y.flowers(0, SZ - 2, SX - 1, SZ - 1, 0.12)

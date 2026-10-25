@@ -916,5 +916,16 @@
   "block.mobtalk.paving_grey": "Тротуарная плитка",
   "block.mobtalk.paving_red": "Красная плитка",
   "block.mobtalk.fence_green": "Зелёная оградка",
-  "block.mobtalk.fence_black": "Чёрная оградка"
+  "block.mobtalk.fence_black": "Чёрная оградка",
+  "block.mobtalk.lamp_black_pole": "Опора бульварного фонаря",
+  "block.mobtalk.lamp_black_top": "Бульварный фонарь",
+  "block.mobtalk.long_bench": "Бульварная скамья",
+  "block.mobtalk.car_volga_black": "Волга (чёрная)",
+  "block.mobtalk.car_volga_beige": "Волга (бежевая)",
+  "block.mobtalk.car_moskvich": "Москвич (оранжевый)",
+  "block.mobtalk.car_moskvich_grey": "Москвич (серый)",
+  "block.mobtalk.car_zaporozhets": "Запорожец (голубой)",
+  "block.mobtalk.car_zaporozhets_yellow": "Запорожец (жёлтый)",
+  "block.mobtalk.car_uaz": "УАЗ «буханка»",
+  "block.mobtalk.car_uaz_ambulance": "УАЗ «скорая помощь»"
 }

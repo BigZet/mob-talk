@@ -271,77 +271,162 @@ def dish():
     return tex("dish", img)
 
 
-CAR_COLORS = {"white": (228, 226, 214), "red": (172, 36, 34), "green": (58, 108, 70), "blue": (52, 88, 150)}
+# Soviet cars, all front to the north, within the three-block footprint (z -16..32). For each: body (z0, z1, top), cabin
+# (z0, z1, top), wheel centres (z), front style, paint. The body side texture spans the body, so wheel arches follow the wheels.
+CARS = {
+    "white": dict(kind="zhiguli", paint=(228, 226, 214)), "red": dict(kind="zhiguli", paint=(172, 36, 34)),
+    "green": dict(kind="zhiguli", paint=(58, 108, 70)), "blue": dict(kind="zhiguli", paint=(52, 88, 150)),
+    "volga_black": dict(kind="volga", paint=(30, 32, 36)), "volga_beige": dict(kind="volga", paint=(214, 196, 150)),
+    "moskvich": dict(kind="moskvich", paint=(214, 120, 36)), "moskvich_grey": dict(kind="moskvich", paint=(150, 156, 150)),
+    "zaporozhets": dict(kind="zaz", paint=(120, 176, 200)), "zaporozhets_yellow": dict(kind="zaz", paint=(222, 186, 60)),
+    "uaz": dict(kind="uaz", paint=(98, 110, 72)), "uaz_ambulance": dict(kind="uaz", paint=(232, 232, 226), ambulance=True),
+}
+KINDS = {  # body z0, z1, top; cabin z0, z1, top; wheels; half-width inset of the cabin
+    "zhiguli": dict(body=(-15, 31, 9.5), cab=(-5, 13, 16), wheels=(-9, 24), inset=0.6),
+    "volga": dict(body=(-15, 31, 9), cab=(-3, 15, 15.5), wheels=(-8, 25), inset=0.8),
+    "moskvich": dict(body=(-13, 28, 9.5), cab=(-4, 13, 16), wheels=(-7, 21), inset=0.6),
+    "zaz": dict(body=(-8, 24, 9), cab=(-3, 15, 15.5), wheels=(-3, 19), inset=1.0),
+    "uaz": dict(body=(-12, 28, 10), cab=(-11.5, 27.5, 21), wheels=(-6, 21), inset=0.3),
+}
 
 
-def car_atlas(color, base):
-    """64x64: side (48x14) at (0,0), cabin side (20x7) at (0,16), roof top (16x20) at (44,40), hood top (16x16) at (44,16),
-    front (18x8) at (0,32), rear (18x8) at (20,32), windscreen (16x7) at (0,42), back glass (16x7) at (20,42), wheel (6x6) at (40,32)."""
-    r = rng("car" + color)
+def car_atlas(name, spec):
+    """64x64: body side (48x14) at (0,0), cabin side (20x7) at (0,16), roof (16x20) at (44,40), hood/boot top (16x16) at (44,16),
+    front (18x8) at (0,32), rear (18x8) at (20,32), windscreen (16x7) at (0,42), back glass (16x7) at (20,42), wheel (6x6) at (40,32),
+    van upper side (40x12) at (0,50)."""
+    kind, base = spec["kind"], spec["paint"]
+    k = KINDS[kind]
+    r = rng("car" + name)
     img = new(64, 64)
     b = base + (255,)
-    # side: body with a chrome strip, door seams, handles, wheel arches
+    chrome, black, glass_dark, glass_light = (205, 210, 214, 255), (24, 24, 26, 255), (60, 86, 102), (180, 208, 220)
+    z0, z1, _ = k["body"]
+    # side: body, door seams, handles, wheel arches
     noise_fill(img, b, 0.025, r, (0, 0, 48, 14))
     for x in range(48):
         img.putpixel((x, 0), shade(b, 1.12)); img.putpixel((x, 13), shade(b, 0.6))
-        img.putpixel((x, 5), (205, 210, 214, 255))  # chrome moulding
-    for x in (17, 31):  # door seams
+        if kind in ("zhiguli", "volga", "moskvich"):
+            img.putpixel((x, 5), chrome)  # chrome moulding
+    if spec.get("ambulance"):
+        for x in range(48):
+            img.putpixel((x, 7), (200, 30, 30, 255)); img.putpixel((x, 8), (200, 30, 30, 255))
+    doors = {"zhiguli": (17, 31), "volga": (19, 33), "moskvich": (17, 30), "zaz": (14, 30), "uaz": (6, 20, 30)}[kind]
+    for x in doors:
         for y in range(0, 12):
             img.putpixel((x, y), shade(b, 0.62))
-    for x in (19, 33):  # handles
-        img.putpixel((x, 3), (200, 205, 210, 255)); img.putpixel((x + 1, 3), (160, 165, 170, 255))
-    for cx in (9, 39):  # wheel arches
+        img.putpixel((x + 2, 3), chrome)
+    arches = [round((w - z0) / (z1 - z0) * 48) for w in k["wheels"]]
+    for cx in arches:
         for x in range(cx - 5, cx + 5):
-            for y in range(8, 14):
-                if math.hypot(x - cx + 0.5, y - 14) < 5.2:
+            for y in range(7, 14):
+                if 0 <= x < 48 and math.hypot(x - cx + 0.5, y - 14) < 5.2:
                     img.putpixel((x, y), (20, 20, 22, 255))
     img.putpixel((1, 3), (240, 150, 30, 255))  # side indicator
+    if kind == "zaz":  # the engine air intakes behind the doors
+        rect(img, (36, 2, 42, 6), (40, 40, 44, 255))
+        for x in range(36, 42, 2):
+            img.putpixel((x, 3), (90, 90, 96, 255)); img.putpixel((x, 4), (90, 90, 96, 255))
     # cabin side: glass with body-coloured pillars
     noise_fill(img, b, 0.02, r, (0, 16, 20, 23))
     for (x0, x1) in ((1, 9), (10, 19)):
         for x in range(x0, x1):
             for y in range(17, 23):
                 t = (x - x0 + (23 - y)) / 12
-                img.putpixel((x, y), mix((70, 96, 110), (170, 200, 214), max(0, min(1, 0.25 + 0.5 * math.sin(t * 3.1)))))
+                img.putpixel((x, y), mix(glass_dark, glass_light, max(0, min(1, 0.25 + 0.5 * math.sin(t * 3.1)))))
+    # van upper side: a row of windows, the sliding door, (on the ambulance) a red cross
+    noise_fill(img, b, 0.02, r, (0, 50, 40, 62))
+    for x in range(40):
+        img.putpixel((x, 50), shade(b, 1.15)); img.putpixel((x, 61), shade(b, 0.75))
+    for x0, x1 in ((1, 8), (10, 17), (19, 26), (28, 35)):
+        if spec.get("ambulance") and x0 in (19, 28):
+            continue
+        for x in range(x0, x1):
+            for y in range(52, 57):
+                img.putpixel((x, y), mix(glass_dark, glass_light, 0.3 + 0.4 * math.sin((x - x0 + 57 - y) / 3)))
+    if spec.get("ambulance"):
+        rect(img, (25, 52, 28, 60), (200, 30, 30, 255)); rect(img, (22, 55, 31, 58), (200, 30, 30, 255))
     # roof and hood
     noise_fill(img, b, 0.025, r, (44, 40, 60, 60))
     bevel(img, (44, 40, 60, 60), 1.12, 0.8)
+    if kind == "uaz":  # roof gutter ribs
+        for y in range(42, 60, 4):
+            for x in range(45, 59):
+                img.putpixel((x, y), shade(b, 0.85))
     noise_fill(img, b, 0.025, r, (44, 16, 60, 32))
     for y in range(16, 32):
         img.putpixel((52, y), shade(b, 1.1))  # the hood's crease
-    # front: chrome grille, four round headlights, a plate below
+    # front
     noise_fill(img, b, 0.02, r, (0, 32, 18, 40))
-    rect(img, (0, 33, 18, 37), (190, 196, 200, 255))
-    for x in range(5, 13):
-        for y in range(34, 36):
-            img.putpixel((x, y), (60, 62, 66, 255) if x % 2 else (150, 156, 160, 255))
-    for cx in (1.5, 3.5, 14.5, 16.5):
-        for x in range(int(cx) - 1, int(cx) + 1):
-            for y in (34, 35):
-                img.putpixel((x, y), (255, 246, 210, 255))
-    rect(img, (6, 37, 12, 39), (236, 236, 236, 255))
+
+    def lamp(cx, cy, rad=1.0):
+        for x in range(int(cx - rad - 1), int(cx + rad + 2)):
+            for y in range(int(cy - rad - 1), int(cy + rad + 2)):
+                if 0 <= x < 18 and 32 <= y < 40 and math.hypot(x + 0.5 - cx, y + 0.5 - cy) <= rad + 0.2:
+                    img.putpixel((x, y), (255, 246, 210, 255))
+    if kind == "zhiguli":  # chrome surround, a fine grille, four round lamps
+        rect(img, (0, 33, 18, 37), chrome)
+        for x in range(5, 13):
+            for y in range(34, 36):
+                img.putpixel((x, y), (60, 62, 66, 255) if x % 2 else (150, 156, 160, 255))
+        for cx in (2, 4, 14, 16):
+            lamp(cx, 35, 0.8)
+    elif kind == "volga":  # the wide grille of vertical chrome bars, lamps in square bezels, the deer stands on the hood
+        rect(img, (0, 33, 18, 37), chrome)
+        for x in range(4, 14):
+            for y in range(33, 37):
+                img.putpixel((x, y), chrome if x % 2 == 0 else (40, 42, 46, 255))
+        rect(img, (0, 33, 4, 37), (170, 176, 180, 255)); rect(img, (14, 33, 18, 37), (170, 176, 180, 255))
+        lamp(2, 35, 1.0); lamp(16, 35, 1.0)
+    elif kind == "moskvich":  # black grille with a chrome bar, rectangular lamps
+        rect(img, (0, 33, 18, 37), (36, 38, 40, 255))
+        for x in range(0, 18):
+            img.putpixel((x, 35), chrome)
+        rect(img, (1, 33, 4, 36), (255, 246, 210, 255)); rect(img, (14, 33, 17, 36), (255, 246, 210, 255))
+    elif kind == "zaz":  # no grille (the engine is at the back): a chrome moustache and two round lamps
+        for x in range(5, 13):
+            img.putpixel((x, 35), chrome)
+        img.putpixel((8, 34), chrome); img.putpixel((9, 34), chrome)
+        lamp(2.5, 34.5, 1.2); lamp(15.5, 34.5, 1.2)
+    elif kind == "uaz":  # flat nose: small grille slats, round lamps wide apart
+        for x in range(6, 12):
+            for y in range(33, 37):
+                if y % 2:
+                    img.putpixel((x, y), (40, 42, 44, 255))
+        lamp(2.5, 35, 1.2); lamp(15.5, 35, 1.2)
+        if spec.get("ambulance"):
+            rect(img, (6, 37, 12, 38), (200, 30, 30, 255))
+    rect(img, (6, 37, 12, 39), (236, 236, 236, 255))  # the plate
+    img.putpixel((7, 38), black); img.putpixel((9, 38), black); img.putpixel((11, 38), black)
     rect(img, (0, 39, 18, 40), (170, 176, 180, 255))
-    # rear: tail lights (red with amber), plate
+    # rear: tail lights, plate (on the Zaporozhets the louvred engine lid)
     noise_fill(img, b, 0.02, r, (20, 32, 38, 40))
     for x0 in (20, 33):
         rect(img, (x0, 33, x0 + 5, 36), (180, 24, 24, 255))
         rect(img, (x0 + (3 if x0 == 20 else 0), 33, x0 + (5 if x0 == 20 else 2), 34), (240, 150, 30, 255))
-    rect(img, (26, 35, 32, 37), (236, 236, 236, 255))
+    if kind == "zaz":
+        for y in range(33, 37, 2):
+            for x in range(26, 32):
+                img.putpixel((x, y), shade(b, 0.6))
+    rect(img, (26, 37 if kind == "zaz" else 35, 32, 39 if kind == "zaz" else 37), (236, 236, 236, 255))
     rect(img, (20, 39, 38, 40), (170, 176, 180, 255))
     # glass front and back
     for (x0, y0) in ((0, 42), (20, 42)):
         for x in range(x0, x0 + 16):
             for y in range(y0, y0 + 7):
                 t = (x - x0) / 16 + (y - y0) / 14
-                img.putpixel((x, y), mix((60, 86, 102), (180, 208, 220), 0.5 + 0.45 * math.sin(t * 5)))
+                img.putpixel((x, y), mix(glass_dark, glass_light, 0.5 + 0.45 * math.sin(t * 5)))
         for x in range(x0, x0 + 16):
             img.putpixel((x, y0), shade(b, 0.9))
-    # wheel: tyre with a chrome hub
+    if kind == "uaz":  # the split windscreen
+        for y in range(42, 49):
+            img.putpixel((8, y), shade(b, 0.9))
+    # wheel: tyre with a hubcap (the UAZ has painted steel wheels)
+    hub = shade(b, 0.8) if kind == "uaz" else (200, 205, 210, 255)
     for x in range(40, 46):
         for y in range(32, 38):
             d = math.hypot(x - 42.5, y - 34.5)
-            img.putpixel((x, y), (200, 205, 210, 255) if d < 1 else (96, 98, 102, 255) if d < 2.2 else (30, 30, 32, 255))
-    return tex(f"car_{color}", img)
+            img.putpixel((x, y), hub if d < 1 else (96, 98, 102, 255) if d < 2.2 else (30, 30, 32, 255))
+    return tex(f"car_{name}", img)
 
 
 def make_textures():
@@ -368,8 +453,8 @@ def make_textures():
     sand = new()
     noise_fill(sand, (222, 204, 146, 255), 0.07, rng("sand"))
     tex("sand", sand)
-    for c, base in CAR_COLORS.items():
-        car_atlas(c, base)
+    for name, spec in CARS.items():
+        car_atlas(name, spec)
     painted_metal("metal_green", (66, 128, 62, 255), rust=0.0)
     painted_metal("metal_green_dark", (40, 84, 44, 255), rust=0.0)
     painted_metal("metal_black", (34, 36, 38, 255), rust=0.02)
@@ -566,28 +651,39 @@ def street_things():
 
 
 def cars():
-    for color in CAR_COLORS:
-        t = "car"
-
-        def uv(x0, y0, x1, y1):
-            return [x0 / 4, y0 / 4, x1 / 4, y1 / 4]
-        els = [
-            # lower body, 48 long (-16..32 along z), front to the north
-            box((-1, 2.5, -15), (17, 9.5, 31), {"east": (t, uv(0, 0, 48, 14)), "west": (t, uv(48, 0, 0, 14)),
-                                                "north": (t, uv(0, 32, 18, 40)), "south": (t, uv(20, 32, 38, 40)),
-                                                "up": (t, uv(44, 16, 60, 32)), "down": ("palette", pal("black"))}),
-            # cabin
-            box((0, 9.5, -6), (16, 16, 13), {"east": (t, uv(0, 16, 20, 23)), "west": (t, uv(20, 16, 0, 23)),
-                                             "north": (t, uv(0, 42, 16, 49)), "south": (t, uv(20, 42, 36, 49)),
-                                             "up": (t, uv(44, 40, 60, 60))}),
-            # bumpers
-            pal_box((-1.5, 2, -16), (17.5, 3.5, -15), "chrome"), pal_box((-1.5, 2, 31), (17.5, 3.5, 32), "chrome"),
-        ]
-        for z in (-12, 21):
+    """The Soviet cars of CARS: body, cabin (or the van's upper box), chrome bumpers, four wheels; front to the north."""
+    def uv(x0, y0, x1, y1):
+        return [x0 / 4, y0 / 4, x1 / 4, y1 / 4]
+    for name, spec in CARS.items():
+        k, t = KINDS[spec["kind"]], "car"
+        bz0, bz1, btop = k["body"]
+        cz0, cz1, ctop = k["cab"]
+        i = k["inset"]
+        els = [box((-1, 2.5, bz0), (17, btop, bz1), {"east": (t, uv(0, 0, 48, 14)), "west": (t, uv(48, 0, 0, 14)),
+                                                    "north": (t, uv(0, 32, 18, 40)), "south": (t, uv(20, 32, 38, 40)),
+                                                    "up": (t, uv(44, 16, 60, 32)), "down": ("palette", pal("black"))})]
+        if spec["kind"] == "uaz":  # the bread-loaf van: one tall box with a row of windows, the windscreen in front
+            els.append(box((-1 + i, btop, cz0), (17 - i, ctop, cz1), {"east": (t, uv(0, 50, 40, 62)), "west": (t, uv(40, 50, 0, 62)),
+                                                                    "north": (t, uv(0, 42, 16, 49)), "south": (t, uv(20, 42, 36, 49)),
+                                                                    "up": (t, uv(44, 40, 60, 60))}))
+        else:
+            els.append(box((i, btop, cz0), (16 - i, ctop, cz1), {"east": (t, uv(0, 16, 20, 23)), "west": (t, uv(20, 16, 0, 23)),
+                                                              "north": (t, uv(0, 42, 16, 49)), "south": (t, uv(20, 42, 36, 49)),
+                                                              "up": (t, uv(44, 40, 60, 60))}))
+            els.append(box((i + 0.3, ctop, cz0 + 0.5), (16 - i - 0.3, ctop + 0.4, cz1 - 0.5), {"up": (t, uv(44, 40, 60, 60))}))
+        bump = "chrome" if spec["kind"] != "uaz" else "black"
+        els += [pal_box((-1.5, 2, bz0 - 1), (17.5, 3.5, bz0), bump), pal_box((-1.5, 2, bz1), (17.5, 3.5, bz1 + 1), bump)]
+        if spec["kind"] == "volga":  # the deer on the hood
+            els += [pal_box((7.5, btop, bz0 + 1), (8.5, btop + 1, bz0 + 3), "chrome"), pal_box((7.6, btop + 1, bz0 + 1), (8.4, btop + 2, bz0 + 1.8), "chrome")]
+        if spec["kind"] == "zaz":  # the air-intake ears
+            els += [pal_box((-1.8, btop - 1, cz1 - 5), (-1, btop + 2, cz1 - 1), "black"), pal_box((17, btop - 1, cz1 - 5), (17.8, btop + 2, cz1 - 1), "black")]
+        if spec.get("ambulance"):  # the blue beacon
+            els.append(box((6.5, ctop, cz0 + 2), (9.5, ctop + 2, cz0 + 4), {f: ("palette", pal("blue")) for f in FACES}))
+        for wz in k["wheels"]:
             for x, faces in ((-1.5, ["west", "north", "south", "down", "up"]), (15.5, ["east", "north", "south", "down", "up"])):
-                els.append(box((x, 0, z), (x + 2, 6, z + 6), {f: (t, uv(40, 32, 46, 38)) if f in ("east", "west") else ("palette", pal("rubber"))
-                                                              for f in faces}))
-        model(f"car_{color}", {"car": f"car_{color}", "palette": "palette"}, els, "car")
+                els.append(box((x, 0, wz - 3), (x + 2, 6, wz + 3), {f: (t, uv(40, 32, 46, 38)) if f in ("east", "west") else ("palette", pal("rubber"))
+                                                                    for f in faces}))
+        model(f"car_{name}", {"car": f"car_{name}", "palette": "palette"}, els, "car")
 
 
 def pushchino_kit():
@@ -634,6 +730,19 @@ def pushchino_kit():
         els += [box((x, 0, 4), (x + 1, 10, 5), "frame"), box((x, 0, 11), (x + 1, 10, 12), "frame"),
                 box((x, 10, 4), (x + 1, 11, 12), "frame")]
     model("bike_rack", {"frame": "metal_black"}, els, "frame")
+    # the boulevard post-top lamp (bul. Nasibullina): black pole, a lantern with a round hat; two blocks: pole, then top
+    model("lamp_black_pole", {"metal": "metal_black"},
+          [box((5.5, 0, 5.5), (10.5, 3, 10.5), "metal"), box((6.5, 3, 6.5), (9.5, 16, 9.5), "metal"),
+           box((6.2, 12, 6.2), (9.8, 13, 9.8), "metal")])
+    model("lamp_black_top", {"metal": "metal_black", "glass": "lamp_glass"},
+          [box((7, 0, 7), (9, 5, 9), "metal"), box((6, 5, 6), (10, 6, 10), "metal"),
+           box((5.5, 6, 5.5), (10.5, 11.5, 10.5), "glass"), box((3.5, 11.5, 3.5), (12.5, 12.5, 12.5), "metal"),
+           box((5, 12.5, 5), (11, 13.5, 11), "metal"), box((7.5, 13.5, 7.5), (8.5, 15, 8.5), "metal")], "metal", ao=False)
+    # the long backless bench of the boulevard: thick wooden slats on concrete blocks
+    els = [box((1, 0, 4), (4, 6, 12), "stone"), box((12, 0, 4), (15, 6, 12), "stone")]
+    for z in (3, 5.6, 8.2, 10.8):
+        els.append(box((0, 6, z), (16, 8, z + 2.3), "wood"))
+    model("long_bench", {"wood": "bench_wood", "stone": "curb"}, els, "wood")
     # Soviet yard railings: thin posts, two rails, pickets; joined like fences (a multipart blockstate, see save_all)
     for name, paint in (("fence_green", "metal_green"), ("fence_black", "metal_black")):
         FENCES[name] = paint
@@ -664,11 +773,16 @@ NAMES = {
     "bus_stop_sign": ("Знак остановки", "Bus stop sign"), "tyre_swan": ("Лебедь из шины", "Tyre swan"),
     "car_white": ("Жигули (белые)", "Zhiguli (white)"), "car_red": ("Жигули (вишнёвые)", "Zhiguli (cherry)"),
     "car_green": ("Жигули (зелёные)", "Zhiguli (green)"), "car_blue": ("Жигули (синие)", "Zhiguli (blue)"),
+    "car_volga_black": ("Волга (чёрная)", "Volga (black)"), "car_volga_beige": ("Волга (бежевая)", "Volga (beige)"),
+    "car_moskvich": ("Москвич (оранжевый)", "Moskvich (orange)"), "car_moskvich_grey": ("Москвич (серый)", "Moskvich (grey)"),
+    "car_zaporozhets": ("Запорожец (голубой)", "Zaporozhets (light blue)"), "car_zaporozhets_yellow": ("Запорожец (жёлтый)", "Zaporozhets (yellow)"),
+    "car_uaz": ("УАЗ «буханка»", "UAZ van"), "car_uaz_ambulance": ("УАЗ «скорая помощь»", "UAZ ambulance"),
     "lamp_green_base": ("Основание фонаря", "Lamp post base"), "lamp_green_pole": ("Опора фонаря", "Lamp post"),
     "lamp_green_double": ("Фонарь с двумя плечами", "Double-arm street lamp"), "lamp_green_single": ("Фонарь с одним плечом", "Single-arm street lamp"),
     "curb": ("Бордюр", "Curb"), "park_bench": ("Парковая скамейка", "Park bench"), "bin_metal": ("Урна", "Litter bin"),
     "bike_rack": ("Велопарковка", "Bike rack"), "fence_green": ("Зелёная оградка", "Green railing"),
-    "fence_black": ("Чёрная оградка", "Black railing"), "paving_grey": ("Тротуарная плитка", "Paving"), "paving_red": ("Красная плитка", "Red paving"),
+    "fence_black": ("Чёрная оградка", "Black railing"), "lamp_black_pole": ("Опора бульварного фонаря", "Boulevard lamp post"),
+    "lamp_black_top": ("Бульварный фонарь", "Boulevard lamp"), "long_bench": ("Бульварная скамья", "Boulevard bench"), "paving_grey": ("Тротуарная плитка", "Paving"), "paving_red": ("Красная плитка", "Red paving"),
 }
 
 
@@ -734,8 +848,7 @@ DISPLAY = {"gui": {"rotation": [30, 225, 0], "translation": [0, 0, 0], "scale": 
            "firstperson_righthand": {"rotation": [0, 45, 0], "translation": [0, 0, 0], "scale": [0.4, 0.4, 0.4]},
            "firstperson_lefthand": {"rotation": [0, 225, 0], "translation": [0, 0, 0], "scale": [0.4, 0.4, 0.4]}}
 SMALL = {k: dict(v, scale=[s * 0.5 for s in v["scale"]]) for k, v in DISPLAY.items()}
-ITEM_DISPLAY = {n: SMALL for n in ("swing", "slide", "flag", "car_white", "car_red", "car_green", "car_blue", "lamp_green_double",
-                                   "lamp_green_single")}
+ITEM_DISPLAY = {n: SMALL for n in ("swing", "slide", "flag", "lamp_green_double", "lamp_green_single") + tuple("car_" + c for c in CARS)}
 
 
 # ---------------------------------------------------------------- preview
