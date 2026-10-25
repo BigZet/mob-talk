@@ -487,6 +487,8 @@ def auto_uv(face, f, t):
             a, b = a + 16, b + 16
         while b > 16:
             a, b = a - 16, b - 16
+        if a < 0:  # straddles a block edge: take the same span from the texture's start
+            a, b = 0, b - a
         return a, b
     u0, u1 = fit(u0, u1)
     v0, v1 = fit(v0, v1)
@@ -942,9 +944,15 @@ def preview(out, only=None):
 
 
 def main():
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import interior
+    me = sys.modules[__name__]
     make_textures()
+    interior.make_textures(me)
     make_models()
+    interior.make_models()
     save_all()
+    interior.write_java(ROOT)
     if len(sys.argv) > 2 and sys.argv[1] == "preview":
         preview(sys.argv[2], sys.argv[3:])
     print("decor:", len(MODELS), "models,", len(TEX), "textures")
