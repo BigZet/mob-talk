@@ -29,12 +29,17 @@ with villagers in them, and horsemen, travel back and forth along them. It all w
   nine at a time, until the road is done.
 - Each road has one palette, picked by the biomes it crosses (stone and cobblestone, or sandstone in deserts).
 - A road stops where the village's own streets begin, at the first piece of the village structure. If it meets the village on a
-  bridge or in a tunnel, it continues to the first point on the ground. Where that is gets worked out from the village's
+  bridge or in a tunnel, it ends where it last stood on the ground. Where that is gets worked out from the village's
   structure start before any chunk of the road is laid.
 - The road is paved five blocks wide, with a curb on each side. Ground above a 45° line from the curb is dug away, and ground
   below one is banked up with turf. Trees over the road are cleared. A bridge deck stands on piers every 14 blocks, with a wall
   for a railing. A tunnel is dug under a stepped brick vault with brick walls. A column with anything built in the way (a house,
   a chest, a player's build) is left alone. Lamp posts and lanterns are never dug away by a later chunk.
+- Where two roads overlap at about the same height (within 2 blocks), neither lays its curb, railing, bank or lamp on the other's
+  paving and curb, so one paved way is left with no railing across it.
+- Leaves left hanging when the road cut their trunk are taken away at once, in and up to 8 blocks round the chunk, so they do not
+  rot and drop saplings on the road.
+- The road always ends before the village. A bridge or tunnel that meets the village ends on the last ground up to 24 points back.
 - Water or lava next to a block the road dug out is walled off with the road's lining stone, so it cannot run onto the road.
 - Grass, flowers and seeds the earthworks knock loose do not lie about as items: items dropped that very tick in and around the
   chunk are removed.

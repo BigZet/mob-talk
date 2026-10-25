@@ -116,33 +116,47 @@ final class RoadBuilder {
             int y = p.h2() / 2;
             for (StructurePiece piece : start.getChildren()) {
                 BlockBox box = piece.getBoundingBox();
-                if (box.getMaxY() < y - 6 || box.getMinY() > y + 8 || !near(box, p, CURB + 1)) continue;
-                // Met on a bridge or in a tunnel: go on until it lands, rather than end in the air or in the rock.
-                int end = atStart ? Math.min(n - 1, i + 1) : Math.max(0, i - 1), inward = atStart ? -1 : 1;
-                if (points.get(end).kind() != RoadPlan.Kind.GROUND) {
-                    end = i;
-                    while (end + inward >= 0 && end + inward < n && points.get(end).kind() != RoadPlan.Kind.GROUND) end += inward;
-                }
+                // A street follows the ground and keeps its template's height in its box: a wide window in height.
+                if (box.getMaxY() < y - MEET_BELOW || box.getMinY() > y + MEET_ABOVE || !near(box, p, CURB + 1)) continue;
+                // The road ends before the village, never in it: a bridge or tunnel that meets it there ends where it last stood on the
+                // ground, if that is near (it once ran on over the village's houses until it landed, Dmitriy 2026-10-25).
+                int outward = atStart ? 1 : -1, end = i + outward;
+                end = Math.max(0, Math.min(n - 1, end));
+                for (int back = 0, at = end; back <= LAND_BACK && at >= 0 && at < n; back++, at += outward)
+                    if (points.get(at).kind() == RoadPlan.Kind.GROUND) { end = at; break; }
                 return end;
             }
         }
         return atStart ? 0 : n - 1;
     }
 
+    /** How far below and above the road a village's piece is looked for, and how far back from the village a bridge or tunnel that
+     * meets it looks for ground to end on. */
+    static final int MEET_BELOW = 16, MEET_ABOVE = 24, LAND_BACK = 24;
+
     /** One column of the road in the chunk: the nearest centreline point and the signed distance across from it. */
     private record Column(int x, int z, int index, double across, double along) { }
 
     /** Counts of what was done, for the log and the self-test. */
     static final class Report {
-        int columns, skipped, lamps, dammed, drops;
-        @Override public String toString() { return columns + " столбцов, пропущено " + skipped + ", фонарей " + lamps + ", запружено " + dammed + ", убрано выпавшего " + drops; }
+        int columns, skipped, lamps, dammed, drops, leaves;
+        @Override public String toString() {
+            return columns + " столбцов, пропущено " + skipped + ", фонарей " + lamps + ", запружено " + dammed + ", убрано выпавшего " + drops + ", висячей листвы " + leaves;
+        }
     }
 
     /** Lays the road's part in this chunk. */
-    static Report lay(ServerWorld world, List<RoadPlan.Point> points, ChunkPos chunk, Palette palette, int from, int to, int lampTo, boolean lamps, int lampSpacing) {
+    static Report lay(ServerWorld world, List<RoadPlan.Point> points, ChunkPos chunk, Palette palette, int from, int to, int lampTo, boolean lamps, int lampSpacing,
+                      List<List<RoadPlan.Point>> others) {
         Report report = new Report();
         Map<Long, Column> columns = columns(points, chunk);
         if (columns.isEmpty()) return report;
+        // Where another road's paving and curb are: this road's curbs, railings, banks and lamps keep off them, so that where two
+        // roads meet or run side by side one paved way is left, with no railing across it (carts drove through one, 2026-10-25).
+        Map<Long, Integer> taken = new HashMap<>();
+        for (List<RoadPlan.Point> other : others)
+            for (Map.Entry<Long, Column> entry : columns(other, chunk).entrySet())
+                if (Math.abs(entry.getValue().across()) <= CURB) taken.merge(entry.getKey(), other.get(entry.getValue().index()).h2() >> 1, Math::max);
         List<BlockBox> pieces = pieces(world, chunk);
         Set<Long> cleared = new HashSet<>();
         int low = Integer.MAX_VALUE, high = Integer.MIN_VALUE;
@@ -152,12 +166,15 @@ final class RoadBuilder {
             // A bridge or tunnel passes through a piece's box where nothing of the piece stands (the check below still keeps off
             // every block that is not natural); the paved road keeps off the pieces altogether.
             if (point.kind() == RoadPlan.Kind.GROUND && blockedByStructure(pieces, column, point)) { report.skipped++; continue; }
+            Integer other = taken.get(BlockPos.asLong(column.x(), 0, column.z()));
+            if (other != null && Math.abs(column.across()) > PAVED && Math.abs(other - (point.h2() >> 1)) <= OVERLAP) { report.skipped++; continue; }
             if (column(world, palette, point, column, null)) { column(world, palette, point, column, cleared); report.columns++; }
             else report.skipped++;
             low = Math.min(low, (point.h2() >> 1) - FILL - BANK); high = Math.max(high, (point.h2() >> 1) + CLEAR + OPEN_CUT + TREE_CLEAR);
         }
         report.dammed = dam(world, palette, cleared);
-        if (lamps) report.lamps = lamps(world, palette, points, chunk, from, lampTo, lampSpacing);
+        if (lamps) report.lamps = lamps(world, palette, points, chunk, from, lampTo, lampSpacing, taken);
+        if (low <= high) report.leaves = leaves(world, chunk, low, high + TREE_CLEAR);
         if (low <= high) report.drops = sweepDrops(world, chunk, low, high);
         return report;
     }
@@ -182,6 +199,47 @@ final class RoadBuilder {
 
     private static final net.minecraft.util.math.Direction[] DAMMED = { net.minecraft.util.math.Direction.NORTH, net.minecraft.util.math.Direction.SOUTH,
             net.minecraft.util.math.Direction.EAST, net.minecraft.util.math.Direction.WEST, net.minecraft.util.math.Direction.UP };
+
+    /** How far in height two roads may differ and still be one way where they overlap (more: one passes over the other). */
+    static final int OVERLAP = 2;
+
+    /** Leaves the road left hanging (their tree's trunk cut away) would rot and drop saplings onto the road (Dmitriy 2026-10-25):
+     * every leaf in and just round the chunk that no log reaches within six leaves, as the game counts, is taken away at once. Logs
+     * are looked for seven blocks beyond, so a tree standing next door keeps its crown. */
+    private static int leaves(ServerWorld world, ChunkPos chunk, int low, int high) {
+        // A crown reaches over the chunk's edge: leaves are taken up to eight blocks round it, logs looked for seven beyond that.
+        int reach = 8, margin = reach + 7, x0 = chunk.getStartX() - margin, z0 = chunk.getStartZ() - margin, size = 16 + 2 * margin;
+        low = Math.max(low, world.getBottomY()); high = Math.min(high, world.getTopY() - 1);
+        if (low > high) return 0;
+        int height = high - low + 1;
+        byte[] dist = new byte[size * size * height]; // 0 not a leaf, 1..6 reached, 7 a leaf not reached
+        ArrayDeque<int[]> queue = new ArrayDeque<>();
+        BlockPos.Mutable at = new BlockPos.Mutable();
+        List<int[]> logs = new ArrayList<>();
+        for (int dx = 0; dx < size; dx++) for (int dz = 0; dz < size; dz++) for (int dy = 0; dy < height; dy++) {
+            BlockState state = world.getBlockState(at.set(x0 + dx, low + dy, z0 + dz));
+            if (state.isIn(BlockTags.LEAVES) && state.contains(LeavesBlock.PERSISTENT) && !state.get(LeavesBlock.PERSISTENT)) dist[(dx * size + dz) * height + dy] = 7;
+            else if (state.isIn(BlockTags.LOGS)) logs.add(new int[] { dx, dz, dy, 0 });
+        }
+        int[][] steps = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } };
+        queue.addAll(logs);
+        while (!queue.isEmpty()) {
+            int[] here = queue.poll();
+            if (here[3] >= 6) continue;
+            for (int[] step : steps) {
+                int nx = here[0] + step[0], nz = here[1] + step[1], ny = here[2] + step[2];
+                if (nx < 0 || nz < 0 || ny < 0 || nx >= size || nz >= size || ny >= height) continue;
+                int k = (nx * size + nz) * height + ny;
+                if (dist[k] != 7) continue;
+                dist[k] = (byte) (here[3] + 1);
+                queue.add(new int[] { nx, nz, ny, here[3] + 1 });
+            }
+        }
+        int removed = 0;
+        for (int dx = margin - reach; dx < margin + 16 + reach; dx++) for (int dz = margin - reach; dz < margin + 16 + reach; dz++) for (int dy = 0; dy < height; dy++)
+            if (dist[(dx * size + dz) * height + dy] == 7) { world.setBlockState(at.set(x0 + dx, low + dy, z0 + dz), Blocks.AIR.getDefaultState(), FLAGS); removed++; }
+        return removed;
+    }
 
     /** Grass, flowers and seeds that the earthworks knocked loose drop as items; the road's own work leaves none lying about. Only
      * items that came into being this very tick, in and just round this chunk, are taken. */
@@ -314,7 +372,7 @@ final class RoadBuilder {
 
     // ---- Lamps ----
 
-    private static int lamps(ServerWorld world, Palette palette, List<RoadPlan.Point> points, ChunkPos chunk, int from, int to, int spacing) {
+    private static int lamps(ServerWorld world, Palette palette, List<RoadPlan.Point> points, ChunkPos chunk, int from, int to, int spacing, Map<Long, Integer> taken) {
         int placed = 0;
         for (int i = Math.max(0, from); i <= Math.min(points.size() - 1, to); i++) {
             RoadPlan.Point p = points.get(i);
@@ -325,7 +383,7 @@ final class RoadBuilder {
             if (side == 1 || side == -1) {
                 BlockPos post = new BlockPos(MathHelper.floor(p.x() + nx * side * 2.8), 0, MathHelper.floor(p.z() + nz * side * 2.8));
                 BlockPos arm = new BlockPos(MathHelper.floor(p.x() + nx * side * 1.8), 0, MathHelper.floor(p.z() + nz * side * 1.8));
-                if (post.equals(arm)) continue;
+                if (post.equals(arm) || taken.containsKey(BlockPos.asLong(post.getX(), 0, post.getZ())) || taken.containsKey(BlockPos.asLong(arm.getX(), 0, arm.getZ()))) continue;
                 boolean any = false;
                 if (inside(chunk, post) && naturalOrOwn(world, palette, post.withY(feet), CLEAR)) {
                     any = true;

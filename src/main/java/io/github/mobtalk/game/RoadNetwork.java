@@ -349,7 +349,7 @@ final class RoadNetwork {
             if (road.to == Integer.MIN_VALUE) road.to = RoadBuilder.end(world, road.b, road.points, false);
             int from = road.from, to = road.to;
             RoadBuilder.Report report = RoadBuilder.lay(world, road.points, pos, RoadBuilder.palette(road.palette), from, to,
-                    road.branch() ? to - BRANCH_UNLIT : to, bridge.config.roadLamps, bridge.config.roadLampSpacing);
+                    road.branch() ? to - BRANCH_UNLIT : to, bridge.config.roadLamps, bridge.config.roadLampSpacing, others(state, road, job.chunk()));
             road.done.add(job.chunk());
             state.saved.markDirty();
             release(world, state, job.chunk());
@@ -360,6 +360,17 @@ final class RoadNetwork {
             release(world, state, job.chunk());
             LOGGER.warn("дорога {}: чанк {} {} не уложен", road.id, cx, cz, failure);
         }
+    }
+
+    /** The other roads through this chunk, each as far as it is laid (from its first to its last point to lay). */
+    private static List<List<RoadPlan.Point>> others(World state, Road road, long chunk) {
+        List<List<RoadPlan.Point>> out = new ArrayList<>();
+        for (Road other : state.index.getOrDefault(chunk, List.of())) {
+            if (other == road) continue;
+            int from = other.from == Integer.MIN_VALUE ? 0 : Math.max(0, other.from), to = other.to == Integer.MIN_VALUE ? other.points.size() - 1 : Math.min(other.points.size() - 1, other.to);
+            if (from <= to) out.add(other.points.subList(from, to + 1));
+        }
+        return out;
     }
 
     // ---- Finding the villages ----
