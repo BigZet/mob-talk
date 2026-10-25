@@ -559,6 +559,126 @@ def add_yards():
     print("yards:", len(built), "templates")
 
 
+STREET_POOLS = ("5th_brick/street", "corgi/street/smooth_stone", "medium_9th/street/polished_andesite",
+                "medium_brick/street/cobblestone", "medium_mix/street/smooth_stone", "small_5th/street/gravel")
+PROSPEKT_SHARE = 0.18  # about one street piece in six is a wide avenue
+PW = 15  # avenue width: kerb, two lanes, median, two lanes, kerb
+
+
+def blank(rel, size):
+    """A new, empty template to fill with put()."""
+    t = Template.__new__(Template)
+    t.rel, t.name, t.size, t.added, t.grid = rel, "", list(size), 0, {}
+    t.palette = []
+    t.tag = nbt.c(size=nbt.Tag(nbt.LIST, [nbt.Tag(nbt.INT, v) for v in size], nbt.INT),
+                  blocks=nbt.Tag(nbt.LIST, [], nbt.COMPOUND), palette=nbt.Tag(nbt.LIST, t.palette, nbt.COMPOUND),
+                  entities=nbt.Tag(nbt.LIST, [], nbt.COMPOUND), DataVersion=nbt.Tag(nbt.INT, yards.DATA_VERSION))
+    return t
+
+
+def prospekt(donor, rel):
+    """A wide avenue after prospekt Nauki, made from one of the city's straight five-wide streets (same length, same
+    connectors, same paving): two carriageways with dashed lines, a grass median with double-armed lamps and whitewashed
+    lindens, zebra crossings. Where the donor joins the next piece end-on it narrows to the plain street; where it ends in
+    a crossing with side streets, the whole width becomes the crossing and the side connectors move to the outer kerbs."""
+    d = Template(donor)
+    sx, sy, sz = d.size
+    t = blank(rel, (PW, sy, sz))
+    r = random.Random(rel)
+    kerb = d.name_at(0, 0, 1) or "minecraft:smooth_stone"
+    lane = d.name_at(2, 0, 1) or "minecraft:gray_concrete_powder"
+    c = PW // 2
+    jigs = [((x, y, z), props, b) for (x, y, z), (n, props, b) in d.grid.items() if n == "minecraft:jigsaw" and "nbt" in b.value]
+    ways = [(p, props, b) for p, props, b in jigs if "building_entrance" not in b.value["nbt"].value["name"].value]
+    ends = {p[2] for p, _, _ in ways if p[0] == 2}
+    sides = [p[2] for p, _, _ in ways if p[0] != 2]
+    narrow = 3
+    start = narrow if 0 in ends else 0
+    stop = sz - narrow if sz - 1 in ends else sz
+    cross = min(sides) - 2 if sides else stop  # from here on: the crossing, full width, no median
+    for z in range(sz):
+        for x in range(PW):
+            for y in range(1, sy):
+                t.put(x, y, z, "minecraft:air")
+            if z < start or z >= stop:
+                name = kerb if x in (c - 2, c + 2) else lane if c - 2 < x < c + 2 else "minecraft:grass_block"
+            elif z >= cross:
+                name = kerb if x in (0, PW - 1) and not any(abs(z - sz_) <= 2 for sz_ in sides) else lane
+            elif x in (0, PW - 1, c - 1, c + 1):
+                name = kerb
+            elif x == c:
+                name = "minecraft:grass_block"
+            else:
+                name = lane
+                zebra = start < z <= start + 3 or cross - 4 <= z < cross - 1
+                if zebra:
+                    name = "minecraft:white_concrete" if x % 2 == 1 else lane  # the zebra: stripes across the walk
+                elif x in (3, PW - 4) and z % 4 < 2:
+                    name = "minecraft:white_concrete_powder"  # the dashed lane line
+            t.put(x, 0, z, name, {"snowy": "false"} if name == "minecraft:grass_block" else None)
+    for (x, y, z), props, b in jigs:
+        jig = copy.deepcopy(b.value["nbt"])
+        if "building_entrance" in jig.value["name"].value:
+            if start + 2 < z < cross - 3:
+                t.put(0 if x == 0 else PW - 1, y, z, "minecraft:jigsaw", props, jig)
+        else:
+            t.put(c if x == 2 else 0 if x == 0 else PW - 1, y, z, "minecraft:jigsaw", props, jig)
+    # the median: lamps every eight blocks, lindens between them
+    for z in range(start + 5, cross - 5):
+        if (z - start) % 8 == 4:
+            k = lamp_paint(rel, c, z)
+            t.put(c, 1, z, f"mobtalk:lamp_{k}_base", {"facing": "north"})
+            for y in (2, 3, 4):
+                t.put(c, y, z, f"mobtalk:lamp_{k}_pole", {"facing": "north"})
+            t.put(c, 5, z, f"mobtalk:lamp_{k}_double", {"facing": "north"})
+        elif (z - start) % 8 == 0 and sy > 14:
+            trunk = r.randint(5, 6)
+            for y in range(1, trunk + 4):
+                white = y <= 2
+                t.put(c, y, z, "minecraft:mushroom_stem" if white else "minecraft:oak_log",
+                      {k: "true" for k in ("up", "down", "north", "south", "east", "west")} if white else {"axis": "y"})
+            for dy in range(trunk, trunk + 6):
+                for dx in range(-3, 4):
+                    for dz in range(-3, 4):
+                        dd = (dx / 3.2) ** 2 + (dz / 3.2) ** 2 + ((dy - trunk - 2.5) / 3) ** 2
+                        if dd <= 1 and t.air(c + dx, dy, z + dz) and r.random() > 0.08 * dd:
+                            t.put(c + dx, dy, z + dz, "minecraft:oak_leaves", {"distance": "1", "persistent": "true", "waterlogged": "false"})
+        elif r.random() < 0.3:
+            t.put(c, 1, z, "minecraft:short_grass")
+    t.save()
+
+
+def add_prospekts():
+    """Gives every city's street pool a few wide avenues built from its own longest straight streets."""
+    made = 0
+    for pool in STREET_POOLS:
+        path = os.path.join(DATA, "worldgen", "template_pool", "city", pool + ".json")
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        data["elements"] = [e for e in data["elements"] if "/ours/prospekt/" not in e["element"].get("location", "")]
+        straight = []
+        for e in data["elements"]:
+            loc = e["element"].get("location", "")
+            if not loc.startswith("mobtalk:city/"):
+                continue
+            rel = loc[len("mobtalk:city/"):]
+            d = Template(rel)
+            jn = [b.value["nbt"].value["name"].value for (n, _, b) in d.grid.values() if n == "minecraft:jigsaw" and "nbt" in b.value]
+            if d.size[0] == 5 and d.size[2] >= 19 and sum("building_entrance" not in j for j in jn) >= 2:
+                straight.append((d.size[2], rel))
+        donors = [rel for _, rel in sorted(set(straight), reverse=True)[:2]]
+        total = sum(e["weight"] for e in data["elements"])
+        weight = max(1, round(total * PROSPEKT_SHARE / (1 - PROSPEKT_SHARE) / max(1, len(donors))))
+        for i, donor in enumerate(donors):
+            rel = f"ours/prospekt/{pool.split('/')[0]}_{i + 1}"
+            prospekt(donor, rel)
+            made += 1
+            data["elements"].append({"weight": weight, "element": {"location": "mobtalk:city/" + rel, "processors": "minecraft:empty",
+                                                                   "projection": "rigid", "element_type": "minecraft:single_pool_element"}})
+        write_json("worldgen/template_pool/city/" + pool + ".json", data)
+    print("prospekts:", made)
+
+
 def level_streets():
     """Streets lie flat like the houses (rigid, not following the hills): with the box beard the whole city stands on one level."""
     root = os.path.join(DATA, "worldgen", "template_pool", "city")
@@ -585,6 +705,7 @@ def main():
     level_streets()
     russify_signs()
     add_yards()
+    add_prospekts()
     decorate_all()
     write_json("tags/worldgen/biome/has_structure/city.json", {"replace": False, "values": BIOMES})
     # A city is a village to the game too (maps, /locate #village, Mob Talk's VillageSites).

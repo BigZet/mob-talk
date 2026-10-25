@@ -118,6 +118,24 @@
         "projection": "rigid",
         "element_type": "minecraft:legacy_single_pool_element"
       }
+    },
+    {
+      "weight": 6,
+      "element": {
+        "location": "mobtalk:city/ours/prospekt/5th_brick_1",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 6,
+      "element": {
+        "location": "mobtalk:city/ours/prospekt/5th_brick_2",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
     }
   ]
 }
