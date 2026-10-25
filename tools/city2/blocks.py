@@ -997,8 +997,8 @@ def rails_and_roof():
                                                "east": ("s", None, None), "west": ("s", None, None), "south": ("s", None, "south")})],
           "Плита балкона", "Balcony slab", color="STONE_GRAY")
     decor("canopy", {"c": "concrete", "s": "slab_side", "t": "tin"},
-          [face_box((0, 12, 0), (16, 16, 16), {"up": ("t", None, None), "down": ("c", None, None), "north": ("s", None, None),
-                                               "east": ("s", None, None), "west": ("s", None, None), "south": ("s", None, "south")})],
+          [face_box((0, 0, 0), (16, 4, 16), {"up": ("t", None, None), "down": ("c", None, None), "north": ("s", None, None),
+                                             "east": ("s", None, None), "west": ("s", None, None), "south": ("s", None, "south")})],
           "Козырёк подъезда", "Entrance canopy")
     decor("ceiling_lamp", {"g": "plafond", "m": "metal_grey"},
           [face_box((5, 15.25, 5), (11, 16, 11), {fc: ("m", None, None) for fc in D.FACES}),

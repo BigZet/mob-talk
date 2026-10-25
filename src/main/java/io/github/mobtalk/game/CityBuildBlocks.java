@@ -100,7 +100,7 @@ final class CityBuildBlocks {
             new CityContent.Spec("baltop_alu_r", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 3}, {14, 0, 0, 16, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
             new CityContent.Spec("balcony_roof", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 6, 16}}, 0, MapColor.LIGHT_GRAY, BlockSoundGroup.METAL, true),
             new CityContent.Spec("balcony_slab", CityContent.Mount.GROUND, new double[][] {{0, 10, 0, 16, 16, 16}}, 0, MapColor.STONE_GRAY, BlockSoundGroup.STONE, true),
-            new CityContent.Spec("canopy", CityContent.Mount.GROUND, new double[][] {{0, 12, 0, 16, 16, 16}}, 0, MapColor.STONE_GRAY, BlockSoundGroup.STONE, true),
+            new CityContent.Spec("canopy", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 4, 16}}, 0, MapColor.STONE_GRAY, BlockSoundGroup.STONE, true),
             new CityContent.Spec("ceiling_lamp", CityContent.Mount.GROUND, new double[][] {{4, 12, 4, 12, 16, 12}}, 14, MapColor.WHITE, BlockSoundGroup.GLASS, true),
             new CityContent.Spec("wall_lamp_out", CityContent.Mount.WALL, new double[][] {{5.5, 4, 7.5, 10.5, 13, 16}}, 13, MapColor.WHITE, BlockSoundGroup.GLASS, true),
             new CityContent.Spec("vent_shaft", CityContent.Mount.GROUND, new double[][] {{2, 0, 2, 14, 16, 14}}, 0, MapColor.RED, BlockSoundGroup.STONE, true),

@@ -40,7 +40,7 @@ public final class CityPlan {
     public static final int SQUARE = 30, SQUARE_ROAD = 37, SQUARE_EDGE = 40;
     public static final int STEP = 125;
     /** The 1-464 template: 20 blocks a section plus the closing wall and an apron of 2 round it; 20 deep with the apron. */
-    static final int SECTION = 20, DEPTH = 20, SETBACK = 3;
+    static final int SECTION = 28, DEPTH = 23, SETBACK = 3;
     static final String[] COLOURS = { "grey", "beige", "white", "blue" };
     static final String[] CENTRE_NAMES = { "Администрация", "Дом культуры", "Гостиница", "Универмаг" };
 
