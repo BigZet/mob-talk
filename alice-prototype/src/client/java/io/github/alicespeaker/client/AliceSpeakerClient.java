@@ -45,7 +45,7 @@ public final class AliceSpeakerClient implements ClientModInitializer {
         return thread;
     });
     private final Path protocolLog = FabricLoader.getInstance().getGameDir().resolve("logs").resolve("alicespeaker-protocol.log");
-    private KeyBinding talkKey;
+    private KeyBinding talkKey, micKey;
     private Microphone mic;
     private BlockPos micSpeaker;
     private AliceSession session;
@@ -58,22 +58,31 @@ public final class AliceSpeakerClient implements ClientModInitializer {
 
     @Override public void onInitializeClient() {
         talkKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.alicespeaker.talk", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_B, "key.categories.alicespeaker"));
+        micKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.alicespeaker.microphone", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_N, "key.categories.alicespeaker"));
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
         SelfTest.install(this);
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(this::cancelAll));
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registries) -> dispatcher.register(
-                ClientCommandManager.literal("alice").then(ClientCommandManager.argument("text", StringArgumentType.greedyString())
-                        .executes(context -> {
-                            MinecraftClient client = MinecraftClient.getInstance();
-                            BlockPos speaker = findSpeaker(client);
-                            if (speaker == null) { notice(client, "Рядом нет колонки с Алисой", Formatting.RED); return 0; }
-                            ask(client, speaker, StringArgumentType.getString(context, "text"), null);
-                            return 1;
-                        }))));
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registries) -> {
+            dispatcher.register(ClientCommandManager.literal("alice").then(ClientCommandManager.argument("text", StringArgumentType.greedyString())
+                    .executes(context -> {
+                        MinecraftClient client = MinecraftClient.getInstance();
+                        BlockPos speaker = findSpeaker(client);
+                        if (speaker == null) { notice(client, "Рядом нет колонки с Алисой", Formatting.RED); return 0; }
+                        ask(client, speaker, StringArgumentType.getString(context, "text"), null);
+                        return 1;
+                    })));
+            // send, not execute: the chat screen closes itself right after the command and would close the menu too.
+            dispatcher.register(ClientCommandManager.literal("alicemic").executes(context -> {
+                MinecraftClient client = MinecraftClient.getInstance();
+                client.send(() -> client.setScreen(new MicrophoneScreen(null)));
+                return 1;
+            }));
+        });
     }
 
     private void tick(MinecraftClient client) {
         if (client.player == null || client.world == null) return;
+        while (micKey.wasPressed()) if (client.currentScreen == null && mic == null) client.setScreen(new MicrophoneScreen(null));
         tickMusic(client);
         boolean held = talkKey.isPressed() && client.currentScreen == null;
         if (held && mic == null) {
@@ -95,6 +104,7 @@ public final class AliceSpeakerClient implements ClientModInitializer {
             int expected = generation;
             finished.pcm.whenComplete((pcm, failure) -> client.execute(() -> {
                 if (expected != generation) return;
+                if (finished.fellBack) notice(client, "Микрофон «" + Microphone.chosen() + "» не найден, записала с системного (выбор: N)", Formatting.DARK_GRAY);
                 if (failure != null) notice(client, failure.getMessage(), Formatting.RED);
                 else if (pcm == null) overlay(client, "Слишком коротко");
                 else ask(client, speaker, null, pcm);

@@ -17,6 +17,7 @@ import net.minecraft.world.gen.WorldPresets;
 import net.minecraft.world.level.LevelInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.util.List;
 import java.util.function.BooleanSupplier;
 
 /**
@@ -101,9 +102,30 @@ final class SelfTest {
             await("speaker visible to the client", 20, () -> client.world.getBlockState(speaker).isOf(AliceSpeakerMod.SPEAKER), () -> {
                 check(client.world.getBlockState(speaker).isOf(AliceSpeakerMod.SPEAKER), "speaker placed in the world");
                 int settle = ticks + 40;
-                await("player settled", 5, () -> ticks >= settle, this::askText);
+                await("player settled", 5, () -> ticks >= settle, this::pickMicrophone);
             });
         });
+    }
+
+    // ---- Stage 1b: the microphone menu lists the capture devices and remembers the pick (in this copy's config).
+    private void pickMicrophone() {
+        MicrophoneScreen menu = new MicrophoneScreen(null);
+        client.setScreen(menu);
+        int[] drawn = new int[1];
+        await("microphone menu listed the devices", 20, menu::loaded, () -> { drawn[0] = ticks + 10; await("menu drawn", 2, () -> ticks >= drawn[0], () -> {
+            List<String> devices = menu.listedDevices();
+            log("microphones: " + devices.size() + " " + devices);
+            check(menu.loaded() && client.currentScreen == menu, "microphone menu opens");
+            shot("0-microphones");
+            if (!devices.isEmpty()) {
+                Microphone.choose(devices.get(0));
+                check(Microphone.chosen().equals(devices.get(0)), "picked microphone is remembered");
+            }
+            Microphone.choose("");
+            menu.close();
+            check(client.currentScreen == null, "microphone menu closes");
+            askText();
+        }); });
     }
 
     private BooleanSupplier answered() {
