@@ -1,15 +1,13 @@
-"""Generates the look of Mob Talk's mercantile city women: six glam outfits on the 64x64 player-skin layout (clothes layer of the
-human villagers) and three handbags (item textures and 3D item models) that they carry in the off hand.
+"""Generates the look of Mob Talk's mercantile city women: seven glam outfits on the 64x64 player-skin layout (clothes layer of
+the human villagers).
 
-    python tools/glam_outfits.py            # writes into src/client/resources and src/main/resources
+    python tools/glam_outfits.py            # writes into src/client/resources
 """
-import json, os, random
+import os, random, zlib
 from PIL import Image
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
 CLOTHES = os.path.join(ROOT, 'src/client/resources/assets/mobtalk/human/clothing/glam')
-ITEM_TEX = os.path.join(ROOT, 'src/main/resources/assets/mobtalk/textures/item')
-ITEM_MODEL = os.path.join(ROOT, 'src/main/resources/assets/mobtalk/models/item')
 
 # box name -> (u, v, w, h, d); the overlay boxes (hat, jacket, sleeves, pants) share the shape of their base box
 BOXES = {
@@ -119,7 +117,7 @@ def leopard_dress():
     spots = set()
     def leo(face, box, x, y):
         key = (box, face, x, y)
-        r = random.Random(hash(key) & 0xffff).random()
+        r = random.Random(zlib.crc32(repr(key).encode()) & 0xffff).random()  # не hash(): у строк он меняется от запуска к запуску
         if r < 0.10: return spot
         if r < 0.22: return ring
         return shade(base, 1.0 if r > 0.6 else 0.94)
@@ -292,66 +290,7 @@ OUTFITS = [
     white_suit(),
 ]
 
-# ---- Сумочки: 16x16 текстура, 3D-модель предмета ----
-BAGS = {
-    'handbag_pink': ((236, 120, 170), (250, 200, 224), GOLD),
-    'handbag_leopard': ((214, 160, 84), (60, 40, 24), GOLD),
-    'handbag_black': ((30, 28, 34), (70, 66, 80), GOLD_HI),
-}
-def bag_texture(main, pattern, metal):
-    img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
-    rng = random.Random(7)
-    for y in range(8):  # 0..7: бок сумки (кожа), квадрат 8x8 в левом верху
-        for x in range(8):
-            c = main
-            if main[0] == 214:  # леопард
-                r = rng.random(); c = pattern if r < 0.15 else (120, 78, 36) if r < 0.3 else main
-            elif (x + y) % 4 == 0: c = shade(main, 1.12)
-            if y == 0: c = shade(main, 1.25)
-            if y == 7: c = shade(main, 0.75)
-            img.putpixel((x, y), c + (255,))
-    for y in range(8):  # 8..15: клапан и замок
-        for x in range(8, 16):
-            c = shade(main, 0.9) if y < 4 else main
-            if y == 4: c = shade(main, 0.7)
-            if 11 <= x <= 12 and 3 <= y <= 5: c = metal if y != 4 else GOLD_HI
-            img.putpixel((x, y), c + (255,))
-    for y in range(8, 10):  # ручка-цепочка
-        for x in range(16): img.putpixel((x, y), (metal if (x + y) % 2 else GOLD_LO) + (255,))
-    return img
-
-def box(fr, to, uv_side, uv_front, uv_top):
-    f = {'north': {'uv': uv_front, 'texture': '#t'}, 'south': {'uv': uv_front, 'texture': '#t'},
-         'east': {'uv': uv_side, 'texture': '#t'}, 'west': {'uv': uv_side, 'texture': '#t'},
-         'up': {'uv': uv_top, 'texture': '#t'}, 'down': {'uv': uv_top, 'texture': '#t'}}
-    return {'from': fr, 'to': to, 'faces': f}
-
-def bag_model(name):
-    side, front, top, chain = [0, 0, 2, 8], [0, 0, 8, 8], [8, 0, 16, 4], [0, 8, 16, 10]
-    elements = [
-        box([4, 2, 6.5], [12, 8, 9.5], side, front, top),          # корпус
-        box([3.9, 6, 6.4], [12.1, 8.2, 9.6], [8, 0, 10, 4], [8, 0, 16, 8], top),  # клапан
-        box([5, 8, 7.75], [5.5, 12, 8.25], chain, chain, chain),   # ручка: левая стойка
-        box([10.5, 8, 7.75], [11, 12, 8.25], chain, chain, chain), # правая стойка
-        box([5, 11.5, 7.75], [11, 12, 8.25], chain, chain, chain), # верх ручки
-    ]
-    display = {
-        # Висит на руке: ручка в кулаке, сумка ниже кисти.
-        # В руке у предмета +Y смотрит вперёд, −Z — вниз: поворот X −90 ставит сумку стоймя, сдвиг по −Z опускает её под кулак.
-        'thirdperson_righthand': {'rotation': [-90, 0, 0], 'translation': [0, 0, -3], 'scale': [0.55, 0.55, 0.55]},
-        'thirdperson_lefthand': {'rotation': [-90, 0, 0], 'translation': [0, 0, -3], 'scale': [0.55, 0.55, 0.55]},
-        'firstperson_righthand': {'rotation': [0, -20, 0], 'translation': [1, 1, 0], 'scale': [0.6, 0.6, 0.6]},
-        'firstperson_lefthand': {'rotation': [0, -20, 0], 'translation': [1, 1, 0], 'scale': [0.6, 0.6, 0.6]},
-        'gui': {'rotation': [20, -30, 0], 'translation': [0, 1, 0], 'scale': [1.0, 1.0, 1.0]},
-        'ground': {'translation': [0, 1, 0], 'scale': [0.5, 0.5, 0.5]},
-        'fixed': {'scale': [0.9, 0.9, 0.9]},
-    }
-    return {'textures': {'t': 'mobtalk:item/' + name, 'particle': 'mobtalk:item/' + name}, 'elements': elements, 'display': display}
-
 if __name__ == '__main__':
     os.makedirs(CLOTHES, exist_ok=True)
     for i, img in enumerate(OUTFITS): img.save(os.path.join(CLOTHES, f'{i}.png'))
-    for name, (main, pattern, metal) in BAGS.items():
-        bag_texture(main, pattern, metal).save(os.path.join(ITEM_TEX, name + '.png'))
-        with open(os.path.join(ITEM_MODEL, name + '.json'), 'w', encoding='utf-8') as out: json.dump(bag_model(name), out, indent=1)
-    print('ok', len(OUTFITS), 'outfits,', len(BAGS), 'bags')
+    print('ok', len(OUTFITS), 'outfits')

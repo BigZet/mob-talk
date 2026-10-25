@@ -189,8 +189,8 @@ public final class MobTalkConfig {
     public int rivalStrong = 80, rivalGatherMinutes = 5, rivalLoserPenalty = 10, rivalLoserPauseHours = 2;
     /** Меркантильные горожанки ({@link Mercantile}): включены ли; какая доля взрослых жительниц меркантильна в городе и в деревне
      * (проценты); с какого богатства (изумруды) игрок не голодранец и с какого богат; за сколько минут без подарка она остывает на
-     * {@code mercCoolHearts} сердечек; потолок аппетита (изумруды); сумочка в руке у меркантильной. */
-    public boolean mercantile = true, mercHandbag = true;
+     * {@code mercCoolHearts} сердечек; потолок аппетита (изумруды); наряд меркантильной (шуба, леопард, блёстки). */
+    public boolean mercantile = true, mercOutfit = true;
     public int mercCityPercent = 40, mercVillagePercent = 5, mercPoor = 8, mercRich = 64, mercCoolMinutes = 15, mercCoolHearts = 2, mercAppetiteCap = 64;
     /** Ужин-«тарелочница»: с какой вероятностью (проценты) она после оплаты сразу уходит («подруга позвонила»). */
     public int mercDashPercent = 35;
@@ -321,7 +321,7 @@ public final class MobTalkConfig {
         copy.familyLife = familyLife; copy.weddingChance = weddingChance; copy.birthChance = birthChance; copy.childGrowthDays = childGrowthDays;
         copy.coSleep = coSleep; copy.weddingCeremony = weddingCeremony;
         copy.rivals = rivals; copy.rivalSteal = rivalSteal; copy.rivalTrials = rivalTrials; copy.rivalBellScene = rivalBellScene; copy.rivalHud = rivalHud;
-        copy.mercantile = mercantile; copy.mercHandbag = mercHandbag;
+        copy.mercantile = mercantile; copy.mercOutfit = mercOutfit;
         copy.pregnancy = pregnancy; copy.pregnancyBelly = pregnancyBelly; copy.pregnancyStatus = pregnancyStatus; copy.familyFade = familyFade;
         Tunables.copy(this, copy);
         copy.commandLevels = commandLevels == null ? new LinkedHashMap<>() : new LinkedHashMap<>(commandLevels);

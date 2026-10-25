@@ -61,7 +61,7 @@ public final class MobGameBridge implements GameBridge {
     final DivineController divine;
     /** Трек J: ревность пар игрока и сон вместе. */
     final JealousyController jealousy;
-    /** Меркантильные горожанки: кто меркантильна, сумочка в руке. */
+    /** Меркантильные горожанки: кто меркантильна, флаг наряда. */
     final MercantileController mercantile;
     /** П3: соперники за одно сердце — уведомления, испытания, выбор у колокола. */
     public final RivalryController rivalry;

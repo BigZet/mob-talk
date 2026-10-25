@@ -185,7 +185,7 @@ public final class SocialLedger {
         GiftCatalog.Value value = GiftCatalog.weigh(item, new GiftCatalog.Receiver(p.social.persona(), p.social.traits(), profession, child), rapport.given(item, now));
         String note = !value.known() ? "" : value.offends() ? value.category() + ", тебе это претит" : value.category();
         GestureIntent intent = new GestureIntent(Gesture.GIFT, value.tier(), value.hearts(), item, note);
-        return Mercantile.active(p) && !child ? Mercantile.gift(intent, rapport, item) : intent;
+        return Mercantile.active(p) && !child ? Mercantile.gift(intent, rapport, item, rapport.given(item, now)) : intent;
     }
 
     /** A gift thrown at the villager's feet (no conversation): weighed and applied at once; null when the villager is outside the

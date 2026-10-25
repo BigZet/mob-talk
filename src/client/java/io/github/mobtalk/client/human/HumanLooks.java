@@ -43,8 +43,8 @@ public final class HumanLooks {
         String profession = Registries.VILLAGER_PROFESSION.getId(villager.getVillagerData().getProfession()).getPath();
         // Свадебный убор на голове (трек L) — праздничный наряд: невеста, жених, подружка, дружка.
         String outfit = WeddingItems.outfit(villager.getEquippedStack(EquipmentSlot.HEAD));
-        // Сумочка в левой руке — меркантильная горожанка: шуба, леопард, блёстки (свадебный убор важнее).
-        if (outfit.isEmpty() && io.github.mobtalk.game.MercantileController.handbag(villager.getEquippedStack(EquipmentSlot.OFFHAND))) outfit = "glam";
+        // Флаг наряда с сервера — меркантильная горожанка: шуба, леопард, блёстки (свадебный убор важнее).
+        if (outfit.isEmpty() && io.github.mobtalk.game.GlamLook.of(villager)) outfit = "glam";
         Key key = new Key(type, profession, villager.isBaby(), lineages.get(id), outfit);
         Cached cached = CACHE.get(id);
         if (cached != null && cached.key.equals(key)) return cached.look;

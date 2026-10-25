@@ -31,7 +31,8 @@
     "VillagerRiderMixin",
     "VillagerRiderFacingMixin",
     "SteedCalmMixin",
-    "KeepHandsMixin"
+    "KeepHandsMixin",
+    "VillagerGlamMixin"
   ],
   "injectors": {
     "defaultRequire": 1

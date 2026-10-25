@@ -445,7 +445,7 @@ final class MobTalkSettingsScreen extends Screen {
                     wide(tip(toggle("mobtalk.settings.rivalHud", draft.rivalHud, value -> draft.rivalHud = value), "mobtalk.settings.rivalHud.tooltip"));
                 }),
                 Map.<String, Runnable>entry("mercantile", () -> wide(tip(toggle("mobtalk.settings.mercantile", draft.mercantile, value -> draft.mercantile = value), "mobtalk.settings.mercantile.tooltip"),
-                        tip(toggle("mobtalk.settings.mercHandbag", draft.mercHandbag, value -> draft.mercHandbag = value), "mobtalk.settings.mercHandbag.tooltip"))),
+                        tip(toggle("mobtalk.settings.mercOutfit", draft.mercOutfit, value -> draft.mercOutfit = value), "mobtalk.settings.mercOandbag.tooltip"))),
                 Map.<String, Runnable>entry("child", () -> {
                     wide(tip(toggle("mobtalk.settings.pregnancy", draft.pregnancy, value -> draft.pregnancy = value), "mobtalk.settings.pregnancy.tooltip"),
                             tip(toggle("mobtalk.settings.familyFade", draft.familyFade, value -> draft.familyFade = value), "mobtalk.settings.familyFade.tooltip"));

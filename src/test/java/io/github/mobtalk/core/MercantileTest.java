@@ -53,6 +53,9 @@ class MercantileTest {
         assertEquals(Gesture.Outcome.GOOD, emerald.outcome());
         assertEquals(1, emerald.hearts(), "изумруд теперь — «и это всё?»");
         assertTrue(Mercantile.price(Mercantile.wish(r).item()) >= Mercantile.appetite(r));
+        GestureIntent again = Mercantile.gift(new GestureIntent(Gesture.GIFT, Gesture.Outcome.GOOD, 3, Mercantile.wish(r).item()), r, Mercantile.wish(r).item(), 1);
+        GestureIntent fresh = Mercantile.gift(new GestureIntent(Gesture.GIFT, Gesture.Outcome.GOOD, 3, Mercantile.wish(r).item()), r, Mercantile.wish(r).item(), 0);
+        assertTrue(again.hearts() < fresh.hearts(), "то же самое подряд — уже не желанное: " + again.hearts() + " < " + fresh.hearts());
         GestureIntent allergy = new GestureIntent(Gesture.GIFT, Gesture.Outcome.REFUSED, -5, "minecraft:cake");
         assertSame(allergy, Mercantile.gift(allergy, r, "minecraft:cake"), "аллергия сильнее жадности");
     }

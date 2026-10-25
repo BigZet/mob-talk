@@ -122,17 +122,19 @@ public final class Mercantile {
     }
 
     /** Подарок глазами меркантильной: дорогое — радость (желанное — вдвойне), дешевле аппетита — «и это всё?», мелочь — не берёт. */
-    static GestureIntent gift(GestureIntent base, Rapport r, String item) {
+    static GestureIntent gift(GestureIntent base, Rapport r, String item) { return gift(base, r, item, 0); }
+    /** {@code repeats} — сколько таких же она получила недавно: то же самое подряд радует всё меньше, и «желанным» оно уже не считается. */
+    static GestureIntent gift(GestureIntent base, Rapport r, String item, int repeats) {
         if (base == null || base.outcome() == Gesture.Outcome.REFUSED && base.hearts() < 0) return base; // Аллергия сильнее жадности.
         int price = price(item), appetite = appetite(r);
         if (price <= 0) return new GestureIntent(Gesture.GIFT, Gesture.Outcome.REFUSED, -1, item,
                 "дешёвка, за кого он тебя держит — ты такое не берёшь, ждёшь хотя бы " + wish(r).words());
-        boolean wished = item.equals(wish(r).item());
+        boolean wished = repeats <= 0 && item.equals(wish(r).item());
         if (price < appetite) return new GestureIntent(Gesture.GIFT, Gesture.Outcome.GOOD, 1, item,
                 "маловато: возьмёшь, но с кислой миной — ты рассчитывала на " + wish(r).words());
-        int hearts = Math.max(base.hearts(), 2 + 2 * price / Math.max(1, appetite)) + (wished ? 5 : 0);
+        int hearts = (Math.max(base.hearts(), 2 + 2 * price / Math.max(1, appetite)) + (wished ? 5 : 0)) / (1 + Math.max(0, repeats));
         return new GestureIntent(Gesture.GIFT, wished ? Gesture.Outcome.BEST : price >= appetite * 3 ? Gesture.Outcome.BEST : Gesture.Outcome.BETTER,
-                Math.min(25, hearts), item, wished ? "ровно то, что ты хотела! ты в восторге" : "дорого — тебе приятно, ты сразу теплеешь");
+                Math.max(1, Math.min(25, hearts)), item, wished ? "ровно то, что ты хотела! ты в восторге" : "дорого — тебе приятно, ты сразу теплеешь");
     }
     /** Подарок принят: аппетит растёт (не выше потолка), часы охлаждения начинаются заново. */
     static void paid(Rapport r, String item, MobTalkConfig c, long now) {

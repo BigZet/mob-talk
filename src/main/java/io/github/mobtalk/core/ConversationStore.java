@@ -132,7 +132,7 @@ public final class ConversationStore {
     }
 
     /** Меркантильные горожанки, игровая сторона: житель попался на глаза — решить раз, меркантильна ли она; ответ — меркантильна ли
-     * сейчас (для сумочки в руке). */
+     * сейчас (для наряда). */
     public synchronized boolean mercantile(UUID mob, String name, boolean adult, boolean city, MobTalkConfig live) {
         if (mob == null || !Mercantile.on(live) || !live.socialLayer) return false;
         Profile p = ensure(mob, "minecraft:villager", name);
