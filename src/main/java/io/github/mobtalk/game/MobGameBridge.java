@@ -70,6 +70,8 @@ public final class MobGameBridge implements GameBridge {
     public final WeddingController wedding;
     /** Трек N: особая ночь, беременность, роды. */
     public final ChildController children;
+    /** The village bar's evenings: guests on the stools, the bartender, the jukebox, the talk over rumours. */
+    final BarEvenings bars;
     private final Map<UUID, Deque<Heard>> heard = new HashMap<>();
 
     private MobGameBridge(MinecraftServer server, ConversationStore memory, MobTalkConfig config) {
@@ -88,6 +90,7 @@ public final class MobGameBridge implements GameBridge {
         children = new ChildController(this);
         initiative = new InitiativeController(this);
         talk = new VillageTalkController(this);
+        bars = new BarEvenings(this);
         actions = new MobActionController(this);
         bargaining = new VillagerBargaining(this);
         trading = new MobTrading(this);
@@ -181,6 +184,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.children.tick(world);
                 bridge.initiative.tick(world);
                 bridge.talk.tick(world);
+                bridge.bars.tick(world);
                 bridge.bargaining.tick(world);
                 bridge.trades.tick(world);
                 bridge.changes.tick(bridge, world);
@@ -207,6 +211,10 @@ public final class MobGameBridge implements GameBridge {
         return bridge;
     }
 
+    /** The bars found around players and their evenings (self-test, /mobtalk bar). */
+    public List<String> barStatus(ServerWorld world) { return bars.describe(world); }
+    /** Where the bartender of the bar near this spot stands, null without an open bar (self-test). */
+    public BlockPos barStand(BlockPos near) { return bars.bartenderStand(near); }
     public static MobGameBridge active(MinecraftServer server) {
         MobGameBridge bridge = active;
         return bridge != null && bridge.server == server ? bridge : null;
@@ -220,7 +228,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.memory.recordAction(card.id(), ActionIntent.none());
         if (server.isStopped()) return CompletableFuture.completedFuture(null);
         CompletableFuture<Void> done = new CompletableFuture<>();
-        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.divine.clearRuntime(); bridge.defense.clearRuntime(); bridge.officials.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.rivalry.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
+        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.divine.clearRuntime(); bridge.defense.clearRuntime(); bridge.officials.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.rivalry.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bars.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
         return done;
     }
     /** Б1: an event of the divine block (JSON), from any thread; dropped when no world is open. */

@@ -449,6 +449,11 @@ public final class ConversationStore {
      * the other has not; the two may be swapped for that. */
     public synchronized VillageChatter.Input chatterInput(VillageChatter.Seat first, VillageChatter.Seat second, String villageKey, String villageName,
                                                           String playerName, String weather, java.util.function.DoubleSupplier roll, long now) {
+        return chatterInput(first, second, villageKey, villageName, playerName, weather, roll, now, false);
+    }
+    /** {@code bar}: the two sit in the village bar of an evening; they chew over the village's rumours even when both have heard them. */
+    public synchronized VillageChatter.Input chatterInput(VillageChatter.Seat first, VillageChatter.Seat second, String villageKey, String villageName,
+                                                          String playerName, String weather, java.util.function.DoubleSupplier roll, long now, boolean bar) {
         Profile p = chatterProfile(first, villageKey), q = chatterProfile(second, villageKey);
         String village = p.villageId.isBlank() ? q.villageId : p.villageId;
         VillageRumors.View told = state.rumors.untold(village, p.id, q.id, now);
@@ -463,9 +468,16 @@ public final class ConversationStore {
         UUID other = q.id;
         boolean acquainted = state.relations.views(p.id, now).stream().anyMatch(v -> v.other().equals(other));
         VillageRumors.View god = village.isBlank() || !Tuning.get().divineTidings ? null : state.rumors.latestDivine(village, VillageChatter.GOD_TOPIC_MILLIS, now);
-        VillageChatter.Subject subject = VillageChatter.subject(a, b, new VillageChatter.Facts(told, repute, weather, recent, god == null ? "" : god.text()), roll);
+        VillageChatter.Facts facts = new VillageChatter.Facts(told, repute, weather, recent, god == null ? "" : god.text());
+        VillageChatter.Subject subject;
+        if (bar) {
+            List<VillageRumors.View> known = village.isBlank() ? List.of() : state.rumors.heardBy(p.id, village, now);
+            if (known.isEmpty() && !village.isBlank()) known = state.rumors.village(village, now);
+            VillageRumors.View chew = known.isEmpty() ? null : known.get(Math.min(known.size() - 1, (int) (roll.getAsDouble() * Math.min(3, known.size()))));
+            subject = VillageChatter.barSubject(a, b, facts, chew, roll);
+        } else subject = VillageChatter.subject(a, b, facts, roll);
         scheduleSave();
-        return new VillageChatter.Input(villageKey, villageName, a, b, subject, safePlayer(playerName), weather, acquainted);
+        return new VillageChatter.Input(villageKey, villageName, a, b, subject, safePlayer(playerName), weather, acquainted, bar);
     }
     private Profile chatterProfile(VillageChatter.Seat seat, String villageKey) {
         Profile p = ensure(seat.id(), seat.type(), seat.observedName());

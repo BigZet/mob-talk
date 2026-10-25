@@ -62,6 +62,8 @@ final class SelfTest {
     static final boolean ONLY_GUARDS = "guards".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=officials}: officials — desks, ranks, looks, bribes, witnesses, the inspector's order (no LLM, no voice). */
     static final boolean ONLY_OFFICIALS = "officials".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=bar}: the village bar, its evening and villages with bars (no LLM, no voice). */
+    static final boolean ONLY_BAR = "bar".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=voices}: new villagers get an age and a pool voice of their sex and age with no early repeats,
      * and one villager of each age is voiced through OpenRouter (no LLM). */
     static final boolean ONLY_VOICES = "voices".equals(System.getProperty("mobtalk.selftest.only"));
@@ -178,6 +180,7 @@ final class SelfTest {
                 : ONLY_DEFENSE ? () -> new SelfTestDefense(this, sx, SY, sz).run(this::finish)
                 : ONLY_TOWERS ? () -> new SelfTestTowers(this, sx, SY, sz).run(this::finish)
                 : ONLY_GUARDS ? () -> new SelfTestGuards(this, sx, SY, sz).run(this::finish)
+                : ONLY_BAR ? () -> new SelfTestBar(this, sx, SY, sz).run(this::finish)
                 : ONLY_OFFICIALS ? () -> new SelfTestOfficials(this, sx, SY, sz).run(this::finish)
                 : ONLY_LOOKS ? () -> new SelfTestLooks(this, sx, SY, sz).run(this::finish) : ONLY_NAMES ? this::names : ONLY_VOICES ? this::voices : this::aim);
     }
