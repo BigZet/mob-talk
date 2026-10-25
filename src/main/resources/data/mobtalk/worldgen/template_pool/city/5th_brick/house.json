@@ -124,6 +124,51 @@
         "projection": "rigid",
         "element_type": "minecraft:single_pool_element"
       }
+    },
+    {
+      "weight": 41,
+      "element": {
+        "location": "mobtalk:city/ours/landmark/dom_byta_5th",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 41,
+      "element": {
+        "location": "mobtalk:city/ours/landmark/hotel_5th",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 41,
+      "element": {
+        "location": "mobtalk:city/ours/landmark/school_5th",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 41,
+      "element": {
+        "location": "mobtalk:city/ours/landmark/univermag_5th",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 41,
+      "element": {
+        "location": "mobtalk:city/ours/landmark/fountain_5th",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
     }
   ]
 }

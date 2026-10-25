@@ -23,19 +23,22 @@ FLOWERS = ("minecraft:poppy", "minecraft:dandelion", "minecraft:cornflower", "mi
 
 
 class Yard:
-    def __init__(self, r):
+    def __init__(self, r, size=(SX, SY, SZ)):
         self.r = r
+        self.size = size
         self.cells = {}
-        for x in range(SX):
-            for z in range(SZ):
+        sx, sy, sz = size
+        for x in range(sx):
+            for z in range(sz):
                 for y in range(G):
                     self.cells[(x, y, z)] = ("minecraft:dirt", None, None)
                 self.cells[(x, G, z)] = ("minecraft:grass_block", {"snowy": "false"}, None)
-                for y in range(G + 1, SY):
+                for y in range(G + 1, sy):
                     self.cells[(x, y, z)] = ("minecraft:air", None, None)
 
     def set(self, x, y, z, name, props=None, block_nbt=None):
-        if 0 <= x < SX and 0 <= y < SY and 0 <= z < SZ:
+        sx, sy, sz = self.size
+        if 0 <= x < sx and 0 <= y < sy and 0 <= z < sz:
             self.cells[(x, y, z)] = (name, props, block_nbt)
 
     def ground(self, x, z, name, props=None):
@@ -121,12 +124,12 @@ class Yard:
                 if self.free(x, z) and self.cells[(x, G, z)][0] == "minecraft:grass_block" and self.r.random() < density:
                     self.set(x, G + 1, z, self.r.choice(FLOWERS))
 
-    def connector(self, name):
+    def connector(self, name, z=MID):
         jig = nbt.c(id=nbt.Tag(nbt.STRING, "minecraft:jigsaw"), name=nbt.Tag(nbt.STRING, name),
                     target=nbt.Tag(nbt.STRING, "minecraft:empty"), pool=nbt.Tag(nbt.STRING, "minecraft:empty"),
                     final_state=nbt.Tag(nbt.STRING, "minecraft:air"), joint=nbt.Tag(nbt.STRING, "aligned"),
                     placement_priority=nbt.Tag(nbt.INT, 0), selection_priority=nbt.Tag(nbt.INT, 0))
-        self.set(0, G + 1, MID, "minecraft:jigsaw", {"orientation": "west_up"}, jig)
+        self.set(0, G + 1, z, "minecraft:jigsaw", {"orientation": "west_up"}, jig)
 
     def tag(self):
         palette, index, blocks = [], {}, []
@@ -143,7 +146,7 @@ class Yard:
             if block_nbt is not None:
                 b.value["nbt"] = block_nbt
             blocks.append(b)
-        return nbt.c(size=nbt.Tag(nbt.LIST, [nbt.Tag(nbt.INT, v) for v in (SX, SY, SZ)], nbt.INT),
+        return nbt.c(size=nbt.Tag(nbt.LIST, [nbt.Tag(nbt.INT, v) for v in self.size], nbt.INT),
                      blocks=nbt.Tag(nbt.LIST, blocks, nbt.COMPOUND), palette=nbt.Tag(nbt.LIST, palette, nbt.COMPOUND),
                      entities=nbt.Tag(nbt.LIST, [], nbt.COMPOUND), DataVersion=nbt.Tag(nbt.INT, DATA_VERSION))
 
