@@ -78,31 +78,43 @@ public final class ShopContent {
         BREAD("shop_bread_rack", 3, ShopCatalog.Place.BREAD, false),
         FRIDGE("shop_fridge", 3, ShopCatalog.Place.FRIDGE, false),
         FREEZER("shop_freezer", 2, ShopCatalog.Place.FREEZER, false),
-        PRODUCE("shop_produce", 3, ShopCatalog.Place.PRODUCE, false);
+        PRODUCE("shop_produce", 3, ShopCatalog.Place.PRODUCE, false),
+        // the market (рынок): stalls under awnings and the old women's tables; paid to the vendor on the spot (MarketController)
+        VEG_STALL("market_veg_stall", 3, ShopCatalog.Place.PRODUCE, false),
+        MEAT_STALL("market_meat_stall", 3, ShopCatalog.Place.FREEZER, false),
+        DAIRY_STALL("market_dairy_stall", 3, ShopCatalog.Place.FRIDGE, false),
+        GRANNY_TABLE("market_granny_table", 2, ShopCatalog.Place.HOMEMADE, false);
         public final String id; public final int lanes; public final ShopCatalog.Place place; public final boolean twoSided;
         Display(String id, int lanes, ShopCatalog.Place place, boolean twoSided) { this.id = id; this.lanes = lanes; this.place = place; this.twoSided = twoSided; }
+
+        /** A market display: no till, the vendor takes the money as the goods are handed over. */
+        public boolean market() { return id.startsWith("market_"); }
 
         /** The lane under a point of the block in the north-facing model's frame (0..1 each way): tiers go by height, the freezer's
          * halves and the produce stand's crates go along the front. */
         public int lane(double x, double y) {
             return switch (this) {
-                case FREEZER -> x < 0.5 ? 0 : 1;
-                case PRODUCE -> Math.min(2, (int) (x * 3));
+                case FREEZER, GRANNY_TABLE -> x < 0.5 ? 0 : 1;
+                case PRODUCE, VEG_STALL, MEAT_STALL, DAIRY_STALL -> Math.min(2, (int) (x * 3));
                 default -> y < 5 / 16.0 ? 0 : y < 10 / 16.0 ? 1 : 2;
             };
         }
         /** The most lots a lane holds when full. */
-        public int capacity() { return this == FREEZER ? 10 : 8; }
+        public int capacity() { return this == FREEZER ? 10 : this == GRANNY_TABLE ? 6 : 8; }
     }
 
     public static final Map<Display, Block> DISPLAYS = new EnumMap<>(Display.class);
     public static BlockEntityType<DisplayBlockEntity> DISPLAY_ENTITY;
     public static Block CASH_REGISTER, SELF_CHECKOUT, BASKET_STACK, CART_CORRAL, THEFT_GATE, GUARD_DESK;
+    /** The market's fittings: the vendor's scales (their job site), the yellow kvass barrel, sacks of potatoes. */
+    public static Block MARKET_SCALES, KVASS_BARREL, POTATO_SACKS;
     public static Item BASKET, CART;
     public static final Identifier CASH_REGISTER_ID = Identifier.of("mobtalk", "cash_register"), GUARD_DESK_ID = Identifier.of("mobtalk", "shop_guard_desk");
     public static final RegistryKey<PointOfInterestType> CASH_REGISTER_POI = RegistryKey.of(RegistryKeys.POINT_OF_INTEREST_TYPE, CASH_REGISTER_ID);
     public static final RegistryKey<PointOfInterestType> GUARD_DESK_POI = RegistryKey.of(RegistryKeys.POINT_OF_INTEREST_TYPE, GUARD_DESK_ID);
-    public static VillagerProfession CASHIER, SHOP_GUARD;
+    public static VillagerProfession CASHIER, SHOP_GUARD, VENDOR;
+    public static final Identifier VENDOR_ID = Identifier.of("mobtalk", "market_vendor");
+    public static final RegistryKey<PointOfInterestType> VENDOR_POI = RegistryKey.of(RegistryKeys.POINT_OF_INTEREST_TYPE, VENDOR_ID);
     /** The shop's own sounds (tools/city/shop_sounds.py): scanner beep, till drawer, gate alarm, PA chime, fridge hum, cart, music. */
     public static net.minecraft.sound.SoundEvent SOUND_BEEP, SOUND_DRAWER, SOUND_ALARM, SOUND_CHIME, SOUND_HUM, SOUND_CART, SOUND_MUSIC;
     /** Every block of a shop, for «is the player still inside the shop». */
@@ -122,7 +134,14 @@ public final class ShopContent {
             Map.entry("basket_stack", new double[][] {{2, 0, 3, 14, 12, 13}}),
             Map.entry("cart_corral", new double[][] {{1, 0, 0, 15, 15, 16}}),
             Map.entry("theft_gate", new double[][] {{6, 0, 3, 10, 16, 13}}),
-            Map.entry("shop_guard_desk", new double[][] {{0, 0, 2, 16, 12, 14}}));
+            Map.entry("shop_guard_desk", new double[][] {{0, 0, 2, 16, 12, 14}}),
+            Map.entry("market_veg_stall", new double[][] {{0, 0, 1, 16, 13, 16}}),
+            Map.entry("market_meat_stall", new double[][] {{0, 0, 1, 16, 12, 16}}),
+            Map.entry("market_dairy_stall", new double[][] {{0, 0, 1, 16, 12, 16}}),
+            Map.entry("market_granny_table", new double[][] {{1, 0, 2, 15, 10, 14}}),
+            Map.entry("market_scales", new double[][] {{0, 0, 1, 16, 15, 16}}),
+            Map.entry("kvass_barrel", new double[][] {{0, 0, 1, 16, 16, 15}}),
+            Map.entry("potato_sacks", new double[][] {{1, 0, 1, 15, 12, 15}}));
 
     public static void register() {
         if (registered) return;
@@ -138,6 +157,9 @@ public final class ShopContent {
         CART_CORRAL = block("cart_corral", new ShopBlock(settings(MapColor.IRON_GRAY, BlockSoundGroup.CHAIN, 0), "cart_corral"), items);
         THEFT_GATE = block("theft_gate", new ShopBlock(settings(MapColor.GRAY, BlockSoundGroup.METAL, 0).noCollision(), "theft_gate"), items);
         GUARD_DESK = block("shop_guard_desk", new ShopBlock(settings(MapColor.BROWN, BlockSoundGroup.WOOD, 0), "shop_guard_desk"), items);
+        MARKET_SCALES = block("market_scales", new ShopBlock(settings(MapColor.OAK_TAN, BlockSoundGroup.WOOD, 0), "market_scales"), items);
+        KVASS_BARREL = block("kvass_barrel", new ShopBlock(settings(MapColor.YELLOW, BlockSoundGroup.METAL, 0), "kvass_barrel"), items);
+        POTATO_SACKS = block("potato_sacks", new ShopBlock(settings(MapColor.BROWN, BlockSoundGroup.WOOL, 0), "potato_sacks"), items);
         DISPLAY_ENTITY = Registry.register(Registries.BLOCK_ENTITY_TYPE, Identifier.of("mobtalk", "shop_display"),
                 BlockEntityType.Builder.create(DisplayBlockEntity::new, DISPLAYS.values().toArray(Block[]::new)).build(null));
         BASKET = Registry.register(Registries.ITEM, Identifier.of("mobtalk", "shopping_basket"), new BasketItem(new Item.Settings().maxCount(1), BASKET_LOTS));
@@ -149,12 +171,16 @@ public final class ShopContent {
         SOUND_HUM = sound("shop.hum"); SOUND_CART = sound("shop.cart"); SOUND_MUSIC = sound("shop.music");
         PointOfInterestHelper.register(CASH_REGISTER_ID, 1, 1, CASH_REGISTER);
         PointOfInterestHelper.register(GUARD_DESK_ID, 1, 1, GUARD_DESK);
+        PointOfInterestHelper.register(VENDOR_ID, 1, 1, MARKET_SCALES, DISPLAYS.get(Display.GRANNY_TABLE));
         CASHIER = Registry.register(Registries.VILLAGER_PROFESSION, Identifier.of("mobtalk", "cashier"),
                 new VillagerProfession("cashier", entry -> entry.matchesKey(CASH_REGISTER_POI), entry -> entry.matchesKey(CASH_REGISTER_POI),
                         ImmutableSet.of(), ImmutableSet.of(), SoundEvents.ENTITY_VILLAGER_WORK_LIBRARIAN));
         SHOP_GUARD = Registry.register(Registries.VILLAGER_PROFESSION, Identifier.of("mobtalk", "shop_guard"),
                 new VillagerProfession("shop_guard", entry -> entry.matchesKey(GUARD_DESK_POI), entry -> entry.matchesKey(GUARD_DESK_POI),
                         ImmutableSet.of(), ImmutableSet.of(), SoundEvents.ENTITY_VILLAGER_WORK_ARMORER));
+        VENDOR = Registry.register(Registries.VILLAGER_PROFESSION, VENDOR_ID,
+                new VillagerProfession("market_vendor", entry -> entry.matchesKey(VENDOR_POI), entry -> entry.matchesKey(VENDOR_POI),
+                        ImmutableSet.of(), ImmutableSet.of(), SoundEvents.ENTITY_VILLAGER_WORK_FARMER));
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> items.forEach(entries::add));
     }
 
@@ -177,6 +203,7 @@ public final class ShopContent {
     }
 
     public static boolean cashier(net.minecraft.entity.passive.VillagerEntity villager) { return CASHIER != null && villager.getVillagerData().getProfession() == CASHIER; }
+    public static boolean vendor(net.minecraft.entity.passive.VillagerEntity villager) { return VENDOR != null && villager.getVillagerData().getProfession() == VENDOR; }
     public static boolean guard(net.minecraft.entity.passive.VillagerEntity villager) { return SHOP_GUARD != null && villager.getVillagerData().getProfession() == SHOP_GUARD; }
 
     /** A point of a block's hit in the north-facing model's frame (x along the front, y up, z from the front back), 0..1. */
@@ -216,6 +243,7 @@ public final class ShopContent {
                 case "cash_register" -> { ShopController.checkout((ServerWorld) world, pos, serverPlayer, false); yield ActionResult.CONSUME; }
                 case "self_checkout" -> { ShopController.checkout((ServerWorld) world, pos, serverPlayer, true); yield ActionResult.CONSUME; }
                 case "basket_stack" -> { ShopController.basketStack((ServerWorld) world, pos, serverPlayer); yield ActionResult.CONSUME; }
+                case "kvass_barrel" -> { MarketController.kvass((ServerWorld) world, pos, serverPlayer); yield ActionResult.CONSUME; }
                 case "cart_corral" -> { ShopController.cartStack((ServerWorld) world, pos, serverPlayer); yield ActionResult.CONSUME; }
                 default -> ActionResult.PASS;
             };

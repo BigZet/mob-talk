@@ -125,6 +125,11 @@ public final class MobTalkConfig {
     public boolean shopTheftAlarm = true;
     /** The supermarket's sounds: scanner beeps, the till, the gate's alarm, fridges, PA chime, music, carts. */
     public boolean shopSounds = true;
+    /** City markets: vendors at their stalls sell for emeralds on the spot (haggling allowed); they call out to passers-by. */
+    public boolean cityMarkets = true;
+    public boolean marketCalls = true;
+    /** How often a vendor gives way when a player haggles (sneak + take): a lot one emerald cheaper, or a bit extra for free. */
+    public int marketHagglePercent = 50;
     /** Minutes between deliveries: an emptied display is full again after this long. */
     public int shopRestockMinutes = 20;
     /** Prices against the catalogue, percent. */
@@ -316,7 +321,7 @@ public final class MobTalkConfig {
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
         copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards;
-        copy.cityShops = cityShops; copy.shopStaff = shopStaff; copy.shopTheftAlarm = shopTheftAlarm; copy.shopSounds = shopSounds;
+        copy.cityShops = cityShops; copy.shopStaff = shopStaff; copy.shopTheftAlarm = shopTheftAlarm; copy.shopSounds = shopSounds; copy.cityMarkets = cityMarkets; copy.marketCalls = marketCalls;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;

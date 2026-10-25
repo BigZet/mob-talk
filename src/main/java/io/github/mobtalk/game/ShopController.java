@@ -278,6 +278,7 @@ public final class ShopController {
     }
 
     public static void take(ServerWorld world, ShopContent.DisplayBlockEntity display, int index, ServerPlayerEntity player) {
+        if (display.display().market()) { MarketController.buy(world, display, index, player); return; }
         if (!config(world).cityShops) return;
         if (!display.stocked) tickDisplay(world, display);
         ShopContent.DisplayBlockEntity.Lane lane = display.lanes[Math.min(index, display.lanes.length - 1)];
@@ -404,7 +405,7 @@ public final class ShopController {
             bridge.event(cashier, "Пробила покупку игроку " + MobGameBridge.playerName(player) + " на " + cost + " изумр.");
     }
 
-    private static void remove(PlayerInventory inventory, net.minecraft.item.Item item, int amount) {
+    static void remove(PlayerInventory inventory, net.minecraft.item.Item item, int amount) {
         for (int i = 0; i < inventory.size() && amount > 0; i++) {
             ItemStack stack = inventory.getStack(i);
             if (!stack.isOf(item) || unpaid(stack)) continue;
@@ -422,7 +423,7 @@ public final class ShopController {
     }
 
     /** «<Name> » before a line: the name the villager goes by in Mob Talk, else its trade (translated on the client). */
-    private static MutableText name(ServerWorld world, VillagerEntity villager) {
+    static MutableText name(ServerWorld world, VillagerEntity villager) {
         if (villager == null) return Text.literal("<?> ");
         MobGameBridge bridge = MobGameBridge.active(world.getServer());
         String name = bridge == null ? null : bridge.memory.displayName(villager.getUuid());
@@ -441,7 +442,7 @@ public final class ShopController {
         for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, new Box(till).expand(SERVE_REACH), v -> v.isAlive() && !v.isSleeping() && ShopContent.cashier(v)))
             if (villager.squaredDistanceTo(at) <= SERVE_REACH * SERVE_REACH) return villager;
         // The till's own cashier wandered off a little: called back, serves from where they are.
-        VillagerEntity own = worker(world, till, true);
+        VillagerEntity own = worker(world, till, Role.CASHIER);
         if (own != null && !own.isSleeping() && own.squaredDistanceTo(at) <= CALL_REACH * CALL_REACH) {
             walk(own, stand(world, till), 0.7f);
             return own;
@@ -466,30 +467,51 @@ public final class ShopController {
         if (now % STAFF_PERIOD == 37 && config.shopStaff) staff(world, now);
     }
 
+    /** Who works at a post: the till's cashier, the guard at the desk, the market vendor at the scales or the old woman's table. */
+    enum Role {
+        CASHIER, GUARD, VENDOR;
+        static Role at(ServerWorld world, BlockPos post) {
+            BlockState state = world.getBlockState(post);
+            return state.isOf(ShopContent.CASH_REGISTER) ? CASHIER : state.isOf(ShopContent.GUARD_DESK) ? GUARD : VENDOR;
+        }
+        boolean is(VillagerEntity villager) {
+            return switch (this) { case CASHIER -> ShopContent.cashier(villager); case GUARD -> ShopContent.guard(villager); case VENDOR -> ShopContent.vendor(villager); };
+        }
+        net.minecraft.village.VillagerProfession profession() {
+            return switch (this) { case CASHIER -> ShopContent.CASHIER; case GUARD -> ShopContent.SHOP_GUARD; case VENDOR -> ShopContent.VENDOR; };
+        }
+        net.minecraft.registry.RegistryKey<net.minecraft.world.poi.PointOfInterestType> poi() {
+            return switch (this) { case CASHIER -> ShopContent.CASH_REGISTER_POI; case GUARD -> ShopContent.GUARD_DESK_POI; case VENDOR -> ShopContent.VENDOR_POI; };
+        }
+    }
+
     private static void staff(ServerWorld world, long now) {
         Set<BlockPos> seen = new HashSet<>();
         PointOfInterestStorage pois = world.getPointOfInterestStorage();
+        MobTalkConfig config = config(world);
         for (ServerPlayerEntity player : world.getPlayers()) {
-            pois.getInSquare(e -> e.matchesKey(ShopContent.CASH_REGISTER_POI) || e.matchesKey(ShopContent.GUARD_DESK_POI), player.getBlockPos(), STAFF_RADIUS,
+            pois.getInSquare(e -> e.matchesKey(ShopContent.CASH_REGISTER_POI) || e.matchesKey(ShopContent.GUARD_DESK_POI)
+                            || (config.cityMarkets && e.matchesKey(ShopContent.VENDOR_POI)), player.getBlockPos(), STAFF_RADIUS,
                     PointOfInterestStorage.OccupationStatus.ANY).forEach(poi -> {
                 BlockPos post = poi.getPos();
                 if (!seen.add(post)) return;
-                boolean till = world.getBlockState(post).isOf(ShopContent.CASH_REGISTER);
-                if (!till) ambience(world, post, now);
-                VillagerEntity worker = worker(world, post, till);
+                Role role = Role.at(world, post);
+                if (role == Role.GUARD) ambience(world, post, now);
+                VillagerEntity worker = worker(world, post, role);
                 if (worker == null) {
                     Long free = VACANT.get(post);
                     if (free == null) { VACANT.put(post, now); free = now; }
                     if (now >= free) {
-                        worker = newcomer(world, post, till);
+                        worker = newcomer(world, post, role);
                         VACANT.put(post, now + STAFF_RETRY_TICKS);
                     }
                 }
                 if (worker == null) return;
                 VACANT.remove(post);
+                if (role == Role.VENDOR) MarketController.calls(world, worker, now);
                 // Back to the post, unless the guard is after a thief.
                 UUID id = worker.getUuid();
-                boolean chasing = !till && WATCHES.values().stream().anyMatch(w -> w.alerted && id.equals(w.guard));
+                boolean chasing = role == Role.GUARD && WATCHES.values().stream().anyMatch(w -> w.alerted && id.equals(w.guard));
                 BlockPos stand = stand(world, post);
                 if (!chasing && !worker.isSleeping() && worker.squaredDistanceTo(Vec3d.ofBottomCenter(stand)) > 1.5 * 1.5) walk(worker, stand, 0.6f);
             });
@@ -497,9 +519,9 @@ public final class ShopController {
     }
 
     /** The villager whose job site is this post, or any of that trade standing by it. */
-    private static VillagerEntity worker(ServerWorld world, BlockPos post, boolean till) {
+    static VillagerEntity worker(ServerWorld world, BlockPos post, Role role) {
         VillagerEntity near = null;
-        for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, new Box(post).expand(24), v -> v.isAlive() && (till ? ShopContent.cashier(v) : ShopContent.guard(v)))) {
+        for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, new Box(post).expand(24), v -> v.isAlive() && role.is(v))) {
             Optional<GlobalPos> site = MobActionController.registered(villager, MemoryModuleType.JOB_SITE) ? villager.getBrain().getOptionalRegisteredMemory(MemoryModuleType.JOB_SITE) : Optional.empty();
             if (site.isPresent() && site.get().pos().equals(post)) return villager;
             if (near == null && villager.squaredDistanceTo(Vec3d.ofCenter(post)) <= 9) near = villager;
@@ -507,8 +529,8 @@ public final class ShopController {
         return near;
     }
 
-    /** A grown villager of the local kind with the cashier's or the guard's trade, standing at the post, the post its job site. */
-    private static VillagerEntity newcomer(ServerWorld world, BlockPos post, boolean till) {
+    /** A grown villager of the local kind with the post's trade, standing at the post, the post its job site. */
+    private static VillagerEntity newcomer(ServerWorld world, BlockPos post, Role role) {
         BlockPos feet = stand(world, post);
         if (!world.getBlockState(feet).getCollisionShape(world, feet).isEmpty() || !world.getBlockState(feet.up()).getCollisionShape(world, feet.up()).isEmpty()) {
             feet = null;
@@ -522,22 +544,22 @@ public final class ShopController {
         if (worker == null) return null;
         worker.refreshPositionAndAngles(feet.getX() + 0.5, feet.getY(), feet.getZ() + 0.5, world.random.nextFloat() * 360f, 0f);
         worker.initialize(world, world.getLocalDifficulty(feet), SpawnReason.MOB_SUMMONED, null);
-        worker.setVillagerData(new VillagerData(VillagerType.forBiome(world.getBiome(post)), till ? ShopContent.CASHIER : ShopContent.SHOP_GUARD, 1));
+        worker.setVillagerData(new VillagerData(VillagerType.forBiome(world.getBiome(post)), role.profession(), 1));
         worker.setBreedingAge(0);
         worker.setPersistent();
-        if (!till) {
+        if (role == Role.GUARD) {
             EntityAttributeInstance speed = worker.getAttributeInstance(EntityAttributes.GENERIC_MOVEMENT_SPEED);
             if (speed != null) speed.setBaseValue(0.62); // a guard can run down a walking thief, not a sprinting one
         }
         world.spawnEntityAndPassengers(worker);
-        var key = till ? ShopContent.CASH_REGISTER_POI : ShopContent.GUARD_DESK_POI;
+        var key = role.poi();
         world.getPointOfInterestStorage().getPosition(entry -> entry.matchesKey(key), (entry, pos) -> pos.equals(post), post, 1);
         worker.reinitializeBrain(world);
         worker.getBrain().remember(MemoryModuleType.JOB_SITE, GlobalPos.create(world.getRegistryKey(), post));
         return worker;
     }
 
-    private static void walk(VillagerEntity villager, BlockPos to, float speed) {
+    static void walk(VillagerEntity villager, BlockPos to, float speed) {
         if (to == null || !MobActionController.registered(villager, MemoryModuleType.WALK_TARGET)) return;
         villager.getBrain().remember(MemoryModuleType.WALK_TARGET, new WalkTarget(to, speed, 0), 40);
     }

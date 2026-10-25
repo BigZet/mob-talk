@@ -72,6 +72,30 @@ public final class ShopDisplayRenderer implements BlockEntityRenderer<ShopConten
                     spots.add(new Spot(x0 + dx, 6.6f + (dz - 5) * 0.32f, dz, dx * 9, 62, 3.6f));
                 return new Layout(spots, x0, 4.4f, 0.95f);
             }
+            case VEG_STALL -> { // crates on the counter, tipped towards the customer
+                float x0 = 2.8f + lane * 5.2f;
+                for (float dz : new float[] {3f, 6.5f, 10f}) for (float dx : new float[] {-1.2f, 1.2f})
+                    spots.add(new Spot(x0 + dx, 11.2f + (dz - 3) * 0.3f, dz, dx * 9, 62, 3.6f));
+                return new Layout(spots, x0, 8.2f, 0.45f);
+            }
+            case MEAT_STALL -> { // laid out on the tiled counter
+                float x0 = 2.75f + lane * 5.25f;
+                for (float dz : new float[] {3f, 6.5f}) for (float dx : new float[] {-1.3f, 1.3f})
+                    spots.add(new Spot(x0 + dx, 11.05f, dz, dx * 12, 80, 4.2f));
+                return new Layout(spots, x0, 8.7f, 0.45f);
+            }
+            case DAIRY_STALL -> { // standing in rows on the counter
+                float x0 = 2.75f + lane * 5.25f;
+                for (float dz : new float[] {3f, 6.5f, 10f}) for (float dx : new float[] {-1.2f, 1.2f})
+                    spots.add(new Spot(x0 + dx, 10f, dz, 0, 0, 3.6f));
+                return new Layout(spots, x0, 8.2f, 0.45f);
+            }
+            case GRANNY_TABLE -> { // a few jars and bags on the oilcloth
+                float x0 = lane == 0 ? 5 : 11;
+                for (float dz : new float[] {4.5f, 8f, 11.5f}) for (float dx : new float[] {-1.5f, 1.5f})
+                    spots.add(new Spot(x0 + dx, 9f, dz, dx * 6, 0, 3.4f));
+                return new Layout(spots, x0, 7.1f, 1.8f);
+            }
         }
         return new Layout(spots, 8, 1, 1);
     }

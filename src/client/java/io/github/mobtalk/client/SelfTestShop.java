@@ -339,13 +339,104 @@ final class SelfTestShop {
             shot("mobtalk-shop-staff-vanilla.png", () -> {
                 test.owner.config().humanVillagers = true;
                 io.github.mobtalk.client.human.HumanLooks.enabled = true;
-                realShop();
+                market();
             });
         });
     }
 
     /** {@code -Dmobtalk.selftest.shopAt=x,y,z}: a till of a generated city's supermarket — its staff and goods, looked at from
      * either side of the till row. */
+    // ---- The market (рынок) ----
+
+    /** Template corner of the placed market, and a block of it by the template's own coordinates (ground G = 4). */
+    private int mx, my, mz;
+    private BlockPos mpos(int x, int z) { return new BlockPos(mx + x, my + 5, mz + z); }
+    private String mat(int x, int y, int z) { return (mx + x) + " " + (my + 5 + y) + " " + (mz + z); }
+    private List<VillagerEntity> vendors() {
+        return onServer(() -> world().getEntitiesByClass(VillagerEntity.class, new Box(mpos(0, 0)).expand(0).union(new Box(mpos(24, 21))).expand(6), v -> v.isAlive() && ShopContent.vendor(v)));
+    }
+
+    /** The market template set down in the sky: vendors come to the scales and the old women's tables; buying from a stall
+     * takes the money at once (no unpaid mark); haggling with the odds at 100%; the kvass barrel pours two bottles. */
+    private void market() {
+        mx = fx + 40; my = fy - 5; mz = fz - 10;
+        test.command("forceload add " + (mx - 4) + " " + (mz - 4) + " " + (mx + 30) + " " + (mz + 26));
+        test.command("gamemode survival " + name());
+        test.command("clear " + name());
+        test.command("tp " + name() + " " + mat(1, 0, 10) + " -90 15");
+        test.await("pause: the market's chunks load", 3, () -> false, () -> {
+            test.command("place template mobtalk:city/ours/market/rynok " + mx + " " + my + " " + mz);
+            test.await("vendors come to the market", 40, () -> vendors().size() >= 8, () -> {
+                test.check(vendors().size() >= 8, "vendors came to the market (" + vendors().size() + ")");
+                test.command("tp " + name() + " " + mat(1, 0, 10) + " -90 12");
+                shot("mobtalk-market-entrance.png", () -> {
+                    test.command("tp " + name() + " " + mat(8, 0, 6) + " -40 25");
+                    shot("mobtalk-market-row.png", () -> {
+                        test.command("tp " + name() + " " + mat(12, 1, 7) + " 180 28");
+                        shot("mobtalk-market-grannies.png", () -> {
+                            test.command("gamemode spectator " + name());
+                            test.command("tp " + name() + " " + mat(12, 12, -7) + " 0 42");
+                            shot("mobtalk-market-overview.png", () -> { test.command("gamemode survival " + name()); marketBuy(); });
+                        });
+                    });
+                });
+            });
+        });
+    }
+
+    private ShopContent.DisplayBlockEntity stall;
+
+    private void marketBuy() {
+        stall = onServer(() -> {
+            for (int z : new int[] {9, 4, 12, 17}) for (int x = 6; x <= 20; x++)
+                if (world().getBlockEntity(mpos(x, z)) instanceof ShopContent.DisplayBlockEntity d && d.display().market()
+                        && io.github.mobtalk.game.MarketController.vendorNear(world(), d.getPos())) {
+                    io.github.mobtalk.game.MarketController.stock(world(), d);
+                    if (!d.lanes[0].goods.isEmpty() && d.lanes[0].stock > 0) return d;
+                }
+            return null;
+        });
+        test.check(stall != null, "a stall with its vendor and goods");
+        if (stall == null) { realShop(); return; }
+        test.command("give " + name() + " minecraft:emerald 10");
+        test.await("emeralds for the market", 5, () -> count(Items.EMERALD) == 10, () -> {
+            int price = stall.lanes[0].price, lot = stall.lanes[0].lot;
+            net.minecraft.item.Item item = stall.lanes[0].goods.getItem();
+            int before = count(item);
+            mark();
+            test.server().execute(() -> ShopController.take(world(), stall, 0, player()));
+            test.await("bought at the stall", 5, () -> count(item) > before, () -> {
+                test.check(count(Items.EMERALD) == 10 - price, "the vendor took " + price + " emeralds on the spot (" + (10 - count(Items.EMERALD)) + ")");
+                test.check(count(item) - before == lot && unpaid() == 0, "the goods are ours, no unpaid mark (" + (count(item) - before) + ")");
+                int saved = test.bridge().config.marketHagglePercent;
+                test.bridge().config.marketHagglePercent = 100;
+                int emeralds = count(Items.EMERALD), had = count(item);
+                mark();
+                test.server().execute(() -> { player().setSneaking(true); ShopController.take(world(), stall, 0, player()); player().setSneaking(false); });
+                test.await("haggled", 5, () -> count(item) > had, () -> {
+                    test.bridge().config.marketHagglePercent = saved;
+                    boolean cheaper = emeralds - count(Items.EMERALD) == price - 1 && price > 1;
+                    boolean extra = price == 1 && count(item) - had > lot;
+                    test.check(cheaper || extra, "haggling gets an emerald off or a little extra (paid " + (emeralds - count(Items.EMERALD)) + ", got " + (count(item) - had) + ")");
+                    kvass();
+                });
+            });
+        });
+    }
+
+    private void kvass() {
+        net.minecraft.item.Item kvass = io.github.mobtalk.game.ShopFoods.ITEMS.get("kvass");
+        test.server().execute(() -> io.github.mobtalk.game.MarketController.kvass(world(), mpos(5, 2), player()));
+        test.await("kvass poured", 5, () -> count(kvass) == 2, () -> {
+            test.check(count(kvass) == 2, "the kvass barrel pours two bottles");
+            test.command("tp " + name() + " " + mat(8, 1, 6) + " 125 25");
+            shot("mobtalk-market-kvass.png", () -> {
+                test.command("forceload remove " + (mx - 4) + " " + (mz - 4) + " " + (mx + 30) + " " + (mz + 26));
+                realShop();
+            });
+        });
+    }
+
     private void realShop() {
         String spot = System.getProperty("mobtalk.selftest.shopAt", "");
         if (spot.isBlank()) { finish(); return; }

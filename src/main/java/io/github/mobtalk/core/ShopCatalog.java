@@ -13,16 +13,21 @@ public final class ShopCatalog {
     private ShopCatalog() { }
 
     /** Which display a product lies on: the gondola (grocery, sweets), the bread rack, the refrigerated case (dairy, sausage, cooked
-     * fish), the chest freezer (raw meat and fish) or the produce stand (fruit and vegetables). */
-    public enum Place { SHELF, BREAD, FRIDGE, FREEZER, PRODUCE }
+     * fish), the chest freezer (raw meat and fish) or the produce stand (fruit and vegetables); at the market also the old women's
+     * tables of things from their own gardens and kitchens (HOMEMADE). */
+    public enum Place { SHELF, BREAD, FRIDGE, FREEZER, PRODUCE, HOMEMADE }
 
     /** One product: the item's id, its section, the lot (items for the price) and the price in emeralds. */
     public record Goods(String item, String section, int lot, int price, Place place) { }
 
     private static final Map<String, Goods> BY_ITEM = new LinkedHashMap<>();
+    /** Every product in catalogue order; an item may be sold in two places (seeds at the shop and at the market's tables). */
+    private static final List<Goods> ALL = new ArrayList<>();
     private static void add(String section, Place place, String item, int lot, int price) {
         String id = item.contains(":") ? item : "minecraft:" + item;
-        BY_ITEM.put(id, new Goods(id, section, lot, price, place));
+        Goods goods = new Goods(id, section, lot, price, place);
+        BY_ITEM.putIfAbsent(id, goods);
+        ALL.add(goods);
     }
     static {
         Place s = Place.SHELF, f = Place.FREEZER, b = Place.BREAD, c = Place.FRIDGE, v = Place.PRODUCE;
@@ -87,6 +92,15 @@ public final class ShopCatalog {
         add("veg", v, "mobtalk:tomato", 5, 1);
         add("veg", v, "mobtalk:cabbage", 2, 1);
         add("veg", v, "mobtalk:onion", 8, 1);
+        // the market's old women: from the garden, the hives and the cellar, by the glass and the jar
+        Place h = Place.HOMEMADE;
+        add("homemade", h, "mobtalk:semechki", 10, 1);
+        add("homemade", h, "mobtalk:pickles", 2, 1);
+        add("homemade", h, "honey_bottle", 2, 1);
+        add("homemade", h, "egg", 10, 1);
+        add("homemade", h, "sweet_berries", 12, 1);
+        add("homemade", h, "mobtalk:cucumber", 10, 1);
+        add("homemade", h, "mobtalk:onion", 12, 1);
     }
 
     /** The product of this item id, null when the shop does not stock it (an admin may still put it on a shelf by hand). */
@@ -96,7 +110,7 @@ public final class ShopCatalog {
     /** The goods of one place, in catalogue order. */
     public static List<Goods> at(Place place) {
         List<Goods> out = new ArrayList<>();
-        for (Goods goods : BY_ITEM.values()) if (goods.place() == place) out.add(goods);
+        for (Goods goods : ALL) if (goods.place() == place) out.add(goods);
         return out;
     }
 

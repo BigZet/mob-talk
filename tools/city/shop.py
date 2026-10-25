@@ -524,15 +524,26 @@ def preview(out):
 
 
 def main():
+    import market  # noqa: E402  (the market's stalls and fittings go with the shop's)
+    market.bind(sys.modules[__name__])
+    import shop_goods  # noqa: E402  (the cart's textures, which the market's barrel borrows)
     make_textures()
+    for k, v in shop_goods.cart_textures().items():
+        decor.TEX[k] = v
+    market.make_textures()
     make_models()
+    market.make_models()
     save_all()
     profession_textures()
+    market.vendor_texture()
+    market.lang()
+    market.acquirable()
     if len(sys.argv) > 2 and sys.argv[1] == "preview":
         preview(sys.argv[2])
         return
-    import shop_goods  # noqa: E402  (the groceries, the cart and its corral)
-    shop_goods.save_all()
+    shop_goods.save_all()  # the groceries, the cart and its corral
+    import pieces  # noqa: E402
+    market.add_market(pieces)
     import supermarket  # noqa: E402  (furnishes the template; skipped for a preview)
     supermarket.furnish()
     print("shop:", len(MODELS), "models,", len(TEX), "textures")
