@@ -1,0 +1,129 @@
+{
+  "name": "mobtalk:city/corgi/street/smooth_stone",
+  "fallback": "mobtalk:city/corgi/street/terminator_smooth_stone",
+  "elements": [
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/corgi/street/smooth_stone/street_1",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "terrain_matching",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/corgi/street/smooth_stone/street_2",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "terrain_matching",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/corgi/street/smooth_stone/street_3",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "terrain_matching",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/corgi/street/smooth_stone/street_4",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "terrain_matching",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/corgi/street/smooth_stone/street_5",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "terrain_matching",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/corgi/street/smooth_stone/street_6",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "terrain_matching",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/corgi/street/smooth_stone/street_7",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "terrain_matching",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/corgi/street/smooth_stone/street_8",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "terrain_matching",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/corgi/street/smooth_stone/street_9",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "terrain_matching",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/corgi/street/smooth_stone/street_10",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "terrain_matching",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/corgi/street/smooth_stone/street_11",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "terrain_matching",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/corgi/street/smooth_stone/street_12",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "terrain_matching",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/streets/5th_brick/sidewalk/nothing",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "terrain_matching",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "element_type": "minecraft:empty_pool_element"
+      }
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "name": "mobtalk:city/houses/kogtyv_5_longxe/paraped",
+  "fallback": "mobtalk:city/houses/kogtyv_5_longxe/paraped",
+  "elements": [
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_longxe/paraped/variant_1",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_longxe/paraped/variant_2",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_longxe/paraped/variant_3",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_longxe/paraped/variant_4",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    }
+  ]
+}

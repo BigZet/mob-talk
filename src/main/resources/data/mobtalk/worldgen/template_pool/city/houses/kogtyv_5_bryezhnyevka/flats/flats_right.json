@@ -1,0 +1,78 @@
+{
+  "name": "mobtalk:city/houses/kogtyv_5_bryezhnyevka/flats/flats_right",
+  "fallback": "mobtalk:city/houses/kogtyv_5_bryezhnyevka/flats/flats_right",
+  "elements": [
+    {
+      "weight": 100,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_bryezhnyevka/flats_right/flat_1",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 100,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_bryezhnyevka/flats_right/flat_2",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 100,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_bryezhnyevka/flats_right/flat_3",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 100,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_bryezhnyevka/flats_right/flat_4",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 100,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_bryezhnyevka/flats_right/flat_5",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 100,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_bryezhnyevka/flats_right/flat_6",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 100,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_bryezhnyevka/flats_right/flat_7",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 100,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_bryezhnyevka/flats_right/flat_8",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    }
+  ]
+}

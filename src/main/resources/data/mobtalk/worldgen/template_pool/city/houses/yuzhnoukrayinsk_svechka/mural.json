@@ -1,0 +1,120 @@
+{
+  "name": "mobtalk:city/houses/yuzhnoukrayinsk_svechka/mural",
+  "fallback": "mobtalk:city/houses/yuzhnoukrayinsk_svechka/mural",
+  "elements": [
+    {
+      "weight": 10,
+      "element": {
+        "location": "mobtalk:city/houses/yuzhnoukrayinsk_svechka/murals/mural_1",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "location": "mobtalk:city/houses/yuzhnoukrayinsk_svechka/murals/mural_2",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "location": "mobtalk:city/houses/yuzhnoukrayinsk_svechka/murals/mural_3",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "location": "mobtalk:city/houses/yuzhnoukrayinsk_svechka/murals/mural_4",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "location": "mobtalk:city/houses/yuzhnoukrayinsk_svechka/murals/mural_5",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/houses/yuzhnoukrayinsk_svechka/murals/mural_6",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "location": "mobtalk:city/houses/yuzhnoukrayinsk_svechka/murals/mural_7",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "location": "mobtalk:city/houses/yuzhnoukrayinsk_svechka/murals/mural_8",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "location": "mobtalk:city/houses/yuzhnoukrayinsk_svechka/murals/mural_9",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "location": "mobtalk:city/houses/yuzhnoukrayinsk_svechka/murals/mural_10",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "location": "mobtalk:city/houses/yuzhnoukrayinsk_svechka/murals/mural_11",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "location": "mobtalk:city/houses/yuzhnoukrayinsk_svechka/murals/mural_12",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 100,
+      "element": {
+        "element_type": "minecraft:empty_pool_element"
+      }
+    }
+  ]
+}

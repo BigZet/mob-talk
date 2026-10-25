@@ -1,0 +1,75 @@
+{
+  "name": "mobtalk:city/medium_9th/street/polished_andesite",
+  "fallback": "mobtalk:city/medium_9th/street/terminator_polished_andesite",
+  "elements": [
+    {
+      "weight": 8,
+      "element": {
+        "location": "mobtalk:city/medium_9th/street/polished_andesite/street_1",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "terrain_matching",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 8,
+      "element": {
+        "location": "mobtalk:city/medium_9th/street/polished_andesite/street_2",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "terrain_matching",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 8,
+      "element": {
+        "location": "mobtalk:city/medium_9th/street/polished_andesite/street_3",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "terrain_matching",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 8,
+      "element": {
+        "location": "mobtalk:city/medium_9th/street/polished_andesite/street_4",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "terrain_matching",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 8,
+      "element": {
+        "location": "mobtalk:city/medium_9th/street/polished_andesite/street_5",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "terrain_matching",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 8,
+      "element": {
+        "location": "mobtalk:city/medium_9th/street/polished_andesite/street_6",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "terrain_matching",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 2,
+      "element": {
+        "location": "mobtalk:city/streets/5th_brick/sidewalk/nothing",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "terrain_matching",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "element_type": "minecraft:empty_pool_element"
+      }
+    }
+  ]
+}

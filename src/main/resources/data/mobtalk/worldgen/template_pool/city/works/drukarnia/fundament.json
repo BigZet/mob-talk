@@ -1,0 +1,15 @@
+{
+  "name": "mobtalk:city/works/drukarnia/fundament",
+  "elements": [
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/works/drukarnia/fundament",
+        "processors": "mobtalk:city/set_cobblestone",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    }
+  ],
+  "fallback": "mobtalk:city/works/drukarnia/fundament"
+}

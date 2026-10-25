@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    "mobtalk:city_small",
+    "mobtalk:city_mix",
+    "mobtalk:city_brick",
+    "mobtalk:city_ninth"
+  ]
+}

@@ -1,0 +1,150 @@
+{
+  "name": "mobtalk:city/furniture/bed_2",
+  "fallback": "mobtalk:city/furniture/bed_2",
+  "elements": [
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/furniture/bed_a",
+        "processors": "mobtalk:city/patern_andesite",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/furniture/bed_b",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/furniture/bed_c",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/furniture/bed_d",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/furniture/bed_e",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/furniture/bed_f",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/furniture/bed_g",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/furniture/bed_h",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/furniture/bed_i",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/furniture/bed_j",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/furniture/bed_k",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/furniture/bed_l",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/furniture/bed_m",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/furniture/bed_n",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/furniture/bed_o",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/furniture/bed_p",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    }
+  ]
+}

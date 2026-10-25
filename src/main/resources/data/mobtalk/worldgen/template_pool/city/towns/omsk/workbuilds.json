@@ -1,0 +1,183 @@
+{
+  "name": "mobtalk:city/towns/omsk/workbuilds",
+  "fallback": "mobtalk:city/towns/omsk/workbuilds",
+  "elements": [
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/decorative/park_03/main",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/decorative/park_04/main",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/decorative/park_05/main",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/works/fisher/main_a",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/works/shop_1/main_a",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/works/shop_2/main_a",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/works/libriary/main_a",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/works/tavern/main_a",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/works/minimarket/main_a",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/works/market/main_a",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/works/minirestaurant/main_a",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/works/minimarket/main_b",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/works/largemarket/main_a",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/works/cartograph_market/main_a",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/works/factory/main_a",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/works/furniture_market/main_a",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/works/large_store/main_a",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/works/atelier/main_a",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/streets/5th_brick/sidewalk/nothing",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "terrain_matching",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "element_type": "minecraft:empty_pool_element"
+      }
+    }
+  ]
+}

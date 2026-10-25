@@ -1,0 +1,57 @@
+{
+  "name": "mobtalk:city/5th_brick/house",
+  "fallback": "mobtalk:city/5th_brick/house",
+  "elements": [
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/brick_red_stalin/home",
+        "processors": "mobtalk:city/village_common",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/red_stalin_short/home",
+        "processors": "mobtalk:city/village_common",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/red_stalin_medium/home",
+        "processors": "mobtalk:city/village_common",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/red_brick_longer/home",
+        "processors": "mobtalk:city/village_common",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/red_brick_qubille/home",
+        "processors": "mobtalk:city/village_common",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "element_type": "minecraft:empty_pool_element"
+      }
+    }
+  ]
+}

@@ -1,0 +1,123 @@
+{
+  "name": "mobtalk:city/houses/kogtyv_5_3/flats/kogtyv_5_3a",
+  "fallback": "mobtalk:city/houses/kogtyv_5_3/flats/kogtyv_5_3a",
+  "elements": [
+    {
+      "weight": 50,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_3/flats/flats_2x2a",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 50,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_3/flats/flats_2x2b",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 50,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_3/flats/flats_2x2c",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 50,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_3/flats/flats_2x2d",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 50,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_3/flats/flats_2x2e",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 50,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_3/flats/flats_2x2f",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 50,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_3/flats/flats_2x2g",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 50,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_3/flats/flats_2x2h",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 50,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_3/flats/flats_2x2i",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 50,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_3/flats/flats_2x2j",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 50,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_3/flats/flats_2x2k",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 50,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_3/flats/flats_2x2l",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_3/flats/flats_2x2sequrity",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    }
+  ]
+}

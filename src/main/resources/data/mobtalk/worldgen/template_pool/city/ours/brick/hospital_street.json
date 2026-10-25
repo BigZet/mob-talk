@@ -1,0 +1,15 @@
+{
+  "name": "mobtalk:city/ours/brick/hospital_street",
+  "fallback": "minecraft:empty",
+  "elements": [
+    {
+      "weight": 1,
+      "element": {
+        "element_type": "minecraft:legacy_single_pool_element",
+        "location": "mobtalk:city/ours/brick/hospital_street",
+        "processors": "mobtalk:city/village_cement_street",
+        "projection": "terrain_matching"
+      }
+    }
+  ]
+}

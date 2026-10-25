@@ -1,0 +1,336 @@
+{
+  "name": "mobtalk:city/medium_mix/house/variant_1",
+  "fallback": "mobtalk:city/medium_mix/house/fallback_variant_1",
+  "elements": [
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_9_1/home",
+        "processors": "mobtalk:city/patern_andesite",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_9_2/home",
+        "processors": "mobtalk:city/village_common",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_9_2/home_balkon",
+        "processors": "mobtalk:city/village_common",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/double_ninthe/home",
+        "processors": "mobtalk:city/patern_andesite",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/double_ninthe/shop",
+        "processors": "mobtalk:city/patern_andesite",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_9_3/home",
+        "processors": "mobtalk:city/patern_andesite",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_9_4/home",
+        "processors": "mobtalk:city/patern_andesite",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/monikashort_9_1/home",
+        "processors": "mobtalk:city/village_common",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/monikashort_9_1/home_balkon",
+        "processors": "mobtalk:city/village_common",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/monikaveryshort_9_2/home",
+        "processors": "mobtalk:city/village_common",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/monikaveryshort_9_2/home_balkon",
+        "processors": "mobtalk:city/village_common",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/monikaveryshort_9_3_decorative/home",
+        "processors": "mobtalk:city/village_common",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/monikaveryshort_9_3_decorative/home_balkon",
+        "processors": "mobtalk:city/village_common",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/monikalong_9_4/home",
+        "processors": "mobtalk:city/village_common",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/monikalong_9_4/home_balkon",
+        "processors": "mobtalk:city/village_common",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_9_5_shop/home",
+        "processors": "mobtalk:city/patern_andesite",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/works/azovstal_zavod/mainplatform",
+        "processors": "mobtalk:city/village_common",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/works/drukarnia/home",
+        "processors": "mobtalk:city/village_common",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "location": "mobtalk:city/decorative/park_01",
+        "processors": "mobtalk:city/village_common",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "location": "mobtalk:city/decorative/park_02",
+        "processors": "mobtalk:city/village_common",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_1/home",
+        "processors": "mobtalk:city/patern_andesite",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_2/home",
+        "processors": "mobtalk:city/patern_andesite",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_3/home",
+        "processors": "mobtalk:city/patern_andesite",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/works/kozhzavod/home",
+        "processors": "mobtalk:city/patern_andesite",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/works/sheperd/home",
+        "processors": "mobtalk:city/patern_andesite",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/p2dec_5_clasic/home",
+        "processors": "mobtalk:city/patern_andesite",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/p3basya_7_clasic/home",
+        "processors": "mobtalk:city/patern_andesite",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/p3basya_7_clasic/home_balkon",
+        "processors": "mobtalk:city/patern_andesite",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/p3basya_7_shop/home",
+        "processors": "mobtalk:city/patern_andesite",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/p3basya_7_shop/home_balkon",
+        "processors": "mobtalk:city/patern_andesite",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/krutovoy_5/home",
+        "processors": "mobtalk:city/patern_andesite",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_double_long/home",
+        "processors": "mobtalk:city/patern_andesite",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_5_longxe/home",
+        "processors": "mobtalk:city/patern_andesite",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 150,
+      "element": {
+        "location": "mobtalk:city/houses/sixteen_silver/home",
+        "processors": "mobtalk:city/patern_andesite",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 80,
+      "element": {
+        "location": "mobtalk:city/works/dining_hall/home",
+        "processors": "mobtalk:city/patern_andesite",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 80,
+      "element": {
+        "location": "mobtalk:city/houses/hospital_a/main",
+        "processors": "mobtalk:city/village_common",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "element_type": "minecraft:empty_pool_element"
+      }
+    }
+  ]
+}

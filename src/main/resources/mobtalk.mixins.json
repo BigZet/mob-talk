@@ -26,7 +26,8 @@
     "NightHoldMixin",
     "CommandFilterMixin",
     "VillageSpawnMixin",
-    "GuardPanicMixin"
+    "GuardPanicMixin",
+    "StructureSetAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

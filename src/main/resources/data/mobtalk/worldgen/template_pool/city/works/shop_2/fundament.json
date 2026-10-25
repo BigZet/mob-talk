@@ -1,0 +1,33 @@
+{
+  "name": "mobtalk:city/works/shop_2/fundament",
+  "elements": [
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/works/shop_2/fundaments/main",
+        "processors": "mobtalk:city/set_stone",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/works/shop_2/fundaments/sub_a",
+        "processors": "mobtalk:city/set_stone",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/works/shop_2/fundaments/sub_b",
+        "processors": "mobtalk:city/set_stone",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    }
+  ],
+  "fallback": "mobtalk:city/works/shop_2/fundament"
+}

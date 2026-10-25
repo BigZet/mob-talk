@@ -1,0 +1,24 @@
+{
+  "name": "mobtalk:city/houses/p3basya_7_shop/fundament",
+  "fallback": "mobtalk:city/houses/p3basya_7_shop/fundament",
+  "elements": [
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/houses/p3basya_7_shop/fundament_a",
+        "processors": "mobtalk:city/set_cobblestone",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/houses/p3basya_7_shop/fundament_b",
+        "processors": "mobtalk:city/set_cobblestone",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    }
+  ]
+}

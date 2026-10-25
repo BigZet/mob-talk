@@ -195,6 +195,8 @@ public final class Tunables {
         integer("golemHealthPercent", s, "defense", 100, 400, 10, c -> c.golemHealthPercent, (c, x) -> c.golemHealthPercent = x);
         integer("golemRegenPerMinute", s, "defense", 0, 120, 1, c -> c.golemRegenPerMinute, (c, x) -> c.golemRegenPerMinute = x);
         integer("golemRepairHealth", s, "defense", 0, 100, 1, c -> c.golemRepairHealth, (c, x) -> c.golemRepairHealth = x);
+        // Cities with panel blocks.
+        integer("cityPerVillages", s, "cities", 0, 20, 1, c -> c.cityPerVillages, (c, x) -> c.cityPerVillages = x);
         // Watchtowers and their archers.
         integer("towerResidents", s, "towers", 2, 40, 1, c -> c.towerResidents, (c, x) -> c.towerResidents = x);
         integer("towerMax", s, "towers", 0, 8, 1, c -> c.towerMax, (c, x) -> c.towerMax = x);

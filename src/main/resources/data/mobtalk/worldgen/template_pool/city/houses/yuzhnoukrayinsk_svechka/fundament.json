@@ -1,0 +1,42 @@
+{
+  "name": "mobtalk:city/houses/yuzhnoukrayinsk_svechka/fundament",
+  "fallback": "mobtalk:city/houses/yuzhnoukrayinsk_svechka/fundament",
+  "elements": [
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/houses/yuzhnoukrayinsk_svechka/fundament_a",
+        "processors": "mobtalk:city/set_cobblestone",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/houses/yuzhnoukrayinsk_svechka/fundament_b",
+        "processors": "mobtalk:city/set_cobblestone",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/houses/yuzhnoukrayinsk_svechka/fundament_c",
+        "processors": "mobtalk:city/set_cobblestone",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/houses/yuzhnoukrayinsk_svechka/fundament_d",
+        "processors": "mobtalk:city/set_cobblestone",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    }
+  ]
+}

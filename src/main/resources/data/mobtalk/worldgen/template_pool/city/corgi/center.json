@@ -1,0 +1,42 @@
+{
+  "name": "mobtalk:city/corgi/center",
+  "fallback": "minecraft:empty",
+  "elements": [
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/corgi/center/love_rondo",
+        "processors": "mobtalk:city/village_common",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/corgi/center/aleye_love",
+        "processors": "mobtalk:city/village_common",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/corgi/center/aleye_rynek",
+        "processors": "mobtalk:city/village_common",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/corgi/center/aleye_park",
+        "processors": "mobtalk:city/village_common",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    }
+  ]
+}

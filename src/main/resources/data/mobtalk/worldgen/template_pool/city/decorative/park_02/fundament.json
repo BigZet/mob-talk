@@ -1,0 +1,15 @@
+{
+  "name": "mobtalk:city/decorative/park_02/fundament",
+  "fallback": "mobtalk:city/decorative/park_02/fundament",
+  "elements": [
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/decorative/park_02/fundament",
+        "processors": "mobtalk:city/set_cobblestone",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    }
+  ]
+}

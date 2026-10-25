@@ -1,0 +1,33 @@
+{
+  "name": "mobtalk:city/houses/corgi_sixteen/fundament",
+  "fallback": "mobtalk:city/houses/corgi_sixteen/fundament",
+  "elements": [
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/houses/corgi_sixteen/fundament_a",
+        "processors": "mobtalk:city/set_tuff",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/houses/corgi_sixteen/fundament_b",
+        "processors": "mobtalk:city/set_tuff",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/houses/corgi_sixteen/fundament_c",
+        "processors": "mobtalk:city/set_tuff",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    }
+  ]
+}

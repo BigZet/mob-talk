@@ -28,6 +28,26 @@ class StructuresTest {
         assertNull(Structures.pieceName("minecraft:something", ""));
     }
 
+    @Test void citiesAreVillagesWithRussianNamesForTheirPieces() {
+        assertEquals("город девятиэтажек", Structures.structureName("mobtalk:city_ninth"));
+        assertEquals("город", Structures.structureName("mobtalk:city_new_kind"));
+        assertTrue(Structures.village("mobtalk:city_mix") && Structures.city("mobtalk:city_mix"));
+        assertFalse(Structures.city("minecraft:village_plains") || Structures.village("mobtalk:citadel"));
+        assertEquals("администрация", Structures.pieceName("minecraft:jigsaw", "mobtalk:city/ours/mix/admin_centre"));
+        assertEquals("администрация", Structures.pieceName("minecraft:jigsaw", "mobtalk:city/medium_9th/center/soviet_rada"));
+        assertEquals("больница", Structures.pieceName("minecraft:jigsaw", "mobtalk:city/houses/hospital_a/main"));
+        assertEquals("улица", Structures.pieceName("minecraft:jigsaw", "mobtalk:city/ours/mix/hospital_street"));
+        assertEquals("хрущёвка", Structures.pieceName("minecraft:jigsaw", "mobtalk:city/houses/kogtyv_5_1/home"));
+        assertEquals("девятиэтажка", Structures.pieceName("minecraft:jigsaw", "mobtalk:city/houses/twobalkon9/home"));
+        assertEquals("шестнадцатиэтажка", Structures.pieceName("minecraft:jigsaw", "mobtalk:city/houses/yuzhnoukrayinsk_svechka/main"));
+        assertEquals("магазин", Structures.pieceName("minecraft:jigsaw", "mobtalk:city/houses/kogtyv_9_5_shop/home"));
+        assertEquals("типография", Structures.pieceName("minecraft:jigsaw", "mobtalk:city/works/drukarnia/home"));
+        assertEquals("сталинка", Structures.pieceName("minecraft:jigsaw", "mobtalk:city/houses/red_stalin_short/home"));
+        assertEquals("жилой дом", Structures.pieceName("minecraft:jigsaw", "mobtalk:city/houses/121-141/blue_old"));
+        assertEquals(List.of("Ты внутри: больница — город."),
+                Structures.facts(List.of(piece("mobtalk:city_mix", "minecraft:jigsaw", "mobtalk:city/houses/hospital_a/main", 0, 0, 0, true, 900))));
+    }
+
     @Test void ctovVillagesAndPiecesAreNamedLikeVanillaOnes() {
         assertEquals("равнинная деревня", Structures.structureName("ctov:medium/village_plains"));
         assertEquals("большая деревня в оазисе", Structures.structureName("ctov:large/village_desert_oasis"));

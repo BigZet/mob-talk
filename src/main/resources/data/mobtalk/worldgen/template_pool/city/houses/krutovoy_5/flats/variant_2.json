@@ -1,0 +1,87 @@
+{
+  "name": "mobtalk:city/houses/krutovoy_5/flats/variant_2",
+  "fallback": "mobtalk:city/houses/krutovoy_5/flats/variant_2",
+  "elements": [
+    {
+      "weight": 100,
+      "element": {
+        "location": "mobtalk:city/houses/krutovoy_5/flats/flats_small_b_a",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 100,
+      "element": {
+        "location": "mobtalk:city/houses/krutovoy_5/flats/flats_small_b_b",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 100,
+      "element": {
+        "location": "mobtalk:city/houses/krutovoy_5/flats/flats_small_b_c",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 100,
+      "element": {
+        "location": "mobtalk:city/houses/krutovoy_5/flats/flats_small_b_d",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 100,
+      "element": {
+        "location": "mobtalk:city/houses/krutovoy_5/flats/flats_small_b_e",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 100,
+      "element": {
+        "location": "mobtalk:city/houses/krutovoy_5/flats/flats_small_b_f",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 100,
+      "element": {
+        "location": "mobtalk:city/houses/krutovoy_5/flats/flats_small_b_g",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 100,
+      "element": {
+        "location": "mobtalk:city/houses/krutovoy_5/flats/flats_small_b_h",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/houses/krutovoy_5/flats/flats_small_b_secret",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    }
+  ]
+}
