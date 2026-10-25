@@ -64,6 +64,8 @@ final class VillageGuards {
     static final float RETREAT = 0.3f, RETURN = 0.7f;
     /** How long a guard holds its stand before walking the round by day, and how long it stays at the next stand. */
     static final long DAY_ROUND_TICKS = 2400, ROUND_STOP_TICKS = 300;
+    /** A stand goes no higher or lower than this above the bell (or the village's centre): on its ground, not on a roof. */
+    static final int STAND_RISE = 6;
 
     private final MobGameBridge bridge;
     private final VillageDefenseController defense;
@@ -119,8 +121,11 @@ final class VillageGuards {
         for (BlockPos spot : spots) {
             if (!world.isChunkLoaded(spot)) continue;
             BlockPos at = new BlockPos(spot.getX(), world.getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, spot.getX(), spot.getZ()), spot.getZ());
-            boolean taken = false;
-            for (BlockPos stand : existing) if (stand.getSquaredDistance(at) < 8 * 8) { taken = true; break; }
+            // On the ground of the village, not on a roof: a stand up a tall building made a guard who fell to his death, and
+            // one beyond the zone's height went uncounted, so the next round put up another (a city: a guard dying every 30 s).
+            if (Math.abs(at.getY() - center.getY()) > STAND_RISE || !zone.holds(at)) continue;
+            boolean taken = world.getPointOfInterestStorage().getInSquare(entry -> entry.matchesKey(DefenseContent.GUARD_POST_POI), at, 8,
+                    PointOfInterestStorage.OccupationStatus.ANY).findAny().isPresent();
             if (taken || !free(world, at)) continue;
             world.setBlockState(at, DefenseContent.GUARD_POST.getDefaultState(), Block.NOTIFY_ALL);
             world.playSound(null, at, SoundEvents.BLOCK_WOOD_PLACE, SoundCategory.BLOCKS, 1f, 1f);
@@ -134,15 +139,18 @@ final class VillageGuards {
     private static boolean free(ServerWorld world, BlockPos at) {
         BlockState ground = world.getBlockState(at.down()), here = world.getBlockState(at);
         if (!world.getFluidState(at).isEmpty() || !world.getFluidState(at.down()).isEmpty()) return false;
-        if (ground.isOf(Blocks.DIRT_PATH) || ground.isOf(Blocks.FARMLAND) || !ground.isSolidBlock(world, at.down())) return false;
+        if (ground.isOf(Blocks.DIRT_PATH) || ground.isOf(Blocks.FARMLAND) || ground.isOf(DefenseContent.GUARD_POST) || !ground.isSolidBlock(world, at.down())) return false;
         if (!here.isAir() && !here.isReplaceable()) return false;
         if (!world.getBlockState(at.up()).isAir() && !world.getBlockState(at.up()).isReplaceable()) return false;
         if (here.isIn(BlockTags.FLOWERS) || ground.isIn(BlockTags.LEAVES)) return false;
-        for (Direction side : Direction.Type.HORIZONTAL) {
-            BlockPos feet = at.offset(side);
-            if (world.getBlockState(feet).getCollisionShape(world, feet).isEmpty() && world.getBlockState(feet.up()).getCollisionShape(world, feet.up()).isEmpty()) return true;
-        }
+        for (Direction side : Direction.Type.HORIZONTAL) if (standing(world, at.offset(side))) return true;
         return false;
+    }
+
+    /** A guard can stand here: room for feet and head, and ground right under the feet (no drop off a ledge). */
+    private static boolean standing(ServerWorld world, BlockPos feet) {
+        return world.getBlockState(feet).getCollisionShape(world, feet).isEmpty() && world.getBlockState(feet.up()).getCollisionShape(world, feet.up()).isEmpty()
+                && !world.getBlockState(feet.down()).getCollisionShape(world, feet.down()).isEmpty();
     }
 
     /** Stands left empty long enough (the guard died or left) get a newcomer. */
@@ -150,6 +158,8 @@ final class VillageGuards {
         Set<BlockPos> empty = new HashSet<>(stands(world, zone, PointOfInterestStorage.OccupationStatus.HAS_SPACE));
         for (BlockPos stand : stands(world, zone, PointOfInterestStorage.OccupationStatus.ANY)) {
             if (!empty.contains(stand)) { emptySince.remove(stand); continue; }
+            BlockPos centre = zone.bell() != null ? zone.bell() : zone.center();
+            if (Math.abs(stand.getY() - centre.getY()) > STAND_RISE) continue; // an old stand up on a roof gets nobody to fall off it
             Long since = emptySince.putIfAbsent(stand, now);
             if (since == null || now - since < bridge.config.watchReplaceMinutes * 1200L) continue;
             emptySince.remove(stand);
@@ -185,10 +195,7 @@ final class VillageGuards {
         if (world.getPointOfInterestStorage().getInSquare(entry -> entry.matchesKey(DefenseContent.GUARD_POST_POI), stand, 0,
                 PointOfInterestStorage.OccupationStatus.HAS_SPACE).findAny().isEmpty()) return null;
         BlockPos feet = null;
-        for (Direction side : Direction.Type.HORIZONTAL) {
-            BlockPos p = stand.offset(side);
-            if (world.getBlockState(p).getCollisionShape(world, p).isEmpty() && world.getBlockState(p.up()).getCollisionShape(world, p.up()).isEmpty()) { feet = p; break; }
-        }
+        for (Direction side : Direction.Type.HORIZONTAL) if (standing(world, stand.offset(side))) { feet = stand.offset(side); break; }
         if (feet == null) return null;
         VillagerEntity guard = EntityType.VILLAGER.create(world);
         if (guard == null) return null;
