@@ -1,5 +1,6 @@
 package io.github.mobtalk.client;
 
+import io.github.mobtalk.game.BarCommands;
 import io.github.mobtalk.game.BarContent;
 import io.github.mobtalk.game.BarSeatEntity;
 import java.util.*;
@@ -60,6 +61,9 @@ final class SelfTestBar {
         test.command("fill " + at(6 - f, 1, 5 - f) + " " + at(6 + f, 1, 5 + f) + " minecraft:grass_block");
         test.command("fill " + at(6 - f, 2, 5 - f) + " " + at(6 + f, 12, 5 + f) + " minecraft:air");
         test.command("place template mobtalk:bar/plains " + at(0, 0, 0));
+        // a village turns its jigsaw blocks into their final state; a bare template keeps them
+        test.command("fill " + at(0, 0, 0) + " " + at(12, 6, 9) + " minecraft:oak_planks replace minecraft:jigsaw");
+        test.command("fill " + at(0, 0, 10) + " " + at(12, 6, 10) + " minecraft:air replace minecraft:jigsaw");
         test.await("the bar stands", 5, () -> is(bar(1, 2, 3), BarContent.COUNTER), () -> {
             if (!is(bar(1, 2, 3), BarContent.COUNTER) && ++tries < 5) { build(); return; }
             furniture();
@@ -130,7 +134,7 @@ final class SelfTestBar {
             test.check(seated() >= 5, "at least five guests seated (" + seated() + ")");
             BlockPos stand = onServer(() -> test.bridge().barStand(bar(6, 2, 4)));
             test.check(stand != null && stand.equals(bar(5, 2, 2)), "the bartender's place is behind the middle of the counter (" + stand + ")");
-            test.await("the bartender behind the counter", 60, () -> stand != null && villagers().stream().anyMatch(v -> v.getBlockPos().getSquaredDistance(stand) <= 2), () -> {
+            test.await("the bartender behind the counter", 90, () -> stand != null && villagers().stream().anyMatch(v -> v.getBlockPos().getSquaredDistance(stand) <= 2), () -> {
                 test.check(onServer(() -> world().getBlockEntity(bar(10, 2, 1)) instanceof JukeboxBlockEntity box && !box.getStack().isEmpty() && box.getManager().isPlaying()),
                         "the jukebox plays a disc");
                 test.log("bar status: " + onServer(() -> test.bridge().barStatus(world())));
@@ -138,7 +142,7 @@ final class SelfTestBar {
                 shot("mobtalk-bar-evening-door.png", () -> {
                     test.command("tp " + name() + " " + at(10, 2, 2) + " 40 18");
                     shot("mobtalk-bar-evening-counter.png", () -> {
-                        test.command("tp " + name() + " " + at(6, 2, 6) + " 200 30");
+                        test.command("tp " + name() + " " + at(11, 2, 5) + " 90 15");
                         shot("mobtalk-bar-evening-sitters.png", () -> {
                             test.owner.config().humanVillagers = false;
                             test.await("pause: the vanilla look", 2, () -> false, () -> shot("mobtalk-bar-evening-sitters-vanilla.png", () -> {
@@ -215,10 +219,19 @@ final class SelfTestBar {
         return spot.up(80);
     }
 
+    /** The bar's share in worldgen, from the game's own village generator (the placed villages above are for the pictures: the
+     * place command builds only the chunks that happen to be loaded). */
     private void summary() {
-        long with = found.stream().filter(n -> n == 1).count();
-        test.log("villages with a bar: " + with + " of " + found.size() + " " + found);
-        test.check(with * 2 >= found.size(), "most villages have a bar (" + with + " of " + found.size() + ")");
+        int with = 0, all = 0, doubled = 0;
+        for (String kind : List.of("plains", "desert", "savanna", "taiga", "snowy")) {
+            int[] h = onServer(() -> BarCommands.sample(world(), kind, 20));
+            test.log("village_" + kind + ": no bar " + h[0] + ", one " + h[1] + ", two or more " + h[2]);
+            test.check(h[1] >= 6, "village_" + kind + " gets a bar often enough (" + h[1] + " of " + (h[0] + h[1] + h[2]) + ")");
+            with += h[1]; all += h[0] + h[1] + h[2]; doubled += h[2];
+        }
+        test.check(doubled == 0, "no village has two bars (" + doubled + ")");
+        test.check(with * 3 >= all * 2, "two thirds of villages have a bar (" + with + " of " + all + ")");
+        test.log("placed villages with a bar: " + found.stream().filter(n -> n == 1).count() + " of " + found.size() + " " + found);
         finish();
     }
 

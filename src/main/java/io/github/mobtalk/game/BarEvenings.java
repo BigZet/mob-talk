@@ -46,7 +46,7 @@ final class BarEvenings {
     static final class Evening {
         final Map<UUID, BlockPos> guests = new LinkedHashMap<>();
         final Map<UUID, Long> walking = new HashMap<>();
-        UUID bartender; BlockPos stand; boolean music; long lastTalk; int talks;
+        UUID bartender; BlockPos stand; long bartenderSince; boolean music; long lastTalk; int talks;
     }
 
     private final MobGameBridge bridge;
@@ -150,7 +150,7 @@ final class BarEvenings {
             BlockPos stand = counter.offset(guests.getOpposite());
             if (world.getBlockState(stand).getCollisionShape(world, stand).isEmpty()) {
                 VillagerEntity bartender = free.removeFirst();
-                evening.bartender = bartender.getUuid(); evening.stand = stand;
+                evening.bartender = bartender.getUuid(); evening.stand = stand; evening.bartenderSince = world.getTime();
             }
         }
         for (VillagerEntity villager : free) {
@@ -205,7 +205,7 @@ final class BarEvenings {
             else if (MobActionController.registered(villager, MemoryModuleType.WALK_TARGET))
                 villager.getBrain().remember(MemoryModuleType.WALK_TARGET, new WalkTarget(seat, 0.55F, 1), 40);
         }
-        if (evening.bartender != null) bartender(world, evening, seated);
+        if (evening.bartender != null) bartender(world, evening, seated, now);
         // Sitters look at each other now and then, as people at one table do.
         for (VillagerEntity villager : seated) {
             if (random.nextInt(4) != 0) continue;
@@ -235,8 +235,15 @@ final class BarEvenings {
     }
 
     /** The bartender stands behind the counter facing his guests. */
-    private void bartender(ServerWorld world, Evening evening, List<VillagerEntity> seated) {
+    private void bartender(ServerWorld world, Evening evening, List<VillagerEntity> seated, long now) {
         if (!(world.getEntity(evening.bartender) instanceof VillagerEntity bartender) || leaves(bartender)) { evening.bartender = null; return; }
+        if (bartender.getBlockPos().getSquaredDistance(evening.stand) > 1.5 && now - evening.bartenderSince > WALK_TICKS
+                && bartender.getBlockPos().getSquaredDistance(evening.stand) < 24 * 24) {
+            // Stuck on the way, as a guest who cannot reach his seat sits down anyway: he steps behind the counter.
+            bartender.getNavigation().stop();
+            Vec3d at = Vec3d.ofBottomCenter(evening.stand);
+            bartender.refreshPositionAndAngles(at.x, at.y, at.z, bartender.getYaw(), 0);
+        }
         if (bartender.getBlockPos().getSquaredDistance(evening.stand) > 1.5) {
             if (MobActionController.registered(bartender, MemoryModuleType.WALK_TARGET))
                 bartender.getBrain().remember(MemoryModuleType.WALK_TARGET, new WalkTarget(evening.stand, 0.5F, 0), 40);

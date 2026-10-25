@@ -17,7 +17,7 @@ import net.minecraft.world.gen.structure.Structure;
 
 /** /bars — the bars found around players and their evenings; /bars sample &lt;village type&gt; &lt;count&gt; — lays out that many villages of
  * the type (without building them) and counts their bars, to check the bar's share in worldgen. Operators only. */
-final class BarCommands {
+public final class BarCommands {
     private BarCommands() { }
 
     static void register() {
@@ -36,11 +36,19 @@ final class BarCommands {
     }
 
     private static int sample(ServerCommandSource source, String type, int count) {
-        ServerWorld world = source.getWorld();
+        int[] histogram = sample(source.getWorld(), type, count);
+        if (histogram == null) { source.sendError(Text.literal("Нет деревни village_" + type)); return 0; }
+        source.sendFeedback(() -> Text.literal("village_" + type + ": деревень " + (histogram[0] + histogram[1] + histogram[2]) + ", без бара " + histogram[0]
+                + ", с одним " + histogram[1] + ", с двумя и больше " + histogram[2]), false);
+        return histogram[1];
+    }
+
+    /** Lays out {@code count} villages of the type at random spots (without building them): how many have no bar, one, two or more;
+     * null when there is no such village type. */
+    public static int[] sample(ServerWorld world, String type, int count) {
         Structure structure = world.getRegistryManager().get(RegistryKeys.STRUCTURE).get(Identifier.ofVanilla("village_" + type));
-        if (structure == null) { source.sendError(Text.literal("Нет деревни village_" + type)); return 0; }
-        int[] histogram = new int[4];
-        int made = 0;
+        if (structure == null) return null;
+        int[] histogram = new int[3];
         java.util.Random random = new java.util.Random(type.hashCode());
         for (int i = 0; i < count; i++) {
             ChunkPos chunk = new ChunkPos(random.nextInt(20000) - 10000, random.nextInt(20000) - 10000);
@@ -48,15 +56,11 @@ final class BarCommands {
                     world.getChunkManager().getChunkGenerator().getBiomeSource(), world.getChunkManager().getNoiseConfig(), world.getStructureTemplateManager(),
                     world.getSeed() + i, chunk, 0, world, biome -> true);
             if (!start.hasChildren()) continue;
-            made++;
             int bars = 0;
             for (StructurePiece piece : start.getChildren())
                 if (piece instanceof PoolStructurePiece pool && UniqueVillagePieces.unique(pool.getPoolElement())) bars++;
-            histogram[Math.min(3, bars)]++;
+            histogram[Math.min(2, bars)]++;
         }
-        int total = made;
-        source.sendFeedback(() -> Text.literal("village_" + type + ": деревень " + total + ", без бара " + histogram[0] + ", с одним " + histogram[1]
-                + ", с двумя и больше " + (histogram[2] + histogram[3])), false);
-        return histogram[1];
+        return histogram;
     }
 }
