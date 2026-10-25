@@ -34,6 +34,9 @@ final class MobTrading {
         for (TradeDeal deal : TradeCatalog.deals(type)) { name(names, deal.sell().id()); name(names, deal.price().id()); }
         for (TradeCatalog.Idea idea : TradeCatalog.ideas(type)) name(names, idea.item());
         for (String id : FavorItems.ids()) name(names, id); // The favour candidates are drawn from this pool inside Trading.view.
+        // «Кирпичи» the block and «Кирпич» the item read alike: a block in a favour says so, or mob and player talk past each other.
+        for (String id : FavorItems.ids())
+            if (item(id) instanceof net.minecraft.item.BlockItem && names.containsKey(id)) names.put(id, names.get(id) + " (блок)");
         return names;
     }
     private static void name(Map<String, String> names, String id) {
@@ -118,7 +121,8 @@ final class MobTrading {
             Favor favor = quest.favor();
             bridge.memory.startFavor(mobId, playerId, favor, now);
             changed = true;
-            messages.add("Услуга: " + favor.title() + " — принести " + favor.count() + "× " + new ItemStack(wanted).getName().getString()
+            String name = itemNames(type).getOrDefault(favor.item(), new ItemStack(wanted).getName().getString());
+            messages.add("Услуга: " + (favor.title().equalsIgnoreCase(name) ? "" : favor.title() + " — ") + "принести " + favor.count() + "× " + name
                     + rewardPromise(type, favor));
         } else if (quest != null && quest.type() == QuestIntent.Type.COMPLETE) {
             Favor favor = bridge.memory.favor(mobId, playerId);

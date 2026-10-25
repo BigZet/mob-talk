@@ -319,6 +319,7 @@ final class AnswerValidator {
         if (!mentions(SpeechTags.strip(reply), itemName))
             throw new Rejected("Ты просишь " + count + "× " + itemName + " (quest OFFER), но в реплике об этом ни слова. Скажи прямо, что тебе нужно именно это и зачем; "
                     + "если твоя беда про другую вещь, которой нет в trading.favor.candidates, ничего не проси — quest NONE.", true, true);
+        title = title.replaceFirst("^\\s*\\d+\\s*[×xхX]\\s*", "").strip(); // «23× Кирпичи»: the amount is the game's, said once.
         if (!mentions(title, itemName)) title = itemName;
         return new QuestIntent(type, item, count, title, reward, Math.max(0, Math.min(Favor.MAX_PERCENT, percent)));
     }
@@ -410,6 +411,7 @@ final class AnswerValidator {
     }
 
     /** Numbers in order, digits or Russian words; "двадцать две" becomes 22. */
+    static final Pattern PERCENT = Pattern.compile("(?:\\p{L}+\\s+)?(?:\\p{L}+|\\d+)\\s*(?:%|процент\\p{L}*)", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
     static List<Integer> spokenNumbers(String text) {
         List<Integer> numbers = new ArrayList<>();
         Matcher tokens = TOKEN.matcher(text.toLowerCase(Locale.ROOT).replace('ё', 'е'));
@@ -432,6 +434,7 @@ final class AnswerValidator {
         TradingView view = TradingView.of(snapshot);
         boolean villager = view.villager();
         if (reply == null || !villager && !view.ownDeals() || !PRICE_TALK.matcher(reply).find()) return -1;
+        reply = PERCENT.matcher(reply).replaceAll(" "); // «скину двадцать процентов» is a promised discount, not a price.
         Set<Integer> honest = new HashSet<>(Set.of(1));
         for (Object value : view.deals()) if (value instanceof Map<?,?> own) {
             addCounts(honest, own, "sell", "price");
