@@ -28,9 +28,28 @@ LEFT = {N: W, W: SO, SO: E, E: N}   # looking out in a direction, the side on th
 RIGHT = {v: k for k, v in LEFT.items()}
 OPP = {N: SO, SO: N, E: W, W: E}
 
-PAPERS = ["paper_beige", "paper_green", "paper_blue", "paper_pink"]
+PAPERS = ["paper_beige", "paper_green", "paper_blue", "paper_pink", "paper_stripe", "paper_roses", "paper_damask", "paper_geo"]
 FINISH = {"kitchen": "tile_kitchen", "bath": "tile_bath", "hall": "paper_wood", "stair": "paint_stair"}
 FLOOR = {"kitchen": "floor_lino_beige", "bath": "floor_tile", "hall": "floor_lino_brown", "stair": "floor_terrazzo"}
+ROWS = ("lo", "mid", "hi")   # a room's three rows over its floor: skirting, plain, cornice
+FLAT_DOORS = ["door_flat", "door_flat_wine", "door_flat_black", "door_flat_wood", "door_flat_steel", "door_flat_steel_brown"]
+ROOM_DOORS = ["door_room", "door_room", "door_room_wood"]
+ENTRANCE_DOORS = ["door_entrance", "door_entrance_green"]
+# Balconies (spec §1: real ones you step out on). Most are glazed by their owners, each in their own way: a parapet of
+# sheet or brick and frames of white PVC, brown wood or aluminium; the rest are open with a sheet railing.
+RAILS = ["blue", "white", "green"]
+PARAPETS = ["siding", "brown", "green", "brick"]
+FRAMES = ["pvc", "wood", "alu"]
+# Lamps (the furniture's): a chandelier in the rooms, a flat plafond in the kitchen, bathroom and hall; in the staircase
+# round wall plafonds (the landings' ceilings are slabs' undersides half a block up, where a hanging lamp would float).
+LAMPS = {"living": ["apt_chandelier", "apt_lamp_cascade", "apt_lamp_horns", "apt_lamp_silk"],
+         "room": ["apt_chandelier", "apt_lamp_horns", "apt_lamp_orange", "apt_ceiling_plate"],
+         "bedroom": ["apt_lamp_orange", "apt_lamp_horns", "apt_ceiling_plate", "apt_lamp_silk"],
+         "kitchen": ["apt_lamp_cone", "apt_ceiling_plate", "apt_lamp_orange"],
+         "hall": ["apt_lamp_ball", "apt_ceiling_plate"], "bath": ["apt_lamp_ball", "apt_ceiling_plate"]}
+LAMP_STAIR = "apt_wall_puck"
+CURTAINS = ["apt_curtain_wine", "apt_curtain_gold", "apt_curtain_blue", "apt_curtain_olive"]
+CW = {N: E, E: SO, SO: W, W: N}
 
 
 class Tpl:
@@ -113,8 +132,12 @@ class House:
     def section_of(self, bx):
         return min(bx // self.sw, self.n - 1)
 
+    def slab(self, k):
+        """The slab row of floor k (1 = the first floor)."""
+        return scale.PLINTH + scale.STOREY * (k - 1)
+
     def room(self, bx, bz, floor):
-        """(kind, finish, floor block) of the room a plan cell belongs to, or None for walls and outside."""
+        """(kind, finish, floor block, flat key) of the room a plan cell belongs to, or None for walls and outside."""
         c = self.ch(bx, bz)
         if c is None:
             return None
@@ -130,13 +153,30 @@ class House:
         return (kind, pal["papers"][c], pal["floor"], (sec, side))
 
     def palette(self, sec, floor, side):
+        """A flat's own choices: wallpaper per room, the floor, the doors, the balconies' glazing."""
         key = (sec, floor, side)
         if key not in self.palettes:
             r = random.Random(f"{self.r.random()}")
             letters = [c for c, (s, k) in self.s["rooms"].items() if s == side]
-            papers = {c: r.choice(PAPERS) for c in letters}
-            self.palettes[key] = {"papers": papers, "floor": r.choice(["floor_parquet", "floor_parquet", "floor_lino_brown"])}
+            papers = {}
+            for c in letters:   # no two rooms of a flat alike when it can be helped
+                left = [p for p in PAPERS if p not in papers.values()] or PAPERS
+                papers[c] = r.choice(left)
+            glazed = r.random() < 0.65
+            self.palettes[key] = {"papers": papers, "floor": r.choice(["floor_parquet", "floor_parquet", "floor_lino_brown"]),
+                                  "flat_door": r.choice(FLAT_DOORS), "room_door": r.choice(ROOM_DOORS),
+                                  "curtain": r.choice(CURTAINS),
+                                  "balcony": ("glazed", r.choice(PARAPETS), r.choice(FRAMES)) if glazed else ("open", r.choice(RAILS), None)}
         return self.palettes[key]
+
+    def flat_side(self, bx, bz):
+        """L or R: the flat a cell's neighbourhood belongs to (by the nearest room letter along the row)."""
+        for d in range(0, self.sw):
+            for x in (bx - d, bx + d):
+                c = self.ch(x, bz) or self.ch(x, bz + 1) or ""
+                if c in self.s["rooms"]:
+                    return self.s["rooms"][c][0], self.section_of(x)
+        return "L", self.section_of(bx)
 
     def is_facade(self, bx, bz):
         return bz in (0, self.depth - 1) or bx in (0, self.length - 1)
@@ -149,7 +189,7 @@ class House:
         return W if bx == 0 else E
 
     def wallish(self, c):
-        return c in ("#", "-", "D", "E", "W", "B")
+        return c in ("#", "-", "D", "E", "W", "B", "S")
 
     # ------------------------------------------------------------ writing
 
@@ -170,13 +210,14 @@ class House:
             self.stairs(i)
         self.balconies()
         self.fixtures()
+        import rooms   # the flats' furniture (rooms.py reads the furniture catalogue, so it is imported only here)
+        rooms.furnish(self)
         return t
 
     def floor(self, k):
-        s = scale.PLINTH + scale.STOREY * (k - 1)   # the slab row of floor k
+        s = self.slab(k)
         for (bx, bz), c in self.grid.items():
-            facade = self.is_facade(bx, bz)
-            if facade:
+            if self.is_facade(bx, bz):
                 self.facade_cell(bx, bz, s, k, c)
                 continue
             rm = self.room(bx, bz, k)
@@ -184,8 +225,9 @@ class House:
                 self.at(bx, s, bz, rm[2])
                 continue
             self.at(bx, s, bz, "floor_concrete")
-            for row, y in (("lo", s + 1), ("hi", s + 2)):
-                if c in ("D", "E"):
+            for n, row in enumerate(ROWS):
+                y = s + 1 + n
+                if c in ("D", "E") and row != "hi":
                     self.door(bx, y, bz, row, k, c)
                 else:
                     self.at(bx, y, bz, f"wall_{row}", self.wall_sides(bx, bz, k))
@@ -203,6 +245,10 @@ class House:
         rm = self.room(bx + dx, bz + dz, k)
         return rm[1] if rm else "plaster"
 
+    def window(self, bx, bz, s, out, inner="plaster"):
+        for n, row in enumerate(ROWS):
+            self.at(bx, s + 1 + n, bz, f"window_{self.colour}_{row}", {"facing": out} if row == "mid" else {"facing": out, "inner": inner})
+
     def facade_cell(self, bx, bz, s, k, c):
         out = self.outward(bx, bz)
         corner = bx in (0, self.length - 1) and bz in (0, self.depth - 1)
@@ -212,26 +258,28 @@ class House:
         col = self.colour
         if corner:
             self.at(bx, s, bz, "plinth" if k == 1 else f"facade_{col}_edge")
-            for y in (s + 1, s + 2):
-                self.at(bx, y, bz, f"facade_{col}_edge")
+            for n in range(3):
+                self.at(bx, s + 1 + n, bz, f"facade_{col}_edge")
             return
         self.at(bx, s, bz, "plinth" if k == 1 else f"facade_{col}_{'cross' if joint else 'band'}")
         if c == "W" or (c == "B" and k == 1):
-            self.at(bx, s + 1, bz, f"window_{col}_lo", {"facing": out})
-            self.at(bx, s + 2, bz, f"window_{col}_hi", {"facing": out})
+            self.window(bx, bz, s, out, self.inner_finish(bx, bz, k))
         elif c == "B":
             hinge = "left" if self.ch(bx + DIRS[LEFT[out]][0], bz + DIRS[LEFT[out]][1]) == "W" else "right"
             for y, half in ((s + 1, "lower"), (s + 2, "upper")):
                 self.at(bx, y, bz, "door_balcony", {"facing": out, "half": half, "hinge": hinge, "open": "false", "powered": "false"})
+            self.at(bx, s + 3, bz, f"window_{col}_hi", {"facing": out, "inner": self.inner_finish(bx, bz, k)})   # the transom over the door
         else:
-            inner = self.inner_finish(bx, bz, k)
-            for row, y in (("lo", s + 1), ("hi", s + 2)):
-                self.at(bx, y, bz, f"facade_{col}_{'j' if joint else ''}{row}", {"facing": out, "inner": inner})
+            inner = "paint_stair" if c == "S" else self.inner_finish(bx, bz, k)
+            for n, row in enumerate(ROWS):
+                self.at(bx, s + 1 + n, bz, f"facade_{col}_{'j' if joint else ''}{row}", {"facing": out, "inner": inner})
 
     def door(self, bx, y, bz, row, k, c):
         along_x = self.wallish(self.ch(bx - 1, bz) or "") and self.wallish(self.ch(bx + 1, bz) or "")
         facing = SO if along_x else E
-        name = "door_flat" if c == "E" else "door_room"
+        side, sec = self.flat_side(bx, bz)
+        pal = self.palette(sec, k, side)
+        name = pal["flat_door"] if c == "E" else pal["room_door"]
         if c == "E":  # the flat door opens into the hall, away from the landing
             facing = W if self.ch(bx - 1, bz) in self.s["rooms"] else E
         self.at(bx, y, bz, name, {"facing": facing, "half": "lower" if row == "lo" else "upper", "hinge": "left", "open": "false",
@@ -249,107 +297,144 @@ class House:
                 self.at(bx, R, bz, "roof_bitumen")
         for i in range(self.n):  # vent stacks over the bathrooms' risers, an aerial or two
             x0 = i * self.sw
-            for vx, vz in ((6, 9), (14, 9)):
+            for vx, vz in ((8, 9), (20, 9)):
                 self.at(x0 + vx, R + 1, vz, "vent_shaft", {"facing": N})
                 self.at(x0 + vx, R + 2, vz, "vent_cap", {"facing": N})
-            if self.r.random() < 0.6:
-                ax, az = x0 + self.r.choice((2, 17)), self.r.choice((4, 12))
+            if self.r.random() < 0.7:
+                ax, az = x0 + self.r.choice((2, 25)), self.r.choice((4, 14))
                 for y in (R + 1, R + 2):
                     self.at(ax, y, az, "tv_antenna", {"facing": self.r.choice((N, E))})
 
     def stairs(self, i):
-        """Two flights of three half-steps per storey along z, the well between them, landings at the flats' doors;
-        the ground floor is entered from facade A at street level and climbs two half-steps to the first landing."""
+        """The staircase of section i: 5 wide (flight, flight, the well, flight, flight) and 8 deep. Per storey a flight of
+        three half-steps climbs from the floor landing (2 rows, the flats' doors) towards facade A to the half-landing
+        (3 rows under the staircase window), and the second flight climbs back to the next floor landing. Landings are
+        top slabs, so their underside is half a block up. The entrance is in facade A at street level, under the first
+        half-landing, and two half-steps lead up to the first floor landing. Thin railings stand on the steps' edges by
+        the well, which stays open from the ground to the roof."""
         x0 = i * self.sw
         sx, sz = self.s["stair"]
-        A, M, B = x0 + sx, x0 + sx + 1, x0 + sx + 2   # flight up, the well, flight down... up again
-        z1 = sz
+        A0, A1, M, B0, B1 = (x0 + sx + n for n in range(5))
+        cols = (A0, A1, M, B0, B1)
         col = self.colour
         R = self.roof
-        rows = []
-        for k in range(1, self.floors + 2):
-            s = scale.PLINTH + scale.STOREY * (k - 1)
-            rows.append(s)
-            for x in (A, M, B):
-                for z in range(z1, z1 + 5):
-                    for y in range(s, s + 3):
+        F = self.floors
+        mid = range(sz, sz + 3)         # the half-landing's rows, by facade A
+        fl = (sz + 6, sz + 7)           # the floor landing's rows, by the flats' doors
+
+        def step(x, y, z, half, facing=N, rail="none"):
+            self.at(x, y, z, "step_terrazzo", {"type": half, "facing": facing, "rail": rail, "waterlogged": "false"})
+
+        for k in range(1, F + 1):       # clear the shaft of the staircase first: the second flight reaches into the next row
+            s = self.slab(k)
+            for x in cols:
+                for z in range(sz, sz + 8):
+                    for y in range(s, s + (5 if k == F else 4)):   # the top storey's flight climbs through the roof's row
                         self.at(x, y, z, "minecraft:air")
-                for z in (z1 + 5, z1 + 6):   # landings are top slabs: their underside is half a block higher, so the
-                    # landing above leaves 1.8 m over the first step (a full slab would leave 1.5 and the player bumps)
-                    self.at(x, s, z, "step_terrazzo", {"type": "top", "waterlogged": "false"})
-                    for y in (s + 1, s + 2):
-                        self.at(x, y, z, "minecraft:air")
-        step = lambda x, y, z, half: self.at(x, y, z, "step_terrazzo", {"type": half, "waterlogged": "false"})  # noqa: E731
-        for k in range(1, self.floors + 1):
-            s = rows[k - 1]
-            step(A, s + 1, z1 + 4, "bottom")      # flight up from the landing, towards facade A
-            step(A, s + 1, z1 + 3, "top")
-            step(A, s + 2, z1 + 2, "bottom")
-            for x in (A, M, B):                   # the half-landing under the staircase window
-                for z in (z1, z1 + 1):
-                    step(x, s + 2, z, "bottom")
-            step(B, s + 2, z1 + 2, "top")         # and back up to the next landing
-            step(B, s + 3, z1 + 3, "bottom")
-            step(B, s + 3, z1 + 4, "top")
-            self.at(M, s + 2, z1 + 6, "ceiling_lamp", {"facing": N})
-        # the entrance: a door in facade A at street level, two half-steps up to the first landing
-        step(M, 1, z1 + 3, "bottom")
-        step(M, 1, z1 + 4, "top")
-        for z in (z1 + 3, z1 + 4):
-            step(B, 1, z, "double")
-        for y, half in ((1, "lower"), (2, "upper")):   # a pair of doors: the well's column and the one under the first flight
-            self.at(A, y, 0, "door_entrance", {"facing": N, "half": half, "hinge": "right", "open": "false", "powered": "false"})
-            self.at(M, y, 0, "door_entrance", {"facing": N, "half": half, "hinge": "left", "open": "false", "powered": "false"})
-        for (x, z), c in list(self.grid.items()):   # the vestibule is a storey row lower than the flats: paint its walls down to it
-            if self.wallish(c) and not self.is_facade(x, z) and any(self.ch(x + dx, z + dz) == "s" and z + dz <= z1 + 4
-                                                                      for dx, dz in DIRS.values()):
-                if x0 <= x <= x0 + self.sw:
-                    self.at(x, 1, z, "wall_lo", self.wall_sides(x, z, 1))
-        for x in (A, M, B):
-            self.at(x, 3, -1, "canopy", {"facing": N})
-        self.at(B, 2, -1, "wall_lamp_out", {"facing": N})
-        self.at(A, 2, z1 + 1, "mailboxes", {"facing": E})
-        self.at(B, 2, z1, "ceiling_lamp", {"facing": N})
-        self.at(B, 1, 0, "plinth")
-        # the well's railing, from above the entrance path to the roof
-        for y in range(3, R + 2):   # (on the ground floor the well is the way in: no end bars at head height there)
-            self.at(M, y, z1 + 2, "well_rail_end", {"facing": N})
-            self.at(M, y, z1 + 3, "well_rail", {"facing": N})
-            if y >= 4:
-                self.at(M, y, z1 + 4, "well_rail_end", {"facing": SO})
-        # staircase windows, half a storey up from each floor
-        for k in range(1, self.floors + 1):
-            s = rows[k - 1]
-            for x in (A, M, B):
-                self.at(x, s + 3, 0, f"window_{col}_lo", {"facing": N})
-                self.at(x, s + 4, 0, f"window_{col}_hi", {"facing": N})
+        for k in range(1, F + 2):
+            s = self.slab(k)
+            for x in cols:
+                for z in fl:
+                    step(x, s, z, "top", rail="front" if (x == M and z == fl[0]) else "none")
+            if k > F:
+                break
+            self.at(M, s + 3, sz + 7, LAMP_STAIR, {"facing": N, "lit": "true"})
+            for x, rail in ((A0, "none"), (A1, "right")):       # the first flight, towards facade A
+                step(x, s + 1, sz + 5, "bottom", N, rail)
+                step(x, s + 1, sz + 4, "top", N, rail)
+                step(x, s + 2, sz + 3, "bottom", N, rail)
+            for x in cols:                                      # the half-landing
+                for z in mid:
+                    step(x, s + 2, z, "top", SO, "front" if (x == M and z == mid[-1]) else "none")
+            for x, rail in ((B0, "right"), (B1, "none")):       # and the second flight back up
+                step(x, s + 3, sz + 3, "bottom", SO, rail)
+                step(x, s + 3, sz + 4, "top", SO, rail)
+                step(x, s + 4, sz + 5, "bottom", SO, rail)
+            for x in (A0, B1):                                  # the floor line at the half-landing's corners: plastered inside
+                if k > 1:
+                    self.at(x, s, 0, f"facade_{col}_jmid", {"facing": N, "inner": "paint_stair"})
+                if k == F:
+                    self.at(x, R, 0, f"facade_{col}_jmid", {"facing": N, "inner": "paint_stair"})
+            for x in (A1, M, B0):                               # the staircase window over the half-landing
+                for n, row in enumerate(ROWS):
+                    self.at(x, s + 3 + n, 0, f"window_{col}_{row}", {"facing": N} if row == "mid" else {"facing": N, "inner": "paint_stair"})
+        # The vestibule: under the first half-landing at street level, the floor of the ground (y=0 is the ground layer).
+        for x in cols:
+            for z in range(sz, sz + 6):
+                self.at(x, 0, z, "floor_terrazzo")
+                if x in (M, B0, B1) or z < sz + 3:
+                    self.at(x, 1, z, "minecraft:air")
+        for x in (M, B0, B1):           # two half-steps up to the first floor landing
+            step(x, 1, sz + 4, "bottom", SO)
+            step(x, 1, sz + 5, "top", SO)
+        for x in (A0, A1):              # under the first flight: its painted base
+            for z in range(sz + 3, sz + 6):
+                self.at(x, 1, z, "wall_lo", {d: "paint_stair" for d in DIRS})
+            self.at(x, 2, sz + 3, "wall_mid", {d: "paint_stair" for d in DIRS})
+        for (x, z), c in list(self.grid.items()):   # the vestibule's walls are a row lower than the flats': paint them down
+            if x0 <= x <= x0 + self.sw and self.wallish(c) and not self.is_facade(x, z) and z < sz + 6 and \
+                    any(self.ch(x + dx, z + dz) == "s" for dx, dz in DIRS.values()):
+                for y, row in ((1, "lo"), (2, "mid"), (3, "mid")):
+                    self.at(x, y, z, f"wall_{row}", self.wall_sides(x, z, 1))
+        for x in cols:                  # facade A at the vestibule: painted inside down to the ground
+            if x not in (M, B0):
+                self.at(x, 1, 0, f"facade_{col}_lo", {"facing": N, "inner": "paint_stair"})
+        door = self.r.choice(ENTRANCE_DOORS)
+        for y, half in ((1, "lower"), (2, "upper")):   # a pair of steel doors, opening together
+            self.at(M, y, 0, door, {"facing": SO, "half": half, "hinge": "right", "open": "false", "powered": "false"})
+            self.at(B0, y, 0, door, {"facing": SO, "half": half, "hinge": "left", "open": "false", "powered": "false"})
+        self.at(M, 3, 0, f"facade_{col}_mid", {"facing": N, "inner": "paint_stair"})
+        self.at(B0, 3, 0, f"facade_{col}_mid", {"facing": N, "inner": "paint_stair"})
+        self.at(A0, 2, sz + 1, "apt_post_boxes", {"facing": E, "lit": "true"})
+        self.at(B1, 3, sz + 1, LAMP_STAIR, {"facing": W, "lit": "true"})
+        # The porch: a concrete pad between two cheek walls, a canopy on them, the lamp and the entrance's number plate.
+        for x in (A1, M, B0, B1):
+            for z in (-1, -2):
+                self.at(x, 0, z, "floor_concrete")
+        for x in (A1, B1):
+            for z in (-1, -2):
+                for y in (1, 2, 3):
+                    self.at(x, y, z, f"facade_{col}_edge")
+        for x in (A1, M, B0, B1):
+            for z in (-1, -2):
+                self.at(x, 4, z, "canopy", {"facing": N})
+        self.at(M, 3, -1, "wall_lamp_out", {"facing": N})
+        self.at(B0, 3, -1, "entrance_plate", {"facing": N})
         # the roof exit: a box over the staircase with a door onto the roof
-        xs, zs = range(A - 1, B + 2), range(0, z1 + 8)
+        xs, zs = range(A0 - 1, B1 + 2), range(0, sz + 9)
         for x in xs:
             for z in zs:
-                edge = x in (A - 1, B + 1) or z in (0, z1 + 7)
-                corner = x in (A - 1, B + 1) and z in (0, z1 + 7)
+                edge = x in (A0 - 1, B1 + 1) or z in (0, sz + 8)
+                corner = x in (A0 - 1, B1 + 1) and z in (0, sz + 8)
                 if not edge:
-                    for y in (R + 1, R + 2):
+                    for y in (R + 1, R + 2, R + 3):
                         self.at(x, y, z, "minecraft:air")
-                    self.at(x, R + 3, z, "roof_bitumen")
+                    self.at(x, R + 4, z, "roof_bitumen")
                     continue
-                out = N if z == 0 else SO if z == z1 + 7 else (W if x == A - 1 else E)
-                for row, y in (("lo", R + 1), ("hi", R + 2)):
+                out = N if z == 0 else SO if z == sz + 8 else (W if x == A0 - 1 else E)
+                for n, row in enumerate(ROWS):
+                    y = R + 1 + n
                     if corner:
                         self.at(x, y, z, f"facade_{col}_edge")
-                    elif not (z == 0 and x in (A, M, B) and y == R + 1):
+                    elif not (z == 0 and x in (A1, M, B0) and y == R + 1):
                         self.at(x, y, z, f"facade_{col}_{row}", {"facing": out, "inner": "paint_stair"})
-                self.at(x, R + 3, z, f"facade_{col}_{'edge' if corner else 'band'}")
+                self.at(x, R + 4, z, f"facade_{col}_{'edge' if corner else 'band'}")
         for y, half in ((R + 1, "lower"), (R + 2, "upper")):
-            self.at(M, y, z1 + 7, "door_entrance", {"facing": SO, "half": half, "hinge": "left", "open": "false", "powered": "false"})
-        self.at(M, R + 2, z1 + 6, "ceiling_lamp", {"facing": N})
-        for x in (A, M, B):  # the top staircase window belongs to the box
-            self.at(x, R + 1, 0, f"window_{col}_hi", {"facing": N})
+            self.at(M, y, sz + 8, door, {"facing": SO, "half": half, "hinge": "left", "open": "false", "powered": "false"})
+        self.at(A0, R + 3, sz + 7, LAMP_STAIR, {"facing": E, "lit": "true"})
+        # The garbage chute: one pipe in the corner of the half-landings by the side wall, from the ground to the roof box's
+        # ceiling, through each half-landing's slab, a hopper over each half-landing.
+        for y in range(1, R + 4):
+            k = (y - 1) // scale.STOREY + 1          # the storey whose half-landing this row may belong to
+            s = self.slab(k)
+            name = "chute_slab" if y == s + 2 and k <= F else "chute_hopper" if y == s + 3 and k <= F else "chute_pipe"
+            self.at(A0, y, sz, name, {"facing": E})
+        self.at(A0, R + 5, sz, "vent_cap", {"facing": N})
 
     def balconies(self):
-        """A balcony in front of every balcony door from the second floor up: the slab in the floor's slab row, the
-        railing a storey row above, side railings at the ends."""
+        """A balcony in front of every balcony door from the second floor up: the slab in the floor's slab row; open ones
+        have a sheet railing, glazed ones a parapet and two rows of frames, each flat's in its own style; a glazed balcony
+        on the top floor gets a roof."""
         for (bx, bz), c in self.grid.items():
             if c != "B":
                 continue
@@ -363,22 +448,29 @@ class House:
                     run.append((x, z))
                     x, z = x + sgn * along[0], z + sgn * along[1]
             run.sort(key=lambda p: (p[0] * along[0] + p[1] * along[1]))   # from the right end to the left end, looking out
+            side, sec = self.flat_side(bx, bz + (1 if bz == 0 else -1))
             for k in range(2, self.floors + 1):
-                s = scale.PLINTH + scale.STOREY * (k - 1)
+                s = self.slab(k)
+                kind, style, frame = self.palette(sec, k, side)["balcony"]
+                below = self.palette(sec, k - 1, side)["balcony"] if k > 2 else ("open", None, None)
                 for j, (x, z) in enumerate(run):
                     ox, oz = x + dx, z + dz
-                    self.at(ox, s, oz, "balcony_slab", {"facing": out})
-                    if j == len(run) - 1:
-                        self.at(ox, s + 1, oz, "balcony_rail_corner", {"facing": out})          # left end: outward + left
-                    elif j == 0:
-                        self.at(ox, s + 1, oz, "balcony_rail_corner", {"facing": RIGHT[out]})   # right end: outward + right
-                    else:
-                        self.at(ox, s + 1, oz, "balcony_rail", {"facing": out})
+                    pos = "l" if j == len(run) - 1 else "r" if j == 0 else "m"
+                    # the slab; under it the head of the glazing of the balcony below, if that one is glazed
+                    self.at(ox, s, oz, f"balcap_{below[2]}_{pos}" if below[0] == "glazed" else "balcony_slab", {"facing": out})
+                    if kind == "open":
+                        self.at(ox, s + 1, oz, f"balrail_{style}_{pos}", {"facing": out})
+                        continue
+                    self.at(ox, s + 1, oz, f"balpar_{style}_{pos}", {"facing": out})
+                    self.at(ox, s + 2, oz, f"balglass_{frame}_{pos}", {"facing": out})
+                    self.at(ox, s + 3, oz, f"baltop_{frame}_{pos}", {"facing": out})
+                    if k == self.floors:
+                        self.at(ox, s + 4, oz, f"balroof_{frame}_{pos}", {"facing": out})
 
     def fixtures(self):
-        """Radiators under the windows, a ceiling lamp in each room; the flats' records."""
+        """A lamp in each room; at each window the curtains, with the radiator under the sill; the flats' records."""
         for k in range(1, self.floors + 1):
-            s = scale.PLINTH + scale.STOREY * (k - 1)
+            s = self.slab(k)
             rooms = {}
             for (bx, bz), c in self.grid.items():
                 if c in self.s["rooms"]:
@@ -388,19 +480,30 @@ class House:
                 cx = sum(p[0] for p in cells) / len(cells)
                 cz = sum(p[1] for p in cells) / len(cells)
                 lamp = min(cells, key=lambda p: (p[0] - cx) ** 2 + (p[1] - cz) ** 2)
-                self.at(lamp[0], s + 2, lamp[1], "ceiling_lamp", {"facing": N})
+                pick = random.Random(f"{self.r.random()}").choice(LAMPS.get(kind, LAMPS["room"]))
+                self.at(lamp[0], s + 3, lamp[1], pick, {"facing": N, "lit": "true"})
                 flat = next((f for f in self.flats if f.section == sec and f.floor == k and f.side == side), None)
                 if flat is None:
                     flat = Flat(sec, k, side)
                     self.flats.append(flat)
                 flat.rooms.setdefault(kind, []).extend((self.ox + x, self.oz + z) for x, z in cells)
+            hung = {}
             for (bx, bz), c in self.grid.items():
-                if c != "W" or not self.is_facade(bx, bz):
+                if not (c == "W" or (c == "B" and k == 1)) or not self.is_facade(bx, bz):
                     continue
                 d = OPP[self.outward(bx, bz)]
                 ix, iz = bx + DIRS[d][0], bz + DIRS[d][1]
                 if self.ch(ix, iz) in self.s["rooms"]:
-                    self.at(ix, s + 1, iz, "radiator", {"facing": d})
+                    side, sec = self.flat_side(ix, iz)
+                    hung[(ix, iz)] = (self.palette(sec, k, side)["curtain"], d)
+            for (ix, iz), (name, d) in hung.items():
+                def same(x, z):
+                    return hung.get((x, z)) == (name, d)
+                left = not same(ix + DIRS[CW[d]][0], iz + DIRS[CW[d]][1])
+                right = not same(ix + DIRS[LEFT[d]][0], iz + DIRS[LEFT[d]][1])
+                for t in range(3):
+                    self.at(ix, s + 1 + t, iz, name, {"facing": d, "tier": str(t), "open": "true", "left": str(left).lower(),
+                                                      "right": str(right).lower(), "radiator": "true"})
 
 
 def main():

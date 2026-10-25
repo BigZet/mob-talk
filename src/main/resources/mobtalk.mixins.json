@@ -29,6 +29,8 @@
     "GuardPanicMixin",
     "StructureSetAccessor",
     "CityTreesMixin",
+    "CityBiomeMixin",
+    "CityChunkMixin",
     "ZombieConversionMixin",
     "VillagerRiderMixin",
     "VillagerRiderFacingMixin",

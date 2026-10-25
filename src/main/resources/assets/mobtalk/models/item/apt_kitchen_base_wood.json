@@ -1,0 +1,285 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "black": "mobtalk:block/city2/furniture/black",
+    "apt_kitchen_base_wood_doors_44": "mobtalk:block/city2/furniture/apt_kitchen_base_wood_doors_44",
+    "lightwood": "mobtalk:block/city2/furniture/lightwood",
+    "apt_kitchen_base_wood_edge_44": "mobtalk:block/city2/furniture/apt_kitchen_base_wood_edge_44",
+    "worktop": "mobtalk:block/city2/furniture/worktop",
+    "particle": "mobtalk:block/city2/furniture/black"
+  },
+  "elements": [
+    {
+      "from": [
+        0.5,
+        0.0,
+        2.5
+      ],
+      "to": [
+        15.5,
+        1.5,
+        15.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#black",
+          "uv": [
+            0.5,
+            14.5,
+            15.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#black",
+          "uv": [
+            0.5,
+            14.5,
+            15.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#black",
+          "uv": [
+            0.5,
+            14.5,
+            13.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#black",
+          "uv": [
+            2.5,
+            14.5,
+            15.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        1.5,
+        1.5
+      ],
+      "to": [
+        16.0,
+        13.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_kitchen_base_wood_doors_44",
+          "uv": [
+            0.0,
+            3.0,
+            16.0,
+            14.5
+          ]
+        },
+        "south": {
+          "texture": "#lightwood",
+          "uv": [
+            0.0,
+            3.0,
+            16.0,
+            14.5
+          ]
+        },
+        "east": {
+          "texture": "#lightwood",
+          "uv": [
+            0.0,
+            3.0,
+            14.5,
+            14.5
+          ]
+        },
+        "west": {
+          "texture": "#lightwood",
+          "uv": [
+            1.5,
+            3.0,
+            16.0,
+            14.5
+          ]
+        },
+        "up": {
+          "texture": "#lightwood",
+          "uv": [
+            0.0,
+            1.5,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        13.0,
+        0.5
+      ],
+      "to": [
+        16.0,
+        14.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_kitchen_base_wood_edge_44",
+          "uv": [
+            0.0,
+            2.0,
+            16.0,
+            3.0
+          ]
+        },
+        "south": {
+          "texture": "#worktop",
+          "uv": [
+            0.0,
+            2.0,
+            16.0,
+            3.0
+          ]
+        },
+        "east": {
+          "texture": "#worktop",
+          "uv": [
+            0.0,
+            2.0,
+            15.5,
+            3.0
+          ]
+        },
+        "west": {
+          "texture": "#worktop",
+          "uv": [
+            0.5,
+            2.0,
+            16.0,
+            3.0
+          ]
+        },
+        "up": {
+          "texture": "#worktop",
+          "uv": [
+            0.0,
+            0.5,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.625,
+        0.625,
+        0.625
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        2.5,
+        0
+      ],
+      "scale": [
+        0.375,
+        0.375,
+        0.375
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    }
+  }
+}

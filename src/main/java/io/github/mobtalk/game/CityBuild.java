@@ -19,6 +19,18 @@ import net.minecraft.block.HorizontalFacingBlock;
 import net.minecraft.block.MapColor;
 import net.minecraft.block.SlabBlock;
 import net.minecraft.block.piston.PistonBehavior;
+import net.minecraft.block.ShapeContext;
+import net.minecraft.block.enums.DoorHinge;
+import net.minecraft.block.enums.SlabType;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.sound.SoundEvents;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.util.shape.VoxelShapes;
+import net.minecraft.world.BlockView;
+import net.minecraft.world.World;
 import net.minecraft.command.CommandSource;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
@@ -53,7 +65,8 @@ public final class CityBuild {
 
     /** What a wall's side is covered with: whitewash, wallpaper, tiles, the stairwell's oil paint. */
     public enum Finish implements StringIdentifiable {
-        PLASTER, PAPER_BEIGE, PAPER_GREEN, PAPER_BLUE, PAPER_PINK, PAPER_WOOD, TILE_BATH, TILE_KITCHEN, PAINT_STAIR;
+        PLASTER, PAPER_BEIGE, PAPER_GREEN, PAPER_BLUE, PAPER_PINK, PAPER_STRIPE, PAPER_ROSES, PAPER_DAMASK, PAPER_GEO, PAPER_WOOD, TILE_BATH,
+        TILE_KITCHEN, PAINT_STAIR;
 
         @Override public String asString() { return name().toLowerCase(java.util.Locale.ROOT); }
     }
@@ -64,6 +77,21 @@ public final class CityBuild {
     public static final EnumProperty<Finish> WEST = EnumProperty.of("west", Finish.class);
     public static final EnumProperty<Finish> INNER = EnumProperty.of("inner", Finish.class);
 
+    /** Where a stair step's railing runs: none, the left or right edge (going up the flight), the front edge of a landing. */
+    public enum Rail implements StringIdentifiable {
+        NONE, LEFT, RIGHT, FRONT;
+
+        @Override public String asString() { return name().toLowerCase(java.util.Locale.ROOT); }
+    }
+
+    public static final EnumProperty<Rail> RAIL = EnumProperty.of("rail", Rail.class);
+
+    /** Steel doors that open by hand, with the iron door's sounds. */
+    private static final BlockSetType STEEL = new BlockSetType("mobtalk_steel", true, true, false, BlockSetType.ActivationRule.EVERYTHING,
+            BlockSoundGroup.METAL, SoundEvents.BLOCK_IRON_DOOR_CLOSE, SoundEvents.BLOCK_IRON_DOOR_OPEN, SoundEvents.BLOCK_IRON_TRAPDOOR_CLOSE,
+            SoundEvents.BLOCK_IRON_TRAPDOOR_OPEN, SoundEvents.BLOCK_METAL_PRESSURE_PLATE_CLICK_OFF, SoundEvents.BLOCK_METAL_PRESSURE_PLATE_CLICK_ON,
+            SoundEvents.BLOCK_STONE_BUTTON_CLICK_OFF, SoundEvents.BLOCK_STONE_BUTTON_CLICK_ON);
+
     public static final Map<String, Block> BLOCKS = new LinkedHashMap<>();
     private static boolean registered;
 
@@ -73,18 +101,21 @@ public final class CityBuild {
         if (!CityBuildBlocks.FINISHES.equals(java.util.Arrays.stream(Finish.values()).map(Finish::asString).toList()))
             throw new IllegalStateException("CityBuild.Finish is out of step with tools/city2/blocks.py");
         List<Item> items = new ArrayList<>();
-        for (String row : List.of("wall_lo", "wall_hi"))
+        for (String row : CityBuildBlocks.WALLS)
             add(row, new FinishWallBlock(concrete(MapColor.WHITE)), items);
         for (String id : CityBuildBlocks.FACADES)
             add(id, new FacadeBlock(concrete(MapColor.STONE_GRAY)), items);
+        for (String id : CityBuildBlocks.WINDOWS)
+            add(id, new WindowBlock(concrete(MapColor.WHITE).sounds(BlockSoundGroup.GLASS).nonOpaque()
+                    .solidBlock((state, world, pos) -> false).suffocates((state, world, pos) -> false).blockVision((state, world, pos) -> false)), items);
         CityBuildBlocks.CUBES.forEach((id, color) -> add(id, new Block(concrete(color)), items));
-        for (String id : CityBuildBlocks.SLABS)
-            add(id, new SlabBlock(concrete(MapColor.STONE_GRAY)), items);
+        for (String id : CityBuildBlocks.STEPS)
+            add(id, new StepBlock(concrete(MapColor.STONE_GRAY).nonOpaque()), items);
         for (String id : CityBuildBlocks.DOORS) {
-            AbstractBlock.Settings settings = AbstractBlock.Settings.create().mapColor(id.equals("door_flat") || id.equals("door_entrance") ? MapColor.BROWN : MapColor.WHITE)
-                    .strength(3f).nonOpaque().pistonBehavior(PistonBehavior.DESTROY)
-                    .sounds(id.equals("door_entrance") ? BlockSoundGroup.METAL : BlockSoundGroup.WOOD);
-            Block block = Registry.register(Registries.BLOCK, Identifier.of("mobtalk", id), new DoorBlock(BlockSetType.OAK, settings));
+            boolean steel = CityBuildBlocks.METAL_DOORS.contains(id);
+            AbstractBlock.Settings settings = AbstractBlock.Settings.create().mapColor(CityBuildBlocks.DOOR_COLORS.get(id))
+                    .strength(3f).nonOpaque().pistonBehavior(PistonBehavior.DESTROY).sounds(steel ? BlockSoundGroup.METAL : BlockSoundGroup.WOOD);
+            Block block = Registry.register(Registries.BLOCK, Identifier.of("mobtalk", id), new PairedDoorBlock(steel ? STEEL : BlockSetType.OAK, settings));
             BLOCKS.put(id, block);
             items.add(Registry.register(Registries.ITEM, Identifier.of("mobtalk", id), new TallBlockItem(block, new Item.Settings())));
         }
@@ -188,6 +219,92 @@ public final class CityBuild {
 
         @Override public BlockState getPlacementState(ItemPlacementContext ctx) {
             return getDefaultState().with(FACING, ctx.getHorizontalPlayerFacing().getOpposite());
+        }
+    }
+
+    /** A window part: a facade cell with glass in it, so see-through and never a full solid block. */
+    public static class WindowBlock extends FacadeBlock {
+        WindowBlock(AbstractBlock.Settings settings) { super(settings); }
+
+        @Override protected MapCodec<? extends HorizontalFacingBlock> getCodec() { return createCodec(WindowBlock::new); }
+        @Override protected boolean isTransparent(BlockState state, BlockView world, BlockPos pos) { return true; }
+        @Override protected float getAmbientOcclusionLightLevel(BlockState state, BlockView world, BlockPos pos) { return 1f; }
+    }
+
+    /** A stair step: a half-slab that knows which way its flight climbs ({@code facing}) and where its thin railing runs. */
+    public static class StepBlock extends SlabBlock {
+        StepBlock(AbstractBlock.Settings settings) {
+            super(settings);
+            setDefaultState(getDefaultState().with(HorizontalFacingBlock.FACING, Direction.NORTH).with(RAIL, Rail.NONE));
+        }
+
+        @Override public MapCodec<? extends SlabBlock> getCodec() { return createCodec(StepBlock::new); }
+        @Override protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
+            super.appendProperties(builder);
+            builder.add(HorizontalFacingBlock.FACING, RAIL);
+        }
+
+        @Override public BlockState getPlacementState(ItemPlacementContext ctx) {
+            BlockState state = super.getPlacementState(ctx);
+            return state == null ? null : state.with(HorizontalFacingBlock.FACING, ctx.getHorizontalPlayerFacing());
+        }
+
+        @Override protected VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
+            VoxelShape slab = super.getOutlineShape(state, world, pos, context);
+            Rail rail = state.get(RAIL);
+            if (rail == Rail.NONE || state.get(TYPE) == SlabType.DOUBLE) return slab;
+            double y = state.get(TYPE) == SlabType.TOP ? 16 : 8;
+            double[] north = switch (rail) {   // the railing in the north-facing model, turned to the step's facing
+                case LEFT -> new double[] {0, y, 0, 2, y + 16, 16};
+                case RIGHT -> new double[] {14, y, 0, 16, y + 16, 16};
+                default -> new double[] {0, y, 0, 16, y + 16, 2};
+            };
+            return VoxelShapes.union(slab, CityContent.shape(new double[][] {north}, state.get(HorizontalFacingBlock.FACING)));
+        }
+
+        @Override protected BlockState rotate(BlockState state, BlockRotation rotation) {
+            return state.with(HorizontalFacingBlock.FACING, rotation.rotate(state.get(HorizontalFacingBlock.FACING)));
+        }
+
+        @Override protected BlockState mirror(BlockState state, BlockMirror mirror) {
+            Direction facing = state.get(HorizontalFacingBlock.FACING);
+            BlockState out = state.with(HorizontalFacingBlock.FACING, mirror.apply(facing));
+            if (mirror != BlockMirror.NONE && state.get(RAIL) == Rail.LEFT) out = out.with(RAIL, Rail.RIGHT);
+            else if (mirror != BlockMirror.NONE && state.get(RAIL) == Rail.RIGHT) out = out.with(RAIL, Rail.LEFT);
+            return out;
+        }
+    }
+
+    /** A door that opens with its pair: the leaf beside it with the same facing and the other hinge opens and closes along. */
+    public static class PairedDoorBlock extends DoorBlock {
+        PairedDoorBlock(BlockSetType type, AbstractBlock.Settings settings) { super(type, settings); }
+
+        /** The other leaf of a double door, or null. A right-hinged leaf's pair is on its left (seen along facing), and back. */
+        private static BlockPos pair(World world, BlockPos pos, BlockState state) {
+            Direction facing = state.get(FACING);
+            BlockPos other = pos.offset(state.get(HINGE) == DoorHinge.RIGHT ? facing.rotateYCounterclockwise() : facing.rotateYClockwise());
+            BlockState o = world.getBlockState(other);
+            return o.getBlock() instanceof PairedDoorBlock && o.get(FACING) == facing && o.get(HINGE) != state.get(HINGE)
+                    && o.get(HALF) == state.get(HALF) ? other : null;
+        }
+
+        private static void follow(World world, BlockPos pos, BlockState state, boolean open) {
+            BlockPos other = pair(world, pos, state);
+            if (other != null && world.getBlockState(other).get(OPEN) != open)
+                world.setBlockState(other, world.getBlockState(other).with(OPEN, open), Block.NOTIFY_LISTENERS | Block.REDRAW_ON_MAIN_THREAD);
+        }
+
+        @Override protected ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
+            ActionResult result = super.onUse(state, world, pos, player, hit);
+            BlockState now = world.getBlockState(pos);
+            if (result.isAccepted() && now.isOf(this)) follow(world, pos, now, now.get(OPEN));
+            return result;
+        }
+
+        @Override public void setOpen(Entity entity, World world, BlockState state, BlockPos pos, boolean open) {
+            super.setOpen(entity, world, state, pos, open);
+            BlockState now = world.getBlockState(pos);
+            if (now.isOf(this)) follow(world, pos, now, open);
         }
     }
 }

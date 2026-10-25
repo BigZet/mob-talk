@@ -13,7 +13,9 @@ sys.path.insert(0, HERE)
 import blocks  # noqa: E402
 import house  # noqa: E402
 
-HOUSES = [("1-464", s, 5, "grey") for s in range(1, 7)] + [("1-464", 4, 5, c) for c in ("beige", "white", "blue")]
+# The city sets down 2..6 sections in every colour; one section only as a sample.
+COLOURS = ("grey", "beige", "white", "blue")
+HOUSES = [("1-464", 1, 5, "grey")] + [("1-464", s, 5, c) for s in range(2, 7) for c in COLOURS]
 
 
 def build_houses(maps=None):

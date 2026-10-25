@@ -47,6 +47,38 @@
   },
   {
    "when": {
+    "north": "paper_stripe"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_lo_paper_stripe"
+   }
+  },
+  {
+   "when": {
+    "north": "paper_roses"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_lo_paper_roses"
+   }
+  },
+  {
+   "when": {
+    "north": "paper_damask"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_lo_paper_damask"
+   }
+  },
+  {
+   "when": {
+    "north": "paper_geo"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_lo_paper_geo"
+   }
+  },
+  {
+   "when": {
     "north": "paper_wood"
    },
    "apply": {
@@ -119,6 +151,42 @@
    },
    "apply": {
     "model": "mobtalk:block/city2/wall_lo_paper_pink",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "east": "paper_stripe"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_lo_paper_stripe",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "east": "paper_roses"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_lo_paper_roses",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "east": "paper_damask"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_lo_paper_damask",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "east": "paper_geo"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_lo_paper_geo",
     "y": 90
    }
   },
@@ -205,6 +273,42 @@
   },
   {
    "when": {
+    "south": "paper_stripe"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_lo_paper_stripe",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "south": "paper_roses"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_lo_paper_roses",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "south": "paper_damask"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_lo_paper_damask",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "south": "paper_geo"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_lo_paper_geo",
+    "y": 180
+   }
+  },
+  {
+   "when": {
     "south": "paper_wood"
    },
    "apply": {
@@ -281,6 +385,42 @@
    },
    "apply": {
     "model": "mobtalk:block/city2/wall_lo_paper_pink",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "west": "paper_stripe"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_lo_paper_stripe",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "west": "paper_roses"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_lo_paper_roses",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "west": "paper_damask"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_lo_paper_damask",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "west": "paper_geo"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_lo_paper_geo",
     "y": 270
    }
   },

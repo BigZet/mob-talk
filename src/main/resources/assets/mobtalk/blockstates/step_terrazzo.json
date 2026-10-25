@@ -1,13 +1,286 @@
 {
- "variants": {
-  "type=bottom": {
-   "model": "mobtalk:block/city2/step_terrazzo"
+ "multipart": [
+  {
+   "when": {
+    "type": "bottom"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo"
+   }
   },
-  "type=top": {
-   "model": "mobtalk:block/city2/step_terrazzo_top"
+  {
+   "when": {
+    "type": "top"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_top"
+   }
   },
-  "type=double": {
-   "model": "mobtalk:block/city2/step_terrazzo_double"
+  {
+   "when": {
+    "type": "double"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_double"
+   }
+  },
+  {
+   "when": {
+    "type": "bottom",
+    "rail": "left",
+    "facing": "north"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_rail_bottom_left"
+   }
+  },
+  {
+   "when": {
+    "type": "bottom",
+    "rail": "left",
+    "facing": "east"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_rail_bottom_left",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "type": "bottom",
+    "rail": "left",
+    "facing": "south"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_rail_bottom_left",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "type": "bottom",
+    "rail": "left",
+    "facing": "west"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_rail_bottom_left",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "type": "bottom",
+    "rail": "right",
+    "facing": "north"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_rail_bottom_right"
+   }
+  },
+  {
+   "when": {
+    "type": "bottom",
+    "rail": "right",
+    "facing": "east"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_rail_bottom_right",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "type": "bottom",
+    "rail": "right",
+    "facing": "south"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_rail_bottom_right",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "type": "bottom",
+    "rail": "right",
+    "facing": "west"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_rail_bottom_right",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "type": "bottom",
+    "rail": "front",
+    "facing": "north"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_rail_bottom_front"
+   }
+  },
+  {
+   "when": {
+    "type": "bottom",
+    "rail": "front",
+    "facing": "east"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_rail_bottom_front",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "type": "bottom",
+    "rail": "front",
+    "facing": "south"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_rail_bottom_front",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "type": "bottom",
+    "rail": "front",
+    "facing": "west"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_rail_bottom_front",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "type": "top",
+    "rail": "left",
+    "facing": "north"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_rail_top_left"
+   }
+  },
+  {
+   "when": {
+    "type": "top",
+    "rail": "left",
+    "facing": "east"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_rail_top_left",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "type": "top",
+    "rail": "left",
+    "facing": "south"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_rail_top_left",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "type": "top",
+    "rail": "left",
+    "facing": "west"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_rail_top_left",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "type": "top",
+    "rail": "right",
+    "facing": "north"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_rail_top_right"
+   }
+  },
+  {
+   "when": {
+    "type": "top",
+    "rail": "right",
+    "facing": "east"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_rail_top_right",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "type": "top",
+    "rail": "right",
+    "facing": "south"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_rail_top_right",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "type": "top",
+    "rail": "right",
+    "facing": "west"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_rail_top_right",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "type": "top",
+    "rail": "front",
+    "facing": "north"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_rail_top_front"
+   }
+  },
+  {
+   "when": {
+    "type": "top",
+    "rail": "front",
+    "facing": "east"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_rail_top_front",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "type": "top",
+    "rail": "front",
+    "facing": "south"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_rail_top_front",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "type": "top",
+    "rail": "front",
+    "facing": "west"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/step_terrazzo_rail_top_front",
+    "y": 270
+   }
   }
- }
+ ]
 }

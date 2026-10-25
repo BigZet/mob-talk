@@ -67,6 +67,8 @@ final class SelfTest {
     static final boolean ONLY_CTOV = "ctov".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=pack}: the whole pack together — mods, hotkeys, menus, content of every mod, one Whisper. */
     static final boolean ONLY_PACK = "pack".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=furniture}: the new city's flat furniture in a show flat — placing, sitting, lamps, curtains, screenshots. */
+    static final boolean ONLY_FURNITURE = "furniture".equals(System.getProperty("mobtalk.selftest.only"));
     /** Phrases voiced once for Whisper stages and reused by later runs ({@code -Dmobtalk.selftest.notts=true} keeps TTS off otherwise). */
     static java.nio.file.Path fixtures() {
         String local = System.getenv("LOCALAPPDATA");
@@ -174,6 +176,7 @@ final class SelfTest {
                 : ONLY_PLACE ? () -> new SelfTestPlace(this, cow, sx, SY, sz).run(this::finish)
                 : ONLY_CTOV ? () -> new SelfTestCtov(this, cow, sx, SY, sz).run(this::finish)
                 : ONLY_PACK ? () -> new SelfTestPack(this, sx, SY, sz).run(this::finish)
+                : ONLY_FURNITURE ? () -> new SelfTestFurniture(this, sx, SY, sz).run(this::finish)
                 : ONLY_WEDDING ? () -> new SelfTestWedding(this, sx, SY, sz).run(this::finish)
                 : ONLY_FAMILY ? () -> new SelfTestFamily(this, sx, SY, sz).run(this::finish)
                 : ONLY_DEFENSE ? () -> new SelfTestDefense(this, sx, SY, sz).run(this::finish)

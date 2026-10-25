@@ -10,7 +10,7 @@ final class CityBuildBlocks {
     private CityBuildBlocks() { }
 
     /** Room finishes, in the order of {@link CityBuild.Finish}. */
-    static final List<String> FINISHES = List.of("plaster", "paper_beige", "paper_green", "paper_blue", "paper_pink", "paper_wood", "tile_bath", "tile_kitchen", "paint_stair");
+    static final List<String> FINISHES = List.of("plaster", "paper_beige", "paper_green", "paper_blue", "paper_pink", "paper_stripe", "paper_roses", "paper_damask", "paper_geo", "paper_wood", "tile_bath", "tile_kitchen", "paint_stair");
     static final Map<String, MapColor> CUBES = Map.ofEntries(
             Map.entry("facade_grey_band", MapColor.STONE_GRAY),
             Map.entry("facade_grey_cross", MapColor.STONE_GRAY),
@@ -32,31 +32,100 @@ final class CityBuildBlocks {
             Map.entry("floor_concrete", MapColor.STONE_GRAY),
             Map.entry("roof_bitumen", MapColor.BLACK),
             Map.entry("plinth", MapColor.GRAY),
-            Map.entry("asphalt", MapColor.GRAY));
-    static final List<String> FACADES = List.of("facade_grey_lo", "facade_grey_hi", "facade_grey_jlo", "facade_grey_jhi", "facade_beige_lo", "facade_beige_hi", "facade_beige_jlo", "facade_beige_jhi", "facade_white_lo", "facade_white_hi", "facade_white_jlo", "facade_white_jhi", "facade_blue_lo", "facade_blue_hi", "facade_blue_jlo", "facade_blue_jhi");
-    static final List<String> DOORS = List.of("door_room", "door_flat", "door_entrance", "door_balcony");
-    static final List<String> SLABS = List.of("step_terrazzo");
-    static final List<String> TRANSLUCENT = List.of("window_grey_lo", "window_grey_hi", "window_beige_lo", "window_beige_hi", "window_white_lo", "window_white_hi", "window_blue_lo", "window_blue_hi", "door_room", "door_balcony");
-    static final List<String> CUTOUT = List.of("door_flat", "door_entrance", "well_rail", "well_rail_end", "tv_antenna");
+            Map.entry("asphalt", MapColor.GRAY),
+            Map.entry("asphalt_line_x", MapColor.GRAY),
+            Map.entry("asphalt_line_z", MapColor.GRAY),
+            Map.entry("sidewalk", MapColor.STONE_GRAY),
+            Map.entry("kerb", MapColor.LIGHT_GRAY),
+            Map.entry("plaza", MapColor.TERRACOTTA_PINK));
+    static final List<String> FACADES = List.of("facade_grey_lo", "facade_grey_mid", "facade_grey_hi", "facade_grey_jlo", "facade_grey_jmid", "facade_grey_jhi", "facade_beige_lo", "facade_beige_mid", "facade_beige_hi", "facade_beige_jlo", "facade_beige_jmid", "facade_beige_jhi", "facade_white_lo", "facade_white_mid", "facade_white_hi", "facade_white_jlo", "facade_white_jmid", "facade_white_jhi", "facade_blue_lo", "facade_blue_mid", "facade_blue_hi", "facade_blue_jlo", "facade_blue_jmid", "facade_blue_jhi");
+    static final List<String> DOORS = List.of("door_room", "door_room_wood", "door_flat", "door_flat_wine", "door_flat_black", "door_flat_wood", "door_flat_steel", "door_flat_steel_brown", "door_entrance", "door_entrance_green", "door_balcony");
+    static final Map<String, MapColor> DOOR_COLORS = Map.ofEntries(
+            Map.entry("door_room", MapColor.WHITE),
+            Map.entry("door_room_wood", MapColor.OAK_TAN),
+            Map.entry("door_flat", MapColor.BROWN),
+            Map.entry("door_flat_wine", MapColor.DARK_RED),
+            Map.entry("door_flat_black", MapColor.BLACK),
+            Map.entry("door_flat_wood", MapColor.BROWN),
+            Map.entry("door_flat_steel", MapColor.IRON_GRAY),
+            Map.entry("door_flat_steel_brown", MapColor.BROWN),
+            Map.entry("door_entrance", MapColor.BROWN),
+            Map.entry("door_entrance_green", MapColor.DARK_GREEN),
+            Map.entry("door_balcony", MapColor.WHITE));
+    static final List<String> METAL_DOORS = List.of("door_flat_steel", "door_flat_steel_brown", "door_entrance", "door_entrance_green");
+    static final List<String> WALLS = List.of("wall_lo", "wall_mid", "wall_hi");
+    static final List<String> WINDOWS = List.of("window_grey_lo", "window_grey_mid", "window_grey_hi", "window_beige_lo", "window_beige_mid", "window_beige_hi", "window_white_lo", "window_white_mid", "window_white_hi", "window_blue_lo", "window_blue_mid", "window_blue_hi");
+    static final List<String> STEPS = List.of("step_terrazzo");
+    static final List<String> TRANSLUCENT = List.of("window_grey_lo", "window_grey_mid", "window_grey_hi", "window_beige_lo", "window_beige_mid", "window_beige_hi", "window_white_lo", "window_white_mid", "window_white_hi", "window_blue_lo", "window_blue_mid", "window_blue_hi", "door_room", "door_room_wood", "door_balcony", "balglass_pvc_l", "balglass_pvc_m", "balglass_pvc_r", "baltop_pvc_l", "baltop_pvc_m", "baltop_pvc_r", "balcap_pvc_l", "balcap_pvc_m", "balcap_pvc_r", "balroof_pvc_l", "balroof_pvc_m", "balroof_pvc_r", "balglass_wood_l", "balglass_wood_m", "balglass_wood_r", "baltop_wood_l", "baltop_wood_m", "baltop_wood_r", "balcap_wood_l", "balcap_wood_m", "balcap_wood_r", "balroof_wood_l", "balroof_wood_m", "balroof_wood_r", "balglass_alu_l", "balglass_alu_m", "balglass_alu_r", "baltop_alu_l", "baltop_alu_m", "baltop_alu_r", "balcap_alu_l", "balcap_alu_m", "balcap_alu_r", "balroof_alu_l", "balroof_alu_m", "balroof_alu_r");
+    static final List<String> CUTOUT = List.of("door_flat", "door_flat_wine", "door_flat_black", "door_flat_wood", "door_flat_steel", "door_flat_steel_brown", "door_entrance", "door_entrance_green", "step_terrazzo", "tv_antenna");
     static final List<CityContent.Spec> DECOR = List.of(
-            new CityContent.Spec("window_grey_lo", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
-            new CityContent.Spec("window_grey_hi", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
-            new CityContent.Spec("window_beige_lo", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
-            new CityContent.Spec("window_beige_hi", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
-            new CityContent.Spec("window_white_lo", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
-            new CityContent.Spec("window_white_hi", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
-            new CityContent.Spec("window_blue_lo", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
-            new CityContent.Spec("window_blue_hi", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
-            new CityContent.Spec("well_rail", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 2.5, 16, 16}, {13.5, 0, 0, 16, 16, 16}}, 0, MapColor.GREEN, BlockSoundGroup.METAL, true),
-            new CityContent.Spec("well_rail_end", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 2.5, 16, 16}, {13.5, 0, 0, 16, 16, 16}, {0, 0, 0, 16, 16, 2.5}}, 0, MapColor.GREEN, BlockSoundGroup.METAL, true),
+            new CityContent.Spec("balrail_blue_l", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 2}, {0, 0, 0, 2, 16, 16}}, 0, MapColor.LIGHT_BLUE, BlockSoundGroup.METAL, true),
+            new CityContent.Spec("balrail_blue_m", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 2}}, 0, MapColor.LIGHT_BLUE, BlockSoundGroup.METAL, true),
+            new CityContent.Spec("balrail_blue_r", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 2}, {14, 0, 0, 16, 16, 16}}, 0, MapColor.LIGHT_BLUE, BlockSoundGroup.METAL, true),
+            new CityContent.Spec("balrail_white_l", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 2}, {0, 0, 0, 2, 16, 16}}, 0, MapColor.LIGHT_BLUE, BlockSoundGroup.METAL, true),
+            new CityContent.Spec("balrail_white_m", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 2}}, 0, MapColor.LIGHT_BLUE, BlockSoundGroup.METAL, true),
+            new CityContent.Spec("balrail_white_r", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 2}, {14, 0, 0, 16, 16, 16}}, 0, MapColor.LIGHT_BLUE, BlockSoundGroup.METAL, true),
+            new CityContent.Spec("balrail_green_l", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 2}, {0, 0, 0, 2, 16, 16}}, 0, MapColor.LIGHT_BLUE, BlockSoundGroup.METAL, true),
+            new CityContent.Spec("balrail_green_m", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 2}}, 0, MapColor.LIGHT_BLUE, BlockSoundGroup.METAL, true),
+            new CityContent.Spec("balrail_green_r", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 2}, {14, 0, 0, 16, 16, 16}}, 0, MapColor.LIGHT_BLUE, BlockSoundGroup.METAL, true),
+            new CityContent.Spec("balpar_siding_l", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 4.5}, {0, 0, 0, 1.5, 16, 16}}, 0, MapColor.WHITE_GRAY, BlockSoundGroup.METAL, true),
+            new CityContent.Spec("balpar_siding_m", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 4.5}}, 0, MapColor.WHITE_GRAY, BlockSoundGroup.METAL, true),
+            new CityContent.Spec("balpar_siding_r", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 4.5}, {14.5, 0, 0, 16, 16, 16}}, 0, MapColor.WHITE_GRAY, BlockSoundGroup.METAL, true),
+            new CityContent.Spec("balpar_brown_l", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 4.5}, {0, 0, 0, 1.5, 16, 16}}, 0, MapColor.BROWN, BlockSoundGroup.METAL, true),
+            new CityContent.Spec("balpar_brown_m", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 4.5}}, 0, MapColor.BROWN, BlockSoundGroup.METAL, true),
+            new CityContent.Spec("balpar_brown_r", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 4.5}, {14.5, 0, 0, 16, 16, 16}}, 0, MapColor.BROWN, BlockSoundGroup.METAL, true),
+            new CityContent.Spec("balpar_green_l", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 4.5}, {0, 0, 0, 1.5, 16, 16}}, 0, MapColor.BROWN, BlockSoundGroup.METAL, true),
+            new CityContent.Spec("balpar_green_m", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 4.5}}, 0, MapColor.BROWN, BlockSoundGroup.METAL, true),
+            new CityContent.Spec("balpar_green_r", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 4.5}, {14.5, 0, 0, 16, 16, 16}}, 0, MapColor.BROWN, BlockSoundGroup.METAL, true),
+            new CityContent.Spec("balpar_brick_l", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 6}, {0, 0, 0, 3, 16, 16}}, 0, MapColor.BROWN, BlockSoundGroup.STONE, true),
+            new CityContent.Spec("balpar_brick_m", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 6}}, 0, MapColor.BROWN, BlockSoundGroup.STONE, true),
+            new CityContent.Spec("balpar_brick_r", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 6}, {13, 0, 0, 16, 16, 16}}, 0, MapColor.BROWN, BlockSoundGroup.STONE, true),
+            new CityContent.Spec("balglass_pvc_l", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 3}, {0, 0, 0, 2, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balglass_pvc_m", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 3}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balglass_pvc_r", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 3}, {14, 0, 0, 16, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("baltop_pvc_l", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 3}, {0, 0, 0, 2, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("baltop_pvc_m", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 3}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("baltop_pvc_r", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 3}, {14, 0, 0, 16, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balcap_pvc_l", CityContent.Mount.GROUND, new double[][] {{0, 10.5, 0, 16, 16, 16}, {0, 0, 0, 16, 16, 3}, {0, 0, 0, 2, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balcap_pvc_m", CityContent.Mount.GROUND, new double[][] {{0, 10.5, 0, 16, 16, 16}, {0, 0, 0, 16, 16, 3}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balcap_pvc_r", CityContent.Mount.GROUND, new double[][] {{0, 10.5, 0, 16, 16, 16}, {0, 0, 0, 16, 16, 3}, {14, 0, 0, 16, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balroof_pvc_l", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 4.5, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balroof_pvc_m", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 4.5, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balroof_pvc_r", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 4.5, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balglass_wood_l", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 3}, {0, 0, 0, 2, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balglass_wood_m", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 3}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balglass_wood_r", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 3}, {14, 0, 0, 16, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("baltop_wood_l", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 3}, {0, 0, 0, 2, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("baltop_wood_m", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 3}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("baltop_wood_r", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 3}, {14, 0, 0, 16, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balcap_wood_l", CityContent.Mount.GROUND, new double[][] {{0, 10.5, 0, 16, 16, 16}, {0, 0, 0, 16, 16, 3}, {0, 0, 0, 2, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balcap_wood_m", CityContent.Mount.GROUND, new double[][] {{0, 10.5, 0, 16, 16, 16}, {0, 0, 0, 16, 16, 3}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balcap_wood_r", CityContent.Mount.GROUND, new double[][] {{0, 10.5, 0, 16, 16, 16}, {0, 0, 0, 16, 16, 3}, {14, 0, 0, 16, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balroof_wood_l", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 4.5, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balroof_wood_m", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 4.5, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balroof_wood_r", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 4.5, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balglass_alu_l", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 3}, {0, 0, 0, 2, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balglass_alu_m", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 3}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balglass_alu_r", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 3}, {14, 0, 0, 16, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("baltop_alu_l", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 3}, {0, 0, 0, 2, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("baltop_alu_m", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 3}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("baltop_alu_r", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 3}, {14, 0, 0, 16, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balcap_alu_l", CityContent.Mount.GROUND, new double[][] {{0, 10.5, 0, 16, 16, 16}, {0, 0, 0, 16, 16, 3}, {0, 0, 0, 2, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balcap_alu_m", CityContent.Mount.GROUND, new double[][] {{0, 10.5, 0, 16, 16, 16}, {0, 0, 0, 16, 16, 3}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balcap_alu_r", CityContent.Mount.GROUND, new double[][] {{0, 10.5, 0, 16, 16, 16}, {0, 0, 0, 16, 16, 3}, {14, 0, 0, 16, 16, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balroof_alu_l", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 4.5, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balroof_alu_m", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 4.5, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("balroof_alu_r", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 4.5, 16}}, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true),
+            new CityContent.Spec("chute_pipe", CityContent.Mount.GROUND, new double[][] {{3, 0, 6, 13, 16, 16}}, 0, MapColor.GREEN, BlockSoundGroup.METAL, true),
+            new CityContent.Spec("chute_hopper", CityContent.Mount.GROUND, new double[][] {{3, 0, 6, 13, 16, 16}, {3, 7, 1, 13, 15, 6}}, 0, MapColor.GREEN, BlockSoundGroup.METAL, true),
+            new CityContent.Spec("chute_slab", CityContent.Mount.GROUND, new double[][] {{0, 8, 0, 16, 16, 16}, {3, 0, 6, 13, 8, 16}}, 0, MapColor.STONE_GRAY, BlockSoundGroup.STONE, true),
             new CityContent.Spec("balcony_slab", CityContent.Mount.GROUND, new double[][] {{0, 10, 0, 16, 16, 16}}, 0, MapColor.STONE_GRAY, BlockSoundGroup.STONE, true),
-            new CityContent.Spec("balcony_rail", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 15.5, 2}}, 0, MapColor.LIGHT_BLUE, BlockSoundGroup.METAL, true),
-            new CityContent.Spec("balcony_rail_corner", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 2}, {0, 0, 0, 2, 16, 16}}, 0, MapColor.LIGHT_BLUE, BlockSoundGroup.METAL, true),
-            new CityContent.Spec("canopy", CityContent.Mount.GROUND, new double[][] {{0, 12, 0, 16, 16, 16}}, 0, MapColor.STONE_GRAY, BlockSoundGroup.STONE, true),
+            new CityContent.Spec("canopy", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 4, 16}}, 0, MapColor.STONE_GRAY, BlockSoundGroup.STONE, true),
             new CityContent.Spec("ceiling_lamp", CityContent.Mount.GROUND, new double[][] {{4, 12, 4, 12, 16, 12}}, 14, MapColor.WHITE, BlockSoundGroup.GLASS, true),
             new CityContent.Spec("wall_lamp_out", CityContent.Mount.WALL, new double[][] {{5.5, 4, 7.5, 10.5, 13, 16}}, 13, MapColor.WHITE, BlockSoundGroup.GLASS, true),
             new CityContent.Spec("vent_shaft", CityContent.Mount.GROUND, new double[][] {{2, 0, 2, 14, 16, 14}}, 0, MapColor.RED, BlockSoundGroup.STONE, true),
             new CityContent.Spec("vent_cap", CityContent.Mount.GROUND, new double[][] {{1, 0, 1, 15, 11, 15}}, 0, MapColor.RED, BlockSoundGroup.STONE, true),
             new CityContent.Spec("tv_antenna", CityContent.Mount.GROUND, new double[][] {{7, 0, 7, 9, 16, 9}}, 0, MapColor.LIGHT_GRAY, BlockSoundGroup.METAL, true),
+            new CityContent.Spec("entrance_plate", CityContent.Mount.WALL, new double[][] {{4, 4, 15.25, 12, 12, 16}}, 0, MapColor.BLUE, BlockSoundGroup.METAL, true),
             new CityContent.Spec("mailboxes", CityContent.Mount.WALL, new double[][] {{1, 2, 12, 15, 14, 16}}, 0, MapColor.BLUE, BlockSoundGroup.METAL, true));
 }

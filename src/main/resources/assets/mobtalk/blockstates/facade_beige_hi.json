@@ -75,6 +75,66 @@
    "model": "mobtalk:block/city2/facade_beige_hi_paper_pink",
    "y": 270
   },
+  "facing=north,inner=paper_stripe": {
+   "model": "mobtalk:block/city2/facade_beige_hi_paper_stripe"
+  },
+  "facing=east,inner=paper_stripe": {
+   "model": "mobtalk:block/city2/facade_beige_hi_paper_stripe",
+   "y": 90
+  },
+  "facing=south,inner=paper_stripe": {
+   "model": "mobtalk:block/city2/facade_beige_hi_paper_stripe",
+   "y": 180
+  },
+  "facing=west,inner=paper_stripe": {
+   "model": "mobtalk:block/city2/facade_beige_hi_paper_stripe",
+   "y": 270
+  },
+  "facing=north,inner=paper_roses": {
+   "model": "mobtalk:block/city2/facade_beige_hi_paper_roses"
+  },
+  "facing=east,inner=paper_roses": {
+   "model": "mobtalk:block/city2/facade_beige_hi_paper_roses",
+   "y": 90
+  },
+  "facing=south,inner=paper_roses": {
+   "model": "mobtalk:block/city2/facade_beige_hi_paper_roses",
+   "y": 180
+  },
+  "facing=west,inner=paper_roses": {
+   "model": "mobtalk:block/city2/facade_beige_hi_paper_roses",
+   "y": 270
+  },
+  "facing=north,inner=paper_damask": {
+   "model": "mobtalk:block/city2/facade_beige_hi_paper_damask"
+  },
+  "facing=east,inner=paper_damask": {
+   "model": "mobtalk:block/city2/facade_beige_hi_paper_damask",
+   "y": 90
+  },
+  "facing=south,inner=paper_damask": {
+   "model": "mobtalk:block/city2/facade_beige_hi_paper_damask",
+   "y": 180
+  },
+  "facing=west,inner=paper_damask": {
+   "model": "mobtalk:block/city2/facade_beige_hi_paper_damask",
+   "y": 270
+  },
+  "facing=north,inner=paper_geo": {
+   "model": "mobtalk:block/city2/facade_beige_hi_paper_geo"
+  },
+  "facing=east,inner=paper_geo": {
+   "model": "mobtalk:block/city2/facade_beige_hi_paper_geo",
+   "y": 90
+  },
+  "facing=south,inner=paper_geo": {
+   "model": "mobtalk:block/city2/facade_beige_hi_paper_geo",
+   "y": 180
+  },
+  "facing=west,inner=paper_geo": {
+   "model": "mobtalk:block/city2/facade_beige_hi_paper_geo",
+   "y": 270
+  },
   "facing=north,inner=paper_wood": {
    "model": "mobtalk:block/city2/facade_beige_hi_paper_wood"
   },

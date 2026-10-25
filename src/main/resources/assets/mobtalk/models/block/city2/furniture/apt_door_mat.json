@@ -1,0 +1,68 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "doormat": "mobtalk:block/city2/furniture/doormat",
+    "particle": "mobtalk:block/city2/furniture/doormat"
+  },
+  "elements": [
+    {
+      "from": [
+        2.0,
+        0.0,
+        4.0
+      ],
+      "to": [
+        14.0,
+        0.5,
+        12.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#doormat",
+          "uv": [
+            2.0,
+            15.5,
+            14.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#doormat",
+          "uv": [
+            2.0,
+            15.5,
+            14.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#doormat",
+          "uv": [
+            4.0,
+            15.5,
+            12.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#doormat",
+          "uv": [
+            4.0,
+            15.5,
+            12.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#doormat",
+          "uv": [
+            2.0,
+            4.0,
+            14.0,
+            12.0
+          ]
+        }
+      }
+    }
+  ]
+}

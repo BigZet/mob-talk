@@ -1,0 +1,6 @@
+{
+ "parent": "minecraft:item/generated",
+ "textures": {
+  "layer0": "mobtalk:block/city2/item_door_flat_wood"
+ }
+}

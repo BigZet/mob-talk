@@ -28,18 +28,18 @@ VANILLA_JAR = os.path.expanduser("~/.gradle/caches/fabric-loom/1.21.1/minecraft-
 TEX = {}
 MODELS = {}
 NAMES = {}
-FINISHES = ["plaster", "paper_beige", "paper_green", "paper_blue", "paper_pink", "paper_wood", "tile_bath", "tile_kitchen",
-            "paint_stair"]
+FINISHES = ["plaster", "paper_beige", "paper_green", "paper_blue", "paper_pink", "paper_stripe", "paper_roses", "paper_damask",
+            "paper_geo", "paper_wood", "tile_bath", "tile_kitchen", "paint_stair"]
 COLORS = {"grey": (176, 174, 168), "beige": (214, 196, 160), "white": (226, 226, 220), "blue": (150, 178, 204)}
-FACADE_KINDS = ("lo", "hi", "jlo", "jhi")
-ROWS = ("lo", "hi")
+FACADE_KINDS = ("lo", "mid", "hi", "jlo", "jmid", "jhi")
+ROWS = ("lo", "mid", "hi")
 
 # Java registration lists, filled as blocks are defined
 CUBES = []       # (id, map colour)
 FACADES = []     # id
 DECOR = []       # (id, mount, boxes, light, map colour, sound)
 DOORS = []       # (id, map colour, sound)
-SLABS = []       # (id, map colour)
+STEPS = []       # stair steps: a slab with a facing and a railing
 TRANSLUCENT = []
 CUTOUT = []
 
@@ -116,12 +116,35 @@ def tiles(name, base, size=4, grout=None, accent=None):
     return img
 
 
+def pattern_paper(name, ground, motif, step, noise=0.025, stagger=True):
+    """Wallpaper with a coloured motif: (dx, dy, rgb) pixels repeated every step, odd rows shifted by half a step."""
+    r = rnd(name)
+    img = D.new()
+    fill(img, ground, noise, r)
+    sx, sy = step
+    for row, y0 in enumerate(range(0, 16, sy)):
+        off = (sx // 2) if (row % 2 and stagger) else 0
+        for x0 in range(off - sx, 16 + sx, sx):
+            for dx, dy, c in motif:
+                put(img, (x0 + dx) % 16, (y0 + dy) % 16, D.shade(c + (255,), r.uniform(0.97, 1.03)))
+    return img
+
+
+def three_rows(name, plain, lo=None, hi=None):
+    """The finish over a room's three rows: lo with skirting, mid plain, hi with the cornice (or the given images)."""
+    tex(f"{name}_lo", lo if lo is not None else skirting(plain("lo")))
+    tex(f"{name}_mid", plain("mid"))
+    tex(f"{name}_hi", hi if hi is not None else cornice(plain("hi")))
+
+
 def finish_textures():
     plaster = (232, 230, 222)
-    for row in ROWS:
+
+    def plain_plaster(row):
         img = D.new()
         fill(img, plaster, 0.02, rnd("plaster" + row))
-        tex(f"plaster_{row}", cornice(img) if row == "hi" else img)
+        return img
+    three_rows("plaster", plain_plaster, lo=plain_plaster("lo"))
     papers = {
         "paper_beige": ((222, 205, 170), [(0, 0, 0.82), (1, 1, 0.86), (-1, 1, 0.86), (0, 2, 0.82), (0, 1, 1.08)], (8, 6), None),
         "paper_green": ((168, 190, 150), [(0, 0, 0.84), (1, 0, 0.84), (0, 1, 0.9), (2, 2, 1.07)], (8, 8), (8, 0.95)),
@@ -129,10 +152,37 @@ def finish_textures():
         "paper_pink": ((226, 196, 190), [(0, 0, 0.8), (1, 1, 0.8), (-1, 1, 0.8), (0, 2, 0.8), (0, 1, 1.1), (3, 4, 0.9)], (8, 8), None),
     }
     for name, (base, motif, step, stripe) in papers.items():
-        for row in ROWS:
-            img = wallpaper(f"{name}_{row}", base, motif, step, stripe)
-            tex(f"{name}_{row}", skirting(img) if row == "lo" else cornice(img))
-    for row in ROWS:  # the hall: "wood" wallpaper, narrow boards with grain
+        three_rows(name, lambda row, name=name, base=base, motif=motif, step=step, stripe=stripe:
+                   wallpaper(f"{name}_{row}", base, motif, step, stripe))
+    # four more of the 70s-80s: a wine stripe, roses on cream, a gold damask on burgundy, brown rings on ochre
+    def stripe(row):
+        r = rnd("paper_stripe" + row)
+        img = D.new()
+        fill(img, (226, 214, 186), 0.02, r)
+        for x in range(16):
+            band = x % 8
+            for y in range(16):
+                if band in (0, 1):
+                    put(img, x, y, D.shade((168, 84, 84, 255), r.uniform(0.95, 1.04) * (0.9 if band == 1 else 1.0)))
+                elif band == 4:
+                    put(img, x, y, D.shade((198, 172, 120, 255), r.uniform(0.96, 1.03)))
+                elif band in (3, 5) and y % 4 == 0:
+                    put(img, x, y, (206, 190, 156))
+        return img
+    three_rows("paper_stripe", stripe)
+    R, r_, G, g = (190, 72, 84), (140, 42, 56), (104, 140, 88), (84, 112, 70)
+    rose = [(1, 0, R), (2, 0, R), (0, 1, R), (1, 1, r_), (2, 1, R), (3, 1, R), (1, 2, R), (2, 2, r_), (0, 3, G), (3, 3, G),
+            (-1, 4, g), (4, 4, g), (1, 3, G)]
+    three_rows("paper_roses", lambda row: pattern_paper("paper_roses" + row, (234, 224, 200), rose, (8, 8)))
+    gold = (182, 142, 82)
+    damask = [(3, 0, gold), (2, 1, gold), (4, 1, gold), (1, 2, gold), (5, 2, gold), (0, 3, gold), (6, 3, gold), (3, 3, (204, 168, 104)),
+              (1, 4, gold), (5, 4, gold), (2, 5, gold), (4, 5, gold), (3, 6, gold), (3, 2, (150, 70, 66)), (3, 4, (150, 70, 66))]
+    three_rows("paper_damask", lambda row: pattern_paper("paper_damask" + row, (112, 40, 48), damask, (8, 8), noise=0.035))
+    ring = [(x, y, (124, 78, 40)) for x in range(6) for y in range(6) if 1.6 <= ((x - 2.5) ** 2 + (y - 2.5) ** 2) ** 0.5 <= 2.7]
+    ring += [(2, 2, (222, 126, 54)), (3, 2, (222, 126, 54)), (2, 3, (222, 126, 54)), (3, 3, (200, 106, 44))]
+    three_rows("paper_geo", lambda row: pattern_paper("paper_geo" + row, (212, 176, 108), ring, (8, 8), noise=0.03))
+
+    def wood(row):  # the hall: "wood" wallpaper, narrow boards with grain
         r = rnd("paper_wood" + row)
         img = D.new()
         base = (176, 132, 92)
@@ -140,44 +190,56 @@ def finish_textures():
             k = 0.9 if x % 4 == 0 else r.uniform(0.98, 1.05)
             for y in range(16):
                 put(img, x, y, D.shade(base + (255,), k * (0.96 if (y + x * 3) % 7 == 0 else 1.0)))
-        tex(f"paper_wood_{row}", skirting(img, (84, 56, 36)) if row == "lo" else cornice(img))
-    tex("tile_bath_lo", tiles("tile_bath_lo", (206, 226, 232)))
-    hi = tiles("tile_bath_hi", (206, 226, 232))  # tiles to 1.5 m, oil paint above
-    fill(hi, (222, 232, 226), 0.02, rnd("bathpaint"), (0, 0, 16, 7))
+        return img
+    three_rows("paper_wood", wood, lo=skirting(wood("lo"), (84, 56, 36)))
+    # the bathroom: tiles to about 1.6 m, oil paint above, a blue line between
+    bath = (206, 226, 232)
+    mid = tiles("tile_bath_mid", bath)
+    fill(mid, (222, 232, 226), 0.02, rnd("bathpaint"), (0, 0, 16, 5))
     for x in range(16):
-        put(hi, x, 7, (120, 150, 170))
+        put(mid, x, 5, (120, 150, 170))
+    hi = D.new()
+    fill(hi, (222, 232, 226), 0.02, rnd("bathpaint_hi"))
+    tex("tile_bath_lo", tiles("tile_bath_lo", bath))
+    tex("tile_bath_mid", mid)
     tex("tile_bath_hi", cornice(hi))
-    # the kitchen: light green oil paint below, a band of small white tiles (the apron over the worktop), cream paint above
+    # the kitchen: light green oil paint below the worktop, the apron of small white tiles over it, cream paint above
     tile = tiles("tile_kitchen_band", (238, 238, 230), size=4)
     lo = D.new()
     fill(lo, (190, 214, 196), 0.025, rnd("kitchenlo"))
-    for y in range(0, 6):
-        for x in range(16):
-            put(lo, x, y, tile.getpixel((x, y + 2)))
     for x in range(16):
-        put(lo, x, 6, (120, 150, 132))
         put(lo, x, 15, (150, 172, 156))
-    tex("tile_kitchen_lo", lo)
-    hi = D.new()
-    fill(hi, (236, 228, 196), 0.02, rnd("kitchenpaint"))
-    for y in range(9, 16):
+    for y in range(0, 3):
         for x in range(16):
-            put(hi, x, y, tile.getpixel((x, y)))
+            put(lo, x, y, tile.getpixel((x, y + 4)))
+    mid = D.new()
+    fill(mid, (236, 228, 196), 0.02, rnd("kitchenpaint"))
+    for y in range(6, 16):
+        for x in range(16):
+            put(mid, x, y, tile.getpixel((x, y)))
     for x in range(16):
-        put(hi, x, 8, (80, 120, 170))
+        put(mid, x, 5, (80, 120, 170))
+    hi = D.new()
+    fill(hi, (236, 228, 196), 0.02, rnd("kitchenpaint_hi"))
+    tex("tile_kitchen_lo", lo)
+    tex("tile_kitchen_mid", mid)
     tex("tile_kitchen_hi", cornice(hi))
-    green = (92, 140, 120)  # the stairwell: green oil paint to 1.5 m, whitewash above, a dark line between
+    # the stairwell: green oil paint to 1.5 m, whitewash above, a dark line between
+    green = (92, 140, 120)
     lo = D.new()
     fill(lo, green, 0.04, rnd("stairlo"))
+    r = rnd("scuff")
     for _ in range(6):
-        r = rnd("scuff")
         put(lo, r.randrange(16), r.randrange(8, 16), D.shade(green + (255,), 0.8))
-    tex("paint_stair_lo", lo)
+    mid = D.new()
+    fill(mid, (226, 226, 216), 0.03, rnd("stairmid"))
+    fill(mid, green, 0.04, rnd("stairmid2"), (0, 9, 16, 16))
+    for x in range(16):
+        put(mid, x, 8, (60, 90, 78))
     hi = D.new()
     fill(hi, (226, 226, 216), 0.03, rnd("stairhi"))
-    fill(hi, green, 0.04, rnd("stairhi2"), (0, 9, 16, 16))
-    for x in range(16):
-        put(hi, x, 8, (60, 90, 78))
+    tex("paint_stair_lo", lo)
+    tex("paint_stair_mid", mid)
     tex("paint_stair_hi", hi)
 
 
@@ -290,43 +352,90 @@ def facade_textures():
     tex("roof_bitumen", img)
     r = rnd("asphalt")
     img = D.new()
-    fill(img, (70, 70, 72), 0.08, r)
-    for _ in range(24):
-        put(img, r.randrange(16), r.randrange(16), D.shade((110, 110, 112, 255), r.uniform(0.8, 1.15)))
+    fill(img, (72, 72, 74), 0.035, r)
+    for _ in range(12):
+        put(img, r.randrange(16), r.randrange(16), D.shade((92, 92, 94, 255), r.uniform(0.92, 1.06)))
     tex("asphalt", img)
+    street_textures()
+
+
+def street_textures():
+    """The street (stage 2): a road marking line, pavement slabs, the granite kerb, the square's granite paving."""
+    asphalt = TEX["asphalt"]
+    for axis in ("x", "z"):
+        r = rnd("line_" + axis)
+        img = asphalt.copy()
+        for a in range(16):
+            for b in range(6, 10):
+                c = D.shade((226, 224, 214, 255), r.uniform(0.9, 1.04)) if r.random() > 0.06 else asphalt.getpixel((a, b))
+                put(img, *((a, b) if axis == "x" else (b, a)), c)
+        tex("asphalt_line_" + axis, img)
+    r = rnd("sidewalk")
+    img = D.new()
+    for y in range(16):
+        for x in range(16):
+            slab = (x // 8, y // 8)
+            k = random.Random(f"sidewalk{slab}").uniform(0.95, 1.04)
+            if x % 8 == 7 or y % 8 == 7:
+                c = D.shade((118, 116, 110, 255), r.uniform(0.95, 1.05))
+            else:
+                c = D.shade((164, 162, 154, 255), k * r.uniform(0.95, 1.05))
+            put(img, x, y, c)
+    for _ in range(3):
+        x, y = r.randrange(16), r.randrange(16)
+        put(img, x, y, (128, 126, 120))
+    tex("sidewalk", img)
+    r = rnd("kerb")
+    img = D.new()
+    fill(img, (176, 174, 170), 0.05, r)
+    for x in range(16):
+        put(img, x, 0, D.shade((200, 198, 194, 255), r.uniform(0.97, 1.03)))
+        put(img, x, 15, D.shade((200, 198, 194, 255), r.uniform(0.97, 1.03)))
+        for y in (7,):
+            put(img, x, y, D.shade((150, 148, 144, 255), r.uniform(0.97, 1.03)) if x % 16 == 15 else img.getpixel((x, y)))
+    for y in range(16):
+        put(img, 15, y, (140, 138, 134))
+    tex("kerb", img)
+    tex("plaza", tiles("plaza", (170, 140, 132), size=8, grout=(132, 110, 104)))
 
 
 # ---------------------------------------------------------------- textures: windows, doors, rails, roof things
 
 def window_textures():
-    frame, glass = (236, 236, 230, 255), (150, 190, 214, 96)
-    shine = (220, 236, 246, 150)
-    for part in ("lo", "hi"):
-        img = D.new(16, 16, (0, 0, 0, 0))
-        for y in range(16):
-            for x in range(16):
-                put(img, x, y, glass)
-        for x in range(16):
-            put(img, x, 0 if part == "hi" else 8, frame)
-            put(img, x, 15, frame)
-        for y in range(16):
-            put(img, 0, y, frame)
-            put(img, 15, y, frame)
-        if part == "hi":  # the fortochka: a small top-hung pane in the left sash
-            for x in range(1, 15):
-                put(img, x, 6, frame)
-            for y in range(1, 6):
-                put(img, 7, y, frame)
-        else:
-            for x in range(16):
-                for y in range(0, 8):
-                    img.putpixel((x, y), (0, 0, 0, 0))
-        for k in range(4):  # a diagonal glint
-            put(img, 10 + k, (3 if part == "hi" else 10) + k, shine)
-        tex(f"glass_{part}", img)
-    img = D.new()
-    fill(img, (238, 238, 232), 0.02, rnd("frame"))
-    tex("frame_white", img)
+    """The glazing of a window three rows high: each block column one sash, the frame's stiles at the block edges; the top
+    row has the transom and the fortochka. Also the frames of glazed balconies: white PVC, brown wood, bare aluminium."""
+    glass, shine = (150, 190, 214, 96), (220, 236, 246, 150)
+    for name, frame in (("glass", (236, 236, 230, 255)), ("glass_wood", (128, 82, 50, 255)), ("glass_alu", (176, 180, 184, 255))):
+        dark = D.shade(frame, 0.82)
+        for part in ("lo", "mid", "hi"):
+            img = D.new(16, 16, (0, 0, 0, 0))
+            for y in range(16):
+                for x in range(16):
+                    put(img, x, y, glass)
+            for y in range(16):
+                put(img, 0, y, frame)
+                put(img, 15, y, dark)
+            if part == "hi":
+                for x in range(16):
+                    put(img, x, 3, frame)      # the frame's head (the row shows from y=3 down)
+                    put(img, x, 9, frame)      # the transom
+                    put(img, x, 10, dark)
+                for y in range(3, 9):          # the fortochka: a small pane in the left half
+                    put(img, 7, y, frame)
+            if part == "lo":
+                for x in range(16):
+                    put(img, x, 15, frame)
+            if part == "mid":
+                for k in range(5):
+                    put(img, 9 + k, 3 + k, shine)
+            else:
+                for k in range(3):
+                    put(img, 10 + k, (11 if part == "hi" else 13) + k % 3, shine)
+            tex(f"{name}_{part}", img)
+    for name, base in (("frame_white", (238, 238, 232)), ("frame_wood", (128, 82, 50)), ("frame_alu", (176, 180, 184))):
+        img = D.new()
+        fill(img, base, 0.02, rnd(name))
+        tex(name, img)
     img = D.new()
     fill(img, (242, 240, 234), 0.015, rnd("sill"))
     for x in range(16):
@@ -371,6 +480,41 @@ def door_texture(name, body, kind):
                 for x in range(6, 10):  # the flat number plate
                     for y in range(7, 9):
                         put(img, x, y, (210, 190, 120))
+        elif kind == "steel":  # a steel flat door of the 90s: hammer paint, an embossed frame, two locks, a peephole
+            box = (3, 2, 13, 16) if half == "top" else (3, 0, 13, 14)
+            D.bevel(img, box, 1.12, 0.8)
+            for y in range(box[1] + 2, box[3] - 2, 3):
+                for x in range(box[0] + 2, box[2] - 2, 3):
+                    put(img, x, y, D.shade(body + (255,), 1.06))
+            if half == "top":
+                put(img, 7, 5, (24, 24, 28))
+                put(img, 8, 5, (24, 24, 28))
+                for x in range(6, 10):
+                    for y in (9, 10):
+                        put(img, x, y, (206, 186, 116))
+            else:
+                put(img, 12, 6, (200, 196, 180))
+                put(img, 12, 10, (40, 40, 40))
+        elif kind == "veneer":  # a lacquered veneer door with mouldings
+            for y in range(16):
+                for x in range(1, 15):
+                    put(img, x, y, D.shade(img.getpixel((x, y)), 0.95 if (x * 7 + y) % 9 == 0 else 1.0))
+            for box in ([(3, 3, 13, 15)] if half == "top" else [(3, 1, 13, 7), (3, 9, 13, 15)]):
+                D.bevel(img, box, 1.14, 0.78)
+            if half == "top":
+                put(img, 7, 5, (26, 26, 28))
+                for x in range(6, 10):
+                    for y in (9, 10):
+                        put(img, x, y, (212, 192, 120))
+        elif kind == "room_wood":  # a room door in light veneer with a ribbed amber glass
+            box = (3, 3, 13, 15) if half == "top" else (3, 1, 13, 13)
+            for y in range(box[1], box[3]):
+                for x in range(box[0], box[2]):
+                    if half == "top":
+                        put(img, x, y, (214, 168, 96, 190) if y % 2 else (236, 196, 120, 200))
+                    else:
+                        put(img, x, y, D.shade(body + (255,), 0.92))
+            D.bevel(img, box, 0.82, 1.12)
         elif kind == "entrance":  # a steel door with the intercom's code panel
             for x in range(1, 15):
                 put(img, x, 8, D.shade(body + (255,), 0.8))
@@ -391,13 +535,10 @@ def door_texture(name, body, kind):
         if half == "bottom" and kind != "balcony":  # the handle
             put(img, 12 if kind != "flat" else 13, 1, (190, 190, 186))
             put(img, 13 if kind != "flat" else 12, 1, (150, 150, 146))
-        if half == "top" and kind == "balcony":
-            pass
+            if kind in ("steel", "veneer", "flat"):
+                put(img, 12, 3, (40, 40, 40))   # the keyhole under the handle
         halves[half] = img
         tex(f"{name}_{half}", img)
-    if kind in ("room", "flat", "entrance"):  # door handles sit at the top of the bottom half
-        for half, y in (("bottom", 1),):
-            pass
     item = D.new(16, 16, (0, 0, 0, 0))
     small_top = halves["top"].resize((8, 8), Image.NEAREST)
     small_bottom = halves["bottom"].resize((8, 8), Image.NEAREST)
@@ -406,11 +547,25 @@ def door_texture(name, body, kind):
     TEX[f"item_{name}"] = item
 
 
+# id, ru, en, body colour, texture kind, map colour, sound
+DOOR_SPECS = [
+    ("door_room", "Межкомнатная дверь", "Room door", (232, 230, 220), "room", "WHITE", "WOOD"),
+    ("door_room_wood", "Межкомнатная дверь (шпон)", "Room door (veneer)", (196, 150, 98), "room_wood", "OAK_TAN", "WOOD"),
+    ("door_flat", "Дверь квартиры (коричневый дерматин)", "Flat door (brown leatherette)", (96, 52, 36), "flat", "BROWN", "WOOD"),
+    ("door_flat_wine", "Дверь квартиры (бордовый дерматин)", "Flat door (wine leatherette)", (112, 34, 42), "flat", "DARK_RED", "WOOD"),
+    ("door_flat_black", "Дверь квартиры (чёрный дерматин)", "Flat door (black leatherette)", (44, 40, 40), "flat", "BLACK", "WOOD"),
+    ("door_flat_wood", "Дверь квартиры (лакированная)", "Flat door (lacquered)", (150, 96, 54), "veneer", "BROWN", "WOOD"),
+    ("door_flat_steel", "Дверь квартиры (стальная, серая)", "Flat door (grey steel)", (112, 112, 116), "steel", "IRON_GRAY", "METAL"),
+    ("door_flat_steel_brown", "Дверь квартиры (стальная, коричневая)", "Flat door (brown steel)", (98, 64, 46), "steel", "BROWN", "METAL"),
+    ("door_entrance", "Дверь подъезда", "Entrance door", (70, 52, 44), "entrance", "BROWN", "METAL"),
+    ("door_entrance_green", "Дверь подъезда (зелёная)", "Entrance door (green)", (56, 90, 70), "entrance", "DARK_GREEN", "METAL"),
+    ("door_balcony", "Балконная дверь", "Balcony door", (236, 236, 230), "balcony", "WHITE", "WOOD"),
+]
+
+
 def misc_textures():
-    door_texture("door_room", (232, 230, 220), "room")
-    door_texture("door_flat", (96, 52, 36), "flat")
-    door_texture("door_entrance", (70, 52, 44), "entrance")
-    door_texture("door_balcony", (236, 236, 230), "balcony")
+    for name, _, _, body, kind, _, _ in DOOR_SPECS:
+        door_texture(name, body, kind)
     for name, base in (("metal_rail", (60, 92, 72)), ("metal_dark", (52, 52, 56)), ("metal_grey", (150, 152, 156))):
         img = D.new()
         fill(img, base, 0.05, rnd(name))
@@ -472,11 +627,68 @@ def misc_textures():
     tex("mailboxes", img)
 
 
+def sheet(name, base, rib=4, rust=4, horizontal=False):
+    """Profiled sheet steel, painted: ribs every `rib` pixels (vertical, or horizontal like vinyl siding), a little rust."""
+    r = rnd(name)
+    img = D.new()
+    ks = {4: (1.1, 1.0, 0.86, 0.95), 3: (1.08, 0.97, 0.84)}[rib]
+    for x in range(16):
+        for y in range(16):
+            k = ks[(y if horizontal else x) % rib]
+            put(img, x, y, D.shade(base + (255,), k * r.uniform(0.98, 1.02)))
+    for _ in range(rust):
+        x = r.randrange(16)
+        for y in range(r.randrange(10), 16):
+            if r.random() < 0.6:
+                put(img, x, y, D.mix(img.getpixel((x, y))[:3], (150, 100, 70), 0.5))
+    return tex(name, img)
+
+
+def balcony_textures():
+    for name, base in (("blue", (186, 204, 214)), ("white", (226, 226, 220)), ("green", (120, 160, 120))):
+        img = sheet(f"rail_{name}", base)
+        for x in range(16):
+            put(img, x, 0, (90, 96, 100))
+            put(img, x, 1, (120, 128, 132))
+    sheet("par_siding", (226, 220, 204), rib=3, rust=0, horizontal=True)
+    sheet("par_brown", (120, 80, 56), rust=0)
+    sheet("par_green", (96, 140, 104), rust=2)
+    r = rnd("par_brick")   # a sand-lime brick parapet, laid by the owner
+    img = D.new()
+    for y in range(16):
+        for x in range(16):
+            row = y // 4
+            off = 4 if row % 2 else 0
+            if y % 4 == 3 or (x + off) % 8 == 7:
+                c = (170, 166, 156)
+            else:
+                c = D.shade((224, 220, 206, 255), random.Random(f"sb{row}{(x + off) // 8}").uniform(0.92, 1.05) * r.uniform(0.98, 1.02))[:3]
+            put(img, x, y, c)
+    tex("par_brick", img)
+    img = D.new()   # the entrance's plate: blue enamel, the entrance's number and the flats' range in white
+    fill(img, (40, 70, 150), 0.02, rnd("plate"))
+    for x in range(16):
+        put(img, x, 0, (230, 230, 230))
+        put(img, x, 15, (230, 230, 230))
+    for y in range(16):
+        put(img, 0, y, (230, 230, 230))
+        put(img, 15, y, (230, 230, 230))
+    for x, y in ((3, 4), (4, 3), (4, 4), (4, 5), (4, 6), (4, 7), (4, 8), (3, 8), (5, 8)):   # "1"
+        put(img, x, y, (240, 240, 240))
+    for y in (4, 7, 10):
+        for x in range(8, 14):
+            put(img, x, y, (220, 224, 236) if (x + y) % 3 else (150, 160, 200))
+    for x in range(3, 14):
+        put(img, x, 12, (220, 224, 236) if x % 2 else (150, 160, 200))
+    tex("entrance_plate", img)
+
+
 def make_textures():
     finish_textures()
     facade_textures()
     window_textures()
     misc_textures()
+    balcony_textures()
 
 
 # ---------------------------------------------------------------- models
@@ -517,21 +729,28 @@ def walls():
                 parts.append({"when": {side: f}, "apply": apply})
         BLOCKSTATES[f"wall_{row}"] = {"multipart": parts}
         ITEMS[f"wall_{row}"] = {"parent": "minecraft:block/cube_all", "textures": {"all": f"mobtalk:block/city2/paper_beige_{row}"}}
-        NAMES[f"wall_{row}"] = (f"Стена квартиры ({'низ' if row == 'lo' else 'верх'})", f"Flat wall ({'lower' if row == 'lo' else 'upper'})")
+        NAMES[f"wall_{row}"] = (f"Стена квартиры ({ROW_RU[row]})", f"Flat wall ({ROW_EN[row]})")
+
+
+ROW_RU = {"lo": "низ", "mid": "середина", "hi": "верх"}
+ROW_EN = {"lo": "lower", "mid": "middle", "hi": "upper"}
 
 
 def facades():
+    """A facade cell is panel outside and the room's finish inside; its sides are the panel for the outer 6 px and plaster
+    for the rest, so the window openings next to it have plastered reveals inside."""
     for c in COLORS:
         for kind in FACADE_KINDS:
-            row = kind[-2:]
+            row = kind.lstrip("j")
             outer = f"panel_{c}_joint" if kind.startswith("j") else f"panel_{c}"
             name = f"facade_{c}_{kind}"
             variants = {}
             for f in FINISHES:
                 mname = f"{name}_{f}"
-                model(mname, {"o": outer, "s": f"panel_{c}", "i": f"{f}_{row}", "c": "slab_side"},
-                      [face_box((0, 0, 0), (16, 16, 16), {"north": ("o", None, "north"), "south": ("i", None, "south"),
-                                                          "east": ("s", None, "east"), "west": ("s", None, "west"),
+                model(mname, {"o": outer, "s": f"panel_{c}", "i": f"{f}_{row}", "rv": "plaster_mid", "c": "slab_side"},
+                      [face_box((0, 0, 0), (16, 16, 6), {"north": ("o", None, "north"), "east": ("s", None, "east"), "west": ("s", None, "west"),
+                                                         "up": ("c", None, "up"), "down": ("c", None, "down")}),
+                       face_box((0, 0, 6), (16, 16, 16), {"south": ("i", None, "south"), "east": ("rv", None, "east"), "west": ("rv", None, "west"),
                                                           "up": ("c", None, "up"), "down": ("c", None, "down")})], particle="o")
                 for facing, y in (("north", 0), ("east", 90), ("south", 180), ("west", 270)):
                     v = {"model": f"mobtalk:block/city2/{mname}"}
@@ -542,8 +761,8 @@ def facades():
             ITEMS[name] = {"parent": f"mobtalk:block/city2/{name}_plaster"}
             FACADES.append(name)
             ru = {"grey": "серая", "beige": "бежевая", "white": "белая плитка", "blue": "голубая плитка"}[c]
-            NAMES[name] = (f"Панель фасада, {ru} ({'стык, ' if kind.startswith('j') else ''}{'низ' if row == 'lo' else 'верх'})",
-                           f"Facade panel, {c} ({'joint, ' if kind.startswith('j') else ''}{'lower' if row == 'lo' else 'upper'})")
+            NAMES[name] = (f"Панель фасада, {ru} ({'стык, ' if kind.startswith('j') else ''}{ROW_RU[row]})",
+                           f"Facade panel, {c} ({'joint, ' if kind.startswith('j') else ''}{ROW_EN[row]})")
         for kind, texture, ru in (("band", f"panel_{c}_band", "пояс перекрытия"), ("cross", f"panel_{c}_cross", "стык у перекрытия"),
                                   ("edge", f"panel_{c}_joint", "угол")):
             cube(f"facade_{c}_{kind}", texture, f"Панель фасада, {ru}", f"Facade panel, {kind}", "STONE_GRAY")
@@ -573,6 +792,11 @@ def floors():
     cube("roof_bitumen", "roof_bitumen", "Кровля (рубероид)", "Roofing felt", "BLACK", bottom="ceiling", side="slab_side")
     cube("plinth", "plinth", "Цоколь", "Plinth", "GRAY")
     cube("asphalt", "asphalt", "Асфальт", "Asphalt", "GRAY")
+    cube("asphalt_line_x", "asphalt_line_x", "Асфальт с разметкой (вдоль X)", "Asphalt with a marking line (along X)", "GRAY", bottom="asphalt", side="asphalt")
+    cube("asphalt_line_z", "asphalt_line_z", "Асфальт с разметкой (вдоль Z)", "Asphalt with a marking line (along Z)", "GRAY", bottom="asphalt", side="asphalt")
+    cube("sidewalk", "sidewalk", "Тротуарная плитка", "Pavement slabs", "STONE_GRAY")
+    cube("kerb", "kerb", "Бордюр (гранитный)", "Granite kerb", "LIGHT_GRAY")
+    cube("plaza", "plaza", "Гранитная плитка площади", "Granite paving of the square", "TERRACOTTA_PINK")
 
 
 def decor(name, textures, elements, ru, en, boxes=None, light=0, color="STONE_GRAY", sound="STONE", mount="GROUND", layer=None, ao=True):
@@ -593,32 +817,58 @@ def decor(name, textures, elements, ru, en, boxes=None, light=0, color="STONE_GR
         CUTOUT.append(name)
 
 
+WINDOWS = []     # id: facing + inner finish, see-through
+
+
 def windows():
+    """A window three rows high in a panel: the lower part is the wall to the sill (panel outside, the room's finish inside)
+    with the tin drip outside and the white sill inside, then glass; the middle is all glass; the upper part is glass to
+    13 px under the lintel. The glazing stands in the middle of the wall's depth."""
     for c in COLORS:
-        lo = [face_box((0, 0, 0), (16, 8, 16), {"north": ("p", [0, 8, 16, 16], "north"), "south": ("in", [0, 8, 16, 16], "south"),
-                                                 "east": ("p", None, "east"), "west": ("p", None, "west"), "down": ("p", None, "down")}),
-              face_box((0, 8, 0), (16, 8.5, 6), {"up": ("tin", None, None), "north": ("tin", None, None)}),
-              face_box((0, 8, 10), (16, 9, 16.0), {"up": ("sill", None, None), "south": ("sill", None, "south")}),
-              face_box((0, 8, 6), (16, 16, 10), {"north": ("g", [0, 0, 16, 16], None), "south": ("g", [0, 0, 16, 16], None),
-                                                  "east": ("fr", None, None), "west": ("fr", None, None)})]
-        hi = [face_box((0, 0, 6), (16, 14, 10), {"north": ("g", [0, 2, 16, 16], None), "south": ("g", [0, 2, 16, 16], None),
-                                                  "east": ("fr", None, None), "west": ("fr", None, None)}),
-              face_box((0, 14, 0), (16, 16, 16), {"north": ("p", [0, 0, 16, 2], "north"), "south": ("in", [0, 0, 16, 2], "south"),
-                                                   "down": ("in", None, None), "up": ("p", None, "up"),
-                                                   "east": ("p", None, "east"), "west": ("p", None, "west")})]
-        decor(f"window_{c}_lo", {"p": f"panel_{c}", "in": "plaster_lo", "tin": "tin", "sill": "sill", "g": "glass_lo", "fr": "frame_white"},
-              lo, "Окно, нижняя часть", "Window, lower part", boxes=[[0, 0, 0, 16, 16, 16]], color="WHITE", sound="GLASS", layer="translucent")
-        decor(f"window_{c}_hi", {"p": f"panel_{c}", "in": "plaster_hi", "g": "glass_hi", "fr": "frame_white"},
-              hi, "Окно, верхняя часть", "Window, upper part", boxes=[[0, 0, 0, 16, 16, 16]], color="WHITE", sound="GLASS", layer="translucent")
+        def walls_lo(i):
+            return [face_box((0, 0, 0), (16, 12, 6), {"north": ("p", None, "north"), "east": ("p", None, "east"), "west": ("p", None, "west"),
+                                                     "down": ("p", None, "down")}),
+                    face_box((0, 0, 6), (16, 12, 16), {"south": ("in", None, "south"), "east": ("rv", None, "east"), "west": ("rv", None, "west"),
+                                                      "down": ("rv", None, "down")}),
+                    face_box((0, 11.5, -1.5), (16, 12.5, 6), {"up": ("tin", None, None), "north": ("tin", None, None), "down": ("tin", None, None)}),
+                    face_box((0, 12, 6), (16, 13.5, 10), {"up": ("fr", None, None), "north": ("fr", None, None), "south": ("fr", None, None)}),
+                    face_box((0, 12, 10), (16, 13, 17.5), {"up": ("sill", None, None), "south": ("sill", None, None), "down": ("sill", None, None),
+                                                          "east": ("sill", None, None), "west": ("sill", None, None)}),
+                    face_box((0, 13.5, 7.5), (16, 16, 8.5), {"north": ("g", None, None), "south": ("g", None, None)})]
+        mid = [face_box((0, 0, 7.5), (16, 16, 8.5), {"north": ("g", None, None), "south": ("g", None, None)})]
+        hi = [face_box((0, 0, 7.5), (16, 13, 8.5), {"north": ("g", None, None), "south": ("g", None, None)}),
+              face_box((0, 13, 0), (16, 16, 6), {"north": ("p", None, "north"), "down": ("p", None, None), "up": ("p", None, "up"),
+                                                 "east": ("p", None, "east"), "west": ("p", None, "west")}),
+              face_box((0, 13, 6), (16, 16, 10), {"down": ("fr", None, None), "north": ("fr", None, None), "south": ("fr", None, None),
+                                                  "up": ("c", None, "up"), "east": ("rv", None, "east"), "west": ("rv", None, "west")}),
+              face_box((0, 13, 10), (16, 16, 16), {"south": ("in", None, "south"), "down": ("rv", None, None), "up": ("c", None, "up"),
+                                                   "east": ("rv", None, "east"), "west": ("rv", None, "west")})]
+        for part, ru, en in (("lo", "нижняя часть, с подоконником", "lower part, with the sill"), ("mid", "середина", "middle"),
+                             ("hi", "верхняя часть, с фрамугой", "upper part, with the transom")):
+            name = f"window_{c}_{part}"
+            base = {"p": f"panel_{c}", "g": f"glass_{part}", "fr": "frame_white", "rv": "plaster_mid", "tin": "tin", "sill": "sill",
+                    "c": "slab_side"}
+            variants = {}
+            for f in (FINISHES if part != "mid" else [None]):
+                mname = f"{name}_{f}" if f else name
+                els = walls_lo(f) if part == "lo" else hi if part == "hi" else mid
+                model(mname, dict(base, **({"in": f"{f}_{part}"} if f else {})), els, particle="p" if part != "mid" else "fr", ao=part != "mid")
+                for facing, y in (("north", 0), ("east", 90), ("south", 180), ("west", 270)):
+                    v = {"model": f"mobtalk:block/city2/{mname}"}
+                    if y:
+                        v["y"] = y
+                    variants[f"facing={facing}" + (f",inner={f}" if f else "")] = v
+            BLOCKSTATES[name] = {"variants": variants}
+            ITEMS[name] = {"parent": f"mobtalk:block/city2/{name}_plaster" if part != "mid" else f"mobtalk:block/city2/{name}"}
+            NAMES[name] = (f"Окно, {ru}", f"Window, {en}")
+            WINDOWS.append(name)
+            TRANSLUCENT.append(name)
 
 
 def doors():
     with open_vanilla("assets/minecraft/blockstates/oak_door.json") as f:
         vanilla = f.read().decode()
-    for name, ru, en, color, sound in (("door_room", "Межкомнатная дверь", "Room door", "WHITE", "WOOD"),
-                                       ("door_flat", "Дверь квартиры", "Flat door", "BROWN", "WOOD"),
-                                       ("door_entrance", "Дверь подъезда", "Entrance door", "BROWN", "METAL"),
-                                       ("door_balcony", "Балконная дверь", "Balcony door", "WHITE", "WOOD")):
+    for name, ru, en, _, kind, color, sound in DOOR_SPECS:
         for part in ("bottom_left", "bottom_left_open", "bottom_right", "bottom_right_open", "top_left", "top_left_open", "top_right",
                      "top_right_open"):
             model(f"{name}_{part}", {"bottom": f"{name}_bottom", "top": f"{name}_top"}, None, particle="bottom",
@@ -627,7 +877,7 @@ def doors():
         ITEMS[name] = {"parent": "minecraft:item/generated", "textures": {"layer0": f"mobtalk:block/city2/item_{name}"}}
         NAMES[name] = (ru, en)
         DOORS.append((name, color, sound))
-        (TRANSLUCENT if name in ("door_room", "door_balcony") else CUTOUT).append(name)
+        (TRANSLUCENT if kind in ("room", "room_wood", "balcony") else CUTOUT).append(name)
 
 
 def open_vanilla(path):
@@ -635,50 +885,178 @@ def open_vanilla(path):
     return zipfile.ZipFile(VANILLA_JAR).open(path)
 
 
+STEP_RAILS = ("left", "right", "front")
+
+
 def steps():
+    """A stair step is a terrazzo half-slab; its `rail` puts a thin railing on it: steel balusters and a wooden handrail on
+    the left or right edge (seen going up the flight, which climbs towards `facing`), sloped with the flight, or along the
+    front edge of a landing. The handrail is 14 px over the step's tread."""
     name = "step_terrazzo"
     model(name, {"top": "terrazzo", "bottom": "ceiling", "side": "slab_side"}, None, parent="minecraft:block/slab")
     model(name + "_top", {"top": "terrazzo", "bottom": "ceiling", "side": "slab_side"}, None, parent="minecraft:block/slab_top")
     model(name + "_double", {"top": "terrazzo", "bottom": "terrazzo", "side": "slab_side"}, None, particle="side",
           parent="minecraft:block/cube_bottom_top")
-    BLOCKSTATES[name] = {"variants": {"type=bottom": {"model": f"mobtalk:block/city2/{name}"},
-                                      "type=top": {"model": f"mobtalk:block/city2/{name}_top"},
-                                      "type=double": {"model": f"mobtalk:block/city2/{name}_double"}}}
+    m = lambda f, t: face_box(f, t, {fc: ("m", None, None) for fc in D.FACES})  # noqa: E731
+    h = lambda f, t: face_box(f, t, {fc: ("h", None, None) for fc in D.FACES})  # noqa: E731
+    for half, tread in (("bottom", 8), ("top", 16)):
+        rail = tread + 14
+        for side in ("left", "right"):
+            x0 = 14.5 if side == "right" else 0.5
+            els = [m((x0, tread, 3.5), (x0 + 1, rail + 2, 4.5)), m((x0, tread, 11.5), (x0 + 1, rail - 2, 12.5))]
+            hr = h((x0 - 0.5, rail - 0.75, -0.7), (x0 + 1.5, rail + 0.75, 16.7))
+            hr["rotation"] = {"origin": [x0 + 0.5, rail, 8], "axis": "x", "angle": 22.5}
+            els.append(hr)
+            model(f"{name}_rail_{half}_{side}", {"m": "metal_dark", "h": "handrail"}, els, ao=False)
+        els = [m((x, tread, 0.5), (x + 1, rail, 1.5)) for x in (1.5, 5.5, 9.5, 13.5)]
+        els.append(h((0, rail, 0), (16, rail + 1.5, 2)))
+        model(f"{name}_rail_{half}_front", {"m": "metal_dark", "h": "handrail"}, els, ao=False)
+    parts = [{"when": {"type": t}, "apply": {"model": f"mobtalk:block/city2/{name}{suffix}"}}
+             for t, suffix in (("bottom", ""), ("top", "_top"), ("double", "_double"))]
+    for half in ("bottom", "top"):
+        for side in STEP_RAILS:
+            for facing, y in (("north", 0), ("east", 90), ("south", 180), ("west", 270)):
+                apply = {"model": f"mobtalk:block/city2/{name}_rail_{half}_{side}"}
+                if y:
+                    apply["y"] = y
+                parts.append({"when": {"type": half, "rail": side, "facing": facing}, "apply": apply})
+    BLOCKSTATES[name] = {"multipart": parts}
     ITEMS[name] = {"parent": f"mobtalk:block/city2/{name}"}
     NAMES[name] = ("Ступень лестницы", "Stair step")
-    SLABS.append((name, "STONE_GRAY"))
+    STEPS.append(name)
+    CUTOUT.append(name)
+
+
+def balconies():
+    """Balcony pieces, one block each along the balcony's front (l, m, r: the left end, the middle, the right end, looking out;
+    the ends carry the side). Open: a sheet railing in one of three paints. Glazed by the owner: a parapet (vinyl siding,
+    brown or green profiled sheet, sand-lime brick), then two rows of frames (white PVC, brown wood, bare aluminium)."""
+    def faces(key):
+        return {fc: (key, None, None) for fc in D.FACES}
+    ru_paint = {"blue": "голубое", "white": "белое", "green": "зелёное"}
+    ru_pos = {"l": "левый край", "m": "середина", "r": "правый край"}
+    en_pos = {"l": "left end", "m": "middle", "r": "right end"}
+    for paint in ("blue", "white", "green"):
+        for pos in ("l", "m", "r"):
+            els = [face_box((0, 0, 0.5), (16, 14, 1.5), faces("r")), face_box((0, 14, 0), (16, 15.5, 2), faces("m"))]
+            boxes = [[0, 0, 0, 16, 16, 2]]
+            for side, x0 in (("l", 0.5), ("r", 14.5)):
+                if pos == side:
+                    els += [face_box((x0, 0, 1.5), (x0 + 1, 14, 16), faces("r")), face_box((x0 - 0.5, 14, 2), (x0 + 1.5, 15.5, 16), faces("m"))]
+                    boxes.append([x0 - 0.5, 0, 0, x0 + 1.5, 16, 16])
+            decor(f"balrail_{paint}_{pos}", {"r": f"rail_{paint}", "m": "metal_dark"}, els,
+                  f"Ограждение балкона ({ru_paint[paint]}, {ru_pos[pos]})", f"Balcony railing ({paint}, {en_pos[pos]})",
+                  boxes=boxes, color="LIGHT_BLUE", sound="METAL")
+    ru_mat = {"siding": "сайдинг", "brown": "коричневый профлист", "green": "зелёный профлист", "brick": "силикатный кирпич"}
+    for mat in ("siding", "brown", "green", "brick"):
+        t = 3 if mat == "brick" else 1.5
+        for pos in ("l", "m", "r"):
+            els = [face_box((0, 0, 0), (16, 15, t), faces("p")), face_box((0, 15, -0.5), (16, 16, t + 3), faces("s"))]
+            boxes = [[0, 0, 0, 16, 16, t + 3]]
+            for side, x0 in (("l", 0), ("r", 16 - t)):
+                if pos == side:
+                    els += [face_box((x0, 0, t), (x0 + t, 15, 16), faces("p")), face_box((x0, 15, t + 3), (x0 + t, 16, 16), faces("s"))]
+                    boxes.append([x0, 0, 0, x0 + t, 16, 16])
+            decor(f"balpar_{mat}_{pos}", {"p": f"par_{mat}", "s": "sill"}, els, f"Парапет балкона ({ru_mat[mat]}, {ru_pos[pos]})",
+                  f"Balcony parapet ({mat}, {en_pos[pos]})", boxes=boxes, color="WHITE_GRAY" if mat == "siding" else "BROWN",
+                  sound="STONE" if mat == "brick" else "METAL")
+    for fr in ("pvc", "wood", "alu"):
+        g = {"pvc": "glass", "wood": "glass_wood", "alu": "glass_alu"}[fr]
+        f = {"pvc": "frame_white", "wood": "frame_wood", "alu": "frame_alu"}[fr]
+        # glass: the lower frames over the parapet; top: the upper frames with the transom; cap: the frames' head under the
+        # balcony slab above, with that slab; roof: the frames' head with a tin roof, on the top floor
+        for row, gh, rail in (("glass", 16, (0, 1.5)), ("top", 16, (7, 8.5)), ("cap", 8, (8, 10.5)), ("roof", 0, (0, 2.5))):
+            hi = max(gh, rail[1])
+            for pos in ("l", "m", "r"):
+                els = [face_box((0, rail[0], 0.5), (16, rail[1], 2.5 if row in ("glass", "top") else 3), faces("f")),
+                       face_box((0, 0, 0.5), (1.5, hi, 2.5), faces("f")), face_box((14.5, 0, 0.5), (16, hi, 2.5), faces("f"))]
+                if gh:
+                    els.append(face_box((0, 0, 1), (16, gh, 2), {"north": ("g", [0, 16 - gh, 16, 16], None),
+                                                                 "south": ("g", [0, 16 - gh, 16, 16], None)}))
+                boxes = [[0, 0, 0, 16, 16, 3]]
+                for side, x0 in (("l", 0.5), ("r", 14.5)):
+                    if pos == side:
+                        if gh:
+                            els.append(face_box((x0 + 0.25, 0, 2.5), (x0 + 0.75, gh, 15.5), {"east": ("g", None, None), "west": ("g", None, None)}))
+                        els += [face_box((x0 - 0.5, 0, 15), (x0 + 1.5, hi, 16), faces("f")),
+                                face_box((x0 - 0.5, rail[0], 3), (x0 + 1.5, rail[1], 15), faces("f"))]
+                        boxes.append([x0 - 0.5, 0, 0, x0 + 1.5, 16, 16])
+                if row == "cap":
+                    els.append(face_box((0, 10.5, 0), (16, 16, 16), {"up": ("c", None, None), "down": ("s", None, None),
+                                                                      "north": ("s", None, None), "east": ("s", None, None),
+                                                                      "west": ("s", None, None), "south": ("s", None, "south")}))
+                    boxes = [[0, 10.5, 0, 16, 16, 16]] + boxes
+                if row == "roof":
+                    els += [face_box((-0.5, 2.5, -1.5), (16.5, 3.5, 16), faces("t")), face_box((-0.5, 1.5, -1.5), (16.5, 2.5, -0.5), faces("t")),
+                            face_box((0, 3.5, 13), (16, 4.5, 16), faces("t"))]
+                    boxes = [[0, 0, 0, 16, 4.5, 16]]
+                ru = {"pvc": "белый пластик", "wood": "дерево", "alu": "алюминий"}[fr]
+                ru_row = {"glass": "рамы", "top": "верх", "cap": "под плитой", "roof": "с крышей"}[row]
+                en_row = {"glass": "frames", "top": "top", "cap": "under the slab", "roof": "with a roof"}[row]
+                decor(f"bal{row}_{fr}_{pos}", {"g": f"{g}_mid", "f": f, "c": "concrete", "s": "slab_side", "t": "tin"}, els,
+                      f"Остекление балкона ({ru}, {ru_row}, {ru_pos[pos]})", f"Balcony glazing ({fr}, {en_row}, {en_pos[pos]})",
+                      boxes=boxes, color="WHITE", sound="GLASS", layer="translucent", ao=False)
+
+
+def chute():
+    """The garbage chute of a Soviet staircase: a steel pipe painted grey-green from the ground to the roof, passing through
+    each half-landing in its corner, with the hopper (a tipping bucket with a handle) at every half-landing."""
+    r = rnd("chute")
+    img = D.new()
+    base = (104, 118, 108)
+    for y in range(16):
+        for x in range(16):
+            k = (1.08 if x < 3 else 0.9 if x > 12 else 1.0) * r.uniform(0.97, 1.03)
+            put(img, x, y, D.shade(base + (255,), k))
+    for x in range(16):        # a ring seam between pipe sections, with rivets
+        put(img, x, 0, D.shade(base + (255,), 0.72))
+        put(img, x, 1, D.shade(base + (255,), 1.15))
+    for x in (2, 7, 12):
+        put(img, x, 3, (70, 78, 72))
+    for _ in range(5):         # rust and old paint
+        x, y = r.randrange(16), r.randrange(4, 16)
+        put(img, x, y, (132, 96, 70))
+    tex("chute_metal", img)
+    img = D.new()   # the hopper's front: the bucket's rim, the dark slot of its mouth, its belly
+    fill(img, (86, 98, 90), 0.03, rnd("hopper"))
+    D.bevel(img, (0, 0, 16, 16), 1.2, 0.7)
+    for y in range(4, 7):
+        for x in range(2, 14):
+            put(img, x, y, (30, 32, 30))
+    for x in range(2, 14):     # the bucket's rounded belly, darker below
+        for y in range(9, 15):
+            put(img, x, y, D.shade(img.getpixel((x, y)), 0.88 if y > 12 else 0.95))
+    tex("chute_hopper", img)
+    m = lambda f, t: face_box(f, t, {fc: ("m", None, None) for fc in D.FACES})  # noqa: E731
+
+    def pipe(y0, y1):
+        return [m((4, y0, 6), (12, y1, 16)), m((3, y0, 7), (13, y1, 15))]
+    decor("chute_pipe", {"m": "chute_metal"}, pipe(0, 16), "Мусоропровод (труба)", "Garbage chute (pipe)",
+          boxes=[[3, 0, 6, 13, 16, 16]], color="GREEN", sound="METAL")
+    hopper = pipe(0, 16) + [
+        face_box((3.5, 7, 1.5), (12.5, 14, 6), {"north": ("h", [0, 0, 16, 16], None), "up": ("m", None, None), "down": ("m", None, None),
+                                                 "east": ("m", None, None), "west": ("m", None, None)}),
+        m((3, 14, 1), (13, 15, 6.5)),                          # the bucket's lid lip
+        m((5.5, 9, 0), (10.5, 9.75, 0.75)), m((5.5, 9, 0.75), (6.25, 9.75, 1.5)), m((9.75, 9, 0.75), (10.5, 9.75, 1.5))]   # the handle
+    decor("chute_hopper", {"m": "chute_metal", "h": "chute_hopper"}, hopper, "Мусоропровод (ковш)", "Garbage chute (hopper)",
+          boxes=[[3, 0, 6, 13, 16, 16], [3, 7, 1, 13, 15, 6]], color="GREEN", sound="METAL")
+    model("chute_slab_pipe", {"m": "chute_metal"}, pipe(0, 8))
+    decor("chute_slab", {"m": "chute_metal", "t": "terrazzo", "b": "ceiling", "s": "slab_side"},
+          pipe(0, 8) + [face_box((0, 8, 0), (16, 16, 16), {"up": ("t", None, "up"), "down": ("b", None, None), "north": ("s", None, "north"),
+                                                          "east": ("s", None, "east"), "west": ("s", None, "west"), "south": ("s", None, "south")})],
+          "Площадка с трубой мусоропровода", "Landing with the chute's pipe", boxes=[[0, 8, 0, 16, 16, 16], [3, 0, 6, 13, 8, 16]],
+          color="STONE_GRAY")
+    del MODELS["chute_slab_pipe"]
 
 
 def rails_and_roof():
-    bars = []  # the stair well's railing: balusters along both long edges, a wooden handrail on top of each block
-    for x0 in (0.75, 14.25):
-        for z in (3.5, 11.5):
-            bars.append(face_box((x0, 0, z), (x0 + 1, 14.5, z + 1), {fc: ("m", None, None) for fc in D.FACES}))
-        bars.append(face_box((x0 - 0.25, 14.5, 0), (x0 + 1.25, 15.75, 16), {fc: ("h", None, None) for fc in D.FACES}))
-    decor("well_rail", {"m": "metal_rail", "h": "handrail"}, bars, "Перила лестничного пролёта", "Stairwell railing",
-          boxes=[[0, 0, 0, 2.5, 16, 16], [13.5, 0, 0, 16, 16, 16]], color="GREEN", sound="METAL", layer="cutout")
-    end = list(bars)
-    for x in (5.5, 9.5):
-        end.append(face_box((x, 0, 0.75), (x + 1, 14.5, 1.75), {fc: ("m", None, None) for fc in D.FACES}))
-    end.append(face_box((0, 14.5, 0.5), (16, 15.75, 2), {fc: ("h", None, None) for fc in D.FACES}))
-    decor("well_rail_end", {"m": "metal_rail", "h": "handrail"}, end, "Перила лестничного пролёта (торец)", "Stairwell railing (end)",
-          boxes=[[0, 0, 0, 2.5, 16, 16], [13.5, 0, 0, 16, 16, 16], [0, 0, 0, 16, 16, 2.5]], color="GREEN", sound="METAL", layer="cutout")
     decor("balcony_slab", {"c": "concrete", "s": "slab_side"},
           [face_box((0, 10, 0), (16, 16, 16), {"up": ("c", None, None), "down": ("s", None, None), "north": ("s", None, None),
                                                "east": ("s", None, None), "west": ("s", None, None), "south": ("s", None, "south")})],
           "Плита балкона", "Balcony slab", color="STONE_GRAY")
-    sheet = lambda f, t: face_box(f, t, {fc: ("r", None, None) for fc in D.FACES})  # noqa: E731
-    top = lambda f, t: face_box(f, t, {fc: ("m", None, None) for fc in D.FACES})  # noqa: E731
-    decor("balcony_rail", {"r": "rail_sheet", "m": "metal_dark"},
-          [sheet((0, 0, 0.5), (16, 14, 1.5)), top((0, 14, 0), (16, 15.5, 2))],
-          "Ограждение балкона", "Balcony railing", color="LIGHT_BLUE", sound="METAL", layer=None)
-    decor("balcony_rail_corner", {"r": "rail_sheet", "m": "metal_dark"},
-          [sheet((0, 0, 0.5), (16, 14, 1.5)), top((0, 14, 0), (16, 15.5, 2)), sheet((0.5, 0, 1.5), (1.5, 14, 16)), top((0, 14, 2), (2, 15.5, 16))],
-          "Ограждение балкона (угол)", "Balcony railing (corner)", boxes=[[0, 0, 0, 16, 16, 2], [0, 0, 0, 2, 16, 16]],
-          color="LIGHT_BLUE", sound="METAL")
     decor("canopy", {"c": "concrete", "s": "slab_side", "t": "tin"},
-          [face_box((0, 12, 0), (16, 16, 16), {"up": ("t", None, None), "down": ("c", None, None), "north": ("s", None, None),
-                                               "east": ("s", None, None), "west": ("s", None, None), "south": ("s", None, "south")})],
+          [face_box((0, 0, 0), (16, 4, 16), {"up": ("t", None, None), "down": ("c", None, None), "north": ("s", None, None),
+                                             "east": ("s", None, None), "west": ("s", None, None), "south": ("s", None, "south")})],
           "Козырёк подъезда", "Entrance canopy")
     decor("ceiling_lamp", {"g": "plafond", "m": "metal_grey"},
           [face_box((5, 15.25, 5), (11, 16, 11), {fc: ("m", None, None) for fc in D.FACES}),
@@ -706,6 +1084,10 @@ def rails_and_roof():
           [m((7.25, 0, 7.25), (8.75, 16, 8.75)), m((1, 12, 7.5), (15, 12.75, 8.5)), m((3, 8, 7.5), (13, 8.75, 8.5)),
            m((7.5, 12.75, 2), (8.5, 13.5, 14)), m((5, 4, 7.5), (11, 4.75, 8.5))],
           "Телеантенна", "TV aerial", boxes=[[7, 0, 7, 9, 16, 9]], color="LIGHT_GRAY", sound="METAL", layer="cutout")
+    decor("entrance_plate", {"p": "entrance_plate", "m": "metal_dark"},
+          [face_box((4, 4, 15.25), (12, 12, 16), {"north": ("p", [0, 0, 16, 16], None), "east": ("m", None, None), "west": ("m", None, None),
+                                                 "up": ("m", None, None), "down": ("m", None, None)})],
+          "Табличка подъезда", "Entrance plate", color="BLUE", sound="METAL", mount="WALL")
     decor("mailboxes", {"b": "mailboxes", "m": "metal_dark"},
           [face_box((1, 2, 12), (15, 14, 16), {"north": ("b", [0, 0, 16, 16], None), "east": ("m", None, None), "west": ("m", None, None),
                                                 "up": ("m", None, None), "down": ("m", None, None)})],
@@ -723,6 +1105,8 @@ def make_models():
     windows()
     doors()
     steps()
+    balconies()
+    chute()
     rails_and_roof()
 
 
@@ -776,8 +1160,7 @@ def save_all():
     write(os.path.join(tags, "wooden_doors.json"), {"replace": False, "values": doors})
     pick = os.path.join(tags, "mineable", "pickaxe.json")
     have = json.load(open(pick)) if os.path.exists(pick) else {"replace": False, "values": []}
-    add = [f"mobtalk:{n}" for n, _ in CUBES] + [f"mobtalk:{n}" for n in FACADES] + ["mobtalk:wall_lo", "mobtalk:wall_hi"] + \
-          [f"mobtalk:{n}" for n, _ in SLABS]
+    add = [f"mobtalk:{n}" for n, _ in CUBES] + [f"mobtalk:{n}" for n in FACADES + WINDOWS + STEPS] + [f"mobtalk:wall_{r}" for r in ROWS]
     have["values"] = [v for v in have["values"] if v not in add] + add
     write(pick, have)
 
@@ -809,7 +1192,12 @@ final class CityBuildBlocks {{
 {(","+chr(10)).join(f'            Map.entry("{n}", MapColor.{c})' for n, c in CUBES)});
     static final List<String> FACADES = List.of({strs(FACADES)});
     static final List<String> DOORS = List.of({strs(d[0] for d in DOORS)});
-    static final List<String> SLABS = List.of({strs(s[0] for s in SLABS)});
+    static final Map<String, MapColor> DOOR_COLORS = Map.ofEntries(
+{(","+chr(10)).join(f'            Map.entry("{n}", MapColor.{c})' for n, c, _ in DOORS)});
+    static final List<String> METAL_DOORS = List.of({strs(d[0] for d in DOORS if d[2] == "METAL")});
+    static final List<String> WALLS = List.of({strs(f"wall_{r}" for r in ROWS)});
+    static final List<String> WINDOWS = List.of({strs(WINDOWS)});
+    static final List<String> STEPS = List.of({strs(STEPS)});
     static final List<String> TRANSLUCENT = List.of({strs(TRANSLUCENT)});
     static final List<String> CUTOUT = List.of({strs(CUTOUT)});
     static final List<CityContent.Spec> DECOR = List.of(

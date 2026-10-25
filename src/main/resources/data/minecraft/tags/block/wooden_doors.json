@@ -2,8 +2,15 @@
  "replace": false,
  "values": [
   "mobtalk:door_room",
+  "mobtalk:door_room_wood",
   "mobtalk:door_flat",
+  "mobtalk:door_flat_wine",
+  "mobtalk:door_flat_black",
+  "mobtalk:door_flat_wood",
+  "mobtalk:door_flat_steel",
+  "mobtalk:door_flat_steel_brown",
   "mobtalk:door_entrance",
+  "mobtalk:door_entrance_green",
   "mobtalk:door_balcony"
  ]
 }

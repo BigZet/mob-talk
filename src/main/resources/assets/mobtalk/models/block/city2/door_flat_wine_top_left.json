@@ -1,0 +1,8 @@
+{
+ "parent": "minecraft:block/door_top_left",
+ "textures": {
+  "bottom": "mobtalk:block/city2/door_flat_wine_bottom",
+  "top": "mobtalk:block/city2/door_flat_wine_top",
+  "particle": "mobtalk:block/city2/door_flat_wine_bottom"
+ }
+}

@@ -145,6 +145,7 @@ public final class MobTalkClient implements ClientModInitializer {
         io.github.mobtalk.client.game.CityBuildClient.register();
         io.github.mobtalk.client.game.LiftClient.register();
         io.github.mobtalk.client.human.VillagerLooks.register();
+        FurnitureClient.register();
         net.fabricmc.fabric.api.resource.ResourceManagerHelper.get(net.minecraft.resource.ResourceType.CLIENT_RESOURCES).registerReloadListener(
                 new net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener() {
                     @Override public net.minecraft.util.Identifier getFabricId() { return net.minecraft.util.Identifier.of("mobtalk", "human_textures"); }

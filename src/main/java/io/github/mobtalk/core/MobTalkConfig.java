@@ -121,6 +121,11 @@ public final class MobTalkConfig {
     /** Cities with Soviet panel blocks, an administration and a hospital take the place of a village: one city for this many villages,
      * 0 = no cities. Counted when a world loads; only new land gets cities. */
     public int cityPerVillages = 3;
+    /** Cities 2.0 (tools/city2): a city of its own biome, {@code cityRadius} blocks of streets and panel houses inside a biome of
+     * {@code cityBiomeRadius}; the world is cut into squares of {@code citySpacing} and a square holds a city with {@code cityChance}
+     * percent. On, it replaces the old cities that took a village's place. Only new land gets cities. */
+    public boolean cities = true;
+    public int citySpacing = 4096, cityChance = 70, cityRadius = 500, cityBiomeRadius = 750;
     /** Lifts of the tall panel houses: speed in tenths of a block (metre) a second, how long the doors stay open with nobody in the
      * doorway, and the chance a minute (percent) that a villager by the lift's doors calls it and rides. */
     public int liftSpeedTenths = 15, liftDoorSeconds = 5, liftVillagerChance = 25;
@@ -313,7 +318,7 @@ public final class MobTalkConfig {
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
-        copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageHeavy = villageHeavy; copy.villageCavalry = villageCavalry;
+        copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageHeavy = villageHeavy; copy.villageCavalry = villageCavalry; copy.cities = cities;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;
