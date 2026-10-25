@@ -777,7 +777,7 @@ class ConversationEngineTest {
                     "offers", List.of(Map.of("buy", Map.of("id", "minecraft:stick", "count", 32)))), Map.of(), List.of(),
                     List.of(ActionType.NONE), 0);
             engine.converse(seller, "Уступишь?");
-            assertTrue(systemPrompt().contains("открыл окно торговли"));
+            assertTrue(systemPrompt().contains("открыл торговлю с тобой"));
             assertFalse(systemPrompt().contains("Голосовой торг"));
 
             engine.converse(tradingMob("minecraft:villager", bargainingContext(true, Map.of("status", "NONE"))), "Уступишь?");

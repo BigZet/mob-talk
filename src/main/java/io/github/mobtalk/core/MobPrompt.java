@@ -52,7 +52,8 @@ final class MobPrompt {
                 + "\n\nТвой характер:\n" + archetype
                 + (custom ? "\nЛичная настройка именно этой особи (важнее характера выше): " + profile.customPersonality : "")
                 + SocialPrompt.persona(profile)
-                + (species.quirks().isBlank() ? "" : "\nКак ты говоришь, твои фирменные штучки: " + sentence(species.quirks()))
+                + (species.quirks().isBlank() ? "" : "\nКак ты говоришь, твои фирменные штучки: " + sentence(species.quirks())
+                        + " Каждое обращение и словечко отсюда — не больше одного раза за разговор, а большинство реплик — без них.")
                 + (desire.isBlank() ? "" : "\nЧего ты хочешь от жизни: " + sentence(desire)
                         + " Это твоя личная цель: ты её преследуешь, иногда заводишь о ней речь — но не в каждой реплике — и судишь игрока по тому, помогает он ей или мешает.")
                 + (secret.isBlank() ? "" : "\nТвоя тайна: " + sentence(secret)
@@ -347,7 +348,7 @@ final class MobPrompt {
         TradingView view = TradingView.of(snapshot);
         if (!view.villagerOffers()) return "";
         if (view.spokenAvailable()) return SpokenOffer.summary(view.spoken());
-        if (!view.windowOpen()) return "\n\nТорг: окно торговли закрыто — цены сейчас не меняются, новых цен не называй и скидку не обещай.";
+        if (!view.windowOpen()) return "\n\nТорг: торговля с тобой не открыта — цены сейчас не меняются, новых цен не называй и скидку не обещай. Про то, что торговлю надо открыть, скажи не больше одного раза за разговор.";
         Map<?,?> context = view.bargaining();
         String unit = context.get("firstBuy") instanceof Map<?,?> first ? String.valueOf(first.get("name")) : "предмет";
         String result = context.get("sell") instanceof Map<?,?> sell ? sell.get("count") + "× " + sell.get("name") : "товар";

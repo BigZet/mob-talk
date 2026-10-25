@@ -61,7 +61,7 @@ public final class MobState {
         /** It saw the player at a misdeed without a blow: a stranger's chest, a village plot, a work block, a door or a bed. Suspicion
          * more than fear: trust and calm go down, interest up. */
         MISCHIEF(-5, -10, 10, -15, 0, false, "шарят по чужому"),
-        INSULT(-15, -10, 0, -10, 0, false, "грубость"),
+        INSULT(-15, -5, 0, -12, 0, false, "грубость"),
         THREAT(-10, -30, 10, -25, 0, true, "угроза"),
         APOLOGY(5, 10, 0, 10, 0, false, "извинение"),
         KIND(10, 5, 5, 5, 0, false, "доброе слово"),
@@ -409,7 +409,7 @@ public final class MobState {
         if (!apathetic && since(lowMoodSince, now) >= 20 * fall) next = MoodSpell.DEPRESSION;
         else if (since(lowCalmSince, now) >= 5 * fall || window(scares, now).size() >= 3) next = MoodSpell.DREAD;
         else if (!apathetic && (since(starvingSince, now) >= 20 * fall || since(tiredSince, now) >= 40 * fall)) next = MoodSpell.APATHY;
-        else if (window(irritations, now).size() >= 3 && v.calm() >= 20 || since(sourSince, now) >= 12 * fall) next = MoodSpell.ANGER;
+        else if (window(irritations, now).size() >= 3 && window(scares, now).size() < 2 || since(sourSince, now) >= 12 * fall) next = MoodSpell.ANGER;
         else if (!apathetic && since(lowEnergySince, now) >= 8 * fall) next = MoodSpell.EXHAUSTION;
         else if (baseline.sociability() >= 55 && since(socialAt, now) >= 120 * fall) next = MoodSpell.LONELY;
         else if (since(highMoodSince, now) >= 6 * scale) next = MoodSpell.JOY;
@@ -650,7 +650,7 @@ public final class MobState {
             if (reasons.stream().anyMatch(r -> r.sign() < 0 && !aimed(r.text(), speaker).equals(r.text())))
                 text.append("\nПлохое из этих причин сделал тебе именно тот, кто сейчас перед тобой: твой страх, обида или злость — на него. "
                         + "Не выгораживай его и не делай вид, что он ни при чём; можешь прямо сказать ему, что он сделал, или отшатнуться от него.");
-            if (hungry(MoodFactor.STARVING)) text.append(form("\nТы давно ничего не ел{|а}: голод мучает, мысли только о еде, сил нет; можешь прямо попросить у игрока поесть."));
+            if (hungry(MoodFactor.STARVING)) text.append(form("\nТы давно ничего не ел{|а}: голод мучает, мысли только о еде, сил нет; можешь прямо попросить у игрока поесть; нелюбимую еду сейчас тоже возьмёшь — поморщишься, но голод сильнее."));
             else if (hungry(MoodFactor.HUNGRY)) text.append(form("\nТы голод{ен|на}: мысли сбиваются на еду, можешь намекнуть игроку, что не прочь бы поесть."));
             if (!thought.isEmpty()) text.append("\nТвоя последняя мысль про себя: «").append(thought).append("» — продолжай с неё, если она ещё к месту.");
             return text.toString();

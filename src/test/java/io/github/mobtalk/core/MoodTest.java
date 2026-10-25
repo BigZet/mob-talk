@@ -86,6 +86,17 @@ class MoodTest {
         assertTrue(scared.refusesDeals() && !scared.keen());
     }
 
+    // Insults anger a mob, they do not frighten it: three rude words make it embittered, even a nervous one, not panicked.
+    @Test void insultsAddUpToAnger() {
+        MobState.Baseline nervous = MobState.Baseline.of(50, 25, 50, 50, 0);
+        MobState state = new MobState();
+        for (int i = 0; i < 3; i++) state.shift(MobState.Event.INSULT, nervous, i * MINUTE);
+        state.evolve(nervous, 3 * MINUTE);
+        MobState.View sore = state.view(nervous, 3 * MINUTE);
+        assertEquals(MoodSpell.ANGER, sore.spell());
+        assertEquals("embittered", sore.marker().key());
+    }
+
     // A wedding brings love, a long happy stretch joy; a blow breaks a joy.
     @Test void brightMoods() {
         MobState love = new MobState();
