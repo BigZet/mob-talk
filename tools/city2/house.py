@@ -42,8 +42,11 @@ PARAPETS = ["siding", "brown", "green", "brick"]
 FRAMES = ["pvc", "wood", "alu"]
 # Lamps (the furniture's): a chandelier in the rooms, a flat plafond in the kitchen, bathroom and hall; in the staircase
 # round wall plafonds (the landings' ceilings are slabs' undersides half a block up, where a hanging lamp would float).
-LAMP_ROOM = "apt_chandelier"
-LAMP_PLAIN = "apt_ceiling_plate"
+LAMPS = {"living": ["apt_chandelier", "apt_lamp_cascade", "apt_lamp_horns", "apt_lamp_silk"],
+         "room": ["apt_chandelier", "apt_lamp_horns", "apt_lamp_orange", "apt_ceiling_plate"],
+         "bedroom": ["apt_lamp_orange", "apt_lamp_horns", "apt_ceiling_plate", "apt_lamp_silk"],
+         "kitchen": ["apt_lamp_cone", "apt_ceiling_plate", "apt_lamp_orange"],
+         "hall": ["apt_lamp_ball", "apt_ceiling_plate"], "bath": ["apt_lamp_ball", "apt_ceiling_plate"]}
 LAMP_STAIR = "apt_wall_puck"
 CURTAINS = ["apt_curtain_wine", "apt_curtain_gold", "apt_curtain_blue", "apt_curtain_olive"]
 CW = {N: E, E: SO, SO: W, W: N}
@@ -469,7 +472,8 @@ class House:
                 cx = sum(p[0] for p in cells) / len(cells)
                 cz = sum(p[1] for p in cells) / len(cells)
                 lamp = min(cells, key=lambda p: (p[0] - cx) ** 2 + (p[1] - cz) ** 2)
-                self.at(lamp[0], s + 3, lamp[1], LAMP_PLAIN if kind in FINISH else LAMP_ROOM, {"facing": N, "lit": "true"})
+                pick = random.Random(f"{self.r.random()}").choice(LAMPS.get(kind, LAMPS["room"]))
+                self.at(lamp[0], s + 3, lamp[1], pick, {"facing": N, "lit": "true"})
                 flat = next((f for f in self.flats if f.section == sec and f.floor == k and f.side == side), None)
                 if flat is None:
                     flat = Flat(sec, k, side)
