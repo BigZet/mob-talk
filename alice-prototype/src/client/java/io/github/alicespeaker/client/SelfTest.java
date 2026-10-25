@@ -221,9 +221,34 @@ final class SelfTest {
                 owner.ask(client, speaker, "Выключи музыку", null);
                 await("music stopped", 60, () -> owner.musicSound == null, () -> {
                     check(owner.musicSound == null && owner.nowPlaying == null, "\"выключи музыку\" stops it");
-                    breakMidAnswer();
+                    aliceMusic();
                 });
             });
+        });
+    }
+
+    // ---- Stage 4b (logged in only): Alice herself picks what to play ("Включаю …" with her player link) and the
+    // speaker plays exactly that: one song, then her fairy-tale playlist.
+    private void aliceMusic() {
+        if (AliceAuth.load().oauthToken().isBlank()) { log("Alice's own music skipped: no login"); breakMidAnswer(); return; }
+        askAliceMusic("Включи песню группа крови", label -> label.toLowerCase().contains("группа крови"), () ->
+                askAliceMusic("Расскажи сказку", label -> true, () -> { owner.stopMusic(); breakMidAnswer(); }));
+    }
+
+    private void askAliceMusic(String words, java.util.function.Predicate<String> expected, Runnable next) {
+        int before = owner.finished;
+        log("asking (text): " + words);
+        owner.ask(client, speaker, words, null);
+        await("Alice's pick plays", 90, () -> owner.finished > before && (owner.nowPlaying != null && owner.musicSound != null
+                && client.getSoundManager().isPlaying(owner.musicSound) || owner.musicError != null || owner.lastReply == null
+                || owner.lastReply.musicUri().isBlank() && owner.sound != null), () -> {
+            AliceSpeakerClient.Reply reply = owner.lastReply;
+            log("Alice: " + (reply == null ? owner.lastError : reply.text()));
+            check(reply != null && !reply.musicUri().isBlank(), "\"" + words + "\": Alice answered with her player link");
+            check(owner.musicError == null && owner.nowPlaying != null && expected.test(owner.nowPlaying), "\"" + words + "\" plays from the speaker: " + owner.nowPlaying
+                    + (owner.musicError == null ? "" : " (" + owner.musicError + ")"));
+            shot(words.startsWith("Расскажи") ? "3-fairy-tales" : "3-song");
+            next.run();
         });
     }
 
@@ -235,12 +260,13 @@ final class SelfTest {
     // ---- Stage 5: breaking the speaker while Alice talks silences her; without a speaker nearby nothing is asked.
     private void breakMidAnswer() {
         asked = owner.finished;   // music commands above were not counted
-        log("asking (text): Расскажи сказку");
-        owner.ask(client, speaker, "Расскажи сказку", null);
-        await("Alice started the fairy tale", 60, () -> owner.sound != null && client.getSoundManager().isPlaying(owner.sound) || owner.finished >= asked + 1 && owner.lastReply == null, () -> {
+        // Logged in, "Расскажи сказку" is a playlist now; a long spoken answer is what this stage needs.
+        log("asking (text): Расскажи что-нибудь интересное про Луну");
+        owner.ask(client, speaker, "Расскажи что-нибудь интересное про Луну", null);
+        await("Alice started talking", 60, () -> owner.sound != null && client.getSoundManager().isPlaying(owner.sound) || owner.finished >= asked + 1 && owner.lastReply == null, () -> {
             asked++;
-            if (owner.sound == null || !client.getSoundManager().isPlaying(owner.sound)) { fail("fairy tale did not start playing" + (owner.lastError == null ? "" : ": " + owner.lastError)); finish(); return; }
-            shot("4-fairy-tale");
+            if (owner.sound == null || !client.getSoundManager().isPlaying(owner.sound)) { fail("Alice's answer did not start playing" + (owner.lastError == null ? "" : ": " + owner.lastError)); finish(); return; }
+            shot("4-talking");
             command("setblock 0 200 0 minecraft:air");
             await("speaker broken", 10, () -> !client.world.getBlockState(speaker).isOf(AliceSpeakerMod.SPEAKER), () ->
                 await("voice stopped", 3, () -> !client.getSoundManager().isPlaying(owner.sound), () -> {
@@ -254,6 +280,7 @@ final class SelfTest {
 
     // ---- Stage 6 (only after a real QR login on this PC): which way of passing the login Alice accepts.
     private void probeLogin() {
+        if (System.getProperty("alicespeaker.authprobe") == null) { finish(); return; }   // 16 extra questions: on request only
         if (YandexLogin.savedXToken().isBlank()) { log("login probe skipped: no in-game login"); finish(); return; }
         log("login probe: a music request and a reminder with each way of passing the login");
         java.util.concurrent.CompletableFuture<List<String>> probe = owner.probeAuth();

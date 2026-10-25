@@ -135,10 +135,10 @@ public final class AliceSpeakerClient implements ClientModInitializer {
         ClientWorld world = client.world;
         AliceAuth auth = AliceAuth.load();
         if (text != null) notice(client, "Вы: " + text, Formatting.GRAY);
-        // Typed music commands go straight to Yandex Music: the web Alice cannot play music and answers them with
-        // an empty player directive, so waiting for her only delays "next" and "stop".
+        // Typed "next", "stop", "continue" go straight to the player: waiting for Alice only delays them. "Включи …" goes
+        // to Alice when logged in (she picks the album or playlist herself), else straight to the Yandex Music search.
         YandexMusic.Intent typed = text != null ? YandexMusic.intent(text, musicSound != null, false) : null;
-        if (typed != null) { handleMusic(client, client.world, speaker, typed); return; }
+        if (typed != null && (typed.kind() != YandexMusic.Kind.PLAY || auth.oauthToken().isBlank())) { handleMusic(client, client.world, speaker, typed); return; }
         overlay(client, auth.hasLogin() ? "Алиса думает…" : "Алиса думает… (без входа в Яндекс)");
         logLine("---- " + LocalTime.now() + (text != null ? " text" : " voice " + pcm.length + " bytes") + ", cookies " + (auth.cookie().isBlank() ? "no" : "yes")
                 + ", sync.json " + (auth.sync().isBlank() ? "no" : "yes") + ", oauth " + (auth.oauthToken().isBlank() ? "no" : "yes"));
@@ -161,6 +161,13 @@ public final class AliceSpeakerClient implements ClientModInitializer {
                     lastReply = reply;
                     lastError = null;
                     if (!reply.heard().isBlank()) notice(client, "Вы: " + reply.heard(), Formatting.GRAY);
+                    // Logged in, she answers "Включаю …" with a link to her own player: play exactly that from the speaker.
+                    if (!reply.musicUri().isBlank()) {
+                        if (!reply.text().isBlank()) notice(client, "Алиса: " + reply.text(), Formatting.LIGHT_PURPLE);
+                        YandexMusic.Intent fallback = YandexMusic.intent(text != null ? text : reply.heard(), musicSound != null, true);
+                        playFromAlice(client, world, speaker, reply.musicUri(), fallback != null && fallback.kind() == YandexMusic.Kind.PLAY ? fallback.query() : null);
+                        return;
+                    }
                     // The web chat Alice cannot play music; music requests go to Yandex Music instead of her refusal.
                     // Her music refusals ("авторизуйтесь…", or a bare player directive) mean she heard a music request.
                     boolean refusedMusic = reply.music() && (reply.text().isBlank() || MUSIC_REFUSAL.matcher(reply.text()).find());
@@ -177,7 +184,7 @@ public final class AliceSpeakerClient implements ClientModInitializer {
                 }));
     }
 
-    record Reply(String text, String heard, byte[] pcm, String voiceProblem, boolean music) { }
+    record Reply(String text, String heard, byte[] pcm, String voiceProblem, boolean music, String musicUri) { }
 
     /** InvalidAuth with an in-game login: mint a new token from the x_token and ask once more. */
     private CompletableFuture<AliceSession.Answer> retryWithFreshLogin(Throwable failure, AliceAuth auth, String text, byte[] pcm) {
@@ -292,6 +299,30 @@ public final class AliceSpeakerClient implements ClientModInitializer {
         }
     }
 
+    /** Alice's own pick (her musicsdk:// link); if it names nothing playable, the words are searched instead. */
+    private void playFromAlice(MinecraftClient client, ClientWorld world, BlockPos speaker, String uri, String fallbackQuery) {
+        stopMusic();
+        int expected = ++musicGeneration;
+        musicError = null;
+        overlay(client, "Включаю…");
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                return YandexMusic.withToken(this::logLine, music -> {
+                    List<YandexMusic.Track> tracks = music.fromAlice(uri);
+                    return tracks.isEmpty() && fallbackQuery != null ? music.find(fallbackQuery) : tracks;
+                });
+            } catch (IOException failure) { throw new java.util.concurrent.CompletionException(failure); }
+        }, WORKER).whenComplete((tracks, failure) -> client.execute(() -> {
+            if (expected != musicGeneration || client.world != world) return;
+            if (failure != null) { musicFailed(client, failure); return; }
+            if (tracks.isEmpty()) { musicError = "ничего не нашлось"; notice(client, "Алиса: Не нашла, что включить", Formatting.LIGHT_PURPLE); return; }
+            queue = tracks;
+            waveQueue = false;
+            musicSpeaker = speaker;
+            playTrack(client, world, speaker, 0);
+        }));
+    }
+
     private void playTrack(MinecraftClient client, ClientWorld world, BlockPos speaker, int index) {
         if (musicSound != null) musicSound.stop();
         musicSound = null;
@@ -345,7 +376,7 @@ public final class AliceSpeakerClient implements ClientModInitializer {
 
     private Reply decode(AliceSession.Answer answer) {
         boolean music = answer.notes().contains("music");
-        if (answer.voice().isEmpty()) return new Reply(answer.text(), answer.heard(), null, "сервер не прислал аудио", music);
+        if (answer.voice().isEmpty()) return new Reply(answer.text(), answer.heard(), null, "сервер не прислал аудио", music, answer.musicUri());
         java.io.ByteArrayOutputStream pcm = new java.io.ByteArrayOutputStream();
         String problem = "";
         for (byte[] stream : answer.voice()) {
@@ -358,7 +389,7 @@ public final class AliceSpeakerClient implements ClientModInitializer {
                 problem = broken.getMessage();
             }
         }
-        return new Reply(answer.text(), answer.heard(), pcm.size() > 0 ? pcm.toByteArray() : null, problem, music);
+        return new Reply(answer.text(), answer.heard(), pcm.size() > 0 ? pcm.toByteArray() : null, problem, music, answer.musicUri());
     }
 
     private static String hex(byte[] data) {

@@ -97,6 +97,48 @@ final class YandexMusic {
         return found;
     }
 
+    /**
+     * Tracks for Alice's own player link (musicsdk://?track=…, ?album=…, ?artist=…, ?owner=…&kind=… for a playlist),
+     * shuffled when she asked for it. Empty when the link names nothing this API knows.
+     */
+    List<Track> fromAlice(String uri) throws IOException {
+        java.util.Map<String, String> q = new java.util.HashMap<>();
+        int start = uri.indexOf('?');
+        if (start >= 0) for (String part : uri.substring(start + 1).split("&")) {
+            String[] kv = part.split("=", 2);
+            q.put(java.net.URLDecoder.decode(kv[0], StandardCharsets.UTF_8), kv.length > 1 ? java.net.URLDecoder.decode(kv[1], StandardCharsets.UTF_8) : "");
+        }
+        List<Track> found = new ArrayList<>();
+        String what;
+        if (!q.getOrDefault("owner", "").isBlank() && !q.getOrDefault("kind", "").isBlank()) {
+            what = "playlist " + q.get("owner") + "/" + q.get("kind");
+            JsonObject playlist = get("/users/" + enc(q.get("owner")) + "/playlists/" + enc(q.get("kind")));
+            if (playlist.has("tracks")) for (JsonElement item : playlist.getAsJsonArray("tracks"))
+                if (item.isJsonObject() && item.getAsJsonObject().has("track")) addTrack(found, item.getAsJsonObject().get("track"));
+        } else if (!q.getOrDefault("track", "").isBlank()) {
+            what = "track " + q.get("track");
+            JsonElement tracks = getElement("/tracks/" + enc(q.get("track").replaceFirst(":.*", "")));
+            if (tracks != null && tracks.isJsonArray()) for (JsonElement t : tracks.getAsJsonArray()) addTrack(found, t);
+        } else if (!q.getOrDefault("album", "").isBlank()) {
+            what = "album " + q.get("album");
+            JsonObject album = get("/albums/" + enc(q.get("album")) + "/with-tracks");
+            if (album.has("volumes")) for (JsonElement volume : album.getAsJsonArray("volumes"))
+                if (volume.isJsonArray()) for (JsonElement t : volume.getAsJsonArray()) addTrack(found, t);
+        } else if (!q.getOrDefault("artist", "").isBlank()) {
+            what = "artist " + q.get("artist");
+            JsonObject artist = get("/artists/" + enc(q.get("artist")) + "/tracks?page-size=50");
+            if (artist.has("tracks")) for (JsonElement t : artist.getAsJsonArray("tracks")) addTrack(found, t);
+        } else {
+            log.accept("music from Alice: nothing to play in " + q.keySet());
+            return found;
+        }
+        if (q.containsKey("shuffle") && found.size() > 1) java.util.Collections.shuffle(found);
+        log.accept("music from Alice: " + what + ", " + found.size() + " tracks");
+        return found;
+    }
+
+    private static String enc(String part) { return URLEncoder.encode(part, StandardCharsets.UTF_8); }
+
     private List<Track> wave() throws IOException {
         JsonObject result = get("/rotor/station/user:onyourwave/tracks?settings2=true");
         List<Track> found = new ArrayList<>();

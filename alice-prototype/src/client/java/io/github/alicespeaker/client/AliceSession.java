@@ -47,7 +47,8 @@ final class AliceSession implements WebSocket.Listener {
     private static final int VOICE_STREAM = 1;
 
     /** What Alice said: final text, what she heard (voice input), her voice per audio stream, protocol notes. */
-    record Answer(String text, String heard, List<byte[]> voice, String voiceFormat, List<String> notes) { }
+    /** {@code musicUri}: the musicsdk:// link of her player directive (a logged-in "включи…"), "" when none. */
+    record Answer(String text, String heard, List<byte[]> voice, String voiceFormat, List<String> notes, String musicUri) { }
 
     /** Yandex refused the login in the handshake: an expired token, renewed from the x_token by the caller. */
     static final class InvalidAuth extends IllegalStateException {
@@ -68,7 +69,7 @@ final class AliceSession implements WebSocket.Listener {
     private CompletableFuture<WebSocket> sending;
     private WebSocket socket;
     private int seq = 1, followUps;
-    private String finalText = "", heard = "", lastRequestId, stackSessionId;
+    private String finalText = "", heard = "", lastRequestId, stackSessionId, musicUri = "";
     private boolean speakSeen;
     private String voiceFormat = "audio/opus";
 
@@ -224,6 +225,15 @@ final class AliceSession implements WebSocket.Listener {
     }
 
     private void onVinsResponse(JsonObject payload) {
+        JsonObject response = obj(payload, "response");
+        if (response != null && response.has("directives") && response.get("directives").isJsonArray())
+            for (JsonElement d : response.getAsJsonArray("directives"))
+                if (d.isJsonObject()) {
+                    log.accept("directive " + str(d.getAsJsonObject(), "name") + " " + cut(shape(d.getAsJsonObject()), 1500));
+                    JsonObject p = obj(d.getAsJsonObject(), "payload");
+                    String uri = p == null ? "" : str(p, "uri");
+                    if (uri.startsWith("musicsdk://")) { musicUri = uri; notes.add("music"); }
+                }
         String answer = extractText(payload);
         if (!answer.isBlank() && !PLACEHOLDER.matcher(answer.trim()).matches()) {
             finalText = answer;
@@ -370,7 +380,7 @@ final class AliceSession implements WebSocket.Listener {
             if (timeout && finalText.isBlank()) { fail(new IllegalStateException("Алиса не ответила за 40 секунд")); return; }
             List<byte[]> voice = new ArrayList<>();
             streams.forEach((stream, bytes) -> { if (!(pcm16k != null && stream == VOICE_STREAM) && bytes.size() > 0) voice.add(bytes.toByteArray()); });
-            answer = new Answer(finalText, heard, voice, voiceFormat, List.copyOf(notes));
+            answer = new Answer(finalText, heard, voice, voiceFormat, List.copyOf(notes), musicUri);
         }
         result.complete(answer);
         close();
@@ -431,6 +441,40 @@ final class AliceSession implements WebSocket.Listener {
             for (JsonElement w : first.getAsJsonObject().getAsJsonArray("words"))
                 if (w.isJsonObject()) words.append(words.isEmpty() ? "" : " ").append(str(w.getAsJsonObject(), "value"));
         return words.toString();
+    }
+
+    /** A directive's structure for the log: keys everywhere, values only for ids, types, names and titles (no URLs). */
+    static String shape(JsonElement e) {
+        if (e.isJsonObject()) {
+            StringBuilder out = new StringBuilder("{");
+            for (Map.Entry<String, JsonElement> entry : e.getAsJsonObject().entrySet()) {
+                if (out.length() > 1) out.append(',');
+                String key = entry.getKey();
+                JsonElement value = entry.getValue();
+                boolean show = value.isJsonPrimitive() && key.toLowerCase().matches(".*(id|type|name|title|kind)$") && !key.toLowerCase().matches(".*(token|session|uuid|device).*");
+                if (value.isJsonPrimitive() && key.toLowerCase().matches("uri|url")) show = true;
+                String text = show && key.toLowerCase().matches("uri|url") ? safeUri(value.getAsString()) : show ? value.getAsString() : "";
+                out.append(key).append(show ? "=" + text : value.isJsonPrimitive() ? "" : ":" + shape(value));
+            }
+            return out.append('}').toString();
+        }
+        if (e.isJsonArray()) return e.getAsJsonArray().isEmpty() ? "[]" : "[" + e.getAsJsonArray().size() + "×" + shape(e.getAsJsonArray().get(0)) + "]";
+        return "";
+    }
+
+    /** A URI for the log: scheme, host, path and query keys; query values only for ids, kinds and types. */
+    static String safeUri(String uri) {
+        int q = uri.indexOf('?');
+        String base = q < 0 ? uri : uri.substring(0, q);
+        if (q < 0) return base;
+        StringBuilder out = new StringBuilder(base).append('?');
+        for (String part : uri.substring(q + 1).split("&")) {
+            String[] kv = part.split("=", 2);
+            String k = java.net.URLDecoder.decode(kv[0], java.nio.charset.StandardCharsets.UTF_8);
+            boolean show = kv.length > 1 && k.toLowerCase().matches(".*(id|kind|type|owner|from)$|track|album|artist|playlist") && !k.toLowerCase().matches(".*(token|session|uuid|device).*");
+            out.append(k).append(show ? "=" + java.net.URLDecoder.decode(kv[1], java.nio.charset.StandardCharsets.UTF_8) : "").append('&');
+        }
+        return out.toString();
     }
 
     private static JsonObject obj(JsonObject parent, String key) {
