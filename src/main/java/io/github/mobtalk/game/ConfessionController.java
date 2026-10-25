@@ -235,6 +235,18 @@ public final class ConfessionController {
     void tick(ServerWorld world) {
         if (!byPriest.isEmpty()) for (Scene s : new ArrayList<>(byPriest.values())) if (s.world == world) tickScene(s);
         if (world == world.getServer().getOverworld()) penances(world);
+        if (world.getTime() % 100 == 57) ordainNear(world);
+    }
+
+    /** Настоятель храма зовётся одним именем везде: «отец Амвросий» из Божественного блока становится его именем в Mob Talk (подпись,
+     * HUD, речь), как только он рядом с игроком, а не только с первой исповедью. Иначе над ним висело бы имя мира («Виктор»). */
+    private void ordainNear(ServerWorld world) {
+        if (!bridge.config.enabled) return;
+        for (ServerPlayerEntity player : world.getPlayers())
+            for (VillagerEntity v : world.getEntitiesByClass(VillagerEntity.class, player.getBoundingBox().expand(48), v -> v.isAlive() && abbot(v) && v.hasCustomName())) {
+                String title = v.getCustomName().getString();
+                if (!title.equals(bridge.memory.displayName(v.getUuid()))) bridge.memory.social().ordain(v.getUuid(), title);
+            }
     }
 
     private void tickScene(Scene s) {
