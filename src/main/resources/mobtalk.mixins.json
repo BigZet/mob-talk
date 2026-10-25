@@ -33,6 +33,7 @@
     "VillagerRiderFacingMixin",
     "SteedCalmMixin",
     "KeepHandsMixin",
+    "CasinoBouncerPanicMixin",
     "SinglePoolElementAccessor",
     "UniqueVillagePieceMixin",
     "BarPoolAccessor"

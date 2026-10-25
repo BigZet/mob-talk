@@ -128,6 +128,12 @@ public final class MobTalkConfig {
      * evening villagers gather there and talk over the village's rumours, in chat subtitles, voiced only with {@link #barVoiced};
      * the bar's jukebox is the Alice speaker when the alicespeaker mod is installed. */
     public boolean barsInVillages = true, barEvenings = true, barVoiced = false, barAliceSpeaker = true, barDrinks = true;
+    /** The village casino (docs/casino.md): villages may build one (applies to chunks generated after the world loads); its bouncers
+     * in black throw out troublemakers and beat monsters; villagers drop in to play in the afternoon. */
+    public boolean casino = true, casinoBouncers = true, casinoVisitors = true;
+    /** The casino resort «Фортуна» (a rare standalone structure in plains, savannas and deserts: a domed round casino,
+     * a pylon sign and a pool with fountains), and the sparks that glint on the casinos' lights (a client-side look). */
+    public boolean casinoResort = true, casinoSparkles = true;
     /** Idea Б1: the villages know the god's deeds (the divine block's events) — they panic, talk and blame the sinner by name;
      * the scene in the moment (alarm bell, flight, shouts); the god alone may make an exile; the family of a villager killed by a
      * curse turns against the sinner. */
@@ -178,6 +184,9 @@ public final class MobTalkConfig {
     /** The bar's evening: from and to this game hour (6 is sunrise), at most this many visitors, the chance (percent) a free villager
      * goes, and the pause between two talks at one bar (seconds). */
     public int barOpenHour = 17, barCloseHour = 22, barVisitors = 6, barVisitPercent = 70, barTalkSeconds = 40;
+    /** The casino: its weight among a village's houses (vanilla houses weigh 2 to 4 each), the bouncer's health and blow, and how many
+     * villagers may play at once per game table. */
+    public int casinoWeight = 3, bouncerHealth = 60, bouncerDamage = 8, casinoPlayersPerTable = 2;
     /** The emotional state: half-lives of an ordinary and a strong impression (minutes), and the thresholds of its axes (0–100). */
     public int stateHalfLifeMinutes = 10, stateSlowHalfLifeMinutes = 30;
     public int waryCalm = 25, waryTrust = 25, keenInterest = 75, generousMood = 65, generousTrust = 65;
@@ -323,6 +332,7 @@ public final class MobTalkConfig {
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
         copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageHeavy = villageHeavy; copy.villageCavalry = villageCavalry; copy.officials = officials; copy.barsInVillages = barsInVillages; copy.barEvenings = barEvenings; copy.barVoiced = barVoiced; copy.barAliceSpeaker = barAliceSpeaker; copy.barDrinks = barDrinks;
+        copy.casino = casino; copy.casinoBouncers = casinoBouncers; copy.casinoVisitors = casinoVisitors; copy.casinoResort = casinoResort; copy.casinoSparkles = casinoSparkles;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;

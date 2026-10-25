@@ -58,7 +58,8 @@ public final class BarCommands {
             if (!start.hasChildren()) continue;
             int bars = 0;
             for (StructurePiece piece : start.getChildren())
-                if (piece instanceof PoolStructurePiece pool && UniqueVillagePieces.unique(pool.getPoolElement())) bars++;
+                if (piece instanceof PoolStructurePiece pool && UniqueVillagePieces.unique(pool.getPoolElement())
+                        && UniqueVillagePieces.template(pool.getPoolElement()).getPath().startsWith("bar/")) bars++; // the casino is unique too
             histogram[Math.min(2, bars)]++;
         }
         return histogram;

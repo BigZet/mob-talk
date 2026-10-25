@@ -1,0 +1,49 @@
+{
+  "variants": {
+    "facing=north,part=0": {
+      "model": "mobtalk:block/casino/casino_jackpot_0"
+    },
+    "facing=east,part=0": {
+      "model": "mobtalk:block/casino/casino_jackpot_0",
+      "y": 90
+    },
+    "facing=south,part=0": {
+      "model": "mobtalk:block/casino/casino_jackpot_0",
+      "y": 180
+    },
+    "facing=west,part=0": {
+      "model": "mobtalk:block/casino/casino_jackpot_0",
+      "y": 270
+    },
+    "facing=north,part=1": {
+      "model": "mobtalk:block/casino/casino_jackpot_1"
+    },
+    "facing=east,part=1": {
+      "model": "mobtalk:block/casino/casino_jackpot_1",
+      "y": 90
+    },
+    "facing=south,part=1": {
+      "model": "mobtalk:block/casino/casino_jackpot_1",
+      "y": 180
+    },
+    "facing=west,part=1": {
+      "model": "mobtalk:block/casino/casino_jackpot_1",
+      "y": 270
+    },
+    "facing=north,part=2": {
+      "model": "mobtalk:block/casino/casino_jackpot_2"
+    },
+    "facing=east,part=2": {
+      "model": "mobtalk:block/casino/casino_jackpot_2",
+      "y": 90
+    },
+    "facing=south,part=2": {
+      "model": "mobtalk:block/casino/casino_jackpot_2",
+      "y": 180
+    },
+    "facing=west,part=2": {
+      "model": "mobtalk:block/casino/casino_jackpot_2",
+      "y": 270
+    }
+  }
+}
