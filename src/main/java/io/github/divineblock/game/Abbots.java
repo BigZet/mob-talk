@@ -37,7 +37,7 @@ public final class Abbots {
     /** One church's rector as the world remembers him: who, and the tick he died (−1 alive or never yet called). */
     public static final class Rector { public String uuid = "", name = ""; public long diedTick = -1, missingTick = -1; }
     /** A rector not found by his church for this long (taken away, removed by a command) is replaced. */
-    private static final long MISSING_TICKS = 20 * 120;
+    private static final long MISSING_TICKS = 24_000;
 
     /** The saved map, kept in {@link DivineState}. */
     public static final class Book { public Map<String, Rector> rectors = new HashMap<>(); }
@@ -71,14 +71,25 @@ public final class Abbots {
         long now = world.getServer().getOverworld().getTime();
         BlockPos spot = site.rectorSpot();
         if (!world.isChunkLoaded(spot.getX() >> 4, spot.getZ() >> 4)) return null;
-        if (!rector.uuid.isBlank() && world.getEntity(UUID.fromString(rector.uuid)) instanceof VillagerEntity alive && alive.isAlive()) {
+        // One rector per church: the remembered one, else a tagged one found by the church (an older save, a lost record); any
+        // other tagged villager here becomes an ordinary cleric — two rectors on one spot drew two names over one head.
+        VillagerEntity alive = rector.uuid.isBlank() ? null : world.getEntity(UUID.fromString(rector.uuid)) instanceof VillagerEntity v && v.isAlive() ? v : null;
+        List<VillagerEntity> tagged = world.getEntitiesByClass(VillagerEntity.class, area(site), v -> v.isAlive() && v.getCommandTags().contains(TAG));
+        if (alive == null && !tagged.isEmpty()) {
+            alive = tagged.get(0);
+            rector.uuid = alive.getUuidAsString(); rector.diedTick = -1;
+            if (alive.hasCustomName()) rector.name = alive.getCustomName().getString();
+            state.markDirty();
+        }
+        for (VillagerEntity extra : tagged) if (extra != alive) demote(extra);
+        if (alive != null) {
             rector.missingTick = -1;
             keepInside(alive, site, spot);
             return alive;
         }
         if (!rector.uuid.isBlank() && rector.diedTick < 0) {
-            // Not among the loaded entities: perhaps in an unloaded corner of the yard. Gone for two minutes of visits — replaced.
-            if (rector.missingTick < 0) { rector.missingTick = now; return null; }
+            // Not among the loaded entities: perhaps in an unloaded corner. Replaced only after a game day of visits without him.
+            if (rector.missingTick < 0) { rector.missingTick = now; state.markDirty(); return null; }
             if (now - rector.missingTick < MISSING_TICKS) return null;
         }
         if (rector.diedTick >= 0 && now - rector.diedTick < RETURN_TICKS) return null;
@@ -99,13 +110,26 @@ public final class Abbots {
         return priest;
     }
 
-    /** Outside the church's wall the rector walks back; far away (pushed, lured) he is brought back at once. */
+    /** The rector keeps to his church: further than 12 blocks from the analoy he walks back, further than 40 (pushed, lured, wandered
+     * off towards unloaded ground) he is brought back at once. */
     private static void keepInside(VillagerEntity priest, ChurchSites.Site site, BlockPos spot) {
-        BlockBox yard = site.yard().expand(1);
-        boolean inside = yard.contains(priest.getBlockX(), yard.getMinY(), priest.getBlockZ()) || site.church().contains(priest.getBlockPos());
-        if (inside) return;
-        if (priest.getBlockPos().getSquaredDistance(spot) > 64 * 64) priest.refreshPositionAndAngles(spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5, priest.getYaw(), 0);
+        double distance = priest.getBlockPos().getSquaredDistance(spot);
+        if (distance <= 12 * 12) return;
+        if (distance > 40 * 40) priest.refreshPositionAndAngles(spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5, priest.getYaw(), 0);
         else priest.getNavigation().startMovingTo(spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5, 0.6);
+    }
+    /** The church, its yard and a margin: where its rector may be. */
+    private static net.minecraft.util.math.Box area(ChurchSites.Site site) {
+        BlockBox yard = site.yard(), church = site.church();
+        return new net.minecraft.util.math.Box(Math.min(yard.getMinX(), church.getMinX()) - 16, Math.min(yard.getMinY(), church.getMinY()) - 16,
+                Math.min(yard.getMinZ(), church.getMinZ()) - 16, Math.max(yard.getMaxX(), church.getMaxX()) + 17, Math.max(yard.getMaxY(), church.getMaxY()) + 17,
+                Math.max(yard.getMaxZ(), church.getMaxZ()) + 17);
+    }
+    /** A second rector becomes an ordinary cleric: no tag, no title. */
+    private static void demote(VillagerEntity extra) {
+        extra.removeCommandTag(TAG);
+        extra.setCustomName(null);
+        DivineBlockMod.LOG.info("Божественный блок: второй настоятель у церкви стал простым клириком ({})", extra.getUuidAsString());
     }
 
     private static String key(ServerWorld world, ChurchSites.Site site) {
