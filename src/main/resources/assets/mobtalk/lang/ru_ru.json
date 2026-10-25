@@ -927,5 +927,9 @@
   "block.mobtalk.car_zaporozhets": "Запорожец (голубой)",
   "block.mobtalk.car_zaporozhets_yellow": "Запорожец (жёлтый)",
   "block.mobtalk.car_uaz": "УАЗ «буханка»",
-  "block.mobtalk.car_uaz_ambulance": "УАЗ «скорая помощь»"
+  "block.mobtalk.car_uaz_ambulance": "УАЗ «скорая помощь»",
+  "block.mobtalk.lamp_grey_base": "Основание серого фонаря",
+  "block.mobtalk.lamp_grey_pole": "Опора серого фонаря",
+  "block.mobtalk.lamp_grey_double": "Серый фонарь с двумя плечами",
+  "block.mobtalk.lamp_grey_single": "Серый фонарь с одним плечом"
 }

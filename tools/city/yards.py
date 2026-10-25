@@ -48,11 +48,12 @@ class Yard:
         self.set(x, G + 1, z, "mobtalk:" + name, {"facing": facing})
 
     def lamp(self, x, z, facing, double=False):
-        """The tall green Soviet lamp: a base with a hatch, a pipe, and one arm (towards facing's right) or two."""
-        self.set(x, G + 1, z, "mobtalk:lamp_green_base", {"facing": facing})
+        """The tall Soviet lamp (grey, rarely green): a base with a hatch, a pipe, and one arm (towards facing's right) or two."""
+        c = "green" if self.r.random() < 0.15 else "grey"  # grey today, now and then the old green paint
+        self.set(x, G + 1, z, f"mobtalk:lamp_{c}_base", {"facing": facing})
         for k in (2, 3, 4):
-            self.set(x, G + k, z, "mobtalk:lamp_green_pole", {"facing": facing})
-        self.set(x, G + 5, z, "mobtalk:lamp_green_double" if double else "mobtalk:lamp_green_single", {"facing": facing})
+            self.set(x, G + k, z, f"mobtalk:lamp_{c}_pole", {"facing": facing})
+        self.set(x, G + 5, z, f"mobtalk:lamp_{c}_double" if double else f"mobtalk:lamp_{c}_single", {"facing": facing})
 
     def post_lamp(self, x, z):
         """The black post-top lamp of the boulevard: a pole, then the lantern with a round hat."""
@@ -81,8 +82,10 @@ class Yard:
                             self.set(*cell, leaves, leaf)
         white = r.random() < 0.6  # the Soviet whitewash on the lower trunk
         for dy in range(top - 1):
-            log = "minecraft:stripped_birch_log" if white and dy < 2 else "minecraft:oak_log"
-            self.set(x, G + 1 + dy, z, log, {"axis": "y"})
+            if white and dy < 2:  # lime-white, as painted every spring
+                self.set(x, G + 1 + dy, z, "minecraft:mushroom_stem", {"up": "true", "down": "true", "north": "true", "south": "true", "east": "true", "west": "true"})
+            else:
+                self.set(x, G + 1 + dy, z, "minecraft:oak_log", {"axis": "y"})
         for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1)):  # a few boughs, hidden inside the crown, bark all round
             if r.random() < 0.6:
                 self.set(x + dx, G + 1 + int(mid), z + dz, "minecraft:oak_wood", {"axis": "x" if dx else "z"})

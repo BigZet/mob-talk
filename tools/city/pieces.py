@@ -12,6 +12,7 @@ hospital, so each city has both. Writes into src/main/resources/data/mobtalk/:
 import copy
 import json
 import os
+import zlib
 import random
 import sys
 
@@ -373,16 +374,22 @@ def decorate_street(t, r):
     if sx != 5:
         return
     for z in range(4, sz - 3, 12):
-        # the green Soviet lamp; its arm reaches to the right of its facing, so out over the road
+        # the Soviet lamp (grey, rarely green); its arm reaches to the right of its facing, so out over the road
         x, facing = (0, "north") if (z // 12) % 2 == 0 else (4, "south")
         if t.name_at(x, 0, z) is None or not t.solid(x, 0, z) or sy < 6:
             continue
         if any(t.name_at(x, y, z) != "minecraft:air" for y in range(1, 6)):
             continue  # never over a connector or anything else the street has there
-        t.put(x, 1, z, "mobtalk:lamp_green_base", {"facing": facing})
+        c = lamp_paint(t.rel, x, z)
+        t.put(x, 1, z, f"mobtalk:lamp_{c}_base", {"facing": facing})
         for y in (2, 3, 4):
-            t.put(x, y, z, "mobtalk:lamp_green_pole", {"facing": facing})
-        t.put(x, 5, z, "mobtalk:lamp_green_single", {"facing": facing})
+            t.put(x, y, z, f"mobtalk:lamp_{c}_pole", {"facing": facing})
+        t.put(x, 5, z, f"mobtalk:lamp_{c}_single", {"facing": facing})
+
+def lamp_paint(*key):
+    """Street lamps are grey today; about one in seven keeps the old green paint (stable per spot)."""
+    return "green" if zlib.crc32(repr(key).encode()) % 7 == 0 else "grey"
+
 
 WOOD_FENCES = ("minecraft:oak_fence", "minecraft:birch_fence", "minecraft:spruce_fence", "minecraft:acacia_fence",
                "minecraft:cherry_fence", "minecraft:dark_oak_fence", "minecraft:jungle_fence", "minecraft:mangrove_fence")
@@ -401,9 +408,10 @@ def replace_vanilla(t):
                 yy -= 1
             if not col:
                 continue
+            c = lamp_paint(t.rel, x, z)
             for k, cy in enumerate(sorted(col)):
-                t.put(x, cy, z, "mobtalk:lamp_green_base" if k == 0 else "mobtalk:lamp_green_pole", {"facing": "north"})
-            t.put(x, y, z, "mobtalk:lamp_green_double", {"facing": "north"})
+                t.put(x, cy, z, f"mobtalk:lamp_{c}_base" if k == 0 else f"mobtalk:lamp_{c}_pole", {"facing": "north"})
+            t.put(x, y, z, f"mobtalk:lamp_{c}_double", {"facing": "north"})
             n += 1
     for (x, y, z), (name, props, _) in list(t.grid.items()):
         if (name in WOOD_FENCES or name == "minecraft:nether_brick_fence") and t.open_sky(x, y + 1, z, 30):

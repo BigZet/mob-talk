@@ -927,5 +927,9 @@
   "block.mobtalk.car_zaporozhets": "Zaporozhets (light blue)",
   "block.mobtalk.car_zaporozhets_yellow": "Zaporozhets (yellow)",
   "block.mobtalk.car_uaz": "UAZ van",
-  "block.mobtalk.car_uaz_ambulance": "UAZ ambulance"
+  "block.mobtalk.car_uaz_ambulance": "UAZ ambulance",
+  "block.mobtalk.lamp_grey_base": "Grey lamp post base",
+  "block.mobtalk.lamp_grey_pole": "Grey lamp post",
+  "block.mobtalk.lamp_grey_double": "Grey double-arm street lamp",
+  "block.mobtalk.lamp_grey_single": "Grey single-arm street lamp"
 }

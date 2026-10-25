@@ -458,6 +458,8 @@ def make_textures():
     painted_metal("metal_green", (66, 128, 62, 255), rust=0.0)
     painted_metal("metal_green_dark", (40, 84, 44, 255), rust=0.0)
     painted_metal("metal_black", (34, 36, 38, 255), rust=0.02)
+    painted_metal("metal_lamp", (146, 150, 152, 255), rust=0.0)
+    painted_metal("metal_lamp_dark", (70, 72, 76, 255), rust=0.0)
     painted_metal("bin_brown", (112, 66, 42, 255), ribs=True, rust=0.02)
     planks("bench_wood", (176, 120, 70, 255), (150, 100, 60))
     pavers("paving_grey", (150, 148, 142, 255))
@@ -686,14 +688,19 @@ def cars():
         model(f"car_{name}", {"car": f"car_{name}", "palette": "palette"}, els, "car")
 
 
+LAMP_PAINTS = (("grey", "metal_lamp", "metal_lamp_dark"), ("green", "metal_green", "metal_green_dark"))
+
+
 def pushchino_kit():
     """Street furniture after the Pushchino panoramas: the tall green Soviet lamp with one or two curved arms, a granite curb,
     a park bench of light slats on a black frame, a brown metal bin and a bicycle rack."""
-    model("lamp_green_base", {"metal": "metal_green", "dark": "metal_green_dark"},
-          [box((5.5, 0, 5.5), (10.5, 2, 10.5), "dark"), box((6, 2, 6), (10, 16, 10), "metal"),
-           box((5.8, 5, 5.8), (10.2, 9, 6), "dark", ["north"])])  # the service hatch
-    model("lamp_green_pole", {"metal": "metal_green", "dark": "metal_green_dark"},
-          [box((6.5, 0, 6.5), (9.5, 16, 9.5), "metal"), box((6.2, 14, 6.2), (9.8, 15, 9.8), "dark")])
+    # the same lamp in grey (today's usual paint, after the 2026 panoramas) and in the old green (a 2012 panorama)
+    for colour, metal, dark in LAMP_PAINTS:
+        model(f"lamp_{colour}_base", {"metal": metal, "dark": dark},
+              [box((5.5, 0, 5.5), (10.5, 2, 10.5), "dark"), box((6, 2, 6), (10, 16, 10), "metal"),
+               box((5.8, 5, 5.8), (10.2, 9, 6), "dark", ["north"])])  # the service hatch
+        model(f"lamp_{colour}_pole", {"metal": metal, "dark": dark},
+              [box((6.5, 0, 6.5), (9.5, 16, 9.5), "metal"), box((6.2, 14, 6.2), (9.8, 15, 9.8), "dark")])
 
     def arm(sign):
         """An arm curving up and out to the east (sign 1) or the west (-1): stepped pipe, then the cobra head."""
@@ -707,10 +714,9 @@ def pushchino_kit():
         els.append(box((a + 0.5, 9.2, 6), (b - 0.5, 9.5, 10), {"down": ("glass", [2, 4, 14, 12])}))
         return els
     base = [box((6.5, 0, 6.5), (9.5, 8, 9.5), "metal"), box((6, 7, 6), (10, 8, 10), "dark")]
-    model("lamp_green_double", {"metal": "metal_green", "dark": "metal_green_dark", "glass": "lamp_glass"},
-          base + arm(1) + arm(-1), "metal", ao=False)
-    model("lamp_green_single", {"metal": "metal_green", "dark": "metal_green_dark", "glass": "lamp_glass"},
-          base + arm(1), "metal", ao=False)
+    for colour, metal, dark in LAMP_PAINTS:
+        model(f"lamp_{colour}_double", {"metal": metal, "dark": dark, "glass": "lamp_glass"}, base + arm(1) + arm(-1), "metal", ao=False)
+        model(f"lamp_{colour}_single", {"metal": metal, "dark": dark, "glass": "lamp_glass"}, base + arm(1), "metal", ao=False)
     model("curb", {"stone": "curb"}, [box((0, 0, 0), (16, 5, 3.5), "stone"), box((0, 5, 0.5), (16, 5.5, 3), "stone")])
     els = []
     for x in (1.5, 13):  # black frame legs and arm rests
@@ -778,6 +784,9 @@ NAMES = {
     "car_zaporozhets": ("Запорожец (голубой)", "Zaporozhets (light blue)"), "car_zaporozhets_yellow": ("Запорожец (жёлтый)", "Zaporozhets (yellow)"),
     "car_uaz": ("УАЗ «буханка»", "UAZ van"), "car_uaz_ambulance": ("УАЗ «скорая помощь»", "UAZ ambulance"),
     "lamp_green_base": ("Основание фонаря", "Lamp post base"), "lamp_green_pole": ("Опора фонаря", "Lamp post"),
+    "lamp_grey_base": ("Основание серого фонаря", "Grey lamp post base"), "lamp_grey_pole": ("Опора серого фонаря", "Grey lamp post"),
+    "lamp_grey_double": ("Серый фонарь с двумя плечами", "Grey double-arm street lamp"),
+    "lamp_grey_single": ("Серый фонарь с одним плечом", "Grey single-arm street lamp"),
     "lamp_green_double": ("Фонарь с двумя плечами", "Double-arm street lamp"), "lamp_green_single": ("Фонарь с одним плечом", "Single-arm street lamp"),
     "curb": ("Бордюр", "Curb"), "park_bench": ("Парковая скамейка", "Park bench"), "bin_metal": ("Урна", "Litter bin"),
     "bike_rack": ("Велопарковка", "Bike rack"), "fence_green": ("Зелёная оградка", "Green railing"),
@@ -848,7 +857,7 @@ DISPLAY = {"gui": {"rotation": [30, 225, 0], "translation": [0, 0, 0], "scale": 
            "firstperson_righthand": {"rotation": [0, 45, 0], "translation": [0, 0, 0], "scale": [0.4, 0.4, 0.4]},
            "firstperson_lefthand": {"rotation": [0, 225, 0], "translation": [0, 0, 0], "scale": [0.4, 0.4, 0.4]}}
 SMALL = {k: dict(v, scale=[s * 0.5 for s in v["scale"]]) for k, v in DISPLAY.items()}
-ITEM_DISPLAY = {n: SMALL for n in ("swing", "slide", "flag", "lamp_green_double", "lamp_green_single") + tuple("car_" + c for c in CARS)}
+ITEM_DISPLAY = {n: SMALL for n in ("swing", "slide", "flag", "lamp_green_double", "lamp_green_single", "lamp_grey_double", "lamp_grey_single") + tuple("car_" + c for c in CARS)}
 
 
 # ---------------------------------------------------------------- preview
