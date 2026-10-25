@@ -102,6 +102,7 @@ public final class MobTalkMod implements ModInitializer {
         WeddingItems.register(); // Свои предметы — до загрузки любого мира, на обеих сторонах.
         io.github.mobtalk.game.DefenseContent.register(); // Пост лучника и профессия лучника (защита деревни).
         io.github.mobtalk.game.CityContent.register(); // Декор города: лавочки, фонари, площадки, Жигули.
+        io.github.mobtalk.game.CityBuild.register(); // Дома городов: стены с обоями, панели, окна, двери, балконы, лестницы.
         io.github.mobtalk.game.CityWorldgen.register(); // Города с панельками вместо части деревень.
         MobGameBridge.initialize();
         MobTalkNet.registerPayloads();

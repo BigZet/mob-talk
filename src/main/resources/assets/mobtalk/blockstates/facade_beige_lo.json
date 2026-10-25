@@ -1,0 +1,139 @@
+{
+ "variants": {
+  "facing=north,inner=plaster": {
+   "model": "mobtalk:block/city2/facade_beige_lo_plaster"
+  },
+  "facing=east,inner=plaster": {
+   "model": "mobtalk:block/city2/facade_beige_lo_plaster",
+   "y": 90
+  },
+  "facing=south,inner=plaster": {
+   "model": "mobtalk:block/city2/facade_beige_lo_plaster",
+   "y": 180
+  },
+  "facing=west,inner=plaster": {
+   "model": "mobtalk:block/city2/facade_beige_lo_plaster",
+   "y": 270
+  },
+  "facing=north,inner=paper_beige": {
+   "model": "mobtalk:block/city2/facade_beige_lo_paper_beige"
+  },
+  "facing=east,inner=paper_beige": {
+   "model": "mobtalk:block/city2/facade_beige_lo_paper_beige",
+   "y": 90
+  },
+  "facing=south,inner=paper_beige": {
+   "model": "mobtalk:block/city2/facade_beige_lo_paper_beige",
+   "y": 180
+  },
+  "facing=west,inner=paper_beige": {
+   "model": "mobtalk:block/city2/facade_beige_lo_paper_beige",
+   "y": 270
+  },
+  "facing=north,inner=paper_green": {
+   "model": "mobtalk:block/city2/facade_beige_lo_paper_green"
+  },
+  "facing=east,inner=paper_green": {
+   "model": "mobtalk:block/city2/facade_beige_lo_paper_green",
+   "y": 90
+  },
+  "facing=south,inner=paper_green": {
+   "model": "mobtalk:block/city2/facade_beige_lo_paper_green",
+   "y": 180
+  },
+  "facing=west,inner=paper_green": {
+   "model": "mobtalk:block/city2/facade_beige_lo_paper_green",
+   "y": 270
+  },
+  "facing=north,inner=paper_blue": {
+   "model": "mobtalk:block/city2/facade_beige_lo_paper_blue"
+  },
+  "facing=east,inner=paper_blue": {
+   "model": "mobtalk:block/city2/facade_beige_lo_paper_blue",
+   "y": 90
+  },
+  "facing=south,inner=paper_blue": {
+   "model": "mobtalk:block/city2/facade_beige_lo_paper_blue",
+   "y": 180
+  },
+  "facing=west,inner=paper_blue": {
+   "model": "mobtalk:block/city2/facade_beige_lo_paper_blue",
+   "y": 270
+  },
+  "facing=north,inner=paper_pink": {
+   "model": "mobtalk:block/city2/facade_beige_lo_paper_pink"
+  },
+  "facing=east,inner=paper_pink": {
+   "model": "mobtalk:block/city2/facade_beige_lo_paper_pink",
+   "y": 90
+  },
+  "facing=south,inner=paper_pink": {
+   "model": "mobtalk:block/city2/facade_beige_lo_paper_pink",
+   "y": 180
+  },
+  "facing=west,inner=paper_pink": {
+   "model": "mobtalk:block/city2/facade_beige_lo_paper_pink",
+   "y": 270
+  },
+  "facing=north,inner=paper_wood": {
+   "model": "mobtalk:block/city2/facade_beige_lo_paper_wood"
+  },
+  "facing=east,inner=paper_wood": {
+   "model": "mobtalk:block/city2/facade_beige_lo_paper_wood",
+   "y": 90
+  },
+  "facing=south,inner=paper_wood": {
+   "model": "mobtalk:block/city2/facade_beige_lo_paper_wood",
+   "y": 180
+  },
+  "facing=west,inner=paper_wood": {
+   "model": "mobtalk:block/city2/facade_beige_lo_paper_wood",
+   "y": 270
+  },
+  "facing=north,inner=tile_bath": {
+   "model": "mobtalk:block/city2/facade_beige_lo_tile_bath"
+  },
+  "facing=east,inner=tile_bath": {
+   "model": "mobtalk:block/city2/facade_beige_lo_tile_bath",
+   "y": 90
+  },
+  "facing=south,inner=tile_bath": {
+   "model": "mobtalk:block/city2/facade_beige_lo_tile_bath",
+   "y": 180
+  },
+  "facing=west,inner=tile_bath": {
+   "model": "mobtalk:block/city2/facade_beige_lo_tile_bath",
+   "y": 270
+  },
+  "facing=north,inner=tile_kitchen": {
+   "model": "mobtalk:block/city2/facade_beige_lo_tile_kitchen"
+  },
+  "facing=east,inner=tile_kitchen": {
+   "model": "mobtalk:block/city2/facade_beige_lo_tile_kitchen",
+   "y": 90
+  },
+  "facing=south,inner=tile_kitchen": {
+   "model": "mobtalk:block/city2/facade_beige_lo_tile_kitchen",
+   "y": 180
+  },
+  "facing=west,inner=tile_kitchen": {
+   "model": "mobtalk:block/city2/facade_beige_lo_tile_kitchen",
+   "y": 270
+  },
+  "facing=north,inner=paint_stair": {
+   "model": "mobtalk:block/city2/facade_beige_lo_paint_stair"
+  },
+  "facing=east,inner=paint_stair": {
+   "model": "mobtalk:block/city2/facade_beige_lo_paint_stair",
+   "y": 90
+  },
+  "facing=south,inner=paint_stair": {
+   "model": "mobtalk:block/city2/facade_beige_lo_paint_stair",
+   "y": 180
+  },
+  "facing=west,inner=paint_stair": {
+   "model": "mobtalk:block/city2/facade_beige_lo_paint_stair",
+   "y": 270
+  }
+ }
+}

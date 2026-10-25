@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:block/cube_all",
+ "textures": {
+  "all": "mobtalk:block/city2/panel_white_band",
+  "particle": "mobtalk:block/city2/panel_white_band"
+ }
+}

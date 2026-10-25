@@ -1,0 +1,13 @@
+{
+ "variants": {
+  "type=bottom": {
+   "model": "mobtalk:block/city2/step_terrazzo"
+  },
+  "type=top": {
+   "model": "mobtalk:block/city2/step_terrazzo_top"
+  },
+  "type=double": {
+   "model": "mobtalk:block/city2/step_terrazzo_double"
+  }
+ }
+}

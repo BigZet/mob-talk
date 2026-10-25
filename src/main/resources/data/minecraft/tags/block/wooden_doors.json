@@ -1,0 +1,9 @@
+{
+ "replace": false,
+ "values": [
+  "mobtalk:door_room",
+  "mobtalk:door_flat",
+  "mobtalk:door_entrance",
+  "mobtalk:door_balcony"
+ ]
+}
