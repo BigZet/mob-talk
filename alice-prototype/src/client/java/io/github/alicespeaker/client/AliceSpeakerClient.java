@@ -108,8 +108,8 @@ public final class AliceSpeakerClient implements ClientModInitializer {
         ClientWorld world = client.world;
         AliceAuth auth = AliceAuth.load();
         if (text != null) notice(client, "Вы: " + text, Formatting.GRAY);
-        overlay(client, auth.hasCookie() ? "Алиса думает…" : "Алиса думает… (без входа в Яндекс)");
-        logLine("---- " + LocalTime.now() + (text != null ? " text" : " voice " + pcm.length + " bytes") + ", cookies " + (auth.hasCookie() ? "yes" : "no"));
+        overlay(client, auth.hasLogin() ? "Алиса думает…" : "Алиса думает… (без входа в Яндекс)");
+        logLine("---- " + LocalTime.now() + (text != null ? " text" : " voice " + pcm.length + " bytes") + ", cookies " + (auth.cookie().isBlank() ? "no" : "yes") + ", sync.json " + (auth.sync().isBlank() ? "no" : "yes"));
         AliceSession next = text != null ? AliceSession.text(text, auth, this::logLine) : AliceSession.voice(pcm, auth, this::logLine);
         session = next;
         next.start()

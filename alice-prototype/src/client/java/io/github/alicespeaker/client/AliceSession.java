@@ -49,10 +49,10 @@ final class AliceSession implements WebSocket.Listener {
 
     private final String text;
     private final byte[] pcm16k;
-    private final String cookie, authToken;
+    private final String cookie, authToken, sync;
     private final Consumer<String> log;
     private final CompletableFuture<Answer> result = new CompletableFuture<>();
-    private final String uuid = UUID.randomUUID().toString();
+    private String uuid = UUID.randomUUID().toString(), appId = APP_ID, appVersion = APP_VERSION, platform = "windows";
     private final Map<Integer, ByteArrayOutputStream> streams = new LinkedHashMap<>();
     private final List<Integer> closedStreams = new ArrayList<>();
     private final List<String> notes = new ArrayList<>();
@@ -70,6 +70,7 @@ final class AliceSession implements WebSocket.Listener {
         this.pcm16k = pcm16k;
         this.cookie = auth.cookie();
         this.authToken = auth.authToken();
+        this.sync = auth.sync();
         this.log = log;
     }
 
@@ -95,17 +96,47 @@ final class AliceSession implements WebSocket.Listener {
     @Override public void onOpen(WebSocket webSocket) {
         socket = webSocket;
         sending = CompletableFuture.completedFuture(webSocket);
-        JsonObject application = new JsonObject();
-        application.addProperty("app_id", APP_ID);
-        application.addProperty("platform", "windows");
-        JsonObject vins = new JsonObject();
-        vins.add("application", application);
-        JsonObject payload = new JsonObject();
-        payload.addProperty("auth_token", authToken.isBlank() ? UUID.randomUUID().toString() : authToken);
-        payload.addProperty("uuid", uuid);
-        payload.add("vins", vins);
+        JsonObject payload = siteHandshake();
+        if (payload == null) {
+            JsonObject application = new JsonObject();
+            application.addProperty("app_id", APP_ID);
+            application.addProperty("platform", "windows");
+            JsonObject vins = new JsonObject();
+            vins.add("application", application);
+            payload = new JsonObject();
+            payload.addProperty("auth_token", authToken.isBlank() ? UUID.randomUUID().toString() : authToken);
+            payload.addProperty("uuid", uuid);
+            payload.add("vins", vins);
+        }
         send(event("System", "SynchronizeState", payload, null));
         webSocket.request(1);
+    }
+
+    /**
+     * The payload of the site's own SynchronizeState (sync.json), sent as is: it carries the login. Its uuid and
+     * application become this session's, so later requests look like the same browser. Only key names are logged.
+     */
+    private JsonObject siteHandshake() {
+        if (sync.isBlank()) return null;
+        try {
+            JsonObject root = JsonParser.parseString(sync).getAsJsonObject();
+            JsonObject event = obj(root, "event");
+            JsonObject payload = event != null ? obj(event, "payload") : obj(root, "payload");
+            if (payload == null) { log.accept("sync.json: no event.payload, using the anonymous handshake"); return null; }
+            if (!str(payload, "uuid").isBlank()) uuid = str(payload, "uuid");
+            JsonObject vins = obj(payload, "vins");
+            JsonObject application = vins == null ? null : obj(vins, "application");
+            if (application != null) {
+                if (!str(application, "app_id").isBlank()) appId = str(application, "app_id");
+                if (!str(application, "app_version").isBlank()) appVersion = str(application, "app_version");
+                if (!str(application, "platform").isBlank()) platform = str(application, "platform");
+            }
+            log.accept("sync.json keys " + payload.keySet() + ", app " + appId + " " + appVersion);
+            return payload;
+        } catch (RuntimeException broken) {
+            log.accept("sync.json unreadable (" + broken.getClass().getSimpleName() + "), using the anonymous handshake");
+            return null;
+        }
     }
 
     @Override public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
@@ -239,9 +270,9 @@ final class AliceSession implements WebSocket.Listener {
         String requestId = UUID.randomUUID().toString();
         ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Europe/Moscow"));
         JsonObject application = new JsonObject();
-        application.addProperty("app_id", APP_ID);
-        application.addProperty("app_version", APP_VERSION);
-        application.addProperty("platform", "windows");
+        application.addProperty("app_id", appId);
+        application.addProperty("app_version", appVersion);
+        application.addProperty("platform", platform);
         application.addProperty("os_version", "windows");
         application.addProperty("uuid", uuid);
         application.addProperty("lang", "ru");

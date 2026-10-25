@@ -7,21 +7,23 @@ import java.nio.file.Path;
 
 /**
  * The player's Yandex session lives outside the game folder (~/.alice-speaker), or in YA_COOKIE / YA_AUTH.
- * It is never written to configs or logs.
+ * sync.json is the site's own first WebSocket message (System.SynchronizeState), which carries the login.
+ * None of it is ever written to configs or logs.
  */
-record AliceAuth(String cookie, String authToken) {
+record AliceAuth(String cookie, String authToken, String sync) {
     static final Path DIR = Path.of(System.getProperty("user.home"), ".alice-speaker");
 
     static AliceAuth load() {
-        return new AliceAuth(read("YA_COOKIE", "cookies.txt").replaceAll("[\\r\\n]+", " "), read("YA_AUTH", "auth_token.txt"));
+        return new AliceAuth(read("YA_COOKIE", "cookies.txt").replaceAll("[\\r\\n]+", " "), read("YA_AUTH", "auth_token.txt"), read("YA_SYNC", "sync.json"));
     }
 
-    boolean hasCookie() { return !cookie.isBlank(); }
+    boolean hasLogin() { return !cookie.isBlank() || !sync.isBlank(); }
 
     private static String read(String env, String file) {
         String value = System.getenv(env);
         if (value != null && !value.isBlank()) return value.trim();
-        try { return Files.readString(DIR.resolve(file), StandardCharsets.UTF_8).trim(); }
+        // Notepad may save a byte-order mark; it is not part of the value.
+        try { return Files.readString(DIR.resolve(file), StandardCharsets.UTF_8).replace("\uFEFF", "").trim(); }
         catch (IOException missing) { return ""; }
     }
 }

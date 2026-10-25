@@ -15,6 +15,7 @@ alice.yandex.ru (`wss://uniproxy.alice.ya.ru/uni.ws`). Отдельный мод
 
 Мод берёт сессию не из конфига, а отсюда (в git, логи и JAR это не попадает):
 
+- `%USERPROFILE%\.alice-speaker\sync.json` — первое исходящее сообщение сайта (`SynchronizeState`) из F12 → Network → WS → `uni.ws` → Messages, правой кнопкой «Copy message». Вход Яндекса едет внутри него;
 - `%USERPROFILE%\.alice-speaker\cookies.txt` — строка заголовка `Cookie` с alice.yandex.ru (одной строкой);
 - `%USERPROFILE%\.alice-speaker\auth_token.txt` — `auth_token` из первого сообщения `SynchronizeState` сайта (необязательно);
 - или переменные окружения `YA_COOKIE` / `YA_AUTH`.
