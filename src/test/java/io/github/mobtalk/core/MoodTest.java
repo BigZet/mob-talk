@@ -274,7 +274,8 @@ class MoodTest {
     @Test void reasonsFromTheSpeakerAndHungerOnTheNameplate() {
         MobState.View scared = new MobState.View(30, 5, 50, 20, 60, MoodSpell.DREAD, 0, List.of(new MobState.Reason("угроза (Стив)", -1, 60, false)), "", true);
         assertTrue(scared.describe("Стив").contains("угроза — от него, игрока Стив, с которым ты сейчас говоришь"), scared.describe("Стив"));
-        assertTrue(scared.describe("Алекс").contains("угроза (Стив)"));
+        assertTrue(scared.describe("Стив").contains("именно тот, кто сейчас перед тобой"));
+        assertTrue(scared.describe("Алекс").contains("угроза (Стив)") && !scared.describe("Алекс").contains("именно тот"));
         MobState.View starving = new MobState.View(45, 38, 20, 50, 61, null, 0, List.of(new MobState.Reason(MoodFactor.STARVING.text, -1, 60, true)), "", true);
         assertEquals("starving", starving.marker().key());
         assertEquals("изголодалась", starving.marker().word());

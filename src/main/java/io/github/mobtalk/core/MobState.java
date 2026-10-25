@@ -647,6 +647,9 @@ public final class MobState {
             if (!reasons.isEmpty())
                 text.append("\nОтчего тебе так (ты это знаешь сам; назови, если спросят, как ты, или к слову придётся): ")
                         .append(String.join("; ", reasons.stream().map(r -> aimed(r.text(), speaker)).toList())).append('.');
+            if (reasons.stream().anyMatch(r -> r.sign() < 0 && !aimed(r.text(), speaker).equals(r.text())))
+                text.append("\nПлохое из этих причин сделал тебе именно тот, кто сейчас перед тобой: твой страх, обида или злость — на него. "
+                        + "Не выгораживай его и не делай вид, что он ни при чём; можешь прямо сказать ему, что он сделал, или отшатнуться от него.");
             if (hungry(MoodFactor.STARVING)) text.append(form("\nТы давно ничего не ел{|а}: голод мучает, мысли только о еде, сил нет; можешь прямо попросить у игрока поесть."));
             else if (hungry(MoodFactor.HUNGRY)) text.append(form("\nТы голод{ен|на}: мысли сбиваются на еду, можешь намекнуть игроку, что не прочь бы поесть."));
             if (!thought.isEmpty()) text.append("\nТвоя последняя мысль про себя: «").append(thought).append("» — продолжай с неё, если она ещё к месту.");
