@@ -16,13 +16,14 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.Heightmap;
 
-/** Where the roads meet a village (docs/roads.md; Dmitriy chose on 2026-10-25 to leave the village's houses be and pave its own
- * streets). Each road stops where the village's pieces begin; from there a short paved way leads to the nearest of the village's
- * streets. A village two or more roads come to has its streets between their entries paved with the road's stone, lamps along
- * them: the highway runs through the village along its main street, and every lane of the village turns off it. A village only
- * one road comes to gets a station where the road ends: a paved square with a shelter, a bench and a hitching post, where the
- * carts and wagons stop. Only blocks worldgen made (and the road's own) are touched: never a house, a field or a fence of the
- * village. Server thread only, once the village's chunks are all loaded. */
+/** Where the roads meet a village (docs/roads.md). Since Dmitriy's word of 2026-10-25 («дорога не упирается прям в деревню, но
+ * проходит близко к ней … есть сход в деревню — тропа») the roads of a village meet at its junction beside the village: a paved
+ * square with a lean-to shelter, a bench, a hitching post and lamps, where the carts and wagons change roads or turn round, and
+ * from the square a trail three wide (a dirt path with gravel and coarse dirt, lanterns along it) leads over the open ground to
+ * the village's nearest street. The village's houses are never touched. The earlier way is kept for roads laid before: a road
+ * that runs into the village stops where its pieces begin, a short paved way leads to the nearest street, a village two or more
+ * such roads come to has its streets between their entries paved, and one only one road comes to gets a station where it ends.
+ * Only blocks worldgen made (and the road's own) are touched. Server thread only, once the chunks concerned are loaded. */
 final class RoadVillages {
     private RoadVillages() { }
 
@@ -30,6 +31,13 @@ final class RoadVillages {
      * along the road and half its width. */
     static final int CONNECT = 40, LAMP_STEP = 20, STATION = 9;
     static final double STATION_HALF = 4.5;
+    /** The junction's square reaches this far from its middle; the trail to the village may run this far (as the crow flies) and
+     * has a lantern every so many blocks. */
+    static final int PLAZA = 5, TRAIL = 72, TRAIL_LAMP = 12;
+
+    /** A village's junction: where its roads meet beside it, the height of the feet there, the ways the roads leave it (unit
+     * vectors) and the land loaded for the work {minX, minZ, maxX, maxZ}. */
+    record Hub(int x, int y, int z, List<double[]> ways, int[] area) { }
 
     /** A road coming in: its last point before the village and the way into the village from there (a unit vector). */
     record Entry(RoadPlan.Point at, double ix, double iz) {
@@ -44,9 +52,298 @@ final class RoadVillages {
     /** What was done, for the log. */
     static final class Report {
         int connected, paved, lamps; boolean station;
+        /** A junction: the trail's length (0 when none could be laid, {@code why} saying why), and whether the shelter stands. */
+        boolean hub, shelter; int trail, trees; String why;
         @Override public String toString() {
+            if (hub) return "развязка: тропа " + trail + " блоков" + (why != null ? " (" + why + ")" : "") + ", фонарей " + lamps + (shelter ? ", навес" : "") + ", срублено деревьев " + trees;
             return "подъездов " + connected + ", вымощено улиц " + paved + ", фонарей " + lamps + (station ? ", станция" : "");
         }
+    }
+
+    // ---- The junction ----
+
+    /** The village's street piece nearest the spot (by its box); null when the village has no streets. */
+    static BlockBox nearestStreet(StructureStart start, int x, int z) {
+        BlockBox best = null; double bestD = Double.MAX_VALUE;
+        for (StructurePiece piece : start.getChildren()) {
+            if (!street(piece)) continue;
+            BlockBox box = piece.getBoundingBox();
+            double d = Math.hypot(Math.max(0, Math.max(box.getMinX() - x, x - box.getMaxX())), Math.max(0, Math.max(box.getMinZ() - z, z - box.getMaxZ())));
+            if (d < bestD) { bestD = d; best = box; }
+        }
+        return best;
+    }
+
+    /** Builds the village's junction: the square where its roads meet, the trail from it to the village's nearest street, the
+     * shelter, hitching post and lamps; then trunks it left hanging are felled and hanging leaves taken away. */
+    static Report junction(ServerWorld world, StructureStart start, Hub hub, RoadBuilder.Palette palette, boolean lamps, int strip) {
+        Report report = new Report();
+        report.hub = true;
+        List<BlockBox> others = new ArrayList<>(), pieces = new ArrayList<>();
+        for (StructurePiece piece : start.getChildren()) { pieces.add(piece.getBoundingBox()); if (!street(piece)) others.add(piece.getBoundingBox()); }
+        Set<Long> cleared = new HashSet<>();
+        int[] area = { hub.x() - PLAZA - 3, hub.z() - PLAZA - 3, hub.x() + PLAZA + 3, hub.z() + PLAZA + 3 };
+        plaza(world, palette, hub, others, cleared, area);
+        // The trees round the square go as those beside the road do (the strip), so nothing hangs over it.
+        Set<Long> seen = new HashSet<>();
+        for (int dx = -PLAZA - strip; dx <= PLAZA + strip; dx++)
+            for (int dz = -PLAZA - strip; dz <= PLAZA + strip; dz++)
+                report.trees += RoadBuilder.fellTrunks(world, hub.x() + dx, hub.z() + dz, hub.y() - 4, hub.y() + RoadBuilder.BANK + 2, pieces, palette, seen, area);
+        Map<Long, Integer> streets = streets(world, start, hub.area());
+        long goal = trail(world, palette, hub, streets, others, cleared, area, lamps, report);
+        double[] in = goal == Long.MIN_VALUE ? null : unit(kx(goal) - hub.x(), kz(goal) - hub.z());
+        furnish(world, palette, hub, in, lamps, report);
+        RoadBuilder.tidy(world, cleared, pieces, area, hub.y() - 12, hub.y() + 24);
+        return report;
+    }
+
+    private static double[] unit(double x, double z) {
+        double d = Math.hypot(x, z);
+        return d < 1e-6 ? new double[] { 1, 0 } : new double[] { x / d, z / d };
+    }
+
+    /** The square: paving level with the junction, a curb round it except where a road comes in, everything above cleared. */
+    private static void plaza(ServerWorld world, RoadBuilder.Palette palette, Hub hub, List<BlockBox> others, Set<Long> cleared, int[] area) {
+        for (int dx = -PLAZA; dx <= PLAZA; dx++)
+            for (int dz = -PLAZA; dz <= PLAZA; dz++) {
+                if (inside(others, hub.x() + dx, hub.y(), hub.z() + dz)) continue;
+                boolean ring = Math.max(Math.abs(dx), Math.abs(dz)) == PLAZA;
+                if (ring) for (double[] way : hub.ways()) {
+                    double along = dx * way[0] + dz * way[1], across = -dx * way[1] + dz * way[0];
+                    if (along > 0 && Math.abs(across) <= RoadBuilder.CURB + 0.5) ring = false; // the road's mouth
+                }
+                column(world, palette, new BlockPos(hub.x() + dx, hub.y() - 1, hub.z() + dz), ring ? palette.curb() : null, true, cleared);
+            }
+    }
+
+    /** One column of the square or the trail: {@code block} (or the road's paving) at {@code ground}, filled under down to the
+     * ground when {@code fill}, the room above cleared as over the road. False when something built stands there. */
+    private static boolean column(ServerWorld world, RoadBuilder.Palette palette, BlockPos ground, Block block, boolean fill, Set<Long> cleared) {
+        BlockState state = world.getBlockState(ground);
+        if (!RoadBuilder.natural(state) && !palette.owns(state.getBlock()) && !state.isOf(Blocks.DIRT_PATH) && !trailBlock(state)) return false;
+        for (int k = 1; k <= 2; k++) {
+            BlockState above = world.getBlockState(ground.up(k));
+            if (!RoadBuilder.natural(above) && !palette.owns(above.getBlock())) return false;
+        }
+        if (block == null) {
+            Block[] paving = palette.paving();
+            block = paving[Math.floorMod(ground.getX() * 31 + ground.getZ() * 17 + (ground.getX() ^ ground.getZ()) * 7, paving.length)];
+        }
+        if (!state.isOf(block)) world.setBlockState(ground, block.getDefaultState(), Block.NOTIFY_LISTENERS);
+        if (fill) for (int k = 1; k <= RoadBuilder.FILL; k++) {
+            BlockPos below = ground.down(k);
+            if (!RoadBuilder.open(world.getBlockState(below))) break;
+            world.setBlockState(below, palette.fill().getDefaultState(), Block.NOTIFY_LISTENERS);
+        }
+        RoadBuilder.clearAbove(world, palette, ground.getX(), ground.getZ(), ground.getY(), cleared);
+        return true;
+    }
+
+    /** The trail's blocks: a dirt path down the middle with gravel and coarse dirt at the sides (sandstone in the sand). */
+    private static Block trailBlock(RoadBuilder.Palette palette, int x, int z, boolean middle) {
+        boolean sand = palette == RoadBuilder.Palette.SANDSTONE;
+        if (middle) return sand ? Blocks.SMOOTH_SANDSTONE : Blocks.DIRT_PATH;
+        int pick = Math.floorMod(x * 29 + z * 13 + (x ^ z) * 5, 4);
+        if (sand) return pick == 0 ? Blocks.CUT_SANDSTONE : pick == 1 ? Blocks.SMOOTH_SANDSTONE : Blocks.SANDSTONE;
+        return pick == 0 ? Blocks.GRAVEL : pick == 1 ? Blocks.COARSE_DIRT : Blocks.DIRT_PATH;
+    }
+
+    private static boolean trailBlock(BlockState state) {
+        return state.isOf(Blocks.DIRT_PATH) || state.isOf(Blocks.GRAVEL) || state.isOf(Blocks.COARSE_DIRT) || state.isOf(Blocks.SMOOTH_SANDSTONE)
+                || state.isOf(Blocks.CUT_SANDSTONE) || state.isOf(Blocks.SANDSTONE);
+    }
+
+    /** The trail from the square to the village's nearest street: the shortest walk over open ground (a step of one block at most)
+     * from the junction to any street block, paved three wide from where it leaves the square, a lantern every {@link #TRAIL_LAMP}
+     * blocks beside it. The street block reached, or MIN_VALUE when none can be. */
+    private static long trail(ServerWorld world, RoadBuilder.Palette palette, Hub hub, Map<Long, Integer> streets, List<BlockBox> others, Set<Long> cleared, int[] area,
+                              boolean lamps, Report report) {
+        if (streets.isEmpty()) { report.why = "улиц рядом нет"; return Long.MIN_VALUE; }
+        int[] bounds = hub.area();
+        Map<Long, Long> from = new HashMap<>();
+        Map<Long, Integer> height = new HashMap<>();
+        ArrayDeque<Long> queue = new ArrayDeque<>();
+        long first = key(hub.x(), hub.z());
+        from.put(first, first); height.put(first, hub.y() - 1); queue.add(first);
+        long goal = Long.MIN_VALUE;
+        while (!queue.isEmpty() && goal == Long.MIN_VALUE) {
+            long here = queue.poll();
+            int x = kx(here), z = kz(here), y = height.get(here);
+            if (Math.abs(x - hub.x()) > TRAIL || Math.abs(z - hub.z()) > TRAIL) continue;
+            for (Direction direction : Direction.Type.HORIZONTAL) {
+                int nx = x + direction.getOffsetX(), nz = z + direction.getOffsetZ();
+                if (nx < bounds[0] || nz < bounds[1] || nx > bounds[2] || nz > bounds[3]) continue;
+                long next = key(nx, nz);
+                if (from.containsKey(next)) continue;
+                Integer street = streets.get(next);
+                if (street != null && Math.abs(street - y) <= 1) { from.put(next, here); goal = next; break; }
+                boolean square = Math.max(Math.abs(nx - hub.x()), Math.abs(nz - hub.z())) <= PLAZA;
+                int ny = square ? hub.y() - 1 : top(world, nx, nz, y + 2, y - 2);
+                if (ny == Integer.MIN_VALUE || Math.abs(ny - y) > 1 || inside(others, nx, ny, nz) || (!square && !walkable(world, palette, new BlockPos(nx, ny, nz)))) continue;
+                from.put(next, here); height.put(next, ny); queue.add(next);
+            }
+        }
+        if (goal == Long.MIN_VALUE) { report.why = "до улицы не дошла"; return Long.MIN_VALUE; }
+        List<Long> way = new ArrayList<>();
+        for (long k = from.get(goal); k != first; k = from.get(k)) way.add(k);
+        Collections.reverse(way);
+        int laid = 0;
+        for (long k : way) {
+            int x = kx(k), z = kz(k);
+            if (Math.max(Math.abs(x - hub.x()), Math.abs(z - hub.z())) <= PLAZA) continue;
+            for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) {
+                if (dx != 0 && dz != 0) continue;
+                int y = height.get(k), cy = top(world, x + dx, z + dz, y + 1, y - 1);
+                if (cy == Integer.MIN_VALUE || streets.containsKey(key(x + dx, z + dz)) || inside(others, x + dx, cy, z + dz)) continue;
+                if (column(world, palette, new BlockPos(x + dx, cy, z + dz), trailBlock(palette, x + dx, z + dz, dx == 0 && dz == 0), false, cleared)) {
+                    area[0] = Math.min(area[0], x + dx); area[1] = Math.min(area[1], z + dz); area[2] = Math.max(area[2], x + dx); area[3] = Math.max(area[3], z + dz);
+                }
+            }
+            laid++;
+        }
+        report.trail = laid;
+        if (!lamps) return goal;
+        int count = 0;
+        for (int i = 0; i < way.size(); i++) {
+            long k = way.get(i);
+            if (Math.max(Math.abs(kx(k) - hub.x()), Math.abs(kz(k) - hub.z())) <= PLAZA) continue;
+            if (++count % TRAIL_LAMP != TRAIL_LAMP / 2) continue;
+            long ahead = way.get(Math.min(way.size() - 1, i + 1)), behind = way.get(Math.max(0, i - 1));
+            int fx = Integer.signum(kx(ahead) - kx(behind)), fz = Integer.signum(kz(ahead) - kz(behind));
+            if (fx == 0 && fz == 0) continue;
+            int side = (count / TRAIL_LAMP) % 2 == 0 ? 1 : -1;
+            int sx = -fz * side, sz = fx * side;
+            int px = kx(k) + sx * 2, pz = kz(k) + sz * 2, y = top(world, px, pz, height.get(k) + 2, height.get(k) - 2);
+            if (y == Integer.MIN_VALUE || !walkable(world, palette, new BlockPos(px, y, pz))) continue;
+            if (lamp(world, palette, new BlockPos(px, y + 1, pz), -sx, -sz)) report.lamps++;
+        }
+        return goal;
+    }
+
+    /** The shelter with its bench and lanterns where no road or trail leaves the square: a lean-to along the middle of a side, or
+     * shifted toward a corner; or, when every side has a way through it (a village three roads and the trail come to), a small
+     * gazebo in a corner between two of the ways. The hitching post and hay stand across the square from it when no way leaves
+     * there either; a lamp stands at each corner of the square the shelter does not take. */
+    private static void furnish(ServerWorld world, RoadBuilder.Palette palette, Hub hub, double[] in, boolean lamps, Report report) {
+        BlockPos origin = new BlockPos(hub.x(), hub.y(), hub.z());
+        List<double[]> busy = new ArrayList<>(hub.ways());
+        if (in != null) busy.add(in);
+        Direction out = null; int shift = 0; double best = Double.MAX_VALUE;
+        for (Direction candidate : Direction.Type.HORIZONTAL) {
+            Direction side = candidate.rotateYClockwise();
+            for (int s : new int[] { 0, 4, -4 }) {
+                if (crossed(busy, candidate, side, s, 4)) continue;
+                // The side the ways face away from is best; the middle of a side before a corner.
+                double facing = -1;
+                for (double[] way : busy) facing = Math.max(facing, candidate.getOffsetX() * way[0] + candidate.getOffsetZ() * way[1]);
+                double score = facing + Math.abs(s) / 8.0;
+                if (score < best) { best = score; out = candidate; shift = s; }
+            }
+        }
+        int cornerX = 0, cornerZ = 0;
+        if (out == null) {
+            best = Double.MAX_VALUE;
+            for (int sx : new int[] { -1, 1 }) for (int sz : new int[] { -1, 1 }) {
+                if (crossedRect(busy, sx * PLAZA, sz * PLAZA, sx * (PLAZA + 4), sz * (PLAZA + 4))) continue;
+                double facing = -1;
+                for (double[] way : busy) facing = Math.max(facing, (sx * way[0] + sz * way[1]) / Math.sqrt(2));
+                if (facing < best) { best = facing; cornerX = sx; cornerZ = sz; }
+            }
+        }
+        if (out != null) {
+            Direction side = out.rotateYClockwise();
+            BlockPos base = origin.offset(side, shift);
+            Set<Long> cleared = new HashSet<>();
+            for (int c = 1; c <= 2; c++) for (int a = -3; a <= 3; a++)
+                column(world, palette, base.offset(out, PLAZA + c).offset(side, a).down(), null, true, cleared);
+            BlockState roof = Blocks.SPRUCE_SLAB.getDefaultState().with(SlabBlock.TYPE, SlabType.TOP);
+            boolean built = false;
+            for (int c = 1; c <= 2; c++) for (int a = -3; a <= 3; a++) {
+                BlockPos under = base.offset(out, PLAZA + c).offset(side, a);
+                if (free(world, palette, under.up(3))) { set(world, under.up(3), roof); built = true; }
+                if (c == 2 && Math.abs(a) == 3) for (int k = 0; k < 3; k++) if (free(world, palette, under.up(k))) set(world, under.up(k), palette.post().getDefaultState());
+            }
+            for (int a = -1; a <= 1; a++) {
+                BlockPos seat = base.offset(out, PLAZA + 2).offset(side, a);
+                if (free(world, palette, seat)) set(world, seat, Blocks.SPRUCE_STAIRS.getDefaultState().with(StairsBlock.FACING, out).with(StairsBlock.HALF, BlockHalf.BOTTOM));
+            }
+            for (int a : new int[] { -2, 2 }) {
+                BlockPos hang = base.offset(out, PLAZA + 1).offset(side, a).up(2);
+                if (lamps && free(world, palette, hang)) set(world, hang, Blocks.LANTERN.getDefaultState().with(LanternBlock.HANGING, true));
+            }
+            report.shelter = built;
+            // Across the square: the hitching post and hay, when no way leaves that side either.
+            if (!crossed(busy, out.getOpposite(), side, 0, 2)) {
+                BlockPos hitch = origin.offset(out, -(PLAZA + 1)).offset(side, -1), hay = origin.offset(out, -(PLAZA + 1)).offset(side, 1);
+                hitch(world, palette, hitch, hay);
+            }
+        } else if (cornerX != 0) {
+            // The gazebo: a 3×3 pad in the corner, a post at each corner of it, a slab roof, a bench along its far sides, a lantern
+            // hung in the middle.
+            Set<Long> cleared = new HashSet<>();
+            for (int i = 1; i <= 3; i++) for (int j = 1; j <= 3; j++)
+                column(world, palette, origin.add(cornerX * (PLAZA + i), -1, cornerZ * (PLAZA + j)), null, true, cleared);
+            BlockState roof = Blocks.SPRUCE_SLAB.getDefaultState().with(SlabBlock.TYPE, SlabType.TOP);
+            boolean built = false;
+            for (int i = 1; i <= 3; i++) for (int j = 1; j <= 3; j++) {
+                BlockPos under = origin.add(cornerX * (PLAZA + i), 0, cornerZ * (PLAZA + j));
+                if (free(world, palette, under.up(3))) { set(world, under.up(3), roof); built = true; }
+                if ((i == 1 || i == 3) && (j == 1 || j == 3)) for (int k = 0; k < 3; k++) if (free(world, palette, under.up(k))) set(world, under.up(k), palette.post().getDefaultState());
+            }
+            Direction towardX = cornerX > 0 ? Direction.WEST : Direction.EAST, towardZ = cornerZ > 0 ? Direction.NORTH : Direction.SOUTH;
+            for (int j = 1; j <= 2; j++) {
+                BlockPos seat = origin.add(cornerX * (PLAZA + 3), 0, cornerZ * (PLAZA + j));
+                if (free(world, palette, seat)) set(world, seat, Blocks.SPRUCE_STAIRS.getDefaultState().with(StairsBlock.FACING, towardX).with(StairsBlock.HALF, BlockHalf.BOTTOM));
+            }
+            BlockPos seat = origin.add(cornerX * (PLAZA + 2), 0, cornerZ * (PLAZA + 3));
+            if (free(world, palette, seat)) set(world, seat, Blocks.SPRUCE_STAIRS.getDefaultState().with(StairsBlock.FACING, towardZ).with(StairsBlock.HALF, BlockHalf.BOTTOM));
+            BlockPos hang = origin.add(cornerX * (PLAZA + 2), 2, cornerZ * (PLAZA + 2));
+            if (lamps && free(world, palette, hang)) set(world, hang, Blocks.LANTERN.getDefaultState().with(LanternBlock.HANGING, true));
+            report.shelter = built;
+            // The hitching post and hay in the corner across, when no way runs through it.
+            if (!crossedRect(busy, -cornerX * PLAZA, -cornerZ * PLAZA, -cornerX * (PLAZA + 3), -cornerZ * (PLAZA + 3)))
+                hitch(world, palette, origin.add(-cornerX * (PLAZA + 2), 0, -cornerZ * (PLAZA + 1)), origin.add(-cornerX * (PLAZA + 1), 0, -cornerZ * (PLAZA + 2)));
+        }
+        if (!lamps) return;
+        for (int sx : new int[] { -1, 1 }) for (int sz : new int[] { -1, 1 }) {
+            int px = hub.x() + sx * (PLAZA + 1), pz = hub.z() + sz * (PLAZA + 1);
+            if (out != null) {
+                Direction side = out.rotateYClockwise();
+                int c = sx * (PLAZA + 1) * out.getOffsetX() + sz * (PLAZA + 1) * out.getOffsetZ(), a = sx * (PLAZA + 1) * side.getOffsetX() + sz * (PLAZA + 1) * side.getOffsetZ();
+                if (c >= PLAZA + 1 && c <= PLAZA + 2 && a >= shift - 3 && a <= shift + 3) continue; // under the shelter
+            } else if (sx == cornerX && sz == cornerZ) continue; // the gazebo's corner
+            int y = top(world, px, pz, hub.y() + 2, hub.y() - 3);
+            if (y == Integer.MIN_VALUE || !walkable(world, palette, new BlockPos(px, y, pz))) continue;
+            if (lamp(world, palette, new BlockPos(px, y + 1, pz), -sx, 0)) report.lamps++;
+        }
+    }
+
+    /** A hitching post (two fence blocks) and a hay bale beside it, each on solid ground with room above. */
+    private static void hitch(ServerWorld world, RoadBuilder.Palette palette, BlockPos hitch, BlockPos hay) {
+        if (free(world, palette, hitch) && free(world, palette, hitch.up()) && !free(world, palette, hitch.down())) {
+            set(world, hitch, palette.post().getDefaultState()); set(world, hitch.up(), palette.post().getDefaultState());
+        }
+        if (free(world, palette, hay) && !free(world, palette, hay.down())) set(world, hay, Blocks.HAY_BLOCK.getDefaultState());
+    }
+
+    /** Whether a way out of the square runs through a footprint beside it: the columns {@link #PLAZA} to {@code PLAZA + 3} out
+     * along {@code out} and {@code shift} ± {@code half} along {@code side}. */
+    private static boolean crossed(List<double[]> ways, Direction out, Direction side, int shift, int half) {
+        int x0 = out.getOffsetX() * PLAZA + side.getOffsetX() * (shift - half), z0 = out.getOffsetZ() * PLAZA + side.getOffsetZ() * (shift - half);
+        int x1 = out.getOffsetX() * (PLAZA + 3) + side.getOffsetX() * (shift + half), z1 = out.getOffsetZ() * (PLAZA + 3) + side.getOffsetZ() * (shift + half);
+        return crossedRect(ways, x0, z0, x1, z1);
+    }
+
+    /** Whether a way out of the square runs through the columns of a rectangle (given from the square's middle, any corner
+     * order): a way's corridor is as wide as the road with a block to spare on each side. */
+    private static boolean crossedRect(List<double[]> ways, int ax, int az, int bx, int bz) {
+        for (int x = Math.min(ax, bx); x <= Math.max(ax, bx); x++)
+            for (int z = Math.min(az, bz); z <= Math.max(az, bz); z++)
+                for (double[] way : ways) {
+                    double along = x * way[0] + z * way[1], across = -x * way[1] + z * way[0];
+                    if (along > 0 && Math.abs(across) <= RoadBuilder.CURB + 1.5) return true;
+                }
+        return false;
     }
 
     static Report work(ServerWorld world, StructureStart start, List<Entry> entries, RoadBuilder.Palette palette, boolean lamps) {
@@ -68,7 +365,7 @@ final class RoadVillages {
     // ---- The village's streets ----
 
     /** A street piece: the vanilla villages' are "streets", CTOV's "roads" (ctov:village/plains/roads/straight and the like). */
-    private static boolean street(StructurePiece piece) {
+    static boolean street(StructurePiece piece) {
         if (!(piece instanceof PoolStructurePiece pool)) return false;
         String element = pool.getPoolElement().toString();
         return element.contains("/streets/") || element.contains("/roads/");
@@ -87,13 +384,18 @@ final class RoadVillages {
     /** The top block (by the heightmap) of every column of the village's street pieces that is street: the path (dirt path, the
      * desert's sandstone), the planks of a street over water. The grass worldgen leaves in a path here and there is crossed as open
      * ground, and a piece's box is wider than its path. Keyed by the column, the value its height. */
-    private static Map<Long, Integer> streets(ServerWorld world, StructureStart start) {
+    private static Map<Long, Integer> streets(ServerWorld world, StructureStart start) { return streets(world, start, null); }
+
+    /** The same within an area {minX, minZ, maxX, maxZ} (the land loaded), when one is given. */
+    private static Map<Long, Integer> streets(ServerWorld world, StructureStart start, int[] area) {
         Map<Long, Integer> out = new HashMap<>();
         for (StructurePiece piece : start.getChildren()) {
             if (!street(piece)) continue;
             BlockBox box = piece.getBoundingBox();
+            if (area != null && (box.getMaxX() < area[0] || box.getMinX() > area[2] || box.getMaxZ() < area[1] || box.getMinZ() > area[3])) continue;
             for (int x = box.getMinX(); x <= box.getMaxX(); x++)
                 for (int z = box.getMinZ(); z <= box.getMaxZ(); z++) {
+                    if (area != null && (x < area[0] || x > area[2] || z < area[1] || z > area[3])) continue;
                     // A street follows the ground: its box keeps the template's height, not the path's.
                     int y = world.getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, x, z) - 1;
                     if (y == Integer.MIN_VALUE) continue;

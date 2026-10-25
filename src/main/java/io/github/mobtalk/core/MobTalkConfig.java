@@ -119,6 +119,9 @@ public final class MobTalkConfig {
     public boolean villageRoads = true;
     /** Lamps along the roads: a street lamp every {@link #roadLampSpacing} blocks, lanterns on bridges and in tunnels. */
     public boolean roadLamps = true;
+    /** The roads of a village meet at a junction beside it (a square with a shelter, a trail into the village) and never run into
+     * it; off, a road runs to the village's edge and its streets are paved between the roads' entries, as before. */
+    public boolean roadBypass = true;
     /** Idea Б1: the villages know the god's deeds (the divine block's events) — they panic, talk and blame the sinner by name;
      * the scene in the moment (alarm bell, flight, shouts); the god alone may make an exile; the family of a villager killed by a
      * curse turns against the sinner. */
@@ -154,8 +157,9 @@ public final class MobTalkConfig {
     /** Watchtowers: one per this many residents, at most this many per village, built over this many real minutes; the archers see and
      * shoot this far (blocks), loose an arrow every this many tenths of a second, and a post empty this long (minutes) gets a newcomer. */
     public int towerResidents = 8, towerMax = 4, towerBuildMinutes = 20, archerRange = 32, archerShotTenths = 20, archerReplaceMinutes = 20;
-    /** Roads: how far around a player villages are looked for (blocks), the longest road (blocks), the step between lamps. */
-    public int roadScanRadius = 1500, roadMaxLength = 900, roadLampSpacing = 24;
+    /** Roads: how far around a player villages are looked for (blocks), the longest road (blocks), the step between lamps, and how
+     * far beyond the curb the trees are felled (blocks; 0 leaves them). */
+    public int roadScanRadius = 1500, roadMaxLength = 900, roadLampSpacing = 24, roadTreeStrip = 4;
     /** Carts, wagons and horsemen going back and forth on each road (0: none). */
     public int roadTraffic = 3;
     /** Guards: one per this many residents, at least and at most this many per village, their health and blow, how far they see a
@@ -305,7 +309,7 @@ public final class MobTalkConfig {
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
-        copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageRoads = villageRoads; copy.roadLamps = roadLamps;
+        copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageRoads = villageRoads; copy.roadLamps = roadLamps; copy.roadBypass = roadBypass;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;

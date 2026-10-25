@@ -63,24 +63,119 @@ public final class RoadPlan {
         return plan(seed, ax, az, bx, bz, terrain, rules, Double.NaN);
     }
 
-    /** How near its end a branch is held at the height of the road it joins, flat and on the ground (the other road's width). */
+    /** How near its end a branch is held at the height of the road it joins, flat and on the ground (the other road's width); the
+     * same at an end held at a junction's height. */
     static final double JOIN = 5;
+    /** How far the line keeps from a village or another structure it goes round, and how far from one a bent line may come. */
+    static final double ROUTE_MARGIN = 8, CROSS_MARGIN = 4.5, CROSS_COST = 1000;
 
     /** Plans a road whose end B is held at {@code bFeet} (the height of the road it joins: a branch), or on the ground when NaN. */
     public static Result plan(long seed, int ax, int az, int bx, int bz, Terrain terrain, Rules rules, double bFeet) {
-        double length = Math.hypot(bx - ax, bz - az);
-        if (length < 16) return new Result(null, "деревни слишком близко (" + Math.round(length) + " блоков)");
+        return plan(seed, ax, az, bx, bz, terrain, rules, Double.NaN, bFeet, List.of());
+    }
+
+    /** Plans a road between two spots, each end held at the height given for it (a junction's, the road's it joins) or on the ground
+     * when NaN, going round the {@code obstacles} (villages, other structures: {minX, minZ, maxX, maxZ} in blocks) by their
+     * corners. A line that still runs through one costs so much that any other is taken first (and the builder keeps off the
+     * structure's own blocks anyway). */
+    public static Result plan(long seed, int ax, int az, int bx, int bz, Terrain terrain, Rules rules, double aFeet, double bFeet, List<int[]> obstacles) {
+        double straight = Math.hypot(bx - ax, bz - az);
+        if (straight < 16) return new Result(null, "деревни слишком близко (" + Math.round(straight) + " блоков)");
+        List<double[]> way = route(ax + 0.5, az + 0.5, bx + 0.5, bz + 0.5, obstacles, ROUTE_MARGIN);
+        double length = length(way);
         if (length > rules.maxLength()) return new Result(null, "дальше " + rules.maxLength() + " блоков (" + Math.round(length) + ")");
         Terrain cached = cache(terrain);
         Road best = null; String refusal = null;
         for (int variant = 0; variant < Math.max(1, rules.variants()); variant++) {
-            List<double[]> line = centreline(seed, variant, rules.variants(), ax, az, bx, bz);
-            Road road = profile(line, cached, rules, bFeet);
+            List<double[]> line = centreline(seed, variant, rules.variants(), way);
+            Road road = profile(line, cached, rules, aFeet, bFeet);
             String why = refusal(road, rules);
             if (why != null) { if (refusal == null) refusal = why; continue; }
-            if (best == null || road.cost() < best.cost()) best = road;
+            double cost = road.cost() + (crosses(line, obstacles, CROSS_MARGIN) ? CROSS_COST : 0);
+            if (best == null || cost < best.cost()) best = new Road(road.points(), road.bridge(), road.tunnel(), cost);
         }
         return best != null ? new Result(best, null) : new Result(null, refusal);
+    }
+
+    static double length(List<double[]> way) {
+        double length = 0;
+        for (int i = 1; i < way.size(); i++) length += Math.hypot(way.get(i)[0] - way.get(i - 1)[0], way.get(i)[1] - way.get(i - 1)[1]);
+        return length;
+    }
+
+    // ---- Round the obstacles ----
+
+    /** The way from A to B as a polyline round the obstacles: wherever a leg crosses one (widened by {@code margin}), the leg goes
+     * round it by the shortest of the ways over its corners, until no leg crosses any; a leg that cannot be led round one (an end
+     * inside it) is left as it is. */
+    static List<double[]> route(double ax, double az, double bx, double bz, List<int[]> obstacles, double margin) {
+        List<double[]> way = new ArrayList<>();
+        way.add(new double[] { ax, az }); way.add(new double[] { bx, bz });
+        if (obstacles.isEmpty()) return way;
+        for (int round = 0; round < 16; round++) {
+            boolean changed = false;
+            for (int i = 0; i + 1 < way.size() && !changed; i++) {
+                double[] p = way.get(i), q = way.get(i + 1);
+                int[] hit = null; double hitT = 2;
+                for (int[] box : obstacles) {
+                    double t = enters(p, q, box, margin);
+                    if (t < hitT) { hitT = t; hit = box; }
+                }
+                if (hit == null || hitT <= 0) continue;
+                List<double[]> detour = detour(p, q, hit, margin);
+                if (detour == null) continue;
+                way.addAll(i + 1, detour); changed = true;
+            }
+            if (!changed) break;
+        }
+        return way;
+    }
+
+    /** Where the leg p→q first enters the box widened by {@code margin} (0 to 1 along the leg; 0 when p is inside), 2 when it
+     * never does. */
+    static double enters(double[] p, double[] q, int[] box, double margin) {
+        double minX = box[0] - margin, minZ = box[1] - margin, maxX = box[2] + 1 + margin, maxZ = box[3] + 1 + margin;
+        double dx = q[0] - p[0], dz = q[1] - p[1], t0 = 0, t1 = 1;
+        double[] ps = { -dx, dx, -dz, dz }, qs = { p[0] - minX, maxX - p[0], p[1] - minZ, maxZ - p[1] };
+        for (int k = 0; k < 4; k++) {
+            if (ps[k] == 0) { if (qs[k] < 0) return 2; continue; }
+            double t = qs[k] / ps[k];
+            if (ps[k] < 0) t0 = Math.max(t0, t); else t1 = Math.min(t1, t);
+            if (t0 > t1) return 2;
+        }
+        return t0;
+    }
+
+    /** The shortest way from p to q over the corners of the box (widened by {@code margin} and a block) that does not cut into the
+     * box: one, two or three corners in a row, either way round; null when every way cuts in. */
+    private static List<double[]> detour(double[] p, double[] q, int[] box, double margin) {
+        double m = margin + 1;
+        double[][] corners = { { box[0] - m, box[1] - m }, { box[2] + 1 + m, box[1] - m }, { box[2] + 1 + m, box[3] + 1 + m }, { box[0] - m, box[3] + 1 + m } };
+        List<double[]> best = null; double bestLength = Double.MAX_VALUE;
+        for (int start = 0; start < 4; start++)
+            for (int step : new int[] { 1, -1 })
+                for (int count = 1; count <= 3; count++) {
+                    List<double[]> path = new ArrayList<>();
+                    for (int k = 0; k < count; k++) path.add(corners[Math.floorMod(start + k * step, 4)]);
+                    boolean clear = true; double length = 0;
+                    double[] from = p;
+                    for (int k = 0; k <= path.size() && clear; k++) {
+                        double[] to = k < path.size() ? path.get(k) : q;
+                        clear = enters(from, to, box, margin - 1) > 1;
+                        length += Math.hypot(to[0] - from[0], to[1] - from[1]);
+                        from = to;
+                    }
+                    if (clear && length < bestLength) { bestLength = length; best = path; }
+                }
+        return best;
+    }
+
+    /** Whether the line passes within {@code margin} of any obstacle. */
+    static boolean crosses(List<double[]> line, List<int[]> obstacles, double margin) {
+        for (int[] box : obstacles)
+            for (double[] p : line)
+                if (p[0] >= box[0] - margin && p[0] <= box[2] + 1 + margin && p[1] >= box[1] - margin && p[1] <= box[3] + 1 + margin) return true;
+        return false;
     }
 
     static String refusal(Road road, Rules rules) {
@@ -94,27 +189,42 @@ public final class RoadPlan {
     /** The centreline of one variant, points a block apart from A to B. Variant 0 is the straight line; the others bend more the
      * higher their number, by a seeded random push at each bend point. */
     static List<double[]> centreline(long seed, int variant, int variants, int ax, int az, int bx, int bz) {
-        double length = Math.hypot(bx - ax, bz - az);
-        double ux = (bx - ax) / length, uz = (bz - az) / length, nx = -uz, nz = ux;
-        int bends = Math.max(1, (int) Math.round(length / BEND_SPACING));
+        List<double[]> way = new ArrayList<>();
+        way.add(new double[] { ax + 0.5, az + 0.5 }); way.add(new double[] { bx + 0.5, bz + 0.5 });
+        return centreline(seed, variant, variants, way);
+    }
+
+    /** The centreline of one variant along a way of one or more legs: a spline through the way's corners and bend points every
+     * {@link #BEND_SPACING} along each leg pushed sideways (the corners themselves never). */
+    static List<double[]> centreline(long seed, int variant, int variants, List<double[]> way) {
+        double length = length(way);
         double amplitude = variant == 0 ? 0 : Math.min(BEND_MAX, length * BEND_SHARE) * variant / Math.max(1, variants - 1);
         Random random = new Random(seed * 31 + variant * 0x9E3779B97F4A7C15L);
         List<double[]> control = new ArrayList<>();
-        for (int j = 0; j <= bends; j++) {
-            double t = (double) j / bends;
-            double push = j == 0 || j == bends ? 0 : (random.nextDouble() * 2 - 1) * amplitude;
-            control.add(new double[] { ax + 0.5 + (bx - ax) * t + nx * push, az + 0.5 + (bz - az) * t + nz * push });
+        control.add(way.get(0));
+        for (int leg = 1; leg < way.size(); leg++) {
+            double[] a = way.get(leg - 1), b = way.get(leg);
+            double d = Math.hypot(b[0] - a[0], b[1] - a[1]);
+            if (d < 1e-6) continue;
+            double nx = -(b[1] - a[1]) / d, nz = (b[0] - a[0]) / d;
+            int bends = Math.max(1, (int) Math.round(d / BEND_SPACING));
+            for (int j = 1; j <= bends; j++) {
+                double t = (double) j / bends;
+                double push = j == bends ? 0 : (random.nextDouble() * 2 - 1) * amplitude;
+                control.add(new double[] { a[0] + (b[0] - a[0]) * t + nx * push, a[1] + (b[1] - a[1]) * t + nz * push });
+            }
         }
+        int last = control.size() - 1;
         List<double[]> dense = new ArrayList<>();
-        for (int j = 0; j < bends; j++) {
-            double[] p0 = control.get(Math.max(0, j - 1)), p1 = control.get(j), p2 = control.get(j + 1), p3 = control.get(Math.min(bends, j + 2));
+        for (int j = 0; j < last; j++) {
+            double[] p0 = control.get(Math.max(0, j - 1)), p1 = control.get(j), p2 = control.get(j + 1), p3 = control.get(Math.min(last, j + 2));
             int steps = 64;
             for (int s = 0; s < steps; s++) {
                 double t = (double) s / steps;
                 dense.add(catmullRom(p0, p1, p2, p3, t));
             }
         }
-        dense.add(control.get(bends));
+        dense.add(control.get(last));
         return resample(dense, 1.0);
     }
 
@@ -153,7 +263,9 @@ public final class RoadPlan {
     /** The road's height along the line and what it is at each point. */
     static Road profile(List<double[]> line, Terrain terrain, Rules rules) { return profile(line, terrain, rules, Double.NaN); }
 
-    static Road profile(List<double[]> line, Terrain terrain, Rules rules, double bFeet) {
+    static Road profile(List<double[]> line, Terrain terrain, Rules rules, double bFeet) { return profile(line, terrain, rules, Double.NaN, bFeet); }
+
+    static Road profile(List<double[]> line, Terrain terrain, Rules rules, double aFeet, double bFeet) {
         int n = line.size();
         double[] floor = new double[n], surface = new double[n];
         for (int i = 0; i < n; i += SAMPLE_STEP) sample(line, i, terrain, floor, surface);
@@ -172,18 +284,21 @@ public final class RoadPlan {
         // Both ends stand on the ground at their villages: the climb to a village on a plateau spreads back down the road rather
         // than the road arriving under the village in a tunnel. Each point stays within reach of both ends at the grade (when the
         // ends are too far apart in height for that, the road keeps to the ground as best it can instead).
-        // A branch is flat at the height of the road it joins from where it reaches that road's edge.
-        boolean joins = !Double.isNaN(bFeet);
-        double[] end = line.get(n - 1);
-        int last = n - 1;
+        // An end held at a height given (a junction's; a branch's end at the road it joins) is flat at it for the last JOIN blocks.
+        boolean joins = !Double.isNaN(bFeet), held = !Double.isNaN(aFeet);
+        double[] end = line.get(n - 1), start = line.get(0);
+        int last = n - 1, first = 0;
         if (joins) while (last > 0 && Math.hypot(line.get(last - 1)[0] - end[0], line.get(last - 1)[1] - end[1]) <= JOIN) last--;
-        double a = base[0], b = joins ? bFeet : base[n - 1];
-        boolean pinned = joins || Math.abs(a - b) <= g * last;
+        if (held) while (first < n - 1 && Math.hypot(line.get(first + 1)[0] - start[0], line.get(first + 1)[1] - start[1]) <= JOIN) first++;
+        double a = held ? aFeet : base[0], b = joins ? bFeet : base[n - 1];
+        boolean pinned = joins || held || Math.abs(a - b) <= g * Math.max(1, last - first);
         if (pinned) for (int i = 0; i < n; i++) {
-            int left = Math.max(0, last - i);
-            road[i] = clamp(road[i], Math.max(a - g * i, b - g * left), Math.min(a + g * i, b + g * left));
+            int toA = Math.max(0, i - first), toB = Math.max(0, last - i);
+            double lo = Math.max(a - g * toA, b - g * toB), hi = Math.min(a + g * toA, b + g * toB);
+            road[i] = lo <= hi ? clamp(road[i], lo, hi) : (lo + hi) / 2;
         }
         if (joins) for (int i = last; i < n; i++) road[i] = b;
+        if (held) for (int i = 0; i <= first; i++) road[i] = a;
         for (int i = 1; i < n; i++) road[i] = clamp(road[i], road[i - 1] - g, road[i - 1] + g);
         for (int i = n - 2; i >= 0; i--) road[i] = clamp(road[i], road[i + 1] - g, road[i + 1] + g);
         road = throughHills(road, floor, g, rules);
@@ -196,6 +311,7 @@ public final class RoadPlan {
         for (int i = 1; i < n; i++) h2[i] = Math.max(h2[i], h2[i - 1] - 1);
         for (int i = n - 2; i >= 0; i--) h2[i] = Math.max(h2[i], h2[i + 1] - 1);
         if (joins) for (int i = last; i < n; i++) h2[i] = (int) Math.round(bFeet * 2);
+        if (held) for (int i = 0; i <= first; i++) h2[i] = (int) Math.round(aFeet * 2);
         Kind[] kinds = new Kind[n];
         for (int i = 0; i < n; i++) {
             double feet = h2[i] / 2.0, cut = floor[i] - feet, fill = feet - floor[i];
@@ -205,6 +321,7 @@ public final class RoadPlan {
         }
         tidy(kinds, wet, floor, surface);
         if (joins) for (int i = last; i < n; i++) kinds[i] = Kind.GROUND;
+        if (held) for (int i = 0; i <= first; i++) kinds[i] = Kind.GROUND;
         List<Point> points = new ArrayList<>(n);
         int bridge = 0, tunnel = 0; double cost = 0;
         for (int i = 0; i < n; i++) {
@@ -317,7 +434,7 @@ public final class RoadPlan {
     private static double clamp(double v, double lo, double hi) { return v < lo ? lo : Math.min(v, hi); }
 
     /** The terrain with each column asked once (the worldgen height is costly). */
-    static Terrain cache(Terrain terrain) {
+    public static Terrain cache(Terrain terrain) {
         Map<Long, int[]> seen = new HashMap<>();
         return new Terrain() {
             private int[] at(int x, int z) {

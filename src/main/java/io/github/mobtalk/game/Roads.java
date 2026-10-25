@@ -101,6 +101,90 @@ public final class Roads {
         return hanging;
     }
 
+    /** Columns of the paved road (and, on plain road, its curbs) with anything but air in the head room over them, a lamp's arm
+     * and lantern apart: a pillar of rock, a trunk, a structure's block left standing in the road. {count, x, y, z of the first}. */
+    public static int[] obstacles(ServerWorld world, int id) {
+        MobGameBridge bridge = bridge(world);
+        RoadNetwork.Road road = bridge == null ? null : bridge.roads.road(world, id);
+        if (road == null) return new int[] { 0, 0, 0, 0 };
+        int[] out = { 0, 0, 0, 0 };
+        java.util.Set<Long> seen = new java.util.HashSet<>();
+        net.minecraft.util.math.BlockPos.Mutable at = new net.minecraft.util.math.BlockPos.Mutable();
+        RoadBuilder.Palette palette = RoadBuilder.palette(road.palette);
+        int from = road.from == Integer.MIN_VALUE ? 0 : road.from, to = road.to == Integer.MIN_VALUE ? road.points.size() - 1 : road.to;
+        for (int i = from; i <= to; i++) {
+            RoadPlan.Point p = road.points.get(i);
+            if (!road.done.contains(net.minecraft.util.math.ChunkPos.toLong(p.blockX() >> 4, p.blockZ() >> 4))) continue;
+            double nx = -p.dz(), nz = p.dx();
+            int y0 = p.h2() >> 1;
+            for (double step = -RoadBuilder.CURB; step <= RoadBuilder.CURB; step += 0.5) {
+                int x = net.minecraft.util.math.MathHelper.floor(p.x() + nx * step), z = net.minecraft.util.math.MathHelper.floor(p.z() + nz * step);
+                // The block's own centre decides, as when the road was laid: a sample beyond the curb is the bank's.
+                if (Math.abs((x + 0.5 - p.x()) * nx + (z + 0.5 - p.z()) * nz) > RoadBuilder.CURB) continue;
+                if (!seen.add(net.minecraft.util.math.BlockPos.asLong(x, 0, z))) continue;
+                for (int y = y0 + 1; y <= y0 + 4; y++) {
+                    net.minecraft.block.BlockState state = world.getBlockState(at.set(x, y, z));
+                    // The road's own (a lamp's base and post, a railing, a tunnel's wall) is no obstacle.
+                    if (state.isAir() || state.getBlock() instanceof net.minecraft.block.FenceBlock || palette.owns(state.getBlock())) continue;
+                    if (out[0]++ == 0) { out[1] = x; out[2] = y; out[3] = z; }
+                    break;
+                }
+            }
+        }
+        return out;
+    }
+
+    /** Trunks (a tree's or a huge mushroom's) rooted within {@code strip} blocks of the curb at the road's level, on plain road
+     * and bridges: what the tree strip should have felled. {count, x, y, z of the first}. */
+    public static int[] stripTrees(ServerWorld world, int id, int strip) {
+        MobGameBridge bridge = bridge(world);
+        RoadNetwork.Road road = bridge == null ? null : bridge.roads.road(world, id);
+        if (road == null) return new int[] { 0, 0, 0, 0 };
+        int[] out = { 0, 0, 0, 0 };
+        java.util.Set<Long> seen = new java.util.HashSet<>();
+        net.minecraft.util.math.BlockPos.Mutable at = new net.minecraft.util.math.BlockPos.Mutable();
+        int from = road.from == Integer.MIN_VALUE ? 0 : road.from, to = road.to == Integer.MIN_VALUE ? road.points.size() - 1 : road.to;
+        double reach = RoadBuilder.CURB + strip;
+        for (int i = from; i <= to; i++) {
+            RoadPlan.Point p = road.points.get(i);
+            if (p.kind() == RoadPlan.Kind.TUNNEL || !road.done.contains(net.minecraft.util.math.ChunkPos.toLong(p.blockX() >> 4, p.blockZ() >> 4))) continue;
+            double nx = -p.dz(), nz = p.dx();
+            int feet = (p.h2() + 1) >> 1;
+            for (double step = -reach; step <= reach; step += 0.5) {
+                int x = net.minecraft.util.math.MathHelper.floor(p.x() + nx * step), z = net.minecraft.util.math.MathHelper.floor(p.z() + nz * step);
+                if (Math.abs((x + 0.5 - p.x()) * nx + (z + 0.5 - p.z()) * nz) > reach) continue; // by the block's centre, as the strip is cut
+                if (!seen.add(net.minecraft.util.math.BlockPos.asLong(x, 0, z))) continue;
+                for (int y = feet - 4; y <= feet + RoadBuilder.BANK + 2; y++) {
+                    net.minecraft.block.BlockState state = world.getBlockState(at.set(x, y, z)), below = world.getBlockState(at.set(x, y - 1, z));
+                    if (!trunk(state) || trunk(below)) continue;
+                    if (out[0]++ == 0) { out[1] = x; out[2] = y; out[3] = z; }
+                    break;
+                }
+            }
+        }
+        return out;
+    }
+
+    private static boolean trunk(net.minecraft.block.BlockState state) {
+        return state.isIn(net.minecraft.registry.tag.BlockTags.LOGS) || state.isOf(net.minecraft.block.Blocks.MUSHROOM_STEM)
+                || state.isOf(net.minecraft.block.Blocks.BROWN_MUSHROOM_BLOCK) || state.isOf(net.minecraft.block.Blocks.RED_MUSHROOM_BLOCK);
+    }
+
+    /** The village's junction {x, feet, z}, null when it has none (no road planned to it yet, or roads laid into it before). */
+    public static int[] hub(ServerWorld world, String key) {
+        MobGameBridge bridge = bridge(world);
+        return bridge == null ? null : bridge.roads.hubOf(world, key);
+    }
+
+    /** Whether a trip arriving at the village's junction by its first road has another road to drive on along. */
+    public static boolean onward(ServerWorld world, String key) {
+        MobGameBridge bridge = bridge(world);
+        if (bridge == null) return false;
+        for (RoadNetwork.Road road : bridge.roads.roads(world))
+            if (!road.branch() && (road.a.equals(key) || road.b.equals(key))) return bridge.roads.onward(world, road, key, new java.util.Random(1)) != null;
+        return false;
+    }
+
     /** The heights the road runs at in the chunk, a little below and well above. */
     private static int[] range(RoadNetwork.Road road, net.minecraft.util.math.ChunkPos chunk) {
         int low = Integer.MAX_VALUE, high = Integer.MIN_VALUE;
@@ -160,8 +244,12 @@ public final class Roads {
     public static void holdVillage(ServerWorld world, String key, boolean hold) {
         int[] box = villageBox(world, key);
         if (box == null) return;
-        for (int cx = (box[0] - 32) >> 4; cx <= (box[3] + 32) >> 4; cx++)
-            for (int cz = (box[2] - 32) >> 4; cz <= (box[5] + 32) >> 4; cz++) world.setChunkForced(cx, cz, hold);
+        int minX = box[0] - 32, minZ = box[2] - 32, maxX = box[3] + 32, maxZ = box[5] + 32;
+        // Round the junction too, so the roads' chunks beside it are laid (their nine neighbours loaded) before it is photographed.
+        int[] hub = hub(world, key);
+        if (hub != null) { minX = Math.min(minX, hub[0] - 40); minZ = Math.min(minZ, hub[2] - 40); maxX = Math.max(maxX, hub[0] + 40); maxZ = Math.max(maxZ, hub[2] + 40); }
+        for (int cx = minX >> 4; cx <= maxX >> 4; cx++)
+            for (int cz = minZ >> 4; cz <= maxZ >> 4; cz++) world.setChunkForced(cx, cz, hold);
         if (hold) bridge(world).roads.redoVillage(world, key);
     }
 

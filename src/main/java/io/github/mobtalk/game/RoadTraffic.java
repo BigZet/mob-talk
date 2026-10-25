@@ -33,9 +33,11 @@ import net.minecraft.world.PersistentState;
  * horsemen, going back and forth between the two villages of a road at a walk, each in the right-hand lane. A trip lives as a
  * place on its road (how far along, which way), saved with the world; it takes shape as real entities only near a player, and
  * goes on without them elsewhere. The horse follows the road; the cart is pulled after it (it keeps the shafts' length from the
- * horse, as NiftyCarts pulls its carts), so it swings wide on a bend. At each end it goes into the village's station and is out
- * of sight for a while, then sets out back the other way. A trip waits for a player standing in its way. The entities are the traffic's alone: never saved with the chunk, tagged, and any left over from a crash are
- * removed when they load. Server thread only. */
+ * horse, as NiftyCarts pulls its carts), so it swings wide on a bend. At a junction where another road goes on it drives on along
+ * that road (Dmitriy 2026-10-25: «они не будут исчезать, а просто идут дальше»); at the end of the roads it goes into the station,
+ * is out of sight for a while, then sets out back the other way. A trip waits for a player standing in its way. The entities are
+ * the traffic's alone: never saved with the chunk, tagged, and any left over from a crash are removed when they load. Server
+ * thread only. */
 final class RoadTraffic {
     static final String TAG = "mobtalk_road";
     /** Walking speed (blocks a tick) of a cart and of a horseman, the lane's distance from the middle, the least time in a station. */
@@ -139,15 +141,17 @@ final class RoadTraffic {
         if (now % 200 == 7) state.saved.markDirty();
     }
 
-    /** Every road gets its trips: as many as the setting asks, spread along it, each its own kind. */
+    /** Every road gets its trips: as many as the setting asks, spread along it, each its own kind. Trips that drove on to other
+     * roads count for the whole: never more trips in all than the roads' share together. */
     private void plan(ServerWorld world, World state) {
-        int wanted = perRoad();
+        int wanted = perRoad(), roads = 0;
+        for (RoadNetwork.Road road : bridge.roads.roads(world)) if (!road.done.isEmpty() && !road.branch()) roads++;
         for (RoadNetwork.Road road : bridge.roads.roads(world)) {
             if (road.done.isEmpty() || road.branch()) continue; // not a stone of it laid yet; a branch carries none
             Set<Integer> have = new HashSet<>();
             for (Trip trip : state.saved.trips) if (trip.road == road.id) have.add(trip.slot);
             for (int slot = 0; slot < wanted; slot++) {
-                if (have.contains(slot)) continue;
+                if (have.contains(slot) || state.saved.trips.size() >= roads * wanted) continue;
                 Random random = new Random(world.getSeed() * 31 + road.id * 977L + slot);
                 Trip trip = new Trip();
                 trip.road = road.id; trip.slot = slot;
@@ -195,8 +199,19 @@ final class RoadTraffic {
         if (!held) {
             trip.s += trip.dir * speed(trip);
             double end = trip.dir > 0 ? range[1] : range[0];
-            // Arrived: it goes into the station and is gone for a while (each trip for its own time, so they leave one by one).
-            if ((trip.s - end) * trip.dir >= 0) { trip.s = end; trip.rest = REST + Math.floorMod(trip.slot * 337 + (int) (world.getTime() / 20), REST); }
+            if ((trip.s - end) * trip.dir >= 0) {
+                trip.s = end;
+                // At a junction another road goes on from: it drives on along that one. Else it has arrived: it goes into the
+                // station and is gone for a while (each trip for its own time, so they leave one by one).
+                String village = trip.dir > 0 ? road.b : road.a;
+                RoadNetwork.Road next = bridge.roads.onward(world, road, village, new Random(world.getTime() * 7 + trip.road * 31L + trip.slot));
+                if (next != null) {
+                    int[] onward = range(next);
+                    boolean forward = next.a.equals(village);
+                    trip.road = next.id; trip.dir = forward ? 1 : -1; trip.s = forward ? onward[0] : onward[1];
+                    road = next;
+                } else trip.rest = REST + Math.floorMod(trip.slot * 337 + (int) (world.getTime() / 20), REST);
+            }
         }
         if (trip.shaped()) place(world, road, trip);
     }

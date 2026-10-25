@@ -25,9 +25,10 @@ import it.unimi.dsi.fastutil.longs.LongSet;
  * above a 45° line from the curb is dug away, the ground below one is banked up with turf. On a bridge the deck stands on piers with a
  * wall for a railing; in a tunnel the middle is dug out under a stepped brick vault with brick walls. A column with anything not
  * natural in the way (a house, a chest, a player's build, a structure's piece such as the village itself) is left alone, so the road
- * ends where the village's streets begin. Lamps: a street lamp with an arm over the road, lanterns on the bridge railing and under the
- * tunnel vault; all lanterns, always lit. Server thread only; re-laying a chunk changes nothing. Lamp post after RoadWeaver's
- * LamppostDecoration (MIT, third_party/roadweaver/NOTICE.md). */
+ * ends where the village's streets begin. Trees rooted in a strip beside the road are felled whole, and rock or earth left standing
+ * over the road or at its edge that holds on to nothing (a badlands pillar, a spike of the hillside) is taken away. Lamps: a street
+ * lamp with an arm over the road, lanterns on the bridge railing and under the tunnel vault; all lanterns, always lit. Server thread
+ * only; re-laying a chunk changes nothing. Lamp post after RoadWeaver's LamppostDecoration (MIT, third_party/roadweaver/NOTICE.md). */
 final class RoadBuilder {
     private RoadBuilder() { }
 
@@ -37,6 +38,9 @@ final class RoadBuilder {
     static final int CLEAR = 5, FILL = 10, BANK = 8, PIER = 64, PIER_SPACING = 14, TREE_CLEAR = 16;
     /** An open cut is dug to the sky this far above the head room: no shelf of rock is left hanging over the road. */
     static final int OPEN_CUT = 14;
+    /** How far round a chunk the bodies of rock over and beside the road are followed, the biggest body that is taken away as
+     * free-standing (a hill is left), and the biggest cluster of trunk felled as one tree (a log cabin is left). */
+    static final int MASS_MARGIN = 8, MASS_MAX = 400, TREE_MAX = 600;
     private static final int FLAGS = Block.NOTIFY_LISTENERS, FLAGS_SHAPED = Block.NOTIFY_ALL;
 
     /** The blocks of one road style. */
@@ -162,16 +166,16 @@ final class RoadBuilder {
 
     /** Counts of what was done, for the log and the self-test. */
     static final class Report {
-        int columns, skipped, lamps, dammed, drops, leaves, felled;
+        int columns, skipped, lamps, dammed, drops, leaves, felled, trees, masses;
         @Override public String toString() {
             return columns + " столбцов, пропущено " + skipped + ", фонарей " + lamps + ", запружено " + dammed + ", убрано выпавшего " + drops
-                    + ", висячих стволов " + felled + ", висячей листвы " + leaves;
+                    + ", срублено деревьев " + trees + ", снесено глыб " + masses + ", висячих стволов " + felled + ", висячей листвы " + leaves;
         }
     }
 
     /** Lays the road's part in this chunk. */
     static Report lay(ServerWorld world, List<RoadPlan.Point> points, ChunkPos chunk, Palette palette, int from, int to, int lampTo, boolean lamps, int lampSpacing,
-                      List<List<RoadPlan.Point>> others) {
+                      int treeStrip, List<List<RoadPlan.Point>> others) {
         Report report = new Report();
         Map<Long, Column> columns = columns(points, chunk);
         if (columns.isEmpty()) return report;
@@ -196,12 +200,207 @@ final class RoadBuilder {
             else report.skipped++;
             low = Math.min(low, (point.h2() >> 1) - FILL - BANK); high = Math.max(high, (point.h2() >> 1) + CLEAR + OPEN_CUT + TREE_CLEAR);
         }
+        int[] area = { chunk.getStartX(), chunk.getStartZ(), chunk.getEndX(), chunk.getEndZ() };
+        if (low <= high) {
+            int[] masses = masses(world, chunk, points, pieces, palette, from, to, cleared, area);
+            report.masses = masses[0];
+            report.trees = trees(world, chunk, columns, points, pieces, palette, from, to, treeStrip, area);
+        }
         report.dammed = dam(world, palette, cleared);
         if (lamps) report.lamps = lamps(world, palette, points, chunk, from, lampTo, lampSpacing, taken);
-        if (low <= high) report.felled = fell(world, chunk, cleared, pieces, low, high + TREE_CLEAR);
-        if (low <= high) report.leaves = leaves(world, chunk, low, high + TREE_CLEAR);
-        if (low <= high) report.drops = sweepDrops(world, chunk, low, high);
+        if (low <= high) report.felled = fell(world, area, cleared, pieces, low, high + TREE_CLEAR);
+        if (low <= high) report.leaves = leaves(world, area, low, high + TREE_CLEAR);
+        if (low <= high) report.drops = sweepDrops(world, area, low, high);
         return report;
+    }
+
+    /** Clears the room over a paved block of a village way (the trail to a village, the square at a junction) as the road's own
+     * columns are cleared: the head room, then tree parts and loose stuff above it. Nothing built is touched. */
+    static void clearAbove(ServerWorld world, Palette palette, int x, int z, int ground, Set<Long> cleared) {
+        Ops check = new Ops(world, palette, x, z, null);
+        check.clearUp(ground + 1, ground + CLEAR);
+        if (!check.ok) return;
+        new Ops(world, palette, x, z, cleared).clearUp(ground + 1, ground + CLEAR);
+    }
+
+    /** After a village way is laid: trunks left hanging by it are felled, hanging leaves taken away, dropped items swept, in the
+     * area {minX, minZ, maxX, maxZ} between the heights given. */
+    static void tidy(ServerWorld world, Set<Long> cleared, List<BlockBox> pieces, int[] area, int low, int high) {
+        fell(world, area, cleared, pieces, low, high + TREE_CLEAR);
+        leaves(world, area, low, high + TREE_CLEAR);
+        sweepDrops(world, area, low, high);
+    }
+
+    /** A block of a tree's trunk or of a huge mushroom (its stem and its cap): what is felled as one. */
+    private static boolean trunk(BlockState state) {
+        return state.isIn(BlockTags.LOGS) || state.isOf(Blocks.MUSHROOM_STEM) || state.isOf(Blocks.BROWN_MUSHROOM_BLOCK) || state.isOf(Blocks.RED_MUSHROOM_BLOCK);
+    }
+
+    /** The trees rooted within {@code strip} blocks of the curb are felled whole (Dmitriy 2026-10-25: «3–5 блоков от края дороги
+     * полностью вырубать деревья»): every cluster of trunk (logs, a huge mushroom's stem and cap, joined face, edge or corner)
+     * whose foot stands in that strip near the road's level, with the bee nests on it; its leaves go with the hanging ones after.
+     * A cluster that is a structure's, that touches anything built (a log cabin's door or window), or that is bigger than any tree
+     * is left. The felled trees' extent widens {@code area}, so the leaves pass reaches their crowns. */
+    private static int trees(ServerWorld world, ChunkPos chunk, Map<Long, Column> columns, List<RoadPlan.Point> points, List<BlockBox> pieces, Palette palette,
+                             int from, int to, int strip, int[] area) {
+        if (strip <= 0) return 0;
+        int felled = 0;
+        Set<Long> seen = new HashSet<>();
+        for (Column column : columns.values()) {
+            if (column.index() < from || column.index() > to || Math.abs(column.across()) > CURB + strip) continue;
+            RoadPlan.Point point = points.get(column.index());
+            if (point.kind() == RoadPlan.Kind.TUNNEL) continue;
+            int feet = (point.h2() + 1) >> 1;
+            felled += fellTrunks(world, column.x(), column.z(), feet - 4, feet + BANK + 2, pieces, palette, seen, area);
+        }
+        return felled;
+    }
+
+    /** Fells every trunk rooted in the column between the heights (the foot of the trunk: the lowest trunk block, standing on no
+     * trunk), with {@link #fellTrunk}. The number felled. */
+    static int fellTrunks(ServerWorld world, int x, int z, int lowest, int highest, List<BlockBox> pieces, Palette palette, Set<Long> seen, int[] area) {
+        int felled = 0;
+        BlockPos.Mutable at = new BlockPos.Mutable();
+        for (int y = lowest; y <= highest; y++) {
+            at.set(x, y, z);
+            if (seen.contains(at.asLong()) || !trunk(world.getBlockState(at))) continue;
+            if (trunk(world.getBlockState(at.down()))) continue; // not the foot of the trunk
+            if (fellTrunk(world, new BlockPos(x, y, z), pieces, palette, seen, area)) felled++;
+        }
+        return felled;
+    }
+
+    /** Fells the trunk rooted at {@code foot}: the whole cluster of trunk blocks joined to it (corner to corner too: a tree's
+     * branches), with the bee nests on it, unless it is part of a structure piece, is bigger than {@link #TREE_MAX} blocks, or
+     * something built leans on it. {@code seen} keeps the blocks looked at, so a trunk kept is not gone through again; {@code area}
+     * widens to what was taken away (for the leaves pass). */
+    static boolean fellTrunk(ServerWorld world, BlockPos foot, List<BlockBox> pieces, Palette palette, Set<Long> seen, int[] area) {
+        List<BlockPos> cluster = new ArrayList<>();
+        ArrayDeque<BlockPos> queue = new ArrayDeque<>();
+        boolean keep = false;
+        seen.add(foot.asLong()); queue.add(foot);
+        while (!queue.isEmpty()) {
+            BlockPos log = queue.poll();
+            cluster.add(log);
+            if (cluster.size() > TREE_MAX) keep = true;
+            for (BlockBox piece : pieces) if (piece.contains(log)) keep = true;
+            for (net.minecraft.util.math.Direction direction : net.minecraft.util.math.Direction.values()) {
+                BlockState next = world.getBlockState(log.offset(direction));
+                if (!next.isAir() && !natural(next) && !palette.owns(next.getBlock())) keep = true; // something built against it
+            }
+            if (keep) break;
+            for (int dx = -1; dx <= 1; dx++) for (int dy = -1; dy <= 1; dy++) for (int dz = -1; dz <= 1; dz++) {
+                if (dx == 0 && dy == 0 && dz == 0) continue;
+                BlockPos next = log.add(dx, dy, dz);
+                if (!seen.contains(next.asLong()) && trunk(world.getBlockState(next))) { seen.add(next.asLong()); queue.add(next); }
+            }
+        }
+        if (keep) { for (BlockPos log : cluster) seen.add(log.asLong()); for (BlockPos log : queue) seen.add(log.asLong()); return false; }
+        for (BlockPos log : cluster) {
+            world.setBlockState(log, Blocks.AIR.getDefaultState(), FLAGS);
+            for (net.minecraft.util.math.Direction direction : net.minecraft.util.math.Direction.values()) {
+                BlockPos beside = log.offset(direction);
+                if (world.getBlockState(beside).isOf(Blocks.BEE_NEST)) world.setBlockState(beside, Blocks.AIR.getDefaultState(), FLAGS);
+            }
+            area[0] = Math.min(area[0], log.getX()); area[1] = Math.min(area[1], log.getZ()); area[2] = Math.max(area[2], log.getX()); area[3] = Math.max(area[3], log.getZ());
+        }
+        return true;
+    }
+
+    /** A block of a body of rock or earth: solid, natural, and nothing a tree or a slide is made of. */
+    private static boolean mass(BlockState state) {
+        return !state.isAir() && !open(state) && !loose(state) && natural(state) && !state.isOf(Blocks.BEE_NEST);
+    }
+
+    /** Rock and earth left standing above the road's level that hold on to nothing (Dmitriy 2026-10-25: столбы посреди дороги): a
+     * badlands pillar, a spike of the hillside the cut went round, the stump of a knoll. Everything solid and natural above the
+     * road's feet within the earthworks' reach, in this chunk and {@link #MASS_MARGIN} blocks round it, is gathered into bodies
+     * (joined face to face). A body that reaches the edge of that space, holds a structure's or a built block, or is bigger than
+     * {@link #MASS_MAX} blocks is the land itself and stays; any other is taken away with the loose stuff resting on it. Over the
+     * paved road, rock that stays gets a brick ceiling, as a tunnel has. Returns {bodies taken away, ceilings laid}. */
+    private static int[] masses(ServerWorld world, ChunkPos chunk, List<RoadPlan.Point> points, List<BlockBox> pieces, Palette palette, int from, int to,
+                                Set<Long> cleared, int[] area) {
+        int x0 = chunk.getStartX() - MASS_MARGIN, z0 = chunk.getStartZ() - MASS_MARGIN, x1 = chunk.getEndX() + MASS_MARGIN, z1 = chunk.getEndZ() + MASS_MARGIN;
+        Map<Long, Column> domain = columns(points, x0, z0, x1, z1);
+        // The level each column is looked at from: the road's feet (its head room is empty anyway).
+        Map<Long, Integer> floors = new HashMap<>();
+        for (Map.Entry<Long, Column> entry : domain.entrySet()) {
+            Column column = entry.getValue();
+            if (column.index() < from || column.index() > to || Math.abs(column.across()) > REACH - 1) continue;
+            floors.put(entry.getKey(), ((points.get(column.index()).h2() + 1) >> 1) + 1);
+        }
+        Map<Long, Integer> body = new HashMap<>();
+        List<Boolean> attached = new ArrayList<>();
+        BlockPos.Mutable at = new BlockPos.Mutable();
+        ArrayDeque<BlockPos> queue = new ArrayDeque<>();
+        List<BlockPos> blocks = new ArrayList<>();
+        int removed = 0, ceilings = 0;
+        for (Map.Entry<Long, Integer> entry : floors.entrySet()) {
+            int x = BlockPos.unpackLongX(entry.getKey()), z = BlockPos.unpackLongZ(entry.getKey());
+            if (x < chunk.getStartX() || x > chunk.getEndX() || z < chunk.getStartZ() || z > chunk.getEndZ()) continue;
+            int floor = entry.getValue(), top = Math.min(world.getTopY(net.minecraft.world.Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, x, z), floor + CLEAR + OPEN_CUT + TREE_CLEAR);
+            for (int y = floor; y < top; y++) {
+                at.set(x, y, z);
+                if (body.containsKey(at.asLong()) || !mass(world.getBlockState(at))) continue;
+                int id = attached.size();
+                boolean stays = false;
+                blocks.clear(); queue.clear();
+                BlockPos seed = at.toImmutable();
+                body.put(seed.asLong(), id); queue.add(seed);
+                while (!queue.isEmpty() && !stays) {
+                    BlockPos here = queue.poll();
+                    blocks.add(here);
+                    if (blocks.size() > MASS_MAX) { stays = true; break; }
+                    for (BlockBox piece : pieces) if (piece.contains(here)) stays = true;
+                    for (net.minecraft.util.math.Direction direction : net.minecraft.util.math.Direction.values()) {
+                        BlockPos next = here.offset(direction);
+                        Integer other = body.get(next.asLong());
+                        if (other != null) { if (other != id && attached.get(other)) stays = true; continue; }
+                        Integer nextFloor = floors.get(BlockPos.asLong(next.getX(), 0, next.getZ()));
+                        if (next.getY() >= world.getTopY()) continue;
+                        BlockState state = world.getBlockState(next);
+                        if (state.isAir() || open(state) || loose(state)) continue;
+                        if (!natural(state) && !palette.owns(state.getBlock())) { stays = true; continue; } // something built: the land's
+                        if (!mass(state)) continue;
+                        if (nextFloor == null) { stays = true; continue; } // beyond the space looked at: the land itself
+                        if (next.getY() < nextFloor) continue; // the ground under it, not part of the body
+                        body.put(next.asLong(), id); queue.add(next);
+                    }
+                }
+                attached.add(stays);
+                if (stays) { for (BlockPos rest : queue) body.put(rest.asLong(), id); continue; }
+                for (BlockPos block : blocks) {
+                    world.setBlockState(block, Blocks.AIR.getDefaultState(), FLAGS);
+                    cleared.add(block.asLong());
+                    area[0] = Math.min(area[0], block.getX()); area[1] = Math.min(area[1], block.getZ()); area[2] = Math.max(area[2], block.getX()); area[3] = Math.max(area[3], block.getZ());
+                }
+                // What rested on it (sand, a tree) would fall or hang: taken away up to the usual height.
+                for (BlockPos block : blocks) {
+                    for (int k = 1; k <= TREE_CLEAR; k++) {
+                        at.set(block.getX(), block.getY() + k, block.getZ());
+                        if (body.containsKey(at.asLong())) break;
+                        BlockState state = world.getBlockState(at);
+                        if (state.isAir() || !loose(state) || state.getBlock() instanceof FluidBlock) break;
+                        world.setBlockState(at, Blocks.AIR.getDefaultState(), FLAGS);
+                    }
+                }
+                removed++;
+            }
+        }
+        // Rock that stays over the paved road: a brick ceiling under it.
+        for (Column column : domain.values()) {
+            if (column.index() < from || column.index() > to || Math.abs(column.across()) > CURB) continue;
+            if (column.x() < chunk.getStartX() || column.x() > chunk.getEndX() || column.z() < chunk.getStartZ() || column.z() > chunk.getEndZ()) continue;
+            RoadPlan.Point point = points.get(column.index());
+            if (point.kind() != RoadPlan.Kind.GROUND) continue;
+            int y0 = point.h2() >> 1;
+            if (!world.getBlockState(at.set(column.x(), y0 + CLEAR, column.z())).isAir()) continue; // the column was left alone
+            at.set(column.x(), y0 + CLEAR + 1, column.z());
+            if (!mass(world.getBlockState(at))) continue;
+            world.setBlockState(at, palette.lining().getDefaultState(), FLAGS);
+            ceilings++;
+        }
+        return new int[] { removed, ceilings };
     }
 
     /** Water (or lava) left beside a block the road dug out would run onto the road and wash over it (Dmitriy 2026-10-25): every
@@ -232,9 +431,9 @@ final class RoadBuilder {
      * (logs floated over the road, Dmitriy 2026-10-25). Every cluster of logs (joined face, edge or corner) that touches a block the
      * road cleared and stands on nothing is felled, and its leaves then go with the hanging ones. A cluster that reaches out of the
      * space looked at, or stands on a block of ground anywhere, is left. */
-    private static int fell(ServerWorld world, ChunkPos chunk, Set<Long> cleared, List<BlockBox> pieces, int low, int high) {
+    private static int fell(ServerWorld world, int[] area, Set<Long> cleared, List<BlockBox> pieces, int low, int high) {
         if (cleared.isEmpty()) return 0;
-        int margin = 8, x0 = chunk.getStartX() - margin, z0 = chunk.getStartZ() - margin, size = 16 + 2 * margin;
+        int margin = 8, x0 = area[0] - margin, z0 = area[1] - margin, size = Math.max(area[2] - area[0], area[3] - area[1]) + 1 + 2 * margin;
         low = Math.max(low, world.getBottomY()); high = Math.min(high, world.getTopY() - 1);
         if (low > high) return 0;
         BlockPos.Mutable at = new BlockPos.Mutable();
@@ -274,9 +473,10 @@ final class RoadBuilder {
     /** Leaves the road left hanging (their tree's trunk cut away) would rot and drop saplings onto the road (Dmitriy 2026-10-25):
      * every leaf in and just round the chunk that no log reaches within six leaves, as the game counts, is taken away at once. Logs
      * are looked for seven blocks beyond, so a tree standing next door keeps its crown. */
-    private static int leaves(ServerWorld world, ChunkPos chunk, int low, int high) {
-        // A crown reaches over the chunk's edge: leaves are taken up to eight blocks round it, logs looked for seven beyond that.
-        int reach = 8, margin = reach + 7, x0 = chunk.getStartX() - margin, z0 = chunk.getStartZ() - margin, size = 16 + 2 * margin;
+    private static int leaves(ServerWorld world, int[] area, int low, int high) {
+        // A crown reaches over the area's edge: leaves are taken up to eight blocks round it, logs looked for seven beyond that.
+        int reach = 8, margin = reach + 7, x0 = area[0] - margin, z0 = area[1] - margin, width = area[2] - area[0] + 1, depth = area[3] - area[1] + 1;
+        int size = Math.max(width, depth) + 2 * margin;
         low = Math.max(low, world.getBottomY()); high = Math.min(high, world.getTopY() - 1);
         if (low > high) return 0;
         int height = high - low + 1;
@@ -304,15 +504,15 @@ final class RoadBuilder {
             }
         }
         int removed = 0;
-        for (int dx = margin - reach; dx < margin + 16 + reach; dx++) for (int dz = margin - reach; dz < margin + 16 + reach; dz++) for (int dy = 0; dy < height; dy++)
+        for (int dx = margin - reach; dx < margin + width + reach; dx++) for (int dz = margin - reach; dz < margin + depth + reach; dz++) for (int dy = 0; dy < height; dy++)
             if (dist[(dx * size + dz) * height + dy] == 7) { world.setBlockState(at.set(x0 + dx, low + dy, z0 + dz), Blocks.AIR.getDefaultState(), FLAGS); removed++; }
         return removed;
     }
 
     /** Grass, flowers and seeds that the earthworks knocked loose drop as items; the road's own work leaves none lying about. Only
      * items that came into being this very tick, in and just round this chunk, are taken. */
-    private static int sweepDrops(ServerWorld world, ChunkPos chunk, int low, int high) {
-        net.minecraft.util.math.Box box = new net.minecraft.util.math.Box(chunk.getStartX() - 2, low, chunk.getStartZ() - 2, chunk.getEndX() + 3, high, chunk.getEndZ() + 3);
+    private static int sweepDrops(ServerWorld world, int[] area, int low, int high) {
+        net.minecraft.util.math.Box box = new net.minecraft.util.math.Box(area[0] - 2, low, area[1] - 2, area[2] + 3, high, area[3] + 3);
         List<net.minecraft.entity.ItemEntity> items = world.getEntitiesByClass(net.minecraft.entity.ItemEntity.class, box, item -> item.getItemAge() <= 1);
         for (net.minecraft.entity.ItemEntity item : items) item.discard();
         return items.size();
@@ -320,8 +520,11 @@ final class RoadBuilder {
 
     /** The columns of the chunk the road covers, each with its nearest centreline point. */
     private static Map<Long, Column> columns(List<RoadPlan.Point> points, ChunkPos chunk) {
+        return columns(points, chunk.getStartX(), chunk.getStartZ(), chunk.getEndX(), chunk.getEndZ());
+    }
+
+    private static Map<Long, Column> columns(List<RoadPlan.Point> points, int minX, int minZ, int maxX, int maxZ) {
         Map<Long, Column> out = new HashMap<>();
-        int minX = chunk.getStartX(), minZ = chunk.getStartZ(), maxX = chunk.getEndX(), maxZ = chunk.getEndZ();
         for (int i = 0; i < points.size(); i++) {
             RoadPlan.Point p = points.get(i);
             if (p.x() < minX - REACH - 1 || p.x() > maxX + REACH + 1 || p.z() < minZ - REACH - 1 || p.z() > maxZ + REACH + 1) continue;
@@ -423,8 +626,10 @@ final class RoadBuilder {
      * below the line is banked up, both topped with the turf of the place (grass, or sand in a desert). */
     private static void bank(Ops ops, int h2, double out) {
         int feet = (h2 + 1) >> 1, reach = (int) Math.floor(out);
-        int ground = ops.groundAt(feet + BANK + 2, feet - BANK - 2);
-        if (ground == Integer.MIN_VALUE) return;
+        int ground = ops.groundAt(feet + BANK + reach + 1, feet - BANK - 2);
+        // Ground that goes higher than the earthwork reaches is a cliff: left whole, not hollowed out at its foot (the mass pass
+        // takes a free-standing spike of it away).
+        if (ground == Integer.MIN_VALUE || ground > feet + BANK + reach + 1) return;
         int over = feet + 1 + reach, under = feet - 1 - reach;
         if (ground > over && ground - feet <= BANK + reach) {
             BlockState top = ops.top(ground - 1);
@@ -456,13 +661,13 @@ final class RoadBuilder {
                 BlockPos arm = post.offset(net.minecraft.util.math.Direction.getFacing(-nx * side, 0, -nz * side));
                 if (taken.containsKey(BlockPos.asLong(post.getX(), 0, post.getZ())) || taken.containsKey(BlockPos.asLong(arm.getX(), 0, arm.getZ()))) continue;
                 boolean any = false;
-                if (inside(chunk, post) && naturalOrOwn(world, palette, post.withY(feet), CLEAR)) {
+                if (inside(chunk, post) && postable(world, palette, post.withY(feet), CLEAR)) {
                     any = true;
                     set(world, post.withY(feet), palette.postBase().getDefaultState(), true);
                     for (int k = 1; k <= 4; k++) set(world, post.withY(feet + k), palette.post().getDefaultState(), true);
                 }
                 // The arm goes with its post, also over the edge into the next chunk (all eight round a chunk being laid are loaded).
-                if (any && naturalOrOwn(world, palette, arm.withY(feet + 3), 2)) {
+                if (any && postable(world, palette, arm.withY(feet + 3), 2)) {
                     any = true;
                     set(world, arm.withY(feet + 4), palette.post().getDefaultState(), true);
                     set(world, arm.withY(feet + 3), Blocks.LANTERN.getDefaultState().with(LanternBlock.HANGING, true), true);
@@ -489,10 +694,11 @@ final class RoadBuilder {
 
     private static boolean inside(ChunkPos chunk, BlockPos pos) { return (pos.getX() >> 4) == chunk.x && (pos.getZ() >> 4) == chunk.z; }
 
-    private static boolean naturalOrOwn(ServerWorld world, Palette palette, BlockPos from, int height) {
+    /** Room for a lamp's post or arm: natural blocks or the lamp's own (a lamp laid before), never the road's lining or a wall. */
+    private static boolean postable(ServerWorld world, Palette palette, BlockPos from, int height) {
         for (int k = 0; k <= height; k++) {
             BlockState state = world.getBlockState(from.up(k));
-            if (!natural(state) && !palette.owns(state.getBlock())) return false;
+            if (!natural(state) && !state.isOf(palette.post()) && !state.isOf(palette.postBase()) && !state.isOf(Blocks.LANTERN)) return false;
         }
         return true;
     }
@@ -508,6 +714,7 @@ final class RoadBuilder {
         if (state.isAir()) return true;
         Block block = state.getBlock();
         if (block instanceof FluidBlock) return true;
+        if (block == Blocks.BEE_NEST) return true; // worldgen's, on a tree, for all its block entity
         if (state.hasBlockEntity()) return false;
         if (state.isIn(BlockTags.DIRT) || state.isIn(BlockTags.BASE_STONE_OVERWORLD) || state.isIn(BlockTags.SAND) || state.isIn(BlockTags.LOGS)
                 || state.isIn(BlockTags.LEAVES) || state.isIn(BlockTags.REPLACEABLE) || state.isIn(BlockTags.FLOWERS) || state.isIn(BlockTags.SAPLINGS)
@@ -536,7 +743,7 @@ final class RoadBuilder {
     }
 
     /** Open for fill under the road: air, water, plants, snow. */
-    private static boolean open(BlockState state) {
+    static boolean open(BlockState state) {
         return state.isAir() || state.getBlock() instanceof FluidBlock || state.isIn(BlockTags.REPLACEABLE) || state.isIn(BlockTags.LEAVES)
                 || state.isIn(BlockTags.FLOWERS) || state.isIn(BlockTags.SAPLINGS) || state.isOf(Blocks.SNOW) || state.isOf(Blocks.SEAGRASS)
                 || state.isOf(Blocks.TALL_SEAGRASS) || state.isOf(Blocks.KELP) || state.isOf(Blocks.KELP_PLANT) || state.isOf(Blocks.LILY_PAD);
@@ -585,13 +792,18 @@ final class RoadBuilder {
             }
         }
 
-        /** Digs the column open from {@code from} up to its top when the top is no higher than {@code limit}; a column whose ground
-         * goes higher (a tunnel's mouth, a cliff) is left as it is. */
+        /** Digs the column open from {@code from} up to the top of its ground when that is no higher than {@code limit}, and the
+         * tree parts and loose stuff on it after; a column whose ground goes higher (a tunnel's mouth, a cliff) is left as it is.
+         * The ground's top is told apart from a tree standing on it (a tree made the column look too high to open, and a pillar
+         * of earth with the tree on it was left in the road, Dmitriy 2026-10-25). */
         void digToSky(int from, int limit) {
             int top = world.getTopY(net.minecraft.world.Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, x, z);
-            if (top <= from || top > limit + 1) return;
-            for (int y = from; y < top; y++) clear(y);
-            for (int y = top; y <= top + TREE_CLEAR; y++) {
+            if (top <= from) return;
+            int ground = top;
+            while (ground > from && loose(get(ground - 1)) && !(get(ground - 1).getBlock() instanceof FluidBlock)) ground--;
+            if (ground > limit + 1) return;
+            for (int y = from; y < ground; y++) clear(y);
+            for (int y = ground; y <= top + TREE_CLEAR; y++) {
                 BlockState state = get(y);
                 if (state.isAir() || !loose(state) || state.getBlock() instanceof FluidBlock) break;
                 set(y, Blocks.AIR.getDefaultState());

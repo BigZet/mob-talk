@@ -2,6 +2,7 @@ package io.github.mobtalk.client;
 
 import io.github.mobtalk.game.RoadCartEntity;
 import io.github.mobtalk.game.Roads;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -20,16 +21,19 @@ import net.minecraft.util.math.Vec3d;
 
 /** Roads between villages ({@code -Only roads}): a road planned across the land beside the stage and laid, then its traffic — the
  * covered wagon with villagers and its escort, the cart, the horseman — brought into view one after another. Checks the road is
- * laid end to end, each trip takes shape with its horse, cart and people, moves along at a walk in its lane and keeps the cart
- * behind the horse. Screenshots: the road from above and along it, a bridge or a tunnel if the road has one, each kind of trip
- * from the side and close up, the lamps at night. The player watches as a spectator (never in the traffic's way). No LLM, no voice. */
+ * laid end to end, nothing stands in it, no tree is left in the strip beside it, each trip takes shape with its horse, cart and
+ * people, moves along at a walk in its lane and keeps the cart behind the horse. Screenshots: the road from above and along it, a
+ * bridge or a tunnel if the road has one, each kind of trip from the side and close up, the lamps at night, a village's junction
+ * and trail. Then {@code -Dmobtalk.selftest.roads=x1,z1,x2,z2;…} names further lines to lay and check (through mountains, a swamp,
+ * the badlands), each photographed. The player watches as a spectator (never in the traffic's way). No LLM, no voice. */
 final class SelfTestRoads {
     private static final Pattern BUILT = Pattern.compile("дорога (\\d+):");
     private final SelfTest test;
     private final int sx, sz;
     private Runnable next = () -> { };
-    private int road = -1, attempt;
+    private int road = -1, attempt, probe;
     private volatile String reply;
+    private final List<int[]> probes = new ArrayList<>();
 
     SelfTestRoads(SelfTest test, int stageX, int stageY, int stageZ) { this.test = test; this.sx = stageX; this.sz = stageZ; }
 
@@ -41,6 +45,14 @@ final class SelfTestRoads {
         next = then;
         test.log("roads stages: a road planned and laid, its carts, wagon and horseman, the lamps at night");
         test.bridge().config.villageRoads = true; test.bridge().config.roadLamps = true; test.bridge().config.roadTraffic = 3;
+        test.bridge().config.roadBypass = true; test.bridge().config.roadTreeStrip = 4;
+        String lines = System.getProperty("mobtalk.selftest.roads", "");
+        for (String line : lines.split(";")) {
+            String[] parts = line.trim().split("[ ,]+");
+            if (parts.length != 4) continue;
+            try { probes.add(new int[] { Integer.parseInt(parts[0]), Integer.parseInt(parts[1]), Integer.parseInt(parts[2]), Integer.parseInt(parts[3]) }); }
+            catch (NumberFormatException wrong) { test.log("probe line ignored: " + line); }
+        }
         test.command("time set 6000"); test.command("weather clear");
         test.command("gamerule doDaylightCycle false"); test.command("gamerule doMobSpawning false");
         test.command("gamemode spectator " + name());
@@ -117,14 +129,23 @@ final class SelfTestRoads {
         });
     }
 
-    /** The road itself: from above, along it from the ground, and its first bridge or tunnel. */
-    private void views() {
+    /** The road is whole: laid end to end, lamps sound, nothing left standing in it or hanging over it, no tree in the strip. */
+    private void whole(int road) {
         int[] laid = onServer(() -> Roads.laid(world(), road));
         test.check(laid[1] > 0 && laid[0] == laid[1], "road " + road + " is laid end to end (" + laid[0] + "/" + laid[1] + " chunks)");
         int[] lamps = onServer(() -> Roads.lampFaults(world(), road));
-        test.check(lamps[0] > 0 && lamps[1] == 0, "every lamp's arm joins its post (" + lamps[0] + " lamps, " + lamps[1] + " apart)");
+        test.check(lamps[0] > 0 && lamps[1] == 0, "road " + road + ": every lamp's arm joins its post (" + lamps[0] + " lamps, " + lamps[1] + " apart)");
         int hanging = onServer(() -> Roads.hangingLogs(world(), road));
-        test.check(hanging == 0, "no log hangs in the air by the road (" + hanging + ")");
+        test.check(hanging == 0, "road " + road + ": no log hangs in the air by the road (" + hanging + ")");
+        int[] obstacles = onServer(() -> Roads.obstacles(world(), road));
+        test.check(obstacles[0] == 0, "road " + road + ": nothing stands in the road (" + obstacles[0] + " columns, first at " + obstacles[1] + " " + obstacles[2] + " " + obstacles[3] + ")");
+        int[] trees = onServer(() -> Roads.stripTrees(world(), road, test.bridge().config.roadTreeStrip));
+        test.check(trees[0] == 0, "road " + road + ": no tree is left in the strip beside the road (" + trees[0] + ", first at " + trees[1] + " " + trees[2] + " " + trees[3] + ")");
+    }
+
+    /** The road itself: from above, along it from the ground, and its first bridge or tunnel. */
+    private void views() {
+        whole(road);
         test.owner.client.options.setPerspective(Perspective.FIRST_PERSON);
         int n = length();
         Vec3d middle = at(n / 2), ahead = at(n / 2 + 40);
@@ -157,17 +178,20 @@ final class SelfTestRoads {
             test.await("the " + kind + " takes shape", 15, () -> lead(kind) != null, () -> {
                 Entity lead = lead(kind);
                 if (lead == null) { nextKind(kind, order); return; }
-                inspect(kind, lead);
-                Vec3d first = onServer(lead::getPos);
-                long start = onServer(() -> world().getTime());
-                test.await("pause: the " + kind + " drives on", 3, () -> false, () -> {
-                    Vec3d then = onServer(lead::getPos);
-                    long ticks = Math.max(1, onServer(() -> world().getTime()) - start);
-                    // Per server tick, so a slow test machine does not count as a fast cart: a walk is 1–4 blocks a second.
-                    double moved = Math.hypot(then.x - first.x, then.z - first.z), perSecond = moved * 20 / ticks;
-                    test.check(perSecond > 1 && perSecond < 4, kind + " moves along at a walk (" + String.format(java.util.Locale.ROOT, "%.1f blocks in %d ticks, %.1f a second", moved, ticks, perSecond) + ")");
-                    if (kind.equals("rider")) seat(lead);
-                    side(kind, lead, order);
+                // A moment first: the cart turns to its horse on its first ticks (on a lagging server the check came before them).
+                test.await("pause: the " + kind + " settles", 1, () -> false, () -> {
+                    inspect(kind, lead);
+                    Vec3d first = onServer(lead::getPos);
+                    long start = onServer(() -> world().getTime());
+                    test.await("pause: the " + kind + " drives on", 3, () -> false, () -> {
+                        Vec3d then = onServer(lead::getPos);
+                        long ticks = Math.max(1, onServer(() -> world().getTime()) - start);
+                        // Per server tick, so a slow test machine does not count as a fast cart: a walk is 1–4 blocks a second.
+                        double moved = Math.hypot(then.x - first.x, then.z - first.z), perSecond = moved * 20 / ticks;
+                        test.check(perSecond > 1 && perSecond < 4, kind + " moves along at a walk (" + String.format(java.util.Locale.ROOT, "%.1f blocks in %d ticks, %.1f a second", moved, ticks, perSecond) + ")");
+                        if (kind.equals("rider")) seat(lead);
+                        side(kind, lead, order);
+                    });
                 });
             });
         });
@@ -257,33 +281,86 @@ final class SelfTestRoads {
             look(middle.add(-14, 16, -14), middle.add(10, 0, 10));
             shot("mobtalk-roads-night-above.png", 3, () -> {
                 test.command("time set 6000");
-                village(2, () -> village(1, this::finish));
+                village(2, () -> village(1, this::probes));
             });
         });
     }
 
-    /** Where the roads come into a village of the world (one that two or more roads come to, {@code roads} 2, or only one): the
-     * village's chunks are held until its streets (and, with one road, its station) are done, then it is photographed from the
-     * road and from above. Skipped when the world has no such village. */
+    /** Where the roads come to a village of the world (one that two or more roads come to, {@code roads} 2, or only one): the
+     * village's chunks are held until its junction and trail (or, for roads laid into it, its streets and station) are done, then
+     * it is photographed from the road and from above. Skipped when the world has no such village. */
     private void village(int roads, Runnable then) {
         List<String> keys = onServer(() -> Roads.villagesWith(world(), roads));
-        String kind = roads >= 2 ? "through" : "station";
-        if (keys.isEmpty()) { test.log("no village with " + roads + " road(s): " + kind + " views skipped"); then.run(); return; }
+        if (keys.isEmpty()) { test.log("no village with " + roads + " road(s): its views skipped"); then.run(); return; }
         String key = keys.get(0);
         onServer(() -> { Roads.holdVillage(world(), key, true); return null; });
         test.await("the village " + key + " is done", 180, () -> onServer(() -> Roads.villageReport(world(), key)) != null, () -> {
             String report = onServer(() -> Roads.villageReport(world(), key));
-            test.check(report.contains("подъездов " + (roads >= 2 ? "" : "1")), "the roads reach the streets of " + key + ": " + report);
-            if (roads == 1) test.check(report.contains("станция"), "a station where the only road ends at " + key);
-            else test.check(!report.contains("вымощено улиц 0"), "the streets between the entries are paved at " + key);
+            String kind;
+            if (report.contains("развязка")) {
+                kind = roads >= 2 ? "junction" : "hub";
+                Matcher m = Pattern.compile("тропа (\\d+) блоков").matcher(report);
+                int trail = m.find() ? Integer.parseInt(m.group(1)) : 0;
+                test.check(trail > 0 && !report.contains("("), "the trail from the junction reaches a street of " + key + ": " + report);
+                test.check(report.contains("навес"), "the junction of " + key + " has its shelter");
+                test.check(!report.contains("фонарей 0"), "the junction of " + key + " has lamps");
+                int[] hub = onServer(() -> Roads.hub(world(), key));
+                int[] box = onServer(() -> Roads.villageBox(world(), key));
+                boolean outside = hub != null && box != null && (hub[0] < box[0] || hub[0] > box[3] || hub[2] < box[2] || hub[2] > box[5]);
+                test.check(outside, "the junction of " + key + " stands outside the village (" + (hub == null ? "none" : hub[0] + " " + hub[2]) + ")");
+                if (roads >= 2) test.check(onServer(() -> Roads.onward(world(), key)), "a trip at the junction of " + key + " has a road to drive on along");
+            } else {
+                kind = roads >= 2 ? "through" : "station";
+                test.check(report.contains("подъездов " + (roads >= 2 ? "" : "1")), "the roads reach the streets of " + key + ": " + report);
+                if (roads == 1) test.check(report.contains("станция"), "a station where the only road ends at " + key);
+                else test.check(!report.contains("вымощено улиц 0"), "the streets between the entries are paved at " + key);
+            }
             double[] e = onServer(() -> Roads.villageEntry(world(), key));
             Vec3d at = new Vec3d(e[0], e[1], e[2]), in = new Vec3d(e[3], 0, e[4]);
             look(at.subtract(in.multiply(16)).add(in.z * 5, 4, -in.x * 5), at.add(in.multiply(6)));
             shot("mobtalk-roads-" + kind + "-entry.png", 6, () -> {
                 look(at.subtract(in.multiply(10)).add(0, 22, 0), at.add(in.multiply(6)));
                 shot("mobtalk-roads-" + kind + "-above.png", 3, () -> {
-                    onServer(() -> { Roads.holdVillage(world(), key, false); return null; });
-                    then.run();
+                    look(at.add(in.multiply(2)).add(0, 2.2, 0), at.add(in.multiply(24)).add(0, 1, 0));
+                    shot("mobtalk-roads-" + kind + "-trail.png", 3, () -> {
+                        onServer(() -> { Roads.holdVillage(world(), key, false); return null; });
+                        then.run();
+                    });
+                });
+            });
+        });
+    }
+
+    /** The further lines asked for: each planned, laid and checked as the first road was, and photographed from above and along. */
+    private void probes() {
+        if (probe >= probes.size()) { finish(); return; }
+        int[] line = probes.get(probe++);
+        reply = null;
+        test.server().execute(() -> Roads.build(world(), line[0], line[1], line[2], line[3], text -> reply = text));
+        test.await("probe " + probe + " is planned", 120, () -> reply != null, () -> {
+            test.log("probe " + probe + ": " + reply);
+            Matcher m = BUILT.matcher(reply == null ? "" : reply);
+            // The planner may refuse a line (too much bridge, too long): the probes cross whatever land they are given, so a refusal
+            // is noted, not a failure; an error in the planning is one.
+            if (!m.find()) { if (reply != null && reply.contains("не будет") && !reply.contains("ошибка")) test.log("probe " + probe + " refused: " + reply); else test.fail("probe " + probe + " could not be planned: " + reply); probes(); return; }
+            int id = Integer.parseInt(m.group(1));
+            onServer(() -> Roads.load(world(), id));
+            test.await("probe " + probe + " is laid end to end", 420, () -> {
+                int[] laid = onServer(() -> Roads.laid(world(), id));
+                return laid[1] > 0 && laid[0] == laid[1];
+            }, () -> {
+                whole(id);
+                int n = onServer(() -> Roads.length(world(), id));
+                int[] firsts = onServer(() -> Roads.firsts(world(), id));
+                // The most telling spot: the first tunnel or bridge if there is one, else the middle.
+                int spot = firsts[1] >= 0 ? firsts[1] : firsts[0] >= 0 ? firsts[0] : n / 2;
+                Vec3d middle = onServer(() -> Roads.point(world(), id, spot)), ahead = onServer(() -> Roads.point(world(), id, Math.min(n - 1, spot + 30)));
+                Vec3d before = onServer(() -> Roads.point(world(), id, Math.max(0, spot - 16)));
+                int number = probe;
+                look(middle.add(-18, 34, -18), middle.add(8, 0, 8));
+                shot("mobtalk-roads-probe" + number + "-above.png", 6, () -> {
+                    look(before.add(0, 2.2, 0), ahead.add(0, 1, 0));
+                    shot("mobtalk-roads-probe" + number + "-along.png", 4, this::probes);
                 });
             });
         });
