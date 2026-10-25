@@ -54,6 +54,8 @@ final class SelfTest {
     static final boolean ONLY_NAMES = "names".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=looks}: track M, villagers as people (no LLM, no voice): checks and screenshots. */
     static final boolean ONLY_LOOKS = "looks".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=glam}: mercantile city women, handbags and glam outfits (no LLM, no voice). */
+    static final boolean ONLY_GLAM = "glam".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=defense}: village defence, stage 1 — the alarm, no spawning in the village, the golem (no LLM, no voice). */
     static final boolean ONLY_DEFENSE = "defense".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=towers}: village defence, stage 2 — watchtowers built, their archers, horn and arrows (no LLM, no voice). */
@@ -176,7 +178,7 @@ final class SelfTest {
                 : ONLY_DEFENSE ? () -> new SelfTestDefense(this, sx, SY, sz).run(this::finish)
                 : ONLY_TOWERS ? () -> new SelfTestTowers(this, sx, SY, sz).run(this::finish)
                 : ONLY_GUARDS ? () -> new SelfTestGuards(this, sx, SY, sz).run(this::finish)
-                : ONLY_LOOKS ? () -> new SelfTestLooks(this, sx, SY, sz).run(this::finish) : ONLY_NAMES ? this::names : ONLY_VOICES ? this::voices : this::aim);
+                : ONLY_LOOKS ? () -> new SelfTestLooks(this, sx, SY, sz).run(this::finish) : ONLY_GLAM ? () -> new SelfTestGlam(this, sx, SY, sz).run(this::finish) : ONLY_NAMES ? this::names : ONLY_VOICES ? this::voices : this::aim);
     }
 
     // ---- Names only: a crowd of new villagers, each named on meeting, none sharing a name.

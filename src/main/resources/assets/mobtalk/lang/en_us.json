@@ -902,5 +902,7 @@
   "mobtalk.tune.mercCoolHearts": "Cooling per step: %s",
   "mobtalk.tune.mercCoolHearts.tooltip": "Hearts she loses per step without gifts.",
   "mobtalk.tune.mercAppetiteCap": "Appetite cap: %s emeralds",
-  "mobtalk.tune.mercAppetiteCap.tooltip": "Her demands stop growing at this price."
+  "mobtalk.tune.mercAppetiteCap.tooltip": "Her demands stop growing at this price.",
+  "mobtalk.tune.mercDashPercent": "Leaves after dinner: %s%%",
+  "mobtalk.tune.mercDashPercent.tooltip": "Dinner date: the chance she leaves right after you pay the bill (\"my friend is calling\")."
 }

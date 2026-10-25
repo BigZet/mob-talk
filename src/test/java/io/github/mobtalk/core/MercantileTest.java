@@ -94,4 +94,28 @@ class MercantileTest {
         assertEquals(Gesture.Outcome.REFUSED, seen.socialTurn.intent(Gesture.GIFT).outcome(), "мак ей не подарок");
         assertTrue(SocialPrompt.persona(seen).contains("зайка"), "приторная речь");
     }
+
+    @Test void dinnerDateBillsAndMayDash() throws Exception {
+        assertTrue(Mercantile.invites("Пойдём в ресторан?") && Mercantile.invites("давай поужинаем") && !Mercantile.invites("как дела"));
+        assertTrue(Mercantile.pays("Я плачу") && Mercantile.pays("счёт, пожалуйста") && !Mercantile.pays("пойдём"));
+        ConversationStore store = ConversationStore.open(directory, config);
+        store.observe(SocialLayerTest.villager(villager, dima, 0, false, "minecraft:air"));
+        ConversationStore.Profile p = store.state.profiles.get(villager.toString());
+        p.social.gender = Gender.FEMALE.name(); p.social.persona = Persona.MERCANTILE.name();
+        assertTrue(store.startDinner(villager, dima, "Дима", 2, config).contains("голодран"), "голодранца не берут в ресторан");
+        assertEquals(0, store.dinnerBill(villager, dima));
+        assertTrue(store.startDinner(villager, dima, "Дима", 30, config).contains("Счёт"));
+        int bill = store.dinnerBill(villager, dima);
+        assertTrue(bill >= 5, "счёт: " + bill);
+        String facts = String.join(" ", store.profile(SocialLayerTest.villager(villager, dima, store.revision(villager), false, "minecraft:air")).socialTurn.facts());
+        assertTrue(facts.contains("ресторан") && facts.contains(String.valueOf(bill)), facts);
+        int before = p.relations.get(dima.toString()).score;
+        assertTrue(store.endDinner(villager, dima, "Дима", true, true).contains("упорхнула"));
+        assertEquals(before + Mercantile.DASH_HEARTS, p.relations.get(dima.toString()).score);
+        assertEquals(0, store.dinnerBill(villager, dima), "ужин кончился");
+        store.startDinner(villager, dima, "Дима", 30, config);
+        int was = p.relations.get(dima.toString()).score;
+        assertTrue(store.endDinner(villager, dima, "Дима", false, false).contains("ярост"));
+        assertEquals(was + Mercantile.STIFFED_HEARTS, p.relations.get(dima.toString()).score);
+    }
 }

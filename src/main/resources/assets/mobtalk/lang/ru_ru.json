@@ -902,5 +902,7 @@
   "mobtalk.tune.mercCoolHearts": "Остывание за шаг: %s",
   "mobtalk.tune.mercCoolHearts.tooltip": "Сколько сердечек она теряет за каждый шаг без подарков.",
   "mobtalk.tune.mercAppetiteCap": "Потолок аппетита: %s изумр.",
-  "mobtalk.tune.mercAppetiteCap.tooltip": "Дороже этого её запросы не растут."
+  "mobtalk.tune.mercAppetiteCap.tooltip": "Дороже этого её запросы не растут.",
+  "mobtalk.tune.mercDashPercent": "Ушла после ужина: %s%%",
+  "mobtalk.tune.mercDashPercent.tooltip": "Ужин-«тарелочница»: с какой вероятностью она после оплаты счёта сразу уходит («подруга позвонила»)."
 }

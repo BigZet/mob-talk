@@ -143,7 +143,10 @@ public final class SocialLedger {
         int wealth = Mercantile.wealth(snapshot);
         if (mercantile) Mercantile.gestures(rolled, Mercantile.purse(wealth, config)); // Голодранцу — от ворот поворот, богатому — улыбки.
         List<String> facts = SocialPrompt.playerFacts(courtship, state.family, p.id, player, config);
-        if (mercantile) facts.addAll(Mercantile.facts(rapport, Mercantile.purse(wealth, config), wealth, Mercantile.neglected(rapport, config, now)));
+        if (mercantile) {
+            facts.addAll(Mercantile.facts(rapport, Mercantile.purse(wealth, config), wealth, Mercantile.neglected(rapport, config, now), courtship));
+            facts.addAll(Mercantile.dinnerFacts(rapport, now)); // Ужин-«тарелочница».
+        }
         facts.addAll(JealousyLedger.facts(p, rapport, PlayerIdentity.configOf(player, config), now)); // Трек J: ревность и ночь вместе.
         facts.addAll(WeddingLedger.facts(state, p, r, player, snapshot, config, now)); // Трек L: помолвка, свидетели, свадьба.
         facts.addAll(ChildLedger.facts(state, p, r, player, config, children)); // Трек N: особый вечер, беременность.

@@ -78,6 +78,12 @@ public final class Mercantile {
         int wealth = wealth(snapshot);
         if (wealth >= 0 && wealth != rel.rapport.wallet) { rel.rapport.wallet = wealth; changed = true; }
         if (rel.rapport.paidAt >= 0) changed |= cool(rel, c, now) > 0;
+        int expired = expireDinner(rel.rapport, now);
+        if (expired != 0) {
+            rel.score = ConversationStore.clamp(rel.score + expired, false);
+            ConversationStore.event(p, now, "Игрок сводил тебя в ресторан и не заплатил по счёту — позор, ты оскорблена; отношение " + rel.score, 4);
+            changed = true;
+        }
         return changed;
     }
     public static Purse purse(int wealth, MobTalkConfig c) {
@@ -170,7 +176,7 @@ public final class Mercantile {
     }
 
     /** Строки «ты и этот игрок» для промпта: кошелёк, желание, остывание и правило тона. */
-    static List<String> facts(Rapport r, Purse purse, int wealth, boolean neglected) {
+    static List<String> facts(Rapport r, Purse purse, int wealth, boolean neglected, Courtship courtship) {
         List<String> facts = new ArrayList<>();
         facts.add("ты меркантильная: кошелёк этого игрока на твой взгляд — " + purse.word + (wealth >= 0 ? " (≈" + wealth + " изумр. при себе)" : "") + ".");
         facts.add(switch (purse) {
@@ -180,7 +186,61 @@ public final class Mercantile {
         });
         facts.add("Сейчас ты хочешь от него " + wish(r).words() + " — намекни или попроси прямо, капризно и с юмором, но не в каждой реплике.");
         if (neglected) facts.add("Он давно ничего тебе не дарил — ты заметно охладела («ты изменился», «раньше ты был щедрее»).");
+        if (courtship == Courtship.MARRIED) facts.add("Ты его жена, и теперь всё его — немного твоё: просишь «на шубу», «на салон», «на отпуск у моря», "
+                + "сравниваешь его с мужьями подруг; без подарков дуешься и вздыхаешь, с подарком — снова «котик».");
+        else if (courtship == Courtship.ENGAGED) facts.add("Вы помолвлены: ты уже обсуждаешь, какое кольцо покажешь подругам и сколько стоит свадьба мечты.");
         facts.add("Тон: игривый расчётливый флирт, сатира над меркантильностью; никакой откровенности и пошлости.");
+        return facts;
+    }
+
+    // ---- Ужин-«тарелочница». ----
+
+    /** Ужин длится столько реального времени; после побега она помнит его в разговоре столько. */
+    public static final long DINNER_MILLIS = 10 * 60_000L, DASH_FRESH_MILLIS = 20 * 60_000L;
+    /** Сердечки: оплаченный ужин, оплаченный с побегом, неоплаченный (не хватило или не заплатил вовремя). */
+    public static final int DINNER_HEARTS = 8, DASH_HEARTS = 2, STIFFED_HEARTS = -10, EXPIRED_HEARTS = -5;
+    private static final java.util.regex.Pattern DINNER = java.util.regex.Pattern.compile(
+            "поужина|ужина|на ужин|ресторан|кафе|в кино|свидани|угощ|сводить|посидим|пообедать|в бар\\b|кофе");
+    private static final java.util.regex.Pattern PAY = java.util.regex.Pattern.compile(
+            "плачу|заплачу|оплачу|оплати|сч[её]т|рассчита|расплачу|угощаю|за мой сч|держи деньги");
+    private static String plain(String said) { return said == null ? "" : said.toLowerCase(Locale.ROOT).replace('ё', 'е'); }
+    /** Зовёт ли её игрок в ресторан, кафе, на свидание. */
+    public static boolean invites(String said) { return DINNER.matcher(plain(said)).find(); }
+    /** Платит ли игрок по счёту. */
+    public static boolean pays(String said) { return PAY.matcher(plain(said)).find(); }
+    /** Счёт: чем больше аппетит, тем дороже меню. */
+    static int bill(Rapport r) { return Math.min(64, 3 + 2 * appetite(r)); }
+    /** Идёт ли ужин сейчас. */
+    static boolean dining(Rapport r, long now) { return r != null && r.dinnerUntil > now; }
+    /** Зовёт на ужин: отказ голодранцу (строка-причина) или "" — согласна; счёт записан. */
+    static String startDinner(Rapport r, Purse purse, long now) {
+        if (purse == Purse.BROKE) return "не идёт: с голодранцем в ресторан — позор";
+        if (dining(r, now)) return "";
+        r.bill = bill(r); r.dinnerUntil = now + DINNER_MILLIS;
+        return "";
+    }
+    /** Итог ужина: оплачен (и сбежала ли), не оплачен; сердечки и метки. */
+    static int endDinner(Rapport r, boolean paid, boolean dash, long now) {
+        r.dinnerUntil = -1;
+        if (!paid) return STIFFED_HEARTS;
+        r.paidAt = now; r.coolAt = now; r.appetite = appetite(r) + 1;
+        if (dash) { r.dashedAt = now; return DASH_HEARTS; }
+        return DINNER_HEARTS;
+    }
+    /** Ужин просрочен: игрок так и не заплатил. Возвращает сердечки (0 — нечего списывать). */
+    static int expireDinner(Rapport r, long now) {
+        if (r == null || r.dinnerUntil < 0 || r.dinnerUntil > now) return 0;
+        r.dinnerUntil = -1;
+        return EXPIRED_HEARTS;
+    }
+    /** Строки об ужине для промпта. */
+    static List<String> dinnerFacts(Rapport r, long now) {
+        List<String> facts = new ArrayList<>();
+        if (dining(r, now)) facts.add("У вас свидание в ресторане: ты заказала самое дорогое (устрицы, торт, шампанское), счёт — " + r.bill
+                + " изумр.; щебечи, хвали заведение, ешь и делай вид, что тебе интересен он, а не меню; ждёшь, что он заплатит — пусть скажет «я плачу». "
+                + "Если он зовёт пройтись — action FOLLOW.");
+        if (r != null && r.dashedAt >= 0 && now - r.dashedAt < DASH_FRESH_MILLIS)
+            facts.add("Ты недавно поела за его счёт и сразу упорхнула («подруга позвонила»); если он об этом — выкручивайся сладко и фальшиво.");
         return facts;
     }
 

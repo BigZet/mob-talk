@@ -757,6 +757,9 @@ public final class MobGameBridge implements GameBridge {
                 if (Wedding.asksWitness(said)) parts.add(appointWitness(mobId, playerId).thenApply(m -> m.isBlank() ? "" : "[Mob Talk] " + m));
             }
             if (config.coSleep && CoSleep.invites(said)) parts.add(inviteToBed(mobId, playerId).thenApply(v -> ""));
+            // Меркантильная: зовут в ресторан — счёт; «я плачу» — изумруды из инвентаря, и она может упорхнуть.
+            if (config.socialLayer && Mercantile.on(config) && (Mercantile.invites(said) || Mercantile.pays(said)))
+                parts.add(onServer(() -> mercantile.dinner(mobId, player, said)).thenApply(m -> m.isBlank() ? "" : "§d[Mob Talk] " + m));
             if (config.familyLife && config.socialLayer) {
                 parts.add(eveningSpoke(playerId).thenApply(v -> ""));
                 if (SpecialEvening.invites(said)) parts.add(startEvening(mobId, playerId).thenApply(m -> m.isBlank() ? "" : "§d[Mob Talk] " + m));

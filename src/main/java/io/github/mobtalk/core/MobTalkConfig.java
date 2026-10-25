@@ -181,6 +181,8 @@ public final class MobTalkConfig {
      * {@code mercCoolHearts} сердечек; потолок аппетита (изумруды); сумочка в руке у меркантильной. */
     public boolean mercantile = true, mercHandbag = true;
     public int mercCityPercent = 40, mercVillagePercent = 5, mercPoor = 8, mercRich = 64, mercCoolMinutes = 15, mercCoolHearts = 2, mercAppetiteCap = 64;
+    /** Ужин-«тарелочница»: с какой вероятностью (проценты) она после оплаты сразу уходит («подруга позвонила»). */
+    public int mercDashPercent = 35;
     /** Сон вместе: влюблённый житель ложится рядом, когда игрок спит; откуда он приходит (блоки) и сколько сердечек даёт ночь. */
     public boolean coSleep = true;
     public int coSleepRange = 12, coSleepHearts = 3;

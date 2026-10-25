@@ -140,6 +140,7 @@ public final class Tunables {
         integer("mercCoolMinutes", s, "mercantile", 0, 120, 1, c -> c.mercCoolMinutes, (c, x) -> c.mercCoolMinutes = x);
         integer("mercCoolHearts", s, "mercantile", 0, 20, 1, c -> c.mercCoolHearts, (c, x) -> c.mercCoolHearts = x);
         integer("mercAppetiteCap", s, "mercantile", 1, 288, 1, c -> c.mercAppetiteCap, (c, x) -> c.mercAppetiteCap = x);
+        integer("mercDashPercent", s, "mercantile", 0, 100, 5, c -> c.mercDashPercent, (c, x) -> c.mercDashPercent = x);
         // Свадьба у колокола (трек L).
         integer("weddingVowSeconds", s, "wedding", 15, 120, 5, c -> c.weddingVowSeconds, (c, x) -> c.weddingVowSeconds = x);
         integer("weddingVowWaitSeconds", s, "wedding", 10, 180, 5, c -> c.weddingVowWaitSeconds, (c, x) -> c.weddingVowWaitSeconds = x);

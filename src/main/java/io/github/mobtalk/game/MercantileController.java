@@ -49,7 +49,7 @@ public final class MercantileController {
             for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, new Box(player.getBlockPos()).expand(REACH), VillagerEntity::isAlive)) {
                 if (!seen.add(villager.getUuid())) continue;
                 boolean adult = !villager.isBaby();
-                boolean on = Mercantile.on(bridge.config) && adult && bridge.memory.mercantile(villager.getUuid(), villager.getName().getString(), adult, city(world, villager));
+                boolean on = Mercantile.on(bridge.config) && adult && bridge.memory.mercantile(villager.getUuid(), villager.getName().getString(), adult, city(world, villager), bridge.config);
                 dress(villager, on && bridge.config.mercHandbag);
             }
         }
@@ -66,6 +66,36 @@ public final class MercantileController {
             villager.equipStack(EquipmentSlot.OFFHAND, new ItemStack(bag));
             villager.setEquipmentDropChance(EquipmentSlot.OFFHAND, 0f);
         } else if (!wear && handbag(held)) villager.equipStack(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
+    }
+
+    /** Ужин-«тарелочница» после слов игрока: оплата по счёту (изумруды из инвентаря) или приглашение; строка для чата. */
+    String dinner(java.util.UUID mobId, ServerPlayerEntity player, String said) {
+        String name = MobGameBridge.playerName(player);
+        int bill = bridge.memory.dinnerBill(mobId, player.getUuid());
+        if (bill > 0 && Mercantile.pays(said)) {
+            boolean paid = take(player, bill);
+            boolean dash = paid && player.getRandom().nextInt(100) < bridge.config.mercDashPercent;
+            String line = bridge.memory.endDinner(mobId, player.getUuid(), name, paid, dash);
+            if (dash) bridge.actions.stop(mobId, true); // Ушла: больше не идёт следом.
+            return line;
+        }
+        if (bill == 0 && Mercantile.invites(said)) return bridge.memory.startDinner(mobId, player.getUuid(), name, wealth(player), bridge.config);
+        return "";
+    }
+    /** Забирает {@code count} изумрудов из инвентаря, если их хватает. */
+    private static boolean take(PlayerEntity player, int count) {
+        var inventory = player.getInventory();
+        int have = 0;
+        for (int i = 0; i < inventory.size(); i++) if (inventory.getStack(i).isOf(net.minecraft.item.Items.EMERALD)) have += inventory.getStack(i).getCount();
+        if (have < count) return false;
+        int left = count;
+        for (int i = 0; i < inventory.size() && left > 0; i++) {
+            ItemStack stack = inventory.getStack(i);
+            if (!stack.isOf(net.minecraft.item.Items.EMERALD)) continue;
+            int used = Math.min(left, stack.getCount());
+            stack.decrement(used); left -= used;
+        }
+        return true;
     }
 
     /** Богатство игрока в изумрудах (для {@code playerDetails.wealth}): деньги в инвентаре и надетое. */

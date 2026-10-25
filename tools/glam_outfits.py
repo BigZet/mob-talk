@@ -37,7 +37,7 @@ GOLD, GOLD_HI, GOLD_LO = (226, 184, 72), (255, 230, 140), (160, 120, 40)
 PEARL = (240, 236, 228)
 BLACK = (22, 20, 24)
 
-def accessories(img, rng, glasses=True, earrings=GOLD, lipstick=None):
+def accessories(img, rng, glasses=False, earrings=GOLD, lipstick=None):
     """Sunglasses over the eyes (head front rows 4-5), earrings on the head sides."""
     def head(face, x, y, w, h):
         if glasses and face == 'front':
@@ -181,7 +181,7 @@ def tracksuit(main, stripe, zipper=GOLD):
         if face in ('right', 'left') and x == 1: return stripe
         return velour(x, y)
     paint(img, 'rleg', leg); paint(img, 'lleg', leg)
-    accessories(img, rng, glasses=True, earrings=GOLD)
+    accessories(img, rng, earrings=GOLD)
     return img
 
 def evening_dress(main, sparkle):
@@ -247,7 +247,7 @@ def little_black_dress():
         return None
     paint(img, 'rpants', legs_top); paint(img, 'lpants', legs_top)
     paint(img, 'rleg', heels((170, 20, 40))); paint(img, 'lleg', heels((170, 20, 40)))  # красные туфли
-    accessories(img, rng, glasses=True, earrings=PEARL)
+    accessories(img, rng, earrings=PEARL)
     return img
 
 def white_suit():
@@ -279,7 +279,7 @@ def white_suit():
         if face == 'front' and x == 1 and y < 10: return shade(main, 0.92)  # стрелки на брюках
         return main
     paint(img, 'rleg', leg); paint(img, 'lleg', leg)
-    accessories(img, rng, glasses=True)
+    accessories(img, rng)
     return img
 
 OUTFITS = [
@@ -337,8 +337,9 @@ def bag_model(name):
     ]
     display = {
         # Висит на руке: ручка в кулаке, сумка ниже кисти.
-        'thirdperson_righthand': {'rotation': [0, 90, 0], 'translation': [0, -3.5, 1.5], 'scale': [0.7, 0.7, 0.7]},
-        'thirdperson_lefthand': {'rotation': [0, 90, 0], 'translation': [0, -3.5, 1.5], 'scale': [0.7, 0.7, 0.7]},
+        # В руке у предмета +Y смотрит вперёд, −Z — вниз: поворот X −90 ставит сумку стоймя, сдвиг по −Z опускает её под кулак.
+        'thirdperson_righthand': {'rotation': [-90, 0, 0], 'translation': [0, 0, -3], 'scale': [0.55, 0.55, 0.55]},
+        'thirdperson_lefthand': {'rotation': [-90, 0, 0], 'translation': [0, 0, -3], 'scale': [0.55, 0.55, 0.55]},
         'firstperson_righthand': {'rotation': [0, -20, 0], 'translation': [1, 1, 0], 'scale': [0.6, 0.6, 0.6]},
         'firstperson_lefthand': {'rotation': [0, -20, 0], 'translation': [1, 1, 0], 'scale': [0.6, 0.6, 0.6]},
         'gui': {'rotation': [20, -30, 0], 'translation': [0, 1, 0], 'scale': [1.0, 1.0, 1.0]},

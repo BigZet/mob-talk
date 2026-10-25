@@ -34,6 +34,8 @@ public final class Rapport {
     /** Меркантильная ({@link Mercantile}): с какой цены (изумруды) подарок её радует; когда принят последний дорогой подарок и
      * откуда считается остывание (реальные мс, −1 — не было); кошелёк игрока, как она видела его в последний раз (−1 — не видела). */
     int appetite = 1; long paidAt = -1, coolAt = -1; int wallet = -1;
+    /** Её ужин за его счёт: до какого времени идёт (−1 — нет), счёт в изумрудах; когда она «упорхнула» после оплаты (−1 — нет). */
+    long dinnerUntil = -1, dashedAt = -1; int bill;
     public record Given(String item, long time) { }
     /** Ревность этой пары, создаётся при первом обращении. */
     public Jealousy jealousy() { if (jealousy == null) jealousy = new Jealousy(); return jealousy; }
@@ -105,6 +107,7 @@ public final class Rapport {
         c.jealousy = jealousy == null ? null : jealousy.copy();
         c.ring = ring; c.witnessMan = witnessMan; c.witnessWoman = witnessWoman; c.weddingMillis = weddingMillis;
         c.appetite = appetite; c.paidAt = paidAt; c.coolAt = coolAt; c.wallet = wallet;
+        c.dinnerUntil = dinnerUntil; c.dashedAt = dashedAt; c.bill = bill;
         return c;
     }
 }
