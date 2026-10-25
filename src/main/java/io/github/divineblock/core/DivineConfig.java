@@ -20,6 +20,8 @@ public final class DivineConfig {
         Personality(String label, int favor, int force) { this.label = label; this.favor = favor; this.force = force; }
     }
     public enum Provider { OPENROUTER, VENICE }
+    /** How much the god says before a punishment: SHORT — a sentence or two (the roulette waits for him), NORMAL — as before. */
+    public enum SpeechLength { SHORT, NORMAL }
 
     public Personality personality = Personality.CAPRICIOUS;
     /** The strongest act the god may perform, 0..4. */
@@ -39,6 +41,8 @@ public final class DivineConfig {
     public String chatModel = "openai/gpt-6-luna";
     public String veniceModel = "deepseek-v4-1-flash";
     public int speechTimeoutSeconds = 20;
+    /** «Длина речи перед карой»: short by default, so the roulette follows his word quickly. Mercy and jests are not cut. */
+    public SpeechLength wrathSpeech = SpeechLength.SHORT;
     /** The god speaks aloud (OpenRouter text to speech); off leaves subtitles only. */
     public boolean voice = true;
     /** The voice rings as in a temple: a big reverb and a quiet echo ({@link VoiceEffects}). */
@@ -128,6 +132,11 @@ public final class DivineConfig {
     public List<String> disabledBosses = new ArrayList<>();
     public int bossDifficulty = 100;
     public boolean bossBlockDamage = true;
+    /** The weapons ({@code io.github.divineblock.weapon}): ids switched off (the war sword by default), whether the trumpets
+     * of Jericho bring walls down, and the weapons' own extra harm in percent (50..150). */
+    public List<String> disabledWeapons = new ArrayList<>(List.of("war_sword"));
+    public boolean jerichoBreaksBlocks = true;
+    public int weaponPower = 100;
     /** Confession (Mob Talk's priests, {@link Absolution}): every church gets its rector, a male cleric by the analoy (Abbots). */
     public boolean abbots = true;
     /** How much of a named sin a priest's absolution forgives at once, percent: a light sin in a church and by a village priest, a
@@ -169,6 +178,7 @@ public final class DivineConfig {
     public DivineConfig sanitized() {
         if (personality == null) personality = Personality.CAPRICIOUS;
         if (provider == null) provider = Provider.OPENROUTER;
+        if (wrathSpeech == null) wrathSpeech = SpeechLength.SHORT;
         maxTier = clamp(maxTier, 0, 4);
         effects = clamp(effects, 0, 3);
         protectRadius = clamp(protectRadius, 0, 256);
@@ -186,6 +196,8 @@ public final class DivineConfig {
         if (disabledBosses == null) disabledBosses = new ArrayList<>();
         if (overlayHidden == null) overlayHidden = new ArrayList<>();
         bossDifficulty = clamp(bossDifficulty, 50, 300);
+        if (disabledWeapons == null) disabledWeapons = new ArrayList<>();
+        weaponPower = clamp(weaponPower, 50, 150);
         churchSpacing = clamp(churchSpacing, 32, 256);
         confessLightTemple = clamp(confessLightTemple, 0, 100); confessLightVillage = clamp(confessLightVillage, 0, 100);
         confessHeavyTemple = clamp(confessHeavyTemple, 0, 100); confessHeavyVillage = clamp(confessHeavyVillage, 0, 100);

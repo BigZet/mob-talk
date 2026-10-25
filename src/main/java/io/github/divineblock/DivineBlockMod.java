@@ -67,6 +67,7 @@ public final class DivineBlockMod implements ModInitializer {
         GameHooks.register();
         io.github.divineblock.game.ChurchSpawn.register(); // Новый мир — у Славянской церкви.
         io.github.divineblock.boss.DivineBosses.register();
+        io.github.divineblock.weapon.DivineWeapons.register(); // Оружие из реликвий боссов.
         ChurchWorldgen.register();
         config(); // world generation reads the church settings from its own threads
         LOG.info("Божественный блок загружен");

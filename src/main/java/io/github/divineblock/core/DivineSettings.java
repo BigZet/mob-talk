@@ -47,7 +47,8 @@ public final class DivineSettings {
 
     public static final List<Group> GROUPS = List.of(new Group("god", "Характер бога"), new Group("speech", "Речь и решения"),
             new Group("world", "Мир"), new Group("wrath", "Кары"), new Group("roulette", "Рулетка кары"), new Group("bosses", "Боссы"),
-            new Group("stream", "Бог на стриме"), new Group("confession", "Исповедь и покаяние"));
+            new Group("stream", "Бог на стриме"), new Group("confession", "Исповедь и покаяние"),
+            new Group("weapons", "Оружие"));
 
     private static final Pattern ID = Pattern.compile("[a-z0-9_]{1,40}");
     private static final Gson GSON = new Gson();
@@ -65,6 +66,8 @@ public final class DivineSettings {
             flag("useJev", "speech", "Решатель Jev", "Решения бога принимает отдельная быстрая модель."),
             text("chatModel", "speech", "Модель речи OpenRouter", "Модель OpenRouter для слов бога."),
             text("veniceModel", "speech", "Модель речи Venice", "Модель Venice для слов бога."),
+            choice("wrathSpeech", "speech", "Длина речи перед карой", "SHORT — одна-две фразы, до 25 слов, и рулетка сразу за ними; NORMAL — развёрнутая реплика.",
+                    names(DivineConfig.SpeechLength.values())),
             number("speechTimeoutSeconds", "speech", "Ожидание речи, с", "Сколько ждать модель, прежде чем бог скажет по шаблону.", 3, 60, 1),
             flag("churches", "world", "Церкви в мире", "Церкви появляются в новых чанках."),
             number("churchSpacing", "world", "Редкость церквей", "Не больше одной церкви на столько чанков по каждой стороне.", 32, 256, 1),
@@ -111,7 +114,10 @@ public final class DivineSettings {
             number("confessSincerityBonus", "confession", "Бонус искренности, %", "Искренняя исповедь отпускает больше, но не больше самого греха.", 0, 100, 5),
             flag("confessLiftsCurse", "confession", "Исповедь снимает личное проклятие", "Личное проклятие кончается, когда все грехи, бывшие на душе в день проклятия, отпущены. Мировые кары, бан и боссы — нет."),
             flag("confessRemembersHidden", "confession", "Бог помнит скрытое", "Грех, утаённый на исповеди, остаётся на душе с пометкой, и бог называет его в вердикте."),
-            number("confessRelapseMultiplier", "confession", "Повторный грех, ×", "Тот же грех в два игровых дня после разрешения весит во столько раз больше и всегда тяжкий.", 1, 4, 1));
+            number("confessRelapseMultiplier", "confession", "Повторный грех, ×", "Тот же грех в два игровых дня после разрешения весит во столько раз больше и всегда тяжкий.", 1, 4, 1),
+            flags("disabledWeapons", "weapons", "Оружие", "Выключенное оружие в руке не действует: «бог не велит».", weaponFlags()),
+            flag("jerichoBreaksBlocks", "weapons", "Трубы Иерихона ломают стены", "Стеновые блоки перед трубачом рассыпаются; выкл — только звук и толчок."),
+            number("weaponPower", "weapons", "Сила оружия, %", "Собственный урон оружия бога (бонусы по нечисти, змиям, Голиафу) относительно обычного.", 50, 150, 1));
 
     private DivineSettings() { }
 
@@ -319,6 +325,13 @@ public final class DivineSettings {
     }
 
     /** Every sacred boss by where he comes from first, and the god with the mace with the end of the world. */
+    static List<Flag> weaponFlags() {
+        List<Flag> out = new ArrayList<>();
+        for (io.github.divineblock.weapon.WeaponKind kind : io.github.divineblock.weapon.WeaponKind.values())
+            out.add(new Flag(kind.id, kind.title, kind.help, "weapons", "Оружие"));
+        return out;
+    }
+
     static List<Flag> bossFlags() {
         List<Flag> out = new ArrayList<>();
         for (BossKind.Place place : BossKind.Place.values()) {

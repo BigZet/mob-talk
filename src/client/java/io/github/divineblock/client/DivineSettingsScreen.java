@@ -56,6 +56,9 @@ public final class DivineSettingsScreen extends DivinePanel {
         server(cycle("Речь", "Кто пишет слова бога: OpenRouter или Venice с запасным OpenRouter.", Arrays.asList(DivineConfig.Provider.values()), config.provider,
                 p -> p == DivineConfig.Provider.VENICE ? "Venice → OpenRouter" : "OpenRouter", v -> config.provider = v));
         server(toggle("Решатель Jev", "Решения бога принимает отдельная быстрая модель.", config.useJev, v -> config.useJev = v));
+        server(cycle("Длина речи перед карой", "Короткая — одна-две фразы (до 25 слов), и рулетка кары сразу за ними; обычная — развёрнутая реплика. Милость и шутки не сокращаются.",
+                Arrays.asList(DivineConfig.SpeechLength.values()), config.wrathSpeech, v -> v == DivineConfig.SpeechLength.SHORT ? "короткая" : "обычная",
+                v -> config.wrathSpeech = v));
         server(toggle("Отладка", "Показывать числа: как бог считает твою душу.", config.debug, v -> { config.debug = v; rebuild(); }));
 
         heading("Голос и эффекты");

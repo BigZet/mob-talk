@@ -40,6 +40,8 @@ public final class DivineBlockClient implements ClientModInitializer {
         Flipped.register();
         TornadoRenderer.register();
         io.github.divineblock.client.boss.BossClient.register();
+        io.github.divineblock.client.weapon.WeaponClient.register();
+        io.github.divineblock.client.weapon.WeaponSelfTest.register();
         io.github.divineblock.client.fx.FxEngine.register();
         BloodWater.register();
         RouletteHud.register();

@@ -59,6 +59,7 @@ final class RouletteSelfTest {
     /** The steps that check a scene: they run once its machine is gone. */
     private static final java.util.Set<Integer> AFTER_SPIN = java.util.Set.of(1, 3, 5, 7, 9, 10, 14, 16, 18, 19, 20);
     private static volatile boolean spared;
+    private static volatile int spinStartTick = -1;
     private static Path configFile;
     private static String savedConfig;
 
@@ -69,6 +70,7 @@ final class RouletteSelfTest {
         log("самотест рулетки кары включён");
         RouletteHud.moment = name -> {
             synchronized (moments) { moments.add(scene + ":" + name); }
+            if (name.equals("start") && scene.equals("wrath") && spinStartTick < 0) spinStartTick = GodVoicePlayer.clientTicks;
             // A screenshot a little after each moment: the reel has bounced and settled, the ribbon has rolled out.
             switch (name) {
                 case "stop1", "stop3" -> shotLater(scene + "-" + name, 4);
@@ -250,9 +252,30 @@ final class RouletteSelfTest {
                 check(spared, "пощажён случаем: кара не упала");
                 wait = 10;
             }
-            case 21 -> { client.setScreen(new WrathSettingsScreen(null, DivineBlockMod.config())); wait = 30; }
-            case 22 -> { shotLater("f9-settings", 1); wait = 10; }
-            case 23 -> { client.setScreen(null); log("ошибок всего: " + failures); finish(client); }
+            // The god speaks first, the roulette after him: a blasphemy at the altar, his words voiced for a pretended five
+            // seconds (-Ddivineblock.selftest.speechdelay), and the reels may only start once the words are over.
+            case 21 -> {
+                scene = "wrath"; recording = "wrath"; frame = 0; spinStartTick = -1; waited = 0;
+                GodVoicePlayer.lineArrived = -1; GodVoicePlayer.lineOver = -1;
+                // The altar has not cooled since the repentance: no pause for this prayer.
+                DivineConfig quick = DivineBlockMod.config(); quick.cooldownSeconds = 0;
+                try { quick.save(DivineBlockMod.configFile()); DivineBlockMod.reloadConfig(); } catch (IOException failure) { fail("настройки не сохранены: " + failure); }
+                server(() -> { home(); Prayers.handle(player, altar, "Будь ты проклят, бог, ненавижу тебя и всё твоё"); });
+                wait = 20;
+            }
+            case 22 -> {
+                if (!saw("wrath:gone") && waited++ < 20 * 45) { step--; return; }
+                log("  речь пришла на тике " + GodVoicePlayer.lineArrived + ", кончилась на " + GodVoicePlayer.lineOver + ", рулетка начала на " + spinStartTick);
+                if (GodVoicePlayer.FAKE_DELAY > 0) {
+                    check(GodVoicePlayer.lineArrived >= 0 && GodVoicePlayer.lineOver - GodVoicePlayer.lineArrived >= GodVoicePlayer.FAKE_DELAY, "речь бога звучала " + GodVoicePlayer.FAKE_DELAY + " тиков");
+                    check(spinStartTick >= GodVoicePlayer.lineOver, "рулетка началась после речи бога, а не поверх неё");
+                } else check(spinStartTick >= 0, "рулетка после речи бога");
+                check(saw("wrath:final"), "кара по молитве прошла через рулетку до финала");
+                wait = 20;
+            }
+            case 23 -> { client.setScreen(new WrathSettingsScreen(null, DivineBlockMod.config())); wait = 30; }
+            case 24 -> { shotLater("f9-settings", 1); wait = 10; }
+            case 25 -> { client.setScreen(null); log("ошибок всего: " + failures); finish(client); }
             default -> { }
         }
     }

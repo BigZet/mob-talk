@@ -49,6 +49,7 @@ final class GodVoicePlayer {
 
     static void register() {
         ClientPlayNetworking.registerGlobalReceiver(GodLinePayload.ID, (payload, context) -> speak(context.client(), payload.id(), payload.line()));
+        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(client -> tickFake());
         ClientPlayNetworking.registerGlobalReceiver(io.github.divineblock.game.GodAudioPayload.ID, (payload, context) -> heard(context.client(), payload));
     }
 
@@ -124,7 +125,9 @@ final class GodVoicePlayer {
     /** Voices a line from the server; {@code id} is acknowledged on start (-1) and on the last word (its length in seconds). */
     static void speak(MinecraftClient client, int id, String line) {
         DivineConfig config = DivineBlockMod.config();
-        if (!config.voice || TEST_WITHOUT_SPEECH || line == null || line.isBlank()) { ack(id, 0); return; }
+        lineArrived = clientTicks;
+        if (TEST_WITHOUT_SPEECH && FAKE_DELAY > 0 && line != null && !line.isBlank()) { ack(id, -1); FAKE.put(id, clientTicks + FAKE_DELAY); return; }
+        if (!config.voice || TEST_WITHOUT_SPEECH || line == null || line.isBlank()) { lineOver = clientTicks; ack(id, 0); return; }
         int mine = generation.incrementAndGet();
         ClientWorld world = client.world;
         Buffer buffer = new Buffer(id);
@@ -171,7 +174,29 @@ final class GodVoicePlayer {
 
     /** Whether the god's voice is sounding now: the chants sink under it. */
     static boolean speaking() {
-        return playing != null && MinecraftClient.getInstance().getSoundManager().isPlaying(playing);
+        boolean now = playing != null && MinecraftClient.getInstance().getSoundManager().isPlaying(playing) || !FAKE.isEmpty();
+        if (now) lastSpoke = System.nanoTime();
+        return now;
+    }
+    private static volatile long lastSpoke = Long.MIN_VALUE / 2;
+    /** Whether the god spoke within the last {@code millis}: the chants stay low between his word and the roulette after it. */
+    static boolean spokeWithin(long millis) { speaking(); return System.nanoTime() - lastSpoke < millis * 1_000_000L; }
+
+    /** Self-tests without paid speech can still pretend to speak: -Ddivineblock.selftest.speechdelay=<ticks> holds the "words
+     * over" back that long, as a voice would, so what waits for the god's word is tested for real. Ids with their due tick. */
+    static final int FAKE_DELAY = Integer.getInteger("divineblock.selftest.speechdelay", 0);
+    private static final java.util.Map<Integer, Integer> FAKE = new java.util.concurrent.ConcurrentHashMap<>();
+    /** For the self-test: the client tick each line arrived and each was reported over. */
+    static volatile int lineArrived = -1, lineOver = -1, clientTicks;
+
+    static void tickFake() {
+        clientTicks++;
+        FAKE.entrySet().removeIf(entry -> {
+            if (clientTicks < entry.getValue()) return false;
+            lineOver = clientTicks;
+            ack(entry.getKey(), FAKE_DELAY / 20f);
+            return true;
+        });
     }
 
     /** Tells the server the voice began ({@code -1}) or the words are over ({@code >= 0}), so the act can follow the words. */

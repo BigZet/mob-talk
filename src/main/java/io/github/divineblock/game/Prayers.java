@@ -270,23 +270,45 @@ public final class Prayers {
         });
     }
 
-    /** A punishment through the roulette: the portents and the red sky while the reels spin, the god's word at the final (his
-     * voice comes when it comes: the reels never wait for it), and the act exactly when the machine leaves, on the server's
-     * ticks. A sinner who leaves meanwhile is held back as before; death or another world cancel it; a pardon jams the reels. */
+    /** A punishment through the roulette: first the god says his word (the portents, the red sky and the beams begin with
+     * it); his client reports when the voice has ended, and only then — after the echo's pause, or at the deadline if the
+     * client never answers — the reels start; the act falls exactly when the machine leaves, on the server's ticks. The
+     * portents last for the words and the whole spin. A pardon while he speaks or while the reels turn takes it all back; a
+     * sinner who leaves is held back as before; death or another world cancel it. */
     private static void spinThen(ServerPlayerEntity player, BlockPos altar, ServerWorld world, Verdict verdict, DivineConfig config,
                                  int color, int music, int sky, double estimate) {
+        Miracle chosen = verdict.chosen();
+        MinecraftServer server = world.getServer();
+        int spinTicks = io.github.divineblock.core.Roulette.Timing.of(config.rouletteMode, io.github.divineblock.core.Roulette.severity(chosen, MiracleGroup.byId(verdict.group))).act();
+        boolean[] begun = new boolean[1];
+        Runnable begin = () -> {
+            // The word and the spin together are the window of portents: it never gets shorter than it used to be.
+            if (begun[0] || player.isRemoved()) return;
+            begun[0] = true;
+            Miracles.speaking(player, altar, chosen.kind, estimate);
+            Portents.before(player, altar, chosen, estimate + spinTicks / 20.0);
+            if (ServerPlayNetworking.canSend(player, BeamsPayload.ID)) ServerPlayNetworking.send(player, new BeamsPayload(altar, 20 * 90, color, music, sky));
+        };
+        Runnable beamsOff = () -> {
+            if (!player.isRemoved() && ServerPlayNetworking.canSend(player, BeamsPayload.ID)) ServerPlayNetworking.send(player, new BeamsPayload(altar, 0, color, music, sky));
+        };
+        // Up to fifteen seconds for the voice (its synthesis may take a moment to begin): then the reels go anyway.
+        int wait = Math.min(io.github.divineblock.core.SpeechGate.MAX_WAIT_TICKS, io.github.divineblock.core.SpeechGate.timeoutTicks(io.github.divineblock.core.SpeechGate.words(verdict.speech)) + 60);
+        RouletteService.GATE.open(player.getUuid(), RouletteService.now(server), wait, () -> {
+            if (Multiplayer.left(player)) { beamsOff.run(); Multiplayer.heldBack(player, world, altar, verdict); return; }
+            if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) { beamsOff.run(); cancelled(player, verdict); return; }
+            begin.run();
+            spin(player, altar, world, verdict, config, beamsOff);
+        }, beamsOff);
+        speakThen(player, verdict.speech, begin, () -> RouletteService.spoken(player));
+    }
+
+    /** The reels of a punishment the god has announced. */
+    private static void spin(ServerPlayerEntity player, BlockPos altar, ServerWorld world, Verdict verdict, DivineConfig config, Runnable beamsOff) {
         Miracle chosen = verdict.chosen();
         List<Verdict.Reason> main = verdict.mainReasons(1);
         RouletteService.spin(player, chosen, MiracleGroup.byId(verdict.group), main.isEmpty() ? "" : main.get(0).text(), config.rouletteMode, null,
                 new RouletteService.Steps() {
-                    @Override public void started(double seconds) {
-                        Portents.before(player, altar, chosen, seconds);
-                        if (ServerPlayNetworking.canSend(player, BeamsPayload.ID)) ServerPlayNetworking.send(player, new BeamsPayload(altar, 20 * 90, color, music, sky));
-                    }
-                    @Override public void fin() {
-                        Miracles.speaking(player, altar, chosen.kind, estimate);
-                        speakThen(player, verdict.speech, () -> { }, () -> { });
-                    }
                     @Override public void act() {
                         beamsOff();
                         if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) { Prayers.cancelled(player, verdict); return; }
@@ -305,9 +327,7 @@ public final class Prayers {
                         if (why == io.github.divineblock.core.RouletteQueue.Cancel.LEFT) Multiplayer.heldBack(player, world, altar, verdict);
                         else if (why != io.github.divineblock.core.RouletteQueue.Cancel.PARDON) Prayers.cancelled(player, verdict);
                     }
-                    private void beamsOff() {
-                        if (!player.isRemoved() && ServerPlayNetworking.canSend(player, BeamsPayload.ID)) ServerPlayNetworking.send(player, new BeamsPayload(altar, 0, color, music, sky));
-                    }
+                    private void beamsOff() { beamsOff.run(); }
                 });
     }
 
