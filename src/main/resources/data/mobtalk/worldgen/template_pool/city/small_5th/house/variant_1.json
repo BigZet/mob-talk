@@ -225,9 +225,18 @@
       }
     },
     {
-      "weight": 111,
+      "weight": 115,
       "element": {
         "location": "mobtalk:city/ours/market/rynok",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 93,
+      "element": {
+        "location": "mobtalk:city/ours/kiosk/ostanovka",
         "processors": "minecraft:empty",
         "projection": "rigid",
         "element_type": "minecraft:single_pool_element"

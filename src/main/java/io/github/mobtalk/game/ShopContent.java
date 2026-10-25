@@ -83,19 +83,23 @@ public final class ShopContent {
         VEG_STALL("market_veg_stall", 3, ShopCatalog.Place.PRODUCE, false),
         MEAT_STALL("market_meat_stall", 3, ShopCatalog.Place.FREEZER, false),
         DAIRY_STALL("market_dairy_stall", 3, ShopCatalog.Place.FRIDGE, false),
-        GRANNY_TABLE("market_granny_table", 2, ShopCatalog.Place.HOMEMADE, false);
+        GRANNY_TABLE("market_granny_table", 2, ShopCatalog.Place.HOMEMADE, false),
+        // the street kiosks (ларьки) at a bus stop: the window's sill, paid to the vendor inside as at the market
+        KIOSK_PRESS("kiosk_press", 3, ShopCatalog.Place.PRESS, false),
+        KIOSK_SHAWARMA("kiosk_shawarma", 3, ShopCatalog.Place.STREET_FOOD, false),
+        KIOSK_BEER("kiosk_beer", 3, ShopCatalog.Place.KIOSK, false);
         public final String id; public final int lanes; public final ShopCatalog.Place place; public final boolean twoSided;
         Display(String id, int lanes, ShopCatalog.Place place, boolean twoSided) { this.id = id; this.lanes = lanes; this.place = place; this.twoSided = twoSided; }
 
-        /** A market display: no till, the vendor takes the money as the goods are handed over. */
-        public boolean market() { return id.startsWith("market_"); }
+        /** A market display or a kiosk's window: no till, the vendor takes the money as the goods are handed over. */
+        public boolean market() { return id.startsWith("market_") || id.startsWith("kiosk_"); }
 
         /** The lane under a point of the block in the north-facing model's frame (0..1 each way): tiers go by height, the freezer's
          * halves and the produce stand's crates go along the front. */
         public int lane(double x, double y) {
             return switch (this) {
                 case FREEZER, GRANNY_TABLE -> x < 0.5 ? 0 : 1;
-                case PRODUCE, VEG_STALL, MEAT_STALL, DAIRY_STALL -> Math.min(2, (int) (x * 3));
+                case PRODUCE, VEG_STALL, MEAT_STALL, DAIRY_STALL, KIOSK_PRESS, KIOSK_SHAWARMA, KIOSK_BEER -> Math.min(2, (int) (x * 3));
                 default -> y < 5 / 16.0 ? 0 : y < 10 / 16.0 ? 1 : 2;
             };
         }
@@ -140,6 +144,9 @@ public final class ShopContent {
             Map.entry("market_dairy_stall", new double[][] {{0, 0, 1, 16, 12, 16}}),
             Map.entry("market_granny_table", new double[][] {{1, 0, 2, 15, 10, 14}}),
             Map.entry("market_scales", new double[][] {{0, 0, 1, 16, 15, 16}}),
+            Map.entry("kiosk_press", new double[][] {{0, 0, 0, 16, 10, 16}}),
+            Map.entry("kiosk_shawarma", new double[][] {{0, 0, 0, 16, 10, 16}}),
+            Map.entry("kiosk_beer", new double[][] {{0, 0, 0, 16, 10, 16}}),
             Map.entry("kvass_barrel", new double[][] {{0, 0, 1, 16, 16, 15}}),
             Map.entry("potato_sacks", new double[][] {{1, 0, 1, 15, 12, 15}}));
 
@@ -171,7 +178,8 @@ public final class ShopContent {
         SOUND_HUM = sound("shop.hum"); SOUND_CART = sound("shop.cart"); SOUND_MUSIC = sound("shop.music");
         PointOfInterestHelper.register(CASH_REGISTER_ID, 1, 1, CASH_REGISTER);
         PointOfInterestHelper.register(GUARD_DESK_ID, 1, 1, GUARD_DESK);
-        PointOfInterestHelper.register(VENDOR_ID, 1, 1, MARKET_SCALES, DISPLAYS.get(Display.GRANNY_TABLE));
+        PointOfInterestHelper.register(VENDOR_ID, 1, 1, MARKET_SCALES, DISPLAYS.get(Display.GRANNY_TABLE),
+                DISPLAYS.get(Display.KIOSK_PRESS), DISPLAYS.get(Display.KIOSK_SHAWARMA), DISPLAYS.get(Display.KIOSK_BEER));
         CASHIER = Registry.register(Registries.VILLAGER_PROFESSION, Identifier.of("mobtalk", "cashier"),
                 new VillagerProfession("cashier", entry -> entry.matchesKey(CASH_REGISTER_POI), entry -> entry.matchesKey(CASH_REGISTER_POI),
                         ImmutableSet.of(), ImmutableSet.of(), SoundEvents.ENTITY_VILLAGER_WORK_LIBRARIAN));

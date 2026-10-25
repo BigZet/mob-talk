@@ -14,8 +14,9 @@ public final class ShopCatalog {
 
     /** Which display a product lies on: the gondola (grocery, sweets), the bread rack, the refrigerated case (dairy, sausage, cooked
      * fish), the chest freezer (raw meat and fish) or the produce stand (fruit and vegetables); at the market also the old women's
-     * tables of things from their own gardens and kitchens (HOMEMADE). */
-    public enum Place { SHELF, BREAD, FRIDGE, FREEZER, PRODUCE, HOMEMADE }
+     * tables of things from their own gardens and kitchens (HOMEMADE); at a bus stop the kiosks' windows: the press, the
+     * shawarma stand and «Табак · Пиво». */
+    public enum Place { SHELF, BREAD, FRIDGE, FREEZER, PRODUCE, HOMEMADE, PRESS, STREET_FOOD, KIOSK }
 
     /** One product: the item's id, its section, the lot (items for the price) and the price in emeralds. */
     public record Goods(String item, String section, int lot, int price, Place place) { }
@@ -101,6 +102,24 @@ public final class ShopCatalog {
         add("homemade", h, "sweet_berries", 12, 1);
         add("homemade", h, "mobtalk:cucumber", 10, 1);
         add("homemade", h, "mobtalk:onion", 12, 1);
+        // the kiosks at the bus stop
+        Place p = Place.PRESS, w = Place.STREET_FOOD, k = Place.KIOSK;
+        add("press", p, "mobtalk:newspaper", 2, 1);
+        add("press", p, "mobtalk:krokodil", 1, 1);
+        add("press", p, "mobtalk:crossword", 1, 1);
+        add("press", p, "map", 1, 2);
+        add("press", p, "writable_book", 1, 2);
+        add("press", p, "paper", 8, 1);
+        add("street food", w, "mobtalk:shawarma", 1, 2);
+        add("street food", w, "mobtalk:cheburek", 2, 1);
+        add("street food", w, "mobtalk:belyash", 2, 1);
+        add("street food", w, "mobtalk:tea_cup", 2, 1);
+        add("kiosk", k, "mobtalk:beer", 2, 1);
+        add("kiosk", k, "mobtalk:sukhariki", 4, 1);
+        add("kiosk", k, "mobtalk:vobla", 2, 1);
+        add("kiosk", k, "mobtalk:gum", 6, 1);
+        add("kiosk", k, "mobtalk:semechki", 8, 1);
+        add("kiosk", k, "mobtalk:kvass", 2, 1);
     }
 
     /** The product of this item id, null when the shop does not stock it (an admin may still put it on a shelf by hand). */

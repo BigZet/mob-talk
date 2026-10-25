@@ -24,10 +24,13 @@ import net.minecraft.world.World;
 public final class ShopFoods {
     private ShopFoods() { }
 
-    /** How a product is taken: eaten, drunk, or drunk and it settles the stomach (milk clears every effect, kefir nausea and poison). */
-    enum Kind { EAT, DRINK, MILK, KEFIR }
+    /** How a product is taken: eaten, drunk, or drunk and it settles the stomach (milk clears every effect, kefir nausea and poison);
+     * hot tea warms (a little regeneration); beer makes bold and dizzy for a while. */
+    enum Kind { EAT, DRINK, MILK, KEFIR, TEA, BEER }
 
     public static final Map<String, Item> ITEMS = new LinkedHashMap<>();
+    /** The kiosk's reading and how many lines each has (mobtalk.kiosk.read.<id>.<n>, from tools/city/kiosk.py). */
+    private static final Map<String, Integer> READS = new LinkedHashMap<>();
     private static boolean registered;
 
     public static void register() {
@@ -60,6 +63,24 @@ public final class ShopFoods {
         food("tomato", 2, 0.3f, Kind.EAT, true);
         food("cabbage", 3, 0.4f, Kind.EAT);
         food("onion", 1, 0.2f, Kind.EAT, true);
+        // the kiosks at the bus stop
+        Item shawarma = Registry.register(Registries.ITEM, Identifier.of("mobtalk", "shawarma"), new Item(new Item.Settings()
+                .food(new FoodComponent.Builder().nutrition(9).saturationModifier(0.8f)
+                        .statusEffect(new StatusEffectInstance(StatusEffects.NAUSEA, 200, 0), 0.08f).build())));
+        ITEMS.put("shawarma", shawarma);
+        food("cheburek", 6, 0.6f, Kind.EAT);
+        Item belyash = Registry.register(Registries.ITEM, Identifier.of("mobtalk", "belyash"), new Item(new Item.Settings()
+                .food(new FoodComponent.Builder().nutrition(5).saturationModifier(0.6f)
+                        .statusEffect(new StatusEffectInstance(StatusEffects.HUNGER, 300, 0), 0.1f).build())));
+        ITEMS.put("belyash", belyash);
+        food("tea_cup", 1, 0.2f, Kind.TEA);
+        food("beer", 2, 0.2f, Kind.BEER);
+        food("sukhariki", 2, 0.2f, Kind.EAT, true);
+        food("vobla", 3, 0.5f, Kind.EAT);
+        food("gum", 1, 0.1f, Kind.EAT, true);
+        READS.put("newspaper", 12); READS.put("krokodil", 6); READS.put("crossword", 6);
+        for (Map.Entry<String, Integer> read : READS.entrySet())
+            ITEMS.put(read.getKey(), Registry.register(Registries.ITEM, Identifier.of("mobtalk", read.getKey()), new Readable(new Item.Settings().maxCount(16), read.getKey(), read.getValue())));
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.FOOD_AND_DRINK).register(entries -> ITEMS.values().forEach(entries::add));
     }
 
@@ -86,8 +107,30 @@ public final class ShopFoods {
             if (!world.isClient) {
                 if (kind == Kind.MILK) user.clearStatusEffects();
                 if (kind == Kind.KEFIR) { user.removeStatusEffect(StatusEffects.NAUSEA); user.removeStatusEffect(StatusEffects.POISON); }
+                if (kind == Kind.TEA) user.addStatusEffect(new StatusEffectInstance(StatusEffects.REGENERATION, 100, 0));
+                if (kind == Kind.BEER) {
+                    user.addStatusEffect(new StatusEffectInstance(StatusEffects.STRENGTH, 600, 0));
+                    user.addStatusEffect(new StatusEffectInstance(StatusEffects.NAUSEA, 160, 0));
+                }
             }
             return super.finishUsing(stack, world, user);
+        }
+    }
+
+    /** A newspaper, «Крокодил» or a crossword: read (used) for a line of it in the chat; a page turns. Not used up. */
+    static final class Readable extends Item {
+        private final String id; private final int lines;
+        Readable(Settings settings, String id, int lines) { super(settings); this.id = id; this.lines = lines; }
+
+        @Override public net.minecraft.util.TypedActionResult<ItemStack> use(World world, net.minecraft.entity.player.PlayerEntity user, net.minecraft.util.Hand hand) {
+            ItemStack stack = user.getStackInHand(hand);
+            if (!world.isClient) {
+                user.sendMessage(net.minecraft.text.Text.translatable("mobtalk.kiosk.read." + id + "." + world.random.nextInt(lines))
+                        .formatted(net.minecraft.util.Formatting.ITALIC, net.minecraft.util.Formatting.GRAY), false);
+                world.playSound(null, user.getBlockPos(), SoundEvents.ITEM_BOOK_PAGE_TURN, net.minecraft.sound.SoundCategory.PLAYERS, 0.8f, 1f);
+                user.getItemCooldownManager().set(this, 30);
+            }
+            return net.minecraft.util.TypedActionResult.success(stack, world.isClient);
         }
     }
 }

@@ -419,7 +419,71 @@ final class SelfTestShop {
                 test.bridge().config.shopPromoPercent = promo;
                 test.bridge().config.shopDeals = dealsWere;
                 test.command("gamemode survival " + name());
-                realShop();
+                kiosks();
+            });
+        });
+    }
+
+    private int kx, kz;
+    private BlockPos kpos(int x, int z) { return new BlockPos(kx + x, my + 5, kz + z); }
+    private String kat(int x, int y, int z) { return (kx + x) + " " + (my + 5 + y) + " " + (kz + z); }
+
+    /** The bus stop with its kiosks: a vendor comes to each window, the shawarma is paid on the spot, the newspaper reads. */
+    private void kiosks() {
+        kx = fx + 40; kz = fz + 16;
+        if (my == 0) my = fy - 5;
+        test.command("forceload add " + (kx - 4) + " " + (kz - 4) + " " + (kx + 30) + " " + (kz + 26));
+        test.command("tp " + name() + " " + kat(1, 0, 10) + " -90 15");
+        test.await("pause: the kiosks' chunks load", 3, () -> false, () -> {
+            test.command("place template mobtalk:city/ours/kiosk/ostanovka " + kx + " " + my + " " + kz);
+            int[] windows = {2, 15, 18};
+            test.await("a vendor comes to each kiosk", 40, () -> onServer(() -> {
+                for (int z : windows) if (!io.github.mobtalk.game.MarketController.vendorNear(world(), kpos(5, z))) return false;
+                return true;
+            }), () -> {
+                test.check(onServer(() -> {
+                    for (int z : windows) if (!io.github.mobtalk.game.MarketController.vendorNear(world(), kpos(5, z))) return false;
+                    return true;
+                }), "a vendor came to each kiosk window");
+                test.command("tp " + name() + " " + kat(1, 0, 5) + " -110 10");
+                shot("mobtalk-kiosks.png", () -> {
+                    test.command("tp " + name() + " " + kat(3, 0, 15) + " -90 30");
+                    shot("mobtalk-kiosk-shawarma.png", () -> {
+                        test.command("tp " + name() + " " + kat(3, 0, 2) + " -90 30");
+                        shot("mobtalk-kiosk-press.png", () -> {
+                            test.command("tp " + name() + " " + kat(3, 0, 18) + " -90 30");
+                            shot("mobtalk-kiosk-beer.png", this::kioskBuy);
+                        });
+                    });
+                });
+            });
+        });
+    }
+
+    private void kioskBuy() {
+        ShopContent.DisplayBlockEntity window = onServer(() -> world().getBlockEntity(kpos(5, 15)) instanceof ShopContent.DisplayBlockEntity d ? d : null);
+        test.check(window != null && window.display() == ShopContent.Display.KIOSK_SHAWARMA, "the shawarma window is a display");
+        if (window == null) { realShop(); return; }
+        onServer(() -> { io.github.mobtalk.game.MarketController.stock(world(), window); return true; });
+        test.command("clear " + name());
+        test.command("give " + name() + " minecraft:emerald 10");
+        test.await("emeralds for the kiosk", 5, () -> count(Items.EMERALD) == 10, () -> {
+            int price = window.lanes[0].price, lot = window.lanes[0].lot;
+            net.minecraft.item.Item item = window.lanes[0].goods.getItem();
+            test.server().execute(() -> ShopController.take(world(), window, 0, player()));
+            test.await("bought at the kiosk", 5, () -> count(item) > 0, () -> {
+                test.check(count(item) == lot && count(Items.EMERALD) == 10 - price && unpaid() == 0,
+                        "the kiosk sells on the spot (" + count(item) + " " + item + " for " + (10 - count(Items.EMERALD)) + ")");
+                test.command("give " + name() + " mobtalk:newspaper 1");
+                test.await("a newspaper", 5, () -> count(io.github.mobtalk.game.ShopFoods.ITEMS.get("newspaper")) == 1, () -> {
+                    int lines = chat.size();
+                    test.server().execute(() -> io.github.mobtalk.game.ShopFoods.ITEMS.get("newspaper").use(world(), player(), net.minecraft.util.Hand.MAIN_HAND));
+                    test.await("the newspaper is read", 5, () -> chat.size() > lines, () -> {
+                        test.check(chat.size() > lines, "the newspaper gives a headline (" + chat.get(chat.size() - 1) + ")");
+                        test.command("forceload remove " + (kx - 4) + " " + (kz - 4) + " " + (kx + 30) + " " + (kz + 26));
+                        realShop();
+                    });
+                });
             });
         });
     }

@@ -92,6 +92,18 @@ public final class ShopDisplayRenderer implements BlockEntityRenderer<ShopConten
                     spots.add(new Spot(x0 + dx, 10f, dz, 0, 0, 3.6f));
                 return new Layout(spots, x0, 8.2f, 0.45f);
             }
+            case KIOSK_PRESS -> { // papers lying flat on the sill, a little fanned
+                float x0 = 2.75f + lane * 5.25f;
+                for (float dz : new float[] {1.5f, 4.5f}) for (float dx : new float[] {-1f, 1f})
+                    spots.add(new Spot(x0 + dx, 10.05f, dz, dx * 10, 85, 4.4f));
+                return new Layout(spots, x0, 9.5f, -1.55f); // on the sill's front edge
+            }
+            case KIOSK_SHAWARMA, KIOSK_BEER -> { // standing on the sill in the window
+                float x0 = 2.75f + lane * 5.25f;
+                for (float dz : new float[] {2f, 5.5f}) for (float dx : new float[] {-1.2f, 1.2f})
+                    spots.add(new Spot(x0 + dx, 10f, dz, dx * 8, 0, 3.8f));
+                return new Layout(spots, x0, 9.5f, -1.55f);
+            }
             case GRANNY_TABLE -> { // a few jars and bags on the oilcloth
                 float x0 = lane == 0 ? 5 : 11;
                 for (float dz : new float[] {4.5f, 8f, 11.5f}) for (float dx : new float[] {-1.5f, 1.5f})
@@ -149,7 +161,7 @@ public final class ShopDisplayRenderer implements BlockEntityRenderer<ShopConten
             band = Text.translatable(lane.deal == 2 ? "mobtalk.shop.tag.day" : "mobtalk.shop.tag.promo").append(" ")
                     .append(Text.literal(String.valueOf(lane.was)).formatted(Formatting.STRIKETHROUGH)); // the old price, struck out
         }
-        float scale = display == ShopContent.Display.FREEZER ? 1 / 150f : 1 / 100f;
+        float scale = display == ShopContent.Display.FREEZER || display.id.startsWith("kiosk_") ? 1 / 150f : 1 / 100f;
         int width = text.getWidth(label);
         matrices.push();
         matrices.translate(layout.tagX() / 16f, layout.tagY() / 16f, layout.tagZ() / 16f);

@@ -115,8 +115,17 @@ public final class MarketController {
         HEARD.put(near.getUuid(), now + 300 + RANDOM.nextInt(300));
         CALLED.put(vendor.getUuid(), now + 600 + RANDOM.nextInt(1200));
         vendor.getLookControl().lookAt(near);
-        Text line = ShopController.name(world, vendor).append(Text.translatable("mobtalk.market.call." + RANDOM.nextInt(8)));
+        String kiosk = kioskOf(world, vendor);
+        Text line = ShopController.name(world, vendor).append(kiosk == null ? Text.translatable("mobtalk.market.call." + RANDOM.nextInt(8))
+                : Text.translatable("mobtalk.kiosk.call." + kiosk + "." + RANDOM.nextInt(4)));
         for (ServerPlayerEntity p : world.getPlayers()) if (p.squaredDistanceTo(vendor) <= 16 * 16) p.sendMessage(line, false);
+    }
+
+    /** The kiosk a vendor minds (press, shawarma, beer), or null for a market stall. */
+    private static String kioskOf(ServerWorld world, VillagerEntity vendor) {
+        for (BlockPos p : BlockPos.iterate(vendor.getBlockPos().add(-2, -1, -2), vendor.getBlockPos().add(2, 1, 2)))
+            if (world.getBlockEntity(p) instanceof ShopContent.DisplayBlockEntity d && d.display().id.startsWith("kiosk_")) return d.display().id.substring(6);
+        return null;
     }
 
     private static void say(ServerWorld world, ServerPlayerEntity player, VillagerEntity vendor, String key, Object... args) {
