@@ -79,6 +79,16 @@ public final class VillageTalkController {
             }
         }
     }
+    /** A talk between two villagers sitting in the bar ({@link BarEvenings}), its pace kept by the bar; false while the floor is taken. */
+    boolean barTalk(ServerWorld world, VillagerEntity a, VillagerEntity b, ServerPlayerEntity player) {
+        if (talking || !talks.isEmpty() || bridge.initiative.playerBusy || bridge.wedding.active()) return false;
+        long now = System.currentTimeMillis();
+        ConversationStore.Village village = village(world, a);
+        VillageChatter.Input input = bridge.memory.chatterInput(seat(a), seat(b), key(world, a, village), village == null ? "" : village.name(),
+                MobGameBridge.playerName(player), "вечер", random::nextDouble, now, true);
+        talks.add(new VillageChatter.Cue(input, now));
+        return true;
+    }
     private static VillageChatter.Seat seat(VillagerEntity villager) { return new VillageChatter.Seat(villager.getUuid(), MobGameBridge.type(villager), villager.getName().getString()); }
     /** A villager that may talk: grown, awake, not fleeing, fighting, riding, trading or held by the player's conversation. */
     private boolean free(VillagerEntity villager) {
