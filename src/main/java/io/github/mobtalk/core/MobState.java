@@ -34,6 +34,8 @@ public final class MobState {
     public static final int THOUGHT_LIMIT = 160;
     /** How many reasons a view names (the strongest), and how many pushes the mob remembers at all. */
     public static final int REASONS = 4, CAUSES = 8;
+    /** At most this many players have a regard of their own; the one met longest ago is forgotten first. */
+    static final int REGARDS = 64;
     /** How often being whole and unthreatened calms a mob down again. */
     static final long SAFE_COOLDOWN = 5 * 60_000L;
     /** Frights and irritations count within this window: three of either tip a mob into dread or bitterness. */
@@ -135,7 +137,22 @@ public final class MobState {
         Spell copy() { Spell c = new Spell(); c.kind = kind; c.since = since; c.until = until; c.max = max; c.cure = cure; return c; }
     }
 
+    /** Trust in one player and interest in them, as deviations from their rest (the rest follows that player's relationship):
+     * each player has their own, so a blow from one never makes the mob wary of another. */
+    static final class Regard {
+        double trust, interest; long trustHalfLife = halfLife(), interestHalfLife = halfLife(), at;
+        double deviation(Axis axis, long now) {
+            double d = axis == Axis.TRUST ? trust : interest;
+            long life = axis == Axis.TRUST ? trustHalfLife : interestHalfLife;
+            return d * Math.pow(0.5, Math.max(0, now - at) / (double) Math.max(1, life));
+        }
+        Regard copy() { Regard c = new Regard(); c.trust = trust; c.interest = interest; c.trustHalfLife = trustHalfLife; c.interestHalfLife = interestHalfLife; c.at = at; return c; }
+    }
+
+    /** Mood, calm and energy are the mob's own; {@code trust} and {@code interest} here are only the fallback for a player it has no
+     * regard of its own for yet (and what saves from before the per-player regards carried). */
     Value mood = new Value(), calm = new Value(), interest = new Value(), trust = new Value(), energy = new Value();
+    Map<String, Regard> regards = new LinkedHashMap<>();
     long updatedAt, safeAt;
     String thought = "";
     List<Cause> causes = new ArrayList<>();
@@ -151,7 +168,10 @@ public final class MobState {
 
     /** Where each axis rests: the temperament compressed so that no creature is born in panic, trust following the relationship;
      * {@code resilience} (from calm and confidence) and {@code sociability} decide how easily it falls into a long mood. */
-    public record Baseline(int mood, int calm, int interest, int trust, int energy, int resilience, int sociability) {
+    public record Baseline(int mood, int calm, int interest, int trust, int energy, int resilience, int sociability, String player) {
+        public Baseline(int mood, int calm, int interest, int trust, int energy, int resilience, int sociability) { this(mood, calm, interest, trust, energy, resilience, sociability, null); }
+        /** The same rest as seen by one player: trust and interest are read and moved in that player's own regard. */
+        public Baseline toward(String player) { return new Baseline(mood, calm, interest, trust, energy, resilience, sociability, player); }
         public static Baseline of(int calm, int confidence, int curiosity, int sociability, int relationship) {
             int c = axis(calm), conf = axis(confidence), cur = axis(curiosity), soc = axis(sociability);
             int rel = Math.max(-100, Math.min(100, relationship));
@@ -160,11 +180,47 @@ public final class MobState {
         }
         private static int axis(int value) { return value < 0 || value > 100 ? 50 : value; }
         /** The same rest with the mood point moved by a character ({@link Persona#moodRest}). */
-        public Baseline moodShifted(int shift) { return shift == 0 ? this : new Baseline(Math.max(0, Math.min(100, mood + shift)), calm, interest, trust, energy, resilience, sociability); }
+        public Baseline moodShifted(int shift) { return shift == 0 ? this : new Baseline(Math.max(0, Math.min(100, mood + shift)), calm, interest, trust, energy, resilience, sociability, player); }
         int of(Axis axis) { return switch (axis) { case MOOD -> mood; case CALM -> calm; case INTEREST -> interest; case TRUST -> trust; case ENERGY -> energy; }; }
     }
 
     private Value value(Axis axis) { return switch (axis) { case MOOD -> mood; case CALM -> calm; case INTEREST -> interest; case TRUST -> trust; case ENERGY -> energy; }; }
+
+    private static boolean personal(Axis axis, Baseline baseline) { return baseline.player() != null && (axis == Axis.TRUST || axis == Axis.INTEREST); }
+
+    /** Where trust or interest in this player stands: their own regard, else the shared fallback. */
+    private double personalValue(Axis axis, Baseline baseline, long now) {
+        int rest = rest(baseline, axis, now);
+        Regard g = regards.get(baseline.player());
+        if (g == null) return current(value(axis), rest, now, updatedAt);
+        return Math.max(0, Math.min(100, rest + g.deviation(axis, now)));
+    }
+
+    /** Moves trust or interest in one player; a first event starts their regard from where the shared fallback stood. */
+    private void shiftPersonal(Axis axis, int delta, boolean slow, Baseline baseline, long now) {
+        int rest = rest(baseline, axis, now);
+        Regard g = regards.get(baseline.player());
+        if (g == null) {
+            g = new Regard();
+            for (Axis a : List.of(Axis.TRUST, Axis.INTEREST)) {
+                double legacy = current(value(a), rest(baseline, a, now), now, updatedAt) - rest(baseline, a, now);
+                if (a == Axis.TRUST) g.trust = legacy; else g.interest = legacy;
+            }
+            g.at = now;
+            regards.put(baseline.player(), g);
+        } else {
+            g.trust = g.deviation(Axis.TRUST, now); g.interest = g.deviation(Axis.INTEREST, now); g.at = now;
+        }
+        double was = rest + (axis == Axis.TRUST ? g.trust : g.interest), next = was + delta;
+        if (slow) next = delta < 0 ? Math.min(next, rest + delta) : Math.max(next, rest + delta);
+        double deviation = Math.max(0, Math.min(100, next)) - rest;
+        long life = axis == Axis.TRUST ? g.trustHalfLife : g.interestHalfLife;
+        if (Math.abs(deviation) < 1) { deviation = 0; life = halfLife(); }
+        else if (slow) life = Math.max(life, slowHalfLife());
+        if (axis == Axis.TRUST) { g.trust = deviation; g.trustHalfLife = life; } else { g.interest = deviation; g.interestHalfLife = life; }
+        if (regards.size() > REGARDS) regards.entrySet().stream().min(java.util.Comparator.comparingLong(e -> e.getValue().at))
+                .map(Map.Entry::getKey).ifPresent(regards::remove);
+    }
 
     /** The long mood now, or null. */
     MoodSpell spell() { return spell == null ? null : MoodSpell.of(spell.kind); }
@@ -202,6 +258,7 @@ public final class MobState {
         }
         backgrounds.values().removeIf(b -> b.fade(now) <= 0);
         causes.removeIf(c -> c.weight(now) < 3);
+        regards.values().removeIf(g -> Math.abs(g.deviation(Axis.TRUST, now)) < 1 && Math.abs(g.deviation(Axis.INTEREST, now)) < 1);
         updatedAt = now;
     }
 
@@ -225,6 +282,7 @@ public final class MobState {
         for (Axis axis : Axis.values()) {
             int delta = event.delta(axis);
             if (delta == 0) continue;
+            if (personal(axis, baseline)) { shiftPersonal(axis, delta, event.slow, baseline, now); continue; }
             Value v = value(axis);
             int base = rest(baseline, axis, now);
             double was = v.value < 0 ? base : v.value, next = was + delta;
@@ -395,7 +453,8 @@ public final class MobState {
     /** A read-only picture at {@code now}, without moving anything. */
     public View view(Baseline baseline, long now) {
         int[] at = new int[Axis.values().length];
-        for (Axis axis : Axis.values()) at[axis.ordinal()] = (int) Math.round(current(value(axis), rest(baseline, axis, now), now, updatedAt));
+        for (Axis axis : Axis.values())
+            at[axis.ordinal()] = (int) Math.round(personal(axis, baseline) ? personalValue(axis, baseline, now) : current(value(axis), rest(baseline, axis, now), now, updatedAt));
         List<Reason> reasons = new ArrayList<>();
         double world = Tuning.get().moodWorldPercent / 100.0;
         for (Background b : backgrounds.values()) {
@@ -428,6 +487,13 @@ public final class MobState {
         backgrounds.entrySet().removeIf(e -> e.getValue() == null || MoodFactor.of(e.getValue().factor) == null);
         if (spell != null && (MoodSpell.of(spell.kind) == null || spell.max < spell.since)) spell = null;
         if (lastSpell == null) lastSpell = "";
+        if (regards == null) regards = new LinkedHashMap<>();
+        regards.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null || !Double.isFinite(e.getValue().trust) || !Double.isFinite(e.getValue().interest));
+        for (Regard g : regards.values()) {
+            g.trust = Math.max(-100, Math.min(100, g.trust)); g.interest = Math.max(-100, Math.min(100, g.interest));
+            if (g.trustHalfLife < 1_000 || g.trustHalfLife > 24 * 60 * 60_000L) g.trustHalfLife = halfLife();
+            if (g.interestHalfLife < 1_000 || g.interestHalfLife > 24 * 60 * 60_000L) g.interestHalfLife = halfLife();
+        }
         if (scares == null) scares = new ArrayList<>(); scares.removeIf(java.util.Objects::isNull);
         if (irritations == null) irritations = new ArrayList<>(); irritations.removeIf(java.util.Objects::isNull);
     }
@@ -437,6 +503,7 @@ public final class MobState {
         for (Cause cause : causes) c.causes.add(cause.copy());
         backgrounds.forEach((k, b) -> c.backgrounds.put(k, b.copy()));
         c.spell = spell == null ? null : spell.copy();
+        regards.forEach((k, g) -> c.regards.put(k, g.copy()));
         c.lowMoodSince = lowMoodSince; c.lowCalmSince = lowCalmSince; c.sourSince = sourSince; c.lowEnergySince = lowEnergySince; c.highMoodSince = highMoodSince;
         c.socialAt = socialAt; c.lastSpellAt = lastSpellAt; c.lastSpell = lastSpell;
         c.scares = new ArrayList<>(scares); c.irritations = new ArrayList<>(irritations);

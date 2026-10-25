@@ -122,9 +122,10 @@ public final class ConversationStore {
         }
         // Whole and not under attack: the nerves settle a little, however the player is regarded.
         boolean attacked = snapshot.mobDetails().get("lastAttacker") instanceof String attacker && !"none".equals(attacker);
-        if (snapshot.maxHealth() > 0 && snapshot.health() >= snapshot.maxHealth() && !attacked && p.state.safe(baseline(p, current.relationship()), now)) scheduleSave();
-        if (p.state.evolve(baseline(p, current.relationship()), now)) scheduleSave();
-        detached.stateView = p.state.view(baseline(p, current.relationship()), now);
+        MobState.Baseline rest = baseline(p, current.relationship(), snapshot.playerId());
+        if (snapshot.maxHealth() > 0 && snapshot.health() >= snapshot.maxHealth() && !attacked && p.state.safe(rest, now)) scheduleSave();
+        if (p.state.evolve(rest, now)) scheduleSave();
+        detached.stateView = p.state.view(rest, now);
         SocialLedger.prepare(state, p, detached, own, snapshot, detached.stateView, config, now, children);
         return detached;
     }
@@ -133,12 +134,20 @@ public final class ConversationStore {
     public synchronized MobState.View stateView(UUID mob, UUID player) {
         Profile p = mob == null ? null : state.profiles.get(mob.toString());
         if (p == null) return null;
-        return p.state.view(baseline(p, relationship(mob, player)), System.currentTimeMillis());
+        return p.state.view(baseline(p, relationship(mob, player), player), System.currentTimeMillis());
     }
     static MobState.Baseline baseline(Profile p, int relationship) { return SocialLedger.baseline(p, MobState.Baseline.of(p.calm, p.confidence, p.curiosity, p.sociability, relationship)); }
-    static void feel(Profile p, Relation r, MobState.Event event, long nowMillis) { p.state.shift(event, baseline(p, r.score), nowMillis); }
+    /** The rest as one player sees it: trust and interest are kept apart for each player. */
+    static MobState.Baseline baseline(Profile p, int relationship, UUID player) { MobState.Baseline b = baseline(p, relationship); return player == null ? b : b.toward(player.toString()); }
+    /** The rest for this relation's player (the key it is kept under). */
+    static MobState.Baseline baseline(Profile p, Relation r) {
+        MobState.Baseline b = baseline(p, r.score);
+        for (Map.Entry<String, Relation> e : p.relations.entrySet()) if (e.getValue() == r) return "unknown".equals(e.getKey()) ? b : b.toward(e.getKey());
+        return b;
+    }
+    static void feel(Profile p, Relation r, MobState.Event event, long nowMillis) { p.state.shift(event, baseline(p, r), nowMillis); }
     /** The same, remembering who or what ({@code detail}: a player's name, the dead neighbour) with the reason. */
-    static void feel(Profile p, Relation r, MobState.Event event, long nowMillis, String detail) { p.state.shift(event, baseline(p, r.score), nowMillis, detail); }
+    static void feel(Profile p, Relation r, MobState.Event event, long nowMillis, String detail) { p.state.shift(event, baseline(p, r), nowMillis, detail); }
     /** A rest for what touches no player: trust follows the warmest relationship the mob has. */
     static MobState.Baseline baseline(Profile p) { return baseline(p, p.relations.values().stream().mapToInt(r -> r.score).max().orElse(0)); }
 
@@ -167,7 +176,7 @@ public final class ConversationStore {
         Profile p = mob == null || sample == null ? null : state.profiles.get(mob.toString());
         if (p == null) return false;
         MobState s = p.state;
-        MobState.Baseline rest = player == null ? baseline(p) : baseline(p, relationship(mob, player));
+        MobState.Baseline rest = player == null ? baseline(p) : baseline(p, relationship(mob, player), player);
         java.util.EnumSet<MoodFactor> factors = sample.factors().isEmpty() ? java.util.EnumSet.noneOf(MoodFactor.class) : java.util.EnumSet.copyOf(sample.factors());
         boolean changed = false;
         if (sample.villager()) {
@@ -581,8 +590,8 @@ public final class ConversationStore {
         long now = System.currentTimeMillis();
         String name = p.givenName.isBlank() ? p.name : p.givenName, species = SpeciesCatalog.get(p.type).name();
         List<String> events = p.events.stream().map(e -> e.text).toList();
-        return cue != null ? DecisionState.forCue(mob, name, species, p.state.view(baseline(p, score), now), p.sociability, p.curiosity, score, state.relations.views(mob, now), cue, events)
-                : DecisionState.forHeard(mob, name, species, p.state.view(baseline(p, score), now), p.sociability, p.curiosity, score, state.relations.views(mob, now), speaker, said, eventful, events);
+        return cue != null ? DecisionState.forCue(mob, name, species, p.state.view(baseline(p, score, player), now), p.sociability, p.curiosity, score, state.relations.views(mob, now), cue, events)
+                : DecisionState.forHeard(mob, name, species, p.state.view(baseline(p, score, player), now), p.sociability, p.curiosity, score, state.relations.views(mob, now), speaker, said, eventful, events);
     }
     // ---- What mobs think of each other, see MobRelations: reads give detached views, writes run under the lock. ----
     public synchronized List<MobRelations.View> bonds(UUID mob, long nowMillis) { return state.relations.views(mob, nowMillis); }
@@ -878,7 +887,7 @@ public final class ConversationStore {
                 score, p.memory, p.turns,
                 eventsForPlayer(p, player), p.revision, p.action,
                 p.calm, p.confidence, p.curiosity, p.sociability, p.preference, p.fear, p.customPersonality,
-                p.state.view(baseline(p, score), System.currentTimeMillis()),
+                p.state.view(baseline(p, score, player), System.currentTimeMillis()),
                 p.social == null || p.social.age() == null ? "" : p.social.age().word(p.social.gender()));
     }
     public synchronized List<MobCard> cards(UUID player) { return state.profiles.keySet().stream().map(UUID::fromString).map(id -> card(id, player)).toList(); }

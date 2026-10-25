@@ -102,6 +102,21 @@ class MoodTest {
         assertNotEquals(MoodSpell.JOY, happy.spell(), "blows end a joy");
     }
 
+    // Trust and interest are kept per player: a blow from one leaves the mob wary of that one only; its nerves are its own for all.
+    @Test void trustIsPerPlayer() {
+        MobState state = new MobState();
+        MobState.Baseline steve = REST.toward("steve"), alex = REST.toward("alex");
+        state.shift(MobState.Event.HIT, steve, 0);
+        assertEquals(REST.trust() - 35, state.view(steve, 0).trust());
+        assertEquals(REST.trust(), state.view(alex, 0).trust(), "the other player is not to blame");
+        assertEquals(state.view(steve, 0).calm(), state.view(alex, 0).calm(), "the fright is the mob's own");
+        state.shift(MobState.Event.KIND, alex, MINUTE);
+        assertTrue(state.view(alex, MINUTE).trust() > REST.trust() && state.view(steve, MINUTE).trust() < REST.trust() - 20);
+        assertEquals(REST.trust(), state.view(steve, 24 * 60 * MINUTE).trust(), "forgotten in a day");
+        state.settle(steve, 24 * 60 * MINUTE);
+        assertTrue(state.regards.isEmpty(), "a regard back at rest is dropped");
+    }
+
     // Off in the settings: no long moods, no world.
     @Test void switchedOff() {
         MobTalkConfig config = new MobTalkConfig();
