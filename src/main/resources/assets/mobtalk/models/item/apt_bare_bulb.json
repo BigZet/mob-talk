@@ -1,0 +1,361 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "black": "mobtalk:block/city2/furniture/black",
+    "enamel": "mobtalk:block/city2/furniture/enamel",
+    "bulb": "mobtalk:block/city2/furniture/bulb",
+    "particle": "mobtalk:block/city2/furniture/black"
+  },
+  "elements": [
+    {
+      "from": [
+        7.5,
+        15.5,
+        7.5
+      ],
+      "to": [
+        8.5,
+        16.0,
+        8.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#black",
+          "uv": [
+            7.5,
+            0.0,
+            8.5,
+            0.5
+          ]
+        },
+        "south": {
+          "texture": "#black",
+          "uv": [
+            7.5,
+            0.0,
+            8.5,
+            0.5
+          ]
+        },
+        "east": {
+          "texture": "#black",
+          "uv": [
+            7.5,
+            0.0,
+            8.5,
+            0.5
+          ]
+        },
+        "west": {
+          "texture": "#black",
+          "uv": [
+            7.5,
+            0.0,
+            8.5,
+            0.5
+          ]
+        },
+        "up": {
+          "texture": "#black",
+          "uv": [
+            7.5,
+            7.5,
+            8.5,
+            8.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.5,
+        14.5,
+        6.5
+      ],
+      "to": [
+        9.5,
+        15.5,
+        9.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#enamel",
+          "uv": [
+            6.5,
+            0.5,
+            9.5,
+            1.5
+          ]
+        },
+        "south": {
+          "texture": "#enamel",
+          "uv": [
+            6.5,
+            0.5,
+            9.5,
+            1.5
+          ]
+        },
+        "east": {
+          "texture": "#enamel",
+          "uv": [
+            6.5,
+            0.5,
+            9.5,
+            1.5
+          ]
+        },
+        "west": {
+          "texture": "#enamel",
+          "uv": [
+            6.5,
+            0.5,
+            9.5,
+            1.5
+          ]
+        },
+        "up": {
+          "texture": "#enamel",
+          "uv": [
+            6.5,
+            6.5,
+            9.5,
+            9.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        5.0,
+        14.0,
+        5.0
+      ],
+      "to": [
+        11.0,
+        14.5,
+        11.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#enamel",
+          "uv": [
+            5.0,
+            1.5,
+            11.0,
+            2.0
+          ]
+        },
+        "south": {
+          "texture": "#enamel",
+          "uv": [
+            5.0,
+            1.5,
+            11.0,
+            2.0
+          ]
+        },
+        "east": {
+          "texture": "#enamel",
+          "uv": [
+            5.0,
+            1.5,
+            11.0,
+            2.0
+          ]
+        },
+        "west": {
+          "texture": "#enamel",
+          "uv": [
+            5.0,
+            1.5,
+            11.0,
+            2.0
+          ]
+        },
+        "up": {
+          "texture": "#enamel",
+          "uv": [
+            5.0,
+            5.0,
+            11.0,
+            11.0
+          ]
+        },
+        "down": {
+          "texture": "#enamel",
+          "uv": [
+            5.0,
+            5.0,
+            11.0,
+            11.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        7.0,
+        13.6,
+        7.0
+      ],
+      "to": [
+        9.0,
+        14.1,
+        9.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#bulb",
+          "uv": [
+            7.0,
+            1.9,
+            9.0,
+            2.4
+          ]
+        },
+        "south": {
+          "texture": "#bulb",
+          "uv": [
+            7.0,
+            1.9,
+            9.0,
+            2.4
+          ]
+        },
+        "east": {
+          "texture": "#bulb",
+          "uv": [
+            7.0,
+            1.9,
+            9.0,
+            2.4
+          ]
+        },
+        "west": {
+          "texture": "#bulb",
+          "uv": [
+            7.0,
+            1.9,
+            9.0,
+            2.4
+          ]
+        },
+        "down": {
+          "texture": "#bulb",
+          "uv": [
+            7.0,
+            7.0,
+            9.0,
+            9.0
+          ]
+        }
+      },
+      "shade": false
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.625,
+        0.625,
+        0.625
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        2.5,
+        0
+      ],
+      "scale": [
+        0.375,
+        0.375,
+        0.375
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    }
+  }
+}

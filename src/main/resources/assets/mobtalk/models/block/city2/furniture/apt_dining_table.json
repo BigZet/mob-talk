@@ -1,0 +1,293 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "walnut_v": "mobtalk:block/city2/furniture/walnut_v",
+    "tablecloth_side": "mobtalk:block/city2/furniture/tablecloth_side",
+    "apt_dining_table_cloth_44": "mobtalk:block/city2/furniture/apt_dining_table_cloth_44",
+    "particle": "mobtalk:block/city2/furniture/walnut_v"
+  },
+  "elements": [
+    {
+      "from": [
+        1.0,
+        0.0,
+        2.5
+      ],
+      "to": [
+        2.5,
+        12.0,
+        4.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#walnut_v",
+          "uv": [
+            13.5,
+            4.0,
+            15.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#walnut_v",
+          "uv": [
+            1.0,
+            4.0,
+            2.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#walnut_v",
+          "uv": [
+            12.0,
+            4.0,
+            13.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#walnut_v",
+          "uv": [
+            2.5,
+            4.0,
+            4.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.0,
+        0.0,
+        12.0
+      ],
+      "to": [
+        2.5,
+        12.0,
+        13.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#walnut_v",
+          "uv": [
+            13.5,
+            4.0,
+            15.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#walnut_v",
+          "uv": [
+            1.0,
+            4.0,
+            2.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#walnut_v",
+          "uv": [
+            2.5,
+            4.0,
+            4.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#walnut_v",
+          "uv": [
+            12.0,
+            4.0,
+            13.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        12.0,
+        1.5
+      ],
+      "to": [
+        16.0,
+        12.5,
+        14.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#tablecloth_side",
+          "uv": [
+            0.0,
+            3.5,
+            16.0,
+            4.0
+          ]
+        },
+        "south": {
+          "texture": "#tablecloth_side",
+          "uv": [
+            0.0,
+            3.5,
+            16.0,
+            4.0
+          ]
+        },
+        "west": {
+          "texture": "#tablecloth_side",
+          "uv": [
+            1.5,
+            3.5,
+            14.5,
+            4.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_dining_table_cloth_44",
+          "uv": [
+            0.0,
+            1.5,
+            16.0,
+            14.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        9.5,
+        1.5
+      ],
+      "to": [
+        16.0,
+        12.0,
+        2.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#tablecloth_side",
+          "uv": [
+            0.0,
+            4.0,
+            16.0,
+            6.5
+          ]
+        },
+        "west": {
+          "texture": "#tablecloth_side",
+          "uv": [
+            1.5,
+            4.0,
+            2.0,
+            6.5
+          ]
+        },
+        "down": {
+          "texture": "#tablecloth_side",
+          "uv": [
+            0.0,
+            14.0,
+            16.0,
+            14.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        9.5,
+        14.0
+      ],
+      "to": [
+        16.0,
+        12.0,
+        14.5
+      ],
+      "faces": {
+        "south": {
+          "texture": "#tablecloth_side",
+          "uv": [
+            0.0,
+            4.0,
+            16.0,
+            6.5
+          ]
+        },
+        "west": {
+          "texture": "#tablecloth_side",
+          "uv": [
+            14.0,
+            4.0,
+            14.5,
+            6.5
+          ]
+        },
+        "down": {
+          "texture": "#tablecloth_side",
+          "uv": [
+            0.0,
+            1.5,
+            16.0,
+            2.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        9.5,
+        2.0
+      ],
+      "to": [
+        0.5,
+        12.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#tablecloth_side",
+          "uv": [
+            15.5,
+            4.0,
+            16.0,
+            6.5
+          ]
+        },
+        "south": {
+          "texture": "#tablecloth_side",
+          "uv": [
+            0.0,
+            4.0,
+            0.5,
+            6.5
+          ]
+        },
+        "west": {
+          "texture": "#tablecloth_side",
+          "uv": [
+            2.0,
+            4.0,
+            14.0,
+            6.5
+          ]
+        },
+        "down": {
+          "texture": "#tablecloth_side",
+          "uv": [
+            0.0,
+            2.0,
+            0.5,
+            14.0
+          ]
+        }
+      }
+    }
+  ]
+}

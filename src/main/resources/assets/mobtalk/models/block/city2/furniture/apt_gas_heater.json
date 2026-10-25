@@ -1,0 +1,257 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_gas_heater_front_on_44": "mobtalk:block/city2/furniture/apt_gas_heater_front_on_44",
+    "enamel": "mobtalk:block/city2/furniture/enamel",
+    "alu": "mobtalk:block/city2/furniture/alu",
+    "chrome": "mobtalk:block/city2/furniture/chrome",
+    "particle": "mobtalk:block/city2/furniture/apt_gas_heater_front_on_44"
+  },
+  "elements": [
+    {
+      "from": [
+        3.0,
+        2.0,
+        11.0
+      ],
+      "to": [
+        13.0,
+        13.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_gas_heater_front_on_44",
+          "uv": [
+            3.0,
+            3.0,
+            13.0,
+            14.0
+          ]
+        },
+        "south": {
+          "texture": "#enamel",
+          "uv": [
+            3.0,
+            3.0,
+            13.0,
+            14.0
+          ]
+        },
+        "east": {
+          "texture": "#enamel",
+          "uv": [
+            0.0,
+            3.0,
+            5.0,
+            14.0
+          ]
+        },
+        "west": {
+          "texture": "#enamel",
+          "uv": [
+            11.0,
+            3.0,
+            16.0,
+            14.0
+          ]
+        },
+        "up": {
+          "texture": "#enamel",
+          "uv": [
+            3.0,
+            11.0,
+            13.0,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#enamel",
+          "uv": [
+            3.0,
+            0.0,
+            13.0,
+            5.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.5,
+        13.0,
+        12.5
+      ],
+      "to": [
+        9.5,
+        16.0,
+        15.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#alu",
+          "uv": [
+            6.5,
+            0.0,
+            9.5,
+            3.0
+          ]
+        },
+        "south": {
+          "texture": "#alu",
+          "uv": [
+            6.5,
+            0.0,
+            9.5,
+            3.0
+          ]
+        },
+        "east": {
+          "texture": "#alu",
+          "uv": [
+            0.5,
+            0.0,
+            3.5,
+            3.0
+          ]
+        },
+        "west": {
+          "texture": "#alu",
+          "uv": [
+            12.5,
+            0.0,
+            15.5,
+            3.0
+          ]
+        },
+        "down": {
+          "texture": "#alu",
+          "uv": [
+            6.5,
+            0.5,
+            9.5,
+            3.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        5.0,
+        0.0,
+        13.0
+      ],
+      "to": [
+        6.0,
+        2.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chrome",
+          "uv": [
+            10.0,
+            14.0,
+            11.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#chrome",
+          "uv": [
+            5.0,
+            14.0,
+            6.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#chrome",
+          "uv": [
+            2.0,
+            14.0,
+            3.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#chrome",
+          "uv": [
+            13.0,
+            14.0,
+            14.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#chrome",
+          "uv": [
+            5.0,
+            13.0,
+            6.0,
+            14.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        10.0,
+        0.0,
+        13.0
+      ],
+      "to": [
+        11.0,
+        2.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chrome",
+          "uv": [
+            5.0,
+            14.0,
+            6.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#chrome",
+          "uv": [
+            10.0,
+            14.0,
+            11.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#chrome",
+          "uv": [
+            2.0,
+            14.0,
+            3.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#chrome",
+          "uv": [
+            13.0,
+            14.0,
+            14.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#chrome",
+          "uv": [
+            10.0,
+            13.0,
+            11.0,
+            14.0
+          ]
+        }
+      }
+    }
+  ]
+}

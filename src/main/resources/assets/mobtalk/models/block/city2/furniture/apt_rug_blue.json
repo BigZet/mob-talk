@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_rug_blue_persian_b_44": "mobtalk:block/city2/furniture/apt_rug_blue_persian_b_44",
+    "particle": "mobtalk:block/city2/furniture/apt_rug_blue_persian_b_44"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "to": [
+        16.0,
+        0.5,
+        16.0
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_rug_blue_persian_b_44",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    }
+  ]
+}

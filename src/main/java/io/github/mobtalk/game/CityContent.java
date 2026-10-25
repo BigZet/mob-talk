@@ -139,6 +139,7 @@ public final class CityContent {
         CAR_PART = Registry.register(Registries.BLOCK, Identifier.of("mobtalk", "car_part"), new CarPartBlock(AbstractBlock.Settings.create()
                 .mapColor(MapColor.CLEAR).strength(1.5f).sounds(METAL).nonOpaque().dropsNothing().noBlockBreakParticles()));
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> items.forEach(entries::add));
+        FurnitureBlocks.register(); // The new city's flat and stairwell furniture (tools/city2/furniture.py).
     }
 
     /** The north-facing boxes turned to {@code facing} (clockwise seen from above, as the blockstates turn the models). */
