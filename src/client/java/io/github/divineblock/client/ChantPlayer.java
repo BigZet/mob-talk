@@ -226,8 +226,11 @@ final class ChantPlayer {
 
         @Override public void tick() {
             age++;
-            float wantDuck = Math.min(GodVoicePlayer.speaking() ? UNDER_VOICE : 1f, RouletteHud.spinning() ? UNDER_ROULETTE : 1f);
-            // Sinks within half a second when the god speaks or the roulette spins, comes back over two seconds after.
+            // The god's word and the roulette after it are one scene: the chant stays low from his first word to the reels' end
+            // (a short pause between them does not let it rise).
+            float wantDuck = Math.min(GodVoicePlayer.speaking() ? UNDER_VOICE : 1f,
+                    RouletteHud.spinning() || GodVoicePlayer.spokeWithin(2500) && RouletteHud.expected() ? UNDER_ROULETTE : 1f);
+            // Sinks within half a second, comes back over two seconds after.
             duck += (wantDuck - duck) * (wantDuck < duck ? 0.2f : 0.05f);
             float fade = Math.min(1f, age / (float) fadeIn);
             if (fading >= 0) {

@@ -20,6 +20,8 @@ public final class DivineConfig {
         Personality(String label, int favor, int force) { this.label = label; this.favor = favor; this.force = force; }
     }
     public enum Provider { OPENROUTER, VENICE }
+    /** How much the god says before a punishment: SHORT — a sentence or two (the roulette waits for him), NORMAL — as before. */
+    public enum SpeechLength { SHORT, NORMAL }
 
     public Personality personality = Personality.CAPRICIOUS;
     /** The strongest act the god may perform, 0..4. */
@@ -39,6 +41,8 @@ public final class DivineConfig {
     public String chatModel = "openai/gpt-6-luna";
     public String veniceModel = "deepseek-v4-1-flash";
     public int speechTimeoutSeconds = 20;
+    /** «Длина речи перед карой»: short by default, so the roulette follows his word quickly. Mercy and jests are not cut. */
+    public SpeechLength wrathSpeech = SpeechLength.SHORT;
     /** The god speaks aloud (OpenRouter text to speech); off leaves subtitles only. */
     public boolean voice = true;
     /** The voice rings as in a temple: a big reverb and a quiet echo ({@link VoiceEffects}). */
@@ -174,6 +178,7 @@ public final class DivineConfig {
     public DivineConfig sanitized() {
         if (personality == null) personality = Personality.CAPRICIOUS;
         if (provider == null) provider = Provider.OPENROUTER;
+        if (wrathSpeech == null) wrathSpeech = SpeechLength.SHORT;
         maxTier = clamp(maxTier, 0, 4);
         effects = clamp(effects, 0, 3);
         protectRadius = clamp(protectRadius, 0, 256);

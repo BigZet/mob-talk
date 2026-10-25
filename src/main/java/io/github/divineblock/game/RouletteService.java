@@ -27,6 +27,8 @@ import net.minecraft.world.World;
  * his spin (what happens to the punishment then is the caller's old rule); a pardon jams it into doves. Server thread only. */
 public final class RouletteService {
     static final RouletteQueue QUEUE = new RouletteQueue();
+    /** Punishments whose reels wait for the god's word to end ({@link io.github.divineblock.core.SpeechGate}). */
+    static final io.github.divineblock.core.SpeechGate GATE = new io.github.divineblock.core.SpeechGate();
     /** What each spin showed and to whom, by spin id: to cancel it on the same screens. */
     private static final Map<Integer, Shown> SHOWN = new HashMap<>();
     private record Shown(UUID sinner, String name, RegistryKey<World> world, List<UUID> viewers, RouletteSymbol symbol, String title) { }
@@ -155,10 +157,16 @@ public final class RouletteService {
 
     /** The sinner repented while his reels spin: they jam, the punishment does not fall. Whether a spin was stopped. */
     public static boolean pardon(ServerPlayerEntity sinner) {
-        return QUEUE.cancel(sinner.getUuid(), RouletteQueue.Cancel.PARDON) != null;
+        // Still before the reels, while the god speaks: the roulette never starts.
+        boolean waited = GATE.cancel(sinner.getUuid());
+        return QUEUE.cancel(sinner.getUuid(), RouletteQueue.Cancel.PARDON) != null || waited;
     }
 
-    public static boolean spinning(ServerPlayerEntity player) { return QUEUE.spinning(player.getUuid()); }
+    /** Whether a punishment of his is on its way through the roulette: the god announcing it, or the reels turning. */
+    public static boolean spinning(ServerPlayerEntity player) { return QUEUE.spinning(player.getUuid()) || GATE.waiting(player.getUuid()); }
+
+    /** His client says the god's voice ended (or failed): the reels may start after the echo's pause. */
+    static void spoken(ServerPlayerEntity player) { GATE.done(player.getUuid(), now(player.getServer())); }
 
     /** Every tick: spins of sinners who left, died or changed worlds stop; then what is due runs. */
     static void tick(MinecraftServer server) {
@@ -169,10 +177,11 @@ public final class RouletteService {
                     : shown != null && player.getServerWorld().getRegistryKey() != shown.world() ? RouletteQueue.Cancel.WORLD : null;
             if (why != null) QUEUE.cancel(spin.player, why);
         }
+        GATE.tick(now(server));
         QUEUE.tick(now(server));
     }
 
-    static void clear() { QUEUE.clear(); SHOWN.clear(); }
+    static void clear() { QUEUE.clear(); SHOWN.clear(); GATE.clear(); }
 
     /** The tick spins are counted in: the overworld's time, the same on every client in every dimension. */
     static long now(MinecraftServer server) { return server.getOverworld().getTime(); }

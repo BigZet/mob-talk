@@ -207,6 +207,9 @@ public final class RouletteHud {
     }
     private static boolean shown(Show one) { return show && current() == one; }
 
+    /** Whether a roulette is likely to follow the god's word: a punishment is being announced (the beams of wrath are up). */
+    public static boolean expected() { return AltarBeams.wrath(); }
+
     /** Whether a roulette is on (the altar's chants sink under it). */
     public static boolean spinning() {
         MinecraftClient client = MinecraftClient.getInstance();
