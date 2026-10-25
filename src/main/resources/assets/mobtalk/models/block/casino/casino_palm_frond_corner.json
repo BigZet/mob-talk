@@ -1,0 +1,133 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "leaf": "mobtalk:block/casino/palm_leaf",
+    "particle": "mobtalk:block/casino/palm_leaf"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        6.5,
+        9.5
+      ],
+      "to": [
+        9.0,
+        6.6,
+        22.5
+      ],
+      "faces": {
+        "up": {
+          "texture": "#leaf",
+          "uv": [
+            4,
+            0,
+            8,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#leaf",
+          "uv": [
+            4,
+            0,
+            8,
+            16
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          0,
+          6.5,
+          16
+        ],
+        "axis": "y",
+        "angle": 45
+      }
+    },
+    {
+      "from": [
+        7.5,
+        4.0,
+        9.5
+      ],
+      "to": [
+        17.5,
+        4.1,
+        22.5
+      ],
+      "faces": {
+        "up": {
+          "texture": "#leaf",
+          "uv": [
+            8,
+            0,
+            12,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#leaf",
+          "uv": [
+            8,
+            0,
+            12,
+            16
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          0,
+          4.0,
+          16
+        ],
+        "axis": "y",
+        "angle": 45
+      }
+    },
+    {
+      "from": [
+        16.0,
+        0.5,
+        9.5
+      ],
+      "to": [
+        26.0,
+        0.6,
+        22.5
+      ],
+      "faces": {
+        "up": {
+          "texture": "#leaf",
+          "uv": [
+            12,
+            0,
+            16,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#leaf",
+          "uv": [
+            12,
+            0,
+            16,
+            16
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          0,
+          0.5,
+          16
+        ],
+        "axis": "y",
+        "angle": 45
+      }
+    }
+  ],
+  "ambientocclusion": false
+}

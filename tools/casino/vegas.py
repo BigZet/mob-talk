@@ -728,27 +728,44 @@ CROWN_Y = 6.5  # where the fronds leave the crown's knob
 EDGE_DROP = 8 * math.tan(math.radians(22.5))  # how far a frond has fallen by the edge of the crown's block
 
 
+def diagonal_steps(x0, z0, y, lengths, drops, uv_spans, width=10):
+    """A frond running north-east from (x0, z0) at height y, as level pieces turned 45 degrees (an element can tilt only about
+    one axis, so a diagonal frond droops in steps): each piece starts where the last ended and lower by its drop."""
+    els = []
+    along = 0.0
+    for length, drop, (u0, u1) in zip(lengths, drops, uv_spans):
+        y -= drop
+        uv = [u0, 0, u1, 16]
+        els.append(D.box((x0 + along, y, z0 - width / 2), (x0 + along + length, y + 0.1, z0 + width / 2),
+                         {"up": ("leaf", uv), "down": ("leaf", uv)}, faces=("up", "down"),
+                         rotation={"origin": [x0, y, z0], "axis": "y", "angle": 45}))
+        along += length - 1.5  # the next piece starts under this one's tip, so no gap shows between the steps
+    return els
+
+
 def palm_crown():
-    """The crown of a palm on top of its trunk: a knob of old frond bases, coconuts under it, four short fronds rising in the
-    middle, four level ones on the diagonals, and the first part of the four long ones, which droop out over the block's edges
-    and go on in the neighbouring blocks (casino_palm_frond)."""
+    """The crown of a palm on top of its trunk: a knob of old frond bases, coconuts under it, four broad fronds rising in the
+    middle, and the first parts of eight long ones, four to the sides and four to the corners, that go on in the blocks round
+    the crown (casino_palm_frond, casino_palm_frond_corner) and droop to the ground's half height: the crown is five blocks
+    across."""
     els = [D.box((5, 0, 5), (11, 4, 11), "bark"), D.box((6, 4, 6), (10, 7, 10), "bark")]
     for (cx, cz, cy) in ((6.2, 6.2, 2.2), (9.8, 6.4, 1.6), (6.6, 9.8, 1.4), (9.6, 9.6, 2.4)):
         els.append(D.pal_box((cx - 1.3, cy, cz - 1.3), (cx + 1.3, cy + 2.6, cz + 1.3), "walnut"))
         els.append(D.pal_box((cx - 0.4, cy + 2.6, cz - 0.4), (cx + 0.4, cy + 3.2, cz + 0.4), "gold_dark"))
     seg = 8 / math.cos(math.radians(22.5))
     for spin in (0, 90, 180, 270):
-        # the long fronds' first part, from the knob to the edge, and a short frond rising over it; each is built pointing north
-        # and turned about the block's middle (only quarter turns of whole elements are possible, so the pieces are laid out
-        # for each side by hand)
-        pieces = [leaf_piece(seg, CROWN_Y, 8, -22.5, (0, 5)), leaf_piece(7, CROWN_Y + 0.8, 8, 22.5, (4, 16), width=8)]
+        # the side fronds' first part, from the knob to the edge, and a broad frond rising over it; each is built pointing north
+        # and turned about the block's middle
+        pieces = [leaf_piece(seg, CROWN_Y, 8, -22.5, (0, 4), width=14), leaf_piece(14, CROWN_Y + 0.8, 8, 22.5, (2, 16), width=12)]
         for el in pieces:
             els.append(turned(el, spin))
-    for (f, t) in (((8, 6.8, 3.5), (32, 6.9, 12.5)), ((-16, 6.8, 3.5), (8, 6.9, 12.5))):
-        uv = [0, 0, 16, 16] if f[0] >= 8 else [16, 0, 0, 16]
-        for r in (45, -45):
-            els.append(D.box(f, t, {"up": ("leaf", uv), "down": ("leaf", uv)}, faces=("up", "down"),
-                             rotation={"origin": [8, 6.8, 8], "axis": "y", "angle": r}))
+    # the corner fronds' first part, from the knob to the corner, level (in the corner blocks they fall away)
+    for r in (45, 135, 225, 315):
+        els.append(D.box((8, CROWN_Y, 1), (8 + 11.3, CROWN_Y + 0.1, 15), {"up": ("leaf", [0, 0, 4, 16]), "down": ("leaf", [0, 0, 4, 16])},
+                         faces=("up", "down"), rotation={"origin": [8, CROWN_Y, 8], "axis": "y", "angle": 45 if r == 45 else -45})
+                   if r in (45, 315) else
+                   D.box((8 - 11.3, CROWN_Y, 1), (8, CROWN_Y + 0.1, 15), {"up": ("leaf", [4, 0, 0, 16]), "down": ("leaf", [4, 0, 0, 16])},
+                         faces=("up", "down"), rotation={"origin": [8, CROWN_Y, 8], "axis": "y", "angle": 45 if r == 225 else -45}))
     D.model("casino_palm", {"bark": "palm_bark", "leaf": "palm_leaf", "palette": "palette"}, els, particle="leaf", ao=False)
 
 
@@ -784,19 +801,21 @@ def turned(el, spin):
 
 
 def palm_frond():
-    """The outer part of one of a palm crown's long fronds, in the block beside the crown (north of it when facing north): it
-    comes over the edge where the crown's part ends and arches on out and down."""
+    """The outer part of one of a palm crown's side fronds, in the block beside the crown (north of it when facing north): it
+    comes over the edge where the crown's part ends, arches out across this block and the next, and falls; a second, broader
+    frond under it falls more steeply."""
     y = CROWN_Y - EDGE_DROP
-    l1 = 12
-    els = [leaf_piece(l1, y, 16, -22.5, (5, 12))]
+    l1, l2 = 14, 14
+    els = [leaf_piece(l1, y, 16, -22.5, (4, 10), width=14)]
     z2 = 16 - l1 * math.cos(math.radians(22.5))
     y2 = y - l1 * math.sin(math.radians(22.5))
-    els.append(leaf_piece(9, y2, z2, -45, (12, 16)))
-    # a second, wider frond just under it, splitting off earlier and falling more steeply: the crown looks full from below
-    l3 = 8
-    els.append(leaf_piece(l3, y - 1, 16, -22.5, (5, 11), width=13))
-    els.append(leaf_piece(8, y - 1 - l3 * math.sin(math.radians(22.5)), 16 - l3 * math.cos(math.radians(22.5)), -45, (11, 16), width=12))
+    els.append(leaf_piece(l2, y2, z2, -45, (10, 16), width=12))
+    els.append(leaf_piece(15, y - 1.2, 16, -45, (4, 16), width=15))
     D.model("casino_palm_frond", {"leaf": "palm_leaf"}, els, particle="leaf", ao=False)
+    # the corner frond, in the block diagonal to the crown (north-east of it when facing north): from that block's south-west
+    # corner out to the north-east, stepping down
+    els = diagonal_steps(0, 16, CROWN_Y + 1, (9, 10, 10), (1, 2.5, 3.5), ((4, 8), (8, 12), (12, 16)), width=13)
+    D.model("casino_palm_frond_corner", {"leaf": "palm_leaf"}, els, particle="leaf", ao=False)
 
 
 def palm_trunk(bend):
@@ -850,6 +869,7 @@ NAMES = {
     "casino_fountain_jet": ("Струя фонтана", "Fountain jet"),
     "casino_palm_trunk": ("Ствол пальмы", "Palm trunk"),
     "casino_palm_frond": ("Пальмовая ветвь", "Palm frond"),
+    "casino_palm_frond_corner": ("Пальмовая ветвь (угловая)", "Palm frond, corner"),
 }
 
 
@@ -879,7 +899,7 @@ def save():
         for b in range(BENDS) for f, y in D.FACINGS}})
     W(j(D.ASSETS, "models", "item", "casino_palm_trunk.json"), {"parent": D.NS + "casino_palm_trunk_0"})
     D.loot("casino_palm_trunk")
-    for name in ("casino_palm", "casino_palm_frond"):
+    for name in ("casino_palm", "casino_palm_frond", "casino_palm_frond_corner"):
         W(j(D.ASSETS, "blockstates", name + ".json"), {"variants": D.facing_variants(name)})
         W(j(D.ASSETS, "models", "item", name + ".json"), {"parent": D.NS + name, "display": D.SMALL})
         D.loot(name)

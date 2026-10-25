@@ -1052,5 +1052,6 @@
   "mobtalk.settings.casinoSparkles": "Sparkles on casino lights",
   "mobtalk.settings.casinoSparkles.tooltip": "Signs, bulb strings, jackpot boards, slot machines and crystal chandeliers glint with sparks. Looks only.",
   "block.mobtalk.casino_palm_trunk": "Palm trunk",
-  "block.mobtalk.casino_palm_frond": "Palm frond"
+  "block.mobtalk.casino_palm_frond": "Palm frond",
+  "block.mobtalk.casino_palm_frond_corner": "Palm frond, corner"
 }

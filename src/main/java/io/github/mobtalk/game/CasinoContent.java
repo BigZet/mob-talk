@@ -47,7 +47,7 @@ public final class CasinoContent {
     public static Block LETTER, MARQUEE, GRAND_CHANDELIER, CASHIER;
     /** The resort's pieces: carpets, wallpaper, wainscot, the fluted column, the lit coffer, the jackpot board, the palm crown,
      * the giant die and the fountain jet. */
-    public static Block CARPET_RED, CARPET_BLUE, CARPET_PURPLE, WALLPAPER, WAINSCOT, COLUMN, COFFER, JACKPOT, PALM, PALM_FROND, PALM_TRUNK, DIE, FOUNTAIN;
+    public static Block CARPET_RED, CARPET_BLUE, CARPET_PURPLE, WALLPAPER, WAINSCOT, COLUMN, COFFER, JACKPOT, PALM, PALM_FROND, PALM_FROND_CORNER, PALM_TRUNK, DIE, FOUNTAIN;
     /** The lights that glint ({@link CasinoBlocks#sparkle}), with the chance of a spark per display tick. */
     public static final Map<Block, Float> SPARKLE = new java.util.HashMap<>();
     public static VillagerProfession BOUNCER;
@@ -109,7 +109,8 @@ public final class CasinoContent {
         JACKPOT = add("casino_jackpot", new CasinoBlocks.Jackpot(metal().noCollision().luminance(state -> 13).sounds(BlockSoundGroup.GLASS),
                 CasinoBlocks.shapes(new double[]{0, 0, 13, 16, 16, 16})));
         PALM = decor("casino_palm", leaves(), CasinoBlocks.shapes(new double[]{4, 0, 4, 12, 8, 12}), empty, NONE, Use.NONE, false);
-        PALM_FROND = decor("casino_palm_frond", leaves(), CasinoBlocks.shapes(new double[]{3, 0, 0, 13, 6, 16}), empty, NONE, Use.NONE, false);
+        PALM_FROND = decor("casino_palm_frond", leaves(), CasinoBlocks.shapes(new double[]{1, 0, 0, 15, 6, 16}), empty, NONE, Use.NONE, false);
+        PALM_FROND_CORNER = decor("casino_palm_frond_corner", leaves(), CasinoBlocks.shapes(new double[]{0, 0, 0, 16, 6, 16}), empty, NONE, Use.NONE, false);
         PALM_TRUNK = add("casino_palm_trunk", new CasinoBlocks.Palm(AbstractBlock.Settings.create().mapColor(MapColor.BROWN).strength(2.0f)
                 .sounds(BlockSoundGroup.WOOD).nonOpaque(), new double[]{5, 0, 5, 11, 16, 11}, true));
         DIE = add("casino_die", new Block(AbstractBlock.Settings.create().mapColor(MapColor.RED).strength(1.5f).sounds(BlockSoundGroup.STONE)));
