@@ -103,6 +103,8 @@ public final class MobTalkMod implements ModInitializer {
         io.github.mobtalk.game.DefenseContent.register(); // Пост лучника и профессия лучника (защита деревни).
         io.github.mobtalk.game.CityContent.register(); // Декор города: лавочки, фонари, площадки, Жигули.
         io.github.mobtalk.game.CityWorldgen.register(); // Города с панельками вместо части деревень.
+        io.github.mobtalk.game.ShopContent.register(); // Универсам: витрины, кассы, корзины, кассир и охранник.
+        io.github.mobtalk.game.ShopController.register();
         MobGameBridge.initialize();
         MobTalkNet.registerPayloads();
         if (dedicated()) {

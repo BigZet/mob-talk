@@ -197,6 +197,11 @@ public final class Tunables {
         integer("golemRepairHealth", s, "defense", 0, 100, 1, c -> c.golemRepairHealth, (c, x) -> c.golemRepairHealth = x);
         // Cities with panel blocks.
         integer("cityPerVillages", s, "cities", 0, 20, 1, c -> c.cityPerVillages, (c, x) -> c.cityPerVillages = x);
+        // City supermarkets.
+        integer("shopRestockMinutes", s, "shops", 1, 240, 1, c -> c.shopRestockMinutes, (c, x) -> c.shopRestockMinutes = x);
+        integer("shopPricePercent", s, "shops", 10, 500, 10, c -> c.shopPricePercent, (c, x) -> c.shopPricePercent = x);
+        integer("shopTheftSeconds", s, "shops", 2, 60, 1, c -> c.shopTheftSeconds, (c, x) -> c.shopTheftSeconds = x);
+        integer("shopCheckoutGlitchPercent", s, "shops", 0, 100, 5, c -> c.shopCheckoutGlitchPercent, (c, x) -> c.shopCheckoutGlitchPercent = x);
         // Watchtowers and their archers.
         integer("towerResidents", s, "towers", 2, 40, 1, c -> c.towerResidents, (c, x) -> c.towerResidents = x);
         integer("towerMax", s, "towers", 0, 8, 1, c -> c.towerMax, (c, x) -> c.towerMax = x);
@@ -291,6 +296,7 @@ public final class Tunables {
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices; config.villageSites = d.villageSites;
                 config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.villageTowers = d.villageTowers; config.villageGuards = d.villageGuards;
+                config.cityShops = d.cityShops; config.shopStaff = d.shopStaff; config.shopTheftAlarm = d.shopTheftAlarm;
                 config.divineTidings = d.divineTidings; config.divinePanic = d.divinePanic; config.divineMayExile = d.divineMayExile; config.divineMourners = d.divineMourners;
             }
             case ACTIONS -> { config.placeAnalysis = d.placeAnalysis; config.placeClassifier = d.placeClassifier; }

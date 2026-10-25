@@ -117,6 +117,20 @@ public final class MobTalkConfig {
     /** Cities with Soviet panel blocks, an administration and a hospital take the place of a village: one city for this many villages,
      * 0 = no cities. Counted when a world loads; only new land gets cities. */
     public int cityPerVillages = 3;
+    /** City supermarkets work: goods on the displays, paid in emeralds at a till or the self-checkout, a cashier and a guard. */
+    public boolean cityShops = true;
+    /** A newcomer comes to a till or a guard's desk left without its cashier or guard. */
+    public boolean shopStaff = true;
+    /** Goods carried off unpaid raise the city's alarm against the player (when the guard did not catch them). */
+    public boolean shopTheftAlarm = true;
+    /** Minutes between deliveries: an emptied display is full again after this long. */
+    public int shopRestockMinutes = 20;
+    /** Prices against the catalogue, percent. */
+    public int shopPricePercent = 100;
+    /** Seconds out of the shop with unpaid goods before the theft counts (the guard may catch the player first). */
+    public int shopTheftSeconds = 8;
+    /** Percent of tries the self-checkout complains of an unknown item in the bagging area. */
+    public int shopCheckoutGlitchPercent = 15;
     /** Idea Б1: the villages know the god's deeds (the divine block's events) — they panic, talk and blame the sinner by name;
      * the scene in the moment (alarm bell, flight, shouts); the god alone may make an exile; the family of a villager killed by a
      * curse turns against the sinner. */
@@ -300,6 +314,7 @@ public final class MobTalkConfig {
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
         copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards;
+        copy.cityShops = cityShops; copy.shopStaff = shopStaff; copy.shopTheftAlarm = shopTheftAlarm;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;
