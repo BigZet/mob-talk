@@ -28,7 +28,12 @@
     "VillageSpawnMixin",
     "GuardPanicMixin",
     "StructureSetAccessor",
-    "CityTreesMixin"
+    "CityTreesMixin",
+    "ZombieConversionMixin",
+    "VillagerRiderMixin",
+    "VillagerRiderFacingMixin",
+    "SteedCalmMixin",
+    "KeepHandsMixin"
   ],
   "injectors": {
     "defaultRequire": 1

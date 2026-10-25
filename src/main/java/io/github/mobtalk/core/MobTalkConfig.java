@@ -110,13 +110,22 @@ public final class MobTalkConfig {
     public boolean alarmAgainstPlayers = true;
     /** The village's players hear of an alarm in the chat. */
     public boolean alarmChat = true;
+    /** The alarm is heard: the bell rings at any alarm, and the village's players far from it hear the alarm bell too. */
+    public boolean alarmSound = true;
+    /** Zombies do not turn villagers into zombie villagers: a villager they kill dies. Guards and archers are never turned. */
+    public boolean villageNoConversion = true;
     /** Villages build watchtowers at their edge over a game day, and an archer comes to each tower's post. */
     public boolean villageTowers = true;
     /** Villages keep guards with swords and shields: stands by the bell and at the edge, a newcomer for each empty one. */
     public boolean villageGuards = true;
+<<<<<<< HEAD
     /** Cities with Soviet panel blocks, an administration and a hospital take the place of a village: one city for this many villages,
      * 0 = no cities. Counted when a world loads; only new land gets cities. */
     public int cityPerVillages = 3;
+=======
+    /** Ranks of the village's guard beside the plain guard: heavy warriors in diamond with an axe, horsemen in leather on a horse. */
+    public boolean villageHeavy = true, villageCavalry = true;
+>>>>>>> origin/main
     /** Idea Б1: the villages know the god's deeds (the divine block's events) — they panic, talk and blame the sinner by name;
      * the scene in the moment (alarm bell, flight, shouts); the god alone may make an exile; the family of a villager killed by a
      * curse turns against the sinner. */
@@ -152,9 +161,14 @@ public final class MobTalkConfig {
     /** Watchtowers: one per this many residents, at most this many per village, built over this many real minutes; the archers see and
      * shoot this far (blocks), loose an arrow every this many tenths of a second, and a post empty this long (minutes) gets a newcomer. */
     public int towerResidents = 8, towerMax = 4, towerBuildMinutes = 20, archerRange = 32, archerShotTenths = 20, archerReplaceMinutes = 20;
+    /** A village of this many grown residents builds large towers (two archers and two crossbowmen; 0 = never); the crossbowmen see and
+     * shoot this far (blocks) and loose a bolt every this many tenths of a second. */
+    public int towerLargeResidents = 16, crossbowRange = 40, crossbowShotTenths = 30;
     /** Guards: one per this many residents, at least and at most this many per village, their health and blow, how far they see a
      * foe (blocks), and how long an empty stand waits for a newcomer (minutes). */
     public int watchResidents = 5, watchMin = 2, watchMax = 8, watchHealth = 30, watchDamage = 6, watchSight = 24, watchReplaceMinutes = 20;
+    /** The heavy warrior: health and the damage of an axe blow. */
+    public int heavyHealth = 50, heavyDamage = 10;
     /** The emotional state: half-lives of an ordinary and a strong impression (minutes), and the thresholds of its axes (0–100). */
     public int stateHalfLifeMinutes = 10, stateSlowHalfLifeMinutes = 30;
     public int waryCalm = 25, waryTrust = 25, keenInterest = 75, generousMood = 65, generousTrust = 65;
@@ -299,7 +313,7 @@ public final class MobTalkConfig {
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
-        copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards;
+        copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageHeavy = villageHeavy; copy.villageCavalry = villageCavalry;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;
