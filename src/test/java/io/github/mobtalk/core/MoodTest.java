@@ -269,4 +269,14 @@ class MoodTest {
         assertEquals(0, store.villageMood("nowhere", now).counted());
         store.flush(); // The save runs behind; finish it before the temporary folder is removed.
     }
+
+    // From the live probe: a threat from the very player in front of it is his, not a third person's; a starving one is hungry, not indifferent.
+    @Test void reasonsFromTheSpeakerAndHungerOnTheNameplate() {
+        MobState.View scared = new MobState.View(30, 5, 50, 20, 60, MoodSpell.DREAD, 0, List.of(new MobState.Reason("угроза (Стив)", -1, 60, false)), "", true);
+        assertTrue(scared.describe("Стив").contains("угроза — от него, игрока Стив, с которым ты сейчас говоришь"), scared.describe("Стив"));
+        assertTrue(scared.describe("Алекс").contains("угроза (Стив)"));
+        MobState.View starving = new MobState.View(45, 38, 20, 50, 61, null, 0, List.of(new MobState.Reason(MoodFactor.STARVING.text, -1, 60, true)), "", true);
+        assertEquals("starving", starving.marker().key());
+        assertEquals("изголодалась", starving.marker().word());
+    }
 }

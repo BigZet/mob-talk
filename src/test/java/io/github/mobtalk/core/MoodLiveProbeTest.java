@@ -24,7 +24,7 @@ class MoodLiveProbeTest {
     @TempDir Path directory;
     private static final long MINUTE = 60_000L;
     private static final List<String> QUESTIONS = List.of("Привет! Как ты? Как жизнь?", "Что случилось? Ты какой-то не такой сегодня.",
-            "Слушай, продай хлеба подешевле, а? И пойдём со мной в шахту, поможешь.");
+            "Пойдём со мной в шахту, поможешь? А я тебе потом хлеба принесу.");
 
     private record Case(String title, boolean female, BiConsumer<ConversationStore, UUID> setup) { }
 

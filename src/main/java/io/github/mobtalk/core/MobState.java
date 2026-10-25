@@ -615,6 +615,9 @@ public final class MobState {
         /** The one word for the HUD: the long mood when there is one, else the axis furthest from its middle, calm when nothing stands out. */
         public Descriptor marker() {
             if (spell != null) return new Descriptor(Axis.MOOD, spell.key, spell.word(female), spell.sign);
+            // Hunger is the first thing about a hungry one: not "indifferent" while it starves.
+            if (hungry(MoodFactor.STARVING)) return new Descriptor(Axis.ENERGY, "starving", form("изголодал{ся|ась}"), -1);
+            if (hungry(MoodFactor.HUNGRY)) return new Descriptor(Axis.ENERGY, "hungry", form("голод{ен|на}"), -1);
             Descriptor best = null; int strength = -1;
             for (Axis axis : List.of(Axis.CALM, Axis.MOOD, Axis.ENERGY, Axis.TRUST, Axis.INTEREST)) {
                 Descriptor d = descriptor(axis);
@@ -625,7 +628,10 @@ public final class MobState {
         }
 
         /** The block the model reads: the state in words, second person, never numbers; the long mood and the reasons after it. */
-        public String describe() {
+        public String describe() { return describe(""); }
+        /** The same, for a talk with {@code speaker}: a reason that came from this very player is named as coming from the one in
+         * front of it, so it says «ты мне угрожал», not «Стив угрожал мне» to Steve's face. */
+        public String describe(String speaker) {
             int m = mood, c = calm, i = interest, t = trust, e = energy;
             String moodText = m < 20 ? "мрачно на душе" : m < 40 ? "не в духе" : m <= 60 ? "ровное" : m < 80 ? "в духе" : "душа поёт";
             String calmText = form(c < 20 ? "паника: сбиваешься, дёргаешься, слова путаются" : c < 40 ? "встревожен{|а}, на взводе, ждёшь беды" : c <= 60 ? "спок{оен|ойна}"
@@ -640,11 +646,17 @@ public final class MobState {
             if (spell != null) text.append("\nДолгое состояние, оно держится давно и красит всё, что ты говоришь: ").append(spell.prompt(female));
             if (!reasons.isEmpty())
                 text.append("\nОтчего тебе так (ты это знаешь сам; назови, если спросят, как ты, или к слову придётся): ")
-                        .append(String.join("; ", reasons.stream().map(Reason::text).toList())).append('.');
+                        .append(String.join("; ", reasons.stream().map(r -> aimed(r.text(), speaker)).toList())).append('.');
             if (hungry(MoodFactor.STARVING)) text.append(form("\nТы давно ничего не ел{|а}: голод мучает, мысли только о еде, сил нет; можешь прямо попросить у игрока поесть."));
             else if (hungry(MoodFactor.HUNGRY)) text.append(form("\nТы голод{ен|на}: мысли сбиваются на еду, можешь намекнуть игроку, что не прочь бы поесть."));
             if (!thought.isEmpty()) text.append("\nТвоя последняя мысль про себя: «").append(thought).append("» — продолжай с неё, если она ещё к месту.");
             return text.toString();
+        }
+
+        private static String aimed(String text, String speaker) {
+            if (speaker == null || speaker.isBlank()) return text;
+            String tail = " (" + speaker + ")";
+            return text.endsWith(tail) ? text.substring(0, text.length() - tail.length()) + " — от него, игрока " + speaker + ", с которым ты сейчас говоришь (обращайся к нему на «ты»)" : text;
         }
 
         /** Whether this hunger is among the lasting reasons now. */

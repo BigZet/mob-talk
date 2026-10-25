@@ -298,6 +298,8 @@
   "mobtalk.state.in_love": "in love",
   "mobtalk.state.grace": "in grace",
   "mobtalk.state.apathetic": "apathetic",
+  "mobtalk.state.hungry": "hungry",
+  "mobtalk.state.starving": "starving",
   "mobtalk.settings.bargainHud": "Haggling progress in the Mob Talk line",
   "mobtalk.bargain.leaning": "leaning",
   "mobtalk.bargain.unsure": "unsure",

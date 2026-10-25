@@ -63,7 +63,7 @@ final class MobPrompt {
                 + "\nТемперамент (0..100, вслух не называй): спокойствие=" + profile.calm + ", уверенность=" + profile.confidence
                 + ", любопытство=" + profile.curiosity + ", общительность=" + profile.sociability + "."
                 + "\n\nСейчас ты " + mood(snapshot, profile) + " Начинай разговор из этого состояния, а не с чистого листа."
-                + "\n\n" + state.describe() + "\n" + PromptTexts.STATE_RULE
+                + "\n\n" + state.describe(snapshot.playerDetails().get("name") instanceof String nick ? nick : "") + "\n" + PromptTexts.STATE_RULE
                 + "\n\n" + Situation.of(snapshot, profile).describe()
                 + PlacePrompt.block(snapshot)
                 + wedding(snapshot)
