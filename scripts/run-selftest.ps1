@@ -4,7 +4,7 @@
 # its own Whisper port (63919 + slot), launches it through the running PrismLauncher, waits for this copy's javaw only,
 # then deletes the copy. Never closes Prism, never touches the base instance, its mods or its worlds.
 # Logs, latest.log and screenshots: %LOCALAPPDATA%\MobTalk\selftest\<copy name>\ (selftest-run.log is UTF-8).
-# Usage (Windows PowerShell): powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 [-Only wedding|family|place|names|voices|looks|ctov|voicefix|pack|server]
+# Usage (Windows PowerShell): powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 [-Only wedding|family|place|names|voices|looks|glam|ctov|voicefix|pack|server]
 #   [-ModJars a.jar,b.jar] puts other mods' freshly built JARs into the copy in place of the base's (same name before the first '-');
 #   [-Keep] keeps the copy for inspection (delete later with scripts\clean-test-instances.ps1); [-MaxGames 6]; [-ShotEverySeconds 60]; [-WithTts] real TTS (paid); [-Base <instance>]
 param([string]$Only = '', [switch]$Keep, [int]$MaxGames = 6, [int]$ShotEverySeconds = 0, [string]$Base = '1.21.1-fabric-dev', [switch]$WithTts, [string]$SourceWorld = '', [string[]]$ModJars = @())

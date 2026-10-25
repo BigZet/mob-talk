@@ -61,6 +61,8 @@ public final class MobGameBridge implements GameBridge {
     final DivineController divine;
     /** Трек J: ревность пар игрока и сон вместе. */
     final JealousyController jealousy;
+    /** Меркантильные горожанки: кто меркантильна, флаг наряда. */
+    final MercantileController mercantile;
     /** П3: соперники за одно сердце — уведомления, испытания, выбор у колокола. */
     public final RivalryController rivalry;
     final CoSleepController coSleep;
@@ -79,6 +81,7 @@ public final class MobGameBridge implements GameBridge {
         defense = new VillageDefenseController(this);
         divine = new DivineController(this);
         jealousy = new JealousyController(this);
+        mercantile = new MercantileController(this);
         rivalry = new RivalryController(this);
         coSleep = new CoSleepController(this);
         wedding = new WeddingController(this);
@@ -171,6 +174,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.defense.tick(world);
                 bridge.divine.tick(world);
                 bridge.jealousy.tick(world);
+                bridge.mercantile.tick(world);
                 bridge.rivalry.tick(world);
                 bridge.coSleep.tick(world);
                 bridge.wedding.tick(world);
@@ -766,6 +770,9 @@ public final class MobGameBridge implements GameBridge {
                 if (Wedding.asksWitness(said)) parts.add(appointWitness(mobId, playerId).thenApply(m -> m.isBlank() ? "" : "[Mob Talk] " + m));
             }
             if (config.coSleep && CoSleep.invites(said)) parts.add(inviteToBed(mobId, playerId).thenApply(v -> ""));
+            // Меркантильная: зовут в ресторан — счёт; «я плачу» — изумруды из инвентаря, и она может упорхнуть.
+            if (config.socialLayer && Mercantile.on(config) && (Mercantile.invites(said) || Mercantile.pays(said)))
+                parts.add(onServer(() -> mercantile.dinner(mobId, player, said)).thenApply(m -> m.isBlank() ? "" : "§d[Mob Talk] " + m));
             if (config.familyLife && config.socialLayer) {
                 parts.add(eveningSpoke(playerId).thenApply(v -> ""));
                 if (SpecialEvening.invites(said)) parts.add(startEvening(mobId, playerId).thenApply(m -> m.isBlank() ? "" : "§d[Mob Talk] " + m));

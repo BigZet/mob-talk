@@ -132,6 +132,8 @@ final class MobContextCapture {
             playerDetails.put("sneaking", player.isSneaking());
             playerDetails.put("sprinting", player.isSprinting());
             playerDetails.put("experienceLevel", player.experienceLevel);
+            // Меркантильная жительница оценивает кошелёк: сколько при игроке денег и дорогого надето, в изумрудах.
+            if (mob instanceof VillagerEntity) playerDetails.put("wealth", MercantileController.wealth(player));
             playerDetails.put("positionRelativeToMob", vector(player.getPos().subtract(mob.getPos())));
             playerDetails.put("directionFromMob", direction(mob.getPos(), player.getPos()));
             playerDetails.put("lookVector", vector(player.getRotationVector()));
