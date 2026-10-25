@@ -212,7 +212,7 @@ final class SelfTestFurniture {
                 for (int col = 0; col < perRow && row * perRow + col < ids.size(); col += 3) {
                     int n = Math.min(3, Math.min(perRow - col, ids.size() - row * perRow - col));
                     double cx = col * 3 + (n - 1) * 1.5 + 0.5;
-                    list.add(new String[] {cx + " 0.6 " + (gz + row * 14 + 5.5), "180 14",
+                    list.add(new String[] {cx + " 0.6 " + (gz + row * 14 + 6.5), "180 14",
                             String.format("furniture-g%02d-%s", list.size() + 1, ids.get(row * perRow + col))});
                 }
             test.await("pause: the gallery is furnished", 2, () -> false, () -> {

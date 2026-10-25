@@ -246,7 +246,7 @@ def cells_of(model):
     cells = {}
     low = is_low(model)
     for e in model.els:
-        for s in split(e, ycut=not low):
+        for s in split(e):  # cut at y 16 too (so every face maps inside one texture tile), but kept in the ground cell
             cells.setdefault(cell_of(s, low), []).append(s)
     return cells
 

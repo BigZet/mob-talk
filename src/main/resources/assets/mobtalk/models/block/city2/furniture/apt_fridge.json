@@ -4,6 +4,7 @@
     "black": "mobtalk:block/city2/furniture/black",
     "apt_fridge_door_44": "mobtalk:block/city2/furniture/apt_fridge_door_44",
     "enamel": "mobtalk:block/city2/furniture/enamel",
+    "apt_fridge_door_43": "mobtalk:block/city2/furniture/apt_fridge_door_43",
     "chrome": "mobtalk:block/city2/furniture/chrome",
     "particle": "mobtalk:block/city2/furniture/black"
   },
@@ -66,7 +67,7 @@
       ],
       "to": [
         13.0,
-        22.0,
+        16.0,
         15.5
       ],
       "faces": {
@@ -74,7 +75,7 @@
           "texture": "#apt_fridge_door_44",
           "uv": [
             3.0,
-            -6.0,
+            0.0,
             13.0,
             15.0
           ]
@@ -83,9 +84,59 @@
           "texture": "#enamel",
           "uv": [
             3.0,
+            0.0,
+            13.0,
+            15.0
+          ]
+        },
+        "east": {
+          "texture": "#enamel",
+          "uv": [
+            0.5,
+            0.0,
+            11.0,
+            15.0
+          ]
+        },
+        "west": {
+          "texture": "#enamel",
+          "uv": [
+            5.0,
+            0.0,
+            15.5,
+            15.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.0,
+        16.0,
+        5.0
+      ],
+      "to": [
+        13.0,
+        22.0,
+        15.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_fridge_door_43",
+          "uv": [
+            3.0,
             10.0,
             13.0,
-            31.0
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#enamel",
+          "uv": [
+            3.0,
+            10.0,
+            13.0,
+            16.0
           ]
         },
         "east": {
@@ -94,7 +145,7 @@
             0.5,
             10.0,
             11.0,
-            31.0
+            16.0
           ]
         },
         "west": {
@@ -103,7 +154,7 @@
             5.0,
             10.0,
             15.5,
-            31.0
+            16.0
           ]
         },
         "up": {
@@ -184,6 +235,65 @@
       ],
       "to": [
         11.5,
+        16.0,
+        4.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chrome",
+          "uv": [
+            4.5,
+            0.0,
+            5.5,
+            5.0
+          ]
+        },
+        "south": {
+          "texture": "#chrome",
+          "uv": [
+            10.5,
+            0.0,
+            11.5,
+            5.0
+          ]
+        },
+        "east": {
+          "texture": "#chrome",
+          "uv": [
+            11.75,
+            0.0,
+            12.5,
+            5.0
+          ]
+        },
+        "west": {
+          "texture": "#chrome",
+          "uv": [
+            3.5,
+            0.0,
+            4.25,
+            5.0
+          ]
+        },
+        "down": {
+          "texture": "#chrome",
+          "uv": [
+            10.5,
+            11.75,
+            11.5,
+            12.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        10.5,
+        16.0,
+        3.5
+      ],
+      "to": [
+        11.5,
         17.5,
         4.25
       ],
@@ -194,7 +304,7 @@
             4.5,
             14.5,
             5.5,
-            21.0
+            16.0
           ]
         },
         "south": {
@@ -203,7 +313,7 @@
             10.5,
             14.5,
             11.5,
-            21.0
+            16.0
           ]
         },
         "east": {
@@ -212,7 +322,7 @@
             11.75,
             14.5,
             12.5,
-            21.0
+            16.0
           ]
         },
         "west": {
@@ -221,7 +331,7 @@
             3.5,
             14.5,
             4.25,
-            21.0
+            16.0
           ]
         },
         "up": {
@@ -231,15 +341,6 @@
             3.5,
             11.5,
             4.25
-          ]
-        },
-        "down": {
-          "texture": "#chrome",
-          "uv": [
-            10.5,
-            11.75,
-            11.5,
-            12.5
           ]
         }
       }
