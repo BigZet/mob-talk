@@ -157,17 +157,17 @@ public final class BanditController {
             BlockPos pos = standable(world, x, z, player.getBlockY());
             if (pos == null) continue;
             if (inTerritory && !territory(world, pos)) continue;
-            int score = lurk(world, pos) - (inSight(world, player, pos) ? 40 : 0) - 6 * Math.abs(pos.getY() - player.getBlockY());
+            if (!world.isSkyVisible(pos)) continue; // in the yard, by the stairwell door, not inside somebody's flat
+            int score = lurk(world, pos) - (inSight(world, player, pos) ? 40 : 0) - 10 * Math.abs(pos.getY() - player.getBlockY());
             if (score > bestScore) { bestScore = score; best = pos; }
         }
         return best;
     }
 
     /** How good a spot is to wait in: darkness (block light; the city's lamps light the streets), a door within three blocks (a
-     * stairwell, a yard gate) or a roof overhead (an arch, a bus stop), and no post of the police or the guard within 24 blocks. */
+     * stairwell, a yard gate), and no post of the police or the guard within 24 blocks. */
     public static int lurk(ServerWorld world, BlockPos pos) {
         int score = (15 - world.getLightLevel(net.minecraft.world.LightType.BLOCK, pos)) * 3;
-        if (!world.isSkyVisible(pos)) score += 10;
         for (BlockPos near : BlockPos.iterate(pos.add(-3, -1, -3), pos.add(3, 2, 3)))
             if (world.getBlockState(near).getBlock() instanceof net.minecraft.block.DoorBlock) { score += 12; break; }
         if (watched(world, pos)) score -= 60;
@@ -194,7 +194,7 @@ public final class BanditController {
     /** The ground at x, z nearest the player's height: the street he walks, not a roof or a balcony above it. */
     private static BlockPos standable(ServerWorld world, int x, int z, int y) {
         if (!world.isChunkLoaded(new BlockPos(x, y, z))) return null;
-        for (int i = 0; i <= 8; i++) {
+        for (int i = 0; i <= 4; i++) {
             int dy = (i + 1) / 2 * (i % 2 == 0 ? 1 : -1); // 0, -1, 1, -2, 2…
             BlockPos pos = new BlockPos(x, y + dy, z);
             if (free(world, pos)) return pos;

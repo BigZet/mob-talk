@@ -319,11 +319,12 @@ final class SelfTestBandits {
                 mark();
                 test.command("execute as " + name() + " at " + name() + " run bandits night");
                 test.await("the night's gang comes out in the city", 60, () -> heard("изумр.") || heard("Пустой") || heard("Голодранец") || heard("Ни изумруда"), () -> {
-                    BanditEntity first = bandits().stream().min(Comparator.comparingDouble(b -> b.distanceTo(test.serverPlayer()))).orElse(null);
-                    test.check(first != null, "a gang came for the player in the city at night");
-                    if (first != null) frame(first, true);
+                    List<BanditEntity> gang = onServer(() -> world().getEntitiesByClass(BanditEntity.class, test.serverPlayer().getBoundingBox().expand(40), BanditEntity::isAlive));
+                    BanditEntity first = gang.stream().min(Comparator.comparingDouble(b -> b.distanceTo(test.serverPlayer()))).orElse(null);
+                    test.check(first != null, "a gang came for the player in the city at night (" + gang.size() + ")");
+                    test.check(first != null && first.mode() != BanditEntity.Mode.PROWL, "the gang reached the player through the city streets");
+                    if (first != null) look(first);
                     shot("mobtalk-bandits-city.png", () -> {
-                        if (first != null) frame(first, false);
                         test.command("bandits clear");
                         f7();
                     });

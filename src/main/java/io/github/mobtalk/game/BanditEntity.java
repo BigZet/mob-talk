@@ -70,6 +70,7 @@ public final class BanditEntity extends HostileEntity {
     public BanditEntity(EntityType<? extends HostileEntity> type, World world) {
         super(type, world);
         experiencePoints = 8;
+        if (getNavigation() instanceof net.minecraft.entity.ai.pathing.MobNavigation navigation) { navigation.setCanPathThroughDoors(true); navigation.setCanEnterOpenDoors(true); }
     }
 
     public static DefaultAttributeContainer.Builder attributes() {
@@ -82,6 +83,7 @@ public final class BanditEntity extends HostileEntity {
 
     @Override protected void initGoals() {
         goalSelector.add(0, new SwimGoal(this));
+        goalSelector.add(1, new net.minecraft.entity.ai.goal.LongDoorInteractGoal(this, true)); // through stairwell doors, shutting them behind
         goalSelector.add(2, new MeleeAttackGoal(this, 1.15, false));
         goalSelector.add(7, new WanderAroundFarGoal(this, 0.8));
         goalSelector.add(8, new LookAtEntityGoal(this, PlayerEntity.class, 10f));
