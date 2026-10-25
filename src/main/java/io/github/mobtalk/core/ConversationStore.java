@@ -1203,6 +1203,9 @@ public final class ConversationStore {
                 case INSULT -> MobState.Event.INSULT; case THREAT -> MobState.Event.THREAT; case NONE -> null;
             };
             if (felt != null) feel(p, r, felt, nowMillis);
+            // An apology or warm words to a jealous partner soothe the jealousy itself, not only the mood.
+            if ((social == SocialIntent.APOLOGY || social == SocialIntent.KIND) && r.rapport != null && r.rapport.courtship().partners() && r.rapport.jealousy != null)
+                r.rapport.jealousy.soothe((social == SocialIntent.APOLOGY ? 3 : 2) * config.jealousyAttention, nowMillis);
         }
         scheduleSave(); return true;
     }

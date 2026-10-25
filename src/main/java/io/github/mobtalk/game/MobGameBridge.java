@@ -431,7 +431,7 @@ public final class MobGameBridge implements GameBridge {
     /** Трек J: пропуск ночи ждёт, пока игрок лежит рядом с парой (миксин на {@code PlayerEntity.canResetTimeBySleeping}). */
     public static boolean holdsNight(ServerPlayerEntity player) {
         MobGameBridge bridge = forEntity(player);
-        return bridge != null && (bridge.coSleep.holdsNight(player) || bridge.children.holdsNight(player));
+        return bridge != null && (bridge.coSleep.holdsNight(player) || bridge.children.holdsNight(player) && bridge.coSleep.withinCap(player));
     }
     /** Сделка в окне торговли состоялась: запись «Торг» в журнал админки (на выделенном сервере; в одиночке журнал пуст). */
     public static void journalTrade(MobEntity merchant, ServerPlayerEntity player, net.minecraft.village.TradeOffer offer) {
@@ -577,7 +577,7 @@ public final class MobGameBridge implements GameBridge {
                 String result = actions.apply(mob, player, intent, observed);
                 if (!gestured.isBlank()) result = result.isBlank() ? gestured : result + "; " + gestured;
                 if (!trade.isBlank()) result = result.isBlank() ? trade : result + "; " + trade;
-                jealousy.talked(mob, player); // Трек J: разговор с парой или с жителем её пола.
+                jealousy.talked(mob, player, handed == null ? null : handed.gesture()); // Трек J: разговор с парой или с жителем её пола.
                 Witness heard = Witness.of(social);
                 if (heard != null) witnessed(mob, player, heard);
                 return new Outcome(result, memory.revision(mobId));

@@ -35,6 +35,8 @@ final class CoSleepController {
     private final Set<UUID> sleeping = new HashSet<>();
     /** Игрок → до какого тика сервера ночь не пропускается (пара рядом, можно поговорить в кровати). */
     private final Map<UUID, Long> holds = new HashMap<>();
+    /** When each sleeping player lay down (server ticks): no hold keeps the night past {@link #capTicks} from then. */
+    private final Map<UUID, Long> lay = new HashMap<>();
     private static final class Night {
         final UUID player; final BlockPos bed; final long startedTick; boolean asleep;
         Night(UUID player, BlockPos bed, long startedTick) { this.player = player; this.bed = bed; this.startedTick = startedTick; }
@@ -57,8 +59,14 @@ final class CoSleepController {
         invites.values().removeIf(invite -> now > invite.until());
         for (ServerPlayerEntity player : world.getPlayers()) {
             boolean asleep = player.isSleeping() && player.getSleepingPosition().isPresent();
-            if (asleep && sleeping.add(player.getUuid())) lieDown(world, player, now);
-            else if (!asleep && sleeping.remove(player.getUuid())) { holds.remove(player.getUuid()); bridge.children.woke(player); woke(world, player, now); }
+            if (asleep && sleeping.add(player.getUuid())) { lay.put(player.getUuid(), (long) world.getServer().getTicks()); lieDown(world, player, now); }
+            else if (!asleep && sleeping.remove(player.getUuid())) { holds.remove(player.getUuid()); lay.remove(player.getUuid()); bridge.children.woke(player); woke(world, player, now); }
+        }
+        // A held night shows how long it still waits, so the player knows the morning will come.
+        if (world.getTime() % 20 == 2) for (ServerPlayerEntity player : world.getPlayers()) {
+            if (!asleepHeld(player)) continue;
+            long left = (lay.get(player.getUuid()) + capTicks() - world.getServer().getTicks() + 19) / 20;
+            player.sendMessage(net.minecraft.text.Text.literal("Ночь пройдёт через " + left + " с"), true);
         }
         for (Iterator<Map.Entry<UUID, Night>> it = nights.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<UUID, Night> entry = it.next();
@@ -121,6 +129,14 @@ final class CoSleepController {
         Long until = holds.get(player.getUuid());
         return until != null && player.isSleeping() && player.getServer() != null && player.getServer().getTicks() < until;
     }
+    /** The longest any hold (this one or the special night's whispers) keeps the night: {@link MobTalkConfig#coSleepNightDelay} seconds. */
+    private long capTicks() { return 20L * Math.max(0, bridge.config.coSleepNightDelay); }
+    /** Whether the player lay down less than {@link #capTicks} ago: past that the night passes whatever is said in bed. */
+    boolean withinCap(ServerPlayerEntity player) {
+        Long since = lay.get(player.getUuid());
+        return since != null && player.getServer() != null && player.getServer().getTicks() < since + capTicks();
+    }
+    private boolean asleepHeld(ServerPlayerEntity player) { return player.isSleeping() && MobGameBridge.holdsNight(player); }
     /** Ближайшая свободная кровать (изголовье) в 1–2 блоках от кровати игрока, не занятая и не обещанная другой паре; null — нет. */
     private BlockPos freeBed(ServerWorld world, BlockPos bed) {
         List<int[]> free = new ArrayList<>();
@@ -183,5 +199,5 @@ final class CoSleepController {
     }
 
     void unload(MobEntity mob) { nights.remove(mob.getUuid()); invites.remove(mob.getUuid()); }
-    void clearRuntime() { nights.clear(); invites.clear(); sleeping.clear(); holds.clear(); }
+    void clearRuntime() { nights.clear(); invites.clear(); sleeping.clear(); holds.clear(); lay.clear(); }
 }
