@@ -673,6 +673,7 @@ final class MobTalkSettingsScreen extends Screen {
             note(Text.translatable("mobtalk.settings.tts.veniceNote"), 0x9A9A9A);
         } else {
             labeled("mobtalk.settings.ttsModel", field(draft.ttsModel, 160, value -> draft.ttsModel = value));
+            wide(tip(toggle("mobtalk.settings.ttsTags", draft.ttsTags, value -> draft.ttsTags = value), "mobtalk.settings.ttsTags.tooltip"));
             note(Text.translatable("mobtalk.settings.tts.openRouterNote"), 0x9A9A9A);
         }
         note(Text.translatable("mobtalk.settings.tts.keyNote"), 0x9A9A9A);

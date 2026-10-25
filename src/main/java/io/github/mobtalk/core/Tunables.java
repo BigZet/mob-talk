@@ -318,7 +318,7 @@ public final class Tunables {
             case VOICE -> {
                 config.whisperModel = d.whisperModel; config.whisperDevice = d.whisperDevice; config.whisperLanguage = d.whisperLanguage;
                 config.whisperAutoStart = d.whisperAutoStart; config.whisperUrl = d.whisperUrl; config.whisperHotwords = d.whisperHotwords;
-                config.ttsProvider = d.ttsProvider; config.ttsModel = d.ttsModel; config.veniceTtsModel = d.veniceTtsModel; config.veniceVoice = d.veniceVoice;
+                config.ttsProvider = d.ttsProvider; config.ttsModel = d.ttsModel; config.veniceTtsModel = d.veniceTtsModel; config.veniceVoice = d.veniceVoice; config.ttsTags = d.ttsTags;
             }
             case MODEL -> {
                 config.llmProvider = d.llmProvider; config.llmModel = d.llmModel; config.veniceModel = d.veniceModel;
