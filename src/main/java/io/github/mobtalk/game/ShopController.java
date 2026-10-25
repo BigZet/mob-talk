@@ -271,6 +271,14 @@ public final class ShopController {
         return desk;
     }
 
+    /** The displays found so far to belong to the shop of this guard's desk. */
+    static List<BlockPos> displaysOf(BlockPos desk) {
+        java.util.TreeSet<Long> all = DISPLAYS_OF.get(desk);
+        List<BlockPos> out = new ArrayList<>();
+        if (all != null) for (long p : all) out.add(BlockPos.fromLong(p));
+        return out;
+    }
+
     /** The shop's display that has today's deal: of those with something worth two emeralds or more, the one whose hash for the
      * day is least. */
     static BlockPos dayDealDisplay(ServerWorld world, BlockPos desk, long day) {
@@ -319,7 +327,7 @@ public final class ShopController {
     private static final Map<BlockPos, Long> MUSIC = new HashMap<>();
     private static final Map<UUID, Vec3d> LAST_AT = new HashMap<>();
 
-    private static void later(ServerWorld world, BlockPos pos, net.minecraft.sound.SoundEvent sound, float volume, float pitch, long at) {
+    static void later(ServerWorld world, BlockPos pos, net.minecraft.sound.SoundEvent sound, float volume, float pitch, long at) {
         LATER.add(new Later(world, pos.toImmutable(), sound, volume, pitch, at));
     }
 
@@ -420,6 +428,7 @@ public final class ShopController {
         VillagerEntity cashier = self ? null : cashierAt(world, till);
         if (!self && cashier == null) { player.sendMessage(Text.translatable("mobtalk.shop.closed").formatted(Formatting.YELLOW), false); return; }
         if (cashier != null) cashier.getLookControl().lookAt(player);
+        if (!self) ShopShoppers.cutIn(world, till, player);
         List<ItemStack> goods = carried(player);
         if (goods.isEmpty()) {
             ItemStack basket = basketOf(player);
@@ -438,6 +447,11 @@ public final class ShopController {
         }
         watch.glitchUntil = 0;
         int cost = cost(goods);
+        // The loyalty card: sneaking at the till spends its points, ten to an emerald off.
+        ItemStack card = config.shopLoyalty ? ShopCard.of(player) : ItemStack.EMPTY;
+        int off = !card.isEmpty() && player.isSneaking() ? ShopCard.discount(ShopCard.points(card), cost) : 0;
+        int full = cost;
+        cost -= off;
         PlayerInventory inventory = player.getInventory();
         int emeralds = inventory.count(Items.EMERALD), blocks = inventory.count(Items.EMERALD_BLOCK);
         ShopCatalog.Payment payment = ShopCatalog.pay(cost, emeralds, blocks);
@@ -472,10 +486,20 @@ public final class ShopController {
             world.playSound(null, till, SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.BLOCKS, 0.4f, 0.8f);
         }
         say(world, player, cashier, self, "mobtalk.shop.say.paid", cost, count);
+        if (config.shopLoyalty) {
+            if (off > 0) player.sendMessage(Text.translatable("mobtalk.shop.card.spent", off * ShopCard.POINTS_PER_EMERALD, off).formatted(Formatting.GOLD), false);
+            if (!card.isEmpty()) ShopCard.set(card, null, ShopCard.points(card) - off * ShopCard.POINTS_PER_EMERALD + cost);
+            else if (!self) { // the cashier's offer with the first purchase
+                ItemStack issued = ShopCard.issue(player);
+                ShopCard.set(issued, null, cost);
+                inventory.offerOrDrop(issued);
+                say(world, player, cashier, false, "mobtalk.shop.card.offer");
+            }
+        }
         if (payment.change() > 0) player.sendMessage(Text.translatable("mobtalk.shop.change", payment.change()).formatted(Formatting.GREEN), true);
         MobGameBridge bridge = MobGameBridge.active(world.getServer());
         if (cashier != null && bridge != null && bridge.memory.known(cashier.getUuid()))
-            bridge.event(cashier, "Пробила покупку игроку " + MobGameBridge.playerName(player) + " на " + cost + " изумр.");
+            bridge.event(cashier, "Пробила покупку игроку " + MobGameBridge.playerName(player) + " на " + full + " изумр." + (off > 0 ? " (" + off + " баллами)" : ""));
     }
 
     static void remove(PlayerInventory inventory, net.minecraft.item.Item item, int amount) {
@@ -538,6 +562,7 @@ public final class ShopController {
         });
         if (now % WATCH_PERIOD == 5 && config.shopSounds) for (ServerPlayerEntity player : world.getPlayers()) rattle(world, player);
         if (now % STAFF_PERIOD == 37 && config.shopStaff) staff(world, now);
+        if (now % 20 == 11) ShopShoppers.tick(world, now);
     }
 
     /** Who works at a post: the till's cashier, the guard at the desk, the market vendor at the scales or the old woman's table. */
@@ -569,7 +594,7 @@ public final class ShopController {
                 BlockPos post = poi.getPos();
                 if (!seen.add(post)) return;
                 Role role = Role.at(world, post);
-                if (role == Role.GUARD) ambience(world, post, now);
+                if (role == Role.GUARD) { ambience(world, post, now); ShopShoppers.maybeStart(world, post, now); }
                 VillagerEntity worker = worker(world, post, role);
                 if (worker == null) {
                     Long free = VACANT.get(post);
@@ -581,7 +606,7 @@ public final class ShopController {
                 }
                 if (worker == null) return;
                 VACANT.remove(post);
-                if (role == Role.VENDOR) MarketController.calls(world, worker, now);
+                if (role == Role.VENDOR) { MarketController.calls(world, worker, now); MarketController.ambience(world, post, now); }
                 // Back to the post, unless the guard is after a thief.
                 UUID id = worker.getUuid();
                 boolean chasing = role == Role.GUARD && WATCHES.values().stream().anyMatch(w -> w.alerted && id.equals(w.guard));

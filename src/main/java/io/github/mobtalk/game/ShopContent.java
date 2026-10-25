@@ -112,7 +112,7 @@ public final class ShopContent {
     public static Block CASH_REGISTER, SELF_CHECKOUT, BASKET_STACK, CART_CORRAL, THEFT_GATE, GUARD_DESK;
     /** The market's fittings: the vendor's scales (their job site), the yellow kvass barrel, sacks of potatoes. */
     public static Block MARKET_SCALES, KVASS_BARREL, POTATO_SACKS;
-    public static Item BASKET, CART;
+    public static Item BASKET, CART, CARD;
     public static final Identifier CASH_REGISTER_ID = Identifier.of("mobtalk", "cash_register"), GUARD_DESK_ID = Identifier.of("mobtalk", "shop_guard_desk");
     public static final RegistryKey<PointOfInterestType> CASH_REGISTER_POI = RegistryKey.of(RegistryKeys.POINT_OF_INTEREST_TYPE, CASH_REGISTER_ID);
     public static final RegistryKey<PointOfInterestType> GUARD_DESK_POI = RegistryKey.of(RegistryKeys.POINT_OF_INTEREST_TYPE, GUARD_DESK_ID);
@@ -120,7 +120,7 @@ public final class ShopContent {
     public static final Identifier VENDOR_ID = Identifier.of("mobtalk", "market_vendor");
     public static final RegistryKey<PointOfInterestType> VENDOR_POI = RegistryKey.of(RegistryKeys.POINT_OF_INTEREST_TYPE, VENDOR_ID);
     /** The shop's own sounds (tools/city/shop_sounds.py): scanner beep, till drawer, gate alarm, PA chime, fridge hum, cart, music. */
-    public static net.minecraft.sound.SoundEvent SOUND_BEEP, SOUND_DRAWER, SOUND_ALARM, SOUND_CHIME, SOUND_HUM, SOUND_CART, SOUND_MUSIC;
+    public static net.minecraft.sound.SoundEvent SOUND_BEEP, SOUND_DRAWER, SOUND_ALARM, SOUND_CHIME, SOUND_HUM, SOUND_CART, SOUND_MUSIC, SOUND_CROWD, SOUND_SCALES, SOUND_CHOP, SOUND_SIZZLE;
     /** Every block of a shop, for «is the player still inside the shop». */
     public static final List<Block> SHOP_BLOCKS = new ArrayList<>();
     public static final Map<String, Block> BLOCKS = new LinkedHashMap<>();
@@ -171,11 +171,14 @@ public final class ShopContent {
                 BlockEntityType.Builder.create(DisplayBlockEntity::new, DISPLAYS.values().toArray(Block[]::new)).build(null));
         BASKET = Registry.register(Registries.ITEM, Identifier.of("mobtalk", "shopping_basket"), new BasketItem(new Item.Settings().maxCount(1), BASKET_LOTS));
         CART = Registry.register(Registries.ITEM, Identifier.of("mobtalk", "shopping_cart"), new BasketItem(new Item.Settings().maxCount(1), CART_LOTS));
+        CARD = Registry.register(Registries.ITEM, Identifier.of("mobtalk", "loyalty_card"), new Item(new Item.Settings().maxCount(1)));
         items.add(BASKET);
         items.add(CART);
+        items.add(CARD);
         ShopFoods.register();
         SOUND_BEEP = sound("shop.beep"); SOUND_DRAWER = sound("shop.drawer"); SOUND_ALARM = sound("shop.alarm"); SOUND_CHIME = sound("shop.chime");
         SOUND_HUM = sound("shop.hum"); SOUND_CART = sound("shop.cart"); SOUND_MUSIC = sound("shop.music");
+        SOUND_CROWD = sound("market.crowd"); SOUND_SCALES = sound("market.scales"); SOUND_CHOP = sound("market.chop"); SOUND_SIZZLE = sound("market.sizzle");
         PointOfInterestHelper.register(CASH_REGISTER_ID, 1, 1, CASH_REGISTER);
         PointOfInterestHelper.register(GUARD_DESK_ID, 1, 1, GUARD_DESK);
         PointOfInterestHelper.register(VENDOR_ID, 1, 1, MARKET_SCALES, DISPLAYS.get(Display.GRANNY_TABLE),

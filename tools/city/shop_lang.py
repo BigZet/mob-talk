@@ -97,6 +97,27 @@ T = {
     "mobtalk.shop.tag.day": ("ТОВАР ДНЯ −50%%", "DEAL OF THE DAY −50%%"),
     "mobtalk.shop.deal.announce": ("Уважаемые покупатели! Только сегодня товар дня: %s — всего %s изумр. за %s шт.",
                                    "Dear customers! Today only, the deal of the day: %s, just %s emeralds for %s."),
+    # Villager shoppers and the queue.
+    "mobtalk.settings.shopShoppers": ("Жители ходят за покупками", "Villagers go shopping"),
+    "mobtalk.settings.shopShoppers.tooltip": ("Днём жители заходят в универсам, берут товар с полок и стоят в очереди на кассе. Выключено: в магазине только игроки.",
+                                              "By day villagers come into the supermarket, take goods off the shelves and queue at the tills. Off: only players shop."),
+    "mobtalk.shop.queue.otmena.0": ("Галя, у нас отмена!", "Galya, we've got a void!"),
+    "mobtalk.shop.queue.otmena.1": ("Галя! Отмена! Ключ принеси!", "Galya! A void! Bring the key!"),
+    "mobtalk.shop.queue.otmena.2": ("Подождите, у меня лента кончилась.", "Wait, I've run out of till roll."),
+    "mobtalk.shop.queue.cut.0": ("Молодой человек, тут вообще-то очередь!", "Young man, there is a queue here, you know!"),
+    "mobtalk.shop.queue.cut.1": ("Я тут стояла! Вас здесь не стояло!", "I was standing here! You weren't!"),
+    "mobtalk.shop.queue.cut.2": ("Ну конечно, некоторым всё без очереди…", "Of course, some people never queue…"),
+    # The loyalty card.
+    "item.mobtalk.loyalty_card": ("Карта покупателя «Универсам»", "«Univermag» loyalty card"),
+    "mobtalk.shop.card.owner": ("Владелец: %s", "Holder: %s"),
+    "mobtalk.shop.card.points": ("Баллов: %s (%s баллов = 1 изумруд, присядь на кассе — спишем)", "Points: %s (%s points = 1 emerald; sneak at the till to spend)"),
+    "mobtalk.shop.card.offer.0": ("Карты нет? Держите, оформила. Баллы копите!", "No card? Here, I've made you one. Collect the points!"),
+    "mobtalk.shop.card.offer.1": ("Вот вам карта нашего магазина — с каждой покупки баллы.", "Here's our shop's card: points with every purchase."),
+    "mobtalk.shop.card.offer.2": ("Карточку возьмите, бесплатно. Десять баллов — изумруд.", "Take a card, it's free. Ten points make an emerald."),
+    "mobtalk.shop.card.spent": ("Списано %s баллов: −%s изумр.", "%s points spent: −%s emeralds"),
+    "mobtalk.settings.shopLoyalty": ("Карта покупателя", "Loyalty card"),
+    "mobtalk.settings.shopLoyalty.tooltip": ("Кассир выдаёт карту с первой покупкой; изумруд — балл, десять баллов — изумруд скидки (присесть на кассе).",
+                                             "The cashier issues a card with the first purchase; an emerald earns a point, ten points are an emerald off (sneak at the till)."),
 }
 
 

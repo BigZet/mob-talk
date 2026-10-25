@@ -77,7 +77,8 @@ public final class MarketController {
         inventory.offerOrDrop(lane.goods.copyWithCount(count));
         lane.stock--;
         display.changed();
-        world.playSound(null, display.getPos(), SoundEvents.BLOCK_WOODEN_BUTTON_CLICK_ON, SoundCategory.BLOCKS, 0.6f, 0.8f); // the scales
+        if (!display.display().id.startsWith("kiosk_") && ShopController.config(world).shopSounds)
+            world.playSound(null, display.getPos(), ShopContent.SOUND_SCALES, SoundCategory.BLOCKS, 0.6f, 0.95f + RANDOM.nextFloat() * 0.1f); // weighed out
         world.playSound(null, display.getPos(), SoundEvents.ENTITY_ITEM_PICKUP, SoundCategory.PLAYERS, 0.5f, 1.1f);
         player.sendMessage(Text.translatable("mobtalk.market.bought", lane.goods.getName(), count, price).formatted(Formatting.GREEN), true);
         if (RANDOM.nextInt(3) == 0) say(world, player, vendor, "mobtalk.market.say.thanks");
@@ -99,6 +100,30 @@ public final class MarketController {
         world.playSound(null, barrel, SoundEvents.ITEM_BOTTLE_FILL, SoundCategory.BLOCKS, 0.8f, 0.8f);
         world.playSound(null, barrel, SoundEvents.ITEM_BOTTLE_FILL, SoundCategory.BLOCKS, 0.8f, 0.7f);
         player.sendMessage(Text.translatable("mobtalk.market.kvass.poured").formatted(Formatting.GOLD), true);
+    }
+
+    /** When each spot may next sound (a market's hubbub goes by sixteen-block patches, so one market is not a choir). */
+    private static final Map<Long, Long> SOUNDED = new HashMap<>();
+
+    /** The market's air, from a vendor's post when a player is near: the crowd's hubbub, the cleaver at a meat counter, the
+     * shawarma grill sizzling. */
+    static void ambience(ServerWorld world, BlockPos post, long now) {
+        if (!ShopController.config(world).shopSounds) return;
+        if (world.getClosestPlayer(post.getX() + 0.5, post.getY(), post.getZ() + 0.5, 24, false) == null) return;
+        String kiosk = null; boolean meat = false;
+        for (BlockPos p : BlockPos.iterate(post.add(-2, -1, -2), post.add(2, 1, 2)))
+            if (world.getBlockEntity(p) instanceof ShopContent.DisplayBlockEntity d) {
+                if (d.display() == ShopContent.Display.MEAT_STALL) meat = true;
+                if (d.display().id.startsWith("kiosk_")) kiosk = d.display().id;
+            }
+        if ("kiosk_shawarma".equals(kiosk)) { if (RANDOM.nextInt(2) == 0) world.playSound(null, post, ShopContent.SOUND_SIZZLE, SoundCategory.BLOCKS, 0.35f, 1f); return; }
+        if (kiosk != null) return;
+        if (meat && RANDOM.nextInt(3) == 0) world.playSound(null, post, ShopContent.SOUND_CHOP, SoundCategory.BLOCKS, 0.5f, 0.9f + RANDOM.nextFloat() * 0.2f);
+        long patch = BlockPos.asLong(post.getX() >> 4, 0, post.getZ() >> 4);
+        Long next = SOUNDED.get(patch);
+        if (next != null && now < next) return;
+        SOUNDED.put(patch, now + 140 + RANDOM.nextInt(160)); // the hubbub is seven seconds; a pause after
+        world.playSound(null, post, ShopContent.SOUND_CROWD, SoundCategory.AMBIENT, 0.55f, 0.95f + RANDOM.nextFloat() * 0.1f);
     }
 
     /** Now and then a vendor at the stall calls out to a player walking by. */

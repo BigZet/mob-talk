@@ -131,6 +131,10 @@ public final class MobTalkConfig {
     public boolean shopSounds = true;
     /** Deals: yellow «акция» tags (30% off) on some goods, and one «товар дня» a shop at half price, changing every day. */
     public boolean shopDeals = true;
+    /** Villagers go shopping by day: they take goods off the displays and queue at the tills. */
+    public boolean shopShoppers = true;
+    /** The supermarket's loyalty card: issued with the first purchase, a point an emerald, ten points an emerald off (sneak at the till). */
+    public boolean shopLoyalty = true;
     /** About how many of the lanes are on «акция» on a given day, percent. */
     public int shopPromoPercent = 12;
     /** City markets: vendors at their stalls sell for emeralds on the spot (haggling allowed); they call out to passers-by. */
@@ -336,7 +340,7 @@ public final class MobTalkConfig {
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
         copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageHeavy = villageHeavy; copy.villageCavalry = villageCavalry;
-        copy.cityShops = cityShops; copy.shopStaff = shopStaff; copy.shopTheftAlarm = shopTheftAlarm; copy.shopSounds = shopSounds; copy.shopDeals = shopDeals; copy.cityMarkets = cityMarkets; copy.marketCalls = marketCalls;
+        copy.cityShops = cityShops; copy.shopStaff = shopStaff; copy.shopTheftAlarm = shopTheftAlarm; copy.shopSounds = shopSounds; copy.shopDeals = shopDeals; copy.shopShoppers = shopShoppers; copy.shopLoyalty = shopLoyalty; copy.cityMarkets = cityMarkets; copy.marketCalls = marketCalls;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;

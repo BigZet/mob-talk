@@ -105,9 +105,10 @@ final class SelfTestShop {
 
     private void stocked() {
         // The shop's sounds are known to the client (sounds.json and the oggs), and which of them it plays.
-        for (String id : List.of("beep", "drawer", "alarm", "chime", "hum", "cart", "music")) {
-            var set = test.owner.client.getSoundManager().get(net.minecraft.util.Identifier.of("mobtalk", "shop." + id));
-            test.check(set != null && set.getSound(net.minecraft.util.math.random.Random.create()) != null, "the shop sound " + id + " is there");
+        for (String id : List.of("shop.beep", "shop.drawer", "shop.alarm", "shop.chime", "shop.hum", "shop.cart", "shop.music",
+                "market.crowd", "market.scales", "market.chop", "market.sizzle")) {
+            var set = test.owner.client.getSoundManager().get(net.minecraft.util.Identifier.of("mobtalk", id));
+            test.check(set != null && set.getSound(net.minecraft.util.math.random.Random.create()) != null, "the sound " + id + " is there");
         }
         test.owner.client.getSoundManager().registerListener((sound, set, range) -> {
             if (sound.getId().getNamespace().equals("mobtalk")) heardSounds.add(sound.getId().getPath());
@@ -419,8 +420,80 @@ final class SelfTestShop {
                 test.bridge().config.shopPromoPercent = promo;
                 test.bridge().config.shopDeals = dealsWere;
                 test.command("gamemode survival " + name());
-                kiosks();
+                card();
             });
+        });
+    }
+
+    /** The loyalty card: issued with a purchase at a staffed till, a point an emerald; sneaking spends ten points an emerald. */
+    private void card() {
+        net.minecraft.item.Item card = ShopContent.CARD;
+        test.command("clear " + name());
+        test.command("give " + name() + " minecraft:emerald 10");
+        test.command("tp " + name() + " " + at(-6, 0, 4) + " 180 10");
+        test.await("emeralds for the card", 5, () -> count(Items.EMERALD) == 10, () -> {
+            take(-6, -5, 0);
+            test.await("goods to pay for", 5, () -> unpaid() > 0, () -> {
+                test.server().execute(() -> ShopController.checkout(world(), pos(-6, 0, 3), player(), false));
+                test.await("a card from the cashier", 5, () -> count(card) == 1, () -> {
+                    int paid = 10 - count(Items.EMERALD);
+                    int points = onServer(() -> io.github.mobtalk.game.ShopCard.points(io.github.mobtalk.game.ShopCard.of(player())));
+                    test.check(count(card) == 1 && points == paid, "the cashier issued a card with a point an emerald (" + points + " for " + paid + ")");
+                    onServer(() -> { io.github.mobtalk.game.ShopCard.set(io.github.mobtalk.game.ShopCard.of(player()), null, 30); return true; });
+                    int emeralds = count(Items.EMERALD);
+                    take(-6, -5, 0);
+                    test.await("more goods", 5, () -> unpaid() > 0, () -> {
+                        test.server().execute(() -> { player().setSneaking(true); ShopController.checkout(world(), pos(-6, 0, 3), player(), false); player().setSneaking(false); });
+                        test.await("paid with points", 5, () -> unpaid() == 0, () -> {
+                            int left = onServer(() -> io.github.mobtalk.game.ShopCard.points(io.github.mobtalk.game.ShopCard.of(player())));
+                            test.check(count(Items.EMERALD) == emeralds && left < 30, "sneaking at the till pays with the card's points (" + emeralds + " -> " + count(Items.EMERALD) + " emeralds, 30 -> " + left + " points)");
+                            shoppers();
+                        });
+                    });
+                });
+            });
+        });
+    }
+
+    /** Two villagers go shopping: they take goods off the displays, queue at a till and are served. */
+    private void shoppers() {
+        int servedBefore = io.github.mobtalk.game.ShopShoppers.served;
+        test.command("summon minecraft:villager " + at(2, 0, 4) + " {Tags:[\"mobtalk_shopper_test\"]}");
+        test.command("summon minecraft:villager " + at(3, 0, 4) + " {Tags:[\"mobtalk_shopper_test\"]}");
+        test.await("two shoppers", 5, () -> shoppersHere().size() >= 2, () -> {
+            int stockBefore = stockSum();
+            boolean started = onServer(() -> {
+                boolean ok = true;
+                for (VillagerEntity v : shoppersHere()) ok &= io.github.mobtalk.game.ShopShoppers.start(world(), pos(6, 0, 1), v, world().getTime());
+                return ok;
+            });
+            test.check(started, "the villagers set off shopping (" + io.github.mobtalk.game.ShopShoppers.trips() + " trips)");
+            test.await("a queue at a till", 90, () -> onServer(() -> io.github.mobtalk.game.ShopShoppers.queued(pos(-6, 0, 3)) + io.github.mobtalk.game.ShopShoppers.queued(pos(-3, 0, 3))) >= 2
+                    || io.github.mobtalk.game.ShopShoppers.served - servedBefore >= 1, () -> {
+                test.command("gamemode spectator " + name());
+                test.command("tp " + name() + " " + at(-1, 1, 5) + " 120 25");
+                test.owner.client.inGameHud.getChatHud().clear(false);
+                shot("mobtalk-shop-queue.png", () -> test.await("both are served", 90, () -> io.github.mobtalk.game.ShopShoppers.served - servedBefore >= 2, () -> {
+                    test.check(io.github.mobtalk.game.ShopShoppers.served - servedBefore >= 2, "both shoppers were served at a till (" + (io.github.mobtalk.game.ShopShoppers.served - servedBefore) + ")");
+                    test.check(stockSum() < stockBefore, "the shoppers took goods off the displays (" + stockBefore + " -> " + stockSum() + ")");
+                    test.command("kill @e[type=minecraft:villager,tag=mobtalk_shopper_test]");
+                    test.command("gamemode survival " + name());
+                    kiosks();
+                }));
+            });
+        });
+    }
+
+    private List<VillagerEntity> shoppersHere() {
+        return onServer(() -> world().getEntitiesByClass(VillagerEntity.class, area(), v -> v.isAlive() && v.getCommandTags().contains("mobtalk_shopper_test")));
+    }
+
+    private int stockSum() {
+        return onServer(() -> {
+            int sum = 0;
+            for (int x = -6; x <= 6; x++) { ShopContent.DisplayBlockEntity d = display(x, -5); if (d != null) for (ShopContent.DisplayBlockEntity.Lane l : d.lanes) sum += l.stock; }
+            for (int x = -4; x <= 4; x++) { ShopContent.DisplayBlockEntity d = display(x, -1); if (d != null) for (ShopContent.DisplayBlockEntity.Lane l : d.lanes) sum += l.stock; }
+            return sum;
         });
     }
 
@@ -467,7 +540,8 @@ final class SelfTestShop {
         onServer(() -> { io.github.mobtalk.game.MarketController.stock(world(), window); return true; });
         test.command("clear " + name());
         test.command("give " + name() + " minecraft:emerald 10");
-        test.await("emeralds for the kiosk", 5, () -> count(Items.EMERALD) == 10, () -> {
+        test.await("emeralds for the kiosk, the shawarma vendor at the window", 30, () -> count(Items.EMERALD) == 10
+                && onServer(() -> io.github.mobtalk.game.MarketController.vendorNear(world(), kpos(5, 15))), () -> {
             int price = window.lanes[0].price, lot = window.lanes[0].lot;
             net.minecraft.item.Item item = window.lanes[0].goods.getItem();
             test.server().execute(() -> ShopController.take(world(), window, 0, player()));

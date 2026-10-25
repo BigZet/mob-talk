@@ -199,10 +199,25 @@ def gum():
     return s
 
 
+def loyalty_card():
+    """The supermarket's loyalty card: red plastic with a yellow band, the white «У» of «Универсам», a magnetic stripe."""
+    s = Sprite()
+    s.rect(1, 4, 14, 12, (200, 36, 40))
+    s.rect(1, 4, 14, 4, (226, 80, 80))
+    s.rect(1, 10, 14, 10, (240, 200, 50))
+    for x, y in ((4, 6), (4, 7), (5, 8), (6, 7), (6, 6), (5, 9), (4, 9)):  # «У»
+        s.put(x, y, (250, 250, 250))
+    s.rect(8, 6, 12, 6, (250, 230, 230))
+    s.rect(8, 8, 11, 8, (250, 230, 230))
+    s.outline((80, 16, 18))
+    return s
+
+
 GOODS = {
     "newspaper": newspaper, "krokodil": krokodil, "crossword": crossword,
     "shawarma": shawarma, "cheburek": cheburek, "belyash": belyash, "tea_cup": tea_cup,
     "beer": beer, "sukhariki": sukhariki, "vobla": vobla, "gum": gum,
+    "loyalty_card": loyalty_card,
 }
 
 

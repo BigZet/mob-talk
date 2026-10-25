@@ -56,5 +56,32 @@
         "stream": true
       }
     ]
+  },
+  "market.crowd": {
+    "subtitle": "subtitle.mobtalk.market.crowd",
+    "sounds": [
+      "mobtalk:market/crowd1",
+      "mobtalk:market/crowd2"
+    ]
+  },
+  "market.scales": {
+    "subtitle": "subtitle.mobtalk.market.scales",
+    "sounds": [
+      "mobtalk:market/scales1",
+      "mobtalk:market/scales2"
+    ]
+  },
+  "market.chop": {
+    "subtitle": "subtitle.mobtalk.market.chop",
+    "sounds": [
+      "mobtalk:market/chop1",
+      "mobtalk:market/chop2"
+    ]
+  },
+  "market.sizzle": {
+    "subtitle": "subtitle.mobtalk.market.sizzle",
+    "sounds": [
+      "mobtalk:market/sizzle"
+    ]
   }
 }

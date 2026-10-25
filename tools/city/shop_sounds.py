@@ -195,8 +195,8 @@ def main():
             data[f"subtitle.mobtalk.shop.{name}"] = pair[i]
         data["mobtalk.settings.shopSounds"] = ("Звуки магазина", "Shop sounds")[i]
         data["mobtalk.settings.shopSounds.tooltip"] = (
-            "Пик сканера на кассах, звон кассы, писк рамки, гул холодильников, объявления, музыка и грохот тележек.",
-            "Scanner beeps at the tills, the till's ring, the gate's alarm, humming fridges, announcements, music and rattling carts.")[i]
+            "Пик сканера на кассах, звон кассы, писк рамки, гул холодильников, объявления, музыка и грохот тележек; на рынке гомон, гири и топор мясника, у ларька шкворчит гриль.",
+            "Scanner beeps at the tills, the till's ring, the gate's alarm, humming fridges, announcements, music and rattling carts; at the market the hubbub, the weights and the cleaver, at the kiosk the sizzling grill.")[i]
         with open(p, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
             f.write("\n")
