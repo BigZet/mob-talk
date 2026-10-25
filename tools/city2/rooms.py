@@ -151,6 +151,18 @@ class Room:
                 return True
         return False
 
+    def over(self, pid, under, height=2):
+        """A ceiling piece in the top row over something standing on the floor (drying lines over the bath)."""
+        y = self.s + 1 + height
+        for x, z, f in self.spots():
+            below = self.h.tpl.get(self.h.ox + x, self.s + 1, self.h.oz + z)
+            if below and below.startswith(under) and self.fits(pid, x, y, z, f, backed=False):
+                if all((self.h.tpl.get(self.h.ox + x + tx, self.s + 1, self.h.oz + z + tz) or "").startswith(under)
+                       for tx, _, tz in (turn(c, f) for c in CAT[pid][2])):
+                    self.write(pid, x, y, z, f)
+                    return True
+        return False
+
     def bed(self, pid, double=False):
         """A bed with its head to a wall (a double one: two beds side by side), the foot towards the room."""
         y = self.s + 1
@@ -289,12 +301,15 @@ def kitchen(rm, flat):
 
 
 def bath(rm, flat):
-    rm.against("apt_bathtub")
+    r = rm.r
+    rm.against("apt_bathtub", name="bath")
     rm.against("apt_toilet")
     rm.against("apt_washbasin")
-    rm.against("apt_washer")
-    for pid in sorted(p for p in CAT if p.startswith(("apt_laundry", "apt_drying", "apt_bath_"))):   # the furniture thread's
-        rm.against(pid, height=0 if CAT[pid][1] == "GROUND" else 1)                                  # newer bathroom pieces
+    rm.against(r.choice(["apt_washer", "apt_washer", "apt_washer_malyutka", "apt_washer_sibir"]))
+    rm.over("apt_dryer_liana", "apt_bathtub")         # the drying lines over the bath, under the ceiling
+    for pid, p in (("apt_laundry_basket", 0.7), ("apt_basin_zinc", 0.5), ("apt_dryer_rack", 0.25)):
+        if maybe(r, p):
+            rm.against(pid)
     rm.against("apt_towel_rail", height=1)
 
 
