@@ -130,13 +130,42 @@ def weigh():
     pieces.write_json("worldgen/template_pool/city/houses/corgi_fifth/shops.json", data)
 
 
+def guarantee():
+    """Every city gets its «Универсам»: on the hospital street the plot across the road from the hospital is kept for the
+    pavilion (laid out first, like the hospital); the houses that would stand in its way are not placed."""
+    made = 0
+    for suffix, entrance in (("", "minecraft:building_entrance"), ("_5th", "minecraft:building_entrance_5th")):
+        pieces.write_json(f"worldgen/template_pool/city/ours/univermag{suffix}.json",
+                          pieces.pool(f"mobtalk:city/ours/univermag{suffix}", f"mobtalk:city/ours/landmark/univermag{suffix}",
+                                      "minecraft:empty"))
+    for kind in pieces.CITIES:
+        rel = f"ours/{kind}/hospital_street"
+        if not os.path.exists(os.path.join(pieces.DATA, "structure", "city", rel + ".nbt")):
+            continue
+        name, tag = pieces.load(rel)
+        js = list(pieces.jigsaws(tag))
+        hospital = next((b for b, _p, d in js if d["pool"].value == pieces.HOSPITAL_POOL), None)
+        if hospital is None:
+            continue
+        z = pieces.pos(hospital)[2]
+        for b, props, d in js:
+            if props["orientation"].value == "east_up" and pieces.pos(b)[2] == z and "building_entrance" in d["name"].value:
+                suffix = "_5th" if d["name"].value.endswith("_5th") else ""
+                d["pool"].value = f"mobtalk:city/ours/univermag{suffix}"
+                d["placement_priority"] = pieces.nbt.Tag(pieces.nbt.INT, 10)
+                d["selection_priority"] = pieces.nbt.Tag(pieces.nbt.INT, 10)  # tried before the street's other plots
+                made += 1
+        pieces.save(rel, name, tag)
+    return made
+
+
 def furnish():
     weigh()
     n = corgi()
     for rel in ("ours/landmark/univermag", "ours/landmark/univermag_5th"):
         if os.path.exists(os.path.join(pieces.DATA, "structure", "city", rel + ".nbt")):
             n += pavilion(rel)
-    print("supermarkets furnished:", n, "· cart corrals:", carts())
+    print("supermarkets furnished:", n, "· cart corrals:", carts(), "· guaranteed in", guarantee(), "city kinds")
 
 
 if __name__ == "__main__":

@@ -1194,5 +1194,12 @@
   "subtitle.mobtalk.shop.cart": "Cart rattles",
   "subtitle.mobtalk.shop.music": "Shop music",
   "mobtalk.settings.shopSounds": "Shop sounds",
-  "mobtalk.settings.shopSounds.tooltip": "Scanner beeps at the tills, the till's ring, the gate's alarm, humming fridges, announcements, music and rattling carts."
+  "mobtalk.settings.shopSounds.tooltip": "Scanner beeps at the tills, the till's ring, the gate's alarm, humming fridges, announcements, music and rattling carts.",
+  "mobtalk.settings.shopDeals": "Deals and deal of the day",
+  "mobtalk.settings.shopDeals.tooltip": "Yellow «promo» tags (−30%) on some goods and one «deal of the day» at half price in each supermarket; they change every game day and the PA announces them.",
+  "mobtalk.tune.shopPromoPercent": "Goods on promo: %s%%",
+  "mobtalk.tune.shopPromoPercent.tooltip": "About what share of a supermarket's goods carries the yellow promo tag on a given day.",
+  "mobtalk.shop.tag.promo": "PROMO −30%%",
+  "mobtalk.shop.tag.day": "DEAL OF THE DAY −50%%",
+  "mobtalk.shop.deal.announce": "Dear customers! Today only, the deal of the day: %s, just %s emeralds for %s."
 }

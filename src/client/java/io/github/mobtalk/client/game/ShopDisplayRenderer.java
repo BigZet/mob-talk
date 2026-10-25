@@ -16,7 +16,9 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.RotationAxis;
 import org.joml.Matrix4f;
@@ -135,9 +137,18 @@ public final class ShopDisplayRenderer implements BlockEntityRenderer<ShopConten
         matrices.pop();
     }
 
-    /** The price tag: a white strip with «N за M шт» and a small emerald, on the front edge under the lane. */
+    /** The price tag: a white strip with «N за M шт» and a small emerald, on the front edge under the lane. A lane on «акция» has
+     * a yellow tag and a band above it with the old price struck out; the shop's «товар дня» a red one. */
     private void tag(MatrixStack matrices, VertexConsumerProvider consumers, int light, ShopContent.Display display, ShopContent.DisplayBlockEntity.Lane lane, Layout layout, boolean back) {
         Text label = Text.translatable("mobtalk.shop.tag", lane.price, lane.lot);
+        int paper = 0xFFF4F1E4, ink = 0xFF202020;
+        MutableText band = null;
+        if (lane.deal != 0 && lane.was > lane.price) {
+            paper = lane.deal == 2 ? 0xFFD8262B : 0xFFF7D21E;
+            ink = lane.deal == 2 ? 0xFFFFFFFF : 0xFF202020;
+            band = Text.translatable(lane.deal == 2 ? "mobtalk.shop.tag.day" : "mobtalk.shop.tag.promo").append(" ")
+                    .append(Text.literal(String.valueOf(lane.was)).formatted(Formatting.STRIKETHROUGH)); // the old price, struck out
+        }
         float scale = display == ShopContent.Display.FREEZER ? 1 / 150f : 1 / 100f;
         int width = text.getWidth(label);
         matrices.push();
@@ -147,11 +158,22 @@ public final class ShopDisplayRenderer implements BlockEntityRenderer<ShopConten
         matrices.scale(scale, -scale, scale);
         float left = -(width + 10) / 2f;
         Matrix4f matrix = matrices.peek().getPositionMatrix();
-        // The white tag first, then the words a hair in front of it (one draw with a background loses the glyphs to the depth test).
-        text.draw(Text.literal(" ".repeat(Math.max(1, (width + 12) / 4))), left, -4, 0x00000000, false, matrix, consumers, TextRenderer.TextLayerType.NORMAL, 0xFFF4F1E4, light);
+        // The tag first, then the words a hair in front of it (one draw with a background loses the glyphs to the depth test).
+        text.draw(Text.literal(" ".repeat(Math.max(1, (width + 12) / 4))), left, -4, 0x00000000, false, matrix, consumers, TextRenderer.TextLayerType.NORMAL, paper, light);
+        if (band != null) { // the band above: «АКЦИЯ −30%» / «ТОВАР ДНЯ −50%», smaller
+            int bw = text.getWidth(band);
+            matrices.push();
+            matrices.translate(0, -9.5f, 0);
+            matrices.scale(0.7f, 0.7f, 1);
+            Matrix4f m = matrices.peek().getPositionMatrix();
+            text.draw(Text.literal(" ".repeat(Math.max(1, (bw + 6) / 4))), -(bw + 6) / 2f, -4, 0x00000000, false, m, consumers, TextRenderer.TextLayerType.NORMAL, lane.deal == 2 ? 0xFFF7D21E : 0xFFD8262B, light);
+            matrices.translate(0, 0, 0.6f);
+            text.draw(band, -bw / 2f, -4, lane.deal == 2 ? 0xFF8A1010 : 0xFFFFFFFF, false, matrices.peek().getPositionMatrix(), consumers, TextRenderer.TextLayerType.NORMAL, 0, light);
+            matrices.pop();
+        }
         matrices.push();
         matrices.translate(0, 0, 0.6f);
-        text.draw(label, left + 10, -4, 0xFF202020, false, matrices.peek().getPositionMatrix(), consumers, TextRenderer.TextLayerType.NORMAL, 0, light);
+        text.draw(label, left + 10, -4, ink, false, matrices.peek().getPositionMatrix(), consumers, TextRenderer.TextLayerType.NORMAL, 0, light);
         matrices.pop();
         matrices.push();
         matrices.translate(left + 5, 0.5f, 0.8f);

@@ -225,7 +225,7 @@
       }
     },
     {
-      "weight": 56,
+      "weight": 93,
       "element": {
         "location": "mobtalk:city/ours/market/rynok",
         "processors": "minecraft:empty",

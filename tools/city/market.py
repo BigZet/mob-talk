@@ -346,8 +346,8 @@ def build_market(pieces):
     return lots
 
 
-def add_market(pieces, share=0.03):
-    """The market on about one plot in thirty of the house pools (like the landmarks)."""
+def add_market(pieces, share=0.05):
+    """The market on about one plot in twenty of the house pools: most cities have one."""
     lots = build_market(pieces)
     for rel, suffix in pieces.HOUSE_POOLS.items():
         path = os.path.join(DATA, "worldgen", "template_pool", "city", rel + ".json")

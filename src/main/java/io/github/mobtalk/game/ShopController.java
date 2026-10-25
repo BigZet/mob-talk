@@ -229,15 +229,85 @@ public final class ShopController {
             for (ShopContent.DisplayBlockEntity.Lane lane : display.lanes)
                 if (!lane.goods.isEmpty() && lane.stock < display.display().capacity()) { lane.stock = display.display().capacity(); changed = true; }
         }
-        for (ShopContent.DisplayBlockEntity.Lane lane : display.lanes) {
-            int price = ShopCatalog.scaled(lane.base, config.shopPricePercent);
-            if (price != lane.price) { lane.price = price; changed = true; }
+        int day = display.display().market() || !config.shopDeals ? -1 : dayDealLane(world, display);
+        for (int i = 0; i < display.lanes.length; i++) {
+            ShopContent.DisplayBlockEntity.Lane lane = display.lanes[i];
+            int base = ShopCatalog.scaled(lane.base, config.shopPricePercent);
+            int deal = base < 2 || display.display().market() || !config.shopDeals ? 0
+                    : i == day ? 2 : Math.floorMod(dealHash(display.getPos(), i, world.getTimeOfDay() / 24000), 100) < config.shopPromoPercent ? 1 : 0;
+            int price = deal == 2 ? Math.max(1, Math.round(base * 0.5f)) : deal == 1 ? Math.max(1, Math.round(base * 0.7f)) : base;
+            if (price != lane.price || deal != lane.deal || base != lane.was) { lane.price = price; lane.deal = deal; lane.was = base; changed = true; }
         }
         if (changed) display.changed();
         ShopContent.Display kind = display.display();
         if (config.shopSounds && (kind == ShopContent.Display.FRIDGE || kind == ShopContent.Display.FREEZER) && RANDOM.nextInt(3) == 0
                 && world.getClosestPlayer(display.getPos().getX() + 0.5, display.getPos().getY(), display.getPos().getZ() + 0.5, 12, false) != null)
             world.playSound(null, display.getPos(), ShopContent.SOUND_HUM, SoundCategory.BLOCKS, 0.16f, 0.9f + RANDOM.nextFloat() * 0.2f);
+    }
+
+    // ---- Deals: yellow «акция» tags on some lanes, and one «товар дня» a shop at half price ----
+
+    /** Which guard's desk (so which shop) a display belongs to; the displays of each shop. Found once per display. */
+    private static final Map<BlockPos, BlockPos> DESK_OF = new HashMap<>();
+    private static final Map<BlockPos, java.util.TreeSet<Long>> DISPLAYS_OF = new HashMap<>();
+    static final int DESK_REACH = 24;
+
+    static long dealHash(BlockPos pos, int lane, long day) {
+        long z = pos.asLong() * 0x9E3779B97F4A7C15L + lane * 0xBF58476D1CE4E5B9L + day * 0x94D049BB133111EBL;
+        z = (z ^ (z >>> 31)) * 0xD6E8FEB86659FD93L;
+        return z ^ (z >>> 32);
+    }
+
+    static BlockPos deskOf(ServerWorld world, BlockPos display) {
+        BlockPos desk = DESK_OF.get(display);
+        if (desk != null && world.getBlockState(desk).isOf(ShopContent.GUARD_DESK)) return desk;
+        desk = null;
+        double best = Double.MAX_VALUE;
+        for (BlockPos p : BlockPos.iterate(display.add(-DESK_REACH, -3, -DESK_REACH), display.add(DESK_REACH, 3, DESK_REACH)))
+            if (world.getBlockState(p).isOf(ShopContent.GUARD_DESK) && p.getSquaredDistance(display) < best) { best = p.getSquaredDistance(display); desk = p.toImmutable(); }
+        if (desk == null) return null;
+        DESK_OF.put(display.toImmutable(), desk);
+        DISPLAYS_OF.computeIfAbsent(desk, d -> new java.util.TreeSet<>()).add(display.asLong());
+        return desk;
+    }
+
+    /** The shop's display that has today's deal: of those with something worth two emeralds or more, the one whose hash for the
+     * day is least. */
+    static BlockPos dayDealDisplay(ServerWorld world, BlockPos desk, long day) {
+        java.util.TreeSet<Long> all = DISPLAYS_OF.get(desk);
+        if (all == null) return null;
+        long best = Long.MAX_VALUE; BlockPos at = null;
+        for (long p : all) {
+            BlockPos pos = BlockPos.fromLong(p);
+            long h = dealHash(pos, -1, day);
+            if (h < best && world.getBlockEntity(pos) instanceof ShopContent.DisplayBlockEntity d && dealLane(d, day) >= 0) { best = h; at = pos; }
+        }
+        return at;
+    }
+
+    private static int dealLane(ShopContent.DisplayBlockEntity display, long day) {
+        int n = display.lanes.length, from = Math.floorMod(dealHash(display.getPos(), -2, day), n);
+        for (int k = 0; k < n; k++) {
+            int i = (from + k) % n;
+            if (!display.lanes[i].goods.isEmpty() && display.lanes[i].base >= 2) return i;
+        }
+        return -1;
+    }
+
+    /** The lane of this display that is today's deal, or -1: the first lane from a picked one that costs two emeralds or more. */
+    private static int dayDealLane(ServerWorld world, ShopContent.DisplayBlockEntity display) {
+        BlockPos desk = deskOf(world, display.getPos());
+        long day = world.getTimeOfDay() / 24000;
+        return desk != null && display.getPos().equals(dayDealDisplay(world, desk, day)) ? dealLane(display, day) : -1;
+    }
+
+    /** The PA's line about today's deal, for the chime now and then. */
+    private static Text dealAnnouncement(ServerWorld world, BlockPos desk) {
+        BlockPos at = dayDealDisplay(world, desk, world.getTimeOfDay() / 24000);
+        if (at == null || !(world.getBlockEntity(at) instanceof ShopContent.DisplayBlockEntity display)) return null;
+        for (ShopContent.DisplayBlockEntity.Lane lane : display.lanes)
+            if (lane.deal == 2) return Text.translatable("mobtalk.shop.deal.announce", lane.goods.getName(), lane.price, lane.lot).formatted(Formatting.GOLD);
+        return null;
     }
 
     // ---- Sounds ----
@@ -264,6 +334,9 @@ public final class ShopController {
             MUSIC.put(desk.toImmutable(), now + 360 + 400 + RANDOM.nextInt(800)); // the tune is 18 s; a pause of 20..60 s
         } else if (RANDOM.nextInt(18) == 0) {
             world.playSound(null, at, ShopContent.SOUND_CHIME, SoundCategory.BLOCKS, 0.55f, 1f);
+            Text deal = config(world).shopDeals && RANDOM.nextInt(2) == 0 ? dealAnnouncement(world, desk) : null;
+            if (deal != null)
+                for (ServerPlayerEntity p : world.getPlayers()) if (p.squaredDistanceTo(Vec3d.ofCenter(desk)) <= DESK_REACH * DESK_REACH) p.sendMessage(deal, false);
         }
     }
 

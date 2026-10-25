@@ -315,6 +315,8 @@ public final class ShopContent {
         public static final class Lane {
             public ItemStack goods = ItemStack.EMPTY;
             public int lot = 1, base = 1, price = 1, stock;
+            /** 0 none, 1 «акция» (yellow tag, 30% off), 2 the shop's «товар дня» (half price). */
+            public int deal, was;
         }
         public final Lane[] lanes;
         long restocked = Long.MIN_VALUE;
@@ -380,6 +382,7 @@ public final class ShopContent {
                 NbtCompound one = new NbtCompound();
                 if (!lane.goods.isEmpty()) one.putString("item", Registries.ITEM.getId(lane.goods.getItem()).toString());
                 one.putInt("lot", lane.lot); one.putInt("base", lane.base); one.putInt("price", lane.price); one.putInt("stock", lane.stock);
+                if (lane.deal != 0) { one.putInt("deal", lane.deal); one.putInt("was", lane.was); }
                 list.add(one);
             }
             nbt.put("lanes", list);
@@ -400,6 +403,7 @@ public final class ShopContent {
                 if (one.contains("lot")) lane.lot = Math.max(1, one.getInt("lot"));
                 if (one.contains("base")) lane.base = Math.max(1, one.getInt("base"));
                 if (one.contains("price")) lane.price = Math.max(1, one.getInt("price")); else lane.price = lane.base;
+                lane.deal = one.getInt("deal"); lane.was = one.getInt("was");
                 // A template names goods without a stock: such a lane starts full.
                 lane.stock = one.contains("stock") ? one.getInt("stock") : lane.goods.isEmpty() ? 0 : display().capacity();
             }

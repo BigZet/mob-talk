@@ -1194,5 +1194,12 @@
   "subtitle.mobtalk.shop.cart": "Грохочет тележка",
   "subtitle.mobtalk.shop.music": "Музыка в магазине",
   "mobtalk.settings.shopSounds": "Звуки магазина",
-  "mobtalk.settings.shopSounds.tooltip": "Пик сканера на кассах, звон кассы, писк рамки, гул холодильников, объявления, музыка и грохот тележек."
+  "mobtalk.settings.shopSounds.tooltip": "Пик сканера на кассах, звон кассы, писк рамки, гул холодильников, объявления, музыка и грохот тележек.",
+  "mobtalk.settings.shopDeals": "Акции и товар дня",
+  "mobtalk.settings.shopDeals.tooltip": "Жёлтые ценники «акция» (−30%) на части товаров и один «товар дня» за полцены в каждом универсаме; меняются каждый игровой день, объявляются по громкой связи.",
+  "mobtalk.tune.shopPromoPercent": "Товаров по акции: %s%%",
+  "mobtalk.tune.shopPromoPercent.tooltip": "Какая доля товаров в универсаме идёт по жёлтому ценнику «акция» в данный день.",
+  "mobtalk.shop.tag.promo": "АКЦИЯ −30%%",
+  "mobtalk.shop.tag.day": "ТОВАР ДНЯ −50%%",
+  "mobtalk.shop.deal.announce": "Уважаемые покупатели! Только сегодня товар дня: %s — всего %s изумр. за %s шт."
 }

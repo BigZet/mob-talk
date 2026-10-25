@@ -86,6 +86,17 @@ T = {
     "mobtalk.shop.say.caught.0": ("Пройдёмте. Товар верните, и чтобы я вас тут больше не видел.", "This way, please. Hand it back, and don't let me see you here again."),
     "mobtalk.shop.say.caught.1": ("Попался! Неоплаченное — на стол.", "Got you! Unpaid goods on the table."),
     "mobtalk.shop.say.caught.2": ("Ну что, на камеру улыбнёмся? Товар сюда.", "Smile for the camera. Goods over here."),
+    # Deals.
+    "mobtalk.settings.shopDeals": ("Акции и товар дня", "Deals and deal of the day"),
+    "mobtalk.settings.shopDeals.tooltip": ("Жёлтые ценники «акция» (−30%) на части товаров и один «товар дня» за полцены в каждом универсаме; меняются каждый игровой день, объявляются по громкой связи.",
+                                           "Yellow «promo» tags (−30%) on some goods and one «deal of the day» at half price in each supermarket; they change every game day and the PA announces them."),
+    "mobtalk.tune.shopPromoPercent": ("Товаров по акции: %s%%", "Goods on promo: %s%%"),
+    "mobtalk.tune.shopPromoPercent.tooltip": ("Какая доля товаров в универсаме идёт по жёлтому ценнику «акция» в данный день.",
+                                              "About what share of a supermarket's goods carries the yellow promo tag on a given day."),
+    "mobtalk.shop.tag.promo": ("АКЦИЯ −30%%", "PROMO −30%%"),
+    "mobtalk.shop.tag.day": ("ТОВАР ДНЯ −50%%", "DEAL OF THE DAY −50%%"),
+    "mobtalk.shop.deal.announce": ("Уважаемые покупатели! Только сегодня товар дня: %s — всего %s изумр. за %s шт.",
+                                   "Dear customers! Today only, the deal of the day: %s, just %s emeralds for %s."),
 }
 
 

@@ -202,6 +202,7 @@ public final class Tunables {
         integer("shopPricePercent", s, "shops", 10, 500, 10, c -> c.shopPricePercent, (c, x) -> c.shopPricePercent = x);
         integer("shopTheftSeconds", s, "shops", 2, 60, 1, c -> c.shopTheftSeconds, (c, x) -> c.shopTheftSeconds = x);
         integer("shopCheckoutGlitchPercent", s, "shops", 0, 100, 5, c -> c.shopCheckoutGlitchPercent, (c, x) -> c.shopCheckoutGlitchPercent = x);
+        integer("shopPromoPercent", s, "shops", 0, 100, 1, c -> c.shopPromoPercent, (c, x) -> c.shopPromoPercent = x);
         integer("marketHagglePercent", s, "shops", 0, 100, 5, c -> c.marketHagglePercent, (c, x) -> c.marketHagglePercent = x);
         // Watchtowers and their archers.
         integer("towerResidents", s, "towers", 2, 40, 1, c -> c.towerResidents, (c, x) -> c.towerResidents = x);

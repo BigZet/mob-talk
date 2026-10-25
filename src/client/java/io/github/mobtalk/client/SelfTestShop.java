@@ -59,7 +59,9 @@ final class SelfTestShop {
     void run(Runnable then) {
         next = then;
         test.owner.client.options.setPerspective(Perspective.FIRST_PERSON);
-        test.log("shop stages: staff, stocked displays, basket, till, change, self-checkout, short of money, caught, theft");
+        test.log("shop stages: staff, stocked displays, basket, till, change, self-checkout, short of money, caught, theft, market, deals");
+        dealsWere = test.bridge().config.shopDeals;
+        test.bridge().config.shopDeals = false; // the prices of the stages stay the catalogue's; the deals have their own stage
         test.command("time set 1000"); test.command("weather clear");
         test.command("gamerule doDaylightCycle false"); test.command("gamerule doMobSpawning false");
         test.command("gamemode survival " + name());
@@ -385,6 +387,42 @@ final class SelfTestShop {
     }
 
     private ShopContent.DisplayBlockEntity stall;
+    private boolean dealsWere;
+
+    /** Deals: every lane of two emeralds or more on «акция» (30% off, the old price kept), and one «товар дня» in the shop at half. */
+    private void deals() {
+        int promo = test.bridge().config.shopPromoPercent;
+        test.bridge().config.shopDeals = true;
+        test.bridge().config.shopPromoPercent = 100;
+        int[] seen = onServer(() -> {
+            List<ShopContent.DisplayBlockEntity> all = new java.util.ArrayList<>();
+            for (int x = -6; x <= 6; x++) if (display(x, -5) != null) all.add(display(x, -5));
+            for (int x = -4; x <= 4; x++) if (display(x, -1) != null) all.add(display(x, -1));
+            for (int round = 0; round < 2; round++) for (ShopContent.DisplayBlockEntity d : all) io.github.mobtalk.game.MarketController.stock(world(), d);
+            int day = 0, promoted = 0, wrong = 0;
+            for (ShopContent.DisplayBlockEntity d : all) for (ShopContent.DisplayBlockEntity.Lane l : d.lanes) {
+                if (l.goods.isEmpty()) continue;
+                if (l.deal == 2) { day++; if (l.price != Math.max(1, Math.round(l.was * 0.5f))) wrong++; }
+                else if (l.deal == 1) { promoted++; if (l.price != Math.max(1, Math.round(l.was * 0.7f))) wrong++; }
+                else if (l.was >= 2) wrong++;
+            }
+            return new int[] {day, promoted, wrong};
+        });
+        test.check(seen[0] == 1, "one «товар дня» in the shop (" + seen[0] + ")");
+        test.check(seen[1] > 0 && seen[2] == 0, "the other lanes are on «акция» at 70% (" + seen[1] + " lanes, " + seen[2] + " wrong)");
+        test.command("gamemode spectator " + name());
+        test.command("tp " + name() + " " + at(-3, 0, -3) + " 180 25");
+        test.owner.client.inGameHud.getChatHud().clear(false);
+        shot("mobtalk-shop-deals-wall.png", () -> {
+            test.command("tp " + name() + " " + at(0, 0, 1) + " 180 10");
+            shot("mobtalk-shop-deals-gondola.png", () -> {
+                test.bridge().config.shopPromoPercent = promo;
+                test.bridge().config.shopDeals = dealsWere;
+                test.command("gamemode survival " + name());
+                realShop();
+            });
+        });
+    }
 
     private void marketBuy() {
         stall = onServer(() -> {
@@ -397,7 +435,7 @@ final class SelfTestShop {
             return null;
         });
         test.check(stall != null, "a stall with its vendor and goods");
-        if (stall == null) { realShop(); return; }
+        if (stall == null) { deals(); return; }
         test.command("give " + name() + " minecraft:emerald 10");
         test.await("emeralds for the market", 5, () -> count(Items.EMERALD) == 10, () -> {
             int price = stall.lanes[0].price, lot = stall.lanes[0].lot;
@@ -432,7 +470,7 @@ final class SelfTestShop {
             test.command("tp " + name() + " " + mat(8, 1, 6) + " 125 25");
             shot("mobtalk-market-kvass.png", () -> {
                 test.command("forceload remove " + (mx - 4) + " " + (mz - 4) + " " + (mx + 30) + " " + (mz + 26));
-                realShop();
+                deals();
             });
         });
     }
