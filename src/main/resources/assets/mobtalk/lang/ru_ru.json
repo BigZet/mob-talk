@@ -774,6 +774,8 @@
   "mobtalk.tune.roadMaxLength.tooltip": "Деревни дальше этого друг от друга трассой не соединяются.",
   "mobtalk.tune.roadLampSpacing": "Фонарь каждые: %s блоков",
   "mobtalk.tune.roadLampSpacing.tooltip": "Расстояние между фонарными столбами вдоль трассы; на мостах и в тоннелях фонари вдвое чаще.",
+  "mobtalk.tune.roadTraffic": "На каждой дороге: %s повозок и всадников",
+  "mobtalk.tune.roadTraffic.tooltip": "Повозки, крытые повозки с жителями и всадники, которые ездят туда и обратно между деревнями по каждой дороге; 0 выключает движение.",
   "mobtalk.tune.watchResidents": "Один стражник на: %s жителей",
   "mobtalk.tune.watchResidents.tooltip": "Сколько взрослых жителей приходится на одного стражника.",
   "mobtalk.tune.watchMin": "Стражников не меньше: %s",

@@ -211,9 +211,10 @@ public final class Tunables {
         integer("watchSight", s, "guards", 8, 48, 1, c -> c.watchSight, (c, x) -> c.watchSight = x);
         integer("watchReplaceMinutes", s, "guards", 1, 240, 1, c -> c.watchReplaceMinutes, (c, x) -> c.watchReplaceMinutes = x);
         // Roads between villages.
-        integer("roadScanRadius", s, "roads", 256, 4096, 64, c -> c.roadScanRadius, (c, x) -> c.roadScanRadius = x);
+        integer("roadScanRadius", s, "roads", 250, 4000, 50, c -> c.roadScanRadius, (c, x) -> c.roadScanRadius = x);
         integer("roadMaxLength", s, "roads", 200, 2000, 50, c -> c.roadMaxLength, (c, x) -> c.roadMaxLength = x);
         integer("roadLampSpacing", s, "roads", 8, 64, 2, c -> c.roadLampSpacing, (c, x) -> c.roadLampSpacing = x);
+        integer("roadTraffic", s, "roads", 0, 6, 1, c -> c.roadTraffic, (c, x) -> c.roadTraffic = x);
         // The god's deeds in the villages (Б1).
         integer("divineStrength", s, "divine", 0, 200, 10, c -> c.divineStrength, (c, x) -> c.divineStrength = x);
         integer("divineDailyCap", s, "divine", 0, 300, 5, c -> c.divineDailyCap, (c, x) -> c.divineDailyCap = x);

@@ -774,6 +774,8 @@
   "mobtalk.tune.roadMaxLength.tooltip": "Villages farther apart than this get no road between them.",
   "mobtalk.tune.roadLampSpacing": "A lamp every: %s blocks",
   "mobtalk.tune.roadLampSpacing.tooltip": "The distance between street lamps; bridges and tunnels get lanterns twice as often.",
+  "mobtalk.tune.roadTraffic": "On each road: %s carts and riders",
+  "mobtalk.tune.roadTraffic.tooltip": "Carts, covered wagons with villagers and horsemen going back and forth between the villages on each road; 0 turns the traffic off.",
   "mobtalk.tune.watchResidents": "One guard per: %s villagers",
   "mobtalk.tune.watchResidents.tooltip": "How many grown villagers there are to one guard.",
   "mobtalk.tune.watchMin": "Guards at least: %s",

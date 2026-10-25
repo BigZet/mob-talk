@@ -154,10 +154,12 @@ public final class MobTalkConfig {
     /** Watchtowers: one per this many residents, at most this many per village, built over this many real minutes; the archers see and
      * shoot this far (blocks), loose an arrow every this many tenths of a second, and a post empty this long (minutes) gets a newcomer. */
     public int towerResidents = 8, towerMax = 4, towerBuildMinutes = 20, archerRange = 32, archerShotTenths = 20, archerReplaceMinutes = 20;
-    /** Guards: one per this many residents, at least and at most this many per village, their health and blow, how far they see a
-     * foe (blocks), and how long an empty stand waits for a newcomer (minutes). */
     /** Roads: how far around a player villages are looked for (blocks), the longest road (blocks), the step between lamps. */
     public int roadScanRadius = 1500, roadMaxLength = 900, roadLampSpacing = 24;
+    /** Carts, wagons and horsemen going back and forth on each road (0: none). */
+    public int roadTraffic = 3;
+    /** Guards: one per this many residents, at least and at most this many per village, their health and blow, how far they see a
+     * foe (blocks), and how long an empty stand waits for a newcomer (minutes). */
     public int watchResidents = 5, watchMin = 2, watchMax = 8, watchHealth = 30, watchDamage = 6, watchSight = 24, watchReplaceMinutes = 20;
     /** The emotional state: half-lives of an ordinary and a strong impression (minutes), and the thresholds of its axes (0–100). */
     public int stateHalfLifeMinutes = 10, stateSlowHalfLifeMinutes = 30;

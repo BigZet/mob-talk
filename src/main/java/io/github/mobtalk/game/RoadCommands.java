@@ -1,10 +1,13 @@
 package io.github.mobtalk.game;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import io.github.mobtalk.core.RoadPlan;
+import java.util.List;
 import java.util.Map;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.command.CommandSource;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
@@ -13,7 +16,8 @@ import static net.minecraft.server.command.CommandManager.literal;
 
 /** {@code /roads} (operators): {@code status}, {@code list}, {@code near} — the nearest road with its first bridge and tunnel,
  * {@code scan [x z]} — look for villages now (around the players or a spot), {@code build x1 z1 x2 z2} — a road between two spots, {@code load id} — build a road now, loading its chunks, {@code relay} — lay the loaded chunks
- * of the roads again. Works in single player and on the server (docs/roads.md). */
+ * of the roads again, {@code traffic} — the carts and riders on the roads, {@code traffic bring id [cart|wagon|rider [x z]]} — a trip
+ * of that road to its point nearest here (or to x z). Works in single player and on the server (docs/roads.md). */
 final class RoadCommands {
     private RoadCommands() { }
 
@@ -55,6 +59,30 @@ final class RoadCommands {
                     if (road == null) return reply(context, "нет такой дороги");
                     return reply(context, "дорога #" + road.id + ": держу загруженными " + roads.load(context.getSource().getWorld(), road) + " чанков, пока она не уложена");
                 })))
+                .then(literal("traffic").executes(context -> {
+                    MobGameBridge bridge = MobGameBridge.active(context.getSource().getServer());
+                    if (bridge == null) return reply(context, "Mob Talk не запущен в этом мире");
+                    var lines = bridge.traffic.status(context.getSource().getWorld());
+                    if (lines.isEmpty()) reply(context, "на дорогах никого");
+                    for (String line : lines) reply(context, line);
+                    return lines.size();
+                }).then(literal("bring").then(argument("id", IntegerArgumentType.integer(1)).executes(context -> {
+                    MobGameBridge bridge = MobGameBridge.active(context.getSource().getServer());
+                    if (bridge == null) return reply(context, "Mob Talk не запущен в этом мире");
+                    var pos = context.getSource().getPosition();
+                    return reply(context, bridge.traffic.bring(context.getSource().getWorld(), IntegerArgumentType.getInteger(context, "id"), pos.x, pos.z, "wagon"));
+                }).then(argument("kind", StringArgumentType.word()).suggests((c, b) -> CommandSource.suggestMatching(List.of("cart", "wagon", "rider"), b)).executes(context -> {
+                    MobGameBridge bridge = MobGameBridge.active(context.getSource().getServer());
+                    if (bridge == null) return reply(context, "Mob Talk не запущен в этом мире");
+                    var pos = context.getSource().getPosition();
+                    return reply(context, bridge.traffic.bring(context.getSource().getWorld(), IntegerArgumentType.getInteger(context, "id"), pos.x, pos.z,
+                            StringArgumentType.getString(context, "kind")));
+                }).then(argument("x", IntegerArgumentType.integer()).then(argument("z", IntegerArgumentType.integer()).executes(context -> {
+                    MobGameBridge bridge = MobGameBridge.active(context.getSource().getServer());
+                    if (bridge == null) return reply(context, "Mob Talk не запущен в этом мире");
+                    return reply(context, bridge.traffic.bring(context.getSource().getWorld(), IntegerArgumentType.getInteger(context, "id"),
+                            IntegerArgumentType.getInteger(context, "x"), IntegerArgumentType.getInteger(context, "z"), StringArgumentType.getString(context, "kind")));
+                })))))))
                 .then(literal("relay").executes(context -> {
                     RoadNetwork roads = roads(context);
                     return roads == null ? 0 : reply(context, "участков в очереди: " + roads.relay(context.getSource().getWorld()));

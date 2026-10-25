@@ -211,6 +211,10 @@ final class RoadNetwork {
 
     void clearRuntime() { worlds.clear(); }
 
+    /** The roads planned in this world (for the traffic). */
+    List<Road> roads(ServerWorld world) { return world(world).saved.roads; }
+    Road road(ServerWorld world, int id) { return world(world).saved.road(id); }
+
     // ---- The tick ----
 
     void tick(ServerWorld world) {
@@ -542,6 +546,5 @@ final class RoadNetwork {
     /** Looks for villages around a spot (a server console has no player to look around). */
     void scanAt(ServerWorld world, int x, int z) { queueCells(world, world(world), List.<int[]>of(new int[] { x, z })); }
 
-    Road road(ServerWorld world, int id) { return world(world).saved.road(id); }
     int pending(ServerWorld world) { World state = world(world); return state.jobs.size() + state.planning.size(); }
 }

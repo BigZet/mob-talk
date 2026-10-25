@@ -59,6 +59,8 @@ public final class MobGameBridge implements GameBridge {
     final VillageDefenseController defense;
     /** Roads between villages, laid as their chunks load. */
     final RoadNetwork roads;
+    /** Carts, wagons and horsemen on those roads. */
+    final RoadTraffic traffic;
     /** Б1: the god's deeds reaching the villages. */
     final DivineController divine;
     /** Трек J: ревность пар игрока и сон вместе. */
@@ -80,6 +82,7 @@ public final class MobGameBridge implements GameBridge {
         villages = new VillageController(this);
         defense = new VillageDefenseController(this);
         roads = new RoadNetwork(this);
+        traffic = new RoadTraffic(this);
         divine = new DivineController(this);
         jealousy = new JealousyController(this);
         rivalry = new RivalryController(this);
@@ -142,6 +145,7 @@ public final class MobGameBridge implements GameBridge {
         ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
             MobGameBridge bridge = forEntity(entity);
             if (bridge != null) bridge.wedding.loaded(entity);
+            if (bridge != null) bridge.traffic.loaded(entity);
             if (bridge != null && entity instanceof MobEntity mob) { bridge.actions.restore(mob); bridge.keep(mob); }
             if (bridge != null && entity instanceof net.minecraft.entity.passive.IronGolemEntity golem) bridge.defense.sturdy(golem);
         });
@@ -178,6 +182,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.villages.tick(world);
                 bridge.defense.tick(world);
                 bridge.roads.tick(world);
+                bridge.traffic.tick(world);
                 bridge.divine.tick(world);
                 bridge.jealousy.tick(world);
                 bridge.rivalry.tick(world);
@@ -225,7 +230,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.memory.recordAction(card.id(), ActionIntent.none());
         if (server.isStopped()) return CompletableFuture.completedFuture(null);
         CompletableFuture<Void> done = new CompletableFuture<>();
-        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.divine.clearRuntime(); bridge.defense.clearRuntime(); bridge.roads.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.rivalry.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
+        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.divine.clearRuntime(); bridge.defense.clearRuntime(); bridge.traffic.clearRuntime(); bridge.roads.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.rivalry.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
         return done;
     }
     /** Б1: an event of the divine block (JSON), from any thread; dropped when no world is open. */
