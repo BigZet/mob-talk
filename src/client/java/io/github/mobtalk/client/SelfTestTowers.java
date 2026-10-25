@@ -14,6 +14,7 @@ import net.minecraft.client.util.ScreenshotRecorder;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.projectile.ArrowEntity;
+import net.minecraft.item.Items;
 import net.minecraft.entity.projectile.PersistentProjectileEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Formatting;
@@ -42,6 +43,7 @@ final class SelfTestTowers {
     private final Set<UUID> arrowsSeen = new HashSet<>();
     private BlockPos strikeSpot;
     private boolean savedGuards;
+    private int savedLarge;
 
     SelfTestTowers(SelfTest test, int stageX, int stageY, int stageZ) {
         this.test = test; this.fx = stageX + 260; this.fy = stageY; this.fz = stageZ;
@@ -64,9 +66,12 @@ final class SelfTestTowers {
     private void mark() { chatMark = chat.size(); }
     private <T> T onServer(java.util.function.Supplier<T> task) { return test.server().isOnThread() ? task.get() : test.server().submit(task).join(); }
     private Box area() { return new Box(bell()).expand(FLOOR + 4, 20, FLOOR + 4); }
+    /** Everyone who shoots from a tower: archers and crossbowmen. */
     private List<VillagerEntity> archers() {
-        return onServer(() -> world().getEntitiesByClass(VillagerEntity.class, area(), v -> v.isAlive() && DefenseContent.archer(v)));
+        return onServer(() -> world().getEntitiesByClass(VillagerEntity.class, area(), v -> v.isAlive() && DefenseContent.shooter(v)));
     }
+    /** Whether the tower at this origin was built large (found from its door). */
+    private final Map<BlockPos, Boolean> large = new HashMap<>();
     private static BlockPos post(VillagerEntity archer) {
         return archer.getBrain().getOptionalRegisteredMemory(MemoryModuleType.JOB_SITE).map(GlobalPos::pos).orElse(null);
     }
@@ -90,7 +95,8 @@ final class SelfTestTowers {
         next = then;
         test.owner.client.options.setPerspective(Perspective.FIRST_PERSON);
         test.log("towers stages: two watchtowers built, their archers, the horn and the arrows");
-        savedBuild = test.bridge().config.towerBuildMinutes; savedGuards = test.bridge().config.villageGuards;
+        savedBuild = test.bridge().config.towerBuildMinutes; savedGuards = test.bridge().config.villageGuards; savedLarge = test.bridge().config.towerLargeResidents;
+        test.bridge().config.towerLargeResidents = 0; // The first tower small; the second, once allowed, large.
         test.bridge().config.towerBuildMinutes = 1;
         test.bridge().config.villageGuards = false; // The archers alone: guards would knock the player about (their own stage is -Only guards).
         test.command("difficulty normal"); test.command("time set 1000"); test.command("weather clear");
@@ -109,6 +115,22 @@ final class SelfTestTowers {
         for (String wall : List.of(at(-f, 0, -f) + " " + at(f, 3, -f), at(-f, 0, f) + " " + at(f, 3, f), at(-f, 0, -f) + " " + at(-f, 3, f), at(f, 0, -f) + " " + at(f, 3, f)))
             test.command("fill " + wall + " minecraft:barrier");
         test.command("setblock " + at(0, 0, 0) + " minecraft:bell[attachment=floor,facing=north]");
+        // Under load a fill in chunks not yet loaded does nothing (the villagers would fall): wait for the floor, fill again if need be.
+        test.await("the stage floor is built", 4, this::floorReady, () -> {
+            if (!floorReady() && ++floorTries < 6) { build(); return; }
+            test.check(floorReady(), "the stage floor is built");
+            populate();
+        });
+    }
+
+    private int floorTries;
+    private boolean floorReady() {
+        int f = FLOOR - 1;
+        return onServer(() -> List.of(bell().add(-f, -1, -f), bell().add(f, -1, -f), bell().add(-f, -1, f), bell().add(f, -1, f), bell().down())
+                .stream().allMatch(p -> world().getBlockState(p).isOf(net.minecraft.block.Blocks.GRASS_BLOCK)));
+    }
+
+    private void populate() {
         String[] jobs = { "farmer", "librarian", "fisherman", "shepherd" };
         for (int i = 0; i < 16; i++)
             test.command("summon minecraft:villager " + at(-9 + (i % 4) * 6, 0, -9 + (i / 4) * 6) + " {PersistenceRequired:1b,Tags:[\"" + TAG + "\"],VillagerData:{profession:\"minecraft:"
@@ -123,19 +145,62 @@ final class SelfTestTowers {
                 if (site == null) { test.fail("no tower started"); finish(); return; }
                 sites.add(site);
                 test.check(true, "the village started a tower at " + at(site));
-                viewFrom(site, 12, 6, () -> test.await("pause: the tower half built", 22, () -> false, () -> shot("mobtalk-towers-building.png", () -> {
-                    test.await("the first tower is done (chat)", 120, () -> count("Сторожевая башня достроена") >= 1, () -> {
+                viewFrom(site, 12, 6, () -> test.await("pause: the tower half built", 40, () -> sampleBuilder(site), () -> builderChecks(site, () -> shot("mobtalk-towers-building.png", () -> {
+                    test.await("the first tower is done (chat)", 180, () -> count("Сторожевая башня достроена") >= 1, () -> {
                         test.check(count("Сторожевая башня достроена") >= 1, "the first tower is finished in about a minute");
+                        test.bridge().config.towerLargeResidents = 16; // sixteen residents: the next tower is a large one
                         mark();
                         test.await("the second tower starts", 70, () -> heard("начала строить сторожевую башню"), () -> {
                             BlockPos second = site();
                             if (second != null) sites.add(second);
                             test.check(second != null, "sixteen residents: a second tower is started" + (second == null ? "" : " at " + at(second)));
-                            test.await("the second tower is done", 120, () -> count("Сторожевая башня достроена") >= 2, this::inspect);
+                            test.await("the second (large) tower is done", 240, () -> count("Сторожевая башня достроена") >= 2, this::inspect);
                         });
                     });
-                })));
+                }))));
             });
+        });
+    }
+
+    private int builderSamples, builderThere;
+    private boolean builderHolds;
+    private UUID builder;
+    private int sampleTick;
+    private boolean arrived;
+    /** Once a second while the tower grows: the villager nearest the site within 7 blocks (not an archer), and what it holds. */
+    private boolean sampleBuilder(BlockPos site) {
+        if (++sampleTick % 20 != 0) return false;
+        VillagerEntity near = onServer(() -> world().getEntitiesByClass(VillagerEntity.class, new Box(site).expand(7, 12, 7),
+                v -> v.isAlive() && !v.isBaby() && !DefenseContent.archer(v) && Math.hypot(v.getX() - site.getX() - 0.5, v.getZ() - site.getZ() - 0.5) <= 7)
+                .stream().min(Comparator.comparingDouble(v -> v.squaredDistanceTo(Vec3d.ofCenter(site)))).orElse(null));
+        if (near != null) arrived = true;
+        if (arrived) builderSamples++; // counted from the builder's arrival: the tower waits while it walks there
+        if (near != null) {
+            builderThere++;
+            builder = near.getUuid();
+            if (onServer(() -> near.getMainHandStack().getItem() instanceof net.minecraft.item.BlockItem)) builderHolds = true;
+        }
+        return false;
+    }
+
+    /** The builder stayed by the tower most of the time and held a block; a close-up of it at work. */
+    private void builderChecks(BlockPos site, Runnable then) {
+        test.log("builder: by the tower in " + builderThere + " of " + builderSamples + " samples, holds a block: " + builderHolds
+                + ", chat: " + heard().stream().filter(line -> line.contains("стро")).toList());
+        test.check(builderSamples > 0 && builderThere * 10 >= builderSamples * 7, "once there, the builder stays within 7 blocks of the growing tower (" + builderThere + "/" + builderSamples + ")");
+        test.check(builderHolds, "the builder holds a block");
+        VillagerEntity b = builder == null ? null : onServer(() -> world().getEntity(builder) instanceof VillagerEntity v ? v : null);
+        if (b == null) { then.run(); return; }
+        Vec3d at = onServer(b::getPos);
+        Vec3d away = at.subtract(Vec3d.ofCenter(site)).multiply(1, 0, 1).normalize();
+        Vec3d eye = at.add(away.multiply(3.5)).add(0, 0.5, 0);
+        test.command("tp " + name() + " " + eye.x + " " + eye.y + " " + eye.z);
+        // The camera follows the builder until the picture is taken: it keeps walking round the tower.
+        Runnable aim = () -> test.owner.client.player.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, onServer(b::getEyePos).subtract(0, 0.4, 0));
+        test.await("pause: by the builder", 2, () -> { aim.run(); return false; }, () -> {
+            aim.run();
+            ScreenshotRecorder.saveScreenshot(test.owner.client.runDirectory, "mobtalk-towers-builder.png", test.owner.client.getFramebuffer(), text -> test.log("screenshot: " + text.getString()));
+            test.await("pause: after the screenshot", 1, () -> false, then);
         });
     }
 
@@ -150,12 +215,17 @@ final class SelfTestTowers {
 
     /** Which way the tower's door faces: the plan's door cell, tried for each turn. */
     private TowerPlan.Facing door(BlockPos origin) {
-        for (TowerPlan.Facing facing : TowerPlan.Facing.values()) {
-            for (TowerPlan.Block block : TowerPlan.rotated(facing))
-                if (block.kind() == TowerPlan.Kind.DOOR_LOWER && onServer(() -> world().getBlockState(origin.add(block.x(), block.y(), block.z())).getBlock() instanceof DoorBlock)) return facing;
-        }
+        for (boolean big : new boolean[] { false, true })
+            for (TowerPlan.Facing facing : TowerPlan.Facing.values()) {
+                for (TowerPlan.Block block : TowerPlan.rotated(facing, big))
+                    if (block.kind() == TowerPlan.Kind.DOOR_LOWER && onServer(() -> world().getBlockState(origin.add(block.x(), block.y(), block.z())).getBlock() instanceof DoorBlock)) {
+                        large.put(origin, big);
+                        return facing;
+                    }
+            }
         return null;
     }
+    private boolean large(BlockPos origin) { return large.getOrDefault(origin, false); }
     private static BlockPos local(BlockPos origin, TowerPlan.Facing door, int x, int y, int z) {
         int nx = x, nz = z;
         for (int i = 0; i < door.ordinal(); i++) { int t = nx; nx = -nz; nz = t; }
@@ -170,7 +240,8 @@ final class SelfTestTowers {
             TowerPlan.Facing door = door(origin);
             if (door == null) { test.fail("tower " + (t + 1) + ": no door found"); continue; }
             Map<BlockPos, TowerPlan.Block> last = new LinkedHashMap<>();
-            for (TowerPlan.Block block : TowerPlan.rotated(door)) last.put(origin.add(block.x(), block.y(), block.z()), block);
+            for (TowerPlan.Block block : TowerPlan.rotated(door, large(origin))) last.put(origin.add(block.x(), block.y(), block.z()), block);
+            int r = TowerPlan.radius(large(origin));
             List<String> missing = new ArrayList<>(), cluttered = new ArrayList<>();
             int doorParts = 0;
             for (Map.Entry<BlockPos, TowerPlan.Block> entry : last.entrySet()) {
@@ -182,33 +253,42 @@ final class SelfTestTowers {
                         || (kind == TowerPlan.Kind.DOOR_UPPER && state.getBlock() instanceof DoorBlock && state.get(DoorBlock.HALF) == DoubleBlockHalf.UPPER)) doorParts++;
             }
             int hollow = 0;
-            for (int x = -TowerPlan.RADIUS; x <= TowerPlan.RADIUS; x++)
-                for (int z = -TowerPlan.RADIUS; z <= TowerPlan.RADIUS; z++) { BlockPos under = origin.add(x, -1, z); if (onServer(() -> world().getBlockState(under).isAir())) hollow++; }
-            test.log("tower " + (t + 1) + " at " + at(origin) + ", door " + door + ": missing " + missing + ", not cleared " + cluttered);
+            for (int x = -r; x <= r; x++)
+                for (int z = -r; z <= r; z++) { BlockPos under = origin.add(x, -1, z); if (onServer(() -> world().getBlockState(under).isAir())) hollow++; }
+            test.log("tower " + (t + 1) + (large(origin) ? " (large)" : " (small)") + " at " + at(origin) + ", door " + door + ": missing " + missing + ", not cleared " + cluttered);
             test.check(missing.isEmpty(), "tower " + (t + 1) + ": no holes, every block of the plan stands (" + missing.size() + " missing)");
             test.check(cluttered.isEmpty(), "tower " + (t + 1) + ": the stairwell and the inside are clear (" + cluttered.size() + " blocked)");
             test.check(doorParts == 2, "tower " + (t + 1) + ": the door is whole, both halves (" + doorParts + ")");
             test.check(hollow == 0, "tower " + (t + 1) + ": nothing hangs in the air, the floor stands on ground (" + hollow + " hollow)");
-            BlockPos toCentre = local(origin, door, 0, 0, -TowerPlan.RADIUS - 3);
+            BlockPos toCentre = local(origin, door, 0, 0, -r - 3);
             test.check(toCentre.getSquaredDistance(bell()) < origin.getSquaredDistance(bell()), "tower " + (t + 1) + ": the door faces the village");
         }
         List<VillagerEntity> archers = archers();
-        test.log("archers: " + archers.size() + ", at the post: " + archers.stream().filter(this::atPost).count());
-        test.check(archers.size() >= sites.size(), "an archer came to each tower (" + archers.size() + " for " + sites.size() + ")");
-        test.check(!archers.isEmpty() && archers.stream().allMatch(this::atPost), "the archers stand by their posts");
-        sides(0, () -> inside(this::climb));
+        long bows = archers.stream().filter(DefenseContent::archer).count(), crossbows = archers.stream().filter(DefenseContent::crossbowman).count();
+        int wanted = sites.stream().mapToInt(o -> large(o) ? 4 : 1).sum();
+        test.log("shooters: " + archers.size() + " (archers " + bows + ", crossbowmen " + crossbows + "), at the post: " + archers.stream().filter(this::atPost).count());
+        test.check(sites.size() == 2 && !large(sites.get(0)) && large(sites.get(1)), "the first tower is small, the second (sixteen residents) large");
+        test.check(archers.size() >= wanted, "a shooter came to every post (" + archers.size() + " for " + wanted + ")");
+        test.check(crossbows == 2, "the large tower has two crossbowmen (" + crossbows + ")");
+        test.check(archers.stream().allMatch(a -> onServer(() -> a.getMainHandStack().isOf(DefenseContent.crossbowman(a) ? Items.CROSSBOW : Items.BOW))), "archers hold bows, crossbowmen crossbows");
+        // Newcomers may wander off at first: a stuck one is put at its post after 20 s.
+        test.await("the shooters at their posts", 25, () -> { List<VillagerEntity> all = archers(); return !all.isEmpty() && all.stream().allMatch(this::atPost); }, () -> {
+            List<VillagerEntity> all = archers();
+            test.check(!all.isEmpty() && all.stream().allMatch(this::atPost), "the shooters stand by their posts (" + all.stream().filter(this::atPost).count() + "/" + all.size() + ")");
+            sides(0, 0, "mobtalk-towers-", () -> sides(1, 0, "mobtalk-towers-large-", () -> inside(this::climb)));
+        });
     }
 
-    /** The first tower from the four sides, a little above. */
-    private void sides(int side, Runnable then) {
-        if (sites.isEmpty() || side >= 4) { then.run(); return; }
-        BlockPos o = sites.getFirst();
+    /** A tower from the four sides, a little above. */
+    private void sides(int tower, int side, String prefix, Runnable then) {
+        if (sites.size() <= tower || side >= 4) { then.run(); return; }
+        BlockPos o = sites.get(tower);
         int[][] offsets = { { 0, -8 }, { 8, 0 }, { 0, 8 }, { -8, 0 } }; // Within the floor: the towers stand 10 blocks from its edge.
         String[] names = { "north", "east", "south", "west" };
         BlockPos from = o.add(offsets[side][0], 4, offsets[side][1]);
         float yaw = (float) Math.toDegrees(Math.atan2(-(o.getX() - from.getX()), o.getZ() - from.getZ()));
         test.command("tp " + name() + " " + (from.getX() + 0.5) + " " + from.getY() + " " + (from.getZ() + 0.5) + " " + yaw + " 5");
-        test.await("pause: the tower from the " + names[side], 2, () -> false, () -> shot("mobtalk-towers-" + names[side] + ".png", () -> sides(side + 1, then)));
+        test.await("pause: the tower from the " + names[side], 2, () -> false, () -> shot(prefix + names[side] + ".png", () -> sides(tower, side + 1, prefix, then)));
     }
 
     private void viewFrom(BlockPos site, int distance, int height, Runnable then) {
@@ -309,6 +389,33 @@ final class SelfTestTowers {
             test.owner.client.player.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, Vec3d.ofCenter(look));
             shot("mobtalk-towers-zombies.png", () -> {
                 test.command("kill @e[type=minecraft:zombie,tag=" + TAG + "]");
+                test.await("pause: the zombies gone", 3, () -> false, this::crossbows);
+            });
+        });
+    }
+
+    /** Zombies by the large tower: the crossbowmen shoot crossbow bolts (heard as crossbows). */
+    private void crossbows() {
+        if (sites.size() < 2) { strike(); return; }
+        BlockPos o = sites.get(1);
+        Vec3d out = Vec3d.ofCenter(o).subtract(Vec3d.ofCenter(bell())).normalize();
+        BlockPos spot = BlockPos.ofFloored(Vec3d.ofCenter(o).subtract(out.multiply(12))).withY(fy);
+        newArrows(new boolean[1]);
+        sounds.clear();
+        Set<UUID> bolts = new HashSet<>();
+        for (int i = 0; i < 3; i++) test.command("summon minecraft:zombie " + (spot.getX() + i * 2) + " " + fy + " " + spot.getZ() + " {PersistenceRequired:1b,IsBaby:0b,Tags:[\"" + TAG + "\"]}");
+        BlockPos ear = BlockPos.ofFloored(Vec3d.ofCenter(o).add(out.multiply(5))).withY(o.getY() + 6); // within earshot of the platform
+        test.command("tp " + name() + " " + at(ear));
+        test.await("the crossbowmen shoot the zombies", 25, () -> {
+            for (ArrowEntity arrow : onServer(() -> world().getEntitiesByClass(ArrowEntity.class, area(), a -> a.getOwner() instanceof VillagerEntity v && DefenseContent.crossbowman(v))))
+                bolts.add(arrow.getUuid());
+            return !bolts.isEmpty() && sounds.stream().anyMatch(id -> id.contains("crossbow.shoot"));
+        }, () -> {
+            test.check(!bolts.isEmpty(), "the crossbowmen shoot at the zombies (" + bolts.size() + " bolts)");
+            test.check(sounds.stream().anyMatch(id -> id.contains("crossbow.shoot")), "a crossbow is heard");
+            test.owner.client.player.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, Vec3d.ofCenter(o.up(8)));
+            shot("mobtalk-towers-crossbow.png", () -> {
+                test.command("kill @e[type=minecraft:zombie,tag=" + TAG + "]");
                 test.await("pause: the zombies gone", 3, () -> false, this::strike);
             });
         });
@@ -322,7 +429,9 @@ final class SelfTestTowers {
         VillagerEntity victim = onServer(() -> world().getEntitiesByClass(VillagerEntity.class, area(), v -> v.isAlive() && v.getCommandTags().contains(TAG) && !DefenseContent.archer(v)).stream().findFirst().orElse(null));
         if (victim == null) { test.fail("no villager to strike"); finish(); return; }
         test.server().execute(() -> { if (victim.isSleeping()) victim.wakeUp(); victim.setAiDisabled(true); });
-        test.command("tp " + victim.getUuid() + " " + (stand.getX() + 2.5) + " " + fy + " " + (stand.getZ() + 0.5));
+        // Beside the player, off the line from the tower: the archer must not have its own villager in the way.
+        Vec3d side = new Vec3d(-out.z, 0, out.x).multiply(2.5);
+        test.command("tp " + victim.getUuid() + " " + (stand.getX() + 0.5 + side.x) + " " + fy + " " + (stand.getZ() + 0.5 + side.z));
         test.command("tp " + name() + " " + (stand.getX() + 0.5) + " " + fy + " " + (stand.getZ() + 0.5));
         strikeSpot = stand;
         test.await("pause: beside the villager under the tower", 2, () -> false, () -> {
@@ -387,20 +496,23 @@ final class SelfTestTowers {
     }
 
     /** The archer up close in the human look and the vanilla one. */
-    private void looks() {
+    private void looks() { look("archer", DefenseContent::archer, () -> look("crossbowman", DefenseContent::crossbowman, this::finish)); }
+
+    /** A shooter of the kind up close, in the human look and the vanilla one. */
+    private void look(String kind, java.util.function.Predicate<VillagerEntity> which, Runnable then) {
         test.command("time set 6000");
-        VillagerEntity archer = archers().stream().findFirst().orElse(null);
-        if (archer == null) { finish(); return; }
+        VillagerEntity archer = archers().stream().filter(which).findFirst().orElse(null);
+        if (archer == null) { test.fail("no " + kind + " to photograph"); then.run(); return; }
         test.server().execute(() -> archer.setAiDisabled(true));
         test.command("tp " + archer.getUuid() + " " + at(0, 0, 30) + " 180 0");
         test.command("tp " + name() + " " + at(0, 0, 27) + " 0 5");
         test.owner.config().humanVillagers = true;
-        test.await("pause: the archer in front of the camera", 3, () -> false, () -> shot("mobtalk-towers-archer-human.png", () -> {
+        test.await("pause: the " + kind + " in front of the camera", 3, () -> false, () -> shot("mobtalk-towers-" + kind + "-human.png", () -> {
             test.owner.config().humanVillagers = false;
-            test.await("pause: the vanilla look", 3, () -> false, () -> shot("mobtalk-towers-archer-vanilla.png", () -> {
+            test.await("pause: the vanilla look", 3, () -> false, () -> shot("mobtalk-towers-" + kind + "-vanilla.png", () -> {
                 test.owner.config().humanVillagers = true;
                 test.server().execute(() -> archer.setAiDisabled(false));
-                finish();
+                then.run();
             }));
         }));
     }
@@ -413,7 +525,7 @@ final class SelfTestTowers {
     }
 
     private void finish() {
-        test.bridge().config.towerBuildMinutes = savedBuild; test.bridge().config.villageGuards = savedGuards;
+        test.bridge().config.towerBuildMinutes = savedBuild; test.bridge().config.villageGuards = savedGuards; test.bridge().config.towerLargeResidents = savedLarge;
         test.command("gamerule doDaylightCycle true"); test.command("gamerule doMobSpawning true");
         test.await("pause: towers stage done", 2, () -> false, next);
     }

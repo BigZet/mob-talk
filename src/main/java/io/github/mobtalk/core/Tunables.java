@@ -211,6 +211,9 @@ public final class Tunables {
         integer("archerRange", s, "towers", 8, 64, 1, c -> c.archerRange, (c, x) -> c.archerRange = x);
         integer("archerShotTenths", s, "towers", 5, 100, 1, c -> c.archerShotTenths, (c, x) -> c.archerShotTenths = x);
         integer("archerReplaceMinutes", s, "towers", 1, 240, 1, c -> c.archerReplaceMinutes, (c, x) -> c.archerReplaceMinutes = x);
+        integer("towerLargeResidents", s, "towers", 0, 60, 1, c -> c.towerLargeResidents, (c, x) -> c.towerLargeResidents = x);
+        integer("crossbowRange", s, "towers", 8, 64, 1, c -> c.crossbowRange, (c, x) -> c.crossbowRange = x);
+        integer("crossbowShotTenths", s, "towers", 5, 100, 1, c -> c.crossbowShotTenths, (c, x) -> c.crossbowShotTenths = x);
         // Guards with swords and shields.
         integer("watchResidents", s, "guards", 2, 30, 1, c -> c.watchResidents, (c, x) -> c.watchResidents = x);
         integer("watchMin", s, "guards", 0, 8, 1, c -> c.watchMin, (c, x) -> c.watchMin = x);
@@ -219,6 +222,8 @@ public final class Tunables {
         integer("watchDamage", s, "guards", 1, 20, 1, c -> c.watchDamage, (c, x) -> c.watchDamage = x);
         integer("watchSight", s, "guards", 8, 48, 1, c -> c.watchSight, (c, x) -> c.watchSight = x);
         integer("watchReplaceMinutes", s, "guards", 1, 240, 1, c -> c.watchReplaceMinutes, (c, x) -> c.watchReplaceMinutes = x);
+        integer("heavyHealth", s, "guards", 20, 120, 1, c -> c.heavyHealth, (c, x) -> c.heavyHealth = x);
+        integer("heavyDamage", s, "guards", 1, 30, 1, c -> c.heavyDamage, (c, x) -> c.heavyDamage = x);
         // The god's deeds in the villages (Б1).
         integer("divineStrength", s, "divine", 0, 200, 10, c -> c.divineStrength, (c, x) -> c.divineStrength = x);
         integer("divineDailyCap", s, "divine", 0, 300, 5, c -> c.divineDailyCap, (c, x) -> c.divineDailyCap = x);
@@ -298,7 +303,7 @@ public final class Tunables {
                 config.pregnancy = d.pregnancy; config.pregnancyBelly = d.pregnancyBelly; config.pregnancyStatus = d.pregnancyStatus; config.familyFade = d.familyFade;
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices; config.villageSites = d.villageSites;
-                config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.villageTowers = d.villageTowers; config.villageGuards = d.villageGuards;
+                config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.alarmSound = d.alarmSound; config.villageNoConversion = d.villageNoConversion; config.villageTowers = d.villageTowers; config.villageGuards = d.villageGuards; config.villageHeavy = d.villageHeavy; config.villageCavalry = d.villageCavalry;
                 config.divineTidings = d.divineTidings; config.divinePanic = d.divinePanic; config.divineMayExile = d.divineMayExile; config.divineMourners = d.divineMourners;
             }
             case ACTIONS -> { config.placeAnalysis = d.placeAnalysis; config.placeClassifier = d.placeClassifier; }
