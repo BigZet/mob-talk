@@ -1002,5 +1002,7 @@
   "mobtalk.shop.say.stop.2": "Охрана! Он без оплаты уходит!",
   "mobtalk.shop.say.caught.0": "Пройдёмте. Товар верните, и чтобы я вас тут больше не видел.",
   "mobtalk.shop.say.caught.1": "Попался! Неоплаченное — на стол.",
-  "mobtalk.shop.say.caught.2": "Ну что, на камеру улыбнёмся? Товар сюда."
+  "mobtalk.shop.say.caught.2": "Ну что, на камеру улыбнёмся? Товар сюда.",
+  "entity.minecraft.villager.cashier": "Кассир",
+  "entity.minecraft.villager.shop_guard": "Охранник"
 }

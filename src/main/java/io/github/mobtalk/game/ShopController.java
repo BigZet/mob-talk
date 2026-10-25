@@ -62,6 +62,8 @@ public final class ShopController {
     static final String UNPAID = "mobtalk_shop", BASKET = "mobtalk_basket";
     /** How far from a till its cashier may stand and still serve, and how far the theft watch looks for shop blocks around a player. */
     static final double SERVE_REACH = 4;
+    /** How far the till's own cashier may have strayed and still be called back to serve. */
+    static final double CALL_REACH = 16;
     static final int SHOP_REACH = 6, STAFF_RADIUS = 48;
     static final long STAFF_PERIOD = 100, WATCH_PERIOD = 10, STAFF_RETRY_TICKS = 2400;
     /** A caught thief is let go after this long beside the guard; a guard gives up a chase this far from the desk. */
@@ -192,7 +194,7 @@ public final class ShopController {
     }
 
     /** The stack of baskets: one basket to a player who has none; an empty one handed back goes on the stack. */
-    static void basketStack(ServerWorld world, BlockPos pos, ServerPlayerEntity player) {
+    public static void basketStack(ServerWorld world, BlockPos pos, ServerPlayerEntity player) {
         if (!config(world).cityShops) return;
         ItemStack held = player.getMainHandStack();
         if (held.isOf(ShopContent.BASKET)) {
@@ -229,7 +231,7 @@ public final class ShopController {
         if (changed) display.changed();
     }
 
-    static void take(ServerWorld world, ShopContent.DisplayBlockEntity display, int index, ServerPlayerEntity player) {
+    public static void take(ServerWorld world, ShopContent.DisplayBlockEntity display, int index, ServerPlayerEntity player) {
         if (!config(world).cityShops) return;
         if (!display.stocked) tickDisplay(world, display);
         ShopContent.DisplayBlockEntity.Lane lane = display.lanes[Math.min(index, display.lanes.length - 1)];
@@ -272,7 +274,7 @@ public final class ShopController {
     // ---- The tills ----
 
     /** All unpaid goods a player carries, loose and in baskets. */
-    static List<ItemStack> carried(PlayerEntity player) {
+    public static List<ItemStack> carried(PlayerEntity player) {
         List<ItemStack> out = new ArrayList<>();
         PlayerInventory inventory = player.getInventory();
         for (int i = 0; i < inventory.size(); i++) {
@@ -283,7 +285,7 @@ public final class ShopController {
         return out;
     }
 
-    static int cost(List<ItemStack> goods) {
+    public static int cost(List<ItemStack> goods) {
         List<ShopCatalog.Line> lines = new ArrayList<>();
         for (ItemStack stack : goods) {
             NbtCompound mark = mark(stack);
@@ -292,7 +294,7 @@ public final class ShopController {
         return ShopCatalog.total(lines);
     }
 
-    static void checkout(ServerWorld world, BlockPos till, ServerPlayerEntity player, boolean self) {
+    public static void checkout(ServerWorld world, BlockPos till, ServerPlayerEntity player, boolean self) {
         MobTalkConfig config = config(world);
         if (!config.cityShops) return;
         VillagerEntity cashier = self ? null : cashierAt(world, till);
@@ -363,14 +365,15 @@ public final class ShopController {
     private static void say(ServerWorld world, ServerPlayerEntity player, VillagerEntity speaker, boolean self, String key, Object... args) {
         if (self) { player.sendMessage(Text.translatable("mobtalk.shop.screen").append(Text.translatable(key + ".self", args)).formatted(Formatting.AQUA), false); return; }
         String line = key + "." + RANDOM.nextInt(3);
-        player.sendMessage(Text.literal("<" + name(world, speaker) + "> ").append(Text.translatable(line, args)), false);
+        player.sendMessage(name(world, speaker).append(Text.translatable(line, args)), false);
     }
 
-    private static String name(ServerWorld world, VillagerEntity villager) {
-        if (villager == null) return "?";
+    /** «<Name> » before a line: the name the villager goes by in Mob Talk, else its trade (translated on the client). */
+    private static MutableText name(ServerWorld world, VillagerEntity villager) {
+        if (villager == null) return Text.literal("<?> ");
         MobGameBridge bridge = MobGameBridge.active(world.getServer());
         String name = bridge == null ? null : bridge.memory.displayName(villager.getUuid());
-        return name == null || name.isBlank() ? villager.getName().getString() : name;
+        return Text.literal("<").append(name == null || name.isBlank() ? villager.getName() : Text.literal(name)).append("> ");
     }
 
     /** Where the cashier stands: behind the till (the side away from its face). */
@@ -384,6 +387,12 @@ public final class ShopController {
         Vec3d at = Vec3d.ofCenter(till);
         for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, new Box(till).expand(SERVE_REACH), v -> v.isAlive() && !v.isSleeping() && ShopContent.cashier(v)))
             if (villager.squaredDistanceTo(at) <= SERVE_REACH * SERVE_REACH) return villager;
+        // The till's own cashier wandered off a little: called back, serves from where they are.
+        VillagerEntity own = worker(world, till, true);
+        if (own != null && !own.isSleeping() && own.squaredDistanceTo(at) <= CALL_REACH * CALL_REACH) {
+            walk(own, stand(world, till), 0.7f);
+            return own;
+        }
         return null;
     }
 
@@ -527,7 +536,9 @@ public final class ShopController {
         if (inside) return; // back in the shop with the guard after them: they may still pay
         long outside = now - watch.outsideSince;
         boolean far = player.getBlockPos().getSquaredDistance(watch.shop) > 48 * 48;
-        if (outside >= Math.max(1, config.shopTheftSeconds) * 20L && (guard == null || far || outside >= config.shopTheftSeconds * 60L)) stolen(world, player, goods, watch);
+        // A guard close behind keeps it from being a theft for a while yet (three times as long); one left far behind does not.
+        boolean pursued = guard != null && guard.squaredDistanceTo(player) <= 16 * 16;
+        if (outside >= Math.max(1, config.shopTheftSeconds) * 20L && (!pursued || far || outside >= config.shopTheftSeconds * 60L)) stolen(world, player, goods, watch);
     }
 
     /** The cashier shouts and the nearest guard of the shop sets off after the player. */
@@ -544,7 +555,7 @@ public final class ShopController {
             for (VillagerEntity v : world.getEntitiesByClass(VillagerEntity.class, new Box(watch.shop).expand(24), v -> v.isAlive() && ShopContent.cashier(v))) { shouter = v; break; }
         if (guard != null) watch.guard = guard.getUuid();
         if (shouter != null) {
-            Text line = Text.literal("<" + name(world, shouter) + "> ").append(Text.translatable("mobtalk.shop.say.stop." + RANDOM.nextInt(3)));
+            Text line = name(world, shouter).append(Text.translatable("mobtalk.shop.say.stop." + RANDOM.nextInt(3)));
             for (ServerPlayerEntity p : world.getPlayers()) if (p.squaredDistanceTo(shouter) <= 32 * 32) p.sendMessage(line, false);
         }
     }
@@ -558,7 +569,7 @@ public final class ShopController {
             else if (unpaid(stack)) { restore(world, stack); inventory.setStack(i, ItemStack.EMPTY); }
         }
         WATCHES.remove(player.getUuid());
-        player.sendMessage(Text.literal("<" + name(world, guard) + "> ").append(Text.translatable("mobtalk.shop.say.caught." + RANDOM.nextInt(3))), false);
+        player.sendMessage(name(world, guard).append(Text.translatable("mobtalk.shop.say.caught." + RANDOM.nextInt(3))), false);
         player.sendMessage(Text.translatable("mobtalk.shop.caught").formatted(Formatting.RED), true);
         world.playSound(null, guard.getBlockPos(), SoundEvents.ENTITY_VILLAGER_NO, SoundCategory.NEUTRAL, 1f, 0.8f);
         MobGameBridge bridge = MobGameBridge.active(world.getServer());

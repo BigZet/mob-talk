@@ -58,12 +58,12 @@ public final class ShopDisplayRenderer implements BlockEntityRenderer<ShopConten
             case FRIDGE -> {
                 float y = 1.5f + lane * 4.5f;
                 for (float x : across) { spots.add(new Spot(x, y, 5, 0, 0, 3.8f)); spots.add(new Spot(x, y, 8.5f, 0, 0, 3.8f)); }
-                return new Layout(spots, 8, y - 1.1f, 1.95f);
+                return new Layout(spots, 8, y - 0.8f, 1.5f);
             }
             case FREEZER -> {
                 float x0 = lane == 0 ? 4 : 12;
                 for (float dz : new float[] {4.5f, 8f, 11.5f}) for (float dx : new float[] {-2f, 2f})
-                    spots.add(new Spot(x0 + dx, 4.6f, dz, (dx > 0 ? 12 : -9), 90, 4.4f));
+                    spots.add(new Spot(x0 + dx, 4.4f + (dz - 4.5f) * 0.25f, dz, (dx > 0 ? 12 : -9), 70, 4.6f));
                 return new Layout(spots, x0, 8.2f, 0.95f);
             }
             case PRODUCE -> {
@@ -92,7 +92,7 @@ public final class ShopDisplayRenderer implements BlockEntityRenderer<ShopConten
                 Layout layout = layout(kind, lane, side == 1);
                 int shown = goods.stock <= 0 ? 0 : (int) Math.ceil(layout.spots().size() * goods.stock / (double) kind.capacity());
                 for (int i = 0; i < shown; i++) item(matrices, consumers, light, overlay, goods.goods, layout.spots().get(i), display, seed + i);
-                tag(matrices, consumers, light, goods, layout, side == 1);
+                tag(matrices, consumers, light, kind, goods, layout, side == 1);
             }
         }
         matrices.pop();
@@ -112,20 +112,25 @@ public final class ShopDisplayRenderer implements BlockEntityRenderer<ShopConten
     }
 
     /** The price tag: a white strip with «N за M шт» and a small emerald, on the front edge under the lane. */
-    private void tag(MatrixStack matrices, VertexConsumerProvider consumers, int light, ShopContent.DisplayBlockEntity.Lane lane, Layout layout, boolean back) {
+    private void tag(MatrixStack matrices, VertexConsumerProvider consumers, int light, ShopContent.Display display, ShopContent.DisplayBlockEntity.Lane lane, Layout layout, boolean back) {
         Text label = Text.translatable("mobtalk.shop.tag", lane.price, lane.lot);
-        float scale = 1 / 16f / 14f;
+        float scale = display == ShopContent.Display.FREEZER ? 1 / 150f : 1 / 100f;
         int width = text.getWidth(label);
         matrices.push();
         matrices.translate(layout.tagX() / 16f, layout.tagY() / 16f, layout.tagZ() / 16f);
         if (back) matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180));
         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180));
         matrices.scale(scale, -scale, scale);
-        float left = -(width + 9) / 2f;
+        float left = -(width + 10) / 2f;
         Matrix4f matrix = matrices.peek().getPositionMatrix();
-        text.draw(label, left + 9, -4, 0xFF202020, false, matrix, consumers, TextRenderer.TextLayerType.POLYGON_OFFSET, 0xFFF4F1E4, light);
+        // The white tag first, then the words a hair in front of it (one draw with a background loses the glyphs to the depth test).
+        text.draw(Text.literal(" ".repeat(Math.max(1, (width + 12) / 4))), left, -4, 0x00000000, false, matrix, consumers, TextRenderer.TextLayerType.NORMAL, 0xFFF4F1E4, light);
         matrices.push();
-        matrices.translate(left + 4, 0, -0.5f);
+        matrices.translate(0, 0, 0.6f);
+        text.draw(label, left + 10, -4, 0xFF202020, false, matrices.peek().getPositionMatrix(), consumers, TextRenderer.TextLayerType.NORMAL, 0, light);
+        matrices.pop();
+        matrices.push();
+        matrices.translate(left + 5, 0.5f, 0.8f);
         matrices.scale(9, -9, 0.01f);
         items.renderItem(EMERALD, ModelTransformationMode.GUI, light, net.minecraft.client.render.OverlayTexture.DEFAULT_UV, matrices, consumers,
                 MinecraftClient.getInstance().world, 0);

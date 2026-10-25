@@ -1002,5 +1002,7 @@
   "mobtalk.shop.say.stop.2": "Security! He's leaving without paying!",
   "mobtalk.shop.say.caught.0": "This way, please. Hand it back, and don't let me see you here again.",
   "mobtalk.shop.say.caught.1": "Got you! Unpaid goods on the table.",
-  "mobtalk.shop.say.caught.2": "Smile for the camera. Goods over here."
+  "mobtalk.shop.say.caught.2": "Smile for the camera. Goods over here.",
+  "entity.minecraft.villager.cashier": "Cashier",
+  "entity.minecraft.villager.shop_guard": "Shop guard"
 }

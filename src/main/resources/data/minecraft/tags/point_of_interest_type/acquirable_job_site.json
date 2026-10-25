@@ -2,6 +2,8 @@
   "replace": false,
   "values": [
     "mobtalk:archer_post",
-    "mobtalk:guard_post"
+    "mobtalk:guard_post",
+    "mobtalk:cash_register",
+    "mobtalk:shop_guard_desk"
   ]
 }

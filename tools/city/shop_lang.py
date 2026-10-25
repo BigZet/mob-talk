@@ -18,6 +18,8 @@ T = {
     "block.mobtalk.shop_guard_desk": ("Пост охраны", "Guard's desk"),
     "item.mobtalk.shopping_basket": ("Корзина покупателя", "Shopping basket"),
     "entity.minecraft.villager.mobtalk.cashier": ("Кассир", "Cashier"),
+    "entity.minecraft.villager.cashier": ("Кассир", "Cashier"),
+    "entity.minecraft.villager.shop_guard": ("Охранник", "Shop guard"),
     "entity.minecraft.villager.mobtalk.shop_guard": ("Охранник", "Shop guard"),
     "mobtalk.settings.group.shops": ("Магазины", "Shops"),
     "mobtalk.settings.cityShops": ("Супермаркеты работают", "Supermarkets work"),

@@ -21,7 +21,7 @@
       }
     },
     {
-      "weight": 1,
+      "weight": 3,
       "element": {
         "location": "mobtalk:city/houses/corgi_fifth/shop/supermarket",
         "processors": "mobtalk:city/set_air_flats",

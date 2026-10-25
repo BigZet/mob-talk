@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/shop/theft_gate"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/shop/theft_gate",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/shop/theft_gate",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/shop/theft_gate",
+      "y": 270
+    }
+  }
+}
