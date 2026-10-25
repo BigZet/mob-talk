@@ -1,0 +1,172 @@
+/* Оверлей Mob Talk для OBS (идея З3, docs/overlay.md). Фон прозрачный, база 1920×1080, масштаб — zoom у #stage.
+   Три стиля: cages (палитра панели Parrot Cages / Viewer Parrots), parchment, minimal. */
+:root {
+  --bg: rgba(17, 21, 28, 0.87);
+  --panel: rgba(25, 32, 42, 0.92);
+  --line: rgba(93, 101, 112, 0.6);
+  --gold: #f6ce6b;
+  --text: #e4e8ef;
+  --muted: #afc0d5;
+  --dim: #8592a3;
+  --wrath: #ff8f86;
+  --crimson: #8b1d24;
+  --grace: #b6e9ae;
+  --radius: 6px;
+  --font: "Segoe UI", "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+  --title-font: var(--font);
+}
+html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+body { color: var(--text); font: 500 22px/1.35 var(--font); }
+#stage { position: relative; width: 1920px; height: 1080px; }
+[hidden] { display: none !important; }
+
+.style-parchment {
+  --bg: rgba(238, 223, 190, 0.94); --panel: rgba(244, 232, 204, 0.95); --line: #7a5a2c; --gold: #8a1c1c;
+  --text: #2b1d0e; --muted: #5a4122; --dim: #7a6448; --wrath: #9c1d1d; --grace: #2f6b2a; --radius: 2px;
+  --font: "Georgia", "Times New Roman", serif;
+  --title-font: "Ponomar Unicode", "Monomakh Unicode", "Triodion Unicode", "Georgia", serif;
+}
+.style-minimal { --bg: rgba(0, 0, 0, 0.62); --panel: rgba(0, 0, 0, 0.62); --line: transparent; --gold: #ffffff; --radius: 10px; }
+
+.panel { background: var(--panel); border: 2px solid var(--line); border-radius: var(--radius); padding: 14px 18px; box-shadow: 0 6px 24px rgba(0,0,0,.35); }
+.style-cages .panel { border-color: #3f4857; box-shadow: inset 0 0 0 1px rgba(246,206,107,.18), 0 6px 24px rgba(0,0,0,.4); }
+.style-parchment .panel { border-width: 3px; border-style: double; box-shadow: 0 4px 18px rgba(60,30,0,.35); }
+.style-minimal .panel { border: none; box-shadow: none; }
+.panel-title { font: 700 20px/1 var(--title-font); color: var(--gold); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 10px; }
+.style-parchment .panel-title { text-transform: none; font-size: 26px; letter-spacing: .02em; }
+
+/* Раскладка «всё сразу». В режиме одного виджета он встаёт в левый верхний угол источника. */
+body.all #god { position: absolute; left: 32px; top: 32px; width: 460px; }
+body.all #mercy { position: absolute; right: 32px; top: 32px; width: 380px; }
+body.all #now { position: absolute; left: 50%; top: 24px; transform: translateX(-50%); width: 820px; }
+body.all #subtitles { position: absolute; left: 50%; bottom: 56px; transform: translateX(-50%); width: 1280px; }
+body.single .widget { position: absolute; left: 0; top: 0; width: calc(100% - 8px); }
+body.single #stage { width: 100vw; height: 100vh; }
+
+/* Бог */
+.mood-track { position: relative; height: 12px; border-radius: 6px; background: linear-gradient(90deg, #8b1d24, #c96a3a 35%, #8592a3 50%, #d9c27a 65%, #f6ce6b); }
+.style-parchment .mood-track { background: linear-gradient(90deg, #7a1010, #b8875a 50%, #c79a2a); }
+.mood-mark { position: absolute; top: -6px; width: 6px; height: 24px; margin-left: -3px; left: 50%; border-radius: 3px; background: var(--text); box-shadow: 0 0 10px rgba(255,255,255,.7); transition: left 1.2s ease; }
+.mood-ends { display: flex; justify-content: space-between; font-size: 15px; color: var(--dim); margin-top: 6px; }
+#mood-word { color: var(--text); font-weight: 700; font-size: 18px; }
+.verdict { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.verdict-head { display: flex; gap: 10px; align-items: baseline; }
+.act { font-size: 14px; font-weight: 700; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: .05em; }
+.act.wrath { background: var(--crimson); color: #fff; }
+.act.miracle { background: var(--gold); color: #2b1d0e; }
+.act.warning { background: #c96a3a; color: #fff; }
+.act.jest, .act.none { background: var(--dim); color: #11151c; }
+.verdict-title { font: 700 24px/1.2 var(--title-font); }
+.verdict-who { color: var(--muted); font-size: 18px; margin-top: 2px; }
+.reasons { margin: 6px 0 0; padding-left: 20px; color: var(--muted); font-size: 17px; }
+
+/* Милость */
+.souls { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.soul { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 12px; padding: 6px 8px; border-radius: 4px; transition: transform .6s ease, background .3s; }
+.soul.me { background: rgba(246, 206, 107, .14); }
+.soul .name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.soul.banned .name { text-decoration: line-through; color: var(--dim); }
+.soul .meta { grid-column: 1 / -1; font-size: 15px; color: var(--dim); display: flex; gap: 12px; }
+.soul .meta .cursed { color: var(--wrath); }
+.candles { display: flex; gap: 5px; align-items: flex-end; }
+.candle { width: 8px; height: 22px; border-radius: 2px; background: #d8cfb8; position: relative; opacity: .35; }
+.candle.lit { opacity: 1; }
+.candle.lit::after { content: ""; position: absolute; left: 1px; top: -10px; width: 6px; height: 10px; border-radius: 50% 50% 40% 40%; background: radial-gradient(circle at 50% 70%, #fff6c8, #f6ce6b 50%, #e07a2a); animation: flicker 1.6s infinite alternate; }
+.label { font-size: 16px; color: var(--muted); }
+.plus { color: var(--wrath); font-weight: 800; margin-left: 6px; animation: rise 2.2s ease forwards; }
+
+/* Сейчас */
+.bosses { display: grid; gap: 10px; }
+.boss { background: var(--bg); border-radius: var(--radius); padding: 8px 14px; }
+.boss-name { display: flex; justify-content: space-between; font-size: 18px; color: var(--text); }
+.boss-name b { font-family: var(--title-font); color: var(--wrath); font-size: 22px; }
+.boss-bar { position: relative; height: 14px; background: rgba(255,255,255,.12); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+.boss-trail { position: absolute; inset: 0 auto 0 0; background: #fff; transition: width 1.2s ease .4s; }
+.boss-fill { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #8b1d24, #e0453a); transition: width .25s; }
+.events { display: grid; gap: 8px; margin-top: 10px; justify-items: center; }
+.event { background: var(--bg); border: 2px solid var(--gold); border-radius: var(--radius); padding: 8px 22px; font: 700 26px/1.25 var(--title-font); color: var(--gold); text-align: center; animation: drop .5s ease; }
+.event.wedding { border-color: #f3d9e3; color: #fff0f6; }
+.event.court, .event.avatar, .event.ban { border-color: var(--wrath); color: var(--wrath); }
+.active { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 10px; }
+.card { display: flex; align-items: center; gap: 12px; background: var(--bg); border-left: 5px solid var(--wrath); border-radius: var(--radius); padding: 8px 14px 8px 10px; min-width: 260px; animation: slam .55s ease; }
+.card.blessing { border-left-color: var(--gold); animation: glow .9s ease; }
+.card .ring { width: 44px; height: 44px; flex: none; }
+.card .ring circle { fill: none; stroke-width: 5; }
+.card .ring .track { stroke: rgba(255,255,255,.15); }
+.card .ring .left { stroke: var(--wrath); stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dashoffset .3s linear; }
+.card.blessing .ring .left { stroke: var(--gold); }
+.card.urgent .ring { animation: pulse 1s infinite; }
+.card .title { font: 700 22px/1.15 var(--title-font); }
+.card .who { font-size: 16px; color: var(--muted); }
+.card .time { font-size: 16px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.card.gone { animation: ash 1.2s ease forwards; }
+
+/* Субтитры */
+.lines { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.line { background: var(--bg); border-radius: var(--radius); padding: 10px 22px 12px; max-width: 1240px; box-shadow: 0 4px 18px rgba(0,0,0,.35); animation: up .2s ease-out; transition: opacity .6s, transform .4s; }
+.line.old { opacity: .55; transform: scale(.94); }
+.line.out { opacity: 0; }
+.line .heard { color: var(--dim); font-size: 19px; font-style: italic; margin-bottom: 2px; }
+.line .speaker { font-weight: 800; margin-right: 10px; }
+.line .text { font-size: 28px; }
+.line.background .text { font-size: 23px; font-style: italic; color: var(--muted); }
+.line.god { border: 2px solid var(--gold); background: linear-gradient(180deg, rgba(60,44,8,.88), rgba(24,18,4,.9)); box-shadow: 0 0 34px rgba(246,206,107,.45); text-align: center; }
+.style-parchment .line.god { background: rgba(250, 236, 200, .96); }
+.line.god .speaker { display: block; color: var(--gold); font: 700 18px var(--title-font); letter-spacing: .14em; text-transform: uppercase; margin: 0 0 2px; }
+.line.god .text { font: 600 30px/1.3 var(--title-font); color: #fff4d0; }
+.style-parchment .line.god .text { color: #4a1208; }
+
+/* Эффекты */
+.vignette { position: fixed; inset: 0; pointer-events: none; opacity: 0; box-shadow: inset 0 0 260px 80px rgba(110, 0, 10, .85); }
+.vignette.on { animation: vignette 1.4s ease; }
+.rays { position: fixed; inset: -20% -20%; pointer-events: none; opacity: 0; background: repeating-conic-gradient(from 0deg at 50% -10%, rgba(255,240,180,.0) 0deg 6deg, rgba(255,240,180,.22) 6deg 9deg); }
+.rays.on { animation: rays 2.2s ease; }
+body.disconnected #stage { opacity: 0; transition: opacity 1s; }
+
+@keyframes flicker { from { transform: scale(1, 1); } to { transform: scale(.85, 1.12); } }
+@keyframes rise { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-18px); } }
+@keyframes drop { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: none; } }
+@keyframes slam { 0% { opacity: 0; transform: translateY(-30px) scale(1.15); } 60% { opacity: 1; transform: translateY(0) scale(1); } 70% { transform: translateX(-6px); } 80% { transform: translateX(6px); } 90% { transform: translateX(-3px); } 100% { transform: none; } }
+@keyframes glow { from { opacity: 0; box-shadow: 0 0 60px rgba(246,206,107,.9); } to { opacity: 1; box-shadow: none; } }
+@keyframes pulse { 50% { transform: scale(1.12); } }
+@keyframes ash { to { opacity: 0; filter: blur(6px) grayscale(1); transform: translateY(-14px); } }
+@keyframes up { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes vignette { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes rays { 0% { opacity: 0; transform: rotate(-4deg); } 30% { opacity: 1; } 100% { opacity: 0; transform: rotate(4deg); } }
+
+body.calm *, body.calm *::after { animation: none !important; transition: none !important; }
+
+/* Пергамент: светлый фон — тёмные имена, свечи и свадьба. */
+.style-parchment .event.wedding { border-color: #7a2a4a; color: #7a2a4a; }
+.style-parchment .candle { background: #b9a06a; box-shadow: 0 0 0 1px #7a5a2c; }
+.style-parchment .boss-bar { background: rgba(60, 30, 0, .15); }
+.style-parchment .card .ring .track { stroke: rgba(60, 30, 0, .18); }
+.style-parchment .soul.me { background: rgba(138, 28, 28, .1); }
+
+/* Карточка (вид по умолчанию): одна плашка 360px в левом верхнем углу источника. */
+body.compact #stage { width: 100vw; height: 100vh; }
+.infocard { position: absolute; left: 12px; top: 12px; width: 360px; box-sizing: border-box; padding: 10px 14px; font-size: 17px; }
+.ic-head { display: flex; align-items: center; gap: 8px; }
+.ic-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--dim); }
+.ic-dot.wrath { background: var(--wrath); box-shadow: 0 0 8px var(--wrath); }
+.ic-dot.grace { background: var(--gold); box-shadow: 0 0 8px var(--gold); }
+.ic-god { font: 700 18px/1.2 var(--title-font); color: var(--gold); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ic-mercy { display: flex; gap: 4px; align-items: flex-end; }
+.ic-mercy .candle { width: 6px; height: 15px; }
+.ic-mercy .candle.lit::after { left: 0; top: -8px; width: 6px; height: 8px; }
+.ic-mercy .label { font-size: 14px; }
+.ic-now { margin-top: 8px; padding: 6px 0 0 10px; border-left: 3px solid var(--wrath); }
+.ic-now.blessing { border-left-color: var(--gold); }
+.ic-row { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.ic-title { font: 700 18px/1.2 var(--title-font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ic-time { font-size: 16px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ic-now.urgent .ic-time { color: var(--wrath); font-weight: 700; }
+.ic-sub { font-size: 14px; color: var(--dim); }
+.ic-bar { height: 6px; margin-top: 5px; border-radius: 3px; background: rgba(255,255,255,.12); overflow: hidden; }
+.style-parchment .ic-bar { background: rgba(60, 30, 0, .15); }
+.ic-fill { height: 100%; background: linear-gradient(90deg, #8b1d24, #e0453a); transition: width .25s; }
+.ic-line { margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--line); font-size: 16px; line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.ic-speaker { font-weight: 800; }
+.ic-line.god .ic-speaker { color: var(--gold); }
+.style-minimal .ic-line { border-top-color: rgba(255,255,255,.15); }

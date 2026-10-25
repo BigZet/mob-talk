@@ -13,11 +13,13 @@ import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
+import net.minecraft.client.gui.hud.BossBarHud;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.client.gui.screen.ingame.MerchantScreen;
 import net.minecraft.client.util.ScreenshotRecorder;
 import net.minecraft.command.argument.EntityAnchorArgumentType;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.boss.BossBar;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.network.packet.CustomPayload;
@@ -25,8 +27,11 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -43,7 +48,7 @@ final class SelfTestServer {
     private final Map<UUID, String> states = new HashMap<>();
     private long ticks, connectedAt = -1, lostAt = -1;
     private boolean quitting;
-    private String pendingFind;
+    private String pendingFind, lastOverlay = "";
     private long findUntil;
 
     private SelfTestServer(MobTalkClient owner) { this.owner = owner; }
@@ -55,8 +60,12 @@ final class SelfTestServer {
         SelfTestServer test = new SelfTestServer(owner);
         active = test;
         ClientPlayNetworking.registerGlobalReceiver(SelfTestLine.ID, (payload, context) -> test.cue(payload.line()));
-        // The action bar (Mob Talk's HUD line every second) is not chat: only real chat lines are reported.
-        ClientReceiveMessageEvents.GAME.register((message, overlay) -> { if (!overlay) test.send("chat", Formatting.strip(message.getString())); });
+        // The action bar is not chat: it goes as "overlay", and only when it changes (соперники П3 пишут туда уведомления и «⚔»).
+        ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
+            String text = Formatting.strip(message.getString());
+            if (!overlay) test.send("chat", text);
+            else if (!text.equals(test.lastOverlay)) { test.lastOverlay = text; test.send("overlay", text); }
+        });
         ClientReceiveMessageEvents.CHAT.register((message, signed, sender, params, time) -> test.send("chat", Formatting.strip(message.getString())));
         // The release jar keeps intermediary class names: the merchant screen is named by type, not by its class.
         ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
@@ -129,6 +138,8 @@ final class SelfTestServer {
                 case "find" -> find(f[1]);
                 case "say" -> { MobEntity mob = mob(f[1]); if (mob != null) { look(mob); owner.select(mob); log("say " + f[2] + ": " + owner.say(f[2])); } }
                 case "gift" -> { MobEntity mob = mob(f[1]); if (mob != null) { look(mob); owner.select(mob); owner.giftFromHand(); } }
+                case "look" -> { MobEntity mob = mob(f[1]); if (mob != null) look(mob); }
+                case "bars" -> send("bars", bossBars());
                 case "trade" -> { MobEntity mob = mob(f[1]); if (mob != null) { look(mob); owner.select(mob); owner.openTrade(); } }
                 case "close" -> { if (owner.client.player != null) owner.client.player.closeHandledScreen(); owner.client.setScreen(null); }
                 case "cmd" -> owner.client.getNetworkHandler().sendChatCommand(f[1]);
@@ -161,6 +172,23 @@ final class SelfTestServer {
     }
     private void look(MobEntity mob) {
         if (owner.client.player != null) owner.client.player.lookAt(EntityAnchorArgumentType.EntityAnchor.EYES, mob.getEyePos());
+    }
+
+    /** Полосы боссов на экране: «имя процент» через « | ». BossBarHud держит их в закрытой карте, а в релизном jar имена
+     * промежуточные — карта ищется по типу поля. */
+    private String bossBars() {
+        Object hud = owner.client.inGameHud.getBossBarHud();
+        for (Field field : BossBarHud.class.getDeclaredFields()) {
+            if (!Map.class.isAssignableFrom(field.getType())) continue;
+            try {
+                field.setAccessible(true);
+                List<String> out = new ArrayList<>();
+                for (Object bar : ((Map<?, ?>) field.get(hud)).values())
+                    if (bar instanceof BossBar b) out.add(Formatting.strip(b.getName().getString()) + " " + Math.round(b.getPercent() * 100) + "%");
+                return String.join(" | ", out);
+            } catch (ReflectiveOperationException | RuntimeException failure) { return "error " + failure; }
+        }
+        return "";
     }
 
     /** Молитва текстом тем же пакетом, что шлёт экран алтаря Божественного блока (класс берётся из сборки, Mob Talk от него не зависит). */

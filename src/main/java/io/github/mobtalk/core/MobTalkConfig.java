@@ -114,6 +114,10 @@ public final class MobTalkConfig {
     public boolean villageTowers = true;
     /** Villages keep guards with swords and shields: stands by the bell and at the edge, a newcomer for each empty one. */
     public boolean villageGuards = true;
+    /** Idea Б1: the villages know the god's deeds (the divine block's events) — they panic, talk and blame the sinner by name;
+     * the scene in the moment (alarm bell, flight, shouts); the god alone may make an exile; the family of a villager killed by a
+     * curse turns against the sinner. */
+    public boolean divineTidings = true, divinePanic = true, divineMayExile = false, divineMourners = true;
     /** Who decides whether a creature speaks up, who answers next and whether a bystander cuts in: "rules" or "jev" (OpenRouter Decisions API). */
     public String decider = "rules";
     public String defaultVoice = "rSfuQoQ3FY8SVKeraMAp";
@@ -164,6 +168,14 @@ public final class MobTalkConfig {
      * в браке (проценты), какая доля ревности снимается с сердечек (процент), полураспад (минуты) и сколько гасит разговор с ревнующим. */
     public int jealousyTalk = 3, jealousySleep = 20, jealousyFavor = 8, jealousyGift = 12, jealousyRumorPercent = 50, jealousyMarriedPercent = 150;
     public int jealousyHeartsPercent = 30, jealousyHalfLifeMinutes = 60, jealousyAttention = 4;
+    /** Соперники за одно сердце (П3): до помолвки житель видит всех ухажёров и выбирает лучшего; можно ли отбить пару, испытания,
+     * выбор сценой у колокола (иначе сразу при кольце). Окно интереса (часы без романтического жеста), сколько ухажёров на одного
+     * жителя, сколько сердечек сверху нужно, чтобы отбить, награда за испытание (победителю и остальным), с каких сердечек соперник
+     * сильный (тогда кольцо не принимается без выбора), сколько ждать ухажёров у колокола (минуты), штраф проигравшему (сердечки) и
+     * пауза, пока он не может снова дарить букет и кольцо (часы). */
+    public boolean rivals = true, rivalSteal = true, rivalTrials = true, rivalBellScene = true, rivalHud = true;
+    public int rivalWindowHours = 24, rivalMaxSuitors = 3, rivalStealMargin = 15, rivalTrialWin = 8, rivalTrialTry = 2;
+    public int rivalStrong = 80, rivalGatherMinutes = 5, rivalLoserPenalty = 10, rivalLoserPauseHours = 2;
     /** Сон вместе: влюблённый житель ложится рядом, когда игрок спит; откуда он приходит (блоки) и сколько сердечек даёт ночь. */
     public boolean coSleep = true;
     public int coSleepRange = 12, coSleepHearts = 3;
@@ -198,6 +210,11 @@ public final class MobTalkConfig {
     public int noticeMinutes = 4, noticeWorkPercent = 40, noticeRange = 64;
     /** The village's view: points at or below which the player is an exile or a suspect, and from which a friend, guard or head. */
     public int villageExilePoints = -150, villageSuspectPoints = -40, villageFriendPoints = 120, villageGuardPoints = 300, villageElderPoints = 600;
+    /** The god's deeds in the villages (Б1): the reaction's strength (percent of the table), the most a player loses in one village a
+     * game day, the village gossip the sinner gets while a curse lasts and the blessed one after a miracle (vanilla gossip points:
+     * higher or lower prices), the punishments of one player in one village a day that call the bell assembly (0 — never), and how
+     * far a personal punishment reaches the villages (blocks). */
+    public int divineStrength = 100, divineDailyCap = 60, divineSurcharge = 20, divineBlessDiscount = 10, divineAssemblyCurses = 3, divinePersonalRadius = 64;
     /** Friendly duties: a lease (minutes), how far the player may go (blocks), the guard's distances and the stay drift (blocks). */
     public int friendLeaseMinutes = 10, friendLeaveRange = 48, guardNear = 3, guardFar = 6, guardAlert = 8, guardChase = 16;
     public double stayDrift = 2.5;
@@ -216,6 +233,22 @@ public final class MobTalkConfig {
     /** How mobs address the player, three comma-separated lists picked by the relationship: hostile or mocking, ordinary, close.
      * Empty lists fall back to the ordinary one, then to the Minecraft nick ({@link PlayerIdentity}). */
     public String playerNamesHostile = "", playerNamesNeutral = "", playerNamesClose = "";
+
+    /** Оверлей для OBS (идея З3, docs/overlay.md), личное: игра поднимает страницу на 127.0.0.1:{@code overlayPort}, OBS берёт её
+     * источником «Браузер». Виджеты, слова игрока и болтовня в субтитрах, сколько держать строку, масштаб, стиль, меньше движения;
+     * {@code overlayShowMe} — показывать ли этого игрока в «Милости» и причинах вердикта у чужого оверлея. */
+    public boolean overlayEnabled = false;
+    public int overlayPort = 8790;
+    public boolean overlaySubtitles = true, overlayGod = true, overlayMercy = true, overlayNow = true;
+    public boolean overlayHeard = true, overlayChatter = true, overlayReduceMotion = false, overlayShowMe = true;
+    public int overlayHoldSeconds = 6, overlayScale = 100;
+    /** {@code cages} (как меню Parrot Cages), {@code parchment} или {@code minimal}. */
+    public String overlayStyle = "cages";
+    /** {@code card} — маленькая карточка в углу (по умолчанию) или {@code full} — все виджеты на весь экран. */
+    public String overlayLayout = "card";
+    /** Серверное: отдавать ли данные оверлея ({@code OverlayStateS2C}) и кому — {@code streamer} (стример и админы) или {@code all}. */
+    public boolean streamOverlay = true;
+    public String streamOverlayAudience = "streamer";
 
     /** A menu draft or worker snapshot; editing it does not change the live preferences. */
     public MobTalkConfig copy() {
@@ -264,13 +297,19 @@ public final class MobTalkConfig {
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
         copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards;
+        copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;
         copy.familyLife = familyLife; copy.weddingChance = weddingChance; copy.birthChance = birthChance; copy.childGrowthDays = childGrowthDays;
         copy.coSleep = coSleep; copy.weddingCeremony = weddingCeremony;
+        copy.rivals = rivals; copy.rivalSteal = rivalSteal; copy.rivalTrials = rivalTrials; copy.rivalBellScene = rivalBellScene; copy.rivalHud = rivalHud;
         copy.pregnancy = pregnancy; copy.pregnancyBelly = pregnancyBelly; copy.pregnancyStatus = pregnancyStatus; copy.familyFade = familyFade;
         Tunables.copy(this, copy);
         copy.commandLevels = commandLevels == null ? new LinkedHashMap<>() : new LinkedHashMap<>(commandLevels);
+        copy.overlayEnabled = overlayEnabled; copy.overlayPort = overlayPort; copy.overlaySubtitles = overlaySubtitles; copy.overlayGod = overlayGod;
+        copy.overlayMercy = overlayMercy; copy.overlayNow = overlayNow; copy.overlayHeard = overlayHeard; copy.overlayChatter = overlayChatter;
+        copy.overlayReduceMotion = overlayReduceMotion; copy.overlayShowMe = overlayShowMe; copy.overlayStyle = overlayStyle; copy.overlayLayout = overlayLayout;
+        copy.streamOverlay = streamOverlay; copy.streamOverlayAudience = streamOverlayAudience;
         copy.placeAnalysis = placeAnalysis; copy.placeClassifier = placeClassifier; copy.playerNamesHostile = playerNamesHostile; copy.playerNamesNeutral = playerNamesNeutral; copy.playerNamesClose = playerNamesClose;
         return copy;
     }
@@ -339,6 +378,10 @@ public final class MobTalkConfig {
         config.playerNamesClose = PlayerIdentity.clean(config.playerNamesClose);
         config.decider = "jev".equalsIgnoreCase(config.decider == null ? "" : config.decider.strip()) ? "jev" : "rules";
         config.vision = Vision.normalize(config.vision);
+        config.overlayStyle = java.util.List.of("cages", "parchment", "minimal").contains(config.overlayStyle) ? config.overlayStyle : "cages";
+        config.overlayLayout = "full".equals(config.overlayLayout) ? "full" : "card";
+        config.streamOverlayAudience = "all".equals(config.streamOverlayAudience) ? "all" : "streamer";
+        if (config.overlayPort < 1024 || config.overlayPort > 65535) config.overlayPort = 8790;
         MobTalkConfig defaults = new MobTalkConfig();
         config.llmModel = textOrDefault(config.llmModel, defaults.llmModel);
         config.veniceModel = textOrDefault(config.veniceModel, defaults.veniceModel);

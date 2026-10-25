@@ -47,6 +47,9 @@ public final class Tunables {
     static {
         Section v = Section.VOICE, m = Section.MODEL, t = Section.TALK, s = Section.SOCIAL, a = Section.ACTIONS;
         // The numbers the config always had, with the same ranges.
+        // Оверлей для OBS (личное): сколько держать строку субтитров после звука и масштаб страницы.
+        integer("overlayHoldSeconds", Section.GENERAL, "overlay", 2, 20, 1, c -> c.overlayHoldSeconds, (c, x) -> c.overlayHoldSeconds = x);
+        integer("overlayScale", Section.GENERAL, "overlay", 60, 200, 5, c -> c.overlayScale, (c, x) -> c.overlayScale = x);
         decimal("maxDistance", t, "reply", 2, 64, 0.5, c -> c.maxDistance, (c, x) -> c.maxDistance = x);
         integer("maxReplyWords", t, "reply", 5, 120, 1, c -> c.maxReplyWords, (c, x) -> c.maxReplyWords = x);
         integer("maxRecordingSeconds", v, "recording", 1, 15, 1, c -> c.maxRecordingSeconds, (c, x) -> c.maxRecordingSeconds = x);
@@ -119,6 +122,16 @@ public final class Tunables {
         integer("coSleepRange", s, "jealousy", 2, 32, 1, c -> c.coSleepRange, (c, x) -> c.coSleepRange = x);
         integer("coSleepHearts", s, "jealousy", 0, 20, 1, c -> c.coSleepHearts, (c, x) -> c.coSleepHearts = x);
         integer("coSleepNightDelay", s, "jealousy", 0, 300, 5, c -> c.coSleepNightDelay, (c, x) -> c.coSleepNightDelay = x);
+        // Соперники за одно сердце (П3).
+        integer("rivalWindowHours", s, "rivals", 1, 168, 1, c -> c.rivalWindowHours, (c, x) -> c.rivalWindowHours = x);
+        integer("rivalMaxSuitors", s, "rivals", 2, 5, 1, c -> c.rivalMaxSuitors, (c, x) -> c.rivalMaxSuitors = x);
+        integer("rivalStealMargin", s, "rivals", 0, 50, 1, c -> c.rivalStealMargin, (c, x) -> c.rivalStealMargin = x);
+        integer("rivalTrialWin", s, "rivals", 0, 30, 1, c -> c.rivalTrialWin, (c, x) -> c.rivalTrialWin = x);
+        integer("rivalTrialTry", s, "rivals", 0, 10, 1, c -> c.rivalTrialTry, (c, x) -> c.rivalTrialTry = x);
+        integer("rivalStrong", s, "rivals", 40, 100, 1, c -> c.rivalStrong, (c, x) -> c.rivalStrong = x);
+        integer("rivalGatherMinutes", s, "rivals", 1, 15, 1, c -> c.rivalGatherMinutes, (c, x) -> c.rivalGatherMinutes = x);
+        integer("rivalLoserPenalty", s, "rivals", 0, 30, 1, c -> c.rivalLoserPenalty, (c, x) -> c.rivalLoserPenalty = x);
+        integer("rivalLoserPauseHours", s, "rivals", 0, 24, 1, c -> c.rivalLoserPauseHours, (c, x) -> c.rivalLoserPauseHours = x);
         // Свадьба у колокола (трек L).
         integer("weddingVowSeconds", s, "wedding", 15, 120, 5, c -> c.weddingVowSeconds, (c, x) -> c.weddingVowSeconds = x);
         integer("weddingVowWaitSeconds", s, "wedding", 10, 180, 5, c -> c.weddingVowWaitSeconds, (c, x) -> c.weddingVowWaitSeconds = x);
@@ -197,6 +210,13 @@ public final class Tunables {
         integer("watchDamage", s, "guards", 1, 20, 1, c -> c.watchDamage, (c, x) -> c.watchDamage = x);
         integer("watchSight", s, "guards", 8, 48, 1, c -> c.watchSight, (c, x) -> c.watchSight = x);
         integer("watchReplaceMinutes", s, "guards", 1, 240, 1, c -> c.watchReplaceMinutes, (c, x) -> c.watchReplaceMinutes = x);
+        // The god's deeds in the villages (Б1).
+        integer("divineStrength", s, "divine", 0, 200, 10, c -> c.divineStrength, (c, x) -> c.divineStrength = x);
+        integer("divineDailyCap", s, "divine", 0, 300, 5, c -> c.divineDailyCap, (c, x) -> c.divineDailyCap = x);
+        integer("divineSurcharge", s, "divine", 0, 100, 5, c -> c.divineSurcharge, (c, x) -> c.divineSurcharge = x);
+        integer("divineBlessDiscount", s, "divine", 0, 50, 5, c -> c.divineBlessDiscount, (c, x) -> c.divineBlessDiscount = x);
+        integer("divineAssemblyCurses", s, "divine", 0, 10, 1, c -> c.divineAssemblyCurses, (c, x) -> c.divineAssemblyCurses = x);
+        integer("divinePersonalRadius", s, "divine", 16, 256, 8, c -> c.divinePersonalRadius, (c, x) -> c.divinePersonalRadius = x);
 
         // Friendly duties (STAY, GUARD, SPARE).
         integer("friendLeaseMinutes", a, "friends", 1, 60, 1, c -> c.friendLeaseMinutes, (c, x) -> c.friendLeaseMinutes = x);
@@ -264,10 +284,12 @@ public final class Tunables {
             case TALK -> config.rudeness = d.rudeness;
             case SOCIAL -> {
                 config.socialLayer = d.socialLayer; config.playerGender = d.playerGender; config.familyLife = d.familyLife; config.coSleep = d.coSleep; config.weddingCeremony = d.weddingCeremony;
+                config.rivals = d.rivals; config.rivalSteal = d.rivalSteal; config.rivalTrials = d.rivalTrials; config.rivalBellScene = d.rivalBellScene; config.rivalHud = d.rivalHud;
                 config.pregnancy = d.pregnancy; config.pregnancyBelly = d.pregnancyBelly; config.pregnancyStatus = d.pregnancyStatus; config.familyFade = d.familyFade;
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices; config.villageSites = d.villageSites;
                 config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.villageTowers = d.villageTowers; config.villageGuards = d.villageGuards;
+                config.divineTidings = d.divineTidings; config.divinePanic = d.divinePanic; config.divineMayExile = d.divineMayExile; config.divineMourners = d.divineMourners;
             }
             case ACTIONS -> { config.placeAnalysis = d.placeAnalysis; config.placeClassifier = d.placeClassifier; }
         }

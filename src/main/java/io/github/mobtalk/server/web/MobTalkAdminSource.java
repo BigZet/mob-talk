@@ -40,6 +40,8 @@ public final class MobTalkAdminSource implements UnaryOperator<String> {
             new Extra("enabled", Tunables.Section.GENERAL, "main", "bool", null, null, "Главный выключатель: без него мобы не слушают и не отвечают."),
             new Extra("vision", Tunables.Section.GENERAL, "main", "enum", List.of("off", "unusual", "always"), null, null),
             new Extra("keepAcquainted", Tunables.Section.GENERAL, "main", "bool", null, null, null),
+            new Extra("streamOverlay", Tunables.Section.GENERAL, "overlay", "bool", null, "Оверлей для OBS на сервере", "Выкл — сервер никому не шлёт данные оверлея (бог, милость, кары, события); субтитры жителей у стримера всё равно работают."),
+            new Extra("streamOverlayAudience", Tunables.Section.GENERAL, "overlay", "enum", List.of("streamer", "all"), "Кому данные оверлея", "streamer — стримеру и админам, all — всем, кто включил оверлей в F7."),
             new Extra("llmProvider", Tunables.Section.MODEL, "llm", "enum", List.of("openrouter", "venice"), "Кто отвечает", null),
             new Extra("llmModel", Tunables.Section.MODEL, "llm", "string", null, "Модель OpenRouter", null),
             new Extra("veniceModel", Tunables.Section.MODEL, "llm", "string", null, "Модель Venice", null),
@@ -61,6 +63,11 @@ public final class MobTalkAdminSource implements UnaryOperator<String> {
             new Extra("familyLife", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
             new Extra("coSleep", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
             new Extra("weddingCeremony", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
+            new Extra("rivals", Tunables.Section.SOCIAL, "rivals", "bool", null, null, null),
+            new Extra("rivalSteal", Tunables.Section.SOCIAL, "rivals", "bool", null, null, null),
+            new Extra("rivalTrials", Tunables.Section.SOCIAL, "rivals", "bool", null, null, null),
+            new Extra("rivalBellScene", Tunables.Section.SOCIAL, "rivals", "bool", null, null, null),
+            new Extra("rivalHud", Tunables.Section.SOCIAL, "rivals", "bool", null, null, null),
             new Extra("pregnancy", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
             new Extra("pregnancyBelly", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
             new Extra("pregnancyStatus", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
@@ -77,11 +84,15 @@ public final class MobTalkAdminSource implements UnaryOperator<String> {
             new Extra("alarmChat", Tunables.Section.SOCIAL, "defense", "bool", null, null, null),
             new Extra("villageTowers", Tunables.Section.SOCIAL, "towers", "bool", null, null, null),
             new Extra("villageGuards", Tunables.Section.SOCIAL, "guards", "bool", null, null, null),
+            new Extra("divineTidings", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
+            new Extra("divinePanic", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
+            new Extra("divineMayExile", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
+            new Extra("divineMourners", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
             new Extra("placeAnalysis", Tunables.Section.ACTIONS, "place", "bool", null, null, null),
             new Extra("placeClassifier", Tunables.Section.ACTIONS, "place", "bool", null, null, null));
 
     private static final Map<String, String> GROUP_TITLES = Map.of("main", "Основное", "llm", "Модель ответа", "tts", "Озвучка",
-            "switches", "Включение", "place", "Анализ места");
+            "switches", "Включение", "place", "Анализ места", "overlay", "Оверлей для стрима");
 
     /** One described field: where it sits, its type, how to read and write it. */
     record Spec(String key, Tunables.Section section, String group, String type, JsonObject description, Field field, Tunables.Tunable tunable) { }
@@ -150,7 +161,10 @@ public final class MobTalkAdminSource implements UnaryOperator<String> {
             case "actions" -> Json.obj("actions", Json.array(List.of(Json.obj("id", "reset-section", "title", "Сбросить раздел к умолчаниям",
                     "args", List.of(Json.obj("key", "section", "title", "Раздел", "type", "enum",
                             "options", java.util.Arrays.stream(Tunables.Section.values()).map(s -> s.name().toLowerCase(Locale.ROOT)).toList())),
-                    "danger", "Все числа и переключатели раздела вернутся к умолчаниям."))));
+                    "danger", "Все числа и переключатели раздела вернутся к умолчаниям."),
+                    Json.obj("id", "overlay-banner", "title", "Баннер на оверлей стримера",
+                            "args", List.of(Json.obj("key", "text", "title", "Текст", "type", "string"), Json.obj("key", "minutes", "title", "Минут (1–120)", "type", "int")), "danger", null),
+                    Json.obj("id", "overlay-clear", "title", "Убрать баннер с оверлея", "args", List.of(), "danger", null))));
             case "action" -> action(Json.string(query, "id"), query.has("args") && query.get("args").isJsonObject() ? query.getAsJsonObject("args") : new JsonObject());
             default -> Json.obj("ok", false, "error", "неизвестная операция: " + op);
         };
@@ -182,6 +196,11 @@ public final class MobTalkAdminSource implements UnaryOperator<String> {
     }
 
     private JsonObject action(String id, JsonObject args) {
+        if ("overlay-banner".equals(id)) {
+            long minutes = Json.number(args, "minutes", 5);
+            return Json.obj("ok", true, "message", io.github.mobtalk.server.OverlayHub.banner(Json.string(args, "text"), (int) Math.max(1, Math.min(120, minutes))));
+        }
+        if ("overlay-clear".equals(id)) return Json.obj("ok", true, "message", io.github.mobtalk.server.OverlayHub.clearBanner());
         if (!"reset-section".equals(id)) return Json.obj("ok", false, "message", "Нет такого действия.");
         String name = Json.string(args, "section");
         Tunables.Section section;

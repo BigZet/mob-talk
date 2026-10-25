@@ -113,11 +113,12 @@ class TunablesTest {
         Tunables.reset(copy, Tunables.Section.SOCIAL);
         assertEquals(40, copy.heartsFriend); assertEquals(5, copy.weddingChance);
         assertEquals(Tunables.find("witnessHearingRange").max(), copy.witnessHearingRange, "another tab keeps its values");
-        // Every numeric field of the config is in the table: nothing is left out of the screen or the copy.
+        // Every numeric field of the config is in the table: nothing is left out of the screen or the copy. The overlay's port is
+        // typed into its own field and copied by hand.
         for (java.lang.reflect.Field field : MobTalkConfig.class.getFields()) {
             if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) continue;
             Class<?> type = field.getType();
-            if ((type == int.class || type == double.class) && !List.of("schemaVersion", "rudeness").contains(field.getName()))
+            if ((type == int.class || type == double.class) && !List.of("schemaVersion", "rudeness", "overlayPort").contains(field.getName()))
                 assertNotNull(Tunables.find(field.getName()), field.getName() + " is in Tunables");
         }
     }

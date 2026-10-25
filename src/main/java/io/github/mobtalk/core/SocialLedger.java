@@ -88,6 +88,7 @@ public final class SocialLedger {
         UUID player = snapshot.playerId();
         if (player == null) return;
         detached.standing = standing(state, p.villageId, player, now);
+        detached.divine = SocialPrompt.divine(state, p.villageId, player, now);
         Rapport rapport = r == null || r.rapport == null ? new Rapport() : r.rapport;
         int score = r == null ? 0 : r.score;
         boolean adult = adult(p, snapshot);
@@ -110,16 +111,24 @@ public final class SocialLedger {
             UUID spouse = state.family.spouse(p.id);
             Romance.Suit suit = new Romance.Suit(adult, related, courtship, p.id, partner(state, player), player.equals(spouse) ? null : spouse,
                     score, p.social.gender(), p.social.traits(), PlayerIdentity.gender(config, player), holds ? held : "");
-            String taken = takenBy(state, p, player); // Сервер: житель — пара только одного игрока.
+            // Сервер: житель — пара только одного игрока. С соперниками (П3) до помолвки сердце открыто: букет и кольцо решают они.
+            boolean rivals = RivalryLedger.on(config);
+            String taken = rivals ? RivalryLedger.closedBy(state, p, player) : takenBy(state, p, player);
             if (!courtship.partners()) {
                 String refusal = taken != null ? taken : Romance.refuseDate(suit);
+                if (refusal == null && rivals) refusal = RivalryLedger.dateRefusal(state, p, player, score, config, now);
                 rolled.put(Gesture.DATE, new GestureIntent(Gesture.DATE, refusal == null ? Gesture.Outcome.ACCEPTED : Gesture.Outcome.REFUSED,
                         refusal == null ? DATE_HEARTS : 0, refusal == null ? held : "", refusal == null ? "" : refusal));
             }
             if (courtship != Courtship.MARRIED && courtship != Courtship.ENGAGED) {
                 String refusal = taken != null ? taken : Romance.refusePropose(suit);
+                int cost = 0;
+                if (refusal == null && rivals) {
+                    RivalryLedger.Verdict verdict = RivalryLedger.proposeVerdict(state, p, r, player, config, now);
+                    if (verdict != null) { refusal = verdict.refusal(); cost = verdict.hearts(); }
+                }
                 rolled.put(Gesture.PROPOSE, new GestureIntent(Gesture.PROPOSE, refusal == null ? Gesture.Outcome.ACCEPTED : Gesture.Outcome.REFUSED,
-                        refusal == null ? WEDDING_HEARTS + Romance.ringHearts(held) : 0, refusal == null ? held : "", refusal == null ? "" : refusal));
+                        refusal == null ? WEDDING_HEARTS + Romance.ringHearts(held) : cost, refusal == null ? held : "", refusal == null ? "" : refusal));
             }
             if (courtship.partners()) rolled.put(Gesture.DIVORCE, new GestureIntent(Gesture.DIVORCE, Gesture.Outcome.ACCEPTED,
                     courtship == Courtship.MARRIED ? DIVORCE_HEARTS : BREAKUP_HEARTS, "", courtship.name()));
@@ -134,6 +143,7 @@ public final class SocialLedger {
         facts.addAll(JealousyLedger.facts(p, rapport, PlayerIdentity.configOf(player, config), now)); // Трек J: ревность и ночь вместе.
         facts.addAll(WeddingLedger.facts(state, p, r, player, snapshot, config, now)); // Трек L: помолвка, свидетели, свадьба.
         facts.addAll(ChildLedger.facts(state, p, r, player, config, children)); // Трек N: особый вечер, беременность.
+        facts.addAll(RivalryLedger.facts(state, p, r, player, config, now)); // П3: соперники за это сердце.
         detached.socialTurn = new SocialTurn(rolled, closed, facts);
     }
     /** Why this villager will not court {@code player}: another player already courts, is engaged to or married it; null when free.
@@ -285,6 +295,7 @@ public final class SocialLedger {
         }
         if (felt != null) ConversationStore.feel(p, r, felt, now);
         ConversationStore.event(p, now, SocialPrompt.memoryLine(intent, playerName, r.score), SocialPrompt.importance(intent));
+        store.rivalry().after(store.state, p, r, player, playerName, intent, config, now); // П3: ухажёры, отбитая пара, выбор.
     }
     /** The player left this villager for another: the old courtship ends without a scene. */
     private void leave(UUID villager, UUID player) {
@@ -493,15 +504,21 @@ public final class SocialLedger {
     }
     static VillageStanding.View standing(ConversationStore.State state, String villageId, UUID player, long now) {
         if (villageId == null || villageId.isBlank() || player == null) return VillageStanding.View.NONE;
-        List<Integer> scores = new ArrayList<>();
+        List<Integer> scores = new ArrayList<>(), earthly = new ArrayList<>();
         int residents = 0;
         for (ConversationStore.Profile q : state.profiles.values()) {
             if (!villageId.equals(q.villageId) || !"minecraft:villager".equals(q.type) || state.family.dead(q.id)) continue;
             residents++;
             ConversationStore.Relation r = q.relations.get(player.toString());
-            if (r != null) scores.add(r.score);
+            if (r != null) { scores.add(r.score); earthly.add(r.score - r.divine); }
         }
-        return VillageStanding.of(scores, residents, state.rumors.reputation(villageId, player, now));
+        VillageStanding.View view = VillageStanding.of(scores, residents, state.rumors.reputation(villageId, player, now));
+        // Б1: the bell assembly exiles; the god's wrath alone does not (unless the setting allows it) — it leaves the player a suspect.
+        if (state.divine != null && state.divine.exiled(villageId, player)) return view.as(VillageStanding.Rank.EXILE);
+        if (view.rank() == VillageStanding.Rank.EXILE && !Tuning.get().divineMayExile
+                && VillageStanding.of(earthly, residents, state.rumors.reputation(villageId, player, now, false)).rank() != VillageStanding.Rank.EXILE)
+            return view.as(VillageStanding.Rank.SUSPECT);
+        return view;
     }
 
     /** The living spouse of a villager, for the game (village weddings, births); null for none. */

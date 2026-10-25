@@ -16,7 +16,7 @@ public final class SettingsScope {
      * {@code hud*}, {@code labels*}, {@code keys*}). */
     private static final List<String> PERSONAL_EXACT = List.of("microphoneName", "showStateHud", "showBargainHud", "showNameTags",
             "playerGender", "humanVillagers", "voiceVolume", "sttPath", "micGain", "micDevice");
-    private static final List<String> PERSONAL_PREFIXES = List.of("whisper", "mic", "hud", "playerNames", "labels", "keys");
+    private static final List<String> PERSONAL_PREFIXES = List.of("whisper", "mic", "hud", "playerNames", "labels", "keys", "overlay");
 
     /** Поле хранится у игрока, а не на сервере. */
     public static boolean personal(String field) {

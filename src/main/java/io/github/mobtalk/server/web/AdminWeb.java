@@ -34,6 +34,7 @@ public final class AdminWeb {
     private final ConfigSources sources;
     private final MapTiles map;
     private final Tracks tracks;
+    private final Moments moments;
     private final AdminApi api;
     private final AdminAuth auth;
     private final AdminHttpServer server;
@@ -65,12 +66,13 @@ public final class AdminWeb {
         sources.add("admin", AdminSettings.source(settings, settingsFile, history));
         map = new MapTiles(data.resolve("map"), log);
         tracks = new Tracks(data.resolve("admin-tracks"), System::currentTimeMillis, 7, log);
+        moments = new Moments(history, System::currentTimeMillis, () -> settings.moments, log);
         Backups backups = new Backups(hooks.world(), gameDir.resolve("backups"), hooks.saver(), System::currentTimeMillis, zone);
         api = new AdminApi(new AdminApi.Parts(history, metrics, latency, journal, errors, sources, hooks.game(), backups,
                 new Waypoints(gameDir.resolve("config").resolve("mobtalk-waypoints.json")),
                 MapSource.choose(new SquaremapTiles(SquaremapTiles.find(gameDir, settings.squaremapTiles), log), map), tracks,
                 new BlueMapControl(gameDir.resolve(settings.bluemapWebroot), gameDir.resolve("logs").resolve("latest.log"), hooks.game(), System::currentTimeMillis),
-                gameDir.resolve("logs").resolve("latest.log"), hooks.limits(),
+                gameDir.resolve("logs").resolve("latest.log"), hooks.limits(), moments,
                 () -> Json.obj("bind", settings.bind, "port", settings.port, "fingerprint", fingerprint), System::currentTimeMillis));
         auth = new AdminAuth(settings.passwordHash, System::currentTimeMillis);
         server = new AdminHttpServer(new AdminHttpServer.Options(settings.bind, settings.port, tls.context(), true), auth, api.router(),
@@ -80,6 +82,7 @@ public final class AdminWeb {
             Thread thread = new Thread(task, "mobtalk-admin-chores"); thread.setDaemon(true); return thread;
         });
         chores.execute(metrics::load);
+        chores.scheduleWithFixedDelay(() -> { try { moments.tick(); } catch (RuntimeException failure) { log.accept("моменты: " + failure); } }, 5, 5, TimeUnit.SECONDS);
         chores.scheduleAtFixedRate(() -> { history.prune(); tracks.prune(); auth.sweep(); }, 1, 360, TimeUnit.MINUTES);
     }
 
@@ -97,6 +100,7 @@ public final class AdminWeb {
     }
 
     public void stop() {
+        moments.flushAll();
         api.close();
         server.stop();
         chores.shutdownNow();
@@ -125,6 +129,8 @@ public final class AdminWeb {
     public AdminJournal journal() { return journal; }
     public ErrorLog errors() { return errors; }
     public ConfigSources sources() { return sources; }
+    /** Моменты для монтажа: {@code /clip}, OBS и живые метки (идея З4). */
+    public Moments moments() { return moments; }
     /** Where the map sampler (wave 1) hands in chunk colours. */
     public MapTiles map() { return map; }
 }

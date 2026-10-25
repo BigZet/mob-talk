@@ -130,6 +130,7 @@ public final class MobTalkMod implements ModInitializer {
             PlayerSettingsStore.flush();
         });
         registerReceivers();
+        io.github.mobtalk.server.OverlayHub.register(); // Идея З3: данные оверлея для OBS стримеру.
         io.github.mobtalk.server.PlayerServices.initialize(); // Трек C: права, фильтр команд, расходы, /mobtalk admin, имена игроков.
         if (dedicated()) ServerSelfTestPlay.register(); // Трек G: сквозной самотест с двумя клиентами (только с -Dmobtalk.selftest.play).
         LOGGER.info("Mob Talk {}: {}", version(), dedicated() ? "выделенный сервер" : "клиент с встроенным сервером");
@@ -252,6 +253,7 @@ public final class MobTalkMod implements ModInitializer {
         ServerPlayNetworking.registerGlobalReceiver(ScreenRequestC2S.ID, (payload, context) -> withDialogue(context.player(), s -> s.screen(context.player().getUuid(), payload.screen(), payload.mobId())));
         ServerPlayNetworking.registerGlobalReceiver(PlayerSettingsC2S.ID, (payload, context) -> {
             PlayerSettingsStore.put(context.player().getUuid(), PlayerSettings.fromJson(payload.json()));
+            io.github.mobtalk.server.OverlayHub.settingsChanged();
             LOGGER.info("Mob Talk: личные настройки {} приняты", context.player().getGameProfile().getName());
         });
     }

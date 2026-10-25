@@ -10,6 +10,7 @@ import io.github.mobtalk.core.FamilyTree;
 import io.github.mobtalk.core.MobCard;
 import io.github.mobtalk.core.MobState;
 import io.github.mobtalk.core.VillageRumors;
+import io.github.mobtalk.core.RivalryLedger;
 import io.github.mobtalk.game.MobGameBridge;
 import io.github.mobtalk.server.web.ApiException;
 import io.github.mobtalk.server.web.GameView;
@@ -478,12 +479,32 @@ final class LiveGameView implements GameView {
             for (UUID child : memory().childrenOf(id)) children.add(kinJson(child));
             String character = card.customPersonality() == null || card.customPersonality().isBlank() ? card.personality() : card.customPersonality();
             String backstory = memory().backstoryOf(id);
-            return Json.obj("mob", mobJson(id),
+            return Json.obj("mob", mobJson(id), "rivals", rivalsJson(id),
                     "card", Json.obj("name", card.name(), "character", (character == null ? "" : character) + (backstory.isBlank() ? "" : "\n" + backstory), "voice", card.voiceId(), "memory", card.memory()),
                     "state", Json.obj("calm", state.calm(), "trust", state.trust(), "interest", state.interest(), "mood", state.mood(), "word", state.thought()),
                     "relations", relations, "facts", facts, "events", events,
                     "family", Json.obj("spouse", spouse == null ? null : kinJson(spouse), "children", children));
         });
+    }
+    /** П3: ухажёры жителя, идущее испытание и назначенный выбор у колокола; null — соперничества нет. */
+    private JsonObject rivalsJson(UUID id) {
+        long now = System.currentTimeMillis();
+        List<JsonObject> suitors = new ArrayList<>();
+        for (RivalryLedger.Suitor s : memory().rivalry().suitors(id, now))
+            suitors.add(Json.obj("player", Json.player(s.player(), s.name()), "hearts", s.hearts(), "score", s.score(), "courtship", switch (s.courtship()) {
+                case DATING -> "встречаются"; case ENGAGED -> "помолвлены"; case MARRIED -> "в браке"; default -> "ухаживает";
+            }));
+        JsonObject trial = null;
+        for (RivalryLedger.TrialView t : memory().rivalry().trials(now)) {
+            if (!t.villager().equals(id)) continue;
+            List<JsonObject> entries = new ArrayList<>();
+            for (RivalryLedger.Entry e : t.entries()) entries.add(Json.obj("player", Json.player(e.player(), e.name()), "progress", e.progress()));
+            trial = Json.obj("kind", t.kind(), "item", t.item(), "count", t.count(), "endsAt", t.endsAt(), "entries", entries);
+        }
+        Long scene = null;
+        for (RivalryLedger.Scene s : memory().rivalry().scenes(now)) if (s.villager().equals(id)) scene = s.at();
+        if (suitors.isEmpty() && trial == null && scene == null) return null;
+        return Json.obj("suitors", suitors, "trial", trial, "sceneAt", scene);
     }
     private JsonObject kinJson(UUID id) {
         if (memory().known(id)) return mobJson(id);
@@ -503,6 +524,12 @@ final class LiveGameView implements GameView {
                 }
                 case "reset" -> { memory().resetMob(id); return Json.ok("Состояние и память сброшены"); }
                 case "clear-history" -> { memory().clearHistory(id); return Json.ok("История реплик очищена"); }
+                case "rivals-reset" -> { return Json.ok(memory().rivalry().reset(id) ? "Соперничество сброшено" : "Соперничества не было"); }
+                case "rivals-end-trial" -> { return Json.ok(memory().rivalry().endTrial(id, System.currentTimeMillis()) ? "Испытание закончено" : "Испытания нет"); }
+                case "rivals-call" -> {
+                    if (!memory().rivalry().callScene(id, System.currentTimeMillis())) throw ApiException.badRequest("Нужны двое ухажёров, и выбор не должен быть уже назначен.");
+                    return Json.ok("Ухажёры позваны к колоколу");
+                }
                 default -> throw ApiException.badRequest("Неизвестное действие: " + action);
             }
         });

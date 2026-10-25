@@ -9,6 +9,7 @@ export const SECTIONS = [
   { id: 'live', title: 'Сейчас', icon: 'live' },
   { id: 'history', title: 'История', icon: 'history' },
   { id: 'players', title: 'Игроки', icon: 'players' },
+  { id: 'moments', title: 'Моменты', icon: 'moments' },
   { id: 'mobs', title: 'Мобы и деревни', short: 'Мобы', icon: 'mobs' },
   { id: 'settings', title: 'Настройки', icon: 'settings' },
   { id: 'divine', title: 'Бог', icon: 'divine' },
