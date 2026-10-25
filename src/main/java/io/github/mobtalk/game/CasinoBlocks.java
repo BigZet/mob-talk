@@ -222,6 +222,18 @@ public final class CasinoBlocks {
         }
     }
 
+    /** A palm's crown: the knob and coconuts are its block model; the fronds, long curved leaves that reach three blocks out,
+     * are drawn round it by the client (PalmCrownRenderer) from its block entity. */
+    public static class PalmCrown extends Decor implements net.minecraft.block.BlockEntityProvider {
+        public PalmCrown(Settings settings, Map<Direction, VoxelShape> shape) { super(settings, shape, shapes(), new int[0][], Use.NONE, false); }
+        @Override public net.minecraft.block.entity.BlockEntity createBlockEntity(BlockPos pos, BlockState state) { return new PalmCrownEntity(pos, state); }
+    }
+
+    /** The crown's block entity: no data, it only lets the renderer draw the fronds. */
+    public static class PalmCrownEntity extends net.minecraft.block.entity.BlockEntity {
+        public PalmCrownEntity(BlockPos pos, BlockState state) { super(CasinoContent.PALM_ENTITY, pos, state); }
+    }
+
     /** A piece of a palm's trunk. {@code bend} sets it over towards its facing's right in steps of 1.5 pixels, so a trunk whose
      * pieces lean more and then less as it rises curves. A piece placed on a trunk takes its facing and bend; a right click bends
      * it one step further (round to straight again). */
