@@ -1,4 +1,4 @@
-"""Draws the mood faces over villagers' heads: 16 glyphs 9x9 of the font mobtalk:mood (glyphs U+E000..U+E00F).
+"""Draws the mood faces over villagers' heads: 17 glyphs 9x9 of the font mobtalk:mood (glyphs U+E000..U+E010, 8 a row).
 Usage: python3 tools/mood_faces.py src/main/resources/assets/mobtalk/textures/font/mood_faces.png preview.png"""
 from PIL import Image
 import sys
@@ -169,9 +169,20 @@ FACES = [
   "offmmmffo",
   "osssssss" + "o",
   ".ooooooo."]),
+ ('apathetic', '#c2beb2', [
+  ".ooooooo.",
+  "ohhfffffo",
+  "offfffffo",
+  "osssfssso",
+  "oeefffeeo",
+  "offfffffo",
+  "offmmmffo",
+  "osssssss" + "o",
+  ".ooooooo."]),
 ]
 def main(out, preview):
-    img = Image.new('RGBA', (9*8, 9*2), (0,0,0,0))
+    nrows = (len(FACES) + 7) // 8
+    img = Image.new('RGBA', (9*8, 9*nrows), (0,0,0,0))
     for i,(name, fill, rows) in enumerate(FACES):
         assert len(rows)==9 and all(len(r)==9 for r in rows), (name, [len(r) for r in rows])
         ox, oy = (i%8)*9, (i//8)*9
@@ -181,6 +192,6 @@ def main(out, preview):
                 col = fill if c=='f' else shade(fill,1.25) if c=='h' else shade(fill,0.78) if c=='s' else P[c]
                 img.putpixel((ox+x, oy+y), Image.new('RGBA',(1,1),col).getpixel((0,0)))
     img.save(out)
-    img.resize((72*10, 18*10), Image.NEAREST).save(preview)
+    img.resize((72*10, 9*nrows*10), Image.NEAREST).save(preview)
     print([n for n,_,_ in FACES])
 main(sys.argv[1], sys.argv[2])

@@ -49,7 +49,7 @@ final class MobLabels {
             if (label == null || label.name().isBlank()) continue;
             known++;
             MobStateS2C state = owner.views.state(mob.getUuid());
-            String word = state == null || state.word().isEmpty() ? "ровно" : Text.translatable("mobtalk.state." + state.word()).getString();
+            String word = state == null ? "ровно" : MoodCard.word(state.word(), state.female());
             int sign = state == null ? 0 : state.wordSign();
             int relation = state == null ? 0 : state.relationship();
             Text line = Text.literal(label.name()).formatted(Formatting.WHITE)

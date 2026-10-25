@@ -145,7 +145,8 @@ class MoodTest {
             MobSnapshot snapshot = new MobSnapshot(UUID.randomUUID(), "minecraft:villager", "Житель", 20, 20, "minecraft:overworld", "minecraft:plains", "day", "clear", 2,
                     "minecraft:stick", List.of(), List.of(), UUID.randomUUID(), Map.of("name", "Игрок"), Map.of("lastAttacker", "none"), Map.of(), List.of(), List.of(ActionType.NONE), 0);
             String system = client.systemPrompt(SpeciesCatalog.get("minecraft:villager"), profile, snapshot);
-            assertTrue(system.contains(MoodSpell.DEPRESSION.prompt), system);
+            assertTrue(system.contains(MoodSpell.DEPRESSION.prompt(false)), system);
+            assertTrue(system.contains("Ты голоден"), system);
             assertTrue(system.contains("смерть соседа (Пётр); голод"), system);
             int limit = Math.round(config.maxReplyWords * 0.4f);
             assertTrue(system.contains("Длина: не больше " + limit + " слов"), system);
@@ -153,27 +154,87 @@ class MoodTest {
         }
     }
 
-    // The world watch in the store: hunger after an empty larder, a meal when food shows up, a sleepless night until it sleeps.
+    // The world watch in the store: hunger grows from the last meal, a meal ends it at once, a sleepless night until it sleeps.
     @TempDir Path directory;
     @Test void theStoreTracksHungerAndSleep() throws Exception {
         UUID mob = UUID.randomUUID();
-        ConversationStore store = ConversationStore.open(directory, new MobTalkConfig());
+        MobTalkConfig config = new MobTalkConfig();
+        int span = config.moodHungerMinutes;
+        ConversationStore store = ConversationStore.open(directory, config);
         store.recordEvent(mob, "minecraft:villager", "Житель", "Знакомство", 0);
         long now = System.currentTimeMillis();
-        store.surroundings(mob, null, new MoodSample(Set.of(), Set.of(), true, false, false, 5, false), now);
-        store.surroundings(mob, null, new MoodSample(Set.of(), Set.of(), true, false, false, 5, false), now + 61 * MINUTE);
-        assertTrue(store.stateView(mob, null).reasons().stream().anyMatch(r -> r.text().equals("голод")), store.stateView(mob, null).toString());
-        store.surroundings(mob, null, new MoodSample(Set.of(), Set.of(), true, false, true, 5, false), now + 62 * MINUTE);
-        assertTrue(store.stateView(mob, null).reasons().stream().anyMatch(r -> r.text().equals("сытная еда")));
+        store.surroundings(mob, null, new MoodSample(Set.of(), Set.of(), true, false, true, 5, false), now);
+        assertEquals(Hunger.Level.FED, store.hunger(mob, now + (span - 1) * MINUTE));
+        assertEquals(Hunger.Level.PECKISH, store.hunger(mob, now + (span + 1) * MINUTE));
+        assertEquals(Hunger.Level.HUNGRY, store.hunger(mob, now + (2 * span + 1) * MINUTE));
+        assertEquals(Hunger.Level.STARVING, store.hunger(mob, now + (4 * span + 1) * MINUTE));
+        long late = now + (4 * span + 1) * MINUTE;
+        store.surroundings(mob, null, new MoodSample(Set.of(), Set.of(), true, false, false, 5, false), late);
+        MobState.View starving = store.stateView(mob, null);
+        assertTrue(starving.hungry(MoodFactor.STARVING), starving.toString());
+        assertTrue(starving.reasons().stream().anyMatch(r -> r.text().equals("пустые закрома в деревне")), starving.toString());
+        assertTrue(starving.describe().contains("давно ничего не ел"), starving.describe());
+        // A player feeds it bread: full again, the hunger is gone at once, and that player is trusted more.
+        UUID player = UUID.randomUUID();
+        int trust = store.stateView(mob, player).trust();
+        store.meal(mob, Hunger.meal("minecraft:bread"), "Дима", player, "Дима", late + 1000);
+        assertEquals(Hunger.Level.FED, store.hunger(mob, late + 2000));
+        MobState.View fed = store.stateView(mob, player);
+        assertFalse(fed.hungry(MoodFactor.STARVING) || fed.hungry(MoodFactor.HUNGRY), fed.toString());
+        assertTrue(fed.trust() > trust, trust + " → " + fed.trust());
+        assertTrue(fed.reasons().stream().anyMatch(r -> r.text().startsWith("накормили в голод")), fed.toString());
+        // A raw carrot fills half as long, a pie half as long again; wheat is not a meal.
+        assertEquals(Hunger.Meal.MEAGER, Hunger.meal("carrot"));
+        assertEquals(Hunger.Meal.TREAT, Hunger.meal("minecraft:pumpkin_pie"));
+        assertNull(Hunger.meal("minecraft:wheat"));
+        assertEquals(Hunger.Level.PECKISH, Hunger.level(1, Hunger.fullFor(Hunger.Meal.MEAGER, span), 1 + span * MINUTE, span));
         // Night 6: seen awake again and again, never asleep — the next day it is sleepless; a sleep ends that.
-        for (int i = 0; i < 7; i++) store.surroundings(mob, null, new MoodSample(Set.of(), Set.of(), true, false, true, 6, true), now + 63 * MINUTE + i * 10_000L);
-        store.surroundings(mob, null, new MoodSample(Set.of(), Set.of(), true, false, true, 6, false), now + 70 * MINUTE);
+        long t = late + 3000;
+        for (int i = 0; i < 7; i++) store.surroundings(mob, null, new MoodSample(Set.of(), Set.of(), true, false, true, 6, true), t + i * 10_000L);
+        store.surroundings(mob, null, new MoodSample(Set.of(), Set.of(), true, false, true, 6, false), t + 7 * MINUTE);
         assertTrue(store.stateView(mob, null).reasons().stream().anyMatch(r -> r.text().equals("бессонная ночь") && r.lasting()));
-        store.surroundings(mob, null, new MoodSample(Set.of(), Set.of(), true, true, true, 7, true), now + 75 * MINUTE);
-        store.surroundings(mob, null, new MoodSample(Set.of(), Set.of(), true, false, true, 7, false), now + 80 * MINUTE);
+        store.surroundings(mob, null, new MoodSample(Set.of(), Set.of(), true, true, true, 7, true), t + 12 * MINUTE);
+        store.surroundings(mob, null, new MoodSample(Set.of(), Set.of(), true, false, true, 7, false), t + 17 * MINUTE);
         MobState.View morning = store.stateView(mob, null);
         assertTrue(morning.reasons().stream().anyMatch(r -> r.text().equals("хороший сон")), morning.toString());
         assertTrue(morning.reasons().stream().noneMatch(r -> r.text().equals("бессонная ночь") && r.lasting()));
+        store.flush();
+    }
+
+    // Apathy is its own long mood: a depression that ran its course unhelped burns out into it, and so does long starving;
+    // it is not a depression on top of a depression.
+    @Test void apathyFollowsAnUnhelpedDepressionOrStarving() {
+        MobState state = new MobState();
+        long now = 1_000_000L;
+        state.view(REST, now);
+        assertTrue(state.begin(MoodSpell.DEPRESSION, REST, now));
+        state.evolve(REST, now + 400 * MINUTE);
+        assertEquals(MoodSpell.APATHY, state.view(REST, now + 400 * MINUTE).spell());
+        assertTrue(MoodSpell.APATHY.bedridden() && !MoodSpell.DEPRESSION.bedridden() && !MoodSpell.GRIEF.bedridden());
+        assertEquals(16, state.view(REST, now + 400 * MINUTE).face());
+
+        MobState hungry = new MobState();
+        hungry.view(REST, now);
+        hungry.surroundings(EnumSet.of(MoodFactor.STARVING), REST, now);
+        for (int m = 1; m <= 40; m++) hungry.evolve(REST, now + m * MINUTE);
+        assertTrue(Set.of(MoodSpell.APATHY, MoodSpell.EXHAUSTION).contains(hungry.view(REST, now + 40 * MINUTE).spell()), hungry.view(REST, now + 40 * MINUTE).toString());
+    }
+
+    // A woman's state speaks in the feminine, on the nameplate and in the prompt.
+    @Test void womenGetFeminineWords() {
+        MobState.Baseline her = REST.asFemale(true);
+        MobState state = new MobState();
+        long now = 1_000_000L;
+        state.view(her, now);
+        state.begin(MoodSpell.DREAD, her, now);
+        MobState.View view = state.view(her, now + MINUTE);
+        assertTrue(view.female());
+        assertEquals("запугана", view.marker().word());
+        assertTrue(view.describe().contains("Ты запугана"), view.describe());
+        assertEquals("запуган", MoodSpell.DREAD.word(false));
+        assertEquals("влюблена", MoodSpell.LOVE.word(true));
+        assertEquals("спокойна", new MobState.View(50, 50, 50, 50, 60, null, 0, List.of(), "", true).descriptor(MobState.Axis.CALM).word());
+        assertFalse(MoodSpell.APATHY.prompt(true).contains("{"));
     }
 
     // The face over the head follows the long mood first, then panic and tiredness, then the mood itself.
@@ -206,5 +267,6 @@ class MoodTest {
         assertEquals(2, mood.reasons().getFirst().count());
         assertTrue(mood.reasons().getFirst().sign() < 0);
         assertEquals(0, store.villageMood("nowhere", now).counted());
+        store.flush(); // The save runs behind; finish it before the temporary folder is removed.
     }
 }

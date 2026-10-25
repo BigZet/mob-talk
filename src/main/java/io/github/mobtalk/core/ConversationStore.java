@@ -180,12 +180,11 @@ public final class ConversationStore {
         java.util.EnumSet<MoodFactor> factors = sample.factors().isEmpty() ? java.util.EnumSet.noneOf(MoodFactor.class) : java.util.EnumSet.copyOf(sample.factors());
         boolean changed = false;
         if (sample.villager()) {
-            // A larder seen empty for long is hunger; food seen again after it is a meal.
-            if (s.fedAt <= 0 || sample.hasFood()) {
-                if (sample.hasFood() && s.has(MoodFactor.HUNGRY)) { s.shift(MobState.Event.FED, rest, now); changed = true; }
-                s.fedAt = now;
-            }
-            if (now - s.fedAt > Tuning.get().moodHungerMinutes * 60_000L) factors.add(MoodFactor.HUNGRY);
+            // Hunger grows from the last meal (first seen: just fed); the world watch feeds it, see meal().
+            if (s.fedAt <= 0) { s.fedAt = now; s.fullFor = Hunger.fullFor(Hunger.Meal.HEARTY, Tuning.get().moodHungerMinutes); changed = true; }
+            Hunger.Level hunger = Hunger.level(s.fedAt, s.fullFor, now, Tuning.get().moodHungerMinutes);
+            if (hunger.factor != null) factors.add(hunger.factor);
+            if (!sample.larder() && Tuning.get().moodHungerMinutes > 0) factors.add(MoodFactor.EMPTY_LARDER);
             // Sleep: a night seen awake and never asleep leaves it sleepless until it sleeps; a long sleep is a good morning.
             if (sample.sleeping()) {
                 if (!s.asleep) { s.asleep = true; s.asleepSince = now; }
@@ -209,10 +208,53 @@ public final class ConversationStore {
         changed |= s.surroundings(factors, rest, now);
         changed |= s.evolve(rest, now);
         MoodSpell after = s.spell();
-        if (after != before && after != null) event(p, now, "Тебя накрыло долгое состояние: " + after.word + " (" + after.voice + ")", MemoryRanking.HELP);
+        if (after != before && after != null) event(p, now, "Тебя накрыло долгое состояние: " + after.word(female(p)) + " (" + after.voice(female(p)) + ")", MemoryRanking.HELP);
         if (changed) scheduleSave();
         return after != before;
     }
+
+    /** Puts a creature straight into a long mood (live probes and self-tests). */
+    public synchronized boolean beginSpell(UUID mob, MoodSpell spell, long now) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        if (p == null || !p.state.begin(spell, baseline(p), now)) return false;
+        scheduleSave();
+        return true;
+    }
+
+    /** How hungry the creature is now ({@link Hunger}); a stranger and a creature never watched are full. */
+    public synchronized Hunger.Level hunger(UUID mob, long now) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        return p == null ? Hunger.Level.FED : Hunger.level(p.state.fedAt, p.state.fullFor, now, Tuning.get().moodHungerMinutes);
+    }
+
+    /** It ate: full again for as long as the meal holds. Eaten while hungry it is a reason (who shared it in {@code from});
+     * fed by a player when hungry or starving ({@code player} not null) it is a kindness that player is remembered for. */
+    public synchronized void meal(UUID mob, Hunger.Meal meal, String from, UUID player, String playerName, long now) {
+        Profile p = mob == null || meal == null ? null : state.profiles.get(mob.toString());
+        if (p == null) return;
+        MobState s = p.state;
+        Hunger.Level before = Hunger.level(s.fedAt, s.fullFor, now, Tuning.get().moodHungerMinutes);
+        s.fedAt = now; s.fullFor = Hunger.fullFor(meal, Tuning.get().moodHungerMinutes);
+        MobState.Baseline rest = player == null ? baseline(p) : baseline(p, relationship(mob, player), player);
+        if (before.atLeast(Hunger.Level.HUNGRY) && player != null) {
+            Relation r = relation(p, player);
+            feel(p, r, MobState.Event.FED_IN_NEED, now, playerName);
+            event(p, now, "Игрок " + named(player, playerName) + " накормил тебя, когда ты голодал" + (female(p) ? "а" : ""), MemoryRanking.HELP);
+        } else if (before != Hunger.Level.FED) s.shift(meal.event, rest, now, from == null || from.isBlank() ? null : from);
+        // A full stomach ends the hunger at once rather than after its linger.
+        s.drop(java.util.EnumSet.of(MoodFactor.PECKISH, MoodFactor.HUNGRY, MoodFactor.STARVING), rest, now);
+        scheduleSave();
+    }
+
+    /** The village larder as the world watch counted it: food (meals) in the pockets of the residents it saw, for the admin. */
+    public record Larder(int meals, int residents, int hungry, long at) { }
+    private final Map<String, Larder> larders = new HashMap<>();
+    public synchronized void larder(String villageId, int meals, int residents, int hungry, long now) {
+        if (villageId != null && !villageId.isBlank()) larders.put(villageId, new Larder(meals, residents, hungry, now));
+    }
+    public synchronized Larder larder(String villageId) { return villageId == null ? null : larders.get(villageId); }
+
+    static boolean female(Profile p) { return p != null && p.social != null && p.social.gender() == Gender.FEMALE; }
 
     /** Create/view a profile from immutable context without waiting for any disk operation. */
     public synchronized MobCard observe(MobSnapshot snapshot) { profile(snapshot); return card(snapshot.id(), snapshot.playerId()); }

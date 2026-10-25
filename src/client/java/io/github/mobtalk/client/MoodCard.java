@@ -34,8 +34,15 @@ final class MoodCard {
 
     /** The face glyph {@code face} (0–15) of the font {@code mobtalk:mood}; empty for none. */
     static Text face(int face) {
-        if (face < 0 || face > 15) return Text.empty();
+        if (face < 0 || face > 16) return Text.empty();
         return Text.literal(String.valueOf((char) (0xE000 + face))).setStyle(Style.EMPTY.withFont(FONT).withColor(Formatting.WHITE));
+    }
+
+    /** The word of a state ({@code mobtalk.state.<key>}), in the feminine for a woman when the language has one. */
+    static String word(String key, boolean female) {
+        if (key == null || key.isEmpty()) return "ровно";
+        String base = Text.translatable("mobtalk.state." + key).getString();
+        return female ? Text.translatableWithFallback("mobtalk.state." + key + ".f", base).getString() : base;
     }
 
     private UUID subject() {
@@ -57,7 +64,7 @@ final class MoodCard {
         MoodSpell spell = MoodSpell.byKey(state.spell());
         String wordKey = spell != null ? spell.key : state.word();
         int sign = spell != null ? spell.sign : state.wordSign();
-        Text word = Text.literal(wordKey.isEmpty() ? "ровно" : Text.translatable("mobtalk.state." + wordKey).getString()
+        Text word = Text.literal(word(wordKey, state.female())
                 + (spell != null && state.spellMinutes() > 0 ? " · " + state.spellMinutes() + " мин" : ""))
                 .formatted(sign > 0 ? Formatting.GREEN : sign < 0 ? Formatting.RED : Formatting.GRAY);
         String[] names = { "Настроение", "Спокойствие", "Бодрость", "Доверие к вам", "Интерес к вам" };

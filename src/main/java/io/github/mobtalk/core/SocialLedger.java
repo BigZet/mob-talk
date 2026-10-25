@@ -67,9 +67,9 @@ public final class SocialLedger {
     }
     private static int shifted(int value, int shift) { return value < 0 ? value : Math.max(0, Math.min(100, value + shift)); }
 
-    /** The rest point of the mood axis moved by the character (gloomy lower, cheerful higher). */
+    /** The rest point of the mood axis moved by the character (gloomy lower, cheerful higher); a woman's state speaks in the feminine. */
     static MobState.Baseline baseline(ConversationStore.Profile p, MobState.Baseline base) {
-        return p == null || p.social == null ? base : base.moodShifted(p.social.persona().moodRest);
+        return p == null || p.social == null ? base : base.moodShifted(p.social.persona().moodRest).asFemale(p.social.gender() == Gender.FEMALE);
     }
 
     /** Whether the villager counts as grown up: not a vanilla baby, and past the teen stage when the family tree tracks its growth. */
@@ -235,7 +235,7 @@ public final class SocialLedger {
             if (intent.takesItem()) r.rapport.gave(item, now);
             ConversationStore.feel(p, r, intent.takesItem() ? MobState.Event.GIFT_LIKED : MobState.Event.GIFT_SPURNED, now, playerName);
             // Food for a hungry villager is a meal, not just a present.
-            if (intent.takesItem() && p.state.has(MoodFactor.HUNGRY) && MoodSample.food(item)) { ConversationStore.feel(p, r, MobState.Event.FED, now, playerName); p.state.fedAt = now; }
+            if (intent.takesItem() && Hunger.meal(item) != null && store.hunger(mob, now) != Hunger.Level.FED) store.meal(mob, Hunger.meal(item), playerName, player, playerName, now);
             ConversationStore.event(p, now, "Игрок " + TextBounds.characters(playerName, 60) + (intent.takesItem() ? " подарил тебе " : " предлагал тебе ") + item
                     + (intent.note().isBlank() ? "" : " (" + intent.note() + ")") + (intent.takesItem() ? "; отношение " + r.score : ", ты не взял"), 4);
             p.revision++; store.scheduleSave();

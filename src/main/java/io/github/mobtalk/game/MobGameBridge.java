@@ -605,6 +605,15 @@ public final class MobGameBridge implements GameBridge {
         MobGameBridge bridge = active(world.getServer());
         if (bridge != null && entity instanceof MobEntity mob) bridge.actions.afterBrain(mob);
     }
+    /** The mob whose brain is ticking now (server thread), so a wake-up from its daily routine can be told from a blow or an alarm. */
+    private static MobEntity thinking;
+    public static void thinking(MobEntity mob) { thinking = mob; }
+    /** A villager in apathy is not woken by its routine: it lies in bed day and night. A blow, an alarm or a raid still wake it. */
+    public static boolean keepsInBed(net.minecraft.entity.passive.VillagerEntity villager) {
+        if (thinking != villager) return false;
+        MobGameBridge bridge = forEntity(villager);
+        return bridge != null && bridge.config.enabled && bridge.moods.keepsInBed(villager);
+    }
     public static boolean suppressesAttack(MobEntity mob) {
         MobGameBridge bridge = forEntity(mob);
         return bridge != null && bridge.actions.suppressesNativeAttack(mob);

@@ -753,7 +753,7 @@ public final class MobTalkClient implements ClientModInitializer {
                 : far != null && far != mob ? "в прицеле: " + far.getName().getString() + " (далеко, подойдите) · " : "";
         net.minecraft.text.MutableText line = Text.literal("Mob Talk · " + aimLabel + targetLabel);
         if (mob != null && state != null && config.showStateHud && !labelled && !state.word().isEmpty())
-            line.append(Text.translatable("mobtalk.state." + state.word()).formatted(state.wordSign() < 0 ? net.minecraft.util.Formatting.RED
+            line.append(Text.literal(MoodCard.word(state.word(), state.female())).formatted(state.wordSign() < 0 ? net.minecraft.util.Formatting.RED
                     : state.wordSign() > 0 ? net.minecraft.util.Formatting.GREEN : net.minecraft.util.Formatting.GRAY)).append(Text.literal(" · "));
         if (mob != null && state != null && config.showBargainHud && !state.bargain().isEmpty())
             line.append(Text.literal("торг: ")).append(Text.translatable("mobtalk.bargain." + state.bargain()).formatted(state.bargainSign() < 0 ? net.minecraft.util.Formatting.RED

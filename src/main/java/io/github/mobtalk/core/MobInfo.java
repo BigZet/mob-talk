@@ -103,7 +103,7 @@ public final class MobInfo {
         out.add("Настроение " + view.mood() + word(view, MobState.Axis.MOOD) + " · спокойствие " + view.calm() + word(view, MobState.Axis.CALM)
                 + " · интерес " + view.interest() + word(view, MobState.Axis.INTEREST) + " · доверие " + view.trust() + word(view, MobState.Axis.TRUST)
                 + " · бодрость " + view.energy() + word(view, MobState.Axis.ENERGY));
-        if (view.spell() != null) out.add("Долгое состояние: " + view.spell().word + " (уже " + Math.max(1, view.spellMillis() / 60_000) + " мин)"
+        if (view.spell() != null) out.add("Долгое состояние: " + view.spell().word(view.female()) + " (уже " + Math.max(1, view.spellMillis() / 60_000) + " мин)"
                 + (view.spell().help.isBlank() ? "" : " · поможет: " + view.spell().help));
         if (!view.reasons().isEmpty()) out.add("Отчего так: " + String.join(", ", view.reasons().stream()
                 .map(reason -> (reason.sign() > 0 ? "+ " : reason.sign() < 0 ? "− " : "") + reason.text() + (reason.lasting() ? " (сейчас)" : "")).toList()));

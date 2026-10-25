@@ -132,9 +132,47 @@ final class SelfTestMood {
         test.owner.openInfo(null);
         test.await("pause: the info loads", 4, () -> false, () -> shot("mobtalk-mood-3-info.png", () -> {
             test.owner.client.setScreen(null);
-            finish();
+            apathy();
         }));
     }
+
+    // Apathy at noon: a villager with its own bed falls into it, walks to the bed and lies there in broad daylight.
+    private UUID idle;
+    private void apathy() {
+        test.command("fill " + at(4, 0, 3) + " " + at(4, 0, 3) + " minecraft:air");
+        test.command("setblock " + at(4, 0, 4) + " minecraft:red_bed[facing=south,part=head]");
+        test.command("setblock " + at(4, 0, 3) + " minecraft:red_bed[facing=south,part=foot]");
+        test.command("summon minecraft:villager " + at(-4, 0, 3) + " {PersistenceRequired:1b,Tags:[\"" + TAG + "\"],VillagerData:{profession:\"minecraft:farmer\",type:\"minecraft:plains\",level:2},Xp:20}");
+        test.await("the idle villager is there", 20, () -> {
+            VillagerEntity found = onServer(() -> world().getEntitiesByClass(VillagerEntity.class, new Box(new BlockPos(fx - 4, fy, fz + 3)).expand(2),
+                    e -> e.getCommandTags().contains(TAG) && !villagers.contains(e.getUuid())).stream().findFirst().orElse(null));
+            if (found == null) return false;
+            idle = found.getUuid();
+            return true;
+        }, () -> {
+            long now = System.currentTimeMillis();
+            test.bridge().memory.recordEvent(idle, "minecraft:villager", "Житель", "Самотест: знакомство (апатия)", now);
+            test.bridge().memory.setBackstory(idle, "", "Ты живёшь в маленькой деревне в небе (самотест).", "", "", "");
+            onServer(() -> {
+                VillagerEntity v = (VillagerEntity) world().getEntity(idle);
+                v.getBrain().remember(net.minecraft.entity.ai.brain.MemoryModuleType.HOME,
+                        net.minecraft.util.math.GlobalPos.create(world().getRegistryKey(), new BlockPos(fx + 4, fy, fz + 4)));
+                return null;
+            });
+            test.check(test.bridge().memory.beginSpell(idle, MoodSpell.APATHY, now), "apathy begins");
+            test.await("the apathetic villager lies in its bed at noon", 60, this::idleAsleep, () -> {
+                test.check(idleAsleep(), "in apathy it lies in bed by day");
+                test.await("pause: still in bed after the routine had its say", 15, () -> false, () -> {
+                    test.check(idleAsleep(), "the morning routine does not get it up");
+                    test.check("apathetic".equals(state(idle) == null ? "" : state(idle).marker().key()), "nameplate word: apathy");
+                    test.command("tp " + name() + " " + at(4, 1, 8) + " 180 35");
+                    shot("mobtalk-mood-6-apathy-bed.png", this::finish);
+                });
+            });
+        });
+    }
+    private boolean idleAsleep() { return onServer(() -> world().getEntity(idle) instanceof VillagerEntity v && v.isSleeping()); }
+    private MobState.View state(UUID id) { return test.bridge().memory.stateView(id, test.owner.client.player.getUuid()); }
 
     private void shot(String file, Runnable then) {
         test.await("pause: the camera settles", 2, () -> false, () -> {

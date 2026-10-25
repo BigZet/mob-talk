@@ -90,6 +90,9 @@ public final class MobState {
         VILLAGE_BIRTH(6, 2, 0, 0, 0, false, "прибавление в деревне"),
         /** A night in its own bed, and a meal when it was hungry. */
         GOOD_SLEEP(5, 5, 0, 0, 30, false, "хороший сон"), FED(8, 0, 0, 0, 15, false, "сытная еда"),
+        /** Hunger ({@link Hunger}): a raw carrot is a poor meal, a pie a feast, and food from a player when starving is not forgotten. */
+        MEAGER_MEAL(2, 0, 0, 0, 6, false, "скудная еда"), TREAT(14, 3, 0, 0, 15, false, "вкусная еда"),
+        FED_IN_NEED(12, 5, 5, 15, 15, false, "накормили в голод"),
         /** The divine block: a punishment over the village, a miracle seen. */
         DIVINE_WRATH(-12, -25, 0, 0, -5, true, "Божья кара"), DIVINE_MIRACLE(15, 15, 0, 0, 10, true, "Божье чудо");
 
@@ -159,19 +162,22 @@ public final class MobState {
     Map<String, Background> backgrounds = new LinkedHashMap<>();
     Spell spell;
     /** When a feeling began to hold (0: it does not), and the last spell that ended by itself. */
-    long lowMoodSince, lowCalmSince, sourSince, lowEnergySince, highMoodSince, socialAt, lastSpellAt;
+    long lowMoodSince, lowCalmSince, sourSince, lowEnergySince, tiredSince, highMoodSince, socialAt, lastSpellAt;
     String lastSpell = "";
     List<Long> scares = new ArrayList<>(), irritations = new ArrayList<>();
     /** The body, as the world watch saw it: when food was last in the larder, the sleep (the night index it slept, the one it
      * was seen awake and how often), and whether it is short of a night's sleep. */
-    long fedAt, asleepSince, sleptNight = Long.MIN_VALUE, awakeNight = Long.MIN_VALUE; int awakeCount; boolean asleep, sleepless;
+    long fedAt, fullFor, starvingSince, asleepSince, sleptNight = Long.MIN_VALUE, awakeNight = Long.MIN_VALUE; int awakeCount; boolean asleep, sleepless;
 
     /** Where each axis rests: the temperament compressed so that no creature is born in panic, trust following the relationship;
      * {@code resilience} (from calm and confidence) and {@code sociability} decide how easily it falls into a long mood. */
-    public record Baseline(int mood, int calm, int interest, int trust, int energy, int resilience, int sociability, String player) {
-        public Baseline(int mood, int calm, int interest, int trust, int energy, int resilience, int sociability) { this(mood, calm, interest, trust, energy, resilience, sociability, null); }
+    public record Baseline(int mood, int calm, int interest, int trust, int energy, int resilience, int sociability, String player, boolean female) {
+        public Baseline(int mood, int calm, int interest, int trust, int energy, int resilience, int sociability) { this(mood, calm, interest, trust, energy, resilience, sociability, null, false); }
+        public Baseline(int mood, int calm, int interest, int trust, int energy, int resilience, int sociability, String player) { this(mood, calm, interest, trust, energy, resilience, sociability, player, false); }
         /** The same rest as seen by one player: trust and interest are read and moved in that player's own regard. */
-        public Baseline toward(String player) { return new Baseline(mood, calm, interest, trust, energy, resilience, sociability, player); }
+        public Baseline toward(String player) { return new Baseline(mood, calm, interest, trust, energy, resilience, sociability, player, female); }
+        /** The same rest of a woman: the words of her state take the feminine form ({@link MoodWords}). */
+        public Baseline asFemale(boolean female) { return female == this.female ? this : new Baseline(mood, calm, interest, trust, energy, resilience, sociability, player, female); }
         public static Baseline of(int calm, int confidence, int curiosity, int sociability, int relationship) {
             int c = axis(calm), conf = axis(confidence), cur = axis(curiosity), soc = axis(sociability);
             int rel = Math.max(-100, Math.min(100, relationship));
@@ -180,7 +186,7 @@ public final class MobState {
         }
         private static int axis(int value) { return value < 0 || value > 100 ? 50 : value; }
         /** The same rest with the mood point moved by a character ({@link Persona#moodRest}). */
-        public Baseline moodShifted(int shift) { return shift == 0 ? this : new Baseline(Math.max(0, Math.min(100, mood + shift)), calm, interest, trust, energy, resilience, sociability, player); }
+        public Baseline moodShifted(int shift) { return shift == 0 ? this : new Baseline(Math.max(0, Math.min(100, mood + shift)), calm, interest, trust, energy, resilience, sociability, player, female); }
         int of(Axis axis) { return switch (axis) { case MOOD -> mood; case CALM -> calm; case INTEREST -> interest; case TRUST -> trust; case ENERGY -> energy; }; }
     }
 
@@ -357,6 +363,15 @@ public final class MobState {
         return true;
     }
 
+    /** These factors are gone at once, without lingering (a meal ends hunger); the axes drift back from where they are. */
+    public boolean drop(Set<MoodFactor> gone, Baseline baseline, long now) {
+        if (gone.stream().noneMatch(f -> backgrounds.containsKey(f.key()))) return false;
+        settle(baseline, now);
+        anchor(baseline, now);
+        for (MoodFactor f : gone) backgrounds.remove(f.key());
+        return true;
+    }
+
     /** Whether a lasting factor holds now. */
     public boolean has(MoodFactor factor) { Background b = backgrounds.get(factor.key()); return b != null && b.ended < 0; }
 
@@ -371,24 +386,31 @@ public final class MobState {
         MoodSpell kind = spell();
         if (spell != null && kind == null) { spell = null; changed = true; }
         if (kind != null && (now >= spell.max || now >= spell.until && spell.cure >= kind.cure)) {
-            boolean grieving = kind == MoodSpell.GRIEF;
+            boolean uncured = spell.cure < kind.cure;
             end(baseline, now, true);
             changed = true;
-            // A grief that never healed turns into a depression.
-            if (grieving && view(baseline, now).mood() < 30) begin(MoodSpell.DEPRESSION, baseline, now);
+            // A grief that never healed turns into a depression; a depression or an exhaustion that ran its course unhelped burns
+            // out into apathy.
+            if (kind == MoodSpell.GRIEF && view(baseline, now).mood() < 30) begin(MoodSpell.DEPRESSION, baseline, now);
+            else if (uncured && (kind == MoodSpell.DEPRESSION || kind == MoodSpell.EXHAUSTION)) begin(MoodSpell.APATHY, baseline, now);
         }
         View v = view(baseline, now);
         lowMoodSince = held(lowMoodSince, v.mood() < 25, now);
         lowCalmSince = held(lowCalmSince, v.calm() < 20, now);
         sourSince = held(sourSince, v.mood() < 35 && v.calm() < 45, now);
         lowEnergySince = held(lowEnergySince, v.energy() < 20, now);
+        tiredSince = held(tiredSince, v.energy() < 30, now);
+        starvingSince = held(starvingSince, has(MoodFactor.STARVING), now);
+        boolean apathetic = spell() == MoodSpell.APATHY;
         highMoodSince = held(highMoodSince, v.mood() >= 82, now);
         double scale = 100.0 / percent, fall = scale * (0.7 + 0.6 * baseline.resilience() / 100.0);
         MoodSpell next = null;
-        if (since(lowMoodSince, now) >= 20 * fall) next = MoodSpell.DEPRESSION;
+        // Apathy holds the gloom and the weariness inside it: they do not turn into a depression or an exhaustion on top of it.
+        if (!apathetic && since(lowMoodSince, now) >= 20 * fall) next = MoodSpell.DEPRESSION;
         else if (since(lowCalmSince, now) >= 5 * fall || window(scares, now).size() >= 3) next = MoodSpell.DREAD;
+        else if (!apathetic && (since(starvingSince, now) >= 20 * fall || since(tiredSince, now) >= 40 * fall)) next = MoodSpell.APATHY;
         else if (window(irritations, now).size() >= 3 && v.calm() >= 20 || since(sourSince, now) >= 12 * fall) next = MoodSpell.ANGER;
-        else if (since(lowEnergySince, now) >= 8 * fall) next = MoodSpell.EXHAUSTION;
+        else if (!apathetic && since(lowEnergySince, now) >= 8 * fall) next = MoodSpell.EXHAUSTION;
         else if (baseline.sociability() >= 55 && since(socialAt, now) >= 120 * fall) next = MoodSpell.LONELY;
         else if (since(highMoodSince, now) >= 6 * scale) next = MoodSpell.JOY;
         if (next != null && begin(next, baseline, now)) {
@@ -396,6 +418,7 @@ public final class MobState {
             switch (next) {
                 case DEPRESSION -> lowMoodSince = now; case DREAD -> { lowCalmSince = now; scares.clear(); }
                 case ANGER -> { sourSince = now; irritations.clear(); } case EXHAUSTION -> lowEnergySince = now;
+                case APATHY -> { tiredSince = now; starvingSince = now; }
                 case LONELY -> socialAt = now; case JOY -> highMoodSince = now; default -> { }
             }
         }
@@ -468,7 +491,8 @@ public final class MobState {
         reasons.sort(Comparator.comparingInt(Reason::weight).reversed());
         MoodSpell kind = spell();
         return new View(at[Axis.MOOD.ordinal()], at[Axis.CALM.ordinal()], at[Axis.INTEREST.ordinal()], at[Axis.TRUST.ordinal()], at[Axis.ENERGY.ordinal()],
-                kind, kind == null ? 0 : Math.max(0, now - spell.since), List.copyOf(reasons.subList(0, Math.min(REASONS, reasons.size()))), thought == null ? "" : thought);
+                kind, kind == null ? 0 : Math.max(0, now - spell.since), List.copyOf(reasons.subList(0, Math.min(REASONS, reasons.size()))), thought == null ? "" : thought,
+                baseline.female());
     }
 
     void sanitize() {
@@ -507,7 +531,7 @@ public final class MobState {
         c.lowMoodSince = lowMoodSince; c.lowCalmSince = lowCalmSince; c.sourSince = sourSince; c.lowEnergySince = lowEnergySince; c.highMoodSince = highMoodSince;
         c.socialAt = socialAt; c.lastSpellAt = lastSpellAt; c.lastSpell = lastSpell;
         c.scares = new ArrayList<>(scares); c.irritations = new ArrayList<>(irritations);
-        c.fedAt = fedAt; c.asleepSince = asleepSince; c.sleptNight = sleptNight; c.awakeNight = awakeNight; c.awakeCount = awakeCount; c.asleep = asleep; c.sleepless = sleepless;
+        c.fedAt = fedAt; c.fullFor = fullFor; c.starvingSince = starvingSince; c.tiredSince = tiredSince; c.asleepSince = asleepSince; c.sleptNight = sleptNight; c.awakeNight = awakeNight; c.awakeCount = awakeCount; c.asleep = asleep; c.sleepless = sleepless;
         return c;
     }
 
@@ -518,11 +542,16 @@ public final class MobState {
 
     /** The state as numbers and words, detached from the store; {@code spell} is the long mood (null: none), {@code spellMillis}
      * how long it has held, {@code reasons} the strongest reasons first. */
-    public record View(int mood, int calm, int interest, int trust, int energy, MoodSpell spell, long spellMillis, List<Reason> reasons, String thought) {
+    public record View(int mood, int calm, int interest, int trust, int energy, MoodSpell spell, long spellMillis, List<Reason> reasons, String thought, boolean female) {
         public View {
             thought = thought == null ? "" : thought;
             reasons = reasons == null ? List.of() : List.copyOf(reasons);
         }
+        public View(int mood, int calm, int interest, int trust, int energy, MoodSpell spell, long spellMillis, List<Reason> reasons, String thought) {
+            this(mood, calm, interest, trust, energy, spell, spellMillis, reasons, thought, false);
+        }
+        /** A text with {@code {he|she}} endings in this creature's gender. */
+        public String form(String text) { return MoodWords.form(text, female); }
         /** Just the four old axes: rested energy, no long mood, no reasons. */
         public View(int mood, int calm, int interest, int trust, String thought) { this(mood, calm, interest, trust, 60, null, 0, List.of(), thought); }
         public static final View NEUTRAL = new View(50, 50, 45, 45, 60, null, 0, List.of(), "");
@@ -541,9 +570,9 @@ public final class MobState {
         public boolean grudging() { return spell != null && spell.deals == MoodSpell.Deals.HARDER; }
 
         /** The pixel face over the head, glyph {@code \uE000 + face()} of the font {@code mobtalk:mood}: a long mood has its own
-         * (7 and on, in the order of {@link MoodSpell}); else panic, then exhaustion, then the mood from beaming (0) to gloomy (4). */
+         * ({@link MoodSpell#glyph}); else panic, then exhaustion, then the mood from beaming (0) to gloomy (4). */
         public int face() {
-            if (spell != null) return 7 + spell.ordinal();
+            if (spell != null) return spell.glyph;
             if (calm < 20) return 5;
             if (energy < 20) return 6;
             return mood >= 80 ? 0 : mood > 60 ? 1 : mood >= 40 ? 2 : mood >= 20 ? 3 : 4;
@@ -564,13 +593,13 @@ public final class MobState {
                 case ENERGY -> new String[]{"drained", "tired", "", "lively", "vigorous"};
             };
             String[] words = switch (axis) {
-                case MOOD -> new String[]{"мрачен", "не в духе", "ровно", "в духе", "сияет"};
-                case CALM -> new String[]{"в панике", "встревожен", "спокоен", "невозмутим", "безмятежен"};
-                case INTEREST -> new String[]{"скучает", "безразличен", "", "заинтересован", "увлечён"};
-                case TRUST -> new String[]{"не доверяет", "насторожен", "", "доверяет", "предан"};
-                case ENERGY -> new String[]{"без сил", "устал", "", "бодр", "полон сил"};
+                case MOOD -> new String[]{"мрач{ен|на}", "не в духе", "ровно", "в духе", "сияет"};
+                case CALM -> new String[]{"в панике", "встревожен{|а}", "спок{оен|ойна}", "невозмутим{|а}", "безмятеж{ен|на}"};
+                case INTEREST -> new String[]{"скучает", "безразлич{ен|на}", "", "заинтересован{|а}", "увлеч{ён|ена}"};
+                case TRUST -> new String[]{"не доверяет", "насторожен{|а}", "", "доверяет", "пред{ан|ана}"};
+                case ENERGY -> new String[]{"без сил", "устал{|а}", "", "бодр{|а}", "пол{он|на} сил"};
             };
-            return new Descriptor(axis, keys[level], words[level], sign);
+            return new Descriptor(axis, keys[level], form(words[level]), sign);
         }
 
         /** Every axis that has a word, calm first. */
@@ -585,7 +614,7 @@ public final class MobState {
 
         /** The one word for the HUD: the long mood when there is one, else the axis furthest from its middle, calm when nothing stands out. */
         public Descriptor marker() {
-            if (spell != null) return new Descriptor(Axis.MOOD, spell.key, spell.word, spell.sign);
+            if (spell != null) return new Descriptor(Axis.MOOD, spell.key, spell.word(female), spell.sign);
             Descriptor best = null; int strength = -1;
             for (Axis axis : List.of(Axis.CALM, Axis.MOOD, Axis.ENERGY, Axis.TRUST, Axis.INTEREST)) {
                 Descriptor d = descriptor(axis);
@@ -599,31 +628,36 @@ public final class MobState {
         public String describe() {
             int m = mood, c = calm, i = interest, t = trust, e = energy;
             String moodText = m < 20 ? "мрачно на душе" : m < 40 ? "не в духе" : m <= 60 ? "ровное" : m < 80 ? "в духе" : "душа поёт";
-            String calmText = c < 20 ? "паника: сбиваешься, дёргаешься, слова путаются" : c < 40 ? "встревожен, на взводе, ждёшь беды" : c <= 60 ? "спокоен"
-                    : c < 80 ? "невозмутим" : "безмятежен, ничто не тревожит";
-            String energyText = e < 20 ? "без сил, валишься с ног" : e < 40 ? "устал" : e <= 60 ? "обычные" : e < 80 ? "бодр" : "полон сил";
+            String calmText = form(c < 20 ? "паника: сбиваешься, дёргаешься, слова путаются" : c < 40 ? "встревожен{|а}, на взводе, ждёшь беды" : c <= 60 ? "спок{оен|ойна}"
+                    : c < 80 ? "невозмутим{|а}" : "безмятеж{ен|на}, ничто не тревожит");
+            String energyText = form(e < 20 ? "без сил, валишься с ног" : e < 40 ? "устал{|а}" : e <= 60 ? "обычные" : e < 80 ? "бодр{|а}" : "пол{он|на} сил");
             String interestText = i < 20 ? "этот игрок тебе наскучил, отвечаешь нехотя и коротко" : i < 40 ? "этот игрок тебе безразличен" : i <= 60 ? "к этому игроку ни скуки, ни особого интереса"
                     : i < 80 ? "этот игрок тебе интересен, охотно поддерживаешь разговор" : "этот игрок тебя по-настоящему увлёк: сам тянешься к разговору, расспрашиваешь";
             String trustText = t < 20 ? "ему не веришь ни слову, ждёшь удара в спину" : t < 40 ? "настороже, ждёшь подвоха" : t <= 60 ? "ни доверия, ни недоверия"
                     : t < 80 ? "ему доверяешь" : "доверяешь как своему";
             StringBuilder text = new StringBuilder("Твоё состояние сейчас: настроение — ").append(moodText).append("; нервы — ").append(calmText)
                     .append("; силы — ").append(energyText).append("; интерес — ").append(interestText).append("; доверие — ").append(trustText).append('.');
-            if (spell != null) text.append("\nДолгое состояние, оно держится давно и красит всё, что ты говоришь: ").append(spell.prompt);
+            if (spell != null) text.append("\nДолгое состояние, оно держится давно и красит всё, что ты говоришь: ").append(spell.prompt(female));
             if (!reasons.isEmpty())
                 text.append("\nОтчего тебе так (ты это знаешь сам; назови, если спросят, как ты, или к слову придётся): ")
                         .append(String.join("; ", reasons.stream().map(Reason::text).toList())).append('.');
+            if (hungry(MoodFactor.STARVING)) text.append(form("\nТы давно ничего не ел{|а}: голод мучает, мысли только о еде, сил нет; можешь прямо попросить у игрока поесть."));
+            else if (hungry(MoodFactor.HUNGRY)) text.append(form("\nТы голод{ен|на}: мысли сбиваются на еду, можешь намекнуть игроку, что не прочь бы поесть."));
             if (!thought.isEmpty()) text.append("\nТвоя последняя мысль про себя: «").append(thought).append("» — продолжай с неё, если она ещё к месту.");
             return text.toString();
         }
 
+        /** Whether this hunger is among the lasting reasons now. */
+        public boolean hungry(MoodFactor level) { return reasons.stream().anyMatch(r -> r.lasting() && r.text().equals(level.text)); }
+
         /** What should be heard in every phrase, for the end of the prompt; "" when the state is ordinary. */
         public String voice() {
-            if (spell != null) return spell.voice;
+            if (spell != null) return spell.voice(female);
             if (calm < 20) return "паника: сбивчиво, коротко, озираешься";
-            if (mood < 20) return "мрачен: скупо, без радости, ворчливо";
+            if (mood < 20) return form("мрач{ен|на}: скупо, без радости, ворчливо");
             if (energy < 20) return "без сил: зеваешь, коротко, мысли о сне";
             if (mood >= 82 && calm >= 50) return "сияешь: охотно, тепло, с шутками";
-            if (calm < 35) return "встревожен: отрывисто, настороженно";
+            if (calm < 35) return form("встревожен{|а}: отрывисто, настороженно");
             if (mood < 35) return "не в духе: сухо, без охоты";
             return "";
         }

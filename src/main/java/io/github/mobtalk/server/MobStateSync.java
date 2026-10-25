@@ -98,7 +98,7 @@ final class MobStateSync {
                 state == null ? 50 : state.interest(), state == null ? 50 : state.mood(), marker == null ? "" : marker.key(), marker == null ? 0 : marker.sign(),
                 card.relationship(), ScreenReports.relationshipLabel(card), hearts(card), favor, bargain, bargainSign,
                 state == null ? 60 : state.energy(), state == null ? -1 : state.face(), state == null || state.spell() == null ? "" : state.spell().key,
-                state == null ? 0 : (int) (state.spellMillis() / 60_000L), reasons(state));
+                state == null ? 0 : (int) (state.spellMillis() / 60_000L), reasons(state), state != null && state.female());
         if (stale || !packet.equals(tracker.states.get(mob.id()))) { tracker.states.put(mob.id(), packet); out.state(player, packet); }
     }
 
