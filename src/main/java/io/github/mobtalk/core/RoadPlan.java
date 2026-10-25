@@ -29,7 +29,7 @@ public final class RoadPlan {
     /** The grade (height per block along the road), how deep a cut becomes a tunnel and how high a fill a bridge, how much bridge
      * and tunnel a road may have and how long it may be at most, and how many lines are tried. */
     public record Rules(double grade, int tunnelCut, int bridgeFill, int maxBridge, int maxTunnel, int maxLength, int variants) {
-        public static Rules defaults() { return new Rules(0.33, 10, 9, 160, 200, 900, 6); }
+        public static Rules defaults() { return new Rules(0.33, 10, 9, 240, 200, 900, 6); }
     }
 
     /** One step of the centreline, a block apart: where (block coordinates, fractional), which way it runs (unit vector), the height
@@ -159,6 +159,13 @@ public final class RoadPlan {
         for (int i = 0; i < n; i++) { wet[i] = surface[i] - floor[i] >= 0.5; base[i] = wet[i] ? surface[i] + DECK_OVER_WATER : floor[i]; }
         double[] road = smooth(base, SMOOTH_HALF);
         double g = rules.grade();
+        // Both ends stand on the ground at their villages: the climb to a village on a plateau spreads back down the road rather
+        // than the road arriving under the village in a tunnel. Each point stays within reach of both ends at the grade (when the
+        // ends are too far apart in height for that, the road keeps to the ground as best it can instead).
+        double a = base[0], b = base[n - 1];
+        boolean pinned = Math.abs(a - b) <= g * (n - 1);
+        if (pinned) for (int i = 0; i < n; i++)
+            road[i] = clamp(road[i], Math.max(a - g * i, b - g * (n - 1 - i)), Math.min(a + g * i, b + g * (n - 1 - i)));
         for (int i = 1; i < n; i++) road[i] = clamp(road[i], road[i - 1] - g, road[i - 1] + g);
         for (int i = n - 2; i >= 0; i--) road[i] = clamp(road[i], road[i + 1] - g, road[i + 1] + g);
         int[] h2 = new int[n];

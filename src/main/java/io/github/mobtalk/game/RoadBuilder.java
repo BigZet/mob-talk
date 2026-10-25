@@ -4,6 +4,7 @@ import io.github.mobtalk.core.RoadPlan;
 import java.util.*;
 import net.minecraft.block.*;
 import net.minecraft.block.enums.SlabType;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.BiomeTags;
 import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.server.world.ServerWorld;
@@ -84,7 +85,9 @@ final class RoadBuilder {
         WorldChunk here = world.getChunkManager().getWorldChunk(chunk.x, chunk.z);
         if (here == null) return out;
         RoadPlan.Point first = points.get(0), last = points.get(points.size() - 1);
+        var registry = world.getRegistryManager().get(RegistryKeys.STRUCTURE);
         for (Map.Entry<Structure, LongSet> entry : here.getStructureReferences().entrySet()) {
+            if (!RoadNetwork.village(world, registry.getEntry(entry.getKey()))) continue;
             for (long reference : entry.getValue()) {
                 Chunk holder = world.getChunk(ChunkPos.getPackedX(reference), ChunkPos.getPackedZ(reference), ChunkStatus.STRUCTURE_STARTS, false);
                 StructureStart start = holder == null ? null : holder.getStructureStart(entry.getKey());
@@ -111,7 +114,13 @@ final class RoadBuilder {
             for (StructurePiece piece : start.getChildren()) {
                 BlockBox box = piece.getBoundingBox();
                 if (box.getMaxY() < y - 6 || box.getMinY() > y + 8 || !near(box, p, CURB + 1)) continue;
-                return atStart ? Math.min(n - 1, i + 1) : Math.max(0, i - 1);
+                // Met on a bridge or in a tunnel: go on until it lands, rather than end in the air or in the rock.
+                int end = atStart ? Math.min(n - 1, i + 1) : Math.max(0, i - 1), inward = atStart ? -1 : 1;
+                if (points.get(end).kind() != RoadPlan.Kind.GROUND) {
+                    end = i;
+                    while (end + inward >= 0 && end + inward < n && points.get(end).kind() != RoadPlan.Kind.GROUND) end += inward;
+                }
+                return end;
             }
         }
         return atStart ? 0 : n - 1;
@@ -135,7 +144,9 @@ final class RoadBuilder {
         for (Column column : columns.values()) {
             RoadPlan.Point point = points.get(column.index());
             if (column.index() < from || column.index() > to) { report.skipped++; continue; }
-            if (blockedByStructure(pieces, column, point)) { report.skipped++; continue; }
+            // A bridge or tunnel passes through a piece's box where nothing of the piece stands (the check below still keeps off
+            // every block that is not natural); the paved road keeps off the pieces altogether.
+            if (point.kind() == RoadPlan.Kind.GROUND && blockedByStructure(pieces, column, point)) { report.skipped++; continue; }
             if (column(world, palette, point, column, false)) { column(world, palette, point, column, true); report.columns++; }
             else report.skipped++;
         }

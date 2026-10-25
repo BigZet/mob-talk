@@ -68,6 +68,19 @@ class RoadPlanTest {
             assertTrue(Math.abs(road.points().get(i).h2() - road.points().get(i - 1).h2()) <= 1, "no step over half a block at " + i);
     }
 
+    @Test void aVillageOnAPlateauIsReachedAtItsOwnLevel() {
+        RoadPlan.Terrain land = new RoadPlan.Terrain() { // a valley floor at 70, then a cliff up to a plateau at 110 forty blocks before B
+            @Override public int floor(int x, int z) { return x >= 560 ? 110 : 70; }
+            @Override public int surface(int x, int z) { return floor(x, z); }
+        };
+        RoadPlan.Road road = RoadPlan.plan(4, 0, 0, 600, 0, land, RoadPlan.Rules.defaults()).road();
+        assertNotNull(road);
+        RoadPlan.Point last = road.points().get(road.length() - 1);
+        assertTrue(last.h2() >= 218, "arrives at the plateau, not under it: " + last.h2() / 2.0);
+        assertEquals(140, road.points().get(0).h2());
+        for (RoadPlan.Point p : road.points()) if (p.x() >= 575) assertNotEquals(RoadPlan.Kind.TUNNEL, p.kind(), "no tunnel under the village at " + p.x());
+    }
+
     @Test void tooLongOrTooMuchBridgeIsRefused() {
         assertFalse(RoadPlan.plan(1, 0, 0, 2000, 0, flat(70), RoadPlan.Rules.defaults()).ok());
         RoadPlan.Terrain sea = new RoadPlan.Terrain() {

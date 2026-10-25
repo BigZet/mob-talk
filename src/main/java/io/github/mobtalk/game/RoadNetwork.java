@@ -327,7 +327,7 @@ final class RoadNetwork {
         }
     }
 
-    private static boolean village(ServerWorld world, RegistryEntry<Structure> structure) {
+    static boolean village(ServerWorld world, RegistryEntry<Structure> structure) {
         if (structure.isIn(StructureTags.VILLAGE)) return true;
         return structure.getKey().map(key -> Structures.village(key.getValue().toString())).orElse(false);
     }
