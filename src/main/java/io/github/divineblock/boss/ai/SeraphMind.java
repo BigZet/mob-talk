@@ -5,6 +5,8 @@ import java.util.List;
 
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.projectile.PersistentProjectileEntity;
+import net.minecraft.entity.projectile.ProjectileEntity;
+import net.minecraft.entity.projectile.thrown.ThrownItemEntity;
 import net.minecraft.entity.projectile.TridentEntity;
 import net.minecraft.item.BowItem;
 import net.minecraft.item.ItemStack;
@@ -186,8 +188,9 @@ public final class SeraphMind {
         Vec3d center = self.getPos().add(0, self.getHeight() / 2, 0);
         List<Shot> shots = new ArrayList<>();
         Box around = self.getBoundingBox().expand(48);
-        for (PersistentProjectileEntity p : self.getWorld().getEntitiesByClass(PersistentProjectileEntity.class, around,
-                p -> p.isAlive() && p.getOwner() != self && flying(p))) {
+        // arrows in the air and thrown things (snowballs, bottles: they open its weak point) — all as «the player's shot»
+        for (ProjectileEntity p : self.getWorld().getEntitiesByClass(ProjectileEntity.class, around,
+                p -> p.isAlive() && p.getOwner() != self && (p instanceof PersistentProjectileEntity arrow ? flying(arrow) : p instanceof ThrownItemEntity))) {
             Vec3d rel = p.getPos().subtract(center), v = p.getVelocity();
             double along = rel.dotProduct(v);
             if (along >= 0) continue;

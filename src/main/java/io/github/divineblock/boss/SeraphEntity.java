@@ -64,6 +64,8 @@ public final class SeraphEntity extends SacredBoss {
     private float foePull;
     private LivingEntity loggedTarget;
     private String hurting;
+    /** Whether the mind ticked this tick (on the ground after the descent too, stunned), for the fight log. */
+    private boolean thought;
 
     public SeraphEntity(EntityType<? extends SeraphEntity> type, World world) {
         super(type, world, BossBar.Color.RED);
@@ -159,11 +161,15 @@ public final class SeraphEntity extends SacredBoss {
     /** The mind's tick, before the fight loop: it remembers every tick, decides, sweeps arrows back, starts the feathers. */
     private void think() {
         move = null;
+        thought = false;
         LivingEntity target = getTarget();
-        if (!(getWorld() instanceof ServerWorld) || isDead() || target == null || descendLeft > 0 || !config().seraphDodge) return;
+        if (!(getWorld() instanceof ServerWorld) || isDead() || target == null || !config().seraphDodge) return;
         double ground = groundBelow(getX(), getY() + 1, getZ(), 24);
-        // While its weak point is open it is stunned: it remembers, but neither dashes, sweeps nor throws.
-        move = mind.tick(this, target, ground, isCasting() ? castProgress() : -1, config().seraphDodgeSkill / 100.0, exposed());
+        // While its weak point is open, and while it stands on the ground after the descent, it is stunned: it remembers
+        // (the trainer's memory goes on too), but neither steers, dashes, sweeps nor throws.
+        move = mind.tick(this, target, ground, isCasting() ? castProgress() : -1, config().seraphDodgeSkill / 100.0, exposed() || descendLeft > 0);
+        thought = true;
+        if (descendLeft > 0) move = null;
         if (move == null) return;
         if (move.startDeflect()) sound(SoundEvents.ENTITY_ENDER_DRAGON_FLAP, 2f, 0.6f);
         if (mind.closingWings())
@@ -276,7 +282,7 @@ public final class SeraphEntity extends SacredBoss {
         if (foeDrew && !drawing) log.event(age, "shot", foePull, Double.NaN, "");
         foeDrew = drawing;
         foePull = drawing ? BowItem.getPullProgress(target.getItemUseTime()) : 0;
-        boolean net = move != null;
+        boolean net = thought;
         float[] out = net ? mind.lastOut() : new float[0];
         java.util.List<String> row = new java.util.ArrayList<>();
         row.add(String.valueOf(age)); row.add(SeraphFightLog.num(getHealth())); row.add(SeraphFightLog.num(getMaxHealth())); row.add(String.valueOf(phase));
@@ -287,7 +293,7 @@ public final class SeraphEntity extends SacredBoss {
         row.add(flag(net && mind.dashing())); row.add(flag(net && mind.deflecting()));
         row.add(flag(drawing)); row.add(SeraphFightLog.num(foePull));
         for (int i = 0; i < 9; i++) row.add(i < out.length ? SeraphFightLog.num(out[i]) : "");
-        row.add(flag(net && mind.dashStarted())); row.add(flag(net && move.startDeflect())); row.add(flag(net && move.startFeathers()));
+        row.add(flag(net && mind.dashStarted())); row.add(flag(move != null && move.startDeflect())); row.add(flag(move != null && move.startFeathers()));
         row.add(net ? mind.refused() : "");
         float[] token = mind.lastToken();
         for (int i = 0; i < SeraphFightLog.TOKEN.length; i++) row.add(net && i < token.length ? SeraphFightLog.num(token[i]) : "");

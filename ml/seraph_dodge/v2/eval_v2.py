@@ -3,6 +3,8 @@
 python eval_v2.py runs/sp1/duel.pt                 # 256 арен, один эпизод (600 тиков), на CPU
 python eval_v2.py runs/sp1_u*.pt --archer runs/sp1/duel.pt
 python eval_v2.py runs/sp1_u1150.pt --recover --log logs/
+python eval_v2.py runs/sp3/duel_u*.pt --v3 --human --archer runs/sp3/duel.pt
+    # --v3: бой как в моде (касты, нисхождение, ульта, снежки, окна с оглушением); --human: сценарный лучник-человек
     # --recover: правило мода «после взмаха нет рывка, после рывка нет взмаха»;
     # --log: первая арена первого эпизода в seraph-fight-*.csv и seraph-events-*.csv — те же столбцы, что пишет мод
     #        (SeraphFightLog), чего тренажёр не знает (здоровье, фаза, окно, урон) — пусто
@@ -49,7 +51,7 @@ class FightLog:
     def tick(self, env, t, s_a):
         i = 0
         flag = lambda b: "1" if b else "0"
-        row = [str(t), "", "", "", "", flag(env.recovering()[i]),
+        row = [str(t), "", "", str(env.phase[i]) if env.v3 else "", flag(env.exposed[i] > 0) if env.v3 else "", flag(env.recovering()[i]),
                num(np.linalg.norm(env.bpos[i] - env.ppos[i])), num(env.bpos[i, 1]),
                str(env.dash_cd[i]), str(env.defl_cd[i]), str(env.atk_cd[i]),
                num(1 - env.cast_t[i] / CAST_TICKS) if env.cast_t[i] > 0 else "",
@@ -67,8 +69,8 @@ class FightLog:
         self.fight.close(); self.events.close()
 
 
-def run(net, n, seed, archer=None, recover=False, log=None):
-    env = Duel(n, seed=seed, scripted_frac=0.0 if archer is not None else 1.0, recover=recover)
+def run(net, n, seed, archer=None, recover=False, log=None, v3=False, human=False):
+    env = Duel(n, seed=seed, scripted_frac=0.0 if archer is not None else 1.0, recover=recover, v3=v3, human_frac=1.0 if human else 0.0)
     if log is not None:
         env.trace = 0
     zero_a = np.zeros((n, A_ACT), np.float32)
@@ -113,28 +115,32 @@ def main():
     ap.add_argument("--threads", type=int, default=2)
     ap.add_argument("--recover", action="store_true", help="правило мода: после взмаха нет рывка, после рывка нет взмаха")
     ap.add_argument("--log", default=None, help="папка: арена 0 первой копии в формате лога боя мода")
+    ap.add_argument("--v3", action="store_true", help="бой как в моде: касты, нисхождение, ульта, снежки, окна с оглушением")
+    ap.add_argument("--human", action="store_true", help="сценарный лучник-человек вместо лучника v1")
     a = ap.parse_args()
     sys.stdout.reconfigure(encoding="utf-8")
     torch.set_num_threads(a.threads)
     if a.archer is None:
         for k, path in enumerate(a.ckpt):
             log = FightLog(a.log, "sim-" + os.path.splitext(os.path.basename(path))[0]) if a.log and k == 0 else None
-            print(line(f"сеть {path}", *run(load(path, "s"), a.envs, a.seed, recover=a.recover, log=log)), flush=True)
+            print(line(f"сеть {path}", *run(load(path, "s"), a.envs, a.seed, recover=a.recover, log=log, v3=a.v3, human=a.human)), flush=True)
             if log is not None:
                 log.close()
-        print(line("без сети", *run(None, a.envs, a.seed, recover=a.recover)), flush=True)
+        print(line("без сети", *run(None, a.envs, a.seed, recover=a.recover, v3=a.v3, human=a.human)), flush=True)
         return
     archer = load(a.archer, "a")
     print("копия | попадания сценарного | попадания обученного | среднее | отражений/эп (сцен./обуч.)", flush=True)
     best = None
     for path in a.ckpt:
         net = load(path, "s")
-        (ts, es), (tt, et) = run(net, a.envs, a.seed, recover=a.recover), run(net, a.envs, a.seed, archer, recover=a.recover)
+        kw = dict(recover=a.recover, v3=a.v3, human=a.human)
+        (ts, es), (tt, et) = run(net, a.envs, a.seed, **kw), run(net, a.envs, a.seed, archer, **kw)
         mean = (hit(ts) + hit(tt)) / 2
         print(f"{path} | {hit(ts):.3f} | {hit(tt):.3f} | {mean:.3f} | {ts['reflects'] / es:.2f} / {tt['reflects'] / et:.2f}", flush=True)
         if best is None or mean <= best[0]:
             best = (mean, path)
-    (ts, _), (tt, _) = run(None, a.envs, a.seed), run(None, a.envs, a.seed, archer)
+    kw = dict(recover=a.recover, v3=a.v3, human=a.human)
+    (ts, _), (tt, _) = run(None, a.envs, a.seed, **kw), run(None, a.envs, a.seed, archer, **kw)
     print(f"без сети | {hit(ts):.3f} | {hit(tt):.3f} | {(hit(ts) + hit(tt)) / 2:.3f} | 0 / 0", flush=True)
     print(f"лучшая: {best[1]} (среднее {best[0]:.3f})", flush=True)
 

@@ -130,7 +130,7 @@ public final class DodgeSelfTest {
         lastPos = pos;
         // Aim like the trainer's archer: the centre, led by the flight time, raised for the arrow's drop.
         // the pitch is chosen for the arrow as it will leave at release (a full draw), so the bow is raised with distance
-        double speed = 3.0 * net.minecraft.item.BowItem.getPullProgress(Math.max(hold, 20));
+        double speed = 3.0 * Math.max(0.3, net.minecraft.item.BowItem.getPullProgress(hold));
         Vec3d eye = player.getEyePos();
         Vec3d aim = pos.add(0, target.getHeight() / 2, 0);
         for (int i = 0; i < 2; i++) aim = pos.add(0, target.getHeight() / 2, 0).add(vel.multiply(aim.distanceTo(eye) / speed));
@@ -161,8 +161,10 @@ public final class DodgeSelfTest {
         if (rest > 0) { rest--; return; }
         if (!player.isUsingItem()) {
             if (shots >= SHOTS) { roundLive = false; client.getServer().execute(DodgeSelfTest::nextRound); return; }
-            // Like a player: a full draw (20 ticks) and a little more, sometimes holding the shot.
-            hold = 22 + random.nextInt(8) + (random.nextDouble() < 0.3 ? 10 + random.nextInt(40) : 0);
+            // Like a player (the trainer's human archer, duel.py v3): a full draw 40% of the time, sometimes held longer,
+            // else let go early at 0.3..1 of the power; the aim is kept on the target for the power it will leave with.
+            double power = random.nextDouble() < 0.4 ? 1 : 0.3 + 0.7 * random.nextDouble();
+            hold = (int) Math.ceil(20 * (-1 + Math.sqrt(1 + 3 * power))) + (power >= 1 && random.nextDouble() < 0.3 ? 5 + random.nextInt(20) : 0);
             player.getInventory().selectedSlot = 0;
             // the use key stays down while drawing: otherwise the client lets go of the bow on the very next tick
             client.options.useKey.setPressed(true);
@@ -174,7 +176,7 @@ public final class DodgeSelfTest {
             client.interactionManager.stopUsingItem(player);
             shots++;
             fired[round]++;
-            rest = 2 + random.nextInt(8);
+            rest = 5 + random.nextInt(35);   // a pause without the bow, as a player looks and moves
         }
     }
 
