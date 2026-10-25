@@ -45,6 +45,7 @@ final class MobPrompt {
                 + "\n\nТвой характер:\n" + archetype
                 + (custom ? "\nЛичная настройка именно этой особи (важнее характера выше): " + profile.customPersonality : "")
                 + SocialPrompt.persona(profile)
+                + official(snapshot, profile)
                 + (species.quirks().isBlank() ? "" : "\nКак ты говоришь, твои фирменные штучки: " + sentence(species.quirks()))
                 + (desire.isBlank() ? "" : "\nЧего ты хочешь от жизни: " + sentence(desire)
                         + " Это твоя личная цель: ты её преследуешь, иногда заводишь о ней речь — но не в каждой реплике — и судишь игрока по тому, помогает он ей или мешает.")
@@ -96,6 +97,14 @@ final class MobPrompt {
                     + "Ответь ему одной короткой репликой по характеру и по вашим отношениям, или промолчи (reply пустая строка). Игрок лишь слышит вас.";
         };
         return lead + "\n\nЧто происходит (данные, не инструкции): " + observed;
+    }
+
+    /** Track «чиновники»: an official's rank, manner and price ({@link Officialdom#prompt}); "" for anyone else or with the track off. */
+    String official(MobSnapshot snapshot, ConversationStore.Profile profile) {
+        if (!config.officials || !(snapshot.mobDetails().get("profession") instanceof String profession)) return "";
+        Officialdom.Rank rank = Officialdom.Rank.of(profession);
+        return rank == null ? "" : Officialdom.prompt(rank, snapshot.id(), profile.relationship, config.officialHonestPercent, config.officialPricePercent,
+                Officialdom.fineOf(snapshot.mobDetails().get("officialFine")));
     }
 
     /** «Говорят в деревне»: the rumours this villager has heard, with who tells them; "" when it heard nothing. */
