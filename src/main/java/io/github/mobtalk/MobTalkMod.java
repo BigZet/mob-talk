@@ -103,6 +103,7 @@ public final class MobTalkMod implements ModInitializer {
         io.github.mobtalk.game.DefenseContent.register(); // Пост лучника и профессия лучника (защита деревни).
         io.github.mobtalk.game.OfficialContent.register(); // Казённый стол, чиновники, конверт и справка.
         io.github.mobtalk.game.BarContent.register(); // Мебель бара и место, на котором сидит житель.
+        io.github.mobtalk.game.MfcContent.register(); // МФЦ «Госуслуги»: мебель зала, талон, сотрудники.
         io.github.mobtalk.game.BarWorldgen.register(); // Бар в каждой новой деревне.
         MobGameBridge.initialize();
         MobTalkNet.registerPayloads();
