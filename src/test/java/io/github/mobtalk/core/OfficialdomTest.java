@@ -66,6 +66,19 @@ class OfficialdomTest {
         assertEquals(Officialdom.Outcome.TAKEN, Officialdom.judge(Officialdom.Rank.INSPECTOR, mild, 4, 0, 0, 20, 100, 8).outcome());
     }
 
+    @Test void everyOfficialHasTwoOwnBureaucraticHabits() {
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (int i = 0; i < 200; i++) {
+            UUID id = UUID.randomUUID();
+            java.util.List<String> q = Officialdom.quirks(id);
+            assertEquals(2, q.size()); assertNotEquals(q.get(0), q.get(1)); assertEquals(q, Officialdom.quirks(id), "the same official keeps its habits");
+            seen.addAll(q);
+            String text = Officialdom.prompt(Officialdom.Rank.CLERK, id, 0, 20, 100, null);
+            assertTrue(text.contains(q.get(0)) && text.contains(q.get(1)) && text.contains("по существу"));
+        }
+        assertEquals(Officialdom.QUIRKS.size(), seen.size(), "every habit turns up");
+    }
+
     @Test void thePromptHintsAndStaysSatire() {
         UUID corrupt = find(1, id -> !Officialdom.honest(id, 20));
         UUID honest = find(1, id -> Officialdom.honest(id, 20));
