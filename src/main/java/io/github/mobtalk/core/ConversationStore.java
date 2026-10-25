@@ -149,6 +149,33 @@ public final class ConversationStore {
         event(p, nowMillis, "Игрок " + named(player, playerName) + " ударил моба; отношение " + r.score, MemoryRanking.HIT); scheduleSave();
     }
 
+    /** An official took (or turned down) the player's envelope: its view of the player moves by {@code delta} and it remembers it
+     * quietly (ordinary importance: the official does not spread its own bribe). */
+    public synchronized void recordBribe(UUID mob, String type, String name, UUID player, String playerName, int delta, String text, long nowMillis) {
+        Profile p = ensure(mob, type, name); Relation r = relation(p, player);
+        r.score = clamp(r.score + delta, hostile(p)); feel(p, r, delta >= 0 ? MobState.Event.PURCHASE : MobState.Event.INSULT, nowMillis); p.revision++;
+        event(p, nowMillis, "Игрок " + named(player, playerName) + " " + text + "; отношение " + r.score); scheduleSave();
+    }
+    /** The inspectors' orders (track «чиновники»): reads give copies, writes save. */
+    public synchronized Officialdom.Fine officialFine(String village, UUID player) { Officialdom.Fine f = state.officials.fine(village, player); return f == null ? null : f.copy(); }
+    public synchronized boolean officialMayFine(String village, UUID player, long day) { return state.officials.mayFine(village, player, day); }
+    public synchronized Officialdom.Fine officialIssue(String village, UUID player, String playerName, UUID inspector, String inspectorName, String reason, int amount, long day, int days) {
+        Officialdom.Fine f = state.officials.issue(village, player, playerName, inspector, inspectorName, reason, amount, day, days); scheduleSave(); return f.copy();
+    }
+    public synchronized void officialClose(String village, UUID player) { state.officials.close(village, player); scheduleSave(); }
+    public synchronized void officialFavour(String village, UUID player, long day, int days) { state.officials.favour(village, player, day, days); scheduleSave(); }
+    public synchronized void officialTook(UUID official) { state.officials.took(official); scheduleSave(); }
+    public synchronized int officialTaken(UUID official) { return state.officials.taken(official); }
+    public synchronized Map<Officialdom.Fine, Officialdom.Overdue> officialOverdue(long day, int days) {
+        Map<Officialdom.Fine, Officialdom.Overdue> changed = state.officials.overdue(day, days);
+        if (changed.isEmpty()) return Map.of();
+        scheduleSave();
+        Map<Officialdom.Fine, Officialdom.Overdue> copies = new LinkedHashMap<>();
+        changed.forEach((f, o) -> copies.put(f.copy(), o));
+        return copies;
+    }
+    public synchronized List<Officialdom.Fine> officialFines() { return state.officials.open().stream().map(Officialdom.Fine::copy).toList(); }
+
     public synchronized void recordHelp(UUID mob, String type, String name, UUID player, String playerName, long nowMillis) {
         Profile p = ensure(mob, type, name); Relation r = relation(p, player);
         if (!cooledDown(r.lastHelp, nowMillis, 30_000)) return;
@@ -1254,7 +1281,11 @@ public final class ConversationStore {
         Map<String,String> players = new LinkedHashMap<>();
         /** What the villages know of the god's deeds (Б1); absent in files written before it. */
         DivineTidings divine = new DivineTidings();
+        /** The inspectors' open orders and who took envelopes (track «чиновники»); absent in files written before it. */
+        Officialdom officials = new Officialdom();
         void sanitize() {
+            if (officials == null) officials = new Officialdom();
+            officials.sanitize();
             if (divine == null) divine = new DivineTidings();
             divine.sanitize();
             if (notices == null) notices = new VillageNotices();
@@ -1275,7 +1306,7 @@ public final class ConversationStore {
             State c = new State(); c.version = version;
             profiles.forEach((key, p) -> c.profiles.put(key, p.copy()));
             c.bargains.putAll(bargains); c.villages.putAll(villages); // Immutable records.
-            c.relations = relations.copy(); c.rumors = rumors.copy(); c.family = family.copy(); c.notices = notices.copy(); c.players = new LinkedHashMap<>(players); c.divine = divine.copy();
+            c.relations = relations.copy(); c.rumors = rumors.copy(); c.family = family.copy(); c.notices = notices.copy(); c.players = new LinkedHashMap<>(players); c.divine = divine.copy(); c.officials = officials.copy();
             return c;
         }
     }
