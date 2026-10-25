@@ -1,5 +1,5 @@
 {
-  "parent": "mobtalk:block/city/cash_register",
+  "parent": "mobtalk:block/city/counter_till",
   "display": {
     "gui": {
       "rotation": [

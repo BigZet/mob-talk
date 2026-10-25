@@ -83,6 +83,6 @@ final class CityInterior {
             new CityContent.Spec("shop_shelf_jars", CityContent.Mount.GROUND, new double[][] {{0, 0, 1, 16, 16, 16}}, 0, MapColor.OAK_TAN, BlockSoundGroup.WOOD, true),
             new CityContent.Spec("shop_counter", CityContent.Mount.GROUND, new double[][] {{0, 0, 1, 16, 15, 16}}, 0, MapColor.OAK_TAN, BlockSoundGroup.WOOD, true),
             new CityContent.Spec("shop_counter_scales", CityContent.Mount.GROUND, new double[][] {{0, 0, 1, 16, 16, 16}}, 0, MapColor.OAK_TAN, BlockSoundGroup.WOOD, true),
-            new CityContent.Spec("cash_register", CityContent.Mount.GROUND, new double[][] {{0, 0, 1, 16, 16, 16}}, 0, MapColor.OAK_TAN, BlockSoundGroup.METAL, true),
+            new CityContent.Spec("counter_till", CityContent.Mount.GROUND, new double[][] {{0, 0, 1, 16, 16, 16}}, 0, MapColor.OAK_TAN, BlockSoundGroup.METAL, true),
             new CityContent.Spec("freezer", CityContent.Mount.GROUND, new double[][] {{0, 0, 2, 16, 13, 15}}, 0, MapColor.WHITE, BlockSoundGroup.METAL, true));
 }

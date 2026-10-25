@@ -135,7 +135,7 @@ def dom_byta_inside(y, x0, z0, x1, z1):
     for z in range(z0 + 2, z1 - 2):
         if z % 3:
             y.put(x0 + 6, g, z, "shop_counter", "west")
-    y.put(x0 + 6, g, z0 + 6, "cash_register", "west")
+    y.put(x0 + 6, g, z0 + 6, "counter_till", "west")
     for z in (z0 + 2, z0 + 3, z1 - 3, z1 - 4):
         y.put(x0 + 2, g, z, "chair", "east")
     for z in range(z0 + 1, z1 - 2, 2):
@@ -343,19 +343,9 @@ def univermag(y):
 
 
 def univermag_inside(y, x0, z0, x1, z1):
-    """Shelves of tins, bread, bottles and jars along the back wall, glass counters with scales, tills by the doors, an ice
-    cream freezer; the office upstairs."""
+    """The office upstairs: desks, filing cabinets, a safe. The sales floor below belongs to the supermarket
+    (its working displays, tills and gates are set out there by the supermarket code)."""
     y.stairs(x1 - 1, z1 - 1, 2)
-    goods = ("shop_shelf_tins", "shop_shelf_bread", "shop_shelf_bottles", "shop_shelf_jars")
-    for z in range(z0 + 1, z1 - 2):
-        y.put(x1 - 1, G + 1, z, goods[(z // 3) % 4], "west")
-        if z % 4 != 0:
-            y.put(x1 - 4, G + 1, z, "shop_counter_scales" if z % 4 == 2 else "shop_counter", "west")
-    for z in (z0 + 2, z1 - 3):
-        y.put(x0 + 2, G + 1, z, "cash_register", "west")
-    y.put(x0 + 1, G + 1, z1 - 1, "freezer", "east")
-    y.put(x0 + 1, G + 1, z0 + 1, "freezer", "east")
-    y.set(x1 - 2, G + 1, z1 - 4, "minecraft:barrel", {"facing": "up", "open": "false"})
     y0 = G + 5
     for z in range(z0 + 2, z1 - 3, 3):
         y.put(x0 + 3, y0, z, "office_desk_lamp" if z % 2 else "office_desk_typewriter", "west")

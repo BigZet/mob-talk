@@ -1023,7 +1023,6 @@
   "block.mobtalk.shop_shelf_jars": "Стеллаж с соленьями",
   "block.mobtalk.shop_counter": "Прилавок-витрина",
   "block.mobtalk.shop_counter_scales": "Прилавок с весами",
-  "block.mobtalk.cash_register": "Касса",
   "block.mobtalk.freezer": "Ларь с мороженым",
   "block.mobtalk.sofa_left_red": "Диван, левая половина (красный)",
   "block.mobtalk.sofa_right_red": "Диван, правая половина (красный)",
@@ -1036,5 +1035,6 @@
   "block.mobtalk.armchair_brown": "Кресло (коричневый)",
   "block.mobtalk.sofa_left_blue": "Диван, левая половина (синий)",
   "block.mobtalk.sofa_right_blue": "Диван, правая половина (синий)",
-  "block.mobtalk.armchair_blue": "Кресло (синий)"
+  "block.mobtalk.armchair_blue": "Кресло (синий)",
+  "block.mobtalk.counter_till": "Прилавок с кассой"
 }

@@ -1023,7 +1023,6 @@
   "block.mobtalk.shop_shelf_jars": "Shelf with pickle jars",
   "block.mobtalk.shop_counter": "Glass counter",
   "block.mobtalk.shop_counter_scales": "Counter with scales",
-  "block.mobtalk.cash_register": "Till",
   "block.mobtalk.freezer": "Ice cream freezer",
   "block.mobtalk.sofa_left_red": "Sofa, left half (red)",
   "block.mobtalk.sofa_right_red": "Sofa, right half (red)",
@@ -1036,5 +1035,6 @@
   "block.mobtalk.armchair_brown": "Armchair (brown)",
   "block.mobtalk.sofa_left_blue": "Sofa, left half (blue)",
   "block.mobtalk.sofa_right_blue": "Sofa, right half (blue)",
-  "block.mobtalk.armchair_blue": "Armchair (blue)"
+  "block.mobtalk.armchair_blue": "Armchair (blue)",
+  "block.mobtalk.counter_till": "Counter with a till"
 }

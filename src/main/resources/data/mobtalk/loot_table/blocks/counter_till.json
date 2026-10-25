@@ -6,7 +6,7 @@
       "entries": [
         {
           "type": "minecraft:item",
-          "name": "mobtalk:cash_register"
+          "name": "mobtalk:counter_till"
         }
       ],
       "conditions": [

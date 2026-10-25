@@ -854,7 +854,7 @@ def shop():
                                               D.box((5, 17, 8), (11, 23, 9.5), {fc: ("dial" if fc == "north" else "side",
                                                                                      [0, 0, 16, 16] if fc == "north" else None) for fc in D.FACES}),
                                               ip("steel", (2, 17, 3), (9, 17.5, 8)), ip("steel", (11, 17, 9), (15, 17.5, 13))])
-    add("cash_register", tx, counter + [ip("grey", (3, 15, 5), (13, 19, 13)), ip("grey", (3, 19, 9), (13, 22, 13)),
+    add("counter_till", tx, counter + [ip("grey", (3, 15, 5), (13, 19, 13)), ip("grey", (3, 19, 9), (13, 22, 13)),
                                         ip("black", (4, 19, 5), (12, 19.4, 9)), ip("white", (5, 20, 8.8), (11, 21.5, 9.2)),
                                         ip("chrome", (13, 17, 7), (14.5, 18, 8)), ip("chrome", (14, 16, 7), (15, 21, 8))], sound="METAL")
     add("freezer", {"front": "freezer_front", "side": "enamel", "top": "freezer_top"},
@@ -892,7 +892,7 @@ NAMES = {
     "blackboard_right": ("Доска (правая)", "Blackboard (right)"), "shop_shelf_tins": ("Стеллаж с консервами", "Shelf with tins"),
     "shop_shelf_bread": ("Стеллаж с хлебом", "Bread shelf"), "shop_shelf_bottles": ("Стеллаж с бутылками", "Shelf with bottles"),
     "shop_shelf_jars": ("Стеллаж с соленьями", "Shelf with pickle jars"), "shop_counter": ("Прилавок-витрина", "Glass counter"),
-    "shop_counter_scales": ("Прилавок с весами", "Counter with scales"), "cash_register": ("Касса", "Till"),
+    "shop_counter_scales": ("Прилавок с весами", "Counter with scales"), "counter_till": ("Прилавок с кассой", "Counter with a till"),
     "freezer": ("Ларь с мороженым", "Ice cream freezer"),
 }
 COLOURS = {"red": "красный", "green": "зелёный", "brown": "коричневый", "blue": "синий"}

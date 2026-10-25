@@ -425,7 +425,7 @@ def interiors(rel):
         if kind == "shop" and n == "minecraft:crafting_table":
             face = room_side(t, x, y, z)
             if face:
-                swap((x, y, z), block("cash_register", face))
+                swap((x, y, z), block("counter_till", face))
     if room.changed:
         t.save()
     return kind, counts
@@ -444,7 +444,7 @@ def run(pieces):
                 if k:
                     pieces_done[k] = pieces_done.get(k, 0) + 1
                 continue
-            if rel.startswith(("ours/landmark", "ours/yard", "ours/prospekt")) or "/street" in rel or "/road" in rel:
+            if rel.startswith(("ours/landmark", "ours/yard", "ours/prospekt", "ours/market")) or "/street" in rel or "/road" in rel:
                 continue
             kind, counts = interiors(rel)
             if counts:
