@@ -83,6 +83,10 @@ public final class Tunables {
         integer("keenInterest", t, "state", 0, 100, 1, c -> c.keenInterest, (c, x) -> c.keenInterest = x);
         integer("generousMood", t, "state", 0, 100, 1, c -> c.generousMood, (c, x) -> c.generousMood = x);
         integer("generousTrust", t, "state", 0, 100, 1, c -> c.generousTrust, (c, x) -> c.generousTrust = x);
+        integer("moodWorldPercent", t, "state", 0, 200, 10, c -> c.moodWorldPercent, (c, x) -> c.moodWorldPercent = x);
+        integer("moodSpellPercent", t, "state", 0, 200, 10, c -> c.moodSpellPercent, (c, x) -> c.moodSpellPercent = x);
+        integer("moodReplyPercent", t, "state", 0, 100, 10, c -> c.moodReplyPercent, (c, x) -> c.moodReplyPercent = x);
+        integer("moodHungerMinutes", t, "state", 10, 240, 5, c -> c.moodHungerMinutes, (c, x) -> c.moodHungerMinutes = x);
 
         // Memory: history, facts, summaries, reflections.
         integer("historyTurns", t, "memory", 1, 64, 1, c -> c.historyTurns, (c, x) -> c.historyTurns = x);

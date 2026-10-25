@@ -19,6 +19,13 @@ final class MobPrompt {
 
     /** Words the reply may hold, from the config. */
     int words() { return Math.max(5, Math.min(120, config.maxReplyWords)); }
+    /** The words the state lets the reply have: a depressed or panicking mob says much less ({@link MobState.View#lengthPercent},
+     * scaled by {@link MobTalkConfig#moodReplyPercent}); never more than {@link #words()}, which stays the hard cut. */
+    int words(MobState.View state) {
+        int percent = Math.min(100, state.lengthPercent()), weight = Math.max(0, Math.min(100, config.moodReplyPercent));
+        double factor = 1 - (100 - percent) / 100.0 * weight / 100.0;
+        return Math.max(4, (int) Math.round(words() * factor));
+    }
 
     /** The creature's own life comes first — who it is, how it talks, what it wants, what it hides, how it feels right now —
      * then the player, the voice, the answer format; trading is one side of the character, not its purpose. */
@@ -68,7 +75,7 @@ final class MobPrompt {
                 + MemoryRanking.promptBlock(profile.facts, profile.memory, System.currentTimeMillis()) + ConversationSummary.promptBlock(profile.summaries)
                 + SocialPrompt.gestures(profile)
                 + "\n\n" + PromptTexts.VOICE
-                + "Длина: не больше " + words() + " слов, обычно заметно меньше."
+                + "Длина: не больше " + words(state) + " слов, обычно заметно меньше."
                 + (view.sellsAnything() ? "\n\n" + PromptTexts.TRADER_CHARACTER + PromptTexts.stateTrade(state) : "")
                 + "\n\n" + PromptTexts.RULES
                 + PromptTexts.ANSWER_FIELDS
@@ -77,6 +84,9 @@ final class MobPrompt {
         // Last on purpose: in tests models ignored a mid-prompt level and kept the archetype's politeness.
         String rudeness = PromptTexts.RUDENESS[Math.max(0, Math.min(3, config.rudeness))];
         system += "\n\nГлавное в манере речи сейчас — " + Character.toLowerCase(rudeness.charAt(0)) + rudeness.substring(1) + PromptTexts.RUDENESS_TAIL;
+        // The state after the manner: in tests a mid-prompt state was heard only in the first words, then the archetype took over.
+        String voice = config.moodReplyPercent > 0 ? state.voice() : "";
+        if (!voice.isEmpty()) system += "\n\n" + PromptTexts.stateVoice(voice);
         if (config.commonPrompt != null && !config.commonPrompt.isBlank())
             system += "\n\nНастройка мира от игрока (важнее стиля выше): " + TextBounds.characters(config.commonPrompt, 8000);
         return system;

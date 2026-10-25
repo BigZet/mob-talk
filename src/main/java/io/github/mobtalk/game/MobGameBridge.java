@@ -61,6 +61,8 @@ public final class MobGameBridge implements GameBridge {
     final DivineController divine;
     /** Трек J: ревность пар игрока и сон вместе. */
     final JealousyController jealousy;
+    /** The world around known villagers turned into moods: weather, night, sleep, hunger, alarms, friends near. */
+    final MoodWatch moods;
     /** П3: соперники за одно сердце — уведомления, испытания, выбор у колокола. */
     public final RivalryController rivalry;
     final CoSleepController coSleep;
@@ -79,6 +81,7 @@ public final class MobGameBridge implements GameBridge {
         defense = new VillageDefenseController(this);
         divine = new DivineController(this);
         jealousy = new JealousyController(this);
+        moods = new MoodWatch(this);
         rivalry = new RivalryController(this);
         coSleep = new CoSleepController(this);
         wedding = new WeddingController(this);
@@ -171,6 +174,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.defense.tick(world);
                 bridge.divine.tick(world);
                 bridge.jealousy.tick(world);
+                bridge.moods.tick(world);
                 bridge.rivalry.tick(world);
                 bridge.coSleep.tick(world);
                 bridge.wedding.tick(world);

@@ -166,6 +166,10 @@ public final class MobTalkConfig {
     /** The emotional state: half-lives of an ordinary and a strong impression (minutes), and the thresholds of its axes (0–100). */
     public int stateHalfLifeMinutes = 10, stateSlowHalfLifeMinutes = 30;
     public int waryCalm = 25, waryTrust = 25, keenInterest = 75, generousMood = 65, generousTrust = 65;
+    /** Moods (percent, 0 = off): how strongly the world around moves them (rain, raids, hunger, curses, friends near), how readily
+     * a held feeling turns into a long mood (depression, dread, joy…), and how much the state shortens and colours the replies;
+     * a villager with no food seen this many real minutes is hungry. */
+    public int moodWorldPercent = 100, moodSpellPercent = 100, moodReplyPercent = 100, moodHungerMinutes = 60;
     /** Memory: half-life of a fact (days), the floor of its freshness (percent), how many facts are kept, the silence that ends a
      * conversation (minutes), and when a mob thinks the player over (replies, importance, seconds between). */
     public int memoryHalfLifeDays = 7, memoryFloorPercent = 30, memoryMaxFacts = 60, conversationSilenceMinutes = 3;
