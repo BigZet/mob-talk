@@ -473,6 +473,11 @@ final class MobTalkSettingsScreen extends Screen {
                     wide(tip(toggle("mobtalk.settings.villageHeavy", draft.villageHeavy, value -> draft.villageHeavy = value), "mobtalk.settings.villageHeavy.tooltip"),
                             tip(toggle("mobtalk.settings.villageCavalry", draft.villageCavalry, value -> draft.villageCavalry = value), "mobtalk.settings.villageCavalry.tooltip"));
                 }),
+                Map.<String, Runnable>entry("casino", () -> {
+                    wide(tip(toggle("mobtalk.settings.casino", draft.casino, value -> draft.casino = value), "mobtalk.settings.casino.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.casinoBouncers", draft.casinoBouncers, value -> draft.casinoBouncers = value), "mobtalk.settings.casinoBouncers.tooltip"),
+                            tip(toggle("mobtalk.settings.casinoVisitors", draft.casinoVisitors, value -> draft.casinoVisitors = value), "mobtalk.settings.casinoVisitors.tooltip"));
+                }),
                 Map.<String, Runnable>entry("chatter", () -> wide(tip(toggle("mobtalk.settings.villageChatter", draft.villageChatter, value -> draft.villageChatter = value), "mobtalk.settings.villageChatter.tooltip"),
                         tip(toggle("mobtalk.settings.villageNotices", draft.villageNotices, value -> draft.villageNotices = value), "mobtalk.settings.villageNotices.tooltip")))));
         resetSection(Tunables.Section.SOCIAL);

@@ -120,6 +120,9 @@ public final class MobTalkConfig {
     public boolean villageGuards = true;
     /** Ranks of the village's guard beside the plain guard: heavy warriors in diamond with an axe, horsemen in leather on a horse. */
     public boolean villageHeavy = true, villageCavalry = true;
+    /** The village casino (docs/casino.md): villages may build one (applies to chunks generated after the world loads); its bouncers
+     * in black throw out troublemakers and beat monsters; villagers drop in to play in the afternoon. */
+    public boolean casino = true, casinoBouncers = true, casinoVisitors = true;
     /** Idea Б1: the villages know the god's deeds (the divine block's events) — they panic, talk and blame the sinner by name;
      * the scene in the moment (alarm bell, flight, shouts); the god alone may make an exile; the family of a villager killed by a
      * curse turns against the sinner. */
@@ -163,6 +166,9 @@ public final class MobTalkConfig {
     public int watchResidents = 5, watchMin = 2, watchMax = 8, watchHealth = 30, watchDamage = 6, watchSight = 24, watchReplaceMinutes = 20;
     /** The heavy warrior: health and the damage of an axe blow. */
     public int heavyHealth = 50, heavyDamage = 10;
+    /** The casino: its weight among a village's houses (vanilla houses weigh 2 to 4 each), the bouncer's health and blow, and how many
+     * villagers may play at once per game table. */
+    public int casinoWeight = 3, bouncerHealth = 60, bouncerDamage = 8, casinoPlayersPerTable = 2;
     /** The emotional state: half-lives of an ordinary and a strong impression (minutes), and the thresholds of its axes (0–100). */
     public int stateHalfLifeMinutes = 10, stateSlowHalfLifeMinutes = 30;
     public int waryCalm = 25, waryTrust = 25, keenInterest = 75, generousMood = 65, generousTrust = 65;
@@ -308,6 +314,7 @@ public final class MobTalkConfig {
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
         copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageHeavy = villageHeavy; copy.villageCavalry = villageCavalry;
+        copy.casino = casino; copy.casinoBouncers = casinoBouncers; copy.casinoVisitors = casinoVisitors;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;

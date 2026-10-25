@@ -215,6 +215,11 @@ public final class Tunables {
         integer("watchReplaceMinutes", s, "guards", 1, 240, 1, c -> c.watchReplaceMinutes, (c, x) -> c.watchReplaceMinutes = x);
         integer("heavyHealth", s, "guards", 20, 120, 1, c -> c.heavyHealth, (c, x) -> c.heavyHealth = x);
         integer("heavyDamage", s, "guards", 1, 30, 1, c -> c.heavyDamage, (c, x) -> c.heavyDamage = x);
+        // The village casino.
+        integer("casinoWeight", s, "casino", 0, 20, 1, c -> c.casinoWeight, (c, x) -> c.casinoWeight = x);
+        integer("bouncerHealth", s, "casino", 20, 150, 5, c -> c.bouncerHealth, (c, x) -> c.bouncerHealth = x);
+        integer("bouncerDamage", s, "casino", 1, 30, 1, c -> c.bouncerDamage, (c, x) -> c.bouncerDamage = x);
+        integer("casinoPlayersPerTable", s, "casino", 0, 4, 1, c -> c.casinoPlayersPerTable, (c, x) -> c.casinoPlayersPerTable = x);
         // The god's deeds in the villages (Б1).
         integer("divineStrength", s, "divine", 0, 200, 10, c -> c.divineStrength, (c, x) -> c.divineStrength = x);
         integer("divineDailyCap", s, "divine", 0, 300, 5, c -> c.divineDailyCap, (c, x) -> c.divineDailyCap = x);
@@ -294,6 +299,7 @@ public final class Tunables {
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices; config.villageSites = d.villageSites;
                 config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.alarmSound = d.alarmSound; config.villageNoConversion = d.villageNoConversion; config.villageTowers = d.villageTowers; config.villageGuards = d.villageGuards; config.villageHeavy = d.villageHeavy; config.villageCavalry = d.villageCavalry;
+                config.casino = d.casino; config.casinoBouncers = d.casinoBouncers; config.casinoVisitors = d.casinoVisitors;
                 config.divineTidings = d.divineTidings; config.divinePanic = d.divinePanic; config.divineMayExile = d.divineMayExile; config.divineMourners = d.divineMourners;
             }
             case ACTIONS -> { config.placeAnalysis = d.placeAnalysis; config.placeClassifier = d.placeClassifier; }
