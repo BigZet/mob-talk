@@ -241,8 +241,9 @@ public final class Roads {
         return road == null ? 0 : road.points.size();
     }
 
-    /** The first index from which {@code count} points of plain road (no bridge, no tunnel) run straightest and most level: a tidy
-     * spot for the self-test's gallery. Axis-aligned beats diagonal, level beats a slab step beats a stair. */
+    /** The first index from which {@code count} points of plain road (no bridge, no tunnel) run straightest, most level and most
+     * open: a tidy spot for the self-test's gallery. Level beats a slab step beats a stair, straight beats bent, axis-aligned
+     * beats diagonal, and a clear view from the camera's side beats a cutting's wall. The road's middle when no stretch is plain. */
     public static int flatStretch(ServerWorld world, int id, int count) {
         MobGameBridge bridge = bridge(world);
         RoadNetwork.Road road = bridge == null ? null : bridge.roads.road(world, id);
@@ -252,16 +253,18 @@ public final class Roads {
         for (int i = 20; i + count < n - 20 && bestScore > 0; i++) {
             RoadPlan.Point first = points.get(i);
             int low = first.h2(), high = first.h2();
+            double bend = 0;
             boolean ok = first.kind() == RoadPlan.Kind.GROUND;
             for (int k = 1; k < count && ok; k++) {
-                RoadPlan.Point p = points.get(i + k);
+                RoadPlan.Point p = points.get(i + k), before = points.get(i + k - 1);
                 low = Math.min(low, p.h2());
                 high = Math.max(high, p.h2());
-                ok = p.kind() == RoadPlan.Kind.GROUND && p.dx() == first.dx() && p.dz() == first.dz();
+                bend += Math.abs(p.dx() - before.dx()) + Math.abs(p.dz() - before.dz());
+                ok = p.kind() == RoadPlan.Kind.GROUND;
             }
             if (!ok) continue;
             boolean diagonal = Math.abs(first.dx()) < 0.999 && Math.abs(first.dz()) < 0.999;
-            int score = (high - low) * 4 + (diagonal ? 2 : 0) + openBeside(world, points, i, count);
+            int score = (high - low) * 4 + (int) Math.round(bend * 20) + (diagonal ? 2 : 0) + openBeside(world, points, i, count);
             if (score < bestScore) { bestScore = score; best = i; }
         }
         return best;
