@@ -1,0 +1,35 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "minecraft:block/dark_oak_planks",
+    "wood": "minecraft:block/dark_oak_planks",
+    "cloth": "minecraft:block/green_wool",
+    "paper": "minecraft:block/white_concrete",
+    "stamp": "minecraft:block/red_wool",
+    "ink": "minecraft:block/black_concrete",
+    "brass": "minecraft:block/gold_block"
+  },
+  "elements": [
+    { "from": [0, 12, 0], "to": [16, 15, 16],
+      "faces": { "north": {"texture": "#wood"}, "south": {"texture": "#wood"}, "east": {"texture": "#wood"}, "west": {"texture": "#wood"},
+                 "down": {"texture": "#wood"}, "up": {"texture": "#wood"} } },
+    { "from": [1, 15, 1], "to": [15, 15.25, 15],
+      "faces": { "up": {"texture": "#cloth"}, "north": {"texture": "#cloth"}, "south": {"texture": "#cloth"}, "east": {"texture": "#cloth"}, "west": {"texture": "#cloth"} } },
+    { "from": [1, 0, 1], "to": [3, 12, 3], "faces": { "north": {"texture": "#wood"}, "south": {"texture": "#wood"}, "east": {"texture": "#wood"}, "west": {"texture": "#wood"}, "down": {"texture": "#wood"} } },
+    { "from": [13, 0, 1], "to": [15, 12, 3], "faces": { "north": {"texture": "#wood"}, "south": {"texture": "#wood"}, "east": {"texture": "#wood"}, "west": {"texture": "#wood"}, "down": {"texture": "#wood"} } },
+    { "from": [1, 0, 13], "to": [3, 12, 15], "faces": { "north": {"texture": "#wood"}, "south": {"texture": "#wood"}, "east": {"texture": "#wood"}, "west": {"texture": "#wood"}, "down": {"texture": "#wood"} } },
+    { "from": [13, 0, 13], "to": [15, 12, 15], "faces": { "north": {"texture": "#wood"}, "south": {"texture": "#wood"}, "east": {"texture": "#wood"}, "west": {"texture": "#wood"}, "down": {"texture": "#wood"} } },
+    { "from": [3, 4, 13], "to": [13, 12, 14], "faces": { "north": {"texture": "#wood"}, "south": {"texture": "#wood"}, "up": {"texture": "#wood"}, "down": {"texture": "#wood"} } },
+    { "from": [3, 15.25, 3], "to": [9, 16.75, 10], "rotation": {"angle": -22.5, "axis": "y", "origin": [6, 15, 6]},
+      "faces": { "up": {"texture": "#paper", "uv": [0, 0, 6, 7]}, "north": {"texture": "#paper", "uv": [0, 0, 6, 2]}, "south": {"texture": "#paper", "uv": [0, 0, 6, 2]},
+                 "east": {"texture": "#paper", "uv": [0, 0, 7, 2]}, "west": {"texture": "#paper", "uv": [0, 0, 7, 2]} } },
+    { "from": [11, 15.25, 4], "to": [13, 16.25, 6],
+      "faces": { "up": {"texture": "#stamp"}, "north": {"texture": "#stamp"}, "south": {"texture": "#stamp"}, "east": {"texture": "#stamp"}, "west": {"texture": "#stamp"} } },
+    { "from": [11.5, 16.25, 4.5], "to": [12.5, 18.25, 5.5],
+      "faces": { "up": {"texture": "#wood"}, "north": {"texture": "#wood"}, "south": {"texture": "#wood"}, "east": {"texture": "#wood"}, "west": {"texture": "#wood"} } },
+    { "from": [11, 15.25, 10], "to": [13, 16.75, 12],
+      "faces": { "up": {"texture": "#ink"}, "north": {"texture": "#ink"}, "south": {"texture": "#ink"}, "east": {"texture": "#ink"}, "west": {"texture": "#ink"} } },
+    { "from": [11.75, 16.75, 10.75], "to": [12.25, 19, 11.25], "rotation": {"angle": 22.5, "axis": "x", "origin": [12, 16.75, 11]},
+      "faces": { "north": {"texture": "#brass"}, "south": {"texture": "#brass"}, "east": {"texture": "#brass"}, "west": {"texture": "#brass"}, "up": {"texture": "#brass"} } }
+  ]
+}
