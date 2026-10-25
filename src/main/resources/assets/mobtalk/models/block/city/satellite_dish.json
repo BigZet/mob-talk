@@ -1,0 +1,232 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "dish": "mobtalk:block/city/dish",
+    "metal": "mobtalk:block/city/metal_grey",
+    "particle": "mobtalk:block/city/dish"
+  },
+  "elements": [
+    {
+      "from": [
+        7,
+        7,
+        12
+      ],
+      "to": [
+        9,
+        9,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#metal",
+          "uv": [
+            7,
+            7,
+            9,
+            9
+          ]
+        },
+        "south": {
+          "texture": "#metal",
+          "uv": [
+            7,
+            7,
+            9,
+            9
+          ]
+        },
+        "east": {
+          "texture": "#metal",
+          "uv": [
+            12,
+            7,
+            16,
+            9
+          ]
+        },
+        "west": {
+          "texture": "#metal",
+          "uv": [
+            12,
+            7,
+            16,
+            9
+          ]
+        },
+        "up": {
+          "texture": "#metal",
+          "uv": [
+            7,
+            12,
+            9,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#metal",
+          "uv": [
+            7,
+            12,
+            9,
+            16
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3,
+        3,
+        10
+      ],
+      "to": [
+        13,
+        13,
+        11
+      ],
+      "faces": {
+        "north": {
+          "texture": "#dish",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#metal",
+          "uv": [
+            3,
+            3,
+            13,
+            13
+          ]
+        },
+        "east": {
+          "texture": "#metal",
+          "uv": [
+            10,
+            3,
+            11,
+            13
+          ]
+        },
+        "west": {
+          "texture": "#metal",
+          "uv": [
+            10,
+            3,
+            11,
+            13
+          ]
+        },
+        "up": {
+          "texture": "#metal",
+          "uv": [
+            3,
+            10,
+            13,
+            11
+          ]
+        },
+        "down": {
+          "texture": "#metal",
+          "uv": [
+            3,
+            10,
+            13,
+            11
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          8,
+          12
+        ],
+        "axis": "x",
+        "angle": 22.5
+      }
+    },
+    {
+      "from": [
+        7.5,
+        7.5,
+        3
+      ],
+      "to": [
+        8.5,
+        8.5,
+        10
+      ],
+      "faces": {
+        "north": {
+          "texture": "#metal",
+          "uv": [
+            7.5,
+            7.5,
+            8.5,
+            8.5
+          ]
+        },
+        "south": {
+          "texture": "#metal",
+          "uv": [
+            7.5,
+            7.5,
+            8.5,
+            8.5
+          ]
+        },
+        "east": {
+          "texture": "#metal",
+          "uv": [
+            3,
+            7.5,
+            10,
+            8.5
+          ]
+        },
+        "west": {
+          "texture": "#metal",
+          "uv": [
+            3,
+            7.5,
+            10,
+            8.5
+          ]
+        },
+        "up": {
+          "texture": "#metal",
+          "uv": [
+            7.5,
+            3,
+            8.5,
+            10
+          ]
+        },
+        "down": {
+          "texture": "#metal",
+          "uv": [
+            7.5,
+            3,
+            8.5,
+            10
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          8,
+          12
+        ],
+        "axis": "x",
+        "angle": 22.5
+      }
+    }
+  ]
+}

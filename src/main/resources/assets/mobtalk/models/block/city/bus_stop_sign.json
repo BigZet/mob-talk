@@ -1,0 +1,146 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "pole": "mobtalk:block/city/metal_grey",
+    "sign": "mobtalk:block/city/bus_sign",
+    "particle": "mobtalk:block/city/bus_sign"
+  },
+  "elements": [
+    {
+      "from": [
+        7.25,
+        0,
+        7.25
+      ],
+      "to": [
+        8.75,
+        16,
+        8.75
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pole",
+          "uv": [
+            7.25,
+            0,
+            8.75,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#pole",
+          "uv": [
+            7.25,
+            0,
+            8.75,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#pole",
+          "uv": [
+            7.25,
+            0,
+            8.75,
+            16
+          ]
+        },
+        "west": {
+          "texture": "#pole",
+          "uv": [
+            7.25,
+            0,
+            8.75,
+            16
+          ]
+        },
+        "up": {
+          "texture": "#pole",
+          "uv": [
+            7.25,
+            7.25,
+            8.75,
+            8.75
+          ]
+        },
+        "down": {
+          "texture": "#pole",
+          "uv": [
+            7.25,
+            7.25,
+            8.75,
+            8.75
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3,
+        8,
+        7
+      ],
+      "to": [
+        13,
+        16,
+        7.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#sign",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#sign",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#pole",
+          "uv": [
+            7,
+            0,
+            7.5,
+            8
+          ]
+        },
+        "west": {
+          "texture": "#pole",
+          "uv": [
+            7,
+            0,
+            7.5,
+            8
+          ]
+        },
+        "up": {
+          "texture": "#pole",
+          "uv": [
+            3,
+            7,
+            13,
+            7.5
+          ]
+        },
+        "down": {
+          "texture": "#pole",
+          "uv": [
+            3,
+            7,
+            13,
+            7.5
+          ]
+        }
+      }
+    }
+  ]
+}

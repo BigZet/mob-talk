@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/city/red_cross"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/city/red_cross",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/city/red_cross",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/city/red_cross",
+      "y": 270
+    }
+  }
+}

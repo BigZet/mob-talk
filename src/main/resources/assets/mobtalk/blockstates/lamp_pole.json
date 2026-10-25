@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/city/lamp_pole"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/city/lamp_pole",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/city/lamp_pole",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/city/lamp_pole",
+      "y": 270
+    }
+  }
+}

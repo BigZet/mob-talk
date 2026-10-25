@@ -1,0 +1,146 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "board": "mobtalk:block/city/notice_board",
+    "frame": "mobtalk:block/city/bench_green",
+    "particle": "mobtalk:block/city/notice_board"
+  },
+  "elements": [
+    {
+      "from": [
+        1,
+        2,
+        15
+      ],
+      "to": [
+        15,
+        14,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#board",
+          "uv": [
+            1,
+            2,
+            15,
+            14
+          ]
+        },
+        "south": {
+          "texture": "#frame",
+          "uv": [
+            1,
+            2,
+            15,
+            14
+          ]
+        },
+        "east": {
+          "texture": "#frame",
+          "uv": [
+            15,
+            2,
+            16,
+            14
+          ]
+        },
+        "west": {
+          "texture": "#frame",
+          "uv": [
+            15,
+            2,
+            16,
+            14
+          ]
+        },
+        "up": {
+          "texture": "#frame",
+          "uv": [
+            1,
+            15,
+            15,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#frame",
+          "uv": [
+            1,
+            15,
+            15,
+            16
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.5,
+        13.5,
+        14
+      ],
+      "to": [
+        15.5,
+        15,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#frame",
+          "uv": [
+            0.5,
+            1,
+            15.5,
+            2.5
+          ]
+        },
+        "south": {
+          "texture": "#frame",
+          "uv": [
+            0.5,
+            1,
+            15.5,
+            2.5
+          ]
+        },
+        "east": {
+          "texture": "#frame",
+          "uv": [
+            14,
+            1,
+            16,
+            2.5
+          ]
+        },
+        "west": {
+          "texture": "#frame",
+          "uv": [
+            14,
+            1,
+            16,
+            2.5
+          ]
+        },
+        "up": {
+          "texture": "#frame",
+          "uv": [
+            0.5,
+            14,
+            15.5,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#frame",
+          "uv": [
+            0.5,
+            14,
+            15.5,
+            16
+          ]
+        }
+      }
+    }
+  ]
+}

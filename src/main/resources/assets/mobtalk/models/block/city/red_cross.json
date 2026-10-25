@@ -1,0 +1,79 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "plate": "mobtalk:block/city/red_cross",
+    "metal": "mobtalk:block/city/metal_grey",
+    "particle": "mobtalk:block/city/red_cross"
+  },
+  "elements": [
+    {
+      "from": [
+        2,
+        2,
+        15
+      ],
+      "to": [
+        14,
+        14,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plate",
+          "uv": [
+            2,
+            2,
+            14,
+            14
+          ]
+        },
+        "south": {
+          "texture": "#metal",
+          "uv": [
+            2,
+            2,
+            14,
+            14
+          ]
+        },
+        "east": {
+          "texture": "#metal",
+          "uv": [
+            15,
+            2,
+            16,
+            14
+          ]
+        },
+        "west": {
+          "texture": "#metal",
+          "uv": [
+            15,
+            2,
+            16,
+            14
+          ]
+        },
+        "up": {
+          "texture": "#metal",
+          "uv": [
+            2,
+            15,
+            14,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#metal",
+          "uv": [
+            2,
+            15,
+            14,
+            16
+          ]
+        }
+      }
+    }
+  ],
+  "ambientocclusion": false
+}

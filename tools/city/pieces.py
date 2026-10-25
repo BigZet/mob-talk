@@ -12,10 +12,12 @@ hospital, so each city has both. Writes into src/main/resources/data/mobtalk/:
 import copy
 import json
 import os
+import random
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import nbt  # noqa: E402
+import yards  # noqa: E402
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 DATA = os.path.join(ROOT, "src", "main", "resources", "data", "mobtalk")
@@ -140,6 +142,368 @@ def structure(kind):
     })
 
 
+# ---------------------------------------------------------------- decoration of the imported pieces
+
+DIRS = {"north": (0, -1), "south": (0, 1), "east": (1, 0), "west": (-1, 0)}
+OPPOSITE = {"north": "south", "south": "north", "east": "west", "west": "east"}
+SOLID_SKIP = ("air", "glass", "pane", "door", "jigsaw", "structure_void", "bars", "fence", "leaves", "torch", "lantern", "flower",
+              "grass", "fern", "slab", "stairs", "trapdoor", "carpet", "sign", "banner", "button", "rail", "chain", "wall")
+
+
+class Template:
+    """A structure template as a grid of block names and properties, which decorations can be added to."""
+
+    def __init__(self, rel):
+        self.rel = rel
+        self.name, self.tag = load(rel)
+        v = self.tag.value
+        self.size = [x.value for x in v["size"].value]
+        self.palette = v["palette"].value
+        self.grid = {}
+        for b in v["blocks"].value:
+            p = self.palette[b.value["state"].value].value
+            props = {k: x.value for k, x in p["Properties"].value.items()} if "Properties" in p else {}
+            self.grid[tuple(pos(b))] = (p["Name"].value, props, b)
+        self.added = 0
+
+    def name_at(self, x, y, z):
+        cell = self.grid.get((x, y, z))
+        return cell[0] if cell else None
+
+    def air(self, x, y, z):
+        return self.name_at(x, y, z) in ("minecraft:air", "minecraft:cave_air")
+
+    def solid(self, x, y, z):
+        n = self.name_at(x, y, z)
+        return n is not None and not any(k in n for k in SOLID_SKIP)
+
+    def state(self, name, props=None):
+        for i, p in enumerate(self.palette):
+            if p.value["Name"].value != name:
+                continue
+            have = {k: x.value for k, x in p.value["Properties"].value.items()} if "Properties" in p.value else {}
+            if have == (props or {}):
+                return i
+        entry = nbt.c(Name=nbt.Tag(nbt.STRING, name))
+        if props:
+            entry.value["Properties"] = nbt.c(**{k: nbt.Tag(nbt.STRING, v) for k, v in props.items()})
+        self.palette.append(entry)
+        return len(self.palette) - 1
+
+    def put(self, x, y, z, name, props=None, block_nbt=None):
+        """Sets a cell (replacing what the template had there)."""
+        if not (0 <= x < self.size[0] and 0 <= y < self.size[1] and 0 <= z < self.size[2]):
+            return False
+        block = nbt.c(pos=nbt.Tag(nbt.LIST, [nbt.Tag(nbt.INT, x), nbt.Tag(nbt.INT, y), nbt.Tag(nbt.INT, z)], nbt.INT),
+                      state=nbt.Tag(nbt.INT, self.state(name, props)))
+        if block_nbt is not None:
+            block.value["nbt"] = block_nbt
+        old = self.grid.get((x, y, z))
+        blocks = self.tag.value["blocks"].value
+        if old:
+            blocks[blocks.index(old[2])] = block
+        else:
+            blocks.append(block)
+        self.grid[(x, y, z)] = (name, props or {}, block)
+        self.added += 1
+        return True
+
+    def open_sky(self, x, y, z, height=6):
+        return all(self.air(x, y + k, z) or (y + k >= self.size[1]) for k in range(height))
+
+    def ray_out(self, x, y, z, dx, dz):
+        """Open air (or connectors) from here to the template's edge: a porch under a roof still faces the street."""
+        while True:
+            n = self.name_at(x, y, z)
+            if n is None:
+                return True
+            if n not in ("minecraft:air", "minecraft:cave_air", "minecraft:jigsaw", "minecraft:structure_void"):
+                return False
+            x, z = x + dx, z + dz
+
+    def save(self):
+        save(self.rel, self.name, self.tag)
+
+
+def sign_nbt(lines, wood="dark_oak"):
+    msgs = [json.dumps({"text": t}, ensure_ascii=False) for t in (lines + ["", "", "", ""])[:4]]
+    text = nbt.c(messages=nbt.Tag(nbt.LIST, [nbt.Tag(nbt.STRING, m) for m in msgs], nbt.STRING),
+                 color=nbt.Tag(nbt.STRING, "black"), has_glowing_text=nbt.Tag(nbt.BYTE, 0))
+    back = nbt.c(messages=nbt.Tag(nbt.LIST, [nbt.Tag(nbt.STRING, '""')] * 4, nbt.STRING),
+                 color=nbt.Tag(nbt.STRING, "black"), has_glowing_text=nbt.Tag(nbt.BYTE, 0))
+    return nbt.c(id=nbt.Tag(nbt.STRING, "minecraft:sign"), front_text=text, back_text=back, is_waxed=nbt.Tag(nbt.BYTE, 1))
+
+
+def entrance_y(t):
+    ys = [p[1] for p, (n, props, b) in t.grid.items() if n == "minecraft:jigsaw" and "nbt" in b.value
+          and "building_entrance" in b.value["nbt"].value["name"].value]
+    return min(ys) if ys else None
+
+
+def street_doors(t, ey):
+    """Ground floor doors that open to the open air: (door cell, direction to the outside)."""
+    out = []
+    for (x, y, z), (n, props, _) in t.grid.items():
+        if not n.endswith("_door") or props.get("half") != "lower" or abs(y - ey) > 1:
+            continue
+        axis = props.get("facing")
+        for d in ((axis, OPPOSITE[axis]) if axis in DIRS else ()):
+            dx, dz = DIRS[d]
+            if t.air(x + dx, y, z + dz) and t.solid(x + dx, y - 1, z + dz) and (
+                    t.open_sky(x + dx, y, z + dz) or t.ray_out(x + dx, y, z + dz, dx, dz)):
+                out.append(((x, y, z), d))
+                break
+    return out
+
+
+def decorate_building(t, r, admin=False, hospital=False):
+    """Benches and a bin by each street door, a notice board beside it, air conditioners and dishes on the walls; at the
+    administration a flag and a sign, at the hospital the red cross and a sign."""
+    ey = entrance_y(t)
+    if ey is None:
+        ey = 1  # a town centre: its ground floor is level with the streets' connectors
+    doors = street_doors(t, ey)
+    done = set()
+    for (x, y, z), out in doors:
+        if (x // 3, z // 3) in done:  # double doors: one set of benches
+            continue
+        done.add((x // 3, z // 3))
+        dx, dz = DIRS[out]
+        ox, oz = x + dx, z + dz  # the cell outside the door
+        side = (dz, dx) if dx == 0 else (dz, dx)
+        along = [(-dz, dx), (dz, -dx)]  # both ways along the wall
+        wall_facing = out
+        # a notice board on the wall next to the door, at eye level
+        for ax, az in along:
+            bx, bz = ox + ax, oz + az
+            if t.air(bx, y + 1, bz) and t.solid(bx - dx, y + 1, bz - dz):
+                t.put(bx, y + 1, bz, "mobtalk:notice_board", {"facing": wall_facing})
+                break
+        if admin or hospital:
+            for ax, az in along:
+                bx, bz = ox + ax * 2, oz + az * 2
+                if t.air(bx, y + 1, bz) and t.solid(bx - dx, y + 1, bz - dz):
+                    t.put(bx, y + 1, bz, "minecraft:dark_oak_wall_sign", {"facing": wall_facing, "waterlogged": "false"},
+                          sign_nbt(["Администрация", "города"] if admin else ["Городская", "больница"]))
+                    break
+        if hospital:  # the red cross over the door, or beside it when a porch roof is in the way
+            spots = [(ox, y + k, oz) for k in (2, 3, 4)] + [(ox + ax * k, y + 2, oz + az * k) for k in (1, 3) for ax, az in along]
+            for bx, by, bz in spots:
+                if t.air(bx, by, bz) and t.solid(bx - dx, by, bz - dz):
+                    t.put(bx, by, bz, "mobtalk:red_cross", {"facing": wall_facing})
+                    break
+        # a bench on each side of the door, backs to the wall, and a bin beside one of them
+        for i, (ax, az) in enumerate(along):
+            for k in (2, 3):
+                bx, bz = ox + ax * k, oz + az * k
+                if t.air(bx, y, bz) and t.solid(bx, y - 1, bz) and t.air(bx, y + 1, bz):
+                    t.put(bx, y, bz, "mobtalk:bench", {"facing": out})
+                    ux, uz = bx + ax, bz + az
+                    if i == 0 and t.air(ux, y, uz) and t.solid(ux, y - 1, uz):
+                        t.put(ux, y, uz, "mobtalk:urn", {"facing": out})
+                    break
+    if admin:
+        place_flag(t, ey, r)
+    # air conditioners and satellite dishes on the outer walls above the ground floor
+    sx, sy, sz = t.size
+    for (x, y, z), (n, props, _) in list(t.grid.items()):
+        if y < ey + 4 or not t.solid(x, y, z) or "glass" in n:
+            continue
+        for d, (dx, dz) in DIRS.items():
+            ax, az = x + dx, z + dz
+            if not (t.air(ax, y, az) and t.air(ax, y - 1, az) and t.air(ax + dx, y, az + dz) and t.air(ax, y + 1, az)):
+                continue
+            # only on a wall that faces out of the building: open air all the way to the template's edge
+            reach = 1
+            while t.air(ax + dx * reach, y, az + dz * reach):
+                reach += 1
+            if t.name_at(ax + dx * reach, y, az + dz * reach) is not None:
+                continue
+            roll = r.random()
+            if roll < 0.035:
+                t.put(ax, y, az, "mobtalk:air_conditioner", {"facing": d})
+            elif roll < 0.045:
+                t.put(ax, y, az, "mobtalk:satellite_dish", {"facing": d})
+
+
+def place_flag(t, ey, r):
+    """The Russian flag on a pole on the square in front of the administration: the open paved cell nearest the middle."""
+    sx, sy, sz = t.size
+    best = None
+    for (x, y, z), (n, props, _) in t.grid.items():
+        if y != ey - 1 or not t.solid(x, y, z) or not t.open_sky(x, y + 1, z, 5):
+            continue
+        if any(not t.air(x + dx, y + 1, z + dz) for dx in (-1, 0, 1) for dz in (-1, 0, 1)):
+            continue
+        d = abs(x - sx / 2) + abs(z - sz / 2)
+        if best is None or d < best[0]:
+            best = (d, x, y, z)
+    if best:
+        _, x, y, z = best
+        for k in (1, 2, 3):
+            t.put(x, y + k, z, "mobtalk:flagpole", {"facing": "north"})
+        t.put(x, y + 4, z, "mobtalk:flag", {"facing": r.choice(list(DIRS))})
+
+
+def decorate_street(t, r):
+    """Street lamps along the pavement, every twelve blocks, by turns on either side, arms over the road."""
+    sx, sy, sz = t.size
+    if sx != 5:
+        return
+    for z in range(4, sz - 3, 12):
+        x, facing = (0, "east") if (z // 12) % 2 == 0 else (4, "west")
+        if t.name_at(x, 0, z) is None or not t.solid(x, 0, z):
+            continue
+        cell = t.name_at(x, 1, z)
+        if cell not in ("minecraft:air", "minecraft:jigsaw"):
+            continue
+        b = t.grid[(x, 1, z)][2] if cell == "minecraft:jigsaw" else None
+        if b is not None and "building_entrance" not in b.value["nbt"].value["name"].value:
+            continue  # never a street's own connector
+        t.put(x, 1, z, "mobtalk:lamp_pole", {"facing": facing})
+        t.put(x, 2, z, "mobtalk:lamp_pole", {"facing": facing})
+        t.put(x, 3, z, "mobtalk:lamp_pole", {"facing": facing})
+        t.put(x, 4, z, "mobtalk:street_lamp", {"facing": facing})
+
+
+def decorate_all():
+    root = os.path.join(DATA, "structure", "city")
+    counts = {"buildings": 0, "streets": 0, "blocks": 0}
+    for dp, _dn, fn in os.walk(root):
+        for f in sorted(fn):
+            rel = os.path.relpath(os.path.join(dp, f), root)[:-4].replace(os.sep, "/")
+            if rel.startswith("ours/") and not rel.endswith(("admin_centre", "hospital_street")):
+                continue
+            t = Template(rel)
+            names = set()
+            for (n, props, b) in t.grid.values():
+                if n == "minecraft:jigsaw" and "nbt" in b.value:
+                    names.add(b.value["nbt"].value["name"].value)
+            r = random.Random(rel)
+            if any("street" in n or "cross" in n for n in names) and ("street" in rel or "road" in rel or "sidewalk" in rel):
+                decorate_street(t, r)
+                kind = "streets"
+            elif any("building_entrance" in n for n in names) or rel.endswith("admin_centre"):
+                decorate_building(t, r, admin=rel.endswith("admin_centre") or "meriya" in rel or "rada" in rel,
+                                  hospital="hospital" in rel and "street" not in rel)
+                kind = "buildings"
+            else:
+                continue
+            if t.added:
+                t.save()
+                counts[kind] += 1
+                counts["blocks"] += t.added
+    print("decorated:", counts)
+
+
+# ---------------------------------------------------------------- sign texts: Russian, roubles, nothing personal or political
+
+SIGNS = {
+    ("", "                   Ї Д", "", ""): ("", "                   Е Д", "", ""),
+    ("", "А Л Ь Н Я             ", "", ""): ("", "Т И П О Г Р А Ф И Я", "", ""),
+    ("", "BedComFORT", "", ""): ("", "Мебель", "", ""),
+    ("", "CІЛЬПОМАРКЕТ", "", ""): ("", "УНИВЕРСАМ", "", ""),
+    ("", "Youipun", "Великий", "Ушкотопец"): ("", "Памятник", "основателям", "города"),
+    ("", "__banjamin", "Рыжий кот", ""): ("", "Памятник", "рыжему коту", ""),
+    ("", "Бухгалтерія", "", ""): ("", "Бухгалтерия", "", ""),
+    ("", "Білуга", "", ""): ("", "Белуга", "", ""),
+    ("", "ЗАВОД", "БОМБ!", ""): ("", "ЗАВОД", "ЖБИ", ""),
+    ("", "КАТРАН", "(рибна крамниця)", ""): ("", "РЫБА", "(магазин)", ""),
+    ("", "КАФЕ", "ДНІПРОВСЬКЕ", ""): ("", "КАФЕ", "ВОЛЖСКОЕ", ""),
+    ("", "ЗАВОД ПО", "МЕТАЛУРГИИ", ""): ("", "ЗАВОД ПО", "МЕТАЛЛУРГИИ", ""),
+    ("", "ЛАБОРАТОРІЯ", "", ""): ("", "ЛАБОРАТОРИЯ", "", ""),
+    ("", "ОПАСНЫЙ", "ТВАР!!!", ""): ("", "ОПАСНЫЙ", "ТОВАР!!!", ""),
+    ("", "ПЛАТА", "1", ""): ("", "ПАЛАТА", "1", ""),
+    ("", "СМІТТЯ", "", ""): ("", "МУСОР", "", ""),
+    ("", "ТРІСКА", "", ""): ("", "ТРЕСКА", "", ""),
+    ("", "ТУНЕЦЬ", "", ""): ("", "ТУНЕЦ", "", ""),
+    ("", "Сайда", "", ""): ("", "Сайда", "", ""),
+    ("+-------------+", "USSR", "VINYL", "+-------------+"): ("+-------------+", "ПЛАСТИНКИ", "МЕЛОДИЯ", "+-------------+"),
+    ("Vyenya Kogtyv", "2018-2024", "R.I.P my cat :(", "#FreeUkraine"): ("Здесь жил", "кот Веня", "", ""),
+    ("АЗОВСТАЛЬ", "КАЧЕСТВЕННАЯ", "СТАЛЬ", "СТРАНЫ"): ("МЕТКОМБИНАТ", "КАЧЕСТВЕННАЯ", "СТАЛЬ", "СТРАНЫ"),
+    ("ДЕСЕРТИ", "ВІД", "30 грн", ""): ("ДЕСЕРТЫ", "ОТ", "60 руб.", ""),
+    ("КАСА", "1", "", ""): ("КАССА", "1", "", ""),
+    ("КАСА", "2", "", ""): ("КАССА", "2", "", ""),
+    ("КАСА", "3", "", ""): ("КАССА", "3", "", ""),
+    ("КАСА", "4", "", ""): ("КАССА", "4", "", ""),
+    ("Металеве броня,", "Шкіряна броня,", "Підшивка", ""): ("Броня из железа,", "броня из кожи,", "подшивка", ""),
+    ("САЛАТИ", "ВІД", "45 грн", ""): ("САЛАТЫ", "ОТ", "90 руб.", ""),
+    ("СВІЖА", "ВИПІЧКА", "від", "35 грн"): ("СВЕЖАЯ", "ВЫПЕЧКА", "от", "70 руб."),
+    ("СМАЖЕНЕ", "М'ЯСО", "від", "140 грн"): ("ЖАРЕНОЕ", "МЯСО", "от", "280 руб."),
+    ("", "МОЛОКО", "СГУЩЁНОЕ", ""): ("", "МОЛОКО", "СГУЩЁННОЕ", ""),
+    ("МОЛОКО", "СГУЩЁНОЕ", "", ""): ("МОЛОКО", "СГУЩЁННОЕ", "", ""),
+}
+
+
+def sign_line(raw):
+    """(text, the parsed JSON component or None)"""
+    try:
+        v = json.loads(raw)
+    except ValueError:
+        return raw, None
+    if isinstance(v, str):
+        return v, None
+    if isinstance(v, dict):
+        return v.get("text", ""), v
+    return raw, None
+
+
+def russify_signs():
+    root = os.path.join(DATA, "structure", "city")
+    changed = 0
+    for dp, _dn, fn in os.walk(root):
+        for f in sorted(fn):
+            rel = os.path.relpath(os.path.join(dp, f), root)[:-4].replace(os.sep, "/")
+            name, tag = load(rel)
+            dirty = False
+            for b in tag.value["blocks"].value:
+                if "nbt" not in b.value:
+                    continue
+                n = b.value["nbt"].value
+                for side in ("front_text", "back_text"):
+                    if side not in n:
+                        continue
+                    msgs = n[side].value["messages"].value
+                    lines = [sign_line(m.value) for m in msgs]
+                    new = SIGNS.get(tuple(t for t, _ in lines))
+                    if new is None:
+                        continue
+                    for m, (_t, comp), text in zip(msgs, lines, new):
+                        comp = dict(comp or {})
+                        comp["text"] = text
+                        m.value = json.dumps(comp, ensure_ascii=False)
+                    dirty = True
+            if dirty:
+                save(rel, name, tag)
+                changed += 1
+    print("signs rewritten in", changed, "templates")
+
+
+# House pools that streets hang their side connectors on, with the connector the houses there must have.
+HOUSE_POOLS = {"5th_brick/house": "_5th", "medium_brick/house/variant_1": "", "small_5th/house/variant_1": "",
+               "medium_9th/house/variant_1": "", "medium_mix/house/variant_1": "", "corgi/house/variant_1": ""}
+YARD_SHARE = 0.25  # of the plots along a street
+
+
+def add_yards():
+    """Our courtyards between the houses: about a quarter of the plots, the three kinds equally."""
+    built = yards.build_all(save)
+    for rel, suffix in HOUSE_POOLS.items():
+        path = os.path.join(DATA, "worldgen", "template_pool", "city", rel + ".json")
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        data["elements"] = [e for e in data["elements"] if "/ours/yard/" not in e["element"].get("location", "")]
+        total = sum(e["weight"] for e in data["elements"])
+        mine = [b for b in built if b.endswith(suffix) and (suffix or not b.endswith("_5th"))]
+        weight = max(1, round(total * YARD_SHARE / (1 - YARD_SHARE) / len(mine)))
+        for b in mine:
+            for w in [150] * (weight // 150) + ([weight % 150] if weight % 150 else []):  # a pool weight is at most 150
+                data["elements"].append({"weight": w, "element": {"location": "mobtalk:city/" + b, "processors": "minecraft:empty",
+                                                                      "projection": "rigid", "element_type": "minecraft:single_pool_element"}})
+        write_json("worldgen/template_pool/city/" + rel + ".json", data)
+    print("yards:", len(built), "templates")
+
+
 def main():
     write_json("worldgen/template_pool/city/ours/hospital.json",
                pool(HOSPITAL_POOL, "mobtalk:city/houses/hospital_a/main", "mobtalk:city/village_common"))
@@ -147,6 +511,9 @@ def main():
         hospital_street(kind, street, processors)
         admin_centre(kind, centre)
         structure(kind)
+    russify_signs()
+    add_yards()
+    decorate_all()
     write_json("tags/worldgen/biome/has_structure/city.json", {"replace": False, "values": BIOMES})
     # A city is a village to the game too (maps, /locate #village, Mob Talk's VillageSites).
     tag = os.path.join(ROOT, "src", "main", "resources", "data", "minecraft", "tags", "worldgen", "structure", "village.json")
