@@ -4,7 +4,10 @@ import io.github.mobtalk.MobTalkMod;
 import io.github.mobtalk.game.mixin.StructureSetAccessor;
 import io.github.mobtalk.server.ServerConfig;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.minecraft.registry.DynamicRegistryManager;
 import net.minecraft.registry.Registry;
@@ -29,14 +32,18 @@ public final class CityWorldgen {
     private static final TagKey<Biome> CITY_BIOMES = TagKey.of(RegistryKeys.BIOME, Identifier.of("mobtalk", "has_structure/city"));
     /** Every weight already in the set is multiplied by this, so the cities' share needs no rounding to whole villages. */
     private static final int SCALE = 60;
-    private static StructureSet patchedSet;
-    private static List<StructureSet.WeightedEntry> original = List.of();
 
     public static void register() {
+        // The cities must be in the set before the overworld is built: it notes then which structures each set may place, and /locate
+        // and the structure checks go by that note. The weights are counted again once the world loads, after the village mods.
+        ServerLifecycleEvents.SERVER_STARTING.register(server -> apply(server.getRegistryManager(), ServerConfig.get().cityPerVillages));
         ServerWorldEvents.LOAD.register((server, world) -> {
             if (world.getRegistryKey() == World.OVERWORLD) apply(server.getRegistryManager(), ServerConfig.get().cityPerVillages);
         });
     }
+
+    /** The entries this class put into the set: cities, and other structures' entries with their weight scaled (to the original weight). */
+    private static final Map<StructureSet.WeightedEntry, Integer> OURS = new IdentityHashMap<>();
 
     /** Puts the cities into the villages' set with the weight for one city per {@code perVillages} villages; 0 takes them out. */
     static synchronized void apply(DynamicRegistryManager registries, int perVillages) {
@@ -47,9 +54,13 @@ public final class CityWorldgen {
         if (villages == null) return;
         List<RegistryEntry<Structure>> cities = new ArrayList<>();
         for (String kind : KINDS) structures.getEntry(RegistryKey.of(RegistryKeys.STRUCTURE, Identifier.of("mobtalk", "city_" + kind))).ifPresent(cities::add);
-        // The set as the village mods left it, remembered on the first load of this server's registries (later loads find our entries).
-        if (villages != patchedSet) { patchedSet = villages; original = List.copyOf(villages.structures()); }
-        List<StructureSet.WeightedEntry> others = original;
+        // The set as the village mods left it: our cities out, our scaled copies back to their weight, anything new as it is.
+        List<StructureSet.WeightedEntry> others = new ArrayList<>();
+        for (StructureSet.WeightedEntry entry : villages.structures()) {
+            Integer original = OURS.get(entry);
+            if (original == null) others.add(entry);
+            else if (original > 0) others.add(new StructureSet.WeightedEntry(entry.structure(), original));
+        }
         // The villages' weight in an average city biome: what a city competes with where it may stand.
         double sum = 0;
         int counted = 0;
@@ -59,11 +70,20 @@ public final class CityWorldgen {
             if (weight > 0) { sum += weight; counted++; }
         }
         List<StructureSet.WeightedEntry> result = new ArrayList<>();
-        for (StructureSet.WeightedEntry entry : others) result.add(new StructureSet.WeightedEntry(entry.structure(), entry.weight() * SCALE));
+        OURS.clear();
+        for (StructureSet.WeightedEntry entry : others) {
+            StructureSet.WeightedEntry scaled = new StructureSet.WeightedEntry(entry.structure(), entry.weight() * SCALE);
+            OURS.put(scaled, entry.weight());
+            result.add(scaled);
+        }
         int each = 0;
         if (perVillages > 0 && counted > 0 && !cities.isEmpty()) {
             each = Math.max(1, (int) Math.round(sum / counted * SCALE / perVillages / cities.size()));
-            for (RegistryEntry<Structure> city : cities) result.add(new StructureSet.WeightedEntry(city, each));
+            for (RegistryEntry<Structure> city : cities) {
+                StructureSet.WeightedEntry entry = new StructureSet.WeightedEntry(city, each);
+                OURS.put(entry, 0);
+                result.add(entry);
+            }
         }
         ((StructureSetAccessor) (Object) villages).mobtalk$setStructures(List.copyOf(result));
         MobTalkMod.LOGGER.info("Mob Talk: города — {} видов, вес каждого {} против деревень {} (в среднем по биомам города, ×{}); один город на {} деревни",
