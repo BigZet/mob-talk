@@ -21,6 +21,8 @@ public final class VillageChatter {
     /** How close the two must stand, and the most lines one exchange has. */
     public static final double PAIR_RANGE = 5;
     public static final int MIN_LINES = 2, MAX_LINES = 3;
+    /** In the bar the talk runs a line longer: they sit over a mug, nobody is in a hurry. */
+    public static final int BAR_LINES = 4;
     /** What one exchange adds to the bond between the two (twice a meeting's), and how often a pair warms up by talking. */
     public static final int CHAT_GAIN = 4;
     public static final long CHAT_INTERVAL = 60_000L;
@@ -42,10 +44,16 @@ public final class VillageChatter {
     }
     /** The topic and its words for the prompt; {@code rumorId} is the rumour {@code a} tells, "" for none. */
     public record Subject(Topic topic, String text, String rumorId) { }
-    /** Everything one request needs. {@code acquainted}: the two already have a bond. */
-    public record Input(String villageKey, String villageName, Speaker a, Speaker b, Subject subject, String playerName, String weather, boolean acquainted) {
+    /** Everything one request needs. {@code acquainted}: the two already have a bond. {@code bar}: they sit in the village bar of an
+     * evening ({@code BarEvenings}); such a talk is chat text unless the bar's talk is to be voiced. */
+    public record Input(String villageKey, String villageName, Speaker a, Speaker b, Subject subject, String playerName, String weather, boolean acquainted, boolean bar) {
         public Input { villageName = villageName == null ? "" : villageName; playerName = playerName == null ? "" : playerName; weather = weather == null ? "" : weather; }
+        public Input(String villageKey, String villageName, Speaker a, Speaker b, Subject subject, String playerName, String weather, boolean acquainted) {
+            this(villageKey, villageName, a, b, subject, playerName, weather, acquainted, false);
+        }
         public Speaker speaker(int index) { return index == 0 ? a : b; }
+        /** The most lines this talk has. */
+        public int maxLines() { return bar ? BAR_LINES : MAX_LINES; }
     }
     /** One line: 0 for {@code a}, 1 for {@code b}. */
     public record Line(int speaker, String text) { }
@@ -72,6 +80,24 @@ public final class VillageChatter {
         options.add(new Subject(Topic.WORK, "работа и деревенские дела: " + a.name() + (a.profession().isBlank() ? "" : " — " + a.profession())
                 + ", " + b.name() + (b.profession().isBlank() ? "" : " — " + b.profession()), ""));
         if (facts.rumor() != null) options.add(new Subject(Topic.RUMOR, rumorTopic(a, b, facts.rumor()), facts.rumor().id()));
+        return options.get(Math.min(options.size() - 1, (int) (roll.getAsDouble() * options.size())));
+    }
+
+    /** The topic in the bar: the village's rumours first of all — a fresh one to pass on, else one both have heard to chew over —
+     * then the player's fame, a recent event, else the evening itself. {@code known}: a rumour both may know, or null. */
+    public static Subject barSubject(Speaker a, Speaker b, Facts facts, VillageRumors.View known, DoubleSupplier roll) {
+        double r = roll.getAsDouble();
+        if (!facts.divine().isBlank() && r < 0.85)
+            return new Subject(Topic.GOD, "только что случилось божье знамение, его обсуждают за кружкой вполголоса: " + facts.divine(), "");
+        if (facts.rumor() != null && r < 0.85) return new Subject(Topic.RUMOR, rumorTopic(a, b, facts.rumor()), facts.rumor().id());
+        if (known != null && r < 0.8)
+            return new Subject(Topic.RUMOR, "оба уже слышали в деревне: " + known.text() + (known.source().isBlank() ? "" : " (пошло от " + known.source() + ")")
+                    + ". Обсуждают это: кто прав, что будет дальше, привирают и спорят. Не начинай с «говорят, что»", "");
+        List<Subject> options = new ArrayList<>();
+        if (!facts.reputation().isBlank()) options.add(new Subject(Topic.REPUTATION, "что в деревне болтают об игроке (" + facts.reputation() + ")", ""));
+        if (!facts.recentEvent().isBlank()) options.add(new Subject(Topic.EVENT, "что недавно случилось с " + a.name() + ": " + facts.recentEvent(), ""));
+        options.add(new Subject(Topic.WORK, "как прошёл день: " + a.name() + (a.profession().isBlank() ? "" : " — " + a.profession())
+                + ", " + b.name() + (b.profession().isBlank() ? "" : " — " + b.profession()) + "; жалуются, хвастаются, подначивают друг друга", ""));
         return options.get(Math.min(options.size() - 1, (int) (roll.getAsDouble() * options.size())));
     }
 
@@ -122,7 +148,7 @@ public final class VillageChatter {
         List<Line> lines = new ArrayList<>();
         if (items == null) return lines;
         for (JsonElement item : items) {
-            if (!item.isJsonObject() || lines.size() >= MAX_LINES) continue;
+            if (!item.isJsonObject() || lines.size() >= input.maxLines()) continue;
             String text = clean(ReplySchema.optional(item.getAsJsonObject(), "text"), input);
             if (text.codePoints().noneMatch(Character::isLetter)) continue;
             // Turns alternate whatever the model labelled them: a talk of two is never one villager twice in a row.
@@ -147,12 +173,14 @@ public final class VillageChatter {
     static String instructions(Input input) {
         Speaker a = input.a(), b = input.b();
         return "Ты пишешь короткую сценку из жизни деревни" + (input.villageName().isBlank() ? "" : " «" + input.villageName() + "»") + " в мире Minecraft: "
-                + "два жителя переговариваются между собой, а игрок" + (input.playerName().isBlank() ? "" : " " + input.playerName()) + " стоит неподалёку и слышит их. "
+                + (input.bar() ? "вечер, два жителя сидят в деревенском баре за кружкой пива и болтают, а игрок" : "два жителя переговариваются между собой, а игрок")
+                + (input.playerName().isBlank() ? "" : " " + input.playerName()) + (input.bar() ? " сидит рядом и слышит их. " : " стоит неподалёку и слышит их. ")
                 + "a — " + describe(a) + "; b — " + describe(b) + ". "
                 + "Они соседи и знают друг друга в лицо: не представляются и не называют себя по имени, разговор начинается сразу с дела."
                 + " Тема: " + input.subject().text() + ". "
-                + "Напиши " + MIN_LINES + "–" + MAX_LINES + " реплики по очереди, первая — a. Каждая реплика — одна короткая разговорная фраза до 15 слов, по-русски, "
-                + "живо и в духе характера; говорят друг с другом, не с игроком; без ремарок, без кавычек, без имени говорящего в начале. "
+                + "Напиши " + MIN_LINES + "–" + input.maxLines() + " реплики по очереди, первая — a. Каждая реплика — одна короткая разговорная фраза до 15 слов, по-русски, "
+                + "живо и в духе характера" + (input.bar() ? ", по-кабацки свободно: можно подначить, посмеяться, поднять кружку" : "")
+                + "; говорят друг с другом, не с игроком; без ремарок, без кавычек, без имени говорящего в начале. "
                 + "Ничего не выдумывай сверх данных: события, имена и слухи — только из данных. Ответ — JSON с массивом lines, у каждой speaker \"a\" или \"b\" и text.";
     }
     private static String describe(Speaker s) {
@@ -163,6 +191,7 @@ public final class VillageChatter {
         JsonObject json = new JsonObject();
         json.addProperty("village", input.villageName()); json.addProperty("a", input.a().name()); json.addProperty("b", input.b().name());
         json.addProperty("topic", input.subject().topic().name().toLowerCase(Locale.ROOT)); json.addProperty("weather", input.weather());
+        if (input.bar()) json.addProperty("place", "деревенский бар, вечер");
         return json;
     }
 }

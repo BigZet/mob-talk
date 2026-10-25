@@ -249,6 +249,8 @@ final class SpontaneousVoices {
                 bridge.memory().recordChatter(talk, lines.stream().map(l -> new VillageChatter.Line(l.speaker().equals(talk.a().id()) ? 0 : 1, l.text())).toList(), System.currentTimeMillis());
             }
             service.playOverheard(session, speaker, line.name(), line.text(), line.audio(), range());
+            // A line without a voice (the bar's talk, a failed voice) is read, not heard: the next waits as long as reading takes.
+            if (line.audio() == null) session.floorUntil = Math.max(session.floorUntil, System.currentTimeMillis() + 1800 + 55L * line.text().length());
         }));
     }
 
