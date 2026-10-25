@@ -195,9 +195,12 @@ final class SelfTestTowers {
         Vec3d away = at.subtract(Vec3d.ofCenter(site)).multiply(1, 0, 1).normalize();
         Vec3d eye = at.add(away.multiply(3.5)).add(0, 0.5, 0);
         test.command("tp " + name() + " " + eye.x + " " + eye.y + " " + eye.z);
-        test.await("pause: by the builder", 2, () -> false, () -> {
-            test.owner.client.player.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, onServer(b::getEyePos).subtract(0, 0.3, 0));
-            shot("mobtalk-towers-builder.png", then);
+        // The camera follows the builder until the picture is taken: it keeps walking round the tower.
+        Runnable aim = () -> test.owner.client.player.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, onServer(b::getEyePos).subtract(0, 0.4, 0));
+        test.await("pause: by the builder", 2, () -> { aim.run(); return false; }, () -> {
+            aim.run();
+            ScreenshotRecorder.saveScreenshot(test.owner.client.runDirectory, "mobtalk-towers-builder.png", test.owner.client.getFramebuffer(), text -> test.log("screenshot: " + text.getString()));
+            test.await("pause: after the screenshot", 1, () -> false, then);
         });
     }
 
@@ -268,8 +271,12 @@ final class SelfTestTowers {
         test.check(archers.size() >= wanted, "a shooter came to every post (" + archers.size() + " for " + wanted + ")");
         test.check(crossbows == 2, "the large tower has two crossbowmen (" + crossbows + ")");
         test.check(archers.stream().allMatch(a -> onServer(() -> a.getMainHandStack().isOf(DefenseContent.crossbowman(a) ? Items.CROSSBOW : Items.BOW))), "archers hold bows, crossbowmen crossbows");
-        test.check(!archers.isEmpty() && archers.stream().allMatch(this::atPost), "the shooters stand by their posts");
-        sides(0, 0, "mobtalk-towers-", () -> sides(1, 0, "mobtalk-towers-large-", () -> inside(this::climb)));
+        // Newcomers may wander off at first: a stuck one is put at its post after 20 s.
+        test.await("the shooters at their posts", 25, () -> { List<VillagerEntity> all = archers(); return !all.isEmpty() && all.stream().allMatch(this::atPost); }, () -> {
+            List<VillagerEntity> all = archers();
+            test.check(!all.isEmpty() && all.stream().allMatch(this::atPost), "the shooters stand by their posts (" + all.stream().filter(this::atPost).count() + "/" + all.size() + ")");
+            sides(0, 0, "mobtalk-towers-", () -> sides(1, 0, "mobtalk-towers-large-", () -> inside(this::climb)));
+        });
     }
 
     /** A tower from the four sides, a little above. */

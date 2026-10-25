@@ -338,6 +338,12 @@ final class VillageTowers {
         return switch (facing) { case NORTH -> Direction.NORTH; case EAST -> Direction.EAST; case SOUTH -> Direction.SOUTH; case WEST -> Direction.WEST; };
     }
 
+    /** Whether this villager is building one of the world's towers now. */
+    boolean builds(ServerWorld world, VillagerEntity villager) {
+        for (Build build : saved(world).builds) if (villager.getUuid().equals(build.builder)) return true;
+        return false;
+    }
+
     /** The villager building the tower: the one already on it while it is about and awake, else a mason of the village, else its
      * grown villager nearest the site (never a guard or an archer, nobody in a conversation). Null when nobody can come now (the
      * village sleeps): the tower waits for its builder. A newly picked builder is named in the chat. */

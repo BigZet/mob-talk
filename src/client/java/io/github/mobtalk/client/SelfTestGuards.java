@@ -162,7 +162,7 @@ final class SelfTestGuards {
             test.check(post, "the guard's job site is a guard stand");
             test.check(away >= 0 && away <= 5, "by day the " + rank + " holds its stand (" + String.format(Locale.ROOT, "%.1f", away) + " blocks)");
         }
-        looks(rank(DefenseContent::guard), "guard", () -> looks(rank(DefenseContent::heavy), "heavy", () -> looks(rank(DefenseContent::cavalry), "cavalry", this::night)));
+        looks(rank(DefenseContent::guard), "guard", () -> looks(rank(DefenseContent::heavy), "heavy", () -> looks(rank(DefenseContent::cavalry), "cavalry", this::rider)));
     }
 
     /** The guard up close in the human look and the vanilla one. */
@@ -184,6 +184,88 @@ final class SelfTestGuards {
                 then.run();
             }));
         }));
+    }
+
+    /** The horseman in the saddle (Dmitriy's screenshots, 2026-10-25: it floated over the saddle, turned aside, pitched forward):
+     * seated as a player sits, facing with the horse, the horse not rearing; front and side, standing, riding and fighting. */
+    private void rider() {
+        VillagerEntity rider = rank(DefenseContent::cavalry);
+        if (rider == null || onServer(() -> rider.getVehicle()) == null) { test.fail("no horseman in the saddle"); night(); return; }
+        net.minecraft.entity.Entity horse = onServer(rider::getVehicle);
+        BlockPos spot = bell().add(20, 0, -20);
+        test.command("tp " + horse.getUuid() + " " + (spot.getX() + 0.5) + " " + fy + " " + (spot.getZ() + 0.5) + " 0 0");
+        test.server().execute(() -> { rider.setAiDisabled(true); if (horse instanceof net.minecraft.entity.mob.MobEntity m) m.setAiDisabled(true); });
+        test.command("tp " + name() + " " + (spot.getX() + 0.5) + " " + (fy + 1) + " " + (spot.getZ() + 5.5) + " 180 5");
+        test.await("pause: the horseman in front", 3, () -> false, () -> {
+            seat(rider, horse, "standing");
+            shot("mobtalk-guards-rider-front.png", () -> {
+                test.command("tp " + name() + " " + (spot.getX() + 5.5) + " " + (fy + 1) + " " + (spot.getZ() + 0.5) + " 90 5");
+                test.await("pause: the horseman from the side", 3, () -> false, () -> shot("mobtalk-guards-rider-side.png", () -> {
+                    // Riding: the horse is led along the side of the camera.
+                    test.server().execute(() -> { rider.setAiDisabled(false); if (horse instanceof net.minecraft.entity.mob.MobEntity m) { m.setAiDisabled(false);
+                        m.getNavigation().startMovingTo(spot.getX() + 0.5, fy, spot.getZ() - 10.5, 1.2); } });
+                    test.await("pause: the horseman riding", 2, () -> false, () -> {
+                        seat(rider, horse, "riding");
+                        shot("mobtalk-guards-rider-riding.png", () -> {
+                            // Fighting: a zombie beside the horse; the horseman strikes from the saddle.
+                            BlockPos at = BlockPos.ofFloored(onServer(horse::getPos)).add(2, 0, 0);
+                            test.command("summon minecraft:zombie " + (at.getX() + 0.5) + " " + fy + " " + (at.getZ() + 0.5) + " {PersistenceRequired:1b,IsBaby:0b,Tags:[\"" + TAG + "_ride\"]}");
+                            test.command("tp " + name() + " " + (at.getX() + 4.5) + " " + (fy + 1) + " " + (at.getZ() + 4.5) + " 135 10");
+                            boolean[] reared = new boolean[1];
+                            test.await("the horseman strikes the zombie from the saddle", 15, () -> {
+                                if (onServer(() -> horse instanceof net.minecraft.entity.passive.AbstractHorseEntity h && h.isAngry())) reared[0] = true;
+                                return onServer(() -> world().getEntitiesByClass(ZombieEntity.class, area(), z -> z.getCommandTags().contains(TAG + "_ride")
+                                        && z.getAttacker() == rider).size() > 0);
+                            }, () -> {
+                                seat(rider, horse, "fighting");
+                                test.check(!reared[0], "the guard's horse does not rear under its rider");
+                                shot("mobtalk-guards-rider-fighting.png", () -> {
+                                    test.command("kill @e[tag=" + TAG + "_ride]");
+                                    hands();
+                                });
+                            });
+                        });
+                    });
+                }));
+            });
+        });
+    }
+
+    /** A player with an emerald in hand looks at the heavy warrior for 10 s (vanilla's villager then shows its wares and empties its
+     * hand: the axe blinked away, Dmitriy 2026-10-25); no fighter's hand is ever empty meanwhile. */
+    private void hands() {
+        VillagerEntity heavy = rank(DefenseContent::heavy);
+        if (heavy == null) { test.fail("no heavy warrior for the hands check"); night(); return; }
+        test.server().execute(() -> test.serverPlayer().setStackInHand(Hand.MAIN_HAND, new net.minecraft.item.ItemStack(Items.EMERALD)));
+        Vec3d at = onServer(heavy::getPos);
+        test.command("tp " + name() + " " + (at.x + 2) + " " + at.y + " " + at.z);
+        Map<String, Integer> empty = new TreeMap<>();
+        int[] samples = new int[1];
+        test.await("pause: looking at the heavy warrior with an emerald", 10, () -> {
+            test.owner.client.player.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, onServer(heavy::getEyePos));
+            samples[0]++;
+            for (VillagerEntity v : guards())
+                if (onServer(() -> v.getMainHandStack().isEmpty())) empty.merge(rankOf(v), 1, Integer::sum);
+            return false;
+        }, () -> {
+            test.log("hands: " + samples[0] + " samples, empty main hand per rank " + empty);
+            test.check(empty.isEmpty(), "a fighter's weapon never leaves its hand while a player shows an emerald (" + empty + ")");
+            test.server().execute(() -> test.serverPlayer().setStackInHand(Hand.MAIN_HAND, net.minecraft.item.ItemStack.EMPTY));
+            night();
+        });
+    }
+
+    /** The rider sits on the saddle (its feet no higher than a player's would be) and its body faces as the horse's does (client). */
+    private void seat(VillagerEntity rider, net.minecraft.entity.Entity horse, String when) {
+        var client = test.owner.client;
+        net.minecraft.entity.Entity r = client.world.getEntityById(rider.getId()), h = client.world.getEntityById(horse.getId());
+        if (!(r instanceof VillagerEntity cr) || !(h instanceof net.minecraft.entity.LivingEntity ch)) { test.fail("the horseman is not seen on the client"); return; }
+        double lift = cr.getY() - ch.getY();
+        float turn = net.minecraft.util.math.MathHelper.wrapDegrees(cr.bodyYaw - ch.bodyYaw);
+        test.log("rider " + when + ": feet " + String.format(Locale.ROOT, "%.2f", lift) + " above the horse's, a player would sit at "
+                + String.format(Locale.ROOT, "%.2f", ch.getPassengerRidingPos(cr).y - ch.getY() - 0.6) + "; body turned " + String.format(Locale.ROOT, "%.0f", turn) + "° from the horse");
+        test.check(Math.abs(lift - (ch.getPassengerRidingPos(cr).y - ch.getY() - 0.6)) < 0.2, "the horseman sits in the saddle as a player would (" + when + ")");
+        test.check(Math.abs(turn) < 20, "the horseman faces with the horse (" + when + ", " + String.format(Locale.ROOT, "%.0f", turn) + "°)");
     }
 
     /** At night the guards on shift walk the round of the stands and the bell. */
@@ -318,7 +400,8 @@ final class SelfTestGuards {
         if (spot == null) spot = bell().add(16, 0, -16);
         BlockPos at = spot;
         double nearestGuard = guardsAt.stream().mapToDouble(g -> g.distanceTo(Vec3d.ofCenter(at))).min().orElse(-1);
-        test.command("summon minecraft:zombie " + at.getX() + " " + fy + " " + at.getZ() + " {PersistenceRequired:1b,IsBaby:0b,Tags:[\"" + TAG + "_in\"]}");
+        test.command("summon minecraft:zombie " + at.getX() + " " + fy + " " + at.getZ() + " {PersistenceRequired:1b,IsBaby:0b,Health:100f,attributes:[{id:\"minecraft:generic.max_health\",base:100d}],"
+                + "active_effects:[{id:\"minecraft:resistance\",amplifier:2b,duration:2000}],Tags:[\"" + TAG + "_in\"]}"); // sturdy: the towers' shooters must not end it before a guard comes
         test.command("tp " + name() + " " + (at.getX() + 6) + " " + (fy + 4) + " " + (at.getZ() + 6) + " 135 25");
         boolean[] struck = new boolean[1];
         String[] last = { "-" };
@@ -361,7 +444,7 @@ final class SelfTestGuards {
             test.command("summon minecraft:zombie " + (c.getX() + 1.5) + " " + fy + " " + (c.getZ() + 0.5) + " {PersistenceRequired:1b,IsBaby:0b,Tags:[\"" + TAG + "_conv\"]}");
         }
         UUID guardId = guard.getUuid(), plainId = plain.getUuid();
-        test.command("tp " + name() + " " + (fx - 27) + " " + (fy + 2) + " " + (fz + 25) + " 180 25");
+        test.command("tp " + name() + " " + (fx - 27) + " " + (fy + 2) + " " + (fz + 25) + " 0 25"); // facing south, at the two cells
         test.await("pause: the zombies at the cells", 3, () -> false, () -> shot("mobtalk-guards-conversion-before.png", () ->
             test.await("the zombies kill the guard and the villager", 30, () -> onServer(() -> !(world().getEntity(guardId) instanceof VillagerEntity g && g.isAlive())
                     && !(world().getEntity(plainId) instanceof VillagerEntity p && p.isAlive())), () -> {
