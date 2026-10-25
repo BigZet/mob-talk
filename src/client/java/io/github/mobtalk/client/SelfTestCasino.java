@@ -6,6 +6,7 @@ import io.github.mobtalk.game.CasinoWorldgen;
 import io.github.mobtalk.server.ServerConfig;
 import java.util.*;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
+import net.minecraft.block.Blocks;
 import net.minecraft.client.option.Perspective;
 import net.minecraft.client.util.ScreenshotRecorder;
 import net.minecraft.entity.Entity;
@@ -250,9 +251,99 @@ final class SelfTestCasino {
                 test.command("time set 18000");
                 test.await("pause: night falls", 2, () -> false, () -> { gview(-17, 7, 10, 8, 10, 10);
                 shot("mobtalk-casino-g12-night.png", () -> { gview(-9, 12.4, 10, 2, 12.4, 10);
-                shot("mobtalk-casino-g13-sign-night.png", () -> { test.command("time set 1000"); visitor(); }); }); });
+                shot("mobtalk-casino-g13-sign-night.png", () -> { test.command("time set 1000"); resort(); }); }); });
             }); }); }); }); }); }); }); }); }); }); });
         });
+    }
+
+    // ---- The resort «Фортуна» ----
+
+    /** The resort's template origin: its paving (y = 2 in the template) on the field's grass level, past the grand casino. */
+    private BlockPos r() { return new BlockPos(fx - 20, fy - 1 - 2, fz + 170); }
+
+    private void rview(double x, double y, double z, double tx, double ty, double tz) {
+        BlockPos b = r().subtract(o(0));
+        view(b.getX() + x, b.getY() + y, b.getZ() + z, b.getX() + tx, b.getY() + ty, b.getZ() + tz);
+    }
+
+    private void resort() {
+        test.command("gamemode spectator " + name());
+        BlockPos b = r();
+        String box = b.getX() + " " + b.getZ() + " " + (b.getX() + 79) + " " + (b.getZ() + 79);
+        test.command("forceload add " + box);
+        rview(40, 45, -40, 40, 15, 45);
+        test.await("pause: the resort's chunks load", 6, () -> false, () -> {
+            test.command("fill " + (b.getX() - 30) + " " + (b.getY() + 2) + " " + (b.getZ() - 50) + " " + (b.getX() + 110) + " " + (b.getY() + 2) + " " + (b.getZ() - 1) + " minecraft:grass_block");
+            test.command("place template mobtalk:casino/resort " + b.getX() + " " + b.getY() + " " + b.getZ());
+            test.command("kill @e[type=minecraft:item]");
+            test.await("the resort stands", 30, () -> onServer(() -> world().getBlockState(b.add(40, 32, 42)).isOf(Blocks.GOLD_BLOCK)
+                    && world().getBlockState(b.add(40, 4, 42)).isOf(Blocks.SEA_LANTERN)), this::checkResort);
+        });
+    }
+
+    private void checkResort() {
+        BlockPos b = r();
+        onServer(() -> {
+            ServerWorld w = world();
+            test.check(w.getRegistryManager().get(net.minecraft.registry.RegistryKeys.STRUCTURE).containsId(Identifier.of("mobtalk", "casino_resort")),
+                    "the resort is a worldgen structure");
+            test.check(w.getRegistryManager().get(net.minecraft.registry.RegistryKeys.TEMPLATE_POOL).containsId(Identifier.of("mobtalk", "casino/resort")),
+                    "the resort's template pool");
+            test.check(readSign(w, b, 47, 12, 16, 34).equals("★КАЗИНО★"), "the portico reads ★КАЗИНО★ (" + readSign(w, b, 47, 12, 16, 34) + ")");
+            String crown = readSign(w, b, 52, 63, 67, 29).replace("?", "");
+            test.check(crown.equals("★ФОРТУНА★"), "the hotel's crown reads ★ФОРТУНА★ (" + crown + ")");
+            test.check(w.getBlockState(b.add(74, 34, 1)).isOf(CasinoContent.LETTER), "the pylon's letters");
+            test.check(w.getBlockState(b.add(40, 20, 42)).isOf(CasinoContent.GRAND_CHANDELIER), "the great chandelier under the dome");
+            test.check(w.getBlockState(b.add(32, 4, 40)).isOf(CasinoContent.BLACKJACK), "twenty-one in the pit");
+            test.check(w.getBlockState(b.add(35, 4, 35)).isOf(CasinoContent.ROULETTE), "roulette in the pit");
+            test.check(w.getBlockState(b.add(36, 4, 50)).isOf(CasinoContent.POKER), "cards in the pit");
+            test.check(w.getBlockState(b.add(8, 2, 8)).isOf(CasinoContent.FOUNTAIN), "the fountain's jets");
+            test.check(w.getBlockState(b.add(40, 13, 27)).isOf(CasinoContent.COFFER), "the coffered ceiling");
+            int slots = 0;
+            for (BlockPos p : BlockPos.iterate(b.add(20, 4, 22), b.add(60, 4, 62))) if (w.getBlockState(p).isOf(CasinoContent.SLOT)) slots++;
+            test.check(slots >= 60, "slot machines all round (" + slots + ")");
+            return null;
+        });
+        test.await("the resort's bouncers are there", 10, () -> onServer(() -> world().getEntitiesByClass(VillagerEntity.class,
+                new Box(b).stretch(80, 20, 80), CasinoContent::bouncer).size() >= 4), () -> {
+            rview(40, 45, -40, 40, 15, 45);
+            shot("mobtalk-casino-r01-aerial.png", () -> { rview(40, 5, -10, 40, 16, 40);
+            shot("mobtalk-casino-r02-front.png", () -> { rview(58, 22, -10, 73.5, 20, 2);
+            shot("mobtalk-casino-r03-pylon.png", () -> { rview(40, 11, 4, 40, 11.5, 16);
+            shot("mobtalk-casino-r04-portico.png", () -> { rview(40, 7, 25, 40, 5, 50);
+            shot("mobtalk-casino-r05-hall.png", () -> { rview(40, 6, 33, 40, 26, 42);
+            shot("mobtalk-casino-r06-dome-inside.png", () -> { rview(31, 7, 44, 23, 7, 42);
+            shot("mobtalk-casino-r07-slots.png", () -> { rview(36.5, 6.5, 37, 32, 4, 40.5);
+            shot("mobtalk-casino-r08-twenty-one.png", () -> { rview(37, 6, 32, 35, 4, 35.5);
+            shot("mobtalk-casino-r09-roulette.png", () -> { rview(38.5, 6.5, 47, 36, 4, 50.5);
+            shot("mobtalk-casino-r10-cards.png", () -> { rview(46, 6, 47, 40, 5, 42);
+            shot("mobtalk-casino-r11-bar.png", () -> { rview(25, 4, 63, 40, 40, 74);
+            shot("mobtalk-casino-r12-hotel.png", () -> { rview(40, 55, 120, 40, 20, 40);
+            shot("mobtalk-casino-r13-back.png", () -> {
+                test.command("time set 18000");
+                test.await("pause: night falls", 3, () -> false, () -> { rview(40, 45, -40, 40, 15, 45);
+                shot("mobtalk-casino-r14-aerial-night.png", () -> { rview(40, 5, -10, 40, 16, 40);
+                shot("mobtalk-casino-r15-front-night.png", () -> { rview(40, 7, 25, 40, 5, 50);
+                shot("mobtalk-casino-r16-hall-night.png", () -> { rview(58, 22, -10, 73.5, 20, 2);
+                shot("mobtalk-casino-r17-pylon-night.png", () -> {
+                    test.command("time set 1000");
+                    test.command("forceload remove " + b.getX() + " " + b.getZ() + " " + (b.getX() + 79) + " " + (b.getZ() + 79));
+                    visitor();
+                }); }); }); }); });
+            }); }); }); }); }); }); }); }); }); }); }); }); });
+        });
+    }
+
+    /** A row of two-block neon letters facing north (the text runs to -x), its top row at y: the letters whose part 0 is there. */
+    private static String readSign(ServerWorld w, BlockPos b, int fromX, int y, int z, int toX) {
+        StringBuilder out = new StringBuilder();
+        for (int x = fromX; x >= toX; x--) {
+            var state = w.getBlockState(b.add(x, y, z));
+            if (!state.isOf(CasinoContent.LETTER)) { out.append('?'); continue; }
+            if (state.get(io.github.mobtalk.game.CasinoBlocks.Letter.PART) == 0)
+                out.append("КАЗИНО★ФРТУ".charAt(state.get(io.github.mobtalk.game.CasinoBlocks.Letter.LETTER)));
+        }
+        return out.toString();
     }
 
     // ---- Life ----

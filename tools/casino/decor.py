@@ -18,6 +18,7 @@ from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import grand_decor as G  # noqa: E402 (the grand casino's pieces)
+import vegas as V  # noqa: E402 (detailed tables, slots and the resort's decor)
 
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -582,6 +583,7 @@ def make_textures():
         chip_side(name + "_side", colour)
         chip_top(name + "_top", colour)
     G.textures()
+    V.textures()
 
 
 # ---------------------------------------------------------------- models
@@ -628,10 +630,19 @@ def box(f, t, texture, faces=FACES, uv=None, rotation=None):
             if face not in texture:
                 continue
             spec = texture[face]
-            tx, fuv = (spec, None) if isinstance(spec, str) else spec
+            frot = 0
+            if isinstance(spec, str):
+                tx, fuv = spec, None
+            elif len(spec) == 3:
+                tx, fuv, frot = spec
+            else:
+                tx, fuv = spec
         else:
+            frot = 0
             tx, fuv = texture, (uv.get(face) if isinstance(uv, dict) else uv)
         el["faces"][face] = {"texture": "#" + tx, "uv": list(fuv) if fuv else auto_uv(face, f, t)}
+        if isinstance(texture, dict) and frot:
+            el["faces"][face]["rotation"] = frot
     if rotation:
         el["rotation"] = rotation
     return el
@@ -1020,6 +1031,7 @@ def make_models():
     sign()
     chandelier()
     G.models()
+    V.models()
     # the invisible part that fills a big table's other cells: only a particle, the table's model draws over it
     MODELS["casino_part"] = {"textures": {"particle": NS + "mahogany"}}
 
@@ -1096,7 +1108,7 @@ def save_all():
         **MODELS["casino_slot_machine_lower"]["textures"], **MODELS["casino_slot_machine_upper"]["textures"]},
         "elements": MODELS["casino_slot_machine_lower"]["elements"] + [dict(e, **{"from": [e["from"][0], e["from"][1] + 16, e["from"][2]],
                                                                           "to": [e["to"][0], e["to"][1] + 16, e["to"][2]]})
-                                                                for e in MODELS["casino_slot_machine_upper"]["elements"] if "rotation" not in e],
+                                                                for e in MODELS["casino_slot_machine_upper"]["elements"] if "rotation" not in e and e["to"][1] + 16 <= 32],
         "display": {k: dict(v, scale=[s * 0.6 for s in v["scale"]]) for k, v in DISPLAY.items()}})
     write(os.path.join(DATA, "loot_table", "blocks", "casino_slot_machine.json"), {"type": "minecraft:block", "pools": [{"rolls": 1,
         "entries": [{"type": "minecraft:item", "name": "mobtalk:casino_slot_machine"}], "conditions": [
@@ -1111,6 +1123,8 @@ def save_all():
     write(os.path.join(ASSETS, "blockstates", "casino_part.json"), {"variants": {"": {"model": NS + "casino_part"}}})
     G.save()
     NAMES.update(G.NAMES)
+    V.save()
+    NAMES.update(V.NAMES)
     for lang, i in (("ru_ru", 0), ("en_us", 1)):
         p = os.path.join(ASSETS, "lang", lang + ".json")
         with open(p, encoding="utf-8") as f:
@@ -1161,7 +1175,7 @@ def render(m, yaw, size=256, pitch_deg=30):
                 x, y = x * c - y * s, x * s + y * c
             return (x + o[0], y + o[1], z + o[2])
         for face, spec in el["faces"].items():
-            tx = TEX[m["textures"][spec["texture"][1:]].split("/")[-1]]
+            tx = TEX.get(m["textures"][spec["texture"][1:]].split("/")[-1]) or VANILLA_STANDIN
             u0, v0, u1, v1 = spec["uv"]
             light = {"up": 1.0, "down": 0.5, "north": 0.8, "south": 0.8, "east": 0.65, "west": 0.65}[face]
             steps = int(max(abs(t[0] - f[0]), abs(t[1] - f[1]), abs(t[2] - f[2])) * scale * 1.5) + 4
@@ -1195,6 +1209,9 @@ def render(m, yaw, size=256, pitch_deg=30):
     return img
 
 
+VANILLA_STANDIN = Image.new("RGBA", (16, 16), (120, 92, 60, 255))  # vanilla textures are not in TEX
+
+
 def preview(out, only=None):
     names = [n for n in MODELS if "elements" in MODELS[n] and (not only or n in only)]
     cell = 320
@@ -1206,7 +1223,7 @@ def preview(out, only=None):
 
 
 def main():
-    G.D = sys.modules[__name__]
+    G.D = V.D = sys.modules[__name__]
     make_textures()
     make_models()
     save_all()

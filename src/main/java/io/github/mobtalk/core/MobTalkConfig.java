@@ -131,6 +131,9 @@ public final class MobTalkConfig {
     /** The village casino (docs/casino.md): villages may build one (applies to chunks generated after the world loads); its bouncers
      * in black throw out troublemakers and beat monsters; villagers drop in to play in the afternoon. */
     public boolean casino = true, casinoBouncers = true, casinoVisitors = true;
+    /** The casino resort «Фортуна» (a rare standalone structure in plains, savannas and deserts: a domed round casino, a crescent hotel
+     * tower, a pylon sign and a pool with fountains), and the sparks that glint on the casinos' lights (a client-side look). */
+    public boolean casinoResort = true, casinoSparkles = true;
     /** Idea Б1: the villages know the god's deeds (the divine block's events) — they panic, talk and blame the sinner by name;
      * the scene in the moment (alarm bell, flight, shouts); the god alone may make an exile; the family of a villager killed by a
      * curse turns against the sinner. */
@@ -330,7 +333,7 @@ public final class MobTalkConfig {
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
         copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageHeavy = villageHeavy; copy.villageCavalry = villageCavalry; copy.officials = officials; copy.barsInVillages = barsInVillages; copy.barEvenings = barEvenings; copy.barVoiced = barVoiced; copy.barAliceSpeaker = barAliceSpeaker;
         copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageHeavy = villageHeavy; copy.villageCavalry = villageCavalry; copy.barsInVillages = barsInVillages; copy.barEvenings = barEvenings; copy.barVoiced = barVoiced; copy.barAliceSpeaker = barAliceSpeaker;
-        copy.casino = casino; copy.casinoBouncers = casinoBouncers; copy.casinoVisitors = casinoVisitors;
+        copy.casino = casino; copy.casinoBouncers = casinoBouncers; copy.casinoVisitors = casinoVisitors; copy.casinoResort = casinoResort; copy.casinoSparkles = casinoSparkles;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;

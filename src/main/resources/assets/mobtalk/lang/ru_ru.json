@@ -1035,5 +1035,21 @@
   "block.mobtalk.casino_letter": "Неоновая буква вывески",
   "block.mobtalk.casino_marquee": "Бегущие огни",
   "block.mobtalk.casino_grand_chandelier": "Хрустальная люстра",
-  "block.mobtalk.casino_cashier": "Касса казино"
+  "block.mobtalk.casino_cashier": "Касса казино",
+  "block.mobtalk.casino_carpet_red": "Ковёр казино, красный",
+  "block.mobtalk.casino_carpet_blue": "Ковёр казино, синий",
+  "block.mobtalk.casino_carpet_purple": "Ковёр казино, пурпурный",
+  "block.mobtalk.casino_wallpaper": "Обои с дамаском",
+  "block.mobtalk.casino_wainscot": "Деревянная панель",
+  "block.mobtalk.casino_column": "Колонна с золотыми каннелюрами",
+  "block.mobtalk.casino_coffer": "Кессон с подсветкой",
+  "block.mobtalk.casino_jackpot": "Табло джекпота",
+  "block.mobtalk.casino_palm": "Крона пальмы",
+  "block.mobtalk.casino_die": "Огромный игральный кубик",
+  "block.mobtalk.casino_fountain_jet": "Струя фонтана",
+  "mobtalk.settings.casinoResort": "Курорт-казино «Фортуна»",
+  "mobtalk.settings.casinoResort.tooltip": "Редкое большое строение на равнинах, в саваннах и пустынях: круглое казино под стеклянным куполом, отель-полумесяц, пилон с вывеской, бассейн с фонтанами и пальмами. Влияет на новые чанки, после перезахода в мир. Найти: /locate structure mobtalk:casino_resort",
+  "mobtalk.settings.casinoSparkles": "Искры на огнях казино",
+  "mobtalk.settings.casinoSparkles.tooltip": "Вывески, гирлянды, табло джекпота, автоматы и хрустальные люстры поблёскивают искрами. Только внешний вид.",
+  "block.mobtalk.casino_palm_trunk": "Ствол пальмы"
 }

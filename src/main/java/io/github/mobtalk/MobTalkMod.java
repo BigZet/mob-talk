@@ -106,6 +106,7 @@ public final class MobTalkMod implements ModInitializer {
         io.github.mobtalk.game.BarWorldgen.register(); // Бар в каждой новой деревне.
         io.github.mobtalk.game.CasinoContent.register(); // Казино: мебель, вышибала, точки интереса (docs/casino.md).
         io.github.mobtalk.game.CasinoWorldgen.register();
+        io.github.mobtalk.game.CasinoResort.register();
         io.github.mobtalk.game.CasinoLife.register();
         MobGameBridge.initialize();
         MobTalkNet.registerPayloads();
