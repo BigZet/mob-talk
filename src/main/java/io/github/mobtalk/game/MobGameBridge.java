@@ -528,7 +528,7 @@ public final class MobGameBridge implements GameBridge {
                 String result = actions.apply(mob, player, intent, observed);
                 if (!gestured.isBlank()) result = result.isBlank() ? gestured : result + "; " + gestured;
                 if (!trade.isBlank()) result = result.isBlank() ? trade : result + "; " + trade;
-                jealousy.talked(mob, player); // Трек J: разговор с парой или с жителем её пола.
+                jealousy.talked(mob, player, handed == null ? null : handed.gesture()); // Трек J: разговор с парой или с жителем её пола.
                 Witness heard = Witness.of(social);
                 if (heard != null) witnessed(mob, player, heard);
                 return new Outcome(result, memory.revision(mobId));
