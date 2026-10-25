@@ -35,7 +35,7 @@
 - `tools/police/sounds.py` режет сирены и «кряк» из двух настоящих записей с Freesound (обе CC0, можно без указания автора, но мы указываем):
   - nikitralala, «russian_police.flac», https://freesound.org/people/nikitralala/sounds/239948/ (патрульная машина, Санкт-Петербург, 9 мая);
   - Selector, «old soviet police sirens», https://freesound.org/people/Selector/sounds/682859/ (советские сирены).
-  Реплики в громкоговоритель читают голос Piper `ru_RU-denis` (наборы данных CC0), потом их пропускают через фильтр рупора. Исходники записей лежат у Дмитрия в `C:\Users\bigze\Documents\GH\mob-talk-refs\police-sirens\`.
+  Реплики в громкоговоритель озвучены ElevenLabs `eleven-v3` (через OpenRouter, разовый прогон): пять русских голосов из каталога мода (Егор, Нестер, Эвелон, Максим, Владимир), каждую фразу читают три голоса по очереди, английский тег в начале (`[shouting]`, `[commanding]`, `[stern]`, `[angry]`) задаёт подачу и не произносится. Готовые дубли проходят через фильтр рупора (`tools/police/sounds.py`), Minecraft выбирает дубль случайно. Исходники записей лежат у Дмитрия в `C:\Users\bigze\Documents\GH\mob-talk-refs\police-sirens\`.
 
 ## Самотест
 

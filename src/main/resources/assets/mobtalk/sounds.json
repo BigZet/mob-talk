@@ -58,15 +58,39 @@
     "subtitle": "subtitle.mobtalk.police_megaphone",
     "sounds": [
       {
-        "name": "mobtalk:police/megaphone_alarm_1",
+        "name": "mobtalk:police/megaphone_alarm_1_egor",
         "attenuation_distance": 64
       },
       {
-        "name": "mobtalk:police/megaphone_alarm_2",
+        "name": "mobtalk:police/megaphone_alarm_1_evelon",
         "attenuation_distance": 64
       },
       {
-        "name": "mobtalk:police/megaphone_alarm_3",
+        "name": "mobtalk:police/megaphone_alarm_1_nester",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_alarm_2_evelon",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_alarm_2_maxim",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_alarm_2_nester",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_alarm_3_evelon",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_alarm_3_maxim",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_alarm_3_vladimir",
         "attenuation_distance": 64
       }
     ]
@@ -75,15 +99,39 @@
     "subtitle": "subtitle.mobtalk.police_megaphone",
     "sounds": [
       {
-        "name": "mobtalk:police/megaphone_chase_1",
+        "name": "mobtalk:police/megaphone_chase_1_egor",
         "attenuation_distance": 64
       },
       {
-        "name": "mobtalk:police/megaphone_chase_2",
+        "name": "mobtalk:police/megaphone_chase_1_maxim",
         "attenuation_distance": 64
       },
       {
-        "name": "mobtalk:police/megaphone_chase_3",
+        "name": "mobtalk:police/megaphone_chase_1_vladimir",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_chase_2_egor",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_chase_2_nester",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_chase_2_vladimir",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_chase_3_egor",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_chase_3_evelon",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_chase_3_nester",
         "attenuation_distance": 64
       }
     ]
@@ -92,15 +140,39 @@
     "subtitle": "subtitle.mobtalk.police_megaphone",
     "sounds": [
       {
-        "name": "mobtalk:police/megaphone_arrest_1",
+        "name": "mobtalk:police/megaphone_arrest_1_evelon",
         "attenuation_distance": 64
       },
       {
-        "name": "mobtalk:police/megaphone_arrest_2",
+        "name": "mobtalk:police/megaphone_arrest_1_maxim",
         "attenuation_distance": 64
       },
       {
-        "name": "mobtalk:police/megaphone_arrest_3",
+        "name": "mobtalk:police/megaphone_arrest_1_nester",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_arrest_2_evelon",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_arrest_2_maxim",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_arrest_2_vladimir",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_arrest_3_egor",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_arrest_3_maxim",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_arrest_3_vladimir",
         "attenuation_distance": 64
       }
     ]
@@ -109,15 +181,39 @@
     "subtitle": "subtitle.mobtalk.police_megaphone",
     "sounds": [
       {
-        "name": "mobtalk:police/megaphone_road_1",
+        "name": "mobtalk:police/megaphone_road_1_egor",
         "attenuation_distance": 64
       },
       {
-        "name": "mobtalk:police/megaphone_road_2",
+        "name": "mobtalk:police/megaphone_road_1_nester",
         "attenuation_distance": 64
       },
       {
-        "name": "mobtalk:police/megaphone_road_3",
+        "name": "mobtalk:police/megaphone_road_1_vladimir",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_road_2_egor",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_road_2_evelon",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_road_2_nester",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_road_3_evelon",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_road_3_maxim",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_road_3_nester",
         "attenuation_distance": 64
       }
     ]
