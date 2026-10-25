@@ -577,37 +577,49 @@ def bread_bin(cv, W, H):
 def kitchen_sink(colour):
     body = "enamel" if colour == "white" else "lightwood"
 
-    def top(cv, W, H):
-        cv.paste(P.Canvas(cv.w, cv.h, (0, 0, 0, 0)), 0, 0)
+    def bowl_floor(cv, W, H):
+        st = ramp(rgb("b0b6bc"), 5, 0.55, 1.2)
+        cv.rect(0, 0, cv.w, cv.h, st[2])
+        for y in range(0, cv.h, 3):  # brushed steel
+            cv.hline(0, cv.w, y, st[3])
+        cv.disc(cv.w / 2, cv.h / 2, 2.4, st[0], ring=st[4])
+        cv.disc(cv.w / 2, cv.h / 2, 1.0, rgb("2a2a2c"))
+
+    def drainer(cv, W, H):
         tt = MATS_TOP()
         for y in range(cv.h):
             for x in range(cv.w):
                 cv.set(x, y, tt.get(x % 32, y % 32))
-        # the steel bowl
         st = ramp(rgb("b0b6bc"), 5, 0.55, 1.2)
-        bx0, by0, bx1, by1 = 5, 4, cv.w - 5, cv.h - 10
-        cv.rect(bx0, by0, bx1, by1, st[4])
-        cv.rect(bx0 + 1, by0 + 1, bx1 - 1, by1 - 1, st[2])
-        cv.hline(bx0 + 1, bx1 - 1, by0 + 1, st[0])
-        cv.vline(bx0 + 1, by0 + 1, by1 - 1, st[1])
-        cv.rect(bx0 + 2, by0 + 2, bx1 - 2, by1 - 2, st[3])
-        cv.disc((bx0 + bx1) / 2, (by0 + by1) / 2 + 1, 1.6, st[0], ring=st[1])
+        cv.rect(1, 1, cv.w - 1, cv.h - 1, st[3])
+        for x in range(2, cv.w - 2, 2):  # the ribbed drainer pressed into the steel top
+            cv.vline(x, 2, cv.h - 2, st[1])
 
     def build():
         m = Model()
         m.box((0.5, 0, 2.5), (15.5, 1.5, 15.5), "black", down=None, up=None)
-        m.box((0, 1.5, 1.5), (16, 13, 16), body, down=None,
+        m.box((0, 1.5, 1.5), (16, 13, 16), body, down=None, up=None,
               north=Pic("doors", lambda cv, W, H: kitchen_doors(cv, W, H, colour)))
-        m.box((0, 13, 0.5), (16, 14, 16), "worktop", down=None, north=Pic("edge", lambda cv, W, H: worktop_edge(cv)),
-              up=Pic("sink", top))
-        # the mixer tap on the back
-        m.box((7, 14, 13.5), (9, 15, 15), "chrome")
-        m.box((7.5, 15, 13.75), (8.5, 19, 14.75), "chrome", up=None, down=None)
-        m.box((7.5, 18, 9), (8.5, 19, 13.75), "chrome", south=None)
-        m.box((7.5, 17, 9), (8.5, 18, 10), "chrome", up=None, south=None)
-        for x in (4.5, 10.5):
+        # the worktop round a real sunk steel bowl (x 2.5..10, z 3..12.5) with a ribbed drainer beside it
+        edge = Pic("edge", lambda cv, W, H: worktop_edge(cv))
+        m.box((0, 13, 0.5), (16, 14, 3), "worktop", down=None, north=edge, south=None)
+        m.box((0, 13, 12.5), (16, 14, 16), "worktop", down=None, north=None)
+        m.box((0, 13, 3), (2.5, 14, 12.5), "worktop", down=None, north=None, south=None, east=None)
+        m.box((10, 13, 3), (16, 14, 12.5), "worktop", down=None, north=None, south=None, west=None, up=Pic("drainer", drainer))
+        m.box((2.5, 9.5, 3), (10, 9.5, 12.5), "steel_sink", faces=("up",), up=Pic("bowl", bowl_floor))
+        m.box((2.5, 9.5, 3), (10, 14, 3), "steel_sink", faces=("south",))
+        m.box((2.5, 9.5, 12.5), (10, 14, 12.5), "steel_sink", faces=("north",))
+        m.box((2.5, 9.5, 3), (2.5, 14, 12.5), "steel_sink", faces=("east",))
+        m.box((10, 9.5, 3), (10, 14, 12.5), "steel_sink", faces=("west",))
+        # a plate left to soak and the swan-neck mixer on the back
+        m.box((4, 9.5, 5.5), (8, 10, 9.5), "plate_rim", up="plate", down=None)
+        m.box((5.5, 14, 13.5), (7, 15, 15), "chrome")
+        m.box((5.75, 15, 13.75), (6.75, 19, 14.75), "chrome", up=None, down=None)
+        m.box((5.75, 19, 9), (6.75, 20, 14.75), "chrome")
+        m.box((5.75, 17.5, 9), (6.75, 19, 10), "chrome", up=None)
+        for x in (3, 8.5):
             m.box((x, 14, 13.5), (x + 1, 16, 14.5), "chrome", down=None)
-            m.box((x - 0.5, 16, 13.25), (x + 1.5, 16.5, 14.75), "plastic_red")
+            m.box((x - 0.5, 16, 13.25), (x + 1.5, 16.5, 14.75), "plastic_red" if x < 5 else "plastic_blue")
         return m
     return build
 
@@ -980,25 +992,38 @@ def toilet_top_tex():
 
 
 def washbasin():
-    def top(cv, W, H):
+    def bowl(cv, W, H):
         t = ramp(ENAMEL, 6, 0.6, 1.06)
-        cv.rect(0, 0, cv.w, cv.h, t[4])
-        cv.outline(0, 0, cv.w, cv.h, t[3])
-        cv.ellipse(cv.w / 2, cv.h / 2 - 1, cv.w / 2 - 3, cv.h / 2 - 4, t[2])
-        cv.ellipse(cv.w / 2, cv.h / 2 - 1, cv.w / 2 - 5, cv.h / 2 - 6, t[3])
-        cv.disc(cv.w / 2, cv.h / 2, 1.2, rgb("5a5a5c"))
+        cv.rect(0, 0, cv.w, cv.h, t[3])
+        cv.ellipse(cv.w / 2, cv.h / 2, cv.w / 2 - 1, cv.h / 2 - 1, t[2])
+        cv.disc(cv.w / 2, cv.h / 2, 1.6, rgb("8a8a8c"), ring=rgb("c8c8ca"))
+        cv.disc(cv.w / 2, cv.h / 2, 0.6, rgb("2a2a2c"))
 
     def build():
         m = Model()
-        # the "tulip": a pedestal, the basin, two taps, a soap dish, a mirror cabinet above
-        m.box((6, 0, 9), (10, 11, 13), "enamel", down=None)
-        m.box((2.5, 11, 6), (13.5, 14, 16), "enamel", down=None, up=Pic("basin", top))
-        for x in (5, 10):
-            m.box((x, 14, 14), (x + 1, 15.5, 15), "chrome", down=None)
-            m.box((x - 0.5, 15.5, 13.5), (x + 1.5, 16, 15.5), "chrome")
-        m.box((7.5, 14, 13.5), (8.5, 15.5, 14.5), "chrome", down=None)
-        m.box((7.5, 15, 11.5), (8.5, 15.5, 13.5), "chrome", south=None)
-        # mirror cabinet with a shelf (upper cell, from 1.15 to 1.8 m)
+        # the "tulip": a foot, a pedestal, a basin with a real hollow, two taps and a spout, a mirror cabinet above
+        m.box((5, 0, 8), (11, 1, 14), "enamel", down=None)
+        m.box((6, 1, 9), (10, 10, 13), "enamel", down=None, up=None)
+        m.box((5, 10, 8), (11, 11, 14), "enamel", down=None, up=None)
+        m.box((2.5, 11, 6), (13.5, 13.5, 16), "enamel", up=None)
+        # the rim round the hollow (x 4..12, z 7.5..14), the hollow's sides and floor
+        m.box((2.5, 13.5, 6), (13.5, 14, 7.5), "enamel", down=None, south=None)
+        m.box((2.5, 13.5, 14), (13.5, 14, 16), "enamel", down=None, north=None)
+        m.box((2.5, 13.5, 7.5), (4, 14, 14), "enamel", down=None, north=None, south=None, east=None)
+        m.box((12, 13.5, 7.5), (13.5, 14, 14), "enamel", down=None, north=None, south=None, west=None)
+        m.box((4, 11.5, 7.5), (12, 11.5, 14), "enamel_in", faces=("up",), up=Pic("bowl", bowl))
+        m.box((4, 11.5, 7.5), (12, 14, 7.5), "enamel_in", faces=("south",))
+        m.box((4, 11.5, 14), (12, 14, 14), "enamel_in", faces=("north",))
+        m.box((4, 11.5, 7.5), (4, 14, 14), "enamel_in", faces=("east",))
+        m.box((12, 11.5, 7.5), (12, 14, 14), "enamel_in", faces=("west",))
+        for x, cap in ((4.5, "plastic_red"), (10.5, "plastic_blue")):
+            m.box((x, 14, 14.5), (x + 1, 15.5, 15.5), "chrome", down=None)
+            m.box((x - 0.5, 15.5, 14), (x + 1.5, 16, 16), "chrome")
+            m.box((x, 16, 14.5), (x + 1, 16.5, 15.5), cap, down=None)
+        m.box((7.5, 14, 14.5), (8.5, 16, 15.5), "chrome", down=None)
+        m.box((7.5, 16, 11.5), (8.5, 17, 15.5), "chrome")
+        m.box((7.5, 15.25, 11.5), (8.5, 16, 12.5), "chrome", up=None)
+        # mirror cabinet with a glass shelf (upper cell, from 1.15 to 1.8 m)
         m.box((2.5, 18.5, 14), (13.5, 29, 16), "enamel", north=Pic("mirror", mirror_pic))
         m.box((2.5, 17.5, 12.5), (13.5, 18.5, 16), "glass_shelf")
         m.box((3.5, 18.5, 13), (5, 21, 14), "glass", down=None)
@@ -1269,8 +1294,10 @@ def curtains(key):
                 model.box((xa, tie + 2.5, z0), (xb, top - 2.25, z0 + 1.5), cl, down=None, south=None, east=dk, west=dk)
                 model.box((xa, 1, z0 - 0.5), (xb, tie, z0 + 1.5), cl, south=None, east=dk, west=dk)
                 model.box((xa + 0.25, tie, z0 + 0.25), (xb - 0.25, tie + 2.5, z0 + 1.25), cl, south=None, up=None, down=None, east=dk, west=dk)
-            model.box((x0 - 0.25, tie + 0.5, 9.25), (x0 + 5.25, tie + 1.5, 9.75), "cord", south=None)
-            model.box((x0 + (5.25 if sgn > 0 else -0.5), tie + 0.5, 9.75), (x0 + (5.75 if sgn > 0 else 0), tie + 1.5, 12), "cord")
+            # the cord round the gathered curtain, kept inside the cell (the edge of a row is the edge of the block)
+            model.box((max(0, x0 - 0.25), tie + 0.5, 9.25), (min(16, x0 + 5.25), tie + 1.5, 9.75), "cord", south=None)
+            cx = x0 - 0.5 if sgn > 0 else x0 + 5
+            model.box((cx, tie + 0.5, 9.75), (cx + 0.5, tie + 1.5, 12), "cord")
         rad = radiator()()
         for e in rad.els:
             e.f[2] += 0.5 if e.f[2] >= 13 else 0.5
@@ -1291,6 +1318,7 @@ def make():
     mat("oilcloth_side", P.enamel(32, 32, rgb("c43a34")))
     mat("glass_tea", P.glass(32, 32, rgb("c48a3a")))
     mat("plate", plate_tex())
+    mat("steel_sink", P.metal(32, 32, rgb("b0b6bc"), vertical=False))
     mat("plate_rim", P.enamel(32, 32, rgb("f2f0ea")))
     mat("cup_enamel", P.enamel(32, 32, rgb("f0eee6")))
     mat("blanket_edge", blanket_edge())
@@ -1365,6 +1393,10 @@ def make():
     fur_bed.make()
     import fur_rugs
     fur_rugs.make()
+    import fur_lamps
+    fur_lamps.make()
+    import fur_fridges
+    fur_fridges.make()
 
 
 def plate_tex():
