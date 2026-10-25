@@ -255,7 +255,7 @@ final class SelfTest {
     // ---- Stage 6 (only after a real QR login on this PC): which way of passing the login Alice accepts.
     private void probeLogin() {
         if (YandexLogin.savedXToken().isBlank()) { log("login probe skipped: no in-game login"); finish(); return; }
-        log("login probe: asking \"Как меня зовут?\" with each way of passing the login");
+        log("login probe: a music request and a reminder with each way of passing the login");
         java.util.concurrent.CompletableFuture<List<String>> probe = owner.probeAuth();
         await("login probe finished", 400, probe::isDone, () -> {
             if (probe.isCompletedExceptionally()) fail("login probe crashed");

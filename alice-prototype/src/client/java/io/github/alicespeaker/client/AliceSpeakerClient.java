@@ -140,10 +140,12 @@ public final class AliceSpeakerClient implements ClientModInitializer {
         YandexMusic.Intent typed = text != null ? YandexMusic.intent(text, musicSound != null, false) : null;
         if (typed != null) { handleMusic(client, client.world, speaker, typed); return; }
         overlay(client, auth.hasLogin() ? "Алиса думает…" : "Алиса думает… (без входа в Яндекс)");
-        logLine("---- " + LocalTime.now() + (text != null ? " text" : " voice " + pcm.length + " bytes") + ", cookies " + (auth.cookie().isBlank() ? "no" : "yes") + ", sync.json " + (auth.sync().isBlank() ? "no" : "yes"));
+        logLine("---- " + LocalTime.now() + (text != null ? " text" : " voice " + pcm.length + " bytes") + ", cookies " + (auth.cookie().isBlank() ? "no" : "yes")
+                + ", sync.json " + (auth.sync().isBlank() ? "no" : "yes") + ", oauth " + (auth.oauthToken().isBlank() ? "no" : "yes"));
         AliceSession next = text != null ? AliceSession.text(text, auth, this::logLine) : AliceSession.voice(pcm, auth, this::logLine);
         session = next;
         next.start()
+                .exceptionallyCompose(failure -> retryWithFreshLogin(failure, auth, text, pcm))
                 .thenApplyAsync(this::decode, WORKER)
                 .whenComplete((reply, failure) -> client.execute(() -> {
                     if (expected != generation || client.world != world) return;
@@ -177,6 +179,25 @@ public final class AliceSpeakerClient implements ClientModInitializer {
 
     record Reply(String text, String heard, byte[] pcm, String voiceProblem, boolean music) { }
 
+    /** InvalidAuth with an in-game login: mint a new token from the x_token and ask once more. */
+    private CompletableFuture<AliceSession.Answer> retryWithFreshLogin(Throwable failure, AliceAuth auth, String text, byte[] pcm) {
+        Throwable cause = failure instanceof java.util.concurrent.CompletionException && failure.getCause() != null ? failure.getCause() : failure;
+        if (!(cause instanceof AliceSession.InvalidAuth)) return CompletableFuture.failedFuture(cause);
+        return CompletableFuture.supplyAsync(() -> {
+            String xToken = YandexLogin.savedXToken();
+            if (xToken.isBlank()) throw new java.util.concurrent.CompletionException(cause);
+            try {
+                String fresh = new YandexLogin().musicToken(xToken);
+                YandexLogin.saveMusicToken(fresh);
+                logLine("login refused, minted a new token from the x_token");
+                return fresh;
+            } catch (IOException renew) { throw new java.util.concurrent.CompletionException(cause); }
+        }, WORKER).thenCompose(fresh -> {
+            AliceAuth renewed = new AliceAuth(auth.cookie(), auth.authToken(), auth.sync(), fresh);
+            return (text != null ? AliceSession.text(text, renewed, this::logLine) : AliceSession.voice(pcm, renewed, this::logLine)).start();
+        });
+    }
+
     /**
      * Which login the web Alice accepts: asks "Как меня зовут?" once per way of passing the in-game login (sync.json as
      * is, an OAuth token in the handshake, session cookies of yandex.ru or ya.ru). Only her answers are reported.
@@ -198,14 +219,18 @@ public final class AliceSpeakerClient implements ClientModInitializer {
             ways.put("C sync.json+oauth_token=Музыка", new AliceAuth("", "", sync, music));
             ways.put("D oauth_token=x_token", new AliceAuth("", "", "", xToken));
             ways.put("E cookies yandex.ru", new AliceAuth(yandexCookies, "", "", ""));
+            ways.put("E2 cookies yandex.ru+sync.json", new AliceAuth(yandexCookies, "", sync, ""));
             ways.put("F cookies ya.ru", new AliceAuth(yaCookies, "", "", ""));
             ways.put("G cookies ya.ru+sync.json", new AliceAuth(yaCookies, "", sync, ""));
+            // "Как меня зовут?" is refused on the web client whatever the login; these two ask anonymous users to log in.
             ways.forEach((name, auth) -> {
-                String answer;
-                try { answer = "«" + AliceSession.text("Как меня зовут?", auth, this::logLine).start().get(45, java.util.concurrent.TimeUnit.SECONDS).text() + "»"; }
-                catch (Exception failure) { answer = "ошибка: " + (failure.getCause() != null ? failure.getCause().getMessage() : failure.getMessage()); }
-                logLine("auth probe " + name + ": " + answer);
-                lines.add(name + ": " + answer);
+                for (String question : new String[] {"Включи песню группа крови", "Напомни завтра в 10 утра купить хлеб"}) {
+                    String answer;
+                    try { answer = "«" + AliceSession.text(question, auth, this::logLine).start().get(45, java.util.concurrent.TimeUnit.SECONDS).text() + "»"; }
+                    catch (Exception failure) { answer = "ошибка: " + (failure.getCause() != null ? failure.getCause().getMessage() : failure.getMessage()); }
+                    logLine("auth probe " + name + " / " + question + ": " + answer);
+                    lines.add(name + " / " + question + ": " + answer);
+                }
             });
             return lines;
         });

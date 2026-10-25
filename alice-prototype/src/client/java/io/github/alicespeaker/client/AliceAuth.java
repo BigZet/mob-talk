@@ -13,11 +13,15 @@ import java.nio.file.Path;
 record AliceAuth(String cookie, String authToken, String sync, String oauthToken) {
     static final Path DIR = Path.of(System.getProperty("user.home"), ".alice-speaker");
 
+    /**
+     * The login rides as oauth_token in the handshake: the Yandex Music token (minted from the in-game QR login, or
+     * hand-made) is what the web Alice accepts; session cookies are not (checked with /alice-authprobe, 25 Oct 2026).
+     */
     static AliceAuth load() {
-        return new AliceAuth(read("YA_COOKIE", "cookies.txt").replaceAll("[\\r\\n]+", " "), read("YA_AUTH", "auth_token.txt"), read("YA_SYNC", "sync.json"), "");
+        return new AliceAuth(read("YA_COOKIE", "cookies.txt").replaceAll("[\\r\\n]+", " "), read("YA_AUTH", "auth_token.txt"), read("YA_SYNC", "sync.json"), YandexMusic.loadToken());
     }
 
-    boolean hasLogin() { return !cookie.isBlank() || !sync.isBlank(); }
+    boolean hasLogin() { return !cookie.isBlank() || !sync.isBlank() || !oauthToken.isBlank(); }
 
     private static String read(String env, String file) {
         String value = System.getenv(env);

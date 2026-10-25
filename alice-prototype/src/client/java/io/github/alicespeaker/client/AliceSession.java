@@ -49,6 +49,11 @@ final class AliceSession implements WebSocket.Listener {
     /** What Alice said: final text, what she heard (voice input), her voice per audio stream, protocol notes. */
     record Answer(String text, String heard, List<byte[]> voice, String voiceFormat, List<String> notes) { }
 
+    /** Yandex refused the login in the handshake: an expired token, renewed from the x_token by the caller. */
+    static final class InvalidAuth extends IllegalStateException {
+        InvalidAuth() { super("Яндекс не принял вход: войдите заново (N → «Войти в Яндекс»)"); }
+    }
+
     private final String text;
     private final byte[] pcm16k;
     private final String cookie, authToken, sync, oauthToken;
@@ -208,7 +213,7 @@ final class AliceSession implements WebSocket.Listener {
         if (lower.contains("music") || lower.contains("audio_play") || lower.contains("audioplayer")) notes.add("music");
         switch (namespace + "." + name) {
             case "System.SynchronizeStateResponse" -> ask();
-            case "System.InvalidAuth" -> fail(new IllegalStateException("Яндекс не принял cookies. Обновите ~/.alice-speaker/cookies.txt"));
+            case "System.InvalidAuth" -> fail(new InvalidAuth());
             case "System.EventException" -> fail(new IllegalStateException("Ошибка Алисы: " + cut(payload.toString(), 200)));
             case "ASR.Result" -> heard = recognized(payload);
             case "TTS.Speak" -> { speakSeen = true; if (!str(payload, "format").isBlank()) voiceFormat = str(payload, "format"); }
