@@ -326,6 +326,33 @@ final class OfficialsController {
         return fine == null ? null : fine.data();
     }
 
+    /** What a plain villager knows of its village's officials, for the prompt (Officialdom.gossip): each one's rank, name, whether
+     * the village thinks it honest, envelopes it took (the village hears of them), how far the head's dacha has grown, heaven's
+     * strikes, the revizor's verdict. Null for an official, a child, or a village without officials. */
+    List<Map<String, Object>> gossipFor(VillagerEntity villager) {
+        if (!enabled() || !bridge.config.officialGossip || villager.isBaby() || OfficialContent.rank(villager) != null || !(villager.getWorld() instanceof ServerWorld world)) return null;
+        VillageDefenseController.Zone zone = bridge.defense.zoneAt(world, villager.getBlockPos());
+        if (zone == null) return null;
+        List<Map<String, Object>> out = new ArrayList<>();
+        Map<UUID, io.github.mobtalk.core.Graft.Estate> estates = new HashMap<>();
+        for (io.github.mobtalk.core.Graft.Estate e : bridge.memory.estates()) if (e.head() != null) estates.put(e.head(), e);
+        for (Map.Entry<Officialdom.Rank, List<VillagerEntity>> e : officials(world, zone).entrySet())
+            for (VillagerEntity official : e.getValue()) {
+                Map<String, Object> one = new LinkedHashMap<>();
+                one.put("rank", e.getKey().name());
+                one.put("name", name(official));
+                one.put("honest", Officialdom.honest(official.getUuid(), bridge.config.officialHonestPercent));
+                one.put("taken", bridge.memory.officialTaken(official.getUuid()));
+                io.github.mobtalk.core.Graft.Estate estate = estates.get(official.getUuid());
+                if (estate != null) { one.put("dacha", estate.built()); one.put("dung", estate.dung()); one.put("smitten", estate.smiteDay() >= 0); }
+                out.add(one);
+            }
+        // A head the revizor removed is a nitwit now, but the village remembers.
+        for (io.github.mobtalk.core.Graft.Estate e : estates.values())
+            if (e.confiscated() && zone.key().equals(e.village())) out.add(new LinkedHashMap<>(Map.of("rank", "REMOVED", "name", e.headName(), "dacha", e.built())));
+        return out.isEmpty() ? null : out;
+    }
+
     private void announce(ServerWorld world, VillageDefenseController.Zone zone, Text text) {
         double range = bridge.config.alarmNoticeRange;
         for (ServerPlayerEntity player : world.getPlayers())

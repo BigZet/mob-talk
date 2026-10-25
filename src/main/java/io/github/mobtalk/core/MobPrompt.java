@@ -103,7 +103,8 @@ final class MobPrompt {
     String official(MobSnapshot snapshot, ConversationStore.Profile profile) {
         if (!config.officials || !(snapshot.mobDetails().get("profession") instanceof String profession)) return "";
         Officialdom.Rank rank = Officialdom.Rank.of(profession);
-        return rank == null ? "" : Officialdom.prompt(rank, snapshot.id(), profile.relationship, config.officialHonestPercent, config.officialPricePercent,
+        if (rank == null) return config.officialGossip ? Officialdom.gossip(snapshot.mobDetails().get("villageOfficials")) : "";
+        return Officialdom.prompt(rank, snapshot.id(), profile.relationship, config.officialHonestPercent, config.officialPricePercent,
                 Officialdom.fineOf(snapshot.mobDetails().get("officialFine")), config.officialsShameless)
                 + (rank != null && config.paperwork && snapshot.mobDetails().get("paperCase") instanceof Map<?, ?> paper
                         ? Paperwork.prompt(rank, Paperwork.caseOf(paper), paper.get("today") instanceof Number n ? n.longValue() : 0) : "");

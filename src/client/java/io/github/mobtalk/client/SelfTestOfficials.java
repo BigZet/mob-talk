@@ -518,7 +518,7 @@ final class SelfTestOfficials {
             test.log("«Чиновники» rows: " + rows);
             test.check(rows.contains("Чиновники и взятки"), "the group has its switch");
             test.check(rows.contains("Паспорт и справки") && rows.contains("Без паспорта не распишут"), "the passport switches are there");
-            test.check(rows.size() == 21, "eight switches and thirteen sliders (" + rows.size() + ")");
+            test.check(rows.size() == 22, "nine switches and thirteen sliders (" + rows.size() + ")");
             test.check(rows.stream().noneMatch(row -> row.isBlank() || row.startsWith("mobtalk.")), "every row has a caption, none is a raw key");
             shot("mobtalk-officials-f7.png", () -> { client.setScreen(null); finish(); });
         });

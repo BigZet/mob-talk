@@ -488,6 +488,7 @@ final class MobTalkSettingsScreen extends Screen {
                     wide(tip(toggle("mobtalk.settings.officialSmite", draft.officialSmite, value -> draft.officialSmite = value), "mobtalk.settings.officialSmite.tooltip"));
                     wide(tip(toggle("mobtalk.settings.officialRevizor", draft.officialRevizor, value -> draft.officialRevizor = value), "mobtalk.settings.officialRevizor.tooltip"));
                     wide(tip(toggle("mobtalk.settings.officialsShameless", draft.officialsShameless, value -> draft.officialsShameless = value), "mobtalk.settings.officialsShameless.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.officialGossip", draft.officialGossip, value -> draft.officialGossip = value), "mobtalk.settings.officialGossip.tooltip"));
                 }),
                 Map.<String, Runnable>entry("chatter", () -> wide(tip(toggle("mobtalk.settings.villageChatter", draft.villageChatter, value -> draft.villageChatter = value), "mobtalk.settings.villageChatter.tooltip"),
                         tip(toggle("mobtalk.settings.villageNotices", draft.villageNotices, value -> draft.villageNotices = value), "mobtalk.settings.villageNotices.tooltip")))));

@@ -1090,6 +1090,8 @@
   "mobtalk.settings.officialRevizor.tooltip": "A black ledger appears in the dacha's safe. Give it to an honest official and the revizor comes next day to remove the head.",
   "mobtalk.settings.officialsShameless": "Especially brazen (for streams)",
   "mobtalk.settings.officialsShameless.tooltip": "Corrupt officials take envelopes in front of witnesses, ask half again and name the price almost outright.",
+  "mobtalk.settings.officialGossip": "Villagers grumble about officials",
+  "mobtalk.settings.officialGossip.tooltip": "Plain villagers dislike their village's officials and hint at bribes, the head's dacha and heaven's strikes; an honest one gets grudging praise.",
   "mobtalk.tune.dachaPoints": "Dacha: %s points per piece",
   "mobtalk.tune.dachaPoints.tooltip": "A day in office gives a point, an envelope two. This many points build the next piece.",
   "mobtalk.tune.smitePercent": "Wrath from above: %s%% a day",

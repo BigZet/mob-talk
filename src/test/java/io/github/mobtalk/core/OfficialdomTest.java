@@ -91,6 +91,26 @@ class OfficialdomTest {
         assertEquals("", Officialdom.prompt(null, corrupt, 0, 20, 100, null));
     }
 
+    @Test void villagersGrumbleAboutOfficialsAndHintAtBribes() {
+        assertEquals("", Officialdom.gossip(null));
+        assertEquals("", Officialdom.gossip(java.util.List.of()));
+        String text = Officialdom.gossip(java.util.List.of(
+                Map.of("rank", "HEAD", "name", "Пётр", "honest", false, "taken", 4, "dacha", 5, "dung", true),
+                Map.of("rank", "CLERK", "name", "Ольга", "honest", true, "taken", 0),
+                Map.of("rank", "INSPECTOR", "name", "Иван", "honest", false, "taken", 0),
+                Map.of("rank", "REMOVED", "name", "Семён", "dacha", 3)));
+        assertTrue(text.contains("недолюбливаешь")); assertTrue(text.contains("мне тут ещё жить"));
+        assertTrue(text.contains("Глава администрации Пётр")); assertTrue(text.contains("и не раз")); assertTrue(text.contains("золотой унитаз"));
+        assertTrue(text.contains("Бог всё видит")); assertTrue(text.contains("Ольга: говорят, честный"));
+        assertTrue(text.contains("Иван: толком ничего не известно")); assertTrue(text.contains("Семён снял ревизор"));
+        assertEquals("", Officialdom.gossip(java.util.List.of(Map.of("rank", "NOBODY", "name", "x"))));
+    }
+
+    @Test void officialsSpeakRealOfficialese() {
+        String text = Officialdom.prompt(Officialdom.Rank.CLERK, UUID.randomUUID(), 0, 20, 100, null);
+        assertTrue(text.contains("факты не подтвердились")); assertTrue(text.contains("направлено по принадлежности"));
+    }
+
     @Test void ordersDoubleThenEscalate() {
         Officialdom ledger = new Officialdom();
         UUID player = UUID.randomUUID();

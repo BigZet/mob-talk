@@ -1090,6 +1090,8 @@
   "mobtalk.settings.officialRevizor.tooltip": "В сейфе на даче появляется чёрная бухгалтерия. Отдайте её честному чиновнику — назавтра приедет ревизор и снимет главу.",
   "mobtalk.settings.officialsShameless": "Особенно наглые (для эфира)",
   "mobtalk.settings.officialsShameless.tooltip": "Продажные чиновники берут при свидетелях, просят в полтора раза больше и почти прямо называют цену.",
+  "mobtalk.settings.officialGossip": "Жители ругают чиновников",
+  "mobtalk.settings.officialGossip.tooltip": "Простые жители недолюбливают чиновников своей деревни и намекают на взятки, дачу главы и кары свыше, а честного нехотя хвалят.",
   "mobtalk.tune.dachaPoints": "Дача: %s очков на постройку",
   "mobtalk.tune.dachaPoints.tooltip": "День в должности даёт очко, конверт — два. Столько очков нужно на следующую постройку.",
   "mobtalk.tune.smitePercent": "Кара свыше: %s%% в день",
