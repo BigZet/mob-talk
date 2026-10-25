@@ -386,7 +386,7 @@ class House:
         self.at(M, 3, 0, f"facade_{col}_mid", {"facing": N, "inner": "paint_stair"})
         self.at(B0, 3, 0, f"facade_{col}_mid", {"facing": N, "inner": "paint_stair"})
         self.at(A0, 2, sz + 1, "apt_post_boxes", {"facing": E, "lit": "true"})
-        self.at(B1, 3, sz + 1, LAMP_STAIR, {"facing": W, "lit": "true"})
+        self.at(B1, 2, sz + 1, LAMP_STAIR, {"facing": W, "lit": "true"})   # under the half-landing, not in it
         # The porch: a concrete pad between two cheek walls, a canopy on them, the lamp and the entrance's number plate.
         for x in (A1, M, B0, B1):
             for z in (-1, -2):

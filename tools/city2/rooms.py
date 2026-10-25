@@ -123,10 +123,13 @@ class Room:
         self.r.shuffle(out)
         return out
 
-    def against(self, pid, height=0, name=None, near=None, flat=False):
-        """Puts the piece with its back to a wall at floor row + height; near: prefer spots close to an anchor."""
+    def against(self, pid, height=0, name=None, near=None, flat=False, row=False):
+        """Puts the piece with its back to a wall at floor row + height; near: prefer spots close to an anchor; row: prefer
+        the longest free stretch of wall (the sink, which the kitchen units then line up with)."""
         y = self.s + 1 + height
         spots = self.spots()
+        if row:
+            spots.sort(key=lambda p: -self.wall_room(*p))
         if near and near in self.placed:
             ax, az, _ = self.placed[near]
             spots.sort(key=lambda p: abs(p[0] - ax) + abs(p[1] - az))
@@ -168,32 +171,63 @@ class Room:
                 else:
                     self.write(pid, fx, y, fz, f)
                 self.placed["bed"] = (x, z, f)
+                self.heads = [(x, z)] + ([(x + rx, z + rz)] if double else [])
                 return (fx, fz)
         return None
 
-    def beside(self, pid, anchor, count=2):
-        """Pieces next to an anchor's sides along the wall (nightstands by the bed), facing the same way."""
-        if anchor not in self.placed:
+    def beside(self, pid):
+        """A nightstand on each side of the bed's head, by the wall, facing into the room (one per side at most)."""
+        if "bed" not in self.placed:
             return 0
-        x, z, f = self.placed[anchor]
+        _, _, f = self.placed["bed"]
         n = 0
-        for side in (1, -1, 2, -2):
+        for side in (1, -1):
             dx, _, dz = turn((side, 0, 0), f)
-            fo = OPP[f] if anchor == "bed" else f
-            if n < count and self.fits(pid, x + dx, self.s + 1, z + dz, fo):
-                self.write(pid, x + dx, self.s + 1, z + dz, fo)
+            head = max(self.heads, key=lambda c: c[0] * dx + c[1] * dz)   # the outermost head on that side
+            x, z = head[0] + dx, head[1] + dz
+            if self.fits(pid, x, self.s + 1, z, OPP[f]):
+                self.write(pid, x, self.s + 1, z, OPP[f])
                 n += 1
         return n
 
-    def front(self, pid, anchor, dist=1, name=None):
-        """A piece in front of an anchor (a coffee table before the sofa), standing free."""
+    def run(self, pid, anchor):
+        """A piece in a row with an anchor along the same wall, facing the same way (kitchen units beside the sink)."""
+        if anchor not in self.placed:
+            return self.against(pid)
+        x, z, f = self.placed[anchor]
+        row = self.placed.setdefault(anchor + "_row", [(x, z)])
+        for side in (1, -1):
+            dx, _, dz = turn((side, 0, 0), f)
+            end = max(row, key=lambda c: c[0] * dx + c[1] * dz)
+            tx, tz = end[0] + dx, end[1] + dz
+            if self.fits(pid, tx, self.s + 1, tz, f):
+                self.write(pid, tx, self.s + 1, tz, f)
+                row.append((tx, tz))
+                return True
+        return self.against(pid, near=anchor)
+
+    def wall_room(self, x, z, f):
+        """How many cells of free wall run on both sides of (x, z) for pieces facing f (room for a kitchen row)."""
+        n = 0
+        for side in (1, -1):
+            dx, _, dz = turn((side, 0, 0), f)
+            cx, cz = x + dx, z + dz
+            while self.free(cx, self.s + 1, cz) and self.backed(cx, cz, f):
+                n += 1
+                cx, cz = cx + dx, cz + dz
+        return n
+
+    def front(self, pid, anchor, dist=1, name=None, facing_back=False):
+        """A piece in front of an anchor (a coffee table before the sofa), standing free; facing_back: it looks at the
+        anchor (a chair at the desk)."""
         if anchor not in self.placed:
             return False
         x, z, f = self.placed[anchor]
+        pf = OPP[f] if facing_back else f
         for d in range(dist, dist + 2):
             tx, tz = x + DIRS[f][0] * d, z + DIRS[f][1] * d
-            if self.fits(pid, tx, self.s + 1, tz, f, backed=False):
-                self.write(pid, tx, self.s + 1, tz, f)
+            if self.fits(pid, tx, self.s + 1, tz, pf, backed=False):
+                self.write(pid, tx, self.s + 1, tz, pf)
                 if name:
                     self.placed[name] = (tx, tz, f)
                 return True
@@ -238,11 +272,11 @@ def maybe(r, p):
 
 def kitchen(rm, flat):
     r, st = rm.r, flat["set"]
-    rm.against(r.choice(["apt_fridge", "apt_fridge_saratov", "apt_fridge_minsk", "apt_fridge_biryusa"]))
-    rm.against(f"apt_kitchen_sink_{st}", name="sink")
-    rm.against(r.choice(["apt_stove", "apt_stove_kettle"]), near="sink")
-    rm.against(f"apt_kitchen_base_{st}", near="sink")
-    rm.against(f"apt_kitchen_jars_{st}", near="sink")
+    rm.against(f"apt_kitchen_sink_{st}", name="sink", row=True)
+    rm.run(r.choice(["apt_stove", "apt_stove_kettle"]), "sink")
+    rm.run(f"apt_kitchen_base_{st}", "sink")
+    rm.run(f"apt_kitchen_jars_{st}", "sink")
+    rm.run(r.choice(["apt_fridge", "apt_fridge_saratov", "apt_fridge_minsk", "apt_fridge_biryusa"]), "sink")
     for _ in range(2):
         rm.above(f"apt_wall_cupboard_{st}", "apt_kitchen_")
     rm.above(f"apt_dish_rack_{st}", "apt_kitchen_sink")
@@ -258,8 +292,9 @@ def bath(rm, flat):
     rm.against("apt_bathtub")
     rm.against("apt_toilet")
     rm.against("apt_washbasin")
-    if maybe(rm.r, 0.6):
-        rm.against("apt_washer")
+    rm.against("apt_washer")
+    for pid in sorted(p for p in CAT if p.startswith(("apt_laundry", "apt_drying", "apt_bath_"))):   # the furniture thread's
+        rm.against(pid, height=0 if CAT[pid][1] == "GROUND" else 1)                                  # newer bathroom pieces
     rm.against("apt_towel_rail", height=1)
 
 
@@ -310,7 +345,7 @@ def bedroom(rm, flat):
     r = rm.r
     if rm.bed(None, double=True) or rm.bed("apt_bed"):
         flat["bed"] = rm.placed["bed"]
-        rm.beside("apt_nightstand", "bed", 2)
+        rm.beside("apt_nightstand")
         if flat["wall_carpet"]:
             flat["wall_carpet"] = not rm.above("apt_wall_carpet_high", "apt_bed_double", height=1)
     rm.against("apt_wardrobe")
@@ -337,7 +372,7 @@ def room(rm, flat):
             rm.against("apt_crib")
         rm.bed("apt_bed")
         rm.against("apt_desk", name="desk")
-        rm.front("apt_chair", "desk")
+        rm.front("apt_chair", "desk", facing_back=True)
         rm.against("apt_bookcase")
         rm.against("apt_wardrobe")
         if who == "child":
