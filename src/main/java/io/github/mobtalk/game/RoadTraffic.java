@@ -33,12 +33,12 @@ import net.minecraft.world.PersistentState;
  * horsemen, going back and forth between the two villages of a road at a walk, each in the right-hand lane. A trip lives as a
  * place on its road (how far along, which way), saved with the world; it takes shape as real entities only near a player, and
  * goes on without them elsewhere. The horse follows the road; the cart is pulled after it (it keeps the shafts' length from the
- * horse, as NiftyCarts pulls its carts), so it swings wide on a bend and round in the turn at each end. A trip waits for a player
- * standing in its way. The entities are the traffic's alone: never saved with the chunk, tagged, and any left over from a crash are
+ * horse, as NiftyCarts pulls its carts), so it swings wide on a bend. At each end it goes into the village's station and is out
+ * of sight for a while, then sets out back the other way. A trip waits for a player standing in its way. The entities are the traffic's alone: never saved with the chunk, tagged, and any left over from a crash are
  * removed when they load. Server thread only. */
 final class RoadTraffic {
     static final String TAG = "mobtalk_road";
-    /** Walking speed (blocks a tick) of a cart and of a horseman, the lane's distance from the middle, the rest at each end. */
+    /** Walking speed (blocks a tick) of a cart and of a horseman, the lane's distance from the middle, the least time in a station. */
     static final double CART_SPEED = 0.1, RIDER_SPEED = 0.14, LANE = 1.2;
     static final int REST = 600, TURN = 60;
     /** A trip takes shape this near a player and goes back to being a place on the road farther than this. */
@@ -143,7 +143,7 @@ final class RoadTraffic {
     private void plan(ServerWorld world, World state) {
         int wanted = perRoad();
         for (RoadNetwork.Road road : bridge.roads.roads(world)) {
-            if (road.done.isEmpty()) continue; // not a stone of it laid yet
+            if (road.done.isEmpty() || road.branch()) continue; // not a stone of it laid yet; a branch carries none
             Set<Integer> have = new HashSet<>();
             for (Trip trip : state.saved.trips) if (trip.road == road.id) have.add(trip.slot);
             for (int slot = 0; slot < wanted; slot++) {
@@ -186,16 +186,17 @@ final class RoadTraffic {
             if (trip.shaped()) place(world, road, trip);
             return;
         }
-        if (trip.rest > 0) { // resting at the village; then the turn (at once where nobody sees it)
-            if (--trip.rest == 0) { if (trip.shaped()) trip.turn = TURN; else turnAround(road, trip, range); }
-            if (trip.shaped()) place(world, road, trip);
+        if (trip.rest > 0) { // in the village's station, out of sight; then it sets out back the other way
+            if (trip.shaped()) vanish(trip);
+            if (--trip.rest == 0) turnAround(road, trip, range);
             return;
         }
         boolean held = trip.shaped() && (blocked(world, state, road, trip) || !laidAhead(world, road, trip));
         if (!held) {
             trip.s += trip.dir * speed(trip);
             double end = trip.dir > 0 ? range[1] : range[0];
-            if ((trip.s - end) * trip.dir >= 0) { trip.s = end; trip.rest = REST; }
+            // Arrived: it goes into the station and is gone for a while (each trip for its own time, so they leave one by one).
+            if ((trip.s - end) * trip.dir >= 0) { trip.s = end; trip.rest = REST + Math.floorMod(trip.slot * 337 + (int) (world.getTime() / 20), REST); }
         }
         if (trip.shaped()) place(world, road, trip);
     }
@@ -218,7 +219,7 @@ final class RoadTraffic {
         }
         if (trip.turn > 0) return false;
         for (Trip other : state.saved.trips) {
-            if (other == trip || other.road != trip.road || other.dir != trip.dir) continue;
+            if (other == trip || other.road != trip.road || other.dir != trip.dir || other.rest > 0) continue; // one in the station is not on the road
             double gap = (other.s - trip.s) * trip.dir;
             if (gap > 0 && gap < length(other) + 4.5) return true;
         }
@@ -324,7 +325,7 @@ final class RoadTraffic {
         if (watch != null && world.getTime() < watchUntil) nearest = Math.min(nearest, Math.hypot(watch.x - frame.x, watch.z - frame.z));
         boolean ticking = world.shouldTickEntity(at) && road.done.contains(ChunkPos.toLong(at.getX() >> 4, at.getZ() >> 4));
         if (trip.shaped() && (nearest > VANISH || !ticking || !alive(trip))) vanish(trip);
-        else if (!trip.shaped() && nearest < APPEAR && ticking) appear(world, road, trip, frame);
+        else if (!trip.shaped() && nearest < APPEAR && ticking && trip.rest == 0) appear(world, road, trip, frame);
     }
 
     private static boolean alive(Trip trip) {

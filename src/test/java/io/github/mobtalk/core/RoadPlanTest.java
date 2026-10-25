@@ -99,4 +99,49 @@ class RoadPlanTest {
         assertTrue(edges.stream().anyMatch(e -> e[0] == 0 && e[1] == 1));
         assertTrue(edges.stream().anyMatch(e -> e[0] == 1 && e[1] == 2));
     }
+
+    @Test void aRavineIsCrossedAtItsRimsNotDownIntoIt() {
+        RoadPlan.Terrain land = new RoadPlan.Terrain() { // a ravine twenty wide and twelve deep in flat land at 70
+            @Override public int floor(int x, int z) { return x >= 190 && x <= 210 ? 58 : 70; }
+            @Override public int surface(int x, int z) { return floor(x, z); }
+        };
+        RoadPlan.Road road = RoadPlan.plan(5, 0, 0, 400, 0, land, RoadPlan.Rules.defaults()).road();
+        assertNotNull(road);
+        for (RoadPlan.Point p : road.points())
+            if (p.x() >= 185 && p.x() <= 215) assertTrue(p.h2() >= 136, "keeps near the rims over the ravine at " + p.x() + ": " + p.h2() / 2.0);
+        assertTrue(road.bridge() >= 15, "a bridge over the ravine: " + road.bridge());
+    }
+
+    @Test void noClimbBeforeATunnel() {
+        RoadPlan.Terrain land = new RoadPlan.Terrain() { // a hill rising gently from 70 to a ridge of 120, thirty blocks across the top
+            @Override public int floor(int x, int z) { return 70 + (int) Math.max(0, Math.min(50, 50 - (Math.abs(x - 250) - 15) * 0.6)); }
+            @Override public int surface(int x, int z) { return floor(x, z); }
+        };
+        RoadPlan.Road road = RoadPlan.plan(6, 0, 0, 500, 0, land, RoadPlan.Rules.defaults()).road();
+        assertNotNull(road);
+        assertTrue(road.tunnel() > 0, "a tunnel through the ridge");
+        int highest = road.points().stream().mapToInt(RoadPlan.Point::h2).max().orElse(0);
+        assertTrue(highest <= 150, "the road stays low and goes in at the foot: highest " + highest / 2.0);
+    }
+
+    @Test void aBranchMeetsTheHighwayAtItsHeight() {
+        // The highway runs on a bank three blocks over the ground where the branch joins it.
+        RoadPlan.Result result = RoadPlan.plan(5, 0, 0, 0, 120, flat(70), RoadPlan.Rules.defaults(), 73);
+        assertTrue(result.ok(), result.refusal());
+        List<RoadPlan.Point> points = result.road().points();
+        RoadPlan.Point last = points.get(points.size() - 1);
+        assertEquals(146, last.h2());
+        for (RoadPlan.Point p : points) {
+            if (Math.hypot(p.x() - last.x(), p.z() - last.z()) <= 5) { assertEquals(146, p.h2()); assertEquals(RoadPlan.Kind.GROUND, p.kind()); }
+        }
+        for (int i = 1; i < points.size(); i++) assertTrue(Math.abs(points.get(i).h2() - points.get(i - 1).h2()) <= 1, "smooth at " + i);
+        assertEquals(140, points.get(0).h2(), "the village end stays on the ground");
+    }
+
+    @Test void aJunctionKeepsToPlainRoadAwayFromTheEnds() {
+        List<RoadPlan.Point> highway = RoadPlan.plan(1, 0, 0, 400, 0, flat(70), RoadPlan.Rules.defaults()).road().points();
+        int at = RoadPlan.junction(highway, 200, 150, 0, highway.size() - 1, 6);
+        assertEquals(200, highway.get(at).blockX(), 1);
+        assertEquals(10, RoadPlan.junction(highway, -100, 0, 10, highway.size() - 1, 6));
+    }
 }

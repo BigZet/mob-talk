@@ -55,8 +55,9 @@ public final class RoadCartRenderer extends EntityRenderer<RoadCartEntity> {
         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180.0F - heading));
         matrices.scale(-1.0F, -1.0F, 1.0F);
         CartModel model = entity.wagon() ? wagon : cart;
-        // Vanilla pitch is positive looking down: the cart's nose goes down on a descent.
-        model.setAngles(entity, MathHelper.lerp(tickDelta, entity.prevWheel, entity.wheel), 0, 0, 0, -pitch);
+        // The pitch goes to the model as it is, as NiftyCarts' DrawnRenderer gives it (Dmitriy 2026-10-25: turned the other way, the
+        // cart dipped its nose to a horse standing higher).
+        model.setAngles(entity, MathHelper.lerp(tickDelta, entity.prevWheel, entity.wheel), 0, 0, 0, pitch);
         model.render(matrices, vertices.getBuffer(model.getLayer(getTexture(entity))), light, OverlayTexture.DEFAULT_UV);
         if (entity.wagon()) {
             matrices.push();

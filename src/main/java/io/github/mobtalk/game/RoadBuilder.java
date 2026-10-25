@@ -76,28 +76,31 @@ final class RoadBuilder {
 
     static Palette palette(int id) { return id == 1 ? Palette.SANDSTONE : Palette.STONE; }
 
-    /** Where the road meets the village at each end, as the first and the last point to lay ({@link Integer#MIN_VALUE} where this chunk
-     * cannot tell): walking in from the open country, the first point whose road would touch one of the village's pieces is where the
-     * village's own streets take over, and nothing is laid past it — no stray paving between the houses. Read from the village's
-     * start, which every chunk the village reaches refers to. */
-    static int[] ends(ServerWorld world, ChunkPos chunk, List<RoadPlan.Point> points) {
-        int[] out = { Integer.MIN_VALUE, Integer.MIN_VALUE };
-        WorldChunk here = world.getChunkManager().getWorldChunk(chunk.x, chunk.z);
-        if (here == null) return out;
-        RoadPlan.Point first = points.get(0), last = points.get(points.size() - 1);
-        var registry = world.getRegistryManager().get(RegistryKeys.STRUCTURE);
-        for (Map.Entry<Structure, LongSet> entry : here.getStructureReferences().entrySet()) {
-            if (!RoadNetwork.village(world, registry.getEntry(entry.getKey()))) continue;
-            for (long reference : entry.getValue()) {
-                Chunk holder = world.getChunk(ChunkPos.getPackedX(reference), ChunkPos.getPackedZ(reference), ChunkStatus.STRUCTURE_STARTS, false);
-                StructureStart start = holder == null ? null : holder.getStructureStart(entry.getKey());
-                if (start == null || !start.hasChildren()) continue;
-                BlockBox box = start.getBoundingBox();
-                if (out[0] == Integer.MIN_VALUE && near(box, first, 8)) out[0] = meet(start, points, true);
-                if (out[1] == Integer.MIN_VALUE && near(box, last, 8)) out[1] = meet(start, points, false);
-            }
-        }
-        return out;
+    /** The village a road end belongs to, from its key ("minecraft:village_plains@12,-5": the structure and the chunk it starts in):
+     * its start with all its pieces, read from that chunk at the structure stage (made now if need be: cheap, and the pieces are
+     * known from it before a block of the village stands). Null for an end that is no village (a test spot) or a village the world
+     * did not make after all. */
+    static StructureStart village(ServerWorld world, String key) {
+        int at = key.indexOf('@'), comma = key.indexOf(',', at);
+        if (at < 0 || comma < 0) return null;
+        net.minecraft.util.Identifier id = net.minecraft.util.Identifier.tryParse(key.substring(0, at));
+        Structure structure = id == null ? null : world.getRegistryManager().get(RegistryKeys.STRUCTURE).get(id);
+        if (structure == null) return null;
+        try {
+            int cx = Integer.parseInt(key.substring(at + 1, comma)), cz = Integer.parseInt(key.substring(comma + 1));
+            Chunk holder = world.getChunk(cx, cz, ChunkStatus.STRUCTURE_STARTS, true);
+            StructureStart start = holder == null ? null : holder.getStructureStart(structure);
+            return start == null || !start.hasChildren() ? null : start;
+        } catch (NumberFormatException wrong) { return null; }
+    }
+
+    /** Where the road meets the village of {@code key} at its start ({@code atStart}) or its end: walking in from the open country,
+     * the first point whose road would touch one of the village's pieces is where the village's own streets take over, and nothing
+     * is laid past it. Known before any chunk of the road is laid (the road once ran on into a house when its end was learnt too
+     * late, Dmitriy 2026-10-25). */
+    static int end(ServerWorld world, String key, List<RoadPlan.Point> points, boolean atStart) {
+        StructureStart start = village(world, key);
+        return start == null ? (atStart ? 0 : points.size() - 1) : meet(start, points, atStart);
     }
 
     private static boolean near(BlockBox box, RoadPlan.Point p, double margin) {
@@ -131,27 +134,62 @@ final class RoadBuilder {
 
     /** Counts of what was done, for the log and the self-test. */
     static final class Report {
-        int columns, skipped, lamps;
-        @Override public String toString() { return columns + " столбцов, пропущено " + skipped + ", фонарей " + lamps; }
+        int columns, skipped, lamps, dammed, drops;
+        @Override public String toString() { return columns + " столбцов, пропущено " + skipped + ", фонарей " + lamps + ", запружено " + dammed + ", убрано выпавшего " + drops; }
     }
 
     /** Lays the road's part in this chunk. */
-    static Report lay(ServerWorld world, List<RoadPlan.Point> points, ChunkPos chunk, Palette palette, int from, int to, boolean lamps, int lampSpacing) {
+    static Report lay(ServerWorld world, List<RoadPlan.Point> points, ChunkPos chunk, Palette palette, int from, int to, int lampTo, boolean lamps, int lampSpacing) {
         Report report = new Report();
         Map<Long, Column> columns = columns(points, chunk);
         if (columns.isEmpty()) return report;
         List<BlockBox> pieces = pieces(world, chunk);
+        Set<Long> cleared = new HashSet<>();
+        int low = Integer.MAX_VALUE, high = Integer.MIN_VALUE;
         for (Column column : columns.values()) {
             RoadPlan.Point point = points.get(column.index());
             if (column.index() < from || column.index() > to) { report.skipped++; continue; }
             // A bridge or tunnel passes through a piece's box where nothing of the piece stands (the check below still keeps off
             // every block that is not natural); the paved road keeps off the pieces altogether.
             if (point.kind() == RoadPlan.Kind.GROUND && blockedByStructure(pieces, column, point)) { report.skipped++; continue; }
-            if (column(world, palette, point, column, false)) { column(world, palette, point, column, true); report.columns++; }
+            if (column(world, palette, point, column, null)) { column(world, palette, point, column, cleared); report.columns++; }
             else report.skipped++;
+            low = Math.min(low, (point.h2() >> 1) - FILL - BANK); high = Math.max(high, (point.h2() >> 1) + CLEAR + OPEN_CUT + TREE_CLEAR);
         }
-        if (lamps) report.lamps = lamps(world, palette, points, chunk, from, to, lampSpacing);
+        report.dammed = dam(world, palette, cleared);
+        if (lamps) report.lamps = lamps(world, palette, points, chunk, from, lampTo, lampSpacing);
+        if (low <= high) report.drops = sweepDrops(world, chunk, low, high);
         return report;
+    }
+
+    /** Water (or lava) left beside a block the road dug out would run onto the road and wash over it (Dmitriy 2026-10-25): every
+     * such face is shut with the road's stone, a retaining wall against a pond or a river bank. */
+    private static int dam(ServerWorld world, Palette palette, Set<Long> cleared) {
+        int dammed = 0;
+        BlockPos.Mutable at = new BlockPos.Mutable();
+        for (long packed : cleared) {
+            for (net.minecraft.util.math.Direction direction : DAMMED) {
+                at.set(packed).move(direction);
+                if (cleared.contains(at.asLong())) continue;
+                BlockState state = world.getBlockState(at);
+                if (state.getFluidState().isEmpty() || !natural(state)) continue;
+                world.setBlockState(at, palette.lining().getDefaultState(), FLAGS);
+                dammed++;
+            }
+        }
+        return dammed;
+    }
+
+    private static final net.minecraft.util.math.Direction[] DAMMED = { net.minecraft.util.math.Direction.NORTH, net.minecraft.util.math.Direction.SOUTH,
+            net.minecraft.util.math.Direction.EAST, net.minecraft.util.math.Direction.WEST, net.minecraft.util.math.Direction.UP };
+
+    /** Grass, flowers and seeds that the earthworks knocked loose drop as items; the road's own work leaves none lying about. Only
+     * items that came into being this very tick, in and just round this chunk, are taken. */
+    private static int sweepDrops(ServerWorld world, ChunkPos chunk, int low, int high) {
+        net.minecraft.util.math.Box box = new net.minecraft.util.math.Box(chunk.getStartX() - 2, low, chunk.getStartZ() - 2, chunk.getEndX() + 3, high, chunk.getEndZ() + 3);
+        List<net.minecraft.entity.ItemEntity> items = world.getEntitiesByClass(net.minecraft.entity.ItemEntity.class, box, item -> item.getItemAge() <= 1);
+        for (net.minecraft.entity.ItemEntity item : items) item.discard();
+        return items.size();
     }
 
     /** The columns of the chunk the road covers, each with its nearest centreline point. */
@@ -207,9 +245,10 @@ final class RoadBuilder {
 
     // ---- One column ----
 
-    /** Works one column: with {@code write} false only checks that everything it would change is natural (or the road's own). */
-    private static boolean column(ServerWorld world, Palette palette, RoadPlan.Point point, Column column, boolean write) {
-        Ops ops = new Ops(world, palette, column.x(), column.z(), write);
+    /** Works one column, noting each block it digs out in {@code cleared}; with {@code cleared} null only checks that everything it
+     * would change is natural (or the road's own). */
+    private static boolean column(ServerWorld world, Palette palette, RoadPlan.Point point, Column column, Set<Long> cleared) {
+        Ops ops = new Ops(world, palette, column.x(), column.z(), cleared);
         int h2 = point.h2(), y0 = h2 >> 1;
         boolean slab = (h2 & 1) == 1;
         double side = Math.abs(column.across());
@@ -293,7 +332,8 @@ final class RoadBuilder {
                     set(world, post.withY(feet), palette.postBase().getDefaultState(), true);
                     for (int k = 1; k <= 4; k++) set(world, post.withY(feet + k), palette.post().getDefaultState(), true);
                 }
-                if (inside(chunk, arm) && naturalOrOwn(world, palette, arm.withY(feet + 3), 2)) {
+                // The arm goes with its post, also over the edge into the next chunk (all eight round a chunk being laid are loaded).
+                if (any && naturalOrOwn(world, palette, arm.withY(feet + 3), 2)) {
                     any = true;
                     set(world, arm.withY(feet + 4), palette.post().getDefaultState(), true);
                     set(world, arm.withY(feet + 3), Blocks.LANTERN.getDefaultState().with(LanternBlock.HANGING, true), true);
@@ -375,10 +415,12 @@ final class RoadBuilder {
 
     /** The changes of one column; in the check pass {@link #ok} turns false at the first block that is not ours to touch. */
     private static final class Ops {
-        final ServerWorld world; final Palette palette; final int x, z; final boolean write;
+        final ServerWorld world; final Palette palette; final int x, z; final boolean write; final Set<Long> cleared;
         final BlockPos.Mutable at = new BlockPos.Mutable();
         boolean ok = true;
-        Ops(ServerWorld world, Palette palette, int x, int z, boolean write) { this.world = world; this.palette = palette; this.x = x; this.z = z; this.write = write; }
+        Ops(ServerWorld world, Palette palette, int x, int z, Set<Long> cleared) {
+            this.world = world; this.palette = palette; this.x = x; this.z = z; this.cleared = cleared; this.write = cleared != null;
+        }
 
         BlockState get(int y) { return world.getBlockState(at.set(x, y, z)); }
         private boolean mine(BlockState state) { return natural(state) || palette.owns(state.getBlock()); }
@@ -390,8 +432,15 @@ final class RoadBuilder {
             BlockState old = get(y);
             if (!write) { if (!mine(old)) ok = false; return; }
             if (old != state) world.setBlockState(at.set(x, y, z), state, flags);
+            if (state.isAir()) cleared.add(BlockPos.asLong(x, y, z));
         }
-        void clear(int y) { BlockState old = get(y); if (!old.isAir()) set(y, Blocks.AIR.getDefaultState()); }
+        /** Clears a block, but never a street lamp's post or lantern: a lamp's arm reaches over the road, and the chunk laid next
+         * must not cut it off (the lamps came out broken, Dmitriy 2026-10-25). */
+        void clear(int y) {
+            BlockState old = get(y);
+            if (old.isOf(palette.post()) || old.isOf(Blocks.LANTERN)) return;
+            if (!old.isAir() || write) set(y, Blocks.AIR.getDefaultState());
+        }
         /** Digs a block out (ground, rock, a tree, water): the same as clearing. */
         void dig(int y) { clear(y); }
 

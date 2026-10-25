@@ -29,7 +29,7 @@ public final class RoadPlan {
     /** The grade (height per block along the road), how deep a cut becomes a tunnel and how high a fill a bridge, how much bridge
      * and tunnel a road may have and how long it may be at most, and how many lines are tried. */
     public record Rules(double grade, int tunnelCut, int bridgeFill, int maxBridge, int maxTunnel, int maxLength, int variants) {
-        public static Rules defaults() { return new Rules(0.33, 10, 9, 240, 200, 900, 6); }
+        public static Rules defaults() { return new Rules(0.33, 10, 7, 240, 200, 900, 6); }
     }
 
     /** One step of the centreline, a block apart: where (block coordinates, fractional), which way it runs (unit vector), the height
@@ -60,6 +60,14 @@ public final class RoadPlan {
 
     /** Plans the road from A to B: the cheapest of {@code rules.variants} lines that keeps within the rules. */
     public static Result plan(long seed, int ax, int az, int bx, int bz, Terrain terrain, Rules rules) {
+        return plan(seed, ax, az, bx, bz, terrain, rules, Double.NaN);
+    }
+
+    /** How near its end a branch is held at the height of the road it joins, flat and on the ground (the other road's width). */
+    static final double JOIN = 5;
+
+    /** Plans a road whose end B is held at {@code bFeet} (the height of the road it joins: a branch), or on the ground when NaN. */
+    public static Result plan(long seed, int ax, int az, int bx, int bz, Terrain terrain, Rules rules, double bFeet) {
         double length = Math.hypot(bx - ax, bz - az);
         if (length < 16) return new Result(null, "деревни слишком близко (" + Math.round(length) + " блоков)");
         if (length > rules.maxLength()) return new Result(null, "дальше " + rules.maxLength() + " блоков (" + Math.round(length) + ")");
@@ -67,7 +75,7 @@ public final class RoadPlan {
         Road best = null; String refusal = null;
         for (int variant = 0; variant < Math.max(1, rules.variants()); variant++) {
             List<double[]> line = centreline(seed, variant, rules.variants(), ax, az, bx, bz);
-            Road road = profile(line, cached, rules);
+            Road road = profile(line, cached, rules, bFeet);
             String why = refusal(road, rules);
             if (why != null) { if (refusal == null) refusal = why; continue; }
             if (best == null || road.cost() < best.cost()) best = road;
@@ -143,7 +151,9 @@ public final class RoadPlan {
     // ---- The height ----
 
     /** The road's height along the line and what it is at each point. */
-    static Road profile(List<double[]> line, Terrain terrain, Rules rules) {
+    static Road profile(List<double[]> line, Terrain terrain, Rules rules) { return profile(line, terrain, rules, Double.NaN); }
+
+    static Road profile(List<double[]> line, Terrain terrain, Rules rules, double bFeet) {
         int n = line.size();
         double[] floor = new double[n], surface = new double[n];
         for (int i = 0; i < n; i += SAMPLE_STEP) sample(line, i, terrain, floor, surface);
@@ -162,12 +172,22 @@ public final class RoadPlan {
         // Both ends stand on the ground at their villages: the climb to a village on a plateau spreads back down the road rather
         // than the road arriving under the village in a tunnel. Each point stays within reach of both ends at the grade (when the
         // ends are too far apart in height for that, the road keeps to the ground as best it can instead).
-        double a = base[0], b = base[n - 1];
-        boolean pinned = Math.abs(a - b) <= g * (n - 1);
-        if (pinned) for (int i = 0; i < n; i++)
-            road[i] = clamp(road[i], Math.max(a - g * i, b - g * (n - 1 - i)), Math.min(a + g * i, b + g * (n - 1 - i)));
+        // A branch is flat at the height of the road it joins from where it reaches that road's edge.
+        boolean joins = !Double.isNaN(bFeet);
+        double[] end = line.get(n - 1);
+        int last = n - 1;
+        if (joins) while (last > 0 && Math.hypot(line.get(last - 1)[0] - end[0], line.get(last - 1)[1] - end[1]) <= JOIN) last--;
+        double a = base[0], b = joins ? bFeet : base[n - 1];
+        boolean pinned = joins || Math.abs(a - b) <= g * last;
+        if (pinned) for (int i = 0; i < n; i++) {
+            int left = Math.max(0, last - i);
+            road[i] = clamp(road[i], Math.max(a - g * i, b - g * left), Math.min(a + g * i, b + g * left));
+        }
+        if (joins) for (int i = last; i < n; i++) road[i] = b;
         for (int i = 1; i < n; i++) road[i] = clamp(road[i], road[i - 1] - g, road[i - 1] + g);
         for (int i = n - 2; i >= 0; i--) road[i] = clamp(road[i], road[i + 1] - g, road[i + 1] + g);
+        road = throughHills(road, floor, g, rules);
+        road = overHollows(road, g);
         int[] h2 = new int[n];
         for (int i = 0; i < n; i++) {
             h2[i] = (int) Math.round(road[i] * 2);
@@ -175,6 +195,7 @@ public final class RoadPlan {
         }
         for (int i = 1; i < n; i++) h2[i] = Math.max(h2[i], h2[i - 1] - 1);
         for (int i = n - 2; i >= 0; i--) h2[i] = Math.max(h2[i], h2[i + 1] - 1);
+        if (joins) for (int i = last; i < n; i++) h2[i] = (int) Math.round(bFeet * 2);
         Kind[] kinds = new Kind[n];
         for (int i = 0; i < n; i++) {
             double feet = h2[i] / 2.0, cut = floor[i] - feet, fill = feet - floor[i];
@@ -183,6 +204,7 @@ public final class RoadPlan {
             else kinds[i] = Kind.GROUND;
         }
         tidy(kinds, wet, floor, surface);
+        if (joins) for (int i = last; i < n; i++) kinds[i] = Kind.GROUND;
         List<Point> points = new ArrayList<>(n);
         int bridge = 0, tunnel = 0; double cost = 0;
         for (int i = 0; i < n; i++) {
@@ -198,6 +220,58 @@ public final class RoadPlan {
             }
         }
         return new Road(List.copyOf(points), bridge, tunnel, cost);
+    }
+
+    /** The longest stretch a straight line across a hollow is looked for over (and how far before and after a tunnel its line through
+     * the hill may start), and how deep a dip must be for it: at least {@link #DIP} blocks, and a tenth of the stretch (a wide gentle
+     * valley is followed). */
+    static final int SPAN = 96;
+    static final double DIP = 4, DIP_SHARE = 0.1;
+
+    /** Where the road would go into a tunnel anyway, it does not climb the hill first and then dive in (Dmitriy 2026-10-25): for
+     * each tunnel the lowest straight line from a point before it to one after it is found (within the grade, the tunnel no longer
+     * than the rules allow, each end up to twice {@link #SPAN} away: a road held to the grade comes off a hill slower than the ground
+     * falls), and the road over the hump is lowered to it, so that the tunnel starts nearer the hill's foot. A hill with no tunnel
+     * through it is climbed as before. */
+    static double[] throughHills(double[] road, double[] floor, double g, Rules rules) {
+        int n = road.length;
+        double[] out = road.clone();
+        for (int i = 0; i < n; ) {
+            if (floor[i] - road[i] < rules.tunnelCut()) { i++; continue; }
+            int start = i; while (i < n && floor[i] - road[i] >= rules.tunnelCut()) i++;
+            int end = i - 1;
+            int bestA = -1, bestB = -1; double bestMean = Double.MAX_VALUE;
+            for (int a = start - 1; a >= Math.max(0, start - 2 * SPAN); a--)
+                for (int b = end + 1; b <= Math.min(n - 1, end + 2 * SPAN); b++) {
+                    if (Math.abs(road[b] - road[a]) > g * (b - a) + 1e-9) continue;
+                    double mean = (road[a] + road[b]) / 2;
+                    if (mean >= bestMean) continue;
+                    int under = 0;
+                    for (int k = a + 1; k < b; k++) if (floor[k] - (road[a] + (road[b] - road[a]) * (k - a) / (b - a)) >= rules.tunnelCut()) under++;
+                    if (under > rules.maxTunnel()) continue;
+                    bestMean = mean; bestA = a; bestB = b;
+                }
+            if (bestA >= 0) for (int k = bestA + 1; k < bestB; k++) out[k] = Math.min(out[k], road[bestA] + (road[bestB] - road[bestA]) * (k - bestA) / (bestB - bestA));
+        }
+        return out;
+    }
+
+    /** A ravine or a deep hollow is crossed at the level of its rims, on a bridge or a bank, rather than by a road that goes down
+     * into it and up the other side (it sank too deep, Dmitriy 2026-10-25): wherever the straight line from rim to rim (within the
+     * grade) runs well above the road, the road is lifted to it. */
+    static double[] overHollows(double[] road, double g) {
+        int n = road.length;
+        double[] out = road.clone();
+        for (int a = 0; a < n; a++)
+            for (int b = Math.min(n - 1, a + SPAN); b >= a + 2; b--) {
+                if (Math.abs(road[b] - road[a]) > g * (b - a)) continue;
+                double dip = 0;
+                for (int k = a + 1; k < b; k++) dip = Math.max(dip, road[a] + (road[b] - road[a]) * (k - a) / (b - a) - road[k]);
+                if (dip < Math.max(DIP, DIP_SHARE * (b - a))) continue;
+                for (int k = a + 1; k < b; k++) out[k] = Math.max(out[k], road[a] + (road[b] - road[a]) * (k - a) / (b - a));
+                break;
+            }
+        return out;
     }
 
     private static void sample(List<double[]> line, int i, Terrain terrain, double[] floor, double[] surface) {
@@ -276,6 +350,21 @@ public final class RoadPlan {
     }
 
     private static double dist(int[] xs, int[] zs, int a, int b) { return Math.hypot(xs[a] - xs[b], zs[a] - zs[b]); }
+
+    /** Where a branch from (x, z) joins a road: the index of its nearest point that is plain road with plain road for
+     * {@code margin} points each way, between {@code from} and {@code to} (kept off the villages at its ends); -1 when there is none. */
+    public static int junction(List<Point> road, double x, double z, int from, int to, int margin) {
+        int best = -1; double bestD = Double.MAX_VALUE;
+        for (int i = Math.max(from, margin); i <= Math.min(to, road.size() - 1 - margin); i++) {
+            Point p = road.get(i);
+            double d = Math.hypot(p.x() - x, p.z() - z);
+            if (d >= bestD) continue;
+            boolean plain = true;
+            for (int k = i - margin; k <= i + margin && plain; k++) plain = road.get(k).kind() == Kind.GROUND;
+            if (plain) { best = i; bestD = d; }
+        }
+        return best;
+    }
 
     // ---- Along the road ----
 

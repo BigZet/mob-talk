@@ -63,4 +63,39 @@ public final class Roads {
         MobGameBridge bridge = bridge(world);
         return bridge == null ? "Mob Talk не запущен" : bridge.traffic.bring(world, id, x, z, kind);
     }
+
+    /** The villages with that many roads (2: two or more). */
+    public static java.util.List<String> villagesWith(ServerWorld world, int roads) {
+        MobGameBridge bridge = bridge(world);
+        return bridge == null ? java.util.List.of() : bridge.roads.villagesWith(world, roads);
+    }
+
+    /** The village's box {minX, minY, minZ, maxX, maxY, maxZ}, null when the world has no such village. */
+    public static int[] villageBox(ServerWorld world, String key) {
+        net.minecraft.structure.StructureStart start = RoadBuilder.village(world, key);
+        if (start == null) return null;
+        net.minecraft.util.math.BlockBox box = start.getBoundingBox();
+        return new int[] { box.getMinX(), box.getMinY(), box.getMinZ(), box.getMaxX(), box.getMaxY(), box.getMaxZ() };
+    }
+
+    /** Holds (or lets go) the village's chunks and a margin round it loaded, and has its streets and station done again. */
+    public static void holdVillage(ServerWorld world, String key, boolean hold) {
+        int[] box = villageBox(world, key);
+        if (box == null) return;
+        for (int cx = (box[0] - 32) >> 4; cx <= (box[3] + 32) >> 4; cx++)
+            for (int cz = (box[2] - 32) >> 4; cz <= (box[5] + 32) >> 4; cz++) world.setChunkForced(cx, cz, hold);
+        if (hold) bridge(world).roads.redoVillage(world, key);
+    }
+
+    /** What was done in the village this session ("подъездов 1, …, станция"), null until it is. */
+    public static String villageReport(ServerWorld world, String key) {
+        MobGameBridge bridge = bridge(world);
+        return bridge == null ? null : bridge.roads.villageReport(world, key);
+    }
+
+    /** Where a road comes into the village, {x, feet, z, ix, iz} (the way in a unit vector). */
+    public static double[] villageEntry(ServerWorld world, String key) {
+        MobGameBridge bridge = bridge(world);
+        return bridge == null ? null : bridge.roads.villageEntry(world, key);
+    }
 }

@@ -250,7 +250,37 @@ final class SelfTestRoads {
         look(from.add(0, 2.2, 0), ahead.add(0, 1, 0));
         shot("mobtalk-roads-night.png", 4, () -> {
             look(middle.add(-14, 16, -14), middle.add(10, 0, 10));
-            shot("mobtalk-roads-night-above.png", 3, this::finish);
+            shot("mobtalk-roads-night-above.png", 3, () -> {
+                test.command("time set 6000");
+                village(2, () -> village(1, this::finish));
+            });
+        });
+    }
+
+    /** Where the roads come into a village of the world (one that two or more roads come to, {@code roads} 2, or only one): the
+     * village's chunks are held until its streets (and, with one road, its station) are done, then it is photographed from the
+     * road and from above. Skipped when the world has no such village. */
+    private void village(int roads, Runnable then) {
+        List<String> keys = onServer(() -> Roads.villagesWith(world(), roads));
+        String kind = roads >= 2 ? "through" : "station";
+        if (keys.isEmpty()) { test.log("no village with " + roads + " road(s): " + kind + " views skipped"); then.run(); return; }
+        String key = keys.get(0);
+        onServer(() -> { Roads.holdVillage(world(), key, true); return null; });
+        test.await("the village " + key + " is done", 180, () -> onServer(() -> Roads.villageReport(world(), key)) != null, () -> {
+            String report = onServer(() -> Roads.villageReport(world(), key));
+            test.check(report.contains("подъездов " + (roads >= 2 ? "" : "1")), "the roads reach the streets of " + key + ": " + report);
+            if (roads == 1) test.check(report.contains("станция"), "a station where the only road ends at " + key);
+            else test.check(!report.contains("вымощено улиц 0"), "the streets between the entries are paved at " + key);
+            double[] e = onServer(() -> Roads.villageEntry(world(), key));
+            Vec3d at = new Vec3d(e[0], e[1], e[2]), in = new Vec3d(e[3], 0, e[4]);
+            look(at.subtract(in.multiply(16)).add(in.z * 5, 4, -in.x * 5), at.add(in.multiply(6)));
+            shot("mobtalk-roads-" + kind + "-entry.png", 6, () -> {
+                look(at.subtract(in.multiply(10)).add(0, 22, 0), at.add(in.multiply(6)));
+                shot("mobtalk-roads-" + kind + "-above.png", 3, () -> {
+                    onServer(() -> { Roads.holdVillage(world(), key, false); return null; });
+                    then.run();
+                });
+            });
         });
     }
 

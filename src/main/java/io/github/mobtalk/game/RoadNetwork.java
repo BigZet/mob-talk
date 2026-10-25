@@ -17,6 +17,8 @@ import net.minecraft.registry.tag.StructureTags;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.structure.StructureSet;
+import net.minecraft.structure.StructureStart;
+import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.PersistentState;
@@ -57,6 +59,8 @@ final class RoadNetwork {
         final Set<String> queuedCells = new HashSet<>();
         final LinkedHashSet<Job> jobs = new LinkedHashSet<>();
         final Set<String> planning = new HashSet<>();
+        /** What RoadVillages did in each village this session (for the self-test). */
+        final Map<String, String> villageReports = new HashMap<>();
         Map<Long, List<Road>> index;
         Saved saved;
     }
@@ -78,6 +82,10 @@ final class RoadNetwork {
         /** RoadBuilder's palette (-1 not chosen yet), and the first and last point to lay, where the road meets each village
          * ({@link Integer#MIN_VALUE} until a chunk the village reaches has told). */
         int palette = -1, from = Integer.MIN_VALUE, to = Integer.MIN_VALUE;
+        /** A branch: the road it turns off (its end B is that road's point {@code at}), 0 for a road between two villages. Branches
+         * carry no traffic. */
+        int joins, at;
+        boolean branch() { return joins != 0; }
         final LongSet done = new LongOpenHashSet();
         LongSet chunks;
         NbtCompound write() {
@@ -94,6 +102,7 @@ final class RoadNetwork {
             tag.putInt("palette", palette);
             if (from != Integer.MIN_VALUE) tag.putInt("from", from);
             if (to != Integer.MIN_VALUE) tag.putInt("to", to);
+            if (joins != 0) { tag.putInt("joins", joins); tag.putInt("at", at); }
             return tag;
         }
         static Road read(NbtCompound tag) {
@@ -117,6 +126,7 @@ final class RoadNetwork {
             road.palette = tag.contains("palette") ? tag.getInt("palette") : -1;
             road.from = tag.contains("from") ? tag.getInt("from") : Integer.MIN_VALUE;
             road.to = tag.contains("to") ? tag.getInt("to") : Integer.MIN_VALUE;
+            road.joins = tag.getInt("joins"); road.at = tag.getInt("at");
             return road;
         }
         /** The chunks the road and its earthworks reach. */
@@ -147,6 +157,8 @@ final class RoadNetwork {
          * held too), and those still to hold, a few at a time so the world generator is not flooded. */
         final LongSet forced = new LongOpenHashSet();
         final ArrayDeque<Long> toForce = new ArrayDeque<>();
+        /** The villages whose streets and station RoadVillages has done, by key, with the roads they were done for ("3,7"). */
+        final Map<String, String> villageWork = new HashMap<>();
         int nextId = 1;
         static final Type<Saved> TYPE = new Type<>(Saved::new, Saved::read, null);
         static Saved read(NbtCompound tag, RegistryWrapper.WrapperLookup lookup) {
@@ -164,6 +176,8 @@ final class RoadNetwork {
             saved.nextId = Math.max(1, tag.getInt("nextId"));
             for (long chunk : tag.getLongArray("forced")) saved.forced.add(chunk);
             for (long chunk : tag.getLongArray("toForce")) saved.toForce.add(chunk);
+            NbtCompound work = tag.getCompound("villageWork");
+            for (String key : work.getKeys()) saved.villageWork.put(key, work.getString(key));
             return saved;
         }
         @Override public NbtCompound writeNbt(NbtCompound tag, RegistryWrapper.WrapperLookup lookup) {
@@ -185,6 +199,9 @@ final class RoadNetwork {
             tag.putInt("nextId", nextId);
             tag.putLongArray("forced", forced.toLongArray());
             tag.putLongArray("toForce", toForce.stream().mapToLong(Long::longValue).toArray());
+            NbtCompound work = new NbtCompound();
+            villageWork.forEach(work::putString);
+            tag.put("villageWork", work);
             return tag;
         }
         Road road(int id) { for (Road road : roads) if (road.id == id) return road; return null; }
@@ -261,6 +278,53 @@ final class RoadNetwork {
         for (Road road : state.saved.roads)
             for (long chunk : road.chunks())
                 if (!road.done.contains(chunk) && ready(world, ChunkPos.getPackedX(chunk), ChunkPos.getPackedZ(chunk))) state.jobs.add(new Job(road.id, chunk));
+        branches(world, state);
+        villages(world, state);
+    }
+
+    /** Where the roads come into a village (RoadVillages): once the chunk of each road's last point is laid and the whole village is
+     * loaded, its way to the streets, its streets between the entries and, for a village one road comes to, its station. Done again
+     * when another road comes to it. */
+    private void villages(ServerWorld world, World state) {
+        Map<String, List<Road>> by = new TreeMap<>();
+        for (Road road : state.saved.roads) {
+            if (road.from == Integer.MIN_VALUE || road.to == Integer.MIN_VALUE) continue;
+            by.computeIfAbsent(road.a, k -> new ArrayList<>()).add(road);
+            by.computeIfAbsent(road.b, k -> new ArrayList<>()).add(road);
+        }
+        for (Map.Entry<String, List<Road>> village : by.entrySet()) {
+            String key = village.getKey();
+            List<Road> roads = village.getValue();
+            roads.sort(Comparator.comparingInt(road -> road.id));
+            StringBuilder sign = new StringBuilder();
+            boolean laid = true;
+            for (Road road : roads) {
+                RoadPlan.Point end = road.points.get(road.a.equals(key) ? road.from : road.to);
+                laid &= road.done.contains(ChunkPos.toLong(MathHelper.floor(end.x()) >> 4, MathHelper.floor(end.z()) >> 4));
+                sign.append(sign.isEmpty() ? "" : ",").append(road.id);
+            }
+            if (!laid || sign.toString().equals(state.saved.villageWork.get(key))) continue;
+            StructureStart start = RoadBuilder.village(world, key);
+            if (start == null || !start.hasChildren()) { state.saved.villageWork.put(key, sign.toString()); state.saved.markDirty(); continue; }
+            BlockBox box = start.getBoundingBox();
+            boolean loaded = true;
+            for (int cx = (box.getMinX() - 8) >> 4; cx <= (box.getMaxX() + 8) >> 4 && loaded; cx++)
+                for (int cz = (box.getMinZ() - 8) >> 4; cz <= (box.getMaxZ() + 8) >> 4 && loaded; cz++)
+                    loaded = world.getChunkManager().getWorldChunk(cx, cz) != null;
+            if (!loaded) continue;
+            List<RoadVillages.Entry> entries = new ArrayList<>();
+            for (Road road : roads)
+                entries.add(road.a.equals(key) ? RoadVillages.Entry.of(road.points, road.from, true) : RoadVillages.Entry.of(road.points, road.to, false));
+            try {
+                RoadVillages.Report report = RoadVillages.work(world, start, entries, RoadBuilder.palette(roads.get(0).palette), bridge.config.roadLamps);
+                LOGGER.info("дороги {}: деревня {}: {}", sign, key, report);
+                state.villageReports.put(key, report.toString());
+            } catch (RuntimeException failure) {
+                LOGGER.warn("дороги {}: деревня {} не обустроена", sign, key, failure);
+            }
+            state.saved.villageWork.put(key, sign.toString());
+            state.saved.markDirty();
+        }
     }
 
     /** The chunk and its eight neighbours are all loaded. */
@@ -277,15 +341,15 @@ final class RoadNetwork {
         if (!ready(world, cx, cz)) return; // queued again when it or a neighbour comes in
         try {
             ChunkPos pos = new ChunkPos(cx, cz);
-            if (road.palette < 0) road.palette = RoadBuilder.palette(world, road.points);
-            if (road.from == Integer.MIN_VALUE || road.to == Integer.MIN_VALUE) {
-                int[] ends = RoadBuilder.ends(world, pos, road.points);
-                if (road.from == Integer.MIN_VALUE && ends[0] != Integer.MIN_VALUE) road.from = ends[0];
-                if (road.to == Integer.MIN_VALUE && ends[1] != Integer.MIN_VALUE) road.to = ends[1];
+            if (road.palette < 0) {
+                Road main = road.branch() ? state.saved.road(road.joins) : null;
+                road.palette = main != null && main.palette >= 0 ? main.palette : RoadBuilder.palette(world, road.points);
             }
-            int from = road.from == Integer.MIN_VALUE ? 0 : road.from, to = road.to == Integer.MIN_VALUE ? road.points.size() - 1 : road.to;
+            if (road.from == Integer.MIN_VALUE) road.from = RoadBuilder.end(world, road.a, road.points, true);
+            if (road.to == Integer.MIN_VALUE) road.to = RoadBuilder.end(world, road.b, road.points, false);
+            int from = road.from, to = road.to;
             RoadBuilder.Report report = RoadBuilder.lay(world, road.points, pos, RoadBuilder.palette(road.palette), from, to,
-                    bridge.config.roadLamps, bridge.config.roadLampSpacing);
+                    road.branch() ? to - BRANCH_UNLIT : to, bridge.config.roadLamps, bridge.config.roadLampSpacing);
             road.done.add(job.chunk());
             state.saved.markDirty();
             release(world, state, job.chunk());
@@ -363,6 +427,56 @@ final class RoadNetwork {
         }
     }
 
+    // ---- Branches ----
+
+    /** How far from a village a road may pass for a branch to turn off it to the village (Dmitriy 2026-10-25: «небольшие
+     * ответвления, чтобы с трассы уйти на деревню, если рядом»), how far its own roads must keep from that spot for one to be
+     * needed, how many points of plain road the junction needs each way, and how many of the branch's last points have no lamp
+     * (the highway's lamps light the junction). */
+    static final int BRANCH = 220, BRANCH_NEAR = 60, JUNCTION_MARGIN = 8, BRANCH_UNLIT = 6;
+
+    /** For each village a road passes within {@link #BRANCH} blocks of, and whose own roads do not come near that road already, plans
+     * one branch from the village to the nearest plain stretch of it (its end held at the road's height). */
+    private void branches(ServerWorld world, World state) {
+        for (Village village : state.saved.villages.values()) {
+            Road best = null; int bestAt = -1; double bestD = BRANCH;
+            for (Road road : state.saved.roads) {
+                if (road.branch() || road.a.equals(village.key) || road.b.equals(village.key) || road.from == Integer.MIN_VALUE || road.to == Integer.MIN_VALUE) continue;
+                if (state.saved.pairs.containsKey(branchPair(village.key, road.id))) continue;
+                int at = RoadPlan.junction(road.points, village.x, village.z, road.from + 12, road.to - 12, JUNCTION_MARGIN);
+                if (at < 0) continue;
+                RoadPlan.Point p = road.points.get(at);
+                double d = Math.hypot(p.x() - village.x, p.z() - village.z);
+                if (d >= bestD || d < 24 || served(state, village.key, p)) continue;
+                best = road; bestAt = at; bestD = d;
+            }
+            if (best == null) continue;
+            String pair = branchPair(village.key, best.id);
+            if (!state.planning.add(pair)) continue;
+            RoadPlan.Point p = best.points.get(bestAt);
+            int joins = best.id, at = bestAt;
+            plan(world, state, village.key, village.x, village.z, "road#" + best.id, p.blockX(), p.blockZ(), p.h2() / 2.0, (road, planned) -> {
+                road.joins = joins; road.at = at;
+                // The branch is laid up to the highway's curb; the highway itself is not touched.
+                RoadPlan.Point join = planned.get(planned.size() - 1);
+                int to = planned.size() - 1;
+                while (to > 0 && Math.hypot(planned.get(to).x() - join.x(), planned.get(to).z() - join.z()) < RoadBuilder.CURB + 0.5) to--;
+                road.to = to;
+            }, null);
+        }
+    }
+
+    private static String branchPair(String village, int road) { return pair(village, "road#" + road); }
+
+    /** One of the village's own roads (or a branch it has) already comes within {@link #BRANCH_NEAR} of that spot. */
+    private static boolean served(World state, String key, RoadPlan.Point spot) {
+        for (Road road : state.saved.roads) {
+            if (!road.a.equals(key) && !road.b.equals(key)) continue;
+            for (RoadPlan.Point p : road.points) if (Math.hypot(p.x() - spot.x(), p.z() - spot.z()) < BRANCH_NEAR) return true;
+        }
+        return false;
+    }
+
     // ---- Planning ----
 
     /** Plans a road for each pair of neighbouring villages that has none planned yet. */
@@ -374,14 +488,15 @@ final class RoadNetwork {
             Village a = villages.get(edge[0]), b = villages.get(edge[1]);
             String pair = pair(a.key, b.key);
             if (state.saved.pairs.containsKey(pair) || !state.planning.add(pair)) continue;
-            plan(world, state, a.key, a.x, a.z, b.key, b.x, b.z, null);
+            plan(world, state, a.key, a.x, a.z, b.key, b.x, b.z, Double.NaN, null, null);
         }
     }
 
     static String pair(String a, String b) { return a.compareTo(b) <= 0 ? a + "|" + b : b + "|" + a; }
 
     /** Plans one road off the game thread and takes it in on the game thread; {@code done} hears the outcome (for the command). */
-    private void plan(ServerWorld world, World state, String a, int ax, int az, String b, int bx, int bz, java.util.function.Consumer<String> done) {
+    private void plan(ServerWorld world, World state, String a, int ax, int az, String b, int bx, int bz, double bFeet,
+                      java.util.function.BiConsumer<Road, List<RoadPlan.Point>> branch, java.util.function.Consumer<String> done) {
         String pair = pair(a, b);
         state.planning.add(pair);
         ChunkGenerator generator = world.getChunkManager().getChunkGenerator();
@@ -410,14 +525,15 @@ final class RoadNetwork {
         long seed = world.getSeed() ^ pair.hashCode() * 0x9E3779B97F4A7C15L;
         PLANNER.execute(() -> {
             RoadPlan.Result result;
-            try { result = RoadPlan.plan(seed, ax, az, bx, bz, terrain, rules); }
+            try { result = RoadPlan.plan(seed, ax, az, bx, bz, terrain, rules, bFeet); }
             catch (RuntimeException failure) { LOGGER.warn("дорога {} не спланирована", pair, failure); result = new RoadPlan.Result(null, "ошибка: " + failure); }
             RoadPlan.Result planned = result;
-            world.getServer().execute(() -> accept(world, a, b, planned, done));
+            world.getServer().execute(() -> accept(world, a, b, planned, branch, done));
         });
     }
 
-    private void accept(ServerWorld world, String a, String b, RoadPlan.Result result, java.util.function.Consumer<String> done) {
+    private void accept(ServerWorld world, String a, String b, RoadPlan.Result result, java.util.function.BiConsumer<Road, List<RoadPlan.Point>> branch,
+                        java.util.function.Consumer<String> done) {
         World state = world(world);
         String pair = pair(a, b);
         state.planning.remove(pair);
@@ -430,6 +546,7 @@ final class RoadNetwork {
         Road road = new Road();
         road.id = state.saved.nextId++; road.a = a; road.b = b; road.points = result.road().points();
         road.bridge = result.road().bridge(); road.tunnel = result.road().tunnel();
+        if (branch != null) branch.accept(road, road.points);
         state.saved.roads.add(road); state.saved.pairs.put(pair, road.id); state.saved.markDirty();
         index(state, road);
         int queued = 0;
@@ -439,6 +556,38 @@ final class RoadNetwork {
                 + ", " + road.chunks().size() + " чанков (" + queued + " загружено)";
         LOGGER.info("{} ({})", line, pair);
         if (done != null) done.accept(line);
+    }
+
+    // ---- For the self-test ----
+
+    /** The villages with exactly {@code roads} roads coming to them (2 meaning two or more), branches counted. */
+    List<String> villagesWith(ServerWorld world, int roads) {
+        Map<String, Integer> count = new TreeMap<>();
+        for (Road road : world(world).saved.roads) { count.merge(road.a, 1, Integer::sum); count.merge(road.b, 1, Integer::sum); }
+        List<String> out = new ArrayList<>();
+        count.forEach((key, n) -> { if (world(world).saved.villages.containsKey(key) && (roads >= 2 ? n >= 2 : n == roads)) out.add(key); });
+        return out;
+    }
+
+    /** Has the village's work done again (the next sweep, once its chunks are loaded) and forgets what it did. */
+    void redoVillage(ServerWorld world, String key) {
+        World state = world(world);
+        state.saved.villageWork.remove(key); state.villageReports.remove(key); state.saved.markDirty();
+    }
+
+    String villageReport(ServerWorld world, String key) { return world(world).villageReports.get(key); }
+
+    /** Where a road comes into the village: its last laid point and the way in, {x, feet, z, ix, iz}; null when none has come. */
+    double[] villageEntry(ServerWorld world, String key) {
+        for (Road road : world(world).saved.roads) {
+            boolean atStart = road.a.equals(key);
+            if (!atStart && !road.b.equals(key)) continue;
+            int end = atStart ? road.from : road.to;
+            if (end == Integer.MIN_VALUE) continue;
+            RoadVillages.Entry entry = RoadVillages.Entry.of(road.points, end, atStart);
+            return new double[] { entry.at().x(), entry.at().h2() / 2.0, entry.at().z(), entry.ix(), entry.iz() };
+        }
+        return null;
     }
 
     // ---- For the command ----
@@ -484,7 +633,7 @@ final class RoadNetwork {
     /** A test road between two spots, planned now and laid where loaded. */
     void build(ServerWorld world, int ax, int az, int bx, int bz, java.util.function.Consumer<String> done) {
         World state = world(world);
-        plan(world, state, "spot@" + ax + "," + az, ax, az, "spot@" + bx + "," + bz, bx, bz, done);
+        plan(world, state, "spot@" + ax + "," + az, ax, az, "spot@" + bx + "," + bz, bx, bz, Double.NaN, null, done);
     }
 
     /** Lays again every loaded chunk of the roads (a changed setting, a self-test). */

@@ -8,6 +8,7 @@ import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
@@ -90,15 +91,17 @@ public final class RoadCartEntity extends Entity {
     @Override protected Vec3d getPassengerAttachmentPos(Entity passenger, EntityDimensions dimensions, float scale) {
         int index = Math.max(0, getPassengerList().indexOf(passenger));
         Vec3d look = Vec3d.fromPolar(getPitch(), getYaw());
+        // NiftyCarts' seats suit a player, whose seat is 0.6 below its feet; a villager has none of its own and would stand on the
+        // bench (it floated over the cart, Dmitriy 2026-10-25): it sits as a player does, on the wagon's benches a little lower still
+        // so that a hat stays under the roof.
+        double sink = passenger instanceof PlayerEntity ? 0 : PlayerEntity.VEHICLE_ATTACHMENT_POS.y + (wagon() ? 0.2 : 0);
         if (!wagon()) {
             double ahead = getPassengerList().size() > 1 ? (index == 0 ? 0.2 : -0.6) : -0.1;
             Vec3d forward = look.multiply(ahead + MathHelper.sin((float) Math.toRadians(getPitch())) * 0.7);
-            return new Vec3d(forward.x, (dimensions.height() - 0.5) * scale + forward.y, forward.z);
+            return new Vec3d(forward.x, (dimensions.height() - 0.5 - sink) * scale + forward.y, forward.z);
         }
         double ahead = index == 0 || index == 2 ? 0.1 : -1.2, side = index == 0 || index == 1 ? 0.7 : -0.7;
         Vec3d forward = look.multiply(ahead), sideways = new Vec3d(forward.z, 0, -forward.x).normalize().multiply(side);
-        // NiftyCarts' bench height suits a seated player; a villager sits taller and would put its head through the roof.
-        double sink = passenger instanceof net.minecraft.entity.player.PlayerEntity ? 0 : 0.8;
         return new Vec3d(forward.x + sideways.x, (dimensions.height() - 2 - 1 / 16.0 - sink) * scale + forward.y, forward.z + sideways.z);
     }
 
