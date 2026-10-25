@@ -58,15 +58,15 @@
     "subtitle": "subtitle.mobtalk.police_megaphone",
     "sounds": [
       {
-        "name": "mobtalk:police/megaphone_police_1",
+        "name": "mobtalk:police/megaphone_alarm_1",
         "attenuation_distance": 64
       },
       {
-        "name": "mobtalk:police/megaphone_disperse_1",
+        "name": "mobtalk:police/megaphone_alarm_2",
         "attenuation_distance": 64
       },
       {
-        "name": "mobtalk:police/megaphone_disperse_2",
+        "name": "mobtalk:police/megaphone_alarm_3",
         "attenuation_distance": 64
       }
     ]
@@ -75,15 +75,15 @@
     "subtitle": "subtitle.mobtalk.police_megaphone",
     "sounds": [
       {
-        "name": "mobtalk:police/megaphone_police_2",
+        "name": "mobtalk:police/megaphone_chase_1",
         "attenuation_distance": 64
       },
       {
-        "name": "mobtalk:police/megaphone_give_up_1",
+        "name": "mobtalk:police/megaphone_chase_2",
         "attenuation_distance": 64
       },
       {
-        "name": "mobtalk:police/megaphone_give_up_2",
+        "name": "mobtalk:police/megaphone_chase_3",
         "attenuation_distance": 64
       }
     ]
@@ -92,11 +92,15 @@
     "subtitle": "subtitle.mobtalk.police_megaphone",
     "sounds": [
       {
-        "name": "mobtalk:police/megaphone_hands_1",
+        "name": "mobtalk:police/megaphone_arrest_1",
         "attenuation_distance": 64
       },
       {
-        "name": "mobtalk:police/megaphone_hands_2",
+        "name": "mobtalk:police/megaphone_arrest_2",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_arrest_3",
         "attenuation_distance": 64
       }
     ]
@@ -105,11 +109,15 @@
     "subtitle": "subtitle.mobtalk.police_megaphone",
     "sounds": [
       {
-        "name": "mobtalk:police/megaphone_stop_1",
+        "name": "mobtalk:police/megaphone_road_1",
         "attenuation_distance": 64
       },
       {
-        "name": "mobtalk:police/megaphone_stop_2",
+        "name": "mobtalk:police/megaphone_road_2",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_road_3",
         "attenuation_distance": 64
       }
     ]

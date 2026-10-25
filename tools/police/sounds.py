@@ -36,16 +36,22 @@ QUACKS = [
 ]
 # The loudhailer: (name, voice, text). The arrest, the alarm, the cell, the road.
 LINES = [
-    ("megaphone_stop_1", "dmitri", "Водитель, прижмитесь к обочине и остановитесь!"),
-    ("megaphone_stop_2", "denis", "Внимание! Водитель, остановитесь!"),
-    ("megaphone_police_1", "dmitri", "Внимание! Работает полиция!"),
-    ("megaphone_police_2", "denis", "Стоять! Полиция!"),
-    ("megaphone_disperse_1", "denis", "Граждане, расходитесь! Не мешайте работе полиции!"),
-    ("megaphone_disperse_2", "denis", "Граждане, освободите проезжую часть!"),
-    ("megaphone_hands_1", "denis", "Руки за голову! Лицом к машине!"),
-    ("megaphone_hands_2", "denis", "Оставайтесь на месте! Руки, чтобы я видел!"),
-    ("megaphone_give_up_1", "dmitri", "Вы окружены! Сдавайтесь!"),
-    ("megaphone_give_up_2", "denis", "Сопротивление бесполезно! Выходите с поднятыми руками!"),
+    # to the crowd in an alarm (the patrol car's loudspeaker)
+    ("megaphone_alarm_1", "denis", "Внимание! Говорит полиция! Граждане, соблюдайте общественный порядок!"),
+    ("megaphone_alarm_2", "denis", "Граждане, не скапливайтесь! Проходите, не задерживайтесь!"),
+    ("megaphone_alarm_3", "denis", "Внимание! Освободите проезжую часть!"),
+    # to an offender in a chase
+    ("megaphone_chase_1", "denis", "Стоять! Полиция!"),
+    ("megaphone_chase_2", "denis", "Остановитесь! Работает полиция!"),
+    ("megaphone_chase_3", "denis", "Не двигаться! Полиция!"),
+    # at the arrest
+    ("megaphone_arrest_1", "denis", "Лежать! Руки за голову!"),
+    ("megaphone_arrest_2", "denis", "Руки на капот! Ноги на ширину плеч!"),
+    ("megaphone_arrest_3", "denis", "Вы задержаны! Не оказывайте сопротивления!"),
+    # to a driver (the road cop, later): the stop order the traffic rules let a patrol give by loudspeaker
+    ("megaphone_road_1", "denis", "Водитель «Жигулей», прижмитесь вправо и остановитесь!"),
+    ("megaphone_road_2", "denis", "Водитель, принять вправо! Остановиться!"),
+    ("megaphone_road_3", "denis", "Водители, освободите левую полосу!"),
 ]
 
 CLEAN = "highpass=f=480,lowpass=f=5200,afftdn=nr=14:nf=-38,acompressor=threshold=0.35:ratio=2.5:attack=5:release=120"
