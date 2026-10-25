@@ -174,6 +174,15 @@ public final class ConversationStore {
         changed.forEach((f, o) -> copies.put(f.copy(), o));
         return copies;
     }
+    /** Stage 2: the player's open passport case (a copy), or null. */
+    public synchronized Paperwork.Case paperCase(UUID player) { Paperwork.Case c = state.officials.kase(player); return c == null ? null : c.copy(); }
+    public synchronized Paperwork.Case paperOpen(UUID player, String playerName, String village, String villageTitle, int extra, Set<Officialdom.Rank> offices, long day) {
+        Paperwork.Case c = state.officials.open(player, playerName, village, villageTitle, Paperwork.chain(player, state.officials.nextCase(), extra, offices), day);
+        scheduleSave();
+        return c.copy();
+    }
+    public synchronized void paperSave(Paperwork.Case kase) { state.officials.save(kase == null ? null : kase.copy()); scheduleSave(); }
+    public synchronized String paperIssue(UUID player, String village, long day) { String n = state.officials.issuePassport(player, village, day); scheduleSave(); return n; }
     public synchronized List<Officialdom.Fine> officialFines() { return state.officials.open().stream().map(Officialdom.Fine::copy).toList(); }
 
     public synchronized void recordHelp(UUID mob, String type, String name, UUID player, String playerName, long nowMillis) {

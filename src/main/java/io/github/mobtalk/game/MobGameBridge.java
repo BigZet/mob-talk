@@ -59,6 +59,8 @@ public final class MobGameBridge implements GameBridge {
     final VillageDefenseController defense;
     /** Track «чиновники»: officials' desks, envelopes and the inspector's orders. */
     final OfficialsController officials;
+    /** Officials, stage 2: the passport office (cases, the queue at the clerk's window). */
+    final PassportOffice passports;
     /** Б1: the god's deeds reaching the villages. */
     final DivineController divine;
     /** Трек J: ревность пар игрока и сон вместе. */
@@ -82,6 +84,7 @@ public final class MobGameBridge implements GameBridge {
         villages = new VillageController(this);
         defense = new VillageDefenseController(this);
         officials = new OfficialsController(this);
+        passports = new PassportOffice(this);
         divine = new DivineController(this);
         jealousy = new JealousyController(this);
         rivalry = new RivalryController(this);
@@ -176,6 +179,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.villages.tick(world);
                 bridge.defense.tick(world);
                 bridge.officials.tick(world, bridge.defense.zones(world));
+                bridge.passports.tick(world);
                 bridge.divine.tick(world);
                 bridge.jealousy.tick(world);
                 bridge.rivalry.tick(world);
@@ -228,7 +232,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.memory.recordAction(card.id(), ActionIntent.none());
         if (server.isStopped()) return CompletableFuture.completedFuture(null);
         CompletableFuture<Void> done = new CompletableFuture<>();
-        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.divine.clearRuntime(); bridge.defense.clearRuntime(); bridge.officials.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.rivalry.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bars.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
+        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.divine.clearRuntime(); bridge.defense.clearRuntime(); bridge.officials.clearRuntime(); bridge.passports.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.rivalry.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bars.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
         return done;
     }
     /** Б1: an event of the divine block (JSON), from any thread; dropped when no world is open. */
@@ -236,6 +240,11 @@ public final class MobGameBridge implements GameBridge {
         MobGameBridge bridge = active;
         if (bridge != null && json != null) bridge.divine.offer(json);
     }
+    /** Self-test: Shift+right-click on an official (the passport office); how many stand ahead of the player in the clerk's queue
+     * (-1: not in one) and how many villagers stand in that line. Server thread. */
+    public boolean officeVisitForTest(net.minecraft.entity.passive.VillagerEntity official, ServerPlayerEntity player) { return passports.visit((ServerWorld) official.getWorld(), player, official); }
+    public int queueAheadForTest(UUID player) { return passports.ahead(player); }
+    public int queueLineForTest(UUID player) { return passports.line(player); }
     /** Where the admin history hears the villages learn of the god's deeds; null to stop. */
     public static void divineJournal(java.util.function.BiConsumer<String, com.google.gson.JsonObject> sink) { DivineController.journal = sink; }
     public static MobGameBridge forEntity(Entity entity) {

@@ -98,7 +98,7 @@ final class OfficialsController {
     }
 
     /** The officials living in the zone, by rank. */
-    private Map<Officialdom.Rank, List<VillagerEntity>> officials(ServerWorld world, VillageDefenseController.Zone zone) {
+    Map<Officialdom.Rank, List<VillagerEntity>> officials(ServerWorld world, VillageDefenseController.Zone zone) {
         Map<Officialdom.Rank, List<VillagerEntity>> out = new EnumMap<>(Officialdom.Rank.class);
         for (VillagerEntity v : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !v.isBaby() && !DefenseContent.traveller(v))) {
             Officialdom.Rank rank = OfficialContent.rank(v);
@@ -236,6 +236,7 @@ final class OfficialsController {
                 yield Text.translatable("mobtalk.official.taken.favour", name);
             }
             case CLERK -> {
+                if (bridge.passports.rush(world, player, official, zone)) yield Text.translatable("mobtalk.official.taken.rush", name);
                 player.getInventory().offerOrDrop(OfficialContent.certificate(MobGameBridge.playerName(player), name, day));
                 yield Text.translatable("mobtalk.official.taken.clerk", name);
             }
@@ -330,13 +331,13 @@ final class OfficialsController {
         for (ServerPlayerEntity player : world.getPlayers())
             if (player.getBlockPos().getSquaredDistance(zone.center()) <= range * range) player.sendMessage(text.copy().formatted(Formatting.GRAY), false);
     }
-    private String name(VillagerEntity villager) {
+    String name(VillagerEntity villager) {
         String name = bridge.memory.displayName(villager.getUuid());
         return name == null || name.isBlank() ? villager.getName().getString() : name;
     }
 
     /** «инспектор Пётр», or just «инспектор» for an unnamed one (whose name would only repeat the rank). */
-    private Text titled(VillagerEntity villager, Officialdom.Rank rank) {
+    Text titled(VillagerEntity villager, Officialdom.Rank rank) {
         String name = ownName(villager);
         Text title = Text.translatable("mobtalk.official.rank." + rank.path);
         return name == null ? title : title.copy().append(" " + name);

@@ -194,7 +194,34 @@ public final class Officialdom {
     /** How many envelopes each official took, by its UUID (the village will talk of it in stage 3). */
     Map<String, Integer> taken = new LinkedHashMap<>();
 
+    /** Open passport cases, by player UUID (stage 2, {@link Paperwork}); the next case number and the next passport number. */
+    Map<String, Paperwork.Case> cases = new LinkedHashMap<>();
+    int nextCase = 1, nextPassport = 100001;
+
     private static String key(String village, UUID player) { return village + "|" + player; }
+
+    // ---- Passport cases ----
+
+    /** The player's open case, or null. */
+    public Paperwork.Case kase(UUID player) { return player == null ? null : cases.get(player.toString()); }
+    /** Opens a case for the player in this village with the round {@code steps}. */
+    public Paperwork.Case open(UUID player, String playerName, String village, String villageTitle, List<Paperwork.Step> steps, long day) {
+        Paperwork.Case c = new Paperwork.Case();
+        c.player = player.toString(); c.playerName = playerName == null ? "" : playerName; c.village = village == null ? "" : village;
+        c.villageTitle = villageTitle == null ? "" : villageTitle; c.number = nextCase++; c.openedDay = day;
+        for (Paperwork.Step s : steps) c.steps.add(s.name());
+        cases.put(c.player, c);
+        return c;
+    }
+    /** Puts the changed case back (a copy taken from {@link #kase} and changed by {@link Paperwork}). */
+    public void save(Paperwork.Case kase) { if (kase != null && kase.player != null) cases.put(kase.player, kase); }
+    /** The passport is issued: the case is closed; returns the passport number. */
+    public String issuePassport(UUID player, String village, long day) {
+        if (player != null) cases.remove(player.toString());
+        return Paperwork.passportNumber(village, day, nextPassport++);
+    }
+    /** The case number the next case will get (for the chain, before it is opened). */
+    public int nextCase() { return nextCase; }
 
     /** The open order against this player in this village, or null. */
     public Fine fine(String village, UUID player) {
@@ -240,6 +267,7 @@ public final class Officialdom {
     Officialdom copy() {
         Officialdom c = new Officialdom();
         fines.forEach((k, v) -> c.fines.put(k, v.copy())); c.nextNumber = nextNumber; c.favoured.putAll(favoured); c.taken.putAll(taken);
+        cases.forEach((k, v) -> c.cases.put(k, v.copy())); c.nextCase = nextCase; c.nextPassport = nextPassport;
         return c;
     }
     void sanitize() {
@@ -256,5 +284,13 @@ public final class Officialdom {
         favoured.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null);
         taken.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null);
         if (nextNumber < 1001) nextNumber = 1001;
+        if (cases == null) cases = new LinkedHashMap<>();
+        cases.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null || e.getValue().steps == null || e.getValue().steps.isEmpty());
+        cases.values().forEach(c -> {
+            c.player = c.player == null ? "" : c.player; if (c.playerName == null) c.playerName = ""; if (c.village == null) c.village = ""; if (c.villageTitle == null) c.villageTitle = "";
+            c.steps.removeIf(s -> Paperwork.Step.of(s) == null);
+        });
+        if (nextCase < 1) nextCase = 1;
+        if (nextPassport < 100001) nextPassport = 100001;
     }
 }

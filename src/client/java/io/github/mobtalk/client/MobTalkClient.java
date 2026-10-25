@@ -142,6 +142,7 @@ public final class MobTalkClient implements ClientModInitializer {
         MomentClient.register(configDirectory); // Метки для монтажа: клавиша, OBS (идея З4).
         net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_ENTITIES.register(labels::render);
         ChildView.register();
+        PassportFace.register(); // Лицо владельца в подсказке паспорта.
         io.github.mobtalk.client.human.VillagerLooks.register();
         net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(io.github.mobtalk.game.BarContent.SEAT, net.minecraft.client.render.entity.EmptyEntityRenderer::new);
         net.fabricmc.fabric.api.resource.ResourceManagerHelper.get(net.minecraft.resource.ResourceType.CLIENT_RESOURCES).registerReloadListener(
