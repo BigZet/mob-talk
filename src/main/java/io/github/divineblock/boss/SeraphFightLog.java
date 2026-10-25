@@ -24,7 +24,7 @@ final class SeraphFightLog {
     /** The net's own inputs (SeraphMind.token / items, duel.py Duel._tokens / _items_for("s")), in their order. */
     static final String[] TOKEN = { "vx", "vy", "vz", "height", "dash_ready", "deflect_ready", "attack_ready", "cast", "sweep",
             "eye_x", "eye_y", "eye_z", "foe_vx", "foe_vy", "foe_vz", "drawing", "pull", "look_x", "look_y", "look_z", "aim_off",
-            "foe_cool", "dashing" };
+            "foe_cool", "dashing", "mini_ready", "mini", "tele_ready", "orbit_dir" };
     static final String[] ITEM = { "rx", "ry", "rz", "vx", "vy", "vz", "arrow", "reflected", "feather", "tca", "on" };
     static final String FIGHT_HEADER = "tick,hp,max_hp,phase,exposed,recovering,dist,height,dash_cd,deflect_cd,attack_cd,casting,dashing,"
             + "deflecting,foe_drawing,foe_pull,out_sx,out_lift,out_sz,out_dash,out_deflect,out_feathers,out_aim_side,out_aim_up,"
@@ -87,7 +87,7 @@ final class SeraphFightLog {
         StringBuilder out = new StringBuilder();
         for (String name : TOKEN) out.append(out.isEmpty() ? "" : ",").append("tok_").append(name);
         for (int k = 0; k < 8; k++) for (String name : ITEM) out.append(",it").append(k).append('_').append(name);
-        return out.toString();
+        return out.append(",out_mini,out_side,out_radius,out_tele,did_mini,did_flip,did_tele,radius,orbit_dir").toString();
     }
 
     /** Three decimals, a dot for the point; empty for a value the game does not know. */

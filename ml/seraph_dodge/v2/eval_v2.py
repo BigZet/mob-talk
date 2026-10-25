@@ -20,10 +20,10 @@ import sys
 import numpy as np
 import torch
 
-from duel import A_ACT, CAST_TICKS, DEFLECT_ACTIVE, EP_LEN, S_ACT, Duel, bow_power
+from duel import A_ACT, CAST_TICKS, DEFLECT_ACTIVE, EP_LEN, S_ACT, S_TOK_V2, Duel, bow_power
 from selfplay import make
 
-KEYS = ("shots", "arrow_hits", "reflects", "reflect_hits", "dashes")
+KEYS = ("shots", "arrow_hits", "reflects", "reflect_hits", "dashes", "minis", "flips", "teleports")
 
 
 FIGHT_HEADER = ("tick,hp,max_hp,phase,exposed,recovering,dist,height,dash_cd,deflect_cd,attack_cd,casting,dashing,"
@@ -31,9 +31,11 @@ FIGHT_HEADER = ("tick,hp,max_hp,phase,exposed,recovering,dist,height,dash_cd,def
                 "out_shot_soon,did_dash,did_deflect,did_feathers,refused,"
                 + ",".join("tok_" + n for n in ("vx", "vy", "vz", "height", "dash_ready", "deflect_ready", "attack_ready", "cast", "sweep",
                                                "eye_x", "eye_y", "eye_z", "foe_vx", "foe_vy", "foe_vz", "drawing", "pull", "look_x",
-                                               "look_y", "look_z", "aim_off", "foe_cool", "dashing"))
+                                               "look_y", "look_z", "aim_off", "foe_cool", "dashing",
+                                               "mini_ready", "mini", "tele_ready", "orbit_dir"))
                 + "," + ",".join(f"it{k}_{n}" for k in range(8)
-                                 for n in ("rx", "ry", "rz", "vx", "vy", "vz", "arrow", "reflected", "feather", "tca", "on")))
+                                 for n in ("rx", "ry", "rz", "vx", "vy", "vz", "arrow", "reflected", "feather", "tca", "on"))
+                + ",out_mini,out_side,out_radius,out_tele,did_mini,did_flip,did_tele,radius,orbit_dir")
 
 
 def num(v):
@@ -60,6 +62,8 @@ class FightLog:
         row += [num(v) for v in s_a[i][:8]] + [""]
         row += [flag(env.dashed[i]), flag(env.deflected[i]), flag(env.attacked[i]), env.refused[i]]
         row += [num(v) for v in env.s_hist[i, -1]] + [num(v) for v in env.s_items[i, -1].reshape(-1)]   # признаки этого тика, как в моде
+        extra = s_a[i][8:12] if s_a.shape[1] >= 12 else [None] * 4
+        row += [num(v) for v in extra] + [flag(env.minis[i]), flag(env.flips[i]), flag(env.teles[i]), num(env.radius[i]), num(env.orbit_dir[i])]
         self.fight.write(",".join(row) + "\n")
         for event, amount, raw, detail in env.events:
             self.events.write(f"{t},{event},{num(amount)},{num(raw)},{detail}\n")
@@ -69,8 +73,8 @@ class FightLog:
         self.fight.close(); self.events.close()
 
 
-def run(net, n, seed, archer=None, recover=False, log=None, v3=False, human=False):
-    env = Duel(n, seed=seed, scripted_frac=0.0 if archer is not None else 1.0, recover=recover, v3=v3, human_frac=1.0 if human else 0.0)
+def run(net, n, seed, archer=None, recover=False, log=None, v3=False, human=False, v4=False):
+    env = Duel(n, seed=seed, scripted_frac=0.0 if archer is not None else 1.0, recover=recover, v3=v3, human_frac=1.0 if human else 0.0, v4=v4)
     if log is not None:
         env.trace = 0
     zero_a = np.zeros((n, A_ACT), np.float32)
@@ -97,12 +101,29 @@ def hit(total):
 def line(name, total, episodes):
     return (f"{name}: попадания {hit(total):.3f} ({int(total['arrow_hits'])}/{int(total['shots'])}), "
             f"отражений/эп {total['reflects'] / episodes:.2f} (в стрелка {total['reflect_hits'] / episodes:.2f}), "
-            f"рывков/эп {total['dashes'] / episodes:.2f}, эпизодов {episodes}")
+            f"рывков/эп {total['dashes'] / episodes:.2f}, мини/эп {total['minis'] / episodes:.2f}, смен стороны/эп {total['flips'] / episodes:.2f}, "
+            f"телепортов/эп {total['teleports'] / episodes:.2f}, эпизодов {episodes}")
+
+
+class OldSeraph(torch.nn.Module):
+    """Сеть v2/v3 (23 признака, 8 действий) в тренажёре v4: видит первые 23 признака, новые действия duel.py добивает сам."""
+    def __init__(self, net):
+        super().__init__(); self.net = net
+
+    def act(self, tokens, items, deterministic=False):
+        return self.net.act(tokens[..., :S_TOK_V2], items, deterministic)
 
 
 def load(path, key):
+    sd = torch.load(path, map_location="cpu")[key]
+    if key == "s" and sd["emb.weight"].shape[1] == S_TOK_V2:
+        from model import AgentNet
+        from selfplay import AUX
+        from duel import ITEM_F, S_ACT_V2, T
+        net = AgentNet(S_TOK_V2, ITEM_F, S_ACT_V2, AUX, T).eval(); net.load_state_dict(sd)
+        return OldSeraph(net).eval()
     net = make(key).eval()
-    net.load_state_dict(torch.load(path, map_location="cpu")[key])
+    net.load_state_dict(sd)
     return net
 
 
@@ -117,29 +138,30 @@ def main():
     ap.add_argument("--log", default=None, help="папка: арена 0 первой копии в формате лога боя мода")
     ap.add_argument("--v3", action="store_true", help="бой как в моде: касты, нисхождение, ульта, снежки, окна с оглушением")
     ap.add_argument("--human", action="store_true", help="сценарный лучник-человек вместо лучника v1")
+    ap.add_argument("--v4", action="store_true", help="v3 и манёвры v4")
     a = ap.parse_args()
     sys.stdout.reconfigure(encoding="utf-8")
     torch.set_num_threads(a.threads)
     if a.archer is None:
         for k, path in enumerate(a.ckpt):
             log = FightLog(a.log, "sim-" + os.path.splitext(os.path.basename(path))[0]) if a.log and k == 0 else None
-            print(line(f"сеть {path}", *run(load(path, "s"), a.envs, a.seed, recover=a.recover, log=log, v3=a.v3, human=a.human)), flush=True)
+            print(line(f"сеть {path}", *run(load(path, "s"), a.envs, a.seed, recover=a.recover, log=log, v3=a.v3, human=a.human, v4=a.v4)), flush=True)
             if log is not None:
                 log.close()
-        print(line("без сети", *run(None, a.envs, a.seed, recover=a.recover, v3=a.v3, human=a.human)), flush=True)
+        print(line("без сети", *run(None, a.envs, a.seed, recover=a.recover, v3=a.v3, human=a.human, v4=a.v4)), flush=True)
         return
     archer = load(a.archer, "a")
     print("копия | попадания сценарного | попадания обученного | среднее | отражений/эп (сцен./обуч.)", flush=True)
     best = None
     for path in a.ckpt:
         net = load(path, "s")
-        kw = dict(recover=a.recover, v3=a.v3, human=a.human)
+        kw = dict(recover=a.recover, v3=a.v3, human=a.human, v4=a.v4)
         (ts, es), (tt, et) = run(net, a.envs, a.seed, **kw), run(net, a.envs, a.seed, archer, **kw)
         mean = (hit(ts) + hit(tt)) / 2
         print(f"{path} | {hit(ts):.3f} | {hit(tt):.3f} | {mean:.3f} | {ts['reflects'] / es:.2f} / {tt['reflects'] / et:.2f}", flush=True)
         if best is None or mean <= best[0]:
             best = (mean, path)
-    kw = dict(recover=a.recover, v3=a.v3, human=a.human)
+    kw = dict(recover=a.recover, v3=a.v3, human=a.human, v4=a.v4)
     (ts, _), (tt, _) = run(None, a.envs, a.seed, **kw), run(None, a.envs, a.seed, archer, **kw)
     print(f"без сети | {hit(ts):.3f} | {hit(tt):.3f} | {(hit(ts) + hit(tt)) / 2:.3f} | 0 / 0", flush=True)
     print(f"лучшая: {best[1]} (среднее {best[0]:.3f})", flush=True)

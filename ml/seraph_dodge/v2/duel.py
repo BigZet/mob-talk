@@ -18,6 +18,14 @@ v3 (Duel(v3=True)) — бой как в моде, а не только пере�
   * фаза 1–3 на эпизод (перья 5/8, круги ульты 14/16/20, таймеры как в моде);
   * сценарный лучник-человек (human_frac): прицел держится на цели с лёгким упреждением под силу выпуска, натяжение
     40–60% времени, выпуск при силе 0,3–1,0, паузы без лука, ходьба/бег/зигзаги/подход и отход, прыжки, очереди снежков.
+v4 (Duel(v4=True), включает v3) — разнообразие движения, четыре новых действия Серафима:
+  * мини-уклонение: шаг ~2,4 блока за 4 тика, перезарядка 18 тиков (большой рывок остаётся, его перезарядка 45);
+  * смена стороны облёта (знак выхода, перезарядка 40 тиков);
+  * радиус облёта 6–18 блоков (подлёт и отход, сглажен);
+  * телепорт за спину игрока: предупреждение 10 тиков (каст, видно), перезарядка 9 с;
+  * награда за разнообразие: бонус за редко используемый манёвр, штраф за долгий облёт в одну сторону.
+  Признаки Серафима v4: к 23 прежним добавлены 4 в конце (готовность мини, мини идёт, готовность телепорта, сторона облёта);
+  сеть v2/v3 инициализирует новые столбцы и строки нулями (selfplay.widen).
 Наблюдение каждого агента: tokens [n, T, F] (история по тикам), items [n, P, 11] (снаряды), mask [n, P].
 """
 import numpy as np
@@ -46,9 +54,16 @@ DESCENT_CAST, DESCENT_TICKS, DESCENT_SPEED = 24, 70, 0.15
 ULT_WARN, ZONE_R = 60, 1.8
 EXPOSED_TICKS, WEAK_CD = 120, 160
 KNOCK, RING_PUSH = 0.4, 0.6
+# ---- v4: манёвры ----
+MINI_PROFILE = np.array([0.5, 0.8, 0.7, 0.4])     # ~2,4 блока за 4 тика
+MINI_TICKS, MINI_CD = len(MINI_PROFILE), 18
+DASH_CD_V4 = 45
+FLIP_CD = 40
+RADIUS_MIN, RADIUS_MAX = 6.0, 18.0
+TELE_WARN, TELE_CD = 10, 180
 # виды кастов
-C_NONE, C_FEATHERS, C_RING, C_DESCENT, C_ULT = 0, 1, 2, 3, 4
-CAST_LEN = {C_FEATHERS: CAST_TICKS, C_RING: RING_CAST, C_DESCENT: DESCENT_CAST, C_ULT: ULT_WARN}
+C_NONE, C_FEATHERS, C_RING, C_DESCENT, C_ULT, C_TELE = 0, 1, 2, 3, 4, 5
+CAST_LEN = {C_FEATHERS: CAST_TICKS, C_RING: RING_CAST, C_DESCENT: DESCENT_CAST, C_ULT: ULT_WARN, C_TELE: TELE_WARN}
 # ---- лучник ----
 PW, PH, EYE = 0.6, 1.8, 1.62
 WALK, DRAW_SLOW, SPRINT = 0.2158, 0.2, 0.28
@@ -66,9 +81,11 @@ T = 16
 REACT = 2
 EP_LEN = 600
 
-S_ACT = 8   # sx, lift, sz, dash, deflect, attack, aim_side, aim_up
+S_ACT = 12  # sx, lift, sz, dash, deflect, attack, aim_side, aim_up, mini, side, radius, teleport (v2/v3: первые 8)
+S_ACT_V2 = 8
 A_ACT = 5   # forward, strafe, draw, aim_side, aim_up
-S_TOK = 23
+S_TOK = 27  # v2/v3: первые 23
+S_TOK_V2 = 23
 A_TOK = 20
 
 
@@ -111,7 +128,7 @@ def ballistic(flat, dy, speed, g=0.05):
 
 
 class Duel:
-    def __init__(self, n, seed=0, scripted_frac=0.0, react=REACT, recover=False, v3=False, human_frac=0.0):
+    def __init__(self, n, seed=0, scripted_frac=0.0, react=REACT, recover=False, v3=False, human_frac=0.0, v4=False):
         """recover: правило мода «после взмаха нет рывка, после рывка нет взмаха» (RECOVER тиков); в обучении sp1 его не было.
         v3: касты, нисхождение, ульта, снежки и окна с оглушением, отбрасывание и прыжки (см. шапку).
         human_frac: доля сценарных арен с лучником-человеком (остальные — сценарный лучник v1)."""
@@ -120,8 +137,10 @@ class Duel:
         self.scripted_frac = scripted_frac
         self.human_frac = human_frac
         self.react = react
-        self.recover = recover or v3
-        self.v3 = v3
+        self.v4 = v4
+        self.v3 = v3 or v4
+        self.recover = recover or self.v3
+        self.dash_cdmax = DASH_CD_V4 if v4 else DASH_CD
         self.roles_fixed = False  # selfplay v3: роли арен (сценарный или нет) держатся между эпизодами, их ставит сбор опыта
         self.trace = None        # номер арены, чьи события копятся в self.events (для лога боя, как в моде)
         self.events = []
@@ -145,6 +164,10 @@ class Duel:
         self.ring_r = np.full(n, -1.0); self.ring_c = np.zeros((n, 2)); self.ring_max = np.zeros(n); self.ring_hit = np.zeros(n, bool)
         self.zone_t = np.zeros((n, 24), int); self.zone_c = np.zeros((n, 24, 2)); self.ult_left = zi(); self.ult_next = zi(); self.ult_step = zi()
         self.exposed = zi(); self.weak_cd = zi(); self.phase = np.ones(n, int)
+        # v4: мини-уклонение, сторона и радиус облёта, телепорт, память манёвров для награды за разнообразие
+        self.mini_left = zi(); self.mini_cd = zi(); self.mini_dir = np.zeros((n, 2)); self.orbit_dir = np.ones(n)
+        self.flip_cd = zi(); self.since_flip = zi(); self.radius = np.full(n, ORBIT_R); self.tele_cd = zi()
+        self.man_ema = np.zeros((n, 4)); self.minis = np.zeros(n, bool); self.flips = np.zeros(n, bool); self.teles = np.zeros(n, bool)
         self.ppos, self.pvel = z3(), z3()
         self.kb = z3(); self.pvy = np.zeros(n)
         self.draw = zi(); self.look = z3(); self.pcool = zi()
@@ -162,7 +185,8 @@ class Duel:
         self.s_hist = np.zeros((n, T + D, S_TOK), np.float32); self.a_hist = np.zeros((n, T + D, A_TOK), np.float32)
         self.s_items = np.zeros((n, D + 1, P_OBS, ITEM_F), np.float32); self.a_items = np.zeros((n, D + 1, P_OBS, ITEM_F), np.float32)
         self.stats = {k: np.zeros(n) for k in ("shots", "arrow_hits", "volleys", "feather_hits", "reflects", "reflect_hits", "dashes",
-                                               "snows", "snow_hits", "windows", "ring_hits", "pillar_hits", "descents", "ults")}
+                                               "snows", "snow_hits", "windows", "ring_hits", "pillar_hits", "descents", "ults",
+                                               "minis", "flips", "teleports")}
 
     def reset(self, m):
         k = int(m.sum())
@@ -174,8 +198,11 @@ class Duel:
         self.bpos[m] = np.stack([np.cos(ang) * dist, np.full(k, HOVER), np.sin(ang) * dist], 1)
         self.bvel[m] = 0; self.orbit[m] = ang; self.age[m] = r.integers(0, 1000, k); self.t[m] = 0
         for a in (self.dash_cd, self.dash_left, self.defl_cd, self.defl_t, self.cast_t, self.draw, self.pcool, self.no_dash, self.no_defl,
-                  self.cast_kind, self.descend, self.ult_left, self.exposed, self.weak_cd, self.h_burst, self.h_burst_cd):
+                  self.cast_kind, self.descend, self.ult_left, self.exposed, self.weak_cd, self.h_burst, self.h_burst_cd,
+                  self.mini_left, self.mini_cd, self.flip_cd, self.since_flip, self.tele_cd):
             a[m] = 0
+        self.orbit_dir[m] = r.choice([-1.0, 1.0], k) if self.v4 else 1.0
+        self.radius[m] = ORBIT_R; self.man_ema[m] = 0
         self.zone_t[m] = 0; self.ring_r[m] = -1
         self.steer[m] = 0; self.lift[m] = 0
         self.atk_cd[m] = r.integers(20, 60, k)
@@ -220,11 +247,13 @@ class Duel:
         pflat = self.pvel * np.array([1, 0, 1])
         st = np.concatenate([
             rot(self.bvel, c, s) / 0.6, ((self.bpos[:, 1] - HOVER) / 3)[:, None],
-            (1 - self.dash_cd / DASH_CD)[:, None], (1 - self.defl_cd / DEFLECT_CD)[:, None], (1 - self.atk_cd / ATTACK_CD).clip(0, 1)[:, None],
+            (1 - self.dash_cd / self.dash_cdmax)[:, None], (1 - self.defl_cd / DEFLECT_CD)[:, None], (1 - self.atk_cd / ATTACK_CD).clip(0, 1)[:, None],
             casting[:, None], (wind + active)[:, None],
             rot(eye - center, c, s) / 20, rot(pflat, c, s) / WALK,
             drawing[:, None], pull[:, None], rot(self.look, c, s), aim_off[:, None],
             (self.pcool > 0).astype(float)[:, None], dashing[:, None],
+            (1 - self.mini_cd / MINI_CD)[:, None], (self.mini_left > 0).astype(float)[:, None],
+            (1 - self.tele_cd / TELE_CD)[:, None], self.orbit_dir[:, None],
         ], 1)
         # лучник смотрит из своей рамки: ось x на Серафима
         c2, s2 = self._frame(self.ppos, self.bpos)
@@ -295,6 +324,8 @@ class Duel:
         a_act = np.clip(np.asarray(a_act, float), -1, 1)
         rs = np.zeros(n); ra = np.zeros(n)
         self.released[:] = False; self.dashed[:] = False; self.threw[:] = False
+        if s_act.shape[1] < S_ACT:      # сеть v2/v3: без новых действий
+            s_act = np.concatenate([s_act, np.tile([-1.0, 0.0, 0.0, -1.0], (n, 1))], 1)
         self.refused = [""] * n
 
         # ================= Серафим =================
@@ -303,14 +334,15 @@ class Duel:
         if self.v3:
             # SeraphMind.tick(stunned): ничего не делает и не рулит, начатые рывок и взмах обрываются
             s_act = s_act.copy(); s_act[stun, :8] = 0; s_act[stun, 3:6] = -1
-            self.dash_left[stun] = 0; self.defl_t[stun] = 0
+            s_act[stun, 8] = -1; s_act[stun, 9] = 0; s_act[stun, 11] = -1
+            self.dash_left[stun] = 0; self.defl_t[stun] = 0; self.mini_left[stun] = 0
         steer_w = unrot(s_act[:, :3] * np.array([1, 0, 1]), c, s)[:, [0, 2]]
         self.steer = SMOOTH * self.steer + (1 - SMOOTH) * steer_w
         self.lift = SMOOTH * self.lift + (1 - SMOOTH) * s_act[:, 1]
         lift = self.lift
         casting = self.cast_t > 0
         # взмах
-        go_def = (s_act[:, 4] > 0) & (self.defl_cd == 0) & ~casting & (self.dash_left == 0)
+        go_def = (s_act[:, 4] > 0) & (self.defl_cd == 0) & ~casting & (self.dash_left == 0) & (self.mini_left == 0)
         no_def = go_def & (self.no_defl > 0) if self.recover else np.zeros(n, bool)
         go_def &= ~no_def
         self.defl_t[go_def] = DEFLECT_WIND + DEFLECT_ACTIVE; self.defl_cd[go_def] = DEFLECT_CD
@@ -318,7 +350,7 @@ class Duel:
             self.no_dash[go_def] = DEFLECT_WIND + DEFLECT_ACTIVE + RECOVER
         self.deflected = go_def.copy()
         # рывок
-        go_dash = (s_act[:, 3] > 0) & (self.dash_cd == 0) & ~casting & (self.defl_t == 0)
+        go_dash = (s_act[:, 3] > 0) & (self.dash_cd == 0) & ~casting & (self.defl_t == 0) & (self.mini_left == 0)
         no_dash = go_dash & (self.no_dash > 0) if self.recover else np.zeros(n, bool)
         go_dash &= ~no_dash
         if self.recover:
@@ -326,10 +358,12 @@ class Duel:
         for i in np.nonzero(no_def | no_dash)[0]:
             self.refused[i] = " ".join(w for w, on in (("deflect:recover", no_def[i]), ("dash:recover", no_dash[i])) if on)
         dirn = steer_w / (np.linalg.norm(steer_w, axis=1, keepdims=True) + 1e-9)
-        self.dash_dir[go_dash] = dirn[go_dash]; self.dash_left[go_dash] = DASH_TICKS; self.dash_cd[go_dash] = DASH_CD
+        self.dash_dir[go_dash] = dirn[go_dash]; self.dash_left[go_dash] = DASH_TICKS; self.dash_cd[go_dash] = self.dash_cdmax
         self.dashed |= go_dash; self.stats["dashes"] += go_dash
+        if self.v4:
+            rs += self._maneuvers(s_act, steer_w, dirn, casting, stun, go_dash)
         # атака перьями: начать каст
-        go_atk = (s_act[:, 5] > 0) & (self.atk_cd == 0) & ~casting & (self.dash_left == 0)
+        go_atk = (s_act[:, 5] > 0) & (self.atk_cd == 0) & ~(self.cast_t > 0) & (self.dash_left == 0) & (self.mini_left == 0)
         self._cast(go_atk, C_FEATHERS); self.cast_aim[go_atk] = s_act[go_atk][:, 6:8]
         self.attacked = go_atk.copy()
         rs -= 0.002 * go_dash + 0.002 * go_def
@@ -339,8 +373,8 @@ class Duel:
         dashing = self.dash_left > 0
         descending = self.descend > 0
         # pursue(): во время каста и открытого окна не вызывается (SacredBoss.mobTick возвращается раньше)
-        self.orbit += np.where(self.v3 & (self.phase >= 3), 0.03, 0.02)
-        goal = self.ppos[:, [0, 2]] + np.stack([np.cos(self.orbit), np.sin(self.orbit)], 1) * ORBIT_R
+        self.orbit += np.where(self.v3 & (self.phase >= 3), 0.03, 0.02) * self.orbit_dir
+        goal = self.ppos[:, [0, 2]] + np.stack([np.cos(self.orbit), np.sin(self.orbit)], 1) * self.radius[:, None]
         goal = np.where(descending[:, None], self.land, goal)
         flat = goal - self.bpos[:, [0, 2]]
         fl = np.linalg.norm(flat, axis=1, keepdims=True)
@@ -349,7 +383,10 @@ class Duel:
         nxt = self.bvel[:, [0, 2]] * 0.9 + push + np.where(descending[:, None], 0, self.steer * STEER_ACC)
         dspeed = DASH_PROFILE[np.clip(DASH_TICKS - self.dash_left, 0, DASH_TICKS - 1)]
         nxt = np.where(dashing[:, None], self.dash_dir * dspeed[:, None], nxt)
-        cap = np.where(dashing, dspeed, np.where(descending, DESCENT_SPEED, BASE_CAP + STEER_CAP * mag))
+        mini = self.mini_left > 0
+        mspeed = MINI_PROFILE[np.clip(MINI_TICKS - self.mini_left, 0, MINI_TICKS - 1)]
+        nxt = np.where(mini[:, None], self.mini_dir * mspeed[:, None], nxt)
+        cap = np.where(dashing, dspeed, np.where(mini, mspeed, np.where(descending, DESCENT_SPEED, BASE_CAP + STEER_CAP * mag)))
         hl = np.linalg.norm(nxt, axis=1); nxt *= np.where(hl > cap, cap / (hl + 1e-9), 1)[:, None]
         frozen = casting | (self.exposed > 0)
         nxt = np.where(frozen[:, None], self.bvel[:, [0, 2]], nxt)
@@ -367,6 +404,8 @@ class Duel:
         self.defl_t = np.maximum(self.defl_t - 1, 0); self.defl_cd = np.maximum(self.defl_cd - 1, 0)
         self.atk_cd = np.maximum(self.atk_cd - 1, 0)
         self.no_dash = np.maximum(self.no_dash - 1, 0); self.no_defl = np.maximum(self.no_defl - 1, 0)
+        self.mini_left = np.maximum(self.mini_left - 1, 0); self.mini_cd = np.maximum(self.mini_cd - 1, 0)
+        self.flip_cd = np.maximum(self.flip_cd - 1, 0); self.tele_cd = np.maximum(self.tele_cd - 1, 0)
         fire = self.cast_t == 1
         kinds = self.cast_kind.copy()
         self.cast_t = np.maximum(self.cast_t - 1, 0)
@@ -453,6 +492,13 @@ class Duel:
             self.land[down] = (self.ppos[:, [0, 2]] + toward * 4)[down]
             self.descend[down] = DESCENT_TICKS
             self.stats["descents"] += down
+        tele = fire & (kinds == C_TELE)
+        if tele.any():
+            # за спину: зеркально через игрока на том же расстоянии по земле (игрок смотрит на Серафима)
+            new = 2 * self.ppos[:, [0, 2]] - self.bpos[:, [0, 2]]
+            self.bpos[tele, 0] = new[tele, 0]; self.bpos[tele, 2] = new[tele, 1]; self.bvel[tele] = 0
+            rel = self.bpos[:, [0, 2]] - self.ppos[:, [0, 2]]
+            self.orbit[tele] = np.arctan2(rel[tele, 1], rel[tele, 0])
         ult = fire & (kinds == C_ULT)
         self.ult_left[ult] = np.select([self.phase >= 3, self.phase == 2], [20, 16], 14)[ult]
         self.ult_next[ult] = 0; self.ult_step[ult] = 0
@@ -509,6 +555,41 @@ class Duel:
         self.stats["windows"] += go
         if self.trace is not None and go[self.trace]:
             self.events.append(("window_open", None, None, ""))
+
+    def _maneuvers(self, s_act, steer_w, dirn, casting, stun, go_dash):
+        """v4: мини-уклонение, смена стороны, радиус облёта, телепорт; награда за разнообразие манёвров."""
+        n = self.n
+        rs = np.zeros(n)
+        free = ~casting & ~stun & (self.dash_left == 0) & (self.defl_t == 0)
+        go_mini = (s_act[:, 8] > 0) & (self.mini_cd == 0) & free & (self.mini_left == 0) & ~go_dash
+        no_mini = go_mini & (self.no_dash > 0)          # после взмаха — отдых и для мини
+        go_mini &= ~no_mini
+        for i in np.nonzero(no_mini)[0]:
+            self.refused[i] = (self.refused[i] + " mini:recover").strip()
+        # без руля — шаг вбок от линии на игрока, в сторону знака руля по z
+        c, s = self._frame(self.bpos, self.ppos)
+        side = unrot(np.stack([np.zeros(n), np.zeros(n), np.where(s_act[:, 2] >= 0, 1.0, -1.0)], 1), c, s)[:, [0, 2]]
+        weak = np.linalg.norm(steer_w, axis=1) < 0.2
+        self.mini_dir[go_mini] = np.where(weak[:, None], side, dirn)[go_mini]
+        self.mini_left[go_mini] = MINI_TICKS; self.mini_cd[go_mini] = MINI_CD
+        self.minis = go_mini; self.stats["minis"] += go_mini
+        want = np.where(s_act[:, 9] > 0.5, 1.0, np.where(s_act[:, 9] < -0.5, -1.0, self.orbit_dir))
+        flip = (want != self.orbit_dir) & (self.flip_cd == 0) & ~casting & ~stun
+        self.orbit_dir[flip] *= -1; self.flip_cd[flip] = FLIP_CD
+        self.since_flip = np.where(flip, 0, self.since_flip + 1)
+        self.flips = flip; self.stats["flips"] += flip
+        target = 12 + 6 * s_act[:, 10]
+        self.radius = np.where(casting | stun, self.radius, 0.95 * self.radius + 0.05 * np.clip(target, RADIUS_MIN, RADIUS_MAX))
+        tele = (s_act[:, 11] > 0) & (self.tele_cd == 0) & free & (self.mini_left == 0) & ~go_mini & ~go_dash
+        self._cast(tele, C_TELE); self.tele_cd[tele] = TELE_CD
+        self.teles = tele; self.stats["teleports"] += tele
+        # разнообразие: бонус за манёвр тем больше, чем реже он был в последние ~5 с; штраф за облёт в одну сторону дольше 15 с
+        used = np.stack([go_dash, go_mini, flip, tele], 1).astype(float)
+        share = self.man_ema / (self.man_ema.sum(1, keepdims=True) + 1e-6)
+        rs += 0.03 * (used * (1 - share)).sum(1) * (self.man_ema.sum(1) > 0) + 0.01 * used.sum(1) * (self.man_ema.sum(1) == 0)
+        self.man_ema = self.man_ema * 0.99 + used
+        rs -= 0.0005 * (self.since_flip > 300)
+        return rs
 
     def _knock(self, m, frm, strength, up):
         """Ванильный knockback: игрока толкает от точки frm (мир, [n,3]) по земле и чуть вверх."""

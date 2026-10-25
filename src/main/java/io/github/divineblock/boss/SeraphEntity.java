@@ -189,6 +189,40 @@ public final class SeraphEntity extends SacredBoss {
             featherSide = move.aimSide(); featherUp = move.aimUp(); featherLead = true;
             feathers(target);
         }
+        if (move.startTeleport() && !isCasting()) teleportBehind(target);
+        if (mind.miniStarted()) sound(SoundEvents.ENTITY_ENDER_DRAGON_FLAP, 1.2f, 2.0f);
+    }
+
+    /** «Перенос» (v4): for half a second light gathers behind the foe (and the cast is announced), then the seraph is there —
+     * mirrored through him, as far away as now, nearer if a wall is in the way; nowhere to go, it stays. */
+    private void teleportBehind(LivingEntity target) {
+        cast("Перенос", SeraphMind.TELE_WARN, false, left -> {
+            Vec3d to = behind(target);
+            if (to != null) particles(ParticleTypes.END_ROD, to.x, to.y + getHeight() * 0.5, to.z, 8, 0.8, 1.6, 0.8, 0.02);
+            particles(ParticleTypes.FLAME, getX(), getY() + getHeight() * 0.5, getZ(), 6, getWidth() * 0.4, getHeight() * 0.3, getWidth() * 0.4, 0.01);
+            if (left == SeraphMind.TELE_WARN) sound(SoundEvents.ENTITY_ENDERMAN_TELEPORT, 2f, 0.6f);
+        }, () -> {
+            Vec3d to = behind(target);
+            if (to == null) { if (log != null) log.event(age, "teleport", 0, Double.NaN, "blocked"); return; }
+            particles(ParticleTypes.FLAME, getX(), getY() + getHeight() * 0.5, getZ(), 30, getWidth() * 0.4, getHeight() * 0.3, getWidth() * 0.4, 0.05);
+            requestTeleport(to.x, to.y, to.z);
+            setVelocity(Vec3d.ZERO);
+            orbit = Math.atan2(getZ() - target.getZ(), getX() - target.getX());
+            sound(SoundEvents.ENTITY_ENDERMAN_TELEPORT, 2f, 0.8f);
+            particles(ParticleTypes.END_ROD, getX(), getY() + getHeight() * 0.5, getZ(), 30, getWidth() * 0.4, getHeight() * 0.3, getWidth() * 0.4, 0.05);
+            if (log != null) log.event(age, "teleport", 1, Double.NaN, "");
+        });
+    }
+
+    /** The spot behind the foe (as in duel.py: mirrored through him on the ground, at its height over the ground), or null. */
+    private Vec3d behind(LivingEntity target) {
+        double height = Math.max(0.05, getY() - groundBelow(getX(), getY() + 1, getZ(), 24));
+        for (double k : new double[] { 1, 0.75, 0.5 }) {
+            double x = target.getX() + (target.getX() - getX()) * k, z = target.getZ() + (target.getZ() - getZ()) * k;
+            double y = groundBelow(x, target.getY() + 3, z, 12) + height;
+            if (getWorld().isSpaceEmpty(this, getDimensions(getPose()).getBoxAt(x, y, z))) return new Vec3d(x, y, z);
+        }
+        return null;
     }
 
     /** Keeps the height: hovering over the ground below (under the vault, if any), or down on it while descending. */
@@ -209,8 +243,8 @@ public final class SeraphEntity extends SacredBoss {
         Vec3d goal;
         if (descendLeft > 0 && landing != null) goal = landing;
         else {
-            orbit += phase >= 3 ? 0.03 : 0.02;
-            double radius = move != null ? SeraphMind.ORBIT : 7;
+            orbit += (phase >= 3 ? 0.03 : 0.02) * (move != null ? move.orbitDir() : 1);
+            double radius = move != null ? move.radius() : 7;
             goal = new Vec3d(target.getX() + Math.cos(orbit) * radius, getY(), target.getZ() + Math.sin(orbit) * radius);
         }
         Vec3d flat = new Vec3d(goal.x - getX(), 0, goal.z - getZ());
@@ -225,9 +259,15 @@ public final class SeraphEntity extends SacredBoss {
             if (move.dashing()) {
                 next = new Vec3d(move.dashDir().x * move.dashSpeed(), v.y, move.dashDir().z * move.dashSpeed());
                 speed = move.dashSpeed();
-                if (age % 2 == 0) sound(SoundEvents.ENTITY_ENDER_DRAGON_FLAP, 1.6f, 1.5f);
-                particles(ParticleTypes.FLAME, getX(), getY() + getHeight() * 0.5, getZ(), 12, getWidth() * 0.4, getHeight() * 0.3, getWidth() * 0.4, 0.0);
-                particles(ParticleTypes.CLOUD, getX(), getY() + getHeight() * 0.5, getZ(), 4, getWidth() * 0.3, getHeight() * 0.2, getWidth() * 0.3, 0.02);
+                if (move.mini()) {
+                    // «Шаг крыльями» (v4): a short flick aside, a thin trail
+                    particles(ParticleTypes.FLAME, getX(), getY() + getHeight() * 0.5, getZ(), 4, getWidth() * 0.3, getHeight() * 0.2, getWidth() * 0.3, 0.0);
+                    particles(ParticleTypes.CLOUD, getX(), getY() + getHeight() * 0.5, getZ(), 1, getWidth() * 0.2, getHeight() * 0.1, getWidth() * 0.2, 0.01);
+                } else {
+                    if (age % 2 == 0) sound(SoundEvents.ENTITY_ENDER_DRAGON_FLAP, 1.6f, 1.5f);
+                    particles(ParticleTypes.FLAME, getX(), getY() + getHeight() * 0.5, getZ(), 12, getWidth() * 0.4, getHeight() * 0.3, getWidth() * 0.4, 0.0);
+                    particles(ParticleTypes.CLOUD, getX(), getY() + getHeight() * 0.5, getZ(), 4, getWidth() * 0.3, getHeight() * 0.2, getWidth() * 0.3, 0.02);
+                }
             }
         }
         double horizontal = Math.hypot(next.x, next.z);
@@ -300,6 +340,9 @@ public final class SeraphEntity extends SacredBoss {
         float[][] items = mind.lastItems();
         for (int k = 0; k < 8; k++)
             for (int i = 0; i < SeraphFightLog.ITEM.length; i++) row.add(net && k < items.length && i < items[k].length ? SeraphFightLog.num(items[k][i]) : "");
+        for (int i = 8; i < 12; i++) row.add(net && i < out.length ? SeraphFightLog.num(out[i]) : "");
+        row.add(flag(net && mind.miniStarted())); row.add(flag(net && mind.flipped())); row.add(flag(net && mind.teleStarted()));
+        row.add(net ? SeraphFightLog.num(mind.radius()) : ""); row.add(net ? SeraphFightLog.num(mind.orbitDir()) : "");
         log.tick(String.join(",", row));
     }
     private static String flag(boolean on) { return on ? "1" : "0"; }

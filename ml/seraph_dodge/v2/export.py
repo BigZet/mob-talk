@@ -1,7 +1,7 @@
-"""Выгрузка сети Серафима v2 для мода: именованные тензоры, которые читает boss/ai/SeraphBrain (чистая Java).
+"""Выгрузка сети Серафима v2–v4 для мода: именованные тензоры, которые читает boss/ai/SeraphBrain (чистая Java).
 
 python export.py runs/sp1/duel.pt out/seraph_brain
-Формат .bin (little-endian): int32 магия 0x32465253 ('SRF2'), int32 число тензоров; для каждого: int32 длина имени,
+Формат .bin (little-endian): int32 магия 0x33465253 ('SRF3'; v2/v3 писали 'SRF2', размеры те же — из тензоров), int32 число тензоров; для каждого: int32 длина имени,
 имя UTF-8, int32 число осей, int32 размеры, float32 значения (по строкам).
 Рядом пишется seraph_brain_check.txt: несколько наблюдений из тренажёра и ответы сети (для SeraphBrainTest).
 """
@@ -12,15 +12,15 @@ import numpy as np
 import torch
 
 from duel import Duel, S_ACT
-from selfplay import make
+from selfplay import make, widen
 
 
 def main(src, dst):
     ck = torch.load(src, map_location="cpu")
-    net = make("s"); net.load_state_dict(ck["s"]); net.eval()
+    net = make("s"); net.load_state_dict(widen(ck["s"])); net.eval()
     sd = net.state_dict()
     with open(dst + ".bin", "wb") as f:
-        f.write(struct.pack("<ii", 0x32465253, len(sd)))
+        f.write(struct.pack("<ii", 0x33465253, len(sd)))   # SRF3: v4 (27 признаков, 12 действий)
         for name, t in sd.items():
             a = t.detach().numpy().astype("<f4")
             b = name.encode("utf-8")
