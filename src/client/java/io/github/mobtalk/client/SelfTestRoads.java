@@ -121,6 +121,10 @@ final class SelfTestRoads {
     private void views() {
         int[] laid = onServer(() -> Roads.laid(world(), road));
         test.check(laid[1] > 0 && laid[0] == laid[1], "road " + road + " is laid end to end (" + laid[0] + "/" + laid[1] + " chunks)");
+        int[] lamps = onServer(() -> Roads.lampFaults(world(), road));
+        test.check(lamps[0] > 0 && lamps[1] == 0, "every lamp's arm joins its post (" + lamps[0] + " lamps, " + lamps[1] + " apart)");
+        int hanging = onServer(() -> Roads.hangingLogs(world(), road));
+        test.check(hanging == 0, "no log hangs in the air by the road (" + hanging + ")");
         test.owner.client.options.setPerspective(Perspective.FIRST_PERSON);
         int n = length();
         Vec3d middle = at(n / 2), ahead = at(n / 2 + 40);
@@ -214,7 +218,8 @@ final class SelfTestRoads {
                         h -> h.getCommandTags().contains("mobtalk_road") && !h.isSaddled());
                 test.check(!horses.isEmpty(), kind + ": a horse draws it");
                 if (!horses.isEmpty()) {
-                    AbstractHorseEntity horse = horses.getFirst();
+                    // The nearest one: another trip's horse may be passing by (it was taken once, and the cart was said to face away).
+                    AbstractHorseEntity horse = horses.stream().min(java.util.Comparator.comparingDouble(h -> h.squaredDistanceTo(cart))).get();
                     double gap = Math.hypot(horse.getX() - cart.getX(), horse.getZ() - cart.getZ());
                     test.check(Math.abs(gap - cart.reach()) < 0.6, kind + ": the horse is a shaft's length ahead (" + String.format(java.util.Locale.ROOT, "%.2f", gap) + ")");
                     double rad = Math.toRadians(cart.getYaw());

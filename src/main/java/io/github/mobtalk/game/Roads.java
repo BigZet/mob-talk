@@ -33,6 +33,84 @@ public final class Roads {
         return road == null ? new int[] { 0, 0 } : new int[] { road.done.size(), road.chunks().size() };
     }
 
+    /** The road's street lamps with an arm (a hanging lantern under a fence), and those of them whose arm does not join the post:
+     * no fence beside the arm with a fence under that. */
+    public static int[] lampFaults(ServerWorld world, int id) {
+        MobGameBridge bridge = bridge(world);
+        RoadNetwork.Road road = bridge == null ? null : bridge.roads.road(world, id);
+        if (road == null) return new int[] { 0, 0 };
+        int lamps = 0, faults = 0;
+        net.minecraft.util.math.BlockPos.Mutable at = new net.minecraft.util.math.BlockPos.Mutable();
+        for (long packed : road.done) {
+            net.minecraft.util.math.ChunkPos chunk = new net.minecraft.util.math.ChunkPos(packed);
+            int[] range = range(road, chunk);
+            for (int x = chunk.getStartX(); x <= chunk.getEndX(); x++) for (int z = chunk.getStartZ(); z <= chunk.getEndZ(); z++)
+                for (int y = range[0]; y <= range[1]; y++) {
+                    net.minecraft.block.BlockState state = world.getBlockState(at.set(x, y, z));
+                    if (!state.isOf(net.minecraft.block.Blocks.LANTERN) || !state.get(net.minecraft.block.LanternBlock.HANGING)) continue;
+                    net.minecraft.block.BlockState arm = world.getBlockState(at.set(x, y + 1, z));
+                    if (!(arm.getBlock() instanceof net.minecraft.block.FenceBlock)) continue; // a tunnel's lantern hangs from the lining
+                    lamps++;
+                    boolean joined = false;
+                    for (net.minecraft.util.math.Direction side : net.minecraft.util.math.Direction.Type.HORIZONTAL) {
+                        at.set(x, y + 1, z).move(side);
+                        if (world.getBlockState(at).isOf(arm.getBlock()) && world.getBlockState(at.move(net.minecraft.util.math.Direction.DOWN)).isOf(arm.getBlock())) joined = true;
+                    }
+                    if (!joined) faults++;
+                }
+        }
+        return new int[] { lamps, faults };
+    }
+
+    /** Logs by the road that hang in the air: clusters of logs (joined face, edge or corner) within the road's chunks and their
+     * neighbours that stand on nothing at all. */
+    public static int hangingLogs(ServerWorld world, int id) {
+        MobGameBridge bridge = bridge(world);
+        RoadNetwork.Road road = bridge == null ? null : bridge.roads.road(world, id);
+        if (road == null) return 0;
+        int hanging = 0;
+        java.util.Set<Long> seen = new java.util.HashSet<>();
+        net.minecraft.util.math.BlockPos.Mutable at = new net.minecraft.util.math.BlockPos.Mutable();
+        for (long packed : road.done) {
+            net.minecraft.util.math.ChunkPos chunk = new net.minecraft.util.math.ChunkPos(packed);
+            int[] range = range(road, chunk);
+            int x0 = chunk.getStartX() - 24, z0 = chunk.getStartZ() - 24, x1 = chunk.getEndX() + 24, z1 = chunk.getEndZ() + 24;
+            for (int x = chunk.getStartX(); x <= chunk.getEndX(); x++) for (int z = chunk.getStartZ(); z <= chunk.getEndZ(); z++)
+                for (int y = range[0]; y <= range[1] + 30; y++) {
+                    if (seen.contains(net.minecraft.util.math.BlockPos.asLong(x, y, z)) || !world.getBlockState(at.set(x, y, z)).isIn(net.minecraft.registry.tag.BlockTags.LOGS)) continue;
+                    java.util.ArrayDeque<net.minecraft.util.math.BlockPos> queue = new java.util.ArrayDeque<>();
+                    java.util.List<net.minecraft.util.math.BlockPos> cluster = new java.util.ArrayList<>();
+                    queue.add(new net.minecraft.util.math.BlockPos(x, y, z)); seen.add(net.minecraft.util.math.BlockPos.asLong(x, y, z));
+                    boolean grounded = false;
+                    while (!queue.isEmpty()) {
+                        net.minecraft.util.math.BlockPos log = queue.poll();
+                        cluster.add(log);
+                        if (log.getX() <= x0 || log.getX() >= x1 || log.getZ() <= z0 || log.getZ() >= z1 || log.getY() <= world.getBottomY() + 1) grounded = true;
+                        net.minecraft.block.BlockState below = world.getBlockState(log.down());
+                        if (!below.isAir() && !below.isIn(net.minecraft.registry.tag.BlockTags.LOGS) && !below.isIn(net.minecraft.registry.tag.BlockTags.LEAVES)
+                                && !below.isIn(net.minecraft.registry.tag.BlockTags.REPLACEABLE) && below.getFluidState().isEmpty()) grounded = true;
+                        for (int dx = -1; dx <= 1; dx++) for (int dy = -1; dy <= 1; dy++) for (int dz = -1; dz <= 1; dz++) {
+                            if (dx == 0 && dy == 0 && dz == 0) continue;
+                            net.minecraft.util.math.BlockPos next = log.add(dx, dy, dz);
+                            if (!seen.contains(next.asLong()) && world.getBlockState(next).isIn(net.minecraft.registry.tag.BlockTags.LOGS)) { seen.add(next.asLong()); queue.add(next); }
+                        }
+                    }
+                    if (!grounded) hanging += cluster.size();
+                }
+        }
+        return hanging;
+    }
+
+    /** The heights the road runs at in the chunk, a little below and well above. */
+    private static int[] range(RoadNetwork.Road road, net.minecraft.util.math.ChunkPos chunk) {
+        int low = Integer.MAX_VALUE, high = Integer.MIN_VALUE;
+        for (RoadPlan.Point p : road.points) {
+            if (p.x() < chunk.getStartX() - 12 || p.x() > chunk.getEndX() + 12 || p.z() < chunk.getStartZ() - 12 || p.z() > chunk.getEndZ() + 12) continue;
+            low = Math.min(low, (p.h2() >> 1) - 4); high = Math.max(high, (p.h2() >> 1) + 12);
+        }
+        return low > high ? new int[] { 0, -1 } : new int[] { low, high };
+    }
+
     public static int length(ServerWorld world, int id) {
         MobGameBridge bridge = bridge(world);
         RoadNetwork.Road road = bridge == null ? null : bridge.roads.road(world, id);

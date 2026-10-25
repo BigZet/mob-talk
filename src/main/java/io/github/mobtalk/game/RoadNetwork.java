@@ -345,8 +345,11 @@ final class RoadNetwork {
                 Road main = road.branch() ? state.saved.road(road.joins) : null;
                 road.palette = main != null && main.palette >= 0 ? main.palette : RoadBuilder.palette(world, road.points);
             }
-            if (road.from == Integer.MIN_VALUE) road.from = RoadBuilder.end(world, road.a, road.points, true);
-            if (road.to == Integer.MIN_VALUE) road.to = RoadBuilder.end(world, road.b, road.points, false);
+            if (road.from == Integer.MIN_VALUE || road.to == Integer.MIN_VALUE) {
+                if (road.from == Integer.MIN_VALUE) road.from = RoadBuilder.end(world, road.a, road.points, true);
+                if (road.to == Integer.MIN_VALUE) road.to = RoadBuilder.end(world, road.b, road.points, false);
+                LOGGER.info("дорога {} ({}): концы {}..{} из {} точек", road.id, road.title(state.saved), road.from, road.to, road.points.size());
+            }
             int from = road.from, to = road.to;
             RoadBuilder.Report report = RoadBuilder.lay(world, road.points, pos, RoadBuilder.palette(road.palette), from, to,
                     road.branch() ? to - BRANCH_UNLIT : to, bridge.config.roadLamps, bridge.config.roadLampSpacing, others(state, road, job.chunk()));
@@ -418,13 +421,19 @@ final class RoadNetwork {
         ChunkPos start = cell.placement().getStartChunk(calculator.getStructureSeed(), cell.i() * spacing, cell.j() * spacing);
         String found = null;
         if (cell.placement().shouldGenerate(calculator, start.x, start.z)) {
+            boolean maybe = false;
             for (RegistryEntry<Structure> structure : cell.villages()) {
                 StructurePresence presence = world.getStructureAccessor().getStructurePresence(start, structure.value(), cell.placement(), false);
-                // START_PRESENT: the chunk is generated and holds the village; CHUNK_LOAD_NEEDED: not generated yet, but the biome and
-                // the ground there let the village stand (what /locate goes by before it loads the chunk).
-                if (presence == StructurePresence.START_PRESENT || presence == StructurePresence.CHUNK_LOAD_NEEDED) {
-                    found = structure.getKey().map(k -> k.getValue().toString()).orElse("village"); break;
-                }
+                // START_PRESENT: the chunk is generated and holds the village; CHUNK_LOAD_NEEDED: not generated yet, and nothing known
+                // yet rules the village out (what /locate goes by before it loads the chunk).
+                if (presence == StructurePresence.START_PRESENT || presence == StructurePresence.CHUNK_LOAD_NEEDED) { maybe = true; break; }
+            }
+            // Which of the set's villages the spot gets, and whether one at all, the chunk's structure stage settles (made now if
+            // need be, as /locate does): the first of the set was taken before, and where CTOV had put its own village in the vanilla
+            // one's place the road did not find it and ran on through its houses (Dmitriy 2026-10-25).
+            if (maybe) {
+                StructureStart village = RoadBuilder.villageAt(world, start.x, start.z);
+                if (village != null) found = RoadBuilder.id(world, village);
             }
         }
         state.saved.cells.add(cell.key());

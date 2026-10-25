@@ -67,8 +67,21 @@ final class RoadVillages {
 
     // ---- The village's streets ----
 
+    /** A street piece: the vanilla villages' are "streets", CTOV's "roads" (ctov:village/plains/roads/straight and the like). */
     private static boolean street(StructurePiece piece) {
-        return piece instanceof PoolStructurePiece pool && pool.getPoolElement().toString().contains("/streets/");
+        if (!(piece instanceof PoolStructurePiece pool)) return false;
+        String element = pool.getPoolElement().toString();
+        return element.contains("/streets/") || element.contains("/roads/");
+    }
+
+    /** The blocks a street is made of: the vanilla path and the desert's sandstone, and CTOV's mix of a road (cobbles, bricks, mud,
+     * sand, coarse dirt and the like; the grass it mixes in is crossed as open ground). */
+    private static boolean streetBlock(BlockState state) {
+        return state.isOf(Blocks.DIRT_PATH) || state.isOf(Blocks.SMOOTH_SANDSTONE) || state.isOf(Blocks.SANDSTONE) || state.isOf(Blocks.CUT_SANDSTONE)
+                || state.isOf(Blocks.RED_SANDSTONE) || state.isOf(Blocks.COBBLESTONE) || state.isOf(Blocks.MOSSY_COBBLESTONE) || state.isOf(Blocks.STONE_BRICKS)
+                || state.isOf(Blocks.MOSSY_STONE_BRICKS) || state.isOf(Blocks.MUD_BRICKS) || state.isOf(Blocks.MUD) || state.isOf(Blocks.COARSE_DIRT)
+                || state.isOf(Blocks.PODZOL) || state.isOf(Blocks.TERRACOTTA) || state.isOf(Blocks.RED_SAND) || state.isOf(Blocks.SAND)
+                || state.isOf(Blocks.COBBLED_DEEPSLATE) || state.isOf(Blocks.DEEPSLATE) || state.isOf(Blocks.MYCELIUM) || state.isIn(BlockTags.PLANKS);
     }
 
     /** The top block (by the heightmap) of every column of the village's street pieces that is street: the path (dirt path, the
@@ -85,7 +98,7 @@ final class RoadVillages {
                     int y = world.getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, x, z) - 1;
                     if (y == Integer.MIN_VALUE) continue;
                     BlockState state = world.getBlockState(new BlockPos(x, y, z));
-                    if (state.isOf(Blocks.DIRT_PATH) || state.isOf(Blocks.SMOOTH_SANDSTONE) || state.isIn(BlockTags.PLANKS)) out.put(key(x, z), y);
+                    if (streetBlock(state)) out.put(key(x, z), y);
                 }
         }
         return out;

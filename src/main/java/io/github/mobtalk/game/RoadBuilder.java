@@ -85,13 +85,36 @@ final class RoadBuilder {
         if (at < 0 || comma < 0) return null;
         net.minecraft.util.Identifier id = net.minecraft.util.Identifier.tryParse(key.substring(0, at));
         Structure structure = id == null ? null : world.getRegistryManager().get(RegistryKeys.STRUCTURE).get(id);
-        if (structure == null) return null;
         try {
             int cx = Integer.parseInt(key.substring(at + 1, comma)), cz = Integer.parseInt(key.substring(comma + 1));
             Chunk holder = world.getChunk(cx, cz, ChunkStatus.STRUCTURE_STARTS, true);
-            StructureStart start = holder == null ? null : holder.getStructureStart(structure);
-            return start == null || !start.hasChildren() ? null : start;
+            StructureStart start = holder == null || structure == null ? null : holder.getStructureStart(structure);
+            // The key may name the vanilla village of the spot where the world put another of the set's (CTOV's) in its place:
+            // then whichever village stands in the chunk is the one.
+            return start != null && start.hasChildren() ? start : villageAt(world, cx, cz);
         } catch (NumberFormatException wrong) { return null; }
+    }
+
+    /** The village that stands in the chunk, whichever of its set's villages the world chose for the spot: a structure set holds
+     * several (CTOV adds its own to the vanilla set, and they take the vanilla ones' place), and the world picks one by its seed.
+     * The start with the most pieces, from the chunk's structure stage (made now if need be, as /locate does). Null when none. */
+    static StructureStart villageAt(ServerWorld world, int cx, int cz) {
+        Chunk holder = world.getChunk(cx, cz, ChunkStatus.STRUCTURE_STARTS, true);
+        if (holder == null) return null;
+        var registry = world.getRegistryManager().get(RegistryKeys.STRUCTURE);
+        StructureStart best = null;
+        for (Map.Entry<Structure, StructureStart> entry : holder.getStructureStarts().entrySet()) {
+            StructureStart start = entry.getValue();
+            if (!start.hasChildren() || !RoadNetwork.village(world, registry.getEntry(entry.getKey()))) continue;
+            if (best == null || start.getChildren().size() > best.getChildren().size()) best = start;
+        }
+        return best;
+    }
+
+    /** The structure's id, as the village keys name it. */
+    static String id(ServerWorld world, StructureStart start) {
+        net.minecraft.util.Identifier id = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getId(start.getStructure());
+        return id == null ? "village" : id.toString();
     }
 
     /** Where the road meets the village of {@code key} at its start ({@code atStart}) or its end: walking in from the open country,
@@ -139,9 +162,10 @@ final class RoadBuilder {
 
     /** Counts of what was done, for the log and the self-test. */
     static final class Report {
-        int columns, skipped, lamps, dammed, drops, leaves;
+        int columns, skipped, lamps, dammed, drops, leaves, felled;
         @Override public String toString() {
-            return columns + " столбцов, пропущено " + skipped + ", фонарей " + lamps + ", запружено " + dammed + ", убрано выпавшего " + drops + ", висячей листвы " + leaves;
+            return columns + " столбцов, пропущено " + skipped + ", фонарей " + lamps + ", запружено " + dammed + ", убрано выпавшего " + drops
+                    + ", висячих стволов " + felled + ", висячей листвы " + leaves;
         }
     }
 
@@ -174,6 +198,7 @@ final class RoadBuilder {
         }
         report.dammed = dam(world, palette, cleared);
         if (lamps) report.lamps = lamps(world, palette, points, chunk, from, lampTo, lampSpacing, taken);
+        if (low <= high) report.felled = fell(world, chunk, cleared, pieces, low, high + TREE_CLEAR);
         if (low <= high) report.leaves = leaves(world, chunk, low, high + TREE_CLEAR);
         if (low <= high) report.drops = sweepDrops(world, chunk, low, high);
         return report;
@@ -202,6 +227,49 @@ final class RoadBuilder {
 
     /** How far in height two roads may differ and still be one way where they overlap (more: one passes over the other). */
     static final int OVERLAP = 2;
+
+    /** A trunk the earthworks cut through, or dug the ground from under, is left hanging in the air: a block of it or a whole crown
+     * (logs floated over the road, Dmitriy 2026-10-25). Every cluster of logs (joined face, edge or corner) that touches a block the
+     * road cleared and stands on nothing is felled, and its leaves then go with the hanging ones. A cluster that reaches out of the
+     * space looked at, or stands on a block of ground anywhere, is left. */
+    private static int fell(ServerWorld world, ChunkPos chunk, Set<Long> cleared, List<BlockBox> pieces, int low, int high) {
+        if (cleared.isEmpty()) return 0;
+        int margin = 8, x0 = chunk.getStartX() - margin, z0 = chunk.getStartZ() - margin, size = 16 + 2 * margin;
+        low = Math.max(low, world.getBottomY()); high = Math.min(high, world.getTopY() - 1);
+        if (low > high) return 0;
+        BlockPos.Mutable at = new BlockPos.Mutable();
+        Set<Long> seen = new HashSet<>();
+        List<BlockPos> cluster = new ArrayList<>();
+        ArrayDeque<BlockPos> queue = new ArrayDeque<>();
+        int felled = 0;
+        for (long packed : cleared) {
+            for (net.minecraft.util.math.Direction direction : net.minecraft.util.math.Direction.values()) {
+                at.set(packed).move(direction);
+                if (seen.contains(at.asLong()) || !world.getBlockState(at).isIn(BlockTags.LOGS)) continue;
+                // The cluster of logs this one belongs to.
+                cluster.clear(); queue.clear();
+                boolean grounded = false;
+                BlockPos seed = at.toImmutable();
+                seen.add(seed.asLong()); queue.add(seed);
+                while (!queue.isEmpty()) {
+                    BlockPos log = queue.poll();
+                    cluster.add(log);
+                    if (log.getX() <= x0 || log.getX() >= x0 + size - 1 || log.getZ() <= z0 || log.getZ() >= z0 + size - 1 || log.getY() <= low || log.getY() >= high) grounded = true;
+                    for (BlockBox piece : pieces) if (piece.contains(log)) grounded = true; // a house's beam, not a tree's
+                    BlockState below = world.getBlockState(log.down());
+                    if (!below.isAir() && !open(below) && !below.isIn(BlockTags.LOGS) && !below.isIn(BlockTags.LEAVES)) grounded = true;
+                    for (int dx = -1; dx <= 1; dx++) for (int dy = -1; dy <= 1; dy++) for (int dz = -1; dz <= 1; dz++) {
+                        if (dx == 0 && dy == 0 && dz == 0) continue;
+                        BlockPos next = log.add(dx, dy, dz);
+                        if (!grounded && !seen.contains(next.asLong()) && world.getBlockState(next).isIn(BlockTags.LOGS)) { seen.add(next.asLong()); queue.add(next); }
+                    }
+                }
+                if (grounded) continue;
+                for (BlockPos log : cluster) { world.setBlockState(log, Blocks.AIR.getDefaultState(), FLAGS); felled++; }
+            }
+        }
+        return felled;
+    }
 
     /** Leaves the road left hanging (their tree's trunk cut away) would rot and drop saplings onto the road (Dmitriy 2026-10-25):
      * every leaf in and just round the chunk that no log reaches within six leaves, as the game counts, is taken away at once. Logs
@@ -382,8 +450,11 @@ final class RoadBuilder {
             int y0 = p.h2() >> 1, feet = (p.h2() + 1) >> 1;
             if (side == 1 || side == -1) {
                 BlockPos post = new BlockPos(MathHelper.floor(p.x() + nx * side * 2.8), 0, MathHelper.floor(p.z() + nz * side * 2.8));
-                BlockPos arm = new BlockPos(MathHelper.floor(p.x() + nx * side * 1.8), 0, MathHelper.floor(p.z() + nz * side * 1.8));
-                if (post.equals(arm) || taken.containsKey(BlockPos.asLong(post.getX(), 0, post.getZ())) || taken.containsKey(BlockPos.asLong(arm.getX(), 0, arm.getZ()))) continue;
+                // The arm is the post's neighbour straight toward the road: on a road that runs askew, two points taken along the
+                // normal fall in blocks that touch only at a corner, and a fence does not join across one (the arm and its lantern
+                // hung apart from the post, Dmitriy 2026-10-25).
+                BlockPos arm = post.offset(net.minecraft.util.math.Direction.getFacing(-nx * side, 0, -nz * side));
+                if (taken.containsKey(BlockPos.asLong(post.getX(), 0, post.getZ())) || taken.containsKey(BlockPos.asLong(arm.getX(), 0, arm.getZ()))) continue;
                 boolean any = false;
                 if (inside(chunk, post) && naturalOrOwn(world, palette, post.withY(feet), CLEAR)) {
                     any = true;

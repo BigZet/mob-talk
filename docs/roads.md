@@ -25,6 +25,10 @@ with villagers in them, and horsemen, travel back and forth along them. It all w
 - The network finds villages from the structure placement grid before their chunks exist (an idea from RoadWeaver,
   `third_party/roadweaver/NOTICE.md`), around players within `roadScanRadius`. It plans roads on a background thread and
   saves them in the world (`mobtalk_roads`).
+- A structure set holds several villages for one spot and the world picks one of them by its seed (CTOV adds its own villages
+  to the vanilla set, and they take the vanilla ones' place). Which one stands there, and whether one at all, is read from the
+  chunk's structure stage, made on the spot if need be, as `/locate` does. A village key that names a village the world did not
+  put there resolves to whichever village stands in that chunk.
 - A road is laid chunk by chunk, once all nine chunks around a chunk are loaded. `/roads load` holds the chunks loaded,
   nine at a time, until the road is done.
 - Each road has one palette, picked by the biomes it crosses (stone and cobblestone, or sandstone in deserts).
@@ -37,20 +41,25 @@ with villagers in them, and horsemen, travel back and forth along them. It all w
   a chest, a player's build) is left alone. Lamp posts and lanterns are never dug away by a later chunk.
 - Where two roads overlap at about the same height (within 2 blocks), neither lays its curb, railing, bank or lamp on the other's
   paving and curb, so one paved way is left with no railing across it.
-- Leaves left hanging when the road cut their trunk are taken away at once, in and up to 8 blocks round the chunk, so they do not
-  rot and drop saplings on the road.
+- A trunk the road cut through or dug the ground from under is felled: every cluster of logs next to a block the road cleared
+  that stands on nothing (and is no house's beam) is taken away. Leaves left hanging are then taken away at once, in and up to
+  8 blocks round the chunk, so they do not rot and drop saplings on the road.
 - The road always ends before the village. A bridge or tunnel that meets the village ends on the last ground up to 24 points back.
 - Water or lava next to a block the road dug out is walled off with the road's lining stone, so it cannot run onto the road.
 - Grass, flowers and seeds the earthworks knock loose do not lie about as items: items dropped that very tick in and around the
   chunk are removed.
 - A lamp stands every `roadLampSpacing` blocks: a wall base, a fence post and an arm with a hanging lantern (after RoadWeaver's
-  `LamppostDecoration`). Bridges have lanterns on the railing, and tunnels have them under the vault.
+  `LamppostDecoration`). The arm is the post's neighbour straight toward the road, never a diagonal one (a fence does not join
+  across a corner). Bridges have lanterns on the railing, and tunnels have them under the vault.
 
 ## Villages (`game/RoadVillages`)
 
 The village's houses are never touched. Once the chunk of each road's last point is laid and the whole village is loaded:
 
-- From each road's end a way 3 wide is paved over open natural ground to the village's nearest street (up to 40 blocks).
+- From each road's end a way 3 wide is paved over open natural ground to the village's nearest street (up to 40 blocks). A
+  street is a piece of the village's `streets` pool (vanilla) or `roads` pool (CTOV), and its blocks are the path, sandstone,
+  cobbles, bricks, mud, coarse dirt and the like, read off the ground under the heightmap; the grass CTOV mixes into a road
+  is crossed as open ground.
 - A village that two or more roads come to has its own streets paved with the road's stone on the shortest way between the
   entries, the whole width of each street, with a street lamp every 20 blocks beside it. The highway runs through the village along
   its main street, and the village's lanes turn off it.
@@ -98,5 +107,9 @@ road's curb, so the highway itself is not touched. Its last 6 points have no lam
 `scripts/run-selftest.ps1 -Only roads` (`client/SelfTestRoads`) plans a road in the test world, lays it, and photographs it:
 from above, along the road, and at its first bridge or tunnel. Then it brings a wagon, a cart and a horseman, and checks that
 each one has passengers, that the horse walks ahead at the shafts' length, and that the trip moves at a walk. It also takes
-night views of the lamps. Then, in the world's own villages, it holds a village two or more roads come to and one only one road
-comes to until their streets and station are done, and photographs each from the road and from above. It uses no LLM and no voice.
+night views of the lamps. It checks that every lamp's arm joins its post and that no log hangs in the air by the road. Then,
+in the world's own villages, it holds a village two or more roads come to and one only one road comes to until their streets
+and station are done, and photographs each from the road and from above. It uses no LLM and no voice.
+
+In the cloud the same test runs under `xvfb-run` with CTOV and Lithostitched in `run/mods` on a world made from Dmitriy's seed,
+to see the roads meet CTOV villages (their streets are the `roads` pool).
