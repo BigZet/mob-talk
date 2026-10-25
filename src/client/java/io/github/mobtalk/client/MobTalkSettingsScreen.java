@@ -477,6 +477,7 @@ final class MobTalkSettingsScreen extends Screen {
                     wide(tip(toggle("mobtalk.settings.cityPolice", draft.cityPolice, value -> draft.cityPolice = value), "mobtalk.settings.cityPolice.tooltip"));
                     wide(tip(toggle("mobtalk.settings.policeCars", draft.policeCars, value -> draft.policeCars = value), "mobtalk.settings.policeCars.tooltip"),
                             tip(toggle("mobtalk.settings.policeArrest", draft.policeArrest, value -> draft.policeArrest = value), "mobtalk.settings.policeArrest.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.policeMegaphone", draft.policeMegaphone, value -> draft.policeMegaphone = value), "mobtalk.settings.policeMegaphone.tooltip"));
                 }),
                 Map.<String, Runnable>entry("chatter", () -> wide(tip(toggle("mobtalk.settings.villageChatter", draft.villageChatter, value -> draft.villageChatter = value), "mobtalk.settings.villageChatter.tooltip"),
                         tip(toggle("mobtalk.settings.villageNotices", draft.villageNotices, value -> draft.villageNotices = value), "mobtalk.settings.villageNotices.tooltip")))));

@@ -53,6 +53,8 @@ public final class PoliceContent {
     public static Item BATON, HANDCUFFS;
     public static VillagerProfession POLICE;
     public static SoundEvent SIREN, QUACK;
+    /** The loudhailer: to the crowd in an alarm, to an offender in a chase, at the arrest, and to a driver (the road cop, later). */
+    public static SoundEvent MEGAPHONE_ALARM, MEGAPHONE_CHASE, MEGAPHONE_ARREST, MEGAPHONE_ROAD;
     private static boolean registered;
 
     public static void register() {
@@ -84,6 +86,10 @@ public final class PoliceContent {
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> items.forEach(entries::add));
         SIREN = sound("police_siren");
         QUACK = sound("police_quack");
+        MEGAPHONE_ALARM = sound("police_megaphone_alarm");
+        MEGAPHONE_CHASE = sound("police_megaphone_chase");
+        MEGAPHONE_ARREST = sound("police_megaphone_arrest");
+        MEGAPHONE_ROAD = sound("police_megaphone_road");
         TradeOfferHelper.registerVillagerOffers(POLICE, 1, factories -> {
             factories.add((entity, random) -> new TradeOffer(new TradedItem(Items.EMERALD, 3), new ItemStack(BATON), 4, 2, 0.05f));
             factories.add((entity, random) -> new TradeOffer(new TradedItem(Items.PAPER, 24), new ItemStack(Items.EMERALD), 16, 2, 0.05f));

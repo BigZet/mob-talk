@@ -1020,5 +1020,8 @@
   "mobtalk.police.shout.attack.2": "Hide in the stairwells, we're attacked!",
   "mobtalk.police.shout.player.0": "%s, what are you doing?! Police!",
   "mobtalk.police.shout.player.1": "Stop %s! He's hitting people!",
-  "mobtalk.police.shout.player.2": "%s is a hooligan! Call the police!"
+  "mobtalk.police.shout.player.2": "%s is a hooligan! Call the police!",
+  "mobtalk.settings.policeMegaphone": "Loudhailer",
+  "mobtalk.settings.policeMegaphone.tooltip": "The police speak through a loudhailer: in an alarm, in a chase and at an arrest (in Russian).",
+  "subtitle.mobtalk.police_megaphone": "Police loudhailer"
 }

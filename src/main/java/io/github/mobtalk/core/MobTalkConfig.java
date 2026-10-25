@@ -125,7 +125,7 @@ public final class MobTalkConfig {
     public boolean villageHeavy = true, villageCavalry = true;
     /** Cities keep the police instead of guards and watchtowers: posts with policemen and batons, the police siren at an alarm,
      * police cars by the posts that flash in an alarm, and the arrest of an offender (handcuffs, a fine, the holding cell). */
-    public boolean cityPolice = true, policeCars = true, policeArrest = true;
+    public boolean cityPolice = true, policeCars = true, policeArrest = true, policeMegaphone = true;
     /** Idea Б1: the villages know the god's deeds (the divine block's events) — they panic, talk and blame the sinner by name;
      * the scene in the moment (alarm bell, flight, shouts); the god alone may make an exile; the family of a villager killed by a
      * curse turns against the sinner. */
@@ -317,7 +317,7 @@ public final class MobTalkConfig {
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
         copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageHeavy = villageHeavy; copy.villageCavalry = villageCavalry;
-        copy.cityPolice = cityPolice; copy.policeCars = policeCars; copy.policeArrest = policeArrest;
+        copy.cityPolice = cityPolice; copy.policeCars = policeCars; copy.policeArrest = policeArrest; copy.policeMegaphone = policeMegaphone;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;

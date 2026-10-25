@@ -1020,5 +1020,8 @@
   "mobtalk.police.shout.attack.2": "Прячьтесь по подъездам, напали!",
   "mobtalk.police.shout.player.0": "%s, ты что творишь?! Полиция!",
   "mobtalk.police.shout.player.1": "Держи %s! Он на людей руку поднял!",
-  "mobtalk.police.shout.player.2": "%s — хулиган! Вызывайте полицию!"
+  "mobtalk.police.shout.player.2": "%s — хулиган! Вызывайте полицию!",
+  "mobtalk.settings.policeMegaphone": "Громкоговоритель",
+  "mobtalk.settings.policeMegaphone.tooltip": "Полиция говорит в громкоговоритель: «Внимание! Работает полиция!» во время тревоги, «Стоять! Полиция!» в погоне, «Руки за голову!» при задержании.",
+  "subtitle.mobtalk.police_megaphone": "Полиция говорит в громкоговоритель"
 }

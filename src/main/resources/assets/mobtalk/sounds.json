@@ -12,7 +12,22 @@
     "subtitle": "subtitle.mobtalk.police_siren",
     "sounds": [
       {
-        "name": "mobtalk:police/siren",
+        "name": "mobtalk:police/siren_soviet_1",
+        "stream": true,
+        "attenuation_distance": 96
+      },
+      {
+        "name": "mobtalk:police/siren_soviet_2",
+        "stream": true,
+        "attenuation_distance": 96
+      },
+      {
+        "name": "mobtalk:police/siren_soviet_3",
+        "stream": true,
+        "attenuation_distance": 96
+      },
+      {
+        "name": "mobtalk:police/siren_modern_1",
         "stream": true,
         "attenuation_distance": 96
       }
@@ -22,8 +37,80 @@
     "subtitle": "subtitle.mobtalk.police_quack",
     "sounds": [
       {
-        "name": "mobtalk:police/quack",
+        "name": "mobtalk:police/quack_1",
         "attenuation_distance": 48
+      },
+      {
+        "name": "mobtalk:police/quack_2",
+        "attenuation_distance": 48
+      },
+      {
+        "name": "mobtalk:police/quack_3",
+        "attenuation_distance": 48
+      },
+      {
+        "name": "mobtalk:police/quack_4",
+        "attenuation_distance": 48
+      }
+    ]
+  },
+  "police_megaphone_alarm": {
+    "subtitle": "subtitle.mobtalk.police_megaphone",
+    "sounds": [
+      {
+        "name": "mobtalk:police/megaphone_police_1",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_disperse_1",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_disperse_2",
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "police_megaphone_chase": {
+    "subtitle": "subtitle.mobtalk.police_megaphone",
+    "sounds": [
+      {
+        "name": "mobtalk:police/megaphone_police_2",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_give_up_1",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_give_up_2",
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "police_megaphone_arrest": {
+    "subtitle": "subtitle.mobtalk.police_megaphone",
+    "sounds": [
+      {
+        "name": "mobtalk:police/megaphone_hands_1",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_hands_2",
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "police_megaphone_road": {
+    "subtitle": "subtitle.mobtalk.police_megaphone",
+    "sounds": [
+      {
+        "name": "mobtalk:police/megaphone_stop_1",
+        "attenuation_distance": 64
+      },
+      {
+        "name": "mobtalk:police/megaphone_stop_2",
+        "attenuation_distance": 64
       }
     ]
   }

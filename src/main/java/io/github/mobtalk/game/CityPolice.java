@@ -155,7 +155,10 @@ public final class CityPolice {
             if (from.size() >= 3) break;
         }
         if (from.isEmpty()) from.add(zone.center());
-        for (BlockPos at : from) world.playSound(null, at, PoliceContent.SIREN, SoundCategory.BLOCKS, 4f, 1f);
+        // every third time the first car speaks into the loudhailer instead («Внимание! Работает полиция!»)
+        boolean speak = bridge.config.policeMegaphone && sirens % 3 == 2;
+        for (int i = 0; i < from.size(); i++)
+            world.playSound(null, from.get(i), speak && i == 0 ? PoliceContent.MEGAPHONE_ALARM : PoliceContent.SIREN, SoundCategory.BLOCKS, 4f, 1f);
         sirens++;
         if (!bridge.config.alarmSound) return;
         for (ServerPlayerEntity player : listeners) {
@@ -174,6 +177,8 @@ public final class CityPolice {
         for (BlockPos post : defense.guards.posts(world, zone))
             if (post.getSquaredDistance(policeman.getBlockPos()) < 32 * 32 && (car = car(world, post)) != null) break;
         world.playSound(null, car != null ? car : policeman.getBlockPos(), PoliceContent.QUACK, SoundCategory.NEUTRAL, 2.5f, 1f);
+        if (bridge.config.policeMegaphone && world.random.nextBoolean()) // «Стоять! Полиция!», «Вы окружены! Сдавайтесь!»
+            world.playSound(null, policeman.getBlockPos(), PoliceContent.MEGAPHONE_CHASE, SoundCategory.NEUTRAL, 3f, 1f);
     }
 
     private static BlockPos car(ServerWorld world, BlockPos post) {
@@ -244,6 +249,7 @@ public final class CityPolice {
     private void arrest(ServerWorld world, VillageDefenseController.Zone zone, VillagerEntity policeman, LivingEntity foe, long now) {
         if (held(foe)) return;
         policeman.swingHand(net.minecraft.util.Hand.OFF_HAND);
+        if (bridge.config.policeMegaphone) world.playSound(null, policeman.getBlockPos(), PoliceContent.MEGAPHONE_ARREST, SoundCategory.NEUTRAL, 2.5f, 1f);
         world.playSound(null, foe.getBlockPos(), SoundEvents.ITEM_ARMOR_EQUIP_CHAIN.value(), SoundCategory.NEUTRAL, 1.2f, 1.3f);
         world.spawnParticles(ParticleTypes.CRIT, foe.getX(), foe.getY() + 1, foe.getZ(), 12, 0.3, 0.4, 0.3, 0.1);
         int ticks = (int) CUFF_TICKS + 20;
