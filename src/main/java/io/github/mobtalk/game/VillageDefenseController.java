@@ -103,6 +103,16 @@ final class VillageDefenseController {
         return zone == null ? null : alarms.get(zone.key());
     }
 
+    /** The zones of this world from the last refresh (the officials keep their desks by them). */
+    List<Zone> zones(ServerWorld world) { return zones.getOrDefault(dimension(world), List.of()); }
+
+    /** Track «чиновники»: the village where the player stands turns on them (a bribe offered to an honest official, unpaid orders). */
+    void accuse(ServerWorld world, ServerPlayerEntity player, String cause) {
+        if (!enabled()) return;
+        Zone zone = zoneAt(world, player.getBlockPos());
+        if (zone != null) againstPlayer(world, zone, player, VillageAlarm.Level.THREAT, cause);
+    }
+
     /** The zone holding this spot, from the last refresh; null outside every village or before the first refresh. */
     Zone zoneAt(ServerWorld world, BlockPos pos) {
         for (Zone zone : zones.getOrDefault(dimension(world), List.of())) if (zone.holds(pos)) return zone;

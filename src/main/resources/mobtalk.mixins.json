@@ -31,7 +31,10 @@
     "VillagerRiderMixin",
     "VillagerRiderFacingMixin",
     "SteedCalmMixin",
-    "KeepHandsMixin"
+    "KeepHandsMixin",
+    "SinglePoolElementAccessor",
+    "UniqueVillagePieceMixin",
+    "BarPoolAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

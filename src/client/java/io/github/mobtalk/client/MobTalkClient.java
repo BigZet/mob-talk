@@ -144,6 +144,7 @@ public final class MobTalkClient implements ClientModInitializer {
         ChildView.register();
         io.github.mobtalk.client.human.VillagerLooks.register();
         io.github.mobtalk.client.bandit.BanditRenderer.register(); // Ночные бандиты в городах.
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(io.github.mobtalk.game.BarContent.SEAT, net.minecraft.client.render.entity.EmptyEntityRenderer::new);
         net.fabricmc.fabric.api.resource.ResourceManagerHelper.get(net.minecraft.resource.ResourceType.CLIENT_RESOURCES).registerReloadListener(
                 new net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener() {
                     @Override public net.minecraft.util.Identifier getFabricId() { return net.minecraft.util.Identifier.of("mobtalk", "human_textures"); }
