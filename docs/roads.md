@@ -43,9 +43,12 @@ with villagers in them, and horsemen, travel back and forth along them. It all w
   village on a bridge or in a tunnel, it ends where it last stood on the ground. Where that is gets worked out from the village's
   structure start before any chunk of the road is laid.
 - The road is paved five blocks wide, with a curb on each side. Ground above a 45° line from the curb is dug away, and ground
-  below one is banked up with turf. Trees over the road are cleared. A bridge deck stands on piers every 14 blocks, with a wall
+  below one is banked up with turf; a hollow that holds water is left as it is (the road's own fill makes its quay). Trees
+  over the road are cleared. The road's columns are found from rows across the road every half block along it (a row through
+  each point alone left single blocks out on a diagonal, and pillars of ground stood in tunnels and cuttings). A bridge deck stands on piers every 14 blocks, with a wall
   for a railing. A tunnel is dug under a stepped brick vault with brick walls. A column with anything built in the way (a house,
-  a chest, a player's build) is left alone. Lamp posts and lanterns are never dug away by a later chunk.
+  a chest, a player's build) is left alone; what worldgen made is the road's to cut, including a taiga's mossy boulders, stone
+  with silverfish in it, a geode's buds, fossils and raw ore. Lamp posts and lanterns are never dug away by a later chunk.
 - Where two roads overlap at about the same height (within 2 blocks), neither lays its curb, railing, bank or lamp on the other's
   paving and curb, so one paved way is left with no railing across it.
 - The strip beside the road is cleared of trees: every trunk (logs, mushroom stems and caps) whose foot stands within
@@ -122,6 +125,8 @@ road's curb, so the highway itself is not touched. Its last 6 points have no lam
   an iron sword. He takes the `mobtalk:cavalry` profession when village defence registers it.
 - The cart and wagon models are ported from NiftyCarts (MIT, `third_party/nifty-carts/NOTICE.md`). Their textures are built at
   runtime from vanilla plank, log and wool textures.
+- A villager or horse travelling with a trip takes no harm from a wall: the trip is drawn along the road's line, and where
+  the line passes through a block the road left standing the passengers would otherwise smother in it.
 
 ## Settings
 
@@ -148,7 +153,10 @@ world's own villages, it holds a village two or more roads come to and one only 
 shelter are done (or, for roads laid into the village, their streets and station), checks the junction stands outside the village
 and the trail reaches a street, and photographs each from the road, from above and along the trail. Then
 `-Dmobtalk.selftest.roads=x1,z1,x2,z2;…` names further lines to plan, lay and check the same way (through mountains, a swamp,
-the badlands), each photographed from above and along at its first tunnel or bridge. It uses no LLM and no voice.
+the badlands), each photographed from above and along at its first tunnel or bridge. A line the planner refuses (a bridge
+longer than it allows) is logged as refused, not counted as a failure. The vehicle checks wait for a few server ticks after the
+vehicle takes shape (a second of the clock may hold no tick on a lagging server). The checks of the paved way and of the strip take the
+road's columns from the builder's own sampling, so they look at exactly the blocks the road claimed. It uses no LLM and no voice.
 
 In the cloud the same test runs under `xvfb-run` with CTOV and Lithostitched in `run/mods` on a world made from Dmitriy's seed,
 to see the roads meet CTOV villages (their streets are the `roads` pool).

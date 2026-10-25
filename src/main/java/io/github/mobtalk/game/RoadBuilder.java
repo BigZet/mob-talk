@@ -162,7 +162,7 @@ final class RoadBuilder {
     static final int MEET_BELOW = 16, MEET_ABOVE = 24, LAND_BACK = 24;
 
     /** One column of the road in the chunk: the nearest centreline point and the signed distance across from it. */
-    private record Column(int x, int z, int index, double across, double along) { }
+    record Column(int x, int z, int index, double across, double along) { }
 
     /** Counts of what was done, for the log and the self-test. */
     static final class Report {
@@ -523,21 +523,31 @@ final class RoadBuilder {
         return columns(points, chunk.getStartX(), chunk.getStartZ(), chunk.getEndX(), chunk.getEndZ());
     }
 
-    private static Map<Long, Column> columns(List<RoadPlan.Point> points, int minX, int minZ, int maxX, int maxZ) {
+    /** The columns within {@code REACH} of the centreline in the window given, each with its nearest point. The self-test's checks
+     * take the road's columns from here too, so that what they look at is what was laid, block for block. */
+    static Map<Long, Column> columns(List<RoadPlan.Point> points, int minX, int minZ, int maxX, int maxZ) {
         Map<Long, Column> out = new HashMap<>();
         for (int i = 0; i < points.size(); i++) {
             RoadPlan.Point p = points.get(i);
             if (p.x() < minX - REACH - 1 || p.x() > maxX + REACH + 1 || p.z() < minZ - REACH - 1 || p.z() > maxZ + REACH + 1) continue;
             double nx = -p.dz(), nz = p.dx();
-            for (double step = -REACH; step <= REACH; step += 0.5) {
-                int x = MathHelper.floor(p.x() + nx * step), z = MathHelper.floor(p.z() + nz * step);
-                if (x < minX || x > maxX || z < minZ || z > maxZ) continue;
-                // The block's centre measured from this point: along the road and across it. The point nearest along wins, and the
-                // true distance across decides paving, curb or bank (on a diagonal the sample step would put the curb on the paving).
-                double cx = x + 0.5 - p.x(), cz = z + 0.5 - p.z(), along = Math.abs(cx * p.dx() + cz * p.dz()), across = cx * nx + cz * nz;
-                long key = BlockPos.asLong(x, 0, z);
-                Column old = out.get(key);
-                if (old == null || along < old.along()) out.put(key, new Column(x, z, i, across, along));
+            // Rows across the road every half block along it: through each point and half a step on toward the next (the points
+            // come a block apart, and a row through each alone left single blocks unsampled on a diagonal: pillars of ground stood
+            // in tunnels and cuttings, Dmitriy 2026-10-25), and half a step back from the first, so that the blocks the road's ends
+            // reach into are its too (the last half block of a road stood unpaved).
+            double behind = i == 0 ? -0.5 : 0;
+            for (double shift = behind; shift <= 0.5; shift += 0.5) {
+                double ox = p.x() + p.dx() * shift, oz = p.z() + p.dz() * shift;
+                for (double step = -REACH; step <= REACH; step += 0.5) {
+                    int x = MathHelper.floor(ox + nx * step), z = MathHelper.floor(oz + nz * step);
+                    if (x < minX || x > maxX || z < minZ || z > maxZ) continue;
+                    // The block's centre measured from this point: along the road and across it. The point nearest along wins, and
+                    // the true distance across decides paving, curb or bank (on a diagonal the sample step would put the curb on the paving).
+                    double cx = x + 0.5 - p.x(), cz = z + 0.5 - p.z(), along = Math.abs(cx * p.dx() + cz * p.dz()), across = cx * nx + cz * nz;
+                    long key = BlockPos.asLong(x, 0, z);
+                    Column old = out.get(key);
+                    if (old == null || along < old.along()) out.put(key, new Column(x, z, i, across, along));
+                }
             }
         }
         return out;
@@ -636,6 +646,9 @@ final class RoadBuilder {
             for (int y = over; y < ground; y++) ops.dig(y);
             if (top != null) ops.set(over - 1, top);
         } else if (ground < under && feet - ground <= BANK + reach) {
+            // A hollow that holds water is a lake or the sea: the road's own fill makes its quay, the bank is not built up through
+            // the water (a pillar of turf stood in the water beside a road, Dmitriy 2026-10-25).
+            for (int y = ground; y <= under; y++) if (ops.get(y).getBlock() instanceof FluidBlock) return;
             BlockState top = ops.top(ground - 1);
             for (int y = ground; y < under; y++) ops.set(y, Blocks.DIRT.getDefaultState());
             ops.set(under, top != null ? top : Blocks.GRASS_BLOCK.getDefaultState());
@@ -716,6 +729,9 @@ final class RoadBuilder {
         if (block instanceof FluidBlock) return true;
         if (block == Blocks.BEE_NEST) return true; // worldgen's, on a tree, for all its block entity
         if (state.hasBlockEntity()) return false;
+        // A taiga's boulders of mossy cobblestone (they were taken for something built and stood in the road, Dmitriy 2026-10-25), the
+        // mountains' stone with silverfish in it, a geode's buds, a fossil, a vein's raw ore.
+        if (block instanceof net.minecraft.block.InfestedBlock || block instanceof net.minecraft.block.AmethystClusterBlock) return true;
         if (state.isIn(BlockTags.DIRT) || state.isIn(BlockTags.BASE_STONE_OVERWORLD) || state.isIn(BlockTags.SAND) || state.isIn(BlockTags.LOGS)
                 || state.isIn(BlockTags.LEAVES) || state.isIn(BlockTags.REPLACEABLE) || state.isIn(BlockTags.FLOWERS) || state.isIn(BlockTags.SAPLINGS)
                 || state.isIn(BlockTags.ICE) || state.isIn(BlockTags.SNOW) || state.isIn(BlockTags.TERRACOTTA) || state.isIn(BlockTags.CAVE_VINES)
@@ -726,7 +742,8 @@ final class RoadBuilder {
         return NATURAL.contains(block);
     }
 
-    private static final Set<Block> NATURAL = Set.of(Blocks.GRAVEL, Blocks.CLAY, Blocks.SANDSTONE, Blocks.RED_SANDSTONE, Blocks.SNOW_BLOCK, Blocks.POWDER_SNOW,
+    private static final Set<Block> NATURAL = Set.of(Blocks.MOSSY_COBBLESTONE, Blocks.BONE_BLOCK, Blocks.RAW_IRON_BLOCK, Blocks.RAW_COPPER_BLOCK, Blocks.RAW_GOLD_BLOCK,
+            Blocks.GRAVEL, Blocks.CLAY, Blocks.SANDSTONE, Blocks.RED_SANDSTONE, Blocks.SNOW_BLOCK, Blocks.POWDER_SNOW,
             Blocks.CACTUS, Blocks.SUGAR_CANE, Blocks.PUMPKIN, Blocks.MELON, Blocks.BAMBOO, Blocks.BAMBOO_SAPLING, Blocks.SWEET_BERRY_BUSH, Blocks.VINE,
             Blocks.MOSS_CARPET, Blocks.DRIPSTONE_BLOCK, Blocks.POINTED_DRIPSTONE, Blocks.CALCITE, Blocks.MAGMA_BLOCK, Blocks.OBSIDIAN,
             Blocks.BROWN_MUSHROOM_BLOCK, Blocks.RED_MUSHROOM_BLOCK, Blocks.MUSHROOM_STEM, Blocks.BROWN_MUSHROOM, Blocks.RED_MUSHROOM, Blocks.LILY_PAD,

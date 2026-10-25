@@ -28,7 +28,8 @@
     "VillageSpawnMixin",
     "GuardPanicMixin",
     "VillagerRiderMixin",
-    "VillagerRiderFacingMixin"
+    "VillagerRiderFacingMixin",
+    "RoadTripSuffocationMixin"
   ],
   "injectors": {
     "defaultRequire": 1

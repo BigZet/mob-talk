@@ -108,30 +108,30 @@ public final class Roads {
         RoadNetwork.Road road = bridge == null ? null : bridge.roads.road(world, id);
         if (road == null) return new int[] { 0, 0, 0, 0 };
         int[] out = { 0, 0, 0, 0 };
-        java.util.Set<Long> seen = new java.util.HashSet<>();
         net.minecraft.util.math.BlockPos.Mutable at = new net.minecraft.util.math.BlockPos.Mutable();
         RoadBuilder.Palette palette = RoadBuilder.palette(road.palette);
         int from = road.from == Integer.MIN_VALUE ? 0 : road.from, to = road.to == Integer.MIN_VALUE ? road.points.size() - 1 : road.to;
-        for (int i = from; i <= to; i++) {
-            RoadPlan.Point p = road.points.get(i);
-            if (!road.done.contains(net.minecraft.util.math.ChunkPos.toLong(p.blockX() >> 4, p.blockZ() >> 4))) continue;
-            double nx = -p.dz(), nz = p.dx();
-            int y0 = p.h2() >> 1;
-            for (double step = -RoadBuilder.CURB; step <= RoadBuilder.CURB; step += 0.5) {
-                int x = net.minecraft.util.math.MathHelper.floor(p.x() + nx * step), z = net.minecraft.util.math.MathHelper.floor(p.z() + nz * step);
-                // The block's own centre decides, as when the road was laid: a sample beyond the curb is the bank's.
-                if (Math.abs((x + 0.5 - p.x()) * nx + (z + 0.5 - p.z()) * nz) > RoadBuilder.CURB) continue;
-                if (!seen.add(net.minecraft.util.math.BlockPos.asLong(x, 0, z))) continue;
-                for (int y = y0 + 1; y <= y0 + 4; y++) {
-                    net.minecraft.block.BlockState state = world.getBlockState(at.set(x, y, z));
-                    // The road's own (a lamp's base and post, a railing, a tunnel's wall) is no obstacle.
-                    if (state.isAir() || state.getBlock() instanceof net.minecraft.block.FenceBlock || palette.owns(state.getBlock())) continue;
-                    if (out[0]++ == 0) { out[1] = x; out[2] = y; out[3] = z; }
-                    break;
-                }
+        // The road's columns as the builder found them, so that the check and the laying agree block for block (a sample line of
+        // its own missed the road's last half block, 2026-10-25); only the columns of chunks laid, and of the part between the ends.
+        for (RoadBuilder.Column column : columns(road).values()) {
+            if (column.index() < from || column.index() > to || Math.abs(column.across()) > RoadBuilder.CURB) continue;
+            if (!road.done.contains(net.minecraft.util.math.ChunkPos.toLong(column.x() >> 4, column.z() >> 4))) continue;
+            int x = column.x(), z = column.z(), y0 = road.points.get(column.index()).h2() >> 1;
+            for (int y = y0 + 1; y <= y0 + 4; y++) {
+                net.minecraft.block.BlockState state = world.getBlockState(at.set(x, y, z));
+                // The road's own (a lamp's base and post, a railing, a tunnel's wall) is no obstacle.
+                if (state.isAir() || state.getBlock() instanceof net.minecraft.block.FenceBlock || palette.owns(state.getBlock())) continue;
+                if (out[0]++ == 0) { out[1] = x; out[2] = y; out[3] = z; }
+                break;
             }
         }
         return out;
+    }
+
+    /** Every column of the road within the builder's reach, by the builder's own sampling. */
+    private static java.util.Map<Long, RoadBuilder.Column> columns(RoadNetwork.Road road) {
+        int far = Integer.MAX_VALUE / 4;
+        return RoadBuilder.columns(road.points, -far, -far, far, far);
     }
 
     /** Trunks (a tree's or a huge mushroom's) rooted within {@code strip} blocks of the curb at the road's level, on plain road
@@ -141,25 +141,21 @@ public final class Roads {
         RoadNetwork.Road road = bridge == null ? null : bridge.roads.road(world, id);
         if (road == null) return new int[] { 0, 0, 0, 0 };
         int[] out = { 0, 0, 0, 0 };
-        java.util.Set<Long> seen = new java.util.HashSet<>();
         net.minecraft.util.math.BlockPos.Mutable at = new net.minecraft.util.math.BlockPos.Mutable();
         int from = road.from == Integer.MIN_VALUE ? 0 : road.from, to = road.to == Integer.MIN_VALUE ? road.points.size() - 1 : road.to;
         double reach = RoadBuilder.CURB + strip;
-        for (int i = from; i <= to; i++) {
-            RoadPlan.Point p = road.points.get(i);
-            if (p.kind() == RoadPlan.Kind.TUNNEL || !road.done.contains(net.minecraft.util.math.ChunkPos.toLong(p.blockX() >> 4, p.blockZ() >> 4))) continue;
-            double nx = -p.dz(), nz = p.dx();
-            int feet = (p.h2() + 1) >> 1;
-            for (double step = -reach; step <= reach; step += 0.5) {
-                int x = net.minecraft.util.math.MathHelper.floor(p.x() + nx * step), z = net.minecraft.util.math.MathHelper.floor(p.z() + nz * step);
-                if (Math.abs((x + 0.5 - p.x()) * nx + (z + 0.5 - p.z()) * nz) > reach) continue; // by the block's centre, as the strip is cut
-                if (!seen.add(net.minecraft.util.math.BlockPos.asLong(x, 0, z))) continue;
-                for (int y = feet - 4; y <= feet + RoadBuilder.BANK + 2; y++) {
-                    net.minecraft.block.BlockState state = world.getBlockState(at.set(x, y, z)), below = world.getBlockState(at.set(x, y - 1, z));
-                    if (!trunk(state) || trunk(below)) continue;
-                    if (out[0]++ == 0) { out[1] = x; out[2] = y; out[3] = z; }
-                    break;
-                }
+        // The strip's columns as the builder cut them (the same sampling, the block's centre deciding), in the chunks laid.
+        for (RoadBuilder.Column column : columns(road).values()) {
+            if (column.index() < from || column.index() > to || Math.abs(column.across()) > reach) continue;
+            if (!road.done.contains(net.minecraft.util.math.ChunkPos.toLong(column.x() >> 4, column.z() >> 4))) continue;
+            RoadPlan.Point p = road.points.get(column.index());
+            if (p.kind() == RoadPlan.Kind.TUNNEL) continue;
+            int x = column.x(), z = column.z(), feet = (p.h2() + 1) >> 1;
+            for (int y = feet - 4; y <= feet + RoadBuilder.BANK + 2; y++) {
+                net.minecraft.block.BlockState state = world.getBlockState(at.set(x, y, z)), below = world.getBlockState(at.set(x, y - 1, z));
+                if (!trunk(state) || trunk(below)) continue;
+                if (out[0]++ == 0) { out[1] = x; out[2] = y; out[3] = z; }
+                break;
             }
         }
         return out;
@@ -168,6 +164,13 @@ public final class Roads {
     private static boolean trunk(net.minecraft.block.BlockState state) {
         return state.isIn(net.minecraft.registry.tag.BlockTags.LOGS) || state.isOf(net.minecraft.block.Blocks.MUSHROOM_STEM)
                 || state.isOf(net.minecraft.block.Blocks.BROWN_MUSHROOM_BLOCK) || state.isOf(net.minecraft.block.Blocks.RED_MUSHROOM_BLOCK);
+    }
+
+    /** Whether the entity travels with a road trip: its horse, a villager in its cart or on its horse. Such an entity is drawn
+     * along the road's line and may pass through a block the road did not clear; it takes no harm from that. */
+    public static boolean inRoadTrip(net.minecraft.entity.Entity entity) {
+        return entity.getCommandTags().contains(RoadTraffic.TAG) || entity.getVehicle() instanceof RoadCartEntity
+                || (entity.getVehicle() != null && entity.getVehicle().getCommandTags().contains(RoadTraffic.TAG));
     }
 
     /** The village's junction {x, feet, z}, null when it has none (no road planned to it yet, or roads laid into it before). */

@@ -178,9 +178,11 @@ final class SelfTestRoads {
             test.await("the " + kind + " takes shape", 15, () -> lead(kind) != null, () -> {
                 Entity lead = lead(kind);
                 if (lead == null) { nextKind(kind, order); return; }
-                // A moment first: the cart turns to its horse on its first ticks (on a lagging server the check came before them).
-                test.await("pause: the " + kind + " settles", 1, () -> false, () -> {
-                    inspect(kind, lead);
+                // A few server ticks first: the cart turns to its horse as it is pulled (on a lagging server a second of the clock
+                // held no tick, and the check came before them).
+                long born = onServer(() -> world().getTime());
+                test.await("pause: the " + kind + " settles", 15, () -> onServer(() -> world().getTime()) - born >= 5, () -> {
+                    inspect(kind, lead, born);
                     Vec3d first = onServer(lead::getPos);
                     long start = onServer(() -> world().getTime());
                     test.await("pause: the " + kind + " drives on", 3, () -> false, () -> {
@@ -233,7 +235,7 @@ final class SelfTestRoads {
         });
     }
 
-    private void inspect(String kind, Entity lead) {
+    private void inspect(String kind, Entity lead, long born) {
         onServer(() -> {
             if (lead instanceof RoadCartEntity cart) {
                 List<Entity> people = cart.getPassengerList();
@@ -248,7 +250,8 @@ final class SelfTestRoads {
                     test.check(Math.abs(gap - cart.reach()) < 0.6, kind + ": the horse is a shaft's length ahead (" + String.format(java.util.Locale.ROOT, "%.2f", gap) + ")");
                     double rad = Math.toRadians(cart.getYaw());
                     double ahead = (horse.getX() - cart.getX()) * -Math.sin(rad) + (horse.getZ() - cart.getZ()) * Math.cos(rad);
-                    test.check(ahead > 0, kind + ": the cart faces its horse");
+                    test.check(ahead > 0, kind + ": the cart faces its horse (" + String.format(java.util.Locale.ROOT, "%.2f ahead, yaw %.0f, horse at %.2f %.2f, %d ticks old",
+                            ahead, cart.getYaw(), horse.getX() - cart.getX(), horse.getZ() - cart.getZ(), world().getTime() - born) + ")");
                 }
             } else test.check(lead.getFirstPassenger() instanceof VillagerEntity, "the horseman sits his horse");
             return null;
