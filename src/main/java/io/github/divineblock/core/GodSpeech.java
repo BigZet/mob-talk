@@ -34,8 +34,46 @@ public final class GodSpeech {
 
     /** The line for a fresh verdict, unlike the god's last few lines. */
     public String announce(Verdict verdict, List<String> recentLines) {
-        String line = ask(system(), announcement(verdict, recentLines, form(verdict)));
-        return line != null ? line : template(verdict);
+        boolean brief = brief(verdict, config);
+        String line = ask(system(), announcement(verdict, recentLines, form(verdict)) + (brief ? BRIEF : ""));
+        if (line == null) return template(verdict);
+        return brief ? shorten(line, BRIEF_WORDS) : line;
+    }
+
+    /** How many words the god says before a punishment when the settings want it short. */
+    public static final int BRIEF_WORDS = 25;
+    /** Before a punishment the roulette is waiting: the god is brief (the settings' «Длина речи перед карой»). */
+    static final String BRIEF = "\nЭто кара, и за твоими словами сразу закрутится колесо суда: скажи коротко — одна-две короткие фразы, "
+            + "не больше двадцати слов, и помяни одну причину. Без вступлений и развёрнутых притч.";
+
+    /** Whether this verdict gets the short line: a punishment (not forgiven) while the settings ask for brevity. */
+    static boolean brief(Verdict verdict, DivineConfig config) {
+        return config.wrathSpeech == DivineConfig.SpeechLength.SHORT && !verdict.forgiveness
+                && (verdict.inclination == Miracle.Kind.WRATH || verdict.chosen().kind == Miracle.Kind.WRATH);
+    }
+
+    /** Whole sentences while they fit in {@code maxWords}; a first sentence longer than that is cut at the limit. */
+    public static String shorten(String line, int maxWords) {
+        if (line == null || line.isBlank()) return line;
+        java.util.regex.Matcher sentences = java.util.regex.Pattern.compile("[^.!?…]+[.!?…]+").matcher(line.strip());
+        StringBuilder kept = new StringBuilder();
+        int words = 0;
+        while (sentences.find()) {
+            String sentence = sentences.group().strip();
+            int count = sentence.split("\\s+").length;
+            if (kept.length() > 0 && words + count > maxWords) break;
+            if (kept.length() == 0 && count > maxWords) {
+                String[] parts = sentence.split("\\s+");
+                return String.join(" ", java.util.Arrays.copyOf(parts, maxWords)).replaceAll("[,;:—–-]+$", "") + "…";
+            }
+            kept.append(kept.length() == 0 ? "" : " ").append(sentence);
+            words += count;
+        }
+        if (kept.length() == 0) {
+            String[] parts = line.strip().split("\\s+");
+            return parts.length <= maxWords ? line.strip() : String.join(" ", java.util.Arrays.copyOf(parts, maxWords)) + "…";
+        }
+        return kept.toString();
     }
 
     /** The line that retells a past verdict when the player asks "why?". */
@@ -119,8 +157,7 @@ public final class GodSpeech {
         return switch (verdict.chosen().kind) {
             case HELP -> "Аки манна в пустыне, сойдёт на тебя милость моя, чадо. Ибо " + reasonClause(reason) + ".";
             case JEST -> "Хе-хе… Узри, отрок: раз уж " + reasonClause(reason) + ", быть тебе потехой небес.";
-            case WRATH -> verdict.warned ? "Взвешен ты на весах и найден лёгким: " + reasonClause(reason) + ". Ныне воздам."
-                    : "Что посеял, то и пожнёшь: " + reasonClause(reason) + ".";
+            case WRATH -> verdict.warned ? "Найден ты лёгким: " + reasonClause(reason) + "." : "Пожни посеянное: " + reasonClause(reason) + ".";
             case OMEN -> verdict.chosen() == Miracle.IGNORE ? "…" : "Ветер над алтарём переменился — то лишь знамение: " + reasonClause(reason) + ".";
         };
     }

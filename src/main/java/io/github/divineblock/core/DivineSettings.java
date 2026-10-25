@@ -66,6 +66,8 @@ public final class DivineSettings {
             flag("useJev", "speech", "Решатель Jev", "Решения бога принимает отдельная быстрая модель."),
             text("chatModel", "speech", "Модель речи OpenRouter", "Модель OpenRouter для слов бога."),
             text("veniceModel", "speech", "Модель речи Venice", "Модель Venice для слов бога."),
+            choice("wrathSpeech", "speech", "Длина речи перед карой", "SHORT — одна-две фразы, до 25 слов, и рулетка сразу за ними; NORMAL — развёрнутая реплика.",
+                    names(DivineConfig.SpeechLength.values())),
             number("speechTimeoutSeconds", "speech", "Ожидание речи, с", "Сколько ждать модель, прежде чем бог скажет по шаблону.", 3, 60, 1),
             flag("churches", "world", "Церкви в мире", "Церкви появляются в новых чанках."),
             number("churchSpacing", "world", "Редкость церквей", "Не больше одной церкви на столько чанков по каждой стороне.", 32, 256, 1),

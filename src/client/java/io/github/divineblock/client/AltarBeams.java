@@ -31,10 +31,15 @@ final class AltarBeams {
         ClientPlayNetworking.registerGlobalReceiver(BeamsPayload.ID, (payload, context) -> context.client().execute(() -> {
             if (payload.ticks() > 0) { ChantPlayer.verdict(context.client(), payload.music(), payload.altar()); SkyTint.verdict(context.client(), payload.sky()); }
             else { ChantPlayer.wordsEnded(context.client()); SkyTint.wordsEnded(context.client()); }
+            wrath = payload.ticks() > 0 && payload.music() == io.github.divineblock.game.BeamsPayload.PUNISHMENT;
             start(context.client(), payload.altar(), payload.ticks(), payload.color());
         }));
         WorldRenderEvents.AFTER_TRANSLUCENT.register(AltarBeams::render);
     }
+
+    /** The beams of a punishment are up: from the god's word until the act (the roulette comes between). */
+    private static volatile boolean wrath;
+    static boolean wrath() { return wrath; }
 
     static void start(MinecraftClient client, BlockPos altar, int ticks, int color) {
         if (client.world == null) return;
