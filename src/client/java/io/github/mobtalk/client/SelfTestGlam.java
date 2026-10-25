@@ -3,6 +3,8 @@ package io.github.mobtalk.client;
 import io.github.mobtalk.client.human.HumanLooks;
 import io.github.mobtalk.client.human.HumanTextures;
 import io.github.mobtalk.core.Gender;
+import io.github.mobtalk.core.Gesture;
+import io.github.mobtalk.core.GestureIntent;
 import io.github.mobtalk.core.MobTalkConfig;
 import io.github.mobtalk.core.SocialProfile;
 import io.github.mobtalk.game.GlamLook;
@@ -92,7 +94,41 @@ final class SelfTestGlam {
     }
     private void side(Runnable then) {
         test.command("tp " + name() + " " + at(13, 1, 3) + " 120 15");
-        test.await("pause: side view", 2, () -> false, () -> shot("mobtalk-glam-side.png", then));
+        test.await("pause: side view", 2, () -> false, () -> shot("mobtalk-glam-side.png", () -> courtship(then)));
+    }
+
+    /** Ухаживание: игрок встречается с меркантильной уже час и ничего не дарил. Она сама клянчит (это «годовщина»), а через минуту
+     * уходит к мастеру-оружейнику рядом и выходит за него. */
+    private void courtship(Runnable then) {
+        test.owner.client.options.hudHidden = false;
+        VillagerEntity lady = villagers().stream().filter(GlamLook::of).findFirst().orElse(null);
+        if (lady == null) { test.fail("no mercantile woman for the courtship stage"); then.run(); return; }
+        UUID her = lady.getUuid(), player = test.owner.client.player.getUuid();
+        UUID rich = UUID.randomUUID();
+        while (SocialProfile.genderOf(rich) != Gender.MALE) rich = UUID.randomUUID();
+        merchant = rich;
+        long hour = (test.owner.config().mercLeaveMinutes + 1) * 60_000L;
+        test.bridge().memory.social().applyGesture(her, player, name(), new GestureIntent(Gesture.DATE, Gesture.Outcome.ACCEPTED, 5, "minecraft:poppy", ""),
+                System.currentTimeMillis() - hour);
+        test.check(test.bridge().memory.jealousy().partner(her, player), "the player dates a mercantile woman");
+        test.command("summon minecraft:villager " + at(0, 0, 4) + " {NoAI:1b,PersistenceRequired:1b,Tags:[\"" + TAG + "\"],UUID:" + uuid(rich)
+                + ",VillagerData:{profession:\"minecraft:weaponsmith\",type:\"minecraft:plains\",level:5}}");
+        test.command("tp " + her + " " + at(0, 0, 3));
+        test.command("tp " + name() + " " + at(0, 0, 6) + " 180 10");
+        test.log("courtship: " + test.bridge().memory.displayName(her) + " dates the player for an hour without gifts; merchant " + rich);
+        int before = test.bridge().memory.relationship(her, player);
+        test.await("she begs for a gift herself (the anniversary)", 15, () -> test.bridge().memory.mercantileBegAt(her, player) >= 0, () ->
+                test.await("she leaves the stingy player for the master weaponsmith", 90, () -> merchant.equals(test.bridge().memory.spouseOf(her)), () -> {
+                    test.check(!test.bridge().memory.jealousy().partner(her, player), "the stingy player is not her partner any more");
+                    int after = test.bridge().memory.relationship(her, player);
+                    test.check(after < before, "she thinks less of him: " + before + " → " + after);
+                    then.run();
+                }));
+    }
+    private UUID merchant;
+    private static String uuid(UUID id) {
+        long m = id.getMostSignificantBits(), l = id.getLeastSignificantBits();
+        return "[I;" + (int) (m >> 32) + "," + (int) m + "," + (int) (l >> 32) + "," + (int) l + "]";
     }
     private void shot(String file, Runnable then) {
         test.await("pause: the camera settles", 2, () -> false, () -> {

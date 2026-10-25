@@ -36,6 +36,9 @@ public final class Rapport {
     int appetite = 1; long paidAt = -1, coolAt = -1; int wallet = -1;
     /** Её ужин за его счёт: до какого времени идёт (−1 — нет), счёт в изумрудах; когда она «упорхнула» после оплаты (−1 — нет). */
     long dinnerUntil = -1, dashedAt = -1; int bill;
+    /** Меркантильная: с какого времени вы вместе (для «годовщин»), когда она в последний раз сама клянчила, когда напомнила о
+     * годовщине и ждёт подарка (−1 — не ждёт); сколько годовщин уже отмечено. Реальные мс. */
+    long datingAt = -1, begAt = -1, anniversaryAt = -1; int anniversaries;
     public record Given(String item, long time) { }
     /** Ревность этой пары, создаётся при первом обращении. */
     public Jealousy jealousy() { if (jealousy == null) jealousy = new Jealousy(); return jealousy; }
@@ -108,6 +111,7 @@ public final class Rapport {
         c.ring = ring; c.witnessMan = witnessMan; c.witnessWoman = witnessWoman; c.weddingMillis = weddingMillis;
         c.appetite = appetite; c.paidAt = paidAt; c.coolAt = coolAt; c.wallet = wallet;
         c.dinnerUntil = dinnerUntil; c.dashedAt = dashedAt; c.bill = bill;
+        c.datingAt = datingAt; c.begAt = begAt; c.anniversaryAt = anniversaryAt; c.anniversaries = anniversaries;
         return c;
     }
 }

@@ -141,6 +141,10 @@ public final class Tunables {
         integer("mercCoolHearts", s, "mercantile", 0, 20, 1, c -> c.mercCoolHearts, (c, x) -> c.mercCoolHearts = x);
         integer("mercAppetiteCap", s, "mercantile", 1, 288, 1, c -> c.mercAppetiteCap, (c, x) -> c.mercAppetiteCap = x);
         integer("mercDashPercent", s, "mercantile", 0, 100, 5, c -> c.mercDashPercent, (c, x) -> c.mercDashPercent = x);
+        integer("mercGossipMinutes", s, "mercantile", 5, 1440, 5, c -> c.mercGossipMinutes, (c, x) -> c.mercGossipMinutes = x);
+        integer("mercLeaveMinutes", s, "mercantile", 5, 600, 5, c -> c.mercLeaveMinutes, (c, x) -> c.mercLeaveMinutes = x);
+        integer("mercBegMinutes", s, "mercantile", 1, 120, 1, c -> c.mercBegMinutes, (c, x) -> c.mercBegMinutes = x);
+        integer("mercAnniversaryMinutes", s, "mercantile", 10, 1440, 10, c -> c.mercAnniversaryMinutes, (c, x) -> c.mercAnniversaryMinutes = x);
         // Свадьба у колокола (трек L).
         integer("weddingVowSeconds", s, "wedding", 15, 120, 5, c -> c.weddingVowSeconds, (c, x) -> c.weddingVowSeconds = x);
         integer("weddingVowWaitSeconds", s, "wedding", 10, 180, 5, c -> c.weddingVowWaitSeconds, (c, x) -> c.weddingVowWaitSeconds = x);
@@ -299,7 +303,7 @@ public final class Tunables {
             case SOCIAL -> {
                 config.socialLayer = d.socialLayer; config.playerGender = d.playerGender; config.familyLife = d.familyLife; config.coSleep = d.coSleep; config.weddingCeremony = d.weddingCeremony;
                 config.rivals = d.rivals; config.rivalSteal = d.rivalSteal; config.rivalTrials = d.rivalTrials; config.rivalBellScene = d.rivalBellScene; config.rivalHud = d.rivalHud;
-                config.mercantile = d.mercantile; config.mercOutfit = d.mercOutfit;
+                config.mercantile = d.mercantile; config.mercOutfit = d.mercOutfit; config.mercGossip = d.mercGossip; config.mercLeave = d.mercLeave; config.mercBeg = d.mercBeg;
                 config.pregnancy = d.pregnancy; config.pregnancyBelly = d.pregnancyBelly; config.pregnancyStatus = d.pregnancyStatus; config.familyFade = d.familyFade;
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices; config.villageSites = d.villageSites;

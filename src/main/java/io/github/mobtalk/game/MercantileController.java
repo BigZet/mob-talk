@@ -1,13 +1,17 @@
 package io.github.mobtalk.game;
 
 import io.github.mobtalk.core.ConversationStore;
+import io.github.mobtalk.core.Gender;
+import io.github.mobtalk.core.Initiative;
 import io.github.mobtalk.core.Mercantile;
+import io.github.mobtalk.core.SocialProfile;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
 import net.minecraft.util.math.Box;
 
 import java.util.*;
@@ -19,6 +23,11 @@ import java.util.*;
 public final class MercantileController {
     private static final long PERIOD = 100, PHASE = 41;
     private static final double REACH = 48;
+    /** Клянчит у игрока не дальше этого (блоки); ищет богатого жителя в этом радиусе; уход к богатому проверяется раз в минуту. */
+    private static final double BEG_RANGE = 8, RICH_RANGE = 32;
+    private static final long LEAVE_PERIOD = 1200;
+    /** С какого уровня профессии житель для неё «при деньгах»: эксперт (4) и мастер (5). */
+    private static final int RICH_LEVEL = 4;
     private final MobGameBridge bridge;
     MercantileController(MobGameBridge bridge) { this.bridge = bridge; }
 
@@ -31,8 +40,49 @@ public final class MercantileController {
                 boolean adult = !villager.isBaby();
                 boolean on = Mercantile.on(bridge.config) && adult && bridge.memory.mercantile(villager.getUuid(), villager.getName().getString(), adult, city(world, villager), bridge.config);
                 if (villager instanceof GlamLook look) look.mobtalk$setGlam(on && bridge.config.mercOutfit);
+                if (!on) continue;
+                beg(world, villager);
+                if (world.getTime() % LEAVE_PERIOD == PHASE && bridge.config.mercLeave) leave(world, villager);
             }
         }
+    }
+    /** Сама заговаривает с ухажёром рядом: клянчит подарок или напоминает о «годовщине» — повод для реплики первой. */
+    private void beg(ServerWorld world, VillagerEntity her) {
+        if (!bridge.config.mercBeg || !bridge.config.initiative || bridge.actions.busy(her)) return;
+        ServerPlayerEntity player = world.getClosestPlayer(her.getX(), her.getY(), her.getZ(), BEG_RANGE, p -> p instanceof ServerPlayerEntity sp && !sp.isSpectator()) instanceof ServerPlayerEntity sp ? sp : null;
+        if (player == null) return;
+        String reason = bridge.memory.mercantileBeg(her.getUuid(), player.getUuid(), bridge.config);
+        if (reason == null) return;
+        String name = bridge.memory.displayName(her.getUuid());
+        bridge.initiative.raise(new Initiative.Cue(her.getUuid(), name.isBlank() ? her.getName().getString() : name, Initiative.Trigger.CONCERN, reason, List.of(), System.currentTimeMillis()));
+    }
+    /** Ухажёры давно не дарят: она уходит к самому богатому холостому жителю рядом и выходит за него; брошенным — сообщение. */
+    private void leave(ServerWorld world, VillagerEntity her) {
+        if (!bridge.memory.mercantileTired(her.getUuid(), bridge.config)) return;
+        VillagerEntity rich = null;
+        for (VillagerEntity v : world.getEntitiesByClass(VillagerEntity.class, her.getBoundingBox().expand(RICH_RANGE), v -> v != her && v.isAlive() && !v.isBaby()
+                && v.getVillagerData().getLevel() >= RICH_LEVEL && SocialProfile.genderOf(v.getUuid()) == Gender.MALE && bridge.memory.spouseOf(v.getUuid()) == null))
+            if (rich == null || v.getVillagerData().getLevel() > rich.getVillagerData().getLevel()) rich = v;
+        if (rich == null) return;
+        String richName = bridge.memory.displayName(rich.getUuid());
+        if (richName.isBlank()) richName = rich.getName().getString();
+        Map<UUID, String> notices = bridge.memory.mercantileLeave(her.getUuid(), rich.getUuid(), richName, work(rich), bridge.config);
+        for (Map.Entry<UUID, String> notice : notices.entrySet()) {
+            ServerPlayerEntity player = world.getServer().getPlayerManager().getPlayer(notice.getKey());
+            if (player != null) player.sendMessage(Text.literal("§d[Mob Talk] " + notice.getValue()), false);
+        }
+    }
+    /** Кто он по работе: «мастер-оружейник», «опытный библиотекарь». */
+    static String work(VillagerEntity villager) {
+        String id = Registries.VILLAGER_PROFESSION.getId(villager.getVillagerData().getProfession()).getPath();
+        String trade = switch (id) {
+            case "armorer" -> "бронник"; case "butcher" -> "мясник"; case "cartographer" -> "картограф"; case "cleric" -> "священник";
+            case "farmer" -> "фермер"; case "fisherman" -> "рыбак"; case "fletcher" -> "лучник"; case "leatherworker" -> "кожевник";
+            case "librarian" -> "библиотекарь"; case "mason" -> "каменщик"; case "shepherd" -> "пастух"; case "toolsmith" -> "инструментальщик";
+            case "weaponsmith" -> "оружейник"; default -> "";
+        };
+        if (trade.isEmpty()) return "богатый житель";
+        return villager.getVillagerData().getLevel() >= 5 ? "мастер-" + trade : "опытный " + trade;
     }
     private static boolean city(ServerWorld world, VillagerEntity villager) {
         ConversationStore.Site site = VillageSites.of(world, villager);

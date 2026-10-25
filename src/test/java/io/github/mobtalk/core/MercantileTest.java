@@ -121,4 +121,78 @@ class MercantileTest {
         assertTrue(store.endDinner(villager, dima, "Дима", false, false).contains("ярост"));
         assertEquals(was + Mercantile.STIFFED_HEARTS, p.relations.get(dima.toString()).score);
     }
+
+    private ConversationStore.Profile lady(ConversationStore store, UUID id, String village) {
+        store.observe(SocialLayerTest.villager(id, dima, 0, false, "minecraft:air"));
+        ConversationStore.Profile p = store.state.profiles.get(id.toString());
+        p.social.gender = Gender.FEMALE.name(); p.social.persona = Persona.MERCANTILE.name(); p.social.traits.clear(); p.villageId = village;
+        return p;
+    }
+
+    @Test void girlfriendsGossipAboutAStingyPlayer() throws Exception {
+        ConversationStore store = ConversationStore.open(directory, config);
+        ConversationStore.Profile first = lady(store, villager, "v1");
+        UUID friend = UUID.randomUUID(), stranger = UUID.randomUUID();
+        lady(store, friend, "v1"); lady(store, stranger, "v2");
+        store.startDinner(villager, dima, "Дима", 30, config);
+        store.endDinner(villager, dima, "Дима", false, false);
+        Mercantile.Gossip g = store.state.mercGossip.get("v1|" + dima);
+        assertNotNull(g, "сбежал от счёта — подружки знают");
+        assertEquals(Mercantile.Talk.STINGY, g.kind());
+        assertNull(Mercantile.heard(store.state, first, dima, config, System.currentTimeMillis()), "своя сплетня — не новость");
+        ConversationStore.Profile seen = store.profile(SocialLayerTest.villager(friend, dima, store.revision(friend), false, "minecraft:air"));
+        String facts = String.join(" ", seen.socialTurn.facts());
+        assertTrue(facts.contains("жмот") && facts.contains("Подружка"), facts);
+        assertTrue(facts.contains("голодранец"), "кошелёк на 20 изумрудов, но для неё — голодранец по слухам: " + facts);
+        String far = String.join(" ", store.profile(SocialLayerTest.villager(stranger, dima, store.revision(stranger), false, "minecraft:air")).socialTurn.facts());
+        assertFalse(far.contains("Подружка"), "в другой деревне не слышали");
+        assertEquals(Mercantile.Purse.RICH, Mercantile.rumoured(Mercantile.Purse.MODEST, new Mercantile.Gossip("GENEROUS", "", "", "", "", "", 0)));
+    }
+
+    @Test void sheBegsAndRemembersTheAnniversary() {
+        ConversationStore.Relation rel = new ConversationStore.Relation();
+        rel.score = 80; rel.rapport = new Rapport(); rel.rapport.courtship(Courtship.DATING);
+        long start = 1_000_000L, hour = config.mercAnniversaryMinutes * 60_000L;
+        rel.rapport.datingAt = start;
+        String first = Mercantile.beg(rel, config, start + 60_000L);
+        assertNotNull(first, "давно не дарил — клянчит");
+        assertFalse(first.contains("годовщ"));
+        assertNull(Mercantile.beg(rel, config, start + 120_000L), "не чаще раза в " + config.mercBegMinutes + " мин");
+        String anniversary = Mercantile.beg(rel, config, start + hour + 1);
+        assertTrue(anniversary != null && anniversary.contains("годовщина"), anniversary);
+        assertEquals(1, rel.rapport.anniversaries);
+        assertFalse(Mercantile.forgotAnniversary(rel, start + hour + 60_000L), "ещё есть время");
+        assertTrue(Mercantile.forgotAnniversary(rel, start + hour + Mercantile.ANNIVERSARY_WAIT_MILLIS + 1));
+        assertEquals(80 + Mercantile.ANNIVERSARY_HEARTS, rel.score);
+        Mercantile.paid(rel.rapport, "minecraft:diamond", config, start + 2 * hour + 1);
+        rel.rapport.begAt = -1;
+        String next = Mercantile.beg(rel, config, start + 2 * hour + 2);
+        assertTrue(next != null && next.contains("годовщина"));
+        Mercantile.paid(rel.rapport, "minecraft:diamond", config, start + 2 * hour + 3);
+        assertFalse(Mercantile.forgotAnniversary(rel, start + 3 * hour), "подарок к годовщине успел");
+        ConversationStore.Relation stranger = new ConversationStore.Relation(); stranger.score = 5; stranger.rapport = new Rapport();
+        assertNull(Mercantile.beg(stranger, config, start), "у чужого не клянчит");
+    }
+
+    @Test void sheLeavesForARichVillager() throws Exception {
+        ConversationStore store = ConversationStore.open(directory, config);
+        ConversationStore.Profile p = lady(store, villager, "v1");
+        ConversationStore.Relation rel = p.relations.get(dima.toString());
+        if (rel.rapport == null) rel.rapport = new Rapport();
+        rel.score = 90; rel.rapport.courtship(Courtship.ENGAGED); rel.rapport.ring = "mobtalk:engagement_ring";
+        long now = System.currentTimeMillis();
+        rel.rapport.datingAt = now - 10 * 60_000L;
+        assertFalse(store.mercantileTired(villager, config), "ещё терпит");
+        rel.rapport.paidAt = now - (config.mercLeaveMinutes + 1) * 60_000L;
+        assertTrue(store.mercantileTired(villager, config));
+        UUID merchant = UUID.randomUUID();
+        Map<UUID, String> notices = store.mercantileLeave(villager, merchant, "Купец Пётр", "мастер-оружейник", config);
+        assertTrue(notices.get(dima).contains("мастер-оружейник") && notices.get(dima).contains("Кольцо"), String.valueOf(notices));
+        assertEquals(Courtship.NONE, rel.rapport.courtship());
+        assertEquals(merchant, store.spouseOf(villager), "вышла за богатого");
+        assertEquals(90 + Mercantile.LEFT_HEARTS, rel.score);
+        assertEquals(Mercantile.Talk.STINGY, store.state.mercGossip.get("v1|" + dima).kind());
+        assertFalse(store.mercantileTired(villager, config), "замужем — больше не уходит");
+        assertTrue(store.mercantileLeave(villager, UUID.randomUUID(), "Другой", "", config).isEmpty());
+    }
 }

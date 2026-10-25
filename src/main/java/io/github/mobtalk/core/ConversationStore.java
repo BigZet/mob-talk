@@ -97,7 +97,7 @@ public final class ConversationStore {
             }
         }
         // Меркантильная: решается раз в жизни; кошелёк игрока на её взгляд и остывание без подарков — до копии для промпта.
-        if (Mercantile.roll(p, SocialLedger.adult(p, snapshot), Mercantile.city(snapshot), config) | Mercantile.observe(p, snapshot.playerId() == null ? null : p.relations.get(snapshot.playerId().toString()),
+        if (Mercantile.roll(p, SocialLedger.adult(p, snapshot), Mercantile.city(snapshot), config) | Mercantile.observe(state, p, snapshot.playerId() == null ? null : p.relations.get(snapshot.playerId().toString()),
                 snapshot, config, System.currentTimeMillis())) scheduleSave();
         Profile detached = p.copy();
         detached.village = p.villageId == null || p.villageId.isBlank() ? null : state.villages.get(p.villageId);
@@ -140,6 +140,37 @@ public final class ConversationStore {
         return Mercantile.active(p);
     }
 
+    /** Повод меркантильной самой заговорить с этим игроком (клянчит или напоминает о «годовщине»); null — молчит. */
+    public synchronized String mercantileBeg(UUID mob, UUID player, MobTalkConfig live) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        Relation r = p == null || player == null ? null : p.relations.get(player.toString());
+        if (!Mercantile.active(p) || r == null || r.rapport == null) return null;
+        String reason = Mercantile.beg(r, live, System.currentTimeMillis());
+        if (reason != null) scheduleSave();
+        return reason;
+    }
+    /** Когда меркантильная в последний раз сама клянчила у этого игрока (реальные мс), −1 — не клянчила. */
+    public synchronized long mercantileBegAt(UUID mob, UUID player) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        Relation r = p == null || player == null ? null : p.relations.get(player.toString());
+        return r == null || r.rapport == null ? -1 : r.rapport.begAt;
+    }
+    /** Бросит ли меркантильная кого-то из ухажёров (давно не дарят) — чтобы игра искала ей богатого жителя только тогда. */
+    public synchronized boolean mercantileTired(UUID mob, MobTalkConfig live) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        if (!Mercantile.active(p) || state.family.married(p.id)) return false;
+        long now = System.currentTimeMillis();
+        return p.relations.values().stream().anyMatch(r -> Mercantile.tired(r.rapport, live, now));
+    }
+    /** Меркантильная уходит к богатому жителю {@code rich} ({@code work} — кто он, «мастер-кузнец»): уведомления брошенным игрокам. */
+    public synchronized Map<UUID, String> mercantileLeave(UUID mob, UUID rich, String richName, String work, MobTalkConfig live) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        if (!Mercantile.active(p) || rich == null) return Map.of();
+        Profile q = ensure(rich, "minecraft:villager", richName);
+        Map<UUID, String> notices = Mercantile.leave(state, p, q, work, live, System.currentTimeMillis());
+        if (!notices.isEmpty()) scheduleSave();
+        return notices;
+    }
     /** Ужин-«тарелочница»: счёт идущего ужина этой меркантильной с игроком, 0 — ужина нет. */
     public synchronized int dinnerBill(UUID mob, UUID player) {
         Profile p = mob == null ? null : state.profiles.get(mob.toString());
@@ -170,6 +201,8 @@ public final class ConversationStore {
         int bill = r.rapport.bill, hearts = Mercantile.endDinner(r.rapport, paid, dash, now);
         r.score = clamp(r.score + hearts, hostile(p));
         String who = TextBounds.characters(playerName, 60), name = displayName(mob);
+        if (!paid) Mercantile.gossip(state, p, player, who, Mercantile.Talk.STINGY, "не смог оплатить ужин в ресторане", now);
+        else if (!dash) Mercantile.gossip(state, p, player, who, Mercantile.Talk.GENEROUS, "сводил в ресторан и заплатил " + bill + " изумр.", now);
         event(p, now, !paid ? "Игрок " + who + " не смог оплатить ужин (" + bill + " изумр.) — какой позор, ты в бешенстве; отношение " + r.score
                 : dash ? "Игрок " + who + " оплатил ужин (" + bill + " изумр.), а ты сразу упорхнула — «подруга позвонила»; отношение " + r.score
                 : "Игрок " + who + " оплатил ужин (" + bill + " изумр.) — ты довольна и мила; отношение " + r.score, 4);
@@ -1293,7 +1326,12 @@ public final class ConversationStore {
         Map<String,String> players = new LinkedHashMap<>();
         /** What the villages know of the god's deeds (Б1); absent in files written before it. */
         DivineTidings divine = new DivineTidings();
+        /** Сплетни меркантильных о игроках ({@link Mercantile.Gossip}), ключ «деревня|игрок»; нет в файлах, записанных до них. */
+        Map<String, Mercantile.Gossip> mercGossip = new LinkedHashMap<>();
         void sanitize() {
+            if (mercGossip == null) mercGossip = new LinkedHashMap<>();
+            mercGossip.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null || e.getValue().player() == null || e.getValue().by() == null
+                    || e.getValue().talk() == null || e.getValue().playerName() == null || e.getValue().byName() == null || e.getValue().why() == null);
             if (divine == null) divine = new DivineTidings();
             divine.sanitize();
             if (notices == null) notices = new VillageNotices();
@@ -1314,7 +1352,7 @@ public final class ConversationStore {
             State c = new State(); c.version = version;
             profiles.forEach((key, p) -> c.profiles.put(key, p.copy()));
             c.bargains.putAll(bargains); c.villages.putAll(villages); // Immutable records.
-            c.relations = relations.copy(); c.rumors = rumors.copy(); c.family = family.copy(); c.notices = notices.copy(); c.players = new LinkedHashMap<>(players); c.divine = divine.copy();
+            c.relations = relations.copy(); c.rumors = rumors.copy(); c.family = family.copy(); c.notices = notices.copy(); c.players = new LinkedHashMap<>(players); c.divine = divine.copy(); c.mercGossip = new LinkedHashMap<>(mercGossip);
             return c;
         }
     }
