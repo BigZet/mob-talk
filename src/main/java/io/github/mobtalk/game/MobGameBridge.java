@@ -620,6 +620,13 @@ public final class MobGameBridge implements GameBridge {
         return CombatRules.truce(SpeciesCatalog.get(type(mob)).hostile(), bridge.memory.relationship(mob.getUuid(), player.getUuid()));
     }
     /** An exiled player gets no trade window from this village's villagers. */
+    /** From the interact mixin: the bartender of an open bar opens his drinks menu instead of his own trade. */
+    public static boolean serveDrinks(VillagerEntity villager, ServerPlayerEntity player) {
+        MobGameBridge bridge = forEntity(villager);
+        if (bridge == null || !bridge.config.barDrinks || player.isSneaking() || !bridge.bars.isBartender(villager)) return false;
+        BarMerchant.open(villager, player);
+        return true;
+    }
     public static boolean refusesTrade(VillagerEntity villager, ServerPlayerEntity player) {
         MobGameBridge bridge = forEntity(villager);
         return bridge != null && bridge.villages.refuseTrade(villager, player);

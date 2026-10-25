@@ -939,5 +939,12 @@
   "mobtalk.tune.barVisitPercent.tooltip": "The chance a free grown villager goes to the bar in the evening.",
   "mobtalk.tune.barTalkSeconds": "Pause between talks: %s s",
   "mobtalk.tune.barTalkSeconds.tooltip": "How often a new talk starts in one bar while you are near.",
-  "mobtalk.bar.opened": "Guests gather in the bar «%s»"
+  "mobtalk.bar.opened": "Guests gather in the bar «%s»",
+  "item.mobtalk.bar_ale": "Mug of Ale",
+  "item.mobtalk.bar_kvass": "Kvass",
+  "item.mobtalk.bar_wine": "Wine",
+  "item.mobtalk.bar_mead": "Mead",
+  "mobtalk.bar.menu": "%s · bar",
+  "mobtalk.settings.barDrinks": "Bartender sells drinks",
+  "mobtalk.settings.barDrinks.tooltip": "While the bar is open, right-clicking the bartender opens a drinks menu for emeralds: ale (strength), kvass (speed), wine (regeneration), mead (absorption). Strong drinks make your head spin, longer with each one. Sneak to get the villager's own trades."
 }

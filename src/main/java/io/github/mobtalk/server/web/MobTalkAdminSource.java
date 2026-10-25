@@ -89,6 +89,7 @@ public final class MobTalkAdminSource implements UnaryOperator<String> {
             new Extra("barEvenings", Tunables.Section.SOCIAL, "bars", "bool", null, "Вечером жители идут в бар", null),
             new Extra("barVoiced", Tunables.Section.SOCIAL, "bars", "bool", null, "Озвучка разговоров в баре", null),
             new Extra("barAliceSpeaker", Tunables.Section.SOCIAL, "bars", "bool", null, "Колонка Алисы вместо проигрывателя", null),
+            new Extra("barDrinks", Tunables.Section.SOCIAL, "bars", "bool", null, "Бармен продаёт выпивку", null),
             new Extra("villageGuards", Tunables.Section.SOCIAL, "guards", "bool", null, null, null),
             new Extra("villageHeavy", Tunables.Section.SOCIAL, "guards", "bool", null, null, null),
             new Extra("villageCavalry", Tunables.Section.SOCIAL, "guards", "bool", null, null, null),
