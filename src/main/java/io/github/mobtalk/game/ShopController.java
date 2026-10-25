@@ -96,7 +96,7 @@ public final class ShopController {
 
     public static boolean unpaid(ItemStack stack) {
         if (stack.isEmpty()) return false;
-        if (stack.isOf(ShopContent.BASKET)) return !basketContents(stack).isEmpty();
+        if (ShopContent.carrier(stack)) return !basketContents(stack).isEmpty();
         NbtComponent data = stack.get(DataComponentTypes.CUSTOM_DATA);
         return data != null && data.contains(UNPAID);
     }
@@ -174,7 +174,7 @@ public final class ShopController {
                 setBasket(basket, inside);
                 return true;
             }
-        if (inside.size() >= ShopContent.BASKET_LOTS) return false;
+        if (inside.size() >= ShopContent.lots(basket)) return false;
         inside.add(goods);
         setBasket(basket, inside);
         return true;
@@ -188,26 +188,31 @@ public final class ShopController {
 
     private static ItemStack basketOf(PlayerEntity player) {
         PlayerInventory inventory = player.getInventory();
-        if (player.getOffHandStack().isOf(ShopContent.BASKET)) return player.getOffHandStack();
-        for (int i = 0; i < inventory.size(); i++) if (inventory.getStack(i).isOf(ShopContent.BASKET)) return inventory.getStack(i);
+        if (ShopContent.carrier(player.getOffHandStack())) return player.getOffHandStack();
+        for (int i = 0; i < inventory.size(); i++) if (ShopContent.carrier(inventory.getStack(i))) return inventory.getStack(i);
         return ItemStack.EMPTY;
     }
 
     /** The stack of baskets: one basket to a player who has none; an empty one handed back goes on the stack. */
-    public static void basketStack(ServerWorld world, BlockPos pos, ServerPlayerEntity player) {
+    public static void basketStack(ServerWorld world, BlockPos pos, ServerPlayerEntity player) { carrierStack(world, pos, player, ShopContent.BASKET, "basket"); }
+
+    /** The cart corral by the entrance: a cart (more room than a basket) on the same terms. */
+    public static void cartStack(ServerWorld world, BlockPos pos, ServerPlayerEntity player) { carrierStack(world, pos, player, ShopContent.CART, "cart"); }
+
+    private static void carrierStack(ServerWorld world, BlockPos pos, ServerPlayerEntity player, net.minecraft.item.Item kind, String key) {
         if (!config(world).cityShops) return;
         ItemStack held = player.getMainHandStack();
-        if (held.isOf(ShopContent.BASKET)) {
+        if (held.isOf(kind)) {
             if (!basketContents(held).isEmpty()) { player.sendMessage(Text.translatable("mobtalk.shop.basket.full_back").formatted(Formatting.YELLOW), true); return; }
             held.decrement(1);
-            player.sendMessage(Text.translatable("mobtalk.shop.basket.back"), true);
-            world.playSound(null, pos, SoundEvents.BLOCK_WOOD_PLACE, SoundCategory.BLOCKS, 0.6f, 1.3f);
+            player.sendMessage(Text.translatable("mobtalk.shop." + key + ".back"), true);
+            world.playSound(null, pos, kind == ShopContent.CART ? SoundEvents.BLOCK_CHAIN_PLACE : SoundEvents.BLOCK_WOOD_PLACE, SoundCategory.BLOCKS, 0.6f, 1.3f);
             return;
         }
         if (!basketOf(player).isEmpty()) { player.sendMessage(Text.translatable("mobtalk.shop.basket.have"), true); return; }
-        player.getInventory().offerOrDrop(new ItemStack(ShopContent.BASKET));
-        player.sendMessage(Text.translatable("mobtalk.shop.basket.took"), true);
-        world.playSound(null, pos, SoundEvents.BLOCK_WOOD_HIT, SoundCategory.BLOCKS, 0.6f, 1.4f);
+        player.getInventory().offerOrDrop(new ItemStack(kind));
+        player.sendMessage(Text.translatable("mobtalk.shop." + key + ".took"), true);
+        world.playSound(null, pos, kind == ShopContent.CART ? SoundEvents.BLOCK_CHAIN_HIT : SoundEvents.BLOCK_WOOD_HIT, SoundCategory.BLOCKS, 0.6f, 1.4f);
     }
 
     // ---- The displays ----
@@ -279,7 +284,7 @@ public final class ShopController {
         PlayerInventory inventory = player.getInventory();
         for (int i = 0; i < inventory.size(); i++) {
             ItemStack stack = inventory.getStack(i);
-            if (stack.isOf(ShopContent.BASKET)) out.addAll(basketContents(stack));
+            if (ShopContent.carrier(stack)) out.addAll(basketContents(stack));
             else if (unpaid(stack)) out.add(stack);
         }
         return out;
@@ -331,7 +336,7 @@ public final class ShopController {
         int count = 0;
         for (int i = 0; i < inventory.size(); i++) {
             ItemStack stack = inventory.getStack(i);
-            if (stack.isOf(ShopContent.BASKET)) {
+            if (ShopContent.carrier(stack)) {
                 for (ItemStack in : basketContents(stack)) { bought.add(paid(in)); count += in.getCount(); }
                 inventory.setStack(i, ItemStack.EMPTY); // the basket stays at the till
             } else if (unpaid(stack)) {
@@ -529,11 +534,12 @@ public final class ShopController {
         VillagerEntity guard = watch.guard == null ? null : world.getEntity(watch.guard) instanceof VillagerEntity v && v.isAlive() ? v : null;
         if (guard != null) {
             walk(guard, player.getBlockPos(), 0.9f);
+            if (guard.getNavigation().isIdle()) guard.getNavigation().startMovingTo(player, 0.9); // the brain dropped the walk: on foot anyway
             guard.getLookControl().lookAt(player);
             if (guard.squaredDistanceTo(player) <= CATCH_REACH * CATCH_REACH) { caught(world, player, guard); return; }
             if (guard.squaredDistanceTo(Vec3d.ofCenter(watch.shop)) > CHASE_LIMIT * CHASE_LIMIT) guard = null;
         }
-        if (inside) return; // back in the shop with the guard after them: they may still pay
+        if (inside) { watch.outsideSince = -1; return; } // back in the shop with the guard after them: they may still pay
         long outside = now - watch.outsideSince;
         boolean far = player.getBlockPos().getSquaredDistance(watch.shop) > 48 * 48;
         // A guard close behind keeps it from being a theft for a while yet (three times as long); one left far behind does not.
@@ -565,7 +571,7 @@ public final class ShopController {
         PlayerInventory inventory = player.getInventory();
         for (int i = 0; i < inventory.size(); i++) {
             ItemStack stack = inventory.getStack(i);
-            if (stack.isOf(ShopContent.BASKET)) { for (ItemStack in : basketContents(stack)) restore(world, in); inventory.setStack(i, ItemStack.EMPTY); }
+            if (ShopContent.carrier(stack)) { for (ItemStack in : basketContents(stack)) restore(world, in); inventory.setStack(i, ItemStack.EMPTY); }
             else if (unpaid(stack)) { restore(world, stack); inventory.setStack(i, ItemStack.EMPTY); }
         }
         WATCHES.remove(player.getUuid());
@@ -602,7 +608,7 @@ public final class ShopController {
         List<ItemStack> loot = new ArrayList<>();
         for (int i = 0; i < inventory.size(); i++) {
             ItemStack stack = inventory.getStack(i);
-            if (stack.isOf(ShopContent.BASKET)) { for (ItemStack in : basketContents(stack)) loot.add(paid(in)); setBasket(stack, List.of()); }
+            if (ShopContent.carrier(stack)) { for (ItemStack in : basketContents(stack)) loot.add(paid(in)); setBasket(stack, List.of()); }
             else if (unpaid(stack)) { loot.add(paid(stack)); inventory.setStack(i, ItemStack.EMPTY); }
         }
         for (ItemStack stack : loot) inventory.offerOrDrop(stack);

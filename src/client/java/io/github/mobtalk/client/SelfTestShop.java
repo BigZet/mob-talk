@@ -26,6 +26,8 @@ final class SelfTestShop {
     private final int fx, fy, fz;
     private final List<String> chat = Collections.synchronizedList(new ArrayList<>());
     private Runnable next = () -> { };
+    /** Run every tick while a screenshot waits (the cart's: the body turned as the head, as after walking). */
+    private Runnable steady = () -> { };
     private int mark;
 
     SelfTestShop(SelfTest test, int stageX, int stageY, int stageZ) {
@@ -70,6 +72,7 @@ final class SelfTestShop {
 
     /** The shop: a floor 17 x 13 with walls of glass, the displays in a row along the back and a gondola island in the middle. */
     private void build() {
+        test.command("forceload add " + (fx - 10) + " " + (fz - 8) + " " + (fx + 10) + " " + (fz + 34)); // the street too, or its fill fails
         test.command("fill " + at(-8, -1, -6) + " " + at(8, -1, 6) + " minecraft:smooth_stone");
         test.command("fill " + at(-8, 4, -6) + " " + at(8, 4, 6) + " minecraft:white_concrete");
         test.command("fill " + at(-8, 0, -6) + " " + at(8, 3, -6) + " minecraft:light_blue_stained_glass");
@@ -89,7 +92,8 @@ final class SelfTestShop {
         test.command("setblock " + at(3, 0, 5) + " mobtalk:theft_gate[facing=east]");
         test.command("setblock " + at(5, 0, 3) + " mobtalk:basket_stack[facing=south]");
         test.command("setblock " + at(6, 0, 1) + " mobtalk:shop_guard_desk[facing=south]");
-        test.command("fill " + at(-8, -1, 7) + " " + at(8, -1, 40) + " minecraft:grass_block"); // the street outside
+        test.command("setblock " + at(7, 0, 4) + " mobtalk:cart_corral[facing=west]");
+        test.command("fill " + at(-8, -1, 7) + " " + at(8, -1, 32) + " minecraft:grass_block"); // the street outside
         test.command("execute at " + name() + " run kill @e[type=minecraft:villager,distance=..60]");
         test.command("clear " + name());
         test.await("a cashier and a guard come", 30, () -> staff(true).size() >= 2 && !staff(false).isEmpty(), this::stocked);
@@ -155,7 +159,90 @@ final class SelfTestShop {
             test.server().execute(() -> ShopController.checkout(world(), pos(-3, 0, 3), player(), false));
             test.await("paid with a block", 5, () -> unpaid() == 0, () -> {
                 test.check(count(Items.EMERALD_BLOCK) == 0 && count(Items.EMERALD) == 9 - cost, "an emerald block pays and " + (9 - cost) + " come back (" + count(Items.EMERALD) + ")");
-                selfCheckout();
+                cart();
+            });
+        });
+    }
+
+    /** The cart from the corral holds more than a basket; the shop's own groceries are on the shelves; paying leaves the cart
+     * at the till; frozen pelmeni cook. Screenshots: the cart in hand from behind, the new groceries in the inventory. */
+    private void cart() {
+        test.check(onServer(() -> world().getRecipeManager().get(net.minecraft.util.Identifier.of("mobtalk", "cooked_pelmeni_from_smelting")).isPresent()),
+                "frozen pelmeni cook in a furnace");
+        int own = onServer(() -> {
+            int n = 0;
+            for (int x = -6; x <= 6; x++) {
+                ShopContent.DisplayBlockEntity d = display(x, -5);
+                if (d != null) for (ShopContent.DisplayBlockEntity.Lane lane : d.lanes)
+                    if (!lane.goods.isEmpty() && net.minecraft.registry.Registries.ITEM.getId(lane.goods.getItem()).getNamespace().equals("mobtalk")) n++;
+            }
+            for (int x = -4; x <= 4; x++) {
+                ShopContent.DisplayBlockEntity d = display(x, -1);
+                if (d != null) for (ShopContent.DisplayBlockEntity.Lane lane : d.lanes)
+                    if (!lane.goods.isEmpty() && net.minecraft.registry.Registries.ITEM.getId(lane.goods.getItem()).getNamespace().equals("mobtalk")) n++;
+            }
+            return n;
+        });
+        test.check(own > 0, "the shop's own groceries are on the shelves (" + own + " lanes)");
+        test.command("clear " + name());
+        test.server().execute(() -> ShopController.cartStack(world(), pos(7, 0, 4), player()));
+        test.await("a cart in the inventory", 5, () -> count(ShopContent.CART) == 1, () -> {
+            for (int x = -6; x <= 6; x++) { int dx = x; test.server().execute(() -> ShopController.take(world(), display(dx, -5), 0, player())); }
+            for (int x = -6; x <= -4; x++) { int dx = x; test.server().execute(() -> ShopController.take(world(), display(dx, -5), 1, player())); }
+            test.await("goods in the cart", 5, () -> cartLots() >= 14, () -> {
+                test.check(cartLots() > ShopContent.BASKET_LOTS, "a cart holds more than a basket (" + cartLots() + " lots)");
+                test.server().execute(() -> {
+                    var inventory = player().getInventory();
+                    for (int i = 0; i < inventory.size(); i++) if (inventory.getStack(i).isOf(ShopContent.CART)) {
+                        ItemStack cart = inventory.getStack(i);
+                        inventory.setStack(i, inventory.getStack(inventory.selectedSlot));
+                        inventory.setStack(inventory.selectedSlot, cart);
+                    }
+                });
+                test.command("tp " + name() + " " + at(4, 0, 1) + " 90 40");
+                steady = () -> { test.owner.client.player.setBodyYaw(90); test.owner.client.player.prevBodyYaw = 90; };
+                test.owner.client.options.setPerspective(Perspective.THIRD_PERSON_BACK);
+                shot("mobtalk-shop-cart.png", () -> {
+                    test.owner.client.options.setPerspective(Perspective.THIRD_PERSON_FRONT);
+                    shot("mobtalk-shop-cart-front.png", () -> {
+                    test.owner.client.options.setPerspective(Perspective.FIRST_PERSON);
+                    shot("mobtalk-shop-cart-first.png", () -> {
+                    steady = () -> { };
+                    test.command("give " + name() + " minecraft:emerald 64");
+                    mark();
+                    test.server().execute(() -> ShopController.checkout(world(), pos(-3, 0, 3), player(), false));
+                    test.await("paid for the cart", 5, () -> unpaid() == 0 && heard("изумр"), () -> {
+                        test.check(count(ShopContent.CART) == 0, "the cart stays at the till");
+                        groceries();
+                    });
+                    });
+                    });
+                });
+            });
+        });
+    }
+
+    private int cartLots() {
+        return onServer(() -> {
+            var inventory = player().getInventory();
+            for (int i = 0; i < inventory.size(); i++) if (inventory.getStack(i).isOf(ShopContent.CART)) return ShopController.basketContents(inventory.getStack(i)).size();
+            return 0;
+        });
+    }
+
+    /** Every grocery of the shop's own in the inventory, shown on the inventory screen. */
+    private void groceries() {
+        test.command("clear " + name());
+        for (String id : io.github.mobtalk.game.ShopFoods.ITEMS.keySet()) test.command("give " + name() + " mobtalk:" + id + " 4");
+        test.command("give " + name() + " mobtalk:shopping_cart 1");
+        test.command("give " + name() + " mobtalk:cart_corral 1");
+        test.await("pause: the goods arrive", 2, () -> false, () -> {
+            test.owner.client.execute(() -> test.owner.client.setScreen(new net.minecraft.client.gui.screen.ingame.InventoryScreen(test.owner.client.player)));
+            shot("mobtalk-shop-groceries.png", () -> {
+                test.owner.client.execute(() -> test.owner.client.setScreen(null));
+                test.command("clear " + name());
+                test.command("give " + name() + " minecraft:emerald 10");
+                test.await("emeralds for the self-checkout", 5, () -> count(Items.EMERALD) == 10, this::selfCheckout);
             });
         });
     }
@@ -195,8 +282,16 @@ final class SelfTestShop {
     /** Out of the door with the unpaid lot: the guard runs up and takes it back. */
     private void caught() {
         mark();
+        // The guard back behind the desk first (wandering the aisles they can be stuck behind a gondola: then it is a theft).
+        test.server().execute(() -> { for (VillagerEntity guard : world().getEntitiesByClass(VillagerEntity.class, area(), v -> v.isAlive() && ShopContent.guard(v)))
+            guard.refreshPositionAndAngles(fx + 6.5, fy, fz + 0.5, 180, 0); });
         test.command("tp " + name() + " " + at(0, 0, 14) + " 180 10");
-        test.await("the guard catches the player", 15, () -> unpaid() == 0 && heard("отобрал"), () -> {
+        int[] polls = {0};
+        test.await("the guard catches the player", 15, () -> {
+            if (polls[0]++ % 20 == 0) for (VillagerEntity guard : staff(false))
+                test.log("guard at " + guard.getBlockPos().toShortString() + " player at " + player().getBlockPos().toShortString() + " nav " + guard.getNavigation().isIdle());
+            return unpaid() == 0 && heard("отобрал");
+        }, () -> {
             test.check(heard("Охран") || heard("Стоять") || heard("платить"), "someone shouts after the thief");
             test.check(unpaid() == 0 && heard("отобрал"), "the guard took the goods back");
             shot("mobtalk-shop-caught.png", this::theft);
@@ -265,13 +360,14 @@ final class SelfTestShop {
     }
 
     private void shot(String file, Runnable then) {
-        test.await("pause: the camera settles", 2, () -> false, () -> {
+        test.await("pause: the camera settles", 2, () -> { steady.run(); return false; }, () -> {
             ScreenshotRecorder.saveScreenshot(test.owner.client.runDirectory, file, test.owner.client.getFramebuffer(), text -> test.log("screenshot: " + text.getString()));
             test.await("pause: after the screenshot", 1, () -> false, then);
         });
     }
 
     private void finish() {
+        test.command("forceload remove " + (fx - 10) + " " + (fz - 8) + " " + (fx + 10) + " " + (fz + 34));
         test.command("gamerule doDaylightCycle true"); test.command("gamerule doMobSpawning true");
         test.await("pause: shop stage done", 2, () -> false, next);
     }

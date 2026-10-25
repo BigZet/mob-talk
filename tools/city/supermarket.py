@@ -102,6 +102,23 @@ def pavilion(rel):
     return 1
 
 
+def carts():
+    """The cart corral (a later addition, so placed apart from the furnishing above): by the universam's north door, and in
+    the pavilion's south corner instead of the second basket stack."""
+    n = 0
+    for rel, (x, y, z), facing in (("houses/corgi_fifth/shop/supermarket", (6, 1, 1), "north"),
+                                   ("ours/landmark/univermag", (4, 5, 18), "west"), ("ours/landmark/univermag_5th", (4, 5, 18), "west")):
+        if not os.path.exists(os.path.join(pieces.DATA, "structure", "city", rel + ".nbt")):
+            continue
+        t = pieces.Template(rel)
+        if any(name == "mobtalk:cart_corral" for (name, _p, _b) in t.grid.values()):
+            continue
+        put(t, x, y, z, "cart_corral", facing)
+        t.save()
+        n += 1
+    return n
+
+
 def weigh():
     """The universam comes up three times as often as the café or the fish shop on the five-storey's ground floor."""
     path = os.path.join(pieces.DATA, "worldgen", "template_pool", "city", "houses", "corgi_fifth", "shops.json")
@@ -119,7 +136,7 @@ def furnish():
     for rel in ("ours/landmark/univermag", "ours/landmark/univermag_5th"):
         if os.path.exists(os.path.join(pieces.DATA, "structure", "city", rel + ".nbt")):
             n += pavilion(rel)
-    print("supermarkets furnished:", n)
+    print("supermarkets furnished:", n, "· cart corrals:", carts())
 
 
 if __name__ == "__main__":

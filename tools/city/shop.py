@@ -531,6 +531,8 @@ def main():
     if len(sys.argv) > 2 and sys.argv[1] == "preview":
         preview(sys.argv[2])
         return
+    import shop_goods  # noqa: E402  (the groceries, the cart and its corral)
+    shop_goods.save_all()
     import supermarket  # noqa: E402  (furnishes the template; skipped for a preview)
     supermarket.furnish()
     print("shop:", len(MODELS), "models,", len(TEX), "textures")

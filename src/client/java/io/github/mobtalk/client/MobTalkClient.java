@@ -135,6 +135,7 @@ public final class MobTalkClient implements ClientModInitializer {
     @Override public void onInitializeClient() {
         ClientNet.register(this);
         net.minecraft.client.render.block.entity.BlockEntityRendererFactories.register(io.github.mobtalk.game.ShopContent.DISPLAY_ENTITY, io.github.mobtalk.client.game.ShopDisplayRenderer::new);
+        io.github.mobtalk.client.game.ShopCartRenderer.register();
         talkKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.talk", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_V, "category.mobtalk"));
         settingsKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.settings", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_F7, "category.mobtalk"));
         tradeKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.trade", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_B, "category.mobtalk"));

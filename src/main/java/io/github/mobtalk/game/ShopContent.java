@@ -97,8 +97,8 @@ public final class ShopContent {
 
     public static final Map<Display, Block> DISPLAYS = new EnumMap<>(Display.class);
     public static BlockEntityType<DisplayBlockEntity> DISPLAY_ENTITY;
-    public static Block CASH_REGISTER, SELF_CHECKOUT, BASKET_STACK, THEFT_GATE, GUARD_DESK;
-    public static Item BASKET;
+    public static Block CASH_REGISTER, SELF_CHECKOUT, BASKET_STACK, CART_CORRAL, THEFT_GATE, GUARD_DESK;
+    public static Item BASKET, CART;
     public static final Identifier CASH_REGISTER_ID = Identifier.of("mobtalk", "cash_register"), GUARD_DESK_ID = Identifier.of("mobtalk", "shop_guard_desk");
     public static final RegistryKey<PointOfInterestType> CASH_REGISTER_POI = RegistryKey.of(RegistryKeys.POINT_OF_INTEREST_TYPE, CASH_REGISTER_ID);
     public static final RegistryKey<PointOfInterestType> GUARD_DESK_POI = RegistryKey.of(RegistryKeys.POINT_OF_INTEREST_TYPE, GUARD_DESK_ID);
@@ -109,17 +109,18 @@ public final class ShopContent {
     private static boolean registered;
 
     /** Outlines in the north-facing model (pixel boxes), kept in step with tools/city/shop.py. */
-    static final Map<String, double[][]> OUTLINES = Map.of(
-            "shop_shelf", new double[][] {{0, 0, 1, 16, 16, 15}},
-            "shop_bread_rack", new double[][] {{0, 0, 2, 16, 16, 15}},
-            "shop_fridge", new double[][] {{0, 0, 1, 16, 16, 16}},
-            "shop_freezer", new double[][] {{0, 0, 1, 16, 11, 15}},
-            "shop_produce", new double[][] {{0, 0, 0, 16, 12, 16}},
-            "cash_register", new double[][] {{0, 0, 1, 16, 12, 15}, {3, 12, 4, 13, 16, 12}},
-            "self_checkout", new double[][] {{1, 0, 2, 15, 16, 14}},
-            "basket_stack", new double[][] {{2, 0, 3, 14, 12, 13}},
-            "theft_gate", new double[][] {{6, 0, 3, 10, 16, 13}},
-            "shop_guard_desk", new double[][] {{0, 0, 2, 16, 12, 14}});
+    static final Map<String, double[][]> OUTLINES = Map.ofEntries(
+            Map.entry("shop_shelf", new double[][] {{0, 0, 1, 16, 16, 15}}),
+            Map.entry("shop_bread_rack", new double[][] {{0, 0, 2, 16, 16, 15}}),
+            Map.entry("shop_fridge", new double[][] {{0, 0, 1, 16, 16, 16}}),
+            Map.entry("shop_freezer", new double[][] {{0, 0, 1, 16, 11, 15}}),
+            Map.entry("shop_produce", new double[][] {{0, 0, 0, 16, 12, 16}}),
+            Map.entry("cash_register", new double[][] {{0, 0, 1, 16, 12, 15}, {3, 12, 4, 13, 16, 12}}),
+            Map.entry("self_checkout", new double[][] {{1, 0, 2, 15, 16, 14}}),
+            Map.entry("basket_stack", new double[][] {{2, 0, 3, 14, 12, 13}}),
+            Map.entry("cart_corral", new double[][] {{1, 0, 0, 15, 15, 16}}),
+            Map.entry("theft_gate", new double[][] {{6, 0, 3, 10, 16, 13}}),
+            Map.entry("shop_guard_desk", new double[][] {{0, 0, 2, 16, 12, 14}}));
 
     public static void register() {
         if (registered) return;
@@ -132,12 +133,16 @@ public final class ShopContent {
         CASH_REGISTER = block("cash_register", new ShopBlock(settings(MapColor.LIGHT_GRAY, BlockSoundGroup.METAL, 0), "cash_register"), items);
         SELF_CHECKOUT = block("self_checkout", new ShopBlock(settings(MapColor.LIGHT_GRAY, BlockSoundGroup.METAL, 4), "self_checkout"), items);
         BASKET_STACK = block("basket_stack", new ShopBlock(settings(MapColor.RED, BlockSoundGroup.WOOD, 0), "basket_stack"), items);
+        CART_CORRAL = block("cart_corral", new ShopBlock(settings(MapColor.IRON_GRAY, BlockSoundGroup.CHAIN, 0), "cart_corral"), items);
         THEFT_GATE = block("theft_gate", new ShopBlock(settings(MapColor.GRAY, BlockSoundGroup.METAL, 0).noCollision(), "theft_gate"), items);
         GUARD_DESK = block("shop_guard_desk", new ShopBlock(settings(MapColor.BROWN, BlockSoundGroup.WOOD, 0), "shop_guard_desk"), items);
         DISPLAY_ENTITY = Registry.register(Registries.BLOCK_ENTITY_TYPE, Identifier.of("mobtalk", "shop_display"),
                 BlockEntityType.Builder.create(DisplayBlockEntity::new, DISPLAYS.values().toArray(Block[]::new)).build(null));
-        BASKET = Registry.register(Registries.ITEM, Identifier.of("mobtalk", "shopping_basket"), new BasketItem(new Item.Settings().maxCount(1)));
+        BASKET = Registry.register(Registries.ITEM, Identifier.of("mobtalk", "shopping_basket"), new BasketItem(new Item.Settings().maxCount(1), BASKET_LOTS));
+        CART = Registry.register(Registries.ITEM, Identifier.of("mobtalk", "shopping_cart"), new BasketItem(new Item.Settings().maxCount(1), CART_LOTS));
         items.add(BASKET);
+        items.add(CART);
+        ShopFoods.register();
         PointOfInterestHelper.register(CASH_REGISTER_ID, 1, 1, CASH_REGISTER);
         PointOfInterestHelper.register(GUARD_DESK_ID, 1, 1, GUARD_DESK);
         CASHIER = Registry.register(Registries.VILLAGER_PROFESSION, Identifier.of("mobtalk", "cashier"),
@@ -202,6 +207,7 @@ public final class ShopContent {
                 case "cash_register" -> { ShopController.checkout((ServerWorld) world, pos, serverPlayer, false); yield ActionResult.CONSUME; }
                 case "self_checkout" -> { ShopController.checkout((ServerWorld) world, pos, serverPlayer, true); yield ActionResult.CONSUME; }
                 case "basket_stack" -> { ShopController.basketStack((ServerWorld) world, pos, serverPlayer); yield ActionResult.CONSUME; }
+                case "cart_corral" -> { ShopController.cartStack((ServerWorld) world, pos, serverPlayer); yield ActionResult.CONSUME; }
                 default -> ActionResult.PASS;
             };
         }
@@ -368,12 +374,17 @@ public final class ShopContent {
         @Override public NbtCompound toInitialChunkDataNbt(RegistryWrapper.WrapperLookup registries) { return createNbt(registries); }
     }
 
-    /** The shop's basket: the goods taken while it is in the inventory go into it (up to {@link #BASKET_LOTS} stacks). Paying at
-     * a till empties it into the inventory and the basket goes back to the stack; carried out unpaid it is the shop's goods too. */
-    public static final int BASKET_LOTS = 12;
+    /** The shop's basket and cart: the goods taken while one is in the inventory go into it (up to {@link #BASKET_LOTS} or
+     * {@link #CART_LOTS} stacks). Paying at a till empties it into the inventory and it goes back to the shop; carried out unpaid
+     * it is the shop's goods too. */
+    public static final int BASKET_LOTS = 12, CART_LOTS = 27;
+
+    public static boolean carrier(ItemStack stack) { return stack.getItem() instanceof BasketItem; }
+    public static int lots(ItemStack stack) { return stack.getItem() instanceof BasketItem b ? b.lots : 0; }
 
     public static class BasketItem extends Item {
-        BasketItem(Settings settings) { super(settings); }
+        final int lots;
+        BasketItem(Settings settings, int lots) { super(settings); this.lots = lots; }
 
         @Override public TypedActionResult<ItemStack> use(World world, PlayerEntity player, Hand hand) {
             ItemStack basket = player.getStackInHand(hand);

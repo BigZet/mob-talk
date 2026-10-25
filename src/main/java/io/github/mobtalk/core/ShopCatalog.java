@@ -21,7 +21,8 @@ public final class ShopCatalog {
 
     private static final Map<String, Goods> BY_ITEM = new LinkedHashMap<>();
     private static void add(String section, Place place, String item, int lot, int price) {
-        BY_ITEM.put("minecraft:" + item, new Goods("minecraft:" + item, section, lot, price, place));
+        String id = item.contains(":") ? item : "minecraft:" + item;
+        BY_ITEM.put(id, new Goods(id, section, lot, price, place));
     }
     static {
         Place s = Place.SHELF, f = Place.FREEZER, b = Place.BREAD, c = Place.FRIDGE, v = Place.PRODUCE;
@@ -62,6 +63,30 @@ public final class ShopCatalog {
         add("frozen", f, "cod", 4, 1);
         add("frozen", f, "salmon", 3, 1);
         add("frozen", f, "rabbit", 3, 1);
+        // the shop's own groceries (io.github.mobtalk.game.ShopFoods)
+        add("bread", b, "mobtalk:baton", 2, 1);
+        add("bread", b, "mobtalk:borodinsky", 2, 1);
+        add("bread", b, "mobtalk:sushki", 6, 1);
+        add("bread", b, "mobtalk:pryanik", 4, 1);
+        add("dairy", c, "mobtalk:milk_carton", 2, 1);
+        add("dairy", c, "mobtalk:kefir", 2, 1);
+        add("dairy", c, "mobtalk:smetana", 2, 1);
+        add("dairy", c, "mobtalk:tvorog", 2, 1);
+        add("dairy", c, "mobtalk:cheese", 3, 1);
+        add("meat", c, "mobtalk:doktorskaya", 1, 1);
+        add("meat", c, "mobtalk:sosiski", 2, 1);
+        add("frozen", f, "mobtalk:pelmeni", 2, 1);
+        add("frozen", f, "mobtalk:plombir", 3, 1);
+        add("grocery", s, "mobtalk:sgushchenka", 2, 1);
+        add("grocery", s, "mobtalk:chocolate", 3, 1);
+        add("grocery", s, "mobtalk:semechki", 6, 1);
+        add("grocery", s, "mobtalk:pickles", 1, 1);
+        add("grocery", s, "mobtalk:kvass", 2, 1);
+        add("grocery", s, "mobtalk:noodles", 3, 1);
+        add("veg", v, "mobtalk:cucumber", 6, 1);
+        add("veg", v, "mobtalk:tomato", 5, 1);
+        add("veg", v, "mobtalk:cabbage", 2, 1);
+        add("veg", v, "mobtalk:onion", 8, 1);
     }
 
     /** The product of this item id, null when the shop does not stock it (an admin may still put it on a shelf by hand). */
