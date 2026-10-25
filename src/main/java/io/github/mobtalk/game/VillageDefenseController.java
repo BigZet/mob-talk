@@ -208,6 +208,7 @@ final class VillageDefenseController {
     /** A monster worth an alarm: a hostile that is not a calm neutral, not in a conversation or on a player's errand. */
     boolean threat(MobEntity mob) {
         if (!mob.isAlive() || mob.isRemoved() || !(mob instanceof Monster)) return false;
+        if (mob instanceof BanditEntity bandit && bandit.lurking()) return false; // a bandit's knife is still in his pocket
         if (mob instanceof Angerable && mob.getTarget() == null) return false;
         return !bridge.actions.busy(mob);
     }
