@@ -217,6 +217,12 @@ public final class Tunables {
         integer("watchReplaceMinutes", s, "guards", 1, 240, 1, c -> c.watchReplaceMinutes, (c, x) -> c.watchReplaceMinutes = x);
         integer("heavyHealth", s, "guards", 20, 120, 1, c -> c.heavyHealth, (c, x) -> c.heavyHealth = x);
         integer("heavyDamage", s, "guards", 1, 30, 1, c -> c.heavyDamage, (c, x) -> c.heavyDamage = x);
+        // The city police.
+        integer("policeHealth", s, "police", 20, 100, 1, c -> c.policeHealth, (c, x) -> c.policeHealth = x);
+        integer("policeDamage", s, "police", 1, 20, 1, c -> c.policeDamage, (c, x) -> c.policeDamage = x);
+        integer("policeArrestHealth", s, "police", 1, 20, 1, c -> c.policeArrestHealth, (c, x) -> c.policeArrestHealth = x);
+        integer("policeFine", s, "police", 0, 64, 1, c -> c.policeFine, (c, x) -> c.policeFine = x);
+        integer("policeJailSeconds", s, "police", 10, 1800, 10, c -> c.policeJailSeconds, (c, x) -> c.policeJailSeconds = x);
         // The god's deeds in the villages (Б1).
         integer("divineStrength", s, "divine", 0, 200, 10, c -> c.divineStrength, (c, x) -> c.divineStrength = x);
         integer("divineDailyCap", s, "divine", 0, 300, 5, c -> c.divineDailyCap, (c, x) -> c.divineDailyCap = x);
@@ -296,6 +302,7 @@ public final class Tunables {
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices; config.villageSites = d.villageSites;
                 config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.alarmSound = d.alarmSound; config.villageNoConversion = d.villageNoConversion; config.villageTowers = d.villageTowers; config.villageGuards = d.villageGuards; config.villageHeavy = d.villageHeavy; config.villageCavalry = d.villageCavalry;
+                config.cityPolice = d.cityPolice; config.policeCars = d.policeCars; config.policeArrest = d.policeArrest;
                 config.divineTidings = d.divineTidings; config.divinePanic = d.divinePanic; config.divineMayExile = d.divineMayExile; config.divineMourners = d.divineMourners;
             }
             case ACTIONS -> { config.placeAnalysis = d.placeAnalysis; config.placeClassifier = d.placeClassifier; }

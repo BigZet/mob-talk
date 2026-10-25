@@ -110,8 +110,8 @@ public final class DefenseContent {
     public static boolean heavy(VillagerEntity villager) { return HEAVY != null && villager.getVillagerData().getProfession() == HEAVY; }
     public static boolean cavalry(VillagerEntity villager) { return CAVALRY != null && villager.getVillagerData().getProfession() == CAVALRY; }
     public static boolean crossbowman(VillagerEntity villager) { return CROSSBOWMAN != null && villager.getVillagerData().getProfession() == CROSSBOWMAN; }
-    /** A guard of any rank: one who fights on foot or on horseback from a guard stand. */
-    public static boolean soldier(VillagerEntity villager) { return guard(villager) || heavy(villager) || cavalry(villager); }
+    /** A guard of any rank: one who fights on foot or on horseback from a guard stand, or a city's policeman from his post. */
+    public static boolean soldier(VillagerEntity villager) { return guard(villager) || heavy(villager) || cavalry(villager) || PoliceContent.police(villager); }
     /** One who shoots from a tower post: an archer or a crossbowman. */
     public static boolean shooter(VillagerEntity villager) { return archer(villager) || crossbowman(villager); }
     /** Any of the village's fighters: they do not hide at the bell, do not turn into zombies, are no builders. */

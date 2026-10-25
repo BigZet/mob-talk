@@ -79,6 +79,12 @@ final class VillageGuards {
     VillageGuards(MobGameBridge bridge, VillageDefenseController defense) { this.bridge = bridge; this.defense = defense; }
 
     private boolean enabled() { return bridge.config.enabled && bridge.config.villageDefense && bridge.config.villageGuards && DefenseContent.GUARD != null; }
+    /** A city keeps the police instead of guards (CityPolice): posts, policemen and their batons; a village keeps its guards. */
+    private boolean enabled(VillageDefenseController.Zone zone) { return zone.city() ? defense.police.on() : enabled(); }
+    private static Block postBlock(VillageDefenseController.Zone zone) { return zone.city() ? PoliceContent.POLICE_POST : DefenseContent.GUARD_POST; }
+    private static net.minecraft.registry.RegistryKey<net.minecraft.world.poi.PointOfInterestType> postPoi(VillageDefenseController.Zone zone) {
+        return zone.city() ? PoliceContent.POLICE_POST_POI : DefenseContent.GUARD_POST_POI;
+    }
 
     /** How many guards a village of this many grown residents keeps. */
     static int guardsFor(int residents, int perGuard, int min, int max) {
@@ -87,10 +93,9 @@ final class VillageGuards {
     }
 
     void tick(ServerWorld world, List<VillageDefenseController.Zone> zones) {
-        if (!enabled()) return;
         long now = world.getTime();
-        if (now % PLAN_PERIOD == PLAN_PHASE) for (VillageDefenseController.Zone zone : zones) { stands(world, zone); posts(world, zone, now); }
-        if (now % DUTY_PERIOD == 5) for (VillageDefenseController.Zone zone : zones) duty(world, zone, now);
+        if (now % PLAN_PERIOD == PLAN_PHASE) for (VillageDefenseController.Zone zone : zones) if (enabled(zone)) { stands(world, zone); posts(world, zone, now); }
+        if (now % DUTY_PERIOD == 5) for (VillageDefenseController.Zone zone : zones) if (enabled(zone)) duty(world, zone, now);
     }
 
     // ---- Stands ----
@@ -98,10 +103,14 @@ final class VillageGuards {
     private List<BlockPos> stands(ServerWorld world, VillageDefenseController.Zone zone, PointOfInterestStorage.OccupationStatus status) {
         int radius = (int) Math.ceil(Math.max(zone.box().getLengthX(), zone.box().getLengthZ()) / 2) + 1;
         List<BlockPos> out = new ArrayList<>();
-        world.getPointOfInterestStorage().getInSquare(entry -> entry.matchesKey(DefenseContent.GUARD_POST_POI), zone.center(), radius, status)
+        world.getPointOfInterestStorage().getInSquare(entry -> entry.matchesKey(postPoi(zone)), zone.center(), radius, status)
                 .map(PointOfInterest::getPos).filter(zone::holds).forEach(out::add);
+        out.sort(Comparator.comparingLong(BlockPos::asLong)); // the same first post each time (the city's cell lies under it)
         return out;
     }
+
+    /** The zone's stands (in a city its police posts), taken or not. */
+    List<BlockPos> posts(ServerWorld world, VillageDefenseController.Zone zone) { return stands(world, zone, PointOfInterestStorage.OccupationStatus.ANY); }
 
     /** A village short of stands puts one up: first by its bell, then at the middle of each side of its edge. */
     private void stands(ServerWorld world, VillageDefenseController.Zone zone) {
@@ -122,8 +131,9 @@ final class VillageGuards {
             boolean taken = false;
             for (BlockPos stand : existing) if (stand.getSquaredDistance(at) < 8 * 8) { taken = true; break; }
             if (taken || !free(world, at)) continue;
-            world.setBlockState(at, DefenseContent.GUARD_POST.getDefaultState(), Block.NOTIFY_ALL);
-            world.playSound(null, at, SoundEvents.BLOCK_WOOD_PLACE, SoundCategory.BLOCKS, 1f, 1f);
+            world.setBlockState(at, postBlock(zone).getDefaultState(), Block.NOTIFY_ALL);
+            world.playSound(null, at, zone.city() ? SoundEvents.BLOCK_METAL_PLACE : SoundEvents.BLOCK_WOOD_PLACE, SoundCategory.BLOCKS, 1f, 1f);
+            if (zone.city()) defense.police.park(world, at);
             VillagerEntity guard = newcomer(world, zone, at);
             arrived(world, zone, guard);
             return; // one stand per round: the village grows its guard step by step
@@ -160,13 +170,15 @@ final class VillageGuards {
 
     private void arrived(ServerWorld world, VillageDefenseController.Zone zone, VillagerEntity guard) {
         if (guard == null) return;
-        announce(world, zone, Text.translatable("mobtalk.defense.soldier.arrived", zone.title(), Text.translatable("mobtalk.defense.rank." + rankName(guard)), name(guard)));
+        announce(world, zone, Text.translatable(zone.city() ? "mobtalk.police.arrived" : "mobtalk.defense.soldier.arrived", zone.title(),
+                Text.translatable("mobtalk.defense.rank." + rankName(guard)), name(guard)));
     }
-    private static String rankName(VillagerEntity v) { return DefenseContent.heavy(v) ? "heavy" : DefenseContent.cavalry(v) ? "cavalry" : "guard"; }
+    private static String rankName(VillagerEntity v) { return PoliceContent.police(v) ? "police" : DefenseContent.heavy(v) ? "heavy" : DefenseContent.cavalry(v) ? "cavalry" : "guard"; }
 
     /** The rank a new stand gets: the one the village has fewest of, the plain guard first, then the heavy warrior, then the horseman
      * (each while its switch is on). Two stands make a guard and a heavy warrior, three add a horseman. */
     private net.minecraft.village.VillagerProfession rank(ServerWorld world, VillageDefenseController.Zone zone) {
+        if (zone.city()) return PoliceContent.POLICE;
         List<net.minecraft.village.VillagerProfession> order = new ArrayList<>(List.of(DefenseContent.GUARD));
         if (bridge.config.villageHeavy && DefenseContent.HEAVY != null) order.add(DefenseContent.HEAVY);
         if (bridge.config.villageCavalry && DefenseContent.CAVALRY != null) order.add(DefenseContent.CAVALRY);
@@ -181,8 +193,8 @@ final class VillageGuards {
     /** A grown villager of the local kind with the rank's profession and gear (a horseman on its horse), standing by the stand, the
      * stand its job site. */
     private VillagerEntity newcomer(ServerWorld world, VillageDefenseController.Zone zone, BlockPos stand) {
-        if (!world.getBlockState(stand).isOf(DefenseContent.GUARD_POST)) return null;
-        if (world.getPointOfInterestStorage().getInSquare(entry -> entry.matchesKey(DefenseContent.GUARD_POST_POI), stand, 0,
+        if (!world.getBlockState(stand).isOf(postBlock(zone))) return null;
+        if (world.getPointOfInterestStorage().getInSquare(entry -> entry.matchesKey(postPoi(zone)), stand, 0,
                 PointOfInterestStorage.OccupationStatus.HAS_SPACE).findAny().isEmpty()) return null;
         BlockPos feet = null;
         for (Direction side : Direction.Type.HORIZONTAL) {
@@ -197,7 +209,7 @@ final class VillageGuards {
         guard.setVillagerData(new VillagerData(VillagerType.forBiome(world.getBiome(stand)), rank(world, zone), 1));
         guard.setBreedingAge(0);
         world.spawnEntityAndPassengers(guard);
-        world.getPointOfInterestStorage().getPosition(entry -> entry.matchesKey(DefenseContent.GUARD_POST_POI), (entry, pos) -> pos.equals(stand), stand, 1);
+        world.getPointOfInterestStorage().getPosition(entry -> entry.matchesKey(postPoi(zone)), (entry, pos) -> pos.equals(stand), stand, 1);
         guard.reinitializeBrain(world); // a profession set by hand needs the brain vanilla builds for it, or the villager drops it
         guard.getBrain().remember(MemoryModuleType.JOB_SITE, GlobalPos.create(world.getRegistryKey(), stand));
         gear(guard);
@@ -208,6 +220,7 @@ final class VillageGuards {
     /** The rank's arms and armour (never dropped: the village's, not loot) and health. The guard: sword, shield, iron helmet and
      * chestplate. The heavy warrior: a diamond axe and all diamond, slower and hard to push. The horseman: a sword and all leather. */
     void gear(VillagerEntity guard) {
+        if (PoliceContent.police(guard)) { policeGear(guard); return; }
         boolean heavy = DefenseContent.heavy(guard), cavalry = DefenseContent.cavalry(guard);
         equip(guard, EquipmentSlot.MAINHAND, heavy ? Items.DIAMOND_AXE : Items.IRON_SWORD);
         if (!heavy && !cavalry) equip(guard, EquipmentSlot.OFFHAND, Items.SHIELD);
@@ -232,6 +245,22 @@ final class VillageGuards {
         if (extra > 0) health.addPersistentModifier(new EntityAttributeModifier(GUARD_HEALTH, extra, EntityAttributeModifier.Operation.ADD_VALUE));
         if (fresh) guard.setHealth(guard.getMaxHealth());
         else if (guard.getHealth() > guard.getMaxHealth()) guard.setHealth(guard.getMaxHealth());
+    }
+
+    /** The policeman: the rubber baton in the hand, the handcuffs at the belt (the off hand); the uniform is his profession's look. */
+    private void policeGear(VillagerEntity policeman) {
+        if (PoliceContent.BATON != null) equip(policeman, EquipmentSlot.MAINHAND, PoliceContent.BATON);
+        if (PoliceContent.HANDCUFFS != null) equip(policeman, EquipmentSlot.OFFHAND, PoliceContent.HANDCUFFS);
+        for (EquipmentSlot slot : EquipmentSlot.values()) policeman.setEquipmentDropChance(slot, 0f);
+        EntityAttributeInstance health = policeman.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH);
+        if (health == null) return;
+        double extra = Math.max(0, bridge.config.policeHealth - health.getBaseValue());
+        EntityAttributeModifier existing = health.getModifier(GUARD_HEALTH);
+        if (existing != null && existing.value() == extra) return;
+        health.removeModifier(GUARD_HEALTH);
+        if (extra > 0) health.addPersistentModifier(new EntityAttributeModifier(GUARD_HEALTH, extra, EntityAttributeModifier.Operation.ADD_VALUE));
+        if (existing == null) policeman.setHealth(policeman.getMaxHealth());
+        else if (policeman.getHealth() > policeman.getMaxHealth()) policeman.setHealth(policeman.getMaxHealth());
     }
 
     private static void equip(VillagerEntity v, EquipmentSlot slot, net.minecraft.item.Item item) {
@@ -317,8 +346,10 @@ final class VillageGuards {
         double alert = bridge.config.watchSight;
         LivingEntity foe = null; double nearest = Double.MAX_VALUE;
         var reach = zone.box().expand(CHASE_BEYOND);
-        for (MobEntity monster : world.getEntitiesByClass(MobEntity.class, reach, defense::threat)) {
+        boolean police = PoliceContent.police(guard);
+        for (MobEntity monster : world.getEntitiesByClass(MobEntity.class, reach, m -> defense.threat(m) || police && m.isAlive() && m.getCommandTags().contains(CityPolice.WANTED))) {
             if (!zone.box().contains(monster.getPos()) && guard.squaredDistanceTo(monster) > alert * alert) continue;
+            if (police && defense.police.held(monster)) continue;
             double distance = guard.squaredDistanceTo(monster);
             if (distance < nearest) { nearest = distance; foe = monster; }
         }
@@ -326,7 +357,7 @@ final class VillageGuards {
             for (UUID id : alarm.targets.keySet()) {
                 ServerPlayerEntity player = world.getServer().getPlayerManager().getPlayer(id);
                 if (player == null || player.getWorld() != world || !player.isAlive() || player.isCreative() || player.isSpectator()) continue;
-                if (!reach.contains(player.getPos())) continue;
+                if (!reach.contains(player.getPos()) || police && defense.police.held(player)) continue;
                 double distance = guard.squaredDistanceTo(player);
                 if (distance < nearest) { nearest = distance; foe = player; }
             }
@@ -345,6 +376,7 @@ final class VillageGuards {
         if (last != null && now - last < (heavy ? HEAVY_BLOW_TICKS : BLOW_TICKS)) return true;
         lastBlow.put(guard.getUuid(), now);
         guard.swingHand(Hand.MAIN_HAND);
+        if (police) { defense.police.strike(world, zone, guard, foe, now); return true; }
         DamageSource source = world.getDamageSources().mobAttack(guard);
         if (foe.damage(source, (float) (heavy ? bridge.config.heavyDamage : bridge.config.watchDamage))) {
             double dx = foe.getX() - guard.getX(), dz = foe.getZ() - guard.getZ();
@@ -403,7 +435,7 @@ final class VillageGuards {
 
     /** A guard does not panic at monsters or blows, as other villagers do (vanilla's flight would undo its walk to the fight
      * every tick); a badly hurt one falling back may. */
-    boolean standsGround(VillagerEntity villager) { return enabled() && DefenseContent.soldier(villager) && !fallingBack.getOrDefault(villager.getUuid(), false); }
+    boolean standsGround(VillagerEntity villager) { return (PoliceContent.police(villager) ? defense.police.on() : enabled()) && DefenseContent.soldier(villager) && !fallingBack.getOrDefault(villager.getUuid(), false); }
 
     /** From the damage event: a guard's shield turns half of the arrows and other projectiles that come at it. */
     boolean shieldBlocks(LivingEntity victim, DamageSource source) {

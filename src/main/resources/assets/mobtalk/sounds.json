@@ -1,6 +1,30 @@
 {
   "mob_speech": {
     "subtitle": "subtitle.mobtalk.mob_speech",
-    "sounds": [ { "name": "fabric-sound-api-v1:empty", "stream": true } ]
+    "sounds": [
+      {
+        "name": "fabric-sound-api-v1:empty",
+        "stream": true
+      }
+    ]
+  },
+  "police_siren": {
+    "subtitle": "subtitle.mobtalk.police_siren",
+    "sounds": [
+      {
+        "name": "mobtalk:police/siren",
+        "stream": true,
+        "attenuation_distance": 96
+      }
+    ]
+  },
+  "police_quack": {
+    "subtitle": "subtitle.mobtalk.police_quack",
+    "sounds": [
+      {
+        "name": "mobtalk:police/quack",
+        "attenuation_distance": 48
+      }
+    ]
   }
 }

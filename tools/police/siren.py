@@ -83,8 +83,6 @@ def main():
     # The alarm loop, about ten seconds (the alarm sounds again every ten): two quacks, two wails, a yelp, a wail.
     siren = np.concatenate([q(), q(), silence(0.15), wail(), wail(3.4), yelp(2.0)])
     write("siren", fade(siren, 40))
-    write("wail", fade(wail(), 30))
-    write("yelp", fade(yelp(), 30))
     write("quack", np.concatenate([q(), q()]), echo=True)
     print("written to", os.path.normpath(OUT))
 

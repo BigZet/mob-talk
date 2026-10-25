@@ -123,6 +123,9 @@ public final class MobTalkConfig {
     public int cityPerVillages = 3;
     /** Ranks of the village's guard beside the plain guard: heavy warriors in diamond with an axe, horsemen in leather on a horse. */
     public boolean villageHeavy = true, villageCavalry = true;
+    /** Cities keep the police instead of guards and watchtowers: posts with policemen and batons, the police siren at an alarm,
+     * police cars by the posts that flash in an alarm, and the arrest of an offender (handcuffs, a fine, the holding cell). */
+    public boolean cityPolice = true, policeCars = true, policeArrest = true;
     /** Idea Б1: the villages know the god's deeds (the divine block's events) — they panic, talk and blame the sinner by name;
      * the scene in the moment (alarm bell, flight, shouts); the god alone may make an exile; the family of a villager killed by a
      * curse turns against the sinner. */
@@ -166,6 +169,9 @@ public final class MobTalkConfig {
     public int watchResidents = 5, watchMin = 2, watchMax = 8, watchHealth = 30, watchDamage = 6, watchSight = 24, watchReplaceMinutes = 20;
     /** The heavy warrior: health and the damage of an axe blow. */
     public int heavyHealth = 50, heavyDamage = 10;
+    /** The policeman: health and a baton blow; at this much health left an offender is arrested instead of beaten, fined this many
+     * emeralds and kept in the cell this many seconds. */
+    public int policeHealth = 30, policeDamage = 4, policeArrestHealth = 8, policeFine = 5, policeJailSeconds = 120;
     /** The emotional state: half-lives of an ordinary and a strong impression (minutes), and the thresholds of its axes (0–100). */
     public int stateHalfLifeMinutes = 10, stateSlowHalfLifeMinutes = 30;
     public int waryCalm = 25, waryTrust = 25, keenInterest = 75, generousMood = 65, generousTrust = 65;
@@ -311,6 +317,7 @@ public final class MobTalkConfig {
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
         copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageHeavy = villageHeavy; copy.villageCavalry = villageCavalry;
+        copy.cityPolice = cityPolice; copy.policeCars = policeCars; copy.policeArrest = policeArrest;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;

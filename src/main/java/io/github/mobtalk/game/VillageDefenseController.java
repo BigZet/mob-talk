@@ -64,7 +64,9 @@ final class VillageDefenseController {
     record Zone(String key, Box box, BlockPos center, BlockPos bell, String villageId, String name, boolean golem,
                 int minX, int minZ, int maxX, int maxZ, int residents) {
         boolean holds(BlockPos pos) { return box.contains(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5); }
-        Text title() { return name.isBlank() ? Text.translatable("mobtalk.defense.village") : Text.literal(name); }
+        Text title() { return name.isBlank() ? Text.translatable(city() ? "mobtalk.police.city" : "mobtalk.defense.village") : Text.literal(name); }
+        /** A city with panel blocks (CityWorldgen's structures): the police keep its order, it builds no towers. */
+        boolean city() { return key.contains("|mobtalk:city_"); }
     }
     private record Repair(VillagerEntity smith, IronGolemEntity golem, long until) { }
 
@@ -77,10 +79,14 @@ final class VillageDefenseController {
     private final Random random = new Random();
     /** Watchtowers and their archers. */
     final VillageTowers towers;
-    /** Guards with swords and shields. */
+    /** Guards with swords and shields (in a city: the police at their posts). */
     final VillageGuards guards;
+    /** The city police's own: the siren, the cars' lights, the arrest and the cell. */
+    final CityPolice police;
 
-    VillageDefenseController(MobGameBridge bridge) { this.bridge = bridge; towers = new VillageTowers(bridge, this); guards = new VillageGuards(bridge, this); }
+    VillageDefenseController(MobGameBridge bridge) {
+        this.bridge = bridge; towers = new VillageTowers(bridge, this); guards = new VillageGuards(bridge, this); police = new CityPolice(bridge, this);
+    }
 
     /** The alarm of this zone now, null when it is quiet. */
     VillageAlarm.Alarm alarm(Zone zone) { return alarms.get(zone.key()); }
@@ -160,8 +166,11 @@ final class VillageDefenseController {
         if (time % ZONE_PERIOD == ZONE_PHASE) refreshZones(world);
         if (time % GOLEM_PERIOD == GOLEM_PHASE) golems(world);
         if (!enabled()) { if (!alarms.isEmpty()) clearRuntime(); return; }
-        towers.tick(world, zones.getOrDefault(dimension(world), List.of()));
-        guards.tick(world, zones.getOrDefault(dimension(world), List.of()));
+        List<Zone> here = zones.getOrDefault(dimension(world), List.of()), villages = new ArrayList<>(), cities = new ArrayList<>();
+        for (Zone zone : here) (zone.city() ? cities : villages).add(zone);
+        towers.tick(world, police.on() ? villages : here); // a city with police builds no watchtowers
+        guards.tick(world, here);
+        police.tick(world, cities);
         if (time % SCAN_PERIOD != SCAN_PHASE) return;
         VillageAlarm.Rules rules = rules();
         String dimension = dimension(world);
@@ -251,6 +260,7 @@ final class VillageDefenseController {
         Long rung = lastBell.get(zone.key());
         if (rung != null && now - rung < BELL_TICKS) return;
         lastBell.put(zone.key(), now);
+        if (zone.city() && police.on()) { police.siren(world, zone, listeners(world, zone)); return; } // the police siren instead of the bell
         BlockPos at = zone.bell() != null ? zone.bell() : zone.center();
         if (zone.bell() != null && world.isChunkLoaded(zone.bell()) && world.getBlockState(zone.bell()).getBlock() instanceof BellBlock bell)
             bell.ring(null, world, zone.bell(), null);
@@ -277,7 +287,7 @@ final class VillageDefenseController {
     /** Someone died in a village: a resident is mourned in the alarm's account, a monster counted as killed. */
     void died(LivingEntity dead, DamageSource source) {
         if (!enabled() || !(dead.getWorld() instanceof ServerWorld world)) return;
-        if (dead instanceof ServerPlayerEntity player) { alarms.release(player.getUuid()); return; }
+        if (dead instanceof ServerPlayerEntity player) { alarms.release(player.getUuid()); police.died(player); return; }
         Zone zone = zoneAt(world, dead.getBlockPos());
         if (zone == null) return;
         if (dead instanceof Monster) { alarms.killed(zone.key()); return; }
@@ -321,12 +331,23 @@ final class VillageDefenseController {
     /** /mobtalk village forgive: the village where the player stands drops its alarm against them, and its golems their anger. */
     void forgive(ServerPlayerEntity player) {
         Zone zone = zoneAt(player.getServerWorld(), player.getBlockPos());
-        if (zone == null || !alarms.release(zone.key(), player.getUuid())) return;
-        for (IronGolemEntity golem : player.getServerWorld().getEntitiesByClass(IronGolemEntity.class, zone.box(), g -> g.isAlive() && !g.isRemoved())) {
+        if (zone != null && release(player.getServerWorld(), zone, player))
+            player.sendMessage(Text.translatable("mobtalk.defense.released", zone.title()).formatted(Formatting.GREEN), false);
+    }
+
+    /** The zone drops its alarm against the player (forgiven, or arrested and taken away), and its golems their anger. */
+    boolean release(ServerWorld world, Zone zone, ServerPlayerEntity player) {
+        if (!alarms.release(zone.key(), player.getUuid())) return false;
+        for (IronGolemEntity golem : world.getEntitiesByClass(IronGolemEntity.class, zone.box(), g -> g.isAlive() && !g.isRemoved())) {
             if (player.getUuid().equals(golem.getAngryAt())) golem.stopAnger();
             if (golem.getTarget() == player) golem.setTarget(null);
         }
-        player.sendMessage(Text.translatable("mobtalk.defense.released", zone.title()).formatted(Formatting.GREEN), false);
+        return true;
+    }
+
+    /** Somebody called the guard (the police) on the player: the alarm against them, as for a blow. */
+    void report(ServerWorld world, Zone zone, ServerPlayerEntity player, VillageAlarm.Level level, String cause) {
+        if (enabled()) againstPlayer(world, zone, player, level, cause);
     }
 
     private void againstPlayer(ServerWorld world, Zone zone, ServerPlayerEntity player, VillageAlarm.Level level, String cause) {
@@ -499,6 +520,6 @@ final class VillageDefenseController {
 
     void clearRuntime() {
         alarms.clear(); zones.clear(); lastBell.clear(); lastShout.clear(); exileSince.clear(); repairs.clear(); smithRest.clear();
-        towers.clearRuntime(); guards.clearRuntime();
+        towers.clearRuntime(); guards.clearRuntime(); police.clearRuntime();
     }
 }
