@@ -687,6 +687,21 @@ class ConversationEngineTest {
             assertEquals(ActionIntent.none(), AnswerValidator.validateAction(JsonParser.parseString(invalid).getAsJsonObject(), snapshot));
     }
 
+    // A villager scared by zombies or hunger does not run from the player who talks to it; a blow, a threat or hatred still drive it off.
+    @Test void villagerFleesThePlayerOnlyForThePlayersOwnDoing() {
+        UUID player = UUID.randomUUID();
+        java.util.function.Function<String, MobSnapshot> villager = attacker -> new MobSnapshot(UUID.randomUUID(), "minecraft:villager", "Житель", 20, 20,
+                "minecraft:overworld", "minecraft:plains", "night", "clear", 2, "minecraft:air", List.of(), List.of(), player, java.util.Map.of(),
+                java.util.Map.of("lastAttacker", attacker), java.util.Map.of(), List.of(), List.of(ActionType.NONE, ActionType.FLEE), 0);
+        assertFalse(AnswerValidator.fearsPlayer(villager.apply("none"), 10, SocialIntent.KIND));
+        assertTrue(AnswerValidator.fearsPlayer(villager.apply(player.toString()), 10, SocialIntent.NONE));
+        assertTrue(AnswerValidator.fearsPlayer(villager.apply("none"), 10, SocialIntent.THREAT));
+        assertTrue(AnswerValidator.fearsPlayer(villager.apply("none"), AnswerValidator.FEARED_RELATIONSHIP, SocialIntent.NONE));
+        MobSnapshot cow = new MobSnapshot(UUID.randomUUID(), "minecraft:cow", "Корова", 10, 10, "minecraft:overworld", "minecraft:plains", "day", "clear", 2,
+                "minecraft:air", List.of(), List.of(), player, java.util.Map.of(), java.util.Map.of(), java.util.Map.of(), List.of(), List.of(ActionType.FLEE), 0);
+        assertTrue(AnswerValidator.fearsPlayer(cow, 50, SocialIntent.NONE), "animals keep their instincts");
+    }
+
     @Test void blindWardenMayTargetConfirmedSoundButNotUnknownHiddenEntity() {
         MobSnapshot snapshot = new MobSnapshot(UUID.randomUUID(), "minecraft:warden", "Варден", 500, 500,
                 "minecraft:overworld", "unknown", "unknown", "unknown", -1, "unknown", List.of(), List.of(), UUID.randomUUID(),

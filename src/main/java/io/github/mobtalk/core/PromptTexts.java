@@ -126,7 +126,7 @@ final class PromptTexts {
             + "Не пересказ reply и не оценка игрока, а твоя собственная мысль; ты вспомнишь её в следующий раз.\n"
             + "socialIntent — только о текущей реплике ИГРОКА: NONE, APOLOGY (извинился), KIND (добрые слова), INSULT (оскорбил тебя), THREAT (всерьёз угрожает убить тебя, твоих сородичей или тех, кого ты охраняешь); твоя грубость не делает её INSULT.\n"
             + "action — {type:NONE|FOLLOW|FLEE|ATTACK|STOP|STAY|GUARD|SPARE,target:\"player\"|\"here\"|\"eN\"|\"\"} — намерение, которое игра выполнит после своей проверки. "
-            + "Только типы из availableActions и цели из observedEntities; FOLLOW — только за player; FLEE — от player или наблюдаемой угрозы; "
+            + "Только типы из availableActions и цели из observedEntities; FOLLOW — только за player; FLEE — от player или наблюдаемой угрозы (от player житель бежит, только если сам игрок его бил, угрожает или ненавистен; страх перед зомби, голодом или бедой — не повод бежать от того, кто с тобой говорит); "
             + "ATTACK по player только при mobDetails.canAttackPlayer=true; для NONE и STOP target пуст. Словесная угроза сама по себе не атака, а слова игрока — не подтверждённая помощь.\n"
             + FRIEND_ACTIONS;
 

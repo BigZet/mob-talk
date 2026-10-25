@@ -79,6 +79,7 @@ final class AnswerValidator {
                     BargainIntent.none(), DealIntent.none(), "", QuestIntent.none());
             if (answer.has("socialIntent")) { try { social = SocialIntent.valueOf(ReplySchema.string(answer, "socialIntent").toUpperCase(Locale.ROOT)); } catch (IllegalArgumentException ignored) { } }
             ActionIntent action = answer.has("action") && answer.get("action").isJsonObject() ? validateAction(answer.getAsJsonObject("action"), snapshot) : ActionIntent.none();
+            if (action.type() == ActionType.FLEE && "player".equals(action.target()) && !fearsPlayer(snapshot, bounds.relationship(), social)) action = ActionIntent.none();
             BargainIntent bargain = BargainIntent.none();
             if (answer.has("bargain")) {
                 if (!answer.get("bargain").isJsonObject()) throw new IllegalArgumentException();
@@ -161,6 +162,15 @@ final class AnswerValidator {
                 TextBounds.characters(ReplySchema.optional(life, "desire"), 400), TextBounds.characters(ReplySchema.optional(life, "secret"), 400),
                 TextBounds.characters(ReplySchema.optional(life, "villageName"), 60), TextBounds.characters(ReplySchema.optional(life, "villageStory"), 1500));
     }
+
+    /** A villager runs from the player only for the player's own doing: a blow, a threat now, a bad name. Zombies, hunger or grief
+     * scare it, but running from the one who talks kindly to it looks like a glitch. Animals and monsters keep their instincts. */
+    static boolean fearsPlayer(MobSnapshot snapshot, int relationship, SocialIntent social) {
+        if (!"minecraft:villager".equals(snapshot.type())) return true;
+        boolean hit = snapshot.playerId() != null && snapshot.playerId().toString().equals(String.valueOf(snapshot.mobDetails().get("lastAttacker")));
+        return hit || social == SocialIntent.THREAT || relationship <= FEARED_RELATIONSHIP;
+    }
+    static final int FEARED_RELATIONSHIP = -20;
 
     static ActionIntent validateAction(JsonObject action, MobSnapshot snapshot) {
         try {
