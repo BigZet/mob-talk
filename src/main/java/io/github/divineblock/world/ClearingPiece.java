@@ -3,6 +3,7 @@ package io.github.divineblock.world;
 import java.util.List;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.LeavesBlock;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.structure.StructureContext;
@@ -39,12 +40,24 @@ public final class ClearingPiece extends StructurePiece {
         return false;
     }
 
+    /** Also reaches into the eight neighbouring chunks (the feature step may write there): a tree growing in a chunk decorated
+     * after this one spills its crown over the border into the cleared yard, and the crown then hung in the air once that
+     * chunk's own clearing took the trunk. There only natural leaves (not persistent; the churchyard's template trees have
+     * persistent ones) and vines go, so plots and trees already laid in a neighbour stay. */
     @Override public void generate(StructureWorldAccess world, StructureAccessor structures, ChunkGenerator generator, Random random,
                                    BlockBox chunkBox, ChunkPos chunk, BlockPos pivot) {
         BlockPos.Mutable at = new BlockPos.Mutable();
-        for (int x = Math.max(boundingBox.getMinX(), chunkBox.getMinX()); x <= Math.min(boundingBox.getMaxX(), chunkBox.getMaxX()); x++)
-            for (int z = Math.max(boundingBox.getMinZ(), chunkBox.getMinZ()); z <= Math.min(boundingBox.getMaxZ(), chunkBox.getMaxZ()); z++) {
+        for (int x = Math.max(boundingBox.getMinX(), chunkBox.getMinX() - 16); x <= Math.min(boundingBox.getMaxX(), chunkBox.getMaxX() + 16); x++)
+            for (int z = Math.max(boundingBox.getMinZ(), chunkBox.getMinZ() - 16); z <= Math.min(boundingBox.getMaxZ(), chunkBox.getMaxZ() + 16); z++) {
                 if (nearTree(x, z)) continue;
+                if (!chunkBox.contains(x, chunkBox.getMinY(), z)) {
+                    for (int y = boundingBox.getMaxY(); y >= boundingBox.getMinY(); y--) {
+                        BlockState state = world.getBlockState(at.set(x, y, z));
+                        if (state.isIn(BlockTags.LEAVES) && !state.getOrEmpty(LeavesBlock.PERSISTENT).orElse(false) || state.isOf(Blocks.VINE))
+                            world.setBlockState(at, Blocks.AIR.getDefaultState(), 2);
+                    }
+                    continue;
+                }
                 for (int y = boundingBox.getMaxY(); y >= boundingBox.getMinY(); y--) {
                     at.set(x, y, z);
                     BlockState state = world.getBlockState(at);

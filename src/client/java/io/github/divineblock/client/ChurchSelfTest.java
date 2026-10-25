@@ -251,7 +251,23 @@ public final class ChurchSelfTest {
         log("  кладбище: кусков " + yard + ", из них деревьев " + trees + ", бокс " + net.minecraft.structure.StructurePiece.boundingBox(
                 structureStart.getChildren().stream().filter(p -> p instanceof PoolStructurePiece)));
         for (StructurePiece piece : structureStart.getChildren()) log("    часть " + piece.getClass().getSimpleName() + " " + piece.getBoundingBox());
+        if (yard > 0) floatingLeaves(world, net.minecraft.structure.StructurePiece.boundingBox(structureStart.getChildren().stream().filter(p -> p instanceof PoolStructurePiece)),
+                site.origin().getY());
         return site;
+    }
+
+    /** Natural (not persistent) leaves over the churchyard: a forest tree's crown that spilled over from a neighbouring chunk
+     * after the clearing and hung in the air. The churchyard's own template trees have persistent leaves. */
+    private static void floatingLeaves(ServerWorld world, net.minecraft.util.math.BlockBox yard, int floor) {
+        int leaves = 0;
+        BlockPos first = null;
+        for (BlockPos pos : BlockPos.iterate(yard.getMinX(), floor - 1, yard.getMinZ(), yard.getMaxX(), floor + 34, yard.getMaxZ())) {
+            var state = world.getBlockState(pos);
+            if (state.isIn(net.minecraft.registry.tag.BlockTags.LEAVES) && !state.getOrEmpty(net.minecraft.block.LeavesBlock.PERSISTENT).orElse(false)
+                    && leaves++ == 0) first = pos.toImmutable();
+        }
+        String biome = world.getBiome(yard.getCenter().withY(floor)).getKey().map(k -> k.getValue().getPath()).orElse("?");
+        check(leaves == 0, "над кладбищем нет природной листвы (биом " + biome + "): " + leaves + (first == null ? "" : ", первая у " + first.toShortString()));
     }
 
     /** Camera positions around one church, in its own turned coordinates: day from the west front and the churchyard
