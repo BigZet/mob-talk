@@ -47,7 +47,7 @@ public final class CasinoContent {
     public static Block LETTER, MARQUEE, GRAND_CHANDELIER, CASHIER;
     /** The resort's pieces: carpets, wallpaper, wainscot, the fluted column, the lit coffer, the jackpot board, the palm crown,
      * the giant die and the fountain jet. */
-    public static Block CARPET_RED, CARPET_BLUE, CARPET_PURPLE, WALLPAPER, WAINSCOT, COLUMN, COFFER, JACKPOT, PALM, PALM_TRUNK, DIE, FOUNTAIN;
+    public static Block CARPET_RED, CARPET_BLUE, CARPET_PURPLE, WALLPAPER, WAINSCOT, COLUMN, COFFER, JACKPOT, PALM, PALM_FROND, PALM_TRUNK, DIE, FOUNTAIN;
     /** The lights that glint ({@link CasinoBlocks#sparkle}), with the chance of a spark per display tick. */
     public static final Map<Block, Float> SPARKLE = new java.util.HashMap<>();
     public static VillagerProfession BOUNCER;
@@ -108,14 +108,10 @@ public final class CasinoContent {
                 .luminance(state -> 15)));
         JACKPOT = add("casino_jackpot", new CasinoBlocks.Jackpot(metal().noCollision().luminance(state -> 13).sounds(BlockSoundGroup.GLASS),
                 CasinoBlocks.shapes(new double[]{0, 0, 13, 16, 16, 16})));
-        PALM = decor("casino_palm", AbstractBlock.Settings.create().mapColor(MapColor.DARK_GREEN).strength(0.5f).sounds(BlockSoundGroup.GRASS)
-                .nonOpaque().noCollision(), CasinoBlocks.shapes(new double[]{4, 0, 4, 12, 7, 12}), empty, NONE, Use.NONE, false);
-        PALM_TRUNK = add("casino_palm_trunk", new Block(AbstractBlock.Settings.create().mapColor(MapColor.BROWN).strength(2.0f)
-                .sounds(BlockSoundGroup.WOOD).nonOpaque()) {
-            private static final net.minecraft.util.shape.VoxelShape SHAPE = Block.createCuboidShape(5, 0, 5, 11, 16, 11);
-            @Override protected net.minecraft.util.shape.VoxelShape getOutlineShape(BlockState state, net.minecraft.world.BlockView world,
-                                                                                   net.minecraft.util.math.BlockPos pos, net.minecraft.block.ShapeContext context) { return SHAPE; }
-        });
+        PALM = decor("casino_palm", leaves(), CasinoBlocks.shapes(new double[]{4, 0, 4, 12, 8, 12}), empty, NONE, Use.NONE, false);
+        PALM_FROND = decor("casino_palm_frond", leaves(), CasinoBlocks.shapes(new double[]{3, 0, 0, 13, 6, 16}), empty, NONE, Use.NONE, false);
+        PALM_TRUNK = add("casino_palm_trunk", new CasinoBlocks.Palm(AbstractBlock.Settings.create().mapColor(MapColor.BROWN).strength(2.0f)
+                .sounds(BlockSoundGroup.WOOD).nonOpaque(), new double[]{5, 0, 5, 11, 16, 11}, true));
         DIE = add("casino_die", new Block(AbstractBlock.Settings.create().mapColor(MapColor.RED).strength(1.5f).sounds(BlockSoundGroup.STONE)));
         FOUNTAIN = add("casino_fountain_jet", new CasinoBlocks.FountainJet(AbstractBlock.Settings.create().mapColor(MapColor.WATER_BLUE)
                 .strength(0.5f).sounds(BlockSoundGroup.GLASS).nonOpaque().noCollision().luminance(state -> 4)));
@@ -147,6 +143,9 @@ public final class CasinoContent {
 
     private static AbstractBlock.Settings wood() {
         return AbstractBlock.Settings.create().mapColor(MapColor.DARK_RED).strength(2.0f).sounds(BlockSoundGroup.WOOD).nonOpaque();
+    }
+    private static AbstractBlock.Settings leaves() {
+        return AbstractBlock.Settings.create().mapColor(MapColor.DARK_GREEN).strength(0.3f).sounds(BlockSoundGroup.GRASS).nonOpaque().noCollision();
     }
     private static AbstractBlock.Settings carpet(MapColor colour) {
         return AbstractBlock.Settings.create().mapColor(colour).strength(0.1f).sounds(BlockSoundGroup.WOOL);

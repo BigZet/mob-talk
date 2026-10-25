@@ -578,19 +578,40 @@ def jackpot():
 
 
 def palm_leaf():
-    """A palm frond seen from above along its length (x): a midrib and leaflets that thin out to the tip, transparent between."""
+    """A palm frond seen from above along its length (u from the base to the tip): a pale midrib and a solid fan of leaflets
+    swept towards the tip, narrowing to it; a darker line every two texels marks where one leaflet ends and the next begins."""
     img = D.new()
     px = img.load()
-    for x in range(16):
-        width = max(1, int(7 * (1 - x / 18)))
-        for dz in range(-width, width + 1):
-            y = 8 + dz
-            if (x + abs(dz)) % 2 == 0 or abs(dz) <= 1:
-                px[x, y] = D.rgba((58, 140, 52) if abs(dz) > 1 else (110, 160, 60))
-                if abs(dz) == width:
-                    px[x, y] = D.rgba((40, 100, 36))
-        px[x, 8] = D.rgba((150, 170, 80))
+    for u in range(16):
+        reach = 7.2 * (1 - (u / 17.0) ** 1.4)
+        for side in (-1, 1):
+            for k in range(1, int(round(reach)) + 1):
+                y = 8 + k - 1 if side > 0 else 7 - k + 1
+                y = y + side
+                if not 0 <= y < 16:
+                    continue
+                t = k / max(1.0, reach)
+                c = mix((104, 172, 66), (38, 104, 40), t)
+                if (u - k // 2) % 2 == 0:
+                    c = D.shade(c, 0.82)
+                px[u, y] = D.rgba(c)
+        px[u, 7] = D.rgba((156, 172, 88))
+        px[u, 8] = D.rgba((126, 152, 72))
     return D.tex("palm_leaf", img)
+
+
+def palm_bark():
+    """A palm's bark: grey-brown with the scars of old fronds as offset diamond rings."""
+    img = D.new()
+    D.noise_fill(img, (128, 102, 74), 0.05, D.rng("palm_bark"))
+    px = img.load()
+    for y in range(16):
+        for x in range(16):
+            if (y + (x // 4) % 2 * 2) % 4 == 0:
+                px[x, y] = D.rgba((92, 72, 52))
+            elif (y + (x // 4) % 2 * 2) % 4 == 1:
+                px[x, y] = D.rgba((150, 124, 92))
+    return D.tex("palm_bark", img)
 
 
 def die_faces():
@@ -629,6 +650,7 @@ def textures():
     jackpot()
     palm_leaf()
     die_faces()
+    palm_bark()
     fountain_textures()
 
 
@@ -689,39 +711,100 @@ def fountain_jet():
             particle="water", ao=False)
 
 
-def palm_trunk():
-    """A piece of a palm's trunk: a slim ringed column of bark, to stack under the crown."""
-    els = [D.box((5, 0, 5), (11, 16, 11), "trunk"), D.box((4.5, 0, 4.5), (11.5, 2, 11.5), "trunk"),
-           D.box((4.5, 8, 4.5), (11.5, 10, 11.5), "trunk")]
-    D.model("casino_palm_trunk", {"trunk": "palette"}, els, particle="trunk")
-    D.MODELS["casino_palm_trunk"]["textures"]["trunk"] = "minecraft:block/stripped_jungle_log"
-    D.MODELS["casino_palm_trunk"]["textures"]["particle"] = "minecraft:block/stripped_jungle_log"
+BENDS = 4  # how far a trunk piece leans: each step moves it 1.5 pixels over, so a tall palm can curve
+
+
+def leaf_piece(f_len, y, start, angle, uv_span, width=10):
+    """A piece of a frond running north (-z) from z = start at height y, tilted down by angle (negative), using the leaf
+    texture's u range uv_span (base to tip)."""
+    w0, w1 = 8 - width / 2, 8 + width / 2
+    u0, u1 = uv_span
+    face = ("leaf", [u0, 0, u1, 16], 270)
+    return D.box((w0, y, start - f_len), (w1, y + 0.1, start), {"up": face, "down": face}, faces=("up", "down"),
+                 rotation={"origin": [8, y, start], "axis": "x", "angle": angle})
+
+
+CROWN_Y = 6.5  # where the fronds leave the crown's knob
+EDGE_DROP = 8 * math.tan(math.radians(22.5))  # how far a frond has fallen by the edge of the crown's block
 
 
 def palm_crown():
-    """The crown of a palm, set on top of a trunk of logs: a knob of old frond bases, eight fronds (four drooping, four level
-    between them, as one model turns only on one axis) and coconuts."""
-    els = [D.box((5, 0, 5), (11, 4, 11), "trunk"), D.box((6, 4, 6), (10, 6, 10), "trunk")]
-    for (cx, cz) in ((6.5, 6.5), (9.5, 6.5), (8, 9.5)):
-        els.append(D.pal_box((cx - 1.2, 1, cz - 1.2), (cx + 1.2, 3.4, cz + 1.2), "walnut"))
-    leaf = {"up": ("leaf", [0, 0, 16, 16]), "down": ("leaf", [0, 0, 16, 16])}
-    # drooping fronds along the four sides: long thin plates tilted down 22.5 degrees from the crown
-    els.append(D.box((8, 5, 0), (30, 5.1, 16), leaf, faces=("up", "down"), rotation={"origin": [8, 5, 8], "axis": "z", "angle": -22.5}))
-    els.append(D.box((-14, 5, 0), (8, 5.1, 16), {"up": ("leaf", [16, 0, 0, 16]), "down": ("leaf", [16, 0, 0, 16])}, faces=("up", "down"),
-                     rotation={"origin": [8, 5, 8], "axis": "z", "angle": 22.5}))
-    els.append(D.box((0, 5, 8), (16, 5.1, 30), {"up": ("leaf", [0, 0, 16, 16], 90), "down": ("leaf", [0, 0, 16, 16], 90)},
-                     faces=("up", "down"), rotation={"origin": [8, 5, 8], "axis": "x", "angle": 22.5}))
-    els.append(D.box((0, 5, -14), (16, 5.1, 8), {"up": ("leaf", [0, 0, 16, 16], 270), "down": ("leaf", [0, 0, 16, 16], 270)},
-                     faces=("up", "down"), rotation={"origin": [8, 5, 8], "axis": "x", "angle": -22.5}))
-    # level fronds on the diagonals, a little higher
-    for (f, t, rot) in (((8, 6.5, 0), (28, 6.6, 16), 45), ((-12, 6.5, 0), (8, 6.6, 16), 45)):
-        uv = [0, 0, 16, 16] if f[0] == 8 else [16, 0, 0, 16]
-        els.append(D.box(f, t, {"up": ("leaf", uv), "down": ("leaf", uv)}, faces=("up", "down"),
-                         rotation={"origin": [8, 6.5, 8], "axis": "y", "angle": rot}))
-        els.append(D.box(f, t, {"up": ("leaf", uv), "down": ("leaf", uv)}, faces=("up", "down"),
-                         rotation={"origin": [8, 6.5, 8], "axis": "y", "angle": -rot}))
-    D.model("casino_palm", {"trunk": "trunk", "leaf": "palm_leaf", "palette": "palette"}, els, particle="leaf", ao=False)
-    D.MODELS["casino_palm"]["textures"]["trunk"] = "minecraft:block/stripped_jungle_log"
+    """The crown of a palm on top of its trunk: a knob of old frond bases, coconuts under it, four short fronds rising in the
+    middle, four level ones on the diagonals, and the first part of the four long ones, which droop out over the block's edges
+    and go on in the neighbouring blocks (casino_palm_frond)."""
+    els = [D.box((5, 0, 5), (11, 4, 11), "bark"), D.box((6, 4, 6), (10, 7, 10), "bark")]
+    for (cx, cz, cy) in ((6.2, 6.2, 2.2), (9.8, 6.4, 1.6), (6.6, 9.8, 1.4), (9.6, 9.6, 2.4)):
+        els.append(D.pal_box((cx - 1.3, cy, cz - 1.3), (cx + 1.3, cy + 2.6, cz + 1.3), "walnut"))
+        els.append(D.pal_box((cx - 0.4, cy + 2.6, cz - 0.4), (cx + 0.4, cy + 3.2, cz + 0.4), "gold_dark"))
+    seg = 8 / math.cos(math.radians(22.5))
+    for spin in (0, 90, 180, 270):
+        # the long fronds' first part, from the knob to the edge, and a short frond rising over it; each is built pointing north
+        # and turned about the block's middle (only quarter turns of whole elements are possible, so the pieces are laid out
+        # for each side by hand)
+        pieces = [leaf_piece(seg, CROWN_Y, 8, -22.5, (0, 5)), leaf_piece(7, CROWN_Y + 0.8, 8, 22.5, (4, 16), width=8)]
+        for el in pieces:
+            els.append(turned(el, spin))
+    for (f, t) in (((8, 6.8, 3.5), (32, 6.9, 12.5)), ((-16, 6.8, 3.5), (8, 6.9, 12.5))):
+        uv = [0, 0, 16, 16] if f[0] >= 8 else [16, 0, 0, 16]
+        for r in (45, -45):
+            els.append(D.box(f, t, {"up": ("leaf", uv), "down": ("leaf", uv)}, faces=("up", "down"),
+                             rotation={"origin": [8, 6.8, 8], "axis": "y", "angle": r}))
+    D.model("casino_palm", {"bark": "palm_bark", "leaf": "palm_leaf", "palette": "palette"}, els, particle="leaf", ao=False)
+
+
+def turned(el, spin):
+    """An element built pointing north, turned clockwise (seen from above) by spin degrees about the block's middle; a tilt
+    about x becomes a tilt about z for the east and west sides."""
+    if spin == 0:
+        return el
+    import copy
+    e = copy.deepcopy(el)
+    def pt(x, z):
+        for _ in range(spin // 90):
+            x, z = 16 - z, x
+        return x, z
+    (x0, y0, z0), (x1, y1, z1) = e["from"], e["to"]
+    a, b = pt(x0, z0), pt(x1, z1)
+    e["from"] = [round(min(a[0], b[0]), 3), y0, round(min(a[1], b[1]), 3)]
+    e["to"] = [round(max(a[0], b[0]), 3), y1, round(max(a[1], b[1]), 3)]
+    r = e.get("rotation")
+    if r:
+        ox, oz = pt(r["origin"][0], r["origin"][2])
+        r["origin"] = [round(ox, 3), r["origin"][1], round(oz, 3)]
+        if r["axis"] == "x":
+            # north (-z) tilting down by -angle about x: east is +x, which tilts down about z by the same sign as north's x tilt
+            # flipped; south is x again with the opposite sign; west is z with north's sign
+            ang = r["angle"]
+            r["axis"], r["angle"] = {90: ("z", ang), 180: ("x", -ang), 270: ("z", -ang)}[spin]
+    for face in e["faces"].values():
+        face["rotation"] = (face.get("rotation", 0) + spin) % 360
+        if face["rotation"] == 0:
+            del face["rotation"]
+    return e
+
+
+def palm_frond():
+    """The outer part of one of a palm crown's long fronds, in the block beside the crown (north of it when facing north): it
+    comes over the edge where the crown's part ends and arches on out and down."""
+    y = CROWN_Y - EDGE_DROP
+    l1 = 12
+    els = [leaf_piece(l1, y, 16, -22.5, (5, 12))]
+    z2 = 16 - l1 * math.cos(math.radians(22.5))
+    y2 = y - l1 * math.sin(math.radians(22.5))
+    els.append(leaf_piece(9, y2, z2, -45, (12, 16)))
+    # a second, wider frond just under it, splitting off earlier and falling more steeply: the crown looks full from below
+    l3 = 8
+    els.append(leaf_piece(l3, y - 1, 16, -22.5, (5, 11), width=13))
+    els.append(leaf_piece(8, y - 1 - l3 * math.sin(math.radians(22.5)), 16 - l3 * math.cos(math.radians(22.5)), -45, (11, 16), width=12))
+    D.model("casino_palm_frond", {"leaf": "palm_leaf"}, els, particle="leaf", ao=False)
+
+
+def palm_trunk(bend):
+    """A piece of a palm's trunk, slim and ringed, set over by its bend."""
+    dx = bend * 1.5
+    els = [D.box((5 + dx, 0, 5), (11 + dx, 16, 11), "bark"), D.box((4.6 + dx, 0, 4.6), (11.4 + dx, 1.5, 11.4), "bark"),
+           D.box((4.6 + dx, 8, 4.6), (11.4 + dx, 9.5, 11.4), "bark")]
+    D.model(f"casino_palm_trunk_{bend}", {"bark": "palm_bark"}, els, particle="bark")
 
 
 def models():
@@ -747,7 +830,9 @@ def models():
         "particle": D.NS + "die_1", "north": D.NS + "die_1", "south": D.NS + "die_6", "east": D.NS + "die_3", "west": D.NS + "die_4",
         "up": D.NS + "die_5", "down": D.NS + "die_2"}}
     palm_crown()
-    palm_trunk()
+    palm_frond()
+    for bend in range(BENDS):
+        palm_trunk(bend)
     fountain_jet()
 
 
@@ -764,6 +849,7 @@ NAMES = {
     "casino_die": ("Огромный игральный кубик", "Giant die"),
     "casino_fountain_jet": ("Струя фонтана", "Fountain jet"),
     "casino_palm_trunk": ("Ствол пальмы", "Palm trunk"),
+    "casino_palm_frond": ("Пальмовая ветвь", "Palm frond"),
 }
 
 
@@ -788,12 +874,15 @@ def save():
         for p in range(3) for f, y in D.FACINGS}})
     W(j(D.ASSETS, "models", "item", "casino_jackpot.json"), {"parent": D.NS + "casino_jackpot_1", "display": D.DISPLAY})
     D.loot("casino_jackpot")
-    W(j(D.ASSETS, "blockstates", "casino_palm.json"), {"variants": {"": {"model": D.NS + "casino_palm"}}})
-    W(j(D.ASSETS, "models", "item", "casino_palm.json"), {"parent": D.NS + "casino_palm", "display": D.SMALL})
-    D.loot("casino_palm")
-    W(j(D.ASSETS, "blockstates", "casino_palm_trunk.json"), {"variants": {"": {"model": D.NS + "casino_palm_trunk"}}})
-    W(j(D.ASSETS, "models", "item", "casino_palm_trunk.json"), {"parent": D.NS + "casino_palm_trunk"})
+    W(j(D.ASSETS, "blockstates", "casino_palm_trunk.json"), {"variants": {
+        f"bend={b},facing={f}": ({"model": D.NS + f"casino_palm_trunk_{b}", "y": y} if y else {"model": D.NS + f"casino_palm_trunk_{b}"})
+        for b in range(BENDS) for f, y in D.FACINGS}})
+    W(j(D.ASSETS, "models", "item", "casino_palm_trunk.json"), {"parent": D.NS + "casino_palm_trunk_0"})
     D.loot("casino_palm_trunk")
+    for name in ("casino_palm", "casino_palm_frond"):
+        W(j(D.ASSETS, "blockstates", name + ".json"), {"variants": D.facing_variants(name)})
+        W(j(D.ASSETS, "models", "item", name + ".json"), {"parent": D.NS + name, "display": D.SMALL})
+        D.loot(name)
     W(j(D.ASSETS, "blockstates", "casino_fountain_jet.json"), {"variants": {"": {"model": D.NS + "casino_fountain_jet"}}})
     W(j(D.ASSETS, "models", "item", "casino_fountain_jet.json"), {"parent": D.NS + "casino_fountain_jet", "display": D.SMALL})
     D.loot("casino_fountain_jet")

@@ -316,8 +316,8 @@ final class SelfTestCasino {
             shot("mobtalk-casino-r09-roulette.png", () -> { rview(38.5, 6.5, 47, 36, 4, 50.5);
             shot("mobtalk-casino-r10-cards.png", () -> { rview(46, 6, 47, 40, 5, 42);
             shot("mobtalk-casino-r11-bar.png", () -> { rview(26.2, 5.6, 42.5, 23.5, 5.2, 42.5);
-            shot("mobtalk-casino-r12-slot-machine.png", () -> { rview(40, 40, 110, 40, 15, 40);
-            shot("mobtalk-casino-r13-back.png", () -> {
+            shot("mobtalk-casino-r12-slot-machine.png", () -> { rview(11, 11.5, 11, 8, 11, 15);
+            shot("mobtalk-casino-r13-palms.png", () -> {
                 test.command("time set 18000");
                 test.await("pause: night falls", 3, () -> false, () -> { rview(40, 45, -40, 40, 15, 45);
                 shot("mobtalk-casino-r14-aerial-night.png", () -> { rview(40, 5, -10, 40, 16, 40);

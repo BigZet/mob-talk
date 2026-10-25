@@ -222,6 +222,39 @@ public final class CasinoBlocks {
         }
     }
 
+    /** A piece of a palm's trunk. {@code bend} sets it over towards its facing's right in steps of 1.5 pixels, so a trunk whose
+     * pieces lean more and then less as it rises curves. A piece placed on a trunk takes its facing and bend; a right click bends
+     * it one step further (round to straight again). */
+    public static class Palm extends HorizontalFacingBlock {
+        public static final IntProperty BEND = IntProperty.of("bend", 0, 3);
+        private final List<Map<Direction, VoxelShape>> shapes = new ArrayList<>();
+        private final boolean solid;
+        public Palm(Settings settings, double[] box, boolean solid) {
+            super(settings);
+            this.solid = solid;
+            for (int b = 0; b <= 3; b++)
+                shapes.add(shapes(new double[]{box[0] + b * 1.5, box[1], box[2], box[3] + b * 1.5, box[4], box[5]}));
+            setDefaultState(getStateManager().getDefaultState().with(FACING, Direction.NORTH).with(BEND, 0));
+        }
+        @Override protected MapCodec<? extends HorizontalFacingBlock> getCodec() { return MapCodec.unit(this); }
+        @Override protected void appendProperties(StateManager.Builder<Block, BlockState> builder) { builder.add(FACING, BEND); }
+        @Override public BlockState getPlacementState(ItemPlacementContext ctx) {
+            BlockState below = ctx.getWorld().getBlockState(ctx.getBlockPos().down());
+            if (below.getBlock() instanceof Palm) return getDefaultState().with(FACING, below.get(FACING)).with(BEND, below.get(BEND));
+            return getDefaultState().with(FACING, ctx.getHorizontalPlayerFacing().getOpposite());
+        }
+        @Override protected ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
+            if (!world.isClient) world.setBlockState(pos, state.cycle(BEND), Block.NOTIFY_ALL);
+            return ActionResult.success(world.isClient);
+        }
+        @Override protected VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
+            return shapes.get(state.get(BEND)).get(state.get(FACING));
+        }
+        @Override protected VoxelShape getCollisionShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
+            return solid ? getOutlineShape(state, world, pos, context) : VoxelShapes.empty();
+        }
+    }
+
     /** A jet of a fountain, two blocks tall, standing in the pool's water: splashes at its top and where it falls. */
     public static class FountainJet extends Block implements net.minecraft.block.Waterloggable {
         public static final BooleanProperty WATERLOGGED = Properties.WATERLOGGED;

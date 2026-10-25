@@ -1051,5 +1051,6 @@
   "mobtalk.settings.casinoResort.tooltip": "A rare big structure in plains, savannas and deserts: a round casino under a glass dome, a pylon sign, a pool with fountains and palms. Applies to new chunks after rejoining the world. Find it: /locate structure mobtalk:casino_resort",
   "mobtalk.settings.casinoSparkles": "Sparkles on casino lights",
   "mobtalk.settings.casinoSparkles.tooltip": "Signs, bulb strings, jackpot boards, slot machines and crystal chandeliers glint with sparks. Looks only.",
-  "block.mobtalk.casino_palm_trunk": "Palm trunk"
+  "block.mobtalk.casino_palm_trunk": "Palm trunk",
+  "block.mobtalk.casino_palm_frond": "Palm frond"
 }

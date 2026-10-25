@@ -1,7 +1,64 @@
 {
   "variants": {
-    "": {
-      "model": "mobtalk:block/casino/casino_palm_trunk"
+    "bend=0,facing=north": {
+      "model": "mobtalk:block/casino/casino_palm_trunk_0"
+    },
+    "bend=0,facing=east": {
+      "model": "mobtalk:block/casino/casino_palm_trunk_0",
+      "y": 90
+    },
+    "bend=0,facing=south": {
+      "model": "mobtalk:block/casino/casino_palm_trunk_0",
+      "y": 180
+    },
+    "bend=0,facing=west": {
+      "model": "mobtalk:block/casino/casino_palm_trunk_0",
+      "y": 270
+    },
+    "bend=1,facing=north": {
+      "model": "mobtalk:block/casino/casino_palm_trunk_1"
+    },
+    "bend=1,facing=east": {
+      "model": "mobtalk:block/casino/casino_palm_trunk_1",
+      "y": 90
+    },
+    "bend=1,facing=south": {
+      "model": "mobtalk:block/casino/casino_palm_trunk_1",
+      "y": 180
+    },
+    "bend=1,facing=west": {
+      "model": "mobtalk:block/casino/casino_palm_trunk_1",
+      "y": 270
+    },
+    "bend=2,facing=north": {
+      "model": "mobtalk:block/casino/casino_palm_trunk_2"
+    },
+    "bend=2,facing=east": {
+      "model": "mobtalk:block/casino/casino_palm_trunk_2",
+      "y": 90
+    },
+    "bend=2,facing=south": {
+      "model": "mobtalk:block/casino/casino_palm_trunk_2",
+      "y": 180
+    },
+    "bend=2,facing=west": {
+      "model": "mobtalk:block/casino/casino_palm_trunk_2",
+      "y": 270
+    },
+    "bend=3,facing=north": {
+      "model": "mobtalk:block/casino/casino_palm_trunk_3"
+    },
+    "bend=3,facing=east": {
+      "model": "mobtalk:block/casino/casino_palm_trunk_3",
+      "y": 90
+    },
+    "bend=3,facing=south": {
+      "model": "mobtalk:block/casino/casino_palm_trunk_3",
+      "y": 180
+    },
+    "bend=3,facing=west": {
+      "model": "mobtalk:block/casino/casino_palm_trunk_3",
+      "y": 270
     }
   }
 }

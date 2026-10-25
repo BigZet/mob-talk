@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/casino/casino_palm_frond"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/casino/casino_palm_frond",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/casino/casino_palm_frond",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/casino/casino_palm_frond",
+      "y": 270
+    }
+  }
+}

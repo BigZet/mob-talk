@@ -1051,5 +1051,6 @@
   "mobtalk.settings.casinoResort.tooltip": "Редкое большое строение на равнинах, в саваннах и пустынях: круглое казино под стеклянным куполом, пилон с вывеской, бассейн с фонтанами и пальмами. Влияет на новые чанки, после перезахода в мир. Найти: /locate structure mobtalk:casino_resort",
   "mobtalk.settings.casinoSparkles": "Искры на огнях казино",
   "mobtalk.settings.casinoSparkles.tooltip": "Вывески, гирлянды, табло джекпота, автоматы и хрустальные люстры поблёскивают искрами. Только внешний вид.",
-  "block.mobtalk.casino_palm_trunk": "Ствол пальмы"
+  "block.mobtalk.casino_palm_trunk": "Ствол пальмы",
+  "block.mobtalk.casino_palm_frond": "Пальмовая ветвь"
 }

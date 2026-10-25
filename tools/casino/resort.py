@@ -158,9 +158,15 @@ def lamp(lot, x, y, z, h=3):
 
 
 def palm(lot, x, z, h, y=G + 1):
+    """A palm h blocks tall whose trunk bows out and comes back upright under the crown, turned its own way; the crown's four
+    long fronds go on into the blocks beside it."""
+    facing = ("north", "east", "south", "west")[(x * 31 + z * 17) % 4]
     for i in range(h):
-        lot.casino(x, y + i, z, "casino_palm_trunk")
-    lot.casino(x, y + h, z, "casino_palm", facing="north")
+        lot.casino(x, y + i, z, "casino_palm_trunk", facing=facing, bend=round(3 * math.sin(math.pi * i / h)))
+    lot.casino(x, y + h, z, "casino_palm", facing=facing)
+    for (dx, dz, f) in ((0, -1, "north"), (1, 0, "east"), (0, 1, "south"), (-1, 0, "west")):
+        if 0 <= x + dx < SX and 0 <= z + dz < SZ and lot.free(x + dx, y + h, z + dz):
+            lot.casino(x + dx, y + h, z + dz, "casino_palm_frond", facing=f)
 
 
 def die(lot, x0, z0, faces):

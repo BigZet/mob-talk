@@ -1,0 +1,182 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "leaf": "mobtalk:block/casino/palm_leaf",
+    "particle": "mobtalk:block/casino/palm_leaf"
+  },
+  "elements": [
+    {
+      "from": [
+        3.0,
+        3.186,
+        4
+      ],
+      "to": [
+        13.0,
+        3.286,
+        16
+      ],
+      "faces": {
+        "up": {
+          "texture": "#leaf",
+          "uv": [
+            5,
+            0,
+            12,
+            16
+          ],
+          "rotation": 270
+        },
+        "down": {
+          "texture": "#leaf",
+          "uv": [
+            5,
+            0,
+            12,
+            16
+          ],
+          "rotation": 270
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          3.1862915010152397,
+          16
+        ],
+        "axis": "x",
+        "angle": -22.5
+      }
+    },
+    {
+      "from": [
+        3.0,
+        -1.406,
+        -4.087
+      ],
+      "to": [
+        13.0,
+        -1.306,
+        4.913
+      ],
+      "faces": {
+        "up": {
+          "texture": "#leaf",
+          "uv": [
+            12,
+            0,
+            16,
+            16
+          ],
+          "rotation": 270
+        },
+        "down": {
+          "texture": "#leaf",
+          "uv": [
+            12,
+            0,
+            16,
+            16
+          ],
+          "rotation": 270
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          -1.4059096873658374,
+          4.91344560986456
+        ],
+        "axis": "x",
+        "angle": -45
+      }
+    },
+    {
+      "from": [
+        1.5,
+        2.186,
+        8
+      ],
+      "to": [
+        14.5,
+        2.286,
+        16
+      ],
+      "faces": {
+        "up": {
+          "texture": "#leaf",
+          "uv": [
+            5,
+            0,
+            11,
+            16
+          ],
+          "rotation": 270
+        },
+        "down": {
+          "texture": "#leaf",
+          "uv": [
+            5,
+            0,
+            11,
+            16
+          ],
+          "rotation": 270
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          2.1862915010152397,
+          16
+        ],
+        "axis": "x",
+        "angle": -22.5
+      }
+    },
+    {
+      "from": [
+        2.0,
+        -0.875,
+        0.609
+      ],
+      "to": [
+        14.0,
+        -0.775,
+        8.609
+      ],
+      "faces": {
+        "up": {
+          "texture": "#leaf",
+          "uv": [
+            11,
+            0,
+            16,
+            16
+          ],
+          "rotation": 270
+        },
+        "down": {
+          "texture": "#leaf",
+          "uv": [
+            11,
+            0,
+            16,
+            16
+          ],
+          "rotation": 270
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          -0.8751759579054785,
+          8.608963739909706
+        ],
+        "axis": "x",
+        "angle": -45
+      }
+    }
+  ],
+  "ambientocclusion": false
+}
