@@ -123,6 +123,8 @@ public final class MobTalkConfig {
     public boolean shopStaff = true;
     /** Goods carried off unpaid raise the city's alarm against the player (when the guard did not catch them). */
     public boolean shopTheftAlarm = true;
+    /** The supermarket's sounds: scanner beeps, the till, the gate's alarm, fridges, PA chime, music, carts. */
+    public boolean shopSounds = true;
     /** Minutes between deliveries: an emptied display is full again after this long. */
     public int shopRestockMinutes = 20;
     /** Prices against the catalogue, percent. */
@@ -314,7 +316,7 @@ public final class MobTalkConfig {
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
         copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards;
-        copy.cityShops = cityShops; copy.shopStaff = shopStaff; copy.shopTheftAlarm = shopTheftAlarm;
+        copy.cityShops = cityShops; copy.shopStaff = shopStaff; copy.shopTheftAlarm = shopTheftAlarm; copy.shopSounds = shopSounds;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;

@@ -470,6 +470,7 @@ final class MobTalkSettingsScreen extends Screen {
                     wide(tip(toggle("mobtalk.settings.cityShops", draft.cityShops, value -> draft.cityShops = value), "mobtalk.settings.cityShops.tooltip"),
                             tip(toggle("mobtalk.settings.shopStaff", draft.shopStaff, value -> draft.shopStaff = value), "mobtalk.settings.shopStaff.tooltip"));
                     wide(tip(toggle("mobtalk.settings.shopTheftAlarm", draft.shopTheftAlarm, value -> draft.shopTheftAlarm = value), "mobtalk.settings.shopTheftAlarm.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.shopSounds", draft.shopSounds, value -> draft.shopSounds = value), "mobtalk.settings.shopSounds.tooltip"));
                 }),
                 Map.<String, Runnable>entry("guards", () -> wide(tip(toggle("mobtalk.settings.villageGuards", draft.villageGuards, value -> draft.villageGuards = value), "mobtalk.settings.villageGuards.tooltip"))),
                 Map.<String, Runnable>entry("chatter", () -> wide(tip(toggle("mobtalk.settings.villageChatter", draft.villageChatter, value -> draft.villageChatter = value), "mobtalk.settings.villageChatter.tooltip"),

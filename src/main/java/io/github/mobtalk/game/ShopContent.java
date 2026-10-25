@@ -103,6 +103,8 @@ public final class ShopContent {
     public static final RegistryKey<PointOfInterestType> CASH_REGISTER_POI = RegistryKey.of(RegistryKeys.POINT_OF_INTEREST_TYPE, CASH_REGISTER_ID);
     public static final RegistryKey<PointOfInterestType> GUARD_DESK_POI = RegistryKey.of(RegistryKeys.POINT_OF_INTEREST_TYPE, GUARD_DESK_ID);
     public static VillagerProfession CASHIER, SHOP_GUARD;
+    /** The shop's own sounds (tools/city/shop_sounds.py): scanner beep, till drawer, gate alarm, PA chime, fridge hum, cart, music. */
+    public static net.minecraft.sound.SoundEvent SOUND_BEEP, SOUND_DRAWER, SOUND_ALARM, SOUND_CHIME, SOUND_HUM, SOUND_CART, SOUND_MUSIC;
     /** Every block of a shop, for «is the player still inside the shop». */
     public static final List<Block> SHOP_BLOCKS = new ArrayList<>();
     public static final Map<String, Block> BLOCKS = new LinkedHashMap<>();
@@ -143,6 +145,8 @@ public final class ShopContent {
         items.add(BASKET);
         items.add(CART);
         ShopFoods.register();
+        SOUND_BEEP = sound("shop.beep"); SOUND_DRAWER = sound("shop.drawer"); SOUND_ALARM = sound("shop.alarm"); SOUND_CHIME = sound("shop.chime");
+        SOUND_HUM = sound("shop.hum"); SOUND_CART = sound("shop.cart"); SOUND_MUSIC = sound("shop.music");
         PointOfInterestHelper.register(CASH_REGISTER_ID, 1, 1, CASH_REGISTER);
         PointOfInterestHelper.register(GUARD_DESK_ID, 1, 1, GUARD_DESK);
         CASHIER = Registry.register(Registries.VILLAGER_PROFESSION, Identifier.of("mobtalk", "cashier"),
@@ -152,6 +156,11 @@ public final class ShopContent {
                 new VillagerProfession("shop_guard", entry -> entry.matchesKey(GUARD_DESK_POI), entry -> entry.matchesKey(GUARD_DESK_POI),
                         ImmutableSet.of(), ImmutableSet.of(), SoundEvents.ENTITY_VILLAGER_WORK_ARMORER));
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> items.forEach(entries::add));
+    }
+
+    private static net.minecraft.sound.SoundEvent sound(String id) {
+        Identifier key = Identifier.of("mobtalk", id);
+        return Registry.register(Registries.SOUND_EVENT, key, net.minecraft.sound.SoundEvent.of(key));
     }
 
     private static AbstractBlock.Settings settings(MapColor color, BlockSoundGroup sound, int light) {

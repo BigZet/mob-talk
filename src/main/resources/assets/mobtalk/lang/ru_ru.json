@@ -1032,5 +1032,14 @@
   "item.mobtalk.shopping_cart": "Тележка покупателя",
   "block.mobtalk.cart_corral": "Стоянка тележек",
   "mobtalk.shop.cart.took": "Взяли тележку",
-  "mobtalk.shop.cart.back": "Вернули тележку"
+  "mobtalk.shop.cart.back": "Вернули тележку",
+  "subtitle.mobtalk.shop.beep": "Пик сканера",
+  "subtitle.mobtalk.shop.drawer": "Звякает касса",
+  "subtitle.mobtalk.shop.alarm": "Пищит антикражная рамка",
+  "subtitle.mobtalk.shop.chime": "Объявление в магазине",
+  "subtitle.mobtalk.shop.hum": "Гудит холодильник",
+  "subtitle.mobtalk.shop.cart": "Грохочет тележка",
+  "subtitle.mobtalk.shop.music": "Музыка в магазине",
+  "mobtalk.settings.shopSounds": "Звуки магазина",
+  "mobtalk.settings.shopSounds.tooltip": "Пик сканера на кассах, звон кассы, писк рамки, гул холодильников, объявления, музыка и грохот тележек."
 }

@@ -234,6 +234,47 @@ public final class ShopController {
             if (price != lane.price) { lane.price = price; changed = true; }
         }
         if (changed) display.changed();
+        ShopContent.Display kind = display.display();
+        if (config.shopSounds && (kind == ShopContent.Display.FRIDGE || kind == ShopContent.Display.FREEZER) && RANDOM.nextInt(3) == 0
+                && world.getClosestPlayer(display.getPos().getX() + 0.5, display.getPos().getY(), display.getPos().getZ() + 0.5, 12, false) != null)
+            world.playSound(null, display.getPos(), ShopContent.SOUND_HUM, SoundCategory.BLOCKS, 0.16f, 0.9f + RANDOM.nextFloat() * 0.2f);
+    }
+
+    // ---- Sounds ----
+
+    /** A sound to play a few ticks from now (the scanner's beeps one after another). */
+    private record Later(ServerWorld world, BlockPos pos, net.minecraft.sound.SoundEvent sound, float volume, float pitch, long at) { }
+    private static final List<Later> LATER = new ArrayList<>();
+    /** When the shop of this guard's desk may next play its music; where each player was half a second ago (their cart rattles). */
+    private static final Map<BlockPos, Long> MUSIC = new HashMap<>();
+    private static final Map<UUID, Vec3d> LAST_AT = new HashMap<>();
+
+    private static void later(ServerWorld world, BlockPos pos, net.minecraft.sound.SoundEvent sound, float volume, float pitch, long at) {
+        LATER.add(new Later(world, pos.toImmutable(), sound, volume, pitch, at));
+    }
+
+    /** The shop's air, played from the guard's desk (one to a shop): music now and then, and the PA chime. */
+    private static void ambience(ServerWorld world, BlockPos desk, long now) {
+        if (!config(world).shopSounds) return;
+        BlockPos at = desk.up(2);
+        Long next = MUSIC.get(desk);
+        if (next == null) { MUSIC.put(desk.toImmutable(), now + 100 + RANDOM.nextInt(400)); return; }
+        if (now >= next) {
+            world.playSound(null, at, ShopContent.SOUND_MUSIC, SoundCategory.RECORDS, 0.45f, 1f);
+            MUSIC.put(desk.toImmutable(), now + 360 + 400 + RANDOM.nextInt(800)); // the tune is 18 s; a pause of 20..60 s
+        } else if (RANDOM.nextInt(18) == 0) {
+            world.playSound(null, at, ShopContent.SOUND_CHIME, SoundCategory.BLOCKS, 0.55f, 1f);
+        }
+    }
+
+    /** A cart pushed along rattles on the tiles. */
+    private static void rattle(ServerWorld world, ServerPlayerEntity player) {
+        boolean cart = player.getMainHandStack().isOf(ShopContent.CART) || player.getOffHandStack().isOf(ShopContent.CART);
+        Vec3d here = player.getPos();
+        Vec3d before = cart ? LAST_AT.put(player.getUuid(), here) : LAST_AT.remove(player.getUuid());
+        if (!cart || before == null || !player.isOnGround()) return;
+        double moved = here.subtract(before).horizontalLength();
+        if (moved > 0.4) world.playSound(null, player.getBlockPos(), ShopContent.SOUND_CART, SoundCategory.PLAYERS, (float) Math.min(0.5, 0.2 + moved * 0.08), 0.9f + RANDOM.nextFloat() * 0.2f);
     }
 
     public static void take(ServerWorld world, ShopContent.DisplayBlockEntity display, int index, ServerPlayerEntity player) {
@@ -347,8 +388,15 @@ public final class ShopController {
         for (ItemStack stack : bought) inventory.offerOrDrop(stack);
         if (payment.change() > 0) inventory.offerOrDrop(new ItemStack(Items.EMERALD, payment.change()));
         WATCHES.remove(player.getUuid());
-        world.playSound(null, till, SoundEvents.BLOCK_NOTE_BLOCK_CHIME.value(), SoundCategory.BLOCKS, 0.7f, 1.6f);
-        world.playSound(null, till, SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.BLOCKS, 0.4f, 0.8f);
+        if (config.shopSounds) {
+            // A beep for each lot through the scanner, then the drawer rings open for the money.
+            int beeps = Math.min(12, bought.size());
+            for (int i = 0; i < beeps; i++) later(world, till, ShopContent.SOUND_BEEP, 0.35f, 1f, now + i * 5L);
+            later(world, till, ShopContent.SOUND_DRAWER, 0.6f, 1f, now + beeps * 5L + 4);
+        } else {
+            world.playSound(null, till, SoundEvents.BLOCK_NOTE_BLOCK_CHIME.value(), SoundCategory.BLOCKS, 0.7f, 1.6f);
+            world.playSound(null, till, SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.BLOCKS, 0.4f, 0.8f);
+        }
         say(world, player, cashier, self, "mobtalk.shop.say.paid", cost, count);
         if (payment.change() > 0) player.sendMessage(Text.translatable("mobtalk.shop.change", payment.change()).formatted(Formatting.GREEN), true);
         MobGameBridge bridge = MobGameBridge.active(world.getServer());
@@ -409,6 +457,12 @@ public final class ShopController {
         MobTalkConfig config = config(world);
         if (!config.cityShops) { WATCHES.clear(); return; }
         if (now % WATCH_PERIOD == 0) for (ServerPlayerEntity player : world.getPlayers()) watch(world, player, config, now);
+        if (!LATER.isEmpty()) LATER.removeIf(sound -> {
+            if (sound.world() != world || sound.at() > now) return false;
+            world.playSound(null, sound.pos(), sound.sound(), SoundCategory.BLOCKS, sound.volume(), sound.pitch());
+            return true;
+        });
+        if (now % WATCH_PERIOD == 5 && config.shopSounds) for (ServerPlayerEntity player : world.getPlayers()) rattle(world, player);
         if (now % STAFF_PERIOD == 37 && config.shopStaff) staff(world, now);
     }
 
@@ -421,6 +475,7 @@ public final class ShopController {
                 BlockPos post = poi.getPos();
                 if (!seen.add(post)) return;
                 boolean till = world.getBlockState(post).isOf(ShopContent.CASH_REGISTER);
+                if (!till) ambience(world, post, now);
                 VillagerEntity worker = worker(world, post, till);
                 if (worker == null) {
                     Long free = VACANT.get(post);
@@ -524,8 +579,11 @@ public final class ShopController {
         boolean gate = atGate(world, player.getBlockPos());
         if (gate && now - watch.lastWarn > 40) {
             watch.lastWarn = now;
-            world.playSound(null, player.getBlockPos(), SoundEvents.BLOCK_NOTE_BLOCK_PLING.value(), SoundCategory.BLOCKS, 1f, 2f);
-            world.playSound(null, player.getBlockPos(), SoundEvents.BLOCK_NOTE_BLOCK_PLING.value(), SoundCategory.BLOCKS, 1f, 1.5f);
+            if (config.shopSounds) world.playSound(null, player.getBlockPos(), ShopContent.SOUND_ALARM, SoundCategory.BLOCKS, 0.6f, 1f);
+            else {
+                world.playSound(null, player.getBlockPos(), SoundEvents.BLOCK_NOTE_BLOCK_PLING.value(), SoundCategory.BLOCKS, 1f, 2f);
+                world.playSound(null, player.getBlockPos(), SoundEvents.BLOCK_NOTE_BLOCK_PLING.value(), SoundCategory.BLOCKS, 1f, 1.5f);
+            }
             player.sendMessage(Text.translatable("mobtalk.shop.gate").formatted(Formatting.RED), true);
             alert(world, player, watch, now);
         }

@@ -99,7 +99,17 @@ final class SelfTestShop {
         test.await("a cashier and a guard come", 30, () -> staff(true).size() >= 2 && !staff(false).isEmpty(), this::stocked);
     }
 
+    private final Set<String> heardSounds = Collections.synchronizedSet(new HashSet<>());
+
     private void stocked() {
+        // The shop's sounds are known to the client (sounds.json and the oggs), and which of them it plays.
+        for (String id : List.of("beep", "drawer", "alarm", "chime", "hum", "cart", "music")) {
+            var set = test.owner.client.getSoundManager().get(net.minecraft.util.Identifier.of("mobtalk", "shop." + id));
+            test.check(set != null && set.getSound(net.minecraft.util.math.random.Random.create()) != null, "the shop sound " + id + " is there");
+        }
+        test.owner.client.getSoundManager().registerListener((sound, set, range) -> {
+            if (sound.getId().getNamespace().equals("mobtalk")) heardSounds.add(sound.getId().getPath());
+        });
         test.check(staff(true).size() >= 2, "a cashier came to each till (" + staff(true).size() + ")");
         test.check(!staff(false).isEmpty(), "a guard came to the guard's desk");
         test.await("the displays stock themselves", 15, () -> {
@@ -144,6 +154,7 @@ final class SelfTestShop {
                 test.check(count(Items.EMERALD) == 20 - cost, "the till took " + cost + " emeralds (" + (20 - count(Items.EMERALD)) + ")");
                 test.check(count(ShopContent.BASKET) == 0, "the basket stays at the till");
                 test.check(heard("изумр"), "the cashier names the sum");
+                test.log("shop sounds heard so far: " + heardSounds);
                 change();
             });
         });
@@ -367,6 +378,9 @@ final class SelfTestShop {
     }
 
     private void finish() {
+        test.log("shop sounds heard: " + heardSounds);
+        if (heardSounds.isEmpty()) test.log("(no sound device here: the sounds were not played, only checked)");
+        else test.check(heardSounds.contains("shop.beep") && heardSounds.contains("shop.drawer"), "the till beeps and rings (" + heardSounds + ")");
         test.command("forceload remove " + (fx - 10) + " " + (fz - 8) + " " + (fx + 10) + " " + (fz + 34));
         test.command("gamerule doDaylightCycle true"); test.command("gamerule doMobSpawning true");
         test.await("pause: shop stage done", 2, () -> false, next);

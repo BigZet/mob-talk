@@ -1032,5 +1032,14 @@
   "item.mobtalk.shopping_cart": "Shopping cart",
   "block.mobtalk.cart_corral": "Cart corral",
   "mobtalk.shop.cart.took": "Took a cart",
-  "mobtalk.shop.cart.back": "Put the cart back"
+  "mobtalk.shop.cart.back": "Put the cart back",
+  "subtitle.mobtalk.shop.beep": "Scanner beeps",
+  "subtitle.mobtalk.shop.drawer": "Till rings",
+  "subtitle.mobtalk.shop.alarm": "Anti-theft gate alarm",
+  "subtitle.mobtalk.shop.chime": "Shop announcement chime",
+  "subtitle.mobtalk.shop.hum": "Fridge hums",
+  "subtitle.mobtalk.shop.cart": "Cart rattles",
+  "subtitle.mobtalk.shop.music": "Shop music",
+  "mobtalk.settings.shopSounds": "Shop sounds",
+  "mobtalk.settings.shopSounds.tooltip": "Scanner beeps at the tills, the till's ring, the gate's alarm, humming fridges, announcements, music and rattling carts."
 }
