@@ -1051,5 +1051,12 @@
   "mobtalk.settings.casinoResort.tooltip": "Редкое большое строение на равнинах, в саваннах и пустынях: круглое казино под стеклянным куполом, пилон с вывеской, бассейн с фонтанами и пальмами. Влияет на новые чанки, после перезахода в мир. Найти: /locate structure mobtalk:casino_resort",
   "mobtalk.settings.casinoSparkles": "Искры на огнях казино",
   "mobtalk.settings.casinoSparkles.tooltip": "Вывески, гирлянды, табло джекпота, автоматы и хрустальные люстры поблёскивают искрами. Только внешний вид.",
-  "block.mobtalk.casino_palm_trunk": "Ствол пальмы"
+  "block.mobtalk.casino_palm_trunk": "Ствол пальмы",
+  "item.mobtalk.bar_ale": "Кружка эля",
+  "item.mobtalk.bar_kvass": "Квас",
+  "item.mobtalk.bar_wine": "Вино",
+  "item.mobtalk.bar_mead": "Медовуха",
+  "mobtalk.bar.menu": "%s · бар",
+  "mobtalk.settings.barDrinks": "Бармен продаёт выпивку",
+  "mobtalk.settings.barDrinks.tooltip": "Пока бар открыт, правый клик по бармену открывает меню напитков за изумруды: эль (сила), квас (скорость), вино (регенерация), медовуха (поглощение). Хмельное кружит голову, и каждая следующая кружка — дольше. С Shift — обычная торговля жителя."
 }

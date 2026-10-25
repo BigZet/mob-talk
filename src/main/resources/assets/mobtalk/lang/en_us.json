@@ -1051,5 +1051,12 @@
   "mobtalk.settings.casinoResort.tooltip": "A rare big structure in plains, savannas and deserts: a round casino under a glass dome, a pylon sign, a pool with fountains and palms. Applies to new chunks after rejoining the world. Find it: /locate structure mobtalk:casino_resort",
   "mobtalk.settings.casinoSparkles": "Sparkles on casino lights",
   "mobtalk.settings.casinoSparkles.tooltip": "Signs, bulb strings, jackpot boards, slot machines and crystal chandeliers glint with sparks. Looks only.",
-  "block.mobtalk.casino_palm_trunk": "Palm trunk"
+  "block.mobtalk.casino_palm_trunk": "Palm trunk",
+  "item.mobtalk.bar_ale": "Mug of Ale",
+  "item.mobtalk.bar_kvass": "Kvass",
+  "item.mobtalk.bar_wine": "Wine",
+  "item.mobtalk.bar_mead": "Mead",
+  "mobtalk.bar.menu": "%s · bar",
+  "mobtalk.settings.barDrinks": "Bartender sells drinks",
+  "mobtalk.settings.barDrinks.tooltip": "While the bar is open, right-clicking the bartender opens a drinks menu for emeralds: ale (strength), kvass (speed), wine (regeneration), mead (absorption). Strong drinks make your head spin, longer with each one. Sneak to get the villager's own trades."
 }

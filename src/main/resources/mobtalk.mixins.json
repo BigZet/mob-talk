@@ -23,6 +23,7 @@
     "FluidPlacedMixin",
     "VillagerFamilyMixin",
     "VillageTradeRefusalMixin",
+    "BartenderMenuMixin",
     "NightHoldMixin",
     "CommandFilterMixin",
     "VillageSpawnMixin",
