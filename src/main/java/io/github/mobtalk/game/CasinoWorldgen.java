@@ -21,9 +21,13 @@ import java.util.List;
 public final class CasinoWorldgen {
     private CasinoWorldgen() { }
     public static final List<String> KINDS = List.of("plains", "desert", "savanna", "snowy", "taiga");
+    /** The grand casino's templates (tools/casino/grand.py), one per street connector of the cities. */
+    public static final List<String> GRAND = List.of("grand", "grand_5th");
 
     public static void register() {
         for (String kind : KINDS) UniqueVillagePieces.register(template(kind));
+        // The grand casino stands on a city's house plot (the cities put it in their pools); a city has one at most.
+        for (String grand : GRAND) UniqueVillagePieces.register(template(grand));
         ServerLifecycleEvents.SERVER_STARTING.register(server -> apply(server.getRegistryManager(), ServerConfig.get()));
     }
 

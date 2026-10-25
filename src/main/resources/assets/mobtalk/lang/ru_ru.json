@@ -1031,5 +1031,9 @@
   "mobtalk.tune.barVisitPercent.tooltip": "Шанс, что свободный взрослый житель пойдёт вечером в бар.",
   "mobtalk.tune.barTalkSeconds": "Пауза между разговорами: %s с",
   "mobtalk.tune.barTalkSeconds.tooltip": "Как часто в одном баре начинается новый разговор, если вы рядом.",
-  "mobtalk.bar.opened": "В баре «%s» собираются гости"
+  "mobtalk.bar.opened": "В баре «%s» собираются гости",
+  "block.mobtalk.casino_letter": "Неоновая буква вывески",
+  "block.mobtalk.casino_marquee": "Бегущие огни",
+  "block.mobtalk.casino_grand_chandelier": "Хрустальная люстра",
+  "block.mobtalk.casino_cashier": "Касса казино"
 }

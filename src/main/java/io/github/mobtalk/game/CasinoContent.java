@@ -42,6 +42,8 @@ public final class CasinoContent {
     public static final Identifier GAME_ID = Identifier.of("mobtalk", "casino_game");
     public static final RegistryKey<PointOfInterestType> GAME_POI = RegistryKey.of(RegistryKeys.POINT_OF_INTEREST_TYPE, GAME_ID);
     public static Block PART, BLACKJACK, POKER, ROULETTE, SLOT, BAR_COUNTER, BAR_SHELF, BAR_STOOL, CHAIR, CHIPS, SIGN, CHANDELIER, ROPE;
+    /** The grand (city) casino's own pieces: the facade's neon letters and running lights, the crystal chandelier, the cashier. */
+    public static Block LETTER, MARQUEE, GRAND_CHANDELIER, CASHIER;
     public static VillagerProfession BOUNCER;
     /** Every casino block with an item, in the creative tab's order. */
     public static final Map<String, Block> BLOCKS = new LinkedHashMap<>();
@@ -81,6 +83,14 @@ public final class CasinoContent {
         Map<Direction, VoxelShape> rope = CasinoBlocks.shapes(new double[]{5, 0, 5, 11, 14.2, 11}, new double[]{0, 8, 7.3, 16, 11.1, 8.7});
         ROPE = decor("casino_rope", metal(), rope, CasinoBlocks.shapes(new double[]{5, 0, 5, 11, 16, 11}, new double[]{0, 0, 7.3, 16, 16, 8.7}),
                 NONE, Use.NONE, false);
+
+        Map<Direction, VoxelShape> board = CasinoBlocks.shapes(new double[]{0, 0, 12.5, 16, 16, 16});
+        LETTER = add("casino_letter", new CasinoBlocks.Letter(wood().noCollision().luminance(state -> 15).sounds(BlockSoundGroup.GLASS), board));
+        MARQUEE = decor("casino_marquee", metal().noCollision().luminance(state -> 13).sounds(BlockSoundGroup.GLASS),
+                CasinoBlocks.shapes(new double[]{0, 0, 14, 16, 16, 16}), empty, NONE, Use.NONE, true);
+        GRAND_CHANDELIER = decor("casino_grand_chandelier", metal().noCollision().luminance(state -> 15).sounds(BlockSoundGroup.GLASS),
+                CasinoBlocks.shapes(new double[]{4, 0, 4, 12, 16, 12}), empty, NONE, Use.NONE, false);
+        CASHIER = decor("casino_cashier", wood(), full, full, NONE, Use.NONE, false);
 
         PointOfInterestHelper.register(ROPE_ID, 1, 1, ROPE);
         List<BlockState> games = new ArrayList<>();

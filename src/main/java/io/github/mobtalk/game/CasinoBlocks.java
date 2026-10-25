@@ -133,6 +133,23 @@ public final class CasinoBlocks {
         }
     }
 
+    /** A cell of a neon letter of the grand casino's facade sign («КАЗИНО», each letter two blocks wide and two tall, and a gold star
+     * one block wide between the words). {@code part}: 0 top left, 1 top right, 2 bottom left, 3 bottom right. A right click turns
+     * to the next letter, a right click while sneaking to the next cell of it. */
+    public static class Letter extends Decor {
+        public static final IntProperty LETTER = IntProperty.of("letter", 0, 6);
+        public static final IntProperty PART = IntProperty.of("part", 0, 3);
+        public Letter(Settings settings, Map<Direction, VoxelShape> shape) {
+            super(settings, shape, shape, new int[0][], Use.NONE, true);
+            setDefaultState(getDefaultState().with(LETTER, 0).with(PART, 0));
+        }
+        @Override protected void appendProperties(StateManager.Builder<Block, BlockState> builder) { builder.add(FACING, LETTER, PART); }
+        @Override protected ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
+            if (!world.isClient) world.setBlockState(pos, state.cycle(player.isSneaking() ? PART : LETTER), Block.NOTIFY_ALL);
+            return ActionResult.success(world.isClient);
+        }
+    }
+
     /** An invisible filler cell of a big table: breaking or using it breaks or uses the table. */
     public static class Part extends Block {
         private static final VoxelShape SHAPE = Block.createCuboidShape(0, 0, 0, 16, 15, 16);

@@ -16,10 +16,15 @@ import sys
 
 from PIL import Image
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import grand_decor as G  # noqa: E402 (the grand casino's pieces)
+
+
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 ASSETS = os.path.join(ROOT, "src", "main", "resources", "assets", "mobtalk")
 DATA = os.path.join(ROOT, "src", "main", "resources", "data", "mobtalk")
 TEX = {}  # name -> PIL image
+ANIM = {}  # name -> the .mcmeta of an animated texture (its png is a strip of 16x16 frames)
 NS = "mobtalk:block/casino/"
 
 
@@ -45,7 +50,7 @@ SWATCHES = {
     "purple": (120, 52, 168), "orange": (232, 128, 32), "yellow": (250, 214, 64), "flame": (255, 226, 120),
     "flame_core": (255, 250, 214), "candle": (236, 228, 204), "glass_green": (64, 128, 72), "glass_amber": (176, 104, 34),
     "glass_clear": (196, 220, 224), "glass_red": (128, 26, 40), "glass_blue": (52, 84, 150), "label": (226, 214, 176),
-    "crystal": (214, 236, 246), "cork": (150, 112, 70), "brass": (204, 150, 60), "screen": (16, 20, 34), "card_red": (200, 40, 40),
+    "crystal": (214, 236, 246), "crystal_glint": (244, 252, 255), "cork": (150, 112, 70), "brass": (204, 150, 60), "screen": (16, 20, 34), "card_red": (200, 40, 40),
 }
 PAL = {}
 
@@ -576,6 +581,7 @@ def make_textures():
     for name, colour in CHIPS.items():
         chip_side(name + "_side", colour)
         chip_top(name + "_top", colour)
+    G.textures()
 
 
 # ---------------------------------------------------------------- models
@@ -1013,6 +1019,7 @@ def make_models():
     chips_models()
     sign()
     chandelier()
+    G.models()
     # the invisible part that fills a big table's other cells: only a particle, the table's model draws over it
     MODELS["casino_part"] = {"textures": {"particle": NS + "mahogany"}}
 
@@ -1069,6 +1076,8 @@ def save_all():
     os.makedirs(tdir, exist_ok=True)
     for name, img in TEX.items():
         img.save(os.path.join(tdir, name + ".png"))
+        if name in ANIM:
+            write(os.path.join(tdir, name + ".png.mcmeta"), ANIM[name])
     for name, m in MODELS.items():
         write(os.path.join(ASSETS, "models", "block", "casino", name + ".json"), m)
     simple = ("casino_blackjack_table", "casino_poker_table", "casino_roulette_table", "casino_bar_counter", "casino_bar_shelf", "casino_bar_stool", "casino_chair",
@@ -1100,6 +1109,8 @@ def save_all():
     loot("casino_chips", [{"function": "minecraft:set_count", "count": n, "add": False, "conditions": [
         {"condition": "minecraft:block_state_property", "block": "mobtalk:casino_chips", "properties": {"chips": str(n)}}]} for n in range(2, 5)])
     write(os.path.join(ASSETS, "blockstates", "casino_part.json"), {"variants": {"": {"model": NS + "casino_part"}}})
+    G.save()
+    NAMES.update(G.NAMES)
     for lang, i in (("ru_ru", 0), ("en_us", 1)):
         p = os.path.join(ASSETS, "lang", lang + ".json")
         with open(p, encoding="utf-8") as f:
@@ -1175,6 +1186,7 @@ def render(m, yaw, size=256, pitch_deg=30):
                         uu = u0 + (u1 - u0) * a
                         vv = v0 + (v1 - v0) * b
                         tw, th = tx.size
+                        th = min(th, tw)  # an animated strip: its first frame
                         c = tx.getpixel((min(tw - 1, max(0, int(uu / 16 * tw))), min(th - 1, max(0, int(vv / 16 * th)))))
                         if c[3] == 0:
                             continue
@@ -1194,6 +1206,7 @@ def preview(out, only=None):
 
 
 def main():
+    G.D = sys.modules[__name__]
     make_textures()
     make_models()
     save_all()

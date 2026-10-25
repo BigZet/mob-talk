@@ -1031,5 +1031,9 @@
   "mobtalk.tune.barVisitPercent.tooltip": "The chance a free grown villager goes to the bar in the evening.",
   "mobtalk.tune.barTalkSeconds": "Pause between talks: %s s",
   "mobtalk.tune.barTalkSeconds.tooltip": "How often a new talk starts in one bar while you are near.",
-  "mobtalk.bar.opened": "Guests gather in the bar «%s»"
+  "mobtalk.bar.opened": "Guests gather in the bar «%s»",
+  "block.mobtalk.casino_letter": "Neon sign letter",
+  "block.mobtalk.casino_marquee": "Marquee lights",
+  "block.mobtalk.casino_grand_chandelier": "Crystal chandelier",
+  "block.mobtalk.casino_cashier": "Casino cashier"
 }

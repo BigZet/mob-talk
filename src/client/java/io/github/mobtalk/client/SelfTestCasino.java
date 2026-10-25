@@ -23,10 +23,12 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 
-/** The village casino ({@code -Only casino}): the five buildings placed from their templates on a grass field in the sky; the casino in
+/** The casinos ({@code -Only casino}). The village casino: the five buildings placed from their templates on a grass field in the sky; the casino in
  * the house pools of the five village kinds; every piece of furniture where the plan puts it; the two bouncers tough and at their ropes;
  * a visitor sitting down to play; the slot machine spinning; the table for 21 answering; a bouncer punching a player who hit a
- * villager. Screenshots outside, inside, of each piece and of the bouncer in both looks. No LLM, no voice. */
+ * villager. Screenshots outside, inside, of each piece and of the bouncer in both looks. The grand (city) casino: placed from its
+ * template, its sign, chandeliers, cashiers, tables and four bouncers where the plan puts them; screenshots by day and by night.
+ * No LLM, no voice. */
 final class SelfTestCasino {
     private final SelfTest test;
     private final int fx, fy, fz;
@@ -179,10 +181,78 @@ final class SelfTestCasino {
     }
 
     private void others(int i) {
-        if (i >= CasinoWorldgen.KINDS.size()) { visitor(); return; }
+        if (i >= CasinoWorldgen.KINDS.size()) { grand(); return; }
         BlockPos b = o(i).subtract(o(0));
         view(b.getX() - 9, b.getY() + 3.5, b.getZ() + 6, b.getX() + 6, b.getY() + 3, b.getZ() + 6);
         shot("mobtalk-casino-13-" + CasinoWorldgen.KINDS.get(i) + ".png", () -> others(i + 1));
+    }
+
+    // ---- The grand casino (a city's) ----
+
+    /** The grand casino's lot origin: ground surface (y = 4 in the template) on the field's grass level, well past the village ones. */
+    private BlockPos g() { return new BlockPos(fx, fy - 1 - 4, fz + 120); }
+
+    private void gview(double x, double y, double z, double tx, double ty, double tz) {
+        BlockPos b = g().subtract(o(0));
+        view(b.getX() + x, b.getY() + y, b.getZ() + z, b.getX() + tx, b.getY() + ty, b.getZ() + tz);
+    }
+
+    private void grand() {
+        test.command("gamemode spectator " + name());
+        gview(-16, 12, 10, 8, 8, 10);
+        test.await("pause: the grand lot's chunks load", 4, () -> false, () -> {
+            BlockPos b = g();
+            test.command("fill " + (b.getX() - 24) + " " + (b.getY() + 3) + " " + (b.getZ() - 6) + " " + (b.getX() + 30) + " " + (b.getY() + 3) + " " + (b.getZ() + 26) + " minecraft:grass_block");
+            test.command("fill " + (b.getX() - 24) + " " + (b.getY() + 4) + " " + (b.getZ() - 6) + " " + (b.getX() + 30) + " " + (b.getY() + 30) + " " + (b.getZ() + 26) + " minecraft:air");
+            test.command("place template mobtalk:casino/grand " + b.getX() + " " + b.getY() + " " + b.getZ());
+            // a city turns the connector into its final state (the red carpet); a template placed by hand keeps it
+            test.command("setblock " + b.getX() + " " + (b.getY() + 5) + " " + (b.getZ() + 10) + " minecraft:red_carpet");
+            test.command("kill @e[type=minecraft:item]");
+            test.await("the grand casino stands", 20, () -> onServer(() -> world().getBlockState(b.add(1, 14, 10)).isOf(CasinoContent.LETTER)), this::checkGrand);
+        });
+    }
+
+    private void checkGrand() {
+        BlockPos b = g();
+        int floor = 5, stand = 6, gallery = 11;
+        onServer(() -> {
+            ServerWorld w = world();
+            String word = "";
+            for (int z = 4; z <= 16; z++) {  // the top row of the sign: a letter starts at each part 0
+                var state = w.getBlockState(b.add(1, floor + 9, z));
+                if (!state.isOf(CasinoContent.LETTER)) { word += '?'; continue; }
+                if (state.get(io.github.mobtalk.game.CasinoBlocks.Letter.PART) == 0)
+                    word += "КАЗИНО★".charAt(state.get(io.github.mobtalk.game.CasinoBlocks.Letter.LETTER));
+            }
+            test.check(word.equals("КАЗ★ИНО"), "the sign reads КАЗ★ИНО (" + word + ")");
+            test.check(w.getBlockState(b.add(7, floor + 16, 10)).isOf(CasinoContent.GRAND_CHANDELIER)
+                    && w.getBlockState(b.add(13, floor + 16, 10)).isOf(CasinoContent.GRAND_CHANDELIER), "two crystal chandeliers over the hall");
+            test.check(w.getBlockState(b.add(5, stand, 7)).isOf(CasinoContent.CASHIER), "the cashiers by the door");
+            test.check(w.getBlockState(b.add(9, stand, 16)).isOf(CasinoContent.BLACKJACK), "twenty-one in the south wing");
+            test.check(w.getBlockState(b.add(9, stand, 4)).isOf(CasinoContent.ROULETTE), "roulette in the north wing");
+            test.check(w.getBlockState(b.add(8, gallery + 1, 3)).isOf(CasinoContent.POKER), "private card tables on the gallery");
+            return null;
+        });
+        test.await("the grand bouncers are there", 10, () -> onServer(() -> world().getEntitiesByClass(VillagerEntity.class,
+                new Box(b).expand(4).stretch(24, 26, 21), CasinoContent::bouncer).size() >= 4), () -> {
+            gview(-17, 7, 10, 8, 10, 10);
+            shot("mobtalk-casino-g01-front.png", () -> { gview(-12, 22, -10, 12, 8, 10);
+            shot("mobtalk-casino-g02-aerial.png", () -> { gview(-9, 12.4, 10, 2, 12.4, 10);
+            shot("mobtalk-casino-g03-sign.png", () -> { gview(4.5, 7.6, 10, 16, 9, 10);
+            shot("mobtalk-casino-g04-hall.png", () -> { gview(21.5, 13, 10, 4, 6, 10);
+            shot("mobtalk-casino-g05-from-gallery.png", () -> { gview(12.5, 7.6, 7, 12.5, 6.5, 1.5);
+            shot("mobtalk-casino-g06-slots-roulette.png", () -> { gview(12.5, 8, 13, 12.5, 6, 18);
+            shot("mobtalk-casino-g07-twenty-one.png", () -> { gview(10.5, 16, 12, 7, 19.5, 10);
+            shot("mobtalk-casino-g08-chandelier.png", () -> { gview(17.4, 7.6, 10, 22.5, 6.5, 10);
+            shot("mobtalk-casino-g09-bar.png", () -> { gview(11.5, 13, 6.5, 8, 12, 3);
+            shot("mobtalk-casino-g10-gallery.png", () -> { gview(5.5, 7.6, 10, 5, 7, 6);
+            shot("mobtalk-casino-g11-cashiers.png", () -> {
+                test.command("time set 18000");
+                test.await("pause: night falls", 2, () -> false, () -> { gview(-17, 7, 10, 8, 10, 10);
+                shot("mobtalk-casino-g12-night.png", () -> { gview(-9, 12.4, 10, 2, 12.4, 10);
+                shot("mobtalk-casino-g13-sign-night.png", () -> { test.command("time set 1000"); visitor(); }); }); });
+            }); }); }); }); }); }); }); }); }); }); });
+        });
     }
 
     // ---- Life ----
