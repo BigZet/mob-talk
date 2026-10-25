@@ -185,6 +185,15 @@ public final class FurnitureBlocks {
         return false;
     }
 
+    /** A double bed: two real beds side by side ({@code apt_bed_double_l} at {@code foot}, {@code _r} one cell to its right as you
+     * lie in it), head towards {@code facing}; false when there is no room for all four cells. */
+    public static boolean placeDoubleBed(World world, BlockPos foot, Direction facing) {
+        BlockPos right = foot.add(turn(new int[] {-1, 0, 0}, facing));
+        for (BlockPos p : new BlockPos[] {foot, foot.offset(facing), right, right.offset(facing)})
+            if (!world.getBlockState(p).isReplaceable()) return false;
+        return place(world, foot, "apt_bed_double_l", facing) && place(world, right, "apt_bed_double_r", facing);
+    }
+
     // ---------------------------------------------------------------- sitting
 
     /** Seats {@code who} on the piece's cell at {@code cell} (its seat height), facing the way the piece faces. */

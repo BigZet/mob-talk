@@ -1150,5 +1150,18 @@
   "block.mobtalk.apt_sled": "Санки",
   "block.mobtalk.apt_bicycle": "Велосипед «Кама»",
   "block.mobtalk.apt_bicycle_part": "Велосипед «Кама»",
-  "block.mobtalk.apt_notice_board_part": "Доска объявлений"
+  "block.mobtalk.apt_notice_board_part": "Доска объявлений",
+  "block.mobtalk.apt_bed_double_l": "Двуспальная кровать (левая половина)",
+  "block.mobtalk.apt_bed_double_r": "Двуспальная кровать (правая половина)",
+  "block.mobtalk.apt_nightstand": "Тумбочка с будильником и лампой",
+  "block.mobtalk.apt_chest_drawers": "Комод",
+  "block.mobtalk.apt_dressing_table": "Трельяж",
+  "block.mobtalk.apt_dressing_table_part": "Трельяж",
+  "block.mobtalk.apt_bedside_rug": "Прикроватный коврик",
+  "block.mobtalk.apt_bedside_rug_part": "Прикроватный коврик",
+  "block.mobtalk.apt_chair_clothes": "Стул с одеждой",
+  "block.mobtalk.apt_ironing_board": "Гладильная доска с утюгом",
+  "block.mobtalk.apt_suitcases": "Чемоданы",
+  "block.mobtalk.apt_wall_carpet_high": "Ковёр над кроватью",
+  "block.mobtalk.apt_wall_carpet_high_part": "Ковёр над кроватью"
 }

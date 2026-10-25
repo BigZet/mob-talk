@@ -2,6 +2,8 @@
   "replace": false,
   "values": [
     "mobtalk:apt_bed",
-    "mobtalk:apt_bed_iron"
+    "mobtalk:apt_bed_iron",
+    "mobtalk:apt_bed_double_l",
+    "mobtalk:apt_bed_double_r"
   ]
 }

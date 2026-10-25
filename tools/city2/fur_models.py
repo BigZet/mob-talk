@@ -1358,6 +1358,8 @@ def make():
         curtains(key)
     import fur_more
     fur_more.make()
+    import fur_bed
+    fur_bed.make()
 
 
 def plate_tex():

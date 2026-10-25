@@ -93,11 +93,23 @@ final class SelfTestFurniture {
         put("apt_stool", 14, 0, 5, Direction.WEST);
         put("apt_ceiling_plate", 13, 1, 3, Direction.SOUTH);
         for (int x = 12; x <= 13; x++) put("apt_curtain_gold", x, 0, 6, Direction.NORTH, true);
-        // bedroom x 17..23
-        put("apt_bed", 18, 0, 1, Direction.NORTH);
-        put("apt_bed_iron", 21, 0, 1, Direction.NORTH);
-        put("apt_wardrobe", 23, 0, 4, Direction.WEST);
-        put("apt_sconce", 19, 1, 0, Direction.SOUTH);
+        // bedroom x 17..23: a double bed between bedside tables under a carpet, wardrobe, chest, dressing table, suitcases
+        test.server().execute(() -> {
+            if (FurnitureBlocks.placeDoubleBed(world(), pos(20, 0, 1), Direction.NORTH)) placed++;
+            else { failed++; test.fail("no room for the double bed"); }
+        });
+        put("apt_nightstand", 18, 0, 0, Direction.SOUTH);
+        put("apt_nightstand", 21, 0, 0, Direction.SOUTH);
+        put("apt_wall_carpet_high", 20, 1, 0, Direction.SOUTH);
+        put("apt_bedside_rug", 20, 0, 3, Direction.EAST);
+        put("apt_wardrobe", 23, 0, 1, Direction.WEST);
+        put("apt_chest_drawers", 23, 0, 2, Direction.WEST);
+        put("apt_suitcases", 23, 0, 3, Direction.WEST);
+        put("apt_dressing_table", 17, 0, 1, Direction.EAST);
+        put("apt_chair_clothes", 18, 0, 1, Direction.WEST);
+        put("apt_ironing_board", 22, 0, 5, Direction.NORTH);
+        put("apt_ceiling_plate", 20, 1, 4, Direction.SOUTH);
+        put("apt_sconce", 17, 1, 3, Direction.EAST);
         for (int x = 19; x <= 21; x++) put("apt_curtain_blue", x, 0, 6, Direction.NORTH, true);
         // bathroom x 25..28
         put("apt_bathtub", 25, 0, 0, Direction.EAST);
@@ -198,8 +210,15 @@ final class SelfTestFurniture {
                 int x = (i % perRow) * 3, z = gz + (i / perRow) * 14;
                 FurnitureBlocks.Mount mount = FurnitureBlocks.catalogue().get(id);
                 if (id.contains("curtain")) { for (int dx = -1; dx <= 1; dx++) put(id, x + dx, 0, z, Direction.SOUTH); continue; }
+                if (id.equals("apt_bed_double_r")) continue; // stood with its left half
+                if (id.equals("apt_bed_double_l")) {
+                    int bx = x, bz = z;
+                    test.server().execute(() -> { if (FurnitureBlocks.placeDoubleBed(world(), pos(bx, 0, bz + 1), Direction.NORTH)) placed++;
+                                                  else { failed++; test.fail("gallery: no room for the double bed"); } });
+                    continue;
+                }
                 if (id.startsWith("apt_bed")) { put(id, x, 0, z + 1, Direction.NORTH); continue; }
-                int y = mount == FurnitureBlocks.Mount.GROUND || id.contains("radiator") || id.contains("wall_carpet") ? 0 : 1;
+                int y = mount == FurnitureBlocks.Mount.GROUND || id.contains("radiator") || id.equals("apt_wall_carpet") ? 0 : 1;
                 if (mount == FurnitureBlocks.Mount.CEILING) test.command("setblock " + bp(x, 2, z) + " minecraft:white_concrete");
                 int zz = z, yy = y;
                 test.server().execute(() -> {
@@ -225,7 +244,7 @@ final class SelfTestFurniture {
     private void eyeLevel(Runnable then) {
         String[][] eye = {
                 {"0.5 0 5.5", "-120 15", "furniture-08-living-eye"}, {"7.5 0 5.5", "135 10", "furniture-09-living-eye-2"},
-                {"12.5 0 4.5", "180 20", "furniture-10-kitchen-eye"}, {"22.5 0 5.5", "135 15", "furniture-11-bedroom-eye"},
+                {"12.5 0 4.5", "180 20", "furniture-10-kitchen-eye"}, {"22.5 0 5.5", "140 18", "furniture-11-bedroom-eye"}, {"17.5 0 5.5", "-150 15", "furniture-11b-bedroom-eye"},
                 {"27.5 0 5.5", "150 20", "furniture-12-bath-eye"}, {"6.5 0 1.5", "20 8", "furniture-13-curtains-eye"}};
         shots(eye, 0, () -> {
             test.server().execute(() -> {

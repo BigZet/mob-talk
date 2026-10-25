@@ -1150,5 +1150,18 @@
   "block.mobtalk.apt_sled": "Sledge",
   "block.mobtalk.apt_bicycle": "Bicycle",
   "block.mobtalk.apt_bicycle_part": "Bicycle",
-  "block.mobtalk.apt_notice_board_part": "Notice board"
+  "block.mobtalk.apt_notice_board_part": "Notice board",
+  "block.mobtalk.apt_bed_double_l": "Double bed (left half)",
+  "block.mobtalk.apt_bed_double_r": "Double bed (right half)",
+  "block.mobtalk.apt_nightstand": "Bedside table with a lamp",
+  "block.mobtalk.apt_chest_drawers": "Chest of drawers",
+  "block.mobtalk.apt_dressing_table": "Dressing table with three mirrors",
+  "block.mobtalk.apt_dressing_table_part": "Dressing table with three mirrors",
+  "block.mobtalk.apt_bedside_rug": "Bedside rug",
+  "block.mobtalk.apt_bedside_rug_part": "Bedside rug",
+  "block.mobtalk.apt_chair_clothes": "Chair with clothes",
+  "block.mobtalk.apt_ironing_board": "Ironing board",
+  "block.mobtalk.apt_suitcases": "Suitcases",
+  "block.mobtalk.apt_wall_carpet_high": "Carpet over the bed",
+  "block.mobtalk.apt_wall_carpet_high_part": "Carpet over the bed"
 }
