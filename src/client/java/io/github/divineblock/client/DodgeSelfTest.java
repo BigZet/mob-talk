@@ -164,10 +164,13 @@ public final class DodgeSelfTest {
             // Like a player: a full draw (20 ticks) and a little more, sometimes holding the shot.
             hold = 22 + random.nextInt(8) + (random.nextDouble() < 0.3 ? 10 + random.nextInt(40) : 0);
             player.getInventory().selectedSlot = 0;
+            // the use key stays down while drawing: otherwise the client lets go of the bow on the very next tick
+            client.options.useKey.setPressed(true);
             client.interactionManager.interactItem(player, Hand.MAIN_HAND);
             return;
         }
         if (player.getItemUseTime() >= hold) {
+            client.options.useKey.setPressed(false);
             client.interactionManager.stopUsingItem(player);
             shots++;
             fired[round]++;
