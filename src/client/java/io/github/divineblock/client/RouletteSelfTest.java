@@ -257,6 +257,9 @@ final class RouletteSelfTest {
             case 21 -> {
                 scene = "wrath"; recording = "wrath"; frame = 0; spinStartTick = -1; waited = 0;
                 GodVoicePlayer.lineArrived = -1; GodVoicePlayer.lineOver = -1;
+                // The altar has not cooled since the repentance: no pause for this prayer.
+                DivineConfig quick = DivineBlockMod.config(); quick.cooldownSeconds = 0;
+                try { quick.save(DivineBlockMod.configFile()); DivineBlockMod.reloadConfig(); } catch (IOException failure) { fail("настройки не сохранены: " + failure); }
                 server(() -> { home(); Prayers.handle(player, altar, "Будь ты проклят, бог, ненавижу тебя и всё твоё"); });
                 wait = 20;
             }
