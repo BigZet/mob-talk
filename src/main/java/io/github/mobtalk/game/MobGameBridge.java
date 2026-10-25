@@ -624,7 +624,7 @@ public final class MobGameBridge implements GameBridge {
     /** From the panic mixin: a guard on duty stands its ground at a monster or a blow instead of fleeing (village defence). */
     /** From the zombie mixin: this villager, killed by a zombie, dies rather than turning (village defence). */
     public static boolean blocksZombieConversion(VillagerEntity villager) {
-        if (DefenseContent.guard(villager) || DefenseContent.archer(villager)) return true;
+        if (DefenseContent.defender(villager)) return true;
         MobGameBridge bridge = forEntity(villager);
         return bridge != null && bridge.config.enabled && bridge.config.villageNoConversion;
     }

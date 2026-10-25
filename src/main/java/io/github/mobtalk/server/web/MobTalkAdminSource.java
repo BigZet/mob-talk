@@ -86,6 +86,8 @@ public final class MobTalkAdminSource implements UnaryOperator<String> {
             new Extra("villageNoConversion", Tunables.Section.SOCIAL, "defense", "bool", null, null, null),
             new Extra("villageTowers", Tunables.Section.SOCIAL, "towers", "bool", null, null, null),
             new Extra("villageGuards", Tunables.Section.SOCIAL, "guards", "bool", null, null, null),
+            new Extra("villageHeavy", Tunables.Section.SOCIAL, "guards", "bool", null, null, null),
+            new Extra("villageCavalry", Tunables.Section.SOCIAL, "guards", "bool", null, null, null),
             new Extra("divineTidings", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
             new Extra("divinePanic", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
             new Extra("divineMayExile", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),

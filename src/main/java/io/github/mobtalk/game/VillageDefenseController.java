@@ -96,6 +96,13 @@ final class VillageDefenseController {
 
     // ---- The zones ----
 
+    /** The alarm of the village holding this spot, null when it is quiet or there is no village (a wedding waits for quiet). */
+    VillageAlarm.Alarm alarmAt(ServerWorld world, BlockPos pos) {
+        if (!enabled()) return null;
+        Zone zone = zoneAt(world, pos);
+        return zone == null ? null : alarms.get(zone.key());
+    }
+
     /** The zone holding this spot, from the last refresh; null outside every village or before the first refresh. */
     Zone zoneAt(ServerWorld world, BlockPos pos) {
         for (Zone zone : zones.getOrDefault(dimension(world), List.of())) if (zone.holds(pos)) return zone;
@@ -235,7 +242,7 @@ final class VillageDefenseController {
         if (hide || bridge.config.alarmSound) ring(world, zone, now);
         if (!hide) return;
         for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !v.isRemoved()))
-            if (!DefenseContent.guard(villager) && !DefenseContent.archer(villager) && MobActionController.registered(villager, MemoryModuleType.HEARD_BELL_TIME))
+            if (!DefenseContent.defender(villager) && MobActionController.registered(villager, MemoryModuleType.HEARD_BELL_TIME))
                 villager.getBrain().remember(MemoryModuleType.HEARD_BELL_TIME, now);
     }
 

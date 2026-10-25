@@ -34,6 +34,7 @@ final class SelfTestGuards {
     private Runnable next = () -> { };
     private int savedBuild;
     private final Set<UUID> arrowsSeen = new HashSet<>();
+    private final Set<String> ranksFought = new TreeSet<>();
 
     SelfTestGuards(SelfTest test, int stageX, int stageY, int stageZ) {
         this.test = test; this.fx = stageX + 320; this.fy = stageY; this.fz = stageZ;
@@ -51,7 +52,9 @@ final class SelfTestGuards {
     private long count(String part) { synchronized (chat) { return chat.stream().filter(line -> line.contains(part)).count(); } }
     private <T> T onServer(java.util.function.Supplier<T> task) { return test.server().isOnThread() ? task.get() : test.server().submit(task).join(); }
     private Box area() { return new Box(bell()).expand(FLOOR + 4, 20, FLOOR + 4); }
-    private List<VillagerEntity> guards() { return onServer(() -> world().getEntitiesByClass(VillagerEntity.class, area(), v -> v.isAlive() && DefenseContent.guard(v))); }
+    private List<VillagerEntity> guards() { return onServer(() -> world().getEntitiesByClass(VillagerEntity.class, area(), v -> v.isAlive() && DefenseContent.soldier(v))); }
+    private VillagerEntity rank(java.util.function.Predicate<VillagerEntity> rank) { return guards().stream().filter(rank).findFirst().orElse(null); }
+    private static String rankOf(VillagerEntity v) { return DefenseContent.heavy(v) ? "heavy" : DefenseContent.cavalry(v) ? "cavalry" : "guard"; }
     private List<VillagerEntity> archers() { return onServer(() -> world().getEntitiesByClass(VillagerEntity.class, area(), v -> v.isAlive() && DefenseContent.archer(v))); }
     private static BlockPos stand(VillagerEntity guard) { return guard.getBrain().getOptionalRegisteredMemory(MemoryModuleType.JOB_SITE).map(GlobalPos::pos).orElse(null); }
     private Object walkTarget(VillagerEntity villager) {
@@ -94,56 +97,90 @@ final class SelfTestGuards {
         for (String wall : List.of(at(-f, 0, -f) + " " + at(f, 3, -f), at(-f, 0, f) + " " + at(f, 3, f), at(-f, 0, -f) + " " + at(-f, 3, f), at(f, 0, -f) + " " + at(f, 3, f)))
             test.command("fill " + wall + " minecraft:barrier");
         test.command("setblock " + at(0, 0, 0) + " minecraft:bell[attachment=floor,facing=north]");
+        // Under load a fill in chunks not yet loaded does nothing (the villagers would fall): wait for the floor, fill again if need be.
+        test.await("the stage floor is built", 4, this::floorReady, () -> {
+            if (!floorReady() && ++floorTries < 6) { build(); return; }
+            test.check(floorReady(), "the stage floor is built");
+            populate();
+        });
+    }
+
+    private int floorTries;
+    private boolean floorReady() {
+        int f = FLOOR - 1;
+        return onServer(() -> List.of(bell().add(-f, -1, -f), bell().add(f, -1, -f), bell().add(-f, -1, f), bell().add(f, -1, f), bell().down())
+                .stream().allMatch(p -> world().getBlockState(p).isOf(net.minecraft.block.Blocks.GRASS_BLOCK)));
+    }
+
+    private void populate() {
         String[] jobs = { "farmer", "librarian", "fisherman", "shepherd", "cleric" };
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 15; i++)
             test.command("summon minecraft:villager " + at(-8 + (i % 5) * 4, 0, -6 + (i / 5) * 12) + " {PersistenceRequired:1b,Tags:[\"" + TAG + "\"],VillagerData:{profession:\"minecraft:"
                     + jobs[i % 5] + "\",type:\"minecraft:plains\",level:2},Xp:20}");
-        test.await("ten villagers on the stage", 20, () -> onServer(() -> world().getEntitiesByClass(VillagerEntity.class, area(), v -> v.getCommandTags().contains(TAG)).size() >= 10), () -> {
+        test.await("fifteen villagers on the stage", 20, () -> onServer(() -> world().getEntitiesByClass(VillagerEntity.class, area(), v -> v.getCommandTags().contains(TAG)).size() >= 15), () -> {
             GlobalPos point = GlobalPos.create(world().getRegistryKey(), bell());
             test.server().execute(() -> { for (VillagerEntity v : world().getEntitiesByClass(VillagerEntity.class, area(), v -> v.getCommandTags().contains(TAG))) v.getBrain().remember(MemoryModuleType.MEETING_POINT, point); });
             test.command("tp " + name() + " " + at(0, 8, 20) + " 180 35");
-            test.await("two guards arrive (chat)", 100, () -> count("новый стражник") >= 2, () -> {
-                test.check(count("новый стражник") >= 2, "a village of ten puts up stands and gets two guards (" + count("новый стражник") + ")");
+            test.await("three fighters arrive (chat)", 130, () -> count("новый боец") >= 3, () -> {
+                test.check(count("новый боец") >= 3, "a village of fifteen puts up three stands: a guard, a heavy warrior, a horseman (" + count("новый боец") + ")");
                 shot("mobtalk-guards-stands.png", () -> test.await("the watchtower is done too", 150, () -> count("Сторожевая башня достроена") >= 1, this::gear));
             });
         });
     }
 
-    /** Sword, shield, helmet, chestplate, 30 health; standing by the stand by day. */
+    /** Each rank's arms, armour and health; the horseman in the saddle; standing by the stand by day. */
     private void gear() {
         test.check(count("Сторожевая башня достроена") >= 1, "the village also built a watchtower (" + count("Сторожевая башня достроена") + ")");
         List<VillagerEntity> guards = guards();
-        test.check(guards.size() >= 2, "two guards in the village (" + guards.size() + ")");
+        test.check(guards.size() >= 3, "three fighters in the village (" + guards.size() + ")");
+        test.check(guards.stream().anyMatch(DefenseContent::guard) && guards.stream().anyMatch(DefenseContent::heavy) && guards.stream().anyMatch(DefenseContent::cavalry),
+                "one of each rank: " + guards.stream().map(SelfTestGuards::rankOf).toList());
         for (VillagerEntity guard : guards) {
-            boolean armed = onServer(() -> guard.getEquippedStack(EquipmentSlot.MAINHAND).isOf(Items.IRON_SWORD) && guard.getEquippedStack(EquipmentSlot.OFFHAND).isOf(Items.SHIELD)
-                    && guard.getEquippedStack(EquipmentSlot.HEAD).isOf(Items.IRON_HELMET) && guard.getEquippedStack(EquipmentSlot.CHEST).isOf(Items.IRON_CHESTPLATE));
+            String rank = rankOf(guard);
+            boolean armed = onServer(() -> switch (rank) {
+                case "heavy" -> guard.getEquippedStack(EquipmentSlot.MAINHAND).isOf(Items.DIAMOND_AXE) && guard.getEquippedStack(EquipmentSlot.HEAD).isOf(Items.DIAMOND_HELMET)
+                        && guard.getEquippedStack(EquipmentSlot.CHEST).isOf(Items.DIAMOND_CHESTPLATE) && guard.getEquippedStack(EquipmentSlot.LEGS).isOf(Items.DIAMOND_LEGGINGS)
+                        && guard.getEquippedStack(EquipmentSlot.FEET).isOf(Items.DIAMOND_BOOTS);
+                case "cavalry" -> guard.getEquippedStack(EquipmentSlot.MAINHAND).isOf(Items.IRON_SWORD) && guard.getEquippedStack(EquipmentSlot.HEAD).isOf(Items.LEATHER_HELMET)
+                        && guard.getEquippedStack(EquipmentSlot.CHEST).isOf(Items.LEATHER_CHESTPLATE) && guard.getEquippedStack(EquipmentSlot.LEGS).isOf(Items.LEATHER_LEGGINGS)
+                        && guard.getEquippedStack(EquipmentSlot.FEET).isOf(Items.LEATHER_BOOTS);
+                default -> guard.getEquippedStack(EquipmentSlot.MAINHAND).isOf(Items.IRON_SWORD) && guard.getEquippedStack(EquipmentSlot.OFFHAND).isOf(Items.SHIELD)
+                        && guard.getEquippedStack(EquipmentSlot.HEAD).isOf(Items.IRON_HELMET) && guard.getEquippedStack(EquipmentSlot.CHEST).isOf(Items.IRON_CHESTPLATE);
+            });
+            if (rank.equals("cavalry")) {
+                boolean riding = onServer(() -> guard.getVehicle() instanceof net.minecraft.entity.passive.HorseEntity h && h.isSaddled() && h.getBodyArmor().isOf(Items.LEATHER_HORSE_ARMOR));
+                test.check(riding, "the horseman rides a saddled horse in leather barding");
+            }
             float max = onServer(guard::getMaxHealth);
+            float wanted = rank.equals("heavy") ? test.bridge().config.heavyHealth : test.bridge().config.watchHealth;
             BlockPos stand = onServer(() -> stand(guard));
             boolean post = stand != null && onServer(() -> world().getBlockState(stand).isOf(DefenseContent.GUARD_POST));
             double away = stand == null ? -1 : Math.sqrt(onServer(() -> guard.squaredDistanceTo(Vec3d.ofCenter(stand))));
             test.log("guard " + guard.getUuid() + ": stand " + stand + ", " + String.format(Locale.ROOT, "%.1f", away) + " blocks from it, health " + max);
-            test.check(armed, "the guard has a sword, a shield, a helmet and a chestplate");
-            test.check(Math.abs(max - test.bridge().config.watchHealth) < 0.01, "the guard has " + test.bridge().config.watchHealth + " health (" + max + ")");
+            test.check(armed, "the " + rank + " has the arms and armour of the rank");
+            test.check(Math.abs(max - wanted) < 0.01, "the " + rank + " has " + wanted + " health (" + max + ")");
             test.check(post, "the guard's job site is a guard stand");
-            test.check(away >= 0 && away <= 4, "by day the guard holds its stand (" + String.format(Locale.ROOT, "%.1f", away) + " blocks)");
+            test.check(away >= 0 && away <= 5, "by day the " + rank + " holds its stand (" + String.format(Locale.ROOT, "%.1f", away) + " blocks)");
         }
-        looks(guards.isEmpty() ? null : guards.getFirst(), this::night);
+        looks(rank(DefenseContent::guard), "guard", () -> looks(rank(DefenseContent::heavy), "heavy", () -> looks(rank(DefenseContent::cavalry), "cavalry", this::night)));
     }
 
     /** The guard up close in the human look and the vanilla one. */
-    private void looks(VillagerEntity guard, Runnable then) {
-        if (guard == null) { then.run(); return; }
-        test.server().execute(() -> guard.setAiDisabled(true));
-        test.command("tp " + guard.getUuid() + " " + at(0, 0, 30) + " 180 0");
-        test.command("tp " + name() + " " + at(0, 0, 27) + " 0 5");
+    private void looks(VillagerEntity guard, String rank, Runnable then) {
+        if (guard == null) { test.fail("no " + rank + " to photograph"); then.run(); return; }
+        // A horseman is photographed in the saddle: its horse is moved and held, the rider with it.
+        net.minecraft.entity.Entity body = onServer(() -> guard.getVehicle() != null ? guard.getVehicle() : guard);
+        test.server().execute(() -> { guard.setAiDisabled(true); if (body instanceof net.minecraft.entity.mob.MobEntity m) m.setAiDisabled(true); });
+        test.command("tp " + body.getUuid() + " " + at(0, 0, 30) + " 180 0");
+        test.command("tp " + name() + " " + at(0, rank.equals("cavalry") ? 1 : 0, rank.equals("cavalry") ? 25 : 27) + " 0 5");
         test.owner.config().humanVillagers = true;
-        test.await("pause: the guard in front of the camera", 3, () -> false, () -> shot("mobtalk-guards-guard-human.png", () -> {
+        test.await("pause: the " + rank + " in front of the camera", 3, () -> false, () -> shot("mobtalk-guards-" + rank + "-human.png", () -> {
             test.owner.config().humanVillagers = false;
-            test.await("pause: the vanilla look", 3, () -> false, () -> shot("mobtalk-guards-guard-vanilla.png", () -> {
+            test.await("pause: the vanilla look", 3, () -> false, () -> shot("mobtalk-guards-" + rank + "-vanilla.png", () -> {
                 test.owner.config().humanVillagers = true;
                 BlockPos stand = onServer(() -> stand(guard));
-                test.server().execute(() -> guard.setAiDisabled(false));
-                if (stand != null) test.command("tp " + guard.getUuid() + " " + (stand.getX() + 1.5) + " " + stand.getY() + " " + (stand.getZ() + 0.5));
+                test.server().execute(() -> { guard.setAiDisabled(false); if (body instanceof net.minecraft.entity.mob.MobEntity m) m.setAiDisabled(false); });
+                if (stand != null) test.command("tp " + body.getUuid() + " " + (stand.getX() + 1.5) + " " + stand.getY() + " " + (stand.getZ() + 0.5));
                 then.run();
             }));
         }));
@@ -189,13 +226,16 @@ final class SelfTestGuards {
         test.await("the guards beat the zombies", 60, () -> {
             if (++tick[0] % 60 == 0) for (VillagerEntity guard : guards()) test.log("fight: " + state(guard));
             for (ZombieEntity zombie : onServer(() -> world().getEntitiesByClass(ZombieEntity.class, area(), z -> z.getCommandTags().contains(TAG)))) {
-                if (onServer(() -> zombie.getAttacker() instanceof VillagerEntity v && DefenseContent.guard(v))) struck.add(zombie.getUuid());
+                VillagerEntity by = onServer(() -> zombie.getAttacker() instanceof VillagerEntity v && DefenseContent.soldier(v) ? v : null);
+                if (by != null) { struck.add(zombie.getUuid()); ranksFought.add(rankOf(by)); }
             }
             int dead = 6 - onServer(() -> world().getEntitiesByClass(ZombieEntity.class, area(), z -> z.isAlive() && z.getCommandTags().contains(TAG)).size());
             return struck.size() >= 1 && dead >= 4;
         }, () -> {
             int dead = 6 - onServer(() -> world().getEntitiesByClass(ZombieEntity.class, area(), z -> z.isAlive() && z.getCommandTags().contains(TAG)).size());
             test.check(!struck.isEmpty(), "the guards strike the zombies (" + struck.size() + " zombies hit by a guard)");
+            test.log("ranks that struck a zombie: " + ranksFought);
+            test.check(ranksFought.size() >= 2, "more than one rank fights (" + ranksFought + ")");
             test.check(dead >= 4, "the guards (and the archer) beat most of the zombies within a minute (" + dead + " of 6)");
             shot("mobtalk-guards-fight.png", this::fallBack);
         });
@@ -259,10 +299,83 @@ final class SelfTestGuards {
                 shot("mobtalk-guards-strike.png", () -> {
                     test.server().execute(() -> victim.setAiDisabled(false));
                     test.owner.forgiveVillage();
-                    finish();
+                    test.await("pause: forgiven", 3, () -> false, this::insideZombie);
                 });
             });
         });
+    }
+
+    /** One zombie in the middle of the village, away from the guards: a guard goes and strikes it (no wall, no edge). */
+    private void insideZombie() {
+        test.command("time set 18000");
+        test.command("kill @e[type=minecraft:iron_golem]");
+        List<Vec3d> guardsAt = guards().stream().map(g -> onServer(g::getPos)).toList();
+        BlockPos spot = null;
+        for (int[] d : new int[][] { {16, -16}, {-16, 16}, {16, 16}, {-16, -16}, {20, 0}, {-20, 0} }) {
+            BlockPos p = bell().add(d[0], 0, d[1]);
+            if (guardsAt.stream().allMatch(g -> g.distanceTo(Vec3d.ofCenter(p)) >= 10)) { spot = p; break; }
+        }
+        if (spot == null) spot = bell().add(16, 0, -16);
+        BlockPos at = spot;
+        double nearestGuard = guardsAt.stream().mapToDouble(g -> g.distanceTo(Vec3d.ofCenter(at))).min().orElse(-1);
+        test.command("summon minecraft:zombie " + at.getX() + " " + fy + " " + at.getZ() + " {PersistenceRequired:1b,IsBaby:0b,Tags:[\"" + TAG + "_in\"]}");
+        test.command("tp " + name() + " " + (at.getX() + 6) + " " + (fy + 4) + " " + (at.getZ() + 6) + " 135 25");
+        boolean[] struck = new boolean[1];
+        String[] last = { "-" };
+        test.await("a guard strikes the zombie in the middle of the village", 30, () -> {
+            List<ZombieEntity> found = onServer(() -> world().getEntitiesByClass(ZombieEntity.class, area(), z -> z.isAlive() && z.getCommandTags().contains(TAG + "_in")));
+            for (ZombieEntity zombie : found) {
+                last[0] = onServer(() -> zombie.getAttacker() == null ? "-" : zombie.getAttacker().getName().getString());
+                // Struck by a guard, or a guard is on it (the towers' shooters may kill it first).
+                if (onServer(() -> zombie.getAttacker() instanceof VillagerEntity v && DefenseContent.soldier(v)
+                        || !world().getEntitiesByClass(VillagerEntity.class, zombie.getBoundingBox().expand(3), DefenseContent::soldier).isEmpty())) struck[0] = true;
+            }
+            if (found.isEmpty()) test.log("the zombie in the village is dead; last struck by " + last[0]);
+            return struck[0] || found.isEmpty();
+        }, () -> {
+            test.log("zombie in the village at " + at.toShortString() + ", the nearest guard was " + String.format(Locale.ROOT, "%.1f", nearestGuard) + " blocks off");
+            test.check(struck[0], "a zombie in the middle of the village, away from the guards, is reached or struck by a guard");
+            shot("mobtalk-guards-inside-zombie.png", () -> {
+                test.command("kill @e[tag=" + TAG + "_in]");
+                conversion();
+            });
+        });
+    }
+
+    /** Hard difficulty (vanilla turns every villager a zombie kills): a guard and a plain villager, each shut in a barrier cell with a
+     * zombie, die and no zombie villager appears. */
+    private void conversion() {
+        test.command("difficulty hard");
+        VillagerEntity guard = guards().stream().findFirst().orElse(null);
+        VillagerEntity plain = onServer(() -> world().getEntitiesByClass(VillagerEntity.class, area(), v -> v.isAlive() && !v.isBaby() && v.getCommandTags().contains(TAG)
+                && !DefenseContent.guard(v) && !DefenseContent.archer(v)).stream().findFirst().orElse(null));
+        if (guard == null || plain == null) { test.fail("no guard or villager for the conversion check"); finish(); return; }
+        int[][] cells = { {-30, 30}, {-24, 30} };
+        VillagerEntity[] victims = { guard, plain };
+        for (int i = 0; i < 2; i++) {
+            BlockPos c = bell().add(cells[i][0], 0, cells[i][1]);
+            test.command("fill " + (c.getX() - 2) + " " + (fy - 1) + " " + (c.getZ() - 1) + " " + (c.getX() + 2) + " " + (fy + 3) + " " + (c.getZ() + 1) + " minecraft:barrier hollow");
+            VillagerEntity v = victims[i];
+            test.server().execute(() -> { if (v.isSleeping()) v.wakeUp(); v.setAiDisabled(true); v.setHealth(1f); });
+            test.command("tp " + v.getUuid() + " " + (c.getX() - 0.5) + " " + fy + " " + (c.getZ() + 0.5));
+            test.command("summon minecraft:zombie " + (c.getX() + 1.5) + " " + fy + " " + (c.getZ() + 0.5) + " {PersistenceRequired:1b,IsBaby:0b,Tags:[\"" + TAG + "_conv\"]}");
+        }
+        UUID guardId = guard.getUuid(), plainId = plain.getUuid();
+        test.command("tp " + name() + " " + (fx - 27) + " " + (fy + 2) + " " + (fz + 25) + " 180 25");
+        test.await("pause: the zombies at the cells", 3, () -> false, () -> shot("mobtalk-guards-conversion-before.png", () ->
+            test.await("the zombies kill the guard and the villager", 30, () -> onServer(() -> !(world().getEntity(guardId) instanceof VillagerEntity g && g.isAlive())
+                    && !(world().getEntity(plainId) instanceof VillagerEntity p && p.isAlive())), () -> {
+                boolean guardDead = onServer(() -> !(world().getEntity(guardId) instanceof VillagerEntity g && g.isAlive()));
+                boolean plainDead = onServer(() -> !(world().getEntity(plainId) instanceof VillagerEntity p && p.isAlive()));
+                int zombieVillagers = onServer(() -> world().getEntitiesByClass(net.minecraft.entity.mob.ZombieVillagerEntity.class, area(), z -> true).size());
+                test.check(guardDead && plainDead, "the zombies killed the guard and the villager (guard " + guardDead + ", villager " + plainDead + ")");
+                test.check(zombieVillagers == 0, "on hard, neither turned into a zombie villager (" + zombieVillagers + " zombie villagers)");
+                shot("mobtalk-guards-conversion-after.png", () -> {
+                    test.command("kill @e[tag=" + TAG + "_conv]");
+                    test.command("difficulty normal");
+                    finish();
+                });
+            })));
     }
 
     private void shot(String file, Runnable then) {

@@ -68,10 +68,14 @@ final class VillageTowers {
     /** The builder lays blocks only this close to the tower's centre; one on its way longer than this is set down at the site. */
     static final double AT_SITE = 7;
     static final long BUILDER_WAY_TICKS = 600;
+    /** A shooter that cannot reach its post this long (at its tower, or on the way from afar) is put there. */
+    static final long SHOOTER_STUCK_TICKS = 400, SHOOTER_WAY_TICKS = 1200;
 
     private final MobGameBridge bridge;
     private final VillageDefenseController defense;
     private final Map<UUID, Long> lastShot = new HashMap<>();
+    /** Since when each shooter on duty has been away from its post. */
+    private final Map<UUID, Long> shooterAway = new HashMap<>();
     /** When each empty post was first seen empty, by position. */
     private final Map<BlockPos, Long> emptySince = new HashMap<>();
     /** Since when the builder of each tower (by its origin) has been on its way to the site without getting there. */
@@ -86,11 +90,16 @@ final class VillageTowers {
     /** One tower going up: where, which way the door faces, the style, the next block of the plan and the villager building it. */
     static final class Build {
         String zone; BlockPos origin; TowerPlan.Facing door; TowerPlan.Style style; int next; long nextTick; boolean foundationDone; UUID builder;
+        /** A large tower (7×7, two archers and two crossbowmen). */
+        boolean large;
+        int radius() { return TowerPlan.radius(large); }
+        List<TowerPlan.Block> plan() { return TowerPlan.rotated(door, large); }
         NbtCompound write() {
             NbtCompound tag = new NbtCompound();
             tag.putString("zone", zone); tag.putLong("origin", origin.asLong()); tag.putString("door", door.name());
             tag.putString("style", style.name()); tag.putInt("next", next); tag.putBoolean("foundation", foundationDone);
             if (builder != null) tag.putUuid("builder", builder);
+            tag.putBoolean("large", large);
             return tag;
         }
         static Build read(NbtCompound tag) {
@@ -99,6 +108,7 @@ final class VillageTowers {
             build.door = TowerPlan.Facing.valueOf(tag.getString("door")); build.style = TowerPlan.Style.valueOf(tag.getString("style"));
             build.next = tag.getInt("next"); build.foundationDone = tag.getBoolean("foundation");
             if (tag.containsUuid("builder")) build.builder = tag.getUuid("builder");
+            build.large = tag.getBoolean("large");
             return build;
         }
     }
@@ -144,11 +154,19 @@ final class VillageTowers {
         if (now % POST_PERIOD == 0) for (VillageDefenseController.Zone zone : zones) archers(world, zone, now);
     }
 
-    /** Towers of the zone: the archer posts inside it. */
+    /** Towers of the zone: one archer post of each (a large tower has two). */
     private List<BlockPos> towers(ServerWorld world, VillageDefenseController.Zone zone) {
+        List<BlockPos> out = new ArrayList<>();
+        for (BlockPos post : posts(world, zone, DefenseContent.ARCHER_POST_POI))
+            if (out.stream().noneMatch(other -> other.getSquaredDistance(post) <= 5 * 5)) out.add(post);
+        return out;
+    }
+
+    /** The posts of one kind inside the zone. */
+    private static List<BlockPos> posts(ServerWorld world, VillageDefenseController.Zone zone, net.minecraft.registry.RegistryKey<net.minecraft.world.poi.PointOfInterestType> kind) {
         int radius = (int) Math.ceil(Math.max(zone.box().getLengthX(), zone.box().getLengthZ()) / 2) + 1;
         List<BlockPos> out = new ArrayList<>();
-        world.getPointOfInterestStorage().getInSquare(entry -> entry.matchesKey(DefenseContent.ARCHER_POST_POI), zone.center(), radius,
+        world.getPointOfInterestStorage().getInSquare(entry -> entry.matchesKey(kind), zone.center(), radius,
                 PointOfInterestStorage.OccupationStatus.ANY).map(PointOfInterest::getPos).filter(zone::holds).forEach(out::add);
         return out;
     }
@@ -162,9 +180,11 @@ final class VillageTowers {
         if (existing.size() >= wanted) return;
         VillageAlarm.Alarm alarm = defense.alarm(zone);
         if (alarm != null && alarm.attack()) return; // nobody builds under attack
-        BlockPos site = site(world, zone, existing);
+        boolean large = bridge.config.towerLargeResidents > 0 && zone.residents() >= bridge.config.towerLargeResidents && DefenseContent.CROSSBOW_POST != null;
+        BlockPos site = site(world, zone, existing, TowerPlan.radius(large));
         if (site == null) return;
         Build build = new Build();
+        build.large = large;
         build.zone = zone.key(); build.origin = site; build.door = facing(site, zone.center());
         build.style = TowerPlan.Style.forBiome(world.getBiome(site).getKey().map(key -> key.getValue().toString()).orElse(""));
         build.nextTick = world.getTime();
@@ -181,7 +201,7 @@ final class VillageTowers {
 
     /** A spot just outside the village's buildings, flat enough, on natural ground, clear above, away from its bells, beds and job
      * sites and from its other towers; the one farthest from the other towers wins. Null when there is none. */
-    private BlockPos site(ServerWorld world, VillageDefenseController.Zone zone, List<BlockPos> existing) {
+    private BlockPos site(ServerWorld world, VillageDefenseController.Zone zone, List<BlockPos> existing, int radius) {
         List<BlockPos> candidates = new ArrayList<>();
         int minX = zone.minX() - EDGE_OUT, maxX = zone.maxX() + EDGE_OUT, minZ = zone.minZ() - EDGE_OUT, maxZ = zone.maxZ() + EDGE_OUT;
         for (int x = minX; x <= maxX; x += EDGE_STEP) { candidates.add(new BlockPos(x, 0, minZ)); candidates.add(new BlockPos(x, 0, maxZ)); }
@@ -189,7 +209,7 @@ final class VillageTowers {
         BlockPos best = null; double bestScore = -1;
         for (BlockPos spot : candidates) {
             if (!world.isChunkLoaded(spot) || !zone.holds(spot.withY(zone.center().getY()))) continue;
-            BlockPos floor = ground(world, spot);
+            BlockPos floor = ground(world, spot, radius);
             if (floor == null) continue;
             double nearest = Double.MAX_VALUE;
             for (BlockPos tower : existing) nearest = Math.min(nearest, Math.sqrt(tower.getSquaredDistance(floor)));
@@ -203,9 +223,9 @@ final class VillageTowers {
 
     /** The floor block of a tower centred here: the highest ground of the footprint (and the step before the door), when the ground
      * is natural, dry and level within {@link #MAX_SLOPE} and the tower's space above is free. */
-    private static BlockPos ground(ServerWorld world, BlockPos spot) {
+    private static BlockPos ground(ServerWorld world, BlockPos spot, int radius) {
         int low = Integer.MAX_VALUE, high = Integer.MIN_VALUE;
-        int reach = TowerPlan.RADIUS + 1;
+        int reach = radius + 1;
         for (int dx = -reach; dx <= reach; dx++)
             for (int dz = -reach; dz <= reach; dz++) {
                 int x = spot.getX() + dx, z = spot.getZ() + dz;
@@ -216,8 +236,8 @@ final class VillageTowers {
             }
         if (high - low > MAX_SLOPE) return null;
         BlockPos floor = new BlockPos(spot.getX(), high, spot.getZ());
-        for (int dx = -TowerPlan.RADIUS; dx <= TowerPlan.RADIUS; dx++)
-            for (int dz = -TowerPlan.RADIUS; dz <= TowerPlan.RADIUS; dz++)
+        for (int dx = -radius; dx <= radius; dx++)
+            for (int dz = -radius; dz <= radius; dz++)
                 for (int dy = 1; dy <= TowerPlan.HEIGHT; dy++) {
                     BlockState state = world.getBlockState(floor.add(dx, dy, dz));
                     if (!state.isAir() && !state.isReplaceable()) return null;
@@ -240,7 +260,7 @@ final class VillageTowers {
         if (now < build.nextTick) return false;
         VillagerEntity builder = builder(world, build);
         if (builder == null || builder.squaredDistanceTo(Vec3d.ofCenter(build.origin)) > AT_SITE * AT_SITE) { build.nextTick = now + POST_PERIOD; return false; }
-        List<TowerPlan.Block> plan = TowerPlan.rotated(build.door);
+        List<TowerPlan.Block> plan = build.plan();
         if (!build.foundationDone) { foundation(world, build); build.foundationDone = true; }
         long solid = plan.stream().filter(b -> b.kind() != TowerPlan.Kind.AIR).count();
         long interval = Math.max(1, bridge.config.towerBuildMinutes * 1200L / Math.max(1, solid));
@@ -259,8 +279,9 @@ final class VillageTowers {
     /** Fills the ground under the footprint down to solid earth, so a tower on a slope stands on stone, not on air. */
     private void foundation(ServerWorld world, Build build) {
         BlockState stone = palette(build.style).foundation;
-        for (int dx = -TowerPlan.RADIUS; dx <= TowerPlan.RADIUS; dx++)
-            for (int dz = -TowerPlan.RADIUS - 1; dz <= TowerPlan.RADIUS; dz++) {
+        int r = build.radius();
+        for (int dx = -r; dx <= r; dx++)
+            for (int dz = -r - 1; dz <= r; dz++) {
                 for (int dy = -1; dy >= -8; dy--) {
                     BlockPos pos = rotate(build, dx, dy, dz);
                     BlockState state = world.getBlockState(pos);
@@ -299,6 +320,7 @@ final class VillageTowers {
             case ROOF -> palette.roof;
             case LANTERN -> Blocks.LANTERN.getDefaultState().with(LanternBlock.HANGING, true);
             case POST_BLOCK -> DefenseContent.ARCHER_POST.getDefaultState();
+            case CROSSBOW_POST -> DefenseContent.CROSSBOW_POST.getDefaultState();
             case DOOR_LOWER -> palette.door.with(DoorBlock.FACING, facing).with(DoorBlock.HINGE, DoorHinge.LEFT).with(DoorBlock.HALF, DoubleBlockHalf.LOWER);
             default -> null;
         };
@@ -339,7 +361,7 @@ final class VillageTowers {
 
     private boolean fit(VillagerEntity villager) {
         return villager.isAlive() && !villager.isRemoved() && !villager.isBaby() && !villager.isSleeping()
-                && !DefenseContent.archer(villager) && !DefenseContent.guard(villager) && !bridge.actions.busy(villager);
+                && !DefenseContent.defender(villager) && !bridge.actions.busy(villager);
     }
 
     /** Once a second: the builder keeps to the site with a block in hand, walking round to the side that is going up; one that has
@@ -348,7 +370,7 @@ final class VillageTowers {
         VillagerEntity builder = builder(world, build);
         if (builder == null) return;
         VillageDefenseController.stayOut(world, builder);
-        List<TowerPlan.Block> plan = TowerPlan.rotated(build.door);
+        List<TowerPlan.Block> plan = build.plan();
         TowerPlan.Block next = build.next < plan.size() ? plan.get(build.next) : null;
         BlockPos target = next == null ? build.origin : build.origin.add(next.x(), next.y(), next.z());
         BlockPos stand = stand(world, build, target);
@@ -366,7 +388,7 @@ final class VillageTowers {
 
     /** Where the builder stands: on the ground just outside the footprint, on the side of the block going up. */
     private static BlockPos stand(ServerWorld world, Build build, BlockPos target) {
-        int dx = target.getX() - build.origin.getX(), dz = target.getZ() - build.origin.getZ(), out = TowerPlan.RADIUS + 2;
+        int dx = target.getX() - build.origin.getX(), dz = target.getZ() - build.origin.getZ(), out = build.radius() + 2;
         int x = build.origin.getX(), z = build.origin.getZ();
         if (dx == 0 && dz == 0) { BlockPos front = rotate(build, 0, 0, -out); x = front.getX(); z = front.getZ(); }
         else if (Math.abs(dx) >= Math.abs(dz)) x += Integer.signum(dx) * out;
@@ -387,24 +409,31 @@ final class VillageTowers {
         if (builder.getMainHandStack().getItem() instanceof net.minecraft.item.BlockItem) builder.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
     }
 
-    /** The tower is up: the builder goes back to its life, an archer comes to the post. */
+    /** The tower is up: the builder goes back to its life, a shooter comes to each post (an archer, or a crossbowman on a large tower's
+     * sides). */
     private void finished(ServerWorld world, Build build, List<VillageDefenseController.Zone> zones) {
         if (build.builder != null && world.getEntity(build.builder) instanceof VillagerEntity builder) emptyHands(builder);
         builderAway.remove(build.origin);
-        BlockPos post = build.origin.up(TowerPlan.PLATFORM + 1);
         VillageDefenseController.Zone zone = null;
         for (VillageDefenseController.Zone candidate : zones) if (candidate.key().equals(build.zone)) zone = candidate;
-        VillagerEntity archer = newcomer(world, post);
-        if (zone != null) announce(world, zone, Text.translatable("mobtalk.defense.tower.done", zone.title(), archer == null ? "?" : name(archer)));
+        List<String> came = new ArrayList<>();
+        for (TowerPlan.Block block : build.plan())
+            if (block.kind() == TowerPlan.Kind.POST_BLOCK || block.kind() == TowerPlan.Kind.CROSSBOW_POST) {
+                VillagerEntity shooter = newcomer(world, build.origin.add(block.x(), block.y(), block.z()));
+                if (shooter != null) came.add(name(shooter));
+            }
+        if (zone != null) announce(world, zone, Text.translatable("mobtalk.defense.tower.done", zone.title(), came.isEmpty() ? "?" : String.join(", ", came)));
     }
 
     // ---- Archers ----
 
-    /** Posts left empty long enough get a newcomer archer. */
+    /** Posts left empty long enough get a newcomer: an archer, a crossbowman. */
     private void posts(ServerWorld world, VillageDefenseController.Zone zone, long now) {
-        for (BlockPos post : towers(world, zone)) {
-            boolean empty = world.getPointOfInterestStorage().getType(post).isPresent()
-                    && world.getPointOfInterestStorage().getInSquare(entry -> entry.matchesKey(DefenseContent.ARCHER_POST_POI), post, 0,
+        List<BlockPos> all = new ArrayList<>(posts(world, zone, DefenseContent.ARCHER_POST_POI));
+        if (DefenseContent.CROSSBOW_POST != null) all.addAll(posts(world, zone, DefenseContent.CROSSBOW_POST_POI));
+        for (BlockPos post : all) {
+            var kind = poi(world, post);
+            boolean empty = kind != null && world.getPointOfInterestStorage().getInSquare(entry -> entry.matchesKey(kind), post, 0,
                             PointOfInterestStorage.OccupationStatus.HAS_SPACE).findAny().isPresent();
             if (!empty) { emptySince.remove(post); continue; }
             Long since = emptySince.putIfAbsent(post, now);
@@ -415,10 +444,21 @@ final class VillageTowers {
         }
     }
 
-    /** A grown villager of the local kind with the archer's profession, standing by the post, the post its job site. */
+    /** The kind of post a block is, or null. */
+    private static net.minecraft.registry.RegistryKey<net.minecraft.world.poi.PointOfInterestType> poi(ServerWorld world, BlockPos post) {
+        BlockState state = world.getBlockState(post);
+        if (DefenseContent.ARCHER_POST != null && state.isOf(DefenseContent.ARCHER_POST)) return DefenseContent.ARCHER_POST_POI;
+        if (DefenseContent.CROSSBOW_POST != null && state.isOf(DefenseContent.CROSSBOW_POST)) return DefenseContent.CROSSBOW_POST_POI;
+        return null;
+    }
+
+    /** A grown villager of the local kind with the post's profession (archer or crossbowman) and its bow, standing by the post, the
+     * post its job site. */
     private VillagerEntity newcomer(ServerWorld world, BlockPos post) {
-        if (DefenseContent.ARCHER_POST == null || !world.getBlockState(post).isOf(DefenseContent.ARCHER_POST)) return null;
-        if (world.getPointOfInterestStorage().getInSquare(entry -> entry.matchesKey(DefenseContent.ARCHER_POST_POI), post, 0,
+        var kind = poi(world, post);
+        if (kind == null) return null;
+        boolean crossbow = kind == DefenseContent.CROSSBOW_POST_POI;
+        if (world.getPointOfInterestStorage().getInSquare(entry -> entry.matchesKey(kind), post, 0,
                 PointOfInterestStorage.OccupationStatus.HAS_SPACE).findAny().isEmpty()) return null; // someone already holds the post
         BlockPos stand = standBy(world, post);
         if (stand == null) return null;
@@ -426,13 +466,21 @@ final class VillageTowers {
         if (archer == null) return null;
         archer.refreshPositionAndAngles(stand.getX() + 0.5, stand.getY(), stand.getZ() + 0.5, world.random.nextFloat() * 360f, 0f);
         archer.initialize(world, world.getLocalDifficulty(stand), SpawnReason.MOB_SUMMONED, null);
-        archer.setVillagerData(new VillagerData(VillagerType.forBiome(world.getBiome(post)), DefenseContent.ARCHER, 1));
+        archer.setVillagerData(new VillagerData(VillagerType.forBiome(world.getBiome(post)), crossbow ? DefenseContent.CROSSBOWMAN : DefenseContent.ARCHER, 1));
         archer.setBreedingAge(0);
         world.spawnEntityAndPassengers(archer);
-        world.getPointOfInterestStorage().getPosition(entry -> entry.matchesKey(DefenseContent.ARCHER_POST_POI), (entry, pos) -> pos.equals(post), post, 1);
+        world.getPointOfInterestStorage().getPosition(entry -> entry.matchesKey(kind), (entry, pos) -> pos.equals(post), post, 1);
         archer.reinitializeBrain(world); // a profession set by hand needs the brain vanilla builds for it, or the villager drops it
         archer.getBrain().remember(MemoryModuleType.JOB_SITE, GlobalPos.create(world.getRegistryKey(), post));
+        arm(archer);
         return archer;
+    }
+
+    /** The shooter's bow in hand, never dropped: a bow for an archer, a crossbow for a crossbowman. */
+    private static void arm(VillagerEntity shooter) {
+        if (!shooter.getMainHandStack().isEmpty()) return;
+        shooter.equipStack(EquipmentSlot.MAINHAND, new ItemStack(DefenseContent.crossbowman(shooter) ? Items.CROSSBOW : Items.BOW));
+        shooter.setEquipmentDropChance(EquipmentSlot.MAINHAND, 0f);
     }
 
     /** Where one can stand beside the post: solid under the feet, air at the feet and the head (the stairwell is no place). */
@@ -450,16 +498,26 @@ final class VillageTowers {
         VillageAlarm.Alarm alarm = defense.alarm(zone);
         boolean night = !world.isDay();
         long nightIndex = world.getTimeOfDay() / 24000L;
-        for (VillagerEntity archer : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !v.isRemoved() && !v.isBaby() && DefenseContent.archer(v))) {
+        for (VillagerEntity archer : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !v.isRemoved() && !v.isBaby() && DefenseContent.shooter(v))) {
             BlockPos post = post(world, archer);
             boolean onShift = !night || ((archer.getUuid().getLeastSignificantBits() & 1) == (nightIndex & 1));
             boolean onDuty = post != null && (alarm != null || onShift);
             if (onDuty && archer.isSleeping()) archer.wakeUp();
             if (onDuty) VillageDefenseController.stayOut(world, archer);
-            if (onDuty && !archer.isSleeping() && archer.squaredDistanceTo(Vec3d.ofCenter(post)) > 2.5 * 2.5 && !bridge.actions.busy(archer)
-                    && MobActionController.registered(archer, MemoryModuleType.WALK_TARGET))
-                archer.getBrain().remember(MemoryModuleType.WALK_TARGET, new WalkTarget(post, alarm != null ? 0.8F : 0.55F, 1), 40);
+            arm(archer);
             if (alarm != null && !archer.isSleeping()) shoot(world, zone, alarm, archer, now);
+            boolean away = onDuty && !archer.isSleeping() && archer.squaredDistanceTo(Vec3d.ofCenter(post)) > 2.5 * 2.5 && !bridge.actions.busy(archer);
+            if (away && MobActionController.registered(archer, MemoryModuleType.WALK_TARGET))
+                archer.getBrain().remember(MemoryModuleType.WALK_TARGET, new WalkTarget(post, alarm != null ? 0.8F : 0.55F, 1), 40);
+            if (!away) { shooterAway.remove(archer.getUuid()); continue; }
+            // Stuck on the way (a turn of the stair, a crowd at the door): at its tower after 20 s, from afar after a minute, it is put at the post.
+            Long since = shooterAway.putIfAbsent(archer.getUuid(), now);
+            boolean atTower = Math.hypot(archer.getX() - post.getX() - 0.5, archer.getZ() - post.getZ() - 0.5) <= 6;
+            if (since != null && now - since >= (atTower ? SHOOTER_STUCK_TICKS : SHOOTER_WAY_TICKS)) {
+                BlockPos stand = standBy(world, post);
+                if (stand != null) { archer.getNavigation().stop(); archer.requestTeleport(stand.getX() + 0.5, stand.getY(), stand.getZ() + 0.5); }
+                shooterAway.remove(archer.getUuid());
+            }
         }
     }
 
@@ -470,12 +528,13 @@ final class VillageTowers {
     }
 
     /** One arrow at the nearest monster or alarm player in range and sight, when the bow is ready and no neighbour stands in the way.
-     * The arrow cannot be picked up: an archer's arrows never run out. */
+     * The arrow cannot be picked up: an archer's arrows never run out. A crossbowman shoots less often, farther, faster and harder. */
     private void shoot(ServerWorld world, VillageDefenseController.Zone zone, VillageAlarm.Alarm alarm, VillagerEntity archer, long now) {
         Long last = lastShot.get(archer.getUuid());
-        long cooldown = Math.max(5, bridge.config.archerShotTenths * 2L);
+        boolean crossbow = DefenseContent.crossbowman(archer);
+        long cooldown = Math.max(5, (crossbow ? bridge.config.crossbowShotTenths : bridge.config.archerShotTenths) * 2L);
         if (last != null && now - last < cooldown) return;
-        double range = bridge.config.archerRange;
+        double range = crossbow ? bridge.config.crossbowRange : bridge.config.archerRange;
         BlockPos post = post(world, archer);
         LivingEntity target = null; double nearest = range * range;
         for (MobEntity monster : world.getEntitiesByClass(MobEntity.class, archer.getBoundingBox().expand(range), defense::threat)) {
@@ -492,39 +551,53 @@ final class VillageTowers {
         if (target == null) return;
         archer.getLookControl().lookAt(target, 30f, 30f);
         if (MobActionController.registered(archer, MemoryModuleType.LOOK_TARGET)) archer.getBrain().remember(MemoryModuleType.LOOK_TARGET, new EntityLookTarget(target, true), 40);
-        Vec3d from = release(archer, post, target), to = target.getPos().add(0, target.getHeight() * 0.6, 0);
+        Vec3d from = release(world, archer, post, target), to = target.getPos().add(0, target.getHeight() * 0.6, 0);
         if (blocked(world, archer, target, from, to)) return;
         lastShot.put(archer.getUuid(), now);
-        ArrowEntity arrow = new ArrowEntity(world, archer, new ItemStack(Items.ARROW), new ItemStack(Items.BOW));
+        ArrowEntity arrow = new ArrowEntity(world, archer, new ItemStack(Items.ARROW), new ItemStack(crossbow ? Items.CROSSBOW : Items.BOW));
         arrow.setPosition(from);
         arrow.pickupType = PersistentProjectileEntity.PickupPermission.DISALLOWED;
-        arrow.setDamage(2.5);
+        arrow.setDamage(crossbow ? 3.5 : 2.5);
         double dx = to.x - from.x, dz = to.z - from.z;
         double dy = to.y - arrow.getY();
         double flat = Math.sqrt(dx * dx + dz * dz);
-        arrow.setVelocity(dx, dy + flat * 0.12, dz, 1.9f, 6f);
+        float speed = crossbow ? 3.15f : 1.9f;
+        arrow.setVelocity(dx, dy + flat * (crossbow ? 0.05 : 0.12), dz, speed, crossbow ? 3f : 6f);
         world.spawnEntity(arrow);
         archer.swingHand(Hand.MAIN_HAND);
-        world.playSound(null, archer.getX(), archer.getY(), archer.getZ(), SoundEvents.ENTITY_ARROW_SHOOT, SoundCategory.NEUTRAL, 1f,
+        world.playSound(null, archer.getX(), archer.getY(), archer.getZ(), crossbow ? SoundEvents.ITEM_CROSSBOW_SHOOT : SoundEvents.ENTITY_ARROW_SHOOT, SoundCategory.NEUTRAL, 1f,
                 1f / (world.random.nextFloat() * 0.4f + 0.8f));
     }
 
     /** Where the arrow leaves: at a post the archer leans over the railing on the target's side (from beside the post the railing
      * hides everything close below the tower, the village included); elsewhere from the eyes. */
-    private static Vec3d release(VillagerEntity archer, BlockPos post, LivingEntity target) {
+    private static Vec3d release(ServerWorld world, VillagerEntity archer, BlockPos post, LivingEntity target) {
         Vec3d eye = archer.getEyePos();
         if (post == null || archer.squaredDistanceTo(Vec3d.ofCenter(post)) > 2.5 * 2.5) return eye;
-        double dx = target.getX() - (post.getX() + 0.5), dz = target.getZ() - (post.getZ() + 0.5);
-        double edge = Math.max(Math.abs(dx), Math.abs(dz));
-        if (edge < 1e-3) return eye;
-        double out = (TowerPlan.RADIUS + 0.75) / edge; // just past the railing of the square platform
-        return new Vec3d(post.getX() + 0.5 + dx * out, post.getY() + 1.7, post.getZ() + 0.5 + dz * out);
+        // The tower's middle: the post itself on a small tower, two blocks off on a large one; the lantern hangs over it.
+        BlockPos middle = post;
+        boolean large = false;
+        if (!world.getBlockState(post.up(2)).isOf(Blocks.LANTERN))
+            for (Direction side : Direction.Type.HORIZONTAL)
+                if (world.getBlockState(post.offset(side, 2).up(2)).isOf(Blocks.LANTERN)) { middle = post.offset(side, 2); large = true; break; }
+        double edge = TowerPlan.radius(large) + 0.75; // just past the railing of the square platform
+        double cx = middle.getX() + 0.5, cz = middle.getZ() + 0.5;
+        double dx = target.getX() - eye.x, dz = target.getZ() - eye.z;
+        double length = Math.sqrt(dx * dx + dz * dz);
+        if (length < 1e-3) return eye;
+        dx /= length; dz /= length;
+        // From the archer towards the target, out to where the line leaves the platform's square.
+        double t = Double.MAX_VALUE;
+        if (Math.abs(dx) > 1e-6) t = Math.min(t, ((dx > 0 ? edge : -edge) - (eye.x - cx)) / dx);
+        if (Math.abs(dz) > 1e-6) t = Math.min(t, ((dz > 0 ? edge : -edge) - (eye.z - cz)) / dz);
+        if (t <= 0 || t == Double.MAX_VALUE) return eye;
+        return new Vec3d(eye.x + dx * t, post.getY() + 1.7, eye.z + dz * t);
     }
 
     /** The archer sees the target: from its eyes, or leaning over the railing at its post. */
     private static boolean sees(ServerWorld world, VillagerEntity archer, BlockPos post, LivingEntity target) {
         if (archer.canSee(target)) return true;
-        Vec3d from = release(archer, post, target);
+        Vec3d from = release(world, archer, post, target);
         if (from.equals(archer.getEyePos())) return false;
         return world.raycast(new RaycastContext(from, target.getEyePos(), RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, archer)).getType() == HitResult.Type.MISS;
     }
@@ -541,7 +614,7 @@ final class VillageTowers {
     /** The horn from the archer nearest the danger when the alarm is first raised or grows. */
     void horn(ServerWorld world, VillageDefenseController.Zone zone, BlockPos at) {
         VillagerEntity horn = null; double nearest = Double.MAX_VALUE;
-        for (VillagerEntity archer : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !v.isBaby() && DefenseContent.archer(v))) {
+        for (VillagerEntity archer : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !v.isBaby() && DefenseContent.shooter(v))) {
             double distance = archer.getBlockPos().getSquaredDistance(at);
             if (distance < nearest) { nearest = distance; horn = archer; }
         }
@@ -551,7 +624,7 @@ final class VillageTowers {
 
     /** An archer sees farther than other villagers: the alarm uses its range for it. */
     double sight(LivingEntity watcher, double usual) {
-        return watcher instanceof VillagerEntity villager && DefenseContent.archer(villager) ? Math.max(usual, bridge.config.archerRange) : usual;
+        return watcher instanceof VillagerEntity villager && DefenseContent.shooter(villager) ? Math.max(usual, DefenseContent.crossbowman(villager) ? bridge.config.crossbowRange : bridge.config.archerRange) : usual;
     }
 
     private void announce(ServerWorld world, VillageDefenseController.Zone zone, Text text) {
@@ -588,5 +661,5 @@ final class VillageTowers {
         };
     }
 
-    void clearRuntime() { lastShot.clear(); emptySince.clear(); builderAway.clear(); }
+    void clearRuntime() { lastShot.clear(); emptySince.clear(); builderAway.clear(); shooterAway.clear(); }
 }
