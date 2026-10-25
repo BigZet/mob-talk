@@ -54,9 +54,32 @@ final class YandexMusic {
         this.log = log;
     }
 
+    /** Rejected token (401/403): a token minted from the in-game login can be renewed once. */
+    static final class TokenRejected extends IOException {
+        TokenRejected(String message) { super(message); }
+    }
+
+    interface Call<T> { T run(YandexMusic music) throws IOException; }
+
+    /** Runs a call with the current token; if Yandex rejects it and the player logged in from the game, mints a new one and retries once. */
+    static <T> T withToken(Consumer<String> log, Call<T> call) throws IOException {
+        try { return call.run(new YandexMusic(loadToken(), log)); }
+        catch (TokenRejected rejected) {
+            String xToken = YandexLogin.savedXToken();
+            if (xToken.isBlank()) throw rejected;
+            log.accept("music token rejected, minting a new one from the login");
+            String fresh = new YandexLogin().musicToken(xToken);
+            YandexLogin.saveMusicToken(fresh);
+            return call.run(new YandexMusic(fresh, log));
+        }
+    }
+
+    /** YA_MUSIC_TOKEN, then the token from the in-game login, then the hand-made music_token.txt. */
     static String loadToken() {
         String value = System.getenv("YA_MUSIC_TOKEN");
         if (value != null && !value.isBlank()) return value.trim();
+        String login = YandexLogin.savedMusicToken();
+        if (!login.isBlank()) return login;
         try { return Files.readString(AliceAuth.DIR.resolve("music_token.txt"), StandardCharsets.UTF_8).replace("﻿", "").trim(); }
         catch (IOException missing) { return ""; }
     }
@@ -170,7 +193,7 @@ final class YandexMusic {
     private <T> HttpResponse<T> send(HttpRequest.Builder request, HttpResponse.BodyHandler<T> handler) throws IOException {
         try {
             HttpResponse<T> response = http.send(request.timeout(Duration.ofSeconds(60)).GET().build(), handler);
-            if (response.statusCode() == 401 || response.statusCode() == 403) throw new IOException("Яндекс Музыка не приняла токен (" + response.statusCode() + ")");
+            if (response.statusCode() == 401 || response.statusCode() == 403) throw new TokenRejected("Яндекс Музыка не приняла токен (" + response.statusCode() + ")");
             if (response.statusCode() == 451) throw new IOException("Яндекс Музыка недоступна в этом регионе (выключите VPN)");
             if (response.statusCode() >= 400 && response.statusCode() != 404) throw new IOException("Яндекс Музыка ответила " + response.statusCode());
             return response;
@@ -192,29 +215,40 @@ final class YandexMusic {
     }
 
     // ---- What the player asked for, read from their own words.
-    enum Kind { PLAY, NEXT, STOP }
+    enum Kind { PLAY, NEXT, STOP, RESUME }
     record Intent(Kind kind, String query) { }
 
     private static final Pattern STOP = Pattern.compile("(выключи|останови|стоп|хватит|пауза|поставь на паузу|убери)\\s*(музыку|музыка|песню|трек)?", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
     private static final Pattern NEXT = Pattern.compile("(следующ|дальше|переключи|другую песню|другой трек|пропусти)", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    private static final Pattern RESUME = Pattern.compile("(продолжи|продолжай|сними с паузы|сними паузу|верни музыку|играй дальше|сыграй дальше)", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
     private static final Pattern PLAY = Pattern.compile("(?:включи|поставь|сыграй|играй|запусти)\\s*(.*)", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
     private static final Pattern FILLER = Pattern.compile("^(мне\\s+)?(пожалуйста\\s+)?(музыку|музыка|песню|песни|песня|трек|треки|что-нибудь|что нибудь|мою волну|волну)?\\s*", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    /** Wake words and conversational openers before the command: "алис, нет, включи…", "ну давай про…". */
+    private static final Pattern OPENER = Pattern.compile("^((алиса|алис|алисочка|слушай|нет|да|ну|а|так|ладно|давай|окей|ок)\\s+)+", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 
-    /** Null when the words are not about music. {@code musicPlaying} lets a bare "стоп" or "дальше" count. */
+    /**
+     * Null when the words are not about music. {@code musicPlaying} lets a bare "стоп" or "дальше" count;
+     * {@code aliceSawMusic} (Alice answered with a player directive or "log in to listen") makes the whole phrase a
+     * search, so her "authorize" refusal never reaches the player.
+     */
     static Intent intent(String words, boolean musicPlaying, boolean aliceSawMusic) {
         if (words == null) return null;
-        String w = words.toLowerCase().replace('ё', 'е').replaceAll("[.,!?…]", " ").replaceAll("^\\s*алиса\\s*", "").trim();
+        String w = words.toLowerCase().replace('ё', 'е').replaceAll("[.,!?…]", " ").replaceAll("\\s+", " ").trim();
+        w = OPENER.matcher(w).replaceFirst("").replaceAll("\\s+(алиса|пожалуйста)$", "").trim();
         boolean aboutMusic = w.contains("музык") || w.contains("песн") || w.contains("трек") || w.contains("волн") || aliceSawMusic;
         if ((musicPlaying || aboutMusic) && STOP.matcher(w).lookingAt()) return new Intent(Kind.STOP, "");
         if (musicPlaying && NEXT.matcher(w).find()) return new Intent(Kind.NEXT, "");
+        if (!musicPlaying && RESUME.matcher(w).lookingAt()) return new Intent(Kind.RESUME, "");
+        // "включи свет" is not music; only treat non-music objects as songs when Alice saw music too or words say so.
+        if (!aboutMusic) return null;
         Matcher play = PLAY.matcher(w);
-        if (play.lookingAt() && (aboutMusic || !play.group(1).isBlank())) {
-            String rest = play.group(1).trim();
-            // "включи свет" is not music; only treat non-music objects as songs when Alice saw music too or words say so.
-            if (!aboutMusic && !aliceSawMusic) return null;
-            String query = FILLER.matcher(rest).replaceFirst("").replaceAll("^(группы|группу|исполнителя)\\s+", "").trim();
-            return new Intent(Kind.PLAY, query);
-        }
+        if (play.lookingAt() || play.reset().find()) return new Intent(Kind.PLAY, query(play.group(1)));
+        // Fairy tales are audio books for her, not songs: searching tracks would play "Расскажи сказку" the song.
+        if (aliceSawMusic && !w.isBlank() && !w.contains("сказк")) return new Intent(Kind.PLAY, query(w.replaceAll("^(.*\\s)?(про|о|об)\\s+", "")));
         return null;
+    }
+
+    private static String query(String rest) {
+        return FILLER.matcher(rest.trim()).replaceFirst("").replaceAll("^(группы|группу|исполнителя|самого|самую|самой)\\s+", "").trim();
     }
 }

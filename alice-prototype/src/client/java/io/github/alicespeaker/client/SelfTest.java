@@ -102,29 +102,42 @@ final class SelfTest {
             await("speaker visible to the client", 20, () -> client.world.getBlockState(speaker).isOf(AliceSpeakerMod.SPEAKER), () -> {
                 check(client.world.getBlockState(speaker).isOf(AliceSpeakerMod.SPEAKER), "speaker placed in the world");
                 int settle = ticks + 40;
-                await("player settled", 5, () -> ticks >= settle, this::pickMicrophone);
+                await("player settled", 5, () -> ticks >= settle, this::openSettings);
             });
         });
     }
 
-    // ---- Stage 1b: the microphone menu lists the capture devices and remembers the pick (in this copy's config).
-    private void pickMicrophone() {
-        MicrophoneScreen menu = new MicrophoneScreen(null);
-        client.setScreen(menu);
+    // ---- Stage 1b: "Alice settings" lists the microphones and remembers the pick (in this copy's config); the Yandex
+    // login screen gets a real QR link from the passport and draws it. Nobody scans it: the login itself needs a phone.
+    private void openSettings() {
+        AliceSettingsScreen settings = new AliceSettingsScreen(null);
+        client.setScreen(settings);
         int[] drawn = new int[1];
-        await("microphone menu listed the devices", 20, menu::loaded, () -> { drawn[0] = ticks + 10; await("menu drawn", 2, () -> ticks >= drawn[0], () -> {
-            List<String> devices = menu.listedDevices();
+        await("settings listed the microphones", 20, settings::loaded, () -> { drawn[0] = ticks + 10; await("settings drawn", 2, () -> ticks >= drawn[0], () -> {
+            List<String> devices = settings.listedDevices();
             log("microphones: " + devices.size() + " " + devices);
-            check(menu.loaded() && client.currentScreen == menu, "microphone menu opens");
-            shot("0-microphones");
+            check(settings.loaded() && client.currentScreen == settings, "settings screen opens");
+            log("Yandex login saved: " + (YandexLogin.savedXToken().isBlank() ? "no" : "yes"));
+            shot("0-settings");
             if (!devices.isEmpty()) {
                 Microphone.choose(devices.get(0));
                 check(Microphone.chosen().equals(devices.get(0)), "picked microphone is remembered");
             }
             Microphone.choose("");
-            menu.close();
-            check(client.currentScreen == null, "microphone menu closes");
-            askText();
+            YandexLoginScreen login = new YandexLoginScreen(settings);
+            client.setScreen(login);
+            await("QR code from Yandex", 30, () -> login.qrShown() || login.status().startsWith("Не вышло"), () -> {
+                check(login.qrShown(), "login screen draws a QR code" + (login.qrShown() ? "" : ": " + login.status()));
+                drawn[0] = ticks + 10;
+                await("QR drawn", 2, () -> ticks >= drawn[0], () -> {
+                    shot("0-qr");
+                    login.close();
+                    check(client.currentScreen == settings, "login screen returns to the settings");
+                    settings.close();
+                    check(client.currentScreen == null, "settings screen closes");
+                    askText();
+                });
+            });
         }); });
     }
 
@@ -182,6 +195,12 @@ final class SelfTest {
     // ---- Stage 4: Yandex Music. The web Alice cannot play music, so the mod finds the track itself and plays it
     // from the speaker: a search, "next", then "stop". Needs Yandex Music to be reachable (no VPN).
     private void askMusic() {
+        // Phrases that used to reach Alice and come back as "авторизуйтесь" (from a real game, 25 Oct).
+        checkIntent("нет включи самого оксимирона", false, true, YandexMusic.Kind.PLAY, "оксимирона");
+        checkIntent("алис включи оксимирон трек", false, false, YandexMusic.Kind.PLAY, "оксимирон трек");
+        checkIntent("продолжи", false, false, YandexMusic.Kind.RESUME, "");
+        checkIntent("да какой школе то давай про чебурашку и крокодила гену пожалуйста", false, true, YandexMusic.Kind.PLAY, "чебурашку и крокодила гену");
+        check(YandexMusic.intent("включи свет", false, false) == null, "\"включи свет\" is not music");
         boolean token = YandexMusic.loadToken().length() > 0;
         log("Yandex Music token: " + (token ? "present" : "absent (search only, tracks may be 30 s previews)"));
         log("asking (text): Включи музыку группы Кино");
@@ -208,6 +227,11 @@ final class SelfTest {
         });
     }
 
+    private void checkIntent(String words, boolean playing, boolean aliceSawMusic, YandexMusic.Kind kind, String query) {
+        YandexMusic.Intent intent = YandexMusic.intent(words, playing, aliceSawMusic);
+        check(intent != null && intent.kind() == kind && intent.query().equals(query), "\"" + words + "\" → " + kind + " \"" + query + "\" (got " + intent + ")");
+    }
+
     // ---- Stage 5: breaking the speaker while Alice talks silences her; without a speaker nearby nothing is asked.
     private void breakMidAnswer() {
         asked = owner.finished;   // music commands above were not counted
@@ -223,8 +247,20 @@ final class SelfTest {
                     check(!client.getSoundManager().isPlaying(owner.sound), "breaking the speaker stops Alice's voice");
                     check(AliceSpeakerClient.findSpeaker(client) == null, "no speaker nearby after breaking it");
                     shot("5-broken");
-                    finish();
+                    probeLogin();
                 }));
+        });
+    }
+
+    // ---- Stage 6 (only after a real QR login on this PC): which way of passing the login Alice accepts.
+    private void probeLogin() {
+        if (YandexLogin.savedXToken().isBlank()) { log("login probe skipped: no in-game login"); finish(); return; }
+        log("login probe: asking \"Как меня зовут?\" with each way of passing the login");
+        java.util.concurrent.CompletableFuture<List<String>> probe = owner.probeAuth();
+        await("login probe finished", 400, probe::isDone, () -> {
+            if (probe.isCompletedExceptionally()) fail("login probe crashed");
+            else probe.join().forEach(line -> log("login probe " + line));
+            finish();
         });
     }
 

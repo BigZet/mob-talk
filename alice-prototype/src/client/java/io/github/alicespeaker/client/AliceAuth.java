@@ -10,11 +10,11 @@ import java.nio.file.Path;
  * sync.json is the site's own first WebSocket message (System.SynchronizeState), which carries the login.
  * None of it is ever written to configs or logs.
  */
-record AliceAuth(String cookie, String authToken, String sync) {
+record AliceAuth(String cookie, String authToken, String sync, String oauthToken) {
     static final Path DIR = Path.of(System.getProperty("user.home"), ".alice-speaker");
 
     static AliceAuth load() {
-        return new AliceAuth(read("YA_COOKIE", "cookies.txt").replaceAll("[\\r\\n]+", " "), read("YA_AUTH", "auth_token.txt"), read("YA_SYNC", "sync.json"));
+        return new AliceAuth(read("YA_COOKIE", "cookies.txt").replaceAll("[\\r\\n]+", " "), read("YA_AUTH", "auth_token.txt"), read("YA_SYNC", "sync.json"), "");
     }
 
     boolean hasLogin() { return !cookie.isBlank() || !sync.isBlank(); }

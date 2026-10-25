@@ -9,12 +9,18 @@ alice.yandex.ru (`wss://uniproxy.alice.ya.ru/uni.ws`). Отдельный мод
 - Скрафтить колонку: нотный блок + осколок аметиста (или вкладка «Функциональные блоки»).
 - Встать рядом (до 6 блоков) или навести прицел и **держать B**: говорить, отпустить (максимум 15 секунд).
 - Или написать в чат `/alice включи свет`.
-- Микрофон выбирается в меню: **N** или `/alicemic`. Выбор хранится в `config/alicespeaker.properties`; если устройство отключено, запись идёт с системного.
+- «Настройки Алисы»: **N** или `/alicemic`. Там микрофон (выбор хранится в `config/alicespeaker.properties`; если
+  устройство отключено, запись идёт с системного) и вход в Яндекс.
 - Ответ Алисы появляется в чате, её голос звучит из блока. Сломать блок — голос замолкает.
 
 ## Вход в Яндекс
 
-Мод берёт сессию не из конфига, а отсюда (в git, логи и JAR это не попадает):
+Проще всего из игры: N → «Войти в Яндекс» (или `/alice-login`), отсканировать QR камерой телефона или приложением
+Яндекс и подтвердить. Мод сохранит `x_token.txt`, `account.txt` и `music_token_login.txt` в `%USERPROFILE%\.alice-speaker\`
+и сам выпустит из x_token токен Яндекс Музыки (и новый, если старый перестанет работать). «Выйти» удаляет эти три файла.
+`/alice-authprobe` спрашивает «Как меня зовут?» разными способами передать вход и показывает ответы (отладка).
+
+Старый ручной способ тоже работает (в git, логи и JAR это не попадает):
 
 - `%USERPROFILE%\.alice-speaker\sync.json` — первое исходящее сообщение сайта (`SynchronizeState`) из F12 → Network → WS → `uni.ws` → Messages, правой кнопкой «Copy message». Вход Яндекса едет внутри него;
 - `%USERPROFILE%\.alice-speaker\cookies.txt` — строка заголовка `Cookie` с alice.yandex.ru (одной строкой);
@@ -48,4 +54,6 @@ alice.yandex.ru (`wss://uniproxy.alice.ya.ru/uni.ws`). Отдельный мод
 ## Сборка
 
 `gradlew build` в этой папке → `build/libs/alicespeaker-0.1.0.jar`. Нужны Fabric API и Minecraft 1.21.1.
-Opus декодирует Concentus (BSD-3-Clause), вшит в JAR.
+Opus декодирует Concentus (BSD-3-Clause), вшит в JAR. QR-код рисует QR Code generator от Project Nayuki (MIT,
+`io/nayuki/qrcodegen`, исходники как есть). Порядок входа по QR и обмена x_token повторяет AlexxIT/YandexStation
+(`core/yandex_session.py`, MIT).

@@ -39,6 +39,7 @@ import java.util.concurrent.Executors;
 public final class AliceSpeakerClient implements ClientModInitializer {
     private static final Logger LOG = LoggerFactory.getLogger("alicespeaker");
     private static final int SEARCH_RADIUS = 6;
+    private static final java.util.regex.Pattern MUSIC_REFUSAL = java.util.regex.Pattern.compile("авториз|войдите|не могу включить|слушать музыку", java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.UNICODE_CASE);
     private static final ExecutorService WORKER = Executors.newSingleThreadExecutor(r -> {
         Thread thread = new Thread(r, "alicespeaker-worker");
         thread.setDaemon(true);
@@ -74,7 +75,21 @@ public final class AliceSpeakerClient implements ClientModInitializer {
             // send, not execute: the chat screen closes itself right after the command and would close the menu too.
             dispatcher.register(ClientCommandManager.literal("alicemic").executes(context -> {
                 MinecraftClient client = MinecraftClient.getInstance();
-                client.send(() -> client.setScreen(new MicrophoneScreen(null)));
+                client.send(() -> client.setScreen(new AliceSettingsScreen(null)));
+                return 1;
+            }));
+            dispatcher.register(ClientCommandManager.literal("alice-authprobe").executes(context -> {
+                MinecraftClient client = MinecraftClient.getInstance();
+                notice(client, "Проверяю, какой вход принимает Алиса (до пары минут)…", Formatting.GRAY);
+                probeAuth().whenComplete((lines, failure) -> client.execute(() -> {
+                    if (failure != null) notice(client, "Проверка входа: " + failure.getMessage(), Formatting.RED);
+                    else lines.forEach(line -> notice(client, line, Formatting.GRAY));
+                }));
+                return 1;
+            }));
+            dispatcher.register(ClientCommandManager.literal("alice-login").executes(context -> {
+                MinecraftClient client = MinecraftClient.getInstance();
+                client.send(() -> client.setScreen(new YandexLoginScreen(new AliceSettingsScreen(null))));
                 return 1;
             }));
         });
@@ -82,7 +97,7 @@ public final class AliceSpeakerClient implements ClientModInitializer {
 
     private void tick(MinecraftClient client) {
         if (client.player == null || client.world == null) return;
-        while (micKey.wasPressed()) if (client.currentScreen == null && mic == null) client.setScreen(new MicrophoneScreen(null));
+        while (micKey.wasPressed()) if (client.currentScreen == null && mic == null) client.setScreen(new AliceSettingsScreen(null));
         tickMusic(client);
         boolean held = talkKey.isPressed() && client.currentScreen == null;
         if (held && mic == null) {
@@ -145,7 +160,9 @@ public final class AliceSpeakerClient implements ClientModInitializer {
                     lastError = null;
                     if (!reply.heard().isBlank()) notice(client, "Вы: " + reply.heard(), Formatting.GRAY);
                     // The web chat Alice cannot play music; music requests go to Yandex Music instead of her refusal.
-                    YandexMusic.Intent intent = YandexMusic.intent(text != null ? text : reply.heard(), musicSound != null, reply.music());
+                    // Her music refusals ("авторизуйтесь…", or a bare player directive) mean she heard a music request.
+                    boolean refusedMusic = reply.music() && (reply.text().isBlank() || MUSIC_REFUSAL.matcher(reply.text()).find());
+                    YandexMusic.Intent intent = YandexMusic.intent(text != null ? text : reply.heard(), musicSound != null, refusedMusic);
                     if (intent != null) { handleMusic(client, world, speaker, intent); return; }
                     notice(client, "Алиса: " + (reply.text().isBlank() ? "(ответила без слов)" : reply.text()), Formatting.LIGHT_PURPLE);
                     if (reply.pcm() == null) {
@@ -160,32 +177,83 @@ public final class AliceSpeakerClient implements ClientModInitializer {
 
     record Reply(String text, String heard, byte[] pcm, String voiceProblem, boolean music) { }
 
+    /**
+     * Which login the web Alice accepts: asks "Как меня зовут?" once per way of passing the in-game login (sync.json as
+     * is, an OAuth token in the handshake, session cookies of yandex.ru or ya.ru). Only her answers are reported.
+     */
+    CompletableFuture<List<String>> probeAuth() {
+        return CompletableFuture.supplyAsync(() -> {
+            List<String> lines = new java.util.ArrayList<>();
+            String xToken = YandexLogin.savedXToken();
+            if (xToken.isBlank()) { lines.add("нет входа из игры (x_token.txt)"); return lines; }
+            String sync = AliceAuth.load().sync(), music = YandexLogin.savedMusicToken(), yandexCookies = "", yaCookies = "";
+            try { if (music.isBlank()) music = new YandexLogin().musicToken(xToken); } catch (IOException failure) { lines.add("токен Музыки: " + failure.getMessage()); }
+            try { yandexCookies = new YandexLogin().sessionCookies(xToken, "https://www.yandex.ru"); } catch (IOException failure) { lines.add("cookies yandex.ru: " + failure.getMessage()); }
+            try { yaCookies = new YandexLogin().sessionCookies(xToken, "https://ya.ru"); } catch (IOException failure) { lines.add("cookies ya.ru: " + failure.getMessage()); }
+            logLine("auth probe: sync.json " + (sync.isBlank() ? "no" : "yes") + ", music token " + (music.isBlank() ? "no" : "yes")
+                    + ", yandex.ru cookies " + cookieNames(yandexCookies) + ", ya.ru cookies " + cookieNames(yaCookies));
+            java.util.Map<String, AliceAuth> ways = new java.util.LinkedHashMap<>();
+            ways.put("A sync.json", new AliceAuth("", "", sync, ""));
+            ways.put("B oauth_token=Музыка", new AliceAuth("", "", "", music));
+            ways.put("C sync.json+oauth_token=Музыка", new AliceAuth("", "", sync, music));
+            ways.put("D oauth_token=x_token", new AliceAuth("", "", "", xToken));
+            ways.put("E cookies yandex.ru", new AliceAuth(yandexCookies, "", "", ""));
+            ways.put("F cookies ya.ru", new AliceAuth(yaCookies, "", "", ""));
+            ways.put("G cookies ya.ru+sync.json", new AliceAuth(yaCookies, "", sync, ""));
+            ways.forEach((name, auth) -> {
+                String answer;
+                try { answer = "«" + AliceSession.text("Как меня зовут?", auth, this::logLine).start().get(45, java.util.concurrent.TimeUnit.SECONDS).text() + "»"; }
+                catch (Exception failure) { answer = "ошибка: " + (failure.getCause() != null ? failure.getCause().getMessage() : failure.getMessage()); }
+                logLine("auth probe " + name + ": " + answer);
+                lines.add(name + ": " + answer);
+            });
+            return lines;
+        });
+    }
+
+    private static String cookieNames(String header) {
+        if (header.isBlank()) return "none";
+        return "[" + java.util.Arrays.stream(header.split(";\\s*")).map(c -> c.split("=", 2)[0]).collect(java.util.stream.Collectors.joining(",")) + "]";
+    }
+
     // ---- Yandex Music: a queue of tracks played one after another from the speaker.
     SpeakerVoiceSound musicSound;
     volatile String nowPlaying, musicError;
-    private List<YandexMusic.Track> queue = List.of();
-    private int queueIndex, musicGeneration;
-    private boolean musicStarted, waveQueue;
+    private List<YandexMusic.Track> queue = List.of(), pausedQueue = List.of();
+    private int queueIndex, musicGeneration, pausedIndex;
+    private boolean musicStarted, waveQueue, pausedWave;
     private BlockPos musicSpeaker;
 
     private void handleMusic(MinecraftClient client, ClientWorld world, BlockPos speaker, YandexMusic.Intent intent) {
         logLine("music intent " + intent.kind() + " \"" + intent.query() + "\"");
         switch (intent.kind()) {
-            case STOP -> { stopMusic(); notice(client, "Алиса: Выключаю музыку", Formatting.LIGHT_PURPLE); }
+            case STOP -> {
+                if (!queue.isEmpty()) { pausedQueue = queue; pausedIndex = queueIndex; pausedWave = waveQueue; }
+                stopMusic();
+                notice(client, "Алиса: Выключаю музыку", Formatting.LIGHT_PURPLE);
+            }
             case NEXT -> { if (!queue.isEmpty()) playTrack(client, world, musicSpeaker, queueIndex + 1); }
+            case RESUME -> {
+                // The track starts over: a decoded track is not kept after "стоп". Nothing stopped yet → "My wave".
+                if (pausedQueue.isEmpty()) { handleMusic(client, world, speaker, new YandexMusic.Intent(YandexMusic.Kind.PLAY, "")); return; }
+                queue = pausedQueue;
+                waveQueue = pausedWave;
+                musicSpeaker = speaker;
+                pausedQueue = List.of();
+                playTrack(client, world, speaker, pausedIndex);
+            }
             case PLAY -> {
-                YandexMusic music = new YandexMusic(YandexMusic.loadToken(), this::logLine);
-                if (!music.hasToken() && intent.query().isBlank()) {
-                    musicError = "нет токена";
-                    notice(client, "Для «Моей волны» нужен токен Яндекс Музыки: %USERPROFILE%\\.alice-speaker\\music_token.txt (см. README)", Formatting.RED);
-                    return;
-                }
                 stopMusic();
                 int expected = ++musicGeneration;
                 musicError = null;
                 overlay(client, intent.query().isBlank() ? "Включаю «Мою волну»…" : "Ищу в Яндекс Музыке: " + intent.query());
                 CompletableFuture.supplyAsync(() -> {
-                    try { return music.find(intent.query()); } catch (IOException failure) { throw new java.util.concurrent.CompletionException(failure); }
+                    try {
+                        return YandexMusic.withToken(this::logLine, music -> {
+                            if (!music.hasToken() && intent.query().isBlank()) throw new IOException("для «Моей волны» войдите в Яндекс: N → «Войти в Яндекс»");
+                            return music.find(intent.query());
+                        });
+                    } catch (IOException failure) { throw new java.util.concurrent.CompletionException(failure); }
                 }, WORKER).whenComplete((tracks, failure) -> client.execute(() -> {
                     if (expected != musicGeneration || client.world != world) return;
                     if (failure != null) { musicFailed(client, failure); return; }
@@ -211,10 +279,9 @@ public final class AliceSpeakerClient implements ClientModInitializer {
         queueIndex = index;
         YandexMusic.Track track = queue.get(index);
         int expected = ++musicGeneration;
-        YandexMusic music = new YandexMusic(YandexMusic.loadToken(), this::logLine);
         overlay(client, "Загружаю: " + track.label());
         CompletableFuture.supplyAsync(() -> {
-            try { return music.load(track); } catch (IOException failure) { throw new java.util.concurrent.CompletionException(failure); }
+            try { return YandexMusic.withToken(this::logLine, music -> music.load(track)); } catch (IOException failure) { throw new java.util.concurrent.CompletionException(failure); }
         }, WORKER).whenComplete((audio, failure) -> client.execute(() -> {
             if (expected != musicGeneration || client.world != world) return;
             if (failure != null) { musicFailed(client, failure); return; }
@@ -301,6 +368,7 @@ public final class AliceSpeakerClient implements ClientModInitializer {
         mic = null;
         stopVoice();
         stopMusic();
+        pausedQueue = List.of();
         cancelSession();
     }
 

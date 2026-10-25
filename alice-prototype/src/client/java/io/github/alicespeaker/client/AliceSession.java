@@ -51,7 +51,7 @@ final class AliceSession implements WebSocket.Listener {
 
     private final String text;
     private final byte[] pcm16k;
-    private final String cookie, authToken, sync;
+    private final String cookie, authToken, sync, oauthToken;
     private final Consumer<String> log;
     private final CompletableFuture<Answer> result = new CompletableFuture<>();
     private String uuid = UUID.randomUUID().toString(), appId = APP_ID, appVersion = APP_VERSION, platform = "windows";
@@ -73,6 +73,7 @@ final class AliceSession implements WebSocket.Listener {
         this.cookie = auth.cookie();
         this.authToken = auth.authToken();
         this.sync = auth.sync();
+        this.oauthToken = auth.oauthToken();
         this.log = log;
     }
 
@@ -110,6 +111,8 @@ final class AliceSession implements WebSocket.Listener {
             payload.addProperty("uuid", uuid);
             payload.add("vins", vins);
         }
+        // A user OAuth token in the handshake, as Yandex's SpeechKit clients log in (the value is never logged).
+        if (!oauthToken.isBlank()) payload.addProperty("oauth_token", oauthToken);
         send(event("System", "SynchronizeState", payload, null));
         webSocket.request(1);
     }

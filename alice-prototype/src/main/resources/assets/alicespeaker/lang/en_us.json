@@ -1,7 +1,7 @@
 {
   "block.alicespeaker.speaker": "Alice Speaker",
   "key.alicespeaker.talk": "Talk to Alice (hold)",
-  "key.alicespeaker.microphone": "Choose microphone",
+  "key.alicespeaker.microphone": "Alice settings (microphone, login)",
   "key.categories.alicespeaker": "Alice Speaker",
   "subtitle.alicespeaker.voice": "Alice speaks"
 }
