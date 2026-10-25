@@ -60,14 +60,14 @@ final class AnswerValidator {
             String facts = answer.has("newFacts") ? TextBounds.characters(ReplySchema.string(answer, "newFacts"), MemoryNotes.FACTS_LIMIT) : null;
             String memory = facts != null ? null : TextBounds.characters(ReplySchema.string(answer, "memory"), bounds.memoryLimit());
             MemoryFact fact = facts == null || facts.isBlank() ? null : MemoryFact.of(facts, ReplySchema.importance(answer), System.currentTimeMillis());
-            if (bounds.overheard() && reply.codePoints().noneMatch(Character::isLetter)) return new OpenRouterConversationClient.Answer("", memory, SocialIntent.NONE,
+            if (bounds.overheard() && SpeechTags.strip(reply).codePoints().noneMatch(Character::isLetter)) return new OpenRouterConversationClient.Answer("", memory, SocialIntent.NONE,
                     answer.has("action") && answer.get("action").isJsonObject() ? validateAction(answer.getAsJsonObject("action"), snapshot) : ActionIntent.none(),
                     BargainIntent.none(), DealIntent.none(), "", QuestIntent.none());
             if (reply.isBlank()) throw new IllegalArgumentException();
-            if (reply.codePoints().noneMatch(Character::isLetter))
+            if (SpeechTags.strip(reply).codePoints().noneMatch(Character::isLetter))
                 throw new Rejected("Реплика пустая: в reply нет ни одного слова. Скажи вслух нормальную фразу по характеру.", false);
             // DeepSeek answered about 3% of lines in English despite the rule; such a line must not be voiced to a Russian player.
-            if (foreignWords(reply, snapshot) >= 3)
+            if (foreignWords(SpeechTags.strip(reply), snapshot) >= 3)
                 throw new Rejected("Реплика не на русском. Скажи ту же мысль по-русски, своими словами и в своей манере.", false);
             String echoed = repeated(reply, bounds.recentReplies());
             if (echoed != null) throw new Rejected("Ты почти дословно повторяешь свою недавнюю реплику («" + TextBounds.characters(echoed, 80)
@@ -342,7 +342,8 @@ final class AnswerValidator {
     }
 
     static String spokenText(String reply) {
-        String text = reply.strip().replaceFirst("^[\\p{Punct}\\s«]+(?=[\\p{L}\\d])", "");
+        // A leading "[" opens an intonation tag (SpeechTags), not stray punctuation.
+        String text = reply.strip().replaceFirst("^(?:(?!\\[)[\\p{Punct}\\s«])+(?=[\\p{L}\\d\\[])", "");
         if (reply.strip().startsWith(":") || reply.strip().startsWith("«")) text = text.replaceFirst("[»\"]\\s*$", "");
         // A closing quote with no opening one ("Лучший песик»?") is a typo the voice would read as nothing anyway.
         if (text.indexOf('»') >= 0 && text.indexOf('«') < 0) text = text.replace("»", "");

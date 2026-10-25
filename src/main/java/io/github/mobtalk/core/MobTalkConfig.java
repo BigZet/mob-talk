@@ -28,6 +28,8 @@ public final class MobTalkConfig {
     public String ttsProvider = "openrouter";
     public String ttsModel = "elevenlabs/eleven-flash-v2.5";
     public String veniceTtsModel = "tts-kokoro";
+    /** Пометки интонации «[шёпотом]», «[смеётся]» в репликах ({@link SpeechTags}); работают только с ElevenLabs v3/v4. */
+    public boolean ttsTags = true;
     /** The Venice voice every mob speaks with; Kokoro has no Russian voices, so this is an accent at best. */
     public String veniceVoice = "af_sky";
     /** Как распознаётся речь этого игрока (раздел 3 плана сервера, личная настройка): {@code auto} — локальный Whisper, если он
@@ -284,7 +286,7 @@ public final class MobTalkConfig {
         copy.llmProvider = llmProvider;
         copy.llmModel = llmModel;
         copy.veniceModel = veniceModel;
-        copy.ttsProvider = ttsProvider; copy.ttsModel = ttsModel; copy.veniceTtsModel = veniceTtsModel; copy.veniceVoice = veniceVoice;
+        copy.ttsProvider = ttsProvider; copy.ttsModel = ttsModel; copy.veniceTtsModel = veniceTtsModel; copy.veniceVoice = veniceVoice; copy.ttsTags = ttsTags;
         copy.reasoningEffort = reasoningEffort;
         copy.backgroundModel = backgroundModel;
         copy.sttPath = sttPath; copy.sttModel = sttModel; copy.sttFallbackModel = sttFallbackModel; copy.sttServer = sttServer; copy.sttServerLocal = sttServerLocal;

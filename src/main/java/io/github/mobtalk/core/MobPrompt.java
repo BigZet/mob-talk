@@ -68,7 +68,7 @@ final class MobPrompt {
                 + SocialPrompt.standing(profile)
                 + MemoryRanking.promptBlock(profile.facts, profile.memory, System.currentTimeMillis()) + ConversationSummary.promptBlock(profile.summaries)
                 + SocialPrompt.gestures(profile)
-                + "\n\n" + PromptTexts.VOICE
+                + "\n\n" + PromptTexts.VOICE + SpeechTags.prompt(config)
                 + "Длина: не больше " + words() + " слов, обычно заметно меньше."
                 + (view.sellsAnything() ? "\n\n" + PromptTexts.TRADER_CHARACTER + PromptTexts.stateTrade(state) : "")
                 + "\n\n" + PromptTexts.RULES

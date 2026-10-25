@@ -50,6 +50,7 @@ public final class MobTalkAdminSource implements UnaryOperator<String> {
             new Extra("decider", Tunables.Section.MODEL, "llm", "enum", List.of("rules", "jev"), null, null),
             new Extra("ttsProvider", Tunables.Section.VOICE, "tts", "enum", List.of("openrouter", "venice"), "Кто озвучивает", null),
             new Extra("ttsModel", Tunables.Section.VOICE, "tts", "string", null, null, null),
+            new Extra("ttsTags", Tunables.Section.VOICE, "tts", "bool", null, "Интонации [шёпотом] (ElevenLabs v3/v4)", null),
             new Extra("veniceTtsModel", Tunables.Section.VOICE, "tts", "string", null, "Модель озвучки Venice", null),
             new Extra("veniceVoice", Tunables.Section.VOICE, "tts", "string", null, null, null),
             new Extra("defaultVoice", Tunables.Section.VOICE, "tts", "string", null, "Голос по умолчанию (ElevenLabs)", null),
