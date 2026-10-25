@@ -48,6 +48,7 @@ class NetCodecTest {
         same(SpeechClipS2C.CODEC, new SpeechClipS2C(9, 1, 2, "mp3", bytes(17)));
         same(MobStateS2C.CODEC, new MobStateS2C(42, UUID.randomUUID(), 50, 60, 70, 80, "glad", 1, 35, "отношение +35", 2, "услуга: Колокол 0/1", "leaning", 1));
         same(MobStateS2C.CODEC, new MobStateS2C(42, UUID.randomUUID(), 50, 60, 70, 80, "", 0, -3, "", 0, "", "", 0));
+        same(MobStateS2C.CODEC, new MobStateS2C(42, UUID.randomUUID(), 20, 60, 70, 15, "grief", -1, 10, "", 0, "", "", 0, 30, 7, "grief", 12, "-смерть: Ольга\n-гроза", true));
         same(MobLabelS2C.CODEC, new MobLabelS2C(42, UUID.randomUUID(), "Марфа", "ждёт ребёнка"));
         same(ServerFeaturesS2C.CODEC, new ServerFeaturesS2C("{\"version\":\"0.7.0\",\"sttPaths\":[\"local\",\"text\"]}"));
         same(ScreenDataS2C.CODEC, new ScreenDataS2C("info", "{\"mob\":\"Марфа\"}"));

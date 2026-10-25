@@ -122,8 +122,10 @@ public final class ConversationStore {
         }
         // Whole and not under attack: the nerves settle a little, however the player is regarded.
         boolean attacked = snapshot.mobDetails().get("lastAttacker") instanceof String attacker && !"none".equals(attacker);
-        if (snapshot.maxHealth() > 0 && snapshot.health() >= snapshot.maxHealth() && !attacked && p.state.safe(baseline(p, current.relationship()), now)) scheduleSave();
-        detached.stateView = p.state.view(baseline(p, current.relationship()), now);
+        MobState.Baseline rest = baseline(p, current.relationship(), snapshot.playerId());
+        if (snapshot.maxHealth() > 0 && snapshot.health() >= snapshot.maxHealth() && !attacked && p.state.safe(rest, now)) scheduleSave();
+        if (p.state.evolve(rest, now)) scheduleSave();
+        detached.stateView = p.state.view(rest, now);
         SocialLedger.prepare(state, p, detached, own, snapshot, detached.stateView, config, now, children);
         return detached;
     }
@@ -132,10 +134,127 @@ public final class ConversationStore {
     public synchronized MobState.View stateView(UUID mob, UUID player) {
         Profile p = mob == null ? null : state.profiles.get(mob.toString());
         if (p == null) return null;
-        return p.state.view(baseline(p, relationship(mob, player)), System.currentTimeMillis());
+        return p.state.view(baseline(p, relationship(mob, player), player), System.currentTimeMillis());
     }
     static MobState.Baseline baseline(Profile p, int relationship) { return SocialLedger.baseline(p, MobState.Baseline.of(p.calm, p.confidence, p.curiosity, p.sociability, relationship)); }
-    static void feel(Profile p, Relation r, MobState.Event event, long nowMillis) { p.state.shift(event, baseline(p, r.score), nowMillis); }
+    /** The rest as one player sees it: trust and interest are kept apart for each player. */
+    static MobState.Baseline baseline(Profile p, int relationship, UUID player) { MobState.Baseline b = baseline(p, relationship); return player == null ? b : b.toward(player.toString()); }
+    /** The rest for this relation's player (the key it is kept under). */
+    static MobState.Baseline baseline(Profile p, Relation r) {
+        MobState.Baseline b = baseline(p, r.score);
+        for (Map.Entry<String, Relation> e : p.relations.entrySet()) if (e.getValue() == r) return "unknown".equals(e.getKey()) ? b : b.toward(e.getKey());
+        return b;
+    }
+    static void feel(Profile p, Relation r, MobState.Event event, long nowMillis) { p.state.shift(event, baseline(p, r), nowMillis); }
+    /** The same, remembering who or what ({@code detail}: a player's name, the dead neighbour) with the reason. */
+    static void feel(Profile p, Relation r, MobState.Event event, long nowMillis, String detail) { p.state.shift(event, baseline(p, r), nowMillis, detail); }
+    /** A rest for what touches no player: trust follows the warmest relationship the mob has. */
+    static MobState.Baseline baseline(Profile p) { return baseline(p, p.relations.values().stream().mapToInt(r -> r.score).max().orElse(0)); }
+
+    /** Something every resident of a village feels (a neighbour's death, a wedding, a birth), except those in {@code except}. */
+    void villageFeel(String villageId, java.util.Collection<UUID> except, MobState.Event event, String detail, long now) {
+        if (villageId == null || villageId.isBlank()) return;
+        for (Profile q : state.profiles.values()) {
+            if (!villageId.equals(q.villageId) || except != null && except.contains(q.id)) continue;
+            q.state.shift(event, baseline(q), now, detail);
+        }
+        scheduleSave();
+    }
+
+    /** A feeling from outside the usual paths (the self-test, an admin's hand): the push, then the long moods move on. */
+    public synchronized void recordMood(UUID mob, MobState.Event event, String detail, long now) {
+        Profile p = mob == null || event == null ? null : state.profiles.get(mob.toString());
+        if (p == null) return;
+        p.state.shift(event, baseline(p), now, detail);
+        p.state.evolve(baseline(p), now);
+        scheduleSave();
+    }
+
+    /** The world watch: what lasts around a known mob right now (the game measured it), plus its sleep and its larder; the long
+     * moods move on. Returns whether its marker may have changed (a long mood began or ended), so the nameplate is refreshed. */
+    public synchronized boolean surroundings(UUID mob, UUID player, MoodSample sample, long now) {
+        Profile p = mob == null || sample == null ? null : state.profiles.get(mob.toString());
+        if (p == null) return false;
+        MobState s = p.state;
+        MobState.Baseline rest = player == null ? baseline(p) : baseline(p, relationship(mob, player), player);
+        java.util.EnumSet<MoodFactor> factors = sample.factors().isEmpty() ? java.util.EnumSet.noneOf(MoodFactor.class) : java.util.EnumSet.copyOf(sample.factors());
+        boolean changed = false;
+        if (sample.villager()) {
+            // Hunger grows from the last meal (first seen: just fed); the world watch feeds it, see meal().
+            if (s.fedAt <= 0) { s.fedAt = now; s.fullFor = Hunger.fullFor(Hunger.Meal.HEARTY, Tuning.get().moodHungerMinutes); changed = true; }
+            Hunger.Level hunger = Hunger.level(s.fedAt, s.fullFor, now, Tuning.get().moodHungerMinutes);
+            if (hunger.factor != null) factors.add(hunger.factor);
+            if (!sample.larder() && Tuning.get().moodHungerMinutes > 0) factors.add(MoodFactor.EMPTY_LARDER);
+            // Sleep: a night seen awake and never asleep leaves it sleepless until it sleeps; a long sleep is a good morning.
+            if (sample.sleeping()) {
+                if (!s.asleep) { s.asleep = true; s.asleepSince = now; }
+                s.sleptNight = sample.night(); s.sleepless = false;
+            } else {
+                if (s.asleep) { s.asleep = false; if (now - s.asleepSince >= 90_000L) { s.shift(MobState.Event.GOOD_SLEEP, rest, now); changed = true; } }
+                if (sample.dark()) {
+                    if (s.awakeNight != sample.night()) { s.awakeNight = sample.night(); s.awakeCount = 0; }
+                    s.awakeCount++;
+                } else if (s.awakeNight == sample.night() && s.sleptNight != sample.night() && s.awakeCount >= 6) s.sleepless = true;
+            }
+            if (s.sleepless) factors.add(MoodFactor.SLEEPLESS);
+        }
+        if (p.villageId != null && !p.villageId.isBlank() && state.divine.curseOn(p.villageId, now) != null) factors.add(MoodFactor.CURSE);
+        if (!sample.near().isEmpty()) {
+            for (FamilyTree.Kin kin : state.family.kin(mob)) if (!kin.player() && !kin.dead() && sample.near().contains(kin.id())) { factors.add(MoodFactor.FAMILY_NEAR); break; }
+            for (MobRelations.View bond : state.relations.views(p.id, now)) if (bond.friend() && sample.near().contains(bond.other())) { factors.add(MoodFactor.FRIEND_NEAR); break; }
+        }
+        if (Tuning.get().moodWorldPercent <= 0) factors.clear();
+        MoodSpell before = s.spell();
+        changed |= s.surroundings(factors, rest, now);
+        changed |= s.evolve(rest, now);
+        MoodSpell after = s.spell();
+        if (after != before && after != null) event(p, now, "Тебя накрыло долгое состояние: " + after.word(female(p)) + " (" + after.voice(female(p)) + ")", MemoryRanking.HELP);
+        if (changed) scheduleSave();
+        return after != before;
+    }
+
+    /** Puts a creature straight into a long mood (live probes and self-tests). */
+    public synchronized boolean beginSpell(UUID mob, MoodSpell spell, long now) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        if (p == null || !p.state.begin(spell, baseline(p), now)) return false;
+        scheduleSave();
+        return true;
+    }
+
+    /** How hungry the creature is now ({@link Hunger}); a stranger and a creature never watched are full. */
+    public synchronized Hunger.Level hunger(UUID mob, long now) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        return p == null ? Hunger.Level.FED : Hunger.level(p.state.fedAt, p.state.fullFor, now, Tuning.get().moodHungerMinutes);
+    }
+
+    /** It ate: full again for as long as the meal holds. Eaten while hungry it is a reason (who shared it in {@code from});
+     * fed by a player when hungry or starving ({@code player} not null) it is a kindness that player is remembered for. */
+    public synchronized void meal(UUID mob, Hunger.Meal meal, String from, UUID player, String playerName, long now) {
+        Profile p = mob == null || meal == null ? null : state.profiles.get(mob.toString());
+        if (p == null) return;
+        MobState s = p.state;
+        Hunger.Level before = Hunger.level(s.fedAt, s.fullFor, now, Tuning.get().moodHungerMinutes);
+        s.fedAt = now; s.fullFor = Hunger.fullFor(meal, Tuning.get().moodHungerMinutes);
+        MobState.Baseline rest = player == null ? baseline(p) : baseline(p, relationship(mob, player), player);
+        if (before.atLeast(Hunger.Level.HUNGRY) && player != null) {
+            Relation r = relation(p, player);
+            feel(p, r, MobState.Event.FED_IN_NEED, now, playerName);
+            event(p, now, "Игрок " + named(player, playerName) + " накормил тебя, когда ты голодал" + (female(p) ? "а" : ""), MemoryRanking.HELP);
+        } else if (before != Hunger.Level.FED) s.shift(meal.event, rest, now, from == null || from.isBlank() ? null : from);
+        // A full stomach ends the hunger at once rather than after its linger.
+        s.drop(java.util.EnumSet.of(MoodFactor.PECKISH, MoodFactor.HUNGRY, MoodFactor.STARVING), rest, now);
+        scheduleSave();
+    }
+
+    /** The village larder as the world watch counted it: food (meals) in the pockets of the residents it saw, for the admin. */
+    public record Larder(int meals, int residents, int hungry, long at) { }
+    private final Map<String, Larder> larders = new HashMap<>();
+    public synchronized void larder(String villageId, int meals, int residents, int hungry, long now) {
+        if (villageId != null && !villageId.isBlank()) larders.put(villageId, new Larder(meals, residents, hungry, now));
+    }
+    public synchronized Larder larder(String villageId) { return villageId == null ? null : larders.get(villageId); }
+
+    static boolean female(Profile p) { return p != null && p.social != null && p.social.gender() == Gender.FEMALE; }
 
     /** Create/view a profile from immutable context without waiting for any disk operation. */
     public synchronized MobCard observe(MobSnapshot snapshot) { profile(snapshot); return card(snapshot.id(), snapshot.playerId()); }
@@ -144,7 +263,7 @@ public final class ConversationStore {
         Profile p = ensure(mob, type, name); Relation r = relation(p, player);
         // A blow always ends a friendship or a truce: the first drops a stranger to −80, every later one leaves the mob displeased.
         r.score = r.hits++ == 0 ? Math.min(-80, r.score) : Math.max(-100, Math.min(r.score, 0) - 20);
-        feel(p, r, MobState.Event.HIT, nowMillis);
+        feel(p, r, MobState.Event.HIT, nowMillis, playerName);
         p.revision++;
         event(p, nowMillis, "Игрок " + named(player, playerName) + " ударил моба; отношение " + r.score, MemoryRanking.HIT); scheduleSave();
     }
@@ -359,6 +478,12 @@ public final class ConversationStore {
             break;
         }
         String text = DivineTidings.rumorText(deed, name);
+        // Those who saw it or suffered it feel it in the bones: a punishment frightens, a miracle brings grace.
+        if (!far && (deed.kind().wrath() || deed.kind() == DivineTidings.Kind.MIRACLE))
+            for (UUID id : everyone.keySet()) {
+                Profile q = state.profiles.get(id.toString());
+                if (q != null) q.state.shift(deed.kind() == DivineTidings.Kind.MIRACLE ? MobState.Event.DIVINE_MIRACLE : MobState.Event.DIVINE_WRATH, baseline(q), now, deed.title());
+            }
         String rumorId = state.rumors.addDivine(villageId, deed.id(), text, teller, tellerId, name, named ? soul.id().toString() : "",
                 reaction.importance(), named ? reaction.sign() : 0, residents, now);
         int change = 0, wraths = 0;
@@ -569,8 +694,8 @@ public final class ConversationStore {
         long now = System.currentTimeMillis();
         String name = p.givenName.isBlank() ? p.name : p.givenName, species = SpeciesCatalog.get(p.type).name();
         List<String> events = p.events.stream().map(e -> e.text).toList();
-        return cue != null ? DecisionState.forCue(mob, name, species, p.state.view(baseline(p, score), now), p.sociability, p.curiosity, score, state.relations.views(mob, now), cue, events)
-                : DecisionState.forHeard(mob, name, species, p.state.view(baseline(p, score), now), p.sociability, p.curiosity, score, state.relations.views(mob, now), speaker, said, eventful, events);
+        return cue != null ? DecisionState.forCue(mob, name, species, p.state.view(baseline(p, score, player), now), p.sociability, p.curiosity, score, state.relations.views(mob, now), cue, events)
+                : DecisionState.forHeard(mob, name, species, p.state.view(baseline(p, score, player), now), p.sociability, p.curiosity, score, state.relations.views(mob, now), speaker, said, eventful, events);
     }
     // ---- What mobs think of each other, see MobRelations: reads give detached views, writes run under the lock. ----
     public synchronized List<MobRelations.View> bonds(UUID mob, long nowMillis) { return state.relations.views(mob, nowMillis); }
@@ -866,7 +991,7 @@ public final class ConversationStore {
                 score, p.memory, p.turns,
                 eventsForPlayer(p, player), p.revision, p.action,
                 p.calm, p.confidence, p.curiosity, p.sociability, p.preference, p.fear, p.customPersonality,
-                p.state.view(baseline(p, score), System.currentTimeMillis()),
+                p.state.view(baseline(p, score, player), System.currentTimeMillis()),
                 p.social == null || p.social.age() == null ? "" : p.social.age().word(p.social.gender()));
     }
     public synchronized List<MobCard> cards(UUID player) { return state.profiles.keySet().stream().map(UUID::fromString).map(id -> card(id, player)).toList(); }
@@ -914,6 +1039,40 @@ public final class ConversationStore {
         for (Profile p : state.profiles.values()) if (villageId != null && villageId.equals(p.villageId)) n++;
         return n;
     }
+    /** How a village feels as a whole, for the web admin: the average mood, nerves and energy of its residents with a known state,
+     * how many are low ({@code mood < 35}) or bright ({@code mood > 65}), who is in which long mood, and the reasons most of them
+     * share (a storm, a raid, a death), most common first. Trust is left out: it is kept for each player. */
+    public record VillageMood(int counted, int mood, int calm, int energy, int low, int bright, Map<String, Integer> spells, List<SharedReason> reasons) {
+        public static final VillageMood NONE = new VillageMood(0, 50, 50, 60, 0, 0, Map.of(), List.of());
+    }
+    /** A reason {@code count} residents share; {@code sign} is the sign it has for most of them. */
+    public record SharedReason(String text, int sign, int count) { }
+
+    public synchronized VillageMood villageMood(String villageId, long now) {
+        if (villageId == null || villageId.isBlank()) return VillageMood.NONE;
+        int counted = 0, mood = 0, calm = 0, energy = 0, low = 0, bright = 0;
+        Map<String, Integer> spells = new TreeMap<>();
+        Map<String, int[]> reasons = new LinkedHashMap<>();
+        for (Profile p : state.profiles.values()) {
+            if (!villageId.equals(p.villageId) || p.state == null) continue;
+            MobState.View v = p.state.view(baseline(p), now);
+            counted++; mood += v.mood(); calm += v.calm(); energy += v.energy();
+            if (v.mood() < 35) low++;
+            if (v.mood() > 65) bright++;
+            if (v.spell() != null) spells.merge(v.spell().key, 1, Integer::sum);
+            for (MobState.Reason r : v.reasons()) {
+                int[] tally = reasons.computeIfAbsent(r.text(), k -> new int[2]);
+                tally[0]++; tally[1] += Integer.signum(r.sign());
+            }
+        }
+        if (counted == 0) return VillageMood.NONE;
+        List<SharedReason> shared = new ArrayList<>();
+        reasons.forEach((text, tally) -> shared.add(new SharedReason(text, Integer.signum(tally[1]), tally[0])));
+        shared.sort(Comparator.comparingInt(SharedReason::count).reversed());
+        return new VillageMood(counted, Math.round(mood / (float) counted), Math.round(calm / (float) counted), Math.round(energy / (float) counted),
+                low, bright, spells, shared.size() > 5 ? List.copyOf(shared.subList(0, 5)) : List.copyOf(shared));
+    }
+
     /** What the village says right now, weightiest first. */
     /** News the game tells the village without a model (a robbery in the night streets): every resident knows it at once; the
      * teller is the first witness, or nobody. Returns the rumour's id, "" when there is no such village. */

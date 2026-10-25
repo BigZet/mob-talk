@@ -96,8 +96,21 @@ final class MobStateSync {
         }
         MobStateS2C packet = new MobStateS2C(mob.entityId(), mob.id(), state == null ? 50 : state.calm(), state == null ? 50 : state.trust(),
                 state == null ? 50 : state.interest(), state == null ? 50 : state.mood(), marker == null ? "" : marker.key(), marker == null ? 0 : marker.sign(),
-                card.relationship(), ScreenReports.relationshipLabel(card), hearts(card), favor, bargain, bargainSign);
+                card.relationship(), ScreenReports.relationshipLabel(card), hearts(card), favor, bargain, bargainSign,
+                state == null ? 60 : state.energy(), state == null ? -1 : state.face(), state == null || state.spell() == null ? "" : state.spell().key,
+                state == null ? 0 : (int) (state.spellMillis() / 60_000L), reasons(state), state != null && state.female());
         if (stale || !packet.equals(tracker.states.get(mob.id()))) { tracker.states.put(mob.id(), packet); out.state(player, packet); }
+    }
+
+    /** Причины для карточки над головой: «+друг рядом», «-гроза», по строке, не больше трёх. */
+    static String reasons(MobState.View state) {
+        if (state == null) return "";
+        StringBuilder out = new StringBuilder();
+        for (MobState.Reason reason : state.reasons().stream().limit(3).toList()) {
+            if (!out.isEmpty()) out.append('\n');
+            out.append(reason.sign() > 0 ? '+' : reason.sign() < 0 ? '-' : '~').append(reason.text());
+        }
+        return out.toString();
     }
 
     private static int hearts(MobCard card) {

@@ -19,6 +19,13 @@ final class MobPrompt {
 
     /** Words the reply may hold, from the config. */
     int words() { return Math.max(5, Math.min(120, config.maxReplyWords)); }
+    /** The words the state lets the reply have: a depressed or panicking mob says much less ({@link MobState.View#lengthPercent},
+     * scaled by {@link MobTalkConfig#moodReplyPercent}); never more than {@link #words()}, which stays the hard cut. */
+    int words(MobState.View state) {
+        int percent = Math.min(100, state.lengthPercent()), weight = Math.max(0, Math.min(100, config.moodReplyPercent));
+        double factor = 1 - (100 - percent) / 100.0 * weight / 100.0;
+        return Math.max(4, (int) Math.round(words() * factor));
+    }
 
     /** The creature's own life comes first — who it is, how it talks, what it wants, what it hides, how it feels right now —
      * then the player, the voice, the answer format; trading is one side of the character, not its purpose. */
@@ -47,7 +54,8 @@ final class MobPrompt {
                 + SocialPrompt.persona(profile)
                 + official(snapshot, profile)
                 + robbery(snapshot)
-                + (species.quirks().isBlank() ? "" : "\nКак ты говоришь, твои фирменные штучки: " + sentence(species.quirks()))
+                + (species.quirks().isBlank() ? "" : "\nКак ты говоришь, твои фирменные штучки: " + sentence(species.quirks())
+                        + " Каждое обращение и словечко отсюда — не больше одного раза за разговор, а большинство реплик — без них.")
                 + (desire.isBlank() ? "" : "\nЧего ты хочешь от жизни: " + sentence(desire)
                         + " Это твоя личная цель: ты её преследуешь, иногда заводишь о ней речь — но не в каждой реплике — и судишь игрока по тому, помогает он ей или мешает.")
                 + (secret.isBlank() ? "" : "\nТвоя тайна: " + sentence(secret)
@@ -58,7 +66,7 @@ final class MobPrompt {
                 + "\nТемперамент (0..100, вслух не называй): спокойствие=" + profile.calm + ", уверенность=" + profile.confidence
                 + ", любопытство=" + profile.curiosity + ", общительность=" + profile.sociability + "."
                 + "\n\nСейчас ты " + mood(snapshot, profile) + " Начинай разговор из этого состояния, а не с чистого листа."
-                + "\n\n" + state.describe() + "\n" + PromptTexts.STATE_RULE
+                + "\n\n" + state.describe(snapshot.playerDetails().get("name") instanceof String nick ? nick : "") + "\n" + PromptTexts.STATE_RULE
                 + "\n\n" + Situation.of(snapshot, profile).describe()
                 + PlacePrompt.block(snapshot)
                 + wedding(snapshot)
@@ -70,7 +78,7 @@ final class MobPrompt {
                 + MemoryRanking.promptBlock(profile.facts, profile.memory, System.currentTimeMillis()) + ConversationSummary.promptBlock(profile.summaries)
                 + SocialPrompt.gestures(profile)
                 + "\n\n" + PromptTexts.VOICE
-                + "Длина: не больше " + words() + " слов, обычно заметно меньше."
+                + "Длина: не больше " + words(state) + " слов, обычно заметно меньше."
                 + (view.sellsAnything() ? "\n\n" + PromptTexts.TRADER_CHARACTER + PromptTexts.stateTrade(state) : "")
                 + "\n\n" + PromptTexts.RULES
                 + PromptTexts.ANSWER_FIELDS
@@ -79,6 +87,9 @@ final class MobPrompt {
         // Last on purpose: in tests models ignored a mid-prompt level and kept the archetype's politeness.
         String rudeness = PromptTexts.RUDENESS[Math.max(0, Math.min(3, config.rudeness))];
         system += "\n\nГлавное в манере речи сейчас — " + Character.toLowerCase(rudeness.charAt(0)) + rudeness.substring(1) + PromptTexts.RUDENESS_TAIL;
+        // The state after the manner: in tests a mid-prompt state was heard only in the first words, then the archetype took over.
+        String voice = config.moodReplyPercent > 0 ? state.voice() : "";
+        if (!voice.isEmpty()) system += "\n\n" + PromptTexts.stateVoice(voice);
         if (config.commonPrompt != null && !config.commonPrompt.isBlank())
             system += "\n\nНастройка мира от игрока (важнее стиля выше): " + TextBounds.characters(config.commonPrompt, 8000);
         return system;
@@ -359,7 +370,7 @@ final class MobPrompt {
         TradingView view = TradingView.of(snapshot);
         if (!view.villagerOffers()) return "";
         if (view.spokenAvailable()) return SpokenOffer.summary(view.spoken());
-        if (!view.windowOpen()) return "\n\nТорг: окно торговли закрыто — цены сейчас не меняются, новых цен не называй и скидку не обещай.";
+        if (!view.windowOpen()) return "\n\nТорг: торговля с тобой не открыта — цены сейчас не меняются, новых цен не называй и скидку не обещай. Про то, что торговлю надо открыть, скажи не больше одного раза за разговор.";
         Map<?,?> context = view.bargaining();
         String unit = context.get("firstBuy") instanceof Map<?,?> first ? String.valueOf(first.get("name")) : "предмет";
         String result = context.get("sell") instanceof Map<?,?> sell ? sell.get("count") + "× " + sell.get("name") : "товар";

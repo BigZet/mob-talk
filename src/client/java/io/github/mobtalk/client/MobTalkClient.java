@@ -100,6 +100,7 @@ public final class MobTalkClient implements ClientModInitializer {
     UUID selected;
     KeyBinding talkKey, settingsKey, tradeKey, giftKey, familyKey;
     private final MobLabels labels = new MobLabels(this);
+    final MoodCard moodCard = new MoodCard(this);
     private final ChildView children = new ChildView(this);
     final MobViews views = new MobViews();
     private final ClipAssembler clips = new ClipAssembler();
@@ -139,6 +140,7 @@ public final class MobTalkClient implements ClientModInitializer {
         tradeKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.trade", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_B, "category.mobtalk"));
         giftKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.gift", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_G, "category.mobtalk"));
         familyKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.family", InputUtil.Type.KEYSYM, InputUtil.UNKNOWN_KEY.getCode(), "category.mobtalk"));
+        moodCard.key = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.mood", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_ALT, "category.mobtalk"));
         MomentClient.register(configDirectory); // Метки для монтажа: клавиша, OBS (идея З4).
         net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_ENTITIES.register(labels::render);
         ChildView.register();
@@ -155,6 +157,7 @@ public final class MobTalkClient implements ClientModInitializer {
                     @Override public void reload(net.minecraft.resource.ResourceManager manager) { io.github.mobtalk.client.human.HumanTextures.reload(); }
                 });
         net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback.EVENT.register(children::renderFade);
+        net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback.EVENT.register(moodCard::render);
         ScreenEvents.AFTER_INIT.register((minecraft, screen, width, height) -> {
             if (screen instanceof GameMenuScreen) {
                 boolean pack = ModHubScreen.packInstalled();
@@ -756,7 +759,7 @@ public final class MobTalkClient implements ClientModInitializer {
                 : far != null && far != mob ? "в прицеле: " + far.getName().getString() + " (далеко, подойдите) · " : "";
         net.minecraft.text.MutableText line = Text.literal("Mob Talk · " + aimLabel + targetLabel);
         if (mob != null && state != null && config.showStateHud && !labelled && !state.word().isEmpty())
-            line.append(Text.translatable("mobtalk.state." + state.word()).formatted(state.wordSign() < 0 ? net.minecraft.util.Formatting.RED
+            line.append(Text.literal(MoodCard.word(state.word(), state.female())).formatted(state.wordSign() < 0 ? net.minecraft.util.Formatting.RED
                     : state.wordSign() > 0 ? net.minecraft.util.Formatting.GREEN : net.minecraft.util.Formatting.GRAY)).append(Text.literal(" · "));
         if (mob != null && state != null && config.showBargainHud && !state.bargain().isEmpty())
             line.append(Text.literal("торг: ")).append(Text.translatable("mobtalk.bargain." + state.bargain()).formatted(state.bargainSign() < 0 ? net.minecraft.util.Formatting.RED
