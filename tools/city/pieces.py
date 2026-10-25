@@ -18,6 +18,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import nbt  # noqa: E402
+import landmarks  # noqa: E402
 import yards  # noqa: E402
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -679,6 +680,29 @@ def add_prospekts():
     print("prospekts:", made)
 
 
+LANDMARK_SHARE = 0.04  # each landmark about once in a city of some twenty-five plots
+
+
+def add_landmarks():
+    """The local buildings after the Pushchino panoramas, a few per city, on the same plots as the houses."""
+    built = landmarks.build_all(save, sign_nbt)
+    for rel, suffix in HOUSE_POOLS.items():
+        path = os.path.join(DATA, "worldgen", "template_pool", "city", rel + ".json")
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        data["elements"] = [e for e in data["elements"] if "/ours/landmark/" not in e["element"].get("location", "")]
+        total = sum(e["weight"] for e in data["elements"])
+        weight = max(1, round(total * LANDMARK_SHARE))
+        for b in built:
+            if b.endswith("_5th") != bool(suffix):
+                continue
+            for w in [150] * (weight // 150) + ([weight % 150] if weight % 150 else []):
+                data["elements"].append({"weight": w, "element": {"location": "mobtalk:city/" + b, "processors": "minecraft:empty",
+                                                                  "projection": "rigid", "element_type": "minecraft:single_pool_element"}})
+        write_json("worldgen/template_pool/city/" + rel + ".json", data)
+    print("landmarks:", len(built), "templates")
+
+
 def level_streets():
     """Streets lie flat like the houses (rigid, not following the hills): with the box beard the whole city stands on one level."""
     root = os.path.join(DATA, "worldgen", "template_pool", "city")
@@ -705,6 +729,7 @@ def main():
     level_streets()
     russify_signs()
     add_yards()
+    add_landmarks()
     add_prospekts()
     decorate_all()
     write_json("tags/worldgen/biome/has_structure/city.json", {"replace": False, "values": BIOMES})
