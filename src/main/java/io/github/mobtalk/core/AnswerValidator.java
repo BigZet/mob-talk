@@ -306,7 +306,7 @@ final class AnswerValidator {
         // The item is the game's, the story is the model's: a request for melon slices told as «find my lost book» leaves the player
         // carrying the wrong thing. The spoken line must name what is asked for, and a title about something else is replaced.
         String itemName = String.valueOf(candidate.get("itemName"));
-        if (!mentions(SpeechTags.strip(reply), itemName))
+        if (!mentions(reply, itemName))
             throw new Rejected("Ты просишь " + count + "× " + itemName + " (quest OFFER), но в реплике об этом ни слова. Скажи прямо, что тебе нужно именно это и зачем; "
                     + "если твоя беда про другую вещь, которой нет в trading.favor.candidates, ничего не проси — quest NONE.", true, true);
         if (!mentions(title, itemName)) title = itemName;
