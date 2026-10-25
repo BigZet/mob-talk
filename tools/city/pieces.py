@@ -18,6 +18,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import nbt  # noqa: E402
+import furnish  # noqa: E402
 import landmarks  # noqa: E402
 import yards  # noqa: E402
 
@@ -732,6 +733,7 @@ def main():
     add_landmarks()
     add_prospekts()
     decorate_all()
+    furnish.run(sys.modules[__name__])
     write_json("tags/worldgen/biome/has_structure/city.json", {"replace": False, "values": BIOMES})
     # A city is a village to the game too (maps, /locate #village, Mob Talk's VillageSites).
     tag = os.path.join(ROOT, "src", "main", "resources", "data", "minecraft", "tags", "worldgen", "structure", "village.json")

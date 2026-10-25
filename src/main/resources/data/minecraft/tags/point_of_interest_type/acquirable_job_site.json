@@ -3,6 +3,7 @@
   "values": [
     "mobtalk:archer_post",
     "mobtalk:guard_post",
+    "mobtalk:crossbow_post",
     "mobtalk:cash_register",
     "mobtalk:shop_guard_desk",
     "mobtalk:market_vendor"

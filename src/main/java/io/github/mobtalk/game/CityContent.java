@@ -111,7 +111,9 @@ public final class CityContent {
         if (registered) return;
         registered = true;
         List<Item> items = new ArrayList<>();
-        for (Spec spec : SPECS) {
+        List<Spec> all = new ArrayList<>(SPECS);
+        all.addAll(CityInterior.SPECS);
+        for (Spec spec : all) {
             AbstractBlock.Settings settings = AbstractBlock.Settings.create().mapColor(spec.color).strength(1.5f).sounds(spec.sound)
                     .nonOpaque().luminance(state -> spec.light);
             Block block = spec.id.startsWith("car_") ? new CarBlock(settings, spec) : new DecorBlock(settings, spec);

@@ -621,7 +621,20 @@ public final class MobGameBridge implements GameBridge {
         MobGameBridge bridge = active(world.getServer());
         return bridge != null && bridge.defense.blocksSpawn(world, entity);
     }
+    /** From the trade-show mixin: a fighter of the village or a tower's builder keeps its weapon or block in hand. */
+    public static boolean keepsHands(VillagerEntity villager) {
+        if (DefenseContent.defender(villager)) return true;
+        MobGameBridge bridge = forEntity(villager);
+        return bridge != null && villager.getWorld() instanceof ServerWorld world && bridge.defense.towers.builds(world, villager);
+    }
     /** From the panic mixin: a guard on duty stands its ground at a monster or a blow instead of fleeing (village defence). */
+    /** From the zombie mixin: this villager, killed by a zombie, dies rather than turning (village defence). */
+    public static boolean blocksZombieConversion(VillagerEntity villager) {
+        if (DefenseContent.defender(villager)) return true;
+        MobGameBridge bridge = forEntity(villager);
+        return bridge != null && bridge.config.enabled && bridge.config.villageNoConversion;
+    }
+
     public static boolean guardStandsGround(VillagerEntity villager) {
         MobGameBridge bridge = forEntity(villager);
         return bridge != null && bridge.defense.guards.standsGround(villager);

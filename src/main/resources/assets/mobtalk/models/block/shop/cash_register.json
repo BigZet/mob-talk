@@ -358,36 +358,36 @@
           "texture": "#screen",
           "uv": [
             5,
-            -1.5,
+            0,
             11,
-            1
+            2.5
           ]
         },
         "south": {
           "texture": "#plastic",
           "uv": [
             5,
-            -1.5,
+            0,
             11,
-            1
+            2.5
           ]
         },
         "east": {
           "texture": "#plastic",
           "uv": [
             5.5,
-            -1.5,
+            0,
             6.8,
-            1
+            2.5
           ]
         },
         "west": {
           "texture": "#plastic",
           "uv": [
             5.5,
-            -1.5,
+            0,
             6.8,
-            1
+            2.5
           ]
         },
         "up": {

@@ -73,17 +73,18 @@ def corgi(rel="houses/corgi_fifth/shop/supermarket"):
 
 
 def pavilion(rel):
-    """The landmark universam (inside x 4..11, z 2..18, floor at y 5, doors west at z 5 and 15): tills and gates by the doors,
-    gondolas and produce down the middle, cases, freezers and bread racks along the back wall."""
+    """The landmark universam (inside x 4..11, z 2..18, floor at y 5, doors west at z 5 and 15; the ground floor is the shop's,
+    the office upstairs is tools/city/landmarks.py's): tills and gates by the doors, gondolas and produce down the middle,
+    cases, freezers and bread racks along the back wall."""
     t = pieces.Template(rel)
-    if furnished(t) or t.name_at(11, 5, 3) != "minecraft:barrel":
+    if furnished(t):
         return 0
     y = 5
     for z in (3, 6, 9, 12, 15):  # the placeholder barrels and slabs
         air(t, 11, y, z)
         air(t, 6, y, z)
-    for z in range(2, 19):
-        kind = "shop_fridge" if z <= 6 or z >= 16 else "shop_freezer" if z <= 11 else "shop_bread_rack"
+    for z in range(2, 16):  # (the stairs to the office upstairs are in the back corner, z 17..18)
+        kind = "shop_fridge" if z <= 6 else "shop_freezer" if z <= 11 else "shop_bread_rack"
         put(t, 11, y, z, kind, "west")
     for z in range(3, 10):
         put(t, 8, y, z, "shop_shelf", "west")
@@ -95,8 +96,7 @@ def pavilion(rel):
     put(t, 5, y, 13, "cash_register", "west")
     for z in (4, 6, 14, 16):
         put(t, 4, y, z, "theft_gate", "north")
-    put(t, 4, y, 2, "basket_stack", "east")
-    put(t, 4, y, 18, "basket_stack", "east")
+    put(t, 4, y, 2, "basket_stack", "east")  # (the cart corral goes in the other corner, see carts())
     put(t, 5, y, 17, "shop_guard_desk", "west")
     t.save()
     return 1
