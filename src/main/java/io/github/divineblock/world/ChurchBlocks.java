@@ -51,6 +51,10 @@ public final class ChurchBlocks {
         return AbstractBlock.Settings.create().mapColor(color).strength(3f, 9f).sounds(BlockSoundGroup.METAL).nonOpaque().pistonBehavior(PistonBehavior.BLOCK);
     }
 
+    private static AbstractBlock.Settings gilded() {
+        return AbstractBlock.Settings.create().mapColor(MapColor.GOLD).strength(2f, 6f).sounds(BlockSoundGroup.WOOD);
+    }
+
     public static final Block DOME_CROSS = register("dome_cross", new DomeCrossBlock(metal(MapColor.GOLD)));
     public static final Block CROSS_APPLE = register("cross_apple", new Decor(metal(MapColor.GOLD), Block.createCuboidShape(4, 0, 4, 12, 16, 12), false));
     public static final Block CHURCH_BELL = register("church_bell", new ChurchBellBlock(metal(MapColor.ORANGE).strength(5f, 12f)));
@@ -60,6 +64,11 @@ public final class ChurchBlocks {
             Block.createCuboidShape(1, 0, 1, 15, 14, 15), true));
     public static final Block CHANDELIER = register("chandelier", new Decor(metal(MapColor.GOLD).luminance(state -> 15).noCollision(),
             Block.createCuboidShape(4, 0, 4, 12, 16, 12), true));
+    /** The stone iconostasis' gilded carving (scripts/gen_gilded_assets.py): the gold-leaf ground in its frames, the columns
+     * with a grapevine winding up them, the cornice between the tiers. */
+    public static final Block GILDED_GROUND = register("gilded_ground", new Block(gilded()));
+    public static final Block GILDED_COLUMN = register("gilded_column", new Block(gilded()));
+    public static final Block GILDED_CORNICE = register("gilded_cornice", new Block(gilded()));
     public static final Block ANALOY = register("analoy", new AnaloyBlock(AbstractBlock.Settings.create().mapColor(MapColor.RED).strength(1.5f)
             .sounds(BlockSoundGroup.WOOL).nonOpaque()));
 

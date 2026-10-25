@@ -93,10 +93,17 @@ public final class ChurchYard extends StructurePiece {
                     if (state.isAir()) continue;
                     boolean leaves = state.isIn(BlockTags.LEAVES) && !(state.contains(LeavesBlock.PERSISTENT) && state.get(LeavesBlock.PERSISTENT));
                     boolean tree = leaves || state.isOf(Blocks.VINE)
-                            || (state.isIn(BlockTags.LOGS) && !planted || state.isOf(Blocks.SNOW) && y > floor) && !church.contains(at);
+                            || (state.isIn(BlockTags.LOGS) && !planted || state.isOf(Blocks.SNOW) && y > floor) && (!church.contains(at) || wild(state));
                     if (tree) world.setBlockState(at, Blocks.AIR.getDefaultState(), 2);
                 }
             }
+    }
+
+    /** A tree's trunk inside the church's box: KAIZEN87's church has only stripped logs of its own (the drawn churches are
+     * built of logs, so there the box keeps every log); a forest trunk standing in its gaps stays hanging once its crown is swept. */
+    private boolean wild(BlockState state) {
+        return variant == ChurchBuilder.Variant.SLAVIC && state.isIn(BlockTags.LOGS)
+                && !net.minecraft.registry.Registries.BLOCK.getId(state.getBlock()).getPath().startsWith("stripped_");
     }
 
     // ---- Layout (church coordinates; the open yard is x -32..88, z -38..38, the wall stands one block outside). ----
@@ -271,13 +278,16 @@ public final class ChurchYard extends StructurePiece {
         for (int x : new int[] { wx - 2, wx + 2 }) {
             for (int z = -2; z <= 2; z++) canvas.set(x, 6, z, TRIM);
             canvas.set(x, 5, -2, TRIM); canvas.set(x, 5, 2, TRIM);
-            canvas.set(x, 7, 0, icon(x < wx ? ChurchBlocks.IconBlock.TRINITY : ChurchBlocks.IconBlock.THEOTOKOS, x < wx ? Direction.WEST : Direction.EAST));
-            canvas.set(x, 6, 0, Blocks.GOLD_BLOCK.getDefaultState());
+            // The icons hang on the face of the wall (an icon block set into it is a dark hole with a board at the back).
+            int out = x < wx ? -1 : 1;
+            Direction facing = x < wx ? Direction.WEST : Direction.EAST;
+            canvas.set(x + out, 7, 0, icon(x < wx ? ChurchBlocks.IconBlock.TRINITY : ChurchBlocks.IconBlock.THEOTOKOS, facing));
             // The kokoshniks: a tall one in the middle, a smaller one each side.
             Ornament.kokoshnik(canvas, false, x, 0, 2, 10, 4, BRICK, TRIM_STAIRS, GOLD);
             Ornament.kokoshnik(canvas, false, x, -4, 1, 10, 2, BRICK, TRIM_STAIRS, TRIM);
             Ornament.kokoshnik(canvas, false, x, 4, 1, 10, 2, BRICK, TRIM_STAIRS, TRIM);
-            canvas.set(x, 11, 0, icon(ChurchBlocks.IconBlock.CHRIST, x < wx ? Direction.WEST : Direction.EAST));
+            canvas.set(x, 11, 0, BRICK);
+            canvas.set(x + out, 11, 0, icon(ChurchBlocks.IconBlock.CHRIST, facing));
         }
         // Behind the kokoshniks: a roof of tiles over the gate, the drum, the onion, the cross.
         for (int z = -5; z <= 5; z++) {
@@ -298,7 +308,8 @@ public final class ChurchYard extends StructurePiece {
                 canvas.set(x, 11, z, GOLD);
                 canvas.set(x, 12, z, ChurchBlocks.CROSS_APPLE.getDefaultState());
             }
-        // Lanterns under the arch.
+        // The lantern under the arch, on a chain from its crown.
+        canvas.set(wx, 5, 0, Blocks.CHAIN.getDefaultState());
         canvas.set(wx, 4, 0, Blocks.LANTERN.getDefaultState().with(LanternBlock.HANGING, true));
     }
 
@@ -319,12 +330,13 @@ public final class ChurchYard extends StructurePiece {
             }
         for (int z : new int[] { wz - 1, wz + 1 }) {
             Ornament.kokoshnik(canvas, true, z, gx, 3, 7, 3, BRICK, TRIM_STAIRS, GOLD);
-            canvas.set(gx, 8, z, icon(z < wz ? ChurchBlocks.IconBlock.CHRIST : ChurchBlocks.IconBlock.NICHOLAS, z < wz ? Direction.NORTH : Direction.SOUTH));
+            canvas.set(gx, 8, z + (z < wz ? -1 : 1), icon(z < wz ? ChurchBlocks.IconBlock.CHRIST : ChurchBlocks.IconBlock.NICHOLAS, z < wz ? Direction.NORTH : Direction.SOUTH));
         }
         for (int x = gx - 2; x <= gx + 2; x++) canvas.set(x, 7, wz, TILE);
         for (int y = 8; y <= 10; y++) { canvas.set(gx, y, wz, y == 10 ? TRIM : BRICK); }
         Ornament.onion(canvas, gx, wz, 11, 0.8, 1.6, 5, (dx, dz, h) -> GOLD);
         cross(canvas, gx, 16, wz, Direction.Axis.X);
+        canvas.set(gx, 4, wz, Blocks.CHAIN.getDefaultState());
         canvas.set(gx, 3, wz, Blocks.LANTERN.getDefaultState().with(LanternBlock.HANGING, true));
     }
 

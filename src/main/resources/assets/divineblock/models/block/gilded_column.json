@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/cube_column",
+  "textures": {
+    "side": "divineblock:block/gilded_column",
+    "end": "divineblock:block/gilded_column_top"
+  }
+}

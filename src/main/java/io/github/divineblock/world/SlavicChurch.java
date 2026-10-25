@@ -49,8 +49,106 @@ public final class SlavicChurch {
         BlockPos at = frame.world(ANCHOR_X, 0, ANCHOR_Z);
         StructurePlacementData data = new StructurePlacementData().setRotation(frame.rotation().rotate(BlockRotation.CLOCKWISE_180))
                 .setBoundingBox(chunkBox).setIgnoreEntities(true).setUpdateNeighbors(false);
+        if (solids == null) solids = solids(template.get());
         template.get().place(world, at, at, data, random, Block.NOTIFY_LISTENERS);
+        restore(world, chunkBox, template.get(), data, at);
         underfill(world, chunkBox, frame);
+        unrail(world, chunkBox, frame);
+    }
+
+    /** The template's solid blocks in the church's coordinates (x, z, then the heights), read once. */
+    private static volatile java.util.Map<Long, java.util.BitSet> solids;
+    private static java.util.Map<Long, java.util.BitSet> solids(StructureTemplate template) {
+        net.minecraft.nbt.NbtCompound nbt = template.writeNbt(new net.minecraft.nbt.NbtCompound());
+        net.minecraft.nbt.NbtList palette = nbt.getList("palette", net.minecraft.nbt.NbtElement.COMPOUND_TYPE);
+        java.util.Map<Long, java.util.BitSet> map = new java.util.HashMap<>();
+        for (net.minecraft.nbt.NbtElement element : nbt.getList("blocks", net.minecraft.nbt.NbtElement.COMPOUND_TYPE)) {
+            net.minecraft.nbt.NbtCompound block = (net.minecraft.nbt.NbtCompound) element;
+            String name = palette.getCompound(block.getInt("state")).getString("Name");
+            if (name.equals("minecraft:air") || name.equals("minecraft:light") || name.equals("minecraft:structure_void")) continue;
+            net.minecraft.nbt.NbtList pos = block.getList("pos", net.minecraft.nbt.NbtElement.INT_TYPE);
+            map.computeIfAbsent(key(ANCHOR_X - pos.getInt(0), ANCHOR_Z - pos.getInt(2)), k -> new java.util.BitSet()).set(pos.getInt(1));
+        }
+        return map;
+    }
+    private static long key(int x, int z) { return ((long) x << 32) | (z & 0xffffffffL); }
+
+    /** The canvas writing only inside the author's church: under its roof (some block of the template over the spot), and
+     * over the author's own masonry only below the arches' springing (the piers the deacon door passes through). */
+    private static ChurchBuilder.Canvas indoors(ChurchBuilder.Canvas canvas) {
+        java.util.Map<Long, java.util.BitSet> map = solids;
+        if (map == null) return canvas;
+        return new ChurchBuilder.Canvas() {
+            boolean inside(int x, int y, int z) {
+                java.util.BitSet heights = map.get(key(x, z));
+                if (heights == null || heights.nextSetBit(y + 1) < 0) return false;
+                return !heights.get(y) || y < STAND + 9;
+            }
+            @Override public void set(int x, int y, int z, BlockState state) { if (inside(x, y, z)) canvas.set(x, y, z, state); }
+            @Override public void foundation(int x, int y, int z, BlockState state) { canvas.foundation(x, y, z, state); }
+            @Override public void chest(int x, int y, int z, BlockState state) { canvas.chest(x, y, z, state); }
+            @Override public boolean column(int x, int z) { return canvas.column(x, z); }
+        };
+    }
+
+    /** The author's fine detail hangs on blocks a survival player could not hang it on: buttons and signs on walls and fences,
+     * levers, tripwire hooks, doors on slabs. Placing the template checks every block against its neighbours and drops
+     * those (about nine hundred, the facade's pattern of buttons among them), so they are set back as the template has them. */
+    private static void restore(StructureWorldAccess world, BlockBox chunkBox, StructureTemplate template, StructurePlacementData data, BlockPos at) {
+        for (StructureTemplate.StructureBlockInfo info : fragile(template)) {
+            BlockPos pos = StructureTemplate.transform(data, info.pos()).add(at);
+            if (!chunkBox.contains(pos) || !world.getBlockState(pos).isAir()) continue;
+            world.setBlockState(pos, info.state().mirror(data.getMirror()).rotate(data.getRotation()), Block.NOTIFY_LISTENERS | Block.FORCE_STATE);
+            if (info.nbt() == null) continue;
+            net.minecraft.block.entity.BlockEntity entity = world.getBlockEntity(pos);
+            if (entity != null) entity.read(info.nbt(), world.getRegistryManager());
+        }
+    }
+    private static java.util.List<StructureTemplate.StructureBlockInfo> fragile;
+    private static synchronized java.util.List<StructureTemplate.StructureBlockInfo> fragile(StructureTemplate template) {
+        if (fragile != null) return fragile;
+        java.util.List<StructureTemplate.StructureBlockInfo> found = new java.util.ArrayList<>();
+        StructurePlacementData plain = new StructurePlacementData();
+        for (Block block : net.minecraft.registry.Registries.BLOCK) {
+            BlockState state = block.getDefaultState();
+            if (state.isIn(net.minecraft.registry.tag.BlockTags.BUTTONS) || state.isIn(net.minecraft.registry.tag.BlockTags.ALL_SIGNS)
+                    || state.isIn(net.minecraft.registry.tag.BlockTags.DOORS) || block == Blocks.LEVER || block == Blocks.TRIPWIRE_HOOK)
+                found.addAll(template.getInfosForBlock(BlockPos.ORIGIN, plain, block));
+        }
+        return fragile = java.util.List.copyOf(found);
+    }
+
+    /** For the self-test: the template's blocks that are not standing in the world where it put them, counted by
+     * "expected -> found" (only the block's kind is compared: stairs and fences take their shapes from their neighbours),
+     * with up to {@code samples} positions noted. This mod's fittings and the cut-away railing differ by design. */
+    public static java.util.Map<String, Integer> templateDiff(ServerWorld world, ChurchPiece.Frame frame, java.util.List<String> samples, int max) {
+        java.util.Map<String, Integer> diff = new java.util.TreeMap<>();
+        Optional<StructureTemplate> template = world.getStructureTemplateManager().getTemplate(TEMPLATE);
+        if (template.isEmpty()) return diff;
+        BlockPos at = frame.world(ANCHOR_X, 0, ANCHOR_Z);
+        StructurePlacementData data = new StructurePlacementData().setRotation(frame.rotation().rotate(BlockRotation.CLOCKWISE_180)).setIgnoreEntities(true);
+        for (Block block : net.minecraft.registry.Registries.BLOCK) {
+            if (block == Blocks.AIR || block == Blocks.STRUCTURE_VOID) continue;
+            for (StructureTemplate.StructureBlockInfo info : template.get().getInfosForBlock(at, data, block)) {
+                Block found = world.getBlockState(info.pos()).getBlock();
+                if (found == block) continue;
+                String key = net.minecraft.registry.Registries.BLOCK.getId(block).getPath() + " -> " + net.minecraft.registry.Registries.BLOCK.getId(found).getPath();
+                diff.merge(key, 1, Integer::sum);
+                if (samples.size() < max) samples.add(key + " @ " + ChurchYard.local(frame, info.pos()).toShortString());
+            }
+        }
+        return diff;
+    }
+
+    /** The author's island had a glass railing round the church's plinth (light grey panes on the floor's level, y = 2): in a
+     * churchyard it stands as a glass fence round the walls, so it goes. */
+    private static void unrail(StructureWorldAccess world, BlockBox chunkBox, ChurchPiece.Frame frame) {
+        BlockBox box = ChurchPiece.box(frame, ChurchBuilder.Variant.SLAVIC);
+        BlockPos.Mutable pos = new BlockPos.Mutable();
+        int y = frame.origin().getY() + 2;
+        for (int x = Math.max(box.getMinX(), chunkBox.getMinX()); x <= Math.min(box.getMaxX(), chunkBox.getMaxX()); x++)
+            for (int z = Math.max(box.getMinZ(), chunkBox.getMinZ()); z <= Math.min(box.getMaxZ(), chunkBox.getMaxZ()); z++)
+                if (world.getBlockState(pos.set(x, y, z)).isOf(Blocks.LIGHT_GRAY_STAINED_GLASS_PANE)) world.setBlockState(pos, Blocks.AIR.getDefaultState(), Block.NOTIFY_LISTENERS);
     }
 
     /** The template's floor stands at y = 2 over the ground at y = -1 (its island was cut away): the gap under every floor block
@@ -76,13 +174,18 @@ public final class SlavicChurch {
         // The second lectern with its carpet before the sanctuary, the levers by the holy table.
         for (int x = 53; x <= 55; x++) canvas.set(x, ALTAR_Y, 0, air);
         canvas.set(ALTAR_X, ALTAR_Y, -1, air); canvas.set(ALTAR_X, ALTAR_Y, 1, air);
-        // The iconostasis across the nave's east end (the stone church's, moved here) and a step up behind the royal doors.
-        ChurchBuilder.iconostasis(ChurchBuilder.shifted(canvas, ICONOSTASIS_X - ChurchBuilder.ICONOSTASIS_X, STAND - 1, 0), true);
+        // The iconostasis across the nave's east end (the stone church's, moved here) and a step up behind the royal doors. It
+        // is wider and taller than the author's sanctuary arch: where it would rise over the side aisles' roofs, or into the
+        // arch above, the author's masonry stays.
+        ChurchBuilder.iconostasis(ChurchBuilder.shifted(indoors(canvas), ICONOSTASIS_X - ChurchBuilder.ICONOSTASIS_X, STAND - 1, 0), true);
         for (int z = -1; z <= 0; z++) {
             canvas.set(ICONOSTASIS_X + 1, STAND, z, ChurchBuilder.stair(Blocks.SMOOTH_SANDSTONE_STAIRS, Direction.EAST, StairShape.STRAIGHT));
             canvas.set(ICONOSTASIS_X + 1, STAND + 1, z, air);
             canvas.set(ICONOSTASIS_X + 1, STAND + 2, z, air);
         }
+        // The south deacon door opens on the author's sanctuary wall (a pier, a candle and two lightning rods behind it): a way
+        // is cut through to the side room beyond, as the north door has one.
+        for (int x = ICONOSTASIS_X + 1; x <= ICONOSTASIS_X + 2; x++) for (int y = STAND; y <= STAND + 2; y++) canvas.set(x, y, 5, air);
         // The sanctuary: the god's altar as the holy table, the seven-branched stand behind it, the vestry chest.
         canvas.set(ALTAR_X, ALTAR_Y, 0, DivineBlockMod.ALTAR.getDefaultState());
         canvas.set(ALTAR_X + 2, ALTAR_Y, 0, ChurchBlocks.CANDLE_STAND.getDefaultState());

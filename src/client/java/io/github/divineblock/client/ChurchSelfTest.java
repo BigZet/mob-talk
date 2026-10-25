@@ -198,6 +198,15 @@ public final class ChurchSelfTest {
             if (state.isOf(io.github.divineblock.world.ChurchBlocks.CHURCH_BELL)) bells++;
             else if (state.isOf(io.github.divineblock.world.ChurchBlocks.DOME_CROSS)) crosses++;
         }
+        if (slavic) {
+            // KAIZEN87's template against the world: what of it went missing or was overwritten.
+            List<String> samples = new ArrayList<>();
+            Map<String, Integer> diff = SlavicChurch.templateDiff(world, frame, samples, 400);
+            int lost = diff.values().stream().mapToInt(Integer::intValue).sum();
+            log("  шаблон KAIZEN87: не на месте " + lost + " блоков");
+            diff.entrySet().stream().sorted((a, b) -> b.getValue() - a.getValue()).limit(60).forEach(e -> log("    " + e.getValue() + " × " + e.getKey()));
+            for (String sample : samples) log("      " + sample);
+        }
         int bellsWanted = slavic ? SlavicChurch.BELLS : 7;
         check(bells == bellsWanted, "колоколов на звоннице: " + bells + " (ждём " + bellsWanted + "), поворот " + site.rotation());
         // KAIZEN87's church keeps the author's own crosses on its spires; ours stand on the drawn churches.
@@ -286,6 +295,25 @@ public final class ChurchSelfTest {
         };
         steps.add(new Step(10, () -> { player.changeGameMode(GameMode.SPECTATOR); world.setTimeOfDay(4000); hud = false; moody = true; }));
         int nave = ChurchBuilder.NAVE_X, mainCross = stone ? 48 : 55, cornerCross = stone ? 39 : 28;
+        if (site.variant() == ChurchBuilder.Variant.SLAVIC) {
+            // The spawn church's details up close, as a player on foot sees them: the Holy Gate from both sides, the
+            // iconostasis and its deacon door, the plinth of the church, the chapel on the north side.
+            shot.accept("s01-holy-gate-inside", new double[] { -24, 1.6, 0.5, -33, 4.5, 0.5, 120 });
+            shot.accept("s02-holy-gate-outside", new double[] { -42, 2.6, 0.5, -33, 6, 0.5, 120 });
+            shot.accept("s03-iconostasis", new double[] { 44, 4.6, 0.5, 52, 7, 0.5, 100 });
+            shot.accept("s04-deacon-door", new double[] { 49, 4.6, 7.5, 53, 4.2, 5.5, 80 });
+            shot.accept("s04b-behind-deacon-door", new double[] { 56.5, 4.6, 5.5, 52, 4.2, 5.5, 80 });
+            shot.accept("s05-north-porch", new double[] { 36, 2.6, -33, 50, 6, -22, 120 });
+            shot.accept("s06-chapel", new double[] { 30, 1.6, -27, 44, 7, -32, 100 });
+            shot.accept("s07-west-front", new double[] { -20, 3, 0.5, 0, 8, 0.5, 120 });
+            shot.accept("s08-south-porch", new double[] { 36, 2.6, 33, 50, 6, 22, 120 });
+            shot.accept("s09-corner-nw", new double[] { -28, 16, -34, 36, 10, 0, 140 });
+            shot.accept("s10-corner-ne", new double[] { 84, 16, -34, 36, 10, 0, 140 });
+            shot.accept("s11-corner-sw", new double[] { -28, 16, 34, 36, 10, 0, 140 });
+            shot.accept("s12-corner-se", new double[] { 84, 16, 34, 36, 10, 0, 140 });
+            shot.accept("s13-south-gate", new double[] { 28, 2.6, 30, 28, 5, 39, 100 });
+            if (Boolean.getBoolean("divineblock.churchtest.quick")) return;
+        }
         shot.accept("01-west-gate", new double[] { -30, 30, -35, 22, 16, 0, 160 });
         shot.accept("02-northwest-yard", new double[] { -26, 12, -30, 30, 18, 0, 120 });
         shot.accept("03-south", new double[] { 25, 24, 64, 25, 20, 0, 140 });
@@ -394,6 +422,8 @@ public final class ChurchSelfTest {
         if (index >= steps.size()) return;
         Step step = steps.get(index);
         Scheduler.later(Math.max(1, step.delay()), () -> {
+            // A screenshot still waiting for the chunks to draw: the camera stays until it is taken.
+            if (screenshot != null) { run(steps, index); return; }
             try { step.action().run(); } catch (RuntimeException failure) { fail("шаг упал: " + failure); DivineBlockMod.LOG.warn("самотест церкви", failure); }
             run(steps, index + 1);
         });

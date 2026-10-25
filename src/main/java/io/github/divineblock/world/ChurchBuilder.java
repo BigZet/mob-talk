@@ -542,9 +542,9 @@ public final class ChurchBuilder {
      * its line. */
     static void iconostasis(Canvas canvas, boolean stone) {
         int x = ICONOSTASIS_X, top = stone ? 15 : 13;
-        BlockState back = stone ? Blocks.GOLD_BLOCK.getDefaultState() : Blocks.DARK_OAK_PLANKS.getDefaultState();
-        BlockState beam = stone ? Blocks.GOLD_BLOCK.getDefaultState() : Blocks.STRIPPED_DARK_OAK_LOG.getDefaultState().with(PillarBlock.AXIS, Direction.Axis.Z);
-        BlockState column = stone ? Blocks.RAW_GOLD_BLOCK.getDefaultState() : Blocks.STRIPPED_DARK_OAK_LOG.getDefaultState();
+        BlockState back = stone ? ChurchBlocks.GILDED_GROUND.getDefaultState() : Blocks.DARK_OAK_PLANKS.getDefaultState();
+        BlockState beam = stone ? ChurchBlocks.GILDED_CORNICE.getDefaultState() : Blocks.STRIPPED_DARK_OAK_LOG.getDefaultState().with(PillarBlock.AXIS, Direction.Axis.Z);
+        BlockState column = stone ? ChurchBlocks.GILDED_COLUMN.getDefaultState() : Blocks.STRIPPED_DARK_OAK_LOG.getDefaultState();
         BlockState soleas = (stone ? Blocks.SMOOTH_QUARTZ_SLAB : Blocks.SPRUCE_SLAB).getDefaultState().with(SlabBlock.TYPE, SlabType.BOTTOM);
         for (int z = -10; z <= 10; z++) { canvas.set(46, 1, z, soleas); canvas.set(47, 1, z, soleas); }
         for (int z = -2; z <= 2; z++) canvas.set(45, 1, z, soleas);
