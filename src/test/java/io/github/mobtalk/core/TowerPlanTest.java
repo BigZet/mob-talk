@@ -16,8 +16,27 @@ class TowerPlanTest {
         return block == null ? TowerPlan.Kind.AIR : block.kind();
     }
 
-    @Test void theStairClimbsToThePlatformWithHeadroom() {
-        Map<String, TowerPlan.Block> state = finalState(TowerPlan.plan());
+    @Test void theStairClimbsToThePlatformWithHeadroom() { climbs(finalState(TowerPlan.plan())); }
+
+    @Test void aLargeTowerClimbsTheSameAndHasFourPosts() {
+        Map<String, TowerPlan.Block> state = finalState(TowerPlan.plan(true));
+        climbs(state);
+        int r = TowerPlan.LARGE_RADIUS, top = TowerPlan.PLATFORM + 1;
+        assertEquals(TowerPlan.Kind.DOOR_LOWER, at(state, 0, 1, -r));
+        assertEquals(TowerPlan.Kind.AIR, at(state, 0, 1, -r + 1), "a room between the door and the stair");
+        assertEquals(TowerPlan.Kind.AIR, at(state, 0, 1, -r - 1), "the way in is clear");
+        for (int[] p : new int[][] { {0, -2}, {0, 2} }) assertEquals(TowerPlan.Kind.POST_BLOCK, at(state, p[0], top, p[1]), "an archer's post");
+        for (int[] p : new int[][] { {-2, 0}, {2, 0} }) assertEquals(TowerPlan.Kind.CROSSBOW_POST, at(state, p[0], top, p[1]), "a crossbowman's post");
+        assertEquals(TowerPlan.Kind.AIR, at(state, 0, top, 0), "no post in the middle of a large tower");
+        for (int[] p : new int[][] { {0, -2}, {0, 2}, {-2, 0}, {2, 0} }) {
+            assertNotEquals(TowerPlan.Kind.AIR, at(state, p[0], TowerPlan.PLATFORM, p[1]), "the post stands on the platform");
+            int sx = p[0] == 0 ? 1 : p[0], sz = p[0] == 0 ? p[1] : 1; // a cell beside the post towards the middle row
+            assertEquals(TowerPlan.Kind.AIR, at(state, sx, top, sz), "room beside the post at " + sx + "," + sz);
+        }
+        assertEquals(TowerPlan.Kind.RAIL, at(state, 0, top, r), "the railing runs round the large platform");
+    }
+
+    private static void climbs(Map<String, TowerPlan.Block> state) {
         List<TowerPlan.Block> steps = state.values().stream().filter(b -> b.kind() == TowerPlan.Kind.STAIR)
                 .sorted(Comparator.comparingInt(TowerPlan.Block::y)).toList();
         assertEquals(TowerPlan.PLATFORM, steps.size());
