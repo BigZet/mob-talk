@@ -1,0 +1,264 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "wicker": "mobtalk:block/city2/furniture/wicker",
+    "laundry_plaid": "mobtalk:block/city2/furniture/laundry_plaid",
+    "particle": "mobtalk:block/city2/furniture/wicker"
+  },
+  "elements": [
+    {
+      "from": [
+        4.0,
+        0.0,
+        5.0
+      ],
+      "to": [
+        12.0,
+        10.0,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#wicker",
+          "uv": [
+            4.0,
+            6.0,
+            12.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#wicker",
+          "uv": [
+            4.0,
+            6.0,
+            12.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#wicker",
+          "uv": [
+            3.0,
+            6.0,
+            11.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#wicker",
+          "uv": [
+            5.0,
+            6.0,
+            13.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#wicker",
+          "uv": [
+            4.0,
+            5.0,
+            12.0,
+            13.0
+          ]
+        },
+        "down": {
+          "texture": "#wicker",
+          "uv": [
+            4.0,
+            3.0,
+            12.0,
+            11.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.5,
+        10.0,
+        4.5
+      ],
+      "to": [
+        12.5,
+        11.0,
+        13.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#wicker",
+          "uv": [
+            3.5,
+            5.0,
+            12.5,
+            6.0
+          ]
+        },
+        "south": {
+          "texture": "#wicker",
+          "uv": [
+            3.5,
+            5.0,
+            12.5,
+            6.0
+          ]
+        },
+        "east": {
+          "texture": "#wicker",
+          "uv": [
+            2.5,
+            5.0,
+            11.5,
+            6.0
+          ]
+        },
+        "west": {
+          "texture": "#wicker",
+          "uv": [
+            4.5,
+            5.0,
+            13.5,
+            6.0
+          ]
+        },
+        "up": {
+          "texture": "#wicker",
+          "uv": [
+            3.5,
+            4.5,
+            12.5,
+            13.5
+          ]
+        },
+        "down": {
+          "texture": "#wicker",
+          "uv": [
+            3.5,
+            2.5,
+            12.5,
+            11.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        7.0,
+        11.0,
+        8.0
+      ],
+      "to": [
+        9.0,
+        11.5,
+        10.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#wicker",
+          "uv": [
+            7.0,
+            4.5,
+            9.0,
+            5.0
+          ]
+        },
+        "south": {
+          "texture": "#wicker",
+          "uv": [
+            7.0,
+            4.5,
+            9.0,
+            5.0
+          ]
+        },
+        "east": {
+          "texture": "#wicker",
+          "uv": [
+            6.0,
+            4.5,
+            8.0,
+            5.0
+          ]
+        },
+        "west": {
+          "texture": "#wicker",
+          "uv": [
+            8.0,
+            4.5,
+            10.0,
+            5.0
+          ]
+        },
+        "up": {
+          "texture": "#wicker",
+          "uv": [
+            7.0,
+            8.0,
+            9.0,
+            10.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        9.0,
+        7.0,
+        4.5
+      ],
+      "to": [
+        11.0,
+        10.0,
+        5.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#laundry_plaid",
+          "uv": [
+            5.0,
+            6.0,
+            7.0,
+            9.0
+          ]
+        },
+        "east": {
+          "texture": "#laundry_plaid",
+          "uv": [
+            11.0,
+            6.0,
+            11.5,
+            9.0
+          ]
+        },
+        "west": {
+          "texture": "#laundry_plaid",
+          "uv": [
+            4.5,
+            6.0,
+            5.0,
+            9.0
+          ]
+        },
+        "up": {
+          "texture": "#laundry_plaid",
+          "uv": [
+            9.0,
+            4.5,
+            11.0,
+            5.0
+          ]
+        },
+        "down": {
+          "texture": "#laundry_plaid",
+          "uv": [
+            9.0,
+            11.0,
+            11.0,
+            11.5
+          ]
+        }
+      }
+    }
+  ]
+}

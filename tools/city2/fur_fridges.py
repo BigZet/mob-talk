@@ -39,11 +39,11 @@ def saratov():
 
     def build():
         m = Model()
-        # the little «Саратов»: 1.05 m, rounded shoulders, a chrome lever on the side
+        # the «Саратов»: 1.5 m, rounded shoulders, a chrome lever on the side
         m.box((4, 0, 6), (12, 1, 15), "black", down=None, up=None)
-        m.box((3.5, 1, 5.5), (12.5, 16, 15.5), "enamel", down=None, up=None, north=Pic("door", door))
-        m.box((4, 16, 6), (12, 16.75, 15), "enamel", down=None)
-        m.box((10, 6, 4.5), (11, 9.5, 5.5), "chrome")
+        m.box((3.5, 1, 5.5), (12.5, 23, 15.5), "enamel", down=None, up=None, north=Pic("door", door))
+        m.box((4, 23, 6), (12, 24, 15), "enamel", down=None)
+        m.box((10, 12, 4.5), (11, 16, 5.5), "chrome")
         return m
     return build
 
@@ -52,7 +52,7 @@ def minsk():
     def door(cv, W, H):
         t = enamel_face(cv, ENAMEL)
         # two doors: the freezer on top, a black rubber gap between them, the badge on the big door
-        gap = cv.h * 9 // 27
+        gap = cv.h * 10 // 30
         cv.hline(1, cv.w - 1, gap, rgb("3a3a3c"))
         cv.hline(1, cv.w - 1, gap + 1, t[5])
         cv.hline(1, cv.w - 1, gap - 1, t[3])
@@ -64,10 +64,10 @@ def minsk():
 
     def build():
         m = Model()
-        # the two-chamber «Минск-15»: 1.75 m, a freezer door over the main one, a long chrome handle on each
+        # the two-chamber «Минск-15»: 1.95 m, a freezer door over the main one, a long chrome handle on each
         m.box((3, 0, 5.5), (13, 1, 15), "black", down=None, up=None)
-        m.box((2.5, 1, 5), (13.5, 28, 15.5), "enamel", down=None, north=Pic("door", door))
-        for y0, y1 in ((20.5, 26), (9, 17)):
+        m.box((2.5, 1, 5), (13.5, 31, 15.5), "enamel", down=None, north=Pic("door", door))
+        for y0, y1 in ((23, 29), (10, 19)):
             m.box((10.5, y0, 3.75), (11.5, y1, 4.5), "chrome")
             m.box((10.75, y0 + 0.5, 4.5), (11.25, y0 + 1.5, 5), "chrome", north=None, south=None)
             m.box((10.75, y1 - 1.5, 4.5), (11.25, y1 - 0.5, 5), "chrome", north=None, south=None)
@@ -94,11 +94,11 @@ def biryusa():
 
     def build():
         m = Model()
-        # the cream «Бирюса»: 1.4 m, a lace napkin on top with a little vase on it
+        # the cream «Бирюса»: 1.6 m, a lace napkin on top with a little vase on it
         m.box((3.5, 0, 5.5), (12.5, 1, 15), "black", down=None, up=None)
-        m.box((3, 1, 5), (13, 22, 15.5), "enamel_cream", down=None, north=Pic("door", door), up=Pic("top", top))
-        m.box((7, 22, 9), (9, 25, 11), "glass_red", down=None)
-        m.box((7.5, 25, 9.5), (8.5, 26, 10.5), "glass_red", down=None)
+        m.box((3, 1, 5), (13, 26, 15.5), "enamel_cream", down=None, north=Pic("door", door), up=Pic("top", top))
+        m.box((7, 26, 9), (9, 29, 11), "glass_red", down=None)
+        m.box((7.5, 29, 9.5), (8.5, 30, 10.5), "glass_red", down=None)
         return m
     return build
 

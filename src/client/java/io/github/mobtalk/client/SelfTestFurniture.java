@@ -116,6 +116,9 @@ final class SelfTestFurniture {
         put("apt_washer", 25, 0, 3, Direction.EAST);
         put("apt_towel_rail", 28, 1, 5, Direction.WEST);
         put("apt_radiator", 26, 0, 6, Direction.NORTH);
+        put("apt_washer_malyutka", 25, 0, 5, Direction.EAST);
+        put("apt_basin_zinc", 26, 0, 5, Direction.NORTH);
+        put("apt_laundry_basket", 28, 0, 5, Direction.WEST);
         put("apt_picture_wave", 5, 1, 0, Direction.SOUTH);
     }
 
@@ -125,6 +128,7 @@ final class SelfTestFurniture {
         put("apt_lamp_cone", 13, 2, 5, Direction.SOUTH);                                 // over the kitchen table
         put("apt_lamp_horns", 20, 2, 3, Direction.SOUTH);
         put("apt_lamp_ball", 26, 2, 3, Direction.SOUTH);
+        put("apt_dryer_liana", 26, 2, 0, Direction.SOUTH);  // over the bath
     }
 
     private static final BlockPos LAMP = new BlockPos(5, 2, 2);
@@ -256,7 +260,9 @@ final class SelfTestFurniture {
                 {"27.5 0 5.5", "150 20", "furniture-12-bath-eye"}, {"6.5 0 1.5", "20 8", "furniture-13-curtains-eye"},
                 {"1.5 0 4.5", "-125 -24", "furniture-15-living-lamp"}, {"13.5 0 1.5", "0 -30", "furniture-16-kitchen-lamp"},
                 {"22.5 0 0.5", "40 -25", "furniture-17-bedroom-lamp"},
-                {"25.5 0 1.5", "-105 22", "furniture-18-washbasin"}};
+                {"25.5 0 1.5", "-105 22", "furniture-18-washbasin"},
+                {"28.5 0 5.5", "150 -8", "furniture-19-bath-laundry"},
+                {"26.5 0 1.5", "5 28", "furniture-20-bath-washday"}};
         shots(eye, 0, () -> {
             test.server().execute(() -> {
                 BlockPos c = pos(4, 0, 6);

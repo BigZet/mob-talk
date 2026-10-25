@@ -1339,5 +1339,14 @@
   "block.mobtalk.balroof_alu_r": "Balcony glazing (alu, with a roof, right end)",
   "block.mobtalk.chute_pipe": "Garbage chute (pipe)",
   "block.mobtalk.chute_hopper": "Garbage chute (hopper)",
-  "block.mobtalk.chute_slab": "Landing with the chute's pipe"
+  "block.mobtalk.chute_slab": "Landing with the chute's pipe",
+  "block.mobtalk.apt_fridge_saratov_part": "Saratov fridge",
+  "block.mobtalk.apt_washer_malyutka": "Malyutka washer on a stool",
+  "block.mobtalk.apt_washer_sibir": "Sibir twin-tub washer",
+  "block.mobtalk.apt_dryer_rack": "Folding drying rack",
+  "block.mobtalk.apt_dryer_rack_part": "Folding drying rack",
+  "block.mobtalk.apt_dryer_liana": "Ceiling clothes airer",
+  "block.mobtalk.apt_dryer_liana_part": "Ceiling clothes airer",
+  "block.mobtalk.apt_basin_zinc": "Zinc basin with washing",
+  "block.mobtalk.apt_laundry_basket": "Wicker laundry basket"
 }

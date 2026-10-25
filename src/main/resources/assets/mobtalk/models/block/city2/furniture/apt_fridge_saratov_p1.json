@@ -1,0 +1,119 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_fridge_saratov_door_43": "mobtalk:block/city2/furniture/apt_fridge_saratov_door_43",
+    "enamel": "mobtalk:block/city2/furniture/enamel",
+    "particle": "mobtalk:block/city2/furniture/apt_fridge_saratov_door_43"
+  },
+  "elements": [
+    {
+      "from": [
+        3.5,
+        0.0,
+        5.5
+      ],
+      "to": [
+        12.5,
+        7.0,
+        15.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_fridge_saratov_door_43",
+          "uv": [
+            3.5,
+            9.0,
+            12.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#enamel",
+          "uv": [
+            3.5,
+            9.0,
+            12.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#enamel",
+          "uv": [
+            0.5,
+            9.0,
+            10.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#enamel",
+          "uv": [
+            5.5,
+            9.0,
+            15.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.0,
+        7.0,
+        6.0
+      ],
+      "to": [
+        12.0,
+        8.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#enamel",
+          "uv": [
+            4.0,
+            8.0,
+            12.0,
+            9.0
+          ]
+        },
+        "south": {
+          "texture": "#enamel",
+          "uv": [
+            4.0,
+            8.0,
+            12.0,
+            9.0
+          ]
+        },
+        "east": {
+          "texture": "#enamel",
+          "uv": [
+            1.0,
+            8.0,
+            10.0,
+            9.0
+          ]
+        },
+        "west": {
+          "texture": "#enamel",
+          "uv": [
+            6.0,
+            8.0,
+            15.0,
+            9.0
+          ]
+        },
+        "up": {
+          "texture": "#enamel",
+          "uv": [
+            4.0,
+            6.0,
+            12.0,
+            15.0
+          ]
+        }
+      }
+    }
+  ]
+}

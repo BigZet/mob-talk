@@ -676,8 +676,8 @@ def zil():
     def build():
         m = Model()
         m.box((3, 0, 5), (13, 1, 15.5), "black", down=None, up=None)
-        m.box((3, 1, 5), (13, 22, 15.5), "enamel", down=None, north=Pic("door", door))
-        m.box((3.5, 22, 5.5), (12.5, 23, 15), "enamel", down=None)
+        m.box((3, 1, 5), (13, 25, 15.5), "enamel", down=None, north=Pic("door", door))
+        m.box((3.5, 25, 5.5), (12.5, 26, 15), "enamel", down=None)
         # the chrome lever handle
         m.box((10.5, 11, 3.5), (11.5, 17.5, 4.25), "chrome")
         m.box((10.75, 11.5, 4.25), (11.25, 12.5, 5), "chrome", north=None, south=None)
@@ -1397,6 +1397,8 @@ def make():
     fur_lamps.make()
     import fur_fridges
     fur_fridges.make()
+    import fur_laundry
+    fur_laundry.make()
 
 
 def plate_tex():
