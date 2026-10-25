@@ -134,7 +134,7 @@ def structure(kind):
         "biomes": "#mobtalk:has_structure/city",
         "step": "surface_structures",
         "spawn_overrides": {},
-        "terrain_adaptation": "beard_thin",
+        "terrain_adaptation": "beard_box",  # the city levels its own ground: earth filled under it, hills cut back
         "start_pool": f"mobtalk:city/ours/{kind}/start",
         "size": 7,
         "start_height": {"absolute": 0},
@@ -526,6 +526,22 @@ def add_yards():
     print("yards:", len(built), "templates")
 
 
+def level_streets():
+    """Streets lie flat like the houses (rigid, not following the hills): with the box beard the whole city stands on one level."""
+    root = os.path.join(DATA, "worldgen", "template_pool", "city")
+    n = 0
+    for dp, _dn, fn in os.walk(root):
+        for f in fn:
+            path = os.path.join(dp, f)
+            with open(path, encoding="utf-8") as fh:
+                text = fh.read()
+            if '"terrain_matching"' in text:
+                with open(path, "w", encoding="utf-8") as fh:
+                    fh.write(text.replace('"terrain_matching"', '"rigid"'))
+                n += 1
+    print("levelled pools:", n)
+
+
 def main():
     write_json("worldgen/template_pool/city/ours/hospital.json",
                pool(HOSPITAL_POOL, "mobtalk:city/houses/hospital_a/main", "mobtalk:city/village_common"))
@@ -533,6 +549,7 @@ def main():
         hospital_street(kind, street, processors)
         admin_centre(kind, centre)
         structure(kind)
+    level_streets()
     russify_signs()
     add_yards()
     decorate_all()

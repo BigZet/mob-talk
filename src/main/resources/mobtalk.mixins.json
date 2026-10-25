@@ -27,7 +27,8 @@
     "CommandFilterMixin",
     "VillageSpawnMixin",
     "GuardPanicMixin",
-    "StructureSetAccessor"
+    "StructureSetAccessor",
+    "CityTreesMixin"
   ],
   "injectors": {
     "defaultRequire": 1

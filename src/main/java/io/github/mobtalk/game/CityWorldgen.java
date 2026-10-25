@@ -17,6 +17,8 @@ import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.registry.tag.TagKey;
 import net.minecraft.structure.StructureSet;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.StructureWorldAccess;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.gen.structure.Structure;
@@ -32,6 +34,19 @@ public final class CityWorldgen {
     private static final TagKey<Biome> CITY_BIOMES = TagKey.of(RegistryKeys.BIOME, Identifier.of("mobtalk", "has_structure/city"));
     /** Every weight already in the set is multiplied by this, so the cities' share needs no rounding to whole villages. */
     private static final int SCALE = 60;
+
+    /** Whether a city stands over this spot (its chunk lies in a city's bounds): the city keeps its own ground, so no wild trees
+     * grow there between the blocks of flats; the yards plant their own. */
+    public static boolean inCity(StructureWorldAccess world, BlockPos pos) {
+        Map<Structure, ?> refs = world.getChunk(pos).getStructureReferences();
+        if (refs.isEmpty()) return false;
+        Registry<Structure> structures = world.getRegistryManager().get(RegistryKeys.STRUCTURE);
+        for (Structure structure : refs.keySet()) {
+            Identifier id = structures.getId(structure);
+            if (id != null && id.getNamespace().equals("mobtalk") && id.getPath().startsWith("city_")) return true;
+        }
+        return false;
+    }
 
     public static void register() {
         // The cities must be in the set before the overworld is built: it notes then which structures each set may place, and /locate
