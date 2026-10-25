@@ -1,0 +1,146 @@
+{
+ "parent": "minecraft:block/block",
+ "textures": {
+  "p": "mobtalk:block/city2/par_green",
+  "s": "mobtalk:block/city2/sill",
+  "particle": "mobtalk:block/city2/par_green"
+ },
+ "elements": [
+  {
+   "from": [
+    0,
+    0,
+    0
+   ],
+   "to": [
+    16,
+    15,
+    1.5
+   ],
+   "faces": {
+    "north": {
+     "texture": "#p",
+     "uv": [
+      0,
+      1,
+      16,
+      16
+     ]
+    },
+    "south": {
+     "texture": "#p",
+     "uv": [
+      0,
+      1,
+      16,
+      16
+     ]
+    },
+    "east": {
+     "texture": "#p",
+     "uv": [
+      0,
+      1,
+      1.5,
+      16
+     ]
+    },
+    "west": {
+     "texture": "#p",
+     "uv": [
+      0,
+      1,
+      1.5,
+      16
+     ]
+    },
+    "up": {
+     "texture": "#p",
+     "uv": [
+      0,
+      0,
+      16,
+      1.5
+     ]
+    },
+    "down": {
+     "texture": "#p",
+     "uv": [
+      0,
+      0,
+      16,
+      1.5
+     ]
+    }
+   }
+  },
+  {
+   "from": [
+    0,
+    15,
+    -0.5
+   ],
+   "to": [
+    16,
+    16,
+    4.5
+   ],
+   "faces": {
+    "north": {
+     "texture": "#s",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    },
+    "south": {
+     "texture": "#s",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    },
+    "east": {
+     "texture": "#s",
+     "uv": [
+      0,
+      0,
+      5.0,
+      1
+     ]
+    },
+    "west": {
+     "texture": "#s",
+     "uv": [
+      0,
+      0,
+      5.0,
+      1
+     ]
+    },
+    "up": {
+     "texture": "#s",
+     "uv": [
+      0,
+      0,
+      16,
+      5.0
+     ]
+    },
+    "down": {
+     "texture": "#s",
+     "uv": [
+      0,
+      0,
+      16,
+      5.0
+     ]
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,28 @@
+{
+ "type": "minecraft:block",
+ "pools": [
+  {
+   "rolls": 1,
+   "entries": [
+    {
+     "type": "minecraft:item",
+     "name": "mobtalk:door_flat_wine",
+     "conditions": [
+      {
+       "condition": "minecraft:block_state_property",
+       "block": "mobtalk:door_flat_wine",
+       "properties": {
+        "half": "lower"
+       }
+      }
+     ]
+    }
+   ],
+   "conditions": [
+    {
+     "condition": "minecraft:survives_explosion"
+    }
+   ]
+  }
+ ]
+}

@@ -1,18 +1,19 @@
-"""Scale of the rebuilt cities: 1 block = 1 metre. Every size the generators use comes from here (spec §1-§2).
+"""Scale of the rebuilt cities. Every size the generators use comes from here (spec §1-§2).
 
-The player is 1.8 m tall, a door is 2 blocks, a storey is 3 blocks floor to floor (one slab row and two rows of room).
+A block is a metre in the street (doors 2 blocks, the player 1.8 m), but the houses are drawn roomy: a storey is 4 blocks
+floor to floor, a slab row and three rows of room, so the ceiling is well above the player's head (Dmitriy, 2026-10-25:
+"we don't bump our heads in our flats"), and a 1-464 section is 28 blocks along the facade instead of the drawing's 14 m.
 """
 
-STOREY = 3          # floor to floor: slab row + two rows of room (2.8 m in a real 1-464, ceiling 2.5)
-ROOM_ROWS = 2       # rows of air in a room: the lower (skirting) and the upper (cornice) row of the walls
+STOREY = 4          # floor to floor: slab row + three rows of room
+ROOM_ROWS = 3       # rows of air in a room: the lower (skirting), the middle and the upper (cornice) row of the walls
 PLINTH = 1          # the first floor's slab sits one block above the ground: the plinth row
 PARAPET = 1         # parapet above the roof slab
-STAIR_RISE = 0.5    # one step: a half block (a slab), so a flight of three steps climbs half a storey
-FLIGHT_STEPS = 3    # steps in a flight; two flights per storey
-BALCONY_DEPTH = 1   # balcony slab sticks out one block (0.9-1.2 m in reality)
-WINDOW_SILL = 0.5   # sill height above the floor (the lower window block is half wall, half glass)
-MARGIN = 2          # around a house in its template: balcony row plus the asphalt apron (отмостка)
+STAIR_RISE = 0.5    # one step: a half block (a slab)
+FLIGHT_STEPS = 3    # steps in a flight, then the landing is the fourth rise; two flights per storey
+BALCONY_DEPTH = 1   # balcony slab sticks out one block
+MARGIN = 2          # around a house in its template: balcony row plus the asphalt apron (отмостка); the porch sits in it too
 
 SERIES_SIZES = {    # series: (section length along the facade, depth), blocks, walls included
-    "1-464": (20, 16),
+    "1-464": (28, 19),
 }

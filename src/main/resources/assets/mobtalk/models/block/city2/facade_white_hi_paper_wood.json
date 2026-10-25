@@ -4,6 +4,7 @@
   "o": "mobtalk:block/city2/panel_white",
   "s": "mobtalk:block/city2/panel_white",
   "i": "mobtalk:block/city2/paper_wood_hi",
+  "rv": "mobtalk:block/city2/plaster_mid",
   "c": "mobtalk:block/city2/slab_side",
   "particle": "mobtalk:block/city2/panel_white"
  },
@@ -17,7 +18,7 @@
    "to": [
     16,
     16,
-    16
+    6
    ],
    "faces": {
     "north": {
@@ -30,6 +31,60 @@
      ],
      "cullface": "north"
     },
+    "east": {
+     "texture": "#s",
+     "uv": [
+      0,
+      0,
+      6,
+      16
+     ],
+     "cullface": "east"
+    },
+    "west": {
+     "texture": "#s",
+     "uv": [
+      0,
+      0,
+      6,
+      16
+     ],
+     "cullface": "west"
+    },
+    "up": {
+     "texture": "#c",
+     "uv": [
+      0,
+      0,
+      16,
+      6
+     ],
+     "cullface": "up"
+    },
+    "down": {
+     "texture": "#c",
+     "uv": [
+      0,
+      0,
+      16,
+      6
+     ],
+     "cullface": "down"
+    }
+   }
+  },
+  {
+   "from": [
+    0,
+    0,
+    6
+   ],
+   "to": [
+    16,
+    16,
+    16
+   ],
+   "faces": {
     "south": {
      "texture": "#i",
      "uv": [
@@ -41,9 +96,9 @@
      "cullface": "south"
     },
     "east": {
-     "texture": "#s",
+     "texture": "#rv",
      "uv": [
-      0,
+      6,
       0,
       16,
       16
@@ -51,9 +106,9 @@
      "cullface": "east"
     },
     "west": {
-     "texture": "#s",
+     "texture": "#rv",
      "uv": [
-      0,
+      6,
       0,
       16,
       16
@@ -64,7 +119,7 @@
      "texture": "#c",
      "uv": [
       0,
-      0,
+      6,
       16,
       16
      ],
@@ -74,7 +129,7 @@
      "texture": "#c",
      "uv": [
       0,
-      0,
+      6,
       16,
       16
      ],
