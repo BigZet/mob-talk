@@ -131,6 +131,28 @@ class JealousyTest {
         assertEquals(0, ledger.attention(w.rival(), w.player(), 10, now), "a rival has no jealousy to soothe");
     }
 
+    // Talking to the village is no injury: rumoured chats with a neighbour raise a little jealousy but neither embitter the wife nor
+    // fill her memory; an apology soothes the jealousy itself.
+    @Test void rumouredChatsDoNotEmbitterAndAnApologySoothes() throws Exception {
+        World w = world();
+        long now = System.currentTimeMillis();
+        JealousyLedger ledger = w.store().jealousy();
+        int trust = w.store().stateView(w.wife(), w.player()).trust(), events = w.store().events(w.wife()).size();
+        for (int i = 0; i < 4; i++)
+            ledger.noticed(w.rival(), w.player(), "Дима", Jealousy.Cause.TALK, 0, "", Map.of(), now + i * Jealousy.TALK_COOLDOWN_MILLIS);
+        long later = now + 4 * Jealousy.TALK_COOLDOWN_MILLIS;
+        assertTrue(ledger.level(w.wife(), w.player(), later) > 0, "a little jealousy");
+        MobState.View view = w.store().stateView(w.wife(), w.player());
+        assertTrue(view.trust() >= trust - 2, "chats heard of barely touch trust: " + trust + " → " + view.trust());
+        assertNotEquals(MoodSpell.ANGER, view.spell());
+        assertEquals(events, w.store().events(w.wife()).size(), "nor do they fill her memory");
+        ledger.noticed(w.rival(), w.player(), "Дима", Jealousy.Cause.GIFT, 5, "minecraft:diamond", Map.of(w.wife(), 2.0), later);
+        int jealous = ledger.level(w.wife(), w.player(), later);
+        MobSnapshot snapshot = SocialLayerTest.villager(w.wife(), w.player(), w.store().revision(w.wife()), false, "minecraft:air");
+        assertTrue(w.store().commit(snapshot, "Прости меня, я был неправ", "Ладно.", "", SocialIntent.APOLOGY, ActionIntent.none(), later));
+        assertTrue(ledger.level(w.wife(), w.player(), later) <= jealous - 3 * config.jealousyAttention, "an apology soothes the jealousy");
+    }
+
     @Test void theWifeSpeaksOfItAndItSurvivesTheReload() throws Exception {
         World w = world();
         long now = System.currentTimeMillis();

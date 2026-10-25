@@ -382,7 +382,7 @@ public final class MobGameBridge implements GameBridge {
     /** Трек J: пропуск ночи ждёт, пока игрок лежит рядом с парой (миксин на {@code PlayerEntity.canResetTimeBySleeping}). */
     public static boolean holdsNight(ServerPlayerEntity player) {
         MobGameBridge bridge = forEntity(player);
-        return bridge != null && (bridge.coSleep.holdsNight(player) || bridge.children.holdsNight(player));
+        return bridge != null && (bridge.coSleep.holdsNight(player) || bridge.children.holdsNight(player) && bridge.coSleep.withinCap(player));
     }
     /** Сделка в окне торговли состоялась: запись «Торг» в журнал админки (на выделенном сервере; в одиночке журнал пуст). */
     public static void journalTrade(MobEntity merchant, ServerPlayerEntity player, net.minecraft.village.TradeOffer offer) {

@@ -62,6 +62,23 @@ class DialogueLiveProbeTest {
                 new Scenario("Житель в апатии, игрок тормошит", "minecraft:villager", "Савва", false, "Ты каменщик в Ольховке.", Map.of("profession", "minecraft:mason", "level", 2),
                         (s, m) -> s.beginSpell(m, MoodSpell.APATHY, now - 30 * MINUTE),
                         List.of("Эй, вставай! Пошли гулять, день какой хороший!", "Я тебе пирог принёс, тыквенный.", "Ну скажи хоть что-нибудь, что с тобой?")),
+                new Scenario("Девушка игрока ревнует и злится, игрок ухаживает и извиняется", "minecraft:villager", "Светлана", true, "Ты библиотекарша в Ольховке.",
+                        Map.of("profession", "minecraft:librarian", "level", 1),
+                        (s, m) -> {
+                            UUID rival = villager(true);
+                            synchronized (s) {
+                                s.ensure(rival, "minecraft:villager", "Житель").givenName = "Евгения";
+                                s.state.profiles.get(rival.toString()).villageId = "v1";
+                                s.state.profiles.get(m.toString()).villageId = "v1";
+                                ConversationStore.Relation r = s.relation(s.state.profiles.get(m.toString()), player);
+                                r.rapport = new Rapport(); r.rapport.courtship(Courtship.DATING); r.score = 100;
+                            }
+                            s.jealousy().noticed(rival, player, "Стив", Jealousy.Cause.GIFT, 4, "золотое яблоко", Map.of(m, 3.0), now - 6 * MINUTE);
+                            s.jealousy().noticed(rival, player, "Стив", Jealousy.Cause.FAVOR, 0, "", Map.of(), now - 5 * MINUTE);
+                            s.beginSpell(m, MoodSpell.ANGER, now - 3 * MINUTE);
+                        },
+                        List.of("Пойдём погуляем вместе этим тихим вечером.", "Смотри, какие красивые звёзды сегодня. Какая тихая ночь.",
+                                "Как я могу тебя ласково называть? Светлана звучит как-то официально.", "Прости меня, если я тебя обидел.")),
                 new Scenario("Разбойник у деревни", "minecraft:pillager", "", false, "", Map.of(),
                         (s, m) -> { },
                         List.of("Уходи из деревни, разбойник!", "Давай договоримся: дам изумруд — уйдёшь?", "Ну всё, сейчас я тебя зарублю!")),
