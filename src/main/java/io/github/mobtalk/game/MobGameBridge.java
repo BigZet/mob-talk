@@ -198,10 +198,12 @@ public final class MobGameBridge implements GameBridge {
             }
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+            Roads.stopping(true);
             MobGameBridge bridge = active(server);
-            if (bridge != null) { bridge.bargaining.close(); bridge.trades.close(); }
+            if (bridge != null) { bridge.bargaining.close(); bridge.trades.close(); bridge.roads.stopping(server); }
         });
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+            Roads.stopping(false);
             MobGameBridge bridge = active;
             if (bridge != null && bridge.server == server) active = null;
         });

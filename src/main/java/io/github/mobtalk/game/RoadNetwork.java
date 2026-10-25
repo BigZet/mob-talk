@@ -40,6 +40,12 @@ final class RoadNetwork {
     static final long SCAN_PERIOD = 400, SCAN_PHASE = 37, SWEEP_PERIOD = 200, SWEEP_PHASE = 91;
     /** Grid cells checked per tick (each may read a chunk's saved data from disk) and road chunks laid per tick. */
     static final int CELLS_PER_TICK = 2, CHUNKS_PER_TICK = 1, FORCED_AT_ONCE = 9;
+    /** Structure-start chunks read for the planning thread per tick, and the most one plan asks for. */
+    static final int STARTS_PER_TICK = 3, STARTS_PER_PLAN = 64;
+    /** The ticket keeping a chunk read for a plan at its structure stage for ten seconds, so the game's loader finishes with it
+     * and lets it go in good order, rather than being cut short a tick later as the game's own ticket for the reading would. */
+    static final net.minecraft.server.world.ChunkTicketType<ChunkPos> STRUCTURES =
+            net.minecraft.server.world.ChunkTicketType.create("mobtalk_structures", Comparator.comparingLong(ChunkPos::toLong), 200);
     private static final Logger LOGGER = LoggerFactory.getLogger("mobtalk-roads");
     private static final ExecutorService PLANNER = Executors.newSingleThreadExecutor(task -> {
         Thread thread = new Thread(task, "mobtalk-roads"); thread.setDaemon(true); thread.setPriority(Thread.MIN_PRIORITY); return thread;
@@ -59,6 +65,10 @@ final class RoadNetwork {
         final Set<String> queuedCells = new HashSet<>();
         final LinkedHashSet<Job> jobs = new LinkedHashSet<>();
         final Set<String> planning = new HashSet<>();
+        /** Chunks the planning thread wants read at the structure stage; the game thread reads a few per tick (never while the
+         * server stops: a chunk asked for then is dropped half-made by the game, which then never finishes unloading it and
+         * the world hangs on its way out, 2026-10-25). */
+        final java.util.concurrent.ConcurrentLinkedQueue<Fetch> fetches = new java.util.concurrent.ConcurrentLinkedQueue<>();
         /** The junctions chosen on the planning thread, by village: the second road to a village planned before the first was
          * taken in gets the same junction. */
         final Map<String, int[]> hubs = new java.util.concurrent.ConcurrentHashMap<>();
@@ -71,6 +81,15 @@ final class RoadNetwork {
         String key() { return setId + "|" + i + "|" + j; }
     }
     private record Job(int road, long chunk) { }
+    /** Structure starts the planning thread waits for: {@code chunks} read one by one on the game thread, {@code done} told at the end. */
+    private static final class Fetch {
+        final long[] chunks; int next;
+        final List<StructureStart> starts = new ArrayList<>();
+        final java.util.concurrent.CompletableFuture<List<StructureStart>> done = new java.util.concurrent.CompletableFuture<>();
+        Fetch(long[] chunks) { this.chunks = chunks; }
+    }
+    /** The server stopped while a plan waited for its chunks: the plan is dropped, not refused (it is drawn up again next time). */
+    private static final class Stopped extends RuntimeException { Stopped() { super("server stopping", null, false, false); } }
 
     // ---- Saved data ----
 
@@ -256,6 +275,18 @@ final class RoadNetwork {
 
     // ---- The tick ----
 
+    /** The server stops: plans waiting for their chunks are dropped at once (drawn up again next time). */
+    void stopping(net.minecraft.server.MinecraftServer server) {
+        for (World state : worlds.values()) {
+            Fetch fetch;
+            while ((fetch = state.fetches.poll()) != null) fetch.done.completeExceptionally(new Stopped());
+        }
+        for (ServerWorld world : server.getWorlds()) {
+            List<String> held = Roads.heldChunks(world);
+            if (!held.isEmpty()) LOGGER.warn("{}: чанков с незавершённой работой при остановке {} (первые: {})", dimension(world), held.size(), held.subList(0, Math.min(8, held.size())));
+        }
+    }
+
     void tick(ServerWorld world) {
         if (!enabled()) return;
         World state = world(world);
@@ -266,6 +297,17 @@ final class RoadNetwork {
             Cell cell = state.cells.poll();
             state.queuedCells.remove(cell.key());
             check(world, state, cell);
+        }
+        for (int k = 0; k < STARTS_PER_TICK; ) {
+            Fetch fetch = state.fetches.peek();
+            if (fetch == null) break;
+            if (fetch.next >= fetch.chunks.length) { state.fetches.poll(); fetch.done.complete(fetch.starts); continue; }
+            long packed = fetch.chunks[fetch.next++];
+            ChunkPos pos = new ChunkPos(ChunkPos.getPackedX(packed), ChunkPos.getPackedZ(packed));
+            world.getChunkManager().addTicket(STRUCTURES, pos, 33 - net.minecraft.server.world.ChunkLevels.getLevelFromStatus(net.minecraft.world.chunk.ChunkStatus.STRUCTURE_STARTS), pos);
+            var chunk = world.getChunk(pos.x, pos.z, net.minecraft.world.chunk.ChunkStatus.STRUCTURE_STARTS, true);
+            if (chunk != null) fetch.starts.addAll(chunk.getStructureStarts().values());
+            k++;
         }
         while (state.saved.forced.size() < FORCED_AT_ONCE && !state.saved.toForce.isEmpty()) {
             long chunk = state.saved.toForce.poll();
@@ -412,7 +454,7 @@ final class RoadNetwork {
             }
             int from = road.from, to = road.to;
             RoadBuilder.Report report = RoadBuilder.lay(world, road.points, pos, RoadBuilder.palette(road.palette), from, to,
-                    road.branch() ? to - BRANCH_UNLIT : to, bridge.config.roadLamps, bridge.config.roadLampSpacing, bridge.config.roadTreeStrip, others(state, road, job.chunk()));
+                    road.branch() ? to - BRANCH_UNLIT : to, bridge.config.roadLamps, bridge.config.roadLampSpacing, bridge.config.roadTreeStrip, bridge.config.roadDecor, others(state, road, job.chunk()));
             road.done.add(job.chunk());
             state.saved.markDirty();
             release(world, state, job.chunk());
@@ -638,8 +680,9 @@ final class RoadNetwork {
                 if (a.hub() != null && a.hub().box() != null) obstacles.add(a.hub().box());
                 if (b.hub() != null && b.hub().box() != null) obstacles.add(b.hub().box());
                 for (int[] box : villages) if (near(box, ax, az, bx, bz)) obstacles.add(box);
-                obstacles.addAll(structures(world, cached, ax, az, bx, bz, obstacles, scanned));
+                obstacles.addAll(structures(world, state, cached, ax, az, bx, bz, obstacles, scanned));
                 result = RoadPlan.plan(seed, ax, az, bx, bz, cached, rules, aFeet, bFeet, obstacles);
+            } catch (Stopped stopped) { return;
             } catch (RuntimeException failure) { LOGGER.warn("дорога {} не спланирована", pair, failure); result = new RoadPlan.Result(null, "ошибка: " + failure); }
             RoadPlan.Result planned = result; int[] chosenA = hubA, chosenB = hubB;
             world.getServer().execute(() -> accept(world, a, b, chosenA, chosenB, planned, branch, done));
@@ -713,10 +756,11 @@ final class RoadNetwork {
     /** The structures the road would cross on the straight line between its ends (an outpost, a ruined portal, a hut, a village the
      * scan has not come to yet), as boxes to go round. Where one may start is worked out first from each structure set's placement,
      * as the villages are found (cheap, no chunk touched); only the chunks a set would start a structure in are then read at the
-     * structure stage, made now if need be (asked from the planning thread, each is made on the game thread between ticks: a
-     * village's whole plan is drawn up at that stage, so every chunk along the line would stall the game, 2026-10-25). Structures
-     * far below the ground and the vast ones are left out; at most 24 boxes. */
-    private List<int[]> structures(ServerWorld world, RoadPlan.Terrain terrain, int ax, int az, int bx, int bz, List<int[]> known, Set<String> scanned) {
+     * structure stage, made now if need be — on the game thread, {@link #STARTS_PER_TICK} per tick, the planning thread waiting
+     * (a village's whole plan is drawn up at that stage, so every chunk along the line would stall the game; and a chunk asked
+     * for while the server stops is dropped half-made and hangs the world's unloading, 2026-10-25). Structures far below the
+     * ground and the vast ones are left out; at most 24 boxes. */
+    private List<int[]> structures(ServerWorld world, World state, RoadPlan.Terrain terrain, int ax, int az, int bx, int bz, List<int[]> known, Set<String> scanned) {
         List<int[]> out = new ArrayList<>();
         double length = Math.hypot(bx - ax, bz - az);
         if (length < 1) return out;
@@ -747,24 +791,31 @@ final class RoadNetwork {
                     candidates.add(start.toLong());
                 }
         }
+        if (candidates.isEmpty()) return out;
+        long[] chunks = candidates.toLongArray();
+        if (chunks.length > STARTS_PER_PLAN) chunks = Arrays.copyOf(chunks, STARTS_PER_PLAN);
+        if (!world.getServer().isRunning()) throw new Stopped();
+        Fetch fetch = new Fetch(chunks);
+        state.fetches.add(fetch);
+        List<StructureStart> starts;
+        while (true) {
+            try { starts = fetch.done.get(500, java.util.concurrent.TimeUnit.MILLISECONDS); break; }
+            catch (java.util.concurrent.TimeoutException waiting) { if (!world.getServer().isRunning()) { state.fetches.remove(fetch); throw new Stopped(); } }
+            catch (InterruptedException | java.util.concurrent.ExecutionException failure) { state.fetches.remove(fetch); throw new Stopped(); }
+        }
         Set<StructureStart> seen = new HashSet<>();
-        for (long packed : candidates) {
-            if (out.size() >= 24 || !world.getServer().isRunning()) break;
-            var holder = world.getChunk(ChunkPos.getPackedX(packed), ChunkPos.getPackedZ(packed), net.minecraft.world.chunk.ChunkStatus.STRUCTURE_STARTS, true);
-            if (holder == null) continue;
-            for (Map.Entry<Structure, StructureStart> entry : holder.getStructureStarts().entrySet()) {
-                StructureStart start = entry.getValue();
-                if (!start.hasChildren() || !seen.add(start)) continue;
-                BlockBox box = start.getBoundingBox();
-                if (box.getBlockCountX() > 160 || box.getBlockCountZ() > 160) continue;
-                int[] rect = { box.getMinX(), box.getMinZ(), box.getMaxX(), box.getMaxZ() };
-                boolean dup = false;
-                for (int[] k : known) if (Arrays.equals(k, rect)) dup = true;
-                if (dup) continue;
-                int floor = terrain.floor((box.getMinX() + box.getMaxX()) / 2, (box.getMinZ() + box.getMaxZ()) / 2);
-                if (box.getMaxY() < floor - 4) continue; // deep underground
-                out.add(rect);
-            }
+        for (StructureStart start : starts) {
+            if (out.size() >= 24) break;
+            if (!start.hasChildren() || !seen.add(start)) continue;
+            BlockBox box = start.getBoundingBox();
+            if (box.getBlockCountX() > 160 || box.getBlockCountZ() > 160) continue;
+            int[] rect = { box.getMinX(), box.getMinZ(), box.getMaxX(), box.getMaxZ() };
+            boolean dup = false;
+            for (int[] k : known) if (Arrays.equals(k, rect)) dup = true;
+            if (dup) continue;
+            int floor = terrain.floor((box.getMinX() + box.getMaxX()) / 2, (box.getMinZ() + box.getMaxZ()) / 2);
+            if (box.getMaxY() < floor - 4) continue; // deep underground
+            out.add(rect);
         }
         return out;
     }
@@ -795,6 +846,7 @@ final class RoadNetwork {
 
     private void accept(ServerWorld world, End a, End b, int[] hubA, int[] hubB, RoadPlan.Result result, java.util.function.BiConsumer<Road, List<RoadPlan.Point>> branch,
                         java.util.function.Consumer<String> done) {
+        if (!world.getServer().isRunning()) return; // the plan is drawn up again next time
         World state = world(world);
         String pair = pair(a.key(), b.key());
         state.planning.remove(pair);

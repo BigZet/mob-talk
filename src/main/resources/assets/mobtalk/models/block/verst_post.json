@@ -1,0 +1,283 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "mobtalk:block/verst_stripes",
+    "stripes": "mobtalk:block/verst_stripes",
+    "cap": "minecraft:block/dark_oak_planks"
+  },
+  "elements": [
+    {
+      "from": [
+        5,
+        0,
+        5
+      ],
+      "to": [
+        11,
+        16,
+        11
+      ],
+      "faces": {
+        "down": {
+          "uv": [
+            5,
+            5,
+            11,
+            11
+          ],
+          "texture": "#stripes",
+          "cullface": "down"
+        },
+        "up": {
+          "uv": [
+            5,
+            5,
+            11,
+            11
+          ],
+          "texture": "#stripes"
+        },
+        "north": {
+          "uv": [
+            5,
+            0,
+            11,
+            16
+          ],
+          "texture": "#stripes"
+        },
+        "south": {
+          "uv": [
+            5,
+            0,
+            11,
+            16
+          ],
+          "texture": "#stripes"
+        },
+        "west": {
+          "uv": [
+            5,
+            0,
+            11,
+            16
+          ],
+          "texture": "#stripes"
+        },
+        "east": {
+          "uv": [
+            5,
+            0,
+            11,
+            16
+          ],
+          "texture": "#stripes"
+        }
+      }
+    },
+    {
+      "from": [
+        5,
+        16,
+        5
+      ],
+      "to": [
+        11,
+        26,
+        11
+      ],
+      "faces": {
+        "down": {
+          "uv": [
+            5,
+            5,
+            11,
+            11
+          ],
+          "texture": "#stripes"
+        },
+        "up": {
+          "uv": [
+            5,
+            5,
+            11,
+            11
+          ],
+          "texture": "#stripes"
+        },
+        "north": {
+          "uv": [
+            5,
+            6,
+            11,
+            16
+          ],
+          "texture": "#stripes"
+        },
+        "south": {
+          "uv": [
+            5,
+            6,
+            11,
+            16
+          ],
+          "texture": "#stripes"
+        },
+        "west": {
+          "uv": [
+            5,
+            6,
+            11,
+            16
+          ],
+          "texture": "#stripes"
+        },
+        "east": {
+          "uv": [
+            5,
+            6,
+            11,
+            16
+          ],
+          "texture": "#stripes"
+        }
+      }
+    },
+    {
+      "from": [
+        4,
+        26,
+        4
+      ],
+      "to": [
+        12,
+        28,
+        12
+      ],
+      "faces": {
+        "down": {
+          "uv": [
+            4,
+            4,
+            12,
+            12
+          ],
+          "texture": "#cap"
+        },
+        "up": {
+          "uv": [
+            4,
+            4,
+            12,
+            12
+          ],
+          "texture": "#cap"
+        },
+        "north": {
+          "uv": [
+            4,
+            -12,
+            12,
+            -10
+          ],
+          "texture": "#cap"
+        },
+        "south": {
+          "uv": [
+            4,
+            -12,
+            12,
+            -10
+          ],
+          "texture": "#cap"
+        },
+        "west": {
+          "uv": [
+            4,
+            -12,
+            12,
+            -10
+          ],
+          "texture": "#cap"
+        },
+        "east": {
+          "uv": [
+            4,
+            -12,
+            12,
+            -10
+          ],
+          "texture": "#cap"
+        }
+      }
+    },
+    {
+      "from": [
+        6,
+        28,
+        6
+      ],
+      "to": [
+        10,
+        30,
+        10
+      ],
+      "faces": {
+        "down": {
+          "uv": [
+            6,
+            6,
+            10,
+            10
+          ],
+          "texture": "#cap"
+        },
+        "up": {
+          "uv": [
+            6,
+            6,
+            10,
+            10
+          ],
+          "texture": "#cap"
+        },
+        "north": {
+          "uv": [
+            6,
+            -14,
+            10,
+            -12
+          ],
+          "texture": "#cap"
+        },
+        "south": {
+          "uv": [
+            6,
+            -14,
+            10,
+            -12
+          ],
+          "texture": "#cap"
+        },
+        "west": {
+          "uv": [
+            6,
+            -14,
+            10,
+            -12
+          ],
+          "texture": "#cap"
+        },
+        "east": {
+          "uv": [
+            6,
+            -14,
+            10,
+            -12
+          ],
+          "texture": "#cap"
+        }
+      }
+    }
+  ]
+}

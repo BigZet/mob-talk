@@ -29,7 +29,10 @@
     "GuardPanicMixin",
     "VillagerRiderMixin",
     "VillagerRiderFacingMixin",
-    "RoadTripSuffocationMixin"
+    "RoadTripSuffocationMixin",
+    "ChunkHoldersAccessor",
+    "ChunkClaimsAtShutdownMixin",
+    "ChunkSavingAtShutdownMixin"
   ],
   "injectors": {
     "defaultRequire": 1

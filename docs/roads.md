@@ -22,7 +22,17 @@ with villagers in them, and horsemen, travel back and forth along them. It all w
   between its ends (an outpost, a ruined portal, a hut; never a village, which the network knows already, and never one far
   underground or vaster than 160 blocks). The straight way is bent at the corners of the first box it enters, 8 blocks off the
   box (up to 16 corners), and the centrelines are curved through those corners. A line that still crosses a box costs a thousand
-  blocks of earthwork more, so it is kept only when no other will do.
+  blocks of earthwork more, so it is kept only when no other will do. The chunks where a structure set could start something
+  along the line are read at the structure stage (made if need be) on the game thread, three per tick, while the planning thread
+  waits, each kept at that stage by a ten-second ticket (`mobtalk_structures`) so the game's loader finishes with it in good
+  order; never while the server stops — a plan the shutdown interrupts is simply drawn up again next time.
+- **The way out.** The game of 1.21.1 can lose count of its claims on a chunk dropped half-made (a chunk loader that never runs
+  its last step leaves the holder's reference count above zero, or its saving future never done), and then its unloading on the
+  way out waits for ever at "Saving worlds". The roads' chunk reading and the villages held for the self-test's views make this
+  likely, so two mixins stand guard (`ChunkClaimsAtShutdownMixin`, `ChunkSavingAtShutdownMixin`): while the server stops, a
+  holder still stuck twenty seconds after it was first found so is let go — its count reads as zero and it is reported savable,
+  the chunk is saved and dropped — with a warning `чанк x,z отпущен при остановке` in the log. The count itself is left alone, so
+  a late release neither fails nor matters. In normal play the mixins do nothing.
 - A road between junctions is held at the junction's height at both ends: the first and last stretch is level, on the ground.
 - The planner is pure code with no Minecraft types, tested in `RoadPlanTest`.
 
@@ -68,6 +78,13 @@ with villagers in them, and horsemen, travel back and forth along them. It all w
 - Water or lava next to a block the road dug out is walled off with the road's lining stone, so it cannot run onto the road.
 - Grass, flowers and seeds the earthworks knock loose do not lie about as items: items dropped that very tick in and around the
   chunk are removed.
+- Odds and ends lie on the strip beside the road (`game/RoadDecor`, blocks in `game/RoadContent`; off with `roadDecor`): about
+  one piece every 7 blocks on one side or the other, chosen for the biome of the spot — grey pebbles, mossy pebbles in forests
+  and swamps, sandy pebbles and dead bushes in deserts, badlands and savannas, a cairn in the mountains and the snow, a fallen
+  log of the forest's wood (two or three blocks, along the road) — and a striped verst post («верстовой столб») every hundred
+  blocks on the right. Each piece lies on the bank's turf; the paved way, the curb, the lamps and the junction's square are kept
+  clear. A log, a cairn or a post wants open ground round it (a log wedged into a terrace looked like a stray block): where the
+  bank is stepped, pebbles lie instead. The models are built of vanilla block textures (the post's stripes are the mod's own); players can place the pieces too.
 - A lamp stands every `roadLampSpacing` blocks: a wall base, a fence post and an arm with a hanging lantern (after RoadWeaver's
   `LamppostDecoration`). The arm is the post's neighbour straight toward the road, never a diagonal one (a fence does not join
   across a corner). Bridges have lanterns on the railing, and tunnels have them under the vault.
@@ -132,7 +149,8 @@ road's curb, so the highway itself is not touched. Its last 6 points have no lam
 
 - F7 / F9, group «Дороги между деревнями»: `roadScanRadius`, `roadMaxLength`, `roadLampSpacing`, `roadTraffic`,
   `roadTreeStrip` (how far from the curb trees are felled, 0–8, default 4) and the toggle `roadBypass` («Трасса обходит
-  деревню»: junctions and trails; off, the roads run into the villages as before).
+  деревню»: junctions and trails; off, the roads run into the villages as before) and the toggle `roadDecor` («Мелочи у
+  дорог»: the pieces beside the road).
 
 ## Commands (operators)
 

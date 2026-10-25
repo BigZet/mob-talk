@@ -470,7 +470,8 @@ final class MobTalkSettingsScreen extends Screen {
                 Map.<String, Runnable>entry("roads", () -> {
                     wide(tip(toggle("mobtalk.settings.villageRoads", draft.villageRoads, value -> draft.villageRoads = value), "mobtalk.settings.villageRoads.tooltip"),
                             tip(toggle("mobtalk.settings.roadLamps", draft.roadLamps, value -> draft.roadLamps = value), "mobtalk.settings.roadLamps.tooltip"));
-                    wide(tip(toggle("mobtalk.settings.roadBypass", draft.roadBypass, value -> draft.roadBypass = value), "mobtalk.settings.roadBypass.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.roadBypass", draft.roadBypass, value -> draft.roadBypass = value), "mobtalk.settings.roadBypass.tooltip"),
+                            tip(toggle("mobtalk.settings.roadDecor", draft.roadDecor, value -> draft.roadDecor = value), "mobtalk.settings.roadDecor.tooltip"));
                 }),
                 Map.<String, Runnable>entry("chatter", () -> wide(tip(toggle("mobtalk.settings.villageChatter", draft.villageChatter, value -> draft.villageChatter = value), "mobtalk.settings.villageChatter.tooltip"),
                         tip(toggle("mobtalk.settings.villageNotices", draft.villageNotices, value -> draft.villageNotices = value), "mobtalk.settings.villageNotices.tooltip")))));

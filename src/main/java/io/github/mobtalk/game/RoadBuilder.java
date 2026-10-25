@@ -166,16 +166,17 @@ final class RoadBuilder {
 
     /** Counts of what was done, for the log and the self-test. */
     static final class Report {
-        int columns, skipped, lamps, dammed, drops, leaves, felled, trees, masses;
+        int columns, skipped, lamps, dammed, drops, leaves, felled, trees, masses, pieces;
         @Override public String toString() {
             return columns + " столбцов, пропущено " + skipped + ", фонарей " + lamps + ", запружено " + dammed + ", убрано выпавшего " + drops
-                    + ", срублено деревьев " + trees + ", снесено глыб " + masses + ", висячих стволов " + felled + ", висячей листвы " + leaves;
+                    + ", срублено деревьев " + trees + ", снесено глыб " + masses + ", висячих стволов " + felled + ", висячей листвы " + leaves
+                    + ", мелочей у дороги " + pieces;
         }
     }
 
     /** Lays the road's part in this chunk. */
     static Report lay(ServerWorld world, List<RoadPlan.Point> points, ChunkPos chunk, Palette palette, int from, int to, int lampTo, boolean lamps, int lampSpacing,
-                      int treeStrip, List<List<RoadPlan.Point>> others) {
+                      int treeStrip, boolean decor, List<List<RoadPlan.Point>> others) {
         Report report = new Report();
         Map<Long, Column> columns = columns(points, chunk);
         if (columns.isEmpty()) return report;
@@ -208,6 +209,7 @@ final class RoadBuilder {
         }
         report.dammed = dam(world, palette, cleared);
         if (lamps) report.lamps = lamps(world, palette, points, chunk, from, lampTo, lampSpacing, taken);
+        if (decor) report.pieces = RoadDecor.lay(world, chunk, columns, points, from, to, taken);
         if (low <= high) report.felled = fell(world, area, cleared, pieces, low, high + TREE_CLEAR);
         if (low <= high) report.leaves = leaves(world, area, low, high + TREE_CLEAR);
         if (low <= high) report.drops = sweepDrops(world, area, low, high);

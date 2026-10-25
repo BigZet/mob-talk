@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/pebbles"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/pebbles",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/pebbles",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/pebbles",
+      "y": 270
+    }
+  }
+}

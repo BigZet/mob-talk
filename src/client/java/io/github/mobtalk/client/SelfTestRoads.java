@@ -45,7 +45,7 @@ final class SelfTestRoads {
         next = then;
         test.log("roads stages: a road planned and laid, its carts, wagon and horseman, the lamps at night");
         test.bridge().config.villageRoads = true; test.bridge().config.roadLamps = true; test.bridge().config.roadTraffic = 3;
-        test.bridge().config.roadBypass = true; test.bridge().config.roadTreeStrip = 4;
+        test.bridge().config.roadBypass = true; test.bridge().config.roadTreeStrip = 4; test.bridge().config.roadDecor = true;
         String lines = System.getProperty("mobtalk.selftest.roads", "");
         for (String line : lines.split(";")) {
             String[] parts = line.trim().split("[ ,]+");
@@ -78,8 +78,14 @@ final class SelfTestRoads {
                 int[] laid = onServer(() -> Roads.laid(world(), road));
                 if (++tick[0] % 200 == 0) test.log("laid " + laid[0] + "/" + laid[1]);
                 return laid[1] > 0 && laid[0] == laid[1];
-            }, this::views);
+            }, () -> { held("laying"); views(); });
         });
+    }
+
+    /** Logs the chunks the game still holds a reference to (a leaked one hangs the world on its way out). */
+    private void held(String stage) {
+        List<String> held = onServer(() -> Roads.heldChunks(world()));
+        test.log("chunk holders with references after " + stage + ": " + held.size() + (held.isEmpty() ? "" : " " + held.subList(0, Math.min(12, held.size()))));
     }
 
     private Vec3d at(int index) { return onServer(() -> Roads.point(world(), road, index)); }
@@ -141,6 +147,12 @@ final class SelfTestRoads {
         test.check(obstacles[0] == 0, "road " + road + ": nothing stands in the road (" + obstacles[0] + " columns, first at " + obstacles[1] + " " + obstacles[2] + " " + obstacles[3] + ")");
         int[] trees = onServer(() -> Roads.stripTrees(world(), road, test.bridge().config.roadTreeStrip));
         test.check(trees[0] == 0, "road " + road + ": no tree is left in the strip beside the road (" + trees[0] + ", first at " + trees[1] + " " + trees[2] + " " + trees[3] + ")");
+        int[] pieces = onServer(() -> Roads.decor(world(), road));
+        if (laid[1] >= 6) test.check(pieces[0] > 0, "road " + road + ": odds and ends lie beside it (" + pieces[0] + ", first at " + pieces[1] + " " + pieces[2] + " " + pieces[3] + ")");
+        else test.log("road " + road + ": odds and ends beside it: " + pieces[0]);
+        String logs = String.format("%d fallen log blocks, %.1f logs promised by its biomes", pieces[10], pieces[11] / 100.0);
+        if (pieces[11] >= 400) test.check(pieces[10] > 0, "road " + road + ": fallen logs lie in its woods (" + logs + ")");
+        else test.log("road " + road + ": " + logs);
     }
 
     /** The road itself: from above, along it from the ground, and its first bridge or tunnel. */
@@ -154,6 +166,66 @@ final class SelfTestRoads {
             Vec3d from = at(n / 2 - 14);
             look(from.add(0, 2.2, 0), ahead.add(0, 1, 0));
             shot("mobtalk-roads-along.png", 4, () -> {
+                int[] pieces = onServer(() -> Roads.decor(world(), road));
+                test.log("pieces beside the road: " + pieces[0] + ", first verst post at " + pieces[4] + " " + pieces[5] + " " + pieces[6] + ", first fallen log at " + pieces[7] + " " + pieces[8] + " " + pieces[9]);
+                if (pieces[0] == 0) { firsts(); return; }
+                // The first piece close up, then the first verst post and the first fallen log, when the road has them.
+                Vec3d piece = new Vec3d(pieces[1] + 0.5, pieces[2], pieces[3] + 0.5);
+                look(piece.add(2.6, 1.9, 2.6), piece.add(0, 0.4, 0));
+                shot("mobtalk-roads-decor.png", 3, () -> {
+                    Runnable log = () -> {
+                        if (pieces[8] == 0) { gallery(); return; }
+                        Vec3d at = new Vec3d(pieces[7] + 0.5, pieces[8], pieces[9] + 0.5);
+                        look(at.add(3.2, 2.0, 3.2), at.add(0, 0.4, 0));
+                        shot("mobtalk-roads-log.png", 3, this::gallery);
+                    };
+                    if (pieces[5] == 0) { log.run(); return; }
+                    Vec3d post = new Vec3d(pieces[4] + 0.5, pieces[5], pieces[6] + 0.5);
+                    look(post.add(3.5, 2.2, 3.5), post.add(0, 1.0, 0));
+                    shot("mobtalk-roads-verst.png", 3, log);
+                });
+            });
+        });
+    }
+
+    /** Every kind of piece set out in a row on the road's middle and photographed from the side, then taken away again. */
+    private void gallery() {
+        int n = length();
+        List<net.minecraft.block.BlockState> states = List.of(
+                io.github.mobtalk.game.RoadContent.PEBBLES.getDefaultState(), io.github.mobtalk.game.RoadContent.MOSSY_PEBBLES.getDefaultState(),
+                io.github.mobtalk.game.RoadContent.SAND_PEBBLES.getDefaultState(), io.github.mobtalk.game.RoadContent.CAIRN.getDefaultState(),
+                io.github.mobtalk.game.RoadContent.VERST_POST.getDefaultState(),
+                io.github.mobtalk.game.RoadContent.FALLEN_LOG.getDefaultState().with(io.github.mobtalk.game.RoadContent.FallenLogBlock.WOOD, io.github.mobtalk.game.RoadContent.Wood.SPRUCE),
+                io.github.mobtalk.game.RoadContent.FALLEN_LOG.getDefaultState().with(io.github.mobtalk.game.RoadContent.FallenLogBlock.WOOD, io.github.mobtalk.game.RoadContent.Wood.SPRUCE),
+                io.github.mobtalk.game.RoadContent.FALLEN_LOG.getDefaultState().with(io.github.mobtalk.game.RoadContent.FallenLogBlock.WOOD, io.github.mobtalk.game.RoadContent.Wood.DARK_OAK));
+        List<net.minecraft.util.math.BlockPos> spots = new java.util.ArrayList<>();
+        int[] offsets = { 0, 1, 2, 3, 5, 7, 8, 10 }; // the two spruce pieces lie end to end as one log
+        int start = onServer(() -> Roads.flatStretch(world(), road, 11));
+        test.log("gallery on the road from point " + start + " of " + n);
+        Vec3d first = at(start);
+        for (int k = 0; k < states.size(); k++) {
+            Vec3d p = at(start + offsets[k]);
+            if (p.y != Math.floor(p.y)) p = p.add(0, 0.5, 0); // on a slab step the piece stands on the slab
+            spots.add(net.minecraft.util.math.BlockPos.ofFloored(p.x, p.y, p.z));
+        }
+        // The logs lie along the road.
+        Vec3d dir = at(start + 1).subtract(first);
+        net.minecraft.util.math.Direction.Axis axis = Math.abs(dir.x) >= Math.abs(dir.z) ? net.minecraft.util.math.Direction.Axis.X : net.minecraft.util.math.Direction.Axis.Z;
+        List<net.minecraft.block.BlockState> placed = new java.util.ArrayList<>();
+        for (net.minecraft.block.BlockState state : states) placed.add(state.contains(io.github.mobtalk.game.RoadContent.FallenLogBlock.AXIS) ? state.with(io.github.mobtalk.game.RoadContent.FallenLogBlock.AXIS, axis) : state);
+        onServer(() -> { for (int k = 0; k < spots.size(); k++) world().setBlockState(spots.get(k), placed.get(k), 2); return null; });
+        Vec3d middle = at(start + 5);
+        Vec3d right = new Vec3d(-dir.z, 0, dir.x).normalize();
+        look(middle.add(right.multiply(6.5)).add(0, 3.0, 0).add(dir.normalize().multiply(-1)), middle.add(0, 0.6, 0));
+        shot("mobtalk-roads-gallery.png", 3, () -> {
+            onServer(() -> { for (net.minecraft.util.math.BlockPos spot : spots) world().setBlockState(spot, net.minecraft.block.Blocks.AIR.getDefaultState(), 2); return null; });
+            held("the views");
+            firsts();
+        });
+    }
+
+    /** The road's first bridge or tunnel, photographed, then the traffic. */
+    private void firsts() {
                 int[] firsts = onServer(() -> Roads.firsts(world(), road));
                 int special = firsts[0] >= 0 ? firsts[0] : firsts[1];
                 test.log("first bridge " + firsts[0] + ", first tunnel " + firsts[1]);
@@ -161,8 +233,6 @@ final class SelfTestRoads {
                 Vec3d spot = at(special + 6), before = at(Math.max(0, special - 10));
                 look(before.add(0, firsts[0] >= 0 ? 6 : 2.2, 0).add(spot.subtract(before).crossProduct(new Vec3d(0, 1, 0)).normalize().multiply(firsts[0] >= 0 ? 9 : 0)), spot.add(0, 1, 0));
                 shot(firsts[0] >= 0 ? "mobtalk-roads-bridge.png" : "mobtalk-roads-tunnel.png", 4, () -> traffic("wagon", 0));
-            });
-        });
     }
 
     private static final List<String> KINDS = List.of("wagon", "cart", "rider");
@@ -326,8 +396,14 @@ final class SelfTestRoads {
                 shot("mobtalk-roads-" + kind + "-above.png", 3, () -> {
                     look(at.add(in.multiply(2)).add(0, 2.2, 0), at.add(in.multiply(24)).add(0, 1, 0));
                     shot("mobtalk-roads-" + kind + "-trail.png", 3, () -> {
-                        onServer(() -> { Roads.holdVillage(world(), key, false); return null; });
-                        then.run();
+                        // Let the village go only once its chunks are all made: dropped half-made, one can keep the game from ever
+                        // finishing its unloading on the way out.
+                        test.await("pause: the held chunks of " + key + " are made", 60, () -> onServer(() -> Roads.villageHoldPending(world(), key)) == 0, () -> {
+                            test.log("held chunks of " + key + " still unmade: " + onServer(() -> Roads.villageHoldPending(world(), key)));
+                            onServer(() -> { Roads.holdVillage(world(), key, false); return null; });
+                            held("the " + kind + " views");
+                            then.run();
+                        });
                     });
                 });
             });
@@ -370,9 +446,14 @@ final class SelfTestRoads {
     }
 
     private void finish() {
+        held("everything");
         test.command("time set 6000");
         test.command("gamemode survival " + name());
         test.command("gamerule doDaylightCycle true"); test.command("gamerule doMobSpawning true");
-        test.await("pause: roads stage done", 2, () -> false, next);
+        // The world is left only once the game holds no chunk any more, so a leaving that hangs is the game's own doing.
+        test.await("pause: the game's chunk work is done", 30, () -> onServer(() -> Roads.heldChunks(world())).isEmpty(), () -> {
+            held("the wait");
+            test.await("pause: roads stage done", 2, () -> false, next);
+        });
     }
 }

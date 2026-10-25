@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/cairn"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/cairn",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/cairn",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/cairn",
+      "y": 270
+    }
+  }
+}
