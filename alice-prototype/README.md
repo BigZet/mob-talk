@@ -20,6 +20,20 @@ alice.yandex.ru (`wss://uniproxy.alice.ya.ru/uni.ws`). Отдельный мод
 - `%USERPROFILE%\.alice-speaker\auth_token.txt` — `auth_token` из первого сообщения `SynchronizeState` сайта (необязательно);
 - или переменные окружения `YA_COOKIE` / `YA_AUTH`.
 
+## Яндекс Музыка
+
+Веб-Алиса сама музыку не включает (даже с входом), поэтому «Алиса, включи музыку …» мод выполняет сам через
+неофициальный API Яндекс Музыки и играет трек из колонки: «включи музыку группы Кино», «включи мою волну»,
+«следующая», «выключи музыку». Без VPN: из других регионов API отвечает «Unavailable For Legal Reasons».
+
+Токен (нужен для «Моей волны» и полных треков; без Плюса Яндекс может отдавать 30-секундные отрывки):
+1. В браузере, где вы вошли в Яндекс, откройте
+   `https://oauth.yandex.ru/authorize?response_type=token&client_id=23cabbbdc6cd418abb4b39c32c41195d`
+   (это приложение Яндекс Музыки для Android) и разрешите доступ.
+2. Адресная строка сменится на `...#access_token=y0_...&token_type=...`. Скопируйте значение после
+   `access_token=` до знака `&`.
+3. Сохраните его одной строкой в `%USERPROFILE%\.alice-speaker\music_token.txt`. Токен никому не отправляйте.
+
 ## Самотест
 
 `powershell -ExecutionPolicy Bypass -File alice-prototype\scripts\run-selftest.ps1` (VPN выключен): одноразовая копия

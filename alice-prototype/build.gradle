@@ -19,6 +19,9 @@ dependencies {
     // Pure-Java Opus decoder (BSD-3-Clause): Alice's voice arrives as Ogg/Opus.
     implementation 'io.github.jaredmdobson:concentus:1.0.2'
     include 'io.github.jaredmdobson:concentus:1.0.2'
+    // MP3 decoder (LGPL-2.1) for Yandex Music tracks.
+    implementation 'javazoom:jlayer:1.0.1'
+    include 'javazoom:jlayer:1.0.1'
 }
 processResources {
     inputs.property 'version', project.version

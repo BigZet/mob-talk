@@ -157,38 +157,50 @@ final class SelfTest {
         });
     }
 
-    // ---- Stage 4: a music request: the prototype only reports what Alice sends.
+    // ---- Stage 4: Yandex Music. The web Alice cannot play music, so the mod finds the track itself and plays it
+    // from the speaker: a search, "next", then "stop". Needs Yandex Music to be reachable (no VPN).
     private void askMusic() {
-        log("asking (text): Включи музыку");
-        owner.ask(client, speaker, "Включи музыку", null);
-        await("Alice answered the music request", 60, answered(), () -> {
-            AliceSpeakerClient.Reply reply = owner.lastReply;
-            log("music request: " + (reply == null ? "error " + owner.lastError : "text=" + reply.text() + ", music directive=" + reply.music()
-                    + ", voice=" + (reply.pcm() != null)));
-            if (AliceAuth.load().hasLogin()) {
-                log("logged in (sync.json/cookies present): music directives are in alicespeaker-protocol.log");
-                // The web chat client never plays music itself, even logged in: this is information, not a failure.
-                log("music with a login: " + (reply != null && !reply.text().toLowerCase().contains("авториз") ? "no login prompt" : "Alice still asks to log in"));
-            }
-            owner.stopVoice();
-            breakMidAnswer();
+        boolean token = YandexMusic.loadToken().length() > 0;
+        log("Yandex Music token: " + (token ? "present" : "absent (search only, tracks may be 30 s previews)"));
+        log("asking (text): Включи музыку группы Кино");
+        owner.ask(client, speaker, "Включи музыку группы Кино", null);
+        await("a track from Yandex Music plays", 90, () -> owner.nowPlaying != null && owner.musicSound != null && client.getSoundManager().isPlaying(owner.musicSound)
+                || owner.musicError != null, () -> {
+            check(owner.musicError == null, "Yandex Music answered" + (owner.musicError == null ? "" : ": " + owner.musicError));
+            check(owner.nowPlaying != null && owner.musicSound != null && client.getSoundManager().isPlaying(owner.musicSound), "music plays from the speaker: " + owner.nowPlaying);
+            if (owner.nowPlaying == null) { owner.stopMusic(); breakMidAnswer(); return; }
+            shot("3-music");
+            String first = owner.nowPlaying;
+            log("asking (text): Следующая");
+            owner.ask(client, speaker, "Следующая", null);
+            await("the next track plays", 90, () -> owner.nowPlaying != null && !owner.nowPlaying.equals(first) && owner.musicSound != null
+                    && client.getSoundManager().isPlaying(owner.musicSound) || owner.musicError != null, () -> {
+                check(owner.nowPlaying != null && !owner.nowPlaying.equals(first), "\"следующая\" switches the track: " + owner.nowPlaying);
+                log("asking (text): Выключи музыку");
+                owner.ask(client, speaker, "Выключи музыку", null);
+                await("music stopped", 60, () -> owner.musicSound == null, () -> {
+                    check(owner.musicSound == null && owner.nowPlaying == null, "\"выключи музыку\" stops it");
+                    breakMidAnswer();
+                });
+            });
         });
     }
 
     // ---- Stage 5: breaking the speaker while Alice talks silences her; without a speaker nearby nothing is asked.
     private void breakMidAnswer() {
+        asked = owner.finished;   // music commands above were not counted
         log("asking (text): Расскажи сказку");
         owner.ask(client, speaker, "Расскажи сказку", null);
         await("Alice started the fairy tale", 60, () -> owner.sound != null && client.getSoundManager().isPlaying(owner.sound) || owner.finished >= asked + 1 && owner.lastReply == null, () -> {
             asked++;
             if (owner.sound == null || !client.getSoundManager().isPlaying(owner.sound)) { fail("fairy tale did not start playing" + (owner.lastError == null ? "" : ": " + owner.lastError)); finish(); return; }
-            shot("3-fairy-tale");
+            shot("4-fairy-tale");
             command("setblock 0 200 0 minecraft:air");
             await("speaker broken", 10, () -> !client.world.getBlockState(speaker).isOf(AliceSpeakerMod.SPEAKER), () ->
                 await("voice stopped", 3, () -> !client.getSoundManager().isPlaying(owner.sound), () -> {
                     check(!client.getSoundManager().isPlaying(owner.sound), "breaking the speaker stops Alice's voice");
                     check(AliceSpeakerClient.findSpeaker(client) == null, "no speaker nearby after breaking it");
-                    shot("4-broken");
+                    shot("5-broken");
                     finish();
                 }));
         });

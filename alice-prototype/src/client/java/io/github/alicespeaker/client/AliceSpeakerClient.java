@@ -27,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -73,6 +74,7 @@ public final class AliceSpeakerClient implements ClientModInitializer {
 
     private void tick(MinecraftClient client) {
         if (client.player == null || client.world == null) return;
+        tickMusic(client);
         boolean held = talkKey.isPressed() && client.currentScreen == null;
         if (held && mic == null) {
             BlockPos speaker = findSpeaker(client);
@@ -128,8 +130,10 @@ public final class AliceSpeakerClient implements ClientModInitializer {
                     lastReply = reply;
                     lastError = null;
                     if (!reply.heard().isBlank()) notice(client, "Вы: " + reply.heard(), Formatting.GRAY);
+                    // The web chat Alice cannot play music; music requests go to Yandex Music instead of her refusal.
+                    YandexMusic.Intent intent = YandexMusic.intent(text != null ? text : reply.heard(), musicSound != null, reply.music());
+                    if (intent != null) { handleMusic(client, world, speaker, intent); return; }
                     notice(client, "Алиса: " + reply.text(), Formatting.LIGHT_PURPLE);
-                    if (reply.music()) notice(client, "Алиса хочет включить музыку: в прототипе пока только голос (подробности в logs/alicespeaker-protocol.log)", Formatting.DARK_GRAY);
                     if (reply.pcm() == null) {
                         notice(client, "Голос Алисы не пришёл: " + reply.voiceProblem(), Formatting.DARK_GRAY);
                         return;
@@ -141,6 +145,97 @@ public final class AliceSpeakerClient implements ClientModInitializer {
     }
 
     record Reply(String text, String heard, byte[] pcm, String voiceProblem, boolean music) { }
+
+    // ---- Yandex Music: a queue of tracks played one after another from the speaker.
+    SpeakerVoiceSound musicSound;
+    volatile String nowPlaying, musicError;
+    private List<YandexMusic.Track> queue = List.of();
+    private int queueIndex, musicGeneration;
+    private boolean musicStarted, waveQueue;
+    private BlockPos musicSpeaker;
+
+    private void handleMusic(MinecraftClient client, ClientWorld world, BlockPos speaker, YandexMusic.Intent intent) {
+        logLine("music intent " + intent.kind() + " \"" + intent.query() + "\"");
+        switch (intent.kind()) {
+            case STOP -> { stopMusic(); notice(client, "Алиса: Выключаю музыку", Formatting.LIGHT_PURPLE); }
+            case NEXT -> { if (!queue.isEmpty()) playTrack(client, world, musicSpeaker, queueIndex + 1); }
+            case PLAY -> {
+                YandexMusic music = new YandexMusic(YandexMusic.loadToken(), this::logLine);
+                if (!music.hasToken() && intent.query().isBlank()) {
+                    musicError = "нет токена";
+                    notice(client, "Для «Моей волны» нужен токен Яндекс Музыки: %USERPROFILE%\\.alice-speaker\\music_token.txt (см. README)", Formatting.RED);
+                    return;
+                }
+                stopMusic();
+                int expected = ++musicGeneration;
+                musicError = null;
+                overlay(client, intent.query().isBlank() ? "Включаю «Мою волну»…" : "Ищу в Яндекс Музыке: " + intent.query());
+                CompletableFuture.supplyAsync(() -> {
+                    try { return music.find(intent.query()); } catch (IOException failure) { throw new java.util.concurrent.CompletionException(failure); }
+                }, WORKER).whenComplete((tracks, failure) -> client.execute(() -> {
+                    if (expected != musicGeneration || client.world != world) return;
+                    if (failure != null) { musicFailed(client, failure); return; }
+                    if (tracks.isEmpty()) { musicError = "ничего не нашлось"; notice(client, "Алиса: Не нашла такую музыку", Formatting.LIGHT_PURPLE); return; }
+                    queue = tracks;
+                    waveQueue = intent.query().isBlank();
+                    musicSpeaker = speaker;
+                    playTrack(client, world, speaker, 0);
+                }));
+            }
+        }
+    }
+
+    private void playTrack(MinecraftClient client, ClientWorld world, BlockPos speaker, int index) {
+        if (musicSound != null) musicSound.stop();
+        musicSound = null;
+        musicStarted = false;
+        if (index >= queue.size()) {
+            if (waveQueue) handleMusic(client, world, speaker, new YandexMusic.Intent(YandexMusic.Kind.PLAY, ""));
+            else { nowPlaying = null; notice(client, "Музыка закончилась", Formatting.DARK_GRAY); }
+            return;
+        }
+        queueIndex = index;
+        YandexMusic.Track track = queue.get(index);
+        int expected = ++musicGeneration;
+        YandexMusic music = new YandexMusic(YandexMusic.loadToken(), this::logLine);
+        overlay(client, "Загружаю: " + track.label());
+        CompletableFuture.supplyAsync(() -> {
+            try { return music.load(track); } catch (IOException failure) { throw new java.util.concurrent.CompletionException(failure); }
+        }, WORKER).whenComplete((audio, failure) -> client.execute(() -> {
+            if (expected != musicGeneration || client.world != world) return;
+            if (failure != null) { musicFailed(client, failure); return; }
+            if (!world.getBlockState(speaker).isOf(AliceSpeakerMod.SPEAKER)) { stopMusic(); return; }
+            musicSound = new SpeakerVoiceSound(client, world, speaker, audio.pcm(), audio.rate());
+            client.getSoundManager().play(musicSound);
+            nowPlaying = track.label();
+            notice(client, "♪ " + track.label() + (audio.preview() ? " (отрывок: без подписки Плюс Яндекс даёт 30 секунд)" : ""), Formatting.LIGHT_PURPLE);
+        }));
+    }
+
+    private void musicFailed(MinecraftClient client, Throwable failure) {
+        Throwable cause = failure.getCause() != null ? failure.getCause() : failure;
+        musicError = cause.getMessage() == null ? cause.getClass().getSimpleName() : cause.getMessage();
+        logLine("music failed: " + musicError);
+        notice(client, "Музыка: " + musicError, Formatting.RED);
+    }
+
+    void stopMusic() {
+        musicGeneration++;
+        if (musicSound != null) musicSound.stop();
+        musicSound = null;
+        nowPlaying = null;
+        queue = List.of();
+    }
+
+    /** Next track once the current one has played out; silence when the speaker is gone. */
+    private void tickMusic(MinecraftClient client) {
+        if (musicSound == null) return;
+        boolean playing = client.getSoundManager().isPlaying(musicSound);
+        if (playing) { musicStarted = true; return; }
+        if (!musicStarted) return;
+        if (musicSpeaker == null || !client.world.getBlockState(musicSpeaker).isOf(AliceSpeakerMod.SPEAKER)) { stopMusic(); return; }
+        playTrack(client, client.world, musicSpeaker, queueIndex + 1);
+    }
 
     private Reply decode(AliceSession.Answer answer) {
         boolean music = answer.notes().contains("music");
@@ -191,6 +286,7 @@ public final class AliceSpeakerClient implements ClientModInitializer {
         if (mic != null) mic.cancel();
         mic = null;
         stopVoice();
+        stopMusic();
         cancelSession();
     }
 
