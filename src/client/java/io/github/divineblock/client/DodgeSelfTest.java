@@ -57,7 +57,8 @@ public final class DodgeSelfTest {
     private static int phase, ticks, round = -1;
     private static volatile SeraphEntity seraph;
     private static volatile boolean roundLive, finished;
-    private static int shots, hold, rest, frames, frameNo;
+    private static int shots, hold, rest, frames, frameNo, eventFrames, eventNo, eventCooldown;
+    private static String eventName;
     private static final int[] fired = new int[2], hits = new int[2], back = new int[2], burned = new int[2];
     private static Vec3d lastPos;
     private static BlockPos base;
@@ -142,6 +143,21 @@ public final class DodgeSelfTest {
             String name = "dodge-" + (round == 0 ? "off" : "on") + "-" + String.format("%03d", frameNo++) + ".png";
             if (frames % 2 == 0) ScreenshotRecorder.saveScreenshot(client.runDirectory, name, client.getFramebuffer(), text -> { });
         }
+        // a few frames of each dash, sweep and feather cast (dodge-on-dash-NNN.png …), at most one burst in 3 s
+        if (eventCooldown > 0) eventCooldown--;
+        if (eventFrames == 0 && eventCooldown == 0 && round == 1) {
+            String what = server.mind().dashing() ? "dash" : server.mind().closingWings() || server.mind().deflecting() ? "sweep"
+                    : server.isCasting() ? "feathers" : null;
+            if (what != null) { eventName = what; eventFrames = 8; eventCooldown = 60; }
+        }
+        if (eventFrames > 0) {
+            eventFrames--;
+            if (eventFrames % 2 == 0) ScreenshotRecorder.saveScreenshot(client.runDirectory,
+                    "dodge-on-" + eventName + "-" + String.format("%03d", eventNo++) + ".png", client.getFramebuffer(), text -> { });
+        }
+        if (ticks % 200 == 0) log("состояние: раунд " + round + ", выстрелов " + shots + ", тянет " + player.isUsingItem() + " ("
+                + player.getItemUseTime() + "), стрел у клиента " + player.getInventory().count(Items.ARROW) + ", лук в руке "
+                + player.getMainHandStack().isOf(Items.BOW) + ", до Серафима " + String.format("%.1f", pos.distanceTo(player.getPos())));
         if (rest > 0) { rest--; return; }
         if (!player.isUsingItem()) {
             if (shots >= SHOTS) { roundLive = false; client.getServer().execute(DodgeSelfTest::nextRound); return; }
@@ -174,6 +190,7 @@ public final class DodgeSelfTest {
 
     private static void prepare(ServerPlayerEntity player) {
         if (player == null) { log("FAIL нет игрока"); finished = true; return; }
+        DivineBlockMod.config().voice = false;   // no text to speech in the test (not saved)
         ServerWorld world = player.getServerWorld();
         world.setWeather(100_000, 0, false, false);
         world.setTimeOfDay(6000);

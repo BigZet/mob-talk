@@ -62,6 +62,8 @@ public final class SeraphEntity extends SacredBoss {
     }
     /** On the client too: whether it is down on the ground now (wings open, face bared). */
     public boolean isDescending() { return dataTracker.get(DESCENDING); }
+    /** The trained mind, read by the dodge test (dash, sweep). */
+    public SeraphMind mind() { return mind; }
 
     @Override public BossKind kind() { return BossKind.SERAPH; }
     @Override protected String theme() { return "punishment_59"; }
