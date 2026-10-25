@@ -46,6 +46,7 @@ final class MobPrompt {
                 + (custom ? "\nЛичная настройка именно этой особи (важнее характера выше): " + profile.customPersonality : "")
                 + SocialPrompt.persona(profile)
                 + official(snapshot, profile)
+                + robbery(snapshot)
                 + (species.quirks().isBlank() ? "" : "\nКак ты говоришь, твои фирменные штучки: " + sentence(species.quirks()))
                 + (desire.isBlank() ? "" : "\nЧего ты хочешь от жизни: " + sentence(desire)
                         + " Это твоя личная цель: ты её преследуешь, иногда заводишь о ней речь — но не в каждой реплике — и судишь игрока по тому, помогает он ей или мешает.")
@@ -108,6 +109,15 @@ final class MobPrompt {
                 Officialdom.fineOf(snapshot.mobDetails().get("officialFine")), config.officialsShameless)
                 + (rank != null && config.paperwork && snapshot.mobDetails().get("paperCase") instanceof Map<?, ?> paper
                         ? Paperwork.prompt(rank, Paperwork.caseOf(paper), paper.get("today") instanceof Number n ? n.longValue() : 0) : "");
+    }
+
+    /** A night bandit robbing this player: what he asks and how the game answers a haggle ({@link BanditHaggle#prompt}); "" otherwise. */
+    String robbery(MobSnapshot snapshot) {
+        if (!config.banditHaggle || !(snapshot.mobDetails().get("robbery") instanceof Map<?,?> robbery)) return "";
+        java.util.function.ToIntFunction<String> number = key -> robbery.get(key) instanceof Number n ? n.intValue() : 0;
+        Object player = snapshot.playerDetails().get("name");
+        return BanditHaggle.prompt(new BanditHaggle.State(number.applyAsInt("demand"), number.applyAsInt("paid"), number.applyAsInt("emeralds"),
+                Boolean.TRUE.equals(robbery.get("guarded")), number.applyAsInt("used")), player instanceof String name && !name.isBlank() ? name : "игрок");
     }
 
     /** «Говорят в деревне»: the rumours this villager has heard, with who tells them; "" when it heard nothing. */

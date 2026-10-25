@@ -57,6 +57,8 @@ public final class MobGameBridge implements GameBridge {
     final VillageController villages;
     /** Village defence: the alarm, no monsters spawning in a guarded village, a sturdier golem. */
     final VillageDefenseController defense;
+    /** Night bandits in the cities: the night's draw, the gangs' minds. */
+    final BanditController bandits;
     /** Track «чиновники»: officials' desks, envelopes and the inspector's orders. */
     final OfficialsController officials;
     /** Officials, stage 2: the passport office (cases, the queue at the clerk's window). */
@@ -85,6 +87,7 @@ public final class MobGameBridge implements GameBridge {
         families = new FamilyController(this);
         villages = new VillageController(this);
         defense = new VillageDefenseController(this);
+        bandits = new BanditController(this);
         officials = new OfficialsController(this);
         passports = new PassportOffice(this);
         graft = new GraftController(this);
@@ -181,6 +184,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.families.tick(world);
                 bridge.villages.tick(world);
                 bridge.defense.tick(world);
+                bridge.bandits.tick(world);
                 bridge.officials.tick(world, bridge.defense.zones(world));
                 bridge.passports.tick(world);
                 bridge.graft.tick(world, bridge.defense.zones(world));
@@ -236,7 +240,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.memory.recordAction(card.id(), ActionIntent.none());
         if (server.isStopped()) return CompletableFuture.completedFuture(null);
         CompletableFuture<Void> done = new CompletableFuture<>();
-        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.divine.clearRuntime(); bridge.defense.clearRuntime(); bridge.officials.clearRuntime(); bridge.passports.clearRuntime(); bridge.graft.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.rivalry.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bars.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
+        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.divine.clearRuntime(); bridge.defense.clearRuntime(); bridge.officials.clearRuntime(); bridge.passports.clearRuntime(); bridge.graft.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.rivalry.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bars.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); bridge.bandits.clearRuntime(); done.complete(null); });
         return done;
     }
     /** Б1: an event of the divine block (JSON), from any thread; dropped when no world is open. */
@@ -322,6 +326,7 @@ public final class MobGameBridge implements GameBridge {
             ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
             Entity entity = player == null ? null : ((ServerWorld) player.getWorld()).getEntity(mobId);
             if (!(entity instanceof MobEntity mob) || !mob.isAlive()) return "Моб недоступен";
+            if (mob instanceof BanditEntity bandit) return bandit.pay(player, player.getMainHandStack()); // a bandit takes it as his due
             return society.giftFromHand((ServerWorld) player.getWorld(), player, mob);
         });
     }
@@ -815,6 +820,10 @@ public final class MobGameBridge implements GameBridge {
                             + ". Свадьбу играют у колокола днём: скажите «идём на свадьбу». Свидетелей зовите словами «будь моим свидетелем»."));
                 if (Wedding.calls(said)) parts.add(startWedding(mobId, playerId).thenApply(m -> m.isBlank() ? "" : "[Mob Talk] " + m));
                 if (Wedding.asksWitness(said)) parts.add(appointWitness(mobId, playerId).thenApply(m -> m.isBlank() ? "" : "[Mob Talk] " + m));
+            }
+            if (config.bandits && ((ServerWorld) player.getWorld()).getEntity(mobId) instanceof BanditEntity bandit) {
+                String note = bandits.haggle((ServerWorld) player.getWorld(), bandit, player, said);
+                if (!note.isBlank()) parts.add(CompletableFuture.completedFuture("§7[Mob Talk] " + note));
             }
             if (config.coSleep && CoSleep.invites(said)) parts.add(inviteToBed(mobId, playerId).thenApply(v -> ""));
             if (config.familyLife && config.socialLayer) {

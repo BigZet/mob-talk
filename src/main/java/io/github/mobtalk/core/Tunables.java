@@ -221,6 +221,14 @@ public final class Tunables {
         integer("watchReplaceMinutes", s, "guards", 1, 240, 1, c -> c.watchReplaceMinutes, (c, x) -> c.watchReplaceMinutes = x);
         integer("heavyHealth", s, "guards", 20, 120, 1, c -> c.heavyHealth, (c, x) -> c.heavyHealth = x);
         integer("heavyDamage", s, "guards", 1, 30, 1, c -> c.heavyDamage, (c, x) -> c.heavyDamage = x);
+        // Night bandits in the cities.
+        integer("banditNightChance", s, "bandits", 0, 100, 5, c -> c.banditNightChance, (c, x) -> c.banditNightChance = x);
+        integer("banditGangMax", s, "bandits", 1, 6, 1, c -> c.banditGangMax, (c, x) -> c.banditGangMax = x);
+        integer("banditDemandPercent", s, "bandits", 5, 100, 5, c -> c.banditDemandPercent, (c, x) -> c.banditDemandPercent = x);
+        integer("banditDemandSeconds", s, "bandits", 5, 120, 5, c -> c.banditDemandSeconds, (c, x) -> c.banditDemandSeconds = x);
+        integer("banditRobChance", s, "bandits", 0, 100, 5, c -> c.banditRobChance, (c, x) -> c.banditRobChance = x);
+        integer("banditHealth", s, "bandits", 10, 80, 1, c -> c.banditHealth, (c, x) -> c.banditHealth = x);
+        integer("banditDamage", s, "bandits", 1, 20, 1, c -> c.banditDamage, (c, x) -> c.banditDamage = x);
         // Officials and their bribes.
         integer("officialHonestPercent", s, "officials", 0, 100, 5, c -> c.officialHonestPercent, (c, x) -> c.officialHonestPercent = x);
         integer("officialPricePercent", s, "officials", 10, 500, 10, c -> c.officialPricePercent, (c, x) -> c.officialPricePercent = x);
@@ -313,6 +321,7 @@ public final class Tunables {
                 config.pregnancy = d.pregnancy; config.pregnancyBelly = d.pregnancyBelly; config.pregnancyStatus = d.pregnancyStatus; config.familyFade = d.familyFade;
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices; config.villageSites = d.villageSites;
+                config.bandits = d.bandits; config.banditsRobVillagers = d.banditsRobVillagers; config.banditsInVillages = d.banditsInVillages; config.banditHaggle = d.banditHaggle; config.banditRumors = d.banditRumors; config.banditFearLight = d.banditFearLight;
                 config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.alarmSound = d.alarmSound; config.villageNoConversion = d.villageNoConversion; config.villageTowers = d.villageTowers; config.villageGuards = d.villageGuards; config.villageHeavy = d.villageHeavy; config.villageCavalry = d.villageCavalry; config.officials = d.officials; config.paperwork = d.paperwork; config.paperLunch = d.paperLunch; config.passportForWedding = d.passportForWedding; config.officialDacha = d.officialDacha; config.officialSmite = d.officialSmite; config.officialRevizor = d.officialRevizor; config.officialsShameless = d.officialsShameless; config.officialGossip = d.officialGossip; config.barsInVillages = d.barsInVillages; config.barDrinks = d.barDrinks; config.barEvenings = d.barEvenings; config.barVoiced = d.barVoiced; config.barAliceSpeaker = d.barAliceSpeaker;
                 config.divineTidings = d.divineTidings; config.divinePanic = d.divinePanic; config.divineMayExile = d.divineMayExile; config.divineMourners = d.divineMourners;
             }

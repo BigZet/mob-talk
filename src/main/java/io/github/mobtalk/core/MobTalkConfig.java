@@ -120,6 +120,12 @@ public final class MobTalkConfig {
     public boolean villageGuards = true;
     /** Ranks of the village's guard beside the plain guard: heavy warriors in diamond with an axe, horsemen in leather on a horse. */
     public boolean villageHeavy = true, villageCavalry = true;
+    /** Night bandits in the cities: a gang may come at night, ask for emeralds, fight and rob; whether they also mug villagers,
+     * and whether plain villages draw them too (cities only by default). */
+    public boolean bandits = true, banditsRobVillagers = true, banditsInVillages = false;
+    /** Bandits: the player may talk the price down in a conversation (core/BanditHaggle); the city hears of robberies and warns at
+     * dusk; a torch or lantern in hand keeps a gang at a distance until it gives up. */
+    public boolean banditHaggle = true, banditRumors = true, banditFearLight = true;
     /** Track «чиновники» (docs/officials.md): villages and cities keep officials at a desk — the head of the administration, the
      * clerk, the inspector — who take bribes in an envelope of emeralds; the inspector writes orders to players who build or dig in
      * the village. */
@@ -177,6 +183,11 @@ public final class MobTalkConfig {
     public int watchResidents = 5, watchMin = 2, watchMax = 8, watchHealth = 30, watchDamage = 6, watchSight = 24, watchReplaceMinutes = 20;
     /** The heavy warrior: health and the damage of an axe blow. */
     public int heavyHealth = 50, heavyDamage = 10;
+    /** Bandits: the chance (percent) that a night in a city brings a gang to a player, the largest gang, the share of the player's
+     * emeralds they ask (percent), how long they wait for it (seconds), the chance a blow of theirs snatches something (percent),
+     * a bandit's health and blow. */
+    public int banditNightChance = 35, banditGangMax = 3, banditDemandPercent = 30, banditDemandSeconds = 20, banditRobChance = 35;
+    public int banditHealth = 24, banditDamage = 4;
     /** Officials: how many of a hundred are honest, the price of a service in percent, one desk per this many grown residents (a
      * village puts its desks up by the bell: the head, then the inspector, then the clerk; 0 = none in villages), the inspector's
      * fine (emeralds), the blocks a player must change near him to get an order, and the game days to pay it. */
@@ -334,6 +345,7 @@ public final class MobTalkConfig {
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
+        copy.bandits = bandits; copy.banditsRobVillagers = banditsRobVillagers; copy.banditsInVillages = banditsInVillages; copy.banditHaggle = banditHaggle; copy.banditRumors = banditRumors; copy.banditFearLight = banditFearLight;
         copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageHeavy = villageHeavy; copy.villageCavalry = villageCavalry; copy.officials = officials; copy.paperwork = paperwork; copy.paperLunch = paperLunch; copy.passportForWedding = passportForWedding; copy.officialDacha = officialDacha; copy.officialSmite = officialSmite; copy.officialRevizor = officialRevizor; copy.officialsShameless = officialsShameless; copy.officialGossip = officialGossip; copy.barsInVillages = barsInVillages; copy.barDrinks = barDrinks; copy.barEvenings = barEvenings; copy.barVoiced = barVoiced; copy.barAliceSpeaker = barAliceSpeaker;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;
