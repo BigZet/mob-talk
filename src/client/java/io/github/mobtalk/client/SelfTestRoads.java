@@ -15,6 +15,7 @@ import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 
 /** Roads between villages ({@code -Only roads}): a road planned across the land beside the stage and laid, then its traffic — the
@@ -161,6 +162,7 @@ final class SelfTestRoads {
                     // Per server tick, so a slow test machine does not count as a fast cart: a walk is 1–4 blocks a second.
                     double moved = Math.hypot(then.x - first.x, then.z - first.z), perSecond = moved * 20 / ticks;
                     test.check(perSecond > 1 && perSecond < 4, kind + " moves along at a walk (" + String.format(java.util.Locale.ROOT, "%.1f blocks in %d ticks, %.1f a second", moved, ticks, perSecond) + ")");
+                    if (kind.equals("rider")) seat(lead);
                     side(kind, lead, order);
                 });
             });
@@ -222,6 +224,22 @@ final class SelfTestRoads {
             } else test.check(lead.getFirstPassenger() instanceof VillagerEntity, "the horseman sits his horse");
             return null;
         });
+    }
+
+    /** The horseman sits in the saddle as a player would (Dmitriy 2026-10-25: he floated over it) and faces with the horse, as the
+     * client shows him. The same check as village defence's cavalry (SelfTestGuards). */
+    private void seat(Entity horse) {
+        Entity rider = onServer(horse::getFirstPassenger);
+        if (rider == null) return;
+        var world = test.owner.client.world;
+        if (!(world.getEntityById(rider.getId()) instanceof VillagerEntity r) || !(world.getEntityById(horse.getId()) instanceof net.minecraft.entity.LivingEntity h)) {
+            test.fail("the horseman is not seen on the client");
+            return;
+        }
+        double lift = r.getY() - h.getY(), player = h.getPassengerRidingPos(r).y - h.getY() - 0.6;
+        float turn = MathHelper.wrapDegrees(r.bodyYaw - h.bodyYaw);
+        test.check(Math.abs(lift - player) < 0.2, String.format(java.util.Locale.ROOT, "the horseman sits in the saddle (feet %.2f above the horse's, a player's %.2f)", lift, player));
+        test.check(Math.abs(turn) < 20, String.format(java.util.Locale.ROOT, "the horseman faces with the horse (%.0f°)", turn));
     }
 
     /** The lamps at night: along the road from the ground, and from above. */
