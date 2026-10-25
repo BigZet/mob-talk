@@ -120,6 +120,10 @@ public final class MobTalkConfig {
     public boolean villageGuards = true;
     /** Ranks of the village's guard beside the plain guard: heavy warriors in diamond with an axe, horsemen in leather on a horse. */
     public boolean villageHeavy = true, villageCavalry = true;
+    /** Village bars: a bar stands in each new village (worldgen, takes effect for villages generated after the change); in the
+     * evening villagers gather there and talk over the village's rumours, in chat subtitles, voiced only with {@link #barVoiced};
+     * the bar's jukebox is the Alice speaker when the alicespeaker mod is installed. */
+    public boolean barsInVillages = true, barEvenings = true, barVoiced = false, barAliceSpeaker = true;
     /** The village casino (docs/casino.md): villages may build one (applies to chunks generated after the world loads); its bouncers
      * in black throw out troublemakers and beat monsters; villagers drop in to play in the afternoon. */
     public boolean casino = true, casinoBouncers = true, casinoVisitors = true;
@@ -166,6 +170,9 @@ public final class MobTalkConfig {
     public int watchResidents = 5, watchMin = 2, watchMax = 8, watchHealth = 30, watchDamage = 6, watchSight = 24, watchReplaceMinutes = 20;
     /** The heavy warrior: health and the damage of an axe blow. */
     public int heavyHealth = 50, heavyDamage = 10;
+    /** The bar's evening: from and to this game hour (6 is sunrise), at most this many visitors, the chance (percent) a free villager
+     * goes, and the pause between two talks at one bar (seconds). */
+    public int barOpenHour = 17, barCloseHour = 22, barVisitors = 6, barVisitPercent = 70, barTalkSeconds = 40;
     /** The casino: its weight among a village's houses (vanilla houses weigh 2 to 4 each), the bouncer's health and blow, and how many
      * villagers may play at once per game table. */
     public int casinoWeight = 3, bouncerHealth = 60, bouncerDamage = 8, casinoPlayersPerTable = 2;
@@ -313,7 +320,7 @@ public final class MobTalkConfig {
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
-        copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageHeavy = villageHeavy; copy.villageCavalry = villageCavalry;
+        copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageHeavy = villageHeavy; copy.villageCavalry = villageCavalry; copy.barsInVillages = barsInVillages; copy.barEvenings = barEvenings; copy.barVoiced = barVoiced; copy.barAliceSpeaker = barAliceSpeaker;
         copy.casino = casino; copy.casinoBouncers = casinoBouncers; copy.casinoVisitors = casinoVisitors;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;

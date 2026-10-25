@@ -101,6 +101,8 @@ public final class MobTalkMod implements ModInitializer {
     @Override public void onInitialize() {
         WeddingItems.register(); // Свои предметы — до загрузки любого мира, на обеих сторонах.
         io.github.mobtalk.game.DefenseContent.register(); // Пост лучника и профессия лучника (защита деревни).
+        io.github.mobtalk.game.BarContent.register(); // Мебель бара и место, на котором сидит житель.
+        io.github.mobtalk.game.BarWorldgen.register(); // Бар в каждой новой деревне.
         io.github.mobtalk.game.CasinoContent.register(); // Казино: мебель, вышибала, точки интереса (docs/casino.md).
         io.github.mobtalk.game.CasinoWorldgen.register();
         io.github.mobtalk.game.CasinoLife.register();

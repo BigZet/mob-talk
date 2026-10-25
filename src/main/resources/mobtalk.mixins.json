@@ -32,8 +32,10 @@
     "VillagerRiderFacingMixin",
     "SteedCalmMixin",
     "KeepHandsMixin",
-    "CasinoPoolAccessor",
-    "CasinoBouncerPanicMixin"
+    "CasinoBouncerPanicMixin",
+    "SinglePoolElementAccessor",
+    "UniqueVillagePieceMixin",
+    "BarPoolAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -143,6 +143,7 @@ public final class MobTalkClient implements ClientModInitializer {
         net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_ENTITIES.register(labels::render);
         ChildView.register();
         io.github.mobtalk.client.human.VillagerLooks.register();
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(io.github.mobtalk.game.BarContent.SEAT, net.minecraft.client.render.entity.EmptyEntityRenderer::new);
         // Казино: печатные поля на сукне и подвески люстры прозрачны по краям.
         for (net.minecraft.block.Block block : io.github.mobtalk.game.CasinoContent.BLOCKS.values())
             net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.INSTANCE.putBlock(block, net.minecraft.client.render.RenderLayer.getCutout());
