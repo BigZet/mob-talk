@@ -36,6 +36,8 @@ final class AliceSession implements WebSocket.Listener {
     private static final String ORIGIN = "https://alice.yandex.ru";
     private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36";
     private static final String APP_ID = "ru.yandex.webdesktop", APP_VERSION = "1.0.281-home-static/alice-web/15";
+    private boolean placeholderSeen;
+    private int emptyAfterPlaceholder;
     private static final Pattern PLACEHOLDER = Pattern.compile("^(одну секунду|секунду|подождите|подумаю)[.!?…]*$", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
     private static final ScheduledExecutorService TIMERS = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread thread = new Thread(r, "alicespeaker-timer");
@@ -221,6 +223,15 @@ final class AliceSession implements WebSocket.Listener {
             TIMERS.schedule(() -> finish(false), speakSeen ? 8 : 4, TimeUnit.SECONDS);
             return;
         }
+        boolean placeholder = !answer.isBlank();
+        if (placeholder) placeholderSeen = true;
+        if (!placeholderSeen) {
+            // An answer with no words (a player command the web chat cannot carry out): asking for "the next part"
+            // only brings more empty answers, so end the dialogue with what came.
+            TIMERS.schedule(() -> { if (finalText.isBlank()) finish(false); }, speakSeen ? 8 : 2, TimeUnit.SECONDS);
+            return;
+        }
+        if (!placeholder && ++emptyAfterPlaceholder > 3) { finish(false); return; }
         if (followUps++ < 20) {
             // Long answers come in steps; the site asks for the next one with this server action.
             JsonObject action = new JsonObject();

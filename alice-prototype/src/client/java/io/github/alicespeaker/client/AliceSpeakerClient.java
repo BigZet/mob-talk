@@ -110,6 +110,10 @@ public final class AliceSpeakerClient implements ClientModInitializer {
         ClientWorld world = client.world;
         AliceAuth auth = AliceAuth.load();
         if (text != null) notice(client, "Вы: " + text, Formatting.GRAY);
+        // Typed music commands go straight to Yandex Music: the web Alice cannot play music and answers them with
+        // an empty player directive, so waiting for her only delays "next" and "stop".
+        YandexMusic.Intent typed = text != null ? YandexMusic.intent(text, musicSound != null, false) : null;
+        if (typed != null) { handleMusic(client, client.world, speaker, typed); return; }
         overlay(client, auth.hasLogin() ? "Алиса думает…" : "Алиса думает… (без входа в Яндекс)");
         logLine("---- " + LocalTime.now() + (text != null ? " text" : " voice " + pcm.length + " bytes") + ", cookies " + (auth.cookie().isBlank() ? "no" : "yes") + ", sync.json " + (auth.sync().isBlank() ? "no" : "yes"));
         AliceSession next = text != null ? AliceSession.text(text, auth, this::logLine) : AliceSession.voice(pcm, auth, this::logLine);
@@ -133,7 +137,7 @@ public final class AliceSpeakerClient implements ClientModInitializer {
                     // The web chat Alice cannot play music; music requests go to Yandex Music instead of her refusal.
                     YandexMusic.Intent intent = YandexMusic.intent(text != null ? text : reply.heard(), musicSound != null, reply.music());
                     if (intent != null) { handleMusic(client, world, speaker, intent); return; }
-                    notice(client, "Алиса: " + reply.text(), Formatting.LIGHT_PURPLE);
+                    notice(client, "Алиса: " + (reply.text().isBlank() ? "(ответила без слов)" : reply.text()), Formatting.LIGHT_PURPLE);
                     if (reply.pcm() == null) {
                         notice(client, "Голос Алисы не пришёл: " + reply.voiceProblem(), Formatting.DARK_GRAY);
                         return;
