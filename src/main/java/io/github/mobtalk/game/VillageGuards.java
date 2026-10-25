@@ -40,7 +40,10 @@ import net.minecraft.world.poi.PointOfInterest;
 import net.minecraft.world.poi.PointOfInterestStorage;
 import java.util.*;
 
-/** The village guard (design §2): a villager with the guard's profession, a sword, a shield and iron, whose job site is a guard stand
+/** The village guard (design §2): a villager with the guard's profession, a sword, a shield and iron, whose job site is a guard stand.
+ * Beside the plain guard the village keeps two ranks on the same stands (Dmitriy, 2026-10-25): the heavy warrior in diamond with an
+ * axe (slower, tougher, a heavier blow) and the horseman in leather with a sword on a village horse, which it rides wherever the guard
+ * walks; new stands get the rank the village has fewest of. What follows holds for all of them
  * at the bell or at the village's edge. The village puts up stands until it has {@code guardsFor(residents)} of them and a newcomer
  * takes each new or long-empty one. By day a guard holds its stand and now and then walks to the next; at night half of them walk
  * the round of the stands and the bell (the shifts swap every night), the rest sleep; in an alarm all of them go for the monsters and
@@ -52,7 +55,11 @@ final class VillageGuards {
     static final Identifier GUARD_HEALTH = Identifier.of("mobtalk", "guard_health");
     /** How close a guard must be to strike, how long between blows, how far it chases a foe beyond the village. */
     static final double REACH = 2.4, CHASE_BEYOND = 16;
-    static final long BLOW_TICKS = 20;
+    static final long BLOW_TICKS = 20, HEAVY_BLOW_TICKS = 30;
+    static final Identifier HEAVY_SLOW = Identifier.of("mobtalk", "heavy_slow"), HEAVY_STEADY = Identifier.of("mobtalk", "heavy_steady");
+    /** A horseman's horses carry this tag; one without a horse gets a new one at most this often. */
+    static final String STEED_TAG = "mobtalk_steed";
+    static final long STEED_TICKS = 1200;
     /** Below this share of health a guard falls back; above this it goes back to the fight. */
     static final float RETREAT = 0.3f, RETURN = 0.7f;
     /** How long a guard holds its stand before walking the round by day, and how long it stays at the next stand. */
@@ -66,6 +73,7 @@ final class VillageGuards {
     private final Map<UUID, BlockPos> roundTarget = new HashMap<>();
     private final Map<UUID, Long> roundSince = new HashMap<>();
     private final Map<BlockPos, Long> emptySince = new HashMap<>();
+    private final Map<UUID, Long> lastSteed = new HashMap<>();
     private final Random random = new Random();
 
     VillageGuards(MobGameBridge bridge, VillageDefenseController defense) { this.bridge = bridge; this.defense = defense; }
@@ -116,8 +124,8 @@ final class VillageGuards {
             if (taken || !free(world, at)) continue;
             world.setBlockState(at, DefenseContent.GUARD_POST.getDefaultState(), Block.NOTIFY_ALL);
             world.playSound(null, at, SoundEvents.BLOCK_WOOD_PLACE, SoundCategory.BLOCKS, 1f, 1f);
-            VillagerEntity guard = newcomer(world, at);
-            announce(world, zone, Text.translatable("mobtalk.defense.guard.arrived", zone.title(), guard == null ? "?" : name(guard)));
+            VillagerEntity guard = newcomer(world, zone, at);
+            arrived(world, zone, guard);
             return; // one stand per round: the village grows its guard step by step
         }
     }
@@ -145,13 +153,34 @@ final class VillageGuards {
             Long since = emptySince.putIfAbsent(stand, now);
             if (since == null || now - since < bridge.config.watchReplaceMinutes * 1200L) continue;
             emptySince.remove(stand);
-            VillagerEntity guard = newcomer(world, stand);
-            if (guard != null) announce(world, zone, Text.translatable("mobtalk.defense.guard.arrived", zone.title(), name(guard)));
+            VillagerEntity guard = newcomer(world, zone, stand);
+            if (guard != null) arrived(world, zone, guard);
         }
     }
 
-    /** A grown villager of the local kind with the guard's profession and gear, standing by the stand, the stand its job site. */
-    private VillagerEntity newcomer(ServerWorld world, BlockPos stand) {
+    private void arrived(ServerWorld world, VillageDefenseController.Zone zone, VillagerEntity guard) {
+        if (guard == null) return;
+        announce(world, zone, Text.translatable("mobtalk.defense.soldier.arrived", zone.title(), Text.translatable("mobtalk.defense.rank." + rankName(guard)), name(guard)));
+    }
+    private static String rankName(VillagerEntity v) { return DefenseContent.heavy(v) ? "heavy" : DefenseContent.cavalry(v) ? "cavalry" : "guard"; }
+
+    /** The rank a new stand gets: the one the village has fewest of, the plain guard first, then the heavy warrior, then the horseman
+     * (each while its switch is on). Two stands make a guard and a heavy warrior, three add a horseman. */
+    private net.minecraft.village.VillagerProfession rank(ServerWorld world, VillageDefenseController.Zone zone) {
+        List<net.minecraft.village.VillagerProfession> order = new ArrayList<>(List.of(DefenseContent.GUARD));
+        if (bridge.config.villageHeavy && DefenseContent.HEAVY != null) order.add(DefenseContent.HEAVY);
+        if (bridge.config.villageCavalry && DefenseContent.CAVALRY != null) order.add(DefenseContent.CAVALRY);
+        Map<net.minecraft.village.VillagerProfession, Integer> count = new HashMap<>();
+        for (VillagerEntity v : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !DefenseContent.traveller(v) && DefenseContent.soldier(v)))
+            count.merge(v.getVillagerData().getProfession(), 1, Integer::sum);
+        net.minecraft.village.VillagerProfession best = order.getFirst();
+        for (net.minecraft.village.VillagerProfession rank : order) if (count.getOrDefault(rank, 0) < count.getOrDefault(best, 0)) best = rank;
+        return best;
+    }
+
+    /** A grown villager of the local kind with the rank's profession and gear (a horseman on its horse), standing by the stand, the
+     * stand its job site. */
+    private VillagerEntity newcomer(ServerWorld world, VillageDefenseController.Zone zone, BlockPos stand) {
         if (!world.getBlockState(stand).isOf(DefenseContent.GUARD_POST)) return null;
         if (world.getPointOfInterestStorage().getInSquare(entry -> entry.matchesKey(DefenseContent.GUARD_POST_POI), stand, 0,
                 PointOfInterestStorage.OccupationStatus.HAS_SPACE).findAny().isEmpty()) return null;
@@ -165,26 +194,37 @@ final class VillageGuards {
         if (guard == null) return null;
         guard.refreshPositionAndAngles(feet.getX() + 0.5, feet.getY(), feet.getZ() + 0.5, world.random.nextFloat() * 360f, 0f);
         guard.initialize(world, world.getLocalDifficulty(feet), SpawnReason.MOB_SUMMONED, null);
-        guard.setVillagerData(new VillagerData(VillagerType.forBiome(world.getBiome(stand)), DefenseContent.GUARD, 1));
+        guard.setVillagerData(new VillagerData(VillagerType.forBiome(world.getBiome(stand)), rank(world, zone), 1));
         guard.setBreedingAge(0);
         world.spawnEntityAndPassengers(guard);
         world.getPointOfInterestStorage().getPosition(entry -> entry.matchesKey(DefenseContent.GUARD_POST_POI), (entry, pos) -> pos.equals(stand), stand, 1);
         guard.reinitializeBrain(world); // a profession set by hand needs the brain vanilla builds for it, or the villager drops it
         guard.getBrain().remember(MemoryModuleType.JOB_SITE, GlobalPos.create(world.getRegistryKey(), stand));
         gear(guard);
+        if (DefenseContent.cavalry(guard)) { net.minecraft.entity.passive.HorseEntity horse = steed(world, guard); if (horse != null) guard.startRiding(horse, true); }
         return guard;
     }
 
-    /** Sword, shield, helmet and chestplate (never dropped: the village's, not loot), and the guard's health. */
+    /** The rank's arms and armour (never dropped: the village's, not loot) and health. The guard: sword, shield, iron helmet and
+     * chestplate. The heavy warrior: a diamond axe and all diamond, slower and hard to push. The horseman: a sword and all leather. */
     void gear(VillagerEntity guard) {
-        if (guard.getEquippedStack(EquipmentSlot.MAINHAND).isEmpty()) guard.equipStack(EquipmentSlot.MAINHAND, new ItemStack(Items.IRON_SWORD));
-        if (guard.getEquippedStack(EquipmentSlot.OFFHAND).isEmpty()) guard.equipStack(EquipmentSlot.OFFHAND, new ItemStack(Items.SHIELD));
-        if (guard.getEquippedStack(EquipmentSlot.HEAD).isEmpty()) guard.equipStack(EquipmentSlot.HEAD, new ItemStack(Items.IRON_HELMET));
-        if (guard.getEquippedStack(EquipmentSlot.CHEST).isEmpty()) guard.equipStack(EquipmentSlot.CHEST, new ItemStack(Items.IRON_CHESTPLATE));
+        boolean heavy = DefenseContent.heavy(guard), cavalry = DefenseContent.cavalry(guard);
+        equip(guard, EquipmentSlot.MAINHAND, heavy ? Items.DIAMOND_AXE : Items.IRON_SWORD);
+        if (!heavy && !cavalry) equip(guard, EquipmentSlot.OFFHAND, Items.SHIELD);
+        equip(guard, EquipmentSlot.HEAD, heavy ? Items.DIAMOND_HELMET : cavalry ? Items.LEATHER_HELMET : Items.IRON_HELMET);
+        equip(guard, EquipmentSlot.CHEST, heavy ? Items.DIAMOND_CHESTPLATE : cavalry ? Items.LEATHER_CHESTPLATE : Items.IRON_CHESTPLATE);
+        if (heavy || cavalry) {
+            equip(guard, EquipmentSlot.LEGS, heavy ? Items.DIAMOND_LEGGINGS : Items.LEATHER_LEGGINGS);
+            equip(guard, EquipmentSlot.FEET, heavy ? Items.DIAMOND_BOOTS : Items.LEATHER_BOOTS);
+        }
         for (EquipmentSlot slot : EquipmentSlot.values()) guard.setEquipmentDropChance(slot, 0f);
+        if (heavy) {
+            modifier(guard, EntityAttributes.GENERIC_MOVEMENT_SPEED, HEAVY_SLOW, -0.2, EntityAttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+            modifier(guard, EntityAttributes.GENERIC_KNOCKBACK_RESISTANCE, HEAVY_STEADY, 0.6, EntityAttributeModifier.Operation.ADD_VALUE);
+        }
         EntityAttributeInstance health = guard.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH);
         if (health == null) return;
-        double extra = Math.max(0, bridge.config.watchHealth - health.getBaseValue());
+        double extra = Math.max(0, (heavy ? bridge.config.heavyHealth : bridge.config.watchHealth) - health.getBaseValue());
         EntityAttributeModifier existing = health.getModifier(GUARD_HEALTH);
         if (existing != null && existing.value() == extra) return;
         boolean fresh = existing == null;
@@ -194,6 +234,52 @@ final class VillageGuards {
         else if (guard.getHealth() > guard.getMaxHealth()) guard.setHealth(guard.getMaxHealth());
     }
 
+    private static void equip(VillagerEntity v, EquipmentSlot slot, net.minecraft.item.Item item) {
+        if (v.getEquippedStack(slot).isEmpty()) v.equipStack(slot, new ItemStack(item));
+    }
+    private static void modifier(VillagerEntity v, net.minecraft.registry.entry.RegistryEntry<net.minecraft.entity.attribute.EntityAttribute> attribute,
+                                 Identifier id, double value, EntityAttributeModifier.Operation operation) {
+        EntityAttributeInstance instance = v.getAttributeInstance(attribute);
+        if (instance != null && instance.getModifier(id) == null) instance.addPersistentModifier(new EntityAttributeModifier(id, value, operation));
+    }
+
+    // ---- The horseman's horse ----
+
+    /** A village horse: tame, saddled, in leather barding, kept (it never despawns), tagged as the guard's. */
+    private static net.minecraft.entity.passive.HorseEntity steed(ServerWorld world, VillagerEntity rider) {
+        net.minecraft.entity.passive.HorseEntity horse = EntityType.HORSE.create(world);
+        if (horse == null) return null;
+        horse.refreshPositionAndAngles(rider.getX(), rider.getY(), rider.getZ(), rider.getYaw(), 0f);
+        horse.initialize(world, world.getLocalDifficulty(rider.getBlockPos()), SpawnReason.MOB_SUMMONED, null);
+        horse.setTame(true);
+        horse.saddle(new ItemStack(Items.SADDLE), null);
+        horse.equipBodyArmor(new ItemStack(Items.LEATHER_HORSE_ARMOR));
+        horse.setPersistent();
+        horse.addCommandTag(STEED_TAG);
+        world.spawnEntity(horse);
+        return horse;
+    }
+
+    /** A horseman out of the saddle: back on a free village horse near it, or a new horse now and then. */
+    private void mount(ServerWorld world, VillagerEntity rider, long now) {
+        if (rider.getVehicle() != null) return;
+        net.minecraft.entity.passive.HorseEntity free = null; double nearest = 24 * 24;
+        for (net.minecraft.entity.passive.HorseEntity horse : world.getEntitiesByClass(net.minecraft.entity.passive.HorseEntity.class,
+                rider.getBoundingBox().expand(24), h -> h.isAlive() && !h.hasPassengers() && h.getCommandTags().contains(STEED_TAG))) {
+            double distance = rider.squaredDistanceTo(horse);
+            if (distance < nearest) { nearest = distance; free = horse; }
+        }
+        if (free == null) {
+            Long last = lastSteed.get(rider.getUuid());
+            if (last != null && now - last < STEED_TICKS) return;
+            lastSteed.put(rider.getUuid(), now);
+            free = steed(world, rider);
+            if (free == null) return;
+        }
+        if (rider.squaredDistanceTo(free) <= 3 * 3) rider.startRiding(free, true);
+        else walk(rider, free.getBlockPos(), 0.6f);
+    }
+
     // ---- Duty and fight ----
 
     private void duty(ServerWorld world, VillageDefenseController.Zone zone, long now) {
@@ -201,7 +287,7 @@ final class VillageGuards {
         boolean night = !world.isDay();
         long nightIndex = world.getTimeOfDay() / 24000L;
         List<BlockPos> stands = null;
-        for (VillagerEntity guard : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !v.isRemoved() && !v.isBaby() && DefenseContent.guard(v))) {
+        for (VillagerEntity guard : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !DefenseContent.traveller(v) && !v.isRemoved() && !v.isBaby() && DefenseContent.soldier(v))) {
             gear(guard);
             BlockPos stand = jobSite(world, guard);
             if (bridge.actions.busy(guard)) continue;
@@ -217,24 +303,26 @@ final class VillageGuards {
                 walk(guard, stand != null ? stand : zone.center(), 0.75f);
                 continue;
             }
-            if (alarm != null && fight(world, zone, alarm, guard, now)) continue;
+            if (DefenseContent.cavalry(guard)) mount(world, guard, now);
+            if (fight(world, zone, alarm, guard, now)) continue; // monsters in the village need no alarm
             if (guard.getHealth() < guard.getMaxHealth() && now % 100 == 5) guard.heal(1);
             if (stands == null) stands = stands(world, zone, PointOfInterestStorage.OccupationStatus.ANY);
             round(world, zone, guard, stand, stands, night, now);
         }
     }
 
-    /** The nearest monster or alarm player within the village (and a little beyond): walk up to it, strike at arm's length. */
+    /** The nearest monster or alarm player in the village (anywhere among its houses, or within sight of the guard a little beyond
+     * them): walk up to it, strike at arm's length. */
     private boolean fight(ServerWorld world, VillageDefenseController.Zone zone, VillageAlarm.Alarm alarm, VillagerEntity guard, long now) {
         double alert = bridge.config.watchSight;
         LivingEntity foe = null; double nearest = Double.MAX_VALUE;
         var reach = zone.box().expand(CHASE_BEYOND);
-        for (MobEntity monster : world.getEntitiesByClass(MobEntity.class, guard.getBoundingBox().expand(alert), defense::threat)) {
-            if (!reach.contains(monster.getPos())) continue;
+        for (MobEntity monster : world.getEntitiesByClass(MobEntity.class, reach, defense::threat)) {
+            if (!zone.box().contains(monster.getPos()) && guard.squaredDistanceTo(monster) > alert * alert) continue;
             double distance = guard.squaredDistanceTo(monster);
             if (distance < nearest) { nearest = distance; foe = monster; }
         }
-        if (bridge.config.alarmAgainstPlayers)
+        if (alarm != null && bridge.config.alarmAgainstPlayers)
             for (UUID id : alarm.targets.keySet()) {
                 ServerPlayerEntity player = world.getServer().getPlayerManager().getPlayer(id);
                 if (player == null || player.getWorld() != world || !player.isAlive() || player.isCreative() || player.isSpectator()) continue;
@@ -245,19 +333,22 @@ final class VillageGuards {
         if (foe == null) return false;
         if (MobActionController.registered(guard, MemoryModuleType.LOOK_TARGET)) guard.getBrain().remember(MemoryModuleType.LOOK_TARGET, new EntityLookTarget(foe, true), 40);
         guard.getLookControl().lookAt(foe, 30f, 30f);
-        if (nearest > REACH * REACH) {
-            if (MobActionController.registered(guard, MemoryModuleType.WALK_TARGET))
+        boolean heavy = DefenseContent.heavy(guard);
+        double reachOf = guard.getVehicle() != null ? REACH + 1 : REACH; // a sword from the saddle reaches farther
+        if (nearest > reachOf * reachOf) {
+            if (guard.getVehicle() instanceof MobEntity horse) horse.getNavigation().startMovingTo(foe, 1.6);
+            else if (MobActionController.registered(guard, MemoryModuleType.WALK_TARGET))
                 guard.getBrain().remember(MemoryModuleType.WALK_TARGET, new WalkTarget(new EntityLookTarget(foe, false), 0.9F, 1), 40);
             return true;
         }
         Long last = lastBlow.get(guard.getUuid());
-        if (last != null && now - last < BLOW_TICKS) return true;
+        if (last != null && now - last < (heavy ? HEAVY_BLOW_TICKS : BLOW_TICKS)) return true;
         lastBlow.put(guard.getUuid(), now);
         guard.swingHand(Hand.MAIN_HAND);
         DamageSource source = world.getDamageSources().mobAttack(guard);
-        if (foe.damage(source, (float) bridge.config.watchDamage)) {
+        if (foe.damage(source, (float) (heavy ? bridge.config.heavyDamage : bridge.config.watchDamage))) {
             double dx = foe.getX() - guard.getX(), dz = foe.getZ() - guard.getZ();
-            foe.takeKnockback(0.4, -dx, -dz);
+            foe.takeKnockback(heavy ? 0.8 : guard.getVehicle() != null ? 0.6 : 0.4, -dx, -dz);
             world.playSound(null, foe.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_STRONG, SoundCategory.NEUTRAL, 0.8f, 1f);
         }
         return true;
@@ -296,8 +387,11 @@ final class VillageGuards {
         return ring.get(Math.floorMod(at + 1, ring.size()));
     }
 
+    /** Walks there; a horseman in the saddle rides there (the horse goes where it is led). */
     private static void walk(VillagerEntity guard, BlockPos to, float speed) {
-        if (to == null || !MobActionController.registered(guard, MemoryModuleType.WALK_TARGET)) return;
+        if (to == null) return;
+        if (guard.getVehicle() instanceof MobEntity horse) { horse.getNavigation().startMovingTo(to.getX() + 0.5, to.getY(), to.getZ() + 0.5, speed * 2.4); return; }
+        if (!MobActionController.registered(guard, MemoryModuleType.WALK_TARGET)) return;
         guard.getBrain().remember(MemoryModuleType.WALK_TARGET, new WalkTarget(to, speed, 1), 40);
     }
 
@@ -309,7 +403,7 @@ final class VillageGuards {
 
     /** A guard does not panic at monsters or blows, as other villagers do (vanilla's flight would undo its walk to the fight
      * every tick); a badly hurt one falling back may. */
-    boolean standsGround(VillagerEntity villager) { return enabled() && DefenseContent.guard(villager) && !fallingBack.getOrDefault(villager.getUuid(), false); }
+    boolean standsGround(VillagerEntity villager) { return enabled() && DefenseContent.soldier(villager) && !fallingBack.getOrDefault(villager.getUuid(), false); }
 
     /** From the damage event: a guard's shield turns half of the arrows and other projectiles that come at it. */
     boolean shieldBlocks(LivingEntity victim, DamageSource source) {
@@ -331,5 +425,5 @@ final class VillageGuards {
         return name == null || name.isBlank() ? villager.getName().getString() : name;
     }
 
-    void clearRuntime() { lastBlow.clear(); fallingBack.clear(); roundTarget.clear(); roundSince.clear(); emptySince.clear(); }
+    void clearRuntime() { lastBlow.clear(); fallingBack.clear(); roundTarget.clear(); roundSince.clear(); emptySince.clear(); lastSteed.clear(); }
 }

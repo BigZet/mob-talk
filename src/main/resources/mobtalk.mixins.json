@@ -26,7 +26,12 @@
     "NightHoldMixin",
     "CommandFilterMixin",
     "VillageSpawnMixin",
-    "GuardPanicMixin"
+    "GuardPanicMixin",
+    "ZombieConversionMixin",
+    "VillagerRiderMixin",
+    "VillagerRiderFacingMixin",
+    "SteedCalmMixin",
+    "KeepHandsMixin"
   ],
   "injectors": {
     "defaultRequire": 1
