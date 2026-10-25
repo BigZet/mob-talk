@@ -39,7 +39,9 @@ import net.minecraft.util.math.GlobalPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.village.VillagerData;
 import net.minecraft.village.VillagerType;
+import net.minecraft.util.hit.HitResult;
 import net.minecraft.world.Heightmap;
+import net.minecraft.world.RaycastContext;
 import net.minecraft.world.PersistentState;
 import net.minecraft.world.poi.PointOfInterest;
 import net.minecraft.world.poi.PointOfInterestStorage;
@@ -355,11 +357,9 @@ final class VillageTowers {
         archer.initialize(world, world.getLocalDifficulty(stand), SpawnReason.MOB_SUMMONED, null);
         archer.setVillagerData(new VillagerData(VillagerType.forBiome(world.getBiome(post)), DefenseContent.ARCHER, 1));
         archer.setBreedingAge(0);
-        // The brain was built for a jobless villager: its tasks would forget the post and take the profession away (vanilla
-        // rebuilds the brain whenever a villager takes a job).
-        archer.reinitializeBrain(world);
         world.spawnEntityAndPassengers(archer);
         world.getPointOfInterestStorage().getPosition(entry -> entry.matchesKey(DefenseContent.ARCHER_POST_POI), (entry, pos) -> pos.equals(post), post, 1);
+        archer.reinitializeBrain(world); // a profession set by hand needs the brain vanilla builds for it, or the villager drops it
         archer.getBrain().remember(MemoryModuleType.JOB_SITE, GlobalPos.create(world.getRegistryKey(), post));
         return archer;
     }
@@ -384,6 +384,7 @@ final class VillageTowers {
             boolean onShift = !night || ((archer.getUuid().getLeastSignificantBits() & 1) == (nightIndex & 1));
             boolean onDuty = post != null && (alarm != null || onShift);
             if (onDuty && archer.isSleeping()) archer.wakeUp();
+            if (onDuty) VillageDefenseController.stayOut(world, archer);
             if (onDuty && !archer.isSleeping() && archer.squaredDistanceTo(Vec3d.ofCenter(post)) > 2.5 * 2.5 && !bridge.actions.busy(archer)
                     && MobActionController.registered(archer, MemoryModuleType.WALK_TARGET))
                 archer.getBrain().remember(MemoryModuleType.WALK_TARGET, new WalkTarget(post, alarm != null ? 0.8F : 0.55F, 1), 40);
@@ -404,28 +405,30 @@ final class VillageTowers {
         long cooldown = Math.max(5, bridge.config.archerShotTenths * 2L);
         if (last != null && now - last < cooldown) return;
         double range = bridge.config.archerRange;
+        BlockPos post = post(world, archer);
         LivingEntity target = null; double nearest = range * range;
         for (MobEntity monster : world.getEntitiesByClass(MobEntity.class, archer.getBoundingBox().expand(range), defense::threat)) {
             double distance = archer.squaredDistanceTo(monster);
-            if (distance < nearest && archer.canSee(monster)) { nearest = distance; target = monster; }
+            if (distance < nearest && sees(world, archer, post, monster)) { nearest = distance; target = monster; }
         }
         if (bridge.config.alarmAgainstPlayers)
             for (UUID id : alarm.targets.keySet()) {
                 ServerPlayerEntity player = world.getServer().getPlayerManager().getPlayer(id);
                 if (player == null || player.getWorld() != world || !player.isAlive() || player.isCreative() || player.isSpectator()) continue;
                 double distance = archer.squaredDistanceTo(player);
-                if (distance < nearest && archer.canSee(player)) { nearest = distance; target = player; }
+                if (distance < nearest && sees(world, archer, post, player)) { nearest = distance; target = player; }
             }
         if (target == null) return;
         archer.getLookControl().lookAt(target, 30f, 30f);
         if (MobActionController.registered(archer, MemoryModuleType.LOOK_TARGET)) archer.getBrain().remember(MemoryModuleType.LOOK_TARGET, new EntityLookTarget(target, true), 40);
-        Vec3d from = archer.getEyePos(), to = target.getPos().add(0, target.getHeight() * 0.6, 0);
+        Vec3d from = release(archer, post, target), to = target.getPos().add(0, target.getHeight() * 0.6, 0);
         if (blocked(world, archer, target, from, to)) return;
         lastShot.put(archer.getUuid(), now);
         ArrowEntity arrow = new ArrowEntity(world, archer, new ItemStack(Items.ARROW), new ItemStack(Items.BOW));
+        arrow.setPosition(from);
         arrow.pickupType = PersistentProjectileEntity.PickupPermission.DISALLOWED;
         arrow.setDamage(2.5);
-        double dx = to.x - archer.getX(), dz = to.z - archer.getZ();
+        double dx = to.x - from.x, dz = to.z - from.z;
         double dy = to.y - arrow.getY();
         double flat = Math.sqrt(dx * dx + dz * dz);
         arrow.setVelocity(dx, dy + flat * 0.12, dz, 1.9f, 6f);
@@ -433,6 +436,26 @@ final class VillageTowers {
         archer.swingHand(Hand.MAIN_HAND);
         world.playSound(null, archer.getX(), archer.getY(), archer.getZ(), SoundEvents.ENTITY_ARROW_SHOOT, SoundCategory.NEUTRAL, 1f,
                 1f / (world.random.nextFloat() * 0.4f + 0.8f));
+    }
+
+    /** Where the arrow leaves: at a post the archer leans over the railing on the target's side (from beside the post the railing
+     * hides everything close below the tower, the village included); elsewhere from the eyes. */
+    private static Vec3d release(VillagerEntity archer, BlockPos post, LivingEntity target) {
+        Vec3d eye = archer.getEyePos();
+        if (post == null || archer.squaredDistanceTo(Vec3d.ofCenter(post)) > 2.5 * 2.5) return eye;
+        double dx = target.getX() - (post.getX() + 0.5), dz = target.getZ() - (post.getZ() + 0.5);
+        double edge = Math.max(Math.abs(dx), Math.abs(dz));
+        if (edge < 1e-3) return eye;
+        double out = (TowerPlan.RADIUS + 0.75) / edge; // just past the railing of the square platform
+        return new Vec3d(post.getX() + 0.5 + dx * out, post.getY() + 1.7, post.getZ() + 0.5 + dz * out);
+    }
+
+    /** The archer sees the target: from its eyes, or leaning over the railing at its post. */
+    private static boolean sees(ServerWorld world, VillagerEntity archer, BlockPos post, LivingEntity target) {
+        if (archer.canSee(target)) return true;
+        Vec3d from = release(archer, post, target);
+        if (from.equals(archer.getEyePos())) return false;
+        return world.raycast(new RaycastContext(from, target.getEyePos(), RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, archer)).getType() == HitResult.Type.MISS;
     }
 
     /** A villager or golem of the village in the line of fire. */

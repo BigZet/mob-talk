@@ -25,7 +25,8 @@
     "VillageTradeRefusalMixin",
     "NightHoldMixin",
     "CommandFilterMixin",
-    "VillageSpawnMixin"
+    "VillageSpawnMixin",
+    "GuardPanicMixin"
   ],
   "injectors": {
     "defaultRequire": 1

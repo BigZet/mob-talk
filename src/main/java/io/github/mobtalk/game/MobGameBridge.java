@@ -602,6 +602,11 @@ public final class MobGameBridge implements GameBridge {
         MobGameBridge bridge = active(world.getServer());
         return bridge != null && bridge.defense.blocksSpawn(world, entity);
     }
+    /** From the panic mixin: a guard on duty stands its ground at a monster or a blow instead of fleeing (village defence). */
+    public static boolean guardStandsGround(VillagerEntity villager) {
+        MobGameBridge bridge = forEntity(villager);
+        return bridge != null && bridge.defense.guards.standsGround(villager);
+    }
     /** Villager families own breeding: while they are on, vanilla villagers do not breed (children come only to couples). */
     public static boolean familiesOwnBreeding(VillagerEntity villager) {
         MobGameBridge bridge = forEntity(villager);

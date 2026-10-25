@@ -59,7 +59,8 @@ public final class TowerPlan {
 
     /** The ring of the 3×3 inside, clockwise from the cell behind the door; the stair climbs it one step per cell. */
     static final int[][] RING = { {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1} };
-    /** Steps: in ring cells 0–5 at heights 1–6; the last one reaches the platform. */
+    /** Steps: in ring cells 1–6 at heights 1–6; the last one reaches the platform. Cell 0, behind the door, is a landing at floor
+     * level: a step right behind the door could not be climbed, the lintel over the doorway is in the way of the head. */
     static final int STEPS = PLATFORM;
 
     /** The plan with the door on the north side, in build order: floor, walls course by course with the steps, the platform,
@@ -93,12 +94,12 @@ public final class TowerPlan {
                 }
             out.add(new Block(0, y, 0, Kind.POST, null)); // The newel the stair winds round.
             if (y <= STEPS) {
-                int[] cell = RING[y - 1];
+                int[] cell = RING[y];
                 out.add(new Block(cell[0], y, cell[1], Kind.STAIR, climb(y - 1)));
             }
         }
         // The last step sits at the platform's height and is part of it.
-        int[] last = RING[STEPS - 1];
+        int[] last = RING[STEPS];
         out.add(new Block(last[0], PLATFORM, last[1], Kind.STAIR, climb(STEPS - 1)));
         // The platform: the whole 5×5 but the stairwell above the top steps and the last step itself.
         for (int x = -RADIUS; x <= RADIUS; x++)
@@ -130,23 +131,22 @@ public final class TowerPlan {
         return List.copyOf(out);
     }
 
-    /** The way up from step {@code i}: the direction from the cell before it (the door for the first) to its own cell. */
+    /** The way up to step {@code i}: the direction from the cell before it (the landing for the first) to its own cell. */
     static Facing climb(int i) {
-        int[] to = RING[i];
-        int[] from = i == 0 ? new int[] {0, -RADIUS} : RING[i - 1];
+        int[] to = RING[i + 1];
+        int[] from = RING[i];
         int dx = to[0] - from[0], dz = to[1] - from[1];
         if (dx > 0) return Facing.EAST;
         if (dx < 0) return Facing.WEST;
         return dz > 0 ? Facing.SOUTH : Facing.NORTH;
     }
 
-    /** Cells of the platform left open: a step whose headroom (two blocks over its top) reaches the platform's level. */
+    /** Cells of the platform left open: over a step one climbs from. Step i is a block at y = i + 1; one stands on it at i + 2, and
+     * stepping up to the next one lifts the head over this cell to i + 4, so it needs air from i + 2 to i + 4. */
     static Set<Long> platformHoles() {
         Set<Long> holes = new HashSet<>();
-        for (int i = 0; i < STEPS; i++) {
-            int stand = i + 2; // step i is a block at y = i + 1; one stands on it at i + 2 and needs air there and above
-            if (stand + 1 >= PLATFORM && stand <= PLATFORM) holes.add(key(RING[i][0], RING[i][1]));
-        }
+        for (int i = 0; i < STEPS - 1; i++)
+            if (PLATFORM >= i + 2 && PLATFORM <= i + 4) holes.add(key(RING[i + 1][0], RING[i + 1][1]));
         return holes;
     }
     private static long key(int x, int z) { return ((long) x << 32) ^ (z & 0xffffffffL); }

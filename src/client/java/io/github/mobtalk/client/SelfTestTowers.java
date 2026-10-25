@@ -40,6 +40,8 @@ final class SelfTestTowers {
     private Runnable next = () -> { };
     private int chatMark, savedBuild;
     private final Set<UUID> arrowsSeen = new HashSet<>();
+    private BlockPos strikeSpot;
+    private boolean savedGuards;
 
     SelfTestTowers(SelfTest test, int stageX, int stageY, int stageZ) {
         this.test = test; this.fx = stageX + 260; this.fy = stageY; this.fz = stageZ;
@@ -88,8 +90,9 @@ final class SelfTestTowers {
         next = then;
         test.owner.client.options.setPerspective(Perspective.FIRST_PERSON);
         test.log("towers stages: two watchtowers built, their archers, the horn and the arrows");
-        savedBuild = test.bridge().config.towerBuildMinutes;
+        savedBuild = test.bridge().config.towerBuildMinutes; savedGuards = test.bridge().config.villageGuards;
         test.bridge().config.towerBuildMinutes = 1;
+        test.bridge().config.villageGuards = false; // The archers alone: guards would knock the player about (their own stage is -Only guards).
         test.command("difficulty normal"); test.command("time set 1000"); test.command("weather clear");
         test.command("gamerule doDaylightCycle false"); test.command("gamerule doMobSpawning false");
         test.command("gamemode survival " + name());
@@ -246,7 +249,19 @@ final class SelfTestTowers {
         test.command("tp " + archer.getUuid() + " " + (below.getX() + 0.5) + " " + below.getY() + " " + (below.getZ() + 0.5));
         test.command("tp " + name() + " " + at(local(o, door, 3, 3, -8)));
         long start = test.server().getOverworld().getTime();
-        test.await("the archer climbs back to the post", 60, () -> atPost(archer), () -> {
+        int[] tick = new int[1];
+        test.await("the archer climbs back to the post", 60, () -> {
+            if (++tick[0] % 100 == 0) test.log("climb: " + onServer(() -> {
+                BlockPos post = post(archer);
+                var path = post == null ? null : archer.getNavigation().findPathTo(post, 1);
+                return "archer at " + archer.getBlockPos() + ", walk target " + archer.getBrain().getOptionalRegisteredMemory(MemoryModuleType.WALK_TARGET).map(w -> w.getLookTarget().getBlockPos().toShortString()).orElse("none")
+                        + ", can't reach since " + archer.getBrain().getOptionalRegisteredMemory(MemoryModuleType.CANT_REACH_WALK_TARGET_SINCE).orElse(-1L)
+                        + ", path to the post " + (path == null ? "none" : (path.reachesTarget() ? "reaches it" : "stops at " + path.getEnd().getBlockPos().toShortString()) + " in " + path.getLength() + " nodes")
+                        + ", activity " + archer.getBrain().getFirstPossibleNonCoreActivity().map(Object::toString).orElse("?");
+            }));
+            if (tick[0] == 400) ScreenshotRecorder.saveScreenshot(test.owner.client.runDirectory, "mobtalk-towers-climb.png", test.owner.client.getFramebuffer(), text -> { });
+            return atPost(archer);
+        }, () -> {
             long took = (test.server().getOverworld().getTime() - start) / 20;
             test.check(atPost(archer), "the archer walked back up the stair to the post on his own (" + took + " s)");
             night();
@@ -309,6 +324,7 @@ final class SelfTestTowers {
         test.server().execute(() -> { if (victim.isSleeping()) victim.wakeUp(); victim.setAiDisabled(true); });
         test.command("tp " + victim.getUuid() + " " + (stand.getX() + 2.5) + " " + fy + " " + (stand.getZ() + 0.5));
         test.command("tp " + name() + " " + (stand.getX() + 0.5) + " " + fy + " " + (stand.getZ() + 0.5));
+        strikeSpot = stand;
         test.await("pause: beside the villager under the tower", 2, () -> false, () -> {
             var client = test.owner.client;
             VillagerEntity seen = client.world.getEntitiesByClass(VillagerEntity.class, client.player.getBoundingBox().expand(4), v -> v.getUuid().equals(victim.getUuid())).stream().findFirst().orElse(null);
@@ -330,15 +346,32 @@ final class SelfTestTowers {
 
     /** A villager in the line between the archer and the player: no arrow; out of the way: arrows again. */
     private void friendInTheWay() {
-        VillagerEntity archer = archers().stream().filter(this::atPost).findFirst().orElse(null);
+        // Golems the panicking villagers called would shove the player off the line: away with them, the player back on the spot.
+        test.command("kill @e[type=minecraft:iron_golem]");
+        if (strikeSpot != null) test.command("tp " + name() + " " + (strikeSpot.getX() + 0.5) + " " + fy + " " + (strikeSpot.getZ() + 0.5));
+        test.await("pause: the player back under the tower", 2, () -> false, this::lineOfFire);
+    }
+
+    private void lineOfFire() {
+        // The archer shooting at the player: the one at a post nearest to them.
+        Vec3d player = onServer(() -> test.serverPlayer().getPos());
+        VillagerEntity archer = archers().stream().filter(this::atPost).min(Comparator.comparingDouble(a -> onServer(() -> a.getPos().squaredDistanceTo(player)))).orElse(null);
         if (archer == null) { test.fail("no archer at a post for the line-of-fire check"); looks(); return; }
-        Vec3d from = onServer(archer::getEyePos), to = onServer(() -> test.serverPlayer().getPos().add(0, 1.1, 0));
-        Vec3d mid = from.add(to.subtract(from).multiply(0.5)).subtract(0, 1, 0);
-        test.command("summon minecraft:villager " + mid.x + " " + mid.y + " " + mid.z + " {NoAI:1b,NoGravity:1b,PersistenceRequired:1b,Tags:[\"" + TAG + "_wall\"]}");
+        // A villager a step in front of the player, towards the tower: every line from the platform down to the player passes it.
+        Vec3d toward = onServer(archer::getPos).subtract(player).multiply(1, 0, 1).normalize();
+        Vec3d wall = player.add(toward.multiply(1.1));
+        test.log("line of fire: archer at " + onServer(archer::getBlockPos).toShortString() + ", a villager put at " + BlockPos.ofFloored(wall).toShortString());
+        test.command("summon minecraft:villager " + wall.x + " " + player.y + " " + wall.z + " {NoAI:1b,PersistenceRequired:1b,Tags:[\"" + TAG + "_wall\"]}");
         test.await("pause: the villager in the line of fire", 3, () -> false, () -> {
             newArrows(new boolean[1]);
             int[] shots = new int[1];
-            test.await("pause: no arrow through a villager", 10, () -> { shots[0] += newArrows(new boolean[1]); return false; }, () -> {
+            int[] tick = new int[1];
+            test.await("pause: no arrow through a villager", 10, () -> {
+                shots[0] += newArrows(new boolean[1]);
+                if (++tick[0] % 20 == 0) test.command("tp " + name() + " " + player.x + " " + player.y + " " + player.z); // held on the line
+                return false;
+            }, () -> {
+                test.log("the player " + String.format(Locale.ROOT, "%.1f", Math.sqrt(onServer(() -> test.serverPlayer().getPos().squaredDistanceTo(player)))) + " blocks from where the line was drawn");
                 test.check(shots[0] == 0, "the archer does not shoot through a villager in the way (" + shots[0] + " arrows)");
                 shot("mobtalk-towers-friend-in-the-way.png", () -> {
                     test.command("kill @e[tag=" + TAG + "_wall]");
@@ -380,7 +413,7 @@ final class SelfTestTowers {
     }
 
     private void finish() {
-        test.bridge().config.towerBuildMinutes = savedBuild;
+        test.bridge().config.towerBuildMinutes = savedBuild; test.bridge().config.villageGuards = savedGuards;
         test.command("gamerule doDaylightCycle true"); test.command("gamerule doMobSpawning true");
         test.await("pause: towers stage done", 2, () -> false, next);
     }

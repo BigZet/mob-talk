@@ -229,7 +229,8 @@ final class VillageDefenseController {
         }
         if (!alarm.attack() && enemies.isEmpty()) return;
         for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !v.isRemoved()))
-            if (MobActionController.registered(villager, MemoryModuleType.HEARD_BELL_TIME)) villager.getBrain().remember(MemoryModuleType.HEARD_BELL_TIME, now);
+            if (!DefenseContent.guard(villager) && !DefenseContent.archer(villager) && MobActionController.registered(villager, MemoryModuleType.HEARD_BELL_TIME))
+                villager.getBrain().remember(MemoryModuleType.HEARD_BELL_TIME, now);
         Long rung = lastBell.get(zone.key());
         if (zone.bell() != null && (rung == null || now - rung >= BELL_TICKS) && world.isChunkLoaded(zone.bell())
                 && world.getBlockState(zone.bell()).getBlock() instanceof BellBlock bell) {
@@ -458,6 +459,15 @@ final class VillageDefenseController {
     }
 
     // ---- Helpers ----
+
+    /** A guard or archer does not hide when the bell rings (vanilla's ring reaches every villager near it): it forgets the ring and
+     * goes back to its day, where the defence leads it. */
+    static void stayOut(ServerWorld world, VillagerEntity villager) {
+        if (!MobActionController.registered(villager, MemoryModuleType.HEARD_BELL_TIME) || !villager.getBrain().hasMemoryModule(MemoryModuleType.HEARD_BELL_TIME)) return;
+        villager.getBrain().forget(MemoryModuleType.HEARD_BELL_TIME);
+        if (MobActionController.registered(villager, MemoryModuleType.HIDING_PLACE)) villager.getBrain().forget(MemoryModuleType.HIDING_PLACE);
+        villager.getBrain().refreshActivities(world.getTimeOfDay(), world.getTime());
+    }
 
     private static boolean resident(LivingEntity entity) { return entity instanceof VillagerEntity || entity instanceof IronGolemEntity; }
 

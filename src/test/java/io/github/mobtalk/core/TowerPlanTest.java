@@ -21,7 +21,9 @@ class TowerPlanTest {
         List<TowerPlan.Block> steps = state.values().stream().filter(b -> b.kind() == TowerPlan.Kind.STAIR)
                 .sorted(Comparator.comparingInt(TowerPlan.Block::y)).toList();
         assertEquals(TowerPlan.PLATFORM, steps.size());
-        int px = 0, pz = -TowerPlan.RADIUS, py = 0; // standing in the doorway on the floor
+        // In from the doorway onto the landing behind it, level with the floor.
+        assertEquals(TowerPlan.Kind.AIR, at(state, 0, 1, -TowerPlan.RADIUS + 1), "a landing behind the door");
+        int px = 0, pz = -TowerPlan.RADIUS + 1, py = 0; // standing on the landing
         for (TowerPlan.Block step : steps) {
             assertEquals(py + 1, step.y(), "each step one higher");
             assertEquals(1, Math.abs(step.x() - px) + Math.abs(step.z() - pz), "each step next to the last: " + step);
@@ -30,6 +32,9 @@ class TowerPlanTest {
             assertEquals(way, step.facing(), "a step faces the way up");
             for (int head = step.y() + 1; head <= step.y() + 2; head++)
                 assertEquals(TowerPlan.Kind.AIR, at(state, step.x(), head, step.z()), "headroom over " + step + " at y=" + head);
+            // Stepping up lifts the head over the cell one leaves: it needs air up to two blocks over the new step's top.
+            for (int head = py + 1; head <= step.y() + 2; head++)
+                assertEquals(TowerPlan.Kind.AIR, at(state, px, head, pz), "room to step up from " + px + "," + pz + " at y=" + head);
             px = step.x(); pz = step.z(); py = step.y();
         }
         assertEquals(TowerPlan.PLATFORM, py, "the last step is level with the platform");
@@ -46,9 +51,9 @@ class TowerPlanTest {
         assertEquals(TowerPlan.Kind.LANTERN, at(state, 0, TowerPlan.ROOF - 1, 0));
         assertEquals(TowerPlan.Kind.ROOF, at(state, 0, TowerPlan.ROOF, 0), "the lantern hangs from the roof");
         // An archer can stand beside the post: platform under, air at feet and head.
-        assertEquals(TowerPlan.Kind.WALL, at(state, -1, TowerPlan.PLATFORM, 0));
-        assertEquals(TowerPlan.Kind.AIR, at(state, -1, TowerPlan.PLATFORM + 1, 0));
-        assertEquals(TowerPlan.Kind.AIR, at(state, -1, TowerPlan.PLATFORM + 2, 0));
+        assertEquals(TowerPlan.Kind.WALL, at(state, 1, TowerPlan.PLATFORM, 0));
+        assertEquals(TowerPlan.Kind.AIR, at(state, 1, TowerPlan.PLATFORM + 1, 0));
+        assertEquals(TowerPlan.Kind.AIR, at(state, 1, TowerPlan.PLATFORM + 2, 0));
     }
 
     @Test void airComesBeforeTheBlocksItClears() {

@@ -206,7 +206,7 @@ final class VillageGuards {
             BlockPos stand = jobSite(world, guard);
             if (bridge.actions.busy(guard)) continue;
             boolean onShift = !night || ((guard.getUuid().getMostSignificantBits() & 1) == (nightIndex & 1));
-            if (alarm != null || onShift) { if (guard.isSleeping()) guard.wakeUp(); }
+            if (alarm != null || onShift) { if (guard.isSleeping()) guard.wakeUp(); VillageDefenseController.stayOut(world, guard); }
             else { roundTarget.remove(guard.getUuid()); continue; } // off shift at night: vanilla puts it to bed
             float share = guard.getHealth() / guard.getMaxHealth();
             boolean back = fallingBack.getOrDefault(guard.getUuid(), false);
@@ -276,11 +276,24 @@ final class VillageGuards {
         long hold = night ? ROUND_STOP_TICKS : target == null || target.equals(home) ? DAY_ROUND_TICKS : ROUND_STOP_TICKS;
         if (target == null || since == null || now - since >= hold) {
             if (round.isEmpty()) target = home;
-            else if (night) target = round.get(random.nextInt(round.size()));
+            else if (night) { round.add(home); target = next(round, target, zone.center(), guard); } // its own stand is on the round too
             else target = target == null || !target.equals(home) ? home : round.get(random.nextInt(round.size()));
             roundTarget.put(id, target); roundSince.put(id, now);
         }
         if (guard.squaredDistanceTo(Vec3d.ofCenter(target)) > 2.5 * 2.5) walk(guard, target, night ? 0.5f : 0.45f);
+    }
+
+    /** The night round goes round the village: the point after {@code from} in order of their bearing from the centre, passing over
+     * one the guard already stands at (with two stands by the bell a random pick often meant standing still). */
+    private static BlockPos next(List<BlockPos> round, BlockPos from, BlockPos centre, VillagerEntity guard) {
+        List<BlockPos> ring = new ArrayList<>(round);
+        ring.sort(Comparator.comparingDouble(p -> Math.atan2(p.getZ() - centre.getZ(), p.getX() - centre.getX())));
+        int at = from == null ? -1 : ring.indexOf(from);
+        for (int i = 1; i <= ring.size(); i++) {
+            BlockPos candidate = ring.get(Math.floorMod(at + i, ring.size()));
+            if (guard.squaredDistanceTo(Vec3d.ofCenter(candidate)) > 4 * 4) return candidate;
+        }
+        return ring.get(Math.floorMod(at + 1, ring.size()));
     }
 
     private static void walk(VillagerEntity guard, BlockPos to, float speed) {
@@ -293,6 +306,10 @@ final class VillageGuards {
         Optional<GlobalPos> site = guard.getBrain().getOptionalRegisteredMemory(MemoryModuleType.JOB_SITE);
         return site.isPresent() && site.get().dimension() == world.getRegistryKey() ? site.get().pos() : null;
     }
+
+    /** A guard does not panic at monsters or blows, as other villagers do (vanilla's flight would undo its walk to the fight
+     * every tick); a badly hurt one falling back may. */
+    boolean standsGround(VillagerEntity villager) { return enabled() && DefenseContent.guard(villager) && !fallingBack.getOrDefault(villager.getUuid(), false); }
 
     /** From the damage event: a guard's shield turns half of the arrows and other projectiles that come at it. */
     boolean shieldBlocks(LivingEntity victim, DamageSource source) {
