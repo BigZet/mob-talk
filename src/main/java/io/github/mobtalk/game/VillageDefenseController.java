@@ -14,6 +14,9 @@ import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.mob.Angerable;
 import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.mob.PhantomEntity;
+import net.minecraft.entity.mob.SlimeEntity;
+import net.minecraft.entity.mob.SpiderEntity;
 import net.minecraft.entity.mob.Monster;
 import net.minecraft.entity.passive.IronGolemEntity;
 import net.minecraft.entity.passive.VillagerEntity;
@@ -30,6 +33,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.GlobalPos;
 import net.minecraft.village.VillagerProfession;
+import net.minecraft.world.Heightmap;
 import java.util.*;
 
 /** Village defence, stage 1 (design: /mnt/project-files/village-defense/design.md): the village's alarm in the world, the zone where
@@ -46,6 +50,9 @@ final class VillageDefenseController {
     static final long BELL_TICKS = 200;
     /** How far the bell itself is heard (vanilla's sound at volume 2); players farther off get the alarm bell played to them. */
     static final double BELL_EARSHOT = 28;
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("mobtalk-defense");
+    /** A monster no deeper than this under the top block of its column counts as out in the village (under a roof or a tree). */
+    static final int OUTDOORS_DEPTH = 6;
     /** A village without a structure: the square around its bell, this far each way. */
     static final int BELL_RADIUS = 32;
     /** A villager shouts at most this often per village. */
@@ -193,8 +200,11 @@ final class VillageDefenseController {
             double usual = bridge.config.alarmMonsterRange;
             int seen = 0; MobEntity first = null;
             for (MobEntity monster : monsters) {
-                // One already among the houses is the village's at once, whether anybody has it in sight or not.
-                if (zone.box().contains(monster.getPos())) { seen++; if (first == null) first = monster; continue; }
+                // One out among the houses is the village's at once, whether anybody has it in sight or not; one in a cave under the
+                // village (the zone reaches 24 blocks down) only once somebody sees it, or the alarm never ended.
+                if (zone.box().contains(monster.getPos()) && outdoors(world, monster)) { seen++; if (first == null) first = monster; continue; }
+                // Beyond the houses a monster that only wanders past at night is no alarm; one that hunts somebody is.
+                if (!zone.box().contains(monster.getPos()) && monster.getTarget() == null) continue;
                 for (LivingEntity watcher : watchers) {
                     double range = towers.sight(watcher, usual);
                     if (watcher.squaredDistanceTo(monster) <= range * range && watcher.canSee(monster)) { seen++; if (first == null) first = monster; break; }
@@ -215,11 +225,21 @@ final class VillageDefenseController {
         }
     }
 
-    /** A monster worth an alarm: a hostile that is not a calm neutral, not in a conversation or on a player's errand. */
+    /** A monster worth an alarm: a hostile that is not a calm neutral, not in a conversation or on a player's errand. A phantom
+     * (it hunts the sleepless player, not the village) and a spider in daylight that hunts nobody are no threat either. */
     boolean threat(MobEntity mob) {
         if (!mob.isAlive() || mob.isRemoved() || !(mob instanceof Monster)) return false;
+        if (mob instanceof PhantomEntity) return false;
         if (mob instanceof Angerable && mob.getTarget() == null) return false;
+        if (mob instanceof SpiderEntity && mob.getTarget() == null && mob.getWorld().isDay()) return false;
+        // A slime hops about the fields (a flat world is full of them) and hurts nobody it has not set on: it kept the alarm forever.
+        if (mob instanceof SlimeEntity && mob.getTarget() == null) return false;
         return !bridge.actions.busy(mob);
+    }
+
+    /** Out under the sky or close below it (a porch, a doorway), not down in a cave or a cellar. */
+    private static boolean outdoors(ServerWorld world, MobEntity mob) {
+        return mob.getBlockY() >= world.getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, mob.getBlockX(), mob.getBlockZ()) - OUTDOORS_DEPTH;
     }
 
     /** While the alarm lasts: golems fight, and in an attack the bell rings and the villagers hide. */
@@ -249,7 +269,8 @@ final class VillageDefenseController {
             golem.setTarget(foe);
         }
         boolean hide = alarm.attack() || !enemies.isEmpty();
-        if (hide || bridge.config.alarmSound) ring(world, zone, now);
+        // In an attack or against a player the bell keeps ringing; a mere threat is rung once, when it is raised, not all along.
+        if (hide || (bridge.config.alarmSound && !lastBell.containsKey(zone.key()))) ring(world, zone, now);
         if (!hide) return;
         for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !DefenseContent.traveller(v) && !v.isRemoved()))
             if (!DefenseContent.defender(villager) && MobActionController.registered(villager, MemoryModuleType.HEARD_BELL_TIME))
@@ -328,6 +349,43 @@ final class VillageDefenseController {
         return alarm != null && (alarm.attack() || alarm.against(player.getUuid()));
     }
 
+    /** /alarm clear: the alarm of the village at this spot ends at once, quietly (no all-clear shout, no memories), its golems calm
+     * down. Null when that village had no alarm; the village's title otherwise. */
+    Text clearAt(ServerWorld world, BlockPos pos) {
+        Zone zone = zoneAt(world, pos);
+        if (zone == null || alarms.end(zone.key()) == null) return null;
+        calm(world, zone);
+        LOGGER.info("Village alarm in {} cleared by command", zone.key());
+        return zone.title();
+    }
+
+    /** /alarm clear all: every alarm of this world ends; how many there were. */
+    int clearAll(ServerWorld world) {
+        int count = 0;
+        for (Zone zone : zones.getOrDefault(dimension(world), List.of()))
+            if (alarms.end(zone.key()) != null) { calm(world, zone); count++; }
+        return count;
+    }
+
+    private void calm(ServerWorld world, Zone zone) {
+        lastBell.remove(zone.key());
+        exileSince.keySet().removeIf(key -> key.startsWith(zone.key() + "|"));
+        for (IronGolemEntity golem : world.getEntitiesByClass(IronGolemEntity.class, zone.box(), g -> g.isAlive() && !g.isRemoved())) {
+            if (golem.getAngryAt() != null) golem.stopAnger();
+            if (golem.getTarget() instanceof ServerPlayerEntity) golem.setTarget(null);
+        }
+    }
+
+    /** /alarm: what the alarm of the village at this spot is about, null when it is quiet or there is no village here. */
+    String describeAt(ServerWorld world, BlockPos pos) {
+        Zone zone = zoneAt(world, pos);
+        VillageAlarm.Alarm alarm = zone == null ? null : alarms.get(zone.key());
+        if (alarm == null) return null;
+        long seconds = (world.getTime() - alarm.started) / 20;
+        return zone.title().getString() + ": " + (alarm.attack() ? "нападение" : "угроза") + " — " + alarm.cause + ", идёт " + seconds + " с"
+                + (alarm.targets.isEmpty() ? "" : ", против: " + String.join(", ", alarm.targets.values().stream().map(t -> t.name).toList()));
+    }
+
     /** /mobtalk village forgive: the village where the player stands drops its alarm against them, and its golems their anger. */
     void forgive(ServerPlayerEntity player) {
         Zone zone = zoneAt(player.getServerWorld(), player.getBlockPos());
@@ -352,6 +410,8 @@ final class VillageDefenseController {
         if (change == VillageAlarm.Change.NONE) return;
         VillageAlarm.Alarm alarm = alarms.get(zone.key());
         if (alarm == null) return;
+        LOGGER.info("Village alarm {} in {}: {} ({}){}", change, zone.key(), alarm.level, alarm.cause,
+                threat != null ? " at " + threat.getBlockPos().toShortString() : enemy != null ? " against " + MobGameBridge.playerName(enemy) : "");
         Entity near = enemy != null ? enemy : threat;
         String kind = enemy != null ? "player" : alarm.attack() ? "attack" : "monsters";
         if (change == VillageAlarm.Change.RAISED || change == VillageAlarm.Change.ESCALATED) towers.horn(world, zone, near == null ? zone.center() : near.getBlockPos());
@@ -365,6 +425,7 @@ final class VillageDefenseController {
 
     /** The alarm is over: the all-clear, and the residents who know the player remember how it went. */
     private void allClear(ServerWorld world, VillageAlarm.Alarm alarm) {
+        LOGGER.info("Village alarm over in {}: {}", alarm.village, alarm.summary());
         exileSince.keySet().removeIf(key -> key.startsWith(alarm.village + "|"));
         lastBell.remove(alarm.village);
         Zone zone = null;
