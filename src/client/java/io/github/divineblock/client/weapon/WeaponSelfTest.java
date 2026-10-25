@@ -341,7 +341,9 @@ public final class WeaponSelfTest {
         }));
         steps.add(new Step(45, () -> {
             screenshot = "rule-war";
-            check(foe[0] instanceof VillagerEntity v && v.getBrain().hasMemoryModule(MemoryModuleType.NEAREST_HOSTILE), "житель бежит от меча Войны");
+            // The villager's own hostile sensor wipes the memory between the sword's writes (every half second), so either
+            // the memory is there at this tick or the villager has already run from the player's side.
+            check(foe[0] instanceof VillagerEntity v && (v.getBrain().hasMemoryModule(MemoryModuleType.NEAREST_HOSTILE) || v.squaredDistanceTo(player) > 16), "житель бежит от меча Войны");
         }));
         // 9. The trumpets and a wall.
         int[] wall = new int[2];
