@@ -332,7 +332,7 @@ final class VillageDefenseController {
     void forgive(ServerPlayerEntity player) {
         Zone zone = zoneAt(player.getServerWorld(), player.getBlockPos());
         if (zone != null && release(player.getServerWorld(), zone, player))
-            player.sendMessage(Text.translatable("mobtalk.defense.released", zone.title()).formatted(Formatting.GREEN), false);
+            player.sendMessage(Text.translatable(zone.city() ? "mobtalk.police.released.you" : "mobtalk.defense.released", zone.title()).formatted(Formatting.GREEN), false);
     }
 
     /** The zone drops its alarm against the player (forgiven, or arrested and taken away), and its golems their anger. */
@@ -367,7 +367,7 @@ final class VillageDefenseController {
         String kind = enemy != null ? "player" : alarm.attack() ? "attack" : "monsters";
         if (change == VillageAlarm.Change.RAISED || change == VillageAlarm.Change.ESCALATED) towers.horn(world, zone, near == null ? zone.center() : near.getBlockPos());
         shout(world, zone, near == null ? zone.center() : near.getBlockPos(), kind, enemy == null ? null : MobGameBridge.playerName(enemy));
-        if (enemy != null) enemy.sendMessage(Text.translatable("mobtalk.defense.raised.you", zone.title(), alarm.targets.get(enemy.getUuid()).cause).formatted(Formatting.RED), false);
+        if (enemy != null) enemy.sendMessage(Text.translatable(zone.city() ? "mobtalk.police.raised.you" : "mobtalk.defense.raised.you", zone.title(), alarm.targets.get(enemy.getUuid()).cause).formatted(Formatting.RED), false);
         if (!bridge.config.alarmChat || (!alarm.attack() && enemy == null)) return;
         MutableText line = enemy != null ? Text.translatable("mobtalk.defense.raised.player", zone.title(), MobGameBridge.playerName(enemy), alarm.targets.get(enemy.getUuid()).cause)
                 : Text.translatable(alarm.attack() ? "mobtalk.defense.raised.attack" : "mobtalk.defense.raised.monsters", zone.title(), alarm.cause);
@@ -410,7 +410,7 @@ final class VillageDefenseController {
         lastShout.put(key, now);
         String name = bridge.memory.displayName(speaker.getUuid());
         if (name == null || name.isBlank()) name = speaker.getName().getString();
-        String lineKey = "mobtalk.defense.shout." + kind + "." + random.nextInt(3);
+        String lineKey = (zone.city() && !kind.equals("clear") ? "mobtalk.police.shout." : "mobtalk.defense.shout.") + kind + "." + random.nextInt(3); // a city calls the police, not the golem
         Text line = Text.literal("<" + name + "> ").append(playerName == null ? Text.translatable(lineKey) : Text.translatable(lineKey, playerName));
         for (ServerPlayerEntity player : world.getPlayers()) if (player.squaredDistanceTo(speaker) <= 32 * 32) player.sendMessage(line, false);
     }

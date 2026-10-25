@@ -1009,5 +1009,16 @@
   "mobtalk.police.say.taken.1": "%s is arrested. Taking him away.",
   "mobtalk.police.say.taken.2": "Hands on your head, %s! Let's go.",
   "subtitle.mobtalk.police_siren": "Police siren",
-  "subtitle.mobtalk.police_quack": "Police horn"
+  "subtitle.mobtalk.police_quack": "Police horn",
+  "mobtalk.police.raised.you": "The city police are after you: %2$s. Give up or get out.",
+  "mobtalk.police.released.you": "The city police no longer want you.",
+  "mobtalk.police.shout.monsters.0": "Monsters in the yard!",
+  "mobtalk.police.shout.monsters.1": "Everyone indoors, monsters in the streets!",
+  "mobtalk.police.shout.monsters.2": "Call the police, monsters!",
+  "mobtalk.police.shout.attack.0": "Police! We're under attack!",
+  "mobtalk.police.shout.attack.1": "Call the police! Trouble!",
+  "mobtalk.police.shout.attack.2": "Hide in the stairwells, we're attacked!",
+  "mobtalk.police.shout.player.0": "%s, what are you doing?! Police!",
+  "mobtalk.police.shout.player.1": "Stop %s! He's hitting people!",
+  "mobtalk.police.shout.player.2": "%s is a hooligan! Call the police!"
 }

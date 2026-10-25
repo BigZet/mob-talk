@@ -36,7 +36,7 @@ FONT = {
     "Ц": ["1010", "1010", "1010", "1111", "0001"], "Я": ["0111", "1001", "0111", "0101", "1001"],
     "М": ["1001", "1111", "1111", "1001", "1001"], "С": ["0111", "1000", "1000", "1000", "0111"],
     "Д": ["0110", "0110", "0110", "1111", "1001"], "0": ["0110", "1001", "1001", "1001", "0110"],
-    "2": ["1110", "0001", "0110", "1000", "1111"],
+    "2": ["0110", "1001", "0010", "0100", "1111"],
 }
 
 
@@ -341,6 +341,85 @@ def uniform():
     return img
 
 
+def human_uniform():
+    """The same uniform for the human look (track M, the 64x64 player-skin layout of tools/wedding_outfits.py): the peaked cap on
+    the hat layer, a navy jacket over a light blue collar and a dark tie, the belt and the badge, sleeves to the wrist, trousers
+    with the red piping down the side, black boots. Worn by men and women alike (clothing/neutral/police)."""
+    img = new(64, 64)
+    px = img.load()
+    r = rng("human-uniform")
+    cap, band, peak, gold = (34, 46, 82, 255), (190, 30, 34, 255), (20, 20, 24, 255), (230, 190, 70, 255)
+    jacket, trousers, shirt = (40, 54, 92, 255), (34, 44, 74, 255), (150, 186, 220, 255)
+
+    def faces(u, v, w, h, d):
+        return {"top": (u + d, v, w, d), "bottom": (u + d + w, v, w, d), "right": (u, v + d, d, h), "front": (u + d, v + d, w, h),
+                "left": (u + d + w, v + d, d, h), "back": (u + 2 * d + w, v + d, w, h)}
+
+    def paint(box, fn):
+        for face, (x0, y0, fw, fh) in faces(*box).items():
+            for y in range(fh):
+                for x in range(fw):
+                    c = fn(face, x, y, fw, fh)
+                    if c is not None:
+                        px[x0 + x, y0 + y] = shade(c, 1 + r.uniform(-0.04, 0.04))
+
+    def hat(face, x, y, w, h):
+        if face == "top":
+            return cap if 0 < x < w - 1 and 0 < y < h - 1 else shade(cap, 0.85)
+        if face == "bottom":
+            return None
+        if y <= 1:
+            return gold if face == "front" and y == 1 and x in (3, 4) else cap
+        if y == 2:
+            return band
+        if y == 3 and face == "front":
+            return peak
+        return None
+    paint((32, 0, 8, 8, 8), hat)
+
+    def body(face, x, y, w, h):
+        if face in ("top", "bottom"):
+            return jacket
+        if y == 7:
+            return (200, 204, 210, 255) if face == "front" and x in (3, 4) else (22, 22, 24, 255)  # the belt, its buckle
+        if face == "front":
+            if y == 0 and 2 <= x <= 5:
+                return shirt
+            if y in (1, 2, 3) and x in (3, 4):
+                return (30, 34, 44, 255) if y > 1 or x == 3 else shirt  # the tie
+            if y == 2 and x == 1:
+                return gold  # the badge
+            if x in (3, 4):
+                return shade(jacket, 0.78)  # the zip
+        if face == "back" and y == 3:
+            return (200, 206, 196, 255)  # the reflective strip
+        if face in ("right", "left") and y == 0:
+            return band  # the shoulder strap's red piping
+        return jacket
+    paint((16, 16, 8, 12, 4), body)
+
+    def arm(face, x, y, w, h):
+        if face == "bottom" or y >= 11:
+            return None  # the hand
+        if face == "top":
+            return shade(jacket, 1.1)
+        return shade(jacket, 0.8) if y == 10 else jacket
+    paint((40, 16, 4, 12, 4), arm)
+    paint((32, 48, 4, 12, 4), arm)
+
+    def leg(face, x, y, w, h):
+        if face == "top":
+            return trousers
+        if y >= 10 or face == "bottom":
+            return (24, 24, 26, 255)  # the boots
+        if face in ("right", "left") and x == w // 2:
+            return band  # the piping
+        return trousers
+    paint((0, 16, 4, 12, 4), leg)
+    paint((16, 48, 4, 12, 4), leg)
+    return img
+
+
 # ---------------------------------------------------------------- writing
 
 NAMES = {
@@ -381,6 +460,9 @@ def save_all():
     pdir = os.path.join(ASSETS, "textures", "entity", "villager", "profession")
     uniform().save(os.path.join(pdir, "police.png"))
     write(os.path.join(pdir, "police.png.mcmeta"), {"villager": {"hat": "full"}})
+    human = os.path.join(decor.ROOT, "src", "client", "resources", "assets", "mobtalk", "human", "clothing", "neutral", "police")
+    os.makedirs(human, exist_ok=True)
+    human_uniform().save(os.path.join(human, "0.png"))
     for name, m in MODELS.items():
         write(os.path.join(ASSETS, "models", "block", "police", name + ".json"), m)
     turns = (("north", 0), ("east", 90), ("south", 180), ("west", 270))

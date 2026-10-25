@@ -55,9 +55,9 @@ import java.util.*;
  * <li>{@link #report} lets other parts of the game (the supermarket, the officials) call the police on a player.</li>
  * </ul>
  * Inmates and cells live in the world's saved data (mobtalk_police), so a sentence outlasts a logout. Server thread only. */
-final class CityPolice {
+public final class CityPolice {
     /** A creature with this tag is wanted by the police (the bandits' and the shops' tracks set it). */
-    static final String WANTED = "mobtalk_wanted";
+    public static final String WANTED = "mobtalk_wanted";
     /** How long the handcuffs stay on before the cell, and how long between two quacks of the same post. */
     static final long CUFF_TICKS = 80, QUACK_TICKS = 100;
     /** Cars within this many blocks of a post are that post's; the cell lies this deep under the first post. */
@@ -73,6 +73,9 @@ final class CityPolice {
     private final Map<UUID, Long> takenAway = new HashMap<>();
     private final Map<String, Long> lastQuack = new HashMap<>();
     private static boolean hooked;
+    /** How many times a siren has sounded since the game started (the self-test reads it where there is no sound device). */
+    private static long sirens;
+    public static long sirens() { return sirens; }
 
     CityPolice(MobGameBridge bridge, VillageDefenseController defense) { this.bridge = bridge; this.defense = defense; hook(); }
 
@@ -98,7 +101,7 @@ final class CityPolice {
     /** Somebody calls the police on this player where they stand (a theft in a shop, a bribe offered to the wrong man, a brawl):
      * in a city the alarm is raised against them, {@code serious} as an attack (the police go for them at once), else as a threat.
      * Returns false outside a city or when the police are off. */
-    static boolean report(ServerPlayerEntity player, String cause, boolean serious) {
+    public static boolean report(ServerPlayerEntity player, String cause, boolean serious) {
         MobGameBridge bridge = MobGameBridge.active(player.getServer());
         if (bridge == null || !bridge.defense.police.on()) return false;
         VillageDefenseController.Zone zone = bridge.defense.zoneAt(player.getServerWorld(), player.getBlockPos());
@@ -108,7 +111,7 @@ final class CityPolice {
     }
 
     /** Whether the police keep order at this spot (a city with the police on). */
-    static boolean guarded(ServerWorld world, BlockPos pos) {
+    public static boolean guarded(ServerWorld world, BlockPos pos) {
         MobGameBridge bridge = MobGameBridge.active(world.getServer());
         if (bridge == null || !bridge.defense.police.on()) return false;
         VillageDefenseController.Zone zone = bridge.defense.zoneAt(world, pos);
@@ -153,6 +156,7 @@ final class CityPolice {
         }
         if (from.isEmpty()) from.add(zone.center());
         for (BlockPos at : from) world.playSound(null, at, PoliceContent.SIREN, SoundCategory.BLOCKS, 4f, 1f);
+        sirens++;
         if (!bridge.config.alarmSound) return;
         for (ServerPlayerEntity player : listeners) {
             double nearest = Double.MAX_VALUE;
@@ -220,7 +224,9 @@ final class CityPolice {
      * to the arrest line is arrested instead. A monster just takes the blow. */
     void strike(ServerWorld world, VillageDefenseController.Zone zone, VillagerEntity policeman, LivingEntity foe, long now) {
         boolean offender = foe instanceof ServerPlayerEntity || foe.getCommandTags().contains(WANTED);
-        if (offender && bridge.config.policeArrest && foe.getHealth() <= bridge.config.policeArrestHealth) { arrest(world, zone, policeman, foe, now); return; }
+        // on peaceful a blow does a player no harm, so the police cuff him at once
+        boolean worn = foe.getHealth() <= bridge.config.policeArrestHealth || foe instanceof ServerPlayerEntity && world.getDifficulty() == net.minecraft.world.Difficulty.PEACEFUL;
+        if (offender && bridge.config.policeArrest && worn) { arrest(world, zone, policeman, foe, now); return; }
         if (offender) quack(world, zone, policeman, now);
         if (foe.damage(world.getDamageSources().mobAttack(policeman), bridge.config.policeDamage)) {
             foe.takeKnockback(0.35, policeman.getX() - foe.getX(), policeman.getZ() - foe.getZ());

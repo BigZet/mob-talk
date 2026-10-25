@@ -60,6 +60,8 @@ final class SelfTest {
     static final boolean ONLY_TOWERS = "towers".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=guards}: village defence, stage 3 — guard stands, guards, their day, night round and fight (no LLM, no voice). */
     static final boolean ONLY_GUARDS = "guards".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=police}: the city police — posts, policemen, cars, the siren, arrest and the cell (no LLM, no voice). */
+    static final boolean ONLY_POLICE = "police".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=voices}: new villagers get an age and a pool voice of their sex and age with no early repeats,
      * and one villager of each age is voiced through OpenRouter (no LLM). */
     static final boolean ONLY_VOICES = "voices".equals(System.getProperty("mobtalk.selftest.only"));
@@ -176,6 +178,7 @@ final class SelfTest {
                 : ONLY_DEFENSE ? () -> new SelfTestDefense(this, sx, SY, sz).run(this::finish)
                 : ONLY_TOWERS ? () -> new SelfTestTowers(this, sx, SY, sz).run(this::finish)
                 : ONLY_GUARDS ? () -> new SelfTestGuards(this, sx, SY, sz).run(this::finish)
+                : ONLY_POLICE ? () -> new SelfTestPolice(this, sx, SY, sz).run(this::finish)
                 : ONLY_LOOKS ? () -> new SelfTestLooks(this, sx, SY, sz).run(this::finish) : ONLY_NAMES ? this::names : ONLY_VOICES ? this::voices : this::aim);
     }
 

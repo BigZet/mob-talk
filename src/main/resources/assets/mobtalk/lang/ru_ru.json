@@ -1009,5 +1009,16 @@
   "mobtalk.police.say.taken.1": "%s задержан. Увозим.",
   "mobtalk.police.say.taken.2": "Руки за голову, %s! Поехали.",
   "subtitle.mobtalk.police_siren": "Полицейская сирена",
-  "subtitle.mobtalk.police_quack": "Полицейская «крякалка»"
+  "subtitle.mobtalk.police_quack": "Полицейская «крякалка»",
+  "mobtalk.police.raised.you": "Полиция города ищет вас: %2$s. Сдавайтесь или уходите.",
+  "mobtalk.police.released.you": "Полиция города больше вас не ищет.",
+  "mobtalk.police.shout.monsters.0": "Монстры во дворе!",
+  "mobtalk.police.shout.monsters.1": "Все по квартирам, нечисть на улицах!",
+  "mobtalk.police.shout.monsters.2": "Звоните 02, монстры!",
+  "mobtalk.police.shout.attack.0": "Полиция! На нас напали!",
+  "mobtalk.police.shout.attack.1": "Звоните 02! Беда!",
+  "mobtalk.police.shout.attack.2": "Прячьтесь по подъездам, напали!",
+  "mobtalk.police.shout.player.0": "%s, ты что творишь?! Полиция!",
+  "mobtalk.police.shout.player.1": "Держи %s! Он на людей руку поднял!",
+  "mobtalk.police.shout.player.2": "%s — хулиган! Вызывайте полицию!"
 }
