@@ -26,7 +26,12 @@ KEYS = ("shots", "arrow_hits", "reflects", "reflect_hits", "dashes")
 
 FIGHT_HEADER = ("tick,hp,max_hp,phase,exposed,recovering,dist,height,dash_cd,deflect_cd,attack_cd,casting,dashing,"
                 "deflecting,foe_drawing,foe_pull,out_sx,out_lift,out_sz,out_dash,out_deflect,out_feathers,out_aim_side,out_aim_up,"
-                "out_shot_soon,did_dash,did_deflect,did_feathers,refused")
+                "out_shot_soon,did_dash,did_deflect,did_feathers,refused,"
+                + ",".join("tok_" + n for n in ("vx", "vy", "vz", "height", "dash_ready", "deflect_ready", "attack_ready", "cast", "sweep",
+                                               "eye_x", "eye_y", "eye_z", "foe_vx", "foe_vy", "foe_vz", "drawing", "pull", "look_x",
+                                               "look_y", "look_z", "aim_off", "foe_cool", "dashing"))
+                + "," + ",".join(f"it{k}_{n}" for k in range(8)
+                                 for n in ("rx", "ry", "rz", "vx", "vy", "vz", "arrow", "reflected", "feather", "tca", "on")))
 
 
 def num(v):
@@ -52,6 +57,7 @@ class FightLog:
                flag(env.draw[i] > 0), num(bow_power(env.draw[i]) if env.draw[i] > 0 else 0)]
         row += [num(v) for v in s_a[i][:8]] + [""]
         row += [flag(env.dashed[i]), flag(env.deflected[i]), flag(env.attacked[i]), env.refused[i]]
+        row += [num(v) for v in env.s_hist[i, -1]] + [num(v) for v in env.s_items[i, -1].reshape(-1)]   # признаки этого тика, как в моде
         self.fight.write(",".join(row) + "\n")
         for event, amount, raw, detail in env.events:
             self.events.write(f"{t},{event},{num(amount)},{num(raw)},{detail}\n")

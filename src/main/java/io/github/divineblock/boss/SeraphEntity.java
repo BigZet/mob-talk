@@ -31,6 +31,7 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
+import io.github.divineblock.DivineBlockMod;
 import io.github.divineblock.boss.ai.SeraphMind;
 
 /** Шестикрылый серафим (Isaiah 6): a burning face in six wings full of eyes. It flies, circling its foe four to six blocks up,
@@ -58,7 +59,7 @@ public final class SeraphEntity extends SacredBoss {
     private final java.util.Set<java.util.UUID> hinted = new java.util.HashSet<>();
     /** «Лог боя Серафима»: open while it fights with the setting on, and what the log compares from tick to tick. */
     private SeraphFightLog log;
-    private boolean wasExposed, foeDrew;
+    private boolean wasExposed, foeDrew, logBroken;
     private int loggedPhase = 1;
     private float foePull;
     private LivingEntity loggedTarget;
@@ -149,7 +150,8 @@ public final class SeraphEntity extends SacredBoss {
             sound(SoundEvents.ENTITY_ENDER_DRAGON_FLAP, 2f, 1.2f);
         }
         hold();
-        logTick();
+        try { logTick(); }
+        catch (RuntimeException | LinkageError failure) { DivineBlockMod.LOG.warn("Божественный блок: лог боя Серафима выключен до перезапуска", failure); log = null; logBroken = true; }
         if (age % 3 == 0) particles(ParticleTypes.FLAME, getX(), getY() + getHeight() * FACE, getZ(), 3, 1.2, 1.4, 1.2, 0.01);
         if (age % 12 == 0) particles(ParticleTypes.SMALL_FLAME, getX(), getY() + 0.2, getZ(), 3, 0.3, 0.1, 0.3, 0.02);
     }
@@ -170,7 +172,7 @@ public final class SeraphEntity extends SacredBoss {
             // «Огненный взмах»: arrows about to strike fly back at whoever shot them.
             var box = getBoundingBox();
             for (var arrow : getWorld().getEntitiesByClass(net.minecraft.entity.projectile.PersistentProjectileEntity.class, box.expand(6),
-                    a -> a.isAlive() && a.getOwner() != this && SeraphMind.strikesThisTick(a, box))) {
+                    a -> a.isAlive() && a.getOwner() != this && SeraphMind.flying(a) && SeraphMind.strikesThisTick(a, box))) {
                 SeraphMind.throwBack(this, arrow);
                 if (log != null) log.event(age, "deflected", 0, Double.NaN, "");
                 particles(ParticleTypes.LAVA, arrow.getX(), arrow.getY(), arrow.getZ(), 4, 0.2, 0.2, 0.2, 0);
@@ -257,7 +259,7 @@ public final class SeraphEntity extends SacredBoss {
 
     /** One row of the fight log, and the events no other hook sees: opened on the first tick with a foe, while the setting is on. */
     private void logTick() {
-        if (!config().seraphLog) { closeLog(); return; }
+        if (!config().seraphLog || logBroken) { closeLog(); return; }
         LivingEntity target = getTarget();
         if (log == null) {
             if (target == null) return;
@@ -287,6 +289,11 @@ public final class SeraphEntity extends SacredBoss {
         for (int i = 0; i < 9; i++) row.add(i < out.length ? SeraphFightLog.num(out[i]) : "");
         row.add(flag(net && mind.dashStarted())); row.add(flag(net && move.startDeflect())); row.add(flag(net && move.startFeathers()));
         row.add(net ? mind.refused() : "");
+        float[] token = mind.lastToken();
+        for (int i = 0; i < SeraphFightLog.TOKEN.length; i++) row.add(net && i < token.length ? SeraphFightLog.num(token[i]) : "");
+        float[][] items = mind.lastItems();
+        for (int k = 0; k < 8; k++)
+            for (int i = 0; i < SeraphFightLog.ITEM.length; i++) row.add(net && k < items.length && i < items[k].length ? SeraphFightLog.num(items[k][i]) : "");
         log.tick(String.join(",", row));
     }
     private static String flag(boolean on) { return on ? "1" : "0"; }

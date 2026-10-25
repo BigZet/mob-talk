@@ -45,7 +45,8 @@ public final class SeraphMind {
     private Vec3d dashDir = Vec3d.ZERO;
     private double steerX, steerZ, liftS;
     private boolean wasUsing, released, dashStarted;
-    private float[] lastOut = new float[0];
+    private float[] lastOut = new float[0], lastToken = new float[TOK];
+    private float[][] lastItems = new float[P][ITEM];
     private String refused = "";
 
     /** One tick's decision. Steering is world-space in [-1, 1]; aimSide/aimUp are the feathers' lead in [-1, 1]. */
@@ -68,6 +69,9 @@ public final class SeraphMind {
     public boolean recovering() { return noDash > 0 && deflectT == 0; }
     /** The fight log: the net's raw outputs this tick, what was refused and why, whether the foe just loosed, a dash began. */
     public float[] lastOut() { return lastOut; }
+    /** The fight log: this tick's own token and projectiles, as pushed (the net reads them {@link #REACT} ticks later). */
+    public float[] lastToken() { return lastToken; }
+    public float[][] lastItems() { return lastItems; }
     public String refused() { return refused; }
     public boolean foeReleased() { return released; }
     public boolean dashStarted() { return dashStarted; }
@@ -93,7 +97,9 @@ public final class SeraphMind {
         released = wasUsing && !using;
         if (released) foeCool = 2;
         wasUsing = using;
-        push(token(self, foe, ground, castProgress, c, s, foeVel, using), items(self, c, s));
+        lastToken = token(self, foe, ground, castProgress, c, s, foeVel, using);
+        lastItems = items(self, c, s);
+        push(lastToken, lastItems);
         boolean casting = castProgress >= 0;
         if (stunned) { dashLeft = 0; deflectT = 0; }
 
@@ -181,7 +187,7 @@ public final class SeraphMind {
         List<Shot> shots = new ArrayList<>();
         Box around = self.getBoundingBox().expand(48);
         for (PersistentProjectileEntity p : self.getWorld().getEntitiesByClass(PersistentProjectileEntity.class, around,
-                p -> p.isAlive() && p.getOwner() != self)) {
+                p -> p.isAlive() && p.getOwner() != self && flying(p))) {
             Vec3d rel = p.getPos().subtract(center), v = p.getVelocity();
             double along = rel.dotProduct(v);
             if (along >= 0) continue;
@@ -199,6 +205,11 @@ public final class SeraphMind {
             out[k][i] = 1;
         }
         return out;
+    }
+
+    /** In the air, not stuck in a block (a stuck arrow keeps its last velocity and would look like one coming in). */
+    public static boolean flying(PersistentProjectileEntity p) {
+        return !((io.github.divineblock.mixin.ProjectileGroundAccessor) p).divineblock$inGround();
     }
 
     static boolean drawsBow(ItemStack stack) { return stack.getItem() instanceof BowItem || stack.getItem() instanceof TridentItem; }

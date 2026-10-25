@@ -194,6 +194,7 @@ public final class DodgeSelfTest {
     private static void prepare(ServerPlayerEntity player) {
         if (player == null) { log("FAIL нет игрока"); finished = true; return; }
         DivineBlockMod.config().voice = false;   // no text to speech in the test (not saved)
+        DivineBlockMod.config().seraphLog = true; // the fight log with the net's inputs, to set beside the trainer (not saved)
         ServerWorld world = player.getServerWorld();
         world.setWeather(100_000, 0, false, false);
         world.setTimeOfDay(6000);

@@ -21,9 +21,14 @@ import io.github.divineblock.DivineBlockMod;
  * {@code seraph-events-*.csv} a row per shot, hit, sweep, window, phase and death. The game thread only appends to a buffer;
  * the disk is written on a worker, a second's worth at a time. */
 final class SeraphFightLog {
+    /** The net's own inputs (SeraphMind.token / items, duel.py Duel._tokens / _items_for("s")), in their order. */
+    static final String[] TOKEN = { "vx", "vy", "vz", "height", "dash_ready", "deflect_ready", "attack_ready", "cast", "sweep",
+            "eye_x", "eye_y", "eye_z", "foe_vx", "foe_vy", "foe_vz", "drawing", "pull", "look_x", "look_y", "look_z", "aim_off",
+            "foe_cool", "dashing" };
+    static final String[] ITEM = { "rx", "ry", "rz", "vx", "vy", "vz", "arrow", "reflected", "feather", "tca", "on" };
     static final String FIGHT_HEADER = "tick,hp,max_hp,phase,exposed,recovering,dist,height,dash_cd,deflect_cd,attack_cd,casting,dashing,"
             + "deflecting,foe_drawing,foe_pull,out_sx,out_lift,out_sz,out_dash,out_deflect,out_feathers,out_aim_side,out_aim_up,"
-            + "out_shot_soon,did_dash,did_deflect,did_feathers,refused";
+            + "out_shot_soon,did_dash,did_deflect,did_feathers,refused," + features();
     static final String EVENTS_HEADER = "tick,event,amount,raw,detail";
     private static final ExecutorService WORKER = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "divineblock-seraph-log");
@@ -76,6 +81,13 @@ final class SeraphFightLog {
                 DivineBlockMod.LOG.warn("Божественный блок: лог боя Серафима не записан", failure);
             }
         });
+    }
+
+    private static String features() {
+        StringBuilder out = new StringBuilder();
+        for (String name : TOKEN) out.append(out.isEmpty() ? "" : ",").append("tok_").append(name);
+        for (int k = 0; k < 8; k++) for (String name : ITEM) out.append(",it").append(k).append('_').append(name);
+        return out.toString();
     }
 
     /** Three decimals, a dot for the point; empty for a value the game does not know. */
