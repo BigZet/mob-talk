@@ -626,6 +626,7 @@ final class RoadNetwork {
         RoadPlan.Rules rules = new RoadPlan.Rules(defaults.grade(), defaults.tunnelCut(), defaults.bridgeFill(), defaults.maxBridge(), defaults.maxTunnel(),
                 bridge.config.roadMaxLength, defaults.variants());
         long seed = world.getSeed() ^ pair.hashCode() * 0x9E3779B97F4A7C15L;
+        Set<String> scanned = new HashSet<>(state.saved.cells);
         PLANNER.execute(() -> {
             RoadPlan.Result result; int[] hubA = null, hubB = null;
             try {
@@ -637,7 +638,7 @@ final class RoadNetwork {
                 if (a.hub() != null && a.hub().box() != null) obstacles.add(a.hub().box());
                 if (b.hub() != null && b.hub().box() != null) obstacles.add(b.hub().box());
                 for (int[] box : villages) if (near(box, ax, az, bx, bz)) obstacles.add(box);
-                obstacles.addAll(structures(world, cached, ax, az, bx, bz, obstacles));
+                obstacles.addAll(structures(world, cached, ax, az, bx, bz, obstacles, scanned));
                 result = RoadPlan.plan(seed, ax, az, bx, bz, cached, rules, aFeet, bFeet, obstacles);
             } catch (RuntimeException failure) { LOGGER.warn("дорога {} не спланирована", pair, failure); result = new RoadPlan.Result(null, "ошибка: " + failure); }
             RoadPlan.Result planned = result; int[] chosenA = hubA, chosenB = hubB;
@@ -703,28 +704,57 @@ final class RoadNetwork {
         return box[2] >= minX && box[0] <= maxX && box[3] >= minZ && box[1] <= maxZ;
     }
 
-    /** The structures the road would cross on the straight line between its ends (an outpost, a ruined portal, a hut, a well: any
-     * but the villages, which are known already), as boxes to go round. The starts are read from the chunks along the line at the
-     * structure stage, made now if need be: asked from the planning thread, each is made on the game thread between ticks.
-     * Structures far below the ground (a mineshaft) and the vast ones are left out; at most 24 boxes. */
-    private List<int[]> structures(ServerWorld world, RoadPlan.Terrain terrain, int ax, int az, int bx, int bz, List<int[]> known) {
+    /** Structure sets whose structures stand on the surface of the overworld, where a road may run into them. The rest of the
+     * vanilla sets (mineshafts, strongholds, ancient cities, trial chambers, buried treasure, the ocean's) lie under the ground or
+     * in the water, where the road does not go; a set of another mod is looked at. */
+    private static final Set<String> SURFACE_SETS = Set.of("minecraft:pillager_outposts", "minecraft:ruined_portals", "minecraft:igloos", "minecraft:swamp_huts",
+            "minecraft:jungle_temples", "minecraft:desert_pyramids", "minecraft:woodland_mansions", "minecraft:shipwrecks", "minecraft:trail_ruins");
+
+    /** The structures the road would cross on the straight line between its ends (an outpost, a ruined portal, a hut, a village the
+     * scan has not come to yet), as boxes to go round. Where one may start is worked out first from each structure set's placement,
+     * as the villages are found (cheap, no chunk touched); only the chunks a set would start a structure in are then read at the
+     * structure stage, made now if need be (asked from the planning thread, each is made on the game thread between ticks: a
+     * village's whole plan is drawn up at that stage, so every chunk along the line would stall the game, 2026-10-25). Structures
+     * far below the ground and the vast ones are left out; at most 24 boxes. */
+    private List<int[]> structures(ServerWorld world, RoadPlan.Terrain terrain, int ax, int az, int bx, int bz, List<int[]> known, Set<String> scanned) {
         List<int[]> out = new ArrayList<>();
         double length = Math.hypot(bx - ax, bz - az);
         if (length < 1) return out;
-        LongSet chunks = new LongOpenHashSet();
+        LongSet wanted = new LongOpenHashSet();
+        int minCx = Integer.MAX_VALUE, minCz = Integer.MAX_VALUE, maxCx = Integer.MIN_VALUE, maxCz = Integer.MIN_VALUE;
         for (double s = 0; s <= length; s += 8) {
             int x = (int) Math.floor(ax + (bx - ax) * s / length), z = (int) Math.floor(az + (bz - az) * s / length);
-            for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) chunks.add(ChunkPos.toLong((x >> 4) + dx, (z >> 4) + dz));
+            for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) {
+                int cx = (x >> 4) + dx, cz = (z >> 4) + dz;
+                wanted.add(ChunkPos.toLong(cx, cz));
+                minCx = Math.min(minCx, cx); minCz = Math.min(minCz, cz); maxCx = Math.max(maxCx, cx); maxCz = Math.max(maxCz, cz);
+            }
         }
-        var registry = world.getRegistryManager().get(RegistryKeys.STRUCTURE);
+        StructurePlacementCalculator calculator = world.getChunkManager().getStructurePlacementCalculator();
+        LongSet candidates = new LongOpenHashSet();
+        for (RegistryEntry<StructureSet> set : calculator.getStructureSets()) {
+            if (!(set.value().placement() instanceof RandomSpreadStructurePlacement placement)) continue;
+            String setId = set.getKey().map(key -> key.getValue().toString()).orElse("");
+            boolean villages = false;
+            for (StructureSet.WeightedEntry entry : set.value().structures()) if (village(world, entry.structure())) villages = true;
+            if (setId.startsWith("minecraft:") && !villages && !SURFACE_SETS.contains(setId)) continue;
+            int spacing = placement.getSpacing();
+            for (int i = Math.floorDiv(minCx, spacing); i <= Math.floorDiv(maxCx, spacing); i++)
+                for (int j = Math.floorDiv(minCz, spacing); j <= Math.floorDiv(maxCz, spacing); j++) {
+                    if (villages && scanned.contains(setId + "|" + i + "|" + j)) continue; // a village the scan found is known already
+                    ChunkPos start = placement.getStartChunk(calculator.getStructureSeed(), i * spacing, j * spacing);
+                    if (!wanted.contains(start.toLong()) || !placement.shouldGenerate(calculator, start.x, start.z)) continue;
+                    candidates.add(start.toLong());
+                }
+        }
         Set<StructureStart> seen = new HashSet<>();
-        for (long packed : chunks) {
+        for (long packed : candidates) {
             if (out.size() >= 24 || !world.getServer().isRunning()) break;
             var holder = world.getChunk(ChunkPos.getPackedX(packed), ChunkPos.getPackedZ(packed), net.minecraft.world.chunk.ChunkStatus.STRUCTURE_STARTS, true);
             if (holder == null) continue;
             for (Map.Entry<Structure, StructureStart> entry : holder.getStructureStarts().entrySet()) {
                 StructureStart start = entry.getValue();
-                if (!start.hasChildren() || !seen.add(start) || village(world, registry.getEntry(entry.getKey()))) continue;
+                if (!start.hasChildren() || !seen.add(start)) continue;
                 BlockBox box = start.getBoundingBox();
                 if (box.getBlockCountX() > 160 || box.getBlockCountZ() > 160) continue;
                 int[] rect = { box.getMinX(), box.getMinZ(), box.getMaxX(), box.getMaxZ() };
