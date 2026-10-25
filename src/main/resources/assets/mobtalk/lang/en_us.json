@@ -889,7 +889,6 @@
   "mobtalk.tune.overlayHoldSeconds.tooltip": "How many seconds a line stays on screen after the voice ends.",
   "mobtalk.tune.overlayScale": "Overlay scale: %s %%",
   "mobtalk.tune.overlayScale.tooltip": "Size of every widget on the page; also via the address, ?scale=1.25.",
-<<<<<<< HEAD
   "block.mobtalk.bench": "Bench",
   "block.mobtalk.urn": "Concrete bin",
   "block.mobtalk.lamp_pole": "Lamp post",
@@ -937,8 +936,7 @@
   "block.mobtalk.lamp_grey_base": "Grey lamp post base",
   "block.mobtalk.lamp_grey_pole": "Grey lamp post",
   "block.mobtalk.lamp_grey_double": "Grey double-arm street lamp",
-  "block.mobtalk.lamp_grey_single": "Grey single-arm street lamp"
-=======
+  "block.mobtalk.lamp_grey_single": "Grey single-arm street lamp",
   "block.mobtalk.crossbow_post": "Crossbowman's Post",
   "entity.minecraft.villager.mobtalk.heavy": "Heavy Warrior",
   "entity.minecraft.villager.heavy": "Heavy Warrior",
@@ -964,5 +962,4 @@
   "mobtalk.defense.rank.guard": "guard",
   "mobtalk.defense.rank.heavy": "heavy warrior",
   "mobtalk.defense.rank.cavalry": "horseman"
->>>>>>> origin/main
 }

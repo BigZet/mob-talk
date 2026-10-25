@@ -118,14 +118,11 @@ public final class MobTalkConfig {
     public boolean villageTowers = true;
     /** Villages keep guards with swords and shields: stands by the bell and at the edge, a newcomer for each empty one. */
     public boolean villageGuards = true;
-<<<<<<< HEAD
     /** Cities with Soviet panel blocks, an administration and a hospital take the place of a village: one city for this many villages,
      * 0 = no cities. Counted when a world loads; only new land gets cities. */
     public int cityPerVillages = 3;
-=======
     /** Ranks of the village's guard beside the plain guard: heavy warriors in diamond with an axe, horsemen in leather on a horse. */
     public boolean villageHeavy = true, villageCavalry = true;
->>>>>>> origin/main
     /** Idea Б1: the villages know the god's deeds (the divine block's events) — they panic, talk and blame the sinner by name;
      * the scene in the moment (alarm bell, flight, shouts); the god alone may make an exile; the family of a villager killed by a
      * curse turns against the sinner. */

@@ -889,7 +889,6 @@
   "mobtalk.tune.overlayHoldSeconds.tooltip": "Сколько секунд реплика остаётся на экране после конца звука.",
   "mobtalk.tune.overlayScale": "Масштаб оверлея: %s %%",
   "mobtalk.tune.overlayScale.tooltip": "Размер всех виджетов страницы; можно и параметром адреса ?scale=1.25.",
-<<<<<<< HEAD
   "block.mobtalk.bench": "Скамейка у подъезда",
   "block.mobtalk.urn": "Бетонная урна",
   "block.mobtalk.lamp_pole": "Фонарный столб",
@@ -937,8 +936,7 @@
   "block.mobtalk.lamp_grey_base": "Основание серого фонаря",
   "block.mobtalk.lamp_grey_pole": "Опора серого фонаря",
   "block.mobtalk.lamp_grey_double": "Серый фонарь с двумя плечами",
-  "block.mobtalk.lamp_grey_single": "Серый фонарь с одним плечом"
-=======
+  "block.mobtalk.lamp_grey_single": "Серый фонарь с одним плечом",
   "block.mobtalk.crossbow_post": "Пост арбалетчика",
   "entity.minecraft.villager.mobtalk.heavy": "Тяжёлый воин",
   "entity.minecraft.villager.heavy": "Тяжёлый воин",
@@ -964,5 +962,4 @@
   "mobtalk.defense.rank.guard": "стражник",
   "mobtalk.defense.rank.heavy": "тяжёлый воин",
   "mobtalk.defense.rank.cavalry": "кавалерист"
->>>>>>> origin/main
 }
