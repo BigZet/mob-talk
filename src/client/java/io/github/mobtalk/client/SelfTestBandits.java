@@ -245,7 +245,90 @@ final class SelfTestBandits {
             test.check(bandits().stream().anyMatch(b -> b.mode() == BanditEntity.Mode.FLEE), "the mugger runs after the blow");
             test.command("bandits clear");
             test.command("kill @e[tag=mobtalk_bandit_victim]");
-            f7();
+            lurk();
+        });
+    }
+
+    // ---- (ж) Where they wait: a dark doorway under a roof beats a lit open street ----
+
+    private void lurk() {
+        test.command("gamemode survival " + name());
+        test.command("tp " + name() + " " + at(0, 0, 0) + " 180 0");
+        // A doorway at the west wall: a roof, an oak door, no light. A lamp post in the open at the east.
+        test.command("fill " + at(-17, 0, -2) + " " + at(-15, 3, 2) + " minecraft:bricks hollow");
+        test.command("setblock " + at(-15, 0, 0) + " minecraft:oak_door[half=lower,facing=east]");
+        test.command("setblock " + at(-15, 1, 0) + " minecraft:oak_door[half=upper,facing=east]");
+        test.command("setblock " + at(15, 0, 0) + " minecraft:glowstone");
+        test.await("pause: the light settles", 2, () -> false, () -> {
+            int dark = onServer(() -> io.github.mobtalk.game.BanditController.lurk(world(), new net.minecraft.util.math.BlockPos(fx - 14, fy, fz)));
+            int lit = onServer(() -> io.github.mobtalk.game.BanditController.lurk(world(), new net.minecraft.util.math.BlockPos(fx + 14, fy, fz)));
+            test.check(dark > lit, "a bandit would rather wait by a dark door than under a light (" + dark + " > " + lit + ")");
+            revenge();
+        });
+    }
+
+    // ---- (з) Revenge: a player who killed a bandit meets a gang that does not talk ----
+
+    private void revenge() {
+        test.command("give " + name() + " minecraft:emerald 20");
+        test.command("summon mobtalk:bandit " + at(0, 0, -4));
+        test.await("a bandit to kill", 5, () -> !bandits().isEmpty(), () -> {
+            test.server().execute(() -> {
+                ServerPlayerEntity player = test.serverPlayer();
+                for (BanditEntity b : bandits()) b.damage(world().getDamageSources().playerAttack(player), 500f);
+            });
+            test.await("the bandit is dead", 5, () -> bandits().isEmpty(), () -> {
+                mark();
+                test.command("execute as " + name() + " at " + name() + " run bandits spawn 2");
+                test.await("the gang comes for revenge", 25, () -> (heard("положил") || heard("ответишь") || heard("Мы за"))
+                        && bandits().stream().anyMatch(b -> b.mode() == BanditEntity.Mode.FIGHT), () -> {
+                    test.check(heard("положил") || heard("ответишь") || heard("Мы за"), "the gang names the bandit the player killed");
+                    test.check(bandits().stream().allMatch(b -> b.mode() != BanditEntity.Mode.DEMAND), "a revenge gang does not ask for emeralds");
+                    test.check(bandits().stream().filter(b -> b.mode() == BanditEntity.Mode.FIGHT).allMatch(b -> b.getCommandTags().contains(BanditEntity.WANTED)),
+                            "a fighting bandit carries the police's «wanted» mark");
+                    test.command("bandits clear");
+                    city();
+                });
+            });
+        });
+    }
+
+    // ---- (и) A real city, when this build has them: the player stands in it, a gang is called for the night ----
+
+    private void city() {
+        var id = net.minecraft.util.Identifier.of("mobtalk", "city_mix");
+        var entry = onServer(() -> world().getRegistryManager().get(net.minecraft.registry.RegistryKeys.STRUCTURE)
+                .getEntry(net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.STRUCTURE, id)));
+        if (entry.isEmpty()) { test.log("no cities in this build: the city stage is skipped"); f7(); return; }
+        test.log("locating a city (may take a while)");
+        var found = onServer(() -> world().getChunkManager().getChunkGenerator().locateStructure(world(),
+                net.minecraft.registry.entry.RegistryEntryList.of(entry.get()), test.serverPlayer().getBlockPos(), 100, false));
+        if (found == null) { test.fail("no city found within 100 chunks"); f7(); return; }
+        net.minecraft.util.math.BlockPos centre = found.getFirst();
+        test.log("city at " + centre.toShortString());
+        test.command("gamemode spectator " + name());
+        test.command("tp " + name() + " " + centre.getX() + " 140 " + centre.getZ());
+        test.await("pause: the city loads", 25, () -> false, () -> {
+            test.command("execute as " + name() + " at " + name() + " run spreadplayers ~ ~ 0 6 false @s");
+            test.command("gamemode survival " + name());
+            test.command("time set 18000");
+            test.await("pause: on the ground", 5, () -> false, () -> {
+                boolean inCity = onServer(() -> io.github.mobtalk.game.BanditController.of(test.server()).territory(world(), test.serverPlayer().getBlockPos()));
+                test.check(inCity, "the player stands in a city (" + test.serverPlayer().getBlockPos().toShortString() + ")");
+                test.command("give " + name() + " minecraft:emerald 20");
+                mark();
+                test.command("execute as " + name() + " at " + name() + " run bandits night");
+                test.await("the night's gang comes out in the city", 60, () -> heard("изумр.") || heard("Пустой") || heard("Голодранец") || heard("Ни изумруда"), () -> {
+                    BanditEntity first = bandits().stream().min(Comparator.comparingDouble(b -> b.distanceTo(test.serverPlayer()))).orElse(null);
+                    test.check(first != null, "a gang came for the player in the city at night");
+                    if (first != null) frame(first, true);
+                    shot("mobtalk-bandits-city.png", () -> {
+                        if (first != null) frame(first, false);
+                        test.command("bandits clear");
+                        f7();
+                    });
+                });
+            });
         });
     }
 

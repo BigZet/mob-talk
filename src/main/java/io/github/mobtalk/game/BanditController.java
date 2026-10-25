@@ -10,7 +10,11 @@ import java.util.UUID;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.passive.VillagerEntity;
+import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
+import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.world.poi.PointOfInterestStorage;
+import net.minecraft.world.poi.PointOfInterestType;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -38,7 +42,7 @@ public final class BanditController {
 
     BanditController(MobGameBridge bridge) { this.bridge = bridge; }
 
-    static BanditController of(MinecraftServer server) {
+    public static BanditController of(MinecraftServer server) {
         MobGameBridge bridge = server == null ? null : MobGameBridge.active(server);
         return bridge == null ? null : bridge.bandits;
     }
@@ -88,12 +92,15 @@ public final class BanditController {
             long[] night = nights.computeIfAbsent(player.getUuid(), id -> new long[] { -1, -1 });
             if (night[0] != day) {
                 night[0] = day;
-                night[1] = world.random.nextInt(100) < bridge.config.banditNightChance ? 13500 + world.random.nextInt(8000) : -1;
+                Grudge grudge = saved(world).of(player.getUuid());
+                int chance = bridge.config.banditNightChance + (grudge.killed > 0 ? 30 : 0); // a gang that lost a man comes back sooner
+                night[1] = world.random.nextInt(100) < chance ? 13500 + world.random.nextInt(8000) : -1;
             }
             if (night[1] <= 0 || hour < night[1]) continue;
             if (!territory(world, player.getBlockPos())) { if (hour > 22000) night[1] = -1; continue; }
             if (!bandits(world, player.getBoundingBox().expand(48)).isEmpty()) continue;
-            int size = 1 + world.random.nextInt(Math.max(1, bridge.config.banditGangMax));
+            Grudge grudge = saved(world).of(player.getUuid());
+            int size = 1 + world.random.nextInt(Math.max(1, bridge.config.banditGangMax)) + (grudge.killed > 0 ? 1 : 0);
             if (!spawnGang(world, player, size, true).isEmpty()) night[1] = 0;
         }
     }
@@ -136,9 +143,12 @@ public final class BanditController {
         return gang;
     }
 
+    /** Where the gang steps out: of up to forty candidate spots 14–24 blocks from the player (behind their back first), the best by
+     * {@link #lurk}: dark, by a door or under an arch, out of the player's sight, far from a police or guard post. */
     private BlockPos spot(ServerWorld world, ServerPlayerEntity player, boolean inTerritory) {
         Random random = world.random;
         float back = player.getYaw() + 180f;
+        BlockPos best = null; int bestScore = Integer.MIN_VALUE;
         for (int attempt = 0; attempt < 40; attempt++) {
             float angle = attempt < 20 ? back + (random.nextFloat() - 0.5f) * 140f : random.nextFloat() * 360f;
             double distance = 14 + random.nextInt(11);
@@ -147,11 +157,32 @@ public final class BanditController {
             BlockPos pos = standable(world, x, z, player.getBlockY());
             if (pos == null) continue;
             if (inTerritory && !territory(world, pos)) continue;
-            if (attempt < 30 && inSight(world, player, pos)) continue;
-            return pos;
+            int score = lurk(world, pos) - (inSight(world, player, pos) ? 40 : 0) - 6 * Math.abs(pos.getY() - player.getBlockY());
+            if (score > bestScore) { bestScore = score; best = pos; }
         }
-        return null;
+        return best;
     }
+
+    /** How good a spot is to wait in: darkness (block light; the city's lamps light the streets), a door within three blocks (a
+     * stairwell, a yard gate) or a roof overhead (an arch, a bus stop), and no post of the police or the guard within 24 blocks. */
+    public static int lurk(ServerWorld world, BlockPos pos) {
+        int score = (15 - world.getLightLevel(net.minecraft.world.LightType.BLOCK, pos)) * 3;
+        if (!world.isSkyVisible(pos)) score += 10;
+        for (BlockPos near : BlockPos.iterate(pos.add(-3, -1, -3), pos.add(3, 2, 3)))
+            if (world.getBlockState(near).getBlock() instanceof net.minecraft.block.DoorBlock) { score += 12; break; }
+        if (watched(world, pos)) score -= 60;
+        return score;
+    }
+
+    /** A police post (the police track's {@code mobtalk:police_post}, when that mod part is present) or a guard stand near. */
+    static boolean watched(ServerWorld world, BlockPos pos) {
+        var types = Registries.POINT_OF_INTEREST_TYPE;
+        java.util.function.Predicate<RegistryEntry<PointOfInterestType>> post = entry -> entry.matchesKey(DefenseContent.GUARD_POST_POI)
+                || entry.getKey().map(key -> key.getValue().equals(POLICE_POST)).orElse(false);
+        if (types.get(POLICE_POST) == null && DefenseContent.GUARD_POST == null) return false;
+        return world.getPointOfInterestStorage().getInCircle(post, pos, 24, PointOfInterestStorage.OccupationStatus.ANY).findAny().isPresent();
+    }
+    static final Identifier POLICE_POST = Identifier.of("mobtalk", "police_post");
 
     /** Whether the player would see a man standing there (a clear line from their eyes to his head). */
     private static boolean inSight(ServerWorld world, ServerPlayerEntity player, BlockPos pos) {
@@ -160,12 +191,14 @@ public final class BanditController {
                 net.minecraft.world.RaycastContext.FluidHandling.NONE, player)).getType() == net.minecraft.util.hit.HitResult.Type.MISS;
     }
 
-    /** The ground at x, z near this height: the street, not a roof (the surface may be a roof, so a few heights are tried). */
+    /** The ground at x, z nearest the player's height: the street he walks, not a roof or a balcony above it. */
     private static BlockPos standable(ServerWorld world, int x, int z, int y) {
         if (!world.isChunkLoaded(new BlockPos(x, y, z))) return null;
-        int top = world.getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, x, z);
-        if (Math.abs(top - y) <= 4 && free(world, new BlockPos(x, top, z))) return new BlockPos(x, top, z);
-        for (int dy = -4; dy <= 4; dy++) if (free(world, new BlockPos(x, y + dy, z))) return new BlockPos(x, y + dy, z);
+        for (int i = 0; i <= 8; i++) {
+            int dy = (i + 1) / 2 * (i % 2 == 0 ? 1 : -1); // 0, -1, 1, -2, 2…
+            BlockPos pos = new BlockPos(x, y + dy, z);
+            if (free(world, pos)) return pos;
+        }
         return null;
     }
 
@@ -261,12 +294,23 @@ public final class BanditController {
         List<BanditEntity> gang = bandit.mates();
         if (!gang.contains(bandit)) gang.add(bandit);
         String name = MobGameBridge.playerName(player);
+        Grudge grudge = saved(world).of(player.getUuid());
+        if (grudge.killed > 0) {
+            // Revenge: no talk, no price. The grudge is settled with this gang, whatever comes of it.
+            bandit.say(player, pick(world.random, "Это ты " + grudge.victim + " положил? Ну всё, " + name + ", молись.",
+                    "За " + grudge.victim + " ответишь, " + name + ".", "Узнаёшь? Мы за " + grudge.victim + "."));
+            grudge.killed = 0; saved(world).markDirty();
+            for (BanditEntity mate : gang) mate.fight(player);
+            return;
+        }
         if (emeralds <= 0) {
             bandit.say(player, pick(world.random, "Пустой? Тогда снимай, что есть.", "Ни изумруда? Ну, сам виноват.", "Голодранец… Ладно, разденем."));
             for (BanditEntity mate : gang) mate.fight(player);
             return;
         }
-        int amount = MathHelper.clamp(Math.round(emeralds * config.banditDemandPercent / 100f), 1, 64);
+        // One who paid before is an easy mark: every payment remembered adds a tenth, up to three.
+        int percent = Math.min(100, config.banditDemandPercent + 10 * Math.min(3, grudge.paid));
+        int amount = MathHelper.clamp(Math.round(emeralds * percent / 100f), 1, 64);
         for (BanditEntity mate : gang) mate.ask(player, amount, world.getTime(), config.banditDemandSeconds);
         bandit.say(player, pick(world.random,
                 "Слышь, " + name + ", кошелёк или жизнь. С тебя " + amount + " изумр.",
@@ -293,4 +337,58 @@ public final class BanditController {
     private static String pick(Random random, String... lines) { return lines[random.nextInt(lines.length)]; }
 
     void clearRuntime() { nights.clear(); }
+
+    // ---- What the gangs remember of each player (saved with the world) ----
+
+    /** A player as the city's gangs know him: bandits he killed (and the last one's nick) and how many times he paid. */
+    static final class Grudge { int killed, paid; String victim = ""; }
+
+    static final class Saved extends net.minecraft.world.PersistentState {
+        final Map<UUID, Grudge> players = new HashMap<>();
+        static final Type<Saved> TYPE = new Type<>(Saved::new, Saved::read, null);
+        Grudge of(UUID player) { return players.computeIfAbsent(player, id -> new Grudge()); }
+        static Saved read(net.minecraft.nbt.NbtCompound tag, net.minecraft.registry.RegistryWrapper.WrapperLookup lookup) {
+            Saved saved = new Saved();
+            net.minecraft.nbt.NbtCompound all = tag.getCompound("players");
+            for (String key : all.getKeys()) {
+                try {
+                    net.minecraft.nbt.NbtCompound row = all.getCompound(key);
+                    Grudge grudge = saved.of(UUID.fromString(key));
+                    grudge.killed = row.getInt("killed"); grudge.paid = row.getInt("paid"); grudge.victim = row.getString("victim");
+                } catch (IllegalArgumentException ignored) { }
+            }
+            return saved;
+        }
+        @Override public net.minecraft.nbt.NbtCompound writeNbt(net.minecraft.nbt.NbtCompound tag, net.minecraft.registry.RegistryWrapper.WrapperLookup lookup) {
+            net.minecraft.nbt.NbtCompound all = new net.minecraft.nbt.NbtCompound();
+            players.forEach((id, grudge) -> {
+                net.minecraft.nbt.NbtCompound row = new net.minecraft.nbt.NbtCompound();
+                row.putInt("killed", grudge.killed); row.putInt("paid", grudge.paid); row.putString("victim", grudge.victim);
+                all.put(id.toString(), row);
+            });
+            tag.put("players", all);
+            return tag;
+        }
+    }
+
+    static Saved saved(ServerWorld world) { return world.getServer().getOverworld().getPersistentStateManager().getOrCreate(Saved.TYPE, "mobtalk_bandits"); }
+
+    /** A player killed a bandit: the city's gangs will come for him (a likelier night, one more man, no talk). */
+    void killed(ServerWorld world, ServerPlayerEntity player, BanditEntity bandit) {
+        Grudge grudge = saved(world).of(player.getUuid());
+        grudge.killed++;
+        String nick = bandit.getName().getString();
+        grudge.victim = nick.startsWith("Бандит ") ? nick.substring(7) : nick;
+        saved(world).markDirty();
+        for (BanditEntity mate : bandit.mates()) if (mate != bandit && mate.isAlive()) mate.say(player, pick(world.random, "Ты за это ответишь!", "Мы тебя найдём.", "Запомни мою рожу."));
+    }
+
+    /** A player paid in full: next time they ask him for more. */
+    void paid(ServerWorld world, ServerPlayerEntity player) { saved(world).of(player.getUuid()).paid++; saved(world).markDirty(); }
+
+    /** For /bandits status. */
+    String memory(ServerWorld world, ServerPlayerEntity player) {
+        Grudge grudge = saved(world).of(player.getUuid());
+        return "убито вами: " + grudge.killed + (grudge.killed > 0 ? " (" + grudge.victim + ")" : "") + ", платили: " + grudge.paid;
+    }
 }

@@ -78,7 +78,7 @@ public final class BanditContent {
         List<BanditEntity> all = BanditController.bandits(world);
         StringBuilder text = new StringBuilder("Бандиты: ").append(controller.territory(world, player.getBlockPos()) ? "вы в городе" : "вы не в городе")
                 .append(BanditController.night(world) ? ", ночь" : ", день").append(", эта ночь: ").append(controller.tonight(world, player))
-                .append(". В мире: ").append(all.size());
+                .append(". Банды о вас: ").append(controller.memory(world, player)).append(". В мире: ").append(all.size());
         for (BanditEntity bandit : all)
             text.append("\n").append(bandit.getName().getString()).append(" — ").append(bandit.mode()).append(", ").append(bandit.getBlockPos().toShortString())
                     .append(bandit.demand() > 0 ? ", просит " + bandit.demand() : "").append(bandit.lootCount() > 0 ? ", добыча " + bandit.lootCount() : "");

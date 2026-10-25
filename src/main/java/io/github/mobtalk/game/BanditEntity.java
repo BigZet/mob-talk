@@ -137,13 +137,25 @@ public final class BanditEntity extends HostileEntity {
     /** Whether the player ran off from where he was stopped (more than {@code blocks} away from that spot). */
     boolean ranOff(PlayerEntity player, double blocks) { return askedAt != null && player.getPos().squaredDistanceTo(askedAt) > blocks * blocks; }
 
+    /** The police track's mark: a mob with it is a criminal the police chase and take away. */
+    public static final String WANTED = "mobtalk_wanted";
+
     void fight(LivingEntity victim) {
-        mode = Mode.FIGHT; mark = victim.getUuid(); setTarget(victim);
+        mode = Mode.FIGHT; mark = victim.getUuid(); setTarget(victim); addCommandTag(WANTED);
     }
 
     void leave() { mode = Mode.LEAVE; setTarget(null); fled = getWorld().getTime(); }
 
-    void flee() { mode = Mode.FLEE; setTarget(null); fled = getWorld().getTime(); }
+    void flee() { mode = Mode.FLEE; setTarget(null); fled = getWorld().getTime(); addCommandTag(WANTED); }
+
+    /** Killed by a player: his gang will remember (BanditController's grudge). */
+    @Override public void onDeath(DamageSource source) {
+        super.onDeath(source);
+        if (getWorld() instanceof ServerWorld world && source.getAttacker() instanceof ServerPlayerEntity player) {
+            BanditController controller = BanditController.of(world.getServer());
+            if (controller != null) controller.killed(world, player, this);
+        }
+    }
 
     /** The bandits of his gang within a street of him. */
     List<BanditEntity> mates() {
@@ -180,6 +192,7 @@ public final class BanditEntity extends HostileEntity {
             return "Отдано " + give + ", бандит ждёт ещё " + (demand - paid);
         }
         say(player, controller == null ? "Приятно иметь дело." : controller.thanks(random));
+        if (controller != null) controller.paid((ServerWorld) getWorld(), player);
         for (BanditEntity mate : mates()) mate.leave();
         leave();
         return "Бандиты взяли " + demand + " изумр. и уходят";
