@@ -119,8 +119,9 @@ def playground(y):
     path(y, 0, MID - 1, 4, MID + 1)
     for x in range(5, 15):
         for z in range(1, 14):
-            if r.random() < 0.85:
-                y.ground(x, z, "minecraft:sand" if r.random() < 0.7 else "minecraft:coarse_dirt")
+            edge = x in (5, 14) or z in (1, 13)
+            if not edge or r.random() < 0.5:  # trodden sand, the grass creeping in at the edges
+                y.ground(x, z, "minecraft:sand" if r.random() < 0.93 else "minecraft:coarse_dirt")
     # sandbox: a wooden rim of slabs, sand inside
     for x in range(10, 14):
         for z in range(9, 13):

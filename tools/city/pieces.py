@@ -104,6 +104,7 @@ def hospital_street(kind, street, processors):
             d = b.value["nbt"].value
             d["pool"].value = HOSPITAL_POOL
             d["target"].value = "minecraft:building_entrance"
+            d["placement_priority"] = nbt.Tag(nbt.INT, 10)  # before the neighbours' plots take the room
             keep.append(b)
         else:  # the other plots on that side stay empty so the hospital fits
             b.value["state"].value = air
@@ -121,6 +122,7 @@ def admin_centre(kind, centre):
     name, tag = load(centre)
     street = next(d for _, _, d in jigsaws(tag) if "street" in d["name"].value)
     street["pool"].value = f"mobtalk:city/ours/{kind}/hospital_street"
+    street["placement_priority"] = nbt.Tag(nbt.INT, 10)  # the hospital street (and so the hospital) is laid out first
     save(f"ours/{kind}/admin_centre", name, tag)
     write_json(f"worldgen/template_pool/city/ours/{kind}/start.json",
                pool(f"mobtalk:city/ours/{kind}/start", f"mobtalk:city/ours/{kind}/admin_centre", "mobtalk:city/village_common"))
@@ -264,6 +266,7 @@ def decorate_building(t, r, admin=False, hospital=False):
         ey = 1  # a town centre: its ground floor is level with the streets' connectors
     doors = street_doors(t, ey)
     done = set()
+    signed = False
     for (x, y, z), out in doors:
         if (x // 3, z // 3) in done:  # double doors: one set of benches
             continue
@@ -279,18 +282,13 @@ def decorate_building(t, r, admin=False, hospital=False):
             if t.air(bx, y + 1, bz) and t.solid(bx - dx, y + 1, bz - dz):
                 t.put(bx, y + 1, bz, "mobtalk:notice_board", {"facing": wall_facing})
                 break
-        if admin or hospital:
-            for ax, az in along:
-                bx, bz = ox + ax * 2, oz + az * 2
-                if t.air(bx, y + 1, bz) and t.solid(bx - dx, y + 1, bz - dz):
-                    t.put(bx, y + 1, bz, "minecraft:dark_oak_wall_sign", {"facing": wall_facing, "waterlogged": "false"},
-                          sign_nbt(["Администрация", "города"] if admin else ["Городская", "больница"]))
-                    break
-        if hospital:  # the red cross over the door, or beside it when a porch roof is in the way
-            spots = [(ox, y + k, oz) for k in (2, 3, 4)] + [(ox + ax * k, y + 2, oz + az * k) for k in (1, 3) for ax, az in along]
+        if (admin or hospital) and not signed:
+            spots = [(ox + ax * k, y + h, oz + az * k) for h in (1, 2) for k in (2, 3, 1) for ax, az in along]
             for bx, by, bz in spots:
                 if t.air(bx, by, bz) and t.solid(bx - dx, by, bz - dz):
-                    t.put(bx, by, bz, "mobtalk:red_cross", {"facing": wall_facing})
+                    t.put(bx, by, bz, "minecraft:dark_oak_wall_sign", {"facing": wall_facing, "waterlogged": "false"},
+                          sign_nbt(["Администрация", "города"] if admin else ["Городская", "больница"]))
+                    signed = True
                     break
         # a bench on each side of the door, backs to the wall, and a bin beside one of them
         for i, (ax, az) in enumerate(along):
@@ -304,6 +302,8 @@ def decorate_building(t, r, admin=False, hospital=False):
                     break
     if admin:
         place_flag(t, ey, r)
+    if hospital:
+        place_cross(t, ey)
     # air conditioners and satellite dishes on the outer walls above the ground floor
     sx, sy, sz = t.size
     for (x, y, z), (n, props, _) in list(t.grid.items()):
@@ -324,6 +324,28 @@ def decorate_building(t, r, admin=False, hospital=False):
                 t.put(ax, y, az, "mobtalk:air_conditioner", {"facing": d})
             elif roll < 0.045:
                 t.put(ax, y, az, "mobtalk:satellite_dish", {"facing": d})
+
+
+def place_cross(t, ey):
+    """One big red cross on the hospital's front (the west wall, toward the street), in the middle, a floor under the roof."""
+    sx, sy, sz = t.size
+    spots = []
+    for z in range(sz):
+        wall = []
+        for y in range(ey + 2, sy):
+            x = 0
+            while x < sx and not t.solid(x, y, z):
+                x += 1
+            if 0 < x < sx and t.air(x - 1, y, z) and t.ray_out(x - 1, y, z, -1, 0):
+                wall.append((y, x - 1))
+        if len(wall) >= 3:
+            face = max({x for _, x in wall}, key=[x for _, x in wall].count)  # the plain wall, not a cornice or a porch
+            ys = [y for y, x in wall if x == face]
+            y = ys[-1] - 1 if ys[-1] - 1 in ys else ys[-1]  # under the roof line
+            spots.append((abs(z - sz / 2), -y, face, y, z))
+    if spots:
+        _, _, x, y, z = min(spots)
+        t.put(x, y, z, "mobtalk:red_cross", {"facing": "west"})
 
 
 def place_flag(t, ey, r):

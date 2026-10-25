@@ -251,7 +251,7 @@ CAR_COLORS = {"white": (228, 226, 214), "red": (172, 36, 34), "green": (58, 108,
 
 
 def car_atlas(color, base):
-    """64x64: side (48x14) at (0,0), cabin side (20x7) at (0,16), roof top (16x20) at (24,16), hood top (16x16) at (44,16),
+    """64x64: side (48x14) at (0,0), cabin side (20x7) at (0,16), roof top (16x20) at (44,40), hood top (16x16) at (44,16),
     front (18x8) at (0,32), rear (18x8) at (20,32), windscreen (16x7) at (0,42), back glass (16x7) at (20,42), wheel (6x6) at (40,32)."""
     r = rng("car" + color)
     img = new(64, 64)
@@ -280,8 +280,8 @@ def car_atlas(color, base):
                 t = (x - x0 + (23 - y)) / 12
                 img.putpixel((x, y), mix((70, 96, 110), (170, 200, 214), max(0, min(1, 0.25 + 0.5 * math.sin(t * 3.1)))))
     # roof and hood
-    noise_fill(img, b, 0.025, r, (24, 16, 40, 36))
-    bevel(img, (24, 16, 40, 36), 1.12, 0.8)
+    noise_fill(img, b, 0.025, r, (44, 40, 60, 60))
+    bevel(img, (44, 40, 60, 60), 1.12, 0.8)
     noise_fill(img, b, 0.025, r, (44, 16, 60, 32))
     for y in range(16, 32):
         img.putpixel((52, y), shade(b, 1.1))  # the hood's crease
@@ -316,7 +316,7 @@ def car_atlas(color, base):
     for x in range(40, 46):
         for y in range(32, 38):
             d = math.hypot(x - 42.5, y - 34.5)
-            img.putpixel((x, y), (30, 30, 32, 255) if d > 1.8 else (200, 205, 210, 255))
+            img.putpixel((x, y), (200, 205, 210, 255) if d < 1 else (96, 98, 102, 255) if d < 2.2 else (30, 30, 32, 255))
     return tex(f"car_{color}", img)
 
 
@@ -539,15 +539,15 @@ def cars():
             return [x0 / 4, y0 / 4, x1 / 4, y1 / 4]
         els = [
             # lower body, 48 long (-16..32 along z), front to the north
-            box((-1, 2.5, -16), (17, 9.5, 32), {"east": (t, uv(0, 0, 48, 14)), "west": (t, uv(48, 0, 0, 14)),
+            box((-1, 2.5, -15), (17, 9.5, 31), {"east": (t, uv(0, 0, 48, 14)), "west": (t, uv(48, 0, 0, 14)),
                                                 "north": (t, uv(0, 32, 18, 40)), "south": (t, uv(20, 32, 38, 40)),
                                                 "up": (t, uv(44, 16, 60, 32)), "down": ("palette", pal("black"))}),
             # cabin
             box((0, 9.5, -6), (16, 16, 13), {"east": (t, uv(0, 16, 20, 23)), "west": (t, uv(20, 16, 0, 23)),
                                              "north": (t, uv(0, 42, 16, 49)), "south": (t, uv(20, 42, 36, 49)),
-                                             "up": (t, uv(24, 16, 40, 36))}),
+                                             "up": (t, uv(44, 40, 60, 60))}),
             # bumpers
-            pal_box((-1.5, 2, -16.5), (17.5, 3.5, -15.5), "chrome"), pal_box((-1.5, 2, 31.5), (17.5, 3.5, 32.5), "chrome"),
+            pal_box((-1.5, 2, -16), (17.5, 3.5, -15), "chrome"), pal_box((-1.5, 2, 31), (17.5, 3.5, 32), "chrome"),
         ]
         for z in (-12, 21):
             for x, faces in ((-1.5, ["west", "north", "south", "down", "up"]), (15.5, ["east", "north", "south", "down", "up"])):
