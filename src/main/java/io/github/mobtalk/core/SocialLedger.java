@@ -139,7 +139,11 @@ public final class SocialLedger {
                         refusal == null ? DATE_HEARTS : 0, "", refusal == null ? "" : refusal));
             }
         }
+        boolean mercantile = Mercantile.active(p) && adult && !related;
+        int wealth = Mercantile.wealth(snapshot);
+        if (mercantile) Mercantile.gestures(rolled, Mercantile.purse(wealth, config)); // Голодранцу — от ворот поворот, богатому — улыбки.
         List<String> facts = SocialPrompt.playerFacts(courtship, state.family, p.id, player, config);
+        if (mercantile) facts.addAll(Mercantile.facts(rapport, Mercantile.purse(wealth, config), wealth, Mercantile.neglected(rapport, config, now)));
         facts.addAll(JealousyLedger.facts(p, rapport, PlayerIdentity.configOf(player, config), now)); // Трек J: ревность и ночь вместе.
         facts.addAll(WeddingLedger.facts(state, p, r, player, snapshot, config, now)); // Трек L: помолвка, свидетели, свадьба.
         facts.addAll(ChildLedger.facts(state, p, r, player, config, children)); // Трек N: особый вечер, беременность.
@@ -177,7 +181,8 @@ public final class SocialLedger {
     static GestureIntent gift(ConversationStore.Profile p, Rapport rapport, String item, String profession, boolean child, long now) {
         GiftCatalog.Value value = GiftCatalog.weigh(item, new GiftCatalog.Receiver(p.social.persona(), p.social.traits(), profession, child), rapport.given(item, now));
         String note = !value.known() ? "" : value.offends() ? value.category() + ", тебе это претит" : value.category();
-        return new GestureIntent(Gesture.GIFT, value.tier(), value.hearts(), item, note);
+        GestureIntent intent = new GestureIntent(Gesture.GIFT, value.tier(), value.hearts(), item, note);
+        return Mercantile.active(p) && !child ? Mercantile.gift(intent, rapport, item) : intent;
     }
 
     /** A gift thrown at the villager's feet (no conversation): weighed and applied at once; null when the villager is outside the
@@ -261,7 +266,10 @@ public final class SocialLedger {
         r.score = ConversationStore.clamp(r.score + intent.hearts(), p.hostile());
         r.rapport.record(intent.gesture(), now, intent.hearts() != 0);
         boolean accepted = intent.outcome() == Gesture.Outcome.ACCEPTED;
-        if (intent.gesture() == Gesture.GIFT && intent.takesItem()) r.rapport.gave(intent.item(), now);
+        if (intent.gesture() == Gesture.GIFT && intent.takesItem()) {
+            r.rapport.gave(intent.item(), now);
+            if (Mercantile.active(p)) Mercantile.paid(r.rapport, intent.item(), config, now); // Аппетит растёт, остывание с нуля.
+        }
         FamilyTree tree = store.state.family;
         MobState.Event felt;
         switch (intent.gesture()) {

@@ -100,6 +100,7 @@ public final class MobTalkMod implements ModInitializer {
 
     @Override public void onInitialize() {
         WeddingItems.register(); // Свои предметы — до загрузки любого мира, на обеих сторонах.
+        io.github.mobtalk.game.MercantileController.register(); // Сумочки меркантильных горожанок.
         io.github.mobtalk.game.DefenseContent.register(); // Пост лучника и профессия лучника (защита деревни).
         MobGameBridge.initialize();
         MobTalkNet.registerPayloads();

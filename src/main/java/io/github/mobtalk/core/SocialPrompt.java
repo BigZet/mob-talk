@@ -21,6 +21,7 @@ final class SocialPrompt {
     static String persona(ConversationStore.Profile p) {
         if (p == null || p.social == null) return "";
         Persona persona = p.social.persona();
+        if (persona == Persona.MERCANTILE && !Mercantile.on(Tuning.get())) persona = Persona.GREEDY; // Выключены — просто жадная.
         StringBuilder text = new StringBuilder("\nНрав: ").append(persona.word).append(" — ").append(persona.speech).append(". ")
                 .append("Ты ").append(SocialLedger.adult(p, null) ? p.social.gender().adult : p.social.gender().child).append('.');
         ChildGrowth.Stage stage = ChildGrowth.Stage.of(p.social.stage);

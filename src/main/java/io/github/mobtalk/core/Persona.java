@@ -19,7 +19,10 @@ public enum Persona {
     UNFLAPPABLE("невозмутимый", "спокоен и нетороплив, тебя трудно вывести из себя", 20, 0, 0, 0, 0, false),
     ANXIOUS("тревожный", "легко пугаешься и во всём видишь угрозу", -25, 0, 0, 0, 0, false),
     PEACEFUL("миролюбивый", "избегаешь ссор и стараешься всех примирить", 0, -10, 0, 0, 0, false),
-    CHEERFUL("жизнерадостный", "оптимист: смеёшься легко и заражаешь весельем", 0, 0, 0, 0, 15, false);
+    CHEERFUL("жизнерадостный", "оптимист: смеёшься легко и заражаешь весельем", 0, 0, 0, 0, 15, false),
+    /** Меркантильная горожанка ({@link Mercantile}): не выпадает наугад, её даёт город или деревня взрослой жительнице. */
+    MERCANTILE("меркантильная", "приторно-сладкая и фальшивая: «зайка», «котик», «солнышко», ахи и восторги напоказ, а на уме — "
+            + "сколько у него денег и что он тебе подарит; любишь дорогое, мелочи презираешь, комплименты раздаёшь за подарки", 0, 10, 0, 10, 0, true);
 
     /** The word for the prompt and the debug line. */
     public final String word;
@@ -35,9 +38,13 @@ public enum Persona {
         this.sociability = sociability; this.moodRest = moodRest; this.adultOnly = adultOnly;
     }
 
+    /** Характеры, что выпадают наугад: все, кроме меркантильной (её добавили позже — порядок и число старых не меняются, и
+     * житель без профиля получает тот же характер, что и до неё). */
+    private static final Persona[] RANDOM = java.util.Arrays.copyOf(values(), MERCANTILE.ordinal());
+
     /** One character, every one equally likely; {@code child} skips the adult-only ones. */
     public static Persona pick(Random random, boolean child) {
-        Persona[] all = values();
+        Persona[] all = RANDOM;
         while (true) {
             Persona persona = all[random.nextInt(all.length)];
             if (!child || !persona.adultOnly) return persona;

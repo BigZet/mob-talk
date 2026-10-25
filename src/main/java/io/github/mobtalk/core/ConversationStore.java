@@ -96,6 +96,9 @@ public final class ConversationStore {
                 r.ownerKnown = true; scheduleSave();
             }
         }
+        // Меркантильная: решается раз в жизни; кошелёк игрока на её взгляд и остывание без подарков — до копии для промпта.
+        if (Mercantile.roll(p, SocialLedger.adult(p, snapshot), Mercantile.city(snapshot), config) | Mercantile.observe(p, snapshot.playerId() == null ? null : p.relations.get(snapshot.playerId().toString()),
+                snapshot, config, System.currentTimeMillis())) scheduleSave();
         Profile detached = p.copy();
         detached.village = p.villageId == null || p.villageId.isBlank() ? null : state.villages.get(p.villageId);
         if (p.backstory.isBlank()) {
@@ -126,6 +129,15 @@ public final class ConversationStore {
         detached.stateView = p.state.view(baseline(p, current.relationship()), now);
         SocialLedger.prepare(state, p, detached, own, snapshot, detached.stateView, config, now, children);
         return detached;
+    }
+
+    /** Меркантильные горожанки, игровая сторона: житель попался на глаза — решить раз, меркантильна ли она; ответ — меркантильна ли
+     * сейчас (для сумочки в руке). */
+    public synchronized boolean mercantile(UUID mob, String name, boolean adult, boolean city) {
+        if (mob == null || !Mercantile.on(config) || !config.socialLayer) return false;
+        Profile p = ensure(mob, "minecraft:villager", name);
+        if (Mercantile.roll(p, adult, city, config)) scheduleSave();
+        return Mercantile.active(p);
     }
 
     /** The current emotional state as this player sees it, or null for a stranger; cheap enough for a tick loop. */

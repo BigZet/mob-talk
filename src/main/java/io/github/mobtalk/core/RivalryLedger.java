@@ -73,7 +73,11 @@ public final class RivalryLedger {
         int jealousy = r == null || r.rapport == null || r.rapport.jealousy == null ? 0 : r.rapport.jealousy.level(now);
         int gifts = r == null || r.rapport == null ? 0 : r.rapport.gifts(now).size();
         Persona persona = p.social == null ? null : p.social.persona();
-        return Rivalry.score(hearts, s == null ? 0 : s.trialWins, jealousy, Rivalry.personaBonus(persona, gifts, s == null ? 0 : s.romances));
+        // Меркантильная выбирает кошелёк: её поправка — по богатству, каким она видела ухажёра последний раз, и подаркам.
+        int bonus = persona == Persona.MERCANTILE && Mercantile.active(p)
+                ? Mercantile.rivalBonus(r == null || r.rapport == null ? -1 : r.rapport.wallet, gifts, Tuning.get())
+                : Rivalry.personaBonus(persona, gifts, s == null ? 0 : s.romances);
+        return Rivalry.score(hearts, s == null ? 0 : s.trialWins, jealousy, bonus);
     }
     /** Имя игрока: как его знает мир, иначе как записал ухажёр. */
     static String playerName(ConversationStore.State state, ConversationStore.Profile p, UUID player) {

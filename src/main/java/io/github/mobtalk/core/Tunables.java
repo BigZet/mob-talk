@@ -132,6 +132,14 @@ public final class Tunables {
         integer("rivalGatherMinutes", s, "rivals", 1, 15, 1, c -> c.rivalGatherMinutes, (c, x) -> c.rivalGatherMinutes = x);
         integer("rivalLoserPenalty", s, "rivals", 0, 30, 1, c -> c.rivalLoserPenalty, (c, x) -> c.rivalLoserPenalty = x);
         integer("rivalLoserPauseHours", s, "rivals", 0, 24, 1, c -> c.rivalLoserPauseHours, (c, x) -> c.rivalLoserPauseHours = x);
+        // Меркантильные горожанки.
+        integer("mercCityPercent", s, "mercantile", 0, 100, 5, c -> c.mercCityPercent, (c, x) -> c.mercCityPercent = x);
+        integer("mercVillagePercent", s, "mercantile", 0, 100, 1, c -> c.mercVillagePercent, (c, x) -> c.mercVillagePercent = x);
+        integer("mercPoor", s, "mercantile", 0, 64, 1, c -> c.mercPoor, (c, x) -> c.mercPoor = x);
+        integer("mercRich", s, "mercantile", 8, 1024, 8, c -> c.mercRich, (c, x) -> c.mercRich = x);
+        integer("mercCoolMinutes", s, "mercantile", 0, 120, 1, c -> c.mercCoolMinutes, (c, x) -> c.mercCoolMinutes = x);
+        integer("mercCoolHearts", s, "mercantile", 0, 20, 1, c -> c.mercCoolHearts, (c, x) -> c.mercCoolHearts = x);
+        integer("mercAppetiteCap", s, "mercantile", 1, 288, 1, c -> c.mercAppetiteCap, (c, x) -> c.mercAppetiteCap = x);
         // Свадьба у колокола (трек L).
         integer("weddingVowSeconds", s, "wedding", 15, 120, 5, c -> c.weddingVowSeconds, (c, x) -> c.weddingVowSeconds = x);
         integer("weddingVowWaitSeconds", s, "wedding", 10, 180, 5, c -> c.weddingVowWaitSeconds, (c, x) -> c.weddingVowWaitSeconds = x);
@@ -285,6 +293,7 @@ public final class Tunables {
             case SOCIAL -> {
                 config.socialLayer = d.socialLayer; config.playerGender = d.playerGender; config.familyLife = d.familyLife; config.coSleep = d.coSleep; config.weddingCeremony = d.weddingCeremony;
                 config.rivals = d.rivals; config.rivalSteal = d.rivalSteal; config.rivalTrials = d.rivalTrials; config.rivalBellScene = d.rivalBellScene; config.rivalHud = d.rivalHud;
+                config.mercantile = d.mercantile; config.mercHandbag = d.mercHandbag;
                 config.pregnancy = d.pregnancy; config.pregnancyBelly = d.pregnancyBelly; config.pregnancyStatus = d.pregnancyStatus; config.familyFade = d.familyFade;
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices; config.villageSites = d.villageSites;
