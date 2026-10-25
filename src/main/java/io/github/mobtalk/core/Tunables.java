@@ -184,6 +184,32 @@ public final class Tunables {
         integer("villageFriendPoints", s, "village", 0, 1000, 10, c -> c.villageFriendPoints, (c, x) -> c.villageFriendPoints = x);
         integer("villageGuardPoints", s, "village", 0, 2000, 10, c -> c.villageGuardPoints, (c, x) -> c.villageGuardPoints = x);
         integer("villageElderPoints", s, "village", 0, 3000, 10, c -> c.villageElderPoints, (c, x) -> c.villageElderPoints = x);
+        // Village defence: the alarm and the golem.
+        integer("defenseZoneMargin", s, "defense", 0, 64, 1, c -> c.defenseZoneMargin, (c, x) -> c.defenseZoneMargin = x);
+        integer("alarmMonsterRange", s, "defense", 4, 48, 1, c -> c.alarmMonsterRange, (c, x) -> c.alarmMonsterRange = x);
+        integer("alarmAttackThreats", s, "defense", 1, 30, 1, c -> c.alarmAttackThreats, (c, x) -> c.alarmAttackThreats = x);
+        integer("alarmClearSeconds", s, "defense", 10, 600, 5, c -> c.alarmClearSeconds, (c, x) -> c.alarmClearSeconds = x);
+        integer("alarmPlayerClearMinutes", s, "defense", 1, 30, 1, c -> c.alarmPlayerClearMinutes, (c, x) -> c.alarmPlayerClearMinutes = x);
+        integer("alarmPlayerRange", s, "defense", 16, 160, 4, c -> c.alarmPlayerRange, (c, x) -> c.alarmPlayerRange = x);
+        integer("alarmNoticeRange", s, "defense", 32, 1024, 16, c -> c.alarmNoticeRange, (c, x) -> c.alarmNoticeRange = x);
+        integer("golemHealthPercent", s, "defense", 100, 400, 10, c -> c.golemHealthPercent, (c, x) -> c.golemHealthPercent = x);
+        integer("golemRegenPerMinute", s, "defense", 0, 120, 1, c -> c.golemRegenPerMinute, (c, x) -> c.golemRegenPerMinute = x);
+        integer("golemRepairHealth", s, "defense", 0, 100, 1, c -> c.golemRepairHealth, (c, x) -> c.golemRepairHealth = x);
+        // Watchtowers and their archers.
+        integer("towerResidents", s, "towers", 2, 40, 1, c -> c.towerResidents, (c, x) -> c.towerResidents = x);
+        integer("towerMax", s, "towers", 0, 8, 1, c -> c.towerMax, (c, x) -> c.towerMax = x);
+        integer("towerBuildMinutes", s, "towers", 1, 120, 1, c -> c.towerBuildMinutes, (c, x) -> c.towerBuildMinutes = x);
+        integer("archerRange", s, "towers", 8, 64, 1, c -> c.archerRange, (c, x) -> c.archerRange = x);
+        integer("archerShotTenths", s, "towers", 5, 100, 1, c -> c.archerShotTenths, (c, x) -> c.archerShotTenths = x);
+        integer("archerReplaceMinutes", s, "towers", 1, 240, 1, c -> c.archerReplaceMinutes, (c, x) -> c.archerReplaceMinutes = x);
+        // Guards with swords and shields.
+        integer("watchResidents", s, "guards", 2, 30, 1, c -> c.watchResidents, (c, x) -> c.watchResidents = x);
+        integer("watchMin", s, "guards", 0, 8, 1, c -> c.watchMin, (c, x) -> c.watchMin = x);
+        integer("watchMax", s, "guards", 0, 16, 1, c -> c.watchMax, (c, x) -> c.watchMax = x);
+        integer("watchHealth", s, "guards", 20, 100, 1, c -> c.watchHealth, (c, x) -> c.watchHealth = x);
+        integer("watchDamage", s, "guards", 1, 20, 1, c -> c.watchDamage, (c, x) -> c.watchDamage = x);
+        integer("watchSight", s, "guards", 8, 48, 1, c -> c.watchSight, (c, x) -> c.watchSight = x);
+        integer("watchReplaceMinutes", s, "guards", 1, 240, 1, c -> c.watchReplaceMinutes, (c, x) -> c.watchReplaceMinutes = x);
         // The god's deeds in the villages (Б1).
         integer("divineStrength", s, "divine", 0, 200, 10, c -> c.divineStrength, (c, x) -> c.divineStrength = x);
         integer("divineDailyCap", s, "divine", 0, 300, 5, c -> c.divineDailyCap, (c, x) -> c.divineDailyCap = x);
@@ -230,6 +256,7 @@ public final class Tunables {
         config.villageElderPoints = Math.max(config.villageElderPoints, config.villageGuardPoints);
         config.guardFar = Math.max(config.guardFar, config.guardNear);
         config.guardChase = Math.max(config.guardChase, config.guardAlert);
+        config.watchMax = Math.max(config.watchMax, config.watchMin);
     }
 
     /** Copies every number as it is, unclamped: a draft keeps what the file said until it is saved. */
@@ -261,6 +288,7 @@ public final class Tunables {
                 config.pregnancy = d.pregnancy; config.pregnancyBelly = d.pregnancyBelly; config.pregnancyStatus = d.pregnancyStatus; config.familyFade = d.familyFade;
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices; config.villageSites = d.villageSites;
+                config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.villageTowers = d.villageTowers; config.villageGuards = d.villageGuards;
                 config.divineTidings = d.divineTidings; config.divinePanic = d.divinePanic; config.divineMayExile = d.divineMayExile; config.divineMourners = d.divineMourners;
             }
             case ACTIONS -> { config.placeAnalysis = d.placeAnalysis; config.placeClassifier = d.placeClassifier; }

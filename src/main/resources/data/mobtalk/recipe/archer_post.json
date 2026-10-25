@@ -1,0 +1,20 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "category": "misc",
+ "pattern": [
+  "AAA",
+  " B "
+ ],
+ "key": {
+  "A": {
+   "item": "minecraft:arrow"
+  },
+  "B": {
+   "item": "minecraft:barrel"
+  }
+ },
+ "result": {
+  "id": "mobtalk:archer_post",
+  "count": 1
+ }
+}

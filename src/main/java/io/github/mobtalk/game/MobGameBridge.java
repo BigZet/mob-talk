@@ -55,6 +55,8 @@ public final class MobGameBridge implements GameBridge {
     final FamilyController families;
     /** The village's stance towards the player: no trade for an exile, a watchful golem, warnings. */
     final VillageController villages;
+    /** Village defence: the alarm, no monsters spawning in a guarded village, a sturdier golem. */
+    final VillageDefenseController defense;
     /** Б1: the god's deeds reaching the villages. */
     final DivineController divine;
     /** Трек J: ревность пар игрока и сон вместе. */
@@ -74,6 +76,7 @@ public final class MobGameBridge implements GameBridge {
         society = new SocialController(this);
         families = new FamilyController(this);
         villages = new VillageController(this);
+        defense = new VillageDefenseController(this);
         divine = new DivineController(this);
         jealousy = new JealousyController(this);
         rivalry = new RivalryController(this);
@@ -95,6 +98,10 @@ public final class MobGameBridge implements GameBridge {
         // A favour may only ask for an item the game knows; the core checks the id shape alone.
         Trading.setItemChecker(id -> MobTrading.item(id) != null);
         MischiefWatch.initialize();
+        ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
+            MobGameBridge bridge = forEntity(entity);
+            return bridge == null || !bridge.defense.guards.shieldBlocks(entity, source); // a guard's shield turns half the arrows
+        });
         ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, base, amount, blocked) -> {
             MobGameBridge bridge = forEntity(entity);
             if (bridge == null || !(entity instanceof MobEntity mob)) return;
@@ -105,15 +112,18 @@ public final class MobGameBridge implements GameBridge {
                 bridge.wedding.hurt(mob, player);
                 if (mob instanceof VillagerEntity villager) bridge.bargaining.hurtBy(villager, player);
                 bridge.actions.hurtBy(mob, player);
+                if (!blocked && amount > 0) bridge.defense.hurt(mob, source);
             } else if (!blocked && amount > 0 && bridge.memory.known(mob.getUuid())) {
                 // Only a mob the player already knows keeps a diary: a profile for every burning zombie would bloat the world memory.
                 bridge.event(mob, "Damage: " + source.getName() + "; attacker="
                         + (source.getAttacker() == null ? "environment" : type(source.getAttacker())));
                 if (source.getAttacker() instanceof MobEntity attacker) bridge.social.attacked(attacker, mob);
             }
+            if (!(source.getAttacker() instanceof ServerPlayerEntity) && !blocked && amount > 0) bridge.defense.hurt(mob, source);
         });
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             MobGameBridge bridge = forEntity(entity);
+            if (bridge != null) bridge.defense.died(entity, source);
             if (bridge == null || !(entity instanceof MobEntity mob)) return;
             // Fabric fires AFTER_DAMAGE only for a survived blow, so the kill is seen here alone. A mob nobody talked to leaves no
             // memory behind; one with a conversation keeps its profile, and its death goes into it.
@@ -130,6 +140,7 @@ public final class MobGameBridge implements GameBridge {
             MobGameBridge bridge = forEntity(entity);
             if (bridge != null) bridge.wedding.loaded(entity);
             if (bridge != null && entity instanceof MobEntity mob) { bridge.actions.restore(mob); bridge.keep(mob); }
+            if (bridge != null && entity instanceof net.minecraft.entity.passive.IronGolemEntity golem) bridge.defense.sturdy(golem);
         });
         ServerEntityEvents.ENTITY_UNLOAD.register((entity, world) -> {
             MobGameBridge bridge = forEntity(entity);
@@ -157,6 +168,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.society.tick(world);
                 bridge.families.tick(world);
                 bridge.villages.tick(world);
+                bridge.defense.tick(world);
                 bridge.divine.tick(world);
                 bridge.jealousy.tick(world);
                 bridge.rivalry.tick(world);
@@ -204,7 +216,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.memory.recordAction(card.id(), ActionIntent.none());
         if (server.isStopped()) return CompletableFuture.completedFuture(null);
         CompletableFuture<Void> done = new CompletableFuture<>();
-        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.divine.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.rivalry.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
+        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.divine.clearRuntime(); bridge.defense.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.rivalry.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
         return done;
     }
     /** Б1: an event of the divine block (JSON), from any thread; dropped when no world is open. */
@@ -545,6 +557,7 @@ public final class MobGameBridge implements GameBridge {
         return onServer(() -> {
             ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
             if (player == null) return "Мир ещё не загружен";
+            defense.forgive(player);
             return memory.forgiveVillage(villageAt(player.getServerWorld(), player.getBlockPos()), playerId);
         });
     }
@@ -602,6 +615,16 @@ public final class MobGameBridge implements GameBridge {
     public static boolean refusesTrade(VillagerEntity villager, ServerPlayerEntity player) {
         MobGameBridge bridge = forEntity(villager);
         return bridge != null && bridge.villages.refuseTrade(villager, player);
+    }
+    /** From the spawn mixin: no monster appears inside a village that has a golem (village defence). */
+    public static boolean blocksMonsterSpawn(ServerWorld world, Entity entity) {
+        MobGameBridge bridge = active(world.getServer());
+        return bridge != null && bridge.defense.blocksSpawn(world, entity);
+    }
+    /** From the panic mixin: a guard on duty stands its ground at a monster or a blow instead of fleeing (village defence). */
+    public static boolean guardStandsGround(VillagerEntity villager) {
+        MobGameBridge bridge = forEntity(villager);
+        return bridge != null && bridge.defense.guards.standsGround(villager);
     }
     /** Villager families own breeding: while they are on, vanilla villagers do not breed (children come only to couples). */
     public static boolean familiesOwnBreeding(VillagerEntity villager) {

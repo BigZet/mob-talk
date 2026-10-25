@@ -101,6 +101,19 @@ public final class MobTalkConfig {
     /** A village is the structure its residents live in (vanilla or a village mod such as CTOV), not only a point and a radius:
      * two neighbouring villages stay apart and a large one stays whole. Off: the old rule, the nearest known village within 160 blocks. */
     public boolean villageSites = true;
+    /** Village defence (stage 1): the village raises an alarm at monsters and at a player who strikes its people, rings the bell,
+     * hides its people and sends the golem; the golem is sturdier, heals between fights and the smith mends it. */
+    public boolean villageDefense = true;
+    /** No monster spawns inside a village that has a golem (its structure's bounds plus {@link #defenseZoneMargin}). */
+    public boolean villageNoSpawn = true;
+    /** The alarm also turns the village on a player: a blow at a villager or the golem, a hated or exiled player in the village. */
+    public boolean alarmAgainstPlayers = true;
+    /** The village's players hear of an alarm in the chat. */
+    public boolean alarmChat = true;
+    /** Villages build watchtowers at their edge over a game day, and an archer comes to each tower's post. */
+    public boolean villageTowers = true;
+    /** Villages keep guards with swords and shields: stands by the bell and at the edge, a newcomer for each empty one. */
+    public boolean villageGuards = true;
     /** Idea Б1: the villages know the god's deeds (the divine block's events) — they panic, talk and blame the sinner by name;
      * the scene in the moment (alarm bell, flight, shouts); the god alone may make an exile; the family of a villager killed by a
      * curse turns against the sinner. */
@@ -125,6 +138,20 @@ public final class MobTalkConfig {
     public int witnessHearingRange = 5, witnessSightRange = 16, witnessCooldownSeconds = 5;
     public int witnessHitPenalty = 10, witnessKillPenalty = 25, witnessInsultPenalty = 5, witnessThreatPenalty = 10;
     public int smallTalkChance = 50;
+    /** Village defence: the margin around a village's bounds that still counts as the village (blocks), how close to a resident a
+     * monster raises the alarm (blocks), how many monsters at once make it an attack, how long a quiet village keeps its alarm
+     * (seconds) and a player who left it the alarm against them (minutes), how far from the bounds a player counts as gone (blocks)
+     * and who hears of the alarm in the chat (blocks from the village). */
+    public int defenseZoneMargin = 16, alarmMonsterRange = 16, alarmAttackThreats = 5, alarmClearSeconds = 60, alarmPlayerClearMinutes = 3;
+    public int alarmPlayerRange = 48, alarmNoticeRange = 160;
+    /** The village golem: health in percent of vanilla, health it regains per minute out of a fight, health a smith's ingot mends. */
+    public int golemHealthPercent = 150, golemRegenPerMinute = 12, golemRepairHealth = 25;
+    /** Watchtowers: one per this many residents, at most this many per village, built over this many real minutes; the archers see and
+     * shoot this far (blocks), loose an arrow every this many tenths of a second, and a post empty this long (minutes) gets a newcomer. */
+    public int towerResidents = 8, towerMax = 4, towerBuildMinutes = 20, archerRange = 32, archerShotTenths = 20, archerReplaceMinutes = 20;
+    /** Guards: one per this many residents, at least and at most this many per village, their health and blow, how far they see a
+     * foe (blocks), and how long an empty stand waits for a newcomer (minutes). */
+    public int watchResidents = 5, watchMin = 2, watchMax = 8, watchHealth = 30, watchDamage = 6, watchSight = 24, watchReplaceMinutes = 20;
     /** The emotional state: half-lives of an ordinary and a strong impression (minutes), and the thresholds of its axes (0–100). */
     public int stateHalfLifeMinutes = 10, stateSlowHalfLifeMinutes = 30;
     public int waryCalm = 25, waryTrust = 25, keenInterest = 75, generousMood = 65, generousTrust = 65;
@@ -269,6 +296,7 @@ public final class MobTalkConfig {
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
+        copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;
