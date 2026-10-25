@@ -70,16 +70,15 @@ final class SelfTestFurniture {
         put("apt_wall_unit", 2, 0, 0, Direction.SOUTH);
         put("apt_sofa_red", 8, 0, 2, Direction.WEST);
         put("apt_floor_lamp", 8, 0, 4, Direction.WEST);
-        put("apt_rug_turkmen", 6, 0, 2, Direction.NORTH);
         put("apt_coffee_table", 5, 0, 2, Direction.WEST);
         put("apt_armchair_green", 5, 0, 4, Direction.EAST);
         put("apt_armchair_green", 6, 0, 0, Direction.SOUTH);
         put("apt_tv", 3, 0, 2, Direction.EAST);
         put("apt_chair", 0, 0, 5, Direction.EAST);
-        put("apt_chandelier", 4, 2, 3, Direction.SOUTH);
         for (int x = 3; x <= 5; x++) put("apt_curtain_wine", x, 0, 6, Direction.NORTH, true);
         // kitchen x 10..15
-        put("apt_fridge", 10, 0, 0, Direction.SOUTH);
+        put("apt_fridge_minsk", 10, 0, 0, Direction.SOUTH);
+        put("apt_fridge_saratov", 10, 0, 5, Direction.EAST);
         put("apt_stove_kettle", 11, 0, 0, Direction.SOUTH);
         put("apt_kitchen_base_white", 12, 0, 0, Direction.SOUTH);
         put("apt_kitchen_sink_white", 13, 0, 0, Direction.SOUTH);
@@ -92,7 +91,6 @@ final class SelfTestFurniture {
         put("apt_kitchen_table", 13, 0, 5, Direction.NORTH);
         put("apt_stool", 12, 0, 5, Direction.EAST);
         put("apt_stool", 14, 0, 5, Direction.WEST);
-        put("apt_ceiling_plate", 13, 2, 3, Direction.SOUTH);
         for (int x = 12; x <= 13; x++) put("apt_curtain_gold", x, 0, 6, Direction.NORTH, true);
         // bedroom x 17..23: a double bed between bedside tables under a carpet, wardrobe, chest, dressing table, suitcases
         test.server().execute(() -> {
@@ -109,7 +107,6 @@ final class SelfTestFurniture {
         put("apt_dressing_table", 17, 0, 1, Direction.EAST);
         put("apt_chair_clothes", 18, 0, 1, Direction.WEST);
         put("apt_ironing_board", 22, 0, 5, Direction.NORTH);
-        put("apt_ceiling_plate", 20, 2, 4, Direction.SOUTH);
         put("apt_sconce", 17, 1, 3, Direction.EAST);
         for (int x = 19; x <= 21; x++) put("apt_curtain_blue", x, 0, 6, Direction.NORTH, true);
         // bathroom x 25..28
@@ -119,9 +116,18 @@ final class SelfTestFurniture {
         put("apt_washer", 25, 0, 3, Direction.EAST);
         put("apt_towel_rail", 28, 1, 5, Direction.WEST);
         put("apt_radiator", 26, 0, 6, Direction.NORTH);
-        put("apt_ceiling_plate", 26, 2, 3, Direction.SOUTH);
         put("apt_picture_wave", 5, 1, 0, Direction.SOUTH);
     }
+
+    /** Ceiling lights go up after the aerial shots: seen from above with no ceiling they only look like boxes in the air. */
+    private void lamps() {
+        put("apt_lamp_cascade", LAMP.getX(), LAMP.getY(), LAMP.getZ(), Direction.SOUTH);  // over the coffee table
+        put("apt_lamp_cone", 13, 2, 5, Direction.SOUTH);                                 // over the kitchen table
+        put("apt_lamp_horns", 20, 2, 3, Direction.SOUTH);
+        put("apt_lamp_ball", 26, 2, 3, Direction.SOUTH);
+    }
+
+    private static final BlockPos LAMP = new BlockPos(5, 2, 2);
 
     private void look(Runnable then) {
         test.await("pause: the furniture is placed", 3, () -> false, () -> {
@@ -154,18 +160,19 @@ final class SelfTestFurniture {
     private void sitAndSwitch(Runnable then) {
         // the ceiling goes on; evening; the chandelier switches off and on; the player sits on the sofa; curtains drawn
         test.command("fill " + bp(-1, 3, -1) + " " + bp(29, 3, 7) + " minecraft:white_concrete");
+        lamps();
         test.command("time set 13000");
         test.command("gamemode creative " + name());
         test.server().execute(() -> {
-            BlockPos lamp = pos(4, 2, 3);
+            BlockPos lamp = pos(LAMP.getX(), LAMP.getY(), LAMP.getZ());
             BlockState s = world().getBlockState(lamp);
             if (s.getBlock() instanceof FurnitureBlocks.Furniture f) f.setLit(world(), lamp, s, false);
         });
         test.await("pause: the lamp switched", 1, () -> false, () -> {
-            test.check(!world().getBlockState(pos(4, 2, 3)).get(FurnitureBlocks.LIT), "the chandelier switches off");
-            test.check(world().getLightLevel(pos(4, 0, 3)) < 15, "the room is darker with the lamp off");
+            test.check(!world().getBlockState(pos(LAMP.getX(), LAMP.getY(), LAMP.getZ())).get(FurnitureBlocks.LIT), "the chandelier switches off");
+            test.check(world().getLightLevel(pos(5, 0, 3)) < 15, "the room is darker with the lamp off");
             test.server().execute(() -> {
-                BlockPos lamp = pos(4, 2, 3);
+                BlockPos lamp = pos(LAMP.getX(), LAMP.getY(), LAMP.getZ());
                 BlockState s = world().getBlockState(lamp);
                 if (s.getBlock() instanceof FurnitureBlocks.Furniture f) f.setLit(world(), lamp, s, true);
                 BlockState sofa = world().getBlockState(pos(8, 0, 2));
@@ -246,7 +253,10 @@ final class SelfTestFurniture {
         String[][] eye = {
                 {"0.5 0 5.5", "-120 15", "furniture-08-living-eye"}, {"7.5 0 5.5", "135 10", "furniture-09-living-eye-2"},
                 {"12.5 0 4.5", "180 20", "furniture-10-kitchen-eye"}, {"22.5 0 5.5", "140 18", "furniture-11-bedroom-eye"}, {"17.5 0 5.5", "-150 15", "furniture-11b-bedroom-eye"},
-                {"27.5 0 5.5", "150 20", "furniture-12-bath-eye"}, {"6.5 0 1.5", "20 8", "furniture-13-curtains-eye"}};
+                {"27.5 0 5.5", "150 20", "furniture-12-bath-eye"}, {"6.5 0 1.5", "20 8", "furniture-13-curtains-eye"},
+                {"1.5 0 4.5", "-125 -24", "furniture-15-living-lamp"}, {"13.5 0 1.5", "0 -30", "furniture-16-kitchen-lamp"},
+                {"22.5 0 0.5", "40 -25", "furniture-17-bedroom-lamp"},
+                {"25.5 0 1.5", "-105 22", "furniture-18-washbasin"}};
         shots(eye, 0, () -> {
             test.server().execute(() -> {
                 BlockPos c = pos(4, 0, 6);

@@ -1308,5 +1308,16 @@
   "block.mobtalk.apt_rug_turkmen": "Turkmen carpet (2x3)",
   "block.mobtalk.apt_rug_turkmen_part": "Turkmen carpet (2x3)",
   "block.mobtalk.apt_runner": "Hall runner (1x4)",
-  "block.mobtalk.apt_runner_part": "Hall runner (1x4)"
+  "block.mobtalk.apt_runner_part": "Hall runner (1x4)",
+  "block.mobtalk.apt_lamp_cascade": "Crystal chandelier",
+  "block.mobtalk.apt_lamp_horns": "Horned chandelier",
+  "block.mobtalk.apt_lamp_orange": "Orange plastic pendant",
+  "block.mobtalk.apt_lamp_cone": "Enamel kitchen pendant",
+  "block.mobtalk.apt_lamp_ball": "Opal glass ball",
+  "block.mobtalk.apt_lamp_silk": "Silk lampshade with fringe",
+  "block.mobtalk.apt_fridge_saratov": "Saratov fridge",
+  "block.mobtalk.apt_fridge_minsk": "Minsk two-door fridge",
+  "block.mobtalk.apt_fridge_minsk_part": "Minsk two-door fridge",
+  "block.mobtalk.apt_fridge_biryusa": "Biryusa fridge",
+  "block.mobtalk.apt_fridge_biryusa_part": "Biryusa fridge"
 }

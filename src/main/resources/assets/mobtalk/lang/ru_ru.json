@@ -1308,5 +1308,16 @@
   "block.mobtalk.apt_rug_turkmen": "Туркменский ковёр (2×3)",
   "block.mobtalk.apt_rug_turkmen_part": "Туркменский ковёр (2×3)",
   "block.mobtalk.apt_runner": "Ковровая дорожка (1×4)",
-  "block.mobtalk.apt_runner_part": "Ковровая дорожка (1×4)"
+  "block.mobtalk.apt_runner_part": "Ковровая дорожка (1×4)",
+  "block.mobtalk.apt_lamp_cascade": "Люстра «Каскад» (хрусталь)",
+  "block.mobtalk.apt_lamp_horns": "Люстра рожковая",
+  "block.mobtalk.apt_lamp_orange": "Плафон пластиковый, оранжевый",
+  "block.mobtalk.apt_lamp_cone": "Кухонный плафон-конус",
+  "block.mobtalk.apt_lamp_ball": "Плафон-шар",
+  "block.mobtalk.apt_lamp_silk": "Абажур с бахромой",
+  "block.mobtalk.apt_fridge_saratov": "Холодильник «Саратов»",
+  "block.mobtalk.apt_fridge_minsk": "Холодильник «Минск» (двухкамерный)",
+  "block.mobtalk.apt_fridge_minsk_part": "Холодильник «Минск» (двухкамерный)",
+  "block.mobtalk.apt_fridge_biryusa": "Холодильник «Бирюса»",
+  "block.mobtalk.apt_fridge_biryusa_part": "Холодильник «Бирюса»"
 }

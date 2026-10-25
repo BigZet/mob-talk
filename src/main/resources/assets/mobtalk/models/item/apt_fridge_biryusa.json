@@ -1,0 +1,344 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "black": "mobtalk:block/city2/furniture/black",
+    "apt_fridge_biryusa_door_44": "mobtalk:block/city2/furniture/apt_fridge_biryusa_door_44",
+    "enamel_cream": "mobtalk:block/city2/furniture/enamel_cream",
+    "apt_fridge_biryusa_top_44": "mobtalk:block/city2/furniture/apt_fridge_biryusa_top_44",
+    "glass_red": "mobtalk:block/city2/furniture/glass_red",
+    "particle": "mobtalk:block/city2/furniture/black"
+  },
+  "elements": [
+    {
+      "from": [
+        5.2308,
+        0.0,
+        5.0769
+      ],
+      "to": [
+        10.7692,
+        0.6154,
+        10.9231
+      ],
+      "faces": {
+        "north": {
+          "texture": "#black",
+          "uv": [
+            3.5,
+            15.0,
+            12.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#black",
+          "uv": [
+            3.5,
+            15.0,
+            12.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#black",
+          "uv": [
+            1.0,
+            15.0,
+            10.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#black",
+          "uv": [
+            5.5,
+            15.0,
+            15.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.9231,
+        0.6154,
+        4.7692
+      ],
+      "to": [
+        11.0769,
+        13.5385,
+        11.2308
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_fridge_biryusa_door_44",
+          "uv": [
+            3.0,
+            -6.0,
+            13.0,
+            15.0
+          ]
+        },
+        "south": {
+          "texture": "#enamel_cream",
+          "uv": [
+            3.0,
+            10.0,
+            13.0,
+            31.0
+          ]
+        },
+        "east": {
+          "texture": "#enamel_cream",
+          "uv": [
+            0.5,
+            10.0,
+            11.0,
+            31.0
+          ]
+        },
+        "west": {
+          "texture": "#enamel_cream",
+          "uv": [
+            5.0,
+            10.0,
+            15.5,
+            31.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_fridge_biryusa_top_44",
+          "uv": [
+            3.0,
+            5.0,
+            13.0,
+            15.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        7.3846,
+        13.5385,
+        7.2308
+      ],
+      "to": [
+        8.6154,
+        15.3846,
+        8.4615
+      ],
+      "faces": {
+        "north": {
+          "texture": "#glass_red",
+          "uv": [
+            7.0,
+            7.0,
+            9.0,
+            10.0
+          ]
+        },
+        "south": {
+          "texture": "#glass_red",
+          "uv": [
+            7.0,
+            7.0,
+            9.0,
+            10.0
+          ]
+        },
+        "east": {
+          "texture": "#glass_red",
+          "uv": [
+            5.0,
+            7.0,
+            7.0,
+            10.0
+          ]
+        },
+        "west": {
+          "texture": "#glass_red",
+          "uv": [
+            9.0,
+            7.0,
+            11.0,
+            10.0
+          ]
+        },
+        "up": {
+          "texture": "#glass_red",
+          "uv": [
+            7.0,
+            9.0,
+            9.0,
+            11.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        7.6923,
+        15.3846,
+        7.5385
+      ],
+      "to": [
+        8.3077,
+        16.0,
+        8.1538
+      ],
+      "faces": {
+        "north": {
+          "texture": "#glass_red",
+          "uv": [
+            7.5,
+            6.0,
+            8.5,
+            7.0
+          ]
+        },
+        "south": {
+          "texture": "#glass_red",
+          "uv": [
+            7.5,
+            6.0,
+            8.5,
+            7.0
+          ]
+        },
+        "east": {
+          "texture": "#glass_red",
+          "uv": [
+            5.5,
+            6.0,
+            6.5,
+            7.0
+          ]
+        },
+        "west": {
+          "texture": "#glass_red",
+          "uv": [
+            9.5,
+            6.0,
+            10.5,
+            7.0
+          ]
+        },
+        "up": {
+          "texture": "#glass_red",
+          "uv": [
+            7.5,
+            9.5,
+            8.5,
+            10.5
+          ]
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.625,
+        0.625,
+        0.625
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        2.5,
+        0
+      ],
+      "scale": [
+        0.375,
+        0.375,
+        0.375
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    }
+  }
+}

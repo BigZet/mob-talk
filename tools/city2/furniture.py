@@ -422,6 +422,8 @@ def export_curtain(fu):
     for k, m in pieces.items():
         check(fu.id + "/" + k, m)
         for c, els in cells_of(m).items():
+            if c[0] or c[2] or not 0 <= c[1] < CURTAIN_TIERS:  # a tier is one model: anything sticking out sideways would overwrite it
+                raise SystemExit(f"{fu.id}/{k}: part outside the curtain's column, cell {c}")
             write(os.path.join(ASSETS, "models", MODDIR, f"{fu.id}_{k}_t{c[1]}.json"), model_json(els, fu.id, c))
     have = {(k, c[1]) for k, m in pieces.items() for c in cells_of(m)}
     rules = []
