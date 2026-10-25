@@ -44,6 +44,7 @@ public final class DefenseContent {
     private static boolean registered;
 
     public static void register() {
+        DefenseCommands.register();
         if (registered) return;
         registered = true;
         ARCHER_POST = Registry.register(Registries.BLOCK, ARCHER_POST_ID,

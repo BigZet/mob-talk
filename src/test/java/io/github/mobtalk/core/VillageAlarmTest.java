@@ -87,4 +87,16 @@ class VillageAlarmTest {
         assertEquals(3 * 1200L, rules.playerClearTicks());
         assertEquals(5, rules.attackThreats());
     }
+
+    @Test void theCommandEndsAnAlarmAtOnceAndOnlyThatOne() {
+        VillageAlarm alarms = new VillageAlarm();
+        String other = "minecraft:overworld|minecraft:village_plains@9,9";
+        alarms.monsters(VILLAGE, 6, "монстры у деревни: 6", 0, RULES);
+        alarms.monsters(other, 1, "монстры у деревни: 1", 0, RULES);
+        assertNotNull(alarms.end(VILLAGE));
+        assertNull(alarms.get(VILLAGE));
+        assertNull(alarms.end(VILLAGE), "nothing left to end");
+        assertNotNull(alarms.get(other), "the other village keeps its alarm");
+        assertEquals(VillageAlarm.Change.RAISED, alarms.monsters(VILLAGE, 1, "монстры у деревни: 1", 40, RULES), "a new threat raises a new alarm");
+    }
 }
