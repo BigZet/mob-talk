@@ -1182,5 +1182,14 @@
   "block.mobtalk.apt_fridge_minsk": "Холодильник «Минск» (двухкамерный)",
   "block.mobtalk.apt_fridge_minsk_part": "Холодильник «Минск» (двухкамерный)",
   "block.mobtalk.apt_fridge_biryusa": "Холодильник «Бирюса»",
-  "block.mobtalk.apt_fridge_biryusa_part": "Холодильник «Бирюса»"
+  "block.mobtalk.apt_fridge_biryusa_part": "Холодильник «Бирюса»",
+  "block.mobtalk.apt_fridge_saratov_part": "Холодильник «Саратов»",
+  "block.mobtalk.apt_washer_malyutka": "Стиральная машина «Малютка» на табурете",
+  "block.mobtalk.apt_washer_sibir": "Стиральная машина «Сибирь» (двухбаковая)",
+  "block.mobtalk.apt_dryer_rack": "Сушилка для белья напольная",
+  "block.mobtalk.apt_dryer_rack_part": "Сушилка для белья напольная",
+  "block.mobtalk.apt_dryer_liana": "Сушилка «лиана» с бельём",
+  "block.mobtalk.apt_dryer_liana_part": "Сушилка «лиана» с бельём",
+  "block.mobtalk.apt_basin_zinc": "Оцинкованный таз с бельём",
+  "block.mobtalk.apt_laundry_basket": "Корзина для белья"
 }
