@@ -147,7 +147,7 @@ final class VillageDefenseController {
         List<Zone> list = new ArrayList<>();
         for (Map.Entry<String, Found> entry : found.entrySet()) {
             Found f = entry.getValue();
-            Box box = new Box(f.minX - margin, f.minY - ZONE_BELOW, f.minZ - margin, f.maxX + 1 + margin, f.maxY + 24, f.maxZ + 1 + margin);
+            Box box = new Box(f.minX - margin, f.minY - 24, f.minZ - margin, f.maxX + 1 + margin, f.maxY + 24, f.maxZ + 1 + margin);
             BlockPos center = f.bell != null ? f.bell : BlockPos.ofFloored(box.getCenter());
             ConversationStore.Village village = bridge.villageAt(world, center);
             boolean golem = !world.getEntitiesByClass(IronGolemEntity.class, box, g -> g.isAlive() && !g.isRemoved()).isEmpty();
@@ -162,9 +162,6 @@ final class VillageDefenseController {
         Optional<GlobalPos> point = villager.getBrain().getOptionalRegisteredMemory(MemoryModuleType.MEETING_POINT);
         return point.isPresent() && point.get().dimension() == world.getRegistryKey() ? point.get().pos() : null;
     }
-
-    /** The zone reaches this far below the lowest resident; a monster more than {@link #UNDERGROUND} below them is in a cave. */
-    static final int ZONE_BELOW = 24, UNDERGROUND = 6;
 
     // ---- The tick ----
 
@@ -196,9 +193,8 @@ final class VillageDefenseController {
             double usual = bridge.config.alarmMonsterRange;
             int seen = 0; MobEntity first = null;
             for (MobEntity monster : monsters) {
-                // One already among the houses is the village's at once, whether anybody has it in sight or not; one in a cave
-                // under the village counts only when somebody sees it, else a skeleton deep below keeps the alarm up for ever.
-                if (zone.box().contains(monster.getPos()) && monster.getY() >= zone.box().minY + ZONE_BELOW - UNDERGROUND) { seen++; if (first == null) first = monster; continue; }
+                // One already among the houses is the village's at once, whether anybody has it in sight or not.
+                if (zone.box().contains(monster.getPos())) { seen++; if (first == null) first = monster; continue; }
                 for (LivingEntity watcher : watchers) {
                     double range = towers.sight(watcher, usual);
                     if (watcher.squaredDistanceTo(monster) <= range * range && watcher.canSee(monster)) { seen++; if (first == null) first = monster; break; }
