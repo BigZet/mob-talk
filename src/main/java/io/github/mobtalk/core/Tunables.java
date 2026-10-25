@@ -210,6 +210,10 @@ public final class Tunables {
         integer("watchDamage", s, "guards", 1, 20, 1, c -> c.watchDamage, (c, x) -> c.watchDamage = x);
         integer("watchSight", s, "guards", 8, 48, 1, c -> c.watchSight, (c, x) -> c.watchSight = x);
         integer("watchReplaceMinutes", s, "guards", 1, 240, 1, c -> c.watchReplaceMinutes, (c, x) -> c.watchReplaceMinutes = x);
+        // Roads between villages.
+        integer("roadScanRadius", s, "roads", 256, 4096, 64, c -> c.roadScanRadius, (c, x) -> c.roadScanRadius = x);
+        integer("roadMaxLength", s, "roads", 200, 2000, 50, c -> c.roadMaxLength, (c, x) -> c.roadMaxLength = x);
+        integer("roadLampSpacing", s, "roads", 8, 64, 2, c -> c.roadLampSpacing, (c, x) -> c.roadLampSpacing = x);
         // The god's deeds in the villages (Б1).
         integer("divineStrength", s, "divine", 0, 200, 10, c -> c.divineStrength, (c, x) -> c.divineStrength = x);
         integer("divineDailyCap", s, "divine", 0, 300, 5, c -> c.divineDailyCap, (c, x) -> c.divineDailyCap = x);
@@ -288,7 +292,7 @@ public final class Tunables {
                 config.pregnancy = d.pregnancy; config.pregnancyBelly = d.pregnancyBelly; config.pregnancyStatus = d.pregnancyStatus; config.familyFade = d.familyFade;
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices; config.villageSites = d.villageSites;
-                config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.villageTowers = d.villageTowers; config.villageGuards = d.villageGuards;
+                config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.villageTowers = d.villageTowers; config.villageGuards = d.villageGuards; config.villageRoads = d.villageRoads; config.roadLamps = d.roadLamps;
                 config.divineTidings = d.divineTidings; config.divinePanic = d.divinePanic; config.divineMayExile = d.divineMayExile; config.divineMourners = d.divineMourners;
             }
             case ACTIONS -> { config.placeAnalysis = d.placeAnalysis; config.placeClassifier = d.placeClassifier; }

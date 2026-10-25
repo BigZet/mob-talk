@@ -57,6 +57,8 @@ public final class MobGameBridge implements GameBridge {
     final VillageController villages;
     /** Village defence: the alarm, no monsters spawning in a guarded village, a sturdier golem. */
     final VillageDefenseController defense;
+    /** Roads between villages, laid as their chunks load. */
+    final RoadNetwork roads;
     /** Б1: the god's deeds reaching the villages. */
     final DivineController divine;
     /** Трек J: ревность пар игрока и сон вместе. */
@@ -77,6 +79,7 @@ public final class MobGameBridge implements GameBridge {
         families = new FamilyController(this);
         villages = new VillageController(this);
         defense = new VillageDefenseController(this);
+        roads = new RoadNetwork(this);
         divine = new DivineController(this);
         jealousy = new JealousyController(this);
         rivalry = new RivalryController(this);
@@ -159,6 +162,11 @@ public final class MobGameBridge implements GameBridge {
             MobGameBridge bridge = world instanceof ServerWorld serverWorld ? active(serverWorld.getServer()) : null;
             if (bridge != null && player instanceof ServerPlayerEntity serverPlayer) bridge.changes.broken((ServerWorld) world, pos, serverPlayer);
         });
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
+            MobGameBridge bridge = active;
+            if (bridge != null && bridge.server == world.getServer()) bridge.roads.loaded(world, chunk.getPos());
+        });
+        RoadCommands.register();
         ServerTickEvents.END_WORLD_TICK.register(world -> {
             MobGameBridge bridge = active;
             if (bridge != null && bridge.server == world.getServer()) {
@@ -169,6 +177,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.families.tick(world);
                 bridge.villages.tick(world);
                 bridge.defense.tick(world);
+                bridge.roads.tick(world);
                 bridge.divine.tick(world);
                 bridge.jealousy.tick(world);
                 bridge.rivalry.tick(world);
@@ -216,7 +225,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.memory.recordAction(card.id(), ActionIntent.none());
         if (server.isStopped()) return CompletableFuture.completedFuture(null);
         CompletableFuture<Void> done = new CompletableFuture<>();
-        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.divine.clearRuntime(); bridge.defense.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.rivalry.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
+        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.divine.clearRuntime(); bridge.defense.clearRuntime(); bridge.roads.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.rivalry.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
         return done;
     }
     /** Б1: an event of the divine block (JSON), from any thread; dropped when no world is open. */

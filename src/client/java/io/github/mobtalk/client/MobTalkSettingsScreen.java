@@ -467,6 +467,8 @@ final class MobTalkSettingsScreen extends Screen {
                 }),
                 Map.<String, Runnable>entry("towers", () -> wide(tip(toggle("mobtalk.settings.villageTowers", draft.villageTowers, value -> draft.villageTowers = value), "mobtalk.settings.villageTowers.tooltip"))),
                 Map.<String, Runnable>entry("guards", () -> wide(tip(toggle("mobtalk.settings.villageGuards", draft.villageGuards, value -> draft.villageGuards = value), "mobtalk.settings.villageGuards.tooltip"))),
+                Map.<String, Runnable>entry("roads", () -> wide(tip(toggle("mobtalk.settings.villageRoads", draft.villageRoads, value -> draft.villageRoads = value), "mobtalk.settings.villageRoads.tooltip"),
+                        tip(toggle("mobtalk.settings.roadLamps", draft.roadLamps, value -> draft.roadLamps = value), "mobtalk.settings.roadLamps.tooltip"))),
                 Map.<String, Runnable>entry("chatter", () -> wide(tip(toggle("mobtalk.settings.villageChatter", draft.villageChatter, value -> draft.villageChatter = value), "mobtalk.settings.villageChatter.tooltip"),
                         tip(toggle("mobtalk.settings.villageNotices", draft.villageNotices, value -> draft.villageNotices = value), "mobtalk.settings.villageNotices.tooltip")))));
         resetSection(Tunables.Section.SOCIAL);

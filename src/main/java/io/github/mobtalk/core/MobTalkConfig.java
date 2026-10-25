@@ -114,6 +114,11 @@ public final class MobTalkConfig {
     public boolean villageTowers = true;
     /** Villages keep guards with swords and shields: stands by the bell and at the edge, a newcomer for each empty one. */
     public boolean villageGuards = true;
+    /** Roads between villages (docs/roads.md): the server finds the villages around the players, plans a straight lit road between
+     * neighbours and lays it as the chunks load; a deep cut becomes a tunnel, a high fill or a river a bridge. */
+    public boolean villageRoads = true;
+    /** Lamps along the roads: a street lamp every {@link #roadLampSpacing} blocks, lanterns on bridges and in tunnels. */
+    public boolean roadLamps = true;
     /** Idea Б1: the villages know the god's deeds (the divine block's events) — they panic, talk and blame the sinner by name;
      * the scene in the moment (alarm bell, flight, shouts); the god alone may make an exile; the family of a villager killed by a
      * curse turns against the sinner. */
@@ -151,6 +156,8 @@ public final class MobTalkConfig {
     public int towerResidents = 8, towerMax = 4, towerBuildMinutes = 20, archerRange = 32, archerShotTenths = 20, archerReplaceMinutes = 20;
     /** Guards: one per this many residents, at least and at most this many per village, their health and blow, how far they see a
      * foe (blocks), and how long an empty stand waits for a newcomer (minutes). */
+    /** Roads: how far around a player villages are looked for (blocks), the longest road (blocks), the step between lamps. */
+    public int roadScanRadius = 1500, roadMaxLength = 900, roadLampSpacing = 24;
     public int watchResidents = 5, watchMin = 2, watchMax = 8, watchHealth = 30, watchDamage = 6, watchSight = 24, watchReplaceMinutes = 20;
     /** The emotional state: half-lives of an ordinary and a strong impression (minutes), and the thresholds of its axes (0–100). */
     public int stateHalfLifeMinutes = 10, stateSlowHalfLifeMinutes = 30;
@@ -296,7 +303,7 @@ public final class MobTalkConfig {
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
-        copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards;
+        copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageRoads = villageRoads; copy.roadLamps = roadLamps;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;
