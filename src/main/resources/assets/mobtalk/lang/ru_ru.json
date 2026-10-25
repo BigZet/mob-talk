@@ -991,5 +991,12 @@
   "mobtalk.tune.barVisitPercent.tooltip": "Шанс, что свободный взрослый житель пойдёт вечером в бар.",
   "mobtalk.tune.barTalkSeconds": "Пауза между разговорами: %s с",
   "mobtalk.tune.barTalkSeconds.tooltip": "Как часто в одном баре начинается новый разговор, если вы рядом.",
-  "mobtalk.bar.opened": "В баре «%s» собираются гости"
+  "mobtalk.bar.opened": "В баре «%s» собираются гости",
+  "item.mobtalk.bar_ale": "Кружка эля",
+  "item.mobtalk.bar_kvass": "Квас",
+  "item.mobtalk.bar_wine": "Вино",
+  "item.mobtalk.bar_mead": "Медовуха",
+  "mobtalk.bar.menu": "%s · бар",
+  "mobtalk.settings.barDrinks": "Бармен продаёт выпивку",
+  "mobtalk.settings.barDrinks.tooltip": "Пока бар открыт, правый клик по бармену открывает меню напитков за изумруды: эль (сила), квас (скорость), вино (регенерация), медовуха (поглощение). Хмельное кружит голову, и каждая следующая кружка — дольше. С Shift — обычная торговля жителя."
 }

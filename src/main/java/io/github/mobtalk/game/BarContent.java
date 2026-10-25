@@ -8,9 +8,13 @@ import net.minecraft.block.MapColor;
 import net.minecraft.block.piston.PistonBehavior;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnGroup;
+import net.minecraft.component.type.FoodComponent;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroups;
+import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
@@ -30,6 +34,7 @@ public final class BarContent {
     public static final RegistryKey<PointOfInterestType> SEAT_POI = RegistryKey.of(RegistryKeys.POINT_OF_INTEREST_TYPE, SEAT_POI_ID);
     public static final RegistryKey<PointOfInterestType> COUNTER_POI = RegistryKey.of(RegistryKeys.POINT_OF_INTEREST_TYPE, COUNTER_POI_ID);
     public static BarFurnitureBlock COUNTER, STOOL, TABLE, CHAIR, KEG, SHELF, BOTTLES, MUGS;
+    public static BarDrinkItem ALE, KVASS, WINE, MEAD;
     public static EntityType<BarSeatEntity> SEAT;
     private static boolean registered;
 
@@ -49,10 +54,24 @@ public final class BarContent {
         BOTTLES = block("bar_bottles", new BarFurnitureBlock(glass, 0, false, new double[] { 2, 0, 4, 15, 10, 12 }), items);
         MUGS = block("bar_mugs", new BarFurnitureBlock(glass, 0, false, new double[] { 2, 0, 3, 15, 6, 13 }), items);
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> items.forEach(entries::add));
+        // The bartender's drinks: ale and wine and mead make the head spin, kvass does not.
+        ALE = drink("bar_ale", food(2, 0.2f, null).statusEffect(new StatusEffectInstance(StatusEffects.STRENGTH, 60 * 20), 1f), 8);
+        KVASS = drink("bar_kvass", food(3, 0.4f, Items.GLASS_BOTTLE).statusEffect(new StatusEffectInstance(StatusEffects.SPEED, 90 * 20), 1f), 0);
+        WINE = drink("bar_wine", food(1, 0.2f, Items.GLASS_BOTTLE).statusEffect(new StatusEffectInstance(StatusEffects.REGENERATION, 10 * 20), 1f), 12);
+        MEAD = drink("bar_mead", food(3, 0.3f, null).statusEffect(new StatusEffectInstance(StatusEffects.ABSORPTION, 120 * 20), 1f), 8);
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.FOOD_AND_DRINK).register(entries -> { entries.add(ALE); entries.add(KVASS); entries.add(WINE); entries.add(MEAD); });
         PointOfInterestHelper.register(SEAT_POI_ID, 1, 1, STOOL, CHAIR);
         PointOfInterestHelper.register(COUNTER_POI_ID, 1, 1, COUNTER);
         SEAT = Registry.register(Registries.ENTITY_TYPE, Identifier.of("mobtalk", "bar_seat"),
                 EntityType.Builder.<BarSeatEntity>create(BarSeatEntity::new, SpawnGroup.MISC).dimensions(0.25f, 0.25f).maxTrackingRange(10).disableSummon().build("mobtalk:bar_seat"));
+    }
+
+    private static FoodComponent.Builder food(int nutrition, float saturation, Item leaves) {
+        FoodComponent.Builder food = new FoodComponent.Builder().nutrition(nutrition).saturationModifier(saturation).alwaysEdible();
+        return leaves == null ? food : food.usingConvertsTo(leaves);
+    }
+    private static BarDrinkItem drink(String name, FoodComponent.Builder food, int hops) {
+        return Registry.register(Registries.ITEM, Identifier.of("mobtalk", name), new BarDrinkItem(new Item.Settings().food(food.build()).maxCount(16), hops));
     }
 
     private static BarFurnitureBlock block(String name, BarFurnitureBlock block, List<Item> items) {
