@@ -999,10 +999,18 @@ class ConversationEngineTest {
             assertEquals(8, engine.converse(tradingCow(freeCow(false)), "Что сделать?").quest().count(), "the drawn amount, not the model's");
             assertEquals(calls + 1, chatCalls.get());
 
-            queuedAnswers.add(ownAnswer("За это скину на сено.", "NONE", "", 0, "", "OFFER", "minecraft:wheat", 8, "Пшеница", "hay", 30));
-            queuedAnswers.add(ownAnswer("За это скину на молоко.", "NONE", "", 0, "", "OFFER", "minecraft:wheat", 8, "Пшеница", "milk", 30));
+            queuedAnswers.add(ownAnswer("Принеси пшеницы, за это скину на сено.", "NONE", "", 0, "", "OFFER", "minecraft:wheat", 8, "Пшеница", "hay", 30));
+            queuedAnswers.add(ownAnswer("Принеси пшеницы, за это скину на молоко.", "NONE", "", 0, "", "OFFER", "minecraft:wheat", 8, "Пшеница", "milk", 30));
             assertEquals("milk", engine.converse(tradingCow(freeCow(false)), "Что сделать?").quest().rewardDeal());
             assertTrue(lastCorrection().contains("Сделки «hay» у тебя нет"), lastCorrection());
+
+            // The spoken line must name the asked item; a title about something else gives way to the item's name.
+            queuedAnswers.add(ownAnswer("Найди мою пропавшую книгу, прошу.", "NONE", "", 0, "", "OFFER", "minecraft:wheat", 8, "Поиск книги", "", 0));
+            queuedAnswers.add(ownAnswer("Мне бы пшеницы на хлеб, а книгу я сама найду.", "NONE", "", 0, "", "OFFER", "minecraft:wheat", 8, "Поиск книги", "", 0));
+            assertEquals("Пшеница", engine.converse(tradingCow(freeCow(false)), "Что сделать?").quest().title());
+            assertTrue(lastCorrection().contains("в реплике об этом ни слова"), lastCorrection());
+            assertTrue(AnswerValidator.mentions("Нужны ломтики арбуза", "Ломтик арбуза") && AnswerValidator.mentions("три яйца", "Яйцо")
+                    && !AnswerValidator.mentions("Найди книгу", "Ломтик арбуза"));
         }
     }
 

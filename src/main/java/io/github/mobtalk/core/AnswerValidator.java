@@ -102,7 +102,7 @@ final class AnswerValidator {
                 if (bounds.wary() && deal.type() == DealIntent.Type.OFFER) throw new Rejected(PromptTexts.WARY_TRADE, true, true);
             }
             String unlock = answer.has("unlock") && answer.get("unlock").isJsonPrimitive() ? validateUnlock(ReplySchema.string(answer, "unlock"), view, bounds.relationship()) : "";
-            QuestIntent quest = answer.has("quest") && answer.get("quest").isJsonObject() ? validateQuest(answer.getAsJsonObject("quest"), view) : QuestIntent.none();
+            QuestIntent quest = answer.has("quest") && answer.get("quest").isJsonObject() ? validateQuest(answer.getAsJsonObject("quest"), view, reply) : QuestIntent.none();
             Map<?,?> active = view.activeFavor();
             if (quest.type() != QuestIntent.Type.COMPLETE && active != null && claimsDelivery(reply))
                 throw new Rejected("В реплике ты принимаешь услугу («" + active.get("title") + "»), но quest не COMPLETE — игра ничего не забрала. "
@@ -275,7 +275,7 @@ final class AnswerValidator {
     }
 
     /** OFFER only while no favour is pending and only for one of the drawn candidates (whose count wins); COMPLETE only when the game counted the items. */
-    private static QuestIntent validateQuest(JsonObject quest, TradingView view) throws Rejected {
+    private static QuestIntent validateQuest(JsonObject quest, TradingView view, String reply) throws Rejected {
         QuestIntent.Type type;
         try { type = QuestIntent.Type.valueOf(ReplySchema.string(quest, "type").toUpperCase(Locale.ROOT)); }
         catch (RuntimeException malformed) { return QuestIntent.none(); }
@@ -303,7 +303,25 @@ final class AnswerValidator {
             throw new Rejected("Сделки «" + reward + "» у тебя нет: в rewardDeal только id из deals " + TradingView.ids(view.deals())
                     + " или secret " + TradingView.ids(view.secrets()) + ", либо пустая строка.", true, true);
         if (reward.isEmpty() && percent > 0) throw new Rejected("rewardPercent без rewardDeal бессмыслен: назови сделку или поставь 0.", true, true);
+        // The item is the game's, the story is the model's: a request for melon slices told as «find my lost book» leaves the player
+        // carrying the wrong thing. The spoken line must name what is asked for, and a title about something else is replaced.
+        String itemName = String.valueOf(candidate.get("itemName"));
+        if (!mentions(SpeechTags.strip(reply), itemName))
+            throw new Rejected("Ты просишь " + count + "× " + itemName + " (quest OFFER), но в реплике об этом ни слова. Скажи прямо, что тебе нужно именно это и зачем; "
+                    + "если твоя беда про другую вещь, которой нет в trading.favor.candidates, ничего не проси — quest NONE.", true, true);
+        if (!mentions(title, itemName)) title = itemName;
         return new QuestIntent(type, item, count, title, reward, Math.max(0, Math.min(Favor.MAX_PERCENT, percent)));
+    }
+    /** The text names the item: some word of its display name, by its stem («Ломтик арбуза» → «ломтики», «арбуз»). */
+    static boolean mentions(String text, String itemName) {
+        if (text == null || itemName == null) return false;
+        String lower = text.toLowerCase(Locale.ROOT).replace('ё', 'е');
+        for (String word : itemName.toLowerCase(Locale.ROOT).replace('ё', 'е').split("[^\\p{L}]+")) {
+            if (word.length() < 3) continue;
+            String stem = word.substring(0, word.length() <= 4 ? 3 : Math.max(4, word.length() - 2));
+            if (lower.contains(stem)) return true;
+        }
+        return false;
     }
 
     // ---- Text checks on the spoken line
