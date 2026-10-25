@@ -110,6 +110,10 @@ public final class MobTalkConfig {
     public boolean alarmAgainstPlayers = true;
     /** The village's players hear of an alarm in the chat. */
     public boolean alarmChat = true;
+    /** The alarm is heard: the bell rings at any alarm, and the village's players far from it hear the alarm bell too. */
+    public boolean alarmSound = true;
+    /** Zombies do not turn villagers into zombie villagers: a villager they kill dies. Guards and archers are never turned. */
+    public boolean villageNoConversion = true;
     /** Villages build watchtowers at their edge over a game day, and an archer comes to each tower's post. */
     public boolean villageTowers = true;
     /** Villages keep guards with swords and shields: stands by the bell and at the edge, a newcomer for each empty one. */
@@ -296,7 +300,7 @@ public final class MobTalkConfig {
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
-        copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards;
+        copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;

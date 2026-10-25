@@ -224,13 +224,14 @@ final class VillageGuards {
         }
     }
 
-    /** The nearest monster or alarm player within the village (and a little beyond): walk up to it, strike at arm's length. */
+    /** The nearest monster or alarm player in the village (anywhere among its houses, or within sight of the guard a little beyond
+     * them): walk up to it, strike at arm's length. */
     private boolean fight(ServerWorld world, VillageDefenseController.Zone zone, VillageAlarm.Alarm alarm, VillagerEntity guard, long now) {
         double alert = bridge.config.watchSight;
         LivingEntity foe = null; double nearest = Double.MAX_VALUE;
         var reach = zone.box().expand(CHASE_BEYOND);
-        for (MobEntity monster : world.getEntitiesByClass(MobEntity.class, guard.getBoundingBox().expand(alert), defense::threat)) {
-            if (!reach.contains(monster.getPos())) continue;
+        for (MobEntity monster : world.getEntitiesByClass(MobEntity.class, reach, defense::threat)) {
+            if (!zone.box().contains(monster.getPos()) && guard.squaredDistanceTo(monster) > alert * alert) continue;
             double distance = guard.squaredDistanceTo(monster);
             if (distance < nearest) { nearest = distance; foe = monster; }
         }

@@ -7,6 +7,7 @@ import net.minecraft.block.enums.BlockHalf;
 import net.minecraft.block.enums.DoorHinge;
 import net.minecraft.block.enums.DoubleBlockHalf;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.ai.brain.BlockPosLookTarget;
@@ -23,6 +24,8 @@ import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
+import net.minecraft.particle.BlockStateParticleEffect;
+import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -38,6 +41,7 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.GlobalPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.village.VillagerData;
+import net.minecraft.village.VillagerProfession;
 import net.minecraft.village.VillagerType;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.world.Heightmap;
@@ -61,12 +65,17 @@ final class VillageTowers {
     static final int EDGE_OUT = 5, EDGE_STEP = 4;
     /** A tower whose ground differs more than this across its footprint is not built there. */
     static final int MAX_SLOPE = 2;
+    /** The builder lays blocks only this close to the tower's centre; one on its way longer than this is set down at the site. */
+    static final double AT_SITE = 7;
+    static final long BUILDER_WAY_TICKS = 600;
 
     private final MobGameBridge bridge;
     private final VillageDefenseController defense;
     private final Map<UUID, Long> lastShot = new HashMap<>();
     /** When each empty post was first seen empty, by position. */
     private final Map<BlockPos, Long> emptySince = new HashMap<>();
+    /** Since when the builder of each tower (by its origin) has been on its way to the site without getting there. */
+    private final Map<BlockPos, Long> builderAway = new HashMap<>();
 
     VillageTowers(MobGameBridge bridge, VillageDefenseController defense) { this.bridge = bridge; this.defense = defense; }
 
@@ -74,13 +83,14 @@ final class VillageTowers {
 
     // ---- Saved builds ----
 
-    /** One tower going up: where, which way the door faces, the style, and the next block of the plan. */
+    /** One tower going up: where, which way the door faces, the style, the next block of the plan and the villager building it. */
     static final class Build {
-        String zone; BlockPos origin; TowerPlan.Facing door; TowerPlan.Style style; int next; long nextTick; boolean foundationDone;
+        String zone; BlockPos origin; TowerPlan.Facing door; TowerPlan.Style style; int next; long nextTick; boolean foundationDone; UUID builder;
         NbtCompound write() {
             NbtCompound tag = new NbtCompound();
             tag.putString("zone", zone); tag.putLong("origin", origin.asLong()); tag.putString("door", door.name());
             tag.putString("style", style.name()); tag.putInt("next", next); tag.putBoolean("foundation", foundationDone);
+            if (builder != null) tag.putUuid("builder", builder);
             return tag;
         }
         static Build read(NbtCompound tag) {
@@ -88,6 +98,7 @@ final class VillageTowers {
             build.zone = tag.getString("zone"); build.origin = BlockPos.fromLong(tag.getLong("origin"));
             build.door = TowerPlan.Facing.valueOf(tag.getString("door")); build.style = TowerPlan.Style.valueOf(tag.getString("style"));
             build.next = tag.getInt("next"); build.foundationDone = tag.getBoolean("foundation");
+            if (tag.containsUuid("builder")) build.builder = tag.getUuid("builder");
             return build;
         }
     }
@@ -121,7 +132,9 @@ final class VillageTowers {
         Saved saved = saved(world);
         for (Iterator<Build> it = saved.builds.iterator(); it.hasNext(); ) {
             Build build = it.next();
-            if (now < build.nextTick || !world.isChunkLoaded(build.origin)) continue;
+            if (!world.isChunkLoaded(build.origin)) continue;
+            if (now % POST_PERIOD == 7) attend(world, build, now);
+            if (now < build.nextTick) continue;
             if (step(world, build, now)) { it.remove(); finished(world, build, zones); }
             saved.markDirty();
         }
@@ -222,9 +235,11 @@ final class VillageTowers {
 
     // ---- Building ----
 
-    /** The next block when its time has come; true when the tower is done. */
+    /** The next block when its time has come and the builder is at the site; true when the tower is done. */
     private boolean step(ServerWorld world, Build build, long now) {
         if (now < build.nextTick) return false;
+        VillagerEntity builder = builder(world, build);
+        if (builder == null || builder.squaredDistanceTo(Vec3d.ofCenter(build.origin)) > AT_SITE * AT_SITE) { build.nextTick = now + POST_PERIOD; return false; }
         List<TowerPlan.Block> plan = TowerPlan.rotated(build.door);
         if (!build.foundationDone) { foundation(world, build); build.foundationDone = true; }
         long solid = plan.stream().filter(b -> b.kind() != TowerPlan.Kind.AIR).count();
@@ -234,7 +249,7 @@ final class VillageTowers {
             BlockPos pos = build.origin.add(block.x(), block.y(), block.z());
             if (place(world, build.style, block, pos)) {
                 build.nextTick = now + interval;
-                worker(world, build, pos);
+                work(world, builder, pos);
                 return false;
             }
         }
@@ -301,25 +316,81 @@ final class VillageTowers {
         return switch (facing) { case NORTH -> Direction.NORTH; case EAST -> Direction.EAST; case SOUTH -> Direction.SOUTH; case WEST -> Direction.WEST; };
     }
 
-    /** A villager of the village stands by and works while the tower goes up (the look only: it does not carry blocks). */
-    private void worker(ServerWorld world, Build build, BlockPos placed) {
+    /** The villager building the tower: the one already on it while it is about and awake, else a mason of the village, else its
+     * grown villager nearest the site (never a guard or an archer, nobody in a conversation). Null when nobody can come now (the
+     * village sleeps): the tower waits for its builder. A newly picked builder is named in the chat. */
+    private VillagerEntity builder(ServerWorld world, Build build) {
         VillageDefenseController.Zone zone = defense.zone(world, build.zone);
-        if (zone == null) return;
-        VillagerEntity worker = null; double nearest = 48 * 48;
-        for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !v.isBaby() && !v.isSleeping()
-                && !DefenseContent.archer(v) && !bridge.actions.busy(v))) {
-            double distance = villager.squaredDistanceTo(Vec3d.ofCenter(build.origin));
-            if (distance < nearest) { nearest = distance; worker = villager; }
+        if (build.builder != null && world.getEntity(build.builder) instanceof VillagerEntity current && fit(current)
+                && (zone == null || zone.box().expand(16).contains(current.getPos()))) return current;
+        if (zone == null) return null;
+        VillagerEntity best = null; double bestScore = Double.MAX_VALUE;
+        for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, zone.box(), this::fit)) {
+            double score = villager.squaredDistanceTo(Vec3d.ofCenter(build.origin)) - (villager.getVillagerData().getProfession() == VillagerProfession.MASON ? 1e6 : 0);
+            if (score < bestScore) { bestScore = score; best = villager; }
         }
-        if (worker == null) return;
-        BlockPos stand = rotate(build, 0, 1, -TowerPlan.RADIUS - 2);
-        if (MobActionController.registered(worker, MemoryModuleType.WALK_TARGET)) worker.getBrain().remember(MemoryModuleType.WALK_TARGET, new WalkTarget(stand, 0.5F, 2), 200);
-        if (MobActionController.registered(worker, MemoryModuleType.LOOK_TARGET)) worker.getBrain().remember(MemoryModuleType.LOOK_TARGET, new BlockPosLookTarget(placed), 60);
-        if (worker.squaredDistanceTo(Vec3d.ofCenter(stand)) <= 4 * 4) worker.swingHand(Hand.MAIN_HAND);
+        if (best == null) return null;
+        if (build.builder != null && world.getEntity(build.builder) instanceof VillagerEntity old) emptyHands(old);
+        build.builder = best.getUuid();
+        builderAway.remove(build.origin);
+        announce(world, zone, Text.translatable("mobtalk.defense.tower.builder", zone.title(), name(best)));
+        return best;
     }
 
-    /** The tower is up: an archer comes to its post. */
+    private boolean fit(VillagerEntity villager) {
+        return villager.isAlive() && !villager.isRemoved() && !villager.isBaby() && !villager.isSleeping()
+                && !DefenseContent.archer(villager) && !DefenseContent.guard(villager) && !bridge.actions.busy(villager);
+    }
+
+    /** Once a second: the builder keeps to the site with a block in hand, walking round to the side that is going up; one that has
+     * not got there in {@link #BUILDER_WAY_TICKS} (stuck behind a fence or a river) is set down at the site. */
+    private void attend(ServerWorld world, Build build, long now) {
+        VillagerEntity builder = builder(world, build);
+        if (builder == null) return;
+        VillageDefenseController.stayOut(world, builder);
+        List<TowerPlan.Block> plan = TowerPlan.rotated(build.door);
+        TowerPlan.Block next = build.next < plan.size() ? plan.get(build.next) : null;
+        BlockPos target = next == null ? build.origin : build.origin.add(next.x(), next.y(), next.z());
+        BlockPos stand = stand(world, build, target);
+        if (builder.getMainHandStack().isEmpty()) builder.equipStack(EquipmentSlot.MAINHAND, new ItemStack(palette(build.style).wall.getBlock().asItem()));
+        builder.setEquipmentDropChance(EquipmentSlot.MAINHAND, 0f);
+        if (MobActionController.registered(builder, MemoryModuleType.LOOK_TARGET)) builder.getBrain().remember(MemoryModuleType.LOOK_TARGET, new BlockPosLookTarget(target), 40);
+        if (builder.squaredDistanceTo(Vec3d.ofCenter(stand)) <= 2.5 * 2.5) { builderAway.remove(build.origin); return; }
+        if (MobActionController.registered(builder, MemoryModuleType.WALK_TARGET)) builder.getBrain().remember(MemoryModuleType.WALK_TARGET, new WalkTarget(stand, 0.55F, 1), 40);
+        Long away = builderAway.putIfAbsent(build.origin, now);
+        if (away != null && now - away >= BUILDER_WAY_TICKS) {
+            builder.requestTeleport(stand.getX() + 0.5, stand.getY(), stand.getZ() + 0.5);
+            builderAway.remove(build.origin);
+        }
+    }
+
+    /** Where the builder stands: on the ground just outside the footprint, on the side of the block going up. */
+    private static BlockPos stand(ServerWorld world, Build build, BlockPos target) {
+        int dx = target.getX() - build.origin.getX(), dz = target.getZ() - build.origin.getZ(), out = TowerPlan.RADIUS + 2;
+        int x = build.origin.getX(), z = build.origin.getZ();
+        if (dx == 0 && dz == 0) { BlockPos front = rotate(build, 0, 0, -out); x = front.getX(); z = front.getZ(); }
+        else if (Math.abs(dx) >= Math.abs(dz)) x += Integer.signum(dx) * out;
+        else z += Integer.signum(dz) * out;
+        return new BlockPos(x, world.getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, x, z), z);
+    }
+
+    /** One block laid: the builder swings at it, and dust of the block flies where it went. */
+    private static void work(ServerWorld world, VillagerEntity builder, BlockPos placed) {
+        builder.swingHand(Hand.MAIN_HAND);
+        builder.getLookControl().lookAt(Vec3d.ofCenter(placed));
+        world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, world.getBlockState(placed)),
+                placed.getX() + 0.5, placed.getY() + 0.5, placed.getZ() + 0.5, 8, 0.3, 0.3, 0.3, 0.05);
+    }
+
+    /** The builder puts away the block it carried for the work. */
+    private static void emptyHands(VillagerEntity builder) {
+        if (builder.getMainHandStack().getItem() instanceof net.minecraft.item.BlockItem) builder.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+    }
+
+    /** The tower is up: the builder goes back to its life, an archer comes to the post. */
     private void finished(ServerWorld world, Build build, List<VillageDefenseController.Zone> zones) {
+        if (build.builder != null && world.getEntity(build.builder) instanceof VillagerEntity builder) emptyHands(builder);
+        builderAway.remove(build.origin);
         BlockPos post = build.origin.up(TowerPlan.PLATFORM + 1);
         VillageDefenseController.Zone zone = null;
         for (VillageDefenseController.Zone candidate : zones) if (candidate.key().equals(build.zone)) zone = candidate;
@@ -517,5 +588,5 @@ final class VillageTowers {
         };
     }
 
-    void clearRuntime() { lastShot.clear(); emptySince.clear(); }
+    void clearRuntime() { lastShot.clear(); emptySince.clear(); builderAway.clear(); }
 }

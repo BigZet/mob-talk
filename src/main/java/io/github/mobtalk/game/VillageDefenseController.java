@@ -44,6 +44,8 @@ final class VillageDefenseController {
     static final long SCAN_PERIOD = 20, SCAN_PHASE = 11, ZONE_PERIOD = 100, ZONE_PHASE = 3, GOLEM_PERIOD = 100, GOLEM_PHASE = 53;
     /** The bell rings again this often while an attack lasts; vanilla villagers stay hidden about this long after a ring. */
     static final long BELL_TICKS = 200;
+    /** How far the bell itself is heard (vanilla's sound at volume 2); players farther off get the alarm bell played to them. */
+    static final double BELL_EARSHOT = 28;
     /** A village without a structure: the square around its bell, this far each way. */
     static final int BELL_RADIUS = 32;
     /** A villager shouts at most this often per village. */
@@ -165,7 +167,7 @@ final class VillageDefenseController {
         repairs(world, time);
     }
 
-    /** Monsters a resident sees, the targets still about, a raid at the bell. */
+    /** Monsters inside the village or seen by a resident, the targets still about, a raid at the bell. */
     private void scan(ServerWorld world, Zone zone, long now, VillageAlarm.Rules rules) {
         List<MobEntity> monsters = world.getEntitiesByClass(MobEntity.class, zone.box().expand(bridge.config.archerRange / 2.0), this::threat);
         if (!monsters.isEmpty()) {
@@ -174,6 +176,8 @@ final class VillageDefenseController {
             double usual = bridge.config.alarmMonsterRange;
             int seen = 0; MobEntity first = null;
             for (MobEntity monster : monsters) {
+                // One already among the houses is the village's at once, whether anybody has it in sight or not.
+                if (zone.box().contains(monster.getPos())) { seen++; if (first == null) first = monster; continue; }
                 for (LivingEntity watcher : watchers) {
                     double range = towers.sight(watcher, usual);
                     if (watcher.squaredDistanceTo(monster) <= range * range && watcher.canSee(monster)) { seen++; if (first == null) first = monster; break; }
@@ -227,16 +231,26 @@ final class VillageDefenseController {
             if (foe instanceof ServerPlayerEntity player) { golem.setAngryAt(player.getUuid()); golem.chooseRandomAngerTime(); }
             golem.setTarget(foe);
         }
-        if (!alarm.attack() && enemies.isEmpty()) return;
+        boolean hide = alarm.attack() || !enemies.isEmpty();
+        if (hide || bridge.config.alarmSound) ring(world, zone, now);
+        if (!hide) return;
         for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !v.isRemoved()))
             if (!DefenseContent.guard(villager) && !DefenseContent.archer(villager) && MobActionController.registered(villager, MemoryModuleType.HEARD_BELL_TIME))
                 villager.getBrain().remember(MemoryModuleType.HEARD_BELL_TIME, now);
+    }
+
+    /** The bell rings (once in {@link #BELL_TICKS}), and the village's players beyond its earshot hear the alarm bell where they are. */
+    private void ring(ServerWorld world, Zone zone, long now) {
         Long rung = lastBell.get(zone.key());
-        if (zone.bell() != null && (rung == null || now - rung >= BELL_TICKS) && world.isChunkLoaded(zone.bell())
-                && world.getBlockState(zone.bell()).getBlock() instanceof BellBlock bell) {
-            lastBell.put(zone.key(), now);
+        if (rung != null && now - rung < BELL_TICKS) return;
+        lastBell.put(zone.key(), now);
+        BlockPos at = zone.bell() != null ? zone.bell() : zone.center();
+        if (zone.bell() != null && world.isChunkLoaded(zone.bell()) && world.getBlockState(zone.bell()).getBlock() instanceof BellBlock bell)
             bell.ring(null, world, zone.bell(), null);
-        }
+        else world.playSound(null, at, SoundEvents.BLOCK_BELL_USE, SoundCategory.BLOCKS, 2f, 1f);
+        if (!bridge.config.alarmSound) return;
+        for (ServerPlayerEntity player : listeners(world, zone))
+            if (player.getBlockPos().getSquaredDistance(at) > BELL_EARSHOT * BELL_EARSHOT) player.playSoundToPlayer(SoundEvents.BLOCK_BELL_USE, SoundCategory.BLOCKS, 0.6f, 0.9f);
     }
 
     // ---- Hooks from the bridge ----
