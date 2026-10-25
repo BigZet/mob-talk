@@ -104,7 +104,7 @@ public final class BanditContent {
                     && (robber == null || bandit.squaredDistanceTo(player) < robber.squaredDistanceTo(player))) robber = bandit;
         if (robber == null) { context.getSource().sendError(Text.literal("Никто из бандитов у вас ничего не требует")); return 0; }
         String note = controller.haggle(world, robber, player, StringArgumentType.getString(context, "words"));
-        context.getSource().sendFeedback(() -> Text.literal(note.isBlank() ? "Бандит не понял, к чему это" : note), false);
+        player.sendMessage(Text.literal("[Mob Talk] " + (note.isBlank() ? "Бандит не понял, к чему это" : note)), false);
         return note.isBlank() ? 0 : 1;
     }
 

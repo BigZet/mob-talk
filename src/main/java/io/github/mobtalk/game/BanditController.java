@@ -149,10 +149,11 @@ public final class BanditController {
 
     /** Where the gang steps out: of up to forty candidate spots 14–24 blocks from the player (behind their back first), the best by
      * {@link #lurk}: dark, by a door or under an arch, out of the player's sight, far from a police or guard post. */
+    private long lastMiss = -1000;
     private BlockPos spot(ServerWorld world, ServerPlayerEntity player, boolean inTerritory) {
         Random random = world.random;
         float back = player.getYaw() + 180f;
-        BlockPos best = null; int bestScore = Integer.MIN_VALUE;
+        BlockPos best = null; int bestScore = Integer.MIN_VALUE, ground = 0, inside = 0;
         for (int attempt = 0; attempt < 40; attempt++) {
             float angle = attempt < 20 ? back + (random.nextFloat() - 0.5f) * 140f : random.nextFloat() * 360f;
             double distance = 14 + random.nextInt(11);
@@ -160,10 +161,16 @@ public final class BanditController {
             int z = MathHelper.floor(player.getZ() + Math.cos(Math.toRadians(angle)) * distance);
             BlockPos pos = standable(world, x, z, player.getBlockY());
             if (pos == null) continue;
+            ground++;
             if (inTerritory && !territory(world, pos)) continue;
+            inside++;
             if (!world.isSkyVisible(pos)) continue; // in the yard, by the stairwell door, not inside somebody's flat
             int score = lurk(world, pos) - (inSight(world, player, pos) ? 40 : 0) - 10 * Math.abs(pos.getY() - player.getBlockY());
             if (score > bestScore) { bestScore = score; best = pos; }
+        }
+        if (best == null && world.getTime() - lastMiss > 200) {
+            lastMiss = world.getTime();
+            LOGGER.info("Mob Talk: no place for a gang near {} (of 40 tries: ground {}, in the city {}, under the sky none)", player.getBlockPos().toShortString(), ground, inside);
         }
         return best;
     }
@@ -207,8 +214,11 @@ public final class BanditController {
         return null;
     }
 
+    /** Room for a man: something firm underfoot (a full block, a path, a slab: the city's paving is not all full blocks), and air
+     * for his body. */
     private static boolean free(ServerWorld world, BlockPos pos) {
-        return world.getBlockState(pos.down()).isSolidBlock(world, pos.down()) && world.getBlockState(pos).getCollisionShape(world, pos).isEmpty()
+        net.minecraft.util.shape.VoxelShape floor = world.getBlockState(pos.down()).getCollisionShape(world, pos.down());
+        return !floor.isEmpty() && floor.getMax(net.minecraft.util.math.Direction.Axis.Y) >= 0.5 && floor.getMax(net.minecraft.util.math.Direction.Axis.Y) <= 1.0 && world.getBlockState(pos).getCollisionShape(world, pos).isEmpty()
                 && world.getBlockState(pos.up()).getCollisionShape(world, pos.up()).isEmpty() && world.getFluidState(pos).isEmpty();
     }
 
@@ -383,6 +393,11 @@ public final class BanditController {
     void news(BanditEntity bandit, ServerPlayerEntity player, String text, int importance, int sign) {
         if (!bridge.config.banditRumors || !(bandit.getWorld() instanceof ServerWorld world)) return;
         var village = bridge.villageAt(world, bandit.getBlockPos());
+        if (village == null && bridge.config.villageSites) {
+            // As the god's deeds do (Б1): news in a city nobody talked in yet founds its village; its first villager's biography names it.
+            var site = VillageSites.at(world, bandit.getBlockPos());
+            if (site != null) village = bridge.memory.createVillage(world.getRegistryKey().getValue().toString(), site.x(), site.z(), "", "", site.key());
+        }
         if (village == null) return;
         VillagerEntity teller = null;
         for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, bandit.getBoundingBox().expand(24), v -> v.isAlive() && v.canSee(bandit)))
@@ -412,8 +427,13 @@ public final class BanditController {
             warned.put(player.getUuid(), day);
             String name = bridge.memory.displayName(speaker.getUuid());
             if (name.isBlank()) name = speaker.getName().getString();
-            String told = story.text();
-            player.sendMessage(Text.literal("<" + name + "> ").append(Text.literal(pick(world.random,
+            String told = story.text(), you = MobGameBridge.playerName(player);
+            String line = you.equals(story.subject())
+                    ? pick(world.random, "Ты бы ночью дворами не ходил, " + you + ": бандиты тебя уже приметили.",
+                            "Слыхал я про твою ночку, " + you + ". Держись у фонарей, они вернутся.")
+                    : null;
+            if (line != null) player.sendMessage(Text.literal("<" + name + "> ").append(Text.literal(line)), false);
+            else player.sendMessage(Text.literal("<" + name + "> ").append(Text.literal(pick(world.random,
                     "Ты бы ночью дворами не ходил, " + MobGameBridge.playerName(player) + ". Говорят, " + told + ".",
                     "Темнеет… Слыхал? " + Character.toUpperCase(told.charAt(0)) + told.substring(1) + ". Держись у фонарей.",
                     "Осторожней вечером, " + MobGameBridge.playerName(player) + ": " + told + "."))), false);

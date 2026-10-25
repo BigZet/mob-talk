@@ -64,10 +64,13 @@ final class SelfTestBandits {
         test.command("effect give " + name() + " minecraft:regeneration 900 3 true");
         test.command("effect give " + name() + " minecraft:saturation 900 1 true");
         test.command("tp " + name() + " " + at(0, 1, 0));
+        // Kept loaded: a fill into a chunk still loading does nothing, and the player would fall through a missing floor.
+        test.command("forceload add " + (fx - 24) + " " + (fz - 24) + " " + (fx + 24) + " " + (fz + 24));
         test.await("pause: the stage chunks load", 3, () -> false, this::build);
     }
 
     private void build() {
+        if (!onServer(() -> world().isChunkLoaded(fx >> 4, fz >> 4))) { test.await("pause: the stage chunks load", 2, () -> false, this::build); return; }
         test.command("fill " + at(-20, -1, -20) + " " + at(20, -1, 20) + " minecraft:polished_andesite");
         test.command("fill " + at(-20, 0, -20) + " " + at(20, 4, 20) + " minecraft:barrier outline");
         test.command("fill " + at(-19, 0, -19) + " " + at(19, 0, 19) + " minecraft:air"); // the outline's bottom face would be an invisible floor
@@ -75,7 +78,7 @@ final class SelfTestBandits {
         for (int i = -16; i <= 16; i += 8) test.command("setblock " + at(i, 0, -18) + " minecraft:lantern");
         for (int x = -18; x <= 18; x += 6) for (int z = -18; z <= 18; z += 6) test.command("setblock " + at(x, -1, z) + " minecraft:sea_lantern"); // street lights
         test.command("tp " + name() + " " + at(0, 0, 0) + " 180 0");
-        test.await("pause: the floor is built", 2, () -> false, this::looks);
+        test.await("the floor is built", 10, () -> onServer(() -> world().getBlockState(new net.minecraft.util.math.BlockPos(fx + 1, fy - 1, fz + 1)).isOf(net.minecraft.block.Blocks.POLISHED_ANDESITE)), this::looks);
     }
 
     // ---- (а) The six looks ----
@@ -306,22 +309,23 @@ final class SelfTestBandits {
         test.command("execute as " + name() + " at " + name() + " run bandits spawn 1");
         test.await("the bandit asks 12", 20, () -> robber() != null, () -> {
             BanditEntity bandit = robber();
-            test.check(bandit.demand() == 12, "he asks 12 of 40 (" + bandit.demand() + ")");
+            int asked = bandit.demand(), offer = io.github.mobtalk.core.BanditHaggle.floor(new io.github.mobtalk.core.BanditHaggle.State(asked, 0, 40, false, 0));
+            test.check(asked >= 12, "he asks 30% of 40, more from one who paid before (" + asked + ")");
             var snapshot = test.bridge().capture(bandit.getUuid(), test.serverPlayer().getUuid(), "minecraft:overworld").join();
-            test.check(snapshot.mobDetails().get("robbery") instanceof Map<?,?> robbery && Integer.valueOf(12).equals(robbery.get("demand")),
+            test.check(snapshot.mobDetails().get("robbery") instanceof Map<?,?> robbery && Integer.valueOf(asked).equals(robbery.get("demand")),
                     "the conversation sees the robbery: what he asks (" + snapshot.mobDetails().get("robbery") + ")");
             mark();
-            test.command("bandits say дам 8");
-            test.await("he takes 8", 5, () -> heard("согласился на 8"), () -> {
-                test.check(bandit.demand() == 8, "an offer of two thirds is taken: he asks 8 now (" + bandit.demand() + ")");
+            test.command("execute as " + name() + " at " + name() + " run bandits say дам " + offer);
+            test.await("he takes " + offer, 5, () -> heard("согласился на " + offer), () -> {
+                test.check(bandit.demand() == offer, "an offer of three fifths is taken: he asks " + offer + " now (" + bandit.demand() + ")");
                 mark();
-                test.command("bandits say ну пожалуйста, пожалей");
+                test.command("execute as " + name() + " at " + name() + " run bandits say ну пожалуйста, пожалей");
                 test.await("a plea from a rich man fails", 5, () -> heard("не уступил"), () -> {
-                    test.check(bandit.demand() == 8, "40 emeralds in the pocket: the plea does not move him (" + bandit.demand() + ")");
+                    test.check(bandit.demand() == offer, "40 emeralds in the pocket: the plea does not move him (" + bandit.demand() + ")");
                     test.command("setblock " + at(-10, 0, 8) + " mobtalk:guard_post");
                     test.await("pause: the post is known", 2, () -> false, () -> {
                         mark();
-                        test.command("bandits say я сейчас стражу позову!");
+                        test.command("execute as " + name() + " at " + name() + " run bandits say я сейчас стражу позову!");
                         test.await("the gang backs off from a guard post", 8, () -> heard("Пост рядом") && bandits().stream().allMatch(b -> b.mode() == BanditEntity.Mode.LEAVE), () -> {
                             test.check(bandits().stream().allMatch(b -> b.mode() == BanditEntity.Mode.LEAVE), "a threat by a guard post sends the gang away");
                             test.check(emeralds() == 40, "nothing paid (" + emeralds() + ")");
@@ -383,12 +387,6 @@ final class SelfTestBandits {
                 boolean inCity = onServer(() -> io.github.mobtalk.game.BanditController.of(test.server()).territory(world(), test.serverPlayer().getBlockPos()));
                 test.check(inCity, "the player stands in a city (" + test.serverPlayer().getBlockPos().toShortString() + ")");
                 test.command("give " + name() + " minecraft:emerald 20");
-                // Meet a townsman, so the city is a known village with a resident.
-                VillagerEntity townsman = onServer(() -> world().getEntitiesByClass(VillagerEntity.class, test.serverPlayer().getBoundingBox().expand(64), VillagerEntity::isAlive)
-                        .stream().min(Comparator.comparingDouble(v -> v.distanceTo(test.serverPlayer()))).orElse(null));
-                if (townsman != null) try { test.bridge().capture(townsman.getUuid(), test.serverPlayer().getUuid(), "minecraft:overworld").join(); }
-                    catch (RuntimeException far) { test.log("could not meet the townsman: " + far.getMessage()); }
-                cityTownsman = townsman;
                 mark();
                 test.command("execute as " + name() + " at " + name() + " run bandits night");
                 test.await("the night's gang comes out in the city", 60, () -> heard("изумр.") || heard("Пустой") || heard("Голодранец") || heard("Ни изумруда"), () -> {
@@ -403,29 +401,38 @@ final class SelfTestBandits {
         });
     }
 
-    private VillagerEntity cityTownsman;
-
     /** The city hears of it: the player pays, the village has the news, and at dusk a townsman warns him off the yards. */
     private void rumors(BanditEntity bandit) {
-        var village = onServer(() -> test.bridge().villageAt(world(), test.serverPlayer().getBlockPos()));
-        if (village == null || bandit == null || bandit.mode() != BanditEntity.Mode.DEMAND) {
-            test.log("no known village here or nobody asks (" + village + "): the rumour stage is skipped");
+        if (bandit == null || bandit.mode() != BanditEntity.Mode.DEMAND) {
+            test.log("nobody asks: the rumour stage is skipped");
             test.command("bandits clear"); f7(); return;
         }
+        net.minecraft.util.math.BlockPos where = bandit.getBlockPos();
         pay(bandit, () -> {
+            var village = onServer(() -> test.bridge().villageAt(world(), where));
+            test.check(village != null, "the robbery founds the city's village in the memory (" + village + ")");
+            if (village == null) { test.command("bandits clear"); f7(); return; }
             var heard = onServer(() -> test.bridge().memory.villageRumors(village.id(), System.currentTimeMillis()));
             test.log("the city's rumours: " + heard.stream().map(r -> r.line()).toList());
             test.check(heard.stream().anyMatch(r -> r.text().contains("откупился от бандитов")), "the city knows the player paid the bandits off");
             test.command("bandits clear");
-            VillagerEntity townsman = cityTownsman;
-            if (townsman == null || !townsman.isAlive()) { test.fail("no townsman to warn the player"); f7(); return; }
-            test.command("tp " + name() + " " + townsman.getX() + " " + townsman.getY() + " " + (townsman.getZ() + 2));
-            test.command("data merge entity " + townsman.getUuid() + " {NoAI:1b}");
+            // The nearest grown townsman (the one who saw it, most likely) stands still, the player two steps in front of him.
+            VillagerEntity townsman = onServer(() -> world().getEntitiesByClass(VillagerEntity.class, test.serverPlayer().getBoundingBox().expand(24), v -> v.isAlive() && !v.isBaby())
+                    .stream().min(Comparator.comparingDouble(v -> v.distanceTo(test.serverPlayer()))).orElse(null));
+            if (townsman == null) { test.fail("no townsman to warn the player"); f7(); return; }
+            onServer(() -> {
+                townsman.setAiDisabled(true);
+                ServerPlayerEntity player = test.serverPlayer();
+                double dx = player.getX() - townsman.getX(), dz = player.getZ() - townsman.getZ(), d = Math.max(0.1, Math.sqrt(dx * dx + dz * dz));
+                if (d > 2.5) player.requestTeleport(townsman.getX() + dx / d * 2, townsman.getY(), townsman.getZ() + dz / d * 2);
+                return null;
+            });
+            test.log("the townsman: " + townsman.getName().getString() + " at " + townsman.getBlockPos().toShortString());
             test.await("pause: by the townsman", 2, () -> false, () -> {
                 look(townsman); mark(); test.command("time set 12000");
                 test.await("a townsman warns the player at dusk", 10, () -> heard("дворами") || heard("Слыхал") || heard("Осторожней"), () -> {
-                    test.check(heard("откупился"), "the warning tells what the city heard");
-                    shot("mobtalk-bandits-warning.png", () -> { test.command("data merge entity " + townsman.getUuid() + " {NoAI:0b}"); f7(); });
+                    test.check(heard("приметили") || heard("твою ночку") || heard("откупился"), "the warning is about what the city heard of this player");
+                    shot("mobtalk-bandits-warning.png", () -> { onServer(() -> { townsman.setAiDisabled(false); return null; }); f7(); });
                 });
             });
         });
@@ -477,6 +484,7 @@ final class SelfTestBandits {
         test.bridge().config.banditRobChance = savedRob; test.bridge().config.banditDemandSeconds = savedWait;
         test.command("bandits clear");
         test.command("gamerule doDaylightCycle true"); test.command("gamerule doMobSpawning true");
+        test.command("forceload remove " + (fx - 24) + " " + (fz - 24) + " " + (fx + 24) + " " + (fz + 24));
         test.await("pause: bandits stage done", 2, () -> false, next);
     }
 }
