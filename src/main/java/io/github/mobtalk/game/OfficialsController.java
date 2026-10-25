@@ -185,7 +185,7 @@ final class OfficialsController {
                 v -> v != official && v.isAlive() && !v.isBaby() && OfficialContent.rank(v) == null && !DefenseContent.traveller(v) && (v.canSee(player) || v.canSee(official)));
         int relationship = bridge.memory.relationship(official.getUuid(), player.getUuid());
         Officialdom.Verdict verdict = Officialdom.judge(rank, official.getUuid(), emeralds, witnesses.size(), relationship,
-                bridge.config.officialHonestPercent, bridge.config.officialPricePercent, fine == null ? 0 : fine.amount());
+                bridge.config.officialHonestPercent, bridge.config.officialPricePercent, fine == null ? 0 : fine.amount(), bridge.config.officialsShameless);
         String name = name(official), playerName = MobGameBridge.playerName(player);
         official.getLookControl().lookAt(player, 30f, 30f);
         if (verdict.keeps()) {
@@ -199,9 +199,9 @@ final class OfficialsController {
         bridge.memory.recordBribe(official.getUuid(), MobGameBridge.type(official), official.getName().getString(), player.getUuid(), playerName,
                 verdict.relationshipDelta(), memoryLine(verdict, emeralds), now);
         Text chat = switch (verdict.outcome()) {
-            case TAKEN -> { bridge.memory.officialTook(official.getUuid()); yield serve(world, player, official, rank, zone, village, fine, day, name); }
+            case TAKEN -> { bridge.memory.officialTook(official.getUuid()); bridge.graft.took(world, player, official, rank); yield serve(world, player, official, rank, zone, village, fine, day, name); }
             case PAID -> { bridge.memory.officialClose(village, player.getUuid()); yield Text.translatable("mobtalk.official.paid", name, fine.number()); }
-            case KEPT -> { bridge.memory.officialTook(official.getUuid()); yield Text.translatable("mobtalk.official.kept", name, emeralds); }
+            case KEPT -> { bridge.memory.officialTook(official.getUuid()); bridge.graft.took(world, player, official, rank); yield Text.translatable("mobtalk.official.kept", name, emeralds); }
             case TOO_LITTLE -> Text.translatable("mobtalk.official.too_little", name);
             case NOT_HERE -> Text.translatable("mobtalk.official.not_here", name);
             case EMPTY -> Text.translatable("mobtalk.official.empty", name);

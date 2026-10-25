@@ -81,7 +81,12 @@ public final class Officialdom {
     /** What the official does with an envelope of {@code emeralds} with {@code witnesses} other residents watching; {@code fine} is
      * the player's open order with this inspector (0 for none or another rank). */
     public static Verdict judge(Rank rank, UUID id, int emeralds, int witnesses, int relationship, int honestPercent, int pricePercent, int fine) {
-        int price = price(rank, id, relationship, honestPercent, pricePercent, fine);
+        return judge(rank, id, emeralds, witnesses, relationship, honestPercent, pricePercent, fine, false);
+    }
+    /** The same; {@code shameless} — the stream switch «особенно наглые»: a corrupt one asks half again and takes it in front of anyone. */
+    public static Verdict judge(Rank rank, UUID id, int emeralds, int witnesses, int relationship, int honestPercent, int pricePercent, int fine, boolean shameless) {
+        int price = price(rank, id, relationship, honestPercent, shameless ? pricePercent * 3 / 2 : pricePercent, fine);
+        if (shameless) witnesses = 0;
         boolean honest = honest(id, honestPercent);
         String what = "игрок протянул тебе конверт" + (emeralds > 0 ? " с " + emeralds + " " + emeraldWord(emeralds) : "");
         if (emeralds <= 0) return new Verdict(Outcome.EMPTY, price, -5, false, what + ", а он пустой. Ты оскорблён такой шуткой и отдаёшь его обратно.");
@@ -113,7 +118,12 @@ public final class Officialdom {
     /** The official's way of talking for the system prompt: who it is, how it speaks and, for a corrupt one, how it hints at the
      * price; the open order against this player, if any. "" for anyone who is not an official. */
     public static String prompt(Rank rank, UUID id, int relationship, int honestPercent, int pricePercent, Fine fine) {
+        return prompt(rank, id, relationship, honestPercent, pricePercent, fine, false);
+    }
+    /** The same; {@code shameless} — «особенно наглые»: a corrupt one names the price almost outright and does not hide. */
+    public static String prompt(Rank rank, UUID id, int relationship, int honestPercent, int pricePercent, Fine fine, boolean shameless) {
         if (rank == null) return "";
+        if (shameless) pricePercent = pricePercent * 3 / 2;
         StringBuilder text = new StringBuilder("\n\nТвоя должность: ").append(rank.word).append(". ");
         text.append(switch (rank) {
             case HEAD -> "Ты важный, неторопливый, сидишь в кабинете за казённым столом и всех немного презираешь; любишь хорошо поесть и служебную машину.";
@@ -133,7 +143,8 @@ public final class Officialdom {
                     case CLERK -> "За конверт ты выдаёшь справку без очереди.";
                     case INSPECTOR -> "За конверт ты «теряешь» предписание.";
                 })
-                .append(" Словами ты ничего не решаешь и ничего не обещаешь сверх этого: решает только конверт. При свидетелях ты осторожен.");
+                .append(" Словами ты ничего не решаешь и ничего не обещаешь сверх этого: решает только конверт.")
+                .append(shameless ? " Ты особенно наглый: не стесняешься свидетелей, почти прямо называешь цену и ворчишь, что «сейчас всё дорого»." : " При свидетелях ты осторожен.");
         }
         if (fine != null && fine.open()) text.append("\nУ этого игрока висит твоё предписание №").append(fine.number).append(": ").append(fine.reason)
                 .append(", штраф ").append(fine.amount).append(" ").append(fine.amount == 1 ? "изумруд" : "изумрудов").append(", срок до ").append(fine.dueDay).append("-го дня.");
@@ -197,6 +208,18 @@ public final class Officialdom {
     /** Open passport cases, by player UUID (stage 2, {@link Paperwork}); the next case number and the next passport number. */
     Map<String, Paperwork.Case> cases = new LinkedHashMap<>();
     int nextCase = 1, nextPassport = 100001;
+    /** Stages 3–4 ({@link Graft}): the heads' dachas by head UUID, and the revizor's visits, the game day he comes by village key. */
+    Map<String, Graft.Estate> estates = new LinkedHashMap<>();
+    Map<String, Long> revizors = new LinkedHashMap<>();
+
+    /** The head's dacha (made on first ask), a live object: the caller holds the store lock. */
+    Graft.Estate estate(UUID head, String headName, String village) {
+        Graft.Estate e = estates.computeIfAbsent(head.toString(), k -> { Graft.Estate n = new Graft.Estate(); n.head = k; return n; });
+        if (headName != null && !headName.isBlank()) e.headName = headName;
+        if (village != null && !village.isBlank()) e.village = village;
+        return e;
+    }
+    public List<Graft.Estate> estates() { return estates.values().stream().map(Graft.Estate::copy).toList(); }
 
     private static String key(String village, UUID player) { return village + "|" + player; }
 
@@ -268,6 +291,7 @@ public final class Officialdom {
         Officialdom c = new Officialdom();
         fines.forEach((k, v) -> c.fines.put(k, v.copy())); c.nextNumber = nextNumber; c.favoured.putAll(favoured); c.taken.putAll(taken);
         cases.forEach((k, v) -> c.cases.put(k, v.copy())); c.nextCase = nextCase; c.nextPassport = nextPassport;
+        estates.forEach((k, v) -> c.estates.put(k, v.copy())); c.revizors.putAll(revizors);
         return c;
     }
     void sanitize() {
@@ -292,5 +316,10 @@ public final class Officialdom {
         });
         if (nextCase < 1) nextCase = 1;
         if (nextPassport < 100001) nextPassport = 100001;
+        if (estates == null) estates = new LinkedHashMap<>();
+        if (revizors == null) revizors = new LinkedHashMap<>();
+        estates.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null);
+        estates.values().forEach(e -> { if (e.head == null) e.head = ""; if (e.headName == null) e.headName = ""; if (e.village == null) e.village = ""; });
+        revizors.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null);
     }
 }

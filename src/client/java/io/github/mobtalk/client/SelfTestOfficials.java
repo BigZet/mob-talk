@@ -33,7 +33,7 @@ final class SelfTestOfficials {
     private final List<String> chat = Collections.synchronizedList(new ArrayList<>());
     private Runnable next = () -> { };
     private boolean savedTowers, savedGuards, savedHuman;
-    private int savedHonest, savedClientHonest, savedQueue;
+    private int savedHonest, savedClientHonest, savedQueue, savedRevizor;
 
     SelfTestOfficials(SelfTest test, int stageX, int stageY, int stageZ) {
         this.test = test; this.fx = stageX + 400; this.fy = stageY; this.fz = stageZ;
@@ -59,7 +59,7 @@ final class SelfTestOfficials {
         test.owner.client.options.setPerspective(Perspective.FIRST_PERSON);
         test.log("officials stages: desks by the bell, three ranks, clothes and belly, the envelope, bribes, witnesses, an honest official, the inspector's order, F7");
         var config = test.bridge().config;
-        savedTowers = config.villageTowers; savedGuards = config.villageGuards; savedHonest = config.officialHonestPercent; savedQueue = config.queueSeconds; hookTooltip(); savedHuman = test.owner.config().humanVillagers;
+        savedTowers = config.villageTowers; savedGuards = config.villageGuards; savedHonest = config.officialHonestPercent; savedQueue = config.queueSeconds; savedRevizor = config.revizorSeconds; hookTooltip(); savedHuman = test.owner.config().humanVillagers;
         config.villageTowers = false; config.villageGuards = false; // officials alone: no stands and towers in the way
         config.officialHonestPercent = 0; // every official corrupt until the honest stage
         savedClientHonest = test.owner.config().officialHonestPercent; test.owner.config().officialHonestPercent = 0;
@@ -408,7 +408,103 @@ final class SelfTestOfficials {
             test.check(ahead <= 0 || said.contains("гостинец"), "a cookie to the corrupt clerk is taken");
             test.check(onServer(() -> test.bridge().queueAheadForTest(player().getUuid())) < 0 && paperCase() != null, "and the player is served past the queue (a case is open)");
             test.bridge().config.queueSeconds = savedQueue;
-            f7();
+            dacha();
+        });
+    }
+
+    // ---- Stages 3–4: the dacha, heaven, the black ledger, the revizor, «Охрана!» ----
+
+    /** The plot in the stage's north-west corner, its gate to the south (toward the bell): local (x, z) → (-x, -z). */
+    private BlockPos plotAt(int x, int y, int z) { return new BlockPos(fx - 26 - x, fy + y, fz - 23 - z); }
+    private io.github.mobtalk.core.Graft.Estate estate(VillagerEntity head) { return test.bridge().memory.estate(head.getUuid(), null, null); }
+
+    /** The corrupt head, three envelopes taken, gets the whole dacha at once; the black ledger lies in the cottage's safe. */
+    private void dacha() {
+        VillagerEntity head = official(Officialdom.Rank.HEAD);
+        if (head == null) { test.fail("no head for the dacha"); f7(); return; }
+        var memory = test.bridge().memory;
+        while (memory.officialTaken(head.getUuid()) < io.github.mobtalk.core.Graft.LEDGER_ENVELOPES) memory.officialTook(head.getUuid());
+        test.bridge().config.revizorSeconds = 12;
+        int built = onServer(() -> test.bridge().dachaForTest(head, bell(), plotAt(0, 0, 0), Direction.SOUTH.getHorizontal(), 5 * test.bridge().config.dachaPoints));
+        test.check(built == io.github.mobtalk.core.Graft.Stage.TOILET.ordinal(), "the corrupt head's dacha grows to the golden toilet (" + built + ")");
+        test.await("the dacha's news in the chat", 5, () -> count("золотой унитаз под стеклом") >= 1, () -> {
+            test.check(count("появился участок") >= 1 && count("золотой унитаз под стеклом") >= 1, "the village hears of each new piece of the dacha");
+            boolean gold = onServer(() -> world().getBlockState(plotAt(10, 1, 4)).isOf(net.minecraft.block.Blocks.GOLD_BLOCK));
+            test.check(gold, "the golden toilet stands under glass");
+            boolean ledger = onServer(() -> world().getBlockEntity(plotAt(8, 0, 10)) instanceof net.minecraft.block.entity.ChestBlockEntity chest && chest.getStack(13).isOf(OfficialContent.LEDGER));
+            test.check(ledger && estate(head).ledger(), "the black ledger lies in the cottage's safe after three envelopes");
+            test.command("tp " + name() + " " + (fx - 32) + " " + (fy + 3) + " " + (fz - 17) + " 180 12");
+            test.await("pause: the dacha chunks render", 3, () -> false, () -> shot("mobtalk-graft-dacha.png", () -> smite(head)));
+        });
+    }
+
+    /** Heaven: a lightning into the dacha, toads in the office, the golden toilet turned to dung. */
+    private void smite(VillagerEntity head) {
+        test.server().execute(() -> test.bridge().smiteForTest(head, bell(), "LIGHTNING"));
+        test.await("the lightning (chat)", 5, () -> count("молния ударила в дачу") >= 1, () -> {
+            test.check(count("молния ударила в дачу") >= 1, "heaven strikes the dacha with a lightning");
+            test.server().execute(() -> test.bridge().smiteForTest(head, bell(), "DUNG"));
+            test.await("the dung (chat)", 5, () -> count("обратился в навозный") >= 1, () -> {
+                boolean mud = onServer(() -> world().getBlockState(plotAt(10, 1, 4)).isOf(net.minecraft.block.Blocks.MUD_BRICKS));
+                test.check(mud && estate(head).dung(), "the golden toilet turns to dung");
+                shot("mobtalk-graft-dung.png", () -> {
+                    test.server().execute(() -> test.bridge().smiteForTest(head, bell(), "TOADS"));
+                    test.await("toads in the office", 5, () -> onServer(() -> world().getEntitiesByClass(net.minecraft.entity.passive.FrogEntity.class, area(), f -> f.getCommandTags().contains("mobtalk_toad")).size()) >= 5, () -> {
+                        int toads = onServer(() -> world().getEntitiesByClass(net.minecraft.entity.passive.FrogEntity.class, area(), f -> f.getCommandTags().contains("mobtalk_toad")).size());
+                        test.check(toads >= 5 && count("полон жаб") >= 1, "the head's office fills with toads (" + toads + ")");
+                        BlockPos desk = onServer(() -> head.getBrain().getOptionalRegisteredMemory(MemoryModuleType.JOB_SITE).map(GlobalPos::pos).orElse(head.getBlockPos()));
+                        test.command("tp " + name() + " " + desk.getX() + " " + (fy + 4) + " " + (desk.getZ() + 6) + " 180 35");
+                        shot("mobtalk-graft-toads.png", () -> ledger(head));
+                    });
+                });
+            });
+        });
+    }
+
+    /** The ledger from the safe to an honest inspector: the revizor comes next day, panics the village and removes the head. */
+    private void ledger(VillagerEntity head) {
+        VillagerEntity inspector = official(Officialdom.Rank.INSPECTOR);
+        if (inspector == null) { test.fail("no inspector for the ledger"); guard(); return; }
+        ItemStack book = onServer(() -> world().getBlockEntity(plotAt(8, 0, 10)) instanceof net.minecraft.block.entity.ChestBlockEntity chest ? chest.removeStack(13) : ItemStack.EMPTY);
+        test.check(book.isOf(OfficialContent.LEDGER), "the player takes the black ledger from the safe");
+        BlockPos near = onServer(inspector::getBlockPos);
+        test.command("tp " + name() + " " + near.getX() + " " + fy + " " + (near.getZ() + 3) + " 180 15");
+        test.bridge().config.officialHonestPercent = 100;
+        hands(book, ItemStack.EMPTY);
+        String said = give(inspector);
+        test.bridge().config.officialHonestPercent = 0;
+        test.log("ledger to an honest inspector: " + said);
+        String zone = onServer(() -> test.bridge().zoneKeyForTest(bell(), world()));
+        test.check(said.contains("Передадим куда следует") && test.bridge().memory.revizorDay(zone) >= 0, "an honest official takes the ledger and calls the revizor");
+        test.command("tp " + name() + " " + at(0, 7, 16) + " 180 30");
+        test.command("time add 24000");
+        test.await("the revizor arrives next day", 20, () -> count("едет ревизор") >= 1, () -> {
+            test.check(count("едет ревизор") >= 1 && onServer(() -> test.bridge().inspectingForTest(bell(), world())), "next day the revizor from the capital arrives");
+            shot("mobtalk-graft-revizor.png", () -> test.await("the verdict", 40, () -> count("снят с должности") >= 1, () -> {
+                test.check(count("снят с должности") >= 1, "the revizor removes the corrupt head");
+                test.check(onServer(() -> head.getVillagerData().getProfession() == net.minecraft.village.VillagerProfession.NITWIT), "the removed head is nobody now");
+                test.check(estate(head).confiscated(), "the dacha is confiscated");
+                boolean sign = onServer(() -> world().getBlockEntity(plotAt(8, 0, -1)) instanceof net.minecraft.block.entity.SignBlockEntity s && s.getFrontText().getMessage(0, false).getString().contains("КОНФИСКОВАНО"));
+                test.check(sign, "a «КОНФИСКОВАНО» sign at the gate");
+                test.command("tp " + name() + " " + (fx - 32) + " " + (fy + 3) + " " + (fz - 17) + " 180 12");
+                test.await("pause: by the gate", 2, () -> false, () -> shot("mobtalk-graft-confiscated.png", this::guard));
+            }));
+        });
+    }
+
+    /** A player hits the clerk: «Охрана!». */
+    private void guard() {
+        VillagerEntity clerk = official(Officialdom.Rank.CLERK);
+        if (clerk == null) { test.fail("no clerk to hit"); f7(); return; }
+        BlockPos near = onServer(clerk::getBlockPos);
+        test.command("tp " + name() + " " + near.getX() + " " + fy + " " + (near.getZ() + 2) + " 180 15");
+        test.await("pause: by the clerk", 1, () -> false, () -> {
+            test.server().execute(() -> clerk.damage(world().getDamageSources().playerAttack(player()), 0.5f));
+            test.await("«Охрана!» (chat)", 5, () -> count("Охрана!") >= 1, () -> {
+                test.check(count("Охрана!") >= 1, "a hit official shouts «Охрана!»");
+                test.server().execute(() -> clerk.heal(5));
+                f7();
+            });
         });
     }
 
@@ -422,7 +518,7 @@ final class SelfTestOfficials {
             test.log("«Чиновники» rows: " + rows);
             test.check(rows.contains("Чиновники и взятки"), "the group has its switch");
             test.check(rows.contains("Паспорт и справки") && rows.contains("Без паспорта не распишут"), "the passport switches are there");
-            test.check(rows.size() == 14, "four switches and ten sliders (" + rows.size() + ")");
+            test.check(rows.size() == 21, "eight switches and thirteen sliders (" + rows.size() + ")");
             test.check(rows.stream().noneMatch(row -> row.isBlank() || row.startsWith("mobtalk.")), "every row has a caption, none is a raw key");
             shot("mobtalk-officials-f7.png", () -> { client.setScreen(null); finish(); });
         });
@@ -437,7 +533,7 @@ final class SelfTestOfficials {
 
     private void finish() {
         var config = test.bridge().config;
-        config.villageTowers = savedTowers; config.villageGuards = savedGuards; config.officialHonestPercent = savedHonest;
+        config.villageTowers = savedTowers; config.villageGuards = savedGuards; config.officialHonestPercent = savedHonest; config.revizorSeconds = savedRevizor;
         test.owner.config().humanVillagers = savedHuman; test.owner.config().officialHonestPercent = savedClientHonest;
         test.server().execute(() -> { for (VillagerEntity v : world().getEntitiesByClass(VillagerEntity.class, area(), v -> v.getCommandTags().contains(TAG))) v.setAiDisabled(false); });
         test.command("gamerule doDaylightCycle true"); test.command("gamerule doMobSpawning true");

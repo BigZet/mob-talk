@@ -232,6 +232,9 @@ public final class Tunables {
         integer("passportFee", s, "officials", 0, 64, 1, c -> c.passportFee, (c, x) -> c.passportFee = x);
         integer("passportDays", s, "officials", 0, 7, 1, c -> c.passportDays, (c, x) -> c.passportDays = x);
         integer("queueSeconds", s, "officials", 0, 60, 2, c -> c.queueSeconds, (c, x) -> c.queueSeconds = x);
+        integer("dachaPoints", s, "officials", 1, 20, 1, c -> c.dachaPoints, (c, x) -> c.dachaPoints = x);
+        integer("smitePercent", s, "officials", 0, 100, 5, c -> c.smitePercent, (c, x) -> c.smitePercent = x);
+        integer("revizorSeconds", s, "officials", 10, 300, 10, c -> c.revizorSeconds, (c, x) -> c.revizorSeconds = x);
         // The god's deeds in the villages (Б1).
         integer("divineStrength", s, "divine", 0, 200, 10, c -> c.divineStrength, (c, x) -> c.divineStrength = x);
         integer("divineDailyCap", s, "divine", 0, 300, 5, c -> c.divineDailyCap, (c, x) -> c.divineDailyCap = x);
@@ -310,7 +313,7 @@ public final class Tunables {
                 config.pregnancy = d.pregnancy; config.pregnancyBelly = d.pregnancyBelly; config.pregnancyStatus = d.pregnancyStatus; config.familyFade = d.familyFade;
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices; config.villageSites = d.villageSites;
-                config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.alarmSound = d.alarmSound; config.villageNoConversion = d.villageNoConversion; config.villageTowers = d.villageTowers; config.villageGuards = d.villageGuards; config.villageHeavy = d.villageHeavy; config.villageCavalry = d.villageCavalry; config.officials = d.officials; config.paperwork = d.paperwork; config.paperLunch = d.paperLunch; config.passportForWedding = d.passportForWedding; config.barsInVillages = d.barsInVillages; config.barEvenings = d.barEvenings; config.barVoiced = d.barVoiced; config.barAliceSpeaker = d.barAliceSpeaker;
+                config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.alarmSound = d.alarmSound; config.villageNoConversion = d.villageNoConversion; config.villageTowers = d.villageTowers; config.villageGuards = d.villageGuards; config.villageHeavy = d.villageHeavy; config.villageCavalry = d.villageCavalry; config.officials = d.officials; config.paperwork = d.paperwork; config.paperLunch = d.paperLunch; config.passportForWedding = d.passportForWedding; config.officialDacha = d.officialDacha; config.officialSmite = d.officialSmite; config.officialRevizor = d.officialRevizor; config.officialsShameless = d.officialsShameless; config.barsInVillages = d.barsInVillages; config.barEvenings = d.barEvenings; config.barVoiced = d.barVoiced; config.barAliceSpeaker = d.barAliceSpeaker;
                 config.divineTidings = d.divineTidings; config.divinePanic = d.divinePanic; config.divineMayExile = d.divineMayExile; config.divineMourners = d.divineMourners;
             }
             case ACTIONS -> { config.placeAnalysis = d.placeAnalysis; config.placeClassifier = d.placeClassifier; }

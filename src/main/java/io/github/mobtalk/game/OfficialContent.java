@@ -58,7 +58,7 @@ public final class OfficialContent {
     public static final Identifier DESK_ID = Identifier.of("mobtalk", "official_desk");
     public static final RegistryKey<PointOfInterestType> DESK_POI = RegistryKey.of(RegistryKeys.POINT_OF_INTEREST_TYPE, DESK_ID);
     public static Block DESK;
-    public static Item ENVELOPE, CERTIFICATE, PASSPORT;
+    public static Item ENVELOPE, CERTIFICATE, PASSPORT, LEDGER;
     public static VillagerProfession HEAD, CLERK, INSPECTOR;
     /** Where the envelope keeps its emeralds (custom data). */
     static final String EMERALDS = "mobtalk_emeralds";
@@ -152,6 +152,18 @@ public final class OfficialContent {
             catch (IllegalArgumentException e) { return java.util.Optional.empty(); }
         }
     }
+    /** The head's black ledger from the dacha's safe: whose, which village, how many envelopes. */
+    public static final class Ledger extends Item {
+        Ledger(Settings settings) { super(settings); }
+        @Override public void appendTooltip(ItemStack stack, TooltipContext context, List<Text> tooltip, TooltipType type) {
+            LedgerData d = ledgerData(stack);
+            if (d == null) return;
+            tooltip.add(Text.translatable("mobtalk.graft.ledger.tooltip", d.headName(), d.count()).formatted(Formatting.GRAY));
+            tooltip.add(Text.translatable("mobtalk.graft.ledger.usage").formatted(Formatting.DARK_GRAY));
+        }
+    }
+    public record LedgerData(java.util.UUID head, String headName, String village, int count) { }
+
     /** The holder's face in the passport's tooltip (drawn on the client from the skin). */
     public record Face(java.util.UUID id, String name) implements net.minecraft.item.tooltip.TooltipData { }
 
@@ -165,6 +177,7 @@ public final class OfficialContent {
         ENVELOPE = Registry.register(Registries.ITEM, Identifier.of("mobtalk", "envelope"), new Envelope(new Item.Settings().maxCount(16)));
         CERTIFICATE = Registry.register(Registries.ITEM, Identifier.of("mobtalk", "certificate"), new Certificate(new Item.Settings().maxCount(1).rarity(Rarity.UNCOMMON)));
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> entries.add(deskItem));
+        LEDGER = Registry.register(Registries.ITEM, Identifier.of("mobtalk", "black_ledger"), new Ledger(new Item.Settings().maxCount(1).rarity(Rarity.RARE)));
         PASSPORT = Registry.register(Registries.ITEM, Identifier.of("mobtalk", "passport"), new Passport(new Item.Settings().maxCount(1).rarity(Rarity.UNCOMMON)));
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(entries -> { entries.add(ENVELOPE); entries.add(CERTIFICATE); });
         // Shift+right-click an official: a visit to the office (the passport); the client answers too, so no trades open.
@@ -255,4 +268,18 @@ public final class OfficialContent {
     }
     /** The holder UUID written in a passport, or "" for anything else. */
     public static String passportHolder(ItemStack stack) { return stack != null && PASSPORT != null && stack.isOf(PASSPORT) ? data(stack).getString(HOLDER_ID) : ""; }
+    /** The head's black ledger. */
+    static ItemStack ledger(java.util.UUID head, String headName, String village, int count) {
+        ItemStack stack = new ItemStack(LEDGER);
+        NbtCompound tag = new NbtCompound();
+        tag.putString(HOLDER_ID, head.toString()); tag.putString(HOLDER, headName); tag.putString(PLACE, village); tag.putInt(EMERALDS, count);
+        stack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(tag));
+        return stack;
+    }
+    public static LedgerData ledgerData(ItemStack stack) {
+        if (stack == null || LEDGER == null || !stack.isOf(LEDGER)) return null;
+        NbtCompound tag = data(stack);
+        try { return new LedgerData(java.util.UUID.fromString(tag.getString(HOLDER_ID)), tag.getString(HOLDER), tag.getString(PLACE), tag.getInt(EMERALDS)); }
+        catch (IllegalArgumentException e) { return null; }
+    }
 }

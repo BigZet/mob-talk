@@ -75,7 +75,24 @@ def passport():
     for x in range(x0 + 4, x1 - 2): img.putpixel((x, 12), dim + (255,))
     return img
 
+def black_ledger():
+    """A black ledger book with a red ribbon bookmark and the edges of greenish pages (emerald accounts)."""
+    img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
+    edge, cover, light = (14, 14, 18), (34, 32, 40), (56, 52, 64)
+    x0, y0, x1, y1 = 2, 2, 12, 13
+    for y in range(y0, y1 + 1):
+        for x in range(x0, x1 + 1):
+            border = x in (x0, x1) or y in (y0, y1)
+            img.putpixel((x, y), (edge if border else light if y == y0 + 1 else cover) + (255,))
+    for y in range(y0 + 1, y1): img.putpixel((x1 + 1, y), (200, 220, 196, 255))  # pages
+    for y in range(y0 + 2, y1, 2): img.putpixel((x1 + 1, y), (90, 190, 120, 255))  # emerald ticks on the edge
+    for y in range(y1 - 1, y1 + 3): img.putpixel((9, min(15, y)), (180, 30, 40, 255))  # ribbon
+    for x in range(x0 + 3, x1 - 2): img.putpixel((x, 6), (150, 140, 110, 255))  # label
+    img.putpixel((x0 + 3, 8), (150, 140, 110, 255)); img.putpixel((x0 + 4, 8), (150, 140, 110, 255))
+    return img
+
 envelope().save(os.path.join(OUT, 'envelope.png'))
 certificate().save(os.path.join(OUT, 'certificate.png'))
 passport().save(os.path.join(OUT, 'passport.png'))
+black_ledger().save(os.path.join(OUT, 'black_ledger.png'))
 print('ok')
