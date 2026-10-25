@@ -540,6 +540,15 @@ public final class MobState {
         /** Bitter, grieving or depressed: holds the price and haggles grudgingly. */
         public boolean grudging() { return spell != null && spell.deals == MoodSpell.Deals.HARDER; }
 
+        /** The pixel face over the head, glyph {@code \uE000 + face()} of the font {@code mobtalk:mood}: a long mood has its own
+         * (7 and on, in the order of {@link MoodSpell}); else panic, then exhaustion, then the mood from beaming (0) to gloomy (4). */
+        public int face() {
+            if (spell != null) return 7 + spell.ordinal();
+            if (calm < 20) return 5;
+            if (energy < 20) return 6;
+            return mood >= 80 ? 0 : mood > 60 ? 1 : mood >= 40 ? 2 : mood >= 20 ? 3 : 4;
+        }
+
         public int of(Axis axis) { return switch (axis) { case MOOD -> mood; case CALM -> calm; case INTEREST -> interest; case TRUST -> trust; case ENERGY -> energy; }; }
 
         /** The word for one axis; the neutral band of mood and calm has a word, that of interest, trust and energy is silence. */

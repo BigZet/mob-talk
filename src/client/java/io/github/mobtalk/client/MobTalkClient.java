@@ -100,6 +100,7 @@ public final class MobTalkClient implements ClientModInitializer {
     UUID selected;
     KeyBinding talkKey, settingsKey, tradeKey, giftKey, familyKey;
     private final MobLabels labels = new MobLabels(this);
+    final MoodCard moodCard = new MoodCard(this);
     private final ChildView children = new ChildView(this);
     final MobViews views = new MobViews();
     private final ClipAssembler clips = new ClipAssembler();
@@ -139,6 +140,7 @@ public final class MobTalkClient implements ClientModInitializer {
         tradeKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.trade", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_B, "category.mobtalk"));
         giftKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.gift", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_G, "category.mobtalk"));
         familyKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.family", InputUtil.Type.KEYSYM, InputUtil.UNKNOWN_KEY.getCode(), "category.mobtalk"));
+        moodCard.key = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.mood", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_ALT, "category.mobtalk"));
         MomentClient.register(configDirectory); // Метки для монтажа: клавиша, OBS (идея З4).
         net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_ENTITIES.register(labels::render);
         ChildView.register();
@@ -149,6 +151,7 @@ public final class MobTalkClient implements ClientModInitializer {
                     @Override public void reload(net.minecraft.resource.ResourceManager manager) { io.github.mobtalk.client.human.HumanTextures.reload(); }
                 });
         net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback.EVENT.register(children::renderFade);
+        net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback.EVENT.register(moodCard::render);
         ScreenEvents.AFTER_INIT.register((minecraft, screen, width, height) -> {
             if (screen instanceof GameMenuScreen) {
                 boolean pack = ModHubScreen.packInstalled();

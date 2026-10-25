@@ -935,6 +935,40 @@ public final class ConversationStore {
         for (Profile p : state.profiles.values()) if (villageId != null && villageId.equals(p.villageId)) n++;
         return n;
     }
+    /** How a village feels as a whole, for the web admin: the average mood, nerves and energy of its residents with a known state,
+     * how many are low ({@code mood < 35}) or bright ({@code mood > 65}), who is in which long mood, and the reasons most of them
+     * share (a storm, a raid, a death), most common first. Trust is left out: it is kept for each player. */
+    public record VillageMood(int counted, int mood, int calm, int energy, int low, int bright, Map<String, Integer> spells, List<SharedReason> reasons) {
+        public static final VillageMood NONE = new VillageMood(0, 50, 50, 60, 0, 0, Map.of(), List.of());
+    }
+    /** A reason {@code count} residents share; {@code sign} is the sign it has for most of them. */
+    public record SharedReason(String text, int sign, int count) { }
+
+    public synchronized VillageMood villageMood(String villageId, long now) {
+        if (villageId == null || villageId.isBlank()) return VillageMood.NONE;
+        int counted = 0, mood = 0, calm = 0, energy = 0, low = 0, bright = 0;
+        Map<String, Integer> spells = new TreeMap<>();
+        Map<String, int[]> reasons = new LinkedHashMap<>();
+        for (Profile p : state.profiles.values()) {
+            if (!villageId.equals(p.villageId) || p.state == null) continue;
+            MobState.View v = p.state.view(baseline(p), now);
+            counted++; mood += v.mood(); calm += v.calm(); energy += v.energy();
+            if (v.mood() < 35) low++;
+            if (v.mood() > 65) bright++;
+            if (v.spell() != null) spells.merge(v.spell().key, 1, Integer::sum);
+            for (MobState.Reason r : v.reasons()) {
+                int[] tally = reasons.computeIfAbsent(r.text(), k -> new int[2]);
+                tally[0]++; tally[1] += Integer.signum(r.sign());
+            }
+        }
+        if (counted == 0) return VillageMood.NONE;
+        List<SharedReason> shared = new ArrayList<>();
+        reasons.forEach((text, tally) -> shared.add(new SharedReason(text, Integer.signum(tally[1]), tally[0])));
+        shared.sort(Comparator.comparingInt(SharedReason::count).reversed());
+        return new VillageMood(counted, Math.round(mood / (float) counted), Math.round(calm / (float) counted), Math.round(energy / (float) counted),
+                low, bright, spells, shared.size() > 5 ? List.copyOf(shared.subList(0, 5)) : List.copyOf(shared));
+    }
+
     /** What the village says right now, weightiest first. */
     public synchronized List<VillageRumors.View> villageRumors(String villageId, long now) { return villageId == null ? List.of() : state.rumors.village(villageId, now); }
     /** A player's fame in a village from its rumours. */

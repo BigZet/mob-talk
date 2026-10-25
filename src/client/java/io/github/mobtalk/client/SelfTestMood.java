@@ -106,7 +106,19 @@ final class SelfTestMood {
         test.await("the nameplates show the long moods", 30, () -> "grief".equals(label(0)) && "dread".equals(label(1)) && "in_love".equals(label(2)), () -> {
             test.check("grief".equals(label(0)) && "dread".equals(label(1)) && "in_love".equals(label(2)),
                     "nameplates: " + label(0) + ", " + label(1) + ", " + label(2));
-            shot("mobtalk-mood-2-nameplates.png", this::info);
+            MobStateS2C grief = test.owner.views.state(villagers.get(0));
+            test.check(grief != null && grief.face() == 7 && grief.spell().equals("grief") && !grief.reasons().isEmpty(),
+                    "the packet carries the face, the long mood and the reasons: " + grief);
+            shot("mobtalk-mood-2-nameplates.png", this::card);
+        });
+    }
+
+    // The mood card (Left Alt in play) of the grieving villager: face, long mood, what helps, bars, reasons.
+    private void card() {
+        test.owner.moodCard.forced = villagers.get(0);
+        shot("mobtalk-mood-4-card.png", () -> {
+            test.owner.moodCard.forced = villagers.get(2);
+            shot("mobtalk-mood-5-card-love.png", () -> { test.owner.moodCard.forced = null; info(); });
         });
     }
 

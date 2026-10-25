@@ -67,6 +67,12 @@ public enum MoodSpell {
     /** A grief or a fear outweighs a joy: a spell only gives way to a stronger one (lower ordinal) or ends by itself. */
     boolean yieldsTo(MoodSpell other) { return other != null && other.ordinal() < ordinal(); }
 
+    /** By its lang key ({@code "in_love"}), as the state packet carries it; null for none or unknown. */
+    public static MoodSpell byKey(String key) {
+        for (MoodSpell spell : values()) if (spell.key.equals(key)) return spell;
+        return null;
+    }
+
     static MoodSpell of(String name) {
         if (name == null) return null;
         try { return valueOf(name.toUpperCase(Locale.ROOT)); } catch (IllegalArgumentException unknown) { return null; }

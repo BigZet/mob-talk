@@ -1,0 +1,14 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "mobtalk:font/mood_faces.png",
+      "height": 9,
+      "ascent": 8,
+      "chars": [
+        "",
+        ""
+      ]
+    }
+  ]
+}

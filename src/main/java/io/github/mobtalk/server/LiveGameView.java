@@ -481,7 +481,9 @@ final class LiveGameView implements GameView {
             String backstory = memory().backstoryOf(id);
             return Json.obj("mob", mobJson(id), "rivals", rivalsJson(id),
                     "card", Json.obj("name", card.name(), "character", (character == null ? "" : character) + (backstory.isBlank() ? "" : "\n" + backstory), "voice", card.voiceId(), "memory", card.memory()),
-                    "state", Json.obj("calm", state.calm(), "trust", state.trust(), "interest", state.interest(), "mood", state.mood(), "word", state.thought()),
+                    "state", Json.obj("calm", state.calm(), "trust", state.trust(), "interest", state.interest(), "mood", state.mood(), "energy", state.energy(), "word", state.thought(),
+                            "spell", state.spell() == null ? null : Json.obj("word", state.spell().word, "sign", state.spell().sign, "minutes", state.spellMillis() / 60_000L, "help", state.spell().help),
+                            "reasons", state.reasons().stream().map(r -> Json.obj("text", r.text(), "sign", r.sign())).toList()),
                     "relations", relations, "facts", facts, "events", events,
                     "family", Json.obj("spouse", spouse == null ? null : kinJson(spouse), "children", children));
         });
@@ -555,10 +557,23 @@ final class LiveGameView implements GameView {
                     standings.add(Json.obj("player", Json.player(id, name), "points", (int) Math.round(fame.balance()), "rank", fame.describe()));
                 });
                 out.add(Json.obj("id", village.id(), "name", village.name(), "residents", memory().residents(village.id()),
-                        "chronicle", chronicle, "rumors", rumors, "standings", standings));
+                        "chronicle", chronicle, "rumors", rumors, "standings", standings, "mood", moodJson(memory().villageMood(village.id(), now))));
             }
             return Json.obj("villages", out);
         });
+    }
+
+    /** The village mood for the Villages tab: averages, the low and the bright, long moods with their words, shared reasons. */
+    static JsonObject moodJson(ConversationStore.VillageMood mood) {
+        List<JsonObject> spells = new ArrayList<>();
+        mood.spells().forEach((key, count) -> {
+            io.github.mobtalk.core.MoodSpell spell = io.github.mobtalk.core.MoodSpell.byKey(key);
+            spells.add(Json.obj("key", key, "word", spell == null ? key : spell.word, "sign", spell == null ? 0 : spell.sign, "count", count));
+        });
+        List<JsonObject> reasons = new ArrayList<>();
+        for (ConversationStore.SharedReason r : mood.reasons()) reasons.add(Json.obj("text", r.text(), "sign", r.sign(), "count", r.count()));
+        return Json.obj("counted", mood.counted(), "mood", mood.mood(), "calm", mood.calm(), "energy", mood.energy(), "low", mood.low(),
+                "bright", mood.bright(), "spells", spells, "reasons", reasons);
     }
 
     @Override public JsonObject forgive(String villageId, UUID player) {

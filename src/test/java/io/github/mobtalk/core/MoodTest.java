@@ -175,4 +175,36 @@ class MoodTest {
         assertTrue(morning.reasons().stream().anyMatch(r -> r.text().equals("хороший сон")), morning.toString());
         assertTrue(morning.reasons().stream().noneMatch(r -> r.text().equals("бессонная ночь") && r.lasting()));
     }
+
+    // The face over the head follows the long mood first, then panic and tiredness, then the mood itself.
+    @Test void theFaceFollowsTheState() {
+        assertEquals(0, new MobState.View(90, 60, 50, 50, 60, null, 0, List.of(), "").face());
+        assertEquals(2, new MobState.View(50, 60, 50, 50, 60, null, 0, List.of(), "").face());
+        assertEquals(4, new MobState.View(10, 60, 50, 50, 60, null, 0, List.of(), "").face());
+        assertEquals(5, new MobState.View(50, 10, 50, 50, 60, null, 0, List.of(), "").face());
+        assertEquals(6, new MobState.View(50, 60, 50, 50, 10, null, 0, List.of(), "").face());
+        assertEquals(7, new MobState.View(50, 60, 50, 50, 60, MoodSpell.GRIEF, 0, List.of(), "").face());
+        assertEquals(15, new MobState.View(50, 60, 50, 50, 60, MoodSpell.GRACE, 0, List.of(), "").face());
+        assertEquals(MoodSpell.LOVE, MoodSpell.byKey("in_love"));
+    }
+
+    // The admin sees the village as a whole: averages, the low ones, long moods and the reasons they share.
+    @Test void theVillageMoodSumsItsResidents() throws Exception {
+        ConversationStore store = ConversationStore.open(directory, new MobTalkConfig());
+        long now = System.currentTimeMillis();
+        UUID a = UUID.randomUUID(), b = UUID.randomUUID(), stranger = UUID.randomUUID();
+        for (UUID mob : List.of(a, b, stranger)) store.recordEvent(mob, "minecraft:villager", "Житель", "Знакомство", now);
+        store.setBackstory(a, "", "", "", "", "v1");
+        store.setBackstory(b, "", "", "", "", "v1");
+        store.setBackstory(stranger, "", "", "", "", "v2");
+        for (UUID mob : List.of(a, b)) store.surroundings(mob, null, new MoodSample(EnumSet.of(MoodFactor.STORM), Set.of(), true, false, true, 5, false), now);
+        store.recordMood(a, MobState.Event.BEREAVED, "Ольга", now);
+        ConversationStore.VillageMood mood = store.villageMood("v1", now + 1000);
+        assertEquals(2, mood.counted());
+        assertEquals(1, mood.spells().get("grief"));
+        assertEquals("гроза", mood.reasons().getFirst().text());
+        assertEquals(2, mood.reasons().getFirst().count());
+        assertTrue(mood.reasons().getFirst().sign() < 0);
+        assertEquals(0, store.villageMood("nowhere", now).counted());
+    }
 }
