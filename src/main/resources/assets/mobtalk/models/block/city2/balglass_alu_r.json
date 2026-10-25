@@ -3,6 +3,9 @@
  "textures": {
   "g": "mobtalk:block/city2/glass_alu_mid",
   "f": "mobtalk:block/city2/frame_alu",
+  "c": "mobtalk:block/city2/concrete",
+  "s": "mobtalk:block/city2/slab_side",
+  "t": "mobtalk:block/city2/tin",
   "particle": "mobtalk:block/city2/glass_alu_mid"
  },
  "elements": [
@@ -10,30 +13,66 @@
    "from": [
     0,
     0,
-    1
+    0.5
    ],
    "to": [
     16,
-    16,
-    2
+    1.5,
+    2.5
    ],
    "faces": {
     "north": {
-     "texture": "#g",
+     "texture": "#f",
      "uv": [
       0,
-      0,
+      14.5,
       16,
       16
      ]
     },
     "south": {
-     "texture": "#g",
+     "texture": "#f",
      "uv": [
       0,
-      0,
+      14.5,
       16,
       16
+     ]
+    },
+    "east": {
+     "texture": "#f",
+     "uv": [
+      0.5,
+      14.5,
+      2.5,
+      16
+     ]
+    },
+    "west": {
+     "texture": "#f",
+     "uv": [
+      0.5,
+      14.5,
+      2.5,
+      16
+     ]
+    },
+    "up": {
+     "texture": "#f",
+     "uv": [
+      0,
+      0.5,
+      16,
+      2.5
+     ]
+    },
+    "down": {
+     "texture": "#f",
+     "uv": [
+      0,
+      0.5,
+      16,
+      2.5
      ]
     }
    }
@@ -178,66 +217,30 @@
    "from": [
     0,
     0,
-    0.5
+    1
    ],
    "to": [
     16,
-    1.5,
-    2.5
+    16,
+    2
    ],
    "faces": {
     "north": {
-     "texture": "#f",
+     "texture": "#g",
      "uv": [
       0,
-      14.5,
+      0,
       16,
       16
      ]
     },
     "south": {
-     "texture": "#f",
+     "texture": "#g",
      "uv": [
       0,
-      14.5,
-      16,
-      16
-     ]
-    },
-    "east": {
-     "texture": "#f",
-     "uv": [
-      0.5,
-      14.5,
-      2.5,
-      16
-     ]
-    },
-    "west": {
-     "texture": "#f",
-     "uv": [
-      0.5,
-      14.5,
-      2.5,
-      16
-     ]
-    },
-    "up": {
-     "texture": "#f",
-     "uv": [
       0,
-      0.5,
       16,
-      2.5
-     ]
-    },
-    "down": {
-     "texture": "#f",
-     "uv": [
-      0,
-      0.5,
-      16,
-      2.5
+      16
      ]
     }
    }
@@ -338,6 +341,74 @@
       15,
       16.0,
       16
+     ]
+    }
+   }
+  },
+  {
+   "from": [
+    14.0,
+    0,
+    3
+   ],
+   "to": [
+    16.0,
+    1.5,
+    15
+   ],
+   "faces": {
+    "north": {
+     "texture": "#f",
+     "uv": [
+      14.0,
+      14.5,
+      16.0,
+      16
+     ]
+    },
+    "south": {
+     "texture": "#f",
+     "uv": [
+      14.0,
+      14.5,
+      16.0,
+      16
+     ]
+    },
+    "east": {
+     "texture": "#f",
+     "uv": [
+      3,
+      14.5,
+      15,
+      16
+     ]
+    },
+    "west": {
+     "texture": "#f",
+     "uv": [
+      3,
+      14.5,
+      15,
+      16
+     ]
+    },
+    "up": {
+     "texture": "#f",
+     "uv": [
+      14.0,
+      3,
+      16.0,
+      15
+     ]
+    },
+    "down": {
+     "texture": "#f",
+     "uv": [
+      14.0,
+      3,
+      16.0,
+      15
      ]
     }
    }

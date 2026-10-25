@@ -963,32 +963,90 @@ def balconies():
     for fr in ("pvc", "wood", "alu"):
         g = {"pvc": "glass", "wood": "glass_wood", "alu": "glass_alu"}[fr]
         f = {"pvc": "frame_white", "wood": "frame_wood", "alu": "frame_alu"}[fr]
-        for row in ("glass", "top"):
+        # glass: the lower frames over the parapet; top: the upper frames with the transom; cap: the frames' head under the
+        # balcony slab above, with that slab; roof: the frames' head with a tin roof, on the top floor
+        for row, gh, rail in (("glass", 16, (0, 1.5)), ("top", 16, (7, 8.5)), ("cap", 8, (8, 10.5)), ("roof", 0, (0, 2.5))):
+            hi = max(gh, rail[1])
             for pos in ("l", "m", "r"):
-                h = 16 if row == "glass" else 12
-                els = [face_box((0, 0, 1), (16, h, 2), {"north": ("g", [0, 16 - h, 16, 16], None), "south": ("g", [0, 16 - h, 16, 16], None)}),
-                       face_box((0, 0, 0.5), (1.5, h, 2.5), faces("f")), face_box((14.5, 0, 0.5), (16, h, 2.5), faces("f"))]
-                if row == "glass":
-                    els.append(face_box((0, 0, 0.5), (16, 1.5, 2.5), faces("f")))
-                else:
-                    els += [face_box((0, 12, 0), (16, 16, 3), faces("f")), face_box((0, 7, 0.5), (16, 8.5, 2.5), faces("f"))]
+                els = [face_box((0, rail[0], 0.5), (16, rail[1], 2.5 if row in ("glass", "top") else 3), faces("f")),
+                       face_box((0, 0, 0.5), (1.5, hi, 2.5), faces("f")), face_box((14.5, 0, 0.5), (16, hi, 2.5), faces("f"))]
+                if gh:
+                    els.append(face_box((0, 0, 1), (16, gh, 2), {"north": ("g", [0, 16 - gh, 16, 16], None),
+                                                                 "south": ("g", [0, 16 - gh, 16, 16], None)}))
                 boxes = [[0, 0, 0, 16, 16, 3]]
                 for side, x0 in (("l", 0.5), ("r", 14.5)):
                     if pos == side:
-                        els += [face_box((x0 + 0.25, 0, 2.5), (x0 + 0.75, h, 15.5), {"east": ("g", None, None), "west": ("g", None, None)}),
-                                face_box((x0 - 0.5, 0, 15), (x0 + 1.5, h, 16), faces("f"))]
-                        if row == "top":
-                            els.append(face_box((x0 - 0.5, 12, 3), (x0 + 1.5, 16, 15), faces("f")))
+                        if gh:
+                            els.append(face_box((x0 + 0.25, 0, 2.5), (x0 + 0.75, gh, 15.5), {"east": ("g", None, None), "west": ("g", None, None)}))
+                        els += [face_box((x0 - 0.5, 0, 15), (x0 + 1.5, hi, 16), faces("f")),
+                                face_box((x0 - 0.5, rail[0], 3), (x0 + 1.5, rail[1], 15), faces("f"))]
                         boxes.append([x0 - 0.5, 0, 0, x0 + 1.5, 16, 16])
+                if row == "cap":
+                    els.append(face_box((0, 10.5, 0), (16, 16, 16), {"up": ("c", None, None), "down": ("s", None, None),
+                                                                      "north": ("s", None, None), "east": ("s", None, None),
+                                                                      "west": ("s", None, None), "south": ("s", None, "south")}))
+                    boxes = [[0, 10.5, 0, 16, 16, 16]] + boxes
+                if row == "roof":
+                    els += [face_box((-0.5, 2.5, -1.5), (16.5, 3.5, 16), faces("t")), face_box((-0.5, 1.5, -1.5), (16.5, 2.5, -0.5), faces("t")),
+                            face_box((0, 3.5, 13), (16, 4.5, 16), faces("t"))]
+                    boxes = [[0, 0, 0, 16, 4.5, 16]]
                 ru = {"pvc": "белый пластик", "wood": "дерево", "alu": "алюминий"}[fr]
-                decor(f"bal{row}_{fr}_{pos}", {"g": f"{g}_mid", "f": f}, els,
-                      f"Остекление балкона ({ru}, {'рамы' if row == 'glass' else 'верх'}, {ru_pos[pos]})",
-                      f"Balcony glazing ({fr}, {'frames' if row == 'glass' else 'top'}, {en_pos[pos]})", boxes=boxes, color="WHITE",
-                      sound="GLASS", layer="translucent", ao=False)
-    roof = face_box((-0.5, 1, -1.5), (16.5, 2, 16), {fc: ("t", None, None) for fc in D.FACES})
-    roof["rotation"] = {"origin": [8, 1.5, 16], "axis": "x", "angle": -22.5}
-    decor("balcony_roof", {"t": "tin"}, [roof, face_box((0, 0, 14), (16, 2, 16), faces("t"))], "Крыша балкона", "Balcony roof",
-          boxes=[[0, 0, 0, 16, 6, 16]], color="LIGHT_GRAY", sound="METAL")
+                ru_row = {"glass": "рамы", "top": "верх", "cap": "под плитой", "roof": "с крышей"}[row]
+                en_row = {"glass": "frames", "top": "top", "cap": "under the slab", "roof": "with a roof"}[row]
+                decor(f"bal{row}_{fr}_{pos}", {"g": f"{g}_mid", "f": f, "c": "concrete", "s": "slab_side", "t": "tin"}, els,
+                      f"Остекление балкона ({ru}, {ru_row}, {ru_pos[pos]})", f"Balcony glazing ({fr}, {en_row}, {en_pos[pos]})",
+                      boxes=boxes, color="WHITE", sound="GLASS", layer="translucent", ao=False)
+
+
+def chute():
+    """The garbage chute of a Soviet staircase: a steel pipe painted grey-green from the ground to the roof, passing through
+    each half-landing in its corner, with the hopper (a tipping bucket with a handle) at every half-landing."""
+    r = rnd("chute")
+    img = D.new()
+    base = (104, 118, 108)
+    for y in range(16):
+        for x in range(16):
+            k = (1.08 if x < 3 else 0.9 if x > 12 else 1.0) * r.uniform(0.97, 1.03)
+            put(img, x, y, D.shade(base + (255,), k))
+    for x in range(16):        # a ring seam between pipe sections, with rivets
+        put(img, x, 0, D.shade(base + (255,), 0.72))
+        put(img, x, 1, D.shade(base + (255,), 1.15))
+    for x in (2, 7, 12):
+        put(img, x, 3, (70, 78, 72))
+    for _ in range(5):         # rust and old paint
+        x, y = r.randrange(16), r.randrange(4, 16)
+        put(img, x, y, (132, 96, 70))
+    tex("chute_metal", img)
+    img = D.new()   # the hopper's front: the bucket's rim, the dark slot of its mouth, its belly
+    fill(img, (86, 98, 90), 0.03, rnd("hopper"))
+    D.bevel(img, (0, 0, 16, 16), 1.2, 0.7)
+    for y in range(4, 7):
+        for x in range(2, 14):
+            put(img, x, y, (30, 32, 30))
+    for x in range(2, 14):     # the bucket's rounded belly, darker below
+        for y in range(9, 15):
+            put(img, x, y, D.shade(img.getpixel((x, y)), 0.88 if y > 12 else 0.95))
+    tex("chute_hopper", img)
+    m = lambda f, t: face_box(f, t, {fc: ("m", None, None) for fc in D.FACES})  # noqa: E731
+
+    def pipe(y0, y1):
+        return [m((4, y0, 6), (12, y1, 16)), m((3, y0, 7), (13, y1, 15))]
+    decor("chute_pipe", {"m": "chute_metal"}, pipe(0, 16), "Мусоропровод (труба)", "Garbage chute (pipe)",
+          boxes=[[3, 0, 6, 13, 16, 16]], color="GREEN", sound="METAL")
+    hopper = pipe(0, 16) + [
+        face_box((3.5, 7, 1.5), (12.5, 14, 6), {"north": ("h", [0, 0, 16, 16], None), "up": ("m", None, None), "down": ("m", None, None),
+                                                 "east": ("m", None, None), "west": ("m", None, None)}),
+        m((3, 14, 1), (13, 15, 6.5)),                          # the bucket's lid lip
+        m((5.5, 9, 0), (10.5, 9.75, 0.75)), m((5.5, 9, 0.75), (6.25, 9.75, 1.5)), m((9.75, 9, 0.75), (10.5, 9.75, 1.5))]   # the handle
+    decor("chute_hopper", {"m": "chute_metal", "h": "chute_hopper"}, hopper, "Мусоропровод (ковш)", "Garbage chute (hopper)",
+          boxes=[[3, 0, 6, 13, 16, 16], [3, 7, 1, 13, 15, 6]], color="GREEN", sound="METAL")
+    model("chute_slab_pipe", {"m": "chute_metal"}, pipe(0, 8))
+    decor("chute_slab", {"m": "chute_metal", "t": "terrazzo", "b": "ceiling", "s": "slab_side"},
+          pipe(0, 8) + [face_box((0, 8, 0), (16, 16, 16), {"up": ("t", None, "up"), "down": ("b", None, None), "north": ("s", None, "north"),
+                                                          "east": ("s", None, "east"), "west": ("s", None, "west"), "south": ("s", None, "south")})],
+          "Площадка с трубой мусоропровода", "Landing with the chute's pipe", boxes=[[0, 8, 0, 16, 16, 16], [3, 0, 6, 13, 8, 16]],
+          color="STONE_GRAY")
+    del MODELS["chute_slab_pipe"]
 
 
 def rails_and_roof():
@@ -1048,6 +1106,7 @@ def make_models():
     doors()
     steps()
     balconies()
+    chute()
     rails_and_roof()
 
 

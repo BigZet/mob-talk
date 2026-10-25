@@ -1,0 +1,19 @@
+{
+ "variants": {
+  "facing=north": {
+   "model": "mobtalk:block/city2/chute_hopper"
+  },
+  "facing=east": {
+   "model": "mobtalk:block/city2/chute_hopper",
+   "y": 90
+  },
+  "facing=south": {
+   "model": "mobtalk:block/city2/chute_hopper",
+   "y": 180
+  },
+  "facing=west": {
+   "model": "mobtalk:block/city2/chute_hopper",
+   "y": 270
+  }
+ }
+}

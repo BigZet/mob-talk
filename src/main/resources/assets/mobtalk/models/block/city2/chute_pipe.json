@@ -1,0 +1,145 @@
+{
+ "parent": "minecraft:block/block",
+ "textures": {
+  "m": "mobtalk:block/city2/chute_metal",
+  "particle": "mobtalk:block/city2/chute_metal"
+ },
+ "elements": [
+  {
+   "from": [
+    4,
+    0,
+    6
+   ],
+   "to": [
+    12,
+    16,
+    16
+   ],
+   "faces": {
+    "north": {
+     "texture": "#m",
+     "uv": [
+      4,
+      0,
+      12,
+      16
+     ]
+    },
+    "south": {
+     "texture": "#m",
+     "uv": [
+      4,
+      0,
+      12,
+      16
+     ]
+    },
+    "east": {
+     "texture": "#m",
+     "uv": [
+      6,
+      0,
+      16,
+      16
+     ]
+    },
+    "west": {
+     "texture": "#m",
+     "uv": [
+      6,
+      0,
+      16,
+      16
+     ]
+    },
+    "up": {
+     "texture": "#m",
+     "uv": [
+      4,
+      6,
+      12,
+      16
+     ]
+    },
+    "down": {
+     "texture": "#m",
+     "uv": [
+      4,
+      6,
+      12,
+      16
+     ]
+    }
+   }
+  },
+  {
+   "from": [
+    3,
+    0,
+    7
+   ],
+   "to": [
+    13,
+    16,
+    15
+   ],
+   "faces": {
+    "north": {
+     "texture": "#m",
+     "uv": [
+      3,
+      0,
+      13,
+      16
+     ]
+    },
+    "south": {
+     "texture": "#m",
+     "uv": [
+      3,
+      0,
+      13,
+      16
+     ]
+    },
+    "east": {
+     "texture": "#m",
+     "uv": [
+      7,
+      0,
+      15,
+      16
+     ]
+    },
+    "west": {
+     "texture": "#m",
+     "uv": [
+      7,
+      0,
+      15,
+      16
+     ]
+    },
+    "up": {
+     "texture": "#m",
+     "uv": [
+      3,
+      7,
+      13,
+      15
+     ]
+    },
+    "down": {
+     "texture": "#m",
+     "uv": [
+      3,
+      7,
+      13,
+      15
+     ]
+    }
+   }
+  }
+ ]
+}

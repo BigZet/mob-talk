@@ -210,6 +210,8 @@ class House:
             self.stairs(i)
         self.balconies()
         self.fixtures()
+        import rooms   # the flats' furniture (rooms.py reads the furniture catalogue, so it is imported only here)
+        rooms.furnish(self)
         return t
 
     def floor(self, k):
@@ -337,10 +339,6 @@ class House:
             if k > F:
                 break
             self.at(M, s + 3, sz + 7, LAMP_STAIR, {"facing": N, "lit": "true"})
-            for n in range(3):                                  # the garbage chute in the half-landing's corner by the side wall
-                y = s + 3 + n
-                self.at(A0, y, sz, "apt_chute" if n == 0 else "apt_chute_part",
-                        {"facing": E, "lit": "true"} if n == 0 else {"facing": E, "lit": "true", "part": str(n)})
             for x, rail in ((A0, "none"), (A1, "right")):       # the first flight, towards facade A
                 step(x, s + 1, sz + 5, "bottom", N, rail)
                 step(x, s + 1, sz + 4, "top", N, rail)
@@ -424,6 +422,14 @@ class House:
         for y, half in ((R + 1, "lower"), (R + 2, "upper")):
             self.at(M, y, sz + 8, door, {"facing": SO, "half": half, "hinge": "left", "open": "false", "powered": "false"})
         self.at(A0, R + 3, sz + 7, LAMP_STAIR, {"facing": E, "lit": "true"})
+        # The garbage chute: one pipe in the corner of the half-landings by the side wall, from the ground to the roof box's
+        # ceiling, through each half-landing's slab, a hopper over each half-landing.
+        for y in range(1, R + 4):
+            k = (y - 1) // scale.STOREY + 1          # the storey whose half-landing this row may belong to
+            s = self.slab(k)
+            name = "chute_slab" if y == s + 2 and k <= F else "chute_hopper" if y == s + 3 and k <= F else "chute_pipe"
+            self.at(A0, y, sz, name, {"facing": E})
+        self.at(A0, R + 5, sz, "vent_cap", {"facing": N})
 
     def balconies(self):
         """A balcony in front of every balcony door from the second floor up: the slab in the floor's slab row; open ones
@@ -446,10 +452,12 @@ class House:
             for k in range(2, self.floors + 1):
                 s = self.slab(k)
                 kind, style, frame = self.palette(sec, k, side)["balcony"]
+                below = self.palette(sec, k - 1, side)["balcony"] if k > 2 else ("open", None, None)
                 for j, (x, z) in enumerate(run):
                     ox, oz = x + dx, z + dz
                     pos = "l" if j == len(run) - 1 else "r" if j == 0 else "m"
-                    self.at(ox, s, oz, "balcony_slab", {"facing": out})
+                    # the slab; under it the head of the glazing of the balcony below, if that one is glazed
+                    self.at(ox, s, oz, f"balcap_{below[2]}_{pos}" if below[0] == "glazed" else "balcony_slab", {"facing": out})
                     if kind == "open":
                         self.at(ox, s + 1, oz, f"balrail_{style}_{pos}", {"facing": out})
                         continue
@@ -457,7 +465,7 @@ class House:
                     self.at(ox, s + 2, oz, f"balglass_{frame}_{pos}", {"facing": out})
                     self.at(ox, s + 3, oz, f"baltop_{frame}_{pos}", {"facing": out})
                     if k == self.floors:
-                        self.at(ox, s + 4, oz, "balcony_roof", {"facing": out})
+                        self.at(ox, s + 4, oz, f"balroof_{frame}_{pos}", {"facing": out})
 
     def fixtures(self):
         """A lamp in each room; at each window the curtains, with the radiator under the sill; the flats' records."""
@@ -481,7 +489,7 @@ class House:
                 flat.rooms.setdefault(kind, []).extend((self.ox + x, self.oz + z) for x, z in cells)
             hung = {}
             for (bx, bz), c in self.grid.items():
-                if c != "W" or not self.is_facade(bx, bz):
+                if not (c == "W" or (c == "B" and k == 1)) or not self.is_facade(bx, bz):
                     continue
                 d = OPP[self.outward(bx, bz)]
                 ix, iz = bx + DIRS[d][0], bz + DIRS[d][1]
