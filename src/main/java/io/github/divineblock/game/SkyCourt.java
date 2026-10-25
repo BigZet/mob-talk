@@ -64,6 +64,12 @@ public final class SkyCourt {
     public static boolean inCourt(ServerPlayerEntity player) { return SESSIONS.containsKey(player.getUuid()); }
     /** The mortals in court now. */
     public static List<UUID> judged() { return new ArrayList<>(SESSIONS.keySet()); }
+    /** The mortals in court now and how many ticks are left until the god lets each go at the latest. */
+    public static Map<UUID, Integer> remaining() {
+        Map<UUID, Integer> out = new java.util.LinkedHashMap<>();
+        SESSIONS.forEach((player, session) -> out.put(player, Math.max(0, TIMEOUT_TICKS - session.age)));
+        return out;
+    }
 
     /** The admin ends every court: the god lets each mortal go and returns him as when a court runs out of time (the foes
      * left in the arena go with it). Returns how many courts ended. */

@@ -7,9 +7,12 @@ import io.github.divineblock.core.DivineSettings;
 import io.github.divineblock.core.GodJournal;
 import io.github.divineblock.core.GodLedger;
 import io.github.divineblock.core.Miracle;
+import io.github.divineblock.core.Roulette;
+import io.github.divineblock.core.RouletteSymbol;
 import io.github.divineblock.core.Penance;
 import io.github.divineblock.core.PrayerLog;
 import io.github.divineblock.core.PrayerTone;
+import io.github.divineblock.core.StreamOverlay;
 import io.github.divineblock.core.Verdict;
 import io.github.divineblock.core.Righteousness;
 import java.io.IOException;
@@ -46,13 +49,14 @@ public final class AdminBridge implements UnaryOperator<String> {
 
     static void register() {
         ServerLifecycleEvents.SERVER_STARTED.register(started -> server = started);
-        ServerLifecycleEvents.SERVER_STOPPED.register(stopped -> { if (server == stopped) server = null; });
+        // Another world is another stream: its acts and lines are not carried over.
+        ServerLifecycleEvents.SERVER_STOPPED.register(stopped -> { if (server == stopped) server = null; StreamOverlay.shared().clear(); });
         ServerPlayConnectionEvents.JOIN.register((handler, sender, joined) -> joined.execute(() -> send(handler.player)));
         ServerPlayNetworking.registerGlobalReceiver(SettingsPatchPayload.ID, (payload, context) -> patchFromPlayer(context.player(), payload.json()));
     }
 
     /** A blessing that lasts, for the admin's «Бог» tab: whose, what and until when (epoch ms). Server thread only. */
-    private record Blessing(UUID player, String title, long until) { }
+    private record Blessing(UUID player, String deed, String title, long until) { }
     private static final List<Blessing> BLESSINGS = new java.util.ArrayList<>();
 
     /** A mercy fell on {@code player}: the lasting ones (strength and speed, the great blessing) are kept until they end. */
@@ -64,7 +68,14 @@ public final class AdminBridge implements UnaryOperator<String> {
         };
         if (ticks <= 0) return;
         BLESSINGS.removeIf(old -> old.player().equals(player.getUuid()) && old.title().equals(miracle.title()));
-        BLESSINGS.add(new Blessing(player.getUuid(), miracle.title(), System.currentTimeMillis() + ticks * 50));
+        BLESSINGS.add(new Blessing(player.getUuid(), miracle.id(), miracle.title(), System.currentTimeMillis() + ticks * 50));
+    }
+
+    /** An act of the god began on {@code player}: the overlay shows it from now on, with the main reasons of the verdict. */
+    static void shown(ServerPlayerEntity player, Verdict verdict, Miracle miracle) {
+        StreamOverlay.shared().verdict(new StreamOverlay.Shown(System.currentTimeMillis(),
+                new StreamOverlay.Player(player.getUuidAsString(), player.getName().getString()), StreamOverlay.act(miracle.kind),
+                miracle.id(), miracle.title(), StreamOverlay.reasons(verdict), verdict.fury));
     }
 
     /** Who may change the server's settings from F9: an operator for now (Mob Talk's admin level later). */
@@ -123,7 +134,8 @@ public final class AdminBridge implements UnaryOperator<String> {
                     new AdminProtocol.Action("mercy", "Изменить милость", args("player", "Ник", "amount", "На сколько (+10, -15) или =значение (=40)")),
                     new AdminProtocol.Action("forget", "Стереть память бога об игроке", args("player", "Ник")),
                     new AdminProtocol.Action("forget_all", "Стереть память бога обо всех", Map.of()),
-                    new AdminProtocol.Action("act", "Послать деяние", args("player", "Ник (в игре)", "deed", "Деяние (id)", "power", "Сила 1–4")));
+                    new AdminProtocol.Action("act", "Послать деяние", args("player", "Ник (в игре)", "deed", "Деяние (id)", "power", "Сила 1–4",
+                            "roulette", "Рулетка: да / нет (пусто — как в настройках)")));
         }
 
         @Override public String run(String id, Map<String, String> args) {
@@ -232,7 +244,10 @@ public final class AdminBridge implements UnaryOperator<String> {
                     if (miracle == null) throw new IllegalArgumentException("нет такого деяния: " + args.get("deed"));
                     int asked;
                     try { asked = Integer.parseInt(args.getOrDefault("power", "").strip()); } catch (NumberFormatException none) { asked = miracle.maxTier; }
-                    yield actOn(target, miracle, Math.max(miracle.minTier, Math.min(miracle.maxTier, asked)));
+                    // «Рулетка»: да / нет; empty — as the settings say.
+                    String wheel = args.getOrDefault("roulette", "").strip().toLowerCase(java.util.Locale.ROOT);
+                    boolean roulette = wheel.isEmpty() ? DivineBlockMod.config().rouletteAdmin : wheel.startsWith("д") || wheel.equals("1") || wheel.startsWith("y") || wheel.equals("true");
+                    yield actOn(target, miracle, Math.max(miracle.minTier, Math.min(miracle.maxTier, asked)), roulette);
                 }
                 default -> throw new IllegalArgumentException("нет такого действия: " + id);
             });
@@ -240,13 +255,36 @@ public final class AdminBridge implements UnaryOperator<String> {
 
         /** The admin's act on a mortal: performed where he stands (by the nearest altar), counted as his running punishment when it
          * is wrath, and written to the prayer log as the admin's verdict so the «Бог» tab and the history show it. */
-        private static String actOn(ServerPlayerEntity target, Miracle miracle, int power) {
+        private static String actOn(ServerPlayerEntity target, Miracle miracle, int power, boolean roulette) {
             BlockPos altar = target.getBlockPos();
             for (BlockPos pos : BlockPos.iterateOutwards(target.getBlockPos(), 12, 6, 12))
                 if (target.getServerWorld().getBlockState(pos).getBlock() instanceof AltarBlock) { altar = pos.toImmutable(); break; }
             long tick = target.getServer().getOverworld().getTime();
             if (miracle.kind == Miracle.Kind.WRATH) Prayers.PENANCE.begin(target.getUuid(), miracle.id(), tick);
-            String done = Zones.perform(miracle, power, target, altar, "", DivineBlockMod.config(), Math.max(1, power));
+            if (roulette && RouletteService.applies(miracle.kind, miracle, DivineBlockMod.config())) {
+                // Through the roulette: the act falls when the machine leaves; what it did goes to the journal and the history then.
+                BlockPos at = altar;
+                String name = target.getName().getString();
+                var spin = RouletteService.spin(target, miracle, null, "по воле админа", DivineBlockMod.config().rouletteMode, null, new RouletteService.Steps() {
+                    @Override public void act() {
+                        ServerPlayerEntity now = target.getServer().getPlayerManager().getPlayer(target.getUuid());
+                        if (now == null) { Prayers.PENANCE.end(target.getUuid()); return; }
+                        try { perform(now, miracle, power, at, now.getServer().getOverworld().getTime(), "рулетка: " + Roulette.chatLine(RouletteSymbol.result(miracle, null), miracle.title())); }
+                        catch (IllegalArgumentException failed) { Multiplayer.journal(GodJournal.Kind.VERDICT, name, "админ послал «" + miracle.title() + "»: " + failed.getMessage()); }
+                    }
+                    @Override public void spared() { Prayers.PENANCE.end(target.getUuid()); }
+                    @Override public void cancelled(io.github.divineblock.core.RouletteQueue.Cancel why) { Prayers.PENANCE.end(target.getUuid()); }
+                });
+                return miracle.title() + " ×" + power + " → " + name + ": рулетка крутится, кара упадёт через "
+                        + String.format(java.util.Locale.ROOT, "%.1f", (spin.actTick() - tick) / 20.0) + " с";
+            }
+            return perform(target, miracle, power, altar, tick, "веб-админка");
+        }
+
+        /** The admin's act falls now: in the punishment book, the prayer log and the journal. */
+        private static String perform(ServerPlayerEntity target, Miracle miracle, int power, BlockPos altar, long tick, String note) {
+            String done = VillageEvents.within(new VillageEvents.Context(false, "", List.of()),
+                    () -> Zones.perform(miracle, power, target, altar, "", DivineBlockMod.config(), Math.max(1, power)));
             if (done == null) {
                 if (miracle.kind == Miracle.Kind.WRATH) Prayers.PENANCE.end(target.getUuid());
                 throw new IllegalArgumentException("«" + miracle.title() + "» здесь не выходит (место, защита церкви или настройки): выберите другое");
@@ -255,7 +293,8 @@ public final class AdminBridge implements UnaryOperator<String> {
             if (miracle.kind == Miracle.Kind.HELP) blessed(target, miracle, power);
             Verdict verdict = new Verdict();
             verdict.prayer = "(деяние послал админ)"; verdict.miracle = miracle.id(); verdict.power = power; verdict.inclination = miracle.kind;
-            verdict.decidedBy = "admin"; verdict.decisionNote = "веб-админка"; verdict.speech = done;
+            verdict.decidedBy = "admin"; verdict.decisionNote = note; verdict.speech = done;
+            shown(target, verdict, miracle);
             PrayerLog.shared().add(PrayerLog.of(System.currentTimeMillis(), target.getUuidAsString(), target.getName().getString(), verdict, PrayerTone.of(""), false, "", 0));
             Multiplayer.journal(GodJournal.Kind.VERDICT, target.getName().getString(), "админ послал «" + miracle.title() + "» ×" + power + ": " + done);
             return miracle.title() + " ×" + power + " → " + target.getName().getString() + ": " + done;
@@ -363,6 +402,153 @@ public final class AdminBridge implements UnaryOperator<String> {
                 out.add("punishments", punishments);
                 return out;
             });
+        }
+
+        // ---- Confession (Mob Talk's priests): the sins to confess and the absolution; the scene itself is Mob Talk's. ----
+
+        @Override public com.google.gson.JsonObject soulDeeds(String player) {
+            MinecraftServer running = server;
+            if (running == null) throw new IllegalStateException("сервер не запущен");
+            UUID uuid = uuid(player);
+            return onServer(running, () -> {
+                DivineState state = DivineState.of(running);
+                long tick = running.getOverworld().getTime();
+                return AdminProtocol.deedsJson(player(running, state, uuid.toString()), state.ledger.soul(uuid).righteousness, tick / 24_000,
+                        punished(running, uuid, tick), DivineBlockMod.config());
+            });
+        }
+
+        @Override public com.google.gson.JsonObject absolve(com.google.gson.JsonObject request) {
+            MinecraftServer running = server;
+            if (running == null) throw new IllegalStateException("сервер не запущен");
+            UUID uuid = uuid(AdminProtocol.text(request, "player"));
+            java.util.Set<Long> named = AdminProtocol.ids(request, "named");
+            int sincerity = request.has("sincerity") ? Math.max(0, Math.min(2, request.get("sincerity").getAsInt())) : 1;
+            boolean temple = "temple".equals(AdminProtocol.text(request, "place"));
+            String priest = AdminProtocol.text(request, "priest");
+            // Кара, что шла, когда исповедь началась (батюшка уже назвал по ней епитимью), считается и после её конца.
+            boolean wasPunished = request.has("punished") && request.get("punished").getAsBoolean();
+            return onServer(running, () -> {
+                DivineConfig config = DivineBlockMod.config();
+                DivineState state = DivineState.of(running);
+                long tick = running.getOverworld().getTime();
+                Righteousness righteousness = state.ledger.soul(uuid).righteousness;
+                io.github.divineblock.core.Absolution.Result result = io.github.divineblock.core.Absolution.absolve(righteousness, tick / 24_000, named, sincerity,
+                        temple, wasPunished || punished(running, uuid, tick), config);
+                int curses = config.confessLiftsCurse ? Curses.liftSettled(running, uuid, righteousness) : 0;
+                state.markDirty();
+                String name = player(running, state, uuid.toString()).get("name").getAsString();
+                Multiplayer.journal(GodJournal.Kind.CONFESSION, name, AdminProtocol.confessionLine(priest.isBlank() ? "священника" : priest, temple, result, named.size(), sincerity, curses));
+                return AdminProtocol.resultJson(result, curses);
+            });
+        }
+
+        @Override public com.google.gson.JsonObject absolveRest(com.google.gson.JsonObject request) {
+            MinecraftServer running = server;
+            if (running == null) throw new IllegalStateException("сервер не запущен");
+            UUID uuid = uuid(AdminProtocol.text(request, "player"));
+            java.util.Set<Long> ids = AdminProtocol.ids(request, "deeds");
+            String priest = AdminProtocol.text(request, "priest");
+            return onServer(running, () -> {
+                DivineConfig config = DivineBlockMod.config();
+                DivineState state = DivineState.of(running);
+                long tick = running.getOverworld().getTime();
+                Righteousness righteousness = state.ledger.soul(uuid).righteousness;
+                io.github.divineblock.core.Absolution.Result result = io.github.divineblock.core.Absolution.absolveRest(righteousness, tick / 24_000, ids);
+                int curses = config.confessLiftsCurse ? Curses.liftSettled(running, uuid, righteousness) : 0;
+                state.markDirty();
+                String name = player(running, state, uuid.toString()).get("name").getAsString();
+                Multiplayer.journal(GodJournal.Kind.CONFESSION, name, AdminProtocol.restLine(priest.isBlank() ? "священника" : priest, result, curses));
+                return AdminProtocol.resultJson(result, curses);
+            });
+        }
+
+        @Override public com.google.gson.JsonObject absolveRelease(com.google.gson.JsonObject request) {
+            MinecraftServer running = server;
+            if (running == null) throw new IllegalStateException("сервер не запущен");
+            UUID uuid = uuid(AdminProtocol.text(request, "player"));
+            java.util.Set<Long> ids = AdminProtocol.ids(request, "deeds");
+            return onServer(running, () -> {
+                DivineState state = DivineState.of(running);
+                int released = io.github.divineblock.core.Absolution.release(state.ledger.soul(uuid).righteousness, ids);
+                state.markDirty();
+                if (released > 0) Multiplayer.journal(GodJournal.Kind.CONFESSION, player(running, state, uuid.toString()).get("name").getAsString(),
+                        "срок епитимьи вышел: грехов снова на душе " + released);
+                com.google.gson.JsonObject out = new com.google.gson.JsonObject();
+                out.addProperty("ok", true); out.addProperty("released", released);
+                return out;
+            });
+        }
+
+        /** A punishment still runs on him: the god's act under way, or a curse that stays. */
+        private static boolean punished(MinecraftServer running, UUID player, long tick) {
+            return Prayers.PENANCE.running(player, tick, !Curses.of(running, player).isEmpty());
+        }
+        private static UUID uuid(String text) {
+            try { return UUID.fromString(text == null ? "" : text.strip()); }
+            catch (IllegalArgumentException broken) { throw new IllegalArgumentException("нужен UUID игрока"); }
+        }
+
+        @Override public StreamOverlay.Snapshot overlay() {
+            MinecraftServer running = server;
+            if (running == null) throw new IllegalStateException("сервер не запущен");
+            return onServer(running, () -> {
+                DivineState state = DivineState.of(running);
+                long tick = running.getOverworld().getTime(), now = System.currentTimeMillis();
+                List<StreamOverlay.Soul> souls = new java.util.ArrayList<>();
+                for (ServerPlayerEntity online : running.getPlayerManager().getPlayerList()) {
+                    String id = online.getUuidAsString();
+                    GodLedger.Soul soul = state.ledger.souls.get(id);
+                    int sins = 0;
+                    if (soul != null) for (Righteousness.Memory memory : soul.righteousness.memories) if (memory.deed != null && memory.deed.weight < 0) sins += Math.max(1, memory.count);
+                    souls.add(new StreamOverlay.Soul(who(online), soul == null ? 0 : soul.righteousness.score, sins,
+                            soul == null ? 0 : soul.wrathStreak(tick / 24_000), state.banned.containsKey(id)));
+                }
+                List<StreamOverlay.Active> active = new java.util.ArrayList<>();
+                for (Curses.Curse curse : state.curses.active) {
+                    if (curse.type == null) continue;
+                    active.add(new StreamOverlay.Active("curse", curseDeed(curse.type).id(), curse.type.label, soul(running, state, curse.player),
+                            now + Math.max(0, curse.until - tick) * 50L, 0, 0));
+                }
+                for (Blessing blessing : BLESSINGS)
+                    if (blessing.until() > now)
+                        active.add(new StreamOverlay.Active("blessing", blessing.deed(), blessing.title(), soul(running, state, blessing.player().toString()), blessing.until(), 0, 0));
+                for (io.github.divineblock.boss.SacredBoss boss : bosses(running)) {
+                    Miracle deed = io.github.divineblock.boss.BossPunishment.deed(boss.kind());
+                    StreamOverlay.Player target = boss.getTarget() instanceof ServerPlayerEntity hunted ? who(hunted) : null;
+                    active.add(new StreamOverlay.Active("boss", deed == null ? null : deed.id(), boss.kind().title, target, 0,
+                            Math.round(boss.getHealth()), Math.round(boss.getMaxHealth())));
+                }
+                for (ServerPlayerEntity over : io.github.divineblock.boss.DivineBosses.godAvatarPlayers())
+                    active.add(new StreamOverlay.Active("boss", Miracle.GOD_MACE.id(), Miracle.GOD_MACE.title(), who(over), 0, 0, 0));
+                List<StreamOverlay.Event> events = new java.util.ArrayList<>();
+                SkyCourt.remaining().forEach((judged, ticks) ->
+                        events.add(new StreamOverlay.Event("court", "Небесный суд", soul(running, state, judged.toString()), now + ticks * 50L)));
+                // A ban stays on the overlay for two minutes after it fell; the ban itself is eternal.
+                state.banned.forEach((id, ban) -> {
+                    if (ban.at > 0 && now - ban.at < BAN_SHOWN_MS)
+                        events.add(new StreamOverlay.Event("ban", "Вечное изгнание", soul(running, state, id), ban.at + BAN_SHOWN_MS));
+                });
+                return new StreamOverlay.Snapshot(state.streamer == null ? "" : state.streamer, souls, active, events);
+            });
+        }
+
+        /** How long the overlay shows a fresh eternal ban. */
+        private static final long BAN_SHOWN_MS = 120_000;
+
+        /** The act that laid a curse: the overlay hides it with that act. */
+        private static Miracle curseDeed(Curses.Type type) {
+            return switch (type) {
+                case BLIGHT -> Miracle.BLIGHT; case CAIN, FEAR -> Miracle.CAIN; case FLOOD -> Miracle.FLOOD;
+                case MURRAIN, DARKNESS, BLOOD -> Miracle.PLAGUES;
+            };
+        }
+        private static StreamOverlay.Player who(ServerPlayerEntity player) {
+            return new StreamOverlay.Player(player.getUuidAsString(), player.getName().getString());
+        }
+        private static StreamOverlay.Player soul(MinecraftServer running, DivineState state, String id) {
+            com.google.gson.JsonObject player = player(running, state, id);
+            return new StreamOverlay.Player(player.get("uuid").getAsString(), player.get("name").getAsString());
         }
 
         /** {active, player}: whether it goes on, and over whom (the first, when there are several). */

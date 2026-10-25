@@ -21,6 +21,12 @@ public final class FxCamera {
         if (s > shake) { shake = Math.min(1, s); shakeDecay = shake / Math.max(1, ticks); }
     }
 
+    /** A shake that is not from a place in the world (the roulette's 777): strength 0..1, by the same switch. */
+    public static void shake(float strength, int ticks) {
+        if (!FxQuality.shake()) return;
+        if (strength > shake) { shake = Math.min(1, strength); shakeDecay = shake / Math.max(1, ticks); }
+    }
+
     static void flashFrom(double x, double y, double z, int color, float strength, double reach) {
         float near = near(x, y, z, reach);
         if (near <= 0 || !FxQuality.on()) return;

@@ -73,19 +73,91 @@ public final class DivineCommands {
                     context.getSource().sendFeedback(() -> Text.literal("Снято проклятий: " + lifted + ", лестница кар сброшена"), false);
                     return 1;
                 }))
+                // The punishment roulette without a prayer: «show» only spins it, otherwise the act falls when it ends; «pardon» jams it.
+                .then(CommandManager.literal("roulette")
+                        .then(CommandManager.literal("pardon").executes(context -> {
+                            ServerPlayerEntity player = context.getSource().getPlayer();
+                            boolean stopped = player != null && RouletteService.pardon(player);
+                            context.getSource().sendFeedback(() -> Text.literal(stopped ? "Рулетка заклинила: помилован" : "Рулетка сейчас не крутится"), false);
+                            return stopped ? 1 : 0;
+                        }))
+                        .then(CommandManager.literal("show").then(rouletteArguments(true)))
+                        .then(rouletteArguments(false)))
                 .then(CommandManager.literal("act")
                         .then(CommandManager.argument("id", StringArgumentType.word())
                                 .suggests((context, builder) -> {
                                     for (Miracle miracle : Miracle.values()) if (miracle.id().startsWith(builder.getRemainingLowerCase())) builder.suggest(miracle.id());
                                     return builder.buildFuture();
                                 })
-                                .executes(context -> act(context.getSource(), StringArgumentType.getString(context, "id"), -1, 1))
+                                .executes(context -> act(context.getSource(), StringArgumentType.getString(context, "id"), -1, 1, null))
                                 .then(CommandManager.argument("power", IntegerArgumentType.integer(0, 4))
                                         .executes(context -> act(context.getSource(), StringArgumentType.getString(context, "id"),
-                                                IntegerArgumentType.getInteger(context, "power"), 1))
+                                                IntegerArgumentType.getInteger(context, "power"), 1, null))
                                         .then(CommandManager.argument("severity", IntegerArgumentType.integer(1, 5))
                                                 .executes(context -> act(context.getSource(), StringArgumentType.getString(context, "id"),
-                                                        IntegerArgumentType.getInteger(context, "power"), IntegerArgumentType.getInteger(context, "severity")))))))));
+                                                        IntegerArgumentType.getInteger(context, "power"), IntegerArgumentType.getInteger(context, "severity"), null))
+                                                .then(culprit(context -> IntegerArgumentType.getInteger(context, "power"),
+                                                        context -> IntegerArgumentType.getInteger(context, "severity"))))
+                                        // After the numbers, so «act id 3» stays a power: the culprit, on whom the act falls and whom Mob Talk's villages blame.
+                                        .then(culprit(context -> IntegerArgumentType.getInteger(context, "power"), context -> 1)))
+                                .then(culprit(context -> -1, context -> 1))))));
+    }
+
+    private static com.mojang.brigadier.builder.RequiredArgumentBuilder<ServerCommandSource, ?> culprit(
+            java.util.function.ToIntFunction<com.mojang.brigadier.context.CommandContext<ServerCommandSource>> power,
+            java.util.function.ToIntFunction<com.mojang.brigadier.context.CommandContext<ServerCommandSource>> severity) {
+        return CommandManager.argument("player", net.minecraft.command.argument.EntityArgumentType.player())
+                .executes(context -> act(context.getSource(), StringArgumentType.getString(context, "id"), power.applyAsInt(context), severity.applyAsInt(context),
+                        net.minecraft.command.argument.EntityArgumentType.getPlayer(context, "player")));
+    }
+
+    private static final java.util.List<String> ROULETTE_MODES = java.util.List.of("short", "normal", "dramatic", "mini", "tease", "mercy");
+
+    private static com.mojang.brigadier.builder.RequiredArgumentBuilder<ServerCommandSource, String> rouletteArguments(boolean show) {
+        return CommandManager.argument("id", StringArgumentType.word())
+                .suggests((context, builder) -> {
+                    for (Miracle miracle : Miracle.values()) if (miracle.id().startsWith(builder.getRemainingLowerCase())) builder.suggest(miracle.id());
+                    return builder.buildFuture();
+                })
+                .executes(context -> roulette(context.getSource(), StringArgumentType.getString(context, "id"), "", show))
+                .then(CommandManager.argument("mode", StringArgumentType.word())
+                        .suggests((context, builder) -> { ROULETTE_MODES.forEach(builder::suggest); return builder.buildFuture(); })
+                        .executes(context -> roulette(context.getSource(), StringArgumentType.getString(context, "id"), StringArgumentType.getString(context, "mode"), show)));
+    }
+
+    /** {@code /divineblock roulette [show] <id> [short|normal|dramatic|mini|tease|mercy]}: the roulette for this act at its full
+     * power; «tease» is the normal spin with the third reel crawling past the seven (К3–К4 only), «mercy» the spin that spares
+     * the sinner by chance (never for the ban). */
+    private static int roulette(ServerCommandSource source, String id, String modeName, boolean show) {
+        ServerPlayerEntity player = source.getPlayer();
+        Miracle miracle = Miracle.byId(id.toLowerCase(Locale.ROOT));
+        if (player == null || miracle == null) { source.sendError(Text.literal("Нет такого деяния: " + id + ". Список: /divineblock list")); return 0; }
+        boolean tease = "tease".equalsIgnoreCase(modeName), mercy = "mercy".equalsIgnoreCase(modeName);
+        io.github.divineblock.core.Roulette.Mode mode = modeName.isBlank() || tease || mercy ? DivineBlockMod.config().rouletteMode
+                : io.github.divineblock.core.Roulette.Mode.byName(modeName);
+        if (mode == null) { source.sendError(Text.literal("Режим: " + String.join(", ", ROULETTE_MODES))); return 0; }
+        BlockPos altar = player.getBlockPos();
+        for (BlockPos pos : BlockPos.iterateOutwards(player.getBlockPos(), 12, 6, 12))
+            if (player.getServerWorld().getBlockState(pos).getBlock() instanceof AltarBlock) { altar = pos.toImmutable(); break; }
+        BlockPos at = altar;
+        int strength = miracle.maxTier;
+        var spin = RouletteService.spin(player, miracle, null, show ? "проверка рулетки" : "проверка командой", mode, tease ? Boolean.TRUE : null,
+                mercy ? Boolean.TRUE : null, new RouletteService.Steps() {
+                    @Override public void act() {
+                        if (show || player.isRemoved()) { acted.accept("roulette " + miracle.id() + ": показ окончен"); return; }
+                        String done = Zones.perform(miracle, strength, player, at, "", DivineBlockMod.config(), strength);
+                        player.sendMessage(Text.literal(miracle.id() + " ×" + strength + ": " + (done == null ? "не вышло здесь" : done)), false);
+                        acted.accept("roulette " + miracle.id() + " ×" + strength + ": " + (done == null ? "не вышло здесь" : done));
+                    }
+                    @Override public void spared() {
+                        player.sendMessage(Text.literal(miracle.id() + ": пощажён случаем, кара не упала"), false);
+                        acted.accept("roulette " + miracle.id() + ": пощажён случаем");
+                    }
+                    @Override public void cancelled(io.github.divineblock.core.RouletteQueue.Cancel why) { acted.accept("roulette " + miracle.id() + ": остановлена — " + why); }
+                });
+        source.sendFeedback(() -> Text.literal("Рулетка «" + miracle.title() + "», " + mode.label + (tease ? ", почти 777" : "") + (spin.mercy ? ", помилование" : "") + ": "
+                + (show ? "только показ" : "кара упадёт") + " через " + String.format(Locale.ROOT, "%.2f", spin.timing.act() / 20.0) + " с"), false);
+        return 1;
     }
 
     private static int streamer(ServerCommandSource source, String name) {
@@ -108,15 +180,18 @@ public final class DivineCommands {
         return lifted;
     }
 
-    private static int act(ServerCommandSource source, String id, int power, int severity) {
-        ServerPlayerEntity player = source.getPlayer();
+    private static int act(ServerCommandSource source, String id, int power, int severity, ServerPlayerEntity culprit) {
+        ServerPlayerEntity player = culprit != null ? culprit : source.getPlayer();
         Miracle miracle = Miracle.byId(id.toLowerCase(Locale.ROOT));
         if (player == null || miracle == null) { source.sendError(Text.literal("Нет такого деяния: " + id + ". Список: /divineblock list")); return 0; }
         BlockPos altar = player.getBlockPos();
         for (BlockPos pos : BlockPos.iterateOutwards(player.getBlockPos(), 12, 6, 12))
             if (player.getServerWorld().getBlockState(pos).getBlock() instanceof AltarBlock) { altar = pos.toImmutable(); break; }
         int strength = power < 0 ? miracle.maxTier : Math.max(miracle.minTier, Math.min(miracle.maxTier, power));
-        String done = Zones.perform(miracle, strength, player, altar, "", DivineBlockMod.config(), severity);
+        BlockPos at = altar;
+        ServerPlayerEntity target = player;
+        String done = VillageEvents.within(new VillageEvents.Context(false, "", java.util.List.of()),
+                () -> Zones.perform(miracle, strength, target, at, "", DivineBlockMod.config(), severity));
         source.sendFeedback(() -> Text.literal(miracle.id() + " ×" + strength + ": " + (done == null ? "не вышло здесь" : done)), false);
         acted.accept(miracle.id() + " ×" + strength + " /" + severity + ": " + (done == null ? "не вышло здесь" : done));
         return done == null ? 0 : 1;

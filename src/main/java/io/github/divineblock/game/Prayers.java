@@ -82,7 +82,9 @@ public final class Prayers {
 
         if (THINKING.contains(player.getUuid())) { hint(player, "Бог ещё размышляет над прежней молитвой…"); return; }
         long now = server.getOverworld().getTime();
-        if (now - soul.lastPrayerTick < config.cooldownSeconds * 20L) { hint(player, "Алтарь ещё не остыл. Повремени, смертный."); return; }
+        // Repentance while the roulette of his punishment still spins is heard at once: the altar has no time to cool.
+        boolean repentsUnderRoulette = RouletteService.spinning(player) && PrayerTone.of(text).repents();
+        if (now - soul.lastPrayerTick < config.cooldownSeconds * 20L && !repentsUnderRoulette) { hint(player, "Алтарь ещё не остыл. Повремени, смертный."); return; }
 
         THINKING.add(player.getUuid());
         hint(player, "Бог внимает…");
@@ -106,6 +108,13 @@ public final class Prayers {
 
     /** Whether the words are a prayer and whether they insult the god: Jev decides, the rules answer when Jev is off or silent. */
     record Judgement(boolean prayer, boolean insult, String by) { }
+    /** The notable deeds and, after them, what confession left on the conscience (sins kept back, relapses): the god names those too. */
+    static List<Righteousness.Memory> withConscience(List<Righteousness.Memory> notable, Righteousness righteousness) {
+        List<Righteousness.Memory> out = new ArrayList<>(notable);
+        for (Righteousness.Memory memory : righteousness.conscience(2)) if (!out.contains(memory)) out.add(memory);
+        return out;
+    }
+
     static Judgement judge(DivineConfig config, String text) {
         if (config.useJev) {
             try {
@@ -147,7 +156,7 @@ public final class Prayers {
         int recent = soul.recentPrayers(now);
         boolean storm = world.isThundering(), danger = player.getHealth() < player.getMaxHealth() * 0.3f;
         VerdictBuilder.Context context = new VerdictBuilder.Context(text, tone, offeringValue, String.join(", ", gifts), insult,
-                righteousness.score, righteousness.label(), righteousness.notable(day, 3, 2), day, (int) Math.round(soul.mood(now)), recent,
+                righteousness.score, righteousness.label(), withConscience(righteousness.notable(day, 3, 2), righteousness), day, (int) Math.round(soul.mood(now)), recent,
                 storm, world.getMoonPhase(), danger, judgement.insult(),
                 righteousness.memories.stream().filter(m -> m.deed == Righteousness.Deed.BLASPHEMY && day - m.day <= 3).mapToInt(m -> m.count).sum());
         Verdict verdict = VerdictBuilder.build(context, config);
@@ -155,12 +164,17 @@ public final class Prayers {
         Multiplayer.journal(io.github.divineblock.core.GodJournal.Kind.PRAYER, player.getName().getString(), text);
         // Punishments in a row climb the ladder; sincere repentance under them (or under a lingering curse) is forgiven.
         int streak = soul.wrathStreak(day);
-        VerdictBuilder.forgiveBurden(verdict, tone.repents(), streak > 0 || !Curses.of(server, player.getUuid()).isEmpty());
+        boolean spinning = RouletteService.spinning(player);
+        VerdictBuilder.forgiveBurden(verdict, tone.repents(), streak > 0 || !Curses.of(server, player.getUuid()).isEmpty() || spinning);
         VerdictBuilder.escalate(verdict, streak, config);
         if (verdict.forgiveness) {
             soul.forgiven();
-            int lifted = Curses.lift(server, player.getUuid());
+            List<String> ended = new ArrayList<>();
+            int lifted = Curses.lift(server, player.getUuid(), ended, "покаялся");
+            VillageEvents.forgiven(player, altar, ended);
             PENANCE.end(player.getUuid()); // The punishment under way is forgiven too: the next sin starts a new one.
+            // Its reels still spin: they jam into doves and it does not fall.
+            if (RouletteService.pardon(player)) hint(player, "Рулетка заклинила: помилован");
             if (lifted > 0) hint(player, "Проклятия сняты: " + lifted);
         }
 
@@ -168,7 +182,7 @@ public final class Prayers {
         if (insult) soul.shiftMood(now, -15);
         else if (offeringValue > 0) soul.shiftMood(now, Math.min(25, 3 + offeringValue / 3.0));
         // Blasphemy of any kind: the god's mood drops to the bottom at once, and the sin is remembered.
-        if (verdict.fury) { soul.shiftMood(now, -200); righteousness.record(Righteousness.Deed.BLASPHEMY, day, ""); }
+        if (verdict.fury) { soul.shiftMood(now, -200); righteousness.record(Righteousness.Deed.BLASPHEMY, day, "", config.confessRelapseMultiplier); }
         else if (verdict.forgiveness) soul.shiftMood(now, 60 - soul.mood(now)); // Anger let go: the mood returns to mild favour.
         else if (tone.polite()) soul.shiftMood(now, 3);
         if (recent >= 2) soul.shiftMood(now, -5);
@@ -234,6 +248,7 @@ public final class Prayers {
         MiracleGroup group = MiracleGroup.byId(verdict.group);
         int sky = group != null && group.kind == Miracle.Kind.WRATH ? Math.max(0, group.ordinal() - MiracleGroup.K1.ordinal()) : 0;
         double estimate = Math.max(3, verdict.speech.split("\s+").length * 0.45); // Seconds the words may take, for the glow.
+        if (RouletteService.applies(verdict.inclination, verdict.chosen(), config)) { spinThen(player, altar, world, verdict, config, color, music, sky, estimate); return; }
         speakThen(player, verdict.speech, () -> {
             if (player.isRemoved() || player.getServerWorld() != world) return;
             Miracles.speaking(player, altar, verdict.chosen().kind, estimate);
@@ -253,6 +268,47 @@ public final class Prayers {
             }
             act(player, altar, verdict, config);
         });
+    }
+
+    /** A punishment through the roulette: the portents and the red sky while the reels spin, the god's word at the final (his
+     * voice comes when it comes: the reels never wait for it), and the act exactly when the machine leaves, on the server's
+     * ticks. A sinner who leaves meanwhile is held back as before; death or another world cancel it; a pardon jams the reels. */
+    private static void spinThen(ServerPlayerEntity player, BlockPos altar, ServerWorld world, Verdict verdict, DivineConfig config,
+                                 int color, int music, int sky, double estimate) {
+        Miracle chosen = verdict.chosen();
+        List<Verdict.Reason> main = verdict.mainReasons(1);
+        RouletteService.spin(player, chosen, MiracleGroup.byId(verdict.group), main.isEmpty() ? "" : main.get(0).text(), config.rouletteMode, null,
+                new RouletteService.Steps() {
+                    @Override public void started(double seconds) {
+                        Portents.before(player, altar, chosen, seconds);
+                        if (ServerPlayNetworking.canSend(player, BeamsPayload.ID)) ServerPlayNetworking.send(player, new BeamsPayload(altar, 20 * 90, color, music, sky));
+                    }
+                    @Override public void fin() {
+                        Miracles.speaking(player, altar, chosen.kind, estimate);
+                        speakThen(player, verdict.speech, () -> { }, () -> { });
+                    }
+                    @Override public void act() {
+                        beamsOff();
+                        if (player.isRemoved() || !player.isAlive() || player.getServerWorld() != world) { Prayers.cancelled(player, verdict); return; }
+                        Miracles.flourish(player, altar, chosen.kind, verdict.power);
+                        Prayers.act(player, altar, verdict, config);
+                    }
+                    @Override public void spared() {
+                        // Spared by chance: the punishment does not fall, the ladder of punishments stays (no forgiveness).
+                        beamsOff();
+                        verdict.decisionNote = verdict.decisionNote + "; рулетка: пощажён случаем";
+                        Prayers.cancelled(player, verdict);
+                        performed.accept("spared");
+                    }
+                    @Override public void cancelled(io.github.divineblock.core.RouletteQueue.Cancel why) {
+                        beamsOff();
+                        if (why == io.github.divineblock.core.RouletteQueue.Cancel.LEFT) Multiplayer.heldBack(player, world, altar, verdict);
+                        else if (why != io.github.divineblock.core.RouletteQueue.Cancel.PARDON) Prayers.cancelled(player, verdict);
+                    }
+                    private void beamsOff() {
+                        if (!player.isRemoved() && ServerPlayNetworking.canSend(player, BeamsPayload.ID)) ServerPlayNetworking.send(player, new BeamsPayload(altar, 0, color, music, sky));
+                    }
+                });
     }
 
     /** A sinner who logged out before his punishment fell is back: the god names it and it falls at once, without a second
@@ -275,8 +331,10 @@ public final class Prayers {
     private static final class Speaking {
         final String line; final ServerPlayerEntity player; final Runnable onStart, onEnd;
         boolean started, ended;
+        /** The line as the overlay keeps it, for the length of its voice. */
+        io.github.divineblock.core.StreamOverlay.Line said;
         Speaking(ServerPlayerEntity player, String line, Runnable onStart, Runnable onEnd) { this.player = player; this.line = line; this.onStart = onStart; this.onEnd = onEnd; }
-        void start() { if (started) return; started = true; chat(player, line); onStart.run(); }
+        void start() { if (started) return; started = true; said = chat(player, line); onStart.run(); }
         void end() { if (ended) return; start(); ended = true; onEnd.run(); }
     }
     private static final java.util.Map<String, Speaking> WAITING = new java.util.HashMap<>();
@@ -313,10 +371,17 @@ public final class Prayers {
             return;
         }
         WAITING.remove(key);
+        io.github.divineblock.core.StreamOverlay.voiced(speaking.said, Math.round(seconds * 1000.0));
         speaking.end();
     }
 
     private static void act(ServerPlayerEntity player, BlockPos altar, Verdict verdict, DivineConfig config) {
+        // What Mob Talk's villages hear of it: the god answered a prayer, for these reasons.
+        List<String> why = verdict.mainReasons(3).stream().map(Verdict.Reason::text).toList();
+        VillageEvents.within(new VillageEvents.Context(true, why.isEmpty() ? "" : why.get(0), why), () -> { actHere(player, altar, verdict, config); return null; });
+    }
+
+    private static void actHere(ServerPlayerEntity player, BlockPos altar, Verdict verdict, DivineConfig config) {
         Miracle miracle = verdict.chosen();
         MinecraftServer server = player.getServer();
         long now = server.getOverworld().getTime();
@@ -346,6 +411,8 @@ public final class Prayers {
         }
         hint(player, "✦ " + done);
         performed.accept(miracle.id());
+        // The overlay learns of the act as it falls, never earlier (no spoiler while the god still speaks).
+        AdminBridge.shown(player, verdict, fell ? miracle : miracle.kind == Miracle.Kind.WRATH ? Miracle.OMEN_THUNDER : Miracle.OMEN_LIGHT);
         Multiplayer.journal(io.github.divineblock.core.GodJournal.Kind.MIRACLE, player.getName().getString(), miracle.id() + ": " + done);
         if (fell && miracle.kind == Miracle.Kind.WRATH) PENANCE.fell(player.getUuid(), miracle.id(), now);
         else if (verdict.inclination == Miracle.Kind.WRATH) PENANCE.end(player.getUuid()); // only an omen came: nothing runs
@@ -422,14 +489,17 @@ public final class Prayers {
     /** A line of the god in chat only, without the voice: what the zones of punishment explain (where, why). */
     public static void godChat(ServerPlayerEntity player, String line) { chat(player, line); }
 
-    private static void chat(ServerPlayerEntity player, String line) {
+    private static io.github.divineblock.core.StreamOverlay.Line chat(ServerPlayerEntity player, String line) {
         spoken.accept(line);
         String text = line == null || line.isBlank() ? "…" : line;
-        for (ServerPlayerEntity hearer : ServerGodVoice.listeners(player)) {
+        List<ServerPlayerEntity> hearers = ServerGodVoice.listeners(player);
+        for (ServerPlayerEntity hearer : hearers) {
             Text head = hearer == player ? Text.literal("[Бог] ").formatted(Formatting.GOLD, Formatting.BOLD)
                     : Text.literal("[Бог → " + player.getName().getString() + "] ").formatted(Formatting.GOLD, Formatting.BOLD);
             hearer.sendMessage(head.copy().append(Text.literal(text).formatted(Formatting.YELLOW, Formatting.ITALIC)), false);
         }
+        if (line == null || line.isBlank() || "…".equals(line)) return null;
+        return io.github.divineblock.core.StreamOverlay.shared().line(System.currentTimeMillis(), line, hearers.stream().map(ServerPlayerEntity::getUuidAsString).toList());
     }
 
     /** The heard prayer, for the others near the altar: who prays and what he says (he himself knows). */

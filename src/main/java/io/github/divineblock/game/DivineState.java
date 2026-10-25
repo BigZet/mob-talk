@@ -23,6 +23,8 @@ public final class DivineState extends PersistentState {
     public int[] skyCourt;
     /** The streamer of this server (UUID and name, "" when none), set by {@code /divineblock streamer} or the web admin. */
     public String streamer = "", streamerName = "";
+    /** Each church's rector ("dimension|x|y|z" of the church's origin → who), see {@link Abbots}. */
+    public Map<String, Abbots.Rector> abbots = new HashMap<>();
 
     public static DivineState of(MinecraftServer server) {
         return server.getWorld(World.OVERWORLD).getPersistentStateManager().getOrCreate(TYPE, "divineblock");
@@ -39,6 +41,10 @@ public final class DivineState extends PersistentState {
             Banishment.Book bans = GSON.fromJson(nbt.getString("banned"), Banishment.Book.class);
             if (bans != null && bans.souls != null) state.banned = bans.souls;
         } catch (RuntimeException broken) { state.banned = new HashMap<>(); }
+        try {
+            Abbots.Book book = GSON.fromJson(nbt.getString("abbots"), Abbots.Book.class);
+            if (book != null && book.rectors != null) { book.rectors.values().removeIf(r -> r == null || r.uuid == null || r.name == null); state.abbots = book.rectors; }
+        } catch (RuntimeException broken) { state.abbots = new HashMap<>(); }
         state.streamer = nbt.getString("streamer");
         state.streamerName = nbt.getString("streamerName");
         if (nbt.contains("skyCourt")) { int[] court = nbt.getIntArray("skyCourt"); if (court.length == 3) state.skyCourt = court; }
@@ -51,6 +57,9 @@ public final class DivineState extends PersistentState {
         Banishment.Book bans = new Banishment.Book();
         bans.souls = banned;
         nbt.putString("banned", GSON.toJson(bans));
+        Abbots.Book rectors = new Abbots.Book();
+        rectors.rectors = abbots;
+        nbt.putString("abbots", GSON.toJson(rectors));
         nbt.putString("streamer", streamer);
         nbt.putString("streamerName", streamerName);
         if (skyCourt != null) nbt.putIntArray("skyCourt", skyCourt);

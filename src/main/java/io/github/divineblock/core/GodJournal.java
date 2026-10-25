@@ -10,7 +10,8 @@ import java.util.regex.Pattern;
  * last {@link #LIMIT} entries); the world's own memory stays in {@link GodLedger}. Never holds keys or coordinates: every text
  * passes {@link #redact}. Thread-safe: the game thread writes, the admin reads from its own threads. */
 public final class GodJournal {
-    public enum Kind { PRAYER, VERDICT, MIRACLE, BAN;
+    /** {@code CONFESSION}: a confession at a priest — numbers and the place only, never the penitent's words. */
+    public enum Kind { PRAYER, VERDICT, MIRACLE, BAN, CONFESSION;
         public String id() { return name().toLowerCase(java.util.Locale.ROOT); } }
     public record Entry(long t, Kind kind, String player, String text) { }
 

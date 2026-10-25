@@ -61,6 +61,9 @@ public final class Curses {
         public long start, until;
         /** Free numbers for the act that laid it (the flood's water line). */
         public int top, base;
+        /** The punishment that laid it, as Mob Talk's villages heard it: the event id (its end carries the same), the act's id
+         * and the mortal's name. Empty in curses saved before. */
+        public String event = "", deed = "", name = "";
 
         public BlockPos center() { return new BlockPos(x, y, z); }
         public String describe(long now) { return type.label + " ещё " + Math.max(1, (until - now) / 1200) + " мин"; }
@@ -116,6 +119,8 @@ public final class Curses {
         curse.dimension = player.getServerWorld().getRegistryKey().getValue().toString();
         curse.x = center.getX(); curse.y = center.getY(); curse.z = center.getZ(); curse.radius = radius;
         curse.start = now; curse.until = now + ticks;
+        String[] owner = VillageEvents.curseOwner(player.getUuid());
+        curse.event = owner[0]; curse.deed = owner[1]; curse.name = player.getName().getString();
         state.curses.active.add(curse);
         state.markDirty();
         DivineBlockMod.LOG.info("Божественный блок: проклятие «{}» на {} на {} мин", type.label, player.getName().getString(), ticks / 1200);
@@ -146,15 +151,40 @@ public final class Curses {
     }
 
     /** Sincere repentance: every curse on this mortal ends now (the flood goes down, the sun comes up). Returns how many. */
-    public static int lift(MinecraftServer server, UUID player) {
+    public static int lift(MinecraftServer server, UUID player) { return lift(server, player, new ArrayList<>(), "проклятия сняты"); }
+
+    /** {@link #lift(MinecraftServer, UUID)}, adding the ids of the punishments that ended to {@code events}. */
+    public static int lift(MinecraftServer server, UUID player, List<String> events, String reason) {
         DivineState state = DivineState.of(server);
         List<Curse> mine = of(server, player);
+        for (Curse curse : mine) if (curse.event != null && !curse.event.isBlank() && !events.contains(curse.event)) events.add(curse.event);
+        VillageEvents.cursesEnded(server, mine, reason);
         for (Curse curse : mine) end(server, curse);
         state.curses.active.removeAll(mine);
         state.markDirty();
         ServerPlayerEntity online = server.getPlayerManager().getPlayer(player);
         if (online != null) sync(online);
         return mine.size();
+    }
+
+    /** Curses on the land and the sky, not on the mortal himself: confession never ends them. */
+    static boolean worldly(Type type) { return type == Type.DARKNESS || type == Type.FLOOD; }
+
+    /** Confession: every personal curse of this mortal laid on a day by which all his sins are settled ends now (the world's
+     * curses stay). Returns how many. */
+    public static int liftSettled(MinecraftServer server, UUID player, io.github.divineblock.core.Righteousness righteousness) {
+        DivineState state = DivineState.of(server);
+        List<Curse> ended = new ArrayList<>();
+        for (Curse curse : of(server, player))
+            if (!worldly(curse.type) && io.github.divineblock.core.Absolution.clearUpTo(righteousness, curse.start / 24_000L)) ended.add(curse);
+        if (ended.isEmpty()) return 0;
+        for (Curse curse : ended) end(server, curse);
+        state.curses.active.removeAll(ended);
+        state.markDirty();
+        ServerPlayerEntity online = server.getPlayerManager().getPlayer(player);
+        if (online != null) sync(online);
+        DivineBlockMod.LOG.info("Божественный блок: исповедь сняла проклятий: {}", ended.size());
+        return ended.size();
     }
 
     /** What happens when a curse runs out or is lifted. */
@@ -226,6 +256,7 @@ public final class Curses {
             catch (RuntimeException failure) { DivineBlockMod.LOG.warn("Божественный блок: проклятие {} упало", curse.type, failure); }
         }
         if (over.isEmpty()) return;
+        VillageEvents.cursesEnded(server, over, "срок кары вышел");
         for (Curse curse : over) end(server, curse);
         state.curses.active.removeAll(over);
         state.markDirty();

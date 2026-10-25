@@ -41,8 +41,12 @@ public final class VerdictBuilder {
 
         // Fresh deeds weigh on top of the score: the god remembers what you did yesterday.
         for (Righteousness.Memory memory : context.notableDeeds()) {
-            int weight = memory.total >= 10 ? 2 : memory.total >= 1 ? 1 : memory.total <= -10 ? -2 : -1;
-            reasons.add(new Verdict.Reason(memory.describe(context.today()), weight, Math.abs(weight) >= 2 ? 1 : 0));
+            double total = memory.effective();
+            int weight = total >= 10 ? 2 : total >= 1 ? 1 : total <= -10 ? -2 : -1;
+            if (Math.abs(total) >= 1) reasons.add(new Verdict.Reason(memory.describe(context.today()), weight, Math.abs(weight) >= 2 ? 1 : 0));
+            // What confession left: a sin kept back from the priest, a fall right after forgiveness.
+            if (memory.open() && memory.concealed) reasons.add(new Verdict.Reason("скрыл на исповеди: " + memory.deed.phrase, -2, 0));
+            if (memory.open() && memory.relapse) reasons.add(new Verdict.Reason("покаялся и снова согрешил: " + memory.deed.phrase, -2, 1));
         }
 
         if (context.mood() >= 30) reasons.add(new Verdict.Reason("бог к тебе благосклонен", 1, 0));

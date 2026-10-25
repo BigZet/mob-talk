@@ -28,7 +28,8 @@ public final class DivineSettings {
     /** Fields that stay with the player. The god's voice is synthesised by each player's own game for now, so his voice and
      * its model are personal too; they move to the server once the server speaks for him. */
     public static final Set<String> PERSONAL = Set.of("voice", "voiceTemple", "voiceRoomSize", "voiceReverb", "voiceEchoMs", "voiceEchoLevel",
-            "voiceEchoRepeats", "chantVolume", "effects", "cameraShake", "voiceId", "ttsModel", "whisperUrl", "whisperAutoStart", "microphoneName");
+            "voiceEchoRepeats", "chantVolume", "effects", "cameraShake", "voiceId", "ttsModel", "whisperUrl", "whisperAutoStart", "microphoneName",
+            "rouletteShow", "rouletteVolume", "rouletteJackpotFx", "rouletteFx");
 
     public enum Type { INT, BOOL, ENUM, STRING, LIST, FLAGS;
         String id() { return switch (this) { case INT -> "int"; case BOOL -> "bool"; case ENUM -> "enum"; case STRING, LIST -> "string"; case FLAGS -> "flags"; }; } }
@@ -45,7 +46,9 @@ public final class DivineSettings {
     public record Group(String id, String title) { }
 
     public static final List<Group> GROUPS = List.of(new Group("god", "Характер бога"), new Group("speech", "Речь и решения"),
-            new Group("world", "Мир"), new Group("wrath", "Кары"), new Group("bosses", "Боссы"), new Group("weapons", "Оружие"));
+            new Group("world", "Мир"), new Group("wrath", "Кары"), new Group("roulette", "Рулетка кары"), new Group("bosses", "Боссы"),
+            new Group("stream", "Бог на стриме"), new Group("confession", "Исповедь и покаяние"),
+            new Group("weapons", "Оружие"));
 
     private static final Pattern ID = Pattern.compile("[a-z0-9_]{1,40}");
     private static final Gson GSON = new Gson();
@@ -76,10 +79,40 @@ public final class DivineSettings {
             flag("landscapeWrath", "wrath", "Кары меняют ландшафт", "Воронки, разломы, потопы; выкл ставит на их место другую кару той же группы."),
             flag("allowEternalBan", "wrath", "Вечное изгнание", "За четвёртую хулу бог банит игрока на сервере навсегда; снимает админ."),
             flag("banBackup", "wrath", "Копия мира перед изгнанием", "Перед баном сохраняется копия мира."),
+            flag("tellVillages", "wrath", "Сообщать жителям Mob Talk", "Каждое деяние бога доходит до деревень Mob Talk: жители судачат, боятся и винят грешника."),
+            flag("nameSinner", "wrath", "Бог называет грешника вслух", "Деревня знает, за чьи грехи кара, даже если жители её не видели."),
+            flag("rouletteEnabled", "roulette", "Рулетка кары", "Перед карой три барабана крутятся и встают на её символ; 777 — конец света."),
+            choice("rouletteMode", "roulette", "Длительность рулетки", "SHORT — около 3 с, NORMAL — около 6,5 с, DRAMATIC — около 9 с.",
+                    List.of(Roulette.Mode.SHORT.name(), Roulette.Mode.NORMAL.name(), Roulette.Mode.DRAMATIC.name())),
+            choice("rouletteAudience", "roulette", "Кому показывать", "SINNER — только грешнику, RADIUS — игрокам рядом, ALL — всем на сервере.",
+                    names(Roulette.Audience.values())),
+            number("rouletteRadius", "roulette", "Радиус показа, блоков", "Игроки ближе видят рулетку чужой кары («Кара для …»).", 16, 256, 1),
+            flag("rouletteTease", "roulette", "Дразнилка «почти 777»", "Для кар К3–К4 третий барабан иногда медленно проползает мимо семёрки."),
+            number("rouletteTeaseChance", "roulette", "Шанс дразнилки, %", "Как часто третий барабан дразнит семёркой.", 0, 100, 1),
+            number("rouletteMercyChance", "roulette", "Случайное помилование, %",
+                    "Как часто третий барабан в последний миг проскакивает на голубя и кара не падает (ступень гнева не сбрасывается); на вечное изгнание не действует.", 0, 25, 1),
+            choice("rouletteTails", "roulette", "Рулетка продолжений", "Перед второй волной и повторным толчком: OFF — нет, MINI — один барабан на 2 с, FULL — полная.",
+                    names(Roulette.Tails.values())),
+            flag("rouletteAdmin", "roulette", "Кары из админки через рулетку", "Деяние гнева, посланное из веб-админки, тоже падает после рулетки."),
             flags("disabled", "wrath", "Деяния бога", "Выключенное деяние не выпадает: бог берёт другое из той же группы.", deedFlags()),
             flags("disabledBosses", "bosses", "Боссы", "Вместо выключенного босса приходит усиленный обычный моб с его именем.", bossFlags()),
             number("bossDifficulty", "bosses", "Сила боссов, %", "Здоровье и урон боссов относительно обычного.", 50, 300, 1),
             flag("bossBlockDamage", "bosses", "Боссы ломают блоки", "Удары и ульты боссов могут разрушать блоки."),
+            flag("overlayEnabled", "stream", "Оверлей для OBS", "Оверлей стрима видит бога: его настроение, вердикты, кары и реплики; выкл — не видит ничего."),
+            flag("overlayReasons", "stream", "Причины вердикта", "Оверлей показывает до трёх главных причин, почему бог так решил."),
+            flag("overlayOthersMercy", "stream", "Милость всех игроков", "Оверлей показывает милость каждого игрока в сети; выкл — только стримера."),
+            flag("overlaySins", "stream", "Число грехов", "Оверлей показывает, сколько грехов на душе."),
+            flags("overlayHidden", "stream", "Деяния на стриме", "Выключенная кара или благо на оверлее зовётся «Тайное деяние»: зрители не знают, что падёт.", overlayFlags()),
+            flag("abbots", "confession", "Настоятели в церквях", "В каждой церкви у аналоя появляется настоятель (мужчина-клирик с именем из святцев): у него исповедуются в храме. Нужен Mob Talk."),
+            number("confessLightTemple", "confession", "Лёгкий грех в храме, %", "Сколько названного лёгкого греха отпускает настоятель храма.", 0, 100, 5),
+            number("confessLightVillage", "confession", "Лёгкий грех у сельского батюшки, %", "Сколько названного лёгкого греха отпускает сельский батюшка.", 0, 100, 5),
+            number("confessHeavyTemple", "confession", "Тяжкий грех в храме, %", "Сколько тяжкого греха отпускается сразу; остаток — после епитимьи и возвращения.", 0, 100, 5),
+            number("confessHeavyVillage", "confession", "Тяжкий грех у сельского батюшки, %", "То же у сельского батюшки.", 0, 100, 5),
+            number("confessHeavyWeight", "confession", "Порог тяжкого греха", "Грех, чей вид весит столько или больше, — тяжкий: убийство жителя (15), ребёнка (20), священника (25), осквернение храма или кладбища (12). Хула весит 8, убийство питомца 10.", 1, 30, 1),
+            number("confessSincerityBonus", "confession", "Бонус искренности, %", "Искренняя исповедь отпускает больше, но не больше самого греха.", 0, 100, 5),
+            flag("confessLiftsCurse", "confession", "Исповедь снимает личное проклятие", "Личное проклятие кончается, когда все грехи, бывшие на душе в день проклятия, отпущены. Мировые кары, бан и боссы — нет."),
+            flag("confessRemembersHidden", "confession", "Бог помнит скрытое", "Грех, утаённый на исповеди, остаётся на душе с пометкой, и бог называет его в вердикте."),
+            number("confessRelapseMultiplier", "confession", "Повторный грех, ×", "Тот же грех в два игровых дня после разрешения весит во столько раз больше и всегда тяжкий.", 1, 4, 1),
             flags("disabledWeapons", "weapons", "Оружие", "Выключенное оружие в руке не действует: «бог не велит».", weaponFlags()),
             flag("jerichoBreaksBlocks", "weapons", "Трубы Иерихона ломают стены", "Стеновые блоки перед трубачом рассыпаются; выкл — только звук и толчок."),
             number("weaponPower", "weapons", "Сила оружия, %", "Собственный урон оружия бога (бонусы по нечисти, змиям, Голиафу) относительно обычного.", 50, 150, 1));
@@ -233,7 +266,7 @@ public final class DivineSettings {
                     String id = part.strip().toLowerCase(Locale.ROOT);
                     if (id.isEmpty()) continue;
                     if (!ID.matcher(id).matches()) return "неверный id: " + id;
-                    if (setting.key().equals("disabled") && Miracle.byId(id) == null) return "нет такого деяния: " + id;
+                    if ((setting.key().equals("disabled") || setting.key().equals("overlayHidden")) && Miracle.byId(id) == null) return "нет такого деяния: " + id;
                     if (!ids.contains(id)) ids.add(id);
                 }
                 set(config, setting.key(), ids);
@@ -282,6 +315,11 @@ public final class DivineSettings {
                 out.add(new Flag(miracle.id(), miracle.title(), help, where[0], where[1]));
             }
         return List.copyOf(out);
+    }
+
+    /** The punishments and mercies of {@link #deedFlags}: what the overlay may name or keep secret. */
+    static List<Flag> overlayFlags() {
+        return deedFlags().stream().filter(flag -> flag.group().equals("wrath") || flag.group().equals("miracle")).toList();
     }
 
     /** Every sacred boss by where he comes from first, and the god with the mace with the end of the world. */

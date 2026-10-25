@@ -64,8 +64,18 @@ public final class Miracles {
         return perform(miracle, power, player, altar, prayer, config, 1);
     }
 
-    /** {@code severity} 1..5 sets how many bosses come and how much land is cut away in great fury. */
+    /** {@code severity} 1..5 sets how many bosses come and how much land is cut away in great fury. An act that fell is told to
+     * Mob Talk's villages ({@link VillageEvents}). */
     public static String perform(Miracle miracle, int power, ServerPlayerEntity player, BlockPos altar, String prayer, DivineConfig config, int severity) {
+        Object outer = VillageEvents.begin(miracle);
+        try {
+            String done = performHere(miracle, power, player, altar, prayer, config, severity);
+            if (done != null) VillageEvents.performed(miracle, power, player, altar);
+            return done;
+        } finally { VillageEvents.end(outer); }
+    }
+
+    private static String performHere(Miracle miracle, int power, ServerPlayerEntity player, BlockPos altar, String prayer, DivineConfig config, int severity) {
         ServerWorld world = player.getServerWorld();
         String done = switch (miracle) {
             case OMEN_LIGHT -> { column(world, altar, ParticleTypes.END_ROD); sound(world, altar, SoundEvents.BLOCK_BEACON_ACTIVATE, 1.5f, 0.8f); yield "столб света"; }
