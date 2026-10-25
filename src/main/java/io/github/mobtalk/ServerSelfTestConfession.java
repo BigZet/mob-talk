@@ -244,8 +244,24 @@ final class ServerSelfTestConfession {
                     c.check(deeds().isEmpty(), "на душе не осталось неотпущенных дел: " + kinds());
                     c.cue(playerName, "shot", "mobtalk-confession-done-" + playerName + ".png");
                     ServerConfig.update(config -> { config.confessionCooldownMinutes = 20; return config; });
-                    c.log("исповедь: конец");
-                    c.pause(2, then);
+                    // Подпись настоятеля вблизи: одна табличка «отец Сергий · … · …», ванильная с CustomName не рисуется поверх.
+                    c.check("отец Сергий".equals(bridge.memory.displayName(abbot.getUuid())), "имя настоятеля в Mob Talk — его титул: «" + bridge.memory.displayName(abbot.getUuid()) + "»");
+                    c.command("tp " + playerName + " " + c.at(-6, 0, -9) + " 90 5");
+                    c.command("tp " + streamerName + " " + c.at(-6, 0, -7) + " 120 5");
+                    // Обычный разговор с настоятелем: у знакомого жителя своя подпись Mob Talk — она должна быть одна, без ванильной поверх.
+                    int talk = c.mark(playerName);
+                    c.pause(3, () -> { c.cue(playerName, "say", String.valueOf(abbot.getId()), "Здравствуй, отче! Как тебя зовут?");
+                    c.await("настоятель ответил в разговоре", 120, () -> c.saw(playerName, "label", talk, x -> x.field(0).equals(abbot.getUuidAsString()) && !x.field(1).isEmpty()), () -> {
+                        ServerSelfTestPlay.Seen label = c.since(playerName, "label", talk).stream().filter(x -> x.field(0).equals(abbot.getUuidAsString()) && !x.field(1).isEmpty()).findFirst().orElse(null);
+                        c.check(label != null && label.field(1).equals("отец Сергий"), "подпись настоятеля — «отец Сергий»: «" + (label == null ? "нет" : label.field(1)) + "»");
+                        c.command("tp " + playerName + " " + c.at(-6, 0, -9) + " 90 5");
+                        c.pause(4, () -> {
+                        c.cue(playerName, "shot", "mobtalk-confession-abbot-label-" + playerName + ".png");
+                        c.cue(streamerName, "shot", "mobtalk-confession-abbot-label-" + streamerName + ".png");
+                        c.log("исповедь: конец");
+                        c.pause(2, then);
+                        });
+                    }); });
                 });
             });
         });
