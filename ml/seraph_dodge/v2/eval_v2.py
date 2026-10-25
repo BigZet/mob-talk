@@ -2,33 +2,79 @@
 
 python eval_v2.py runs/sp1/duel.pt                 # 256 арен, один эпизод (600 тиков), на CPU
 python eval_v2.py runs/sp1_u*.pt --archer runs/sp1/duel.pt
+python eval_v2.py runs/sp1_u1150.pt --recover --log logs/
+    # --recover: правило мода «после взмаха нет рывка, после рывка нет взмаха»;
+    # --log: первая арена первого эпизода в seraph-fight-*.csv и seraph-events-*.csv — те же столбцы, что пишет мод
+    #        (SeraphFightLog), чего тренажёр не знает (здоровье, фаза, окно, урон) — пусто
     # таблица: каждая копия против сценарного и против обученного лучника (ключ "a", детерминированно);
     # лучшая — с наименьшим средним из двух долей попаданий (при равенстве — более поздняя)
 
 Чистая мера: в обучении B_arrow_hit смешивает сценарного лучника и лучников из пула.
 """
 import argparse
+import os
 import sys
 
 import numpy as np
 import torch
 
-from duel import A_ACT, EP_LEN, S_ACT, Duel
+from duel import A_ACT, CAST_TICKS, DEFLECT_ACTIVE, EP_LEN, S_ACT, Duel, bow_power
 from selfplay import make
 
 KEYS = ("shots", "arrow_hits", "reflects", "reflect_hits", "dashes")
 
 
-def run(net, n, seed, archer=None):
-    env = Duel(n, seed=seed, scripted_frac=0.0 if archer is not None else 1.0)
+FIGHT_HEADER = ("tick,hp,max_hp,phase,exposed,recovering,dist,height,dash_cd,deflect_cd,attack_cd,casting,dashing,"
+                "deflecting,foe_drawing,foe_pull,out_sx,out_lift,out_sz,out_dash,out_deflect,out_feathers,out_aim_side,out_aim_up,"
+                "out_shot_soon,did_dash,did_deflect,did_feathers,refused")
+
+
+def num(v):
+    return "" if v is None else f"{float(v):.3f}"
+
+
+class FightLog:
+    """Арена 0 первого эпизода в формате мода (SeraphFightLog): строка на тик и события."""
+    def __init__(self, folder, name):
+        os.makedirs(folder, exist_ok=True)
+        self.fight = open(os.path.join(folder, f"seraph-fight-{name}.csv"), "w", encoding="utf-8", newline="")
+        self.events = open(os.path.join(folder, f"seraph-events-{name}.csv"), "w", encoding="utf-8", newline="")
+        self.fight.write(FIGHT_HEADER + "\n"); self.events.write("tick,event,amount,raw,detail\n")
+
+    def tick(self, env, t, s_a):
+        i = 0
+        flag = lambda b: "1" if b else "0"
+        row = [str(t), "", "", "", "", flag(env.recovering()[i]),
+               num(np.linalg.norm(env.bpos[i] - env.ppos[i])), num(env.bpos[i, 1]),
+               str(env.dash_cd[i]), str(env.defl_cd[i]), str(env.atk_cd[i]),
+               num(1 - env.cast_t[i] / CAST_TICKS) if env.cast_t[i] > 0 else "",
+               flag(env.dash_left[i] > 0), flag(0 < env.defl_t[i] <= DEFLECT_ACTIVE),
+               flag(env.draw[i] > 0), num(bow_power(env.draw[i]) if env.draw[i] > 0 else 0)]
+        row += [num(v) for v in s_a[i][:8]] + [""]
+        row += [flag(env.dashed[i]), flag(env.deflected[i]), flag(env.attacked[i]), env.refused[i]]
+        self.fight.write(",".join(row) + "\n")
+        for event, amount, raw, detail in env.events:
+            self.events.write(f"{t},{event},{num(amount)},{num(raw)},{detail}\n")
+        env.events.clear()
+
+    def close(self):
+        self.fight.close(); self.events.close()
+
+
+def run(net, n, seed, archer=None, recover=False, log=None):
+    env = Duel(n, seed=seed, scripted_frac=0.0 if archer is not None else 1.0, recover=recover)
+    if log is not None:
+        env.trace = 0
     zero_a = np.zeros((n, A_ACT), np.float32)
     total = {k: 0.0 for k in KEYS}; episodes = 0
-    for _ in range(EP_LEN):
+    for t in range(EP_LEN):
         st, si, at, ai = (torch.as_tensor(x) for x in env.obs())
         with torch.no_grad():
             s_a = np.zeros((n, S_ACT), np.float32) if net is None else net.act(st, si, deterministic=True)[0].numpy()
             a_a = zero_a if archer is None else archer.act(at, ai, deterministic=True)[0].numpy()
         _, _, done, info = env.step(s_a, a_a)
+        if log is not None:
+            log.tick(env, t, np.clip(s_a, -1, 1))
         if info["done_stats"] is not None:
             episodes += int(done.sum())
             for k in KEYS:
@@ -59,20 +105,25 @@ def main():
     ap.add_argument("--envs", type=int, default=256)
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--threads", type=int, default=2)
+    ap.add_argument("--recover", action="store_true", help="правило мода: после взмаха нет рывка, после рывка нет взмаха")
+    ap.add_argument("--log", default=None, help="папка: арена 0 первой копии в формате лога боя мода")
     a = ap.parse_args()
     sys.stdout.reconfigure(encoding="utf-8")
     torch.set_num_threads(a.threads)
     if a.archer is None:
-        for path in a.ckpt:
-            print(line(f"сеть {path}", *run(load(path, "s"), a.envs, a.seed)), flush=True)
-        print(line("без сети", *run(None, a.envs, a.seed)), flush=True)
+        for k, path in enumerate(a.ckpt):
+            log = FightLog(a.log, "sim-" + os.path.splitext(os.path.basename(path))[0]) if a.log and k == 0 else None
+            print(line(f"сеть {path}", *run(load(path, "s"), a.envs, a.seed, recover=a.recover, log=log)), flush=True)
+            if log is not None:
+                log.close()
+        print(line("без сети", *run(None, a.envs, a.seed, recover=a.recover)), flush=True)
         return
     archer = load(a.archer, "a")
     print("копия | попадания сценарного | попадания обученного | среднее | отражений/эп (сцен./обуч.)", flush=True)
     best = None
     for path in a.ckpt:
         net = load(path, "s")
-        (ts, es), (tt, et) = run(net, a.envs, a.seed), run(net, a.envs, a.seed, archer)
+        (ts, es), (tt, et) = run(net, a.envs, a.seed, recover=a.recover), run(net, a.envs, a.seed, archer, recover=a.recover)
         mean = (hit(ts) + hit(tt)) / 2
         print(f"{path} | {hit(ts):.3f} | {hit(tt):.3f} | {mean:.3f} | {ts['reflects'] / es:.2f} / {tt['reflects'] / et:.2f}", flush=True)
         if best is None or mean <= best[0]:

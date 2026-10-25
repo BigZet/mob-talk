@@ -105,6 +105,8 @@ public final class DivineConfig {
     public boolean seraphDodge = true;
     /** How many of the net's dashes and sweeps it really makes, percent (0..100). */
     public int seraphDodgeSkill = 70;
+    /** «Лог боя Серафима» ({@code boss.SeraphFightLog}): every fight as CSV in {@code seraph-logs/}, tick by tick and event by event. */
+    public boolean seraphLog = false;
     /** «Бог на стриме» ({@link StreamOverlay}): the OBS overlay may read the god at all; with the main reasons of a verdict; the
      * mercy of every soul online, not only the streamer's; the count of sins; and the ids of the punishments and mercies it
      * names only «Тайное деяние». */

@@ -11,6 +11,13 @@ import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.entity.projectile.PersistentProjectileEntity;
+import net.minecraft.entity.projectile.thrown.PotionEntity;
+import net.minecraft.entity.projectile.thrown.SnowballEntity;
+import net.minecraft.item.BowItem;
+import net.minecraft.network.packet.s2c.play.SubtitleS2CPacket;
+import net.minecraft.network.packet.s2c.play.TitleFadeS2CPacket;
+import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -47,6 +54,15 @@ public final class SeraphEntity extends SacredBoss {
     private SeraphMind.Move move;
     private double featherSide, featherUp;
     private boolean featherLead;
+    /** Who has already been told, on his first arrow, that water opens the flame. */
+    private final java.util.Set<java.util.UUID> hinted = new java.util.HashSet<>();
+    /** «Лог боя Серафима»: open while it fights with the setting on, and what the log compares from tick to tick. */
+    private SeraphFightLog log;
+    private boolean wasExposed, foeDrew;
+    private int loggedPhase = 1;
+    private float foePull;
+    private LivingEntity loggedTarget;
+    private String hurting;
 
     public SeraphEntity(EntityType<? extends SeraphEntity> type, World world) {
         super(type, world, BossBar.Color.RED);
@@ -69,6 +85,10 @@ public final class SeraphEntity extends SacredBoss {
     @Override protected String theme() { return "punishment_59"; }
     @Override protected float meleeDamage() { return 7f; }
     @Override protected double meleeReach() { return 4.0; }
+    /** It flies out of a sword's reach, so arrows are the usual weapon: they bite harder than on the walkers, and the water
+     * window comes back sooner (8 s). */
+    @Override protected float takenNormal() { return 0.25f; }
+    @Override protected int weakCooldownTicks() { return 160; }
     @Override public boolean handleFallDamage(float fallDistance, float damageMultiplier, DamageSource source) { return false; }
     @Override public boolean hasNoGravity() { return true; }
     /** Water hurts the flame: a splash bottle of water, rain and water itself reach it (and open its weak point). */
@@ -79,8 +99,42 @@ public final class SeraphEntity extends SacredBoss {
             if (weakReady()) expose(EXPOSED_TICKS, "Вода погасила пламень — бей!");
             return false;
         }
-        if (!getWorld().isClient && source.getSource() instanceof net.minecraft.entity.projectile.thrown.SnowballEntity) amount = Math.max(amount, 3f);
-        return super.damage(source, amount);
+        if (getWorld().isClient) return super.damage(source, amount);
+        var direct = source.getSource();
+        if (direct instanceof SnowballEntity) amount = Math.max(amount, 3f);
+        float raw = amount;
+        // Right after the fiery sweep its wings are open: the blow lands twice as hard.
+        boolean recovering = config().seraphDodge && mind.recovering() && !exposed();
+        if (recovering) amount *= 2;
+        if (direct instanceof PersistentProjectileEntity && source.getAttacker() instanceof ServerPlayerEntity player && !exposed()
+                && hinted.add(player.getUuid())) {
+            player.networkHandler.sendPacket(new TitleFadeS2CPacket(5, 60, 15));
+            player.networkHandler.sendPacket(new SubtitleS2CPacket(Text.literal("снежок или взрывная бутылка воды откроют слабое место").formatted(Formatting.YELLOW)));
+            player.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("Пламень гасит вода").formatted(Formatting.AQUA, Formatting.BOLD)));
+        }
+        float before = getHealth();
+        boolean harmed = super.damage(source, amount);
+        if (log != null && source.getAttacker() instanceof ServerPlayerEntity) {
+            String what = direct instanceof SnowballEntity ? "snowball_hit" : direct instanceof PotionEntity ? "potion_hit"
+                    : direct instanceof PersistentProjectileEntity ? "arrow_hit" : direct == source.getAttacker() ? "melee_hit" : "other_hit";
+            log.event(age, what, before - getHealth(), raw, exposed() ? "window" : recovering ? "recover x2" : inTransition() ? "phase" : "");
+        }
+        return harmed;
+    }
+
+    /** Hurts a victim and names the attack for the fight log (a blow with no name is the melee strike). */
+    @Override public boolean hurt(LivingEntity victim, float base) {
+        String what = hurting == null ? "melee" : hurting;
+        hurting = null;
+        float before = victim == null ? 0 : victim.getHealth() + victim.getAbsorptionAmount();
+        boolean harmed = super.hurt(victim, base);
+        if (log != null && victim != null)
+            log.event(age, "player_hurt", before - victim.getHealth() - victim.getAbsorptionAmount(), base, what + " " + victim.getName().getString());
+        return harmed;
+    }
+    private boolean hurtBy(String what, LivingEntity victim, float base) {
+        hurting = what;
+        return hurt(victim, base);
     }
 
     // ---- Flight. ----
@@ -95,6 +149,7 @@ public final class SeraphEntity extends SacredBoss {
             sound(SoundEvents.ENTITY_ENDER_DRAGON_FLAP, 2f, 1.2f);
         }
         hold();
+        logTick();
         if (age % 3 == 0) particles(ParticleTypes.FLAME, getX(), getY() + getHeight() * FACE, getZ(), 3, 1.2, 1.4, 1.2, 0.01);
         if (age % 12 == 0) particles(ParticleTypes.SMALL_FLAME, getX(), getY() + 0.2, getZ(), 3, 0.3, 0.1, 0.3, 0.02);
     }
@@ -105,7 +160,8 @@ public final class SeraphEntity extends SacredBoss {
         LivingEntity target = getTarget();
         if (!(getWorld() instanceof ServerWorld) || isDead() || target == null || descendLeft > 0 || !config().seraphDodge) return;
         double ground = groundBelow(getX(), getY() + 1, getZ(), 24);
-        move = mind.tick(this, target, ground, isCasting() ? castProgress() : -1, config().seraphDodgeSkill / 100.0);
+        // While its weak point is open it is stunned: it remembers, but neither dashes, sweeps nor throws.
+        move = mind.tick(this, target, ground, isCasting() ? castProgress() : -1, config().seraphDodgeSkill / 100.0, exposed());
         if (move == null) return;
         if (move.startDeflect()) sound(SoundEvents.ENTITY_ENDER_DRAGON_FLAP, 2f, 0.6f);
         if (mind.closingWings())
@@ -116,6 +172,7 @@ public final class SeraphEntity extends SacredBoss {
             for (var arrow : getWorld().getEntitiesByClass(net.minecraft.entity.projectile.PersistentProjectileEntity.class, box.expand(6),
                     a -> a.isAlive() && a.getOwner() != this && SeraphMind.strikesThisTick(a, box))) {
                 SeraphMind.throwBack(this, arrow);
+                if (log != null) log.event(age, "deflected", 0, Double.NaN, "");
                 particles(ParticleTypes.LAVA, arrow.getX(), arrow.getY(), arrow.getZ(), 4, 0.2, 0.2, 0.2, 0);
                 sound(SoundEvents.ITEM_SHIELD_BLOCK, 2f, 0.7f);
             }
@@ -196,6 +253,61 @@ public final class SeraphEntity extends SacredBoss {
         return getY() + getHeight() + 8;
     }
 
+    // ---- The fight log. ----
+
+    /** One row of the fight log, and the events no other hook sees: opened on the first tick with a foe, while the setting is on. */
+    private void logTick() {
+        if (!config().seraphLog) { closeLog(); return; }
+        LivingEntity target = getTarget();
+        if (log == null) {
+            if (target == null) return;
+            log = SeraphFightLog.open(getId());
+            log.event(age, "start", getHealth(), getMaxHealth(), "power " + power + "; net " + config().seraphDodge + "; skill "
+                    + config().seraphDodgeSkill + "; difficulty " + config().bossDifficulty);
+        }
+        if (exposed() != wasExposed) { wasExposed = exposed(); log.event(age, wasExposed ? "window_open" : "window_close", getHealth(), Double.NaN, ""); }
+        if (phase != loggedPhase) { loggedPhase = phase; log.event(age, "phase", phase, getHealth(), ""); }
+        if (loggedTarget != null && !loggedTarget.isAlive()) log.event(age, "player_death", 0, Double.NaN, loggedTarget.getName().getString());
+        loggedTarget = target;
+        if (target == null) return;
+        boolean drawing = target.isUsingItem() && target.getActiveItem().getItem() instanceof BowItem;
+        if (foeDrew && !drawing) log.event(age, "shot", foePull, Double.NaN, "");
+        foeDrew = drawing;
+        foePull = drawing ? BowItem.getPullProgress(target.getItemUseTime()) : 0;
+        boolean net = move != null;
+        float[] out = net ? mind.lastOut() : new float[0];
+        java.util.List<String> row = new java.util.ArrayList<>();
+        row.add(String.valueOf(age)); row.add(SeraphFightLog.num(getHealth())); row.add(SeraphFightLog.num(getMaxHealth())); row.add(String.valueOf(phase));
+        row.add(flag(exposed())); row.add(flag(config().seraphDodge && mind.recovering()));
+        row.add(SeraphFightLog.num(Math.sqrt(squaredDistanceTo(target)))); row.add(SeraphFightLog.num(getY() - groundBelow(getX(), getY() + 1, getZ(), 24)));
+        row.add(net ? String.valueOf(mind.dashCd()) : ""); row.add(net ? String.valueOf(mind.deflectCd()) : ""); row.add(net ? String.valueOf(mind.attackCd()) : "");
+        row.add(isCasting() ? SeraphFightLog.num(castProgress()) : "");
+        row.add(flag(net && mind.dashing())); row.add(flag(net && mind.deflecting()));
+        row.add(flag(drawing)); row.add(SeraphFightLog.num(foePull));
+        for (int i = 0; i < 9; i++) row.add(i < out.length ? SeraphFightLog.num(out[i]) : "");
+        row.add(flag(net && mind.dashStarted())); row.add(flag(net && move.startDeflect())); row.add(flag(net && move.startFeathers()));
+        row.add(net ? mind.refused() : "");
+        log.tick(String.join(",", row));
+    }
+    private static String flag(boolean on) { return on ? "1" : "0"; }
+
+    private void closeLog() {
+        if (log == null) return;
+        log.flush();
+        log = null;
+    }
+
+    @Override public void onDeath(DamageSource source) {
+        if (log != null) log.event(age, "seraph_death", 0, Double.NaN, source.getAttacker() == null ? "" : source.getAttacker().getName().getString());
+        super.onDeath(source);
+        closeLog();
+    }
+
+    @Override public void remove(RemovalReason reason) {
+        super.remove(reason);
+        closeLog();
+    }
+
     // ---- Attacks. ----
 
     @Override protected int attack(LivingEntity target) {
@@ -230,7 +342,7 @@ public final class SeraphEntity extends SacredBoss {
                 Vec3d dir = new Vec3d(aim.x * Math.cos(spread) - aim.z * Math.sin(spread), aim.y + (random.nextDouble() - 0.5) * 0.08,
                         aim.x * Math.sin(spread) + aim.z * Math.cos(spread)).normalize();
                 hazards.orb(from, dir.multiply(0.5), 60, 0.35, ParticleTypes.FLAME, victim -> {
-                    if (hurt(victim, 5f)) victim.setOnFireFor(3);
+                    if (hurtBy("feathers", victim, 5f)) victim.setOnFireFor(3);
                     particles(ParticleTypes.LAVA, victim.getX(), victim.getBodyY(0.5), victim.getZ(), 4, 0.3, 0.3, 0.3, 0);
                 });
             }
@@ -247,7 +359,7 @@ public final class SeraphEntity extends SacredBoss {
         }, () -> {
             sound(SoundEvents.ENTITY_BLAZE_SHOOT, 2f, 0.5f);
             hazards.ring(center, 0.32, phase >= 3 ? 14 : 11, 1.2, ParticleTypes.FLAME, victim -> {
-                if (hurt(victim, 6f)) { victim.setOnFireFor(4); push(victim, center, 0.6, 0.3); }
+                if (hurtBy("ring", victim, 6f)) { victim.setOnFireFor(4); push(victim, center, 0.6, 0.3); }
             });
         });
     }
@@ -271,7 +383,7 @@ public final class SeraphEntity extends SacredBoss {
             hazards.later(18, () -> {
                 Vec3d at = new Vec3d(getX(), groundBelow(getX(), getY() + 1, getZ(), 8), getZ());
                 particles(ParticleTypes.FLAME, at.x, at.y + 0.3, at.z, 50, 2.2, 0.2, 2.2, 0.05);
-                hazards.ring(at, 0.3, 5, 1.0, ParticleTypes.SMALL_FLAME, victim -> { if (hurt(victim, 4f)) victim.setOnFireFor(2); });
+                hazards.ring(at, 0.3, 5, 1.0, ParticleTypes.SMALL_FLAME, victim -> { if (hurtBy("descent", victim, 4f)) victim.setOnFireFor(2); });
             });
             for (ServerPlayerEntity player : playersNear(32))
                 player.sendMessage(Text.literal("Серафим сошёл на землю — бей!").formatted(Formatting.GOLD), true);
@@ -317,7 +429,7 @@ public final class SeraphEntity extends SacredBoss {
                 getWorld().playSound(null, center.x, center.y, center.z, SoundEvents.ENTITY_BLAZE_SHOOT, SoundCategory.HOSTILE, 1.5f, 0.5f);
                 if (fire) kindle(BlockPos.ofFloored(center.x, center.y + 0.1, center.z));
             }, victim -> {
-                if (!hurt(victim, 8f)) return;
+                if (!hurtBy("pillar", victim, 8f)) return;
                 victim.setOnFireFor(5);
                 if (!victim.hasStatusEffect(BossEffects.SCORCH)) victim.sendMessage(Text.literal("Опаление: лечение жжёт").formatted(Formatting.GOLD));
                 BossEffects.afflict(victim, BossEffects.SCORCH, 20 * 10);
@@ -338,8 +450,8 @@ public final class SeraphEntity extends SacredBoss {
     /** A snowball, or a splash bottle of plain water (the harmful potions are only potions). */
     @Override protected boolean weakTrigger(DamageSource source, float amount) {
         var direct = source.getSource();
-        if (direct instanceof net.minecraft.entity.projectile.thrown.SnowballEntity) return true;
-        return direct instanceof net.minecraft.entity.projectile.thrown.PotionEntity potion
+        if (direct instanceof SnowballEntity) return true;
+        return direct instanceof PotionEntity potion
                 && potion.getStack().getOrDefault(net.minecraft.component.DataComponentTypes.POTION_CONTENTS, net.minecraft.component.type.PotionContentsComponent.DEFAULT)
                         .matches(net.minecraft.potion.Potions.WATER);
     }

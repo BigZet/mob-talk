@@ -28,6 +28,7 @@ DEFLECT_WIND, DEFLECT_ACTIVE, DEFLECT_CD = 3, 6, 80
 CAST_TICKS, ATTACK_CD = 20, 45          # после выстрела перьями ждать ещё ATTACK_CD тиков
 FEATHERS, FEATHER_SPEED, FEATHER_LIFE, FEATHER_R, FEATHER_SPREAD = 5, 0.5, 60, 0.35, 0.14
 REFLECT_SPEED = 2.0
+RECOVER = 20             # recover=True: после взмаха столько тиков нет рывка, после рывка — взмаха (как SeraphMind.RECOVER в моде)
 HIT_MARGIN = 0.3
 # ---- лучник ----
 PW, PH, EYE = 0.6, 1.8, 1.62
@@ -83,11 +84,15 @@ def ballistic(flat, dy, speed, g=0.05):
 
 
 class Duel:
-    def __init__(self, n, seed=0, scripted_frac=0.0, react=REACT):
+    def __init__(self, n, seed=0, scripted_frac=0.0, react=REACT, recover=False):
+        """recover: правило мода «после взмаха нет рывка, после рывка нет взмаха» (RECOVER тиков); в обучении sp1 его не было."""
         self.n = n
         self.rng = np.random.default_rng(seed)
         self.scripted_frac = scripted_frac
         self.react = react
+        self.recover = recover
+        self.trace = None        # номер арены, чьи события копятся в self.events (для лога боя, как в моде)
+        self.events = []
         self._alloc()
         self.reset(np.ones(n, bool))
 
@@ -99,6 +104,7 @@ class Duel:
         self.orbit = np.zeros(n); self.age = np.zeros(n, int); self.t = np.zeros(n, int)
         self.dash_cd = np.zeros(n, int); self.dash_left = np.zeros(n, int); self.dash_dir = np.zeros((n, 2)); self.steer = np.zeros((n, 2)); self.lift = np.zeros(n)
         self.defl_cd = np.zeros(n, int); self.defl_t = np.zeros(n, int)   # >0: идёт взмах, считает вниз от WIND+ACTIVE
+        self.no_dash = np.zeros(n, int); self.no_defl = np.zeros(n, int)  # recover: запреты после взмаха и после рывка
         self.cast_t = np.zeros(n, int); self.atk_cd = np.zeros(n, int); self.cast_aim = np.zeros((n, 2))
         self.ppos, self.pvel = z3(), z3()
         self.draw = np.zeros(n, int); self.look = z3(); self.pcool = np.zeros(n, int)
@@ -107,6 +113,8 @@ class Duel:
         self.q_on = np.zeros((n, MAXP), bool); self.q_pos = np.zeros((n, MAXP, 3)); self.q_vel = np.zeros((n, MAXP, 3))
         self.q_kind = np.zeros((n, MAXP), int); self.q_age = np.zeros((n, MAXP), int)
         self.released = np.zeros(n, bool); self.dashed = np.zeros(n, bool)
+        self.deflected = np.zeros(n, bool); self.attacked = np.zeros(n, bool); self.refused = [""] * n
+        self.last_pull = np.zeros(n)
         D = self.react
         self.s_hist = np.zeros((n, T + D, S_TOK), np.float32); self.a_hist = np.zeros((n, T + D, A_TOK), np.float32)
         self.s_items = np.zeros((n, D + 1, P_OBS, ITEM_F), np.float32); self.a_items = np.zeros((n, D + 1, P_OBS, ITEM_F), np.float32)
@@ -121,7 +129,7 @@ class Duel:
         ang = r.uniform(0, 2 * np.pi, k); dist = r.uniform(8, 16, k)
         self.bpos[m] = np.stack([np.cos(ang) * dist, np.full(k, HOVER), np.sin(ang) * dist], 1)
         self.bvel[m] = 0; self.orbit[m] = ang; self.age[m] = r.integers(0, 1000, k); self.t[m] = 0
-        for a in (self.dash_cd, self.dash_left, self.defl_cd, self.defl_t, self.cast_t, self.draw, self.pcool):
+        for a in (self.dash_cd, self.dash_left, self.defl_cd, self.defl_t, self.cast_t, self.draw, self.pcool, self.no_dash, self.no_defl):
             a[m] = 0
         self.steer[m] = 0; self.lift[m] = 0
         self.atk_cd[m] = r.integers(20, 60, k)
@@ -224,6 +232,7 @@ class Duel:
         a_act = np.clip(np.asarray(a_act, float), -1, 1)
         rs = np.zeros(n); ra = np.zeros(n)
         self.released[:] = False; self.dashed[:] = False
+        self.refused = [""] * n
 
         # ================= Серафим =================
         c, s = self._frame(self.bpos, self.ppos)
@@ -234,15 +243,27 @@ class Duel:
         casting = self.cast_t > 0
         # взмах
         go_def = (s_act[:, 4] > 0) & (self.defl_cd == 0) & ~casting & (self.dash_left == 0)
+        no_def = go_def & (self.no_defl > 0) if self.recover else np.zeros(n, bool)
+        go_def &= ~no_def
         self.defl_t[go_def] = DEFLECT_WIND + DEFLECT_ACTIVE; self.defl_cd[go_def] = DEFLECT_CD
+        if self.recover:
+            self.no_dash[go_def] = DEFLECT_WIND + DEFLECT_ACTIVE + RECOVER
+        self.deflected = go_def.copy()
         # рывок
         go_dash = (s_act[:, 3] > 0) & (self.dash_cd == 0) & ~casting & (self.defl_t == 0)
+        no_dash = go_dash & (self.no_dash > 0) if self.recover else np.zeros(n, bool)
+        go_dash &= ~no_dash
+        if self.recover:
+            self.no_defl[go_dash] = DASH_TICKS + RECOVER
+        for i in np.nonzero(no_def | no_dash)[0]:
+            self.refused[i] = " ".join(w for w, on in (("deflect:recover", no_def[i]), ("dash:recover", no_dash[i])) if on)
         dirn = steer_w / (np.linalg.norm(steer_w, axis=1, keepdims=True) + 1e-9)
         self.dash_dir[go_dash] = dirn[go_dash]; self.dash_left[go_dash] = DASH_TICKS; self.dash_cd[go_dash] = DASH_CD
         self.dashed |= go_dash; self.stats["dashes"] += go_dash
         # атака перьями: начать каст
         go_atk = (s_act[:, 5] > 0) & (self.atk_cd == 0) & ~casting & (self.dash_left == 0)
         self.cast_t[go_atk] = CAST_TICKS; self.cast_aim[go_atk] = s_act[go_atk][:, 6:8]
+        self.attacked = go_atk.copy()
         rs -= 0.002 * go_dash + 0.002 * go_def
         casting = self.cast_t > 0
         dashing = self.dash_left > 0
@@ -272,6 +293,7 @@ class Duel:
         self.dash_left = np.maximum(self.dash_left - 1, 0); self.dash_cd = np.maximum(self.dash_cd - 1, 0)
         self.defl_t = np.maximum(self.defl_t - 1, 0); self.defl_cd = np.maximum(self.defl_cd - 1, 0)
         self.atk_cd = np.maximum(self.atk_cd - 1, 0)
+        self.no_dash = np.maximum(self.no_dash - 1, 0); self.no_defl = np.maximum(self.no_defl - 1, 0)
         fire = (self.cast_t == 1)
         self.cast_t = np.maximum(self.cast_t - 1, 0)
         for i in np.nonzero(fire)[0]:
@@ -284,6 +306,12 @@ class Duel:
 
         # ================= снаряды =================
         hit_b, hit_p_feather, hit_p_reflect, reflected = self._projectiles()
+        if self.trace is not None:
+            i = self.trace
+            if self.released[i]: self.events.append(("shot", self.last_pull[i], None, ""))
+            self.events += [("arrow_hit", None, None, "")] * int(hit_b[i]) + [("deflected", 0, None, "")] * int(reflected[i])
+            self.events += [("player_hurt", None, None, "feathers")] * int(hit_p_feather[i])
+            self.events += [("player_hurt", None, None, "reflected")] * int(hit_p_reflect[i])
         self.stats["arrow_hits"] += hit_b; self.stats["feather_hits"] += hit_p_feather
         self.stats["reflects"] += reflected; self.stats["reflect_hits"] += hit_p_reflect
         rs += -1.0 * hit_b + 0.5 * hit_p_feather + 1.0 * hit_p_reflect + 0.1 * reflected
@@ -299,6 +327,10 @@ class Duel:
         if done.any():
             self.reset(done)
         return rs.astype(np.float32), ra.astype(np.float32), done, info
+
+    def recovering(self):
+        """Как SeraphMind.recovering(): взмах кончился, рывка ещё нет (в моде в это время урон ×2)."""
+        return (self.no_dash > 0) & (self.defl_t == 0)
 
     # ---------------------------------------------------------------- archer
     def _archer(self, a_act):
@@ -356,6 +388,7 @@ class Duel:
             d /= np.linalg.norm(d)
             d = d + r.triangular(-1, 0, 1, 3) * 0.0172275
             sp = 3.0 * bow_power(pulled[i])
+            self.last_pull[i] = bow_power(pulled[i])
             self._spawn(i, ARROW, eye[i] - np.array([0, 0.1, 0]), d * sp + np.array([self.pvel[i, 0], 0, self.pvel[i, 2]]))
         self.pcool[fire] = 2
         self.released |= fire

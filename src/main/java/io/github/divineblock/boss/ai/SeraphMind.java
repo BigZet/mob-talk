@@ -28,6 +28,9 @@ public final class SeraphMind {
     public static final int DEFLECT_WIND = 3, DEFLECT_ACTIVE = 6, DEFLECT_CD = 80;
     public static final int CAST_TICKS = 20, ATTACK_CD = 45;
     public static final double REFLECT_SPEED = 2.0;
+    /** After the sweep it cannot dash (and takes double harm), after a dash it cannot sweep, for this many ticks: a beat the
+     * player can read. Not in the trainer's training rules (duel.py --recover mirrors it); the net simply finds the move refused. */
+    public static final int RECOVER = 20;
     static final double WALK = 0.2158, EYE = 1.62;
     static final int T = 16, REACT = 2, P = 8, ITEM = 11, TOK = 23;
 
@@ -38,10 +41,12 @@ public final class SeraphMind {
     private final float[][][] items = new float[REACT + 1][][];
     private int filled;
     private Vec3d lastFoe;
-    private int dashCd, dashLeft, deflectCd, deflectT, attackCd = 30, foeCool;
+    private int dashCd, dashLeft, deflectCd, deflectT, attackCd = 30, foeCool, noDash, noDeflect;
     private Vec3d dashDir = Vec3d.ZERO;
     private double steerX, steerZ, liftS;
-    private boolean wasUsing;
+    private boolean wasUsing, released, dashStarted;
+    private float[] lastOut = new float[0];
+    private String refused = "";
 
     /** One tick's decision. Steering is world-space in [-1, 1]; aimSide/aimUp are the feathers' lead in [-1, 1]. */
     public record Move(double steerX, double steerZ, double steerAmount, double lift, boolean dashing, Vec3d dashDir, double dashSpeed,
@@ -59,10 +64,25 @@ public final class SeraphMind {
     public boolean deflecting() { return deflectT > 0 && deflectT <= DEFLECT_ACTIVE; }
     public boolean closingWings() { return deflectT > DEFLECT_ACTIVE; }
     public boolean dashing() { return dashLeft > 0; }
+    /** Right after the sweep: it cannot dash yet and takes double harm. */
+    public boolean recovering() { return noDash > 0 && deflectT == 0; }
+    /** The fight log: the net's raw outputs this tick, what was refused and why, whether the foe just loosed, a dash began. */
+    public float[] lastOut() { return lastOut; }
+    public String refused() { return refused; }
+    public boolean foeReleased() { return released; }
+    public boolean dashStarted() { return dashStarted; }
+    public int dashCd() { return dashCd; }
+    public int deflectCd() { return deflectCd; }
+    public int attackCd() { return attackCd; }
 
     /** Call every server tick while it fights, casting or not (the memory must not skip ticks).
      * {@code castProgress} 0..1 while a cast runs, else -1. Returns null when there is no net. */
     public Move tick(LivingEntity self, LivingEntity foe, double ground, double castProgress, double mastery) {
+        return tick(self, foe, ground, castProgress, mastery, false);
+    }
+
+    /** The same, {@code stunned} while its weak point is open: it remembers, but neither steers, dashes, sweeps nor throws. */
+    public Move tick(LivingEntity self, LivingEntity foe, double ground, double castProgress, double mastery, boolean stunned) {
         SeraphBrain b = brain();
         if (b == null) return null;
         Vec3d bpos = self.getPos();
@@ -70,35 +90,45 @@ public final class SeraphMind {
         Vec3d foeVel = lastFoe == null ? Vec3d.ZERO : foe.getPos().subtract(lastFoe);
         lastFoe = foe.getPos();
         boolean using = foe.isUsingItem() && drawsBow(foe.getActiveItem());
-        if (wasUsing && !using) foeCool = 2;
+        released = wasUsing && !using;
+        if (released) foeCool = 2;
         wasUsing = using;
         push(token(self, foe, ground, castProgress, c, s, foeVel, using), items(self, c, s));
         boolean casting = castProgress >= 0;
+        if (stunned) { dashLeft = 0; deflectT = 0; }
 
         float[] out = b.forward(java.util.Arrays.copyOfRange(tokens, 0, T), items[0]);
-        double ax = clamp(out[0]), ay = clamp(out[1]), az = clamp(out[2]);
+        lastOut = out;
+        StringBuilder no = new StringBuilder();
+        double ax = stunned ? 0 : clamp(out[0]), ay = stunned ? 0 : clamp(out[1]), az = stunned ? 0 : clamp(out[2]);
         double wx = ax * c - az * s, wz = ax * s + az * c;
         steerX = SMOOTH * steerX + (1 - SMOOTH) * wx;
         steerZ = SMOOTH * steerZ + (1 - SMOOTH) * wz;
         liftS = SMOOTH * liftS + (1 - SMOOTH) * ay;
         boolean deflect = out[4] > 0 && deflectCd == 0 && !casting && dashLeft == 0;
-        if (deflect && mastery < 1 && self.getRandom().nextDouble() >= mastery) { deflectCd = DEFLECT_CD / 2; deflect = false; }
-        if (deflect) { deflectT = DEFLECT_WIND + DEFLECT_ACTIVE; deflectCd = DEFLECT_CD; }
+        if (deflect && (stunned || noDeflect > 0)) { no.append(stunned ? "deflect:stun " : "deflect:recover "); deflect = false; }
+        if (deflect && mastery < 1 && self.getRandom().nextDouble() >= mastery) { deflectCd = DEFLECT_CD / 2; deflect = false; no.append("deflect:skill "); }
+        if (deflect) { deflectT = DEFLECT_WIND + DEFLECT_ACTIVE; deflectCd = DEFLECT_CD; noDash = deflectT + RECOVER; }
         boolean dash = out[3] > 0 && dashCd == 0 && !casting && deflectT == 0;
-        if (dash && mastery < 1 && self.getRandom().nextDouble() >= mastery) { dashCd = DASH_CD / 2; dash = false; }
+        if (dash && (stunned || noDash > 0)) { no.append(stunned ? "dash:stun " : "dash:recover "); dash = false; }
+        if (dash && mastery < 1 && self.getRandom().nextDouble() >= mastery) { dashCd = DASH_CD / 2; dash = false; no.append("dash:skill "); }
+        dashStarted = dash;
         if (dash) {
             double len = Math.hypot(wx, wz);
             dashDir = len < 1e-6 ? Vec3d.ZERO : new Vec3d(wx / len, 0, wz / len);
-            dashLeft = DASH_TICKS; dashCd = DASH_CD;
+            dashLeft = DASH_TICKS; dashCd = DASH_CD; noDeflect = DASH_TICKS + RECOVER;
         }
         boolean feathers = out[5] > 0 && attackCd == 0 && !casting && dashLeft == 0;
+        if (feathers && stunned) { no.append("feathers:stun "); feathers = false; }
+        refused = no.toString().trim();
         boolean dashingNow = dashLeft > 0;
         double dashSpeed = dashingNow ? DASH_PROFILE[Math.min(DASH_TICKS - dashLeft, DASH_TICKS - 1)] : 0;
         dashLeft = Math.max(dashLeft - 1, 0); dashCd = Math.max(dashCd - 1, 0);
         deflectT = Math.max(deflectT - 1, 0); deflectCd = Math.max(deflectCd - 1, 0);
         attackCd = Math.max(attackCd - 1, 0); foeCool = Math.max(foeCool - 1, 0);
+        noDash = Math.max(noDash - 1, 0); noDeflect = Math.max(noDeflect - 1, 0);
         float soon = (float) (1 / (1 + Math.exp(-out[8])));
-        return new Move(steerX, steerZ, Math.min(1, Math.hypot(steerX, steerZ)), casting ? 0 : liftS, dashingNow, dashDir, dashSpeed, deflect, feathers,
+        return new Move(steerX, steerZ, Math.min(1, Math.hypot(steerX, steerZ)), casting || stunned ? 0 : liftS, dashingNow, dashDir, dashSpeed, deflect, feathers,
                 clamp(out[6]), clamp(out[7]), soon);
     }
 
