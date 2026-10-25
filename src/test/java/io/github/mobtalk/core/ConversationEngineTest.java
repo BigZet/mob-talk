@@ -1024,6 +1024,9 @@ class ConversationEngineTest {
             queuedAnswers.add(ownAnswer("Мне бы пшеницы на хлеб, а книгу я сама найду.", "NONE", "", 0, "", "OFFER", "minecraft:wheat", 8, "Поиск книги", "", 0));
             assertEquals("Пшеница", engine.converse(tradingCow(freeCow(false)), "Что сделать?").quest().title());
             assertTrue(lastCorrection().contains("в реплике об этом ни слова"), lastCorrection());
+            queuedAnswers.add(ownAnswer("Принеси пшеницы, восемь снопов.", "NONE", "", 0, "", "OFFER", "minecraft:wheat", 8, "8× Пшеница", "", 0));
+            assertEquals("Пшеница", engine.converse(tradingCow(freeCow(false)), "А ещё?").quest().title(), "the amount is not repeated in the title");
+            assertEquals(List.of(23), AnswerValidator.spokenNumbers(AnswerValidator.PERCENT.matcher("Принеси 23 кирпича, скину двадцать пять процентов, или 20%").replaceAll(" ")));
             assertTrue(AnswerValidator.mentions("Нужны ломтики арбуза", "Ломтик арбуза") && AnswerValidator.mentions("три яйца", "Яйцо")
                     && !AnswerValidator.mentions("Найди книгу", "Ломтик арбуза"));
         }

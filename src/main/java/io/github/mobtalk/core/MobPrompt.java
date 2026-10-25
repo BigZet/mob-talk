@@ -327,6 +327,8 @@ final class MobPrompt {
             if (favor.get("active") instanceof Map<?,?> active)
                 summary.append("\n— игрок должен тебе «").append(active.get("title")).append("»: принести ").append(active.get("count")).append("× ")
                         .append(active.get("itemName")).append(" (").append(active.get("item")).append("), у него сейчас ").append(active.get("have")).append(" из ").append(active.get("count"))
+                        .append(" (игра считает весь его инвентарь, не только руку; засчитывается только ").append(active.get("item"))
+                        .append(", похожий предмет с другим id — нет, тогда так и скажи, чем он отличается)")
                         .append(Boolean.TRUE.equals(active.get("canComplete")) ? " — принёс: можешь принять (quest COMPLETE), игра заберёт предметы, и отблагодарить."
                                 : " — ещё не принёс: не принимай; напомнить можно, когда игрок сам заговорит об услуге или спросит, что делать, а не в каждой реплике.")
                         .append(active.get("rewardDeal") instanceof String deal && !deal.isBlank() ? " За это ты обещал сделку «" + deal + "»"
