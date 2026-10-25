@@ -1,0 +1,312 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "water": "mobtalk:block/casino/fountain_water",
+    "spray": "mobtalk:block/casino/fountain_spray",
+    "foam": "mobtalk:block/casino/fountain_foam",
+    "particle": "mobtalk:block/casino/fountain_water"
+  },
+  "elements": [
+    {
+      "from": [
+        6.5,
+        0,
+        6.5
+      ],
+      "to": [
+        9.5,
+        31,
+        9.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#water",
+          "uv": [
+            6.5,
+            0,
+            9.5,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#water",
+          "uv": [
+            6.5,
+            0,
+            9.5,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#water",
+          "uv": [
+            6.5,
+            0,
+            9.5,
+            16
+          ]
+        },
+        "west": {
+          "texture": "#water",
+          "uv": [
+            6.5,
+            0,
+            9.5,
+            16
+          ]
+        },
+        "up": {
+          "texture": "#water",
+          "uv": [
+            6.5,
+            6.5,
+            9.5,
+            9.5
+          ]
+        },
+        "down": {
+          "texture": "#water",
+          "uv": [
+            6.5,
+            6.5,
+            9.5,
+            9.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        5,
+        1,
+        5
+      ],
+      "to": [
+        11,
+        27,
+        11
+      ],
+      "faces": {
+        "north": {
+          "texture": "#water",
+          "uv": [
+            5,
+            0,
+            11,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#water",
+          "uv": [
+            5,
+            0,
+            11,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#water",
+          "uv": [
+            5,
+            0,
+            11,
+            16
+          ]
+        },
+        "west": {
+          "texture": "#water",
+          "uv": [
+            5,
+            0,
+            11,
+            16
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.5,
+        26,
+        3.5
+      ],
+      "to": [
+        12.5,
+        31.5,
+        12.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#spray",
+          "uv": [
+            3.5,
+            0.5,
+            12.5,
+            6
+          ]
+        },
+        "south": {
+          "texture": "#spray",
+          "uv": [
+            3.5,
+            0.5,
+            12.5,
+            6
+          ]
+        },
+        "east": {
+          "texture": "#spray",
+          "uv": [
+            3.5,
+            0.5,
+            12.5,
+            6
+          ]
+        },
+        "west": {
+          "texture": "#spray",
+          "uv": [
+            3.5,
+            0.5,
+            12.5,
+            6
+          ]
+        },
+        "up": {
+          "texture": "#spray",
+          "uv": [
+            3.5,
+            3.5,
+            12.5,
+            12.5
+          ]
+        },
+        "down": {
+          "texture": "#spray",
+          "uv": [
+            3.5,
+            3.5,
+            12.5,
+            12.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0,
+        29,
+        8
+      ],
+      "to": [
+        16,
+        32,
+        8
+      ],
+      "faces": {
+        "north": {
+          "texture": "#spray",
+          "uv": [
+            0,
+            0,
+            16,
+            3
+          ]
+        },
+        "south": {
+          "texture": "#spray",
+          "uv": [
+            0,
+            0,
+            16,
+            3
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          29,
+          8
+        ],
+        "axis": "y",
+        "angle": 45
+      }
+    },
+    {
+      "from": [
+        0,
+        29,
+        8
+      ],
+      "to": [
+        16,
+        32,
+        8
+      ],
+      "faces": {
+        "north": {
+          "texture": "#spray",
+          "uv": [
+            0,
+            0,
+            16,
+            3
+          ]
+        },
+        "south": {
+          "texture": "#spray",
+          "uv": [
+            0,
+            0,
+            16,
+            3
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          29,
+          8
+        ],
+        "axis": "y",
+        "angle": -45
+      }
+    },
+    {
+      "from": [
+        0,
+        0.3,
+        0
+      ],
+      "to": [
+        16,
+        0.3,
+        16
+      ],
+      "faces": {
+        "up": {
+          "texture": "#foam",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#foam",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        }
+      }
+    }
+  ],
+  "ambientocclusion": false
+}

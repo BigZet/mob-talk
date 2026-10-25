@@ -151,6 +151,11 @@ public final class MobTalkClient implements ClientModInitializer {
         io.github.mobtalk.client.human.VillagerLooks.register();
         io.github.mobtalk.client.bandit.BanditRenderer.register(); // Ночные бандиты в городах.
         net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(io.github.mobtalk.game.BarContent.SEAT, net.minecraft.client.render.entity.EmptyEntityRenderer::new);
+        // Казино: печатные поля на сукне и подвески люстры прозрачны по краям.
+        for (net.minecraft.block.Block block : io.github.mobtalk.game.CasinoContent.BLOCKS.values())
+            net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.INSTANCE.putBlock(block, net.minecraft.client.render.RenderLayer.getCutout());
+        net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.INSTANCE.putBlock(io.github.mobtalk.game.CasinoContent.FOUNTAIN, net.minecraft.client.render.RenderLayer.getTranslucent());
+        net.minecraft.client.render.block.entity.BlockEntityRendererFactories.register(io.github.mobtalk.game.CasinoContent.PALM_ENTITY, context -> new PalmCrownRenderer());
         net.fabricmc.fabric.api.resource.ResourceManagerHelper.get(net.minecraft.resource.ResourceType.CLIENT_RESOURCES).registerReloadListener(
                 new net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener() {
                     @Override public net.minecraft.util.Identifier getFabricId() { return net.minecraft.util.Identifier.of("mobtalk", "human_textures"); }

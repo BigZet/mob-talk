@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/cube_column",
+  "textures": {
+    "side": "mobtalk:block/casino/wainscot",
+    "end": "mobtalk:block/casino/walnut"
+  }
+}

@@ -1,0 +1,290 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "chip_red_side": "mobtalk:block/casino/chip_red_side",
+    "chip_red_top": "mobtalk:block/casino/chip_red_top",
+    "chip_black_side": "mobtalk:block/casino/chip_black_side",
+    "chip_black_top": "mobtalk:block/casino/chip_black_top",
+    "chip_blue_side": "mobtalk:block/casino/chip_blue_side",
+    "chip_blue_top": "mobtalk:block/casino/chip_blue_top",
+    "chip_green_side": "mobtalk:block/casino/chip_green_side",
+    "chip_green_top": "mobtalk:block/casino/chip_green_top",
+    "chip_purple_side": "mobtalk:block/casino/chip_purple_side",
+    "chip_purple_top": "mobtalk:block/casino/chip_purple_top",
+    "particle": "mobtalk:block/casino/chip_red_side"
+  },
+  "elements": [
+    {
+      "from": [
+        4,
+        0.0,
+        4
+      ],
+      "to": [
+        7,
+        6.0,
+        7
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chip_red_side",
+          "uv": [
+            0,
+            0,
+            3,
+            6
+          ]
+        },
+        "south": {
+          "texture": "#chip_red_side",
+          "uv": [
+            0,
+            0,
+            3,
+            6
+          ]
+        },
+        "east": {
+          "texture": "#chip_red_side",
+          "uv": [
+            0,
+            0,
+            3,
+            6
+          ]
+        },
+        "west": {
+          "texture": "#chip_red_side",
+          "uv": [
+            0,
+            0,
+            3,
+            6
+          ]
+        },
+        "up": {
+          "texture": "#chip_red_top",
+          "uv": [
+            0,
+            0,
+            3,
+            3
+          ]
+        },
+        "down": {
+          "texture": "#chip_red_side",
+          "uv": [
+            0,
+            0,
+            3,
+            3
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        9,
+        0.0,
+        4.5
+      ],
+      "to": [
+        12,
+        9.0,
+        7.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chip_black_side",
+          "uv": [
+            0,
+            0,
+            3,
+            9
+          ]
+        },
+        "south": {
+          "texture": "#chip_black_side",
+          "uv": [
+            0,
+            0,
+            3,
+            9
+          ]
+        },
+        "east": {
+          "texture": "#chip_black_side",
+          "uv": [
+            0,
+            0,
+            3,
+            9
+          ]
+        },
+        "west": {
+          "texture": "#chip_black_side",
+          "uv": [
+            0,
+            0,
+            3,
+            9
+          ]
+        },
+        "up": {
+          "texture": "#chip_black_top",
+          "uv": [
+            0,
+            0,
+            3,
+            3
+          ]
+        },
+        "down": {
+          "texture": "#chip_black_side",
+          "uv": [
+            0,
+            0,
+            3,
+            3
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.5,
+        0.0,
+        9
+      ],
+      "to": [
+        7.5,
+        4.0,
+        12
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chip_blue_side",
+          "uv": [
+            0,
+            0,
+            3,
+            4
+          ]
+        },
+        "south": {
+          "texture": "#chip_blue_side",
+          "uv": [
+            0,
+            0,
+            3,
+            4
+          ]
+        },
+        "east": {
+          "texture": "#chip_blue_side",
+          "uv": [
+            0,
+            0,
+            3,
+            4
+          ]
+        },
+        "west": {
+          "texture": "#chip_blue_side",
+          "uv": [
+            0,
+            0,
+            3,
+            4
+          ]
+        },
+        "up": {
+          "texture": "#chip_blue_top",
+          "uv": [
+            0,
+            0,
+            3,
+            3
+          ]
+        },
+        "down": {
+          "texture": "#chip_blue_side",
+          "uv": [
+            0,
+            0,
+            3,
+            3
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        9.5,
+        0.0,
+        9.5
+      ],
+      "to": [
+        12.5,
+        7.0,
+        12.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chip_green_side",
+          "uv": [
+            0,
+            0,
+            3,
+            7
+          ]
+        },
+        "south": {
+          "texture": "#chip_green_side",
+          "uv": [
+            0,
+            0,
+            3,
+            7
+          ]
+        },
+        "east": {
+          "texture": "#chip_green_side",
+          "uv": [
+            0,
+            0,
+            3,
+            7
+          ]
+        },
+        "west": {
+          "texture": "#chip_green_side",
+          "uv": [
+            0,
+            0,
+            3,
+            7
+          ]
+        },
+        "up": {
+          "texture": "#chip_green_top",
+          "uv": [
+            0,
+            0,
+            3,
+            3
+          ]
+        },
+        "down": {
+          "texture": "#chip_green_side",
+          "uv": [
+            0,
+            0,
+            3,
+            3
+          ]
+        }
+      }
+    }
+  ]
+}

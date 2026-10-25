@@ -1,0 +1,216 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "sign": "mobtalk:block/casino/sign",
+    "walnut": "mobtalk:block/casino/walnut",
+    "gold_trim": "mobtalk:block/casino/gold_trim",
+    "particle": "mobtalk:block/casino/gold_trim"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        2,
+        14.5
+      ],
+      "to": [
+        32,
+        14,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#sign",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#walnut",
+          "uv": [
+            0,
+            2,
+            16,
+            14
+          ]
+        },
+        "east": {
+          "texture": "#walnut",
+          "uv": [
+            0,
+            2,
+            1.5,
+            14
+          ]
+        },
+        "west": {
+          "texture": "#walnut",
+          "uv": [
+            14.5,
+            2,
+            16,
+            14
+          ]
+        },
+        "up": {
+          "texture": "#walnut",
+          "uv": [
+            0,
+            14.5,
+            16,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#walnut",
+          "uv": [
+            0,
+            0,
+            16,
+            1.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0,
+        1.5,
+        14
+      ],
+      "to": [
+        32,
+        2,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#gold_trim",
+          "uv": [
+            0,
+            14,
+            16,
+            14.5
+          ]
+        },
+        "south": {
+          "texture": "#gold_trim",
+          "uv": [
+            0,
+            14,
+            16,
+            14.5
+          ]
+        },
+        "east": {
+          "texture": "#gold_trim",
+          "uv": [
+            0,
+            14,
+            2,
+            14.5
+          ]
+        },
+        "west": {
+          "texture": "#gold_trim",
+          "uv": [
+            14,
+            14,
+            16,
+            14.5
+          ]
+        },
+        "up": {
+          "texture": "#gold_trim",
+          "uv": [
+            0,
+            14,
+            16,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#gold_trim",
+          "uv": [
+            0,
+            0,
+            16,
+            2
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0,
+        14,
+        14
+      ],
+      "to": [
+        32,
+        14.5,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#gold_trim",
+          "uv": [
+            0,
+            1.5,
+            16,
+            2
+          ]
+        },
+        "south": {
+          "texture": "#gold_trim",
+          "uv": [
+            0,
+            1.5,
+            16,
+            2
+          ]
+        },
+        "east": {
+          "texture": "#gold_trim",
+          "uv": [
+            0,
+            1.5,
+            2,
+            2
+          ]
+        },
+        "west": {
+          "texture": "#gold_trim",
+          "uv": [
+            14,
+            1.5,
+            16,
+            2
+          ]
+        },
+        "up": {
+          "texture": "#gold_trim",
+          "uv": [
+            0,
+            14,
+            16,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#gold_trim",
+          "uv": [
+            0,
+            0,
+            16,
+            2
+          ]
+        }
+      }
+    }
+  ],
+  "ambientocclusion": false
+}
