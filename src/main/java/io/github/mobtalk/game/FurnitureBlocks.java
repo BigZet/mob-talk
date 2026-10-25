@@ -17,7 +17,6 @@ import net.minecraft.block.MapColor;
 import net.minecraft.block.ShapeContext;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.enums.BedPart;
-import net.minecraft.block.enums.DoubleBlockHalf;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
@@ -39,7 +38,6 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.state.StateManager;
 import net.minecraft.command.argument.EntityAnchorArgumentType;
 import net.minecraft.state.property.BooleanProperty;
-import net.minecraft.state.property.EnumProperty;
 import net.minecraft.state.property.IntProperty;
 import net.minecraft.state.property.Properties;
 import net.minecraft.util.ActionResult;
@@ -77,7 +75,9 @@ public final class FurnitureBlocks {
 
     public static final BooleanProperty LIT = Properties.LIT;
     public static final BooleanProperty OPEN = Properties.OPEN;
-    public static final EnumProperty<DoubleBlockHalf> HALF = Properties.DOUBLE_BLOCK_HALF;
+    /** Curtains hang floor to ceiling in a 3-block room: tier 0 at the floor (with the radiator), 2 under the ceiling (the rod). */
+    public static final int TIERS = 3;
+    public static final IntProperty TIER = IntProperty.of("tier", 0, TIERS - 1);
     public static final BooleanProperty LEFT = BooleanProperty.of("left");
     public static final BooleanProperty RIGHT = BooleanProperty.of("right");
     /** A curtain cell with the window's radiator under the sill (both share the cell in front of the window). */
@@ -175,11 +175,9 @@ public final class FurnitureBlocks {
             return true;
         }
         if (block instanceof Curtain c) {
-            if (!world.getBlockState(pos.up()).isReplaceable()) return false;
-            BlockState lower = c.getDefaultState().with(HorizontalFacingBlock.FACING, facing).with(HALF, DoubleBlockHalf.LOWER)
-                    .with(RADIATOR, radiator);
-            world.setBlockState(pos, c.edges(world, pos, lower), Block.NOTIFY_ALL);
-            world.setBlockState(pos.up(), c.edges(world, pos.up(), lower.with(HALF, DoubleBlockHalf.UPPER)), Block.NOTIFY_ALL);
+            for (int t = 1; t < TIERS; t++) if (!world.getBlockState(pos.up(t)).isReplaceable()) return false;
+            BlockState lower = c.getDefaultState().with(HorizontalFacingBlock.FACING, facing).with(TIER, 0).with(RADIATOR, radiator);
+            for (int t = 0; t < TIERS; t++) world.setBlockState(pos.up(t), c.edges(world, pos.up(t), lower.with(TIER, t)), Block.NOTIFY_ALL);
             return true;
         }
         return false;
@@ -421,18 +419,18 @@ public final class FurnitureBlocks {
             super(settings);
             this.f = f;
             for (Direction d : Direction.Type.HORIZONTAL) SHAPE[d.getHorizontal()] = CityContent.shape(new double[][] {{0, 0, 11, 16, 16, 16}}, d);
-            setDefaultState(getStateManager().getDefaultState().with(FACING, Direction.NORTH).with(HALF, DoubleBlockHalf.LOWER)
+            setDefaultState(getStateManager().getDefaultState().with(FACING, Direction.NORTH).with(TIER, 0)
                     .with(OPEN, true).with(LEFT, true).with(RIGHT, true).with(RADIATOR, false));
         }
 
         @Override protected MapCodec<? extends HorizontalFacingBlock> getCodec() { return createCodec(s -> new Curtain(s, f)); }
-        @Override protected void appendProperties(StateManager.Builder<Block, BlockState> builder) { builder.add(FACING, HALF, OPEN, LEFT, RIGHT, RADIATOR); }
+        @Override protected void appendProperties(StateManager.Builder<Block, BlockState> builder) { builder.add(FACING, TIER, OPEN, LEFT, RIGHT, RADIATOR); }
         @Override protected VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) { return SHAPE[state.get(FACING).getHorizontal()]; }
         @Override protected VoxelShape getCollisionShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) { return VoxelShapes.empty(); }
         @Override protected BlockState rotate(BlockState state, BlockRotation rotation) { return state.with(FACING, rotation.rotate(state.get(FACING))); }
         @Override protected BlockState mirror(BlockState state, BlockMirror mirror) { return state.rotate(mirror.getRotation(state.get(FACING))); }
 
-        boolean same(BlockState a, BlockState b) { return b.isOf(this) && b.get(FACING) == a.get(FACING) && b.get(HALF) == a.get(HALF); }
+        boolean same(BlockState a, BlockState b) { return b.isOf(this) && b.get(FACING) == a.get(FACING) && b.get(TIER) == a.get(TIER); }
 
         /** Left and right as seen by someone facing the window (the curtain's front looks at him). */
         BlockState edges(WorldAccess world, BlockPos pos, BlockState state) {
@@ -443,26 +441,29 @@ public final class FurnitureBlocks {
 
         @Override public BlockState getPlacementState(ItemPlacementContext ctx) {
             BlockPos pos = ctx.getBlockPos();
-            if (pos.getY() >= ctx.getWorld().getTopY() - 1 || !ctx.getWorld().getBlockState(pos.up()).canReplace(ctx)) return null;
-            BlockState state = getDefaultState().with(FACING, facingFor(Mount.WALL, ctx)).with(HALF, DoubleBlockHalf.LOWER);
+            if (pos.getY() >= ctx.getWorld().getTopY() - TIERS) return null;
+            for (int t = 1; t < TIERS; t++) if (!ctx.getWorld().getBlockState(pos.up(t)).canReplace(ctx)) return null;
+            BlockState state = getDefaultState().with(FACING, facingFor(Mount.WALL, ctx)).with(TIER, 0);
             return edges(ctx.getWorld(), pos, state);
         }
 
         @Override public void onPlaced(World world, BlockPos pos, BlockState state, LivingEntity placer, ItemStack stack) {
-            world.setBlockState(pos.up(), edges(world, pos.up(), state.with(HALF, DoubleBlockHalf.UPPER)), Block.NOTIFY_ALL);
+            for (int t = 1; t < TIERS; t++) world.setBlockState(pos.up(t), edges(world, pos.up(t), state.with(TIER, t)), Block.NOTIFY_ALL);
         }
 
         @Override protected BlockState getStateForNeighborUpdate(BlockState state, Direction direction, BlockState neighbor, WorldAccess world,
                                                                  BlockPos pos, BlockPos neighborPos) {
-            DoubleBlockHalf half = state.get(HALF);
-            if (direction.getAxis() == Direction.Axis.Y && (half == DoubleBlockHalf.LOWER) == (direction == Direction.UP))
-                return neighbor.isOf(this) && neighbor.get(HALF) != half ? state.with(OPEN, neighbor.get(OPEN)) : Blocks.AIR.getDefaultState();
+            int tier = state.get(TIER);
+            if (direction.getAxis() == Direction.Axis.Y && (direction == Direction.UP ? tier < TIERS - 1 : tier > 0)) {
+                int want = tier + (direction == Direction.UP ? 1 : -1);
+                return neighbor.isOf(this) && neighbor.get(TIER) == want ? state.with(OPEN, neighbor.get(OPEN)) : Blocks.AIR.getDefaultState();
+            }
             return direction.getAxis().isHorizontal() ? edges(world, pos, state) : state;
         }
 
         @Override public BlockState onBreak(World world, BlockPos pos, BlockState state, PlayerEntity player) {
-            if (!world.isClient && state.get(HALF) == DoubleBlockHalf.UPPER) {
-                BlockPos lower = pos.down();
+            if (!world.isClient && state.get(TIER) > 0) {
+                BlockPos lower = pos.down(state.get(TIER));
                 if (world.getBlockState(lower).isOf(this)) world.breakBlock(lower, !player.isCreative(), player);
             }
             return super.onBreak(world, pos, state, player);
@@ -472,7 +473,7 @@ public final class FurnitureBlocks {
         @Override protected ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
             if (world.isClient) return ActionResult.SUCCESS;
             boolean open = !state.get(OPEN);
-            BlockPos lower = state.get(HALF) == DoubleBlockHalf.LOWER ? pos : pos.down();
+            BlockPos lower = pos.down(state.get(TIER));
             Direction facing = state.get(FACING);
             setOpen(world, lower, open);
             for (Direction side : List.of(facing.rotateYClockwise(), facing.rotateYCounterclockwise())) {
@@ -484,8 +485,9 @@ public final class FurnitureBlocks {
         }
 
         private void setOpen(World world, BlockPos lower, boolean open) {
-            for (BlockPos p : List.of(lower, lower.up())) {
-                BlockState s = world.getBlockState(p);
+            for (int t = 0; t < TIERS; t++) {
+                BlockState s = world.getBlockState(lower.up(t));
+                BlockPos p = lower.up(t);
                 if (s.isOf(this)) world.setBlockState(p, s.with(OPEN, open), Block.NOTIFY_LISTENERS);
             }
         }

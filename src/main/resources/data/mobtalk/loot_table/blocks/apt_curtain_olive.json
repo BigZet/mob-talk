@@ -14,7 +14,7 @@
           "condition": "minecraft:block_state_property",
           "block": "mobtalk:apt_curtain_olive",
           "properties": {
-            "half": "lower"
+            "tier": "0"
           }
         },
         {

@@ -90,6 +90,7 @@ class Model:
         return self
 
 
+CURTAIN_TIERS = 3  # a flat's clear height: the floor slab plus three blocks of air
 OVERHANG = 7  # a ground piece may poke this far into the cell above (a kettle, a tap, jars) without taking that cell
 
 
@@ -202,8 +203,8 @@ def check(fid, model):
                 errs.append(f"element {i}: inverted on axis {a}")
             elif 0 < d < 0.5 - 1e-6:
                 errs.append(f"element {i}: {d:g} px thick on axis {a} (under a texel)")
-            if e.f[a] < -16 or e.t[a] > 32:
-                errs.append(f"element {i}: outside -16..32 on axis {a}")
+            if e.f[a] < -16 or e.t[a] > 48:
+                errs.append(f"element {i}: outside -16..48 on axis {a}")
     for i in range(len(els)):
         for j in range(i + 1, len(els)):
             a, b = els[i], els[j]
@@ -415,27 +416,25 @@ def export_bed(fu):
 
 
 def export_curtain(fu):
-    """A curtain: two cells high, pieces chosen by state (open, edges of the row) through a multipart blockstate.
-    fu.model is a dict piece -> Model for the lower cell (y 0..16) and the upper (y 16..32)."""
+    """A curtain: CURTAIN_TIERS cells high (floor to ceiling), pieces chosen by state (open, edges of the row) through a multipart
+    blockstate. fu.model is a dict piece -> Model over all tiers (y 0..16 * CURTAIN_TIERS)."""
     pieces = fu.model
     for k, m in pieces.items():
         check(fu.id + "/" + k, m)
-        cells = cells_of(m)
-        for c, els in cells.items():
-            half = "lower" if c[1] == 0 else "upper"
-            write(os.path.join(ASSETS, "models", MODDIR, f"{fu.id}_{k}_{half}.json"), model_json(els, fu.id, c))
-    have = {(k, "lower" if c[1] == 0 else "upper") for k, m in pieces.items() for c in cells_of(m)}
+        for c, els in cells_of(m).items():
+            write(os.path.join(ASSETS, "models", MODDIR, f"{fu.id}_{k}_t{c[1]}.json"), model_json(els, fu.id, c))
+    have = {(k, c[1]) for k, m in pieces.items() for c in cells_of(m)}
     rules = []
     conds = {"rod": {}, "rod_end_l": {"left": "true"}, "rod_end_r": {"right": "true"}, "tulle": {},
              "closed": {"open": "false"}, "open_l": {"open": "true", "left": "true"}, "open_r": {"open": "true", "right": "true"},
              "radiator": {"radiator": "true"}}
     for f, y in ROT:
         for k, cond in conds.items():
-            for half in ("lower", "upper"):
-                if (k, half) not in have:
+            for tier in range(CURTAIN_TIERS):
+                if (k, tier) not in have:
                     continue
-                when = dict(cond, facing=f, half=half)
-                apply = {"model": mref(f"{fu.id}_{k}_{half}")}
+                when = dict(cond, facing=f, tier=str(tier))
+                apply = {"model": mref(f"{fu.id}_{k}_t{tier}")}
                 if y:
                     apply["y"] = y
                 rules.append({"when": when, "apply": apply})
@@ -447,9 +446,35 @@ def export_curtain(fu):
     write(os.path.join(ASSETS, "models", "item", fu.id + ".json"), item_model(fu, whole))
     write(os.path.join(DATA, "loot_table", "blocks", fu.id + ".json"), {"type": "minecraft:block", "pools": [{"rolls": 1, "entries": [
         {"type": "minecraft:item", "name": f"mobtalk:{fu.id}"}], "conditions": [
-        {"condition": "minecraft:block_state_property", "block": f"mobtalk:{fu.id}", "properties": {"half": "lower"}},
+        {"condition": "minecraft:block_state_property", "block": f"mobtalk:{fu.id}", "properties": {"tier": "0"}},
         {"condition": "minecraft:survives_explosion"}]}]})
-    EXPORT[fu.id] = {"cells": [(0, 0, 0), (0, 1, 0)], "boxes": [[[0, 0, 11, 16, 16, 16]], [[0, 0, 11, 16, 16, 16]]]}
+    EXPORT[fu.id] = {"cells": [(0, t, 0) for t in range(CURTAIN_TIERS)], "boxes": [[[0, 0, 11, 16, 16, 16]]] * CURTAIN_TIERS}
+
+
+def bleed(img):
+    """Spread the colours of a tile's painted texels into its unused, fully transparent ones (alpha stays 0), so the game's
+    mipmaps don't average in black and darken the edge of a picture seen from afar."""
+    px = img.load()
+    w, h = img.size
+    edge = [(x, y) for y in range(h) for x in range(w) if px[x, y][3] == 0]
+    done = {(x, y) for y in range(h) for x in range(w) if px[x, y][3] > 0}
+    if not done:
+        return
+    while edge:
+        nxt = []
+        fill = {}
+        for x, y in edge:
+            near = [px[a, b] for a, b in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)) if (a, b) in done]
+            if near:
+                fill[(x, y)] = tuple(sum(c[i] for c in near) // len(near) for i in range(3)) + (0,)
+            else:
+                nxt.append((x, y))
+        if not fill:
+            break
+        for p, c in fill.items():
+            px[p] = c
+            done.add(p)
+        edge = nxt
 
 
 def save_textures():
@@ -457,6 +482,8 @@ def save_textures():
     os.makedirs(tdir, exist_ok=True)
     keep = set()
     for name, cv in list(MATS.items()) + list(TILES.items()):
+        if cv.img.mode == "RGBA":
+            bleed(cv.img)
         cv.img.save(os.path.join(tdir, name + ".png"))
         keep.add(name + ".png")
     for old in os.listdir(tdir):

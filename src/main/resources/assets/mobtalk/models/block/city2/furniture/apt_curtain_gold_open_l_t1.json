@@ -1,0 +1,127 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "cord": "mobtalk:block/city2/furniture/cord",
+    "particle": "mobtalk:block/city2/furniture/cord"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        3.5,
+        9.25
+      ],
+      "to": [
+        0.25,
+        4.5,
+        9.75
+      ],
+      "faces": {
+        "north": {
+          "texture": "#cord",
+          "uv": [
+            15.75,
+            11.5,
+            16.0,
+            12.5
+          ]
+        },
+        "east": {
+          "texture": "#cord",
+          "uv": [
+            6.25,
+            11.5,
+            6.75,
+            12.5
+          ]
+        },
+        "up": {
+          "texture": "#cord",
+          "uv": [
+            0.0,
+            9.25,
+            0.25,
+            9.75
+          ]
+        },
+        "down": {
+          "texture": "#cord",
+          "uv": [
+            0.0,
+            6.25,
+            0.25,
+            6.75
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.25,
+        3.5,
+        9.75
+      ],
+      "to": [
+        0.75,
+        4.5,
+        12.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#cord",
+          "uv": [
+            15.25,
+            11.5,
+            15.75,
+            12.5
+          ]
+        },
+        "south": {
+          "texture": "#cord",
+          "uv": [
+            0.25,
+            11.5,
+            0.75,
+            12.5
+          ]
+        },
+        "east": {
+          "texture": "#cord",
+          "uv": [
+            4.0,
+            11.5,
+            6.25,
+            12.5
+          ]
+        },
+        "west": {
+          "texture": "#cord",
+          "uv": [
+            9.75,
+            11.5,
+            12.0,
+            12.5
+          ]
+        },
+        "up": {
+          "texture": "#cord",
+          "uv": [
+            0.25,
+            9.75,
+            0.75,
+            12.0
+          ]
+        },
+        "down": {
+          "texture": "#cord",
+          "uv": [
+            0.25,
+            4.0,
+            0.75,
+            6.25
+          ]
+        }
+      }
+    }
+  ]
+}

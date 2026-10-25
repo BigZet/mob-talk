@@ -1243,31 +1243,34 @@ def curtains(key):
         cl, dk = f"curtain_{key}", f"curtain_{key}_dark"
         # depth in the cell in front of the window: rod and curtains z 9.5..12, net curtain z 12.5, a radiator (if the state says so)
         # behind it z 13..15.5 under the sill, which belongs to the wall's window block
+        # three cells high now (a 3-block room): the rod just under the ceiling, the curtains to the floor
+        top = 16 * 3
         rod = Model()
-        rod.box((0, 30.25, 10), (16, 31.25, 11), "brass")
+        rod.box((0, top - 1.75, 10), (16, top - 0.75, 11), "brass")
         for x in (1, 5, 9, 13):
-            rod.box((x, 29.75, 9.75), (x + 1.5, 30.25, 11.25), "brass", up=None)
-        end_l = Model().box((14.5, 29.75, 9.5), (16, 31.75, 11.5), "brass")
-        end_r = Model().box((0, 29.75, 9.5), (1.5, 31.75, 11.5), "brass")
+            rod.box((x, top - 2.25, 9.75), (x + 1.5, top - 1.75, 11.25), "brass", up=None)
+        end_l = Model().box((14.5, top - 2.25, 9.5), (16, top - 0.25, 11.5), "brass")
+        end_r = Model().box((0, top - 2.25, 9.5), (1.5, top - 0.25, 11.5), "brass")
         tulle = Model()
-        tulle.box((0, 16, 12.5), (16, 30, 12.5), "tulle", faces=("north", "south"))
+        tulle.box((0, 16, 12.5), (16, top - 2, 12.5), "tulle", faces=("north", "south"))
         tulle.box((0, 0.5, 12.5), (16, 16, 12.5), "tulle_hem", faces=("north", "south"))
         closed = Model()
         # four pleats a cell, alternately forward and back: real depth, not just a painted fold
         for i in range(4):
             x0 = i * 4
             z0 = 10.5 if i % 2 == 0 else 11.25
-            closed.box((x0, 1, z0), (x0 + 4, 29.75, z0 + 0.75), cl, down=None, south=None, east=dk, west=dk)
+            closed.box((x0, 1, z0), (x0 + 4, top - 2.25, z0 + 0.75), cl, down=None, south=None, east=dk, west=dk)
         open_l, open_r = Model(), Model()
+        tie = 19  # tied back at 1.2 m
         for model, x0, sgn in ((open_l, 11, 1), (open_r, 0, -1)):
-            # gathered at the window's edge: narrow, thick, tied back at 0.85 m with a cord
+            # gathered at the window's edge: narrow, thick, tied back with a cord
             for a, b, z0 in ((0, 1.75, 10), (1.75, 3.5, 10.75), (3.5, 5, 10.25)):
                 xa, xb = x0 + a, x0 + b
-                model.box((xa, 15.5, z0), (xb, 29.75, z0 + 1.5), cl, down=None, south=None, east=dk, west=dk)
-                model.box((xa, 1, z0 - 0.5), (xb, 13, z0 + 1.5), cl, south=None, east=dk, west=dk)
-                model.box((xa + 0.25, 13, z0 + 0.25), (xb - 0.25, 15.5, z0 + 1.25), cl, south=None, up=None, down=None, east=dk, west=dk)
-            model.box((x0 - 0.25, 13.5, 9.25), (x0 + 5.25, 14.5, 9.75), "cord", south=None)
-            model.box((x0 + (5.25 if sgn > 0 else -0.5), 13.5, 9.75), (x0 + (5.75 if sgn > 0 else 0), 14.5, 12), "cord")
+                model.box((xa, tie + 2.5, z0), (xb, top - 2.25, z0 + 1.5), cl, down=None, south=None, east=dk, west=dk)
+                model.box((xa, 1, z0 - 0.5), (xb, tie, z0 + 1.5), cl, south=None, east=dk, west=dk)
+                model.box((xa + 0.25, tie, z0 + 0.25), (xb - 0.25, tie + 2.5, z0 + 1.25), cl, south=None, up=None, down=None, east=dk, west=dk)
+            model.box((x0 - 0.25, tie + 0.5, 9.25), (x0 + 5.25, tie + 1.5, 9.75), "cord", south=None)
+            model.box((x0 + (5.25 if sgn > 0 else -0.5), tie + 0.5, 9.75), (x0 + (5.75 if sgn > 0 else 0), tie + 1.5, 12), "cord")
         rad = radiator()()
         for e in rad.els:
             e.f[2] += 0.5 if e.f[2] >= 13 else 0.5
@@ -1360,6 +1363,8 @@ def make():
     fur_more.make()
     import fur_bed
     fur_bed.make()
+    import fur_rugs
+    fur_rugs.make()
 
 
 def plate_tex():

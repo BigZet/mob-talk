@@ -14,7 +14,7 @@
           "condition": "minecraft:block_state_property",
           "block": "mobtalk:apt_curtain_wine",
           "properties": {
-            "half": "lower"
+            "tier": "0"
           }
         },
         {

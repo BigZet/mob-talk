@@ -1115,8 +1115,8 @@
   "block.mobtalk.apt_radiola": "Radiogram",
   "block.mobtalk.apt_wall_carpet": "Wall carpet",
   "block.mobtalk.apt_wall_carpet_part": "Wall carpet",
-  "block.mobtalk.apt_rug": "Floor rug",
-  "block.mobtalk.apt_rug_part": "Floor rug",
+  "block.mobtalk.apt_rug": "Big floor carpet (3x4)",
+  "block.mobtalk.apt_rug_part": "Big floor carpet (3x4)",
   "block.mobtalk.apt_ficus": "Rubber fig in a pot",
   "block.mobtalk.apt_ficus_part": "Rubber fig in a pot",
   "block.mobtalk.apt_aloe": "Aloe in a pot",
@@ -1163,5 +1163,13 @@
   "block.mobtalk.apt_ironing_board": "Ironing board",
   "block.mobtalk.apt_suitcases": "Suitcases",
   "block.mobtalk.apt_wall_carpet_high": "Carpet over the bed",
-  "block.mobtalk.apt_wall_carpet_high_part": "Carpet over the bed"
+  "block.mobtalk.apt_wall_carpet_high_part": "Carpet over the bed",
+  "block.mobtalk.apt_cage_lamp": "Caged ceiling lamp (stairwell)",
+  "block.mobtalk.apt_wall_puck": "Round wall lamp (stairwell)",
+  "block.mobtalk.apt_rug_blue": "Big blue floor carpet (3x4)",
+  "block.mobtalk.apt_rug_blue_part": "Big blue floor carpet (3x4)",
+  "block.mobtalk.apt_rug_turkmen": "Turkmen carpet (2x3)",
+  "block.mobtalk.apt_rug_turkmen_part": "Turkmen carpet (2x3)",
+  "block.mobtalk.apt_runner": "Hall runner (1x4)",
+  "block.mobtalk.apt_runner_part": "Hall runner (1x4)"
 }

@@ -1,0 +1,91 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "chute": "mobtalk:block/city2/furniture/chute",
+    "particle": "mobtalk:block/city2/furniture/chute"
+  },
+  "elements": [
+    {
+      "from": [
+        4.0,
+        0.0,
+        8.0
+      ],
+      "to": [
+        16.0,
+        16.0,
+        16.0
+      ],
+      "faces": {
+        "south": {
+          "texture": "#chute",
+          "uv": [
+            4.0,
+            0.0,
+            16.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#chute",
+          "uv": [
+            0.0,
+            0.0,
+            8.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#chute",
+          "uv": [
+            8.0,
+            0.0,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.0,
+        0.0,
+        7.5
+      ],
+      "to": [
+        16.0,
+        16.0,
+        8.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chute",
+          "uv": [
+            0.0,
+            0.0,
+            12.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#chute",
+          "uv": [
+            8.0,
+            0.0,
+            8.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#chute",
+          "uv": [
+            7.5,
+            0.0,
+            8.0,
+            16.0
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -506,15 +506,6 @@ def wall_carpet():
     return m
 
 
-def floor_rug():
-    def pic(cv, W, H):
-        carpet_pic(cv, W, H, field=rgb("7a2a2a"), border=rgb("2a3048"), ivory=rgb("d8c090"), gold=rgb("b07a30"))
-
-    m = Model()
-    m.box((-6, 0, -14), (22, 0.5, 30), "carpet_side", up=Pic("rug", pic), down=None)
-    return m
-
-
 def ficus():
     m = Model()
     # a rubber fig in a clay pot: 1.6 m in all; big leaves on short stalks spiral up the trunk, tilted up towards the light
@@ -899,6 +890,51 @@ def bare_bulb(on):
     return build
 
 
+def cage_lamp(on):
+    def build():
+        m = Model()
+        # the stairwell ceiling lamp: a frosted glass dome on a round base, in a wire cage against stones and hooligans
+        m.box((4.5, 15.5, 4.5), (11.5, 16, 11.5), "steel", up=None)
+        m.box((5.5, 10, 5.5), (10.5, 15.5, 10.5), "frosted_lit" if on else "frosted", shade=not on, up=None)
+        m.box((6.5, 9.5, 6.5), (9.5, 10, 9.5), "frosted_lit" if on else "frosted", shade=not on, up=None)
+        for x in (5, 7.75, 10.5):  # the cage: ribs on each side, a ring at mid height, a cross under the dome
+            m.box((x, 9.5, 4.5), (x + 0.5, 15.5, 5), "iron_black", up=None, down=None)
+            m.box((x, 9.5, 11), (x + 0.5, 15.5, 11.5), "iron_black", up=None, down=None)
+        for z in (7.75,):
+            m.box((4.5, 9.5, z), (5, 15.5, z + 0.5), "iron_black", up=None, down=None)
+            m.box((11, 9.5, z), (11.5, 15.5, z + 0.5), "iron_black", up=None, down=None)
+        m.box((5, 9, 7.75), (11, 9.5, 8.25), "iron_black")
+        m.box((7.75, 9, 5), (8.25, 9.5, 7.75), "iron_black")
+        m.box((7.75, 9, 8.25), (8.25, 9.5, 11), "iron_black")
+        return m
+    return build
+
+
+def wall_puck(on):
+    glass = "frosted_lit" if on else "frosted"
+
+    def build():
+        m = Model()
+        # the "puck": a round frosted wall lamp on a metal back plate, by the flat doors and at the entrance, at 2.2 m
+        m.box((4.5, 4.5, 15.5), (11.5, 11.5, 16), "steel", south=None)
+        m.box((5.5, 5, 13), (10.5, 11, 15.5), glass, shade=not on, south=None)
+        m.box((5, 5.5, 13.25), (5.5, 10.5, 15.5), glass, shade=not on, south=None, east=None)
+        m.box((10.5, 5.5, 13.25), (11, 10.5, 15.5), glass, shade=not on, south=None, west=None)
+        m.box((6, 4.5, 13.25), (10, 5, 15.5), glass, shade=not on, south=None, up=None)
+        m.box((6, 11, 13.25), (10, 11.5, 15.5), glass, shade=not on, south=None, down=None)
+        m.box((7.5, 7.5, 12.5), (8.5, 8.5, 13), "steel", south=None)  # the screw cap
+        return m
+    return build
+
+
+def frosted_tex(lit):
+    base = rgb("fff6d8") if lit else rgb("dcdcd4")
+    cv = P.Canvas(32, 32, base)
+    if not lit:
+        cv.dither(0, 0, 32, 32, base, rgb("e8e8e0"), 0.15)
+    return cv
+
+
 def chute():
     def hatch(cv, W, H):
         t = ramp(rgb("6a7a70"), 5, 0.6, 1.2)
@@ -907,10 +943,10 @@ def chute():
         cv.rect(cv.w // 2 - 4, 3, cv.w // 2 + 4, 5, rgb("2a2a2a"))  # the handle
         P.text(cv, (cv.w - P.text_width("МУСОР")) // 2, cv.h - 7, "МУСОР", rgb("e8e4d8"))
     m = Model()
-    # the rubbish chute: a square pipe in the corner from floor to ceiling, a tipping hatch at 0.8 m
-    m.box((4, 0, 8), (16, 32, 16), "chute", north=None, up=None, down=None)
+    # the rubbish chute: a square pipe on the half-landing from floor to ceiling (3 blocks), a tipping hatch at 0.8 m
+    m.box((4, 0, 8), (16, 48, 16), "chute", north=None, up=None, down=None)
     m.box((4, 0, 7.5), (16, 9, 8), "chute", north="chute", south=None, down=None)
-    m.box((4, 15, 7.5), (16, 32, 8), "chute", south=None, up=None)
+    m.box((4, 15, 7.5), (16, 48, 8), "chute", south=None, up=None)
     m.box((4, 9, 6.5), (16, 15, 7.5), "chute", north=Pic("hatch", hatch))
     return m
 
@@ -1080,7 +1116,6 @@ def make():
     Furn("apt_piano_stool", "Банкетка для пианино", "Piano stool", lambda: piano_stool(), seat=8.5, color="BLACK")
     Furn("apt_radiola", "Радиола «Ригонда»", "Radiogram", radiola, toggle=True, light=3, color="OAK_TAN")
     Furn("apt_wall_carpet", "Ковёр на стену", "Wall carpet", lambda: wall_carpet(), mount="WALL", color="RED", sound="WOOL", solid=False)
-    Furn("apt_rug", "Палас", "Floor rug", lambda: floor_rug(), color="RED", sound="WOOL", solid=False)
     Furn("apt_ficus", "Фикус в горшке", "Rubber fig in a pot", lambda: ficus(), color="GREEN", sound="GRASS", cutout=True)
     Furn("apt_aloe", "Алоэ в горшке", "Aloe in a pot", lambda: aloe(), color="GREEN", sound="GRASS", cutout=True)
     Furn("apt_picture_bears", "Картина «Утро в сосновом лесу»", "Painting: morning in a pine forest", lambda: picture("bears"), mount="WALL")
@@ -1102,6 +1137,12 @@ def make():
     Furn("apt_post_boxes", "Почтовые ящики", "Post boxes", lambda: post_boxes(), mount="WALL", color="BLUE", sound="METAL")
     Furn("apt_bare_bulb", "Лампочка в подъезде", "Stairwell bulb", bare_bulb, mount="CEILING", toggle=True, light=13, color="WHITE",
          sound="GLASS", solid=False)
+    mat("frosted", frosted_tex(False))
+    mat("frosted_lit", frosted_tex(True))
+    Furn("apt_cage_lamp", "Плафон в сетке (подъезд)", "Caged ceiling lamp (stairwell)", cage_lamp, mount="CEILING", toggle=True, light=13,
+         color="WHITE", sound="GLASS", solid=False, cutout=True)
+    Furn("apt_wall_puck", "Плафон-шайба на стене (подъезд)", "Round wall lamp (stairwell)", wall_puck, mount="WALL", toggle=True, light=12,
+         color="WHITE", sound="GLASS", solid=False)
     Furn("apt_chute", "Мусоропровод", "Rubbish chute", lambda: chute(), mount="WALL", color="GREEN", sound="METAL")
     Furn("apt_notice_board", "Доска объявлений", "Notice board", lambda: notice_board(), mount="WALL", color="BROWN")
     Furn("apt_door_mat", "Коврик у двери", "Door mat", lambda: door_mat(), color="BROWN", sound="WOOL", solid=False)

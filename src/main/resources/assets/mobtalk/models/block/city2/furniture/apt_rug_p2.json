@@ -2,13 +2,13 @@
   "parent": "minecraft:block/block",
   "textures": {
     "carpet_side": "mobtalk:block/city2/furniture/carpet_side",
-    "apt_rug_rug_34": "mobtalk:block/city2/furniture/apt_rug_rug_34",
+    "apt_rug_persian_34": "mobtalk:block/city2/furniture/apt_rug_persian_34",
     "particle": "mobtalk:block/city2/furniture/carpet_side"
   },
   "elements": [
     {
       "from": [
-        10.0,
+        1.0,
         0.0,
         0.0
       ],
@@ -28,9 +28,9 @@
           ]
         },
         "up": {
-          "texture": "#apt_rug_rug_34",
+          "texture": "#apt_rug_persian_34",
           "uv": [
-            10.0,
+            1.0,
             0.0,
             16.0,
             16.0

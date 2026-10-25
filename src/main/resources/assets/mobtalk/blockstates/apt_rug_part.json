@@ -24,6 +24,15 @@
     "facing=north,part=8": {
       "model": "mobtalk:block/city2/furniture/apt_rug_p8"
     },
+    "facing=north,part=9": {
+      "model": "mobtalk:block/city2/furniture/apt_rug_p9"
+    },
+    "facing=north,part=10": {
+      "model": "mobtalk:block/city2/furniture/apt_rug_p10"
+    },
+    "facing=north,part=11": {
+      "model": "mobtalk:block/city2/furniture/apt_rug_p11"
+    },
     "facing=east,part=1": {
       "model": "mobtalk:block/city2/furniture/apt_rug_p1",
       "y": 90
@@ -54,6 +63,18 @@
     },
     "facing=east,part=8": {
       "model": "mobtalk:block/city2/furniture/apt_rug_p8",
+      "y": 90
+    },
+    "facing=east,part=9": {
+      "model": "mobtalk:block/city2/furniture/apt_rug_p9",
+      "y": 90
+    },
+    "facing=east,part=10": {
+      "model": "mobtalk:block/city2/furniture/apt_rug_p10",
+      "y": 90
+    },
+    "facing=east,part=11": {
+      "model": "mobtalk:block/city2/furniture/apt_rug_p11",
       "y": 90
     },
     "facing=south,part=1": {
@@ -88,6 +109,18 @@
       "model": "mobtalk:block/city2/furniture/apt_rug_p8",
       "y": 180
     },
+    "facing=south,part=9": {
+      "model": "mobtalk:block/city2/furniture/apt_rug_p9",
+      "y": 180
+    },
+    "facing=south,part=10": {
+      "model": "mobtalk:block/city2/furniture/apt_rug_p10",
+      "y": 180
+    },
+    "facing=south,part=11": {
+      "model": "mobtalk:block/city2/furniture/apt_rug_p11",
+      "y": 180
+    },
     "facing=west,part=1": {
       "model": "mobtalk:block/city2/furniture/apt_rug_p1",
       "y": 270
@@ -118,6 +151,18 @@
     },
     "facing=west,part=8": {
       "model": "mobtalk:block/city2/furniture/apt_rug_p8",
+      "y": 270
+    },
+    "facing=west,part=9": {
+      "model": "mobtalk:block/city2/furniture/apt_rug_p9",
+      "y": 270
+    },
+    "facing=west,part=10": {
+      "model": "mobtalk:block/city2/furniture/apt_rug_p10",
+      "y": 270
+    },
+    "facing=west,part=11": {
+      "model": "mobtalk:block/city2/furniture/apt_rug_p11",
       "y": 270
     }
   }

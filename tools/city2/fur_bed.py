@@ -201,13 +201,9 @@ def dressing_table():
 # ---------------------------------------------------------------- the rest of the room
 
 def bedside_rug():
-    def pic(cv, W, H):
-        carpet_pic(cv, W, H, field=rgb("2a4a6a"), border=rgb("6a2a2a"), ivory=rgb("e0d0a0"), gold=rgb("b8903a"))
-
-    m = Model()
-    # a small rug by the bed, 0.8 x 1.4 m
-    m.box((2, 0, -6), (14, 0.5, 16), "carpet_side", up=Pic("rug", pic), down=None)
-    return m
+    import fur_rugs
+    # a rug by the bed, 0.9 x 1.9 m, the same knotted pattern as the big rugs at a smaller scale
+    return fur_rugs.rug(1, -14.5, 15, 14.5, lambda cv, W, H: fur_rugs.persian(cv, W, H, fur_rugs.PERSIAN_BLUE), "bedside")
 
 
 def chair_with_clothes():

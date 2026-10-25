@@ -3,68 +3,87 @@
     {
       "when": {
         "facing": "north",
-        "half": "upper"
+        "tier": "2"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_upper"
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_t2"
       }
     },
     {
       "when": {
         "left": "true",
         "facing": "north",
-        "half": "upper"
+        "tier": "2"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_end_l_upper"
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_end_l_t2"
       }
     },
     {
       "when": {
         "right": "true",
         "facing": "north",
-        "half": "upper"
+        "tier": "2"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_end_r_upper"
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_end_r_t2"
       }
     },
     {
       "when": {
         "facing": "north",
-        "half": "lower"
+        "tier": "0"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_lower"
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_t0"
       }
     },
     {
       "when": {
         "facing": "north",
-        "half": "upper"
+        "tier": "1"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_upper"
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_t1"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "tier": "2"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_t2"
       }
     },
     {
       "when": {
         "open": "false",
         "facing": "north",
-        "half": "lower"
+        "tier": "0"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_lower"
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_t0"
       }
     },
     {
       "when": {
         "open": "false",
         "facing": "north",
-        "half": "upper"
+        "tier": "1"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_upper"
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_t1"
+      }
+    },
+    {
+      "when": {
+        "open": "false",
+        "facing": "north",
+        "tier": "2"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_t2"
       }
     },
     {
@@ -72,10 +91,10 @@
         "open": "true",
         "left": "true",
         "facing": "north",
-        "half": "lower"
+        "tier": "0"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_lower"
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_t0"
       }
     },
     {
@@ -83,10 +102,21 @@
         "open": "true",
         "left": "true",
         "facing": "north",
-        "half": "upper"
+        "tier": "1"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_upper"
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_t1"
+      }
+    },
+    {
+      "when": {
+        "open": "true",
+        "left": "true",
+        "facing": "north",
+        "tier": "2"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_t2"
       }
     },
     {
@@ -94,10 +124,10 @@
         "open": "true",
         "right": "true",
         "facing": "north",
-        "half": "lower"
+        "tier": "0"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_lower"
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_t0"
       }
     },
     {
@@ -105,29 +135,40 @@
         "open": "true",
         "right": "true",
         "facing": "north",
-        "half": "upper"
+        "tier": "1"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_upper"
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_t1"
+      }
+    },
+    {
+      "when": {
+        "open": "true",
+        "right": "true",
+        "facing": "north",
+        "tier": "2"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_t2"
       }
     },
     {
       "when": {
         "radiator": "true",
         "facing": "north",
-        "half": "lower"
+        "tier": "0"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_radiator_lower"
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_radiator_t0"
       }
     },
     {
       "when": {
         "facing": "east",
-        "half": "upper"
+        "tier": "2"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_upper",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_t2",
         "y": 90
       }
     },
@@ -135,10 +176,10 @@
       "when": {
         "left": "true",
         "facing": "east",
-        "half": "upper"
+        "tier": "2"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_end_l_upper",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_end_l_t2",
         "y": 90
       }
     },
@@ -146,30 +187,40 @@
       "when": {
         "right": "true",
         "facing": "east",
-        "half": "upper"
+        "tier": "2"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_end_r_upper",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_end_r_t2",
         "y": 90
       }
     },
     {
       "when": {
         "facing": "east",
-        "half": "lower"
+        "tier": "0"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_lower",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_t0",
         "y": 90
       }
     },
     {
       "when": {
         "facing": "east",
-        "half": "upper"
+        "tier": "1"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_upper",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_t1",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "tier": "2"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_t2",
         "y": 90
       }
     },
@@ -177,10 +228,10 @@
       "when": {
         "open": "false",
         "facing": "east",
-        "half": "lower"
+        "tier": "0"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_lower",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_t0",
         "y": 90
       }
     },
@@ -188,10 +239,21 @@
       "when": {
         "open": "false",
         "facing": "east",
-        "half": "upper"
+        "tier": "1"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_upper",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_t1",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "open": "false",
+        "facing": "east",
+        "tier": "2"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_t2",
         "y": 90
       }
     },
@@ -200,10 +262,10 @@
         "open": "true",
         "left": "true",
         "facing": "east",
-        "half": "lower"
+        "tier": "0"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_lower",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_t0",
         "y": 90
       }
     },
@@ -212,10 +274,22 @@
         "open": "true",
         "left": "true",
         "facing": "east",
-        "half": "upper"
+        "tier": "1"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_upper",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_t1",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "open": "true",
+        "left": "true",
+        "facing": "east",
+        "tier": "2"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_t2",
         "y": 90
       }
     },
@@ -224,10 +298,10 @@
         "open": "true",
         "right": "true",
         "facing": "east",
-        "half": "lower"
+        "tier": "0"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_lower",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_t0",
         "y": 90
       }
     },
@@ -236,10 +310,22 @@
         "open": "true",
         "right": "true",
         "facing": "east",
-        "half": "upper"
+        "tier": "1"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_upper",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_t1",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "open": "true",
+        "right": "true",
+        "facing": "east",
+        "tier": "2"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_t2",
         "y": 90
       }
     },
@@ -247,20 +333,20 @@
       "when": {
         "radiator": "true",
         "facing": "east",
-        "half": "lower"
+        "tier": "0"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_radiator_lower",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_radiator_t0",
         "y": 90
       }
     },
     {
       "when": {
         "facing": "south",
-        "half": "upper"
+        "tier": "2"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_upper",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_t2",
         "y": 180
       }
     },
@@ -268,10 +354,10 @@
       "when": {
         "left": "true",
         "facing": "south",
-        "half": "upper"
+        "tier": "2"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_end_l_upper",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_end_l_t2",
         "y": 180
       }
     },
@@ -279,30 +365,40 @@
       "when": {
         "right": "true",
         "facing": "south",
-        "half": "upper"
+        "tier": "2"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_end_r_upper",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_end_r_t2",
         "y": 180
       }
     },
     {
       "when": {
         "facing": "south",
-        "half": "lower"
+        "tier": "0"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_lower",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_t0",
         "y": 180
       }
     },
     {
       "when": {
         "facing": "south",
-        "half": "upper"
+        "tier": "1"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_upper",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_t1",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "tier": "2"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_t2",
         "y": 180
       }
     },
@@ -310,10 +406,10 @@
       "when": {
         "open": "false",
         "facing": "south",
-        "half": "lower"
+        "tier": "0"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_lower",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_t0",
         "y": 180
       }
     },
@@ -321,10 +417,21 @@
       "when": {
         "open": "false",
         "facing": "south",
-        "half": "upper"
+        "tier": "1"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_upper",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_t1",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "open": "false",
+        "facing": "south",
+        "tier": "2"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_t2",
         "y": 180
       }
     },
@@ -333,10 +440,10 @@
         "open": "true",
         "left": "true",
         "facing": "south",
-        "half": "lower"
+        "tier": "0"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_lower",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_t0",
         "y": 180
       }
     },
@@ -345,10 +452,22 @@
         "open": "true",
         "left": "true",
         "facing": "south",
-        "half": "upper"
+        "tier": "1"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_upper",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_t1",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "open": "true",
+        "left": "true",
+        "facing": "south",
+        "tier": "2"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_t2",
         "y": 180
       }
     },
@@ -357,10 +476,10 @@
         "open": "true",
         "right": "true",
         "facing": "south",
-        "half": "lower"
+        "tier": "0"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_lower",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_t0",
         "y": 180
       }
     },
@@ -369,10 +488,22 @@
         "open": "true",
         "right": "true",
         "facing": "south",
-        "half": "upper"
+        "tier": "1"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_upper",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_t1",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "open": "true",
+        "right": "true",
+        "facing": "south",
+        "tier": "2"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_t2",
         "y": 180
       }
     },
@@ -380,20 +511,20 @@
       "when": {
         "radiator": "true",
         "facing": "south",
-        "half": "lower"
+        "tier": "0"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_radiator_lower",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_radiator_t0",
         "y": 180
       }
     },
     {
       "when": {
         "facing": "west",
-        "half": "upper"
+        "tier": "2"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_upper",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_t2",
         "y": 270
       }
     },
@@ -401,10 +532,10 @@
       "when": {
         "left": "true",
         "facing": "west",
-        "half": "upper"
+        "tier": "2"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_end_l_upper",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_end_l_t2",
         "y": 270
       }
     },
@@ -412,30 +543,40 @@
       "when": {
         "right": "true",
         "facing": "west",
-        "half": "upper"
+        "tier": "2"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_end_r_upper",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_end_r_t2",
         "y": 270
       }
     },
     {
       "when": {
         "facing": "west",
-        "half": "lower"
+        "tier": "0"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_lower",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_t0",
         "y": 270
       }
     },
     {
       "when": {
         "facing": "west",
-        "half": "upper"
+        "tier": "1"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_upper",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_t1",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "tier": "2"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_t2",
         "y": 270
       }
     },
@@ -443,10 +584,10 @@
       "when": {
         "open": "false",
         "facing": "west",
-        "half": "lower"
+        "tier": "0"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_lower",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_t0",
         "y": 270
       }
     },
@@ -454,10 +595,21 @@
       "when": {
         "open": "false",
         "facing": "west",
-        "half": "upper"
+        "tier": "1"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_upper",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_t1",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "open": "false",
+        "facing": "west",
+        "tier": "2"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_t2",
         "y": 270
       }
     },
@@ -466,10 +618,10 @@
         "open": "true",
         "left": "true",
         "facing": "west",
-        "half": "lower"
+        "tier": "0"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_lower",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_t0",
         "y": 270
       }
     },
@@ -478,10 +630,22 @@
         "open": "true",
         "left": "true",
         "facing": "west",
-        "half": "upper"
+        "tier": "1"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_upper",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_t1",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "open": "true",
+        "left": "true",
+        "facing": "west",
+        "tier": "2"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_t2",
         "y": 270
       }
     },
@@ -490,10 +654,10 @@
         "open": "true",
         "right": "true",
         "facing": "west",
-        "half": "lower"
+        "tier": "0"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_lower",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_t0",
         "y": 270
       }
     },
@@ -502,10 +666,22 @@
         "open": "true",
         "right": "true",
         "facing": "west",
-        "half": "upper"
+        "tier": "1"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_upper",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_t1",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "open": "true",
+        "right": "true",
+        "facing": "west",
+        "tier": "2"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_t2",
         "y": 270
       }
     },
@@ -513,10 +689,10 @@
       "when": {
         "radiator": "true",
         "facing": "west",
-        "half": "lower"
+        "tier": "0"
       },
       "apply": {
-        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_radiator_lower",
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_radiator_t0",
         "y": 270
       }
     }

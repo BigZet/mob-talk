@@ -1115,8 +1115,8 @@
   "block.mobtalk.apt_radiola": "Радиола «Ригонда»",
   "block.mobtalk.apt_wall_carpet": "Ковёр на стену",
   "block.mobtalk.apt_wall_carpet_part": "Ковёр на стену",
-  "block.mobtalk.apt_rug": "Палас",
-  "block.mobtalk.apt_rug_part": "Палас",
+  "block.mobtalk.apt_rug": "Ковёр на пол, большой (3×4)",
+  "block.mobtalk.apt_rug_part": "Ковёр на пол, большой (3×4)",
   "block.mobtalk.apt_ficus": "Фикус в горшке",
   "block.mobtalk.apt_ficus_part": "Фикус в горшке",
   "block.mobtalk.apt_aloe": "Алоэ в горшке",
@@ -1163,5 +1163,13 @@
   "block.mobtalk.apt_ironing_board": "Гладильная доска с утюгом",
   "block.mobtalk.apt_suitcases": "Чемоданы",
   "block.mobtalk.apt_wall_carpet_high": "Ковёр над кроватью",
-  "block.mobtalk.apt_wall_carpet_high_part": "Ковёр над кроватью"
+  "block.mobtalk.apt_wall_carpet_high_part": "Ковёр над кроватью",
+  "block.mobtalk.apt_cage_lamp": "Плафон в сетке (подъезд)",
+  "block.mobtalk.apt_wall_puck": "Плафон-шайба на стене (подъезд)",
+  "block.mobtalk.apt_rug_blue": "Ковёр на пол, синий (3×4)",
+  "block.mobtalk.apt_rug_blue_part": "Ковёр на пол, синий (3×4)",
+  "block.mobtalk.apt_rug_turkmen": "Туркменский ковёр (2×3)",
+  "block.mobtalk.apt_rug_turkmen_part": "Туркменский ковёр (2×3)",
+  "block.mobtalk.apt_runner": "Ковровая дорожка (1×4)",
+  "block.mobtalk.apt_runner_part": "Ковровая дорожка (1×4)"
 }
