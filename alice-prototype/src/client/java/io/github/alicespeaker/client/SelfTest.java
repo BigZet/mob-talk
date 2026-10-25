@@ -165,6 +165,10 @@ final class SelfTest {
             AliceSpeakerClient.Reply reply = owner.lastReply;
             log("music request: " + (reply == null ? "error " + owner.lastError : "text=" + reply.text() + ", music directive=" + reply.music()
                     + ", voice=" + (reply.pcm() != null)));
+            if (AliceAuth.load().hasLogin()) {
+                log("logged in (sync.json/cookies present): music directives are in alicespeaker-protocol.log");
+                check(reply != null && !reply.text().toLowerCase().contains("авториз"), "with a login Alice does not ask to log in for music");
+            }
             owner.stopVoice();
             breakMidAnswer();
         });
