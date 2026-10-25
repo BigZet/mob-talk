@@ -54,6 +54,14 @@ public final class RoadPlan {
     static final int SAMPLE_STEP = 2, SMOOTH_HALF = 6, MIN_SPECIAL_RUN = 4, MERGE_GAP = 6;
     /** A bridge's walkway stands this high over the water: the deck one block clear of it. */
     static final int DECK_OVER_WATER = 2;
+    /** A dip this deep or deeper below both its rims, the rims within this many points on either side, is crossed at the rims'
+     * level (a bridge or a causeway) instead of down and up again (Dmitriy 2026-10-25: the road sagged into every ravine). */
+    static final int VALLEY_DEPTH = 4, VALLEY_REACH = 60;
+    /** How far back from a tunnel's mouth the road's approach is evened out: it does not climb the hill only to go into it. */
+    static final int TUNNEL_APPROACH = 48;
+    /** What a half-block step up or down costs against a block of bridge (1.5) or tunnel (2): a road over a hill is not cheaper
+     * than one through it just for being in the open. */
+    static final double CLIMB_COST = 1.0;
 
     /** Water this deep is bridged (shallower is a causeway on fill). */
     private static boolean bridged(double depth) { return depth >= 1; }
@@ -67,8 +75,12 @@ public final class RoadPlan {
         Road best = null; String refusal = null;
         for (int variant = 0; variant < Math.max(1, rules.variants()); variant++) {
             List<double[]> line = centreline(seed, variant, rules.variants(), ax, az, bx, bz);
-            Road road = profile(line, cached, rules);
+            Road road = profile(line, cached, rules, true);
             String why = refusal(road, rules);
+            if (why != null && road.tunnel() > rules.maxTunnel()) { // the evened approach made the tunnel too long: climb as before
+                road = profile(line, cached, rules, false);
+                why = refusal(road, rules);
+            }
             if (why != null) { if (refusal == null) refusal = why; continue; }
             if (best == null || road.cost() < best.cost()) best = road;
         }
@@ -143,7 +155,9 @@ public final class RoadPlan {
     // ---- The height ----
 
     /** The road's height along the line and what it is at each point. */
-    static Road profile(List<double[]> line, Terrain terrain, Rules rules) {
+    static Road profile(List<double[]> line, Terrain terrain, Rules rules) { return profile(line, terrain, rules, true); }
+
+    static Road profile(List<double[]> line, Terrain terrain, Rules rules, boolean evenTunnels) {
         int n = line.size();
         double[] floor = new double[n], surface = new double[n];
         for (int i = 0; i < n; i += SAMPLE_STEP) sample(line, i, terrain, floor, surface);
@@ -157,17 +171,12 @@ public final class RoadPlan {
         boolean[] wet = new boolean[n];
         double[] base = new double[n];
         for (int i = 0; i < n; i++) { wet[i] = surface[i] - floor[i] >= 0.5; base[i] = wet[i] ? surface[i] + DECK_OVER_WATER : floor[i]; }
-        double[] road = smooth(base, SMOOTH_HALF);
         double g = rules.grade();
-        // Both ends stand on the ground at their villages: the climb to a village on a plateau spreads back down the road rather
-        // than the road arriving under the village in a tunnel. Each point stays within reach of both ends at the grade (when the
-        // ends are too far apart in height for that, the road keeps to the ground as best it can instead).
-        double a = base[0], b = base[n - 1];
-        boolean pinned = Math.abs(a - b) <= g * (n - 1);
-        if (pinned) for (int i = 0; i < n; i++)
-            road[i] = clamp(road[i], Math.max(a - g * i, b - g * (n - 1 - i)), Math.min(a + g * i, b + g * (n - 1 - i)));
-        for (int i = 1; i < n; i++) road[i] = clamp(road[i], road[i - 1] - g, road[i - 1] + g);
-        for (int i = n - 2; i >= 0; i--) road[i] = clamp(road[i], road[i + 1] - g, road[i + 1] + g);
+        double[] road = heights(base, g);
+        if (evenTunnels) {
+            double[] evened = evenTunnelBase(base, road, floor, rules.tunnelCut(), TUNNEL_APPROACH);
+            if (evened != null) road = heights(evened, g);
+        }
         int[] h2 = new int[n];
         for (int i = 0; i < n; i++) {
             h2[i] = (int) Math.round(road[i] * 2);
@@ -191,6 +200,7 @@ public final class RoadPlan {
             if (d == 0) { dx = 1; dz = 0; d = 1; }
             points.add(new Point(here[0], here[1], dx / d, dz / d, h2[i], kinds[i]));
             double feet = h2[i] / 2.0;
+            if (i > 0) cost += CLIMB_COST * Math.abs(h2[i] - h2[i - 1]); // every half-block step up or down
             switch (kinds[i]) {
                 case BRIDGE -> { bridge++; cost += 1.5; }
                 case TUNNEL -> { tunnel++; cost += 2.0; }
@@ -198,6 +208,67 @@ public final class RoadPlan {
             }
         }
         return new Road(List.copyOf(points), bridge, tunnel, cost);
+    }
+
+    /** The road's height from the ground it follows ({@code base}): smoothed, held within reach of both ends, levelled across
+     * ravines, and kept to the grade. */
+    static double[] heights(double[] base, double g) {
+        int n = base.length;
+        double[] road = smooth(base, SMOOTH_HALF);
+        // Both ends stand on the ground at their villages: the climb to a village on a plateau spreads back down the road rather
+        // than the road arriving under the village in a tunnel. Each point stays within reach of both ends at the grade (when the
+        // ends are too far apart in height for that, the road keeps to the ground as best it can instead).
+        double a = base[0], b = base[n - 1];
+        boolean pinned = Math.abs(a - b) <= g * (n - 1);
+        if (pinned) for (int i = 0; i < n; i++)
+            road[i] = clamp(road[i], Math.max(a - g * i, b - g * (n - 1 - i)), Math.min(a + g * i, b + g * (n - 1 - i)));
+        levelValleys(road, VALLEY_DEPTH, VALLEY_REACH);
+        for (int i = 1; i < n; i++) road[i] = clamp(road[i], road[i - 1] - g, road[i - 1] + g);
+        for (int i = n - 2; i >= 0; i--) road[i] = clamp(road[i], road[i + 1] - g, road[i + 1] + g);
+        return road;
+    }
+
+    /** Raises every dip at least {@code depth} below both of its rims (the highest road within {@code reach} points before and
+     * after) to the lower rim, and the slopes down into it with it: the road crosses the ravine level, on a bridge where the fill is
+     * high and on a causeway where it is low, instead of following the ground down and up. */
+    static void levelValleys(double[] road, int depth, int reach) {
+        int n = road.length;
+        double[] rim = new double[n];
+        for (int i = 0; i < n; i++) {
+            double left = road[i], right = road[i];
+            for (int k = Math.max(0, i - reach); k < i; k++) left = Math.max(left, road[k]);
+            for (int k = i + 1; k <= Math.min(n - 1, i + reach); k++) right = Math.max(right, road[k]);
+            rim[i] = Math.min(left, right);
+        }
+        boolean[] raise = new boolean[n];
+        for (int i = 0; i < n; i++) {
+            if (rim[i] - road[i] < depth || raise[i]) continue;
+            int a = i, b = i;
+            while (a > 0 && rim[a - 1] - road[a - 1] > 0.25) a--;
+            while (b < n - 1 && rim[b + 1] - road[b + 1] > 0.25) b++;
+            for (int k = a; k <= b; k++) raise[k] = true;
+        }
+        for (int i = 0; i < n; i++) if (raise[i]) road[i] = rim[i];
+    }
+
+    /** The ground to follow again when a tunnel is coming (Dmitriy 2026-10-25: the road climbed the hill and then went into it
+     * anyway): from the lowest road within {@code window} before a tunnel's mouth, the road keeps that level under the whole hill,
+     * to where the ground comes down near that level again. Null when the road has no tunnel. The ends are never changed. */
+    static double[] evenTunnelBase(double[] base, double[] road, double[] floor, int cut, int window) {
+        int n = road.length;
+        double[] out = null;
+        for (int i = 1; i < n - 1; ) {
+            if (floor[i] - road[i] < cut) { i++; continue; }
+            int a = i;
+            for (int k = Math.max(0, i - window); k < i; k++) if (road[k] < road[a]) a = k;
+            double level = road[a];
+            int b = i;
+            while (b < n - 2 && floor[b + 1] - level > VALLEY_DEPTH) b++;
+            if (out == null) out = base.clone();
+            for (int k = Math.max(1, a); k <= b; k++) out[k] = Math.min(out[k], level);
+            i = b + 1;
+        }
+        return out;
     }
 
     private static void sample(List<double[]> line, int i, Terrain terrain, double[] floor, double[] surface) {

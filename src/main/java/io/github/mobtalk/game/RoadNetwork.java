@@ -38,6 +38,11 @@ final class RoadNetwork {
     static final long SCAN_PERIOD = 400, SCAN_PHASE = 37, SWEEP_PERIOD = 200, SWEEP_PHASE = 91;
     /** Grid cells checked per tick (each may read a chunk's saved data from disk) and road chunks laid per tick. */
     static final int CELLS_PER_TICK = 2, CHUNKS_PER_TICK = 1, FORCED_AT_ONCE = 9;
+    /** A branch («ответвление») leads off a road to a village this near it that the road does not end at (Dmitriy 2026-10-25: «add
+     * small branches to leave the highway for a village nearby»): no nearer than this (the road all but passes it) and no farther. */
+    static final int SPUR_MIN = 32, SPUR_REACH = 160;
+    /** The key a branch's start goes by: the road it leaves, by id. */
+    static final String SPUR = "spur#";
     private static final Logger LOGGER = LoggerFactory.getLogger("mobtalk-roads");
     private static final ExecutorService PLANNER = Executors.newSingleThreadExecutor(task -> {
         Thread thread = new Thread(task, "mobtalk-roads"); thread.setDaemon(true); thread.setPriority(Thread.MIN_PRIORITY); return thread;
@@ -75,6 +80,8 @@ final class RoadNetwork {
 
     static final class Road {
         int id; String a, b; List<RoadPlan.Point> points; int bridge, tunnel;
+        /** A branch off another road to a village near it: its start is on that road, not at a village. */
+        boolean spur() { return a.startsWith(SPUR); }
         /** RoadBuilder's palette (-1 not chosen yet), and the first and last point to lay, where the road meets each village
          * ({@link Integer#MIN_VALUE} until a chunk the village reaches has told). */
         int palette = -1, from = Integer.MIN_VALUE, to = Integer.MIN_VALUE;
@@ -285,11 +292,12 @@ final class RoadNetwork {
             }
             int from = road.from == Integer.MIN_VALUE ? 0 : road.from, to = road.to == Integer.MIN_VALUE ? road.points.size() - 1 : road.to;
             RoadBuilder.Report report = RoadBuilder.lay(world, road.points, pos, RoadBuilder.palette(road.palette), from, to,
-                    bridge.config.roadLamps, bridge.config.roadLampSpacing);
+                    bridge.config.roadLamps, bridge.config.roadLampSpacing, road.from != Integer.MIN_VALUE, road.to != Integer.MIN_VALUE);
             road.done.add(job.chunk());
             state.saved.markDirty();
             release(world, state, job.chunk());
-            if (road.done.size() == 1) LOGGER.info("дорога {} ({}): первый участок уложен, чанк {} {}: {}", road.id, road.title(state.saved), cx, cz, report);
+            if (road.done.size() == 1 || report.station > 0 || report.blocker != null)
+                LOGGER.info("дорога {} ({}): уложен чанк {} {}: {}", road.id, road.title(state.saved), cx, cz, report);
         } catch (RuntimeException failure) {
             road.done.add(job.chunk()); // never retried in a loop
             state.saved.markDirty();
@@ -376,12 +384,43 @@ final class RoadNetwork {
             if (state.saved.pairs.containsKey(pair) || !state.planning.add(pair)) continue;
             plan(world, state, a.key, a.x, a.z, b.key, b.x, b.z, null);
         }
+        spurs(world, state);
+    }
+
+    /** A branch from each road to every village near it that it does not join already, directly or through one of its two villages. */
+    private void spurs(ServerWorld world, World state) {
+        for (Village village : state.saved.villages.values())
+            for (Road road : List.copyOf(state.saved.roads)) {
+                if (road.spur() || road.a.equals(village.key) || road.b.equals(village.key)) continue;
+                String pair = pair(SPUR + road.id, village.key);
+                if (state.saved.pairs.containsKey(pair) || state.planning.contains(pair) || joined(state, village.key, road.a) || joined(state, village.key, road.b)) continue;
+                int best = -1; double distance = Double.MAX_VALUE;
+                for (int i = 0; i < road.points.size(); i++) {
+                    RoadPlan.Point p = road.points.get(i);
+                    double d = Math.hypot(p.x() - village.x, p.z() - village.z);
+                    if (d < distance) { distance = d; best = i; }
+                }
+                if (best < 0 || distance < SPUR_MIN || distance > SPUR_REACH) continue;
+                RoadPlan.Point from = road.points.get(best);
+                plan(world, state, SPUR + road.id, from.blockX(), from.blockZ(), village.key, village.x, village.z, from.h2() >> 1, null);
+            }
+    }
+
+    /** A road of its own joins the two villages. */
+    private static boolean joined(World state, String a, String b) {
+        Integer id = state.saved.pairs.get(pair(a, b));
+        return id != null && id >= 0;
     }
 
     static String pair(String a, String b) { return a.compareTo(b) <= 0 ? a + "|" + b : b + "|" + a; }
 
     /** Plans one road off the game thread and takes it in on the game thread; {@code done} hears the outcome (for the command). */
     private void plan(ServerWorld world, World state, String a, int ax, int az, String b, int bx, int bz, java.util.function.Consumer<String> done) {
+        plan(world, state, a, ax, az, b, bx, bz, Integer.MIN_VALUE, done);
+    }
+
+    /** {@code startFloor}: the height the road starts at (a branch starts on its road's surface), or MIN_VALUE to take the ground's. */
+    private void plan(ServerWorld world, World state, String a, int ax, int az, String b, int bx, int bz, int startFloor, java.util.function.Consumer<String> done) {
         String pair = pair(a, b);
         state.planning.add(pair);
         ChunkGenerator generator = world.getChunkManager().getChunkGenerator();
@@ -393,6 +432,7 @@ final class RoadNetwork {
             /** One worldgen column for both heights: the first block from the top that is not air is the surface (water counts),
              * the first that blocks movement is the floor. */
             @Override public int[] both(int x, int z) {
+                if (startFloor != Integer.MIN_VALUE && Math.abs(x - ax) <= 3 && Math.abs(z - az) <= 3) return new int[] { startFloor, startFloor };
                 var column = generator.getColumnSample(x, z, world, noise);
                 int surface = Integer.MIN_VALUE;
                 for (int y = top; y >= bottom; y--) {
@@ -432,6 +472,7 @@ final class RoadNetwork {
         road.bridge = result.road().bridge(); road.tunnel = result.road().tunnel();
         state.saved.roads.add(road); state.saved.pairs.put(pair, road.id); state.saved.markDirty();
         index(state, road);
+        if (!road.spur()) spurs(world, state);
         int queued = 0;
         for (long chunk : road.chunks())
             if (world.getChunkManager().getWorldChunk(ChunkPos.getPackedX(chunk), ChunkPos.getPackedZ(chunk)) != null) { state.jobs.add(new Job(road.id, chunk)); queued++; }

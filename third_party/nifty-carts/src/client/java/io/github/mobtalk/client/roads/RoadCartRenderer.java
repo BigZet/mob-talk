@@ -26,6 +26,9 @@ public final class RoadCartRenderer extends EntityRenderer<RoadCartEntity> {
     static final EntityModelLayer WAGON = new EntityModelLayer(Identifier.of("mobtalk", "road_wagon"), "main");
     static final EntityModelLayer WAGON_ROOF = new EntityModelLayer(Identifier.of("mobtalk", "road_wagon"), "roof");
 
+    /** Degrees the two-wheeled cart's shafts are raised on level road: the shaft ends at the height of the horse's flanks. */
+    static final float SHAFT_LIFT = 6;
+
     private final AnimalCartModel cart;
     private final WagonModel wagon;
 
@@ -55,8 +58,10 @@ public final class RoadCartRenderer extends EntityRenderer<RoadCartEntity> {
         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180.0F - heading));
         matrices.scale(-1.0F, -1.0F, 1.0F);
         CartModel model = entity.wagon() ? wagon : cart;
-        // Vanilla pitch is positive looking down: the cart's nose goes down on a descent.
-        model.setAngles(entity, MathHelper.lerp(tickDelta, entity.prevWheel, entity.wheel), 0, 0, 0, -pitch);
+        // Vanilla pitch is positive looking down, and so is the model's pitch in the flipped space: the shafts go down to a horse
+        // lower on the road and up to one higher (Dmitriy 2026-10-25: the other sign dropped them to the horse's knees). On the level
+        // the shafts are lifted a little to the horse's harness.
+        model.setAngles(entity, MathHelper.lerp(tickDelta, entity.prevWheel, entity.wheel), 0, 0, 0, pitch - (entity.wagon() ? 0 : SHAFT_LIFT));
         model.render(matrices, vertices.getBuffer(model.getLayer(getTexture(entity))), light, OverlayTexture.DEFAULT_UV);
         if (entity.wagon()) {
             matrices.push();

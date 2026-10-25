@@ -56,6 +56,8 @@ public final class RoadCartEntity extends Entity {
     /** How far the shafts reach: the horse's centre stands this far ahead of the cart's (NiftyCarts' spacing plus half a horse). */
     public double reach() { return wagon() ? 2.5 + 0.7 : 1.7 + 0.7; }
     public int seats() { return wagon() ? 4 : 2; }
+    /** How high a villager's feet stand in the two-wheeled cart: on its bed, between the wheels. */
+    static final double CART_BED = 0.35;
 
     @Override protected void initDataTracker(DataTracker.Builder builder) { builder.add(WOOD, (byte) 0); builder.add(ROOF, (byte) 0); }
     @Override protected void readCustomDataFromNbt(NbtCompound nbt) { }
@@ -93,7 +95,10 @@ public final class RoadCartEntity extends Entity {
         if (!wagon()) {
             double ahead = getPassengerList().size() > 1 ? (index == 0 ? 0.2 : -0.6) : -0.1;
             Vec3d forward = look.multiply(ahead + MathHelper.sin((float) Math.toRadians(getPitch())) * 0.7);
-            return new Vec3d(forward.x, (dimensions.height() - 0.5) * scale + forward.y, forward.z);
+            // A villager has no sitting pose: it stands in the cart, its legs behind the side boards (NiftyCarts' height suits a
+            // seated player; a villager there floated a block over the bed, Dmitriy 2026-10-25).
+            double seat = passenger instanceof net.minecraft.entity.player.PlayerEntity ? dimensions.height() - 0.5 : CART_BED;
+            return new Vec3d(forward.x, seat * scale + forward.y, forward.z);
         }
         double ahead = index == 0 || index == 2 ? 0.1 : -1.2, side = index == 0 || index == 1 ? 0.7 : -0.7;
         Vec3d forward = look.multiply(ahead), sideways = new Vec3d(forward.z, 0, -forward.x).normalize().multiply(side);

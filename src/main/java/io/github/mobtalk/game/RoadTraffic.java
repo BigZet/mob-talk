@@ -33,14 +33,14 @@ import net.minecraft.world.PersistentState;
  * horsemen, going back and forth between the two villages of a road at a walk, each in the right-hand lane. A trip lives as a
  * place on its road (how far along, which way), saved with the world; it takes shape as real entities only near a player, and
  * goes on without them elsewhere. The horse follows the road; the cart is pulled after it (it keeps the shafts' length from the
- * horse, as NiftyCarts pulls its carts), so it swings wide on a bend and round in the turn at each end. A trip waits for a player
- * standing in its way. The entities are the traffic's alone: never saved with the chunk, tagged, and any left over from a crash are
+ * horse, as NiftyCarts pulls its carts), so it swings wide on a bend. At the end of the road a trip drives into the village and is
+ * gone from sight; after a rest it comes out again the other way. A trip waits for a player standing in its way. The entities are the traffic's alone: never saved with the chunk, tagged, and any left over from a crash are
  * removed when they load. Server thread only. */
 final class RoadTraffic {
     static final String TAG = "mobtalk_road";
     /** Walking speed (blocks a tick) of a cart and of a horseman, the lane's distance from the middle, the rest at each end. */
     static final double CART_SPEED = 0.1, RIDER_SPEED = 0.14, LANE = 1.2;
-    static final int REST = 600, TURN = 60;
+    static final int REST = 600;
     /** A trip takes shape this near a player and goes back to being a place on the road farther than this. */
     static final double APPEAR = 96, VANISH = 128;
     /** The escort rides this far behind the wagon. */
@@ -59,11 +59,13 @@ final class RoadTraffic {
     RoadTraffic(MobGameBridge bridge) { this.bridge = bridge; }
 
     private int perRoad() { return bridge.config.enabled && bridge.config.villageRoads ? Math.max(0, bridge.config.roadTraffic) : 0; }
+    /** A branch to a village carries one trip at most. */
+    private int perRoad(RoadNetwork.Road road) { return road.spur() ? Math.min(1, perRoad()) : perRoad(); }
 
     // ---- Saved state ----
 
     static final class Trip {
-        int road, slot; Kind kind; double s; int dir = 1; int rest, turn; int wood, roof, horse; boolean escort;
+        int road, slot; Kind kind; double s; int dir = 1; int rest; int wood, roof, horse; boolean escort;
         /** The entities while the trip has taken shape near a player, and where the cart stands. */
         transient AbstractHorseEntity steed; transient RoadCartEntity cart; transient final List<VillagerEntity> people = new ArrayList<>();
         transient AbstractHorseEntity escortHorse; transient VillagerEntity escortRider;
@@ -132,7 +134,7 @@ final class RoadTraffic {
         for (Iterator<Trip> it = state.saved.trips.iterator(); it.hasNext(); ) {
             Trip trip = it.next();
             RoadNetwork.Road road = bridge.roads.road(world, trip.road);
-            if (road == null || trip.slot >= perRoad()) { vanish(trip); it.remove(); state.saved.markDirty(); continue; }
+            if (road == null || trip.slot >= perRoad(road)) { vanish(trip); it.remove(); state.saved.markDirty(); continue; }
             if (now % 20 == trip.slot) shape(world, road, trip);
             step(world, state, road, trip);
         }
@@ -141,9 +143,9 @@ final class RoadTraffic {
 
     /** Every road gets its trips: as many as the setting asks, spread along it, each its own kind. */
     private void plan(ServerWorld world, World state) {
-        int wanted = perRoad();
         for (RoadNetwork.Road road : bridge.roads.roads(world)) {
             if (road.done.isEmpty()) continue; // not a stone of it laid yet
+            int wanted = perRoad(road);
             Set<Integer> have = new HashSet<>();
             for (Trip trip : state.saved.trips) if (trip.road == road.id) have.add(trip.slot);
             for (int slot = 0; slot < wanted; slot++) {
@@ -181,26 +183,31 @@ final class RoadTraffic {
 
     private void step(ServerWorld world, World state, RoadNetwork.Road road, Trip trip) {
         int[] range = range(road);
-        if (trip.turn > 0) { // turning round at the end; a player in the way is waited for
-            if (!(trip.shaped() && blocked(world, state, road, trip)) && --trip.turn == 0) turnAround(road, trip, range);
-            if (trip.shaped()) place(world, road, trip);
-            return;
-        }
-        if (trip.rest > 0) { // resting at the village; then the turn (at once where nobody sees it)
-            if (--trip.rest == 0) { if (trip.shaped()) trip.turn = TURN; else turnAround(road, trip, range); }
-            if (trip.shaped()) place(world, road, trip);
+        if (trip.rest > 0) { // in the village: out of sight, in nobody's way; then it sets off back
+            if (trip.rest > 1 || !departing(state, trip)) trip.rest--;
+            if (trip.rest == 0) turnAround(road, trip, range);
             return;
         }
         boolean held = trip.shaped() && (blocked(world, state, road, trip) || !laidAhead(world, road, trip));
         if (!held) {
             trip.s += trip.dir * speed(trip);
             double end = trip.dir > 0 ? range[1] : range[0];
-            if ((trip.s - end) * trip.dir >= 0) { trip.s = end; trip.rest = REST; }
+            // Arrived: the cart drives into the village and is gone (Dmitriy 2026-10-25: they stood at the end and queued up).
+            if ((trip.s - end) * trip.dir >= 0) { trip.s = end; trip.rest = REST; vanish(trip); return; }
         }
         if (trip.shaped()) place(world, road, trip);
     }
 
-    /** After the turn the horse stands in the other lane, facing back the way it came (the cart's swung round behind it). */
+    /** Another trip setting off from the same end just now, or one about to arrive there: this one waits a little longer. */
+    private static boolean departing(World state, Trip trip) {
+        for (Trip other : state.saved.trips) {
+            if (other == trip || other.road != trip.road || other.rest > 0) continue;
+            if (Math.abs(other.s - trip.s) < length(other) + length(trip) + 6) return true;
+        }
+        return false;
+    }
+
+    /** Setting off back: the horse stands in the other lane, facing back the way it came. */
     private static void turnAround(RoadNetwork.Road road, Trip trip, int[] range) {
         trip.dir = -trip.dir;
         trip.s = MathHelper.clamp(trip.s, range[0], range[1]);
@@ -216,9 +223,8 @@ final class RoadTraffic {
             double ahead = to.x * frame.fx + to.z * frame.fz, across = to.x * -frame.fz + to.z * frame.fx;
             if (ahead > 0.3 && ahead < 4.5 && Math.abs(across) < 1.6 && Math.abs(to.y) < 2.5) return true;
         }
-        if (trip.turn > 0) return false;
         for (Trip other : state.saved.trips) {
-            if (other == trip || other.road != trip.road || other.dir != trip.dir) continue;
+            if (other == trip || other.road != trip.road || other.dir != trip.dir || other.rest > 0) continue;
             double gap = (other.s - trip.s) * trip.dir;
             if (gap > 0 && gap < length(other) + 4.5) return true;
         }
@@ -254,22 +260,11 @@ final class RoadTraffic {
         return new Frame(x, y, z, fx / d * dir, fz / d * dir);
     }
 
-    /** Puts the trip's entities where they belong this tick: the horse in its lane (or on its turning circle), the cart pulled after it. */
+    /** Puts the trip's entities where they belong this tick: the horse in its lane, the cart pulled after it. */
     private void place(ServerWorld world, RoadNetwork.Road road, Trip trip) {
         if (!alive(trip)) { vanish(trip); return; }
         Frame frame = frame(road, trip.s, trip.dir);
-        Vec3d head; float yaw;
-        if (trip.turn > 0) {
-            // The turn: a half circle to the left about the middle of the road, from this lane to the other.
-            double phi = Math.PI * (TURN - trip.turn) / (double) TURN;
-            double rx = -frame.fz, rz = frame.fx, ox = rx * Math.cos(phi) + frame.fx * Math.sin(phi), oz = rz * Math.cos(phi) + frame.fz * Math.sin(phi);
-            head = new Vec3d(frame.x + ox * LANE, frame.y, frame.z + oz * LANE);
-            double hx = -rx * Math.sin(phi) + frame.fx * Math.cos(phi), hz = -rz * Math.sin(phi) + frame.fz * Math.cos(phi);
-            yaw = (float) Math.toDegrees(Math.atan2(-hx, hz));
-        } else {
-            head = frame.lane(LANE);
-            yaw = frame.yaw();
-        }
+        Vec3d head = frame.lane(LANE); float yaw = frame.yaw();
         move(trip.steed, head, yaw, 0);
         Vec3d back = head; float backYaw = yaw;
         if (trip.cart != null) {
@@ -279,11 +274,12 @@ final class RoadTraffic {
             double length = pull.length();
             if (length > 1e-4 && length != reach) cart = new Vec3d(head.x - pull.x / length * reach, cart.y, head.z - pull.z / length * reach);
             // The height where the cart's wheels are, read along the road: smooth over the half-block steps.
-            double cartY = frame(road, trip.turn > 0 ? trip.s : trip.s - trip.dir * reach, trip.dir).y;
+            double cartY = frame(road, trip.s - trip.dir * reach, trip.dir).y;
             cart = new Vec3d(cart.x, cartY, cart.z);
             trip.cartAt = cart;
             float cartYaw = length > 1e-4 ? (float) Math.toDegrees(Math.atan2(-(head.x - cart.x), head.z - cart.z)) : yaw;
             float pitch = MathHelper.clamp((float) -Math.toDegrees(Math.atan2(head.y - cart.y, reach)), -15f, 15f);
+            // The cart's nose rises toward a horse higher up the road; the renderer turns this the same way as the road.
             move(trip.cart, cart, cartYaw, pitch);
             back = cart; backYaw = cartYaw;
         }
@@ -322,7 +318,7 @@ final class RoadTraffic {
         double nearest = Double.MAX_VALUE;
         for (ServerPlayerEntity player : world.getPlayers()) nearest = Math.min(nearest, Math.hypot(player.getX() - frame.x, player.getZ() - frame.z));
         if (watch != null && world.getTime() < watchUntil) nearest = Math.min(nearest, Math.hypot(watch.x - frame.x, watch.z - frame.z));
-        boolean ticking = world.shouldTickEntity(at) && road.done.contains(ChunkPos.toLong(at.getX() >> 4, at.getZ() >> 4));
+        boolean ticking = world.shouldTickEntity(at) && road.done.contains(ChunkPos.toLong(at.getX() >> 4, at.getZ() >> 4)) && trip.rest == 0;
         if (trip.shaped() && (nearest > VANISH || !ticking || !alive(trip))) vanish(trip);
         else if (!trip.shaped() && nearest < APPEAR && ticking) appear(world, road, trip, frame);
     }
@@ -380,7 +376,6 @@ final class RoadTraffic {
         if (trip.escortHorse != null) all.add(trip.escortHorse);
         for (Entity entity : all) { live.remove(entity.getUuid()); if (!entity.isRemoved()) { entity.stopRiding(); entity.discard(); } }
         trip.people.clear(); trip.cart = null; trip.steed = null; trip.escortHorse = null; trip.escortRider = null; trip.cartAt = null;
-        if (trip.turn > 0) { trip.turn = 0; trip.dir = -trip.dir; } // a turn begun is finished at once
     }
 
     private AbstractHorseEntity horse(ServerWorld world, Vec3d at, float yaw, int color, boolean saddled) {
@@ -447,7 +442,7 @@ final class RoadTraffic {
             RoadNetwork.Road road = bridge.roads.road(world, trip.road);
             Frame frame = road == null ? null : frame(road, trip.s, trip.dir);
             out.add("#" + trip.road + "/" + trip.slot + " " + trip.kind + (trip.escort ? "+конвой" : "") + " в " + (frame == null ? "?" : (int) frame.x + " " + (int) frame.z)
-                    + (trip.dir > 0 ? " →" : " ←") + (trip.rest > 0 ? " стоит " + trip.rest / 20 + " с" : "") + (trip.shaped() ? " (в мире)" : ""));
+                    + (trip.dir > 0 ? " →" : " ←") + (trip.rest > 0 ? " в деревне ещё " + trip.rest / 20 + " с" : "") + (trip.shaped() ? " (в мире)" : ""));
         }
         return out;
     }
@@ -473,7 +468,7 @@ final class RoadTraffic {
         }
         int[] range = range(road);
         best.s = MathHelper.clamp(best.s, range[0] + 6, range[1] - 6);
-        best.rest = 0; best.turn = 0;
+        best.rest = 0;
         shape(world, road, best);
         return "поездка #" + roadId + "/" + best.slot + " " + best.kind + " у " + (int) frame(road, best.s, best.dir).x + " " + (int) frame(road, best.s, best.dir).z;
     }

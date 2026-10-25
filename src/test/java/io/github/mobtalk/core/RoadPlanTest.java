@@ -81,6 +81,35 @@ class RoadPlanTest {
         for (RoadPlan.Point p : road.points()) if (p.x() >= 575) assertNotEquals(RoadPlan.Kind.TUNNEL, p.kind(), "no tunnel under the village at " + p.x());
     }
 
+    @Test void aRavineIsCrossedLevelNotDippedInto() {
+        RoadPlan.Terrain land = new RoadPlan.Terrain() { // a dry ravine fourteen deep and forty wide across flat land
+            @Override public int floor(int x, int z) { return x >= 180 && x <= 220 ? 56 : 70; }
+            @Override public int surface(int x, int z) { return floor(x, z); }
+        };
+        RoadPlan.Road road = RoadPlan.plan(5, 0, 0, 400, 0, land, RoadPlan.Rules.defaults()).road();
+        assertNotNull(road);
+        int lowest = road.points().stream().mapToInt(RoadPlan.Point::h2).min().orElse(0);
+        assertTrue(lowest >= 138, "the road stays near the rims, lowest " + lowest / 2.0);
+        assertTrue(road.bridge() >= 30, "bridge " + road.bridge());
+    }
+
+    @Test void theRoadDoesNotClimbAHillItThenTunnels() {
+        RoadPlan.Terrain land = new RoadPlan.Terrain() { // a hill rising from 70 to 120 over fifty blocks, a top, and down again
+            @Override public int floor(int x, int z) {
+                if (x < 150 || x > 350) return 70;
+                if (x < 200) return 70 + (x - 150);
+                if (x > 300) return 70 + (350 - x);
+                return 120;
+            }
+            @Override public int surface(int x, int z) { return floor(x, z); }
+        };
+        RoadPlan.Road road = RoadPlan.plan(6, 0, 0, 600, 0, land, RoadPlan.Rules.defaults()).road();
+        assertNotNull(road);
+        assertTrue(road.tunnel() > 100, "tunnel " + road.tunnel());
+        int highest = road.points().stream().mapToInt(RoadPlan.Point::h2).max().orElse(0);
+        assertTrue(highest <= 2 * 74, "the road keeps low into the tunnel, highest " + highest / 2.0);
+    }
+
     @Test void tooLongOrTooMuchBridgeIsRefused() {
         assertFalse(RoadPlan.plan(1, 0, 0, 2000, 0, flat(70), RoadPlan.Rules.defaults()).ok());
         RoadPlan.Terrain sea = new RoadPlan.Terrain() {
