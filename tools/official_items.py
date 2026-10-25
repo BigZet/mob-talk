@@ -1,4 +1,4 @@
-"""Draws the officials' item icons (track «чиновники»): the envelope and the certificate, 16x16.
+"""Draws the officials' item icons (track «чиновники»): the envelope, the certificate and the passport, 16x16.
 
 usage: python3 tools/official_items.py <repo root>
 """
@@ -53,6 +53,46 @@ def certificate():
     img.putpixel((cx, cy), light + (255,))
     return img
 
+def passport():
+    """A small booklet in a burgundy cover, its spine darker, a gold ornament (a wreath of dots round a star, no real emblem) and
+    a gold line of lettering under it; the pages peek out at the bottom right."""
+    img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
+    edge, cover, spine, light = (60, 16, 22), (128, 30, 40), (96, 22, 30), (150, 44, 54)
+    gold, dim = (232, 194, 80), (180, 140, 50)
+    x0, y0, x1, y1 = 3, 1, 12, 14
+    for y in range(y0, y1 + 1):
+        for x in range(x0, x1 + 1):
+            border = x in (x0, x1) or y in (y0, y1)
+            c = edge if border else spine if x == x0 + 1 else light if (y == y0 + 1 and x > x0 + 1) else cover
+            img.putpixel((x, y), c + (255,))
+    for y in range(y0 + 2, y1): img.putpixel((x1 + 1, y), (236, 230, 214, 255))  # page edges
+    img.putpixel((x1 + 1, y1), (200, 194, 178, 255))
+    cx, cy = 8, 5
+    for dx, dy in ((0, -2), (1, -2), (2, -1), (2, 0), (2, 1), (1, 2), (0, 2), (-1, 2), (-2, 1), (-2, 0), (-2, -1), (-1, -2)):
+        img.putpixel((cx + dx, cy + dy), dim + (255,))
+    for dx, dy in ((0, -1), (-1, 0), (0, 0), (1, 0), (0, 1)): img.putpixel((cx + dx, cy + dy), gold + (255,))
+    for x in range(x0 + 3, x1 - 1): img.putpixel((x, 10), gold + (255,))  # «ПАСПОРТ»
+    for x in range(x0 + 4, x1 - 2): img.putpixel((x, 12), dim + (255,))
+    return img
+
+def black_ledger():
+    """A black ledger book with a red ribbon bookmark and the edges of greenish pages (emerald accounts)."""
+    img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
+    edge, cover, light = (14, 14, 18), (34, 32, 40), (56, 52, 64)
+    x0, y0, x1, y1 = 2, 2, 12, 13
+    for y in range(y0, y1 + 1):
+        for x in range(x0, x1 + 1):
+            border = x in (x0, x1) or y in (y0, y1)
+            img.putpixel((x, y), (edge if border else light if y == y0 + 1 else cover) + (255,))
+    for y in range(y0 + 1, y1): img.putpixel((x1 + 1, y), (200, 220, 196, 255))  # pages
+    for y in range(y0 + 2, y1, 2): img.putpixel((x1 + 1, y), (90, 190, 120, 255))  # emerald ticks on the edge
+    for y in range(y1 - 1, y1 + 3): img.putpixel((9, min(15, y)), (180, 30, 40, 255))  # ribbon
+    for x in range(x0 + 3, x1 - 2): img.putpixel((x, 6), (150, 140, 110, 255))  # label
+    img.putpixel((x0 + 3, 8), (150, 140, 110, 255)); img.putpixel((x0 + 4, 8), (150, 140, 110, 255))
+    return img
+
 envelope().save(os.path.join(OUT, 'envelope.png'))
 certificate().save(os.path.join(OUT, 'certificate.png'))
+passport().save(os.path.join(OUT, 'passport.png'))
+black_ledger().save(os.path.join(OUT, 'black_ledger.png'))
 print('ok')

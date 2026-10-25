@@ -102,8 +102,12 @@ final class SocialController {
         ItemStack stack = player.getMainHandStack();
         if (stack.isEmpty()) return "В руке ничего нет";
         if (!mob.isAlive() || mob.squaredDistanceTo(player) > bridge.config.maxDistance * bridge.config.maxDistance) return "Подойдите к мобу ближе";
+        String ledger = mob instanceof net.minecraft.entity.passive.VillagerEntity v0 ? bridge.graft.ledgerGift(world, player, v0, stack) : null; // Чёрная бухгалтерия главы.
+        if (ledger != null) return ledger;
         String bribe = bridge.officials.envelope(world, player, mob, stack); // Чиновники: конверт — взятка, не подарок.
         if (bribe != null) return bribe;
+        String sweet = mob instanceof net.minecraft.entity.passive.VillagerEntity v ? bridge.passports.sweet(world, player, v, stack) : null; // «Шоколадка» ускоряет бумаги.
+        if (sweet != null) return sweet;
         int trial = bridge.rivalry.deliver(mob, player, stack, true); // П3: предмет испытания соперников.
         if (trial > 0) return "Для испытания отдано: " + trial + " шт.";
         String item = Registries.ITEM.getId(stack.getItem()).toString();

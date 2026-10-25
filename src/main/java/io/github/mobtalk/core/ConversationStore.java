@@ -174,6 +174,29 @@ public final class ConversationStore {
         changed.forEach((f, o) -> copies.put(f.copy(), o));
         return copies;
     }
+    /** Stage 2: the player's open passport case (a copy), or null. */
+    public synchronized Paperwork.Case paperCase(UUID player) { Paperwork.Case c = state.officials.kase(player); return c == null ? null : c.copy(); }
+    public synchronized Paperwork.Case paperOpen(UUID player, String playerName, String village, String villageTitle, int extra, Set<Officialdom.Rank> offices, long day) {
+        Paperwork.Case c = state.officials.open(player, playerName, village, villageTitle, Paperwork.chain(player, state.officials.nextCase(), extra, offices), day);
+        scheduleSave();
+        return c.copy();
+    }
+    public synchronized void paperSave(Paperwork.Case kase) { state.officials.save(kase == null ? null : kase.copy()); scheduleSave(); }
+    /** Stages 3–4: the head's dacha (a copy; made on first ask). */
+    public synchronized Graft.Estate estate(UUID head, String headName, String village) { Graft.Estate e = state.officials.estate(head, headName, village).copy(); return e; }
+    /** Changes the head's dacha under the lock and saves; returns a copy of the result. */
+    public synchronized Graft.Estate estateUpdate(UUID head, java.util.function.Consumer<Graft.Estate> change) {
+        Graft.Estate e = state.officials.estate(head, null, null);
+        change.accept(e);
+        scheduleSave();
+        return e.copy();
+    }
+    public synchronized List<Graft.Estate> estates() { return state.officials.estates(); }
+    /** The revizor: the game day he comes to this village, or -1. */
+    public synchronized long revizorDay(String village) { Long d = state.officials.revizors.get(village); return d == null ? -1 : d; }
+    public synchronized void revizorSchedule(String village, long day) { if (day < 0) state.officials.revizors.remove(village); else state.officials.revizors.put(village, day); scheduleSave(); }
+    public synchronized Map<String, Long> revizors() { return new LinkedHashMap<>(state.officials.revizors); }
+    public synchronized String paperIssue(UUID player, String village, long day) { String n = state.officials.issuePassport(player, village, day); scheduleSave(); return n; }
     public synchronized List<Officialdom.Fine> officialFines() { return state.officials.open().stream().map(Officialdom.Fine::copy).toList(); }
 
     public synchronized void recordHelp(UUID mob, String type, String name, UUID player, String playerName, long nowMillis) {

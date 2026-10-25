@@ -81,7 +81,12 @@ public final class Officialdom {
     /** What the official does with an envelope of {@code emeralds} with {@code witnesses} other residents watching; {@code fine} is
      * the player's open order with this inspector (0 for none or another rank). */
     public static Verdict judge(Rank rank, UUID id, int emeralds, int witnesses, int relationship, int honestPercent, int pricePercent, int fine) {
-        int price = price(rank, id, relationship, honestPercent, pricePercent, fine);
+        return judge(rank, id, emeralds, witnesses, relationship, honestPercent, pricePercent, fine, false);
+    }
+    /** The same; {@code shameless} — the stream switch «особенно наглые»: a corrupt one asks half again and takes it in front of anyone. */
+    public static Verdict judge(Rank rank, UUID id, int emeralds, int witnesses, int relationship, int honestPercent, int pricePercent, int fine, boolean shameless) {
+        int price = price(rank, id, relationship, honestPercent, shameless ? pricePercent * 3 / 2 : pricePercent, fine);
+        if (shameless) witnesses = 0;
         boolean honest = honest(id, honestPercent);
         String what = "игрок протянул тебе конверт" + (emeralds > 0 ? " с " + emeralds + " " + emeraldWord(emeralds) : "");
         if (emeralds <= 0) return new Verdict(Outcome.EMPTY, price, -5, false, what + ", а он пустой. Ты оскорблён такой шуткой и отдаёшь его обратно.");
@@ -110,17 +115,94 @@ public final class Officialdom {
         return tens >= 11 && tens <= 14 ? "изумрудами" : ones == 1 ? "изумрудом" : "изумрудами";
     }
 
+    /** The officialese of Russian offices, as the style guides and the complaints about «отписки» describe it (split predicates, verbal
+     * nouns, chains of genitives, passive voice, euphemisms, the standard formulas of a brush-off), for the official's prompt. */
+    static final String OFFICIALESE = " Говоришь настоящим канцеляритом казённых учреждений. Приёмы: расщеплённое сказуемое вместо простого глагола"
+            + " («осуществить проверку», «произвести выдачу», «принять решение», «довести до вашего сведения»); отглагольные существительные и цепочки родительных"
+            + " падежей («в целях обеспечения соблюдения порядка предоставления»); «являться», «данный», «вышеуказанный», «имеет место», «в настоящее время»,"
+            + " «в рамках компетенции», «в установленном порядке», «в соответствии с действующим регламентом», «в связи с вышеизложенным»; страдательный залог"
+            + " («вам будет направлен ответ», «заявителю разъяснено»); эвфемизмы («оптимизация» вместо сокращения, «корректировка» вместо подорожания,"
+            + " «отдельные недоработки» вместо провала, «вопрос находится на контроле» вместо «ничего не делаем»). Любимые формулы отписки: «ваше обращение"
+            + " рассмотрено», «факты не подтвердились», «оснований для принятия мер не имеется», «обращение направлено по принадлежности», «мероприятия"
+            + " включены в план на следующий год при наличии финансирования», «заявителю разъяснён порядок обжалования», «вас много, а я один»."
+            + " В одной реплике — одна–две такие формулы, не вываливай всё сразу.";
+
+    /** What a plain villager thinks of its village's officials (the server's list from OfficialsController.gossipFor): it dislikes them,
+     * grumbles and hints at bribes, the head's dacha and heaven's strikes, grudgingly praises an honest one, gloats over a removed head.
+     * "" when the list is empty or nonsense. */
+    public static String gossip(Object data) {
+        if (!(data instanceof List<?> list) || list.isEmpty()) return "";
+        StringBuilder text = new StringBuilder("\n\nЧиновники твоей деревни. Как все простые жители, ты их недолюбливаешь: «только бумажки перекладывают»,")
+                .append(" «дорогу третий год обещают», «а у самих машины». Ворчишь с юмором и намёками, без доказательств, а на прямой вопрос отнекиваешься: «я ничего")
+                .append(" не говорил, мне тут ещё жить». Заговаривай о них к слову (деревня, деньги, порядки, жалобы, справки), а не в каждой реплике. Что ты о них знаешь:");
+        int n = 0;
+        for (Object o : list) {
+            if (!(o instanceof Map<?, ?> m) || !(m.get("rank") instanceof String r) || !(m.get("name") instanceof String name)) continue;
+            int dacha = m.get("dacha") instanceof Number d ? d.intValue() : 0, taken = m.get("taken") instanceof Number t ? t.intValue() : 0;
+            if (r.equals("REMOVED")) {
+                text.append("\n- Бывшего главу администрации ").append(name).append(" снял ревизор из столицы, дачу конфисковали: ты злорадствуешь и рассказываешь это с удовольствием.");
+                n++;
+                continue;
+            }
+            Rank rank;
+            try { rank = Rank.valueOf(r); } catch (IllegalArgumentException e) { continue; }
+            text.append("\n- ").append(Character.toUpperCase(rank.word.charAt(0))).append(rank.word.substring(1)).append(' ').append(name).append(": ");
+            if (Boolean.TRUE.equals(m.get("honest")))
+                text.append("говорят, честный, взяток не берёт; ты признаёшь это нехотя («этот хоть не ворует, зато зануда и всё по бумажке»).");
+            else {
+                text.append(taken > 0 ? "в деревне шепчутся, что берёт конверты" + (taken >= 3 ? ", и не раз" : "") : "толком ничего не известно, но ты на всякий случай подозреваешь, что берёт");
+                if (dacha > 0) text.append("; за деревней у него растёт дача: ").append(DACHA[Math.min(DACHA.length - 1, dacha)]).append(" — «на какие шиши?»");
+                if (Boolean.TRUE.equals(m.get("dung"))) text.append("; золотой унитаз на даче за ночь стал навозным — «Бог всё видит»");
+                else if (Boolean.TRUE.equals(m.get("smitten"))) text.append("; его уже постигла кара свыше — «Бог всё видит»");
+                text.append('.');
+            }
+            n++;
+        }
+        return n == 0 ? "" : text.toString();
+    }
+    private static final String[] DACHA = { "", "пока только высокий забор с табличкой «Частная собственность»", "уже кирпичный коттедж",
+            "коттедж и своя баня", "коттедж, баня и фонтан", "коттедж, баня, фонтан и, говорят, золотой унитаз под стеклом" };
+
+    /** An official's own bureaucratic habits, two per official (the same for it always), to make the formalism comic and varied. */
+    static final List<String> QUIRKS = List.of(
+            "Ты ссылаешься на вымышленные пункты вымышленных бумаг с длинными номерами: «согласно пункту 4.2.17 Регламента о порядке согласования порядка согласований».",
+            "Ты требуешь всё в письменном виде: заявление на имя начальника, в двух экземплярах, синей ручкой, с подписью и печатью, «без печати это просто бумажка».",
+            "Ты называешь собеседника только «заявитель» или «гражданин», а о себе говоришь «должностное лицо» или в третьем лице.",
+            "Любая просьба у тебя «не в моей компетенции»: ты отправляешь в соседний кабинет, а оттуда, как известно, отправляют обратно к тебе.",
+            "Ты называешь сроки рассмотрения: «в течение тридцати рабочих дней», «после согласования с вышестоящей инстанцией», «в следующем квартале».",
+            "Ты присваиваешь разговору входящий номер и дату («ваше обращение зарегистрировано под номером 1487-бис») и просишь его запомнить.",
+            "У тебя вечно что-то не работает: «система зависла», «принтер не печатает», «печать у начальника, а начальник на совещании».",
+            "Ты прикрываешься указанием сверху: «у нас распоряжение», «не я это придумал», «так положено с прошлого понедельника».",
+            "Ты отвечаешь классической отпиской: «проверка проведена, факты не подтвердились, оснований для принятия мер реагирования не имеется».",
+            "Настойчивому заявителю ты казённо напоминаешь о «недопустимости злоупотребления правом» и грозишь, что «переписка по данному вопросу будет прекращена».");
+    /** The two habits of this official, picked by its id. */
+    public static List<String> quirks(UUID id) {
+        long h = id == null ? 0 : id.getMostSignificantBits() * 31 + id.getLeastSignificantBits();
+        int a = (int) Math.floorMod(h, (long) QUIRKS.size()), b = (int) Math.floorMod(h / QUIRKS.size(), (long) QUIRKS.size() - 1);
+        if (b >= a) b++;
+        return List.of(QUIRKS.get(a), QUIRKS.get(b));
+    }
+
     /** The official's way of talking for the system prompt: who it is, how it speaks and, for a corrupt one, how it hints at the
      * price; the open order against this player, if any. "" for anyone who is not an official. */
     public static String prompt(Rank rank, UUID id, int relationship, int honestPercent, int pricePercent, Fine fine) {
+        return prompt(rank, id, relationship, honestPercent, pricePercent, fine, false);
+    }
+    /** The same; {@code shameless} — «особенно наглые»: a corrupt one names the price almost outright and does not hide. */
+    public static String prompt(Rank rank, UUID id, int relationship, int honestPercent, int pricePercent, Fine fine, boolean shameless) {
         if (rank == null) return "";
+        if (shameless) pricePercent = pricePercent * 3 / 2;
         StringBuilder text = new StringBuilder("\n\nТвоя должность: ").append(rank.word).append(". ");
         text.append(switch (rank) {
             case HEAD -> "Ты важный, неторопливый, сидишь в кабинете за казённым столом и всех немного презираешь; любишь хорошо поесть и служебную машину.";
             case CLERK -> "Ты сидишь в окошке, у тебя очередь, перерыв на обед с 13 до 14 и вечно не хватает какой-то справки.";
             case INSPECTOR -> "Ты обходишь деревню с папкой и везде видишь нарушения: самовольные постройки, красные линии, согласования.";
         });
-        text.append(" Говоришь казённым языком: «в связи с вышеизложенным», «вопрос прорабатывается», «не положено», «обращайтесь в установленном порядке», «вас много, а я один».");
+        text.append(OFFICIALESE)
+            .append(" Ты формалист до абсурда: даже приветствие, вопрос о погоде или «как пройти» ты оформляешь как обращение гражданина — с канцеляритом, отглагольными существительными")
+            .append(" («осуществление прохода», «предоставление информации о погодных условиях») и страдательным залогом («вам будет отказано», «ответ будет направлен»).");
+        for (String quirk : quirks(id)) text.append(' ').append(quirk);
+        text.append(" Формализм — это обёртка: отвечай одной–тремя фразами и в конце всё же коротко говори по существу, чтобы игрок понял, что делать.");
         if (honest(id, honestPercent))
             text.append(" Ты честный служащий: взяток не берёшь и обижаешься даже на намёк; помогать готов только по правилам, хоть и медленно.");
         else {
@@ -133,7 +215,8 @@ public final class Officialdom {
                     case CLERK -> "За конверт ты выдаёшь справку без очереди.";
                     case INSPECTOR -> "За конверт ты «теряешь» предписание.";
                 })
-                .append(" Словами ты ничего не решаешь и ничего не обещаешь сверх этого: решает только конверт. При свидетелях ты осторожен.");
+                .append(" Словами ты ничего не решаешь и ничего не обещаешь сверх этого: решает только конверт.")
+                .append(shameless ? " Ты особенно наглый: не стесняешься свидетелей, почти прямо называешь цену и ворчишь, что «сейчас всё дорого»." : " При свидетелях ты осторожен.");
         }
         if (fine != null && fine.open()) text.append("\nУ этого игрока висит твоё предписание №").append(fine.number).append(": ").append(fine.reason)
                 .append(", штраф ").append(fine.amount).append(" ").append(fine.amount == 1 ? "изумруд" : "изумрудов").append(", срок до ").append(fine.dueDay).append("-го дня.");
@@ -194,7 +277,46 @@ public final class Officialdom {
     /** How many envelopes each official took, by its UUID (the village will talk of it in stage 3). */
     Map<String, Integer> taken = new LinkedHashMap<>();
 
+    /** Open passport cases, by player UUID (stage 2, {@link Paperwork}); the next case number and the next passport number. */
+    Map<String, Paperwork.Case> cases = new LinkedHashMap<>();
+    int nextCase = 1, nextPassport = 100001;
+    /** Stages 3–4 ({@link Graft}): the heads' dachas by head UUID, and the revizor's visits, the game day he comes by village key. */
+    Map<String, Graft.Estate> estates = new LinkedHashMap<>();
+    Map<String, Long> revizors = new LinkedHashMap<>();
+
+    /** The head's dacha (made on first ask), a live object: the caller holds the store lock. */
+    Graft.Estate estate(UUID head, String headName, String village) {
+        Graft.Estate e = estates.computeIfAbsent(head.toString(), k -> { Graft.Estate n = new Graft.Estate(); n.head = k; return n; });
+        if (headName != null && !headName.isBlank()) e.headName = headName;
+        if (village != null && !village.isBlank()) e.village = village;
+        return e;
+    }
+    public List<Graft.Estate> estates() { return estates.values().stream().map(Graft.Estate::copy).toList(); }
+
     private static String key(String village, UUID player) { return village + "|" + player; }
+
+    // ---- Passport cases ----
+
+    /** The player's open case, or null. */
+    public Paperwork.Case kase(UUID player) { return player == null ? null : cases.get(player.toString()); }
+    /** Opens a case for the player in this village with the round {@code steps}. */
+    public Paperwork.Case open(UUID player, String playerName, String village, String villageTitle, List<Paperwork.Step> steps, long day) {
+        Paperwork.Case c = new Paperwork.Case();
+        c.player = player.toString(); c.playerName = playerName == null ? "" : playerName; c.village = village == null ? "" : village;
+        c.villageTitle = villageTitle == null ? "" : villageTitle; c.number = nextCase++; c.openedDay = day;
+        for (Paperwork.Step s : steps) c.steps.add(s.name());
+        cases.put(c.player, c);
+        return c;
+    }
+    /** Puts the changed case back (a copy taken from {@link #kase} and changed by {@link Paperwork}). */
+    public void save(Paperwork.Case kase) { if (kase != null && kase.player != null) cases.put(kase.player, kase); }
+    /** The passport is issued: the case is closed; returns the passport number. */
+    public String issuePassport(UUID player, String village, long day) {
+        if (player != null) cases.remove(player.toString());
+        return Paperwork.passportNumber(village, day, nextPassport++);
+    }
+    /** The case number the next case will get (for the chain, before it is opened). */
+    public int nextCase() { return nextCase; }
 
     /** The open order against this player in this village, or null. */
     public Fine fine(String village, UUID player) {
@@ -240,6 +362,8 @@ public final class Officialdom {
     Officialdom copy() {
         Officialdom c = new Officialdom();
         fines.forEach((k, v) -> c.fines.put(k, v.copy())); c.nextNumber = nextNumber; c.favoured.putAll(favoured); c.taken.putAll(taken);
+        cases.forEach((k, v) -> c.cases.put(k, v.copy())); c.nextCase = nextCase; c.nextPassport = nextPassport;
+        estates.forEach((k, v) -> c.estates.put(k, v.copy())); c.revizors.putAll(revizors);
         return c;
     }
     void sanitize() {
@@ -256,5 +380,18 @@ public final class Officialdom {
         favoured.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null);
         taken.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null);
         if (nextNumber < 1001) nextNumber = 1001;
+        if (cases == null) cases = new LinkedHashMap<>();
+        cases.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null || e.getValue().steps == null || e.getValue().steps.isEmpty());
+        cases.values().forEach(c -> {
+            c.player = c.player == null ? "" : c.player; if (c.playerName == null) c.playerName = ""; if (c.village == null) c.village = ""; if (c.villageTitle == null) c.villageTitle = "";
+            c.steps.removeIf(s -> Paperwork.Step.of(s) == null);
+        });
+        if (nextCase < 1) nextCase = 1;
+        if (nextPassport < 100001) nextPassport = 100001;
+        if (estates == null) estates = new LinkedHashMap<>();
+        if (revizors == null) revizors = new LinkedHashMap<>();
+        estates.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null);
+        estates.values().forEach(e -> { if (e.head == null) e.head = ""; if (e.headName == null) e.headName = ""; if (e.village == null) e.village = ""; });
+        revizors.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null);
     }
 }
