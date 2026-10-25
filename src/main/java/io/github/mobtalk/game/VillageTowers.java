@@ -366,7 +366,7 @@ final class VillageTowers {
     }
 
     private boolean fit(VillagerEntity villager) {
-        return villager.isAlive() && !villager.isRemoved() && !villager.isBaby() && !villager.isSleeping()
+        return villager.isAlive() && !villager.isRemoved() && !DefenseContent.traveller(villager) && !villager.isBaby() && !villager.isSleeping()
                 && !DefenseContent.defender(villager) && !bridge.actions.busy(villager);
     }
 
@@ -504,7 +504,7 @@ final class VillageTowers {
         VillageAlarm.Alarm alarm = defense.alarm(zone);
         boolean night = !world.isDay();
         long nightIndex = world.getTimeOfDay() / 24000L;
-        for (VillagerEntity archer : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !v.isRemoved() && !v.isBaby() && DefenseContent.shooter(v))) {
+        for (VillagerEntity archer : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !DefenseContent.traveller(v) && !v.isRemoved() && !v.isBaby() && DefenseContent.shooter(v))) {
             BlockPos post = post(world, archer);
             boolean onShift = !night || ((archer.getUuid().getLeastSignificantBits() & 1) == (nightIndex & 1));
             boolean onDuty = post != null && (alarm != null || onShift);
@@ -620,7 +620,7 @@ final class VillageTowers {
     /** The horn from the archer nearest the danger when the alarm is first raised or grows. */
     void horn(ServerWorld world, VillageDefenseController.Zone zone, BlockPos at) {
         VillagerEntity horn = null; double nearest = Double.MAX_VALUE;
-        for (VillagerEntity archer : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !v.isBaby() && DefenseContent.shooter(v))) {
+        for (VillagerEntity archer : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !DefenseContent.traveller(v) && !v.isBaby() && DefenseContent.shooter(v))) {
             double distance = archer.getBlockPos().getSquaredDistance(at);
             if (distance < nearest) { nearest = distance; horn = archer; }
         }

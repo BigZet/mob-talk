@@ -119,7 +119,7 @@ final class VillageDefenseController {
     private void refreshZones(ServerWorld world) {
         final class Found { BlockPos bell; int minX, minZ, maxX, maxZ, minY = Integer.MAX_VALUE, maxY = Integer.MIN_VALUE, residents; }
         Map<String, Found> found = new LinkedHashMap<>();
-        for (VillagerEntity villager : world.getEntitiesByType(EntityType.VILLAGER, v -> v.isAlive() && !v.isRemoved())) {
+        for (VillagerEntity villager : world.getEntitiesByType(EntityType.VILLAGER, v -> v.isAlive() && !DefenseContent.traveller(v) && !v.isRemoved())) {
             BlockPos bell = bell(world, villager);
             ConversationStore.Site site = bridge.config.villageSites ? VillageSites.of(world, villager) : null;
             String key; int minX, minZ, maxX, maxZ;
@@ -178,7 +178,7 @@ final class VillageDefenseController {
     private void scan(ServerWorld world, Zone zone, long now, VillageAlarm.Rules rules) {
         List<MobEntity> monsters = world.getEntitiesByClass(MobEntity.class, zone.box().expand(bridge.config.archerRange / 2.0), this::threat);
         if (!monsters.isEmpty()) {
-            List<LivingEntity> watchers = new ArrayList<>(world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !v.isSleeping()));
+            List<LivingEntity> watchers = new ArrayList<>(world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !DefenseContent.traveller(v) && !v.isSleeping()));
             watchers.addAll(world.getEntitiesByClass(IronGolemEntity.class, zone.box(), LivingEntity::isAlive));
             double usual = bridge.config.alarmMonsterRange;
             int seen = 0; MobEntity first = null;
@@ -241,7 +241,7 @@ final class VillageDefenseController {
         boolean hide = alarm.attack() || !enemies.isEmpty();
         if (hide || bridge.config.alarmSound) ring(world, zone, now);
         if (!hide) return;
-        for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !v.isRemoved()))
+        for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !DefenseContent.traveller(v) && !v.isRemoved()))
             if (!DefenseContent.defender(villager) && MobActionController.registered(villager, MemoryModuleType.HEARD_BELL_TIME))
                 villager.getBrain().remember(MemoryModuleType.HEARD_BELL_TIME, now);
     }
@@ -367,7 +367,7 @@ final class VillageDefenseController {
                 player.sendMessage(Text.translatable("mobtalk.defense.clear", zone.title(), alarm.summary()).formatted(Formatting.GREEN), false);
         if (!serious && alarm.targets.isEmpty() && alarm.killed == 0) return;
         String memory = "Была тревога в деревне (" + (alarm.cause.isBlank() ? "угроза" : alarm.cause) + "). " + alarm.summary();
-        for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !v.isBaby()))
+        for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !DefenseContent.traveller(v) && !v.isBaby()))
             if (bridge.memory.known(villager.getUuid())) bridge.event(villager, memory);
     }
 
@@ -380,7 +380,7 @@ final class VillageDefenseController {
         // At night the village sleeps: an alarm wakes the nearest villager to shout it, when nobody is awake (the all-clear wakes nobody).
         boolean wake = !kind.equals("clear");
         VillagerEntity speaker = null; double nearest = Double.MAX_VALUE;
-        for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !v.isBaby() && (wake || !v.isSleeping()))) {
+        for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !DefenseContent.traveller(v) && !v.isBaby() && (wake || !v.isSleeping()))) {
             double distance = villager.getBlockPos().getSquaredDistance(at) + (villager.isSleeping() ? 1e9 : 0);
             if (distance < nearest) { nearest = distance; speaker = villager; }
         }
@@ -445,7 +445,7 @@ final class VillageDefenseController {
         for (Repair repair : repairs.values()) if (repair.golem() == golem) return;
         long now = world.getTime();
         VillagerEntity smith = null; double nearest = SMITH_REACH * SMITH_REACH;
-        for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !v.isBaby() && !v.isSleeping()
+        for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !DefenseContent.traveller(v) && !v.isBaby() && !v.isSleeping()
                 && SMITHS.contains(v.getVillagerData().getProfession()))) {
             Long rest = smithRest.get(villager.getUuid());
             if (rest != null && now - rest < SMITH_REST_TICKS || repairs.containsKey(villager.getUuid()) || bridge.actions.busy(villager)) continue;
@@ -490,7 +490,7 @@ final class VillageDefenseController {
         villager.getBrain().refreshActivities(world.getTimeOfDay(), world.getTime());
     }
 
-    private static boolean resident(LivingEntity entity) { return entity instanceof VillagerEntity || entity instanceof IronGolemEntity; }
+    private static boolean resident(LivingEntity entity) { return (entity instanceof VillagerEntity || entity instanceof IronGolemEntity) && !DefenseContent.traveller(entity); }
 
     private String name(LivingEntity entity) {
         String name = bridge.memory.displayName(entity.getUuid());

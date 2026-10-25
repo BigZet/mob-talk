@@ -116,4 +116,6 @@ public final class DefenseContent {
     public static boolean shooter(VillagerEntity villager) { return archer(villager) || crossbowman(villager); }
     /** Any of the village's fighters: they do not hide at the bell, do not turn into zombies, are no builders. */
     public static boolean defender(VillagerEntity villager) { return soldier(villager) || shooter(villager); }
+    /** A traveller of the roads (carts, wagons, riders; the roads track tags them): not of any village, so the defence leaves it be. */
+    public static boolean traveller(net.minecraft.entity.Entity entity) { return entity.getCommandTags().contains("mobtalk_road"); }
 }

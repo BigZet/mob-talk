@@ -171,7 +171,7 @@ final class VillageGuards {
         if (bridge.config.villageHeavy && DefenseContent.HEAVY != null) order.add(DefenseContent.HEAVY);
         if (bridge.config.villageCavalry && DefenseContent.CAVALRY != null) order.add(DefenseContent.CAVALRY);
         Map<net.minecraft.village.VillagerProfession, Integer> count = new HashMap<>();
-        for (VillagerEntity v : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && DefenseContent.soldier(v)))
+        for (VillagerEntity v : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !DefenseContent.traveller(v) && DefenseContent.soldier(v)))
             count.merge(v.getVillagerData().getProfession(), 1, Integer::sum);
         net.minecraft.village.VillagerProfession best = order.getFirst();
         for (net.minecraft.village.VillagerProfession rank : order) if (count.getOrDefault(rank, 0) < count.getOrDefault(best, 0)) best = rank;
@@ -287,7 +287,7 @@ final class VillageGuards {
         boolean night = !world.isDay();
         long nightIndex = world.getTimeOfDay() / 24000L;
         List<BlockPos> stands = null;
-        for (VillagerEntity guard : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !v.isRemoved() && !v.isBaby() && DefenseContent.soldier(v))) {
+        for (VillagerEntity guard : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !DefenseContent.traveller(v) && !v.isRemoved() && !v.isBaby() && DefenseContent.soldier(v))) {
             gear(guard);
             BlockPos stand = jobSite(world, guard);
             if (bridge.actions.busy(guard)) continue;
