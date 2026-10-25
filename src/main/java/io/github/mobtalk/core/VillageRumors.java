@@ -175,15 +175,21 @@ public final class VillageRumors {
      * A rumour of the same day about the same player and deed is replaced by the louder one. Returns the rumour's id. */
     public String addDivine(String villageId, String eventId, String text, String source, String sourceId, String subject, String subjectId,
                             int importance, int sign, java.util.Collection<String> residents, long now) {
+        return addNews(villageId, eventId, text, source, sourceId, subject, subjectId, importance, sign, residents, true, now);
+    }
+    /** News the game itself tells, without a model (the god's deeds; a robbery in the night streets): one rumour known at once to
+     * every listed resident; the same text again replaces the older one. {@code divine} keeps the god's rumours apart. */
+    public String addNews(String villageId, String eventId, String text, String source, String sourceId, String subject, String subjectId,
+                          int importance, int sign, java.util.Collection<String> residents, boolean divine, long now) {
         if (villageId == null || text == null || text.isBlank()) return "";
         Chronicle chronicle = villages.computeIfAbsent(villageId, ignored -> new Chronicle());
         String clean = TextBounds.characters(text.strip(), 300);
-        chronicle.rumors.removeIf(known -> known.divine && known.text.equalsIgnoreCase(clean));
+        chronicle.rumors.removeIf(known -> known.divine == divine && known.text.equalsIgnoreCase(clean));
         Rumor rumor = new Rumor();
-        rumor.id = "g" + Long.toHexString(now) + "-" + Integer.toHexString(Math.abs((eventId + villageId).hashCode()));
+        rumor.id = (divine ? "g" : "n") + Long.toHexString(now) + "-" + Integer.toHexString(Math.abs((eventId + villageId).hashCode()));
         rumor.text = clean; rumor.source = TextBounds.characters(source == null ? "" : source.strip(), 60); rumor.sourceId = sourceId == null ? "" : sourceId;
         rumor.subject = TextBounds.characters(subject == null ? "" : subject.strip(), 60); rumor.subjectId = subjectId == null ? "" : subjectId;
-        rumor.importance = MemoryFact.clamp(importance); rumor.sign = Integer.signum(sign); rumor.time = now; rumor.divine = true;
+        rumor.importance = MemoryFact.clamp(importance); rumor.sign = Integer.signum(sign); rumor.time = now; rumor.divine = divine;
         chronicle.rumors.add(rumor);
         if (residents != null) for (String id : residents) hear(id, rumor.id);
         if (!rumor.sourceId.isBlank()) hear(rumor.sourceId, rumor.id);

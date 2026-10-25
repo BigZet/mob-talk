@@ -1,6 +1,24 @@
 {
   "mob_speech": {
     "subtitle": "subtitle.mobtalk.mob_speech",
-    "sounds": [ { "name": "fabric-sound-api-v1:empty", "stream": true } ]
+    "sounds": [
+      {
+        "name": "fabric-sound-api-v1:empty",
+        "stream": true
+      }
+    ]
+  },
+  "bandit_whistle": {
+    "subtitle": "subtitle.mobtalk.bandit_whistle",
+    "sounds": [
+      {
+        "name": "mobtalk:bandit/whistle1",
+        "attenuation_distance": 48
+      },
+      {
+        "name": "mobtalk:bandit/whistle2",
+        "attenuation_distance": 48
+      }
+    ]
   }
 }

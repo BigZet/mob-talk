@@ -50,7 +50,7 @@ final class SelfTestBandits {
     void run(Runnable then) {
         next = then;
         test.owner.client.options.setPerspective(Perspective.FIRST_PERSON);
-        test.log("bandits stages: looks, the demand and the payment, the refusal and the robbery, the empty pockets, the mugged villager");
+        test.log("bandits stages: looks, the demand and the payment, the refusal and the robbery, the empty pockets, the mugged villager, the dark doorway, revenge, the haggle, the lantern, the city with its rumours");
         test.check(BanditContent.BANDIT != null, "the bandit entity is registered");
         SpeciesCatalog.Species species = SpeciesCatalog.get("mobtalk:bandit");
         test.check(species.name().equals("Бандит") && species.hostile() && species.variants().size() == 3, "the bandit has his own character for the conversation");
@@ -146,7 +146,7 @@ final class SelfTestBandits {
         });
     }
 
-    private void look(BanditEntity bandit) {
+    private void look(net.minecraft.entity.Entity bandit) {
         ServerPlayerEntity player = test.serverPlayer();
         double dx = bandit.getX() - player.getX(), dz = bandit.getZ() - player.getZ(), dy = bandit.getEyeY() - player.getEyeY();
         float yaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90), pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)));
@@ -287,8 +287,75 @@ final class SelfTestBandits {
                     test.check(bandits().stream().filter(b -> b.mode() == BanditEntity.Mode.FIGHT).allMatch(b -> b.getCommandTags().contains(BanditEntity.WANTED)),
                             "a fighting bandit carries the police's «wanted» mark");
                     test.command("bandits clear");
-                    city();
+                    haggle();
                 });
+            });
+        });
+    }
+
+    // ---- (к) Talking him down: a number offered, a plea, a threat by a guard post ----
+
+    private BanditEntity robber() { return bandits().stream().filter(b -> b.mode() == BanditEntity.Mode.DEMAND).findFirst().orElse(null); }
+
+    private void haggle() {
+        test.bridge().config.banditDemandSeconds = 60;
+        test.command("clear " + name());
+        test.command("give " + name() + " minecraft:emerald 40");
+        test.command("tp " + name() + " " + at(0, 0, 8) + " 180 0");
+        mark();
+        test.command("execute as " + name() + " at " + name() + " run bandits spawn 1");
+        test.await("the bandit asks 12", 20, () -> robber() != null, () -> {
+            BanditEntity bandit = robber();
+            test.check(bandit.demand() == 12, "he asks 12 of 40 (" + bandit.demand() + ")");
+            var snapshot = test.bridge().capture(bandit.getUuid(), test.serverPlayer().getUuid(), "minecraft:overworld").join();
+            test.check(snapshot.mobDetails().get("robbery") instanceof Map<?,?> robbery && Integer.valueOf(12).equals(robbery.get("demand")),
+                    "the conversation sees the robbery: what he asks (" + snapshot.mobDetails().get("robbery") + ")");
+            mark();
+            test.command("bandits say дам 8");
+            test.await("he takes 8", 5, () -> heard("согласился на 8"), () -> {
+                test.check(bandit.demand() == 8, "an offer of two thirds is taken: he asks 8 now (" + bandit.demand() + ")");
+                mark();
+                test.command("bandits say ну пожалуйста, пожалей");
+                test.await("a plea from a rich man fails", 5, () -> heard("не уступил"), () -> {
+                    test.check(bandit.demand() == 8, "40 emeralds in the pocket: the plea does not move him (" + bandit.demand() + ")");
+                    test.command("setblock " + at(-10, 0, 8) + " mobtalk:guard_post");
+                    test.await("pause: the post is known", 2, () -> false, () -> {
+                        mark();
+                        test.command("bandits say я сейчас стражу позову!");
+                        test.await("the gang backs off from a guard post", 8, () -> heard("Пост рядом") && bandits().stream().allMatch(b -> b.mode() == BanditEntity.Mode.LEAVE), () -> {
+                            test.check(bandits().stream().allMatch(b -> b.mode() == BanditEntity.Mode.LEAVE), "a threat by a guard post sends the gang away");
+                            test.check(emeralds() == 40, "nothing paid (" + emeralds() + ")");
+                            test.command("setblock " + at(-10, 0, 8) + " minecraft:air");
+                            test.command("bandits clear");
+                            light();
+                        });
+                    });
+                });
+            });
+        });
+    }
+
+    // ---- (л) A torch in hand: the gang hangs back in the dark and gives up ----
+
+    private void light() {
+        test.check(net.minecraft.registry.Registries.SOUND_EVENT.containsId(net.minecraft.util.Identifier.of("mobtalk", "bandit_whistle")), "the gang's whistle is registered");
+        test.check(test.owner.client.getResourceManager().getResource(net.minecraft.util.Identifier.of("mobtalk", "sounds/bandit/whistle1.ogg")).isPresent(), "the whistle's sound file is in the pack");
+        test.command("clear " + name());
+        test.command("give " + name() + " minecraft:emerald 20");
+        test.command("item replace entity " + name() + " weapon.offhand with minecraft:lantern");
+        test.command("tp " + name() + " " + at(0, 0, 8) + " 180 0");
+        mark();
+        test.command("execute as " + name() + " at " + name() + " run bandits spawn 1");
+        test.await("pause: the bandit sees the lantern", 10, () -> false, () -> {
+            dump("lantern");
+            test.check(!bandits().isEmpty() && bandits().stream().allMatch(b -> b.mode() == BanditEntity.Mode.PROWL), "with a lantern in hand nobody comes up to ask");
+            test.check(bandits().stream().allMatch(b -> b.distanceTo(test.serverPlayer()) > 5), "they keep their distance");
+            test.await("the gang gives up on the lit player", 70, () -> bandits().stream().allMatch(b -> b.mode() == BanditEntity.Mode.LEAVE), () -> {
+                test.check(heard("Светит") || heard("фонарём") || heard("со светом"), "the bandit grumbles about the light and leaves");
+                test.command("item replace entity " + name() + " weapon.offhand with minecraft:air");
+                test.command("bandits clear");
+                test.bridge().config.banditDemandSeconds = 40;
+                city();
             });
         });
     }
@@ -316,6 +383,12 @@ final class SelfTestBandits {
                 boolean inCity = onServer(() -> io.github.mobtalk.game.BanditController.of(test.server()).territory(world(), test.serverPlayer().getBlockPos()));
                 test.check(inCity, "the player stands in a city (" + test.serverPlayer().getBlockPos().toShortString() + ")");
                 test.command("give " + name() + " minecraft:emerald 20");
+                // Meet a townsman, so the city is a known village with a resident.
+                VillagerEntity townsman = onServer(() -> world().getEntitiesByClass(VillagerEntity.class, test.serverPlayer().getBoundingBox().expand(64), VillagerEntity::isAlive)
+                        .stream().min(Comparator.comparingDouble(v -> v.distanceTo(test.serverPlayer()))).orElse(null));
+                if (townsman != null) try { test.bridge().capture(townsman.getUuid(), test.serverPlayer().getUuid(), "minecraft:overworld").join(); }
+                    catch (RuntimeException far) { test.log("could not meet the townsman: " + far.getMessage()); }
+                cityTownsman = townsman;
                 mark();
                 test.command("execute as " + name() + " at " + name() + " run bandits night");
                 test.await("the night's gang comes out in the city", 60, () -> heard("изумр.") || heard("Пустой") || heard("Голодранец") || heard("Ни изумруда"), () -> {
@@ -324,13 +397,53 @@ final class SelfTestBandits {
                     test.check(first != null, "a gang came for the player in the city at night (" + gang.size() + ")");
                     test.check(first != null && first.mode() != BanditEntity.Mode.PROWL, "the gang reached the player through the city streets");
                     if (first != null) look(first);
-                    shot("mobtalk-bandits-city.png", () -> {
-                        test.command("bandits clear");
-                        f7();
-                    });
+                    shot("mobtalk-bandits-city.png", () -> rumors(first));
                 });
             });
         });
+    }
+
+    private VillagerEntity cityTownsman;
+
+    /** The city hears of it: the player pays, the village has the news, and at dusk a townsman warns him off the yards. */
+    private void rumors(BanditEntity bandit) {
+        var village = onServer(() -> test.bridge().villageAt(world(), test.serverPlayer().getBlockPos()));
+        if (village == null || bandit == null || bandit.mode() != BanditEntity.Mode.DEMAND) {
+            test.log("no known village here or nobody asks (" + village + "): the rumour stage is skipped");
+            test.command("bandits clear"); f7(); return;
+        }
+        pay(bandit, () -> {
+            var heard = onServer(() -> test.bridge().memory.villageRumors(village.id(), System.currentTimeMillis()));
+            test.log("the city's rumours: " + heard.stream().map(r -> r.line()).toList());
+            test.check(heard.stream().anyMatch(r -> r.text().contains("откупился от бандитов")), "the city knows the player paid the bandits off");
+            test.command("bandits clear");
+            VillagerEntity townsman = cityTownsman;
+            if (townsman == null || !townsman.isAlive()) { test.fail("no townsman to warn the player"); f7(); return; }
+            test.command("tp " + name() + " " + townsman.getX() + " " + townsman.getY() + " " + (townsman.getZ() + 2));
+            test.command("data merge entity " + townsman.getUuid() + " {NoAI:1b}");
+            test.await("pause: by the townsman", 2, () -> false, () -> {
+                look(townsman); mark(); test.command("time set 12000");
+                test.await("a townsman warns the player at dusk", 10, () -> heard("дворами") || heard("Слыхал") || heard("Осторожней"), () -> {
+                    test.check(heard("откупился"), "the warning tells what the city heard");
+                    shot("mobtalk-bandits-warning.png", () -> { test.command("data merge entity " + townsman.getUuid() + " {NoAI:0b}"); f7(); });
+                });
+            });
+        });
+    }
+
+    /** Pays the asking gang in full (emeralds into the main hand, a right click), then {@code then}. */
+    private void pay(BanditEntity bandit, Runnable then) {
+        mark();
+        test.server().execute(() -> {
+            ServerPlayerEntity player = test.serverPlayer();
+            player.getInventory().selectedSlot = 0;
+            for (int i = 0; i < player.getInventory().main.size(); i++) if (player.getInventory().main.get(i).isOf(Items.EMERALD)) {
+                ItemStack stack = player.getInventory().main.get(i);
+                player.getInventory().main.set(i, player.getInventory().main.get(0)); player.getInventory().main.set(0, stack); break;
+            }
+            bandit.interact(player, Hand.MAIN_HAND);
+        });
+        test.await("the gang is paid", 10, () -> bandit.mode() == BanditEntity.Mode.LEAVE, then);
     }
 
     // ---- (е) F7 → Социум → «Бандиты в городах» ----
@@ -344,8 +457,8 @@ final class SelfTestBandits {
             if (!(client.currentScreen instanceof MobTalkSettingsScreen screen)) { test.fail("F7 did not open"); finish(); return; }
             List<String> rows = screen.showGroup("social", "bandits");
             test.log("«Бандиты в городах» rows: " + rows);
-            List<String> switches = List.of("Ночные бандиты", "Грабят жителей", "И в деревнях");
-            test.check(rows.containsAll(switches), "the group has its three switches");
+            List<String> switches = List.of("Ночные бандиты", "Грабят жителей", "И в деревнях", "Торг с бандитами", "Слухи о бандитах", "Боятся света");
+            test.check(rows.containsAll(switches), "the group has its six switches");
             long sliders = rows.stream().filter(row -> !switches.contains(row)).count();
             test.check(sliders == 7, "the group has seven sliders (" + sliders + ")");
             test.check(rows.stream().noneMatch(row -> row.isBlank() || row.startsWith("mobtalk.")), "every row has a caption, none is a raw key");

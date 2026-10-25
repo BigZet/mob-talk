@@ -99,6 +99,11 @@ final class MobContextCapture {
             Map<String, Object> fine = bridge.officials.fineFor(villager, player);
             if (fine != null) mobDetails.put("officialFine", fine);
         }
+        if (mob instanceof BanditEntity bandit && bridge.config.banditHaggle) {
+            io.github.mobtalk.core.BanditHaggle.State robbery = bridge.bandits.haggleState(world, bandit, player);
+            if (robbery != null) mobDetails.put("robbery", Map.of("demand", robbery.demand(), "paid", robbery.paid(), "emeralds", robbery.emeralds(),
+                    "guarded", robbery.guarded(), "used", robbery.used()));
+        }
         if (mob instanceof net.minecraft.entity.mob.ZombieVillagerEntity villager) {
             mobDetails.put("profession", Registries.VILLAGER_PROFESSION.getId(villager.getVillagerData().getProfession()).toString());
             mobDetails.put("level", villager.getVillagerData().getLevel());

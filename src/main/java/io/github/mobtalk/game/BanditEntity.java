@@ -62,7 +62,7 @@ public final class BanditEntity extends HostileEntity {
 
     private Mode mode = Mode.PROWL;
     private UUID mark, gang = UUID.randomUUID();
-    private int demand, paid;
+    private int demand, paid, haggled;
     private long deadline, reminded, fled, lastSeen;
     private Vec3d askedAt;
     private final SimpleInventory loot = new SimpleInventory(9);
@@ -129,7 +129,7 @@ public final class BanditEntity extends HostileEntity {
     // ---- The gang's decisions (from BanditController) ----
 
     void ask(ServerPlayerEntity player, int amount, long now, int seconds) {
-        mode = Mode.DEMAND; mark = player.getUuid(); demand = amount; paid = 0; deadline = now + seconds * 20L; reminded = now; setTarget(null);
+        mode = Mode.DEMAND; mark = player.getUuid(); demand = amount; paid = 0; haggled = 0; deadline = now + seconds * 20L; reminded = now; setTarget(null);
         askedAt = player.getPos();
     }
 
@@ -194,7 +194,7 @@ public final class BanditEntity extends HostileEntity {
             return "Отдано " + give + ", бандит ждёт ещё " + (demand - paid);
         }
         say(player, controller == null ? "Приятно иметь дело." : controller.thanks(random));
-        if (controller != null) controller.paid((ServerWorld) getWorld(), player);
+        if (controller != null) controller.paid((ServerWorld) getWorld(), player, this);
         for (BanditEntity mate : mates()) mate.leave();
         leave();
         return "Бандиты взяли " + demand + " изумр. и уходят";
@@ -207,7 +207,7 @@ public final class BanditEntity extends HostileEntity {
         if (hit && getWorld() instanceof ServerWorld world && mode == Mode.FIGHT) {
             MobTalkConfig config = BanditController.config(world.getServer());
             if (config != null && random.nextInt(100) < config.banditRobChance) {
-                if (target instanceof ServerPlayerEntity player && snatch(player, config)) { for (BanditEntity mate : mates()) mate.flee(); flee(); } // "ноги в руки": the whole gang runs
+                if (target instanceof ServerPlayerEntity player && snatch(player, config)) { BanditController.whistle(this); for (BanditEntity mate : mates()) mate.flee(); flee(); } // "ноги в руки": the whole gang runs
                 else if (target instanceof VillagerEntity villager && config.banditsRobVillagers) {
                     BanditController controller = BanditController.of(world.getServer());
                     if (controller != null) controller.robbedVillager(this, villager);
@@ -245,7 +245,7 @@ public final class BanditEntity extends HostileEntity {
             loot.addStack(stolen);
         }
         player.sendMessage(Text.literal(getName().getString() + " вырвал у вас: ").formatted(Formatting.RED).append(what), true);
-        player.sendMessage(Text.literal("<" + getName().getString() + "> ").append(Text.literal("Опа, моё! Ноги в руки!")), false);
+        player.sendMessage(Text.literal("<" + getName().getString() + "> ").append(Text.literal(random.nextBoolean() ? "Опа, моё! Ноги в руки!" : "Есть! Шухер, пацаны!")), false);
         player.playSoundToPlayer(SoundEvents.ENTITY_ITEM_PICKUP, SoundCategory.HOSTILE, 1f, 0.6f);
         BanditController controller = BanditController.of(player.getServer());
         if (controller != null) controller.robbed(this, player, what.getString());
@@ -314,6 +314,23 @@ public final class BanditEntity extends HostileEntity {
         reminded = now; return true;
     }
     int owed() { return demand - paid; }
+    int paidSoFar() { return paid; }
+    /** How long (ticks) he has hung back from a player with a light; {@link #unshy} when the light is gone. */
+    long shy(long now) { if (shySince < 0) shySince = now; return now - shySince; }
+    void unshy() { shySince = -1; }
+    private long shySince = -1;
+    /** A few steps back into the dark, away from {@code from}. */
+    void backOff(Vec3d from) {
+        Vec3d to = NoPenaltyTargeting.findFrom(this, 8, 4, from);
+        if (to != null) getNavigation().startMovingTo(to.x, to.y, to.z, 1.0);
+    }
+    /** The haggle moves already tried with this gang ({@code BanditHaggle.State#used}). */
+    int haggled() { return haggled; }
+    /** A haggle moved the price: the new whole demand, more (or less) time to pay, the moves tried. */
+    void rebargain(int demand, int seconds, int used) {
+        this.demand = Math.max(paid + 1, demand); haggled = used;
+        deadline = Math.max(getWorld().getTime() + 60, deadline + seconds * 20L);
+    }
     /** The clock of the demand stops for a while (the player is talking to him). */
     void hold(int ticks) { deadline += ticks; reminded += ticks; }
 
@@ -340,7 +357,7 @@ public final class BanditEntity extends HostileEntity {
         nbt.putString("Mode", mode.name());
         nbt.putUuid("Gang", gang);
         if (mark != null) nbt.putUuid("Mark", mark);
-        nbt.putInt("Demand", demand); nbt.putInt("Paid", paid);
+        nbt.putInt("Demand", demand); nbt.putInt("Paid", paid); nbt.putInt("Haggled", haggled);
         nbt.put("Loot", loot.toNbtList(getRegistryManager()));
     }
 
@@ -351,7 +368,7 @@ public final class BanditEntity extends HostileEntity {
         if (mode == Mode.DEMAND || mode == Mode.FIGHT) mode = Mode.PROWL; // a deadline does not survive a reload
         if (nbt.containsUuid("Gang")) gang = nbt.getUuid("Gang");
         mark = nbt.containsUuid("Mark") ? nbt.getUuid("Mark") : null;
-        demand = nbt.getInt("Demand"); paid = nbt.getInt("Paid");
+        demand = nbt.getInt("Demand"); paid = nbt.getInt("Paid"); haggled = nbt.getInt("Haggled");
         loot.readNbtList(nbt.getList("Loot", 10), getRegistryManager());
     }
 

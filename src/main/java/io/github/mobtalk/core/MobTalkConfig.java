@@ -123,6 +123,9 @@ public final class MobTalkConfig {
     /** Night bandits in the cities: a gang may come at night, ask for emeralds, fight and rob; whether they also mug villagers,
      * and whether plain villages draw them too (cities only by default). */
     public boolean bandits = true, banditsRobVillagers = true, banditsInVillages = false;
+    /** Bandits: the player may talk the price down in a conversation (core/BanditHaggle); the city hears of robberies and warns at
+     * dusk; a torch or lantern in hand keeps a gang at a distance until it gives up. */
+    public boolean banditHaggle = true, banditRumors = true, banditFearLight = true;
     /** Track «чиновники» (docs/officials.md): villages and cities keep officials at a desk — the head of the administration, the
      * clerk, the inspector — who take bribes in an envelope of emeralds; the inspector writes orders to players who build or dig in
      * the village. */
@@ -330,7 +333,7 @@ public final class MobTalkConfig {
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
-        copy.bandits = bandits; copy.banditsRobVillagers = banditsRobVillagers; copy.banditsInVillages = banditsInVillages;
+        copy.bandits = bandits; copy.banditsRobVillagers = banditsRobVillagers; copy.banditsInVillages = banditsInVillages; copy.banditHaggle = banditHaggle; copy.banditRumors = banditRumors; copy.banditFearLight = banditFearLight;
         copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageHeavy = villageHeavy; copy.villageCavalry = villageCavalry; copy.officials = officials; copy.barsInVillages = barsInVillages; copy.barEvenings = barEvenings; copy.barVoiced = barVoiced; copy.barAliceSpeaker = barAliceSpeaker;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;

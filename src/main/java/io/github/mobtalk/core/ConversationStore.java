@@ -892,6 +892,21 @@ public final class ConversationStore {
         return n;
     }
     /** What the village says right now, weightiest first. */
+    /** News the game tells the village without a model (a robbery in the night streets): every resident knows it at once; the
+     * teller is the first witness, or nobody. Returns the rumour's id, "" when there is no such village. */
+    public synchronized String villageNews(String villageId, String eventId, String text, UUID teller, String subject, UUID subjectId,
+                                           int importance, int sign, long now) {
+        if (villageId == null || village(villageId) == null) return "";
+        List<String> residents = new ArrayList<>();
+        for (Profile q : state.profiles.values()) if (villageId.equals(q.villageId)) residents.add(q.id.toString());
+        Profile told = teller == null ? null : state.profiles.get(teller.toString());
+        String tellerName = told == null ? "" : told.givenName.isBlank() ? told.name : told.givenName;
+        if (subjectId != null && subject != null && !subject.isBlank()) named(subjectId, subject);
+        String id = state.rumors.addNews(villageId, eventId, text, tellerName, told == null ? "" : teller.toString(), subject,
+                subjectId == null ? "" : subjectId.toString(), importance, sign, residents, false, now);
+        if (!id.isBlank()) scheduleSave();
+        return id;
+    }
     public synchronized List<VillageRumors.View> villageRumors(String villageId, long now) { return villageId == null ? List.of() : state.rumors.village(villageId, now); }
     /** A player's fame in a village from its rumours. */
     public synchronized VillageRumors.Reputation reputation(String villageId, UUID player, long now) {

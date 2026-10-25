@@ -782,6 +782,10 @@ public final class MobGameBridge implements GameBridge {
                 if (Wedding.calls(said)) parts.add(startWedding(mobId, playerId).thenApply(m -> m.isBlank() ? "" : "[Mob Talk] " + m));
                 if (Wedding.asksWitness(said)) parts.add(appointWitness(mobId, playerId).thenApply(m -> m.isBlank() ? "" : "[Mob Talk] " + m));
             }
+            if (config.bandits && ((ServerWorld) player.getWorld()).getEntity(mobId) instanceof BanditEntity bandit) {
+                String note = bandits.haggle((ServerWorld) player.getWorld(), bandit, player, said);
+                if (!note.isBlank()) parts.add(CompletableFuture.completedFuture("§7[Mob Talk] " + note));
+            }
             if (config.coSleep && CoSleep.invites(said)) parts.add(inviteToBed(mobId, playerId).thenApply(v -> ""));
             if (config.familyLife && config.socialLayer) {
                 parts.add(eveningSpoke(playerId).thenApply(v -> ""));

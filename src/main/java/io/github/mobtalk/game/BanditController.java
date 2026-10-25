@@ -1,5 +1,6 @@
 package io.github.mobtalk.game;
 
+import io.github.mobtalk.core.BanditHaggle;
 import io.github.mobtalk.core.MobTalkConfig;
 import io.github.mobtalk.core.place.Structures;
 import java.util.ArrayList;
@@ -8,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.registry.Registries;
@@ -19,6 +21,7 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
@@ -83,6 +86,7 @@ public final class BanditController {
     void tick(ServerWorld world) {
         if (world.getRegistryKey() != World.OVERWORLD || world.getTime() % 20 != 7 || !enabled()) return;
         long time = world.getTimeOfDay(), hour = time % 24000, day = time / 24000;
+        if (hour >= 11500 && hour < 13000) warn(world, day);
         if (!night(world)) {
             for (BanditEntity bandit : bandits(world)) if (bandit.mode() == BanditEntity.Mode.PROWL || bandit.mode() == BanditEntity.Mode.DEMAND) bandit.leave();
             return;
@@ -175,12 +179,13 @@ public final class BanditController {
     }
 
     /** A police post (the police track's {@code mobtalk:police_post}, when that mod part is present) or a guard stand near. */
-    static boolean watched(ServerWorld world, BlockPos pos) {
+    static boolean watched(ServerWorld world, BlockPos pos) { return watched(world, pos, 24); }
+    static boolean watched(ServerWorld world, BlockPos pos, int radius) {
         var types = Registries.POINT_OF_INTEREST_TYPE;
         java.util.function.Predicate<RegistryEntry<PointOfInterestType>> post = entry -> entry.matchesKey(DefenseContent.GUARD_POST_POI)
                 || entry.getKey().map(key -> key.getValue().equals(POLICE_POST)).orElse(false);
         if (types.get(POLICE_POST) == null && DefenseContent.GUARD_POST == null) return false;
-        return world.getPointOfInterestStorage().getInCircle(post, pos, 24, PointOfInterestStorage.OccupationStatus.ANY).findAny().isPresent();
+        return world.getPointOfInterestStorage().getInCircle(post, pos, radius, PointOfInterestStorage.OccupationStatus.ANY).findAny().isPresent();
     }
     static final Identifier POLICE_POST = Identifier.of("mobtalk", "police_post");
 
@@ -236,6 +241,21 @@ public final class BanditController {
                 // The gang came out for one player: they walk up to him and stop him once he is near and in sight.
                 if (mark != null && mark.isAlive() && mark.getWorld() == world && !mark.isCreative() && !mark.isSpectator() && bandit.squaredDistanceTo(mark) < 64 * 64) {
                     double distance = bandit.distanceTo(mark);
+                    if (config.banditFearLight && lit(mark)) {
+                        // A light in his hand: they keep to the dark at a distance, and give up after a minute of it.
+                        if (bandit.shy(now) > 1200) {
+                            bandit.say(mark, pick(world.random, "Светит, гад… Пошли отсюда.", "С фонарём ходит, умный. Ладно, в другой раз.", "Не, со светом не полезем. Уходим."));
+                            for (BanditEntity mate : bandit.mates()) mate.leave();
+                            bandit.leave();
+                            return;
+                        }
+                        bandit.getLookControl().lookAt(mark, 30f, 30f);
+                        if (distance < 7) bandit.backOff(mark.getPos());
+                        else if (distance > 16) bandit.getNavigation().startMovingTo(mark, 0.8);
+                        else bandit.getNavigation().stop();
+                        return;
+                    }
+                    bandit.unshy();
                     if (distance <= 12 && bandit.canSee(mark)) { accost(world, bandit, mark); return; }
                     if (bandit.getNavigation().isIdle() || bandit.age % 40 == 0) bandit.getNavigation().startMovingTo(mark, 0.9);
                     return;
@@ -265,6 +285,7 @@ public final class BanditController {
                         bandit.pickUpSpoils();
                         for (BanditEntity mate : bandit.mates()) { mate.pickUpSpoils(); mate.leave(); }
                         bandit.say(null, "Готов. Сваливаем.");
+                        news(bandit, mark, "ночью бандиты зарезали во дворе " + MobGameBridge.playerName(mark) + " и сняли с него всё", 4, 0);
                     }
                     if (bandit.mode() == BanditEntity.Mode.FIGHT) bandit.leave();
                     return;
@@ -281,6 +302,7 @@ public final class BanditController {
         ServerPlayerEntity best = null; double nearest = 20 * 20;
         for (ServerPlayerEntity player : world.getPlayers()) {
             if (!player.isAlive() || player.isCreative() || player.isSpectator()) continue;
+            if (bridge.config.banditFearLight && lit(player)) continue;
             double distance = player.squaredDistanceTo(bandit);
             if (distance < nearest && bandit.canSee(player)) { nearest = distance; best = player; }
         }
@@ -318,7 +340,22 @@ public final class BanditController {
                 "Тихо, " + name + ", без резких движений. Гони " + amount + " изумр.") + " (ПКМ изумрудами по бандиту)");
     }
 
+    /** A torch or a lantern in either hand. */
+    static boolean lit(PlayerEntity player) {
+        for (net.minecraft.item.ItemStack stack : List.of(player.getMainHandStack(), player.getOffHandStack()))
+            if (stack.isOf(net.minecraft.item.Items.TORCH) || stack.isOf(net.minecraft.item.Items.SOUL_TORCH)
+                    || stack.isOf(net.minecraft.item.Items.LANTERN) || stack.isOf(net.minecraft.item.Items.SOUL_LANTERN)) return true;
+        return false;
+    }
+
+    /** The gang's signal: a finger whistle from this bandit, heard across the yard. */
+    static void whistle(BanditEntity bandit) {
+        if (BanditContent.WHISTLE != null)
+            bandit.getWorld().playSound(null, bandit.getBlockPos(), BanditContent.WHISTLE, net.minecraft.sound.SoundCategory.HOSTILE, 1.6f, 0.95f + bandit.getRandom().nextFloat() * 0.1f);
+    }
+
     private void attack(BanditEntity bandit, ServerPlayerEntity player, String line) {
+        whistle(bandit);
         bandit.say(player, line);
         for (BanditEntity mate : bandit.mates()) mate.fight(player);
         bandit.fight(player);
@@ -328,15 +365,66 @@ public final class BanditController {
 
     void robbed(BanditEntity bandit, ServerPlayerEntity player, String what) {
         LOGGER.info("Mob Talk: {} robbed {} of {}", bandit.getName().getString(), player.getName().getString(), what);
+        news(bandit, player, "ночью у подъезда бандиты обобрали " + MobGameBridge.playerName(player), 3, 0);
     }
 
     void robbedVillager(BanditEntity bandit, VillagerEntity villager) {
         LOGGER.info("Mob Talk: {} mugged a villager at {}", bandit.getName().getString(), villager.getBlockPos().toShortString());
+        String name = bridge.memory.displayName(villager.getUuid());
+        if (name.isBlank()) name = villager.getName().getString();
+        // The victim cries out to anyone near.
+        Text cry = Text.literal("<" + name + "> ").append(Text.literal(pick(villager.getRandom(), "Помогите! Грабят!", "Караул! Ограбили!", "Держи вора!")));
+        for (ServerPlayerEntity near : ((ServerWorld) villager.getWorld()).getPlayers(p -> p.squaredDistanceTo(villager) < 32 * 32)) near.sendMessage(cry, false);
+        news(bandit, null, "ночью бандиты ограбили во дворе " + name, 3, 0);
     }
+
+    /** The night's deed becomes the city's news ({@code banditRumors}): every resident of the village there knows it, told by a
+     * villager who saw it, if one did. {@code player} is the rumour's subject, or null. */
+    void news(BanditEntity bandit, ServerPlayerEntity player, String text, int importance, int sign) {
+        if (!bridge.config.banditRumors || !(bandit.getWorld() instanceof ServerWorld world)) return;
+        var village = bridge.villageAt(world, bandit.getBlockPos());
+        if (village == null) return;
+        VillagerEntity teller = null;
+        for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, bandit.getBoundingBox().expand(24), v -> v.isAlive() && v.canSee(bandit)))
+            if (teller == null || villager.squaredDistanceTo(bandit) < teller.squaredDistanceTo(bandit)) teller = villager;
+        String id = bridge.memory.villageNews(village.id(), "bandits-" + world.getTime(), text, teller == null ? null : teller.getUuid(),
+                player == null ? "" : MobGameBridge.playerName(player), player == null ? null : player.getUuid(), importance, sign, System.currentTimeMillis());
+        if (!id.isBlank()) LOGGER.info("Mob Talk: the city hears that {}", text);
+    }
+
+    /** At dusk, once a day, a villager near a player in the city warns him off the yards when the city talks of a robbery. */
+    private void warn(ServerWorld world, long day) {
+        if (!bridge.config.banditRumors) return;
+        long now = System.currentTimeMillis();
+        for (ServerPlayerEntity player : world.getPlayers()) {
+            if (!player.isAlive() || player.isSpectator() || warned.getOrDefault(player.getUuid(), -1L) == day) continue;
+            if (!territory(world, player.getBlockPos())) continue;
+            var village = bridge.villageAt(world, player.getBlockPos());
+            if (village == null) continue;
+            io.github.mobtalk.core.VillageRumors.View story = null;
+            for (var rumor : bridge.memory.villageRumors(village.id(), now))
+                if (rumor.id().startsWith("n") && rumor.text().contains("бандит") && (story == null || rumor.time() > story.time())) story = rumor;
+            if (story == null) continue;
+            VillagerEntity speaker = null;
+            for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, player.getBoundingBox().expand(12), v -> v.isAlive() && !v.isBaby() && v.canSee(player)))
+                if (speaker == null || villager.squaredDistanceTo(player) < speaker.squaredDistanceTo(player)) speaker = villager;
+            if (speaker == null) continue;
+            warned.put(player.getUuid(), day);
+            String name = bridge.memory.displayName(speaker.getUuid());
+            if (name.isBlank()) name = speaker.getName().getString();
+            String told = story.text();
+            player.sendMessage(Text.literal("<" + name + "> ").append(Text.literal(pick(world.random,
+                    "Ты бы ночью дворами не ходил, " + MobGameBridge.playerName(player) + ". Говорят, " + told + ".",
+                    "Темнеет… Слыхал? " + Character.toUpperCase(told.charAt(0)) + told.substring(1) + ". Держись у фонарей.",
+                    "Осторожней вечером, " + MobGameBridge.playerName(player) + ": " + told + "."))), false);
+            LOGGER.info("Mob Talk: {} warned {} about the bandits", name, player.getName().getString());
+        }
+    }
+    private final Map<UUID, Long> warned = new HashMap<>();
 
     private static String pick(Random random, String... lines) { return lines[random.nextInt(lines.length)]; }
 
-    void clearRuntime() { nights.clear(); }
+    void clearRuntime() { nights.clear(); warned.clear(); }
 
     // ---- What the gangs remember of each player (saved with the world) ----
 
@@ -375,6 +463,7 @@ public final class BanditController {
 
     /** A player killed a bandit: the city's gangs will come for him (a likelier night, one more man, no talk). */
     void killed(ServerWorld world, ServerPlayerEntity player, BanditEntity bandit) {
+        news(bandit, player, MobGameBridge.playerName(player) + " отбился ночью от бандитов и одного уложил", 4, 1);
         Grudge grudge = saved(world).of(player.getUuid());
         grudge.killed++;
         String nick = bandit.getName().getString();
@@ -383,8 +472,55 @@ public final class BanditController {
         for (BanditEntity mate : bandit.mates()) if (mate != bandit && mate.isAlive()) mate.say(player, pick(world.random, "Ты за это ответишь!", "Мы тебя найдём.", "Запомни мою рожу."));
     }
 
+    /** Whether a threat to call for help frightens the gang: a guard or police post within 40 blocks, or a guard, a golem or a
+     * policeman within 24. */
+    static boolean guarded(ServerWorld world, BlockPos pos) {
+        if (watched(world, pos, 40)) return true;
+        return !world.getEntitiesByClass(LivingEntity.class, new net.minecraft.util.math.Box(pos).expand(24), BanditController::defender).isEmpty();
+    }
+    private static boolean defender(LivingEntity entity) {
+        if (!entity.isAlive()) return false;
+        if (entity instanceof net.minecraft.entity.passive.IronGolemEntity) return true;
+        if (Registries.ENTITY_TYPE.getId(entity.getType()).getPath().contains("police")) return true; // the police track's man, by name only
+        if (!(entity instanceof VillagerEntity villager)) return false;
+        var profession = villager.getVillagerData().getProfession();
+        if (Registries.VILLAGER_PROFESSION.getId(profession).getPath().contains("police")) return true;
+        return profession == DefenseContent.GUARD || profession == DefenseContent.HEAVY || profession == DefenseContent.CAVALRY;
+    }
+
+    /** The robbery as {@link BanditHaggle} sees it, for this bandit asking this player; null when he asks nothing of him. */
+    BanditHaggle.State haggleState(ServerWorld world, BanditEntity bandit, ServerPlayerEntity player) {
+        if (bandit.mode() != BanditEntity.Mode.DEMAND || !player.getUuid().equals(bandit.mark())) return null;
+        return new BanditHaggle.State(bandit.demand(), bandit.paidSoFar(), BanditEntity.emeralds(player), guarded(world, bandit.getBlockPos()), bandit.haggled());
+    }
+
+    /** The player said something to a bandit who robs him (a Mob Talk conversation, or /bandits say): the game reads it as a move
+     * and the whole gang acts on it. Returns the note for the player, "" when the words were no move. */
+    String haggle(ServerWorld world, BanditEntity bandit, ServerPlayerEntity player, String said) {
+        if (!bridge.config.banditHaggle) return "";
+        BanditHaggle.State state = haggleState(world, bandit, player);
+        if (state == null) return "";
+        BanditHaggle.Outcome outcome = BanditHaggle.decide(BanditHaggle.read(said), state);
+        List<BanditEntity> gang = bandit.mates();
+        if (!gang.contains(bandit)) gang.add(bandit);
+        switch (outcome.kind()) {
+            case NONE -> { return ""; }
+            case LOWER, REFUSE, RAISE -> { for (BanditEntity mate : gang) mate.rebargain(outcome.demand(), outcome.seconds(), outcome.used()); }
+            case LEAVE -> {
+                bandit.say(player, pick(world.random, "Тихо-тихо, не шуми… Уходим, пацаны.", "Ладно, живи. Шухер!", "Не ори. Мы уже уходим."));
+                for (BanditEntity mate : gang) mate.leave();
+            }
+            case FIGHT -> attack(bandit, player, pick(world.random, "Достал. Мочи его!", "Ну всё, сам напросился."));
+        }
+        LOGGER.info("Mob Talk: {} haggled with {}: {} -> {}", player.getName().getString(), bandit.getName().getString(), outcome.kind(), outcome.note());
+        return outcome.note();
+    }
+
     /** A player paid in full: next time they ask him for more. */
-    void paid(ServerWorld world, ServerPlayerEntity player) { saved(world).of(player.getUuid()).paid++; saved(world).markDirty(); }
+    void paid(ServerWorld world, ServerPlayerEntity player, BanditEntity bandit) {
+        saved(world).of(player.getUuid()).paid++; saved(world).markDirty();
+        news(bandit, player, MobGameBridge.playerName(player) + " ночью откупился от бандитов изумрудами", 2, 0);
+    }
 
     /** For /bandits status. */
     String memory(ServerWorld world, ServerPlayerEntity player) {
