@@ -1,0 +1,323 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "chute": "mobtalk:block/city2/furniture/chute",
+    "apt_chute_hatch_44": "mobtalk:block/city2/furniture/apt_chute_hatch_44",
+    "particle": "mobtalk:block/city2/furniture/chute"
+  },
+  "elements": [
+    {
+      "from": [
+        5.0,
+        0.0,
+        6.375
+      ],
+      "to": [
+        11.0,
+        16.0,
+        10.375
+      ],
+      "faces": {
+        "south": {
+          "texture": "#chute",
+          "uv": [
+            4.0,
+            0.0,
+            16.0,
+            32.0
+          ]
+        },
+        "east": {
+          "texture": "#chute",
+          "uv": [
+            0.0,
+            0.0,
+            8.0,
+            32.0
+          ]
+        },
+        "west": {
+          "texture": "#chute",
+          "uv": [
+            8.0,
+            0.0,
+            16.0,
+            32.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        5.0,
+        0.0,
+        6.125
+      ],
+      "to": [
+        11.0,
+        4.5,
+        6.375
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chute",
+          "uv": [
+            0.0,
+            7.0,
+            12.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#chute",
+          "uv": [
+            8.0,
+            7.0,
+            8.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#chute",
+          "uv": [
+            7.5,
+            7.0,
+            8.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#chute",
+          "uv": [
+            4.0,
+            7.5,
+            16.0,
+            8.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        5.0,
+        7.5,
+        6.125
+      ],
+      "to": [
+        11.0,
+        16.0,
+        6.375
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chute",
+          "uv": [
+            0.0,
+            0.0,
+            12.0,
+            17.0
+          ]
+        },
+        "east": {
+          "texture": "#chute",
+          "uv": [
+            8.0,
+            0.0,
+            8.5,
+            17.0
+          ]
+        },
+        "west": {
+          "texture": "#chute",
+          "uv": [
+            7.5,
+            0.0,
+            8.0,
+            17.0
+          ]
+        },
+        "down": {
+          "texture": "#chute",
+          "uv": [
+            4.0,
+            8.0,
+            16.0,
+            8.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        5.0,
+        4.5,
+        5.625
+      ],
+      "to": [
+        11.0,
+        7.5,
+        6.125
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_chute_hatch_44",
+          "uv": [
+            0.0,
+            1.0,
+            12.0,
+            7.0
+          ]
+        },
+        "south": {
+          "texture": "#chute",
+          "uv": [
+            4.0,
+            1.0,
+            16.0,
+            7.0
+          ]
+        },
+        "east": {
+          "texture": "#chute",
+          "uv": [
+            8.5,
+            1.0,
+            9.5,
+            7.0
+          ]
+        },
+        "west": {
+          "texture": "#chute",
+          "uv": [
+            6.5,
+            1.0,
+            7.5,
+            7.0
+          ]
+        },
+        "up": {
+          "texture": "#chute",
+          "uv": [
+            4.0,
+            6.5,
+            16.0,
+            7.5
+          ]
+        },
+        "down": {
+          "texture": "#chute",
+          "uv": [
+            4.0,
+            8.5,
+            16.0,
+            9.5
+          ]
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.625,
+        0.625,
+        0.625
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        2.5,
+        0
+      ],
+      "scale": [
+        0.375,
+        0.375,
+        0.375
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    }
+  }
+}

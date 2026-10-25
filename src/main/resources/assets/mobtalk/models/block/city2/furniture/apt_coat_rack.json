@@ -1,0 +1,130 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_coat_rack_coatcoat_brown_44": "mobtalk:block/city2/furniture/apt_coat_rack_coatcoat_brown_44",
+    "coat_brown": "mobtalk:block/city2/furniture/coat_brown",
+    "apt_coat_rack_coatcoat_grey_44": "mobtalk:block/city2/furniture/apt_coat_rack_coatcoat_grey_44",
+    "coat_grey": "mobtalk:block/city2/furniture/coat_grey",
+    "particle": "mobtalk:block/city2/furniture/apt_coat_rack_coatcoat_brown_44"
+  },
+  "elements": [
+    {
+      "from": [
+        1.5,
+        12.0,
+        11.0
+      ],
+      "to": [
+        7.5,
+        16.0,
+        14.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_coat_rack_coatcoat_brown_44",
+          "uv": [
+            8.5,
+            0.0,
+            14.5,
+            4.0
+          ]
+        },
+        "south": {
+          "texture": "#coat_brown",
+          "uv": [
+            1.5,
+            0.0,
+            7.5,
+            4.0
+          ]
+        },
+        "east": {
+          "texture": "#coat_brown",
+          "uv": [
+            1.5,
+            0.0,
+            5.0,
+            4.0
+          ]
+        },
+        "west": {
+          "texture": "#coat_brown",
+          "uv": [
+            11.0,
+            0.0,
+            14.5,
+            4.0
+          ]
+        },
+        "down": {
+          "texture": "#coat_brown",
+          "uv": [
+            1.5,
+            1.5,
+            7.5,
+            5.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        8.5,
+        14.0,
+        11.0
+      ],
+      "to": [
+        14.5,
+        16.0,
+        14.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_coat_rack_coatcoat_grey_44",
+          "uv": [
+            1.5,
+            0.0,
+            7.5,
+            2.0
+          ]
+        },
+        "south": {
+          "texture": "#coat_grey",
+          "uv": [
+            8.5,
+            0.0,
+            14.5,
+            2.0
+          ]
+        },
+        "east": {
+          "texture": "#coat_grey",
+          "uv": [
+            1.5,
+            0.0,
+            5.0,
+            2.0
+          ]
+        },
+        "west": {
+          "texture": "#coat_grey",
+          "uv": [
+            11.0,
+            0.0,
+            14.5,
+            2.0
+          ]
+        },
+        "down": {
+          "texture": "#coat_grey",
+          "uv": [
+            8.5,
+            1.5,
+            14.5,
+            5.0
+          ]
+        }
+      }
+    }
+  ]
+}

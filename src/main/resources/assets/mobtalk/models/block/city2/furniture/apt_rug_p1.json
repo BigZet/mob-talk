@@ -1,0 +1,51 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "carpet_side": "mobtalk:block/city2/furniture/carpet_side",
+    "apt_rug_rug_33": "mobtalk:block/city2/furniture/apt_rug_rug_33",
+    "particle": "mobtalk:block/city2/furniture/carpet_side"
+  },
+  "elements": [
+    {
+      "from": [
+        10.0,
+        0.0,
+        2.0
+      ],
+      "to": [
+        16.0,
+        0.5,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#carpet_side",
+          "uv": [
+            0.0,
+            15.5,
+            6.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#carpet_side",
+          "uv": [
+            2.0,
+            15.5,
+            16.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_rug_rug_33",
+          "uv": [
+            10.0,
+            2.0,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    }
+  ]
+}

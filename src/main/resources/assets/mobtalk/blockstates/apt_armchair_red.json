@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/city2/furniture/apt_armchair_red"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/city2/furniture/apt_armchair_red",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/city2/furniture/apt_armchair_red",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/city2/furniture/apt_armchair_red",
+      "y": 270
+    }
+  }
+}

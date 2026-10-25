@@ -1,0 +1,524 @@
+{
+  "multipart": [
+    {
+      "when": {
+        "facing": "north",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_upper"
+      }
+    },
+    {
+      "when": {
+        "left": "true",
+        "facing": "north",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_end_l_upper"
+      }
+    },
+    {
+      "when": {
+        "right": "true",
+        "facing": "north",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_end_r_upper"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "half": "lower"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_lower"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_upper"
+      }
+    },
+    {
+      "when": {
+        "open": "false",
+        "facing": "north",
+        "half": "lower"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_lower"
+      }
+    },
+    {
+      "when": {
+        "open": "false",
+        "facing": "north",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_upper"
+      }
+    },
+    {
+      "when": {
+        "open": "true",
+        "left": "true",
+        "facing": "north",
+        "half": "lower"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_lower"
+      }
+    },
+    {
+      "when": {
+        "open": "true",
+        "left": "true",
+        "facing": "north",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_upper"
+      }
+    },
+    {
+      "when": {
+        "open": "true",
+        "right": "true",
+        "facing": "north",
+        "half": "lower"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_lower"
+      }
+    },
+    {
+      "when": {
+        "open": "true",
+        "right": "true",
+        "facing": "north",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_upper"
+      }
+    },
+    {
+      "when": {
+        "radiator": "true",
+        "facing": "north",
+        "half": "lower"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_radiator_lower"
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_upper",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "left": "true",
+        "facing": "east",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_end_l_upper",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "right": "true",
+        "facing": "east",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_end_r_upper",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "half": "lower"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_lower",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_upper",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "open": "false",
+        "facing": "east",
+        "half": "lower"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_lower",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "open": "false",
+        "facing": "east",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_upper",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "open": "true",
+        "left": "true",
+        "facing": "east",
+        "half": "lower"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_lower",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "open": "true",
+        "left": "true",
+        "facing": "east",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_upper",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "open": "true",
+        "right": "true",
+        "facing": "east",
+        "half": "lower"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_lower",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "open": "true",
+        "right": "true",
+        "facing": "east",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_upper",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "radiator": "true",
+        "facing": "east",
+        "half": "lower"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_radiator_lower",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_upper",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "left": "true",
+        "facing": "south",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_end_l_upper",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "right": "true",
+        "facing": "south",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_end_r_upper",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "half": "lower"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_lower",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_upper",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "open": "false",
+        "facing": "south",
+        "half": "lower"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_lower",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "open": "false",
+        "facing": "south",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_upper",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "open": "true",
+        "left": "true",
+        "facing": "south",
+        "half": "lower"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_lower",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "open": "true",
+        "left": "true",
+        "facing": "south",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_upper",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "open": "true",
+        "right": "true",
+        "facing": "south",
+        "half": "lower"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_lower",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "open": "true",
+        "right": "true",
+        "facing": "south",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_upper",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "radiator": "true",
+        "facing": "south",
+        "half": "lower"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_radiator_lower",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_upper",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "left": "true",
+        "facing": "west",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_end_l_upper",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "right": "true",
+        "facing": "west",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_rod_end_r_upper",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "half": "lower"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_lower",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_tulle_upper",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "open": "false",
+        "facing": "west",
+        "half": "lower"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_lower",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "open": "false",
+        "facing": "west",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_closed_upper",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "open": "true",
+        "left": "true",
+        "facing": "west",
+        "half": "lower"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_lower",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "open": "true",
+        "left": "true",
+        "facing": "west",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_l_upper",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "open": "true",
+        "right": "true",
+        "facing": "west",
+        "half": "lower"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_lower",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "open": "true",
+        "right": "true",
+        "facing": "west",
+        "half": "upper"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_open_r_upper",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "radiator": "true",
+        "facing": "west",
+        "half": "lower"
+      },
+      "apply": {
+        "model": "mobtalk:block/city2/furniture/apt_curtain_blue_radiator_lower",
+        "y": 270
+      }
+    }
+  ]
+}
