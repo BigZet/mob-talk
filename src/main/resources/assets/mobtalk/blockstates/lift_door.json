@@ -1,0 +1,124 @@
+{
+ "variants": {
+  "facing=north,half=lower,open=false,side=left": {
+   "model": "mobtalk:block/city2/lift/door_left_lower"
+  },
+  "facing=north,half=lower,open=true,side=left": {
+   "model": "mobtalk:block/city2/lift/door_left_lower"
+  },
+  "facing=north,half=upper,open=false,side=left": {
+   "model": "mobtalk:block/city2/lift/door_left_upper"
+  },
+  "facing=north,half=upper,open=true,side=left": {
+   "model": "mobtalk:block/city2/lift/door_left_upper"
+  },
+  "facing=north,half=lower,open=false,side=right": {
+   "model": "mobtalk:block/city2/lift/door_right_lower"
+  },
+  "facing=north,half=lower,open=true,side=right": {
+   "model": "mobtalk:block/city2/lift/door_right_lower"
+  },
+  "facing=north,half=upper,open=false,side=right": {
+   "model": "mobtalk:block/city2/lift/door_right_upper"
+  },
+  "facing=north,half=upper,open=true,side=right": {
+   "model": "mobtalk:block/city2/lift/door_right_upper"
+  },
+  "facing=east,half=lower,open=false,side=left": {
+   "model": "mobtalk:block/city2/lift/door_left_lower",
+   "y": 90
+  },
+  "facing=east,half=lower,open=true,side=left": {
+   "model": "mobtalk:block/city2/lift/door_left_lower",
+   "y": 90
+  },
+  "facing=east,half=upper,open=false,side=left": {
+   "model": "mobtalk:block/city2/lift/door_left_upper",
+   "y": 90
+  },
+  "facing=east,half=upper,open=true,side=left": {
+   "model": "mobtalk:block/city2/lift/door_left_upper",
+   "y": 90
+  },
+  "facing=east,half=lower,open=false,side=right": {
+   "model": "mobtalk:block/city2/lift/door_right_lower",
+   "y": 90
+  },
+  "facing=east,half=lower,open=true,side=right": {
+   "model": "mobtalk:block/city2/lift/door_right_lower",
+   "y": 90
+  },
+  "facing=east,half=upper,open=false,side=right": {
+   "model": "mobtalk:block/city2/lift/door_right_upper",
+   "y": 90
+  },
+  "facing=east,half=upper,open=true,side=right": {
+   "model": "mobtalk:block/city2/lift/door_right_upper",
+   "y": 90
+  },
+  "facing=south,half=lower,open=false,side=left": {
+   "model": "mobtalk:block/city2/lift/door_left_lower",
+   "y": 180
+  },
+  "facing=south,half=lower,open=true,side=left": {
+   "model": "mobtalk:block/city2/lift/door_left_lower",
+   "y": 180
+  },
+  "facing=south,half=upper,open=false,side=left": {
+   "model": "mobtalk:block/city2/lift/door_left_upper",
+   "y": 180
+  },
+  "facing=south,half=upper,open=true,side=left": {
+   "model": "mobtalk:block/city2/lift/door_left_upper",
+   "y": 180
+  },
+  "facing=south,half=lower,open=false,side=right": {
+   "model": "mobtalk:block/city2/lift/door_right_lower",
+   "y": 180
+  },
+  "facing=south,half=lower,open=true,side=right": {
+   "model": "mobtalk:block/city2/lift/door_right_lower",
+   "y": 180
+  },
+  "facing=south,half=upper,open=false,side=right": {
+   "model": "mobtalk:block/city2/lift/door_right_upper",
+   "y": 180
+  },
+  "facing=south,half=upper,open=true,side=right": {
+   "model": "mobtalk:block/city2/lift/door_right_upper",
+   "y": 180
+  },
+  "facing=west,half=lower,open=false,side=left": {
+   "model": "mobtalk:block/city2/lift/door_left_lower",
+   "y": 270
+  },
+  "facing=west,half=lower,open=true,side=left": {
+   "model": "mobtalk:block/city2/lift/door_left_lower",
+   "y": 270
+  },
+  "facing=west,half=upper,open=false,side=left": {
+   "model": "mobtalk:block/city2/lift/door_left_upper",
+   "y": 270
+  },
+  "facing=west,half=upper,open=true,side=left": {
+   "model": "mobtalk:block/city2/lift/door_left_upper",
+   "y": 270
+  },
+  "facing=west,half=lower,open=false,side=right": {
+   "model": "mobtalk:block/city2/lift/door_right_lower",
+   "y": 270
+  },
+  "facing=west,half=lower,open=true,side=right": {
+   "model": "mobtalk:block/city2/lift/door_right_lower",
+   "y": 270
+  },
+  "facing=west,half=upper,open=false,side=right": {
+   "model": "mobtalk:block/city2/lift/door_right_upper",
+   "y": 270
+  },
+  "facing=west,half=upper,open=true,side=right": {
+   "model": "mobtalk:block/city2/lift/door_right_upper",
+   "y": 270
+  }
+ }
+}

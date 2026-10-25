@@ -1,6 +1,75 @@
 {
   "mob_speech": {
     "subtitle": "subtitle.mobtalk.mob_speech",
-    "sounds": [ { "name": "fabric-sound-api-v1:empty", "stream": true } ]
+    "sounds": [
+      {
+        "name": "fabric-sound-api-v1:empty",
+        "stream": true
+      }
+    ]
+  },
+  "lift_motor": {
+    "subtitle": "subtitles.mobtalk.lift_motor",
+    "sounds": [
+      {
+        "name": "mobtalk:lift/motor"
+      }
+    ]
+  },
+  "lift_start": {
+    "subtitle": "subtitles.mobtalk.lift_start",
+    "sounds": [
+      {
+        "name": "mobtalk:lift/start"
+      }
+    ]
+  },
+  "lift_stop": {
+    "subtitle": "subtitles.mobtalk.lift_stop",
+    "sounds": [
+      {
+        "name": "mobtalk:lift/stop"
+      }
+    ]
+  },
+  "lift_door_open": {
+    "subtitle": "subtitles.mobtalk.lift_door_open",
+    "sounds": [
+      {
+        "name": "mobtalk:lift/door_open"
+      }
+    ]
+  },
+  "lift_door_close": {
+    "subtitle": "subtitles.mobtalk.lift_door_close",
+    "sounds": [
+      {
+        "name": "mobtalk:lift/door_close"
+      }
+    ]
+  },
+  "lift_button": {
+    "subtitle": "subtitles.mobtalk.lift_button",
+    "sounds": [
+      {
+        "name": "mobtalk:lift/button"
+      }
+    ]
+  },
+  "lift_relay": {
+    "subtitle": "subtitles.mobtalk.lift_relay",
+    "sounds": [
+      {
+        "name": "mobtalk:lift/relay"
+      }
+    ]
+  },
+  "lift_bell": {
+    "subtitle": "subtitles.mobtalk.lift_bell",
+    "sounds": [
+      {
+        "name": "mobtalk:lift/bell"
+      }
+    ]
   }
 }

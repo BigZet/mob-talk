@@ -1,0 +1,166 @@
+{
+ "parent": "minecraft:block/block",
+ "textures": {
+  "frame": "mobtalk:block/city2/lift/frame",
+  "leaf_shaft": "mobtalk:block/city2/lift/leaf_shaft",
+  "shaft": "mobtalk:block/city2/lift/shaft",
+  "particle": "mobtalk:block/city2/lift/frame"
+ },
+ "elements": [
+  {
+   "from": [
+    15,
+    0,
+    0
+   ],
+   "to": [
+    16,
+    16,
+    16
+   ],
+   "faces": {
+    "north": {
+     "texture": "#frame",
+     "uv": [
+      15,
+      0,
+      16,
+      16
+     ]
+    },
+    "west": {
+     "texture": "#frame",
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ]
+    },
+    "east": {
+     "texture": "#frame",
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ]
+    },
+    "south": {
+     "texture": "#shaft",
+     "uv": [
+      15,
+      0,
+      16,
+      16
+     ]
+    }
+   }
+  },
+  {
+   "from": [
+    8,
+    0,
+    0
+   ],
+   "to": [
+    15,
+    16,
+    3
+   ],
+   "faces": {
+    "north": {
+     "texture": "#leaf_shaft",
+     "uv": [
+      8,
+      0,
+      15,
+      16
+     ]
+    },
+    "west": {
+     "texture": "#frame",
+     "uv": [
+      0,
+      0,
+      3,
+      16
+     ]
+    }
+   }
+  },
+  {
+   "from": [
+    8,
+    0,
+    3
+   ],
+   "to": [
+    15,
+    16,
+    16
+   ],
+   "faces": {
+    "west": {
+     "texture": "#shaft",
+     "uv": [
+      3,
+      0,
+      16,
+      16
+     ]
+    },
+    "south": {
+     "texture": "#shaft",
+     "uv": [
+      8,
+      0,
+      15,
+      16
+     ]
+    },
+    "north": {
+     "texture": "#shaft",
+     "uv": [
+      8,
+      0,
+      15,
+      16
+     ]
+    }
+   }
+  },
+  {
+   "from": [
+    0,
+    0,
+    0
+   ],
+   "to": [
+    8,
+    0.6,
+    3
+   ],
+   "faces": {
+    "up": {
+     "texture": "#frame",
+     "uv": [
+      0,
+      0,
+      8,
+      3
+     ]
+    },
+    "north": {
+     "texture": "#frame",
+     "uv": [
+      0,
+      15.4,
+      8,
+      16
+     ]
+    }
+   }
+  }
+ ]
+}

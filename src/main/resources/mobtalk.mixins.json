@@ -33,7 +33,8 @@
     "VillagerRiderMixin",
     "VillagerRiderFacingMixin",
     "SteedCalmMixin",
-    "KeepHandsMixin"
+    "KeepHandsMixin",
+    "LiftRiderMixin"
   ],
   "injectors": {
     "defaultRequire": 1
