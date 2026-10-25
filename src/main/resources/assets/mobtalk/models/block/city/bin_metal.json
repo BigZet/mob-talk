@@ -1,0 +1,211 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "metal": "mobtalk:block/city/bin_brown",
+    "dark": "mobtalk:block/city/metal_black",
+    "palette": "mobtalk:block/city/palette",
+    "particle": "mobtalk:block/city/bin_brown"
+  },
+  "elements": [
+    {
+      "from": [
+        5,
+        0,
+        5
+      ],
+      "to": [
+        11,
+        1,
+        11
+      ],
+      "faces": {
+        "north": {
+          "texture": "#dark",
+          "uv": [
+            5,
+            15,
+            11,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#dark",
+          "uv": [
+            5,
+            15,
+            11,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#dark",
+          "uv": [
+            5,
+            15,
+            11,
+            16
+          ]
+        },
+        "west": {
+          "texture": "#dark",
+          "uv": [
+            5,
+            15,
+            11,
+            16
+          ]
+        },
+        "up": {
+          "texture": "#dark",
+          "uv": [
+            5,
+            5,
+            11,
+            11
+          ]
+        },
+        "down": {
+          "texture": "#dark",
+          "uv": [
+            5,
+            5,
+            11,
+            11
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.5,
+        1,
+        4.5
+      ],
+      "to": [
+        11.5,
+        10,
+        11.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#metal",
+          "uv": [
+            4.5,
+            6,
+            11.5,
+            15
+          ]
+        },
+        "south": {
+          "texture": "#metal",
+          "uv": [
+            4.5,
+            6,
+            11.5,
+            15
+          ]
+        },
+        "east": {
+          "texture": "#metal",
+          "uv": [
+            4.5,
+            6,
+            11.5,
+            15
+          ]
+        },
+        "west": {
+          "texture": "#metal",
+          "uv": [
+            4.5,
+            6,
+            11.5,
+            15
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.2,
+        10,
+        4.2
+      ],
+      "to": [
+        11.8,
+        11,
+        11.8
+      ],
+      "faces": {
+        "north": {
+          "texture": "#dark",
+          "uv": [
+            4.2,
+            5,
+            11.8,
+            6
+          ]
+        },
+        "south": {
+          "texture": "#dark",
+          "uv": [
+            4.2,
+            5,
+            11.8,
+            6
+          ]
+        },
+        "east": {
+          "texture": "#dark",
+          "uv": [
+            4.2,
+            5,
+            11.8,
+            6
+          ]
+        },
+        "west": {
+          "texture": "#dark",
+          "uv": [
+            4.2,
+            5,
+            11.8,
+            6
+          ]
+        },
+        "up": {
+          "texture": "#dark",
+          "uv": [
+            4.2,
+            4.2,
+            11.8,
+            11.8
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        5.5,
+        9.5,
+        5.5
+      ],
+      "to": [
+        10.5,
+        10.95,
+        10.5
+      ],
+      "faces": {
+        "up": {
+          "texture": "#palette",
+          "uv": [
+            0.0,
+            0.0,
+            2.0,
+            2.0
+          ]
+        }
+      }
+    }
+  ]
+}

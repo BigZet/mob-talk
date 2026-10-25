@@ -904,5 +904,17 @@
   "block.mobtalk.car_red": "Жигули (вишнёвые)",
   "block.mobtalk.car_green": "Жигули (зелёные)",
   "block.mobtalk.car_blue": "Жигули (синие)",
-  "block.mobtalk.car_part": "Жигули"
+  "block.mobtalk.car_part": "Жигули",
+  "block.mobtalk.lamp_green_base": "Основание фонаря",
+  "block.mobtalk.lamp_green_pole": "Опора фонаря",
+  "block.mobtalk.lamp_green_double": "Фонарь с двумя плечами",
+  "block.mobtalk.lamp_green_single": "Фонарь с одним плечом",
+  "block.mobtalk.curb": "Бордюр",
+  "block.mobtalk.park_bench": "Парковая скамейка",
+  "block.mobtalk.bin_metal": "Урна",
+  "block.mobtalk.bike_rack": "Велопарковка",
+  "block.mobtalk.paving_grey": "Тротуарная плитка",
+  "block.mobtalk.paving_red": "Красная плитка",
+  "block.mobtalk.fence_green": "Зелёная оградка",
+  "block.mobtalk.fence_black": "Чёрная оградка"
 }

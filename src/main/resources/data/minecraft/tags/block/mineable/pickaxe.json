@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    "mobtalk:paving_grey",
+    "mobtalk:paving_red",
+    "mobtalk:fence_green",
+    "mobtalk:fence_black"
+  ]
+}

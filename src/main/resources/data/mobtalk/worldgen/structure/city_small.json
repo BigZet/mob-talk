@@ -3,7 +3,7 @@
   "biomes": "#mobtalk:has_structure/city",
   "step": "surface_structures",
   "spawn_overrides": {},
-  "terrain_adaptation": "beard_thin",
+  "terrain_adaptation": "beard_box",
   "start_pool": "mobtalk:city/ours/small/start",
   "size": 7,
   "start_height": {

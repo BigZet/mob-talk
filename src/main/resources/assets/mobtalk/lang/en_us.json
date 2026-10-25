@@ -904,5 +904,17 @@
   "block.mobtalk.car_red": "Zhiguli (cherry)",
   "block.mobtalk.car_green": "Zhiguli (green)",
   "block.mobtalk.car_blue": "Zhiguli (blue)",
-  "block.mobtalk.car_part": "Zhiguli"
+  "block.mobtalk.car_part": "Zhiguli",
+  "block.mobtalk.lamp_green_base": "Lamp post base",
+  "block.mobtalk.lamp_green_pole": "Lamp post",
+  "block.mobtalk.lamp_green_double": "Double-arm street lamp",
+  "block.mobtalk.lamp_green_single": "Single-arm street lamp",
+  "block.mobtalk.curb": "Curb",
+  "block.mobtalk.park_bench": "Park bench",
+  "block.mobtalk.bin_metal": "Litter bin",
+  "block.mobtalk.bike_rack": "Bike rack",
+  "block.mobtalk.paving_grey": "Paving",
+  "block.mobtalk.paving_red": "Red paving",
+  "block.mobtalk.fence_green": "Green railing",
+  "block.mobtalk.fence_black": "Black railing"
 }

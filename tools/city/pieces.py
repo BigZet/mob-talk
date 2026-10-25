@@ -373,19 +373,43 @@ def decorate_street(t, r):
     if sx != 5:
         return
     for z in range(4, sz - 3, 12):
-        x, facing = (0, "east") if (z // 12) % 2 == 0 else (4, "west")
-        if t.name_at(x, 0, z) is None or not t.solid(x, 0, z):
+        # the green Soviet lamp; its arm reaches to the right of its facing, so out over the road
+        x, facing = (0, "north") if (z // 12) % 2 == 0 else (4, "south")
+        if t.name_at(x, 0, z) is None or not t.solid(x, 0, z) or sy < 6:
             continue
-        cell = t.name_at(x, 1, z)
-        if cell not in ("minecraft:air", "minecraft:jigsaw"):
-            continue
-        b = t.grid[(x, 1, z)][2] if cell == "minecraft:jigsaw" else None
-        if b is not None and "building_entrance" not in b.value["nbt"].value["name"].value:
-            continue  # never a street's own connector
-        t.put(x, 1, z, "mobtalk:lamp_pole", {"facing": facing})
-        t.put(x, 2, z, "mobtalk:lamp_pole", {"facing": facing})
-        t.put(x, 3, z, "mobtalk:lamp_pole", {"facing": facing})
-        t.put(x, 4, z, "mobtalk:street_lamp", {"facing": facing})
+        if any(t.name_at(x, y, z) != "minecraft:air" for y in range(1, 6)):
+            continue  # never over a connector or anything else the street has there
+        t.put(x, 1, z, "mobtalk:lamp_green_base", {"facing": facing})
+        for y in (2, 3, 4):
+            t.put(x, y, z, "mobtalk:lamp_green_pole", {"facing": facing})
+        t.put(x, 5, z, "mobtalk:lamp_green_single", {"facing": facing})
+
+WOOD_FENCES = ("minecraft:oak_fence", "minecraft:birch_fence", "minecraft:spruce_fence", "minecraft:acacia_fence",
+               "minecraft:cherry_fence", "minecraft:dark_oak_fence", "minecraft:jungle_fence", "minecraft:mangrove_fence")
+
+
+def replace_vanilla(t):
+    """The donor's Minecraft-looking street bits outdoors become ours: a lantern on a fence post turns into the green lamp,
+    wooden and nether-brick fences under the open sky into painted metal railings (they keep their joins)."""
+    n = 0
+    for (x, y, z), (name, props, _) in list(t.grid.items()):
+        if name in ("minecraft:lantern", "minecraft:soul_lantern") and props.get("hanging") == "false" and t.open_sky(x, y + 1, z, 30):
+            col = []
+            yy = y - 1
+            while (t.name_at(x, yy, z) or "").endswith("fence"):
+                col.append(yy)
+                yy -= 1
+            if not col:
+                continue
+            for k, cy in enumerate(sorted(col)):
+                t.put(x, cy, z, "mobtalk:lamp_green_base" if k == 0 else "mobtalk:lamp_green_pole", {"facing": "north"})
+            t.put(x, y, z, "mobtalk:lamp_green_double", {"facing": "north"})
+            n += 1
+    for (x, y, z), (name, props, _) in list(t.grid.items()):
+        if (name in WOOD_FENCES or name == "minecraft:nether_brick_fence") and t.open_sky(x, y + 1, z, 30):
+            t.put(x, y, z, "mobtalk:fence_black" if "nether" in name else "mobtalk:fence_green", dict(props))
+            n += 1
+    return n
 
 
 def decorate_all():
@@ -402,6 +426,9 @@ def decorate_all():
                 if n == "minecraft:jigsaw" and "nbt" in b.value:
                     names.add(b.value["nbt"].value["name"].value)
             r = random.Random(rel)
+            if not rel.startswith("furniture/"):  # furniture goes indoors
+                counts["vanilla"] = counts.get("vanilla", 0) + replace_vanilla(t)
+            kind = "other"
             if any("street" in n or "cross" in n for n in names) and ("street" in rel or "road" in rel or "sidewalk" in rel):
                 decorate_street(t, r)
                 kind = "streets"
@@ -409,11 +436,9 @@ def decorate_all():
                 decorate_building(t, r, admin=rel.endswith("admin_centre") or "meriya" in rel or "rada" in rel,
                                   hospital="hospital" in rel and "street" not in rel)
                 kind = "buildings"
-            else:
-                continue
             if t.added:
                 t.save()
-                counts[kind] += 1
+                counts[kind] = counts.get(kind, 0) + 1
                 counts["blocks"] += t.added
     print("decorated:", counts)
 

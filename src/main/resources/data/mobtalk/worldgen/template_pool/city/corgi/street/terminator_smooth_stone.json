@@ -5,7 +5,7 @@
         "element_type": "minecraft:legacy_single_pool_element",
         "location": "mobtalk:city/medium_mix/street/smooth_stone/terminator_1",
         "processors": "minecraft:street_plains",
-        "projection": "terrain_matching"
+        "projection": "rigid"
       },
       "weight": 1
     },
@@ -14,7 +14,7 @@
         "element_type": "minecraft:legacy_single_pool_element",
         "location": "mobtalk:city/medium_mix/street/smooth_stone/terminator_2",
         "processors": "minecraft:street_plains",
-        "projection": "terrain_matching"
+        "projection": "rigid"
       },
       "weight": 1
     },
@@ -23,7 +23,7 @@
         "element_type": "minecraft:legacy_single_pool_element",
         "location": "mobtalk:city/medium_mix/street/smooth_stone/terminator_3",
         "processors": "minecraft:street_plains",
-        "projection": "terrain_matching"
+        "projection": "rigid"
       },
       "weight": 1
     },
@@ -32,7 +32,7 @@
         "element_type": "minecraft:legacy_single_pool_element",
         "location": "mobtalk:city/medium_mix/street/smooth_stone/terminator_4",
         "processors": "minecraft:street_plains",
-        "projection": "terrain_matching"
+        "projection": "rigid"
       },
       "weight": 1
     },
@@ -41,7 +41,7 @@
         "element_type": "minecraft:legacy_single_pool_element",
         "location": "mobtalk:city/medium_mix/street/smooth_stone/terminator_6",
         "processors": "minecraft:street_plains",
-        "projection": "terrain_matching"
+        "projection": "rigid"
       },
       "weight": 1
     }

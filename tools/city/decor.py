@@ -130,6 +130,30 @@ def glow(name, core=(255, 244, 196), edge=(232, 196, 112)):
     return tex(name, img)
 
 
+def pavers(name, base, grout=(70, 70, 70), border=None):
+    """Concrete pavers, the "кирпичик" of every Russian town since the 2010s: 4x2 bricks in a running bond with dark joints."""
+    r = rng(name)
+    img = new()
+    px = img.load()
+    for row in range(8):
+        y0 = row * 2
+        off = 2 if row % 2 else 0
+        for col in range(-1, 5):
+            x0 = col * 4 + off
+            tone = r.uniform(0.9, 1.08)
+            for y in range(y0, y0 + 2):
+                for x in range(max(0, x0), min(16, x0 + 4)):
+                    c = shade(base, tone * r.uniform(0.96, 1.04))
+                    if y == y0 + 1 or x == x0 + 3:
+                        c = shade(grout + (255,), r.uniform(0.9, 1.1))
+                    px[x, y] = c
+    if border:  # a red edging course along one side
+        for y in range(16):
+            for x in range(3):
+                px[x, y] = shade(border, r.uniform(0.92, 1.06)) if x < 2 else shade(grout + (255,), 1)
+    return tex(name, img)
+
+
 def palette():
     """Small swatches for tiny parts (4x4 each), so a beak or a bolt needs no texture of its own."""
     colors = {
@@ -346,6 +370,14 @@ def make_textures():
     tex("sand", sand)
     for c, base in CAR_COLORS.items():
         car_atlas(c, base)
+    painted_metal("metal_green", (66, 128, 62, 255), rust=0.0)
+    painted_metal("metal_green_dark", (40, 84, 44, 255), rust=0.0)
+    painted_metal("metal_black", (34, 36, 38, 255), rust=0.02)
+    painted_metal("bin_brown", (112, 66, 42, 255), ribs=True, rust=0.02)
+    planks("bench_wood", (176, 120, 70, 255), (150, 100, 60))
+    pavers("paving_grey", (150, 148, 142, 255))
+    pavers("paving_red", (150, 70, 58, 255), (90, 60, 55))
+    concrete("curb", (168, 166, 160))
 
 
 # ---------------------------------------------------------------- models
@@ -403,6 +435,8 @@ def pal_box(f, t, name, faces=FACES, rotation=None):
 
 
 MODELS = {}
+CUBES = {}  # plain full blocks: name -> texture
+FENCES = {}  # railings: name -> paint texture
 
 
 def model(name, textures, elements, particle=None, ao=True):
@@ -556,8 +590,67 @@ def cars():
         model(f"car_{color}", {"car": f"car_{color}", "palette": "palette"}, els, "car")
 
 
+def pushchino_kit():
+    """Street furniture after the Pushchino panoramas: the tall green Soviet lamp with one or two curved arms, a granite curb,
+    a park bench of light slats on a black frame, a brown metal bin and a bicycle rack."""
+    model("lamp_green_base", {"metal": "metal_green", "dark": "metal_green_dark"},
+          [box((5.5, 0, 5.5), (10.5, 2, 10.5), "dark"), box((6, 2, 6), (10, 16, 10), "metal"),
+           box((5.8, 5, 5.8), (10.2, 9, 6), "dark", ["north"])])  # the service hatch
+    model("lamp_green_pole", {"metal": "metal_green", "dark": "metal_green_dark"},
+          [box((6.5, 0, 6.5), (9.5, 16, 9.5), "metal"), box((6.2, 14, 6.2), (9.8, 15, 9.8), "dark")])
+
+    def arm(sign):
+        """An arm curving up and out to the east (sign 1) or the west (-1): stepped pipe, then the cobra head."""
+        els = []
+        steps = [(9, 15, 6, 7.5), (15, 21, 7, 9), (21, 26, 8.5, 10.5)]
+        for x0, x1, y0, y1 in steps:
+            a, b = (x0, x1) if sign > 0 else (16 - x1, 16 - x0)
+            els.append(box((a, y0, 7), (b, y1, 9), "metal"))
+        a, b = (24, 32) if sign > 0 else (-16, -8)
+        els.append(box((a, 9.5, 5.5), (b, 12, 10.5), "dark", ["north", "south", "east", "west", "up"]))
+        els.append(box((a + 0.5, 9.2, 6), (b - 0.5, 9.5, 10), {"down": ("glass", [2, 4, 14, 12])}))
+        return els
+    base = [box((6.5, 0, 6.5), (9.5, 8, 9.5), "metal"), box((6, 7, 6), (10, 8, 10), "dark")]
+    model("lamp_green_double", {"metal": "metal_green", "dark": "metal_green_dark", "glass": "lamp_glass"},
+          base + arm(1) + arm(-1), "metal", ao=False)
+    model("lamp_green_single", {"metal": "metal_green", "dark": "metal_green_dark", "glass": "lamp_glass"},
+          base + arm(1), "metal", ao=False)
+    model("curb", {"stone": "curb"}, [box((0, 0, 0), (16, 5, 3.5), "stone"), box((0, 5, 0.5), (16, 5.5, 3), "stone")])
+    els = []
+    for x in (1.5, 13):  # black frame legs and arm rests
+        els += [box((x, 0, 4), (x + 1.5, 7, 5.5), "frame"), box((x, 0, 10.5), (x + 1.5, 7, 12), "frame"),
+                box((x, 7, 4), (x + 1.5, 7.5, 12.5), "frame"), box((x, 7, 12), (x + 1.5, 15, 13), "frame")]
+    for z in (4.5, 6.8, 9.1):
+        els.append(box((0, 7.5, z), (16, 8.7, z + 2), "wood"))
+    for y in (10, 12.5):
+        els.append(box((0, y, 12.5), (16, y + 2, 13.5), "wood"))
+    model("park_bench", {"wood": "bench_wood", "frame": "metal_black"}, els, "wood")
+    model("bin_metal", {"metal": "bin_brown", "dark": "metal_black", "palette": "palette"},
+          [box((5, 0, 5), (11, 1, 11), "dark"), box((4.5, 1, 4.5), (11.5, 10, 11.5), "metal", ["north", "south", "east", "west"]),
+           box((4.2, 10, 4.2), (11.8, 11, 11.8), "dark", ["north", "south", "east", "west", "up"]),
+           box((5.5, 9.5, 5.5), (10.5, 10.95, 10.5), {"up": ("palette", pal("black"))})], "metal")
+    els = [box((0, 0, 7.5), (16, 0.6, 8.5), "frame")]
+    for x in (2, 7.5, 13):  # three hoops
+        els += [box((x, 0, 4), (x + 1, 10, 5), "frame"), box((x, 0, 11), (x + 1, 10, 12), "frame"),
+                box((x, 10, 4), (x + 1, 11, 12), "frame")]
+    model("bike_rack", {"frame": "metal_black"}, els, "frame")
+    # Soviet yard railings: thin posts, two rails, pickets; joined like fences (a multipart blockstate, see save_all)
+    for name, paint in (("fence_green", "metal_green"), ("fence_black", "metal_black")):
+        FENCES[name] = paint
+        MODELS[name + "_post"] = {"parent": "minecraft:block/block", "textures": {"m": f"mobtalk:block/city/{paint}",
+                                  "particle": f"mobtalk:block/city/{paint}"},
+                                  "elements": [box((7, 0, 7), (9, 13, 9), "m"), box((6.5, 12.5, 6.5), (9.5, 13.5, 9.5), "m")]}
+        side = [box((7.5, 4, 0), (8.5, 5, 7), "m"), box((7.5, 10.5, 0), (8.5, 11.5, 7), "m")]
+        for z in (1.5, 4.5):
+            side.append(box((7.6, 0.5, z), (8.4, 11.5, z + 0.8), "m"))
+        MODELS[name + "_side"] = {"parent": "minecraft:block/block", "textures": {"m": f"mobtalk:block/city/{paint}",
+                                  "particle": f"mobtalk:block/city/{paint}"}, "elements": side}
+
+
 def make_models():
-    bench(); urn(); lamps(); dumpster(); playground(); flags(); wall_things(); street_things(); cars()
+    bench(); urn(); lamps(); dumpster(); playground(); flags(); wall_things(); street_things(); cars(); pushchino_kit()
+    for name in ("paving_grey", "paving_red"):
+        CUBES[name] = name
 
 
 # ---------------------------------------------------------------- output
@@ -571,6 +664,11 @@ NAMES = {
     "bus_stop_sign": ("Знак остановки", "Bus stop sign"), "tyre_swan": ("Лебедь из шины", "Tyre swan"),
     "car_white": ("Жигули (белые)", "Zhiguli (white)"), "car_red": ("Жигули (вишнёвые)", "Zhiguli (cherry)"),
     "car_green": ("Жигули (зелёные)", "Zhiguli (green)"), "car_blue": ("Жигули (синие)", "Zhiguli (blue)"),
+    "lamp_green_base": ("Основание фонаря", "Lamp post base"), "lamp_green_pole": ("Опора фонаря", "Lamp post"),
+    "lamp_green_double": ("Фонарь с двумя плечами", "Double-arm street lamp"), "lamp_green_single": ("Фонарь с одним плечом", "Single-arm street lamp"),
+    "curb": ("Бордюр", "Curb"), "park_bench": ("Парковая скамейка", "Park bench"), "bin_metal": ("Урна", "Litter bin"),
+    "bike_rack": ("Велопарковка", "Bike rack"), "fence_green": ("Зелёная оградка", "Green railing"),
+    "fence_black": ("Чёрная оградка", "Black railing"), "paving_grey": ("Тротуарная плитка", "Paving"), "paving_red": ("Красная плитка", "Red paving"),
 }
 
 
@@ -588,10 +686,31 @@ def save_all():
         img.save(os.path.join(tdir, name + ".png"))
     for name, m in MODELS.items():
         write(os.path.join(ASSETS, "models", "block", "city", name + ".json"), m)
+        if name.startswith("fence_"):
+            continue
         write(os.path.join(ASSETS, "blockstates", name + ".json"), {"variants": {
             f"facing={f}": ({"model": f"mobtalk:block/city/{name}", "y": y} if y else {"model": f"mobtalk:block/city/{name}"})
             for f, y in (("north", 0), ("east", 90), ("south", 180), ("west", 270))}})
         write(os.path.join(ASSETS, "models", "item", name + ".json"), {"parent": f"mobtalk:block/city/{name}", "display": ITEM_DISPLAY.get(name, DISPLAY)})
+        write(os.path.join(DATA, "loot_table", "blocks", name + ".json"), {"type": "minecraft:block", "pools": [{"rolls": 1, "entries": [
+            {"type": "minecraft:item", "name": f"mobtalk:{name}"}], "conditions": [{"condition": "minecraft:survives_explosion"}]}]})
+    for name, texture in CUBES.items():
+        write(os.path.join(ASSETS, "models", "block", "city", name + ".json"),
+              {"parent": "minecraft:block/cube_all", "textures": {"all": f"mobtalk:block/city/{texture}"}})
+        write(os.path.join(ASSETS, "blockstates", name + ".json"), {"variants": {"": {"model": f"mobtalk:block/city/{name}"}}})
+        write(os.path.join(ASSETS, "models", "item", name + ".json"), {"parent": f"mobtalk:block/city/{name}"})
+        write(os.path.join(DATA, "loot_table", "blocks", name + ".json"), {"type": "minecraft:block", "pools": [{"rolls": 1, "entries": [
+            {"type": "minecraft:item", "name": f"mobtalk:{name}"}], "conditions": [{"condition": "minecraft:survives_explosion"}]}]})
+    for name in FENCES:
+        post, side = f"mobtalk:block/city/{name}_post", f"mobtalk:block/city/{name}_side"
+        write(os.path.join(ASSETS, "blockstates", name + ".json"), {"multipart": [{"apply": {"model": post}}] + [
+            {"when": {d: "true"}, "apply": {"model": side, "y": y, "uvlock": True}}
+            for d, y in (("north", 0), ("east", 90), ("south", 180), ("west", 270))]})
+        inv = {"parent": "minecraft:block/block", "textures": MODELS[name + "_post"]["textures"],
+               "elements": MODELS[name + "_post"]["elements"] + MODELS[name + "_side"]["elements"] + [
+                   dict(e, **{"from": [e["from"][0], e["from"][1], 16 - e["to"][2]], "to": [e["to"][0], e["to"][1], 16 - e["from"][2]]})
+                   for e in MODELS[name + "_side"]["elements"]], "display": DISPLAY}
+        write(os.path.join(ASSETS, "models", "item", name + ".json"), inv)
         write(os.path.join(DATA, "loot_table", "blocks", name + ".json"), {"type": "minecraft:block", "pools": [{"rolls": 1, "entries": [
             {"type": "minecraft:item", "name": f"mobtalk:{name}"}], "conditions": [{"condition": "minecraft:survives_explosion"}]}]})
     write(os.path.join(ASSETS, "blockstates", "car_part.json"), {"variants": {"": {"model": "mobtalk:block/city/car_part"}}})
@@ -615,7 +734,8 @@ DISPLAY = {"gui": {"rotation": [30, 225, 0], "translation": [0, 0, 0], "scale": 
            "firstperson_righthand": {"rotation": [0, 45, 0], "translation": [0, 0, 0], "scale": [0.4, 0.4, 0.4]},
            "firstperson_lefthand": {"rotation": [0, 225, 0], "translation": [0, 0, 0], "scale": [0.4, 0.4, 0.4]}}
 SMALL = {k: dict(v, scale=[s * 0.5 for s in v["scale"]]) for k, v in DISPLAY.items()}
-ITEM_DISPLAY = {n: SMALL for n in ("swing", "slide", "flag", "car_white", "car_red", "car_green", "car_blue")}
+ITEM_DISPLAY = {n: SMALL for n in ("swing", "slide", "flag", "car_white", "car_red", "car_green", "car_blue", "lamp_green_double",
+                                   "lamp_green_single")}
 
 
 # ---------------------------------------------------------------- preview

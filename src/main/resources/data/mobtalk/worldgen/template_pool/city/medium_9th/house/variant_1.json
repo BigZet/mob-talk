@@ -189,7 +189,7 @@
       }
     },
     {
-      "weight": 150,
+      "weight": 114,
       "element": {
         "location": "mobtalk:city/ours/yard/playground_1",
         "processors": "minecraft:empty",
@@ -198,16 +198,7 @@
       }
     },
     {
-      "weight": 2,
-      "element": {
-        "location": "mobtalk:city/ours/yard/playground_1",
-        "processors": "minecraft:empty",
-        "projection": "rigid",
-        "element_type": "minecraft:single_pool_element"
-      }
-    },
-    {
-      "weight": 150,
+      "weight": 114,
       "element": {
         "location": "mobtalk:city/ours/yard/playground_2",
         "processors": "minecraft:empty",
@@ -216,16 +207,7 @@
       }
     },
     {
-      "weight": 2,
-      "element": {
-        "location": "mobtalk:city/ours/yard/playground_2",
-        "processors": "minecraft:empty",
-        "projection": "rigid",
-        "element_type": "minecraft:single_pool_element"
-      }
-    },
-    {
-      "weight": 150,
+      "weight": 114,
       "element": {
         "location": "mobtalk:city/ours/yard/parking_1",
         "processors": "minecraft:empty",
@@ -234,16 +216,7 @@
       }
     },
     {
-      "weight": 2,
-      "element": {
-        "location": "mobtalk:city/ours/yard/parking_1",
-        "processors": "minecraft:empty",
-        "projection": "rigid",
-        "element_type": "minecraft:single_pool_element"
-      }
-    },
-    {
-      "weight": 150,
+      "weight": 114,
       "element": {
         "location": "mobtalk:city/ours/yard/parking_2",
         "processors": "minecraft:empty",
@@ -252,16 +225,7 @@
       }
     },
     {
-      "weight": 2,
-      "element": {
-        "location": "mobtalk:city/ours/yard/parking_2",
-        "processors": "minecraft:empty",
-        "projection": "rigid",
-        "element_type": "minecraft:single_pool_element"
-      }
-    },
-    {
-      "weight": 150,
+      "weight": 114,
       "element": {
         "location": "mobtalk:city/ours/yard/square_1",
         "processors": "minecraft:empty",
@@ -270,16 +234,7 @@
       }
     },
     {
-      "weight": 2,
-      "element": {
-        "location": "mobtalk:city/ours/yard/square_1",
-        "processors": "minecraft:empty",
-        "projection": "rigid",
-        "element_type": "minecraft:single_pool_element"
-      }
-    },
-    {
-      "weight": 150,
+      "weight": 114,
       "element": {
         "location": "mobtalk:city/ours/yard/square_2",
         "processors": "minecraft:empty",
@@ -288,9 +243,18 @@
       }
     },
     {
-      "weight": 2,
+      "weight": 114,
       "element": {
-        "location": "mobtalk:city/ours/yard/square_2",
+        "location": "mobtalk:city/ours/yard/alley_1",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 114,
+      "element": {
+        "location": "mobtalk:city/ours/yard/alley_2",
         "processors": "minecraft:empty",
         "projection": "rigid",
         "element_type": "minecraft:single_pool_element"

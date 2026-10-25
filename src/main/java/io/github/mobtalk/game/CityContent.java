@@ -12,6 +12,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.FenceBlock;
 import net.minecraft.block.HorizontalFacingBlock;
 import net.minecraft.block.MapColor;
 import net.minecraft.block.ShapeContext;
@@ -71,7 +72,20 @@ public final class CityContent {
             new Spec("car_white", Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 16}}, 0, MapColor.WHITE, METAL, true),
             new Spec("car_red", Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 16}}, 0, MapColor.RED, METAL, true),
             new Spec("car_green", Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 16}}, 0, MapColor.DARK_GREEN, METAL, true),
-            new Spec("car_blue", Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 16}}, 0, MapColor.BLUE, METAL, true));
+            new Spec("car_blue", Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 16}}, 0, MapColor.BLUE, METAL, true),
+            // after the Pushchino panoramas
+            new Spec("lamp_green_base", Mount.GROUND, new double[][] {{5.5, 0, 5.5, 10.5, 16, 10.5}}, 0, MapColor.GREEN, METAL, true),
+            new Spec("lamp_green_pole", Mount.GROUND, new double[][] {{6.5, 0, 6.5, 9.5, 16, 9.5}}, 0, MapColor.GREEN, METAL, true),
+            new Spec("lamp_green_double", Mount.GROUND, new double[][] {{6.5, 0, 6.5, 9.5, 8, 9.5}}, 15, MapColor.GREEN, METAL, true),
+            new Spec("lamp_green_single", Mount.GROUND, new double[][] {{6.5, 0, 6.5, 9.5, 8, 9.5}}, 15, MapColor.GREEN, METAL, true),
+            new Spec("curb", Mount.GROUND, new double[][] {{0, 0, 0, 16, 5.5, 3.5}}, 0, MapColor.STONE_GRAY, STONE, true),
+            new Spec("park_bench", Mount.GROUND, new double[][] {{0, 0, 4, 16, 9, 12.5}, {0, 9, 12.5, 16, 15, 13.5}}, 0, MapColor.ORANGE, WOOD, true),
+            new Spec("bin_metal", Mount.GROUND, new double[][] {{4.5, 0, 4.5, 11.5, 11, 11.5}}, 0, MapColor.BROWN, METAL, true),
+            new Spec("bike_rack", Mount.GROUND, new double[][] {{0, 0, 4, 16, 11, 12}}, 0, MapColor.BLACK, METAL, true));
+    /** Plain full blocks: the pavers. */
+    static final List<String> CUBES = List.of("paving_grey", "paving_red");
+    /** Painted metal railings that join like fences (they are in #minecraft:fences, so they also join iron-free vanilla fences). */
+    static final List<String> FENCES = List.of("fence_green", "fence_black");
 
     public static final Map<String, Block> BLOCKS = new LinkedHashMap<>();
     /** The invisible ends of a parked car: solid, no drop, breaking one breaks the car. */
@@ -88,6 +102,21 @@ public final class CityContent {
             Block block = spec.id.startsWith("car_") ? new CarBlock(settings, spec) : new DecorBlock(settings, spec);
             Identifier id = Identifier.of("mobtalk", spec.id);
             BLOCKS.put(spec.id, Registry.register(Registries.BLOCK, id, block));
+            items.add(Registry.register(Registries.ITEM, id, new BlockItem(block, new Item.Settings())));
+        }
+        for (String cube : CUBES) {
+            Identifier id = Identifier.of("mobtalk", cube);
+            Block block = Registry.register(Registries.BLOCK, id, new Block(AbstractBlock.Settings.create()
+                    .mapColor(cube.endsWith("red") ? MapColor.TERRACOTTA_RED : MapColor.STONE_GRAY).strength(1.5f, 6f).requiresTool()
+                    .sounds(BlockSoundGroup.STONE)));
+            BLOCKS.put(cube, block);
+            items.add(Registry.register(Registries.ITEM, id, new BlockItem(block, new Item.Settings())));
+        }
+        for (String fence : FENCES) {
+            Identifier id = Identifier.of("mobtalk", fence);
+            Block block = Registry.register(Registries.BLOCK, id, new FenceBlock(AbstractBlock.Settings.create()
+                    .mapColor(fence.endsWith("green") ? MapColor.GREEN : MapColor.BLACK).strength(2f, 6f).sounds(METAL).nonOpaque()));
+            BLOCKS.put(fence, block);
             items.add(Registry.register(Registries.ITEM, id, new BlockItem(block, new Item.Settings())));
         }
         CAR_PART = Registry.register(Registries.BLOCK, Identifier.of("mobtalk", "car_part"), new CarPartBlock(AbstractBlock.Settings.create()

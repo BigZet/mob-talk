@@ -54,7 +54,7 @@
       }
     },
     {
-      "weight": 42,
+      "weight": 32,
       "element": {
         "location": "mobtalk:city/ours/yard/playground_1_5th",
         "processors": "minecraft:empty",
@@ -63,7 +63,7 @@
       }
     },
     {
-      "weight": 42,
+      "weight": 32,
       "element": {
         "location": "mobtalk:city/ours/yard/playground_2_5th",
         "processors": "minecraft:empty",
@@ -72,7 +72,7 @@
       }
     },
     {
-      "weight": 42,
+      "weight": 32,
       "element": {
         "location": "mobtalk:city/ours/yard/parking_1_5th",
         "processors": "minecraft:empty",
@@ -81,7 +81,7 @@
       }
     },
     {
-      "weight": 42,
+      "weight": 32,
       "element": {
         "location": "mobtalk:city/ours/yard/parking_2_5th",
         "processors": "minecraft:empty",
@@ -90,7 +90,7 @@
       }
     },
     {
-      "weight": 42,
+      "weight": 32,
       "element": {
         "location": "mobtalk:city/ours/yard/square_1_5th",
         "processors": "minecraft:empty",
@@ -99,9 +99,27 @@
       }
     },
     {
-      "weight": 42,
+      "weight": 32,
       "element": {
         "location": "mobtalk:city/ours/yard/square_2_5th",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 32,
+      "element": {
+        "location": "mobtalk:city/ours/yard/alley_1_5th",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 32,
+      "element": {
+        "location": "mobtalk:city/ours/yard/alley_2_5th",
         "processors": "minecraft:empty",
         "projection": "rigid",
         "element_type": "minecraft:single_pool_element"

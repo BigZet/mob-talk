@@ -1,5 +1,5 @@
 """Courtyards between the city's blocks of flats, built from scratch with our decorations: a playground, a car park with
-Zhigulis and dumpsters, a small square with flower beds. Each is a template 16 deep by 15 wide that hangs on a street like a house.
+Zhigulis and dumpsters, a small square with flower beds, an alley of lindens. Each is a template 16 deep by 15 wide that hangs on a street like a house.
 pieces.py calls build_all() after the import and adds the yards to the house pools.
 
 Frame: the street is to the west (x < 0); the entrance connector is at (0, G + 1, 7) and faces it. Ground surface at y = G.
@@ -10,9 +10,9 @@ import random
 import nbt
 
 G = 4  # ground surface (dirt below it, so a yard on a slope still has earth under it)
-SX, SY, SZ = 16, 12, 15
+SX, SY, SZ = 16, 26, 15
 MID = SZ // 2
-YARDS = ("playground", "parking", "square")
+YARDS = ("playground", "parking", "square", "alley")
 VARIANTS = 2
 DATA_VERSION = 3955
 CAR_COLORS = ("white", "red", "green", "blue")
@@ -45,10 +45,38 @@ class Yard:
     def thing(self, x, z, name, facing="north"):
         self.set(x, G + 1, z, "mobtalk:" + name, {"facing": facing})
 
-    def lamp(self, x, z, facing):
-        for k in (1, 2, 3):
-            self.set(x, G + k, z, "mobtalk:lamp_pole", {"facing": facing})
-        self.set(x, G + 4, z, "mobtalk:street_lamp", {"facing": facing})
+    def lamp(self, x, z, facing, double=False):
+        """The tall green Soviet lamp: a base with a hatch, a pipe, and one arm (towards facing's right) or two."""
+        self.set(x, G + 1, z, "mobtalk:lamp_green_base", {"facing": facing})
+        for k in (2, 3, 4):
+            self.set(x, G + k, z, "mobtalk:lamp_green_pole", {"facing": facing})
+        self.set(x, G + 5, z, "mobtalk:lamp_green_double" if double else "mobtalk:lamp_green_single", {"facing": facing})
+
+    def linden(self, x, z, poplar=False):
+        """A tall town tree as on the Pushchino boulevards: a bare trunk seven to nine blocks up, then a deep round crown
+        (a linden), or a tall narrow one (a poplar)."""
+        r = self.r
+        leaf = {"distance": "1", "persistent": "true", "waterlogged": "false"}
+        trunk = r.randint(7, 9) if not poplar else r.randint(5, 6)
+        top = trunk + (r.randint(6, 7) if not poplar else r.randint(10, 12))
+        rad = 3 if not poplar else 1.6
+        mid = (trunk + top) / 2
+        half = (top - trunk) / 2 + 0.5
+        leaves = "minecraft:oak_leaves" if not poplar else "minecraft:birch_leaves"
+        for dy in range(trunk - 1, top + 1):
+            for dx in range(-3, 4):
+                for dz in range(-3, 4):
+                    d = (dx / rad) ** 2 + (dz / rad) ** 2 + ((dy - mid) / half) ** 2
+                    if d <= 1 and r.random() > 0.08 * d:
+                        cell = (x + dx, G + 1 + dy, z + dz)
+                        if self.cells.get(cell, ("?",))[0] == "minecraft:air":
+                            self.set(*cell, leaves, leaf)
+        for dy in range(top - 1):
+            self.set(x, G + 1 + dy, z, "minecraft:oak_log", {"axis": "y"})
+        for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1)):  # a few boughs into the crown
+            if r.random() < 0.6:
+                self.set(x + dx, G + trunk + 1, z + dz, "minecraft:oak_log", {"axis": "x" if dx else "z"})
+        self.ground(x, z, "minecraft:dirt")
 
     def tree(self, x, z, height=None):
         """A birch (or now and then an oak) with a round crown; leaves never decay."""
@@ -137,8 +165,8 @@ def playground(y):
     y.thing(2, MID + 2, "bench", "north")
     y.thing(1, MID - 2, "urn", "south")
     y.lamp(5, MID + 2, "north")
-    y.tree(1, 1)
-    y.tree(14, 13 if r.random() < 0.5 else 1)
+    y.linden(2, 2)
+    y.linden(13, 12 if r.random() < 0.5 else 2)
     y.flowers(0, 12, 4, 14, 0.25)
 
 
@@ -192,7 +220,9 @@ def square(y):
     y.lamp(6, 12, "east")
     y.thing(2, 11, "tyre_swan", "east")
     y.thing(13, 3, "tyre_swan", "west")
-    for x, z in ((2, 2), (13, 12), (3, 13), (12, 1)):
+    for x, z in ((3, 3), (12, 11)):
+        y.linden(x, z, poplar=r.random() < 0.3)
+    for x, z in ((3, 12), (12, 2)):
         y.tree(x, z)
     y.flowers(0, 0, 5, 4)
     y.flowers(11, 10, 15, 14)
@@ -200,7 +230,32 @@ def square(y):
     y.thing(1, 2, "bench", "west")
 
 
-BUILD = {"playground": playground, "parking": parking, "square": square}
+def alley(y):
+    """Аллея: a paved walk from the street to the back between two rows of tall lindens, as on the Pushchino boulevards:
+    grey pavers with red edging and a curb, park benches facing the walk with brown bins, double-armed green lamps, a bike rack."""
+    r = y.r
+    for x in range(SX):
+        for z in range(MID - 2, MID + 3):
+            edge = z in (MID - 2, MID + 2)
+            y.ground(x, z, "mobtalk:paving_red" if edge else "mobtalk:paving_grey")
+    for x in range(SX):
+        for z, facing in ((MID - 3, "south"), (MID + 3, "north")):
+            if x % 5 != 2:
+                y.set(x, G + 1, z, "mobtalk:curb", {"facing": facing})
+    for x in (3, 8, 13):
+        y.linden(x, 3, poplar=r.random() < 0.25)
+        y.linden(x, SZ - 4, poplar=r.random() < 0.25)
+    for x, (z, facing) in ((5, (MID - 3, "south")), (10, (MID + 3, "north")), (11, (MID - 3, "south"))):
+        y.set(x, G + 1, z, "mobtalk:park_bench", {"facing": facing})
+        y.set(x + 1, G + 1, z, "mobtalk:bin_metal", {"facing": facing})
+    y.lamp(6, MID + 3, "north", double=True)
+    y.lamp(14, MID - 3, "south", double=True)
+    y.set(1, G + 1, MID - 4, "mobtalk:bike_rack", {"facing": "east"})
+    y.flowers(0, 0, SX - 1, 1, 0.12)
+    y.flowers(0, SZ - 2, SX - 1, SZ - 1, 0.12)
+
+
+BUILD = {"playground": playground, "parking": parking, "square": square, "alley": alley}
 
 
 def build_all(save):
