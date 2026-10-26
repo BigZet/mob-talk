@@ -196,6 +196,47 @@ public final class ConversationStore {
     public synchronized long revizorDay(String village) { Long d = state.officials.revizors.get(village); return d == null ? -1 : d; }
     public synchronized void revizorSchedule(String village, long day) { if (day < 0) state.officials.revizors.remove(village); else state.officials.revizors.put(village, day); scheduleSave(); }
     public synchronized Map<String, Long> revizors() { return new LinkedHashMap<>(state.officials.revizors); }
+    /** ЗАГС: enters the family tree's new births, marriages, divorces and deaths in the book of acts; returns how many. */
+    public synchronized int civilSync(long day) {
+        List<CivilRegistry.Act> added = state.officials.civil.sync(state.family, day, "", id -> {
+            Profile p = state.profiles.get(id.toString());
+            if (p != null) return SocialLedger.name(p);
+            return state.players.get(id.toString());
+        });
+        if (!added.isEmpty()) scheduleSave();
+        return added.size();
+    }
+    /** Self-tests: the player married to {@code spouse} with a child {@code child}, straight into the family tree. */
+    public synchronized void familyForTest(UUID player, String playerName, UUID spouse, String spouseName, UUID child, String childName) {
+        state.family.marry(player, playerName, Gender.MALE, true, spouse, spouseName, Gender.FEMALE, false);
+        state.family.addChild(child, childName, Gender.MALE, spouse, player);
+        scheduleSave();
+    }
+    /** Self-tests: the test family undone (no spouse following the player into the next stages, no children). */
+    public synchronized void familyClearForTest(UUID player) {
+        state.family.divorce(player);
+        for (UUID child : state.family.children(player)) state.family.nodes.remove(child.toString());
+        FamilyTree.Node node = state.family.nodes.get(player.toString());
+        if (node != null) node.children.clear();
+        scheduleSave();
+    }
+    /** What this office's window can give the player now. */
+    public synchronized List<CivilRegistry.Offer> civilPapers(UUID player, Officialdom.Rank office, boolean openOrder) { return state.officials.civil.papers(player, state.family, office, openOrder); }
+    public synchronized CivilRegistry.Act civilAct(int number) { return state.officials.civil.act(number); }
+    public synchronized boolean civilRepeated(CivilRegistry.Paper paper, int act, UUID player) { return state.officials.civil.repeated(paper, act, player); }
+    /** Issues the paper (marks a certificate issued) and returns the blank's series and number. */
+    public synchronized String civilIssue(CivilRegistry.Paper paper, int act, UUID player) { String n = state.officials.civil.issue(paper, act, player); scheduleSave(); return n; }
+    public synchronized List<CivilRegistry.Act> civilActs() { return state.officials.civil.acts(); }
+    /** The player's family as the справка о составе семьи lists it: «супруга — Аксинья», «сын — Ваня (умер)». */
+    public synchronized List<String> civilFamily(UUID player) {
+        List<String> out = new ArrayList<>();
+        for (FamilyTree.Kin kin : state.family.kin(player)) {
+            String name = kin.name();
+            if (name == null || name.isBlank()) { Profile p = state.profiles.get(kin.id().toString()); name = p == null ? "без имени" : SocialLedger.name(p); }
+            out.add(kin.word() + " — " + name + (kin.dead() ? " (умер)" : ""));
+        }
+        return out;
+    }
     public synchronized String paperIssue(UUID player, String village, long day) { String n = state.officials.issuePassport(player, village, day); scheduleSave(); return n; }
     public synchronized List<Officialdom.Fine> officialFines() { return state.officials.open().stream().map(Officialdom.Fine::copy).toList(); }
 

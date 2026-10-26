@@ -101,6 +101,7 @@ public final class MobTalkAdminSource implements UnaryOperator<String> {
             new Extra("officialRevizor", Tunables.Section.SOCIAL, "officials", "bool", null, "Ревизор по компромату", null),
             new Extra("officialsShameless", Tunables.Section.SOCIAL, "officials", "bool", null, "Чиновники особенно наглые (для эфира)", null),
             new Extra("officialGossip", Tunables.Section.SOCIAL, "officials", "bool", null, "Жители ругают чиновников и намекают на взятки", null),
+            new Extra("officialPapers", Tunables.Section.SOCIAL, "officials", "bool", null, "Справки и свидетельства ЗАГС у чиновников", null),
             new Extra("divineTidings", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
             new Extra("divinePanic", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
             new Extra("divineMayExile", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
