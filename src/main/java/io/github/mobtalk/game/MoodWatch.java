@@ -13,7 +13,14 @@ import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.passive.IronGolemEntity;
 import net.minecraft.entity.passive.VillagerEntity;
+import net.minecraft.block.entity.BarrelBlockEntity;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.ChestBlockEntity;
+import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SimpleInventory;
+import net.minecraft.item.Items;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.chunk.WorldChunk;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -27,7 +34,8 @@ import java.util.*;
 /** The world side of the moods: every ten seconds each known villager near a player is looked at — the sky over it, the night,
  * monsters and a golem around, the village alarm or a raid, its wounds, its bed and work, its sleep, who stands next to it — and
  * the store turns that into lasting factors and long moods ({@link io.github.mobtalk.core.MobState}). Hunger is kept here too: a
- * peckish villager eats from its own pockets or a neighbour shares ({@link Hunger}), and a village whose residents carry less than
+ * peckish villager eats from its own pockets (bakes bread from three wheat first), a neighbour shares, or it takes a meal from a chest
+ * or barrel near it ({@link Hunger}), and a village whose residents carry less than
  * a meal each has empty larders. A villager in apathy lies in its own bed day and night ({@link #afterBrain}). Only villagers someone
  * already knows: a stranger has no mood worth keeping. Server thread only. */
 final class MoodWatch {
@@ -36,6 +44,8 @@ final class MoodWatch {
     private static final double RANGE = 48, MONSTERS = 12, GOLEM = 16, NEAR = 8;
     /** How far a hungry villager goes to ask a neighbour for food. */
     private static final double SHARE = 16;
+    /** How far a hungry villager reaches for food in a chest or barrel; three wheat bake one bread. */
+    private static final int PANTRY = 10, WHEAT_PER_BREAD = 3;
     private final MobGameBridge bridge;
     /** Villagers in apathy, kept in bed; refreshed every watch. */
     private final Set<UUID> bedridden = new HashSet<>();
@@ -57,8 +67,9 @@ final class MoodWatch {
         for (ServerPlayerEntity player : world.getPlayers())
             for (UUID id : seen.keySet()) if (!watcher.containsKey(id) && seen.get(id).squaredDistanceTo(player) <= RANGE * RANGE) watcher.put(id, player.getUuid());
         boolean hunger = bridge.config.moodHungerMinutes > 0;
-        if (hunger) for (VillagerEntity villager : seen.values()) eat(world, villager, now);
-        Map<String, int[]> larders = larders(seen.values(), now);
+        List<Pantry> pantries = hunger ? pantries(world, seen.values()) : List.of();
+        if (hunger) for (VillagerEntity villager : seen.values()) eat(world, villager, pantries, now);
+        Map<String, int[]> larders = larders(seen.values(), pantries, now);
         bedridden.clear();
         for (VillagerEntity villager : seen.values()) {
             String village = bridge.memory.villageOf(villager.getUuid());
@@ -71,13 +82,15 @@ final class MoodWatch {
     }
 
     /** A peckish villager eats: the best food in its own pockets, else a neighbour's (one in apathy does not go asking). */
-    private void eat(ServerWorld world, VillagerEntity villager, long now) {
+    private void eat(ServerWorld world, VillagerEntity villager, List<Pantry> pantries, long now) {
         if (bridge.memory.hunger(villager.getUuid(), now) == Hunger.Level.FED) return;
+        bake(villager.getInventory());
         Hunger.Meal own = take(villager.getInventory(), false);
         if (own != null) { take(villager.getInventory(), true); bridge.memory.meal(villager.getUuid(), own, "", null, "", now); return; }
         MobState.View view = bridge.memory.stateView(villager.getUuid(), null);
         if (view != null && view.spell() != null && view.spell().bedridden()) return;
         for (VillagerEntity other : world.getEntitiesByClass(VillagerEntity.class, villager.getBoundingBox().expand(SHARE), v -> v != villager && v.isAlive())) {
+            bake(other.getInventory());
             Hunger.Meal shared = take(other.getInventory(), false);
             if (shared == null) continue;
             take(other.getInventory(), true);
@@ -85,10 +98,60 @@ final class MoodWatch {
             bridge.memory.meal(villager.getUuid(), shared, "поделился " + (name.isBlank() ? "сосед" : name), null, "", now);
             return;
         }
+        for (Pantry pantry : pantries) {
+            if (!pantry.pos().isWithinDistance(villager.getBlockPos(), PANTRY)) continue;
+            Hunger.Meal stored = take(pantry.inventory(), false);
+            if (stored == null) continue;
+            take(pantry.inventory(), true);
+            bridge.memory.meal(villager.getUuid(), stored, "", null, "", now);
+            return;
+        }
+    }
+
+    /** A chest or barrel in a loaded chunk around the villagers; a hungry one takes a meal from it. */
+    private record Pantry(BlockPos pos, Inventory inventory) { }
+
+    /** Chests and barrels in the loaded chunks around these villagers (block entities only: no block scan). */
+    private static List<Pantry> pantries(ServerWorld world, Collection<VillagerEntity> villagers) {
+        Set<Long> chunks = new HashSet<>();
+        for (VillagerEntity villager : villagers) {
+            ChunkPos at = villager.getChunkPos();
+            for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) chunks.add(ChunkPos.toLong(at.x + dx, at.z + dz));
+        }
+        List<Pantry> out = new ArrayList<>();
+        for (long key : chunks) {
+            int x = ChunkPos.getPackedX(key), z = ChunkPos.getPackedZ(key);
+            if (!world.isChunkLoaded(x, z)) continue;
+            WorldChunk chunk = world.getChunk(x, z);
+            for (BlockEntity entity : chunk.getBlockEntities().values())
+                if (entity instanceof ChestBlockEntity || entity instanceof BarrelBlockEntity) out.add(new Pantry(entity.getPos(), (Inventory) entity));
+        }
+        return out;
+    }
+
+    /** No ready food but wheat in the pockets: three wheat become one bread (what a farmer does with the harvest). */
+    private static void bake(Inventory inventory) {
+        if (take(inventory, false) != null) return;
+        int wheat = 0;
+        for (int i = 0; i < inventory.size(); i++) if (inventory.getStack(i).isOf(Items.WHEAT)) wheat += inventory.getStack(i).getCount();
+        if (wheat < WHEAT_PER_BREAD) return;
+        int slot = -1;
+        for (int i = 0; i < inventory.size() && slot < 0; i++) if (inventory.getStack(i).isEmpty()) slot = i;
+        int left = WHEAT_PER_BREAD;
+        for (int i = 0; i < inventory.size() && left > 0; i++) {
+            ItemStack stack = inventory.getStack(i);
+            if (!stack.isOf(Items.WHEAT)) continue;
+            int used = Math.min(left, stack.getCount());
+            stack.decrement(used); left -= used;
+            if (slot < 0 && stack.isEmpty()) slot = i;
+        }
+        if (slot < 0) return; // the pockets are full: the wheat is spent but no bread fits (never happens with 3 wheat in one stack)
+        inventory.setStack(slot, new ItemStack(Items.BREAD));
+        inventory.markDirty();
     }
 
     /** The best meal in these pockets (a treat, then a hearty one, then a meagre one); {@code eat} takes one of it. */
-    private static Hunger.Meal take(SimpleInventory inventory, boolean eat) {
+    private static Hunger.Meal take(Inventory inventory, boolean eat) {
         int best = -1; Hunger.Meal meal = null;
         for (int i = 0; i < inventory.size(); i++) {
             ItemStack stack = inventory.getStack(i);
@@ -100,7 +163,7 @@ final class MoodWatch {
     }
 
     /** Meals in the residents' pockets and the residents seen, by village; told to the store for the admin. */
-    private Map<String, int[]> larders(Collection<VillagerEntity> villagers, long now) {
+    private Map<String, int[]> larders(Collection<VillagerEntity> villagers, List<Pantry> pantries, long now) {
         Map<String, int[]> out = new HashMap<>();
         for (VillagerEntity villager : villagers) {
             String village = bridge.memory.villageOf(villager.getUuid());
@@ -110,7 +173,14 @@ final class MoodWatch {
             for (int i = 0; i < inventory.size(); i++) {
                 ItemStack stack = inventory.getStack(i);
                 if (!stack.isEmpty() && Hunger.meal(Registries.ITEM.getId(stack.getItem()).toString()) != null) larder[0] += stack.getCount();
+                else if (stack.isOf(Items.WHEAT)) larder[0] += stack.getCount() / WHEAT_PER_BREAD;
             }
+            for (Pantry pantry : pantries)
+                if (pantry.pos().isWithinDistance(villager.getBlockPos(), PANTRY))
+                    for (int i = 0; i < pantry.inventory().size(); i++) {
+                        ItemStack stack = pantry.inventory().getStack(i);
+                        if (!stack.isEmpty() && Hunger.meal(Registries.ITEM.getId(stack.getItem()).toString()) != null) larder[0] += stack.getCount();
+                    }
             larder[1]++;
             if (bridge.memory.hunger(villager.getUuid(), now).atLeast(Hunger.Level.HUNGRY)) larder[2]++;
         }
