@@ -69,6 +69,8 @@ final class SelfTest {
     static final boolean ONLY_PACK = "pack".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=furniture}: the new city's flat furniture in a show flat — placing, sitting, lamps, curtains, screenshots. */
     static final boolean ONLY_FURNITURE = "furniture".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=fences}: the Soviet yard fences ({@code /city fences}) — joins, posts, gates, screenshots. */
+    static final boolean ONLY_FENCES = "fences".equals(System.getProperty("mobtalk.selftest.only"));
     /** Phrases voiced once for Whisper stages and reused by later runs ({@code -Dmobtalk.selftest.notts=true} keeps TTS off otherwise). */
     static java.nio.file.Path fixtures() {
         String local = System.getenv("LOCALAPPDATA");
@@ -172,6 +174,7 @@ final class SelfTest {
             villager = nearest(VillagerEntity.class); cow = nearest(CowEntity.class);
             return villager != null && cow != null && MobSpeechSound.find(owner.world, villager) != null && MobSpeechSound.find(owner.world, cow) != null;
         }, ONLY_LIFT ? () -> new SelfTestLift(this, sx, SY, sz).run(this::finish)
+                : ONLY_FENCES ? () -> new SelfTestFences(this, sx, SY, sz).run(this::finish)
                 : ONLY_VOICEFIX ? () -> new SelfTestVoiceFix(this, villager, cow, sx, SY, sz).run(this::finish)
                 : ONLY_PLACE ? () -> new SelfTestPlace(this, cow, sx, SY, sz).run(this::finish)
                 : ONLY_CTOV ? () -> new SelfTestCtov(this, cow, sx, SY, sz).run(this::finish)

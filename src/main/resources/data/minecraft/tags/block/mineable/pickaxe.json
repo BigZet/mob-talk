@@ -98,6 +98,20 @@
   "mobtalk:step_terrazzo",
   "mobtalk:wall_lo",
   "mobtalk:wall_mid",
-  "mobtalk:wall_hi"
+  "mobtalk:wall_hi",
+  "mobtalk:chainlink_fence_galv",
+  "mobtalk:chainlink_fence_green",
+  "mobtalk:lattice_fence_green",
+  "mobtalk:lattice_fence_blue",
+  "mobtalk:lattice_fence_yellow",
+  "mobtalk:lattice_fence_red",
+  "mobtalk:concrete_fence",
+  "mobtalk:concrete_fence_diamond",
+  "mobtalk:chainlink_gate_galv",
+  "mobtalk:chainlink_gate_green",
+  "mobtalk:lattice_gate_green",
+  "mobtalk:lattice_gate_blue",
+  "mobtalk:lattice_gate_yellow",
+  "mobtalk:lattice_gate_red"
  ]
 }

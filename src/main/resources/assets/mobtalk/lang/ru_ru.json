@@ -1438,5 +1438,19 @@
   "block.mobtalk.window_brick_hi": "Окно, верхняя часть, с фрамугой",
   "block.mobtalk.window_silicate_lo": "Окно, нижняя часть, с подоконником",
   "block.mobtalk.window_silicate_mid": "Окно, середина",
-  "block.mobtalk.window_silicate_hi": "Окно, верхняя часть, с фрамугой"
+  "block.mobtalk.window_silicate_hi": "Окно, верхняя часть, с фрамугой",
+  "block.mobtalk.chainlink_fence_galv": "Сетка-рабица (оцинкованная)",
+  "block.mobtalk.chainlink_gate_galv": "Калитка из рабицы (оцинкованная)",
+  "block.mobtalk.chainlink_fence_green": "Сетка-рабица (зелёная)",
+  "block.mobtalk.chainlink_gate_green": "Калитка из рабицы (зелёная)",
+  "block.mobtalk.lattice_fence_green": "Сварной забор с ромбами (зелёный)",
+  "block.mobtalk.lattice_gate_green": "Калитка с ромбами (зелёная)",
+  "block.mobtalk.lattice_fence_blue": "Сварной забор с ромбами (голубой)",
+  "block.mobtalk.lattice_gate_blue": "Калитка с ромбами (голубая)",
+  "block.mobtalk.lattice_fence_yellow": "Сварной забор с ромбами (жёлтый)",
+  "block.mobtalk.lattice_gate_yellow": "Калитка с ромбами (жёлтая)",
+  "block.mobtalk.lattice_fence_red": "Сварной забор с ромбами (красный)",
+  "block.mobtalk.lattice_gate_red": "Калитка с ромбами (красная)",
+  "block.mobtalk.concrete_fence": "Бетонный забор ПО-2",
+  "block.mobtalk.concrete_fence_diamond": "Бетонный забор с ромбиками"
 }
