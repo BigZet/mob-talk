@@ -1400,5 +1400,7 @@
   "car.mobtalk.vaz2114": "VAZ-2114 Samara",
   "car.mobtalk.niva": "VAZ-2121 Niva",
   "car.mobtalk.uaz452": "UAZ-452 «Bukhanka»",
-  "car.mobtalk.paz3205": "PAZ-3205 bus"
+  "car.mobtalk.paz3205": "PAZ-3205 bus",
+  "car.mobtalk.gaz53": "GAZ-53 truck",
+  "car.mobtalk.gaz53milk": "GAZ-53 milk tanker"
 }

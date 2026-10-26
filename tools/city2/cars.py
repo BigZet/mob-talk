@@ -25,7 +25,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import carvox as V  # noqa: E402
 from carvox import (AIR, PAINT, GLASS, CHROME, BLACK, TIRE, RIM, HEAD, TAIL, TURN, SEAT, DASH, FLOOR, PLATE, STEER,  # noqa: E402
-                    UNDER, GRILLE, BLUE, RED, TRIM, PAINT2, ALU, LAMP, REVERSE, MIRROR, CANVAS, RUST, Vox, pl)
+                    UNDER, GRILLE, BLUE, RED, TRIM, PAINT2, ALU, LAMP, REVERSE, MIRROR, CANVAS, RUST, WOOD, TANK, FRONT,
+                    Vox, pl)
 import fur_paint as FP  # noqa: E402
 
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
@@ -51,6 +52,7 @@ COLOURS = {
     "olive": ("Защитный", "#5d6340"), "beige": ("Бежевый", "#d8c9a4"), "sky": ("Голубой", "#8fb5d4"),
     "yellow": ("Жёлтый", "#e2b931"), "green": ("Зелёный", "#3c6b3a"), "quartz": ("Кварц", "#7d8a8f"),
     "plum": ("Мускат", "#4e3a52"), "cream": ("Слоновая кость", "#e5dcc0"), "red": ("Красный", "#b8302a"),
+    "sage": ("Серо-зелёный", "#8fa39a"),
 }
 # liveries: base colour, stripe colour, words on the doors, beacon on the roof
 LIVERIES = {
@@ -214,13 +216,17 @@ class Look:
         self.extra = extra            # fn(mesh, out, scheme) -> car-specific decals
 
 
+PAINTS = (PAINT, PAINT2, FRONT, TANK)
+
 BAYER = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]) / 16.0
 
 
 def colours(car, look, scheme):
     """The painter of one scheme: returns fn(mesh) -> texel colours."""
     liv = LIVERIES.get(scheme)
-    paint = rgb(liv["base"]) if liv else rgb(COLOURS[scheme][1])
+    combo = car.info.get("combos", {}).get(scheme)
+    paint = rgb(liv["base"]) if liv else rgb(combo["paint"]) if combo else rgb(COLOURS[scheme][1])
+    combo = combo or {}
 
     def fn(mesh):
         n = mesh.mat.size
@@ -235,22 +241,28 @@ def colours(car, look, scheme):
             out[m, :3] = c
 
         base = {
-            CHROME: rgb("#c9ced3"), BLACK: rgb("#262628"), TIRE: rgb("#232325"), RIM: rgb("#8d9093"), HEAD: rgb("#dfe3dc"),
-            TAIL: rgb("#a3201c"), TURN: rgb("#d9822b"), SEAT: look.seat, DASH: look.dash, FLOOR: look.floor,
+            CHROME: rgb("#c9ced3"), BLACK: rgb("#262628"), TIRE: rgb("#232325"), RIM: rgb("#8d9093"), HEAD: rgb("#cdd6d9"),
+            TAIL: rgb("#b0231d"), TURN: rgb("#e08a2c"), SEAT: look.seat, DASH: look.dash, FLOOR: look.floor,
             PLATE: rgb("#e8e8e2"), STEER: rgb("#1e1e20"), UNDER: rgb("#3a3836"), GRILLE: rgb("#1c1c1e"), BLUE: rgb("#2f5fe0"),
             RED: rgb("#d8261e"), TRIM: look.trim, ALU: rgb("#b4b8bb"), LAMP: rgb("#f1eedc"), REVERSE: rgb("#e9e9e4"),
             MIRROR: rgb("#9fb3bf"), CANVAS: rgb("#5b5e45"), RUST: rgb("#7a4a2a"), PAINT2: rgb("#e9e7e0"),
+            WOOD: rgb(combo.get("wood", "#7a6a50")), TANK: rgb(combo.get("tank", "#e5bf1e")),
+            FRONT: rgb(combo["front"]) if "front" in combo else paint,
         }
         for m_, c in base.items():
             put(mat == m_, c)
         pm = mat == PAINT
         put(pm, paint)
+        if "lower" in combo:
+            put((mat == PAINT) & (P[:, 1] < combo["lower_y"]) & (mesh.vid == 0), rgb(combo["lower"]))
+        put(mat == PAINT2, rgb(combo["paint2"]) if "paint2" in combo else paint if combo else base[PAINT2])
+        pm = np.isin(mat, PAINTS)
         # faces: tops a little lighter, undersides dark
         up, down = d == 2, d == 3
         out[pm & up, :3] = ramp_col(out[pm & up, :3], 1.06)
         low = P[:, 1] < car.info.get("belt", 1e9) - 2.0
-        out[np.isin(mat, (PAINT, PAINT2)) & down & low, :3] = base[UNDER]
-        out[np.isin(mat, (PAINT, PAINT2)) & down & ~low, :3] *= 0.86
+        out[np.isin(mat, PAINTS) & down & low, :3] = base[UNDER]
+        out[np.isin(mat, PAINTS) & down & ~low, :3] *= 0.86
         # inside the cabin: trim on the walls, the headliner overhead, the floor mat
         if look.cabin is not None:
             cz = car.info.get("cabin_z", 0.0)
@@ -259,7 +271,7 @@ def colours(car, look, scheme):
             # sideways faces looking into the cabin; floors under the belt line; ceilings (the roof's underside) high up
             inward = ((np.einsum("ij,ij->i", nrm, toward) > 0) & (d != 2) & (d != 3)) | ((d == 2) & (P[:, 1] < belt_y)) | \
                      ((d == 3) & (P[:, 1] > car.info.get("roof", 1e9) - 2.5))
-            inside = look.cabin(P) & np.isin(mat, (PAINT, PAINT2, UNDER)) & inward
+            inside = look.cabin(P) & np.isin(mat, PAINTS + (UNDER,)) & inward
             put(inside & (down), look.headliner)
             put(inside & ~down & ~up, look.trim)
             put(inside & up, look.floor)
@@ -267,19 +279,26 @@ def colours(car, look, scheme):
         g = mat == GLASS
         streak = ((P[:, 2] + P[:, 1] * 0.9 + P[:, 0] * 0.7) % 22.0) < 1.6
         soft = (((P[:, 2] + P[:, 1] * 0.9 + P[:, 0] * 0.7) % 22.0) >= 1.6) & (((P[:, 2] + P[:, 1] * 0.9 + P[:, 0] * 0.7) % 22.0) < 3.0)
-        put(g, rgb("#2c4450"))
-        out[g, 3] = 105
-        put(g & streak, rgb("#7d9eab"))
-        out[g & streak, 3] = 135
-        put(g & soft, rgb("#4f6c78"))
-        out[g & soft, 3] = 115
+        put(g, rgb("#3b5866"))
+        out[g, 3] = 62
+        put(g & streak, rgb("#9fbecb"))
+        out[g & streak, 3] = 92
+        put(g & soft, rgb("#6d8c99"))
+        out[g & soft, 3] = 74
+        # the windshield clearest of all: only a faint tint and a single soft glint
+        if "ws_z" in car.info:
+            ws = g & ((d == 4) | (d == 2)) & (P[:, 2] > car.info["ws_z"])
+            put(ws, rgb("#4a6a78"))
+            out[ws, 3] = 40
+            put(ws & streak, rgb("#a9c6d2"))
+            out[ws & streak, 3] = 70
         # seen from inside the glass is clear, with no streaks (they filled the driver's view)
         if look.cabin is not None:
             cz = car.info.get("cabin_z", 0.0)
             into = np.einsum("ij,ij->i", nrm, np.stack([-P[:, 0], car.info.get("roof", 20) * 0.6 - P[:, 1], cz - P[:, 2]], 1)) > 0
             gi = g & into
-            put(gi, rgb("#3a5560"))
-            out[gi, 3] = 55
+            put(gi, rgb("#45626e"))
+            out[gi, 3] = 30
         # chrome: a bright upper half and a darker lower band, like a horizon in it
         ch = np.isin(mat, (CHROME, ALU)) & (mesh.vid == 0)
         frac = (P[:, 1] * 2) % 2
@@ -302,11 +321,16 @@ def colours(car, look, scheme):
                 out[near & (rr < 0.8), :3] = rgb("#3a3b3d")
                 out[near & (rr > 0.8) & (np.floor(ang / (np.pi / 4)) % 2 == 0), :3] *= 0.82
                 out[near & (rr > w["r"] * 0.55), :3] *= 0.9
-        # lamps: a lens grid
+        # lamps: a ribbed lens, darker toward its rim, a glint in the headlamps
+        anyedge = np.any(mesh.edge, axis=1)
         for lm in (HEAD, TAIL, TURN, LAMP, REVERSE, BLUE, RED):
             mm = mat == lm
             grid = ((tu % 3 == 0) | (tv % 3 == 0)) & mm
-            out[grid, :3] = ramp_col(out[grid, :3], 0.82 if lm != HEAD else 0.9)
+            out[grid, :3] = ramp_col(out[grid, :3], 0.82 if lm != HEAD else 0.88)
+            out[mm & anyedge, :3] = ramp_col(out[mm & anyedge, :3], 0.72)
+        hm = (mat == HEAD) & ~anyedge
+        put(hm & (dith < 0.12), rgb("#ffffff"))
+        put(hm & (dith > 0.88), rgb("#9fb0b8"))
         # plates: a black frame and dark marks for the number
         pmask = mat == PLATE
         if pmask.any():
@@ -352,10 +376,29 @@ def colours(car, look, scheme):
             hm = sides_all & (abs(P[:, 2] - zh) < 1.0) & (abs(P[:, 1] - yh) < 0.5)
             put(hm, rgb("#c7ccd1"))
             put(hm & (P[:, 1] < yh), rgb("#7f8489"))
+        for z0, z1, y0, y1 in car.info.get("louvre", []):
+            # louvres: dark slits with a light lip over each
+            lm = sides_all & (P[:, 2] > z0) & (P[:, 2] < z1) & (P[:, 1] > y0) & (P[:, 1] < y1)
+            ph = (P[:, 1] - y0) % 1.0
+            put(lm & (ph < 0.5), rgb("#1d1e1c"))
+            out[lm & (ph >= 0.5), :3] = ramp_col(out[lm & (ph >= 0.5), :3], 1.15)
         if look.extra:
             look.extra(mesh, out, scheme)
-        # pixel-art bevels: a lighter top edge, a darker bottom edge on every surface; seams of doors and lids dark
-        e = mesh.edge
+        # curves built of steps are shaded as the curves they stand for: every texel lit as Minecraft would light the
+        # smoothed body there (relative to the light its own face gets), a glossy line along the shoulders
+        ns = mesh.smooth_normal()
+        yaws = range(0, 360, 45)
+        ratio = np.clip(V.mc_light(ns, yaws) / V.mc_light(nrm, yaws), 0.55, 1.7)
+        curved = np.einsum("ij,ij->i", ns, nrm) < 0.9
+        # only the steps of a real curve: flat panels keep their own light (the wheel arches' hollows would smudge them)
+        ratio[~curved] = 1.0
+        body_t = (mesh.vid == 0) & (mat != GLASS)
+        out[body_t, :3] *= ratio[body_t][:, None]
+        gloss = body_t & np.isin(mat, PAINTS) & (ns[:, 1] > 0.45) & (ns[:, 1] < 0.8)
+        out[gloss, :3] = ramp_col(out[gloss, :3], 1.08)
+        # pixel-art bevels: a lighter top edge, a darker bottom edge on every flat surface; seams of doors and lids dark
+        e = mesh.edge.copy()
+        e[curved & body_t] = False
         # no bevels on the greenhouse's stepped pillars (they made teeth of the slopes), nor on the glass
         belt_y = car.info.get("belt", 1e9)
         solidish = ~np.isin(mat, (GLASS,)) & ~((mesh.vid == 0) & (P[:, 1] > belt_y + 0.5) & (P[:, 1] < car.info.get("roof", 0) - 1.0) & (car.info.get("kind", "car") == "car"))
@@ -367,7 +410,7 @@ def colours(car, look, scheme):
         out[side_e & up, :3] = ramp_col(out[side_e & up, :3], 1.1)
         edges_v = solidish & (e[:, 4] | e[:, 5] | e[:, 0] | e[:, 1]) & (d < 2 | (d > 3))
         out[edges_v & ~lit & ~dark, :3] = ramp_col(out[edges_v & ~lit & ~dark, :3], 0.92)
-        sm = mesh.seam & np.isin(mat, (PAINT, PAINT2))
+        sm = mesh.seam & np.isin(mat, PAINTS)
         out[sm, :3] = ramp_col(out[sm, :3], 0.42)
         return np.clip(out, 0, 255).astype(np.uint8)
     return fn
@@ -438,7 +481,7 @@ def three_box(c, p):
         pillars |= (Z > z0) & (Z < z1)
     side = abs(X) > half - 1.2
     # the windshield and the rear window keep a frame at their sides; the A and C pillars run along the slopes
-    a_pillar = (Z > front_edge - 1.6) & side
+    a_pillar = (Z > front_edge - p.get("a_width", 1.6)) & side
     c_pillar = (Z < rear_edge + p.get("c_width", 1.6)) & side
     frame_ws = (abs(X) > half - 1.6) & ~side & ((Z > front_edge - 2.2) | (Z < rear_edge + 2.2))
     win = glass & ~(pillars & side) & ~a_pillar & ~c_pillar & ~frame_ws
@@ -496,13 +539,16 @@ def lada_classic_front(c, g, p, style="2107"):
     # the front panel: headlamps, the grille, the indicators wrapping the corners
     face = (Z > zf - 1.01) & body.solid()
     if style == "2107":
-        body.set(face & (abs(X) > 3.2) & (abs(X) < 10.6) & (Y > 7.6) & (Y < 10.6), BLACK)
-        body.set(face & (abs(X) > 3.7) & (abs(X) < 10.1) & (Y > 8.1) & (Y < 10.1), HEAD)
-        body.set(face & (abs(X) > 10.6) & (Y > 7.6) & (Y < 10.6), TURN)
-        body.set((Z > zf - 3.5) & (abs(X) > half - 1.01) & (Y > 7.6) & (Y < 10.6) & body.solid(), TURN)
-        # the tall chrome grille, standing out a cell, with the hood's centre bulge above it
-        body.box(-3, 6.5, zf - 1, 3, 11.8, zf + 1, CHROME)
-        body.box(-2.5, 7.0, zf - 0.5, 2.5, 11.3, zf + 1.01, GRILLE)
+        # the big rectangular headlamp blocks (two lenses each behind one glass) in chrome rims, the indicators wrapping the
+        # corners, and between them the wide chrome-framed grille of fine mesh standing out a cell, the bonnet's bulge over it
+        body.set(face & (abs(X) > 5.0) & (abs(X) < 11.2) & (Y > 7.4) & (Y < 11.4), CHROME)
+        body.set(face & (abs(X) > 5.5) & (abs(X) < 10.7) & (Y > 7.9) & (Y < 10.9), HEAD)
+        body.set(face & (abs(X) > 7.9) & (abs(X) < 8.4) & (Y > 7.9) & (Y < 10.9), CHROME)
+        body.set(face & (abs(X) > 11.2) & (Y > 7.4) & (Y < 10.4), TURN)
+        body.set((Z > zf - 3.5) & (abs(X) > half - 1.01) & (Y > 7.4) & (Y < 10.4) & body.solid(), TURN)
+        body.box(-5.0, 7.0, zf - 1, 5.0, 11.8, zf + 1, CHROME)
+        body.box(-4.5, 7.5, zf - 0.5, 4.5, 11.3, zf + 1.01, GRILLE)
+        body.box(-1.2, 9.0, zf + 0.9, 1.2, 10.4, zf + 1.4, CHROME)  # the badge in the grille's middle
     elif style == "2106":
         for cxs in (5.0, 8.4):
             R = np.sqrt((abs(X) - cxs) ** 2 + (Y - 9.1) ** 2)
@@ -585,6 +631,15 @@ def cabin_region(c, p):
     return fn
 
 
+def grille_mesh(step=1.0):
+    """A grille of fine bars both ways (the Zhiguli's)."""
+    def fn(mesh, sel, out):
+        P = mesh.P
+        bars = sel & (((np.floor(P[:, 0] / step * 2) % 2) == 0) | ((np.floor(P[:, 1] / step * 2) % 2) == 0))
+        out[bars, :3] = rgb("#9a9fa4")
+    return fn
+
+
 def grille_bars(step=1.0, horizontal=False, frame=None):
     def fn(mesh, sel, out):
         q = mesh.P[:, 1] if horizontal else mesh.P[:, 0]
@@ -596,6 +651,7 @@ def grille_bars(step=1.0, horizontal=False, frame=None):
 def finish(c, p, look):
     c.look = look
     c.info.setdefault("stripe", (c.info["belt"] - 3.5, c.info["belt"] - 1.5))
+    c.info.setdefault("ws_z", c.info.get("cabin_z", 0.0))
     return c
 
 
@@ -604,7 +660,7 @@ def vaz2107():
     """ВАЗ-2107 «семёрка» (1982–2012): 4.145 × 1.620 × 1.435 m, wheelbase 2.424, 13-inch wheels."""
     p = dict(L=66.3, W=25.9, H=23.0, wheelbase=38.8, front=19.4, r=4.6, clear=3.0, belt=13.6, sill=3.6, tumble=2.0,
              cowl_z=9.0, ws_top_z=2.6, roof_rear_z=-14.6, rw_bottom_z=-20.0, cabin_front=7.4, cabin_rear=-17.0,
-             pillars=[(-5.2, -3.6)], corner=1.2,
+             pillars=[(-5.2, -3.6)], corner=1.2, a_width=2.6, c_width=3.6,
              bottom=[(-33.2, 4.6), (-30, 3.4), (30, 3.4), (33.2, 4.6)],
              top=[(-33.2, 12.6), (-21, 13.3), (8, 13.6), (12, 13.1), (33.2, 11.8)])
     c = Car("vaz2107", p["L"], p["W"], p["H"])
@@ -623,7 +679,7 @@ def vaz2107():
     beacon(c, p["H"], -4.0)
     c.body.box(-4.0, 5.2, p["L"] / 2 + 0.9, 4.0, 7.4, p["L"] / 2 + 1.6, PLATE)
     c.info.update(word=(-4.0, 11.75, 2.5), stripe=(8.4, 10.4), moulding=(8.4, 9.0), handles=[(-3.2, 12.3), (-15.0, 12.3)])
-    return finish(c, p, Look(cabin=cabin_region(c, p), seat="#5e3d2b", trim="#4e4842", grille=grille_bars(1.0)))
+    return finish(c, p, Look(cabin=cabin_region(c, p), seat="#5e3d2b", trim="#4e4842", grille=grille_mesh(1.0)))
 
 
 def wheels4(c, p, width=3.0, hub="cap", inset=2.0, rear_track=None):
@@ -834,12 +890,12 @@ def vaz2114():
     return finish(c, p, Look(cabin=cabin_region(c, p), seat="#3b3d42", trim="#3f4146", headliner="#b9b7b0", grille=None))
 
 
-def arches(c, p, X, Y, Z, half, depth=5.5):
+def arches(c, p, X, Y, Z, half, depth=5.5, grow=1.6):
     body = c.body
     for wz in (p["front"], p["front"] - p["wheelbase"]):
         R = np.sqrt((Y - p["r"]) ** 2 + (Z - wz) ** 2)
-        body.set((R < p["r"] + 1.6) & (abs(X) > half - depth), AIR)
-        well = (R < p["r"] + 2.6) & (R >= p["r"] + 1.6) & (abs(X) > half - depth) & (abs(X) < half - 0.9) & body.solid()
+        body.set((R < p["r"] + grow) & (abs(X) > half - depth), AIR)
+        well = (R < p["r"] + grow + 1.0) & (R >= p["r"] + grow) & (abs(X) > half - depth) & (abs(X) < half - 0.9) & body.solid()
         above = np.zeros_like(well)
         above[:, :-2, :] = body.solid()[:, 2:, :]
         body.set(well & above, UNDER)
@@ -980,132 +1036,539 @@ def niva():
     return finish(c, p, Look(cabin=cabin_region(c, p), seat="#4a3c30", trim="#3f3a35"))
 
 
+def rounded_rect(a, b, ha, hb, r):
+    """Inside a rectangle |a| < ha, |b| < hb with its corners rounded by r (arrays a, b centred on the rectangle)."""
+    da, db = np.maximum(abs(a) - (ha - r), 0), np.maximum(abs(b) - (hb - r), 0)
+    return (abs(a) < ha) & (abs(b) < hb) & (da ** 2 + db ** 2 < r ** 2)
+
+
+def loaf(c, p):
+    """A rounded one-box body (the UAZ «loaf», the PAZ bus) and its hollow: the side profile (nose and tail as z at height y,
+    bottom as y along z), a cross-section with big rounded top corners, a plan with rounded corners (front ones by height).
+    p: W, H, nose [(y, z)], tail [(y, z)], bottom [(z, y)], r_top, r_bottom, r_front [(y, r)], r_rear, floor, belt."""
+    body = c.body
+    hw, H = p["W"] / 2, p["H"]
+    X, Y, Z = body.grids()
+    ax = abs(X)
+    nose, tail, bottom = pl(Y, p["nose"]), pl(Y, p["tail"]), pl(Z, p["bottom"])
+    # cross-section: the top corners rounded by r_top, the bottom ones by r_bottom
+    rt, rb = p["r_top"], p["r_bottom"]
+    # the sides lean in over the belt (tumblehome)
+    hwy = hw - np.maximum(0, Y - p["belt"]) / (H - p["belt"]) * p.get("tumble", 0.0)
+    hwt = hw - p.get("tumble", 0.0) * (1 - rt / 2 / (H - p["belt"]))
+    sec = (ax < hwy) & (Y > bottom) & (Y < H)
+    top_c = (ax > hwt - rt) & (Y > H - rt) & ((ax - (hwt - rt)) ** 2 + (Y - (H - rt)) ** 2 > rt ** 2)
+    bot_c = (ax > hw - rb) & (Y < bottom + rb) & ((ax - (hw - rb)) ** 2 + (Y - (bottom + rb)) ** 2 > rb ** 2)
+    sec &= ~top_c & ~bot_c
+    # plan: the front corners' radius by height, the rear ones fixed
+    rf = pl(Y, p["r_front"])
+    rr = p["r_rear"]
+    fc = (ax > hwy - rf) & (Z > nose - rf) & ((ax - (hwy - rf)) ** 2 + (Z - (nose - rf)) ** 2 > rf ** 2)
+    rc = (ax > hwy - rr) & (Z < tail + rr) & ((ax - (hwy - rr)) ** 2 + (Z - (tail + rr)) ** 2 > rr ** 2)
+    shell = sec & (Z < nose) & (Z > tail) & ~fc & ~rc
+    body.set(shell, PAINT)
+    floor = p["floor"]
+    hollow = V.erode(shell) & (Y > floor) & (Z < p.get("cabin_front", 1e9)) & (Z > p.get("cabin_rear", -1e9))
+    body.set(hollow, AIR)
+    half = np.full(X.shape, hw) + 0 * Y + 0 * Z
+    c.info.update(belt=p["belt"], roof=H, floor=floor, hw=hw, cabin_z=0.0)
+    c.half = half
+    g = dict(X=X, Y=Y, Z=Z, half=half, shell=shell, hollow=hollow)
+    arches(c, p, X, Y, Z, half, depth=p.get("arch_depth", 6.0), grow=p.get("arch_grow", 1.8))
+    return g
+
+
+def skin_of(c, g):
+    return g["shell"] & ~g["hollow"] & c.body.solid()
+
+
+def side_glass(c, g, z0, z1, y0, y1, side=0, r=1.5, mat=GLASS):
+    """A side window with rounded corners on one side (+1, -1) or both (0), cut into the skin."""
+    X, Y, Z = g["X"], g["Y"], g["Z"]
+    m = skin_of(c, g) & (abs(X) > c.info["hw"] - 2.5) & rounded_rect(Z - (z0 + z1) / 2, Y - (y0 + y1) / 2, abs(z1 - z0) / 2, (y1 - y0) / 2, r)
+    if side:
+        m &= X * side > 0
+    c.body.set(m, mat)
+    return m
+
+
+def end_glass(c, g, front, x0, x1, y0, y1, r=1.5, mirror=True):
+    """A window in the nose (front) or the tail skin: |x| in (x0, x1) (mirrored) between y0 and y1, its corners rounded."""
+    X, Y, Z = g["X"], g["Y"], g["Z"]
+    face = face_cells(c, front, depth=1.01) & ~np.isin(c.body.mat, [AIR])
+    xm = (x0 + x1) / 2
+    for sgn in ((1, -1) if mirror else (1,)):
+        m = face & rounded_rect(X * sgn - xm, Y - (y0 + y1) / 2, (x1 - x0) / 2, (y1 - y0) / 2, r)
+        c.body.set(m, GLASS)
+
+
+def pod_lamp(c, x, y, zface, r, mat, ring=CHROME, ring_w=0.6, out=1.0, housing=PAINT, front=True, depth=5.0):
+    """A round lamp standing out of the nose (or the tail) in its own housing: a cylinder along z from inside the face to
+    `out` units before it, the lens and its chrome ring on the end; mirrored across x."""
+    body = c.body
+    X, Y, Z = body.grids()
+    sg = 1 if front else -1
+    for sx in (1, -1):
+        R = np.sqrt((X - sx * x) ** 2 + (Y - y) ** 2)
+        zz = Z * sg
+        tip = zface + out
+        pod = (R < r + ring_w + 0.4) & (zz < tip) & (zz > zface - depth)
+        body.set(pod & ~body.solid() | pod & (body.mat == PAINT), housing)
+        endc = (zz < tip) & (zz > tip - 1.01)
+        body.set(endc & (R < r), mat)
+        if ring is not None:
+            body.set(endc & (R >= r) & (R < r + ring_w), ring)
+
+
 @car
 def uaz452():
-    """УАЗ-452 «буханка» (1965–): the cab-over van, 4.36 × 1.94 × 2.07 m, wheelbase 2.30, 15-inch wheels; round lamps either
-    side of a slotted grille, the roof's edges round as a loaf's; the driver's and the passenger's doors, a double door on the
-    right into the saloon, two leaves at the back."""
-    p = dict(L=69.8, W=31.0, H=33.0, wheelbase=36.8, front=22.0, r=6.4, floor=8.0, belt=19.0, round=8.0, plan_round=4.5,
-             bottom=[(-34.9, 7.0), (-31, 6.0), (31, 6.0), (34.9, 7.0)],
-             nose=[(0, 33.9), (6, 34.9), (17, 34.9), (21, 34.3), (27, 32.6), (33, 28.6)],
-             tail=[(0, -34.9), (28, -34.9), (33, -33.0)])
-    c = Car("uaz452", p["L"], p["W"], p["H"])
+    """УАЗ-452 «буханка» (УАЗ-2206, 1965–): the cab-over van, 4.36 × 1.94 × 2.09 m, wheelbase 2.30, 15-inch wheels; everything
+    round as a loaf: the roof, the corners, the round lamps standing out of the face either side of a trapezoid grille, the
+    orange markers on the roof's front corners; the driver's and the passenger's doors over the front wheels, a double door on
+    the right into the saloon, two leaves at the back, a drip rail along the roof."""
+    p = dict(L=69.8, W=31.0, H=33.0, wheelbase=36.8, front=20.0, r=6.2, floor=9.0, belt=19.0,
+             r_top=10.0, r_bottom=2.5, r_rear=4.5, r_front=[(0, 9.0), (19.0, 9.0), (21.0, 5.5), (33, 5.5)], tumble=1.6,
+             bottom=[(-34.9, 9.0), (-32, 7.6), (32, 7.6), (34.9, 9.0)],
+             nose=[(7.6, 33.4), (10.0, 34.6), (13.0, 34.9), (18.8, 34.9), (19.6, 34.4), (28.4, 31.3), (29.6, 31.4),
+                   (30.8, 31.0), (31.9, 30.0), (32.6, 28.8), (33.0, 27.0)],
+             tail=[(7.6, -34.0), (9.6, -34.9), (29.4, -34.9), (31.4, -34.3), (32.6, -33.1), (33.0, -31.4)],
+             arch_depth=6.5, arch_grow=1.9)
+    c = Car("uaz452", p["L"], p["W"], p["H"] + 1)
     c.info.update(name="УАЗ-452 «буханка»", name_en="UAZ-452 «Bukhanka»", kind="van",
-                  schemes=["olive", "white", "sky", "beige", "green", "police", "ambulance"], steer=34.0)
-    g = van(c, p)
+                  schemes=["olive", "white", "sky", "beige", "green", "orange", "sage", "police", "ambulance"], steer=34.0)
+    g = loaf(c, p)
     X, Y, Z = g["X"], g["Y"], g["Z"]
-    # the cab and the saloon apart: a bulkhead behind the seats
-    c.body.box(-15.4, p["floor"], 9.0, 15.4, 22.0, 10.0, TRIM, only=[AIR])
-    windows(c, g, [(11.0, 23.0, 19.5, 28.5), (-30.0, -20.0, 19.5, 28.0), (-18.0, -7.0, 19.5, 28.0, "l"), (-5.0, 8.0, 19.5, 28.0, "l"),
-                   (-18.0, -7.0, 19.5, 28.0, "r"), (-5.0, 8.0, 19.5, 28.0, "r")],
-            front=(19.6, 28.4, 13.2, 0.6), rear=(19.6, 28.0, 12.6, 1.2))
-    # nose: round lamps low and wide, the vertical slots of the grille between them, the indicators on top of the wings
-    round_lamps(c, [11.0], 13.2, 2.0, ring=CHROME, ring_w=0.6)
-    rect_face(c, 0, 5.6, 9.6, 16.4, GRILLE, mirror=False)
-    rect_face(c, 0, 5.6, 9.6, 16.4, GRILLE, mirror=False)
-    rect_face(c, 11.4, 14.6, 17.4, 18.6, TURN)
-    # the back: lamps at the corners, the plate in the middle, spare-wheel-less leaves
-    rect_face(c, 12.0, 15.0, 12.0, 15.6, TAIL, front=False)
-    rect_face(c, 12.0, 15.0, 15.6, 16.6, TURN, front=False)
-    c.body.box(-3.8, 9.2, -35.6, 3.8, 11.4, -34.8, PLATE)
-    bumpers(c, p, front_y=(6.6, 8.6), rear_y=(6.6, 8.6), mat=BLACK, caps=BLACK, wrap=2.0, depth=1.2)
-    c.body.box(-3.8, 6.8, 36.0, 3.8, 8.6, 36.6, PLATE, only=[AIR])
-    # the cab: seats on the engine's sides, the engine cover between them, the dashboard under the windshield
+    body = c.body
     hw = c.info["hw"]
-    c.body.box(-4.0, p["floor"], 14.0, 4.0, 14.0, 30.0, DASH, only=[AIR])
-    c.body.box(-hw + 2, 15.0, 29.0, hw - 2, 19.0, 33.0, DASH, only=[AIR])
-    for x in (8.4, -8.4):
-        c.body.box(x - 3.4, p["floor"], 14.5, x + 3.4, 13.0, 20.5, SEAT, only=[AIR])
-        c.body.box(x - 3.4, 13.0, 11.0, x + 3.4, 22.0, 12.6, SEAT, only=[AIR])
-        c.seats.append((x, 13.0, 17.0))
+    # the cab and the saloon apart: a bulkhead behind the seats
+    body.box(-hw + 1, p["floor"], 12.0, hw - 1, 23.0, 13.0, TRIM, only=[AIR])
+    # glass: the two-piece windshield, the doors' windows (with the vent wing's frame), the saloon's windows, the back leaves'
+    end_glass(c, g, True, 0.7, hw - 2.4, 19.9, 28.2, r=1.2)
+    for sgn in (1, -1):
+        side_glass(c, g, 14.4, 25.2, 19.6, 28.0, sgn, r=1.2)
+    body.set(skin_of(c, g) & (abs(X) > hw - 2.5) & (abs(Z - 22.4) < 0.5) & (Y > 19.6) & (Y < 28.0), PAINT)
+    for z0, z1 in ((1.0, 10.6), (-11.0, -1.6), (-23.2, -13.6), (-32.0, -25.6)):
+        side_glass(c, g, z0, z1, 19.6, 27.6, 0, r=1.4)
+    end_glass(c, g, False, 1.4, 11.6, 19.6, 27.6, r=1.4)
+    # the drip rail along the roof's sides and over the windshield
+    rail = (abs(X) > 13.2) & (abs(X) < 15.0) & (Y > 30.0) & (Y < 31.0) & (Z > -33.5) & (Z < 30.8) & ~body.solid()
+    near = np.zeros_like(rail)
+    s = body.solid()
+    near[1:, :, :] |= s[:-1, :, :]
+    near[:-1, :, :] |= s[1:, :, :]
+    body.set(rail & near, PAINT)
+    # the face: round lamps in their pods, the indicators under them, the trapezoid grille sunk a cell, the nose plate
+    pod_lamp(c, 10.6, 15.4, 34.6, 1.8, HEAD, ring=CHROME, ring_w=0.6, out=0.8)
+    pod_lamp(c, 10.4, 11.6, 34.8, 0.9, TURN, ring=None, out=0.4, housing=BLACK, depth=1.5)
+    face = face_cells(c, True, depth=1.01)
+    trap = (Y > 8.4) & (Y < 13.8) & (abs(X) < 6.4 - (Y - 8.4) * 0.22)
+    body.set(face & trap & (body.mat == PAINT), GRILLE)
+    body.box(-3.6, 15.0, 34.6, 3.6, 17.4, 35.6, PAINT)
+    body.box(-1.4, 17.8, 34.5, 1.4, 18.6, 35.3, CHROME)
+    # the orange markers on the roof's front corners
+    for sgn in (1, -1):
+        body.box(sgn * 10.8, 32.4, 27.0, sgn * 12.8, 33.8, 28.6, TURN)
+    # the back: tall lamps at the corners (amber over red), the plate between, the leaves' handle
+    rect_face(c, 11.2, 13.6, 14.4, 16.8, TURN, front=False)
+    rect_face(c, 11.2, 13.6, 9.8, 14.4, TAIL, front=False)
+    body.box(-3.8, 9.4, -35.6, 3.8, 11.6, -34.8, PLATE)
+    body.box(-1.6, 17.0, -35.4, 1.6, 17.8, -34.6, CHROME)
+    # bumpers: black steel bars, the plate on the front one
+    for z0, z1 in ((34.2, 36.4), (-36.4, -34.2)):
+        body.box(-hw + 0.8, 6.4, z0, hw - 0.8, 9.0, z1, BLACK)
+    body.box(-3.8, 6.6, 36.4, 3.8, 8.8, 37.0, PLATE)
+    # under it all: the frame's rails, the axles with their springs
+    body.box(-8.6, 6.0, -33.0, -6.4, 7.7, 33.0, BLACK, only=[AIR])
+    body.box(6.4, 6.0, -33.0, 8.6, 7.7, 33.0, BLACK, only=[AIR])
+    for z in (p["front"], p["front"] - p["wheelbase"]):
+        body.box(-hw + 4.6, p["r"] - 1.0, z - 1.0, hw - 4.6, p["r"] + 1.0, z + 1.0, BLACK, only=[AIR])
+        body.box(-2.2, p["r"] - 2.0, z - 2.2, 2.2, p["r"] + 2.0, z + 2.2, BLACK, only=[AIR])
+        for sgn in (1, -1):
+            body.box(sgn * 6.6, p["r"] + 1.0, z - 6.0, sgn * 8.4, 7.7, z + 6.0, BLACK, only=[AIR])
+    # the cab: seats either side of the engine's cover, the dashboard under the windshield
+    body.box(-4.0, p["floor"], 16.0, 4.0, 15.0, 31.0, DASH, only=[AIR])
+    body.box(-hw + 2, 16.0, 29.0, hw - 2, 19.6, 33.0, DASH, only=[AIR])
+    for x in (8.6, -8.6):
+        body.box(x - 3.4, p["floor"], 16.0, x + 3.4, 14.5, 21.5, SEAT, only=[AIR])
+        body.box(x - 3.4, 14.5, 13.4, x + 3.4, 24.0, 15.0, SEAT, only=[AIR])
+        c.seats.append((x, 14.5, 18.4))
     # the saloon: benches along the sides
     for sgn in (1, -1):
-        c.body.box(sgn * (hw - 1.0), p["floor"], -30.0, sgn * (hw - 6.0), 12.5, -6.0, SEAT, only=[AIR])
-        c.body.box(sgn * (hw - 1.0), 12.5, -30.0, sgn * (hw - 2.4), 20.0, -6.0, SEAT, only=[AIR])
-        for z in (-26.0, -18.0, -10.0):
-            c.seats.append((sgn * (hw - 3.6), 12.5, z))
-    c.body.box(-hw + 2, p["floor"] - 0.2, -33.0, hw - 2, p["floor"] + 0.6, 30.0, FLOOR, only=[AIR, PAINT])
-    steering_wheel(c, 8.4, 20.5, 25.0, r=3.4, tilt=55.0)
-    c.body.box(7.9, 14.0, 26.0, 8.9, 20.0, 30.0, BLACK, only=[AIR])
-    door_rect(c, g, "door_driver", 11.0, 23.0, 8.0, 29.0, 1, 0)
-    door_rect(c, g, "door_passenger", 11.0, 23.0, 8.0, 29.0, -1, 1)
-    door_rect(c, g, "door_saloon_front", -5.0, 8.0, 8.0, 29.0, -1, -1, hinge="front", seats=[2, 3, 4, 5, 6, 7])
-    door_rect(c, g, "door_saloon_rear", -18.0, -5.0, 8.0, 29.0, -1, -1, hinge="rear", seats=[])
-    back_doors(c, g, 0, 13.6, 8.0, 29.0)
+        body.box(sgn * (hw - 1.0), p["floor"], -31.0, sgn * (hw - 6.0), 13.0, -6.0, SEAT, only=[AIR])
+        body.box(sgn * (hw - 1.0), 13.0, -31.0, sgn * (hw - 2.4), 20.5, -6.0, SEAT, only=[AIR])
+        for z in (-27.0, -19.0, -11.0):
+            c.seats.append((sgn * (hw - 3.6), 13.0, z))
+    body.box(-hw + 2, p["floor"] - 0.2, -33.0, hw - 2, p["floor"] + 0.6, 31.0, FLOOR, only=[AIR, PAINT])
+    steering_wheel(c, 8.6, 21.6, 27.0, r=3.4, tilt=55.0)
+    body.box(8.1, 15.0, 28.0, 9.1, 21.0, 31.0, BLACK, only=[AIR])
+    door_rect(c, g, "door_driver", 13.6, 26.4, 7.0, 29.4, 1, 0)
+    door_rect(c, g, "door_passenger", 13.6, 26.4, 7.0, 29.4, -1, 1)
+    door_rect(c, g, "door_saloon_front", -0.4, 11.4, 7.0, 29.4, -1, -1, hinge="front", seats=[2, 3, 4, 5, 6, 7])
+    door_rect(c, g, "door_saloon_rear", -12.4, -0.4, 7.0, 29.4, -1, -1, hinge="rear", seats=[])
+    back_doors(c, g, 0, 13.4, 8.6, 29.4)
     for sgn in (1, -1):  # the mirrors on their long arms
-        c.body.box(sgn * hw, 24.0, 22.4, sgn * (hw + 2.4), 25.0, 23.4, BLACK)
-        c.body.box(sgn * (hw + 1.6), 20.0, 22.4, sgn * (hw + 2.6), 25.0, 23.4, MIRROR)
+        body.box(sgn * (hw - 0.4), 22.0, 26.6, sgn * (hw + 2.6), 22.8, 27.4, BLACK)
+        body.box(sgn * (hw + 2.0), 21.0, 26.4, sgn * (hw + 2.8), 25.6, 27.6, MIRROR)
     for z in (p["front"], p["front"] - p["wheelbase"]):
         for sgn in (1, -1):
-            wheel(c, ("wheel_front" if z > 0 else "wheel_rear") + ("_left" if sgn > 0 else "_right"), sgn * (hw - 2.6), p["r"], z, p["r"], 3.8, sgn,
-                  z > 0, hub="uaz")
-    beacon(c, p["H"], 18.0, red=False)
-    c.info.update(stripe=(12.0, 14.6), word=(-12.0, 16.4, 2.5), handles=[(13.0, 17.0), (-3.0, 17.0)])
+            wheel(c, ("wheel_front" if z > 0 else "wheel_rear") + ("_left" if sgn > 0 else "_right"), sgn * (hw - 2.6), p["r"], z,
+                  p["r"], 3.8, sgn, z > 0, hub="uaz")
+    beacon(c, p["H"], 20.0, red=False)
+    c.info.update(stripe=(13.0, 15.4), word=(-14.0, 17.0, 2.5), handles=[(14.6, 18.2), (-0.4, 18.2)],
+                  louvre=[(-9.0, -4.0, 13.0, 16.0)])
     return finish(c, p, Look(cabin=lambda P: (abs(P[:, 0]) < hw - 0.9) & (P[:, 1] > p["floor"] - 0.6) & (P[:, 1] < p["H"] - 0.9) & (abs(P[:, 2]) < 34),
                              seat="#3c3a34", trim="#c7c1ae", headliner="#d3cdb8", grille=grille_bars(0.75)))
 
 
 @car
 def paz3205():
-    """ПАЗ-3205 (1989–): the small town bus, 6.93 × 2.50 × 2.95 m, wheelbase 3.60, 20-inch wheels; the passengers' doors on the
-    right (one in the front overhang, one before the rear axle), the driver's own door on the left, a route board over the
-    split windshield."""
-    p = dict(L=110.8, W=40.0, H=47.2, wheelbase=57.6, front=29.8, r=7.8, floor=14.0, belt=24.0, round=7.0, plan_round=3.0,
-             bottom=[(-55.4, 9.0), (-50, 7.0), (50, 7.0), (55.4, 9.0)],
-             nose=[(0, 54.6), (8, 55.4), (22, 55.4), (26, 54.8), (44, 53.0), (47.2, 51.0)],
-             tail=[(0, -55.4), (42, -55.4), (47.2, -53.4)])
-    c = Car("paz3205", p["L"], p["W"], p["H"], margin=4)
-    c.info.update(name="ПАЗ-3205", name_en="PAZ-3205 bus", kind="bus",
-                  schemes=["yellow", "orange", "cream", "sky", "white", "red"], steer=38.0)
-    g = van(c, p)
+    """ПАЗ-3205 (1989–): the small town bus, 6.93 × 2.50 × 2.95 m, wheelbase 3.60, 20-inch wheels. A box with rounded
+    edges; the big two-piece windshield under a black band of vents, two black grilles across the face, the round lamps in
+    black housings at its lower corners, a light bumper; on the right the folding doors (one before the front axle, one in
+    the middle), the driver's own door on the left, windows with their sliding upper panes, two hatches on the roof."""
+    p = dict(L=110.8, W=40.0, H=47.2, wheelbase=57.6, front=29.4, r=7.8, floor=14.0, belt=24.0,
+             r_top=5.0, r_bottom=1.5, r_rear=2.5, r_front=[(0, 2.5), (47.2, 2.5)], tumble=0.8,
+             bottom=[(-55.4, 9.0), (-50, 7.2), (50, 7.2), (55.4, 9.0)],
+             nose=[(7.2, 54.6), (9.0, 55.4), (22.6, 55.4), (23.6, 55.0), (41.4, 53.8), (42.2, 54.2), (45.6, 54.0), (47.2, 52.6)],
+             tail=[(7.2, -54.6), (9.0, -55.4), (44.0, -55.4), (47.2, -53.6)],
+             arch_depth=6.5, arch_grow=2.0)
+    c = Car("paz3205", p["L"], p["W"], p["H"] + 1, margin=4)
+    c.info.update(name="ПАЗ-3205", name_en="PAZ-3205 bus", kind="bus", steer=38.0,
+                  combos={"white_green": dict(name="Белый с зелёным низом", paint="#eceae2", lower="#5fbf3c", lower_y=17.0),
+                          "yellow": dict(name="Жёлтый", paint="#e6b52c"),
+                          "white_blue": dict(name="Белый с синим низом", paint="#eceae2", lower="#2f6fb8", lower_y=17.0),
+                          "orange": dict(name="Оранжевый", paint="#d9762d"),
+                          "cream": dict(name="Слоновая кость", paint="#e5dcc0", lower="#b8392c", lower_y=12.0),
+                          "sky": dict(name="Голубой", paint="#8fb5d4")})
+    c.info["schemes"] = list(c.info["combos"])
+    g = loaf(c, p)
     X, Y, Z = g["X"], g["Y"], g["Z"]
+    body = c.body
     hw = c.info["hw"]
-    side_windows = [(z, z + 11.0, 25.0, 39.5) for z in (-50.0, -37.5, -25.0, 2.5, 15.0)]
-    side_windows += [(-12.5, -1.5, 25.0, 39.5, "l"), (28.0, 39.0, 25.0, 39.5, "l"), (28.0, 39.0, 25.0, 39.5, "r")]
-    windows(c, g, side_windows, front=(23.0, 42.0, 18.6, 0.8), rear=(27.0, 40.0, 16.0, 1.0))
-    # the route board over the windshield, the lamps and grille low on the nose
-    rect_face(c, 0, 17.0, 42.6, 45.4, BLACK, mirror=False)
-    rect_face(c, 0, 12.0, 43.2, 44.8, LAMP, mirror=False)
-    rect_face(c, 12.6, 18.0, 11.0, 14.6, HEAD)
-    rect_face(c, 12.6, 18.0, 15.0, 16.4, TURN)
-    rect_face(c, 0, 10.0, 10.6, 19.6, GRILLE, mirror=False)
-    rect_face(c, 10.0, 12.0, 10.6, 19.6, CHROME)
-    rect_face(c, 13.0, 18.0, 13.0, 21.0, TAIL, front=False)
-    rect_face(c, 13.0, 18.0, 21.0, 22.6, TURN, front=False)
-    c.body.box(-4.0, 22.6, -56.2, 4.0, 24.8, -55.4, PLATE)
-    bumpers(c, p, front_y=(7.6, 10.4), rear_y=(7.6, 10.4), mat=BLACK, caps=BLACK, wrap=3.0, depth=1.4)
-    c.body.box(-4.0, 7.8, 56.8, 4.0, 10.0, 57.4, PLATE, only=[AIR])
-    # doors: two folding leaves on the right (drawn as one leaf each, hinged forward), the driver's small door on the left
-    door_rect(c, g, "door_front", 41.0, 52.0, 6.0, 41.0, -1, -1, seats=list(range(1, 32)))
-    door_rect(c, g, "door_rear", -12.5, -1.5, 6.0, 41.0, -1, -1, seats=[])
-    door_rect(c, g, "door_driver", 40.0, 50.0, 14.0, 41.0, 1, 0)
-    # the saloon: the driver's seat and wheel in the front left, rows of double seats both sides of the aisle
-    c.body.box(-hw + 1.5, p["floor"] - 0.3, -54.0, hw - 1.5, p["floor"] + 0.6, 53.0, FLOOR, only=[AIR, PAINT])
-    c.body.box(-hw + 1.5, 6.0, 40.0, -hw + 12.0, p["floor"], 53.0, FLOOR, only=[AIR, PAINT])  # the step in the front door
-    c.body.box(-hw + 1.5, 14.0, 50.0, hw - 1.5, 23.4, 54.6, DASH, only=[AIR, PAINT])
-    c.body.box(4.0, 22.0, 48.0, hw - 1.5, 26.0, 54.0, DASH, only=[AIR])
-    c.body.box(8.0, p["floor"], 40.0, 17.0, 21.5, 46.0, SEAT, only=[AIR])
-    c.body.box(8.0, 21.5, 38.6, 17.0, 34.0, 40.0, SEAT, only=[AIR])
+    # glass: the windshield's two panes, the side windows, the doors' tall panes, the rear window
+    end_glass(c, g, True, 0.8, hw - 2.2, 23.8, 41.0, r=1.5)
+    right = [(27.6, 39.4), (14.2, 26.2), (1.6, 12.8), (-24.0, -13.0), (-37.4, -25.4), (-52.2, -38.8)]
+    left = [(27.6, 38.4), (14.2, 26.2), (1.6, 12.8), (-11.0, 0.2), (-24.0, -13.0), (-37.4, -25.4), (-52.2, -38.8)]
+    for z0, z1 in right:
+        side_glass(c, g, z0, z1, 24.6, 39.8, -1, r=1.0)
+    for z0, z1 in left:
+        side_glass(c, g, z0, z1, 24.6, 39.8, 1, r=1.0)
+    side_glass(c, g, 40.4, 49.6, 24.6, 39.8, 1, r=1.0)                       # the driver's door
+    for z0, z1 in ((42.4, 46.8), (47.4, 51.8), (-10.8, -5.6), (-5.0, -0.4)):  # the folding leaves
+        side_glass(c, g, z0, z1, 9.6, 39.8, -1, r=0.8)
+    # the sliding upper panes: a frame across each side window
+    body.set((body.mat == GLASS) & (abs(X) > hw - 2.5) & (Y > 35.0) & (Y < 36.0) & (abs(Z) < 40.0), BLACK)
+    end_glass(c, g, False, -12.0, 12.0, 31.0, 40.6, r=1.5, mirror=False)
+    # the face: the black band of vents over the windshield, the grilles, the lamps in their housings, the bumper
+    rect_face(c, 0, hw - 1.6, 42.4, 45.8, GRILLE, mirror=False)
+    rect_face(c, 2.6, hw - 2.4, 15.6, 19.4, GRILLE)
+    rect_face(c, 0, 8.6, 10.4, 14.6, GRILLE, mirror=False)
+    rect_face(c, 9.6, hw - 2.0, 9.6, 14.8, BLACK)
+    pod_lamp(c, 14.6, 12.2, 55.4, 1.7, HEAD, ring=CHROME, ring_w=0.5, out=0.3, housing=BLACK, depth=1.0)
+    rect_face(c, 10.4, 12.2, 10.6, 13.8, TURN)
+    body.box(-3.0, 20.4, 55.2, 3.0, 21.4, 55.9, CHROME)                         # the ПАЗ badge
+    for z0, z1 in ((54.6, 56.8), (-56.8, -54.6)):
+        body.box(-hw + 0.6, 6.4, z0, hw - 0.6, 9.6, z1, ALU)
+    body.box(-4.0, 6.8, 56.8, 4.0, 9.0, 57.4, PLATE)
+    # the back: tall lamps at the corners, the plate, the engine-less flat panel
+    rect_face(c, 14.6, 17.6, 16.4, 22.6, TAIL, front=False)
+    rect_face(c, 14.6, 17.6, 14.0, 16.4, TURN, front=False)
+    rect_face(c, 14.6, 17.6, 12.4, 14.0, REVERSE, front=False)
+    body.box(-4.0, 10.4, -56.2, 4.0, 12.6, -55.4, PLATE)
+    # the roof's hatches, the mirrors on their arms
+    for z in (24.0, -16.0):
+        body.box(-4.4, p["H"] - 0.6, z - 4.4, 4.4, p["H"] + 0.6, z + 4.4, PAINT2)
+    for sgn in (1, -1):
+        body.box(sgn * (hw - 0.4), 38.4, 53.0, sgn * (hw + 3.0), 39.2, 53.8, BLACK)
+        body.box(sgn * (hw + 2.2), 31.6, 52.6, sgn * (hw + 3.2), 38.6, 54.2, MIRROR)
+    # doors: the folding pairs on the right (drawn as one leaf each), the driver's door on the left
+    door_rect(c, g, "door_front", 41.6, 52.6, 6.0, 41.0, -1, -1, seats=list(range(1, 32)))
+    door_rect(c, g, "door_rear", -11.6, 0.2, 6.0, 41.0, -1, -1, seats=[])
+    door_rect(c, g, "door_driver", 39.6, 50.4, 14.0, 41.0, 1, 0)
+    # the saloon
+    body.box(-hw + 1.5, p["floor"] - 0.3, -54.0, hw - 1.5, p["floor"] + 0.6, 53.0, FLOOR, only=[AIR, PAINT])
+    body.box(-hw + 1.5, 6.0, 41.0, -hw + 12.0, p["floor"], 53.0, FLOOR, only=[AIR, PAINT])
+    body.box(-hw + 1.5, 6.0, -11.6, -hw + 8.0, p["floor"], 0.2, FLOOR, only=[AIR, PAINT])
+    body.box(-hw + 1.5, 14.0, 50.0, hw - 1.5, 23.4, 54.4, DASH, only=[AIR, PAINT])
+    body.box(4.0, 22.0, 48.0, hw - 1.5, 26.0, 54.0, DASH, only=[AIR])
+    body.box(8.0, p["floor"], 40.0, 17.0, 21.5, 46.0, SEAT, only=[AIR])
+    body.box(8.0, 21.5, 38.6, 17.0, 34.0, 40.0, SEAT, only=[AIR])
     c.seats.append((12.5, 21.5, 43.0))
     steering_wheel(c, 12.5, 29.0, 47.0, r=4.4, tilt=60.0)
-    c.body.box(12.0, 22.0, 47.0, 13.0, 28.0, 51.0, BLACK, only=[AIR])
-    for z in (30.0, 22.0, 14.0, 6.0, -6.0, -14.0, -22.0, -30.0, -38.0, -46.0):
+    body.box(12.0, 22.0, 47.0, 13.0, 28.0, 51.0, BLACK, only=[AIR])
+    for z in (32.0, 24.0, 16.0, 8.0, -6.0, -14.0, -22.0, -30.0, -38.0, -46.0):
         for sgn in (1, -1):
-            if sgn < 0 and -14.0 < z < 0.0:
-                continue  # the rear door's well
+            if sgn < 0 and -14.0 < z < 3.0:
+                continue  # the middle door's well
             x0, x1 = sgn * (hw - 1.5), sgn * 5.0
-            c.body.box(x0, p["floor"], z - 2.5, x1, 21.0, z + 3.0, SEAT, only=[AIR])
-            c.body.box(x0, 21.0, z - 3.5, x1, 30.0, z - 2.0, SEAT, only=[AIR])
+            body.box(x0, p["floor"], z - 2.5, x1, 21.0, z + 3.0, SEAT, only=[AIR])
+            body.box(x0, 21.0, z - 3.5, x1, 30.0, z - 2.0, SEAT, only=[AIR])
             for x in (sgn * (hw - 5.0), sgn * 8.5):
                 c.seats.append((x, 21.0, z))
-    c.body.box(-hw + 1.5, 36.0, -54.0, hw - 1.5, 37.0, 53.0, ALU, only=[AIR])  # the handrails
+    for x in (-4.4, 4.4):  # the handrails over the aisle and the poles holding them
+        body.box(x - 0.5, 40.0, -50.0, x + 0.5, 41.0, 38.0, ALU, only=[AIR])
+    for z in (36.0, 12.0, -16.0, -40.0):
+        for x in (-4.4, 4.4):
+            if x < 0 and -14.0 < z < 3.0:
+                continue
+            body.box(x - 0.5, p["floor"], z - 0.5, x + 0.5, 40.0, z + 0.5, ALU, only=[AIR])
     for z in (p["front"], p["front"] - p["wheelbase"]):
         for sgn in (1, -1):
-            wheel(c, ("wheel_front" if z > 0 else "wheel_rear") + ("_left" if sgn > 0 else "_right"), sgn * (hw - 3.4), p["r"], z, p["r"], 4.8, sgn,
-                  z > 0, hub="uaz")
-    c.info.update(band=(22.0, 24.0, "#efe9d8"), stripe=(16.0, 19.0))
+            wheel(c, ("wheel_front" if z > 0 else "wheel_rear") + ("_left" if sgn > 0 else "_right"), sgn * (hw - 3.4), p["r"], z,
+                  p["r"], 4.8, sgn, z > 0, hub="uaz")
+        body.box(-hw + 5.0, p["r"] - 1.2, z - 1.2, hw - 5.0, p["r"] + 1.2, z + 1.2, BLACK, only=[AIR])
+    body.box(-10.0, 5.6, -50.0, -7.6, 8.0, 50.0, BLACK, only=[AIR])
+    body.box(7.6, 5.6, -50.0, 10.0, 8.0, 50.0, BLACK, only=[AIR])
+    c.info.update(stripe=(17.6, 19.6), word=(-20.0, 21.0, 2.5), louvre=[(27.0, 34.0, 13.0, 18.0)],
+                  handles=[(42.0, 20.0)])
     return finish(c, p, Look(cabin=lambda P: (abs(P[:, 0]) < hw - 0.9) & (P[:, 1] > 6.5) & (P[:, 1] < p["H"] - 0.9) & (abs(P[:, 2]) < 55),
                              seat="#7b3a2c", trim="#c9c2ad", headliner="#dcd6c4", grille=grille_bars(1.0, horizontal=True)))
+
+
+def side_text(mesh, mask, words, z_centre, y_centre, height, colour, out):
+    """Words in the pixel font on both sides of a curved surface (a tank): every texel of `mask` is placed by its z and y,
+    the side by the sign of its x; on the left side (+x) the text reads toward -z, on the right toward +z."""
+    rows = 5
+    glyphs = [FP.glyph(ch) for ch in words.upper()]
+    widths = [len(g[0]) for g in glyphs]
+    total = sum(widths) + len(glyphs) - 1
+    cell = height / rows
+    P = mesh.P
+    bits = np.zeros(total * rows, bool)
+    x = 0
+    for g, w in zip(glyphs, widths):
+        for j, r in enumerate(g):
+            for i, ch in enumerate(r):
+                if ch == "X":
+                    bits[j * total + x + i] = True
+        x += w + 1
+    for sgn in (1, -1):
+        m = mask & (P[:, 0] * sgn > 0)
+        along = (z_centre - P[:, 2]) if sgn > 0 else (P[:, 2] - z_centre)
+        col = np.floor(along / cell + total / 2).astype(int)
+        row = np.floor((y_centre + height / 2 - P[:, 1]) / cell).astype(int)
+        ok = m & (row >= 0) & (row < rows) & (col >= 0) & (col < total)
+        sel = np.nonzero(ok)[0]
+        hit = bits[row[sel] * total + col[sel]]
+        out[sel[hit]] = colour
+
+
+def wood_extra(car, stakes, top):
+    """The painter's extra for a wooden bed: planks with dark seams, the steel stakes and the top rail; the lettering of
+    a tank (car.info['tank_word'])."""
+    def fn(mesh, out, scheme):
+        mat, P, d = mesh.mat, mesh.P, mesh.dir
+        w = mat == WOOD
+        side = w & (d < 2)
+        ends = w & (d >= 4)
+        flat = w & ((d == 2) | (d == 3))
+        tu, tv = mesh.tu, mesh.tv
+        # planks: a seam every 2.25 units on the boards, along the floor every 2 across
+        seam_b = (side | ends) & (((P[:, 1] - 0.2) % 2.25) < 0.5)
+        out[seam_b, :3] = ramp_col(out[seam_b, :3], 0.62)
+        seam_f = flat & ((P[:, 0] % 2.0) < 0.5) & (P[:, 1] < top - 1.5)
+        out[seam_f, :3] = ramp_col(out[seam_f, :3], 0.7)
+        grain = w & (BAYER[tv % 4, tu % 4] < 0.25)
+        out[grain, :3] = ramp_col(out[grain, :3], 0.92)
+        # the steel stakes and the hinges: dark bands across the side boards, a lighter edge
+        for z in stakes:
+            st = side & (abs(P[:, 2] - z) < 0.75)
+            out[st, :3] = ramp_col(out[st, :3], 0.68)
+            out[side & (abs(P[:, 2] - z - 0.75) < 0.25), :3] *= 1.12
+        rail = (side | ends) & (P[:, 1] > top - 0.75)
+        out[rail, :3] = ramp_col(out[rail, :3], 0.8)
+        if car.info.get("tank_word"):
+            word, zc, yc, h, col = car.info["tank_word"]
+            combo = car.info["combos"].get(scheme, {})
+            side_text(mesh, (mat == TANK) & (abs(mesh.smooth_normal()[:, 0]) > 0.55), word, zc, yc, h,
+                      rgb(combo.get("letters", col)), out[:, :3])
+    return fn
+
+
+def gaz53_chassis(c, p):
+    """The GAZ-53's front end and cab: the bumper, the bonnet between the bulging wings with the lamps in them, the
+    radiator's grille of vertical slots, the cab with its two-piece windshield, the running boards, the frame and axles,
+    the wheels (twin at the back). p: the truck's dimensions in units."""
+    body = c.body
+    X, Y, Z = body.grids()
+    ax = abs(X)
+    zf = c.L / 2
+    r = p["r"]
+    fz = p["front"]
+    # the bonnet: between the wings, its top rising a little to the windshield, the top edges rounded
+    htop = pl(Z, [(21.0, 25.8), (48.6, 23.8)])
+    bon = (ax < 9.6) & (Y > 14.0) & (Y < htop) & (Z > 21.0) & (Z < 49.0)
+    rnd = (ax > 9.6 - 2.6) & (Y > htop - 2.6) & ((ax - 7.0) ** 2 + (Y - (htop - 2.6)) ** 2 > 2.6 ** 2)
+    rnd_f = (Z > 49.0 - 2.0) & (Y > htop - 2.0) & ((Z - 47.0) ** 2 + (Y - (htop - 2.0)) ** 2 > 2.0 ** 2)
+    body.set(bon & ~rnd & ~rnd_f, PAINT)
+    # the radiator's surround and its grille on the bonnet's face
+    face = (Z > 47.5) & (Z < 48.5) & (ax < 8.4) & (Y > 11.6) & (Y < 23.0)
+    body.set(face, FRONT)
+    body.set((Z > 47.5) & (Z < 48.5) & (ax < 7.0) & (Y > 12.4) & (Y < 21.4), GRILLE)
+    body.set((Z > 46.5) & (Z < 47.5) & (ax < 7.0) & (Y > 12.4) & (Y < 21.4), BLACK)
+    for x in (-4.6, -1.6, 1.6, 4.6):  # the bonnet's four slots over the grille
+        body.box(x - 1.0, 22.0, 48.4, x + 1.0, 22.8, 49.2, BLACK)
+    body.box(-1.2, 23.2, 47.8, 1.2, 24.0, 49.0, CHROME)  # the badge
+    # the wings: bulging over the front wheels, the lamps in their faces, sloping back to the running boards
+    wtop = pl(Z, [(18.0, 11.6), (22.0, 14.2), (27.0, 17.8), (33.0, 19.6), (43.0, 19.8), (47.0, 19.0), (49.0, 17.4)])
+    wing = (ax > 9.2) & (ax < 18.8) & (Y > 10.4) & (Y < wtop) & (Z > 18.0) & (Z < 49.0)
+    ro = (ax > 18.8 - 4.2) & (Y > wtop - 4.2) & ((ax - 14.6) ** 2 + (Y - (wtop - 4.2)) ** 2 > 4.2 ** 2)
+    rplan = (ax > 18.8 - 4.0) & (Z > 49.0 - 4.0) & ((ax - 14.8) ** 2 + (Z - 45.0) ** 2 > 4.0 ** 2)
+    rfront = (Z > 49.0 - 2.5) & (Y > wtop - 2.5) & ((Z - 46.5) ** 2 + (Y - (wtop - 2.5)) ** 2 > 2.5 ** 2)
+    body.set(wing & ~ro & ~rplan & ~rfront, PAINT)
+    # the wheel arches cut out of the wings; the wells' insides dark
+    R = np.sqrt((Y - r) ** 2 + (Z - fz) ** 2)
+    body.set((R < r + 1.6) & (ax > 9.0), AIR)
+    well = (R < r + 2.6) & (R >= r + 1.6) & (ax > 9.4) & (ax < 18.0) & body.solid()
+    body.set(well & (body.mat == PAINT), UNDER)
+    pod_lamp(c, 13.6, 16.2, 48.6, 1.6, HEAD, ring=CHROME, ring_w=0.6, out=0.7)
+    for sgn in (1, -1):
+        body.box(sgn * 12.8, 19.4, 45.8, sgn * 14.4, 20.6, 47.4, TURN)          # the side lamps on the wings' tops
+        body.box(sgn * 18.2, 14.8, 24.2, sgn * 18.9, 16.0, 25.6, TURN)         # the indicators on their sides
+    # the bumper: a black channel, two hooks, the plate in the middle
+    body.box(-17.6, 8.8, 49.2, 17.6, 12.0, zf, BLACK)
+    for x in (-9.6, 9.6):
+        body.box(x - 0.6, 12.0, 49.6, x + 0.6, 13.4, 51.0, BLACK)
+    body.box(-3.8, 9.2, zf, 3.8, 11.4, zf + 0.6, PLATE)
+    # the cab: rounded on top, the windshield leaning back, the back wall upright
+    H = p["cab_h"]
+    cfront = pl(Y, [(11.0, 22.6), (25.8, 22.6), (26.6, 22.2), (33.6, 20.6), (H, 17.6)])
+    cab = (ax < 16.2) & (Y > 11.8) & (Y < H) & (Z > 4.6) & (Z < cfront)
+    tc = (ax > 16.2 - 5.0) & (Y > H - 5.0) & ((ax - 11.2) ** 2 + (Y - (H - 5.0)) ** 2 > 25.0)
+    rb = (Z < 4.6 + 3.0) & (Y > H - 3.0) & ((Z - 7.6) ** 2 + (Y - (H - 3.0)) ** 2 > 9.0)
+    pc = (ax > 16.2 - 2.0) & (Z > cfront - 2.0) & ((ax - 14.2) ** 2 + (Z - (cfront - 2.0)) ** 2 > 4.0)
+    shell = cab & ~tc & ~rb & ~pc
+    body.set(shell, PAINT)
+    floor = 13.4
+    hollow = V.erode(shell) & (Y > floor)
+    body.set(hollow, AIR)
+    g = dict(X=X, Y=Y, Z=Z, shell=shell, hollow=hollow, half=np.full(X.shape, 16.2) + 0 * Y + 0 * Z)
+    c.half = g["half"]
+    c.info.update(belt=25.8, roof=H, floor=floor, hw=16.2, cabin_z=13.0, kind="truck")
+    end_glass(c, g, True, 0.6, 14.0, 26.6, 33.4, r=1.0)
+    for sgn in (1, -1):
+        side_glass(c, g, 9.0, 20.6, 26.2, 33.4, sgn, r=1.0)
+    body.set(skin_of(c, g) & (ax > 16.2 - 2.5) & (abs(Z - 17.4) < 0.5) & (Y > 26.2) & (Y < 33.4), PAINT)
+    end_glass(c, g, False, -6.0, 6.0, 27.6, 32.6, r=1.4, mirror=False)
+    # inside: the seats, the dashboard, the big wheel
+    body.box(-14.4, 21.8, 19.6, 14.4, 25.8, 22.0, DASH, only=[AIR])
+    body.box(-14.4, floor - 0.1, 5.6, 14.4, floor + 0.6, 21.6, FLOOR, only=[AIR, PAINT])
+    for x in (8.0, -7.4):
+        body.box(x - 3.8, floor, 7.2, x + 3.8, 19.6, 13.4, SEAT, only=[AIR])
+        body.box(x - 3.8, 19.6, 5.6, x + 3.8, 30.0, 7.4, SEAT, only=[AIR])
+        c.seats.append((x, 19.6, 10.2))
+    steering_wheel(c, 8.0, 26.0, 17.0, r=4.0, tilt=48.0)
+    body.box(7.5, 21.0, 17.6, 8.5, 25.4, 21.0, BLACK, only=[AIR])
+    door_rect(c, g, "door_left", 7.4, 21.0, 11.8, 34.6, 1, 0)
+    door_rect(c, g, "door_right", 7.4, 21.0, 11.8, 34.6, -1, 1)
+    for sgn in (1, -1):
+        body.box(sgn * 15.0, 9.6, 6.0, sgn * 18.8, 10.6, 18.6, BLACK)               # the running boards
+        body.box(sgn * 16.0, 29.0, 21.2, sgn * 19.8, 29.6, 21.8, BLACK)             # the mirrors on their rods
+        body.box(sgn * 18.4, 18.6, 25.6, sgn * 19.0, 29.6, 26.2, PAINT)
+        body.box(sgn * 19.2, 26.4, 20.8, sgn * 20.2, 31.8, 22.2, MIRROR)
+    c.info.update(handles=[(8.6, 25.0)])
+    # the frame, the axles and springs
+    body.box(-9.4, 10.4, -49.0, -7.4, 13.6, 48.0, BLACK, only=[AIR])
+    body.box(7.4, 10.4, -49.0, 9.4, 13.6, 48.0, BLACK, only=[AIR])
+    for z in (fz, p["front"] - p["wheelbase"]):
+        body.box(-16.0, r - 1.2, z - 1.2, 16.0, r + 1.2, z + 1.2, BLACK, only=[AIR])
+        body.box(-2.6, r - 2.6, z - 2.6, 2.6, r + 2.4, z + 2.6, BLACK, only=[AIR])
+        for sgn in (1, -1):
+            body.box(sgn * 7.4, r + 1.0, z - 8.0, sgn * 9.4, 10.6, z + 8.0, BLACK, only=[AIR])
+    body.box(10.6, 9.4, -16.0, 16.0, 14.6, -4.0, BLACK, only=[AIR])  # the fuel tank
+    for sgn in (1, -1):
+        wheel(c, "wheel_front" + ("_left" if sgn > 0 else "_right"), sgn * 14.2, r, fz, r, 4.2, sgn, True, hub="uaz")
+        wheel(c, "wheel_rear" + ("_left" if sgn > 0 else "_right"), sgn * 15.2, r, fz - p["wheelbase"], r, 3.8, sgn, False, hub="uaz")
+        wheel(c, "wheel_rear_inner" + ("_left" if sgn > 0 else "_right"), sgn * 11.0, r, fz - p["wheelbase"], r, 3.8, sgn, False, hub="steel")
+        body.box(sgn * 9.6, 4.0, -38.4, sgn * 18.4, 13.6, -37.8, BLACK, only=[AIR])  # the mud flaps
+    # the back of the frame: the lamps on their brackets
+    for sgn in (1, -1):
+        body.box(sgn * 13.6, 11.0, -50.0, sgn * 17.0, 12.0, -48.6, BLACK)
+        body.box(sgn * 14.2, 12.0, -50.6, sgn * 16.6, 13.8, -49.6, TAIL)
+    return g
+
+
+GAZ53 = dict(L=102.3, W=38.1, cab_h=35.4, wheelbase=59.2, front=31.6, r=7.7)
+
+
+@car
+def gaz53():
+    """ГАЗ-53А (1965–1993), the bortovoy: 6.40 × 2.38 × 2.22 m, wheelbase 3.70, 8.25-20 tyres, twin at the back; the cab and
+    the wings of one colour, the wooden bed (3.74 × 2.17 m, its boards 0.68 m high) painted or bare."""
+    p = dict(GAZ53)
+    c = Car("gaz53", p["L"], p["W"], 37.0)
+    c.info.update(name="ГАЗ-53 бортовой", name_en="GAZ-53 truck", steer=36.0,
+                  combos={"sky": dict(name="Голубой, зелёный кузов", paint="#86b4d6", wood="#5d8c58"),
+                          "blue": dict(name="Синий", paint="#3d7fc0", wood="#3d7fc0"),
+                          "green": dict(name="Зелёный", paint="#4d7a4a", wood="#6b8a50"),
+                          "olive": dict(name="Защитный", paint="#5d6340", wood="#5d6340"),
+                          "orange": dict(name="Оранжевый, некрашеный кузов", paint="#d7682a", wood="#8a7454"),
+                          "white_front": dict(name="Голубой, белая морда", paint="#5d9fc4", front="#e8e6de", wood="#8a7454")})
+    c.info["schemes"] = list(c.info["combos"])
+    gaz53_chassis(c, p)
+    body = c.body
+    zr = -c.L / 2
+    # the bed: crossbeams on the frame, the plank floor, the boards (front higher), the steel stakes
+    for z in np.arange(-48.0, 2.0, 7.0):
+        body.box(-18.6, 13.6, z - 0.6, 18.6, 17.2, z + 0.6, BLACK, only=[AIR])
+    body.box(-19.0, 17.2, zr, 19.0, 18.8, 3.4, WOOD)
+    for sgn in (1, -1):
+        body.box(sgn * 17.9, 18.8, zr, sgn * 19.05, 29.6, 3.4, WOOD)
+    body.box(-19.05, 18.8, 2.4, 19.05, 31.0, 3.4, WOOD)
+    body.box(-19.05, 18.8, zr, 19.05, 29.6, zr + 1.0, WOOD)
+    body.box(-3.8, 15.0, zr - 0.6, 3.8, 17.2, zr, PLATE)
+    c.info.update(ceiling=35.4)
+    return finish(c, p, Look(cabin=lambda P: (abs(P[:, 0]) < 15.2) & (P[:, 1] > 12.8) & (P[:, 1] < 34.6) & (P[:, 2] > 5.2) & (P[:, 2] < 22.0),
+                             seat="#3b342d", trim="#4a463f", headliner="#5a564e", dash="#262626", grille=grille_bars(1.6),
+                             extra=wood_extra(c, stakes=[-44.0, -32.0, -20.0, -8.0], top=29.6)))
+
+
+@car
+def gaz53milk():
+    """ГАЗ-53 with the milk tank (АЦПТ-3,3): the same chassis carrying an oval tank of 3300 litres, two hatches on top with a
+    railing, the pump's box at the back; «МОЛОКО» in big letters along the tank."""
+    p = dict(GAZ53)
+    c = Car("gaz53milk", p["L"], p["W"], 43.0)
+    c.info.update(name="ГАЗ-53 молоковоз", name_en="GAZ-53 milk tanker", steer=36.0,
+                  combos={"milk": dict(name="Бирюзовый, белая морда", paint="#3e8790", front="#ecebe4", tank="#e8c21a", letters="#2a7486"),
+                          "milk_blue": dict(name="Синий", paint="#3d7fc0", tank="#e8c21a", letters="#2c5f9a"),
+                          "milk_white": dict(name="Голубой, белая цистерна", paint="#86b4d6", tank="#e9e8e2", letters="#2e64a8")})
+    c.info["schemes"] = list(c.info["combos"])
+    gaz53_chassis(c, p)
+    body = c.body
+    X, Y, Z = body.grids()
+    zr = -c.L / 2
+    # the tank: an ellipse 31 × 20 units round, its ends domed
+    z0, z1 = -48.4, 2.6
+    yc, a, b = 29.6, 15.6, 10.0
+    dz = np.maximum(0, np.maximum(Z - (z1 - 3.0), (z0 + 3.0) - Z)) / 3.0
+    e = (X / a) ** 2 + ((Y - yc) / b) ** 2 + dz ** 2
+    body.set((e < 1.0) & (Z > z0) & (Z < z1), TANK)
+    # its saddles on the frame
+    for z in (-4.0, -24.0, -44.0):
+        body.box(-13.6, 13.6, z - 1.2, 13.6, 22.0, z + 1.2, BLACK, only=[AIR])
+    body.box(-9.6, 13.6, -48.0, 9.6, 15.2, 2.0, BLACK, only=[AIR])
+    # the hatches with their lids, the railing along the top, the ladder at the back
+    for z in (-11.0, -35.0):
+        R = np.sqrt(X ** 2 + (Z - z) ** 2)
+        body.set((R < 3.2) & (Y > yc + b - 1.5) & (Y < yc + b + 1.2), TANK)
+        body.set((R < 2.4) & (Y >= yc + b + 1.2) & (Y < yc + b + 1.9), TANK)
+        body.set((R < 0.8) & (Y >= yc + b + 1.9) & (Y < yc + b + 2.5), CHROME)
+    for sgn in (1, -1):
+        body.box(sgn * 5.0, yc + b + 2.4, -42.0, sgn * 5.6, yc + b + 3.0, -4.0, CHROME)
+        for z in (-41.0, -23.0, -5.0):
+            body.box(sgn * 5.0, yc + b - 1.0, z - 0.3, sgn * 5.6, yc + b + 2.4, z + 0.3, CHROME, only=[AIR])
+    for y in np.arange(16.0, 38.0, 3.0):
+        body.box(-12.0, y, -50.6, -7.0, y + 0.6, -50.0, CHROME, only=[AIR])
+    body.box(-12.6, 14.0, -50.6, -12.0, 39.0, -50.0, CHROME, only=[AIR])
+    body.box(-7.0, 14.0, -50.6, -6.4, 39.0, -50.0, CHROME, only=[AIR])
+    # the pump's box under the tank's back end
+    body.box(2.0, 12.0, -50.2, 16.0, 19.6, -44.0, ALU, only=[AIR])
+    body.box(-3.8, 11.6, -50.8, 3.8, 13.8, -50.2, PLATE)
+    c.info.update(ceiling=35.4, tank_word=("МОЛОКО", -22.6, 29.6, 7.5, "#2a7486"))
+    return finish(c, p, Look(cabin=lambda P: (abs(P[:, 0]) < 15.2) & (P[:, 1] > 12.8) & (P[:, 1] < 34.6) & (P[:, 2] > 5.2) & (P[:, 2] < 22.0),
+                             seat="#3b342d", trim="#4a463f", headliner="#5a564e", dash="#262626", grille=grille_bars(1.6),
+                             extra=wood_extra(c, stakes=[], top=0)))
 
 
 # ---------------------------------------------------------------- driver
@@ -1250,7 +1713,8 @@ def write_java(types):
     rows = []
     for c in types:
         sch = schemes_of(c)
-        names = [LIVERIES[s]["name"] if s in LIVERIES else COLOURS[s][0] for s in sch]
+        combos = c.info.get("combos", {})
+        names = [LIVERIES[s]["name"] if s in LIVERIES else combos[s]["name"] if s in combos else COLOURS[s][0] for s in sch]
         beacon = [s for s in sch if LIVERIES.get(s, {}).get("beacon")]
         front = max(w["z"] for w in c.wheels)
         rear = min(w["z"] for w in c.wheels)
@@ -1262,6 +1726,7 @@ def write_java(types):
         rows.append(
             f'        new Type("{c.id}", "{c.info["name"]}", "{c.info["name_en"]}", {jf(c.L / M)}, {jf(c.W / M)}, {jf(c.H / M)},\n'
             f'                {jf(c.wheels[0]["r"] / M)}, {jf(front / M)}, {jf(rear / M)}, {jf(c.info.get("steer", 32.0))}, "{c.info.get("kind", "car")}",\n'
+            f'                {jf(c.info.get("ceiling", c.H) / M)},\n'
             f'                List.of({seats}),\n'
             f'                List.of({", ".join(str(x) for x in seat_door)}), {len(c.doors)},\n'
             f'                List.of({", ".join(chr(34) + s + chr(34) for s in sch)}),\n'
@@ -1281,9 +1746,9 @@ public final class CarTypes {{
     /** A seat: the point (car space: x left, y up, z forward) a sitter's seat surface is at. */
     public record Seat(float x, float y, float z) {{ }}
 
-    /** kind: car, van or bus. */
+    /** kind: car, van, bus or truck; ceiling: the roof over the seats (a truck's cab is lower than its load). */
     public record Type(String id, String name, String nameEn, float length, float width, float height, float wheelRadius,
-                       float frontAxle, float rearAxle, float maxSteer, String kind, List<Seat> seats, List<Integer> seatDoor, int doors,
+                       float frontAxle, float rearAxle, float maxSteer, String kind, float ceiling, List<Seat> seats, List<Integer> seatDoor, int doors,
                        List<String> schemes,
                        List<String> schemeNames, Set<String> beaconSchemes) {{
         public int scheme(String name) {{ int i = schemes.indexOf(name); return Math.max(0, i); }}

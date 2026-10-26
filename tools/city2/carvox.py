@@ -19,11 +19,12 @@ D = 2  # texels a model unit
 
 # ---------------------------------------------------------------- materials
 AIR, PAINT, GLASS, CHROME, BLACK, TIRE, RIM, HEAD, TAIL, TURN, SEAT, DASH, FLOOR, PLATE, STEER, UNDER, GRILLE, \
-    BLUE, RED, TRIM, PAINT2, ALU, LAMP, REVERSE, MIRROR, CANVAS, RUST = range(27)
+    BLUE, RED, TRIM, PAINT2, ALU, LAMP, REVERSE, MIRROR, CANVAS, RUST, WOOD, TANK, FRONT = range(30)
 NAMES = {v: k for k, v in dict(AIR=AIR, PAINT=PAINT, GLASS=GLASS, CHROME=CHROME, BLACK=BLACK, TIRE=TIRE, RIM=RIM, HEAD=HEAD,
                                  TAIL=TAIL, TURN=TURN, SEAT=SEAT, DASH=DASH, FLOOR=FLOOR, PLATE=PLATE, STEER=STEER, UNDER=UNDER,
                                  GRILLE=GRILLE, BLUE=BLUE, RED=RED, TRIM=TRIM, PAINT2=PAINT2, ALU=ALU, LAMP=LAMP,
-                                 REVERSE=REVERSE, MIRROR=MIRROR, CANVAS=CANVAS, RUST=RUST).items()}
+                                 REVERSE=REVERSE, MIRROR=MIRROR, CANVAS=CANVAS, RUST=RUST, WOOD=WOOD, TANK=TANK,
+                                 FRONT=FRONT).items()}
 TRANSLUCENT = (GLASS,)
 
 # glow channels (bit masks in a quad's glow field): what lights up when
@@ -319,6 +320,39 @@ class Mesh:
                 self.P[self.vid == vid] += np.array(v.local, float)
 
     # ------------------------------------------------------------ painting helpers
+    def smooth_normal(self, passes=2):
+        """Per texel: the normal of the body's smoothed shape (the occupancy blurred over a few cells), so that a curve
+        built of steps can be shaded as the curve it stands for. A part's own voxels (wheels...) keep their faces' normals."""
+        out = self.normal().copy()
+        for vid, v in enumerate(self.voxes):
+            sel = np.nonzero(self.vid == vid)[0]
+            if sel.size == 0 or v.local is not None:
+                continue
+            # the shape as seen from outside: a cell between solid cells along all three axes counts as solid (the
+            # cabin's inside, the seats behind the skin), or it would dent the walls' light
+            sol = v.mat > 0
+            fill = np.ones_like(sol)
+            for a in range(3):
+                fw = np.maximum.accumulate(sol, axis=a)
+                bw = np.flip(np.maximum.accumulate(np.flip(sol, a), axis=a), a)
+                fill &= fw & bw
+            occ = fill.astype(np.float32)
+            for _ in range(passes):
+                for a in range(3):
+                    occ = (occ + neighbour(occ, a, 1, 0.0) + neighbour(occ, a, -1, 0.0)) / 3.0
+            g = np.stack(np.gradient(occ), -1)
+            idx = self.cell[sel]
+            n = -g[idx[:, 0], idx[:, 1], idx[:, 2]]
+            ln = np.linalg.norm(n, axis=1)
+            ok = ln > 1e-4
+            n[ok] /= ln[ok][:, None]
+            # never turned away from the face itself
+            f = out[sel]
+            bad = ~ok | (np.einsum("ij,ij->i", n, f) < 0.15)
+            n[bad] = f[bad]
+            out[sel] = n
+        return out
+
     def normal(self):
         n = np.zeros((self.dir.size, 3))
         for k, (a, s) in enumerate(DIRS):
@@ -396,6 +430,19 @@ class Mesh:
 
 SHADE = [0.8, 0.8, 1.0, 0.5, 0.6, 0.6]  # +x -x +y -y +z -z, like Minecraft's entity light
 
+# Minecraft's entity lighting: two lights fixed in the world, ambient 0.4 and 0.6 of their diffuse
+MC_LIGHTS = np.array([[0.2, 1.0, -0.7], [-0.2, 1.0, 0.7]]) / np.linalg.norm([0.2, 1.0, 0.7])
+
+
+def mc_light(n, yaws=(0,)):
+    """The light Minecraft gives faces of normals n (k,3), averaged over the car turned by `yaws` (degrees)."""
+    tot = np.zeros(len(n))
+    for yaw in yaws:
+        R = rot_y(yaw)
+        m = n @ R.T
+        tot += np.minimum(1.0, 0.4 + 0.6 * np.maximum(0, m @ MC_LIGHTS.T).sum(1))
+    return tot / len(yaws)
+
 
 def rot_y(deg):
     r = math.radians(deg)
@@ -440,7 +487,7 @@ def preview(mesh, atlas, yaw, pitch, size=(640, 400), scale=None, pose=None, bg=
         nrm[a] = s
         if R is not None:
             nrm = R @ nrm
-        shade = 0.55 + 0.45 * max(0, np.dot(nrm, np.array([0.3, 0.9, 0.35]) / np.linalg.norm([0.3, 0.9, 0.35])))
+        shade = mc_light(nrm[None, :])[0]
         tris.append((pts @ view.T, uvs, shade, q.layer))
     allp = np.concatenate([t[0] for t in tris])
     lo, hi = allp.min(0), allp.max(0)

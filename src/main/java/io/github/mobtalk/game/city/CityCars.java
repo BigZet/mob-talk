@@ -84,18 +84,22 @@ public final class CityCars {
         /** A taxi rank: Volga taxis. */
         TAXI,
         /** The hospital: the UAZ ambulance. */
-        AMBULANCE
+        AMBULANCE,
+        /** A shop's back door, a dairy, a depot: GAZ-53 trucks (the board one and the milk tanker). */
+        TRUCK
     }
 
     /** Weighted car types per place, then weighted schemes per type (liveries never come up as a private car's paint). */
     private static final Map<Place, Object[]> MIX = Map.of(
             Place.YARD, new Object[] {"vaz2107", 30, "vaz2114", 16, "moskvich412", 12, "niva", 10, "gaz24", 7, "zaz968", 8, "uaz452", 3},
-            Place.STREET, new Object[] {"vaz2107", 24, "vaz2114", 18, "moskvich412", 10, "niva", 8, "gaz24", 12, "zaz968", 5, "uaz452", 6},
+            Place.STREET, new Object[] {"vaz2107", 24, "vaz2114", 18, "moskvich412", 10, "niva", 8, "gaz24", 12, "zaz968", 5, "uaz452", 6,
+                    "gaz53", 4, "gaz53milk", 2},
             Place.BUS, new Object[] {"paz3205", 1},
             Place.POLICE, new Object[] {"vaz2107", 6, "uaz452", 4},
             Place.MILITSIYA, new Object[] {"vaz2107", 1},
             Place.TAXI, new Object[] {"gaz24", 1},
-            Place.AMBULANCE, new Object[] {"uaz452", 1});
+            Place.AMBULANCE, new Object[] {"uaz452", 1},
+            Place.TRUCK, new Object[] {"gaz53", 3, "gaz53milk", 1});
 
     public static void register() {
         if (registered) return;

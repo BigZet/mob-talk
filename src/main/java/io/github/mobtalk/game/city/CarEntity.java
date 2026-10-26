@@ -342,7 +342,7 @@ public final class CarEntity extends Entity {
             x = MathHelper.clamp(x, -reach, reach);
         } else {
             boolean player = passenger instanceof PlayerEntity;
-            double eyes = Math.min(s.y() + 1.02, t.height() - (player ? 0.2 : 0.42));
+            double eyes = Math.min(s.y() + 1.02, t.ceiling() - (player ? 0.2 : 0.42));
             y = eyes - eye + attach;
         }
         return toWorld(x, y, s.z()).subtract(getPos());
