@@ -1,5 +1,6 @@
 package io.github.mobtalk.game;
 
+import io.github.mobtalk.core.MobClock;
 import io.github.mobtalk.core.Initiative;
 import io.github.mobtalk.core.Officialdom;
 import io.github.mobtalk.core.Paperwork;
@@ -150,7 +151,7 @@ final class PassportOffice {
         stamp(world, official);
         world.playSound(null, official.getBlockPos(), SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.NEUTRAL, 0.6f, 1.2f);
         say(player, bridge.officials.titled(official, rank), Text.translatable(rushed ? "mobtalk.paper.issued_rushed" : "mobtalk.paper.issued", number), Formatting.GREEN);
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         bridge.memory.recordEvent(official.getUuid(), MobGameBridge.type(official), official.getName().getString(),
                 "Ты выдал(а) игроку " + MobGameBridge.playerName(player) + " паспорт " + number + (rushed ? " — без очереди и справок, за конверт" : ""), now);
         cue(official, rank, "ты только что выдал(а) игроку паспорт " + number + (rushed ? ", хотя половины справок нет: конверт решил вопрос. Намекни, чтобы не болтал." : ". Поздравь казённо, напомни не терять: восстановление через суд."));
@@ -184,7 +185,7 @@ final class PassportOffice {
         if (hurried) bridge.memory.paperSave(kase);
         world.playSound(null, official.getBlockPos(), SoundEvents.ENTITY_VILLAGER_YES, SoundCategory.NEUTRAL, 1f, 1.1f);
         bridge.memory.recordBribe(official.getUuid(), MobGameBridge.type(official), official.getName().getString(), player.getUuid(), MobGameBridge.playerName(player),
-                3, "принёс тебе «шоколадку» (" + stack.getName().getString() + "), чтобы ускорить бумаги; ты взял(а)", System.currentTimeMillis());
+                3, "принёс тебе «шоколадку» (" + stack.getName().getString() + "), чтобы ускорить бумаги; ты взял(а)", MobClock.now());
         if (queued) { leave(world, ticket, player.getUuid()); serve(world, player, official, rank, false); }
         return Text.translatable("mobtalk.paper.sweet", bridge.officials.titled(official, rank)).getString();
     }
@@ -216,7 +217,7 @@ final class PassportOffice {
         }
         ticket.asked = true;
         String playerName = MobGameBridge.playerName(player);
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         for (UUID id : ticket.line) if (world.getEntity(id) instanceof VillagerEntity v) {
             v.setHeadRollingTimeLeft(30);
             bridge.memory.recordWitnessed(v.getUuid(), MobGameBridge.type(v), v.getName().getString(), player.getUuid(), playerName,
@@ -333,7 +334,7 @@ final class PassportOffice {
         player.sendMessage(Text.empty().append(who.copy().formatted(Formatting.WHITE)).append(": ").append(what.copy().formatted(color)), false);
     }
     private void cue(VillagerEntity official, Officialdom.Rank rank, String what) {
-        bridge.initiative.raise(new Initiative.Cue(official.getUuid(), bridge.officials.name(official), Initiative.Trigger.GIFT, what, List.of(), System.currentTimeMillis()));
+        bridge.initiative.raise(new Initiative.Cue(official.getUuid(), bridge.officials.name(official), Initiative.Trigger.GIFT, what, List.of(), MobClock.now()));
     }
 
     void clearRuntime() { tickets.clear(); }

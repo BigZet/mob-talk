@@ -1,5 +1,6 @@
 package io.github.mobtalk.server;
 
+import io.github.mobtalk.core.MobClock;
 import io.github.mobtalk.core.BargainMeter;
 import io.github.mobtalk.core.ChildLedger;
 import io.github.mobtalk.core.Favor;
@@ -48,7 +49,7 @@ final class MobStateSync {
             if (error != null) return null;
             PlayerView view = (PlayerView) pair[0];
             @SuppressWarnings("unchecked") Set<UUID> wanted = (Set<UUID>) pair[1];
-            long now = System.currentTimeMillis();
+            long now = MobClock.now();
             for (UUID gone : new HashSet<>(tracker.labels.keySet())) {
                 if (wanted.contains(gone)) continue;
                 MobLabelS2C old = tracker.labels.remove(gone);

@@ -56,7 +56,7 @@ public final class VillageTalkController {
 
     private void chatter(ServerWorld world) {
         if (talking || !talks.isEmpty() || bridge.initiative.playerBusy || bridge.wedding.active()) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         for (ServerPlayerEntity player : world.getPlayers()) {
             if (!player.isAlive() || player.isSpectator()) continue;
             double range = bridge.config.villageChatterRange;
@@ -82,7 +82,7 @@ public final class VillageTalkController {
     /** A talk between two villagers sitting in the bar ({@link BarEvenings}), its pace kept by the bar; false while the floor is taken. */
     boolean barTalk(ServerWorld world, VillagerEntity a, VillagerEntity b, ServerPlayerEntity player) {
         if (talking || !talks.isEmpty() || bridge.initiative.playerBusy || bridge.wedding.active()) return false;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         ConversationStore.Village village = village(world, a);
         VillageChatter.Input input = bridge.memory.chatterInput(seat(a), seat(b), key(world, a, village), village == null ? "" : village.name(),
                 MobGameBridge.playerName(player), "вечер", random::nextDouble, now, true);
@@ -126,7 +126,7 @@ public final class VillageTalkController {
 
     private void notice(ServerWorld world) {
         if (bridge.wedding.active()) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         for (ServerPlayerEntity player : world.getPlayers()) {
             if (!player.isAlive() || player.isSpectator()) continue;
             double range = bridge.config.noticeRange;
@@ -173,7 +173,7 @@ public final class VillageTalkController {
 
     private void arrivals(ServerWorld world) {
         if (bridge.initiative.playerBusy) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         for (ServerPlayerEntity player : world.getPlayers()) {
             if (!player.isAlive() || player.isSpectator()) continue;
             for (VillageNotices.Invitation invitation : bridge.memory.invitations(player.getUuid(), now)) {

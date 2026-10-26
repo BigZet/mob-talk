@@ -26,7 +26,7 @@ final class VillageController {
 
     /** The standing of this player in the village the villager belongs to (or stands in). */
     VillageStanding.View standing(VillagerEntity villager, ServerPlayerEntity player) {
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         String village = bridge.memory.villageOf(villager.getUuid());
         if (!village.isBlank()) return bridge.memory.social().standing(village, player.getUuid(), now);
         ConversationStore.Village here = villager.getWorld() instanceof ServerWorld world ? bridge.villageAt(world, villager.getBlockPos()) : null;
@@ -47,7 +47,7 @@ final class VillageController {
 
     void tick(ServerWorld world) {
         if (!enabled() || world.getTime() % PERIOD != PHASE) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         for (ServerPlayerEntity player : world.getPlayers()) {
             if (!player.isAlive() || player.isSpectator() || player.isCreative()) continue;
             ConversationStore.Village here = bridge.villageAt(world, player.getBlockPos());

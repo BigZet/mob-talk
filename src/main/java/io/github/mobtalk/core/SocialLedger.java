@@ -563,7 +563,7 @@ public final class SocialLedger {
             ConversationStore.Profile p = mob == null ? null : store.state.profiles.get(mob.toString());
             if (p == null || p.social == null) return "";
             ConversationStore.Relation r = player == null ? null : p.relations.get(player.toString());
-            long now = System.currentTimeMillis();
+            long now = MobClock.now();
             StringBuilder line = new StringBuilder(p.social.gender().adult).append(", ").append(p.social.persona().word);
             for (VillagerTrait trait : p.social.traits()) line.append(", ").append(trait.name().toLowerCase(Locale.ROOT));
             ChildGrowth.Stage stage = ChildGrowth.Stage.of(p.social.stage);

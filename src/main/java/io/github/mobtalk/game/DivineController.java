@@ -109,7 +109,7 @@ final class DivineController {
     private record Reach(ConversationStore.Village village, boolean far, Map<UUID, String> sufferers, Map<UUID, String> witnesses) { }
 
     private void handle(DivineTidings.Deed deed) {
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         // Continuations share the punishment's id (its end, the penance that lifts it), so the kind is part of the key.
         if (!bridge.memory.divineFirst(deed.id() + "|" + deed.kind().name(), now) || now - deed.time() > STALE_MILLIS) return;
         ServerWorld world = bridge.world(deed.dimension());
@@ -330,7 +330,7 @@ final class DivineController {
         bridge.memory.divineAnnounced(village.id(), soul.id());
     }
     private void assemblies() {
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         for (DivineTidings.AssemblyView a : bridge.memory.divineAssemblies()) {
             if (now < a.deadline()) continue;
             bridge.memory.divineExile(a.village(), a.player());
@@ -365,7 +365,7 @@ final class DivineController {
         if (village.isBlank()) { ConversationStore.Village here = bridge.villageAt(world, villager.getBlockPos()); village = here == null ? "" : here.id(); }
         if (village.isBlank()) return;
         String name = name(villager);
-        String sinner = bridge.memory.divineMourn(villager.getUuid(), village, name, System.currentTimeMillis());
+        String sinner = bridge.memory.divineMourn(villager.getUuid(), village, name, MobClock.now());
         if (sinner.isBlank() || !bridge.config.divinePanic) return;
         ConversationStore.Village home = bridge.memory.village(village);
         if (home == null) return;

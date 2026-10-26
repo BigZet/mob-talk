@@ -70,7 +70,7 @@ public final class InitiativeController {
 
     void tick(ServerWorld world) {
         if (!bridge.config.enabled || !bridge.config.initiative || world.getTime() % PERIOD != PHASE) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         Sky sky = watchSky(world, now);
         for (ServerPlayerEntity player : world.getPlayers()) {
             if (!player.isAlive() || player.isSpectator()) continue;

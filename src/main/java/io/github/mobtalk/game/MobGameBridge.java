@@ -32,7 +32,7 @@ public final class MobGameBridge implements GameBridge {
     private final io.github.mobtalk.core.Grace<UUID> sight = new io.github.mobtalk.core.Grace<>();
     /** The mob sees the player now, or saw them within voiceGraceSeconds. Server thread. */
     public boolean sees(MobEntity mob, net.minecraft.entity.LivingEntity player) {
-        return sight.hold(mob.getUuid(), mob.canSee(player), System.currentTimeMillis(), Math.max(0, config.voiceGraceSeconds) * 1000L);
+        return sight.hold(mob.getUuid(), mob.canSee(player), MobClock.now(), Math.max(0, config.voiceGraceSeconds) * 1000L);
     }
     final VillagerBargaining bargaining;
     final MobTrading trading;
@@ -127,7 +127,7 @@ public final class MobGameBridge implements GameBridge {
             if (bridge == null || !(entity instanceof MobEntity mob)) return;
             if (source.getAttacker() instanceof ServerPlayerEntity player && !blocked && amount > 0) {
                 bridge.memory.recordDamage(mob.getUuid(), type(mob), mob.getName().getString(), player.getUuid(),
-                        MobGameBridge.playerName(player), System.currentTimeMillis());
+                        MobGameBridge.playerName(player), MobClock.now());
                 bridge.witnessed(mob, player, Witness.HIT);
                 bridge.wedding.hurt(mob, player);
                 if (mob instanceof VillagerEntity villager) { bridge.bargaining.hurtBy(villager, player); bridge.graft.assaulted(villager, player); }
@@ -301,7 +301,7 @@ public final class MobGameBridge implements GameBridge {
         if (bridge != null) bridge.changes.placed(world, pos, player);
     }
     public void event(MobEntity mob, String text) {
-        memory.recordEvent(mob.getUuid(), type(mob), mob.getName().getString(), text, System.currentTimeMillis());
+        memory.recordEvent(mob.getUuid(), type(mob), mob.getName().getString(), text, MobClock.now());
     }
     /** Every mob with a profile that can see the victim takes it personally: a smaller drop than the victim's and a memory
      * "Видел, как игрок … ударил Марфу (корова)". Strangers notice nothing — a profile for each would bloat the world memory. */
@@ -312,7 +312,7 @@ public final class MobGameBridge implements GameBridge {
         if (SpeciesCatalog.get(type(victim)).hostile() || victim.getTarget() == player) return;
         String name = memory.displayName(victim.getUuid());
         String what = seen + " " + (name.isBlank() ? victim.getName().getString() : name) + " (" + SpeciesCatalog.get(type(victim)).name().toLowerCase(java.util.Locale.ROOT) + ")";
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         for (MobEntity witness : world.getEntitiesByClass(MobEntity.class, victim.getBoundingBox().expand(range),
                 other -> other != victim && other.isAlive() && !other.isRemoved() && memory.known(other.getUuid()) && other.canSee(victim)))
             memory.recordWitnessed(witness.getUuid(), player.getUuid(), MobGameBridge.playerName(player), what, delta, now);
@@ -329,7 +329,7 @@ public final class MobGameBridge implements GameBridge {
     /** По UUID из памяти: тип и имя берутся с карточки, незнакомец без карточки пропускается. */
     @Override public void event(UUID mobId, String text) {
         MobCard card = memory.card(mobId, null);
-        if (card != null) memory.recordEvent(mobId, card.type(), card.name(), text, System.currentTimeMillis());
+        if (card != null) memory.recordEvent(mobId, card.type(), card.name(), text, MobClock.now());
     }
     @Override public CompletableFuture<String> giftFromHand(UUID mobId, UUID playerId) {
         return onServer(() -> {
@@ -356,7 +356,7 @@ public final class MobGameBridge implements GameBridge {
     public CompletableFuture<FamilyPage> family(UUID playerId) {
         return onServer(() -> {
             ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
-            ChildLedger.Overview overview = memory.children().overview(playerId, server.getOverworld().getTimeOfDay(), server.getOverworld().getTime(), System.currentTimeMillis());
+            ChildLedger.Overview overview = memory.children().overview(playerId, server.getOverworld().getTimeOfDay(), server.getOverworld().getTime(), MobClock.now());
             Map<UUID, String> where = new HashMap<>(), mood = new HashMap<>(), profession = new HashMap<>();
             List<UUID> ids = new ArrayList<>();
             overview.spouses().forEach(s -> ids.add(s.id())); overview.children().forEach(c -> ids.add(c.id()));
@@ -394,7 +394,7 @@ public final class MobGameBridge implements GameBridge {
     public CompletableFuture<String> appointWitness(UUID mobId, UUID playerId) {
         return onServer(() -> {
             ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
-            return player == null ? "" : memory.wedding().appointWitness(mobId, playerId, playerName(player), System.currentTimeMillis());
+            return player == null ? "" : memory.wedding().appointWitness(mobId, playerId, playerName(player), MobClock.now());
         });
     }
 
@@ -454,7 +454,7 @@ public final class MobGameBridge implements GameBridge {
         if (bridge == null) return;
         bridge.keep(mob, true);
         bridge.memory.recordHelp(mob.getUuid(), type(mob), mob.getName().getString(), player.getUuid(),
-                MobGameBridge.playerName(player), System.currentTimeMillis());
+                MobGameBridge.playerName(player), MobClock.now());
         bridge.event(mob, reason + ": " + MobGameBridge.playerName(player));
     }
 
@@ -755,7 +755,7 @@ public final class MobGameBridge implements GameBridge {
                 io.github.mobtalk.core.place.PlaceClassifier.Guess guess = classifier.guess(seen.cube());
                 place.put("looksLike", guess.label()); place.put("looksLikeConfidence", (double) guess.confidence());
             }
-            return MobInfo.report(memory, mobId, playerId, dimension, x, z, seen.here(), System.currentTimeMillis(), secrets, seen.duties(), place);
+            return MobInfo.report(memory, mobId, playerId, dimension, x, z, seen.here(), MobClock.now(), secrets, seen.duties(), place);
         });
     }
     /** The STAY/GUARD/SPARE leases of this mob for /mobtalk state; safe from the client thread. */

@@ -470,7 +470,7 @@ final class VillageDefenseController {
     private List<ServerPlayerEntity> listeners(ServerWorld world, Zone zone) {
         List<ServerPlayerEntity> out = new ArrayList<>();
         double range = bridge.config.alarmNoticeRange;
-        long millis = System.currentTimeMillis();
+        long millis = MobClock.now();
         for (ServerPlayerEntity player : world.getPlayers()) {
             boolean near = player.getBlockPos().getSquaredDistance(zone.center()) <= range * range;
             boolean own = !zone.villageId().isBlank() && bridge.config.socialLayer

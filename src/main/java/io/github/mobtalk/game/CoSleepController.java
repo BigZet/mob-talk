@@ -49,13 +49,13 @@ final class CoSleepController {
     /** Игрок позвал свою пару спать: она идёт за ним, пока он не ляжет (или пока не выйдет срок). Не пару не зовут. */
     void invite(UUID villager, UUID player) {
         if (!enabled() || !bridge.memory.jealousy().partner(villager, player)) return;
-        invites.put(villager, new Invite(player, System.currentTimeMillis() + CoSleep.INVITE_MILLIS));
+        invites.put(villager, new Invite(player, MobClock.now() + CoSleep.INVITE_MILLIS));
     }
 
     void tick(ServerWorld world) {
         if (!enabled()) { if (!nights.isEmpty() || !invites.isEmpty()) clearRuntime(); return; }
         if (world.getTime() % PERIOD != 2) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         invites.values().removeIf(invite -> now > invite.until());
         for (ServerPlayerEntity player : world.getPlayers()) {
             boolean asleep = player.isSleeping() && player.getSleepingPosition().isPresent();

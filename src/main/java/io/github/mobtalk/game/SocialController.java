@@ -52,7 +52,7 @@ final class SocialController {
 
     void tick(ServerWorld world) {
         if (!enabled() || world.getTime() % 10 != 3) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         for (ServerPlayerEntity player : world.getPlayers()) {
             if (!player.isAlive() || player.isSpectator()) continue;
             for (ItemEntity drop : world.getEntitiesByClass(ItemEntity.class, player.getBoundingBox().expand(12),
@@ -113,7 +113,7 @@ final class SocialController {
         String item = Registries.ITEM.getId(stack.getItem()).toString();
         String profession = mob instanceof VillagerEntity villager ? Registries.VILLAGER_PROFESSION.getId(villager.getVillagerData().getProfession()).toString() : "";
         boolean favouriteFood = mob instanceof net.minecraft.entity.passive.AnimalEntity animal && animal.isBreedingItem(stack);
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         GestureIntent result = bridge.memory.social().giftFromHand(mob.getUuid(), MobGameBridge.type(mob), mob.getName().getString(),
                 player.getUuid(), MobGameBridge.playerName(player), item, profession, mob.isBaby(), favouriteFood, now);
         if (result == null) return "Этот моб подарков не принимает";

@@ -1,5 +1,6 @@
 package io.github.mobtalk.game;
 
+import io.github.mobtalk.core.MobClock;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import io.github.mobtalk.core.CivilRegistry;
 import io.github.mobtalk.core.Initiative;
@@ -132,8 +133,8 @@ final class CivilOffice {
         world.playSound(null, official.getBlockPos(), SoundEvents.ITEM_BOOK_PAGE_TURN, SoundCategory.NEUTRAL, 1f, 0.9f);
         say(player, who, Text.translatable("mobtalk.civil.issued_now", (repeated ? "повторное " : "") + paper.title, number), Formatting.GREEN);
         bridge.memory.recordEvent(official.getUuid(), MobGameBridge.type(official), official.getName().getString(),
-                "Ты выдал(а) игроку " + holder + " «" + paper.title + "»" + (fee > 0 ? " за госпошлину" : ""), System.currentTimeMillis());
-        bridge.initiative.raise(new Initiative.Cue(official.getUuid(), issuer, Initiative.Trigger.GIFT, cue(paper, lines), List.of(), System.currentTimeMillis()));
+                "Ты выдал(а) игроку " + holder + " «" + paper.title + "»" + (fee > 0 ? " за госпошлину" : ""), MobClock.now());
+        bridge.initiative.raise(new Initiative.Cue(official.getUuid(), issuer, Initiative.Trigger.GIFT, cue(paper, lines), List.of(), MobClock.now()));
         return true;
     }
 

@@ -1,5 +1,6 @@
 package io.github.mobtalk.game;
 
+import io.github.mobtalk.core.MobClock;
 import io.github.mobtalk.core.BanditHaggle;
 import io.github.mobtalk.core.MobTalkConfig;
 import io.github.mobtalk.core.place.Structures;
@@ -403,14 +404,14 @@ public final class BanditController {
         for (VillagerEntity villager : world.getEntitiesByClass(VillagerEntity.class, bandit.getBoundingBox().expand(24), v -> v.isAlive() && v.canSee(bandit)))
             if (teller == null || villager.squaredDistanceTo(bandit) < teller.squaredDistanceTo(bandit)) teller = villager;
         String id = bridge.memory.villageNews(village.id(), "bandits-" + world.getTime(), text, teller == null ? null : teller.getUuid(),
-                player == null ? "" : MobGameBridge.playerName(player), player == null ? null : player.getUuid(), importance, sign, System.currentTimeMillis());
+                player == null ? "" : MobGameBridge.playerName(player), player == null ? null : player.getUuid(), importance, sign, MobClock.now());
         if (!id.isBlank()) LOGGER.info("Mob Talk: the city hears that {}", text);
     }
 
     /** At dusk, once a day, a villager near a player in the city warns him off the yards when the city talks of a robbery. */
     private void warn(ServerWorld world, long day) {
         if (!bridge.config.banditRumors) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         for (ServerPlayerEntity player : world.getPlayers()) {
             if (!player.isAlive() || player.isSpectator() || warned.getOrDefault(player.getUuid(), -1L) == day) continue;
             if (!territory(world, player.getBlockPos())) continue;

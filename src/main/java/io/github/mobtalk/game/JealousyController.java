@@ -29,7 +29,7 @@ final class JealousyController {
      * заигрывал (флирт, поцелуй, предложение): обычный разговор с соседкой — не измена. Под замком памяти. */
     void talked(MobEntity mob, ServerPlayerEntity player, Gesture gesture) {
         if (!enabled() || !adultVillager(mob)) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         JealousyLedger ledger = bridge.memory.jealousy();
         if (ledger.partner(mob.getUuid(), player.getUuid())) ledger.attention(mob.getUuid(), player.getUuid(), bridge.config.jealousyAttention, now);
         else if (gesture != null && gesture.romantic) notice((VillagerEntity) mob, player, Jealousy.Cause.TALK, 0, "", now);
@@ -37,7 +37,7 @@ final class JealousyController {
     /** Житель принял подарок (в разговоре, из рук или брошенный): паре — внимание, сопернику — сильный повод по ценности. */
     void gift(MobEntity mob, ServerPlayerEntity player, GestureIntent gift) {
         if (!enabled() || gift == null || gift.gesture() != Gesture.GIFT || !gift.takesItem() || !adultVillager(mob)) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         JealousyLedger ledger = bridge.memory.jealousy();
         int hearts = Math.max(0, gift.hearts());
         if (ledger.partner(mob.getUuid(), player.getUuid())) ledger.attention(mob.getUuid(), player.getUuid(), Math.max(bridge.config.jealousyAttention, 2 * hearts), now);
@@ -47,7 +47,7 @@ final class JealousyController {
     /** Игрок выполнил поручение жителя. */
     void favor(MobEntity mob, ServerPlayerEntity player) {
         if (!enabled() || !adultVillager(mob)) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         JealousyLedger ledger = bridge.memory.jealousy();
         if (ledger.partner(mob.getUuid(), player.getUuid())) ledger.attention(mob.getUuid(), player.getUuid(), 2 * bridge.config.jealousyAttention, now);
         // Помочь соседке с поручением — обычное дело, а не ухаживание: ревности нет.
@@ -78,7 +78,7 @@ final class JealousyController {
     /** Ночью: игрок спит, а в 3 блоках от его кровати спит другой житель — повод для пар того же пола, раз за ночь на соперника. */
     void tick(ServerWorld world) {
         if (!enabled() || world.getTime() % PERIOD != PHASE) return;
-        long day = world.getTimeOfDay() / 24_000L, now = System.currentTimeMillis();
+        long day = world.getTimeOfDay() / 24_000L, now = MobClock.now();
         for (ServerPlayerEntity player : world.getPlayers()) {
             if (!player.isSleeping() || player.getSleepingPosition().isEmpty()) continue;
             BlockPos bed = player.getSleepingPosition().get();
