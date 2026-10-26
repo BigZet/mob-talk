@@ -1,0 +1,316 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "birch_ply_h": "mobtalk:block/city2/furniture/birch_ply_h",
+    "aloe": "mobtalk:block/city2/furniture/aloe",
+    "leaf": "mobtalk:block/city2/furniture/leaf",
+    "terracotta": "mobtalk:block/city2/furniture/terracotta",
+    "particle": "mobtalk:block/city2/furniture/birch_ply_h"
+  },
+  "elements": [
+    {
+      "from": [
+        0.5,
+        0.0,
+        12.0
+      ],
+      "to": [
+        16.0,
+        2.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.0,
+            14.0,
+            15.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.5,
+            14.0,
+            16.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            12.0,
+            14.0,
+            16.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.5,
+            12.0,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.5,
+        0.0,
+        9.25
+      ],
+      "to": [
+        7.0,
+        1.5,
+        11.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#aloe",
+          "uv": [
+            9.0,
+            14.5,
+            11.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#aloe",
+          "uv": [
+            4.5,
+            14.5,
+            7.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#aloe",
+          "uv": [
+            4.75,
+            14.5,
+            6.75,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#aloe",
+          "uv": [
+            9.25,
+            14.5,
+            11.25,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#aloe",
+          "uv": [
+            4.5,
+            9.25,
+            7.0,
+            11.25
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        12.5,
+        0.0,
+        9.25
+      ],
+      "to": [
+        15.0,
+        1.5,
+        11.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#leaf",
+          "uv": [
+            1.0,
+            14.5,
+            3.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#leaf",
+          "uv": [
+            12.5,
+            14.5,
+            15.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#leaf",
+          "uv": [
+            4.75,
+            14.5,
+            6.75,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#leaf",
+          "uv": [
+            9.25,
+            14.5,
+            11.25,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#leaf",
+          "uv": [
+            12.5,
+            9.25,
+            15.0,
+            11.25
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.0,
+        2.0,
+        13.0
+      ],
+      "to": [
+        9.5,
+        5.0,
+        15.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#terracotta",
+          "uv": [
+            6.5,
+            11.0,
+            10.0,
+            14.0
+          ]
+        },
+        "south": {
+          "texture": "#terracotta",
+          "uv": [
+            6.0,
+            11.0,
+            9.5,
+            14.0
+          ]
+        },
+        "east": {
+          "texture": "#terracotta",
+          "uv": [
+            0.5,
+            11.0,
+            3.0,
+            14.0
+          ]
+        },
+        "west": {
+          "texture": "#terracotta",
+          "uv": [
+            13.0,
+            11.0,
+            15.5,
+            14.0
+          ]
+        },
+        "up": {
+          "texture": "#terracotta",
+          "uv": [
+            6.0,
+            13.0,
+            9.5,
+            15.5
+          ]
+        },
+        "down": {
+          "texture": "#terracotta",
+          "uv": [
+            6.0,
+            0.5,
+            9.5,
+            3.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.5,
+        5.0,
+        13.25
+      ],
+      "to": [
+        9.0,
+        7.5,
+        15.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#leaf",
+          "uv": [
+            7.0,
+            8.5,
+            9.5,
+            11.0
+          ]
+        },
+        "south": {
+          "texture": "#leaf",
+          "uv": [
+            6.5,
+            8.5,
+            9.0,
+            11.0
+          ]
+        },
+        "east": {
+          "texture": "#leaf",
+          "uv": [
+            0.75,
+            8.5,
+            2.75,
+            11.0
+          ]
+        },
+        "west": {
+          "texture": "#leaf",
+          "uv": [
+            13.25,
+            8.5,
+            15.25,
+            11.0
+          ]
+        },
+        "up": {
+          "texture": "#leaf",
+          "uv": [
+            6.5,
+            13.25,
+            9.0,
+            15.25
+          ]
+        },
+        "down": {
+          "texture": "#leaf",
+          "uv": [
+            6.5,
+            0.75,
+            9.0,
+            2.75
+          ]
+        }
+      }
+    }
+  ]
+}

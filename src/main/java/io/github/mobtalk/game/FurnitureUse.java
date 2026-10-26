@@ -58,7 +58,9 @@ final class FurnitureUse {
             Map.entry("pub_issue_desk", 1), Map.entry("pub_lab_bench", 1), Map.entry("pub_fume_cupboard", 1), Map.entry("pub_fire_cabinet", 1),
             Map.entry("pub_cloak_section", 1), Map.entry("pub_cloak_section_empty", 1), Map.entry("pub_satchels", 1),
             Map.entry("pub_fridge_cabinet", 3), Map.entry("pub_kitchen_rack", 2), Map.entry("pub_oven_cabinet", 1), Map.entry("pub_veg_crates", 1),
-            Map.entry("pub_prep_table_board", 1), Map.entry("pub_prep_table_grinder", 1), Map.entry("pub_prep_table_bowls", 1));
+            Map.entry("pub_prep_table_board", 1), Map.entry("pub_prep_table_grinder", 1), Map.entry("pub_prep_table_bowls", 1),
+            // the kindergarten's
+            Map.entry("pub_kid_locker_bank", 2), Map.entry("pub_dish_cupboard", 1), Map.entry("pub_potty_rack", 1));
 
     /** Pieces that are a lamp and a cupboard at once open below this height (pixels above their placed cell), switch above it. */
     private static final Map<String, Double> LAMP_ABOVE = Map.of("apt_nightstand", 9.5, "apt_desk", 13.0, "apt2_tv_stand", 8.75,
@@ -120,7 +122,9 @@ final class FurnitureUse {
             case "apt_ironing_board" -> steam(sw, pos);
             case "apt_chute" -> player.sendMessage(Text.translatable("mobtalk.furniture.chute"), true);
             case "pub_drinking_fountain" -> fountain(sw, pos, facing);
-            case "pub_wash_bath" -> tap(sw, pos, facing, id);
+            case "pub_wash_bath", "pub_kid_washbasins" -> tap(sw, pos, facing, id);
+            case "pub_aquarium" -> bubbles(sw, pos);
+            case "pub_instruments" -> metallophone(sw, pos);
             case "pub_kitchen_range" -> stove(sw, pos, false);
             case "pub_boiling_pan" -> boil(sw, pos);
             case "pub_school_bell" -> schoolBell(sw, pos);
@@ -142,7 +146,7 @@ final class FurnitureUse {
                  "apt_piano", "apt_wall_radio", "apt_radiola", "apt_tv", "apt_gas_heater", "apt_wall_phone", "apt_wall_clock", "apt_electric_meter",
                  "apt_notice_board", "apt_sewing_machine", "apt_washer", "apt_washer_malyutka", "apt_washer_sibir", "apt_crib",
                  "apt_ironing_board", "apt_chute", "pub_drinking_fountain", "pub_wash_bath", "pub_kitchen_range", "pub_boiling_pan",
-                 "pub_school_bell", "pub_menu_board", "pub_stand_timetable", "pub_stand_school", "pub_wall_newspaper" -> true;
+                 "pub_school_bell", "pub_menu_board", "pub_kid_washbasins", "pub_aquarium", "pub_instruments", "pub_stand_timetable", "pub_stand_school", "pub_wall_newspaper" -> true;
             default -> false;
         };
     }
@@ -151,7 +155,7 @@ final class FurnitureUse {
     static ItemActionResult useWithItem(FurnitureBlocks.Furniture block, World world, BlockPos pos, PlayerEntity player, Hand hand, ItemStack stack) {
         String id = block.f.id();
         boolean tap = id.startsWith("apt_kitchen_sink") || id.equals("apt2_kitchen_sink") || id.equals("apt_washbasin") || id.equals("apt_bathtub")
-                || id.equals("pub_wash_bath") || id.equals("pub_drinking_fountain");
+                || id.equals("pub_wash_bath") || id.equals("pub_drinking_fountain") || id.equals("pub_kid_washbasins");
         if (tap && (stack.isOf(Items.GLASS_BOTTLE) || stack.isOf(Items.BUCKET))) {
             if (world instanceof ServerWorld sw) {
                 ItemStack full = stack.isOf(Items.BUCKET) ? new ItemStack(Items.WATER_BUCKET)
@@ -247,6 +251,7 @@ final class FurnitureUse {
             case "apt_bathtub" -> front(pos, facing, 14, 3);
             case "apt2_kitchen_sink" -> front(pos, facing, 18, 10.25).add(Vec3d.of(facing.rotateYClockwise().getVector()).multiply(-2 / 16.0));
             case "pub_wash_bath" -> front(pos, facing, 21.5, 7.5);
+            case "pub_kid_washbasins" -> front(pos, facing, 12, 3.5);
             case "pub_drinking_fountain" -> front(pos, facing, 18.5, 7.75);
             default -> front(pos, facing, 17.5, 9.5);
         };
@@ -307,6 +312,23 @@ final class FurnitureUse {
         w.playSound(null, pos, SoundEvents.BLOCK_BUBBLE_COLUMN_UPWARDS_AMBIENT, SoundCategory.BLOCKS, 0.6f, 0.8f);
         for (int i = 0; i < 12; i++)
             later(w, 4 + i * 4, () -> w.spawnParticles(ParticleTypes.WHITE_SMOKE, top.x, top.y, top.z, 3, 0.25, 0.02, 0.25, 0.01));
+    }
+
+    /** The aquarium: the fish come up for the food, bubbles rise. */
+    private static void bubbles(ServerWorld w, BlockPos pos) {
+        Vec3d c = Vec3d.ofBottomCenter(pos).add(0, 0.75, 0);
+        w.playSound(null, pos, SoundEvents.BLOCK_BUBBLE_COLUMN_BUBBLE_POP, SoundCategory.BLOCKS, 0.6f, 1.2f);
+        for (int i = 0; i < 10; i++)
+            later(w, i * 3, () -> w.spawnParticles(ParticleTypes.BUBBLE_POP, c.x, c.y + 0.4, c.z, 3, 0.3, 0.1, 0.2, 0.01));
+    }
+
+    /** The metallophone: a little tune up and down the scale, as the children play it. */
+    private static void metallophone(ServerWorld w, BlockPos pos) {
+        int[] tune = {6, 8, 10, 11, 13, 11, 10, 8, 6};
+        for (int i = 0; i < tune.length; i++) {
+            int n = tune[i];
+            later(w, i * 4, () -> note(w, pos.up(), SoundEvents.BLOCK_NOTE_BLOCK_CHIME, n, 0.7f));
+        }
     }
 
     /** The school's electric bell: a long hard trill along the corridor. */

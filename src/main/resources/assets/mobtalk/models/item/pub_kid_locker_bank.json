@@ -1,0 +1,924 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "birch_ply": "mobtalk:block/city2/furniture/birch_ply",
+    "pub_kid_locker_bank_kglock_doors_44": "mobtalk:block/city2/furniture/pub_kid_locker_bank_kglock_doors_44",
+    "birch_ply_h": "mobtalk:block/city2/furniture/birch_ply_h",
+    "laundry_pink": "mobtalk:block/city2/furniture/laundry_pink",
+    "kid_pad_blue": "mobtalk:block/city2/furniture/kid_pad_blue",
+    "particle": "mobtalk:block/city2/furniture/birch_ply"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.0,
+        5.0
+      ],
+      "to": [
+        0.75,
+        15.0,
+        11.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#birch_ply",
+          "uv": [
+            14.5,
+            2.0,
+            16.0,
+            32.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply",
+          "uv": [
+            0.0,
+            2.0,
+            1.5,
+            32.0
+          ]
+        },
+        "east": {
+          "texture": "#birch_ply",
+          "uv": [
+            0.0,
+            2.0,
+            12.0,
+            32.0
+          ]
+        },
+        "west": {
+          "texture": "#birch_ply",
+          "uv": [
+            4.0,
+            2.0,
+            16.0,
+            32.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply",
+          "uv": [
+            0.0,
+            4.0,
+            1.5,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#birch_ply",
+          "uv": [
+            0.0,
+            0.0,
+            1.5,
+            12.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        15.25,
+        0.0,
+        5.0
+      ],
+      "to": [
+        16.0,
+        15.0,
+        11.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#birch_ply",
+          "uv": [
+            0.0,
+            2.0,
+            1.5,
+            32.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply",
+          "uv": [
+            14.5,
+            2.0,
+            16.0,
+            32.0
+          ]
+        },
+        "east": {
+          "texture": "#birch_ply",
+          "uv": [
+            0.0,
+            2.0,
+            12.0,
+            32.0
+          ]
+        },
+        "west": {
+          "texture": "#birch_ply",
+          "uv": [
+            4.0,
+            2.0,
+            16.0,
+            32.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply",
+          "uv": [
+            14.5,
+            4.0,
+            16.0,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#birch_ply",
+          "uv": [
+            14.5,
+            0.0,
+            16.0,
+            12.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.75,
+        1.5,
+        5.25
+      ],
+      "to": [
+        15.25,
+        12.0,
+        11.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_kid_locker_bank_kglock_doors_44",
+          "uv": [
+            -14.5,
+            -8.0,
+            14.5,
+            13.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply",
+          "uv": [
+            1.5,
+            8.0,
+            30.5,
+            29.0
+          ]
+        },
+        "east": {
+          "texture": "#birch_ply",
+          "uv": [
+            0.0,
+            8.0,
+            11.5,
+            29.0
+          ]
+        },
+        "west": {
+          "texture": "#birch_ply",
+          "uv": [
+            4.5,
+            8.0,
+            16.0,
+            29.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply",
+          "uv": [
+            1.5,
+            4.5,
+            30.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.75,
+        1.0,
+        5.0
+      ],
+      "to": [
+        15.25,
+        1.5,
+        11.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            1.5,
+            13.0,
+            30.5,
+            14.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            1.5,
+            13.0,
+            30.5,
+            14.0
+          ]
+        },
+        "east": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.0,
+            13.0,
+            12.0,
+            14.0
+          ]
+        },
+        "west": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            4.0,
+            13.0,
+            16.0,
+            14.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            1.5,
+            4.0,
+            30.5,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            1.5,
+            0.0,
+            30.5,
+            12.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.75,
+        12.0,
+        5.0
+      ],
+      "to": [
+        15.25,
+        12.5,
+        11.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            1.5,
+            7.0,
+            30.5,
+            8.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            1.5,
+            7.0,
+            30.5,
+            8.0
+          ]
+        },
+        "east": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.0,
+            7.0,
+            12.0,
+            8.0
+          ]
+        },
+        "west": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            4.0,
+            7.0,
+            16.0,
+            8.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            1.5,
+            4.0,
+            30.5,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            1.5,
+            0.0,
+            30.5,
+            12.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.75,
+        14.5,
+        5.0
+      ],
+      "to": [
+        15.25,
+        15.0,
+        11.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            1.5,
+            2.0,
+            30.5,
+            3.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            1.5,
+            2.0,
+            30.5,
+            3.0
+          ]
+        },
+        "east": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.0,
+            2.0,
+            12.0,
+            3.0
+          ]
+        },
+        "west": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            4.0,
+            2.0,
+            16.0,
+            3.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            1.5,
+            4.0,
+            30.5,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            1.5,
+            0.0,
+            30.5,
+            12.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.75,
+        12.5,
+        5.25
+      ],
+      "to": [
+        4.25,
+        14.5,
+        11.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#birch_ply",
+          "uv": [
+            7.5,
+            3.0,
+            8.5,
+            7.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply",
+          "uv": [
+            7.5,
+            3.0,
+            8.5,
+            7.0
+          ]
+        },
+        "east": {
+          "texture": "#birch_ply",
+          "uv": [
+            0.0,
+            3.0,
+            11.5,
+            7.0
+          ]
+        },
+        "west": {
+          "texture": "#birch_ply",
+          "uv": [
+            4.5,
+            3.0,
+            16.0,
+            7.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply",
+          "uv": [
+            7.5,
+            4.5,
+            8.5,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#birch_ply",
+          "uv": [
+            7.5,
+            0.0,
+            8.5,
+            11.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.75,
+        12.5,
+        5.25
+      ],
+      "to": [
+        7.25,
+        14.5,
+        11.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#birch_ply",
+          "uv": [
+            1.5,
+            3.0,
+            2.5,
+            7.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply",
+          "uv": [
+            13.5,
+            3.0,
+            14.5,
+            7.0
+          ]
+        },
+        "east": {
+          "texture": "#birch_ply",
+          "uv": [
+            0.0,
+            3.0,
+            11.5,
+            7.0
+          ]
+        },
+        "west": {
+          "texture": "#birch_ply",
+          "uv": [
+            4.5,
+            3.0,
+            16.0,
+            7.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply",
+          "uv": [
+            13.5,
+            4.5,
+            14.5,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#birch_ply",
+          "uv": [
+            13.5,
+            0.0,
+            14.5,
+            11.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        9.75,
+        12.5,
+        5.25
+      ],
+      "to": [
+        10.25,
+        14.5,
+        11.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#birch_ply",
+          "uv": [
+            11.5,
+            3.0,
+            12.5,
+            7.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply",
+          "uv": [
+            3.5,
+            3.0,
+            4.5,
+            7.0
+          ]
+        },
+        "east": {
+          "texture": "#birch_ply",
+          "uv": [
+            0.0,
+            3.0,
+            11.5,
+            7.0
+          ]
+        },
+        "west": {
+          "texture": "#birch_ply",
+          "uv": [
+            4.5,
+            3.0,
+            16.0,
+            7.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply",
+          "uv": [
+            3.5,
+            4.5,
+            4.5,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#birch_ply",
+          "uv": [
+            3.5,
+            0.0,
+            4.5,
+            11.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        12.75,
+        12.5,
+        5.25
+      ],
+      "to": [
+        13.25,
+        14.5,
+        11.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#birch_ply",
+          "uv": [
+            5.5,
+            3.0,
+            6.5,
+            7.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply",
+          "uv": [
+            9.5,
+            3.0,
+            10.5,
+            7.0
+          ]
+        },
+        "east": {
+          "texture": "#birch_ply",
+          "uv": [
+            0.0,
+            3.0,
+            11.5,
+            7.0
+          ]
+        },
+        "west": {
+          "texture": "#birch_ply",
+          "uv": [
+            4.5,
+            3.0,
+            16.0,
+            7.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply",
+          "uv": [
+            9.5,
+            4.5,
+            10.5,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#birch_ply",
+          "uv": [
+            9.5,
+            0.0,
+            10.5,
+            11.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.5,
+        12.5,
+        7.0
+      ],
+      "to": [
+        3.0,
+        13.75,
+        9.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#laundry_pink",
+          "uv": [
+            10.0,
+            4.5,
+            13.0,
+            7.0
+          ]
+        },
+        "south": {
+          "texture": "#laundry_pink",
+          "uv": [
+            3.0,
+            4.5,
+            6.0,
+            7.0
+          ]
+        },
+        "east": {
+          "texture": "#laundry_pink",
+          "uv": [
+            3.0,
+            4.5,
+            8.0,
+            7.0
+          ]
+        },
+        "west": {
+          "texture": "#laundry_pink",
+          "uv": [
+            8.0,
+            4.5,
+            13.0,
+            7.0
+          ]
+        },
+        "up": {
+          "texture": "#laundry_pink",
+          "uv": [
+            3.0,
+            8.0,
+            6.0,
+            13.0
+          ]
+        },
+        "down": {
+          "texture": "#laundry_pink",
+          "uv": [
+            3.0,
+            3.0,
+            6.0,
+            8.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        7.5,
+        12.5,
+        7.0
+      ],
+      "to": [
+        9.0,
+        13.0,
+        9.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#kid_pad_blue",
+          "uv": [
+            14.0,
+            6.0,
+            17.0,
+            7.0
+          ]
+        },
+        "south": {
+          "texture": "#kid_pad_blue",
+          "uv": [
+            15.0,
+            6.0,
+            18.0,
+            7.0
+          ]
+        },
+        "east": {
+          "texture": "#kid_pad_blue",
+          "uv": [
+            3.0,
+            6.0,
+            8.0,
+            7.0
+          ]
+        },
+        "west": {
+          "texture": "#kid_pad_blue",
+          "uv": [
+            8.0,
+            6.0,
+            13.0,
+            7.0
+          ]
+        },
+        "up": {
+          "texture": "#kid_pad_blue",
+          "uv": [
+            15.0,
+            8.0,
+            18.0,
+            13.0
+          ]
+        },
+        "down": {
+          "texture": "#kid_pad_blue",
+          "uv": [
+            15.0,
+            3.0,
+            18.0,
+            8.0
+          ]
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.625,
+        0.625,
+        0.625
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        2.5,
+        0
+      ],
+      "scale": [
+        0.375,
+        0.375,
+        0.375
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    }
+  }
+}

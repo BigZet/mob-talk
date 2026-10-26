@@ -1,0 +1,129 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "pub_easel_easel_drawing_43": "mobtalk:block/city2/furniture/pub_easel_easel_drawing_43",
+    "paper": "mobtalk:block/city2/furniture/paper",
+    "birch_ply": "mobtalk:block/city2/furniture/birch_ply",
+    "particle": "mobtalk:block/city2/furniture/pub_easel_easel_drawing_43"
+  },
+  "elements": [
+    {
+      "from": [
+        2.0,
+        0.0,
+        6.5
+      ],
+      "to": [
+        14.0,
+        8.0,
+        7.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_easel_easel_drawing_43",
+          "uv": [
+            2.0,
+            8.0,
+            14.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#paper",
+          "uv": [
+            2.0,
+            8.0,
+            14.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#paper",
+          "uv": [
+            9.0,
+            8.0,
+            9.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#paper",
+          "uv": [
+            6.5,
+            8.0,
+            7.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#paper",
+          "uv": [
+            2.0,
+            6.5,
+            14.0,
+            7.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.5,
+        0.0,
+        7.0
+      ],
+      "to": [
+        14.5,
+        8.5,
+        8.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#birch_ply",
+          "uv": [
+            1.5,
+            7.5,
+            14.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply",
+          "uv": [
+            1.5,
+            7.5,
+            14.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#birch_ply",
+          "uv": [
+            8.0,
+            7.5,
+            9.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#birch_ply",
+          "uv": [
+            7.0,
+            7.5,
+            8.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply",
+          "uv": [
+            1.5,
+            7.0,
+            14.5,
+            8.0
+          ]
+        }
+      }
+    }
+  ]
+}

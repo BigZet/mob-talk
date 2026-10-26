@@ -1,0 +1,68 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "birch_ply_h": "mobtalk:block/city2/furniture/birch_ply_h",
+    "particle": "mobtalk:block/city2/furniture/birch_ply_h"
+  },
+  "elements": [
+    {
+      "from": [
+        15.5,
+        2.0,
+        6.5
+      ],
+      "to": [
+        16.0,
+        3.0,
+        9.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.0,
+            13.0,
+            0.5,
+            14.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            15.5,
+            13.0,
+            16.0,
+            14.0
+          ]
+        },
+        "west": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            6.5,
+            13.0,
+            9.5,
+            14.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            15.5,
+            6.5,
+            16.0,
+            9.5
+          ]
+        },
+        "down": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            15.5,
+            6.5,
+            16.0,
+            9.5
+          ]
+        }
+      }
+    }
+  ]
+}

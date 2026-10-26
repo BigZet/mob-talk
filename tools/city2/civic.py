@@ -568,6 +568,107 @@ def school(colour="silicate", seed=0):
     return t, flats
 
 
+# ---------------------------------------------------------------- the kindergarten (ЦНИИЭП, сад-ясли на 280 мест)
+# After the typical project of the ЦНИИЭП учебных зданий (public-refs/plans/kindergarten_cniiep_280.jpg), at x1.5: a spine
+# one bay deep of group cells, each cell its lockers (раздевальня), its toilet and its group room in the spine and its
+# bedroom-veranda (спальня-веранда) in a wing off it, the wings turned alternately to the north and the south: the zigzag.
+# No corridor: each staircase serves the two cells beside it, a cell is entered from its landing (on the ground floor
+# from its own porch too). The middle: the entrance hall and the staircase, a wing with the kitchen and the doctor's
+# below and the music hall above, the head's office and a hall upstairs.
+KL, KD = 117, 32
+_KG_MIRROR = {"a": "A", "b": "B", "r": "R", "u": "U", "e": "E", "f": "F", "g": "G", "h": "H"}
+
+
+def _kg2(k):
+    p = Plan(KL, KD)
+    # the west half: group 1 (wing to the south), the west staircase, group 2 (wing to the north)
+    p.box(0, 11, 50, 20, "#")
+    p.room(1, 12, 13, 19, "a")                 # group 1's group room
+    p.room(15, 12, 20, 15, "r")                # its lockers, off the staircase's landing
+    p.room(15, 17, 20, 19, "u")                # its toilet
+    p.box(0, 20, 14, 31, "#")
+    p.room(1, 21, 13, 30, "b")                 # its bedroom-veranda
+    p.room(22, 12, 28, 19, "s")                # the west staircase, its window wall to the south
+    for x in range(22, 29):
+        p.put(x, 20, "S")
+    p.room(30, 12, 35, 15, "g")                # group 2's lockers
+    p.room(30, 17, 35, 19, "h")                # its toilet
+    p.room(37, 12, 49, 19, "e")                # its group room
+    p.box(36, 0, 50, 11, "#")
+    p.room(37, 1, 49, 10, "f")                 # its bedroom-veranda over the north
+    for x, z in ((14, 13), (14, 18), (17, 16), (21, 13), (29, 13), (36, 13), (36, 18), (32, 16), (7, 20), (43, 11)):
+        p.put(x, z, "D")
+    # windows: the group rooms' long walls, the bedrooms glazed all round (verandas), the toilets small
+    p.windows(1, 13, 11, glass=4)
+    p.windows_z(0, 12, 19, glass=3)
+    p.windows(1, 13, 31, glass=4)
+    p.windows_z(0, 21, 30, glass=4)
+    p.windows_z(14, 21, 30, glass=4)
+    p.windows(37, 49, 20, glass=4)
+    p.windows(37, 49, 0, glass=4)
+    p.windows_z(36, 1, 10, glass=4)
+    p.windows_z(50, 1, 10, glass=4)
+    for x in (16, 19, 31, 34):
+        p.put(x, 20, "W")
+    if k == 1:                                 # each group's own porch into its lockers
+        for x in (17, 18, 32, 33):
+            p.put(x, 11, "X")
+    else:
+        for x in (16, 19, 31, 34):
+            p.put(x, 11, "W")
+    p.mirror_x(_KG_MIRROR)
+    # the middle (x 50..66): the hall and the staircase in the spine, the wing to the south
+    p.box(50, 11, 66, 20, "#")
+    p.box(50, 20, 66, 31, "#")
+    p.room(59, 12, 65, 19, "s")                # the middle staircase, its window wall to the north
+    for x in range(59, 66):
+        p.put(x, 11, "S")
+    p.put(58, 18, "D")
+    if k == 1:
+        p.room(51, 12, 57, 19, "v")            # the entrance hall, the front door to the north
+        for x in (54, 55):
+            p.put(x, 11, "X")
+        p.put(52, 11, "W")
+        p.put(57, 11, "W")
+        p.room(51, 21, 60, 30, "q")            # the kitchen (пищеблок), its delivery door at the back
+        p.room(62, 21, 65, 30, "z")            # the doctor's (медкабинет), off the staircase's landing
+        p.put(54, 20, "D")
+        p.put(63, 20, "D")
+        p.put(56, 31, "X")
+        p.windows(51, 54, 31, glass=3)
+        p.windows(62, 65, 31, glass=3)
+    else:
+        p.room(51, 12, 57, 14, "o")            # the head's office
+        p.room(51, 16, 57, 19, "k")            # the hall between the staircase and the music hall
+        p.put(54, 15, "D")
+        p.room(51, 21, 65, 30, "m")            # the music hall over the kitchen
+        p.put(54, 20, "D")
+        p.put(63, 20, "D")
+        p.windows(51, 65, 31, glass=4)
+        p.windows(52, 57, 11, glass=2)
+    p.windows_z(50, 21, 30, glass=4)
+    p.windows_z(66, 21, 30, glass=4)
+    return p
+
+
+_KG2_ROOMS = {c: ("S", kind) for cs, kind in (("aAeE", "kid_play"), ("bBfF", "kid_sleep"), ("rRgG", "kid_lockers"),
+                                               ("uUhH", "kid_wc")) for c in cs} | {
+    "v": ("S", "kg_vestibule"), "q": ("S", "kitchen_pub"), "z": ("S", "medical"), "k": ("S", "kg_corridor"),
+    "o": ("S", "office"), "m": ("S", "music")}
+
+
+def kindergarten(colour="white", seed=0):
+    import public           # noqa: F401  (the kindergarten's room kinds and finishes)
+    if "kindergarten2" not in S.SERIES:
+        _series("kindergarten2", _kg2(2), _KG2_ROOMS, 2, floor_plans={1: _kg2(1).rows()},
+                pstairs=[(22, 20, SO), (KL - 1 - 28, 20, SO), (59, 11, N)],
+                curtains={"kid_sleep": "apt_curtain_gold", "kid_play": "apt_curtain_olive", "music": "apt_curtain_gold"},
+                frame="wood")
+    h = Civic("kindergarten2", 1, 2, colour, seed=seed + 5)
+    h.build()
+    return compose.compose([compose.Part(h, 0, 0, 0)])
+
+
 # ---------------------------------------------------------------- the furnishing (rooms.py looks it up in public.FURNISH)
 # After the Moscow references (public-refs/sheets int_school_*): the cloakroom's white mesh bays in rows, the canteen's
 # serving line along the kitchen wall, the library's free-standing stacks and a separate reading room, the assembly hall's
@@ -879,6 +980,107 @@ def gym(rm, flat):
     rm.against("pub_school_bell", height=3)
 
 
+# ---------------------------------------------------------------- the kindergarten's rooms (public-refs/sheets int_kg_*)
+
+def kid_lockers2(rm, flat):
+    """The changing room: banks of rainbow lockers round the walls, low padded benches before them, the parents' board."""
+    _windows(rm)
+    for _ in range(4):
+        if not rm.against("pub_kid_locker_bank"):
+            break
+    colour = rm.r.choice(["red", "blue", "green", "yellow"])
+    for _ in range(2):
+        rm.table(f"pub_kid_bench_{colour}", "apt_stool", chairs=0)
+    rm.against("apt_notice_board", height=1)
+    rm.against("pub_nature_calendar", height=1)
+    public_lamps(rm)
+
+
+def kid_wc2(rm, flat):
+    """The group's toilet and washroom: the row of low washbasins, the towel board over the hooks, the little toilets,
+    the potty rack."""
+    _windows(rm)
+    rm.against("pub_kid_washbasins")
+    rm.against("pub_towel_cabinet", height=1)
+    for _ in range(2):
+        rm.against("apt_toilet")
+    rm.against("pub_potty_rack")
+    public_lamps(rm)
+
+
+def kid_play2(rm, flat):
+    """The group room: the round tables with the little chairs in the light by the windows, the buffet, the toy shelves,
+    the dolls' corner (toy kitchen, cot), the easel, the nature corner with the aquarium, the soft blocks and the slide,
+    a rug; the alphabet and pictures on the walls."""
+    _windows(rm, flowers=0.3)
+    for _ in range(4):
+        rm.table("pub_kid_round_table", "pub_kid_chair_" + rm.r.choice(["red", "yellow", "green", "blue"]), chairs=4)
+    rm.table("pub_kid_table", "pub_kid_chair_" + rm.r.choice(["red", "yellow", "green", "blue"]), chairs=4)
+    for pid in ("pub_dish_cupboard", "pub_toy_kitchen", "pub_toy_shelf", "pub_toy_shelf", "pub_nature_shelf", "pub_aquarium",
+                "pub_doll_bed", "pub_easel", "apt_toy_box", "apt_rocking_horse", "pub_soft_blocks", "pub_kid_slide",
+                "apt_piano"):
+        rm.against(pid)
+    for pid in ("pub_poster_abc", "apt_picture_bears", "pub_nature_calendar", "apt_wall_clock"):
+        rm.against(pid, height=1)
+    rm.rug(rm.r.choice(["apt_rug", "apt_rug_blue"]))
+    public_lamps(rm)
+
+
+def kid_sleep2(rm, flat):
+    """The bedroom-veranda: rows of little beds made alike with a gangway between them, a bears picture, the radiators."""
+    import public
+    _windows(rm)
+    public.kid_sleep(rm, flat)
+    rm.against("apt_wardrobe")
+
+
+def music2(rm, flat):
+    """The music hall, which is the gym too: the piano by the inner wall with the children's chairs in rows before it for
+    the matinée, the puppet theatre's screen, the instruments' bench, wall bars, mats and a cage of balls for the PE."""
+    _windows(rm)
+    x0, z0, x1, z1 = _box(rm)
+    if rm.against("apt_piano", name="piano"):
+        rm.front("apt_piano_stool", "piano")
+    else:                                          # by the inner wall between its doors, the pianist's back to it
+        for x in range(x0 + 5, x1 - 4):
+            if _put(rm, "apt_piano", x, z0 + 1, "south", backed=False):
+                _put(rm, "apt_piano_stool", x, z0 + 2, "north", backed=False)
+                break
+    colours = ["red", "yellow", "green", "blue"]
+    for i, z in enumerate((z0 + 4, z0 + 6)):
+        for x in range(x0 + 2, x1 - 3):
+            _put(rm, f"pub_kid_chair_{colours[(x + i) % 4]}", x, z, "north", backed=False)
+    if not rm.against("pub_puppet_theatre"):       # the hall is glazed round: the screen stands free at its east end
+        for z in range(z0 + 3, z1):
+            if _put(rm, "pub_puppet_theatre", x1 - 1, z, "west", backed=False):
+                break
+    for pid in ("pub_instruments", "pub_wall_bars", "pub_wall_bars", "pub_ball_rack", "pub_soft_blocks"):
+        rm.against(pid)
+    for _ in range(2):
+        rm.table("pub_gym_mat", "apt_stool", chairs=0)
+    for pid in ("pub_poster_abc", "apt_wall_clock"):
+        rm.against(pid, height=1)
+    public_lamps(rm)
+
+
+def kg_vestibule2(rm, flat):
+    """The kindergarten's entrance hall: benches for the parents, the notice board, the stand, palms."""
+    _windows(rm)
+    for pid in ("apt_notice_board", "pub_stand_school", "pub_nature_calendar"):
+        rm.against(pid, height=1)
+    for _ in range(2):
+        rm.against("pub_kid_bench_" + rm.r.choice(["red", "blue", "green", "yellow"]))
+    for _ in range(2):
+        rm.against(rm.r.choice(["apt_palm_tub", "apt_ficus"]))
+    rm.against("pub_waste_bin")
+    public_lamps(rm)
+
+
+def public_lamps(rm, step=4):
+    import public
+    public._lamps(rm, step)
+
+
 def _plain(fn, flowers=0.0):
     """The rooms public.py furnishes (the staff room, the head's, the doctor's, the toilets...) with the windows' radiators
     and flowers first."""
@@ -896,7 +1098,8 @@ def _hook():
         public.FURNISH[kind] = _plain(getattr(public, kind) if kind != "kitchen_pub" else kitchen_pub, fl)
     for kind, fn in (("classroom", classroom), ("corridor", corridor), ("vestibule", vestibule), ("cloakroom", cloakroom),
                      ("library", library), ("canteen", canteen), ("assembly", assembly),
-                     ("gym", gym)):
+                     ("gym", gym), ("kid_lockers", kid_lockers2), ("kid_wc", kid_wc2), ("kid_play", kid_play2),
+                     ("kid_sleep", kid_sleep2), ("music", music2), ("kg_vestibule", kg_vestibule2)):
         public.FURNISH[kind] = fn
     public.KINDS["library"] = ("plaster", "floor_parquet")
     H.FINISH["library"] = "plaster"
