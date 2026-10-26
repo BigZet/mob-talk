@@ -1,0 +1,69 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "pub_card_files_cards_43": "mobtalk:block/city2/furniture/pub_card_files_cards_43",
+    "walnut": "mobtalk:block/city2/furniture/walnut",
+    "particle": "mobtalk:block/city2/furniture/pub_card_files_cards_43"
+  },
+  "elements": [
+    {
+      "from": [
+        0.5,
+        0.0,
+        6.0
+      ],
+      "to": [
+        15.5,
+        14.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_card_files_cards_43",
+          "uv": [
+            0.5,
+            2.0,
+            15.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#walnut",
+          "uv": [
+            0.5,
+            2.0,
+            15.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#walnut",
+          "uv": [
+            0.0,
+            2.0,
+            10.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#walnut",
+          "uv": [
+            6.0,
+            2.0,
+            16.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#walnut",
+          "uv": [
+            0.5,
+            6.0,
+            15.5,
+            16.0
+          ]
+        }
+      }
+    }
+  ]
+}

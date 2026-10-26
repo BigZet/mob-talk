@@ -33,6 +33,8 @@ def textures():
         mat(f"kidbl_{_c}", P.fabric(32, 32, shade(KID_COLOURS[_c], 0.85), f"kbe{_c}", weave=1))
     mat("kid_top", P.enamel(32, 32, rgb("f0d060"), "kidtop", chips=1))
     mat("kid_locker", P.enamel(32, 32, rgb("e8dcb8"), "kidlock", chips=2))
+    mat("plywood", P.wood(32, 32, rgb("9a6234"), "plyw", vertical=False, polish=0.8, knots=False))
+    mat("oilcloth_brown", P.enamel(32, 32, rgb("6a3a24"), "oilb", chips=0))
 
 
 def net_tex():
@@ -425,6 +427,158 @@ def toy_shelf():
     return m
 
 
+# ---------------------------------------------------------------- the polyclinic
+
+def big_text(cv, x, y, s, c, k=2, gap=1):
+    """The 5-row font at k texels a pixel (an eye chart's top rows)."""
+    for ch in s.upper():
+        g = P.glyph(ch)
+        for j, row in enumerate(g):
+            for i, v in enumerate(row):
+                if v == "X":
+                    cv.rect(x + i * k, y + j * k, x + i * k + k, y + j * k + k, c)
+        x += (len(g[0]) + gap) * k
+
+
+def waiting_seats():
+    """A row of three linked seats in the corridor: bent plywood in brown lacquer on a grey tube frame."""
+    m = Model()
+    m.box((1.5, 2.25, 9.25), (29.5, 3, 10.75), "tube_steel")             # the rail under the seats
+    for x in (1, 29.5):
+        m.box((x, 0, 5), (x + 1.5, 2, 13), "tube_steel")                     # the feet
+        m.box((x, 2, 9), (x + 1.5, 6, 11), "tube_steel", up=None, down=None)
+    for k in range(3):
+        x0 = 0.75 + k * 10.25
+        m.box((x0, 6, 3), (x0 + 9.75, 7, 12), "plywood")                     # the seat
+        m.box((x0, 7, 12), (x0 + 9.75, 15, 13), "plywood")                   # the back
+    m.box((0, 7, 13), (32, 8, 14), "tube_steel")
+    return m
+
+
+def registry_counter():
+    """The registry's counter (регистратура): a panelled front, a top, a glass screen with the little windows the cards
+    are handed through, the sign over it."""
+    def front(cv, W, H):
+        panel(cv, 0, 0, cv.w, cv.h, WALNUT, "regf", vertical=True)
+        for k in range(4):
+            x = 2 + k * (cv.w - 4) // 4
+            cv.outline(x, 3, x + (cv.w - 4) // 4 - 2, cv.h - 3, shade(WALNUT, 0.6))
+
+    def sign(cv, W, H):
+        cv.rect(0, 0, cv.w, cv.h, rgb("2a4a8a"))
+        P.text(cv, cv.w // 2 - P.text_width("РЕГИСТРАТУРА") // 2, cv.h // 2 - 2, "РЕГИСТРАТУРА", rgb("f0f0e8"))
+
+    m = Model()
+    m.box((0, 0, 4), (32, 16, 10), "walnut", north=Pic("reg_front", front), down=None)
+    m.box((-0.5, 16, 2), (32.5, 17, 11), "formica")
+    m.box((0.5, 17, 9), (31.5, 29, 9.5), "glass", up=None, down=None)
+    for x in (0, 10.5, 21, 31.5):
+        m.box((x, 17, 8.75), (x + 0.5, 29, 9.75), "alu")
+    for x in (3, 13.5, 24):                                                # the windows through the glass, an arch each
+        m.box((x, 17, 8.5), (x + 5, 17.5, 10), "alu")
+    m.box((0, 29, 8.5), (32, 33, 10), "walnut", north=Pic("reg_sign", sign), up=None)
+    m.box((4, 17, 4), (9, 17.5, 8), "paper")                               # the cards on the counter
+    m.box((22, 17, 3), (27, 18, 7), "books_stack")
+    return m
+
+
+def card_files():
+    """The card index (картотека): a tall cabinet of small drawers with brass card-holders, the patients' cards."""
+    def drawers(cv, W, H):
+        cv.rect(0, 0, cv.w, cv.h, shade(rgb("8a6a44"), 0.9))
+        rows, cols = 9, 3
+        for r in range(rows):
+            for c in range(cols):
+                x0, y0 = 1 + c * (cv.w - 2) // cols, 1 + r * (cv.h - 2) // rows
+                x1, y1 = x0 + (cv.w - 2) // cols - 1, y0 + (cv.h - 2) // rows - 1
+                cv.rect(x0, y0, x1, y1, rgb("a8845a"))
+                cv.outline(x0, y0, x1, y1, rgb("5a4028"))
+                cv.rect((x0 + x1) // 2 - 2, y0 + 1, (x0 + x1) // 2 + 2, y0 + 3, rgb("c8a860"))
+                cv.rect((x0 + x1) // 2 - 1, y0 + 2, (x0 + x1) // 2 + 1, y0 + 3, rgb("f0ece0"))
+
+    m = Model()
+    m.box((0.5, 0, 6), (15.5, 30, 16), "walnut", north=Pic("cards", drawers))
+    return m
+
+
+def couch():
+    """The examination couch (кушетка): a white enamelled frame, a top in brown oilcloth, the head end raised, a sheet."""
+    m = Model()
+    for x in (1, 29.5):
+        for z in (3, 12):
+            m.box((x, 0, z), (x + 1.5, 7, z + 1.5), "enamel", up=None)
+    m.box((0.5, 7, 2.5), (32, 10, 14), "oilcloth_brown")
+    m.box((0.5, 10, 2.5), (8, 13, 14), "oilcloth_brown", rot=None)
+    m.box((9, 10, 3), (30, 10.5, 13.5), "linen", down=None)
+    return m
+
+
+def med_screen():
+    """The screen (ширма): three panels of white cloth on a white tube frame on castors."""
+    m = Model()
+    for x in (0.5, 10.5, 21, 31):
+        m.box((x, 1, 9), (x + 0.75, 28, 10), "enamel")
+    for x0, x1 in ((1.25, 10.5), (11.25, 21), (21.75, 31)):
+        m.box((x0, 3, 9.25), (x1, 27, 9.75), "linen", up=None, down=None)
+    for x in (0.5, 31):
+        m.box((x - 0.5, 0, 8.5), (x + 1.25, 1, 10.5), "rubber_black")
+    return m
+
+
+def eye_chart():
+    """Sivtsev's eye chart on the wall: the rows of letters getting smaller, Ш Б at the top, the row numbers at the side."""
+    def chart(cv, W, H):
+        cv.rect(0, 0, cv.w, cv.h, rgb("f6f4ee"))
+        black = rgb("1a1a1a")
+        big_text(cv, cv.w // 2 - 11, 3, "ШБ", black, k=2, gap=1)
+        y = 16
+        for row in ("МНК", "ЫМБШ", "БЫНКМ", "ИНШМК"):
+            while P.text_width(row) > cv.w - 4:      # as many of the row's letters as the chart is wide
+                row = row[:-1]
+            P.text(cv, cv.w // 2 - P.text_width(row) // 2, y, row, black)
+            y += 7
+        for k in range(3):                         # the rows too small for any letter: specks
+            for x in range(4 + k, cv.w - 4, 3 + (k == 0)):
+                cv.set(x, y + 1, black if (x + k) % 2 else rgb("6a6a6a"))
+            y += 4
+        cv.outline(0, 0, cv.w, cv.h, rgb("8a8a86"))
+
+    m = Model()
+    m.box((1, 2, 15.25), (15, 30, 16), "paper", north=Pic("eye_chart", chart), faces=("north",), shade=False)
+    m.box((1, 2, 15.5), (15, 30, 16), "board_frame", faces=("up", "down", "east", "west"))
+    return m
+
+
+def medicine_cabinet():
+    """A white medicine cabinet: glass doors, glass shelves of brown bottles, bandages and a kidney dish."""
+    m = Model()
+    m.box((0.5, 0, 6), (15.5, 1, 16), "enamel")
+    m.box((0.5, 1, 6), (1.5, 29, 16), "enamel")
+    m.box((14.5, 1, 6), (15.5, 29, 16), "enamel")
+    m.box((0.5, 29, 6), (15.5, 30, 16), "enamel")
+    m.box((1.5, 1, 15), (14.5, 29, 16), "enamel", faces=("north",))
+    for y in (8, 15, 22):
+        m.box((1.5, y, 7), (14.5, y + 0.5, 15), "glass_shelf")
+    for i, (x, y) in enumerate(((3, 1), (6, 1), (10, 1), (3, 8.5), (8, 8.5), (4, 15.5), (11, 15.5), (6, 22.5))):
+        m.box((x, y, 10), (x + 2, y + 4, 12), "glass_amber" if i % 3 else "plastic_white")
+    m.box((9, 22.5, 9), (13, 24, 13), "linen")                              # the bandages
+    m.box((1.5, 1, 6), (14.5, 29, 6.5), "glass", up=None, down=None)       # the glass doors
+    m.box((7.75, 1, 5.75), (8.25, 29, 6.75), "enamel")
+    return m
+
+
+def med_scales():
+    """The medical scales: a platform, the column with the beam and its weights, the height rod with its sliding arm."""
+    m = Model()
+    m.box((2, 0, 2), (14, 2, 13), "enamel", up="rubber_black")
+    m.box((6.5, 2, 12), (9.5, 22, 14), "enamel")
+    m.box((3, 20, 11.5), (13, 21.5, 14.5), "chrome")                       # the beam
+    m.box((10, 19, 11), (11, 22, 15), "black")                             # its weight
+    m.box((7.25, 22, 12.5), (8.75, 32, 13.5), "chrome")                    # the height rod
+    m.box((5, 30, 10), (11, 30.5, 13), "chrome")
+    return m
+
+
 def make():
     textures()
     Furn("pub_school_desk", "Школьная парта", "School desk", lambda: school_desk(), seat=7, color="GREEN")
@@ -449,3 +603,12 @@ def make():
         Furn(f"pub_kid_chair_{c}", "Детский стульчик", "Child's chair", kid_chair(c), seat=6, color=c.upper())
     Furn("pub_kid_lockers", "Шкафчики в раздевалке", "Changing room lockers", lambda: kid_lockers(), seat=4.5, color="WHITE_GRAY")
     Furn("pub_toy_shelf", "Стеллаж с игрушками", "Toy shelf", lambda: toy_shelf(), color="OAK_TAN")
+    Furn("pub_waiting_seats", "Кресла в коридоре поликлиники", "Waiting room seats", lambda: waiting_seats(), seat=7, color="BROWN",
+         sound="METAL")
+    Furn("pub_registry_counter", "Стойка регистратуры", "Registry counter", lambda: registry_counter(), color="BROWN")
+    Furn("pub_card_files", "Картотека", "Card index", lambda: card_files(), color="BROWN")
+    Furn("pub_couch", "Медицинская кушетка", "Examination couch", lambda: couch(), seat=10, color="BROWN", sound="WOOL")
+    Furn("pub_med_screen", "Медицинская ширма", "Medical screen", lambda: med_screen(), color="WHITE", sound="WOOL")
+    Furn("pub_eye_chart", "Таблица Сивцева", "Eye chart", lambda: eye_chart(), mount="WALL", color="WHITE", solid=False)
+    Furn("pub_medicine_cabinet", "Медицинский шкаф", "Medicine cabinet", lambda: medicine_cabinet(), color="WHITE", sound="GLASS")
+    Furn("pub_med_scales", "Медицинские весы", "Medical scales", lambda: med_scales(), color="WHITE", sound="METAL")

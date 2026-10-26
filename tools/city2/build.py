@@ -28,7 +28,7 @@ HOUSES = [("1-464", 1, 5, "grey")] + [("1-464", s, 5, c) for s in range(2, 7) fo
 COMPOSED = [("1-447-l", s, 5, c) for s in range(1, 4) for c in BRICKS] + \
     [("ii-03-l", s, f, c) for s in range(1, 3) for f in (3, 4) for c in BRICKS] + \
     [("ii-03-yard", s, f, c) for s in range(0, 2) for f in (4, 5) for c in BRICKS]
-PUBLIC_COLOURS = ("silicate", "brick", "white")
+PUBLIC_COLOURS = ("silicate", "brick", "white")    # the school, the kindergarten, the polyclinic
 
 
 def build_houses(maps=None):
@@ -55,6 +55,9 @@ def build_houses(maps=None):
         t, _ = public.kindergarten(colour)
         t.save(os.path.join(out, f"kindergarten_s1_f2_{colour}.nbt"))
         print(f"kindergarten {colour}: {t.size}")
+        t, _ = public.polyclinic(colour)
+        t.save(os.path.join(out, f"polyclinic_s1_f3_{colour}.nbt"))
+        print(f"polyclinic {colour}: {t.size}")
 
 
 def main():

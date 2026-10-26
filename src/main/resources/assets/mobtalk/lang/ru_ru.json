@@ -1505,5 +1505,21 @@
   "block.mobtalk.pub_kid_lockers": "Шкафчики в раздевалке",
   "block.mobtalk.pub_kid_lockers_part": "Шкафчики в раздевалке",
   "block.mobtalk.pub_toy_shelf": "Стеллаж с игрушками",
-  "block.mobtalk.pub_toy_shelf_part": "Стеллаж с игрушками"
+  "block.mobtalk.pub_toy_shelf_part": "Стеллаж с игрушками",
+  "block.mobtalk.pub_waiting_seats": "Кресла в коридоре поликлиники",
+  "block.mobtalk.pub_waiting_seats_part": "Кресла в коридоре поликлиники",
+  "block.mobtalk.pub_registry_counter": "Стойка регистратуры",
+  "block.mobtalk.pub_registry_counter_part": "Стойка регистратуры",
+  "block.mobtalk.pub_card_files": "Картотека",
+  "block.mobtalk.pub_card_files_part": "Картотека",
+  "block.mobtalk.pub_couch": "Медицинская кушетка",
+  "block.mobtalk.pub_couch_part": "Медицинская кушетка",
+  "block.mobtalk.pub_med_screen": "Медицинская ширма",
+  "block.mobtalk.pub_med_screen_part": "Медицинская ширма",
+  "block.mobtalk.pub_eye_chart": "Таблица Сивцева",
+  "block.mobtalk.pub_eye_chart_part": "Таблица Сивцева",
+  "block.mobtalk.pub_medicine_cabinet": "Медицинский шкаф",
+  "block.mobtalk.pub_medicine_cabinet_part": "Медицинский шкаф",
+  "block.mobtalk.pub_med_scales": "Медицинские весы",
+  "block.mobtalk.pub_med_scales_part": "Медицинские весы"
 }

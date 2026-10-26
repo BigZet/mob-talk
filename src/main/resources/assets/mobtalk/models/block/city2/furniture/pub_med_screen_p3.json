@@ -1,0 +1,219 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "enamel": "mobtalk:block/city2/furniture/enamel",
+    "linen": "mobtalk:block/city2/furniture/linen",
+    "particle": "mobtalk:block/city2/furniture/enamel"
+  },
+  "elements": [
+    {
+      "from": [
+        0.5,
+        0.0,
+        9.0
+      ],
+      "to": [
+        1.25,
+        12.0,
+        10.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#enamel",
+          "uv": [
+            14.75,
+            4.0,
+            15.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#enamel",
+          "uv": [
+            0.5,
+            4.0,
+            1.25,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#enamel",
+          "uv": [
+            6.0,
+            4.0,
+            7.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#enamel",
+          "uv": [
+            9.0,
+            4.0,
+            10.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#enamel",
+          "uv": [
+            0.5,
+            9.0,
+            1.25,
+            10.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        10.5,
+        0.0,
+        9.0
+      ],
+      "to": [
+        11.25,
+        12.0,
+        10.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#enamel",
+          "uv": [
+            4.75,
+            4.0,
+            5.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#enamel",
+          "uv": [
+            10.5,
+            4.0,
+            11.25,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#enamel",
+          "uv": [
+            6.0,
+            4.0,
+            7.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#enamel",
+          "uv": [
+            9.0,
+            4.0,
+            10.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#enamel",
+          "uv": [
+            10.5,
+            9.0,
+            11.25,
+            10.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.25,
+        0.0,
+        9.25
+      ],
+      "to": [
+        10.5,
+        11.0,
+        9.75
+      ],
+      "faces": {
+        "north": {
+          "texture": "#linen",
+          "uv": [
+            5.5,
+            5.0,
+            14.75,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#linen",
+          "uv": [
+            1.25,
+            5.0,
+            10.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#linen",
+          "uv": [
+            6.25,
+            5.0,
+            6.75,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#linen",
+          "uv": [
+            9.25,
+            5.0,
+            9.75,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        11.25,
+        0.0,
+        9.25
+      ],
+      "to": [
+        16.0,
+        11.0,
+        9.75
+      ],
+      "faces": {
+        "north": {
+          "texture": "#linen",
+          "uv": [
+            0.0,
+            5.0,
+            4.75,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#linen",
+          "uv": [
+            11.25,
+            5.0,
+            16.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#linen",
+          "uv": [
+            9.25,
+            5.0,
+            9.75,
+            16.0
+          ]
+        }
+      }
+    }
+  ]
+}

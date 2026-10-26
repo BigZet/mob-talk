@@ -2,6 +2,8 @@
 characters, X a front door), room kinds of their own furnished here, blocks of different height composed (compose.py).
 
     t, rooms = public.school("silicate")     # a typical Soviet school of the 60s-70s: three floors and a gym
+    t, rooms = public.kindergarten("white")  # a kindergarten of two floors for four groups
+    t, rooms = public.polyclinic("brick")    # a district polyclinic of three floors
 
 The school: a block 61 x 22 of three floors - a corridor along the north side with the toilets, the staff room and the
 library off it, five classrooms 11 x 11 on the south (the light from the pupils' left), the vestibule with the front door
@@ -212,6 +214,75 @@ S.SERIES["kindergarten"] = {
 
 def kindergarten(colour="white", seed=0):
     h = H.House("kindergarten", 1, 2, colour, seed=seed + 5)
+    h.build()
+    return compose.compose([compose.Part(h, 0, 0, 0)])
+
+
+# ---------------------------------------------------------------- the polyclinic
+# A district polyclinic (поликлиника) of three floors, 49 x 17: a corridor down the middle with the patients waiting along
+# it, the doctors' rooms both sides; on the ground floor the vestibule with the front door, the cloakroom, the registry
+# with its card index and a chemist's kiosk on the street side. The staircase at the west end.
+_CL_NORTH = [(7, 11), (13, 17), (19, 23), (25, 29), (31, 35), (37, 41), (43, 47)]   # the rooms off the corridor's north side
+_CL_SOUTH = [(1, 5), (7, 11), (13, 17), (19, 23), (25, 29), (31, 35), (37, 41), (43, 47)]
+
+
+def _clinic(k):
+    """The plan of floor k: rooms north (rows 1..5) and south (rows 11..15) of the corridor (rows 7..9)."""
+    L, D = 49, 17
+    g = [["#"] * L for _ in range(D)]
+    if k == 1:      # the ground floor: the vestibule (two bays), the registry, the cloakroom, the chemist's
+        north_rooms = [((7, 17), "v"), ((19, 23), "r"), ((25, 29), "w"), ((31, 35), "f"), ((37, 41), "p"), ((43, 47), "q")]
+    else:
+        north_rooms = [(span, c) for span, c in zip(_CL_NORTH, "klmnopq")]
+    south_rooms = [(span, c) for span, c in zip(_CL_SOUTH, "tuxyzijh")]
+    for (x0, x1), c in north_rooms:
+        for x in range(x0, x1 + 1):
+            for z in range(1, 6):
+                g[z][x] = c
+        if c == "v":
+            g[0][11], g[0][12] = "X", "X"               # the front door in the middle of the vestibule
+            for x in (8, 9, 15, 16):
+                g[0][x] = "W"
+            g[6][11], g[6][12] = "D", "D"
+        else:
+            g[0][x0 + 1], g[0][x0 + 3] = "W", "W"
+            g[0][x0 + 2] = "W"
+            g[6][x0 + 2] = "D"
+    for (x0, x1), c in south_rooms:
+        for x in range(x0, x1 + 1):
+            for z in range(11, 16):
+                g[z][x] = c
+        g[16][x0 + 1], g[16][x0 + 2], g[16][x0 + 3] = "W", "W", "W"
+        g[10][x0 + 2] = "D"
+    for x in range(7, 48):                               # the corridor, a window at its east end
+        for z in range(7, 10):
+            g[z][x] = "c"
+    g[8][48] = "W"
+    g[10][3], g[13][6] = "#", "D"                        # the room under the staircase: through the next one (a treatment room)
+    for x in range(1, 6):                                # the staircase, its door off its floor landing to the corridor
+        g[0][x] = "S"
+        for z in range(1, 9):
+            g[z][x] = "s"
+    g[8][6] = "D"
+    return ["".join(r) for r in g]
+
+
+_CL_ROOMS = {c: ("S", "doctor") for c in "klmnopqtuxyzijh"} | {
+    "c": ("S", "clinic_corridor"), "v": ("S", "clinic_vestibule"), "r": ("S", "registry"), "w": ("S", "cloakroom"),
+    "f": ("S", "chemist")}
+for _k, (_fin, _floor) in {"doctor": ("tile_bath", "floor_lino_beige"), "clinic_corridor": ("paint_stair", "floor_terrazzo"),
+                           "clinic_vestibule": ("paint_stair", "floor_terrazzo"), "registry": ("paint_stair", "floor_lino_brown"),
+                           "chemist": ("paint_stair", "floor_tile")}.items():
+    H.FINISH[_k], H.FLOOR[_k] = _fin, _floor
+    H.LAMPS[_k] = ["pub_tube_lamp"]
+S.SERIES["polyclinic"] = {
+    "plan": _clinic(2), "floor_plans": {1: _clinic(1)}, "rooms": _CL_ROOMS, "whole": True, "stair": (1, 1), "chute": False,
+    "curtains": {"doctor": "apt_curtain_olive"}, "frame": "wood", "public": True, "floors": 3,
+}
+
+
+def polyclinic(colour="white", seed=0):
+    h = H.House("polyclinic", 1, 3, colour, seed=seed + 7)
     h.build()
     return compose.compose([compose.Part(h, 0, 0, 0)])
 
@@ -443,8 +514,70 @@ def music(rm, flat):
     _lamps(rm)
 
 
+# ---------------------------------------------------------------- the polyclinic's rooms
+
+def doctor(rm, flat):
+    """A doctor's room: the desk with the doctor's chair and the patient's, the couch behind a screen, the washbasin, the
+    medicine cabinet; some rooms the eye chart (the ophthalmologist) or the scales (the paediatrician, the therapist)."""
+    if rm.against("apt_desk", name="desk"):
+        rm.front("apt_chair", "desk", facing_back=True)
+    rm.against("apt_chair")
+    if rm.against("pub_couch", name="couch"):
+        rm.front("pub_med_screen", "couch", dist=2)
+    for pid in ("apt_washbasin", "pub_medicine_cabinet"):
+        rm.against(pid)
+    extra = rm.r.random()
+    if extra < 0.3:
+        rm.against("pub_eye_chart", height=1)
+    elif extra < 0.6:
+        rm.against("pub_med_scales")
+    rm.against("apt_wall_clock", height=1)
+
+
+def clinic_corridor(rm, flat):
+    for _ in range(10):
+        if not rm.against("pub_waiting_seats"):
+            break
+    for _ in range(3):
+        rm.against(rm.r.choice(["apt_ficus", "apt_palm_tub", "apt_aloe"]))
+    rm.against("apt_notice_board", height=1)
+    _lamps(rm, 5)
+
+
+def clinic_vestibule(rm, flat):
+    rm.against("apt_notice_board", height=1)
+    for _ in range(3):
+        rm.against("pub_waiting_seats")
+    rm.against("apt_palm_tub")
+    _lamps(rm)
+
+
+def registry(rm, flat):
+    """The registry: the counter across the room by its door, the card index behind it, a desk with the telephone."""
+    x0, z0, x1, z1 = _box(rm)
+    for x in range(x0, x1):
+        if rm.fits("pub_registry_counter", x, rm.s + 1, z1 - 1, "south", backed=False):
+            rm.write("pub_registry_counter", x, rm.s + 1, z1 - 1, "south")
+            break
+    for _ in range(4):
+        rm.against("pub_card_files")
+    rm.against("apt_wall_phone", height=1)
+    _lamps(rm)
+
+
+def chemist(rm, flat):
+    for _ in range(4):
+        rm.against("pub_medicine_cabinet")
+    x0, z0, x1, z1 = _box(rm)
+    for x in range(x0, x1):
+        if rm.fits("pub_registry_counter", x, rm.s + 1, z1 - 1, "south", backed=False):
+            rm.write("pub_registry_counter", x, rm.s + 1, z1 - 1, "south")
+            break
+
+
 FURNISH = {"classroom": classroom, "corridor": corridor, "vestibule": vestibule, "cloakroom": cloakroom, "wc_pub": wc_pub,
            "staff": staff, "library": library, "office": office, "medical": medical, "store": store, "canteen": canteen,
            "kitchen_pub": kitchen_pub, "assembly": assembly, "gym": gym, "changing": changing, "kid_sleep": kid_sleep,
            "kid_play": kid_play, "kid_lockers": kid_lockers, "kid_wc": kid_wc, "kg_corridor": kg_corridor,
-           "kg_vestibule": kg_vestibule, "music": music}
+           "kg_vestibule": kg_vestibule, "music": music, "doctor": doctor, "clinic_corridor": clinic_corridor,
+           "clinic_vestibule": clinic_vestibule, "registry": registry, "chemist": chemist}

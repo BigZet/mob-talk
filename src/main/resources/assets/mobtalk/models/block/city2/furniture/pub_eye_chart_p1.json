@@ -1,0 +1,75 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "pub_eye_chart_eye_chart_43": "mobtalk:block/city2/furniture/pub_eye_chart_eye_chart_43",
+    "board_frame": "mobtalk:block/city2/furniture/board_frame",
+    "particle": "mobtalk:block/city2/furniture/pub_eye_chart_eye_chart_43"
+  },
+  "elements": [
+    {
+      "from": [
+        1.0,
+        0.0,
+        15.25
+      ],
+      "to": [
+        15.0,
+        14.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_eye_chart_eye_chart_43",
+          "uv": [
+            1.0,
+            2.0,
+            15.0,
+            16.0
+          ]
+        }
+      },
+      "shade": false
+    },
+    {
+      "from": [
+        1.0,
+        0.0,
+        15.5
+      ],
+      "to": [
+        15.0,
+        14.0,
+        16.0
+      ],
+      "faces": {
+        "east": {
+          "texture": "#board_frame",
+          "uv": [
+            0.0,
+            2.0,
+            0.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#board_frame",
+          "uv": [
+            15.5,
+            2.0,
+            16.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#board_frame",
+          "uv": [
+            1.0,
+            15.5,
+            15.0,
+            16.0
+          ]
+        }
+      }
+    }
+  ]
+}

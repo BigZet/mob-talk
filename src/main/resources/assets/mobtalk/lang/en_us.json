@@ -1505,5 +1505,21 @@
   "block.mobtalk.pub_kid_lockers": "Changing room lockers",
   "block.mobtalk.pub_kid_lockers_part": "Changing room lockers",
   "block.mobtalk.pub_toy_shelf": "Toy shelf",
-  "block.mobtalk.pub_toy_shelf_part": "Toy shelf"
+  "block.mobtalk.pub_toy_shelf_part": "Toy shelf",
+  "block.mobtalk.pub_waiting_seats": "Waiting room seats",
+  "block.mobtalk.pub_waiting_seats_part": "Waiting room seats",
+  "block.mobtalk.pub_registry_counter": "Registry counter",
+  "block.mobtalk.pub_registry_counter_part": "Registry counter",
+  "block.mobtalk.pub_card_files": "Card index",
+  "block.mobtalk.pub_card_files_part": "Card index",
+  "block.mobtalk.pub_couch": "Examination couch",
+  "block.mobtalk.pub_couch_part": "Examination couch",
+  "block.mobtalk.pub_med_screen": "Medical screen",
+  "block.mobtalk.pub_med_screen_part": "Medical screen",
+  "block.mobtalk.pub_eye_chart": "Eye chart",
+  "block.mobtalk.pub_eye_chart_part": "Eye chart",
+  "block.mobtalk.pub_medicine_cabinet": "Medicine cabinet",
+  "block.mobtalk.pub_medicine_cabinet_part": "Medicine cabinet",
+  "block.mobtalk.pub_med_scales": "Medical scales",
+  "block.mobtalk.pub_med_scales_part": "Medical scales"
 }
