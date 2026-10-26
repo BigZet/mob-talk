@@ -109,6 +109,7 @@ public final class ConversationEngine implements AutoCloseable {
             for (VillageChatter.Line line : lines) {
                 VillageChatter.Speaker speaker = input.speaker(line.speaker());
                 SpeechStream audio = null;
+                if (input.bar() && !Tuning.get().barVoiced) { voiced.add(new ChatterLine(speaker.id(), speaker.name(), line.text(), null)); continue; }
                 try {
                     audio = speech.streamWithFallback(speaker.voiceId(), reserve, line.text()).stream();
                     if (!audio.awaitPrebuffer(PREBUFFER_BYTES, speech.timeout().toNanos())) { audio.close(); audio = null; }

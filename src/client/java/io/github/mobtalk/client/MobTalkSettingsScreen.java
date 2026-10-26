@@ -464,9 +464,30 @@ final class MobTalkSettingsScreen extends Screen {
                             tip(toggle("mobtalk.settings.villageNoSpawn", draft.villageNoSpawn, value -> draft.villageNoSpawn = value), "mobtalk.settings.villageNoSpawn.tooltip"));
                     wide(tip(toggle("mobtalk.settings.alarmAgainstPlayers", draft.alarmAgainstPlayers, value -> draft.alarmAgainstPlayers = value), "mobtalk.settings.alarmAgainstPlayers.tooltip"),
                             tip(toggle("mobtalk.settings.alarmChat", draft.alarmChat, value -> draft.alarmChat = value), "mobtalk.settings.alarmChat.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.alarmSound", draft.alarmSound, value -> draft.alarmSound = value), "mobtalk.settings.alarmSound.tooltip"),
+                            tip(toggle("mobtalk.settings.villageNoConversion", draft.villageNoConversion, value -> draft.villageNoConversion = value), "mobtalk.settings.villageNoConversion.tooltip"));
                 }),
                 Map.<String, Runnable>entry("towers", () -> wide(tip(toggle("mobtalk.settings.villageTowers", draft.villageTowers, value -> draft.villageTowers = value), "mobtalk.settings.villageTowers.tooltip"))),
-                Map.<String, Runnable>entry("guards", () -> wide(tip(toggle("mobtalk.settings.villageGuards", draft.villageGuards, value -> draft.villageGuards = value), "mobtalk.settings.villageGuards.tooltip"))),
+                Map.<String, Runnable>entry("bars", () -> {
+                    wide(tip(toggle("mobtalk.settings.barsInVillages", draft.barsInVillages, value -> draft.barsInVillages = value), "mobtalk.settings.barsInVillages.tooltip"),
+                            tip(toggle("mobtalk.settings.barEvenings", draft.barEvenings, value -> draft.barEvenings = value), "mobtalk.settings.barEvenings.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.barVoiced", draft.barVoiced, value -> draft.barVoiced = value), "mobtalk.settings.barVoiced.tooltip"),
+                            tip(toggle("mobtalk.settings.barAliceSpeaker", draft.barAliceSpeaker, value -> draft.barAliceSpeaker = value), "mobtalk.settings.barAliceSpeaker.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.barDrinks", draft.barDrinks, value -> draft.barDrinks = value), "mobtalk.settings.barDrinks.tooltip"));
+                }),
+                Map.<String, Runnable>entry("guards", () -> {
+                    wide(tip(toggle("mobtalk.settings.villageGuards", draft.villageGuards, value -> draft.villageGuards = value), "mobtalk.settings.villageGuards.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.villageHeavy", draft.villageHeavy, value -> draft.villageHeavy = value), "mobtalk.settings.villageHeavy.tooltip"),
+                            tip(toggle("mobtalk.settings.villageCavalry", draft.villageCavalry, value -> draft.villageCavalry = value), "mobtalk.settings.villageCavalry.tooltip"));
+                }),
+                Map.<String, Runnable>entry("casino", () -> {
+                    wide(tip(toggle("mobtalk.settings.casino", draft.casino, value -> draft.casino = value), "mobtalk.settings.casino.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.casinoBouncers", draft.casinoBouncers, value -> draft.casinoBouncers = value), "mobtalk.settings.casinoBouncers.tooltip"),
+                            tip(toggle("mobtalk.settings.casinoVisitors", draft.casinoVisitors, value -> draft.casinoVisitors = value), "mobtalk.settings.casinoVisitors.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.casinoResort", draft.casinoResort, value -> draft.casinoResort = value), "mobtalk.settings.casinoResort.tooltip"),
+                            tip(toggle("mobtalk.settings.casinoSparkles", draft.casinoSparkles, value -> draft.casinoSparkles = value), "mobtalk.settings.casinoSparkles.tooltip"));
+                }),
+                Map.<String, Runnable>entry("officials", () -> wide(tip(toggle("mobtalk.settings.officials", draft.officials, value -> draft.officials = value), "mobtalk.settings.officials.tooltip"))),
                 Map.<String, Runnable>entry("roads", () -> {
                     wide(tip(toggle("mobtalk.settings.villageRoads", draft.villageRoads, value -> draft.villageRoads = value), "mobtalk.settings.villageRoads.tooltip"),
                             tip(toggle("mobtalk.settings.roadLamps", draft.roadLamps, value -> draft.roadLamps = value), "mobtalk.settings.roadLamps.tooltip"));

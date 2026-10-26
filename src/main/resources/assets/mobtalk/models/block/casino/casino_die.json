@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "particle": "mobtalk:block/casino/die_1",
+    "north": "mobtalk:block/casino/die_1",
+    "south": "mobtalk:block/casino/die_6",
+    "east": "mobtalk:block/casino/die_3",
+    "west": "mobtalk:block/casino/die_4",
+    "up": "mobtalk:block/casino/die_5",
+    "down": "mobtalk:block/casino/die_2"
+  }
+}

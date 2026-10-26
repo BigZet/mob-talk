@@ -96,6 +96,8 @@ final class MobContextCapture {
             rememberPlace(mobDetails, "home", villager, MemoryModuleType.HOME);
             rememberPlace(mobDetails, "meetingPoint", villager, MemoryModuleType.MEETING_POINT);
             mobDetails.put("bargaining", bridge.bargaining.capture(villager, player));
+            Map<String, Object> fine = bridge.officials.fineFor(villager, player);
+            if (fine != null) mobDetails.put("officialFine", fine);
         }
         if (mob instanceof net.minecraft.entity.mob.ZombieVillagerEntity villager) {
             mobDetails.put("profession", Registries.VILLAGER_PROFESSION.getId(villager.getVillagerData().getProfession()).toString());

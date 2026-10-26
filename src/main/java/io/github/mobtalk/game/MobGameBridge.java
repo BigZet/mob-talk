@@ -61,6 +61,8 @@ public final class MobGameBridge implements GameBridge {
     final RoadNetwork roads;
     /** Carts, wagons and horsemen on those roads. */
     final RoadTraffic traffic;
+    /** Track «чиновники»: officials' desks, envelopes and the inspector's orders. */
+    final OfficialsController officials;
     /** Б1: the god's deeds reaching the villages. */
     final DivineController divine;
     /** Трек J: ревность пар игрока и сон вместе. */
@@ -72,6 +74,8 @@ public final class MobGameBridge implements GameBridge {
     public final WeddingController wedding;
     /** Трек N: особая ночь, беременность, роды. */
     public final ChildController children;
+    /** The village bar's evenings: guests on the stools, the bartender, the jukebox, the talk over rumours. */
+    final BarEvenings bars;
     private final Map<UUID, Deque<Heard>> heard = new HashMap<>();
 
     private MobGameBridge(MinecraftServer server, ConversationStore memory, MobTalkConfig config) {
@@ -83,6 +87,7 @@ public final class MobGameBridge implements GameBridge {
         defense = new VillageDefenseController(this);
         roads = new RoadNetwork(this);
         traffic = new RoadTraffic(this);
+        officials = new OfficialsController(this);
         divine = new DivineController(this);
         jealousy = new JealousyController(this);
         rivalry = new RivalryController(this);
@@ -91,6 +96,7 @@ public final class MobGameBridge implements GameBridge {
         children = new ChildController(this);
         initiative = new InitiativeController(this);
         talk = new VillageTalkController(this);
+        bars = new BarEvenings(this);
         actions = new MobActionController(this);
         bargaining = new VillagerBargaining(this);
         trading = new MobTrading(this);
@@ -183,6 +189,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.defense.tick(world);
                 bridge.roads.tick(world);
                 bridge.traffic.tick(world);
+                bridge.officials.tick(world, bridge.defense.zones(world));
                 bridge.divine.tick(world);
                 bridge.jealousy.tick(world);
                 bridge.rivalry.tick(world);
@@ -191,6 +198,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.children.tick(world);
                 bridge.initiative.tick(world);
                 bridge.talk.tick(world);
+                bridge.bars.tick(world);
                 bridge.bargaining.tick(world);
                 bridge.trades.tick(world);
                 bridge.changes.tick(bridge, world);
@@ -219,6 +227,10 @@ public final class MobGameBridge implements GameBridge {
         return bridge;
     }
 
+    /** The bars found around players and their evenings (self-test, /mobtalk bar). */
+    public List<String> barStatus(ServerWorld world) { return bars.describe(world); }
+    /** Where the bartender of the bar near this spot stands, null without an open bar (self-test). */
+    public BlockPos barStand(BlockPos near) { return bars.bartenderStand(near); }
     public static MobGameBridge active(MinecraftServer server) {
         MobGameBridge bridge = active;
         return bridge != null && bridge.server == server ? bridge : null;
@@ -232,7 +244,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.memory.recordAction(card.id(), ActionIntent.none());
         if (server.isStopped()) return CompletableFuture.completedFuture(null);
         CompletableFuture<Void> done = new CompletableFuture<>();
-        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.divine.clearRuntime(); bridge.defense.clearRuntime(); bridge.traffic.clearRuntime(); bridge.roads.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.rivalry.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
+        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.divine.clearRuntime(); bridge.defense.clearRuntime(); bridge.traffic.clearRuntime(); bridge.roads.clearRuntime(); bridge.officials.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.rivalry.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bars.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
         return done;
     }
     /** Б1: an event of the divine block (JSON), from any thread; dropped when no world is open. */
@@ -628,6 +640,13 @@ public final class MobGameBridge implements GameBridge {
         return CombatRules.truce(SpeciesCatalog.get(type(mob)).hostile(), bridge.memory.relationship(mob.getUuid(), player.getUuid()));
     }
     /** An exiled player gets no trade window from this village's villagers. */
+    /** From the interact mixin: the bartender of an open bar opens his drinks menu instead of his own trade. */
+    public static boolean serveDrinks(VillagerEntity villager, ServerPlayerEntity player) {
+        MobGameBridge bridge = forEntity(villager);
+        if (bridge == null || !bridge.config.barDrinks || player.isSneaking() || !bridge.bars.isBartender(villager)) return false;
+        BarMerchant.open(villager, player);
+        return true;
+    }
     public static boolean refusesTrade(VillagerEntity villager, ServerPlayerEntity player) {
         MobGameBridge bridge = forEntity(villager);
         return bridge != null && bridge.villages.refuseTrade(villager, player);
@@ -637,7 +656,20 @@ public final class MobGameBridge implements GameBridge {
         MobGameBridge bridge = active(world.getServer());
         return bridge != null && bridge.defense.blocksSpawn(world, entity);
     }
+    /** From the trade-show mixin: a fighter of the village or a tower's builder keeps its weapon or block in hand. */
+    public static boolean keepsHands(VillagerEntity villager) {
+        if (DefenseContent.defender(villager)) return true;
+        MobGameBridge bridge = forEntity(villager);
+        return bridge != null && villager.getWorld() instanceof ServerWorld world && bridge.defense.towers.builds(world, villager);
+    }
     /** From the panic mixin: a guard on duty stands its ground at a monster or a blow instead of fleeing (village defence). */
+    /** From the zombie mixin: this villager, killed by a zombie, dies rather than turning (village defence). */
+    public static boolean blocksZombieConversion(VillagerEntity villager) {
+        if (DefenseContent.defender(villager)) return true;
+        MobGameBridge bridge = forEntity(villager);
+        return bridge != null && bridge.config.enabled && bridge.config.villageNoConversion;
+    }
+
     public static boolean guardStandsGround(VillagerEntity villager) {
         MobGameBridge bridge = forEntity(villager);
         return bridge != null && bridge.defense.guards.standsGround(villager);

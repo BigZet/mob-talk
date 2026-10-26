@@ -102,6 +102,8 @@ final class SocialController {
         ItemStack stack = player.getMainHandStack();
         if (stack.isEmpty()) return "В руке ничего нет";
         if (!mob.isAlive() || mob.squaredDistanceTo(player) > bridge.config.maxDistance * bridge.config.maxDistance) return "Подойдите к мобу ближе";
+        String bribe = bridge.officials.envelope(world, player, mob, stack); // Чиновники: конверт — взятка, не подарок.
+        if (bribe != null) return bribe;
         int trial = bridge.rivalry.deliver(mob, player, stack, true); // П3: предмет испытания соперников.
         if (trial > 0) return "Для испытания отдано: " + trial + " шт.";
         String item = Registries.ITEM.getId(stack.getItem()).toString();

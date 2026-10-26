@@ -110,6 +110,10 @@ public final class MobTalkConfig {
     public boolean alarmAgainstPlayers = true;
     /** The village's players hear of an alarm in the chat. */
     public boolean alarmChat = true;
+    /** The alarm is heard: the bell rings at any alarm, and the village's players far from it hear the alarm bell too. */
+    public boolean alarmSound = true;
+    /** Zombies do not turn villagers into zombie villagers: a villager they kill dies. Guards and archers are never turned. */
+    public boolean villageNoConversion = true;
     /** Villages build watchtowers at their edge over a game day, and an archer comes to each tower's post. */
     public boolean villageTowers = true;
     /** Villages keep guards with swords and shields: stands by the bell and at the edge, a newcomer for each empty one. */
@@ -124,6 +128,22 @@ public final class MobTalkConfig {
     public boolean roadBypass = true;
     /** Odds and ends beside the roads: pebbles, cairns, fallen logs, verst posts, chosen for the biome. */
     public boolean roadDecor = true;
+    /** Ranks of the village's guard beside the plain guard: heavy warriors in diamond with an axe, horsemen in leather on a horse. */
+    public boolean villageHeavy = true, villageCavalry = true;
+    /** Track «чиновники» (docs/officials.md): villages and cities keep officials at a desk — the head of the administration, the
+     * clerk, the inspector — who take bribes in an envelope of emeralds; the inspector writes orders to players who build or dig in
+     * the village. */
+    public boolean officials = true;
+    /** Village bars: a bar stands in each new village (worldgen, takes effect for villages generated after the change); in the
+     * evening villagers gather there and talk over the village's rumours, in chat subtitles, voiced only with {@link #barVoiced};
+     * the bar's jukebox is the Alice speaker when the alicespeaker mod is installed. */
+    public boolean barsInVillages = true, barEvenings = true, barVoiced = false, barAliceSpeaker = true, barDrinks = true;
+    /** The village casino (docs/casino.md): villages may build one (applies to chunks generated after the world loads); its bouncers
+     * in black throw out troublemakers and beat monsters; villagers drop in to play in the afternoon. */
+    public boolean casino = true, casinoBouncers = true, casinoVisitors = true;
+    /** The casino resort «Фортуна» (a rare standalone structure in plains, savannas and deserts: a domed round casino,
+     * a pylon sign and a pool with fountains), and the sparks that glint on the casinos' lights (a client-side look). */
+    public boolean casinoResort = true, casinoSparkles = true;
     /** Idea Б1: the villages know the god's deeds (the divine block's events) — they panic, talk and blame the sinner by name;
      * the scene in the moment (alarm bell, flight, shouts); the god alone may make an exile; the family of a villager killed by a
      * curse turns against the sinner. */
@@ -164,9 +184,24 @@ public final class MobTalkConfig {
     public int roadScanRadius = 1500, roadMaxLength = 900, roadLampSpacing = 24, roadTreeStrip = 4;
     /** Carts, wagons and horsemen going back and forth on each road (0: none). */
     public int roadTraffic = 3;
+    /** A village of this many grown residents builds large towers (two archers and two crossbowmen; 0 = never); the crossbowmen see and
+     * shoot this far (blocks) and loose a bolt every this many tenths of a second. */
+    public int towerLargeResidents = 16, crossbowRange = 40, crossbowShotTenths = 30;
     /** Guards: one per this many residents, at least and at most this many per village, their health and blow, how far they see a
      * foe (blocks), and how long an empty stand waits for a newcomer (minutes). */
     public int watchResidents = 5, watchMin = 2, watchMax = 8, watchHealth = 30, watchDamage = 6, watchSight = 24, watchReplaceMinutes = 20;
+    /** The heavy warrior: health and the damage of an axe blow. */
+    public int heavyHealth = 50, heavyDamage = 10;
+    /** Officials: how many of a hundred are honest, the price of a service in percent, one desk per this many grown residents (a
+     * village puts its desks up by the bell: the head, then the inspector, then the clerk; 0 = none in villages), the inspector's
+     * fine (emeralds), the blocks a player must change near him to get an order, and the game days to pay it. */
+    public int officialHonestPercent = 20, officialPricePercent = 100, officialResidents = 8, inspectorFine = 8, inspectorBlocks = 12, inspectorDays = 1;
+    /** The bar's evening: from and to this game hour (6 is sunrise), at most this many visitors, the chance (percent) a free villager
+     * goes, and the pause between two talks at one bar (seconds). */
+    public int barOpenHour = 17, barCloseHour = 22, barVisitors = 6, barVisitPercent = 70, barTalkSeconds = 40;
+    /** The casino: its weight among a village's houses (vanilla houses weigh 2 to 4 each), the bouncer's health and blow, and how many
+     * villagers may play at once per game table. */
+    public int casinoWeight = 3, bouncerHealth = 60, bouncerDamage = 8, casinoPlayersPerTable = 2;
     /** The emotional state: half-lives of an ordinary and a strong impression (minutes), and the thresholds of its axes (0–100). */
     public int stateHalfLifeMinutes = 10, stateSlowHalfLifeMinutes = 30;
     public int waryCalm = 25, waryTrust = 25, keenInterest = 75, generousMood = 65, generousTrust = 65;
@@ -311,7 +346,8 @@ public final class MobTalkConfig {
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
-        copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageRoads = villageRoads; copy.roadLamps = roadLamps; copy.roadBypass = roadBypass; copy.roadDecor = roadDecor;
+        copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageRoads = villageRoads; copy.roadLamps = roadLamps; copy.roadBypass = roadBypass; copy.roadDecor = roadDecor; copy.villageHeavy = villageHeavy; copy.villageCavalry = villageCavalry; copy.officials = officials; copy.barsInVillages = barsInVillages; copy.barEvenings = barEvenings; copy.barVoiced = barVoiced; copy.barAliceSpeaker = barAliceSpeaker; copy.barDrinks = barDrinks;
+        copy.casino = casino; copy.casinoBouncers = casinoBouncers; copy.casinoVisitors = casinoVisitors; copy.casinoResort = casinoResort; copy.casinoSparkles = casinoSparkles;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;

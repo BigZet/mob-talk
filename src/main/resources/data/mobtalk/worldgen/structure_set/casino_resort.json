@@ -1,0 +1,4 @@
+{
+  "structures": [{"structure": "mobtalk:casino_resort", "weight": 1}],
+  "placement": {"type": "minecraft:random_spread", "spacing": 56, "separation": 20, "salt": 777177617}
+}

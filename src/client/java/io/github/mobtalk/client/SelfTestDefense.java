@@ -36,6 +36,7 @@ final class SelfTestDefense {
     private final SelfTest test;
     private final int fx, fy, fz;
     private final List<String> chat = Collections.synchronizedList(new ArrayList<>());
+    private final List<String> sounds = Collections.synchronizedList(new ArrayList<>());
     private Runnable next = () -> { };
     private UUID golem;
     private final List<UUID> villagers = new ArrayList<>();
@@ -50,6 +51,7 @@ final class SelfTestDefense {
             chat.add(line);
             test.log("chat: " + line);
         });
+        test.owner.client.getSoundManager().registerListener((sound, set, range) -> sounds.add(sound.getId().toString()));
     }
 
     private String name() { return test.owner.client.player.getName().getString(); }
@@ -331,7 +333,39 @@ final class SelfTestDefense {
             for (int i = 1; i < samples.size(); i++) if (samples.get(i) - samples.get(i - 1) >= 20) jump = true;
             test.check(smithCame, "the armorer walked up to the golem");
             test.check(jump, "the smith mended the golem by 25 at once");
-            shot("mobtalk-defense-repair.png", this::f7);
+            shot("mobtalk-defense-repair.png", this::farBell);
+        });
+    }
+
+    /** A threat (two zombies among the houses, not an attack): the bell rings, and a player 60+ blocks off hears the alarm bell. */
+    private void farBell() {
+        test.command("time set 18000");
+        test.command("tp " + name() + " " + at(PLATFORM_X, 0, 0) + " -90 10");
+        test.await("pause: the player far from the bell", 3, () -> false, () -> {
+            double far = Math.sqrt(onServer(() -> test.serverPlayer().getBlockPos().getSquaredDistance(bell())));
+            sounds.clear();
+            mark();
+            // Each in a pen of barrier in a corner of the village: among the houses, but with nobody to strike (a blow would make it an attack).
+            for (int i = 0; i < 2; i++) {
+                int x = -18 + i * 4, z = -18;
+                test.command("fill " + at(x - 1, -1, z - 1) + " " + at(x + 1, 3, z + 1) + " minecraft:barrier hollow");
+                test.command("summon minecraft:zombie " + at(x, 0, z) + " {PersistenceRequired:1b,IsBaby:0b,Tags:[\"" + TAG + "\"]}");
+            }
+            boolean[] rang = new boolean[1];
+            test.await("the alarm bell is heard far off", 15, () -> {
+                if (onServer(() -> world().getBlockEntity(bell()) instanceof BellBlockEntity b && b.ringing)) rang[0] = true;
+                return rang[0] && sounds.stream().anyMatch(id -> id.contains("block.bell.use"));
+            }, () -> {
+                boolean heardBell = sounds.stream().anyMatch(id -> id.contains("block.bell.use"));
+                test.log("far bell: the player " + String.format(Locale.ROOT, "%.0f", far) + " blocks from the bell; sounds " + new TreeSet<>(sounds) + "; chat " + heard());
+                test.check(far >= 60, "the player stands 60+ blocks from the bell (" + String.format(Locale.ROOT, "%.0f", far) + ")");
+                test.check(!heard("На деревню напали"), "two zombies are a threat, not an attack");
+                test.check(rang[0], "two zombies in the village ring the bell");
+                test.check(heardBell, "the player far off hears the alarm bell");
+                test.command("kill @e[type=minecraft:zombie,tag=" + TAG + "]");
+                test.command("time set 1000");
+                shot("mobtalk-defense-far-bell.png", this::f7);
+            });
         });
     }
 
@@ -343,8 +377,8 @@ final class SelfTestDefense {
             if (!(client.currentScreen instanceof MobTalkSettingsScreen screen)) { test.fail("F7 did not open"); finish(); return; }
             List<String> rows = screen.showGroup("social", "defense");
             test.log("«Защита деревни» rows: " + rows);
-            List<String> switches = List.of("Защита деревни", "Без монстров в деревне", "Тревога против игроков", "Тревога в чат");
-            test.check(rows.containsAll(switches), "the group has its four switches");
+            List<String> switches = List.of("Защита деревни", "Без монстров в деревне", "Тревога против игроков", "Тревога в чат", "Тревогу слышно", "Зомби не обращают жителей");
+            test.check(rows.containsAll(switches), "the group has its six switches");
             long sliders = rows.stream().filter(row -> !switches.contains(row)).count();
             test.check(sliders == 10, "the group has ten sliders (" + sliders + ")");
             test.check(rows.stream().noneMatch(row -> row.isBlank() || row.startsWith("mobtalk.")), "every row has a caption, none is a raw key");
