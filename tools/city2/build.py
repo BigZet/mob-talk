@@ -15,9 +15,13 @@ import house  # noqa: E402
 
 # The city sets down 2..6 sections in every colour; one section only as a sample.
 COLOURS = ("grey", "beige", "white", "blue")
+BRICKS = ("brick", "silicate")     # the brick houses: red or white (silicate) brick
 HOUSES = [("1-464", 1, 5, "grey")] + [("1-464", s, 5, c) for s in range(2, 7) for c in COLOURS] + \
     [("1-515-9", s, 9, c) for s in range(1, 5) for c in COLOURS] + [("1-335", s, 5, c) for s in range(1, 5) for c in COLOURS] + \
-    [("i-209a", s, 14, c) for s in range(1, 3) for c in COLOURS]
+    [("i-209a", s, 14, c) for s in range(1, 3) for c in COLOURS] + \
+    [("p-44", s, 17, c) for s in range(1, 4) for c in COLOURS] + \
+    [("1-447", s, 5, c) for s in range(1, 5) for c in BRICKS] + \
+    [("ii-03", s, f, c) for s in range(1, 4) for f in (3, 4) for c in BRICKS]
 
 
 def build_houses(maps=None):

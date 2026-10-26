@@ -118,7 +118,8 @@ public final class CityBuild {
             add(id, new WindowBlock(concrete(MapColor.WHITE).sounds(BlockSoundGroup.GLASS).nonOpaque()
                     .solidBlock((state, world, pos) -> false).suffocates((state, world, pos) -> false).blockVision((state, world, pos) -> false)), items);
         // Nothing spawns on the floors of flats and staircases: in a dark hall or pantry bats and zombies would (Dmitriy, 2026-10-26).
-        CityBuildBlocks.CUBES.forEach((id, color) -> add(id, new Block(id.startsWith("floor_") || id.equals("plinth")
+        // Nor on the roof slab, the floor of the brick houses' dark attics.
+        CityBuildBlocks.CUBES.forEach((id, color) -> add(id, new Block(id.startsWith("floor_") || id.equals("plinth") || id.equals("roof_bitumen")
                 ? concrete(color).allowsSpawning((state, world, pos, type) -> false) : concrete(color)), items));
         for (String id : CityBuildBlocks.STEPS)
             add(id, new StepBlock(concrete(MapColor.STONE_GRAY).nonOpaque().allowsSpawning((state, world, pos, type) -> false)), items);
@@ -138,15 +139,15 @@ public final class CityBuild {
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.BUILDING_BLOCKS).register(entries -> items.forEach(entries::add));
         CommandRegistrationCallback.EVENT.register((dispatcher, registries, environment) -> {
             var colour = argument("colour", StringArgumentType.word())
-                    .suggests((c, b) -> CommandSource.suggestMatching(List.of("grey", "beige", "white", "blue"), b))
+                    .suggests((c, b) -> CommandSource.suggestMatching(List.of("grey", "beige", "white", "blue", "brick", "silicate"), b))
                     .executes(c -> house(c.getSource(), StringArgumentType.getString(c, "series"), IntegerArgumentType.getInteger(c, "sections"),
                             IntegerArgumentType.getInteger(c, "floors"), StringArgumentType.getString(c, "colour")));
-            var floors = argument("floors", IntegerArgumentType.integer(1, 16))
+            var floors = argument("floors", IntegerArgumentType.integer(1, 25))
                     .executes(c -> house(c.getSource(), StringArgumentType.getString(c, "series"), IntegerArgumentType.getInteger(c, "sections"),
                             IntegerArgumentType.getInteger(c, "floors"), "grey"))
                     .then(colour);
             var series = argument("series", StringArgumentType.string())
-                    .suggests((c, b) -> CommandSource.suggestMatching(List.of("\"1-464\"", "\"1-335\"", "\"1-515-9\"", "\"i-209a\""), b))
+                    .suggests((c, b) -> CommandSource.suggestMatching(List.of("\"1-464\"", "\"1-335\"", "\"1-447\"", "\"ii-03\"", "\"1-515-9\"", "\"i-209a\"", "\"p-44\""), b))
                     .then(argument("sections", IntegerArgumentType.integer(1, 8)).then(floors));
             dispatcher.register(literal("city").requires(source -> source.hasPermissionLevel(2)).then(literal("house").then(series)));
         });

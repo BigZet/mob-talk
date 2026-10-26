@@ -34,7 +34,9 @@ FINISHES = ["plaster", "paper_beige", "paper_green", "paper_blue", "paper_pink",
 PAINTS = FINISHES[12:]            # the stairwell's oil paint: green (the first), blue, ochre, red-brown
 WALL_FINISHES = FINISHES[:13]     # a flat wall's sides; other paints go on the stair walls (wall_stair_*), see walls()
 ROOM_FINISHES = FINISHES[:12]
-COLORS = {"grey": (176, 174, 168), "beige": (214, 196, 160), "white": (226, 226, 220), "blue": (150, 178, 204)}
+COLORS = {"grey": (176, 174, 168), "beige": (214, 196, 160), "white": (226, 226, 220), "blue": (150, 178, 204),
+          "brick": (152, 72, 50), "silicate": (222, 218, 204)}
+BRICKS = ("brick", "silicate")    # the brick houses' walls (1-447, the stalinkas): no panel joints, no floor lines
 FACADE_KINDS = ("lo", "mid", "hi", "jlo", "jmid", "jhi")
 ROWS = ("lo", "mid", "hi")
 
@@ -260,6 +262,22 @@ def panel(name, base):
         for _ in range(26):
             x, y = r.randrange(16), r.randrange(16)
             put(img, x, y, D.shade(base + (255,), r.choice([0.72, 0.82, 1.12, 1.18])))
+    elif name.startswith(BRICKS):    # brick in stretcher bond: courses of 4 px (a 1 px joint), bricks 8 px, every other course offset
+        red = name.startswith("brick")
+        mortar = (196, 190, 178) if red else (176, 174, 166)
+        for y in range(16):
+            for x in range(16):
+                course = y // 4
+                if y % 4 == 3 or (x + (4 if course % 2 else 0)) % 8 == 7:
+                    put(img, x, y, D.shade(mortar + (255,), r.uniform(0.94, 1.04)))
+                    continue
+                b = random.Random(f"{name}{course},{(x + (4 if course % 2 else 0)) // 8}")
+                k = b.choice([0.8, 0.88, 0.94, 1.0, 1.0, 1.06, 1.12]) if red else b.uniform(0.95, 1.04)
+                c = D.shade(base + (255,), k * r.uniform(0.95, 1.05))
+                if y % 4 == 0:      # the brick's top edge catches the light
+                    c = D.shade(c, 1.08)
+                put(img, x, y, c)
+        return img
     elif name.startswith("beige"):
         fill(img, base, 0.035, r)
         for _ in range(12):
@@ -281,6 +299,10 @@ def facade_textures():
     for c, base in COLORS.items():
         p = panel(c, base)
         tex(f"panel_{c}", p)
+        if c in BRICKS:     # a brick wall has no joints: the joint, the floor line and the corner are the same bond
+            for kind in ("joint", "band", "cross"):
+                tex(f"panel_{c}_{kind}", p)
+            continue
         j = p.copy()
         for y in range(16):
             put(j, 7, y, D.shade(base + (255,), 0.55))
@@ -781,11 +803,19 @@ def facades():
             BLOCKSTATES[name] = {"variants": variants}
             ITEMS[name] = {"parent": f"mobtalk:block/city2/{name}_plaster"}
             FACADES.append(name)
-            ru = {"grey": "серая", "beige": "бежевая", "white": "белая плитка", "blue": "голубая плитка"}[c]
-            NAMES[name] = (f"Панель фасада, {ru} ({'стык, ' if kind.startswith('j') else ''}{ROW_RU[row]})",
-                           f"Facade panel, {c} ({'joint, ' if kind.startswith('j') else ''}{ROW_EN[row]})")
+            ru = {"grey": "серая", "beige": "бежевая", "white": "белая плитка", "blue": "голубая плитка", "brick": "красный кирпич",
+                  "silicate": "силикатный кирпич"}[c]
+            if c in BRICKS:
+                NAMES[name] = (f"Кирпичная стена, {ru} ({ROW_RU[row]})", f"Brick wall, {c} ({ROW_EN[row]})")
+            else:
+                NAMES[name] = (f"Панель фасада, {ru} ({'стык, ' if kind.startswith('j') else ''}{ROW_RU[row]})",
+                               f"Facade panel, {c} ({'joint, ' if kind.startswith('j') else ''}{ROW_EN[row]})")
         for kind, texture, ru in (("band", f"panel_{c}_band", "пояс перекрытия"), ("cross", f"panel_{c}_cross", "стык у перекрытия"),
                                   ("edge", f"panel_{c}_joint", "угол")):
+            if c in BRICKS:
+                cube(f"facade_{c}_{kind}", texture, f"Кирпичная кладка ({'красный' if c == 'brick' else 'силикатный'} кирпич)",
+                     f"Brickwork ({c})", "RED" if c == "brick" else "WHITE_GRAY")
+                continue
             cube(f"facade_{c}_{kind}", texture, f"Панель фасада, {ru}", f"Facade panel, {kind}", "STONE_GRAY")
 
 
