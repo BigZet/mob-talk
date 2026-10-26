@@ -96,7 +96,7 @@ public final class AdminCommands {
                         .then(literal("clear").executes(context -> reply(context, OverlayHub.clearBanner()))))
                 .then(literal("conceive").executes(context -> conceive(context, 0))
                         .then(argument("days", IntegerArgumentType.integer(1, 30)).executes(context -> conceive(context, IntegerArgumentType.getInteger(context, "days")))))
-                .then(literal("childname").then(argument("name", StringArgumentType.word()).executes(AdminCommands::childName)))
+                .then(literal("childname").then(argument("name", StringArgumentType.greedyString()).executes(AdminCommands::childName)))
                 .then(literal("skip").then(argument("minutes", IntegerArgumentType.integer(1, 7 * 24 * 60)).executes(AdminCommands::skip)))
                 .then(literal("reload").executes(AdminCommands::reload))
                 .then(literal("players").executes(context -> reply(context, players(context.getSource().getServer()))))
