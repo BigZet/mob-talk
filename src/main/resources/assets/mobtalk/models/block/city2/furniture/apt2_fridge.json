@@ -1,0 +1,170 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "plastic_black": "mobtalk:block/city2/furniture/plastic_black",
+    "apt2_fridge_doors_44": "mobtalk:block/city2/furniture/apt2_fridge_doors_44",
+    "silver": "mobtalk:block/city2/furniture/silver",
+    "particle": "mobtalk:block/city2/furniture/plastic_black"
+  },
+  "elements": [
+    {
+      "from": [
+        1.5,
+        0.0,
+        3.5
+      ],
+      "to": [
+        14.5,
+        1.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plastic_black",
+          "uv": [
+            1.5,
+            15.0,
+            14.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#plastic_black",
+          "uv": [
+            1.5,
+            15.0,
+            14.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#plastic_black",
+          "uv": [
+            1.0,
+            15.0,
+            12.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#plastic_black",
+          "uv": [
+            3.5,
+            15.0,
+            15.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.0,
+        1.0,
+        3.0
+      ],
+      "to": [
+        15.0,
+        16.0,
+        15.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt2_fridge_doors_44",
+          "uv": [
+            1.0,
+            0.0,
+            15.0,
+            15.0
+          ]
+        },
+        "south": {
+          "texture": "#silver",
+          "uv": [
+            1.0,
+            0.0,
+            15.0,
+            15.0
+          ]
+        },
+        "east": {
+          "texture": "#silver",
+          "uv": [
+            0.5,
+            0.0,
+            13.0,
+            15.0
+          ]
+        },
+        "west": {
+          "texture": "#silver",
+          "uv": [
+            3.0,
+            0.0,
+            15.5,
+            15.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        12.0,
+        4.0,
+        2.5
+      ],
+      "to": [
+        13.0,
+        16.0,
+        3.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plastic_black",
+          "uv": [
+            3.0,
+            0.0,
+            4.0,
+            12.0
+          ]
+        },
+        "east": {
+          "texture": "#plastic_black",
+          "uv": [
+            13.0,
+            0.0,
+            13.5,
+            12.0
+          ]
+        },
+        "west": {
+          "texture": "#plastic_black",
+          "uv": [
+            2.5,
+            0.0,
+            3.0,
+            12.0
+          ]
+        },
+        "up": {
+          "texture": "#plastic_black",
+          "uv": [
+            12.0,
+            2.5,
+            13.0,
+            3.0
+          ]
+        },
+        "down": {
+          "texture": "#plastic_black",
+          "uv": [
+            12.0,
+            13.0,
+            13.0,
+            13.5
+          ]
+        }
+      }
+    }
+  ]
+}

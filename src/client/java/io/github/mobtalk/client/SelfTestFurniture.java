@@ -249,9 +249,28 @@ final class SelfTestFurniture {
                 }
             test.await("pause: the gallery is furnished", 2, () -> false, () -> {
                 test.check(failed == 0, "every gallery piece found room (" + failed + " failed)");
-                shots(list.toArray(new String[0][]), 0, () -> { test.owner.client.options.hudHidden = false; then.run(); });
+                shots(list.toArray(new String[0][]), 0, () -> { test.owner.client.options.hudHidden = false; bells(ids, gz, perRow, then); });
             });
         }
+    }
+
+    /** The bell push in the gallery rings the nearest bell, not itself. */
+    private void bells(List<String> ids, int gz, int perRow, Runnable then) {
+        int b = ids.indexOf("apt_bell_button"), d = ids.indexOf("apt_doorbell");
+        if (b < 0 || d < 0) { test.fail("no door bell in the catalogue"); then.run(); return; }
+        int bx = (b % perRow) * 3, bz = gz + (b / perRow) * 14;
+        BlockPos bell = pos((d % perRow) * 3, 1, gz + (d / perRow) * 14);
+        test.server().execute(() -> {
+            for (int dz = 0; dz <= 2; dz++)
+                if (world().getBlockState(pos(bx, 1, bz + dz)).getBlock() instanceof FurnitureBlocks.Furniture) { click(bx, 1, bz + dz, 1.5); return; }
+            test.fail("the bell push is not in the gallery");
+        });
+        test.await("pause: the bell push pressed", 2, () -> false, () -> {
+            BlockPos rang = FurnitureBlocks.lastRing();
+            test.check(rang != null && rang.getX() == bell.getX() && rang.getY() == bell.getY() && Math.abs(rang.getZ() - bell.getZ()) <= 2,
+                    "the bell push rings the door bell beside it (" + rang + ")");
+            then.run();
+        });
     }
 
     private void eyeLevel(Runnable then) {

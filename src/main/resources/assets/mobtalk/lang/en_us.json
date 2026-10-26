@@ -1397,5 +1397,22 @@
   "block.mobtalk.wall_stair_brown_mid": "Stairwell wall, brown (middle)",
   "block.mobtalk.wall_stair_blue_hi": "Stairwell wall, blue (upper)",
   "block.mobtalk.wall_stair_ochre_hi": "Stairwell wall, ochre (upper)",
-  "block.mobtalk.wall_stair_brown_hi": "Stairwell wall, brown (upper)"
+  "block.mobtalk.wall_stair_brown_hi": "Stairwell wall, brown (upper)",
+  "block.mobtalk.apt_bell_button": "Door bell push",
+  "block.mobtalk.apt_doorbell": "Electric door bell",
+  "block.mobtalk.apt_doorbell_chime": "Ding-dong door chime",
+  "block.mobtalk.apt2_sofa_corner": "Corner sofa",
+  "block.mobtalk.apt2_sofa_corner_part": "Corner sofa",
+  "block.mobtalk.apt2_wardrobe_coupe": "Sliding-door wardrobe",
+  "block.mobtalk.apt2_wardrobe_coupe_part": "Sliding-door wardrobe",
+  "block.mobtalk.apt2_pc_desk": "Computer desk with a PC",
+  "block.mobtalk.apt2_pc_desk_part": "Computer desk with a PC",
+  "block.mobtalk.apt2_office_chair": "Office chair",
+  "block.mobtalk.apt2_tv_stand": "TV stand with a TV and a DVD player",
+  "block.mobtalk.apt2_fridge": "Silver two-door fridge",
+  "block.mobtalk.apt2_fridge_part": "Silver two-door fridge",
+  "block.mobtalk.apt2_kitchen_base": "Kitchen base with a microwave",
+  "block.mobtalk.apt2_kitchen_sink": "Kitchen sink (2000s)",
+  "block.mobtalk.apt2_kitchen_wall": "Wall cupboard (2000s)",
+  "block.mobtalk.apt2_lamp_spots": "Chrome bar ceiling light"
 }
