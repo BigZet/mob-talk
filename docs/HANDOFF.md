@@ -95,6 +95,25 @@ docs/space-analysis.md (зрение и классификатор), docs/whispe
 
 24 октября: оверлей для OBS (docs/overlay.md): страница на клиенте стримера `127.0.0.1:8790/overlay/`, пакет `overlay_state` с сервера, настройки F7 «Оверлей для стрима», права в F9. Божественный блок отдаёт состояние операцией `overlay` (ветка divine-block `bigzet/overlay`), со старой версией работает запасной путь. В игре глазами не проверено.
 
+### Игра в 21 с жителем (из ветки `claude/project-thread-426kyh`, в main отдельно от казино)
+
+Дизайн и этапы в docs/cards-21.md. Правила (очко и блэкджек) без MC в `core/cards`, учёт в `core/CardLedger`
+(кошельки жителей, залоги, долги, история сессий, интерес, скидки, слухи о шулере), стол на сервере в
+`server/CardTableService` (порты World/Outbox/Talk, тесты `CardTableServiceTest`), MC-обвязка в
+`game/CardTables` (колода `mobtalk:card_deck` у картографа и крафтом, ПКМ по жителю, `/mobtalk cards`),
+экран `client/cards/CardTableScreen` (атлас и стол рисует `tools/cards_art.py`, звуки `tools/cards_sounds.py`).
+Реплики жителя — `core/CardLines` на фоновой модели с готовыми запасными фразами; приглашение словами — поле
+`game: OFFER` в ответе диалога. До 4 игроков и зрители на выделенном сервере.
+
+Настройки F7, вкладка «Социальное», группа «Игра в 21»: серверные `cards`, `cardsVariant`, `cardsItemStakes`,
+`cardsCheating` и числа `cards*` (Tunables); личные `tableInvite`, `tableLines` (key/round/never), `tableSpeed`
+(normal/fast/off), `tableVolume`, `tableHint` (префикс `table` в `SettingsScope`). Админка: партии в «Истории»
+(вид `cards`), кошелёк, манера и последние партии в карточке жителя.
+
+Проверка: `run-selftest.ps1 -Only cards` (одиночка, снимки), `-Only servercards` (сервер + 2 клиента),
+`-Only cardsprep` готовит мир для ручной игры. Ручной инстанс «Mob Talk — игра в 21 (тест)»
+(`mob-talk-cards21`, мир `cards21`). Озвучки реплик стола нет.
+
 ## 4. Дорожная карта (согласована с пользователем, не начата)
 
 Подробности в docs/playtest-0.6.0-checklist.md, раздел «Дальше».

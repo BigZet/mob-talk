@@ -17,6 +17,7 @@ public final class ConversationStore {
     private final WeddingLedger wedding = new WeddingLedger(this);
     private final ChildLedger children = new ChildLedger(this);
     private final ConfessionLedger confession = new ConfessionLedger(this);
+    private final CardLedger cards = new CardLedger(this);
 
     /** Initial load touches disk: call from a maintenance/conversation worker. */
     public static ConversationStore open(Path worldDirectory, MobTalkConfig config) throws IOException {
@@ -72,6 +73,8 @@ public final class ConversationStore {
     public ChildLedger children() { return children; }
     /** Исповедь: откат, епитимьи; см. {@link ConfessionLedger}. Слов исповеди в памяти мира нет. */
     public ConfessionLedger confession() { return confession; }
+    /** Игра в 21: кошельки жителей, залог ставок, итог дня игрока; см. {@link CardLedger}. */
+    public CardLedger cards() { return cards; }
     /** Трек M: пол, родители (мать первой) и стадия роста жителя с профилем — облик людей-жителей; рендер читает копию. */
     public record Lineage(Gender gender, List<UUID> parents, String stage) { }
     public synchronized Map<UUID, Lineage> lineages() {
@@ -1559,6 +1562,8 @@ public final class ConversationStore {
         Officialdom officials = new Officialdom();
         /** Исповедь: откат и епитимьи по игрокам; absent in files written before it. */
         ConfessionLedger.Book confessions = new ConfessionLedger.Book();
+        /** Игра в 21: кошельки, залог, итоги дня; absent in files written before it. */
+        CardLedger.Book cards = new CardLedger.Book();
         void sanitize() {
             if (confessions == null) confessions = new ConfessionLedger.Book();
             confessions.sanitize();
@@ -1566,6 +1571,8 @@ public final class ConversationStore {
             officials.sanitize();
             if (divine == null) divine = new DivineTidings();
             divine.sanitize();
+            if (cards == null) cards = new CardLedger.Book();
+            cards.sanitize();
             if (notices == null) notices = new VillageNotices();
             if (players == null) players = new LinkedHashMap<>();
             players.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null || e.getValue().isBlank());
@@ -1586,6 +1593,7 @@ public final class ConversationStore {
             c.bargains.putAll(bargains); c.villages.putAll(villages); // Immutable records.
             c.relations = relations.copy(); c.rumors = rumors.copy(); c.family = family.copy(); c.notices = notices.copy(); c.players = new LinkedHashMap<>(players); c.divine = divine.copy(); c.officials = officials.copy();
             c.confessions = confessions.copy();
+            c.cards = cards == null ? new CardLedger.Book() : cards.copy();
             return c;
         }
     }

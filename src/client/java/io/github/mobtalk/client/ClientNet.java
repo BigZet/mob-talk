@@ -54,6 +54,7 @@ final class ClientNet {
         });
         ClientPlayNetworking.registerGlobalReceiver(io.github.mobtalk.net.OverlayStateS2C.ID, (payload, context) -> OverlayClient.serverState(payload.json()));
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(OverlayClient::disconnected));
+        io.github.mobtalk.client.cards.CardTableClient.register(); // Игра в 21: стол жителя.
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             features = ServerFeatures.none();
             io.github.mobtalk.client.settings.ServerSettingsView.reset();

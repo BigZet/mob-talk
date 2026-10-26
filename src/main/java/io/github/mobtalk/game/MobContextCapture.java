@@ -92,6 +92,8 @@ final class MobContextCapture {
             mobDetails.put("profession", Registries.VILLAGER_PROFESSION.getId(villager.getVillagerData().getProfession()).toString());
             mobDetails.put("level", villager.getVillagerData().getLevel());
             mobDetails.put("reputation", villager.getReputation(player));
+            io.github.mobtalk.server.CardTableService cards = CardTables.service(); // Игра в 21: кошелёк, стиль, прошлые партии.
+            if (cards != null && !villager.isBaby()) mobDetails.put("cardGame", cards.promptFacts(villager.getUuid(), player.getUuid()));
             rememberPlace(mobDetails, "jobSite", villager, MemoryModuleType.JOB_SITE);
             rememberPlace(mobDetails, "home", villager, MemoryModuleType.HOME);
             rememberPlace(mobDetails, "meetingPoint", villager, MemoryModuleType.MEETING_POINT);

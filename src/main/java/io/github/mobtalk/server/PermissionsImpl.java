@@ -29,6 +29,7 @@ public final class PermissionsImpl implements Permissions {
         Map<String, Level> table = new LinkedHashMap<>();
         table.put("mobtalk", Level.STREAMER);
         for (String sub : new String[]{"admin", "web", "budget"}) table.put("mobtalk " + sub, Level.ADMIN);
+        table.put("mobtalk cards", Level.PLAYER); // Игра в 21: сесть за стол может любой; «deck» проверяет админа сама.
         table.put("divineblock", Level.ADMIN);
         table.put("clip", Level.STREAMER); // Метки для монтажа; игрокам открывает commandLevels «clip»: «PLAYER».
         for (String sub : new String[]{"act", "boss", "unban", "ult", "clear", "lift", "cemetery", "streamer"}) table.put("divineblock " + sub, Level.ADMIN);

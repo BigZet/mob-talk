@@ -486,7 +486,8 @@ final class LiveGameView implements GameView {
                             "spell", state.spell() == null ? null : Json.obj("word", state.spell().word(state.female()), "sign", state.spell().sign, "minutes", state.spellMillis() / 60_000L, "help", state.spell().help),
                             "reasons", state.reasons().stream().map(r -> Json.obj("text", r.text(), "sign", r.sign())).toList()),
                     "relations", relations, "facts", facts, "events", events,
-                    "family", Json.obj("spouse", spouse == null ? null : kinJson(spouse), "children", children));
+                    "family", Json.obj("spouse", spouse == null ? null : kinJson(spouse), "children", children),
+                    "cards", "minecraft:villager".equals(card.type()) ? cardsJson(id) : null);
         });
     }
     /** П3: ухажёры жителя, идущее испытание и назначенный выбор у колокола; null — соперничества нет. */
@@ -508,6 +509,19 @@ final class LiveGameView implements GameView {
         for (RivalryLedger.Scene s : memory().rivalry().scenes(now)) if (s.villager().equals(id)) scene = s.at();
         if (suitors.isEmpty() && trial == null && scene == null) return null;
         return Json.obj("suitors", suitors, "trial", trial, "sceneAt", scene);
+    }
+
+    /** Игра в 21: кошелёк и манера жителя, последние партии с ним. */
+    private JsonObject cardsJson(UUID id) {
+        io.github.mobtalk.core.CardLedger cards = memory().cards();
+        List<JsonObject> games = new ArrayList<>();
+        for (io.github.mobtalk.core.CardLedger.Session s : cards.history(200)) {
+            if (!id.toString().equals(s.villager())) continue;
+            games.add(Json.obj("t", s.time(), "player", Json.player(UUID.fromString(s.player()), s.playerName()), "variant", s.variant(),
+                    "rounds", s.rounds(), "net", s.net(), "note", s.note()));
+            if (games.size() >= 20) break;
+        }
+        return Json.obj("purse", Math.max(0, cards.balance(id)), "style", cards.style(id).name(), "games", games);
     }
     private JsonObject kinJson(UUID id) {
         if (memory().known(id)) return mobJson(id);
