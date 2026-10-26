@@ -1,5 +1,6 @@
 package io.github.mobtalk.game;
 
+import io.github.mobtalk.core.MobClock;
 import io.github.mobtalk.core.ConversationStore;
 import io.github.mobtalk.core.Initiative;
 import io.github.mobtalk.core.MobState;
@@ -179,7 +180,7 @@ final class OfficialsController {
         int emeralds = OfficialContent.emeralds(stack);
         VillageDefenseController.Zone zone = bridge.defense.zoneAt(world, official.getBlockPos());
         String village = zone == null ? "" : zone.key();
-        long day = Math.floorDiv(world.getTimeOfDay(), 24_000L), now = System.currentTimeMillis();
+        long day = Math.floorDiv(world.getTimeOfDay(), 24_000L), now = MobClock.now();
         Officialdom.Fine fine = rank == Officialdom.Rank.INSPECTOR ? bridge.memory.officialFine(village, player.getUuid()) : null;
         List<VillagerEntity> witnesses = world.getEntitiesByClass(VillagerEntity.class, official.getBoundingBox().expand(WITNESS),
                 v -> v != official && v.isAlive() && !v.isBaby() && OfficialContent.rank(v) == null && !DefenseContent.traveller(v) && (v.canSee(player) || v.canSee(official)));
@@ -294,7 +295,7 @@ final class OfficialsController {
         String own = ownName(inspector);
         player.sendMessage((own == null ? Text.translatable("mobtalk.official.order.unnamed", fine.number(), reason, fine.amount(), fine.dueDay())
                 : Text.translatable("mobtalk.official.order", own, fine.number(), reason, fine.amount(), fine.dueDay())).formatted(Formatting.GOLD), false);
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         bridge.memory.recordEvent(inspector.getUuid(), MobGameBridge.type(inspector), inspector.getName().getString(),
                 "Ты выписал игроку " + MobGameBridge.playerName(player) + " предписание №" + fine.number() + ": " + reason + ", штраф " + fine.amount() + " изумр.", now);
         bridge.initiative.raise(new Initiative.Cue(inspector.getUuid(), name, Initiative.Trigger.GIFT,

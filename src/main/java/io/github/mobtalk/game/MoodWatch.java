@@ -1,5 +1,6 @@
 package io.github.mobtalk.game;
 
+import io.github.mobtalk.core.MobClock;
 import io.github.mobtalk.core.Hunger;
 import io.github.mobtalk.core.MobState;
 import io.github.mobtalk.core.MoodFactor;
@@ -52,7 +53,7 @@ final class MoodWatch {
 
     void tick(ServerWorld world) {
         if (!bridge.config.enabled || world.getTime() % PERIOD != PHASE || world.getPlayers().isEmpty()) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         long time = world.getServer().getOverworld().getTimeOfDay();
         long night = MoodSample.nightOf(time);
         // By the clock, not the light: a thunderstorm darkens the sky at noon, and that is not a night out.

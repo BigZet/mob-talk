@@ -106,7 +106,7 @@ final class OpenRouterConversationClient implements AutoCloseable {
         // A mob without a life story invents it inside its first reply: one request, not two.
         boolean needsStory = profile.backstory == null || profile.backstory.isBlank();
         // An anxious or distrustful mob cannot concede: the schema itself drops OFFER, the validator catches json_object providers.
-        MobState.View state = profile.stateView != null ? profile.stateView : MobState.viewOf(profile, System.currentTimeMillis());
+        MobState.View state = profile.stateView != null ? profile.stateView : MobState.viewOf(profile, MobClock.now());
         boolean wary = state.refusesDeals();
         JsonObject body = body(messages, 4096, view.windowOpen() ? 0.6 : 0.95, ReplySchema.replyFormat(snapshot, needsStory, wary,
                 overheard == null ? SocialPrompt.schemaGestures(profile) : List.of()), !noStreaming);

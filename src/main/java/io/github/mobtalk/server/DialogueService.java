@@ -1,5 +1,6 @@
 package io.github.mobtalk.server;
 
+import io.github.mobtalk.core.MobClock;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import io.github.mobtalk.core.ActionIntent;
@@ -174,7 +175,7 @@ public final class DialogueService {
         volatile LlmSpend.Tally spend = LlmSpend.Tally.NONE;
         Session(UUID player) { this.player = player; }
 
-        boolean voiceOn() { return voicesPending > 0 || System.currentTimeMillis() < floorUntil; }
+        boolean voiceOn() { return voicesPending > 0 || MobClock.now() < floorUntil; }
         boolean busyTalking() { return requestActive || voiceOn(); }
         boolean witnessPending() { return witnessesInFlight > 0 || !ready.isEmpty() || pendingDeliveries > 0; }
         void status(String text) { status = text; out.status(player, text, requestActive, ""); }
@@ -418,7 +419,7 @@ public final class DialogueService {
     private void tickNow() {
         if (closed) return;
         ticks++;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         for (Session session : sessions.values()) {
             if (!session.ready.isEmpty()) playNextWitness(session);
             if (session.deferred != null && !session.voiceOn()) runDeferredAction(session);
@@ -711,7 +712,7 @@ public final class DialogueService {
 
     private void finishDelivery(Session session, Request request, ConversationEngine.Reply reply, String actionMessage, boolean shownEarly) {
         session.requestActive = false;
-        if (request.overheard == null) { session.conversationMob = request.target; session.lastReplyMillis = System.currentTimeMillis(); }
+        if (request.overheard == null) { session.conversationMob = request.target; session.lastReplyMillis = MobClock.now(); }
         boolean spontaneousLine = request.overheard != null && request.overheard.spontaneous();
         String kind = request.overheard == null ? MobSpeechS2C.ANSWER : request.overheard.kind() == ConversationEngine.Overheard.Kind.BYSTANDER ? MobSpeechS2C.WITNESS : MobSpeechS2C.INITIATIVE;
         if (spontaneousLine) spontaneous.spoken(session, request.target, request.overheard, request.generation, reply);
@@ -742,7 +743,7 @@ public final class DialogueService {
         if (actionMessage != null && !actionMessage.isBlank()) out.chat(request.player, "[Mob Talk] " + actionMessage);
         if (request.overheard == null) {
             BargainMeter.Move move = BargainMeter.move(reply.bargain(), reply.deal(), request.snapshot, reply.recognizedText());
-            if (move != null) { session.bargainMoves.put(request.target, move); session.bargainUntil.put(request.target, System.currentTimeMillis() + BARGAIN_HUD_MILLIS); }
+            if (move != null) { session.bargainMoves.put(request.target, move); session.bargainUntil.put(request.target, MobClock.now() + BARGAIN_HUD_MILLIS); }
             if (reply.bargain().type() != BargainIntent.Type.NONE || reply.deal().type() != DealIntent.Type.NONE)
                 journal.event("trade", request.player, request.playerName, request.target, reply.speakerName(), request.snapshot == null ? "" : request.snapshot.type(),
                         request.playerName + " ↔ " + reply.speakerName() + ": " + tradeWords(reply.bargain(), reply.deal()) + (actionMessage == null || actionMessage.isBlank() ? "" : " — " + actionMessage),
@@ -803,7 +804,7 @@ public final class DialogueService {
                     LOGGER.info("Mob Talk: clip {} for {} listeners: {} bytes ({} ms, {} crossings/s)", clipId, audience.size(), data.length, millis, SpeechStream.crossingsPerSecond(data));
                     SpeechService.Clip clip = new SpeechService.Clip(clipId, PCM_FORMAT, data, millis);
                     for (UUID listener : audience) out.clip(listener, clip);
-                    session.floorUntil = Math.max(session.floorUntil, System.currentTimeMillis() + millis + 250);
+                    session.floorUntil = Math.max(session.floorUntil, MobClock.now() + millis + 250);
                     session.speakingMob = request.target;
                 });
             });

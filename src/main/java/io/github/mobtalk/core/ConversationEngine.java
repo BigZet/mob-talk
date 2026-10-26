@@ -84,13 +84,13 @@ public final class ConversationEngine implements AutoCloseable {
      * nothing here waits or touches the network. */
     public void chronicleIfDue(String villageId, String playerName, long day) {
         if (closed || villageId == null || villageId.isBlank()) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         VillageRumors.Input input = store.chronicleDue(villageId, playerName, day, now);
         if (input == null) return;
         BackgroundTasks.submit("chronicle:" + villageId, () -> {
             if (closed) return;
             List<VillageRumors.View> rumors = VillageRumors.request(llm, input);
-            int added = store.addRumors(villageId, rumors, System.currentTimeMillis());
+            int added = store.addRumors(villageId, rumors, MobClock.now());
             OpenRouterConversationClient.diagnostics.accept("хроника деревни «" + input.villageName() + "»: " + added + " новых слухов из " + input.facts().size() + " фактов");
         });
     }
@@ -203,7 +203,7 @@ public final class ConversationEngine implements AutoCloseable {
         checkCurrent(snapshot);
         // The player came back after a long silence: the earlier conversation ended, whether or not the game noticed; this reply still
         // sees its tail, the summary (if it arrives) replaces it from the next one on.
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         if (overheard == null && profile.lastTurnMillis >= 0 && now - profile.lastTurnMillis > ConversationSummary.silenceMillis())
             endConversation(snapshot.id(), snapshot.playerId(), playerName(snapshot));
         String reserve = SpeciesCatalog.reserve(profile.type).id();
@@ -310,14 +310,14 @@ public final class ConversationEngine implements AutoCloseable {
         if (closed || mob == null) return;
         ConversationSummary.Pending pending = store.pendingSummary(mob, player, playerName);
         if (pending == null) return;
-        BackgroundTasks.submit("summary:" + mob, () -> { if (!closed) ConversationSummary.summarize(store, llm, pending, System.currentTimeMillis()); });
+        BackgroundTasks.submit("summary:" + mob, () -> { if (!closed) ConversationSummary.summarize(store, llm, pending, MobClock.now()); });
     }
 
     /** After a committed reply: when enough has happened since the mob last thought this player over, one background request
      * draws conclusions ({@link Reflection}); the counters restart as soon as it is queued. */
     private void maybeReflect(MobSnapshot delivered) {
         if (closed || delivered.playerId() == null) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         Reflection.Input input = store.reflectionDue(delivered.id(), delivered.playerId(), playerName(delivered), now);
         if (input == null) return;
         BackgroundTasks.submit("reflection:" + delivered.id(), () -> { if (!closed) Reflection.reflect(store, llm, input, now); });
@@ -340,9 +340,9 @@ public final class ConversationEngine implements AutoCloseable {
                     observed.mobDetails(), observed.environmentDetails(), observed.observedEntities(), observed.availableActions(), expectedCurrentRevision);
             Reply reply = prepared.reply;
             boolean committed = store.commit(delivered, reply.recognizedText(), reply.responseText(), prepared.memory, prepared.socialIntent,
-                    reply.action(), System.currentTimeMillis(), prepared.successfulVoice, prepared.thought, prepared.fact);
+                    reply.action(), MobClock.now(), prepared.successfulVoice, prepared.thought, prepared.fact);
             if (committed && prepared.gesture.present())
-                store.social().applyGesture(delivered.id(), delivered.playerId(), playerName(delivered), prepared.gesture, System.currentTimeMillis());
+                store.social().applyGesture(delivered.id(), delivered.playerId(), playerName(delivered), prepared.gesture, MobClock.now());
             if (committed && !reply.overheard()) maybeReflect(delivered);
             return committed;
         }

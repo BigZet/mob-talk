@@ -90,7 +90,7 @@ final class MobTrading {
         boolean changed = false;
         String type = MobGameBridge.type(mob);
         UUID mobId = mob.getUuid(), playerId = player.getUuid();
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         if (deal != null && deal.type() == DealIntent.Type.OFFER) {
             TradeDeal found = TradeCatalog.deal(type, deal.dealId());
             if (found == null) throw new IllegalStateException("У этого моба нет сделки " + deal.dealId());

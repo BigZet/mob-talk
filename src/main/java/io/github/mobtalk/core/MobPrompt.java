@@ -39,7 +39,7 @@ final class MobPrompt {
         boolean friend = profile.relationship >= FRIEND_RELATIONSHIP;
         boolean named = profile.givenName != null && !profile.givenName.isBlank();
         String desire = desire(profile, species), secret = secret(profile, species);
-        MobState.View state = profile.stateView != null ? profile.stateView : MobState.viewOf(profile, System.currentTimeMillis());
+        MobState.View state = profile.stateView != null ? profile.stateView : MobState.viewOf(profile, MobClock.now());
         String system = "Ты — " + (named ? profile.givenName + ", " : profile.name + ", ") + species.name().toLowerCase(Locale.ROOT) + " из мира Minecraft 1.21.1. "
                 + "Ты живой персонаж, а не ассистент и не рассказчик: говоришь вслух от первого лица, по-русски, и твою реплику сразу озвучат.\n\n"
                 + "Кто ты:\n" + species.prompt()
@@ -74,7 +74,7 @@ final class MobPrompt {
                 + "\n\nЭтот игрок:\nОтношение (-100..100): " + profile.relationship + " — " + attitude(profile.relationship) + "."
                 + (profile.repute != null && profile.repute.known() && profile.turns.isEmpty() ? "\n" + profile.repute.describe() : "")
                 + SocialPrompt.standing(profile)
-                + MemoryRanking.promptBlock(profile.facts, profile.memory, System.currentTimeMillis()) + ConversationSummary.promptBlock(profile.summaries)
+                + MemoryRanking.promptBlock(profile.facts, profile.memory, MobClock.now()) + ConversationSummary.promptBlock(profile.summaries)
                 + SocialPrompt.gestures(profile)
                 + "\n\n" + PromptTexts.VOICE + SpeechTags.prompt(config)
                 + "Длина: не больше " + words(state) + " слов, обычно заметно меньше."
@@ -89,7 +89,7 @@ final class MobPrompt {
         // The state after the manner: in tests a mid-prompt state was heard only in the first words, then the archetype took over.
         String voice = config.moodReplyPercent > 0 ? state.voice() : "";
         if (!voice.isEmpty()) system += "\n\n" + PromptTexts.stateVoice(voice);
-        MoodSpell past = profile.state == null ? null : profile.state.pastDarkSpell(System.currentTimeMillis());
+        MoodSpell past = profile.state == null ? null : profile.state.pastDarkSpell(MobClock.now());
         if (past != null) system += "\n\n" + PromptTexts.pastState(MoodWords.form(past.word, profile.social != null && Gender.FEMALE.name().equals(profile.social.gender)));
         if (config.commonPrompt != null && !config.commonPrompt.isBlank())
             system += "\n\nНастройка мира от игрока (важнее стиля выше): " + TextBounds.characters(config.commonPrompt, 8000);

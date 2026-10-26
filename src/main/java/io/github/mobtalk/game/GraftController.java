@@ -1,5 +1,6 @@
 package io.github.mobtalk.game;
 
+import io.github.mobtalk.core.MobClock;
 import io.github.mobtalk.core.Graft;
 import io.github.mobtalk.core.Initiative;
 import io.github.mobtalk.core.MobState;
@@ -370,7 +371,7 @@ final class GraftController {
         String key = "mobtalk.graft.smite." + smite.name().toLowerCase(Locale.ROOT);
         announce(world, zone, Text.translatable(key, name).formatted(Formatting.GOLD));
         rumor(world, zone, Text.translatable(key + ".rumor", name).getString(), 5);
-        bridge.memory.recordEvent(head.getUuid(), MobGameBridge.type(head), head.getName().getString(), Text.translatable(key + ".memory").getString(), System.currentTimeMillis());
+        bridge.memory.recordEvent(head.getUuid(), MobGameBridge.type(head), head.getName().getString(), Text.translatable(key + ".memory").getString(), MobClock.now());
     }
 
     private void toads(ServerWorld world, long now) {
@@ -443,7 +444,7 @@ final class GraftController {
         Graft.Ledger what = Graft.ledger(rank != null, honest, isHead, coming);
         if (what == Graft.Ledger.REVIZOR && !bridge.config.officialRevizor) what = Graft.Ledger.RUMOR;
         String name = bridge.officials.name(villager), playerName = MobGameBridge.playerName(player);
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         switch (what) {
             case ALREADY -> { return Text.translatable("mobtalk.graft.ledger.already", name).getString(); }
             case REVIZOR -> {
@@ -539,7 +540,7 @@ final class GraftController {
     /** The verdict: the head of a corrupt village is removed (the dacha confiscated), an honest one is thanked. */
     void judge(ServerWorld world, VillageDefenseController.Zone zone, VillagerEntity revizor) {
         VillagerEntity head = bridge.officials.officials(world, zone).getOrDefault(Officialdom.Rank.HEAD, List.of()).stream().findFirst().orElse(null);
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         if (head == null) { announce(world, zone, Text.translatable("mobtalk.graft.revizor.nobody")); return; }
         String name = bridge.officials.name(head);
         if (Officialdom.honest(head.getUuid(), bridge.config.officialHonestPercent)) {
@@ -574,7 +575,7 @@ final class GraftController {
         if (zone.villageId().isBlank() || text.isBlank()) return;
         VillagerEntity teller = world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !v.isBaby() && OfficialContent.rank(v) == null).stream().findFirst().orElse(null);
         String source = teller == null ? "" : bridge.officials.name(teller);
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         bridge.memory.addRumors(zone.villageId(), List.of(new VillageRumors.View("", text, source, importance, -1, now, 1, "")), now);
     }
     private void announce(ServerWorld world, VillageDefenseController.Zone zone, Text text) {

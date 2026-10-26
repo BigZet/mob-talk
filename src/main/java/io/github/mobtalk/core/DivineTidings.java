@@ -72,7 +72,7 @@ public final class DivineTidings {
         if (id.isBlank() || kind == null) throw new IllegalArgumentException("Событие бога без id или с неизвестным kind");
         JsonObject altar = o.has("altar") && o.get("altar").isJsonObject() ? o.getAsJsonObject("altar") : null;
         String scope = string(o, "scope");
-        return new Deed(id, number(o, "t", System.currentTimeMillis()), kind, string(o, "deed"), string(o, "deedTitle"),
+        return new Deed(id, number(o, "t", MobClock.now()), kind, string(o, "deed"), string(o, "deedTitle"),
                 (int) number(o, "group", 0), (int) number(o, "power", 0), "world".equals(scope),
                 soul(o, "culprit"), soul(o, "beneficiary"), bool(o, "named"), !o.has("prompted") || bool(o, "prompted"),
                 string(o, "dim"), (int) number(o, "x", 0), (int) number(o, "y", 64), (int) number(o, "z", 0), (int) number(o, "radius", 0),

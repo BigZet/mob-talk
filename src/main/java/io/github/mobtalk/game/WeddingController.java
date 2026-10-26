@@ -145,7 +145,7 @@ public final class WeddingController {
         Vec3d anchor = quiet ? spouse.getPos().subtract(forward.multiply(Wedding.COUPLE_FORWARD)) : venue.plaza();
         if (!quiet) forward = fit(world, anchor, forward, venue.walkable());
         double range = quiet ? 16 : bridge.config.weddingRange;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         List<VillagerEntity> around = villagers(world, anchor, range);
         if (!around.contains(spouse)) around.add(spouse);
         List<WeddingLedger.Resident> residents = around.stream().map(v -> new WeddingLedger.Resident(v.getUuid(), name(v), profession(v), !v.isBaby())).toList();
@@ -184,7 +184,7 @@ public final class WeddingController {
         Vec3d anchor = venue.plaza();
         Vec3d forward = flat(near.getPos().subtract(anchor));
         forward = fit(world, anchor, forward.lengthSquared() < 0.25 ? new Vec3d(0, 0, 1) : forward.normalize(), venue.walkable());
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         List<VillagerEntity> around = villagers(world, anchor, bridge.config.weddingRange);
         for (VillagerEntity v : List.of(a, b)) if (!around.contains(v)) around.add(v);
         List<WeddingLedger.Resident> residents = around.stream().map(v -> new WeddingLedger.Resident(v.getUuid(), name(v), profession(v), !v.isBaby())).toList();
@@ -240,7 +240,7 @@ public final class WeddingController {
         Scene s = scene;
         if (s == null) { if (world.getTime() % CLEAN_PERIOD == 113) clean(world); return; }
         if (s.world != world) return;
-        long t = world.getTime(), now = System.currentTimeMillis();
+        long t = world.getTime(), now = MobClock.now();
         for (Iterator<Long> it = s.bells.iterator(); it.hasNext(); ) {
             long at = it.next();
             if (t >= at) { it.remove(); world.playSound(null, BlockPos.ofFloored(s.anchor), SoundEvents.BLOCK_BELL_USE, SoundCategory.BLOCKS, 2.0f, 1.0f); }
@@ -431,7 +431,7 @@ public final class WeddingController {
         if (scene != s) return;
         scene = null;
         Wedding.Ceremony c = s.ceremony;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         boolean married = c.married();
         if (why != null && !married) {
             c.cancel();
