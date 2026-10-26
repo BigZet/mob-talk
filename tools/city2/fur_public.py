@@ -29,6 +29,10 @@ def textures():
     mat("lamp_body", P.enamel(32, 32, rgb("e4e4dc"), "lampb"))
     mat("formica", P.enamel(32, 32, rgb("d8d0b8"), "formica", chips=2))
     mat("tube_steel", P.metal(32, 32, rgb("8a9096"), vertical=False))
+    for _c in ("red", "yellow", "green", "blue"):
+        mat(f"kidbl_{_c}", P.fabric(32, 32, shade(KID_COLOURS[_c], 0.85), f"kbe{_c}", weave=1))
+    mat("kid_top", P.enamel(32, 32, rgb("f0d060"), "kidtop", chips=1))
+    mat("kid_locker", P.enamel(32, 32, rgb("e8dcb8"), "kidlock", chips=2))
 
 
 def net_tex():
@@ -277,6 +281,150 @@ def gym_bench():
     return m
 
 
+# ---------------------------------------------------------------- the kindergarten
+
+KID_COLOURS = {"red": rgb("c8402e"), "yellow": rgb("e8b830"), "green": rgb("4a9a48"), "blue": rgb("3a74b8")}
+
+
+def kid_bed(blanket):
+    """A kindergarten bed for a child of three to seven: a low frame of light varnished wood with a solid head and foot,
+    a white sheet, a flannel blanket folded back and a pillow set up on its corner, as the nannies do it."""
+    def spread(cv, W, H):
+        base = KID_COLOURS[blanket]
+        cv.paste(P.fabric(cv.w, cv.h, base, f"kb{blanket}", weave=2), 0, 0)
+        t = ramp(base, 5, 0.75, 1.3)
+        for y in range(0, cv.h, 6):                # the flannel's checks
+            cv.hline(0, cv.w, y, t[4])
+        for x in range(0, cv.w, 6):
+            cv.vline(x, 0, cv.h, t[4])
+
+    m = Model()
+    for z0, h in ((1, 11), (14.5, 8)):             # the head (at the wall side) and the foot, solid boards
+        m.box((1, 0, z0), (15, h, z0 + 1.5), "lightwood")
+    for x in (1, 14):                              # the side rails
+        m.box((x, 2, 2.5), (x + 1, 4, 14.5), "lightwood_v", down=None)
+    m.box((2, 3, 2.5), (14, 5.5, 14.5), "linen", down=None)                  # the mattress in its sheet
+    m.box((1.75, 5.5, 7), (14.25, 6.5, 14.25), f"kidbl_{blanket}", down=None, up=Pic(f"kidbl_{blanket}_top", spread))
+    m.box((1.75, 2.5, 7), (2.25, 5.5, 14.25), f"kidbl_{blanket}", up=None, down=None, east=None)
+    m.box((13.75, 2.5, 7), (14.25, 5.5, 14.25), f"kidbl_{blanket}", up=None, down=None, west=None)
+    m.box((4, 5.5, 3), (12, 9.5, 4.5), "pillow", down=None)                  # the pillow on its edge, a «sail»
+    return m
+
+
+def kid_table():
+    """The low group table for four (a child's height, 50 cm): a top of yellow plastic laminate on beech legs, paper and
+    crayons on it."""
+    m = Model()
+    m.box((0.5, 8, 1.5), (31.5, 9, 14.5), "kid_top")
+    m.box((0.5, 7, 1.5), (31.5, 8, 14.5), "lightwood", up=None)
+    for x in (1.5, 29):
+        for z in (2.5, 12):
+            m.box((x, 0, z), (x + 1.5, 7, z + 1.5), "lightwood_v", up=None)
+    m.box((5, 9, 4), (11, 9.5, 12), "paper")                              # an album sheet and the crayons
+    for i, c in enumerate(("red_paint", "blue_paint", "green_paint", "yellow_paint")):
+        m.box((13 + i * 1.25, 9, 6), (14 + i * 1.25, 9.75, 11), c)
+    m.box((21, 9, 5), (27, 9.5, 13), "paper")
+    m.box((22, 9.5, 7), (25, 10, 10), "blue_paint")  # a drawing begun on it
+    return m
+
+
+def kid_chair(colour):
+    """A child's chair: a beech frame, the seat and the bent back painted bright."""
+    def build():
+        m = Model()
+        paint = f"{colour}_paint"
+        for x in (3, 12):
+            for z in (3, 12):
+                m.box((x, 0, z), (x + 1, 5, z + 1), "lightwood_v", up=None)
+        m.box((2.5, 5, 2.5), (13.5, 6, 13.5), paint)
+        for x in (3, 12):
+            m.box((x, 6, 12.5), (x + 1, 12.5, 13.5), "lightwood_v", up=None)
+        m.box((2.5, 9, 12.75), (13.5, 13, 13.75), paint)
+        return m
+    return build
+
+
+def kid_lockers():
+    """The changing room's lockers: three narrow cabinets of painted plywood per block, a bench under them, each door with
+    its child's picture (a mushroom, a cherry, a car, a sun, a fir tree, a boat) so that the little ones know their own."""
+    pictures = ("mushroom", "cherry", "car", "sun", "fir", "boat")
+
+    def door(name):
+        def paint(cv, W, H):
+            body = rgb("e8dcb8")
+            t = ramp(body, 5, 0.7, 1.15)
+            cv.rect(0, 0, cv.w, cv.h, t[3])
+            cv.bevel(0, 0, cv.w, cv.h, t[4], t[1])
+            cx, cy = cv.w // 2, cv.h // 4
+            red, green, yellow, blue, brown, white = (rgb("c83a2a"), rgb("3a8a3a"), rgb("e8b830"), rgb("3a6ab8"),
+                                                      rgb("7a4a2a"), rgb("f4f0e0"))
+            if name == "mushroom":
+                cv.rect(cx - 1, cy, cx + 1, cy + 4, white)
+                cv.rect(cx - 4, cy - 2, cx + 4, cy, red)
+                cv.set(cx - 2, cy - 1, white); cv.set(cx + 2, cy - 2, white)
+            elif name == "cherry":
+                cv.disc(cx - 2, cy + 2, 1.6, red); cv.disc(cx + 2, cy + 2, 1.6, red)
+                cv.vline(cx - 1, cy - 2, cy + 1, green); cv.vline(cx + 1, cy - 2, cy + 1, green); cv.hline(cx - 1, cx + 2, cy - 2, green)
+            elif name == "car":
+                cv.rect(cx - 4, cy, cx + 4, cy + 2, blue); cv.rect(cx - 2, cy - 2, cx + 2, cy, blue)
+                cv.set(cx - 3, cy + 2, rgb("202020")); cv.set(cx + 2, cy + 2, rgb("202020"))
+            elif name == "sun":
+                cv.disc(cx, cy + 1, 2.2, yellow)
+                for dx, dy in ((0, -4), (0, 4), (-4, 0), (4, 0), (-3, -3), (3, -3), (-3, 3), (3, 3)):
+                    cv.set(cx + dx, cy + 1 + dy, yellow)
+            elif name == "fir":
+                for k in range(5):
+                    cv.hline(cx - k, cx + k + 1, cy - 2 + k, green)
+                cv.rect(cx, cy + 3, cx + 1, cy + 5, brown)
+            else:
+                cv.rect(cx - 4, cy + 2, cx + 4, cy + 4, brown); cv.vline(cx, cy - 3, cy + 2, brown)
+                for k in range(4):
+                    cv.hline(cx + 1, cx + 1 + k, cy - 3 + k, white)
+            cv.rect(cv.w - 3, cv.h // 2, cv.w - 2, cv.h // 2 + 2, rgb("8a8a86"))   # the knob
+        return paint
+
+    m = Model()
+    m.box((0, 0, 3), (32, 3, 16), "lightwood")                               # the shoe bench along the bottom
+    m.box((0.5, 3, 7), (31.5, 4.5, 16), "lightwood")
+    m.box((0, 4.5, 7.5), (32, 28, 16), "kid_locker", north=None, down=None)
+    for k, name in enumerate(pictures):
+        x0 = k * 32 / 6
+        m.box((x0 + 0.25, 5, 7), (x0 + 32 / 6 - 0.25, 27.5, 7.5), "kid_locker", north=Pic(f"kidlock_{name}", door(name)),
+              up=None, down=None)
+    return m
+
+
+def toy_shelf():
+    """An open shelf of toys in the play room: a doll, a tumbler, wooden blocks, a ring pyramid, a truck, a ball."""
+    m = Model()
+    for x in (0, 30.5):
+        m.box((x, 0, 6), (x + 1.5, 20, 16), "lightwood_v")
+    for y in (0, 6.5, 13, 19):
+        m.box((1.5, y, 6.5), (30.5, y + 1, 16), "lightwood")
+    m.box((1.5, 1, 15.5), (30.5, 19, 16), "lightwood_v", faces=("north",))
+    # the bottom shelf: a truck and the blocks
+    m.box((3, 1, 9), (11, 3.5, 13), "blue_paint", down=None)
+    m.box((8, 3.5, 9), (11, 5.5, 13), "red_paint", down=None)
+    for x in (3.5, 6.5):
+        m.box((x, 1, 8.5), (x + 1.5, 2.5, 9), "rubber_black")
+    for i, c in enumerate(("red_paint", "yellow_paint", "green_paint", "blue_paint", "yellow_paint")):
+        m.box((15 + (i % 3) * 3.5, 1 + (i // 3) * 3, 9 + (i % 2)), (18 + (i % 3) * 3.5, 4 + (i // 3) * 3, 12 + (i % 2)), c)
+    m.box((25, 1, 9), (30, 6, 14), "ball", down=None)
+    # the middle shelf: the ring pyramid, a tumbler, a bear
+    for i, (c, w) in enumerate((("red_paint", 4), ("yellow_paint", 3.5), ("green_paint", 3), ("blue_paint", 2.5))):
+        x0 = 5 - w / 2
+        m.box((x0, 7.5 + i * 1.25, 11 - w / 2), (x0 + w, 8.75 + i * 1.25, 11 + w / 2), c, down=None)
+    m.box((14, 7.5, 9), (18, 11, 13), "red_paint", down=None)
+    m.box((14.75, 11, 9.75), (17.25, 13, 12.25), "plastic_white", down=None)
+    m.box((22, 7.5, 9), (27, 11.5, 14), "bear", down=None)
+    m.box((23, 11.5, 10), (26, 13, 13), "bear", down=None)
+    # the top shelf: a doll in a pink dress and a pile of picture books
+    m.box((5, 14, 10), (9, 17, 13), "laundry_pink", down=None)
+    m.box((5.75, 17, 10.75), (8.25, 19, 12.25), "plastic_beige", down=None)
+    m.box((14, 14, 8), (24, 16.5, 14), "books_stack", down=None)
+    return m
+
+
 def make():
     textures()
     Furn("pub_school_desk", "Школьная парта", "School desk", lambda: school_desk(), seat=7, color="GREEN")
@@ -294,3 +442,10 @@ def make():
          solid=False, cutout=True)
     Furn("pub_gym_mat", "Гимнастический мат", "Gym mat", lambda: gym_mat(), color="BLUE", sound="WOOL")
     Furn("pub_gym_bench", "Гимнастическая скамейка", "Gym bench", lambda: gym_bench(), seat=7.5, color="OAK_TAN")
+    for c, en in (("blue", "blue"), ("red", "red"), ("green", "green"), ("yellow", "yellow")):
+        Furn(f"pub_kid_bed_{c}", "Кроватка в детском саду", "Kindergarten bed", (lambda c=c: kid_bed(c)), color=c.upper(), sound="WOOL")
+    Furn("pub_kid_table", "Детский столик", "Child's table", lambda: kid_table(), color="YELLOW")
+    for c in ("red", "yellow", "green", "blue"):
+        Furn(f"pub_kid_chair_{c}", "Детский стульчик", "Child's chair", kid_chair(c), seat=6, color=c.upper())
+    Furn("pub_kid_lockers", "Шкафчики в раздевалке", "Changing room lockers", lambda: kid_lockers(), seat=4.5, color="WHITE_GRAY")
+    Furn("pub_toy_shelf", "Стеллаж с игрушками", "Toy shelf", lambda: toy_shelf(), color="OAK_TAN")

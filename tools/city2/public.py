@@ -151,6 +151,71 @@ def school(colour="silicate", seed=0):
     return t, flats
 
 
+# ---------------------------------------------------------------- the kindergarten
+# A typical Soviet kindergarten (детский сад) of two floors for four groups, 44 x 22: a corridor along the middle, each
+# group's sleeping room on the north (the beds, the toilet and the changing room with the children's lockers by it) and
+# its play room on the south in the sun; the staircase, the vestibule with the front door and, behind the corridor, the
+# kitchen and the nurse's room in the middle of the ground floor, the methodist's office and the music hall over them.
+_KG_WEST = [            # the west group (x 0..15); the east one is its mirror (_kg below)
+    "##WW##WW###WW###",   # 0  north: the sleeping room, the toilet
+    "#nnnnnnnnn#gggg#",
+    "#nnnnnnnnn#gggg#",
+    "#nnnnnnnnn#gggg#",
+    "Wnnnnnnnnn##D###",   # 4  the toilet off the changing room
+    "Wnnnnnnnnn#rrrr#",   # 5  the changing room with the lockers
+    "#nnnnnnnnn#rrrr#",
+    "#nnnnnnnnn#rrrr#",
+    "#nnnnnnnnn#rrrr#",
+    "######D#####D###",   # 9  doors to the corridor
+    "#ccccccccccccccc",   # 10 the corridor along the whole building
+    "Wccccccccccccccc",
+    "#ccccccccccccccc",
+    "#######D########",   # 13 the play room's door
+    "#yyyyyyyyyyyyyy#",   # 14 the play room, windows south and west
+    "#yyyyyyyyyyyyyy#",
+    "Wyyyyyyyyyyyyyy#",
+    "Wyyyyyyyyyyyyyy#",
+    "#yyyyyyyyyyyyyy#",
+    "#yyyyyyyyyyyyyy#",
+    "#yyyyyyyyyyyyyy#",
+    "##WWW##WWW##WW##",   # 21 south
+]
+_KG_MID = {             # the middle (x 16..27): the staircase, the vestibule or the office, the kitchen or the music hall
+    1: ["SSSSS###XX##"] + ["sssss#vvvvvv"] * 8 + ["#D######DD##"] + ["cccccccccccc"] * 3 + ["##D######D##"] +
+       ["qqqqqq#hhhhh"] * 7 + ["#WW#WW##WW##"],
+    2: ["SSSSS###WW##"] + ["sssss#dddddd"] * 8 + ["#D######D###"] + ["cccccccccccc"] * 3 + ["#####D######"] +
+       ["aaaaaaaaaaaa"] * 7 + ["#WWW#WW#WWW#"],
+}
+
+
+def _kg(k):
+    east = str.maketrans("ngry", "NGRY")
+    return [w + m + w[::-1].translate(east) for w, m in zip(_KG_WEST, _KG_MID[k])]
+
+
+_KG_ROOMS = {"n": ("S", "kid_sleep"), "N": ("S", "kid_sleep"), "g": ("S", "kid_wc"), "G": ("S", "kid_wc"),
+             "r": ("S", "kid_lockers"), "R": ("S", "kid_lockers"), "y": ("S", "kid_play"), "Y": ("S", "kid_play"),
+             "c": ("S", "kg_corridor"), "v": ("S", "kg_vestibule"), "d": ("S", "office"), "q": ("S", "kitchen_pub"),
+             "h": ("S", "medical"), "a": ("S", "music")}
+for _k, (_fin, _floor) in {"kid_sleep": ("paper_blue", "floor_lino_beige"), "kid_play": ("paper_green", "floor_parquet"),
+                           "kid_lockers": ("paint_stair", "floor_lino_brown"), "kid_wc": ("tile_bath", "floor_tile"),
+                           "kg_corridor": ("paint_stair", "floor_lino_brown"), "kg_vestibule": ("paint_stair", "floor_terrazzo"),
+                           "music": ("paper_stripe", "floor_parquet")}.items():
+    H.FINISH[_k], H.FLOOR[_k] = _fin, _floor
+    H.LAMPS[_k] = ["apt_ceiling_plate"] if _k in ("kid_sleep", "kid_play") else ["pub_tube_lamp"]
+S.SERIES["kindergarten"] = {
+    "plan": _kg(2), "floor_plans": {1: _kg(1)}, "rooms": _KG_ROOMS, "whole": True, "stair": (16, 1), "chute": False,
+    "curtains": {"kid_sleep": "apt_curtain_gold", "kid_play": "apt_curtain_olive", "music": "apt_curtain_gold"},
+    "frame": "wood", "public": True, "floors": 2,
+}
+
+
+def kindergarten(colour="white", seed=0):
+    h = H.House("kindergarten", 1, 2, colour, seed=seed + 5)
+    h.build()
+    return compose.compose([compose.Part(h, 0, 0, 0)])
+
+
 # ---------------------------------------------------------------- furnishing (rooms.py calls these by the room's kind)
 
 def _box(rm):
@@ -313,6 +378,73 @@ def changing(rm, flat):
         rm.against("apt_coat_rack")
 
 
+# ---------------------------------------------------------------- the kindergarten's rooms
+
+def kid_sleep(rm, flat):
+    """Rows of small beds with a gangway between them, all made up alike in one group's colour."""
+    x0, z0, x1, z1 = _box(rm)
+    pid = "pub_kid_bed_" + rm.r.choice(["blue", "red", "green", "yellow"])
+    for x in range(x0 + 1, x1, 2):
+        for z in range(z0 + 1, z1 + 1, 3):
+            if rm.fits(pid, x, rm.s + 1, z, "south", backed=False):
+                rm.write(pid, x, rm.s + 1, z, "south")
+    rm.against("apt_picture_bears", height=1)
+
+
+def kid_play(rm, flat):
+    """The group's tables with the little chairs, the toy shelves and the toy box by the walls, a rocking horse, a rug."""
+    for _ in range(4):
+        if not rm.table("pub_kid_table", "pub_kid_chair_" + rm.r.choice(["red", "yellow", "green", "blue"]), chairs=4):
+            break
+    for pid in ("pub_toy_shelf", "pub_toy_shelf", "apt_toy_box", "apt_rocking_horse", "apt_piano", "apt_aloe"):
+        rm.against(pid)
+    rm.against("apt_picture_bears", height=1)
+    rm.rug("apt_rug")
+
+
+def kid_lockers(rm, flat):
+    for _ in range(4):
+        if not rm.against("pub_kid_lockers"):
+            break
+    rm.against("apt_notice_board", height=1)
+
+
+def kid_wc(rm, flat):
+    for _ in range(3):
+        rm.against("apt_toilet")
+    for _ in range(2):
+        rm.against("apt_washbasin")
+    rm.against("apt_towel_rail", height=1)
+
+
+def kg_corridor(rm, flat):
+    for _ in range(3):
+        rm.against(rm.r.choice(["apt_ficus", "apt_palm_tub", "apt_aloe"]))
+    for _ in range(3):
+        rm.against("apt_picture_bears", height=1)
+    _lamps(rm, 6)
+
+
+def kg_vestibule(rm, flat):
+    rm.against("apt_notice_board", height=1)
+    for _ in range(2):
+        rm.against("pub_gym_bench")
+    rm.against("apt_palm_tub")
+    _lamps(rm)
+
+
+def music(rm, flat):
+    """The music hall: the piano, little chairs along the walls, the floor free for the dances."""
+    rm.against("apt_piano")
+    rm.against("apt_piano_stool")
+    for _ in range(14):
+        if not rm.against("pub_kid_chair_" + rm.r.choice(["red", "yellow", "green", "blue"])):
+            break
+    _lamps(rm)
+
+
 FURNISH = {"classroom": classroom, "corridor": corridor, "vestibule": vestibule, "cloakroom": cloakroom, "wc_pub": wc_pub,
            "staff": staff, "library": library, "office": office, "medical": medical, "store": store, "canteen": canteen,
-           "kitchen_pub": kitchen_pub, "assembly": assembly, "gym": gym, "changing": changing}
+           "kitchen_pub": kitchen_pub, "assembly": assembly, "gym": gym, "changing": changing, "kid_sleep": kid_sleep,
+           "kid_play": kid_play, "kid_lockers": kid_lockers, "kid_wc": kid_wc, "kg_corridor": kg_corridor,
+           "kg_vestibule": kg_vestibule, "music": music}

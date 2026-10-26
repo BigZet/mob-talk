@@ -1,0 +1,604 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "lightwood_v": "mobtalk:block/city2/furniture/lightwood_v",
+    "yellow_paint": "mobtalk:block/city2/furniture/yellow_paint",
+    "particle": "mobtalk:block/city2/furniture/lightwood_v"
+  },
+  "elements": [
+    {
+      "from": [
+        3.0,
+        0.0,
+        3.0
+      ],
+      "to": [
+        4.0,
+        5.0,
+        4.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#lightwood_v",
+          "uv": [
+            12.0,
+            11.0,
+            13.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#lightwood_v",
+          "uv": [
+            3.0,
+            11.0,
+            4.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#lightwood_v",
+          "uv": [
+            12.0,
+            11.0,
+            13.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#lightwood_v",
+          "uv": [
+            3.0,
+            11.0,
+            4.0,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#lightwood_v",
+          "uv": [
+            3.0,
+            12.0,
+            4.0,
+            13.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.0,
+        0.0,
+        12.0
+      ],
+      "to": [
+        4.0,
+        5.0,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#lightwood_v",
+          "uv": [
+            12.0,
+            11.0,
+            13.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#lightwood_v",
+          "uv": [
+            3.0,
+            11.0,
+            4.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#lightwood_v",
+          "uv": [
+            3.0,
+            11.0,
+            4.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#lightwood_v",
+          "uv": [
+            12.0,
+            11.0,
+            13.0,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#lightwood_v",
+          "uv": [
+            3.0,
+            3.0,
+            4.0,
+            4.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        12.0,
+        0.0,
+        3.0
+      ],
+      "to": [
+        13.0,
+        5.0,
+        4.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#lightwood_v",
+          "uv": [
+            3.0,
+            11.0,
+            4.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#lightwood_v",
+          "uv": [
+            12.0,
+            11.0,
+            13.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#lightwood_v",
+          "uv": [
+            12.0,
+            11.0,
+            13.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#lightwood_v",
+          "uv": [
+            3.0,
+            11.0,
+            4.0,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#lightwood_v",
+          "uv": [
+            12.0,
+            12.0,
+            13.0,
+            13.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        12.0,
+        0.0,
+        12.0
+      ],
+      "to": [
+        13.0,
+        5.0,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#lightwood_v",
+          "uv": [
+            3.0,
+            11.0,
+            4.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#lightwood_v",
+          "uv": [
+            12.0,
+            11.0,
+            13.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#lightwood_v",
+          "uv": [
+            3.0,
+            11.0,
+            4.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#lightwood_v",
+          "uv": [
+            12.0,
+            11.0,
+            13.0,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#lightwood_v",
+          "uv": [
+            12.0,
+            3.0,
+            13.0,
+            4.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.5,
+        5.0,
+        2.5
+      ],
+      "to": [
+        13.5,
+        6.0,
+        13.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#yellow_paint",
+          "uv": [
+            2.5,
+            10.0,
+            13.5,
+            11.0
+          ]
+        },
+        "south": {
+          "texture": "#yellow_paint",
+          "uv": [
+            2.5,
+            10.0,
+            13.5,
+            11.0
+          ]
+        },
+        "east": {
+          "texture": "#yellow_paint",
+          "uv": [
+            2.5,
+            10.0,
+            13.5,
+            11.0
+          ]
+        },
+        "west": {
+          "texture": "#yellow_paint",
+          "uv": [
+            2.5,
+            10.0,
+            13.5,
+            11.0
+          ]
+        },
+        "up": {
+          "texture": "#yellow_paint",
+          "uv": [
+            2.5,
+            2.5,
+            13.5,
+            13.5
+          ]
+        },
+        "down": {
+          "texture": "#yellow_paint",
+          "uv": [
+            2.5,
+            2.5,
+            13.5,
+            13.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.0,
+        6.0,
+        12.5
+      ],
+      "to": [
+        4.0,
+        12.5,
+        13.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#lightwood_v",
+          "uv": [
+            12.0,
+            3.5,
+            13.0,
+            10.0
+          ]
+        },
+        "south": {
+          "texture": "#lightwood_v",
+          "uv": [
+            3.0,
+            3.5,
+            4.0,
+            10.0
+          ]
+        },
+        "east": {
+          "texture": "#lightwood_v",
+          "uv": [
+            2.5,
+            3.5,
+            3.5,
+            10.0
+          ]
+        },
+        "west": {
+          "texture": "#lightwood_v",
+          "uv": [
+            12.5,
+            3.5,
+            13.5,
+            10.0
+          ]
+        },
+        "down": {
+          "texture": "#lightwood_v",
+          "uv": [
+            3.0,
+            2.5,
+            4.0,
+            3.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        12.0,
+        6.0,
+        12.5
+      ],
+      "to": [
+        13.0,
+        12.5,
+        13.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#lightwood_v",
+          "uv": [
+            3.0,
+            3.5,
+            4.0,
+            10.0
+          ]
+        },
+        "south": {
+          "texture": "#lightwood_v",
+          "uv": [
+            12.0,
+            3.5,
+            13.0,
+            10.0
+          ]
+        },
+        "east": {
+          "texture": "#lightwood_v",
+          "uv": [
+            2.5,
+            3.5,
+            3.5,
+            10.0
+          ]
+        },
+        "west": {
+          "texture": "#lightwood_v",
+          "uv": [
+            12.5,
+            3.5,
+            13.5,
+            10.0
+          ]
+        },
+        "down": {
+          "texture": "#lightwood_v",
+          "uv": [
+            12.0,
+            2.5,
+            13.0,
+            3.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.5,
+        9.0,
+        12.75
+      ],
+      "to": [
+        13.5,
+        13.0,
+        13.75
+      ],
+      "faces": {
+        "north": {
+          "texture": "#yellow_paint",
+          "uv": [
+            2.5,
+            3.0,
+            13.5,
+            7.0
+          ]
+        },
+        "south": {
+          "texture": "#yellow_paint",
+          "uv": [
+            2.5,
+            3.0,
+            13.5,
+            7.0
+          ]
+        },
+        "east": {
+          "texture": "#yellow_paint",
+          "uv": [
+            2.25,
+            3.0,
+            3.25,
+            7.0
+          ]
+        },
+        "west": {
+          "texture": "#yellow_paint",
+          "uv": [
+            12.75,
+            3.0,
+            13.75,
+            7.0
+          ]
+        },
+        "up": {
+          "texture": "#yellow_paint",
+          "uv": [
+            2.5,
+            12.75,
+            13.5,
+            13.75
+          ]
+        },
+        "down": {
+          "texture": "#yellow_paint",
+          "uv": [
+            2.5,
+            2.25,
+            13.5,
+            3.25
+          ]
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.625,
+        0.625,
+        0.625
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        2.5,
+        0
+      ],
+      "scale": [
+        0.375,
+        0.375,
+        0.375
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    }
+  }
+}

@@ -595,11 +595,17 @@ class House:
                 self.at(x, 1, z, "wall_lo", {d: "paint_stair" for d in DIRS})
                 if at_half(1, j + 1)[0] >= 3:
                     self.at(x, 2, z, "wall_mid", {d: "paint_stair" for d in DIRS})
+        self.on_floor(1)                # the ground floor's own plan (a public building's vestibule by the stair)
         for (x, z), c in list(self.grid.items()):   # the vestibule's walls are a row lower than the flats': paint them down
             if x0 <= x <= x0 + self.sw and self.wallish(c) and not self.is_facade(x, z) and z < sz + 6 and \
                     any(self.ch(x + dx, z + dz) == "s" for dx, dz in DIRS.values()):
-                for y, row in ((1, "lo"), (2, "mid"), (3, "mid")):
+                rows = ((1, "lo"), (2, "mid"), (3, "mid"))
+                if self.s.get("public") and any(self.room(x + dx, z + dz, 1) and self.ch(x + dx, z + dz) != "s"
+                                                for dx, dz in DIRS.values()):
+                    rows = rows[:1]     # a public building's room on the other side: its finish keeps the floor's rows
+                for y, row in rows:
                     self.at(x, y, z, f"wall_{row}", self.wall_sides(x, z, 1))
+        self.on_floor(None)
         for x in cols:                  # facade A at the vestibule: painted inside down to the ground
             if x not in (M, B0):
                 self.at(x, 1, 0, f"facade_{col}_lo", {"facing": N, "inner": "paint_stair"})
@@ -778,6 +784,12 @@ class House:
                 ix, iz = bx + DIRS[d][0], bz + DIRS[d][1]
                 if self.ch(ix, iz) in self.s["rooms"]:
                     side, sec = self.flat_side(ix, iz)
+                    only = self.s.get("curtains")
+                    if isinstance(only, dict):      # a public building: curtains of its own in some rooms only
+                        kind = self.s["rooms"][self.ch(ix, iz)][1]
+                        if kind in only:
+                            hung[(ix, iz)] = (only[kind], d)
+                        continue
                     hung[(ix, iz)] = (self.palette(sec, k, side)["curtain"], d)
             for (ix, iz), (name, d) in hung.items():
                 def same(x, z):

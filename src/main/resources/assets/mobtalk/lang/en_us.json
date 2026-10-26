@@ -1491,5 +1491,19 @@
   "block.mobtalk.pub_gym_bench": "Gym bench",
   "block.mobtalk.pub_gym_bench_part": "Gym bench",
   "block.mobtalk.pub_poster_table_part": "Periodic table poster",
-  "block.mobtalk.pub_poster_abc_part": "Alphabet poster"
+  "block.mobtalk.pub_poster_abc_part": "Alphabet poster",
+  "block.mobtalk.pub_kid_bed_blue": "Kindergarten bed",
+  "block.mobtalk.pub_kid_bed_red": "Kindergarten bed",
+  "block.mobtalk.pub_kid_bed_green": "Kindergarten bed",
+  "block.mobtalk.pub_kid_bed_yellow": "Kindergarten bed",
+  "block.mobtalk.pub_kid_table": "Child's table",
+  "block.mobtalk.pub_kid_table_part": "Child's table",
+  "block.mobtalk.pub_kid_chair_red": "Child's chair",
+  "block.mobtalk.pub_kid_chair_yellow": "Child's chair",
+  "block.mobtalk.pub_kid_chair_green": "Child's chair",
+  "block.mobtalk.pub_kid_chair_blue": "Child's chair",
+  "block.mobtalk.pub_kid_lockers": "Changing room lockers",
+  "block.mobtalk.pub_kid_lockers_part": "Changing room lockers",
+  "block.mobtalk.pub_toy_shelf": "Toy shelf",
+  "block.mobtalk.pub_toy_shelf_part": "Toy shelf"
 }

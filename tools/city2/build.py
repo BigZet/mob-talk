@@ -52,6 +52,9 @@ def build_houses(maps=None):
         t, _ = public.school(colour)
         t.save(os.path.join(out, f"school_s1_f3_{colour}.nbt"))
         print(f"school {colour}: {t.size}")
+        t, _ = public.kindergarten(colour)
+        t.save(os.path.join(out, f"kindergarten_s1_f2_{colour}.nbt"))
+        print(f"kindergarten {colour}: {t.size}")
 
 
 def main():
