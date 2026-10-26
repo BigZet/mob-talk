@@ -129,6 +129,8 @@ public final class MobTalkConfig {
     /** Lifts of the tall panel houses: speed in tenths of a block (metre) a second, how long the doors stay open with nobody in the
      * doorway, and the chance a minute (percent) that a villager by the lift's doors calls it and rides. */
     public int liftSpeedTenths = 15, liftDoorSeconds = 5, liftVillagerChance = 25;
+    /** Parked cars of the cities (docs/cars.md): the share of parking spots in yards and streets that hold a car, percent. */
+    public int cityCarsPercent = 60;
     /** Ranks of the village's guard beside the plain guard: heavy warriors in diamond with an axe, horsemen in leather on a horse. */
     public boolean villageHeavy = true, villageCavalry = true;
     /** Idea Б1: the villages know the god's deeds (the divine block's events) — they panic, talk and blame the sinner by name;

@@ -1,0 +1,16 @@
+{
+ "variants": {
+  "facing=north": {
+   "model": "mobtalk:block/parking_spot"
+  },
+  "facing=south": {
+   "model": "mobtalk:block/parking_spot"
+  },
+  "facing=east": {
+   "model": "mobtalk:block/parking_spot"
+  },
+  "facing=west": {
+   "model": "mobtalk:block/parking_spot"
+  }
+ }
+}

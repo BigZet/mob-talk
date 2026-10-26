@@ -144,6 +144,7 @@ public final class MobTalkClient implements ClientModInitializer {
         ChildView.register();
         io.github.mobtalk.client.game.CityBuildClient.register();
         io.github.mobtalk.client.game.LiftClient.register();
+        io.github.mobtalk.client.game.CarClient.register();
         io.github.mobtalk.client.human.VillagerLooks.register();
         FurnitureClient.register();
         net.fabricmc.fabric.api.resource.ResourceManagerHelper.get(net.minecraft.resource.ResourceType.CLIENT_RESOURCES).registerReloadListener(

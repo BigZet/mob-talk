@@ -1375,6 +1375,8 @@
   "mobtalk.tune.liftDoorSeconds.tooltip": "Сколько секунд двери стоят открытыми, если в проёме никого нет.",
   "mobtalk.tune.liftVillagerChance": "Жители ездят на лифте: %s%%",
   "mobtalk.tune.liftVillagerChance.tooltip": "Шанс в минуту, что житель у дверей лифта вызовет его и поедет на свой или случайный этаж. 0 — только лестница.",
+  "mobtalk.tune.cityCarsPercent": "Машины на парковках: %s%%",
+  "mobtalk.tune.cityCarsPercent.tooltip": "Сколько парковочных мест во дворах и на улицах занято машинами. 0 — города без машин.",
   "block.mobtalk.glass_blocks": "Стеклоблоки",
   "block.mobtalk.apt_switch": "Выключатель света",
   "mobtalk.furniture.clock": "Часы показывают %s",
@@ -1388,5 +1390,15 @@
   "mobtalk.furniture.notice.4": "«Субботник в субботу. Грабли выдаёт дворник»",
   "mobtalk.furniture.notice.5": "«Продаю детскую коляску, почти новая. Кв. 12»",
   "mobtalk.furniture.notice.6": "«Поверка счётчиков. Не открывайте посторонним!»",
-  "mobtalk.furniture.notice.7": "«Кто взял санки из-под лестницы — верните!»"
+  "mobtalk.furniture.notice.7": "«Кто взял санки из-под лестницы — верните!»",
+  "entity.mobtalk.car": "Машина",
+  "block.mobtalk.parking_spot": "Парковочное место (маркер машины)",
+  "car.mobtalk.vaz2107": "ВАЗ-2107 «Жигули»",
+  "car.mobtalk.moskvich412": "«Москвич-412»",
+  "car.mobtalk.gaz24": "ГАЗ-24 «Волга»",
+  "car.mobtalk.zaz968": "ЗАЗ-968 «Запорожец»",
+  "car.mobtalk.vaz2114": "ВАЗ-2114 «Самара»",
+  "car.mobtalk.niva": "ВАЗ-2121 «Нива»",
+  "car.mobtalk.uaz452": "УАЗ-452 «буханка»",
+  "car.mobtalk.paz3205": "ПАЗ-3205"
 }

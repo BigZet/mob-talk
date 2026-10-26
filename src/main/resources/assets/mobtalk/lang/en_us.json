@@ -1375,6 +1375,8 @@
   "mobtalk.tune.liftDoorSeconds.tooltip": "How long the doors stay open when nobody is in the doorway.",
   "mobtalk.tune.liftVillagerChance": "Villagers ride lifts: %s%%",
   "mobtalk.tune.liftVillagerChance.tooltip": "Chance a minute that a villager by the lift doors calls it and rides to their own or a random floor. 0: stairs only.",
+  "mobtalk.tune.cityCarsPercent": "Parked cars: %s%%",
+  "mobtalk.tune.cityCarsPercent.tooltip": "Share of parking spots in yards and streets that hold a car. 0: no cars in the cities.",
   "block.mobtalk.glass_blocks": "Glass blocks",
   "block.mobtalk.apt_switch": "Light switch",
   "mobtalk.furniture.clock": "The clock says %s",
@@ -1388,5 +1390,15 @@
   "mobtalk.furniture.notice.4": "“Clean-up day on Saturday. The janitor hands out rakes”",
   "mobtalk.furniture.notice.5": "“Pram for sale, almost new. Flat 12”",
   "mobtalk.furniture.notice.6": "“Meter checks. Don't open the door to strangers!”",
-  "mobtalk.furniture.notice.7": "“Whoever took the sled from under the stairs — bring it back!”"
+  "mobtalk.furniture.notice.7": "“Whoever took the sled from under the stairs — bring it back!”",
+  "entity.mobtalk.car": "Car",
+  "block.mobtalk.parking_spot": "Parking spot (car marker)",
+  "car.mobtalk.vaz2107": "VAZ-2107 Zhiguli",
+  "car.mobtalk.moskvich412": "Moskvich-412",
+  "car.mobtalk.gaz24": "GAZ-24 Volga",
+  "car.mobtalk.zaz968": "ZAZ-968 Zaporozhets",
+  "car.mobtalk.vaz2114": "VAZ-2114 Samara",
+  "car.mobtalk.niva": "VAZ-2121 Niva",
+  "car.mobtalk.uaz452": "UAZ-452 «Bukhanka»",
+  "car.mobtalk.paz3205": "PAZ-3205 bus"
 }

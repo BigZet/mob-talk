@@ -79,6 +79,8 @@ final class SelfTest {
     static final boolean ONLY_VOICEFIX = "voicefix".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=lift}: the lifts of the tall panel houses — call, ride, СТОП (no LLM, no voice). */
     static final boolean ONLY_LIFT = "lift".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=cars}: the city's cars — every type from six sides, doors, seats, lamps, parking (no LLM, no voice). */
+    static final boolean ONLY_CARS = "cars".equals(System.getProperty("mobtalk.selftest.only"));
     final MobTalkClient owner;
     private final String world;
     private int stage, ticks, stageStart;
@@ -171,7 +173,8 @@ final class SelfTest {
         await("villager and cow summoned", 10, () -> {
             villager = nearest(VillagerEntity.class); cow = nearest(CowEntity.class);
             return villager != null && cow != null && MobSpeechSound.find(owner.world, villager) != null && MobSpeechSound.find(owner.world, cow) != null;
-        }, ONLY_LIFT ? () -> new SelfTestLift(this, sx, SY, sz).run(this::finish)
+        }, ONLY_CARS ? () -> new SelfTestCars(this, sx, SY, sz).run(this::finish)
+                : ONLY_LIFT ? () -> new SelfTestLift(this, sx, SY, sz).run(this::finish)
                 : ONLY_VOICEFIX ? () -> new SelfTestVoiceFix(this, villager, cow, sx, SY, sz).run(this::finish)
                 : ONLY_PLACE ? () -> new SelfTestPlace(this, cow, sx, SY, sz).run(this::finish)
                 : ONLY_CTOV ? () -> new SelfTestCtov(this, cow, sx, SY, sz).run(this::finish)
