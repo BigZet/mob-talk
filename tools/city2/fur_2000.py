@@ -311,6 +311,10 @@ def kitchen_2k(kind):
             m.box((5.5, 19, 10), (6.5, 20, 14.5), "chrome")
             m.box((5.75, 18, 10), (6.25, 19, 10.5), "chrome", up=None)
             m.box((5.75, 20, 13.5), (6.25, 21.5, 14), "chrome", down=None)
+        elif kind == "plain":  # a wooden cutting board and a bread bin
+            m.box((2, 14, 9), (10, 14.5, 15), "lightwood", down=None)
+            m.box((10.5, 14, 8), (15, 18, 15), "plastic_white", down=None)
+            m.box((10.25, 17.5, 7.5), (15.25, 18.25, 15.25), "plastic_white")
         else:  # a microwave on the worktop
             m.box((2, 14, 7), (12, 20, 15), "plastic_white", down=None, north=Pic("microwave", lambda cv, W, H: (
                 cv.rect(0, 0, cv.w, cv.h, rgb("eeeeea")), cv.rect(1, 1, cv.w - 6, cv.h - 1, rgb("2a2c30")),
@@ -353,6 +357,8 @@ def make():
     Furn("apt2_fridge", "Холодильник двухкамерный (серебристый)", "Silver two-door fridge", fridge_2k(), color="IRON_GRAY",
          sound="METAL")
     Furn("apt2_kitchen_base", "Кухонная тумба с микроволновкой", "Kitchen base with a microwave", kitchen_2k("base"), color="LIME",
+         sound="WOOD")
+    Furn("apt2_kitchen_plain", "Кухонная тумба с хлебницей", "Kitchen base with a bread bin", kitchen_2k("plain"), color="LIME",
          sound="WOOD")
     Furn("apt2_kitchen_sink", "Кухонная мойка (2000-е)", "Kitchen sink (2000s)", kitchen_2k("sink"), color="LIME", sound="WOOD")
     Furn("apt2_kitchen_wall", "Навесной шкафчик (2000-е)", "Wall cupboard (2000s)", kitchen_2k("wall"), mount="WALL", color="LIME",

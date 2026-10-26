@@ -1,0 +1,41 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "tulle": "mobtalk:block/city2/furniture/tulle",
+    "particle": "mobtalk:block/city2/furniture/tulle"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.0,
+        12.5
+      ],
+      "to": [
+        16.0,
+        16.0,
+        12.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#tulle",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#tulle",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    }
+  ]
+}

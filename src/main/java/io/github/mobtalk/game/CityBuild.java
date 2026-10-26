@@ -73,6 +73,15 @@ public final class CityBuild {
         @Override public String asString() { return name().toLowerCase(java.util.Locale.ROOT); }
     }
 
+    /** A window's frames (tools/city2/blocks.py WIN_FRAMES): white PVC, old painted wood, brown PVC, anthracite PVC. */
+    public enum Frame implements StringIdentifiable {
+        PVC, WOOD, BROWN, GREY;
+
+        @Override public String asString() { return name().toLowerCase(java.util.Locale.ROOT); }
+    }
+
+    public static final EnumProperty<Frame> FRAME = EnumProperty.of("frame", Frame.class);
+
     /** A flat wall's sides: the room finishes and the green stair paint (other paints are on {@link StairWallBlock}s, so the
      *  wall's states stay at 13 to the fourth). */
     private static final java.util.Set<Finish> WALL_FINISHES = java.util.EnumSet.range(Finish.PLASTER, Finish.PAINT_STAIR);
@@ -107,6 +116,8 @@ public final class CityBuild {
         registered = true;
         if (!CityBuildBlocks.FINISHES.equals(java.util.Arrays.stream(Finish.values()).map(Finish::asString).toList()))
             throw new IllegalStateException("CityBuild.Finish is out of step with tools/city2/blocks.py");
+        if (!CityBuildBlocks.FRAMES.equals(java.util.Arrays.stream(Frame.values()).map(Frame::asString).toList()))
+            throw new IllegalStateException("CityBuild.Frame is out of step with tools/city2/blocks.py");
         List<Item> items = new ArrayList<>();
         for (String row : CityBuildBlocks.WALLS)
             add(row, new FinishWallBlock(concrete(MapColor.WHITE)), items);
@@ -274,6 +285,8 @@ public final class CityBuild {
         WindowBlock(AbstractBlock.Settings settings) { super(settings); }
 
         @Override protected MapCodec<? extends HorizontalFacingBlock> getCodec() { return createCodec(WindowBlock::new); }
+        @Override protected void appendProperties(StateManager.Builder<Block, BlockState> builder) { builder.add(FACING, INNER, FRAME); }
+
         @Override protected boolean isTransparent(BlockState state, BlockView world, BlockPos pos) { return true; }
         @Override protected float getAmbientOcclusionLightLevel(BlockState state, BlockView world, BlockPos pos) { return 1f; }
     }

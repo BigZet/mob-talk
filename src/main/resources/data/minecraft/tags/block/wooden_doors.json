@@ -11,12 +11,6 @@
   "mobtalk:door_flat_steel_brown",
   "mobtalk:door_entrance",
   "mobtalk:door_entrance_green",
-  "mobtalk:door_balcony",
-  "mobtalk:chainlink_gate_galv",
-  "mobtalk:chainlink_gate_green",
-  "mobtalk:lattice_gate_green",
-  "mobtalk:lattice_gate_blue",
-  "mobtalk:lattice_gate_yellow",
-  "mobtalk:lattice_gate_red"
+  "mobtalk:door_balcony"
  ]
 }

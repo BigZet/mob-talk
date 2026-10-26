@@ -2,8 +2,6 @@
  "parent": "minecraft:block/block",
  "textures": {
   "p": "mobtalk:block/city2/panel_beige",
-  "g": "mobtalk:block/city2/glass_hi",
-  "fr": "mobtalk:block/city2/frame_white",
   "rv": "mobtalk:block/city2/plaster_mid",
   "tin": "mobtalk:block/city2/tin",
   "sill": "mobtalk:block/city2/sill",
@@ -12,38 +10,6 @@
   "particle": "mobtalk:block/city2/panel_beige"
  },
  "elements": [
-  {
-   "from": [
-    0,
-    0,
-    7.5
-   ],
-   "to": [
-    16,
-    13,
-    8.5
-   ],
-   "faces": {
-    "north": {
-     "texture": "#g",
-     "uv": [
-      0,
-      3,
-      16,
-      16
-     ]
-    },
-    "south": {
-     "texture": "#g",
-     "uv": [
-      0,
-      3,
-      16,
-      16
-     ]
-    }
-   }
-  },
   {
    "from": [
     0,
@@ -101,77 +67,6 @@
       0,
       0,
       6,
-      3
-     ],
-     "cullface": "west"
-    }
-   }
-  },
-  {
-   "from": [
-    0,
-    13,
-    6
-   ],
-   "to": [
-    16,
-    16,
-    10
-   ],
-   "faces": {
-    "down": {
-     "texture": "#fr",
-     "uv": [
-      0,
-      6,
-      16,
-      10
-     ]
-    },
-    "north": {
-     "texture": "#fr",
-     "uv": [
-      0,
-      0,
-      16,
-      3
-     ]
-    },
-    "south": {
-     "texture": "#fr",
-     "uv": [
-      0,
-      0,
-      16,
-      3
-     ]
-    },
-    "up": {
-     "texture": "#c",
-     "uv": [
-      0,
-      6,
-      16,
-      10
-     ],
-     "cullface": "up"
-    },
-    "east": {
-     "texture": "#rv",
-     "uv": [
-      6,
-      0,
-      10,
-      3
-     ],
-     "cullface": "east"
-    },
-    "west": {
-     "texture": "#rv",
-     "uv": [
-      6,
-      0,
-      10,
       3
      ],
      "cullface": "west"

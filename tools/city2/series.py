@@ -260,7 +260,7 @@ _P44_RIGHT = [   # drawn from the house's end inwards, like a left half; turned 
     "#LLLLLL#HHHHHHHHHH",
     "#LLLLLL##D########",
     "#LLLLLL#TTTT#VVVVV", "#LLLLLL#TTTT#VVVVV",
-    "#LLLLLL#TTTT###D##",
+    "###############D##",  # 13 the wall between the front flat C and the back flat D
     "#XXXXXX#GGGGGGGGGG",
     "#XXXXXXDGGGGGGGGGG",
     "#XXXXXX##D####D###",
@@ -397,6 +397,7 @@ SERIES["ii-03"] = {
     "chute": False,
     "roof": "minecraft:waxed_oxidized_cut_copper",   # roofing iron painted green
     "cornice": True,
+    "stalin": True,               # the tall furniture, the chandeliers on rods, the plaster cornices (rooms.stalin)
     "floors": 3,
 }
 SERIES["ii-03"]["vents"] = _baths(SERIES["ii-03"]["plan"], SERIES["ii-03"]["rooms"])

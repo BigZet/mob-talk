@@ -1,0 +1,135 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_buffet_stalin_buf_upper_42": "mobtalk:block/city2/furniture/apt_buffet_stalin_buf_upper_42",
+    "oak": "mobtalk:block/city2/furniture/oak",
+    "apt_buffet_stalin_buf_crest_42": "mobtalk:block/city2/furniture/apt_buffet_stalin_buf_crest_42",
+    "apt_buffet_stalin_buf_crest_b_42": "mobtalk:block/city2/furniture/apt_buffet_stalin_buf_crest_b_42",
+    "particle": "mobtalk:block/city2/furniture/apt_buffet_stalin_buf_upper_42"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.0,
+        10.0
+      ],
+      "to": [
+        16.0,
+        9.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_buffet_stalin_buf_upper_42",
+          "uv": [
+            0.0,
+            7.0,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#oak",
+          "uv": [
+            0.0,
+            7.0,
+            16.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#oak",
+          "uv": [
+            10.0,
+            7.0,
+            16.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#oak",
+          "uv": [
+            0.0,
+            10.0,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        9.0,
+        9.0
+      ],
+      "to": [
+        16.0,
+        11.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#oak",
+          "uv": [
+            0.0,
+            5.0,
+            16.0,
+            7.0
+          ]
+        },
+        "south": {
+          "texture": "#oak",
+          "uv": [
+            0.0,
+            5.0,
+            16.0,
+            7.0
+          ]
+        },
+        "up": {
+          "texture": "#oak",
+          "uv": [
+            0.0,
+            9.0,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.0,
+        11.0,
+        12.0
+      ],
+      "to": [
+        16.0,
+        15.0,
+        12.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_buffet_stalin_buf_crest_42",
+          "uv": [
+            0.0,
+            1.0,
+            12.0,
+            5.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_buffet_stalin_buf_crest_b_42",
+          "uv": [
+            4.0,
+            1.0,
+            16.0,
+            5.0
+          ]
+        }
+      }
+    }
+  ]
+}

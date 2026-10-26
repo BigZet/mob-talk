@@ -1,7 +1,18 @@
 {
  "variants": {
-  "": {
-   "model": "mobtalk:block/city2/facade_silicate_band"
-  }
+  "": [
+   {
+    "model": "mobtalk:block/city2/facade_silicate_band",
+    "weight": 88
+   },
+   {
+    "model": "mobtalk:block/city2/facade_silicate_band_chip",
+    "weight": 6
+   },
+   {
+    "model": "mobtalk:block/city2/facade_silicate_band_fade",
+    "weight": 6
+   }
+  ]
  }
 }

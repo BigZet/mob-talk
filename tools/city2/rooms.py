@@ -305,7 +305,7 @@ def kitchen(rm, flat):
     r, st = rm.r, flat["set"]
     if flat["modern"]:   # done up in the 2000s: a glossy lime set, a tall fridge
         rm.against("apt2_kitchen_sink", name="sink", row=True)
-        for pid in (r.choice(["apt_stove", "apt_stove_kettle"]), "apt2_kitchen_base", "apt2_kitchen_base", "apt2_fridge"):
+        for pid in (r.choice(["apt_stove", "apt_stove_kettle"]), "apt2_kitchen_base", "apt2_kitchen_plain", "apt2_fridge"):
             rm.run(pid, "sink")
         for _ in range(3):
             rm.above("apt2_kitchen_wall", "apt2_kitchen_")
@@ -481,6 +481,42 @@ def doorbell(rm, flat):
             return
 
 
+def stalin(rm, flat):
+    """The stalinka's rooms under their 4-block ceilings (Dmitriy: they looked empty): the tall pieces - an oak buffet, a
+    bookcase to the ceiling, a floor clock, a palm, Shishkin hung high - the bronze chandelier on its rod in place of the
+    lamp, and last the plaster cornice round the walls wherever the top row is free."""
+    r, h = rm.r, rm.h
+    top = rm.s + h.top
+    if rm.kind == "living":
+        rm.against("apt_buffet_stalin")
+        rm.against("apt_painting_rye", height=2)
+        for pid, p in (("apt_floor_clock", 0.5), ("apt_palm_tub", 0.45)):
+            if maybe(r, p):
+                rm.against(pid)
+    elif rm.kind == "room":
+        for _ in range(r.choice((1, 2, 2))):
+            rm.against("apt_bookcase_tall")
+        if maybe(r, 0.35):
+            rm.against("apt_floor_clock")
+    elif rm.kind == "bedroom" and maybe(r, 0.25):
+        rm.against("apt_palm_tub")
+    if rm.kind in ("living", "room"):     # the chandelier: the ceiling lamp's cell, the cell under it for the ring of arms
+        for x, z in rm.cells:
+            name = h.tpl.get(h.ox + x, top, h.oz + z) or ""
+            if name.startswith("apt_") and name != "apt_molding" and h.tpl.get(h.ox + x, top - 1, h.oz + z) is None:
+                if CAT.get(name, ("", ""))[1] == "CEILING":
+                    h.tpl.cells.pop((h.ox + x, top, h.oz + z))
+                    if rm.fits("apt_chandelier_long", x, top, z, N, backed=False):
+                        rm.write("apt_chandelier_long", x, top, z, N)
+                    else:
+                        h.at(x, top, z, name, {"facing": N, "lit": "true"})
+                    break
+    if rm.kind in ("living", "room", "bedroom", "hall"):
+        for x, z, f in rm.spots():
+            if rm.fits("apt_molding", x, top, z, f):
+                rm.write("apt_molding", x, top, z, f)
+
+
 KINDS = {"pantry": pantry, "kitchen": kitchen, "bath": bath, "wc": wc, "hall": hall, "living": living, "bedroom": bedroom, "room": room}
 
 
@@ -510,6 +546,8 @@ def furnish(house):
                 for rm in rooms:
                     rm.switch()
                     KINDS[rm.kind](rm, flat)
+                    if house.s.get("stalin"):
+                        stalin(rm, flat)
                 if carpet and not flat["rug"]:
                     for rm in rooms:
                         if rm.kind in ("living", "bedroom", "room"):

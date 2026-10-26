@@ -1,244 +1,784 @@
 {
- "variants": {
-  "facing=north,inner=plaster": {
-   "model": "mobtalk:block/city2/window_brick_lo_plaster"
+ "multipart": [
+  {
+   "when": {
+    "facing": "north",
+    "inner": "plaster"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_plaster"
+   }
   },
-  "facing=east,inner=plaster": {
-   "model": "mobtalk:block/city2/window_brick_lo_plaster",
-   "y": 90
+  {
+   "when": {
+    "facing": "east",
+    "inner": "plaster"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_plaster",
+    "y": 90
+   }
   },
-  "facing=south,inner=plaster": {
-   "model": "mobtalk:block/city2/window_brick_lo_plaster",
-   "y": 180
+  {
+   "when": {
+    "facing": "south",
+    "inner": "plaster"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_plaster",
+    "y": 180
+   }
   },
-  "facing=west,inner=plaster": {
-   "model": "mobtalk:block/city2/window_brick_lo_plaster",
-   "y": 270
+  {
+   "when": {
+    "facing": "west",
+    "inner": "plaster"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_plaster",
+    "y": 270
+   }
   },
-  "facing=north,inner=paper_beige": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_beige"
+  {
+   "when": {
+    "facing": "north",
+    "inner": "paper_beige"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_beige"
+   }
   },
-  "facing=east,inner=paper_beige": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_beige",
-   "y": 90
+  {
+   "when": {
+    "facing": "east",
+    "inner": "paper_beige"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_beige",
+    "y": 90
+   }
   },
-  "facing=south,inner=paper_beige": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_beige",
-   "y": 180
+  {
+   "when": {
+    "facing": "south",
+    "inner": "paper_beige"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_beige",
+    "y": 180
+   }
   },
-  "facing=west,inner=paper_beige": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_beige",
-   "y": 270
+  {
+   "when": {
+    "facing": "west",
+    "inner": "paper_beige"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_beige",
+    "y": 270
+   }
   },
-  "facing=north,inner=paper_green": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_green"
+  {
+   "when": {
+    "facing": "north",
+    "inner": "paper_green"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_green"
+   }
   },
-  "facing=east,inner=paper_green": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_green",
-   "y": 90
+  {
+   "when": {
+    "facing": "east",
+    "inner": "paper_green"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_green",
+    "y": 90
+   }
   },
-  "facing=south,inner=paper_green": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_green",
-   "y": 180
+  {
+   "when": {
+    "facing": "south",
+    "inner": "paper_green"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_green",
+    "y": 180
+   }
   },
-  "facing=west,inner=paper_green": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_green",
-   "y": 270
+  {
+   "when": {
+    "facing": "west",
+    "inner": "paper_green"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_green",
+    "y": 270
+   }
   },
-  "facing=north,inner=paper_blue": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_blue"
+  {
+   "when": {
+    "facing": "north",
+    "inner": "paper_blue"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_blue"
+   }
   },
-  "facing=east,inner=paper_blue": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_blue",
-   "y": 90
+  {
+   "when": {
+    "facing": "east",
+    "inner": "paper_blue"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_blue",
+    "y": 90
+   }
   },
-  "facing=south,inner=paper_blue": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_blue",
-   "y": 180
+  {
+   "when": {
+    "facing": "south",
+    "inner": "paper_blue"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_blue",
+    "y": 180
+   }
   },
-  "facing=west,inner=paper_blue": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_blue",
-   "y": 270
+  {
+   "when": {
+    "facing": "west",
+    "inner": "paper_blue"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_blue",
+    "y": 270
+   }
   },
-  "facing=north,inner=paper_pink": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_pink"
+  {
+   "when": {
+    "facing": "north",
+    "inner": "paper_pink"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_pink"
+   }
   },
-  "facing=east,inner=paper_pink": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_pink",
-   "y": 90
+  {
+   "when": {
+    "facing": "east",
+    "inner": "paper_pink"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_pink",
+    "y": 90
+   }
   },
-  "facing=south,inner=paper_pink": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_pink",
-   "y": 180
+  {
+   "when": {
+    "facing": "south",
+    "inner": "paper_pink"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_pink",
+    "y": 180
+   }
   },
-  "facing=west,inner=paper_pink": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_pink",
-   "y": 270
+  {
+   "when": {
+    "facing": "west",
+    "inner": "paper_pink"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_pink",
+    "y": 270
+   }
   },
-  "facing=north,inner=paper_stripe": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_stripe"
+  {
+   "when": {
+    "facing": "north",
+    "inner": "paper_stripe"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_stripe"
+   }
   },
-  "facing=east,inner=paper_stripe": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_stripe",
-   "y": 90
+  {
+   "when": {
+    "facing": "east",
+    "inner": "paper_stripe"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_stripe",
+    "y": 90
+   }
   },
-  "facing=south,inner=paper_stripe": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_stripe",
-   "y": 180
+  {
+   "when": {
+    "facing": "south",
+    "inner": "paper_stripe"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_stripe",
+    "y": 180
+   }
   },
-  "facing=west,inner=paper_stripe": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_stripe",
-   "y": 270
+  {
+   "when": {
+    "facing": "west",
+    "inner": "paper_stripe"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_stripe",
+    "y": 270
+   }
   },
-  "facing=north,inner=paper_roses": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_roses"
+  {
+   "when": {
+    "facing": "north",
+    "inner": "paper_roses"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_roses"
+   }
   },
-  "facing=east,inner=paper_roses": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_roses",
-   "y": 90
+  {
+   "when": {
+    "facing": "east",
+    "inner": "paper_roses"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_roses",
+    "y": 90
+   }
   },
-  "facing=south,inner=paper_roses": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_roses",
-   "y": 180
+  {
+   "when": {
+    "facing": "south",
+    "inner": "paper_roses"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_roses",
+    "y": 180
+   }
   },
-  "facing=west,inner=paper_roses": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_roses",
-   "y": 270
+  {
+   "when": {
+    "facing": "west",
+    "inner": "paper_roses"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_roses",
+    "y": 270
+   }
   },
-  "facing=north,inner=paper_damask": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_damask"
+  {
+   "when": {
+    "facing": "north",
+    "inner": "paper_damask"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_damask"
+   }
   },
-  "facing=east,inner=paper_damask": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_damask",
-   "y": 90
+  {
+   "when": {
+    "facing": "east",
+    "inner": "paper_damask"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_damask",
+    "y": 90
+   }
   },
-  "facing=south,inner=paper_damask": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_damask",
-   "y": 180
+  {
+   "when": {
+    "facing": "south",
+    "inner": "paper_damask"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_damask",
+    "y": 180
+   }
   },
-  "facing=west,inner=paper_damask": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_damask",
-   "y": 270
+  {
+   "when": {
+    "facing": "west",
+    "inner": "paper_damask"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_damask",
+    "y": 270
+   }
   },
-  "facing=north,inner=paper_geo": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_geo"
+  {
+   "when": {
+    "facing": "north",
+    "inner": "paper_geo"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_geo"
+   }
   },
-  "facing=east,inner=paper_geo": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_geo",
-   "y": 90
+  {
+   "when": {
+    "facing": "east",
+    "inner": "paper_geo"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_geo",
+    "y": 90
+   }
   },
-  "facing=south,inner=paper_geo": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_geo",
-   "y": 180
+  {
+   "when": {
+    "facing": "south",
+    "inner": "paper_geo"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_geo",
+    "y": 180
+   }
   },
-  "facing=west,inner=paper_geo": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_geo",
-   "y": 270
+  {
+   "when": {
+    "facing": "west",
+    "inner": "paper_geo"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_geo",
+    "y": 270
+   }
   },
-  "facing=north,inner=paper_wood": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_wood"
+  {
+   "when": {
+    "facing": "north",
+    "inner": "paper_wood"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_wood"
+   }
   },
-  "facing=east,inner=paper_wood": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_wood",
-   "y": 90
+  {
+   "when": {
+    "facing": "east",
+    "inner": "paper_wood"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_wood",
+    "y": 90
+   }
   },
-  "facing=south,inner=paper_wood": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_wood",
-   "y": 180
+  {
+   "when": {
+    "facing": "south",
+    "inner": "paper_wood"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_wood",
+    "y": 180
+   }
   },
-  "facing=west,inner=paper_wood": {
-   "model": "mobtalk:block/city2/window_brick_lo_paper_wood",
-   "y": 270
+  {
+   "when": {
+    "facing": "west",
+    "inner": "paper_wood"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paper_wood",
+    "y": 270
+   }
   },
-  "facing=north,inner=tile_bath": {
-   "model": "mobtalk:block/city2/window_brick_lo_tile_bath"
+  {
+   "when": {
+    "facing": "north",
+    "inner": "tile_bath"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_tile_bath"
+   }
   },
-  "facing=east,inner=tile_bath": {
-   "model": "mobtalk:block/city2/window_brick_lo_tile_bath",
-   "y": 90
+  {
+   "when": {
+    "facing": "east",
+    "inner": "tile_bath"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_tile_bath",
+    "y": 90
+   }
   },
-  "facing=south,inner=tile_bath": {
-   "model": "mobtalk:block/city2/window_brick_lo_tile_bath",
-   "y": 180
+  {
+   "when": {
+    "facing": "south",
+    "inner": "tile_bath"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_tile_bath",
+    "y": 180
+   }
   },
-  "facing=west,inner=tile_bath": {
-   "model": "mobtalk:block/city2/window_brick_lo_tile_bath",
-   "y": 270
+  {
+   "when": {
+    "facing": "west",
+    "inner": "tile_bath"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_tile_bath",
+    "y": 270
+   }
   },
-  "facing=north,inner=tile_kitchen": {
-   "model": "mobtalk:block/city2/window_brick_lo_tile_kitchen"
+  {
+   "when": {
+    "facing": "north",
+    "inner": "tile_kitchen"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_tile_kitchen"
+   }
   },
-  "facing=east,inner=tile_kitchen": {
-   "model": "mobtalk:block/city2/window_brick_lo_tile_kitchen",
-   "y": 90
+  {
+   "when": {
+    "facing": "east",
+    "inner": "tile_kitchen"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_tile_kitchen",
+    "y": 90
+   }
   },
-  "facing=south,inner=tile_kitchen": {
-   "model": "mobtalk:block/city2/window_brick_lo_tile_kitchen",
-   "y": 180
+  {
+   "when": {
+    "facing": "south",
+    "inner": "tile_kitchen"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_tile_kitchen",
+    "y": 180
+   }
   },
-  "facing=west,inner=tile_kitchen": {
-   "model": "mobtalk:block/city2/window_brick_lo_tile_kitchen",
-   "y": 270
+  {
+   "when": {
+    "facing": "west",
+    "inner": "tile_kitchen"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_tile_kitchen",
+    "y": 270
+   }
   },
-  "facing=north,inner=paint_stair": {
-   "model": "mobtalk:block/city2/window_brick_lo_paint_stair"
+  {
+   "when": {
+    "facing": "north",
+    "inner": "paint_stair"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paint_stair"
+   }
   },
-  "facing=east,inner=paint_stair": {
-   "model": "mobtalk:block/city2/window_brick_lo_paint_stair",
-   "y": 90
+  {
+   "when": {
+    "facing": "east",
+    "inner": "paint_stair"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paint_stair",
+    "y": 90
+   }
   },
-  "facing=south,inner=paint_stair": {
-   "model": "mobtalk:block/city2/window_brick_lo_paint_stair",
-   "y": 180
+  {
+   "when": {
+    "facing": "south",
+    "inner": "paint_stair"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paint_stair",
+    "y": 180
+   }
   },
-  "facing=west,inner=paint_stair": {
-   "model": "mobtalk:block/city2/window_brick_lo_paint_stair",
-   "y": 270
+  {
+   "when": {
+    "facing": "west",
+    "inner": "paint_stair"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paint_stair",
+    "y": 270
+   }
   },
-  "facing=north,inner=paint_stair_blue": {
-   "model": "mobtalk:block/city2/window_brick_lo_paint_stair_blue"
+  {
+   "when": {
+    "facing": "north",
+    "inner": "paint_stair_blue"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paint_stair_blue"
+   }
   },
-  "facing=east,inner=paint_stair_blue": {
-   "model": "mobtalk:block/city2/window_brick_lo_paint_stair_blue",
-   "y": 90
+  {
+   "when": {
+    "facing": "east",
+    "inner": "paint_stair_blue"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paint_stair_blue",
+    "y": 90
+   }
   },
-  "facing=south,inner=paint_stair_blue": {
-   "model": "mobtalk:block/city2/window_brick_lo_paint_stair_blue",
-   "y": 180
+  {
+   "when": {
+    "facing": "south",
+    "inner": "paint_stair_blue"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paint_stair_blue",
+    "y": 180
+   }
   },
-  "facing=west,inner=paint_stair_blue": {
-   "model": "mobtalk:block/city2/window_brick_lo_paint_stair_blue",
-   "y": 270
+  {
+   "when": {
+    "facing": "west",
+    "inner": "paint_stair_blue"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paint_stair_blue",
+    "y": 270
+   }
   },
-  "facing=north,inner=paint_stair_ochre": {
-   "model": "mobtalk:block/city2/window_brick_lo_paint_stair_ochre"
+  {
+   "when": {
+    "facing": "north",
+    "inner": "paint_stair_ochre"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paint_stair_ochre"
+   }
   },
-  "facing=east,inner=paint_stair_ochre": {
-   "model": "mobtalk:block/city2/window_brick_lo_paint_stair_ochre",
-   "y": 90
+  {
+   "when": {
+    "facing": "east",
+    "inner": "paint_stair_ochre"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paint_stair_ochre",
+    "y": 90
+   }
   },
-  "facing=south,inner=paint_stair_ochre": {
-   "model": "mobtalk:block/city2/window_brick_lo_paint_stair_ochre",
-   "y": 180
+  {
+   "when": {
+    "facing": "south",
+    "inner": "paint_stair_ochre"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paint_stair_ochre",
+    "y": 180
+   }
   },
-  "facing=west,inner=paint_stair_ochre": {
-   "model": "mobtalk:block/city2/window_brick_lo_paint_stair_ochre",
-   "y": 270
+  {
+   "when": {
+    "facing": "west",
+    "inner": "paint_stair_ochre"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paint_stair_ochre",
+    "y": 270
+   }
   },
-  "facing=north,inner=paint_stair_brown": {
-   "model": "mobtalk:block/city2/window_brick_lo_paint_stair_brown"
+  {
+   "when": {
+    "facing": "north",
+    "inner": "paint_stair_brown"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paint_stair_brown"
+   }
   },
-  "facing=east,inner=paint_stair_brown": {
-   "model": "mobtalk:block/city2/window_brick_lo_paint_stair_brown",
-   "y": 90
+  {
+   "when": {
+    "facing": "east",
+    "inner": "paint_stair_brown"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paint_stair_brown",
+    "y": 90
+   }
   },
-  "facing=south,inner=paint_stair_brown": {
-   "model": "mobtalk:block/city2/window_brick_lo_paint_stair_brown",
-   "y": 180
+  {
+   "when": {
+    "facing": "south",
+    "inner": "paint_stair_brown"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paint_stair_brown",
+    "y": 180
+   }
   },
-  "facing=west,inner=paint_stair_brown": {
-   "model": "mobtalk:block/city2/window_brick_lo_paint_stair_brown",
-   "y": 270
+  {
+   "when": {
+    "facing": "west",
+    "inner": "paint_stair_brown"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_brick_lo_paint_stair_brown",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "facing": "north",
+    "frame": "pvc"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_glaze_pvc_lo"
+   }
+  },
+  {
+   "when": {
+    "facing": "east",
+    "frame": "pvc"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_glaze_pvc_lo",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "facing": "south",
+    "frame": "pvc"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_glaze_pvc_lo",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "facing": "west",
+    "frame": "pvc"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_glaze_pvc_lo",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "facing": "north",
+    "frame": "wood"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_glaze_wood_lo"
+   }
+  },
+  {
+   "when": {
+    "facing": "east",
+    "frame": "wood"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_glaze_wood_lo",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "facing": "south",
+    "frame": "wood"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_glaze_wood_lo",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "facing": "west",
+    "frame": "wood"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_glaze_wood_lo",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "facing": "north",
+    "frame": "brown"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_glaze_brown_lo"
+   }
+  },
+  {
+   "when": {
+    "facing": "east",
+    "frame": "brown"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_glaze_brown_lo",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "facing": "south",
+    "frame": "brown"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_glaze_brown_lo",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "facing": "west",
+    "frame": "brown"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_glaze_brown_lo",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "facing": "north",
+    "frame": "grey"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_glaze_grey_lo"
+   }
+  },
+  {
+   "when": {
+    "facing": "east",
+    "frame": "grey"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_glaze_grey_lo",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "facing": "south",
+    "frame": "grey"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_glaze_grey_lo",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "facing": "west",
+    "frame": "grey"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/window_glaze_grey_lo",
+    "y": 270
+   }
   }
- }
+ ]
 }

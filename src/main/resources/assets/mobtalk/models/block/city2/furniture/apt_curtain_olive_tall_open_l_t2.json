@@ -1,0 +1,133 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "curtain_olive": "mobtalk:block/city2/furniture/curtain_olive",
+    "curtain_olive_dark": "mobtalk:block/city2/furniture/curtain_olive_dark",
+    "particle": "mobtalk:block/city2/furniture/curtain_olive"
+  },
+  "elements": [
+    {
+      "from": [
+        11.0,
+        0.0,
+        10.0
+      ],
+      "to": [
+        12.75,
+        16.0,
+        11.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#curtain_olive",
+          "uv": [
+            3.25,
+            0.0,
+            5.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#curtain_olive_dark",
+          "uv": [
+            4.5,
+            0.0,
+            6.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#curtain_olive_dark",
+          "uv": [
+            10.0,
+            0.0,
+            11.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        12.75,
+        0.0,
+        10.75
+      ],
+      "to": [
+        14.5,
+        16.0,
+        12.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#curtain_olive",
+          "uv": [
+            1.5,
+            0.0,
+            3.25,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#curtain_olive_dark",
+          "uv": [
+            3.75,
+            0.0,
+            5.25,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#curtain_olive_dark",
+          "uv": [
+            10.75,
+            0.0,
+            12.25,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        14.5,
+        0.0,
+        10.25
+      ],
+      "to": [
+        16.0,
+        16.0,
+        11.75
+      ],
+      "faces": {
+        "north": {
+          "texture": "#curtain_olive",
+          "uv": [
+            0.0,
+            0.0,
+            1.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#curtain_olive_dark",
+          "uv": [
+            4.25,
+            0.0,
+            5.75,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#curtain_olive_dark",
+          "uv": [
+            10.25,
+            0.0,
+            11.75,
+            16.0
+          ]
+        }
+      }
+    }
+  ]
+}

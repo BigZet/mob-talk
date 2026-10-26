@@ -1264,12 +1264,12 @@ def curtains(key):
     mat(f"curtain_{key}", curtain_tex(c, key))
     mat(f"curtain_{key}_dark", curtain_tex(shade(c, 0.85), key + "d"))
 
-    def pieces():
+    def pieces(rows=3):
         cl, dk = f"curtain_{key}", f"curtain_{key}_dark"
         # depth in the cell in front of the window: rod and curtains z 9.5..12, net curtain z 12.5, a radiator (if the state says so)
         # behind it z 13..15.5 under the sill, which belongs to the wall's window block
-        # three cells high now (a 3-block room): the rod just under the ceiling, the curtains to the floor
-        top = 16 * 3
+        # three cells high (a 3-block room), four under a stalinka's high ceiling: the rod just under it, the curtains to the floor
+        top = 16 * rows
         rod = Model()
         rod.box((0, top - 1.75, 10), (16, top - 0.75, 11), "brass")
         for x in (1, 5, 9, 13):
@@ -1304,7 +1304,9 @@ def curtains(key):
             e.t[2] = min(15.5, e.t[2])
         return {"rod": rod, "rod_end_l": end_l, "rod_end_r": end_r, "tulle": tulle, "closed": closed, "open_l": open_l, "open_r": open_r,
                 "radiator": rad}
-    Furn(f"apt_curtain_{key}", f"Шторы с тюлем ({ru})", f"Curtains with net ({en})", pieces, mount="WALL", kind="curtain",
+    def both():   # the 3-tier set and, keys "tall_*", the 4-tier one (state tall=true)
+        return dict(pieces(3), **{f"tall_{k}": m for k, m in pieces(4).items()})
+    Furn(f"apt_curtain_{key}", f"Шторы с тюлем ({ru})", f"Curtains with net ({en})", both, mount="WALL", kind="curtain",
          color={"wine": "RED", "olive": "GREEN", "gold": "GOLD", "blue": "BLUE"}[key], sound="WOOL", solid=False, cutout=True)
 
 
@@ -1401,6 +1403,8 @@ def make():
     fur_laundry.make()
     import fur_2000
     fur_2000.make()
+    import fur_stalin
+    fur_stalin.make()
 
 
 def plate_tex():

@@ -1,0 +1,244 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "tub_wood": "mobtalk:block/city2/furniture/tub_wood",
+    "iron_black": "mobtalk:block/city2/furniture/iron_black",
+    "soil": "mobtalk:block/city2/furniture/soil",
+    "trunk": "mobtalk:block/city2/furniture/trunk",
+    "particle": "mobtalk:block/city2/furniture/tub_wood"
+  },
+  "elements": [
+    {
+      "from": [
+        3.0,
+        0.0,
+        3.0
+      ],
+      "to": [
+        13.0,
+        9.0,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#tub_wood",
+          "uv": [
+            3.0,
+            7.0,
+            13.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#tub_wood",
+          "uv": [
+            3.0,
+            7.0,
+            13.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#tub_wood",
+          "uv": [
+            3.0,
+            7.0,
+            13.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#tub_wood",
+          "uv": [
+            3.0,
+            7.0,
+            13.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#tub_wood",
+          "uv": [
+            3.0,
+            3.0,
+            13.0,
+            13.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.75,
+        1.5,
+        2.75
+      ],
+      "to": [
+        13.25,
+        2.5,
+        13.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#iron_black",
+          "uv": [
+            2.75,
+            13.5,
+            13.25,
+            14.5
+          ]
+        },
+        "south": {
+          "texture": "#iron_black",
+          "uv": [
+            2.75,
+            13.5,
+            13.25,
+            14.5
+          ]
+        },
+        "east": {
+          "texture": "#iron_black",
+          "uv": [
+            2.75,
+            13.5,
+            13.25,
+            14.5
+          ]
+        },
+        "west": {
+          "texture": "#iron_black",
+          "uv": [
+            2.75,
+            13.5,
+            13.25,
+            14.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.75,
+        7.0,
+        2.75
+      ],
+      "to": [
+        13.25,
+        8.0,
+        13.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#iron_black",
+          "uv": [
+            2.75,
+            8.0,
+            13.25,
+            9.0
+          ]
+        },
+        "south": {
+          "texture": "#iron_black",
+          "uv": [
+            2.75,
+            8.0,
+            13.25,
+            9.0
+          ]
+        },
+        "east": {
+          "texture": "#iron_black",
+          "uv": [
+            2.75,
+            8.0,
+            13.25,
+            9.0
+          ]
+        },
+        "west": {
+          "texture": "#iron_black",
+          "uv": [
+            2.75,
+            8.0,
+            13.25,
+            9.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.5,
+        8.75,
+        3.5
+      ],
+      "to": [
+        12.5,
+        8.75,
+        12.5
+      ],
+      "faces": {
+        "up": {
+          "texture": "#soil",
+          "uv": [
+            3.5,
+            3.5,
+            12.5,
+            12.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        7.0,
+        8.75,
+        7.0
+      ],
+      "to": [
+        9.0,
+        16.0,
+        9.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#trunk",
+          "uv": [
+            7.0,
+            0.0,
+            9.0,
+            7.25
+          ]
+        },
+        "south": {
+          "texture": "#trunk",
+          "uv": [
+            7.0,
+            0.0,
+            9.0,
+            7.25
+          ]
+        },
+        "east": {
+          "texture": "#trunk",
+          "uv": [
+            7.0,
+            0.0,
+            9.0,
+            7.25
+          ]
+        },
+        "west": {
+          "texture": "#trunk",
+          "uv": [
+            7.0,
+            0.0,
+            9.0,
+            7.25
+          ]
+        }
+      }
+    }
+  ]
+}

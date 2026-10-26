@@ -1452,5 +1452,19 @@
   "block.mobtalk.lattice_fence_red": "Welded diamond fence (red)",
   "block.mobtalk.lattice_gate_red": "Welded diamond gate (red)",
   "block.mobtalk.concrete_fence": "Concrete fence PO-2",
-  "block.mobtalk.concrete_fence_diamond": "Concrete diamond fence"
+  "block.mobtalk.concrete_fence_diamond": "Concrete diamond fence",
+  "block.mobtalk.apt_buffet_stalin": "Carved oak buffet",
+  "block.mobtalk.apt_buffet_stalin_part": "Carved oak buffet",
+  "block.mobtalk.apt_bookcase_tall": "Bookcase to the ceiling",
+  "block.mobtalk.apt_bookcase_tall_part": "Bookcase to the ceiling",
+  "block.mobtalk.apt_floor_clock": "Floor clock",
+  "block.mobtalk.apt_floor_clock_part": "Floor clock",
+  "block.mobtalk.apt_palm_tub": "Palm in a tub",
+  "block.mobtalk.apt_palm_tub_part": "Palm in a tub",
+  "block.mobtalk.apt_painting_rye": "Painting: Rye, in a gilt frame",
+  "block.mobtalk.apt_painting_rye_part": "Painting: Rye, in a gilt frame",
+  "block.mobtalk.apt_chandelier_long": "Bronze chandelier under a rosette",
+  "block.mobtalk.apt_chandelier_long_part": "Bronze chandelier under a rosette",
+  "block.mobtalk.apt_molding": "Plaster cornice",
+  "block.mobtalk.apt2_kitchen_plain": "Kitchen base with a bread bin"
 }

@@ -1452,5 +1452,19 @@
   "block.mobtalk.lattice_fence_red": "Сварной забор с ромбами (красный)",
   "block.mobtalk.lattice_gate_red": "Калитка с ромбами (красная)",
   "block.mobtalk.concrete_fence": "Бетонный забор ПО-2",
-  "block.mobtalk.concrete_fence_diamond": "Бетонный забор с ромбиками"
+  "block.mobtalk.concrete_fence_diamond": "Бетонный забор с ромбиками",
+  "block.mobtalk.apt_buffet_stalin": "Дубовый буфет с резьбой",
+  "block.mobtalk.apt_buffet_stalin_part": "Дубовый буфет с резьбой",
+  "block.mobtalk.apt_bookcase_tall": "Книжный шкаф до потолка",
+  "block.mobtalk.apt_bookcase_tall_part": "Книжный шкаф до потолка",
+  "block.mobtalk.apt_floor_clock": "Напольные часы",
+  "block.mobtalk.apt_floor_clock_part": "Напольные часы",
+  "block.mobtalk.apt_palm_tub": "Пальма в кадке",
+  "block.mobtalk.apt_palm_tub_part": "Пальма в кадке",
+  "block.mobtalk.apt_painting_rye": "Картина «Рожь» в золочёной раме",
+  "block.mobtalk.apt_painting_rye_part": "Картина «Рожь» в золочёной раме",
+  "block.mobtalk.apt_chandelier_long": "Бронзовая люстра с розеткой",
+  "block.mobtalk.apt_chandelier_long_part": "Бронзовая люстра с розеткой",
+  "block.mobtalk.apt_molding": "Лепной карниз",
+  "block.mobtalk.apt2_kitchen_plain": "Кухонная тумба с хлебницей"
 }

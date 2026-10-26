@@ -1,0 +1,509 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_buffet_stalin_buf_lower_44": "mobtalk:block/city2/furniture/apt_buffet_stalin_buf_lower_44",
+    "oak": "mobtalk:block/city2/furniture/oak",
+    "glass": "mobtalk:block/city2/furniture/glass",
+    "apt_buffet_stalin_buf_upper_42": "mobtalk:block/city2/furniture/apt_buffet_stalin_buf_upper_42",
+    "apt_buffet_stalin_buf_crest_42": "mobtalk:block/city2/furniture/apt_buffet_stalin_buf_crest_42",
+    "apt_buffet_stalin_buf_crest_b_52": "mobtalk:block/city2/furniture/apt_buffet_stalin_buf_crest_b_52",
+    "particle": "mobtalk:block/city2/furniture/apt_buffet_stalin_buf_lower_44"
+  },
+  "elements": [
+    {
+      "from": [
+        2.5532,
+        0.0,
+        6.5532
+      ],
+      "to": [
+        13.4468,
+        6.1277,
+        9.617
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_buffet_stalin_buf_lower_44",
+          "uv": [
+            -16.0,
+            -2.0,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#oak",
+          "uv": [
+            0.0,
+            14.0,
+            32.0,
+            32.0
+          ]
+        },
+        "east": {
+          "texture": "#oak",
+          "uv": [
+            0.0,
+            14.0,
+            9.0,
+            32.0
+          ]
+        },
+        "west": {
+          "texture": "#oak",
+          "uv": [
+            7.0,
+            14.0,
+            16.0,
+            32.0
+          ]
+        },
+        "up": {
+          "texture": "#oak",
+          "uv": [
+            0.0,
+            7.0,
+            32.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.383,
+        6.1277,
+        6.383
+      ],
+      "to": [
+        13.617,
+        6.4681,
+        9.617
+      ],
+      "faces": {
+        "north": {
+          "texture": "#oak",
+          "uv": [
+            15.5,
+            13.0,
+            48.5,
+            14.0
+          ]
+        },
+        "south": {
+          "texture": "#oak",
+          "uv": [
+            15.5,
+            13.0,
+            48.5,
+            14.0
+          ]
+        },
+        "east": {
+          "texture": "#oak",
+          "uv": [
+            0.0,
+            13.0,
+            9.5,
+            14.0
+          ]
+        },
+        "west": {
+          "texture": "#oak",
+          "uv": [
+            6.5,
+            13.0,
+            16.0,
+            14.0
+          ]
+        },
+        "up": {
+          "texture": "#oak",
+          "uv": [
+            15.5,
+            6.5,
+            48.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.8936,
+        6.4681,
+        9.2766
+      ],
+      "to": [
+        13.1064,
+        8.1702,
+        9.4468
+      ],
+      "faces": {
+        "north": {
+          "texture": "#glass",
+          "uv": [
+            1.0,
+            8.0,
+            31.0,
+            13.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.5532,
+        6.4681,
+        7.9149
+      ],
+      "to": [
+        3.0638,
+        8.1702,
+        9.617
+      ],
+      "faces": {
+        "north": {
+          "texture": "#oak",
+          "uv": [
+            14.5,
+            8.0,
+            16.0,
+            13.0
+          ]
+        },
+        "south": {
+          "texture": "#oak",
+          "uv": [
+            0.0,
+            8.0,
+            1.5,
+            13.0
+          ]
+        },
+        "east": {
+          "texture": "#oak",
+          "uv": [
+            0.0,
+            8.0,
+            5.0,
+            13.0
+          ]
+        },
+        "west": {
+          "texture": "#oak",
+          "uv": [
+            11.0,
+            8.0,
+            16.0,
+            13.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        12.9362,
+        6.4681,
+        7.9149
+      ],
+      "to": [
+        13.4468,
+        8.1702,
+        9.617
+      ],
+      "faces": {
+        "north": {
+          "texture": "#oak",
+          "uv": [
+            0.0,
+            8.0,
+            1.5,
+            13.0
+          ]
+        },
+        "south": {
+          "texture": "#oak",
+          "uv": [
+            14.5,
+            8.0,
+            16.0,
+            13.0
+          ]
+        },
+        "east": {
+          "texture": "#oak",
+          "uv": [
+            0.0,
+            8.0,
+            5.0,
+            13.0
+          ]
+        },
+        "west": {
+          "texture": "#oak",
+          "uv": [
+            11.0,
+            8.0,
+            16.0,
+            13.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.5532,
+        8.1702,
+        7.5745
+      ],
+      "to": [
+        13.4468,
+        13.9574,
+        9.617
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_buffet_stalin_buf_upper_42",
+          "uv": [
+            -16.0,
+            7.0,
+            16.0,
+            24.0
+          ]
+        },
+        "south": {
+          "texture": "#oak",
+          "uv": [
+            0.0,
+            7.0,
+            32.0,
+            24.0
+          ]
+        },
+        "east": {
+          "texture": "#oak",
+          "uv": [
+            0.0,
+            7.0,
+            6.0,
+            24.0
+          ]
+        },
+        "west": {
+          "texture": "#oak",
+          "uv": [
+            10.0,
+            7.0,
+            16.0,
+            24.0
+          ]
+        },
+        "up": {
+          "texture": "#oak",
+          "uv": [
+            0.0,
+            10.0,
+            32.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.2128,
+        13.9574,
+        7.234
+      ],
+      "to": [
+        13.7872,
+        14.6383,
+        9.617
+      ],
+      "faces": {
+        "north": {
+          "texture": "#oak",
+          "uv": [
+            15.0,
+            5.0,
+            49.0,
+            7.0
+          ]
+        },
+        "south": {
+          "texture": "#oak",
+          "uv": [
+            15.0,
+            5.0,
+            49.0,
+            7.0
+          ]
+        },
+        "east": {
+          "texture": "#oak",
+          "uv": [
+            0.0,
+            5.0,
+            7.0,
+            7.0
+          ]
+        },
+        "west": {
+          "texture": "#oak",
+          "uv": [
+            9.0,
+            5.0,
+            16.0,
+            7.0
+          ]
+        },
+        "up": {
+          "texture": "#oak",
+          "uv": [
+            15.0,
+            9.0,
+            49.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.9149,
+        14.6383,
+        8.2553
+      ],
+      "to": [
+        12.0851,
+        16.0,
+        8.4255
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_buffet_stalin_buf_crest_42",
+          "uv": [
+            -12.0,
+            1.0,
+            12.0,
+            5.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_buffet_stalin_buf_crest_b_52",
+          "uv": [
+            -12.0,
+            1.0,
+            12.0,
+            5.0
+          ]
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.625,
+        0.625,
+        0.625
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        2.5,
+        0
+      ],
+      "scale": [
+        0.375,
+        0.375,
+        0.375
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    }
+  }
+}

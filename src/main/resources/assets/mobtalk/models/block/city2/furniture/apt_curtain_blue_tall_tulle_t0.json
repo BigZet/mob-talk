@@ -1,0 +1,41 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "tulle_hem": "mobtalk:block/city2/furniture/tulle_hem",
+    "particle": "mobtalk:block/city2/furniture/tulle_hem"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.5,
+        12.5
+      ],
+      "to": [
+        16.0,
+        16.0,
+        12.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#tulle_hem",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            15.5
+          ]
+        },
+        "south": {
+          "texture": "#tulle_hem",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            15.5
+          ]
+        }
+      }
+    }
+  ]
+}

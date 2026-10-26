@@ -2,8 +2,6 @@
  "parent": "minecraft:block/block",
  "textures": {
   "p": "mobtalk:block/city2/panel_brick",
-  "g": "mobtalk:block/city2/glass_lo",
-  "fr": "mobtalk:block/city2/frame_white",
   "rv": "mobtalk:block/city2/plaster_mid",
   "tin": "mobtalk:block/city2/tin",
   "sill": "mobtalk:block/city2/sill",
@@ -165,47 +163,6 @@
    "from": [
     0,
     12,
-    6
-   ],
-   "to": [
-    16,
-    13.5,
-    10
-   ],
-   "faces": {
-    "up": {
-     "texture": "#fr",
-     "uv": [
-      0,
-      6,
-      16,
-      10
-     ]
-    },
-    "north": {
-     "texture": "#fr",
-     "uv": [
-      0,
-      2.5,
-      16,
-      4
-     ]
-    },
-    "south": {
-     "texture": "#fr",
-     "uv": [
-      0,
-      2.5,
-      16,
-      4
-     ]
-    }
-   }
-  },
-  {
-   "from": [
-    0,
-    12,
     10
    ],
    "to": [
@@ -257,38 +214,6 @@
       3,
       7.5,
       4
-     ]
-    }
-   }
-  },
-  {
-   "from": [
-    0,
-    13.5,
-    7.5
-   ],
-   "to": [
-    16,
-    16,
-    8.5
-   ],
-   "faces": {
-    "north": {
-     "texture": "#g",
-     "uv": [
-      0,
-      0,
-      16,
-      2.5
-     ]
-    },
-    "south": {
-     "texture": "#g",
-     "uv": [
-      0,
-      0,
-      16,
-      2.5
      ]
     }
    }

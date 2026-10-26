@@ -11,6 +11,8 @@ final class CityBuildBlocks {
 
     /** Room finishes, in the order of {@link CityBuild.Finish}. */
     static final List<String> FINISHES = List.of("plaster", "paper_beige", "paper_green", "paper_blue", "paper_pink", "paper_stripe", "paper_roses", "paper_damask", "paper_geo", "paper_wood", "tile_bath", "tile_kitchen", "paint_stair", "paint_stair_blue", "paint_stair_ochre", "paint_stair_brown");
+    /** Window frames, in the order of {@link CityBuild.Frame}. */
+    static final List<String> FRAMES = List.of("pvc", "wood", "brown", "grey");
     static final Map<String, MapColor> CUBES = Map.ofEntries(
             Map.entry("facade_grey_band", MapColor.STONE_GRAY),
             Map.entry("facade_grey_cross", MapColor.STONE_GRAY),

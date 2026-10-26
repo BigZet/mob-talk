@@ -52,6 +52,11 @@ LAMPS = {"living": ["apt_chandelier", "apt_lamp_cascade", "apt_lamp_horns", "apt
          "hall": ["apt_lamp_ball", "apt_ceiling_plate"], "bath": ["apt_lamp_ball", "apt_ceiling_plate"], "wc": ["apt_lamp_ball"],
          "pantry": ["apt_bare_bulb"]}
 LAMP_STAIR = "apt_wall_puck"
+# the windows' frames (blocks.py WIN_FRAMES) and how often a flat has them: in the old houses many keep the Soviet wooden
+# frames, in the newer towers nearly all are plastic; a staircase keeps its wooden frames more often than not
+WIN_WEIGHTS = {"old": {"pvc": 50, "wood": 30, "brown": 13, "grey": 7}, "new": {"pvc": 68, "wood": 7, "brown": 15, "grey": 10}}
+STAIR_WOOD = {"old": 0.7, "new": 0.4}
+NEW_HOUSES = ("i-209a", "p-44")
 CURTAINS = ["apt_curtain_wine", "apt_curtain_gold", "apt_curtain_blue", "apt_curtain_olive"]
 CW = {N: E, E: SO, SO: W, W: N}
 
@@ -181,6 +186,8 @@ class House:
                                   "flat_door": r.choice(FLAT_DOORS), "room_door": r.choice(ROOM_DOORS),
                                   "curtain": r.choice(CURTAINS),
                                   "balcony": ("glazed", r.choice(PARAPETS), r.choice(FRAMES)) if glazed else ("open", r.choice(RAILS), None)}
+            w = WIN_WEIGHTS[self.age]
+            self.palettes[key]["frame"] = r.choices(list(w), weights=list(w.values()))[0]
         return self.palettes[key]
 
     def flat_side(self, bx, bz):
@@ -281,9 +288,26 @@ class House:
         rm = self.room(bx + dx, bz + dz, k)
         return rm[1] if rm else "plaster"
 
-    def window(self, bx, bz, s, out, inner="plaster"):
+    @property
+    def age(self):
+        return "new" if self.series in NEW_HOUSES else "old"
+
+    def frame(self, bx, bz, k):
+        """The frames of the flat whose room a facade cell's window lights; the staircase's (k None) per entrance."""
+        if k is not None:
+            d = OPP[self.outward(bx, bz)]
+            ix, iz = bx + DIRS[d][0], bz + DIRS[d][1]
+            if self.ch(ix, iz) in self.s["rooms"]:
+                side, sec = self.flat_side(ix, iz)
+                return self.palette(sec, k, side)["frame"]
+        r = random.Random(f"stairframe:{self.series}:{self.n}:{self.floors}:{self.colour}:{self.section_of(bx)}")
+        return "wood" if r.random() < STAIR_WOOD[self.age] else "pvc"
+
+    def window(self, bx, bz, s, out, inner="plaster", k=None):
+        fr = self.frame(bx, bz, k)
         for n, row in enumerate(self.rows):
-            self.at(bx, s + 1 + n, bz, f"window_{self.colour}_{row}", {"facing": out} if row == "mid" else {"facing": out, "inner": inner})
+            self.at(bx, s + 1 + n, bz, f"window_{self.colour}_{row}",
+                    {"facing": out, "frame": fr} if row == "mid" else {"facing": out, "inner": inner, "frame": fr})
 
     def facade_cell(self, bx, bz, s, k, c):
         out = self.outward(bx, bz)
@@ -299,13 +323,14 @@ class House:
             return
         self.at(bx, s, bz, "plinth" if k == 1 else f"facade_{col}_{'cross' if joint else 'band'}")
         if c == "W" or (c == "B" and not self.balcony_door(k)):
-            self.window(bx, bz, s, out, self.inner_finish(bx, bz, k))
+            self.window(bx, bz, s, out, self.inner_finish(bx, bz, k), k)
         elif c == "B":
             hinge = "left" if self.ch(bx + DIRS[LEFT[out]][0], bz + DIRS[LEFT[out]][1]) == "W" else "right"
             for y, half in ((s + 1, "lower"), (s + 2, "upper")):
                 self.at(bx, y, bz, "door_balcony", {"facing": out, "half": half, "hinge": hinge, "open": "false", "powered": "false"})
             for n, row in enumerate(self.rows[2:]):       # the transom over the door
-                props = {"facing": out} if row == "mid" else {"facing": out, "inner": self.inner_finish(bx, bz, k)}
+                fr = self.frame(bx, bz, k)
+                props = {"facing": out, "frame": fr} if row == "mid" else {"facing": out, "inner": self.inner_finish(bx, bz, k), "frame": fr}
                 self.at(bx, s + 3 + n, bz, f"window_{col}_{row}", props)
         else:
             inner = "paint_stair" if c == "S" else self.inner_finish(bx, bz, k)
@@ -447,6 +472,8 @@ class House:
             if k == F and not top_flights:                      # the top floor: a plain staircase window, no flights up
                 for x in (A1, M, B0):
                     self.window(x, 0, s, N, "paint_stair")
+                for x in (A0, B1):                              # the floor line beside the window below: plastered inside
+                    self.at(x, s, 0, f"facade_{col}_jmid", {"facing": N, "inner": "paint_stair"})
                 break
             for x, rail in ((A0, "none"), (A1, "right")):       # the first flight, towards facade A
                 for j, z in enumerate(rows1):
@@ -470,7 +497,9 @@ class House:
                         for y in range(max(4, s + 2), s + 7 if k < F else R):
                             self.at(x, y, 0, "glass_blocks", {"facing": N})
                         continue
-                    self.at(x, s + hl_y + 1 + n, 0, f"window_{col}_{row}", {"facing": N} if row == "mid" else {"facing": N, "inner": "paint_stair"})
+                    fr = self.frame(x, 0, None)
+                    self.at(x, s + hl_y + 1 + n, 0, f"window_{col}_{row}",
+                            {"facing": N, "frame": fr} if row == "mid" else {"facing": N, "inner": "paint_stair", "frame": fr})
         # The vestibule: under the first half-landing at street level, the floor of the ground (y=0 is the ground layer).
         for x in cols:
             for z in range(sz, sz + 6):
@@ -670,9 +699,9 @@ class House:
                     return hung.get((x, z)) == (name, d)
                 left = not same(ix + DIRS[CW[d]][0], iz + DIRS[CW[d]][1])
                 right = not same(ix + DIRS[LEFT[d]][0], iz + DIRS[LEFT[d]][1])
-                for n in range(self.top):     # bottom tier with the radiator, the middle one (twice under a high ceiling), the rod
-                    t = 0 if n == 0 else 2 if n == self.top - 1 else 1
-                    self.at(ix, s + 1 + n, iz, name, {"facing": d, "tier": str(t), "open": "true", "left": str(left).lower(),
+                tall = {"tall": "true"} if self.top == 4 else {}     # under a stalinka's ceiling: the four-tier curtains
+                for t in range(self.top):
+                    self.at(ix, s + 1 + t, iz, name, tall | {"facing": d, "tier": str(t), "open": "true", "left": str(left).lower(),
                                                       "right": str(right).lower(), "radiator": "true"})
 
 
