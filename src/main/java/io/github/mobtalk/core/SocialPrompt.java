@@ -106,8 +106,12 @@ final class SocialPrompt {
         return String.join("; ", parts);
     }
     /** Why the spouse will not have a child now, or null when it agrees. */
-    static String childRefusal(int score, boolean infertile, boolean expecting, boolean tooSoon) {
+    static String childRefusal(int score, boolean infertile, boolean expecting, boolean tooSoon) { return childRefusal(score, infertile, expecting, false, tooSoon); }
+    /** {@code trying}: the couple already agreed and waits for a night together; {@code expecting}: she is with child. */
+    static String childRefusal(int score, boolean infertile, boolean expecting, boolean trying, boolean tooSoon) {
         if (expecting) return "ребёнок у вас уже на подходе";
+        if (trying) return "вы уже договорились и стараетесь: скажи прямо и тепло, что согласна давно, а малыш бывает от ночи вместе в одной кровати "
+                + "(лучше особый вечер: свечи, цветы, уют) — позови спать вместе, не говори «пусть случится в своё время» и не намекай, будто ребёнок уже есть";
         if (tooSoon) return "рано: с прошлого раза прошло меньше трёх игровых дней";
         if (infertile) return "у тебя не может быть детей — это твоя боль";
         if (score < Hearts.marriage()) return "сейчас между вами не та близость";

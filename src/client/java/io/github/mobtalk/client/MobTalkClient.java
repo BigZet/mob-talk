@@ -137,6 +137,12 @@ public final class MobTalkClient implements ClientModInitializer {
         talkKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.talk", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_V, "category.mobtalk"));
         settingsKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.settings", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_F7, "category.mobtalk"));
         tradeKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.trade", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_B, "category.mobtalk"));
+        // Одиночка: клятву, распознанную сервером (OpenRouter/свой Whisper на сервере), берёт клиентская служба свадьбы.
+        io.github.mobtalk.server.DialogueService.LOCAL_VOW = (player, text) -> {
+            if (client.player == null || !client.player.getUuid().equals(player) || !wedding.takesVow() || wedding.serverVowOpen()) return false;
+            client.execute(() -> { wedding.vowHeard(text); requestActive = false; status = "Клятва произнесена"; showHud(); });
+            return true;
+        };
         giftKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.gift", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_G, "category.mobtalk"));
         familyKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.family", InputUtil.Type.KEYSYM, InputUtil.UNKNOWN_KEY.getCode(), "category.mobtalk"));
         MomentClient.register(configDirectory); // Метки для монтажа: клавиша, OBS (идея З4).
