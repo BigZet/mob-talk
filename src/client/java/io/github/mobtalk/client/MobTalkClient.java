@@ -812,8 +812,8 @@ public final class MobTalkClient implements ClientModInitializer {
         int alpha = (int) Math.min(255, left * 255 / 500);
         if (alpha < 8) return;
         var font = client.textRenderer;
-        int width = context.getScaledWindowWidth(), y = context.getScaledWindowHeight() - 68 - 13; // строка действий — на 68 от низа
-        if (client.interactionManager != null && !client.interactionManager.hasStatusBars()) y += 6;
+        // Строка действий рисуется на 72 от низа (68 и ещё 4 вверх) высотой 9: своя полоса — на полторы строки выше неё.
+        int width = context.getScaledWindowWidth(), y = context.getScaledWindowHeight() - 72 - 16;
         int textWidth = font.getWidth(line);
         context.fill((width - textWidth) / 2 - 3, y - 2, (width + textWidth) / 2 + 3, y + 10, (alpha * 0x60 / 255) << 24);
         context.drawTextWithShadow(font, line, (width - textWidth) / 2, y, 0xFFFFFF | alpha << 24);
