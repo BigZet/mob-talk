@@ -1,0 +1,256 @@
+{
+  "parent": "block/block",
+  "textures": {
+    "pot": "mobtalk:block/mfc/pot",
+    "soil": "mobtalk:block/mfc/soil",
+    "leaves": "mobtalk:block/mfc/leaves",
+    "particle": "mobtalk:block/mfc/pot"
+  },
+  "elements": [
+    {
+      "from": [
+        4,
+        0,
+        4
+      ],
+      "to": [
+        12,
+        7,
+        12
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pot",
+          "uv": [
+            4,
+            9,
+            12,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#pot",
+          "uv": [
+            4,
+            9,
+            12,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#pot",
+          "uv": [
+            4,
+            9,
+            12,
+            16
+          ]
+        },
+        "west": {
+          "texture": "#pot",
+          "uv": [
+            4,
+            9,
+            12,
+            16
+          ]
+        },
+        "up": {
+          "texture": "#pot",
+          "uv": [
+            4,
+            4,
+            12,
+            12
+          ]
+        },
+        "down": {
+          "texture": "#pot",
+          "uv": [
+            4,
+            4,
+            12,
+            12
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.5,
+        6.5,
+        4.5
+      ],
+      "to": [
+        11.5,
+        6.75,
+        11.5
+      ],
+      "faces": {
+        "up": {
+          "texture": "#soil",
+          "uv": [
+            4.5,
+            4.5,
+            11.5,
+            11.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        7.5,
+        6.75,
+        7.5
+      ],
+      "to": [
+        8.5,
+        14,
+        8.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#soil",
+          "uv": [
+            7.5,
+            2,
+            8.5,
+            9.25
+          ]
+        },
+        "south": {
+          "texture": "#soil",
+          "uv": [
+            7.5,
+            2,
+            8.5,
+            9.25
+          ]
+        },
+        "east": {
+          "texture": "#soil",
+          "uv": [
+            7.5,
+            2,
+            8.5,
+            9.25
+          ]
+        },
+        "west": {
+          "texture": "#soil",
+          "uv": [
+            7.5,
+            2,
+            8.5,
+            9.25
+          ]
+        },
+        "up": {
+          "texture": "#soil",
+          "uv": [
+            7.5,
+            7.5,
+            8.5,
+            8.5
+          ]
+        },
+        "down": {
+          "texture": "#soil",
+          "uv": [
+            7.5,
+            7.5,
+            8.5,
+            8.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0,
+        10,
+        8
+      ],
+      "to": [
+        16,
+        29,
+        8
+      ],
+      "rotation": {
+        "angle": 45,
+        "axis": "y",
+        "origin": [
+          8,
+          8,
+          8
+        ],
+        "rescale": true
+      },
+      "shade": false,
+      "faces": {
+        "north": {
+          "texture": "#leaves",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#leaves",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0,
+        10,
+        8
+      ],
+      "to": [
+        16,
+        29,
+        8
+      ],
+      "rotation": {
+        "angle": -45,
+        "axis": "y",
+        "origin": [
+          8,
+          8,
+          8
+        ],
+        "rescale": true
+      },
+      "shade": false,
+      "faces": {
+        "north": {
+          "texture": "#leaves",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#leaves",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        }
+      }
+    }
+  ]
+}

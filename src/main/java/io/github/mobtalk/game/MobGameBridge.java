@@ -63,6 +63,11 @@ public final class MobGameBridge implements GameBridge {
     final RoadTraffic traffic;
     /** Track «чиновники»: officials' desks, envelopes and the inspector's orders. */
     final OfficialsController officials;
+    /** Officials, stage 2: the passport office (cases, the queue at the clerk's window). */
+    final PassportOffice passports;
+    final CivilOffice civil;
+    /** Officials, stages 3-4: the head's dacha, heaven's punishments, «Охрана!», the black ledger and the revizor. */
+    final GraftController graft;
     /** Б1: the god's deeds reaching the villages. */
     final DivineController divine;
     /** Трек J: ревность пар игрока и сон вместе. */
@@ -92,6 +97,9 @@ public final class MobGameBridge implements GameBridge {
         roads = new RoadNetwork(this);
         traffic = new RoadTraffic(this);
         officials = new OfficialsController(this);
+        passports = new PassportOffice(this);
+        civil = new CivilOffice(this);
+        graft = new GraftController(this);
         divine = new DivineController(this);
         jealousy = new JealousyController(this);
         moods = new MoodWatch(this);
@@ -129,7 +137,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.witnessed(mob, player, Witness.HIT);
                 bridge.wedding.hurt(mob, player);
                 bridge.confession.hurt(mob);
-                if (mob instanceof VillagerEntity villager) bridge.bargaining.hurtBy(villager, player);
+                if (mob instanceof VillagerEntity villager) { bridge.bargaining.hurtBy(villager, player); bridge.graft.assaulted(villager, player); }
                 bridge.actions.hurtBy(mob, player);
                 if (!blocked && amount > 0) bridge.defense.hurt(mob, source);
             } else if (!blocked && amount > 0 && bridge.memory.known(mob.getUuid())) {
@@ -197,6 +205,9 @@ public final class MobGameBridge implements GameBridge {
                 bridge.roads.tick(world);
                 bridge.traffic.tick(world);
                 bridge.officials.tick(world, bridge.defense.zones(world));
+                bridge.passports.tick(world);
+                bridge.civil.tick(world);
+                bridge.graft.tick(world, bridge.defense.zones(world));
                 bridge.divine.tick(world);
                 bridge.jealousy.tick(world);
                 bridge.moods.tick(world);
@@ -253,7 +264,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.memory.recordAction(card.id(), ActionIntent.none());
         if (server.isStopped()) return CompletableFuture.completedFuture(null);
         CompletableFuture<Void> done = new CompletableFuture<>();
-        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.divine.clearRuntime(); bridge.defense.clearRuntime(); bridge.traffic.clearRuntime(); bridge.roads.clearRuntime(); bridge.officials.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.rivalry.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.confession.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bars.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
+        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.divine.clearRuntime(); bridge.defense.clearRuntime(); bridge.traffic.clearRuntime(); bridge.roads.clearRuntime(); bridge.officials.clearRuntime(); bridge.passports.clearRuntime(); bridge.civil.clearRuntime(); bridge.graft.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.rivalry.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.confession.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bars.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); done.complete(null); });
         return done;
     }
     /** Б1: an event of the divine block (JSON), from any thread; dropped when no world is open. */
@@ -261,6 +272,33 @@ public final class MobGameBridge implements GameBridge {
         MobGameBridge bridge = active;
         if (bridge != null && json != null) bridge.divine.offer(json);
     }
+    /** Self-test: Shift+right-click on an official (the passport office); how many stand ahead of the player in the clerk's queue
+     * (-1: not in one) and how many villagers stand in that line. Server thread. */
+    public boolean officeVisitForTest(net.minecraft.entity.passive.VillagerEntity official, ServerPlayerEntity player) { return passports.visit((ServerWorld) official.getWorld(), player, official); }
+    public int queueAheadForTest(UUID player) { return passports.ahead(player); }
+    /** The papers window: what the player was offered last, and a click on its line {@code n}. */
+    public List<io.github.mobtalk.core.CivilRegistry.Offer> papersMenuForTest(UUID player) { return civil.menu(player); }
+    public void papersChooseForTest(ServerPlayerEntity player, int n) { civil.choose(player, n); }
+    public int queueLineForTest(UUID player) { return passports.line(player); }
+    /** The head's dacha placed at {@code origin} (front facing {@code facing}, 0..3) and grown to {@code points}; returns the stages built. */
+    public int dachaForTest(net.minecraft.entity.passive.VillagerEntity head, BlockPos bell, BlockPos origin, int facing, int points) {
+        ServerWorld world = (ServerWorld) head.getWorld();
+        VillageDefenseController.Zone zone = defense.zoneAt(world, bell);
+        if (zone == null) return -1;
+        memory.estate(head.getUuid(), officials.name(head), zone.key());
+        memory.estateUpdate(head.getUuid(), e -> { e.place(origin.getX(), origin.getY(), origin.getZ(), facing); e.points(points); });
+        for (int i = 0; i < io.github.mobtalk.core.Graft.Stage.values().length; i++) graft.grow(world, zone, head, memory.estate(head.getUuid(), null, null));
+        return memory.estate(head.getUuid(), null, null).built();
+    }
+    /** Heaven strikes the head now: LIGHTNING, TOADS or DUNG. */
+    public void smiteForTest(net.minecraft.entity.passive.VillagerEntity head, BlockPos bell, String smite) {
+        ServerWorld world = (ServerWorld) head.getWorld();
+        VillageDefenseController.Zone zone = defense.zoneAt(world, bell);
+        if (zone == null) return;
+        graft.strike(world, zone, head, memory.estate(head.getUuid(), null, null), io.github.mobtalk.core.Graft.Smite.valueOf(smite), GraftController.day(world));
+    }
+    public boolean inspectingForTest(BlockPos bell, ServerWorld world) { VillageDefenseController.Zone zone = defense.zoneAt(world, bell); return zone != null && graft.inspecting(zone.key()); }
+    public String zoneKeyForTest(BlockPos bell, ServerWorld world) { VillageDefenseController.Zone zone = defense.zoneAt(world, bell); return zone == null ? "" : zone.key(); }
     /** Where the admin history hears the villages learn of the god's deeds; null to stop. */
     public static void divineJournal(java.util.function.BiConsumer<String, com.google.gson.JsonObject> sink) { DivineController.journal = sink; }
     public static MobGameBridge forEntity(Entity entity) {

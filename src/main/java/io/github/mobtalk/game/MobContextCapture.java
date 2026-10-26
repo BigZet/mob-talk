@@ -98,6 +98,10 @@ final class MobContextCapture {
             mobDetails.put("bargaining", bridge.bargaining.capture(villager, player));
             Map<String, Object> fine = bridge.officials.fineFor(villager, player);
             if (fine != null) mobDetails.put("officialFine", fine);
+            Map<String, Object> paper = bridge.passports.caseFor(villager, player);
+            if (paper != null) mobDetails.put("paperCase", paper);
+            List<Map<String, Object>> gossip = bridge.officials.gossipFor(villager);
+            if (gossip != null) mobDetails.put("villageOfficials", gossip);
         }
         if (mob instanceof net.minecraft.entity.mob.ZombieVillagerEntity villager) {
             mobDetails.put("profession", Registries.VILLAGER_PROFESSION.getId(villager.getVillagerData().getProfession()).toString());

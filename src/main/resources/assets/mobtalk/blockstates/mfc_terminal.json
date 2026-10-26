@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/mfc_terminal"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/mfc_terminal",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/mfc_terminal",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/mfc_terminal",
+      "y": 270
+    }
+  }
+}

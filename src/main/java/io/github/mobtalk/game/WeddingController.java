@@ -133,6 +133,8 @@ public final class WeddingController {
         if (!daytime(world)) return "Свадьбы играют днём: позовите на свадьбу утром";
         if (world.hasRaidAt(spouse.getBlockPos())) return "Не до свадьбы: на деревню напали";
         if (bridge.defense.alarmAt(world, spouse.getBlockPos()) != null) return "Не до свадьбы: в деревне тревога";
+        if (bridge.config.passportForWedding && bridge.passports.enabled() && !OfficialContent.hasPassport(player))
+            return "Без паспорта не распишут: получите паспорт у паспортистки (Shift+ПКМ по ней у казённого стола)";
         Venue venue = venue(world, spouse);
         boolean quiet = venue == null;
         Vec3d toPlayer = flat(player.getPos().subtract(quiet ? spouse.getPos() : venue.plaza()));

@@ -140,6 +140,12 @@ public final class MobTalkConfig {
      * clerk, the inspector — who take bribes in an envelope of emeralds; the inspector writes orders to players who build or dig in
      * the village. */
     public boolean officials = true;
+    /** Officials, stage 2: the passport and its paperwork (Shift+right-click an official), the clerk's lunch break 13:00–14:00, and
+     * no wedding without a passport. */
+    public boolean paperwork = true, paperLunch = true, passportForWedding = false;
+    /** Officials, stages 3–4: a corrupt head's dacha outside the village, heaven's mild punishments for bribe-takers, the revizor
+     * the black ledger brings, and the stream switch «особенно наглые» (a corrupt official asks more and does not hide). */
+    public boolean officialDacha = true, officialSmite = true, officialRevizor = true, officialsShameless = false, officialGossip = true, officialPapers = true;
     /** Village bars: a bar stands in each new village (worldgen, takes effect for villages generated after the change); in the
      * evening villagers gather there and talk over the village's rumours, in chat subtitles, voiced only with {@link #barVoiced};
      * the bar's jukebox is the Alice speaker when the alicespeaker mod is installed. */
@@ -202,6 +208,12 @@ public final class MobTalkConfig {
      * village puts its desks up by the bell: the head, then the inspector, then the clerk; 0 = none in villages), the inspector's
      * fine (emeralds), the blocks a player must change near him to get an order, and the game days to pay it. */
     public int officialHonestPercent = 20, officialPricePercent = 100, officialResidents = 8, inspectorFine = 8, inspectorBlocks = 12, inspectorDays = 1;
+    /** The passport: papers between the application and the passport, the state fee (emeralds), game days to make the passport, and
+     * seconds one person spends at the clerk's window (the queue). */
+    public int paperworkSteps = 2, passportFee = 3, passportDays = 1, queueSeconds = 12;
+    /** The dacha: points a piece (a game day in office is one point, an envelope two); heaven's chance a day (percent) for a head
+     * who took envelopes; how long the revizor's inspection lasts (seconds). */
+    public int dachaPoints = 4, smitePercent = 35, revizorSeconds = 60;
     /** The bar's evening: from and to this game hour (6 is sunrise), at most this many visitors, the chance (percent) a free villager
      * goes, and the pause between two talks at one bar (seconds). */
     public int barOpenHour = 17, barCloseHour = 22, barVisitors = 6, barVisitPercent = 70, barTalkSeconds = 40;
@@ -366,7 +378,7 @@ public final class MobTalkConfig {
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites; copy.villageParrotJokes = villageParrotJokes;
-        copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageRoads = villageRoads; copy.roadLamps = roadLamps; copy.roadBypass = roadBypass; copy.roadDecor = roadDecor; copy.villageHeavy = villageHeavy; copy.villageCavalry = villageCavalry; copy.officials = officials; copy.barsInVillages = barsInVillages; copy.barEvenings = barEvenings; copy.barVoiced = barVoiced; copy.barAliceSpeaker = barAliceSpeaker; copy.barDrinks = barDrinks;
+        copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageRoads = villageRoads; copy.roadLamps = roadLamps; copy.roadBypass = roadBypass; copy.roadDecor = roadDecor; copy.villageHeavy = villageHeavy; copy.villageCavalry = villageCavalry; copy.officials = officials; copy.paperwork = paperwork; copy.paperLunch = paperLunch; copy.passportForWedding = passportForWedding; copy.officialDacha = officialDacha; copy.officialSmite = officialSmite; copy.officialRevizor = officialRevizor; copy.officialsShameless = officialsShameless; copy.officialGossip = officialGossip; copy.officialPapers = officialPapers; copy.barsInVillages = barsInVillages; copy.barEvenings = barEvenings; copy.barVoiced = barVoiced; copy.barAliceSpeaker = barAliceSpeaker; copy.barDrinks = barDrinks;
         copy.casino = casino; copy.casinoBouncers = casinoBouncers; copy.casinoVisitors = casinoVisitors; copy.casinoResort = casinoResort; copy.casinoSparkles = casinoSparkles;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;

@@ -296,6 +296,94 @@ public final class ConversationStore {
         changed.forEach((f, o) -> copies.put(f.copy(), o));
         return copies;
     }
+    /** Stage 2: the player's open passport case (a copy), or null. */
+    public synchronized Paperwork.Case paperCase(UUID player) { Paperwork.Case c = state.officials.kase(player); return c == null ? null : c.copy(); }
+    public synchronized Paperwork.Case paperOpen(UUID player, String playerName, String village, String villageTitle, int extra, Set<Officialdom.Rank> offices, long day) {
+        Paperwork.Case c = state.officials.open(player, playerName, village, villageTitle, Paperwork.chain(player, state.officials.nextCase(), extra, offices), day);
+        scheduleSave();
+        return c.copy();
+    }
+    public synchronized void paperSave(Paperwork.Case kase) { state.officials.save(kase == null ? null : kase.copy()); scheduleSave(); }
+    /** Stages 3–4: the head's dacha (a copy; made on first ask). */
+    public synchronized Graft.Estate estate(UUID head, String headName, String village) { Graft.Estate e = state.officials.estate(head, headName, village).copy(); return e; }
+    /** Changes the head's dacha under the lock and saves; returns a copy of the result. */
+    public synchronized Graft.Estate estateUpdate(UUID head, java.util.function.Consumer<Graft.Estate> change) {
+        Graft.Estate e = state.officials.estate(head, null, null);
+        change.accept(e);
+        scheduleSave();
+        return e.copy();
+    }
+    public synchronized List<Graft.Estate> estates() { return state.officials.estates(); }
+    /** The revizor: the game day he comes to this village, or -1. */
+    public synchronized long revizorDay(String village) { Long d = state.officials.revizors.get(village); return d == null ? -1 : d; }
+    public synchronized void revizorSchedule(String village, long day) { if (day < 0) state.officials.revizors.remove(village); else state.officials.revizors.put(village, day); scheduleSave(); }
+    public synchronized Map<String, Long> revizors() { return new LinkedHashMap<>(state.officials.revizors); }
+    /** ЗАГС: enters the family tree's new births, marriages, divorces and deaths in the book of acts; returns copies of the new acts. */
+    public synchronized List<CivilRegistry.Act> civilSync(long day) {
+        List<CivilRegistry.Act> added = state.officials.civil.sync(state.family, day, "", id -> {
+            Profile p = state.profiles.get(id.toString());
+            if (p != null) return SocialLedger.name(p);
+            return state.players.get(id.toString());
+        });
+        if (!added.isEmpty()) scheduleSave();
+        return added.stream().map(CivilRegistry.Act::copy).toList();
+    }
+    /** Forgets what a mob (or every mob, {@code mob} null) said that matches {@code stale} — the exchanges, memory facts and summaries
+     * — so the model stops repeating an invented procedure from its own history. Returns how many entries went. */
+    public synchronized int forgetStale(UUID mob, java.util.regex.Pattern stale) {
+        int gone = 0;
+        for (Map.Entry<String, Profile> entry : state.profiles.entrySet()) {
+            if (mob != null && !mob.toString().equals(entry.getKey())) continue;
+            Profile p = entry.getValue();
+            int before = p.turns.size();
+            p.turns.removeIf(t -> t.assistant() != null && stale.matcher(t.assistant()).find());
+            int removed = before - p.turns.size();
+            // Counted as dropped from the front: the absolute exchange count stays the same for the summaries.
+            p.turnsDropped += removed;
+            p.summarizedTurns = Math.max(p.turnsDropped, Math.min(p.turnsDropped + p.turns.size(), p.summarizedTurns));
+            int facts = p.facts.size(), summaries = p.summaries.size();
+            p.facts.removeIf(f -> stale.matcher(f.text()).find());
+            p.summaries.removeIf(s -> stale.matcher(s.text()).find());
+            if (p.facts.size() != facts) p.memory = String.join("\n", p.facts.stream().map(MemoryFact::text).toList());
+            gone += removed + facts - p.facts.size() + summaries - p.summaries.size();
+        }
+        if (gone > 0) scheduleSave();
+        return gone;
+    }
+    /** Self-tests: the player married to {@code spouse} with a child {@code child}, straight into the family tree. */
+    public synchronized void familyForTest(UUID player, String playerName, UUID spouse, String spouseName, UUID child, String childName) {
+        state.family.marry(player, playerName, Gender.MALE, true, spouse, spouseName, Gender.FEMALE, false);
+        state.family.addChild(child, childName, Gender.MALE, spouse, player);
+        scheduleSave();
+    }
+    /** Self-tests: the test family undone (no spouse following the player into the next stages, no children). */
+    public synchronized void familyClearForTest(UUID player) {
+        state.family.divorce(player);
+        for (UUID child : state.family.children(player)) state.family.nodes.remove(child.toString());
+        FamilyTree.Node node = state.family.nodes.get(player.toString());
+        if (node != null) node.children.clear();
+        state.officials.civil.acts.removeIf(a -> a.has(player));
+        state.officials.civil.issued.removeIf(key -> key.endsWith("|" + player));
+        scheduleSave();
+    }
+    /** What this office's window can give the player now. */
+    public synchronized List<CivilRegistry.Offer> civilPapers(UUID player, Officialdom.Rank office, boolean openOrder) { return state.officials.civil.papers(player, state.family, office, openOrder); }
+    public synchronized CivilRegistry.Act civilAct(int number) { return state.officials.civil.act(number); }
+    public synchronized boolean civilRepeated(CivilRegistry.Paper paper, int act, UUID player) { return state.officials.civil.repeated(paper, act, player); }
+    /** Issues the paper (marks a certificate issued) and returns the blank's series and number. */
+    public synchronized String civilIssue(CivilRegistry.Paper paper, int act, UUID player) { String n = state.officials.civil.issue(paper, act, player); scheduleSave(); return n; }
+    public synchronized List<CivilRegistry.Act> civilActs() { return state.officials.civil.acts(); }
+    /** The player's family as the справка о составе семьи lists it: «супруга — Аксинья», «сын — Ваня (умер)». */
+    public synchronized List<String> civilFamily(UUID player) {
+        List<String> out = new ArrayList<>();
+        for (FamilyTree.Kin kin : state.family.kin(player)) {
+            String name = kin.name();
+            if (name == null || name.isBlank()) { Profile p = state.profiles.get(kin.id().toString()); name = p == null ? "без имени" : SocialLedger.name(p); }
+            out.add(kin.word() + " — " + name + (kin.dead() ? " (умер)" : ""));
+        }
+        return out;
+    }
+    public synchronized String paperIssue(UUID player, String village, long day) { String n = state.officials.issuePassport(player, village, day); scheduleSave(); return n; }
     public synchronized List<Officialdom.Fine> officialFines() { return state.officials.open().stream().map(Officialdom.Fine::copy).toList(); }
 
     public synchronized void recordHelp(UUID mob, String type, String name, UUID player, String playerName, long nowMillis) {
