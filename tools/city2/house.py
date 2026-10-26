@@ -161,15 +161,18 @@ class House:
             self.joints |= {(x, z) for x in range(x0, x1 + 1) for z in range(z0, z1 + 1)}
         self.base_grid = self.grid
         self.grids = {}                                  # floor -> its own plan, where one differs (the ground floor's arch)
+        plans = dict(self.s.get("floor_plans", {}))
         if "plan_ground" in self.s:
-            g = {k: v for k, v in self.grid.items()}
-            for z, row in enumerate(self.s["plan_ground"]):
+            plans[1] = self.s["plan_ground"]
+        for k, plan_k in plans.items():
+            g = {key: v for key, v in self.grid.items()}
+            for z, row in enumerate(plan_k):
                 for x, ch in enumerate(row):
                     if ch == " ":
                         g.pop((x, z), None)
                     else:
                         g[(x, z)] = ch
-            self.grids[1] = g
+            self.grids[k] = g
         self.palettes = {}
 
     # ------------------------------------------------------------ plan queries
@@ -259,7 +262,7 @@ class House:
         return N
 
     def wallish(self, c):
-        return c in ("#", "-", "D", "E", "W", "B", "S")
+        return c in ("#", "-", "D", "E", "W", "B", "S", "X")
 
     # ------------------------------------------------------------ writing
 
@@ -293,7 +296,8 @@ class House:
         self.on_floor(None)
         self.roof_level()
         for i in range(self.n):
-            self.stairs(i)
+            if "stair" in self.s:       # a gym block of a school has none
+                self.stairs(i)
             if "lift" in self.s or "lifts" in self.s:
                 self.lift(i)
         self.balconies()
@@ -339,6 +343,8 @@ class House:
 
     def frame(self, bx, bz, k):
         """The frames of the flat whose room a facade cell's window lights; the staircase's (k None) per entrance."""
+        if "frame" in self.s:                   # a public building: one kind of frames throughout
+            return self.s["frame"]
         if k is not None:
             d = OPP[self.outward(bx, bz)]
             ix, iz = bx + DIRS[d][0], bz + DIRS[d][1]
@@ -377,6 +383,24 @@ class House:
                 fr = self.frame(bx, bz, k)
                 props = {"facing": out, "frame": fr} if row == "mid" else {"facing": out, "inner": self.inner_finish(bx, bz, k), "frame": fr}
                 self.at(bx, s + 3 + n, bz, f"window_{col}_{row}", props)
+        elif c == "X" and k == 1:     # a public building's front door: a pair of doors at the floor, a porch and a canopy
+            look = OPP[out]
+            mate = (bx + DIRS[LEFT[look]][0], bz + DIRS[LEFT[look]][1])
+            hinge = "right" if self.ch(*mate) == "X" else "left"
+            inner = self.inner_finish(bx, bz, k)
+            for n, row in enumerate(self.rows):
+                if n < 2:
+                    self.at(bx, s + 1 + n, bz, self.s.get("front_door", "door_entrance"),
+                            {"facing": look, "half": "lower" if n == 0 else "upper", "hinge": hinge, "open": "false", "powered": "false"})
+                else:
+                    self.at(bx, s + 1 + n, bz, f"facade_{col}_{row}", {"facing": out, "inner": inner})
+            dx, dz = DIRS[out]
+            side = DIRS[LEFT[out]]
+            for d in (1, 2):
+                for w in (-1, 0, 1):
+                    px, pz = bx + dx * d + side[0] * w, bz + dz * d + side[1] * w
+                    self.at(px, s, pz, "floor_concrete")
+                    self.at(px, self.slab(2), pz, "canopy", {"facing": out})
         else:
             inner = "paint_stair" if c == "S" else self.inner_finish(bx, bz, k)
             for n, row in enumerate(self.rows):
@@ -422,7 +446,7 @@ class House:
                 self.at(bx, R, bz, "roof_bitumen")
         for i in range(self.n):  # vent stacks over the bathrooms' risers, an aerial or two
             x0 = i * self.sw
-            for vx, vz in self.s["vents"]:
+            for vx, vz in self.s.get("vents", []):
                 self.at(x0 + vx, R + 1, vz, "vent_shaft", {"facing": N})
                 self.at(x0 + vx, R + 2, vz, "vent_cap", {"facing": N})
             if self.r.random() < 0.7:
@@ -465,7 +489,7 @@ class House:
                         break
         for i in range(self.n):
             x0 = i * self.sw
-            for vx, vz in self.s["vents"]:
+            for vx, vz in self.s.get("vents", []):
                 top = R + 1 + self.rise(vz, x0 + vx) // 2
                 for y in range(R + 1, top + 1):
                     self.at(x0 + vx, y, vz, "vent_shaft", {"facing": N})
@@ -745,6 +769,8 @@ class House:
                     self.flats.append(flat)
                 flat.rooms.setdefault(kind, []).extend((self.ox + x, self.oz + z) for x, z in cells)
             hung = {}
+            if not self.s.get("curtains", True):    # the public buildings: no curtains at their windows
+                continue
             for (bx, bz), c in self.grid.items():
                 if not (c == "W" or (c == "B" and not self.balcony_door(k))) or not self.is_facade(bx, bz):
                     continue

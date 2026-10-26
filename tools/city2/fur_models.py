@@ -1405,6 +1405,8 @@ def make():
     fur_2000.make()
     import fur_stalin
     fur_stalin.make()
+    import fur_public
+    fur_public.make()
 
 
 def plate_tex():

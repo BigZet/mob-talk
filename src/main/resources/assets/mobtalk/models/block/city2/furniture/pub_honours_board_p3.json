@@ -1,0 +1,66 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "pub_honours_board_poster_honours_53": "mobtalk:block/city2/furniture/pub_honours_board_poster_honours_53",
+    "board_frame": "mobtalk:block/city2/furniture/board_frame",
+    "particle": "mobtalk:block/city2/furniture/pub_honours_board_poster_honours_53"
+  },
+  "elements": [
+    {
+      "from": [
+        2.0,
+        0.0,
+        15.25
+      ],
+      "to": [
+        16.0,
+        10.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_honours_board_poster_honours_53",
+          "uv": [
+            0.0,
+            6.0,
+            14.0,
+            16.0
+          ]
+        }
+      },
+      "shade": false
+    },
+    {
+      "from": [
+        2.0,
+        0.0,
+        15.5
+      ],
+      "to": [
+        16.0,
+        10.0,
+        16.0
+      ],
+      "faces": {
+        "west": {
+          "texture": "#board_frame",
+          "uv": [
+            15.5,
+            6.0,
+            16.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#board_frame",
+          "uv": [
+            2.0,
+            15.5,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    }
+  ]
+}

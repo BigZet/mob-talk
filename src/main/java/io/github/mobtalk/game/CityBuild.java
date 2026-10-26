@@ -159,7 +159,7 @@ public final class CityBuild {
                     .then(colour);
             var series = argument("series", StringArgumentType.string())
                     .suggests((c, b) -> CommandSource.suggestMatching(List.of("\"1-464\"", "\"1-335\"", "\"1-447\"", "\"ii-03\"", "\"1-515-9\"", "\"i-209a\"", "\"p-44\"",
-                            "\"1-447-l\"", "\"ii-03-l\"", "\"ii-03-yard\""), b))
+                            "\"1-447-l\"", "\"ii-03-l\"", "\"ii-03-yard\"", "\"school\""), b))
                     .then(argument("sections", IntegerArgumentType.integer(0, 8)).then(floors));
             dispatcher.register(literal("city").requires(source -> source.hasPermissionLevel(2)).then(literal("house").then(series)));
         });

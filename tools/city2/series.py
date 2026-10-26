@@ -459,8 +459,8 @@ def check():
     for name, s in SERIES.items():
         widths = {len(r) for r in s["plan"]}
         assert len(widths) == 1, (name, widths)
-        chars = set("".join(s["plan"] + s.get("plan_ground", [])))
-        unknown = chars - set("#-WBDEsSZ ") - set(s["rooms"])
+        chars = set("".join(s["plan"] + s.get("plan_ground", []) + sum(s.get("floor_plans", {}).values(), [])))
+        unknown = chars - set("#-WBDEsSZX ") - set(s["rooms"])
         assert not unknown, (name, unknown)
         assert len(s.get("end", "#" * len(s["plan"]))) == len(s["plan"]), name
 

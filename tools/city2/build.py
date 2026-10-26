@@ -28,6 +28,7 @@ HOUSES = [("1-464", 1, 5, "grey")] + [("1-464", s, 5, c) for s in range(2, 7) fo
 COMPOSED = [("1-447-l", s, 5, c) for s in range(1, 4) for c in BRICKS] + \
     [("ii-03-l", s, f, c) for s in range(1, 3) for f in (3, 4) for c in BRICKS] + \
     [("ii-03-yard", s, f, c) for s in range(0, 2) for f in (4, 5) for c in BRICKS]
+PUBLIC_COLOURS = ("silicate", "brick", "white")
 
 
 def build_houses(maps=None):
@@ -46,6 +47,11 @@ def build_houses(maps=None):
         t, flats = (compose.l_house if kind == "l" else compose.yard_house)(base, sections, floors, colour)
         t.save(os.path.join(out, f"{name}_s{sections}_f{floors}_{colour}.nbt"))
         print(f"house {name} s{sections} f{floors} {colour}: {t.size}, {len(flats)} flats")
+    import public
+    for colour in PUBLIC_COLOURS:      # the public buildings: /city house "school" 1 3 <colour>
+        t, _ = public.school(colour)
+        t.save(os.path.join(out, f"school_s1_f3_{colour}.nbt"))
+        print(f"school {colour}: {t.size}")
 
 
 def main():

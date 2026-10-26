@@ -57,7 +57,7 @@ class Room:
         for (x, z) in self.cells:
             for d, (dx, dz) in DIRS.items():
                 c = self.h.ch(x + dx, z + dz)
-                if c in ("D", "E") or (c == "B" and self.h.balcony_door(self.k)):
+                if c in ("D", "E", "X") or (c == "B" and self.h.balcony_door(self.k)):
                     out.append((x, z))
         return out
 
@@ -520,6 +520,11 @@ def stalin(rm, flat):
 KINDS = {"pantry": pantry, "kitchen": kitchen, "bath": bath, "wc": wc, "hall": hall, "living": living, "bedroom": bedroom, "room": room}
 
 
+def public_kinds():
+    import public   # the public buildings' rooms (public.py imports house, which imports this module only when building)
+    return public.FURNISH
+
+
 def furnish(house):
     """Every flat of every floor, room by room; then the flats' floor rugs; then the landings' door mats."""
     plan_rooms = house.s["rooms"]
@@ -543,10 +548,10 @@ def furnish(house):
                     if cells:
                         rooms.append(Room(house, k, letter, kind, cells, random.Random(f"{r.random()}")))
                 order = ["hall", "kitchen", "bath", "wc", "living", "bedroom", "room", "pantry"]
-                rooms.sort(key=lambda rm: order.index(rm.kind))
+                rooms.sort(key=lambda rm: order.index(rm.kind) if rm.kind in order else len(order))
                 for rm in rooms:
                     rm.switch()
-                    KINDS[rm.kind](rm, flat)
+                    (KINDS.get(rm.kind) or public_kinds()[rm.kind])(rm, flat)
                     if house.s.get("stalin"):
                         stalin(rm, flat)
                 if carpet and not flat["rug"]:
