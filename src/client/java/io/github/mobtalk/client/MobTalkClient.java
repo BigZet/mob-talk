@@ -141,6 +141,12 @@ public final class MobTalkClient implements ClientModInitializer {
         giftKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.gift", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_G, "category.mobtalk"));
         familyKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.family", InputUtil.Type.KEYSYM, InputUtil.UNKNOWN_KEY.getCode(), "category.mobtalk"));
         moodCard.key = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.mood", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_ALT, "category.mobtalk"));
+        // Одиночка: клятву, распознанную сервером (OpenRouter/свой Whisper на сервере), берёт клиентская служба свадьбы.
+        io.github.mobtalk.server.DialogueService.LOCAL_VOW = (player, text) -> {
+            if (client.player == null || !client.player.getUuid().equals(player) || !wedding.takesVow() || wedding.serverVowOpen()) return false;
+            client.execute(() -> { wedding.vowHeard(text); requestActive = false; status = "Клятва произнесена"; showHud(); });
+            return true;
+        };
         MomentClient.register(configDirectory); // Метки для монтажа: клавиша, OBS (идея З4).
         net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_ENTITIES.register(labels::render);
         ChildView.register();
