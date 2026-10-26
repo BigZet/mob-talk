@@ -93,7 +93,8 @@ public final class VillageTalkController {
     /** A villager that may talk: grown, awake, not fleeing, fighting, riding, trading or held by the player's conversation. */
     private boolean free(VillagerEntity villager) {
         return villager.isAlive() && !villager.isRemoved() && !villager.isAiDisabled() && !villager.isBaby() && !villager.isSleeping() && !villager.isPanicking()
-                && villager.getTarget() == null && !villager.hasVehicle() && !villager.hasCustomer() && !bridge.actions.busy(villager) && !bridge.wedding.involved(villager.getUuid());
+                && villager.getTarget() == null && !villager.hasVehicle() && !villager.hasCustomer() && !bridge.actions.busy(villager) && !bridge.wedding.involved(villager.getUuid())
+                && !bridge.confession.hushes(villager); // Б4: у исповеди жители молчат.
     }
     /** The known village of this villager: by its village structure when the option reads sites, else the nearest within the radius. */
     private ConversationStore.Village village(ServerWorld world, VillagerEntity villager) {

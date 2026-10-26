@@ -49,7 +49,7 @@ final class SelfTestServer {
     private long ticks, connectedAt = -1, lostAt = -1;
     private boolean quitting;
     private String pendingFind, lastOverlay = "";
-    private long findUntil;
+    private long findUntil, sneakUntil = -1;
 
     private SelfTestServer(MobTalkClient owner) { this.owner = owner; }
 
@@ -96,6 +96,7 @@ final class SelfTestServer {
         ticks++;
         if (quitting) return;
         pollFind();
+        if (sneakUntil >= 0 && ticks >= sneakUntil) { owner.client.options.sneakKey.setPressed(false); sneakUntil = -1; log("sneak released"); }
         if (connectedAt < 0 && ticks > 20 * 600) { log("never joined the server in 10 minutes: quitting"); quit(); }
         if (lostAt >= 0 && ticks - lostAt > 20 * 15) { log("lost the server: quitting"); quit(); }
     }
@@ -149,6 +150,8 @@ final class SelfTestServer {
                         "poison=" + (owner.client.player != null && owner.client.player.hasStatusEffect(StatusEffects.POISON)),
                         "dim=" + (owner.client.world == null ? "" : owner.client.world.getRegistryKey().getValue()));
                 case "shot" -> ScreenshotRecorder.saveScreenshot(owner.client.runDirectory, f[1], owner.client.getFramebuffer(), text -> log("screenshot: " + text.getString()));
+                case "sneak" -> { owner.client.options.sneakKey.setPressed(true); sneakUntil = ticks + 20L * Math.max(1, Integer.parseInt(f[1])); log("sneaking"); }
+                case "hud" -> send("hud", PenanceHud.current());
                 case "quit" -> { log("quit by the conductor"); quit(); }
                 default -> log("unknown cue " + f[0]);
             }

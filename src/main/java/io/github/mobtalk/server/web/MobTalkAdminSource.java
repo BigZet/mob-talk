@@ -68,6 +68,11 @@ public final class MobTalkAdminSource implements UnaryOperator<String> {
             new Extra("rivalTrials", Tunables.Section.SOCIAL, "rivals", "bool", null, null, null),
             new Extra("rivalBellScene", Tunables.Section.SOCIAL, "rivals", "bool", null, null, null),
             new Extra("rivalHud", Tunables.Section.SOCIAL, "rivals", "bool", null, null, null),
+            new Extra("confession", Tunables.Section.SOCIAL, "confession", "bool", null, null, null),
+            new Extra("confessionAbbotsOnly", Tunables.Section.SOCIAL, "confession", "bool", null, null, null),
+            new Extra("confessionHistoryText", Tunables.Section.SOCIAL, "confession", "bool", null, null, null),
+            new Extra("confessionStreamerPublic", Tunables.Section.SOCIAL, "confession", "bool", null, null, null),
+            new Extra("confessionPenancesOff", Tunables.Section.SOCIAL, "confession", "flags", null, "Виды епитимьи", "Выключенную епитимью батюшка не налагает: берёт другую по смыслу греха."),
             new Extra("pregnancy", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
             new Extra("pregnancyBelly", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
             new Extra("pregnancyStatus", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
@@ -77,6 +82,7 @@ public final class MobTalkAdminSource implements UnaryOperator<String> {
             new Extra("giftsFirst", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
             new Extra("villageChatter", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
             new Extra("villageNotices", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
+            new Extra("villageParrotJokes", Tunables.Section.SOCIAL, "switches", "bool", null, "Жители шутят про попугаев в клетке", null),
             new Extra("villageSites", Tunables.Section.SOCIAL, "switches", "bool", null, null, null),
             new Extra("villageDefense", Tunables.Section.SOCIAL, "defense", "bool", null, null, null),
             new Extra("villageNoSpawn", Tunables.Section.SOCIAL, "defense", "bool", null, null, null),
@@ -141,7 +147,12 @@ public final class MobTalkAdminSource implements UnaryOperator<String> {
             String title = extra.title() != null ? extra.title() : lang.getOrDefault("mobtalk.settings." + extra.field(), extra.field());
             String help = extra.help() != null ? extra.help() : lang.get("mobtalk.settings." + extra.field() + ".tooltip");
             JsonObject json = Json.obj("key", extra.field(), "title", title, "type", extra.type(), "default", read(field, defaults), "help", help, "danger", null);
-            if (extra.options() != null) {
+            if ("flags".equals(extra.type())) {
+                JsonArray options = new JsonArray();
+                for (io.github.mobtalk.core.Confession.Penance penance : io.github.mobtalk.core.Confession.Penance.values())
+                    options.add(Json.obj("id", penance.id(), "title", penance.title, "help", penance.task, "group", "penance", "groupTitle", "Епитимьи"));
+                json.add("options", options);
+            } else if (extra.options() != null) {
                 JsonArray options = new JsonArray();
                 for (String option : extra.options()) options.add(Json.obj("value", option, "title", option.isEmpty() ? "по умолчанию провайдера" : option));
                 json.add("options", options);

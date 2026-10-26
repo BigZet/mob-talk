@@ -40,17 +40,18 @@ const note = text => h('p.muted', { style: { margin: '4px 0 10px', fontSize: '13
 export default function divine(root, route) {
   let range = route.params.range || '7d';
   const cleanup = [], charts = [];
-  let actions = [], deeds = new Map(), disabled = new Set();
+  let actions = [], deeds = new Map(), disabled = new Set(), penances = new Map();
   const tiles = h('div.grid.stats'), soulsBox = h('div.card.flush'), activeBox = h('div'), verdicts = h('div.list'), statBox = h('div.chart'),
-    topBox = h('div'), actionsBox = h('div'), prayersBox = h('div.list'), catalogBox = h('div');
+    topBox = h('div'), actionsBox = h('div'), prayersBox = h('div.list'), catalogBox = h('div'), confessionsBox = h('div.list');
   let prayerPlayer = route.params.player || '';
-  const playerSel = h('select.select', { 'aria-label': 'Игрок', style: { width: 'auto' }, onchange: e => { prayerPlayer = e.target.value; setParams({ player: prayerPlayer || null }); drawPrayers(); } }, h('option', { value: '' }, 'все игроки'));
+  const playerSel = h('select.select', { 'aria-label': 'Игрок', style: { width: 'auto' }, onchange: e => { prayerPlayer = e.target.value; setParams({ player: prayerPlayer || null }); drawPrayers(); drawConfessions(); } }, h('option', { value: '' }, 'все игроки'));
   replace(root, h('div.page-head', h('h1', 'Бог')), h('div', skeleton(4)));
 
   // Сначала узнаём, есть ли мод: один запрос, 503 — понятная плашка вместо раздела. Справочник деяний — из описания настроек источника.
   Promise.all([api.get('divine/souls'), api.get('sources/divineblock/actions').catch(() => ({ actions: [] })), api.get('sources').catch(() => ({ sources: [] })),
-    api.get('sources/divineblock/values').catch(() => ({ values: {} }))]).then(([first, act, src, vals]) => {
+    api.get('sources/divineblock/values').catch(() => ({ values: {} })), api.get('confession/penances').catch(() => ({ items: [] }))]).then(([first, act, src, vals, pen]) => {
     actions = act.actions || [];
+    setPenances(pen);
     const field = (src.sources || []).find(s => s.id === 'divineblock')?.groups?.flatMap(g => g.fields || []).find(f => f.key === 'disabled');
     deeds = new Map((field?.options || []).map(o => [o.id, o]));
     const off = vals.values?.disabled;
@@ -64,6 +65,8 @@ export default function divine(root, route) {
         h('section', h('h2.section-title', 'Души'),
           note('Каждый, кто хоть раз молился. Милость — сколько добра бог помнит за игроком, грехи — сколько дурного, кары подряд — насколько тяжелее будет следующая кара.'),
           soulsBox),
+        h('section.card.flush', h('div.card-head', { style: { padding: '14px 16px 0' } }, h('h2', 'Исповеди')),
+          h('div', { style: { padding: '0 16px' } }, note('Исповедь у священника (Mob Talk): где, у кого, сколько названо, отпущено, отложено до епитимьи и скрыто. Слов исповеди здесь нет — это тайна (их пишут, только если в настройках включено «Слова исповеди в историю»). Фильтр по игроку — тот же, что у молитв.')), confessionsBox),
         h('section.card.flush', h('div.card-head', { style: { padding: '14px 16px 0' } }, h('h2', 'Молитвы и ответы'), playerSel),
           h('div', { style: { padding: '0 16px' } }, note('Слова игрока, тон, подношение, ответ бога и почему он так решил. Наведите на деяние — появится описание.')), prayersBox),
         h('div.grid.two',
@@ -76,6 +79,7 @@ export default function divine(root, route) {
         actionsBox));
     drawSouls(first);
     drawPrayers();
+    drawConfessions();
     drawActive();
     drawStats();
     drawCatalog();
@@ -151,9 +155,39 @@ export default function divine(root, route) {
       { key: 'sins', title: 'Грехи', r: true, desc: true, render: s => h('div', { title: (s.deeds || []).map(d => d.text).join('\n') || 'поступков не было' }, h(`span.badge${s.sins > 5 ? '.bad' : s.sins ? '.warn' : ''}`, fmt.num(s.sins))) },
       { key: 'ladder', title: 'Кары подряд', desc: true, render: s => ladderCell(s.ladder || 0) },
       { key: 'deeds', title: 'Что бог помнит', sortable: false, render: s => (s.deeds?.length ? h('div.muted', { style: { fontSize: '12.5px', maxWidth: '280px' } }, s.deeds.slice(0, 3).map(d => d.text).join('; ')) : h('span.muted', 'ничего')) },
+      { key: 'penance', title: 'Епитимья', sortable: false, render: s => penanceCell(s) },
       { key: 'curses', title: 'Проклятия', sortable: false, render: s => (s.curses?.length ? h('div.chips', s.curses.map(c => h('span.badge.warn', { title: curseHelp(c.title) }, c.title, ' ', h('span.num.countdown', { dataset: { until: c.until } }, fmt.countdown(c.until))))) : h('span.muted', 'нет')) },
       { key: 'act', title: 'Управление', sortable: false, render: s => soulActions(s) },
     ], souls, { sort: { key: 'sins', dir: -1 } }) : empty('Душ пока нет: никто не молился.'));
+  }
+  /** Б4: епитимьи по игроку (ник и UUID). */
+  function setPenances(r) {
+    penances = new Map();
+    for (const p of r?.items || []) { penances.set(pname(p.player), p); if (p.player?.uuid) penances.set(p.player.uuid, p); }
+  }
+  const reloadPenances = () => api.get('confession/penances').then(r => { setPenances(r); return api.get('divine/souls'); }).then(drawSouls).catch(() => {});
+  function penanceCell(s) {
+    const p = penances.get(s.player?.uuid) || penances.get(pname(s.player));
+    if (!p) return h('span.muted', 'нет');
+    const act = (id, title, consequence) => {
+      const btn = h(`button.btn.sm${id === 'cancel' ? '.danger' : ''}`, { type: 'button' }, title);
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
+        if (!(await confirm({ title: `${title}: ${pname(s.player)}?`, consequence, ok: title, danger: id === 'cancel' }))) return;
+        busy(btn, async () => { const r = await api.post(`confession/penances/${encodeURIComponent(p.player.uuid)}/${id}`, {}); toast(r.message || 'Готово'); reloadPenances(); });
+      });
+      return btn;
+    };
+    return h('div', { style: { maxWidth: '260px' } },
+      h('div', h(`span.badge${p.done ? '.good' : '.warn'}`, p.title), p.target > 1 ? h('span.muted', ` ${p.progress}/${p.target}`) : null),
+      h('div.muted', { style: { fontSize: '12px' } }, `${p.priest} · ${p.place === 'temple' ? 'храм' : 'село'} · ${p.done ? 'исполнена, ждёт возвращения' : 'срок ' + fmt.countdown(p.due)}`),
+      h('div.row', { style: { gap: '6px', marginTop: '4px', flexWrap: 'wrap' } },
+        !p.done && act('credit', 'Засчитать', 'Игрок сможет вернуться к любому иерею за разрешением от отложенных грехов.'),
+        act('cancel', 'Снять', 'Епитимья снимется без наказания; отложенные грехи снова будут ждать исповеди.')));
+  }
+  function drawConfessions() {
+    load(confessionsBox, () => api.get('history', { kind: 'confession', player: prayerPlayer, limit: 30 }),
+      r => (r.items?.length ? r.items.map(x => recordRow(x)) : empty(prayerPlayer ? 'Этот игрок ещё не исповедовался.' : 'Исповедей ещё не было.')), { lines: 3 });
   }
   function soulActions(s) {
     const perPlayer = actions.filter(a => a.args?.some(x => x.key === 'player') && !SOUL_OWN.has(a.id) && a.id !== 'streamer');
@@ -352,6 +386,7 @@ export default function divine(root, route) {
               deedHelp(d.id) && h('div.meta', deedHelp(d.id)))))))))));
   }
 
+  cleanup.push(on('history', rec => { if (rec?.kind === 'confession' && confessionsBox.isConnected) { drawConfessions(); reloadPenances(); } }));
   cleanup.push(on('history', rec => { if (rec?.kind === 'verdict' || rec?.kind === 'boss' || rec?.kind === 'ban') { if (soulsBox.isConnected) { reloadSouls(); drawActive(); drawPrayers(); if (rec.kind === 'verdict') loadVerdicts(); } } }));
   return { destroy() { cleanup.forEach(f => f()); charts.forEach(c => c.destroy()); } };
 }

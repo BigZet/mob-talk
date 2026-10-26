@@ -50,13 +50,15 @@ public final class VillageRumors {
         long time;
         /** Told about a deed of the god ({@link DivineTidings}): kept apart so the god alone never makes an exile. */
         boolean divine;
-        Rumor copy() { Rumor c = new Rumor(); c.id = id; c.text = text; c.source = source; c.sourceId = sourceId; c.subject = subject; c.subjectId = subjectId; c.importance = importance; c.sign = sign; c.time = time; c.divine = divine; return c; }
-        /** importance × (1 − age/forget): a rumour weighs less every day and nothing on its fifth. */
+        /** A short-lived rumour (a parrot in jail) is forgotten at this moment instead of after {@link #forgetDays()}; 0 — the usual life. */
+        long until;
+        Rumor copy() { Rumor c = new Rumor(); c.id = id; c.text = text; c.source = source; c.sourceId = sourceId; c.subject = subject; c.subjectId = subjectId; c.importance = importance; c.sign = sign; c.time = time; c.divine = divine; c.until = until; return c; }
+        /** importance × (1 − age/forget): a rumour weighs less every day and nothing on its fifth (or at its own end). */
         double weight(long now) {
-            double days = Math.max(0, now - time) / (double) DAY_MILLIS;
-            return Math.max(0, importance * (1 - days / forgetDays()));
+            double life = until > time ? until - time : forgetDays() * (double) DAY_MILLIS;
+            return Math.max(0, importance * (1 - Math.max(0, now - time) / life));
         }
-        boolean forgotten(long now) { return now - time >= forgetDays() * DAY_MILLIS; }
+        boolean forgotten(long now) { return until > 0 ? now >= until : now - time >= forgetDays() * DAY_MILLIS; }
         View view(long now) { return new View(id, text, source, importance, sign, time, weight(now), subject, divine); }
     }
     /** One village's chronicle: the rumours and when it was last written. */
@@ -218,6 +220,26 @@ public final class VillageRumors {
         if (chronicle != null) for (Rumor rumor : chronicle.rumors) if (rumor.id.equals(rumorId)) return rumor;
         for (Chronicle other : villages.values()) if (other != chronicle) for (Rumor rumor : other.rumors) if (rumor.id.equals(rumorId)) return rumor;
         return null;
+    }
+
+    /** News the game itself tells (not a chronicle): one rumour under a fixed id, about nobody in particular, alive for
+     * {@code lifeMillis}; every listed hearer knows it at once. The same id replaces the older news. Returns the rumour's id. */
+    public String news(String villageId, String id, String text, int importance, long lifeMillis, java.util.Collection<UUID> hearers, long now) {
+        if (villageId == null || id == null || text == null || text.isBlank()) return "";
+        Chronicle chronicle = villages.computeIfAbsent(villageId, ignored -> new Chronicle());
+        chronicle.rumors.removeIf(rumor -> rumor.id.equals(id));
+        Rumor rumor = new Rumor();
+        rumor.id = id; rumor.text = TextBounds.characters(text.strip(), 300);
+        rumor.importance = MemoryFact.clamp(importance); rumor.time = now; rumor.until = now + Math.max(1, lifeMillis);
+        chronicle.rumors.add(rumor);
+        if (hearers != null) for (UUID hearer : hearers) if (hearer != null) hear(hearer.toString(), id);
+        trim(chronicle, now);
+        return id;
+    }
+    /** Drops the game's news with ids starting with {@code prefix} from every village (the parrot walked free). */
+    public void dropNews(String prefix) {
+        if (prefix == null || prefix.isBlank()) return;
+        for (Chronicle chronicle : villages.values()) chronicle.rumors.removeIf(rumor -> rumor.id.startsWith(prefix));
     }
 
     // ---- Spreading: between villagers standing together, and by a wandering trader. ----

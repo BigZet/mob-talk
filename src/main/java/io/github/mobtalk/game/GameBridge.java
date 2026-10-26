@@ -126,4 +126,22 @@ public interface GameBridge {
     default WeddingView wedding() { return null; }
     /** Тексты свадьбы просить у модели: один раз за свадьбу, иначе null. */
     default io.github.mobtalk.core.WeddingScript.Input takeWeddingScript() { return null; }
+
+    // ---- Исповедь у священника (Б4). ----
+
+    /** Идущая исповедь для серверного ведущего ({@code ConfessionHost}): порядок, измерение, сетевой номер священника, слышна ли она
+     * всем рядом (исповедь стримера при тумблере), радиус тайны, голос священника. */
+    record ConfessionView(io.github.mobtalk.core.Confession.Rite rite, String dimension, int priestEntityId, boolean open, double secrecy, String voiceId) { }
+    default List<ConfessionView> confessions() { return List.of(); }
+    /** Ответ на слова исповеди: {@code handled} — это к исповеди (обычный разговор не идёт), {@code line} — что сказал житель
+     * (матушка, «подожди, чадо»), {@code chat} — служебная строка игроку. */
+    record ConfessionAnswer(boolean handled, String line, String chat) {
+        public static final ConfessionAnswer NOT_MINE = new ConfessionAnswer(false, "", "");
+    }
+    /** Игрок сказал жителю «хочу исповедаться» или «исполнил епитимью»: начать исповедь, отказать или пропустить в разговор. */
+    default CompletableFuture<ConfessionAnswer> confessionAsk(UUID mobId, UUID playerId, String said) { return CompletableFuture.completedFuture(ConfessionAnswer.NOT_MINE); }
+    /** Ведущий узнал у бога итог: епитимья, откат, память священника, эффекты (поток сервера). */
+    default void confessionResult(io.github.mobtalk.core.Confession.Rite rite, io.github.mobtalk.core.DivineLink.Outcome outcome) { }
+    /** Строка епитимьи игрока для HUD ("" — нет). */
+    default String penanceHud(UUID playerId) { return ""; }
 }

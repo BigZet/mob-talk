@@ -16,6 +16,7 @@ public final class ConversationStore {
     private final RivalryLedger rivalry = new RivalryLedger(this);
     private final WeddingLedger wedding = new WeddingLedger(this);
     private final ChildLedger children = new ChildLedger(this);
+    private final ConfessionLedger confession = new ConfessionLedger(this);
 
     /** Initial load touches disk: call from a maintenance/conversation worker. */
     public static ConversationStore open(Path worldDirectory, MobTalkConfig config) throws IOException {
@@ -67,6 +68,8 @@ public final class ConversationStore {
     public WeddingLedger wedding() { return wedding; }
     /** Трек N: особая ночь, беременность, роды и экран семьи; см. {@link ChildLedger}. */
     public ChildLedger children() { return children; }
+    /** Исповедь: откат, епитимьи; см. {@link ConfessionLedger}. Слов исповеди в памяти мира нет. */
+    public ConfessionLedger confession() { return confession; }
     /** Трек M: пол, родители (мать первой) и стадия роста жителя с профилем — облик людей-жителей; рендер читает копию. */
     public record Lineage(Gender gender, List<UUID> parents, String stage) { }
     public synchronized Map<UUID, Lineage> lineages() {
@@ -272,6 +275,15 @@ public final class ConversationStore {
         int added = state.rumors.add(villageId, rumors, ids, playerIdsByName(), now);
         if (added > 0) scheduleSave();
         return added;
+    }
+    /** The game's own news for one village (a viewer's parrot jailed or freed): a short-lived rumour every listed villager knows at
+     * once, so small talk picks it up. {@code dropPrefix} first removes older news with that id prefix ("" — none). */
+    public synchronized void villageNews(String villageId, String id, String dropPrefix, String text, int importance, long lifeMillis,
+                                         java.util.Collection<UUID> hearers, long now) {
+        if (villageId == null || villageId.isBlank()) return;
+        if (dropPrefix != null && !dropPrefix.isBlank()) state.rumors.dropNews(dropPrefix);
+        state.rumors.news(villageId, id, text, importance, lifeMillis, hearers, now);
+        scheduleSave();
     }
     /** Two inhabitants of one village stand together: rumours cross between them (faster between family and friends). */
     public synchronized boolean spreadRumors(UUID a, UUID b, java.util.function.DoubleSupplier roll, long now) {
@@ -1283,7 +1295,11 @@ public final class ConversationStore {
         DivineTidings divine = new DivineTidings();
         /** The inspectors' open orders and who took envelopes (track «чиновники»); absent in files written before it. */
         Officialdom officials = new Officialdom();
+        /** Исповедь: откат и епитимьи по игрокам; absent in files written before it. */
+        ConfessionLedger.Book confessions = new ConfessionLedger.Book();
         void sanitize() {
+            if (confessions == null) confessions = new ConfessionLedger.Book();
+            confessions.sanitize();
             if (officials == null) officials = new Officialdom();
             officials.sanitize();
             if (divine == null) divine = new DivineTidings();
@@ -1307,6 +1323,7 @@ public final class ConversationStore {
             profiles.forEach((key, p) -> c.profiles.put(key, p.copy()));
             c.bargains.putAll(bargains); c.villages.putAll(villages); // Immutable records.
             c.relations = relations.copy(); c.rumors = rumors.copy(); c.family = family.copy(); c.notices = notices.copy(); c.players = new LinkedHashMap<>(players); c.divine = divine.copy(); c.officials = officials.copy();
+            c.confessions = confessions.copy();
             return c;
         }
     }

@@ -590,6 +590,43 @@ final class LiveGameView implements GameView {
         return answer;
     }
 
+    // ---- Б4: епитимьи (у Mob Talk), грехи и числа — у Божественного блока. ----
+
+    @Override public JsonObject penances() {
+        return onServer(() -> {
+            long tick = server.getOverworld().getTime(), now = System.currentTimeMillis();
+            JsonArray items = new JsonArray();
+            for (io.github.mobtalk.core.ConfessionLedger.Penance p : memory().confession().penances()) {
+                String name = server.getUserCache() == null ? "" : server.getUserCache().getByUuid(p.player()).map(com.mojang.authlib.GameProfile::getName).orElse("");
+                ServerPlayerEntity online = players_().getPlayer(p.player());
+                if (online != null) name = online.getGameProfile().getName();
+                items.add(Json.obj("player", Json.player(p.player(), name.isBlank() ? p.player().toString() : name), "kind", p.kind().id(), "title", p.kind().title,
+                        "hud", p.hud(tick), "priest", p.priest(), "place", p.place().id(), "progress", p.progress(), "target", p.kind().target, "done", p.done(),
+                        "deeds", p.deeds().size(), "assigned", now - Math.max(0, tick - p.assignedTick()) * 50L, "due", now + Math.max(0, p.dueTick() - tick) * 50L));
+            }
+            return Json.obj("items", items);
+        });
+    }
+    @Override public JsonObject penanceAction(java.util.UUID player, String action) {
+        return onServer(() -> {
+            io.github.mobtalk.core.ConfessionLedger ledger = memory().confession();
+            if (ledger.penance(player) == null) throw ApiException.notFound("У игрока нет епитимьи.");
+            switch (action) {
+                case "credit" -> {
+                    ledger.done(player);
+                    ServerPlayerEntity online = players_().getPlayer(player);
+                    if (online != null) online.sendMessage(net.minecraft.text.Text.literal("§a[Mob Talk] Епитимья засчитана — вернитесь к батюшке и скажите «исполнил епитимью»."), false);
+                    return Json.ok("Епитимья засчитана: игрок может вернуться к иерею за разрешением.");
+                }
+                case "cancel" -> {
+                    io.github.mobtalk.core.DivineLink.release(player, ledger.clear(player));
+                    return Json.ok("Епитимья снята: отложенные грехи снова ждут исповеди.");
+                }
+                default -> throw ApiException.notFound("Нет такого действия.");
+            }
+        });
+    }
+
     // ---- Сейчас. ----
 
     @Override public JsonArray activities() {

@@ -169,9 +169,10 @@ final class MobContextCapture {
             entities.sort(Comparator.comparingDouble(mob::squaredDistanceTo));
             for (LivingEntity entity : entities.stream().limit(16).toList()) {
                 String key = "e" + (observed.size() + 1);
+                boolean caged = entity.getCommandTags().contains(ParrotJailNews.CAGED_TAG);
                 observed.add(new ObservedEntity(key, entity.getUuid(), MobGameBridge.type(entity), entity.getName().getString(),
-                        round(mob.distanceTo(entity)), direction(mob.getPos(), entity.getPos()), true, living(entity, true)));
-                nearby.add(key + ": " + MobGameBridge.type(entity) + " " + entity.getName().getString());
+                        round(mob.distanceTo(entity)), direction(mob.getPos(), entity.getPos()), true, caged ? caged(entity, bridge) : living(entity, true)));
+                nearby.add(key + ": " + MobGameBridge.type(entity) + " " + entity.getName().getString() + (caged ? " (в клетке)" : ""));
             }
             environment.put("light", Map.of("block", world.getLightLevel(LightType.BLOCK, mob.getBlockPos()),
                     "sky", world.getLightLevel(LightType.SKY, mob.getBlockPos())));
@@ -212,6 +213,18 @@ final class MobContextCapture {
             }
         }
         return true;
+    }
+
+    /** A parrot in a Parrot Cages cage; a jailed one is a stream viewer's parrot (its name is the viewer's nick) the streamer
+     * locked up for a while — the villagers may poke fun at it when {@code villageParrotJokes} is on. */
+    private static Map<String, Object> caged(LivingEntity entity, MobGameBridge bridge) {
+        Map<String, Object> result = new LinkedHashMap<>(living(entity, false));
+        result.put("inCage", true);
+        if (entity.getCommandTags().contains(ParrotJailNews.JAILED_TAG)) {
+            result.put("jailed", "stream viewer " + entity.getName().getString() + "'s parrot, jailed in the cage by the streamer");
+            if (bridge.config.villageParrotJokes) result.put("villagersMayJoke", true);
+        }
+        return Map.copyOf(result);
     }
 
     static Map<String, Object> living(LivingEntity entity, boolean equipment) {
