@@ -63,6 +63,7 @@ public final class MobGameBridge implements GameBridge {
     final OfficialsController officials;
     /** Officials, stage 2: the passport office (cases, the queue at the clerk's window). */
     final PassportOffice passports;
+    final CivilOffice civil;
     /** Officials, stages 3-4: the head's dacha, heaven's punishments, «Охрана!», the black ledger and the revizor. */
     final GraftController graft;
     /** Б1: the god's deeds reaching the villages. */
@@ -92,6 +93,7 @@ public final class MobGameBridge implements GameBridge {
         bandits = new BanditController(this);
         officials = new OfficialsController(this);
         passports = new PassportOffice(this);
+        civil = new CivilOffice(this);
         graft = new GraftController(this);
         divine = new DivineController(this);
         jealousy = new JealousyController(this);
@@ -190,6 +192,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.bandits.tick(world);
                 bridge.officials.tick(world, bridge.defense.zones(world));
                 bridge.passports.tick(world);
+                bridge.civil.tick(world);
                 bridge.graft.tick(world, bridge.defense.zones(world));
                 bridge.divine.tick(world);
                 bridge.jealousy.tick(world);
@@ -244,7 +247,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.memory.recordAction(card.id(), ActionIntent.none());
         if (server.isStopped()) return CompletableFuture.completedFuture(null);
         CompletableFuture<Void> done = new CompletableFuture<>();
-        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.divine.clearRuntime(); bridge.defense.clearRuntime(); bridge.officials.clearRuntime(); bridge.passports.clearRuntime(); bridge.graft.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.rivalry.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bars.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); bridge.bandits.clearRuntime(); done.complete(null); });
+        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.divine.clearRuntime(); bridge.defense.clearRuntime(); bridge.officials.clearRuntime(); bridge.passports.clearRuntime(); bridge.graft.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.rivalry.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bars.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); bridge.bandits.clearRuntime(); bridge.civil.clearRuntime(); done.complete(null); });
         return done;
     }
     /** Б1: an event of the divine block (JSON), from any thread; dropped when no world is open. */
@@ -256,6 +259,9 @@ public final class MobGameBridge implements GameBridge {
      * (-1: not in one) and how many villagers stand in that line. Server thread. */
     public boolean officeVisitForTest(net.minecraft.entity.passive.VillagerEntity official, ServerPlayerEntity player) { return passports.visit((ServerWorld) official.getWorld(), player, official); }
     public int queueAheadForTest(UUID player) { return passports.ahead(player); }
+    /** The papers window: what the player was offered last, and a click on its line {@code n}. */
+    public List<io.github.mobtalk.core.CivilRegistry.Offer> papersMenuForTest(UUID player) { return civil.menu(player); }
+    public void papersChooseForTest(ServerPlayerEntity player, int n) { civil.choose(player, n); }
     public int queueLineForTest(UUID player) { return passports.line(player); }
     /** The head's dacha placed at {@code origin} (front facing {@code facing}, 0..3) and grown to {@code points}; returns the stages built. */
     public int dachaForTest(net.minecraft.entity.passive.VillagerEntity head, BlockPos bell, BlockPos origin, int facing, int points) {

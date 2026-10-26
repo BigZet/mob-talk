@@ -499,6 +499,7 @@ final class MobTalkSettingsScreen extends Screen {
                     wide(tip(toggle("mobtalk.settings.officialRevizor", draft.officialRevizor, value -> draft.officialRevizor = value), "mobtalk.settings.officialRevizor.tooltip"));
                     wide(tip(toggle("mobtalk.settings.officialsShameless", draft.officialsShameless, value -> draft.officialsShameless = value), "mobtalk.settings.officialsShameless.tooltip"));
                     wide(tip(toggle("mobtalk.settings.officialGossip", draft.officialGossip, value -> draft.officialGossip = value), "mobtalk.settings.officialGossip.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.officialPapers", draft.officialPapers, value -> draft.officialPapers = value), "mobtalk.settings.officialPapers.tooltip"));
                 }),
                 Map.<String, Runnable>entry("casino", () -> {
                     wide(tip(toggle("mobtalk.settings.casino", draft.casino, value -> draft.casino = value), "mobtalk.settings.casino.tooltip"));

@@ -82,6 +82,8 @@ final class PassportOffice {
         Map<Officialdom.Rank, List<VillagerEntity>> staff = zone == null ? Map.of(rank, List.of(official)) : bridge.officials.officials(world, zone);
         long day = day(world);
         Paperwork.Case kase = bridge.memory.paperCase(player.getUuid());
+        // No open passport case: the window for papers (a clerk without the player's passport opens a case as before).
+        if (kase == null && !opened && bridge.civil.window(world, player, official, rank, staff.keySet())) return;
         Paperwork.Pockets pockets = new Paperwork.Pockets() {
             @Override public int count(String item) { return PassportOffice.count(player, item); }
             @Override public int emeralds() { return PassportOffice.count(player, "minecraft:emerald"); }

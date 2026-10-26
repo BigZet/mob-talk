@@ -60,6 +60,7 @@ final class SelfTestOfficials {
         test.log("officials stages: desks by the bell, three ranks, clothes and belly, the envelope, bribes, witnesses, an honest official, the inspector's order, F7");
         var config = test.bridge().config;
         savedTowers = config.villageTowers; savedGuards = config.villageGuards; savedHonest = config.officialHonestPercent; savedQueue = config.queueSeconds; savedRevizor = config.revizorSeconds; hookTooltip(); savedHuman = test.owner.config().humanVillagers;
+        test.bridge().memory.familyClearForTest(player().getUuid()); // a test family left over by an earlier run
         config.villageTowers = false; config.villageGuards = false; // officials alone: no stands and towers in the way
         config.officialHonestPercent = 0; // every official corrupt until the honest stage
         savedClientHonest = test.owner.config().officialHonestPercent; test.owner.config().officialHonestPercent = 0;
@@ -315,7 +316,7 @@ final class SelfTestOfficials {
             test.check(ahead > 0 && count("Очередь! Перед вами") >= 1, "there is a queue at the clerk's window (" + ahead + " ahead)");
             test.check(lineFormed(desk), "villagers walk up and stand in line in front of the desk (" + onServer(() -> test.bridge().queueLineForTest(player().getUuid())) + ")");
             test.owner.client.inGameHud.getChatHud().clear(false);
-            shot("mobtalk-officials-queue.png", () -> test.await("the player's turn", 30, () -> paperCase() != null, () -> {
+            shot("mobtalk-officials-queue.png", () -> test.await("the player's turn", 30, () -> paperCase() != null && paperCase().index() >= 1 && count("Ваша очередь") >= 1, () -> {
                 io.github.mobtalk.core.Paperwork.Case kase = paperCase();
                 test.check(kase != null && count("Ваша очередь") >= 1, "the queue moves and the player's turn comes");
                 test.check(kase != null && kase.steps().size() == 4, "the case has the application, two papers and the passport (" + (kase == null ? 0 : kase.steps().size()) + ")");
@@ -360,9 +361,9 @@ final class SelfTestOfficials {
     private void tooltip(ItemStack passport) {
         tooltipStack = passport;
         test.owner.client.inGameHud.getChatHud().clear(false);
-        shot("mobtalk-officials-passport.png", () -> { tooltipStack = ItemStack.EMPTY; rush(); });
+        shot("mobtalk-officials-passport.png", () -> { tooltipStack = ItemStack.EMPTY; papers(); });
     }
-    private static volatile ItemStack tooltipStack = ItemStack.EMPTY;
+    private static volatile ItemStack tooltipStack = ItemStack.EMPTY, tooltipSecond = ItemStack.EMPTY;
     private static boolean tooltipHooked;
     static void hookTooltip() {
         if (tooltipHooked) return;
@@ -373,7 +374,137 @@ final class SelfTestOfficials {
             var client = net.minecraft.client.MinecraftClient.getInstance();
             context.drawItem(stack, 24, 24);
             context.drawItemTooltip(client.textRenderer, stack, 36, 48);
+            ItemStack second = tooltipSecond;
+            if (!second.isEmpty()) {
+                int y = context.getScaledWindowHeight() / 2 + 8;
+                context.drawItem(second, 24, y - 24);
+                context.drawItemTooltip(client.textRenderer, second, 36, y);
+            }
         });
+    }
+
+    // ---- Papers: the windows of the clerk (ЗАГС), the head and the inspector ----
+
+    private List<io.github.mobtalk.core.CivilRegistry.Offer> menu() { return onServer(() -> test.bridge().papersMenuForTest(player().getUuid())); }
+    private int line(io.github.mobtalk.core.CivilRegistry.Paper paper) {
+        List<io.github.mobtalk.core.CivilRegistry.Offer> offers = menu();
+        for (int i = 0; i < offers.size(); i++) if (offers.get(i).paper() == paper) return i + 1;
+        return -1;
+    }
+    private ItemStack paper(io.github.mobtalk.core.CivilRegistry.Paper paper) {
+        return onServer(() -> {
+            ItemStack found = ItemStack.EMPTY;
+            for (int i = 0; i < player().getInventory().size(); i++) if (OfficialContent.paperOf(player().getInventory().getStack(i)) == paper) found = player().getInventory().getStack(i).copy();
+            return found;
+        });
+    }
+    private int papersOf(io.github.mobtalk.core.CivilRegistry.Paper paper) {
+        return onServer(() -> { int n = 0; for (int i = 0; i < player().getInventory().size(); i++) if (OfficialContent.paperOf(player().getInventory().getStack(i)) == paper) n++; return n; });
+    }
+    private int emeralds() { return onServer(() -> player().getInventory().count(Items.EMERALD)); }
+    /** Clicks the window's line for {@code paper}; true when it was there. */
+    private boolean take(io.github.mobtalk.core.CivilRegistry.Paper paper) {
+        int n = line(paper);
+        if (n > 0) test.server().execute(() -> test.bridge().papersChooseForTest(player(), n));
+        return n > 0;
+    }
+
+    /** The player with his passport, married with a son: the clerk's window lists the ЗАГС papers, a click issues each at once, a
+     * repeated certificate costs the fee; the head and the inspector have their own windows; a permit keeps the inspector away. */
+    private void papers() {
+        VillagerEntity clerk = official(Officialdom.Rank.CLERK);
+        test.bridge().config.officialPapers = true;
+        VillagerEntity wife = onServer(() -> world().getEntitiesByClass(VillagerEntity.class, area(), v -> v.getCommandTags().contains(TAG) && OfficialContent.rank(v) == null && !v.isBaby()).stream().findFirst().orElse(null));
+        if (clerk == null || wife == null) { test.fail("no clerk or villager for the papers"); rush(); return; }
+        UUID son = UUID.randomUUID();
+        test.bridge().memory.familyForTest(player().getUuid(), name(), wife.getUuid(), "Аксинья", son, "Ваня");
+        test.owner.client.inGameHud.getChatHud().clear(false);
+        visit(clerk);
+        test.await("the clerk's window (chat)", 3, () -> count("Окно приёма") >= 1, () -> {
+            List<io.github.mobtalk.core.CivilRegistry.Paper> offered = menu().stream().map(io.github.mobtalk.core.CivilRegistry.Offer::paper).toList();
+            test.log("clerk's window: " + offered);
+            test.check(count("Окно приёма") >= 1 && paperCase() == null, "with a passport the clerk opens the papers window, not a new passport case");
+            test.check(offered.contains(io.github.mobtalk.core.CivilRegistry.Paper.MARRIAGE_CERTIFICATE) && offered.contains(io.github.mobtalk.core.CivilRegistry.Paper.BIRTH_CERTIFICATE),
+                    "the book of acts has the player's marriage and his son's birth");
+            test.check(offered.contains(io.github.mobtalk.core.CivilRegistry.Paper.NO_RECORD) && !offered.contains(io.github.mobtalk.core.CivilRegistry.Paper.NOT_MARRIED),
+                    "his own birth is on no record, and he is married");
+            shot("mobtalk-papers-window.png", () -> {
+                int before = emeralds();
+                take(io.github.mobtalk.core.CivilRegistry.Paper.MARRIAGE_CERTIFICATE);
+                take(io.github.mobtalk.core.CivilRegistry.Paper.BIRTH_CERTIFICATE);
+                take(io.github.mobtalk.core.CivilRegistry.Paper.NO_RECORD);
+                take(io.github.mobtalk.core.CivilRegistry.Paper.FAMILY);
+                test.await("the papers are issued", 3, () -> papersOf(io.github.mobtalk.core.CivilRegistry.Paper.FAMILY) == 1, () -> {
+                    test.check(papersOf(io.github.mobtalk.core.CivilRegistry.Paper.MARRIAGE_CERTIFICATE) == 1 && papersOf(io.github.mobtalk.core.CivilRegistry.Paper.BIRTH_CERTIFICATE) == 1
+                            && papersOf(io.github.mobtalk.core.CivilRegistry.Paper.NO_RECORD) == 1, "a click issues each paper at once");
+                    test.check(emeralds() == before, "the first certificates and the справки are free");
+                    ItemStack marriage = paper(io.github.mobtalk.core.CivilRegistry.Paper.MARRIAGE_CERTIFICATE);
+                    test.check(marriage.getName().getString().equals("Свидетельство о заключении брака") && marriage.contains(net.minecraft.component.DataComponentTypes.CUSTOM_MODEL_DATA),
+                            "the certificate is named after its form and has its own look");
+                    take(io.github.mobtalk.core.CivilRegistry.Paper.MARRIAGE_CERTIFICATE);
+                    test.await("the repeated certificate", 3, () -> papersOf(io.github.mobtalk.core.CivilRegistry.Paper.MARRIAGE_CERTIFICATE) == 2, () -> {
+                        test.check(emeralds() == before - test.bridge().config.passportFee, "a repeated certificate costs the state fee (" + (before - emeralds()) + ")");
+                        tooltipStack = marriage; tooltipSecond = paper(io.github.mobtalk.core.CivilRegistry.Paper.BIRTH_CERTIFICATE);
+                        chat(false); // the officials' lines would cover the papers
+                        test.owner.client.inGameHud.getChatHud().clear(false);
+                        shot("mobtalk-papers-zags.png", () -> {
+                            tooltipStack = paper(io.github.mobtalk.core.CivilRegistry.Paper.NO_RECORD); tooltipSecond = paper(io.github.mobtalk.core.CivilRegistry.Paper.FAMILY);
+                            shot("mobtalk-papers-notes.png", () -> { tooltipStack = ItemStack.EMPTY; tooltipSecond = ItemStack.EMPTY; chat(true); headPapers(); });
+                        });
+                    });
+                });
+            });
+        });
+    }
+    private void headPapers() {
+        VillagerEntity head = official(Officialdom.Rank.HEAD), inspector = official(Officialdom.Rank.INSPECTOR);
+        if (head == null || inspector == null) { test.fail("no head or inspector for the papers"); rush(); return; }
+        near(head);
+        test.await("pause: at the head's", 1, () -> false, () -> headWindow(head, inspector));
+    }
+    private void chat(boolean shown) {
+        test.owner.client.execute(() -> test.owner.client.options.getChatVisibility().setValue(shown ? net.minecraft.network.message.ChatVisibility.FULL : net.minecraft.network.message.ChatVisibility.HIDDEN));
+    }
+    /** The player steps up to the official (a click on the window needs him within reach). */
+    private void near(VillagerEntity official) {
+        BlockPos at = onServer(official::getBlockPos);
+        test.command(String.format(java.util.Locale.ROOT, "tp %s %d %d %d", name(), at.getX() + 1, at.getY(), at.getZ() + 1));
+    }
+    private void headWindow(VillagerEntity head, VillagerEntity inspector) {
+        visit(head);
+        test.check(line(io.github.mobtalk.core.CivilRegistry.Paper.REFERENCE) > 0 && line(io.github.mobtalk.core.CivilRegistry.Paper.MARRIAGE_CERTIFICATE) < 0, "the head's window has his own papers (the character reference), not the ЗАГС ones");
+        take(io.github.mobtalk.core.CivilRegistry.Paper.REFERENCE);
+        take(io.github.mobtalk.core.CivilRegistry.Paper.ALIVE);
+        test.await("the head's papers", 3, () -> papersOf(io.github.mobtalk.core.CivilRegistry.Paper.ALIVE) == 1, () -> {
+            test.check(papersOf(io.github.mobtalk.core.CivilRegistry.Paper.REFERENCE) == 1, "the head issues a character reference");
+            near(inspector);
+            test.await("pause: at the inspector's", 1, () -> false, () -> inspectorWindow(inspector));
+        });
+    }
+    private void inspectorWindow(VillagerEntity inspector) {
+        {
+            visit(inspector);
+            int before = emeralds();
+            take(io.github.mobtalk.core.CivilRegistry.Paper.BUILD_PERMIT);
+            test.await("the building permit", 3, () -> papersOf(io.github.mobtalk.core.CivilRegistry.Paper.BUILD_PERMIT) == 1, () -> {
+                test.check(emeralds() == before - test.bridge().config.passportFee, "the building permit costs the state fee");
+                String zone = onServer(() -> test.bridge().zoneKeyForTest(inspector.getBlockPos(), world()));
+                long day = Math.floorDiv(onServer(() -> world().getServer().getOverworld().getTimeOfDay()), 24_000L);
+                test.check(!zone.isEmpty() && !test.bridge().memory.officialMayFine(zone, player().getUuid(), day), "with a permit the inspector writes no orders");
+                tooltipStack = paper(io.github.mobtalk.core.CivilRegistry.Paper.REFERENCE); tooltipSecond = paper(io.github.mobtalk.core.CivilRegistry.Paper.BUILD_PERMIT);
+                chat(false);
+                test.owner.client.inGameHud.getChatHud().clear(false);
+                shot("mobtalk-papers-head.png", () -> {
+                    tooltipStack = ItemStack.EMPTY; tooltipSecond = ItemStack.EMPTY;
+                    chat(true);
+                    test.bridge().memory.familyClearForTest(player().getUuid());
+                    // The next checks need a player without a passport (a new case).
+                    test.server().execute(() -> { for (int i = 0; i < player().getInventory().size(); i++) if (player().getInventory().getStack(i).isOf(OfficialContent.PASSPORT)) player().getInventory().setStack(i, ItemStack.EMPTY); });
+                    near(official(Officialdom.Rank.CLERK));
+                    test.await("pause: the passport put away, back at the clerk's", 1, () -> false, this::rush);
+                });
+            });
+        }
     }
 
     /** A new case and an envelope to the corrupt clerk: the passport at once, no papers. */
@@ -390,7 +521,7 @@ final class SelfTestOfficials {
             String said = give(clerk);
             test.log("clerk rush: " + said);
             test.check(said.contains("Паспорт готов"), "an envelope to a corrupt clerk gets the passport at once");
-            test.check(paperCase() == null && passports() == 2, "the case is closed and the second passport is in the pocket");
+            test.check(paperCase() == null && passports() == 1, "the case is closed and the new passport is in the pocket");
             sweet(clerk);
         });
     }
@@ -398,6 +529,7 @@ final class SelfTestOfficials {
     /** A cookie to the corrupt clerk gets the player past the queue. */
     private void sweet(VillagerEntity clerk) {
         test.bridge().config.queueSeconds = 30;
+        test.server().execute(() -> { for (int i = 0; i < player().getInventory().size(); i++) if (player().getInventory().getStack(i).isOf(OfficialContent.PASSPORT)) player().getInventory().setStack(i, ItemStack.EMPTY); });
         test.server().execute(() -> { for (VillagerEntity v : world().getEntitiesByClass(VillagerEntity.class, clerk.getBoundingBox().expand(60), v -> OfficialContent.rank(v) == null && v.getCommandTags().contains(TAG))) v.refreshPositionAndAngles(clerk.getX() + 3, v.getY(), clerk.getZ() + 3, 0f, 0f); });
         test.await("pause: the queue comes back", 1, () -> false, () -> {
             visit(clerk);
@@ -494,8 +626,10 @@ final class SelfTestOfficials {
 
     /** A player hits the clerk: «Охрана!». */
     private void guard() {
-        VillagerEntity clerk = official(Officialdom.Rank.CLERK);
-        if (clerk == null) { test.fail("no clerk to hit"); f7(); return; }
+        // After the revizor the clerk may already be the new head: any official will do.
+        VillagerEntity first = official(Officialdom.Rank.CLERK);
+        VillagerEntity clerk = first != null ? first : officials().stream().filter(v -> OfficialContent.rank(v) != null).findFirst().orElse(null);
+        if (clerk == null) { test.fail("no official to hit"); f7(); return; }
         BlockPos near = onServer(clerk::getBlockPos);
         test.command("tp " + name() + " " + near.getX() + " " + fy + " " + (near.getZ() + 2) + " 180 15");
         test.await("pause: by the clerk", 1, () -> false, () -> {
@@ -518,7 +652,7 @@ final class SelfTestOfficials {
             test.log("«Чиновники» rows: " + rows);
             test.check(rows.contains("Чиновники и взятки"), "the group has its switch");
             test.check(rows.contains("Паспорт и справки") && rows.contains("Без паспорта не распишут"), "the passport switches are there");
-            test.check(rows.size() == 22, "nine switches and thirteen sliders (" + rows.size() + ")");
+            test.check(rows.size() == 23, "ten switches and thirteen sliders (" + rows.size() + ")");
             test.check(rows.stream().noneMatch(row -> row.isBlank() || row.startsWith("mobtalk.")), "every row has a caption, none is a raw key");
             shot("mobtalk-officials-f7.png", () -> { client.setScreen(null); finish(); });
         });

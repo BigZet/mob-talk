@@ -175,6 +175,12 @@ public final class Officialdom {
             "Ты прикрываешься указанием сверху: «у нас распоряжение», «не я это придумал», «так положено с прошлого понедельника».",
             "Ты отвечаешь классической отпиской: «проверка проведена, факты не подтвердились, оснований для принятия мер реагирования не имеется».",
             "Настойчивому заявителю ты казённо напоминаешь о «недопустимости злоупотребления правом» и грозишь, что «переписка по данному вопросу будет прекращена».");
+    /** The papers this office issues, for the prompt. */
+    static String papers(Rank rank) {
+        StringJoiner out = new StringJoiner(", ");
+        for (CivilRegistry.Paper p : CivilRegistry.Paper.values()) if (p.office == rank) out.add(p.title.replaceAll(" \\(форма № \\d+\\)", ""));
+        return out.toString();
+    }
     /** The two habits of this official, picked by its id. */
     public static List<String> quirks(UUID id) {
         long h = id == null ? 0 : id.getMostSignificantBits() * 31 + id.getLeastSignificantBits();
@@ -203,9 +209,10 @@ public final class Officialdom {
             .append(" («осуществление прохода», «предоставление информации о погодных условиях») и страдательным залогом («вам будет отказано», «ответ будет направлен»).");
         for (String quirk : quirks(id)) text.append(' ').append(quirk);
         text.append(" Формализм — это обёртка: отвечай одной–тремя фразами и в конце всё же коротко говори по существу, чтобы игрок понял, что делать.");
-        // Брак оформляет свадьба у колокола; выдуманная «регистрация» водила игрока по кругу без конца.
-        text.append(" Бумаги бывают только те, что есть в игре: паспорт и справки к нему по делу, предписание инспектора. Брак регистрирует свадьба у колокола —")
-            .append(" свидетельств о браке, «сверок записей» и других несуществующих документов у тебя нет: не заводи и не тяни такое дело, а скажи, что брак уже действителен.");
+        // Брак оформляет свадьба у колокола; выдуманная «регистрация» водила игрока по кругу без конца. Документы — только из окна (CivilOffice).
+        text.append(" Бумаги бывают только те, что есть в игре: паспорт и справки к нему, предписание инспектора и документы из окна приёма: ").append(papers(rank))
+            .append(". Их выдают сразу в окне (игрок жмёт Shift+ПКМ по тебе, нужен паспорт): так и скажи, без «сверок», «запросов» и других несуществующих процедур.")
+            .append(" Брак регистрирует свадьба у колокола: он уже действителен, свидетельство о браке выдаёт паспортистка в окне.");
         if (honest(id, honestPercent))
             text.append(" Ты честный служащий: взяток не берёшь и обижаешься даже на намёк; помогать готов только по правилам, хоть и медленно.");
         else {
@@ -286,6 +293,8 @@ public final class Officialdom {
     /** Stages 3–4 ({@link Graft}): the heads' dachas by head UUID, and the revizor's visits, the game day he comes by village key. */
     Map<String, Graft.Estate> estates = new LinkedHashMap<>();
     Map<String, Long> revizors = new LinkedHashMap<>();
+    /** The book of civil acts and the papers issued from it ({@link CivilRegistry}). */
+    CivilRegistry civil = new CivilRegistry();
 
     /** The head's dacha (made on first ask), a live object: the caller holds the store lock. */
     Graft.Estate estate(UUID head, String headName, String village) {
@@ -366,7 +375,7 @@ public final class Officialdom {
         Officialdom c = new Officialdom();
         fines.forEach((k, v) -> c.fines.put(k, v.copy())); c.nextNumber = nextNumber; c.favoured.putAll(favoured); c.taken.putAll(taken);
         cases.forEach((k, v) -> c.cases.put(k, v.copy())); c.nextCase = nextCase; c.nextPassport = nextPassport;
-        estates.forEach((k, v) -> c.estates.put(k, v.copy())); c.revizors.putAll(revizors);
+        estates.forEach((k, v) -> c.estates.put(k, v.copy())); c.revizors.putAll(revizors); c.civil = civil.copy();
         return c;
     }
     void sanitize() {
@@ -396,5 +405,7 @@ public final class Officialdom {
         estates.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null);
         estates.values().forEach(e -> { if (e.head == null) e.head = ""; if (e.headName == null) e.headName = ""; if (e.village == null) e.village = ""; });
         revizors.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null);
+        if (civil == null) civil = new CivilRegistry();
+        civil.sanitize();
     }
 }

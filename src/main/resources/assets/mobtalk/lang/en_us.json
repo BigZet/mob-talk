@@ -1225,5 +1225,20 @@
   "mobtalk.tune.smitePercent": "Wrath from above: %s%% a day",
   "mobtalk.tune.smitePercent.tooltip": "The chance a corrupt head who took envelopes is smitten that day.",
   "mobtalk.tune.revizorSeconds": "Revizor's inspection: %s s",
-  "mobtalk.tune.revizorSeconds.tooltip": "How long the inspection lasts while everyone runs about painting the grass."
+  "mobtalk.tune.revizorSeconds.tooltip": "How long the inspection lasts while everyone runs about painting the grass.",
+  "item.mobtalk.civil_certificate": "Certificate",
+  "item.mobtalk.spravka": "Official paper",
+  "mobtalk.civil.blank": "A strict-account blank. Not filled in.",
+  "mobtalk.civil.act": "Act record № %s",
+  "mobtalk.civil.issued": "Issued by %s on day %s. Seal.",
+  "mobtalk.civil.no_passport": "No papers without a passport. Get your passport from the passport clerk first.",
+  "mobtalk.civil.window": "Reception window. Which paper do you need? Click a line:",
+  "mobtalk.civil.fee": " (state fee %s emeralds)",
+  "mobtalk.civil.click": "Click to get the paper",
+  "mobtalk.civil.expired": "The window is closed. Come to the official again (Shift+right-click).",
+  "mobtalk.civil.too_far": "You walked away from the window. Come closer.",
+  "mobtalk.civil.no_fee": "Pay the state fee first: %s emeralds.",
+  "mobtalk.civil.issued_now": "Here you are, sign here: %s, %s.",
+  "mobtalk.settings.officialPapers": "Papers and certificates",
+  "mobtalk.settings.officialPapers.tooltip": "With a passport, Shift+right-click on an official opens the papers window. The clerk issues birth, marriage, divorce and death certificates from the book of acts, the form справки and the family paper; the head a character reference, the household book extract and a paper that you are alive; the inspector a building permit, a no-orders paper and a housing inspection."
 }
