@@ -342,7 +342,10 @@ class House:
                     step(x, s, z, "top", rail="front" if (x == M and z == fl[0]) else "none")
             if k > F:
                 break
-            self.at(M, s + 3, sz + 7, LAMP_STAIR, {"facing": N, "lit": "true"})
+            if self.wallish(self.ch(M, sz + 8) or ""):          # the landing's lamp on the wall behind it (1-464)
+                self.at(M, s + 3, sz + 7, LAMP_STAIR, {"facing": N, "lit": "true"})
+            else:                                               # the landing opens into a lift hall: on the side wall
+                self.at(A0, s + 3, sz + 7, LAMP_STAIR, {"facing": E, "lit": "true"})
             for x, rail in ((A0, "none"), (A1, "right")):       # the first flight, towards facade A
                 step(x, s + 1, sz + 5, "bottom", N, rail)
                 step(x, s + 1, sz + 4, "top", N, rail)
