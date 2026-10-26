@@ -246,9 +246,36 @@ final class SelfTestLift {
                             test.owner.client.execute(() -> Lifts.openPanel.accept(clientCabin()));
                             test.await("the panel screen opens", 5, () -> test.owner.client.currentScreen != null, () -> shot(tag + "-4-gui.png", () -> {
                                 test.owner.client.execute(() -> test.owner.client.setScreen(null));
-                                test.command("tp " + name() + " " + x + " " + py + " " + pz + " 180 0");
-                                cabin = null;
-                                test.await("pause: off to the next look", 2, () -> false, () -> style(k + 1));
+                                Runnable next = () -> {
+                                    test.command("tp " + name() + " " + x + " " + py + " " + pz + " 180 0");
+                                    cabin = null;
+                                    test.await("pause: off to the next look", 2, () -> false, () -> style(k + 1));
+                                };
+                                if (want != LiftBlocks.Style.STEEL) { next.run(); return; }
+                                // the steel panel's display follows the ride: up to floor 3, a shot on the way and on arrival
+                                // look at the display: model (30.15, 30.25, 6) / 16 round the cabin's middle, turned like the renderer
+                                double yaw = Math.toRadians(-switch (f) { case EAST -> 90; case SOUTH -> 180; case WEST -> 270; default -> 0; });
+                                net.minecraft.util.math.Vec3d d = new net.minecraft.util.math.Vec3d(30.15 / 16 - 1, 0, 6 / 16.0 - 1).rotateY((float) yaw);
+                                test.command("tp " + name() + " " + (cabin.getX() - f.rotateYClockwise().getOffsetX() * 0.4 - f.getOffsetX() * 0.3) + " " + cabin.getY() + " "
+                                        + (cabin.getZ() - f.rotateYClockwise().getOffsetZ() * 0.4 - f.getOffsetZ() * 0.3) + " facing "
+                                        + (cabin.getX() + d.x) + " " + (cabin.getY() + 30.25 / 16) + " " + (cabin.getZ() + d.z));
+                                serverDo(() -> cabin.press(2, test.serverPlayer()));
+                                java.util.Set<Integer> shown = new java.util.TreeSet<>();
+                                java.util.function.BooleanSupplier passingTwo = () -> {
+                                    LiftCabin c = clientCabin();
+                                    if (c != null) shown.add(c.floor());
+                                    return c != null && c.moving() && c.floor() == 1;
+                                };
+                                test.await("the display shows floor 2 on the way", 15, passingTwo, () -> shot(tag + "-5-display-riding.png",
+                                        () -> test.await("the cabin arrives at floor 3", 30, () -> {
+                                                    LiftCabin c = clientCabin();
+                                                    if (c != null) shown.add(c.floor());
+                                                    return !cabin.moving() && cabin.floor() == 2;
+                                                }, () -> {
+                                                    test.check(shown.equals(java.util.Set.of(0, 1, 2)), "the display counted 1, 2, 3 on the way (" + shown + ")");
+                                                    test.check(clientCabin() != null && clientCabin().floor() == 2, "the client's display shows floor 3");
+                                                    shot(tag + "-6-display-arrived.png", next);
+                                                })));
                             }));
                         });
                     });
