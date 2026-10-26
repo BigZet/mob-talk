@@ -1374,5 +1374,6 @@
   "mobtalk.tune.liftDoorSeconds": "Lift doors stay open: %s s",
   "mobtalk.tune.liftDoorSeconds.tooltip": "How long the doors stay open when nobody is in the doorway.",
   "mobtalk.tune.liftVillagerChance": "Villagers ride lifts: %s%%",
-  "mobtalk.tune.liftVillagerChance.tooltip": "Chance a minute that a villager by the lift doors calls it and rides to their own or a random floor. 0: stairs only."
+  "mobtalk.tune.liftVillagerChance.tooltip": "Chance a minute that a villager by the lift doors calls it and rides to their own or a random floor. 0: stairs only.",
+  "block.mobtalk.glass_blocks": "Glass blocks"
 }

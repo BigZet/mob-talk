@@ -1098,6 +1098,27 @@ BLOCKSTATES = {}
 ITEMS = {}
 
 
+def glass_blocks():
+    """Glass blocks (стеклоблоки), the staircase windows of the 1-335 khrushchyovkas: four bricks to a block, grey mortar,
+    greenish ribbed glass that lets the light through but not the view."""
+    r = rnd("glass_blocks")
+    img = D.new()
+    for y in range(16):
+        for x in range(16):
+            bx, by = x % 8, y % 8
+            if bx == 0 or by == 0:
+                put(img, x, y, D.shade((168, 170, 166, 255), r.uniform(0.92, 1.05)))       # the mortar
+            elif bx == 7 or by == 7:
+                put(img, x, y, (150, 178, 172, 220))                                        # the brick's rim
+            else:
+                rib = 1.12 if (bx + by) % 3 == 0 else 0.96                                  # ribbed glass
+                c = D.shade((176, 208, 200, 255), rib * r.uniform(0.97, 1.03))
+                put(img, x, y, c[:3] + (150,))
+    tex("glass_blocks", img)
+    decor("glass_blocks", {"g": "glass_blocks"}, [face_box((0, 0, 0), (16, 16, 16), {f: ("g", None, f) for f in D.FACES})],
+          "Стеклоблоки", "Glass blocks", boxes=[[0, 0, 0, 16, 16, 16]], color="PALE_GREEN", sound="GLASS", layer="translucent")
+
+
 def make_models():
     walls()
     facades()
@@ -1107,6 +1128,7 @@ def make_models():
     steps()
     balconies()
     chute()
+    glass_blocks()
     rails_and_roof()
 
 

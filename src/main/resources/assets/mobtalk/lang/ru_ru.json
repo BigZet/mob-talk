@@ -1374,5 +1374,6 @@
   "mobtalk.tune.liftDoorSeconds": "Двери лифта открыты: %s с",
   "mobtalk.tune.liftDoorSeconds.tooltip": "Сколько секунд двери стоят открытыми, если в проёме никого нет.",
   "mobtalk.tune.liftVillagerChance": "Жители ездят на лифте: %s%%",
-  "mobtalk.tune.liftVillagerChance.tooltip": "Шанс в минуту, что житель у дверей лифта вызовет его и поедет на свой или случайный этаж. 0 — только лестница."
+  "mobtalk.tune.liftVillagerChance.tooltip": "Шанс в минуту, что житель у дверей лифта вызовет его и поедет на свой или случайный этаж. 0 — только лестница.",
+  "block.mobtalk.glass_blocks": "Стеклоблоки"
 }

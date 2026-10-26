@@ -121,6 +121,62 @@ SERIES["1-515-9"] = {
 }
 
 
+# 1-335, ordinary section (the frame-panel khrushchyovka): 38 x 21, five storeys, four small flats round the staircase -
+# the front ones a 2-room (a living room with a balcony on the courtyard, a small bedroom, the kitchen) and the back ones a
+# 2-room with the balcony on the street; combined bathrooms, a pantry off the front living room, no lift. The staircase is
+# the 1-464 one, its window a strip of glass blocks up the whole facade (the series' mark), the floor landing opens into a
+# small hall with the back flats' doors.
+_335_LEFT = [
+    "#BWWW##WW###WW#",   # 0  facade A
+    "#aaaa#kkkk#bbbb",   # 1
+    "#aaaa#kkkk#bbbb",   # 2
+    "#aaaa#kkkk#bbbb",   # 3
+    "#aaaa#kkkk#bbbb",   # 4
+    "#aaaa#kkkk#bbbb",   # 5
+    "#aaaa##D####D##",   # 6
+    "#aaaaDhhhhhhhhh",   # 7  the front flat's door off the floor landing
+    "#aaaa#hhhhhhhhh",   # 8
+    "##D#####D######",   # 9  the pantry off the living room, the bathroom off the hall
+    "#pppp#tttt#vvvv",   # 10
+    "#pppp#tttt#vvvv",   # 11
+    "############D##",   # 12
+    "#eeee#ggggggggg",   # 13 the back flat's door off the hall behind the landing
+    "#eeeeDggggggggg",   # 14
+    "#eeee##D####D##",   # 15
+    "#eeee#mmmm#dddd",   # 16
+    "#eeee#mmmm#dddd",   # 17
+    "#eeee#mmmm#dddd",   # 18
+    "#eeee#mmmm#dddd",   # 19
+    "#BWWW##WW###WW#",   # 20 facade B
+]
+_335_CORE = [
+    "#SSSSS#",
+    "#sssss#", "#sssss#", "#sssss#", "#sssss#", "#sssss#", "#sssss#",
+    "EsssssE",   # 7
+    "#sssss#",   # 8
+    "#sssss#", "#sssss#", "#sssss#", "#sssss#",   # 9..12 the hall behind the landing
+    "EsssssE",   # 13
+    "#sssss#",   # 14
+    "#######", "#######", "#######", "#######", "#######", "#######",
+]
+SERIES["1-335"] = {
+    "plan": mirrored(_335_LEFT, _335_CORE, dict(zip("akbhtpemdgv", "norijuxyzfc"))),
+    "rooms": {
+        "a": ("L", "living"), "k": ("L", "kitchen"), "b": ("L", "bedroom"), "h": ("L", "hall"), "t": ("L", "bath"),
+        "p": ("L", "pantry"),
+        "e": ("L2", "living"), "m": ("L2", "kitchen"), "d": ("L2", "room"), "g": ("L2", "hall"), "v": ("L2", "bath"),
+        "n": ("R", "living"), "o": ("R", "kitchen"), "r": ("R", "room"), "i": ("R", "hall"), "j": ("R", "bath"),
+        "u": ("R", "pantry"),
+        "x": ("R2", "living"), "y": ("R2", "kitchen"), "z": ("R2", "bedroom"), "f": ("R2", "hall"), "c": ("R2", "bath"),
+    },
+    "stair": (16, 1),
+    "hall_lamp": (18, 11),        # the hall behind the landing: a lamp under its ceiling
+    "stair_glass": True,          # the staircase window: glass blocks the height of the house
+    "vents": [(8, 10), (13, 10), (24, 10), (29, 10)],
+    "floors": 5,
+}
+
+
 def check():
     for name, s in SERIES.items():
         widths = {len(r) for r in s["plan"]}

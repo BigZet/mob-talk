@@ -364,6 +364,10 @@ class House:
                     self.at(x, R, 0, f"facade_{col}_jmid", {"facing": N, "inner": "paint_stair"})
             for x in (A1, M, B0):                               # the staircase window over the half-landing
                 for n, row in enumerate(ROWS):
+                    if self.s.get("stair_glass"):                   # or glass blocks the height of the house (1-335)
+                        for y in range(max(4, s + 2), s + 7 if k < F else R):
+                            self.at(x, y, 0, "glass_blocks", {"facing": N})
+                        continue
                     self.at(x, s + 3 + n, 0, f"window_{col}_{row}", {"facing": N} if row == "mid" else {"facing": N, "inner": "paint_stair"})
         # The vestibule: under the first half-landing at street level, the floor of the ground (y=0 is the ground layer).
         for x in cols:
@@ -429,6 +433,10 @@ class House:
         for y, half in ((R + 1, "lower"), (R + 2, "upper")):
             self.at(M, y, sz + 8, door, {"facing": SO, "half": half, "hinge": "left", "open": "false", "powered": "false"})
         self.at(A0, R + 3, sz + 7, LAMP_STAIR, {"facing": E, "lit": "true"})
+        if "hall_lamp" in self.s:       # the hall behind the landing (no lift): a lamp under its ceiling on every floor
+            hx, hz = self.s["hall_lamp"]
+            for k in range(1, F + 1):
+                self.at(x0 + hx, self.slab(k) + 3, hz, "apt_cage_lamp", {"facing": N, "lit": "true"})
         # The garbage chute: one pipe in the corner of the half-landings by the side wall, from the ground to the roof box's
         # ceiling, through each half-landing's slab, a hopper over each half-landing.
         for y in range(1, R + 4):
@@ -544,6 +552,9 @@ def main():
     t = h.build()
     print(t.size, len(h.flats), "flats")
     h = House("1-515-9", 3, 9, "grey")
+    t = h.build()
+    print(t.size, len(h.flats), "flats")
+    h = House("1-335", 3, 5, "grey")
     t = h.build()
     print(t.size, len(h.flats), "flats")
 
