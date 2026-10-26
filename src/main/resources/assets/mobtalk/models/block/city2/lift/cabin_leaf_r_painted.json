@@ -1,0 +1,70 @@
+{
+ "parent": "minecraft:block/block",
+ "textures": {
+  "l": "mobtalk:block/city2/lift/leaf_cab_painted",
+  "o": "mobtalk:block/city2/lift/outer",
+  "e": "mobtalk:block/city2/lift/frame_painted",
+  "particle": "mobtalk:block/city2/lift/leaf_cab_painted"
+ },
+ "elements": [
+  {
+   "from": [
+    0,
+    0,
+    0
+   ],
+   "to": [
+    8,
+    31.5,
+    1
+   ],
+   "faces": {
+    "south": {
+     "texture": "#l",
+     "uv": [
+      16,
+      0,
+      0,
+      16
+     ]
+    },
+    "north": {
+     "texture": "#o",
+     "uv": [
+      0,
+      1,
+      4,
+      16
+     ]
+    },
+    "east": {
+     "texture": "#e",
+     "uv": [
+      0,
+      0,
+      1,
+      16
+     ]
+    },
+    "west": {
+     "texture": "#e",
+     "uv": [
+      0,
+      0,
+      1,
+      16
+     ]
+    },
+    "up": {
+     "texture": "#e",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    }
+   }
+  }
+ ]
+}

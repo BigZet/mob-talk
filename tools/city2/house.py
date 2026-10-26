@@ -452,7 +452,9 @@ class House:
         import lift
         x0 = i * self.sw
         lx, lz, facing = self.s["lift"]
-        lift.place(self.tpl, self.ox + x0 + lx, self.slab(1), self.oz + lz, self.floors, scale.STOREY, facing)
+        # each entrance its own lift: overhauled ones and old Soviet ones side by side in one house
+        style = lift.pick_style(f"{self.series}:{self.n}:{self.floors}:{self.colour}:{i}")
+        lift.place(self.tpl, self.ox + x0 + lx, self.slab(1), self.oz + lz, self.floors, scale.STOREY, facing, style)
         R, col = self.roof, self.colour
         xs, zs = range(x0 + lx - 1, x0 + lx + 3), range(lz - 1, lz + 3)
         for x in xs:

@@ -1,123 +1,483 @@
 {
  "variants": {
-  "facing=north,half=lower,open=false,side=left": {
+  "facing=north,half=lower,open=false,side=left,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_left_lower"
   },
-  "facing=north,half=lower,open=true,side=left": {
+  "facing=north,half=lower,open=false,side=left,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_left_lower_painted"
+  },
+  "facing=north,half=lower,open=false,side=left,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_left_lower_steel"
+  },
+  "facing=north,half=lower,open=false,side=left,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_left_lower_plastic"
+  },
+  "facing=north,half=lower,open=true,side=left,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_left_lower"
   },
-  "facing=north,half=upper,open=false,side=left": {
+  "facing=north,half=lower,open=true,side=left,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_left_lower_painted"
+  },
+  "facing=north,half=lower,open=true,side=left,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_left_lower_steel"
+  },
+  "facing=north,half=lower,open=true,side=left,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_left_lower_plastic"
+  },
+  "facing=north,half=upper,open=false,side=left,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_left_upper"
   },
-  "facing=north,half=upper,open=true,side=left": {
+  "facing=north,half=upper,open=false,side=left,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_left_upper_painted"
+  },
+  "facing=north,half=upper,open=false,side=left,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_left_upper_steel"
+  },
+  "facing=north,half=upper,open=false,side=left,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_left_upper_plastic"
+  },
+  "facing=north,half=upper,open=true,side=left,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_left_upper"
   },
-  "facing=north,half=lower,open=false,side=right": {
+  "facing=north,half=upper,open=true,side=left,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_left_upper_painted"
+  },
+  "facing=north,half=upper,open=true,side=left,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_left_upper_steel"
+  },
+  "facing=north,half=upper,open=true,side=left,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_left_upper_plastic"
+  },
+  "facing=north,half=lower,open=false,side=right,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_right_lower"
   },
-  "facing=north,half=lower,open=true,side=right": {
+  "facing=north,half=lower,open=false,side=right,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_right_lower_painted"
+  },
+  "facing=north,half=lower,open=false,side=right,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_right_lower_steel"
+  },
+  "facing=north,half=lower,open=false,side=right,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_right_lower_plastic"
+  },
+  "facing=north,half=lower,open=true,side=right,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_right_lower"
   },
-  "facing=north,half=upper,open=false,side=right": {
+  "facing=north,half=lower,open=true,side=right,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_right_lower_painted"
+  },
+  "facing=north,half=lower,open=true,side=right,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_right_lower_steel"
+  },
+  "facing=north,half=lower,open=true,side=right,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_right_lower_plastic"
+  },
+  "facing=north,half=upper,open=false,side=right,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_right_upper"
   },
-  "facing=north,half=upper,open=true,side=right": {
+  "facing=north,half=upper,open=false,side=right,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_right_upper_painted"
+  },
+  "facing=north,half=upper,open=false,side=right,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_right_upper_steel"
+  },
+  "facing=north,half=upper,open=false,side=right,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_right_upper_plastic"
+  },
+  "facing=north,half=upper,open=true,side=right,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_right_upper"
   },
-  "facing=east,half=lower,open=false,side=left": {
+  "facing=north,half=upper,open=true,side=right,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_right_upper_painted"
+  },
+  "facing=north,half=upper,open=true,side=right,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_right_upper_steel"
+  },
+  "facing=north,half=upper,open=true,side=right,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_right_upper_plastic"
+  },
+  "facing=east,half=lower,open=false,side=left,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_left_lower",
    "y": 90
   },
-  "facing=east,half=lower,open=true,side=left": {
+  "facing=east,half=lower,open=false,side=left,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_left_lower_painted",
+   "y": 90
+  },
+  "facing=east,half=lower,open=false,side=left,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_left_lower_steel",
+   "y": 90
+  },
+  "facing=east,half=lower,open=false,side=left,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_left_lower_plastic",
+   "y": 90
+  },
+  "facing=east,half=lower,open=true,side=left,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_left_lower",
    "y": 90
   },
-  "facing=east,half=upper,open=false,side=left": {
+  "facing=east,half=lower,open=true,side=left,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_left_lower_painted",
+   "y": 90
+  },
+  "facing=east,half=lower,open=true,side=left,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_left_lower_steel",
+   "y": 90
+  },
+  "facing=east,half=lower,open=true,side=left,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_left_lower_plastic",
+   "y": 90
+  },
+  "facing=east,half=upper,open=false,side=left,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_left_upper",
    "y": 90
   },
-  "facing=east,half=upper,open=true,side=left": {
+  "facing=east,half=upper,open=false,side=left,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_left_upper_painted",
+   "y": 90
+  },
+  "facing=east,half=upper,open=false,side=left,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_left_upper_steel",
+   "y": 90
+  },
+  "facing=east,half=upper,open=false,side=left,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_left_upper_plastic",
+   "y": 90
+  },
+  "facing=east,half=upper,open=true,side=left,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_left_upper",
    "y": 90
   },
-  "facing=east,half=lower,open=false,side=right": {
+  "facing=east,half=upper,open=true,side=left,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_left_upper_painted",
+   "y": 90
+  },
+  "facing=east,half=upper,open=true,side=left,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_left_upper_steel",
+   "y": 90
+  },
+  "facing=east,half=upper,open=true,side=left,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_left_upper_plastic",
+   "y": 90
+  },
+  "facing=east,half=lower,open=false,side=right,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_right_lower",
    "y": 90
   },
-  "facing=east,half=lower,open=true,side=right": {
+  "facing=east,half=lower,open=false,side=right,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_right_lower_painted",
+   "y": 90
+  },
+  "facing=east,half=lower,open=false,side=right,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_right_lower_steel",
+   "y": 90
+  },
+  "facing=east,half=lower,open=false,side=right,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_right_lower_plastic",
+   "y": 90
+  },
+  "facing=east,half=lower,open=true,side=right,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_right_lower",
    "y": 90
   },
-  "facing=east,half=upper,open=false,side=right": {
+  "facing=east,half=lower,open=true,side=right,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_right_lower_painted",
+   "y": 90
+  },
+  "facing=east,half=lower,open=true,side=right,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_right_lower_steel",
+   "y": 90
+  },
+  "facing=east,half=lower,open=true,side=right,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_right_lower_plastic",
+   "y": 90
+  },
+  "facing=east,half=upper,open=false,side=right,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_right_upper",
    "y": 90
   },
-  "facing=east,half=upper,open=true,side=right": {
+  "facing=east,half=upper,open=false,side=right,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_right_upper_painted",
+   "y": 90
+  },
+  "facing=east,half=upper,open=false,side=right,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_right_upper_steel",
+   "y": 90
+  },
+  "facing=east,half=upper,open=false,side=right,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_right_upper_plastic",
+   "y": 90
+  },
+  "facing=east,half=upper,open=true,side=right,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_right_upper",
    "y": 90
   },
-  "facing=south,half=lower,open=false,side=left": {
+  "facing=east,half=upper,open=true,side=right,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_right_upper_painted",
+   "y": 90
+  },
+  "facing=east,half=upper,open=true,side=right,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_right_upper_steel",
+   "y": 90
+  },
+  "facing=east,half=upper,open=true,side=right,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_right_upper_plastic",
+   "y": 90
+  },
+  "facing=south,half=lower,open=false,side=left,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_left_lower",
    "y": 180
   },
-  "facing=south,half=lower,open=true,side=left": {
+  "facing=south,half=lower,open=false,side=left,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_left_lower_painted",
+   "y": 180
+  },
+  "facing=south,half=lower,open=false,side=left,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_left_lower_steel",
+   "y": 180
+  },
+  "facing=south,half=lower,open=false,side=left,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_left_lower_plastic",
+   "y": 180
+  },
+  "facing=south,half=lower,open=true,side=left,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_left_lower",
    "y": 180
   },
-  "facing=south,half=upper,open=false,side=left": {
+  "facing=south,half=lower,open=true,side=left,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_left_lower_painted",
+   "y": 180
+  },
+  "facing=south,half=lower,open=true,side=left,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_left_lower_steel",
+   "y": 180
+  },
+  "facing=south,half=lower,open=true,side=left,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_left_lower_plastic",
+   "y": 180
+  },
+  "facing=south,half=upper,open=false,side=left,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_left_upper",
    "y": 180
   },
-  "facing=south,half=upper,open=true,side=left": {
+  "facing=south,half=upper,open=false,side=left,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_left_upper_painted",
+   "y": 180
+  },
+  "facing=south,half=upper,open=false,side=left,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_left_upper_steel",
+   "y": 180
+  },
+  "facing=south,half=upper,open=false,side=left,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_left_upper_plastic",
+   "y": 180
+  },
+  "facing=south,half=upper,open=true,side=left,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_left_upper",
    "y": 180
   },
-  "facing=south,half=lower,open=false,side=right": {
+  "facing=south,half=upper,open=true,side=left,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_left_upper_painted",
+   "y": 180
+  },
+  "facing=south,half=upper,open=true,side=left,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_left_upper_steel",
+   "y": 180
+  },
+  "facing=south,half=upper,open=true,side=left,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_left_upper_plastic",
+   "y": 180
+  },
+  "facing=south,half=lower,open=false,side=right,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_right_lower",
    "y": 180
   },
-  "facing=south,half=lower,open=true,side=right": {
+  "facing=south,half=lower,open=false,side=right,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_right_lower_painted",
+   "y": 180
+  },
+  "facing=south,half=lower,open=false,side=right,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_right_lower_steel",
+   "y": 180
+  },
+  "facing=south,half=lower,open=false,side=right,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_right_lower_plastic",
+   "y": 180
+  },
+  "facing=south,half=lower,open=true,side=right,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_right_lower",
    "y": 180
   },
-  "facing=south,half=upper,open=false,side=right": {
+  "facing=south,half=lower,open=true,side=right,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_right_lower_painted",
+   "y": 180
+  },
+  "facing=south,half=lower,open=true,side=right,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_right_lower_steel",
+   "y": 180
+  },
+  "facing=south,half=lower,open=true,side=right,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_right_lower_plastic",
+   "y": 180
+  },
+  "facing=south,half=upper,open=false,side=right,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_right_upper",
    "y": 180
   },
-  "facing=south,half=upper,open=true,side=right": {
+  "facing=south,half=upper,open=false,side=right,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_right_upper_painted",
+   "y": 180
+  },
+  "facing=south,half=upper,open=false,side=right,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_right_upper_steel",
+   "y": 180
+  },
+  "facing=south,half=upper,open=false,side=right,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_right_upper_plastic",
+   "y": 180
+  },
+  "facing=south,half=upper,open=true,side=right,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_right_upper",
    "y": 180
   },
-  "facing=west,half=lower,open=false,side=left": {
+  "facing=south,half=upper,open=true,side=right,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_right_upper_painted",
+   "y": 180
+  },
+  "facing=south,half=upper,open=true,side=right,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_right_upper_steel",
+   "y": 180
+  },
+  "facing=south,half=upper,open=true,side=right,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_right_upper_plastic",
+   "y": 180
+  },
+  "facing=west,half=lower,open=false,side=left,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_left_lower",
    "y": 270
   },
-  "facing=west,half=lower,open=true,side=left": {
+  "facing=west,half=lower,open=false,side=left,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_left_lower_painted",
+   "y": 270
+  },
+  "facing=west,half=lower,open=false,side=left,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_left_lower_steel",
+   "y": 270
+  },
+  "facing=west,half=lower,open=false,side=left,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_left_lower_plastic",
+   "y": 270
+  },
+  "facing=west,half=lower,open=true,side=left,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_left_lower",
    "y": 270
   },
-  "facing=west,half=upper,open=false,side=left": {
+  "facing=west,half=lower,open=true,side=left,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_left_lower_painted",
+   "y": 270
+  },
+  "facing=west,half=lower,open=true,side=left,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_left_lower_steel",
+   "y": 270
+  },
+  "facing=west,half=lower,open=true,side=left,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_left_lower_plastic",
+   "y": 270
+  },
+  "facing=west,half=upper,open=false,side=left,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_left_upper",
    "y": 270
   },
-  "facing=west,half=upper,open=true,side=left": {
+  "facing=west,half=upper,open=false,side=left,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_left_upper_painted",
+   "y": 270
+  },
+  "facing=west,half=upper,open=false,side=left,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_left_upper_steel",
+   "y": 270
+  },
+  "facing=west,half=upper,open=false,side=left,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_left_upper_plastic",
+   "y": 270
+  },
+  "facing=west,half=upper,open=true,side=left,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_left_upper",
    "y": 270
   },
-  "facing=west,half=lower,open=false,side=right": {
+  "facing=west,half=upper,open=true,side=left,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_left_upper_painted",
+   "y": 270
+  },
+  "facing=west,half=upper,open=true,side=left,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_left_upper_steel",
+   "y": 270
+  },
+  "facing=west,half=upper,open=true,side=left,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_left_upper_plastic",
+   "y": 270
+  },
+  "facing=west,half=lower,open=false,side=right,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_right_lower",
    "y": 270
   },
-  "facing=west,half=lower,open=true,side=right": {
+  "facing=west,half=lower,open=false,side=right,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_right_lower_painted",
+   "y": 270
+  },
+  "facing=west,half=lower,open=false,side=right,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_right_lower_steel",
+   "y": 270
+  },
+  "facing=west,half=lower,open=false,side=right,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_right_lower_plastic",
+   "y": 270
+  },
+  "facing=west,half=lower,open=true,side=right,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_right_lower",
    "y": 270
   },
-  "facing=west,half=upper,open=false,side=right": {
+  "facing=west,half=lower,open=true,side=right,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_right_lower_painted",
+   "y": 270
+  },
+  "facing=west,half=lower,open=true,side=right,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_right_lower_steel",
+   "y": 270
+  },
+  "facing=west,half=lower,open=true,side=right,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_right_lower_plastic",
+   "y": 270
+  },
+  "facing=west,half=upper,open=false,side=right,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_right_upper",
    "y": 270
   },
-  "facing=west,half=upper,open=true,side=right": {
+  "facing=west,half=upper,open=false,side=right,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_right_upper_painted",
+   "y": 270
+  },
+  "facing=west,half=upper,open=false,side=right,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_right_upper_steel",
+   "y": 270
+  },
+  "facing=west,half=upper,open=false,side=right,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_right_upper_plastic",
+   "y": 270
+  },
+  "facing=west,half=upper,open=true,side=right,style=soviet": {
    "model": "mobtalk:block/city2/lift/door_right_upper",
+   "y": 270
+  },
+  "facing=west,half=upper,open=true,side=right,style=painted": {
+   "model": "mobtalk:block/city2/lift/door_right_upper_painted",
+   "y": 270
+  },
+  "facing=west,half=upper,open=true,side=right,style=steel": {
+   "model": "mobtalk:block/city2/lift/door_right_upper_steel",
+   "y": 270
+  },
+  "facing=west,half=upper,open=true,side=right,style=plastic": {
+   "model": "mobtalk:block/city2/lift/door_right_upper_plastic",
    "y": 270
   }
  }

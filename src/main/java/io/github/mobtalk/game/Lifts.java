@@ -99,10 +99,21 @@ public final class Lifts {
         CommandRegistrationCallback.EVENT.register((dispatcher, registries, environment) -> dispatcher.register(literal("city")
                 .requires(source -> source.hasPermissionLevel(2))
                 .then(literal("lift").then(argument("floors", IntegerArgumentType.integer(2, 17))
-                        .executes(c -> testTower(c.getSource(), IntegerArgumentType.getInteger(c, "floors"), 4))
+                        .executes(c -> testTower(c.getSource(), IntegerArgumentType.getInteger(c, "floors"), 4, LiftBlocks.Style.SOVIET))
                         .then(argument("storey", IntegerArgumentType.integer(3, 6))
                                 .executes(c -> testTower(c.getSource(), IntegerArgumentType.getInteger(c, "floors"),
-                                        IntegerArgumentType.getInteger(c, "storey"))))))));
+                                        IntegerArgumentType.getInteger(c, "storey"), LiftBlocks.Style.SOVIET))
+                                .then(argument("style", com.mojang.brigadier.arguments.StringArgumentType.word())
+                                        .suggests((c, b) -> net.minecraft.command.CommandSource.suggestMatching(
+                                                java.util.Arrays.stream(LiftBlocks.Style.values()).map(LiftBlocks.Style::asString), b))
+                                        .executes(c -> testTower(c.getSource(), IntegerArgumentType.getInteger(c, "floors"),
+                                                IntegerArgumentType.getInteger(c, "storey"),
+                                                style(com.mojang.brigadier.arguments.StringArgumentType.getString(c, "style"))))))))));
+    }
+
+    private static LiftBlocks.Style style(String name) {
+        for (LiftBlocks.Style s : LiftBlocks.Style.values()) if (s.asString().equals(name)) return s;
+        return LiftBlocks.Style.SOVIET;
     }
 
     private static Block block(String id, Block block, List<Item> items) {
@@ -136,6 +147,11 @@ public final class Lifts {
      * the right of the doors seen from the landing (row slab + 2; it hangs on the shaft wall's corner cell), and the winch stands on
      * the roof slab over the shaft (row {@code origin.y + floors * storeyHeight}). The cabin comes by itself once the winch ticks. */
     public static void place(ServerWorld world, BlockPos shaftOrigin, int floors, int storeyHeight, Direction facing) {
+        place(world, shaftOrigin, floors, storeyHeight, facing, LiftBlocks.Style.SOVIET);
+    }
+
+    /** The same in a look of its own ({@link LiftBlocks.Style#pick} gives a realistic mix by a house's seed). */
+    public static void place(ServerWorld world, BlockPos shaftOrigin, int floors, int storeyHeight, Direction facing, LiftBlocks.Style style) {
         Layout l = Layout.of(shaftOrigin, facing);
         for (int k = 0; k < floors; k++) {
             int s = shaftOrigin.getY() + k * storeyHeight;
@@ -144,11 +160,13 @@ public final class Lifts {
             for (int i = 0; i < 2; i++) {
                 BlockPos col = i == 0 ? l.left : l.right;
                 LiftBlocks.Side side = i == 0 ? LiftBlocks.Side.LEFT : LiftBlocks.Side.RIGHT;
-                BlockState door = DOOR.getDefaultState().with(LiftBlocks.DoorBlock.FACING, facing).with(LiftBlocks.DoorBlock.SIDE, side);
+                BlockState door = DOOR.getDefaultState().with(LiftBlocks.DoorBlock.FACING, facing).with(LiftBlocks.DoorBlock.SIDE, side)
+                        .with(LiftBlocks.STYLE, style);
                 world.setBlockState(col.withY(s + 1), door.with(LiftBlocks.DoorBlock.HALF, DoubleBlockHalf.LOWER), Block.NOTIFY_LISTENERS);
                 world.setBlockState(col.withY(s + 2), door.with(LiftBlocks.DoorBlock.HALF, DoubleBlockHalf.UPPER), Block.NOTIFY_LISTENERS);
             }
-            world.setBlockState(l.button.withY(s + 2), BUTTON.getDefaultState().with(LiftBlocks.ButtonBlock.FACING, facing), Block.NOTIFY_LISTENERS);
+            world.setBlockState(l.button.withY(s + 2), BUTTON.getDefaultState().with(LiftBlocks.ButtonBlock.FACING, facing).with(LiftBlocks.STYLE, style),
+                    Block.NOTIFY_LISTENERS);
         }
         world.setBlockState(shaftOrigin.up(floors * storeyHeight), MACHINE.getDefaultState(), Block.NOTIFY_LISTENERS);
     }
@@ -178,7 +196,7 @@ public final class Lifts {
 
     /** A bare tower to try a lift on: the shaft's concrete walls, a landing with a rail on every floor, the winch's room on the roof.
      * The shaft's corner is two blocks in front of the player (the doors look at the player). */
-    private static int testTower(ServerCommandSource source, int floors, int storey) {
+    private static int testTower(ServerCommandSource source, int floors, int storey, LiftBlocks.Style style) {
         ServerWorld world = source.getWorld();
         Direction facing = source.getPlayer() != null ? source.getPlayer().getHorizontalFacing().getOpposite() : Direction.SOUTH;
         BlockPos feet = BlockPos.ofFloored(source.getPosition());
@@ -215,7 +233,7 @@ public final class Lifts {
             world.setBlockState(ladder.offset(p).withY(y), wall, Block.NOTIFY_LISTENERS);
             world.setBlockState(ladder.withY(y), Blocks.LADDER.getDefaultState().with(net.minecraft.block.LadderBlock.FACING, p.getOpposite()), Block.NOTIFY_LISTENERS);
         }
-        place(world, origin, floors, storey, facing);
+        place(world, origin, floors, storey, facing, style);
         BlockPos o = origin;
         source.sendFeedback(() -> Text.literal("Лифт: " + floors + " этажей по " + storey + ", шахта " + o.toShortString() + ", двери на " + facing.asString()), false);
         return 1;

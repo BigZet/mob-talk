@@ -1,0 +1,202 @@
+{
+ "parent": "minecraft:block/block",
+ "textures": {
+  "frame": "mobtalk:block/city2/lift/frame_painted",
+  "leaf_shaft": "mobtalk:block/city2/lift/leaf_shaft_painted",
+  "shaft": "mobtalk:block/city2/lift/shaft",
+  "particle": "mobtalk:block/city2/lift/frame_painted"
+ },
+ "elements": [
+  {
+   "from": [
+    15,
+    0,
+    0
+   ],
+   "to": [
+    16,
+    16,
+    16
+   ],
+   "faces": {
+    "north": {
+     "texture": "#frame",
+     "uv": [
+      15,
+      0,
+      16,
+      16
+     ]
+    },
+    "west": {
+     "texture": "#frame",
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ]
+    },
+    "east": {
+     "texture": "#frame",
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ]
+    },
+    "south": {
+     "texture": "#shaft",
+     "uv": [
+      15,
+      0,
+      16,
+      16
+     ]
+    },
+    "up": {
+     "texture": "#frame",
+     "uv": [
+      15,
+      0,
+      16,
+      16
+     ]
+    }
+   }
+  },
+  {
+   "from": [
+    8,
+    0,
+    0
+   ],
+   "to": [
+    15,
+    15.5,
+    3
+   ],
+   "faces": {
+    "north": {
+     "texture": "#leaf_shaft",
+     "uv": [
+      8,
+      0.5,
+      15,
+      16
+     ]
+    },
+    "west": {
+     "texture": "#frame",
+     "uv": [
+      0,
+      0.5,
+      3,
+      16
+     ]
+    }
+   }
+  },
+  {
+   "from": [
+    8,
+    0,
+    3
+   ],
+   "to": [
+    15,
+    16,
+    16
+   ],
+   "faces": {
+    "west": {
+     "texture": "#shaft",
+     "uv": [
+      3,
+      0,
+      16,
+      16
+     ]
+    },
+    "south": {
+     "texture": "#shaft",
+     "uv": [
+      8,
+      0,
+      15,
+      16
+     ]
+    },
+    "north": {
+     "texture": "#shaft",
+     "uv": [
+      8,
+      0,
+      15,
+      16
+     ]
+    },
+    "up": {
+     "texture": "#shaft",
+     "uv": [
+      8,
+      3,
+      15,
+      16
+     ]
+    }
+   }
+  },
+  {
+   "from": [
+    0,
+    15.5,
+    0
+   ],
+   "to": [
+    15,
+    16,
+    16
+   ],
+   "faces": {
+    "north": {
+     "texture": "#frame",
+     "uv": [
+      0,
+      0,
+      15,
+      0.5
+     ]
+    },
+    "down": {
+     "texture": "#frame",
+     "uv": [
+      0,
+      0,
+      15,
+      16
+     ]
+    },
+    "south": {
+     "texture": "#shaft",
+     "uv": [
+      0,
+      0,
+      15,
+      0.5
+     ]
+    },
+    "up": {
+     "texture": "#shaft",
+     "uv": [
+      0,
+      0,
+      15,
+      16
+     ]
+    }
+   }
+  }
+ ]
+}
