@@ -428,14 +428,15 @@ final class SelfTestOfficials {
                     "the book of acts has the player's marriage and his son's birth");
             test.check(offered.contains(io.github.mobtalk.core.CivilRegistry.Paper.NO_RECORD) && !offered.contains(io.github.mobtalk.core.CivilRegistry.Paper.NOT_MARRIED),
                     "his own birth is on no record, and he is married");
+            test.check(papersOf(io.github.mobtalk.core.CivilRegistry.Paper.MARRIAGE_CERTIFICATE) == 1 && count("брак зарегистрирован") >= 1,
+                    "the marriage certificate is handed over at the registration itself");
             shot("mobtalk-papers-window.png", () -> {
                 int before = emeralds();
-                take(io.github.mobtalk.core.CivilRegistry.Paper.MARRIAGE_CERTIFICATE);
                 take(io.github.mobtalk.core.CivilRegistry.Paper.BIRTH_CERTIFICATE);
                 take(io.github.mobtalk.core.CivilRegistry.Paper.NO_RECORD);
                 take(io.github.mobtalk.core.CivilRegistry.Paper.FAMILY);
                 test.await("the papers are issued", 3, () -> papersOf(io.github.mobtalk.core.CivilRegistry.Paper.FAMILY) == 1, () -> {
-                    test.check(papersOf(io.github.mobtalk.core.CivilRegistry.Paper.MARRIAGE_CERTIFICATE) == 1 && papersOf(io.github.mobtalk.core.CivilRegistry.Paper.BIRTH_CERTIFICATE) == 1
+                    test.check(papersOf(io.github.mobtalk.core.CivilRegistry.Paper.BIRTH_CERTIFICATE) == 1
                             && papersOf(io.github.mobtalk.core.CivilRegistry.Paper.NO_RECORD) == 1, "a click issues each paper at once");
                     test.check(emeralds() == before, "the first certificates and the справки are free");
                     ItemStack marriage = paper(io.github.mobtalk.core.CivilRegistry.Paper.MARRIAGE_CERTIFICATE);
@@ -497,14 +498,34 @@ final class SelfTestOfficials {
                 shot("mobtalk-papers-head.png", () -> {
                     tooltipStack = ItemStack.EMPTY; tooltipSecond = ItemStack.EMPTY;
                     chat(true);
-                    test.bridge().memory.familyClearForTest(player().getUuid());
-                    // The next checks need a player without a passport (a new case).
+                    // Without a passport: a daughter is born, the clerk hands over her uncollected certificate, the next visit opens a case.
                     test.server().execute(() -> { for (int i = 0; i < player().getInventory().size(); i++) if (player().getInventory().getStack(i).isOf(OfficialContent.PASSPORT)) player().getInventory().setStack(i, ItemStack.EMPTY); });
+                    VillagerEntity wife = onServer(() -> world().getEntitiesByClass(VillagerEntity.class, area(), v -> v.getCommandTags().contains(TAG) && OfficialContent.rank(v) == null && !v.isBaby()).stream().findFirst().orElse(null));
+                    test.bridge().memory.familyForTest(player().getUuid(), name(), wife.getUuid(), "Аксинья", UUID.randomUUID(), "Маша");
                     near(official(Officialdom.Rank.CLERK));
-                    test.await("pause: the passport put away, back at the clerk's", 1, () -> false, this::rush);
+                    test.await("pause: the passport put away, back at the clerk's", 1, () -> false, this::uncollected);
                 });
             });
         }
+    }
+
+    private void uncollected() {
+        VillagerEntity clerk = official(Officialdom.Rank.CLERK);
+        visit(clerk);
+        test.await("the window without a passport (chat)", 3, () -> count("Паспорта у вас нет") >= 1, () -> uncollectedTake(clerk));
+    }
+    private void uncollectedTake(VillagerEntity clerk) {
+        List<io.github.mobtalk.core.CivilRegistry.Paper> offered = menu().stream().map(io.github.mobtalk.core.CivilRegistry.Offer::paper).toList();
+        test.check(count("Паспорта у вас нет") >= 1 && offered.contains(io.github.mobtalk.core.CivilRegistry.Paper.BIRTH_CERTIFICATE) && offered.stream().allMatch(p -> p.certificate),
+                "without a passport the clerk still gives the uncollected certificates, and only them (" + offered + ")");
+        take(io.github.mobtalk.core.CivilRegistry.Paper.BIRTH_CERTIFICATE);
+        test.await("the daughter's certificate", 3, () -> papersOf(io.github.mobtalk.core.CivilRegistry.Paper.BIRTH_CERTIFICATE) == 2, () -> {
+            test.check(papersOf(io.github.mobtalk.core.CivilRegistry.Paper.BIRTH_CERTIFICATE) == 2, "it is issued without a passport");
+            visit(clerk);
+            test.check(paperCase() != null, "the next Shift+right-click opens a passport case");
+            test.bridge().memory.familyClearForTest(player().getUuid());
+            rush();
+        });
     }
 
     /** A new case and an envelope to the corrupt clerk: the passport at once, no papers. */

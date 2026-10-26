@@ -34,7 +34,11 @@ final class CivilOffice {
     private final MobGameBridge bridge;
     private final Map<UUID, Menu> menus = new HashMap<>();
 
-    private record Menu(UUID official, Officialdom.Rank rank, List<CivilRegistry.Offer> offers, long until) { }
+    /** The list shown: whose window, the offers, until when; {@code withoutPassport} — only the uncollected certificates were offered,
+     * the next Shift+right-click on the same clerk opens a passport case. */
+    private record Menu(UUID official, Officialdom.Rank rank, List<CivilRegistry.Offer> offers, long until, boolean withoutPassport) { }
+    /** The stale lines of every mob are forgotten once per server start. */
+    private boolean cleaned;
 
     CivilOffice(MobGameBridge bridge) { this.bridge = bridge; }
 
@@ -52,27 +56,55 @@ final class CivilOffice {
 
     void tick(ServerWorld world) {
         if (!enabled() || world != world.getServer().getOverworld() || world.getTime() % SYNC_PERIOD != SYNC_PHASE) return;
-        bridge.memory.civilSync(PassportOffice.day(world));
+        if (!cleaned) { cleaned = true; bridge.memory.forgetStale(null, Officialdom.STALE); }
+        sync(world);
+    }
+    /** Reads the family tree into the book; a new marriage's certificate is handed to its players at once, as at a real
+     * registration (one who is not online collects it at the clerk's window, even without a passport). */
+    private void sync(ServerWorld world) {
+        long day = PassportOffice.day(world);
+        for (CivilRegistry.Act act : bridge.memory.civilSync(day)) {
+            if (act.kind() != CivilRegistry.Kind.MARRIAGE) continue;
+            for (int i = 0; i < 2; i++) {
+                UUID id = act.id(i);
+                ServerPlayerEntity player = id == null ? null : world.getServer().getPlayerManager().getPlayer(id);
+                if (player == null || bridge.memory.civilRepeated(CivilRegistry.Paper.MARRIAGE_CERTIFICATE, act.number(), id)) continue;
+                CivilRegistry.Facts facts = new CivilRegistry.Facts(MobGameBridge.playerName(player), "", day, 0, List.of(), List.of(), false);
+                String number = bridge.memory.civilIssue(CivilRegistry.Paper.MARRIAGE_CERTIFICATE, act.number(), id);
+                player.getInventory().offerOrDrop(OfficialContent.paper(CivilRegistry.Paper.MARRIAGE_CERTIFICATE, id, number, act.number(),
+                        CivilRegistry.lines(CivilRegistry.Paper.MARRIAGE_CERTIFICATE, act, facts), Text.translatable("mobtalk.civil.registry").getString(), day));
+                player.sendMessage(Text.translatable("mobtalk.civil.wedding", number).formatted(Formatting.GOLD), false);
+                player.getServerWorld().playSound(null, player.getBlockPos(), SoundEvents.ITEM_BOOK_PAGE_TURN, SoundCategory.PLAYERS, 1f, 1f);
+            }
+        }
     }
 
     /** The window of {@code official}: true when it showed the list (or the refusal without a passport). */
     boolean window(ServerWorld world, ServerPlayerEntity player, VillagerEntity official, Officialdom.Rank rank, Set<Officialdom.Rank> staff) {
         if (!enabled()) return false;
         Text who = bridge.officials.titled(official, rank);
-        if (!OfficialContent.hasPassport(player)) {
-            if (rank == Officialdom.Rank.CLERK) return false; // the clerk opens a passport case
-            say(player, who, Text.translatable("mobtalk.civil.no_passport"), Formatting.GRAY);
-            return true;
-        }
-        long day = PassportOffice.day(world);
-        bridge.memory.civilSync(day);
+        bridge.memory.forgetStale(official.getUuid(), Officialdom.STALE);
+        sync(world);
+        boolean passport = OfficialContent.hasPassport(player);
         boolean openOrder = openOrder(world, player, official);
-        List<CivilRegistry.Offer> offers = new ArrayList<>(bridge.memory.civilPapers(player.getUuid(), rank, openOrder));
-        // The clerk signs for the offices the village lacks.
-        if (rank == Officialdom.Rank.CLERK) for (Officialdom.Rank other : List.of(Officialdom.Rank.HEAD, Officialdom.Rank.INSPECTOR))
-            if (staff != null && !staff.contains(other)) offers.addAll(bridge.memory.civilPapers(player.getUuid(), other, openOrder));
-        menus.put(player.getUuid(), new Menu(official.getUuid(), rank, offers, world.getTime() + MENU_TICKS));
-        say(player, who, Text.translatable("mobtalk.civil.window"), Formatting.GOLD);
+        List<CivilRegistry.Offer> offers = new ArrayList<>();
+        if (!passport) {
+            if (rank != Officialdom.Rank.CLERK) { say(player, who, Text.translatable("mobtalk.civil.no_passport"), Formatting.GRAY); return true; }
+            // Without a passport the clerk still hands over the certificates the player never collected (the act is his already);
+            // the next Shift+right-click on her opens a passport case.
+            Menu last = menus.get(player.getUuid());
+            if (last != null && last.withoutPassport() && last.official().equals(official.getUuid()) && world.getTime() <= last.until()) { menus.remove(player.getUuid()); return false; }
+            for (CivilRegistry.Offer offer : bridge.memory.civilPapers(player.getUuid(), rank, openOrder))
+                if (offer.paper().certificate && offer.act() > 0 && !bridge.memory.civilRepeated(offer.paper(), offer.act(), player.getUuid())) offers.add(offer);
+            if (offers.isEmpty()) return false; // the clerk opens a passport case
+        } else {
+            offers.addAll(bridge.memory.civilPapers(player.getUuid(), rank, openOrder));
+            // The clerk signs for the offices the village lacks.
+            if (rank == Officialdom.Rank.CLERK) for (Officialdom.Rank other : List.of(Officialdom.Rank.HEAD, Officialdom.Rank.INSPECTOR))
+                if (staff != null && !staff.contains(other)) offers.addAll(bridge.memory.civilPapers(player.getUuid(), other, openOrder));
+        }
+        menus.put(player.getUuid(), new Menu(official.getUuid(), rank, offers, world.getTime() + MENU_TICKS, !passport));
+        say(player, who, Text.translatable(passport ? "mobtalk.civil.window" : "mobtalk.civil.window_uncollected"), Formatting.GOLD);
         for (int i = 0; i < offers.size(); i++) {
             CivilRegistry.Offer offer = offers.get(i);
             boolean repeated = bridge.memory.civilRepeated(offer.paper(), offer.act(), player.getUuid());
@@ -85,6 +117,7 @@ final class CivilOffice {
                     .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.translatable("mobtalk.civil.click"))));
             player.sendMessage(line, false);
         }
+        if (!passport) player.sendMessage(Text.translatable("mobtalk.civil.passport_next").formatted(Formatting.DARK_GRAY), false);
         world.playSound(null, official.getBlockPos(), SoundEvents.ITEM_BOOK_PAGE_TURN, SoundCategory.NEUTRAL, 1f, 1f);
         return true;
     }

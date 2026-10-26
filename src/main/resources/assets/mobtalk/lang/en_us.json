@@ -1112,5 +1112,9 @@
   "mobtalk.civil.no_fee": "Pay the state fee first: %s emeralds.",
   "mobtalk.civil.issued_now": "Here you are, sign here: %s, %s.",
   "mobtalk.settings.officialPapers": "Papers and certificates",
-  "mobtalk.settings.officialPapers.tooltip": "With a passport, Shift+right-click on an official opens the papers window. The clerk issues birth, marriage, divorce and death certificates from the book of acts, the form справки and the family paper; the head a character reference, the household book extract and a paper that you are alive; the inspector a building permit, a no-orders paper and a housing inspection."
+  "mobtalk.settings.officialPapers.tooltip": "With a passport, Shift+right-click on an official opens the papers window. The clerk issues birth, marriage, divorce and death certificates from the book of acts, the form справки and the family paper; the head a character reference, the household book extract and a paper that you are alive; the inspector a building permit, a no-orders paper and a housing inspection.",
+  "mobtalk.civil.registry": "the civil registry",
+  "mobtalk.civil.wedding": "Civil registry: the marriage is registered. You are handed the marriage certificate, %s.",
+  "mobtalk.civil.window_uncollected": "You have no passport, but the certificates you never collected I will give you. Click a line:",
+  "mobtalk.civil.passport_next": "For other papers come with a passport. Shift+right-click again to open a passport case."
 }

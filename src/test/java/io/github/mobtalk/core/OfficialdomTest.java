@@ -106,6 +106,13 @@ class OfficialdomTest {
         assertEquals("", Officialdom.gossip(java.util.List.of(Map.of("rank", "NOBODY", "name", "x"))));
     }
 
+    @Test void staleProceduresAreRecognised() {
+        assertTrue(Officialdom.STALE.matcher("Сверка записи ещё не завершена, приходите позже.").find());
+        assertTrue(Officialdom.STALE.matcher("Направлен запрос в архив.").find());
+        assertFalse(Officialdom.STALE.matcher("Снег сверкает на солнце.").find());
+        assertFalse(Officialdom.STALE.matcher("Ваше свидетельство о браке готово.").find());
+    }
+
     @Test void officialsSpeakRealOfficialese() {
         String text = Officialdom.prompt(Officialdom.Rank.CLERK, UUID.randomUUID(), 0, 20, 100, null);
         assertTrue(text.contains("факты не подтвердились")); assertTrue(text.contains("направлено по принадлежности"));

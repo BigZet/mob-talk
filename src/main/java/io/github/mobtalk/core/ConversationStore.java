@@ -196,15 +196,37 @@ public final class ConversationStore {
     public synchronized long revizorDay(String village) { Long d = state.officials.revizors.get(village); return d == null ? -1 : d; }
     public synchronized void revizorSchedule(String village, long day) { if (day < 0) state.officials.revizors.remove(village); else state.officials.revizors.put(village, day); scheduleSave(); }
     public synchronized Map<String, Long> revizors() { return new LinkedHashMap<>(state.officials.revizors); }
-    /** ЗАГС: enters the family tree's new births, marriages, divorces and deaths in the book of acts; returns how many. */
-    public synchronized int civilSync(long day) {
+    /** ЗАГС: enters the family tree's new births, marriages, divorces and deaths in the book of acts; returns copies of the new acts. */
+    public synchronized List<CivilRegistry.Act> civilSync(long day) {
         List<CivilRegistry.Act> added = state.officials.civil.sync(state.family, day, "", id -> {
             Profile p = state.profiles.get(id.toString());
             if (p != null) return SocialLedger.name(p);
             return state.players.get(id.toString());
         });
         if (!added.isEmpty()) scheduleSave();
-        return added.size();
+        return added.stream().map(CivilRegistry.Act::copy).toList();
+    }
+    /** Forgets what a mob (or every mob, {@code mob} null) said that matches {@code stale} — the exchanges, memory facts and summaries
+     * — so the model stops repeating an invented procedure from its own history. Returns how many entries went. */
+    public synchronized int forgetStale(UUID mob, java.util.regex.Pattern stale) {
+        int gone = 0;
+        for (Map.Entry<String, Profile> entry : state.profiles.entrySet()) {
+            if (mob != null && !mob.toString().equals(entry.getKey())) continue;
+            Profile p = entry.getValue();
+            int before = p.turns.size();
+            p.turns.removeIf(t -> t.assistant() != null && stale.matcher(t.assistant()).find());
+            int removed = before - p.turns.size();
+            // Counted as dropped from the front: the absolute exchange count stays the same for the summaries.
+            p.turnsDropped += removed;
+            p.summarizedTurns = Math.max(p.turnsDropped, Math.min(p.turnsDropped + p.turns.size(), p.summarizedTurns));
+            int facts = p.facts.size(), summaries = p.summaries.size();
+            p.facts.removeIf(f -> stale.matcher(f.text()).find());
+            p.summaries.removeIf(s -> stale.matcher(s.text()).find());
+            if (p.facts.size() != facts) p.memory = String.join("\n", p.facts.stream().map(MemoryFact::text).toList());
+            gone += removed + facts - p.facts.size() + summaries - p.summaries.size();
+        }
+        if (gone > 0) scheduleSave();
+        return gone;
     }
     /** Self-tests: the player married to {@code spouse} with a child {@code child}, straight into the family tree. */
     public synchronized void familyForTest(UUID player, String playerName, UUID spouse, String spouseName, UUID child, String childName) {
@@ -218,6 +240,8 @@ public final class ConversationStore {
         for (UUID child : state.family.children(player)) state.family.nodes.remove(child.toString());
         FamilyTree.Node node = state.family.nodes.get(player.toString());
         if (node != null) node.children.clear();
+        state.officials.civil.acts.removeIf(a -> a.has(player));
+        state.officials.civil.issued.removeIf(key -> key.endsWith("|" + player));
         scheduleSave();
     }
     /** What this office's window can give the player now. */
