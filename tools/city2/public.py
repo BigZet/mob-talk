@@ -506,8 +506,8 @@ def kg_vestibule(rm, flat):
 
 def music(rm, flat):
     """The music hall: the piano, little chairs along the walls, the floor free for the dances."""
-    rm.against("apt_piano")
-    rm.against("apt_piano_stool")
+    if rm.against("apt_piano", name="piano"):
+        rm.front("apt_piano_stool", "piano")
     for _ in range(14):
         if not rm.against("pub_kid_chair_" + rm.r.choice(["red", "yellow", "green", "blue"])):
             break
