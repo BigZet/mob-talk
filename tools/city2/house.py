@@ -477,6 +477,15 @@ class House:
                 if half == "top":
                     continue
             self.at(x, y0, z, slab, {"type": half, "waterlogged": "false"})
+            if (x, z) in self.grid and not self.is_facade(x, z):
+                # the attic: cleared of whatever stood there, and lit by invisible light sources on a 4-block grid, low and
+                # under the slope, so that no bat or monster spawns in the dark under the roof
+                for y in range(R + 1, y0):
+                    self.at(x, y, z, "minecraft:air")
+                if x % 4 == 1 and z % 4 == 1:
+                    for y in sorted({R + 1, y0 - 1}):
+                        if R < y < y0:
+                            self.at(x, y, z, "minecraft:light", {"level": "15", "waterlogged": "false"})
         if self.s.get("cornice"):       # the stalinkas: a white cornice under the eaves, a belt over the ground floor
             for x, z in cover:
                 if (x, z) in self.grid or self.rise(z, x):
