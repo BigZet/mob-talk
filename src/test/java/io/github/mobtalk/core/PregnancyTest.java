@@ -144,6 +144,7 @@ class PregnancyTest {
             UUID baby = UUID.randomUUID();
             Gender sex = store.social().born(baby, wife, player, "Стив", 2 * DAY, 5000);
             String name = store.state.profiles.get(baby.toString()).givenName;
+            assertTrue(VillagerVoices.kid(store.state.profiles.get(baby.toString()).voiceId), "a newborn speaks in a child's voice");
             if (i == 0 && sex == Gender.MALE) assertEquals("Советослав", name, "the chosen name");
             else assertNotEquals(sex == Gender.MALE ? Gender.FEMALE : Gender.MALE, VillagerNames.sexOf(name), name + " for a " + sex);
             String other = sex == Gender.MALE ? "Ярослав" : "Злата", wrong = sex == Gender.MALE ? "Злата" : "Ярослав";
@@ -151,6 +152,16 @@ class PregnancyTest {
             assertEquals(other, store.children().nameBaby(wife, player, "Пусть будет " + other), "an infant is renamed");
             assertEquals(other, store.state.profiles.get(baby.toString()).givenName);
         }
+    }
+
+    @Test void aLittleOneSpeaksItsAge() {
+        java.util.Random random = new java.util.Random(1);
+        assertEquals("Агу! Ма-ма!", ChildGrowth.speakable(ChildGrowth.Stage.INFANT, "Агу! Ма-ма!", random));
+        String said = ChildGrowth.speakable(ChildGrowth.Stage.INFANT, "Спасибо, Димочка! Печенька прямо в самое сердце", random);
+        assertFalse(said.contains("Димочка"), said);
+        assertTrue(ChildGrowth.speakable(ChildGrowth.Stage.TODDLER, "Папа, смотри какой жук ползёт по травке, он такой большой и смешной!", random).split("\\s+").length <= 6);
+        String teen = "Ну пап, отстань, я уже взрослый и сам всё знаю.";
+        assertEquals(teen, ChildGrowth.speakable(ChildGrowth.Stage.TEEN, teen, random));
     }
 
     @Test void aSameSexCoupleAndTheSwitchKeepTheOldWay() throws Exception {

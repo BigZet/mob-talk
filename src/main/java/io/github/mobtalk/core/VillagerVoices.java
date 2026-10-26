@@ -36,6 +36,18 @@ final class VillagerVoices {
                 .thenComparingLong(voice -> mix(salt ^ voice.id().hashCode()))).map(SpeciesCatalog.Voice::id).orElse("");
     }
 
+    /** Children's voices from the catalog (cartoon and kid narrators): a child of the family sounds like a child, not a young adult. */
+    private static final List<String> BOYS = List.of("pt0Iailp6NXMdRw1n3c5", "bA58y3FqVI6b6gTNh0oT", "ihKwLOjVUMG4lgUI6meZ");
+    private static final List<String> GIRLS = List.of("VD1if7jDVYtAKs4P0FIY", "uyv82ARGSiPieXDxTMOc", "EeQEodFZVtBkjtgK3HBc", "VOGEEZj2Kly5dP9LrQy8", "e3FEEanj39p8QCSMe8iV");
+    static boolean kid(String voiceId) { return voiceId != null && (BOYS.contains(voiceId) || GIRLS.contains(voiceId)); }
+    /** A child's voice by sex, fixed by its UUID (only voices the catalog knows). */
+    static String kid(UUID id, Gender gender) {
+        List<String> pool = (gender == Gender.FEMALE ? GIRLS : BOYS).stream().filter(SpeciesCatalog::known).toList();
+        if (pool.isEmpty()) return "";
+        return pool.get((int) Math.floorMod(id == null ? 0 : mix(id.getLeastSignificantBits()), pool.size()));
+    }
+    static boolean child(SocialProfile social) { return social != null && child(social.stage); }
+
     /** Whether this voice already suits a villager of this sex and age. */
     static boolean fits(String voiceId, Gender gender, VoiceAge age) {
         return voiceId != null && SpeciesCatalog.villagerPool(age, gender).stream().anyMatch(voice -> voice.id().equals(voiceId));

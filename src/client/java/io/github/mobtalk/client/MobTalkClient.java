@@ -135,7 +135,11 @@ public final class MobTalkClient implements ClientModInitializer {
     private UUID speakingMob;
     int speechStarts, speechCutoffs, repliesShown;
 
+    /** The running client, for optional integrations loaded by other mods (the JourneyMap plugin). */
+    static volatile MobTalkClient active;
+
     @Override public void onInitializeClient() {
+        active = this;
         ClientNet.register(this);
         talkKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.talk", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_V, "category.mobtalk"));
         settingsKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.settings", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_F7, "category.mobtalk"));
@@ -172,6 +176,7 @@ public final class MobTalkClient implements ClientModInitializer {
                 });
         net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback.EVENT.register(children::renderFade);
         net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback.EVENT.register(moodCard::render);
+        net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback.EVENT.register(this::renderHud);
         ScreenEvents.AFTER_INIT.register((minecraft, screen, width, height) -> {
             if (screen instanceof GameMenuScreen) {
                 boolean pack = ModHubScreen.packInstalled();
@@ -793,7 +798,25 @@ public final class MobTalkClient implements ClientModInitializer {
             line.append(Text.literal("торг: ")).append(Text.translatable("mobtalk.bargain." + state.bargain()).formatted(state.bargainSign() < 0 ? net.minecraft.util.Formatting.RED
                     : state.bargainSign() > 0 ? net.minecraft.util.Formatting.GREEN : net.minecraft.util.Formatting.YELLOW)).append(Text.literal(" · "));
         String favor = state == null || state.favor().isEmpty() ? "" : state.favor() + " · ";
-        client.player.sendMessage(line.append(Text.literal(favor + status)), true);
+        hudLine = line.append(Text.literal(favor + status));
+        hudUntil = System.currentTimeMillis() + HUD_MILLIS;
+    }
+
+    /** Строка Mob Talk живёт своей полосой над строкой действий: очередь, отсчёт ночи и подсказки игры её не перебивают. */
+    private static final long HUD_MILLIS = 3000;
+    private volatile Text hudLine; private volatile long hudUntil;
+    private void renderHud(net.minecraft.client.gui.DrawContext context, net.minecraft.client.render.RenderTickCounter tick) {
+        Text line = hudLine;
+        long left = hudUntil - System.currentTimeMillis();
+        if (line == null || left <= 0 || client.options.hudHidden || client.player == null) return;
+        int alpha = (int) Math.min(255, left * 255 / 500);
+        if (alpha < 8) return;
+        var font = client.textRenderer;
+        int width = context.getScaledWindowWidth(), y = context.getScaledWindowHeight() - 68 - 13; // строка действий — на 68 от низа
+        if (client.interactionManager != null && !client.interactionManager.hasStatusBars()) y += 6;
+        int textWidth = font.getWidth(line);
+        context.fill((width - textWidth) / 2 - 3, y - 2, (width + textWidth) / 2 + 3, y + 10, (alpha * 0x60 / 255) << 24);
+        context.drawTextWithShadow(font, line, (width - textWidth) / 2, y, 0xFFFFFF | alpha << 24);
     }
     void chat(String text) { client.inGameHud.getChatHud().addMessage(Text.literal(text)); }
     private String lastNotice = ""; private long lastNoticeMillis;

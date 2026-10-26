@@ -56,7 +56,9 @@ public final class MobLabels {
             String word = state == null ? "ровно" : MoodCard.word(state.word(), state.female());
             int sign = state == null ? 0 : state.wordSign();
             int relation = state == null ? 0 : state.relationship();
-            Text line = Text.literal(label.name()).formatted(Formatting.WHITE)
+            // Родня игрока: «❤ жена» золотом перед именем — свою семью видно сразу.
+            Text line = (label.kin().isBlank() ? Text.literal("") : Text.literal("❤ " + label.kin() + " ").formatted(Formatting.GOLD))
+                    .append(Text.literal(label.name()).formatted(label.kin().isBlank() ? Formatting.WHITE : Formatting.YELLOW))
                     .append(Text.literal(" · ").formatted(Formatting.DARK_GRAY))
                     .append(Text.literal(word).formatted(sign > 0 ? Formatting.GREEN : sign < 0 ? Formatting.RED : Formatting.GRAY))
                     .append(Text.literal(" · ").formatted(Formatting.DARK_GRAY))

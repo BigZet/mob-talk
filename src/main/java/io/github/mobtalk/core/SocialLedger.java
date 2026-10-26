@@ -45,6 +45,14 @@ public final class SocialLedger {
             if (fitting.isBlank()) fitting = SpeciesCatalog.voiceFor(p.type, gender, p.id).id();
             if (!fitting.isBlank() && !fitting.equals(p.voiceId)) { p.voiceId = fitting; changed = true; }
         }
+        // A child of the family speaks in a child's voice until it grows up; then a grown voice of its sex.
+        if (!custom && VillagerVoices.child(p.social) && !VillagerVoices.kid(p.voiceId)) {
+            String kid = VillagerVoices.kid(p.id, gender);
+            if (!kid.isBlank()) { p.voiceId = kid; changed = true; }
+        } else if (!custom && !VillagerVoices.child(p.social) && VillagerVoices.kid(p.voiceId)) {
+            String grown = VillagerVoices.pick(gender, VoiceAge.YOUNG, p.id, others == null ? List.of() : others);
+            if (!grown.isBlank()) { p.voiceId = grown; changed = true; }
+        }
         return changed;
     }
     /** Old worlds: the biography writer renamed villagers without knowing their sex («Валентина» with a man's body and voice). The sex
@@ -494,7 +502,9 @@ public final class SocialLedger {
             else if (VillagerNames.sexOf(kid.givenName) != null && VillagerNames.sexOf(kid.givenName) != newborn.gender())
                 kid.givenName = VillagerNames.pick(child, newborn.gender(), VillagerNames.wear(state.profiles.values(), child, kid.villageId));
             kid.social.traits = new ArrayList<>(newborn.traits().stream().map(Enum::name).toList());
-            kid.social.bornTick = worldTick; kid.social.stage = ChildGrowth.Stage.INFANT.name();
+            kid.social.bornTick = worldTick; kid.social.stage = ChildGrowth.Stage.INFANT.name(); kid.social.age = VoiceAge.YOUNG.name();
+            String kidVoice = VillagerVoices.kid(child, newborn.gender());
+            if (!kidVoice.isBlank()) kid.voiceId = kidVoice;
             kid.calm = newborn.calm(); kid.confidence = newborn.confidence(); kid.curiosity = newborn.curiosity(); kid.sociability = newborn.sociability();
             Gender ga = gender(state, pa, a, config), gb = gender(state, pb, b, config);
             boolean aMother = ga == Gender.FEMALE || gb == Gender.MALE;
@@ -541,7 +551,10 @@ public final class SocialLedger {
                 ConversationStore.Profile p = store.state.profiles.get(id.toString());
                 if (p == null || p.social == null || p.social.bornTick < 0) continue;
                 ChildGrowth.Stage stage = ChildGrowth.stage(worldTick - p.social.bornTick, days);
-                if (!stage.name().equals(p.social.stage)) { p.social.stage = stage.name(); p.revision++; changed = true; }
+                if (!stage.name().equals(p.social.stage)) {
+                    p.social.stage = stage.name(); p.revision++; changed = true;
+                    if (stage == ChildGrowth.Stage.ADULT) adopt(p, store.config(), store.state.profiles.values()); // a grown voice
+                }
                 stages.put(id, stage);
             }
             if (changed) store.scheduleSave();
