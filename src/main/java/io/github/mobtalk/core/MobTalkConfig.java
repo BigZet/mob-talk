@@ -98,6 +98,8 @@ public final class MobTalkConfig {
     public boolean villageChatter = true;
     /** Villagers the player knows write to the chat in their own name: village news, or a call to come over for work. */
     public boolean villageNotices = true;
+    /** A viewer's parrot jailed in a Parrot Cages cage is village news: villagers near the cage gossip and joke about it for a game day. */
+    public boolean villageParrotJokes = true;
     /** A village is the structure its residents live in (vanilla or a village mod such as CTOV), not only a point and a radius:
      * two neighbouring villages stay apart and a large one stays whole. Off: the old rule, the nearest known village within 160 blocks. */
     public boolean villageSites = true;
@@ -238,6 +240,14 @@ public final class MobTalkConfig {
     public boolean weddingCeremony = true;
     public int weddingVowSeconds = 60, weddingVowWaitSeconds = 60, weddingGatherSeconds = 60, weddingGuests = 16, weddingWishes = 12, weddingRange = 48;
     public int weddingScenePercent = 30, weddingAttireDays = 1;
+    /** Исповедь у священника (Б4, нужен Божественный блок): включена ли, исповедуют ли только настоятели храмов, радиус тайны
+     * (блоки), откат между полными исповедями (минуты), сколько заходов слушает батюшка, срок епитимьи (игровые дни), сколько
+     * секунд пишется исповедь голосом, выключенные виды епитимьи (id через запятую), писать ли слова исповеди в историю админки и
+     * слышна ли всем исповедь стримера. Личные: церковнославянский текст с переводом и строка епитимьи в HUD. */
+    public boolean confession = true, confessionAbbotsOnly = false, confessionHistoryText = false, confessionStreamerPublic = false;
+    public int confessionSecrecyRange = 12, confessionCooldownMinutes = 20, confessionRounds = 3, confessionPenanceDays = 2, confessionSpeakSeconds = 60;
+    public String confessionPenancesOff = "";
+    public boolean confessionSlavonic = true, confessionHud = true;
     /** Ребёнок в семье (трек N): беременность как у людей (выключено — малыш через игровой день, как раньше), живот на фигурке,
      * строка под именем и мягкие затемнения особой ночи и родов. Длина срока (игровые дни), шанс зачатия за обычную ночь вместе
      * и за особую (от и до по уюту дома, проценты), сердечки за особую ночь и сколько секунд тишины в кровати её заканчивают. */
@@ -345,7 +355,7 @@ public final class MobTalkConfig {
         copy.showBargainHud = showBargainHud;
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
-        copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
+        copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites; copy.villageParrotJokes = villageParrotJokes;
         copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageRoads = villageRoads; copy.roadLamps = roadLamps; copy.roadBypass = roadBypass; copy.roadDecor = roadDecor; copy.villageHeavy = villageHeavy; copy.villageCavalry = villageCavalry; copy.officials = officials; copy.barsInVillages = barsInVillages; copy.barEvenings = barEvenings; copy.barVoiced = barVoiced; copy.barAliceSpeaker = barAliceSpeaker; copy.barDrinks = barDrinks;
         copy.casino = casino; copy.casinoBouncers = casinoBouncers; copy.casinoVisitors = casinoVisitors; copy.casinoResort = casinoResort; copy.casinoSparkles = casinoSparkles;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
@@ -354,6 +364,9 @@ public final class MobTalkConfig {
         copy.familyLife = familyLife; copy.weddingChance = weddingChance; copy.birthChance = birthChance; copy.childGrowthDays = childGrowthDays;
         copy.coSleep = coSleep; copy.weddingCeremony = weddingCeremony;
         copy.rivals = rivals; copy.rivalSteal = rivalSteal; copy.rivalTrials = rivalTrials; copy.rivalBellScene = rivalBellScene; copy.rivalHud = rivalHud;
+        copy.confession = confession; copy.confessionAbbotsOnly = confessionAbbotsOnly; copy.confessionHistoryText = confessionHistoryText;
+        copy.confessionStreamerPublic = confessionStreamerPublic; copy.confessionPenancesOff = confessionPenancesOff;
+        copy.confessionSlavonic = confessionSlavonic; copy.confessionHud = confessionHud;
         copy.pregnancy = pregnancy; copy.pregnancyBelly = pregnancyBelly; copy.pregnancyStatus = pregnancyStatus; copy.familyFade = familyFade;
         Tunables.copy(this, copy);
         copy.commandLevels = commandLevels == null ? new LinkedHashMap<>() : new LinkedHashMap<>(commandLevels);
@@ -418,6 +431,7 @@ public final class MobTalkConfig {
         config.schemaVersion = 4;
         config.whisperHotwords = TextBounds.characters(config.whisperHotwords, 2000);
         config.commonPrompt = config.commonPrompt == null ? "" : config.commonPrompt.strip();
+        config.confessionPenancesOff = String.join(",", Confession.off(config.confessionPenancesOff));
         config.rudeness = Math.max(0, Math.min(3, config.rudeness));
         if (config.speciesOverrides == null) config.speciesOverrides = new LinkedHashMap<>();
         if (config.commandLevels == null) config.commandLevels = new LinkedHashMap<>();

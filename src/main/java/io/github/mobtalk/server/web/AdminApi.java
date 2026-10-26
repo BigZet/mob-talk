@@ -302,6 +302,16 @@ public final class AdminApi {
 
         router.get("/api/divine/souls", r -> Response.json(parts.game().divineSouls()));
         router.get("/api/divine/active", r -> Response.json(parts.game().divineActive()));
+        router.get("/api/confession/penances", r -> Response.json(parts.game().penances()));
+        router.post("/api/confession/penances/{uuid}/{action}", r -> {
+            String action = r.param("action");
+            if (!Set.of("credit", "cancel").contains(action)) throw ApiException.notFound("Нет такого действия.");
+            UUID player = uuid(r.param("uuid"));
+            JsonObject answer = parts.game().penanceAction(player, action);
+            parts.history().append("command", null, null, "Админка: епитимья " + (action.equals("credit") ? "засчитана" : "снята") + " (" + player + ")",
+                    Json.obj("command", "penance " + action, "by", by(r), "result", 1, "output", List.of(String.valueOf(Json.string(answer, "message")))));
+            return Response.json(answer);
+        });
         router.get("/api/divine/prayers", r -> Response.json(parts.game().divinePrayers(r.query("player"), Math.max(0, r.longQuery("since", 0)), r.intQuery("limit", 100, 1, 300))));
 
         router.get("/api/server", r -> {

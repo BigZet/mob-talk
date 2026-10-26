@@ -437,6 +437,7 @@ final class MobTalkSettingsScreen extends Screen {
                 Map.<String, Runnable>entry("bonds", () -> wide(tip(toggle("mobtalk.settings.social", draft.socialBehavior, value -> draft.socialBehavior = value), "mobtalk.settings.social.tooltip"))),
                 Map.<String, Runnable>entry("jealousy", () -> wide(tip(toggle("mobtalk.settings.coSleep", draft.coSleep, value -> draft.coSleep = value), "mobtalk.settings.coSleep.tooltip"))),
                 Map.<String, Runnable>entry("wedding", () -> wide(tip(toggle("mobtalk.settings.weddingCeremony", draft.weddingCeremony, value -> draft.weddingCeremony = value), "mobtalk.settings.weddingCeremony.tooltip"))),
+                Map.<String, Runnable>entry("confession", this::confessionSwitches),
                 Map.<String, Runnable>entry("rivals", () -> {
                     wide(tip(toggle("mobtalk.settings.rivals", draft.rivals, value -> draft.rivals = value), "mobtalk.settings.rivals.tooltip"),
                             tip(toggle("mobtalk.settings.rivalSteal", draft.rivalSteal, value -> draft.rivalSteal = value), "mobtalk.settings.rivalSteal.tooltip"));
@@ -494,9 +495,37 @@ final class MobTalkSettingsScreen extends Screen {
                     wide(tip(toggle("mobtalk.settings.roadBypass", draft.roadBypass, value -> draft.roadBypass = value), "mobtalk.settings.roadBypass.tooltip"),
                             tip(toggle("mobtalk.settings.roadDecor", draft.roadDecor, value -> draft.roadDecor = value), "mobtalk.settings.roadDecor.tooltip"));
                 }),
-                Map.<String, Runnable>entry("chatter", () -> wide(tip(toggle("mobtalk.settings.villageChatter", draft.villageChatter, value -> draft.villageChatter = value), "mobtalk.settings.villageChatter.tooltip"),
-                        tip(toggle("mobtalk.settings.villageNotices", draft.villageNotices, value -> draft.villageNotices = value), "mobtalk.settings.villageNotices.tooltip")))));
+                Map.<String, Runnable>entry("chatter", () -> {
+                    wide(tip(toggle("mobtalk.settings.villageChatter", draft.villageChatter, value -> draft.villageChatter = value), "mobtalk.settings.villageChatter.tooltip"),
+                            tip(toggle("mobtalk.settings.villageNotices", draft.villageNotices, value -> draft.villageNotices = value), "mobtalk.settings.villageNotices.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.villageParrotJokes", draft.villageParrotJokes, value -> draft.villageParrotJokes = value), "mobtalk.settings.villageParrotJokes.tooltip"));
+                })));
         resetSection(Tunables.Section.SOCIAL);
+    }
+
+    /** Б4: исповедь — серверные переключатели, личные (церковнославянский, HUD) и виды епитимьи. */
+    private void confessionSwitches() {
+        wide(tip(toggle("mobtalk.settings.confession", draft.confession, value -> draft.confession = value), "mobtalk.settings.confession.tooltip"),
+                tip(toggle("mobtalk.settings.confessionAbbotsOnly", draft.confessionAbbotsOnly, value -> draft.confessionAbbotsOnly = value), "mobtalk.settings.confessionAbbotsOnly.tooltip"));
+        wide(tip(toggle("mobtalk.settings.confessionHistoryText", draft.confessionHistoryText, value -> draft.confessionHistoryText = value), "mobtalk.settings.confessionHistoryText.tooltip"),
+                tip(toggle("mobtalk.settings.confessionStreamerPublic", draft.confessionStreamerPublic, value -> draft.confessionStreamerPublic = value), "mobtalk.settings.confessionStreamerPublic.tooltip"));
+        wide(tip(toggle("mobtalk.settings.confessionSlavonic", draft.confessionSlavonic, value -> draft.confessionSlavonic = value), "mobtalk.settings.confessionSlavonic.tooltip"),
+                tip(toggle("mobtalk.settings.confessionHud", draft.confessionHud, value -> draft.confessionHud = value), "mobtalk.settings.confessionHud.tooltip"));
+        io.github.mobtalk.core.Confession.Penance[] kinds = io.github.mobtalk.core.Confession.Penance.values();
+        for (int i = 0; i < kinds.length; i += 2)
+            if (i + 1 < kinds.length) wide(penanceToggle(kinds[i]), penanceToggle(kinds[i + 1])); else wide(penanceToggle(kinds[i]));
+    }
+    private CyclingButtonWidget<Boolean> penanceToggle(io.github.mobtalk.core.Confession.Penance kind) {
+        Text label = Text.translatable("mobtalk.settings.penance", kind.title);
+        boolean on = !io.github.mobtalk.core.Confession.off(draft.confessionPenancesOff).contains(kind.id());
+        CyclingButtonWidget<Boolean> widget = track(CyclingButtonWidget.onOffBuilder(on).omitKeyText().build(0, 0, 100, 20, label, (button, chosen) -> {
+            java.util.Set<String> off = new java.util.LinkedHashSet<>(io.github.mobtalk.core.Confession.off(draft.confessionPenancesOff));
+            if (chosen) off.remove(kind.id()); else off.add(kind.id());
+            draft.confessionPenancesOff = String.join(",", off);
+        }));
+        captions.put(widget, label);
+        bound.putIfAbsent(widget, "confessionPenancesOff");
+        return tip(widget, "mobtalk.settings.penance.tooltip");
     }
 
     // ---- Действия и место ----

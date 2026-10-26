@@ -141,6 +141,12 @@ public final class Tunables {
         integer("weddingRange", s, "wedding", 16, 96, 4, c -> c.weddingRange, (c, x) -> c.weddingRange = x);
         integer("weddingScenePercent", s, "wedding", 0, 100, 5, c -> c.weddingScenePercent, (c, x) -> c.weddingScenePercent = x);
         integer("weddingAttireDays", s, "wedding", 0, 30, 1, c -> c.weddingAttireDays, (c, x) -> c.weddingAttireDays = x);
+        // Исповедь у священника (Б4).
+        integer("confessionSecrecyRange", s, "confession", 4, 32, 1, c -> c.confessionSecrecyRange, (c, x) -> c.confessionSecrecyRange = x);
+        integer("confessionCooldownMinutes", s, "confession", 0, 120, 1, c -> c.confessionCooldownMinutes, (c, x) -> c.confessionCooldownMinutes = x);
+        integer("confessionRounds", s, "confession", 1, 3, 1, c -> c.confessionRounds, (c, x) -> c.confessionRounds = x);
+        integer("confessionPenanceDays", s, "confession", 1, 7, 1, c -> c.confessionPenanceDays, (c, x) -> c.confessionPenanceDays = x);
+        integer("confessionSpeakSeconds", s, "confession", 15, 120, 5, c -> c.confessionSpeakSeconds, (c, x) -> c.confessionSpeakSeconds = x);
         // Ребёнок в семье (трек N).
         integer("pregnancyDays", s, "child", 1, 20, 1, c -> c.pregnancyDays, (c, x) -> c.pregnancyDays = x);
         integer("conceptionChance", s, "child", 0, 100, 1, c -> c.conceptionChance, (c, x) -> c.conceptionChance = x);
@@ -314,9 +320,12 @@ public final class Tunables {
             case SOCIAL -> {
                 config.socialLayer = d.socialLayer; config.playerGender = d.playerGender; config.familyLife = d.familyLife; config.coSleep = d.coSleep; config.weddingCeremony = d.weddingCeremony;
                 config.rivals = d.rivals; config.rivalSteal = d.rivalSteal; config.rivalTrials = d.rivalTrials; config.rivalBellScene = d.rivalBellScene; config.rivalHud = d.rivalHud;
+                config.confession = d.confession; config.confessionAbbotsOnly = d.confessionAbbotsOnly; config.confessionHistoryText = d.confessionHistoryText;
+                config.confessionStreamerPublic = d.confessionStreamerPublic; config.confessionPenancesOff = d.confessionPenancesOff;
                 config.pregnancy = d.pregnancy; config.pregnancyBelly = d.pregnancyBelly; config.pregnancyStatus = d.pregnancyStatus; config.familyFade = d.familyFade;
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices; config.villageSites = d.villageSites;
+                config.villageParrotJokes = d.villageParrotJokes;
                 config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.alarmSound = d.alarmSound; config.villageNoConversion = d.villageNoConversion; config.villageTowers = d.villageTowers; config.villageGuards = d.villageGuards; config.villageRoads = d.villageRoads; config.roadLamps = d.roadLamps; config.roadBypass = d.roadBypass; config.roadDecor = d.roadDecor; config.villageHeavy = d.villageHeavy; config.villageCavalry = d.villageCavalry; config.officials = d.officials; config.barsInVillages = d.barsInVillages; config.barEvenings = d.barEvenings; config.barVoiced = d.barVoiced; config.barAliceSpeaker = d.barAliceSpeaker; config.barDrinks = d.barDrinks;
                 config.casino = d.casino; config.casinoBouncers = d.casinoBouncers; config.casinoVisitors = d.casinoVisitors; config.casinoResort = d.casinoResort; config.casinoSparkles = d.casinoSparkles;
                 config.divineTidings = d.divineTidings; config.divinePanic = d.divinePanic; config.divineMayExile = d.divineMayExile; config.divineMourners = d.divineMourners;
