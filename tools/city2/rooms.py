@@ -524,9 +524,10 @@ def furnish(house):
     """Every flat of every floor, room by room; then the flats' floor rugs; then the landings' door mats."""
     plan_rooms = house.s["rooms"]
     for k in range(1, house.floors + 1):
+        house.on_floor(k)
         for sec in range(house.n):
             for side in sorted({sd for sd, _ in plan_rooms.values()}):
-                r = random.Random(f"{house.series}:{house.colour}:{house.n}:{k}:{sec}:{side}")
+                r = random.Random(f"{house.series}:{house.colour}:{house.n}:{k}:{sec}:{side}{house.salt}")
                 flat = {"set": r.choice(["white", "wood"]), "sofa": r.choice(["red", "green", "blue"]), "bed": None,
                         "rug": False, "wall_carpet": r.random() < 0.3, "new": house.series in NEW_SERIES, "modern": False}
                 carpet = r.random() < 0.33
@@ -561,3 +562,4 @@ def furnish(house):
                 if rec is not None and flat["bed"]:
                     x, z, _ = flat["bed"]
                     rec.bed = (house.ox + x, house.slab(k) + 1, house.oz + z)
+    house.on_floor(None)

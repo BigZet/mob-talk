@@ -112,13 +112,18 @@ class Flat:
 
 
 class House:
-    def __init__(self, series, sections=4, floors=5, colour="grey", seed=0):
-        self.s = S.SERIES[series]
-        self.series, self.n, self.floors, self.colour = series, sections, floors, colour
+    def __init__(self, series, sections=4, floors=5, colour="grey", seed=0, opts=None):
+        """opts: overrides of the series' options for this block (compose.py closes a wing's end where it abuts a corner)."""
+        self.s = dict(S.SERIES[series], **(opts or {}))
+        self.series, self.n, self.floors, self.colour, self.seed = series, sections, floors, colour, seed
+        self.salt = f":{seed}" if seed else ""         # the blocks of one composed house differ in their flats' choices
         self.r = random.Random(f"{series}:{sections}:{floors}:{colour}:{seed}")
         plan = self.s["plan"]
+        self.whole = self.s.get("whole", False)   # a plan of the whole block (a corner block): no sections, no closing wall
+        if self.whole:
+            sections = self.n = 1
         self.sw, self.depth = len(plan[0]), len(plan)
-        self.length = self.sw * sections + 1
+        self.length = self.sw * sections + (0 if self.whole else 1)
         m = scale.MARGIN
         self.ox, self.oz = m, m
         # a storey's height: 4 (slab + three rows), 5 in the stalinkas (a fourth row of room: their high ceilings)
@@ -129,14 +134,42 @@ class House:
         self.roof = scale.PLINTH + self.storey * floors      # the roof slab's row
         self.tpl = Tpl((self.length + 2 * m, self.roof + (self.depth // 4 + 5 if self.pitched else 6), self.depth + 2 * m))
         self.flats = []
-        self.grid = {}   # (bx, bz) -> plan char, bx over the whole house
+        self.grid = {}   # (bx, bz) -> plan char, bx over the whole house; a " " of the plan is outside (a notch, an arch)
         for i in range(sections):
             for z, row in enumerate(plan):
                 for x, ch in enumerate(row):
-                    self.grid[(i * self.sw + x, z)] = ch
-        end = self.s.get("end", "#" * self.depth)     # the closing wall: blank, or with windows (i-209a)
-        for z in range(self.depth):
-            self.grid[(self.length - 1, z)] = end[z]
+                    if ch != " ":
+                        self.grid[(i * self.sw + x, z)] = ch
+        if not self.whole:
+            end = self.s.get("end", "#" * self.depth)     # the closing wall: blank, or with windows (i-209a)
+            for z in range(self.depth):
+                self.grid[(self.length - 1, z)] = end[z]
+        if self.s.get("closed_end"):                     # the end abuts another block (a corner block): no windows in it
+            for z in range(self.depth):
+                self.grid[(self.length - 1, z)] = "#"
+        if self.s.get("closed_start"):
+            for z in range(self.depth):
+                if self.grid.get((0, z)) in ("W", "B"):
+                    self.grid[(0, z)] = "#"
+        # the walls where another block abuts this one (compose.py): under one roof with it, no gable, no parapet there
+        self.joints = set()
+        if self.s.get("closed_end"):
+            self.joints |= {(self.length - 1, z) for z in range(self.depth)}
+        if self.s.get("closed_start"):
+            self.joints |= {(0, z) for z in range(self.depth)}
+        for x0, z0, x1, z1 in self.s.get("joints", []):
+            self.joints |= {(x, z) for x in range(x0, x1 + 1) for z in range(z0, z1 + 1)}
+        self.base_grid = self.grid
+        self.grids = {}                                  # floor -> its own plan, where one differs (the ground floor's arch)
+        if "plan_ground" in self.s:
+            g = {k: v for k, v in self.grid.items()}
+            for z, row in enumerate(self.s["plan_ground"]):
+                for x, ch in enumerate(row):
+                    if ch == " ":
+                        g.pop((x, z), None)
+                    else:
+                        g[(x, z)] = ch
+            self.grids[1] = g
         self.palettes = {}
 
     # ------------------------------------------------------------ plan queries
@@ -205,15 +238,25 @@ class House:
                     return self.s["rooms"][c][0], self.section_of(x)
         return "L", self.section_of(bx)
 
+    def on_floor(self, k):
+        """Switches the plan to floor k's (the ground floor may have an arch through it)."""
+        self.grid = self.grids.get(k, self.base_grid)
+
+    def outside(self, bx, bz):
+        return (bx, bz) not in self.grid
+
     def is_facade(self, bx, bz):
-        return bz in (0, self.depth - 1) or bx in (0, self.length - 1)
+        return (bx, bz) in self.grid and any(self.outside(bx + dx, bz + dz) for dx, dz in DIRS.values())
+
+    def convex(self, bx, bz):
+        """A facade cell at an outer corner of the block: outside on two sides."""
+        return sum(self.outside(bx + dx, bz + dz) for dx, dz in DIRS.values()) >= 2
 
     def outward(self, bx, bz):
-        if bz == 0:
-            return N
-        if bz == self.depth - 1:
-            return SO
-        return W if bx == 0 else E
+        for d in (N, SO, W, E):
+            if self.outside(bx + DIRS[d][0], bz + DIRS[d][1]):
+                return d
+        return N
 
     def wallish(self, c):
         return c in ("#", "-", "D", "E", "W", "B", "S")
@@ -222,7 +265,7 @@ class House:
 
     def paint(self, sec):
         """The oil paint of section sec's staircase: green mostly, blue, ochre or red-brown in other entrances."""
-        r = random.Random(f"paint:{self.series}:{self.n}:{self.floors}:{self.colour}:{sec}")
+        r = random.Random(f"paint:{self.series}:{self.n}:{self.floors}:{self.colour}:{sec}{self.salt}")
         return r.choices(PAINTS, weights=(35, 30, 20, 15))[0]
 
     def at(self, bx, y, bz, name, props=None):
@@ -242,10 +285,12 @@ class House:
         for x in range(t.size[0]):            # the apron and the foundation
             for z in range(t.size[2]):
                 bx, bz = x - self.ox, z - self.oz
-                inside = 0 <= bx < self.length and 0 <= bz < self.depth
+                inside = (bx, bz) in self.grids.get(1, self.base_grid)
                 t.set(x, 0, z, "plinth" if inside else "asphalt")
         for k in range(1, self.floors + 1):
+            self.on_floor(k)
             self.floor(k)
+        self.on_floor(None)
         self.roof_level()
         for i in range(self.n):
             self.stairs(i)
@@ -300,7 +345,7 @@ class House:
             if self.ch(ix, iz) in self.s["rooms"]:
                 side, sec = self.flat_side(ix, iz)
                 return self.palette(sec, k, side)["frame"]
-        r = random.Random(f"stairframe:{self.series}:{self.n}:{self.floors}:{self.colour}:{self.section_of(bx)}")
+        r = random.Random(f"stairframe:{self.series}:{self.n}:{self.floors}:{self.colour}:{self.section_of(bx)}{self.salt}")
         return "wood" if r.random() < STAIR_WOOD[self.age] else "pvc"
 
     def window(self, bx, bz, s, out, inner="plaster", k=None):
@@ -311,7 +356,7 @@ class House:
 
     def facade_cell(self, bx, bz, s, k, c):
         out = self.outward(bx, bz)
-        corner = bx in (0, self.length - 1) and bz in (0, self.depth - 1)
+        corner = self.convex(bx, bz)
         d = OPP[out]
         dx, dz = DIRS[d]
         joint = corner or self.wallish(self.ch(bx + dx, bz + dz) or "")
@@ -350,9 +395,18 @@ class House:
         self.at(bx, y, bz, name, {"facing": facing, "half": "lower" if row == "lo" else "upper", "hinge": "left", "open": "false",
                                   "powered": "false"})
 
-    def rise(self, z):
-        """A pitched roof's height over row z, in half blocks: it climbs half a block a row from either long facade."""
-        return min(z + 1, self.depth - z)
+    def rise(self, z, x=None):
+        """A pitched roof's height over cell (x, z), in half blocks: it climbs half a block a row from either long facade.
+        A corner block has two ridges crossing (series "ridges": along x over rows lo..hi-1, along z over columns lo..hi-1);
+        a cell under both takes the higher slope, so the slopes meet in valleys and hips."""
+        best = None
+        for axis, lo, hi in self.s.get("ridges", [("x", 0, self.depth)]):
+            c = z if axis == "x" else x
+            if c is None or not lo - 1 <= c <= hi:
+                continue
+            d = max(0, min(c - lo + 1, hi - c))
+            best = d if best is None else max(best, d)
+        return best or 0
 
     def roof_level(self):
         if self.pitched:
@@ -360,8 +414,8 @@ class House:
         R = self.roof
         col = self.colour
         for (bx, bz), c in self.grid.items():
-            if self.is_facade(bx, bz):
-                corner = bx in (0, self.length - 1) and bz in (0, self.depth - 1)
+            if self.is_facade(bx, bz) and (bx, bz) not in self.joints:
+                corner = self.convex(bx, bz)
                 self.at(bx, R, bz, f"facade_{col}_{'edge' if corner else 'band'}")
                 self.at(bx, R + 1, bz, f"facade_{col}_{'edge' if corner else 'band'}")   # parapet
             else:
@@ -380,43 +434,46 @@ class House:
         """A pitched roof (the brick houses): over the roof slab (the attic's floor) two slopes of slabs climb from eaves a block
         out over the long facades to the ridge, the brick gables close the ends; vent stacks and chimneys go through the
         slopes, the aerials stand on the ridge. The staircase stops at the top floor (no roof exit box)."""
-        R, col, L, D = self.roof, self.colour, self.length, self.depth
+        R, col = self.roof, self.colour
         full = self.pitched
         slab = full + "_slab"
         for (bx, bz), c in self.grid.items():
             if self.is_facade(bx, bz):
-                corner = bx in (0, L - 1) and bz in (0, D - 1)
-                self.at(bx, R, bz, f"facade_{col}_{'edge' if corner else 'band'}")
+                self.at(bx, R, bz, f"facade_{col}_{'edge' if self.convex(bx, bz) else 'band'}")
             else:
                 self.at(bx, R, bz, "roof_bitumen")
-        for z in range(-1, D + 1):
-            d = self.rise(z)
+        cover = sorted({(x + dx, z + dz) for (x, z) in self.grid for dx in (-1, 0, 1) for dz in (-1, 0, 1)}, key=lambda p: (p[1], p[0]))
+        for x, z in cover:
+            d = self.rise(z, x)
             y0, half = R + 1 + d // 2, "bottom" if d % 2 == 0 else "top"
-            for x in range(-1, L + 1):
-                ring = (0 <= z < D and x in (0, L - 1)) or (z in (0, D - 1) and 0 <= x < L)
-                if ring:      # the gables and the eaves' course of brick under the slopes; a full brick where a top slab would leave a slit
-                    corner = x in (0, L - 1) and z in (0, D - 1)
-                    for y in range(R + 1, y0 + (half == "top")):
-                        self.at(x, y, z, f"facade_{col}_{'edge' if corner else 'band'}")
-                    if half == "top":
-                        continue
-                self.at(x, y0, z, slab, {"type": half, "waterlogged": "false"})
+            if self.is_facade(x, z) and (x, z) not in self.joints:  # the gables and the eaves' course of brick under the slopes; a full brick where a top slab would leave a slit
+                corner = self.convex(x, z)
+                for y in range(R + 1, y0 + (half == "top")):
+                    self.at(x, y, z, f"facade_{col}_{'edge' if corner else 'band'}")
+                if half == "top":
+                    continue
+            self.at(x, y0, z, slab, {"type": half, "waterlogged": "false"})
         if self.s.get("cornice"):       # the stalinkas: a white cornice under the eaves, a belt over the ground floor
-            for x in range(L):
-                for z, facing in ((-1, SO), (D, N)):
-                    self.at(x, R, z, "minecraft:smooth_quartz_stairs", {"facing": facing, "half": "top", "shape": "straight",
-                                                                        "waterlogged": "false"})
-                    self.at(x, self.slab(2), z, "minecraft:smooth_quartz_slab", {"type": "top", "waterlogged": "false"})
+            for x, z in cover:
+                if (x, z) in self.grid or self.rise(z, x):
+                    continue
+                for d in (SO, N, E, W):  # facing the wall it hangs on
+                    if (x + DIRS[d][0], z + DIRS[d][1]) in self.grid:
+                        self.at(x, R, z, "minecraft:smooth_quartz_stairs", {"facing": d, "half": "top", "shape": "straight",
+                                                                            "waterlogged": "false"})
+                        self.at(x, self.slab(2), z, "minecraft:smooth_quartz_slab", {"type": "top", "waterlogged": "false"})
+                        break
         for i in range(self.n):
             x0 = i * self.sw
             for vx, vz in self.s["vents"]:
-                top = R + 1 + self.rise(vz) // 2
+                top = R + 1 + self.rise(vz, x0 + vx) // 2
                 for y in range(R + 1, top + 1):
                     self.at(x0 + vx, y, vz, "vent_shaft", {"facing": N})
                 self.at(x0 + vx, top + 1, vz, "vent_cap", {"facing": N})
             if self.r.random() < 0.7:
-                ax, az = x0 + self.r.choice((2, self.sw - 3)), D // 2
-                y = R + 2 + self.rise(az) // 2
+                ridge = self.s.get("ridges", [("x", 0, self.depth)])[0]
+                ax, az = x0 + self.r.choice((2, self.sw - 3)), (ridge[1] + ridge[2]) // 2
+                y = R + 2 + self.rise(az, ax) // 2
                 for dy in (0, 1):
                     self.at(ax, y + dy, az, "tv_antenna", {"facing": self.r.choice((N, E))})
 
@@ -645,7 +702,8 @@ class House:
                     run.append((x, z))
                     x, z = x + sgn * along[0], z + sgn * along[1]
             run.sort(key=lambda p: (p[0] * along[0] + p[1] * along[1]))   # from the right end to the left end, looking out
-            side, sec = self.flat_side(bx, bz + (1 if bz == 0 else -1))
+            inward = DIRS[OPP[out]]
+            side, sec = self.flat_side(bx + inward[0], bz + inward[1])
             first = self.s.get("balcony_from", 2)
             for k in range(first, self.floors + 1):
                 s = self.slab(k)
@@ -668,6 +726,7 @@ class House:
     def fixtures(self):
         """A lamp in each room; at each window the curtains, with the radiator under the sill; the flats' records."""
         for k in range(1, self.floors + 1):
+            self.on_floor(k)
             s = self.slab(k)
             rooms = {}
             for (bx, bz), c in self.grid.items():
@@ -703,6 +762,7 @@ class House:
                 for t in range(self.top):
                     self.at(ix, s + 1 + t, iz, name, tall | {"facing": d, "tier": str(t), "open": "true", "left": str(left).lower(),
                                                       "right": str(right).lower(), "radiator": "true"})
+        self.on_floor(None)
 
 
 def main():

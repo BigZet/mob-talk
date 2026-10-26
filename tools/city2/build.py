@@ -3,6 +3,7 @@
     python3 -I tools/city2/build.py [--only blocks|houses] [--maps OUTDIR]
 
 Houses go to data/mobtalk/structure/city2/house/<series>_s<sections>_f<floors>_<colour>.nbt; /city house sets them down.
+L-shaped houses are <series>-l, courtyard blocks <series>-yard (compose.py).
 --maps writes a top-down slice of every floor of the first house, for a quick look at the plan without the game.
 """
 import os
@@ -22,6 +23,11 @@ HOUSES = [("1-464", 1, 5, "grey")] + [("1-464", s, 5, c) for s in range(2, 7) fo
     [("p-44", s, 17, c) for s in range(1, 4) for c in COLOURS] + \
     [("1-447", s, 5, c) for s in range(1, 5) for c in BRICKS] + \
     [("ii-03", s, f, c) for s in range(1, 4) for f in (3, 4) for c in BRICKS]
+# houses of several blocks (compose.py): L-shaped (wings of `sections` each round a corner block), courtyard blocks
+# (four corners, wings of `sections` between them; 0: a well 16 x 16)
+COMPOSED = [("1-447-l", s, 5, c) for s in range(1, 4) for c in BRICKS] + \
+    [("ii-03-l", s, f, c) for s in range(1, 3) for f in (3, 4) for c in BRICKS] + \
+    [("ii-03-yard", s, f, c) for s in range(0, 2) for f in (4, 5) for c in BRICKS]
 
 
 def build_houses(maps=None):
@@ -34,6 +40,12 @@ def build_houses(maps=None):
         if maps and (series, sections, floors, colour) == ("1-464", 4, 5, "grey"):
             import preview
             preview.slices(t, maps)
+    import compose
+    for name, sections, floors, colour in COMPOSED:
+        base, kind = name.rsplit("-", 1)
+        t, flats = (compose.l_house if kind == "l" else compose.yard_house)(base, sections, floors, colour)
+        t.save(os.path.join(out, f"{name}_s{sections}_f{floors}_{colour}.nbt"))
+        print(f"house {name} s{sections} f{floors} {colour}: {t.size}, {len(flats)} flats")
 
 
 def main():

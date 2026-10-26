@@ -402,12 +402,65 @@ SERIES["ii-03"] = {
 }
 SERIES["ii-03"]["vents"] = _baths(SERIES["ii-03"]["plan"], SERIES["ii-03"]["rooms"])
 
+
+# The corner block of an L-shaped house (and of a courtyard block, four of them round the yard): a whole plan 30 x 30
+# for the brick houses 22 deep. Its street sides are north (the entrance) and east; the wing along x (wing A, compose.py)
+# abuts its west wall over rows 0..21, the wing along z (wing B) its south wall over columns 8..29; the notch 8 x 8 at
+# the south-west is the yard's corner, its two walls have windows. Three flats on a landing: a two-room one on the
+# north-west (the bedroom over the yard), a two-room one on the north-east (the corner living room with windows both
+# ways, the bedroom through it), and a two-room one down a long corridor from the landing's back door (the kitchen over
+# the yard, the bedroom and the living room on the east street). Bathrooms, pantries and halls fill the dark middle.
+_CORNER = [
+    "##WW####W##SSSSS##W###WWBW#WW#",   # 0  the street side, north: the entrance
+    "#aaaaa#kkk#sssss#ooo#nnnnnnnn#", "#aaaaa#kkk#sssss#ooo#nnnnnnnn#",
+    "#aaaaa#kkk#sssss#ooo#nnnnnnnnW", "#aaaaa#kkk#sssss#ooo#nnnnnnnnW",
+    "#aaaaa#kkk#sssss#ooo#nnnnnnnn#",
+    "#aaaaa##D##sssss##D##nnnnnnnnW",
+    "#aaaaaDhhhEsssssEiiiDnnnnnnnn#",   # 7  the floor landing: the two front flats' doors
+    "#aaaaa#hhh#sssss#iii#nnnnnnnn#",
+    "########D#####E###D#####D#####",   # 9  the back flat's door off the landing
+    "#ttttt#hhh###fff#jjj#rrrrrrrr#", "#tttttDhhh###fff#jjj#rrrrrrrr#", "#ttttt#hhh###fff#jjj#rrrrrrrrW",
+    "#######D#####fff#####rrrrrrrrW",
+    "#bbbbbbb#qqq#fffDyyy#rrrrrrrr#", "#bbbbbbb#qqq#fff#yyy#rrrrrrrr#",
+    "#bbbbbbb#qqq#fff##############",
+    "#bbbbbbb#qqqDfff#xxxxxxxxxxxx#", "#bbbbbbb#qqq#fff#xxxxxxxxxxxxW", "#bbbbbbb#qqq#fffDxxxxxxxxxxxxW",
+    "#bbbbbbb#qqq#fff#xxxxxxxxxxxx#",
+    "###WWW#######fff#xxxxxxxxxxxx#",   # 21 the yard's north wall (the notch below)
+    "        #####fff##############",
+    "        #ppp#fff#wwwwwwwwwwww#", "        #ppp#fff#wwwwwwwwwwwwW", "        WpppDfffDwwwwwwwwwwwwW",
+    "        Wppp#fff#wwwwwwwwwwwwB", "        #ppp#fff#wwwwwwwwwwwwW", "        #ppp#fff#wwwwwwwwwwww#",
+    "        ######################",   # 29 wing B abuts here
+]
+# its ground floor with an arch from the yard to the east street (rows 23..28): the back flat keeps its corridor, bathroom
+# and a kitchen over the arch, its bedroom becomes the living room
+_CORNER_ARCH = _CORNER[:14] + [
+    "#bbbbbbb#ppp#fffDyyy#rrrrrrrr#", "#bbbbbbb#ppp#fff#yyy#rrrrrrrr#",
+    "#bbbbbbb#ppp#fff##############",
+    "#bbbbbbb#pppDfff#wwwwwwwwwwww#", "#bbbbbbb#ppp#fff#wwwwwwwwwwwwW", "#bbbbbbb#ppp#fffDwwwwwwwwwwwwW",
+    "#bbbbbbb#ppp#fff#wwwwwwwwwwww#",
+    "###WWW###ppp#fff#wwwwwwwwwwww#",
+    "        ##W###########WW###WW##",
+] + [" " * 30] * 6 + ["        ######################"]
+_CORNER_ROOMS = {
+    "a": ("L", "living"), "k": ("L", "kitchen"), "h": ("L", "hall"), "t": ("L", "bath"), "b": ("L", "bedroom"),
+    "o": ("R", "kitchen"), "i": ("R", "hall"), "n": ("R", "living"), "j": ("R", "bath"), "r": ("R", "bedroom"),
+    "f": ("R2", "hall"), "y": ("R2", "bath"), "q": ("R2", "pantry"), "x": ("R2", "bedroom"), "w": ("R2", "living"),
+    "p": ("R2", "kitchen"),
+}
+CORNER_JOIN = {"a": 22, "b": 8, "size": 30}   # wing A over rows 0..21 of the west wall, wing B from column 8 of the south wall
+for _base in ("1-447", "ii-03"):
+    _c = {k: v for k, v in SERIES[_base].items() if k not in ("plan", "rooms", "stair", "vents", "end")}
+    _c.update(plan=_CORNER, rooms=_CORNER_ROOMS, stair=(11, 1), whole=True, vents=_baths(_CORNER, _CORNER_ROOMS),
+              ridges=[("x", 0, 22), ("z", 8, 30)], joints=[(0, 0, 0, 21), (8, 29, 29, 29)])
+    SERIES[_base + "-c"] = _c
+    SERIES[_base + "-ca"] = dict(_c, plan_ground=_CORNER_ARCH)
+
 def check():
     for name, s in SERIES.items():
         widths = {len(r) for r in s["plan"]}
         assert len(widths) == 1, (name, widths)
-        chars = set("".join(s["plan"]))
-        unknown = chars - set("#-WBDEsSZ") - set(s["rooms"])
+        chars = set("".join(s["plan"] + s.get("plan_ground", [])))
+        unknown = chars - set("#-WBDEsSZ ") - set(s["rooms"])
         assert not unknown, (name, unknown)
         assert len(s.get("end", "#" * len(s["plan"]))) == len(s["plan"]), name
 
