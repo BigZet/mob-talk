@@ -36,7 +36,11 @@
     "CasinoBouncerPanicMixin",
     "SinglePoolElementAccessor",
     "UniqueVillagePieceMixin",
-    "BarPoolAccessor"
+    "BarPoolAccessor",
+    "RoadTripSuffocationMixin",
+    "ChunkHoldersAccessor",
+    "ChunkClaimsAtShutdownMixin",
+    "ChunkSavingAtShutdownMixin"
   ],
   "injectors": {
     "defaultRequire": 1

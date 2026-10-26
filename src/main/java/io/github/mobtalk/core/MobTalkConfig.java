@@ -118,6 +118,16 @@ public final class MobTalkConfig {
     public boolean villageTowers = true;
     /** Villages keep guards with swords and shields: stands by the bell and at the edge, a newcomer for each empty one. */
     public boolean villageGuards = true;
+    /** Roads between villages (docs/roads.md): the server finds the villages around the players, plans a straight lit road between
+     * neighbours and lays it as the chunks load; a deep cut becomes a tunnel, a high fill or a river a bridge. */
+    public boolean villageRoads = true;
+    /** Lamps along the roads: a street lamp every {@link #roadLampSpacing} blocks, lanterns on bridges and in tunnels. */
+    public boolean roadLamps = true;
+    /** The roads of a village meet at a junction beside it (a square with a shelter, a trail into the village) and never run into
+     * it; off, a road runs to the village's edge and its streets are paved between the roads' entries, as before. */
+    public boolean roadBypass = true;
+    /** Odds and ends beside the roads: pebbles, cairns, fallen logs, verst posts, chosen for the biome. */
+    public boolean roadDecor = true;
     /** Ranks of the village's guard beside the plain guard: heavy warriors in diamond with an axe, horsemen in leather on a horse. */
     public boolean villageHeavy = true, villageCavalry = true;
     /** Track «чиновники» (docs/officials.md): villages and cities keep officials at a desk — the head of the administration, the
@@ -169,6 +179,11 @@ public final class MobTalkConfig {
     /** Watchtowers: one per this many residents, at most this many per village, built over this many real minutes; the archers see and
      * shoot this far (blocks), loose an arrow every this many tenths of a second, and a post empty this long (minutes) gets a newcomer. */
     public int towerResidents = 8, towerMax = 4, towerBuildMinutes = 20, archerRange = 32, archerShotTenths = 20, archerReplaceMinutes = 20;
+    /** Roads: how far around a player villages are looked for (blocks), the longest road (blocks), the step between lamps, and how
+     * far beyond the curb the trees are felled (blocks; 0 leaves them). */
+    public int roadScanRadius = 1500, roadMaxLength = 900, roadLampSpacing = 24, roadTreeStrip = 4;
+    /** Carts, wagons and horsemen going back and forth on each road (0: none). */
+    public int roadTraffic = 3;
     /** A village of this many grown residents builds large towers (two archers and two crossbowmen; 0 = never); the crossbowmen see and
      * shoot this far (blocks) and loose a bolt every this many tenths of a second. */
     public int towerLargeResidents = 16, crossbowRange = 40, crossbowShotTenths = 30;
@@ -331,7 +346,7 @@ public final class MobTalkConfig {
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
-        copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageHeavy = villageHeavy; copy.villageCavalry = villageCavalry; copy.officials = officials; copy.barsInVillages = barsInVillages; copy.barEvenings = barEvenings; copy.barVoiced = barVoiced; copy.barAliceSpeaker = barAliceSpeaker; copy.barDrinks = barDrinks;
+        copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageRoads = villageRoads; copy.roadLamps = roadLamps; copy.roadBypass = roadBypass; copy.roadDecor = roadDecor; copy.villageHeavy = villageHeavy; copy.villageCavalry = villageCavalry; copy.officials = officials; copy.barsInVillages = barsInVillages; copy.barEvenings = barEvenings; copy.barVoiced = barVoiced; copy.barAliceSpeaker = barAliceSpeaker; copy.barDrinks = barDrinks;
         copy.casino = casino; copy.casinoBouncers = casinoBouncers; copy.casinoVisitors = casinoVisitors; copy.casinoResort = casinoResort; copy.casinoSparkles = casinoSparkles;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;

@@ -233,6 +233,12 @@ public final class Tunables {
         integer("bouncerHealth", s, "casino", 20, 150, 5, c -> c.bouncerHealth, (c, x) -> c.bouncerHealth = x);
         integer("bouncerDamage", s, "casino", 1, 30, 1, c -> c.bouncerDamage, (c, x) -> c.bouncerDamage = x);
         integer("casinoPlayersPerTable", s, "casino", 0, 4, 1, c -> c.casinoPlayersPerTable, (c, x) -> c.casinoPlayersPerTable = x);
+        // Roads between villages.
+        integer("roadScanRadius", s, "roads", 250, 4000, 50, c -> c.roadScanRadius, (c, x) -> c.roadScanRadius = x);
+        integer("roadMaxLength", s, "roads", 200, 2000, 50, c -> c.roadMaxLength, (c, x) -> c.roadMaxLength = x);
+        integer("roadLampSpacing", s, "roads", 8, 64, 2, c -> c.roadLampSpacing, (c, x) -> c.roadLampSpacing = x);
+        integer("roadTreeStrip", s, "roads", 0, 8, 1, c -> c.roadTreeStrip, (c, x) -> c.roadTreeStrip = x);
+        integer("roadTraffic", s, "roads", 0, 6, 1, c -> c.roadTraffic, (c, x) -> c.roadTraffic = x);
         // The god's deeds in the villages (Б1).
         integer("divineStrength", s, "divine", 0, 200, 10, c -> c.divineStrength, (c, x) -> c.divineStrength = x);
         integer("divineDailyCap", s, "divine", 0, 300, 5, c -> c.divineDailyCap, (c, x) -> c.divineDailyCap = x);
@@ -311,7 +317,7 @@ public final class Tunables {
                 config.pregnancy = d.pregnancy; config.pregnancyBelly = d.pregnancyBelly; config.pregnancyStatus = d.pregnancyStatus; config.familyFade = d.familyFade;
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices; config.villageSites = d.villageSites;
-                config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.alarmSound = d.alarmSound; config.villageNoConversion = d.villageNoConversion; config.villageTowers = d.villageTowers; config.villageGuards = d.villageGuards; config.villageHeavy = d.villageHeavy; config.villageCavalry = d.villageCavalry; config.officials = d.officials; config.barsInVillages = d.barsInVillages; config.barEvenings = d.barEvenings; config.barVoiced = d.barVoiced; config.barAliceSpeaker = d.barAliceSpeaker; config.barDrinks = d.barDrinks;
+                config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.alarmSound = d.alarmSound; config.villageNoConversion = d.villageNoConversion; config.villageTowers = d.villageTowers; config.villageGuards = d.villageGuards; config.villageRoads = d.villageRoads; config.roadLamps = d.roadLamps; config.roadBypass = d.roadBypass; config.roadDecor = d.roadDecor; config.villageHeavy = d.villageHeavy; config.villageCavalry = d.villageCavalry; config.officials = d.officials; config.barsInVillages = d.barsInVillages; config.barEvenings = d.barEvenings; config.barVoiced = d.barVoiced; config.barAliceSpeaker = d.barAliceSpeaker; config.barDrinks = d.barDrinks;
                 config.casino = d.casino; config.casinoBouncers = d.casinoBouncers; config.casinoVisitors = d.casinoVisitors; config.casinoResort = d.casinoResort; config.casinoSparkles = d.casinoSparkles;
                 config.divineTidings = d.divineTidings; config.divinePanic = d.divinePanic; config.divineMayExile = d.divineMayExile; config.divineMourners = d.divineMourners;
             }
