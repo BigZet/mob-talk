@@ -128,6 +128,7 @@ final class SelfTestFurniture {
         put("apt_lamp_cone", 13, 2, 5, Direction.SOUTH);                                 // over the kitchen table
         put("apt_lamp_horns", 20, 2, 3, Direction.SOUTH);
         put("apt_lamp_ball", 26, 2, 3, Direction.SOUTH);
+        put("apt_switch", 8, 1, 5, Direction.WEST);  // by the living room's door
         put("apt_dryer_liana", 26, 2, 0, Direction.SOUTH);  // over the bath
     }
 
@@ -271,7 +272,76 @@ final class SelfTestFurniture {
             });
             test.await("pause: curtains drawn", 2, () -> false, () -> {
                 test.check(!world().getBlockState(pos(3, 1, 6)).get(FurnitureBlocks.OPEN), "the whole window's curtains draw together");
-                shots(new String[][] {{"6.5 0 1.5", "20 8", "furniture-14-curtains-drawn"}}, 0, () -> gallery(then));
+                shots(new String[][] {{"6.5 0 1.5", "20 8", "furniture-14-curtains-drawn"}}, 0, () -> interactive(() -> gallery(then)));
+            });
+        });
+    }
+
+    /** Clicks a piece the way a player would: on its front, at {@code up} blocks above its cell. */
+    private void click(int dx, int dy, int dz, double up) {
+        test.server().execute(() -> {
+            BlockPos c = pos(dx, dy, dz);
+            BlockState s = world().getBlockState(c);
+            Direction facing = s.contains(net.minecraft.state.property.Properties.HORIZONTAL_FACING)
+                    ? s.get(net.minecraft.state.property.Properties.HORIZONTAL_FACING) : Direction.NORTH;
+            net.minecraft.util.math.Vec3d at = c.toBottomCenterPos().add(facing.getOffsetX() * 0.45, up, facing.getOffsetZ() * 0.45);
+            s.onUse(world(), test.serverPlayer(), new net.minecraft.util.hit.BlockHitResult(at, facing, c, false));
+        });
+    }
+
+    private boolean lit(int dx, int dy, int dz) { return world().getBlockState(pos(dx, dy, dz)).get(FurnitureBlocks.LIT); }
+
+    /** Puts the camera, does something, takes the picture a moment later (while the steam or the water is still in the air). */
+    private void shotAfter(String xyz, String rot, String name, Runnable action, Runnable then) {
+        String[] p = xyz.split(" ");
+        test.command("gamemode spectator " + name());
+        test.command("tp " + name() + " " + at(Double.parseDouble(p[0]), Double.parseDouble(p[1]), Double.parseDouble(p[2])) + " " + rot);
+        test.await("pause: the camera settles", 2, () -> false, () -> {
+            action.run();
+            test.await("pause: the effect runs", 2, () -> false, () -> {
+                ScreenshotRecorder.saveScreenshot(test.owner.client.runDirectory, name + ".png", test.owner.client.getFramebuffer(),
+                        text -> test.log("screenshot: " + text.getString()));
+                test.await("pause: after the screenshot", 1, () -> false, then::run);
+            });
+        });
+    }
+
+    /** The light switch darkens its own room only; the fridge opens with food in it; the kettle boils; the tap runs. */
+    private void interactive(Runnable then) {
+        click(8, 1, 5, 1.6);
+        test.await("pause: the switch clicked", 1, () -> false, () -> {
+            test.check(!lit(LAMP.getX(), LAMP.getY(), LAMP.getZ()) && !lit(8, 1, 5), "the switch puts out the living room's light");
+            test.check(lit(13, 2, 5) && lit(20, 2, 3), "the switch leaves the kitchen and the bedroom lit");
+            shots(new String[][] {{"7.5 0 5.5", "135 10", "furniture-21-switch-off"}}, 0, () -> {
+                click(8, 1, 5, 1.6);
+                test.await("pause: the switch clicked back", 1, () -> false, () -> {
+                    test.check(lit(LAMP.getX(), LAMP.getY(), LAMP.getZ()), "the switch puts the living room's light back on");
+                    fridge(then);
+                });
+            });
+        });
+    }
+
+    private void fridge(Runnable then) {
+        test.server().execute(() -> {
+            if (world().getBlockEntity(pos(10, 0, 0)) instanceof net.minecraft.inventory.Inventory inv) {
+                net.minecraft.item.Item[] food = {net.minecraft.item.Items.BREAD, net.minecraft.item.Items.MILK_BUCKET, net.minecraft.item.Items.EGG,
+                        net.minecraft.item.Items.CARROT, net.minecraft.item.Items.APPLE, net.minecraft.item.Items.COOKED_CHICKEN};
+                for (int i = 0; i < food.length; i++) inv.setStack(i * 2, new net.minecraft.item.ItemStack(food[i], 1 + i % 3));
+            }
+        });
+        test.command("gamemode creative " + name());
+        test.command("tp " + name() + " " + at(10.5, 0, 2.5) + " 180 20");
+        test.await("pause: by the fridge", 2, () -> false, () -> {
+            click(10, 1, 0, 0.5);  // the upper cell of the two-door fridge opens it too
+            test.await("the fridge opens", 4, () -> test.owner.client.currentScreen instanceof net.minecraft.client.gui.screen.ingame.HandledScreen, () -> {
+                test.check(true, "the fridge opens with a click on its upper door");
+                ScreenshotRecorder.saveScreenshot(test.owner.client.runDirectory, "furniture-22-fridge-open.png", test.owner.client.getFramebuffer(),
+                        text -> test.log("screenshot: " + text.getString()));
+                test.server().execute(() -> test.serverPlayer().closeHandledScreen());
+                test.await("pause: the fridge shut", 1, () -> false, () ->
+                        shotAfter("11.5 0 2.2", "180 30", "furniture-23-kettle", () -> click(11, 0, 0, 0.5), () ->
+                                shotAfter("25.5 0 1.5", "-105 22", "furniture-24-tap", () -> click(28, 0, 0, 0.6), then)));
             });
         });
     }

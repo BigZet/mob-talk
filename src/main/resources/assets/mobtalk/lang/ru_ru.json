@@ -1375,5 +1375,18 @@
   "mobtalk.tune.liftDoorSeconds.tooltip": "Сколько секунд двери стоят открытыми, если в проёме никого нет.",
   "mobtalk.tune.liftVillagerChance": "Жители ездят на лифте: %s%%",
   "mobtalk.tune.liftVillagerChance.tooltip": "Шанс в минуту, что житель у дверей лифта вызовет его и поедет на свой или случайный этаж. 0 — только лестница.",
-  "block.mobtalk.glass_blocks": "Стеклоблоки"
+  "block.mobtalk.glass_blocks": "Стеклоблоки",
+  "block.mobtalk.apt_switch": "Выключатель света",
+  "mobtalk.furniture.clock": "Часы показывают %s",
+  "mobtalk.furniture.meter": "Счётчик: %s кВт·ч",
+  "mobtalk.furniture.chute": "Мусоропровод: возьми в руку ненужную вещь и брось сюда",
+  "mobtalk.furniture.chute_gone": "%s с грохотом улетает в мусоропровод",
+  "mobtalk.furniture.notice.0": "«С 1 по 14 июля отключение горячей воды. ЖЭК»",
+  "mobtalk.furniture.notice.1": "«Собрание жильцов в четверг в 19:00 у второго подъезда»",
+  "mobtalk.furniture.notice.2": "«Потерялась собака, рыжая, отзывается на Шарик. Кв. 34»",
+  "mobtalk.furniture.notice.3": "«Просьба не курить в подъезде!»",
+  "mobtalk.furniture.notice.4": "«Субботник в субботу. Грабли выдаёт дворник»",
+  "mobtalk.furniture.notice.5": "«Продаю детскую коляску, почти новая. Кв. 12»",
+  "mobtalk.furniture.notice.6": "«Поверка счётчиков. Не открывайте посторонним!»",
+  "mobtalk.furniture.notice.7": "«Кто взял санки из-под лестницы — верните!»"
 }
