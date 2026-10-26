@@ -17,3 +17,6 @@ logs/
 
 # Снимки и логи Playwright MCP
 .playwright-mcp/
+
+# local context-compress cache (token savings), never committed
+.context-compress/
