@@ -78,6 +78,8 @@ public final class DialogueService {
     public interface Engines { ConversationEngine open(MobTalkConfig config, Path worldDirectory) throws Exception; }
     /** Что включено: семья и свадьба ({@code familyLife}), снимки экрана (одиночка), ведущий свадьбы на сервере ({@code ceremony}: на
      * выделенном; в одиночке службу ведёт клиентский {@code WeddingVoice}). */
+    /** Одиночка: клиентская служба свадьбы берёт клятву, распознанную сервером ({@code true} — взяла). Ставит клиент. */
+    public static volatile java.util.function.BiPredicate<UUID, String> LOCAL_VOW;
     public record Options(boolean family, boolean pictures, boolean ceremony) {
         public Options(boolean family, boolean pictures) { this(family, pictures, false); }
     }
@@ -238,6 +240,8 @@ public final class DialogueService {
         if (!"server".equals(session.stt) || !fromVoice) session.stt = fromVoice ? "local" : "text";
         if (confession.takes(player)) { onServer(() -> confession.heard(player, text)); return; } // Б4: слова исповеди — тайна, не в разговор.
         if (options.family && options.ceremony && wedding.takesVow(player)) { onServer(() -> wedding.vowHeard(player, text)); return; } // Клятва — службе, не в разговор.
+        // Одиночка: службу ведёт клиент, а речь распознал сервер — клятва уходит клиентской службе, иначе она терялась в разговоре.
+        if (options.family && !options.ceremony && fromVoice && LOCAL_VOW != null && LOCAL_VOW.test(player, text)) return;
         bridge.mobByEntityId(player, entityId).whenComplete((mob, error) -> onServer(() -> {
             if (error != null) { refuse(session, plain(error, "Моб погиб или выгрузился")); return; }
             if (io.github.mobtalk.core.Confession.asks(text) || io.github.mobtalk.core.Confession.returns(text)) {

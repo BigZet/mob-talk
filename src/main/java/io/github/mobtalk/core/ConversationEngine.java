@@ -109,12 +109,12 @@ public final class ConversationEngine implements AutoCloseable {
             for (VillageChatter.Line line : lines) {
                 VillageChatter.Speaker speaker = input.speaker(line.speaker());
                 SpeechStream audio = null;
-                if (input.bar() && !Tuning.get().barVoiced) { voiced.add(new ChatterLine(speaker.id(), speaker.name(), line.text(), null)); continue; }
+                if (input.bar() && !Tuning.get().barVoiced) { voiced.add(new ChatterLine(speaker.id(), speaker.name(), SpeechTags.strip(line.text()), null)); continue; }
                 try {
                     audio = speech.streamWithFallback(speaker.voiceId(), reserve, line.text()).stream();
                     if (!audio.awaitPrebuffer(PREBUFFER_BYTES, speech.timeout().toNanos())) { audio.close(); audio = null; }
                 } catch (IOException speechUnavailable) { if (audio != null) audio.close(); audio = null; }
-                voiced.add(new ChatterLine(speaker.id(), speaker.name(), line.text(), audio));
+                voiced.add(new ChatterLine(speaker.id(), speaker.name(), SpeechTags.strip(line.text()), audio));
                 if (closed || Thread.currentThread().isInterrupted()) throw new InterruptedException("Болтовня отменена.");
             }
         } catch (InterruptedException cancelled) { for (ChatterLine line : voiced) if (line.audio() != null) line.audio().close(); throw cancelled; }
@@ -215,7 +215,7 @@ public final class ConversationEngine implements AutoCloseable {
             OpenRouterConversationClient.EarlyReply onReply = new OpenRouterConversationClient.EarlyReply() {
                 @Override public void accept(String text) {
                     var started = early.start(text, () -> speech.streamWithFallback(profile.voiceId, reserve, text));
-                    if (handoff != null && started != null) handoff.offer(text, started, speech.timeout().toNanos());
+                    if (handoff != null && started != null) handoff.offer(SpeechTags.strip(text), started, speech.timeout().toNanos());
                 }
                 @Override public boolean shown() { return handoff != null && handoff.shownOrInvalidated(); }
             };
@@ -244,7 +244,7 @@ public final class ConversationEngine implements AutoCloseable {
         }
         if (answer.biography() != null) adopt(snapshot, answer.biography());
         String name = displayName(snapshot, profile, answer.biography() == null ? "" : answer.biography().name());
-        Reply reply = new Reply(question, answer.reply(), name, voiceId, audio, answer.action(), snapshot.interactionRevision(), answer.bargain(),
+        Reply reply = new Reply(question, SpeechTags.strip(answer.reply()), name, voiceId, audio, answer.action(), snapshot.interactionRevision(), answer.bargain(),
                 answer.deal(), answer.unlock(), answer.quest(), answer.socialIntent(), overheard != null);
         return new PreparedReply(this, reply, snapshot, answer.memory(), answer.socialIntent(), audio == null ? null : voiceId, answer.thought(), answer.fact(),
                 overheard == null ? proposalKept(profile, question, answer.gesture()) : GestureIntent.none());

@@ -559,7 +559,8 @@ public final class MobGameBridge implements GameBridge {
                 }
                 String deals = trading.apply(mob, player, deal, unlock, asked);
                 if (!deals.isBlank()) trade = trade.isBlank() ? deals : trade + "; " + deals;
-                String result = actions.apply(mob, player, intent, observed);
+                // Посреди обряда пару и ведущего не уводят: «следуй», «стой», «беги» от обычного разговора ломали сцену.
+                String result = wedding.involved(mob.getUuid()) && intent != null && intent.type() != ActionType.NONE ? "" : actions.apply(mob, player, intent, observed);
                 if (!gestured.isBlank()) result = result.isBlank() ? gestured : result + "; " + gestured;
                 if (!trade.isBlank()) result = result.isBlank() ? trade : result + "; " + trade;
                 jealousy.talked(mob, player); // Трек J: разговор с парой или с жителем её пола.

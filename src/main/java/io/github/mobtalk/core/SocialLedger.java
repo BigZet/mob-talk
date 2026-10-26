@@ -157,7 +157,8 @@ public final class SocialLedger {
             if (courtship.partners()) rolled.put(Gesture.DIVORCE, new GestureIntent(Gesture.DIVORCE, Gesture.Outcome.ACCEPTED,
                     courtship == Courtship.MARRIED ? DIVORCE_HEARTS : BREAKUP_HEARTS, "", courtship.name()));
             if (courtship == Courtship.MARRIED && config.familyLife) {
-                String refusal = SocialPrompt.childRefusal(score, p.social.has(VillagerTrait.INFERTILE), p.social.expectingTick >= 0,
+                String refusal = SocialPrompt.childRefusal(score, p.social.has(VillagerTrait.INFERTILE), p.social.expectingTick > 0 || p.social.conceivedTick >= 0,
+                        p.social.expectingTick == 0 && p.social.conceivedTick < 0,
                         rapport.lastChildMillis >= 0 && now - rapport.lastChildMillis < ChildGrowth.CHILD_COOLDOWN_MILLIS);
                 rolled.put(Gesture.CHILD, new GestureIntent(Gesture.CHILD, refusal == null ? Gesture.Outcome.ACCEPTED : Gesture.Outcome.REFUSED,
                         refusal == null ? DATE_HEARTS : 0, "", refusal == null ? "" : refusal));

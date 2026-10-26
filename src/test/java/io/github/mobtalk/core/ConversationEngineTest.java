@@ -687,6 +687,21 @@ class ConversationEngineTest {
             assertEquals(ActionIntent.none(), AnswerValidator.validateAction(JsonParser.parseString(invalid).getAsJsonObject(), snapshot));
     }
 
+    // A villager scared by zombies or hunger does not run from the player who talks to it; a blow, a threat or hatred still drive it off.
+    @Test void villagerFleesThePlayerOnlyForThePlayersOwnDoing() {
+        UUID player = UUID.randomUUID();
+        java.util.function.Function<String, MobSnapshot> villager = attacker -> new MobSnapshot(UUID.randomUUID(), "minecraft:villager", "Житель", 20, 20,
+                "minecraft:overworld", "minecraft:plains", "night", "clear", 2, "minecraft:air", List.of(), List.of(), player, java.util.Map.of(),
+                java.util.Map.of("lastAttacker", attacker), java.util.Map.of(), List.of(), List.of(ActionType.NONE, ActionType.FLEE), 0);
+        assertFalse(AnswerValidator.fearsPlayer(villager.apply("none"), 10, SocialIntent.KIND));
+        assertTrue(AnswerValidator.fearsPlayer(villager.apply(player.toString()), 10, SocialIntent.NONE));
+        assertTrue(AnswerValidator.fearsPlayer(villager.apply("none"), 10, SocialIntent.THREAT));
+        assertTrue(AnswerValidator.fearsPlayer(villager.apply("none"), AnswerValidator.FEARED_RELATIONSHIP, SocialIntent.NONE));
+        MobSnapshot cow = new MobSnapshot(UUID.randomUUID(), "minecraft:cow", "Корова", 10, 10, "minecraft:overworld", "minecraft:plains", "day", "clear", 2,
+                "minecraft:air", List.of(), List.of(), player, java.util.Map.of(), java.util.Map.of(), java.util.Map.of(), List.of(), List.of(ActionType.FLEE), 0);
+        assertTrue(AnswerValidator.fearsPlayer(cow, 50, SocialIntent.NONE), "animals keep their instincts");
+    }
+
     @Test void blindWardenMayTargetConfirmedSoundButNotUnknownHiddenEntity() {
         MobSnapshot snapshot = new MobSnapshot(UUID.randomUUID(), "minecraft:warden", "Варден", 500, 500,
                 "minecraft:overworld", "unknown", "unknown", "unknown", -1, "unknown", List.of(), List.of(), UUID.randomUUID(),
@@ -999,10 +1014,21 @@ class ConversationEngineTest {
             assertEquals(8, engine.converse(tradingCow(freeCow(false)), "Что сделать?").quest().count(), "the drawn amount, not the model's");
             assertEquals(calls + 1, chatCalls.get());
 
-            queuedAnswers.add(ownAnswer("За это скину на сено.", "NONE", "", 0, "", "OFFER", "minecraft:wheat", 8, "Пшеница", "hay", 30));
-            queuedAnswers.add(ownAnswer("За это скину на молоко.", "NONE", "", 0, "", "OFFER", "minecraft:wheat", 8, "Пшеница", "milk", 30));
+            queuedAnswers.add(ownAnswer("Принеси пшеницы, за это скину на сено.", "NONE", "", 0, "", "OFFER", "minecraft:wheat", 8, "Пшеница", "hay", 30));
+            queuedAnswers.add(ownAnswer("Принеси пшеницы, за это скину на молоко.", "NONE", "", 0, "", "OFFER", "minecraft:wheat", 8, "Пшеница", "milk", 30));
             assertEquals("milk", engine.converse(tradingCow(freeCow(false)), "Что сделать?").quest().rewardDeal());
             assertTrue(lastCorrection().contains("Сделки «hay» у тебя нет"), lastCorrection());
+
+            // The spoken line must name the asked item; a title about something else gives way to the item's name.
+            queuedAnswers.add(ownAnswer("Найди мою пропавшую книгу, прошу.", "NONE", "", 0, "", "OFFER", "minecraft:wheat", 8, "Поиск книги", "", 0));
+            queuedAnswers.add(ownAnswer("Мне бы пшеницы на хлеб, а книгу я сама найду.", "NONE", "", 0, "", "OFFER", "minecraft:wheat", 8, "Поиск книги", "", 0));
+            assertEquals("Пшеница", engine.converse(tradingCow(freeCow(false)), "Что сделать?").quest().title());
+            assertTrue(lastCorrection().contains("в реплике об этом ни слова"), lastCorrection());
+            queuedAnswers.add(ownAnswer("Принеси пшеницы, восемь снопов.", "NONE", "", 0, "", "OFFER", "minecraft:wheat", 8, "8× Пшеница", "", 0));
+            assertEquals("Пшеница", engine.converse(tradingCow(freeCow(false)), "А ещё?").quest().title(), "the amount is not repeated in the title");
+            assertEquals(List.of(23), AnswerValidator.spokenNumbers(AnswerValidator.PERCENT.matcher("Принеси 23 кирпича, скину двадцать пять процентов, или 20%").replaceAll(" ")));
+            assertTrue(AnswerValidator.mentions("Нужны ломтики арбуза", "Ломтик арбуза") && AnswerValidator.mentions("три яйца", "Яйцо")
+                    && !AnswerValidator.mentions("Найди книгу", "Ломтик арбуза"));
         }
     }
 
