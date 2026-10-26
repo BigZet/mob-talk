@@ -91,9 +91,9 @@ public final class SocialLedger {
     }
     private static int shifted(int value, int shift) { return value < 0 ? value : Math.max(0, Math.min(100, value + shift)); }
 
-    /** The rest point of the mood axis moved by the character (gloomy lower, cheerful higher). */
+    /** The rest point of the mood axis moved by the character (gloomy lower, cheerful higher); a woman's state speaks in the feminine. */
     static MobState.Baseline baseline(ConversationStore.Profile p, MobState.Baseline base) {
-        return p == null || p.social == null ? base : base.moodShifted(p.social.persona().moodRest);
+        return p == null || p.social == null ? base : base.moodShifted(p.social.persona().moodRest).asFemale(p.social.gender() == Gender.FEMALE);
     }
 
     /** Whether the villager counts as grown up: not a vanilla baby, and past the teen stage when the family tree tracks its growth. */
@@ -215,8 +215,9 @@ public final class SocialLedger {
             ConversationStore.Profile p = store.ensure(mob, type, name);
             if (p.social == null) return null;
             ConversationStore.Relation r = rapport(p, player);
-            GestureIntent intent = gift(p, r.rapport, item, profession, child, now);
+            GestureIntent intent = fed(mob, p, r, item, gift(p, r.rapport, item, profession, child, now), now);
             apply(p, r, player, playerName, intent, config, now);
+            meal(mob, item, intent, player, playerName, now);
             p.revision++; // Like a blow or help: a reply written before the gift landed is stale.
             store.scheduleSave();
             return intent;
@@ -235,8 +236,9 @@ public final class SocialLedger {
                 ConversationStore.Profile p = store.ensure(mob, type, name);
                 if (p.social == null) return null;
                 ConversationStore.Relation r = rapport(p, player);
-                GestureIntent intent = gift(p, r.rapport, item, profession, child, now);
+                GestureIntent intent = fed(mob, p, r, item, gift(p, r.rapport, item, profession, child, now), now);
                 apply(p, r, player, playerName, intent, config, now);
+                meal(mob, item, intent, player, playerName, now);
                 p.revision++; store.scheduleSave();
                 return intent;
             }
@@ -258,7 +260,9 @@ public final class SocialLedger {
             r.score = ConversationStore.clamp(r.score + intent.hearts(), p.hostile());
             r.rapport.record(Gesture.GIFT, now, intent.hearts() != 0);
             if (intent.takesItem()) r.rapport.gave(item, now);
-            ConversationStore.feel(p, r, intent.takesItem() ? MobState.Event.GIFT_LIKED : MobState.Event.GIFT_SPURNED, now);
+            ConversationStore.feel(p, r, intent.takesItem() ? MobState.Event.GIFT_LIKED : MobState.Event.GIFT_SPURNED, now, playerName);
+            // Food for a hungry villager is a meal, not just a present.
+            if (intent.takesItem() && Hunger.meal(item) != null && store.hunger(mob, now) != Hunger.Level.FED) store.meal(mob, Hunger.meal(item), playerName, player, playerName, now);
             ConversationStore.event(p, now, "Игрок " + TextBounds.characters(playerName, 60) + (intent.takesItem() ? " подарил тебе " : " предлагал тебе ") + item
                     + (intent.note().isBlank() ? "" : " (" + intent.note() + ")") + (intent.takesItem() ? "; отношение " + r.score : ", ты не взял"), 4);
             p.revision++; store.scheduleSave();
@@ -282,6 +286,16 @@ public final class SocialLedger {
         return r;
     }
     /** The effects of one gesture on one relation; under the store lock. */
+    /** A hungry villager takes food even when the same present would bore it: hunger is not a matter of taste. */
+    private GestureIntent fed(UUID mob, ConversationStore.Profile p, ConversationStore.Relation r, String item, GestureIntent intent, long now) {
+        if (intent.takesItem() || Hunger.meal(item) == null || store.hunger(mob, now) == Hunger.Level.FED
+                || p.hostile() || r.score <= CombatRules.HATRED) return intent;
+        return new GestureIntent(Gesture.GIFT, Gesture.Outcome.GOOD, Math.max(0, intent.hearts()), item, "накормил в голод");
+    }
+    /** Food a hungry villager took is a meal: the hunger ends (the gift alone only warmed the heart). */
+    private void meal(UUID mob, String item, GestureIntent intent, UUID player, String playerName, long now) {
+        if (intent.takesItem() && Hunger.meal(item) != null && store.hunger(mob, now) != Hunger.Level.FED) store.meal(mob, Hunger.meal(item), playerName, player, playerName, now);
+    }
     private void apply(ConversationStore.Profile p, ConversationStore.Relation r, UUID player, String playerName, GestureIntent intent, MobTalkConfig config, long now) {
         r.score = ConversationStore.clamp(r.score + intent.hearts(), p.hostile());
         r.rapport.record(intent.gesture(), now, intent.hearts() != 0);
@@ -382,8 +396,12 @@ public final class SocialLedger {
         synchronized (store) {
             ConversationStore.State state = store.state;
             boolean inTree = state.family.known(dead);
-            // Even a villager with no relatives is struck off: the village's standing counts the living only.
-            if (!inTree) { if (state.profiles.containsKey(dead.toString())) { state.family.markDead(dead, deadName); store.scheduleSave(); } return List.of(); }
+            ConversationStore.Profile deadProfile = state.profiles.get(dead.toString());
+            // Even a villager with no relatives is struck off: the village's standing counts the living only. Its neighbours grieve too.
+            if (!inTree) {
+                if (deadProfile != null) { state.family.markDead(dead, deadName); store.villageFeel(deadProfile.villageId, Set.of(dead), MobState.Event.VILLAGE_DEATH, deadName, now); store.scheduleSave(); }
+                return List.of();
+            }
             Gender deadGender = deadGender(state, dead);
             List<Mourner> mourners = new ArrayList<>();
             for (Map.Entry<UUID, FamilyTree.Link> entry : state.family.died(dead).entrySet()) {
@@ -399,11 +417,16 @@ public final class SocialLedger {
                     ConversationStore.event(q, now, "Игрок " + TextBounds.characters(killerName, 60) + " убил твоего родного (" + word + " " + deadName + "); отношение " + r.score, 5);
                 } else ConversationStore.event(q, now, "Погиб твой родной: " + word + " " + deadName, 5);
                 ConversationStore.Relation felt = r != null ? r : q.relations.values().stream().findFirst().orElse(null);
-                if (felt != null) ConversationStore.feel(q, felt, MobState.Event.BEREAVED, now);
-                else q.state.shift(MobState.Event.BEREAVED, ConversationStore.baseline(q, 0), now);
+                if (felt != null) ConversationStore.feel(q, felt, MobState.Event.BEREAVED, now, deadName);
+                else q.state.shift(MobState.Event.BEREAVED, ConversationStore.baseline(q), now, deadName);
                 if (entry.getValue() == FamilyTree.Link.SPOUSE) ConversationStore.event(q, now, "Ты овдовел: " + word + " " + deadName + " погиб", 5);
                 q.revision++;
                 mourners.add(new Mourner(q.id, word));
+            }
+            if (deadProfile != null) {
+                Set<UUID> family = new HashSet<>(); family.add(dead);
+                for (Mourner m : mourners) family.add(m.id());
+                store.villageFeel(deadProfile.villageId, family, MobState.Event.VILLAGE_DEATH, deadName, now);
             }
             store.scheduleSave();
             return mourners;
@@ -471,7 +494,7 @@ public final class SocialLedger {
             for (ConversationStore.Profile parent : new ConversationStore.Profile[]{pa, pb}) {
                 if (parent == null) continue;
                 if (parent.social != null && parent.social.expectingTick >= 0) parent.social.clearExpecting();
-                parent.state.shift(MobState.Event.CHILD_BORN, ConversationStore.baseline(parent, 0), now);
+                parent.state.shift(MobState.Event.CHILD_BORN, ConversationStore.baseline(parent), now);
                 ConversationStore.event(parent, now, "У тебя родился ребёнок: " + newborn.gender().offspring, 5);
                 parent.revision++;
             }
@@ -484,6 +507,8 @@ public final class SocialLedger {
             }
             ConversationStore.event(kid, now, "Ты родился в семье: " + String.join(", ", state.family.kin(child).stream()
                     .map(k -> k.word() + (k.name().isBlank() ? "" : " " + k.name())).toList()), 5);
+            ConversationStore.Profile home = pa != null && !pa.villageId.isBlank() ? pa : pb;
+            if (home != null) store.villageFeel(home.villageId, List.of(a, b, child), MobState.Event.VILLAGE_BIRTH, "", now);
             store.scheduleSave();
             return newborn.gender();
         }

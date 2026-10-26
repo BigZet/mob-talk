@@ -80,6 +80,8 @@ public final class MobTalkConfig {
     public String vision = "unusual";
     /** A line over every known creature: name, word of its state, relationship. */
     public boolean showNameTags = true;
+    /** A pixel face of the mood over every known villager, above its name; the card with the reasons opens on a key (Left Alt). */
+    public boolean labelsMoodFace = true;
     /** Трек M: жители — люди в духе MCA Reborn (кожа, лицо, одежда, волосы, гены); выключено — ванильная модель. */
     public boolean humanVillagers = true;
     /** Creatures the player talked to, gave to or helped never despawn. */
@@ -209,6 +211,12 @@ public final class MobTalkConfig {
     /** The emotional state: half-lives of an ordinary and a strong impression (minutes), and the thresholds of its axes (0–100). */
     public int stateHalfLifeMinutes = 10, stateSlowHalfLifeMinutes = 30;
     public int waryCalm = 25, waryTrust = 25, keenInterest = 75, generousMood = 65, generousTrust = 65;
+    /** Moods (percent, 0 = off): how strongly the world around moves them (rain, raids, hunger, curses, friends near), how readily
+     * a held feeling turns into a long mood (depression, dread, joy…), and how much the state shortens and colours the replies;
+     * a villager with no food seen this many real minutes is hungry. */
+    public int moodWorldPercent = 100, moodSpellPercent = 100, moodReplyPercent = 100, moodHungerMinutes = 90;
+    /** 1: a villager in apathy lies in its bed day and night (0: only its words change). */
+    public int moodApathyBed = 1;
     /** Memory: half-life of a fact (days), the floor of its freshness (percent), how many facts are kept, the silence that ends a
      * conversation (minutes), and when a mob thinks the player over (replies, importance, seconds between). */
     public int memoryHalfLifeDays = 7, memoryFloorPercent = 30, memoryMaxFacts = 60, conversationSilenceMinutes = 3;
@@ -220,7 +228,7 @@ public final class MobTalkConfig {
     public int heartsFriend = 40, heartsDating = 70, heartsMarriage = 90;
     /** Ревность (трек J): сила поводов — разговор, сон рядом, услуга, подарок (база, плюс ценность подарка), доля силы по слуху и
      * в браке (проценты), какая доля ревности снимается с сердечек (процент), полураспад (минуты) и сколько гасит разговор с ревнующим. */
-    public int jealousyTalk = 3, jealousySleep = 20, jealousyFavor = 8, jealousyGift = 12, jealousyRumorPercent = 50, jealousyMarriedPercent = 150;
+    public int jealousyTalk = 10, jealousySleep = 20, jealousyFavor = 8, jealousyGift = 12, jealousyRumorPercent = 50, jealousyMarriedPercent = 150;
     public int jealousyHeartsPercent = 30, jealousyHalfLifeMinutes = 60, jealousyAttention = 4;
     /** Соперники за одно сердце (П3): до помолвки житель видит всех ухажёров и выбирает лучшего; можно ли отбить пару, испытания,
      * выбор сценой у колокола (иначе сразу при кольце). Окно интереса (часы без романтического жеста), сколько ухажёров на одного
@@ -353,7 +361,7 @@ public final class MobTalkConfig {
         copy.firstTokenSeconds = firstTokenSeconds;
         copy.maxDistance = maxDistance;
         copy.witnessReplies = witnessReplies;
-        copy.showStateHud = showStateHud; copy.vision = vision; copy.showNameTags = showNameTags; copy.humanVillagers = humanVillagers; copy.keepAcquainted = keepAcquainted;
+        copy.showStateHud = showStateHud; copy.vision = vision; copy.showNameTags = showNameTags; copy.labelsMoodFace = labelsMoodFace; copy.humanVillagers = humanVillagers; copy.keepAcquainted = keepAcquainted;
         copy.showBargainHud = showBargainHud;
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;

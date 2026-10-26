@@ -83,6 +83,11 @@ public final class Tunables {
         integer("keenInterest", t, "state", 0, 100, 1, c -> c.keenInterest, (c, x) -> c.keenInterest = x);
         integer("generousMood", t, "state", 0, 100, 1, c -> c.generousMood, (c, x) -> c.generousMood = x);
         integer("generousTrust", t, "state", 0, 100, 1, c -> c.generousTrust, (c, x) -> c.generousTrust = x);
+        integer("moodWorldPercent", t, "state", 0, 200, 10, c -> c.moodWorldPercent, (c, x) -> c.moodWorldPercent = x);
+        integer("moodSpellPercent", t, "state", 0, 200, 10, c -> c.moodSpellPercent, (c, x) -> c.moodSpellPercent = x);
+        integer("moodReplyPercent", t, "state", 0, 100, 10, c -> c.moodReplyPercent, (c, x) -> c.moodReplyPercent = x);
+        integer("moodHungerMinutes", t, "state", 0, 240, 5, c -> c.moodHungerMinutes, (c, x) -> c.moodHungerMinutes = x);
+        integer("moodApathyBed", t, "state", 0, 1, 1, c -> c.moodApathyBed, (c, x) -> c.moodApathyBed = x);
 
         // Memory: history, facts, summaries, reflections.
         integer("historyTurns", t, "memory", 1, 64, 1, c -> c.historyTurns, (c, x) -> c.historyTurns = x);
@@ -306,7 +311,7 @@ public final class Tunables {
         reset(config, section);
         MobTalkConfig d = DEFAULTS;
         switch (section) {
-            case GENERAL -> { config.enabled = d.enabled; config.vision = d.vision; config.showStateHud = d.showStateHud; config.showBargainHud = d.showBargainHud; config.showNameTags = d.showNameTags; config.humanVillagers = d.humanVillagers; }
+            case GENERAL -> { config.enabled = d.enabled; config.vision = d.vision; config.showStateHud = d.showStateHud; config.showBargainHud = d.showBargainHud; config.showNameTags = d.showNameTags; config.labelsMoodFace = d.labelsMoodFace; config.humanVillagers = d.humanVillagers; }
             case VOICE -> {
                 config.whisperModel = d.whisperModel; config.whisperDevice = d.whisperDevice; config.whisperLanguage = d.whisperLanguage;
                 config.whisperAutoStart = d.whisperAutoStart; config.whisperUrl = d.whisperUrl; config.whisperHotwords = d.whisperHotwords;

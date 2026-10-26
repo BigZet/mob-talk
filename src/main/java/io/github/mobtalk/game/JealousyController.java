@@ -18,18 +18,21 @@ final class JealousyController {
     private final MobGameBridge bridge;
     /** Уже засчитанные ночи «рядом с соперником»: игрок, соперник, игровой день. */
     private final Set<String> sleptNear = new LinkedHashSet<>();
+    /** Сколько сердечек должен принести подарок другой, чтобы пара заревновала. */
+    static final int GIFT_HEARTS = 3;
     JealousyController(MobGameBridge bridge) { this.bridge = bridge; }
 
     private boolean enabled() { return bridge.config.enabled && bridge.config.socialLayer; }
     private static boolean adultVillager(MobEntity mob) { return mob instanceof VillagerEntity villager && !villager.isBaby() && villager.isAlive(); }
 
-    /** Доставлен ответ жителя: разговор с парой её успокаивает, с жителем её пола — повод ревновать. Под замком памяти. */
-    void talked(MobEntity mob, ServerPlayerEntity player) {
+    /** Доставлен ответ жителя: разговор с парой её успокаивает; с жителем её пола — повод ревновать, только если игрок
+     * заигрывал (флирт, поцелуй, предложение): обычный разговор с соседкой — не измена. Под замком памяти. */
+    void talked(MobEntity mob, ServerPlayerEntity player, Gesture gesture) {
         if (!enabled() || !adultVillager(mob)) return;
         long now = System.currentTimeMillis();
         JealousyLedger ledger = bridge.memory.jealousy();
         if (ledger.partner(mob.getUuid(), player.getUuid())) ledger.attention(mob.getUuid(), player.getUuid(), bridge.config.jealousyAttention, now);
-        else notice((VillagerEntity) mob, player, Jealousy.Cause.TALK, 0, "", now);
+        else if (gesture != null && gesture.romantic) notice((VillagerEntity) mob, player, Jealousy.Cause.TALK, 0, "", now);
     }
     /** Житель принял подарок (в разговоре, из рук или брошенный): паре — внимание, сопернику — сильный повод по ценности. */
     void gift(MobEntity mob, ServerPlayerEntity player, GestureIntent gift) {
@@ -38,7 +41,8 @@ final class JealousyController {
         JealousyLedger ledger = bridge.memory.jealousy();
         int hearts = Math.max(0, gift.hearts());
         if (ledger.partner(mob.getUuid(), player.getUuid())) ledger.attention(mob.getUuid(), player.getUuid(), Math.max(bridge.config.jealousyAttention, 2 * hearts), now);
-        else notice((VillagerEntity) mob, player, Jealousy.Cause.GIFT, hearts, gift.item(), now);
+        // Мелочь соседке (ломтик арбуза, цветок по делу) — не повод; ревнуют к щедрому подарку.
+        else if (hearts >= GIFT_HEARTS) notice((VillagerEntity) mob, player, Jealousy.Cause.GIFT, hearts, gift.item(), now);
     }
     /** Игрок выполнил поручение жителя. */
     void favor(MobEntity mob, ServerPlayerEntity player) {
@@ -46,7 +50,7 @@ final class JealousyController {
         long now = System.currentTimeMillis();
         JealousyLedger ledger = bridge.memory.jealousy();
         if (ledger.partner(mob.getUuid(), player.getUuid())) ledger.attention(mob.getUuid(), player.getUuid(), 2 * bridge.config.jealousyAttention, now);
-        else notice((VillagerEntity) mob, player, Jealousy.Cause.FAVOR, 0, "", now);
+        // Помочь соседке с поручением — обычное дело, а не ухаживание: ревности нет.
     }
 
     /** Очевидцы среди пар игрока: бодрствуют, в поле зрения и не дальше дальности взгляда от соперника. */

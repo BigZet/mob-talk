@@ -27,6 +27,8 @@ public final class MobLabels {
     private final Map<UUID, Text> labels = new HashMap<>();
     /** Трек N: вторая строка под именем — «ждёт малыша · 3 из 5 дн.». */
     private final Map<UUID, Text> statuses = new HashMap<>();
+    /** Мордочка настроения над именем (шрифт {@code mobtalk:mood}, вдвое крупнее строки). */
+    private final Map<UUID, Text> faces = new HashMap<>();
     /** Мобы, над которыми этот кадр рисует подпись Mob Talk: ванильная табличка с CustomName над ними не рисуется (иначе две надписи на
      * одной высоте — так было у настоятеля храма). Поток рендера. */
     private static volatile java.util.Set<UUID> drawn = java.util.Set.of();
@@ -36,7 +38,7 @@ public final class MobLabels {
 
     private long diagnosticTicks;
     void tick() {
-        labels.clear(); statuses.clear(); drawn = java.util.Set.of();
+        labels.clear(); statuses.clear(); faces.clear(); drawn = java.util.Set.of();
         MinecraftClient client = owner.client;
         boolean diagnose = ++diagnosticTicks % 20 == 0; // раз в ~10 с: почему подписей нет, пока ищем пропавшие таблички на сервере
         if (!owner.enabled() || !owner.config().showNameTags || client.player == null || client.world == null) {
@@ -51,7 +53,7 @@ public final class MobLabels {
             if (label == null || label.name().isBlank()) continue;
             known++;
             MobStateS2C state = owner.views.state(mob.getUuid());
-            String word = state == null || state.word().isEmpty() ? "ровно" : Text.translatable("mobtalk.state." + state.word()).getString();
+            String word = state == null ? "ровно" : MoodCard.word(state.word(), state.female());
             int sign = state == null ? 0 : state.wordSign();
             int relation = state == null ? 0 : state.relationship();
             Text line = Text.literal(label.name()).formatted(Formatting.WHITE)
@@ -60,6 +62,7 @@ public final class MobLabels {
                     .append(Text.literal(" · ").formatted(Formatting.DARK_GRAY))
                     .append(Text.literal((relation > 0 ? "+" : "") + relation).formatted(relation > 0 ? Formatting.GREEN : relation < 0 ? Formatting.RED : Formatting.GRAY));
             labels.put(mob.getUuid(), line);
+            if (owner.config().labelsMoodFace && state != null && state.face() >= 0) faces.put(mob.getUuid(), MoodCard.face(state.face()));
             String status = label.line().isBlank() ? ChildView.status(mob.getUuid()) : label.line();
             if (!status.isBlank()) statuses.put(mob.getUuid(), Text.literal(status).formatted(Formatting.LIGHT_PURPLE));
         }
@@ -92,6 +95,17 @@ public final class MobLabels {
             float x = -textRenderer.getWidth(label) / 2.0f;
             textRenderer.draw(label, x, 0, 0x20FFFFFF, false, matrix, consumers, TextRenderer.TextLayerType.SEE_THROUGH, background, LightmapTextureManager.MAX_LIGHT_COORDINATE);
             textRenderer.draw(label, x, 0, 0xFFFFFFFF, false, matrix, consumers, TextRenderer.TextLayerType.NORMAL, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
+            Text face = faces.get(entity.getUuid());
+            if (face != null) {
+                matrices.push();
+                matrices.translate(0, -20, 0);
+                matrices.scale(2, 2, 1);
+                Matrix4f faceMatrix = matrices.peek().getPositionMatrix();
+                float fx = -textRenderer.getWidth(face) / 2.0f;
+                textRenderer.draw(face, fx, 0, 0x30FFFFFF, false, faceMatrix, consumers, TextRenderer.TextLayerType.SEE_THROUGH, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
+                textRenderer.draw(face, fx, 0, 0xFFFFFFFF, false, faceMatrix, consumers, TextRenderer.TextLayerType.NORMAL, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
+                matrices.pop();
+            }
             Text status = statuses.get(entity.getUuid());
             if (status != null) {
                 float sx = -textRenderer.getWidth(status) / 2.0f;

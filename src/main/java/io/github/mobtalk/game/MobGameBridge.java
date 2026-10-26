@@ -67,6 +67,8 @@ public final class MobGameBridge implements GameBridge {
     final DivineController divine;
     /** Трек J: ревность пар игрока и сон вместе. */
     final JealousyController jealousy;
+    /** The world around known villagers turned into moods: weather, night, sleep, hunger, alarms, friends near. */
+    final MoodWatch moods;
     /** П3: соперники за одно сердце — уведомления, испытания, выбор у колокола. */
     public final RivalryController rivalry;
     final CoSleepController coSleep;
@@ -92,6 +94,7 @@ public final class MobGameBridge implements GameBridge {
         officials = new OfficialsController(this);
         divine = new DivineController(this);
         jealousy = new JealousyController(this);
+        moods = new MoodWatch(this);
         rivalry = new RivalryController(this);
         coSleep = new CoSleepController(this);
         wedding = new WeddingController(this);
@@ -196,6 +199,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.officials.tick(world, bridge.defense.zones(world));
                 bridge.divine.tick(world);
                 bridge.jealousy.tick(world);
+                bridge.moods.tick(world);
                 bridge.rivalry.tick(world);
                 bridge.coSleep.tick(world);
                 bridge.wedding.tick(world);
@@ -416,7 +420,7 @@ public final class MobGameBridge implements GameBridge {
     /** Трек J: пропуск ночи ждёт, пока игрок лежит рядом с парой (миксин на {@code PlayerEntity.canResetTimeBySleeping}). */
     public static boolean holdsNight(ServerPlayerEntity player) {
         MobGameBridge bridge = forEntity(player);
-        return bridge != null && (bridge.coSleep.holdsNight(player) || bridge.children.holdsNight(player));
+        return bridge != null && (bridge.coSleep.holdsNight(player) || bridge.children.holdsNight(player) && bridge.coSleep.withinCap(player));
     }
     /** Сделка в окне торговли состоялась: запись «Торг» в журнал админки (на выделенном сервере; в одиночке журнал пуст). */
     public static void journalTrade(MobEntity merchant, ServerPlayerEntity player, net.minecraft.village.TradeOffer offer) {
@@ -563,7 +567,7 @@ public final class MobGameBridge implements GameBridge {
                 String result = wedding.involved(mob.getUuid()) && intent != null && intent.type() != ActionType.NONE ? "" : actions.apply(mob, player, intent, observed);
                 if (!gestured.isBlank()) result = result.isBlank() ? gestured : result + "; " + gestured;
                 if (!trade.isBlank()) result = result.isBlank() ? trade : result + "; " + trade;
-                jealousy.talked(mob, player); // Трек J: разговор с парой или с жителем её пола.
+                jealousy.talked(mob, player, handed == null ? null : handed.gesture()); // Трек J: разговор с парой или с жителем её пола.
                 Witness heard = Witness.of(social);
                 if (heard != null) witnessed(mob, player, heard);
                 return new Outcome(result, memory.revision(mobId));
@@ -639,6 +643,15 @@ public final class MobGameBridge implements GameBridge {
     public static void afterBrain(ServerWorld world, LivingEntity entity) {
         MobGameBridge bridge = active(world.getServer());
         if (bridge != null && entity instanceof MobEntity mob) bridge.actions.afterBrain(mob);
+    }
+    /** The mob whose brain is ticking now (server thread), so a wake-up from its daily routine can be told from a blow or an alarm. */
+    private static MobEntity thinking;
+    public static void thinking(MobEntity mob) { thinking = mob; }
+    /** A villager in apathy is not woken by its routine: it lies in bed day and night. A blow, an alarm or a raid still wake it. */
+    public static boolean keepsInBed(net.minecraft.entity.passive.VillagerEntity villager) {
+        if (thinking != villager) return false;
+        MobGameBridge bridge = forEntity(villager);
+        return bridge != null && bridge.config.enabled && bridge.moods.keepsInBed(villager);
     }
     public static boolean suppressesAttack(MobEntity mob) {
         MobGameBridge bridge = forEntity(mob);

@@ -9,6 +9,7 @@
     "InstantHealingMixin",
     "HorseTamingMixin",
     "BrainMovementMixin",
+    "ApathyBedMixin",
     "HeardVibrationMixin",
     "MerchantScreenHandlerAccessor",
     "MerchantInventoryAccessor",
