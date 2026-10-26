@@ -320,11 +320,23 @@ def outline_boxes(els, cell):
 
 # ---------------------------------------------------------------- writing
 
-def write(path, data):
+WRITTEN = set()   # every file this run produced; clean_models() removes the stale rest
+
+
+def put(path, text):
+    """Writes a text file only when its content differs, so a rerun touches nothing it did not change."""
+    WRITTEN.add(os.path.abspath(path))
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as fh:
-        json.dump(data, fh, indent=2, ensure_ascii=False)
-        fh.write("\n")
+    if os.path.exists(path):
+        with open(path, encoding="utf-8", newline="") as fh:
+            if fh.read().replace("\r\n", "\n") == text:
+                return
+    with open(path, "w", encoding="utf-8", newline="") as fh:
+        fh.write(text)
+
+
+def write(path, data):
+    put(path, json.dumps(data, indent=2, ensure_ascii=False) + "\n")
 
 
 DISPLAY = {"gui": {"rotation": [30, 225, 0], "translation": [0, 0, 0], "scale": [0.625, 0.625, 0.625]},
@@ -497,18 +509,25 @@ def save_textures():
             # alpha into the picture's edge and cut holes in it from afar (the gym's backboard): make them opaque.
             for p in getattr(cv, "outside", ()):
                 cv.img.putpixel(p, cv.img.getpixel(p)[:3] + (255,))
-        cv.img.save(os.path.join(tdir, name + ".png"))
+        path = os.path.join(tdir, name + ".png")
         keep.add(name + ".png")
+        if os.path.exists(path):
+            old = Image.open(path).convert("RGBA")
+            if old.size == cv.img.size and old.tobytes() == cv.img.convert("RGBA").tobytes():
+                continue
+        cv.img.save(path)
     for old in os.listdir(tdir):
         if old not in keep:
             os.remove(os.path.join(tdir, old))
 
 
 def clean_models():
+    """After the export: drops the models this run did not write (the ones of pieces that no longer exist)."""
     d = os.path.join(ASSETS, "models", MODDIR)
     if os.path.isdir(d):
         for old in os.listdir(d):
-            os.remove(os.path.join(d, old))
+            if os.path.abspath(os.path.join(d, old)) not in WRITTEN:
+                os.remove(os.path.join(d, old))
 
 
 def save_names():
@@ -524,9 +543,7 @@ def save_names():
         import fur_texts
         for k, v in fur_texts.TEXTS.items():
             d[k] = v[i]
-        with open(p, "w", encoding="utf-8") as fh:
-            json.dump(d, fh, indent=2, ensure_ascii=False)
-            fh.write("\n")
+        put(p, json.dumps(d, indent=2, ensure_ascii=False) + "\n")
     beds = [f"mobtalk:{fu.id}" for fu in FURN if fu.kind == "bed"]
     write(os.path.join(ROOT, "src", "main", "resources", "data", "minecraft", "tags", "block", "beds.json"), {"replace": False, "values": beds})
 
@@ -557,8 +574,7 @@ def write_java():
     for i, part in enumerate(parts):
         src += f"\n    private static List<FurnitureBlocks.F> part{i}() {{\n        return List.of(\n" + ",\n".join(part) + ");\n    }\n"
     src += "}\n"
-    with open(os.path.join(ROOT, "src", "main", "java", "io", "github", "mobtalk", "game", "CityFurniture.java"), "w", encoding="utf-8") as fh:
-        fh.write(src)
+    put(os.path.join(ROOT, "src", "main", "java", "io", "github", "mobtalk", "game", "CityFurniture.java"), src)
 
 
 # ---------------------------------------------------------------- preview
@@ -725,7 +741,6 @@ def main():
     sys.modules["furniture"] = sys.modules[__name__]  # fur_models imports this module by name: one copy, not two
     import fur_models
     fur_models.make()
-    clean_models()
     bad = []
     for fu in FURN:
         try:
@@ -735,6 +750,7 @@ def main():
     if bad:
         print("MODEL CHECK FAILED\n" + "\n".join(bad))
         sys.exit(1)
+    clean_models()
     save_textures()
     save_names()
     write_java()
