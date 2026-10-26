@@ -1,7 +1,18 @@
 {
  "variants": {
-  "": {
-   "model": "mobtalk:block/city2/facade_beige_edge"
-  }
+  "": [
+   {
+    "model": "mobtalk:block/city2/facade_beige_edge",
+    "weight": 92
+   },
+   {
+    "model": "mobtalk:block/city2/facade_beige_edge_chip",
+    "weight": 4
+   },
+   {
+    "model": "mobtalk:block/city2/facade_beige_edge_fade",
+    "weight": 4
+   }
+  ]
  }
 }

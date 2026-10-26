@@ -822,9 +822,8 @@ def panel_style(style, floors):
     bevel(im, (0, 0, W, H), 1.2, 0.6)
     for x, y in ((2, 2), (W - 3, 2), (2, H - 3), (W - 3, H - 3)):
         put(im, x, y, (90, 90, 96))
-    if p.get("display"):   # the floor display: red digits on black
+    if p.get("display"):   # the floor display, black: the cabin's renderer lights the floor's number on it
         rect(im, 5, 3, W - 5, 11, (16, 10, 10))
-        text(im, 10, 4, "1", (255, 60, 40))
     else:
         rect(im, 4, 4, W - 4, 11, (26, 26, 30))
         text(im, 6, 5, "320" if style != "plastic" else "400", (230, 230, 230))

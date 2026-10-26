@@ -1,0 +1,6 @@
+{
+ "parent": "minecraft:block/cube_all",
+ "textures": {
+  "all": "mobtalk:block/city2/paint_stair_ochre_mid"
+ }
+}

@@ -1,0 +1,500 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "tube_steel": "mobtalk:block/city2/furniture/tube_steel",
+    "plywood": "mobtalk:block/city2/furniture/plywood",
+    "particle": "mobtalk:block/city2/furniture/tube_steel"
+  },
+  "elements": [
+    {
+      "from": [
+        1.5,
+        2.25,
+        9.25
+      ],
+      "to": [
+        16.0,
+        3.0,
+        10.75
+      ],
+      "faces": {
+        "north": {
+          "texture": "#tube_steel",
+          "uv": [
+            0.0,
+            13.0,
+            14.5,
+            13.75
+          ]
+        },
+        "south": {
+          "texture": "#tube_steel",
+          "uv": [
+            1.5,
+            13.0,
+            16.0,
+            13.75
+          ]
+        },
+        "west": {
+          "texture": "#tube_steel",
+          "uv": [
+            9.25,
+            13.0,
+            10.75,
+            13.75
+          ]
+        },
+        "up": {
+          "texture": "#tube_steel",
+          "uv": [
+            1.5,
+            9.25,
+            16.0,
+            10.75
+          ]
+        },
+        "down": {
+          "texture": "#tube_steel",
+          "uv": [
+            1.5,
+            5.25,
+            16.0,
+            6.75
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.0,
+        0.0,
+        5.0
+      ],
+      "to": [
+        2.5,
+        2.0,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#tube_steel",
+          "uv": [
+            13.5,
+            14.0,
+            15.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#tube_steel",
+          "uv": [
+            1.0,
+            14.0,
+            2.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#tube_steel",
+          "uv": [
+            3.0,
+            14.0,
+            11.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#tube_steel",
+          "uv": [
+            5.0,
+            14.0,
+            13.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#tube_steel",
+          "uv": [
+            1.0,
+            5.0,
+            2.5,
+            13.0
+          ]
+        },
+        "down": {
+          "texture": "#tube_steel",
+          "uv": [
+            1.0,
+            3.0,
+            2.5,
+            11.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.0,
+        2.0,
+        9.0
+      ],
+      "to": [
+        2.5,
+        6.0,
+        11.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#tube_steel",
+          "uv": [
+            13.5,
+            10.0,
+            15.0,
+            14.0
+          ]
+        },
+        "south": {
+          "texture": "#tube_steel",
+          "uv": [
+            1.0,
+            10.0,
+            2.5,
+            14.0
+          ]
+        },
+        "east": {
+          "texture": "#tube_steel",
+          "uv": [
+            5.0,
+            10.0,
+            7.0,
+            14.0
+          ]
+        },
+        "west": {
+          "texture": "#tube_steel",
+          "uv": [
+            9.0,
+            10.0,
+            11.0,
+            14.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.75,
+        6.0,
+        3.0
+      ],
+      "to": [
+        10.5,
+        7.0,
+        12.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plywood",
+          "uv": [
+            5.5,
+            9.0,
+            15.25,
+            10.0
+          ]
+        },
+        "south": {
+          "texture": "#plywood",
+          "uv": [
+            0.75,
+            9.0,
+            10.5,
+            10.0
+          ]
+        },
+        "east": {
+          "texture": "#plywood",
+          "uv": [
+            4.0,
+            9.0,
+            13.0,
+            10.0
+          ]
+        },
+        "west": {
+          "texture": "#plywood",
+          "uv": [
+            3.0,
+            9.0,
+            12.0,
+            10.0
+          ]
+        },
+        "up": {
+          "texture": "#plywood",
+          "uv": [
+            0.75,
+            3.0,
+            10.5,
+            12.0
+          ]
+        },
+        "down": {
+          "texture": "#plywood",
+          "uv": [
+            0.75,
+            4.0,
+            10.5,
+            13.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.75,
+        7.0,
+        12.0
+      ],
+      "to": [
+        10.5,
+        15.0,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plywood",
+          "uv": [
+            5.5,
+            1.0,
+            15.25,
+            9.0
+          ]
+        },
+        "south": {
+          "texture": "#plywood",
+          "uv": [
+            0.75,
+            1.0,
+            10.5,
+            9.0
+          ]
+        },
+        "east": {
+          "texture": "#plywood",
+          "uv": [
+            3.0,
+            1.0,
+            4.0,
+            9.0
+          ]
+        },
+        "west": {
+          "texture": "#plywood",
+          "uv": [
+            12.0,
+            1.0,
+            13.0,
+            9.0
+          ]
+        },
+        "up": {
+          "texture": "#plywood",
+          "uv": [
+            0.75,
+            12.0,
+            10.5,
+            13.0
+          ]
+        },
+        "down": {
+          "texture": "#plywood",
+          "uv": [
+            0.75,
+            3.0,
+            10.5,
+            4.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        11.0,
+        6.0,
+        3.0
+      ],
+      "to": [
+        16.0,
+        7.0,
+        12.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plywood",
+          "uv": [
+            0.0,
+            9.0,
+            5.0,
+            10.0
+          ]
+        },
+        "south": {
+          "texture": "#plywood",
+          "uv": [
+            11.0,
+            9.0,
+            16.0,
+            10.0
+          ]
+        },
+        "west": {
+          "texture": "#plywood",
+          "uv": [
+            3.0,
+            9.0,
+            12.0,
+            10.0
+          ]
+        },
+        "up": {
+          "texture": "#plywood",
+          "uv": [
+            11.0,
+            3.0,
+            16.0,
+            12.0
+          ]
+        },
+        "down": {
+          "texture": "#plywood",
+          "uv": [
+            11.0,
+            4.0,
+            16.0,
+            13.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        11.0,
+        7.0,
+        12.0
+      ],
+      "to": [
+        16.0,
+        15.0,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plywood",
+          "uv": [
+            0.0,
+            1.0,
+            5.0,
+            9.0
+          ]
+        },
+        "south": {
+          "texture": "#plywood",
+          "uv": [
+            11.0,
+            1.0,
+            16.0,
+            9.0
+          ]
+        },
+        "west": {
+          "texture": "#plywood",
+          "uv": [
+            12.0,
+            1.0,
+            13.0,
+            9.0
+          ]
+        },
+        "up": {
+          "texture": "#plywood",
+          "uv": [
+            11.0,
+            12.0,
+            16.0,
+            13.0
+          ]
+        },
+        "down": {
+          "texture": "#plywood",
+          "uv": [
+            11.0,
+            3.0,
+            16.0,
+            4.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        7.0,
+        13.0
+      ],
+      "to": [
+        16.0,
+        8.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#tube_steel",
+          "uv": [
+            0.0,
+            8.0,
+            16.0,
+            9.0
+          ]
+        },
+        "south": {
+          "texture": "#tube_steel",
+          "uv": [
+            0.0,
+            8.0,
+            16.0,
+            9.0
+          ]
+        },
+        "west": {
+          "texture": "#tube_steel",
+          "uv": [
+            13.0,
+            8.0,
+            14.0,
+            9.0
+          ]
+        },
+        "up": {
+          "texture": "#tube_steel",
+          "uv": [
+            0.0,
+            13.0,
+            16.0,
+            14.0
+          ]
+        },
+        "down": {
+          "texture": "#tube_steel",
+          "uv": [
+            0.0,
+            2.0,
+            16.0,
+            3.0
+          ]
+        }
+      }
+    }
+  ]
+}

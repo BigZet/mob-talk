@@ -43,7 +43,9 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.state.StateManager;
+import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.EnumProperty;
+import net.minecraft.state.property.Properties;
 import net.minecraft.structure.StructurePlacementData;
 import net.minecraft.structure.StructureTemplate;
 import net.minecraft.text.Text;
@@ -66,15 +68,29 @@ public final class CityBuild {
     /** What a wall's side is covered with: whitewash, wallpaper, tiles, the stairwell's oil paint. */
     public enum Finish implements StringIdentifiable {
         PLASTER, PAPER_BEIGE, PAPER_GREEN, PAPER_BLUE, PAPER_PINK, PAPER_STRIPE, PAPER_ROSES, PAPER_DAMASK, PAPER_GEO, PAPER_WOOD, TILE_BATH,
-        TILE_KITCHEN, PAINT_STAIR;
+        TILE_KITCHEN, PAINT_STAIR, PAINT_STAIR_BLUE, PAINT_STAIR_OCHRE, PAINT_STAIR_BROWN;
 
         @Override public String asString() { return name().toLowerCase(java.util.Locale.ROOT); }
     }
 
-    public static final EnumProperty<Finish> NORTH = EnumProperty.of("north", Finish.class);
-    public static final EnumProperty<Finish> EAST = EnumProperty.of("east", Finish.class);
-    public static final EnumProperty<Finish> SOUTH = EnumProperty.of("south", Finish.class);
-    public static final EnumProperty<Finish> WEST = EnumProperty.of("west", Finish.class);
+    /** A window's frames (tools/city2/blocks.py WIN_FRAMES): white PVC, old painted wood, brown PVC, anthracite PVC. */
+    public enum Frame implements StringIdentifiable {
+        PVC, WOOD, BROWN, GREY;
+
+        @Override public String asString() { return name().toLowerCase(java.util.Locale.ROOT); }
+    }
+
+    public static final EnumProperty<Frame> FRAME = EnumProperty.of("frame", Frame.class);
+
+    /** A flat wall's sides: the room finishes and the green stair paint (other paints are on {@link StairWallBlock}s, so the
+     *  wall's states stay at 13 to the fourth). */
+    private static final java.util.Set<Finish> WALL_FINISHES = java.util.EnumSet.range(Finish.PLASTER, Finish.PAINT_STAIR);
+    public static final EnumProperty<Finish> NORTH = EnumProperty.of("north", Finish.class, WALL_FINISHES);
+    public static final EnumProperty<Finish> EAST = EnumProperty.of("east", Finish.class, WALL_FINISHES);
+    public static final EnumProperty<Finish> SOUTH = EnumProperty.of("south", Finish.class, WALL_FINISHES);
+    public static final EnumProperty<Finish> WEST = EnumProperty.of("west", Finish.class, WALL_FINISHES);
+    /** A stair wall's room side: the room finishes only. */
+    public static final EnumProperty<Finish> ROOM = EnumProperty.of("room", Finish.class, java.util.EnumSet.range(Finish.PLASTER, Finish.TILE_KITCHEN));
     public static final EnumProperty<Finish> INNER = EnumProperty.of("inner", Finish.class);
 
     /** Where a stair step's railing runs: none, the left or right edge (going up the flight), the front edge of a landing. */
@@ -100,17 +116,24 @@ public final class CityBuild {
         registered = true;
         if (!CityBuildBlocks.FINISHES.equals(java.util.Arrays.stream(Finish.values()).map(Finish::asString).toList()))
             throw new IllegalStateException("CityBuild.Finish is out of step with tools/city2/blocks.py");
+        if (!CityBuildBlocks.FRAMES.equals(java.util.Arrays.stream(Frame.values()).map(Frame::asString).toList()))
+            throw new IllegalStateException("CityBuild.Frame is out of step with tools/city2/blocks.py");
         List<Item> items = new ArrayList<>();
         for (String row : CityBuildBlocks.WALLS)
             add(row, new FinishWallBlock(concrete(MapColor.WHITE)), items);
+        for (String id : CityBuildBlocks.STAIR_WALLS)
+            add(id, new StairWallBlock(concrete(MapColor.WHITE)), items);
         for (String id : CityBuildBlocks.FACADES)
             add(id, new FacadeBlock(concrete(MapColor.STONE_GRAY)), items);
         for (String id : CityBuildBlocks.WINDOWS)
             add(id, new WindowBlock(concrete(MapColor.WHITE).sounds(BlockSoundGroup.GLASS).nonOpaque()
                     .solidBlock((state, world, pos) -> false).suffocates((state, world, pos) -> false).blockVision((state, world, pos) -> false)), items);
-        CityBuildBlocks.CUBES.forEach((id, color) -> add(id, new Block(concrete(color)), items));
+        // Nothing spawns on the floors of flats and staircases: in a dark hall or pantry bats and zombies would (Dmitriy, 2026-10-26).
+        // Nor on the roof slab, the floor of the brick houses' dark attics.
+        CityBuildBlocks.CUBES.forEach((id, color) -> add(id, new Block(id.startsWith("floor_") || id.equals("plinth") || id.equals("roof_bitumen")
+                ? concrete(color).allowsSpawning((state, world, pos, type) -> false) : concrete(color)), items));
         for (String id : CityBuildBlocks.STEPS)
-            add(id, new StepBlock(concrete(MapColor.STONE_GRAY).nonOpaque()), items);
+            add(id, new StepBlock(concrete(MapColor.STONE_GRAY).nonOpaque().allowsSpawning((state, world, pos, type) -> false)), items);
         for (String id : CityBuildBlocks.DOORS) {
             boolean steel = CityBuildBlocks.METAL_DOORS.contains(id);
             AbstractBlock.Settings settings = AbstractBlock.Settings.create().mapColor(CityBuildBlocks.DOOR_COLORS.get(id))
@@ -127,16 +150,17 @@ public final class CityBuild {
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.BUILDING_BLOCKS).register(entries -> items.forEach(entries::add));
         CommandRegistrationCallback.EVENT.register((dispatcher, registries, environment) -> {
             var colour = argument("colour", StringArgumentType.word())
-                    .suggests((c, b) -> CommandSource.suggestMatching(List.of("grey", "beige", "white", "blue"), b))
+                    .suggests((c, b) -> CommandSource.suggestMatching(List.of("grey", "beige", "white", "blue", "brick", "silicate"), b))
                     .executes(c -> house(c.getSource(), StringArgumentType.getString(c, "series"), IntegerArgumentType.getInteger(c, "sections"),
                             IntegerArgumentType.getInteger(c, "floors"), StringArgumentType.getString(c, "colour")));
-            var floors = argument("floors", IntegerArgumentType.integer(1, 16))
+            var floors = argument("floors", IntegerArgumentType.integer(1, 25))
                     .executes(c -> house(c.getSource(), StringArgumentType.getString(c, "series"), IntegerArgumentType.getInteger(c, "sections"),
                             IntegerArgumentType.getInteger(c, "floors"), "grey"))
                     .then(colour);
             var series = argument("series", StringArgumentType.string())
-                    .suggests((c, b) -> CommandSource.suggestMatching(List.of("\"1-464\"", "\"1-335\"", "\"1-515-9\"", "\"i-209a\""), b))
-                    .then(argument("sections", IntegerArgumentType.integer(1, 8)).then(floors));
+                    .suggests((c, b) -> CommandSource.suggestMatching(List.of("\"1-464\"", "\"1-335\"", "\"1-447\"", "\"ii-03\"", "\"1-515-9\"", "\"i-209a\"", "\"p-44\"",
+                            "\"1-447-l\"", "\"ii-03-l\"", "\"ii-03-yard\"", "\"school\"", "\"kindergarten\"", "\"polyclinic\""), b))
+                    .then(argument("sections", IntegerArgumentType.integer(0, 8)).then(floors));
             dispatcher.register(literal("city").requires(source -> source.hasPermissionLevel(2)).then(literal("house").then(series)));
         });
     }
@@ -205,6 +229,41 @@ public final class CityBuild {
         }
     }
 
+    /** A staircase wall in a paint other than green: each side is painted ({@code north} … {@code west} true) or shows the one
+     *  room finish {@code room} (a stair wall borders one room at most, the rest of its sides face walls). */
+    public static class StairWallBlock extends Block {
+        StairWallBlock(AbstractBlock.Settings settings) {
+            super(settings);
+            setDefaultState(getStateManager().getDefaultState().with(Properties.NORTH, false).with(Properties.EAST, false)
+                    .with(Properties.SOUTH, false).with(Properties.WEST, false).with(ROOM, Finish.PLASTER));
+        }
+
+        @Override protected MapCodec<? extends Block> getCodec() { return createCodec(StairWallBlock::new); }
+        @Override protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
+            builder.add(Properties.NORTH, Properties.EAST, Properties.SOUTH, Properties.WEST, ROOM);
+        }
+
+        static BooleanProperty side(Direction d) {
+            return switch (d) { case EAST -> Properties.EAST; case SOUTH -> Properties.SOUTH; case WEST -> Properties.WEST; default -> Properties.NORTH; };
+        }
+
+        @Override public BlockState getPlacementState(ItemPlacementContext ctx) {
+            return getDefaultState().with(side(ctx.getHorizontalPlayerFacing().getOpposite()), true);
+        }
+
+        @Override protected BlockState rotate(BlockState state, BlockRotation rotation) {
+            BlockState out = state;
+            for (Direction d : Direction.Type.HORIZONTAL) out = out.with(side(rotation.rotate(d)), state.get(side(d)));
+            return out;
+        }
+
+        @Override protected BlockState mirror(BlockState state, BlockMirror mirror) {
+            BlockState out = state;
+            for (Direction d : Direction.Type.HORIZONTAL) out = out.with(side(mirror.apply(d)), state.get(side(d)));
+            return out;
+        }
+    }
+
     /** A facade cell: the panel faces {@code facing} (outside), the room's finish is on the opposite side. */
     public static class FacadeBlock extends HorizontalFacingBlock {
         FacadeBlock(AbstractBlock.Settings settings) {
@@ -227,6 +286,8 @@ public final class CityBuild {
         WindowBlock(AbstractBlock.Settings settings) { super(settings); }
 
         @Override protected MapCodec<? extends HorizontalFacingBlock> getCodec() { return createCodec(WindowBlock::new); }
+        @Override protected void appendProperties(StateManager.Builder<Block, BlockState> builder) { builder.add(FACING, INNER, FRAME); }
+
         @Override protected boolean isTransparent(BlockState state, BlockView world, BlockPos pos) { return true; }
         @Override protected float getAmbientOcclusionLightLevel(BlockState state, BlockView world, BlockPos pos) { return 1f; }
     }

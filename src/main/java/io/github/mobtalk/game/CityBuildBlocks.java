@@ -10,7 +10,9 @@ final class CityBuildBlocks {
     private CityBuildBlocks() { }
 
     /** Room finishes, in the order of {@link CityBuild.Finish}. */
-    static final List<String> FINISHES = List.of("plaster", "paper_beige", "paper_green", "paper_blue", "paper_pink", "paper_stripe", "paper_roses", "paper_damask", "paper_geo", "paper_wood", "tile_bath", "tile_kitchen", "paint_stair");
+    static final List<String> FINISHES = List.of("plaster", "paper_beige", "paper_green", "paper_blue", "paper_pink", "paper_stripe", "paper_roses", "paper_damask", "paper_geo", "paper_wood", "tile_bath", "tile_kitchen", "paint_stair", "paint_stair_blue", "paint_stair_ochre", "paint_stair_brown");
+    /** Window frames, in the order of {@link CityBuild.Frame}. */
+    static final List<String> FRAMES = List.of("pvc", "wood", "brown", "grey");
     static final Map<String, MapColor> CUBES = Map.ofEntries(
             Map.entry("facade_grey_band", MapColor.STONE_GRAY),
             Map.entry("facade_grey_cross", MapColor.STONE_GRAY),
@@ -24,6 +26,12 @@ final class CityBuildBlocks {
             Map.entry("facade_blue_band", MapColor.STONE_GRAY),
             Map.entry("facade_blue_cross", MapColor.STONE_GRAY),
             Map.entry("facade_blue_edge", MapColor.STONE_GRAY),
+            Map.entry("facade_brick_band", MapColor.RED),
+            Map.entry("facade_brick_cross", MapColor.RED),
+            Map.entry("facade_brick_edge", MapColor.RED),
+            Map.entry("facade_silicate_band", MapColor.WHITE_GRAY),
+            Map.entry("facade_silicate_cross", MapColor.WHITE_GRAY),
+            Map.entry("facade_silicate_edge", MapColor.WHITE_GRAY),
             Map.entry("floor_parquet", MapColor.OAK_TAN),
             Map.entry("floor_lino_brown", MapColor.BROWN),
             Map.entry("floor_lino_beige", MapColor.PALE_YELLOW),
@@ -38,7 +46,7 @@ final class CityBuildBlocks {
             Map.entry("sidewalk", MapColor.STONE_GRAY),
             Map.entry("kerb", MapColor.LIGHT_GRAY),
             Map.entry("plaza", MapColor.TERRACOTTA_PINK));
-    static final List<String> FACADES = List.of("facade_grey_lo", "facade_grey_mid", "facade_grey_hi", "facade_grey_jlo", "facade_grey_jmid", "facade_grey_jhi", "facade_beige_lo", "facade_beige_mid", "facade_beige_hi", "facade_beige_jlo", "facade_beige_jmid", "facade_beige_jhi", "facade_white_lo", "facade_white_mid", "facade_white_hi", "facade_white_jlo", "facade_white_jmid", "facade_white_jhi", "facade_blue_lo", "facade_blue_mid", "facade_blue_hi", "facade_blue_jlo", "facade_blue_jmid", "facade_blue_jhi");
+    static final List<String> FACADES = List.of("facade_grey_lo", "facade_grey_mid", "facade_grey_hi", "facade_grey_jlo", "facade_grey_jmid", "facade_grey_jhi", "facade_beige_lo", "facade_beige_mid", "facade_beige_hi", "facade_beige_jlo", "facade_beige_jmid", "facade_beige_jhi", "facade_white_lo", "facade_white_mid", "facade_white_hi", "facade_white_jlo", "facade_white_jmid", "facade_white_jhi", "facade_blue_lo", "facade_blue_mid", "facade_blue_hi", "facade_blue_jlo", "facade_blue_jmid", "facade_blue_jhi", "facade_brick_lo", "facade_brick_mid", "facade_brick_hi", "facade_brick_jlo", "facade_brick_jmid", "facade_brick_jhi", "facade_silicate_lo", "facade_silicate_mid", "facade_silicate_hi", "facade_silicate_jlo", "facade_silicate_jmid", "facade_silicate_jhi");
     static final List<String> DOORS = List.of("door_room", "door_room_wood", "door_flat", "door_flat_wine", "door_flat_black", "door_flat_wood", "door_flat_steel", "door_flat_steel_brown", "door_entrance", "door_entrance_green", "door_balcony");
     static final Map<String, MapColor> DOOR_COLORS = Map.ofEntries(
             Map.entry("door_room", MapColor.WHITE),
@@ -54,9 +62,11 @@ final class CityBuildBlocks {
             Map.entry("door_balcony", MapColor.WHITE));
     static final List<String> METAL_DOORS = List.of("door_flat_steel", "door_flat_steel_brown", "door_entrance", "door_entrance_green");
     static final List<String> WALLS = List.of("wall_lo", "wall_mid", "wall_hi");
-    static final List<String> WINDOWS = List.of("window_grey_lo", "window_grey_mid", "window_grey_hi", "window_beige_lo", "window_beige_mid", "window_beige_hi", "window_white_lo", "window_white_mid", "window_white_hi", "window_blue_lo", "window_blue_mid", "window_blue_hi");
+    /** Staircase walls painted other than green: sides painted (true) or one room finish. */
+    static final List<String> STAIR_WALLS = List.of("wall_stair_blue_lo", "wall_stair_ochre_lo", "wall_stair_brown_lo", "wall_stair_blue_mid", "wall_stair_ochre_mid", "wall_stair_brown_mid", "wall_stair_blue_hi", "wall_stair_ochre_hi", "wall_stair_brown_hi");
+    static final List<String> WINDOWS = List.of("window_grey_lo", "window_grey_mid", "window_grey_hi", "window_beige_lo", "window_beige_mid", "window_beige_hi", "window_white_lo", "window_white_mid", "window_white_hi", "window_blue_lo", "window_blue_mid", "window_blue_hi", "window_brick_lo", "window_brick_mid", "window_brick_hi", "window_silicate_lo", "window_silicate_mid", "window_silicate_hi");
     static final List<String> STEPS = List.of("step_terrazzo");
-    static final List<String> TRANSLUCENT = List.of("window_grey_lo", "window_grey_mid", "window_grey_hi", "window_beige_lo", "window_beige_mid", "window_beige_hi", "window_white_lo", "window_white_mid", "window_white_hi", "window_blue_lo", "window_blue_mid", "window_blue_hi", "door_room", "door_room_wood", "door_balcony", "balglass_pvc_l", "balglass_pvc_m", "balglass_pvc_r", "baltop_pvc_l", "baltop_pvc_m", "baltop_pvc_r", "balcap_pvc_l", "balcap_pvc_m", "balcap_pvc_r", "balroof_pvc_l", "balroof_pvc_m", "balroof_pvc_r", "balglass_wood_l", "balglass_wood_m", "balglass_wood_r", "baltop_wood_l", "baltop_wood_m", "baltop_wood_r", "balcap_wood_l", "balcap_wood_m", "balcap_wood_r", "balroof_wood_l", "balroof_wood_m", "balroof_wood_r", "balglass_alu_l", "balglass_alu_m", "balglass_alu_r", "baltop_alu_l", "baltop_alu_m", "baltop_alu_r", "balcap_alu_l", "balcap_alu_m", "balcap_alu_r", "balroof_alu_l", "balroof_alu_m", "balroof_alu_r", "glass_blocks");
+    static final List<String> TRANSLUCENT = List.of("window_grey_lo", "window_grey_mid", "window_grey_hi", "window_beige_lo", "window_beige_mid", "window_beige_hi", "window_white_lo", "window_white_mid", "window_white_hi", "window_blue_lo", "window_blue_mid", "window_blue_hi", "window_brick_lo", "window_brick_mid", "window_brick_hi", "window_silicate_lo", "window_silicate_mid", "window_silicate_hi", "door_room", "door_room_wood", "door_balcony", "balglass_pvc_l", "balglass_pvc_m", "balglass_pvc_r", "baltop_pvc_l", "baltop_pvc_m", "baltop_pvc_r", "balcap_pvc_l", "balcap_pvc_m", "balcap_pvc_r", "balroof_pvc_l", "balroof_pvc_m", "balroof_pvc_r", "balglass_wood_l", "balglass_wood_m", "balglass_wood_r", "baltop_wood_l", "baltop_wood_m", "baltop_wood_r", "balcap_wood_l", "balcap_wood_m", "balcap_wood_r", "balroof_wood_l", "balroof_wood_m", "balroof_wood_r", "balglass_alu_l", "balglass_alu_m", "balglass_alu_r", "baltop_alu_l", "baltop_alu_m", "baltop_alu_r", "balcap_alu_l", "balcap_alu_m", "balcap_alu_r", "balroof_alu_l", "balroof_alu_m", "balroof_alu_r", "glass_blocks");
     static final List<String> CUTOUT = List.of("door_flat", "door_flat_wine", "door_flat_black", "door_flat_wood", "door_flat_steel", "door_flat_steel_brown", "door_entrance", "door_entrance_green", "step_terrazzo", "tv_antenna");
     static final List<CityContent.Spec> DECOR = List.of(
             new CityContent.Spec("balrail_blue_l", CityContent.Mount.GROUND, new double[][] {{0, 0, 0, 16, 16, 2}, {0, 0, 0, 2, 16, 16}}, 0, MapColor.LIGHT_BLUE, BlockSoundGroup.METAL, true),

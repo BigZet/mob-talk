@@ -91,6 +91,7 @@ class Model:
 
 
 CURTAIN_TIERS = 3  # a flat's clear height: the floor slab plus three blocks of air
+CURTAIN_TIERS_TALL = 4  # a stalinka's (house storey 5): pieces "tall_*", state tall=true
 OVERHANG = 7  # a ground piece may poke this far into the cell above (a kettle, a tap, jars) without taking that cell
 
 
@@ -203,8 +204,8 @@ def check(fid, model):
                 errs.append(f"element {i}: inverted on axis {a}")
             elif 0 < d < 0.5 - 1e-6:
                 errs.append(f"element {i}: {d:g} px thick on axis {a} (under a texel)")
-            if e.f[a] < -16 or e.t[a] > 48:
-                errs.append(f"element {i}: outside -16..48 on axis {a}")
+            if e.f[a] < -16 or e.t[a] > 64:     # (cut into cells on export; 64: a stalinka's 4-block room)
+                errs.append(f"element {i}: outside -16..64 on axis {a}")
     for i in range(len(els)):
         for j in range(i + 1, len(els)):
             a, b = els[i], els[j]
@@ -421,8 +422,9 @@ def export_curtain(fu):
     pieces = fu.model
     for k, m in pieces.items():
         check(fu.id + "/" + k, m)
+        tiers = CURTAIN_TIERS_TALL if k.startswith("tall_") else CURTAIN_TIERS
         for c, els in cells_of(m).items():
-            if c[0] or c[2] or not 0 <= c[1] < CURTAIN_TIERS:  # a tier is one model: anything sticking out sideways would overwrite it
+            if c[0] or c[2] or not 0 <= c[1] < tiers:  # a tier is one model: anything sticking out sideways would overwrite it
                 raise SystemExit(f"{fu.id}/{k}: part outside the curtain's column, cell {c}")
             write(os.path.join(ASSETS, "models", MODDIR, f"{fu.id}_{k}_t{c[1]}.json"), model_json(els, fu.id, c))
     have = {(k, c[1]) for k, m in pieces.items() for c in cells_of(m)}
@@ -431,15 +433,17 @@ def export_curtain(fu):
              "closed": {"open": "false"}, "open_l": {"open": "true", "left": "true"}, "open_r": {"open": "true", "right": "true"},
              "radiator": {"radiator": "true"}}
     for f, y in ROT:
-        for k, cond in conds.items():
-            for tier in range(CURTAIN_TIERS):
-                if (k, tier) not in have:
-                    continue
-                when = dict(cond, facing=f, tier=str(tier))
-                apply = {"model": mref(f"{fu.id}_{k}_t{tier}")}
-                if y:
-                    apply["y"] = y
-                rules.append({"when": when, "apply": apply})
+        for tall in (False, True):
+            for k, cond in conds.items():
+                key = f"tall_{k}" if tall else k
+                for tier in range(CURTAIN_TIERS_TALL if tall else CURTAIN_TIERS):
+                    if (key, tier) not in have:
+                        continue
+                    when = dict(cond, facing=f, tier=str(tier), tall=str(tall).lower())
+                    apply = {"model": mref(f"{fu.id}_{key}_t{tier}")}
+                    if y:
+                        apply["y"] = y
+                    rules.append({"when": when, "apply": apply})
     write(os.path.join(ASSETS, "blockstates", fu.id + ".json"), {"multipart": rules})
     whole = Model()
     for k in ("rod", "rod_end_l", "rod_end_r", "tulle", "closed"):

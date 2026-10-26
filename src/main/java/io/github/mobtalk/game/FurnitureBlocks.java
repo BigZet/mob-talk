@@ -82,7 +82,10 @@ public final class FurnitureBlocks {
     public static final BooleanProperty OPEN = Properties.OPEN;
     /** Curtains hang floor to ceiling in a 3-block room: tier 0 at the floor (with the radiator), 2 under the ceiling (the rod). */
     public static final int TIERS = 3;
-    public static final IntProperty TIER = IntProperty.of("tier", 0, TIERS - 1);
+    /** Under a stalinka's high ceiling (a 4-block room) a curtain is four tiers high: {@link #TALL}. */
+    public static final int TIERS_TALL = 4;
+    public static final IntProperty TIER = IntProperty.of("tier", 0, TIERS_TALL - 1);
+    public static final BooleanProperty TALL = BooleanProperty.of("tall");
     public static final BooleanProperty LEFT = BooleanProperty.of("left");
     public static final BooleanProperty RIGHT = BooleanProperty.of("right");
     /** A curtain cell with the window's radiator under the sill (both share the cell in front of the window). */
@@ -97,6 +100,9 @@ public final class FurnitureBlocks {
     public static EntityType<Seat> SEAT;
     public static BlockEntityType<FurnitureStorage> STORAGE;
     private static boolean registered;
+
+    /** Where the last door bell rang (for the self-test). */
+    public static BlockPos lastRing() { return FurnitureUse.lastRing; }
 
     public static void register() {
         if (registered) return;
@@ -470,11 +476,13 @@ public final class FurnitureBlocks {
             this.f = f;
             for (Direction d : Direction.Type.HORIZONTAL) SHAPE[d.getHorizontal()] = CityContent.shape(new double[][] {{0, 0, 11, 16, 16, 16}}, d);
             setDefaultState(getStateManager().getDefaultState().with(FACING, Direction.NORTH).with(TIER, 0)
-                    .with(OPEN, true).with(LEFT, true).with(RIGHT, true).with(RADIATOR, false));
+                    .with(OPEN, true).with(LEFT, true).with(RIGHT, true).with(RADIATOR, false).with(TALL, false));
         }
 
         @Override protected MapCodec<? extends HorizontalFacingBlock> getCodec() { return createCodec(s -> new Curtain(s, f)); }
-        @Override protected void appendProperties(StateManager.Builder<Block, BlockState> builder) { builder.add(FACING, TIER, OPEN, LEFT, RIGHT, RADIATOR); }
+        @Override protected void appendProperties(StateManager.Builder<Block, BlockState> builder) { builder.add(FACING, TIER, OPEN, LEFT, RIGHT, RADIATOR, TALL); }
+
+        static int tiers(BlockState state) { return state.get(TALL) ? TIERS_TALL : TIERS; }
         @Override protected VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) { return SHAPE[state.get(FACING).getHorizontal()]; }
         @Override protected VoxelShape getCollisionShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) { return VoxelShapes.empty(); }
         @Override protected BlockState rotate(BlockState state, BlockRotation rotation) { return state.with(FACING, rotation.rotate(state.get(FACING))); }
@@ -504,7 +512,7 @@ public final class FurnitureBlocks {
         @Override protected BlockState getStateForNeighborUpdate(BlockState state, Direction direction, BlockState neighbor, WorldAccess world,
                                                                  BlockPos pos, BlockPos neighborPos) {
             int tier = state.get(TIER);
-            if (direction.getAxis() == Direction.Axis.Y && (direction == Direction.UP ? tier < TIERS - 1 : tier > 0)) {
+            if (direction.getAxis() == Direction.Axis.Y && (direction == Direction.UP ? tier < tiers(state) - 1 : tier > 0)) {
                 int want = tier + (direction == Direction.UP ? 1 : -1);
                 return neighbor.isOf(this) && neighbor.get(TIER) == want ? state.with(OPEN, neighbor.get(OPEN)) : Blocks.AIR.getDefaultState();
             }
@@ -535,7 +543,7 @@ public final class FurnitureBlocks {
         }
 
         private void setOpen(World world, BlockPos lower, boolean open) {
-            for (int t = 0; t < TIERS; t++) {
+            for (int t = 0; t < tiers(world.getBlockState(lower)); t++) {
                 BlockState s = world.getBlockState(lower.up(t));
                 BlockPos p = lower.up(t);
                 if (s.isOf(this)) world.setBlockState(p, s.with(OPEN, open), Block.NOTIFY_LISTENERS);

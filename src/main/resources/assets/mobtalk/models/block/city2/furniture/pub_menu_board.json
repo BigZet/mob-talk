@@ -1,0 +1,51 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "pub_menu_board_menu_board_44": "mobtalk:block/city2/furniture/pub_menu_board_menu_board_44",
+    "board_frame": "mobtalk:block/city2/furniture/board_frame",
+    "particle": "mobtalk:block/city2/furniture/pub_menu_board_menu_board_44"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        4.0,
+        15.25
+      ],
+      "to": [
+        16.0,
+        16.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_menu_board_menu_board_44",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            12.0
+          ]
+        },
+        "south": {
+          "texture": "#board_frame",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            12.0
+          ]
+        },
+        "down": {
+          "texture": "#board_frame",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            0.75
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/city2/furniture/pub_coat_rack_long"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/city2/furniture/pub_coat_rack_long",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/city2/furniture/pub_coat_rack_long",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/city2/furniture/pub_coat_rack_long",
+      "y": 270
+    }
+  }
+}

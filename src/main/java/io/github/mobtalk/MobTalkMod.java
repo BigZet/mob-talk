@@ -106,6 +106,7 @@ public final class MobTalkMod implements ModInitializer {
         io.github.mobtalk.game.city.CityCars.register(); // Машины городов: сущности, парковки, /cars.
         io.github.mobtalk.game.city.CityGen.register(); // Города 2.0: свой биом, улицы и кварталы, генерация по чанкам.
         io.github.mobtalk.game.Lifts.register(); // Лифты многоэтажек: шахта, двери, кнопки, кабина, лебёдка.
+        io.github.mobtalk.game.Fences.register(); // Советские заборы: рабица, сварные с ромбами, бетонный ПО-2, калитки.
         io.github.mobtalk.game.CityWorldgen.register(); // Города с панельками вместо части деревень.
         MobGameBridge.initialize();
         MobTalkNet.registerPayloads();

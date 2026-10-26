@@ -1,0 +1,111 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "pub_wall_newspaper_wall_newspaper_44": "mobtalk:block/city2/furniture/pub_wall_newspaper_wall_newspaper_44",
+    "paper": "mobtalk:block/city2/furniture/paper",
+    "pub_wall_newspaper_wall_newspaper_43": "mobtalk:block/city2/furniture/pub_wall_newspaper_wall_newspaper_43",
+    "particle": "mobtalk:block/city2/furniture/pub_wall_newspaper_wall_newspaper_44"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        4.0,
+        15.5
+      ],
+      "to": [
+        16.0,
+        16.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_wall_newspaper_wall_newspaper_44",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            12.0
+          ]
+        },
+        "south": {
+          "texture": "#paper",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            12.0
+          ]
+        },
+        "west": {
+          "texture": "#paper",
+          "uv": [
+            15.5,
+            0.0,
+            16.0,
+            12.0
+          ]
+        },
+        "down": {
+          "texture": "#paper",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            0.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        16.0,
+        15.5
+      ],
+      "to": [
+        16.0,
+        22.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_wall_newspaper_wall_newspaper_43",
+          "uv": [
+            0.0,
+            10.0,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#paper",
+          "uv": [
+            0.0,
+            10.0,
+            16.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#paper",
+          "uv": [
+            15.5,
+            10.0,
+            16.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#paper",
+          "uv": [
+            0.0,
+            15.5,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "formica": "mobtalk:block/city2/furniture/formica",
+    "particle": "mobtalk:block/city2/furniture/formica"
+  },
+  "elements": [
+    {
+      "from": [
+        15.5,
+        0.0,
+        2.0
+      ],
+      "to": [
+        16.0,
+        1.0,
+        11.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#formica",
+          "uv": [
+            0.0,
+            15.0,
+            0.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#formica",
+          "uv": [
+            15.5,
+            15.0,
+            16.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#formica",
+          "uv": [
+            2.0,
+            15.0,
+            11.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#formica",
+          "uv": [
+            15.5,
+            2.0,
+            16.0,
+            11.0
+          ]
+        },
+        "down": {
+          "texture": "#formica",
+          "uv": [
+            15.5,
+            5.0,
+            16.0,
+            14.0
+          ]
+        }
+      }
+    }
+  ]
+}

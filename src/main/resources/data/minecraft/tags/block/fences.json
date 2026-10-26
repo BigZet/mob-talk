@@ -1,7 +1,15 @@
 {
-  "replace": false,
-  "values": [
-    "mobtalk:fence_green",
-    "mobtalk:fence_black"
-  ]
+ "replace": false,
+ "values": [
+  "mobtalk:fence_green",
+  "mobtalk:fence_black",
+  "mobtalk:chainlink_fence_galv",
+  "mobtalk:chainlink_fence_green",
+  "mobtalk:lattice_fence_green",
+  "mobtalk:lattice_fence_blue",
+  "mobtalk:lattice_fence_yellow",
+  "mobtalk:lattice_fence_red",
+  "mobtalk:concrete_fence",
+  "mobtalk:concrete_fence_diamond"
+ ]
 }

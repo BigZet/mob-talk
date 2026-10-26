@@ -1,0 +1,59 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "oak": "mobtalk:block/city2/furniture/oak",
+    "particle": "mobtalk:block/city2/furniture/oak"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        2.0,
+        6.5
+      ],
+      "to": [
+        0.5,
+        3.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#oak",
+          "uv": [
+            15.5,
+            13.0,
+            16.0,
+            14.0
+          ]
+        },
+        "south": {
+          "texture": "#oak",
+          "uv": [
+            0.0,
+            13.0,
+            0.5,
+            14.0
+          ]
+        },
+        "east": {
+          "texture": "#oak",
+          "uv": [
+            0.0,
+            13.0,
+            9.5,
+            14.0
+          ]
+        },
+        "up": {
+          "texture": "#oak",
+          "uv": [
+            0.0,
+            6.5,
+            0.5,
+            16.0
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,382 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "gym_wood": "mobtalk:block/city2/furniture/gym_wood",
+    "gym_wood_h": "mobtalk:block/city2/furniture/gym_wood_h",
+    "particle": "mobtalk:block/city2/furniture/gym_wood"
+  },
+  "elements": [
+    {
+      "from": [
+        1.0,
+        0.0,
+        13.0
+      ],
+      "to": [
+        2.0,
+        16.0,
+        15.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#gym_wood",
+          "uv": [
+            14.0,
+            0.0,
+            15.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#gym_wood",
+          "uv": [
+            1.0,
+            0.0,
+            2.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#gym_wood",
+          "uv": [
+            0.5,
+            0.0,
+            3.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#gym_wood",
+          "uv": [
+            13.0,
+            0.0,
+            15.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        14.0,
+        0.0,
+        13.0
+      ],
+      "to": [
+        15.0,
+        16.0,
+        15.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#gym_wood",
+          "uv": [
+            1.0,
+            0.0,
+            2.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#gym_wood",
+          "uv": [
+            14.0,
+            0.0,
+            15.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#gym_wood",
+          "uv": [
+            0.5,
+            0.0,
+            3.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#gym_wood",
+          "uv": [
+            13.0,
+            0.0,
+            15.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.0,
+        3.0,
+        13.75
+      ],
+      "to": [
+        14.0,
+        4.0,
+        14.75
+      ],
+      "faces": {
+        "north": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            2.0,
+            12.0,
+            14.0,
+            13.0
+          ]
+        },
+        "south": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            2.0,
+            12.0,
+            14.0,
+            13.0
+          ]
+        },
+        "east": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            1.25,
+            12.0,
+            2.25,
+            13.0
+          ]
+        },
+        "west": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            13.75,
+            12.0,
+            14.75,
+            13.0
+          ]
+        },
+        "up": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            2.0,
+            13.75,
+            14.0,
+            14.75
+          ]
+        },
+        "down": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            2.0,
+            1.25,
+            14.0,
+            2.25
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.0,
+        7.0,
+        13.75
+      ],
+      "to": [
+        14.0,
+        8.0,
+        14.75
+      ],
+      "faces": {
+        "north": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            2.0,
+            8.0,
+            14.0,
+            9.0
+          ]
+        },
+        "south": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            2.0,
+            8.0,
+            14.0,
+            9.0
+          ]
+        },
+        "east": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            1.25,
+            8.0,
+            2.25,
+            9.0
+          ]
+        },
+        "west": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            13.75,
+            8.0,
+            14.75,
+            9.0
+          ]
+        },
+        "up": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            2.0,
+            13.75,
+            14.0,
+            14.75
+          ]
+        },
+        "down": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            2.0,
+            1.25,
+            14.0,
+            2.25
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.0,
+        11.0,
+        13.75
+      ],
+      "to": [
+        14.0,
+        12.0,
+        14.75
+      ],
+      "faces": {
+        "north": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            2.0,
+            4.0,
+            14.0,
+            5.0
+          ]
+        },
+        "south": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            2.0,
+            4.0,
+            14.0,
+            5.0
+          ]
+        },
+        "east": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            1.25,
+            4.0,
+            2.25,
+            5.0
+          ]
+        },
+        "west": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            13.75,
+            4.0,
+            14.75,
+            5.0
+          ]
+        },
+        "up": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            2.0,
+            13.75,
+            14.0,
+            14.75
+          ]
+        },
+        "down": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            2.0,
+            1.25,
+            14.0,
+            2.25
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.0,
+        15.0,
+        13.75
+      ],
+      "to": [
+        14.0,
+        16.0,
+        14.75
+      ],
+      "faces": {
+        "north": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            2.0,
+            0.0,
+            14.0,
+            1.0
+          ]
+        },
+        "south": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            2.0,
+            0.0,
+            14.0,
+            1.0
+          ]
+        },
+        "east": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            1.25,
+            0.0,
+            2.25,
+            1.0
+          ]
+        },
+        "west": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            13.75,
+            0.0,
+            14.75,
+            1.0
+          ]
+        },
+        "up": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            2.0,
+            13.75,
+            14.0,
+            14.75
+          ]
+        },
+        "down": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            2.0,
+            1.25,
+            14.0,
+            2.25
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/city2/furniture/pub_kid_bed_yellow"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/city2/furniture/pub_kid_bed_yellow",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/city2/furniture/pub_kid_bed_yellow",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/city2/furniture/pub_kid_bed_yellow",
+      "y": 270
+    }
+  }
+}

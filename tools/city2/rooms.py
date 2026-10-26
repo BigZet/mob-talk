@@ -57,7 +57,7 @@ class Room:
         for (x, z) in self.cells:
             for d, (dx, dz) in DIRS.items():
                 c = self.h.ch(x + dx, z + dz)
-                if c in ("D", "E") or (c == "B" and self.k > 1):
+                if c in ("D", "E", "X") or (c == "B" and self.h.balcony_door(self.k)):
                     out.append((x, z))
         return out
 
@@ -151,9 +151,9 @@ class Room:
                 return True
         return False
 
-    def over(self, pid, under, height=2):
+    def over(self, pid, under, height=None):
         """A ceiling piece in the top row over something standing on the floor (drying lines over the bath)."""
-        y = self.s + 1 + height
+        y = self.s + (self.h.top if height is None else 1 + height)
         for x, z, f in self.spots():
             below = self.h.tpl.get(self.h.ox + x, self.s + 1, self.h.oz + z)
             if below and below.startswith(under) and self.fits(pid, x, y, z, f, backed=False):
@@ -294,12 +294,25 @@ class Room:
         return False
 
 
+NEW_SERIES = ("i-209a", "p-44")   # towers whose flats may be done up in the 2000s and ring with a chime
+
+
 def maybe(r, p):
     return r.random() < p
 
 
 def kitchen(rm, flat):
     r, st = rm.r, flat["set"]
+    if flat["modern"]:   # done up in the 2000s: a glossy lime set, a tall fridge
+        rm.against("apt2_kitchen_sink", name="sink", row=True)
+        for pid in (r.choice(["apt_stove", "apt_stove_kettle"]), "apt2_kitchen_base", "apt2_kitchen_plain", "apt2_fridge"):
+            rm.run(pid, "sink")
+        for _ in range(3):
+            rm.above("apt2_kitchen_wall", "apt2_kitchen_")
+        rm.table("apt_kitchen_table", "apt_chair", chairs=r.choice([2, 3]))
+        if maybe(r, 0.5):
+            rm.against("apt_wall_clock", height=1)
+        return
     rm.against(f"apt_kitchen_sink_{st}", name="sink", row=True)
     rm.run(r.choice(["apt_stove", "apt_stove_kettle"]), "sink")
     rm.run(f"apt_kitchen_base_{st}", "sink")
@@ -319,7 +332,9 @@ def kitchen(rm, flat):
 def bath(rm, flat):
     r = rm.r
     rm.against("apt_bathtub", name="bath")
-    rm.against("apt_toilet")
+    side = rm.h.s["rooms"][rm.letter][0]
+    if not any(s == side and kind == "wc" for s, kind in rm.h.s["rooms"].values()):   # the toilet: here, or in its own WC
+        rm.against("apt_toilet")
     rm.against("apt_washbasin")
     rm.against(r.choice(["apt_washer", "apt_washer", "apt_washer_malyutka", "apt_washer_sibir"]))
     rm.over("apt_dryer_liana", "apt_bathtub")         # the drying lines over the bath, under the ceiling
@@ -327,6 +342,13 @@ def bath(rm, flat):
         if maybe(r, p):
             rm.against(pid)
     rm.against("apt_towel_rail", height=1)
+
+
+def wc(rm, flat):
+    """The separate WC of the stalinkas: the toilet, a shelf over it, a roll of paper."""
+    rm.against("apt_toilet")
+    if maybe(rm.r, 0.6):
+        rm.against("apt_kitchen_shelf", height=1)
 
 
 def hall(rm, flat):
@@ -351,6 +373,15 @@ def hall(rm, flat):
 def living(rm, flat):
     r = rm.r
     colour = flat["sofa"]
+    if flat["modern"]:
+        rm.against("apt2_sofa_corner", name="sofa") and rm.front("apt_coffee_table", "sofa", name="coffee")
+        rm.against("apt2_tv_stand")
+        rm.against(r.choice(["apt_bookcase", "apt_sideboard"]))
+        rm.against(r.choice(["apt_ficus", "apt_aloe"]))
+        if maybe(r, 0.5):
+            rm.against("apt_floor_lamp")
+        rm.against(r.choice(["apt_picture_wave", "apt_wall_clock"]), height=1)
+        return
     if rm.against(f"apt_sofa_{colour}", name="sofa"):
         rm.front("apt_coffee_table", "sofa", name="coffee")
         if flat["wall_carpet"]:
@@ -379,7 +410,7 @@ def bedroom(rm, flat):
         rm.beside("apt_nightstand")
         if flat["wall_carpet"]:
             flat["wall_carpet"] = not rm.above("apt_wall_carpet_high", "apt_bed_double", height=1)
-    rm.against("apt_wardrobe")
+    rm.against("apt2_wardrobe_coupe" if flat["modern"] else "apt_wardrobe")
     for pid, p in (("apt_chest_drawers", 0.7), ("apt_dressing_table", 0.6), ("apt_chair_clothes", 0.5), ("apt_suitcases", 0.3),
                    ("apt_ironing_board", 0.25)):
         if maybe(r, p):
@@ -402,8 +433,12 @@ def room(rm, flat):
         if who == "child" and maybe(r, 0.35):
             rm.against("apt_crib")
         rm.bed("apt_bed")
-        rm.against("apt_desk", name="desk")
-        rm.front("apt_chair", "desk", facing_back=True)
+        if flat["modern"]:   # the computer desk of the 2000s
+            rm.against("apt2_pc_desk", name="desk")
+            rm.front("apt2_office_chair", "desk", facing_back=True)
+        else:
+            rm.against("apt_desk", name="desk")
+            rm.front("apt_chair", "desk", facing_back=True)
         rm.against("apt_bookcase")
         rm.against("apt_wardrobe")
         if who == "child":
@@ -424,19 +459,87 @@ def pantry(rm, flat):
             rm.against(pid, height=1 if CAT[pid][1] == "WALL" else 0)
 
 
-KINDS = {"pantry": pantry, "kitchen": kitchen, "bath": bath, "hall": hall, "living": living, "bedroom": bedroom, "room": room}
+def doorbell(rm, flat):
+    """The bell button on the landing beside the flat's door (hand height, on the wall next to the door) and the bell in the
+    hall over the door: a Soviet one in the old houses, mostly a ding-dong chime in the newer towers (furniture thread)."""
+    y = rm.s + 2
+    for x, z in rm.doors():
+        for d, (dx, dz) in DIRS.items():
+            ex, ez = x + dx, z + dz
+            if rm.h.ch(ex, ez) != "E":
+                continue
+            lx, lz = ex + dx, ez + dz                       # the landing in front of the door
+            for px, pz in ((dz, -dx), (-dz, dx)):
+                bx, bz = lx + px, lz + pz
+                if rm.h.ch(bx, bz) == "s" and (rm.h.ch(ex + px, ez + pz) or "") in SOLID and \
+                        rm.h.tpl.get(rm.h.ox + bx, y, rm.h.oz + bz) in (None, "air"):   # the staircase is cleared to air
+                    rm.h.at(bx, y, bz, "apt_bell_button", {"facing": d, "lit": "true"})
+                    break
+            bell = "apt_doorbell_chime" if flat["new"] and maybe(rm.r, 0.75) else "apt_doorbell"
+            rm.placed["door"] = (x, z, d)
+            rm.against(bell, height=2, near="door")
+            return
+
+
+def stalin(rm, flat):
+    """The stalinka's rooms under their 4-block ceilings (Dmitriy: they looked empty): the tall pieces - an oak buffet, a
+    bookcase to the ceiling, a floor clock, a palm, Shishkin hung high - the bronze chandelier on its rod in place of the
+    lamp, and last the plaster cornice round the walls wherever the top row is free."""
+    r, h = rm.r, rm.h
+    top = rm.s + h.top
+    if rm.kind == "living":
+        rm.against("apt_buffet_stalin")
+        rm.against("apt_painting_rye", height=2)
+        for pid, p in (("apt_floor_clock", 0.5), ("apt_palm_tub", 0.45)):
+            if maybe(r, p):
+                rm.against(pid)
+    elif rm.kind == "room":
+        for _ in range(r.choice((1, 2, 2))):
+            rm.against("apt_bookcase_tall")
+        if maybe(r, 0.35):
+            rm.against("apt_floor_clock")
+    elif rm.kind == "bedroom" and maybe(r, 0.25):
+        rm.against("apt_palm_tub")
+    if rm.kind in ("living", "room"):     # the chandelier: the ceiling lamp's cell, the cell under it for the ring of arms
+        for x, z in rm.cells:
+            name = h.tpl.get(h.ox + x, top, h.oz + z) or ""
+            if name.startswith("apt_") and name != "apt_molding" and h.tpl.get(h.ox + x, top - 1, h.oz + z) is None:
+                if CAT.get(name, ("", ""))[1] == "CEILING":
+                    h.tpl.cells.pop((h.ox + x, top, h.oz + z))
+                    if rm.fits("apt_chandelier_long", x, top, z, N, backed=False):
+                        rm.write("apt_chandelier_long", x, top, z, N)
+                    else:
+                        h.at(x, top, z, name, {"facing": N, "lit": "true"})
+                    break
+    if rm.kind in ("living", "room", "bedroom", "hall"):
+        for x, z, f in rm.spots():
+            if rm.fits("apt_molding", x, top, z, f):
+                rm.write("apt_molding", x, top, z, f)
+
+
+KINDS = {"pantry": pantry, "kitchen": kitchen, "bath": bath, "wc": wc, "hall": hall, "living": living, "bedroom": bedroom, "room": room}
+
+
+def public_kinds():
+    import public   # the public buildings' rooms (public.py imports house, which imports this module only when building)
+    return public.FURNISH
 
 
 def furnish(house):
     """Every flat of every floor, room by room; then the flats' floor rugs; then the landings' door mats."""
     plan_rooms = house.s["rooms"]
     for k in range(1, house.floors + 1):
+        house.on_floor(k)
         for sec in range(house.n):
             for side in sorted({sd for sd, _ in plan_rooms.values()}):
-                r = random.Random(f"{house.series}:{house.colour}:{house.n}:{k}:{sec}:{side}")
+                r = random.Random(f"{house.series}:{house.colour}:{house.n}:{k}:{sec}:{side}{house.salt}")
                 flat = {"set": r.choice(["white", "wood"]), "sofa": r.choice(["red", "green", "blue"]), "bed": None,
-                        "rug": False, "wall_carpet": r.random() < 0.3}
+                        "rug": False, "wall_carpet": r.random() < 0.3, "new": house.series in NEW_SERIES, "modern": False}
                 carpet = r.random() < 0.33
+                if flat["new"]:     # the towers of the 70s-80s: some flats done up in the 2000s, no carpets there
+                    flat["modern"] = r.random() < 0.4
+                    carpet = carpet and not flat["modern"]
+                    flat["wall_carpet"] = flat["wall_carpet"] and not flat["modern"]
                 rooms = []
                 for letter, (s_, kind) in plan_rooms.items():
                     if s_ != side:
@@ -444,17 +547,24 @@ def furnish(house):
                     cells = [(x, z) for (x, z), c in house.grid.items() if c == letter and house.section_of(x) == sec]
                     if cells:
                         rooms.append(Room(house, k, letter, kind, cells, random.Random(f"{r.random()}")))
-                order = ["hall", "kitchen", "bath", "living", "bedroom", "room", "pantry"]
-                rooms.sort(key=lambda rm: order.index(rm.kind))
+                order = ["hall", "kitchen", "bath", "wc", "living", "bedroom", "room", "pantry"]
+                rooms.sort(key=lambda rm: order.index(rm.kind) if rm.kind in order else len(order))
                 for rm in rooms:
                     rm.switch()
-                    KINDS[rm.kind](rm, flat)
+                    (KINDS.get(rm.kind) or public_kinds()[rm.kind])(rm, flat)
+                    if house.s.get("stalin"):
+                        stalin(rm, flat)
                 if carpet and not flat["rug"]:
                     for rm in rooms:
                         if rm.kind in ("living", "bedroom", "room"):
                             if any(rm.rug(pid) for pid in r.sample(["apt_rug", "apt_rug_blue", "apt_rug_turkmen"], 3)):
                                 break
+                for rm in rooms:
+                    if rm.kind == "hall":
+                        doorbell(rm, flat)
+                        break
                 rec = next((f for f in house.flats if f.section == sec and f.floor == k and f.side == side), None)
                 if rec is not None and flat["bed"]:
                     x, z, _ = flat["bed"]
                     rec.bed = (house.ox + x, house.slab(k) + 1, house.oz + z)
+    house.on_floor(None)

@@ -1,0 +1,60 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "pub_basket_hoop_backboard_53": "mobtalk:block/city2/furniture/pub_basket_hoop_backboard_53",
+    "lamp_body": "mobtalk:block/city2/furniture/lamp_body",
+    "particle": "mobtalk:block/city2/furniture/pub_basket_hoop_backboard_53"
+  },
+  "elements": [
+    {
+      "from": [
+        8.0,
+        0.0,
+        14.0
+      ],
+      "to": [
+        16.0,
+        14.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_basket_hoop_backboard_53",
+          "uv": [
+            0.0,
+            2.0,
+            8.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#lamp_body",
+          "uv": [
+            8.0,
+            2.0,
+            16.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#lamp_body",
+          "uv": [
+            14.0,
+            2.0,
+            15.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#lamp_body",
+          "uv": [
+            8.0,
+            14.0,
+            16.0,
+            15.0
+          ]
+        }
+      }
+    }
+  ]
+}

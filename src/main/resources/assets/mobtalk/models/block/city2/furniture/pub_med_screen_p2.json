@@ -1,0 +1,68 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "rubber_black": "mobtalk:block/city2/furniture/rubber_black",
+    "particle": "mobtalk:block/city2/furniture/rubber_black"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.0,
+        8.5
+      ],
+      "to": [
+        0.25,
+        1.0,
+        10.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#rubber_black",
+          "uv": [
+            15.75,
+            15.0,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#rubber_black",
+          "uv": [
+            0.0,
+            15.0,
+            0.25,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#rubber_black",
+          "uv": [
+            5.5,
+            15.0,
+            7.5,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#rubber_black",
+          "uv": [
+            0.0,
+            8.5,
+            0.25,
+            10.5
+          ]
+        },
+        "down": {
+          "texture": "#rubber_black",
+          "uv": [
+            0.0,
+            5.5,
+            0.25,
+            7.5
+          ]
+        }
+      }
+    }
+  ]
+}

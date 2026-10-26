@@ -103,6 +103,7 @@ public final class LiftClient {
             LiftBlocks.Style style = cabin.style();
             draw(matrices, consumers, model("cabin_lower", style), lit);
             draw(matrices, consumers, panel(cabin.floors(), style), lit);
+            if (style == LiftBlocks.Style.STEEL) display(cabin, matrices, consumers);
             matrices.push();
             matrices.translate(0, 2, 0);
             draw(matrices, consumers, model("cabin_upper", style), lit);
@@ -119,6 +120,28 @@ public final class LiftClient {
             matrices.pop();
             super.render(cabin, yaw, tickDelta, matrices, consumers, light);
         }
+    }
+
+    /** The steel panel's floor display (model space: the panel's west face at x 30.2, the display z 4.25..7.75, y 29.25..31.25):
+     * the floor it stands at or is passing, glowing red, with an arrow while it runs. */
+    static void display(LiftCabin cabin, MatrixStack matrices, VertexConsumerProvider consumers) {
+        net.minecraft.client.font.TextRenderer font = MinecraftClient.getInstance().textRenderer;
+        String number = String.valueOf(cabin.floor() + 1);
+        String arrow = !cabin.moving() ? "" : cabin.targetY() >= cabin.getY() ? "▲" : "▼";
+        matrices.push();
+        matrices.translate(30.15 / 16, 30.25 / 16, 6 / 16f);
+        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-90));
+        float s = 0.0125f;
+        matrices.scale(s, -s, s);
+        int w = font.getWidth(number);
+        font.draw(number, -w / 2f + (arrow.isEmpty() ? 0 : 3), -3.5f, 0xFFFF3C28, false, matrices.peek().getPositionMatrix(), consumers,
+                net.minecraft.client.font.TextRenderer.TextLayerType.POLYGON_OFFSET, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
+        if (!arrow.isEmpty()) {
+            matrices.scale(0.6f, 0.6f, 0.6f);
+            font.draw(arrow, (-w / 2f - 3) / 0.6f - font.getWidth(arrow), -3.5f, 0xFFFF3C28, false, matrices.peek().getPositionMatrix(), consumers,
+                    net.minecraft.client.font.TextRenderer.TextLayerType.POLYGON_OFFSET, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
+        }
+        matrices.pop();
     }
 
     /** A landing door column's leaf: slides 7 px behind the fixed panel. */

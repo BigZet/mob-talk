@@ -1,7 +1,18 @@
 {
  "variants": {
-  "": {
-   "model": "mobtalk:block/city2/facade_beige_cross"
-  }
+  "": [
+   {
+    "model": "mobtalk:block/city2/facade_beige_cross",
+    "weight": 92
+   },
+   {
+    "model": "mobtalk:block/city2/facade_beige_cross_chip",
+    "weight": 4
+   },
+   {
+    "model": "mobtalk:block/city2/facade_beige_cross_fade",
+    "weight": 4
+   }
+  ]
  }
 }
