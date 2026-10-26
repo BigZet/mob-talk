@@ -51,6 +51,9 @@ function Get-PackJars {
     if (-not $NoBuild) { & $Say 'build Mob Talk'; Invoke-GradleBuild $Repo 'Mob Talk' }
     $manifest += "mob-talk $((git -C $Repo rev-parse --abbrev-ref HEAD).Trim()) $((git -C $Repo rev-parse --short HEAD).Trim())"
     $jars += Get-NewestJar "$Repo\build\libs" 'mobtalk-*.jar'
+    # Alice Speaker is its own mod in this checkout (alice-prototype/), a separate jar in the pack.
+    if (-not $NoBuild) { & $Say 'build Alice Speaker'; Invoke-GradleBuild "$Repo\alice-prototype" 'Alice Speaker' }
+    $jars += Get-NewestJar "$Repo\alice-prototype\build\libs" 'alicespeaker-*.jar'
     foreach ($r in $script:OwnRepos) {
         $dir = Join-Path $Work "src\$($r[0])"
         if (-not $NoBuild) {
@@ -66,7 +69,7 @@ function Get-PackJars {
     $third = @(
         (Get-NewestJar "$Instances\mob-talk-ctov\minecraft\mods" 'ctov-*.jar'),
         (Get-NewestJar "$Instances\mob-talk-ctov\minecraft\mods" 'lithostitched-*.jar')) +
-        @(Get-ChildItem "$Instances\$Base\minecraft\mods\*.jar" | Where-Object { $_.Name -notmatch '^(mobtalk|viewerparrots|divineblock|rusflora|parrotcages|selftest-guard)' })
+        @(Get-ChildItem "$Instances\$Base\minecraft\mods\*.jar" | Where-Object { $_.Name -notmatch '^(mobtalk|alicespeaker|viewerparrots|divineblock|rusflora|parrotcages|selftest-guard)' })
     $jars += $third | Where-Object { $_ }
     # Pinned pack mods from Modrinth (server-mods.json "pack": JourneyMap, Simple Voice Chat, IPN, Mouse Tweaks,
     # LambDynamicLights...): "both" also go to the server, "client" stay on the clients (Test-ClientOnlyJar).
