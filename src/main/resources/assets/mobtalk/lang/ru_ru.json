@@ -1388,5 +1388,18 @@
   "mobtalk.furniture.notice.4": "«Субботник в субботу. Грабли выдаёт дворник»",
   "mobtalk.furniture.notice.5": "«Продаю детскую коляску, почти новая. Кв. 12»",
   "mobtalk.furniture.notice.6": "«Поверка счётчиков. Не открывайте посторонним!»",
-  "mobtalk.furniture.notice.7": "«Кто взял санки из-под лестницы — верните!»"
+  "mobtalk.furniture.notice.7": "«Кто взял санки из-под лестницы — верните!»",
+  "block.mobtalk.chainlink_fence_galv": "Сетка-рабица (оцинкованная)",
+  "block.mobtalk.chainlink_gate_galv": "Калитка из рабицы (оцинкованная)",
+  "block.mobtalk.chainlink_fence_green": "Сетка-рабица (зелёная)",
+  "block.mobtalk.chainlink_gate_green": "Калитка из рабицы (зелёная)",
+  "block.mobtalk.lattice_fence_green": "Сварной забор с ромбами (зелёный)",
+  "block.mobtalk.lattice_gate_green": "Калитка с ромбами (зелёная)",
+  "block.mobtalk.lattice_fence_blue": "Сварной забор с ромбами (голубой)",
+  "block.mobtalk.lattice_gate_blue": "Калитка с ромбами (голубая)",
+  "block.mobtalk.lattice_fence_yellow": "Сварной забор с ромбами (жёлтый)",
+  "block.mobtalk.lattice_gate_yellow": "Калитка с ромбами (жёлтая)",
+  "block.mobtalk.lattice_fence_red": "Сварной забор с ромбами (красный)",
+  "block.mobtalk.lattice_gate_red": "Калитка с ромбами (красная)",
+  "block.mobtalk.concrete_fence": "Бетонный забор ПО-2 «ромбик»"
 }
