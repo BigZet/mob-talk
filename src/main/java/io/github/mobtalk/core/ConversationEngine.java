@@ -215,10 +215,11 @@ public final class ConversationEngine implements AutoCloseable {
         } catch (IOException | InterruptedException | RuntimeException failure) { early.discard(); throw failure; }
         SpeechStream audio = null;
         String voiceId = speech.selectedVoice(profile.voiceId);
-        if (answer.reply().isBlank()) { early.discard(); }
+        String said = profile.social == null ? answer.reply() : ChildGrowth.speakable(ChildGrowth.Stage.of(profile.social.stage), answer.reply(), new java.util.Random());
+        if (said.isBlank()) { early.discard(); }
         else try {
-            java.util.concurrent.CompletableFuture<OpenRouterSpeechClient.StreamedAudio> started = early.take(answer.reply());
-            OpenRouterSpeechClient.StreamedAudio streamed = started == null ? speech.streamWithFallback(profile.voiceId, reserve, answer.reply())
+            java.util.concurrent.CompletableFuture<OpenRouterSpeechClient.StreamedAudio> started = early.take(said);
+            OpenRouterSpeechClient.StreamedAudio streamed = started == null ? speech.streamWithFallback(profile.voiceId, reserve, said)
                     : awaitStarted(started);
             audio = streamed.stream();
             voiceId = streamed.voiceId();
@@ -235,7 +236,7 @@ public final class ConversationEngine implements AutoCloseable {
         }
         if (answer.biography() != null) adopt(snapshot, answer.biography());
         String name = displayName(snapshot, profile, answer.biography() == null ? "" : answer.biography().name());
-        Reply reply = new Reply(question, SpeechTags.strip(answer.reply()), name, voiceId, audio, answer.action(), snapshot.interactionRevision(), answer.bargain(),
+        Reply reply = new Reply(question, SpeechTags.strip(said), name, voiceId, audio, answer.action(), snapshot.interactionRevision(), answer.bargain(),
                 answer.deal(), answer.unlock(), answer.quest(), answer.socialIntent(), overheard != null);
         return new PreparedReply(this, reply, snapshot, answer.memory(), answer.socialIntent(), audio == null ? null : voiceId, answer.thought(), answer.fact(),
                 overheard == null ? proposalKept(profile, question, answer.gesture()) : GestureIntent.none());
