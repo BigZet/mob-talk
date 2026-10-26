@@ -122,8 +122,9 @@ class House:
             for z, row in enumerate(plan):
                 for x, ch in enumerate(row):
                     self.grid[(i * self.sw + x, z)] = ch
-        for z, row in enumerate(plan):
-            self.grid[(self.length - 1, z)] = "#"
+        end = self.s.get("end", "#" * self.depth)     # the closing wall: blank, or with windows (i-209a)
+        for z in range(self.depth):
+            self.grid[(self.length - 1, z)] = end[z]
         self.palettes = {}
 
     # ------------------------------------------------------------ plan queries
@@ -172,7 +173,13 @@ class House:
         return self.palettes[key]
 
     def flat_side(self, bx, bz):
-        """L or R: the flat a cell's neighbourhood belongs to (by the nearest room letter along the row)."""
+        """L or R: the flat a cell's neighbourhood belongs to (by the nearest room letter along the row). A flat door in a
+        corridor's wall (i-209a) belongs to the hall behind it."""
+        if self.ch(bx, bz) == "E":
+            for dx, dz in DIRS.values():
+                c = self.ch(bx + dx, bz + dz)
+                if c in self.s["rooms"]:
+                    return self.s["rooms"][c][0], self.section_of(bx + dx)
         for d in range(0, self.sw):
             for x in (bx - d, bx + d):
                 c = self.ch(x, bz) or self.ch(x, bz + 1) or ""
@@ -210,7 +217,7 @@ class House:
         self.roof_level()
         for i in range(self.n):
             self.stairs(i)
-            if "lift" in self.s:
+            if "lift" in self.s or "lifts" in self.s:
                 self.lift(i)
         self.balconies()
         self.fixtures()
@@ -284,7 +291,9 @@ class House:
         side, sec = self.flat_side(bx, bz)
         pal = self.palette(sec, k, side)
         name = pal["flat_door"] if c == "E" else pal["room_door"]
-        if c == "E":  # the flat door opens into the hall, away from the landing
+        if c == "E" and along_x:   # in a corridor's wall: into the hall on the other side
+            facing = N if self.ch(bx, bz - 1) in self.s["rooms"] else SO
+        elif c == "E":  # the flat door opens into the hall, away from the landing
             facing = W if self.ch(bx - 1, bz) in self.s["rooms"] else E
         self.at(bx, y, bz, name, {"facing": facing, "half": "lower" if row == "lo" else "upper", "hinge": "left", "open": "false",
                                   "powered": "false"})
@@ -433,10 +442,11 @@ class House:
         for y, half in ((R + 1, "lower"), (R + 2, "upper")):
             self.at(M, y, sz + 8, door, {"facing": SO, "half": half, "hinge": "left", "open": "false", "powered": "false"})
         self.at(A0, R + 3, sz + 7, LAMP_STAIR, {"facing": E, "lit": "true"})
-        if "hall_lamp" in self.s:       # the hall behind the landing (no lift): a lamp under its ceiling on every floor
-            hx, hz = self.s["hall_lamp"]
-            for k in range(1, F + 1):
-                self.at(x0 + hx, self.slab(k) + 3, hz, "apt_cage_lamp", {"facing": N, "lit": "true"})
+        if "hall_lamp" in self.s:       # the hall behind the landing or the corridor: lamps under its ceiling on every floor
+            lamps = self.s["hall_lamp"]
+            for hx, hz in lamps if isinstance(lamps, list) else [lamps]:
+                for k in range(1, F + 1):
+                    self.at(x0 + hx, self.slab(k) + 3, hz, "apt_cage_lamp", {"facing": N, "lit": "true"})
         # The garbage chute: one pipe in the corner of the half-landings by the side wall, from the ground to the roof box's
         # ceiling, through each half-landing's slab, a hopper over each half-landing.
         for y in range(1, R + 4):
@@ -447,16 +457,20 @@ class House:
         self.at(A0, R + 5, sz, "vent_cap", {"facing": N})
 
     def lift(self, i):
-        """The lift of section i (spec §3.2 p.4, lift.py): the shaft 2 x 2 behind the lift hall, its doors in the hall's back
-        wall on every floor, the button beside them; on the roof the machine room, a box over the shaft with the winch."""
+        """The lift(s) of section i (spec §3.2 p.4, lift.py): the shaft 2 x 2 behind the lift hall, its doors in the hall's
+        back wall on every floor, the button beside them; on the roof the machine room, a box over the shafts with the
+        winches."""
         import lift
         x0 = i * self.sw
-        lx, lz, facing = self.s["lift"]
-        # each entrance its own lift: overhauled ones and old Soviet ones side by side in one house
+        shafts = self.s.get("lifts") or [self.s["lift"]]
+        # each entrance its own lift: overhauled ones and old Soviet ones side by side in one house (both of a pair alike)
         style = lift.pick_style(f"{self.series}:{self.n}:{self.floors}:{self.colour}:{i}")
-        lift.place(self.tpl, self.ox + x0 + lx, self.slab(1), self.oz + lz, self.floors, scale.STOREY, facing, style)
+        for lx, lz, facing in shafts:
+            lift.place(self.tpl, self.ox + x0 + lx, self.slab(1), self.oz + lz, self.floors, scale.STOREY, facing, style)
         R, col = self.roof, self.colour
-        xs, zs = range(x0 + lx - 1, x0 + lx + 3), range(lz - 1, lz + 3)
+        lx, lz = min(s[0] for s in shafts), min(s[1] for s in shafts)
+        xs = range(x0 + lx - 1, x0 + max(s[0] for s in shafts) + 3)
+        zs = range(lz - 1, max(s[1] for s in shafts) + 3)
         for x in xs:
             for z in zs:
                 edge = x in (xs[0], xs[-1]) or z in (zs[0], zs[-1])
@@ -471,6 +485,8 @@ class House:
                         self.at(x, R + 1 + n, z, f"facade_{col}_{row}", {"facing": out, "inner": "plaster"})
                 self.at(x, R + 4, z, f"facade_{col}_{'edge' if corner else 'band'}" if edge else "roof_bitumen")
         self.at(x0 + lx + 1, R + 3, lz + 1, "apt_bare_bulb", {"facing": N, "lit": "true"})
+        if "hall_lamp" in self.s:             # a corridor with its own lamps
+            return
         for k in range(1, self.floors + 1):   # the lift hall's lamp under its ceiling, in the middle of the hall
             self.at(x0 + lx + 1, self.slab(k) + 3, lz - 4, "apt_cage_lamp", {"facing": N, "lit": "true"})
 
@@ -557,6 +573,9 @@ def main():
     t = h.build()
     print(t.size, len(h.flats), "flats")
     h = House("1-335", 3, 5, "grey")
+    t = h.build()
+    print(t.size, len(h.flats), "flats")
+    h = House("i-209a", 1, 14, "grey")
     t = h.build()
     print(t.size, len(h.flats), "flats")
 

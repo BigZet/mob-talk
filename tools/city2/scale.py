@@ -18,4 +18,5 @@ SERIES_SIZES = {    # series: (section length along the facade, depth), blocks, 
     "1-464": (28, 19),
     "1-515-9": (42, 22),
     "1-335": (36, 21),
+    "i-209a": (56, 22),
 }
