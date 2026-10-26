@@ -43,18 +43,20 @@ public final class LiftClient {
     private LiftClient() { }
 
     private static final String DIR = "block/city2/lift/";
-    private static final Identifier LOWER = model("cabin_lower"), UPPER = model("cabin_upper"), LEAF = model("cabin_leaf"), LEAF_R = model("cabin_leaf_r"),
-            DOOR_LEAF = model("door_leaf");
+    private static final String[] PARTS = {"cabin_lower", "cabin_upper", "cabin_leaf", "cabin_leaf_r", "door_leaf"};
     private static final Set<Integer> HUMMING = new HashSet<>();
 
     private static Identifier model(String name) { return Identifier.of("mobtalk", DIR + name); }
-    private static Identifier panel(int floors) { return model("cabin_panel_" + MathHelper.clamp(floors, 2, 17)); }
+    private static Identifier model(String name, LiftBlocks.Style style) { return model(name + style.suffix()); }
+    private static Identifier panel(int floors, LiftBlocks.Style style) { return model("cabin_panel_" + MathHelper.clamp(floors, 2, 17), style); }
 
     public static void register() {
         Lifts.register();
         ModelLoadingPlugin.register(ctx -> {
-            ctx.addModels(LOWER, UPPER, LEAF, LEAF_R, DOOR_LEAF);
-            for (int n = 2; n <= 17; n++) ctx.addModels(panel(n));
+            for (LiftBlocks.Style style : LiftBlocks.Style.values()) {
+                for (String part : PARTS) ctx.addModels(model(part, style));
+                for (int n = 2; n <= 17; n++) ctx.addModels(panel(n, style));
+            }
         });
         EntityRendererRegistry.register(Lifts.CABIN, CabinRenderer::new);
         BlockEntityRendererFactories.register(Lifts.DOOR_ENTITY, DoorRenderer::new);
@@ -98,11 +100,12 @@ public final class LiftClient {
             matrices.push();
             matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(yaw(cabin.facing())));
             matrices.translate(-1, 0, -1);
-            draw(matrices, consumers, LOWER, lit);
-            draw(matrices, consumers, panel(cabin.floors()), lit);
+            LiftBlocks.Style style = cabin.style();
+            draw(matrices, consumers, model("cabin_lower", style), lit);
+            draw(matrices, consumers, panel(cabin.floors(), style), lit);
             matrices.push();
             matrices.translate(0, 2, 0);
-            draw(matrices, consumers, UPPER, lit);
+            draw(matrices, consumers, model("cabin_upper", style), lit);
             matrices.pop();
             float open = MathHelper.lerp(tickDelta, cabin.prevDoorProgress, cabin.doorProgress);
             open = open * open * (3 - 2 * open);   // ease in and out
@@ -110,7 +113,7 @@ public final class LiftClient {
                 matrices.push();
                 float x = side == 0 ? 8 - 7 * open : 16 + 7 * open;
                 matrices.translate(x / 16f, 0, 1 / 16f);
-                draw(matrices, consumers, side == 0 ? LEAF : LEAF_R, lit);
+                draw(matrices, consumers, model(side == 0 ? "cabin_leaf" : "cabin_leaf_r", style), lit);
                 matrices.pop();
             }
             matrices.pop();
@@ -133,7 +136,7 @@ public final class LiftClient {
             matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(yaw(state.get(LiftBlocks.DoorBlock.FACING))));
             matrices.translate(-0.5, 0, -0.5);
             matrices.translate((left ? 8 - 7 * open : 7 * open) / 16f, 0, 3 / 16f);
-            draw(matrices, consumers, DOOR_LEAF, light);
+            draw(matrices, consumers, model("door_leaf", state.get(LiftBlocks.STYLE)), light);
             matrices.pop();
         }
 
@@ -179,14 +182,15 @@ public final class LiftClient {
 
     /** The control panel up close: a button for every floor (lit while called), СТОП and ВЫЗОВ. textures/gui/lift_panel.png. */
     static final class PanelScreen extends Screen {
-        private static final Identifier SHEET = Identifier.of("mobtalk", "textures/gui/lift_panel.png");
         private static final int W = 96, H = 200;
         private final LiftCabin cabin;
+        private final Identifier sheet;
         private int left, top;
 
         PanelScreen(LiftCabin cabin) {
             super(Text.translatable("mobtalk.lift.title"));
             this.cabin = cabin;
+            this.sheet = Identifier.of("mobtalk", "textures/gui/lift_panel" + cabin.style().suffix() + ".png");
         }
 
         @Override public boolean shouldPause() { return false; }
@@ -226,23 +230,23 @@ public final class LiftClient {
                 close();
                 return;
             }
-            context.drawTexture(SHEET, left, top, 0, 0, W, H, 256, 256);
+            context.drawTexture(sheet, left, top, 0, 0, W, H, 256, 256);
             int n = cabin.floors(), calls = cabin.calls(), burnt = Math.floorMod(cabin.getUuid().hashCode(), n);
             int hover = hovered(mouseX, mouseY);
             for (int b = 0; b < n; b++) {
                 int[] p = at(b);
                 int u = (calls >> b & 1) != 0 ? 16 : b == burnt ? 32 : 0;
-                context.drawTexture(SHEET, p[0], p[1], u, 208, 16, 16, 256, 256);
+                context.drawTexture(sheet, p[0], p[1], u, 208, 16, 16, 256, 256);
                 String label = String.valueOf(b + 1);
                 context.drawText(textRenderer, label, p[0] - 3 - textRenderer.getWidth(label), p[1] + 4, 0xFF26262A, false);
-                if (b == hover) context.drawTexture(SHEET, p[0], p[1], 80, 208, 16, 16, 256, 256);
+                if (b == hover) context.drawTexture(sheet, p[0], p[1], 80, 208, 16, 16, 256, 256);
             }
             for (int b : List.of(Lifts.STOP_BUTTON, Lifts.BELL_BUTTON)) {
                 int[] p = at(b);
-                context.drawTexture(SHEET, p[0], p[1], b == Lifts.STOP_BUTTON ? 48 : 64, 208, 16, 16, 256, 256);
+                context.drawTexture(sheet, p[0], p[1], b == Lifts.STOP_BUTTON ? 48 : 64, 208, 16, 16, 256, 256);
                 Text label = Text.translatable(b == Lifts.STOP_BUTTON ? "mobtalk.lift.stop" : "mobtalk.lift.bell");
                 context.drawText(textRenderer, label, p[0] + 8 - textRenderer.getWidth(label) / 2, p[1] - 10, 0xFF26262A, false);
-                if (b == hover) context.drawTexture(SHEET, p[0], p[1], 80, 208, 16, 16, 256, 256);
+                if (b == hover) context.drawTexture(sheet, p[0], p[1], 80, 208, 16, 16, 256, 256);
             }
             Text floor = Text.translatable("mobtalk.lift.floor", cabin.floor() + 1).append(cabin.moving() ? (cabin.targetY() >= cabin.getY() ? " ▲" : " ▼") : "");
             context.drawText(textRenderer, floor, left + W + 8, top + 16, 0xFFFFFFFF, true);

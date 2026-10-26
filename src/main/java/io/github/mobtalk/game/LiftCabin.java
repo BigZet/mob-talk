@@ -42,6 +42,7 @@ import net.minecraft.world.World;
 public class LiftCabin extends Entity {
     private static final TrackedData<Integer> FACING = DataTracker.registerData(LiftCabin.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Integer> FLOORS = DataTracker.registerData(LiftCabin.class, TrackedDataHandlerRegistry.INTEGER);
+    private static final TrackedData<Integer> STYLE = DataTracker.registerData(LiftCabin.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Integer> FLOOR = DataTracker.registerData(LiftCabin.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Integer> CALLS = DataTracker.registerData(LiftCabin.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Boolean> DOORS = DataTracker.registerData(LiftCabin.class, TrackedDataHandlerRegistry.BOOLEAN);
@@ -75,16 +76,17 @@ public class LiftCabin extends Entity {
     }
 
     @Override protected void initDataTracker(DataTracker.Builder builder) {
-        builder.add(FACING, Direction.NORTH.getHorizontal()).add(FLOORS, 2).add(FLOOR, 0).add(CALLS, 0).add(DOORS, false).add(MOVING, false)
+        builder.add(FACING, Direction.NORTH.getHorizontal()).add(FLOORS, 2).add(STYLE, 0).add(FLOOR, 0).add(CALLS, 0).add(DOORS, false).add(MOVING, false)
                 .add(TARGET, 0f).add(SPEED, 1.5f);
     }
 
-    void setup(BlockPos machine, Lifts.Layout layout, List<Integer> floors) {
+    void setup(BlockPos machine, Lifts.Layout layout, List<Integer> floors, LiftBlocks.Style style) {
         this.machine = machine;
         this.origin = layout.origin().withY(0);
         this.slabs = new ArrayList<>(floors);
         dataTracker.set(FACING, layout.facing().getHorizontal());
         dataTracker.set(FLOORS, floors.size());
+        dataTracker.set(STYLE, style.ordinal());
         dataTracker.set(FLOOR, 0);
         refreshPositionAndAngles(origin.getX() + 1, feet(0), origin.getZ() + 1, 0, 0);
         placeFloor(0, true);
@@ -94,6 +96,8 @@ public class LiftCabin extends Entity {
 
     public Direction facing() { return Direction.fromHorizontal(dataTracker.get(FACING)); }
     public int floors() { return dataTracker.get(FLOORS); }
+    /** Its look, the shaft doors' (see {@link LiftBlocks.Style}). */
+    public LiftBlocks.Style style() { return LiftBlocks.Style.of(dataTracker.get(STYLE)); }
     /** The floor it stands at or last passed, 0 = the lowest. */
     public int floor() { return dataTracker.get(FLOOR); }
     /** Lit buttons on the panel: bit i = floor i is called. */
@@ -426,6 +430,7 @@ public class LiftCabin extends Entity {
         slabs = new ArrayList<>();
         for (int s : nbt.getIntArray("floors")) slabs.add(s);
         dataTracker.set(FACING, nbt.getInt("facing"));
+        dataTracker.set(STYLE, nbt.getInt("style"));
         dataTracker.set(FLOORS, slabs.size());
         int f = MathHelper.clamp(nbt.getInt("floor"), 0, Math.max(0, slabs.size() - 1));
         dataTracker.set(FLOOR, f);
@@ -447,6 +452,7 @@ public class LiftCabin extends Entity {
         nbt.putLong("origin", origin.asLong());
         nbt.put("floors", new NbtIntArray(slabs.stream().mapToInt(Integer::intValue).toArray()));
         nbt.putInt("facing", dataTracker.get(FACING));
+        nbt.putInt("style", dataTracker.get(STYLE));
         nbt.putInt("floor", floor());
         nbt.put("calls", new NbtIntArray(calls.stream().mapToInt(Integer::intValue).toArray()));
         if (state == State.MOVING && target >= 0) nbt.putInt("target", target);

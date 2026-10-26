@@ -52,6 +52,23 @@ public final class LiftBlocks {
         @Override public String asString() { return this == LEFT ? "left" : "right"; }
     }
 
+    /** The lift's look (tools/city2/lift.py STYLES): the Soviet wood-grain cabin with brown doors, painted sheet steel with grey doors,
+     * brushed stainless after an overhaul, cream polymer panels with blue doors. Doors and buttons carry it; the cabin takes the doors'. */
+    public enum Style implements StringIdentifiable {
+        SOVIET, PAINTED, STEEL, PLASTIC;
+        @Override public String asString() { return name().toLowerCase(java.util.Locale.ROOT); }
+        /** The suffix of its models and textures ("" for the Soviet one). */
+        public String suffix() { return this == SOVIET ? "" : "_" + asString(); }
+        public static Style of(int i) { return values()[Math.floorMod(i, values().length)]; }
+        /** A realistic mix for a house (the same weights as lift.py pick_style): most lifts were overhauled to steel, many are Soviet still. */
+        public static Style pick(long seed) {
+            int r = net.minecraft.util.math.random.Random.create(seed).nextInt(100);
+            return r < 35 ? SOVIET : r < 55 ? PAINTED : r < 90 ? STEEL : PLASTIC;
+        }
+    }
+
+    public static final EnumProperty<Style> STYLE = EnumProperty.of("style", Style.class);
+
     /** Door leaves open and shut in this many ticks (the cabin's leaves too). */
     public static final int DOOR_TICKS = 16;
 
@@ -78,11 +95,11 @@ public final class LiftBlocks {
         public DoorBlock(AbstractBlock.Settings settings) {
             super(settings);
             setDefaultState(getStateManager().getDefaultState().with(FACING, Direction.NORTH).with(HALF, DoubleBlockHalf.LOWER)
-                    .with(OPEN, false).with(SIDE, Side.LEFT));
+                    .with(OPEN, false).with(SIDE, Side.LEFT).with(STYLE, Style.SOVIET));
         }
 
         @Override protected MapCodec<? extends BlockWithEntity> getCodec() { return createCodec(DoorBlock::new); }
-        @Override protected void appendProperties(StateManager.Builder<Block, BlockState> builder) { builder.add(FACING, HALF, OPEN, SIDE); }
+        @Override protected void appendProperties(StateManager.Builder<Block, BlockState> builder) { builder.add(FACING, HALF, OPEN, SIDE, STYLE); }
         @Override protected BlockRenderType getRenderType(BlockState state) { return BlockRenderType.MODEL; }
 
         @Override public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
@@ -157,11 +174,11 @@ public final class LiftBlocks {
 
         public ButtonBlock(AbstractBlock.Settings settings) {
             super(settings);
-            setDefaultState(getStateManager().getDefaultState().with(FACING, Direction.NORTH).with(LIT, false));
+            setDefaultState(getStateManager().getDefaultState().with(FACING, Direction.NORTH).with(LIT, false).with(STYLE, Style.SOVIET));
         }
 
         @Override protected MapCodec<? extends Block> getCodec() { return createCodec(ButtonBlock::new); }
-        @Override protected void appendProperties(StateManager.Builder<Block, BlockState> builder) { builder.add(FACING, LIT); }
+        @Override protected void appendProperties(StateManager.Builder<Block, BlockState> builder) { builder.add(FACING, LIT, STYLE); }
         @Override protected VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) { return SHAPES.get(state.get(FACING)); }
         @Override protected BlockState rotate(BlockState state, BlockRotation rotation) { return state.with(FACING, rotation.rotate(state.get(FACING))); }
         @Override protected BlockState mirror(BlockState state, BlockMirror mirror) { return state.rotate(mirror.getRotation(state.get(FACING))); }
@@ -247,7 +264,7 @@ public final class LiftBlocks {
             for (BlockPos c : shaft.layout.cells())
                 if (!world.shouldTickEntity(c.withY(pos.getY()))) return;
             LiftCabin made = new LiftCabin(Lifts.CABIN, world);
-            made.setup(pos, shaft.layout, shaft.floors);
+            made.setup(pos, shaft.layout, shaft.floors, shaft.style);
             world.spawnEntity(made);
             cabin = made.getUuid();
             markDirty();
@@ -265,7 +282,7 @@ public final class LiftBlocks {
     }
 
     /** A shaft found under a winch: its layout and the slab row of every floor, lowest first. */
-    public record Shaft(Lifts.Layout layout, List<Integer> floors) { }
+    public record Shaft(Lifts.Layout layout, List<Integer> floors, Style style) { }
 
     /** Looks down from a winch for the lift's doors: the first lower door column whose shaft lies under the winch, then every
      * floor with a door in that column. Null when there are fewer than two floors. */
@@ -285,7 +302,7 @@ public final class LiftBlocks {
                         BlockState d = world.getBlockState(l.left().withY(fy));
                         if (ButtonBlock.isLowerDoor(d) && d.get(DoorBlock.FACING) == l.facing()) floors.add(fy - 1);
                     }
-                    return floors.size() >= 2 ? new Shaft(l, floors) : null;
+                    return floors.size() >= 2 ? new Shaft(l, floors, s.get(STYLE)) : null;
                 }
         return null;
     }

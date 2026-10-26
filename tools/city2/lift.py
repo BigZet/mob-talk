@@ -126,7 +126,7 @@ FONT = {
     "М": ["#...#", "##.##", "#.#.#", "#...#", "#...#"], "Н": ["#.#", "#.#", "###", "#.#", "#.#"],
     "Я": [".##", "#.#", ".##", "#.#", "#.#"], "У": ["#.#", "#.#", ".##", "..#", "##."],
     ".": [".", ".", ".", ".", "#"], "♥": [".#.#.", "#####", "#####", ".###.", "..#.."],
-    "+": ["...", ".#.", "###", ".#.", "..."], "/": ["..#", "..#", ".#.", "#..", "#.."],
+    "+": ["...", ".#.", "###", ".#.", "..."], "Б": ["###", "#..", "##.", "#.#", "##."], "Ь": ["#..", "#..", "##.", "#.#", "##."], "/": ["..#", "..#", ".#.", "#..", "#.."],
 }
 
 
@@ -466,6 +466,490 @@ def gui_texture():
     return im
 
 
+# ---------------------------------------------------------------- styles
+#
+# Four looks, as lifts are met in Russian panel houses: "soviet" (the 1970s-80s cabin in wood-grain laminate, brown landing
+# doors; the names without a suffix), "painted" (sheet steel painted two-tone like the stairwell, grey doors, stickers),
+# "steel" (after the 2010s overhaul: brushed stainless, a mirror, LED light, steel doors), "plastic" (the 1990s-2000s
+# replacement: cream embossed polymer panels with brown trim, blue landing doors).
+
+STYLES = ("soviet", "painted", "steel", "plastic")
+
+
+def sfx(style):
+    return "" if style == "soviet" else "_" + style
+
+
+def brushed(im, box, base, r, amount=0.05, streak=0.04):
+    """Brushed metal: fine horizontal streaks."""
+    x0, y0, x1, y1 = box
+    for y in range(y0, y1):
+        row = r.uniform(-streak, streak)
+        for x in range(x0, x1):
+            put(im, x, y, shade(base, 1 + row + r.uniform(-amount, amount) * 0.5))
+
+
+def sticker(im, x, y, w, h, paper, ink, r):
+    """A stuck-on advert: a paper slip, lines of print, a torn corner."""
+    rect(im, x, y, x + w, y + h, paper)
+    for ly in range(y + 2, y + h - 1, 3):
+        for lx in range(x + 2, x + w - 2):
+            if r.random() < 0.7:
+                put(im, lx, ly, ink)
+    put(im, x + w - 1, y, get(im, x + w - 1, y - 1) if y > 0 else paper)
+    bevel(im, (x, y, x + w, y + h), 1.05, 0.85)
+
+
+def wall_style(style, which):
+    r = rnd(f"wall_{style}_{which}")
+    im = img(128)
+    if style == "painted":
+        light, dark = (150, 180, 172), (66, 104, 92)
+        for y in range(128):
+            for x in range(128):
+                put(im, x, y, shade(dark if y >= 60 else light, 1 + r.uniform(-0.03, 0.03)))
+        for x in range(128):
+            put(im, x, 59, (40, 60, 52))
+            put(im, x, 60, shade(dark, 1.15))
+        for x in range(0, 128, 32):   # the sheets' welded seams with a row of rivets
+            for y in range(128):
+                put(im, x, y, shade(get(im, x, y), 0.8))
+                put(im, x + 1, y, shade(get(im, x + 1, y), 1.1))
+                if y % 10 == 4:
+                    put(im, x + 4, y, shade(get(im, x + 4, y), 1.3))
+                    put(im, x + 4, y + 1, shade(get(im, x + 4, y + 1), 0.7))
+        for _ in range(26):   # chipped paint: grey primer, a rust spot
+            x, y = r.randrange(2, 126), r.randrange(8, 92)
+            c = r.choice([(120, 118, 112), (128, 84, 56)])
+            for i in range(r.randrange(2, 6)):
+                put(im, x + r.randrange(-1, 2), y + r.randrange(-1, 2), c)
+        for y in range(90, 96):
+            for x in range(128):
+                put(im, x, y, shade((96, 96, 92), 0.9 + 0.06 * ((x * 3 + y) % 3)))
+        ink = (30, 30, 34)
+        if which == "back":
+            text(im, 18, 30, "КИНО", (180, 30, 30))
+            sticker(im, 40, 26, 14, 10, (236, 232, 210), (60, 60, 70), r)
+        elif which == "left":
+            text(im, 10, 34, "СПАРТАК", (190, 30, 36))
+            sticker(im, 44, 66, 12, 8, (240, 220, 80), ink, r)
+        else:
+            sticker(im, 6, 30, 12, 9, (236, 236, 236), (40, 40, 140), r)
+            sticker(im, 36, 70, 10, 7, (236, 236, 236), ink, r)
+        return im
+    if style == "steel":
+        base = (184, 188, 192)
+        brushed(im, (0, 0, 128, 128), base, r)
+        for x in range(0, 128, 32):
+            for y in range(128):
+                put(im, x, y, (110, 114, 118))
+                put(im, x + 1, y, (214, 218, 222))
+        for y in range(90, 96):   # a darker satin kick plate
+            for x in range(128):
+                put(im, x, y, shade((140, 144, 150), 1.08 if y == 90 else 0.95))
+        if which == "back":   # the mirror over the rail
+            for y in range(16, 56):
+                for x in range(5, 59):
+                    t = (y - 16) / 40
+                    c = mix((150, 176, 190), (96, 118, 132), t)
+                    if (x + y) % 23 < 3 or (x + y) % 23 == 7:
+                        c = shade(c, 1.18)
+                    put(im, x, y, c)
+            for x in range(4, 60):
+                put(im, x, 15, (90, 92, 96))
+                put(im, x, 56, (90, 92, 96))
+            for y in range(15, 57):
+                put(im, 4, y, (90, 92, 96))
+                put(im, 59, y, (90, 92, 96))
+        for _ in range(22):   # scratches in the steel
+            x, y = r.randrange(4, 124), r.randrange(10, 88)
+            dx = r.choice([1, 2])
+            for i in range(r.randrange(3, 10)):
+                put(im, x + i * dx, y + i // 3, (226, 230, 234))
+        if which == "left":   # a name scratched with a key
+            text(im, 16, 40, "ДИМА", (222, 226, 230))
+            text(im, 16, 46, "2015", (222, 226, 230))
+        if which == "plain":
+            sticker(im, 40, 34, 14, 10, (246, 246, 246), (180, 30, 30), r)   # the rules of use
+        return im
+    # plastic: cream polymer-coated steel embossed with small diamonds, brown plastic mouldings and trim
+    base = (224, 210, 178)
+    for y in range(128):
+        for x in range(128):
+            k = 1 + r.uniform(-0.02, 0.02)
+            m = (x + y) % 8, (x - y) % 8
+            if m[0] == 0 or m[1] == 0:
+                k *= 0.93
+            elif m[0] == 1 or m[1] == 1:
+                k *= 1.04
+            put(im, x, y, shade(base, k))
+    brown = (112, 72, 44)
+    for x in range(0, 128, 32):
+        for y in range(128):
+            for i in range(3):
+                put(im, x + i, y, shade(brown, (1.2, 1.0, 0.75)[i]))
+    for y in range(56, 61):   # a brown moulding at rail height
+        for x in range(128):
+            put(im, x, y, shade(brown, (1.25, 1.1, 1.0, 0.9, 0.7)[y - 56]))
+    for y in range(88, 96):
+        for x in range(128):
+            put(im, x, y, shade(brown, 0.85 if y == 88 else 1.0 + r.uniform(-0.03, 0.03)))
+    ink = (40, 40, 110)
+    if which == "back":   # an advert board in an aluminium frame
+        rect(im, 12, 18, 52, 50, (180, 182, 186))
+        rect(im, 14, 20, 50, 48, (246, 244, 236))
+        text(im, 16, 22, "РЕМОНТ", (190, 30, 30))
+        text(im, 16, 30, "ОКОН", (190, 30, 30))
+        for ly in range(38, 46, 3):
+            for lx in range(16, 48):
+                if r.random() < 0.7:
+                    put(im, lx, ly, (40, 40, 44))
+    elif which == "left":
+        text(im, 8, 36, "ЗДЕСЬ БЫЛ", ink)
+        text(im, 14, 42, "ВАСЯ", ink)
+    for _ in range(12):
+        x, y = r.randrange(4, 124), r.randrange(10, 86)
+        for i in range(r.randrange(2, 6)):
+            put(im, x + i, y, shade(get(im, x + i, y), 0.88))
+    return im
+
+
+def floor_style(style):
+    r = rnd(f"floor_{style}")
+    im = img(128)
+    if style == "painted":   # brown linoleum, worn pale on the path from the door
+        for y in range(128):
+            for x in range(128):
+                k = 1 + r.uniform(-0.04, 0.04)
+                c = (120, 72, 46)
+                if 20 < x < 44 and y < 50:
+                    c = mix(c, (150, 118, 90), 0.4 - y / 140)
+                put(im, x, y, shade(c, k))
+    elif style == "steel":   # grey speckled granite tiles
+        for y in range(128):
+            for x in range(128):
+                c = (118, 118, 120) if ((x // 32) + (y // 32)) % 2 == 0 else (106, 106, 110)
+                v = r.random()
+                if v < 0.08:
+                    c = (60, 60, 64)
+                elif v < 0.14:
+                    c = (176, 174, 170)
+                put(im, x, y, shade(c, 1 + r.uniform(-0.04, 0.04)))
+                if x % 32 == 0 or y % 32 == 0:
+                    put(im, x, y, (78, 78, 80))
+    else:   # plastic: checkered linoleum
+        for y in range(128):
+            for x in range(128):
+                c = (210, 190, 150) if ((x // 16) + (y // 16)) % 2 == 0 else (130, 88, 60)
+                put(im, x, y, shade(c, 1 + r.uniform(-0.04, 0.04)))
+    for y in range(0, 4):   # the steel sill at the door
+        for x in range(128):
+            put(im, x, y, shade((176, 178, 182), (1.15, 1.0, 0.9, 0.7)[y] * (0.95 + 0.05 * ((x // 2) % 2))))
+    for _ in range(5):
+        x, y = r.randrange(10, 54), r.randrange(6, 20)
+        for i in range(r.randrange(3, 7)):
+            put(im, x + r.randrange(-2, 3), y + r.randrange(-2, 3), (92, 80, 62))
+    return im
+
+
+def ceiling_style(style):
+    r = rnd(f"ceiling_{style}")
+    im = img(128)
+    if style == "steel":
+        brushed(im, (0, 0, 128, 128), (176, 180, 184), r)
+        return im
+    base = {"painted": (214, 208, 186), "plastic": (232, 222, 196)}[style]
+    noise(im, (0, 0, 128, 128), base, 0.03, r)
+    if style == "painted":
+        for _ in range(9):   # soot from lighters, burnt matches stuck to it
+            x, y = r.randrange(8, 56), r.randrange(8, 56)
+            for i in range(14):
+                put(im, x + r.randrange(-3, 4), y + r.randrange(-2, 3), shade(get(im, x, y), 0.55))
+            put(im, x, y + 3, (40, 30, 24))
+    return im
+
+
+def lamp_style(style):
+    im = img(32)
+    if style == "steel":   # an LED panel: white field, a grid of brighter dots
+        for y in range(32):
+            for x in range(32):
+                c = (250, 252, 255) if (x % 4 == 1 and y % 4 == 1) else (232, 238, 246)
+                put(im, x, y, c)
+        bevel(im, (0, 0, 32, 32), 0.9, 0.7)
+        return im
+    if style == "painted":   # a round milky plafond on a square plate
+        noise(im, (0, 0, 32, 32), (200, 198, 188), 0.03, rnd("lamp_painted"))
+        for y in range(32):
+            for x in range(32):
+                d = math.hypot(x - 15.5, y - 15.5)
+                if d <= 14:
+                    put(im, x, y, mix((255, 250, 232), (232, 222, 196), d / 14))
+                elif d <= 15:
+                    put(im, x, y, (150, 148, 140))
+        return im
+    for y in range(32):   # plastic: frosted with ribs
+        for x in range(32):
+            put(im, x, y, (250, 244, 224) if y % 5 else (226, 216, 190))
+    bevel(im, (0, 0, 32, 32), 1.0, 0.75)
+    return im
+
+
+def leaf_style(style, inside):
+    """A door leaf (see door_texture) in a style: the cabin's (inside) or the landing's."""
+    r = rnd(f"leaf_{style}_{inside}")
+    im = img(64)
+    if style == "steel":
+        brushed(im, (0, 0, 64, 64), (188, 192, 196) if inside else (176, 180, 186), r)
+        for _ in range(10):
+            x, y = r.randrange(64), r.randrange(4, 60)
+            for i in range(r.randrange(3, 8)):
+                put(im, x + i, y + i // 3, (228, 232, 236))
+    else:
+        base = {("painted", True): (150, 160, 152), ("painted", False): (130, 134, 138),
+                ("plastic", True): (222, 208, 176), ("plastic", False): (52, 82, 140)}[(style, inside)]
+        noise(im, (0, 0, 64, 64), base, 0.03, r)
+        for y in range(64):
+            for x in range(64):
+                if ((x * 7 + y * 13) % 29) == 0:
+                    put(im, x, y, shade(get(im, x, y), 0.92))
+        for _ in range(16 if style == "painted" else 8):
+            x, y = r.randrange(64), r.randrange(8, 60)
+            for i in range(r.randrange(2, 6)):
+                put(im, x + i, y + i // 2, shade(base, 1.3) if style == "painted" else shade(base, 0.85))
+    if inside:
+        if style == "plastic":
+            for x in range(64):
+                for y in (29, 30, 31):
+                    put(im, x, y, shade((112, 72, 44), (1.2, 1.0, 0.75)[y - 29]))
+        for x in range(64):
+            for y in range(54, 64):
+                put(im, x, y, shade((160, 164, 168) if style != "plastic" else (112, 72, 44), 0.92 + (0.1 if y == 54 else 0)))
+        for y in range(64):
+            for x in range(58, 64):
+                put(im, x, y, (34, 32, 30) if x > 59 else (70, 66, 60))
+            put(im, 0, y, shade(get(im, 1, y), 0.8))
+    else:
+        rect(im, 26, 4, 30, 7, (30, 26, 24))
+        put(im, 27, 5, (90, 90, 90))
+        if style == "painted":
+            sticker(im, 6, 20, 12, 9, (236, 236, 236), (40, 40, 140), r)
+    return im
+
+
+def frame_style(style):
+    r = rnd(f"frame_{style}")
+    im = img(32)
+    if style == "steel":
+        brushed(im, (0, 0, 32, 32), (168, 172, 178), r)
+    else:
+        noise(im, (0, 0, 32, 32), {"painted": (84, 88, 90), "plastic": (96, 66, 44)}[style], 0.05, r)
+    for y in range(32):
+        put(im, 0, y, shade(get(im, 0, y), 1.3))
+        put(im, 31, y, shade(get(im, 31, y), 0.6))
+    return im
+
+
+def button_style(style, lit):
+    """The landing's call button: painted, a black square in a grey box and an orange lamp over it; steel, a steel disc in a
+    blue light ring; plastic, the Soviet one in a beige box."""
+    im = img(32)
+    if style == "painted":
+        noise(im, (0, 0, 32, 32), (120, 122, 126), 0.04, rnd("btn_painted"))
+        bevel(im, (0, 0, 32, 32), 1.2, 0.65)
+        disc(im, 15.5, 7, 3.4, (255, 170, 60) if lit else (120, 70, 30), rim=(60, 60, 64), light=1.3 if lit else None)
+        rect(im, 9, 13, 23, 27, (60, 60, 64))
+        rect(im, 10, 14, 22, 26, (30, 30, 32))
+        bevel(im, (10, 14, 22, 26), 1.6, 0.7)
+        return im
+    if style == "steel":
+        brushed(im, (0, 0, 32, 32), (180, 184, 190), rnd("btn_steel"))
+        bevel(im, (0, 0, 32, 32), 1.15, 0.7)
+        ring = (120, 220, 255) if lit else (90, 100, 110)
+        disc(im, 15.5, 15.5, 8, ring)
+        disc(im, 15.5, 15.5, 6.2, (200, 204, 210), light=1.15)
+        put(im, 15, 13, (120, 124, 130))
+        put(im, 16, 13, (120, 124, 130))   # the braille dots
+        put(im, 15, 16, (120, 124, 130))
+        if lit:
+            for y in range(32):
+                for x in range(32):
+                    d = math.hypot(x - 15.5, y - 15.5)
+                    if 6.2 < d <= 8:
+                        put(im, x, y, mix((230, 250, 255), ring, abs(d - 7.1) / 1.0))
+        return im
+    noise(im, (0, 0, 32, 32), (214, 200, 170), 0.03, rnd("btn_plastic"))
+    bevel(im, (0, 0, 32, 32), 1.15, 0.7)
+    ring = (255, 70, 50) if lit else (110, 40, 36)
+    disc(im, 15.5, 15.5, 8, ring)
+    disc(im, 15.5, 15.5, 5.6, (90, 56, 36), light=1.5)
+    return im
+
+
+# the panels by style: plate colour, button body, ring, the burnt button's look
+PANEL = {
+    "soviet": {"plate": (178, 180, 184), "btn": (30, 30, 34), "ring": (110, 112, 118), "square": False},
+    "painted": {"plate": (146, 150, 148), "btn": (28, 28, 30), "ring": (80, 82, 86), "square": True},
+    "steel": {"plate": (196, 200, 204), "btn": (170, 174, 180), "ring": (120, 124, 130), "square": False, "display": True},
+    "plastic": {"plate": (220, 206, 176), "btn": (96, 60, 38), "ring": (120, 84, 56), "square": False},
+}
+
+
+def panel_button(im, cx, cy, rad, c, rim, square, light=1.9):
+    if square:
+        x0, y0 = int(cx - rad), int(cy - rad)
+        n = int(rad * 2) + 1
+        rect(im, x0 - 1, y0 - 1, x0 + n + 1, y0 + n + 1, rim)
+        rect(im, x0, y0, x0 + n, y0 + n, c)
+        if light:
+            put(im, x0, y0, shade(c, 3))
+    else:
+        disc(im, cx, cy, rad, c, rim=rim, light=light)
+
+
+def panel_style(style, floors):
+    """The cabin's control panel (see panel_texture) in a style."""
+    p = PANEL[style]
+    r = rnd(f"panel_{style}{floors}")
+    im = img(128)
+    W, H = 24, 80
+    if style == "steel":
+        brushed(im, (0, 0, W, H), p["plate"], r)
+    else:
+        for y in range(H):
+            for x in range(W):
+                put(im, x, y, shade(p["plate"], 1.0 + r.uniform(-0.025, 0.025)))
+    bevel(im, (0, 0, W, H), 1.2, 0.6)
+    for x, y in ((2, 2), (W - 3, 2), (2, H - 3), (W - 3, H - 3)):
+        put(im, x, y, (90, 90, 96))
+    if p.get("display"):   # the floor display: red digits on black
+        rect(im, 5, 3, W - 5, 11, (16, 10, 10))
+        text(im, 10, 4, "1", (255, 60, 40))
+    else:
+        rect(im, 4, 4, W - 4, 11, (26, 26, 30))
+        text(im, 6, 5, "320" if style != "plastic" else "400", (230, 230, 230))
+    cols = 1 if floors <= 6 else 2
+    rows = math.ceil(floors / cols)
+    top, bottom = 14, H - 17
+    step = (bottom - top) / max(rows, 1)
+    burnt = r.randrange(1, floors + 1) if style != "steel" else 0
+    for i in range(floors):
+        n = i + 1
+        col = i // rows
+        row = rows - 1 - (i % rows)
+        cy = top + step * (row + 0.5)
+        cx = 16 if cols == 1 else 7 + col * 10
+        if n == burnt:
+            panel_button(im, cx, cy, 2.6, (70, 46, 30), (40, 34, 30), p["square"], light=None)
+            put(im, cx - 1, cy - 1, (110, 70, 40))
+        else:
+            panel_button(im, cx, cy, 2.6, p["btn"], p["ring"], p["square"], light=1.6 if style == "steel" else 1.9)
+        if cols == 1:
+            s = str(n)
+            text(im, int(cx - 4 - text_width(s)), int(cy - 2), s, (24, 24, 28))
+    panel_button(im, W / 2, H - 12, 3.2, (196, 30, 26), p["ring"], p["square"], light=1.5)
+    panel_button(im, W / 2, H - 5, 2.6, (226, 196, 40), p["ring"], p["square"], light=1.4)
+    return im
+
+
+def gui_style(style):
+    """textures/gui/lift_panel[_style].png: the panel up close, the same layout as gui_texture."""
+    p = PANEL[style]
+    r = rnd(f"gui_{style}")
+    im = img(256)
+    W, H = 96, 200
+    if style == "steel":
+        brushed(im, (0, 0, W, H), p["plate"], r, 0.04, 0.035)
+    else:
+        for y in range(H):
+            for x in range(W):
+                put(im, x, y, shade(p["plate"], 1.0 + r.uniform(-0.025, 0.025)))
+    bevel(im, (0, 0, W, H), 1.25, 0.55)
+    bevel(im, (1, 1, W - 1, H - 1), 1.1, 0.8)
+    for x, y in ((5, 5), (W - 6, 5), (5, H - 6), (W - 6, H - 6)):
+        disc(im, x + 0.5, y + 0.5, 2, shade(p["plate"], 0.7), rim=shade(p["plate"], 0.45))
+        put(im, x - 1, y, (60, 60, 64))
+        put(im, x + 1, y, (60, 60, 64))
+    rect(im, 12, 12, W - 12, 34, (24, 24, 28) if not p.get("display") else (14, 8, 8))
+    bevel(im, (12, 12, W - 12, 34), 0.8, 1.3)
+    if p.get("display"):
+        text(im, 17, 15, "ЛИФТ", (255, 70, 50), 1)
+        text(im, 17, 23, "400 КГ", (220, 60, 40), 1)
+        text(im, 56, 15, "5 ЧЕЛ", (220, 60, 40), 1)
+    else:
+        text(im, 17, 15, "ЛИФТ", (230, 230, 230), 1)
+        text(im, 17, 23, "320 КГ" if style != "plastic" else "400 КГ", (200, 200, 200), 1)
+        text(im, 52, 15, "4 ЧЕЛ" if style != "plastic" else "5 ЧЕЛ", (200, 200, 200), 1)
+    for _ in range(30 if style != "steel" else 18):
+        x, y = r.randrange(8, W - 8), r.randrange(40, H - 8)
+        for i in range(r.randrange(2, 6)):
+            put(im, x + i, y, shade(get(im, x + i, y), 1.2))
+    if style == "painted":
+        sticker(im, 62, 120, 22, 14, (236, 232, 210), (60, 60, 70), r)
+    y0 = 208
+
+    def button(x, c, lit=False, light=1.8):
+        cx, cy = x + 7.5, y0 + 7.5
+        if p["square"]:
+            rect(im, x + 1, y0 + 1, x + 15, y0 + 15, (90, 92, 96))
+            rect(im, x + 2, y0 + 2, x + 14, y0 + 14, (150, 152, 158))
+            if lit:
+                rect(im, x + 2, y0 + 2, x + 14, y0 + 14, (255, 150, 70))
+            rect(im, x + 3, y0 + 3, x + 13, y0 + 13, c)
+            if light:
+                for i in range(3, 8):
+                    put(im, x + i, y0 + 3, shade(c, light * 1.6))
+            return
+        disc(im, cx, cy, 7.4, shade(p["ring"], 0.85))
+        disc(im, cx, cy, 6.6, shade(p["ring"], 1.3))
+        if lit:
+            on = (120, 220, 255) if style == "steel" else (255, 120, 70)
+            disc(im, cx, cy, 6.6, on)
+            disc(im, cx, cy, 5.6, mix(on, (255, 255, 255), 0.5))
+        disc(im, cx, cy, 5.0, c, light=light)
+    button(0, p["btn"], light=1.3 if style == "steel" else 1.8)
+    button(16, p["btn"], lit=True, light=1.3 if style == "steel" else 1.8)
+    if style == "steel":   # nobody burns steel: a scratched one
+        button(32, p["btn"], light=1.3)
+        for _ in range(6):
+            put(im, 32 + 7 + r.randrange(-3, 4), y0 + 7 + r.randrange(-3, 4), (230, 234, 238))
+    else:
+        button(32, (66, 44, 30), light=None)
+        for _ in range(14):
+            put(im, 32 + 7 + r.randrange(-3, 4), y0 + 7 + r.randrange(-3, 4), r.choice([(40, 26, 18), (100, 70, 44), (130, 96, 60)]))
+    button(48, (200, 30, 26), light=1.5)
+    button(64, (230, 200, 40), light=1.4)
+    for y in range(16):
+        for x in range(16):
+            d = math.hypot(x - 7.5, y - 7.5) if not p["square"] else max(abs(x - 7.5), abs(y - 7.5)) + 0.6
+            if 6.6 <= d <= 7.6:
+                put(im, 80 + x, y0 + y, (255, 255, 255, 150))
+    for i, ch in enumerate("0123456789"):
+        text(im, 96 + i * 8, y0, ch, (240, 240, 240), 2)
+    for i, ch in enumerate("0123456789"):
+        text(im, 96 + i * 8, y0 + 12, ch, (30, 30, 34), 2)
+    text(im, 96, y0 + 26, "СТОП", (30, 30, 34), 1)
+    text(im, 96, y0 + 34, "ВЫЗОВ", (30, 30, 34), 1)
+    return im
+
+
+def style_textures(style):
+    s = sfx(style)
+    TEX["wall" + s] = wall_style(style, "plain")
+    TEX["wall_back" + s] = wall_style(style, "back")
+    TEX["wall_left" + s] = wall_style(style, "left")
+    TEX["floor" + s] = floor_style(style)
+    TEX["ceiling" + s] = ceiling_style(style)
+    TEX["lamp" + s] = lamp_style(style)
+    TEX["leaf_cab" + s] = leaf_style(style, True)
+    TEX["leaf_shaft" + s] = leaf_style(style, False)
+    TEX["frame" + s] = frame_style(style)
+    TEX["button" + s] = button_style(style, False)
+    TEX["button_lit" + s] = button_style(style, True)
+    for n in PANEL_FLOORS:
+        TEX[f"panel_{n}" + s] = panel_style(style, n)
+
+
 def make_textures():
     TEX["wall"] = wall_texture()
     TEX["wall_back"] = wall_texture("back")
@@ -484,6 +968,8 @@ def make_textures():
     for n in PANEL_FLOORS:
         TEX[f"panel_{n}"] = panel_texture(n)
     TEX["machine_side"], TEX["machine_plate"], TEX["drum"], TEX["cable"] = machine_textures()
+    for style in STYLES[1:]:
+        style_textures(style)
 
 
 # ---------------------------------------------------------------- models
@@ -599,19 +1085,21 @@ def cabin_models():
     els.append(el((1, 15.5, 2), (1.8, 16.3, 30), {"up": ("frame", [0, 0, 16, 1]), "east": ("frame", [0, 0, 16, 1]), "down": ("frame", [0, 0, 16, 1])}))
     els.append(el((2, 15.5, 30.2), (30, 16.3, 31), {"up": ("frame", [0, 0, 16, 1]), "north": ("frame", [0, 0, 16, 1]), "down": ("frame", [0, 0, 16, 1])}))
     lo, hi = split_parts(els)
-    tx = {"wall": "wall", "wall_back": "wall_back", "wall_left": "wall_left", "floor": "floor", "ceiling": "ceiling", "outer": "outer", "frame": "frame", "lamp": "lamp",
-          "machine_plate": "machine_plate", "cable": "cable"}
-    model("cabin_lower", tx, lo, particle="outer")
-    model("cabin_upper", tx, hi, particle="outer")
-    for n in PANEL_FLOORS:  # the control panel: a plate on the right wall, 6 x 20 units, 4 texels a unit (uv = units / 2)
-        model(f"cabin_panel_{n}", {"p": f"panel_{n}", "s": "frame"}, [
-            el((30.2, 12, 3), (31, 32, 9), {"west": ("p", [0, 0, 3, 10]), "north": ("s", [0, 0, 1, 16]), "south": ("s", [0, 0, 1, 16]),
-                                            "up": ("s", [0, 0, 1, 16]), "down": ("s", [0, 0, 1, 16])})], particle="s")
-    # a leaf of the cabin's doors: 8 x 30 x 1 units, enamel inside, steel outside; drawn twice by the renderer
-    for name, uv in (("cabin_leaf", [0, 0, 16, 16]), ("cabin_leaf_r", [16, 0, 0, 16])):   # the rubber edge meets in the middle
-        model(name, {"l": "leaf_cab", "o": "outer", "e": "frame"}, [
-            el((0, 0, 0), (8, 31.5, 1), {"south": ("l", uv), "north": ("o", [0, 1, 4, 16]), "east": ("e", [0, 0, 1, 16]),
-                                         "west": ("e", [0, 0, 1, 16]), "up": ("e", [0, 0, 16, 1])})], particle="l")
+    for style in STYLES:   # the same body in every style, only the textures change
+        s = sfx(style)
+        tx = {"wall": "wall" + s, "wall_back": "wall_back" + s, "wall_left": "wall_left" + s, "floor": "floor" + s, "ceiling": "ceiling" + s,
+              "outer": "outer", "frame": "frame" + s, "lamp": "lamp" + s, "machine_plate": "machine_plate", "cable": "cable"}
+        model("cabin_lower" + s, tx, lo, particle="outer")
+        model("cabin_upper" + s, tx, hi, particle="outer")
+        for n in PANEL_FLOORS:  # the control panel: a plate on the right wall, 6 x 20 units, 4 texels a unit (uv = units / 2)
+            model(f"cabin_panel_{n}" + s, {"p": f"panel_{n}" + s, "s": "frame" + s}, [
+                el((30.2, 12, 3), (31, 32, 9), {"west": ("p", [0, 0, 3, 10]), "north": ("s", [0, 0, 1, 16]), "south": ("s", [0, 0, 1, 16]),
+                                                "up": ("s", [0, 0, 1, 16]), "down": ("s", [0, 0, 1, 16])})], particle="s")
+        # a leaf of the cabin's doors: 8 x 30 x 1 units, enamel inside, steel outside; drawn twice by the renderer
+        for name, uv in (("cabin_leaf", [0, 0, 16, 16]), ("cabin_leaf_r", [16, 0, 0, 16])):   # the rubber edge meets in the middle
+            model(name + s, {"l": "leaf_cab" + s, "o": "outer", "e": "frame" + s}, [
+                el((0, 0, 0), (8, 31.5, 1), {"south": ("l", uv), "north": ("o", [0, 1, 4, 16]), "east": ("e", [0, 0, 1, 16]),
+                                             "west": ("e", [0, 0, 1, 16]), "up": ("e", [0, 0, 16, 1])})], particle="l")
 
 
 def door_models():
@@ -643,26 +1131,29 @@ def door_models():
             m((1, 15.5, 0), (16, 16, 16), {"north": "frame", "down": "frame", "south": "shaft", "up": "shaft"}),   # the lintel
         ]
         return lower, upper
-    tx = {"frame": "frame", "leaf_shaft": "leaf_shaft", "shaft": "shaft"}
-    for side, mirror in (("left", False), ("right", True)):
-        lo, hi = column(mirror)
-        model(f"door_{side}_lower", tx, lo, particle="frame")
-        model(f"door_{side}_upper", tx, hi, particle="frame")
-    # the leaf, 8 x 30 x 1.5: brown outside (to the landing), bare steel to the shaft; at x 8..16 of the left column
-    model("door_leaf", {"l": "leaf_shaft", "b": "shaft_back", "e": "frame"}, [
-        el((0, 0, 0), (8, 31.5, 1.5), {"north": ("l", [0, 0.25, 8, 16]), "south": ("b", [0, 1, 4, 16]), "east": ("e", [0, 0, 1, 16]),
-                                     "west": ("e", [0, 0, 1, 16]), "up": ("e", [0, 0, 16, 1]), "down": ("e", [0, 0, 16, 1])})],
-        particle="l")
+    for style in STYLES:
+        s = sfx(style)
+        tx = {"frame": "frame" + s, "leaf_shaft": "leaf_shaft" + s, "shaft": "shaft"}
+        for side, mirror in (("left", False), ("right", True)):
+            lo, hi = column(mirror)
+            model(f"door_{side}_lower" + s, tx, lo, particle="frame")
+            model(f"door_{side}_upper" + s, tx, hi, particle="frame")
+        # the leaf, 8 x 30 x 1.5: painted outside (to the landing), bare steel to the shaft; at x 8..16 of the left column
+        model("door_leaf" + s, {"l": "leaf_shaft" + s, "b": "shaft_back", "e": "frame" + s}, [
+            el((0, 0, 0), (8, 31.5, 1.5), {"north": ("l", [0, 0.25, 8, 16]), "south": ("b", [0, 1, 4, 16]), "east": ("e", [0, 0, 1, 16]),
+                                         "west": ("e", [0, 0, 1, 16]), "up": ("e", [0, 0, 16, 1]), "down": ("e", [0, 0, 16, 1])})],
+            particle="l")
     rot = {"north": 0, "east": 90, "south": 180, "west": 270}
     variants = {}
     for f, y in rot.items():
         for side in ("left", "right"):
             for half in ("lower", "upper"):
                 for open_ in ("false", "true"):
-                    v = {"model": f"mobtalk:block/{TEXDIR}/door_{side}_{half}"}
-                    if y:
-                        v["y"] = y
-                    variants[f"facing={f},half={half},open={open_},side={side}"] = v
+                    for style in STYLES:
+                        v = {"model": f"mobtalk:block/{TEXDIR}/door_{side}_{half}{sfx(style)}"}
+                        if y:
+                            v["y"] = y
+                        variants[f"facing={f},half={half},open={open_},side={side},style={style}"] = v
     BLOCKSTATES["lift_door"] = {"variants": variants}
     ITEMS["lift_door"] = {"parent": f"mobtalk:block/{TEXDIR}/door_left_lower"}
     NAMES["lift_door"] = ("Дверь шахты лифта", "Lift shaft door")
@@ -671,9 +1162,9 @@ def door_models():
 def button_models():
     """The call button on the landing wall (model north = the landing; the box hangs on the cell's south side, 1.05-1.4 m
     above the floor when the block is in the slab + 2 row)."""
-    for lit in (False, True):
-        name = "button_lit" if lit else "button"
-        model(name, {"b": name, "s": "frame"}, [
+    for style, lit in ((st, l) for st in STYLES for l in (False, True)):
+        name = ("button_lit" if lit else "button") + sfx(style)
+        model(name, {"b": name, "s": "frame" + sfx(style)}, [
             el((5.5, 0.5, 14.6), (10.5, 6.5, 16), {"north": ("b", [0, 0, 16, 16]), "east": ("s", [0, 0, 1, 16]), "west": ("s", [0, 0, 1, 16]),
                                                    "up": ("s", [0, 0, 16, 1]), "down": ("s", [0, 0, 16, 1])}),
             el((7.2, 2.6, 14.0), (8.8, 4.4, 14.6), {"north": ("b", [7, 7, 9, 9]), "east": ("b", [5, 7, 6, 9]), "west": ("b", [5, 7, 6, 9]),
@@ -681,9 +1172,9 @@ def button_models():
         ], particle="s")
     rot = {"north": 0, "east": 90, "south": 180, "west": 270}
     BLOCKSTATES["lift_button"] = {"variants": {
-        f"facing={f},lit={str(lit).lower()}": ({"model": f"mobtalk:block/{TEXDIR}/{'button_lit' if lit else 'button'}", "y": y} if y else
-                                                {"model": f"mobtalk:block/{TEXDIR}/{'button_lit' if lit else 'button'}"})
-        for f, y in rot.items() for lit in (False, True)}}
+        f"facing={f},lit={str(lit).lower()},style={st}": dict({"model": f"mobtalk:block/{TEXDIR}/{'button_lit' if lit else 'button'}{sfx(st)}"},
+                                                             **({"y": y} if y else {}))
+        for f, y in rot.items() for lit in (False, True) for st in STYLES}}
     ITEMS["lift_button"] = {"parent": f"mobtalk:block/{TEXDIR}/button"}
     NAMES["lift_button"] = ("Кнопка вызова лифта", "Lift call button")
 
@@ -718,12 +1209,14 @@ def make_models():
 
 # ---------------------------------------------------------------- templates
 
-def place(tpl, x, y, z, floors, storey, facing="north"):
+def place(tpl, x, y, z, floors, storey, facing="north", style="soviet"):
     """Writes a lift into a house template (house.Tpl). (x, y, z): the shaft's 2 x 2 corner with the smallest x and z, in
     the slab row of floor 1; facing: where the doors look (to the landing). The house draws the shaft's walls itself; here
     the shaft is cleared, every floor gets its two door columns in the wall row on the landing side (rows slab + 1, slab +
     2) and its call button on the landing beside them (row slab + 2, the right of the doors seen from the landing), and
-    the winch stands on the roof slab (row y + floors * storey) over the shaft."""
+    the winch stands on the roof slab (row y + floors * storey) over the shaft. style: one of STYLES (pick_style gives a
+    realistic mix); the cabin takes the doors' style."""
+    assert style in STYLES, style
     d = {"north": (0, -1), "south": (0, 1), "east": (1, 0), "west": (-1, 0)}[facing]
     p = {"north": (1, 0), "east": (0, 1), "south": (-1, 0), "west": (0, -1)}[facing]   # model +x, seen from the shaft: right
     cells = [(x + i, z + j) for i in (0, 1) for j in (0, 1)]
@@ -738,10 +1231,16 @@ def place(tpl, x, y, z, floors, storey, facing="north"):
                 tpl.set(cx, yy, cz, "minecraft:air")
         for (cx, cz), side in ((left, "left"), (right, "right")):
             for half, yy in (("lower", s + 1), ("upper", s + 2)):
-                tpl.set(cx, yy, cz, "lift_door", {"facing": facing, "half": half, "open": "false", "side": side})
-        tpl.set(button[0], s + 2, button[1], "lift_button", {"facing": facing, "lit": "false"})
+                tpl.set(cx, yy, cz, "lift_door", {"facing": facing, "half": half, "open": "false", "side": side, "style": style})
+        tpl.set(button[0], s + 2, button[1], "lift_button", {"facing": facing, "lit": "false", "style": style})
     top = y + floors * storey
     tpl.set(x, top, z, "lift_machine")
+
+
+def pick_style(seed):
+    """A style for a house's lift, by a seed (a house's or a section's): most were overhauled to steel, many are Soviet still."""
+    r = random.Random(f"liftstyle:{seed}")
+    return r.choices(STYLES, weights=(35, 20, 35, 10))[0]
 
 
 # ---------------------------------------------------------------- writing
@@ -761,6 +1260,8 @@ def save_all():
     gdir = os.path.join(ASSETS, "textures", "gui")
     os.makedirs(gdir, exist_ok=True)
     gui_texture().save(os.path.join(gdir, "lift_panel.png"))
+    for style in STYLES[1:]:
+        gui_style(style).save(os.path.join(gdir, f"lift_panel{sfx(style)}.png"))
     for name, m in MODELS.items():
         write(os.path.join(ASSETS, "models", "block", TEXDIR, name + ".json"), m)
     for name, bs in BLOCKSTATES.items():
