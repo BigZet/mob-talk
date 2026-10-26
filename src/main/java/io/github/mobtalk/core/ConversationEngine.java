@@ -196,6 +196,7 @@ public final class ConversationEngine implements AutoCloseable {
         long now = MobClock.now();
         if (overheard == null && profile.lastTurnMillis >= 0 && now - profile.lastTurnMillis > ConversationSummary.silenceMillis())
             endConversation(snapshot.id(), snapshot.playerId(), playerName(snapshot));
+        if (overheard == null) store.children().nameBaby(snapshot.id(), snapshot.playerId(), question);
         String reserve = SpeciesCatalog.reserve(profile.type).id();
         EarlySpeech early = new EarlySpeech();
         EarlyHandoff handoff = deliversEarly(overheard, snapshot, earlyListener) ? new EarlyHandoff(earlyListener, displayName(snapshot, profile, "")) : null;
