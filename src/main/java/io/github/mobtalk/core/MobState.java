@@ -385,7 +385,8 @@ public final class MobState {
         boolean changed = false;
         MoodSpell kind = spell();
         if (spell != null && kind == null) { spell = null; changed = true; }
-        if (kind != null && (now >= spell.max || now >= spell.until && spell.cure >= kind.cure)) {
+        // Twice the care a dark mood needs lifts it before its least time: the player who keeps feeding and talking sees it work.
+        if (kind != null && (now >= spell.max || now >= spell.until && spell.cure >= kind.cure || kind.sign < 0 && spell.cure >= 2 * kind.cure)) {
             boolean uncured = spell.cure < kind.cure;
             end(baseline, now, true);
             changed = true;

@@ -214,6 +214,25 @@ class MoodTest {
 
     // Apathy is its own long mood: a depression that ran its course unhelped burns out into it, and so does long starving;
     // it is not a depression on top of a depression.
+    // Food handed to a hungry villager is a meal, not only a present: the hunger goes, even when the same food bored it before.
+    @Test void foodHandedToAHungryVillagerFeedsIt() throws Exception {
+        UUID mob = UUID.randomUUID(), player = UUID.randomUUID();
+        MobTalkConfig config = new MobTalkConfig();
+        ConversationStore store = ConversationStore.open(directory, config);
+        store.recordEvent(mob, "minecraft:villager", "Светлана", "Знакомство", 0);
+        long now = System.currentTimeMillis();
+        store.surroundings(mob, null, new MoodSample(Set.of(), Set.of(), true, false, true, 5, false), now);
+        long late = now + (4 * config.moodHungerMinutes + 1) * MINUTE;
+        assertEquals(Hunger.Level.STARVING, store.hunger(mob, late));
+        for (int i = 0; i < 4; i++) store.social().giftFromHand(mob, "minecraft:villager", "Светлана", player, "Дима", "minecraft:bread", "minecraft:none", false, false, late + i);
+        assertEquals(Hunger.Level.FED, store.hunger(mob, late + 10));
+        long again = late + 10 + (4 * config.moodHungerMinutes + 1) * MINUTE;
+        assertEquals(Hunger.Level.STARVING, store.hunger(mob, again));
+        GestureIntent bored = store.social().giftFromHand(mob, "minecraft:villager", "Светлана", player, "Дима", "minecraft:bread", "minecraft:none", false, false, again);
+        assertTrue(bored.takesItem(), bored.toString());
+        assertEquals(Hunger.Level.FED, store.hunger(mob, again + 1));
+    }
+
     @Test void apathyFollowsAnUnhelpedDepressionOrStarving() {
         MobState state = new MobState();
         long now = 1_000_000L;

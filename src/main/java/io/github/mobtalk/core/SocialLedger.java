@@ -190,8 +190,9 @@ public final class SocialLedger {
             ConversationStore.Profile p = store.ensure(mob, type, name);
             if (p.social == null) return null;
             ConversationStore.Relation r = rapport(p, player);
-            GestureIntent intent = gift(p, r.rapport, item, profession, child, now);
+            GestureIntent intent = fed(mob, p, r, item, gift(p, r.rapport, item, profession, child, now), now);
             apply(p, r, player, playerName, intent, config, now);
+            meal(mob, item, intent, player, playerName, now);
             p.revision++; // Like a blow or help: a reply written before the gift landed is stale.
             store.scheduleSave();
             return intent;
@@ -210,8 +211,9 @@ public final class SocialLedger {
                 ConversationStore.Profile p = store.ensure(mob, type, name);
                 if (p.social == null) return null;
                 ConversationStore.Relation r = rapport(p, player);
-                GestureIntent intent = gift(p, r.rapport, item, profession, child, now);
+                GestureIntent intent = fed(mob, p, r, item, gift(p, r.rapport, item, profession, child, now), now);
                 apply(p, r, player, playerName, intent, config, now);
+                meal(mob, item, intent, player, playerName, now);
                 p.revision++; store.scheduleSave();
                 return intent;
             }
@@ -259,6 +261,16 @@ public final class SocialLedger {
         return r;
     }
     /** The effects of one gesture on one relation; under the store lock. */
+    /** A hungry villager takes food even when the same present would bore it: hunger is not a matter of taste. */
+    private GestureIntent fed(UUID mob, ConversationStore.Profile p, ConversationStore.Relation r, String item, GestureIntent intent, long now) {
+        if (intent.takesItem() || Hunger.meal(item) == null || store.hunger(mob, now) == Hunger.Level.FED
+                || p.hostile() || r.score <= CombatRules.HATRED) return intent;
+        return new GestureIntent(Gesture.GIFT, Gesture.Outcome.GOOD, Math.max(0, intent.hearts()), item, "накормил в голод");
+    }
+    /** Food a hungry villager took is a meal: the hunger ends (the gift alone only warmed the heart). */
+    private void meal(UUID mob, String item, GestureIntent intent, UUID player, String playerName, long now) {
+        if (intent.takesItem() && Hunger.meal(item) != null && store.hunger(mob, now) != Hunger.Level.FED) store.meal(mob, Hunger.meal(item), playerName, player, playerName, now);
+    }
     private void apply(ConversationStore.Profile p, ConversationStore.Relation r, UUID player, String playerName, GestureIntent intent, MobTalkConfig config, long now) {
         r.score = ConversationStore.clamp(r.score + intent.hearts(), p.hostile());
         r.rapport.record(intent.gesture(), now, intent.hearts() != 0);
