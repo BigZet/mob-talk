@@ -295,6 +295,17 @@ final class SelfTestOfficials {
         Direction front = onServer(() -> world().getBlockState(desk).contains(OfficialContent.Desk.FACING) ? world().getBlockState(desk).get(OfficialContent.Desk.FACING) : Direction.SOUTH);
         BlockPos stand = desk.offset(front, 5).offset(front.rotateYClockwise(), 3);
         test.command(String.format(java.util.Locale.ROOT, "tp %s %d %d %d facing %d %d %d", name(), stand.getX(), stand.getY(), stand.getZ(), desk.getX(), desk.getY(), desk.getZ()));
+        // Office hours: the clerk led away from her desk walks back behind it.
+        test.command("time set 4000");
+        net.minecraft.util.math.Vec3d seat = net.minecraft.util.math.Vec3d.ofBottomCenter(desk.offset(front.getOpposite()));
+        test.server().execute(() -> { clerk.refreshPositionAndAngles(seat.x + 5, desk.getY(), seat.z + 3, 0f, 0f); clerk.setAiDisabled(false); });
+        test.await("the clerk goes back behind her desk", 15, () -> onServer(() -> clerk.squaredDistanceTo(seat)) < 1.5, () -> {
+            test.check(onServer(() -> clerk.squaredDistanceTo(seat)) < 1.5, "in office hours the clerk walks back behind her desk");
+            test.server().execute(() -> { clerk.setAiDisabled(true); clerk.refreshPositionAndAngles(desk.getX() + 1.5, desk.getY(), desk.getZ() + 0.5, 90f, 0f); });
+            lunchVisit(clerk, desk);
+        });
+    }
+    private void lunchVisit(VillagerEntity clerk, BlockPos desk) {
         test.command("time set 7200");
         test.await("pause: by the clerk's window at lunch", 2, () -> false, () -> {
             long lunch = count("Обед с 13 до 14");
@@ -419,6 +430,7 @@ final class SelfTestOfficials {
         UUID son = UUID.randomUUID();
         test.bridge().memory.familyForTest(player().getUuid(), name(), wife.getUuid(), "Аксинья", son, "Ваня");
         test.owner.client.inGameHud.getChatHud().clear(false);
+        test.log("papers: the clerk at " + onServer(clerk::getPos) + " ai off " + onServer(clerk::isAiDisabled) + ", the player at " + onServer(() -> player().getPos()));
         visit(clerk);
         test.await("the clerk's window (chat)", 3, () -> count("Окно приёма") >= 1, () -> {
             List<io.github.mobtalk.core.CivilRegistry.Paper> offered = menu().stream().map(io.github.mobtalk.core.CivilRegistry.Offer::paper).toList();

@@ -26,7 +26,7 @@ import java.util.*;
  * clerk issue their papers too. A building permit keeps the inspector away for {@link CivilRegistry#PERMIT_DAYS} days. Server thread. */
 final class CivilOffice {
     /** How far the player may step from the official between the list and the click; how long the list stays valid. */
-    static final double REACH = 8;
+    static final double REACH = 10;
     static final long MENU_TICKS = 20 * 120;
     /** How often the book of acts reads the family tree (so an act gets its real day). */
     static final long SYNC_PERIOD = 600, SYNC_PHASE = 13;

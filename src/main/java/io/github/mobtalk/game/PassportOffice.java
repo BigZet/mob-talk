@@ -227,6 +227,7 @@ final class PassportOffice {
     }
 
     void tick(ServerWorld world) {
+        if (world.getTime() % DESK_PERIOD == PHASE) keepAtDesks(world);
         if (tickets.isEmpty() || world.getTime() % PERIOD != PHASE) return;
         long now = world.getTime();
         for (Iterator<Map.Entry<UUID, Ticket>> it = tickets.entrySet().iterator(); it.hasNext(); ) {
@@ -262,6 +263,33 @@ final class PassportOffice {
             player.sendMessage(Text.translatable("mobtalk.paper.queue.bar", ticket.ahead, Math.max(0, (ticket.next - now) / 20)), true);
         }
     }
+    /** Office hours: from 9:00 to 18:00, the lunch hour aside. */
+    static boolean officeHours(long timeOfDay) { int h = Paperwork.hour(timeOfDay); return h >= 9 && h < 18 && !Paperwork.lunch(timeOfDay); }
+    static final long DESK_PERIOD = 20;
+    /** How far a clerk may be from her desk and still be called back to it (farther she has gone somewhere on purpose). */
+    static final double DESK_CALL = 32;
+    /** In office hours a clerk sits behind her desk — the visitors and the queue stand in front of it — instead of wandering off;
+     * at lunch and after work she is free. */
+    private void keepAtDesks(ServerWorld world) {
+        if (!enabled() || !officeHours(world.getTimeOfDay())) return;
+        for (VillageDefenseController.Zone zone : bridge.defense.zones(world)) {
+            for (VillagerEntity clerk : bridge.officials.officials(world, zone).getOrDefault(Officialdom.Rank.CLERK, List.of())) {
+                if (clerk.isSleeping() || clerk.isAiDisabled() || bridge.actions.busy(clerk)) continue;
+                BlockPos desk = desk(clerk);
+                if (desk == null || !world.getBlockState(desk).isOf(OfficialContent.DESK)) continue;
+                Direction front = world.getBlockState(desk).get(OfficialContent.Desk.FACING);
+                Vec3d seat = Vec3d.ofBottomCenter(desk.offset(front.getOpposite()));
+                double d = clerk.squaredDistanceTo(seat);
+                if (d > DESK_CALL * DESK_CALL) continue;
+                if (d > 0.8) clerk.getBrain().remember(MemoryModuleType.WALK_TARGET, new WalkTarget(seat, 0.6f, 0));
+                else {
+                    clerk.getBrain().forget(MemoryModuleType.WALK_TARGET);
+                    clerk.getLookControl().lookAt(Vec3d.ofCenter(desk.offset(front, 2)));
+                }
+            }
+        }
+    }
+
     /** The villagers in line walk to (and stay at) their spots in front of the desk. */
     private void march(ServerWorld world, Ticket ticket) {
         for (int i = 0; i < ticket.line.size(); i++) if (world.getEntity(ticket.line.get(i)) instanceof VillagerEntity v && v.isAlive()) {
