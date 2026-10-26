@@ -1,0 +1,313 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "velvet": "mobtalk:block/city2/furniture/velvet",
+    "particle": "mobtalk:block/city2/furniture/velvet"
+  },
+  "elements": [
+    {
+      "from": [
+        5.3333,
+        0.0,
+        7.8333
+      ],
+      "to": [
+        6.6667,
+        16.0,
+        8.8333
+      ],
+      "faces": {
+        "north": {
+          "texture": "#velvet",
+          "uv": [
+            12.0,
+            0.0,
+            16.0,
+            48.0
+          ]
+        },
+        "south": {
+          "texture": "#velvet",
+          "uv": [
+            0.0,
+            0.0,
+            4.0,
+            48.0
+          ]
+        },
+        "east": {
+          "texture": "#velvet",
+          "uv": [
+            2.0,
+            0.0,
+            5.0,
+            48.0
+          ]
+        },
+        "west": {
+          "texture": "#velvet",
+          "uv": [
+            11.0,
+            0.0,
+            14.0,
+            48.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.6667,
+        0.0,
+        7.1667
+      ],
+      "to": [
+        8.0,
+        16.0,
+        8.1667
+      ],
+      "faces": {
+        "north": {
+          "texture": "#velvet",
+          "uv": [
+            8.0,
+            0.0,
+            12.0,
+            48.0
+          ]
+        },
+        "south": {
+          "texture": "#velvet",
+          "uv": [
+            4.0,
+            0.0,
+            8.0,
+            48.0
+          ]
+        },
+        "east": {
+          "texture": "#velvet",
+          "uv": [
+            4.0,
+            0.0,
+            7.0,
+            48.0
+          ]
+        },
+        "west": {
+          "texture": "#velvet",
+          "uv": [
+            9.0,
+            0.0,
+            12.0,
+            48.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        8.0,
+        0.0,
+        7.8333
+      ],
+      "to": [
+        9.3333,
+        16.0,
+        8.8333
+      ],
+      "faces": {
+        "north": {
+          "texture": "#velvet",
+          "uv": [
+            4.0,
+            0.0,
+            8.0,
+            48.0
+          ]
+        },
+        "south": {
+          "texture": "#velvet",
+          "uv": [
+            8.0,
+            0.0,
+            12.0,
+            48.0
+          ]
+        },
+        "east": {
+          "texture": "#velvet",
+          "uv": [
+            2.0,
+            0.0,
+            5.0,
+            48.0
+          ]
+        },
+        "west": {
+          "texture": "#velvet",
+          "uv": [
+            11.0,
+            0.0,
+            14.0,
+            48.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        9.3333,
+        0.0,
+        7.1667
+      ],
+      "to": [
+        10.6667,
+        16.0,
+        8.1667
+      ],
+      "faces": {
+        "north": {
+          "texture": "#velvet",
+          "uv": [
+            0.0,
+            0.0,
+            4.0,
+            48.0
+          ]
+        },
+        "south": {
+          "texture": "#velvet",
+          "uv": [
+            12.0,
+            0.0,
+            16.0,
+            48.0
+          ]
+        },
+        "east": {
+          "texture": "#velvet",
+          "uv": [
+            4.0,
+            0.0,
+            7.0,
+            48.0
+          ]
+        },
+        "west": {
+          "texture": "#velvet",
+          "uv": [
+            9.0,
+            0.0,
+            12.0,
+            48.0
+          ]
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.625,
+        0.625,
+        0.625
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        2.5,
+        0
+      ],
+      "scale": [
+        0.375,
+        0.375,
+        0.375
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    }
+  }
+}

@@ -48,8 +48,9 @@ def build_houses(maps=None):
         t.save(os.path.join(out, f"{name}_s{sections}_f{floors}_{colour}.nbt"))
         print(f"house {name} s{sections} f{floors} {colour}: {t.size}, {len(flats)} flats")
     import public
+    import civic
     for colour in PUBLIC_COLOURS:      # the public buildings: /city house "school" 1 3 <colour>
-        t, _ = public.school(colour)
+        t, _ = civic.school(colour)
         t.save(os.path.join(out, f"school_s1_f3_{colour}.nbt"))
         print(f"school {colour}: {t.size}")
         t, _ = public.kindergarten(colour)

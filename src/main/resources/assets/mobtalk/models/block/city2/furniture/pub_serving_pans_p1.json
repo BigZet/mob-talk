@@ -1,0 +1,619 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "glass_shelf": "mobtalk:block/city2/furniture/glass_shelf",
+    "chrome": "mobtalk:block/city2/furniture/chrome",
+    "steel_sink": "mobtalk:block/city2/furniture/steel_sink",
+    "food_kasha": "mobtalk:block/city2/furniture/food_kasha",
+    "food_soup": "mobtalk:block/city2/furniture/food_soup",
+    "plate": "mobtalk:block/city2/furniture/plate",
+    "cutlet": "mobtalk:block/city2/furniture/cutlet",
+    "particle": "mobtalk:block/city2/furniture/glass_shelf"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        7.0,
+        7.0
+      ],
+      "to": [
+        16.0,
+        7.5,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#glass_shelf",
+          "uv": [
+            0.0,
+            8.5,
+            16.0,
+            9.0
+          ]
+        },
+        "south": {
+          "texture": "#glass_shelf",
+          "uv": [
+            0.0,
+            8.5,
+            16.0,
+            9.0
+          ]
+        },
+        "east": {
+          "texture": "#glass_shelf",
+          "uv": [
+            3.0,
+            8.5,
+            9.0,
+            9.0
+          ]
+        },
+        "west": {
+          "texture": "#glass_shelf",
+          "uv": [
+            7.0,
+            8.5,
+            13.0,
+            9.0
+          ]
+        },
+        "up": {
+          "texture": "#glass_shelf",
+          "uv": [
+            0.0,
+            7.0,
+            16.0,
+            13.0
+          ]
+        },
+        "down": {
+          "texture": "#glass_shelf",
+          "uv": [
+            0.0,
+            3.0,
+            16.0,
+            9.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.0,
+        0.0,
+        12.0
+      ],
+      "to": [
+        1.5,
+        7.0,
+        12.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chrome",
+          "uv": [
+            14.5,
+            9.0,
+            15.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#chrome",
+          "uv": [
+            1.0,
+            9.0,
+            1.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#chrome",
+          "uv": [
+            3.5,
+            9.0,
+            4.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#chrome",
+          "uv": [
+            12.0,
+            9.0,
+            12.5,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#chrome",
+          "uv": [
+            1.0,
+            12.0,
+            1.5,
+            12.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        14.5,
+        0.0,
+        12.0
+      ],
+      "to": [
+        15.0,
+        7.0,
+        12.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chrome",
+          "uv": [
+            1.0,
+            9.0,
+            1.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#chrome",
+          "uv": [
+            14.5,
+            9.0,
+            15.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#chrome",
+          "uv": [
+            3.5,
+            9.0,
+            4.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#chrome",
+          "uv": [
+            12.0,
+            9.0,
+            12.5,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#chrome",
+          "uv": [
+            14.5,
+            12.0,
+            15.0,
+            12.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.0,
+        0.0,
+        6.0
+      ],
+      "to": [
+        7.5,
+        3.0,
+        12.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#steel_sink",
+          "uv": [
+            8.5,
+            13.0,
+            15.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#steel_sink",
+          "uv": [
+            1.0,
+            13.0,
+            7.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#steel_sink",
+          "uv": [
+            4.0,
+            13.0,
+            10.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#steel_sink",
+          "uv": [
+            6.0,
+            13.0,
+            12.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.5,
+        2.0,
+        6.5
+      ],
+      "to": [
+        7.0,
+        2.5,
+        11.5
+      ],
+      "faces": {
+        "up": {
+          "texture": "#food_kasha",
+          "uv": [
+            1.5,
+            6.5,
+            7.0,
+            11.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        8.5,
+        0.0,
+        6.0
+      ],
+      "to": [
+        15.0,
+        3.0,
+        12.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#steel_sink",
+          "uv": [
+            1.0,
+            13.0,
+            7.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#steel_sink",
+          "uv": [
+            8.5,
+            13.0,
+            15.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#steel_sink",
+          "uv": [
+            4.0,
+            13.0,
+            10.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#steel_sink",
+          "uv": [
+            6.0,
+            13.0,
+            12.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        9.0,
+        2.0,
+        6.5
+      ],
+      "to": [
+        14.5,
+        2.5,
+        11.5
+      ],
+      "faces": {
+        "up": {
+          "texture": "#food_soup",
+          "uv": [
+            9.0,
+            6.5,
+            14.5,
+            11.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.0,
+        7.5,
+        8.0
+      ],
+      "to": [
+        7.0,
+        8.0,
+        12.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plate",
+          "uv": [
+            9.0,
+            8.0,
+            13.0,
+            8.5
+          ]
+        },
+        "south": {
+          "texture": "#plate",
+          "uv": [
+            3.0,
+            8.0,
+            7.0,
+            8.5
+          ]
+        },
+        "east": {
+          "texture": "#plate",
+          "uv": [
+            4.0,
+            8.0,
+            8.0,
+            8.5
+          ]
+        },
+        "west": {
+          "texture": "#plate",
+          "uv": [
+            8.0,
+            8.0,
+            12.0,
+            8.5
+          ]
+        },
+        "up": {
+          "texture": "#plate",
+          "uv": [
+            3.0,
+            8.0,
+            7.0,
+            12.0
+          ]
+        },
+        "down": {
+          "texture": "#plate",
+          "uv": [
+            3.0,
+            4.0,
+            7.0,
+            8.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.0,
+        8.0,
+        9.0
+      ],
+      "to": [
+        6.0,
+        9.0,
+        11.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#cutlet",
+          "uv": [
+            10.0,
+            7.0,
+            12.0,
+            8.0
+          ]
+        },
+        "south": {
+          "texture": "#cutlet",
+          "uv": [
+            4.0,
+            7.0,
+            6.0,
+            8.0
+          ]
+        },
+        "east": {
+          "texture": "#cutlet",
+          "uv": [
+            5.0,
+            7.0,
+            7.0,
+            8.0
+          ]
+        },
+        "west": {
+          "texture": "#cutlet",
+          "uv": [
+            9.0,
+            7.0,
+            11.0,
+            8.0
+          ]
+        },
+        "up": {
+          "texture": "#cutlet",
+          "uv": [
+            4.0,
+            9.0,
+            6.0,
+            11.0
+          ]
+        },
+        "down": {
+          "texture": "#cutlet",
+          "uv": [
+            4.0,
+            5.0,
+            6.0,
+            7.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        9.0,
+        7.5,
+        8.0
+      ],
+      "to": [
+        13.0,
+        8.0,
+        12.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plate",
+          "uv": [
+            3.0,
+            8.0,
+            7.0,
+            8.5
+          ]
+        },
+        "south": {
+          "texture": "#plate",
+          "uv": [
+            9.0,
+            8.0,
+            13.0,
+            8.5
+          ]
+        },
+        "east": {
+          "texture": "#plate",
+          "uv": [
+            4.0,
+            8.0,
+            8.0,
+            8.5
+          ]
+        },
+        "west": {
+          "texture": "#plate",
+          "uv": [
+            8.0,
+            8.0,
+            12.0,
+            8.5
+          ]
+        },
+        "up": {
+          "texture": "#plate",
+          "uv": [
+            9.0,
+            8.0,
+            13.0,
+            12.0
+          ]
+        },
+        "down": {
+          "texture": "#plate",
+          "uv": [
+            9.0,
+            4.0,
+            13.0,
+            8.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        9.5,
+        8.0,
+        8.5
+      ],
+      "to": [
+        12.5,
+        9.0,
+        11.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#food_kasha",
+          "uv": [
+            3.5,
+            7.0,
+            6.5,
+            8.0
+          ]
+        },
+        "south": {
+          "texture": "#food_kasha",
+          "uv": [
+            9.5,
+            7.0,
+            12.5,
+            8.0
+          ]
+        },
+        "east": {
+          "texture": "#food_kasha",
+          "uv": [
+            4.5,
+            7.0,
+            7.5,
+            8.0
+          ]
+        },
+        "west": {
+          "texture": "#food_kasha",
+          "uv": [
+            8.5,
+            7.0,
+            11.5,
+            8.0
+          ]
+        },
+        "up": {
+          "texture": "#food_kasha",
+          "uv": [
+            9.5,
+            8.5,
+            12.5,
+            11.5
+          ]
+        },
+        "down": {
+          "texture": "#food_kasha",
+          "uv": [
+            9.5,
+            4.5,
+            12.5,
+            7.5
+          ]
+        }
+      }
+    }
+  ]
+}

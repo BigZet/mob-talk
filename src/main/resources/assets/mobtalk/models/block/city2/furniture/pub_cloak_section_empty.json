@@ -1,0 +1,485 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "cloak_white": "mobtalk:block/city2/furniture/cloak_white",
+    "cloak_mesh": "mobtalk:block/city2/furniture/cloak_mesh",
+    "lightwood": "mobtalk:block/city2/furniture/lightwood",
+    "particle": "mobtalk:block/city2/furniture/cloak_white"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.0,
+        2.0
+      ],
+      "to": [
+        1.0,
+        16.0,
+        3.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#cloak_white",
+          "uv": [
+            15.0,
+            0.0,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#cloak_white",
+          "uv": [
+            0.0,
+            0.0,
+            1.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#cloak_white",
+          "uv": [
+            13.0,
+            0.0,
+            14.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#cloak_white",
+          "uv": [
+            2.0,
+            0.0,
+            3.0,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#cloak_white",
+          "uv": [
+            0.0,
+            13.0,
+            1.0,
+            14.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        0.0,
+        13.0
+      ],
+      "to": [
+        1.0,
+        16.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#cloak_white",
+          "uv": [
+            15.0,
+            0.0,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#cloak_white",
+          "uv": [
+            0.0,
+            0.0,
+            1.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#cloak_white",
+          "uv": [
+            2.0,
+            0.0,
+            3.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#cloak_white",
+          "uv": [
+            13.0,
+            0.0,
+            14.0,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#cloak_white",
+          "uv": [
+            0.0,
+            2.0,
+            1.0,
+            3.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.25,
+        2.0,
+        3.0
+      ],
+      "to": [
+        0.75,
+        16.0,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#cloak_mesh",
+          "uv": [
+            15.25,
+            0.0,
+            15.75,
+            14.0
+          ]
+        },
+        "south": {
+          "texture": "#cloak_mesh",
+          "uv": [
+            0.25,
+            0.0,
+            0.75,
+            14.0
+          ]
+        },
+        "east": {
+          "texture": "#cloak_mesh",
+          "uv": [
+            3.0,
+            0.0,
+            13.0,
+            14.0
+          ]
+        },
+        "west": {
+          "texture": "#cloak_mesh",
+          "uv": [
+            3.0,
+            0.0,
+            13.0,
+            14.0
+          ]
+        }
+      },
+      "shade": false
+    },
+    {
+      "from": [
+        15.0,
+        0.0,
+        2.0
+      ],
+      "to": [
+        16.0,
+        16.0,
+        3.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#cloak_white",
+          "uv": [
+            0.0,
+            0.0,
+            1.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#cloak_white",
+          "uv": [
+            15.0,
+            0.0,
+            16.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#cloak_white",
+          "uv": [
+            13.0,
+            0.0,
+            14.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#cloak_white",
+          "uv": [
+            2.0,
+            0.0,
+            3.0,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#cloak_white",
+          "uv": [
+            15.0,
+            13.0,
+            16.0,
+            14.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        15.0,
+        0.0,
+        13.0
+      ],
+      "to": [
+        16.0,
+        16.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#cloak_white",
+          "uv": [
+            0.0,
+            0.0,
+            1.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#cloak_white",
+          "uv": [
+            15.0,
+            0.0,
+            16.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#cloak_white",
+          "uv": [
+            2.0,
+            0.0,
+            3.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#cloak_white",
+          "uv": [
+            13.0,
+            0.0,
+            14.0,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#cloak_white",
+          "uv": [
+            15.0,
+            2.0,
+            16.0,
+            3.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        15.25,
+        2.0,
+        3.0
+      ],
+      "to": [
+        15.75,
+        16.0,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#cloak_mesh",
+          "uv": [
+            0.25,
+            0.0,
+            0.75,
+            14.0
+          ]
+        },
+        "south": {
+          "texture": "#cloak_mesh",
+          "uv": [
+            15.25,
+            0.0,
+            15.75,
+            14.0
+          ]
+        },
+        "east": {
+          "texture": "#cloak_mesh",
+          "uv": [
+            3.0,
+            0.0,
+            13.0,
+            14.0
+          ]
+        },
+        "west": {
+          "texture": "#cloak_mesh",
+          "uv": [
+            3.0,
+            0.0,
+            13.0,
+            14.0
+          ]
+        }
+      },
+      "shade": false
+    },
+    {
+      "from": [
+        1.0,
+        5.0,
+        3.0
+      ],
+      "to": [
+        15.0,
+        6.0,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#lightwood",
+          "uv": [
+            1.0,
+            10.0,
+            15.0,
+            11.0
+          ]
+        },
+        "south": {
+          "texture": "#lightwood",
+          "uv": [
+            1.0,
+            10.0,
+            15.0,
+            11.0
+          ]
+        },
+        "east": {
+          "texture": "#lightwood",
+          "uv": [
+            3.0,
+            10.0,
+            13.0,
+            11.0
+          ]
+        },
+        "west": {
+          "texture": "#lightwood",
+          "uv": [
+            3.0,
+            10.0,
+            13.0,
+            11.0
+          ]
+        },
+        "up": {
+          "texture": "#lightwood",
+          "uv": [
+            1.0,
+            3.0,
+            15.0,
+            13.0
+          ]
+        },
+        "down": {
+          "texture": "#lightwood",
+          "uv": [
+            1.0,
+            3.0,
+            15.0,
+            13.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.0,
+        0.0,
+        7.5
+      ],
+      "to": [
+        15.0,
+        5.0,
+        8.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#cloak_white",
+          "uv": [
+            1.0,
+            11.0,
+            15.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#cloak_white",
+          "uv": [
+            1.0,
+            11.0,
+            15.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#cloak_white",
+          "uv": [
+            7.5,
+            11.0,
+            8.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#cloak_white",
+          "uv": [
+            7.5,
+            11.0,
+            8.5,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#cloak_white",
+          "uv": [
+            1.0,
+            7.5,
+            15.0,
+            8.5
+          ]
+        },
+        "down": {
+          "texture": "#cloak_white",
+          "uv": [
+            1.0,
+            7.5,
+            15.0,
+            8.5
+          ]
+        }
+      }
+    }
+  ]
+}

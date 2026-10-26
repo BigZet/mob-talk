@@ -1,0 +1,143 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "pub_stand_timetable_stand_timetable_53": "mobtalk:block/city2/furniture/pub_stand_timetable_stand_timetable_53",
+    "board_frame": "mobtalk:block/city2/furniture/board_frame",
+    "particle": "mobtalk:block/city2/furniture/pub_stand_timetable_stand_timetable_53"
+  },
+  "elements": [
+    {
+      "from": [
+        2.0,
+        0.0,
+        15.25
+      ],
+      "to": [
+        16.0,
+        12.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_stand_timetable_stand_timetable_53",
+          "uv": [
+            0.0,
+            4.0,
+            14.0,
+            16.0
+          ]
+        }
+      },
+      "shade": false
+    },
+    {
+      "from": [
+        1.0,
+        12.0,
+        14.75
+      ],
+      "to": [
+        16.0,
+        13.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#board_frame",
+          "uv": [
+            0.0,
+            3.0,
+            15.0,
+            4.0
+          ]
+        },
+        "south": {
+          "texture": "#board_frame",
+          "uv": [
+            1.0,
+            3.0,
+            16.0,
+            4.0
+          ]
+        },
+        "west": {
+          "texture": "#board_frame",
+          "uv": [
+            14.75,
+            3.0,
+            16.0,
+            4.0
+          ]
+        },
+        "up": {
+          "texture": "#board_frame",
+          "uv": [
+            1.0,
+            14.75,
+            16.0,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#board_frame",
+          "uv": [
+            1.0,
+            0.0,
+            16.0,
+            1.25
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.0,
+        0.0,
+        14.75
+      ],
+      "to": [
+        2.0,
+        12.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#board_frame",
+          "uv": [
+            14.0,
+            4.0,
+            15.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#board_frame",
+          "uv": [
+            1.0,
+            4.0,
+            2.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#board_frame",
+          "uv": [
+            0.0,
+            4.0,
+            1.25,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#board_frame",
+          "uv": [
+            14.75,
+            4.0,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    }
+  ]
+}
