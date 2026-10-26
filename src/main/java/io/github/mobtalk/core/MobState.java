@@ -446,6 +446,16 @@ public final class MobState {
     }
 
     /** Ends the long mood; the axes drift back from where they are. */
+    /** How long after a dark long mood its short, flat lines in the history still pull the model back into it. */
+    static final long ECHO_MILLIS = 20 * 60_000L;
+    /** The dark long mood that ended in the last {@link #ECHO_MILLIS} and is not back now; null otherwise. */
+    public MoodSpell pastDarkSpell(long now) {
+        MoodSpell past = null;
+        for (MoodSpell kind : MoodSpell.values()) if (kind.name().equals(lastSpell)) past = kind;
+        if (past == null || past.sign >= 0 || lastSpellAt <= 0 || now - lastSpellAt > ECHO_MILLIS) return null;
+        return past == spell() ? null : past;
+    }
+
     void end(Baseline baseline, long now, boolean byItself) {
         if (spell == null) return;
         anchor(baseline, now);

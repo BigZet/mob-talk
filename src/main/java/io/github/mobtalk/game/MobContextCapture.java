@@ -210,6 +210,8 @@ final class MobContextCapture {
     /** A walking mob that cannot path 10 blocks away in any of four directions is shut in: a pit, a pen, a cell. */
     static boolean trapped(ServerWorld world, net.minecraft.entity.mob.PathAwareEntity mob) {
         if (mob.isAiDisabled() || !(mob.getNavigation() instanceof net.minecraft.entity.ai.pathing.MobNavigation)) return false;
+        // In bed the path finder starts from the bed and finds no way out: «выпусти меня из камеры» from a wife at home.
+        if (mob.isSleeping()) return false;
         BlockPos origin = mob.getBlockPos();
         for (int[] step : new int[][]{{10, 0}, {-10, 0}, {0, 10}, {0, -10}}) {
             BlockPos away = origin.add(step[0], 0, step[1]);
