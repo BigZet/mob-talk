@@ -172,29 +172,54 @@ def floor_clock():
 
 def palm():
     m = Model()
-    # a fan of fronds on a hairy trunk out of an oak tub with iron hoops: 2.4 m, like in a sanatorium's foyer
+    # a crown of arching fronds on a shaggy trunk out of an oak tub with iron hoops: 2.4 m, like in a sanatorium's foyer
     m.box((3, 0, 3), (13, 9, 13), "tub_wood", down=None)
     for y in (1.5, 7):
         m.box((2.75, y, 2.75), (13.25, y + 1, 13.25), "iron_black", up=None, down=None)
     m.box((3.5, 8.75, 3.5), (12.5, 8.75, 12.5), "soil", faces=("up",))
-    m.box((7, 8.75, 7), (9, 30, 9), "trunk", down=None, up=None)
-    for i, (d, sgn) in enumerate((("x", 1), ("x", -1), ("z", 1), ("z", -1))):     # four fronds drooping to the sides
-        frond = Pic(f"frond{i}", lambda cv, W, H: cv.paste(palm_tex(), 0, 0))
+    m.box((6.75, 8.75, 6.75), (9.25, 29, 9.25), "trunk", down=None)
+    for y in (12, 16.5, 21, 25.5):                 # the old leaf bases round the trunk
+        m.box((6.5, y, 6.5), (9.5, y + 1.5, 9.5), "trunk", up=None, down=None)
+    top = 29
+    n = 0
+
+    def frond(d, sgn, y, rise, droop, l1, l2, w):
+        """A frond in two pieces: the stalk rising out of the crown, the leafy end arching over and down."""
+        nonlocal n
+        n += 1
+        pic = Pic(f"frond{n}", lambda cv, W, H: cv.paste(palm_tex(), 0, 0))
+        r1 = math.radians(rise)
+        ex, ey = 8 + sgn * l1 * math.cos(r1), y + l1 * math.sin(r1)
         if d == "x":
-            x0, x1 = (8, 16) if sgn > 0 else (0, 8)
-            rot = {"origin": [8, 30, 8], "axis": "z", "angle": -22.5 * sgn}
-            m.box((x0, 30, 5.5), (x1, 30, 10.5), "palm", faces=(), rot=rot, up=frond, down=frond)
+            a = rise * sgn
+            b = -droop * sgn
+            x0, x1 = (8, 8 + l1) if sgn > 0 else (8 - l1, 8)
+            m.box((x0, y, 8 - w / 2), (x1, y, 8 + w / 2), "palm", faces=(), rot={"origin": [8, y, 8], "axis": "z", "angle": a},
+                  up=pic, down=pic)
+            x0, x1 = (ex, ex + l2) if sgn > 0 else (ex - l2, ex)
+            m.box((x0, ey, 8 - w / 2), (x1, ey, 8 + w / 2), "palm", faces=(),
+                  rot={"origin": [round(ex, 3), round(ey, 3), 8], "axis": "z", "angle": b}, up=pic, down=pic)
         else:
-            z0, z1 = (8, 16) if sgn > 0 else (0, 8)
-            rot = {"origin": [8, 30, 8], "axis": "x", "angle": 22.5 * sgn}
-            m.box((5.5, 30, z0), (10.5, 30, z1), "palm", faces=(), rot=rot, up=frond, down=frond)
-    for i, y in enumerate((31.5, 32.5)):        # and two pairs across the diagonals, spread flat over the crown
-        frond = Pic(f"frond_d{i}", lambda cv, W, H: cv.paste(palm_tex(), 0, 0))
+            a = -rise * sgn
+            b = droop * sgn
+            z0, z1 = (8, 8 + l1) if sgn > 0 else (8 - l1, 8)
+            m.box((8 - w / 2, y, z0), (8 + w / 2, y, z1), "palm", faces=(), rot={"origin": [8, y, 8], "axis": "x", "angle": a},
+                  up=pic, down=pic)
+            z0, z1 = (ex, ex + l2) if sgn > 0 else (ex - l2, ex)
+            m.box((8 - w / 2, ey, z0), (8 + w / 2, ey, z1), "palm", faces=(),
+                  rot={"origin": [8, round(ey, 3), round(ex, 3)], "axis": "x", "angle": b}, up=pic, down=pic)
+
+    for d, sgn in (("x", 1), ("x", -1), ("z", 1), ("z", -1)):          # four big fronds arching out and down
+        frond(d, sgn, top, 22.5, 45, 6, 12, 8)
+    for d, sgn in (("x", 1), ("x", -1), ("z", 1), ("z", -1)):          # four younger ones above, still half raised
+        frond(d, sgn, top + 2, 45, 22.5, 5, 8, 6)
+    for i, y in enumerate((top + 0.5, top + 1.5)):                       # and two pairs across the diagonals
+        pic = Pic(f"frond_d{i}", lambda cv, W, H: cv.paste(palm_tex(), 0, 0))
         rot = {"origin": [8, y, 8], "axis": "y", "angle": 45}
         if i == 0:
-            m.box((0.5, y, 5.5), (15.5, y, 10.5), "palm", faces=(), rot=rot, up=frond, down=frond)
+            m.box((-4, y, 4.5), (20, y, 11.5), "palm", faces=(), rot=rot, up=pic, down=pic)
         else:
-            m.box((5.5, y, 0.5), (10.5, y, 15.5), "palm", faces=(), rot=rot, up=frond, down=frond)
+            m.box((4.5, y, -4), (11.5, y, 20), "palm", faces=(), rot=rot, up=pic, down=pic)
     return m
 
 

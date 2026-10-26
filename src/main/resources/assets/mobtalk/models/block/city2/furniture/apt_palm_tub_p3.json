@@ -1,0 +1,638 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "trunk": "mobtalk:block/city2/furniture/trunk",
+    "apt_palm_tub_frond1_44": "mobtalk:block/city2/furniture/apt_palm_tub_frond1_44",
+    "apt_palm_tub_frond2_44": "mobtalk:block/city2/furniture/apt_palm_tub_frond2_44",
+    "apt_palm_tub_frond3_44": "mobtalk:block/city2/furniture/apt_palm_tub_frond3_44",
+    "apt_palm_tub_frond4_44": "mobtalk:block/city2/furniture/apt_palm_tub_frond4_44",
+    "apt_palm_tub_frond5_44": "mobtalk:block/city2/furniture/apt_palm_tub_frond5_44",
+    "apt_palm_tub_frond6_44": "mobtalk:block/city2/furniture/apt_palm_tub_frond6_44",
+    "apt_palm_tub_frond7_44": "mobtalk:block/city2/furniture/apt_palm_tub_frond7_44",
+    "apt_palm_tub_frond8_44": "mobtalk:block/city2/furniture/apt_palm_tub_frond8_44",
+    "apt_palm_tub_frond_d0_44": "mobtalk:block/city2/furniture/apt_palm_tub_frond_d0_44",
+    "apt_palm_tub_frond_d1_44": "mobtalk:block/city2/furniture/apt_palm_tub_frond_d1_44",
+    "particle": "mobtalk:block/city2/furniture/trunk"
+  },
+  "elements": [
+    {
+      "from": [
+        6.75,
+        0.0,
+        6.75
+      ],
+      "to": [
+        9.25,
+        13.0,
+        9.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#trunk",
+          "uv": [
+            6.75,
+            3.0,
+            9.25,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#trunk",
+          "uv": [
+            6.75,
+            3.0,
+            9.25,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#trunk",
+          "uv": [
+            6.75,
+            3.0,
+            9.25,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#trunk",
+          "uv": [
+            6.75,
+            3.0,
+            9.25,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#trunk",
+          "uv": [
+            6.75,
+            6.75,
+            9.25,
+            9.25
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.5,
+        0.5,
+        6.5
+      ],
+      "to": [
+        9.5,
+        2.0,
+        9.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            14.0,
+            9.5,
+            15.5
+          ]
+        },
+        "south": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            14.0,
+            9.5,
+            15.5
+          ]
+        },
+        "east": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            14.0,
+            9.5,
+            15.5
+          ]
+        },
+        "west": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            14.0,
+            9.5,
+            15.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.5,
+        5.0,
+        6.5
+      ],
+      "to": [
+        9.5,
+        6.5,
+        9.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            9.5,
+            9.5,
+            11.0
+          ]
+        },
+        "south": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            9.5,
+            9.5,
+            11.0
+          ]
+        },
+        "east": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            9.5,
+            9.5,
+            11.0
+          ]
+        },
+        "west": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            9.5,
+            9.5,
+            11.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.5,
+        9.5,
+        6.5
+      ],
+      "to": [
+        9.5,
+        11.0,
+        9.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            5.0,
+            9.5,
+            6.5
+          ]
+        },
+        "south": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            5.0,
+            9.5,
+            6.5
+          ]
+        },
+        "east": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            5.0,
+            9.5,
+            6.5
+          ]
+        },
+        "west": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            5.0,
+            9.5,
+            6.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        8.0,
+        13.0,
+        4.0
+      ],
+      "to": [
+        14.0,
+        13.0,
+        12.0
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_palm_tub_frond1_44",
+          "uv": [
+            8.0,
+            4.0,
+            14.0,
+            12.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_palm_tub_frond1_44",
+          "uv": [
+            8.0,
+            4.0,
+            14.0,
+            12.0
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          13,
+          8
+        ],
+        "axis": "z",
+        "angle": 22.5
+      }
+    },
+    {
+      "from": [
+        2.0,
+        13.0,
+        4.0
+      ],
+      "to": [
+        8.0,
+        13.0,
+        12.0
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_palm_tub_frond2_44",
+          "uv": [
+            2.0,
+            4.0,
+            8.0,
+            12.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_palm_tub_frond2_44",
+          "uv": [
+            2.0,
+            4.0,
+            8.0,
+            12.0
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          13,
+          8
+        ],
+        "axis": "z",
+        "angle": -22.5
+      }
+    },
+    {
+      "from": [
+        4.0,
+        13.0,
+        8.0
+      ],
+      "to": [
+        12.0,
+        13.0,
+        14.0
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_palm_tub_frond3_44",
+          "uv": [
+            4.0,
+            8.0,
+            12.0,
+            14.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_palm_tub_frond3_44",
+          "uv": [
+            4.0,
+            2.0,
+            12.0,
+            8.0
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          13,
+          8
+        ],
+        "axis": "x",
+        "angle": -22.5
+      }
+    },
+    {
+      "from": [
+        4.0,
+        13.0,
+        2.0
+      ],
+      "to": [
+        12.0,
+        13.0,
+        8.0
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_palm_tub_frond4_44",
+          "uv": [
+            4.0,
+            2.0,
+            12.0,
+            8.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_palm_tub_frond4_44",
+          "uv": [
+            4.0,
+            8.0,
+            12.0,
+            14.0
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          13,
+          8
+        ],
+        "axis": "x",
+        "angle": 22.5
+      }
+    },
+    {
+      "from": [
+        8.0,
+        15.0,
+        5.0
+      ],
+      "to": [
+        13.0,
+        15.0,
+        11.0
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_palm_tub_frond5_44",
+          "uv": [
+            8.0,
+            5.0,
+            13.0,
+            11.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_palm_tub_frond5_44",
+          "uv": [
+            8.0,
+            5.0,
+            13.0,
+            11.0
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          15,
+          8
+        ],
+        "axis": "z",
+        "angle": 45
+      }
+    },
+    {
+      "from": [
+        3.0,
+        15.0,
+        5.0
+      ],
+      "to": [
+        8.0,
+        15.0,
+        11.0
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_palm_tub_frond6_44",
+          "uv": [
+            3.0,
+            5.0,
+            8.0,
+            11.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_palm_tub_frond6_44",
+          "uv": [
+            3.0,
+            5.0,
+            8.0,
+            11.0
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          15,
+          8
+        ],
+        "axis": "z",
+        "angle": -45
+      }
+    },
+    {
+      "from": [
+        5.0,
+        15.0,
+        8.0
+      ],
+      "to": [
+        11.0,
+        15.0,
+        13.0
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_palm_tub_frond7_44",
+          "uv": [
+            5.0,
+            8.0,
+            11.0,
+            13.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_palm_tub_frond7_44",
+          "uv": [
+            5.0,
+            3.0,
+            11.0,
+            8.0
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          15,
+          8
+        ],
+        "axis": "x",
+        "angle": -45
+      }
+    },
+    {
+      "from": [
+        5.0,
+        15.0,
+        3.0
+      ],
+      "to": [
+        11.0,
+        15.0,
+        8.0
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_palm_tub_frond8_44",
+          "uv": [
+            5.0,
+            3.0,
+            11.0,
+            8.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_palm_tub_frond8_44",
+          "uv": [
+            5.0,
+            8.0,
+            11.0,
+            13.0
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          15,
+          8
+        ],
+        "axis": "x",
+        "angle": 45
+      }
+    },
+    {
+      "from": [
+        -4.0,
+        13.5,
+        4.5
+      ],
+      "to": [
+        20.0,
+        13.5,
+        11.5
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_palm_tub_frond_d0_44",
+          "uv": [
+            -4.0,
+            4.5,
+            20.0,
+            11.5
+          ]
+        },
+        "down": {
+          "texture": "#apt_palm_tub_frond_d0_44",
+          "uv": [
+            -4.0,
+            4.5,
+            20.0,
+            11.5
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          13.5,
+          8
+        ],
+        "axis": "y",
+        "angle": 45
+      }
+    },
+    {
+      "from": [
+        4.5,
+        14.5,
+        -4.0
+      ],
+      "to": [
+        11.5,
+        14.5,
+        20.0
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_palm_tub_frond_d1_44",
+          "uv": [
+            4.5,
+            -4.0,
+            11.5,
+            20.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_palm_tub_frond_d1_44",
+          "uv": [
+            4.5,
+            -4.0,
+            11.5,
+            20.0
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          14.5,
+          8
+        ],
+        "axis": "y",
+        "angle": 45
+      }
+    }
+  ]
+}

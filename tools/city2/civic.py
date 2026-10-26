@@ -100,6 +100,19 @@ class Civic(H.House):
         self.voids()
         return t
 
+    # -------------------------------------------------------------- a staircase not painted like a block of flats'
+    def room(self, bx, bz, floor):
+        r = super().room(bx, bz, floor)
+        if r and r[0] == "stair" and self.s.get("stair_finish"):
+            return ("stair", self.s["stair_finish"], r[2], r[3])
+        return r
+
+    def at(self, bx, y, bz, name, props=None):
+        fin = self.s.get("stair_finish")
+        if fin and props and "paint_stair" in props.values():
+            props = {k: (fin if v == "paint_stair" else v) for k, v in props.items()}
+        super().at(bx, y, bz, name, props)
+
     # -------------------------------------------------------------- the halls two storeys high
     def voids(self):
         """Rooms of floor k whose letters the series lists in "voids"[k]: the slab under them is taken out, and with it the
@@ -576,7 +589,7 @@ def school(colour="silicate", seed=0):
 # from its own porch too). The middle: the entrance hall and the staircase, a wing with the kitchen and the doctor's
 # below and the music hall above, the head's office and a hall upstairs.
 KL, KD = 117, 32
-_KG_MIRROR = {"a": "A", "b": "B", "r": "R", "u": "U", "e": "E", "f": "F", "g": "G", "h": "H"}
+_KG_MIRROR = {"a": "A", "b": "J", "r": "R", "u": "U", "e": "K", "f": "F", "g": "G", "h": "H"}   # never B, D, E, W, S, X: walls
 
 
 def _kg2(k):
@@ -651,10 +664,10 @@ def _kg2(k):
     return p
 
 
-_KG2_ROOMS = {c: ("S", kind) for cs, kind in (("aAeE", "kid_play"), ("bBfF", "kid_sleep"), ("rRgG", "kid_lockers"),
+_KG2_ROOMS = {c: ("S", kind) for cs, kind in (("aAeK", "kid_play"), ("bJfF", "kid_sleep"), ("rRgG", "kid_lockers"),
                                                ("uUhH", "kid_wc")) for c in cs} | {
-    "v": ("S", "kg_vestibule"), "q": ("S", "kitchen_pub"), "z": ("S", "medical"), "k": ("S", "kg_corridor"),
-    "o": ("S", "office"), "m": ("S", "music")}
+    "v": ("S", "kg_vestibule"), "q": ("S", "kitchen_pub"), "z": ("S", "kg_medical"), "k": ("S", "kg_corridor"),
+    "o": ("S", "kg_office"), "m": ("S", "music")}
 
 
 def kindergarten(colour="white", seed=0):
@@ -662,8 +675,18 @@ def kindergarten(colour="white", seed=0):
     if "kindergarten2" not in S.SERIES:
         _series("kindergarten2", _kg2(2), _KG2_ROOMS, 2, floor_plans={1: _kg2(1).rows()},
                 pstairs=[(22, 20, SO), (KL - 1 - 28, 20, SO), (59, 11, N)],
-                curtains={"kid_sleep": "apt_curtain_gold", "kid_play": "apt_curtain_olive", "music": "apt_curtain_gold"},
-                frame="wood")
+                curtains={"kid_sleep": "apt_curtain_gold", "kid_play": "apt_curtain_olive", "music": "apt_curtain_gold",
+                          "kg_office": "apt_curtain_olive"},
+                frame="wood", stair_finish="paper_beige")
+        # a kindergarten's halls are papered warm and light, not in a block of flats' green oil paint
+        for kind, (fin, fl) in {"kg_corridor": ("paper_geo", "floor_lino_brown"), "kg_vestibule": ("paper_geo", "floor_terrazzo"),
+                                "kid_lockers": ("paper_beige", "floor_lino_brown"), "kg_medical": ("tile_bath", "floor_lino_beige"),
+                                "kg_office": ("paper_stripe", "floor_parquet")}.items():
+            H.FINISH[kind], H.FLOOR[kind] = fin, fl
+        for kind, pid in KG_LAMPS.items():
+            if kind not in ("medical", "office"):
+                H.LAMPS[kind] = [pid]
+        H.LAMPS["kg_medical"], H.LAMPS["kg_office"] = ["apt_ceiling_plate"], ["apt_lamp_orange"]
     h = Civic("kindergarten2", 1, 2, colour, seed=seed + 5)
     h.build()
     return compose.compose([compose.Part(h, 0, 0, 0)])
@@ -1156,6 +1179,38 @@ def gym(rm, flat):
 
 # ---------------------------------------------------------------- the kindergarten's rooms (public-refs/sheets int_kg_*)
 
+KG_LAMPS = {"kid_play": "apt_lamp_ball", "kid_sleep": "apt_ceiling_plate", "kid_lockers": "apt_lamp_ball",
+            "kid_wc": "apt_ceiling_plate", "kg_vestibule": "apt_lamp_ball", "kg_corridor": "apt_lamp_ball",
+            "music": "apt_chandelier", "medical": "apt_ceiling_plate", "office": "apt_lamp_orange"}
+
+
+def kg_lamps(rm, step=4):
+    """The kindergarten's lamps: opal balls in the group rooms and the halls, plates in the bedrooms and the toilets,
+    chandeliers in the music hall; never the offices' tube lamps."""
+    pid = KG_LAMPS.get(rm.kind, "apt_lamp_ball")
+    x0, z0, x1, z1 = _box(rm)
+    y = rm.s + rm.h.top
+    for x in range(x0 + 2, x1, step):
+        for z in range(z0 + 2, z1, step):
+            if (x, z) in rm.cells and rm.h.tpl.get(rm.h.ox + x, y, rm.h.oz + z) is None:
+                rm.h.at(x, y, z, pid, {"facing": "north", "lit": "true"})
+
+
+def _hang(rm, pid, height=1, tries=3):
+    """A picture on the wall only where nothing stands under it (a tall shelf's top pokes into the row above)."""
+    y = rm.s + 1 + height
+    for x, z, f in rm.spots():
+        if tries <= 0:
+            return False
+        below = rm.h.tpl.get(rm.h.ox + x, y - 1, rm.h.oz + z)
+        floor = rm.h.tpl.get(rm.h.ox + x, rm.s + 1, rm.h.oz + z)
+        if below is None and floor is None and rm.fits(pid, x, y, z, f):
+            rm.write(pid, x, y, z, f)
+            tries -= 1
+            return True
+    return False
+
+
 def kid_lockers2(rm, flat):
     """The changing room: banks of rainbow lockers round the walls, low padded benches before them, the parents' board."""
     _windows(rm)
@@ -1165,9 +1220,9 @@ def kid_lockers2(rm, flat):
     colour = rm.r.choice(["red", "blue", "green", "yellow"])
     for _ in range(2):
         rm.table(f"pub_kid_bench_{colour}", "apt_stool", chairs=0)
-    rm.against("apt_notice_board", height=1)
-    rm.against("pub_nature_calendar", height=1)
-    public_lamps(rm)
+    _hang(rm, "apt_notice_board")
+    _hang(rm, "pub_nature_calendar")
+    kg_lamps(rm)
 
 
 def kid_wc2(rm, flat):
@@ -1175,11 +1230,11 @@ def kid_wc2(rm, flat):
     the potty rack."""
     _windows(rm)
     rm.against("pub_kid_washbasins")
-    rm.against("pub_towel_cabinet", height=1)
+    _hang(rm, "pub_towel_cabinet")
     for _ in range(2):
         rm.against("apt_toilet")
     rm.against("pub_potty_rack")
-    public_lamps(rm)
+    kg_lamps(rm)
 
 
 def kid_play2(rm, flat):
@@ -1194,10 +1249,11 @@ def kid_play2(rm, flat):
                 "pub_doll_bed", "pub_easel", "apt_toy_box", "apt_rocking_horse", "pub_soft_blocks", "pub_kid_slide",
                 "apt_piano"):
         rm.against(pid)
-    for pid in ("pub_poster_abc", "apt_picture_bears", "pub_nature_calendar", "apt_wall_clock"):
-        rm.against(pid, height=1)
+    for pid in ("pub_poster_abc", "apt_picture_bears", "pub_nature_calendar", "apt_picture_bears"):
+        _hang(rm, pid)
+    rm.against("apt_wall_clock", height=2)
     rm.rug(rm.r.choice(["apt_rug", "apt_rug_blue"]))
-    public_lamps(rm)
+    kg_lamps(rm)
 
 
 def kid_sleep2(rm, flat):
@@ -1205,7 +1261,14 @@ def kid_sleep2(rm, flat):
     import public
     _windows(rm)
     public.kid_sleep(rm, flat)
-    rm.against("apt_wardrobe")
+    for pid in ("apt_wardrobe", "apt_wardrobe", "pub_toy_shelf", "apt_bookcase", "apt_ficus", "pub_waste_bin"):
+        rm.against(pid)
+    if rm.against("apt_desk", name="desk"):                # the nanny's desk for the quiet hour
+        rm.front("apt_chair", "desk", facing_back=True)
+    for _ in range(6):                                     # the children's chairs along the wall for their clothes
+        rm.against("pub_kid_chair_" + rm.r.choice(["red", "yellow", "green", "blue"]))
+    _hang(rm, "apt_picture_bears")
+    rm.against("apt_wall_clock", height=2)
 
 
 def music2(rm, flat):
@@ -1232,22 +1295,64 @@ def music2(rm, flat):
         rm.against(pid)
     for _ in range(2):
         rm.table("pub_gym_mat", "apt_stool", chairs=0)
-    for pid in ("pub_poster_abc", "apt_wall_clock"):
-        rm.against(pid, height=1)
-    public_lamps(rm)
+    _hang(rm, "pub_poster_abc")
+    rm.against("apt_wall_clock", height=2)
+    kg_lamps(rm)
 
 
 def kg_vestibule2(rm, flat):
     """The kindergarten's entrance hall: benches for the parents, the notice board, the stand, palms."""
     _windows(rm)
-    for pid in ("apt_notice_board", "pub_stand_school", "pub_nature_calendar"):
-        rm.against(pid, height=1)
+    for pid in ("apt_notice_board", "pub_stand_school", "pub_nature_calendar", "apt_picture_bears"):
+        _hang(rm, pid)
     for _ in range(2):
         rm.against("pub_kid_bench_" + rm.r.choice(["red", "blue", "green", "yellow"]))
-    for _ in range(2):
+    for _ in range(3):
         rm.against(rm.r.choice(["apt_palm_tub", "apt_ficus"]))
-    rm.against("pub_waste_bin")
-    public_lamps(rm)
+    for pid in ("pub_aquarium", "pub_trophy_cabinet", "pub_nature_shelf", "pub_kid_bench_red", "pub_kid_bench_blue",
+                "pub_waste_bin", "apt_hall_mirror"):
+        rm.against(pid)
+    rm.against("apt_wall_clock", height=2)
+    kg_lamps(rm)
+
+
+def kg_medical(rm, flat):
+    """The kindergarten's doctor's room: the couch, the scales and the height meter, the medicine cabinets, the
+    steriliser, the fridge for the vaccines, the nurse's desk, the eye chart."""
+    _windows(rm)
+    for pid in ("pub_couch", "pub_med_scales", "pub_height_meter", "pub_medicine_cabinet", "pub_medicine_cabinet",
+                "pub_sterilizer", "apt_fridge", "apt_washbasin", "pub_instrument_table", "pub_waste_bin"):
+        rm.against(pid)
+    if rm.against("apt_desk", name="desk"):
+        rm.front("apt_chair", "desk", facing_back=True)
+    _hang(rm, "pub_eye_chart")
+    rm.against("apt_wall_clock", height=2)
+    kg_lamps(rm)
+
+
+def kg_corridor2(rm, flat):
+    """The upstairs hall: benches, palms, the children's drawings on the walls, the parents' corner."""
+    _windows(rm, flowers=0.5)
+    for pid in ("pub_kid_bench_yellow", "pub_kid_bench_green", "apt_palm_tub", "apt_ficus", "pub_nature_shelf",
+                "pub_waste_bin"):
+        rm.against(pid)
+    for pid in ("apt_notice_board", "pub_poster_abc", "apt_picture_bears", "pub_nature_calendar"):
+        _hang(rm, pid)
+    rm.against("apt_wall_clock", height=2)
+    kg_lamps(rm)
+
+
+def kg_office(rm, flat):
+    """The head's office (заведующая): the desk with the telephone, chairs for the parents, the bookcases, the safe."""
+    _windows(rm, flowers=0.6)
+    if rm.against("apt_desk", name="desk"):
+        rm.front("apt_chair", "desk", facing_back=True)
+    for pid in ("apt_bookcase", "apt_bookcase", "apt_chair", "apt_chair", "apt_ficus", "pub_waste_bin"):
+        rm.against(pid)
+    rm.against("apt_wall_phone", height=1)
+    _hang(rm, "apt_picture_bears")
+    rm.against("apt_wall_clock", height=2)
+    kg_lamps(rm)
 
 
 # ---------------------------------------------------------------- the polyclinic's rooms (public-refs/sheets int_clinic_*)
@@ -1469,8 +1574,9 @@ def clinic_conference(rm, flat):
     for z in range(z0 + 1, z1 - 2, 2):
         for x in range(x0 + 1, x1):
             _put(rm, "apt_chair", x, z, "south", backed=False)
-    for pid in ("pub_stand_school", "apt_wall_clock", "pub_doctor_schedule"):
+    for pid in ("pub_stand_school", "pub_doctor_schedule"):
         rm.against(pid, height=1)
+    rm.against("apt_wall_clock", height=2)
     public_lamps(rm)
 
 
@@ -1520,8 +1626,9 @@ def clinic_waiting(rm, flat):
     for pid in ("pub_queue_terminal", "pub_drinking_fountain", "pub_wheelchair", "apt_palm_tub", "apt_ficus", "apt_palm_tub",
                 "pub_waste_bin"):
         rm.against(pid)
-    for pid in ("pub_doctor_schedule", "pub_stand_school", "apt_wall_clock"):
+    for pid in ("pub_doctor_schedule", "pub_stand_school"):
         rm.against(pid, height=1)
+    rm.against("apt_wall_clock", height=2)
     _seat_rows(rm, "east")
     _along_walls(rm)
     public_lamps(rm)
@@ -1549,8 +1656,9 @@ def clinic_hall(rm, flat):
     _windows(rm)
     for _ in range(2):
         rm.against("pub_queue_terminal")
-    for pid in ("pub_doctor_schedule", "pub_doctor_schedule", "pub_stand_school", "apt_notice_board", "apt_wall_clock"):
+    for pid in ("pub_doctor_schedule", "pub_doctor_schedule", "pub_stand_school", "apt_notice_board"):
         rm.against(pid, height=1)
+    rm.against("apt_wall_clock", height=2)
     for pid in ("pub_wheelchair", "apt_palm_tub", "apt_palm_tub", "pub_fire_cabinet", "pub_waste_bin"):
         rm.against(pid)
     _seat_rows(rm, "north")
@@ -1631,6 +1739,7 @@ def _hook():
                      ("library", library), ("canteen", canteen), ("assembly", assembly),
                      ("gym", gym), ("kid_lockers", kid_lockers2), ("kid_wc", kid_wc2), ("kid_play", kid_play2),
                      ("kid_sleep", kid_sleep2), ("music", music2), ("kg_vestibule", kg_vestibule2),
+                     ("kg_medical", kg_medical), ("kg_corridor", kg_corridor2), ("kg_office", kg_office),
                      ("doctor", clinic_doctor), ("eye", clinic_eye), ("ent", clinic_ent), ("dentist", clinic_dentist),
                      ("xray", clinic_xray), ("lab", clinic_lab), ("physio", clinic_physio), ("treatment", clinic_treatment),
                      ("dressing", clinic_dressing), ("day_ward", clinic_day_ward), ("registry", clinic_registry),

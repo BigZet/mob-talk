@@ -1,49 +1,50 @@
 {
   "parent": "minecraft:block/block",
   "textures": {
-    "apt_palm_tub_frond_d1_44": "mobtalk:block/city2/furniture/apt_palm_tub_frond_d1_44",
-    "particle": "mobtalk:block/city2/furniture/apt_palm_tub_frond_d1_44"
+    "apt_palm_tub_frond4_43": "mobtalk:block/city2/furniture/apt_palm_tub_frond4_43",
+    "apt_palm_tub_frond4_45": "mobtalk:block/city2/furniture/apt_palm_tub_frond4_45",
+    "particle": "mobtalk:block/city2/furniture/apt_palm_tub_frond4_43"
   },
   "elements": [
     {
       "from": [
-        5.5,
-        0.5,
-        0.5
+        4.0,
+        15.2961,
+        6.4567
       ],
       "to": [
-        10.5,
-        0.5,
-        15.5
+        12.0,
+        15.2961,
+        18.4567
       ],
       "faces": {
         "up": {
-          "texture": "#apt_palm_tub_frond_d1_44",
+          "texture": "#apt_palm_tub_frond4_43",
           "uv": [
-            5.5,
-            0.5,
-            10.5,
-            15.5
+            4.0,
+            6.4567,
+            12.0,
+            18.4567
           ]
         },
         "down": {
-          "texture": "#apt_palm_tub_frond_d1_44",
+          "texture": "#apt_palm_tub_frond4_45",
           "uv": [
-            5.5,
-            0.5,
-            10.5,
-            15.5
+            4.0,
+            -2.4567,
+            12.0,
+            9.5433
           ]
         }
       },
       "rotation": {
         "origin": [
           8,
-          0.5,
-          8
+          15.296,
+          18.457
         ],
-        "axis": "y",
-        "angle": 45
+        "axis": "x",
+        "angle": -45
       }
     }
   ]

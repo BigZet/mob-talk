@@ -63,7 +63,8 @@ final class FurnitureUse {
             Map.entry("pub_kid_locker_bank", 2), Map.entry("pub_dish_cupboard", 1), Map.entry("pub_potty_rack", 1),
             // the polyclinic's
             Map.entry("pub_pharmacy_showcase", 2), Map.entry("pub_sterilizer", 1), Map.entry("pub_instrument_table", 1),
-            Map.entry("pub_medicine_cabinet", 1), Map.entry("pub_card_files", 2));
+            Map.entry("pub_medicine_cabinet", 1), Map.entry("pub_card_files", 2),
+            Map.entry("pub_toy_shelf", 2), Map.entry("pub_towel_cabinet", 1), Map.entry("pub_ball_rack", 1));
 
     /** Pieces that are a lamp and a cupboard at once open below this height (pixels above their placed cell), switch above it. */
     private static final Map<String, Double> LAMP_ABOVE = Map.of("apt_nightstand", 9.5, "apt_desk", 13.0, "apt2_tv_stand", 8.75,
@@ -180,6 +181,40 @@ final class FurnitureUse {
                 player.sendMessage(Text.translatable("mobtalk.furniture.physio"), true);
             }
             case "pub_iv_stand" -> drip(sw, pos, facing);
+            // the kindergarten's
+            case "pub_toy_kitchen" -> stove(sw, pos, true);
+            case "pub_doll_bed" -> lullaby(sw, pos);
+            case "pub_easel" -> {
+                sw.playSound(null, pos, SoundEvents.ITEM_BOOK_PAGE_TURN, SoundCategory.BLOCKS, 0.7f, 1.3f);
+                player.sendMessage(Text.translatable("mobtalk.furniture.easel." + sw.random.nextInt(3)), true);
+            }
+            case "pub_soft_blocks" -> {
+                sw.playSound(null, pos, SoundEvents.ENTITY_SLIME_JUMP_SMALL, SoundCategory.BLOCKS, 0.8f, 0.9f);
+                later(sw, 6, () -> sw.playSound(null, pos, SoundEvents.ENTITY_SLIME_JUMP_SMALL, SoundCategory.BLOCKS, 0.6f, 1.1f));
+            }
+            case "pub_kid_slide" -> {
+                // down the chute to its foot, a block in front of the piece
+                Vec3d foot = front(pos, facing, 1, -4);
+                player.requestTeleport(foot.x, foot.y, foot.z);
+                sw.playSound(null, pos, SoundEvents.ENTITY_PLAYER_SMALL_FALL, SoundCategory.BLOCKS, 0.8f, 1.4f);
+                sw.playSound(null, pos, SoundEvents.ITEM_ELYTRA_FLYING, SoundCategory.BLOCKS, 0.2f, 2.0f);
+            }
+            case "pub_puppet_theatre" -> {
+                player.sendMessage(Text.translatable("mobtalk.furniture.puppet." + sw.random.nextInt(3)), true);
+                play(sw, pos.up(), SoundEvents.BLOCK_NOTE_BLOCK_PLING, new int[][] {{12, 0}, {16, 4}, {19, 4}, {24, 6}}, 0.6f);
+            }
+            case "pub_nature_calendar" -> {
+                String w = sw.isRaining() ? (sw.getBiome(pos).value().isCold(pos) ? "snow" : "rain") : "sun";
+                player.sendMessage(Text.translatable("mobtalk.furniture.calendar", Text.translatable("mobtalk.furniture.calendar." + w)), true);
+            }
+            case "pub_nature_shelf" -> {
+                Vec3d c = Vec3d.ofBottomCenter(pos).add(0, 1.0, 0);
+                sw.playSound(null, pos, SoundEvents.BLOCK_WATER_AMBIENT, SoundCategory.BLOCKS, 0.4f, 1.9f);
+                for (int i = 0; i < 6; i++)
+                    later(sw, i * 4, () -> sw.spawnParticles(ParticleTypes.FALLING_WATER, c.x, c.y, c.z, 4, 0.3, 0.05, 0.2, 0));
+                player.sendMessage(Text.translatable("mobtalk.furniture.nature"), true);
+            }
+            case "pub_poster_abc" -> player.sendMessage(Text.translatable("mobtalk.furniture.abc." + sw.random.nextInt(3)), true);
             default -> { return null; }
         }
         return ActionResult.CONSUME;
@@ -197,7 +232,9 @@ final class FurnitureUse {
                  "pub_school_bell", "pub_menu_board", "pub_kid_washbasins", "pub_aquarium", "pub_instruments", "pub_stand_timetable", "pub_stand_school", "pub_wall_newspaper",
                  "pub_registry_window_1", "pub_registry_window_2", "pub_registry_window_3", "pub_registry_window_4", "pub_registry_window_5",
                  "pub_registry_window_6", "pub_queue_terminal", "pub_doctor_schedule", "pub_shoe_cover_machine", "pub_cloak_counter",
-                 "pub_height_meter", "pub_xray", "pub_dental_unit", "pub_ent_unit", "pub_lab_table", "pub_physio_unit", "pub_iv_stand" -> true;
+                 "pub_height_meter", "pub_xray", "pub_dental_unit", "pub_ent_unit", "pub_lab_table", "pub_physio_unit", "pub_iv_stand",
+                 "pub_toy_kitchen", "pub_doll_bed", "pub_easel", "pub_soft_blocks", "pub_kid_slide", "pub_puppet_theatre",
+                 "pub_nature_calendar", "pub_nature_shelf", "pub_poster_abc" -> true;
             default -> false;
         };
     }

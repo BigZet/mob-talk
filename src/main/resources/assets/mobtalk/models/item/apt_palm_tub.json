@@ -5,10 +5,20 @@
     "iron_black": "mobtalk:block/city2/furniture/iron_black",
     "soil": "mobtalk:block/city2/furniture/soil",
     "trunk": "mobtalk:block/city2/furniture/trunk",
-    "apt_palm_tub_frond0_44": "mobtalk:block/city2/furniture/apt_palm_tub_frond0_44",
     "apt_palm_tub_frond1_44": "mobtalk:block/city2/furniture/apt_palm_tub_frond1_44",
+    "apt_palm_tub_frond1_54": "mobtalk:block/city2/furniture/apt_palm_tub_frond1_54",
     "apt_palm_tub_frond2_44": "mobtalk:block/city2/furniture/apt_palm_tub_frond2_44",
+    "apt_palm_tub_frond2_34": "mobtalk:block/city2/furniture/apt_palm_tub_frond2_34",
     "apt_palm_tub_frond3_44": "mobtalk:block/city2/furniture/apt_palm_tub_frond3_44",
+    "apt_palm_tub_frond3_45": "mobtalk:block/city2/furniture/apt_palm_tub_frond3_45",
+    "apt_palm_tub_frond3_43": "mobtalk:block/city2/furniture/apt_palm_tub_frond3_43",
+    "apt_palm_tub_frond4_44": "mobtalk:block/city2/furniture/apt_palm_tub_frond4_44",
+    "apt_palm_tub_frond4_43": "mobtalk:block/city2/furniture/apt_palm_tub_frond4_43",
+    "apt_palm_tub_frond4_45": "mobtalk:block/city2/furniture/apt_palm_tub_frond4_45",
+    "apt_palm_tub_frond5_44": "mobtalk:block/city2/furniture/apt_palm_tub_frond5_44",
+    "apt_palm_tub_frond6_44": "mobtalk:block/city2/furniture/apt_palm_tub_frond6_44",
+    "apt_palm_tub_frond7_44": "mobtalk:block/city2/furniture/apt_palm_tub_frond7_44",
+    "apt_palm_tub_frond8_44": "mobtalk:block/city2/furniture/apt_palm_tub_frond8_44",
     "apt_palm_tub_frond_d0_44": "mobtalk:block/city2/furniture/apt_palm_tub_frond_d0_44",
     "apt_palm_tub_frond_d1_44": "mobtalk:block/city2/furniture/apt_palm_tub_frond_d1_44",
     "particle": "mobtalk:block/city2/furniture/tub_wood"
@@ -16,14 +26,14 @@
   "elements": [
     {
       "from": [
-        5.5385,
-        0.0,
-        5.5385
+        5.7199,
+        -0.0,
+        5.7199
       ],
       "to": [
-        10.4615,
-        4.4308,
-        10.4615
+        10.2801,
+        4.1041,
+        10.2801
       ],
       "faces": {
         "north": {
@@ -75,14 +85,14 @@
     },
     {
       "from": [
-        5.4154,
-        0.7385,
-        5.4154
+        5.6059,
+        0.684,
+        5.6059
       ],
       "to": [
-        10.5846,
-        1.2308,
-        10.5846
+        10.3941,
+        1.14,
+        10.3941
       ],
       "faces": {
         "north": {
@@ -125,14 +135,14 @@
     },
     {
       "from": [
-        5.4154,
-        3.4462,
-        5.4154
+        5.6059,
+        3.1921,
+        5.6059
       ],
       "to": [
-        10.5846,
-        3.9385,
-        10.5846
+        10.3941,
+        3.6481,
+        10.3941
       ],
       "faces": {
         "north": {
@@ -175,14 +185,14 @@
     },
     {
       "from": [
-        5.7846,
-        4.3077,
-        5.7846
+        5.9479,
+        3.9901,
+        5.9479
       ],
       "to": [
-        10.2154,
-        4.3077,
-        10.2154
+        10.0521,
+        3.9901,
+        10.0521
       ],
       "faces": {
         "up": {
@@ -198,130 +208,298 @@
     },
     {
       "from": [
-        7.5077,
-        4.3077,
-        7.5077
+        7.43,
+        3.9901,
+        7.43
       ],
       "to": [
-        8.4923,
-        14.7692,
-        8.4923
+        8.57,
+        13.2244,
+        8.57
       ],
       "faces": {
         "north": {
           "texture": "#trunk",
           "uv": [
-            7.0,
-            2.0,
-            9.0,
+            6.75,
+            3.0,
+            9.25,
             23.25
           ]
         },
         "south": {
           "texture": "#trunk",
           "uv": [
-            7.0,
-            2.0,
-            9.0,
+            6.75,
+            3.0,
+            9.25,
             23.25
           ]
         },
         "east": {
           "texture": "#trunk",
           "uv": [
-            7.0,
-            2.0,
-            9.0,
+            6.75,
+            3.0,
+            9.25,
             23.25
           ]
         },
         "west": {
           "texture": "#trunk",
           "uv": [
-            7.0,
-            2.0,
-            9.0,
+            6.75,
+            3.0,
+            9.25,
             23.25
           ]
+        },
+        "up": {
+          "texture": "#trunk",
+          "uv": [
+            6.75,
+            6.75,
+            9.25,
+            9.25
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        7.316,
+        5.4722,
+        7.316
+      ],
+      "to": [
+        8.684,
+        6.1562,
+        8.684
+      ],
+      "faces": {
+        "north": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            2.5,
+            9.5,
+            4.0
+          ]
+        },
+        "south": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            2.5,
+            9.5,
+            4.0
+          ]
+        },
+        "east": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            2.5,
+            9.5,
+            4.0
+          ]
+        },
+        "west": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            2.5,
+            9.5,
+            4.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        7.316,
+        7.5243,
+        7.316
+      ],
+      "to": [
+        8.684,
+        8.2083,
+        8.684
+      ],
+      "faces": {
+        "north": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            14.0,
+            9.5,
+            15.5
+          ]
+        },
+        "south": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            14.0,
+            9.5,
+            15.5
+          ]
+        },
+        "east": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            14.0,
+            9.5,
+            15.5
+          ]
+        },
+        "west": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            14.0,
+            9.5,
+            15.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        7.316,
+        9.5763,
+        7.316
+      ],
+      "to": [
+        8.684,
+        10.2603,
+        8.684
+      ],
+      "faces": {
+        "north": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            9.5,
+            9.5,
+            11.0
+          ]
+        },
+        "south": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            9.5,
+            9.5,
+            11.0
+          ]
+        },
+        "east": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            9.5,
+            9.5,
+            11.0
+          ]
+        },
+        "west": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            9.5,
+            9.5,
+            11.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        7.316,
+        11.6284,
+        7.316
+      ],
+      "to": [
+        8.684,
+        12.3124,
+        8.684
+      ],
+      "faces": {
+        "north": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            5.0,
+            9.5,
+            6.5
+          ]
+        },
+        "south": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            5.0,
+            9.5,
+            6.5
+          ]
+        },
+        "east": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            5.0,
+            9.5,
+            6.5
+          ]
+        },
+        "west": {
+          "texture": "#trunk",
+          "uv": [
+            6.5,
+            5.0,
+            9.5,
+            6.5
+          ]
         }
       }
     },
     {
       "from": [
         8.0,
-        14.7692,
-        6.7692
+        13.2244,
+        6.1759
       ],
       "to": [
-        11.9385,
-        14.7692,
-        9.2308
+        10.7361,
+        13.2244,
+        9.8241
       ],
       "faces": {
         "up": {
-          "texture": "#apt_palm_tub_frond0_44",
+          "texture": "#apt_palm_tub_frond1_44",
           "uv": [
             8.0,
-            5.5,
-            16.0,
-            10.5
+            4.0,
+            14.0,
+            12.0
           ]
         },
         "down": {
-          "texture": "#apt_palm_tub_frond0_44",
+          "texture": "#apt_palm_tub_frond1_44",
           "uv": [
             8.0,
-            5.5,
-            16.0,
-            10.5
+            4.0,
+            14.0,
+            12.0
           ]
         }
       },
       "rotation": {
         "origin": [
           8.0,
-          14.7692,
-          8.0
-        ],
-        "axis": "z",
-        "angle": -22.5
-      }
-    },
-    {
-      "from": [
-        4.0615,
-        14.7692,
-        6.7692
-      ],
-      "to": [
-        8.0,
-        14.7692,
-        9.2308
-      ],
-      "faces": {
-        "up": {
-          "texture": "#apt_palm_tub_frond1_44",
-          "uv": [
-            0.0,
-            5.5,
-            8.0,
-            10.5
-          ]
-        },
-        "down": {
-          "texture": "#apt_palm_tub_frond1_44",
-          "uv": [
-            0.0,
-            5.5,
-            8.0,
-            10.5
-          ]
-        }
-      },
-      "rotation": {
-        "origin": [
-          8.0,
-          14.7692,
+          13.2244,
           8.0
         ],
         "axis": "z",
@@ -330,80 +508,162 @@
     },
     {
       "from": [
-        6.7692,
-        14.7692,
-        8.0
+        10.5278,
+        14.2715,
+        6.1759
       ],
       "to": [
-        9.2308,
-        14.7692,
-        11.9385
+        16.0,
+        14.2715,
+        9.8241
       ],
       "faces": {
         "up": {
-          "texture": "#apt_palm_tub_frond2_44",
+          "texture": "#apt_palm_tub_frond1_54",
           "uv": [
-            5.5,
-            8.0,
-            10.5,
-            16.0
+            -2.4567,
+            4.0,
+            9.5433,
+            12.0
           ]
         },
         "down": {
-          "texture": "#apt_palm_tub_frond2_44",
+          "texture": "#apt_palm_tub_frond1_54",
           "uv": [
-            5.5,
-            0.0,
-            10.5,
-            8.0
+            -2.4567,
+            4.0,
+            9.5433,
+            12.0
           ]
         }
       },
       "rotation": {
         "origin": [
-          8.0,
-          14.7692,
+          10.5277,
+          14.2715,
           8.0
         ],
-        "axis": "x",
-        "angle": 22.5
+        "axis": "z",
+        "angle": -45
       }
     },
     {
       "from": [
-        6.7692,
-        14.7692,
-        4.0615
+        5.2639,
+        13.2244,
+        6.1759
       ],
       "to": [
-        9.2308,
-        14.7692,
-        8.0
+        8.0,
+        13.2244,
+        9.8241
       ],
       "faces": {
         "up": {
-          "texture": "#apt_palm_tub_frond3_44",
+          "texture": "#apt_palm_tub_frond2_44",
           "uv": [
-            5.5,
-            0.0,
-            10.5,
-            8.0
+            2.0,
+            4.0,
+            8.0,
+            12.0
           ]
         },
         "down": {
-          "texture": "#apt_palm_tub_frond3_44",
+          "texture": "#apt_palm_tub_frond2_44",
           "uv": [
-            5.5,
+            2.0,
+            4.0,
             8.0,
-            10.5,
-            16.0
+            12.0
           ]
         }
       },
       "rotation": {
         "origin": [
           8.0,
-          14.7692,
+          13.2244,
+          8.0
+        ],
+        "axis": "z",
+        "angle": -22.5
+      }
+    },
+    {
+      "from": [
+        0.0,
+        14.2715,
+        6.1759
+      ],
+      "to": [
+        5.4722,
+        14.2715,
+        9.8241
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_palm_tub_frond2_34",
+          "uv": [
+            6.4567,
+            4.0,
+            18.4567,
+            12.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_palm_tub_frond2_34",
+          "uv": [
+            6.4567,
+            4.0,
+            18.4567,
+            12.0
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          5.4723,
+          14.2715,
+          8.0
+        ],
+        "axis": "z",
+        "angle": 45
+      }
+    },
+    {
+      "from": [
+        6.1759,
+        13.2244,
+        8.0
+      ],
+      "to": [
+        9.8241,
+        13.2244,
+        10.7361
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_palm_tub_frond3_44",
+          "uv": [
+            4.0,
+            8.0,
+            12.0,
+            14.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_palm_tub_frond3_44",
+          "uv": [
+            4.0,
+            2.0,
+            12.0,
+            8.0
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8.0,
+          13.2244,
           8.0
         ],
         "axis": "x",
@@ -412,39 +672,490 @@
     },
     {
       "from": [
-        4.3077,
-        15.5077,
-        6.7692
+        6.1759,
+        14.2715,
+        10.5278
       ],
       "to": [
-        11.6923,
-        15.5077,
-        9.2308
+        9.8241,
+        14.2715,
+        16.0
       ],
       "faces": {
         "up": {
-          "texture": "#apt_palm_tub_frond_d0_44",
+          "texture": "#apt_palm_tub_frond3_45",
           "uv": [
-            0.5,
-            5.5,
-            15.5,
-            10.5
+            4.0,
+            -2.4567,
+            12.0,
+            9.5433
           ]
         },
         "down": {
-          "texture": "#apt_palm_tub_frond_d0_44",
+          "texture": "#apt_palm_tub_frond3_43",
           "uv": [
-            0.5,
-            5.5,
-            15.5,
-            10.5
+            4.0,
+            6.4567,
+            12.0,
+            18.4567
           ]
         }
       },
       "rotation": {
         "origin": [
           8.0,
-          15.5077,
+          14.2715,
+          10.5277
+        ],
+        "axis": "x",
+        "angle": 45
+      }
+    },
+    {
+      "from": [
+        6.1759,
+        13.2244,
+        5.2639
+      ],
+      "to": [
+        9.8241,
+        13.2244,
+        8.0
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_palm_tub_frond4_44",
+          "uv": [
+            4.0,
+            2.0,
+            12.0,
+            8.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_palm_tub_frond4_44",
+          "uv": [
+            4.0,
+            8.0,
+            12.0,
+            14.0
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8.0,
+          13.2244,
+          8.0
+        ],
+        "axis": "x",
+        "angle": 22.5
+      }
+    },
+    {
+      "from": [
+        6.1759,
+        14.2715,
+        0.0
+      ],
+      "to": [
+        9.8241,
+        14.2715,
+        5.4722
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_palm_tub_frond4_43",
+          "uv": [
+            4.0,
+            6.4567,
+            12.0,
+            18.4567
+          ]
+        },
+        "down": {
+          "texture": "#apt_palm_tub_frond4_45",
+          "uv": [
+            4.0,
+            -2.4567,
+            12.0,
+            9.5433
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8.0,
+          14.2715,
+          5.4723
+        ],
+        "axis": "x",
+        "angle": -45
+      }
+    },
+    {
+      "from": [
+        8.0,
+        14.1365,
+        6.632
+      ],
+      "to": [
+        10.2801,
+        14.1365,
+        9.368
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_palm_tub_frond5_44",
+          "uv": [
+            8.0,
+            5.0,
+            13.0,
+            11.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_palm_tub_frond5_44",
+          "uv": [
+            8.0,
+            5.0,
+            13.0,
+            11.0
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8.0,
+          14.1365,
+          8.0
+        ],
+        "axis": "z",
+        "angle": 45
+      }
+    },
+    {
+      "from": [
+        9.6122,
+        15.7487,
+        6.632
+      ],
+      "to": [
+        13.2604,
+        15.7487,
+        9.368
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_palm_tub_frond5_44",
+          "uv": [
+            11.5355,
+            5.0,
+            19.5355,
+            11.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_palm_tub_frond5_44",
+          "uv": [
+            11.5355,
+            5.0,
+            19.5355,
+            11.0
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          9.6125,
+          15.7489,
+          8.0
+        ],
+        "axis": "z",
+        "angle": -22.5
+      }
+    },
+    {
+      "from": [
+        5.7199,
+        14.1365,
+        6.632
+      ],
+      "to": [
+        8.0,
+        14.1365,
+        9.368
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_palm_tub_frond6_44",
+          "uv": [
+            3.0,
+            5.0,
+            8.0,
+            11.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_palm_tub_frond6_44",
+          "uv": [
+            3.0,
+            5.0,
+            8.0,
+            11.0
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8.0,
+          14.1365,
+          8.0
+        ],
+        "axis": "z",
+        "angle": -45
+      }
+    },
+    {
+      "from": [
+        2.7396,
+        15.7487,
+        6.632
+      ],
+      "to": [
+        6.3878,
+        15.7487,
+        9.368
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_palm_tub_frond6_44",
+          "uv": [
+            -3.5355,
+            5.0,
+            4.4645,
+            11.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_palm_tub_frond6_44",
+          "uv": [
+            -3.5355,
+            5.0,
+            4.4645,
+            11.0
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          6.3875,
+          15.7489,
+          8.0
+        ],
+        "axis": "z",
+        "angle": 22.5
+      }
+    },
+    {
+      "from": [
+        6.632,
+        14.1365,
+        8.0
+      ],
+      "to": [
+        9.368,
+        14.1365,
+        10.2801
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_palm_tub_frond7_44",
+          "uv": [
+            5.0,
+            8.0,
+            11.0,
+            13.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_palm_tub_frond7_44",
+          "uv": [
+            5.0,
+            3.0,
+            11.0,
+            8.0
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8.0,
+          14.1365,
+          8.0
+        ],
+        "axis": "x",
+        "angle": -45
+      }
+    },
+    {
+      "from": [
+        6.632,
+        15.7487,
+        9.6122
+      ],
+      "to": [
+        9.368,
+        15.7487,
+        13.2604
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_palm_tub_frond7_44",
+          "uv": [
+            5.0,
+            11.5355,
+            11.0,
+            19.5355
+          ]
+        },
+        "down": {
+          "texture": "#apt_palm_tub_frond7_44",
+          "uv": [
+            5.0,
+            -3.5355,
+            11.0,
+            4.4645
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8.0,
+          15.7489,
+          9.6125
+        ],
+        "axis": "x",
+        "angle": 22.5
+      }
+    },
+    {
+      "from": [
+        6.632,
+        14.1365,
+        5.7199
+      ],
+      "to": [
+        9.368,
+        14.1365,
+        8.0
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_palm_tub_frond8_44",
+          "uv": [
+            5.0,
+            3.0,
+            11.0,
+            8.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_palm_tub_frond8_44",
+          "uv": [
+            5.0,
+            8.0,
+            11.0,
+            13.0
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8.0,
+          14.1365,
+          8.0
+        ],
+        "axis": "x",
+        "angle": 45
+      }
+    },
+    {
+      "from": [
+        6.632,
+        15.7487,
+        2.7396
+      ],
+      "to": [
+        9.368,
+        15.7487,
+        6.3878
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_palm_tub_frond8_44",
+          "uv": [
+            5.0,
+            -3.5355,
+            11.0,
+            4.4645
+          ]
+        },
+        "down": {
+          "texture": "#apt_palm_tub_frond8_44",
+          "uv": [
+            5.0,
+            11.5355,
+            11.0,
+            19.5355
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8.0,
+          15.7489,
+          6.3875
+        ],
+        "axis": "x",
+        "angle": -22.5
+      }
+    },
+    {
+      "from": [
+        2.5278,
+        13.4525,
+        6.4039
+      ],
+      "to": [
+        13.4722,
+        13.4525,
+        9.5961
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_palm_tub_frond_d0_44",
+          "uv": [
+            -4.0,
+            4.5,
+            20.0,
+            11.5
+          ]
+        },
+        "down": {
+          "texture": "#apt_palm_tub_frond_d0_44",
+          "uv": [
+            -4.0,
+            4.5,
+            20.0,
+            11.5
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8.0,
+          13.4525,
           8.0
         ],
         "axis": "y",
@@ -453,39 +1164,39 @@
     },
     {
       "from": [
-        6.7692,
-        16.0,
-        4.3077
+        6.4039,
+        13.9085,
+        2.5278
       ],
       "to": [
-        9.2308,
-        16.0,
-        11.6923
+        9.5961,
+        13.9085,
+        13.4722
       ],
       "faces": {
         "up": {
           "texture": "#apt_palm_tub_frond_d1_44",
           "uv": [
-            5.5,
-            0.5,
-            10.5,
-            15.5
+            4.5,
+            -4.0,
+            11.5,
+            20.0
           ]
         },
         "down": {
           "texture": "#apt_palm_tub_frond_d1_44",
           "uv": [
-            5.5,
-            0.5,
-            10.5,
-            15.5
+            4.5,
+            -4.0,
+            11.5,
+            20.0
           ]
         }
       },
       "rotation": {
         "origin": [
           8.0,
-          16.0,
+          13.9085,
           8.0
         ],
         "axis": "y",

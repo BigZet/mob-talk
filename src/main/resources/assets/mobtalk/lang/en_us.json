@@ -1719,5 +1719,19 @@
   "mobtalk.furniture.lab.0": "Blood count: haemoglobin 138 g/l, ESR 6 mm/h, all normal",
   "mobtalk.furniture.lab.1": "Under the microscope, a smear stained after Romanowsky",
   "mobtalk.furniture.lab.2": "Test tubes labelled with surnames, the rooms' referrals on top",
-  "mobtalk.furniture.physio": "UHF on: ten minutes, warmth without feeling"
+  "mobtalk.furniture.physio": "UHF on: ten minutes, warmth without feeling",
+  "mobtalk.furniture.easel.0": "On the easel: a sun with rays, a house and Mum. Signed “Katya, 5”",
+  "mobtalk.furniture.easel.1": "On the easel: a green cat as big as the fir tree",
+  "mobtalk.furniture.easel.2": "On the easel: a rocket flying to the Moon, “USSR” on its side",
+  "mobtalk.furniture.puppet.0": "Petrushka behind the screen: “Hello, children!”",
+  "mobtalk.furniture.puppet.1": "Puppet show: “Kolobok”. The fox is already licking her lips",
+  "mobtalk.furniture.puppet.2": "Puppet show: “The Little House”. The bear doesn't fit",
+  "mobtalk.furniture.calendar": "Nature calendar: today it's %s. The monitor turns the picture",
+  "mobtalk.furniture.calendar.sun": "sunny",
+  "mobtalk.furniture.calendar.rain": "rainy",
+  "mobtalk.furniture.calendar.snow": "snowy",
+  "mobtalk.furniture.nature": "The monitors water the plants from a little can",
+  "mobtalk.furniture.abc.0": "“A for watermelon, B for drum, V for wolf, G for goose…”",
+  "mobtalk.furniture.abc.1": "“Zh for beetle, Z for hare, I for needle, K for cat…”",
+  "mobtalk.furniture.abc.2": "“Sh for balloon, Shch for pike, E for digger, Yu for top, Ya for apple”"
 }

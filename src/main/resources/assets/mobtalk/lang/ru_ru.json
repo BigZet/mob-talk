@@ -1719,5 +1719,19 @@
   "mobtalk.furniture.lab.0": "Общий анализ крови: гемоглобин 138 г/л, СОЭ 6 мм/ч — в норме",
   "mobtalk.furniture.lab.1": "Под микроскопом мазок, окрашенный по Романовскому",
   "mobtalk.furniture.lab.2": "Пробирки подписаны фамилиями, сверху — направления из кабинетов",
-  "mobtalk.furniture.physio": "УВЧ включён: 10 минут, тепло без ощущений"
+  "mobtalk.furniture.physio": "УВЧ включён: 10 минут, тепло без ощущений",
+  "mobtalk.furniture.easel.0": "На мольберте: солнце с лучами, домик и мама. Подпись: «Катя, 5 лет»",
+  "mobtalk.furniture.easel.1": "На мольберте: зелёный кот размером с ёлку",
+  "mobtalk.furniture.easel.2": "На мольберте: ракета летит на Луну, на ракете написано «СССР»",
+  "mobtalk.furniture.puppet.0": "За ширмой Петрушка: «Здравствуйте, ребята!»",
+  "mobtalk.furniture.puppet.1": "Кукольный театр: «Колобок». Лиса уже облизывается",
+  "mobtalk.furniture.puppet.2": "Кукольный театр: «Теремок». Медведь не помещается",
+  "mobtalk.furniture.calendar": "Календарь природы: сегодня %s. Дежурный переворачивает картинку",
+  "mobtalk.furniture.calendar.sun": "солнечно",
+  "mobtalk.furniture.calendar.rain": "дождик",
+  "mobtalk.furniture.calendar.snow": "снег",
+  "mobtalk.furniture.nature": "Дежурные поливают цветы из маленькой лейки",
+  "mobtalk.furniture.abc.0": "«А — арбуз, Б — барабан, В — волк, Г — гусь…»",
+  "mobtalk.furniture.abc.1": "«Ж — жук, З — заяц, И — иголка, К — кошка…»",
+  "mobtalk.furniture.abc.2": "«Ш — шар, Щ — щука, Э — экскаватор, Ю — юла, Я — яблоко»"
 }
