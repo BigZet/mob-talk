@@ -201,6 +201,9 @@ public final class Tunables {
         integer("cityChance", s, "cities", 0, 100, 5, c -> c.cityChance, (c, x) -> c.cityChance = x);
         integer("cityRadius", s, "cities", 200, 500, 10, c -> c.cityRadius, (c, x) -> c.cityRadius = x);
         integer("cityBiomeRadius", s, "cities", 300, 1000, 10, c -> c.cityBiomeRadius, (c, x) -> c.cityBiomeRadius = x);
+        integer("liftSpeedTenths", s, "cities", 5, 40, 1, c -> c.liftSpeedTenths, (c, x) -> c.liftSpeedTenths = x);
+        integer("liftDoorSeconds", s, "cities", 2, 20, 1, c -> c.liftDoorSeconds, (c, x) -> c.liftDoorSeconds = x);
+        integer("liftVillagerChance", s, "cities", 0, 100, 5, c -> c.liftVillagerChance, (c, x) -> c.liftVillagerChance = x);
         // Watchtowers and their archers.
         integer("towerResidents", s, "towers", 2, 40, 1, c -> c.towerResidents, (c, x) -> c.towerResidents = x);
         integer("towerMax", s, "towers", 0, 8, 1, c -> c.towerMax, (c, x) -> c.towerMax = x);

@@ -126,6 +126,9 @@ public final class MobTalkConfig {
      * percent. On, it replaces the old cities that took a village's place. Only new land gets cities. */
     public boolean cities = true;
     public int citySpacing = 4096, cityChance = 70, cityRadius = 500, cityBiomeRadius = 750;
+    /** Lifts of the tall panel houses: speed in tenths of a block (metre) a second, how long the doors stay open with nobody in the
+     * doorway, and the chance a minute (percent) that a villager by the lift's doors calls it and rides. */
+    public int liftSpeedTenths = 15, liftDoorSeconds = 5, liftVillagerChance = 25;
     /** Ranks of the village's guard beside the plain guard: heavy warriors in diamond with an axe, horsemen in leather on a horse. */
     public boolean villageHeavy = true, villageCavalry = true;
     /** Idea Б1: the villages know the god's deeds (the divine block's events) — they panic, talk and blame the sinner by name;
