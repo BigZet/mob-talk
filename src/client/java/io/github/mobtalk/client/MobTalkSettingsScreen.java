@@ -511,7 +511,8 @@ final class MobTalkSettingsScreen extends Screen {
                     wide(tip(toggle("mobtalk.settings.villageChatter", draft.villageChatter, value -> draft.villageChatter = value), "mobtalk.settings.villageChatter.tooltip"),
                             tip(toggle("mobtalk.settings.villageNotices", draft.villageNotices, value -> draft.villageNotices = value), "mobtalk.settings.villageNotices.tooltip"));
                     wide(tip(toggle("mobtalk.settings.villageParrotJokes", draft.villageParrotJokes, value -> draft.villageParrotJokes = value), "mobtalk.settings.villageParrotJokes.tooltip"));
-                })));
+                }),
+                Map.<String, Runnable>entry("cards", this::cards)));
         resetSection(Tunables.Section.SOCIAL);
     }
 
@@ -538,6 +539,26 @@ final class MobTalkSettingsScreen extends Screen {
         captions.put(widget, label);
         bound.putIfAbsent(widget, "confessionPenancesOff");
         return tip(widget, "mobtalk.settings.penance.tooltip");
+    }
+
+    /** Игра в 21: серверные переключатели и правила, затем личное — как стол ведёт себя у этого игрока. */
+    private void cards() {
+        wide(tip(toggle("mobtalk.settings.cards", draft.cards, value -> draft.cards = value), "mobtalk.settings.cards.tooltip"),
+                choice("mobtalk.settings.cardsVariant", List.of("OCHKO", "BLACKJACK"), draft.cardsVariant, value -> draft.cardsVariant = value));
+        wide(tip(toggle("mobtalk.settings.cardsItemStakes", draft.cardsItemStakes, value -> draft.cardsItemStakes = value), "mobtalk.settings.cardsItemStakes.tooltip"),
+                tip(toggle("mobtalk.settings.cardsCheating", draft.cardsCheating, value -> draft.cardsCheating = value), "mobtalk.settings.cardsCheating.tooltip"));
+        wide(tip(toggle("mobtalk.settings.tableInvite", draft.tableInvite, value -> draft.tableInvite = value), "mobtalk.settings.tableInvite.tooltip"),
+                choice("mobtalk.settings.tableLines", List.of("key", "round", "never"), draft.tableLines, value -> draft.tableLines = value));
+        wide(choice("mobtalk.settings.tableSpeed", List.of("normal", "fast", "off"), draft.tableSpeed, value -> draft.tableSpeed = value),
+                tip(toggle("mobtalk.settings.tableHint", draft.tableHint, value -> draft.tableHint = value), "mobtalk.settings.tableHint.tooltip"));
+    }
+    /** Переключатель из нескольких значений: подпись {@code key}, значения {@code key.<value>}, подсказка {@code key.tooltip}. */
+    private CyclingButtonWidget<String> choice(String key, List<String> values, String current, Consumer<String> changed) {
+        CyclingButtonWidget<String> button = track(CyclingButtonWidget.<String>builder(value -> Text.translatable(key + "." + value))
+                .values(values).initially(values.contains(current) ? current : values.getFirst())
+                .omitKeyText().build(0, 0, 100, 20, Text.translatable(key), (widget, value) -> changed.accept(value)));
+        caption(button, key).setTooltip(Tooltip.of(Text.translatable(key + ".tooltip")));
+        return button;
     }
 
     // ---- Действия и место ----

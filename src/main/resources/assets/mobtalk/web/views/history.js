@@ -13,7 +13,7 @@ const PERIODS = [
   { value: '30d', title: '30 д', ms: 30 * 86400e3 }, { value: 'all', title: 'Всё', ms: null },
 ];
 const KIND_GROUPS = [
-  ['dialogue', 'witness', 'village_talk', 'gift', 'trade', 'relation_change', 'rumor', 'scene', 'wedding'],
+  ['dialogue', 'witness', 'village_talk', 'gift', 'trade', 'relation_change', 'rumor', 'scene', 'wedding', 'cards'],
   ['verdict', 'confession', 'ban', 'boss'],
   ['moment', 'rec_session'],
   ['player_join', 'player_leave', 'death', 'command', 'config_change', 'admin_login', 'error', 'cost'],

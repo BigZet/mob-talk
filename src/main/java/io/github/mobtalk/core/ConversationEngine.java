@@ -127,6 +127,12 @@ public final class ConversationEngine implements AutoCloseable {
         return VillageNotices.request(llm, input);
     }
 
+    /** Игра в 21: реплика жителя за столом ({@link CardLines}), один фоновый запрос; исключение — берите заготовку. Блокирует. */
+    public CardLines.Line cardLine(CardLines.Input input) throws IOException, InterruptedException {
+        if (closed) throw new IOException("Разговор Mob Talk уже завершён.");
+        return CardLines.request(llm, input);
+    }
+
     /** Тексты свадьбы ({@link WeddingScript}): один фоновый запрос. Блокирует: только из рабочего потока. */
     public Wedding.Script weddingScript(WeddingScript.Input input) throws IOException, InterruptedException {
         if (closed) throw new IOException("Разговор Mob Talk уже завершён.");
@@ -247,7 +253,7 @@ public final class ConversationEngine implements AutoCloseable {
         if (answer.biography() != null) adopt(snapshot, answer.biography());
         String name = displayName(snapshot, profile, answer.biography() == null ? "" : answer.biography().name());
         Reply reply = new Reply(question, SpeechTags.strip(said), name, voiceId, audio, answer.action(), snapshot.interactionRevision(), answer.bargain(),
-                answer.deal(), answer.unlock(), answer.quest(), answer.socialIntent(), overheard != null);
+                answer.deal(), answer.unlock(), answer.quest(), answer.socialIntent(), overheard != null, overheard == null && answer.gameOffer());
         return new PreparedReply(this, reply, snapshot, answer.memory(), answer.socialIntent(), audio == null ? null : voiceId, answer.thought(), answer.fact(),
                 overheard == null ? proposalKept(profile, question, answer.gesture()) : GestureIntent.none());
     }
@@ -503,7 +509,12 @@ public final class ConversationEngine implements AutoCloseable {
     /** speech is null when audio is unavailable; it may still be downloading while the reply is delivered. */
     public record Reply(String recognizedText, String responseText, String speakerName, String voiceId, SpeechStream speech,
                         ActionIntent action, long interactionRevision, BargainIntent bargain,
-                        DealIntent deal, String unlock, QuestIntent quest, SocialIntent socialIntent, boolean overheard) {
+                        DealIntent deal, String unlock, QuestIntent quest, SocialIntent socialIntent, boolean overheard, boolean gameOffer) {
+        /** Без приглашения в карты ({@code gameOffer}: житель предложил или согласился сыграть в 21). */
+        public Reply(String recognizedText, String responseText, String speakerName, String voiceId, SpeechStream speech, ActionIntent action,
+                     long interactionRevision, BargainIntent bargain, DealIntent deal, String unlock, QuestIntent quest, SocialIntent socialIntent, boolean overheard) {
+            this(recognizedText, responseText, speakerName, voiceId, speech, action, interactionRevision, bargain, deal, unlock, quest, socialIntent, overheard, false);
+        }
         public Reply {
             if (deal == null) deal = DealIntent.none();
             unlock = unlock == null ? "" : unlock;

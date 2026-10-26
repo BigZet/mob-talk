@@ -86,6 +86,10 @@ final class SelfTest {
     }
     /** {@code -Dmobtalk.selftest.only=voicefix}: the voice from the mob — falloff, grace out of sight, one voice after death (synthetic PCM, no LLM, no TTS). */
     static final boolean ONLY_VOICEFIX = "voicefix".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=cards}: игра в 21 с жителем (docs/cards-21.md), без ИИ и голоса. */
+    static final boolean ONLY_CARDS = "cards".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=cardsprep}: подготовить мир для ручной игры в 21 — к жителю в деревне, изумруды и колоды, проверка стола. */
+    static final boolean ONLY_CARDSPREP = "cardsprep".equals(System.getProperty("mobtalk.selftest.only"));
     final MobTalkClient owner;
     private final String world;
     private int stage, ticks, stageStart;
@@ -126,7 +130,8 @@ final class SelfTest {
                 stage = 1; log("loading world " + world);
                 client.createIntegratedServerLoader().start(world, () -> fail("world load cancelled"));
                 await("world joined", 120, () -> client.player != null && client.world != null && client.getServer() != null
-                        && MobGameBridge.active(client.getServer()) != null && owner.enabled() && client.player.age > 60, this::prepareScene);
+                        && MobGameBridge.active(client.getServer()) != null && owner.enabled() && client.player.age > 60,
+                        ONLY_CARDSPREP ? () -> new SelfTestCards(this, 0, 0, 0).prep(this::finish) : this::prepareScene);
             }
             return;
         }
@@ -179,6 +184,7 @@ final class SelfTest {
             villager = nearest(VillagerEntity.class); cow = nearest(CowEntity.class);
             return villager != null && cow != null && MobSpeechSound.find(owner.world, villager) != null && MobSpeechSound.find(owner.world, cow) != null;
         }, ONLY_VOICEFIX ? () -> new SelfTestVoiceFix(this, villager, cow, sx, SY, sz).run(this::finish)
+                : ONLY_CARDS ? () -> new SelfTestCards(this, sx, SY, sz).run(this::finish)
                 : ONLY_PLACE ? () -> new SelfTestPlace(this, cow, sx, SY, sz).run(this::finish)
                 : ONLY_CTOV ? () -> new SelfTestCtov(this, cow, sx, SY, sz).run(this::finish)
                 : ONLY_PACK ? () -> new SelfTestPack(this, sx, SY, sz).run(this::finish)

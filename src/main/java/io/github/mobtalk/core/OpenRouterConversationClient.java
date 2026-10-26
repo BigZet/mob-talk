@@ -93,7 +93,7 @@ final class OpenRouterConversationClient implements AutoCloseable {
         JsonArray messages = new JsonArray();
         String aside = overheard == null ? "" : "\n\n" + switch (overheard.kind()) {
             case BYSTANDER -> PromptTexts.OVERHEARD; case INITIATIVE -> PromptTexts.INITIATIVE; case DIALOGUE -> PromptTexts.DIALOGUE; };
-        messages.add(ReplySchema.message("system", prompt.system(species, profile, snapshot) + aside));
+        messages.add(ReplySchema.message("system", prompt.system(species, profile, snapshot) + aside + (overheard == null && ReplySchema.offersCards(snapshot) ? "\n" + PromptTexts.CARD_GAME : "")));
         int history = Math.max(1, Math.min(64, config.historyTurns));
         // Only the current conversation's exchanges: the earlier ones are read as summaries in the system prompt (ConversationSummary).
         for (int i = Math.max(profile.unsummarizedFrom(), profile.turns.size() - history); i < profile.turns.size(); i++) {
@@ -108,8 +108,9 @@ final class OpenRouterConversationClient implements AutoCloseable {
         // An anxious or distrustful mob cannot concede: the schema itself drops OFFER, the validator catches json_object providers.
         MobState.View state = profile.stateView != null ? profile.stateView : MobState.viewOf(profile, MobClock.now());
         boolean wary = state.refusesDeals();
-        JsonObject body = body(messages, 4096, view.windowOpen() ? 0.6 : 0.95, ReplySchema.replyFormat(snapshot, needsStory, wary,
-                overheard == null ? SocialPrompt.schemaGestures(profile) : List.of()), !noStreaming);
+        JsonObject format = ReplySchema.replyFormat(snapshot, needsStory, wary, overheard == null ? SocialPrompt.schemaGestures(profile) : List.of());
+        if (overheard == null) ReplySchema.addGame(format, snapshot);
+        JsonObject body = body(messages, 4096, view.windowOpen() ? 0.6 : 0.95, format, !noStreaming);
         if (overheard != null) ReplySchema.forbidIntents(body);
         long deadline = System.nanoTime() + http.timeout().toNanos();
         int words = prompt.words();
@@ -318,7 +319,12 @@ final class OpenRouterConversationClient implements AutoCloseable {
     /** {@code fact}: the newFacts of this answer with their importance (see {@link MemoryRanking}), or null when it added none;
      * {@code memory} is null for such answers and a whole memory text only for older or fallback ones. */
     record Answer(String reply, String memory, SocialIntent socialIntent, ActionIntent action, BargainIntent bargain,
-                  DealIntent deal, String unlock, QuestIntent quest, BiographyWriter.Biography biography, String thought, MemoryFact fact, GestureIntent gesture) {
+                  DealIntent deal, String unlock, QuestIntent quest, BiographyWriter.Biography biography, String thought, MemoryFact fact, GestureIntent gesture,
+                  boolean gameOffer) {
+        Answer(String reply, String memory, SocialIntent socialIntent, ActionIntent action, BargainIntent bargain, DealIntent deal, String unlock,
+               QuestIntent quest, BiographyWriter.Biography biography, String thought, MemoryFact fact, GestureIntent gesture) {
+            this(reply, memory, socialIntent, action, bargain, deal, unlock, quest, biography, thought, fact, gesture, false);
+        }
         Answer {
             if (gesture == null) gesture = GestureIntent.none();
             if (deal == null) deal = DealIntent.none();

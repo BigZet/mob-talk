@@ -917,6 +917,7 @@ public final class MobTalkClient implements ClientModInitializer {
     }
     private void applyConfig(MobTalkConfig loaded) {
         config = loaded; io.github.mobtalk.core.Tuning.apply(loaded);
+        io.github.mobtalk.client.cards.CardTableClient.settings(loaded);
         io.github.mobtalk.server.ServerConfig.adopt(loaded); // Встроенный сервер одиночки живёт по серверным полям этого файла.
         configReady = true;
         preloadWhisper(loaded);

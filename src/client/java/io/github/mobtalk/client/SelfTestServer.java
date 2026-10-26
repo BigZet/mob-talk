@@ -39,7 +39,7 @@ import java.util.UUID;
  * ({@link SelfTestLine}) — выбирает моба, говорит текстом, дарит, открывает сделку, молится у алтаря, пишет команды, выходит — своими
  * настоящими пакетами, и докладывает серверу всё, что получил: возможности, реплики, состояние, подписи, статусы, чат, экраны.
  * Без Whisper и без платной озвучки; снимки — в screenshots. В обычной игре не активен. */
-final class SelfTestServer {
+public final class SelfTestServer {
     static final String PROPERTY = "mobtalk.selftest.play.client";
     private static final Logger LOGGER = LoggerFactory.getLogger("mobtalk-selftest");
     private static SelfTestServer active;
@@ -128,6 +128,22 @@ final class SelfTestServer {
         if (active != null) active.send("status", String.valueOf(busy), error, error.isEmpty() ? text : error);
     }
     static void notice(String text) { if (active != null) active.send("chat", text); }
+    /** Игра в 21: стол открыт ({@code cardopen} место правила) и состояние стола при каждой перемене ({@code card} фаза раунд моё-место
+     * занято-мест зрителей чей-ход изумруды подсказка), закрыт ({@code cardclosed} причина). */
+    private String lastCard = "";
+    public static void cardOpen(int seat, String variant) { if (active != null) active.send("cardopen", String.valueOf(seat), variant); }
+    public static void cardClosed(String reason) { if (active != null) { active.lastCard = ""; active.send("cardclosed", reason); } }
+    public static void cardState(io.github.mobtalk.core.cards.CardTable.View view, int you, int watchers, int wallet, String notice) {
+        if (active == null || view == null) return;
+        int occupied = 0;
+        for (var seat : view.seats()) if (seat != null) occupied++;
+        String hands = you >= 0 && you < view.seats().size() && view.seats().get(you) != null ? String.valueOf(view.seats().get(you).hands().size()) : "-";
+        String line = view.phase() + "\t" + view.round() + "\t" + you + "\t" + occupied + "\t" + watchers + "\t" + view.turnSeat() + "\t" + wallet + "\t" + notice + "\t" + hands;
+        if (line.equals(active.lastCard)) return;
+        active.lastCard = line;
+        active.send("card", view.phase(), String.valueOf(view.round()), String.valueOf(you), String.valueOf(occupied), String.valueOf(watchers),
+                String.valueOf(view.turnSeat()), String.valueOf(wallet), notice, hands);
+    }
 
     // ---- Реплики дирижёра. ----
 
@@ -153,6 +169,9 @@ final class SelfTestServer {
                 case "sneak" -> { owner.client.options.sneakKey.setPressed(true); sneakUntil = ticks + 20L * Math.max(1, Integer.parseInt(f[1])); log("sneaking"); }
                 case "hud" -> send("hud", PenanceHud.current());
                 case "quit" -> { log("quit by the conductor"); quit(); }
+                // Игра в 21: нажатие за столом (действие, изумруды, текст) и «встать» с закрытием экрана.
+                case "card" -> io.github.mobtalk.client.cards.CardTableClient.send(f[1], f.length > 2 && !f[2].isEmpty() ? Integer.parseInt(f[2]) : 0, f.length > 3 ? f[3] : "");
+                case "cardleave" -> { io.github.mobtalk.client.cards.CardTableClient.send("leave", 0, ""); owner.client.setScreen(null); }
                 default -> log("unknown cue " + f[0]);
             }
         } catch (RuntimeException failure) { LOGGER.error("[selftest] FAIL: cue {} failed: {}", f[0], failure.toString()); }

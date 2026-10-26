@@ -128,6 +128,41 @@ public final class TradeBridge {
         return "Сделка в окне торговли: " + what + " — одна покупка, " + promised.minutesLeft(tick) + " мин (ПКМ по жителю)";
     }
 
+    /** Игра в 21: выигранная скидка с кона — самая дорогая строка жителя за изумруды на {@code percent}% дешевле, одна покупка, как
+     * обещание торга словами. "" — подходящей строки нет. */
+    public static String prize(VillagerEntity villager, ServerPlayerEntity player, int percent) {
+        MobGameBridge bridge = MobGameBridge.forEntity(villager);
+        return bridge == null || !bridge.config.enabled ? "" : bridge.trades.prizeRow(villager, player, percent);
+    }
+    private String prizeRow(VillagerEntity villager, ServerPlayerEntity player, int percent) {
+        long tick = villager.getWorld().getTime();
+        Bargaining.Session session = bridge.memory.bargain(villager.getUuid(), player.getUuid());
+        Promise standing = promiseOf(villager, player);
+        List<TradeOffer> offers = villager.getOffers();
+        int best = -1, bestPrice = 0;
+        Bargaining.Offer bestRow = null;
+        for (int i = 0; i < offers.size(); i++) {
+            TradeOffer trade = offers.get(i);
+            if (trade.isDisabled() || !trade.getOriginalFirstBuyItem().isOf(net.minecraft.item.Items.EMERALD)) continue;
+            if (promises.values().stream().anyMatch(p -> p.offer == trade)) continue;
+            Bargaining.Offer row = describe(villager, i, trade);
+            int current = Bargaining.currentPrice(session, row);
+            if (current > bestPrice) { best = i; bestPrice = current; bestRow = row; }
+        }
+        if (best < 0 || bestPrice < 2) return "";
+        int price = Math.max(1, Math.min(bestPrice - 1, (int) Math.round(bestPrice * (100 - percent) / 100.0)));
+        TradeOffer trade = offers.get(best);
+        TradedItem first = trade.getFirstBuyItem();
+        TradeOffer offer = new TradeOffer(new TradedItem(first.item(), price, first.components()), trade.getSecondBuyItem(), trade.getSellItem().copy(),
+                0, 1, trade.getMerchantExperience(), 0f, 0);
+        SpokenOffer won = new SpokenOffer(bestRow.index(), bestRow.key(), bestRow.vanillaCount(), price, 1, tick, tick + io.github.mobtalk.core.Tuning.get().spokenOfferMinutes * 1200L, false);
+        if (standing != null) remove(standing, false);
+        offers.add(offer);
+        String what = what(offer);
+        promises.put(villager.getUuid(), new Promise(villager, player, offer, won, what));
+        refresh(villager);
+        return what + " — одна покупка, " + won.minutesLeft(tick) + " мин (ПКМ по жителю)";
+    }
     private static String what(TradeOffer offer) {
         ItemStack sell = offer.getSellItem(), first = offer.getOriginalFirstBuyItem(), second = offer.getDisplayedSecondBuyItem();
         return sell.getCount() + "× " + sell.getName().getString() + " за " + first.getCount() + "× " + first.getName().getString()

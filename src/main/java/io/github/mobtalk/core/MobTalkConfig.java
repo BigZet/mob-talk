@@ -270,6 +270,18 @@ public final class MobTalkConfig {
     public int confessionSecrecyRange = 12, confessionCooldownMinutes = 20, confessionRounds = 3, confessionPenanceDays = 2, confessionSpeakSeconds = 60;
     public String confessionPenancesOff = "";
     public boolean confessionSlavonic = true, confessionHud = true;
+    /** Игра в 21 с жителем (docs/cards-21.md): включена, правила ({@code OCHKO} или {@code BLACKJACK}), ставки предметами и сделками,
+     * жульничество жителей-хитрецов; ставка на руку от и до, проигрыш игрока за игровой день, кошелёк жителя (у новичка, +4 за уровень)
+     * и его прирост в игровой день, мест за столом, секунд на ход. */
+    public boolean cards = true, cardsItemStakes = true, cardsCheating = true;
+    public String cardsVariant = "OCHKO";
+    public int cardsMinBet = 1, cardsMaxBet = 16, cardsDailyLoss = 64, cardsPurseStart = 8, cardsPursePerDay = 2, cardsSeats = 4, cardsTurnSeconds = 30;
+    /** Стол глазами игрока (личное): житель сам зовёт сыграть, реплики жителя ({@code key} — к важному, {@code round} — каждую раздачу,
+     * {@code never} — молчит), анимации ({@code normal}, {@code fast}, {@code off}), громкость звуков стола в процентах, подсказка
+     * «сколько очков у руки и что выгоднее». */
+    public boolean tableInvite = true, tableHint = false;
+    public String tableLines = "key", tableSpeed = "normal";
+    public int tableVolume = 100;
     /** Ребёнок в семье (трек N): беременность как у людей (выключено — малыш через игровой день, как раньше), живот на фигурке,
      * строка под именем и мягкие затемнения особой ночи и родов. Длина срока (игровые дни), шанс зачатия за обычную ночь вместе
      * и за особую (от и до по уюту дома, проценты), сердечки за особую ночь и сколько секунд тишины в кровати её заканчивают. */
@@ -389,6 +401,8 @@ public final class MobTalkConfig {
         copy.confession = confession; copy.confessionAbbotsOnly = confessionAbbotsOnly; copy.confessionHistoryText = confessionHistoryText;
         copy.confessionStreamerPublic = confessionStreamerPublic; copy.confessionPenancesOff = confessionPenancesOff;
         copy.confessionSlavonic = confessionSlavonic; copy.confessionHud = confessionHud;
+        copy.cards = cards; copy.cardsItemStakes = cardsItemStakes; copy.cardsCheating = cardsCheating; copy.cardsVariant = cardsVariant;
+        copy.tableInvite = tableInvite; copy.tableHint = tableHint; copy.tableLines = tableLines; copy.tableSpeed = tableSpeed;
         copy.pregnancy = pregnancy; copy.pregnancyBelly = pregnancyBelly; copy.pregnancyStatus = pregnancyStatus; copy.familyFade = familyFade;
         Tunables.copy(this, copy);
         copy.commandLevels = commandLevels == null ? new LinkedHashMap<>() : new LinkedHashMap<>(commandLevels);
@@ -469,6 +483,10 @@ public final class MobTalkConfig {
         config.overlayLayout = "full".equals(config.overlayLayout) ? "full" : "card";
         config.streamOverlayAudience = "all".equals(config.streamOverlayAudience) ? "all" : "streamer";
         if (config.overlayPort < 1024 || config.overlayPort > 65535) config.overlayPort = 8790;
+        config.cardsVariant = io.github.mobtalk.core.cards.Variant.of(config.cardsVariant).name();
+        config.cardsMaxBet = Math.max(config.cardsMinBet, config.cardsMaxBet);
+        config.tableLines = config.tableLines != null && java.util.List.of("key", "round", "never").contains(config.tableLines) ? config.tableLines : "key";
+        config.tableSpeed = config.tableSpeed != null && java.util.List.of("normal", "fast", "off").contains(config.tableSpeed) ? config.tableSpeed : "normal";
         MobTalkConfig defaults = new MobTalkConfig();
         config.llmModel = textOrDefault(config.llmModel, defaults.llmModel);
         config.veniceModel = textOrDefault(config.veniceModel, defaults.veniceModel);

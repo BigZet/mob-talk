@@ -10,6 +10,7 @@ import { navigate, setParams } from '../app.js';
 const STATE = [['mood', 'Настроение', 4], ['calm', 'Спокойствие', 3], ['energy', 'Бодрость', 2], ['trust', 'Доверие', 1], ['interest', 'Интерес', 7]];
 const VILLAGE_MOOD = [['mood', 'Настроение', 4], ['calm', 'Спокойствие', 3], ['energy', 'Бодрость', 2]];
 const signClass = s => (s > 0 ? '.good' : s < 0 ? '.bad' : '');
+const CARD_STYLES = { CAUTIOUS: 'осторожный', CALCULATING: 'расчётливый', RECKLESS: 'азартный', TRICKSTER: 'хитрец' };
 
 export default function mobs(root, route) {
   let tab = route.params.tab || 'mobs';
@@ -122,6 +123,12 @@ export function mobCard(uuid, onClose) {
         r.state?.spell?.help && h('p.muted', { style: { marginTop: '10px' } }, `Поможет: ${r.state.spell.help}`),
         r.state?.reasons?.length ? h('div.meta', { style: { marginTop: '10px', flexWrap: 'wrap' } }, r.state.reasons.map(x => h(`span.badge${signClass(x.sign)}`, x.text))) : null),
       (fam.spouse || fam.children?.length) && h('section', h('h3', { style: { marginBottom: '8px' } }, 'Семья'), kv([fam.spouse && ['Супруг(а)', pname(fam.spouse)], fam.children?.length && ['Дети', fam.children.map(pname).join(', ')]])),
+      r.cards && h('section.stack', h('h3', 'Игра в 21'),
+        kv([['Кошелёк', `${r.cards.purse} изумр.`], ['Манера', CARD_STYLES[r.cards.style] || r.cards.style]]),
+        r.cards.games?.length ? h('div.list.card.flush', r.cards.games.map(g => h('div.list-item', h('div.body',
+          h('div.line', `${pname(g.player)}: ${g.rounds} раздач, ${g.net > 0 ? 'игрок +' + g.net : g.net < 0 ? 'житель +' + -g.net : 'вничью'}`),
+          h('div.meta', fmt.ago(g.t), h('span', g.variant === 'BLACKJACK' ? 'блэкджек' : 'очко'), g.note && h('span', g.note))))))
+          : h('p.muted', 'Ещё не играл.')),
       h('section.stack', h('h3', 'Отношения с игроками'),
         r.relations?.length ? h('div.list.card.flush', r.relations.map(x => h('a.list-item', { href: `#/players/${encodeURIComponent(x.player?.uuid || '')}`, onclick: () => d.close() }, avatar(pname(x.player)),
           h('div.body', h('div', { style: { fontWeight: 600 } }, pname(x.player)), h('div.meta', x.label && h('span.badge', x.label), h('span.num', `отношение ${x.relationship}`))), hearts(x.hearts ?? 0))))

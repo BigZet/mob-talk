@@ -124,7 +124,7 @@ final class AnswerValidator {
             checkGesture(reply, gesture);
             checkTender(reply, bounds.social());
             return new OpenRouterConversationClient.Answer(reply, memory, social, action, bargain, deal, unlock, quest, biography(answer),
-                    MobState.cleanThought(ReplySchema.optional(answer, "thought")), fact, gesture);
+                    MobState.cleanThought(ReplySchema.optional(answer, "thought")), fact, gesture, "OFFER".equalsIgnoreCase(ReplySchema.optional(answer, "game")));
         } catch (Rejected invalid) { throw invalid; }
         catch (RuntimeException malformed) { throw new IOException(bounds.service() + " вернул неверный ответ. Повторите вопрос."); }
     }

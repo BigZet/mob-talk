@@ -124,6 +124,8 @@ public final class DialogueService {
     private volatile Decider decider = new RuleDecider();
     private volatile boolean closed;
     private volatile Journal journal = Journal.NONE;
+    /** Игра в 21: житель позвал игрока за стол или согласился ({@code game: OFFER}); игра открывает стол. */
+    private volatile java.util.function.BiConsumer<UUID, Integer> cardOffer = (player, mob) -> { };
     final SpontaneousVoices spontaneous;
     private final MobStateSync states;
     final WeddingHost wedding;
@@ -199,9 +201,16 @@ public final class DialogueService {
     Decider decider() { return decider; }
     DialoguePool pool() { return pool; }
     public ConversationEngine engine() { return engine; }
+    /** Движок, поднятый по настройкам сервера (игра в 21 и другие фоновые реплики); блокирует при первом вызове — не с потока сервера. */
+    public ConversationEngine readyEngine() throws Exception { return ensureEngine(config()); }
     /** Точка подключения админки: журнал диалогов и событий. */
     public void setJournal(Journal journal) { this.journal = journal == null ? Journal.NONE : journal; }
+    public void setCardOffer(java.util.function.BiConsumer<UUID, Integer> offer) { this.cardOffer = offer == null ? (player, mob) -> { } : offer; }
     Journal journal() { return journal; }
+    /** Запись в историю админки от соседних служб (игра в 21). */
+    public void event(String kind, UUID player, String playerName, UUID mob, String mobName, String species, String text, Map<String, Object> data) {
+        journal.event(kind, player, playerName, mob, mobName, species, text, data);
+    }
     int nextClipId() { return clipIds.incrementAndGet(); }
     MobTalkConfig config() { return bridge.config(); }
 
@@ -741,6 +750,11 @@ public final class DialogueService {
                     : spontaneousLine ? reply.speakerName() + " заговаривает…" : reply.speakerName() + " вмешивается…");
         } else if (!session.voiceOn()) session.status(READY);
         if (actionMessage != null && !actionMessage.isBlank()) out.chat(request.player, "[Mob Talk] " + actionMessage);
+        if (request.overheard == null && reply.gameOffer()) {
+            journal.event("cards", request.player, request.playerName, request.target, reply.speakerName(), request.snapshot == null ? "" : request.snapshot.type(),
+                    reply.speakerName() + " зовёт " + request.playerName + " сыграть в 21", Map.of("said", reply.recognizedText()));
+            cardOffer.accept(request.player, request.mobEntityId);
+        }
         if (request.overheard == null) {
             BargainMeter.Move move = BargainMeter.move(reply.bargain(), reply.deal(), request.snapshot, reply.recognizedText());
             if (move != null) { session.bargainMoves.put(request.target, move); session.bargainUntil.put(request.target, MobClock.now() + BARGAIN_HUD_MILLIS); }

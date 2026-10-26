@@ -56,6 +56,8 @@ import javax.net.ssl.X509TrustManager;
  * игрок, оператор — сам сервер. Итог {@code [selftest-play] ALL CHECKS PASSED} или FAIL с причинами; в конце сервер останавливается. */
 final class ServerSelfTestPlay {
     static final String PROPERTY = "mobtalk.selftest.play";
+    /** {@code -Dmobtalk.selftest.play.only=cards}: только игра в 21 за одним столом (этап 6 docs/cards-21.md), без диалогов и голоса. */
+    private static final boolean ONLY_CARDS = "cards".equals(System.getProperty("mobtalk.selftest.play.only"));
     private static final Logger LOGGER = LoggerFactory.getLogger("mobtalk-selftest-play");
     private static final int Y = 200;
     private static ServerSelfTestPlay running;
@@ -240,8 +242,8 @@ final class ServerSelfTestPlay {
             await("админка ответила", 30, admin::isDone, () -> {
                 check(!admin.isCompletedExceptionally() && admin.join().startsWith("200"), "админка: вход по паролю и GET /api/sources (" + (admin.isCompletedExceptionally() ? admin.exceptionNow() : admin.join()) + ")");
                 await("клиенты видят жителей", 20, () -> sees(streamerName, talker, trader, chatter) && sees(playerName, talker, trader, chatter), () -> {
-                    // -Dmobtalk.selftest.play.only=confession: только исповедь (Б4).
-                    if ("confession".equals(System.getProperty(PROPERTY + ".only", ""))) confession(this::finish); else dialogue1();
+                    // -Dmobtalk.selftest.play.only=confession: только исповедь (Б4); =cards: только игра в 21.
+                    if ("confession".equals(System.getProperty(PROPERTY + ".only", ""))) confession(this::finish); else if (ONLY_CARDS) cards(); else dialogue1();
                 });
                 cue(streamerName, "find", ids(talker, trader, chatter)); cue(playerName, "find", ids(talker, trader, chatter));
             });
@@ -292,6 +294,109 @@ final class ServerSelfTestPlay {
         });
     }
 
+    // ---- Игра в 21: двое за одним столом, ход по местам, новичок посреди раунда, зритель (этап 6). ----
+
+    private io.github.mobtalk.server.CardTableService table() { return io.github.mobtalk.game.CardTables.service(); }
+    private int emeralds(String nick) { ServerPlayerEntity p = online(nick); return p == null ? 0 : p.getInventory().count(net.minecraft.item.Items.EMERALD); }
+    private int purse() { return bridge.memory.cards().balance(talker.getUuid()); }
+    private boolean cardSeen(String nick, int from, Predicate<Seen> match) { return saw(nick, "card", from, match); }
+    private static Predicate<Seen> phase(String phase) { return s -> s.field(0).equals(phase); }
+
+    private void cards() {
+        log("игра в 21: двое за одним столом жителя " + talker.getId());
+        ServerConfig.update(config -> { config.cards = true; config.cardsSeats = 4; config.cardsCheating = false; config.cardsDailyLoss = 0; return config; });
+        for (String nick : List.of(streamerName, playerName)) { command("clear " + nick + " minecraft:emerald"); command("give " + nick + " minecraft:emerald 30"); }
+        pause(2, () -> {
+            int s = mark(streamerName), p = mark(playerName);
+            String a = table().open(streamer, talker.getId(), ""), b = table().open(player, talker.getId(), "");
+            check(a.isEmpty() && b.isEmpty(), "оба игрока сели за стол одного жителя (" + a + b + ")");
+            int sum = emeralds(streamerName) + emeralds(playerName) + purse();
+            await("оба видят стол на своих местах", 15, () -> saw(streamerName, "cardopen", s, x -> x.field(0).equals("0")) && saw(playerName, "cardopen", p, x -> x.field(0).equals("1")), () -> {
+                check(saw(streamerName, "cardopen", s, x -> x.field(0).equals("0")) && saw(playerName, "cardopen", p, x -> x.field(0).equals("1")), "места: " + streamerName + " — 0, " + playerName + " — 1");
+                cue(streamerName, "card", "bet", "3"); cue(playerName, "card", "bet", "2");
+                // «Раздать» первого не раздаёт, пока второй не готов: оба нажимают, раздача — когда готовы все.
+                cue(streamerName, "card", "deal");
+                pause(2, () -> cue(playerName, "card", "deal"));
+                await("раздача: ходит место 0", 25, () -> cardSeen(streamerName, s, x -> x.field(0).equals("PLAYERS") && x.field(5).equals("0"))
+                        && cardSeen(playerName, p, x -> x.field(0).equals("PLAYERS") && x.field(5).equals("0")), () -> {
+                    check(cardSeen(playerName, p, x -> x.field(3).equals("2")), playerName + " видит за столом двоих");
+                    check(cardSeen(playerName, p, x -> x.field(0).equals("PLAYERS") && x.field(8).equals("1")), "раздача досталась и " + playerName + " (у него рука), первым ходит " + streamerName);
+                    int p2 = mark(playerName);
+                    cue(playerName, "card", "hit");
+                    await("не свой ход отклонён", 10, () -> cardSeen(playerName, p2, x -> x.field(7).contains("Не ваш ход")), () -> {
+                        check(cardSeen(playerName, p2, x -> x.field(7).contains("Не ваш ход")), playerName + " не может ходить за " + streamerName + ": «Не ваш ход»");
+                        cue(streamerName, "shot", "mobtalk-server-cards-" + streamerName + ".png"); cue(playerName, "shot", "mobtalk-server-cards-" + playerName + ".png");
+                        cue(streamerName, "card", "stand");
+                        await("ход перешёл к месту 1", 10, () -> cardSeen(playerName, p2, x -> x.field(0).equals("PLAYERS") && x.field(5).equals("1")), () -> {
+                            check(cardSeen(playerName, p2, x -> x.field(5).equals("1")), "после «хватит» " + streamerName + " ход перешёл к " + playerName);
+                            cue(playerName, "card", "stand");
+                            await("расчёт у обоих", 10, () -> cardSeen(streamerName, s, phase("SETTLED")) && cardSeen(playerName, p2, phase("SETTLED")), () -> {
+                                check(cardSeen(streamerName, s, phase("SETTLED")) && cardSeen(playerName, p2, phase("SETTLED")), "житель доиграл, расчёт пришёл обоим");
+                                check(emeralds(streamerName) + emeralds(playerName) + purse() == sum, "изумруды только переходили: " + emeralds(streamerName) + " + " + emeralds(playerName) + " + банк " + purse() + " = " + sum);
+                                newcomer(sum);
+                            });
+                        });
+                    });
+                });
+            });
+        });
+    }
+
+    /** Новичок садится посреди раунда: рук у него нет до следующей раздачи. */
+    private void newcomer(int sum) {
+        cue(playerName, "cardleave");
+        int s = mark(streamerName);
+        await("новая раздача для ставок", 30, () -> cardSeen(streamerName, s, phase("BETTING")), () -> {
+            cue(streamerName, "card", "bet", "2"); cue(streamerName, "card", "deal");
+            await("раунд идёт", 15, () -> cardSeen(streamerName, s, phase("PLAYERS")), () -> {
+                int p = mark(playerName);
+                String b = table().open(player, talker.getId(), "");
+                check(b.isEmpty(), playerName + " снова садится посреди раунда: " + b);
+                await("новичок видит раунд без своих карт", 10, () -> cardSeen(playerName, p, x -> x.field(0).equals("PLAYERS") && x.field(2).equals("1") && x.field(8).equals("0")), () -> {
+                    check(cardSeen(playerName, p, x -> x.field(0).equals("PLAYERS") && x.field(8).equals("0")), "новичок сел посреди раунда: место есть, карт до следующей раздачи нет");
+                    cue(streamerName, "card", "stand");
+                    await("следующая раздача: новичок может ставить", 30, () -> cardSeen(playerName, p, phase("BETTING")), () -> {
+                        check(cardSeen(playerName, p, phase("BETTING")), "со следующей раздачи новичок играет наравне");
+                        check(emeralds(streamerName) + emeralds(playerName) + purse() == sum, "после второй раздачи изумрудов столько же: " + sum);
+                        cue(streamerName, "cardleave"); cue(playerName, "cardleave");
+                        await("стол закрыт", 10, () -> !table().playing(talker.getUuid()), this::watcher);
+                    });
+                });
+            });
+        });
+    }
+
+    /** Одно место: второй смотрит без кнопок, видит раздачу; ушёл сидящий — зритель садится. */
+    private void watcher() {
+        ServerConfig.update(config -> { config.cardsSeats = 1; return config; });
+        pause(1, () -> {
+            int s = mark(streamerName), p = mark(playerName);
+            table().open(streamer, talker.getId(), "");
+            table().open(player, talker.getId(), "");
+            await("второй — зритель", 10, () -> saw(playerName, "cardopen", p, x -> x.field(0).equals("-1")), () -> {
+                check(saw(playerName, "cardopen", p, x -> x.field(0).equals("-1")), playerName + " при одном месте смотрит (место −1)");
+                cue(streamerName, "card", "bet", "1"); cue(streamerName, "card", "deal");
+                await("зритель видит раздачу", 15, () -> cardSeen(playerName, p, x -> x.field(0).equals("PLAYERS") && x.field(2).equals("-1")), () -> {
+                    check(cardSeen(playerName, p, x -> x.field(0).equals("PLAYERS") && x.field(2).equals("-1")), "зритель видит раздачу сидящего");
+                    cue(playerName, "shot", "mobtalk-server-cards-watcher-" + playerName + ".png");
+                    cue(streamerName, "card", "stand");
+                    await("расчёт", 10, () -> cardSeen(playerName, p, phase("SETTLED")), () -> {
+                        cue(streamerName, "cardleave");
+                        int p2 = mark(playerName);
+                        await("место освободилось", 10, () -> cardSeen(playerName, p2, x -> x.field(3).equals("0")), () -> {
+                            cue(playerName, "card", "sit");
+                            await("зритель сел", 10, () -> cardSeen(playerName, p2, x -> x.field(2).equals("0")), () -> {
+                                check(cardSeen(playerName, p2, x -> x.field(2).equals("0")), "место освободилось — зритель сел за стол");
+                                cue(playerName, "cardleave");
+                                ServerConfig.update(config -> { config.cardsSeats = 4; return config; });
+                                await("стол закрыт", 10, () -> !table().playing(talker.getUuid()), this::finish);
+                            });
+                        });
+                    });
+                });
+            });
+        });
+    }
     // ---- Диалог: стример спрашивает, оба слышат; журнал админки. ----
 
     private void dialogue1() {

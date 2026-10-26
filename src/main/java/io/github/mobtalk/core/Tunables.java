@@ -126,6 +126,15 @@ public final class Tunables {
         integer("jealousyAttention", s, "jealousy", 0, 30, 1, c -> c.jealousyAttention, (c, x) -> c.jealousyAttention = x);
         integer("coSleepRange", s, "jealousy", 2, 32, 1, c -> c.coSleepRange, (c, x) -> c.coSleepRange = x);
         integer("coSleepHearts", s, "jealousy", 0, 20, 1, c -> c.coSleepHearts, (c, x) -> c.coSleepHearts = x);
+        // Игра в 21 с жителем (docs/cards-21.md).
+        integer("cardsMinBet", s, "cards", 1, 16, 1, c -> c.cardsMinBet, (c, x) -> c.cardsMinBet = x);
+        integer("cardsMaxBet", s, "cards", 1, 64, 1, c -> c.cardsMaxBet, (c, x) -> c.cardsMaxBet = x);
+        integer("cardsDailyLoss", s, "cards", 0, 640, 1, c -> c.cardsDailyLoss, (c, x) -> c.cardsDailyLoss = x);
+        integer("cardsPurseStart", s, "cards", 0, 64, 1, c -> c.cardsPurseStart, (c, x) -> c.cardsPurseStart = x);
+        integer("cardsPursePerDay", s, "cards", 0, 16, 1, c -> c.cardsPursePerDay, (c, x) -> c.cardsPursePerDay = x);
+        integer("cardsSeats", s, "cards", 1, 4, 1, c -> c.cardsSeats, (c, x) -> c.cardsSeats = x);
+        integer("cardsTurnSeconds", s, "cards", 10, 120, 5, c -> c.cardsTurnSeconds, (c, x) -> c.cardsTurnSeconds = x);
+        integer("tableVolume", s, "cards", 0, 100, 5, c -> c.tableVolume, (c, x) -> c.tableVolume = x);
         integer("coSleepNightDelay", s, "jealousy", 0, 300, 5, c -> c.coSleepNightDelay, (c, x) -> c.coSleepNightDelay = x);
         // Соперники за одно сердце (П3).
         integer("rivalWindowHours", s, "rivals", 1, 168, 1, c -> c.rivalWindowHours, (c, x) -> c.rivalWindowHours = x);
@@ -341,6 +350,8 @@ public final class Tunables {
                 config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.alarmSound = d.alarmSound; config.villageNoConversion = d.villageNoConversion; config.villageTowers = d.villageTowers; config.villageGuards = d.villageGuards; config.villageRoads = d.villageRoads; config.roadLamps = d.roadLamps; config.roadBypass = d.roadBypass; config.roadDecor = d.roadDecor; config.villageHeavy = d.villageHeavy; config.villageCavalry = d.villageCavalry; config.officials = d.officials; config.paperwork = d.paperwork; config.paperLunch = d.paperLunch; config.passportForWedding = d.passportForWedding; config.officialDacha = d.officialDacha; config.officialSmite = d.officialSmite; config.officialRevizor = d.officialRevizor; config.officialsShameless = d.officialsShameless; config.officialGossip = d.officialGossip; config.officialPapers = d.officialPapers; config.barsInVillages = d.barsInVillages; config.barEvenings = d.barEvenings; config.barVoiced = d.barVoiced; config.barAliceSpeaker = d.barAliceSpeaker; config.barDrinks = d.barDrinks;
                 config.casino = d.casino; config.casinoBouncers = d.casinoBouncers; config.casinoVisitors = d.casinoVisitors; config.casinoResort = d.casinoResort; config.casinoSparkles = d.casinoSparkles;
                 config.divineTidings = d.divineTidings; config.divinePanic = d.divinePanic; config.divineMayExile = d.divineMayExile; config.divineMourners = d.divineMourners;
+                config.cards = d.cards; config.cardsVariant = d.cardsVariant; config.cardsItemStakes = d.cardsItemStakes; config.cardsCheating = d.cardsCheating;
+                config.tableInvite = d.tableInvite; config.tableLines = d.tableLines; config.tableSpeed = d.tableSpeed; config.tableHint = d.tableHint;
             }
             case ACTIONS -> { config.placeAnalysis = d.placeAnalysis; config.placeClassifier = d.placeClassifier; }
         }
