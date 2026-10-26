@@ -510,6 +510,9 @@ def save_names():
             if len(EXPORT[fu.id]["cells"]) > 1 and fu.kind == "decor":
                 d[f"block.mobtalk.{fu.id}_part"] = (fu.ru, fu.en)[i]
         d["entity.mobtalk.seat"] = ("Сиденье", "Seat")[i]
+        import fur_texts
+        for k, v in fur_texts.TEXTS.items():
+            d[k] = v[i]
         with open(p, "w", encoding="utf-8") as fh:
             json.dump(d, fh, indent=2, ensure_ascii=False)
             fh.write("\n")

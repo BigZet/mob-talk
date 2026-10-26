@@ -15,7 +15,9 @@ import net.minecraft.block.Blocks;
 import net.minecraft.block.HorizontalFacingBlock;
 import net.minecraft.block.MapColor;
 import net.minecraft.block.ShapeContext;
+import net.minecraft.block.BlockEntityProvider;
 import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.block.enums.BedPart;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -41,6 +43,9 @@ import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.IntProperty;
 import net.minecraft.state.property.Properties;
 import net.minecraft.util.ActionResult;
+import net.minecraft.util.Hand;
+import net.minecraft.util.ItemActionResult;
+import net.minecraft.util.ItemScatterer;
 import net.minecraft.util.BlockMirror;
 import net.minecraft.util.BlockRotation;
 import net.minecraft.util.DyeColor;
@@ -90,6 +95,7 @@ public final class FurnitureBlocks {
     public static final List<Block> CUTOUT = new ArrayList<>();
     public static final List<Block> TRANSLUCENT = new ArrayList<>();
     public static EntityType<Seat> SEAT;
+    public static BlockEntityType<FurnitureStorage> STORAGE;
     private static boolean registered;
 
     public static void register() {
@@ -104,7 +110,7 @@ public final class FurnitureBlocks {
             Block block = switch (f.kind) {
                 case BED -> new Bed(settings, f);
                 case CURTAIN -> new Curtain(settings, f);
-                default -> new Furniture(settings, f);
+                default -> FurnitureUse.rows(f.id) > 0 ? new Storage(settings, f, FurnitureUse.rows(f.id)) : new Furniture(settings, f);
             };
             Registry.register(Registries.BLOCK, id, block);
             BLOCKS.put(f.id, block);
@@ -118,6 +124,10 @@ public final class FurnitureBlocks {
                 if (f.cutout) CUTOUT.add(part);
             }
         }
+        Block[] storage = BLOCKS.values().stream().filter(b -> b instanceof Storage).toArray(Block[]::new);
+        STORAGE = Registry.register(Registries.BLOCK_ENTITY_TYPE, Identifier.of("mobtalk", "furniture_storage"),
+                BlockEntityType.Builder.create(FurnitureStorage::new, storage).build(null));
+        FurnitureUse.register();
         SEAT = Registry.register(Registries.ENTITY_TYPE, Identifier.of("mobtalk", "seat"), EntityType.Builder.<Seat>create(Seat::new, SpawnGroup.MISC)
                 .dimensions(0.25f, 0.05f).disableSaving().disableSummon().makeFireImmune().maxTrackingRange(8).build("seat"));
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> items.forEach(entries::add));
@@ -310,11 +320,19 @@ public final class FurnitureBlocks {
         }
 
         @Override protected ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
-            return use(state, world, pos, pos, player);
+            return use(state, world, pos, pos, player, hit);
         }
 
-        /** A click on the piece (at {@code cell}, the main block at {@code pos}): switch it, or sit down on that cell. */
-        ActionResult use(BlockState state, World world, BlockPos pos, BlockPos cell, PlayerEntity player) {
+        @Override protected ItemActionResult onUseWithItem(ItemStack stack, BlockState state, World world, BlockPos pos, PlayerEntity player,
+                                                           Hand hand, BlockHitResult hit) {
+            return FurnitureUse.useWithItem(this, world, pos, player, hand, stack);
+        }
+
+        /** A click on the piece (at {@code cell}, the main block at {@code pos}): what it does ({@link FurnitureUse}), else switch it,
+         * or sit down on that cell. */
+        ActionResult use(BlockState state, World world, BlockPos pos, BlockPos cell, PlayerEntity player, BlockHitResult hit) {
+            ActionResult special = FurnitureUse.use(this, state, world, pos, cell, player, hit);
+            if (special != null) return special;
             if (f.toggle) {
                 if (!world.isClient) setLit(world, pos, state, !state.get(LIT));
                 return ActionResult.success(world.isClient);
@@ -327,6 +345,12 @@ public final class FurnitureBlocks {
         }
 
         public void setLit(World world, BlockPos pos, BlockState state, boolean on) {
+            setLitQuietly(world, pos, state, on);
+            world.playSound(null, pos, SoundEvents.BLOCK_LEVER_CLICK, SoundCategory.BLOCKS, 0.3f, on ? 0.65f : 0.55f);
+        }
+
+        /** As {@link #setLit} without the click (a lamp switched from the wall). */
+        public void setLitQuietly(World world, BlockPos pos, BlockState state, boolean on) {
             world.setBlockState(pos, state.with(LIT, on), Block.NOTIFY_ALL);
             Direction facing = state.get(FACING);
             for (int i = 1; i < f.cells.length && part != null; i++) {
@@ -334,7 +358,26 @@ public final class FurnitureBlocks {
                 BlockState ps = world.getBlockState(p);
                 if (ps.isOf(part)) world.setBlockState(p, ps.with(LIT, on), Block.NOTIFY_ALL);
             }
-            world.playSound(null, pos, SoundEvents.BLOCK_LEVER_CLICK, SoundCategory.BLOCKS, 0.3f, on ? 0.65f : 0.55f);
+        }
+    }
+
+    /** A piece that opens: a wardrobe, a cupboard, a fridge, a chest of drawers ({@link FurnitureStorage} holds its things). */
+    public static class Storage extends Furniture implements BlockEntityProvider {
+        final int rows;
+
+        Storage(AbstractBlock.Settings settings, F f, int rows) {
+            super(settings, f);
+            this.rows = rows;
+        }
+
+        @Override public BlockEntity createBlockEntity(BlockPos pos, BlockState state) { return new FurnitureStorage(pos, state); }
+
+        @Override protected void onStateReplaced(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved) {
+            if (!state.isOf(newState.getBlock()) && world.getBlockEntity(pos) instanceof FurnitureStorage inv) {
+                ItemScatterer.spawn(world, pos, inv);
+                world.updateComparators(pos, this);
+            }
+            super.onStateReplaced(state, world, pos, newState, moved);
         }
     }
 
@@ -388,7 +431,14 @@ public final class FurnitureBlocks {
         @Override protected ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
             BlockPos main = main(pos, state);
             BlockState ms = world.getBlockState(main);
-            return ms.isOf(owner) ? owner.use(ms, world, main, pos, player) : ActionResult.PASS;
+            return ms.isOf(owner) ? owner.use(ms, world, main, pos, player, hit) : ActionResult.PASS;
+        }
+
+        @Override protected ItemActionResult onUseWithItem(ItemStack stack, BlockState state, World world, BlockPos pos, PlayerEntity player,
+                                                           Hand hand, BlockHitResult hit) {
+            BlockPos main = main(pos, state);
+            return world.getBlockState(main).isOf(owner) ? FurnitureUse.useWithItem(owner, world, main, player, hand, stack)
+                    : ItemActionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
     }
 

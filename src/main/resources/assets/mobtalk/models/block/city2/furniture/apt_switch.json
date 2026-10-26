@@ -1,0 +1,187 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "switch_plastic": "mobtalk:block/city2/furniture/switch_plastic",
+    "switch_key": "mobtalk:block/city2/furniture/switch_key",
+    "particle": "mobtalk:block/city2/furniture/switch_plastic"
+  },
+  "elements": [
+    {
+      "from": [
+        5.5,
+        7.0,
+        15.0
+      ],
+      "to": [
+        10.5,
+        12.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#switch_plastic",
+          "uv": [
+            5.5,
+            4.0,
+            10.5,
+            9.0
+          ]
+        },
+        "east": {
+          "texture": "#switch_plastic",
+          "uv": [
+            0.0,
+            4.0,
+            1.0,
+            9.0
+          ]
+        },
+        "west": {
+          "texture": "#switch_plastic",
+          "uv": [
+            15.0,
+            4.0,
+            16.0,
+            9.0
+          ]
+        },
+        "up": {
+          "texture": "#switch_plastic",
+          "uv": [
+            5.5,
+            15.0,
+            10.5,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#switch_plastic",
+          "uv": [
+            5.5,
+            0.0,
+            10.5,
+            1.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.5,
+        9.5,
+        14.0
+      ],
+      "to": [
+        9.5,
+        11.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#switch_key",
+          "uv": [
+            6.5,
+            5.0,
+            9.5,
+            6.5
+          ]
+        },
+        "east": {
+          "texture": "#switch_key",
+          "uv": [
+            1.0,
+            5.0,
+            2.0,
+            6.5
+          ]
+        },
+        "west": {
+          "texture": "#switch_key",
+          "uv": [
+            14.0,
+            5.0,
+            15.0,
+            6.5
+          ]
+        },
+        "up": {
+          "texture": "#switch_key",
+          "uv": [
+            6.5,
+            14.0,
+            9.5,
+            15.0
+          ]
+        },
+        "down": {
+          "texture": "#switch_key",
+          "uv": [
+            6.5,
+            1.0,
+            9.5,
+            2.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.5,
+        8.0,
+        14.5
+      ],
+      "to": [
+        9.5,
+        9.5,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#switch_key",
+          "uv": [
+            6.5,
+            6.5,
+            9.5,
+            8.0
+          ]
+        },
+        "east": {
+          "texture": "#switch_key",
+          "uv": [
+            1.0,
+            6.5,
+            1.5,
+            8.0
+          ]
+        },
+        "west": {
+          "texture": "#switch_key",
+          "uv": [
+            14.5,
+            6.5,
+            15.0,
+            8.0
+          ]
+        },
+        "up": {
+          "texture": "#switch_key",
+          "uv": [
+            6.5,
+            14.5,
+            9.5,
+            15.0
+          ]
+        },
+        "down": {
+          "texture": "#switch_key",
+          "uv": [
+            6.5,
+            1.0,
+            9.5,
+            1.5
+          ]
+        }
+      }
+    }
+  ]
+}

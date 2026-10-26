@@ -1191,5 +1191,18 @@
   "block.mobtalk.apt_dryer_liana": "Ceiling clothes airer",
   "block.mobtalk.apt_dryer_liana_part": "Ceiling clothes airer",
   "block.mobtalk.apt_basin_zinc": "Zinc basin with washing",
-  "block.mobtalk.apt_laundry_basket": "Wicker laundry basket"
+  "block.mobtalk.apt_laundry_basket": "Wicker laundry basket",
+  "block.mobtalk.apt_switch": "Light switch",
+  "mobtalk.furniture.clock": "The clock says %s",
+  "mobtalk.furniture.meter": "Meter: %s kWh",
+  "mobtalk.furniture.chute": "Rubbish chute: hold something you don't need and drop it in",
+  "mobtalk.furniture.chute_gone": "%s clatters down the chute",
+  "mobtalk.furniture.notice.0": "“No hot water from 1 to 14 July. Housing office”",
+  "mobtalk.furniture.notice.1": "“Residents' meeting Thursday 7 pm by entrance two”",
+  "mobtalk.furniture.notice.2": "“Lost dog, ginger, answers to Sharik. Flat 34”",
+  "mobtalk.furniture.notice.3": "“Please do not smoke on the stairs!”",
+  "mobtalk.furniture.notice.4": "“Clean-up day on Saturday. The janitor hands out rakes”",
+  "mobtalk.furniture.notice.5": "“Pram for sale, almost new. Flat 12”",
+  "mobtalk.furniture.notice.6": "“Meter checks. Don't open the door to strangers!”",
+  "mobtalk.furniture.notice.7": "“Whoever took the sled from under the stairs — bring it back!”"
 }

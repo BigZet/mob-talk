@@ -190,6 +190,7 @@ def silk_shade(on):
 
 def make():
     materials()
+    make_switch()
     Furn("apt_lamp_cascade", "Люстра «Каскад» (хрусталь)", "Crystal chandelier", cascade, mount="CEILING", toggle=True, light=15,
          color="GOLD", sound="GLASS", solid=False)
     Furn("apt_lamp_horns", "Люстра рожковая", "Horned chandelier", horns, mount="CEILING", toggle=True, light=15, color="GOLD",
@@ -202,3 +203,23 @@ def make():
          sound="GLASS", solid=False)
     Furn("apt_lamp_silk", "Абажур с бахромой", "Silk lampshade with fringe", silk_shade, mount="CEILING", toggle=True, light=13,
          color="RED", sound="WOOL", solid=False, cutout=True)
+
+
+def switch(on):
+    def build():
+        m = Model()
+        # the Soviet rocker switch at 1.5 m: an ivory plate on the wall, a two-way key that tips up when the light is on
+        m.box((5.5, 7, 15), (10.5, 12, 16), "switch_plastic", south=None)
+        hi, lo = (9.5, 11), (8, 9.5)
+        out, back = (hi, lo) if on else (lo, hi)
+        m.box((6.5, out[0], 14), (9.5, out[1], 15), "switch_key", south=None)
+        m.box((6.5, back[0], 14.5), (9.5, back[1], 15), "switch_key", south=None)
+        return m
+    return build
+
+
+def make_switch():
+    mat("switch_plastic", P.enamel(32, 32, rgb("ece4cc")))
+    mat("switch_key", P.enamel(32, 32, rgb("f6f0dc")))
+    Furn("apt_switch", "Выключатель света", "Light switch", switch, mount="WALL", toggle=True, light=0, color="WHITE",
+         sound="STONE", solid=False)
