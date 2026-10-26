@@ -16,4 +16,5 @@ MARGIN = 2          # around a house in its template: balcony row plus the aspha
 
 SERIES_SIZES = {    # series: (section length along the facade, depth), blocks, walls included
     "1-464": (28, 19),
+    "1-515-9": (42, 22),
 }

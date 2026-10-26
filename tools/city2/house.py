@@ -29,8 +29,9 @@ RIGHT = {v: k for k, v in LEFT.items()}
 OPP = {N: SO, SO: N, E: W, W: E}
 
 PAPERS = ["paper_beige", "paper_green", "paper_blue", "paper_pink", "paper_stripe", "paper_roses", "paper_damask", "paper_geo"]
-FINISH = {"kitchen": "tile_kitchen", "bath": "tile_bath", "hall": "paper_wood", "stair": "paint_stair"}
-FLOOR = {"kitchen": "floor_lino_beige", "bath": "floor_tile", "hall": "floor_lino_brown", "stair": "floor_terrazzo"}
+FINISH = {"kitchen": "tile_kitchen", "bath": "tile_bath", "hall": "paper_wood", "stair": "paint_stair", "pantry": "plaster"}
+FLOOR = {"kitchen": "floor_lino_beige", "bath": "floor_tile", "hall": "floor_lino_brown", "stair": "floor_terrazzo",
+         "pantry": "floor_lino_brown"}
 ROWS = ("lo", "mid", "hi")   # a room's three rows over its floor: skirting, plain, cornice
 FLAT_DOORS = ["door_flat", "door_flat_wine", "door_flat_black", "door_flat_wood", "door_flat_steel", "door_flat_steel_brown"]
 ROOM_DOORS = ["door_room", "door_room", "door_room_wood"]
@@ -46,7 +47,8 @@ LAMPS = {"living": ["apt_chandelier", "apt_lamp_cascade", "apt_lamp_horns", "apt
          "room": ["apt_chandelier", "apt_lamp_horns", "apt_lamp_orange", "apt_ceiling_plate"],
          "bedroom": ["apt_lamp_orange", "apt_lamp_horns", "apt_ceiling_plate", "apt_lamp_silk"],
          "kitchen": ["apt_lamp_cone", "apt_ceiling_plate", "apt_lamp_orange"],
-         "hall": ["apt_lamp_ball", "apt_ceiling_plate"], "bath": ["apt_lamp_ball", "apt_ceiling_plate"]}
+         "hall": ["apt_lamp_ball", "apt_ceiling_plate"], "bath": ["apt_lamp_ball", "apt_ceiling_plate"],
+         "pantry": ["apt_bare_bulb"]}
 LAMP_STAIR = "apt_wall_puck"
 CURTAINS = ["apt_curtain_wine", "apt_curtain_gold", "apt_curtain_blue", "apt_curtain_olive"]
 CW = {N: E, E: SO, SO: W, W: N}
@@ -208,6 +210,8 @@ class House:
         self.roof_level()
         for i in range(self.n):
             self.stairs(i)
+            if "lift" in self.s:
+                self.lift(i)
         self.balconies()
         self.fixtures()
         import rooms   # the flats' furniture (rooms.py reads the furniture catalogue, so it is imported only here)
@@ -297,11 +301,11 @@ class House:
                 self.at(bx, R, bz, "roof_bitumen")
         for i in range(self.n):  # vent stacks over the bathrooms' risers, an aerial or two
             x0 = i * self.sw
-            for vx, vz in ((8, 9), (20, 9)):
+            for vx, vz in self.s["vents"]:
                 self.at(x0 + vx, R + 1, vz, "vent_shaft", {"facing": N})
                 self.at(x0 + vx, R + 2, vz, "vent_cap", {"facing": N})
             if self.r.random() < 0.7:
-                ax, az = x0 + self.r.choice((2, 25)), self.r.choice((4, 14))
+                ax, az = x0 + self.r.choice((2, self.sw - 3)), self.r.choice((4, self.depth - 5))
                 for y in (R + 1, R + 2):
                     self.at(ax, y, az, "tv_antenna", {"facing": self.r.choice((N, E))})
 
@@ -431,6 +435,32 @@ class House:
             self.at(A0, y, sz, name, {"facing": E})
         self.at(A0, R + 5, sz, "vent_cap", {"facing": N})
 
+    def lift(self, i):
+        """The lift of section i (spec §3.2 p.4, lift.py): the shaft 2 x 2 behind the lift hall, its doors in the hall's back
+        wall on every floor, the button beside them; on the roof the machine room, a box over the shaft with the winch."""
+        import lift
+        x0 = i * self.sw
+        lx, lz, facing = self.s["lift"]
+        lift.place(self.tpl, self.ox + x0 + lx, self.slab(1), self.oz + lz, self.floors, scale.STOREY, facing)
+        R, col = self.roof, self.colour
+        xs, zs = range(x0 + lx - 1, x0 + lx + 3), range(lz - 1, lz + 3)
+        for x in xs:
+            for z in zs:
+                edge = x in (xs[0], xs[-1]) or z in (zs[0], zs[-1])
+                corner = x in (xs[0], xs[-1]) and z in (zs[0], zs[-1])
+                for n, row in enumerate(ROWS):
+                    if not edge:
+                        self.at(x, R + 1 + n, z, "minecraft:air")
+                    elif corner:
+                        self.at(x, R + 1 + n, z, f"facade_{col}_edge")
+                    else:
+                        out = N if z == zs[0] else SO if z == zs[-1] else (W if x == xs[0] else E)
+                        self.at(x, R + 1 + n, z, f"facade_{col}_{row}", {"facing": out, "inner": "plaster"})
+                self.at(x, R + 4, z, f"facade_{col}_{'edge' if corner else 'band'}" if edge else "roof_bitumen")
+        self.at(x0 + lx + 1, R + 3, lz + 1, "apt_bare_bulb", {"facing": N, "lit": "true"})
+        for k in range(1, self.floors + 1):   # the lift hall's lamp under its ceiling, in the middle of the hall
+            self.at(x0 + lx + 1, self.slab(k) + 3, lz - 4, "apt_cage_lamp", {"facing": N, "lit": "true"})
+
     def balconies(self):
         """A balcony in front of every balcony door from the second floor up: the slab in the floor's slab row; open ones
         have a sheet railing, glazed ones a parapet and two rows of frames, each flat's in its own style; a glazed balcony
@@ -508,6 +538,9 @@ class House:
 
 def main():
     h = House("1-464", 4, 5, "grey")
+    t = h.build()
+    print(t.size, len(h.flats), "flats")
+    h = House("1-515-9", 3, 9, "grey")
     t = h.build()
     print(t.size, len(h.flats), "flats")
 

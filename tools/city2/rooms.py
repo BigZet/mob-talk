@@ -399,7 +399,16 @@ def room(rm, flat):
         flat["bed"] = rm.placed["bed"]
 
 
-KINDS = {"kitchen": kitchen, "bath": bath, "hall": hall, "living": living, "bedroom": bedroom, "room": room}
+def pantry(rm, flat):
+    """The pantry (кладовка): what doesn't fit in the flat, a bulb under the ceiling."""
+    r = rm.r
+    for pid, p in (("apt_bicycle", 0.5), ("apt_sled", 0.5), ("apt_suitcases", 0.8), ("apt_kitchen_shelf", 0.6),
+                   ("apt_pram", 0.25), ("apt_ironing_board", 0.4), ("apt_bookcase", 0.5)):
+        if maybe(r, p):
+            rm.against(pid, height=1 if CAT[pid][1] == "WALL" else 0)
+
+
+KINDS = {"pantry": pantry, "kitchen": kitchen, "bath": bath, "hall": hall, "living": living, "bedroom": bedroom, "room": room}
 
 
 def furnish(house):
@@ -407,7 +416,7 @@ def furnish(house):
     plan_rooms = house.s["rooms"]
     for k in range(1, house.floors + 1):
         for sec in range(house.n):
-            for side in ("L", "R"):
+            for side in sorted({sd for sd, _ in plan_rooms.values()}):
                 r = random.Random(f"{house.series}:{house.colour}:{house.n}:{k}:{sec}:{side}")
                 flat = {"set": r.choice(["white", "wood"]), "sofa": r.choice(["red", "green", "blue"]), "bed": None,
                         "rug": False, "wall_carpet": r.random() < 0.3}
@@ -419,7 +428,7 @@ def furnish(house):
                     cells = [(x, z) for (x, z), c in house.grid.items() if c == letter and house.section_of(x) == sec]
                     if cells:
                         rooms.append(Room(house, k, letter, kind, cells, random.Random(f"{r.random()}")))
-                order = ["hall", "kitchen", "bath", "living", "bedroom", "room"]
+                order = ["hall", "kitchen", "bath", "living", "bedroom", "room", "pantry"]
                 rooms.sort(key=lambda rm: order.index(rm.kind))
                 for rm in rooms:
                     KINDS[rm.kind](rm, flat)
