@@ -113,6 +113,20 @@ class PregnancyTest {
         assertTrue(after.children().getFirst().nextTicks() > 0);
     }
 
+    /** Команда «conceive»: супругам — сразу и со своим сроком, чужим и уже ждущим — нет. */
+    @Test void theCommandConceivesAtOnceOnlyForSpouses() throws Exception {
+        MobTalkConfig config = new MobTalkConfig(); config.playerGender = "male"; config.weddingCeremony = false;
+        ConversationStore store = ConversationStore.open(directory, config);
+        UUID wife = UUID.randomUUID(), player = UUID.randomUUID(), stranger = UUID.randomUUID();
+        married(store, wife, player, Gender.FEMALE);
+        assertEquals(0.15, store.children().chance(wife, player), 1e-9, "an ordinary night");
+        assertNull(store.children().force(wife, stranger, DAY, 0), "not her husband");
+        assertEquals(Pregnancy.Carrier.VILLAGER, store.children().force(wife, player, DAY, 2));
+        assertEquals(DAY + 2 * DAY, store.children().pregnancies().getFirst().due(), "the term from the command");
+        assertNull(store.children().force(wife, player, DAY, 0), "already expecting");
+        assertEquals(-1, store.children().chance(wife, player), 1e-9);
+    }
+
     @Test void aSameSexCoupleAndTheSwitchKeepTheOldWay() throws Exception {
         MobTalkConfig config = new MobTalkConfig(); config.playerGender = "male"; config.weddingCeremony = false;
         ConversationStore store = ConversationStore.open(directory, config);
