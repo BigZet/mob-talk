@@ -218,6 +218,22 @@ class Room:
                 return True
         return self.against(pid, near=anchor)
 
+    def switch(self):
+        """The light switch: inside the room beside its (first) door, on the wall the door is in, at hand height (spec of
+        the furniture thread: apt_switch turns this room's ceiling lamps)."""
+        y = self.s + 2
+        for x, z in sorted(self.cells):
+            for d, (dx, dz) in DIRS.items():
+                if self.h.ch(x + dx, z + dz) not in ("D", "E"):
+                    continue
+                for px, pz in ((dz, -dx), (-dz, dx)):
+                    cx, cz = x + px, z + pz
+                    if (cx, cz) in self.cells and (self.h.ch(cx + dx, cz + dz) or "") in SOLID and \
+                            self.h.tpl.get(self.h.ox + cx, y, self.h.oz + cz) is None:
+                        self.h.at(cx, y, cz, "apt_switch", {"facing": OPP[d], "lit": "true"})
+                        return True
+        return False
+
     def wall_room(self, x, z, f):
         """How many cells of free wall run on both sides of (x, z) for pieces facing f (room for a kitchen row)."""
         n = 0
@@ -431,6 +447,7 @@ def furnish(house):
                 order = ["hall", "kitchen", "bath", "living", "bedroom", "room", "pantry"]
                 rooms.sort(key=lambda rm: order.index(rm.kind))
                 for rm in rooms:
+                    rm.switch()
                     KINDS[rm.kind](rm, flat)
                 if carpet and not flat["rug"]:
                     for rm in rooms:

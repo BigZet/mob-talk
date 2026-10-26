@@ -135,7 +135,7 @@ public final class CityBuild {
                             IntegerArgumentType.getInteger(c, "floors"), "grey"))
                     .then(colour);
             var series = argument("series", StringArgumentType.string())
-                    .suggests((c, b) -> CommandSource.suggestMatching(List.of("\"1-464\"", "\"1-515-9\""), b))
+                    .suggests((c, b) -> CommandSource.suggestMatching(List.of("\"1-464\"", "\"1-335\"", "\"1-515-9\""), b))
                     .then(argument("sections", IntegerArgumentType.integer(1, 8)).then(floors));
             dispatcher.register(literal("city").requires(source -> source.hasPermissionLevel(2)).then(literal("house").then(series)));
         });
