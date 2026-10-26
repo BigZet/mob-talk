@@ -94,6 +94,8 @@ public final class AdminCommands {
                         .then(literal("say").then(argument("minutes", IntegerArgumentType.integer(1, 120)).then(argument("text", StringArgumentType.greedyString())
                                 .executes(context -> reply(context, OverlayHub.banner(StringArgumentType.getString(context, "text"), IntegerArgumentType.getInteger(context, "minutes")))))))
                         .then(literal("clear").executes(context -> reply(context, OverlayHub.clearBanner()))))
+                .then(literal("conceive").executes(context -> conceive(context, 0))
+                        .then(argument("days", IntegerArgumentType.integer(1, 30)).executes(context -> conceive(context, IntegerArgumentType.getInteger(context, "days")))))
                 .then(literal("reload").executes(AdminCommands::reload))
                 .then(literal("players").executes(context -> reply(context, players(context.getSource().getServer()))))
                 .then(literal("whitelist")
@@ -109,7 +111,15 @@ public final class AdminCommands {
 
     static String help() {
         return "/mobtalk admin: streamer <ник>|clear, admin add|remove|list, budget show|set <ник|all> <вид> <в минуту> <$ в день>, "
-                + "model <id>, feature <имя> on|off, set <поле> <значение>, get <поле>, web, reload, players, whitelist add|remove|list|on|off";
+                + "conceive [дни], model <id>, feature <имя> on|off, set <поле> <значение>, get <поле>, web, reload, players, whitelist add|remove|list|on|off";
+    }
+
+    /** Для проверки детей: беременность у игрока и супруги сразу; {@code days} &gt; 0 — свой срок. */
+    private static int conceive(CommandContext<ServerCommandSource> context, int days) {
+        ServerPlayerEntity player = context.getSource().getPlayer();
+        if (player == null) return reply(context, "Команду даёт игрок в игре");
+        io.github.mobtalk.game.MobGameBridge bridge = io.github.mobtalk.game.MobGameBridge.active(context.getSource().getServer());
+        return reply(context, bridge == null ? "Игра Mob Talk не запущена" : bridge.children.conceive(player, days));
     }
 
     private static int reply(CommandContext<ServerCommandSource> context, String text) {

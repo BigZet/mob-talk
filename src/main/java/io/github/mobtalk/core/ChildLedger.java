@@ -63,13 +63,45 @@ public final class ChildLedger {
             boolean special = evening != null && evening.player().equals(player);
             double chance = Pregnancy.chance(special, special ? evening.cozy().score() : 0, config.conceptionChance, config.specialNightChanceMin, config.specialNightChanceMax);
             if (roll >= chance) return null;
-            s.conceivedTick = Math.max(0, worldTick);
-            s.pregnancyDays = Math.max(1, config.pregnancyDays);
-            s.expectingTick = Math.max(1, s.conceivedTick + s.pregnancyDays * ChildGrowth.DAY_TICKS);
-            s.carrier = carrier.name(); s.pregnancyNews = 0; s.pregnancyTerm = Pregnancy.Term.EARLY.name(); s.pregnancyDay = 1; s.cravingDay = -1;
-            store.scheduleSave();
+            conceive(s, player, carrier, worldTick, config.pregnancyDays);
             return carrier;
         }
+    }
+
+    /** Шанс малыша этой ночью ({@link #night}); -1 — пара не старается или носить некому. Для лога. */
+    public double chance(UUID villager, UUID player) {
+        synchronized (store) {
+            MobTalkConfig config = store.config();
+            SocialProfile s = social(villager);
+            if (!config.pregnancy || s == null || !trying(s, player)
+                    || Pregnancy.carrier(s.gender(), PlayerIdentity.gender(config, player)) == Pregnancy.Carrier.NONE) return -1;
+            Evening evening = evenings.get(villager);
+            boolean special = evening != null && evening.player().equals(player);
+            return Pregnancy.chance(special, special ? evening.cozy().score() : 0, config.conceptionChance, config.specialNightChanceMin, config.specialNightChanceMax);
+        }
+    }
+
+    /** Команда для проверки: беременность у супругов сразу, без броска; {@code days} &gt; 0 — свой срок в днях. Null — не в браке,
+     * носить некому или уже ждут малыша. */
+    public Pregnancy.Carrier force(UUID villager, UUID player, long worldTick, int days) {
+        synchronized (store) {
+            MobTalkConfig config = store.config();
+            SocialProfile s = social(villager);
+            if (s == null || player == null || !player.equals(store.state.family.spouse(villager)) || s.conceivedTick >= 0) return null;
+            Pregnancy.Carrier carrier = Pregnancy.carrier(s.gender(), PlayerIdentity.gender(config, player));
+            if (carrier == Pregnancy.Carrier.NONE) return null;
+            conceive(s, player, carrier, worldTick, days > 0 ? days : config.pregnancyDays);
+            return carrier;
+        }
+    }
+
+    private void conceive(SocialProfile s, UUID player, Pregnancy.Carrier carrier, long worldTick, int days) {
+        s.expectingWith = player.toString();
+        s.conceivedTick = Math.max(0, worldTick);
+        s.pregnancyDays = Math.max(1, days);
+        s.expectingTick = Math.max(1, s.conceivedTick + s.pregnancyDays * ChildGrowth.DAY_TICKS);
+        s.carrier = carrier.name(); s.pregnancyNews = 0; s.pregnancyTerm = Pregnancy.Term.EARLY.name(); s.pregnancyDay = 1; s.cravingDay = -1;
+        store.scheduleSave();
     }
 
     // ---- Срок. ----
