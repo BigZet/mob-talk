@@ -1399,6 +1399,8 @@ def make():
     fur_fridges.make()
     import fur_laundry
     fur_laundry.make()
+    import fur_2000
+    fur_2000.make()
 
 
 def plate_tex():

@@ -1204,5 +1204,22 @@
   "mobtalk.furniture.notice.4": "«Субботник в субботу. Грабли выдаёт дворник»",
   "mobtalk.furniture.notice.5": "«Продаю детскую коляску, почти новая. Кв. 12»",
   "mobtalk.furniture.notice.6": "«Поверка счётчиков. Не открывайте посторонним!»",
-  "mobtalk.furniture.notice.7": "«Кто взял санки из-под лестницы — верните!»"
+  "mobtalk.furniture.notice.7": "«Кто взял санки из-под лестницы — верните!»",
+  "block.mobtalk.apt_bell_button": "Кнопка дверного звонка",
+  "block.mobtalk.apt_doorbell": "Дверной звонок (советский)",
+  "block.mobtalk.apt_doorbell_chime": "Дверной звонок «динь-дон»",
+  "block.mobtalk.apt2_sofa_corner": "Угловой диван",
+  "block.mobtalk.apt2_sofa_corner_part": "Угловой диван",
+  "block.mobtalk.apt2_wardrobe_coupe": "Шкаф-купе",
+  "block.mobtalk.apt2_wardrobe_coupe_part": "Шкаф-купе",
+  "block.mobtalk.apt2_pc_desk": "Компьютерный стол с компьютером",
+  "block.mobtalk.apt2_pc_desk_part": "Компьютерный стол с компьютером",
+  "block.mobtalk.apt2_office_chair": "Компьютерное кресло",
+  "block.mobtalk.apt2_tv_stand": "Тумба с телевизором и DVD",
+  "block.mobtalk.apt2_fridge": "Холодильник двухкамерный (серебристый)",
+  "block.mobtalk.apt2_fridge_part": "Холодильник двухкамерный (серебристый)",
+  "block.mobtalk.apt2_kitchen_base": "Кухонная тумба с микроволновкой",
+  "block.mobtalk.apt2_kitchen_sink": "Кухонная мойка (2000-е)",
+  "block.mobtalk.apt2_kitchen_wall": "Навесной шкафчик (2000-е)",
+  "block.mobtalk.apt2_lamp_spots": "Люстра на штанге"
 }

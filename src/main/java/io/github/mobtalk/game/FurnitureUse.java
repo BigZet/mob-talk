@@ -50,10 +50,13 @@ final class FurnitureUse {
             Map.entry("apt_kitchen_jars_white", 1), Map.entry("apt_kitchen_jars_wood", 1), Map.entry("apt_kitchen_sink_white", 1),
             Map.entry("apt_kitchen_sink_wood", 1), Map.entry("apt_wall_cupboard_white", 1), Map.entry("apt_wall_cupboard_wood", 1),
             Map.entry("apt_shoe_cabinet", 1), Map.entry("apt_desk", 1), Map.entry("apt_toy_box", 1), Map.entry("apt_post_boxes", 1),
-            Map.entry("apt_nightstand", 1), Map.entry("apt_dressing_table", 1), Map.entry("apt_suitcases", 1), Map.entry("apt_laundry_basket", 1));
+            Map.entry("apt_nightstand", 1), Map.entry("apt_dressing_table", 1), Map.entry("apt_suitcases", 1), Map.entry("apt_laundry_basket", 1),
+            Map.entry("apt2_wardrobe_coupe", 3), Map.entry("apt2_fridge", 3), Map.entry("apt2_kitchen_base", 1), Map.entry("apt2_kitchen_sink", 1),
+            Map.entry("apt2_kitchen_wall", 1), Map.entry("apt2_tv_stand", 1), Map.entry("apt2_pc_desk", 1));
 
     /** Pieces that are a lamp and a cupboard at once open below this height (pixels above their placed cell), switch above it. */
-    private static final Map<String, Double> LAMP_ABOVE = Map.of("apt_nightstand", 9.5, "apt_desk", 13.0);
+    private static final Map<String, Double> LAMP_ABOVE = Map.of("apt_nightstand", 9.5, "apt_desk", 13.0, "apt2_tv_stand", 8.75,
+            "apt2_pc_desk", 12.5);
 
     private static final int NOTICES = 8;
 
@@ -61,7 +64,7 @@ final class FurnitureUse {
 
     static Sound doorSound(BlockState state, boolean open) {
         String id = state.getBlock() instanceof FurnitureBlocks.Furniture f ? f.f.id() : "";
-        if (id.startsWith("apt_fridge")) return new Sound(open ? SoundEvents.BLOCK_IRON_DOOR_OPEN : SoundEvents.BLOCK_IRON_DOOR_CLOSE, 0.45f, 1.35f);
+        if (id.startsWith("apt_fridge") || id.equals("apt2_fridge")) return new Sound(open ? SoundEvents.BLOCK_IRON_DOOR_OPEN : SoundEvents.BLOCK_IRON_DOOR_CLOSE, 0.45f, 1.35f);
         if (id.equals("apt_post_boxes")) return new Sound(open ? SoundEvents.BLOCK_IRON_TRAPDOOR_OPEN : SoundEvents.BLOCK_IRON_TRAPDOOR_CLOSE, 0.4f, 1.4f);
         if (id.equals("apt_suitcases") || id.equals("apt_laundry_basket") || id.equals("apt_toy_box"))
             return new Sound(SoundEvents.ITEM_ARMOR_EQUIP_LEATHER.value(), 0.6f, open ? 1.1f : 0.9f);
@@ -86,7 +89,9 @@ final class FurnitureUse {
                 block.setLit(world, pos, state, on);
                 roomLights(world, pos, on);
             }
-            case "apt_kitchen_sink_white", "apt_kitchen_sink_wood", "apt_washbasin", "apt_bathtub" -> tap(sw, pos, facing, id);
+            case "apt_bell_button" -> doorbell(sw, pos);
+            case "apt_doorbell", "apt_doorbell_chime" -> ring(sw, pos, id);
+            case "apt_kitchen_sink_white", "apt_kitchen_sink_wood", "apt_washbasin", "apt_bathtub", "apt2_kitchen_sink" -> tap(sw, pos, facing, id);
             case "apt_toilet" -> {
                 if (!player.isSneaking()) return null;
                 flush(sw, pos);
@@ -94,7 +99,7 @@ final class FurnitureUse {
             case "apt_stove", "apt_stove_kettle" -> stove(sw, pos, id.endsWith("kettle"));
             case "apt_piano" -> piano(sw, pos, facing, hit.getPos());
             case "apt_wall_radio" -> mayak(sw, pos);
-            case "apt_radiola", "apt_tv", "apt_gas_heater" -> {
+            case "apt_radiola", "apt_tv", "apt_gas_heater", "apt2_tv_stand", "apt2_pc_desk" -> {
                 boolean on = !state.get(FurnitureBlocks.LIT);
                 block.setLit(world, pos, state, on);
                 if (on) switchedOn(sw, pos, id, facing);
@@ -117,7 +122,8 @@ final class FurnitureUse {
     private static boolean special(String id, PlayerEntity player) {
         return switch (id) {
             case "apt_toilet" -> player.isSneaking();
-            case "apt_switch", "apt_kitchen_sink_white", "apt_kitchen_sink_wood", "apt_washbasin", "apt_bathtub", "apt_stove", "apt_stove_kettle",
+            case "apt_switch", "apt_bell_button", "apt_doorbell", "apt_doorbell_chime", "apt2_kitchen_sink", "apt2_tv_stand", "apt2_pc_desk",
+                 "apt_kitchen_sink_white", "apt_kitchen_sink_wood", "apt_washbasin", "apt_bathtub", "apt_stove", "apt_stove_kettle",
                  "apt_piano", "apt_wall_radio", "apt_radiola", "apt_tv", "apt_gas_heater", "apt_wall_phone", "apt_wall_clock", "apt_electric_meter",
                  "apt_notice_board", "apt_sewing_machine", "apt_washer", "apt_washer_malyutka", "apt_washer_sibir", "apt_crib",
                  "apt_ironing_board", "apt_chute" -> true;
@@ -128,7 +134,7 @@ final class FurnitureUse {
     /** A click holding something: a bottle or a bucket under the tap, rubbish down the chute, water for a plant. */
     static ItemActionResult useWithItem(FurnitureBlocks.Furniture block, World world, BlockPos pos, PlayerEntity player, Hand hand, ItemStack stack) {
         String id = block.f.id();
-        boolean tap = id.startsWith("apt_kitchen_sink") || id.equals("apt_washbasin") || id.equals("apt_bathtub");
+        boolean tap = id.startsWith("apt_kitchen_sink") || id.equals("apt2_kitchen_sink") || id.equals("apt_washbasin") || id.equals("apt_bathtub");
         if (tap && (stack.isOf(Items.GLASS_BOTTLE) || stack.isOf(Items.BUCKET))) {
             if (world instanceof ServerWorld sw) {
                 ItemStack full = stack.isOf(Items.BUCKET) ? new ItemStack(Items.WATER_BUCKET)
@@ -218,6 +224,7 @@ final class FurnitureUse {
         Vec3d spout = switch (id) {
             case "apt_washbasin" -> front(pos, facing, 15, 12);
             case "apt_bathtub" -> front(pos, facing, 14, 3);
+            case "apt2_kitchen_sink" -> front(pos, facing, 18, 10.25).add(Vec3d.of(facing.rotateYClockwise().getVector()).multiply(-2 / 16.0));
             default -> front(pos, facing, 17.5, 9.5);
         };
         w.playSound(null, pos, SoundEvents.BLOCK_WATER_AMBIENT, SoundCategory.BLOCKS, 0.6f, 1.6f);
@@ -283,6 +290,17 @@ final class FurnitureUse {
                 w.playSound(null, pos, SoundEvents.BLOCK_BEACON_ACTIVATE, SoundCategory.BLOCKS, 0.25f, 2f);
                 play(w, pos, SoundEvents.BLOCK_NOTE_BLOCK_BIT, new int[][] {{18, 20}, {18, 10}, {18, 10}, {18, 10}, {18, 10}, {22, 10}}, 0.5f);
             }
+            case "apt2_tv_stand" -> {
+                w.playSound(null, pos, SoundEvents.BLOCK_BEACON_ACTIVATE, SoundCategory.BLOCKS, 0.2f, 2f);
+                // a short news-programme jingle after the warm-up hum
+                play(w, pos, SoundEvents.BLOCK_NOTE_BLOCK_BELL, new int[][] {{6, 16}, {13, 5}, {11, 5}, {13, 5}, {18, 8}, {16, 6}}, 0.45f);
+            }
+            case "apt2_pc_desk" -> {
+                // the fan spins up, the drive seeks, then a start-up chime
+                w.playSound(null, pos, SoundEvents.BLOCK_BEACON_AMBIENT, SoundCategory.BLOCKS, 0.4f, 1.8f);
+                for (int i = 0; i < 6; i++) later(w, 8 + i * 3, () -> note(w, pos, SoundEvents.BLOCK_NOTE_BLOCK_HAT, 22, 0.25f));
+                play(w, pos, SoundEvents.BLOCK_NOTE_BLOCK_CHIME, new int[][] {{10, 40}, {15, 5}, {17, 5}, {22, 6}}, 0.5f);
+            }
             case "apt_gas_heater" -> {
                 w.playSound(null, pos, SoundEvents.ITEM_FIRECHARGE_USE, SoundCategory.BLOCKS, 0.5f, 1.4f);
                 Vec3d flame = front(pos, facing, 3, 4);
@@ -290,6 +308,47 @@ final class FurnitureUse {
                     later(w, i * 3, () -> w.spawnParticles(ParticleTypes.FLAME, flame.x, flame.y, flame.z, 3, 0.08, 0.02, 0.02, 0.005));
             }
             default -> { }
+        }
+    }
+
+    /** The push by the flat door rings the bell in the hall behind it: the nearest bell within six blocks on the same storey, or
+     * the push itself when there is none (a bell-less flat still buzzes on the landing). */
+    private static void doorbell(ServerWorld w, BlockPos pos) {
+        w.playSound(null, pos, SoundEvents.BLOCK_STONE_BUTTON_CLICK_ON, SoundCategory.BLOCKS, 0.4f, 1.6f);
+        later(w, 4, () -> w.playSound(null, pos, SoundEvents.BLOCK_STONE_BUTTON_CLICK_OFF, SoundCategory.BLOCKS, 0.4f, 1.6f));
+        BlockPos best = null;
+        String kind = "apt_doorbell";
+        double far = Double.MAX_VALUE;
+        for (BlockPos p : BlockPos.iterate(pos.add(-6, -1, -6), pos.add(6, 1, 6))) {
+            if (!(w.getBlockState(p).getBlock() instanceof FurnitureBlocks.Furniture f)) continue;
+            String id = f.f.id();
+            if (!id.equals("apt_doorbell") && !id.equals("apt_doorbell_chime")) continue;
+            double d = p.getSquaredDistance(pos);
+            if (d < far) { far = d; best = p.toImmutable(); kind = id; }
+        }
+        ring(w, best == null ? pos : best, kind);
+    }
+
+    static BlockPos lastRing;
+
+    /** The Soviet bell's hard electric trill, or the 2000s «динь-дон». */
+    private static void ring(ServerWorld w, BlockPos pos, String id) {
+        lastRing = pos;
+        if (BUSY.contains("bell" + pos.asLong())) return;
+        BUSY.add("bell" + pos.asLong());
+        if (id.equals("apt_doorbell_chime")) {
+            play(w, pos, SoundEvents.BLOCK_NOTE_BLOCK_BELL, new int[][] {{16, 1}, {12, 12}}, 0.9f);
+            later(w, 30, () -> BUSY.remove("bell" + pos.asLong()));
+        } else {
+            for (int i = 0; i < 24; i++) {
+                int t = i;
+                later(w, 1 + i, () -> {
+                    note(w, pos, SoundEvents.BLOCK_NOTE_BLOCK_BELL, t % 2 == 0 ? 20 : 19, 0.55f);
+                    note(w, pos, SoundEvents.BLOCK_NOTE_BLOCK_SNARE, 24, 0.2f);
+                });
+            }
+            burst(w, ParticleTypes.NOTE, Vec3d.ofCenter(pos).add(0, 0.4, 0), 3, 0.2);
+            later(w, 28, () -> BUSY.remove("bell" + pos.asLong()));
         }
     }
 

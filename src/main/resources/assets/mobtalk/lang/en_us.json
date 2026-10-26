@@ -1204,5 +1204,22 @@
   "mobtalk.furniture.notice.4": "“Clean-up day on Saturday. The janitor hands out rakes”",
   "mobtalk.furniture.notice.5": "“Pram for sale, almost new. Flat 12”",
   "mobtalk.furniture.notice.6": "“Meter checks. Don't open the door to strangers!”",
-  "mobtalk.furniture.notice.7": "“Whoever took the sled from under the stairs — bring it back!”"
+  "mobtalk.furniture.notice.7": "“Whoever took the sled from under the stairs — bring it back!”",
+  "block.mobtalk.apt_bell_button": "Door bell push",
+  "block.mobtalk.apt_doorbell": "Electric door bell",
+  "block.mobtalk.apt_doorbell_chime": "Ding-dong door chime",
+  "block.mobtalk.apt2_sofa_corner": "Corner sofa",
+  "block.mobtalk.apt2_sofa_corner_part": "Corner sofa",
+  "block.mobtalk.apt2_wardrobe_coupe": "Sliding-door wardrobe",
+  "block.mobtalk.apt2_wardrobe_coupe_part": "Sliding-door wardrobe",
+  "block.mobtalk.apt2_pc_desk": "Computer desk with a PC",
+  "block.mobtalk.apt2_pc_desk_part": "Computer desk with a PC",
+  "block.mobtalk.apt2_office_chair": "Office chair",
+  "block.mobtalk.apt2_tv_stand": "TV stand with a TV and a DVD player",
+  "block.mobtalk.apt2_fridge": "Silver two-door fridge",
+  "block.mobtalk.apt2_fridge_part": "Silver two-door fridge",
+  "block.mobtalk.apt2_kitchen_base": "Kitchen base with a microwave",
+  "block.mobtalk.apt2_kitchen_sink": "Kitchen sink (2000s)",
+  "block.mobtalk.apt2_kitchen_wall": "Wall cupboard (2000s)",
+  "block.mobtalk.apt2_lamp_spots": "Chrome bar ceiling light"
 }

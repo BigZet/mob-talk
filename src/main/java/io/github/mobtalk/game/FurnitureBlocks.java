@@ -98,6 +98,9 @@ public final class FurnitureBlocks {
     public static BlockEntityType<FurnitureStorage> STORAGE;
     private static boolean registered;
 
+    /** Where the last door bell rang (for the self-test). */
+    public static BlockPos lastRing() { return FurnitureUse.lastRing; }
+
     public static void register() {
         if (registered) return;
         registered = true;
