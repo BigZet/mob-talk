@@ -88,6 +88,8 @@ final class MobPrompt {
         // The state after the manner: in tests a mid-prompt state was heard only in the first words, then the archetype took over.
         String voice = config.moodReplyPercent > 0 ? state.voice() : "";
         if (!voice.isEmpty()) system += "\n\n" + PromptTexts.stateVoice(voice);
+        MoodSpell past = profile.state == null ? null : profile.state.pastDarkSpell(System.currentTimeMillis());
+        if (past != null) system += "\n\n" + PromptTexts.pastState(MoodWords.form(past.word, profile.social != null && Gender.FEMALE.name().equals(profile.social.gender)));
         if (config.commonPrompt != null && !config.commonPrompt.isBlank())
             system += "\n\nНастройка мира от игрока (важнее стиля выше): " + TextBounds.characters(config.commonPrompt, 8000);
         return system;

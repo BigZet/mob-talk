@@ -215,6 +215,18 @@ class MoodTest {
     // Apathy is its own long mood: a depression that ran its course unhelped burns out into it, and so does long starving;
     // it is not a depression on top of a depression.
     // Food handed to a hungry villager is a meal, not only a present: the hunger goes, even when the same food bored it before.
+    // An apathy just over still pulls the model into its flat lines: the prompt says it is over for a while, then forgets it.
+    @Test void aDarkMoodJustOverIsNamedAsPast() {
+        MobState state = new MobState();
+        long now = System.currentTimeMillis();
+        state.lastSpell = MoodSpell.APATHY.name(); state.lastSpellAt = now - 60_000L;
+        assertEquals(MoodSpell.APATHY, state.pastDarkSpell(now));
+        assertNull(state.pastDarkSpell(now + MobState.ECHO_MILLIS));
+        state.lastSpell = MoodSpell.JOY.name();
+        assertNull(state.pastDarkSpell(now), "a bright mood leaves no echo to fight");
+        assertTrue(PromptTexts.pastState("в апатии").contains("не подражай"));
+    }
+
     @Test void foodHandedToAHungryVillagerFeedsIt() throws Exception {
         UUID mob = UUID.randomUUID(), player = UUID.randomUUID();
         MobTalkConfig config = new MobTalkConfig();
