@@ -16,6 +16,7 @@ public final class ConversationStore {
     private final RivalryLedger rivalry = new RivalryLedger(this);
     private final WeddingLedger wedding = new WeddingLedger(this);
     private final ChildLedger children = new ChildLedger(this);
+    private final ConfessionLedger confession = new ConfessionLedger(this);
 
     /** Initial load touches disk: call from a maintenance/conversation worker. */
     public static ConversationStore open(Path worldDirectory, MobTalkConfig config) throws IOException {
@@ -67,6 +68,8 @@ public final class ConversationStore {
     public WeddingLedger wedding() { return wedding; }
     /** Трек N: особая ночь, беременность, роды и экран семьи; см. {@link ChildLedger}. */
     public ChildLedger children() { return children; }
+    /** Исповедь: откат, епитимьи; см. {@link ConfessionLedger}. Слов исповеди в памяти мира нет. */
+    public ConfessionLedger confession() { return confession; }
     /** Трек M: пол, родители (мать первой) и стадия роста жителя с профилем — облик людей-жителей; рендер читает копию. */
     public record Lineage(Gender gender, List<UUID> parents, String stage) { }
     public synchronized Map<UUID, Lineage> lineages() {
@@ -268,6 +271,33 @@ public final class ConversationStore {
         event(p, nowMillis, "Игрок " + named(player, playerName) + " ударил моба; отношение " + r.score, MemoryRanking.HIT); scheduleSave();
     }
 
+    /** An official took (or turned down) the player's envelope: its view of the player moves by {@code delta} and it remembers it
+     * quietly (ordinary importance: the official does not spread its own bribe). */
+    public synchronized void recordBribe(UUID mob, String type, String name, UUID player, String playerName, int delta, String text, long nowMillis) {
+        Profile p = ensure(mob, type, name); Relation r = relation(p, player);
+        r.score = clamp(r.score + delta, hostile(p)); feel(p, r, delta >= 0 ? MobState.Event.PURCHASE : MobState.Event.INSULT, nowMillis); p.revision++;
+        event(p, nowMillis, "Игрок " + named(player, playerName) + " " + text + "; отношение " + r.score); scheduleSave();
+    }
+    /** The inspectors' orders (track «чиновники»): reads give copies, writes save. */
+    public synchronized Officialdom.Fine officialFine(String village, UUID player) { Officialdom.Fine f = state.officials.fine(village, player); return f == null ? null : f.copy(); }
+    public synchronized boolean officialMayFine(String village, UUID player, long day) { return state.officials.mayFine(village, player, day); }
+    public synchronized Officialdom.Fine officialIssue(String village, UUID player, String playerName, UUID inspector, String inspectorName, String reason, int amount, long day, int days) {
+        Officialdom.Fine f = state.officials.issue(village, player, playerName, inspector, inspectorName, reason, amount, day, days); scheduleSave(); return f.copy();
+    }
+    public synchronized void officialClose(String village, UUID player) { state.officials.close(village, player); scheduleSave(); }
+    public synchronized void officialFavour(String village, UUID player, long day, int days) { state.officials.favour(village, player, day, days); scheduleSave(); }
+    public synchronized void officialTook(UUID official) { state.officials.took(official); scheduleSave(); }
+    public synchronized int officialTaken(UUID official) { return state.officials.taken(official); }
+    public synchronized Map<Officialdom.Fine, Officialdom.Overdue> officialOverdue(long day, int days) {
+        Map<Officialdom.Fine, Officialdom.Overdue> changed = state.officials.overdue(day, days);
+        if (changed.isEmpty()) return Map.of();
+        scheduleSave();
+        Map<Officialdom.Fine, Officialdom.Overdue> copies = new LinkedHashMap<>();
+        changed.forEach((f, o) -> copies.put(f.copy(), o));
+        return copies;
+    }
+    public synchronized List<Officialdom.Fine> officialFines() { return state.officials.open().stream().map(Officialdom.Fine::copy).toList(); }
+
     public synchronized void recordHelp(UUID mob, String type, String name, UUID player, String playerName, long nowMillis) {
         Profile p = ensure(mob, type, name); Relation r = relation(p, player);
         if (!cooledDown(r.lastHelp, nowMillis, 30_000)) return;
@@ -364,6 +394,15 @@ public final class ConversationStore {
         int added = state.rumors.add(villageId, rumors, ids, playerIdsByName(), now);
         if (added > 0) scheduleSave();
         return added;
+    }
+    /** The game's own news for one village (a viewer's parrot jailed or freed): a short-lived rumour every listed villager knows at
+     * once, so small talk picks it up. {@code dropPrefix} first removes older news with that id prefix ("" — none). */
+    public synchronized void villageNews(String villageId, String id, String dropPrefix, String text, int importance, long lifeMillis,
+                                         java.util.Collection<UUID> hearers, long now) {
+        if (villageId == null || villageId.isBlank()) return;
+        if (dropPrefix != null && !dropPrefix.isBlank()) state.rumors.dropNews(dropPrefix);
+        state.rumors.news(villageId, id, text, importance, lifeMillis, hearers, now);
+        scheduleSave();
     }
     /** Two inhabitants of one village stand together: rumours cross between them (faster between family and friends). */
     public synchronized boolean spreadRumors(UUID a, UUID b, java.util.function.DoubleSupplier roll, long now) {
@@ -547,6 +586,11 @@ public final class ConversationStore {
      * the other has not; the two may be swapped for that. */
     public synchronized VillageChatter.Input chatterInput(VillageChatter.Seat first, VillageChatter.Seat second, String villageKey, String villageName,
                                                           String playerName, String weather, java.util.function.DoubleSupplier roll, long now) {
+        return chatterInput(first, second, villageKey, villageName, playerName, weather, roll, now, false);
+    }
+    /** {@code bar}: the two sit in the village bar of an evening; they chew over the village's rumours even when both have heard them. */
+    public synchronized VillageChatter.Input chatterInput(VillageChatter.Seat first, VillageChatter.Seat second, String villageKey, String villageName,
+                                                          String playerName, String weather, java.util.function.DoubleSupplier roll, long now, boolean bar) {
         Profile p = chatterProfile(first, villageKey), q = chatterProfile(second, villageKey);
         String village = p.villageId.isBlank() ? q.villageId : p.villageId;
         VillageRumors.View told = state.rumors.untold(village, p.id, q.id, now);
@@ -561,9 +605,16 @@ public final class ConversationStore {
         UUID other = q.id;
         boolean acquainted = state.relations.views(p.id, now).stream().anyMatch(v -> v.other().equals(other));
         VillageRumors.View god = village.isBlank() || !Tuning.get().divineTidings ? null : state.rumors.latestDivine(village, VillageChatter.GOD_TOPIC_MILLIS, now);
-        VillageChatter.Subject subject = VillageChatter.subject(a, b, new VillageChatter.Facts(told, repute, weather, recent, god == null ? "" : god.text()), roll);
+        VillageChatter.Facts facts = new VillageChatter.Facts(told, repute, weather, recent, god == null ? "" : god.text());
+        VillageChatter.Subject subject;
+        if (bar) {
+            List<VillageRumors.View> known = village.isBlank() ? List.of() : state.rumors.heardBy(p.id, village, now);
+            if (known.isEmpty() && !village.isBlank()) known = state.rumors.village(village, now);
+            VillageRumors.View chew = known.isEmpty() ? null : known.get(Math.min(known.size() - 1, (int) (roll.getAsDouble() * Math.min(3, known.size()))));
+            subject = VillageChatter.barSubject(a, b, facts, chew, roll);
+        } else subject = VillageChatter.subject(a, b, facts, roll);
         scheduleSave();
-        return new VillageChatter.Input(villageKey, villageName, a, b, subject, safePlayer(playerName), weather, acquainted);
+        return new VillageChatter.Input(villageKey, villageName, a, b, subject, safePlayer(playerName), weather, acquainted, bar);
     }
     private Profile chatterProfile(VillageChatter.Seat seat, String villageKey) {
         Profile p = ensure(seat.id(), seat.type(), seat.observedName());
@@ -1404,7 +1455,15 @@ public final class ConversationStore {
         Map<String,String> players = new LinkedHashMap<>();
         /** What the villages know of the god's deeds (Б1); absent in files written before it. */
         DivineTidings divine = new DivineTidings();
+        /** The inspectors' open orders and who took envelopes (track «чиновники»); absent in files written before it. */
+        Officialdom officials = new Officialdom();
+        /** Исповедь: откат и епитимьи по игрокам; absent in files written before it. */
+        ConfessionLedger.Book confessions = new ConfessionLedger.Book();
         void sanitize() {
+            if (confessions == null) confessions = new ConfessionLedger.Book();
+            confessions.sanitize();
+            if (officials == null) officials = new Officialdom();
+            officials.sanitize();
             if (divine == null) divine = new DivineTidings();
             divine.sanitize();
             if (notices == null) notices = new VillageNotices();
@@ -1425,7 +1484,8 @@ public final class ConversationStore {
             State c = new State(); c.version = version;
             profiles.forEach((key, p) -> c.profiles.put(key, p.copy()));
             c.bargains.putAll(bargains); c.villages.putAll(villages); // Immutable records.
-            c.relations = relations.copy(); c.rumors = rumors.copy(); c.family = family.copy(); c.notices = notices.copy(); c.players = new LinkedHashMap<>(players); c.divine = divine.copy();
+            c.relations = relations.copy(); c.rumors = rumors.copy(); c.family = family.copy(); c.notices = notices.copy(); c.players = new LinkedHashMap<>(players); c.divine = divine.copy(); c.officials = officials.copy();
+            c.confessions = confessions.copy();
             return c;
         }
     }

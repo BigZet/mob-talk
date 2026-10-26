@@ -93,6 +93,8 @@ public final class MobTalkClient implements ClientModInitializer {
     });
     /** Движок второй версии (свадьба у колокола в одиночке): создаётся лениво на вызывающем потоке. */
     private volatile ConversationEngine engine;
+    /** Б4: сервер ждёт слов исповеди — сколько секунд писать голос (0 — исповедь не слушает). */
+    private volatile int confessionSeconds;
     private Path engineWorld; private MobTalkConfig engineConfig;
     private volatile Decider decider = new RuleDecider();
     private MobTalkConfig config = new MobTalkConfig();
@@ -138,13 +140,27 @@ public final class MobTalkClient implements ClientModInitializer {
         talkKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.talk", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_V, "category.mobtalk"));
         settingsKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.settings", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_F7, "category.mobtalk"));
         tradeKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.trade", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_B, "category.mobtalk"));
+        // Одиночка: клятву, распознанную сервером (OpenRouter/свой Whisper на сервере), берёт клиентская служба свадьбы.
+        io.github.mobtalk.server.DialogueService.LOCAL_VOW = (player, text) -> {
+            if (client.player == null || !client.player.getUuid().equals(player) || !wedding.takesVow() || wedding.serverVowOpen()) return false;
+            client.execute(() -> { wedding.vowHeard(text); requestActive = false; status = "Клятва произнесена"; showHud(); });
+            return true;
+        };
         giftKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.gift", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_G, "category.mobtalk"));
         familyKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.family", InputUtil.Type.KEYSYM, InputUtil.UNKNOWN_KEY.getCode(), "category.mobtalk"));
         moodCard.key = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.mood", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_ALT, "category.mobtalk"));
         MomentClient.register(configDirectory); // Метки для монтажа: клавиша, OBS (идея З4).
         net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_ENTITIES.register(labels::render);
         ChildView.register();
+        PenanceHud.register(this);
         io.github.mobtalk.client.human.VillagerLooks.register();
+        io.github.mobtalk.client.roads.RoadCartRenderer.register();
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(io.github.mobtalk.game.BarContent.SEAT, net.minecraft.client.render.entity.EmptyEntityRenderer::new);
+        // Казино: печатные поля на сукне и подвески люстры прозрачны по краям.
+        for (net.minecraft.block.Block block : io.github.mobtalk.game.CasinoContent.BLOCKS.values())
+            net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.INSTANCE.putBlock(block, net.minecraft.client.render.RenderLayer.getCutout());
+        net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.INSTANCE.putBlock(io.github.mobtalk.game.CasinoContent.FOUNTAIN, net.minecraft.client.render.RenderLayer.getTranslucent());
+        net.minecraft.client.render.block.entity.BlockEntityRendererFactories.register(io.github.mobtalk.game.CasinoContent.PALM_ENTITY, context -> new PalmCrownRenderer());
         net.fabricmc.fabric.api.resource.ResourceManagerHelper.get(net.minecraft.resource.ResourceType.CLIENT_RESOURCES).registerReloadListener(
                 new net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener() {
                     @Override public net.minecraft.util.Identifier getFabricId() { return net.minecraft.util.Identifier.of("mobtalk", "human_textures"); }
@@ -365,6 +381,7 @@ public final class MobTalkClient implements ClientModInitializer {
         merchant.end("Мир сменился: торговый разговор отменён");
         cancelWork(AIM_HINT, true, false);
         wedding.reset();
+        confessionSeconds = 0; PenanceHud.text("{}");
         selected = null;
         reach.clear();
         views.clear(); clips.clear(); pendingVoices.clear();
@@ -406,7 +423,7 @@ public final class MobTalkClient implements ClientModInitializer {
         Request seed = request(requestGeneration);
         captureShot(requestGeneration);
         try {
-            int seconds = wedding.takesVow() ? wedding.vowSeconds() : config.maxRecordingSeconds;
+            int seconds = wedding.takesVow() ? wedding.vowSeconds() : confessionSeconds > 0 ? confessionSeconds : config.maxRecordingSeconds;
             MicrophoneRecorder.Capture capture = microphone.start(config.microphoneName, seconds);
             recording = capture;
             merchant.setWork(seed.merchant);
@@ -595,9 +612,22 @@ public final class MobTalkClient implements ClientModInitializer {
         if (fresh) LOGGER.info("Mob Talk: подпись «{}» для {} (entity {}){}", packet.name(), packet.mob(), packet.mobId(),
                 world != null && world.getEntityById(packet.mobId()) == null ? ", сущности нет на клиенте" : "");
     }
+    /** Б4: исповедь слушает ({@code {"open","seconds","entityId"}}): батюшка — собеседник, запись длиннее обычной; или перестала. */
+    private void confessionListen(String json) {
+        try {
+            JsonObject object = JsonParser.parseString(json).getAsJsonObject();
+            boolean open = object.has("open") && object.get("open").getAsBoolean();
+            confessionSeconds = open ? Math.max(1, Math.min(120, object.has("seconds") ? object.get("seconds").getAsInt() : 60)) : 0;
+            int entityId = object.has("entityId") ? object.get("entityId").getAsInt() : -1;
+            if (open && world != null && entityId >= 0 && world.getEntityById(entityId) instanceof MobEntity priest && !priest.getUuid().equals(selected)) select(priest);
+            if (open) { requestActive = false; status = "Исповедь: удерживайте " + talkKey.getBoundKeyLocalizedText().getString() + " и говорите (до " + confessionSeconds + " с)"; showHud(); }
+        } catch (RuntimeException malformed) { confessionSeconds = 0; }
+    }
     void onScreen(String screen, String json) {
         if ("deal".equals(screen)) { merchant.resolved(json); return; }
         if ("wedding_vow".equals(screen)) { if (!wedding.serverVow(json)) requestActive = false; return; }
+        if ("confession_listen".equals(screen)) { confessionListen(json); return; }
+        if ("penance".equals(screen)) { PenanceHud.text(json); return; }
         CompletableFuture<String> waiting = screenRequests.remove(screen);
         if (waiting == null) return;
         try {

@@ -59,6 +59,30 @@ public final class SocialLedger {
         p.backstory = "";
         return true;
     }
+    /** Имя жителя, каким его знают в мире; у незнакомца профиль (пол, характер, имя) заводится сейчас. "" — слой выключен. */
+    public String named(UUID villager, String observedName) {
+        synchronized (store) {
+            ConversationStore.Profile p = store.ensure(villager, "minecraft:villager", observedName == null ? "Житель" : observedName);
+            return p.givenName == null ? "" : p.givenName;
+        }
+    }
+
+    /** Исповедь: настоятель храма Божественного блока — всегда мужчина с именем из святцев («отец Сергий»), мужским голосом. Ставится
+     * один раз; повтор ничего не меняет. */
+    public void ordain(UUID villager, String name) {
+        synchronized (store) {
+            ConversationStore.Profile p = store.ensure(villager, "minecraft:villager", name == null || name.isBlank() ? "Житель" : name);
+            boolean changed = false;
+            if (p.social == null) { p.social = SocialProfile.of(villager, false); temper(p); changed = true; }
+            if (p.social.gender() != Gender.MALE) { p.social.gender = Gender.MALE.name(); p.voiceId = ""; changed = true; }
+            if (name != null && !name.isBlank() && !name.equals(p.givenName)) { p.givenName = name.strip(); p.backstory = ""; changed = true; }
+            if (!changed) return;
+            adopt(p, store.config(), store.state.profiles.values());
+            p.revision++;
+            store.scheduleSave();
+        }
+    }
+
     /** The character's one-time shift of the temperament. */
     static void temper(ConversationStore.Profile p) {
         Persona persona = p.social.persona();
@@ -133,7 +157,8 @@ public final class SocialLedger {
             if (courtship.partners()) rolled.put(Gesture.DIVORCE, new GestureIntent(Gesture.DIVORCE, Gesture.Outcome.ACCEPTED,
                     courtship == Courtship.MARRIED ? DIVORCE_HEARTS : BREAKUP_HEARTS, "", courtship.name()));
             if (courtship == Courtship.MARRIED && config.familyLife) {
-                String refusal = SocialPrompt.childRefusal(score, p.social.has(VillagerTrait.INFERTILE), p.social.expectingTick >= 0,
+                String refusal = SocialPrompt.childRefusal(score, p.social.has(VillagerTrait.INFERTILE), p.social.expectingTick > 0 || p.social.conceivedTick >= 0,
+                        p.social.expectingTick == 0 && p.social.conceivedTick < 0,
                         rapport.lastChildMillis >= 0 && now - rapport.lastChildMillis < ChildGrowth.CHILD_COOLDOWN_MILLIS);
                 rolled.put(Gesture.CHILD, new GestureIntent(Gesture.CHILD, refusal == null ? Gesture.Outcome.ACCEPTED : Gesture.Outcome.REFUSED,
                         refusal == null ? DATE_HEARTS : 0, "", refusal == null ? "" : refusal));

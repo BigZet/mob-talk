@@ -62,6 +62,14 @@ final class SelfTest {
     static final boolean ONLY_TOWERS = "towers".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=guards}: village defence, stage 3 — guard stands, guards, their day, night round and fight (no LLM, no voice). */
     static final boolean ONLY_GUARDS = "guards".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=roads}: a road between two spots laid, its carts, wagon and horseman, the lamps (no LLM, no voice). */
+    static final boolean ONLY_ROADS = "roads".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=officials}: officials — desks, ranks, looks, bribes, witnesses, the inspector's order (no LLM, no voice). */
+    static final boolean ONLY_OFFICIALS = "officials".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=bar}: the village bar, its evening and villages with bars (no LLM, no voice). */
+    static final boolean ONLY_BAR = "bar".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Only casino}: the village casino, its furniture, bouncers and visitors (SelfTestCasino). */
+    static final boolean ONLY_CASINO = "casino".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=voices}: new villagers get an age and a pool voice of their sex and age with no early repeats,
      * and one villager of each age is voiced through OpenRouter (no LLM). */
     static final boolean ONLY_VOICES = "voices".equals(System.getProperty("mobtalk.selftest.only"));
@@ -179,6 +187,10 @@ final class SelfTest {
                 : ONLY_MOOD ? () -> new SelfTestMood(this, sx, SY, sz).run(this::finish)
                 : ONLY_TOWERS ? () -> new SelfTestTowers(this, sx, SY, sz).run(this::finish)
                 : ONLY_GUARDS ? () -> new SelfTestGuards(this, sx, SY, sz).run(this::finish)
+                : ONLY_ROADS ? () -> new SelfTestRoads(this, sx, SY, sz).run(this::finish)
+                : ONLY_BAR ? () -> new SelfTestBar(this, sx, SY, sz).run(this::finish)
+                : ONLY_OFFICIALS ? () -> new SelfTestOfficials(this, sx, SY, sz).run(this::finish)
+                : ONLY_CASINO ? () -> new SelfTestCasino(this, sx, SY, sz).run(this::finish)
                 : ONLY_LOOKS ? () -> new SelfTestLooks(this, sx, SY, sz).run(this::finish) : ONLY_NAMES ? this::names : ONLY_VOICES ? this::voices : this::aim);
     }
 

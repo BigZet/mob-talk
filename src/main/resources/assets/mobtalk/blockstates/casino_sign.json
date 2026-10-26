@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/casino/casino_sign"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/casino/casino_sign",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/casino/casino_sign",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/casino/casino_sign",
+      "y": 270
+    }
+  }
+}

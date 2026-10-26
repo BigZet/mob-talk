@@ -1,0 +1,664 @@
+{
+  "variants": {
+    "facing=north,letter=0,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_0_0"
+    },
+    "facing=east,letter=0,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_0_0",
+      "y": 90
+    },
+    "facing=south,letter=0,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_0_0",
+      "y": 180
+    },
+    "facing=west,letter=0,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_0_0",
+      "y": 270
+    },
+    "facing=north,letter=0,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_0_1"
+    },
+    "facing=east,letter=0,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_0_1",
+      "y": 90
+    },
+    "facing=south,letter=0,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_0_1",
+      "y": 180
+    },
+    "facing=west,letter=0,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_0_1",
+      "y": 270
+    },
+    "facing=north,letter=0,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_0_2"
+    },
+    "facing=east,letter=0,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_0_2",
+      "y": 90
+    },
+    "facing=south,letter=0,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_0_2",
+      "y": 180
+    },
+    "facing=west,letter=0,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_0_2",
+      "y": 270
+    },
+    "facing=north,letter=0,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_0_3"
+    },
+    "facing=east,letter=0,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_0_3",
+      "y": 90
+    },
+    "facing=south,letter=0,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_0_3",
+      "y": 180
+    },
+    "facing=west,letter=0,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_0_3",
+      "y": 270
+    },
+    "facing=north,letter=1,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_1_0"
+    },
+    "facing=east,letter=1,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_1_0",
+      "y": 90
+    },
+    "facing=south,letter=1,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_1_0",
+      "y": 180
+    },
+    "facing=west,letter=1,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_1_0",
+      "y": 270
+    },
+    "facing=north,letter=1,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_1_1"
+    },
+    "facing=east,letter=1,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_1_1",
+      "y": 90
+    },
+    "facing=south,letter=1,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_1_1",
+      "y": 180
+    },
+    "facing=west,letter=1,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_1_1",
+      "y": 270
+    },
+    "facing=north,letter=1,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_1_2"
+    },
+    "facing=east,letter=1,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_1_2",
+      "y": 90
+    },
+    "facing=south,letter=1,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_1_2",
+      "y": 180
+    },
+    "facing=west,letter=1,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_1_2",
+      "y": 270
+    },
+    "facing=north,letter=1,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_1_3"
+    },
+    "facing=east,letter=1,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_1_3",
+      "y": 90
+    },
+    "facing=south,letter=1,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_1_3",
+      "y": 180
+    },
+    "facing=west,letter=1,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_1_3",
+      "y": 270
+    },
+    "facing=north,letter=2,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_2_0"
+    },
+    "facing=east,letter=2,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_2_0",
+      "y": 90
+    },
+    "facing=south,letter=2,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_2_0",
+      "y": 180
+    },
+    "facing=west,letter=2,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_2_0",
+      "y": 270
+    },
+    "facing=north,letter=2,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_2_1"
+    },
+    "facing=east,letter=2,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_2_1",
+      "y": 90
+    },
+    "facing=south,letter=2,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_2_1",
+      "y": 180
+    },
+    "facing=west,letter=2,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_2_1",
+      "y": 270
+    },
+    "facing=north,letter=2,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_2_2"
+    },
+    "facing=east,letter=2,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_2_2",
+      "y": 90
+    },
+    "facing=south,letter=2,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_2_2",
+      "y": 180
+    },
+    "facing=west,letter=2,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_2_2",
+      "y": 270
+    },
+    "facing=north,letter=2,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_2_3"
+    },
+    "facing=east,letter=2,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_2_3",
+      "y": 90
+    },
+    "facing=south,letter=2,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_2_3",
+      "y": 180
+    },
+    "facing=west,letter=2,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_2_3",
+      "y": 270
+    },
+    "facing=north,letter=3,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_3_0"
+    },
+    "facing=east,letter=3,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_3_0",
+      "y": 90
+    },
+    "facing=south,letter=3,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_3_0",
+      "y": 180
+    },
+    "facing=west,letter=3,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_3_0",
+      "y": 270
+    },
+    "facing=north,letter=3,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_3_1"
+    },
+    "facing=east,letter=3,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_3_1",
+      "y": 90
+    },
+    "facing=south,letter=3,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_3_1",
+      "y": 180
+    },
+    "facing=west,letter=3,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_3_1",
+      "y": 270
+    },
+    "facing=north,letter=3,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_3_2"
+    },
+    "facing=east,letter=3,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_3_2",
+      "y": 90
+    },
+    "facing=south,letter=3,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_3_2",
+      "y": 180
+    },
+    "facing=west,letter=3,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_3_2",
+      "y": 270
+    },
+    "facing=north,letter=3,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_3_3"
+    },
+    "facing=east,letter=3,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_3_3",
+      "y": 90
+    },
+    "facing=south,letter=3,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_3_3",
+      "y": 180
+    },
+    "facing=west,letter=3,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_3_3",
+      "y": 270
+    },
+    "facing=north,letter=4,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_4_0"
+    },
+    "facing=east,letter=4,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_4_0",
+      "y": 90
+    },
+    "facing=south,letter=4,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_4_0",
+      "y": 180
+    },
+    "facing=west,letter=4,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_4_0",
+      "y": 270
+    },
+    "facing=north,letter=4,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_4_1"
+    },
+    "facing=east,letter=4,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_4_1",
+      "y": 90
+    },
+    "facing=south,letter=4,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_4_1",
+      "y": 180
+    },
+    "facing=west,letter=4,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_4_1",
+      "y": 270
+    },
+    "facing=north,letter=4,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_4_2"
+    },
+    "facing=east,letter=4,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_4_2",
+      "y": 90
+    },
+    "facing=south,letter=4,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_4_2",
+      "y": 180
+    },
+    "facing=west,letter=4,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_4_2",
+      "y": 270
+    },
+    "facing=north,letter=4,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_4_3"
+    },
+    "facing=east,letter=4,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_4_3",
+      "y": 90
+    },
+    "facing=south,letter=4,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_4_3",
+      "y": 180
+    },
+    "facing=west,letter=4,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_4_3",
+      "y": 270
+    },
+    "facing=north,letter=5,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_5_0"
+    },
+    "facing=east,letter=5,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_5_0",
+      "y": 90
+    },
+    "facing=south,letter=5,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_5_0",
+      "y": 180
+    },
+    "facing=west,letter=5,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_5_0",
+      "y": 270
+    },
+    "facing=north,letter=5,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_5_1"
+    },
+    "facing=east,letter=5,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_5_1",
+      "y": 90
+    },
+    "facing=south,letter=5,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_5_1",
+      "y": 180
+    },
+    "facing=west,letter=5,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_5_1",
+      "y": 270
+    },
+    "facing=north,letter=5,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_5_2"
+    },
+    "facing=east,letter=5,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_5_2",
+      "y": 90
+    },
+    "facing=south,letter=5,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_5_2",
+      "y": 180
+    },
+    "facing=west,letter=5,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_5_2",
+      "y": 270
+    },
+    "facing=north,letter=5,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_5_3"
+    },
+    "facing=east,letter=5,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_5_3",
+      "y": 90
+    },
+    "facing=south,letter=5,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_5_3",
+      "y": 180
+    },
+    "facing=west,letter=5,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_5_3",
+      "y": 270
+    },
+    "facing=north,letter=6,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_6_0"
+    },
+    "facing=east,letter=6,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_6_0",
+      "y": 90
+    },
+    "facing=south,letter=6,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_6_0",
+      "y": 180
+    },
+    "facing=west,letter=6,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_6_0",
+      "y": 270
+    },
+    "facing=north,letter=6,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_6_0"
+    },
+    "facing=east,letter=6,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_6_0",
+      "y": 90
+    },
+    "facing=south,letter=6,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_6_0",
+      "y": 180
+    },
+    "facing=west,letter=6,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_6_0",
+      "y": 270
+    },
+    "facing=north,letter=6,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_6_2"
+    },
+    "facing=east,letter=6,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_6_2",
+      "y": 90
+    },
+    "facing=south,letter=6,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_6_2",
+      "y": 180
+    },
+    "facing=west,letter=6,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_6_2",
+      "y": 270
+    },
+    "facing=north,letter=6,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_6_2"
+    },
+    "facing=east,letter=6,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_6_2",
+      "y": 90
+    },
+    "facing=south,letter=6,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_6_2",
+      "y": 180
+    },
+    "facing=west,letter=6,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_6_2",
+      "y": 270
+    },
+    "facing=north,letter=7,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_7_0"
+    },
+    "facing=east,letter=7,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_7_0",
+      "y": 90
+    },
+    "facing=south,letter=7,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_7_0",
+      "y": 180
+    },
+    "facing=west,letter=7,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_7_0",
+      "y": 270
+    },
+    "facing=north,letter=7,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_7_1"
+    },
+    "facing=east,letter=7,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_7_1",
+      "y": 90
+    },
+    "facing=south,letter=7,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_7_1",
+      "y": 180
+    },
+    "facing=west,letter=7,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_7_1",
+      "y": 270
+    },
+    "facing=north,letter=7,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_7_2"
+    },
+    "facing=east,letter=7,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_7_2",
+      "y": 90
+    },
+    "facing=south,letter=7,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_7_2",
+      "y": 180
+    },
+    "facing=west,letter=7,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_7_2",
+      "y": 270
+    },
+    "facing=north,letter=7,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_7_3"
+    },
+    "facing=east,letter=7,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_7_3",
+      "y": 90
+    },
+    "facing=south,letter=7,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_7_3",
+      "y": 180
+    },
+    "facing=west,letter=7,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_7_3",
+      "y": 270
+    },
+    "facing=north,letter=8,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_8_0"
+    },
+    "facing=east,letter=8,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_8_0",
+      "y": 90
+    },
+    "facing=south,letter=8,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_8_0",
+      "y": 180
+    },
+    "facing=west,letter=8,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_8_0",
+      "y": 270
+    },
+    "facing=north,letter=8,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_8_1"
+    },
+    "facing=east,letter=8,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_8_1",
+      "y": 90
+    },
+    "facing=south,letter=8,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_8_1",
+      "y": 180
+    },
+    "facing=west,letter=8,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_8_1",
+      "y": 270
+    },
+    "facing=north,letter=8,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_8_2"
+    },
+    "facing=east,letter=8,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_8_2",
+      "y": 90
+    },
+    "facing=south,letter=8,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_8_2",
+      "y": 180
+    },
+    "facing=west,letter=8,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_8_2",
+      "y": 270
+    },
+    "facing=north,letter=8,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_8_3"
+    },
+    "facing=east,letter=8,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_8_3",
+      "y": 90
+    },
+    "facing=south,letter=8,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_8_3",
+      "y": 180
+    },
+    "facing=west,letter=8,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_8_3",
+      "y": 270
+    },
+    "facing=north,letter=9,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_9_0"
+    },
+    "facing=east,letter=9,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_9_0",
+      "y": 90
+    },
+    "facing=south,letter=9,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_9_0",
+      "y": 180
+    },
+    "facing=west,letter=9,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_9_0",
+      "y": 270
+    },
+    "facing=north,letter=9,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_9_1"
+    },
+    "facing=east,letter=9,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_9_1",
+      "y": 90
+    },
+    "facing=south,letter=9,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_9_1",
+      "y": 180
+    },
+    "facing=west,letter=9,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_9_1",
+      "y": 270
+    },
+    "facing=north,letter=9,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_9_2"
+    },
+    "facing=east,letter=9,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_9_2",
+      "y": 90
+    },
+    "facing=south,letter=9,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_9_2",
+      "y": 180
+    },
+    "facing=west,letter=9,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_9_2",
+      "y": 270
+    },
+    "facing=north,letter=9,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_9_3"
+    },
+    "facing=east,letter=9,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_9_3",
+      "y": 90
+    },
+    "facing=south,letter=9,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_9_3",
+      "y": 180
+    },
+    "facing=west,letter=9,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_9_3",
+      "y": 270
+    },
+    "facing=north,letter=10,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_10_0"
+    },
+    "facing=east,letter=10,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_10_0",
+      "y": 90
+    },
+    "facing=south,letter=10,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_10_0",
+      "y": 180
+    },
+    "facing=west,letter=10,part=0": {
+      "model": "mobtalk:block/casino/casino_letter_10_0",
+      "y": 270
+    },
+    "facing=north,letter=10,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_10_1"
+    },
+    "facing=east,letter=10,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_10_1",
+      "y": 90
+    },
+    "facing=south,letter=10,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_10_1",
+      "y": 180
+    },
+    "facing=west,letter=10,part=1": {
+      "model": "mobtalk:block/casino/casino_letter_10_1",
+      "y": 270
+    },
+    "facing=north,letter=10,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_10_2"
+    },
+    "facing=east,letter=10,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_10_2",
+      "y": 90
+    },
+    "facing=south,letter=10,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_10_2",
+      "y": 180
+    },
+    "facing=west,letter=10,part=2": {
+      "model": "mobtalk:block/casino/casino_letter_10_2",
+      "y": 270
+    },
+    "facing=north,letter=10,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_10_3"
+    },
+    "facing=east,letter=10,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_10_3",
+      "y": 90
+    },
+    "facing=south,letter=10,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_10_3",
+      "y": 180
+    },
+    "facing=west,letter=10,part=3": {
+      "model": "mobtalk:block/casino/casino_letter_10_3",
+      "y": 270
+    }
+  }
+}

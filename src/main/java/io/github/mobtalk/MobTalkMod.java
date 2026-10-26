@@ -93,6 +93,17 @@ public final class MobTalkMod implements ModInitializer {
     public static CompletableFuture<MobGameBridge> bridgeReady(MinecraftServer server) {
         return server != null && server == current ? bridgeReady : CompletableFuture.failedFuture(new IllegalStateException("Сервер не запущен"));
     }
+    /** Б4: исповеди нужен Божественный блок — его источник {@code mobtalk-admin} (JSON, без общего кода), в одиночке и на сервере. */
+    private static void linkDivine() {
+        try {
+            for (var entry : FabricLoader.getInstance().getEntrypointContainers("mobtalk-admin", java.util.function.UnaryOperator.class)) {
+                if (!"divineblock".equals(entry.getProvider().getMetadata().getId())) continue;
+                @SuppressWarnings("unchecked") java.util.function.UnaryOperator<String> source = (java.util.function.UnaryOperator<String>) entry.getEntrypoint();
+                io.github.mobtalk.core.DivineLink.set(source);
+                LOGGER.info("Mob Talk: исповедь связана с Божественным блоком");
+            }
+        } catch (Throwable failure) { LOGGER.warn("Mob Talk: Божественный блок не подключён к исповеди ({})", failure.toString()); }
+    }
     public static boolean dedicated() { return FabricLoader.getInstance().getEnvironmentType() == EnvType.SERVER; }
     public static String version() {
         return FabricLoader.getInstance().getModContainer("mobtalk").map(mod -> mod.getMetadata().getVersion().getFriendlyString()).orElse("");
@@ -101,6 +112,15 @@ public final class MobTalkMod implements ModInitializer {
     @Override public void onInitialize() {
         WeddingItems.register(); // Свои предметы — до загрузки любого мира, на обеих сторонах.
         io.github.mobtalk.game.DefenseContent.register(); // Пост лучника и профессия лучника (защита деревни).
+        io.github.mobtalk.game.RoadCartEntity.register(); // Повозки на дорогах между деревнями.
+        io.github.mobtalk.game.RoadContent.register(); // Мелочи у дорог: камушки, пирамидки, верстовые столбы, поваленные брёвна.
+        io.github.mobtalk.game.OfficialContent.register(); // Казённый стол, чиновники, конверт и справка.
+        io.github.mobtalk.game.BarContent.register(); // Мебель бара и место, на котором сидит житель.
+        io.github.mobtalk.game.BarWorldgen.register(); // Бар в каждой новой деревне.
+        io.github.mobtalk.game.CasinoContent.register(); // Казино: мебель, вышибала, точки интереса (docs/casino.md).
+        io.github.mobtalk.game.CasinoWorldgen.register();
+        io.github.mobtalk.game.CasinoResort.register();
+        io.github.mobtalk.game.CasinoLife.register();
         MobGameBridge.initialize();
         MobTalkNet.registerPayloads();
         if (dedicated()) {
@@ -115,6 +135,7 @@ public final class MobTalkMod implements ModInitializer {
             ServerConfig.listen(Tuning::apply);
         }
         ServerConfig.listen(MobTalkMod::reconfigure);
+        linkDivine();
         VoiceServices.install(); // Трек B: распознавание и озвучка на сервере вместо заглушек.
         ServerLifecycleEvents.SERVER_STARTED.register(MobTalkMod::started);
         ServerLifecycleEvents.SERVER_STOPPING.register(MobTalkMod::stopping);
@@ -131,6 +152,7 @@ public final class MobTalkMod implements ModInitializer {
         });
         registerReceivers();
         io.github.mobtalk.server.OverlayHub.register(); // Идея З3: данные оверлея для OBS стримеру.
+        io.github.mobtalk.game.ParrotJailNews.install(); // Тюрьма Parrot Cages: слухи деревни и история админки.
         io.github.mobtalk.server.PlayerServices.initialize(); // Трек C: права, фильтр команд, расходы, /mobtalk admin, имена игроков.
         if (dedicated()) ServerSelfTestPlay.register(); // Трек G: сквозной самотест с двумя клиентами (только с -Dmobtalk.selftest.play).
         LOGGER.info("Mob Talk {}: {}", version(), dedicated() ? "выделенный сервер" : "клиент с встроенным сервером");

@@ -13,6 +13,7 @@ export const KINDS = {
   relation_change: { title: 'Отношения', icon: 'heart', k: 5 },
   rumor: { title: 'Слух', icon: 'info', k: 7 },
   verdict: { title: 'Вердикт бога', icon: 'divine', k: 7 },
+  confession: { title: 'Исповедь', icon: 'divine', k: 5 },
   ban: { title: 'Бан', icon: 'warn', k: 8 },
   boss: { title: 'Босс', icon: 'divine', k: 2 },
   scene: { title: 'Сцена с жителем', icon: 'mobs', k: 1 },
@@ -23,6 +24,8 @@ export const KINDS = {
   player_join: { title: 'Вход игрока', icon: 'players' },
   player_leave: { title: 'Выход игрока', icon: 'players' },
   death: { title: 'Смерть игрока', icon: 'warn', k: 8 },
+  parrot_jailed: { title: 'Попугай в клетке', icon: 'warn', k: 5 },
+  parrot_released: { title: 'Попугай на свободе', icon: 'check', k: 3 },
   config_change: { title: 'Настройка', icon: 'settings', k: 1 },
   error: { title: 'Ошибка', icon: 'warn', k: 8 },
   command: { title: 'Команда', icon: 'server' },
@@ -106,6 +109,10 @@ function dataView(rec) {
       d.stack && h('div.stack', h('div.row', h('h4.grow', 'Стек'), h('button.btn.sm', { type: 'button', onclick: () => copyText(d.stack) }, icon('copy', 'sm'), 'Скопировать')), h('pre.stack', d.stack))],
     command: () => [kv([['Команда', h('code', d.command)], ['Кто', d.by], ['Результат', d.result]]), d.output?.length ? h('pre.block', d.output.join('\n')) : null],
     config_change: () => [kv([['Источник', d.source], ['Ключ', h('code', d.key)], ['Было', fmt.value(d.before)], ['Стало', fmt.value(d.after)], ['Кто', d.by], d.rollbackOf && ['Откат записи', d.rollbackOf]])],
+    confession: () => [kv([['Священник', d.priest], ['Где', d.place === 'temple' ? 'храм' : 'село'], ['Возвращение после епитимьи', d.returning ? 'да' : null],
+      ['Неотпущенных дел', d.deeds], ['Названо', d.named], ['Отпущено', d.absolved], ['До епитимьи', d.deferred], ['Скрыто', d.concealed], ['Искренность', d.sincerity],
+      ['Разрешение', d.refused ? 'нет (глумление)' : 'дано'], ['Епитимья', d.penance], ['Снято проклятий', d.curses], ['Милость', d.mercyBefore != null ? `${d.mercyBefore} → ${d.mercyAfter}` : null],
+      ['Бог ответил', d.god === false ? 'нет (числа не применены)' : null], ['Слова', d.words], ['Наставление', d.counsel]].filter(([, v]) => v !== null && v !== undefined && v !== ''))],
     verdict: () => [kv([['Молитва', d.prayer], ['Вердикт', d.verdict], ['Итог', { wrath: 'кара', miracle: 'благо', warning: 'знамение', jest: 'шутка', none: 'молчание' }[d.act] || d.act], ['Тон', d.tone], ['Деяние', d.deed], ['Сила', d.power], ['Ярость', d.fury]])],
   };
   if (known[rec.kind]) return known[rec.kind]();

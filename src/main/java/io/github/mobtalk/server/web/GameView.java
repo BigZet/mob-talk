@@ -44,6 +44,10 @@ public interface GameView {
     JsonObject divineActive();
     /** Лента молитв и ответов бога: новые сверху; {@code player} — ник или UUID, пусто — все. */
     JsonObject divinePrayers(String player, long since, int limit);
+    /** Б4: наложенные епитимьи ({@code items} of {player, kind, title, hud, priest, place, progress, target, done, assigned, due}). */
+    default JsonObject penances() { throw ApiException.unavailable("Исповеди нет в этой сборке."); }
+    /** Б4: {@code credit} — засчитать епитимью (игрок вернётся к иерею), {@code cancel} — снять (грех снова ждёт исповеди). */
+    default JsonObject penanceAction(java.util.UUID player, String action) { throw ApiException.unavailable("Исповеди нет в этой сборке."); }
 
     /** Version, mods, uptime, world, players, pack lines; the API adds its own {@code admin} part. */
     JsonObject server();

@@ -239,7 +239,10 @@ final class ServerSelfTestPlay {
             check(since(streamerName, "features", 0).stream().anyMatch(s -> s.field(1).equals("true")), "сервер объявил диалог");
             await("админка ответила", 30, admin::isDone, () -> {
                 check(!admin.isCompletedExceptionally() && admin.join().startsWith("200"), "админка: вход по паролю и GET /api/sources (" + (admin.isCompletedExceptionally() ? admin.exceptionNow() : admin.join()) + ")");
-                await("клиенты видят жителей", 20, () -> sees(streamerName, talker, trader, chatter) && sees(playerName, talker, trader, chatter), this::dialogue1);
+                await("клиенты видят жителей", 20, () -> sees(streamerName, talker, trader, chatter) && sees(playerName, talker, trader, chatter), () -> {
+                    // -Dmobtalk.selftest.play.only=confession: только исповедь (Б4).
+                    if ("confession".equals(System.getProperty(PROPERTY + ".only", ""))) confession(this::finish); else dialogue1();
+                });
                 cue(streamerName, "find", ids(talker, trader, chatter)); cue(playerName, "find", ids(talker, trader, chatter));
             });
         });
@@ -751,7 +754,33 @@ final class ServerSelfTestPlay {
 
     // ---- Выход: игрок уходит во время разговора, стример продолжает. ----
 
+    // ---- Исповедь (Б4): ServerSelfTestConfession, перед выходом игрока. ----
+
+    private boolean confessed;
     private void leave() {
+        if (!confessed) { confession(this::leaveNow); return; }
+        leaveNow();
+    }
+    private void confession(Runnable next) {
+        confessed = true;
+        ServerSelfTestPlay self = this;
+        new ServerSelfTestConfession(new ServerSelfTestConfession.Conductor() {
+            @Override public void log(String text) { self.log(text); }
+            @Override public void check(boolean ok, String what) { self.check(ok, what); }
+            @Override public void await(String what, int seconds, BooleanSupplier condition, Runnable then) { self.await(what, seconds, condition, then); }
+            @Override public void pause(int seconds, Runnable then) { self.pause(seconds, then); }
+            @Override public void cue(String nick, String... fields) { self.cue(nick, fields); }
+            @Override public void command(String line) { self.command(line); }
+            @Override public ServerWorld world() { return self.world(); }
+            @Override public String at(int dx, int dy, int dz) { return self.at(dx, dy, dz); }
+            @Override public VillagerEntity villager(int dx, int dz, VillagerProfession profession, float yaw) { return self.villager(dx, dz, profession, yaw); }
+            @Override public int mark(String nick) { return self.mark(nick); }
+            @Override public boolean saw(String nick, String kind, int from, Predicate<Seen> match) { return self.saw(nick, kind, from, match); }
+            @Override public List<Seen> since(String nick, String kind, int from) { return self.since(nick, kind, from); }
+            @Override public ServerPlayerEntity online(String nick) { return self.online(nick); }
+        }, bridge, streamerName, playerName, player, next).run();
+    }
+    private void leaveNow() {
         command("tp " + streamerName + " " + at(-1, 0, 0) + " 180 10");
         command("tp " + playerName + " " + at(1, 0, 0) + " 180 10");
         pause(3, () -> {

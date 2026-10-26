@@ -24,6 +24,7 @@
     "FluidPlacedMixin",
     "VillagerFamilyMixin",
     "VillageTradeRefusalMixin",
+    "BartenderMenuMixin",
     "NightHoldMixin",
     "CommandFilterMixin",
     "VillageSpawnMixin",
@@ -32,7 +33,15 @@
     "VillagerRiderMixin",
     "VillagerRiderFacingMixin",
     "SteedCalmMixin",
-    "KeepHandsMixin"
+    "KeepHandsMixin",
+    "CasinoBouncerPanicMixin",
+    "SinglePoolElementAccessor",
+    "UniqueVillagePieceMixin",
+    "BarPoolAccessor",
+    "RoadTripSuffocationMixin",
+    "ChunkHoldersAccessor",
+    "ChunkClaimsAtShutdownMixin",
+    "ChunkSavingAtShutdownMixin"
   ],
   "injectors": {
     "defaultRequire": 1

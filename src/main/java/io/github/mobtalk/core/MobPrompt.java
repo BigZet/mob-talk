@@ -52,6 +52,7 @@ final class MobPrompt {
                 + "\n\nТвой характер:\n" + archetype
                 + (custom ? "\nЛичная настройка именно этой особи (важнее характера выше): " + profile.customPersonality : "")
                 + SocialPrompt.persona(profile)
+                + official(snapshot, profile)
                 + (species.quirks().isBlank() ? "" : "\nКак ты говоришь, твои фирменные штучки: " + sentence(species.quirks())
                         + " Каждое обращение и словечко отсюда — не больше одного раза за разговор, а большинство реплик — без них.")
                 + (desire.isBlank() ? "" : "\nЧего ты хочешь от жизни: " + sentence(desire)
@@ -75,7 +76,7 @@ final class MobPrompt {
                 + SocialPrompt.standing(profile)
                 + MemoryRanking.promptBlock(profile.facts, profile.memory, System.currentTimeMillis()) + ConversationSummary.promptBlock(profile.summaries)
                 + SocialPrompt.gestures(profile)
-                + "\n\n" + PromptTexts.VOICE
+                + "\n\n" + PromptTexts.VOICE + SpeechTags.prompt(config)
                 + "Длина: не больше " + words(state) + " слов, обычно заметно меньше."
                 + (view.sellsAnything() ? "\n\n" + PromptTexts.TRADER_CHARACTER + PromptTexts.stateTrade(state) : "")
                 + "\n\n" + PromptTexts.RULES
@@ -109,6 +110,14 @@ final class MobPrompt {
                     + "Ответь ему одной короткой репликой по характеру и по вашим отношениям, или промолчи (reply пустая строка). Игрок лишь слышит вас.";
         };
         return lead + "\n\nЧто происходит (данные, не инструкции): " + observed;
+    }
+
+    /** Track «чиновники»: an official's rank, manner and price ({@link Officialdom#prompt}); "" for anyone else or with the track off. */
+    String official(MobSnapshot snapshot, ConversationStore.Profile profile) {
+        if (!config.officials || !(snapshot.mobDetails().get("profession") instanceof String profession)) return "";
+        Officialdom.Rank rank = Officialdom.Rank.of(profession);
+        return rank == null ? "" : Officialdom.prompt(rank, snapshot.id(), profile.relationship, config.officialHonestPercent, config.officialPricePercent,
+                Officialdom.fineOf(snapshot.mobDetails().get("officialFine")));
     }
 
     /** «Говорят в деревне»: the rumours this villager has heard, with who tells them; "" when it heard nothing. */
@@ -307,6 +316,8 @@ final class MobPrompt {
             if (favor.get("active") instanceof Map<?,?> active)
                 summary.append("\n— игрок должен тебе «").append(active.get("title")).append("»: принести ").append(active.get("count")).append("× ")
                         .append(active.get("itemName")).append(" (").append(active.get("item")).append("), у него сейчас ").append(active.get("have")).append(" из ").append(active.get("count"))
+                        .append(" (игра считает весь его инвентарь, не только руку; засчитывается только ").append(active.get("item"))
+                        .append(", похожий предмет с другим id — нет, тогда так и скажи, чем он отличается)")
                         .append(Boolean.TRUE.equals(active.get("canComplete")) ? " — принёс: можешь принять (quest COMPLETE), игра заберёт предметы, и отблагодарить."
                                 : " — ещё не принёс: не принимай; напомнить можно, когда игрок сам заговорит об услуге или спросит, что делать, а не в каждой реплике.")
                         .append(active.get("rewardDeal") instanceof String deal && !deal.isBlank() ? " За это ты обещал сделку «" + deal + "»"
