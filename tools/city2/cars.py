@@ -541,14 +541,17 @@ def lada_classic_front(c, g, p, style="2107"):
     if style == "2107":
         # the big rectangular headlamp blocks (two lenses each behind one glass) in chrome rims, the indicators wrapping the
         # corners, and between them the wide chrome-framed grille of fine mesh standing out a cell, the bonnet's bulge over it
-        body.set(face & (abs(X) > 5.0) & (abs(X) < 11.2) & (Y > 7.4) & (Y < 11.4), CHROME)
-        body.set(face & (abs(X) > 5.5) & (abs(X) < 10.7) & (Y > 7.9) & (Y < 10.9), HEAD)
-        body.set(face & (abs(X) > 7.9) & (abs(X) < 8.4) & (Y > 7.9) & (Y < 10.9), CHROME)
+        body.set(face & (abs(X) > 5.0) & (abs(X) < 11.2) & (Y > 7.6) & (Y < 11.8), CHROME)
+        body.set(face & (abs(X) > 5.5) & (abs(X) < 10.7) & (Y > 8.1) & (Y < 11.3), HEAD)
+        body.set(face & (abs(X) > 7.9) & (abs(X) < 8.4) & (Y > 8.1) & (Y < 11.3), CHROME)
         body.set(face & (abs(X) > 11.2) & (Y > 7.4) & (Y < 10.4), TURN)
         body.set((Z > zf - 3.5) & (abs(X) > half - 1.01) & (Y > 7.4) & (Y < 10.4) & body.solid(), TURN)
-        body.box(-5.0, 7.0, zf - 1, 5.0, 11.8, zf + 1, CHROME)
-        body.box(-4.5, 7.5, zf - 0.5, 4.5, 11.3, zf + 1.01, GRILLE)
-        body.box(-1.2, 9.0, zf + 0.9, 1.2, 10.4, zf + 1.4, CHROME)  # the badge in the grille's middle
+        body.box(-5.0, 7.0, zf - 1, 5.0, 12.8, zf + 1, CHROME)
+        body.box(-4.5, 7.5, zf - 0.5, 4.5, 12.3, zf + 1.01, GRILLE)
+        body.box(-1.2, 9.6, zf + 0.9, 1.2, 11.0, zf + 1.4, CHROME)
+        # the bonnet's raised middle over the grille, running back to the windshield
+        body.set((abs(X) < 5.0) & (Y > 12.6) & (Y < 13.6) & (Z > p.get("cowl_z", 0) + 1) & (Z < zf - 0.2) & ~body.solid()
+                 & (Y < pl(Z, p["top"]) + 0.8), PAINT)  # the badge in the grille's middle
     elif style == "2106":
         for cxs in (5.0, 8.4):
             R = np.sqrt((abs(X) - cxs) ** 2 + (Y - 9.1) ** 2)
@@ -667,27 +670,29 @@ def finish(c, p, look):
 @car
 def vaz2107():
     """ВАЗ-2107 «семёрка» (1982–2012): 4.145 × 1.620 × 1.435 m, wheelbase 2.424, 13-inch wheels."""
-    p = dict(L=66.3, W=25.9, H=23.0, wheelbase=38.8, front=19.4, r=4.6, clear=3.0, belt=13.6, sill=3.6, tumble=2.0,
-             cowl_z=9.0, ws_top_z=2.6, roof_rear_z=-14.6, rw_bottom_z=-20.0, cabin_front=7.4, cabin_rear=-17.0,
-             pillars=[(-5.2, -3.6)], corner=1.2, a_width=2.6, c_width=3.6,
+    # measured off a clean side photo (1 unit = 1/16 m): front overhang 0.6 m, rear 1.1 m; the greenhouse long and upright
+    # (roof 11 → -14.5), the B pillar at the middle, the bonnet and the boot high and flat, the belt at 0.89 m
+    p = dict(L=66.3, W=25.9, H=23.0, wheelbase=38.8, front=23.4, r=4.6, clear=3.0, belt=14.2, sill=3.6, tumble=1.4,
+             cowl_z=16.4, ws_top_z=10.8, roof_rear_z=-14.4, rw_bottom_z=-19.8, cabin_front=14.6, cabin_rear=-17.6,
+             pillars=[(-0.4, 1.2)], corner=1.2, a_width=2.4, c_width=3.2,
              bottom=[(-33.2, 4.6), (-30, 3.4), (30, 3.4), (33.2, 4.6)],
-             top=[(-33.2, 12.6), (-21, 13.3), (8, 13.6), (12, 13.1), (33.2, 11.8)])
+             top=[(-33.2, 12.8), (-29, 13.4), (-20.5, 14.0), (16.4, 14.2), (28, 13.4), (33.2, 12.8)])
     c = Car("vaz2107", p["L"], p["W"], p["H"])
     c.info.update(name="ВАЗ-2107 «Жигули»", name_en="VAZ-2107 Zhiguli")
     g = three_box(c, p)
-    doors(c, g, p, [(9.0, -4.4, 0, 1), (-4.4, -16.6, 2, 3)])
+    doors(c, g, p, [(16.2, 0.4, 0, 1), (0.4, -14.6, 2, 3)])
     lada_classic_front(c, g, p, "2107")
     lada_classic_rear(c, g, p, "2107")
     bumpers(c, p, front_y=(5.0, 7.6), rear_y=(5.0, 7.6))
-    mirror(c, 8.2, 14.2)
-    interior(c, p, seats_front_z=-0.5, rear_z=-11.0, dash_z=7.0, steer_xyz=(6.4, 12.4, 3.6))
+    mirror(c, 15.4, 14.8)
+    interior(c, p, seats_front_z=4.6, rear_z=-9.6, dash_z=14.0, steer_xyz=(6.4, 13.0, 10.6))
     for z in (p["front"], p["front"] - p["wheelbase"]):
         for sgn in (1, -1):
             wheel(c, ("wheel_front" if z > 0 else "wheel_rear") + ("_left" if sgn > 0 else "_right"), sgn * (p["W"] / 2 - 2.0),
                   p["r"], z, p["r"], 3.0, sgn, z > 0, hub="cap")
     beacon(c, p["H"], -4.0)
     c.body.box(-4.0, 5.2, p["L"] / 2 + 0.9, 4.0, 7.4, p["L"] / 2 + 1.6, PLATE)
-    c.info.update(word=(-4.0, 11.75, 2.5), stripe=(8.4, 10.4), moulding=(8.4, 9.0), handles=[(-3.2, 12.3), (-15.0, 12.3)])
+    c.info.update(word=(-4.0, 11.75, 2.5), stripe=(8.4, 10.4), moulding=(8.4, 9.0), handles=[(2.6, 12.6), (-12.2, 12.6)])
     return finish(c, p, Look(cabin=cabin_region(c, p), seat="#5e3d2b", trim="#4e4842", grille=grille_mesh(1.0)))
 
 
@@ -769,16 +774,17 @@ def side_rect(c, z0, z1, y0, y1, mat, depth=1.01, only=None):
 @car
 def moskvich412():
     """«Москвич-412» (АЗЛК, 1967–1997), late IE look: 4.25 × 1.55 × 1.48 m, wheelbase 2.40, rectangular lamps in a full-width grille."""
+    # the greenhouse measured off a side photo: the roof runs back to -16.4, the B pillar behind the middle
     p = dict(L=68.0, W=24.8, H=23.6, wheelbase=38.4, front=19.0, r=4.6, clear=3.0, belt=13.8, sill=3.6, tumble=2.2,
-             cowl_z=9.6, ws_top_z=2.4, roof_rear_z=-12.8, rw_bottom_z=-20.6, cabin_front=8.0, cabin_rear=-17.6,
-             pillars=[(-4.8, -3.4)], corner=1.6, c_width=2.4,
+             cowl_z=10.2, ws_top_z=2.6, roof_rear_z=-16.4, rw_bottom_z=-21.8, cabin_front=8.0, cabin_rear=-19.6,
+             pillars=[(-8.0, -6.6)], corner=1.6, a_width=2.4, c_width=2.6,
              bottom=[(-34, 5.0), (-31, 3.4), (31, 3.4), (34, 5.0)],
              top=[(-34, 13.0), (-22, 13.6), (8, 13.8), (13, 13.2), (34, 12.0)])
     c = Car("moskvich412", p["L"], p["W"], p["H"])
     c.info.update(name="«Москвич-412»", name_en="Moskvich-412",
                   schemes=["sky", "cherry", "beige", "aquamarine", "white", "ochre", "green", "asphalt"])
     g = three_box(c, p)
-    doors(c, g, p, [(9.6, -4.1, 0, 1), (-4.1, -16.8, 2, 3)])
+    doors(c, g, p, [(8.8, -7.3, 0, 1), (-7.3, -19.8, 2, 3)])
     # the nose: a full-width chrome grille of fine vertical bars, the round lamps in chrome rings at its ends, indicators
     # under them, the badge in the middle; the bumper has rubber-tipped fangs
     rect_face(c, 0, 11.6, 6.8, 11.6, CHROME, mirror=False)
@@ -797,33 +803,42 @@ def moskvich412():
     bumpers(c, p, front_y=(4.8, 7.0), rear_y=(4.8, 7.0), mat=CHROME, caps=CHROME, wrap=4.5)
     c.body.box(-4.0, 3.6, 34.9, 4.0, 5.6, 35.5, PLATE)
     mirror(c, 8.6, 14.4, CHROME)
-    interior(c, p, seats_front_z=-0.2, rear_z=-11.8, dash_z=7.6, steer_xyz=(6.0, 12.6, 3.8), headrest=False)
+    interior(c, p, seats_front_z=-0.6, rear_z=-14.4, dash_z=7.6, steer_xyz=(6.0, 12.6, 3.8), headrest=False)
     wheels4(c, p, hub="cap")
-    c.info.update(moulding=(9.6, 10.2), handles=[(-2.8, 12.4), (-15.2, 12.4)])
-    return finish(c, p, Look(cabin=cabin_region(c, p), seat="#3e4a5a", trim="#454a52", grille=grille_bars(0.75)))
+    c.info.update(moulding=(9.6, 10.2), handles=[(-5.8, 12.4), (-18.6, 12.4)])
+    return finish(c, p, Look(cabin=cabin_region(c, p), seat="#3e4a5a", trim="#454a52", grille=grille_bars(1.0)))
 
 
 @car
 def gaz24():
     """ГАЗ-24 «Волга» (1970–1985): 4.735 × 1.800 × 1.490 m, wheelbase 2.80, 14-inch wheels, two round lamps either side of a
     wide chrome grille of vertical bars, bumpers with fangs."""
-    p = dict(L=75.8, W=28.8, H=23.8, wheelbase=44.8, front=21.4, r=5.3, clear=3.0, belt=14.2, sill=3.8, tumble=2.4,
-             cowl_z=9.6, ws_top_z=2.6, roof_rear_z=-16.6, rw_bottom_z=-23.6, cabin_front=8.0, cabin_rear=-20.4,
-             pillars=[(-5.8, -4.2)], corner=1.6, c_width=2.6,
+    # measured off a side photo (1 unit = 1/16 m): front overhang 0.75 m, the long rear one 1.2 m; the roof from 9.4 to -14.2,
+    # the B pillar at the middle
+    p = dict(L=75.8, W=28.8, H=23.8, wheelbase=44.8, front=26.0, r=5.3, clear=3.0, belt=14.6, sill=3.8, tumble=1.6,
+             cowl_z=15.8, ws_top_z=9.4, roof_rear_z=-14.2, rw_bottom_z=-21.2, cabin_front=14.0, cabin_rear=-18.4,
+             pillars=[(-0.8, 0.8)], corner=1.6, a_width=2.4, c_width=2.8,
              bottom=[(-37.9, 5.0), (-34, 3.4), (34, 3.4), (37.9, 5.0)],
-             top=[(-37.9, 13.4), (-25, 14.0), (8, 14.2), (14, 13.6), (37.9, 12.4)])
+             top=[(-37.9, 13.0), (-30, 13.8), (-21.2, 14.4), (15.8, 14.6), (28, 13.6), (37.9, 12.8)])
     c = Car("gaz24", p["L"], p["W"], p["H"])
     c.info.update(name="ГАЗ-24 «Волга»", name_en="GAZ-24 Volga",
                   schemes=["black", "white", "beige", "quartz", "murena", "cherry", "sky", "taxi"])
     g = three_box(c, p)
-    doors(c, g, p, [(10.2, -5.0, 0, 1), (-5.0, -19.6, 2, 3)])
+    doors(c, g, p, [(15.8, 0.0, 0, 1), (0.0, -15.0, 2, 3)])
     rect_face(c, 0, 13.6, 6.6, 12.2, CHROME, mirror=False)
     rect_face(c, -9.0, 9.0, 7.0, 11.8, GRILLE, mirror=False)
     round_lamps(c, [11.4], 9.4, 1.8, protrude=0.0)
     rect_face(c, 9.6, 13.4, 6.4, 7.4, TURN)
-    c.body.box(-0.8, 11.6, 33.0, 0.8, 12.6, 38.4, CHROME, only=[AIR, PAINT])  # the bonnet's chrome strip
-    rect_face(c, 9.8, 13.6, 7.0, 12.0, TAIL, front=False)
-    rect_face(c, 9.8, 13.6, 7.0, 8.2, TURN, front=False)
+    X, Y, Z = g["X"], g["Y"], g["Z"]
+    top = pl(Z, p["top"])
+    sol = c.body.solid()
+    surf = sol & ~np.roll(sol, -1, axis=1)
+    c.body.set((abs(X) < 0.8) & (Z > 17.0) & surf & (c.body.mat == PAINT), CHROME)  # the bonnet's chrome strip
+    # the tall tail lamps in chrome: red over amber over the white reverse light
+    rect_face(c, 10.2, 14.0, 6.4, 12.8, CHROME, front=False)
+    rect_face(c, 10.7, 13.5, 9.8, 12.4, TAIL, front=False)
+    rect_face(c, 10.7, 13.5, 7.9, 9.6, TURN, front=False)
+    rect_face(c, 10.7, 13.5, 6.8, 7.7, REVERSE, front=False)
     c.body.box(-4.0, 8.2, -38.6, 4.0, 10.4, -37.6, PLATE)
     rect_face(c, 0, 9.0, 11.2, 11.8, CHROME, front=False, mirror=False)
     bumpers(c, p, front_y=(5.0, 7.0), rear_y=(5.0, 7.0), mat=CHROME, caps=CHROME, wrap=5.0)
@@ -832,28 +847,29 @@ def gaz24():
         c.body.box(x - 0.6, 4.6, zf + 0.5, x + 0.6, 8.6, zf + 1.6, CHROME)
         c.body.box(x - 0.6, 4.6, -zf - 1.6, x + 0.6, 8.6, -zf - 0.5, CHROME)
     c.body.box(-4.0, 3.4, zf + 1.0, 4.0, 5.2, zf + 1.6, PLATE, only=[AIR])
-    mirror(c, 9.2, 14.8, CHROME)
-    interior(c, p, seats_front_z=-0.6, rear_z=-13.6, dash_z=7.8, steer_xyz=(7.0, 12.8, 3.8), headrest=False)
+    mirror(c, 15.2, 15.2, CHROME)
+    interior(c, p, seats_front_z=4.4, rear_z=-9.6, dash_z=13.6, steer_xyz=(7.0, 13.2, 10.4), headrest=False)
     wheels4(c, p, hub="cap", width=3.4)
     beacon(c, p["H"], -6.0)
-    c.info.update(moulding=(10.2, 10.8), handles=[(-3.6, 12.9), (-18.0, 12.9)], stripe=(10.8, 13.0), word=(-5.0, 11.9, 2.5))
-    return finish(c, p, Look(cabin=cabin_region(c, p), seat="#7a5b3c", trim="#5c4f42", grille=grille_bars(0.75)))
+    c.info.update(moulding=(10.2, 10.8), handles=[(2.2, 13.2), (-12.8, 13.2)], stripe=(10.8, 13.0), word=(-5.0, 11.9, 2.5))
+    return finish(c, p, Look(cabin=cabin_region(c, p), seat="#7a5b3c", trim="#5c4f42", grille=grille_bars(1.0)))
 
 
 @car
 def zaz968():
     """ЗАЗ-968 «Запорожец» (1971–1979): 3.73 × 1.54 × 1.40 m, wheelbase 2.16, two doors, the engine at the back breathing
     through the «ears» on the rear wings."""
-    p = dict(L=59.6, W=24.6, H=22.4, wheelbase=34.6, front=17.6, r=4.4, clear=3.0, belt=13.4, sill=3.6, tumble=2.6,
-             cowl_z=8.0, ws_top_z=1.4, roof_rear_z=-11.8, rw_bottom_z=-17.8, cabin_front=6.6, cabin_rear=-15.2,
-             pillars=[], corner=2.2, c_width=3.2,
+    # measured off a side photo (1 unit = 1/16 m): the roof from 7.8 to -13.1, the door 14 → -2, the axles at 19.2 / -15.2
+    p = dict(L=59.6, W=24.6, H=22.4, wheelbase=34.4, front=19.2, r=4.4, clear=3.0, belt=13.4, sill=3.6, tumble=1.8,
+             cowl_z=13.6, ws_top_z=7.8, roof_rear_z=-13.0, rw_bottom_z=-17.2, cabin_front=12.0, cabin_rear=-15.0,
+             pillars=[(-3.2, -1.2)], corner=2.2, a_width=2.4, c_width=3.0,
              bottom=[(-29.8, 5.2), (-27, 3.4), (27, 3.4), (29.8, 5.2)],
-             top=[(-29.8, 12.4), (-20, 13.2), (6, 13.4), (11, 12.6), (29.8, 11.2)])
+             top=[(-29.8, 11.8), (-24, 13.2), (-17.2, 13.6), (13.6, 13.6), (22, 12.6), (29.8, 11.4)])
     c = Car("zaz968", p["L"], p["W"], p["H"])
     c.info.update(name="ЗАЗ-968 «Запорожец»", name_en="ZAZ-968 Zaporozhets",
                   schemes=["orange", "lime", "sky", "beige", "red", "white", "plum", "olive"])
     g = three_box(c, p)
-    doors(c, g, p, [(8.4, -9.4, 0, 1)])
+    doors(c, g, p, [(14.0, -2.2, 0, 1)])
     X, Y, Z = c.body.grids()
     # the nose has no grille: a chrome «moustache» across, round lamps
     round_lamps(c, [8.6], 9.2, 1.6)
@@ -862,10 +878,10 @@ def zaz968():
     # the ears: air scoops standing out on the rear wings behind the doors
     half = c.half
     for sgn in (1, -1):
-        ear = (X * sgn > half - 0.5) & (X * sgn < half + 1.6) & (Y > 10.0) & (Y < 13.2) & (Z > -18.6) & (Z < -10.6)
-        ear &= (Y - 10.0) < (Z + 18.6) * 0.9
+        ear = (X * sgn > half - 0.5) & (X * sgn < half + 1.6) & (Y > 10.0) & (Y < 13.2) & (Z > -12.0) & (Z < -3.6)
+        ear &= (Y - 10.0) < (Z + 12.0) * 0.9
         c.body.set(ear, PAINT)
-        c.body.set(ear & (X * sgn > half + 0.6) & (Y > 10.6) & (Y < 12.6) & (Z > -17.4) & (Z < -11.4), BLACK)
+        c.body.set(ear & (X * sgn > half + 0.6) & (Y > 10.6) & (Y < 12.6) & (Z > -10.8) & (Z < -4.4), BLACK)
     # the tail: the engine lid's louvres, small lamps, the plate
     rect_face(c, 0, 8.0, 9.0, 11.6, GRILLE, front=False, mirror=False)
     rect_face(c, 8.8, 11.8, 7.0, 10.0, TAIL, front=False)
@@ -873,11 +889,11 @@ def zaz968():
     c.body.box(-3.8, 6.4, -30.6, 3.8, 8.6, -29.6, PLATE)
     bumpers(c, p, front_y=(4.8, 6.4), rear_y=(4.8, 6.4), mat=CHROME, caps=CHROME, wrap=3.0, depth=0.8)
     c.body.box(-3.8, 3.0, 30.2, 3.8, 4.8, 30.8, PLATE, only=[AIR])
-    mirror(c, 7.6, 14.0, CHROME)
-    interior(c, p, seats_front_z=-2.6, rear_z=-11.0, dash_z=6.6, steer_xyz=(5.8, 12.2, 2.6), headrest=False)
+    mirror(c, 13.0, 14.0, CHROME)
+    interior(c, p, seats_front_z=3.2, rear_z=-8.6, dash_z=11.8, steer_xyz=(5.8, 12.6, 8.8), headrest=False)
     wheels4(c, p, hub="cap", width=2.8)
-    c.info.update(moulding=(9.4, 10.0), handles=[(-8.0, 12.2)])
-    return finish(c, p, Look(cabin=cabin_region(c, p), seat="#5a3a2e", trim="#4c4440", grille=grille_bars(0.75, horizontal=True)))
+    c.info.update(moulding=(9.4, 10.0), handles=[(-0.8, 12.2)])
+    return finish(c, p, Look(cabin=cabin_region(c, p), seat="#5a3a2e", trim="#4c4440", grille=grille_bars(1.0, horizontal=True)))
 
 
 @car
@@ -888,7 +904,7 @@ def vaz2114():
              cowl_z=12.6, ws_top_z=3.0, roof_rear_z=-21.4, rw_bottom_z=-30.6, cabin_front=11.0, cabin_rear=-25.4,
              pillars=[(-5.0, -3.4)], corner=2.4, c_width=2.0,
              bottom=[(-33, 4.6), (-30, 3.2), (30, 3.2), (33, 4.6)],
-             top=[(-33, 13.0), (-28, 13.4), (12, 13.4), (18, 12.0), (33, 10.0)])
+             top=[(-33, 13.0), (-28, 13.4), (12, 13.4), (19, 12.4), (33, 11.2)])
     c = Car("vaz2114", p["L"], p["W"], p["H"])
     c.info.update(name="ВАЗ-2114 «Самара»", name_en="VAZ-2114 Samara",
                   schemes=["silver", "plum", "asphalt", "black", "cherry", "white", "quartz", "aquamarine", "red", "police"])
@@ -896,9 +912,12 @@ def vaz2114():
     doors(c, g, p, [(12.6, -4.2, 0, 1), (-4.2, -20.6, 2, 3)])
     X, Y, Z = c.body.grids()
     # the nose: slim slanted lamps and a black grille strip between them, the bumper of body colour
-    rect_face(c, 2.8, 11.6, 8.2, 9.8, HEAD)
-    rect_face(c, 9.6, 11.6, 8.2, 9.8, TURN)
-    rect_face(c, 0, 2.8, 8.4, 9.6, GRILLE, mirror=False)
+    # the lamp units are big (the 2114's «eyes»): the head lamp's top slants down to the outer amber indicator
+    rect_face(c, 3.2, 12.4, 7.0, 11.0, CHROME)
+    lamp = face_cells(c) & (abs(X) > 3.5) & (abs(X) < 12.1) & (Y > 7.2) & (Y < 10.8 - np.maximum(abs(X) - 9.0, 0) * 0.5)
+    c.body.set(lamp, HEAD)
+    c.body.set(lamp & (abs(X) > 10.2), TURN)
+    rect_face(c, -1, 3.2, 8.4, 10.0, GRILLE)
     c.body.box(-0.8, 8.6, 32.9, 0.8, 9.4, 33.6, CHROME)
     rect_face(c, 0, 10.0, 4.4, 5.2, BLACK, mirror=False, depth=2.0, only=[PAINT])
     rect_face(c, 3.0, 8.0, 5.6, 6.8, GRILLE, depth=1.01)
@@ -1035,21 +1054,22 @@ def back_doors(c, g, x0, x1, y0, y1, seat=-1, split=True):
 def niva():
     """ВАЗ-2121 «Нива» (1977–): three doors, 3.72 × 1.68 × 1.64 m, wheelbase 2.20, 16-inch wheels, round lamps in a black
     grille, high off the ground."""
-    p = dict(L=59.5, W=26.9, H=26.2, wheelbase=35.2, front=18.0, r=5.5, clear=3.6, belt=16.0, sill=4.4, tumble=2.2,
+    # checked against a side photo: the belt high (1.06 m), the bonnet nearly as high, the axles at 19 / -16.6
+    p = dict(L=59.5, W=26.9, H=26.2, wheelbase=35.2, front=19.0, r=5.5, clear=3.6, belt=17.0, sill=4.4, tumble=2.2,
              cowl_z=10.8, ws_top_z=3.6, roof_rear_z=-27.8, rw_bottom_z=-29.2, cabin_front=9.0, cabin_rear=-27.4,
              pillars=[(-8.2, -6.4)], corner=1.8, c_width=1.6,
              bottom=[(-29.75, 6.0), (-26, 4.4), (26, 4.4), (29.75, 6.0)],
-             top=[(-29.75, 15.2), (-24, 16.0), (10, 16.0), (14, 15.4), (29.75, 14.4)])
+             top=[(-29.75, 16.0), (-24, 17.0), (10.8, 17.0), (17, 16.2), (29.75, 15.2)])
     c = Car("niva", p["L"], p["W"], p["H"])
     c.info.update(name="ВАЗ-2121 «Нива»", name_en="VAZ-2121 Niva",
                   schemes=["beige", "olive", "white", "orange", "corrida", "sky", "lime", "asphalt"])
     g = three_box(c, p)
     doors(c, g, p, [(11.0, -7.4, 0, 1)])
     # the nose: a black grille panel across with round lamps at its ends
-    rect_face(c, 0, 12.6, 8.8, 13.4, GRILLE, mirror=False)
-    round_lamps(c, [9.4], 11.0, 1.9, ring=CHROME, ring_w=0.5)
+    rect_face(c, -1, 12.6, 9.2, 14.2, GRILLE)
+    round_lamps(c, [9.4], 11.7, 1.9, ring=CHROME, ring_w=0.5)
     rect_face(c, 9.0, 12.8, 7.4, 8.6, TURN)
-    c.body.box(-1.6, 10.4, 29.4, 1.6, 12.0, 30.2, CHROME)
+    c.body.box(-1.6, 11.0, 29.4, 1.6, 12.6, 30.2, CHROME)
     # the tail: the hatch's glass high, lamps low at the corners, the plate between
     rect_face(c, 9.2, 12.8, 8.8, 12.2, TAIL, front=False)
     rect_face(c, 9.2, 12.8, 11.2, 12.2, TURN, front=False)
@@ -1058,10 +1078,10 @@ def niva():
     c.body.box(-3.8, 6.2, 30.2, 3.8, 8.2, 30.8, PLATE, only=[AIR])
     # plastic wheel-arch flares
     X, Y, Z = g["X"], g["Y"], g["Z"]
-    mirror(c, 10.0, 16.6, BLACK)
-    interior(c, p, seats_front_z=-1.0, rear_z=-16.0, dash_z=9.0, steer_xyz=(6.6, 15.0, 4.0), seat_h=9.5, back_h=17.5)
+    mirror(c, 10.0, 17.6, BLACK)
+    interior(c, p, seats_front_z=-1.0, rear_z=-16.0, dash_z=9.0, steer_xyz=(6.6, 15.8, 4.0), seat_h=9.5, back_h=17.5)
     wheels4(c, p, hub="steel", width=3.4)
-    c.info.update(handles=[(-6.0, 14.8)], steer=30.0)
+    c.info.update(handles=[(-6.0, 15.6)], steer=30.0)
     return finish(c, p, Look(cabin=cabin_region(c, p), seat="#4a3c30", trim="#3f3a35"))
 
 
