@@ -194,6 +194,51 @@
   "facing=west,inner=paint_stair": {
    "model": "mobtalk:block/city2/window_beige_hi_paint_stair",
    "y": 270
+  },
+  "facing=north,inner=paint_stair_blue": {
+   "model": "mobtalk:block/city2/window_beige_hi_paint_stair_blue"
+  },
+  "facing=east,inner=paint_stair_blue": {
+   "model": "mobtalk:block/city2/window_beige_hi_paint_stair_blue",
+   "y": 90
+  },
+  "facing=south,inner=paint_stair_blue": {
+   "model": "mobtalk:block/city2/window_beige_hi_paint_stair_blue",
+   "y": 180
+  },
+  "facing=west,inner=paint_stair_blue": {
+   "model": "mobtalk:block/city2/window_beige_hi_paint_stair_blue",
+   "y": 270
+  },
+  "facing=north,inner=paint_stair_ochre": {
+   "model": "mobtalk:block/city2/window_beige_hi_paint_stair_ochre"
+  },
+  "facing=east,inner=paint_stair_ochre": {
+   "model": "mobtalk:block/city2/window_beige_hi_paint_stair_ochre",
+   "y": 90
+  },
+  "facing=south,inner=paint_stair_ochre": {
+   "model": "mobtalk:block/city2/window_beige_hi_paint_stair_ochre",
+   "y": 180
+  },
+  "facing=west,inner=paint_stair_ochre": {
+   "model": "mobtalk:block/city2/window_beige_hi_paint_stair_ochre",
+   "y": 270
+  },
+  "facing=north,inner=paint_stair_brown": {
+   "model": "mobtalk:block/city2/window_beige_hi_paint_stair_brown"
+  },
+  "facing=east,inner=paint_stair_brown": {
+   "model": "mobtalk:block/city2/window_beige_hi_paint_stair_brown",
+   "y": 90
+  },
+  "facing=south,inner=paint_stair_brown": {
+   "model": "mobtalk:block/city2/window_beige_hi_paint_stair_brown",
+   "y": 180
+  },
+  "facing=west,inner=paint_stair_brown": {
+   "model": "mobtalk:block/city2/window_beige_hi_paint_stair_brown",
+   "y": 270
   }
  }
 }

@@ -10,7 +10,7 @@ final class CityBuildBlocks {
     private CityBuildBlocks() { }
 
     /** Room finishes, in the order of {@link CityBuild.Finish}. */
-    static final List<String> FINISHES = List.of("plaster", "paper_beige", "paper_green", "paper_blue", "paper_pink", "paper_stripe", "paper_roses", "paper_damask", "paper_geo", "paper_wood", "tile_bath", "tile_kitchen", "paint_stair");
+    static final List<String> FINISHES = List.of("plaster", "paper_beige", "paper_green", "paper_blue", "paper_pink", "paper_stripe", "paper_roses", "paper_damask", "paper_geo", "paper_wood", "tile_bath", "tile_kitchen", "paint_stair", "paint_stair_blue", "paint_stair_ochre", "paint_stair_brown");
     static final Map<String, MapColor> CUBES = Map.ofEntries(
             Map.entry("facade_grey_band", MapColor.STONE_GRAY),
             Map.entry("facade_grey_cross", MapColor.STONE_GRAY),
@@ -54,6 +54,8 @@ final class CityBuildBlocks {
             Map.entry("door_balcony", MapColor.WHITE));
     static final List<String> METAL_DOORS = List.of("door_flat_steel", "door_flat_steel_brown", "door_entrance", "door_entrance_green");
     static final List<String> WALLS = List.of("wall_lo", "wall_mid", "wall_hi");
+    /** Staircase walls painted other than green: sides painted (true) or one room finish. */
+    static final List<String> STAIR_WALLS = List.of("wall_stair_blue_lo", "wall_stair_ochre_lo", "wall_stair_brown_lo", "wall_stair_blue_mid", "wall_stair_ochre_mid", "wall_stair_brown_mid", "wall_stair_blue_hi", "wall_stair_ochre_hi", "wall_stair_brown_hi");
     static final List<String> WINDOWS = List.of("window_grey_lo", "window_grey_mid", "window_grey_hi", "window_beige_lo", "window_beige_mid", "window_beige_hi", "window_white_lo", "window_white_mid", "window_white_hi", "window_blue_lo", "window_blue_mid", "window_blue_hi");
     static final List<String> STEPS = List.of("step_terrazzo");
     static final List<String> TRANSLUCENT = List.of("window_grey_lo", "window_grey_mid", "window_grey_hi", "window_beige_lo", "window_beige_mid", "window_beige_hi", "window_white_lo", "window_white_mid", "window_white_hi", "window_blue_lo", "window_blue_mid", "window_blue_hi", "door_room", "door_room_wood", "door_balcony", "balglass_pvc_l", "balglass_pvc_m", "balglass_pvc_r", "baltop_pvc_l", "baltop_pvc_m", "baltop_pvc_r", "balcap_pvc_l", "balcap_pvc_m", "balcap_pvc_r", "balroof_pvc_l", "balroof_pvc_m", "balroof_pvc_r", "balglass_wood_l", "balglass_wood_m", "balglass_wood_r", "baltop_wood_l", "baltop_wood_m", "baltop_wood_r", "balcap_wood_l", "balcap_wood_m", "balcap_wood_r", "balroof_wood_l", "balroof_wood_m", "balroof_wood_r", "balglass_alu_l", "balglass_alu_m", "balglass_alu_r", "baltop_alu_l", "baltop_alu_m", "baltop_alu_r", "balcap_alu_l", "balcap_alu_m", "balcap_alu_r", "balroof_alu_l", "balroof_alu_m", "balroof_alu_r", "glass_blocks");

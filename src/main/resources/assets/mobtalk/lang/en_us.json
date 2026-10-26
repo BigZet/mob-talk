@@ -1388,5 +1388,14 @@
   "mobtalk.furniture.notice.4": "“Clean-up day on Saturday. The janitor hands out rakes”",
   "mobtalk.furniture.notice.5": "“Pram for sale, almost new. Flat 12”",
   "mobtalk.furniture.notice.6": "“Meter checks. Don't open the door to strangers!”",
-  "mobtalk.furniture.notice.7": "“Whoever took the sled from under the stairs — bring it back!”"
+  "mobtalk.furniture.notice.7": "“Whoever took the sled from under the stairs — bring it back!”",
+  "block.mobtalk.wall_stair_blue_lo": "Stairwell wall, blue (lower)",
+  "block.mobtalk.wall_stair_ochre_lo": "Stairwell wall, ochre (lower)",
+  "block.mobtalk.wall_stair_brown_lo": "Stairwell wall, brown (lower)",
+  "block.mobtalk.wall_stair_blue_mid": "Stairwell wall, blue (middle)",
+  "block.mobtalk.wall_stair_ochre_mid": "Stairwell wall, ochre (middle)",
+  "block.mobtalk.wall_stair_brown_mid": "Stairwell wall, brown (middle)",
+  "block.mobtalk.wall_stair_blue_hi": "Stairwell wall, blue (upper)",
+  "block.mobtalk.wall_stair_ochre_hi": "Stairwell wall, ochre (upper)",
+  "block.mobtalk.wall_stair_brown_hi": "Stairwell wall, brown (upper)"
 }

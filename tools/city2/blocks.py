@@ -29,7 +29,11 @@ TEX = {}
 MODELS = {}
 NAMES = {}
 FINISHES = ["plaster", "paper_beige", "paper_green", "paper_blue", "paper_pink", "paper_stripe", "paper_roses", "paper_damask",
-            "paper_geo", "paper_wood", "tile_bath", "tile_kitchen", "paint_stair"]
+            "paper_geo", "paper_wood", "tile_bath", "tile_kitchen", "paint_stair", "paint_stair_blue", "paint_stair_ochre",
+            "paint_stair_brown"]
+PAINTS = FINISHES[12:]            # the stairwell's oil paint: green (the first), blue, ochre, red-brown
+WALL_FINISHES = FINISHES[:13]     # a flat wall's sides; other paints go on the stair walls (wall_stair_*), see walls()
+ROOM_FINISHES = FINISHES[:12]
 COLORS = {"grey": (176, 174, 168), "beige": (214, 196, 160), "white": (226, 226, 220), "blue": (150, 178, 204)}
 FACADE_KINDS = ("lo", "mid", "hi", "jlo", "jmid", "jhi")
 ROWS = ("lo", "mid", "hi")
@@ -39,6 +43,7 @@ CUBES = []       # (id, map colour)
 FACADES = []     # id
 DECOR = []       # (id, mount, boxes, light, map colour, sound)
 DOORS = []       # (id, map colour, sound)
+STAIR_WALLS = []  # staircase walls in a paint other than green
 STEPS = []       # stair steps: a slab with a facing and a railing
 TRANSLUCENT = []
 CUTOUT = []
@@ -224,23 +229,24 @@ def finish_textures():
     tex("tile_kitchen_lo", lo)
     tex("tile_kitchen_mid", mid)
     tex("tile_kitchen_hi", cornice(hi))
-    # the stairwell: green oil paint to 1.5 m, whitewash above, a dark line between
-    green = (92, 140, 120)
-    lo = D.new()
-    fill(lo, green, 0.04, rnd("stairlo"))
-    r = rnd("scuff")
-    for _ in range(6):
-        put(lo, r.randrange(16), r.randrange(8, 16), D.shade(green + (255,), 0.8))
-    mid = D.new()
-    fill(mid, (226, 226, 216), 0.03, rnd("stairmid"))
-    fill(mid, green, 0.04, rnd("stairmid2"), (0, 9, 16, 16))
-    for x in range(16):
-        put(mid, x, 8, (60, 90, 78))
-    hi = D.new()
-    fill(hi, (226, 226, 216), 0.03, rnd("stairhi"))
-    tex("paint_stair_lo", lo)
-    tex("paint_stair_mid", mid)
-    tex("paint_stair_hi", hi)
+    # the stairwell: oil paint to 1.5 m, whitewash above, a dark line between; green, blue, ochre or red-brown by entrance
+    for name, paint, line in (("paint_stair", (92, 140, 120), (60, 90, 78)), ("paint_stair_blue", (82, 118, 158), (50, 74, 104)),
+                              ("paint_stair_ochre", (194, 160, 92), (128, 100, 52)), ("paint_stair_brown", (132, 74, 60), (84, 44, 36))):
+        lo = D.new()
+        fill(lo, paint, 0.04, rnd("stairlo"))
+        r = rnd("scuff")
+        for _ in range(6):
+            put(lo, r.randrange(16), r.randrange(8, 16), D.shade(paint + (255,), 0.8))
+        mid = D.new()
+        fill(mid, (226, 226, 216), 0.03, rnd("stairmid"))
+        fill(mid, paint, 0.04, rnd("stairmid2"), (0, 9, 16, 16))
+        for x in range(16):
+            put(mid, x, 8, line)
+        hi = D.new()
+        fill(hi, (226, 226, 216), 0.03, rnd("stairhi"))
+        tex(f"{name}_lo", lo)
+        tex(f"{name}_mid", mid)
+        tex(f"{name}_hi", hi)
 
 
 # ---------------------------------------------------------------- textures: facade, floors, ceiling
@@ -722,7 +728,7 @@ def walls():
             model(f"wall_{row}_{f}", {"f": f"{f}_{row}"}, [face_box((0, 0, 0), (16, 16, 16), {"north": ("f", None, "north")})])
         parts = [{"apply": {"model": f"mobtalk:block/city2/wall_{row}_core"}}]
         for side, y in (("north", 0), ("east", 90), ("south", 180), ("west", 270)):
-            for f in FINISHES:
+            for f in WALL_FINISHES:
                 apply = {"model": f"mobtalk:block/city2/wall_{row}_{f}"}
                 if y:
                     apply["y"] = y
@@ -730,6 +736,21 @@ def walls():
         BLOCKSTATES[f"wall_{row}"] = {"multipart": parts}
         ITEMS[f"wall_{row}"] = {"parent": "minecraft:block/cube_all", "textures": {"all": f"mobtalk:block/city2/paper_beige_{row}"}}
         NAMES[f"wall_{row}"] = (f"Стена квартиры ({ROW_RU[row]})", f"Flat wall ({ROW_EN[row]})")
+        # A wall of a staircase painted other than green: its sides are paint (true) or one room finish (`room`), so the
+        # states stay few (16 x 12) instead of a fourth power of all finishes.
+        for paint in PAINTS[1:]:
+            name = f"wall_stair_{paint[len('paint_stair_'):]}_{row}"
+            parts = [{"apply": {"model": f"mobtalk:block/city2/wall_{row}_core"}}]
+            for side, y in (("north", 0), ("east", 90), ("south", 180), ("west", 270)):
+                rot = {"y": y} if y else {}
+                parts.append({"when": {side: "true"}, "apply": {"model": f"mobtalk:block/city2/wall_{row}_{paint}", **rot}})
+                for f in ROOM_FINISHES:
+                    parts.append({"when": {side: "false", "room": f}, "apply": {"model": f"mobtalk:block/city2/wall_{row}_{f}", **rot}})
+            BLOCKSTATES[name] = {"multipart": parts}
+            ITEMS[name] = {"parent": "minecraft:block/cube_all", "textures": {"all": f"mobtalk:block/city2/{paint}_{row}"}}
+            STAIR_WALLS.append(name)
+            ru = {"blue": "синяя", "ochre": "охра", "brown": "коричневая"}[paint[len("paint_stair_"):]]
+            NAMES[name] = (f"Стена подъезда, {ru} ({ROW_RU[row]})", f"Stairwell wall, {paint[len('paint_stair_'):]} ({ROW_EN[row]})")
 
 
 ROW_RU = {"lo": "низ", "mid": "середина", "hi": "верх"}
@@ -1218,6 +1239,8 @@ final class CityBuildBlocks {{
 {(","+chr(10)).join(f'            Map.entry("{n}", MapColor.{c})' for n, c, _ in DOORS)});
     static final List<String> METAL_DOORS = List.of({strs(d[0] for d in DOORS if d[2] == "METAL")});
     static final List<String> WALLS = List.of({strs(f"wall_{r}" for r in ROWS)});
+    /** Staircase walls painted other than green: sides painted (true) or one room finish. */
+    static final List<String> STAIR_WALLS = List.of({strs(STAIR_WALLS)});
     static final List<String> WINDOWS = List.of({strs(WINDOWS)});
     static final List<String> STEPS = List.of({strs(STEPS)});
     static final List<String> TRANSLUCENT = List.of({strs(TRANSLUCENT)});

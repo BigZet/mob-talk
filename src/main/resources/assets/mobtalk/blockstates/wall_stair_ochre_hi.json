@@ -1,0 +1,512 @@
+{
+ "multipart": [
+  {
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_core"
+   }
+  },
+  {
+   "when": {
+    "north": "true"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paint_stair_ochre"
+   }
+  },
+  {
+   "when": {
+    "north": "false",
+    "room": "plaster"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_plaster"
+   }
+  },
+  {
+   "when": {
+    "north": "false",
+    "room": "paper_beige"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_beige"
+   }
+  },
+  {
+   "when": {
+    "north": "false",
+    "room": "paper_green"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_green"
+   }
+  },
+  {
+   "when": {
+    "north": "false",
+    "room": "paper_blue"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_blue"
+   }
+  },
+  {
+   "when": {
+    "north": "false",
+    "room": "paper_pink"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_pink"
+   }
+  },
+  {
+   "when": {
+    "north": "false",
+    "room": "paper_stripe"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_stripe"
+   }
+  },
+  {
+   "when": {
+    "north": "false",
+    "room": "paper_roses"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_roses"
+   }
+  },
+  {
+   "when": {
+    "north": "false",
+    "room": "paper_damask"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_damask"
+   }
+  },
+  {
+   "when": {
+    "north": "false",
+    "room": "paper_geo"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_geo"
+   }
+  },
+  {
+   "when": {
+    "north": "false",
+    "room": "paper_wood"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_wood"
+   }
+  },
+  {
+   "when": {
+    "north": "false",
+    "room": "tile_bath"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_tile_bath"
+   }
+  },
+  {
+   "when": {
+    "north": "false",
+    "room": "tile_kitchen"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_tile_kitchen"
+   }
+  },
+  {
+   "when": {
+    "east": "true"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paint_stair_ochre",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "east": "false",
+    "room": "plaster"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_plaster",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "east": "false",
+    "room": "paper_beige"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_beige",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "east": "false",
+    "room": "paper_green"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_green",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "east": "false",
+    "room": "paper_blue"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_blue",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "east": "false",
+    "room": "paper_pink"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_pink",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "east": "false",
+    "room": "paper_stripe"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_stripe",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "east": "false",
+    "room": "paper_roses"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_roses",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "east": "false",
+    "room": "paper_damask"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_damask",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "east": "false",
+    "room": "paper_geo"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_geo",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "east": "false",
+    "room": "paper_wood"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_wood",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "east": "false",
+    "room": "tile_bath"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_tile_bath",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "east": "false",
+    "room": "tile_kitchen"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_tile_kitchen",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "south": "true"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paint_stair_ochre",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "south": "false",
+    "room": "plaster"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_plaster",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "south": "false",
+    "room": "paper_beige"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_beige",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "south": "false",
+    "room": "paper_green"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_green",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "south": "false",
+    "room": "paper_blue"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_blue",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "south": "false",
+    "room": "paper_pink"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_pink",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "south": "false",
+    "room": "paper_stripe"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_stripe",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "south": "false",
+    "room": "paper_roses"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_roses",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "south": "false",
+    "room": "paper_damask"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_damask",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "south": "false",
+    "room": "paper_geo"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_geo",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "south": "false",
+    "room": "paper_wood"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_wood",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "south": "false",
+    "room": "tile_bath"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_tile_bath",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "south": "false",
+    "room": "tile_kitchen"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_tile_kitchen",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "west": "true"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paint_stair_ochre",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "west": "false",
+    "room": "plaster"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_plaster",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "west": "false",
+    "room": "paper_beige"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_beige",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "west": "false",
+    "room": "paper_green"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_green",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "west": "false",
+    "room": "paper_blue"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_blue",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "west": "false",
+    "room": "paper_pink"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_pink",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "west": "false",
+    "room": "paper_stripe"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_stripe",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "west": "false",
+    "room": "paper_roses"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_roses",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "west": "false",
+    "room": "paper_damask"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_damask",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "west": "false",
+    "room": "paper_geo"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_geo",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "west": "false",
+    "room": "paper_wood"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_paper_wood",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "west": "false",
+    "room": "tile_bath"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_tile_bath",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "west": "false",
+    "room": "tile_kitchen"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/wall_hi_tile_kitchen",
+    "y": 270
+   }
+  }
+ ]
+}

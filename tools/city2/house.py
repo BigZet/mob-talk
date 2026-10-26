@@ -33,6 +33,7 @@ FINISH = {"kitchen": "tile_kitchen", "bath": "tile_bath", "hall": "paper_wood", 
 FLOOR = {"kitchen": "floor_lino_beige", "bath": "floor_tile", "hall": "floor_lino_brown", "stair": "floor_terrazzo",
          "pantry": "floor_lino_brown"}
 ROWS = ("lo", "mid", "hi")   # a room's three rows over its floor: skirting, plain, cornice
+PAINTS = ("paint_stair", "paint_stair_blue", "paint_stair_ochre", "paint_stair_brown")   # the staircases' oil paints
 FLAT_DOORS = ["door_flat", "door_flat_wine", "door_flat_black", "door_flat_wood", "door_flat_steel", "door_flat_steel_brown"]
 ROOM_DOORS = ["door_room", "door_room", "door_room_wood"]
 ENTRANCE_DOORS = ["door_entrance", "door_entrance_green"]
@@ -202,7 +203,21 @@ class House:
 
     # ------------------------------------------------------------ writing
 
+    def paint(self, sec):
+        """The oil paint of section sec's staircase: green mostly, blue, ochre or red-brown in other entrances."""
+        r = random.Random(f"paint:{self.series}:{self.n}:{self.floors}:{self.colour}:{sec}")
+        return r.choices(PAINTS, weights=(35, 30, 20, 15))[0]
+
     def at(self, bx, y, bz, name, props=None):
+        if props and "paint_stair" in props.values():
+            paint = self.paint(max(0, self.section_of(bx)))
+            if paint != "paint_stair" and name in ("wall_lo", "wall_mid", "wall_hi"):
+                # a stair wall in another paint: painted sides, the one room finish on the others (blocks.py walls())
+                room = next((v for v in props.values() if v not in ("paint_stair", "plaster")), "plaster")
+                props = {d: str(v == "paint_stair").lower() for d, v in props.items()} | {"room": room}
+                name = f"wall_stair_{paint[len('paint_stair_'):]}_{name[len('wall_'):]}"
+            elif paint != "paint_stair":
+                props = {k: (paint if v == "paint_stair" else v) for k, v in props.items()}
         self.tpl.set(self.ox + bx, y, self.oz + bz, name, props)
 
     def build(self):

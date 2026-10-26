@@ -1388,5 +1388,14 @@
   "mobtalk.furniture.notice.4": "«Субботник в субботу. Грабли выдаёт дворник»",
   "mobtalk.furniture.notice.5": "«Продаю детскую коляску, почти новая. Кв. 12»",
   "mobtalk.furniture.notice.6": "«Поверка счётчиков. Не открывайте посторонним!»",
-  "mobtalk.furniture.notice.7": "«Кто взял санки из-под лестницы — верните!»"
+  "mobtalk.furniture.notice.7": "«Кто взял санки из-под лестницы — верните!»",
+  "block.mobtalk.wall_stair_blue_lo": "Стена подъезда, синяя (низ)",
+  "block.mobtalk.wall_stair_ochre_lo": "Стена подъезда, охра (низ)",
+  "block.mobtalk.wall_stair_brown_lo": "Стена подъезда, коричневая (низ)",
+  "block.mobtalk.wall_stair_blue_mid": "Стена подъезда, синяя (середина)",
+  "block.mobtalk.wall_stair_ochre_mid": "Стена подъезда, охра (середина)",
+  "block.mobtalk.wall_stair_brown_mid": "Стена подъезда, коричневая (середина)",
+  "block.mobtalk.wall_stair_blue_hi": "Стена подъезда, синяя (верх)",
+  "block.mobtalk.wall_stair_ochre_hi": "Стена подъезда, охра (верх)",
+  "block.mobtalk.wall_stair_brown_hi": "Стена подъезда, коричневая (верх)"
 }
