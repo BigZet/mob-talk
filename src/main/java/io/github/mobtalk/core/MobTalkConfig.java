@@ -171,7 +171,7 @@ public final class MobTalkConfig {
     /** Moods (percent, 0 = off): how strongly the world around moves them (rain, raids, hunger, curses, friends near), how readily
      * a held feeling turns into a long mood (depression, dread, joy…), and how much the state shortens and colours the replies;
      * a villager with no food seen this many real minutes is hungry. */
-    public int moodWorldPercent = 100, moodSpellPercent = 100, moodReplyPercent = 100, moodHungerMinutes = 40;
+    public int moodWorldPercent = 100, moodSpellPercent = 100, moodReplyPercent = 100, moodHungerMinutes = 90;
     /** 1: a villager in apathy lies in its bed day and night (0: only its words change). */
     public int moodApathyBed = 1;
     /** Memory: half-life of a fact (days), the floor of its freshness (percent), how many facts are kept, the silence that ends a
