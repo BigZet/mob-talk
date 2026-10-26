@@ -1171,8 +1171,8 @@ def pod_lamp(c, x, y, zface, r, mat, ring=CHROME, ring_w=0.6, out=1.0, housing=P
 @car
 def uaz452():
     """УАЗ-452 «буханка» (УАЗ-2206, 1965–): the cab-over van, 4.36 × 1.94 × 2.09 m, wheelbase 2.30, 15-inch wheels; everything
-    round as a loaf: the roof, the corners, the round lamps standing out of the face either side of a trapezoid grille, the
-    orange markers on the roof's front corners; the driver's and the passenger's doors over the front wheels, a double door on
+    round as a loaf: the roof, the corners, the round lamps standing out of the face either side of a trapezoid grille, one
+    orange beacon on the roof's front; the driver's and the passenger's doors over the front wheels, a double door on
     the right into the saloon, two leaves at the back, a drip rail along the roof."""
     # measured off side and front photos (1 unit = 1/16 m): overhangs 0.9 m front, 1.0 m back; the face upright to the
     # lamps, a short cowl, the windshield at 1.40–1.91 m; windows 1.44–1.90 m under a thin roof edge
@@ -1182,7 +1182,8 @@ def uaz452():
              nose=[(6.4, 33.2), (8.0, 34.2), (10.0, 34.7), (12.0, 34.9), (17.0, 34.9), (19.0, 34.5), (21.0, 33.5),
                    (22.4, 32.6), (30.6, 29.8), (31.8, 28.8), (32.6, 27.4), (33.0, 25.6)],
              nose_bulge=1.4, bulge_pow=4.0,
-             tail=[(7.6, -34.0), (9.6, -34.9), (28.0, -34.9), (30.4, -34.2), (32.0, -32.8), (33.0, -30.6)],
+             tail=[(7.6, -33.8), (10.0, -34.5), (13.0, -34.9), (18.0, -34.9), (23.0, -34.5), (27.0, -33.9), (29.6, -33.2),
+                   (31.4, -32.2), (32.4, -31.2), (33.0, -30.0)],
              arch_depth=6.5, arch_grow=1.9)
     c = Car("uaz452", p["L"], p["W"], p["H"] + 1)
     c.info.update(name="УАЗ-452 «буханка»", name_en="UAZ-452 «Bukhanka»", kind="van",
@@ -1193,14 +1194,20 @@ def uaz452():
     hw = c.info["hw"]
     # the cab and the saloon apart: a bulkhead behind the seats
     body.box(-hw + 1, p["floor"], 11.2, hw - 1, 23.0, 12.2, TRIM, only=[AIR])
-    # glass: the two-piece windshield, the doors' windows (with the vent wing's frame), the saloon's windows, the back leaves'
-    end_glass(c, g, True, 0.7, hw - 2.6, 22.4, 30.6, r=1.4)
+    # glass: the one-piece windshield, the doors' windows (with the vent wing's frame), the saloon's windows, the back leaves'
+    end_glass(c, g, True, -(hw - 2.6), hw - 2.6, 22.4, 30.6, r=1.4, mirror=False)
     for sgn in (1, -1):
         side_glass(c, g, 17.0, 26.8, 23.0, 28.8, sgn, r=1.0)
     body.set(skin_of(c, g) & (side_cells(c, 1) | side_cells(c, -1)) & (abs(Z - 23.4) < 0.5) & (Y > 22.6) & (Y < 30.8), PAINT)
+    # the saloon's windows as on the photos: one behind each front door, two big ones each halved by a thin sliding-pane
+    # frame, a small one at the back; all in black rubber seals
+    sides = side_cells(c, 1) | side_cells(c, -1)
     for z0, z1, side in ((10.8, 14.6, -1), (6.2, 10.0, -1), (6.6, 14.8, 1), (-8.6, 5.2, 0), (-26.4, -11.2, 0), (-33.0, -28.6, 0)):
-        side_glass(c, g, z0, z1, 23.0, 28.8, side, r=1.0)
-    body.set(skin_of(c, g) & (side_cells(c, 1) | side_cells(c, -1)) & (abs(Z + 18.8) < 0.5) & (Y > 22.6) & (Y < 30.8), PAINT)
+        side_glass(c, g, z0, z1, 22.8, 29.4, side, r=1.4)
+        seal = rounded_rect(Z - (z0 + z1) / 2, Y - 26.1, abs(z1 - z0) / 2 + 0.6, 3.3 + 0.6, 1.8)
+        body.set(skin_of(c, g) & sides & seal & (body.mat == PAINT) & ((X > 0) if side == 1 else (X < 0) if side == -1 else True), BLACK)
+    for zd in (-18.8, -1.7):
+        body.set(skin_of(c, g) & sides & (abs(Z - zd) < 0.5) & (Y > 22.6) & (Y < 29.6), BLACK)
     end_glass(c, g, False, 1.4, 11.6, 21.6, 30.0, r=1.4)
     # the drip rail along the roof's sides and over the windshield
     rail = (abs(X) > 13.2) & (abs(X) < 15.0) & (Y > 30.0) & (Y < 31.0) & (Z > -33.5) & (Z < 27.0) & ~body.solid()
@@ -1223,9 +1230,10 @@ def uaz452():
     body.set(face & rim & ~trap & (body.mat == PAINT), ALU)
     body.set(face & trap & (body.mat == PAINT), GRILLE)
     body.set(face & (abs(X) < 1.4) & (Y > 17.6) & (Y < 18.6), CHROME)  # the emblem
-    # the orange markers on the roof's front corners
-    for sgn in (1, -1):
-        body.box(sgn * 10.4, 32.4, 23.2, sgn * 12.4, 33.8, 24.8, TURN)
+    # one round orange beacon on the roof's front, in the middle, on a black base
+    Rb = np.sqrt(X ** 2 + (Z - 25.0) ** 2)
+    body.set((Rb < 1.9) & (Y > 32.0) & (Y < 33.8) & ~body.solid(), BLACK)
+    body.set((Rb < 1.5) & (Y > 33.8) & (Y < 35.6 - np.maximum(Rb - 0.8, 0) * 0.8), TURN)
     # the back: tall lamps at the corners (amber over red), the plate between, the leaves' handle
     rect_face(c, 11.2, 13.6, 14.4, 16.8, TURN, front=False)
     rect_face(c, 11.2, 13.6, 9.8, 14.4, TAIL, front=False)
