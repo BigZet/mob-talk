@@ -109,8 +109,14 @@ class Civic(H.House):
             s = self.slab(k)
             cells = {(bx, bz) for (bx, bz), c in self.grid.items() if c in letters}
             for bx, bz in cells:
-                self.at(bx, s, bz, "minecraft:air")
-                self.at(bx, s - 1, bz, "minecraft:air")
+                for y in (s, s - 1):
+                    # the hall's own furniture (the stage curtain's pelmet hangs through the slab) stays, lamps go
+                    name = self.tpl.get(self.ox + bx, y, self.oz + bz) or ""
+                    if not name.startswith(("pub_", "apt_")) or any(w in name for w in LAMPS):
+                        self.at(bx, y, bz, "minecraft:air")
+                # bats and mobs: the hall is lit even with its lamps off, by hidden light blocks in the slab's row
+                if bx % 5 == 2 and bz % 5 == 2 and self.tpl.get(self.ox + bx, s, self.oz + bz) in (None, "air"):
+                    self.at(bx, s, bz, "minecraft:light", {"level": "11", "waterlogged": "false"})
             # the slab's edge in the hall's walls: the facade's band and the partitions' floor would show as a stripe of
             # brick and concrete across the hall, so the wall runs on plastered through it
             walls = {(bx + dx, bz + dz) for bx, bz in cells for dx, dz in H.DIRS.values()} - cells
@@ -270,7 +276,8 @@ def _join(t, x0, z0, cells, y0, y1, door="door_room"):
     _clear_openings(t, [(x - x0, z - z0) for x, z, _, _ in cells], y0, y1)
 
 
-KEEP = ("tube_lamp", "wall_puck")   # lamps on the ceiling and the walls may stay by an opening
+KEEP = ("tube_lamp", "wall_puck")
+LAMPS = ("lamp", "chandelier", "ceiling_plate", "puck")   # what a hall's void takes out with the slab   # lamps on the ceiling and the walls may stay by an opening
 
 
 def _clear_openings(t, cells, y0, y1, reach=2):
@@ -459,10 +466,10 @@ def _halls(k):
     p.room(38, 10, 44, 17, "s")
     for x in range(38, 45):
         p.put(x, 18, "S")
-    if k == 3:
+    if k == 3:                               # the staff room up top: walled off the landing, one door to it
         for x in range(38, 45):
-            p.put(x, 9, "t")
-        p.put(41, 9, "t")
+            p.put(x, 9, "#")
+        p.put(41, 9, "D")
     if k == 1:
         p.room(1, 1, 36, 8, "L")             # the library
         p.room(1, 10, 36, 17, "R")           # its reading hall
@@ -632,7 +639,7 @@ def classroom(rm, flat):
     """The blackboard on the west wall with the class facing it, the teacher's desk, three columns of desks, glazed cabinets
     on the back wall, a portrait or a table over the side; the third floor's last room is the chemistry room."""
     import public
-    _windows(rm, flowers=0.75)
+    _windows(rm, flowers=0.2)
     if rm.k == 3 and rm.letter == "K":
         return chemistry(rm, flat)
     public.classroom(rm, flat)
@@ -794,16 +801,32 @@ def canteen(rm, flat):
 
 
 def kitchen_pub(rm, flat):
-    """The canteen's kitchen: ranges with stock pots, boiling pans, the washing-up sinks, the steel tables."""
-    rm.against("pub_kitchen_range", name="range", row=True)
-    for pid in ("pub_kitchen_range", "pub_kitchen_range", "pub_boiling_pan", "pub_boiling_pan"):
-        rm.run(pid, "range")
-    rm.against("apt_kitchen_sink_white", name="sink", row=True)
-    for pid in ("apt_kitchen_base_white", "apt_kitchen_base_white", "apt_kitchen_sink_white"):
-        rm.run(pid, "sink")
-    for _ in range(2):
-        rm.table("apt_kitchen_base_white", "apt_stool", chairs=0)
-    rm.against("apt_fridge")
+    """The canteen's kitchen (пищеблок), after the references: an island of ranges and boiling pans back to back down the
+    middle with a way round both ends, the roasting ovens and refrigerated cabinets along the walls, washing baths and
+    steel prep tables in rows, racks of pots, the dough mixer, the vegetable corner with the peeler and crates."""
+    import public
+    x0, z0, x1, z1 = _box(rm)
+    xm = (x0 + x1) // 2
+    cook = ["pub_boiling_pan", "pub_kitchen_range", "pub_kitchen_range", "pub_kitchen_range"]
+    for i, z in enumerate(range(z0 + 3, z1 - 2)):
+        _put(rm, cook[i % len(cook)], xm, z, "west", backed=False)
+        _put(rm, cook[(i + 2) % len(cook)], xm + 1, z, "east", backed=False)
+    rows = (("wash", ["pub_wash_bath", "pub_wash_bath", "pub_wash_bath", "apt_kitchen_sink_white"]),
+            ("ovens", ["pub_oven_cabinet", "pub_oven_cabinet", "pub_oven_cabinet"]),
+            ("prep", ["pub_prep_table_board", "pub_prep_table_grinder", "pub_prep_table_bowls", "pub_prep_table_board"]),
+            ("cold", ["pub_fridge_cabinet", "pub_fridge_cabinet"]),
+            ("racks", ["pub_kitchen_rack", "pub_kitchen_rack", "pub_kitchen_rack"]),
+            ("dough", ["pub_dough_mixer", "pub_prep_table_bowls"]),
+            ("veg", ["pub_potato_peeler", "pub_veg_crates", "pub_veg_crates"]))
+    for name, pids in rows:
+        if rm.against(pids[0], name=name, row=True):
+            for pid in pids[1:]:
+                rm.run(pid, name)
+    for _ in range(3):                             # more steel tables standing free between the walls and the island
+        rm.table("pub_prep_table_bowls" if rm.r.random() < 0.5 else "pub_prep_table_board", "apt_stool", chairs=0)
+    _wall(rm, "pub_fire_cabinet", rm.r.choice((H.N, H.W)), 1)
+    _scatter(rm, "pub_waste_bin", 2)
+    public._lamps(rm)
 
 
 def assembly(rm, flat):

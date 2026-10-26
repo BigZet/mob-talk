@@ -52,7 +52,13 @@ final class FurnitureUse {
             Map.entry("apt_shoe_cabinet", 1), Map.entry("apt_desk", 1), Map.entry("apt_toy_box", 1), Map.entry("apt_post_boxes", 1),
             Map.entry("apt_nightstand", 1), Map.entry("apt_dressing_table", 1), Map.entry("apt_suitcases", 1), Map.entry("apt_laundry_basket", 1),
             Map.entry("apt2_wardrobe_coupe", 3), Map.entry("apt2_fridge", 3), Map.entry("apt2_kitchen_base", 1), Map.entry("apt2_kitchen_sink", 1),
-            Map.entry("apt2_kitchen_wall", 1), Map.entry("apt2_tv_stand", 1), Map.entry("apt2_pc_desk", 1));
+            Map.entry("apt2_kitchen_wall", 1), Map.entry("apt2_tv_stand", 1), Map.entry("apt2_pc_desk", 1),
+            // the school's
+            Map.entry("pub_class_cabinet", 2), Map.entry("pub_trophy_cabinet", 1), Map.entry("pub_library_stack", 2),
+            Map.entry("pub_issue_desk", 1), Map.entry("pub_lab_bench", 1), Map.entry("pub_fume_cupboard", 1), Map.entry("pub_fire_cabinet", 1),
+            Map.entry("pub_cloak_section", 1), Map.entry("pub_cloak_section_empty", 1), Map.entry("pub_satchels", 1),
+            Map.entry("pub_fridge_cabinet", 3), Map.entry("pub_kitchen_rack", 2), Map.entry("pub_oven_cabinet", 1), Map.entry("pub_veg_crates", 1),
+            Map.entry("pub_prep_table_board", 1), Map.entry("pub_prep_table_grinder", 1), Map.entry("pub_prep_table_bowls", 1));
 
     /** Pieces that are a lamp and a cupboard at once open below this height (pixels above their placed cell), switch above it. */
     private static final Map<String, Double> LAMP_ABOVE = Map.of("apt_nightstand", 9.5, "apt_desk", 13.0, "apt2_tv_stand", 8.75,
@@ -64,7 +70,7 @@ final class FurnitureUse {
 
     static Sound doorSound(BlockState state, boolean open) {
         String id = state.getBlock() instanceof FurnitureBlocks.Furniture f ? f.f.id() : "";
-        if (id.startsWith("apt_fridge") || id.equals("apt2_fridge")) return new Sound(open ? SoundEvents.BLOCK_IRON_DOOR_OPEN : SoundEvents.BLOCK_IRON_DOOR_CLOSE, 0.45f, 1.35f);
+        if (id.startsWith("apt_fridge") || id.equals("apt2_fridge") || id.equals("pub_fridge_cabinet") || id.equals("pub_oven_cabinet")) return new Sound(open ? SoundEvents.BLOCK_IRON_DOOR_OPEN : SoundEvents.BLOCK_IRON_DOOR_CLOSE, 0.45f, 1.35f);
         if (id.equals("apt_post_boxes")) return new Sound(open ? SoundEvents.BLOCK_IRON_TRAPDOOR_OPEN : SoundEvents.BLOCK_IRON_TRAPDOOR_CLOSE, 0.4f, 1.4f);
         if (id.equals("apt_suitcases") || id.equals("apt_laundry_basket") || id.equals("apt_toy_box"))
             return new Sound(SoundEvents.ITEM_ARMOR_EQUIP_LEATHER.value(), 0.6f, open ? 1.1f : 0.9f);
@@ -113,6 +119,15 @@ final class FurnitureUse {
             case "apt_crib" -> lullaby(sw, pos);
             case "apt_ironing_board" -> steam(sw, pos);
             case "apt_chute" -> player.sendMessage(Text.translatable("mobtalk.furniture.chute"), true);
+            case "pub_drinking_fountain" -> fountain(sw, pos, facing);
+            case "pub_wash_bath" -> tap(sw, pos, facing, id);
+            case "pub_kitchen_range" -> stove(sw, pos, false);
+            case "pub_boiling_pan" -> boil(sw, pos);
+            case "pub_school_bell" -> schoolBell(sw, pos);
+            case "pub_menu_board" -> player.sendMessage(Text.translatable("mobtalk.furniture.menu." + sw.random.nextInt(4)), true);
+            case "pub_stand_timetable" -> player.sendMessage(Text.translatable("mobtalk.furniture.timetable." + sw.random.nextInt(4)), true);
+            case "pub_stand_school" -> player.sendMessage(Text.translatable("mobtalk.furniture.stand." + sw.random.nextInt(3)), true);
+            case "pub_wall_newspaper" -> player.sendMessage(Text.translatable("mobtalk.furniture.paper." + sw.random.nextInt(3)), true);
             default -> { return null; }
         }
         return ActionResult.CONSUME;
@@ -126,7 +141,8 @@ final class FurnitureUse {
                  "apt_kitchen_sink_white", "apt_kitchen_sink_wood", "apt_washbasin", "apt_bathtub", "apt_stove", "apt_stove_kettle",
                  "apt_piano", "apt_wall_radio", "apt_radiola", "apt_tv", "apt_gas_heater", "apt_wall_phone", "apt_wall_clock", "apt_electric_meter",
                  "apt_notice_board", "apt_sewing_machine", "apt_washer", "apt_washer_malyutka", "apt_washer_sibir", "apt_crib",
-                 "apt_ironing_board", "apt_chute" -> true;
+                 "apt_ironing_board", "apt_chute", "pub_drinking_fountain", "pub_wash_bath", "pub_kitchen_range", "pub_boiling_pan",
+                 "pub_school_bell", "pub_menu_board", "pub_stand_timetable", "pub_stand_school", "pub_wall_newspaper" -> true;
             default -> false;
         };
     }
@@ -134,7 +150,8 @@ final class FurnitureUse {
     /** A click holding something: a bottle or a bucket under the tap, rubbish down the chute, water for a plant. */
     static ItemActionResult useWithItem(FurnitureBlocks.Furniture block, World world, BlockPos pos, PlayerEntity player, Hand hand, ItemStack stack) {
         String id = block.f.id();
-        boolean tap = id.startsWith("apt_kitchen_sink") || id.equals("apt2_kitchen_sink") || id.equals("apt_washbasin") || id.equals("apt_bathtub");
+        boolean tap = id.startsWith("apt_kitchen_sink") || id.equals("apt2_kitchen_sink") || id.equals("apt_washbasin") || id.equals("apt_bathtub")
+                || id.equals("pub_wash_bath") || id.equals("pub_drinking_fountain");
         if (tap && (stack.isOf(Items.GLASS_BOTTLE) || stack.isOf(Items.BUCKET))) {
             if (world instanceof ServerWorld sw) {
                 ItemStack full = stack.isOf(Items.BUCKET) ? new ItemStack(Items.WATER_BUCKET)
@@ -171,14 +188,18 @@ final class FurnitureUse {
     // ---------------------------------------------------------------- the light switch
 
     /** Every ceiling light of the room the switch is in goes on or off: the room is the air the switch can reach without passing a
-     * wall, a door, a doorway, a window or a floor, within eight blocks of it. */
+     * wall, a door, a doorway, a window or a floor, within eight blocks of it; in a hall more than five blocks high (a school's
+     * assembly hall and gym) within forty, up to its ceiling. */
     static int roomLights(World world, BlockPos sw, boolean on) {
         ArrayDeque<BlockPos> queue = new ArrayDeque<>();
         Set<Long> seen = new HashSet<>();
         queue.add(sw);
         seen.add(sw.asLong());
         int lamps = 0;
-        while (!queue.isEmpty() && seen.size() < 4000) {
+        int high = 0;
+        while (high < 12 && open(world, sw.up(high + 1))) high++;
+        int reach = high > 5 ? 40 : 8, up = high > 5 ? 12 : 3;
+        while (!queue.isEmpty() && seen.size() < (high > 5 ? 40000 : 4000)) {
             BlockPos p = queue.poll();
             BlockState s = world.getBlockState(p);
             if (s.getBlock() instanceof FurnitureBlocks.Furniture f && f.f.toggle() && f.f.mount() == FurnitureBlocks.Mount.CEILING) {
@@ -187,7 +208,7 @@ final class FurnitureUse {
             }
             for (Direction d : Direction.values()) {
                 BlockPos n = p.offset(d);
-                if (Math.abs(n.getX() - sw.getX()) > 8 || Math.abs(n.getZ() - sw.getZ()) > 8 || Math.abs(n.getY() - sw.getY()) > 3) continue;
+                if (Math.abs(n.getX() - sw.getX()) > reach || Math.abs(n.getZ() - sw.getZ()) > reach || Math.abs(n.getY() - sw.getY()) > up) continue;
                 if (!seen.add(n.asLong()) || !open(world, n)) continue;
                 // a one-block gap in a wall is a doorway: the next room has its own switch
                 if (d.getAxis().isHorizontal() && !open(world, n.offset(d.rotateYClockwise())) && !open(world, n.offset(d.rotateYCounterclockwise())))
@@ -225,6 +246,8 @@ final class FurnitureUse {
             case "apt_washbasin" -> front(pos, facing, 15, 12);
             case "apt_bathtub" -> front(pos, facing, 14, 3);
             case "apt2_kitchen_sink" -> front(pos, facing, 18, 10.25).add(Vec3d.of(facing.rotateYClockwise().getVector()).multiply(-2 / 16.0));
+            case "pub_wash_bath" -> front(pos, facing, 21.5, 7.5);
+            case "pub_drinking_fountain" -> front(pos, facing, 18.5, 7.75);
             default -> front(pos, facing, 17.5, 9.5);
         };
         w.playSound(null, pos, SoundEvents.BLOCK_WATER_AMBIENT, SoundCategory.BLOCKS, 0.6f, 1.6f);
@@ -261,6 +284,35 @@ final class FurnitureUse {
             int n = rise[i];
             later(w, 40 + i * 4, () -> note(w, pos.up(), SoundEvents.BLOCK_NOTE_BLOCK_FLUTE, n, 0.6f));
         }
+    }
+
+    /** The school fountain: a short arc of water from each of its three nozzles. */
+    private static void fountain(ServerWorld w, BlockPos pos, Direction facing) {
+        w.playSound(null, pos, SoundEvents.BLOCK_WATER_AMBIENT, SoundCategory.BLOCKS, 0.5f, 1.9f);
+        Vec3d c = front(pos, facing, 18.5, 7.75);
+        Vec3d side = Vec3d.of(facing.rotateYClockwise().getVector());
+        for (int i = 0; i < 10; i++)
+            later(w, i * 4, () -> {
+                for (double k : new double[] {-4.25 / 16, 0, 4.25 / 16}) {
+                    Vec3d p = c.add(side.multiply(k));
+                    w.spawnParticles(ParticleTypes.SPLASH, p.x, p.y + 0.08, p.z, 3, 0.02, 0.04, 0.02, 0.05);
+                    w.spawnParticles(ParticleTypes.FALLING_WATER, p.x, p.y, p.z, 2, 0.03, 0.02, 0.03, 0);
+                }
+            });
+    }
+
+    /** The boiling pan comes up: a bubbling, then steam from under the lid. */
+    private static void boil(ServerWorld w, BlockPos pos) {
+        Vec3d top = Vec3d.ofBottomCenter(pos).add(0, 20.5 / 16, 0);
+        w.playSound(null, pos, SoundEvents.BLOCK_BUBBLE_COLUMN_UPWARDS_AMBIENT, SoundCategory.BLOCKS, 0.6f, 0.8f);
+        for (int i = 0; i < 12; i++)
+            later(w, 4 + i * 4, () -> w.spawnParticles(ParticleTypes.WHITE_SMOKE, top.x, top.y, top.z, 3, 0.25, 0.02, 0.25, 0.01));
+    }
+
+    /** The school's electric bell: a long hard trill along the corridor. */
+    private static void schoolBell(ServerWorld w, BlockPos pos) {
+        for (int i = 0; i < 30; i++)
+            later(w, i * 2, () -> w.playSound(null, pos, SoundEvents.BLOCK_NOTE_BLOCK_BELL.value(), SoundCategory.BLOCKS, 1.2f, 1.9f));
     }
 
     private static void piano(ServerWorld w, BlockPos pos, Direction facing, Vec3d hit) {

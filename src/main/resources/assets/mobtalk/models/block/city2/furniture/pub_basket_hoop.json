@@ -2,7 +2,8 @@
   "parent": "minecraft:block/block",
   "textures": {
     "pub_basket_hoop_backboard_44": "mobtalk:block/city2/furniture/pub_basket_hoop_backboard_44",
-    "lamp_body": "mobtalk:block/city2/furniture/lamp_body",
+    "iron_grey": "mobtalk:block/city2/furniture/iron_grey",
+    "black": "mobtalk:block/city2/furniture/black",
     "tube_steel": "mobtalk:block/city2/furniture/tube_steel",
     "hoop_red": "mobtalk:block/city2/furniture/hoop_red",
     "net": "mobtalk:block/city2/furniture/net",
@@ -12,13 +13,13 @@
     {
       "from": [
         0.0,
-        8.0,
-        14.0
+        9.5,
+        10.0
       ],
       "to": [
         16.0,
         16.0,
-        15.0
+        11.5
       ],
       "faces": {
         "north": {
@@ -27,25 +28,75 @@
             0.0,
             0.0,
             16.0,
+            6.5
+          ]
+        },
+        "south": {
+          "texture": "#iron_grey",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            6.5
+          ]
+        },
+        "down": {
+          "texture": "#iron_grey",
+          "uv": [
+            0.0,
+            4.5,
+            16.0,
+            6.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        8.0,
+        9.5
+      ],
+      "to": [
+        16.0,
+        9.5,
+        12.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#black",
+          "uv": [
+            0.0,
+            6.5,
+            16.0,
             8.0
           ]
         },
         "south": {
-          "texture": "#lamp_body",
+          "texture": "#black",
           "uv": [
             0.0,
-            0.0,
+            6.5,
             16.0,
             8.0
           ]
         },
-        "down": {
-          "texture": "#lamp_body",
+        "up": {
+          "texture": "#black",
           "uv": [
             0.0,
-            1.0,
+            9.5,
             16.0,
-            2.0
+            12.0
+          ]
+        },
+        "down": {
+          "texture": "#black",
+          "uv": [
+            0.0,
+            4.0,
+            16.0,
+            6.5
           ]
         }
       }
@@ -53,67 +104,67 @@
     {
       "from": [
         6.0,
-        6.0,
-        15.0
+        5.0,
+        8.5
       ],
       "to": [
         10.0,
-        12.0,
-        16.0
+        9.5,
+        9.5
       ],
       "faces": {
         "north": {
           "texture": "#tube_steel",
           "uv": [
             6.0,
-            4.0,
+            6.5,
             10.0,
-            10.0
+            11.0
           ]
         },
         "south": {
           "texture": "#tube_steel",
           "uv": [
             6.0,
-            4.0,
+            6.5,
             10.0,
-            10.0
+            11.0
           ]
         },
         "east": {
           "texture": "#tube_steel",
           "uv": [
-            0.0,
-            4.0,
-            1.0,
-            10.0
+            6.5,
+            6.5,
+            7.5,
+            11.0
           ]
         },
         "west": {
           "texture": "#tube_steel",
           "uv": [
-            15.0,
-            4.0,
-            16.0,
-            10.0
+            8.5,
+            6.5,
+            9.5,
+            11.0
           ]
         },
         "up": {
           "texture": "#tube_steel",
           "uv": [
             6.0,
-            15.0,
+            8.5,
             10.0,
-            16.0
+            9.5
           ]
         },
         "down": {
           "texture": "#tube_steel",
           "uv": [
             6.0,
-            0.0,
+            6.5,
             10.0,
-            1.0
+            7.5
           ]
         }
       }
@@ -122,12 +173,12 @@
       "from": [
         4.0,
         6.0,
-        7.0
+        2.0
       ],
       "to": [
         12.0,
         7.0,
-        14.0
+        8.5
       ],
       "faces": {
         "north": {
@@ -151,18 +202,18 @@
         "east": {
           "texture": "#hoop_red",
           "uv": [
-            2.0,
+            7.5,
             9.0,
-            9.0,
+            14.0,
             10.0
           ]
         },
         "west": {
           "texture": "#hoop_red",
           "uv": [
-            7.0,
+            2.0,
             9.0,
-            14.0,
+            8.5,
             10.0
           ]
         }
@@ -172,12 +223,12 @@
       "from": [
         5.0,
         0.0,
-        8.0
+        3.0
       ],
       "to": [
         11.0,
         6.0,
-        13.0
+        7.5
       ],
       "faces": {
         "north": {
@@ -201,18 +252,18 @@
         "east": {
           "texture": "#net",
           "uv": [
-            3.0,
+            8.5,
             10.0,
-            8.0,
+            13.0,
             16.0
           ]
         },
         "west": {
           "texture": "#net",
           "uv": [
-            8.0,
+            3.0,
             10.0,
-            13.0,
+            7.5,
             16.0
           ]
         }

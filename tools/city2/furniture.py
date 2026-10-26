@@ -168,12 +168,15 @@ def resolve(el, face, owner):
         name = f"{owner}_{v.name}_{cu + 4}{cv_ + 4}"
         if name not in TILES:
             tile = P.Canvas(32, 32)
+            tile.outside = []
             for ty in range(32):
                 for tx in range(32):
                     uu, vv = cu * 16 + (tx + 0.5) / 2, cv_ * 16 + (ty + 0.5) / 2
                     px, py = int((uu - R[0]) * 2), int((vv - R[1]) * 2)
                     if 0 <= px < v.cv.w and 0 <= py < v.cv.h:
                         tile.px[tx, ty] = v.cv.px[px, py]
+                    else:
+                        tile.outside.append((tx, ty))
             TILES[name] = tile
         return name, [u0 - cu * 16, v0 - cv_ * 16, u1 - cu * 16, v1 - cv_ * 16]
     if el.rot:
@@ -490,6 +493,10 @@ def save_textures():
     for name, cv in list(MATS.items()) + list(TILES.items()):
         if cv.img.mode == "RGBA":
             bleed(cv.img)
+            # A picture's texels beyond its face are never drawn, but a cutout block's mipmaps would average their zero
+            # alpha into the picture's edge and cut holes in it from afar (the gym's backboard): make them opaque.
+            for p in getattr(cv, "outside", ()):
+                cv.img.putpixel(p, cv.img.getpixel(p)[:3] + (255,))
         cv.img.save(os.path.join(tdir, name + ".png"))
         keep.add(name + ".png")
     for old in os.listdir(tdir):

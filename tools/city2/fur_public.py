@@ -251,19 +251,26 @@ def wall_bars():
 
 
 def basket_hoop():
-    """A basketball backboard on the end wall: white board with the red square, the red ring and its net."""
+    """A basketball backboard on the end wall: a varnished plywood board in a steel edge on brackets standing off the wall, a thick red
+    border and the red shooting square, the black pad along its bottom, the red ring on its plate and the net."""
     def bb(cv, W, H):
-        cv.rect(0, 0, cv.w, cv.h, rgb("f4f4f0"))
-        cv.outline(0, 0, cv.w, cv.h, rgb("c84a2a"))
-        cv.outline(1, 1, cv.w - 1, cv.h - 1, rgb("c84a2a"))
-        x0, x1 = cv.w // 2 - 7, cv.w // 2 + 7
-        cv.outline(x0, cv.h - 14, x1, cv.h - 3, rgb("c84a2a"))
+        # varnished plywood, as the school boards were: a white board would vanish against the gym's white end wall
+        cv.paste(P.wood(cv.w, cv.h, rgb("c8945a"), "backboard", vertical=False, polish=0.5, knots=False, spacing=6), 0, 0)
+        for k in range(3):
+            cv.outline(k, k, cv.w - k, cv.h - k, rgb("c03a22"))
+        x0, x1 = cv.w // 2 - 8, cv.w // 2 + 8
+        for k in range(2):
+            cv.outline(x0 + k, cv.h - 16 + k, x1 - k, cv.h - 3 - k, rgb("c03a22"))
 
     m = Model()
-    m.box((-8, 8, 14), (24, 30, 15), "lamp_body", north=Pic("backboard", bb))
-    m.box((6, 6, 15), (10, 12, 16), "tube_steel")
-    m.box((4, 6, 7), (12, 7, 14), "hoop_red", up=None, down=None)
-    m.box((5, 0, 8), (11, 6, 13), "net", faces=("north", "south", "east", "west"), shade=False)
+    m.box((-8, 9.5, 10), (24, 30, 11.5), "iron_grey", north=Pic("backboard", bb))
+    m.box((-8, 8, 9.5), (24, 9.5, 12), "black")                              # the pad along the bottom
+    for x in (-4, 19):                                                       # the brackets off the wall
+        m.box((x, 12, 11.5), (x + 1.5, 13.5, 16), "tube_steel")
+        m.box((x, 25, 11.5), (x + 1.5, 26.5, 16), "tube_steel")
+    m.box((6, 5, 8.5), (10, 9.5, 9.5), "tube_steel")                         # the ring's plate
+    m.box((4, 6, 2), (12, 7, 8.5), "hoop_red", up=None, down=None)
+    m.box((5, 0, 3), (11, 6, 7.5), "net", faces=("north", "south", "east", "west"), shade=False)
     return m
 
 

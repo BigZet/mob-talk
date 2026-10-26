@@ -2,7 +2,8 @@
   "parent": "minecraft:block/block",
   "textures": {
     "pub_basket_hoop_backboard_33": "mobtalk:block/city2/furniture/pub_basket_hoop_backboard_33",
-    "lamp_body": "mobtalk:block/city2/furniture/lamp_body",
+    "iron_grey": "mobtalk:block/city2/furniture/iron_grey",
+    "tube_steel": "mobtalk:block/city2/furniture/tube_steel",
     "particle": "mobtalk:block/city2/furniture/pub_basket_hoop_backboard_33"
   },
   "elements": [
@@ -10,12 +11,12 @@
       "from": [
         0.0,
         0.0,
-        14.0
+        10.0
       ],
       "to": [
         8.0,
         14.0,
-        15.0
+        11.5
       ],
       "faces": {
         "north": {
@@ -28,7 +29,7 @@
           ]
         },
         "south": {
-          "texture": "#lamp_body",
+          "texture": "#iron_grey",
           "uv": [
             0.0,
             2.0,
@@ -37,21 +38,89 @@
           ]
         },
         "east": {
-          "texture": "#lamp_body",
+          "texture": "#iron_grey",
           "uv": [
-            1.0,
+            4.5,
             2.0,
-            2.0,
+            6.0,
             16.0
           ]
         },
         "up": {
-          "texture": "#lamp_body",
+          "texture": "#iron_grey",
           "uv": [
             0.0,
-            14.0,
+            10.0,
             8.0,
-            15.0
+            11.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.0,
+        9.0,
+        11.5
+      ],
+      "to": [
+        4.5,
+        10.5,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#tube_steel",
+          "uv": [
+            11.5,
+            5.5,
+            13.0,
+            7.0
+          ]
+        },
+        "south": {
+          "texture": "#tube_steel",
+          "uv": [
+            3.0,
+            5.5,
+            4.5,
+            7.0
+          ]
+        },
+        "east": {
+          "texture": "#tube_steel",
+          "uv": [
+            0.0,
+            5.5,
+            4.5,
+            7.0
+          ]
+        },
+        "west": {
+          "texture": "#tube_steel",
+          "uv": [
+            11.5,
+            5.5,
+            16.0,
+            7.0
+          ]
+        },
+        "up": {
+          "texture": "#tube_steel",
+          "uv": [
+            3.0,
+            11.5,
+            4.5,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#tube_steel",
+          "uv": [
+            3.0,
+            0.0,
+            4.5,
+            4.5
           ]
         }
       }

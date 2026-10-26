@@ -65,6 +65,14 @@ def textures():
     mat("pennant_red", P.fabric(32, 32, rgb("c42a2a"), "pennant", weave=1, nap=False))
     mat("geranium", P.fabric(32, 32, rgb("d83a3a"), "geran", weave=1, nap=False))
     mat("violet", P.fabric(32, 32, rgb("8a4ab0"), "violet", weave=1, nap=False))
+    mat("aluminium_pot", P.metal(32, 32, rgb("c8ccd0"), vertical=True))
+    mat("cutting_board", P.wood(32, 32, rgb("c8a070"), "cboard", vertical=False, polish=0.2, knots=False))
+    mat("potato", P.fabric(32, 32, rgb("b89058"), "potato", weave=1, nap=False))
+    mat("sack", P.fabric(32, 32, rgb("a89068"), "sack", weave=2, nap=False))
+    mat("dough", P.fabric(32, 32, rgb("ece0c0"), "dough", weave=1, nap=False))
+    mat("cabbage", P.fabric(32, 32, rgb("9ac070"), "cabbage", weave=1, nap=False))
+    mat("crate_wood", P.wood(32, 32, rgb("b89868"), "crate", vertical=False, polish=0.0, spacing=8))
+    mat("kitchen_green", P.enamel(32, 32, rgb("6a9a80"), "kgreen", chips=2))
 
 
 # ---------------------------------------------------------------- the assembly hall
@@ -187,6 +195,162 @@ def boiling_pan():
     m.box((6, 19.5, 6), (10, 20.5, 10), "chrome")
     m.box((3, 10, 0.5), (6, 13, 1.5), "dial_dark")
     m.box((10, 3, 0), (12, 5, 1.5), "chrome")
+    return m
+
+
+def prep_table(kind):
+    """The kitchen's steel production table (стол производственный СП): a steel top with an upstand at the back, a shelf
+    below with aluminium pots and basins; on top a cutting board with a loaf, the meat grinder, or bowls of cabbage."""
+    def build():
+        m = Model()
+        m.box((0, 14, 0), (16, 15, 16), "steel_counter")
+        m.box((0, 15, 15), (16, 18, 16), "steel_counter_v")
+        for x, z in ((0.5, 0.5), (14, 0.5), (0.5, 13.5), (14, 13.5)):
+            m.box((x, 0, z), (x + 1.5, 14, z + 1.5), "steel_counter_v")
+        m.box((0.25, 3, 0.25), (15.75, 3.5, 15.25), "steel_counter")
+        m.box((2, 3.5, 3), (8, 9, 9), "aluminium_pot", up="water")          # a stock pot and a basin on the shelf
+        m.box((9, 3.5, 4), (14.5, 6, 12), "aluminium_pot", up="steel_sink")
+        if kind == "board":
+            m.box((2, 15, 2), (12, 16, 10), "cutting_board")
+            m.box((3, 16, 3), (9, 19, 6), "bread")
+            m.box((9.5, 16, 7), (12.5, 16.5, 7.5), "chrome")                  # the knife
+            m.box((12.5, 16, 6.5), (15, 17, 8), "black")
+        elif kind == "grinder":                                               # мясорубка МИМ: a motor and the auger
+            m.box((3, 15, 5), (10, 21, 12), "kitchen_green")
+            m.box((10, 17, 7), (15, 20, 10), "chrome")
+            m.box((11, 20, 7.5), (14, 24, 9.5), "chrome")
+            m.box((0.5, 15, 0.5), (5, 18, 4.5), "aluminium_pot", up="cutlet")
+        else:
+            m.box((1.5, 15, 2), (7.5, 18, 8), "aluminium_pot", up="cabbage")
+            m.box((8.5, 15, 3), (14.5, 17, 9), "aluminium_pot", up="potato")
+            m.box((3, 15, 10), (13, 15.5, 14), "cutting_board")
+        return m
+    return build
+
+
+def kitchen_rack():
+    """A steel kitchen rack (стеллаж кухонный), two blocks high: four slatted shelves of stock pots, frying pans, stacks of
+    plates and the aluminium mugs."""
+    m = Model()
+    for x, z in ((0.5, 1), (14, 1), (0.5, 13.5), (14, 13.5)):
+        m.box((x, 0, z), (x + 1.5, 30, z + 1.5), "steel_counter_v")
+    for y in (2, 10, 18, 26):
+        m.box((0.25, y, 0.75), (15.75, y + 0.5, 15.25), "steel_counter")
+    m.box((1.5, 2.5, 2), (8, 9, 8.5), "aluminium_pot", up="steel_sink")
+    m.box((9, 2.5, 3), (14.5, 7, 13), "aluminium_pot", up="steel_sink")
+    m.box((2, 10.5, 3), (7, 13.5, 13), "plate")                                 # plates in stacks
+    m.box((8.5, 10.5, 3), (13.5, 14, 13), "plate")
+    m.box((1.5, 18.5, 2), (14.5, 19.5, 14), "iron_black")                       # frying pans, one on another
+    m.box((2, 19.5, 2.5), (14, 20.5, 13.5), "iron_black")
+    m.box((14, 19.5, 7), (15.5, 20, 9), "iron_black")
+    m.box((2, 26.5, 3), (6, 30, 7), "aluminium_pot", up="steel_sink")
+    m.box((7, 26.5, 3), (11, 30, 7), "aluminium_pot", up="steel_sink")
+    m.box((4, 26.5, 9), (12, 28.5, 14), "cup_enamel")
+    return m
+
+
+def oven_cabinet():
+    """The roasting oven (шкаф жарочный ШЖЭ-3): three steel sections one above another, each with its door, window,
+    handle and a dial, on legs; cutlets are baked here on sheets."""
+    def doors(cv, W, H):
+        cv.rect(0, 0, cv.w, cv.h, rgb("c0c6cc"))
+        sh = cv.h // 3
+        for k in range(3):
+            y0 = k * sh
+            cv.bevel(1, y0 + 1, cv.w - 1, y0 + sh - 1, rgb("dfe4e8"), rgb("7a8086"))
+            cv.rect(6, y0 + 4, cv.w - 10, y0 + sh - 5, rgb("2a2622"))
+            cv.rect(7, y0 + 5, cv.w - 11, y0 + 7, rgb("6a4a2a"))
+            cv.hline(5, cv.w - 9, y0 + 2, rgb("1a1a1a"))
+            cv.disc(cv.w - 5, y0 + sh // 2, 2, rgb("1a1a1a"), ring=rgb("e8ecf0"))
+            cv.set(cv.w - 5, y0 + sh // 2 - 1, rgb("e83a2a"))
+
+    m = Model()
+    m.box((0.5, 3, 1), (15.5, 30, 16), "steel_counter_v", north=Pic("oven_doors", doors))
+    for x in (1, 13.5):
+        m.box((x, 0, 2), (x + 1.5, 3, 3.5), "black")
+        m.box((x, 0, 13), (x + 1.5, 3, 14.5), "black")
+    for y in (9, 18, 27):
+        m.box((3, y, 0), (11, y + 1, 1), "chrome")
+    return m
+
+
+def wash_bath():
+    """The washing bath (ванна моечная двухсекционная): two deep steel tubs side by side on legs, a mixer tap with a long
+    spout over them, a draining shelf below."""
+    m = Model()
+    for x0 in (0.5, 8):                       # each tub solid to its water, the rim standing round it
+        m.box((x0, 8, 1), (x0 + 7.5, 12.5, 14), "steel_sink", up="water")
+        m.box((x0, 12.5, 1), (x0 + 7.5, 14, 2), "steel_sink", south="steel_counter_v")
+        m.box((x0, 12.5, 13), (x0 + 7.5, 14, 14), "steel_sink", north="steel_counter_v")
+        m.box((x0, 12.5, 2), (x0 + 1, 14, 13), "steel_sink", east="steel_counter_v")
+        m.box((x0 + 6.5, 12.5, 2), (x0 + 7.5, 14, 13), "steel_sink", west="steel_counter_v")
+    for x, z in ((0.5, 1), (14, 1), (0.5, 12.5), (14, 12.5)):
+        m.box((x, 0, z), (x + 1.5, 8, z + 1.5), "steel_counter_v")
+    m.box((0.25, 2, 0.75), (15.75, 2.5, 14.25), "steel_counter")
+    m.box((0.5, 14, 14), (15.5, 20, 16), "steel_counter_v")
+    m.box((7, 20, 14.5), (9, 23, 15.5), "chrome")
+    m.box((7.5, 22, 7), (8.5, 23, 14.5), "chrome")
+    m.box((7.5, 20, 7), (8.5, 22, 8), "chrome")
+    m.box((3, 2.5, 3), (7, 5, 10), "aluminium_pot", up="steel_sink")
+    return m
+
+
+def fridge_cabinet():
+    """The kitchen's refrigerated cabinet (шкаф холодильный ШХ-0,8): a tall white enamel box with two doors, the
+    thermometer and the maker's badge, the compressor grille at the top."""
+    def front(cv, W, H):
+        cv.rect(0, 0, cv.w, cv.h, rgb("e8e8e2"))
+        cv.rect(0, 0, cv.w, 6, rgb("8a8e92"))
+        for x in range(2, cv.w - 2, 3):
+            cv.vline(x, 1, 5, rgb("4a4e52"))
+        cv.vline(cv.w // 2, 6, cv.h, rgb("9a9a94"))
+        cv.bevel(1, 7, cv.w // 2 - 1, cv.h - 2, rgb("fafaf6"), rgb("b0b0aa"))
+        cv.bevel(cv.w // 2 + 1, 7, cv.w - 1, cv.h - 2, rgb("fafaf6"), rgb("b0b0aa"))
+        for x in (cv.w // 2 - 3, cv.w // 2 + 2):
+            cv.rect(x, cv.h // 2 - 3, x + 1, cv.h // 2 + 4, rgb("6a6e72"))
+        cv.rect(4, 10, 7, 18, rgb("f0f0f0"))
+        cv.vline(5, 12, 17, rgb("d83a3a"))
+        cv.rect(cv.w - 10, 9, cv.w - 4, 11, rgb("c8a040"))
+
+    m = Model()
+    m.box((0.5, 0, 1), (15.5, 30, 16), "lab_white", north=Pic("shx_front", front))
+    return m
+
+
+def dough_mixer():
+    """The dough mixer (тестомес ТММ-1М): a green cast column with its arm over a steel bowl on a trolley, dough in it."""
+    m = Model()
+    m.box((1, 0, 9), (6, 22, 15), "kitchen_green")
+    m.box((1, 18, 3), (6, 22, 9), "kitchen_green")
+    m.box((3, 10, 5), (4, 18, 6), "chrome")
+    m.box((6.5, 2, 2), (15, 11, 12), "steel_sink", up=None)
+    m.box((7, 2.5, 2.5), (14.5, 9, 11.5), "dough", north=None, south=None, east=None, west=None, down=None)
+    for x in (7, 14):
+        m.box((x, 0, 3), (x + 1, 2, 4), "black")
+        m.box((x, 0, 10), (x + 1, 2, 11), "black")
+    return m
+
+
+def potato_peeler():
+    """The potato peeler (картофелечистка МОК-150): a steel drum on a stand with its lid and loading chute, a basin under
+    the outlet, and a sack of potatoes by it."""
+    m = Model()
+    m.box((2, 0, 4), (11, 4, 13), "iron_grey")
+    m.box((2.5, 4, 4.5), (10.5, 14, 12.5), "steel_counter_v")
+    m.box((3, 14, 5), (10, 15, 12), "aluminium_pot")
+    m.box((4.5, 15, 6.5), (8.5, 17, 10.5), "black")
+    m.box((4, 7, 2.5), (9, 10, 4.5), "steel_sink")                 # the outlet
+    m.box((3.5, 0, 0.5), (9.5, 3, 4), "aluminium_pot", up="potato")
+    m.box((11.5, 0, 6), (15.5, 10, 13), "sack", up="potato")
+    return m
+
+
+def veg_crates():
+    """Wooden crates of potatoes, beets and cabbages stacked in the kitchen's vegetable corner."""
+    m = Model()
+    for (x0, x1), food, y in (((0.5, 7.5), "potato", 0), ((8.5, 15.5), "cabbage", 0), ((0.5, 7.5), "potato", 7)):
+        m.box((x0, y, 1), (x1, y + 6, 15), "crate_wood", up=None)
+        m.box((x0 + 0.5, y + 1, 1.5), (x1 - 0.5, y + 5.5, 14.5), food, north=None, south=None, east=None, west=None, down=None)
     return m
 
 
@@ -723,6 +887,17 @@ def make():
     Furn("pub_serving_kompot", "Линия раздачи (компот и хлеб)", "Serving line (kompot and bread)", serving_line("kompot"),
          color="WHITE_GRAY", sound="METAL")
     Furn("pub_kitchen_range", "Плита электрическая", "Kitchen range", lambda: kitchen_range(), color="WHITE_GRAY", sound="METAL")
+    for kind, ru, en in (("board", "с разделочной доской", "with a cutting board"), ("grinder", "с мясорубкой", "with a meat grinder"),
+                         ("bowls", "с тазами", "with basins")):
+        Furn(f"pub_prep_table_{kind}", f"Стол производственный {ru}", f"Kitchen prep table {en}", prep_table(kind),
+             color="WHITE_GRAY", sound="METAL")
+    Furn("pub_kitchen_rack", "Стеллаж кухонный", "Kitchen rack", lambda: kitchen_rack(), color="WHITE_GRAY", sound="METAL")
+    Furn("pub_oven_cabinet", "Шкаф жарочный", "Roasting oven", lambda: oven_cabinet(), color="WHITE_GRAY", sound="METAL")
+    Furn("pub_wash_bath", "Ванна моечная", "Washing bath", lambda: wash_bath(), color="WHITE_GRAY", sound="METAL")
+    Furn("pub_fridge_cabinet", "Шкаф холодильный", "Kitchen refrigerator", lambda: fridge_cabinet(), color="WHITE", sound="METAL")
+    Furn("pub_dough_mixer", "Тестомес", "Dough mixer", lambda: dough_mixer(), color="GREEN", sound="METAL")
+    Furn("pub_potato_peeler", "Картофелечистка", "Potato peeler", lambda: potato_peeler(), color="WHITE_GRAY", sound="METAL")
+    Furn("pub_veg_crates", "Ящики с овощами", "Vegetable crates", lambda: veg_crates(), color="BROWN", sound="WOOD")
     Furn("pub_boiling_pan", "Пищеварочный котёл", "Boiling pan", lambda: boiling_pan(), color="WHITE_GRAY", sound="METAL")
     Furn("pub_cloak_section", "Секция гардероба", "Cloakroom section", cloak_section(True), color="WHITE", sound="METAL",
          seat=6, cutout=True)

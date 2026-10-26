@@ -2,20 +2,22 @@
   "parent": "minecraft:block/block",
   "textures": {
     "pub_basket_hoop_backboard_54": "mobtalk:block/city2/furniture/pub_basket_hoop_backboard_54",
-    "lamp_body": "mobtalk:block/city2/furniture/lamp_body",
+    "iron_grey": "mobtalk:block/city2/furniture/iron_grey",
+    "black": "mobtalk:block/city2/furniture/black",
+    "tube_steel": "mobtalk:block/city2/furniture/tube_steel",
     "particle": "mobtalk:block/city2/furniture/pub_basket_hoop_backboard_54"
   },
   "elements": [
     {
       "from": [
         8.0,
-        8.0,
-        14.0
+        9.5,
+        10.0
       ],
       "to": [
         16.0,
         16.0,
-        15.0
+        11.5
       ],
       "faces": {
         "north": {
@@ -24,34 +26,161 @@
             0.0,
             0.0,
             8.0,
+            6.5
+          ]
+        },
+        "south": {
+          "texture": "#iron_grey",
+          "uv": [
+            8.0,
+            0.0,
+            16.0,
+            6.5
+          ]
+        },
+        "west": {
+          "texture": "#iron_grey",
+          "uv": [
+            10.0,
+            0.0,
+            11.5,
+            6.5
+          ]
+        },
+        "down": {
+          "texture": "#iron_grey",
+          "uv": [
+            8.0,
+            4.5,
+            16.0,
+            6.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        8.0,
+        8.0,
+        9.5
+      ],
+      "to": [
+        16.0,
+        9.5,
+        12.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#black",
+          "uv": [
+            0.0,
+            6.5,
+            8.0,
             8.0
           ]
         },
         "south": {
-          "texture": "#lamp_body",
+          "texture": "#black",
           "uv": [
             8.0,
-            0.0,
+            6.5,
             16.0,
             8.0
           ]
         },
         "west": {
-          "texture": "#lamp_body",
+          "texture": "#black",
           "uv": [
-            14.0,
-            0.0,
-            15.0,
+            9.5,
+            6.5,
+            12.0,
             8.0
           ]
         },
-        "down": {
-          "texture": "#lamp_body",
+        "up": {
+          "texture": "#black",
           "uv": [
             8.0,
-            1.0,
+            9.5,
             16.0,
-            2.0
+            12.0
+          ]
+        },
+        "down": {
+          "texture": "#black",
+          "uv": [
+            8.0,
+            4.0,
+            16.0,
+            6.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        12.0,
+        12.0,
+        11.5
+      ],
+      "to": [
+        13.5,
+        13.5,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#tube_steel",
+          "uv": [
+            2.5,
+            2.5,
+            4.0,
+            4.0
+          ]
+        },
+        "south": {
+          "texture": "#tube_steel",
+          "uv": [
+            12.0,
+            2.5,
+            13.5,
+            4.0
+          ]
+        },
+        "east": {
+          "texture": "#tube_steel",
+          "uv": [
+            0.0,
+            2.5,
+            4.5,
+            4.0
+          ]
+        },
+        "west": {
+          "texture": "#tube_steel",
+          "uv": [
+            11.5,
+            2.5,
+            16.0,
+            4.0
+          ]
+        },
+        "up": {
+          "texture": "#tube_steel",
+          "uv": [
+            12.0,
+            11.5,
+            13.5,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#tube_steel",
+          "uv": [
+            12.0,
+            0.0,
+            13.5,
+            4.5
           ]
         }
       }

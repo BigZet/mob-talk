@@ -1,0 +1,595 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "iron_grey": "mobtalk:block/city2/furniture/iron_grey",
+    "steel_counter_v": "mobtalk:block/city2/furniture/steel_counter_v",
+    "aluminium_pot": "mobtalk:block/city2/furniture/aluminium_pot",
+    "black": "mobtalk:block/city2/furniture/black",
+    "steel_sink": "mobtalk:block/city2/furniture/steel_sink",
+    "potato": "mobtalk:block/city2/furniture/potato",
+    "sack": "mobtalk:block/city2/furniture/sack",
+    "particle": "mobtalk:block/city2/furniture/iron_grey"
+  },
+  "elements": [
+    {
+      "from": [
+        1.6471,
+        0.0,
+        5.4118
+      ],
+      "to": [
+        10.1176,
+        3.7647,
+        13.8824
+      ],
+      "faces": {
+        "north": {
+          "texture": "#iron_grey",
+          "uv": [
+            5.0,
+            12.0,
+            14.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#iron_grey",
+          "uv": [
+            2.0,
+            12.0,
+            11.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#iron_grey",
+          "uv": [
+            3.0,
+            12.0,
+            12.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#iron_grey",
+          "uv": [
+            4.0,
+            12.0,
+            13.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#iron_grey",
+          "uv": [
+            2.0,
+            4.0,
+            11.0,
+            13.0
+          ]
+        },
+        "down": {
+          "texture": "#iron_grey",
+          "uv": [
+            2.0,
+            3.0,
+            11.0,
+            12.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.1176,
+        3.7647,
+        5.8824
+      ],
+      "to": [
+        9.6471,
+        13.1765,
+        13.4118
+      ],
+      "faces": {
+        "north": {
+          "texture": "#steel_counter_v",
+          "uv": [
+            5.5,
+            2.0,
+            13.5,
+            12.0
+          ]
+        },
+        "south": {
+          "texture": "#steel_counter_v",
+          "uv": [
+            2.5,
+            2.0,
+            10.5,
+            12.0
+          ]
+        },
+        "east": {
+          "texture": "#steel_counter_v",
+          "uv": [
+            3.5,
+            2.0,
+            11.5,
+            12.0
+          ]
+        },
+        "west": {
+          "texture": "#steel_counter_v",
+          "uv": [
+            4.5,
+            2.0,
+            12.5,
+            12.0
+          ]
+        },
+        "up": {
+          "texture": "#steel_counter_v",
+          "uv": [
+            2.5,
+            4.5,
+            10.5,
+            12.5
+          ]
+        },
+        "down": {
+          "texture": "#steel_counter_v",
+          "uv": [
+            2.5,
+            3.5,
+            10.5,
+            11.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.5882,
+        13.1765,
+        6.3529
+      ],
+      "to": [
+        9.1765,
+        14.1176,
+        12.9412
+      ],
+      "faces": {
+        "north": {
+          "texture": "#aluminium_pot",
+          "uv": [
+            6.0,
+            1.0,
+            13.0,
+            2.0
+          ]
+        },
+        "south": {
+          "texture": "#aluminium_pot",
+          "uv": [
+            3.0,
+            1.0,
+            10.0,
+            2.0
+          ]
+        },
+        "east": {
+          "texture": "#aluminium_pot",
+          "uv": [
+            4.0,
+            1.0,
+            11.0,
+            2.0
+          ]
+        },
+        "west": {
+          "texture": "#aluminium_pot",
+          "uv": [
+            5.0,
+            1.0,
+            12.0,
+            2.0
+          ]
+        },
+        "up": {
+          "texture": "#aluminium_pot",
+          "uv": [
+            3.0,
+            5.0,
+            10.0,
+            12.0
+          ]
+        },
+        "down": {
+          "texture": "#aluminium_pot",
+          "uv": [
+            3.0,
+            4.0,
+            10.0,
+            11.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.0,
+        14.1176,
+        7.7647
+      ],
+      "to": [
+        7.7647,
+        16.0,
+        11.5294
+      ],
+      "faces": {
+        "north": {
+          "texture": "#black",
+          "uv": [
+            7.5,
+            15.0,
+            11.5,
+            17.0
+          ]
+        },
+        "south": {
+          "texture": "#black",
+          "uv": [
+            4.5,
+            15.0,
+            8.5,
+            17.0
+          ]
+        },
+        "east": {
+          "texture": "#black",
+          "uv": [
+            5.5,
+            15.0,
+            9.5,
+            17.0
+          ]
+        },
+        "west": {
+          "texture": "#black",
+          "uv": [
+            6.5,
+            15.0,
+            10.5,
+            17.0
+          ]
+        },
+        "up": {
+          "texture": "#black",
+          "uv": [
+            4.5,
+            6.5,
+            8.5,
+            10.5
+          ]
+        },
+        "down": {
+          "texture": "#black",
+          "uv": [
+            4.5,
+            5.5,
+            8.5,
+            9.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.5294,
+        6.5882,
+        4.0
+      ],
+      "to": [
+        8.2353,
+        9.4118,
+        5.8824
+      ],
+      "faces": {
+        "north": {
+          "texture": "#steel_sink",
+          "uv": [
+            7.0,
+            6.0,
+            12.0,
+            9.0
+          ]
+        },
+        "south": {
+          "texture": "#steel_sink",
+          "uv": [
+            4.0,
+            6.0,
+            9.0,
+            9.0
+          ]
+        },
+        "east": {
+          "texture": "#steel_sink",
+          "uv": [
+            11.5,
+            6.0,
+            13.5,
+            9.0
+          ]
+        },
+        "west": {
+          "texture": "#steel_sink",
+          "uv": [
+            2.5,
+            6.0,
+            4.5,
+            9.0
+          ]
+        },
+        "up": {
+          "texture": "#steel_sink",
+          "uv": [
+            4.0,
+            2.5,
+            9.0,
+            4.5
+          ]
+        },
+        "down": {
+          "texture": "#steel_sink",
+          "uv": [
+            4.0,
+            11.5,
+            9.0,
+            13.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.0588,
+        0.0,
+        2.1176
+      ],
+      "to": [
+        8.7059,
+        2.8235,
+        5.4118
+      ],
+      "faces": {
+        "north": {
+          "texture": "#aluminium_pot",
+          "uv": [
+            6.5,
+            13.0,
+            12.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#aluminium_pot",
+          "uv": [
+            3.5,
+            13.0,
+            9.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#aluminium_pot",
+          "uv": [
+            12.0,
+            13.0,
+            15.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#aluminium_pot",
+          "uv": [
+            0.5,
+            13.0,
+            4.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#potato",
+          "uv": [
+            3.5,
+            0.5,
+            9.5,
+            4.0
+          ]
+        },
+        "down": {
+          "texture": "#aluminium_pot",
+          "uv": [
+            3.5,
+            12.0,
+            9.5,
+            15.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        10.5882,
+        0.0,
+        7.2941
+      ],
+      "to": [
+        14.3529,
+        9.4118,
+        13.8824
+      ],
+      "faces": {
+        "north": {
+          "texture": "#sack",
+          "uv": [
+            0.5,
+            6.0,
+            4.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#sack",
+          "uv": [
+            11.5,
+            6.0,
+            15.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#sack",
+          "uv": [
+            3.0,
+            6.0,
+            10.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#sack",
+          "uv": [
+            6.0,
+            6.0,
+            13.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#potato",
+          "uv": [
+            11.5,
+            6.0,
+            15.5,
+            13.0
+          ]
+        },
+        "down": {
+          "texture": "#sack",
+          "uv": [
+            11.5,
+            3.0,
+            15.5,
+            10.0
+          ]
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.625,
+        0.625,
+        0.625
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        2.5,
+        0
+      ],
+      "scale": [
+        0.375,
+        0.375,
+        0.375
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    }
+  }
+}
