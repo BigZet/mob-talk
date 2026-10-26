@@ -1,0 +1,571 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_chair__wenge__walnut_v": "mobtalk:block/city2/furniture/apt_chair__wenge__walnut_v",
+    "apt_chair__wenge__walnut": "mobtalk:block/city2/furniture/apt_chair__wenge__walnut",
+    "fabric_brown": "mobtalk:block/city2/furniture/fabric_brown",
+    "apt_chair__wenge_seat_44": "mobtalk:block/city2/furniture/apt_chair__wenge_seat_44",
+    "apt_chair__wenge_back_44": "mobtalk:block/city2/furniture/apt_chair__wenge_back_44",
+    "particle": "mobtalk:block/city2/furniture/apt_chair__wenge__walnut_v"
+  },
+  "elements": [
+    {
+      "from": [
+        3.0,
+        0.0,
+        3.0
+      ],
+      "to": [
+        4.5,
+        7.0,
+        4.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_chair__wenge__walnut_v",
+          "uv": [
+            11.5,
+            9.0,
+            13.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_chair__wenge__walnut_v",
+          "uv": [
+            3.0,
+            9.0,
+            4.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_chair__wenge__walnut_v",
+          "uv": [
+            11.5,
+            9.0,
+            13.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_chair__wenge__walnut_v",
+          "uv": [
+            3.0,
+            9.0,
+            4.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.0,
+        0.0,
+        11.5
+      ],
+      "to": [
+        4.5,
+        16.0,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_chair__wenge__walnut_v",
+          "uv": [
+            11.5,
+            0.0,
+            13.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_chair__wenge__walnut_v",
+          "uv": [
+            3.0,
+            0.0,
+            4.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_chair__wenge__walnut_v",
+          "uv": [
+            3.0,
+            0.0,
+            4.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_chair__wenge__walnut_v",
+          "uv": [
+            11.5,
+            0.0,
+            13.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_chair__wenge__walnut_v",
+          "uv": [
+            3.0,
+            11.5,
+            4.5,
+            13.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        11.5,
+        0.0,
+        3.0
+      ],
+      "to": [
+        13.0,
+        7.0,
+        4.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_chair__wenge__walnut_v",
+          "uv": [
+            3.0,
+            9.0,
+            4.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_chair__wenge__walnut_v",
+          "uv": [
+            11.5,
+            9.0,
+            13.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_chair__wenge__walnut_v",
+          "uv": [
+            11.5,
+            9.0,
+            13.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_chair__wenge__walnut_v",
+          "uv": [
+            3.0,
+            9.0,
+            4.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        11.5,
+        0.0,
+        11.5
+      ],
+      "to": [
+        13.0,
+        16.0,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_chair__wenge__walnut_v",
+          "uv": [
+            3.0,
+            0.0,
+            4.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_chair__wenge__walnut_v",
+          "uv": [
+            11.5,
+            0.0,
+            13.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_chair__wenge__walnut_v",
+          "uv": [
+            3.0,
+            0.0,
+            4.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_chair__wenge__walnut_v",
+          "uv": [
+            11.5,
+            0.0,
+            13.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_chair__wenge__walnut_v",
+          "uv": [
+            11.5,
+            11.5,
+            13.0,
+            13.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.5,
+        7.0,
+        2.5
+      ],
+      "to": [
+        13.5,
+        8.0,
+        12.75
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_chair__wenge__walnut",
+          "uv": [
+            2.5,
+            8.0,
+            13.5,
+            9.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_chair__wenge__walnut",
+          "uv": [
+            2.5,
+            8.0,
+            13.5,
+            9.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_chair__wenge__walnut",
+          "uv": [
+            3.25,
+            8.0,
+            13.5,
+            9.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_chair__wenge__walnut",
+          "uv": [
+            2.5,
+            8.0,
+            12.75,
+            9.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_chair__wenge__walnut",
+          "uv": [
+            2.5,
+            2.5,
+            13.5,
+            12.75
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.25,
+        8.0,
+        3.0
+      ],
+      "to": [
+        12.75,
+        9.5,
+        12.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#fabric_brown",
+          "uv": [
+            3.25,
+            6.5,
+            12.75,
+            8.0
+          ]
+        },
+        "south": {
+          "texture": "#fabric_brown",
+          "uv": [
+            3.25,
+            6.5,
+            12.75,
+            8.0
+          ]
+        },
+        "east": {
+          "texture": "#fabric_brown",
+          "uv": [
+            3.75,
+            6.5,
+            13.0,
+            8.0
+          ]
+        },
+        "west": {
+          "texture": "#fabric_brown",
+          "uv": [
+            3.0,
+            6.5,
+            12.25,
+            8.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_chair__wenge_seat_44",
+          "uv": [
+            3.25,
+            3.0,
+            12.75,
+            12.25
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.5,
+        10.5,
+        11.75
+      ],
+      "to": [
+        11.5,
+        15.0,
+        12.75
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_chair__wenge_back_44",
+          "uv": [
+            4.5,
+            1.0,
+            11.5,
+            5.5
+          ]
+        },
+        "south": {
+          "texture": "#apt_chair__wenge__walnut",
+          "uv": [
+            4.5,
+            1.0,
+            11.5,
+            5.5
+          ]
+        },
+        "east": {
+          "texture": "#apt_chair__wenge__walnut",
+          "uv": [
+            3.25,
+            1.0,
+            4.25,
+            5.5
+          ]
+        },
+        "west": {
+          "texture": "#apt_chair__wenge__walnut",
+          "uv": [
+            11.75,
+            1.0,
+            12.75,
+            5.5
+          ]
+        },
+        "up": {
+          "texture": "#apt_chair__wenge__walnut",
+          "uv": [
+            4.5,
+            11.75,
+            11.5,
+            12.75
+          ]
+        },
+        "down": {
+          "texture": "#apt_chair__wenge__walnut",
+          "uv": [
+            4.5,
+            3.25,
+            11.5,
+            4.25
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.5,
+        4.0,
+        3.25
+      ],
+      "to": [
+        11.5,
+        5.0,
+        4.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_chair__wenge__walnut",
+          "uv": [
+            4.5,
+            11.0,
+            11.5,
+            12.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_chair__wenge__walnut",
+          "uv": [
+            4.5,
+            11.0,
+            11.5,
+            12.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_chair__wenge__walnut",
+          "uv": [
+            11.75,
+            11.0,
+            12.75,
+            12.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_chair__wenge__walnut",
+          "uv": [
+            3.25,
+            11.0,
+            4.25,
+            12.0
+          ]
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.625,
+        0.625,
+        0.625
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        2.5,
+        0
+      ],
+      "scale": [
+        0.375,
+        0.375,
+        0.375
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    }
+  }
+}

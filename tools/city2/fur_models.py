@@ -1217,7 +1217,8 @@ def radiator_tex():
 # ---------------------------------------------------------------- curtains
 
 CURTAINS = {"wine": (rgb("7a2232"), "бордовые", "wine"), "olive": (rgb("6a6a32"), "оливковые", "olive"),
-            "gold": (rgb("b48a3a"), "золотистые", "golden"), "blue": (rgb("2e4a7a"), "синие", "blue")}
+            "gold": (rgb("b48a3a"), "золотистые", "golden"), "blue": (rgb("2e4a7a"), "синие", "blue"),
+            "teal": (rgb("2a6a68"), "бирюзовые", "teal"), "sand": (rgb("b8a27a"), "песочные", "sand")}
 
 
 def curtain_tex(c, seed):
@@ -1307,7 +1308,7 @@ def curtains(key):
     def both():   # the 3-tier set and, keys "tall_*", the 4-tier one (state tall=true)
         return dict(pieces(3), **{f"tall_{k}": m for k, m in pieces(4).items()})
     Furn(f"apt_curtain_{key}", f"Шторы с тюлем ({ru})", f"Curtains with net ({en})", both, mount="WALL", kind="curtain",
-         color={"wine": "RED", "olive": "GREEN", "gold": "GOLD", "blue": "BLUE"}[key], sound="WOOL", solid=False, cutout=True)
+         color={"wine": "RED", "olive": "GREEN", "gold": "GOLD", "blue": "BLUE", "teal": "CYAN", "sand": "BROWN"}[key], sound="WOOL", solid=False, cutout=True)
 
 
 # ---------------------------------------------------------------- the list
@@ -1413,6 +1414,8 @@ def make():
     fur_kg.make()
     import fur_clinic
     fur_clinic.make()
+    import fur_variants
+    fur_variants.make()
 
 
 def plate_tex():

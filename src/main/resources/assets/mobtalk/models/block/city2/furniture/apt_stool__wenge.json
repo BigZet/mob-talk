@@ -1,0 +1,479 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_stool__wenge__lightwood_v": "mobtalk:block/city2/furniture/apt_stool__wenge__lightwood_v",
+    "apt_stool__wenge__lightwood": "mobtalk:block/city2/furniture/apt_stool__wenge__lightwood",
+    "apt_stool__wenge_top_44": "mobtalk:block/city2/furniture/apt_stool__wenge_top_44",
+    "particle": "mobtalk:block/city2/furniture/apt_stool__wenge__lightwood_v"
+  },
+  "elements": [
+    {
+      "from": [
+        3.5,
+        0.0,
+        3.5
+      ],
+      "to": [
+        5.0,
+        7.0,
+        5.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_stool__wenge__lightwood_v",
+          "uv": [
+            11.0,
+            9.0,
+            12.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_stool__wenge__lightwood_v",
+          "uv": [
+            3.5,
+            9.0,
+            5.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_stool__wenge__lightwood_v",
+          "uv": [
+            11.0,
+            9.0,
+            12.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_stool__wenge__lightwood_v",
+          "uv": [
+            3.5,
+            9.0,
+            5.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.5,
+        0.0,
+        11.0
+      ],
+      "to": [
+        5.0,
+        7.0,
+        12.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_stool__wenge__lightwood_v",
+          "uv": [
+            11.0,
+            9.0,
+            12.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_stool__wenge__lightwood_v",
+          "uv": [
+            3.5,
+            9.0,
+            5.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_stool__wenge__lightwood_v",
+          "uv": [
+            3.5,
+            9.0,
+            5.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_stool__wenge__lightwood_v",
+          "uv": [
+            11.0,
+            9.0,
+            12.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        11.0,
+        0.0,
+        3.5
+      ],
+      "to": [
+        12.5,
+        7.0,
+        5.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_stool__wenge__lightwood_v",
+          "uv": [
+            3.5,
+            9.0,
+            5.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_stool__wenge__lightwood_v",
+          "uv": [
+            11.0,
+            9.0,
+            12.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_stool__wenge__lightwood_v",
+          "uv": [
+            11.0,
+            9.0,
+            12.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_stool__wenge__lightwood_v",
+          "uv": [
+            3.5,
+            9.0,
+            5.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        11.0,
+        0.0,
+        11.0
+      ],
+      "to": [
+        12.5,
+        7.0,
+        12.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_stool__wenge__lightwood_v",
+          "uv": [
+            3.5,
+            9.0,
+            5.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_stool__wenge__lightwood_v",
+          "uv": [
+            11.0,
+            9.0,
+            12.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_stool__wenge__lightwood_v",
+          "uv": [
+            3.5,
+            9.0,
+            5.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_stool__wenge__lightwood_v",
+          "uv": [
+            11.0,
+            9.0,
+            12.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        5.0,
+        2.0,
+        3.75
+      ],
+      "to": [
+        11.0,
+        3.0,
+        4.75
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_stool__wenge__lightwood",
+          "uv": [
+            5.0,
+            13.0,
+            11.0,
+            14.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_stool__wenge__lightwood",
+          "uv": [
+            5.0,
+            13.0,
+            11.0,
+            14.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_stool__wenge__lightwood",
+          "uv": [
+            11.25,
+            13.0,
+            12.25,
+            14.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_stool__wenge__lightwood",
+          "uv": [
+            3.75,
+            13.0,
+            4.75,
+            14.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        5.0,
+        2.0,
+        11.25
+      ],
+      "to": [
+        11.0,
+        3.0,
+        12.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_stool__wenge__lightwood",
+          "uv": [
+            5.0,
+            13.0,
+            11.0,
+            14.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_stool__wenge__lightwood",
+          "uv": [
+            5.0,
+            13.0,
+            11.0,
+            14.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_stool__wenge__lightwood",
+          "uv": [
+            3.75,
+            13.0,
+            4.75,
+            14.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_stool__wenge__lightwood",
+          "uv": [
+            11.25,
+            13.0,
+            12.25,
+            14.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.75,
+        4.0,
+        5.0
+      ],
+      "to": [
+        4.75,
+        5.0,
+        11.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_stool__wenge__lightwood",
+          "uv": [
+            11.25,
+            11.0,
+            12.25,
+            12.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_stool__wenge__lightwood",
+          "uv": [
+            3.75,
+            11.0,
+            4.75,
+            12.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_stool__wenge__lightwood",
+          "uv": [
+            5.0,
+            11.0,
+            11.0,
+            12.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_stool__wenge__lightwood",
+          "uv": [
+            5.0,
+            11.0,
+            11.0,
+            12.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        11.25,
+        4.0,
+        5.0
+      ],
+      "to": [
+        12.25,
+        5.0,
+        11.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_stool__wenge__lightwood",
+          "uv": [
+            3.75,
+            11.0,
+            4.75,
+            12.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_stool__wenge__lightwood",
+          "uv": [
+            11.25,
+            11.0,
+            12.25,
+            12.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_stool__wenge__lightwood",
+          "uv": [
+            5.0,
+            11.0,
+            11.0,
+            12.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_stool__wenge__lightwood",
+          "uv": [
+            5.0,
+            11.0,
+            11.0,
+            12.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.0,
+        7.0,
+        3.0
+      ],
+      "to": [
+        13.0,
+        8.0,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_stool__wenge__lightwood",
+          "uv": [
+            3.0,
+            8.0,
+            13.0,
+            9.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_stool__wenge__lightwood",
+          "uv": [
+            3.0,
+            8.0,
+            13.0,
+            9.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_stool__wenge__lightwood",
+          "uv": [
+            3.0,
+            8.0,
+            13.0,
+            9.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_stool__wenge__lightwood",
+          "uv": [
+            3.0,
+            8.0,
+            13.0,
+            9.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_stool__wenge_top_44",
+          "uv": [
+            3.0,
+            3.0,
+            13.0,
+            13.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_stool__wenge__lightwood",
+          "uv": [
+            3.0,
+            3.0,
+            13.0,
+            13.0
+          ]
+        }
+      }
+    }
+  ]
+}

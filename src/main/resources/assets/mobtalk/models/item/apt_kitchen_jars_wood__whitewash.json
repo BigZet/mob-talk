@@ -1,0 +1,495 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "black": "mobtalk:block/city2/furniture/black",
+    "apt_kitchen_jars_wood__whitewash_doors_44": "mobtalk:block/city2/furniture/apt_kitchen_jars_wood__whitewash_doors_44",
+    "apt_kitchen_jars_wood__whitewash__lightwood": "mobtalk:block/city2/furniture/apt_kitchen_jars_wood__whitewash__lightwood",
+    "apt_kitchen_jars_wood__whitewash_edge_44": "mobtalk:block/city2/furniture/apt_kitchen_jars_wood__whitewash_edge_44",
+    "worktop": "mobtalk:block/city2/furniture/worktop",
+    "apt_kitchen_jars_wood__whitewash_pickles_43": "mobtalk:block/city2/furniture/apt_kitchen_jars_wood__whitewash_pickles_43",
+    "glass": "mobtalk:block/city2/furniture/glass",
+    "jar_lid": "mobtalk:block/city2/furniture/jar_lid",
+    "apt_kitchen_jars_wood__whitewash_compote_43": "mobtalk:block/city2/furniture/apt_kitchen_jars_wood__whitewash_compote_43",
+    "apt_kitchen_jars_wood__whitewash_breadbin_44": "mobtalk:block/city2/furniture/apt_kitchen_jars_wood__whitewash_breadbin_44",
+    "cream": "mobtalk:block/city2/furniture/cream",
+    "particle": "mobtalk:block/city2/furniture/black"
+  },
+  "elements": [
+    {
+      "from": [
+        1.5135,
+        0.0,
+        3.027
+      ],
+      "to": [
+        14.4865,
+        1.2973,
+        14.2703
+      ],
+      "faces": {
+        "north": {
+          "texture": "#black",
+          "uv": [
+            0.5,
+            14.5,
+            15.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#black",
+          "uv": [
+            0.5,
+            14.5,
+            15.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#black",
+          "uv": [
+            0.5,
+            14.5,
+            13.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#black",
+          "uv": [
+            2.5,
+            14.5,
+            15.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.0811,
+        1.2973,
+        2.1622
+      ],
+      "to": [
+        14.9189,
+        11.2432,
+        14.7027
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_kitchen_jars_wood__whitewash_doors_44",
+          "uv": [
+            0.0,
+            3.0,
+            16.0,
+            14.5
+          ]
+        },
+        "south": {
+          "texture": "#apt_kitchen_jars_wood__whitewash__lightwood",
+          "uv": [
+            0.0,
+            3.0,
+            16.0,
+            14.5
+          ]
+        },
+        "east": {
+          "texture": "#apt_kitchen_jars_wood__whitewash__lightwood",
+          "uv": [
+            0.0,
+            3.0,
+            14.5,
+            14.5
+          ]
+        },
+        "west": {
+          "texture": "#apt_kitchen_jars_wood__whitewash__lightwood",
+          "uv": [
+            1.5,
+            3.0,
+            16.0,
+            14.5
+          ]
+        },
+        "up": {
+          "texture": "#apt_kitchen_jars_wood__whitewash__lightwood",
+          "uv": [
+            0.0,
+            1.5,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.0811,
+        11.2432,
+        1.2973
+      ],
+      "to": [
+        14.9189,
+        12.1081,
+        14.7027
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_kitchen_jars_wood__whitewash_edge_44",
+          "uv": [
+            0.0,
+            2.0,
+            16.0,
+            3.0
+          ]
+        },
+        "south": {
+          "texture": "#worktop",
+          "uv": [
+            0.0,
+            2.0,
+            16.0,
+            3.0
+          ]
+        },
+        "east": {
+          "texture": "#worktop",
+          "uv": [
+            0.0,
+            2.0,
+            15.5,
+            3.0
+          ]
+        },
+        "west": {
+          "texture": "#worktop",
+          "uv": [
+            0.5,
+            2.0,
+            16.0,
+            3.0
+          ]
+        },
+        "up": {
+          "texture": "#worktop",
+          "uv": [
+            0.0,
+            0.5,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        10.1622,
+        12.1081,
+        8.6486
+      ],
+      "to": [
+        12.3243,
+        16.0,
+        10.8108
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_kitchen_jars_wood__whitewash_pickles_43",
+          "uv": [
+            3.0,
+            13.5,
+            5.5,
+            18.0
+          ]
+        },
+        "south": {
+          "texture": "#glass",
+          "uv": [
+            10.5,
+            13.5,
+            13.0,
+            18.0
+          ]
+        },
+        "east": {
+          "texture": "#glass",
+          "uv": [
+            4.5,
+            13.5,
+            7.0,
+            18.0
+          ]
+        },
+        "west": {
+          "texture": "#glass",
+          "uv": [
+            9.0,
+            13.5,
+            11.5,
+            18.0
+          ]
+        },
+        "up": {
+          "texture": "#jar_lid",
+          "uv": [
+            10.5,
+            9.0,
+            13.0,
+            11.5
+          ]
+        },
+        "down": {
+          "texture": "#glass",
+          "uv": [
+            10.5,
+            4.5,
+            13.0,
+            7.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        12.3243,
+        12.1081,
+        8.6486
+      ],
+      "to": [
+        14.4865,
+        16.0,
+        10.8108
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_kitchen_jars_wood__whitewash_compote_43",
+          "uv": [
+            0.5,
+            13.5,
+            3.0,
+            18.0
+          ]
+        },
+        "south": {
+          "texture": "#glass",
+          "uv": [
+            13.0,
+            13.5,
+            15.5,
+            18.0
+          ]
+        },
+        "east": {
+          "texture": "#glass",
+          "uv": [
+            4.5,
+            13.5,
+            7.0,
+            18.0
+          ]
+        },
+        "west": {
+          "texture": "#glass",
+          "uv": [
+            9.0,
+            13.5,
+            11.5,
+            18.0
+          ]
+        },
+        "up": {
+          "texture": "#jar_lid",
+          "uv": [
+            13.0,
+            9.0,
+            15.5,
+            11.5
+          ]
+        },
+        "down": {
+          "texture": "#glass",
+          "uv": [
+            13.0,
+            4.5,
+            15.5,
+            7.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.9459,
+        12.1081,
+        6.9189
+      ],
+      "to": [
+        8.8649,
+        15.5676,
+        12.973
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_kitchen_jars_wood__whitewash_breadbin_44",
+          "uv": [
+            7.0,
+            -2.0,
+            15.0,
+            2.0
+          ]
+        },
+        "south": {
+          "texture": "#cream",
+          "uv": [
+            1.0,
+            14.0,
+            9.0,
+            18.0
+          ]
+        },
+        "east": {
+          "texture": "#cream",
+          "uv": [
+            2.0,
+            14.0,
+            9.0,
+            18.0
+          ]
+        },
+        "west": {
+          "texture": "#cream",
+          "uv": [
+            7.0,
+            14.0,
+            14.0,
+            18.0
+          ]
+        },
+        "up": {
+          "texture": "#cream",
+          "uv": [
+            1.0,
+            7.0,
+            9.0,
+            14.0
+          ]
+        },
+        "down": {
+          "texture": "#cream",
+          "uv": [
+            1.0,
+            2.0,
+            9.0,
+            9.0
+          ]
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.625,
+        0.625,
+        0.625
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        2.5,
+        0
+      ],
+      "scale": [
+        0.375,
+        0.375,
+        0.375
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    }
+  }
+}

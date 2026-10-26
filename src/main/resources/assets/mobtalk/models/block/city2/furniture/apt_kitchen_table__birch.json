@@ -1,0 +1,570 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_kitchen_table__birch__lightwood_v": "mobtalk:block/city2/furniture/apt_kitchen_table__birch__lightwood_v",
+    "apt_kitchen_table__birch_drawer_44": "mobtalk:block/city2/furniture/apt_kitchen_table__birch_drawer_44",
+    "apt_kitchen_table__birch__lightwood": "mobtalk:block/city2/furniture/apt_kitchen_table__birch__lightwood",
+    "oilcloth_side": "mobtalk:block/city2/furniture/oilcloth_side",
+    "apt_kitchen_table__birch_oilcloth_44": "mobtalk:block/city2/furniture/apt_kitchen_table__birch_oilcloth_44",
+    "glass_tea": "mobtalk:block/city2/furniture/glass_tea",
+    "brass": "mobtalk:block/city2/furniture/brass",
+    "enamel": "mobtalk:block/city2/furniture/enamel",
+    "particle": "mobtalk:block/city2/furniture/apt_kitchen_table__birch__lightwood_v"
+  },
+  "elements": [
+    {
+      "from": [
+        1.5,
+        0.0,
+        3.0
+      ],
+      "to": [
+        3.0,
+        11.5,
+        4.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_kitchen_table__birch__lightwood_v",
+          "uv": [
+            13.0,
+            4.5,
+            14.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_kitchen_table__birch__lightwood_v",
+          "uv": [
+            1.5,
+            4.5,
+            3.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_kitchen_table__birch__lightwood_v",
+          "uv": [
+            11.5,
+            4.5,
+            13.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_kitchen_table__birch__lightwood_v",
+          "uv": [
+            3.0,
+            4.5,
+            4.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.5,
+        0.0,
+        11.5
+      ],
+      "to": [
+        3.0,
+        11.5,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_kitchen_table__birch__lightwood_v",
+          "uv": [
+            13.0,
+            4.5,
+            14.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_kitchen_table__birch__lightwood_v",
+          "uv": [
+            1.5,
+            4.5,
+            3.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_kitchen_table__birch__lightwood_v",
+          "uv": [
+            3.0,
+            4.5,
+            4.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_kitchen_table__birch__lightwood_v",
+          "uv": [
+            11.5,
+            4.5,
+            13.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        13.0,
+        0.0,
+        3.0
+      ],
+      "to": [
+        14.5,
+        11.5,
+        4.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_kitchen_table__birch__lightwood_v",
+          "uv": [
+            1.5,
+            4.5,
+            3.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_kitchen_table__birch__lightwood_v",
+          "uv": [
+            13.0,
+            4.5,
+            14.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_kitchen_table__birch__lightwood_v",
+          "uv": [
+            11.5,
+            4.5,
+            13.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_kitchen_table__birch__lightwood_v",
+          "uv": [
+            3.0,
+            4.5,
+            4.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        13.0,
+        0.0,
+        11.5
+      ],
+      "to": [
+        14.5,
+        11.5,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_kitchen_table__birch__lightwood_v",
+          "uv": [
+            1.5,
+            4.5,
+            3.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_kitchen_table__birch__lightwood_v",
+          "uv": [
+            13.0,
+            4.5,
+            14.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_kitchen_table__birch__lightwood_v",
+          "uv": [
+            3.0,
+            4.5,
+            4.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_kitchen_table__birch__lightwood_v",
+          "uv": [
+            11.5,
+            4.5,
+            13.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.0,
+        9.5,
+        3.5
+      ],
+      "to": [
+        14.0,
+        11.5,
+        12.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_kitchen_table__birch_drawer_44",
+          "uv": [
+            2.0,
+            4.5,
+            14.0,
+            6.5
+          ]
+        },
+        "south": {
+          "texture": "#apt_kitchen_table__birch__lightwood",
+          "uv": [
+            2.0,
+            4.5,
+            14.0,
+            6.5
+          ]
+        },
+        "east": {
+          "texture": "#apt_kitchen_table__birch__lightwood",
+          "uv": [
+            3.5,
+            4.5,
+            12.5,
+            6.5
+          ]
+        },
+        "west": {
+          "texture": "#apt_kitchen_table__birch__lightwood",
+          "uv": [
+            3.5,
+            4.5,
+            12.5,
+            6.5
+          ]
+        },
+        "up": {
+          "texture": "#apt_kitchen_table__birch__lightwood",
+          "uv": [
+            2.0,
+            3.5,
+            14.0,
+            12.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.0,
+        11.5,
+        2.5
+      ],
+      "to": [
+        15.0,
+        12.0,
+        13.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#oilcloth_side",
+          "uv": [
+            1.0,
+            4.0,
+            15.0,
+            4.5
+          ]
+        },
+        "south": {
+          "texture": "#oilcloth_side",
+          "uv": [
+            1.0,
+            4.0,
+            15.0,
+            4.5
+          ]
+        },
+        "east": {
+          "texture": "#oilcloth_side",
+          "uv": [
+            2.5,
+            4.0,
+            13.5,
+            4.5
+          ]
+        },
+        "west": {
+          "texture": "#oilcloth_side",
+          "uv": [
+            2.5,
+            4.0,
+            13.5,
+            4.5
+          ]
+        },
+        "up": {
+          "texture": "#apt_kitchen_table__birch_oilcloth_44",
+          "uv": [
+            1.0,
+            2.5,
+            15.0,
+            13.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.0,
+        12.0,
+        5.0
+      ],
+      "to": [
+        5.0,
+        13.5,
+        7.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#glass_tea",
+          "uv": [
+            11.0,
+            2.5,
+            13.0,
+            4.0
+          ]
+        },
+        "south": {
+          "texture": "#glass_tea",
+          "uv": [
+            3.0,
+            2.5,
+            5.0,
+            4.0
+          ]
+        },
+        "east": {
+          "texture": "#glass_tea",
+          "uv": [
+            9.0,
+            2.5,
+            11.0,
+            4.0
+          ]
+        },
+        "west": {
+          "texture": "#glass_tea",
+          "uv": [
+            5.0,
+            2.5,
+            7.0,
+            4.0
+          ]
+        },
+        "up": {
+          "texture": "#glass_tea",
+          "uv": [
+            3.0,
+            5.0,
+            5.0,
+            7.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.75,
+        12.0,
+        4.75
+      ],
+      "to": [
+        5.25,
+        12.5,
+        7.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#brass",
+          "uv": [
+            10.75,
+            3.5,
+            13.25,
+            4.0
+          ]
+        },
+        "south": {
+          "texture": "#brass",
+          "uv": [
+            2.75,
+            3.5,
+            5.25,
+            4.0
+          ]
+        },
+        "east": {
+          "texture": "#brass",
+          "uv": [
+            8.75,
+            3.5,
+            11.25,
+            4.0
+          ]
+        },
+        "west": {
+          "texture": "#brass",
+          "uv": [
+            4.75,
+            3.5,
+            7.25,
+            4.0
+          ]
+        },
+        "up": {
+          "texture": "#brass",
+          "uv": [
+            2.75,
+            4.75,
+            5.25,
+            7.25
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        10.0,
+        12.0,
+        8.0
+      ],
+      "to": [
+        12.5,
+        14.0,
+        10.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#enamel",
+          "uv": [
+            3.5,
+            2.0,
+            6.0,
+            4.0
+          ]
+        },
+        "south": {
+          "texture": "#enamel",
+          "uv": [
+            10.0,
+            2.0,
+            12.5,
+            4.0
+          ]
+        },
+        "east": {
+          "texture": "#enamel",
+          "uv": [
+            5.5,
+            2.0,
+            8.0,
+            4.0
+          ]
+        },
+        "west": {
+          "texture": "#enamel",
+          "uv": [
+            8.0,
+            2.0,
+            10.5,
+            4.0
+          ]
+        },
+        "up": {
+          "texture": "#enamel",
+          "uv": [
+            10.0,
+            8.0,
+            12.5,
+            10.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        10.5,
+        14.0,
+        8.5
+      ],
+      "to": [
+        12.0,
+        14.5,
+        10.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#enamel",
+          "uv": [
+            4.0,
+            1.5,
+            5.5,
+            2.0
+          ]
+        },
+        "south": {
+          "texture": "#enamel",
+          "uv": [
+            10.5,
+            1.5,
+            12.0,
+            2.0
+          ]
+        },
+        "east": {
+          "texture": "#enamel",
+          "uv": [
+            6.0,
+            1.5,
+            7.5,
+            2.0
+          ]
+        },
+        "west": {
+          "texture": "#enamel",
+          "uv": [
+            8.5,
+            1.5,
+            10.0,
+            2.0
+          ]
+        },
+        "up": {
+          "texture": "#enamel",
+          "uv": [
+            10.5,
+            8.5,
+            12.0,
+            10.0
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,681 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_dish_rack_white__mint__enamel": "mobtalk:block/city2/furniture/apt_dish_rack_white__mint__enamel",
+    "plate_rim": "mobtalk:block/city2/furniture/plate_rim",
+    "plate": "mobtalk:block/city2/furniture/plate",
+    "cup_enamel": "mobtalk:block/city2/furniture/cup_enamel",
+    "chrome": "mobtalk:block/city2/furniture/chrome",
+    "particle": "mobtalk:block/city2/furniture/apt_dish_rack_white__mint__enamel"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        15.0,
+        10.0
+      ],
+      "to": [
+        16.0,
+        16.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_dish_rack_white__mint__enamel",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            1.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_dish_rack_white__mint__enamel",
+          "uv": [
+            0.0,
+            0.0,
+            6.0,
+            1.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_dish_rack_white__mint__enamel",
+          "uv": [
+            10.0,
+            0.0,
+            16.0,
+            1.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_dish_rack_white__mint__enamel",
+          "uv": [
+            0.0,
+            10.0,
+            16.0,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_dish_rack_white__mint__enamel",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            6.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        6.0,
+        10.0
+      ],
+      "to": [
+        16.0,
+        6.5,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_dish_rack_white__mint__enamel",
+          "uv": [
+            0.0,
+            9.5,
+            16.0,
+            10.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_dish_rack_white__mint__enamel",
+          "uv": [
+            0.0,
+            9.5,
+            6.0,
+            10.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_dish_rack_white__mint__enamel",
+          "uv": [
+            10.0,
+            9.5,
+            16.0,
+            10.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_dish_rack_white__mint__enamel",
+          "uv": [
+            0.0,
+            10.0,
+            16.0,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_dish_rack_white__mint__enamel",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            6.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        6.5,
+        10.0
+      ],
+      "to": [
+        0.5,
+        15.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_dish_rack_white__mint__enamel",
+          "uv": [
+            15.5,
+            1.0,
+            16.0,
+            9.5
+          ]
+        },
+        "east": {
+          "texture": "#apt_dish_rack_white__mint__enamel",
+          "uv": [
+            0.0,
+            1.0,
+            6.0,
+            9.5
+          ]
+        },
+        "west": {
+          "texture": "#apt_dish_rack_white__mint__enamel",
+          "uv": [
+            10.0,
+            1.0,
+            16.0,
+            9.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        15.5,
+        6.5,
+        10.0
+      ],
+      "to": [
+        16.0,
+        15.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_dish_rack_white__mint__enamel",
+          "uv": [
+            0.0,
+            1.0,
+            0.5,
+            9.5
+          ]
+        },
+        "east": {
+          "texture": "#apt_dish_rack_white__mint__enamel",
+          "uv": [
+            0.0,
+            1.0,
+            6.0,
+            9.5
+          ]
+        },
+        "west": {
+          "texture": "#apt_dish_rack_white__mint__enamel",
+          "uv": [
+            10.0,
+            1.0,
+            16.0,
+            9.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.5,
+        6.5,
+        15.5
+      ],
+      "to": [
+        15.5,
+        15.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_dish_rack_white__mint__enamel",
+          "uv": [
+            0.5,
+            1.0,
+            15.5,
+            9.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.0,
+        7.0,
+        10.5
+      ],
+      "to": [
+        2.5,
+        13.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plate_rim",
+          "uv": [
+            13.5,
+            3.0,
+            14.0,
+            9.0
+          ]
+        },
+        "south": {
+          "texture": "#plate_rim",
+          "uv": [
+            2.0,
+            3.0,
+            2.5,
+            9.0
+          ]
+        },
+        "east": {
+          "texture": "#plate",
+          "uv": [
+            1.0,
+            3.0,
+            5.5,
+            9.0
+          ]
+        },
+        "west": {
+          "texture": "#plate",
+          "uv": [
+            10.5,
+            3.0,
+            15.0,
+            9.0
+          ]
+        },
+        "up": {
+          "texture": "#plate_rim",
+          "uv": [
+            2.0,
+            10.5,
+            2.5,
+            15.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.5,
+        7.0,
+        10.5
+      ],
+      "to": [
+        4.0,
+        13.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plate_rim",
+          "uv": [
+            12.0,
+            3.0,
+            12.5,
+            9.0
+          ]
+        },
+        "south": {
+          "texture": "#plate_rim",
+          "uv": [
+            3.5,
+            3.0,
+            4.0,
+            9.0
+          ]
+        },
+        "east": {
+          "texture": "#plate",
+          "uv": [
+            1.0,
+            3.0,
+            5.5,
+            9.0
+          ]
+        },
+        "west": {
+          "texture": "#plate",
+          "uv": [
+            10.5,
+            3.0,
+            15.0,
+            9.0
+          ]
+        },
+        "up": {
+          "texture": "#plate_rim",
+          "uv": [
+            3.5,
+            10.5,
+            4.0,
+            15.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        5.0,
+        7.0,
+        10.5
+      ],
+      "to": [
+        5.5,
+        13.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plate_rim",
+          "uv": [
+            10.5,
+            3.0,
+            11.0,
+            9.0
+          ]
+        },
+        "south": {
+          "texture": "#plate_rim",
+          "uv": [
+            5.0,
+            3.0,
+            5.5,
+            9.0
+          ]
+        },
+        "east": {
+          "texture": "#plate",
+          "uv": [
+            1.0,
+            3.0,
+            5.5,
+            9.0
+          ]
+        },
+        "west": {
+          "texture": "#plate",
+          "uv": [
+            10.5,
+            3.0,
+            15.0,
+            9.0
+          ]
+        },
+        "up": {
+          "texture": "#plate_rim",
+          "uv": [
+            5.0,
+            10.5,
+            5.5,
+            15.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.5,
+        7.0,
+        10.5
+      ],
+      "to": [
+        7.0,
+        13.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plate_rim",
+          "uv": [
+            9.0,
+            3.0,
+            9.5,
+            9.0
+          ]
+        },
+        "south": {
+          "texture": "#plate_rim",
+          "uv": [
+            6.5,
+            3.0,
+            7.0,
+            9.0
+          ]
+        },
+        "east": {
+          "texture": "#plate",
+          "uv": [
+            1.0,
+            3.0,
+            5.5,
+            9.0
+          ]
+        },
+        "west": {
+          "texture": "#plate",
+          "uv": [
+            10.5,
+            3.0,
+            15.0,
+            9.0
+          ]
+        },
+        "up": {
+          "texture": "#plate_rim",
+          "uv": [
+            6.5,
+            10.5,
+            7.0,
+            15.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        8.0,
+        7.0,
+        10.5
+      ],
+      "to": [
+        8.5,
+        13.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plate_rim",
+          "uv": [
+            7.5,
+            3.0,
+            8.0,
+            9.0
+          ]
+        },
+        "south": {
+          "texture": "#plate_rim",
+          "uv": [
+            8.0,
+            3.0,
+            8.5,
+            9.0
+          ]
+        },
+        "east": {
+          "texture": "#plate",
+          "uv": [
+            1.0,
+            3.0,
+            5.5,
+            9.0
+          ]
+        },
+        "west": {
+          "texture": "#plate",
+          "uv": [
+            10.5,
+            3.0,
+            15.0,
+            9.0
+          ]
+        },
+        "up": {
+          "texture": "#plate_rim",
+          "uv": [
+            8.0,
+            10.5,
+            8.5,
+            15.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        10.5,
+        6.5,
+        11.0
+      ],
+      "to": [
+        12.0,
+        9.5,
+        13.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#cup_enamel",
+          "uv": [
+            4.0,
+            6.5,
+            5.5,
+            9.5
+          ]
+        },
+        "south": {
+          "texture": "#cup_enamel",
+          "uv": [
+            10.5,
+            6.5,
+            12.0,
+            9.5
+          ]
+        },
+        "east": {
+          "texture": "#cup_enamel",
+          "uv": [
+            2.5,
+            6.5,
+            5.0,
+            9.5
+          ]
+        },
+        "west": {
+          "texture": "#cup_enamel",
+          "uv": [
+            11.0,
+            6.5,
+            13.5,
+            9.5
+          ]
+        },
+        "up": {
+          "texture": "#cup_enamel",
+          "uv": [
+            10.5,
+            11.0,
+            12.0,
+            13.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        12.5,
+        6.5,
+        11.0
+      ],
+      "to": [
+        14.0,
+        9.5,
+        13.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#cup_enamel",
+          "uv": [
+            2.0,
+            6.5,
+            3.5,
+            9.5
+          ]
+        },
+        "south": {
+          "texture": "#cup_enamel",
+          "uv": [
+            12.5,
+            6.5,
+            14.0,
+            9.5
+          ]
+        },
+        "east": {
+          "texture": "#cup_enamel",
+          "uv": [
+            2.5,
+            6.5,
+            5.0,
+            9.5
+          ]
+        },
+        "west": {
+          "texture": "#cup_enamel",
+          "uv": [
+            11.0,
+            6.5,
+            13.5,
+            9.5
+          ]
+        },
+        "up": {
+          "texture": "#cup_enamel",
+          "uv": [
+            12.5,
+            11.0,
+            14.0,
+            13.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.0,
+        9.5,
+        10.5
+      ],
+      "to": [
+        15.0,
+        10.0,
+        15.5
+      ],
+      "faces": {
+        "up": {
+          "texture": "#chrome",
+          "uv": [
+            1.0,
+            10.5,
+            15.0,
+            15.5
+          ]
+        },
+        "down": {
+          "texture": "#chrome",
+          "uv": [
+            1.0,
+            0.5,
+            15.0,
+            5.5
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -9,6 +9,7 @@ the kitchen set's colour, the sofa's, the room's profile (a child's, an old woma
 The pieces' cells, kinds and mounts are read from the generated src/main/java/io/github/mobtalk/game/CityFurniture.java.
 A piece faces the way its front looks; its cells are given for the north-facing model and turned like FurnitureBlocks.turn.
 """
+import json
 import os
 import random
 import re
@@ -33,6 +34,8 @@ def catalogue():
 
 
 CAT = catalogue()
+with open(os.path.join(HERE, "variants.json"), encoding="utf-8") as _f:
+    VARIANTS = json.load(_f)
 
 
 def turn(c, facing):
@@ -45,6 +48,7 @@ def turn(c, facing):
 class Room:
     def __init__(self, house, k, letter, kind, cells, rnd):
         self.h, self.k, self.letter, self.kind, self.cells, self.r = house, k, letter, kind, set(cells), rnd
+        self.fin = None   # the flat's seed of finishes, set by furnish()
         self.s = house.slab(k)
         self.clear = self.walkway()
         self.placed = {}     # name -> (x, z, facing) of anchors (sofa, table, bed)
@@ -105,7 +109,21 @@ class Room:
                 return False
         return True
 
+    def vary(self, pid):
+        """The flat's finish of a piece that has variants (fur_variants.py): one wood, one upholstery, one enamel per flat."""
+        base = VARIANTS["aliases"].get(pid, pid)
+        ent = VARIANTS["bases"].get(base)
+        if not ent or self.fin is None:
+            return pid
+        for fam in sorted(ent):
+            tags = VARIANTS["families"][fam]
+            tag = random.Random(f"{self.fin}:{fam}").choice(tags + [None, None])
+            if tag in ent[fam]:
+                return ent[fam][tag]
+        return pid
+
     def write(self, pid, x, y, z, facing):
+        pid = self.vary(pid)
         kind, mount, cells = CAT[pid]
         for i, c in enumerate(cells):
             tx, ty, tz = turn(c, facing)
@@ -547,6 +565,7 @@ def furnish(house):
                     cells = [(x, z) for (x, z), c in house.grid.items() if c == letter and house.section_of(x) == sec]
                     if cells:
                         rooms.append(Room(house, k, letter, kind, cells, random.Random(f"{r.random()}")))
+                        rooms[-1].fin = f"fin:{house.series}:{house.colour}:{house.n}:{k}:{sec}:{side}{house.salt}"
                 order = ["hall", "kitchen", "bath", "wc", "living", "bedroom", "room", "pantry"]
                 rooms.sort(key=lambda rm: order.index(rm.kind) if rm.kind in order else len(order))
                 for rm in rooms:

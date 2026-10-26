@@ -1,0 +1,1445 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_stove_kettle__mint__enamel": "mobtalk:block/city2/furniture/apt_stove_kettle__mint__enamel",
+    "worktop": "mobtalk:block/city2/furniture/worktop",
+    "apt_stove_kettle__mint_front_44": "mobtalk:block/city2/furniture/apt_stove_kettle__mint_front_44",
+    "apt_stove_kettle__mint_top_44": "mobtalk:block/city2/furniture/apt_stove_kettle__mint_top_44",
+    "iron_black": "mobtalk:block/city2/furniture/iron_black",
+    "black": "mobtalk:block/city2/furniture/black",
+    "kettle": "mobtalk:block/city2/furniture/kettle",
+    "pot": "mobtalk:block/city2/furniture/pot",
+    "particle": "mobtalk:block/city2/furniture/apt_stove_kettle__mint__enamel"
+  },
+  "elements": [
+    {
+      "from": [
+        1.7561,
+        0.0,
+        3.122
+      ],
+      "to": [
+        3.3171,
+        10.1463,
+        14.0488
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            14.0,
+            3.0,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            0.0,
+            3.0,
+            2.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            0.0,
+            3.0,
+            14.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            2.0,
+            3.0,
+            16.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            0.0,
+            2.0,
+            2.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        12.6829,
+        0.0,
+        3.122
+      ],
+      "to": [
+        14.2439,
+        10.1463,
+        14.0488
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            0.0,
+            3.0,
+            2.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            14.0,
+            3.0,
+            16.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            0.0,
+            3.0,
+            14.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            2.0,
+            3.0,
+            16.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            14.0,
+            2.0,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.7561,
+        10.1463,
+        1.9512
+      ],
+      "to": [
+        3.3171,
+        10.9268,
+        14.0488
+      ],
+      "faces": {
+        "north": {
+          "texture": "#worktop",
+          "uv": [
+            14.0,
+            2.0,
+            16.0,
+            3.0
+          ]
+        },
+        "south": {
+          "texture": "#worktop",
+          "uv": [
+            0.0,
+            2.0,
+            2.0,
+            3.0
+          ]
+        },
+        "east": {
+          "texture": "#worktop",
+          "uv": [
+            0.0,
+            2.0,
+            15.5,
+            3.0
+          ]
+        },
+        "west": {
+          "texture": "#worktop",
+          "uv": [
+            0.5,
+            2.0,
+            16.0,
+            3.0
+          ]
+        },
+        "up": {
+          "texture": "#worktop",
+          "uv": [
+            0.0,
+            0.5,
+            2.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        12.6829,
+        10.1463,
+        1.9512
+      ],
+      "to": [
+        14.2439,
+        10.9268,
+        14.0488
+      ],
+      "faces": {
+        "north": {
+          "texture": "#worktop",
+          "uv": [
+            0.0,
+            2.0,
+            2.0,
+            3.0
+          ]
+        },
+        "south": {
+          "texture": "#worktop",
+          "uv": [
+            14.0,
+            2.0,
+            16.0,
+            3.0
+          ]
+        },
+        "east": {
+          "texture": "#worktop",
+          "uv": [
+            0.0,
+            2.0,
+            15.5,
+            3.0
+          ]
+        },
+        "west": {
+          "texture": "#worktop",
+          "uv": [
+            0.5,
+            2.0,
+            16.0,
+            3.0
+          ]
+        },
+        "up": {
+          "texture": "#worktop",
+          "uv": [
+            14.0,
+            0.5,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.3171,
+        0.0,
+        2.7317
+      ],
+      "to": [
+        12.6829,
+        10.5366,
+        13.6585
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_stove_kettle__mint_front_44",
+          "uv": [
+            2.0,
+            2.5,
+            14.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            2.0,
+            2.5,
+            14.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            0.5,
+            2.5,
+            14.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            1.5,
+            2.5,
+            15.5,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_stove_kettle__mint_top_44",
+          "uv": [
+            2.0,
+            1.5,
+            14.0,
+            15.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.0976,
+        10.5366,
+        5.0732
+      ],
+      "to": [
+        11.9024,
+        10.9268,
+        5.4634
+      ],
+      "faces": {
+        "north": {
+          "texture": "#iron_black",
+          "uv": [
+            3.0,
+            2.0,
+            13.0,
+            2.5
+          ]
+        },
+        "south": {
+          "texture": "#iron_black",
+          "uv": [
+            3.0,
+            2.0,
+            13.0,
+            2.5
+          ]
+        },
+        "east": {
+          "texture": "#iron_black",
+          "uv": [
+            11.0,
+            2.0,
+            11.5,
+            2.5
+          ]
+        },
+        "west": {
+          "texture": "#iron_black",
+          "uv": [
+            4.5,
+            2.0,
+            5.0,
+            2.5
+          ]
+        },
+        "up": {
+          "texture": "#iron_black",
+          "uv": [
+            3.0,
+            4.5,
+            13.0,
+            5.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.0976,
+        10.5366,
+        9.7561
+      ],
+      "to": [
+        11.9024,
+        10.9268,
+        10.1463
+      ],
+      "faces": {
+        "north": {
+          "texture": "#iron_black",
+          "uv": [
+            3.0,
+            2.0,
+            13.0,
+            2.5
+          ]
+        },
+        "south": {
+          "texture": "#iron_black",
+          "uv": [
+            3.0,
+            2.0,
+            13.0,
+            2.5
+          ]
+        },
+        "east": {
+          "texture": "#iron_black",
+          "uv": [
+            5.0,
+            2.0,
+            5.5,
+            2.5
+          ]
+        },
+        "west": {
+          "texture": "#iron_black",
+          "uv": [
+            10.5,
+            2.0,
+            11.0,
+            2.5
+          ]
+        },
+        "up": {
+          "texture": "#iron_black",
+          "uv": [
+            3.0,
+            10.5,
+            13.0,
+            11.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        5.6585,
+        10.9268,
+        3.5122
+      ],
+      "to": [
+        6.0488,
+        11.3171,
+        12.0976
+      ],
+      "faces": {
+        "north": {
+          "texture": "#iron_black",
+          "uv": [
+            10.5,
+            1.5,
+            11.0,
+            2.0
+          ]
+        },
+        "south": {
+          "texture": "#iron_black",
+          "uv": [
+            5.0,
+            1.5,
+            5.5,
+            2.0
+          ]
+        },
+        "east": {
+          "texture": "#iron_black",
+          "uv": [
+            2.5,
+            1.5,
+            13.5,
+            2.0
+          ]
+        },
+        "west": {
+          "texture": "#iron_black",
+          "uv": [
+            2.5,
+            1.5,
+            13.5,
+            2.0
+          ]
+        },
+        "up": {
+          "texture": "#iron_black",
+          "uv": [
+            5.0,
+            2.5,
+            5.5,
+            13.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        9.9512,
+        10.9268,
+        3.5122
+      ],
+      "to": [
+        10.3415,
+        11.3171,
+        12.0976
+      ],
+      "faces": {
+        "north": {
+          "texture": "#iron_black",
+          "uv": [
+            5.0,
+            1.5,
+            5.5,
+            2.0
+          ]
+        },
+        "south": {
+          "texture": "#iron_black",
+          "uv": [
+            10.5,
+            1.5,
+            11.0,
+            2.0
+          ]
+        },
+        "east": {
+          "texture": "#iron_black",
+          "uv": [
+            2.5,
+            1.5,
+            13.5,
+            2.0
+          ]
+        },
+        "west": {
+          "texture": "#iron_black",
+          "uv": [
+            2.5,
+            1.5,
+            13.5,
+            2.0
+          ]
+        },
+        "up": {
+          "texture": "#iron_black",
+          "uv": [
+            10.5,
+            2.5,
+            11.0,
+            13.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.3171,
+        10.5366,
+        12.878
+      ],
+      "to": [
+        12.6829,
+        14.8293,
+        13.6585
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            2.0,
+            13.0,
+            14.0,
+            18.5
+          ]
+        },
+        "south": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            2.0,
+            13.0,
+            14.0,
+            18.5
+          ]
+        },
+        "east": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            0.5,
+            13.0,
+            1.5,
+            18.5
+          ]
+        },
+        "west": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            14.5,
+            13.0,
+            15.5,
+            18.5
+          ]
+        },
+        "up": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            2.0,
+            14.5,
+            14.0,
+            15.5
+          ]
+        },
+        "down": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            2.0,
+            0.5,
+            14.0,
+            1.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.3171,
+        0.3902,
+        2.3415
+      ],
+      "to": [
+        12.6829,
+        1.1707,
+        2.7317
+      ],
+      "faces": {
+        "north": {
+          "texture": "#black",
+          "uv": [
+            2.0,
+            14.5,
+            14.0,
+            15.5
+          ]
+        },
+        "south": {
+          "texture": "#black",
+          "uv": [
+            2.0,
+            14.5,
+            14.0,
+            15.5
+          ]
+        },
+        "east": {
+          "texture": "#black",
+          "uv": [
+            14.5,
+            14.5,
+            15.0,
+            15.5
+          ]
+        },
+        "west": {
+          "texture": "#black",
+          "uv": [
+            1.0,
+            14.5,
+            1.5,
+            15.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.4878,
+        10.9268,
+        4.2927
+      ],
+      "to": [
+        8.0,
+        14.0488,
+        7.8049
+      ],
+      "faces": {
+        "north": {
+          "texture": "#kettle",
+          "uv": [
+            8.0,
+            14.0,
+            12.5,
+            18.0
+          ]
+        },
+        "south": {
+          "texture": "#kettle",
+          "uv": [
+            3.5,
+            14.0,
+            8.0,
+            18.0
+          ]
+        },
+        "east": {
+          "texture": "#kettle",
+          "uv": [
+            8.0,
+            14.0,
+            12.5,
+            18.0
+          ]
+        },
+        "west": {
+          "texture": "#kettle",
+          "uv": [
+            3.5,
+            14.0,
+            8.0,
+            18.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            3.5,
+            3.5,
+            8.0,
+            8.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        5.2683,
+        14.0488,
+        5.0732
+      ],
+      "to": [
+        7.2195,
+        14.439,
+        7.0244
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            9.0,
+            13.5,
+            11.5,
+            14.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            4.5,
+            13.5,
+            7.0,
+            14.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            9.0,
+            13.5,
+            11.5,
+            14.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            4.5,
+            13.5,
+            7.0,
+            14.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            4.5,
+            4.5,
+            7.0,
+            7.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.0488,
+        14.439,
+        5.8537
+      ],
+      "to": [
+        6.439,
+        14.8293,
+        6.2439
+      ],
+      "faces": {
+        "north": {
+          "texture": "#black",
+          "uv": [
+            10.0,
+            13.0,
+            10.5,
+            13.5
+          ]
+        },
+        "south": {
+          "texture": "#black",
+          "uv": [
+            5.5,
+            13.0,
+            6.0,
+            13.5
+          ]
+        },
+        "east": {
+          "texture": "#black",
+          "uv": [
+            10.0,
+            13.0,
+            10.5,
+            13.5
+          ]
+        },
+        "west": {
+          "texture": "#black",
+          "uv": [
+            5.5,
+            13.0,
+            6.0,
+            13.5
+          ]
+        },
+        "up": {
+          "texture": "#black",
+          "uv": [
+            5.5,
+            5.5,
+            6.0,
+            6.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        8.0,
+        12.0976,
+        5.8537
+      ],
+      "to": [
+        9.561,
+        12.878,
+        6.2439
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            6.0,
+            0,
+            8.0,
+            1.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            8.0,
+            0,
+            10.0,
+            1.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            10.0,
+            0,
+            10.5,
+            1.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            5.5,
+            0,
+            6.0,
+            1.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            8.0,
+            5.5,
+            10.0,
+            6.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_stove_kettle__mint__enamel",
+          "uv": [
+            8.0,
+            10.0,
+            10.0,
+            10.5
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8.0,
+          12.0976,
+          6.0488
+        ],
+        "axis": "z",
+        "angle": 45
+      }
+    },
+    {
+      "from": [
+        6.0488,
+        14.439,
+        4.4878
+      ],
+      "to": [
+        6.439,
+        15.6098,
+        4.878
+      ],
+      "faces": {
+        "north": {
+          "texture": "#black",
+          "uv": [
+            10.0,
+            12.0,
+            10.5,
+            13.5
+          ]
+        },
+        "south": {
+          "texture": "#black",
+          "uv": [
+            5.5,
+            12.0,
+            6.0,
+            13.5
+          ]
+        },
+        "east": {
+          "texture": "#black",
+          "uv": [
+            11.75,
+            12.0,
+            12.25,
+            13.5
+          ]
+        },
+        "west": {
+          "texture": "#black",
+          "uv": [
+            3.75,
+            12.0,
+            4.25,
+            13.5
+          ]
+        },
+        "up": {
+          "texture": "#black",
+          "uv": [
+            5.5,
+            3.75,
+            6.0,
+            4.25
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.0488,
+        14.439,
+        7.2195
+      ],
+      "to": [
+        6.439,
+        15.6098,
+        7.6098
+      ],
+      "faces": {
+        "north": {
+          "texture": "#black",
+          "uv": [
+            10.0,
+            12.0,
+            10.5,
+            13.5
+          ]
+        },
+        "south": {
+          "texture": "#black",
+          "uv": [
+            5.5,
+            12.0,
+            6.0,
+            13.5
+          ]
+        },
+        "east": {
+          "texture": "#black",
+          "uv": [
+            8.25,
+            12.0,
+            8.75,
+            13.5
+          ]
+        },
+        "west": {
+          "texture": "#black",
+          "uv": [
+            7.25,
+            12.0,
+            7.75,
+            13.5
+          ]
+        },
+        "up": {
+          "texture": "#black",
+          "uv": [
+            5.5,
+            7.25,
+            6.0,
+            7.75
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.0488,
+        15.6098,
+        4.4878
+      ],
+      "to": [
+        6.439,
+        16.0,
+        7.6098
+      ],
+      "faces": {
+        "north": {
+          "texture": "#black",
+          "uv": [
+            10.0,
+            11.5,
+            10.5,
+            12.0
+          ]
+        },
+        "south": {
+          "texture": "#black",
+          "uv": [
+            5.5,
+            11.5,
+            6.0,
+            12.0
+          ]
+        },
+        "east": {
+          "texture": "#black",
+          "uv": [
+            8.25,
+            11.5,
+            12.25,
+            12.0
+          ]
+        },
+        "west": {
+          "texture": "#black",
+          "uv": [
+            3.75,
+            11.5,
+            7.75,
+            12.0
+          ]
+        },
+        "up": {
+          "texture": "#black",
+          "uv": [
+            5.5,
+            3.75,
+            6.0,
+            7.75
+          ]
+        },
+        "down": {
+          "texture": "#black",
+          "uv": [
+            5.5,
+            8.25,
+            6.0,
+            12.25
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        8.7805,
+        11.3171,
+        8.5854
+      ],
+      "to": [
+        11.9024,
+        13.2683,
+        11.7073
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pot",
+          "uv": [
+            3.0,
+            15.0,
+            7.0,
+            17.5
+          ]
+        },
+        "south": {
+          "texture": "#pot",
+          "uv": [
+            9.0,
+            15.0,
+            13.0,
+            17.5
+          ]
+        },
+        "east": {
+          "texture": "#pot",
+          "uv": [
+            3.0,
+            15.0,
+            7.0,
+            17.5
+          ]
+        },
+        "west": {
+          "texture": "#pot",
+          "uv": [
+            9.0,
+            15.0,
+            13.0,
+            17.5
+          ]
+        },
+        "up": {
+          "texture": "#pot",
+          "uv": [
+            9.0,
+            9.0,
+            13.0,
+            13.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        8.3902,
+        12.878,
+        9.7561
+      ],
+      "to": [
+        8.7805,
+        13.2683,
+        10.5366
+      ],
+      "faces": {
+        "north": {
+          "texture": "#black",
+          "uv": [
+            7.0,
+            15.0,
+            7.5,
+            15.5
+          ]
+        },
+        "south": {
+          "texture": "#black",
+          "uv": [
+            8.5,
+            15.0,
+            9.0,
+            15.5
+          ]
+        },
+        "east": {
+          "texture": "#black",
+          "uv": [
+            4.5,
+            15.0,
+            5.5,
+            15.5
+          ]
+        },
+        "west": {
+          "texture": "#black",
+          "uv": [
+            10.5,
+            15.0,
+            11.5,
+            15.5
+          ]
+        },
+        "up": {
+          "texture": "#black",
+          "uv": [
+            8.5,
+            10.5,
+            9.0,
+            11.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        11.9024,
+        12.878,
+        9.7561
+      ],
+      "to": [
+        12.2927,
+        13.2683,
+        10.5366
+      ],
+      "faces": {
+        "north": {
+          "texture": "#black",
+          "uv": [
+            2.5,
+            15.0,
+            3.0,
+            15.5
+          ]
+        },
+        "south": {
+          "texture": "#black",
+          "uv": [
+            13.0,
+            15.0,
+            13.5,
+            15.5
+          ]
+        },
+        "east": {
+          "texture": "#black",
+          "uv": [
+            4.5,
+            15.0,
+            5.5,
+            15.5
+          ]
+        },
+        "west": {
+          "texture": "#black",
+          "uv": [
+            10.5,
+            15.0,
+            11.5,
+            15.5
+          ]
+        },
+        "up": {
+          "texture": "#black",
+          "uv": [
+            13.0,
+            10.5,
+            13.5,
+            11.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        8.9756,
+        13.2683,
+        8.7805
+      ],
+      "to": [
+        11.7073,
+        13.6585,
+        11.5122
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pot",
+          "uv": [
+            3.25,
+            14.5,
+            6.75,
+            15.0
+          ]
+        },
+        "south": {
+          "texture": "#pot",
+          "uv": [
+            9.25,
+            14.5,
+            12.75,
+            15.0
+          ]
+        },
+        "east": {
+          "texture": "#pot",
+          "uv": [
+            3.25,
+            14.5,
+            6.75,
+            15.0
+          ]
+        },
+        "west": {
+          "texture": "#pot",
+          "uv": [
+            9.25,
+            14.5,
+            12.75,
+            15.0
+          ]
+        },
+        "up": {
+          "texture": "#pot",
+          "uv": [
+            9.25,
+            9.25,
+            12.75,
+            12.75
+          ]
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.625,
+        0.625,
+        0.625
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        2.5,
+        0
+      ],
+      "scale": [
+        0.375,
+        0.375,
+        0.375
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    }
+  }
+}

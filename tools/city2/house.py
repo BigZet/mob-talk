@@ -57,7 +57,7 @@ LAMP_STAIR = "apt_wall_puck"
 WIN_WEIGHTS = {"old": {"pvc": 50, "wood": 30, "brown": 13, "grey": 7}, "new": {"pvc": 68, "wood": 7, "brown": 15, "grey": 10}}
 STAIR_WOOD = {"old": 0.7, "new": 0.4}
 NEW_HOUSES = ("i-209a", "p-44")
-CURTAINS = ["apt_curtain_wine", "apt_curtain_gold", "apt_curtain_blue", "apt_curtain_olive"]
+CURTAINS = ["apt_curtain_wine", "apt_curtain_gold", "apt_curtain_blue", "apt_curtain_olive", "apt_curtain_teal", "apt_curtain_sand"]
 CW = {N: E, E: SO, SO: W, W: N}
 
 

@@ -1,0 +1,238 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_fridge__butter_door_43": "mobtalk:block/city2/furniture/apt_fridge__butter_door_43",
+    "apt_fridge__butter__enamel": "mobtalk:block/city2/furniture/apt_fridge__butter__enamel",
+    "chrome": "mobtalk:block/city2/furniture/chrome",
+    "particle": "mobtalk:block/city2/furniture/apt_fridge__butter_door_43"
+  },
+  "elements": [
+    {
+      "from": [
+        3.0,
+        0.0,
+        5.0
+      ],
+      "to": [
+        13.0,
+        9.0,
+        15.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_fridge__butter_door_43",
+          "uv": [
+            3.0,
+            7.0,
+            13.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_fridge__butter__enamel",
+          "uv": [
+            3.0,
+            7.0,
+            13.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_fridge__butter__enamel",
+          "uv": [
+            0.5,
+            7.0,
+            11.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_fridge__butter__enamel",
+          "uv": [
+            5.0,
+            7.0,
+            15.5,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_fridge__butter__enamel",
+          "uv": [
+            3.0,
+            5.0,
+            13.0,
+            15.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.5,
+        9.0,
+        5.5
+      ],
+      "to": [
+        12.5,
+        10.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_fridge__butter__enamel",
+          "uv": [
+            3.5,
+            6.0,
+            12.5,
+            7.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_fridge__butter__enamel",
+          "uv": [
+            3.5,
+            6.0,
+            12.5,
+            7.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_fridge__butter__enamel",
+          "uv": [
+            1.0,
+            6.0,
+            10.5,
+            7.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_fridge__butter__enamel",
+          "uv": [
+            5.5,
+            6.0,
+            15.0,
+            7.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_fridge__butter__enamel",
+          "uv": [
+            3.5,
+            5.5,
+            12.5,
+            15.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        10.5,
+        0.0,
+        3.5
+      ],
+      "to": [
+        11.5,
+        1.5,
+        4.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chrome",
+          "uv": [
+            4.5,
+            14.5,
+            5.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#chrome",
+          "uv": [
+            10.5,
+            14.5,
+            11.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#chrome",
+          "uv": [
+            11.75,
+            14.5,
+            12.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#chrome",
+          "uv": [
+            3.5,
+            14.5,
+            4.25,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#chrome",
+          "uv": [
+            10.5,
+            3.5,
+            11.5,
+            4.25
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        10.75,
+        0.0,
+        4.25
+      ],
+      "to": [
+        11.25,
+        1.0,
+        5.0
+      ],
+      "faces": {
+        "east": {
+          "texture": "#chrome",
+          "uv": [
+            11.0,
+            15.0,
+            11.75,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#chrome",
+          "uv": [
+            4.25,
+            15.0,
+            5.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#chrome",
+          "uv": [
+            10.75,
+            4.25,
+            11.25,
+            5.0
+          ]
+        },
+        "down": {
+          "texture": "#chrome",
+          "uv": [
+            10.75,
+            11.0,
+            11.25,
+            11.75
+          ]
+        }
+      }
+    }
+  ]
+}

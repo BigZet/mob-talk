@@ -1,0 +1,881 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_washbasin__rose__enamel": "mobtalk:block/city2/furniture/apt_washbasin__rose__enamel",
+    "apt_washbasin__rose_bowl_44": "mobtalk:block/city2/furniture/apt_washbasin__rose_bowl_44",
+    "apt_washbasin__rose__enamel_in": "mobtalk:block/city2/furniture/apt_washbasin__rose__enamel_in",
+    "chrome": "mobtalk:block/city2/furniture/chrome",
+    "particle": "mobtalk:block/city2/furniture/apt_washbasin__rose__enamel"
+  },
+  "elements": [
+    {
+      "from": [
+        5.0,
+        0.0,
+        8.0
+      ],
+      "to": [
+        11.0,
+        1.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            5.0,
+            15.0,
+            11.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            5.0,
+            15.0,
+            11.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            2.0,
+            15.0,
+            8.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            8.0,
+            15.0,
+            14.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            5.0,
+            8.0,
+            11.0,
+            14.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.0,
+        1.0,
+        9.0
+      ],
+      "to": [
+        10.0,
+        10.0,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            6.0,
+            6.0,
+            10.0,
+            15.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            6.0,
+            6.0,
+            10.0,
+            15.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            3.0,
+            6.0,
+            7.0,
+            15.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            9.0,
+            6.0,
+            13.0,
+            15.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        5.0,
+        10.0,
+        8.0
+      ],
+      "to": [
+        11.0,
+        11.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            5.0,
+            5.0,
+            11.0,
+            6.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            5.0,
+            5.0,
+            11.0,
+            6.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            2.0,
+            5.0,
+            8.0,
+            6.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            8.0,
+            5.0,
+            14.0,
+            6.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.5,
+        11.0,
+        6.0
+      ],
+      "to": [
+        13.5,
+        13.5,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            2.5,
+            2.5,
+            13.5,
+            5.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            2.5,
+            2.5,
+            13.5,
+            5.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            0.0,
+            2.5,
+            10.0,
+            5.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            6.0,
+            2.5,
+            16.0,
+            5.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            2.5,
+            0.0,
+            13.5,
+            10.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.5,
+        13.5,
+        6.0
+      ],
+      "to": [
+        13.5,
+        14.0,
+        7.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            2.5,
+            2.0,
+            13.5,
+            2.5
+          ]
+        },
+        "east": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            8.5,
+            2.0,
+            10.0,
+            2.5
+          ]
+        },
+        "west": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            6.0,
+            2.0,
+            7.5,
+            2.5
+          ]
+        },
+        "up": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            2.5,
+            6.0,
+            13.5,
+            7.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.5,
+        13.5,
+        14.0
+      ],
+      "to": [
+        13.5,
+        14.0,
+        16.0
+      ],
+      "faces": {
+        "south": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            2.5,
+            2.0,
+            13.5,
+            2.5
+          ]
+        },
+        "east": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            0.0,
+            2.0,
+            2.0,
+            2.5
+          ]
+        },
+        "west": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            14.0,
+            2.0,
+            16.0,
+            2.5
+          ]
+        },
+        "up": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            2.5,
+            14.0,
+            13.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.5,
+        13.5,
+        7.5
+      ],
+      "to": [
+        4.0,
+        14.0,
+        14.0
+      ],
+      "faces": {
+        "west": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            7.5,
+            2.0,
+            14.0,
+            2.5
+          ]
+        },
+        "up": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            2.5,
+            7.5,
+            4.0,
+            14.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        12.0,
+        13.5,
+        7.5
+      ],
+      "to": [
+        13.5,
+        14.0,
+        14.0
+      ],
+      "faces": {
+        "east": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            2.0,
+            2.0,
+            8.5,
+            2.5
+          ]
+        },
+        "up": {
+          "texture": "#apt_washbasin__rose__enamel",
+          "uv": [
+            12.0,
+            7.5,
+            13.5,
+            14.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.0,
+        11.5,
+        7.5
+      ],
+      "to": [
+        12.0,
+        11.5,
+        14.0
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_washbasin__rose_bowl_44",
+          "uv": [
+            4.0,
+            7.5,
+            12.0,
+            14.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.0,
+        11.5,
+        7.5
+      ],
+      "to": [
+        12.0,
+        14.0,
+        7.5
+      ],
+      "faces": {
+        "south": {
+          "texture": "#apt_washbasin__rose__enamel_in",
+          "uv": [
+            4.0,
+            2.0,
+            12.0,
+            4.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.0,
+        11.5,
+        14.0
+      ],
+      "to": [
+        12.0,
+        14.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_washbasin__rose__enamel_in",
+          "uv": [
+            4.0,
+            2.0,
+            12.0,
+            4.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.0,
+        11.5,
+        7.5
+      ],
+      "to": [
+        4.0,
+        14.0,
+        14.0
+      ],
+      "faces": {
+        "east": {
+          "texture": "#apt_washbasin__rose__enamel_in",
+          "uv": [
+            2.0,
+            2.0,
+            8.5,
+            4.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        12.0,
+        11.5,
+        7.5
+      ],
+      "to": [
+        12.0,
+        14.0,
+        14.0
+      ],
+      "faces": {
+        "west": {
+          "texture": "#apt_washbasin__rose__enamel_in",
+          "uv": [
+            7.5,
+            2.0,
+            14.0,
+            4.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.5,
+        14.0,
+        14.5
+      ],
+      "to": [
+        5.5,
+        15.5,
+        15.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chrome",
+          "uv": [
+            10.5,
+            0.5,
+            11.5,
+            2.0
+          ]
+        },
+        "south": {
+          "texture": "#chrome",
+          "uv": [
+            4.5,
+            0.5,
+            5.5,
+            2.0
+          ]
+        },
+        "east": {
+          "texture": "#chrome",
+          "uv": [
+            0.5,
+            0.5,
+            1.5,
+            2.0
+          ]
+        },
+        "west": {
+          "texture": "#chrome",
+          "uv": [
+            14.5,
+            0.5,
+            15.5,
+            2.0
+          ]
+        },
+        "up": {
+          "texture": "#chrome",
+          "uv": [
+            4.5,
+            14.5,
+            5.5,
+            15.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.0,
+        15.5,
+        14.0
+      ],
+      "to": [
+        6.0,
+        16.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chrome",
+          "uv": [
+            10.0,
+            0.0,
+            12.0,
+            0.5
+          ]
+        },
+        "south": {
+          "texture": "#chrome",
+          "uv": [
+            4.0,
+            0.0,
+            6.0,
+            0.5
+          ]
+        },
+        "east": {
+          "texture": "#chrome",
+          "uv": [
+            0.0,
+            0.0,
+            2.0,
+            0.5
+          ]
+        },
+        "west": {
+          "texture": "#chrome",
+          "uv": [
+            14.0,
+            0.0,
+            16.0,
+            0.5
+          ]
+        },
+        "up": {
+          "texture": "#chrome",
+          "uv": [
+            4.0,
+            14.0,
+            6.0,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#chrome",
+          "uv": [
+            4.0,
+            0.0,
+            6.0,
+            2.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        10.5,
+        14.0,
+        14.5
+      ],
+      "to": [
+        11.5,
+        15.5,
+        15.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chrome",
+          "uv": [
+            4.5,
+            0.5,
+            5.5,
+            2.0
+          ]
+        },
+        "south": {
+          "texture": "#chrome",
+          "uv": [
+            10.5,
+            0.5,
+            11.5,
+            2.0
+          ]
+        },
+        "east": {
+          "texture": "#chrome",
+          "uv": [
+            0.5,
+            0.5,
+            1.5,
+            2.0
+          ]
+        },
+        "west": {
+          "texture": "#chrome",
+          "uv": [
+            14.5,
+            0.5,
+            15.5,
+            2.0
+          ]
+        },
+        "up": {
+          "texture": "#chrome",
+          "uv": [
+            10.5,
+            14.5,
+            11.5,
+            15.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        10.0,
+        15.5,
+        14.0
+      ],
+      "to": [
+        12.0,
+        16.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chrome",
+          "uv": [
+            4.0,
+            0.0,
+            6.0,
+            0.5
+          ]
+        },
+        "south": {
+          "texture": "#chrome",
+          "uv": [
+            10.0,
+            0.0,
+            12.0,
+            0.5
+          ]
+        },
+        "east": {
+          "texture": "#chrome",
+          "uv": [
+            0.0,
+            0.0,
+            2.0,
+            0.5
+          ]
+        },
+        "west": {
+          "texture": "#chrome",
+          "uv": [
+            14.0,
+            0.0,
+            16.0,
+            0.5
+          ]
+        },
+        "up": {
+          "texture": "#chrome",
+          "uv": [
+            10.0,
+            14.0,
+            12.0,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#chrome",
+          "uv": [
+            10.0,
+            0.0,
+            12.0,
+            2.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        7.5,
+        14.0,
+        14.5
+      ],
+      "to": [
+        8.5,
+        16.0,
+        15.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chrome",
+          "uv": [
+            7.5,
+            0.0,
+            8.5,
+            2.0
+          ]
+        },
+        "south": {
+          "texture": "#chrome",
+          "uv": [
+            7.5,
+            0.0,
+            8.5,
+            2.0
+          ]
+        },
+        "east": {
+          "texture": "#chrome",
+          "uv": [
+            0.5,
+            0.0,
+            1.5,
+            2.0
+          ]
+        },
+        "west": {
+          "texture": "#chrome",
+          "uv": [
+            14.5,
+            0.0,
+            15.5,
+            2.0
+          ]
+        },
+        "up": {
+          "texture": "#chrome",
+          "uv": [
+            7.5,
+            14.5,
+            8.5,
+            15.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        7.5,
+        15.25,
+        11.5
+      ],
+      "to": [
+        8.5,
+        16.0,
+        12.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chrome",
+          "uv": [
+            7.5,
+            0.0,
+            8.5,
+            0.75
+          ]
+        },
+        "south": {
+          "texture": "#chrome",
+          "uv": [
+            7.5,
+            0.0,
+            8.5,
+            0.75
+          ]
+        },
+        "east": {
+          "texture": "#chrome",
+          "uv": [
+            3.5,
+            0.0,
+            4.5,
+            0.75
+          ]
+        },
+        "west": {
+          "texture": "#chrome",
+          "uv": [
+            11.5,
+            0.0,
+            12.5,
+            0.75
+          ]
+        },
+        "down": {
+          "texture": "#chrome",
+          "uv": [
+            7.5,
+            3.5,
+            8.5,
+            4.5
+          ]
+        }
+      }
+    }
+  ]
+}

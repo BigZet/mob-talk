@@ -1,0 +1,207 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_dressing_table__mahogany_mirror_c_43": "mobtalk:block/city2/furniture/apt_dressing_table__mahogany_mirror_c_43",
+    "apt_dressing_table__mahogany__walnut": "mobtalk:block/city2/furniture/apt_dressing_table__mahogany__walnut",
+    "apt_dressing_table__mahogany_mirror_l_43": "mobtalk:block/city2/furniture/apt_dressing_table__mahogany_mirror_l_43",
+    "apt_dressing_table__mahogany_mirror_r_43": "mobtalk:block/city2/furniture/apt_dressing_table__mahogany_mirror_r_43",
+    "particle": "mobtalk:block/city2/furniture/apt_dressing_table__mahogany_mirror_c_43"
+  },
+  "elements": [
+    {
+      "from": [
+        5.0,
+        0.0,
+        14.5
+      ],
+      "to": [
+        11.0,
+        10.0,
+        15.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_dressing_table__mahogany_mirror_c_43",
+          "uv": [
+            5.0,
+            6.0,
+            11.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_dressing_table__mahogany__walnut",
+          "uv": [
+            5.0,
+            6.0,
+            11.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_dressing_table__mahogany__walnut",
+          "uv": [
+            0.5,
+            6.0,
+            1.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_dressing_table__mahogany__walnut",
+          "uv": [
+            14.5,
+            6.0,
+            15.5,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_dressing_table__mahogany__walnut",
+          "uv": [
+            5.0,
+            14.5,
+            11.0,
+            15.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.0,
+        -5.0,
+        14.5
+      ],
+      "to": [
+        5.0,
+        8.0,
+        15.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_dressing_table__mahogany_mirror_l_43",
+          "uv": [
+            11.0,
+            8.0,
+            15.0,
+            21.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_dressing_table__mahogany__walnut",
+          "uv": [
+            1.0,
+            0,
+            5.0,
+            13.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_dressing_table__mahogany__walnut",
+          "uv": [
+            0.75,
+            0,
+            1.5,
+            13.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_dressing_table__mahogany__walnut",
+          "uv": [
+            14.5,
+            0,
+            15.25,
+            13.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_dressing_table__mahogany__walnut",
+          "uv": [
+            1.0,
+            14.5,
+            5.0,
+            15.25
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          5,
+          -5,
+          15
+        ],
+        "axis": "y",
+        "angle": -22.5
+      }
+    },
+    {
+      "from": [
+        11.0,
+        -5.0,
+        14.5
+      ],
+      "to": [
+        15.0,
+        8.0,
+        15.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_dressing_table__mahogany_mirror_r_43",
+          "uv": [
+            1.0,
+            8.0,
+            5.0,
+            21.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_dressing_table__mahogany__walnut",
+          "uv": [
+            11.0,
+            0,
+            15.0,
+            13.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_dressing_table__mahogany__walnut",
+          "uv": [
+            0.75,
+            0,
+            1.5,
+            13.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_dressing_table__mahogany__walnut",
+          "uv": [
+            14.5,
+            0,
+            15.25,
+            13.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_dressing_table__mahogany__walnut",
+          "uv": [
+            11.0,
+            14.5,
+            15.0,
+            15.25
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          11,
+          -5,
+          15
+        ],
+        "axis": "y",
+        "angle": 22.5
+      }
+    }
+  ]
+}

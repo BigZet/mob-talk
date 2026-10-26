@@ -1,0 +1,69 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_wall_cupboard_white__butter_doors_44": "mobtalk:block/city2/furniture/apt_wall_cupboard_white__butter_doors_44",
+    "apt_wall_cupboard_white__butter__enamel": "mobtalk:block/city2/furniture/apt_wall_cupboard_white__butter__enamel",
+    "particle": "mobtalk:block/city2/furniture/apt_wall_cupboard_white__butter_doors_44"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        6.0,
+        10.0
+      ],
+      "to": [
+        16.0,
+        16.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_wall_cupboard_white__butter_doors_44",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            10.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_wall_cupboard_white__butter__enamel",
+          "uv": [
+            0.0,
+            0.0,
+            6.0,
+            10.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_wall_cupboard_white__butter__enamel",
+          "uv": [
+            10.0,
+            0.0,
+            16.0,
+            10.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_wall_cupboard_white__butter__enamel",
+          "uv": [
+            0.0,
+            10.0,
+            16.0,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_wall_cupboard_white__butter__enamel",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            6.0
+          ]
+        }
+      }
+    }
+  ]
+}

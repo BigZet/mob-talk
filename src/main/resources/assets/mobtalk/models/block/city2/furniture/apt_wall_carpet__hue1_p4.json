@@ -1,0 +1,42 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_wall_carpet__hue1_carpet_43": "mobtalk:block/city2/furniture/apt_wall_carpet__hue1_carpet_43",
+    "apt_wall_carpet__hue1__carpet_side": "mobtalk:block/city2/furniture/apt_wall_carpet__hue1__carpet_side",
+    "particle": "mobtalk:block/city2/furniture/apt_wall_carpet__hue1_carpet_43"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.0,
+        15.5
+      ],
+      "to": [
+        16.0,
+        14.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_wall_carpet__hue1_carpet_43",
+          "uv": [
+            0.0,
+            2.0,
+            16.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_wall_carpet__hue1__carpet_side",
+          "uv": [
+            0.0,
+            15.5,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    }
+  ]
+}

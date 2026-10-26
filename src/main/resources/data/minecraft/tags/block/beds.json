@@ -4,6 +4,16 @@
     "mobtalk:apt_bed",
     "mobtalk:apt_bed_iron",
     "mobtalk:apt_bed_double_l",
-    "mobtalk:apt_bed_double_r"
+    "mobtalk:apt_bed_double_r",
+    "mobtalk:apt_bed__birch",
+    "mobtalk:apt_bed__mahogany",
+    "mobtalk:apt_bed__wenge",
+    "mobtalk:apt_bed__blue",
+    "mobtalk:apt_bed__green",
+    "mobtalk:apt_bed__grey",
+    "mobtalk:apt_bed__purple",
+    "mobtalk:apt_bed_iron__rose",
+    "mobtalk:apt_bed_iron__blue",
+    "mobtalk:apt_bed_iron__mint"
   ]
 }
