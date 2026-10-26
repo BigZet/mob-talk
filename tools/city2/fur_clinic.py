@@ -21,6 +21,25 @@ def textures():
     mat("sign_blue", P.enamel(32, 32, BLUE, "signb", chips=0))
     mat("screen_lit", P.enamel(32, 32, rgb("8ac8f0"), "scrl", chips=0))
     mat("pill_box", P.enamel(32, 32, rgb("f0f0e8"), "pillb", chips=0))
+    mat("stand_white", P.enamel(32, 32, rgb("eef0ee"), "standw", chips=1))
+    mat("lam_grey", P.enamel(32, 32, rgb("d4d2ca"), "lamg", chips=0))
+    mat("lam_edge", P.enamel(32, 32, rgb("8a8a86"), "lame", chips=0))
+    mat("med_card", _cards())
+    mat("cardboard", P.enamel(32, 32, rgb("c4a070"), "cardb", chips=3))
+    mat("safe_green", P.enamel(32, 32, rgb("5a6a58"), "safeg", chips=2))
+
+
+def _cards():
+    """The edges of a stack of out-patient cards (амбулаторные карты): cream card, a coloured tab now and then."""
+    import random
+    r = random.Random("medcard")
+    cv = P.Canvas(32, 32, rgb("e8dcc0"))
+    for y in range(0, 32, 2):
+        cv.hline(0, 32, y, rgb("c8b898"))
+        if r.random() < 0.4:
+            x = r.randrange(0, 26)
+            cv.hline(x, x + 6, y + 1, r.choice([rgb("c84a3a"), rgb("3a6aa0"), rgb("4a9a5a"), rgb("e0b030")]))
+    return cv
 
 
 def _plate(text, bg=BLUE, fg=rgb("f4f4ee")):
@@ -364,8 +383,244 @@ def iv_stand():
     return m
 
 
+# ---------------------------------------------------------------- what the polyclinic's rooms were missing (Dmitriy's walk)
+
+def coat_stand(coat=None):
+    """The hospital's free-standing coat stand: a white enamelled steel pole on a cross of four feet with black caps, four
+    hooks splayed up at the top and four short ones curled under them; with `coat` a doctor's white coat (or a visitor's)
+    hangs from one hook."""
+    def build():
+        m = Model()
+        m.box((1.5, 0, 7.5), (14.5, 1, 8.5), "stand_white")
+        m.box((7.5, 0.25, 1.5), (8.5, 1.25, 14.5), "stand_white")
+        for x0, z0 in ((1, 7.25), (14.5, 7.25)):
+            m.box((x0, 0, z0), (x0 + 0.5, 1.5, z0 + 1.5), "rubber_black")
+        for x0, z0 in ((7.25, 1), (7.25, 14.5)):
+            m.box((x0, 0, z0), (x0 + 1.5, 1.5, z0 + 0.5), "rubber_black")
+        m.box((7.5, 1.25, 7.5), (8.5, 29, 8.5), "stand_white")
+        m.box((7.25, 29, 7.25), (8.75, 29.5, 8.75), "stand_white")
+        for ang, axis, f, t in ((45, "z", (8.5, 27, 7.75), (12, 27.5, 8.25)), (-45, "z", (4, 27, 7.75), (7.5, 27.5, 8.25)),
+                                (45, "x", (7.75, 27, 4), (8.25, 27.5, 7.5)), (-45, "x", (7.75, 27, 8.5), (8.25, 27.5, 12))):
+            m.box(f, t, "stand_white", rot={"origin": [8, 27.25, 8], "axis": axis, "angle": ang})
+        for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1)):              # the short hooks, curled up at the tips
+            x0 = 8.5 if dx > 0 else 5.5 if dx < 0 else 7.75
+            z0 = 8.5 if dz > 0 else 5.5 if dz < 0 else 7.75
+            m.box((x0, 24, z0), (x0 + (2 if dx else 0.5), 24.5, z0 + (2 if dz else 0.5)), "stand_white")
+            tx = 10.25 if dx > 0 else 5.5 if dx < 0 else 7.75
+            tz = 10.25 if dz > 0 else 5.5 if dz < 0 else 7.75
+            m.box((tx, 24.5, tz), (tx + 0.5, 25.5, tz + 0.5), "stand_white")
+        if coat:
+            def front(cv, W, H):
+                base = rgb("eeeee8")
+                cv.rect(0, 0, cv.w, cv.h, base)
+                cv.vline(cv.w // 2, 0, cv.h, shade(base, 0.8))                # the opening
+                for y in range(3, cv.h - 4, 5):
+                    cv.set(cv.w // 2 + 1, y, rgb("d8d8d0"))                   # the buttons
+                for x0 in (1, cv.w // 2 + 2):
+                    cv.outline(x0, cv.h * 2 // 3, x0 + cv.w // 2 - 4, cv.h * 2 // 3 + 5, shade(base, 0.82))  # pockets
+                cv.hline(1, cv.w // 2 - 2, 5, shade(base, 0.85))              # the breast pocket's pen
+                cv.set(3, 4, BLUE)
+
+            m.box((9.25, 11, 4), (13.75, 24, 9.5), coat, north=Pic("coat_front", front))  # hung off the east hook
+            m.box((9.75, 22.5, 3.5), (13.25, 24.5, 4), coat)              # the collar
+            m.box((10.5, 24, 5.5), (12.5, 25, 7.5), coat)
+        return m
+    return build
+
+
+def _screen_mis(cv, W, H):
+    cv.rect(0, 0, cv.w, cv.h, rgb("e8eef4"))
+    cv.rect(0, 0, cv.w, 3, BLUE)
+    for k in range(5):
+        cv.hline(2, 2 + 6 + (k * 7) % 11, 5 + k * 3, rgb("6a7a8a"))
+        cv.hline(cv.w // 2 + 1, cv.w - 3, 5 + k * 3, rgb("b8c8d8"))
+
+
+def doctor_desk(modern):
+    """The doctor's desk: a grey laminated top with a dark edge on a tubular frame, a pedestal of three drawers on the
+    right, the modesty panel behind; on it the stack of out-patient cards, a pen pot, and either the monitor and keyboard
+    of the medical information system or, on the older one, the glass sheet, papers, the green table lamp, the telephone."""
+    def build():
+        def drawers(cv, W, H):
+            cv.rect(0, 0, cv.w, cv.h, rgb("d4d2ca"))
+            for k in range(3):
+                y0 = k * cv.h // 3
+                cv.bevel(1, y0 + 1, cv.w - 1, y0 + cv.h // 3 - 1, rgb("e4e2da"), rgb("a8a69e"))
+                cv.hline(cv.w // 2 - 3, cv.w // 2 + 3, y0 + 3, rgb("6a6a66"))
+
+        top = "lam_grey" if modern else "lightwood"
+        m = Model()
+        m.box((0, 12, 1.5), (16, 13, 16), top)
+        m.box((0, 11.5, 1), (16, 12.5, 1.5), "lam_edge" if modern else "oak")
+        m.box((9.5, 0, 2.5), (15.5, 11.5, 15.5), top, north=Pic("ddesk_drw" + ("" if modern else "_o"), drawers))
+        for z in (2.5, 14.5):
+            m.box((0.5, 0, z), (1.5, 11.5, z + 1), "chrome" if modern else "oak")
+        m.box((1.5, 3, 14.75), (9.5, 11.5, 15.25), top)                   # the modesty panel
+        m.box((9, 13, 3), (13.5, 15, 8.5), "med_card")                       # the stack of cards
+        m.box((9, 15, 3), (13.5, 15.5, 8.5), "paper")
+        m.box((14, 13, 3.5), (15.25, 15.5, 4.75), "plastic_black")           # the pen pot
+        m.box((14.25, 15.5, 3.75), (14.75, 17, 4.25), "plastic_blue")
+        if modern:
+            m.box((2, 13, 10.5), (7, 13.5, 13.5), "plastic_black")
+            m.box((4, 13.5, 12), (5, 16, 12.75), "plastic_black")
+            m.box((0.5, 15, 11), (8.5, 21, 11.75), "plastic_black", north=Pic("ddesk_scr", _screen_mis))
+            m.box((1.5, 13, 4), (8, 13.5, 7), "plastic_grey")                # the keyboard
+            m.box((9.5, 13, 9.5), (11, 13.5, 11.5), "plastic_grey")           # the mouse
+        else:
+            m.box((0.5, 13, 2), (8.5, 13.5, 15.5), "glass", down=None)        # the glass sheet over the desk
+            m.box((1.5, 13.5, 3), (6, 14, 8), "paper")
+            m.box((5.5, 13.5, 12), (7.5, 14, 14), "brass")                   # the lamp
+            m.box((6.25, 14, 12.75), (6.75, 18, 13.25), "brass")
+            m.box((4.5, 18, 11), (8.5, 20, 14.5), "lampshade_green")
+            m.box((1, 13.5, 9.5), (4.5, 15, 13), "phone_body")
+        return m
+    return build
+
+
+def negatoscope():
+    """The negatoscope on the wall: a white box with its milky panel lit from behind and two X-ray films clipped on it."""
+    def films(cv, W, H):
+        cv.rect(0, 0, cv.w, cv.h, rgb("f4f8fa"))
+        for x0 in (2, cv.w // 2 + 1):
+            cv.rect(x0, 2, x0 + cv.w // 2 - 3, cv.h - 2, rgb("1a2028"))
+            cx = x0 + (cv.w // 2 - 3) // 2
+            cv.rect(cx - 1, 4, cx + 1, cv.h - 4, rgb("c8d0d8"))              # a bone
+            for y in range(6, cv.h - 5, 3):
+                cv.hline(cx - 4, cx + 4, y, rgb("6a7480"))                   # ribs
+        cv.outline(0, 0, cv.w, cv.h, rgb("c8ccd0"))
+
+    m = Model()
+    m.box((0.5, 3, 13.5), (15.5, 15, 16), "stand_white", north=Pic("negato", films))
+    m.box((2, 2, 14), (14, 3, 16), "stand_white")
+    m.box((12, 2.25, 13.5), (13.5, 2.75, 14), "plastic_black")
+    return m
+
+
+def med_trolley():
+    """The procedure trolley: a chrome frame on castors, two steel shelves, on top a kidney dish, the bottles of
+    antiseptic, a jar of cotton wool; below a bix and a box of syringes."""
+    m = Model()
+    for x in (1.5, 13.5):
+        for z in (3, 13):
+            m.box((x, 1.5, z), (x + 1, 15, z + 1), "chrome", up=None)
+            m.box((x, 0, z), (x + 1, 1.5, z + 1), "rubber_black")
+    m.box((1, 5, 2.5), (15, 5.5, 14.5), "steel")
+    m.box((1, 15, 2.5), (15, 15.5, 14.5), "steel")
+    m.box((2.5, 15.5, 4), (8, 16.5, 8), "enamel_white")
+    m.box((10, 15.5, 4), (11.5, 19, 5.5), "glass_amber")
+    m.box((12, 15.5, 4), (13.5, 18, 5.5), "bottle_green")
+    m.box((9.5, 15.5, 9), (13, 19, 12.5), "glass")
+    m.box((10, 16, 9.5), (12.5, 18, 12), "linen")
+    m.box((3, 15.5, 10), (7.5, 16, 13), "linen")
+    m.box((3, 5.5, 5), (8, 9.5, 11), "chrome")
+    m.box((9.5, 5.5, 5), (13.5, 8, 12), "pill_box")
+    return m
+
+
+def linen_shelf():
+    """The sister-housekeeper's shelving (стеллаж кастелянши): grey steel uprights and four shelves, two blocks high,
+    stacks of folded white linen and gowns, cardboard boxes of supplies."""
+    import random
+    r = random.Random("linen")
+    m = Model()
+    for x in (0.5, 14.5):
+        for z in (2, 14):
+            m.box((x, 0, z), (x + 1, 30, z + 1), "iron_grey")
+    for y in (1, 9, 17, 25):
+        m.box((1, y, 2.5), (15, y + 0.5, 14.5), "iron_grey" if y != 25 else "steel")
+    for y in (1.5, 9.5, 17.5, 25.5):
+        x = 1.5
+        while x < 13:
+            w = r.choice([4, 4.5, 5])
+            if x + w > 14.5:
+                break
+            if r.random() < 0.65:
+                m.box((x, y, 4), (x + w, y + r.choice([3, 4, 5]), 13), r.choice(["linen", "linen", "towel", "laundry_white"]))
+            else:
+                m.box((x, y, 3.5), (x + w, y + r.choice([4, 5, 6]), 13.5), "cardboard")
+            x += w + 0.5
+    return m
+
+
+def pharmacy_shelf():
+    """The chemist's shelves behind the counter, two blocks high: white cabinets with drawers below, open shelves above
+    packed with boxes of medicine in rows (blue, red, green and white packs), the green cross on the crown."""
+    def packs(cv, W, H):
+        import random
+        r = random.Random("packs")
+        cv.rect(0, 0, cv.w, cv.h, rgb("f0f0ea"))
+        for y0 in range(0, cv.h, 8):
+            x = 0
+            while x < cv.w:
+                w = r.choice([2, 3, 3, 4])
+                c = r.choice([rgb("3a6ab0"), rgb("c83a3a"), rgb("3a9a5a"), rgb("f4f4f0"), rgb("e0a030"), rgb("7a4aa0")])
+                cv.rect(x, y0 + 8 - r.choice([4, 5, 6]), x + w - 1, y0 + 7, c)
+                x += w
+            cv.hline(0, cv.w, y0 + 7, rgb("c8c8c0"))
+
+    def drawers(cv, W, H):
+        cv.rect(0, 0, cv.w, cv.h, rgb("f2f2ec"))
+        for k in range(2):
+            for j in range(4):
+                x0, y0 = j * cv.w // 4, k * cv.h // 2
+                cv.bevel(x0 + 1, y0 + 1, x0 + cv.w // 4 - 1, y0 + cv.h // 2 - 1, rgb("ffffff"), rgb("c0c0b8"))
+                cv.hline(x0 + 2, x0 + 4, y0 + 3, rgb("8a8a86"))
+
+    m = Model()
+    m.box((0, 0, 4), (16, 10, 16), "lab_white", north=Pic("pharm_drw", drawers))
+    m.box((0, 10, 3.5), (16, 10.5, 16), "formica")
+    m.box((0, 10.5, 14.5), (16, 30, 16), "lab_white", north=Pic("pharm_packs", packs))
+    for x in (0, 15.25):
+        m.box((x, 10.5, 9), (x + 0.75, 30, 14.5), "lab_white")
+    for y in (18, 25):
+        m.box((0.75, y, 9), (15.25, y + 0.5, 14.5), "glass_shelf")
+    import random
+    r = random.Random("phshelf")
+    for y in (10.5, 18.5, 25.5):
+        x = 1
+        while True:
+            w = r.choice([1.5, 2, 2.5])
+            if x + w > 15:
+                break
+            m.box((x, y, 11), (x + w, y + r.choice([2.5, 3, 3.5]), 14), r.choice(["pill_box", "plastic_blue", "plastic_red",
+                                                                                   "glass_amber", "pill_box"]))
+            x += w + 0.5
+    m.box((0, 30, 9), (16, 32, 16), "lab_white")
+    m.box((6.5, 30.5, 8.5), (9.5, 31.5, 9), "green_paint")                   # the green cross
+    m.box((7.5, 30, 8.25), (8.5, 32, 8.75), "green_paint")
+    return m
+
+
+def safe():
+    """A Soviet steel safe (несгораемый шкаф) on a low plinth: the green door with its key escutcheon and lever handle,
+    the maker's plate."""
+    def door(cv, W, H):
+        cv.rect(0, 0, cv.w, cv.h, rgb("5a6a58"))
+        cv.bevel(2, 2, cv.w - 2, cv.h - 2, rgb("6e7e6c"), rgb("3e4a3c"))
+        cv.disc(cv.w * 3 // 4, cv.h // 2, 2, rgb("c8a848"), ring=rgb("2a2a2a"))
+        cv.rect(cv.w // 2 - 3, 4, cv.w // 2 + 3, 6, rgb("c8a848"))
+
+    m = Model()
+    m.box((2, 0, 4), (14, 1, 15), "iron_black")
+    m.box((2, 1, 4), (14, 15, 15), "safe_green", north=Pic("safe_door", door))
+    m.box((4, 6, 3), (5, 10, 4), "chrome")
+    m.box((4.25, 9.5, 3.25), (6.5, 10.25, 3.75), "chrome")
+    return m
+
+
 def make():
     textures()
+    Furn("pub_coat_stand", "Напольная вешалка", "Coat stand", coat_stand(), color="WHITE", sound="METAL", solid=False)
+    Furn("pub_coat_stand_coat", "Напольная вешалка с халатом", "Coat stand with a white coat", coat_stand("cloak_white"),
+         color="WHITE", sound="METAL", solid=False)
+    Furn("pub_doctor_desk", "Стол врача", "Doctor's desk", doctor_desk(True), color="LIGHT_GRAY")
+    Furn("pub_doctor_desk_old", "Стол врача (старый)", "Doctor's desk (old)", doctor_desk(False), color="OAK_TAN")
+    Furn("pub_negatoscope", "Негатоскоп", "Negatoscope", lambda: negatoscope(), mount="WALL", color="WHITE", light=8,
+         solid=False)
+    Furn("pub_med_trolley", "Процедурный столик", "Procedure trolley", lambda: med_trolley(), color="WHITE", sound="METAL")
+    Furn("pub_linen_shelf", "Стеллаж с бельём", "Linen shelving", lambda: linen_shelf(), color="GRAY", sound="METAL")
+    Furn("pub_pharmacy_shelf", "Аптечный стеллаж", "Chemist's shelving", lambda: pharmacy_shelf(), color="WHITE")
+    Furn("pub_safe", "Сейф", "Safe", lambda: safe(), color="GREEN", sound="METAL")
     for n in range(1, 7):
         Furn(f"pub_registry_window_{n}", "Окно регистратуры", "Registry window", registry_window(n), color="LIGHT_BLUE",
              sound="GLASS")

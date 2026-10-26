@@ -1,0 +1,9 @@
+{
+ "parent": "minecraft:block/cube_bottom_top",
+ "textures": {
+  "top": "mobtalk:block/city2/floor_tile_brown",
+  "bottom": "mobtalk:block/city2/ceiling",
+  "side": "mobtalk:block/city2/slab_side",
+  "particle": "mobtalk:block/city2/slab_side"
+ }
+}

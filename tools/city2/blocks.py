@@ -141,6 +141,56 @@ def pattern_paper(name, ground, motif, step, noise=0.025, stagger=True):
     return img
 
 
+CEMENT = (132, 130, 124)
+
+
+def worn_tile(img, kind, seed):
+    """A floor of 4 px tiles with one damaged: a corner knocked off showing the grey cement ("chip"), a dark crack
+    zigzagging across two tiles ("crack"), or a tile broken into pieces with one gone ("broken")."""
+    r = rnd(seed + kind)
+    img = img.copy()
+    tx, ty = r.randrange(4) * 4, r.randrange(4) * 4
+    if kind == "chip":
+        for dx, dy in ((0, 0), (1, 0), (0, 1), (2, 0), (1, 1), (0, 2)):
+            put(img, tx + dx, ty + dy, D.shade(CEMENT + (255,), r.uniform(0.9, 1.05)))
+        for dx, dy in ((3, 0), (2, 1), (1, 2), (0, 3)):
+            put(img, tx + dx, ty + dy, D.shade(img.getpixel((tx + dx, ty + dy)), 0.8))
+    elif kind == "crack":
+        x, y = tx, ty + r.randrange(3)
+        for _ in range(8):
+            put(img, x % 16, y % 16, D.shade(img.getpixel((x % 16, y % 16)), 0.55))
+            x += 1
+            y += r.choice([0, 1, -1]) if 0 < y - ty < 3 else (1 if y - ty <= 0 else -1)
+    else:
+        for dx in range(3):
+            for dy in range(3):
+                c = img.getpixel((tx + dx, ty + dy))
+                put(img, tx + dx, ty + dy, D.shade(c, r.uniform(0.86, 0.98)))
+        for dx, dy in ((1, 0), (1, 1), (2, 1), (0, 2), (1, 2)):
+            put(img, tx + dx, ty + dy, D.shade(img.getpixel((tx + dx, ty + dy)), 0.6))
+        for dx, dy in ((2, 2), (2, 0)):
+            put(img, tx + dx, ty + dy, D.shade(CEMENT + (255,), 0.95))
+    return img
+
+
+def worn_lino(img, seed):
+    """Linoleum worn through in a patch (lighter, scuffed) with a short torn seam showing the dark backing and cement."""
+    r = rnd(seed + "worn")
+    img = img.copy()
+    cx, cy = r.randrange(4, 12), r.randrange(4, 12)
+    for y in range(16):
+        for x in range(16):
+            d = ((x - cx) ** 2 + (y - cy) ** 2) ** 0.5
+            if d < 4.5 and r.random() < 1.1 - d / 4.5:
+                put(img, x, y, D.shade(img.getpixel((x, y)), r.uniform(1.06, 1.16)))
+    y = r.randrange(2, 14)
+    x0 = r.randrange(0, 9)
+    for x in range(x0, x0 + r.randrange(4, 7)):
+        put(img, x, y, D.shade(CEMENT + (255,), r.uniform(0.85, 1.0)))
+        put(img, x, y + 1, D.shade(img.getpixel((x, y + 1)), 0.7))
+    return img
+
+
 def three_rows(name, plain, lo=None, hi=None):
     """The finish over a room's three rows: lo with skirting, mid plain, hi with the cornice (or the given images)."""
     tex(f"{name}_lo", lo if lo is not None else skirting(plain("lo")))
@@ -435,6 +485,21 @@ def facade_textures():
                 put(img, x, y, D.shade(base + (255,), 1.1))
         tex(name, img)
     tex("floor_tile", tiles("floor_tile", (196, 150, 120), size=4, grout=(168, 128, 104)))
+    # the hospital's floors (Dmitriy 2026-10-26): white or brown tiles, grey linoleum; each with worn variants that the
+    # generator scatters over 1-2 % of the cells (civic.Civic.at)
+    tex("floor_tile_white", tiles("floor_tile_white", (226, 226, 220), size=4, grout=(190, 192, 188)))
+    tex("floor_tile_brown", tiles("floor_tile_brown", (146, 84, 56), size=4, grout=(112, 70, 50)))
+    for name in ("floor_tile_white", "floor_tile_brown"):
+        for kind in ("chip", "crack", "broken"):
+            tex(f"{name}_{kind}", worn_tile(TEX[name], kind, name))
+    r = rnd("floor_lino_grey")
+    img = D.new()
+    fill(img, (150, 158, 148), 0.03, r)
+    for _ in range(26):
+        put(img, r.randrange(16), r.randrange(16), r.choice([(124, 132, 124), (176, 182, 172), (138, 146, 140)]))
+    tex("floor_lino_grey", img)
+    for name in ("floor_lino_grey", "floor_lino_beige", "floor_lino_brown"):
+        tex(f"{name}_worn", worn_lino(TEX[name], name))
     r = rnd("terrazzo")
     img = D.new()
     fill(img, (150, 146, 138), 0.04, r)
@@ -973,6 +1038,16 @@ def floors():
                                 ("floor_lino_beige", "Перекрытие с линолеумом (бежевым)", "Slab with beige linoleum", "PALE_YELLOW"),
                                 ("floor_tile", "Перекрытие с плиткой", "Slab with tiles", "TERRACOTTA_WHITE"),
                                 ("floor_terrazzo", "Перекрытие с мраморной крошкой", "Slab with terrazzo", "STONE_GRAY"),
+                                ("floor_tile_white", "Перекрытие с белой плиткой", "Slab with white tiles", "WHITE"),
+                                ("floor_tile_brown", "Перекрытие с коричневой плиткой", "Slab with brown tiles", "BROWN"),
+                                ("floor_lino_grey", "Перекрытие с линолеумом (серым)", "Slab with grey linoleum", "STONE_GRAY"),
+                                *[(f"floor_tile_{c}_{k}", f"Перекрытие с {ru} плиткой ({kr})", f"Slab with {c} tiles ({k})", col)
+                                  for c, ru, col in (("white", "белой", "WHITE"), ("brown", "коричневой", "BROWN"))
+                                  for k, kr in (("chip", "скол"), ("crack", "трещина"), ("broken", "разбитая"))],
+                                *[(f"floor_lino_{c}_worn", f"Перекрытие с линолеумом ({ru}, протёртым)",
+                                   f"Slab with {c} linoleum (worn)", col)
+                                  for c, ru, col in (("grey", "серым", "STONE_GRAY"), ("beige", "бежевым", "PALE_YELLOW"),
+                                                     ("brown", "коричневым", "BROWN"))],
                                 ("floor_concrete", "Бетонное перекрытие", "Concrete slab", "STONE_GRAY")):
         cube(name, "terrazzo" if name == "floor_terrazzo" else "concrete" if name == "floor_concrete" else name, ru, en, color,
              bottom="ceiling", side="slab_side")

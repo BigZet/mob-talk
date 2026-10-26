@@ -63,7 +63,9 @@ final class FurnitureUse {
             Map.entry("pub_kid_locker_bank", 2), Map.entry("pub_dish_cupboard", 1), Map.entry("pub_potty_rack", 1),
             // the polyclinic's
             Map.entry("pub_pharmacy_showcase", 2), Map.entry("pub_sterilizer", 1), Map.entry("pub_instrument_table", 1),
-            Map.entry("pub_medicine_cabinet", 1), Map.entry("pub_card_files", 2),
+            Map.entry("pub_medicine_cabinet", 1), Map.entry("pub_card_files", 2), Map.entry("pub_coat_stand", 1),
+            Map.entry("pub_coat_stand_coat", 1), Map.entry("pub_med_trolley", 1), Map.entry("pub_linen_shelf", 2),
+            Map.entry("pub_pharmacy_shelf", 2), Map.entry("pub_safe", 1),
             Map.entry("pub_toy_shelf", 2), Map.entry("pub_towel_cabinet", 1), Map.entry("pub_ball_rack", 1));
 
     /** Pieces that are a lamp and a cupboard at once open below this height (pixels above their placed cell), switch above it. */
@@ -181,6 +183,16 @@ final class FurnitureUse {
                 player.sendMessage(Text.translatable("mobtalk.furniture.physio"), true);
             }
             case "pub_iv_stand" -> drip(sw, pos, facing);
+            case "pub_doctor_desk", "pub_doctor_desk_old" -> {
+                sw.playSound(null, pos, SoundEvents.ITEM_BOOK_PAGE_TURN, SoundCategory.BLOCKS, 0.8f, 0.9f);
+                later(sw, 8, () -> sw.playSound(null, pos, SoundEvents.BLOCK_WOODEN_BUTTON_CLICK_ON, SoundCategory.BLOCKS, 0.5f, 1.8f));
+                player.sendMessage(Text.translatable("mobtalk.furniture.card." + sw.random.nextInt(5)), true);
+            }
+            case "pub_negatoscope" -> {
+                sw.playSound(null, pos, SoundEvents.BLOCK_STONE_BUTTON_CLICK_ON, SoundCategory.BLOCKS, 0.5f, 1.4f);
+                later(sw, 4, () -> sw.playSound(null, pos, SoundEvents.BLOCK_BEACON_ACTIVATE, SoundCategory.BLOCKS, 0.2f, 2.0f));
+                player.sendMessage(Text.translatable("mobtalk.furniture.negato." + sw.random.nextInt(3)), true);
+            }
             // the kindergarten's
             case "pub_toy_kitchen" -> stove(sw, pos, true);
             case "pub_doll_bed" -> lullaby(sw, pos);
@@ -234,7 +246,8 @@ final class FurnitureUse {
                  "pub_registry_window_6", "pub_queue_terminal", "pub_doctor_schedule", "pub_shoe_cover_machine", "pub_cloak_counter",
                  "pub_height_meter", "pub_xray", "pub_dental_unit", "pub_ent_unit", "pub_lab_table", "pub_physio_unit", "pub_iv_stand",
                  "pub_toy_kitchen", "pub_doll_bed", "pub_easel", "pub_soft_blocks", "pub_kid_slide", "pub_puppet_theatre",
-                 "pub_nature_calendar", "pub_nature_shelf", "pub_poster_abc" -> true;
+                 "pub_nature_calendar", "pub_nature_shelf", "pub_poster_abc", "pub_doctor_desk", "pub_doctor_desk_old",
+                 "pub_negatoscope" -> true;
             default -> false;
         };
     }
