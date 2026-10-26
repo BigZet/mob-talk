@@ -472,7 +472,10 @@ def three_box(c, p):
     fw, rw = p["cabin_front"], p["cabin_rear"]
     hollow_low = (abs(X) < half - 2) & (Y > floor) & (Y < belt) & (Z < fw) & (Z > rw)
     hollow_green = V.erode(green) & (abs(X) < half - 1)
-    body.set(hollow_low | hollow_green, AIR)
+    # eroding the greenhouse leaves its bottom layer: a slab at the sill across the whole cabin (a table at the passengers'
+    # shoulders, hiding a sitting villager to the neck); it goes too, the sides keep their sill
+    sill_slab = (abs(X) < half - 2) & (Y >= belt - 0.01) & (Y < belt + 1.01) & (Z < fw) & (Z > rw)
+    body.set(hollow_low | hollow_green | sill_slab, AIR)
     # windows: the greenhouse's skin is glass except the roof, the pillars and the frames
     skin = green & ~hollow_green & ~hollow_low
     glass = skin & (Y < roof - 1.0) & (Y > belt + 0.6)
