@@ -1564,5 +1564,19 @@
   "block.mobtalk.pub_trophy_cabinet": "Шкаф с кубками",
   "block.mobtalk.pub_trophy_cabinet_part": "Шкаф с кубками",
   "block.mobtalk.pub_class_cabinet": "Шкаф для пособий",
-  "block.mobtalk.pub_class_cabinet_part": "Шкаф для пособий"
+  "block.mobtalk.pub_class_cabinet_part": "Шкаф для пособий",
+  "block.mobtalk.pub_sill_flowers_a": "Радиатор и цветы на подоконнике",
+  "block.mobtalk.pub_sill_flowers_b": "Радиатор и традесканция",
+  "block.mobtalk.pub_fire_cabinet": "Пожарный кран и огнетушитель",
+  "block.mobtalk.pub_wall_newspaper": "Стенгазета",
+  "block.mobtalk.pub_wall_newspaper_part": "Стенгазета",
+  "block.mobtalk.pub_wall_map": "Физическая карта",
+  "block.mobtalk.pub_wall_map_part": "Физическая карта",
+  "block.mobtalk.pub_menu_board": "Меню столовой",
+  "block.mobtalk.pub_menu_board_part": "Меню столовой",
+  "block.mobtalk.pub_waste_bin": "Урна",
+  "block.mobtalk.pub_football_goal": "Ворота для мини-футбола",
+  "block.mobtalk.pub_football_goal_part": "Ворота для мини-футбола",
+  "block.mobtalk.pub_ball_rack": "Корзина с мячами",
+  "block.mobtalk.pub_satchels": "Портфели на полу"
 }

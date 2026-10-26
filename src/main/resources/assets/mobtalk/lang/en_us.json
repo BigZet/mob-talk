@@ -1564,5 +1564,19 @@
   "block.mobtalk.pub_trophy_cabinet": "Trophy cabinet",
   "block.mobtalk.pub_trophy_cabinet_part": "Trophy cabinet",
   "block.mobtalk.pub_class_cabinet": "Classroom cabinet",
-  "block.mobtalk.pub_class_cabinet_part": "Classroom cabinet"
+  "block.mobtalk.pub_class_cabinet_part": "Classroom cabinet",
+  "block.mobtalk.pub_sill_flowers_a": "Radiator and sill flowers",
+  "block.mobtalk.pub_sill_flowers_b": "Radiator and tradescantia",
+  "block.mobtalk.pub_fire_cabinet": "Fire hose cabinet",
+  "block.mobtalk.pub_wall_newspaper": "Wall newspaper",
+  "block.mobtalk.pub_wall_newspaper_part": "Wall newspaper",
+  "block.mobtalk.pub_wall_map": "Wall map",
+  "block.mobtalk.pub_wall_map_part": "Wall map",
+  "block.mobtalk.pub_menu_board": "Canteen menu",
+  "block.mobtalk.pub_menu_board_part": "Canteen menu",
+  "block.mobtalk.pub_waste_bin": "Waste bin",
+  "block.mobtalk.pub_football_goal": "Mini-football goal",
+  "block.mobtalk.pub_football_goal_part": "Mini-football goal",
+  "block.mobtalk.pub_ball_rack": "Ball cage",
+  "block.mobtalk.pub_satchels": "Satchels"
 }

@@ -63,6 +63,8 @@ def textures():
     mat("flask", P.glass(32, 32, rgb("c8e0e8")))
     mat("cup_gold", P.metal(32, 32, rgb("d8b048"), vertical=True))
     mat("pennant_red", P.fabric(32, 32, rgb("c42a2a"), "pennant", weave=1, nap=False))
+    mat("geranium", P.fabric(32, 32, rgb("d83a3a"), "geran", weave=1, nap=False))
+    mat("violet", P.fabric(32, 32, rgb("8a4ab0"), "violet", weave=1, nap=False))
 
 
 # ---------------------------------------------------------------- the assembly hall
@@ -539,6 +541,174 @@ def class_cabinet():
     return m
 
 
+# ---------------------------------------------------------------- what fills a school: the windows, the walls, the floor
+
+def sill_flowers(kind):
+    """The window's cast-iron radiator under the sill, and on the sill the pots of the class's flowers: a red geranium and
+    an aloe, or a tradescantia trailing over and a violet. Stands in the room's cell in front of the window."""
+    def build():
+        m = Model()
+        for i in range(10):                        # the MS-140 radiator, as fur_models.radiator
+            x = 0.3 + i * 1.55
+            m.box((x, 1.5, 12.5), (x + 1.2, 8, 15.5), "radiator", down=None)
+        m.box((0, 2.5, 13.5), (16, 3.5, 14.5), "radiator")
+        m.box((0, 6.5, 13.5), (16, 7.5, 14.5), "radiator")
+        pots = ((1.5, "geranium"), (6.5, "aloe"), (11.5, "geranium")) if kind == "a" else ((2, "trad"), (9, "violet"))
+        for x, plant in pots:
+            m.box((x, 13, 11.5), (x + 3.5, 16, 15), "pot_clay", down=None)
+            m.box((x + 0.5, 15.75, 12), (x + 3, 15.75, 14.5), "soil", faces=("up",))
+            if plant == "geranium":
+                m.box((x - 0.5, 16, 11), (x + 4, 20, 15.5), "leaf")
+                for dx, dz in ((0, 11.5), (2, 13), (3, 11)):
+                    m.box((x + dx, 20, dz), (x + dx + 1.5, 21.5, dz + 1.5), "geranium")
+            elif plant == "aloe":
+                m.box((x + 1, 16, 12.5), (x + 2.5, 22, 14), "aloe")
+                m.box((x, 16, 13), (x + 1, 20, 13.75), "aloe", rot={"origin": [x + 1, 16, 13], "axis": "z", "angle": 22.5})
+                m.box((x + 2.5, 16, 13), (x + 3.5, 20, 13.75), "aloe", rot={"origin": [x + 2.5, 16, 13], "axis": "z", "angle": -22.5})
+            elif plant == "trad":                  # the tradescantia hangs down over the sill's edge
+                m.box((x - 1, 16, 10.5), (x + 4.5, 18, 15.5), "leaf")
+                m.box((x - 0.5, 9, 10), (x + 1, 16, 11), "leaf", faces=("north", "east", "west"))
+                m.box((x + 2.5, 11, 10), (x + 4, 16, 11), "leaf", faces=("north", "east", "west"))
+            else:
+                m.box((x - 0.5, 16, 11.5), (x + 4, 17.5, 15), "leaf_dark")
+                m.box((x + 0.5, 17.5, 12.5), (x + 3, 18.5, 14), "violet")
+        return m
+    return build
+
+
+def fire_cabinet():
+    """The fire hose cabinet (пожарный кран): a red steel box on the wall with «ПК» and the hose reel behind the glass, the
+    red extinguisher beside it on its bracket."""
+    def door(cv, W, H):
+        cv.rect(0, 0, cv.w, cv.h, rgb("c42a22"))
+        cv.outline(0, 0, cv.w, cv.h, rgb("8a1a14"))
+        cv.rect(3, 3, cv.w - 3, cv.h // 2, rgb("e8ecee"))
+        cv.disc(cv.w / 2, cv.h / 4 + 1, cv.h / 6, rgb("c8b080"), ring=rgb("6a5a40"))
+        P.text(cv, cv.w // 2 - P.text_width("ПК") // 2, cv.h // 2 + 3, "ПК", rgb("f4f0e8"))
+
+    m = Model()
+    m.box((1, 4, 12), (11, 20, 16), "red_paint", north=Pic("fire_door", door))
+    m.box((12, 0, 13), (15, 9, 16), "red_paint")                           # the extinguisher on the floor by it
+    m.box((12.75, 9, 13.75), (14.25, 11, 15.25), "black")
+    m.box((13, 11, 12.5), (15, 11.5, 15), "black")
+    return m
+
+
+def wall_newspaper():
+    """The class's wall newspaper (стенгазета) on drawing paper, two blocks wide: the title in red, columns of handwriting,
+    drawings in felt pen, a photo pinned on."""
+    def paint(cv, W, H):
+        cv.rect(0, 0, cv.w, cv.h, rgb("f4f0e2"))
+        P.text(cv, cv.w // 2 - P.text_width("ШКОЛЬНАЯ ЖИЗНЬ") // 2, 2, "ШКОЛЬНАЯ ЖИЗНЬ", rgb("c42a2a"))
+        r = random.Random("gazeta")
+        for col in range(3):
+            x0 = 3 + col * (cv.w - 4) // 3
+            for k in range(9):
+                y = 12 + k * 3
+                cv.hline(x0, x0 + (cv.w - 4) // 3 - 3 - r.randrange(5), y, rgb("4a5a8a"))
+        cv.disc(cv.w * 0.78, cv.h * 0.72, 5, rgb("f0c040"))               # a sun drawn in felt pen
+        cv.rect(int(cv.w * 0.4), int(cv.h * 0.62), int(cv.w * 0.4) + 10, int(cv.h * 0.62) + 8, rgb("8a9a90"))
+        cv.outline(0, 0, cv.w, cv.h, rgb("c8c0a8"))
+
+    m = Model()
+    m.box((0, 4, 15.5), (32, 22, 16), "paper", north=Pic("wall_newspaper", paint))
+    return m
+
+
+def wall_map():
+    """The wall map of the country on its two wooden rods, rolled down over the side wall: the greens and browns of the
+    relief, the blue of the seas, the title strip."""
+    def paint(cv, W, H):
+        cv.rect(0, 0, cv.w, cv.h, rgb("9ac8e0"))                        # the seas
+        r = random.Random("map")
+        for y in range(6, cv.h - 4):                                    # the land: a broad mass, ragged at the coasts
+            x0 = 4 + int(3 * abs(((y * 7) % 11) - 5) / 5) + (y // 9)
+            x1 = cv.w - 6 - int(4 * abs(((y * 5) % 13) - 6) / 6) - (cv.h - y) // 12
+            for x in range(x0, x1):
+                k = (x * 3 + y * 5 + r.randrange(3)) % 17
+                c = rgb("7ab060") if k < 7 else rgb("b8c870") if k < 11 else rgb("d8b870") if k < 14 else rgb("b08a50")
+                cv.set(x, y, c)
+        for k in range(5):                                              # rivers
+            x, y = 10 + k * 9, 8
+            while y < cv.h - 6:
+                cv.set(x, y, rgb("4a80c0"))
+                y += 1
+                x += r.choice((-1, 0, 0, 1))
+        cv.rect(0, 0, cv.w, 4, rgb("f0ece0"))
+        P.text(cv, 3, 0, "ФИЗИЧЕСКАЯ КАРТА", rgb("2a2a2a"))
+
+    m = Model()
+    m.box((-8, 4, 15.5), (24, 28, 16), "paper", north=Pic("wall_map", paint))
+    m.box((-9, 28, 15), (25, 29, 16), "lightwood")
+    m.box((-9, 3, 15), (25, 4, 16), "lightwood")
+    m.box((7.5, 29, 15.5), (8.5, 31, 16), "black")
+    return m
+
+
+def menu_board():
+    """The canteen's menu board: «МЕНЮ» and the day's dishes and prices chalked on, a wooden frame."""
+    def paint(cv, W, H):
+        cv.rect(0, 0, cv.w, cv.h, rgb("2c4636"))
+        chalk = rgb("e8ece4")
+        P.text(cv, cv.w // 2 - P.text_width("МЕНЮ") // 2, 2, "МЕНЮ", rgb("f0d060"))
+        for k, line in enumerate(("КАША", "СУП", "КОТЛЕТА", "КОМПОТ")):
+            P.text(cv, 3, 10 + k * 7, line, chalk)
+            P.text(cv, cv.w - 3 - P.text_width("15"), 10 + k * 7, "15", chalk)
+
+    m = Model()
+    m.box((-8, 4, 15.25), (24, 26, 16), "board_frame", north=Pic("menu_board", paint))
+    return m
+
+
+def waste_bin():
+    """A steel waste bin with a pedal, by the canteen's and the corridor's walls."""
+    m = Model()
+    m.box((4, 0, 4), (12, 11, 12), "steel_counter_v", up=None)
+    m.box((4.5, 0.5, 4.5), (11.5, 10.5, 11.5), "black", faces=("up",))
+    m.box((3.5, 11, 3.5), (12.5, 12, 12.5), "steel_counter")
+    m.box((6, 0, 2.5), (10, 1, 4), "black")
+    return m
+
+
+def football_goal():
+    """The handball/mini-football goal at the gym's end: a white steel frame three blocks wide with the net behind."""
+    m = Model()
+    for x in (-16, 30):
+        m.box((x, 0, 2), (x + 2, 30, 4), "enamel")
+    m.box((-16, 30, 2), (32, 32, 4), "enamel")
+    m.box((-14, 0, 15.5), (30, 30, 16), "net", faces=("north", "south"), shade=False)
+    m.box((-14, 29.5, 4), (30, 30, 15.5), "net", faces=("up", "down"), shade=False)
+    for x in (-15.5, 30.5):
+        m.box((x, 0, 4), (x + 1, 30, 15.5), "net", faces=("east", "west"), shade=False)
+    return m
+
+
+def ball_rack():
+    """The ball cage: a steel wire box on castors full of basketballs and volleyballs."""
+    m = Model()
+    for x in (1, 14):
+        for z in (2, 13):
+            m.box((x, 2, z), (x + 1, 14, z + 1), "tube_steel")
+    m.box((1, 1, 2), (15, 2, 14), "tube_steel")
+    m.box((1, 14, 2), (15, 14.5, 14), "net", shade=False)
+    for x, y, z, c in ((2.5, 2, 3.5, "hoop_red"), (8, 2, 3.5, "plate_rim"), (2.5, 2, 8.5, "plate_rim"), (8, 2, 8.5, "hoop_red"),
+                       (5, 7, 6, "hoop_red"), (9, 7.5, 8.5, "plate_rim")):
+        m.box((x, y, z), (x + 5, y + 5, z + 5), c)
+    for x in (1.5, 14.5):
+        m.box((x - 0.5, 0, 2.5), (x + 0.5, 1, 3.5), "black")
+    m.box((2, 2, 1.5), (14, 14, 2), "net", faces=("north", "south"), shade=False)
+    return m
+
+
+def satchels():
+    """A satchel and a sports bag dropped on the floor by a desk."""
+    m = Model()
+    m.box((2, 0, 4), (8, 7, 7), "leatherette")
+    m.box((3, 7, 5), (7, 8, 6), "black")
+    m.box((9, 0, 7), (15, 4, 13), "canvas_blue")
+    return m
+
+
 def make():
     textures()
     mat("tile_white", P.tiles(32, 32, rgb("eeeee8"), rgb("c8c8c0"), size=8))
@@ -580,3 +750,17 @@ def make():
          solid=False)
     Furn("pub_trophy_cabinet", "Шкаф с кубками", "Trophy cabinet", lambda: trophy_cabinet(), color="BROWN", sound="GLASS")
     Furn("pub_class_cabinet", "Шкаф для пособий", "Classroom cabinet", lambda: class_cabinet(), color="OAK_TAN", sound="GLASS")
+    Furn("pub_sill_flowers_a", "Радиатор и цветы на подоконнике", "Radiator and sill flowers", sill_flowers("a"), color="GREEN",
+         sound="METAL", solid=False)
+    Furn("pub_sill_flowers_b", "Радиатор и традесканция", "Radiator and tradescantia", sill_flowers("b"), color="GREEN",
+         sound="METAL", solid=False)
+    Furn("pub_fire_cabinet", "Пожарный кран и огнетушитель", "Fire hose cabinet", lambda: fire_cabinet(), mount="WALL",
+         color="RED", sound="METAL", solid=False)
+    Furn("pub_wall_newspaper", "Стенгазета", "Wall newspaper", lambda: wall_newspaper(), mount="WALL", color="WHITE", solid=False)
+    Furn("pub_wall_map", "Физическая карта", "Wall map", lambda: wall_map(), mount="WALL", color="GREEN", solid=False)
+    Furn("pub_menu_board", "Меню столовой", "Canteen menu", lambda: menu_board(), mount="WALL", color="GREEN", solid=False)
+    Furn("pub_waste_bin", "Урна", "Waste bin", lambda: waste_bin(), color="WHITE_GRAY", sound="METAL")
+    Furn("pub_football_goal", "Ворота для мини-футбола", "Mini-football goal", lambda: football_goal(), color="WHITE",
+         sound="METAL", solid=False, cutout=True)
+    Furn("pub_ball_rack", "Корзина с мячами", "Ball cage", lambda: ball_rack(), color="GRAY", sound="METAL", cutout=True)
+    Furn("pub_satchels", "Портфели на полу", "Satchels", lambda: satchels(), color="BROWN", sound="WOOL", solid=False)

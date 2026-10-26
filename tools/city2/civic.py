@@ -267,6 +267,44 @@ def _join(t, x0, z0, cells, y0, y1, door="door_room"):
                 name, props = door, {"facing": facing, "half": "lower" if y == y0 else "upper", "hinge": hinge, "open": "true",
                                      "powered": "false"}
             t.set(x - x0, y, z - z0, name, props)
+    _clear_openings(t, [(x - x0, z - z0) for x, z, _, _ in cells], y0, y1)
+
+
+KEEP = ("tube_lamp", "wall_puck")   # lamps on the ceiling and the walls may stay by an opening
+
+
+def _clear_openings(t, cells, y0, y1, reach=2):
+    """Each volume was furnished before the openings were cut, as if the joint were a wall: whatever stands within `reach`
+    of an opening (a bench across it, a stand hung on the wall that is gone) is taken out whole, every cell of the piece."""
+    def base(name):
+        n = name.split(":")[1]
+        return n[:-5] if n.endswith("_part") else n
+
+    seen = set()
+    for cx, cz in cells:
+        for x in range(cx - reach, cx + reach + 1):
+            for z in range(cz - reach, cz + reach + 1):
+                for y in range(y0, y1 + 1):
+                    c = t.cells.get((x, y, z))
+                    if not c or (x, y, z) in seen or not c[0].startswith(("mobtalk:pub_", "mobtalk:apt_")):
+                        continue
+                    pid = base(c[0])
+                    if any(k in pid for k in KEEP):
+                        continue
+                    todo, piece = [(x, y, z)], set()
+                    while todo:                    # the piece: its connected cells of the same id
+                        q = todo.pop()
+                        if q in piece:
+                            continue
+                        d = t.cells.get(q)
+                        if not d or not d[0].startswith("mobtalk:") or base(d[0]) != pid:
+                            continue
+                        piece.add(q)
+                        for dx, dy, dz in ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)):
+                            todo.append((q[0] + dx, q[1] + dy, q[2] + dz))
+                    for q in piece:
+                        t.set(*q, "minecraft:air")
+                    seen |= piece
 
 
 # ======================================================================== the school 65-426/1 «самолётик»
@@ -458,14 +496,15 @@ def _halls(k):
             p.put(37, 5, "D")
             p.put(45, 4, "D")
             p.put(45, 5, "D")
-        for x0, x1 in ((8, 36), (46, 81)):
+        for x0, x1 in ((8, 36), (46, 76)):     # none along the stage (x 77..81): its wings are dark
             p.windows(x0, x1, 0, glass=4)
             p.windows(x0, x1, HD - 1, glass=4)
         p.windows(1, 6, 0, glass=2)
         p.windows(1, 6, HD - 1, glass=2)
     for z0, z1 in ((1, 17),):
         p.windows_z(0, z0, z1, glass=4)
-        p.windows_z(HL - 1, z0, z1, glass=4)
+        if k == 1:                           # the kitchen's end; above it the wall behind the stage is blind
+            p.windows_z(HL - 1, z0, z1, glass=4)
     return p
 
 
@@ -559,6 +598,31 @@ def _wall(rm, pid, side, height=0, tries=None):
     return False
 
 
+def _windows(rm, flowers=0.0):
+    """Under every window the radiator, in the cell before it (nothing else stands there); in the classrooms most sills
+    carry the class's flower pots."""
+    h = rm.h
+    for x, z in sorted(rm.cells):
+        for d, (dx, dz) in H.DIRS.items():
+            if h.ch(x + dx, z + dz) == "W" and h.tpl.get(h.ox + x, rm.s + 1, h.oz + z) is None:
+                pid = "apt_radiator"
+                if rm.r.random() < flowers:
+                    pid = rm.r.choice(["pub_sill_flowers_a", "pub_sill_flowers_a", "pub_sill_flowers_b"])
+                rm.write(pid, x, rm.s + 1, z, H.OPP[d])
+                break
+
+
+def _scatter(rm, pid, n, flat=True):
+    """`n` of a small piece on free floor cells anywhere in the room (satchels by the desks)."""
+    k = 0
+    for x, z, f in rm.spots():
+        if k >= n:
+            break
+        if rm.fits(pid, x, rm.s + 1, z, f, flat=flat, backed=False):
+            rm.write(pid, x, rm.s + 1, z, f)
+            k += 1
+
+
 def _void(rm, flat):
     import public
     public._lamps(rm, 5)
@@ -568,6 +632,7 @@ def classroom(rm, flat):
     """The blackboard on the west wall with the class facing it, the teacher's desk, three columns of desks, glazed cabinets
     on the back wall, a portrait or a table over the side; the third floor's last room is the chemistry room."""
     import public
+    _windows(rm, flowers=0.75)
     if rm.k == 3 and rm.letter == "K":
         return chemistry(rm, flat)
     public.classroom(rm, flat)
@@ -576,6 +641,13 @@ def classroom(rm, flat):
     if rm.r.random() < 0.5:
         for pid in ("pub_portrait_pushkin", "pub_portrait_tolstoy"):
             rm.against(pid, height=2)
+    else:
+        rm.against("pub_wall_map", height=1)
+    rm.against("pub_wall_newspaper", height=1)
+    rm.against("apt_wall_clock", height=2)
+    rm.against("apt_wall_radio", height=2)
+    rm.against("pub_waste_bin")
+    _scatter(rm, "pub_satchels", rm.r.randint(2, 5))
 
 
 def chemistry(rm, flat):
@@ -602,23 +674,36 @@ def corridor(rm, flat):
     """A recreation: the stands and the timetable on the walls, the drinking fountain, the bell over the doors, benches
     and big plants in tubs by the windows."""
     import public
+    _windows(rm, flowers=0.3)
+    n = max(1, len(rm.cells) // 60)               # a long corridor gets its things all along it
     for pid in ("pub_honours_board", "pub_stand_school", "pub_stand_timetable"):
         if not flat.get(pid) or rm.r.random() < 0.3:
             flat[pid] = rm.against(pid, height=1)
-    rm.against("pub_drinking_fountain")
-    rm.against("pub_school_bell", height=3)
-    for _ in range(3):
-        rm.against("pub_gym_bench")
-    for _ in range(3):
-        rm.against(rm.r.choice(["apt_ficus", "apt_palm_tub"]))
+    for _ in range(n):
+        for pid in ("pub_wall_newspaper", "pub_wall_map", "pub_stand_school"):
+            rm.against(pid, height=1)
+        rm.against("pub_fire_cabinet")
+        rm.against("pub_drinking_fountain")
+        rm.against("pub_school_bell", height=3)
+        rm.against("apt_wall_clock", height=2)
+        for _ in range(3):
+            rm.against("pub_gym_bench")
+        rm.against("pub_waste_bin")
+        for _ in range(2):
+            rm.against(rm.r.choice(["apt_ficus", "apt_palm_tub"]))
     public._lamps(rm, 5)
 
 
 def vestibule(rm, flat):
     """The ground hall: the trophy cabinets, the honours board and «Наша школа», the watchman's desk by the door, palms."""
     import public
+    _windows(rm)
     for _ in range(2):
         rm.against("pub_trophy_cabinet")
+    rm.against("pub_fire_cabinet")
+    rm.against("apt_hall_mirror")
+    rm.against("apt_wall_clock", height=2)
+    rm.against("pub_stand_timetable", height=1)
     rm.against("pub_honours_board", height=1)
     rm.against("pub_stand_school", height=1)
     rm.against("pub_school_bell", height=3)
@@ -626,14 +711,16 @@ def vestibule(rm, flat):
         rm.front("apt_chair", "watch", facing_back=True)
     for _ in range(3):
         rm.against("apt_palm_tub")
-    for _ in range(2):
+    for _ in range(4):
         rm.against("pub_gym_bench")
+    rm.against("pub_waste_bin")
     public._lamps(rm)
 
 
 def cloakroom(rm, flat):
     """Rows of white mesh bays, back to back, with aisles between, one bay a class: coats on most of them."""
     import public
+    _windows(rm)
     x0, z0, x1, z1 = _box(rm)
     rows = []
     z = z0
@@ -655,6 +742,7 @@ def library(rm, flat):
     """The lending library: the issue desk by the door, the card catalogue, rows of double-sided stacks with aisles; the
     reading room (R): rows of tables with the green lamps, the newspapers' stand, the bookcases round the walls."""
     import public
+    _windows(rm, flowers=0.4)
     x0, z0, x1, z1 = _box(rm)
     if rm.letter == "R":
         for x in range(x0 + 2, x1 - 2, 4):         # rows of tables, chairs on both long sides
@@ -685,13 +773,23 @@ def library(rm, flat):
 def canteen(rm, flat):
     """The serving line along the kitchen's wall (east), the dining tables in rows, the kompot glasses on them."""
     import public
+    _windows(rm)
     x0, z0, x1, z1 = _box(rm)
     for z in range(z0, z1 + 1):
         pid = "pub_serving_pans" if z % 3 else "pub_serving_kompot"
         _put(rm, pid, x1, z, "west")
-    for _ in range(16):
-        if not rm.table("pub_canteen_table", "apt_stool", chairs=4):
-            break
+    for _ in range(4):                             # wash your hands before the meal: the basins by the door
+        rm.against("apt_washbasin")
+    rm.against("pub_menu_board", height=1)
+    rm.against("pub_stand_school", height=1)
+    for _ in range(2):
+        rm.against("pub_waste_bin")
+    for x in range(x0 + 1, x1 - 3, 3):            # the tables in rows, four stools at each
+        for z in range(z0 + 2, z1 - 1, 3):
+            if _put(rm, "pub_canteen_table", x, z, "north", backed=False):
+                for dx in (0, 1):
+                    _put(rm, "apt_stool", x + dx, z - 1, "south", backed=False)
+                    _put(rm, "apt_stool", x + dx, z + 1, "north", backed=False)
     public._lamps(rm)
 
 
@@ -743,20 +841,38 @@ def assembly(rm, flat):
 def gym(rm, flat):
     """The gym as before, and the vaulting buck with its springboard set out."""
     import public
-    public.gym(rm, flat)
+    _windows(rm)
     x0, z0, x1, z1 = _box(rm)
     zc = (z0 + z1) // 2
+    _put(rm, "pub_football_goal", x0, zc, "east")
+    _put(rm, "pub_football_goal", x1, zc, "west")
+    public.gym(rm, flat)
+    for _ in range(4):
+        rm.against("pub_gym_bench")
+    rm.against("pub_ball_rack")
     xm = (x0 + x1) // 2
     if _put(rm, "pub_vaulting_horse", xm, zc, "west", backed=False):
         _put(rm, "pub_springboard", xm - 2, zc, "west", backed=False)
     rm.against("pub_school_bell", height=3)
 
 
+def _plain(fn, flowers=0.0):
+    """The rooms public.py furnishes (the staff room, the head's, the doctor's, the toilets...) with the windows' radiators
+    and flowers first."""
+    def furnish(rm, flat):
+        _windows(rm, flowers)
+        fn(rm, flat)
+    return furnish
+
+
 def _hook():
     import public
     public.FURNISH.setdefault("void", _void)
+    for kind, fl in (("staff", 0.6), ("office", 0.6), ("medical", 0.3), ("store", 0.0), ("wc_pub", 0.0), ("changing", 0.0),
+                     ("kitchen_pub", 0.0)):
+        public.FURNISH[kind] = _plain(getattr(public, kind) if kind != "kitchen_pub" else kitchen_pub, fl)
     for kind, fn in (("classroom", classroom), ("corridor", corridor), ("vestibule", vestibule), ("cloakroom", cloakroom),
-                     ("library", library), ("canteen", canteen), ("kitchen_pub", kitchen_pub), ("assembly", assembly),
+                     ("library", library), ("canteen", canteen), ("assembly", assembly),
                      ("gym", gym)):
         public.FURNISH[kind] = fn
     public.KINDS["library"] = ("plaster", "floor_parquet")
