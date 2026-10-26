@@ -68,6 +68,7 @@ final class SelfTest {
     /** {@code -Dmobtalk.selftest.only=pack}: the whole pack together — mods, hotkeys, menus, content of every mod, one Whisper. */
     static final boolean ONLY_PACK = "pack".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=furniture}: the new city's flat furniture in a show flat — placing, sitting, lamps, curtains, screenshots. */
+    static final boolean ONLY_VARIANTS = "variants".equals(System.getProperty("mobtalk.selftest.only"));
     static final boolean ONLY_FURNITURE = "furniture".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=fences}: the Soviet yard fences ({@code /city fences}) — joins, posts, gates, screenshots. */
     static final boolean ONLY_FENCES = "fences".equals(System.getProperty("mobtalk.selftest.only"));
@@ -182,6 +183,7 @@ final class SelfTest {
                 : ONLY_PLACE ? () -> new SelfTestPlace(this, cow, sx, SY, sz).run(this::finish)
                 : ONLY_CTOV ? () -> new SelfTestCtov(this, cow, sx, SY, sz).run(this::finish)
                 : ONLY_PACK ? () -> new SelfTestPack(this, sx, SY, sz).run(this::finish)
+                : ONLY_VARIANTS ? () -> new SelfTestVariants(this, sx, SY, sz).run(this::finish)
                 : ONLY_FURNITURE ? () -> new SelfTestFurniture(this, sx, SY, sz).run(this::finish)
                 : ONLY_WEDDING ? () -> new SelfTestWedding(this, sx, SY, sz).run(this::finish)
                 : ONLY_FAMILY ? () -> new SelfTestFamily(this, sx, SY, sz).run(this::finish)
