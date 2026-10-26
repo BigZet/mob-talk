@@ -1,0 +1,265 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "med_cream": "mobtalk:block/city2/furniture/med_cream",
+    "enamel_white": "mobtalk:block/city2/furniture/enamel_white",
+    "steel_sink": "mobtalk:block/city2/furniture/steel_sink",
+    "particle": "mobtalk:block/city2/furniture/med_cream"
+  },
+  "elements": [
+    {
+      "from": [
+        4.0,
+        0.0,
+        8.0
+      ],
+      "to": [
+        12.0,
+        1.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#med_cream",
+          "uv": [
+            4.0,
+            15.0,
+            12.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#med_cream",
+          "uv": [
+            4.0,
+            15.0,
+            12.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#med_cream",
+          "uv": [
+            2.0,
+            15.0,
+            8.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#med_cream",
+          "uv": [
+            8.0,
+            15.0,
+            14.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#med_cream",
+          "uv": [
+            4.0,
+            8.0,
+            12.0,
+            14.0
+          ]
+        },
+        "down": {
+          "texture": "#med_cream",
+          "uv": [
+            4.0,
+            2.0,
+            12.0,
+            8.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.0,
+        1.0,
+        9.0
+      ],
+      "to": [
+        10.0,
+        16.0,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#med_cream",
+          "uv": [
+            6.0,
+            0.0,
+            10.0,
+            15.0
+          ]
+        },
+        "south": {
+          "texture": "#med_cream",
+          "uv": [
+            6.0,
+            0.0,
+            10.0,
+            15.0
+          ]
+        },
+        "east": {
+          "texture": "#med_cream",
+          "uv": [
+            3.0,
+            0.0,
+            7.0,
+            15.0
+          ]
+        },
+        "west": {
+          "texture": "#med_cream",
+          "uv": [
+            9.0,
+            0.0,
+            13.0,
+            15.0
+          ]
+        },
+        "down": {
+          "texture": "#med_cream",
+          "uv": [
+            6.0,
+            3.0,
+            10.0,
+            7.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.0,
+        14.0,
+        9.5
+      ],
+      "to": [
+        7.0,
+        16.0,
+        13.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#enamel_white",
+          "uv": [
+            9.0,
+            0.0,
+            14.0,
+            2.0
+          ]
+        },
+        "south": {
+          "texture": "#enamel_white",
+          "uv": [
+            2.0,
+            0.0,
+            7.0,
+            2.0
+          ]
+        },
+        "east": {
+          "texture": "#enamel_white",
+          "uv": [
+            2.5,
+            0.0,
+            6.5,
+            2.0
+          ]
+        },
+        "west": {
+          "texture": "#enamel_white",
+          "uv": [
+            9.5,
+            0.0,
+            13.5,
+            2.0
+          ]
+        },
+        "up": {
+          "texture": "#enamel_white",
+          "uv": [
+            2.0,
+            9.5,
+            7.0,
+            13.5
+          ]
+        },
+        "down": {
+          "texture": "#enamel_white",
+          "uv": [
+            2.0,
+            2.5,
+            7.0,
+            6.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.5,
+        15.0,
+        10.0
+      ],
+      "to": [
+        6.0,
+        16.0,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#steel_sink",
+          "uv": [
+            10.0,
+            0.0,
+            13.5,
+            1.0
+          ]
+        },
+        "south": {
+          "texture": "#steel_sink",
+          "uv": [
+            2.5,
+            0.0,
+            6.0,
+            1.0
+          ]
+        },
+        "east": {
+          "texture": "#steel_sink",
+          "uv": [
+            3.0,
+            0.0,
+            6.0,
+            1.0
+          ]
+        },
+        "west": {
+          "texture": "#steel_sink",
+          "uv": [
+            10.0,
+            0.0,
+            13.0,
+            1.0
+          ]
+        },
+        "down": {
+          "texture": "#steel_sink",
+          "uv": [
+            2.5,
+            3.0,
+            6.0,
+            6.0
+          ]
+        }
+      }
+    }
+  ]
+}

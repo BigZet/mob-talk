@@ -1411,6 +1411,8 @@ def make():
     fur_school.make()
     import fur_kg
     fur_kg.make()
+    import fur_clinic
+    fur_clinic.make()
 
 
 def plate_tex():

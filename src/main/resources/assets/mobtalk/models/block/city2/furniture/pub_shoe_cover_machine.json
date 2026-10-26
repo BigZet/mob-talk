@@ -1,0 +1,274 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "plastic_grey": "mobtalk:block/city2/furniture/plastic_grey",
+    "plastic_blue": "mobtalk:block/city2/furniture/plastic_blue",
+    "pub_shoe_cover_machine_bahil_front_44": "mobtalk:block/city2/furniture/pub_shoe_cover_machine_bahil_front_44",
+    "particle": "mobtalk:block/city2/furniture/plastic_grey"
+  },
+  "elements": [
+    {
+      "from": [
+        1.0,
+        0.0,
+        5.0
+      ],
+      "to": [
+        11.0,
+        1.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plastic_grey",
+          "uv": [
+            5.0,
+            15.0,
+            15.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#plastic_grey",
+          "uv": [
+            1.0,
+            15.0,
+            11.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#plastic_grey",
+          "uv": [
+            2.0,
+            15.0,
+            11.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#plastic_grey",
+          "uv": [
+            5.0,
+            15.0,
+            14.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#plastic_grey",
+          "uv": [
+            1.0,
+            5.0,
+            11.0,
+            14.0
+          ]
+        },
+        "down": {
+          "texture": "#plastic_grey",
+          "uv": [
+            1.0,
+            2.0,
+            11.0,
+            11.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.0,
+        1.0,
+        5.5
+      ],
+      "to": [
+        10.0,
+        4.0,
+        13.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plastic_blue",
+          "uv": [
+            6.0,
+            12.0,
+            14.0,
+            15.0
+          ]
+        },
+        "south": {
+          "texture": "#plastic_blue",
+          "uv": [
+            2.0,
+            12.0,
+            10.0,
+            15.0
+          ]
+        },
+        "east": {
+          "texture": "#plastic_blue",
+          "uv": [
+            2.5,
+            12.0,
+            10.5,
+            15.0
+          ]
+        },
+        "west": {
+          "texture": "#plastic_blue",
+          "uv": [
+            5.5,
+            12.0,
+            13.5,
+            15.0
+          ]
+        },
+        "up": {
+          "texture": "#plastic_blue",
+          "uv": [
+            2.0,
+            5.5,
+            10.0,
+            13.5
+          ]
+        },
+        "down": {
+          "texture": "#plastic_blue",
+          "uv": [
+            2.0,
+            2.5,
+            10.0,
+            10.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.0,
+        4.0,
+        9.0
+      ],
+      "to": [
+        9.0,
+        12.0,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plastic_grey",
+          "uv": [
+            7.0,
+            4.0,
+            13.0,
+            12.0
+          ]
+        },
+        "south": {
+          "texture": "#plastic_grey",
+          "uv": [
+            3.0,
+            4.0,
+            9.0,
+            12.0
+          ]
+        },
+        "east": {
+          "texture": "#plastic_grey",
+          "uv": [
+            3.0,
+            4.0,
+            7.0,
+            12.0
+          ]
+        },
+        "west": {
+          "texture": "#plastic_grey",
+          "uv": [
+            9.0,
+            4.0,
+            13.0,
+            12.0
+          ]
+        },
+        "up": {
+          "texture": "#plastic_grey",
+          "uv": [
+            3.0,
+            9.0,
+            9.0,
+            13.0
+          ]
+        },
+        "down": {
+          "texture": "#plastic_grey",
+          "uv": [
+            3.0,
+            3.0,
+            9.0,
+            7.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.5,
+        12.0,
+        6.0
+      ],
+      "to": [
+        15.5,
+        16.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_shoe_cover_machine_bahil_front_44",
+          "uv": [
+            0.5,
+            0.0,
+            15.5,
+            4.0
+          ]
+        },
+        "south": {
+          "texture": "#plastic_blue",
+          "uv": [
+            0.5,
+            0.0,
+            15.5,
+            4.0
+          ]
+        },
+        "east": {
+          "texture": "#plastic_blue",
+          "uv": [
+            2.0,
+            0.0,
+            10.0,
+            4.0
+          ]
+        },
+        "west": {
+          "texture": "#plastic_blue",
+          "uv": [
+            6.0,
+            0.0,
+            14.0,
+            4.0
+          ]
+        },
+        "down": {
+          "texture": "#plastic_blue",
+          "uv": [
+            0.5,
+            2.0,
+            15.5,
+            10.0
+          ]
+        }
+      }
+    }
+  ]
+}

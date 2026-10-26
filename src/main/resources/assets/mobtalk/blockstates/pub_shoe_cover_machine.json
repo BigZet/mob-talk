@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/city2/furniture/pub_shoe_cover_machine"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/city2/furniture/pub_shoe_cover_machine",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/city2/furniture/pub_shoe_cover_machine",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/city2/furniture/pub_shoe_cover_machine",
+      "y": 270
+    }
+  }
+}

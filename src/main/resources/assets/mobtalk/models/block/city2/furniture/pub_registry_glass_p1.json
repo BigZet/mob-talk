@@ -1,0 +1,128 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "alu": "mobtalk:block/city2/furniture/alu",
+    "glass": "mobtalk:block/city2/furniture/glass",
+    "particle": "mobtalk:block/city2/furniture/alu"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.0,
+        7.5
+      ],
+      "to": [
+        16.0,
+        0.5,
+        8.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#alu",
+          "uv": [
+            0.0,
+            15.5,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#alu",
+          "uv": [
+            0.0,
+            15.5,
+            16.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#alu",
+          "uv": [
+            7.5,
+            15.5,
+            8.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#alu",
+          "uv": [
+            7.5,
+            15.5,
+            8.5,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#alu",
+          "uv": [
+            0.0,
+            7.5,
+            16.0,
+            8.5
+          ]
+        },
+        "down": {
+          "texture": "#alu",
+          "uv": [
+            0.0,
+            7.5,
+            16.0,
+            8.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.25,
+        0.5,
+        7.75
+      ],
+      "to": [
+        15.75,
+        16.0,
+        8.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#glass",
+          "uv": [
+            0.25,
+            0.0,
+            15.75,
+            15.5
+          ]
+        },
+        "south": {
+          "texture": "#glass",
+          "uv": [
+            0.25,
+            0.0,
+            15.75,
+            15.5
+          ]
+        },
+        "east": {
+          "texture": "#glass",
+          "uv": [
+            7.75,
+            0.0,
+            8.25,
+            15.5
+          ]
+        },
+        "west": {
+          "texture": "#glass",
+          "uv": [
+            7.75,
+            0.0,
+            8.25,
+            15.5
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -669,6 +669,180 @@ def kindergarten(colour="white", seed=0):
     return compose.compose([compose.Part(h, 0, 0, 0)])
 
 
+# ---------------------------------------------------------------- the polyclinic (типовой проект, 54.8 x 13.8 м, 5 этажей)
+# After the typical district polyclinic (public-refs/plans/polyclinic_54.8x15.jpg, sheets ext_clinic_soviet / int_clinic_*),
+# at x1.5: a slab of five floors, 83 x 24, a corridor of 4 down the middle with the doctors' rooms both sides; two
+# staircases in the north band, their landings open onto the corridor. The ground floor's middle: the ONE registry, a
+# glazed wall of numbered windows onto the hall, its card store beside it; the hall in the south band opens onto the
+# corridor and into a glazed entrance pavilion of one storey (the vestibule, the cloakroom's counters, the chemist's kiosk).
+# Upstairs the middle of the south band is a waiting hall, its windows to the south. The floors by trade: 1 the duty
+# doctor and the treatment rooms, 2 the therapists and the day ward, 3 the surgeon, ENT and the oculists, 4 the X-ray, the
+# laboratory, physiotherapy and the dentists, 5 the administration and the conference hall.
+CL, CD = 83, 24
+CSTAIRS = (20, 56)
+_NORTH = [(1, 8), (10, 18), (28, 33), (35, 47), (49, 54), (64, 72), (74, 81)]
+_SOUTH = [(1, 8), (10, 15), (17, 23), (25, 31), (33, 49), (51, 57), (59, 65), (67, 72), (74, 81)]
+_CL_FLOORS = {
+    1: (["doctor", "treatment", "wc_pub", "registry", "archive", "doctor", "doctor"],
+        ["doctor", "doctor", "doctor", "doctor", "clinic_hall", "doctor", "doctor", "treatment", "doctor"]),
+    2: (["doctor", "doctor", "wc_pub", "day_ward", "treatment", "doctor", "doctor"],
+        ["doctor", "doctor", "doctor", "doctor", "waiting", "doctor", "doctor", "doctor", "doctor"]),
+    3: (["doctor", "dressing", "wc_pub", "dressing", "treatment", "doctor", "doctor"],
+        ["ent", "ent", "eye", "eye", "waiting", "doctor", "doctor", "doctor", "doctor"]),
+    4: (["lab", "treatment", "wc_pub", "lab", "store", "dentist", "doctor"],
+        ["xray", "doctor", "physio", "physio", "waiting", "physio", "dentist", "dentist", "dentist"]),
+    5: (["office", "office", "wc_pub", "conference", "archive", "office", "staff"],
+        ["office", "staff", "office", "archive", "waiting", "office", "staff", "office", "store"]),
+}
+_CL_POOL = [c for c in "abcdefghijklmnopqrtuvwxyzACFGHIJKLMNOPQRTUVYZ0123456789%&+=?@^~$!" if c != "c"]
+_CL_ROOMS = {"c": ("S", "clinic_corridor")}
+_CL_LETTER = {}
+
+
+def _cl_letter(kind, slot):
+    key = (kind, slot)
+    if key not in _CL_LETTER:
+        ch = _CL_POOL[len(_CL_LETTER)]
+        _CL_LETTER[key] = ch
+        _CL_ROOMS[ch] = ("S", kind)
+    return _CL_LETTER[key]
+
+
+def _clinic2(k):
+    p = Plan(CL, CD)
+    p.box(0, 0, CL - 1, CD - 1, "#")
+    for x in range(1, CL - 1):
+        p.put(x, 9, "#")
+        p.put(x, 14, "#")
+    p.room(1, 10, CL - 2, 13, "c")
+    north, south = _CL_FLOORS[k]
+    for n, ((x0, x1), kind) in enumerate(zip(_NORTH, north)):
+        ch = _cl_letter(kind, ("n", n))
+        p.room(x0, 1, x1, 8, ch)
+        p.put(x0 - 1 if x0 > 1 else x0, 9, "#")
+        if kind == "registry":
+            for x in range(x0, x1 + 1):        # the glazed wall of windows (furniture) in place of the wall
+                p.put(x, 9, ch)
+        else:
+            p.put(x0 + 2 if x0 < CL // 2 else x1 - 2, 9, "D")
+        p.windows(x0, x1, 0, glass=3 if x1 - x0 > 7 else 2)
+    for n, ((x0, x1), kind) in enumerate(zip(_SOUTH, south)):
+        ch = _cl_letter(kind, ("s", n))
+        p.room(x0, 15, x1, 22, ch)
+        if kind in ("clinic_hall", "waiting"):
+            for x in range(x0 + 1, x1):         # the hall: open onto the corridor
+                p.put(x, 14, ch)
+        else:
+            p.put(x0 + 2 if x0 < CL // 2 else x1 - 2, 14, "D")
+        if not (k == 1 and kind == "clinic_hall"):
+            p.windows(x0, x1, CD - 1, glass=4 if kind == "waiting" else (3 if x1 - x0 > 6 else 2))
+    # the walls between the rooms
+    for (x0, x1) in _NORTH + [(c, c + 6) for c in CSTAIRS]:
+        for z in range(1, 9):
+            if x0 > 1:
+                p.put(x0 - 1, z, "#")
+            if x1 < CL - 2:
+                p.put(x1 + 1, z, "#")
+    for (x0, x1) in _SOUTH:
+        for z in range(15, 23):
+            if x0 > 1:
+                p.put(x0 - 1, z, "#")
+            if x1 < CL - 2:
+                p.put(x1 + 1, z, "#")
+    # the staircases: the window wall to the north, the landing open onto the corridor
+    for c in CSTAIRS:
+        p.room(c, 1, c + 6, 8, "s")
+        for x in range(c, c + 7):
+            p.put(x, 0, "S")
+            p.put(x, 9, "c")
+    # the end walls: the rooms' windows, a narrow one at each end of the corridor
+    for z0, z1 in ((1, 8), (15, 22)):
+        p.windows_z(0, z0, z1, glass=2)
+        p.windows_z(CL - 1, z0, z1, glass=2)
+    p.windows_z(0, 11, 12, glass=2)
+    p.windows_z(CL - 1, 11, 12, glass=2)
+    if k == 1:
+        p.put(48, 4, "D")                       # the registry's own door, from its card store
+        for x in range(30, 53):                 # the pavilion abuts the hall here
+            p.put(x, CD - 1, "#")
+    return p
+
+
+PL, PD = 23, 12
+
+
+def _pavilion():
+    """The entrance pavilion, glazed all round: the vestibule hall, the cloakroom behind its counters to the west, the
+    chemist's kiosk with its showcase to the east, the front doors in the middle of the south side."""
+    p = Plan(PL, PD)
+    p.box(0, 0, PL - 1, PD - 1, "#")
+    p.room(1, 1, PL - 2, PD - 2, "V")
+    p.room(1, 1, 6, 10, "w")                    # the cloakroom
+    for z in range(1, 11):
+        p.put(7, z, "#")
+    for z in range(3, 9):                       # its counters (furniture) in the openings
+        p.put(7, z, "w")
+    p.put(7, 10, "D")
+    p.room(16, 1, 21, 6, "f")                   # the chemist's kiosk
+    for z in range(1, 8):
+        p.put(15, z, "#")
+    for x in range(15, 22):
+        p.put(x, 7, "#")
+    for x in (17, 18):                          # its showcase (furniture) in the opening
+        p.put(x, 7, "f")
+    p.put(15, 2, "D")
+    for x in range(9, 14):
+        p.put(x, PD - 1, "X")
+    for x in list(range(1, 8)) + list(range(15, 22)):     # glazed all round: a ribbon of glass between thin piers
+        p.put(x, PD - 1, "W")
+    for z in range(1, PD - 1):
+        p.put(0, z, "W")
+        p.put(PL - 1, z, "W")
+    return p
+
+
+_PAV_ROOMS = {"V": ("S", "clinic_vestibule"), "w": ("S", "clinic_cloak"), "f": ("S", "chemist")}
+
+
+def _clinic_register():
+    import public           # noqa: F401  (the polyclinic's finishes)
+    if "polyclinic2" in S.SERIES:
+        return
+    plans = {k: _clinic2(k).rows() for k in range(1, 6)}
+    _series("polyclinic2", plans[5], dict(_CL_ROOMS), 5, floor_plans={k: plans[k] for k in range(1, 5)},
+            pstairs=[(c, 0, N) for c in CSTAIRS], joints=[(30, CD - 1, 52, CD - 1)],
+            curtains={k: "apt_curtain_olive" for k in ("doctor", "eye", "ent", "office", "staff", "conference", "day_ward",
+                                                         "physio", "dentist")},
+            frame="wood")
+    _series("polyclinic2-pavilion", _pavilion(), _PAV_ROOMS, 1, joints=[(0, 0, PL - 1, 0)], frame="pvc")
+    for kind, (fin, fl) in {"treatment": ("tile_bath", "floor_tile"), "dressing": ("tile_bath", "floor_tile"),
+                            "eye": ("tile_bath", "floor_lino_beige"), "ent": ("tile_bath", "floor_lino_beige"),
+                            "dentist": ("tile_bath", "floor_tile"), "xray": ("paint_stair", "floor_lino_brown"),
+                            "lab": ("tile_bath", "floor_tile"), "physio": ("tile_bath", "floor_lino_beige"),
+                            "day_ward": ("paint_stair", "floor_lino_beige"), "clinic_hall": ("paint_stair", "floor_terrazzo"),
+                            "waiting": ("paint_stair", "floor_terrazzo"), "archive": ("plaster", "floor_lino_brown"),
+                            "conference": ("plaster", "floor_parquet"), "clinic_cloak": ("paint_stair", "floor_terrazzo")}.items():
+        H.FINISH[kind], H.FLOOR[kind] = fin, fl
+        H.LAMPS[kind] = ["pub_tube_lamp"]
+
+
+def polyclinic(colour="white", seed=0):
+    _clinic_register()
+    main = Civic("polyclinic2", 1, 5, colour, seed=seed + 7)
+    main.build()
+    pav = Civic("polyclinic2-pavilion", 1, 1, colour, seed=seed + 8)
+    pav.build()
+    parts = [compose.Part(main, 0, 0, 0), compose.Part(pav, 0, 30, CD)]
+    t, flats = compose.compose(parts)
+    foot = set().union(*(p.foot for p in parts))
+    x0 = min(x for x, _ in foot) - scale.MARGIN
+    z0 = min(z for _, z in foot) - scale.MARGIN
+    s1 = main.slab(1) + 1
+    # the pavilion into the hall: an opening seven wide
+    _join(t, x0, z0, [(x, z, SO, "left") for x in range(38, 45) for z in (CD - 1, CD)], s1, s1 + 3, door=None)
+    return t, flats
+
+
 # ---------------------------------------------------------------- the furnishing (rooms.py looks it up in public.FURNISH)
 # After the Moscow references (public-refs/sheets int_school_*): the cloakroom's white mesh bays in rows, the canteen's
 # serving line along the kitchen wall, the library's free-standing stacks and a separate reading room, the assembly hall's
@@ -1076,6 +1250,363 @@ def kg_vestibule2(rm, flat):
     public_lamps(rm)
 
 
+# ---------------------------------------------------------------- the polyclinic's rooms (public-refs/sheets int_clinic_*)
+# The corridors: rows of linked seats along the walls under the doors, the doctors' timetable, stands of health posters,
+# palms; each doctor's room its desk with the doctor's and the patient's chairs, the couch behind a screen, the washbasin
+# and the medicine cabinet, and the trade's own things.
+
+def _clinic_extras(rm):
+    """What every room of the polyclinic has besides its trade: the nurse's desk, a cabinet of case histories, a plant,
+    a coat rack, the bin, a chair by the door."""
+    if rm.against("apt_desk", name="nurse"):
+        rm.front("apt_chair", "nurse", facing_back=True)
+    for pid in ("pub_medicine_cabinet", rm.r.choice(["apt_aloe", "apt_ficus", "apt_palm_tub"]), "apt_chair", "pub_waste_bin"):
+        rm.against(pid)
+    rm.against("apt_coat_rack", height=1)
+
+
+def _doctor_base(rm, couch=True):
+    if rm.against("apt_desk", name="desk"):
+        rm.front("apt_chair", "desk", facing_back=True)
+    _clinic_extras(rm)
+    rm.against("apt_chair")
+    if couch and rm.against("pub_couch", name="couch"):
+        rm.front("pub_med_screen", "couch", dist=2)
+    rm.against("apt_washbasin")
+    rm.against("pub_medicine_cabinet")
+    rm.against("apt_coat_rack", height=1)
+    rm.against("apt_wall_clock", height=2)
+    rm.against("pub_waste_bin")
+
+
+def clinic_doctor(rm, flat):
+    """A doctor's room (терапевт and the rest): the base, then the scales or the height meter, the card files."""
+    _windows(rm, flowers=0.4)
+    _doctor_base(rm)
+    for pid in rm.r.sample(["pub_med_scales", "pub_height_meter", "pub_card_files", "apt_bookcase"], 2):
+        rm.against(pid)
+    public_lamps(rm)
+
+
+def clinic_eye(rm, flat):
+    """The oculist's: the Sivtsev chart on the far wall, the doctor's desk at the other end, the trial lens case."""
+    _windows(rm, flowers=0.3)
+    _doctor_base(rm, couch=False)
+    rm.against("pub_eye_chart", height=1)
+    rm.against("pub_eye_chart", height=1)
+    rm.against("pub_instrument_table")
+    public_lamps(rm)
+
+
+def clinic_ent(rm, flat):
+    """The ENT's: the ENT unit with the patient's chair before it, the doctor's desk."""
+    _windows(rm, flowers=0.3)
+    if rm.against("pub_ent_unit", name="ent"):
+        rm.front("apt_stool", "ent", dist=2)
+    _doctor_base(rm, couch=False)
+    rm.against("pub_sterilizer")
+    public_lamps(rm)
+
+
+def clinic_dentist(rm, flat):
+    """The dentist's: the chairs by the windows with their units beside them, the steriliser, the instrument table."""
+    _windows(rm)
+    x0, z0, x1, z1 = _box(rm)
+    n = 0
+    for z in range(z0 + 1, z1 - 1, 4):
+        for x in (x0 + 2, x1 - 2):
+            if n < 2 and _put(rm, "pub_dental_chair", x, z, "east" if x < (x0 + x1) // 2 else "west", backed=False):
+                n += 1
+                for ux, uz in ((x, z - 1), (x, z + 2), (x + 1, z), (x - 1, z), (x + 1, z + 1), (x - 1, z + 1)):
+                    if any(_put(rm, "pub_dental_unit", ux, uz, f, backed=False) for f in ("north", "south", "east", "west")):
+                        break
+    for pid in ("pub_sterilizer", "pub_instrument_table", "apt_washbasin", "pub_medicine_cabinet", "pub_waste_bin"):
+        rm.against(pid)
+    if rm.against("apt_desk", name="desk"):
+        rm.front("apt_chair", "desk", facing_back=True)
+    rm.against("apt_wall_clock", height=2)
+    _clinic_extras(rm)
+    public_lamps(rm)
+
+
+def clinic_xray(rm, flat):
+    """The X-ray room: the machine in the middle of the floor, the screen, the radiographer's desk, the film cabinet."""
+    _windows(rm)
+    x0, z0, x1, z1 = _box(rm)
+    for x in range((x0 + x1) // 2 - 1, x1):
+        if _put(rm, "pub_xray", x, (z0 + z1) // 2, "south", backed=False):
+            break
+    rm.against("pub_med_screen")
+    if rm.against("apt_desk", name="desk"):
+        rm.front("apt_chair", "desk", facing_back=True)
+    for pid in ("pub_medicine_cabinet", "pub_card_files", "pub_waste_bin"):
+        rm.against(pid)
+    _clinic_extras(rm)
+    public_lamps(rm)
+
+
+def clinic_lab(rm, flat):
+    """The laboratory: benches with microscopes along the walls and one in the middle, the steriliser, the fridge, the
+    washbasin, the stools."""
+    _windows(rm)
+    for _ in range(3):
+        if rm.against("pub_lab_table", name="lab"):
+            rm.front("apt_stool", "lab")
+    rm.table("pub_lab_table", "apt_stool", chairs=2)
+    for pid in ("pub_sterilizer", "apt_fridge", "apt_washbasin", "pub_medicine_cabinet", "pub_waste_bin"):
+        rm.against(pid)
+    rm.against("apt_wall_clock", height=2)
+    _clinic_extras(rm)
+    public_lamps(rm)
+
+
+def clinic_physio(rm, flat):
+    """Physiotherapy: couches in a row with the sets beside them, a screen between each, the nurse's desk."""
+    _windows(rm)
+    for _ in range(3):
+        if rm.against("pub_couch", name="couch"):
+            rm.front("pub_physio_unit", "couch")
+            rm.against("pub_med_screen")
+    if rm.against("apt_desk", name="desk"):
+        rm.front("apt_chair", "desk", facing_back=True)
+    rm.against("apt_washbasin")
+    rm.against("apt_wall_clock", height=2)
+    _clinic_extras(rm)
+    public_lamps(rm)
+
+
+def clinic_treatment(rm, flat):
+    """The treatment room (процедурный): the couch, the drips, the instrument tables, the steriliser, the fridge for the
+    vaccines, the medicine cabinets, the nurse's desk."""
+    _windows(rm)
+    if rm.against("pub_couch", name="couch"):
+        rm.front("pub_iv_stand", "couch")
+    for pid in ("pub_instrument_table", "pub_instrument_table", "pub_sterilizer", "apt_fridge", "pub_medicine_cabinet",
+                "pub_medicine_cabinet", "apt_washbasin", "pub_iv_stand", "pub_waste_bin"):
+        rm.against(pid)
+    if rm.against("apt_desk", name="desk"):
+        rm.front("apt_chair", "desk", facing_back=True)
+    _clinic_extras(rm)
+    public_lamps(rm)
+
+
+def clinic_dressing(rm, flat):
+    """The dressing room and the minor surgery (перевязочная): the couches under the lamps, the instrument tables, the
+    steriliser, a drip, the cabinets."""
+    _windows(rm)
+    for _ in range(2):
+        if rm.against("pub_couch", name="couch"):
+            rm.front("pub_instrument_table", "couch")
+    for pid in ("pub_sterilizer", "pub_iv_stand", "pub_medicine_cabinet", "pub_medicine_cabinet", "apt_washbasin",
+                "pub_wheelchair", "pub_waste_bin"):
+        rm.against(pid)
+    _clinic_extras(rm)
+    public_lamps(rm, 3)
+
+
+def clinic_day_ward(rm, flat):
+    """The day ward (дневной стационар): iron beds in a row with a bedside table and a drip each, the nurse's desk."""
+    _windows(rm, flowers=0.3)
+    for _ in range(6):
+        if not rm.against("apt_bed_iron", name="bed"):
+            break
+        rm.against("pub_iv_stand", near="bed")
+    for pid in ("apt_washbasin", "pub_medicine_cabinet", "pub_wheelchair"):
+        rm.against(pid)
+    if rm.against("apt_desk", name="desk"):
+        rm.front("apt_chair", "desk", facing_back=True)
+    rm.against("apt_wall_clock", height=2)
+    _clinic_extras(rm)
+    public_lamps(rm)
+
+
+def clinic_registry(rm, flat):
+    """The ONE registry: the glazed wall of numbered windows onto the hall (with the glass between them), a clerk's chair
+    behind each window, the card files in rows behind, the desks with the telephones."""
+    x0, z0, x1, z1 = _box(rm)
+    n = 0
+    for x in range(x0, x1 + 1):
+        if (x - x0) % 2 and n < 6:
+            n += 1
+            rm.write(f"pub_registry_window_{n}", x, rm.s + 1, z1, "south")
+            _put(rm, "apt_chair", x, z1 - 1, "south", backed=False)
+        else:
+            rm.write("pub_registry_glass", x, rm.s + 1, z1, "south")
+    for z in (z0 + 2, z0 + 4):                     # the card files back to back across the room
+        for x in range(x0 + 1, x1 - 1, 2):
+            _put(rm, "pub_card_files", x, z, "south" if z == z0 + 4 else "north", backed=False)
+    for _ in range(6):
+        rm.against("pub_card_files")
+    if rm.against("apt_desk", name="desk"):
+        rm.front("apt_chair", "desk", facing_back=True)
+    rm.against("apt_wall_phone", height=1)
+    rm.against("apt_wall_clock", height=2)
+    public_lamps(rm)
+
+
+def clinic_archive(rm, flat):
+    """The card store or the archive: rows of card files and bookcases of case histories."""
+    _windows(rm)
+    for _ in range(10):
+        if not rm.against(rm.r.choice(["pub_card_files", "pub_card_files", "apt_bookcase"])):
+            break
+    x0, z0, x1, z1 = _box(rm)
+    for x in range(x0 + 2, x1 - 1, 2):
+        _put(rm, "pub_card_files", x, (z0 + z1) // 2, "north", backed=False)
+    if rm.against("apt_desk", name="desk"):
+        rm.front("apt_chair", "desk", facing_back=True)
+    public_lamps(rm)
+
+
+def clinic_conference(rm, flat):
+    """The conference hall: the presidium's table and the lectern at one end, rows of chairs facing them, the stands."""
+    _windows(rm, flowers=0.3)
+    x0, z0, x1, z1 = _box(rm)
+    for x in range(x0 + 3, x1 - 2):
+        if _put(rm, "pub_teacher_desk", x, z1 - 1, "north", backed=False):
+            _put(rm, "apt_chair", x, z1, "north", backed=False)
+    _put(rm, "pub_lectern", x1 - 1, z1 - 1, "north", backed=False)
+    for z in range(z0 + 1, z1 - 2, 2):
+        for x in range(x0 + 1, x1):
+            _put(rm, "apt_chair", x, z, "south", backed=False)
+    for pid in ("pub_stand_school", "apt_wall_clock", "pub_doctor_schedule"):
+        rm.against(pid, height=1)
+    public_lamps(rm)
+
+
+def _along_walls(rm, pid="pub_waiting_seats", gap=4):
+    """Seats in rows along the room's walls between its doors (the corridor's walkway between the doors would keep the
+    walls bare): a cell backed by a wall with no door within a block of it, a gap after every few."""
+    h = rm.h
+    run = 0
+    for x, z in sorted(rm.cells, key=lambda c: (c[1], c[0])):
+        for f, (dx, dz) in H.DIRS.items():
+            back = H.OPP[f]
+            bx, bz = H.DIRS[back]
+            if not rm.backed(x, z, f):
+                continue
+            side = H.DIRS[H.LEFT[f]]
+            near = [(x + bx + side[0] * k, z + bz + side[1] * k) for k in (-1, 0, 1, 2)]
+            if any(h.ch(*c) in ("D", "s", None) or h.ch(*c) == rm.letter for c in near):
+                run = 0
+                continue
+            run += 1
+            if run % gap == 0:
+                continue
+            if rm.fits(pid, x, rm.s + 1, z, f, flat=True):
+                rm.write(pid, x, rm.s + 1, z, f)
+
+
+def clinic_corridor2(rm, flat):
+    """The corridor: rows of linked seats along both walls between the doors, the timetable, the health stands, palms,
+    a fire cabinet, the bins."""
+    _windows(rm, flowers=0.3)
+    n = max(1, len(rm.cells) // 80)
+    for _ in range(n):
+        rm.against("pub_doctor_schedule", height=1)
+        rm.against("pub_stand_school", height=1)
+        rm.against("apt_notice_board", height=1)
+        rm.against("pub_fire_cabinet")
+        rm.against("pub_waste_bin")
+        rm.against(rm.r.choice(["apt_ficus", "apt_palm_tub"]))
+    _along_walls(rm)
+    public_lamps(rm, 5)
+
+
+def clinic_waiting(rm, flat):
+    """The waiting hall upstairs: seats in rows facing each other, palms by the windows, the timetable, the queue's
+    terminal, the drinking fountain, a wheelchair parked by the wall."""
+    _windows(rm, flowers=0.5)
+    for pid in ("pub_queue_terminal", "pub_drinking_fountain", "pub_wheelchair", "apt_palm_tub", "apt_ficus", "apt_palm_tub",
+                "pub_waste_bin"):
+        rm.against(pid)
+    for pid in ("pub_doctor_schedule", "pub_stand_school", "apt_wall_clock"):
+        rm.against(pid, height=1)
+    _seat_rows(rm, "east")
+    _along_walls(rm)
+    public_lamps(rm)
+
+
+def _seat_rows(rm, facing):
+    """Free rows of linked seats across the middle of a hall, two by two back to back (or all facing one way, towards the
+    registry), aisles between."""
+    x0, z0, x1, z1 = _box(rm)
+    if facing == "north":                         # the ground hall: rows facing the registry's windows
+        for z in range(z0 + 2, z1 - 1, 2):
+            for x in range(x0 + 3, x1 - 3):
+                if (x - x0) % 5 != 2:
+                    _put(rm, "pub_waiting_seats", x, z, "north", backed=False)
+    else:                                         # the waiting hall: pairs of rows back to back, across it
+        for x in range(x0 + 3, x1 - 2, 4):
+            for z in range(z0 + 2, z1 - 1):
+                _put(rm, "pub_waiting_seats", x, z, "east", backed=False)
+                _put(rm, "pub_waiting_seats", x + 1, z, "west", backed=False)
+
+
+def clinic_hall(rm, flat):
+    """The ground hall before the registry: the electronic queue's terminals, the doctors' timetable, rows of seats, the
+    shoe-cover machine, palms, the information stands."""
+    _windows(rm)
+    for _ in range(2):
+        rm.against("pub_queue_terminal")
+    for pid in ("pub_doctor_schedule", "pub_doctor_schedule", "pub_stand_school", "apt_notice_board", "apt_wall_clock"):
+        rm.against(pid, height=1)
+    for pid in ("pub_wheelchair", "apt_palm_tub", "apt_palm_tub", "pub_fire_cabinet", "pub_waste_bin"):
+        rm.against(pid)
+    _seat_rows(rm, "north")
+    _along_walls(rm)
+    public_lamps(rm)
+
+
+def clinic_vestibule2(rm, flat):
+    """The pavilion's hall: the shoe-cover machines by the doors, seats along the glass, palms, the information board."""
+    _windows(rm)
+    x0, z0, x1, z1 = _box(rm)
+    for x in range(x0, x1 + 1):                    # by the front doors, either side
+        if rm.h.ch(x, z1 + 1) == "X" or rm.h.ch(x, z1 + 1) is None:
+            continue
+        if rm.h.ch(x + 1, z1 + 1) == "X" or rm.h.ch(x - 1, z1 + 1) == "X":
+            _put(rm, "pub_shoe_cover_machine", x, z1, "north", backed=False)
+    for _ in range(2):
+        rm.against("pub_shoe_cover_machine")
+    for _ in range(4):
+        rm.against("pub_waiting_seats")
+    for pid in ("apt_palm_tub", "apt_palm_tub", "apt_ficus", "pub_waste_bin", "pub_waste_bin"):
+        rm.against(pid)
+    rm.against("apt_notice_board", height=1)
+    public_lamps(rm)
+
+
+def clinic_cloak(rm, flat):
+    """The cloakroom: its counters in the openings onto the hall, rows of coat racks behind on the walls, the attendant's
+    chair."""
+    x0, z0, x1, z1 = _box(rm)
+    for z in range(z0, z1 + 1):                    # the counters: the cells of the room in the wall's line
+        if (x1, z) in rm.cells and rm.h.ch(x1 + 1, z) == "V":
+            rm.write("pub_cloak_counter", x1, rm.s + 1, z, "east")
+    for _ in range(12):
+        rm.against("apt_coat_rack", height=1)
+    for z in range(z0 + 1, z1, 2):                  # a free-standing rack of coats in the middle, back to back
+        _put(rm, "pub_cloak_section", x0 + 2, z, "east", backed=False)
+    _put(rm, "apt_chair", x1 - 1, (z0 + z1) // 2, "east", backed=False)
+    public_lamps(rm)
+
+
+def clinic_chemist(rm, flat):
+    """The chemist's kiosk: its showcase in the opening onto the hall, the medicine cabinets behind, the fridge."""
+    x0, z0, x1, z1 = _box(rm)
+    for x in range(x0, x1 + 1):
+        if (x, z1) in rm.cells and rm.h.ch(x, z1 + 1) == "V":
+            if rm.fits("pub_pharmacy_showcase", x, rm.s + 1, z1, "south", backed=False):
+                rm.write("pub_pharmacy_showcase", x, rm.s + 1, z1, "south")
+                break
+    for _ in range(5):
+        rm.against("pub_medicine_cabinet")
+    rm.against("apt_fridge")
+    _put(rm, "apt_chair", x0 + 2, z1 - 1, "south", backed=False)
+    public_lamps(rm)
+
+
 def public_lamps(rm, step=4):
     import public
     public._lamps(rm, step)
@@ -1099,7 +1630,13 @@ def _hook():
     for kind, fn in (("classroom", classroom), ("corridor", corridor), ("vestibule", vestibule), ("cloakroom", cloakroom),
                      ("library", library), ("canteen", canteen), ("assembly", assembly),
                      ("gym", gym), ("kid_lockers", kid_lockers2), ("kid_wc", kid_wc2), ("kid_play", kid_play2),
-                     ("kid_sleep", kid_sleep2), ("music", music2), ("kg_vestibule", kg_vestibule2)):
+                     ("kid_sleep", kid_sleep2), ("music", music2), ("kg_vestibule", kg_vestibule2),
+                     ("doctor", clinic_doctor), ("eye", clinic_eye), ("ent", clinic_ent), ("dentist", clinic_dentist),
+                     ("xray", clinic_xray), ("lab", clinic_lab), ("physio", clinic_physio), ("treatment", clinic_treatment),
+                     ("dressing", clinic_dressing), ("day_ward", clinic_day_ward), ("registry", clinic_registry),
+                     ("archive", clinic_archive), ("conference", clinic_conference), ("clinic_corridor", clinic_corridor2),
+                     ("waiting", clinic_waiting), ("clinic_hall", clinic_hall), ("clinic_vestibule", clinic_vestibule2),
+                     ("clinic_cloak", clinic_cloak), ("chemist", clinic_chemist)):
         public.FURNISH[kind] = fn
     public.KINDS["library"] = ("plaster", "floor_parquet")
     H.FINISH["library"] = "plaster"

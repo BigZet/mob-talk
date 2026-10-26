@@ -1,0 +1,121 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "glass": "mobtalk:block/city2/furniture/glass",
+    "pub_registry_glass_regg_band_42": "mobtalk:block/city2/furniture/pub_registry_glass_regg_band_42",
+    "pub_registry_glass_regw_back_42": "mobtalk:block/city2/furniture/pub_registry_glass_regw_back_42",
+    "sign_blue": "mobtalk:block/city2/furniture/sign_blue",
+    "particle": "mobtalk:block/city2/furniture/glass"
+  },
+  "elements": [
+    {
+      "from": [
+        0.25,
+        0.0,
+        7.75
+      ],
+      "to": [
+        15.75,
+        7.5,
+        8.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#glass",
+          "uv": [
+            0.25,
+            8.5,
+            15.75,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#glass",
+          "uv": [
+            0.25,
+            8.5,
+            15.75,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#glass",
+          "uv": [
+            7.75,
+            8.5,
+            8.25,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#glass",
+          "uv": [
+            7.75,
+            8.5,
+            8.25,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        7.5,
+        7.5
+      ],
+      "to": [
+        16.0,
+        16.0,
+        8.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_registry_glass_regg_band_42",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            8.5
+          ]
+        },
+        "south": {
+          "texture": "#pub_registry_glass_regw_back_42",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            8.5
+          ]
+        },
+        "east": {
+          "texture": "#sign_blue",
+          "uv": [
+            7.5,
+            0.0,
+            8.5,
+            8.5
+          ]
+        },
+        "west": {
+          "texture": "#sign_blue",
+          "uv": [
+            7.5,
+            0.0,
+            8.5,
+            8.5
+          ]
+        },
+        "down": {
+          "texture": "#sign_blue",
+          "uv": [
+            0.0,
+            7.5,
+            16.0,
+            8.5
+          ]
+        }
+      }
+    }
+  ]
+}

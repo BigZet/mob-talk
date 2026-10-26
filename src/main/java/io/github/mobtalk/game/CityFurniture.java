@@ -9,7 +9,10 @@ import net.minecraft.sound.BlockSoundGroup;
 final class CityFurniture {
     private CityFurniture() { }
 
-    static final List<FurnitureBlocks.F> ALL = List.of(
+    static final List<FurnitureBlocks.F> ALL = java.util.stream.Stream.of(part0(), part1(), part2(), part3(), part4(), part5(), part6()).flatMap(List::stream).toList();
+
+    private static List<FurnitureBlocks.F> part0() {
+        return List.of(
             new FurnitureBlocks.F("apt_sofa_red", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}, {1, 0, 0}},
                     new double[][][] {{{0, 0, 2, 1.5, 11, 15.5}, {1.5, 0, 4, 16, 2, 14}, {1.5, 2, 1.5, 16, 7, 13}, {1.5, 2, 13, 16, 15, 15.5}, {1.5, 15, 13.5, 16, 16, 15.5}}, {{14.5, 0, 2, 16, 11, 15.5}, {0, 0, 4, 14.5, 2, 14}, {0, 2, 1.5, 14.5, 7, 13}, {0, 2, 13, 14.5, 15, 15.5}, {0, 15, 13.5, 14.5, 16, 15.5}}},
                     7, false, 0, MapColor.RED, BlockSoundGroup.WOOL, true, false),
@@ -129,7 +132,11 @@ final class CityFurniture {
                     0, false, 0, MapColor.RED, BlockSoundGroup.WOOL, false, true),
             new FurnitureBlocks.F("apt_curtain_olive", FurnitureBlocks.Kind.CURTAIN, FurnitureBlocks.Mount.WALL, new int[][] {{0, 0, 0}, {0, 1, 0}, {0, 2, 0}},
                     new double[][][] {{{0, 0, 11, 16, 16, 16}}, {{0, 0, 11, 16, 16, 16}}, {{0, 0, 11, 16, 16, 16}}},
-                    0, false, 0, MapColor.GREEN, BlockSoundGroup.WOOL, false, true),
+                    0, false, 0, MapColor.GREEN, BlockSoundGroup.WOOL, false, true));
+    }
+
+    private static List<FurnitureBlocks.F> part1() {
+        return List.of(
             new FurnitureBlocks.F("apt_curtain_gold", FurnitureBlocks.Kind.CURTAIN, FurnitureBlocks.Mount.WALL, new int[][] {{0, 0, 0}, {0, 1, 0}, {0, 2, 0}},
                     new double[][][] {{{0, 0, 11, 16, 16, 16}}, {{0, 0, 11, 16, 16, 16}}, {{0, 0, 11, 16, 16, 16}}},
                     0, false, 0, MapColor.GOLD, BlockSoundGroup.WOOL, false, true),
@@ -249,7 +256,11 @@ final class CityFurniture {
                     0, false, 0, MapColor.BROWN, BlockSoundGroup.WOOL, true, false),
             new FurnitureBlocks.F("apt_bed_double_r", FurnitureBlocks.Kind.BED, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}, {0, 0, -1}},
                     new double[][][] {{{0.5, 0, 14.5, 16, 8, 16}, {0.5, 2.5, 0, 1.5, 4.5, 14.5}, {1.5, 3, 0, 16, 6.5, 14.5}, {1, 6.5, 0, 16, 7.5, 14.25}, {1, 4, 0, 1.5, 6.5, 14.25}}, {{0.5, 0, 0, 16, 15.5, 16}}},
-                    0, false, 0, MapColor.BROWN, BlockSoundGroup.WOOL, true, false),
+                    0, false, 0, MapColor.BROWN, BlockSoundGroup.WOOL, true, false));
+    }
+
+    private static List<FurnitureBlocks.F> part2() {
+        return List.of(
             new FurnitureBlocks.F("apt_nightstand", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}},
                     new double[][][] {{{2.5, 0, 5.5, 13.5, 16, 16}}},
                     0, true, 10, MapColor.BROWN, BlockSoundGroup.WOOD, true, false),
@@ -369,7 +380,11 @@ final class CityFurniture {
                     0, false, 0, MapColor.LIME, BlockSoundGroup.WOOD, true, false),
             new FurnitureBlocks.F("apt2_kitchen_sink", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}},
                     new double[][][] {{{0.5, 0, 2.5, 15.5, 1.5, 15.5}, {0, 1.5, 1.5, 16, 13, 16}, {0, 13, 0.5, 16, 14, 16}, {5, 14, 13, 7, 15, 15}, {5.5, 15, 13.5, 6.5, 16, 14.5}}},
-                    0, false, 0, MapColor.LIME, BlockSoundGroup.WOOD, true, false),
+                    0, false, 0, MapColor.LIME, BlockSoundGroup.WOOD, true, false));
+    }
+
+    private static List<FurnitureBlocks.F> part3() {
+        return List.of(
             new FurnitureBlocks.F("apt2_kitchen_wall", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.WALL, new int[][] {{0, 0, 0}},
                     new double[][][] {{{0, 6, 9, 16, 16, 16}}},
                     0, false, 0, MapColor.LIME, BlockSoundGroup.WOOD, true, false),
@@ -489,7 +504,11 @@ final class CityFurniture {
                     0, false, 0, MapColor.WHITE, BlockSoundGroup.WOOD, false, false),
             new FurnitureBlocks.F("pub_medicine_cabinet", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}, {0, 1, 0}},
                     new double[][][] {{{0.5, 0, 5.75, 15.5, 16, 16}}, {{0.5, 0, 5.75, 15.5, 14, 16}}},
-                    0, false, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true, false),
+                    0, false, 0, MapColor.WHITE, BlockSoundGroup.GLASS, true, false));
+    }
+
+    private static List<FurnitureBlocks.F> part4() {
+        return List.of(
             new FurnitureBlocks.F("pub_med_scales", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}, {0, 1, 0}},
                     new double[][][] {{{2, 0, 2, 14, 2, 13}, {6.5, 2, 12, 9.5, 16, 14}}, {{6.5, 0, 12, 9.5, 6, 14}, {3, 4, 11.5, 13, 5.5, 14.5}, {10, 3, 11, 11, 6, 15}, {7.25, 6, 12.5, 8.75, 16, 13.5}, {5, 14, 10, 11, 14.5, 13}}},
                     0, false, 0, MapColor.WHITE, BlockSoundGroup.METAL, true, false),
@@ -609,7 +628,11 @@ final class CityFurniture {
                     0, false, 0, MapColor.GREEN, BlockSoundGroup.METAL, false, false),
             new FurnitureBlocks.F("pub_fire_cabinet", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.WALL, new int[][] {{0, 0, 0}},
                     new double[][][] {{{1, 4, 12, 11, 16, 16}, {12, 0, 13, 15, 9, 16}, {12.75, 9, 13.75, 14.25, 11, 15.25}, {13, 11, 12.5, 15, 11.5, 15}}},
-                    0, false, 0, MapColor.RED, BlockSoundGroup.METAL, false, false),
+                    0, false, 0, MapColor.RED, BlockSoundGroup.METAL, false, false));
+    }
+
+    private static List<FurnitureBlocks.F> part5() {
+        return List.of(
             new FurnitureBlocks.F("pub_wall_newspaper", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.WALL, new int[][] {{0, 0, 0}, {1, 0, 0}},
                     new double[][][] {{{0, 4, 15.5, 16, 16, 16}}, {{0, 4, 15.5, 16, 16, 16}}},
                     0, false, 0, MapColor.WHITE, BlockSoundGroup.WOOD, false, false),
@@ -690,5 +713,79 @@ final class CityFurniture {
                     0, false, 0, MapColor.BLUE, BlockSoundGroup.WOOL, true, false),
             new FurnitureBlocks.F("pub_instruments", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}, {1, 0, 0}},
                     new double[][][] {{{0.5, 0, 3, 16, 8.25, 13}}, {{0, 6, 3, 15.5, 7.5, 13}, {12, 0, 4, 14, 6, 12}, {0, 7.5, 5, 5, 9, 10}, {0.5, 9, 5.5, 4.5, 9.5, 9.5}, {7, 7.5, 4, 14, 13, 11}, {6, 7.5, 11, 8, 10, 12.5}}},
-                    0, false, 0, MapColor.RED, BlockSoundGroup.WOOD, true, false));
+                    0, false, 0, MapColor.RED, BlockSoundGroup.WOOD, true, false),
+            new FurnitureBlocks.F("pub_registry_window_1", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}, {0, 1, 0}, {0, 2, 0}, {0, 3, 0}},
+                    new double[][][] {{{0, 0, 7, 16, 15, 9}, {0, 15, 2.5, 16, 16, 13.5}}, {{0, 0, 3.5, 16, 16, 13}}, {{0, 0, 7.5, 1, 7.5, 8.5}, {15, 0, 7.5, 16, 7.5, 8.5}, {1, 0, 7.75, 15, 7.5, 8.25}, {0, 7.5, 7.5, 16, 16, 8.5}}, {{0, 0, 7, 16, 16, 9}}},
+                    0, false, 0, MapColor.LIGHT_BLUE, BlockSoundGroup.GLASS, true, false),
+            new FurnitureBlocks.F("pub_registry_window_2", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}, {0, 1, 0}, {0, 2, 0}, {0, 3, 0}},
+                    new double[][][] {{{0, 0, 7, 16, 15, 9}, {0, 15, 2.5, 16, 16, 13.5}}, {{0, 0, 3.5, 16, 16, 13}}, {{0, 0, 7.5, 1, 7.5, 8.5}, {15, 0, 7.5, 16, 7.5, 8.5}, {1, 0, 7.75, 15, 7.5, 8.25}, {0, 7.5, 7.5, 16, 16, 8.5}}, {{0, 0, 7, 16, 16, 9}}},
+                    0, false, 0, MapColor.LIGHT_BLUE, BlockSoundGroup.GLASS, true, false),
+            new FurnitureBlocks.F("pub_registry_window_3", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}, {0, 1, 0}, {0, 2, 0}, {0, 3, 0}},
+                    new double[][][] {{{0, 0, 7, 16, 15, 9}, {0, 15, 2.5, 16, 16, 13.5}}, {{0, 0, 3.5, 16, 16, 13}}, {{0, 0, 7.5, 1, 7.5, 8.5}, {15, 0, 7.5, 16, 7.5, 8.5}, {1, 0, 7.75, 15, 7.5, 8.25}, {0, 7.5, 7.5, 16, 16, 8.5}}, {{0, 0, 7, 16, 16, 9}}},
+                    0, false, 0, MapColor.LIGHT_BLUE, BlockSoundGroup.GLASS, true, false),
+            new FurnitureBlocks.F("pub_registry_window_4", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}, {0, 1, 0}, {0, 2, 0}, {0, 3, 0}},
+                    new double[][][] {{{0, 0, 7, 16, 15, 9}, {0, 15, 2.5, 16, 16, 13.5}}, {{0, 0, 3.5, 16, 16, 13}}, {{0, 0, 7.5, 1, 7.5, 8.5}, {15, 0, 7.5, 16, 7.5, 8.5}, {1, 0, 7.75, 15, 7.5, 8.25}, {0, 7.5, 7.5, 16, 16, 8.5}}, {{0, 0, 7, 16, 16, 9}}},
+                    0, false, 0, MapColor.LIGHT_BLUE, BlockSoundGroup.GLASS, true, false),
+            new FurnitureBlocks.F("pub_registry_window_5", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}, {0, 1, 0}, {0, 2, 0}, {0, 3, 0}},
+                    new double[][][] {{{0, 0, 7, 16, 15, 9}, {0, 15, 2.5, 16, 16, 13.5}}, {{0, 0, 3.5, 16, 16, 13}}, {{0, 0, 7.5, 1, 7.5, 8.5}, {15, 0, 7.5, 16, 7.5, 8.5}, {1, 0, 7.75, 15, 7.5, 8.25}, {0, 7.5, 7.5, 16, 16, 8.5}}, {{0, 0, 7, 16, 16, 9}}},
+                    0, false, 0, MapColor.LIGHT_BLUE, BlockSoundGroup.GLASS, true, false),
+            new FurnitureBlocks.F("pub_registry_window_6", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}, {0, 1, 0}, {0, 2, 0}, {0, 3, 0}},
+                    new double[][][] {{{0, 0, 7, 16, 15, 9}, {0, 15, 2.5, 16, 16, 13.5}}, {{0, 0, 3.5, 16, 16, 13}}, {{0, 0, 7.5, 1, 7.5, 8.5}, {15, 0, 7.5, 16, 7.5, 8.5}, {1, 0, 7.75, 15, 7.5, 8.25}, {0, 7.5, 7.5, 16, 16, 8.5}}, {{0, 0, 7, 16, 16, 9}}},
+                    0, false, 0, MapColor.LIGHT_BLUE, BlockSoundGroup.GLASS, true, false),
+            new FurnitureBlocks.F("pub_registry_glass", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}, {0, 1, 0}, {0, 2, 0}, {0, 3, 0}},
+                    new double[][][] {{{0, 0, 7, 16, 15, 9}, {0, 15, 6.5, 16, 16, 9.5}}, {{0, 0, 7.5, 16, 0.5, 8.5}, {0.25, 0.5, 7.75, 15.75, 16, 8.25}}, {{0.25, 0, 7.75, 15.75, 7.5, 8.25}, {0, 7.5, 7.5, 16, 16, 8.5}}, {{0, 0, 7, 16, 16, 9}}},
+                    0, false, 0, MapColor.LIGHT_BLUE, BlockSoundGroup.GLASS, true, false),
+            new FurnitureBlocks.F("pub_cloak_counter", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}},
+                    new double[][][] {{{0, 0, 6, 16, 15, 9}, {0, 15, 4, 16, 16, 11}}},
+                    0, false, 0, MapColor.BROWN, BlockSoundGroup.WOOD, true, false),
+            new FurnitureBlocks.F("pub_pharmacy_showcase", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {1, 1, 0}, {0, 2, 0}, {1, 2, 0}},
+                    new double[][][] {{{0, 0, 3.5, 16, 16, 12.5}}, {{0, 0, 3.5, 16, 16, 12.5}}, {{3, 0, 7, 8, 5, 9}, {0.5, 0, 11.75, 16, 16, 12.25}}, {{6, 0, 6, 13, 3, 11}, {7, 3, 6, 12, 4.5, 8}, {0, 0, 11.75, 15.5, 16, 12.25}}, {{0.5, 0, 11.75, 16, 4, 12.25}, {0, 4, 11, 16, 8, 13}}, {{0, 0, 11.75, 15.5, 4, 12.25}, {0, 4, 11, 16, 8, 13}}},
+                    0, false, 0, MapColor.GREEN, BlockSoundGroup.GLASS, true, false),
+            new FurnitureBlocks.F("pub_queue_terminal", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}, {0, 1, 0}, {0, 2, 0}},
+                    new double[][][] {{{3, 0, 5, 13, 1, 13}, {4.5, 1, 8, 11.5, 16, 12}, {6, 12, 7.5, 10, 13, 8}}, {{4.5, 0, 8, 11.5, 2, 12}, {2, 2, 5, 14, 14, 13}, {0, 14, 9, 16, 16, 12}}, {{0, 0, 9, 16, 1, 12}}},
+                    0, false, 5, MapColor.GRAY, BlockSoundGroup.METAL, true, false),
+            new FurnitureBlocks.F("pub_doctor_schedule", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.WALL, new int[][] {{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {1, 1, 0}},
+                    new double[][][] {{{0, 2, 14.5, 16, 16, 16}}, {{0, 2, 14.5, 16, 16, 16}}, {{0, 0, 14.5, 16, 12, 16}}, {{0, 0, 14.5, 16, 12, 16}}},
+                    0, false, 0, MapColor.BLUE, BlockSoundGroup.WOOD, false, false),
+            new FurnitureBlocks.F("pub_shoe_cover_machine", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}, {0, 1, 0}},
+                    new double[][][] {{{1, 0, 5, 11, 1, 14}, {2, 1, 5.5, 10, 4, 13.5}, {3, 4, 9, 9, 12, 13}, {0.5, 12, 6, 15.5, 16, 14}}, {{0.5, 0, 6, 15.5, 8, 14}, {11.5, 4, 5.5, 13, 5, 6}}},
+                    0, false, 0, MapColor.BLUE, BlockSoundGroup.METAL, true, false),
+            new FurnitureBlocks.F("pub_dental_chair", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}, {1, 0, 0}},
+                    new double[][][] {{{0, 0, 2, 16, 10.5, 13}}, {{0, 0, 3, 8, 1, 13}, {0, 1, 5, 3, 6, 11}, {0, 6, 3, 4, 9, 13}, {4, 6, 3.5, 16, 9, 12.5}, {11, 15, 5, 15, 16, 11}, {0, 9, 2, 2, 10.5, 3.5}}},
+                    9, false, 0, MapColor.LIGHT_BLUE, BlockSoundGroup.WOOD, true, false));
+    }
+
+    private static List<FurnitureBlocks.F> part6() {
+        return List.of(
+            new FurnitureBlocks.F("pub_dental_unit", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}, {0, 1, 0}, {0, 2, 0}},
+                    new double[][][] {{{4, 0, 8, 12, 1, 14}, {6, 1, 9, 10, 16, 13}, {2, 14, 9.5, 7, 16, 13.5}, {2.5, 15, 10, 6, 16, 13}}, {{5, 0, 1, 16, 16, 13}}, {{7, 0, 3, 9, 1.5, 12}, {5, 0, 1, 11, 1, 4}}},
+                    0, false, 0, MapColor.WHITE, BlockSoundGroup.METAL, true, false),
+            new FurnitureBlocks.F("pub_xray", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {1, 1, 0}, {0, 2, 0}, {1, 2, 0}},
+                    new double[][][] {{{4, 0, 4, 16, 7, 12}, {0, 7, 1, 16, 9, 15}, {2, 9, 2, 16, 9.5, 14}, {10, 5, 3, 16, 6.75, 13}}, {{0, 0, 4, 12, 7, 12}, {0, 7, 1, 16, 9, 15}, {0, 9, 2, 9.5, 9.5, 14}, {0, 5, 3, 6, 6.75, 13}, {10, 9, 13.5, 14, 16, 16}}, {{13, 10, 6, 16, 16, 15}, {14.5, 8, 7.5, 16, 10, 13.5}}, {{10, 0, 13.5, 14, 16, 16}, {0, 10, 6, 5, 16, 15}, {0, 8, 7.5, 3.5, 10, 13.5}}, {{14, 2, 12, 16, 5, 15}, {13, 0, 6, 16, 2, 15}}, {{10, 0, 13.5, 14, 10, 16}, {0, 2, 12, 12, 5, 15}, {0, 0, 6, 5, 2, 15}, {10, 10, 13, 14, 14, 16}}},
+                    0, false, 0, MapColor.GRAY, BlockSoundGroup.METAL, true, false),
+            new FurnitureBlocks.F("pub_lab_table", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {1, 1, 0}},
+                    new double[][][] {{{0.5, 0, 3, 16, 13, 15}, {0, 13, 2, 16, 14, 15.5}, {4, 14, 6, 10, 15, 12}, {8, 15, 8.5, 9.5, 16, 10.5}, {13, 14, 7, 16, 16, 11}, {14, 14, 12, 16, 14.5, 14}}, {{0, 0, 3, 15.5, 13, 15}, {0, 13, 2, 16, 14, 15.5}, {0, 14, 7, 5, 16, 11}, {7, 14, 5, 13, 16, 11}, {0, 14, 12, 4, 14.5, 14}}, {{5.5, 0, 7, 16, 10, 11}}, {{0.5, 0, 5, 13, 5, 11}}},
+                    0, false, 0, MapColor.WHITE, BlockSoundGroup.WOOD, true, false),
+            new FurnitureBlocks.F("pub_ent_unit", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {1, 1, 0}, {1, 2, 0}},
+                    new double[][][] {{{0, 0, 5, 16, 16, 16}}, {{0, 0, 6, 15.5, 14, 15.5}, {0, 14, 5, 16, 15, 16}, {0, 15, 12, 1, 16, 14}, {2, 15, 12, 4, 16, 14}, {6, 15, 8, 14, 16, 14}}, {{15, 0, 12, 16, 5, 14}, {2, 2, 15, 6, 10, 16}, {3, 5, 14.5, 5, 7, 15}}, {{0, 0, 12, 1, 5, 14}, {2, 0, 12, 4, 5, 14}, {6, 0, 8, 14, 4, 14}, {12, 4, 12, 13.5, 16, 13.5}}, {{12, 0, 12, 13.5, 2, 13.5}, {8, 0, 9, 14, 4, 14}}},
+                    0, false, 0, MapColor.WHITE, BlockSoundGroup.METAL, true, false),
+            new FurnitureBlocks.F("pub_physio_unit", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}, {0, 1, 0}},
+                    new double[][][] {{{1.5, 0, 4, 14.5, 16, 13}}, {{1.5, 0, 4, 14.5, 6, 13}, {3, 6, 9, 4, 12, 10}, {1.5, 11, 5, 5.5, 15, 9}, {12, 6, 9, 13, 12, 10}, {10.5, 11, 5, 14.5, 15, 9}}},
+                    0, false, 0, MapColor.GRAY, BlockSoundGroup.METAL, true, false),
+            new FurnitureBlocks.F("pub_sterilizer", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}, {0, 1, 0}},
+                    new double[][][] {{{0.5, 0, 3, 15.5, 14, 15.5}, {0, 14, 2.5, 16, 15, 16}, {1.5, 15, 5, 11.5, 16, 15}, {12.5, 15, 7, 15, 16, 13}}, {{1.5, 0, 5, 11.5, 9, 15}, {12.5, 0, 7, 15, 0.5, 13}, {12.75, 0.5, 7.5, 14.75, 2, 12.5}}},
+                    0, false, 0, MapColor.WHITE, BlockSoundGroup.METAL, true, false),
+            new FurnitureBlocks.F("pub_instrument_table", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}},
+                    new double[][][] {{{1, 0, 3, 15, 16, 14}}},
+                    0, false, 0, MapColor.WHITE, BlockSoundGroup.METAL, true, false),
+            new FurnitureBlocks.F("pub_height_meter", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}, {0, 1, 0}, {0, 2, 0}},
+                    new double[][][] {{{1, 0, 2, 15, 2, 15}, {6, 2, 13, 10, 16, 15}, {2, 2, 4, 14, 3, 7}}, {{6, 0, 13, 10, 16, 15}, {7, 14, 4, 9, 15, 13}, {6.5, 13.5, 12, 9.5, 15.5, 13.5}}, {{6, 0, 13, 10, 8, 15}}},
+                    0, false, 0, MapColor.OAK_TAN, BlockSoundGroup.WOOD, true, false),
+            new FurnitureBlocks.F("pub_wheelchair", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}},
+                    new double[][][] {{{1, 0, 0.5, 15, 16, 16}}},
+                    9, false, 0, MapColor.BLACK, BlockSoundGroup.METAL, true, false),
+            new FurnitureBlocks.F("pub_iv_stand", FurnitureBlocks.Kind.DECOR, FurnitureBlocks.Mount.GROUND, new int[][] {{0, 0, 0}, {0, 1, 0}},
+                    new double[][][] {{{3, 0, 7.5, 13, 1, 8.5}, {7.5, 0.25, 3, 8.5, 1.25, 13}, {7.5, 1.25, 7.5, 8.5, 16, 8.5}, {4.25, 8, 7.75, 4.75, 16, 8.25}}, {{7.5, 0, 7.5, 8.5, 13, 8.5}, {4, 13, 7.5, 12, 14, 8.5}, {3, 5, 6.5, 6, 12, 9.5}, {4, 4, 7.5, 5, 5, 8.5}, {4.25, 0, 7.75, 4.75, 4, 8.25}}},
+                    0, false, 0, MapColor.WHITE, BlockSoundGroup.METAL, false, false));
+    }
 }

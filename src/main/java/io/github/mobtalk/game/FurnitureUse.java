@@ -60,7 +60,10 @@ final class FurnitureUse {
             Map.entry("pub_fridge_cabinet", 3), Map.entry("pub_kitchen_rack", 2), Map.entry("pub_oven_cabinet", 1), Map.entry("pub_veg_crates", 1),
             Map.entry("pub_prep_table_board", 1), Map.entry("pub_prep_table_grinder", 1), Map.entry("pub_prep_table_bowls", 1),
             // the kindergarten's
-            Map.entry("pub_kid_locker_bank", 2), Map.entry("pub_dish_cupboard", 1), Map.entry("pub_potty_rack", 1));
+            Map.entry("pub_kid_locker_bank", 2), Map.entry("pub_dish_cupboard", 1), Map.entry("pub_potty_rack", 1),
+            // the polyclinic's
+            Map.entry("pub_pharmacy_showcase", 2), Map.entry("pub_sterilizer", 1), Map.entry("pub_instrument_table", 1),
+            Map.entry("pub_medicine_cabinet", 1), Map.entry("pub_card_files", 2));
 
     /** Pieces that are a lamp and a cupboard at once open below this height (pixels above their placed cell), switch above it. */
     private static final Map<String, Double> LAMP_ABOVE = Map.of("apt_nightstand", 9.5, "apt_desk", 13.0, "apt2_tv_stand", 8.75,
@@ -132,6 +135,51 @@ final class FurnitureUse {
             case "pub_stand_timetable" -> player.sendMessage(Text.translatable("mobtalk.furniture.timetable." + sw.random.nextInt(4)), true);
             case "pub_stand_school" -> player.sendMessage(Text.translatable("mobtalk.furniture.stand." + sw.random.nextInt(3)), true);
             case "pub_wall_newspaper" -> player.sendMessage(Text.translatable("mobtalk.furniture.paper." + sw.random.nextInt(3)), true);
+            case "pub_registry_window_1", "pub_registry_window_2", "pub_registry_window_3", "pub_registry_window_4",
+                 "pub_registry_window_5", "pub_registry_window_6" -> {
+                sw.playSound(null, pos, SoundEvents.ITEM_BOOK_PAGE_TURN, SoundCategory.BLOCKS, 0.8f, 1.0f);
+                player.sendMessage(Text.translatable("mobtalk.furniture.registry." + sw.random.nextInt(6), id.substring(id.length() - 1)), true);
+            }
+            case "pub_queue_terminal" -> {
+                sw.playSound(null, pos, SoundEvents.BLOCK_STONE_BUTTON_CLICK_ON, SoundCategory.BLOCKS, 0.6f, 1.6f);
+                later(sw, 8, () -> sw.playSound(null, pos, SoundEvents.UI_CARTOGRAPHY_TABLE_TAKE_RESULT, SoundCategory.BLOCKS, 0.7f, 1.4f));
+                String ticket = "АБВ".charAt(sw.random.nextInt(3)) + String.format("-%03d", 1 + sw.random.nextInt(140));
+                player.sendMessage(Text.translatable("mobtalk.furniture.queue", ticket, String.valueOf(1 + sw.random.nextInt(6))), true);
+                later(sw, 60, () -> note(sw, pos.up(), SoundEvents.BLOCK_NOTE_BLOCK_CHIME, 16, 0.6f));
+                later(sw, 66, () -> note(sw, pos.up(), SoundEvents.BLOCK_NOTE_BLOCK_CHIME, 12, 0.6f));
+            }
+            case "pub_doctor_schedule" -> player.sendMessage(Text.translatable("mobtalk.furniture.schedule." + sw.random.nextInt(4)), true);
+            case "pub_shoe_cover_machine" -> {
+                sw.playSound(null, pos, SoundEvents.BLOCK_PISTON_EXTEND, SoundCategory.BLOCKS, 0.4f, 1.6f);
+                later(sw, 6, () -> sw.playSound(null, pos, SoundEvents.ITEM_ARMOR_EQUIP_LEATHER.value(), SoundCategory.BLOCKS, 0.7f, 1.4f));
+                player.sendMessage(Text.translatable("mobtalk.furniture.covers"), true);
+            }
+            case "pub_cloak_counter" -> {
+                sw.playSound(null, pos, SoundEvents.ITEM_ARMOR_EQUIP_LEATHER.value(), SoundCategory.BLOCKS, 0.7f, 1.0f);
+                later(sw, 10, () -> sw.playSound(null, pos, SoundEvents.BLOCK_CHAIN_PLACE, SoundCategory.BLOCKS, 0.6f, 1.6f));
+                player.sendMessage(Text.translatable("mobtalk.furniture.cloak", String.valueOf(1 + sw.random.nextInt(250))), true);
+            }
+            case "pub_height_meter" -> {
+                sw.playSound(null, pos, SoundEvents.BLOCK_WOODEN_TRAPDOOR_CLOSE, SoundCategory.BLOCKS, 0.5f, 1.6f);
+                int cm = 160 + Math.floorMod(player.getUuid().hashCode(), 35);
+                player.sendMessage(Text.translatable("mobtalk.furniture.height", String.valueOf(cm)), true);
+            }
+            case "pub_xray" -> xray(sw, pos, player);
+            case "pub_dental_unit" -> drill(sw, pos);
+            case "pub_ent_unit" -> {
+                sw.playSound(null, pos, SoundEvents.BLOCK_FIRE_EXTINGUISH, SoundCategory.BLOCKS, 0.3f, 1.8f);
+                later(sw, 10, () -> sw.playSound(null, pos, SoundEvents.BLOCK_FIRE_EXTINGUISH, SoundCategory.BLOCKS, 0.3f, 1.6f));
+            }
+            case "pub_lab_table" -> {
+                sw.playSound(null, pos, SoundEvents.BLOCK_GLASS_HIT, SoundCategory.BLOCKS, 0.6f, 1.8f);
+                player.sendMessage(Text.translatable("mobtalk.furniture.lab." + sw.random.nextInt(3)), true);
+            }
+            case "pub_physio_unit" -> {
+                for (int i = 0; i < 4; i++)
+                    later(sw, i * 20, () -> sw.playSound(null, pos, SoundEvents.BLOCK_BEACON_AMBIENT, SoundCategory.BLOCKS, 0.7f, 1.8f));
+                player.sendMessage(Text.translatable("mobtalk.furniture.physio"), true);
+            }
+            case "pub_iv_stand" -> drip(sw, pos, facing);
             default -> { return null; }
         }
         return ActionResult.CONSUME;
@@ -146,7 +194,10 @@ final class FurnitureUse {
                  "apt_piano", "apt_wall_radio", "apt_radiola", "apt_tv", "apt_gas_heater", "apt_wall_phone", "apt_wall_clock", "apt_electric_meter",
                  "apt_notice_board", "apt_sewing_machine", "apt_washer", "apt_washer_malyutka", "apt_washer_sibir", "apt_crib",
                  "apt_ironing_board", "apt_chute", "pub_drinking_fountain", "pub_wash_bath", "pub_kitchen_range", "pub_boiling_pan",
-                 "pub_school_bell", "pub_menu_board", "pub_kid_washbasins", "pub_aquarium", "pub_instruments", "pub_stand_timetable", "pub_stand_school", "pub_wall_newspaper" -> true;
+                 "pub_school_bell", "pub_menu_board", "pub_kid_washbasins", "pub_aquarium", "pub_instruments", "pub_stand_timetable", "pub_stand_school", "pub_wall_newspaper",
+                 "pub_registry_window_1", "pub_registry_window_2", "pub_registry_window_3", "pub_registry_window_4", "pub_registry_window_5",
+                 "pub_registry_window_6", "pub_queue_terminal", "pub_doctor_schedule", "pub_shoe_cover_machine", "pub_cloak_counter",
+                 "pub_height_meter", "pub_xray", "pub_dental_unit", "pub_ent_unit", "pub_lab_table", "pub_physio_unit", "pub_iv_stand" -> true;
             default -> false;
         };
     }
@@ -335,6 +386,36 @@ final class FurnitureUse {
     private static void schoolBell(ServerWorld w, BlockPos pos) {
         for (int i = 0; i < 30; i++)
             later(w, i * 2, () -> w.playSound(null, pos, SoundEvents.BLOCK_NOTE_BLOCK_BELL.value(), SoundCategory.BLOCKS, 1.2f, 1.9f));
+    }
+
+    /** The X-ray: the radiographer's call, the hum of the tube coming up, the click of the exposure. */
+    private static void xray(ServerWorld w, BlockPos pos, PlayerEntity player) {
+        player.sendMessage(Text.translatable("mobtalk.furniture.xray"), true);
+        w.playSound(null, pos, SoundEvents.BLOCK_BEACON_ACTIVATE, SoundCategory.BLOCKS, 0.5f, 1.6f);
+        later(w, 30, () -> {
+            w.playSound(null, pos, SoundEvents.BLOCK_LEVER_CLICK, SoundCategory.BLOCKS, 0.8f, 0.8f);
+            w.playSound(null, pos, SoundEvents.BLOCK_BEACON_POWER_SELECT, SoundCategory.BLOCKS, 0.6f, 2.0f);
+        });
+        later(w, 40, () -> w.playSound(null, pos, SoundEvents.BLOCK_BEACON_DEACTIVATE, SoundCategory.BLOCKS, 0.4f, 1.8f));
+    }
+
+    /** The dentist's drill: its high whine, starting and stopping. */
+    private static void drill(ServerWorld w, BlockPos pos) {
+        for (int i = 0; i < 3; i++) {
+            int t = i * 14;
+            later(w, t, () -> w.playSound(null, pos, SoundEvents.ENTITY_BEE_LOOP_AGGRESSIVE, SoundCategory.BLOCKS, 0.6f, 2.0f));
+        }
+        later(w, 44, () -> w.playSound(null, pos, SoundEvents.BLOCK_WATER_AMBIENT, SoundCategory.BLOCKS, 0.4f, 1.8f));
+    }
+
+    /** The drip: drops falling from the bottle into the chamber, one a second. */
+    private static void drip(ServerWorld w, BlockPos pos, Direction facing) {
+        Vec3d at = front(pos, facing, 20, 8).add(Vec3d.of(facing.rotateYClockwise().getVector()).multiply(-3.5 / 16));
+        for (int i = 0; i < 10; i++)
+            later(w, i * 20, () -> {
+                w.spawnParticles(ParticleTypes.DRIPPING_WATER, at.x, at.y, at.z, 1, 0, 0, 0, 0);
+                w.playSound(null, pos, SoundEvents.BLOCK_POINTED_DRIPSTONE_DRIP_WATER, SoundCategory.BLOCKS, 0.3f, 1.5f);
+            });
     }
 
     private static void piano(ServerWorld w, BlockPos pos, Direction facing, Vec3d hit) {

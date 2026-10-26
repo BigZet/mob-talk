@@ -56,8 +56,8 @@ def build_houses(maps=None):
         t, _ = civic.kindergarten(colour)
         t.save(os.path.join(out, f"kindergarten_s1_f2_{colour}.nbt"))
         print(f"kindergarten {colour}: {t.size}")
-        t, _ = public.polyclinic(colour)
-        t.save(os.path.join(out, f"polyclinic_s1_f3_{colour}.nbt"))
+        t, _ = civic.polyclinic(colour)
+        t.save(os.path.join(out, f"polyclinic_s1_f5_{colour}.nbt"))
         print(f"polyclinic {colour}: {t.size}")
 
 
