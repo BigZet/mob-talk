@@ -23,6 +23,8 @@ public final class SocialProfile {
     int pregnancyDays, pregnancyNews, pregnancyDay;
     String carrier = "", pregnancyTerm = "";
     int cravingDay = -1;
+    /** Имя, которое игрок дал будущему малышу («назовём его Советослав»); "" — не выбрано. */
+    String babyName = "";
     /** {@link VoiceAge} by name, "" until the villager's voice was first cast; villagers never age. */
     String age = "";
 
@@ -54,7 +56,7 @@ public final class SocialProfile {
     /** Малыш родился: ни ожидания, ни беременности. */
     void clearExpecting() {
         expectingTick = -1; expectingWith = ""; conceivedTick = -1; pregnancyDays = 0; pregnancyNews = 0; pregnancyDay = 0;
-        carrier = ""; pregnancyTerm = ""; cravingDay = -1;
+        carrier = ""; pregnancyTerm = ""; cravingDay = -1; babyName = "";
     }
     void sanitize() {
         if (Gender.of(gender) == null) gender = Gender.MALE.name();
@@ -67,13 +69,14 @@ public final class SocialProfile {
         if (age == null || VoiceAge.of(age) == null) age = "";
         if (carrier == null) carrier = "";
         if (pregnancyTerm == null) pregnancyTerm = "";
+        if (babyName == null) babyName = "";
         if (conceivedTick < -1) conceivedTick = -1;
     }
     SocialProfile copy() {
         SocialProfile c = new SocialProfile(); c.gender = gender; c.persona = persona; c.traits = new ArrayList<>(traits); c.bornTick = bornTick; c.stage = stage;
         c.expectingTick = expectingTick; c.expectingWith = expectingWith; c.age = age;
         c.conceivedTick = conceivedTick; c.pregnancyDays = pregnancyDays; c.pregnancyNews = pregnancyNews; c.pregnancyDay = pregnancyDay;
-        c.carrier = carrier; c.pregnancyTerm = pregnancyTerm; c.cravingDay = cravingDay;
+        c.carrier = carrier; c.pregnancyTerm = pregnancyTerm; c.cravingDay = cravingDay; c.babyName = babyName;
         return c;
     }
 }

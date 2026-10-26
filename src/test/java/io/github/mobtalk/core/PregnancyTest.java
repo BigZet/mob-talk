@@ -127,6 +127,32 @@ class PregnancyTest {
         assertEquals(-1, store.children().chance(wife, player), 1e-9);
     }
 
+    /** Имя малыша: из фразы игрока до родов, ребёнок рождается с ним; имя по полу, если не выбрали; переименование младенца. */
+    @Test void theParentsNameTheBabyAndItsNameFitsItsSex() throws Exception {
+        assertEquals("Советослав", ChildLedger.namedIn("Давай назовём его Советослав"));
+        assertEquals("Майя", ChildLedger.namedIn("пусть будет майя"));
+        assertNull(ChildLedger.namedIn("Назовём его потом"));
+        assertNull(ChildLedger.namedIn("Как ты себя чувствуешь?"));
+        MobTalkConfig config = new MobTalkConfig(); config.playerGender = "male"; config.weddingCeremony = false;
+        ConversationStore store = ConversationStore.open(directory, config);
+        UUID wife = UUID.randomUUID(), player = UUID.randomUUID();
+        married(store, wife, player, Gender.FEMALE);
+        store.children().force(wife, player, DAY, 1);
+        assertEquals("Советослав", store.children().nameBaby(wife, player, "назовём сына Советослав"));
+        assertTrue(facts(store, wife, player).stream().anyMatch(f -> f.contains("Советослав")));
+        for (int i = 0; i < 12; i++) {
+            UUID baby = UUID.randomUUID();
+            Gender sex = store.social().born(baby, wife, player, "Стив", 2 * DAY, 5000);
+            String name = store.state.profiles.get(baby.toString()).givenName;
+            if (i == 0 && sex == Gender.MALE) assertEquals("Советослав", name, "the chosen name");
+            else assertNotEquals(sex == Gender.MALE ? Gender.FEMALE : Gender.MALE, VillagerNames.sexOf(name), name + " for a " + sex);
+            String other = sex == Gender.MALE ? "Ярослав" : "Злата", wrong = sex == Gender.MALE ? "Злата" : "Ярослав";
+            assertNull(store.children().nameBaby(wife, player, "Пусть будет " + wrong), "a name of the other sex is refused");
+            assertEquals(other, store.children().nameBaby(wife, player, "Пусть будет " + other), "an infant is renamed");
+            assertEquals(other, store.state.profiles.get(baby.toString()).givenName);
+        }
+    }
+
     @Test void aSameSexCoupleAndTheSwitchKeepTheOldWay() throws Exception {
         MobTalkConfig config = new MobTalkConfig(); config.playerGender = "male"; config.weddingCeremony = false;
         ConversationStore store = ConversationStore.open(directory, config);

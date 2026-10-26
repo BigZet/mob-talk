@@ -485,12 +485,20 @@ public final class SocialLedger {
             ConversationStore.Profile kid = store.ensure(child, "minecraft:villager", "Житель");
             if (kid.social == null) kid.social = SocialProfile.of(child, true);
             kid.social.gender = newborn.gender().name(); kid.social.persona = newborn.persona().name();
+            // The profile got a name from the sex its UUID suggests; the newborn's own sex (or the name its parents chose) wins.
+            String chosen = "";
+            for (ConversationStore.Profile parent : new ConversationStore.Profile[]{pa, pb})
+                if (chosen.isBlank() && parent != null && parent.social != null && !parent.social.babyName.isBlank()) chosen = parent.social.babyName;
+            Gender chosenSex = chosen.isBlank() ? null : VillagerNames.soundsLike(chosen);
+            if (!chosen.isBlank() && (chosenSex == null || chosenSex == newborn.gender())) kid.givenName = chosen;
+            else if (VillagerNames.sexOf(kid.givenName) != null && VillagerNames.sexOf(kid.givenName) != newborn.gender())
+                kid.givenName = VillagerNames.pick(child, newborn.gender(), VillagerNames.wear(state.profiles.values(), child, kid.villageId));
             kid.social.traits = new ArrayList<>(newborn.traits().stream().map(Enum::name).toList());
             kid.social.bornTick = worldTick; kid.social.stage = ChildGrowth.Stage.INFANT.name();
             kid.calm = newborn.calm(); kid.confidence = newborn.confidence(); kid.curiosity = newborn.curiosity(); kid.sociability = newborn.sociability();
             Gender ga = gender(state, pa, a, config), gb = gender(state, pb, b, config);
             boolean aMother = ga == Gender.FEMALE || gb == Gender.MALE;
-            state.family.addChild(child, "", newborn.gender(), aMother ? a : b, aMother ? b : a);
+            state.family.addChild(child, kid.givenName, newborn.gender(), aMother ? a : b, aMother ? b : a);
             for (ConversationStore.Profile parent : new ConversationStore.Profile[]{pa, pb}) {
                 if (parent == null) continue;
                 if (parent.social != null && parent.social.expectingTick >= 0) parent.social.clearExpecting();
