@@ -1401,5 +1401,6 @@
   "block.mobtalk.lattice_gate_yellow": "Калитка с ромбами (жёлтая)",
   "block.mobtalk.lattice_fence_red": "Сварной забор с ромбами (красный)",
   "block.mobtalk.lattice_gate_red": "Калитка с ромбами (красная)",
-  "block.mobtalk.concrete_fence": "Бетонный забор ПО-2 «ромбик»"
+  "block.mobtalk.concrete_fence": "Бетонный забор ПО-2",
+  "block.mobtalk.concrete_fence_diamond": "Бетонный забор с ромбиками"
 }

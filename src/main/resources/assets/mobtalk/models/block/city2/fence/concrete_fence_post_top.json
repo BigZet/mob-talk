@@ -1,28 +1,30 @@
 {
  "textures": {
-  "post": "mobtalk:block/city2/fence/concrete_post",
-  "panel": "mobtalk:block/city2/fence/concrete_top",
+  "post": "mobtalk:block/city2/fence/po2_post",
   "top": "mobtalk:block/city2/fence/concrete_cap",
-  "particle": "mobtalk:block/city2/fence/concrete_post"
+  "wire": "mobtalk:block/city2/fence/po2_loop",
+  "particle": "mobtalk:block/city2/fence/po2_post",
+  "panel": "mobtalk:block/city2/fence/po2_top",
+  "panel_f": "mobtalk:block/city2/fence/po2_top_framed"
  },
  "elements": [
   {
    "from": [
-    5,
+    5.75,
     0,
-    5
+    5.75
    ],
    "to": [
-    11,
+    10.25,
     16,
-    11
+    10.25
    ],
    "faces": {
     "north": {
      "uv": [
       0,
       0,
-      6,
+      4.5,
       16
      ],
      "texture": "#post"
@@ -31,7 +33,7 @@
      "uv": [
       0,
       0,
-      6,
+      4.5,
       16
      ],
      "texture": "#post"
@@ -40,7 +42,7 @@
      "uv": [
       0,
       0,
-      6,
+      4.5,
       16
      ],
      "texture": "#post"
@@ -49,7 +51,7 @@
      "uv": [
       0,
       0,
-      6,
+      4.5,
       16
      ],
      "texture": "#post"
@@ -58,76 +60,8 @@
      "uv": [
       0,
       0,
-      6,
-      6
-     ],
-     "texture": "#post"
-    }
-   }
-  },
-  {
-   "from": [
-    4.5,
-    16,
-    4.5
-   ],
-   "to": [
-    11.5,
-    17,
-    11.5
-   ],
-   "faces": {
-    "north": {
-     "uv": [
-      0,
-      0,
-      7.0,
-      1
-     ],
-     "texture": "#post"
-    },
-    "south": {
-     "uv": [
-      0,
-      0,
-      7.0,
-      1
-     ],
-     "texture": "#post"
-    },
-    "east": {
-     "uv": [
-      0,
-      0,
-      7.0,
-      1
-     ],
-     "texture": "#post"
-    },
-    "west": {
-     "uv": [
-      0,
-      0,
-      7.0,
-      1
-     ],
-     "texture": "#post"
-    },
-    "up": {
-     "uv": [
-      0,
-      0,
-      7.0,
-      7.0
-     ],
-     "texture": "#post"
-    },
-    "down": {
-     "uv": [
-      0,
-      0,
-      7.0,
-      7.0
+      4.5,
+      4.5
      ],
      "texture": "#post"
     }

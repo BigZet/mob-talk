@@ -1,0 +1,6 @@
+{
+ "parent": "minecraft:item/generated",
+ "textures": {
+  "layer0": "mobtalk:block/city2/fence/icon_concrete_fence_diamond"
+ }
+}

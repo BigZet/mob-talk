@@ -12,7 +12,8 @@
   {
    "when": {
     "part": "single",
-    "north": "true"
+    "north": "true",
+    "post": "false"
    },
    "apply": {
     "model": "mobtalk:block/city2/fence/concrete_fence_side_single"
@@ -21,7 +22,18 @@
   {
    "when": {
     "part": "single",
-    "east": "true"
+    "north": "true",
+    "post": "true"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/fence/concrete_fence_side_single_framed"
+   }
+  },
+  {
+   "when": {
+    "part": "single",
+    "east": "true",
+    "post": "false"
    },
    "apply": {
     "model": "mobtalk:block/city2/fence/concrete_fence_side_single",
@@ -31,7 +43,19 @@
   {
    "when": {
     "part": "single",
-    "south": "true"
+    "east": "true",
+    "post": "true"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/fence/concrete_fence_side_single_framed",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "part": "single",
+    "south": "true",
+    "post": "false"
    },
    "apply": {
     "model": "mobtalk:block/city2/fence/concrete_fence_side_single",
@@ -41,10 +65,33 @@
   {
    "when": {
     "part": "single",
-    "west": "true"
+    "south": "true",
+    "post": "true"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/fence/concrete_fence_side_single_framed",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "part": "single",
+    "west": "true",
+    "post": "false"
    },
    "apply": {
     "model": "mobtalk:block/city2/fence/concrete_fence_side_single",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "part": "single",
+    "west": "true",
+    "post": "true"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/fence/concrete_fence_side_single_framed",
     "y": 270
    }
   },
@@ -60,7 +107,8 @@
   {
    "when": {
     "part": "bottom",
-    "north": "true"
+    "north": "true",
+    "post": "false"
    },
    "apply": {
     "model": "mobtalk:block/city2/fence/concrete_fence_side_bottom"
@@ -69,7 +117,18 @@
   {
    "when": {
     "part": "bottom",
-    "east": "true"
+    "north": "true",
+    "post": "true"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/fence/concrete_fence_side_bottom_framed"
+   }
+  },
+  {
+   "when": {
+    "part": "bottom",
+    "east": "true",
+    "post": "false"
    },
    "apply": {
     "model": "mobtalk:block/city2/fence/concrete_fence_side_bottom",
@@ -79,7 +138,19 @@
   {
    "when": {
     "part": "bottom",
-    "south": "true"
+    "east": "true",
+    "post": "true"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/fence/concrete_fence_side_bottom_framed",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "part": "bottom",
+    "south": "true",
+    "post": "false"
    },
    "apply": {
     "model": "mobtalk:block/city2/fence/concrete_fence_side_bottom",
@@ -89,10 +160,33 @@
   {
    "when": {
     "part": "bottom",
-    "west": "true"
+    "south": "true",
+    "post": "true"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/fence/concrete_fence_side_bottom_framed",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "part": "bottom",
+    "west": "true",
+    "post": "false"
    },
    "apply": {
     "model": "mobtalk:block/city2/fence/concrete_fence_side_bottom",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "part": "bottom",
+    "west": "true",
+    "post": "true"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/fence/concrete_fence_side_bottom_framed",
     "y": 270
    }
   },
@@ -108,7 +202,8 @@
   {
    "when": {
     "part": "middle",
-    "north": "true"
+    "north": "true",
+    "post": "false"
    },
    "apply": {
     "model": "mobtalk:block/city2/fence/concrete_fence_side_middle"
@@ -117,7 +212,18 @@
   {
    "when": {
     "part": "middle",
-    "east": "true"
+    "north": "true",
+    "post": "true"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/fence/concrete_fence_side_middle_framed"
+   }
+  },
+  {
+   "when": {
+    "part": "middle",
+    "east": "true",
+    "post": "false"
    },
    "apply": {
     "model": "mobtalk:block/city2/fence/concrete_fence_side_middle",
@@ -127,7 +233,19 @@
   {
    "when": {
     "part": "middle",
-    "south": "true"
+    "east": "true",
+    "post": "true"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/fence/concrete_fence_side_middle_framed",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "part": "middle",
+    "south": "true",
+    "post": "false"
    },
    "apply": {
     "model": "mobtalk:block/city2/fence/concrete_fence_side_middle",
@@ -137,10 +255,33 @@
   {
    "when": {
     "part": "middle",
-    "west": "true"
+    "south": "true",
+    "post": "true"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/fence/concrete_fence_side_middle_framed",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "part": "middle",
+    "west": "true",
+    "post": "false"
    },
    "apply": {
     "model": "mobtalk:block/city2/fence/concrete_fence_side_middle",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "part": "middle",
+    "west": "true",
+    "post": "true"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/fence/concrete_fence_side_middle_framed",
     "y": 270
    }
   },
@@ -156,7 +297,8 @@
   {
    "when": {
     "part": "top",
-    "north": "true"
+    "north": "true",
+    "post": "false"
    },
    "apply": {
     "model": "mobtalk:block/city2/fence/concrete_fence_side_top"
@@ -165,7 +307,18 @@
   {
    "when": {
     "part": "top",
-    "east": "true"
+    "north": "true",
+    "post": "true"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/fence/concrete_fence_side_top_framed"
+   }
+  },
+  {
+   "when": {
+    "part": "top",
+    "east": "true",
+    "post": "false"
    },
    "apply": {
     "model": "mobtalk:block/city2/fence/concrete_fence_side_top",
@@ -175,7 +328,19 @@
   {
    "when": {
     "part": "top",
-    "south": "true"
+    "east": "true",
+    "post": "true"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/fence/concrete_fence_side_top_framed",
+    "y": 90
+   }
+  },
+  {
+   "when": {
+    "part": "top",
+    "south": "true",
+    "post": "false"
    },
    "apply": {
     "model": "mobtalk:block/city2/fence/concrete_fence_side_top",
@@ -185,10 +350,33 @@
   {
    "when": {
     "part": "top",
-    "west": "true"
+    "south": "true",
+    "post": "true"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/fence/concrete_fence_side_top_framed",
+    "y": 180
+   }
+  },
+  {
+   "when": {
+    "part": "top",
+    "west": "true",
+    "post": "false"
    },
    "apply": {
     "model": "mobtalk:block/city2/fence/concrete_fence_side_top",
+    "y": 270
+   }
+  },
+  {
+   "when": {
+    "part": "top",
+    "west": "true",
+    "post": "true"
+   },
+   "apply": {
+    "model": "mobtalk:block/city2/fence/concrete_fence_side_top_framed",
     "y": 270
    }
   }

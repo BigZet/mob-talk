@@ -1,0 +1,239 @@
+{
+ "textures": {
+  "post": "mobtalk:block/city2/fence/po2_post",
+  "top": "mobtalk:block/city2/fence/concrete_cap",
+  "wire": "mobtalk:block/city2/fence/po2_loop",
+  "particle": "mobtalk:block/city2/fence/po2_post",
+  "panel": "mobtalk:block/city2/fence/po2_top",
+  "panel_f": "mobtalk:block/city2/fence/po2_top_framed"
+ },
+ "elements": [
+  {
+   "from": [
+    6.75,
+    0,
+    0
+   ],
+   "to": [
+    9.25,
+    15,
+    8
+   ],
+   "faces": {
+    "east": {
+     "uv": [
+      0,
+      1,
+      8,
+      16
+     ],
+     "texture": "#panel_f"
+    },
+    "west": {
+     "uv": [
+      8,
+      1,
+      16,
+      16
+     ],
+     "texture": "#panel_f"
+    },
+    "up": {
+     "uv": [
+      0,
+      0,
+      2.5,
+      8
+     ],
+     "texture": "#top"
+    }
+   }
+  },
+  {
+   "from": [
+    7.75,
+    15,
+    4.5
+   ],
+   "to": [
+    8.25,
+    16.5,
+    5
+   ],
+   "faces": {
+    "north": {
+     "uv": [
+      0,
+      0,
+      0.5,
+      1.5
+     ],
+     "texture": "#wire"
+    },
+    "south": {
+     "uv": [
+      0,
+      0,
+      0.5,
+      1.5
+     ],
+     "texture": "#wire"
+    },
+    "east": {
+     "uv": [
+      0,
+      0,
+      0.5,
+      1.5
+     ],
+     "texture": "#wire"
+    },
+    "west": {
+     "uv": [
+      0,
+      0,
+      0.5,
+      1.5
+     ],
+     "texture": "#wire"
+    },
+    "up": {
+     "uv": [
+      0,
+      0,
+      0.5,
+      0.5
+     ],
+     "texture": "#wire"
+    }
+   }
+  },
+  {
+   "from": [
+    7.75,
+    15,
+    6
+   ],
+   "to": [
+    8.25,
+    16.5,
+    6.5
+   ],
+   "faces": {
+    "north": {
+     "uv": [
+      0,
+      0,
+      0.5,
+      1.5
+     ],
+     "texture": "#wire"
+    },
+    "south": {
+     "uv": [
+      0,
+      0,
+      0.5,
+      1.5
+     ],
+     "texture": "#wire"
+    },
+    "east": {
+     "uv": [
+      0,
+      0,
+      0.5,
+      1.5
+     ],
+     "texture": "#wire"
+    },
+    "west": {
+     "uv": [
+      0,
+      0,
+      0.5,
+      1.5
+     ],
+     "texture": "#wire"
+    },
+    "up": {
+     "uv": [
+      0,
+      0,
+      0.5,
+      0.5
+     ],
+     "texture": "#wire"
+    }
+   }
+  },
+  {
+   "from": [
+    7.75,
+    16.5,
+    4.5
+   ],
+   "to": [
+    8.25,
+    17,
+    6.5
+   ],
+   "faces": {
+    "north": {
+     "uv": [
+      0,
+      0,
+      0.5,
+      0.5
+     ],
+     "texture": "#wire"
+    },
+    "south": {
+     "uv": [
+      0,
+      0,
+      0.5,
+      0.5
+     ],
+     "texture": "#wire"
+    },
+    "east": {
+     "uv": [
+      0,
+      0,
+      2.0,
+      0.5
+     ],
+     "texture": "#wire"
+    },
+    "west": {
+     "uv": [
+      0,
+      0,
+      2.0,
+      0.5
+     ],
+     "texture": "#wire"
+    },
+    "up": {
+     "uv": [
+      0,
+      0,
+      0.5,
+      2.0
+     ],
+     "texture": "#wire"
+    },
+    "down": {
+     "uv": [
+      0,
+      0,
+      0.5,
+      2.0
+     ],
+     "texture": "#wire"
+    }
+   }
+  }
+ ]
+}

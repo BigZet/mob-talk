@@ -1,5 +1,5 @@
 """Soviet yard fences: chain-link mesh on pipe posts («сетка-рабица»), welded sections with a diamond lattice (round schools,
-kindergartens and yards) and the concrete PO-2 panel with its diamond relief («забор-ромбик»). Draws the textures in code and
+kindergartens and yards), the concrete PO-2 panel with its big wedge relief and a concrete panel with small diamonds. Draws the textures in code and
 writes the block models, blockstates, item models, loot tables, tags and names. The Java side is io.github.mobtalk.game.Fences
 (blocks, connections, posts, gates, the API) and client.game.CityBuildClient (render layer).
 
@@ -40,11 +40,14 @@ KINDS = {
         "yellow": ("жёлтый", "yellow", (206, 168, 58)),
         "red": ("красный", "red", (160, 58, 46)),
     },
+    "po2": {
+        "grey": ("серый", "grey", (156, 155, 150)),
+    },
     "concrete": {
         "grey": ("серый", "grey", (160, 158, 151)),
     },
 }
-SPACING = {"chainlink": 3, "lattice": 3, "concrete": 4}     # posts along a straight run, mirrored in Fences.java
+SPACING = {"chainlink": 3, "lattice": 3, "po2": 4, "concrete": 4}     # posts along a straight run, mirrored in Fences.java
 PARTS = ("single", "bottom", "middle", "top")
 HAS_TOP = ("single", "top")
 HAS_BOTTOM = ("single", "bottom")
@@ -57,11 +60,11 @@ NAMES = {}
 
 
 def fence_id(kind, colour):
-    return "concrete_fence" if kind == "concrete" else f"{kind}_fence_{colour}"
+    return {"po2": "concrete_fence", "concrete": "concrete_fence_diamond"}.get(kind, f"{kind}_fence_{colour}")
 
 
 def gate_id(kind, colour):
-    return None if kind == "concrete" else f"{kind}_gate_{colour}"
+    return None if kind in ("po2", "concrete") else f"{kind}_gate_{colour}"
 
 
 def all_fences():
@@ -257,6 +260,88 @@ def concrete_panel(paint, top, bottom):
     return im
 
 
+def po2_cell(r, im, x0, y0, x1, y1):
+    """One cell of the PO-2 relief as on the real panel: a wedge whose sharp ridge runs across the upper third, a wide sloped
+    face from the ridge down to the cell's lower edge (half shade), a steep cap face above the ridge (lit), and two side
+    triangles, the left one in deep shade, the right one lit (the sun is to the upper right). Faces are shaded over the noise
+    already in the image; cells meet without a groove, as cast."""
+    w, h = x1 - x0, y1 - y0
+    lx, rx, ry = 0.31, 0.65, 0.3                     # the ridge, in cell fractions
+    for y in range(y0, y1):
+        for x in range(x0, x1):
+            u, v = (x + 0.5 - x0) / w, (y + 0.5 - y0) / h
+            if v < ry and lx * v / ry <= u <= 1 - (1 - rx) * v / ry:
+                k = 1.32                                                 # the cap face above the ridge
+            elif u < lx * min(v, ry) / ry if v < ry else u < lx * (1 - (v - ry) / (1 - ry)):
+                k = 0.56                                                 # the left side, in shade
+            elif (u > 1 - (1 - rx) * v / ry) if v < ry else (u > rx + (1 - rx) * (v - ry) / (1 - ry)):
+                k = 1.1                                                  # the right side, lit
+            else:
+                k = 0.8                                                  # the long sloped face
+            # light edges where faces meet the ridge, a groove where cells meet
+            if abs(v - ry) * h < 0.5 and lx < u < rx:
+                k *= 1.12
+            put(im, x, y, shade(get(im, x, y), k * r.uniform(0.97, 1.03)))
+
+
+def po2_panel(paint, top, bottom, framed):
+    """The PO-2 face of one block, 32 x 32: columns 0..15 are the east face of an arm (u 0..8, the arm's middle end first),
+    columns 16..31 the same arm seen from the west (its middle end last), so the relief keeps its light on both sides of the
+    fence. Each arm is one cell wide; a framed arm (beside a post, where a panel ends) starts with the smooth panel rim.
+    Rows: the rim along the top (top parts), two cells, the rim along the foot (bottom parts)."""
+    r = rnd(f"po2:{top}:{bottom}:{framed}")
+    im = img()
+    concrete_base(r, im, (0, 0, T, T), paint, 0.035)
+    rim = shade(paint, 1.24)
+    y0 = 2 if top else 0
+    y1 = 29 if bottom else T
+    rows = []
+    if top:
+        concrete_base(r, im, (0, 2, T, 5), rim, 0.035)
+        y0 = 5
+    if bottom:
+        concrete_base(r, im, (0, 29, T, T), rim, 0.035)
+    mid = (y0 + y1 + 1) // 2
+    rows = [(y0, mid), (mid, y1)]
+    for half in (0, 1):
+        cx0, cx1 = half * 16, half * 16 + 16
+        if framed:
+            band = (cx0, cx0 + 3) if half == 0 else (cx1 - 3, cx1)
+            concrete_base(r, im, (band[0], 0, band[1], T), rim, 0.035)
+            for y in range(T):
+                put(im, band[1] if half == 0 else band[0] - 1, y, shade(get(im, band[1] if half == 0 else band[0] - 1, y), 0.8))
+            cx0, cx1 = (cx0 + 3, cx1) if half == 0 else (cx0, cx1 - 3)
+        for ry0, ry1 in rows:
+            po2_cell(r, im, cx0, ry0, cx1, ry1)
+    if top:
+        for x in range(T):
+            put(im, x, 2, shade(get(im, x, 2), 1.08))
+            put(im, x, 4, shade(get(im, x, 4), 0.86))
+    # weather: rain streaks from the rim, dirt splashed along the foot
+    for _ in range(4 if top else 2):
+        sx = r.randrange(T)
+        length = r.randrange(6, 20)
+        for y in range(y0 - (3 if top else 0), min(T, y0 + length)):
+            t = 1 - (y - y0) / length
+            put(im, sx, y, shade(get(im, sx, y), 1 - 0.14 * max(0.0, min(1.0, t))))
+    if bottom:
+        for x in range(T):
+            for y in range(24, T):
+                t = (y - 24) / 8
+                if r.random() < 0.12 + 0.35 * t:
+                    put(im, x, y, mix(get(im, x, y), (100, 92, 74), r.uniform(0.2, 0.5) * t + 0.1))
+    return im
+
+
+def wire_texture():
+    r = rnd("loop")
+    im = img()
+    for y in range(T):
+        for x in range(T):
+            put(im, x, y, shade(RUST, r.uniform(0.75, 1.15)))
+    return im
+
+
 def concrete_plain(name, paint, amount=0.05):
     r = rnd(name)
     im = img()
@@ -271,11 +356,13 @@ def concrete_plain(name, paint, amount=0.05):
 def icon(kind, colour, paint, gate):
     """A 32 x 32 inventory picture: a stretch of fence between two posts, or a gate leaf with its latch."""
     im = img()
-    pipe = TEX[f"{kind}_{colour}_pipe"] if kind != "concrete" else TEX["concrete_post"]
+    pipe = TEX[f"{kind}_{colour}_pipe"] if kind not in ("po2", "concrete") else TEX["concrete_post"]
     if kind == "chainlink":
         fill = chainlink_mesh(colour, paint, True, True)
     elif kind == "lattice":
         fill = TEX[f"lattice_{colour}"]
+    elif kind == "po2":
+        fill = TEX["po2_single"]
     else:
         fill = TEX["concrete_single"]
     y0, y1 = (4, 30)
@@ -298,7 +385,7 @@ def icon(kind, colour, paint, gate):
             for x in range(23, 26):
                 put(im, x, y, shade((70, 70, 72), 1.2 if y == 15 else 0.9))
     else:
-        w = 3 if kind != "concrete" else 4
+        w = 3 if kind not in ("po2", "concrete") else 4
         for px in (2, 29 - w):
             for y in range(2 if kind != "chainlink" else 3, 31):
                 for i in range(w):
@@ -390,6 +477,28 @@ def make_fence_models(kind, colour):
                 side.append(box((7.25, 1, 0), (8.75, 2.5, 8), "pipe", "ewud"))
             tex = {"pipe": pipe, "lattice": lat, "particle": pipe}
             ao = False
+        elif kind == "po2":
+            post_t = base + "po2_post"
+            post = [box((5.75, 0, 5.75), (10.25, 16, 10.25), "post", "nsewu")]
+            y1 = 15 if top else 16
+            tex = {"post": post_t, "top": base + "concrete_cap", "wire": base + "po2_loop", "particle": post_t}
+            for framed in (False, True):
+                key = "panel_f" if framed else "panel"
+                tex[key] = base + f"po2_{part}" + ("_framed" if framed else "")
+                el = {"from": [6.75, 0, 0], "to": [9.25, y1, 8],
+                      "faces": {"east": face([0, 16 - y1, 8, 16], key), "west": face([8, 16 - y1, 16, 16], key)}}
+                if top:
+                    el["faces"]["up"] = face([0, 0, 2.5, 8], "top")
+                arm = [el]
+                if top and framed:                                         # the lifting loop of the panel's end
+                    arm += [box((7.75, y1, 4.5), (8.25, y1 + 1.5, 5), "wire", "nsewu"),
+                            box((7.75, y1, 6), (8.25, y1 + 1.5, 6.5), "wire", "nsewu"),
+                            box((7.75, y1 + 1.5, 4.5), (8.25, y1 + 2, 6.5), "wire")]
+                if framed:
+                    MODELS[f"{fid}_side_{part}_framed"] = model(arm, tex, True)
+                else:
+                    side = arm
+            ao = True
         else:
             post_t = base + "concrete_post"
             post = [box((5, 0, 5), (11, 16, 11), "post", "nsewu")]
@@ -409,17 +518,22 @@ def make_fence_models(kind, colour):
     for part in PARTS:
         parts.append({"when": {"part": part, "post": "true"}, "apply": {"model": f"mobtalk:block/{TEXDIR}/{fid}_post_{part}"}})
         for d, rot in (("north", 0), ("east", 90), ("south", 180), ("west", 270)):
-            apply = {"model": f"mobtalk:block/{TEXDIR}/{fid}_side_{part}"}
-            if rot:
-                apply["y"] = rot
-            parts.append({"when": {"part": part, d: "true"}, "apply": apply})
+            for framed in ((False, True) if kind == "po2" else (None,)):
+                apply = {"model": f"mobtalk:block/{TEXDIR}/{fid}_side_{part}" + ("_framed" if framed else "")}
+                if rot:
+                    apply["y"] = rot
+                when = {"part": part, d: "true"}
+                if framed is not None:
+                    when["post"] = str(framed).lower()     # a post marks a panel's end: the arms there show the rim
+                parts.append({"when": when, "apply": apply})
     BLOCKSTATES[fid] = {"multipart": parts}
     ITEMS[fid] = {"parent": "minecraft:item/generated", "textures": {"layer0": f"mobtalk:block/{TEXDIR}/icon_{fid}"}}
     ru, en, _ = KINDS[kind][colour]
     NAMES[fid] = {
         "chainlink": (f"Сетка-рабица ({ru})", f"Chain-link fence ({en})"),
         "lattice": (f"Сварной забор с ромбами ({ru})", f"Welded diamond fence ({en})"),
-        "concrete": ("Бетонный забор ПО-2 «ромбик»", "Concrete fence PO-2 (diamonds)"),
+        "po2": ("Бетонный забор ПО-2", "Concrete fence PO-2"),
+        "concrete": ("Бетонный забор с ромбиками", "Concrete diamond fence"),
     }[kind]
 
 
@@ -494,6 +608,12 @@ def make_textures():
             elif kind == "lattice":
                 TEX[f"lattice_{colour}_pipe"] = pipe_texture(colour, paint, kind)
                 TEX[f"lattice_{colour}"] = lattice_texture(colour, paint)
+            elif kind == "po2":
+                for part in PARTS:
+                    for framed in (False, True):
+                        TEX[f"po2_{part}" + ("_framed" if framed else "")] = po2_panel(paint, part in HAS_TOP, part in HAS_BOTTOM, framed)
+                TEX["po2_post"] = concrete_plain("po2post", shade(paint, 1.18), 0.04)
+                TEX["po2_loop"] = wire_texture()
             else:
                 for part in PARTS:
                     TEX[f"concrete_{part}"] = concrete_panel(paint, part in HAS_TOP, part in HAS_BOTTOM)

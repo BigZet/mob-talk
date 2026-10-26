@@ -44,7 +44,7 @@ import net.minecraft.world.WorldAccess;
 import static net.minecraft.server.command.CommandManager.literal;
 
 /** Soviet yard fences (tools/city2/fences.py draws them): chain-link mesh on pipe posts, welded sections with a diamond lattice and
- * the concrete PO-2 «ромбик» panel, plus wickets for the metal ones. A fence block is one metre, one block high; stacked blocks make
+ * the concrete PO-2 panel (and a concrete one with small diamonds), plus wickets for the metal ones. A fence block is one metre, one block high; stacked blocks make
  * a taller fence. Each block joins its neighbours like a vanilla fence (it is in #minecraft:fences), knows whether it is the bottom,
  * middle or top of a stack ({@link #PART}) and whether it shows a post ({@link #POST}: ends, corners, beside a gate, where the fence
  * steps, and every {@link FenceLineBlock#spacing} blocks along a straight run by the world coordinate).
@@ -62,9 +62,10 @@ public final class Fences {
     public static final EnumProperty<Part> PART = EnumProperty.of("part", Part.class);
     public static final BooleanProperty POST = BooleanProperty.of("post");
 
-    /** Fence ids: chain-link «рабица» (galvanized, green), welded diamond lattice (green, blue, yellow, red), concrete PO-2. */
+    /** Fence ids: chain-link «рабица» (galvanized, green), welded diamond lattice (green, blue, yellow, red),
+     * concrete PO-2 (the big wedge relief in a smooth rim), concrete with small diamond pyramids. */
     public static final List<String> FENCES = List.of("chainlink_fence_galv", "chainlink_fence_green", "lattice_fence_green",
-            "lattice_fence_blue", "lattice_fence_yellow", "lattice_fence_red", "concrete_fence");
+            "lattice_fence_blue", "lattice_fence_yellow", "lattice_fence_red", "concrete_fence", "concrete_fence_diamond");
     /** Gate ids: a two-block leaf hung in the fence line; two with opposite hinges are a double gate that opens together. */
     public static final List<String> GATES = List.of("chainlink_gate_galv", "chainlink_gate_green", "lattice_gate_green",
             "lattice_gate_blue", "lattice_gate_yellow", "lattice_gate_red");

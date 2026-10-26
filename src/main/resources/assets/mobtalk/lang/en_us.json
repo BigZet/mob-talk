@@ -1401,5 +1401,6 @@
   "block.mobtalk.lattice_gate_yellow": "Welded diamond gate (yellow)",
   "block.mobtalk.lattice_fence_red": "Welded diamond fence (red)",
   "block.mobtalk.lattice_gate_red": "Welded diamond gate (red)",
-  "block.mobtalk.concrete_fence": "Concrete fence PO-2 (diamonds)"
+  "block.mobtalk.concrete_fence": "Concrete fence PO-2",
+  "block.mobtalk.concrete_fence_diamond": "Concrete diamond fence"
 }

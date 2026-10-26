@@ -70,15 +70,16 @@ final class SelfTestFences {
         test.check(wrong == 0 && bare > 0, "posts every third block along the straight run (" + bare + " cells without one, " + wrong + " wrong)");
         BlockState po2 = at(5, 0, row(6));
         test.check(po2.isOf(Fences.BLOCKS.get("concrete_fence")) && po2.get(Fences.POST) == (Math.floorMod(px + 5, 4) == 0), "PO-2 posts every fourth block");
-        BlockState low = at(2, 0, row(7));
+        BlockState low = at(2, 0, row(Fences.FENCES.size()));
         test.check(low.get(Fences.PART) == Fences.Part.SINGLE, "the low fence is one block high");
 
         int z2 = row(2);
         shot("mobtalk-fences-0-overview.png", px - 5, py + 9, pz - 5, -40, 35);
         for (int k = 0; k < Fences.FENCES.size(); k++)
             shot("mobtalk-fences-" + (k + 1) + "-" + Fences.FENCES.get(k) + ".png", px + 4.5, py, pz + row(k) - 3.6, 0, 12);
-        shot("mobtalk-fences-8-low.png", px + 4.5, py, pz + row(7) - 3.6, 0, 20);
+        shot("mobtalk-fences-low.png", px + 4.5, py, pz + row(Fences.FENCES.size()) - 3.6, 0, 20);
         look("mobtalk-fences-9-concrete-corner.png", px + 6.3, py + 0.4, pz + row(6) + 2.7, px + 9.5, py + 1.2, pz + row(6) + 0.5);
+        look("mobtalk-fences-9b-po2-along.png", px - 2.5, py + 0.3, pz + row(6) - 2.2, px + 9, py + 1.2, pz + row(6));
         look("mobtalk-fences-10-mesh-close.png", px + 6.5, py + 0.2, pz + row(0) - 1.6, px + 6.5, py + 1.2, pz + row(0) + 0.5);
         look("mobtalk-fences-11-lattice-close.png", px + 6.5, py + 0.2, pz + row(3) - 1.6, px + 6.5, py + 1.2, pz + row(3) + 0.5);
         shots.add(() -> {
