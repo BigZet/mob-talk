@@ -31,21 +31,26 @@ final class MobPrompt {
      * then the player, the voice, the answer format; trading is one side of the character, not its purpose. */
     String system(SpeciesCatalog.Species species, ConversationStore.Profile profile, MobSnapshot snapshot) {
         TradingView view = TradingView.of(snapshot);
-        String archetype = species.variants().get(Math.max(0, Math.min(2, profile.variantSlot))).prompt();
+        ChildGrowth.Stage stage = profile.social == null ? null : ChildGrowth.Stage.of(profile.social.stage);
+        boolean young = stage != null && stage != ChildGrowth.Stage.ADULT;
+        // A child of the family: its age leads the prompt; the grown archetype, goals, secrets and pet names are not a child's.
+        String archetype = young ? "ты ещё ребёнок; взрослый характер у тебя только проклёвывается в мелочах" : species.variants().get(Math.max(0, Math.min(2, profile.variantSlot))).prompt();
         boolean custom = profile.customPersonality != null && !profile.customPersonality.isBlank();
         // Generated traits only repeat preference and fear; keep the ones a player or later version added.
         List<String> habits = profile.traits.stream().filter(trait -> trait != null && !trait.isBlank()
                 && !trait.startsWith("Особенно ценит: ") && !trait.startsWith("Лично тревожит: ")).toList();
         boolean friend = profile.relationship >= FRIEND_RELATIONSHIP;
         boolean named = profile.givenName != null && !profile.givenName.isBlank();
-        String desire = desire(profile, species), secret = secret(profile, species);
-        MobState.View state = profile.stateView != null ? profile.stateView : MobState.viewOf(profile, System.currentTimeMillis());
+        String desire = young ? "" : desire(profile, species), secret = young ? "" : secret(profile, species);
+        MobState.View state = profile.stateView != null ? profile.stateView : MobState.viewOf(profile, MobClock.now());
         String system = "Ты — " + (named ? profile.givenName + ", " : profile.name + ", ") + species.name().toLowerCase(Locale.ROOT) + " из мира Minecraft 1.21.1. "
                 + "Ты живой персонаж, а не ассистент и не рассказчик: говоришь вслух от первого лица, по-русски, и твою реплику сразу озвучат.\n\n"
+                + (young ? "ГЛАВНОЕ: ты " + stage.word + " — " + stage.speech + ". Это важнее всего, что ниже: никаких взрослых фраз, торговли, "
+                        + "взрослых забот и ласковых взрослых обращений; говори строго по своему возрасту.\n\n" : "")
                 + "Кто ты:\n" + species.prompt()
                 + "\nЛюбишь: " + species.interests() + "\nБоишься: " + species.fears()
                 + "\n" + nature(species, profile.relationship)
-                + names(config, snapshot, profile.relationship)
+                + (young ? "" : names(config, snapshot, profile.relationship))
                 + speciesNotes(snapshot)
                 + (profile.backstory == null || profile.backstory.isBlank() ? "\n\n" + lifeToInvent(profile, species) : "\n\nТвоя история (только твоя, другие её не знают, пока ты не расскажешь):\n" + profile.backstory)
                 + (profile.village == null || profile.village.story().isBlank() ? "" : "\n\nТвоя деревня «" + profile.village.name() + "» (эту историю знают все её жители):\n" + profile.village.story())
@@ -53,7 +58,7 @@ final class MobPrompt {
                 + (custom ? "\nЛичная настройка именно этой особи (важнее характера выше): " + profile.customPersonality : "")
                 + SocialPrompt.persona(profile)
                 + official(snapshot, profile)
-                + (species.quirks().isBlank() ? "" : "\nКак ты говоришь, твои фирменные штучки: " + sentence(species.quirks())
+                + (young || species.quirks().isBlank() ? "" : "\nКак ты говоришь, твои фирменные штучки: " + sentence(species.quirks())
                         + " Каждое обращение и словечко отсюда — не больше одного раза за разговор, а большинство реплик — без них.")
                 + (desire.isBlank() ? "" : "\nЧего ты хочешь от жизни: " + sentence(desire)
                         + " Это твоя личная цель: ты её преследуешь, иногда заводишь о ней речь — но не в каждой реплике — и судишь игрока по тому, помогает он ей или мешает.")
@@ -74,7 +79,7 @@ final class MobPrompt {
                 + "\n\nЭтот игрок:\nОтношение (-100..100): " + profile.relationship + " — " + attitude(profile.relationship) + "."
                 + (profile.repute != null && profile.repute.known() && profile.turns.isEmpty() ? "\n" + profile.repute.describe() : "")
                 + SocialPrompt.standing(profile)
-                + MemoryRanking.promptBlock(profile.facts, profile.memory, System.currentTimeMillis()) + ConversationSummary.promptBlock(profile.summaries)
+                + MemoryRanking.promptBlock(profile.facts, profile.memory, MobClock.now()) + ConversationSummary.promptBlock(profile.summaries)
                 + SocialPrompt.gestures(profile)
                 + "\n\n" + PromptTexts.VOICE + SpeechTags.prompt(config)
                 + "Длина: не больше " + words(state) + " слов, обычно заметно меньше."
@@ -89,7 +94,7 @@ final class MobPrompt {
         // The state after the manner: in tests a mid-prompt state was heard only in the first words, then the archetype took over.
         String voice = config.moodReplyPercent > 0 ? state.voice() : "";
         if (!voice.isEmpty()) system += "\n\n" + PromptTexts.stateVoice(voice);
-        MoodSpell past = profile.state == null ? null : profile.state.pastDarkSpell(System.currentTimeMillis());
+        MoodSpell past = profile.state == null ? null : profile.state.pastDarkSpell(MobClock.now());
         if (past != null) system += "\n\n" + PromptTexts.pastState(MoodWords.form(past.word, profile.social != null && Gender.FEMALE.name().equals(profile.social.gender)));
         if (config.commonPrompt != null && !config.commonPrompt.isBlank())
             system += "\n\nНастройка мира от игрока (важнее стиля выше): " + TextBounds.characters(config.commonPrompt, 8000);
@@ -116,8 +121,11 @@ final class MobPrompt {
     String official(MobSnapshot snapshot, ConversationStore.Profile profile) {
         if (!config.officials || !(snapshot.mobDetails().get("profession") instanceof String profession)) return "";
         Officialdom.Rank rank = Officialdom.Rank.of(profession);
-        return rank == null ? "" : Officialdom.prompt(rank, snapshot.id(), profile.relationship, config.officialHonestPercent, config.officialPricePercent,
-                Officialdom.fineOf(snapshot.mobDetails().get("officialFine")));
+        if (rank == null) return config.officialGossip ? Officialdom.gossip(snapshot.mobDetails().get("villageOfficials")) : "";
+        return Officialdom.prompt(rank, snapshot.id(), profile.relationship, config.officialHonestPercent, config.officialPricePercent,
+                Officialdom.fineOf(snapshot.mobDetails().get("officialFine")), config.officialsShameless)
+                + (rank != null && config.paperwork && snapshot.mobDetails().get("paperCase") instanceof Map<?, ?> paper
+                        ? Paperwork.prompt(rank, Paperwork.caseOf(paper), paper.get("today") instanceof Number n ? n.longValue() : 0) : "");
     }
 
     /** «Говорят в деревне»: the rumours this villager has heard, with who tells them; "" when it heard nothing. */

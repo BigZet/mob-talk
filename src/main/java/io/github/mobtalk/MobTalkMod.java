@@ -116,6 +116,7 @@ public final class MobTalkMod implements ModInitializer {
         io.github.mobtalk.game.RoadContent.register(); // Мелочи у дорог: камушки, пирамидки, верстовые столбы, поваленные брёвна.
         io.github.mobtalk.game.OfficialContent.register(); // Казённый стол, чиновники, конверт и справка.
         io.github.mobtalk.game.BarContent.register(); // Мебель бара и место, на котором сидит житель.
+        io.github.mobtalk.game.MfcContent.register(); // МФЦ «Госуслуги»: мебель зала, талон, сотрудники.
         io.github.mobtalk.game.BarWorldgen.register(); // Бар в каждой новой деревне.
         io.github.mobtalk.game.CasinoContent.register(); // Казино: мебель, вышибала, точки интереса (docs/casino.md).
         io.github.mobtalk.game.CasinoWorldgen.register();

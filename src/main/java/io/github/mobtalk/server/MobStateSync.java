@@ -1,5 +1,7 @@
 package io.github.mobtalk.server;
 
+import io.github.mobtalk.core.MobClock;
+import io.github.mobtalk.core.FamilyTree;
 import io.github.mobtalk.core.BargainMeter;
 import io.github.mobtalk.core.ChildLedger;
 import io.github.mobtalk.core.Favor;
@@ -48,7 +50,7 @@ final class MobStateSync {
             if (error != null) return null;
             PlayerView view = (PlayerView) pair[0];
             @SuppressWarnings("unchecked") Set<UUID> wanted = (Set<UUID>) pair[1];
-            long now = System.currentTimeMillis();
+            long now = MobClock.now();
             for (UUID gone : new HashSet<>(tracker.labels.keySet())) {
                 if (wanted.contains(gone)) continue;
                 MobLabelS2C old = tracker.labels.remove(gone);
@@ -69,7 +71,9 @@ final class MobStateSync {
         boolean acquainted = bridge.memory().acquainted(mob.id());
         String name = acquainted ? bridge.memory().displayName(mob.id()) : "";
         String line = pregnancyLine(mob.id(), view.timeOfDay(), config);
-        MobLabelS2C label = new MobLabelS2C(mob.entityId(), mob.id(), card == null ? "" : name, card == null ? "" : line);
+        String kin = "";
+        for (FamilyTree.Kin k : bridge.memory().kin(player)) if (k.id().equals(mob.id()) && !k.dead()) kin = k.word();
+        MobLabelS2C label = new MobLabelS2C(mob.entityId(), mob.id(), card == null ? "" : name, card == null ? "" : line, card == null ? "" : kin);
         Long sent = tracker.sentMillis.get(mob.id());
         boolean stale = sent == null || now - sent > REFRESH_MILLIS;
         if (stale || !label.equals(tracker.labels.get(mob.id()))) { tracker.labels.put(mob.id(), label); out.label(player, label); }

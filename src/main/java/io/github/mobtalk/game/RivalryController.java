@@ -60,7 +60,7 @@ public final class RivalryController {
         ringBells(world);
         if (world.getTime() % PERIOD != PHASE) return;
         if (!enabled()) { if (world.getRegistryKey() == World.OVERWORLD) clearRuntime(); return; }
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         if (world.getRegistryKey() == World.OVERWORLD) {
             RivalryLedger ledger = bridge.memory.rivalry();
             ledger.expire(now);
@@ -152,7 +152,7 @@ public final class RivalryController {
      * взято; 0 — не испытание, обычный подарок. {@code speak} — житель скажет об этом сам (в разговоре он и так отвечает). */
     public int deliver(MobEntity mob, ServerPlayerEntity player, ItemStack stack, boolean speak) {
         if (!enabled() || !bridge.config.rivalTrials || !(mob instanceof VillagerEntity villager) || stack == null || stack.isEmpty()) return 0;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         String item = Registries.ITEM.getId(stack.getItem()).toString();
         RivalryLedger.Delivery delivery = bridge.memory.rivalry().deliver(villager.getUuid(), player.getUuid(), MobGameBridge.playerName(player), item, stack.getCount(), now);
         if (delivery == null || delivery.taken() <= 0) return 0;

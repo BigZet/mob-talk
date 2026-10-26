@@ -63,13 +63,45 @@ public final class ChildLedger {
             boolean special = evening != null && evening.player().equals(player);
             double chance = Pregnancy.chance(special, special ? evening.cozy().score() : 0, config.conceptionChance, config.specialNightChanceMin, config.specialNightChanceMax);
             if (roll >= chance) return null;
-            s.conceivedTick = Math.max(0, worldTick);
-            s.pregnancyDays = Math.max(1, config.pregnancyDays);
-            s.expectingTick = Math.max(1, s.conceivedTick + s.pregnancyDays * ChildGrowth.DAY_TICKS);
-            s.carrier = carrier.name(); s.pregnancyNews = 0; s.pregnancyTerm = Pregnancy.Term.EARLY.name(); s.pregnancyDay = 1; s.cravingDay = -1;
-            store.scheduleSave();
+            conceive(s, player, carrier, worldTick, config.pregnancyDays);
             return carrier;
         }
+    }
+
+    /** Шанс малыша этой ночью ({@link #night}); -1 — пара не старается или носить некому. Для лога. */
+    public double chance(UUID villager, UUID player) {
+        synchronized (store) {
+            MobTalkConfig config = store.config();
+            SocialProfile s = social(villager);
+            if (!config.pregnancy || s == null || !trying(s, player)
+                    || Pregnancy.carrier(s.gender(), PlayerIdentity.gender(config, player)) == Pregnancy.Carrier.NONE) return -1;
+            Evening evening = evenings.get(villager);
+            boolean special = evening != null && evening.player().equals(player);
+            return Pregnancy.chance(special, special ? evening.cozy().score() : 0, config.conceptionChance, config.specialNightChanceMin, config.specialNightChanceMax);
+        }
+    }
+
+    /** Команда для проверки: беременность у супругов сразу, без броска; {@code days} &gt; 0 — свой срок в днях. Null — не в браке,
+     * носить некому или уже ждут малыша. */
+    public Pregnancy.Carrier force(UUID villager, UUID player, long worldTick, int days) {
+        synchronized (store) {
+            MobTalkConfig config = store.config();
+            SocialProfile s = social(villager);
+            if (s == null || player == null || !player.equals(store.state.family.spouse(villager)) || s.conceivedTick >= 0) return null;
+            Pregnancy.Carrier carrier = Pregnancy.carrier(s.gender(), PlayerIdentity.gender(config, player));
+            if (carrier == Pregnancy.Carrier.NONE) return null;
+            conceive(s, player, carrier, worldTick, days > 0 ? days : config.pregnancyDays);
+            return carrier;
+        }
+    }
+
+    private void conceive(SocialProfile s, UUID player, Pregnancy.Carrier carrier, long worldTick, int days) {
+        s.expectingWith = player.toString();
+        s.conceivedTick = Math.max(0, worldTick);
+        s.pregnancyDays = Math.max(1, days);
+        s.expectingTick = Math.max(1, s.conceivedTick + s.pregnancyDays * ChildGrowth.DAY_TICKS);
+        s.carrier = carrier.name(); s.pregnancyNews = 0; s.pregnancyTerm = Pregnancy.Term.EARLY.name(); s.pregnancyDay = 1; s.cravingDay = -1;
+        store.scheduleSave();
     }
 
     // ---- Срок. ----
@@ -179,6 +211,7 @@ public final class ChildLedger {
             String fact = Pregnancy.fact(carrier == null ? Pregnancy.Carrier.NONE : carrier, term == null ? Pregnancy.Term.EARLY : term, Math.max(1, s.pregnancyDay),
                     Math.max(1, s.pregnancyDays), s.cravingDay == s.pregnancyDay ? Pregnancy.craving(s.pregnancyDay + s.conceivedTick / ChildGrowth.DAY_TICKS) : "", s.pregnancyNews >= 1);
             if (!fact.isBlank()) facts.add(fact);
+            if (!s.babyName.isBlank()) facts.add("Вы с игроком уже решили, как назовёте малыша: " + s.babyName + " (если родится другого пола — выберете снова). Не предлагай другие имена.");
         } else if (trying && config.pregnancy && evening == null) facts.add(Pregnancy.TRYING);
         return facts;
     }
@@ -260,6 +293,70 @@ public final class ChildLedger {
             store.scheduleSave();
             return true;
         }
+    }
+
+    // ---- Имя малыша. ----
+
+    private static final java.util.regex.Pattern NAMING = java.util.regex.Pattern.compile(
+            "(?iu)(?:назов[её]м|назвать|назови|назову|пусть\\s+(?:будет|зовут|его\\s+зовут|её\\s+зовут))\\s+"
+            + "(?:(?:его|её|ее|сына|сынишку|сыночка|дочку|дочь|доченьку|малыша|малышку|ребёнка|ребенка|нашего|нашу)\\s+)*[«\"„]?([а-яёa-z]{3,20})");
+    private static final Set<String> NOT_NAMES = Set.of("его", "её", "ее", "так", "как", "потом", "позже", "вместе", "сами", "сына", "дочь", "дочку", "малыша");
+
+    /** Имя из фразы игрока «назовём его Советослав», «пусть будет Майя»; null — в фразе нет имени. С заглавной буквы. */
+    static String namedIn(String text) {
+        if (text == null) return null;
+        java.util.regex.Matcher m = NAMING.matcher(text);
+        if (!m.find()) return null;
+        String word = m.group(1).toLowerCase(Locale.ROOT);
+        if (NOT_NAMES.contains(word)) return null;
+        return Character.toUpperCase(word.charAt(0)) + word.substring(1);
+    }
+
+    /** Игрок сказал супругу «назовём его …»: до родов имя ждёт малыша, после — младенец пары получает его сразу (если пол не спорит
+     * с именем). Возвращает данное имя, null — фраза не про имя или назвать некого. */
+    public String nameBaby(UUID villager, UUID player, String text) {
+        String name = namedIn(text);
+        if (name == null || villager == null || player == null) return null;
+        synchronized (store) {
+            SocialProfile s = social(villager);
+            if (s == null || !player.equals(store.state.family.spouse(villager))) return null;
+            if (s.conceivedTick >= 0 && player.toString().equals(s.expectingWith)) { s.babyName = name; store.scheduleSave(); return name; }
+            UUID baby = youngest(villager, player);
+            ConversationStore.Profile kid = profile(baby);
+            if (kid == null || kid.social == null || ChildGrowth.Stage.of(kid.social.stage) != ChildGrowth.Stage.INFANT) return null;
+            return rename(baby, name) ? name : null;
+        }
+    }
+
+    /** {@code /mobtalk admin childname}: младший ребёнок игрока получает это имя (любой возраст). Имя ребёнка или null — детей нет
+     * или пол спорит с именем. */
+    public String renameYoungest(UUID player, String name) {
+        if (name == null || name.isBlank()) return null;
+        String clean = name.strip();
+        clean = Character.toUpperCase(clean.charAt(0)) + clean.substring(1);
+        synchronized (store) {
+            List<UUID> children = store.state.family.children(player);
+            if (children.isEmpty()) return null;
+            return rename(children.getLast(), clean) ? clean : null;
+        }
+    }
+
+    private UUID youngest(UUID villager, UUID player) {
+        List<UUID> mine = store.state.family.children(villager);
+        for (int i = mine.size() - 1; i >= 0; i--) if (store.state.family.children(player).contains(mine.get(i))) return mine.get(i);
+        return null;
+    }
+
+    private boolean rename(UUID child, String name) {
+        ConversationStore.Profile kid = profile(child);
+        if (kid == null) return false;
+        Gender sex = VillagerNames.soundsLike(name);
+        if (sex != null && kid.social != null && sex != kid.social.gender()) return false;
+        kid.givenName = name;
+        store.state.family.rename(child, name);
+        kid.revision++;
+        store.scheduleSave();
+        return true;
     }
 
     private SocialProfile social(UUID villager) { ConversationStore.Profile p = profile(villager); return p == null ? null : p.social; }

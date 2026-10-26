@@ -1,5 +1,6 @@
 package io.github.mobtalk.server;
 
+import io.github.mobtalk.core.MobClock;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -43,7 +44,7 @@ public final class OverlayHub {
 
     public static void register() {
         ServerTickEvents.END_SERVER_TICK.register(OverlayHub::tick);
-        ServerLifecycleEvents.SERVER_STARTED.register(server -> { sent.clear(); banner = null; overlayOp = true; linesSince = System.currentTimeMillis(); });
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> { sent.clear(); banner = null; overlayOp = true; linesSince = MobClock.now(); });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> server.execute(() -> sent.remove(handler.getPlayer().getUuid())));
     }
 
@@ -56,7 +57,7 @@ public final class OverlayHub {
         if (clean.isEmpty()) return "Пустой баннер не показывается.";
         if (clean.length() > MAX_BANNER) clean = clean.substring(0, MAX_BANNER);
         int span = Math.max(1, Math.min(120, minutes));
-        banner = new Banner(clean, System.currentTimeMillis() + span * 60_000L);
+        banner = new Banner(clean, MobClock.now() + span * 60_000L);
         settingsChanged();
         return "Баннер на оверлее на " + span + " мин: " + clean;
     }
@@ -109,7 +110,7 @@ public final class OverlayHub {
         JsonObject wedding = wedding(server, hidden);
         if (wedding != null) events.add(wedding);
         Banner shown = banner;
-        if (shown != null && shown.until() < System.currentTimeMillis()) { banner = null; shown = null; }
+        if (shown != null && shown.until() < MobClock.now()) { banner = null; shown = null; }
         if (shown != null) events.add(Json.obj("kind", "banner", "title", shown.text(), "player", null, "until", shown.until()));
         common.add("events", events);
         JsonArray lines = common.has("lines") && common.get("lines").isJsonArray() ? common.getAsJsonArray("lines") : new JsonArray();
@@ -146,7 +147,7 @@ public final class OverlayHub {
             overlayOp = false;
             MobTalkMod.LOGGER.info("Оверлей: Божественный блок без операции overlay, данные бога по запасному пути (souls, active, prayers)");
         }
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         return OverlayState.fromParts(call(source, Json.obj("op", "souls")), call(source, Json.obj("op", "active")),
                 call(source, Json.obj("op", "prayers", "since", now - OverlayState.MOOD_MILLIS, "limit", 50)), online, hidden, now);
     }

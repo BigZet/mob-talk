@@ -54,11 +54,11 @@ public final class ChildController {
     public Fade fade(UUID player) {
         Fade fade = player == null ? null : fades.get(player);
         if (fade == null) return null;
-        long age = System.currentTimeMillis() - fade.startMillis();
+        long age = MobClock.now() - fade.startMillis();
         if (fade.kind() == FadeKind.MORNING && age > MORNING_MILLIS || fade.kind() == FadeKind.BIRTH && age > BIRTH_MILLIS) { fades.remove(player, fade); return null; }
         return fade;
     }
-    private void fadeFor(UUID player, FadeKind kind) { if (bridge.config.familyFade && player != null) fades.put(player, new Fade(kind, System.currentTimeMillis())); }
+    private void fadeFor(UUID player, FadeKind kind) { if (bridge.config.familyFade && player != null) fades.put(player, new Fade(kind, MobClock.now())); }
 
     // ---- Особый вечер. ----
 
@@ -68,7 +68,7 @@ public final class ChildController {
         boolean married = bridge.memory.jealousy().partners(player.getUuid()).stream().anyMatch(p -> p.id().equals(villager.getUuid()) && p.married());
         if (!married) return "";
         Pregnancy.Cozy cozy = cozy((ServerWorld) player.getWorld(), player.getBlockPos(), villager, player);
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         bridge.memory.children().startEvening(villager.getUuid(), player.getUuid(), cozy, now);
         bridge.coSleep.invite(villager.getUuid(), player.getUuid()); // Идёт за игроком домой и ляжет рядом, когда он ляжет.
         ((ServerWorld) villager.getWorld()).spawnParticles(ParticleTypes.HEART, villager.getX(), villager.getY() + 1.9, villager.getZ(), 5, 0.4, 0.3, 0.4, 0.02);
@@ -99,7 +99,7 @@ public final class ChildController {
     /** Трек J засчитал ночь вместе: особый вечер гаснет в темноту, у старающейся пары — шанс малыша. */
     void night(VillagerEntity villager, ServerPlayerEntity player) {
         if (!enabled()) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         ChildLedger.Evening evening = bridge.memory.children().evening(villager.getUuid());
         if (evening != null && evening.player().equals(player.getUuid())) {
             bridge.memory.children().cozy(villager.getUuid(), cozy((ServerWorld) player.getWorld(), player.getBlockPos(), villager, player));
@@ -108,14 +108,33 @@ public final class ChildController {
             fadeFor(player.getUuid(), FadeKind.NIGHT);
         }
         if (!pregnancy()) return;
-        Pregnancy.Carrier carrier = bridge.memory.children().night(villager.getUuid(), player.getUuid(), time(player.getServerWorld()), random.nextDouble());
+        double chance = bridge.memory.children().chance(villager.getUuid(), player.getUuid());
+        double roll = random.nextDouble();
+        Pregnancy.Carrier carrier = bridge.memory.children().night(villager.getUuid(), player.getUuid(), time(player.getServerWorld()), roll);
+        LOGGER.info("[mobtalk] night roll: {} with {}, chance {}, roll {}, cozy {}", villager.getUuid(), player.getUuid(),
+                chance < 0 ? "none (not trying)" : String.format(java.util.Locale.ROOT, "%.2f", chance), String.format(java.util.Locale.ROOT, "%.2f", roll),
+                cozyWord(bridge.memory.children().evening(villager.getUuid()), player.getUuid()));
         if (carrier != null) LOGGER.info("[mobtalk] conceived: {} with {}, carrier {}", villager.getUuid(), player.getUuid(), carrier);
+    }
+
+    private static String cozyWord(ChildLedger.Evening evening, UUID player) {
+        return evening == null || !evening.player().equals(player) ? "no special evening" : evening.cozy().score() + "/6 " + evening.cozy().words();
+    }
+
+    /** {@code /mobtalk admin conceive [дни]}: беременность у игрока и его супруги сразу, без ночи и броска. Ответ для чата. */
+    public String conceive(ServerPlayerEntity player, int days) {
+        UUID spouse = bridge.memory.spouseOf(player.getUuid());
+        if (spouse == null) return "Вы не в браке: беременность ставится только супругам";
+        Pregnancy.Carrier carrier = bridge.memory.children().force(spouse, player.getUuid(), time(player.getServerWorld()), days);
+        if (carrier == null) return "Не вышло: малыша уже ждут или носить некому (проверьте пол в F7)";
+        LOGGER.info("[mobtalk] conceived by command: {} with {}, carrier {}", spouse, player.getUuid(), carrier);
+        return "Готово: " + (carrier == Pregnancy.Carrier.PLAYER ? "вы ждёте малыша" : "супруга ждёт малыша") + ", о беременности узнают через игровой день";
     }
     private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("mobtalk-family");
 
     /** Утро после ночи вместе: после особой — тёплая смущённая реплика, сердечки и «Наутро…»; null — ночь была обычной. */
     String morning(VillagerEntity villager, ServerPlayerEntity player) {
-        if (!enabled() || !bridge.memory.children().morning(villager.getUuid(), player.getUuid(), MobGameBridge.playerName(player), System.currentTimeMillis())) return null;
+        if (!enabled() || !bridge.memory.children().morning(villager.getUuid(), player.getUuid(), MobGameBridge.playerName(player), MobClock.now())) return null;
         spoke.remove(player.getUuid());
         fadeFor(player.getUuid(), FadeKind.MORNING);
         return SpecialEvening.morningCue(MobGameBridge.playerName(player));
@@ -126,19 +145,19 @@ public final class ChildController {
         if (fade != null && fade.kind() == FadeKind.NIGHT) fades.remove(player.getUuid(), fade);
     }
     /** Игрок сказал что-то своей паре: в особую ночь это держит ночь, пока шепчутся. */
-    void spoke(UUID player) { if (spoke.containsKey(player)) spoke.put(player, System.currentTimeMillis()); }
+    void spoke(UUID player) { if (spoke.containsKey(player)) spoke.put(player, MobClock.now()); }
     /** Особая ночь не пропускается, пока игрок шепчется с парой: до {@link MobTalkConfig#specialNightQuietSeconds} тишины. */
     boolean holdsNight(ServerPlayerEntity player) {
         if (!enabled() || !player.isSleeping()) return false;
         Long last = spoke.get(player.getUuid());
-        return last != null && System.currentTimeMillis() - last < 1000L * bridge.config.specialNightQuietSeconds;
+        return last != null && MobClock.now() - last < 1000L * bridge.config.specialNightQuietSeconds;
     }
 
     // ---- Срок и роды. ----
 
     void tick(ServerWorld world) {
         if (world != world.getServer().getOverworld() || world.getTime() % PERIOD != 23) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         for (UUID expired : bridge.memory.children().expired(now)) bridge.memory.children().endEvening(expired);
         refreshEvenings(world);
         if (!pregnancy()) return;
@@ -196,7 +215,7 @@ public final class ChildController {
         boolean villagerCarries = p.carrier() == Pregnancy.Carrier.VILLAGER;
         if (villagerCarries ? spouse == null || !spouse.isAlive() : player == null || !player.isAlive()) return;
         UUID who = villagerCarries ? p.villager() : p.player();
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         String playerName = player == null ? "" : MobGameBridge.playerName(player);
         Long started = labour.get(who);
         if (started == null) {

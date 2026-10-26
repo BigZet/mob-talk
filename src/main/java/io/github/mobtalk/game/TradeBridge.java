@@ -1,5 +1,6 @@
 package io.github.mobtalk.game;
 
+import io.github.mobtalk.core.MobClock;
 import io.github.mobtalk.game.mixin.MerchantScreenHandlerAccessor;
 import io.github.mobtalk.core.BargainIntent;
 import io.github.mobtalk.core.Bargaining;
@@ -156,7 +157,7 @@ public final class TradeBridge {
         promise.bought = true; promise.spoken = promise.spoken.asBought();
         UUID player = buyer == null ? promise.player : buyer.getUuid();
         String name = buyer == null ? promise.playerName : MobGameBridge.playerName(buyer);
-        if (bridge.memory.known(promise.villager.getUuid())) bridge.memory.recordTradeDone(promise.villager.getUuid(), player, name, promise.what, System.currentTimeMillis());
+        if (bridge.memory.known(promise.villager.getUuid())) bridge.memory.recordTradeDone(promise.villager.getUuid(), player, name, promise.what, MobClock.now());
     }
     private void remove(Promise promise, boolean refresh) {
         promises.remove(promise.villager.getUuid());

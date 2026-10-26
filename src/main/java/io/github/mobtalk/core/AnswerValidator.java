@@ -59,7 +59,7 @@ final class AnswerValidator {
             // summary or reflection that landed meanwhile survives. A full "memory" from an older or fallback answer still replaces it as before.
             String facts = answer.has("newFacts") ? TextBounds.characters(ReplySchema.string(answer, "newFacts"), MemoryNotes.FACTS_LIMIT) : null;
             String memory = facts != null ? null : TextBounds.characters(ReplySchema.string(answer, "memory"), bounds.memoryLimit());
-            MemoryFact fact = facts == null || facts.isBlank() ? null : MemoryFact.of(facts, ReplySchema.importance(answer), System.currentTimeMillis());
+            MemoryFact fact = facts == null || facts.isBlank() ? null : MemoryFact.of(facts, ReplySchema.importance(answer), MobClock.now());
             if (bounds.overheard() && SpeechTags.strip(reply).codePoints().noneMatch(Character::isLetter)) return new OpenRouterConversationClient.Answer("", memory, SocialIntent.NONE,
                     answer.has("action") && answer.get("action").isJsonObject() ? validateAction(answer.getAsJsonObject("action"), snapshot) : ActionIntent.none(),
                     BargainIntent.none(), DealIntent.none(), "", QuestIntent.none());

@@ -64,7 +64,8 @@ final class SocialPrompt {
         Gender playerGender = Gender.ofPlayer(config.playerGender);
         if (courtship == Courtship.MARRIED) facts.add("этот игрок — " + (playerGender == null ? "твой супруг" : playerGender == Gender.MALE ? "твой муж" : "твоя жена") + ", вы в браке.");
         else if (courtship == Courtship.DATING) facts.add("вы с этим игроком встречаетесь — вы пара, но ещё не женаты.");
-        if (tree.parents(mob).contains(player)) facts.add("этот игрок — " + (playerGender == null ? "твой родитель" : playerGender == Gender.MALE ? "твой отец" : "твоя мать") + ", ты его ребёнок.");
+        if (tree.parents(mob).contains(player)) facts.add("этот игрок — " + (playerGender == null ? "твой родитель" : playerGender == Gender.MALE ? "твой отец" : "твоя мать") + ", ты его ребёнок. "
+                + "Зови его " + (playerGender == Gender.FEMALE ? "«мама»" : playerGender == Gender.MALE ? "«папа»" : "«мама» или «папа»") + ", а не по имени.");
         if (tree.children(mob).contains(player)) facts.add("этот игрок — твой ребёнок.");
         if (tree.widowed(player) && tree.links(player).containsKey(mob)) facts.add("он твой вдовец.");
         return facts;
@@ -75,7 +76,8 @@ final class SocialPrompt {
         List<String> lines = new ArrayList<>();
         for (FamilyTree.Kin kin : family) {
             String name = kin.name().isBlank() ? "без имени" : kin.name();
-            lines.add(name + " — " + (feminine(kin.word()) ? "твоя " : "твой ") + kin.word()
+            String call = "мать".equals(kin.word()) ? ", зови её «мама»" : "отец".equals(kin.word()) ? ", зови его «папа»" : "";
+            lines.add(name + " — " + (feminine(kin.word()) ? "твоя " : "твой ") + kin.word() + call
                     + (kin.dead() ? ", его уже нет в живых — ты горюешь" : present != null && present.contains(kin.id()) ? " (сейчас рядом)" : ""));
         }
         return lines;

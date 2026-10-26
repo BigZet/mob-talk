@@ -489,7 +489,18 @@ final class MobTalkSettingsScreen extends Screen {
                     wide(tip(toggle("mobtalk.settings.casinoResort", draft.casinoResort, value -> draft.casinoResort = value), "mobtalk.settings.casinoResort.tooltip"),
                             tip(toggle("mobtalk.settings.casinoSparkles", draft.casinoSparkles, value -> draft.casinoSparkles = value), "mobtalk.settings.casinoSparkles.tooltip"));
                 }),
-                Map.<String, Runnable>entry("officials", () -> wide(tip(toggle("mobtalk.settings.officials", draft.officials, value -> draft.officials = value), "mobtalk.settings.officials.tooltip"))),
+                Map.<String, Runnable>entry("officials", () -> {
+                    wide(tip(toggle("mobtalk.settings.officials", draft.officials, value -> draft.officials = value), "mobtalk.settings.officials.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.paperwork", draft.paperwork, value -> draft.paperwork = value), "mobtalk.settings.paperwork.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.paperLunch", draft.paperLunch, value -> draft.paperLunch = value), "mobtalk.settings.paperLunch.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.passportForWedding", draft.passportForWedding, value -> draft.passportForWedding = value), "mobtalk.settings.passportForWedding.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.officialDacha", draft.officialDacha, value -> draft.officialDacha = value), "mobtalk.settings.officialDacha.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.officialSmite", draft.officialSmite, value -> draft.officialSmite = value), "mobtalk.settings.officialSmite.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.officialRevizor", draft.officialRevizor, value -> draft.officialRevizor = value), "mobtalk.settings.officialRevizor.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.officialsShameless", draft.officialsShameless, value -> draft.officialsShameless = value), "mobtalk.settings.officialsShameless.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.officialGossip", draft.officialGossip, value -> draft.officialGossip = value), "mobtalk.settings.officialGossip.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.officialPapers", draft.officialPapers, value -> draft.officialPapers = value), "mobtalk.settings.officialPapers.tooltip"));
+                }),
                 Map.<String, Runnable>entry("roads", () -> {
                     wide(tip(toggle("mobtalk.settings.villageRoads", draft.villageRoads, value -> draft.villageRoads = value), "mobtalk.settings.villageRoads.tooltip"),
                             tip(toggle("mobtalk.settings.roadLamps", draft.roadLamps, value -> draft.roadLamps = value), "mobtalk.settings.roadLamps.tooltip"));

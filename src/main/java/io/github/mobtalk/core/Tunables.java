@@ -250,6 +250,13 @@ public final class Tunables {
         integer("roadLampSpacing", s, "roads", 8, 64, 2, c -> c.roadLampSpacing, (c, x) -> c.roadLampSpacing = x);
         integer("roadTreeStrip", s, "roads", 0, 8, 1, c -> c.roadTreeStrip, (c, x) -> c.roadTreeStrip = x);
         integer("roadTraffic", s, "roads", 0, 6, 1, c -> c.roadTraffic, (c, x) -> c.roadTraffic = x);
+        integer("paperworkSteps", s, "officials", 0, 5, 1, c -> c.paperworkSteps, (c, x) -> c.paperworkSteps = x);
+        integer("passportFee", s, "officials", 0, 64, 1, c -> c.passportFee, (c, x) -> c.passportFee = x);
+        integer("passportDays", s, "officials", 0, 7, 1, c -> c.passportDays, (c, x) -> c.passportDays = x);
+        integer("queueSeconds", s, "officials", 0, 60, 2, c -> c.queueSeconds, (c, x) -> c.queueSeconds = x);
+        integer("dachaPoints", s, "officials", 1, 20, 1, c -> c.dachaPoints, (c, x) -> c.dachaPoints = x);
+        integer("smitePercent", s, "officials", 0, 100, 5, c -> c.smitePercent, (c, x) -> c.smitePercent = x);
+        integer("revizorSeconds", s, "officials", 10, 300, 10, c -> c.revizorSeconds, (c, x) -> c.revizorSeconds = x);
         // The god's deeds in the villages (Б1).
         integer("divineStrength", s, "divine", 0, 200, 10, c -> c.divineStrength, (c, x) -> c.divineStrength = x);
         integer("divineDailyCap", s, "divine", 0, 300, 5, c -> c.divineDailyCap, (c, x) -> c.divineDailyCap = x);
@@ -331,7 +338,7 @@ public final class Tunables {
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices; config.villageSites = d.villageSites;
                 config.villageParrotJokes = d.villageParrotJokes;
-                config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.alarmSound = d.alarmSound; config.villageNoConversion = d.villageNoConversion; config.villageTowers = d.villageTowers; config.villageGuards = d.villageGuards; config.villageRoads = d.villageRoads; config.roadLamps = d.roadLamps; config.roadBypass = d.roadBypass; config.roadDecor = d.roadDecor; config.villageHeavy = d.villageHeavy; config.villageCavalry = d.villageCavalry; config.officials = d.officials; config.barsInVillages = d.barsInVillages; config.barEvenings = d.barEvenings; config.barVoiced = d.barVoiced; config.barAliceSpeaker = d.barAliceSpeaker; config.barDrinks = d.barDrinks;
+                config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.alarmSound = d.alarmSound; config.villageNoConversion = d.villageNoConversion; config.villageTowers = d.villageTowers; config.villageGuards = d.villageGuards; config.villageRoads = d.villageRoads; config.roadLamps = d.roadLamps; config.roadBypass = d.roadBypass; config.roadDecor = d.roadDecor; config.villageHeavy = d.villageHeavy; config.villageCavalry = d.villageCavalry; config.officials = d.officials; config.paperwork = d.paperwork; config.paperLunch = d.paperLunch; config.passportForWedding = d.passportForWedding; config.officialDacha = d.officialDacha; config.officialSmite = d.officialSmite; config.officialRevizor = d.officialRevizor; config.officialsShameless = d.officialsShameless; config.officialGossip = d.officialGossip; config.officialPapers = d.officialPapers; config.barsInVillages = d.barsInVillages; config.barEvenings = d.barEvenings; config.barVoiced = d.barVoiced; config.barAliceSpeaker = d.barAliceSpeaker; config.barDrinks = d.barDrinks;
                 config.casino = d.casino; config.casinoBouncers = d.casinoBouncers; config.casinoVisitors = d.casinoVisitors; config.casinoResort = d.casinoResort; config.casinoSparkles = d.casinoSparkles;
                 config.divineTidings = d.divineTidings; config.divinePanic = d.divinePanic; config.divineMayExile = d.divineMayExile; config.divineMourners = d.divineMourners;
             }

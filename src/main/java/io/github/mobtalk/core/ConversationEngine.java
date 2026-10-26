@@ -84,13 +84,13 @@ public final class ConversationEngine implements AutoCloseable {
      * nothing here waits or touches the network. */
     public void chronicleIfDue(String villageId, String playerName, long day) {
         if (closed || villageId == null || villageId.isBlank()) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         VillageRumors.Input input = store.chronicleDue(villageId, playerName, day, now);
         if (input == null) return;
         BackgroundTasks.submit("chronicle:" + villageId, () -> {
             if (closed) return;
             List<VillageRumors.View> rumors = VillageRumors.request(llm, input);
-            int added = store.addRumors(villageId, rumors, System.currentTimeMillis());
+            int added = store.addRumors(villageId, rumors, MobClock.now());
             OpenRouterConversationClient.diagnostics.accept("хроника деревни «" + input.villageName() + "»: " + added + " новых слухов из " + input.facts().size() + " фактов");
         });
     }
@@ -203,9 +203,10 @@ public final class ConversationEngine implements AutoCloseable {
         checkCurrent(snapshot);
         // The player came back after a long silence: the earlier conversation ended, whether or not the game noticed; this reply still
         // sees its tail, the summary (if it arrives) replaces it from the next one on.
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         if (overheard == null && profile.lastTurnMillis >= 0 && now - profile.lastTurnMillis > ConversationSummary.silenceMillis())
             endConversation(snapshot.id(), snapshot.playerId(), playerName(snapshot));
+        if (overheard == null) store.children().nameBaby(snapshot.id(), snapshot.playerId(), question);
         String reserve = SpeciesCatalog.reserve(profile.type).id();
         EarlySpeech early = new EarlySpeech();
         EarlyHandoff handoff = deliversEarly(overheard, snapshot, earlyListener) ? new EarlyHandoff(earlyListener, displayName(snapshot, profile, "")) : null;
@@ -224,10 +225,11 @@ public final class ConversationEngine implements AutoCloseable {
         } catch (IOException | InterruptedException | RuntimeException failure) { early.discard(); throw failure; }
         SpeechStream audio = null;
         String voiceId = speech.selectedVoice(profile.voiceId);
-        if (answer.reply().isBlank()) { early.discard(); }
+        String said = profile.social == null ? answer.reply() : ChildGrowth.speakable(ChildGrowth.Stage.of(profile.social.stage), answer.reply(), new java.util.Random());
+        if (said.isBlank()) { early.discard(); }
         else try {
-            java.util.concurrent.CompletableFuture<OpenRouterSpeechClient.StreamedAudio> started = early.take(answer.reply());
-            OpenRouterSpeechClient.StreamedAudio streamed = started == null ? speech.streamWithFallback(profile.voiceId, reserve, answer.reply())
+            java.util.concurrent.CompletableFuture<OpenRouterSpeechClient.StreamedAudio> started = early.take(said);
+            OpenRouterSpeechClient.StreamedAudio streamed = started == null ? speech.streamWithFallback(profile.voiceId, reserve, said)
                     : awaitStarted(started);
             audio = streamed.stream();
             voiceId = streamed.voiceId();
@@ -244,7 +246,7 @@ public final class ConversationEngine implements AutoCloseable {
         }
         if (answer.biography() != null) adopt(snapshot, answer.biography());
         String name = displayName(snapshot, profile, answer.biography() == null ? "" : answer.biography().name());
-        Reply reply = new Reply(question, SpeechTags.strip(answer.reply()), name, voiceId, audio, answer.action(), snapshot.interactionRevision(), answer.bargain(),
+        Reply reply = new Reply(question, SpeechTags.strip(said), name, voiceId, audio, answer.action(), snapshot.interactionRevision(), answer.bargain(),
                 answer.deal(), answer.unlock(), answer.quest(), answer.socialIntent(), overheard != null);
         return new PreparedReply(this, reply, snapshot, answer.memory(), answer.socialIntent(), audio == null ? null : voiceId, answer.thought(), answer.fact(),
                 overheard == null ? proposalKept(profile, question, answer.gesture()) : GestureIntent.none());
@@ -310,14 +312,14 @@ public final class ConversationEngine implements AutoCloseable {
         if (closed || mob == null) return;
         ConversationSummary.Pending pending = store.pendingSummary(mob, player, playerName);
         if (pending == null) return;
-        BackgroundTasks.submit("summary:" + mob, () -> { if (!closed) ConversationSummary.summarize(store, llm, pending, System.currentTimeMillis()); });
+        BackgroundTasks.submit("summary:" + mob, () -> { if (!closed) ConversationSummary.summarize(store, llm, pending, MobClock.now()); });
     }
 
     /** After a committed reply: when enough has happened since the mob last thought this player over, one background request
      * draws conclusions ({@link Reflection}); the counters restart as soon as it is queued. */
     private void maybeReflect(MobSnapshot delivered) {
         if (closed || delivered.playerId() == null) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         Reflection.Input input = store.reflectionDue(delivered.id(), delivered.playerId(), playerName(delivered), now);
         if (input == null) return;
         BackgroundTasks.submit("reflection:" + delivered.id(), () -> { if (!closed) Reflection.reflect(store, llm, input, now); });
@@ -340,9 +342,9 @@ public final class ConversationEngine implements AutoCloseable {
                     observed.mobDetails(), observed.environmentDetails(), observed.observedEntities(), observed.availableActions(), expectedCurrentRevision);
             Reply reply = prepared.reply;
             boolean committed = store.commit(delivered, reply.recognizedText(), reply.responseText(), prepared.memory, prepared.socialIntent,
-                    reply.action(), System.currentTimeMillis(), prepared.successfulVoice, prepared.thought, prepared.fact);
+                    reply.action(), MobClock.now(), prepared.successfulVoice, prepared.thought, prepared.fact);
             if (committed && prepared.gesture.present())
-                store.social().applyGesture(delivered.id(), delivered.playerId(), playerName(delivered), prepared.gesture, System.currentTimeMillis());
+                store.social().applyGesture(delivered.id(), delivered.playerId(), playerName(delivered), prepared.gesture, MobClock.now());
             if (committed && !reply.overheard()) maybeReflect(delivered);
             return committed;
         }

@@ -60,7 +60,7 @@ final class MobContextCapture {
         // contradicting price list. Its favours stay.
         Map<String, Object> trading = new LinkedHashMap<>(Trading.view(type, bridge.memory.tradeStates(mob.getUuid(), player.getUuid()),
                 bridge.memory.favor(mob.getUuid(), player.getUuid()), bridge.memory.favorsDone(mob.getUuid(), player.getUuid()),
-                card == null ? 0 : card.relationship(), System.currentTimeMillis(),
+                card == null ? 0 : card.relationship(), MobClock.now(),
                 Math.floorDiv(world.getTimeOfDay(), 24_000L), MobTrading.inventoryCounts(player), MobTrading.itemNames(type), !(mob instanceof MerchantEntity),
                 bridge.memory.neighbourFavors(mob.getUuid(), player.getUuid())));
         if (!trading.isEmpty()) {
@@ -98,6 +98,10 @@ final class MobContextCapture {
             mobDetails.put("bargaining", bridge.bargaining.capture(villager, player));
             Map<String, Object> fine = bridge.officials.fineFor(villager, player);
             if (fine != null) mobDetails.put("officialFine", fine);
+            Map<String, Object> paper = bridge.passports.caseFor(villager, player);
+            if (paper != null) mobDetails.put("paperCase", paper);
+            List<Map<String, Object>> gossip = bridge.officials.gossipFor(villager);
+            if (gossip != null) mobDetails.put("villageOfficials", gossip);
         }
         if (mob instanceof net.minecraft.entity.mob.ZombieVillagerEntity villager) {
             mobDetails.put("profession", Registries.VILLAGER_PROFESSION.getId(villager.getVillagerData().getProfession()).toString());
