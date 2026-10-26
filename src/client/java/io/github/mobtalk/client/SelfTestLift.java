@@ -14,17 +14,24 @@ import net.minecraft.util.math.Direction;
 
 /** Self-test of the lifts ({@code -Dmobtalk.selftest.only=lift}, no LLM, no voice): a 9-storey test tower ({@code /city lift 9 4}),
  * its cabin spawned by the winch, a call from the landing (doors open), the ride up with the player and a villager standing in the
- * cabin, getting off level with the floor, СТОП between floors and the way down. Screenshots go to screenshots/mobtalk-lift-*.png. */
+ * cabin, getting off level with the floor, СТОП between floors and the way down. Screenshots go to screenshots/mobtalk-lift-*.png.
+ * With {@code -Dmobtalk.selftest.lifthouse=1} the same stages run in the first entrance of a real 1-515/9 house
+ * ({@code /city house "1-515-9" 3 9 white}) instead of the bare tower. */
 final class SelfTestLift {
     private final SelfTest test;
     private final int px, py, pz;
     private Runnable next = () -> { };
     private LiftCabin cabin;
     private java.util.UUID villager;
+    private static final boolean HOUSE = Boolean.getBoolean("mobtalk.selftest.lifthouse");
+    /** Where the cabin is looked for: around the bare tower, or around the first entrance's shaft of the house. */
+    private final Box area;
 
     SelfTestLift(SelfTest test, int stageX, int stageY, int stageZ) {
         this.test = test;
-        this.px = stageX + 40; this.py = stageY + 20; this.pz = stageZ;
+        this.px = stageX + (HOUSE ? 200 : 40); this.py = stageY + 20; this.pz = stageZ;
+        // the house template's origin is the block under the player; the first shaft is 22, 18 cells in, its first slab one row up
+        this.area = HOUSE ? new Box(px + 12, py - 5, pz + 8, px + 32, py + 50, pz + 28) : new Box(px - 10, py - 5, pz - 15, px + 10, py + 50, pz + 10);
     }
 
     private String name() { return test.owner.client.player.getName().getString(); }
@@ -38,20 +45,38 @@ final class SelfTestLift {
         test.log("lift stages: the tower, the call, the ride up, СТОП, the way down");
         test.command("time set 6000"); test.command("weather clear"); test.command("gamerule doDaylightCycle false");
         test.command("gamemode creative " + name());
-        test.command("fill " + (px - 8) + " " + (py - 1) + " " + (pz - 12) + " " + (px + 8) + " " + (py + 44) + " " + (pz + 8) + " minecraft:air");
-        test.command("fill " + (px - 8) + " " + (py - 1) + " " + (pz - 12) + " " + (px + 8) + " " + (py - 1) + " " + (pz + 8) + " minecraft:smooth_stone");
+        if (HOUSE) test.command("fill " + px + " " + (py - 1) + " " + pz + " " + (px + 135) + " " + (py - 1) + " " + (pz + 30) + " minecraft:smooth_stone");
+        else {
+            test.command("fill " + (px - 8) + " " + (py - 1) + " " + (pz - 12) + " " + (px + 8) + " " + (py + 44) + " " + (pz + 8) + " minecraft:air");
+            test.command("fill " + (px - 8) + " " + (py - 1) + " " + (pz - 12) + " " + (px + 8) + " " + (py - 1) + " " + (pz + 8) + " minecraft:smooth_stone");
+        }
         test.command("tp " + name() + " " + px + " " + py + " " + pz + " 180 0");
         test.await("pause: the stage chunks load", 3, () -> false, () -> {
-            test.command("execute as " + name() + " at " + name() + " rotated 180 0 run city lift 9 4");
-            test.await("the winch spawns the cabin", 20, () -> (cabin = find()) != null, this::spawned);
+            test.command(HOUSE ? "execute positioned " + px + " " + py + " " + pz + " run city house \"1-515-9\" 3 9 white"
+                    : "execute as " + name() + " at " + name() + " rotated 180 0 run city lift 9 4");
+            test.await("pause: the house is set down", 3, () -> false, () -> {
+                test.log("lift blocks in the area: " + onServer(this::liftBlocks));
+                test.await("the winch spawns the cabin", 30, () -> (cabin = find()) != null, this::spawned);
+            });
         });
     }
 
     private LiftCabin find() {
         return onServer(() -> {
-            List<LiftCabin> found = world().getEntitiesByClass(LiftCabin.class, new Box(px - 10, py - 5, pz - 15, px + 10, py + 50, pz + 10), c -> true);
+            List<LiftCabin> found = world().getEntitiesByClass(LiftCabin.class, area, c -> true);
             return found.isEmpty() ? null : found.get(0);
         });
+    }
+
+    /** Where the lift's blocks stand (for a failed run's log): door, button and winch positions in the search area. */
+    private String liftBlocks() {
+        StringBuilder out = new StringBuilder();
+        for (BlockPos p : BlockPos.iterate(BlockPos.ofFloored(area.minX, area.minY, area.minZ), BlockPos.ofFloored(area.maxX, area.maxY, area.maxZ))) {
+            var state = world().getBlockState(p);
+            if (state.isOf(Lifts.MACHINE) || state.isOf(Lifts.BUTTON) || (state.isOf(Lifts.DOOR) && p.getY() < py + 4))
+                out.append(state.getBlock().getTranslationKey().replace("block.mobtalk.", "")).append('@').append(p.toShortString()).append(' ');
+        }
+        return out.length() == 0 ? "none" : out.toString();
     }
 
     private double feet(int floor) { return cabin.slabs().get(floor) + 1; }
@@ -166,7 +191,7 @@ final class SelfTestLift {
         test.command("summon minecraft:villager " + x + " " + feet(0) + " " + z + " {PersistenceRequired:1b,Tags:[\"lifttest\",\"liftrider\"]}");
         test.command("tp " + name() + " " + landing(0));
         java.util.function.Supplier<Double> y = () -> onServer(() -> {
-            List<VillagerEntity> v = world().getEntitiesByClass(VillagerEntity.class, new Box(px - 10, py - 5, pz - 15, px + 10, py + 50, pz + 10),
+            List<VillagerEntity> v = world().getEntitiesByClass(VillagerEntity.class, area,
                     e -> e.getCommandTags().contains("liftrider"));
             return v.isEmpty() || v.get(0).hasVehicle() ? feet(0) : v.get(0).getY();
         });
