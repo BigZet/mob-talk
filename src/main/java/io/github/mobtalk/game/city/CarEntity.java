@@ -12,6 +12,7 @@ import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
+import net.minecraft.entity.passive.MerchantEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.world.ServerWorld;
@@ -318,28 +319,57 @@ public final class CarEntity extends Entity {
         return new Vec3d(getX() + x * c - z * s, getY() + y, getZ() + x * s + z * c);
     }
 
+    /** How much smaller a villager is drawn sitting in a car, and the height of its hips over its feet (legs of 12 px,
+     * the villager renderer's 0.9375). */
+    public static final float SITTER_SCALE = 0.82F;
+    private static final double VILLAGER_HIPS = 0.75 * 0.9375;
+
     @Override protected Vec3d getPassengerAttachmentPos(Entity passenger, EntityDimensions dimensions, float scale) {
         int seat = seatOf(passenger);
         CarTypes.Type t = type();
         CarTypes.Seat s = t.seats().get(Math.max(0, seat));
         // Minecraft's people are tall for a real car: a sitting player's eyes are 1.02 over its seat, which would put a head
-        // through the roof of a Zhiguli. The sitter goes down until its eyes are a fifth of a block under the roof, its legs
-        // hidden in the floor; a villager (no sitting pose of its own) is set down by its eyes the same way.
+        // through the roof of a Zhiguli. The player goes down until its eyes are a fifth of a block under the roof, its legs
+        // hidden in the floor. A villager (or trader) sits on the cushion, its legs under the dashboard, drawn SITTER_SCALE
+        // smaller by the client so that its head fits; anyone else is set down by its eyes like the player.
         double eye = passenger.getStandingEyeHeight();
         double attach = passenger.getVehicleAttachmentPos(this).y;
-        double eyes = Math.min(s.y() + 1.02, t.height() - 0.2);
-        double y = eyes - eye + attach;
-        return toWorld(s.x(), y, s.z()).subtract(getPos());
+        double y, x = s.x();
+        if (passenger instanceof MerchantEntity) {
+            y = s.y() - 0.06 - VILLAGER_HIPS * SITTER_SCALE + attach;
+            // its crossed arms are a block wide: away from the door, or they come out through it
+            double reach = t.width() / 2 - 0.1 - 0.5 * 0.9375 * SITTER_SCALE;
+            x = MathHelper.clamp(x, -reach, reach);
+        } else {
+            boolean player = passenger instanceof PlayerEntity;
+            double eyes = Math.min(s.y() + 1.02, t.height() - (player ? 0.2 : 0.42));
+            y = eyes - eye + attach;
+        }
+        return toWorld(x, y, s.z()).subtract(getPos());
     }
 
     @Override protected void updatePassengerPosition(Entity passenger, PositionUpdater updater) {
         super.updatePassengerPosition(passenger, updater);
         float facing = getYaw();
         passenger.setBodyYaw(facing);
-        float turn = MathHelper.wrapDegrees(passenger.getYaw() - facing), kept = MathHelper.clamp(turn, -110.0F, 110.0F);
-        passenger.prevYaw += kept - turn;
-        passenger.setYaw(passenger.getYaw() + kept - turn);
-        passenger.setHeadYaw(passenger.getYaw());
+        if (passenger instanceof PlayerEntity) {
+            // a player may look round over a shoulder
+            float turn = MathHelper.wrapDegrees(passenger.getYaw() - facing), kept = MathHelper.clamp(turn, -110.0F, 110.0F);
+            passenger.prevYaw += kept - turn;
+            passenger.setYaw(passenger.getYaw() + kept - turn);
+            passenger.setHeadYaw(passenger.getYaw());
+            return;
+        }
+        // anyone else sits facing the way the car does (its legs follow its body and would swing out through the door);
+        // only its head turns, a little
+        passenger.setYaw(facing);
+        passenger.prevYaw = facing;
+        if (passenger instanceof LivingEntity living) {
+            living.prevBodyYaw = facing;
+            float head = MathHelper.clamp(MathHelper.wrapDegrees(living.getHeadYaw() - facing), -40.0F, 40.0F);
+            living.setHeadYaw(facing + head);
+            living.prevHeadYaw = facing + head;
+        }
     }
 
     /** Getting out: beside the seat's own door, on the ground. */

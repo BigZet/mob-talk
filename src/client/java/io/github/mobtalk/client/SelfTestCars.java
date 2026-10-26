@@ -82,6 +82,11 @@ final class SelfTestCars {
 
     private CarEntity car;
 
+    /** Turns the camera of a seated player (a teleport would get it out of the car). */
+    private void look(float yaw, float pitch) {
+        test.owner.client.execute(() -> { var p = test.owner.client.player; p.setYaw(yaw); p.setHeadYaw(yaw); p.setPitch(pitch); p.prevYaw = yaw; p.prevPitch = pitch; });
+    }
+
     private void showcase(CarTypes.Type t, String scheme) {
         String tag = "mobtalk-car-" + t.id() + "-" + scheme;
         double L = t.length(), W = t.width(), H = t.height();
@@ -130,13 +135,17 @@ final class SelfTestCars {
                     });
                 }
                 test.await("pause: sitting down", 2, () -> false, () -> {
-                    test.command("tp " + name() + " ~ ~ ~ 0 8");
+                    look(car.getYaw(), 8);
                     shot(tag + "-8-driver.png", () -> {
-                        test.command("tp " + name() + " ~ ~ ~ 70 15");
+                        look(car.getYaw() + 70, 15);
                         shot(tag + "-9-passenger.png", () -> {
                             test.command("gamemode spectator " + name());
                             serverDo(() -> test.serverPlayer().stopRiding());
                             camera(car, -W / 2 - 1.3, 1.5, 0.4, 0, 0.9, 0);
+                            var cw = test.owner.client.world;
+                            var seen = cw.getEntitiesByClass(VillagerEntity.class, new Box(car.getX() - 6, car.getY() - 3, car.getZ() - 6, car.getX() + 6, car.getY() + 4, car.getZ() + 6), e -> true);
+                            for (VillagerEntity cv : seen) test.log("villager on the client: vehicle " + cv.getVehicle() + ", yaw " + cv.getYaw() + ", body " + cv.getBodyYaw() + ", car yaw " + car.getYaw());
+                            test.check(!seen.isEmpty() && seen.stream().allMatch(e -> e.getVehicle() instanceof CarEntity), t.id() + ": the client sees the villager sitting in the car");
                             shot(tag + "-10-villager.png", () -> {
                                 test.command("time set 18000");
                                 serverDo(() -> { car.setHeadlights(true); car.setBeacon(true); });

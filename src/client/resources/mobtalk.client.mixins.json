@@ -5,7 +5,9 @@
   "client": [
     "ChatScreenAccessor",
     "LivingEntityRendererInvoker",
-    "LiftStandingRiderMixin"
+    "LiftStandingRiderMixin",
+    "CarSittingVillagerMixin",
+    "CarRiderScaleMixin"
   ],
   "injectors": {
     "defaultRequire": 1

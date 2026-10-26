@@ -55,7 +55,7 @@ COLOURS = {
 # liveries: base colour, stripe colour, words on the doors, beacon on the roof
 LIVERIES = {
     "police": dict(name="Полиция", base="#eef0f0", stripe="#1f4fa8", word="ПОЛИЦИЯ", letters="#1f4fa8", beacon=True),
-    "militsiya": dict(name="Милиция", base="#e3b52e", stripe="#1f3f98", word="МИЛИЦИЯ", letters="#f2f2ee", beacon=True),
+    "militsiya": dict(name="Милиция", base="#e3b52e", stripe="#1f3f98", word="МИЛИЦИЯ", letters="#f2f2ee", beacon=True, on_stripe=True),
     "taxi": dict(name="Такси", base="#e6c02c", checker=True, word="", beacon=False, roof_sign="ТАКСИ"),
     "ambulance": dict(name="Скорая помощь", base="#eeeeea", stripe="#c8231f", word="СКОРАЯ", letters="#c8231f", beacon=True, red_beacon=True),
 }
@@ -248,23 +248,38 @@ def colours(car, look, scheme):
         # faces: tops a little lighter, undersides dark
         up, down = d == 2, d == 3
         out[pm & up, :3] = ramp_col(out[pm & up, :3], 1.06)
-        out[np.isin(mat, (PAINT, PAINT2)) & down, :3] = base[UNDER]
+        low = P[:, 1] < car.info.get("belt", 1e9) - 2.0
+        out[np.isin(mat, (PAINT, PAINT2)) & down & low, :3] = base[UNDER]
+        out[np.isin(mat, (PAINT, PAINT2)) & down & ~low, :3] *= 0.86
         # inside the cabin: trim on the walls, the headliner overhead, the floor mat
         if look.cabin is not None:
             cz = car.info.get("cabin_z", 0.0)
             toward = np.stack([-P[:, 0], np.zeros(n), cz - P[:, 2]], 1)
-            inward = (np.einsum("ij,ij->i", nrm, toward) > 0) | (d == 3) | (d == 2)
+            belt_y = car.info.get("belt", 0)
+            # sideways faces looking into the cabin; floors under the belt line; ceilings (the roof's underside) high up
+            inward = ((np.einsum("ij,ij->i", nrm, toward) > 0) & (d != 2) & (d != 3)) | ((d == 2) & (P[:, 1] < belt_y)) | \
+                     ((d == 3) & (P[:, 1] > car.info.get("roof", 1e9) - 2.5))
             inside = look.cabin(P) & np.isin(mat, (PAINT, PAINT2, UNDER)) & inward
             put(inside & (down), look.headliner)
             put(inside & ~down & ~up, look.trim)
             put(inside & up, look.floor)
         # glass: dark blue-green, a light diagonal streak, see-through
         g = mat == GLASS
-        streak = ((P[:, 2] + P[:, 1] * 0.8 + P[:, 0] * 0.6) % 9.0) < 1.2
+        streak = ((P[:, 2] + P[:, 1] * 0.9 + P[:, 0] * 0.7) % 22.0) < 1.6
+        soft = (((P[:, 2] + P[:, 1] * 0.9 + P[:, 0] * 0.7) % 22.0) >= 1.6) & (((P[:, 2] + P[:, 1] * 0.9 + P[:, 0] * 0.7) % 22.0) < 3.0)
         put(g, rgb("#2c4450"))
         out[g, 3] = 105
-        put(g & streak, rgb("#8fb0bd"))
-        out[g & streak, 3] = 150
+        put(g & streak, rgb("#7d9eab"))
+        out[g & streak, 3] = 135
+        put(g & soft, rgb("#4f6c78"))
+        out[g & soft, 3] = 115
+        # seen from inside the glass is clear, with no streaks (they filled the driver's view)
+        if look.cabin is not None:
+            cz = car.info.get("cabin_z", 0.0)
+            into = np.einsum("ij,ij->i", nrm, np.stack([-P[:, 0], car.info.get("roof", 20) * 0.6 - P[:, 1], cz - P[:, 2]], 1)) > 0
+            gi = g & into
+            put(gi, rgb("#3a5560"))
+            out[gi, 3] = 55
         # chrome: a bright upper half and a darker lower band, like a horizon in it
         ch = np.isin(mat, (CHROME, ALU)) & (mesh.vid == 0)
         frac = (P[:, 1] * 2) % 2
@@ -310,6 +325,8 @@ def colours(car, look, scheme):
             sides = pm & (d < 2)
             if liv.get("stripe"):
                 y0, y1 = car.info["stripe"]
+                if liv.get("on_stripe"):  # the words in white on a wide stripe
+                    y0, y1 = car.info["word"][1] - 1.75, car.info["word"][1] + 1.75
                 put(sides & (P[:, 1] > y0) & (P[:, 1] < y1), rgb(liv["stripe"]))
             if liv.get("word"):
                 zc, yc, h = car.info["word"]
@@ -339,7 +356,9 @@ def colours(car, look, scheme):
             look.extra(mesh, out, scheme)
         # pixel-art bevels: a lighter top edge, a darker bottom edge on every surface; seams of doors and lids dark
         e = mesh.edge
-        solidish = ~np.isin(mat, (GLASS,))
+        # no bevels on the greenhouse's stepped pillars (they made teeth of the slopes), nor on the glass
+        belt_y = car.info.get("belt", 1e9)
+        solidish = ~np.isin(mat, (GLASS,)) & ~((mesh.vid == 0) & (P[:, 1] > belt_y + 0.5) & (P[:, 1] < car.info.get("roof", 0) - 1.0) & (car.info.get("kind", "car") == "car"))
         lit = solidish & e[:, 2] & (d != 2) & (d != 3)
         dark = solidish & e[:, 3] & (d != 2) & (d != 3)
         out[lit, :3] = ramp_col(out[lit, :3], 1.16)
@@ -954,10 +973,6 @@ def niva():
     c.body.box(-3.8, 6.2, 30.2, 3.8, 8.2, 30.8, PLATE, only=[AIR])
     # plastic wheel-arch flares
     X, Y, Z = g["X"], g["Y"], g["Z"]
-    for wz in (p["front"], p["front"] - p["wheelbase"]):
-        R = np.sqrt((Y - p["r"]) ** 2 + (Z - wz) ** 2)
-        flare = (R >= p["r"] + 1.6) & (R < p["r"] + 2.4) & (Y > p["r"] - 0.5) & (abs(X) > c.half - 1.0) & (abs(X) < c.half + 0.6)
-        c.body.set(flare, BLACK)
     mirror(c, 10.0, 16.6, BLACK)
     interior(c, p, seats_front_z=-1.0, rear_z=-16.0, dash_z=9.0, steer_xyz=(6.6, 15.0, 4.0), seat_h=9.5, back_h=17.5)
     wheels4(c, p, hub="steel", width=3.4)
@@ -1067,7 +1082,8 @@ def paz3205():
     # the saloon: the driver's seat and wheel in the front left, rows of double seats both sides of the aisle
     c.body.box(-hw + 1.5, p["floor"] - 0.3, -54.0, hw - 1.5, p["floor"] + 0.6, 53.0, FLOOR, only=[AIR, PAINT])
     c.body.box(-hw + 1.5, 6.0, 40.0, -hw + 12.0, p["floor"], 53.0, FLOOR, only=[AIR, PAINT])  # the step in the front door
-    c.body.box(4.0, 22.0, 49.0, hw - 1.5, 27.0, 54.0, DASH, only=[AIR])
+    c.body.box(-hw + 1.5, 14.0, 50.0, hw - 1.5, 23.4, 54.6, DASH, only=[AIR, PAINT])
+    c.body.box(4.0, 22.0, 48.0, hw - 1.5, 26.0, 54.0, DASH, only=[AIR])
     c.body.box(8.0, p["floor"], 40.0, 17.0, 21.5, 46.0, SEAT, only=[AIR])
     c.body.box(8.0, 21.5, 38.6, 17.0, 34.0, 40.0, SEAT, only=[AIR])
     c.seats.append((12.5, 21.5, 43.0))
