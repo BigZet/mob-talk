@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/shop/potato_sacks"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/shop/potato_sacks",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/shop/potato_sacks",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/shop/potato_sacks",
+      "y": 270
+    }
+  }
+}

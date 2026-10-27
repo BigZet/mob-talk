@@ -296,6 +296,14 @@ final class VillageDefenseController {
         if (zone != null) againstPlayer(world, zone, player, VillageAlarm.Level.THREAT, "его тут ненавидят");
     }
 
+    /** A player got away from a city shop with unpaid goods (ShopController): the city is warned against them. */
+    void theft(ServerWorld world, ServerPlayerEntity player, BlockPos shop) {
+        if (!enabled()) return;
+        Zone zone = zoneAt(world, shop);
+        if (zone == null) zone = zoneAt(world, player.getBlockPos());
+        if (zone != null) againstPlayer(world, zone, player, VillageAlarm.Level.THREAT, "украл в магазине");
+    }
+
     /** An exile walks in the village (VillageController): a threat at once, an attack if they stay. */
     void exile(ServerWorld world, ServerPlayerEntity player) {
         if (!enabled()) return;

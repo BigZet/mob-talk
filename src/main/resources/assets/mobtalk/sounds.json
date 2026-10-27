@@ -71,5 +71,81 @@
         "name": "mobtalk:lift/bell"
       }
     ]
+  },
+  "shop.beep": {
+    "subtitle": "subtitle.mobtalk.shop.beep",
+    "sounds": [
+      "mobtalk:shop/beep1",
+      "mobtalk:shop/beep2",
+      "mobtalk:shop/beep3"
+    ]
+  },
+  "shop.drawer": {
+    "subtitle": "subtitle.mobtalk.shop.drawer",
+    "sounds": [
+      "mobtalk:shop/drawer"
+    ]
+  },
+  "shop.alarm": {
+    "subtitle": "subtitle.mobtalk.shop.alarm",
+    "sounds": [
+      "mobtalk:shop/alarm"
+    ]
+  },
+  "shop.chime": {
+    "subtitle": "subtitle.mobtalk.shop.chime",
+    "sounds": [
+      "mobtalk:shop/chime"
+    ]
+  },
+  "shop.hum": {
+    "subtitle": "subtitle.mobtalk.shop.hum",
+    "sounds": [
+      "mobtalk:shop/hum"
+    ]
+  },
+  "shop.cart": {
+    "subtitle": "subtitle.mobtalk.shop.cart",
+    "sounds": [
+      "mobtalk:shop/cart1",
+      "mobtalk:shop/cart2",
+      "mobtalk:shop/cart3"
+    ]
+  },
+  "shop.music": {
+    "subtitle": "subtitle.mobtalk.shop.music",
+    "sounds": [
+      {
+        "name": "mobtalk:shop/music",
+        "stream": true
+      }
+    ]
+  },
+  "market.crowd": {
+    "subtitle": "subtitle.mobtalk.market.crowd",
+    "sounds": [
+      "mobtalk:market/crowd1",
+      "mobtalk:market/crowd2"
+    ]
+  },
+  "market.scales": {
+    "subtitle": "subtitle.mobtalk.market.scales",
+    "sounds": [
+      "mobtalk:market/scales1",
+      "mobtalk:market/scales2"
+    ]
+  },
+  "market.chop": {
+    "subtitle": "subtitle.mobtalk.market.chop",
+    "sounds": [
+      "mobtalk:market/chop1",
+      "mobtalk:market/chop2"
+    ]
+  },
+  "market.sizzle": {
+    "subtitle": "subtitle.mobtalk.market.sizzle",
+    "sounds": [
+      "mobtalk:market/sizzle"
+    ]
   }
 }

@@ -1,0 +1,15 @@
+{
+  "name": "mobtalk:city/ours/univermag_5th",
+  "fallback": "minecraft:empty",
+  "elements": [
+    {
+      "weight": 1,
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "mobtalk:city/ours/landmark/univermag_5th",
+        "processors": "minecraft:empty",
+        "projection": "rigid"
+      }
+    }
+  ]
+}

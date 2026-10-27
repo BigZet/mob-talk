@@ -108,6 +108,8 @@ public final class MobTalkMod implements ModInitializer {
         io.github.mobtalk.game.Lifts.register(); // Лифты многоэтажек: шахта, двери, кнопки, кабина, лебёдка.
         io.github.mobtalk.game.Fences.register(); // Советские заборы: рабица, сварные с ромбами, бетонный ПО-2, калитки.
         io.github.mobtalk.game.CityWorldgen.register(); // Города с панельками вместо части деревень.
+        io.github.mobtalk.game.ShopContent.register(); // Универсам: витрины, кассы, корзины, кассир и охранник.
+        io.github.mobtalk.game.ShopController.register();
         MobGameBridge.initialize();
         MobTalkNet.registerPayloads();
         if (dedicated()) {

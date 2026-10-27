@@ -205,6 +205,13 @@ public final class Tunables {
         integer("liftDoorSeconds", s, "cities", 2, 20, 1, c -> c.liftDoorSeconds, (c, x) -> c.liftDoorSeconds = x);
         integer("liftVillagerChance", s, "cities", 0, 100, 5, c -> c.liftVillagerChance, (c, x) -> c.liftVillagerChance = x);
         integer("cityCarsPercent", s, "cities", 0, 100, 5, c -> c.cityCarsPercent, (c, x) -> c.cityCarsPercent = x);
+        // City supermarkets.
+        integer("shopRestockMinutes", s, "shops", 1, 240, 1, c -> c.shopRestockMinutes, (c, x) -> c.shopRestockMinutes = x);
+        integer("shopPricePercent", s, "shops", 10, 500, 10, c -> c.shopPricePercent, (c, x) -> c.shopPricePercent = x);
+        integer("shopTheftSeconds", s, "shops", 2, 60, 1, c -> c.shopTheftSeconds, (c, x) -> c.shopTheftSeconds = x);
+        integer("shopCheckoutGlitchPercent", s, "shops", 0, 100, 5, c -> c.shopCheckoutGlitchPercent, (c, x) -> c.shopCheckoutGlitchPercent = x);
+        integer("shopPromoPercent", s, "shops", 0, 100, 1, c -> c.shopPromoPercent, (c, x) -> c.shopPromoPercent = x);
+        integer("marketHagglePercent", s, "shops", 0, 100, 5, c -> c.marketHagglePercent, (c, x) -> c.marketHagglePercent = x);
         // Watchtowers and their archers.
         integer("towerResidents", s, "towers", 2, 40, 1, c -> c.towerResidents, (c, x) -> c.towerResidents = x);
         integer("towerMax", s, "towers", 0, 8, 1, c -> c.towerMax, (c, x) -> c.towerMax = x);
@@ -304,6 +311,7 @@ public final class Tunables {
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices; config.villageSites = d.villageSites;
                 config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.alarmSound = d.alarmSound; config.villageNoConversion = d.villageNoConversion; config.villageTowers = d.villageTowers; config.villageGuards = d.villageGuards; config.villageHeavy = d.villageHeavy; config.villageCavalry = d.villageCavalry; config.cities = d.cities;
+                config.cityShops = d.cityShops; config.shopStaff = d.shopStaff; config.shopTheftAlarm = d.shopTheftAlarm; config.shopSounds = d.shopSounds; config.cityMarkets = d.cityMarkets; config.marketCalls = d.marketCalls;
                 config.divineTidings = d.divineTidings; config.divinePanic = d.divinePanic; config.divineMayExile = d.divineMayExile; config.divineMourners = d.divineMourners;
             }
             case ACTIONS -> { config.placeAnalysis = d.placeAnalysis; config.placeClassifier = d.placeClassifier; }

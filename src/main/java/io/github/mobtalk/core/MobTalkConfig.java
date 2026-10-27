@@ -131,6 +131,35 @@ public final class MobTalkConfig {
     public int liftSpeedTenths = 15, liftDoorSeconds = 5, liftVillagerChance = 25;
     /** Parked cars of the cities (docs/cars.md): the share of parking spots in yards and streets that hold a car, percent. */
     public int cityCarsPercent = 60;
+    /** City supermarkets work: goods on the displays, paid in emeralds at a till or the self-checkout, a cashier and a guard. */
+    public boolean cityShops = true;
+    /** A newcomer comes to a till or a guard's desk left without its cashier or guard. */
+    public boolean shopStaff = true;
+    /** Goods carried off unpaid raise the city's alarm against the player (when the guard did not catch them). */
+    public boolean shopTheftAlarm = true;
+    /** The supermarket's sounds: scanner beeps, the till, the gate's alarm, fridges, PA chime, music, carts. */
+    public boolean shopSounds = true;
+    /** Deals: yellow «акция» tags (30% off) on some goods, and one «товар дня» a shop at half price, changing every day. */
+    public boolean shopDeals = true;
+    /** Villagers go shopping by day: they take goods off the displays and queue at the tills. */
+    public boolean shopShoppers = true;
+    /** The supermarket's loyalty card: issued with the first purchase, a point an emerald, ten points an emerald off (sneak at the till). */
+    public boolean shopLoyalty = true;
+    /** About how many of the lanes are on «акция» on a given day, percent. */
+    public int shopPromoPercent = 12;
+    /** City markets: vendors at their stalls sell for emeralds on the spot (haggling allowed); they call out to passers-by. */
+    public boolean cityMarkets = true;
+    public boolean marketCalls = true;
+    /** How often a vendor gives way when a player haggles (sneak + take): a lot one emerald cheaper, or a bit extra for free. */
+    public int marketHagglePercent = 50;
+    /** Minutes between deliveries: an emptied display is full again after this long. */
+    public int shopRestockMinutes = 20;
+    /** Prices against the catalogue, percent. */
+    public int shopPricePercent = 100;
+    /** Seconds out of the shop with unpaid goods before the theft counts (the guard may catch the player first). */
+    public int shopTheftSeconds = 8;
+    /** Percent of tries the self-checkout complains of an unknown item in the bagging area. */
+    public int shopCheckoutGlitchPercent = 15;
     /** Ranks of the village's guard beside the plain guard: heavy warriors in diamond with an axe, horsemen in leather on a horse. */
     public boolean villageHeavy = true, villageCavalry = true;
     /** Idea Б1: the villages know the god's deeds (the divine block's events) — they panic, talk and blame the sinner by name;
@@ -321,6 +350,7 @@ public final class MobTalkConfig {
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
         copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
         copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageHeavy = villageHeavy; copy.villageCavalry = villageCavalry; copy.cities = cities;
+        copy.cityShops = cityShops; copy.shopStaff = shopStaff; copy.shopTheftAlarm = shopTheftAlarm; copy.shopSounds = shopSounds; copy.shopDeals = shopDeals; copy.shopShoppers = shopShoppers; copy.shopLoyalty = shopLoyalty; copy.cityMarkets = cityMarkets; copy.marketCalls = marketCalls;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;

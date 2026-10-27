@@ -742,6 +742,9 @@ def main():
         json.dump({"replace": False, "values": [f"mobtalk:city_{k}" for k in CITIES]}, f, indent=2)
         f.write("\n")
     print("cities:", ", ".join(CITIES))
+    # The supermarket's shop fittings go in last (tools/city/shop.py, the supermarkets thread).
+    import shop  # noqa: E402
+    shop.main()
 
 
 if __name__ == "__main__":
