@@ -112,12 +112,17 @@ class FurnitureModelsTest {
     void variantsKeepTheirBaseBoxes() throws IOException {
         JsonObject v = JsonParser.parseString(Files.readString(Path.of("tools/city2/variants.json"))).getAsJsonObject();
         int checked = 0;
+        List<String> allIds = new ArrayList<>();
+        for (var base : v.getAsJsonObject("bases").entrySet())
+            for (var fam : base.getValue().getAsJsonObject().entrySet())
+                for (var tag : fam.getValue().getAsJsonObject().entrySet()) allIds.add(tag.getValue().getAsString());
         for (var base : v.getAsJsonObject("bases").entrySet()) {
             for (var fam : base.getValue().getAsJsonObject().entrySet()) {
                 for (var tag : fam.getValue().getAsJsonObject().entrySet()) {
                     String id = tag.getValue().getAsString();
                     try (Stream<Path> s = Files.list(MODELS)) {
-                        for (Path p : s.filter(q -> q.getFileName().toString().startsWith(id)).toList()) {
+                        for (Path p : s.filter(q -> q.getFileName().toString().startsWith(id)
+                                && allIds.stream().noneMatch(o -> o.length() > id.length() && q.getFileName().toString().startsWith(o))).toList()) {
                             Path twin = MODELS.resolve(p.getFileName().toString().replace(id, base.getKey()));
                             assertTrue(Files.exists(twin), p.getFileName() + " has no base twin " + twin.getFileName());
                             assertEquals(boxes(twin), boxes(p), p.getFileName() + " differs from its base in boxes");

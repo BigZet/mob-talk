@@ -256,7 +256,6 @@ def wood(base, tags=WOODS, skip=(), only=None, fam="wood"):
 def make():
     for base in (
         "apt_wall_unit",
-        "apt_tv",
         "apt_coffee_table",
         "apt_wardrobe",
         "apt_sideboard",
@@ -277,7 +276,6 @@ def make():
         "apt_kitchen_jars_wood",
         "apt_kitchen_sink_wood",
         "apt_wall_cupboard_wood",
-        "apt_dish_rack_wood",
     ):
         wood(
             base,
@@ -305,7 +303,6 @@ def make():
         "apt_kitchen_jars_white",
         "apt_kitchen_sink_white",
         "apt_wall_cupboard_white",
-        "apt_dish_rack_white",
     ):
         for tag, (to, ru, en) in KITCHEN.items():
             variant(
@@ -315,26 +312,6 @@ def make():
                 ru,
                 en,
                 [dict(paint, to=to, only=("enamel", "doors"))],
-            )
-    for base in ("apt_stove", "apt_stove_kettle", "apt_fridge"):
-        for tag, (to, ru, en) in KITCHEN.items():
-            variant(
-                base,
-                "kitchen",
-                tag,
-                ru,
-                en,
-                [dict(paint, to=to, only=("enamel", "door"))],
-            )
-    for base in ("apt_bathtub", "apt_toilet", "apt_washbasin"):
-        for tag, (to, ru, en) in ENAMEL.items():
-            variant(
-                base,
-                "sanitary",
-                tag,
-                ru,
-                en,
-                [dict(paint, to=to, only=("enamel", "enamel_in"))],
             )
     for tag, (to, ru, en) in CLOTH.items():
         variant(
@@ -363,14 +340,17 @@ def make():
             en,
             [dict(smax=0.4, to=to, only=("spread", "bedspread_side"))],
         )
-    for base, pics in (
-        ("apt_picture_bears", ("pic_bears",)),
-        ("apt_picture_wave", ("pic_wave",)),
-        ("apt_wall_carpet", ("carpet", "carpet_side")),
-        ("apt_wall_carpet_high", ("carpet_hi", "carpet_side")),
+    wood_rule = lambda skip=(), only=None: lambda to: dict(WOOD, to=to, skip=skip, only=only)
+    cloth_rule = lambda to: dict(lo=335, hi=20, smin=0.3, to=to, only=("oilcloth", "oilcloth_side"))
+    blanket_rule = lambda to: dict(lo=330, hi=50, smin=0.15, to=to, only=("blanket", "blanket_edge"))
+    for base, fam, other, ors, wr in (
+        ("apt_kitchen_table", "cloth+wood", CLOTH, cloth_rule,
+         wood_rule(skip=("glass_tea", "brass", "oilcloth", "oilcloth_side"))),
+        ("apt_bed", "blanket+wood", BLANKET, blanket_rule, wood_rule(only=("head_back", "head", "foot", "walnut"))),
     ):
-        for tag, (rot, ru, en) in HUES.items():
-            variant(base, "hues", tag, ru, en, [dict(smin=0.15, rot=rot, only=pics)])
+        for wtag, (wto, wru, wen) in WOODS.items():
+            for otag, (oto, oru, oen) in other.items():
+                variant(base, fam, f"{otag}_{wtag}", f"{oru}, {wru}", f"{oen}, {wen}", [wr(wto), ors(oto)])
     out = {
         "families": FAMILIES,
         "bases": {b: dict(f) for b, f in BASES.items()},

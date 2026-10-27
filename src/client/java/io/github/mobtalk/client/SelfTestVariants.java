@@ -17,6 +17,7 @@ final class SelfTestVariants {
     private final SelfTest test;
     private final int x0, y0, z0;
     private int failed;
+    private List<String> names = List.of();
 
     SelfTestVariants(SelfTest test, int stageX, int stageY, int stageZ) { this.test = test; this.x0 = stageX + 40; this.y0 = stageY; this.z0 = stageZ + 60; }
 
@@ -34,14 +35,28 @@ final class SelfTestVariants {
             if (k > 0 && !id.endsWith("_part")) rows.computeIfAbsent(id.substring(0, k), b -> new ArrayList<>()).add(id);
         }
         List<List<String>> list = new ArrayList<>();
+        List<String> names = new ArrayList<>();
         for (var e : rows.entrySet()) {
             List<String> row = new ArrayList<>();
             if (cat.containsKey(e.getKey())) row.add(e.getKey());
             row.addAll(e.getValue().stream().sorted().toList());
             list.add(row);
+            names.add(row.get(0).replace("apt_", "").replaceAll("__.*", ""));
         }
         List<String> curtains = new ArrayList<>(cat.keySet().stream().filter(s -> s.startsWith("apt_curtain_")).sorted().toList());
-        if (!curtains.isEmpty()) list.add(curtains);
+        if (!curtains.isEmpty()) { list.add(curtains); names.add("curtain"); }
+        String rowsFile = System.getProperty("mobtalk.selftest.rows");
+        if (rowsFile != null) {
+            list.clear(); names.clear();
+            try (var in = java.nio.file.Files.newBufferedReader(java.nio.file.Path.of(rowsFile))) {
+                for (var e : com.google.gson.JsonParser.parseReader(in).getAsJsonArray()) {
+                    List<String> ids = new ArrayList<>();
+                    e.getAsJsonObject().getAsJsonArray("ids").forEach(x -> ids.add(x.getAsString()));
+                    list.add(ids); names.add(e.getAsJsonObject().get("name").getAsString());
+                }
+            } catch (java.io.IOException ex) { test.fail("cannot read " + rowsFile + ": " + ex); }
+        }
+        this.names = names;
         test.log("variants: " + list.size() + " rows");
         test.owner.client.options.setPerspective(Perspective.FIRST_PERSON);
         test.owner.client.options.hudHidden = true;
@@ -58,7 +73,7 @@ final class SelfTestVariants {
         List<String> ids = rows.get(n);
         var cat = FurnitureBlocks.catalogue();
         int w = ids.size() * 3;
-        boolean ground = cat.get(ids.get(0)) == FurnitureBlocks.Mount.GROUND && !ids.get(0).equals("apt_wall_carpet");
+        boolean ground = ids.stream().allMatch(i -> cat.get(i) == FurnitureBlocks.Mount.GROUND && !i.contains("curtain"));
         test.command("time set 6000");
         test.command("fill " + bp(-14, 0, -18) + " " + bp(w + 14, 6, 30) + " minecraft:air");
         test.command("fill " + bp(-14, -2, -18) + " " + bp(w + 14, -2, 30) + " minecraft:stone");
@@ -76,7 +91,7 @@ final class SelfTestVariants {
                 if (mount == FurnitureBlocks.Mount.CEILING) { test.command("setblock " + bp(x, 3, 0) + " minecraft:white_concrete"); y = 2; }
                 put(id, x, y, 0, Direction.SOUTH);
             }
-            String tag = String.format("var-%02d-%s", n + 1, ids.get(0).replace("apt_", "").replaceAll("__.*", ""));
+            String tag = String.format("var-%02d-%s", n + 1, names.get(n));
             double cx = w / 2.0 + 0.5, far = Math.max(5, w / 2.2 + 1.5), lastX = (ids.size() - 1) * 3 + 1.5;
             double mx = Math.min(ids.size() - 1, 1) * 3 + 1.5;
             String pit = ground ? "10" : "2";

@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.join(HERE, "..", "city"))
 import nbt  # noqa: E402
 import scale  # noqa: E402
 import series as S  # noqa: E402
+import fur_sets  # noqa: E402
 
 DATA_VERSION = 3955
 N, E, SO, W = "north", "east", "south", "west"
@@ -799,7 +800,9 @@ class House:
                         if kind in only:
                             hung[(ix, iz)] = (only[kind], d)
                         continue
-                    hung[(ix, iz)] = (self.palette(sec, k, side)["curtain"], d)
+                    fin = f"fin:{self.series}:{self.colour}:{self.n}:{k}:{sec}:{side}{self.salt}"
+                    pal = fur_sets.pick(fin, self.ch(ix, iz), self.s["rooms"][self.ch(ix, iz)][1])
+                    hung[(ix, iz)] = (fur_sets.curtain(pal, self.palette(sec, k, side)["curtain"]), d)
             for (ix, iz), (name, d) in hung.items():
                 def same(x, z):
                     return hung.get((x, z)) == (name, d)

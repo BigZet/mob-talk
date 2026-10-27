@@ -1,0 +1,336 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_bed__grey_mahogany_foot_44": "mobtalk:block/city2/furniture/apt_bed__grey_mahogany_foot_44",
+    "apt_bed__grey_mahogany__walnut": "mobtalk:block/city2/furniture/apt_bed__grey_mahogany__walnut",
+    "linen": "mobtalk:block/city2/furniture/linen",
+    "apt_bed__grey_mahogany__blanket_edge": "mobtalk:block/city2/furniture/apt_bed__grey_mahogany__blanket_edge",
+    "apt_bed__grey_mahogany_blanket_44": "mobtalk:block/city2/furniture/apt_bed__grey_mahogany_blanket_44",
+    "particle": "mobtalk:block/city2/furniture/apt_bed__grey_mahogany_foot_44"
+  },
+  "elements": [
+    {
+      "from": [
+        0.5,
+        0.0,
+        14.5
+      ],
+      "to": [
+        15.5,
+        9.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_bed__grey_mahogany_foot_44",
+          "uv": [
+            0.5,
+            7.0,
+            15.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_bed__grey_mahogany__walnut",
+          "uv": [
+            0.5,
+            7.0,
+            15.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_bed__grey_mahogany__walnut",
+          "uv": [
+            0.0,
+            7.0,
+            1.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_bed__grey_mahogany__walnut",
+          "uv": [
+            14.5,
+            7.0,
+            16.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_bed__grey_mahogany__walnut",
+          "uv": [
+            0.5,
+            14.5,
+            15.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.5,
+        2.5,
+        0.0
+      ],
+      "to": [
+        1.5,
+        4.5,
+        14.5
+      ],
+      "faces": {
+        "south": {
+          "texture": "#apt_bed__grey_mahogany__walnut",
+          "uv": [
+            0.5,
+            11.5,
+            1.5,
+            13.5
+          ]
+        },
+        "east": {
+          "texture": "#apt_bed__grey_mahogany__walnut",
+          "uv": [
+            1.5,
+            11.5,
+            16.0,
+            13.5
+          ]
+        },
+        "west": {
+          "texture": "#apt_bed__grey_mahogany__walnut",
+          "uv": [
+            0.0,
+            11.5,
+            14.5,
+            13.5
+          ]
+        },
+        "up": {
+          "texture": "#apt_bed__grey_mahogany__walnut",
+          "uv": [
+            0.5,
+            0.0,
+            1.5,
+            14.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        14.5,
+        2.5,
+        0.0
+      ],
+      "to": [
+        15.5,
+        4.5,
+        14.5
+      ],
+      "faces": {
+        "south": {
+          "texture": "#apt_bed__grey_mahogany__walnut",
+          "uv": [
+            14.5,
+            11.5,
+            15.5,
+            13.5
+          ]
+        },
+        "east": {
+          "texture": "#apt_bed__grey_mahogany__walnut",
+          "uv": [
+            1.5,
+            11.5,
+            16.0,
+            13.5
+          ]
+        },
+        "west": {
+          "texture": "#apt_bed__grey_mahogany__walnut",
+          "uv": [
+            0.0,
+            11.5,
+            14.5,
+            13.5
+          ]
+        },
+        "up": {
+          "texture": "#apt_bed__grey_mahogany__walnut",
+          "uv": [
+            14.5,
+            0.0,
+            15.5,
+            14.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.5,
+        3.0,
+        0.0
+      ],
+      "to": [
+        14.5,
+        6.5,
+        14.5
+      ],
+      "faces": {
+        "south": {
+          "texture": "#linen",
+          "uv": [
+            1.5,
+            9.5,
+            14.5,
+            13.0
+          ]
+        },
+        "east": {
+          "texture": "#linen",
+          "uv": [
+            1.5,
+            9.5,
+            16.0,
+            13.0
+          ]
+        },
+        "west": {
+          "texture": "#linen",
+          "uv": [
+            0.0,
+            9.5,
+            14.5,
+            13.0
+          ]
+        },
+        "up": {
+          "texture": "#linen",
+          "uv": [
+            1.5,
+            0.0,
+            14.5,
+            14.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.0,
+        6.5,
+        0.0
+      ],
+      "to": [
+        15.0,
+        7.5,
+        14.25
+      ],
+      "faces": {
+        "south": {
+          "texture": "#apt_bed__grey_mahogany__blanket_edge",
+          "uv": [
+            1.0,
+            8.5,
+            15.0,
+            9.5
+          ]
+        },
+        "east": {
+          "texture": "#apt_bed__grey_mahogany__blanket_edge",
+          "uv": [
+            1.75,
+            8.5,
+            16.0,
+            9.5
+          ]
+        },
+        "west": {
+          "texture": "#apt_bed__grey_mahogany__blanket_edge",
+          "uv": [
+            0.0,
+            8.5,
+            14.25,
+            9.5
+          ]
+        },
+        "up": {
+          "texture": "#apt_bed__grey_mahogany_blanket_44",
+          "uv": [
+            1.0,
+            0.0,
+            15.0,
+            14.25
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.0,
+        4.0,
+        0.0
+      ],
+      "to": [
+        1.5,
+        6.5,
+        14.25
+      ],
+      "faces": {
+        "south": {
+          "texture": "#apt_bed__grey_mahogany__blanket_edge",
+          "uv": [
+            1.0,
+            9.5,
+            1.5,
+            12.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_bed__grey_mahogany__blanket_edge",
+          "uv": [
+            0.0,
+            9.5,
+            14.25,
+            12.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        14.5,
+        4.0,
+        0.0
+      ],
+      "to": [
+        15.0,
+        6.5,
+        14.25
+      ],
+      "faces": {
+        "south": {
+          "texture": "#apt_bed__grey_mahogany__blanket_edge",
+          "uv": [
+            14.5,
+            9.5,
+            15.0,
+            12.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_bed__grey_mahogany__blanket_edge",
+          "uv": [
+            1.75,
+            9.5,
+            16.0,
+            12.0
+          ]
+        }
+      }
+    }
+  ]
+}

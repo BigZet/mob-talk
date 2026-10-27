@@ -15,6 +15,8 @@ import random
 import re
 from collections import deque
 
+import fur_sets
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 N, E, SO, W = "north", "east", "south", "west"
@@ -49,6 +51,7 @@ class Room:
     def __init__(self, house, k, letter, kind, cells, rnd):
         self.h, self.k, self.letter, self.kind, self.cells, self.r = house, k, letter, kind, set(cells), rnd
         self.fin = None   # the flat's seed of finishes, set by furnish()
+        self.pal = False  # the room's finish set, drawn on the first piece
         self.s = house.slab(k)
         self.clear = self.walkway()
         self.placed = {}     # name -> (x, z, facing) of anchors (sofa, table, bed)
@@ -110,17 +113,12 @@ class Room:
         return True
 
     def vary(self, pid):
-        """The flat's finish of a piece that has variants (fur_variants.py): one wood, one upholstery, one enamel per flat."""
-        base = VARIANTS["aliases"].get(pid, pid)
-        ent = VARIANTS["bases"].get(base)
-        if not ent or self.fin is None:
+        """The finish of a piece that has variants (fur_variants.py): what the room's set (fur_sets.py) gives its family."""
+        if self.fin is None:
             return pid
-        for fam in sorted(ent):
-            tags = VARIANTS["families"][fam]
-            tag = random.Random(f"{self.fin}:{fam}").choice(tags + [None, None])
-            if tag in ent[fam]:
-                return ent[fam][tag]
-        return pid
+        if self.pal is False:
+            self.pal = fur_sets.pick(self.fin, self.letter, self.kind)
+        return fur_sets.resolve(pid, self.pal, VARIANTS)
 
     def write(self, pid, x, y, z, facing):
         pid = self.vary(pid)

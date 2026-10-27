@@ -15,20 +15,26 @@
     "teal": "apt_armchair_red__teal"
    }
   },
-  "apt_bathtub": {
-   "sanitary": {
-    "ivory": "apt_bathtub__ivory",
-    "mint": "apt_bathtub__mint",
-    "rose": "apt_bathtub__rose",
-    "sky": "apt_bathtub__sky"
-   }
-  },
   "apt_bed": {
    "blanket": {
     "blue": "apt_bed__blue",
     "green": "apt_bed__green",
     "grey": "apt_bed__grey",
     "purple": "apt_bed__purple"
+   },
+   "blanket+wood": {
+    "blue_birch": "apt_bed__blue_birch",
+    "blue_mahogany": "apt_bed__blue_mahogany",
+    "blue_wenge": "apt_bed__blue_wenge",
+    "green_birch": "apt_bed__green_birch",
+    "green_mahogany": "apt_bed__green_mahogany",
+    "green_wenge": "apt_bed__green_wenge",
+    "grey_birch": "apt_bed__grey_birch",
+    "grey_mahogany": "apt_bed__grey_mahogany",
+    "grey_wenge": "apt_bed__grey_wenge",
+    "purple_birch": "apt_bed__purple_birch",
+    "purple_mahogany": "apt_bed__purple_mahogany",
+    "purple_wenge": "apt_bed__purple_wenge"
    },
    "wood": {
     "birch": "apt_bed__birch",
@@ -78,33 +84,11 @@
     "wenge": "apt_desk__wenge"
    }
   },
-  "apt_dish_rack_white": {
-   "kitchen": {
-    "butter": "apt_dish_rack_white__butter",
-    "grey": "apt_dish_rack_white__grey",
-    "mint": "apt_dish_rack_white__mint",
-    "sky": "apt_dish_rack_white__sky"
-   }
-  },
-  "apt_dish_rack_wood": {
-   "kitwood": {
-    "oak": "apt_dish_rack_wood__oak",
-    "whitewash": "apt_dish_rack_wood__whitewash"
-   }
-  },
   "apt_dressing_table": {
    "wood": {
     "birch": "apt_dressing_table__birch",
     "mahogany": "apt_dressing_table__mahogany",
     "wenge": "apt_dressing_table__wenge"
-   }
-  },
-  "apt_fridge": {
-   "kitchen": {
-    "butter": "apt_fridge__butter",
-    "grey": "apt_fridge__grey",
-    "mint": "apt_fridge__mint",
-    "sky": "apt_fridge__sky"
    }
   },
   "apt_kitchen_base_white": {
@@ -155,22 +139,21 @@
     "green": "apt_kitchen_table__green",
     "yellow": "apt_kitchen_table__yellow"
    },
+   "cloth+wood": {
+    "blue_birch": "apt_kitchen_table__blue_birch",
+    "blue_mahogany": "apt_kitchen_table__blue_mahogany",
+    "blue_wenge": "apt_kitchen_table__blue_wenge",
+    "green_birch": "apt_kitchen_table__green_birch",
+    "green_mahogany": "apt_kitchen_table__green_mahogany",
+    "green_wenge": "apt_kitchen_table__green_wenge",
+    "yellow_birch": "apt_kitchen_table__yellow_birch",
+    "yellow_mahogany": "apt_kitchen_table__yellow_mahogany",
+    "yellow_wenge": "apt_kitchen_table__yellow_wenge"
+   },
    "wood": {
     "birch": "apt_kitchen_table__birch",
     "mahogany": "apt_kitchen_table__mahogany",
     "wenge": "apt_kitchen_table__wenge"
-   }
-  },
-  "apt_picture_bears": {
-   "hues": {
-    "hue1": "apt_picture_bears__hue1",
-    "hue2": "apt_picture_bears__hue2"
-   }
-  },
-  "apt_picture_wave": {
-   "hues": {
-    "hue1": "apt_picture_wave__hue1",
-    "hue2": "apt_picture_wave__hue2"
    }
   },
   "apt_sideboard": {
@@ -200,49 +183,6 @@
     "birch": "apt_stool__birch",
     "mahogany": "apt_stool__mahogany",
     "wenge": "apt_stool__wenge"
-   }
-  },
-  "apt_stove": {
-   "kitchen": {
-    "butter": "apt_stove__butter",
-    "grey": "apt_stove__grey",
-    "mint": "apt_stove__mint",
-    "sky": "apt_stove__sky"
-   }
-  },
-  "apt_stove_kettle": {
-   "kitchen": {
-    "butter": "apt_stove_kettle__butter",
-    "grey": "apt_stove_kettle__grey",
-    "mint": "apt_stove_kettle__mint",
-    "sky": "apt_stove_kettle__sky"
-   }
-  },
-  "apt_toilet": {
-   "sanitary": {
-    "ivory": "apt_toilet__ivory",
-    "mint": "apt_toilet__mint",
-    "rose": "apt_toilet__rose",
-    "sky": "apt_toilet__sky"
-   }
-  },
-  "apt_tv": {
-   "wood": {
-    "birch": "apt_tv__birch",
-    "mahogany": "apt_tv__mahogany",
-    "wenge": "apt_tv__wenge"
-   }
-  },
-  "apt_wall_carpet": {
-   "hues": {
-    "hue1": "apt_wall_carpet__hue1",
-    "hue2": "apt_wall_carpet__hue2"
-   }
-  },
-  "apt_wall_carpet_high": {
-   "hues": {
-    "hue1": "apt_wall_carpet_high__hue1",
-    "hue2": "apt_wall_carpet_high__hue2"
    }
   },
   "apt_wall_clock": {
@@ -279,14 +219,6 @@
     "mahogany": "apt_wardrobe__mahogany",
     "wenge": "apt_wardrobe__wenge"
    }
-  },
-  "apt_washbasin": {
-   "sanitary": {
-    "ivory": "apt_washbasin__ivory",
-    "mint": "apt_washbasin__mint",
-    "rose": "apt_washbasin__rose",
-    "sky": "apt_washbasin__sky"
-   }
   }
  },
  "families": {
@@ -296,10 +228,35 @@
    "grey",
    "purple"
   ],
+  "blanket+wood": [
+   "blue_birch",
+   "green_birch",
+   "grey_birch",
+   "purple_birch",
+   "blue_mahogany",
+   "green_mahogany",
+   "grey_mahogany",
+   "purple_mahogany",
+   "blue_wenge",
+   "green_wenge",
+   "grey_wenge",
+   "purple_wenge"
+  ],
   "cloth": [
    "green",
    "blue",
    "yellow"
+  ],
+  "cloth+wood": [
+   "green_birch",
+   "blue_birch",
+   "yellow_birch",
+   "green_mahogany",
+   "blue_mahogany",
+   "yellow_mahogany",
+   "green_wenge",
+   "blue_wenge",
+   "yellow_wenge"
   ],
   "fabric": [
    "mustard",
@@ -307,10 +264,6 @@
    "plum",
    "grey",
    "rust"
-  ],
-  "hues": [
-   "hue1",
-   "hue2"
   ],
   "kitchen": [
    "mint",
@@ -321,12 +274,6 @@
   "kitwood": [
    "oak",
    "whitewash"
-  ],
-  "sanitary": [
-   "rose",
-   "mint",
-   "sky",
-   "ivory"
   ],
   "spread": [
    "rose",

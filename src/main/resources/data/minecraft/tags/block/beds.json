@@ -14,6 +14,18 @@
     "mobtalk:apt_bed__purple",
     "mobtalk:apt_bed_iron__rose",
     "mobtalk:apt_bed_iron__blue",
-    "mobtalk:apt_bed_iron__mint"
+    "mobtalk:apt_bed_iron__mint",
+    "mobtalk:apt_bed__blue_birch",
+    "mobtalk:apt_bed__green_birch",
+    "mobtalk:apt_bed__grey_birch",
+    "mobtalk:apt_bed__purple_birch",
+    "mobtalk:apt_bed__blue_mahogany",
+    "mobtalk:apt_bed__green_mahogany",
+    "mobtalk:apt_bed__grey_mahogany",
+    "mobtalk:apt_bed__purple_mahogany",
+    "mobtalk:apt_bed__blue_wenge",
+    "mobtalk:apt_bed__green_wenge",
+    "mobtalk:apt_bed__grey_wenge",
+    "mobtalk:apt_bed__purple_wenge"
   ]
 }
