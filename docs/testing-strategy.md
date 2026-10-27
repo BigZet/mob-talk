@@ -27,7 +27,7 @@
   (`SelfTestSpeech`), фразы для Whisper озвучены один раз и лежат в `%LOCALAPPDATA%\MobTalk\selftest-fixtures`.
   Настоящая озвучка (`-WithTts`) — только по отдельной просьбе: это платно.
 
-`run-selftest.ps1` и `run-pack-modtest.ps1` делают это сами. Для `1.21.1-fabric-mcp` оба флага стоят в
+`run-selftest.ps1` и `run-pack-modtest.ps1` делают это сами. Для одноразовых копий оба флага стоят в
 `instance.cfg` (`OverrideJavaArgs=true`, `JvmArgs=...` — сразу после `[General]`, иначе Prism их не видит).
 Для одноразовой копии сборки на уровне 3 — то же.
 
@@ -41,7 +41,6 @@
 
 | Инстанс Prism | Состав | Для чего |
 |---|---|---|
-| `1.21.1-fabric-mcp` | Mob Talk + Fabric API + selftest-guard, без Viewer Parrots; мир-стенд `mcp-stand` | изолированный инстанс «мод один» для стенда кадров моделей (М2) |
 | `1.21.1-fabric-dev` | основной инстанс пользователя | база самотестов (одноразовые копии `t-mt-*`) |
 | `mob-talk-pack` | вся сборка | уровень 3 |
 | `mob-talk-ctov` | основной + CTOV | стадия `ctov` |
