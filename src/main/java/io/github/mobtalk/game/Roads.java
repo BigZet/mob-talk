@@ -10,6 +10,8 @@ import net.minecraft.util.math.Vec3d;
 public final class Roads {
     private Roads() { }
 
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(Roads.class);
+
     private static MobGameBridge bridge(ServerWorld world) { return MobGameBridge.active(world.getServer()); }
 
     /** Plans a road from one spot to the other; {@code done} hears the command's line ("дорога N: …" or why there is none). */
@@ -130,6 +132,9 @@ public final class Roads {
                 net.minecraft.block.BlockState state = world.getBlockState(at.set(x, y, z));
                 // The road's own (a lamp's base and post, a railing, a tunnel's wall) is no obstacle.
                 if (state.isAir() || state.getBlock() instanceof net.minecraft.block.FenceBlock || palette.owns(state.getBlock())) continue;
+                if (out[0] < 8) // что за столб стоит на дороге — редкий путь отказа, без имени блока его не разобрать
+                    LOG.info("road {}: {} stands in the road at {} {} {} ({} above the surface, kind {}, across {})", id,
+                            state.getBlock().getTranslationKey(), x, y, z, y - y0, point.kind(), column.across());
                 if (out[0]++ == 0) { out[1] = x; out[2] = y; out[3] = z; }
                 break;
             }

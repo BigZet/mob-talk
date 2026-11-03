@@ -54,6 +54,8 @@ final class BarEvenings {
     private final Map<String, Bar> bars = new HashMap<>();
     private final Map<String, Evening> evenings = new HashMap<>();
 
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("mobtalk-bar");
+
     BarEvenings(MobGameBridge bridge) { this.bridge = bridge; }
 
     private boolean enabled() { return bridge.config.enabled && bridge.config.barEvenings; }
@@ -146,7 +148,9 @@ final class BarEvenings {
         List<BlockPos> seats = new ArrayList<>(bar.seats());
         Collections.shuffle(seats, random);
         int wanted = Math.min(bridge.config.barVisitors, seats.size());
-        if (!bar.counters().isEmpty() && !free.isEmpty()) {
+        if (bar.counters().isEmpty() || free.isEmpty())
+            LOGGER.info("бар {}: вечер без бармена — стоек {}, свободных рядом {}", bar.key(), bar.counters().size(), free.size());
+        else {
             BlockPos counter = bar.counters().get(bar.counters().size() / 2);
             BlockState state = world.getBlockState(counter);
             Direction guests = state.contains(BarFurnitureBlock.FACING) ? state.get(BarFurnitureBlock.FACING) : Direction.SOUTH;
@@ -154,7 +158,8 @@ final class BarEvenings {
             if (world.getBlockState(stand).getCollisionShape(world, stand).isEmpty()) {
                 VillagerEntity bartender = free.removeFirst();
                 evening.bartender = bartender.getUuid(); evening.stand = stand; evening.bartenderSince = world.getTime();
-            }
+            } else LOGGER.info("бар {}: место бармена {} занято: {}", bar.key(), stand.toShortString(),
+                    world.getBlockState(stand).getBlock().getTranslationKey());
         }
         for (VillagerEntity villager : free) {
             if (evening.guests.size() >= wanted) break;
@@ -239,7 +244,16 @@ final class BarEvenings {
 
     /** The bartender stands behind the counter facing his guests. */
     private void bartender(ServerWorld world, Evening evening, List<VillagerEntity> seated, long now) {
-        if (!(world.getEntity(evening.bartender) instanceof VillagerEntity bartender) || leaves(bartender)) { evening.bartender = null; return; }
+        if (!(world.getEntity(evening.bartender) instanceof VillagerEntity bartender)) {
+            LOGGER.info("бар: бармен исчез из мира");
+            evening.bartender = null; return;
+        }
+        if (leaves(bartender)) {
+            LOGGER.info("бар: бармен ушёл — hurt {} panic {} target {} sleep {} busy {} pos {}",
+                    bartender.hurtTime, bartender.isPanicking(), bartender.getTarget(), bartender.isSleeping(),
+                    bridge.actions.busy(bartender), bartender.getBlockPos().toShortString());
+            evening.bartender = null; return;
+        }
         if (bartender.getBlockPos().getSquaredDistance(evening.stand) > 1.5 && now - evening.bartenderSince > WALK_TICKS
                 && bartender.getBlockPos().getSquaredDistance(evening.stand) < GUESTS_RADIUS * GUESTS_RADIUS) {
             // Stuck on the way, as a guest who cannot reach his seat sits down anyway: he steps behind the counter.
