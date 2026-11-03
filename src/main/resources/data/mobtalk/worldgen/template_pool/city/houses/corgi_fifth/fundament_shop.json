@@ -1,0 +1,15 @@
+{
+  "name": "mobtalk:city/houses/corgi_fifth/fundament_shop",
+  "fallback": "mobtalk:city/houses/corgi_fifth/fundament_shop",
+  "elements": [
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/houses/corgi_fifth/fundament_shop",
+        "processors": "mobtalk:city/set_tuff",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    }
+  ]
+}

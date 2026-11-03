@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/shop/self_checkout"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/shop/self_checkout",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/shop/self_checkout",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/shop/self_checkout",
+      "y": 270
+    }
+  }
+}

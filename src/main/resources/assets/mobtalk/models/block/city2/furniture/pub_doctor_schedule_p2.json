@@ -1,0 +1,60 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "pub_doctor_schedule_sched_board_43": "mobtalk:block/city2/furniture/pub_doctor_schedule_sched_board_43",
+    "sign_blue": "mobtalk:block/city2/furniture/sign_blue",
+    "particle": "mobtalk:block/city2/furniture/pub_doctor_schedule_sched_board_43"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.0,
+        14.5
+      ],
+      "to": [
+        16.0,
+        12.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_doctor_schedule_sched_board_43",
+          "uv": [
+            0.0,
+            4.0,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#sign_blue",
+          "uv": [
+            0.0,
+            4.0,
+            16.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#sign_blue",
+          "uv": [
+            14.5,
+            4.0,
+            16.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#sign_blue",
+          "uv": [
+            0.0,
+            14.5,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    }
+  ]
+}

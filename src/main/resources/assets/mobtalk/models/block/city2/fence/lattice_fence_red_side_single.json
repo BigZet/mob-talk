@@ -1,0 +1,143 @@
+{
+ "textures": {
+  "pipe": "mobtalk:block/city2/fence/lattice_red_pipe",
+  "lattice": "mobtalk:block/city2/fence/lattice_red",
+  "particle": "mobtalk:block/city2/fence/lattice_red_pipe"
+ },
+ "elements": [
+  {
+   "from": [
+    8,
+    2.5,
+    0
+   ],
+   "to": [
+    8,
+    14,
+    8
+   ],
+   "shade": true,
+   "faces": {
+    "east": {
+     "uv": [
+      0,
+      2,
+      8,
+      13.5
+     ],
+     "texture": "#lattice"
+    },
+    "west": {
+     "uv": [
+      8,
+      2,
+      0,
+      13.5
+     ],
+     "texture": "#lattice"
+    }
+   }
+  },
+  {
+   "from": [
+    7.25,
+    14,
+    0
+   ],
+   "to": [
+    8.75,
+    15.5,
+    8
+   ],
+   "faces": {
+    "east": {
+     "uv": [
+      0,
+      0,
+      8,
+      1.5
+     ],
+     "texture": "#pipe"
+    },
+    "west": {
+     "uv": [
+      0,
+      0,
+      8,
+      1.5
+     ],
+     "texture": "#pipe"
+    },
+    "up": {
+     "uv": [
+      0,
+      0,
+      1.5,
+      8
+     ],
+     "texture": "#pipe"
+    },
+    "down": {
+     "uv": [
+      0,
+      0,
+      1.5,
+      8
+     ],
+     "texture": "#pipe"
+    }
+   }
+  },
+  {
+   "from": [
+    7.25,
+    1,
+    0
+   ],
+   "to": [
+    8.75,
+    2.5,
+    8
+   ],
+   "faces": {
+    "east": {
+     "uv": [
+      0,
+      0,
+      8,
+      1.5
+     ],
+     "texture": "#pipe"
+    },
+    "west": {
+     "uv": [
+      0,
+      0,
+      8,
+      1.5
+     ],
+     "texture": "#pipe"
+    },
+    "up": {
+     "uv": [
+      0,
+      0,
+      1.5,
+      8
+     ],
+     "texture": "#pipe"
+    },
+    "down": {
+     "uv": [
+      0,
+      0,
+      1.5,
+      8
+     ],
+     "texture": "#pipe"
+    }
+   }
+  }
+ ],
+ "ambientocclusion": false
+}

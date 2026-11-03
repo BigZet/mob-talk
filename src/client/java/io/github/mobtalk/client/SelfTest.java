@@ -75,6 +75,8 @@ final class SelfTest {
     /** {@code -Only casino}: the village casino, its furniture, bouncers and visitors (SelfTestCasino). */
     static final boolean ONLY_CASINO = "casino".equals(System.getProperty("mobtalk.selftest.only"));
     static final boolean ONLY_MFC = "mfc".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=shop}: the city supermarket — displays, tills, basket, guard, theft (no LLM, no voice). */
+    static final boolean ONLY_SHOP = "shop".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=voices}: new villagers get an age and a pool voice of their sex and age with no early repeats,
      * and one villager of each age is voiced through OpenRouter (no LLM). */
     static final boolean ONLY_VOICES = "voices".equals(System.getProperty("mobtalk.selftest.only"));
@@ -82,6 +84,11 @@ final class SelfTest {
     static final boolean ONLY_CTOV = "ctov".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=pack}: the whole pack together — mods, hotkeys, menus, content of every mod, one Whisper. */
     static final boolean ONLY_PACK = "pack".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=furniture}: the new city's flat furniture in a show flat — placing, sitting, lamps, curtains, screenshots. */
+    static final boolean ONLY_VARIANTS = "variants".equals(System.getProperty("mobtalk.selftest.only"));
+    static final boolean ONLY_FURNITURE = "furniture".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=fences}: the Soviet yard fences ({@code /city fences}) — joins, posts, gates, screenshots. */
+    static final boolean ONLY_FENCES = "fences".equals(System.getProperty("mobtalk.selftest.only"));
     /** Phrases voiced once for Whisper stages and reused by later runs ({@code -Dmobtalk.selftest.notts=true} keeps TTS off otherwise). */
     static java.nio.file.Path fixtures() {
         String local = System.getenv("LOCALAPPDATA");
@@ -94,6 +101,10 @@ final class SelfTest {
     static final boolean ONLY_CARDS = "cards".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=cardsprep}: подготовить мир для ручной игры в 21 — к жителю в деревне, изумруды и колоды, проверка стола. */
     static final boolean ONLY_CARDSPREP = "cardsprep".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=lift}: the lifts of the tall panel houses — call, ride, СТОП (no LLM, no voice). */
+    static final boolean ONLY_LIFT = "lift".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=cars}: the city's cars — every type from six sides, doors, seats, lamps, parking (no LLM, no voice). */
+    static final boolean ONLY_CARS = "cars".equals(System.getProperty("mobtalk.selftest.only"));
     final MobTalkClient owner;
     private final String world;
     private int stage, ticks, stageStart;
@@ -188,10 +199,15 @@ final class SelfTest {
             villager = nearest(VillagerEntity.class); cow = nearest(CowEntity.class);
             return villager != null && cow != null && MobSpeechSound.find(owner.world, villager) != null && MobSpeechSound.find(owner.world, cow) != null;
         }, ONLY_VOICEFIX ? () -> new SelfTestVoiceFix(this, villager, cow, sx, SY, sz).run(this::finish)
+                : ONLY_CARS ? () -> new SelfTestCars(this, sx, SY, sz).run(this::finish)
+                : ONLY_LIFT ? () -> new SelfTestLift(this, sx, SY, sz).run(this::finish)
+                : ONLY_FENCES ? () -> new SelfTestFences(this, sx, SY, sz).run(this::finish)
                 : ONLY_CARDS ? () -> new SelfTestCards(this, sx, SY, sz).run(this::finish)
                 : ONLY_PLACE ? () -> new SelfTestPlace(this, cow, sx, SY, sz).run(this::finish)
                 : ONLY_CTOV ? () -> new SelfTestCtov(this, cow, sx, SY, sz).run(this::finish)
                 : ONLY_PACK ? () -> new SelfTestPack(this, sx, SY, sz).run(this::finish)
+                : ONLY_VARIANTS ? () -> new SelfTestVariants(this, sx, SY, sz).run(this::finish)
+                : ONLY_FURNITURE ? () -> new SelfTestFurniture(this, sx, SY, sz).run(this::finish)
                 : ONLY_WEDDING ? () -> new SelfTestWedding(this, sx, SY, sz).run(this::finish)
                 : ONLY_FAMILY ? () -> new SelfTestFamily(this, sx, SY, sz).run(this::finish)
                 : ONLY_DEFENSE ? () -> new SelfTestDefense(this, sx, SY, sz).run(this::finish)
@@ -204,6 +220,7 @@ final class SelfTest {
                 : ONLY_MFC ? () -> new SelfTestMfc(this, sx, SY, sz).run(this::finish)
                 : ONLY_OFFICIALS ? () -> new SelfTestOfficials(this, sx, SY, sz).run(this::finish)
                 : ONLY_CASINO ? () -> new SelfTestCasino(this, sx, SY, sz).run(this::finish)
+                : ONLY_SHOP ? () -> new SelfTestShop(this, sx, SY, sz).run(this::finish)
                 : ONLY_LOOKS ? () -> new SelfTestLooks(this, sx, SY, sz).run(this::finish) : ONLY_GLAM ? () -> new SelfTestGlam(this, sx, SY, sz).run(this::finish) : ONLY_NAMES ? this::names : ONLY_VOICES ? this::voices : this::aim);
     }
 

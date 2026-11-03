@@ -1,0 +1,309 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "kid_pad_red": "mobtalk:block/city2/furniture/kid_pad_red",
+    "kid_pad_blue": "mobtalk:block/city2/furniture/kid_pad_blue",
+    "particle": "mobtalk:block/city2/furniture/kid_pad_red"
+  },
+  "elements": [
+    {
+      "from": [
+        3.0,
+        0.0,
+        0.5
+      ],
+      "to": [
+        13.0,
+        1.0,
+        5.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#kid_pad_red",
+          "uv": [
+            3.0,
+            15.0,
+            13.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#kid_pad_red",
+          "uv": [
+            3.0,
+            15.0,
+            13.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#kid_pad_red",
+          "uv": [
+            11.0,
+            15.0,
+            15.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#kid_pad_red",
+          "uv": [
+            0.5,
+            15.0,
+            5.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#kid_pad_red",
+          "uv": [
+            3.0,
+            0.5,
+            13.0,
+            5.0
+          ]
+        },
+        "down": {
+          "texture": "#kid_pad_red",
+          "uv": [
+            3.0,
+            11.0,
+            13.0,
+            15.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.0,
+        1.0,
+        5.0
+      ],
+      "to": [
+        13.0,
+        2.5,
+        25.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#kid_pad_red",
+          "uv": [
+            3.0,
+            13.5,
+            13.0,
+            15.0
+          ]
+        },
+        "south": {
+          "texture": "#kid_pad_red",
+          "uv": [
+            3.0,
+            13.5,
+            13.0,
+            15.0
+          ]
+        },
+        "east": {
+          "texture": "#kid_pad_red",
+          "uv": [
+            0,
+            13.5,
+            16,
+            15.0
+          ]
+        },
+        "west": {
+          "texture": "#kid_pad_red",
+          "uv": [
+            0,
+            13.5,
+            16,
+            15.0
+          ]
+        },
+        "up": {
+          "texture": "#kid_pad_red",
+          "uv": [
+            3.0,
+            0,
+            13.0,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#kid_pad_red",
+          "uv": [
+            3.0,
+            0,
+            13.0,
+            16
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          1,
+          5
+        ],
+        "axis": "x",
+        "angle": -45
+      }
+    },
+    {
+      "from": [
+        2.0,
+        1.0,
+        5.0
+      ],
+      "to": [
+        3.0,
+        4.0,
+        25.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#kid_pad_blue",
+          "uv": [
+            13.0,
+            12.0,
+            14.0,
+            15.0
+          ]
+        },
+        "south": {
+          "texture": "#kid_pad_blue",
+          "uv": [
+            2.0,
+            12.0,
+            3.0,
+            15.0
+          ]
+        },
+        "east": {
+          "texture": "#kid_pad_blue",
+          "uv": [
+            0,
+            12.0,
+            16,
+            15.0
+          ]
+        },
+        "west": {
+          "texture": "#kid_pad_blue",
+          "uv": [
+            0,
+            12.0,
+            16,
+            15.0
+          ]
+        },
+        "up": {
+          "texture": "#kid_pad_blue",
+          "uv": [
+            2.0,
+            0,
+            3.0,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#kid_pad_blue",
+          "uv": [
+            2.0,
+            0,
+            3.0,
+            16
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          1,
+          5
+        ],
+        "axis": "x",
+        "angle": -45
+      }
+    },
+    {
+      "from": [
+        13.0,
+        1.0,
+        5.0
+      ],
+      "to": [
+        14.0,
+        4.0,
+        25.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#kid_pad_blue",
+          "uv": [
+            2.0,
+            12.0,
+            3.0,
+            15.0
+          ]
+        },
+        "south": {
+          "texture": "#kid_pad_blue",
+          "uv": [
+            13.0,
+            12.0,
+            14.0,
+            15.0
+          ]
+        },
+        "east": {
+          "texture": "#kid_pad_blue",
+          "uv": [
+            0,
+            12.0,
+            16,
+            15.0
+          ]
+        },
+        "west": {
+          "texture": "#kid_pad_blue",
+          "uv": [
+            0,
+            12.0,
+            16,
+            15.0
+          ]
+        },
+        "up": {
+          "texture": "#kid_pad_blue",
+          "uv": [
+            13.0,
+            0,
+            14.0,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#kid_pad_blue",
+          "uv": [
+            13.0,
+            0,
+            14.0,
+            16
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          1,
+          5
+        ],
+        "axis": "x",
+        "angle": -45
+      }
+    }
+  ]
+}

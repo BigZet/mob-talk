@@ -1,0 +1,51 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_buffet_stalin_buf_lower_34": "mobtalk:block/city2/furniture/apt_buffet_stalin_buf_lower_34",
+    "oak": "mobtalk:block/city2/furniture/oak",
+    "particle": "mobtalk:block/city2/furniture/apt_buffet_stalin_buf_lower_34"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.0,
+        7.0
+      ],
+      "to": [
+        16.0,
+        16.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_buffet_stalin_buf_lower_34",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#oak",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#oak",
+          "uv": [
+            0.0,
+            0.0,
+            9.0,
+            16.0
+          ]
+        }
+      }
+    }
+  ]
+}

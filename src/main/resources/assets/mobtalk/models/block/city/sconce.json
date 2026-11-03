@@ -1,0 +1,215 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "glass": "mobtalk:block/city/shade_glass",
+    "ip": "mobtalk:block/city/ipalette",
+    "particle": "mobtalk:block/city/shade_glass"
+  },
+  "elements": [
+    {
+      "from": [
+        6.5,
+        7,
+        15.2
+      ],
+      "to": [
+        9.5,
+        12,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#ip",
+          "uv": [
+            0,
+            0,
+            2,
+            2
+          ]
+        },
+        "south": {
+          "texture": "#ip",
+          "uv": [
+            0,
+            0,
+            2,
+            2
+          ]
+        },
+        "east": {
+          "texture": "#ip",
+          "uv": [
+            0,
+            0,
+            2,
+            2
+          ]
+        },
+        "west": {
+          "texture": "#ip",
+          "uv": [
+            0,
+            0,
+            2,
+            2
+          ]
+        },
+        "up": {
+          "texture": "#ip",
+          "uv": [
+            0,
+            0,
+            2,
+            2
+          ]
+        },
+        "down": {
+          "texture": "#ip",
+          "uv": [
+            0,
+            0,
+            2,
+            2
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        7.5,
+        9,
+        12
+      ],
+      "to": [
+        8.5,
+        10,
+        15.2
+      ],
+      "faces": {
+        "north": {
+          "texture": "#ip",
+          "uv": [
+            0,
+            0,
+            2,
+            2
+          ]
+        },
+        "south": {
+          "texture": "#ip",
+          "uv": [
+            0,
+            0,
+            2,
+            2
+          ]
+        },
+        "east": {
+          "texture": "#ip",
+          "uv": [
+            0,
+            0,
+            2,
+            2
+          ]
+        },
+        "west": {
+          "texture": "#ip",
+          "uv": [
+            0,
+            0,
+            2,
+            2
+          ]
+        },
+        "up": {
+          "texture": "#ip",
+          "uv": [
+            0,
+            0,
+            2,
+            2
+          ]
+        },
+        "down": {
+          "texture": "#ip",
+          "uv": [
+            0,
+            0,
+            2,
+            2
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        5,
+        9,
+        9
+      ],
+      "to": [
+        11,
+        14,
+        15
+      ],
+      "faces": {
+        "north": {
+          "texture": "#glass",
+          "uv": [
+            5,
+            2,
+            11,
+            7
+          ]
+        },
+        "south": {
+          "texture": "#glass",
+          "uv": [
+            5,
+            2,
+            11,
+            7
+          ]
+        },
+        "east": {
+          "texture": "#glass",
+          "uv": [
+            9,
+            2,
+            15,
+            7
+          ]
+        },
+        "west": {
+          "texture": "#glass",
+          "uv": [
+            9,
+            2,
+            15,
+            7
+          ]
+        },
+        "up": {
+          "texture": "#glass",
+          "uv": [
+            5,
+            9,
+            11,
+            15
+          ]
+        },
+        "down": {
+          "texture": "#glass",
+          "uv": [
+            5,
+            9,
+            11,
+            15
+          ]
+        }
+      }
+    }
+  ],
+  "ambientocclusion": false
+}

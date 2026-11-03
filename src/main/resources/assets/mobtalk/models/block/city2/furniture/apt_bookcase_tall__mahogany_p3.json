@@ -1,0 +1,128 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_bookcase_tall__mahogany_bct_front_41": "mobtalk:block/city2/furniture/apt_bookcase_tall__mahogany_bct_front_41",
+    "apt_bookcase_tall__mahogany__walnut": "mobtalk:block/city2/furniture/apt_bookcase_tall__mahogany__walnut",
+    "particle": "mobtalk:block/city2/furniture/apt_bookcase_tall__mahogany_bct_front_41"
+  },
+  "elements": [
+    {
+      "from": [
+        0.5,
+        0.0,
+        8.0
+      ],
+      "to": [
+        15.5,
+        12.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_bookcase_tall__mahogany_bct_front_41",
+          "uv": [
+            0.5,
+            4.0,
+            15.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_bookcase_tall__mahogany__walnut",
+          "uv": [
+            0.5,
+            4.0,
+            15.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_bookcase_tall__mahogany__walnut",
+          "uv": [
+            0.0,
+            4.0,
+            8.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_bookcase_tall__mahogany__walnut",
+          "uv": [
+            8.0,
+            4.0,
+            16.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_bookcase_tall__mahogany__walnut",
+          "uv": [
+            0.5,
+            8.0,
+            15.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        12.0,
+        7.0
+      ],
+      "to": [
+        16.0,
+        14.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_bookcase_tall__mahogany__walnut",
+          "uv": [
+            0.0,
+            2.0,
+            16.0,
+            4.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_bookcase_tall__mahogany__walnut",
+          "uv": [
+            0.0,
+            2.0,
+            16.0,
+            4.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_bookcase_tall__mahogany__walnut",
+          "uv": [
+            0.0,
+            2.0,
+            9.0,
+            4.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_bookcase_tall__mahogany__walnut",
+          "uv": [
+            7.0,
+            2.0,
+            16.0,
+            4.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_bookcase_tall__mahogany__walnut",
+          "uv": [
+            0.0,
+            7.0,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    }
+  ]
+}

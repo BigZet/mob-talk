@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/shop/market_veg_stall"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/shop/market_veg_stall",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/shop/market_veg_stall",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/shop/market_veg_stall",
+      "y": 270
+    }
+  }
+}

@@ -1,0 +1,674 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_bed__green_wenge_head_back_44": "mobtalk:block/city2/furniture/apt_bed__green_wenge_head_back_44",
+    "apt_bed__green_wenge_head_44": "mobtalk:block/city2/furniture/apt_bed__green_wenge_head_44",
+    "apt_bed__green_wenge__walnut": "mobtalk:block/city2/furniture/apt_bed__green_wenge__walnut",
+    "apt_bed__green_wenge_foot_44": "mobtalk:block/city2/furniture/apt_bed__green_wenge_foot_44",
+    "linen": "mobtalk:block/city2/furniture/linen",
+    "apt_bed__green_wenge__blanket_edge": "mobtalk:block/city2/furniture/apt_bed__green_wenge__blanket_edge",
+    "apt_bed__green_wenge_blanket_44": "mobtalk:block/city2/furniture/apt_bed__green_wenge_blanket_44",
+    "pillow": "mobtalk:block/city2/furniture/pillow",
+    "particle": "mobtalk:block/city2/furniture/apt_bed__green_wenge_head_back_44"
+  },
+  "elements": [
+    {
+      "from": [
+        4.25,
+        0.0,
+        0.0
+      ],
+      "to": [
+        11.75,
+        7.5,
+        0.75
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_bed__green_wenge_head_back_44",
+          "uv": [
+            0.5,
+            1.0,
+            15.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_bed__green_wenge_head_44",
+          "uv": [
+            0.5,
+            1.0,
+            15.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_bed__green_wenge__walnut",
+          "uv": [
+            14.5,
+            1.0,
+            16.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_bed__green_wenge__walnut",
+          "uv": [
+            0.0,
+            1.0,
+            1.5,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_bed__green_wenge__walnut",
+          "uv": [
+            0.5,
+            0.0,
+            15.5,
+            1.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.25,
+        0.0,
+        15.25
+      ],
+      "to": [
+        11.75,
+        4.5,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_bed__green_wenge_foot_44",
+          "uv": [
+            0.5,
+            7.0,
+            15.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_bed__green_wenge__walnut",
+          "uv": [
+            0.5,
+            7.0,
+            15.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_bed__green_wenge__walnut",
+          "uv": [
+            0.0,
+            7.0,
+            1.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_bed__green_wenge__walnut",
+          "uv": [
+            14.5,
+            7.0,
+            16.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_bed__green_wenge__walnut",
+          "uv": [
+            0.5,
+            14.5,
+            15.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.25,
+        1.25,
+        0.75
+      ],
+      "to": [
+        4.75,
+        2.25,
+        15.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_bed__green_wenge__walnut",
+          "uv": [
+            14.5,
+            11.5,
+            15.5,
+            13.5
+          ]
+        },
+        "south": {
+          "texture": "#apt_bed__green_wenge__walnut",
+          "uv": [
+            0.5,
+            11.5,
+            1.5,
+            13.5
+          ]
+        },
+        "east": {
+          "texture": "#apt_bed__green_wenge__walnut",
+          "uv": [
+            1.5,
+            11.5,
+            30.5,
+            13.5
+          ]
+        },
+        "west": {
+          "texture": "#apt_bed__green_wenge__walnut",
+          "uv": [
+            1.5,
+            11.5,
+            30.5,
+            13.5
+          ]
+        },
+        "up": {
+          "texture": "#apt_bed__green_wenge__walnut",
+          "uv": [
+            0.5,
+            1.5,
+            1.5,
+            30.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        11.25,
+        1.25,
+        0.75
+      ],
+      "to": [
+        11.75,
+        2.25,
+        15.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_bed__green_wenge__walnut",
+          "uv": [
+            0.5,
+            11.5,
+            1.5,
+            13.5
+          ]
+        },
+        "south": {
+          "texture": "#apt_bed__green_wenge__walnut",
+          "uv": [
+            14.5,
+            11.5,
+            15.5,
+            13.5
+          ]
+        },
+        "east": {
+          "texture": "#apt_bed__green_wenge__walnut",
+          "uv": [
+            1.5,
+            11.5,
+            30.5,
+            13.5
+          ]
+        },
+        "west": {
+          "texture": "#apt_bed__green_wenge__walnut",
+          "uv": [
+            1.5,
+            11.5,
+            30.5,
+            13.5
+          ]
+        },
+        "up": {
+          "texture": "#apt_bed__green_wenge__walnut",
+          "uv": [
+            14.5,
+            1.5,
+            15.5,
+            30.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.75,
+        1.5,
+        0.75
+      ],
+      "to": [
+        11.25,
+        3.25,
+        15.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#linen",
+          "uv": [
+            1.5,
+            9.5,
+            14.5,
+            13.0
+          ]
+        },
+        "south": {
+          "texture": "#linen",
+          "uv": [
+            1.5,
+            9.5,
+            14.5,
+            13.0
+          ]
+        },
+        "east": {
+          "texture": "#linen",
+          "uv": [
+            1.5,
+            9.5,
+            30.5,
+            13.0
+          ]
+        },
+        "west": {
+          "texture": "#linen",
+          "uv": [
+            1.5,
+            9.5,
+            30.5,
+            13.0
+          ]
+        },
+        "up": {
+          "texture": "#linen",
+          "uv": [
+            1.5,
+            1.5,
+            14.5,
+            30.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.5,
+        3.25,
+        3.5
+      ],
+      "to": [
+        11.5,
+        3.75,
+        15.125
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_bed__green_wenge__blanket_edge",
+          "uv": [
+            1.0,
+            8.5,
+            15.0,
+            9.5
+          ]
+        },
+        "south": {
+          "texture": "#apt_bed__green_wenge__blanket_edge",
+          "uv": [
+            1.0,
+            8.5,
+            15.0,
+            9.5
+          ]
+        },
+        "east": {
+          "texture": "#apt_bed__green_wenge__blanket_edge",
+          "uv": [
+            1.75,
+            8.5,
+            25.0,
+            9.5
+          ]
+        },
+        "west": {
+          "texture": "#apt_bed__green_wenge__blanket_edge",
+          "uv": [
+            7.0,
+            8.5,
+            30.25,
+            9.5
+          ]
+        },
+        "up": {
+          "texture": "#apt_bed__green_wenge_blanket_44",
+          "uv": [
+            1.0,
+            -9.0,
+            15.0,
+            14.25
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.5,
+        2.0,
+        3.5
+      ],
+      "to": [
+        4.75,
+        3.25,
+        15.125
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_bed__green_wenge__blanket_edge",
+          "uv": [
+            14.5,
+            9.5,
+            15.0,
+            12.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_bed__green_wenge__blanket_edge",
+          "uv": [
+            1.0,
+            9.5,
+            1.5,
+            12.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_bed__green_wenge__blanket_edge",
+          "uv": [
+            7.0,
+            9.5,
+            30.25,
+            12.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        11.25,
+        2.0,
+        3.5
+      ],
+      "to": [
+        11.5,
+        3.25,
+        15.125
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_bed__green_wenge__blanket_edge",
+          "uv": [
+            1.0,
+            9.5,
+            1.5,
+            12.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_bed__green_wenge__blanket_edge",
+          "uv": [
+            14.5,
+            9.5,
+            15.0,
+            12.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_bed__green_wenge__blanket_edge",
+          "uv": [
+            1.75,
+            9.5,
+            25.0,
+            12.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.75,
+        3.25,
+        1.0
+      ],
+      "to": [
+        11.25,
+        3.5,
+        3.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#linen",
+          "uv": [
+            1.5,
+            9.0,
+            14.5,
+            9.5
+          ]
+        },
+        "south": {
+          "texture": "#linen",
+          "uv": [
+            1.5,
+            9.0,
+            14.5,
+            9.5
+          ]
+        },
+        "east": {
+          "texture": "#linen",
+          "uv": [
+            9.0,
+            9.0,
+            14.0,
+            9.5
+          ]
+        },
+        "west": {
+          "texture": "#linen",
+          "uv": [
+            2.0,
+            9.0,
+            7.0,
+            9.5
+          ]
+        },
+        "up": {
+          "texture": "#linen",
+          "uv": [
+            1.5,
+            2.0,
+            14.5,
+            7.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        5.5,
+        3.5,
+        1.0
+      ],
+      "to": [
+        10.5,
+        4.75,
+        3.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pillow",
+          "uv": [
+            3.0,
+            6.5,
+            13.0,
+            9.0
+          ]
+        },
+        "south": {
+          "texture": "#pillow",
+          "uv": [
+            3.0,
+            6.5,
+            13.0,
+            9.0
+          ]
+        },
+        "east": {
+          "texture": "#pillow",
+          "uv": [
+            9.5,
+            6.5,
+            14.0,
+            9.0
+          ]
+        },
+        "west": {
+          "texture": "#pillow",
+          "uv": [
+            2.0,
+            6.5,
+            6.5,
+            9.0
+          ]
+        },
+        "up": {
+          "texture": "#pillow",
+          "uv": [
+            3.0,
+            2.0,
+            13.0,
+            6.5
+          ]
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.625,
+        0.625,
+        0.625
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        2.5,
+        0
+      ],
+      "scale": [
+        0.375,
+        0.375,
+        0.375
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    }
+  }
+}

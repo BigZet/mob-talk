@@ -1,0 +1,72 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "pub_library_stack_stack_n_43": "mobtalk:block/city2/furniture/pub_library_stack_stack_n_43",
+    "pub_library_stack_stack_s_43": "mobtalk:block/city2/furniture/pub_library_stack_stack_s_43",
+    "pub_library_stack_stack_e_43": "mobtalk:block/city2/furniture/pub_library_stack_stack_e_43",
+    "pub_library_stack_stack_w_43": "mobtalk:block/city2/furniture/pub_library_stack_stack_w_43",
+    "library_wood": "mobtalk:block/city2/furniture/library_wood",
+    "particle": "mobtalk:block/city2/furniture/pub_library_stack_stack_n_43"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.0,
+        2.0
+      ],
+      "to": [
+        16.0,
+        16.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_library_stack_stack_n_43",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#pub_library_stack_stack_s_43",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#pub_library_stack_stack_e_43",
+          "uv": [
+            2.0,
+            0.0,
+            14.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#pub_library_stack_stack_w_43",
+          "uv": [
+            2.0,
+            0.0,
+            14.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#library_wood",
+          "uv": [
+            0.0,
+            2.0,
+            16.0,
+            14.0
+          ]
+        }
+      }
+    }
+  ]
+}

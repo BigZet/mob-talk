@@ -1,0 +1,214 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "post": "mobtalk:block/city/metal_blue",
+    "bar": "mobtalk:block/city/metal_grey",
+    "particle": "mobtalk:block/city/metal_blue"
+  },
+  "elements": [
+    {
+      "from": [
+        1,
+        0,
+        7
+      ],
+      "to": [
+        2.5,
+        16,
+        9
+      ],
+      "faces": {
+        "north": {
+          "texture": "#post",
+          "uv": [
+            1,
+            0,
+            2.5,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#post",
+          "uv": [
+            1,
+            0,
+            2.5,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#post",
+          "uv": [
+            7,
+            0,
+            9,
+            16
+          ]
+        },
+        "west": {
+          "texture": "#post",
+          "uv": [
+            7,
+            0,
+            9,
+            16
+          ]
+        },
+        "up": {
+          "texture": "#post",
+          "uv": [
+            1,
+            7,
+            2.5,
+            9
+          ]
+        },
+        "down": {
+          "texture": "#post",
+          "uv": [
+            1,
+            7,
+            2.5,
+            9
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        13.5,
+        0,
+        7
+      ],
+      "to": [
+        15,
+        16,
+        9
+      ],
+      "faces": {
+        "north": {
+          "texture": "#post",
+          "uv": [
+            13.5,
+            0,
+            15,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#post",
+          "uv": [
+            13.5,
+            0,
+            15,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#post",
+          "uv": [
+            7,
+            0,
+            9,
+            16
+          ]
+        },
+        "west": {
+          "texture": "#post",
+          "uv": [
+            7,
+            0,
+            9,
+            16
+          ]
+        },
+        "up": {
+          "texture": "#post",
+          "uv": [
+            13.5,
+            7,
+            15,
+            9
+          ]
+        },
+        "down": {
+          "texture": "#post",
+          "uv": [
+            13.5,
+            7,
+            15,
+            9
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1,
+        14,
+        7.5
+      ],
+      "to": [
+        15,
+        15,
+        8.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#bar",
+          "uv": [
+            1,
+            1,
+            15,
+            2
+          ]
+        },
+        "south": {
+          "texture": "#bar",
+          "uv": [
+            1,
+            1,
+            15,
+            2
+          ]
+        },
+        "east": {
+          "texture": "#bar",
+          "uv": [
+            7.5,
+            1,
+            8.5,
+            2
+          ]
+        },
+        "west": {
+          "texture": "#bar",
+          "uv": [
+            7.5,
+            1,
+            8.5,
+            2
+          ]
+        },
+        "up": {
+          "texture": "#bar",
+          "uv": [
+            1,
+            7.5,
+            15,
+            8.5
+          ]
+        },
+        "down": {
+          "texture": "#bar",
+          "uv": [
+            1,
+            7.5,
+            15,
+            8.5
+          ]
+        }
+      }
+    }
+  ]
+}

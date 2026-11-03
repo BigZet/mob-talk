@@ -134,6 +134,50 @@ public final class MobTalkConfig {
     public boolean roadBypass = true;
     /** Odds and ends beside the roads: pebbles, cairns, fallen logs, verst posts, chosen for the biome. */
     public boolean roadDecor = true;
+    /** Cities with Soviet panel blocks, an administration and a hospital take the place of a village: one city for this many villages,
+     * 0 = no cities. Counted when a world loads; only new land gets cities.
+     * <p>Города в сборку не включены, пока их не допилили: оба флага ({@code cities} и {@code cityPerVillages}) по умолчанию
+     * выключены и деревни не заменяют. Проба — в F7, раздел «Города». */
+    public int cityPerVillages = 0;
+    /** Cities 2.0 (tools/city2): a city of its own biome, {@code cityRadius} blocks of streets and panel houses inside a biome of
+     * {@code cityBiomeRadius}; the world is cut into squares of {@code citySpacing} and a square holds a city with {@code cityChance}
+     * percent. On, it replaces the old cities that took a village's place. Only new land gets cities. */
+    public boolean cities = false;
+    public int citySpacing = 4096, cityChance = 70, cityRadius = 500, cityBiomeRadius = 750;
+    /** Lifts of the tall panel houses: speed in tenths of a block (metre) a second, how long the doors stay open with nobody in the
+     * doorway, and the chance a minute (percent) that a villager by the lift's doors calls it and rides. */
+    public int liftSpeedTenths = 15, liftDoorSeconds = 5, liftVillagerChance = 25;
+    /** Parked cars of the cities (docs/cars.md): the share of parking spots in yards and streets that hold a car, percent. */
+    public int cityCarsPercent = 60;
+    /** City supermarkets work: goods on the displays, paid in emeralds at a till or the self-checkout, a cashier and a guard. */
+    public boolean cityShops = true;
+    /** A newcomer comes to a till or a guard's desk left without its cashier or guard. */
+    public boolean shopStaff = true;
+    /** Goods carried off unpaid raise the city's alarm against the player (when the guard did not catch them). */
+    public boolean shopTheftAlarm = true;
+    /** The supermarket's sounds: scanner beeps, the till, the gate's alarm, fridges, PA chime, music, carts. */
+    public boolean shopSounds = true;
+    /** Deals: yellow «акция» tags (30% off) on some goods, and one «товар дня» a shop at half price, changing every day. */
+    public boolean shopDeals = true;
+    /** Villagers go shopping by day: they take goods off the displays and queue at the tills. */
+    public boolean shopShoppers = true;
+    /** The supermarket's loyalty card: issued with the first purchase, a point an emerald, ten points an emerald off (sneak at the till). */
+    public boolean shopLoyalty = true;
+    /** About how many of the lanes are on «акция» on a given day, percent. */
+    public int shopPromoPercent = 12;
+    /** City markets: vendors at their stalls sell for emeralds on the spot (haggling allowed); they call out to passers-by. */
+    public boolean cityMarkets = true;
+    public boolean marketCalls = true;
+    /** How often a vendor gives way when a player haggles (sneak + take): a lot one emerald cheaper, or a bit extra for free. */
+    public int marketHagglePercent = 50;
+    /** Minutes between deliveries: an emptied display is full again after this long. */
+    public int shopRestockMinutes = 20;
+    /** Prices against the catalogue, percent. */
+    public int shopPricePercent = 100;
+    /** Seconds out of the shop with unpaid goods before the theft counts (the guard may catch the player first). */
+    public int shopTheftSeconds = 8;
+    /** Percent of tries the self-checkout complains of an unknown item in the bagging area. */
+    public int shopCheckoutGlitchPercent = 15;
     /** Ranks of the village's guard beside the plain guard: heavy warriors in diamond with an axe, horsemen in leather on a horse. */
     public boolean villageHeavy = true, villageCavalry = true;
     /** Night bandits in the cities: a gang may come at night, ask for emeralds, fight and rob; whether they also mug villagers,
@@ -416,6 +460,8 @@ public final class MobTalkConfig {
         copy.bandits = bandits; copy.banditsRobVillagers = banditsRobVillagers; copy.banditsInVillages = banditsInVillages; copy.banditHaggle = banditHaggle; copy.banditRumors = banditRumors; copy.banditFearLight = banditFearLight;
         copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageRoads = villageRoads; copy.roadLamps = roadLamps; copy.roadBypass = roadBypass; copy.roadDecor = roadDecor; copy.villageHeavy = villageHeavy; copy.villageCavalry = villageCavalry; copy.officials = officials; copy.paperwork = paperwork; copy.paperLunch = paperLunch; copy.passportForWedding = passportForWedding; copy.officialDacha = officialDacha; copy.officialSmite = officialSmite; copy.officialRevizor = officialRevizor; copy.officialsShameless = officialsShameless; copy.officialGossip = officialGossip; copy.officialPapers = officialPapers; copy.barsInVillages = barsInVillages; copy.barEvenings = barEvenings; copy.barVoiced = barVoiced; copy.barAliceSpeaker = barAliceSpeaker; copy.barDrinks = barDrinks;
         copy.casino = casino; copy.casinoBouncers = casinoBouncers; copy.casinoVisitors = casinoVisitors; copy.casinoResort = casinoResort; copy.casinoSparkles = casinoSparkles;
+        copy.cities = cities; copy.cityPerVillages = cityPerVillages; copy.citySpacing = citySpacing; copy.cityChance = cityChance; copy.cityRadius = cityRadius; copy.cityBiomeRadius = cityBiomeRadius; copy.liftSpeedTenths = liftSpeedTenths; copy.liftDoorSeconds = liftDoorSeconds; copy.liftVillagerChance = liftVillagerChance; copy.cityCarsPercent = cityCarsPercent;
+        copy.cityShops = cityShops; copy.shopStaff = shopStaff; copy.shopTheftAlarm = shopTheftAlarm; copy.shopSounds = shopSounds; copy.shopDeals = shopDeals; copy.shopShoppers = shopShoppers; copy.shopLoyalty = shopLoyalty; copy.cityMarkets = cityMarkets; copy.marketCalls = marketCalls; copy.marketHagglePercent = marketHagglePercent; copy.shopPromoPercent = shopPromoPercent; copy.shopRestockMinutes = shopRestockMinutes; copy.shopPricePercent = shopPricePercent; copy.shopTheftSeconds = shopTheftSeconds; copy.shopCheckoutGlitchPercent = shopCheckoutGlitchPercent;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;

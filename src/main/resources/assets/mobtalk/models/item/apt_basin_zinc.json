@@ -1,0 +1,350 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "zinc": "mobtalk:block/city2/furniture/zinc",
+    "apt_basin_zinc_inside_44": "mobtalk:block/city2/furniture/apt_basin_zinc_inside_44",
+    "particle": "mobtalk:block/city2/furniture/zinc"
+  },
+  "elements": [
+    {
+      "from": [
+        2.0,
+        0.0,
+        2.0
+      ],
+      "to": [
+        14.0,
+        4.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#zinc",
+          "uv": [
+            2.0,
+            12.0,
+            14.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#zinc",
+          "uv": [
+            2.0,
+            12.0,
+            14.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#zinc",
+          "uv": [
+            2.0,
+            12.0,
+            14.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#zinc",
+          "uv": [
+            2.0,
+            12.0,
+            14.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_basin_zinc_inside_44",
+          "uv": [
+            2.0,
+            2.0,
+            14.0,
+            14.0
+          ]
+        },
+        "down": {
+          "texture": "#zinc",
+          "uv": [
+            2.0,
+            2.0,
+            14.0,
+            14.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.5,
+        3.5,
+        1.5
+      ],
+      "to": [
+        14.5,
+        4.5,
+        14.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#zinc",
+          "uv": [
+            1.5,
+            11.5,
+            14.5,
+            12.5
+          ]
+        },
+        "south": {
+          "texture": "#zinc",
+          "uv": [
+            1.5,
+            11.5,
+            14.5,
+            12.5
+          ]
+        },
+        "east": {
+          "texture": "#zinc",
+          "uv": [
+            1.5,
+            11.5,
+            14.5,
+            12.5
+          ]
+        },
+        "west": {
+          "texture": "#zinc",
+          "uv": [
+            1.5,
+            11.5,
+            14.5,
+            12.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.0,
+        3.0,
+        1.0
+      ],
+      "to": [
+        10.0,
+        3.5,
+        1.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#zinc",
+          "uv": [
+            6.0,
+            12.5,
+            10.0,
+            13.0
+          ]
+        },
+        "east": {
+          "texture": "#zinc",
+          "uv": [
+            14.5,
+            12.5,
+            15.0,
+            13.0
+          ]
+        },
+        "west": {
+          "texture": "#zinc",
+          "uv": [
+            1.0,
+            12.5,
+            1.5,
+            13.0
+          ]
+        },
+        "up": {
+          "texture": "#zinc",
+          "uv": [
+            6.0,
+            1.0,
+            10.0,
+            1.5
+          ]
+        },
+        "down": {
+          "texture": "#zinc",
+          "uv": [
+            6.0,
+            14.5,
+            10.0,
+            15.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.0,
+        3.0,
+        14.5
+      ],
+      "to": [
+        10.0,
+        3.5,
+        15.0
+      ],
+      "faces": {
+        "south": {
+          "texture": "#zinc",
+          "uv": [
+            6.0,
+            12.5,
+            10.0,
+            13.0
+          ]
+        },
+        "east": {
+          "texture": "#zinc",
+          "uv": [
+            1.0,
+            12.5,
+            1.5,
+            13.0
+          ]
+        },
+        "west": {
+          "texture": "#zinc",
+          "uv": [
+            14.5,
+            12.5,
+            15.0,
+            13.0
+          ]
+        },
+        "up": {
+          "texture": "#zinc",
+          "uv": [
+            6.0,
+            14.5,
+            10.0,
+            15.0
+          ]
+        },
+        "down": {
+          "texture": "#zinc",
+          "uv": [
+            6.0,
+            1.0,
+            10.0,
+            1.5
+          ]
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.625,
+        0.625,
+        0.625
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        2.5,
+        0
+      ],
+      "scale": [
+        0.375,
+        0.375,
+        0.375
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    }
+  }
+}

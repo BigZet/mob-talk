@@ -1,0 +1,66 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "pub_poster_table_poster_table_54": "mobtalk:block/city2/furniture/pub_poster_table_poster_table_54",
+    "board_frame": "mobtalk:block/city2/furniture/board_frame",
+    "particle": "mobtalk:block/city2/furniture/pub_poster_table_poster_table_54"
+  },
+  "elements": [
+    {
+      "from": [
+        2.0,
+        4.0,
+        15.25
+      ],
+      "to": [
+        16.0,
+        16.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_poster_table_poster_table_54",
+          "uv": [
+            0.0,
+            0.0,
+            14.0,
+            12.0
+          ]
+        }
+      },
+      "shade": false
+    },
+    {
+      "from": [
+        2.0,
+        4.0,
+        15.5
+      ],
+      "to": [
+        16.0,
+        16.0,
+        16.0
+      ],
+      "faces": {
+        "west": {
+          "texture": "#board_frame",
+          "uv": [
+            15.5,
+            0.0,
+            16.0,
+            12.0
+          ]
+        },
+        "down": {
+          "texture": "#board_frame",
+          "uv": [
+            2.0,
+            0.0,
+            16.0,
+            0.5
+          ]
+        }
+      }
+    }
+  ]
+}

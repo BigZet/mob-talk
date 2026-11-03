@@ -1,0 +1,33 @@
+{
+  "name": "mobtalk:city/works/dining_hall/fundament",
+  "elements": [
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/works/dining_hall/fundament_a",
+        "processors": "mobtalk:city/set_cobblestone",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/works/dining_hall/fundament_b",
+        "processors": "mobtalk:city/set_cobblestone",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/works/dining_hall/fundament_c",
+        "processors": "mobtalk:city/set_cobblestone",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    }
+  ],
+  "fallback": "mobtalk:city/works/dining_hall/fundament"
+}

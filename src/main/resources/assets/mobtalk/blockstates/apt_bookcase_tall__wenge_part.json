@@ -1,0 +1,49 @@
+{
+  "variants": {
+    "facing=north,part=1": {
+      "model": "mobtalk:block/city2/furniture/apt_bookcase_tall__wenge_p1"
+    },
+    "facing=north,part=2": {
+      "model": "mobtalk:block/city2/furniture/apt_bookcase_tall__wenge_p2"
+    },
+    "facing=north,part=3": {
+      "model": "mobtalk:block/city2/furniture/apt_bookcase_tall__wenge_p3"
+    },
+    "facing=east,part=1": {
+      "model": "mobtalk:block/city2/furniture/apt_bookcase_tall__wenge_p1",
+      "y": 90
+    },
+    "facing=east,part=2": {
+      "model": "mobtalk:block/city2/furniture/apt_bookcase_tall__wenge_p2",
+      "y": 90
+    },
+    "facing=east,part=3": {
+      "model": "mobtalk:block/city2/furniture/apt_bookcase_tall__wenge_p3",
+      "y": 90
+    },
+    "facing=south,part=1": {
+      "model": "mobtalk:block/city2/furniture/apt_bookcase_tall__wenge_p1",
+      "y": 180
+    },
+    "facing=south,part=2": {
+      "model": "mobtalk:block/city2/furniture/apt_bookcase_tall__wenge_p2",
+      "y": 180
+    },
+    "facing=south,part=3": {
+      "model": "mobtalk:block/city2/furniture/apt_bookcase_tall__wenge_p3",
+      "y": 180
+    },
+    "facing=west,part=1": {
+      "model": "mobtalk:block/city2/furniture/apt_bookcase_tall__wenge_p1",
+      "y": 270
+    },
+    "facing=west,part=2": {
+      "model": "mobtalk:block/city2/furniture/apt_bookcase_tall__wenge_p2",
+      "y": 270
+    },
+    "facing=west,part=3": {
+      "model": "mobtalk:block/city2/furniture/apt_bookcase_tall__wenge_p3",
+      "y": 270
+    }
+  }
+}

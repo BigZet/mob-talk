@@ -1,0 +1,24 @@
+{
+  "name": "mobtalk:city/houses/twobalkon9/paraped",
+  "fallback": "mobtalk:city/houses/twobalkon9/paraped",
+  "elements": [
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/houses/twobalkon9/paraped/variant_1",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/houses/twobalkon9/paraped/variant_2",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    }
+  ]
+}

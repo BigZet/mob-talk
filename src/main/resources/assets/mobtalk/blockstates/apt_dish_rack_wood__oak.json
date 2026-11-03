@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/city2/furniture/apt_dish_rack_wood__oak"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/city2/furniture/apt_dish_rack_wood__oak",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/city2/furniture/apt_dish_rack_wood__oak",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/city2/furniture/apt_dish_rack_wood__oak",
+      "y": 270
+    }
+  }
+}

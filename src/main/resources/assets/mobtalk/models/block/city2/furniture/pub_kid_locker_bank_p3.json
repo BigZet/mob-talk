@@ -1,0 +1,434 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "birch_ply": "mobtalk:block/city2/furniture/birch_ply",
+    "pub_kid_locker_bank_kglock_doors_33": "mobtalk:block/city2/furniture/pub_kid_locker_bank_kglock_doors_33",
+    "birch_ply_h": "mobtalk:block/city2/furniture/birch_ply_h",
+    "kid_pad_blue": "mobtalk:block/city2/furniture/kid_pad_blue",
+    "particle": "mobtalk:block/city2/furniture/birch_ply"
+  },
+  "elements": [
+    {
+      "from": [
+        14.5,
+        0.0,
+        4.0
+      ],
+      "to": [
+        16.0,
+        14.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#birch_ply",
+          "uv": [
+            0.0,
+            2.0,
+            1.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply",
+          "uv": [
+            14.5,
+            2.0,
+            16.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#birch_ply",
+          "uv": [
+            0.0,
+            2.0,
+            12.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#birch_ply",
+          "uv": [
+            4.0,
+            2.0,
+            16.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply",
+          "uv": [
+            14.5,
+            4.0,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        0.0,
+        4.5
+      ],
+      "to": [
+        14.5,
+        8.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_kid_locker_bank_kglock_doors_33",
+          "uv": [
+            1.5,
+            8.0,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply",
+          "uv": [
+            0.0,
+            8.0,
+            14.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#birch_ply",
+          "uv": [
+            0.0,
+            8.0,
+            11.5,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply",
+          "uv": [
+            0.0,
+            4.5,
+            14.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        8.0,
+        4.0
+      ],
+      "to": [
+        14.5,
+        9.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            1.5,
+            7.0,
+            16.0,
+            8.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.0,
+            7.0,
+            14.5,
+            8.0
+          ]
+        },
+        "east": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.0,
+            7.0,
+            12.0,
+            8.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.0,
+            4.0,
+            14.5,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.0,
+            0.0,
+            14.5,
+            12.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        13.0,
+        4.0
+      ],
+      "to": [
+        14.5,
+        14.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            1.5,
+            2.0,
+            16.0,
+            3.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.0,
+            2.0,
+            14.5,
+            3.0
+          ]
+        },
+        "east": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.0,
+            2.0,
+            12.0,
+            3.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.0,
+            4.0,
+            14.5,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.0,
+            0.0,
+            14.5,
+            12.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.5,
+        9.0,
+        4.5
+      ],
+      "to": [
+        4.5,
+        13.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#birch_ply",
+          "uv": [
+            11.5,
+            3.0,
+            12.5,
+            7.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply",
+          "uv": [
+            3.5,
+            3.0,
+            4.5,
+            7.0
+          ]
+        },
+        "east": {
+          "texture": "#birch_ply",
+          "uv": [
+            0.0,
+            3.0,
+            11.5,
+            7.0
+          ]
+        },
+        "west": {
+          "texture": "#birch_ply",
+          "uv": [
+            4.5,
+            3.0,
+            16.0,
+            7.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply",
+          "uv": [
+            3.5,
+            4.5,
+            4.5,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#birch_ply",
+          "uv": [
+            3.5,
+            0.0,
+            4.5,
+            11.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        9.5,
+        9.0,
+        4.5
+      ],
+      "to": [
+        10.5,
+        13.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#birch_ply",
+          "uv": [
+            5.5,
+            3.0,
+            6.5,
+            7.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply",
+          "uv": [
+            9.5,
+            3.0,
+            10.5,
+            7.0
+          ]
+        },
+        "east": {
+          "texture": "#birch_ply",
+          "uv": [
+            0.0,
+            3.0,
+            11.5,
+            7.0
+          ]
+        },
+        "west": {
+          "texture": "#birch_ply",
+          "uv": [
+            4.5,
+            3.0,
+            16.0,
+            7.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply",
+          "uv": [
+            9.5,
+            4.5,
+            10.5,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#birch_ply",
+          "uv": [
+            9.5,
+            0.0,
+            10.5,
+            11.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        9.0,
+        8.0
+      ],
+      "to": [
+        2.0,
+        10.0,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#kid_pad_blue",
+          "uv": [
+            14.0,
+            6.0,
+            16.0,
+            7.0
+          ]
+        },
+        "south": {
+          "texture": "#kid_pad_blue",
+          "uv": [
+            0.0,
+            6.0,
+            2.0,
+            7.0
+          ]
+        },
+        "east": {
+          "texture": "#kid_pad_blue",
+          "uv": [
+            3.0,
+            6.0,
+            8.0,
+            7.0
+          ]
+        },
+        "up": {
+          "texture": "#kid_pad_blue",
+          "uv": [
+            0.0,
+            8.0,
+            2.0,
+            13.0
+          ]
+        },
+        "down": {
+          "texture": "#kid_pad_blue",
+          "uv": [
+            0.0,
+            3.0,
+            2.0,
+            8.0
+          ]
+        }
+      }
+    }
+  ]
+}

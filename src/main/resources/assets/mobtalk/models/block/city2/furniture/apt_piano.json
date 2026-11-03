@@ -1,0 +1,139 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_piano_front_44": "mobtalk:block/city2/furniture/apt_piano_front_44",
+    "lacquer": "mobtalk:block/city2/furniture/lacquer",
+    "keys": "mobtalk:block/city2/furniture/keys",
+    "particle": "mobtalk:block/city2/furniture/apt_piano_front_44"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.0,
+        10.0
+      ],
+      "to": [
+        16.0,
+        16.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_piano_front_44",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#lacquer",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        10.0,
+        5.0
+      ],
+      "to": [
+        16.0,
+        11.5,
+        10.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#lacquer",
+          "uv": [
+            0.0,
+            4.5,
+            16.0,
+            6.0
+          ]
+        },
+        "south": {
+          "texture": "#lacquer",
+          "uv": [
+            0.0,
+            4.5,
+            16.0,
+            6.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        11.5,
+        5.5
+      ],
+      "to": [
+        16.0,
+        11.5,
+        10.0
+      ],
+      "faces": {
+        "up": {
+          "texture": "#keys",
+          "uv": [
+            0.0,
+            5.5,
+            16.0,
+            10.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        12.0,
+        9.0
+      ],
+      "to": [
+        16.0,
+        13.0,
+        10.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#lacquer",
+          "uv": [
+            0.0,
+            3.0,
+            16.0,
+            4.0
+          ]
+        },
+        "south": {
+          "texture": "#lacquer",
+          "uv": [
+            0.0,
+            3.0,
+            16.0,
+            4.0
+          ]
+        },
+        "up": {
+          "texture": "#lacquer",
+          "uv": [
+            0.0,
+            9.0,
+            16.0,
+            10.0
+          ]
+        }
+      }
+    }
+  ]
+}

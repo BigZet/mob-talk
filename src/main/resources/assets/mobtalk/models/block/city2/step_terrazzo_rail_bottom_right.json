@@ -1,0 +1,224 @@
+{
+ "parent": "minecraft:block/block",
+ "textures": {
+  "m": "mobtalk:block/city2/metal_dark",
+  "h": "mobtalk:block/city2/handrail",
+  "particle": "mobtalk:block/city2/metal_dark"
+ },
+ "elements": [
+  {
+   "from": [
+    14.5,
+    8,
+    3.5
+   ],
+   "to": [
+    15.5,
+    24,
+    4.5
+   ],
+   "faces": {
+    "north": {
+     "texture": "#m",
+     "uv": [
+      14.5,
+      0,
+      15.5,
+      16
+     ]
+    },
+    "south": {
+     "texture": "#m",
+     "uv": [
+      14.5,
+      0,
+      15.5,
+      16
+     ]
+    },
+    "east": {
+     "texture": "#m",
+     "uv": [
+      3.5,
+      0,
+      4.5,
+      16
+     ]
+    },
+    "west": {
+     "texture": "#m",
+     "uv": [
+      3.5,
+      0,
+      4.5,
+      16
+     ]
+    },
+    "up": {
+     "texture": "#m",
+     "uv": [
+      14.5,
+      3.5,
+      15.5,
+      4.5
+     ]
+    },
+    "down": {
+     "texture": "#m",
+     "uv": [
+      14.5,
+      3.5,
+      15.5,
+      4.5
+     ]
+    }
+   }
+  },
+  {
+   "from": [
+    14.5,
+    8,
+    11.5
+   ],
+   "to": [
+    15.5,
+    20,
+    12.5
+   ],
+   "faces": {
+    "north": {
+     "texture": "#m",
+     "uv": [
+      14.5,
+      0,
+      15.5,
+      12
+     ]
+    },
+    "south": {
+     "texture": "#m",
+     "uv": [
+      14.5,
+      0,
+      15.5,
+      12
+     ]
+    },
+    "east": {
+     "texture": "#m",
+     "uv": [
+      11.5,
+      0,
+      12.5,
+      12
+     ]
+    },
+    "west": {
+     "texture": "#m",
+     "uv": [
+      11.5,
+      0,
+      12.5,
+      12
+     ]
+    },
+    "up": {
+     "texture": "#m",
+     "uv": [
+      14.5,
+      11.5,
+      15.5,
+      12.5
+     ]
+    },
+    "down": {
+     "texture": "#m",
+     "uv": [
+      14.5,
+      11.5,
+      15.5,
+      12.5
+     ]
+    }
+   }
+  },
+  {
+   "from": [
+    14.0,
+    21.25,
+    -0.7
+   ],
+   "to": [
+    16.0,
+    22.75,
+    16.7
+   ],
+   "faces": {
+    "north": {
+     "texture": "#h",
+     "uv": [
+      14.0,
+      9.25,
+      16.0,
+      10.75
+     ]
+    },
+    "south": {
+     "texture": "#h",
+     "uv": [
+      14.0,
+      9.25,
+      16.0,
+      10.75
+     ]
+    },
+    "east": {
+     "texture": "#h",
+     "uv": [
+      0,
+      9.25,
+      16,
+      10.75
+     ]
+    },
+    "west": {
+     "texture": "#h",
+     "uv": [
+      0,
+      9.25,
+      16,
+      10.75
+     ]
+    },
+    "up": {
+     "texture": "#h",
+     "uv": [
+      14.0,
+      0,
+      16.0,
+      16
+     ]
+    },
+    "down": {
+     "texture": "#h",
+     "uv": [
+      14.0,
+      0,
+      16.0,
+      16
+     ]
+    }
+   },
+   "rotation": {
+    "origin": [
+     15.0,
+     22,
+     8
+    ],
+    "axis": "x",
+    "angle": 22.5
+   }
+  }
+ ],
+ "ambientocclusion": false
+}

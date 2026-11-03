@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/city2/furniture/apt_washbasin__rose"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/city2/furniture/apt_washbasin__rose",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/city2/furniture/apt_washbasin__rose",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/city2/furniture/apt_washbasin__rose",
+      "y": 270
+    }
+  }
+}

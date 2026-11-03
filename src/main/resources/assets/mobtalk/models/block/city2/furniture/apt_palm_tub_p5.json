@@ -1,0 +1,50 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_palm_tub_frond1_54": "mobtalk:block/city2/furniture/apt_palm_tub_frond1_54",
+    "particle": "mobtalk:block/city2/furniture/apt_palm_tub_frond1_54"
+  },
+  "elements": [
+    {
+      "from": [
+        -2.4567,
+        15.2961,
+        4.0
+      ],
+      "to": [
+        9.5433,
+        15.2961,
+        12.0
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_palm_tub_frond1_54",
+          "uv": [
+            -2.4567,
+            4.0,
+            9.5433,
+            12.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_palm_tub_frond1_54",
+          "uv": [
+            -2.4567,
+            4.0,
+            9.5433,
+            12.0
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          -2.457,
+          15.296,
+          8
+        ],
+        "axis": "z",
+        "angle": -45
+      }
+    }
+  ]
+}

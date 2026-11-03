@@ -1,0 +1,347 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "plastic_black": "mobtalk:block/city2/furniture/plastic_black",
+    "apt2_sofa_corner_front_34": "mobtalk:block/city2/furniture/apt2_sofa_corner_front_34",
+    "fabric_beige": "mobtalk:block/city2/furniture/fabric_beige",
+    "apt2_sofa_corner_top_54": "mobtalk:block/city2/furniture/apt2_sofa_corner_top_54",
+    "apt2_sofa_corner_chaise_top_54": "mobtalk:block/city2/furniture/apt2_sofa_corner_chaise_top_54",
+    "apt2_sofa_corner_back_34": "mobtalk:block/city2/furniture/apt2_sofa_corner_back_34",
+    "apt2_sofa_corner_cushion22_34": "mobtalk:block/city2/furniture/apt2_sofa_corner_cushion22_34",
+    "particle": "mobtalk:block/city2/furniture/plastic_black"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.0,
+        3.0
+      ],
+      "to": [
+        16.0,
+        2.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plastic_black",
+          "uv": [
+            0.0,
+            14.0,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#plastic_black",
+          "uv": [
+            0.0,
+            14.0,
+            16.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#plastic_black",
+          "uv": [
+            1.0,
+            14.0,
+            13.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "to": [
+        16.0,
+        2.0,
+        3.0
+      ],
+      "faces": {
+        "south": {
+          "texture": "#plastic_black",
+          "uv": [
+            0.0,
+            14.0,
+            16.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#plastic_black",
+          "uv": [
+            13.0,
+            14.0,
+            16.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#plastic_black",
+          "uv": [
+            0.0,
+            14.0,
+            3.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        2.0,
+        2.0
+      ],
+      "to": [
+        14.0,
+        7.5,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt2_sofa_corner_front_34",
+          "uv": [
+            2.0,
+            8.5,
+            16.0,
+            14.0
+          ]
+        },
+        "south": {
+          "texture": "#fabric_beige",
+          "uv": [
+            0.0,
+            8.5,
+            14.0,
+            14.0
+          ]
+        },
+        "east": {
+          "texture": "#fabric_beige",
+          "uv": [
+            3.0,
+            8.5,
+            14.0,
+            14.0
+          ]
+        },
+        "up": {
+          "texture": "#apt2_sofa_corner_top_54",
+          "uv": [
+            0.0,
+            2.0,
+            14.0,
+            13.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        2.0,
+        0.0
+      ],
+      "to": [
+        14.0,
+        7.5,
+        2.0
+      ],
+      "faces": {
+        "east": {
+          "texture": "#fabric_beige",
+          "uv": [
+            14.0,
+            8.5,
+            16.0,
+            14.0
+          ]
+        },
+        "west": {
+          "texture": "#fabric_beige",
+          "uv": [
+            0.0,
+            8.5,
+            2.0,
+            14.0
+          ]
+        },
+        "up": {
+          "texture": "#apt2_sofa_corner_chaise_top_54",
+          "uv": [
+            0.0,
+            0.0,
+            14.0,
+            2.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        2.0,
+        13.0
+      ],
+      "to": [
+        16.0,
+        15.0,
+        15.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt2_sofa_corner_back_34",
+          "uv": [
+            0.0,
+            1.0,
+            16.0,
+            14.0
+          ]
+        },
+        "south": {
+          "texture": "#fabric_beige",
+          "uv": [
+            0.0,
+            1.0,
+            16.0,
+            14.0
+          ]
+        },
+        "east": {
+          "texture": "#fabric_beige",
+          "uv": [
+            0.5,
+            1.0,
+            3.0,
+            14.0
+          ]
+        },
+        "up": {
+          "texture": "#fabric_beige",
+          "uv": [
+            0.0,
+            13.0,
+            16.0,
+            15.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        14.0,
+        2.0,
+        0.0
+      ],
+      "to": [
+        16.0,
+        11.0,
+        13.0
+      ],
+      "faces": {
+        "south": {
+          "texture": "#fabric_beige",
+          "uv": [
+            14.0,
+            5.0,
+            16.0,
+            14.0
+          ]
+        },
+        "east": {
+          "texture": "#fabric_beige",
+          "uv": [
+            3.0,
+            5.0,
+            16.0,
+            14.0
+          ]
+        },
+        "west": {
+          "texture": "#fabric_beige",
+          "uv": [
+            0.0,
+            5.0,
+            13.0,
+            14.0
+          ]
+        },
+        "up": {
+          "texture": "#fabric_beige",
+          "uv": [
+            14.0,
+            0.0,
+            16.0,
+            13.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.0,
+        7.5,
+        10.5
+      ],
+      "to": [
+        11.0,
+        12.5,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt2_sofa_corner_cushion22_34",
+          "uv": [
+            5.0,
+            3.5,
+            10.0,
+            8.5
+          ]
+        },
+        "south": {
+          "texture": "#fabric_beige",
+          "uv": [
+            6.0,
+            3.5,
+            11.0,
+            8.5
+          ]
+        },
+        "east": {
+          "texture": "#fabric_beige",
+          "uv": [
+            3.0,
+            3.5,
+            5.5,
+            8.5
+          ]
+        },
+        "west": {
+          "texture": "#fabric_beige",
+          "uv": [
+            10.5,
+            3.5,
+            13.0,
+            8.5
+          ]
+        },
+        "up": {
+          "texture": "#fabric_beige",
+          "uv": [
+            6.0,
+            10.5,
+            11.0,
+            13.0
+          ]
+        }
+      }
+    }
+  ]
+}

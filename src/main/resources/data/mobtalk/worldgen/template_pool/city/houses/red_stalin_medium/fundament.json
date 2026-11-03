@@ -1,0 +1,15 @@
+{
+  "name": "mobtalk:city/houses/red_stalin_medium/fundament",
+  "fallback": "mobtalk:city/houses/red_stalin_medium/fundament",
+  "elements": [
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/houses/red_stalin_medium/fundament",
+        "processors": "mobtalk:city/set_cobblestone",
+        "projection": "rigid",
+        "element_type": "minecraft:legacy_single_pool_element"
+      }
+    }
+  ]
+}

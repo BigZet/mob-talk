@@ -1,0 +1,254 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_bed_double_l_foot_44": "mobtalk:block/city2/furniture/apt_bed_double_l_foot_44",
+    "walnut": "mobtalk:block/city2/furniture/walnut",
+    "linen": "mobtalk:block/city2/furniture/linen",
+    "quilt_edge": "mobtalk:block/city2/furniture/quilt_edge",
+    "apt_bed_double_l_quilt_44": "mobtalk:block/city2/furniture/apt_bed_double_l_quilt_44",
+    "particle": "mobtalk:block/city2/furniture/apt_bed_double_l_foot_44"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.0,
+        14.5
+      ],
+      "to": [
+        15.5,
+        8.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_bed_double_l_foot_44",
+          "uv": [
+            0.5,
+            8.0,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#walnut",
+          "uv": [
+            0.0,
+            8.0,
+            15.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#walnut",
+          "uv": [
+            0.0,
+            8.0,
+            1.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#walnut",
+          "uv": [
+            14.5,
+            8.0,
+            16.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#walnut",
+          "uv": [
+            0.0,
+            14.5,
+            15.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        14.5,
+        2.5,
+        0.0
+      ],
+      "to": [
+        15.5,
+        4.5,
+        14.5
+      ],
+      "faces": {
+        "south": {
+          "texture": "#walnut",
+          "uv": [
+            14.5,
+            11.5,
+            15.5,
+            13.5
+          ]
+        },
+        "east": {
+          "texture": "#walnut",
+          "uv": [
+            1.5,
+            11.5,
+            16.0,
+            13.5
+          ]
+        },
+        "west": {
+          "texture": "#walnut",
+          "uv": [
+            0.0,
+            11.5,
+            14.5,
+            13.5
+          ]
+        },
+        "up": {
+          "texture": "#walnut",
+          "uv": [
+            14.5,
+            0.0,
+            15.5,
+            14.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        3.0,
+        0.0
+      ],
+      "to": [
+        14.5,
+        6.5,
+        14.5
+      ],
+      "faces": {
+        "south": {
+          "texture": "#linen",
+          "uv": [
+            0.0,
+            9.5,
+            14.5,
+            13.0
+          ]
+        },
+        "east": {
+          "texture": "#linen",
+          "uv": [
+            1.5,
+            9.5,
+            16.0,
+            13.0
+          ]
+        },
+        "west": {
+          "texture": "#linen",
+          "uv": [
+            0.0,
+            9.5,
+            14.5,
+            13.0
+          ]
+        },
+        "up": {
+          "texture": "#linen",
+          "uv": [
+            0.0,
+            0.0,
+            14.5,
+            14.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        6.5,
+        0.0
+      ],
+      "to": [
+        15.0,
+        7.5,
+        14.25
+      ],
+      "faces": {
+        "south": {
+          "texture": "#quilt_edge",
+          "uv": [
+            0.0,
+            8.5,
+            15.0,
+            9.5
+          ]
+        },
+        "east": {
+          "texture": "#quilt_edge",
+          "uv": [
+            1.75,
+            8.5,
+            16.0,
+            9.5
+          ]
+        },
+        "west": {
+          "texture": "#quilt_edge",
+          "uv": [
+            0.0,
+            8.5,
+            14.25,
+            9.5
+          ]
+        },
+        "up": {
+          "texture": "#apt_bed_double_l_quilt_44",
+          "uv": [
+            0.0,
+            0.0,
+            15.0,
+            14.25
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        14.5,
+        4.0,
+        0.0
+      ],
+      "to": [
+        15.0,
+        6.5,
+        14.25
+      ],
+      "faces": {
+        "south": {
+          "texture": "#quilt_edge",
+          "uv": [
+            14.5,
+            9.5,
+            15.0,
+            12.0
+          ]
+        },
+        "east": {
+          "texture": "#quilt_edge",
+          "uv": [
+            1.75,
+            9.5,
+            16.0,
+            12.0
+          ]
+        }
+      }
+    }
+  ]
+}

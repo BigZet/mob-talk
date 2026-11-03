@@ -1,0 +1,454 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "birch_ply_h": "mobtalk:block/city2/furniture/birch_ply_h",
+    "geranium": "mobtalk:block/city2/furniture/geranium",
+    "terracotta": "mobtalk:block/city2/furniture/terracotta",
+    "aloe": "mobtalk:block/city2/furniture/aloe",
+    "leaf": "mobtalk:block/city2/furniture/leaf",
+    "green_paint": "mobtalk:block/city2/furniture/green_paint",
+    "particle": "mobtalk:block/city2/furniture/birch_ply_h"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.0,
+        12.0
+      ],
+      "to": [
+        15.5,
+        2.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.5,
+            14.0,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.0,
+            14.0,
+            15.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.0,
+            14.0,
+            4.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.0,
+            12.0,
+            15.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.5,
+        0.0,
+        9.25
+      ],
+      "to": [
+        9.0,
+        1.5,
+        11.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#geranium",
+          "uv": [
+            7.0,
+            14.5,
+            9.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#geranium",
+          "uv": [
+            6.5,
+            14.5,
+            9.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#geranium",
+          "uv": [
+            4.75,
+            14.5,
+            6.75,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#geranium",
+          "uv": [
+            9.25,
+            14.5,
+            11.25,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#geranium",
+          "uv": [
+            6.5,
+            9.25,
+            9.0,
+            11.25
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.0,
+        2.0,
+        13.0
+      ],
+      "to": [
+        5.5,
+        5.0,
+        15.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#terracotta",
+          "uv": [
+            10.5,
+            11.0,
+            14.0,
+            14.0
+          ]
+        },
+        "south": {
+          "texture": "#terracotta",
+          "uv": [
+            2.0,
+            11.0,
+            5.5,
+            14.0
+          ]
+        },
+        "east": {
+          "texture": "#terracotta",
+          "uv": [
+            0.5,
+            11.0,
+            3.0,
+            14.0
+          ]
+        },
+        "west": {
+          "texture": "#terracotta",
+          "uv": [
+            13.0,
+            11.0,
+            15.5,
+            14.0
+          ]
+        },
+        "up": {
+          "texture": "#terracotta",
+          "uv": [
+            2.0,
+            13.0,
+            5.5,
+            15.5
+          ]
+        },
+        "down": {
+          "texture": "#terracotta",
+          "uv": [
+            2.0,
+            0.5,
+            5.5,
+            3.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.5,
+        5.0,
+        13.25
+      ],
+      "to": [
+        5.0,
+        7.5,
+        15.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#aloe",
+          "uv": [
+            11.0,
+            8.5,
+            13.5,
+            11.0
+          ]
+        },
+        "south": {
+          "texture": "#aloe",
+          "uv": [
+            2.5,
+            8.5,
+            5.0,
+            11.0
+          ]
+        },
+        "east": {
+          "texture": "#aloe",
+          "uv": [
+            0.75,
+            8.5,
+            2.75,
+            11.0
+          ]
+        },
+        "west": {
+          "texture": "#aloe",
+          "uv": [
+            13.25,
+            8.5,
+            15.25,
+            11.0
+          ]
+        },
+        "up": {
+          "texture": "#aloe",
+          "uv": [
+            2.5,
+            13.25,
+            5.0,
+            15.25
+          ]
+        },
+        "down": {
+          "texture": "#aloe",
+          "uv": [
+            2.5,
+            0.75,
+            5.0,
+            2.75
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        11.0,
+        0.0,
+        9.5
+      ],
+      "to": [
+        12.0,
+        2.0,
+        10.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#leaf",
+          "uv": [
+            4.0,
+            14.0,
+            5.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#leaf",
+          "uv": [
+            11.0,
+            14.0,
+            12.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#leaf",
+          "uv": [
+            5.5,
+            14.0,
+            6.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#leaf",
+          "uv": [
+            9.5,
+            14.0,
+            10.5,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#leaf",
+          "uv": [
+            11.0,
+            9.5,
+            12.0,
+            10.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        10.0,
+        2.0,
+        13.0
+      ],
+      "to": [
+        14.0,
+        5.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#green_paint",
+          "uv": [
+            2.0,
+            11.0,
+            6.0,
+            14.0
+          ]
+        },
+        "south": {
+          "texture": "#green_paint",
+          "uv": [
+            10.0,
+            11.0,
+            14.0,
+            14.0
+          ]
+        },
+        "east": {
+          "texture": "#green_paint",
+          "uv": [
+            1.0,
+            11.0,
+            3.0,
+            14.0
+          ]
+        },
+        "west": {
+          "texture": "#green_paint",
+          "uv": [
+            13.0,
+            11.0,
+            15.0,
+            14.0
+          ]
+        },
+        "up": {
+          "texture": "#green_paint",
+          "uv": [
+            10.0,
+            13.0,
+            14.0,
+            15.0
+          ]
+        },
+        "down": {
+          "texture": "#green_paint",
+          "uv": [
+            10.0,
+            1.0,
+            14.0,
+            3.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        8.0,
+        3.5,
+        13.5
+      ],
+      "to": [
+        10.0,
+        4.5,
+        14.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#green_paint",
+          "uv": [
+            6.0,
+            11.5,
+            8.0,
+            12.5
+          ]
+        },
+        "south": {
+          "texture": "#green_paint",
+          "uv": [
+            8.0,
+            11.5,
+            10.0,
+            12.5
+          ]
+        },
+        "east": {
+          "texture": "#green_paint",
+          "uv": [
+            1.5,
+            11.5,
+            2.5,
+            12.5
+          ]
+        },
+        "west": {
+          "texture": "#green_paint",
+          "uv": [
+            13.5,
+            11.5,
+            14.5,
+            12.5
+          ]
+        },
+        "up": {
+          "texture": "#green_paint",
+          "uv": [
+            8.0,
+            13.5,
+            10.0,
+            14.5
+          ]
+        },
+        "down": {
+          "texture": "#green_paint",
+          "uv": [
+            8.0,
+            1.5,
+            10.0,
+            2.5
+          ]
+        }
+      }
+    }
+  ]
+}

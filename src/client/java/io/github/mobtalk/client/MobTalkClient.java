@@ -141,6 +141,8 @@ public final class MobTalkClient implements ClientModInitializer {
     @Override public void onInitializeClient() {
         active = this;
         ClientNet.register(this);
+        net.minecraft.client.render.block.entity.BlockEntityRendererFactories.register(io.github.mobtalk.game.ShopContent.DISPLAY_ENTITY, io.github.mobtalk.client.game.ShopDisplayRenderer::new);
+        io.github.mobtalk.client.game.ShopCartRenderer.register();
         talkKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.talk", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_V, "category.mobtalk"));
         settingsKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.settings", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_F7, "category.mobtalk"));
         tradeKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.trade", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_B, "category.mobtalk"));
@@ -170,6 +172,10 @@ public final class MobTalkClient implements ClientModInitializer {
             net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.INSTANCE.putBlock(block, net.minecraft.client.render.RenderLayer.getCutout());
         net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.INSTANCE.putBlock(io.github.mobtalk.game.CasinoContent.FOUNTAIN, net.minecraft.client.render.RenderLayer.getTranslucent());
         net.minecraft.client.render.block.entity.BlockEntityRendererFactories.register(io.github.mobtalk.game.CasinoContent.PALM_ENTITY, context -> new PalmCrownRenderer());
+        io.github.mobtalk.client.game.CityBuildClient.register(); // Города: обои, панели и стёкла домов.
+        io.github.mobtalk.client.game.LiftClient.register(); // Лифты: кабина и двери.
+        io.github.mobtalk.client.game.CarClient.register(); // Машины: модель и посадка пассажиров.
+        FurnitureClient.register(); // Мебель квартир городов.
         net.fabricmc.fabric.api.resource.ResourceManagerHelper.get(net.minecraft.resource.ResourceType.CLIENT_RESOURCES).registerReloadListener(
                 new net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener() {
                     @Override public net.minecraft.util.Identifier getFabricId() { return net.minecraft.util.Identifier.of("mobtalk", "human_textures"); }

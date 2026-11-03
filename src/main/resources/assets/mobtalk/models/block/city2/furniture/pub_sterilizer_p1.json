@@ -1,0 +1,198 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "pub_sterilizer_steril_door_43": "mobtalk:block/city2/furniture/pub_sterilizer_steril_door_43",
+    "med_cream": "mobtalk:block/city2/furniture/med_cream",
+    "chrome": "mobtalk:block/city2/furniture/chrome",
+    "steel": "mobtalk:block/city2/furniture/steel",
+    "particle": "mobtalk:block/city2/furniture/pub_sterilizer_steril_door_43"
+  },
+  "elements": [
+    {
+      "from": [
+        1.5,
+        0.0,
+        5.0
+      ],
+      "to": [
+        11.5,
+        9.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_sterilizer_steril_door_43",
+          "uv": [
+            4.5,
+            7.0,
+            14.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#med_cream",
+          "uv": [
+            1.5,
+            7.0,
+            11.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#med_cream",
+          "uv": [
+            1.0,
+            7.0,
+            11.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#med_cream",
+          "uv": [
+            5.0,
+            7.0,
+            15.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#med_cream",
+          "uv": [
+            1.5,
+            5.0,
+            11.5,
+            15.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        12.5,
+        0.0,
+        7.0
+      ],
+      "to": [
+        15.0,
+        0.5,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chrome",
+          "uv": [
+            1.0,
+            15.5,
+            3.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#chrome",
+          "uv": [
+            12.5,
+            15.5,
+            15.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#chrome",
+          "uv": [
+            3.0,
+            15.5,
+            9.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#chrome",
+          "uv": [
+            7.0,
+            15.5,
+            13.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#chrome",
+          "uv": [
+            12.5,
+            7.0,
+            15.0,
+            13.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        12.75,
+        0.5,
+        7.5
+      ],
+      "to": [
+        14.75,
+        2.0,
+        12.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#steel",
+          "uv": [
+            1.25,
+            14.0,
+            3.25,
+            15.5
+          ]
+        },
+        "south": {
+          "texture": "#steel",
+          "uv": [
+            12.75,
+            14.0,
+            14.75,
+            15.5
+          ]
+        },
+        "east": {
+          "texture": "#steel",
+          "uv": [
+            3.5,
+            14.0,
+            8.5,
+            15.5
+          ]
+        },
+        "west": {
+          "texture": "#steel",
+          "uv": [
+            7.5,
+            14.0,
+            12.5,
+            15.5
+          ]
+        },
+        "up": {
+          "texture": "#steel",
+          "uv": [
+            12.75,
+            7.5,
+            14.75,
+            12.5
+          ]
+        },
+        "down": {
+          "texture": "#steel",
+          "uv": [
+            12.75,
+            3.5,
+            14.75,
+            8.5
+          ]
+        }
+      }
+    }
+  ]
+}

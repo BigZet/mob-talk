@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/city2/furniture/pub_serving_pans"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/city2/furniture/pub_serving_pans",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/city2/furniture/pub_serving_pans",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/city2/furniture/pub_serving_pans",
+      "y": 270
+    }
+  }
+}

@@ -1,7 +1,12 @@
 {
   "mob_speech": {
     "subtitle": "subtitle.mobtalk.mob_speech",
-    "sounds": [ { "name": "fabric-sound-api-v1:empty", "stream": true } ]
+    "sounds": [
+      {
+        "name": "fabric-sound-api-v1:empty",
+        "stream": true
+      }
+    ]
   },
   "bandit_whistle": {
     "subtitle": "subtitle.mobtalk.bandit_whistle",
@@ -19,5 +24,145 @@
   "cards.deal": { "sounds": [ "mobtalk:cards/deal" ] },
   "cards.flip": { "sounds": [ "mobtalk:cards/flip" ] },
   "cards.chips": { "sounds": [ "mobtalk:cards/chips" ] },
-  "cards.shuffle": { "sounds": [ "mobtalk:cards/shuffle" ] }
+  "cards.shuffle": { "sounds": [ "mobtalk:cards/shuffle" ] },
+  "lift_motor": {
+    "subtitle": "subtitles.mobtalk.lift_motor",
+    "sounds": [
+      {
+        "name": "mobtalk:lift/motor"
+      }
+    ]
+  },
+  "lift_start": {
+    "subtitle": "subtitles.mobtalk.lift_start",
+    "sounds": [
+      {
+        "name": "mobtalk:lift/start"
+      }
+    ]
+  },
+  "lift_stop": {
+    "subtitle": "subtitles.mobtalk.lift_stop",
+    "sounds": [
+      {
+        "name": "mobtalk:lift/stop"
+      }
+    ]
+  },
+  "lift_door_open": {
+    "subtitle": "subtitles.mobtalk.lift_door_open",
+    "sounds": [
+      {
+        "name": "mobtalk:lift/door_open"
+      }
+    ]
+  },
+  "lift_door_close": {
+    "subtitle": "subtitles.mobtalk.lift_door_close",
+    "sounds": [
+      {
+        "name": "mobtalk:lift/door_close"
+      }
+    ]
+  },
+  "lift_button": {
+    "subtitle": "subtitles.mobtalk.lift_button",
+    "sounds": [
+      {
+        "name": "mobtalk:lift/button"
+      }
+    ]
+  },
+  "lift_relay": {
+    "subtitle": "subtitles.mobtalk.lift_relay",
+    "sounds": [
+      {
+        "name": "mobtalk:lift/relay"
+      }
+    ]
+  },
+  "lift_bell": {
+    "subtitle": "subtitles.mobtalk.lift_bell",
+    "sounds": [
+      {
+        "name": "mobtalk:lift/bell"
+      }
+    ]
+  },
+  "shop.beep": {
+    "subtitle": "subtitle.mobtalk.shop.beep",
+    "sounds": [
+      "mobtalk:shop/beep1",
+      "mobtalk:shop/beep2",
+      "mobtalk:shop/beep3"
+    ]
+  },
+  "shop.drawer": {
+    "subtitle": "subtitle.mobtalk.shop.drawer",
+    "sounds": [
+      "mobtalk:shop/drawer"
+    ]
+  },
+  "shop.alarm": {
+    "subtitle": "subtitle.mobtalk.shop.alarm",
+    "sounds": [
+      "mobtalk:shop/alarm"
+    ]
+  },
+  "shop.chime": {
+    "subtitle": "subtitle.mobtalk.shop.chime",
+    "sounds": [
+      "mobtalk:shop/chime"
+    ]
+  },
+  "shop.hum": {
+    "subtitle": "subtitle.mobtalk.shop.hum",
+    "sounds": [
+      "mobtalk:shop/hum"
+    ]
+  },
+  "shop.cart": {
+    "subtitle": "subtitle.mobtalk.shop.cart",
+    "sounds": [
+      "mobtalk:shop/cart1",
+      "mobtalk:shop/cart2",
+      "mobtalk:shop/cart3"
+    ]
+  },
+  "shop.music": {
+    "subtitle": "subtitle.mobtalk.shop.music",
+    "sounds": [
+      {
+        "name": "mobtalk:shop/music",
+        "stream": true
+      }
+    ]
+  },
+  "market.crowd": {
+    "subtitle": "subtitle.mobtalk.market.crowd",
+    "sounds": [
+      "mobtalk:market/crowd1",
+      "mobtalk:market/crowd2"
+    ]
+  },
+  "market.scales": {
+    "subtitle": "subtitle.mobtalk.market.scales",
+    "sounds": [
+      "mobtalk:market/scales1",
+      "mobtalk:market/scales2"
+    ]
+  },
+  "market.chop": {
+    "subtitle": "subtitle.mobtalk.market.chop",
+    "sounds": [
+      "mobtalk:market/chop1",
+      "mobtalk:market/chop2"
+    ]
+  },
+  "market.sizzle": {
+    "subtitle": "subtitle.mobtalk.market.sizzle",
+    "sounds": [
+      "mobtalk:market/sizzle"
+    ]
+  }
 }

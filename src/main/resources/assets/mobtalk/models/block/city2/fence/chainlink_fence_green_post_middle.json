@@ -1,0 +1,69 @@
+{
+ "textures": {
+  "pipe": "mobtalk:block/city2/fence/chainlink_green_pipe",
+  "mesh": "mobtalk:block/city2/fence/chainlink_green_mesh_middle",
+  "particle": "mobtalk:block/city2/fence/chainlink_green_pipe"
+ },
+ "elements": [
+  {
+   "from": [
+    7,
+    0,
+    7
+   ],
+   "to": [
+    9,
+    16,
+    9
+   ],
+   "faces": {
+    "north": {
+     "uv": [
+      0,
+      0,
+      2,
+      16
+     ],
+     "texture": "#pipe"
+    },
+    "south": {
+     "uv": [
+      0,
+      0,
+      2,
+      16
+     ],
+     "texture": "#pipe"
+    },
+    "east": {
+     "uv": [
+      0,
+      0,
+      2,
+      16
+     ],
+     "texture": "#pipe"
+    },
+    "west": {
+     "uv": [
+      0,
+      0,
+      2,
+      16
+     ],
+     "texture": "#pipe"
+    },
+    "up": {
+     "uv": [
+      0,
+      0,
+      2,
+      2
+     ],
+     "texture": "#pipe"
+    }
+   }
+  }
+ ],
+ "ambientocclusion": false
+}

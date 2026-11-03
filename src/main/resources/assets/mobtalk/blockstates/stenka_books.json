@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/city/stenka_books"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/city/stenka_books",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/city/stenka_books",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/city/stenka_books",
+      "y": 270
+    }
+  }
+}

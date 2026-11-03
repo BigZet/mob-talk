@@ -1,0 +1,386 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "gym_wood_h": "mobtalk:block/city2/furniture/gym_wood_h",
+    "gym_wood": "mobtalk:block/city2/furniture/gym_wood",
+    "particle": "mobtalk:block/city2/furniture/gym_wood_h"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        3.0,
+        6.5
+      ],
+      "to": [
+        16.0,
+        3.75,
+        9.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            0.0,
+            8.5,
+            32.0,
+            10.0
+          ]
+        },
+        "south": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            0.0,
+            8.5,
+            32.0,
+            10.0
+          ]
+        },
+        "east": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            5.0,
+            8.5,
+            11.0,
+            10.0
+          ]
+        },
+        "west": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            5.0,
+            8.5,
+            11.0,
+            10.0
+          ]
+        },
+        "up": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            0.0,
+            5.0,
+            32.0,
+            11.0
+          ]
+        },
+        "down": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            0.0,
+            5.0,
+            32.0,
+            11.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.5,
+        0.0,
+        6.75
+      ],
+      "to": [
+        2.5,
+        3.0,
+        9.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#gym_wood",
+          "uv": [
+            11.0,
+            10.0,
+            13.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#gym_wood",
+          "uv": [
+            3.0,
+            10.0,
+            5.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#gym_wood",
+          "uv": [
+            5.5,
+            10.0,
+            10.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#gym_wood",
+          "uv": [
+            5.5,
+            10.0,
+            10.5,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#gym_wood",
+          "uv": [
+            3.0,
+            5.5,
+            5.0,
+            10.5
+          ]
+        },
+        "down": {
+          "texture": "#gym_wood",
+          "uv": [
+            3.0,
+            5.5,
+            5.0,
+            10.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        13.5,
+        0.0,
+        6.75
+      ],
+      "to": [
+        14.5,
+        3.0,
+        9.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#gym_wood",
+          "uv": [
+            3.0,
+            10.0,
+            5.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#gym_wood",
+          "uv": [
+            11.0,
+            10.0,
+            13.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#gym_wood",
+          "uv": [
+            5.5,
+            10.0,
+            10.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#gym_wood",
+          "uv": [
+            5.5,
+            10.0,
+            10.5,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#gym_wood",
+          "uv": [
+            11.0,
+            5.5,
+            13.0,
+            10.5
+          ]
+        },
+        "down": {
+          "texture": "#gym_wood",
+          "uv": [
+            11.0,
+            5.5,
+            13.0,
+            10.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.75,
+        1.0,
+        7.75
+      ],
+      "to": [
+        14.25,
+        1.5,
+        8.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            3.5,
+            13.0,
+            28.5,
+            14.0
+          ]
+        },
+        "south": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            3.5,
+            13.0,
+            28.5,
+            14.0
+          ]
+        },
+        "east": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            7.5,
+            13.0,
+            8.5,
+            14.0
+          ]
+        },
+        "west": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            7.5,
+            13.0,
+            8.5,
+            14.0
+          ]
+        },
+        "up": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            3.5,
+            7.5,
+            28.5,
+            8.5
+          ]
+        },
+        "down": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            3.5,
+            7.5,
+            28.5,
+            8.5
+          ]
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.625,
+        0.625,
+        0.625
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        2.5,
+        0
+      ],
+      "scale": [
+        0.375,
+        0.375,
+        0.375
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    }
+  }
+}

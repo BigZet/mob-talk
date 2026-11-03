@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/city2/furniture/pub_physio_unit"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/city2/furniture/pub_physio_unit",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/city2/furniture/pub_physio_unit",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/city2/furniture/pub_physio_unit",
+      "y": 270
+    }
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "brass": "mobtalk:block/city2/furniture/brass",
+    "particle": "mobtalk:block/city2/furniture/brass"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        13.75,
+        9.5
+      ],
+      "to": [
+        1.5,
+        15.75,
+        11.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#brass",
+          "uv": [
+            14.5,
+            0.25,
+            16.0,
+            2.25
+          ]
+        },
+        "south": {
+          "texture": "#brass",
+          "uv": [
+            0.0,
+            0.25,
+            1.5,
+            2.25
+          ]
+        },
+        "east": {
+          "texture": "#brass",
+          "uv": [
+            4.5,
+            0.25,
+            6.5,
+            2.25
+          ]
+        },
+        "west": {
+          "texture": "#brass",
+          "uv": [
+            9.5,
+            0.25,
+            11.5,
+            2.25
+          ]
+        },
+        "up": {
+          "texture": "#brass",
+          "uv": [
+            0.0,
+            9.5,
+            1.5,
+            11.5
+          ]
+        },
+        "down": {
+          "texture": "#brass",
+          "uv": [
+            0.0,
+            4.5,
+            1.5,
+            6.5
+          ]
+        }
+      }
+    }
+  ]
+}

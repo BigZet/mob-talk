@@ -1,0 +1,456 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "plastic_grey": "mobtalk:block/city2/furniture/plastic_grey",
+    "plastic_blue": "mobtalk:block/city2/furniture/plastic_blue",
+    "pub_shoe_cover_machine_bahil_front_43": "mobtalk:block/city2/furniture/pub_shoe_cover_machine_bahil_front_43",
+    "chrome": "mobtalk:block/city2/furniture/chrome",
+    "particle": "mobtalk:block/city2/furniture/plastic_grey"
+  },
+  "elements": [
+    {
+      "from": [
+        3.3333,
+        0.0,
+        5.0
+      ],
+      "to": [
+        10.0,
+        0.6667,
+        11.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plastic_grey",
+          "uv": [
+            5.0,
+            15.0,
+            15.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#plastic_grey",
+          "uv": [
+            1.0,
+            15.0,
+            11.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#plastic_grey",
+          "uv": [
+            2.0,
+            15.0,
+            11.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#plastic_grey",
+          "uv": [
+            5.0,
+            15.0,
+            14.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#plastic_grey",
+          "uv": [
+            1.0,
+            5.0,
+            11.0,
+            14.0
+          ]
+        },
+        "down": {
+          "texture": "#plastic_grey",
+          "uv": [
+            1.0,
+            2.0,
+            11.0,
+            11.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.0,
+        0.6667,
+        5.3333
+      ],
+      "to": [
+        9.3333,
+        2.6667,
+        10.6667
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plastic_blue",
+          "uv": [
+            6.0,
+            12.0,
+            14.0,
+            15.0
+          ]
+        },
+        "south": {
+          "texture": "#plastic_blue",
+          "uv": [
+            2.0,
+            12.0,
+            10.0,
+            15.0
+          ]
+        },
+        "east": {
+          "texture": "#plastic_blue",
+          "uv": [
+            2.5,
+            12.0,
+            10.5,
+            15.0
+          ]
+        },
+        "west": {
+          "texture": "#plastic_blue",
+          "uv": [
+            5.5,
+            12.0,
+            13.5,
+            15.0
+          ]
+        },
+        "up": {
+          "texture": "#plastic_blue",
+          "uv": [
+            2.0,
+            5.5,
+            10.0,
+            13.5
+          ]
+        },
+        "down": {
+          "texture": "#plastic_blue",
+          "uv": [
+            2.0,
+            2.5,
+            10.0,
+            10.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.6667,
+        2.6667,
+        7.6667
+      ],
+      "to": [
+        8.6667,
+        8.0,
+        10.3333
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plastic_grey",
+          "uv": [
+            7.0,
+            4.0,
+            13.0,
+            12.0
+          ]
+        },
+        "south": {
+          "texture": "#plastic_grey",
+          "uv": [
+            3.0,
+            4.0,
+            9.0,
+            12.0
+          ]
+        },
+        "east": {
+          "texture": "#plastic_grey",
+          "uv": [
+            3.0,
+            4.0,
+            7.0,
+            12.0
+          ]
+        },
+        "west": {
+          "texture": "#plastic_grey",
+          "uv": [
+            9.0,
+            4.0,
+            13.0,
+            12.0
+          ]
+        },
+        "up": {
+          "texture": "#plastic_grey",
+          "uv": [
+            3.0,
+            9.0,
+            9.0,
+            13.0
+          ]
+        },
+        "down": {
+          "texture": "#plastic_grey",
+          "uv": [
+            3.0,
+            3.0,
+            9.0,
+            7.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.0,
+        8.0,
+        5.6667
+      ],
+      "to": [
+        13.0,
+        16.0,
+        11.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_shoe_cover_machine_bahil_front_43",
+          "uv": [
+            0.5,
+            8.0,
+            15.5,
+            20.0
+          ]
+        },
+        "south": {
+          "texture": "#plastic_blue",
+          "uv": [
+            0.5,
+            8.0,
+            15.5,
+            20.0
+          ]
+        },
+        "east": {
+          "texture": "#plastic_blue",
+          "uv": [
+            2.0,
+            8.0,
+            10.0,
+            20.0
+          ]
+        },
+        "west": {
+          "texture": "#plastic_blue",
+          "uv": [
+            6.0,
+            8.0,
+            14.0,
+            20.0
+          ]
+        },
+        "up": {
+          "texture": "#plastic_blue",
+          "uv": [
+            0.5,
+            6.0,
+            15.5,
+            14.0
+          ]
+        },
+        "down": {
+          "texture": "#plastic_blue",
+          "uv": [
+            0.5,
+            2.0,
+            15.5,
+            10.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        10.3333,
+        13.3333,
+        5.3333
+      ],
+      "to": [
+        11.3333,
+        14.0,
+        5.6667
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chrome",
+          "uv": [
+            3.0,
+            11.0,
+            4.5,
+            12.0
+          ]
+        },
+        "south": {
+          "texture": "#chrome",
+          "uv": [
+            11.5,
+            11.0,
+            13.0,
+            12.0
+          ]
+        },
+        "east": {
+          "texture": "#chrome",
+          "uv": [
+            10.0,
+            11.0,
+            10.5,
+            12.0
+          ]
+        },
+        "west": {
+          "texture": "#chrome",
+          "uv": [
+            5.5,
+            11.0,
+            6.0,
+            12.0
+          ]
+        },
+        "up": {
+          "texture": "#chrome",
+          "uv": [
+            11.5,
+            5.5,
+            13.0,
+            6.0
+          ]
+        },
+        "down": {
+          "texture": "#chrome",
+          "uv": [
+            11.5,
+            10.0,
+            13.0,
+            10.5
+          ]
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.625,
+        0.625,
+        0.625
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        2.5,
+        0
+      ],
+      "scale": [
+        0.375,
+        0.375,
+        0.375
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    }
+  }
+}

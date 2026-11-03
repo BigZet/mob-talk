@@ -1,0 +1,392 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "chrome": "mobtalk:block/city2/furniture/chrome",
+    "birch_ply_h": "mobtalk:block/city2/furniture/birch_ply_h",
+    "cup_enamel": "mobtalk:block/city2/furniture/cup_enamel",
+    "particle": "mobtalk:block/city2/furniture/chrome"
+  },
+  "elements": [
+    {
+      "from": [
+        7.0,
+        0.0,
+        14.5
+      ],
+      "to": [
+        8.0,
+        2.0,
+        15.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chrome",
+          "uv": [
+            8.0,
+            14.0,
+            9.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#chrome",
+          "uv": [
+            7.0,
+            14.0,
+            8.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#chrome",
+          "uv": [
+            0.5,
+            14.0,
+            1.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#chrome",
+          "uv": [
+            14.5,
+            14.0,
+            15.5,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#chrome",
+          "uv": [
+            7.0,
+            14.5,
+            8.0,
+            15.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        7.0,
+        1.0,
+        11.5
+      ],
+      "to": [
+        8.0,
+        2.0,
+        14.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chrome",
+          "uv": [
+            8.0,
+            14.0,
+            9.0,
+            15.0
+          ]
+        },
+        "south": {
+          "texture": "#chrome",
+          "uv": [
+            7.0,
+            14.0,
+            8.0,
+            15.0
+          ]
+        },
+        "east": {
+          "texture": "#chrome",
+          "uv": [
+            1.5,
+            14.0,
+            4.5,
+            15.0
+          ]
+        },
+        "west": {
+          "texture": "#chrome",
+          "uv": [
+            11.5,
+            14.0,
+            14.5,
+            15.0
+          ]
+        },
+        "up": {
+          "texture": "#chrome",
+          "uv": [
+            7.0,
+            11.5,
+            8.0,
+            14.5
+          ]
+        },
+        "down": {
+          "texture": "#chrome",
+          "uv": [
+            7.0,
+            1.5,
+            8.0,
+            4.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        8.0,
+        12.0
+      ],
+      "to": [
+        15.5,
+        9.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.5,
+            7.0,
+            16.0,
+            8.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.0,
+            7.0,
+            15.5,
+            8.0
+          ]
+        },
+        "east": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.0,
+            7.0,
+            4.0,
+            8.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.0,
+            12.0,
+            15.5,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.0,
+            0.0,
+            15.5,
+            4.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        9.0,
+        13.0
+      ],
+      "to": [
+        1.0,
+        11.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#cup_enamel",
+          "uv": [
+            15.0,
+            5.0,
+            16.0,
+            7.0
+          ]
+        },
+        "south": {
+          "texture": "#cup_enamel",
+          "uv": [
+            0.0,
+            5.0,
+            1.0,
+            7.0
+          ]
+        },
+        "east": {
+          "texture": "#cup_enamel",
+          "uv": [
+            1.0,
+            5.0,
+            3.0,
+            7.0
+          ]
+        },
+        "up": {
+          "texture": "#cup_enamel",
+          "uv": [
+            0.0,
+            13.0,
+            1.0,
+            15.0
+          ]
+        },
+        "down": {
+          "texture": "#cup_enamel",
+          "uv": [
+            0.0,
+            1.0,
+            1.0,
+            3.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        5.0,
+        9.0,
+        13.0
+      ],
+      "to": [
+        7.0,
+        11.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#cup_enamel",
+          "uv": [
+            9.0,
+            5.0,
+            11.0,
+            7.0
+          ]
+        },
+        "south": {
+          "texture": "#cup_enamel",
+          "uv": [
+            5.0,
+            5.0,
+            7.0,
+            7.0
+          ]
+        },
+        "east": {
+          "texture": "#cup_enamel",
+          "uv": [
+            1.0,
+            5.0,
+            3.0,
+            7.0
+          ]
+        },
+        "west": {
+          "texture": "#cup_enamel",
+          "uv": [
+            13.0,
+            5.0,
+            15.0,
+            7.0
+          ]
+        },
+        "up": {
+          "texture": "#cup_enamel",
+          "uv": [
+            5.0,
+            13.0,
+            7.0,
+            15.0
+          ]
+        },
+        "down": {
+          "texture": "#cup_enamel",
+          "uv": [
+            5.0,
+            1.0,
+            7.0,
+            3.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        11.0,
+        9.0,
+        13.0
+      ],
+      "to": [
+        13.0,
+        11.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#cup_enamel",
+          "uv": [
+            3.0,
+            5.0,
+            5.0,
+            7.0
+          ]
+        },
+        "south": {
+          "texture": "#cup_enamel",
+          "uv": [
+            11.0,
+            5.0,
+            13.0,
+            7.0
+          ]
+        },
+        "east": {
+          "texture": "#cup_enamel",
+          "uv": [
+            1.0,
+            5.0,
+            3.0,
+            7.0
+          ]
+        },
+        "west": {
+          "texture": "#cup_enamel",
+          "uv": [
+            13.0,
+            5.0,
+            15.0,
+            7.0
+          ]
+        },
+        "up": {
+          "texture": "#cup_enamel",
+          "uv": [
+            11.0,
+            13.0,
+            13.0,
+            15.0
+          ]
+        },
+        "down": {
+          "texture": "#cup_enamel",
+          "uv": [
+            11.0,
+            1.0,
+            13.0,
+            3.0
+          ]
+        }
+      }
+    }
+  ]
+}

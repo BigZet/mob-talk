@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/city2/furniture/apt_kitchen_table__green_birch"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/city2/furniture/apt_kitchen_table__green_birch",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/city2/furniture/apt_kitchen_table__green_birch",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/city2/furniture/apt_kitchen_table__green_birch",
+      "y": 270
+    }
+  }
+}

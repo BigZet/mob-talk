@@ -1,0 +1,474 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_sofa_red_side_front_44": "mobtalk:block/city2/furniture/apt_sofa_red_side_front_44",
+    "walnut_v": "mobtalk:block/city2/furniture/walnut_v",
+    "apt_sofa_red_side_front_34": "mobtalk:block/city2/furniture/apt_sofa_red_side_front_34",
+    "black": "mobtalk:block/city2/furniture/black",
+    "apt_sofa_red_seat_front_44": "mobtalk:block/city2/furniture/apt_sofa_red_seat_front_44",
+    "fabric_red": "mobtalk:block/city2/furniture/fabric_red",
+    "apt_sofa_red_seat_top_54": "mobtalk:block/city2/furniture/apt_sofa_red_seat_top_54",
+    "apt_sofa_red_back_44": "mobtalk:block/city2/furniture/apt_sofa_red_back_44",
+    "particle": "mobtalk:block/city2/furniture/apt_sofa_red_side_front_44"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.0,
+        4.75
+      ],
+      "to": [
+        0.75,
+        5.5,
+        11.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_sofa_red_side_front_44",
+          "uv": [
+            14.5,
+            5.0,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#walnut_v",
+          "uv": [
+            0.0,
+            5.0,
+            1.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#walnut_v",
+          "uv": [
+            0.5,
+            5.0,
+            14.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#walnut_v",
+          "uv": [
+            2.0,
+            5.0,
+            15.5,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#walnut_v",
+          "uv": [
+            0.0,
+            2.0,
+            1.5,
+            15.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        15.25,
+        0.0,
+        4.75
+      ],
+      "to": [
+        16.0,
+        5.5,
+        11.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_sofa_red_side_front_34",
+          "uv": [
+            0.0,
+            5.0,
+            1.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#walnut_v",
+          "uv": [
+            14.5,
+            5.0,
+            16.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#walnut_v",
+          "uv": [
+            0.5,
+            5.0,
+            14.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#walnut_v",
+          "uv": [
+            2.0,
+            5.0,
+            15.5,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#walnut_v",
+          "uv": [
+            14.5,
+            2.0,
+            16.0,
+            15.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.75,
+        0.0,
+        5.75
+      ],
+      "to": [
+        15.25,
+        1.0,
+        10.75
+      ],
+      "faces": {
+        "north": {
+          "texture": "#black",
+          "uv": [
+            1.5,
+            14.0,
+            30.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#black",
+          "uv": [
+            1.5,
+            14.0,
+            30.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#black",
+          "uv": [
+            2.0,
+            14.0,
+            12.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#black",
+          "uv": [
+            4.0,
+            14.0,
+            14.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#black",
+          "uv": [
+            1.5,
+            4.0,
+            30.5,
+            14.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.75,
+        1.0,
+        4.5
+      ],
+      "to": [
+        15.25,
+        3.5,
+        10.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_sofa_red_seat_front_44",
+          "uv": [
+            -14.5,
+            9.0,
+            14.5,
+            14.0
+          ]
+        },
+        "south": {
+          "texture": "#fabric_red",
+          "uv": [
+            1.5,
+            9.0,
+            30.5,
+            14.0
+          ]
+        },
+        "east": {
+          "texture": "#fabric_red",
+          "uv": [
+            3.0,
+            9.0,
+            14.5,
+            14.0
+          ]
+        },
+        "west": {
+          "texture": "#fabric_red",
+          "uv": [
+            1.5,
+            9.0,
+            13.0,
+            14.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_sofa_red_seat_top_54",
+          "uv": [
+            -14.5,
+            1.5,
+            14.5,
+            13.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.75,
+        1.0,
+        10.25
+      ],
+      "to": [
+        15.25,
+        7.5,
+        11.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_sofa_red_back_44",
+          "uv": [
+            -14.5,
+            1.0,
+            14.5,
+            14.0
+          ]
+        },
+        "south": {
+          "texture": "#fabric_red",
+          "uv": [
+            1.5,
+            1.0,
+            30.5,
+            14.0
+          ]
+        },
+        "east": {
+          "texture": "#fabric_red",
+          "uv": [
+            0.5,
+            1.0,
+            3.0,
+            14.0
+          ]
+        },
+        "west": {
+          "texture": "#fabric_red",
+          "uv": [
+            13.0,
+            1.0,
+            15.5,
+            14.0
+          ]
+        },
+        "up": {
+          "texture": "#fabric_red",
+          "uv": [
+            1.5,
+            13.0,
+            30.5,
+            15.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.75,
+        7.5,
+        10.5
+      ],
+      "to": [
+        15.25,
+        8.0,
+        11.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#fabric_red",
+          "uv": [
+            1.5,
+            0.0,
+            30.5,
+            1.0
+          ]
+        },
+        "south": {
+          "texture": "#fabric_red",
+          "uv": [
+            1.5,
+            0.0,
+            30.5,
+            1.0
+          ]
+        },
+        "east": {
+          "texture": "#fabric_red",
+          "uv": [
+            0.5,
+            0.0,
+            2.5,
+            1.0
+          ]
+        },
+        "west": {
+          "texture": "#fabric_red",
+          "uv": [
+            13.5,
+            0.0,
+            15.5,
+            1.0
+          ]
+        },
+        "up": {
+          "texture": "#fabric_red",
+          "uv": [
+            1.5,
+            13.5,
+            30.5,
+            15.5
+          ]
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.625,
+        0.625,
+        0.625
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        2.5,
+        0
+      ],
+      "scale": [
+        0.375,
+        0.375,
+        0.375
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    }
+  }
+}

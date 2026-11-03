@@ -1,0 +1,34 @@
+{
+  "variants": {
+    "facing=north,part=1": {
+      "model": "mobtalk:block/city2/furniture/apt_rocking_horse_p1"
+    },
+    "facing=north,part=2": {
+      "model": "mobtalk:block/city2/furniture/apt_rocking_horse_p1"
+    },
+    "facing=east,part=1": {
+      "model": "mobtalk:block/city2/furniture/apt_rocking_horse_p1",
+      "y": 90
+    },
+    "facing=east,part=2": {
+      "model": "mobtalk:block/city2/furniture/apt_rocking_horse_p1",
+      "y": 90
+    },
+    "facing=south,part=1": {
+      "model": "mobtalk:block/city2/furniture/apt_rocking_horse_p1",
+      "y": 180
+    },
+    "facing=south,part=2": {
+      "model": "mobtalk:block/city2/furniture/apt_rocking_horse_p1",
+      "y": 180
+    },
+    "facing=west,part=1": {
+      "model": "mobtalk:block/city2/furniture/apt_rocking_horse_p1",
+      "y": 270
+    },
+    "facing=west,part=2": {
+      "model": "mobtalk:block/city2/furniture/apt_rocking_horse_p1",
+      "y": 270
+    }
+  }
+}

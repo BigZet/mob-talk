@@ -1,0 +1,119 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "med_grey": "mobtalk:block/city2/furniture/med_grey",
+    "lead_grey": "mobtalk:block/city2/furniture/lead_grey",
+    "particle": "mobtalk:block/city2/furniture/med_grey"
+  },
+  "elements": [
+    {
+      "from": [
+        14.0,
+        2.0,
+        12.0
+      ],
+      "to": [
+        16.0,
+        5.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#med_grey",
+          "uv": [
+            0.0,
+            11.0,
+            2.0,
+            14.0
+          ]
+        },
+        "south": {
+          "texture": "#med_grey",
+          "uv": [
+            14.0,
+            11.0,
+            16.0,
+            14.0
+          ]
+        },
+        "west": {
+          "texture": "#med_grey",
+          "uv": [
+            12.0,
+            11.0,
+            15.0,
+            14.0
+          ]
+        },
+        "up": {
+          "texture": "#med_grey",
+          "uv": [
+            14.0,
+            12.0,
+            16.0,
+            15.0
+          ]
+        },
+        "down": {
+          "texture": "#med_grey",
+          "uv": [
+            14.0,
+            1.0,
+            16.0,
+            4.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        13.0,
+        0.0,
+        6.0
+      ],
+      "to": [
+        16.0,
+        2.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#lead_grey",
+          "uv": [
+            0.0,
+            14.0,
+            3.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#lead_grey",
+          "uv": [
+            13.0,
+            14.0,
+            16.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#lead_grey",
+          "uv": [
+            6.0,
+            14.0,
+            15.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#lead_grey",
+          "uv": [
+            13.0,
+            6.0,
+            16.0,
+            15.0
+          ]
+        }
+      }
+    }
+  ]
+}

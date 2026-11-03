@@ -1,0 +1,93 @@
+{
+ "textures": {
+  "pipe": "mobtalk:block/city2/fence/chainlink_galv_pipe",
+  "mesh": "mobtalk:block/city2/fence/chainlink_galv_mesh_bottom",
+  "particle": "mobtalk:block/city2/fence/chainlink_galv_pipe"
+ },
+ "elements": [
+  {
+   "from": [
+    8,
+    1,
+    0
+   ],
+   "to": [
+    8,
+    16,
+    8
+   ],
+   "shade": true,
+   "faces": {
+    "east": {
+     "uv": [
+      0,
+      0,
+      8,
+      15
+     ],
+     "texture": "#mesh"
+    },
+    "west": {
+     "uv": [
+      8,
+      0,
+      0,
+      15
+     ],
+     "texture": "#mesh"
+    }
+   }
+  },
+  {
+   "from": [
+    7.75,
+    0.75,
+    0
+   ],
+   "to": [
+    8.25,
+    1.25,
+    8
+   ],
+   "faces": {
+    "east": {
+     "uv": [
+      0,
+      0,
+      8,
+      0.5
+     ],
+     "texture": "#pipe"
+    },
+    "west": {
+     "uv": [
+      0,
+      0,
+      8,
+      0.5
+     ],
+     "texture": "#pipe"
+    },
+    "up": {
+     "uv": [
+      0,
+      0,
+      0.5,
+      8
+     ],
+     "texture": "#pipe"
+    },
+    "down": {
+     "uv": [
+      0,
+      0,
+      0.5,
+      8
+     ],
+     "texture": "#pipe"
+    }
+   }
+  }
+ ],
+ "ambientocclusion": false
+}

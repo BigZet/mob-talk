@@ -228,6 +228,23 @@ public final class Tunables {
         integer("golemHealthPercent", s, "defense", 100, 400, 10, c -> c.golemHealthPercent, (c, x) -> c.golemHealthPercent = x);
         integer("golemRegenPerMinute", s, "defense", 0, 120, 1, c -> c.golemRegenPerMinute, (c, x) -> c.golemRegenPerMinute = x);
         integer("golemRepairHealth", s, "defense", 0, 100, 1, c -> c.golemRepairHealth, (c, x) -> c.golemRepairHealth = x);
+        // Cities with panel blocks.
+        integer("cityPerVillages", s, "cities", 0, 20, 1, c -> c.cityPerVillages, (c, x) -> c.cityPerVillages = x);
+        integer("citySpacing", s, "cities", 2048, 16384, 256, c -> c.citySpacing, (c, x) -> c.citySpacing = x);
+        integer("cityChance", s, "cities", 0, 100, 5, c -> c.cityChance, (c, x) -> c.cityChance = x);
+        integer("cityRadius", s, "cities", 200, 500, 10, c -> c.cityRadius, (c, x) -> c.cityRadius = x);
+        integer("cityBiomeRadius", s, "cities", 300, 1000, 10, c -> c.cityBiomeRadius, (c, x) -> c.cityBiomeRadius = x);
+        integer("liftSpeedTenths", s, "cities", 5, 40, 1, c -> c.liftSpeedTenths, (c, x) -> c.liftSpeedTenths = x);
+        integer("liftDoorSeconds", s, "cities", 2, 20, 1, c -> c.liftDoorSeconds, (c, x) -> c.liftDoorSeconds = x);
+        integer("liftVillagerChance", s, "cities", 0, 100, 5, c -> c.liftVillagerChance, (c, x) -> c.liftVillagerChance = x);
+        integer("cityCarsPercent", s, "cities", 0, 100, 5, c -> c.cityCarsPercent, (c, x) -> c.cityCarsPercent = x);
+        // City supermarkets.
+        integer("shopRestockMinutes", s, "shops", 1, 240, 1, c -> c.shopRestockMinutes, (c, x) -> c.shopRestockMinutes = x);
+        integer("shopPricePercent", s, "shops", 10, 500, 10, c -> c.shopPricePercent, (c, x) -> c.shopPricePercent = x);
+        integer("shopTheftSeconds", s, "shops", 2, 60, 1, c -> c.shopTheftSeconds, (c, x) -> c.shopTheftSeconds = x);
+        integer("shopCheckoutGlitchPercent", s, "shops", 0, 100, 5, c -> c.shopCheckoutGlitchPercent, (c, x) -> c.shopCheckoutGlitchPercent = x);
+        integer("shopPromoPercent", s, "shops", 0, 100, 1, c -> c.shopPromoPercent, (c, x) -> c.shopPromoPercent = x);
+        integer("marketHagglePercent", s, "shops", 0, 100, 5, c -> c.marketHagglePercent, (c, x) -> c.marketHagglePercent = x);
         // Watchtowers and their archers.
         integer("towerResidents", s, "towers", 2, 40, 1, c -> c.towerResidents, (c, x) -> c.towerResidents = x);
         integer("towerMax", s, "towers", 0, 8, 1, c -> c.towerMax, (c, x) -> c.towerMax = x);
@@ -373,6 +390,8 @@ public final class Tunables {
                 config.villageParrotJokes = d.villageParrotJokes;
                 config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.alarmSound = d.alarmSound; config.villageNoConversion = d.villageNoConversion; config.villageTowers = d.villageTowers; config.villageGuards = d.villageGuards; config.villageRoads = d.villageRoads; config.roadLamps = d.roadLamps; config.roadBypass = d.roadBypass; config.roadDecor = d.roadDecor; config.villageHeavy = d.villageHeavy; config.villageCavalry = d.villageCavalry; config.officials = d.officials; config.paperwork = d.paperwork; config.paperLunch = d.paperLunch; config.passportForWedding = d.passportForWedding; config.officialDacha = d.officialDacha; config.officialSmite = d.officialSmite; config.officialRevizor = d.officialRevizor; config.officialsShameless = d.officialsShameless; config.officialGossip = d.officialGossip; config.officialPapers = d.officialPapers; config.barsInVillages = d.barsInVillages; config.barEvenings = d.barEvenings; config.barVoiced = d.barVoiced; config.barAliceSpeaker = d.barAliceSpeaker; config.barDrinks = d.barDrinks;
                 config.casino = d.casino; config.casinoBouncers = d.casinoBouncers; config.casinoVisitors = d.casinoVisitors; config.casinoResort = d.casinoResort; config.casinoSparkles = d.casinoSparkles;
+                config.cities = d.cities;
+                config.cityShops = d.cityShops; config.shopStaff = d.shopStaff; config.shopTheftAlarm = d.shopTheftAlarm; config.shopSounds = d.shopSounds; config.cityMarkets = d.cityMarkets; config.marketCalls = d.marketCalls;
                 config.divineTidings = d.divineTidings; config.divinePanic = d.divinePanic; config.divineMayExile = d.divineMayExile; config.divineMourners = d.divineMourners;
                 config.cards = d.cards; config.cardsVariant = d.cardsVariant; config.cardsItemStakes = d.cardsItemStakes; config.cardsCheating = d.cardsCheating;
                 config.tableInvite = d.tableInvite; config.tableLines = d.tableLines; config.tableSpeed = d.tableSpeed; config.tableHint = d.tableHint;

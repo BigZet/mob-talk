@@ -1,0 +1,203 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "kid_locker": "mobtalk:block/city2/furniture/kid_locker",
+    "pub_kid_lockers_kidlock_mushroom_43": "mobtalk:block/city2/furniture/pub_kid_lockers_kidlock_mushroom_43",
+    "pub_kid_lockers_kidlock_cherry_43": "mobtalk:block/city2/furniture/pub_kid_lockers_kidlock_cherry_43",
+    "pub_kid_lockers_kidlock_car_43": "mobtalk:block/city2/furniture/pub_kid_lockers_kidlock_car_43",
+    "particle": "mobtalk:block/city2/furniture/kid_locker"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.0,
+        7.5
+      ],
+      "to": [
+        16.0,
+        12.0,
+        16.0
+      ],
+      "faces": {
+        "south": {
+          "texture": "#kid_locker",
+          "uv": [
+            0.0,
+            4.0,
+            16.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#kid_locker",
+          "uv": [
+            7.5,
+            4.0,
+            16.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#kid_locker",
+          "uv": [
+            0.0,
+            7.5,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.25,
+        0.0,
+        7.0
+      ],
+      "to": [
+        5.0833,
+        11.5,
+        7.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_kid_lockers_kidlock_mushroom_43",
+          "uv": [
+            10.9167,
+            4.5,
+            15.75,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#kid_locker",
+          "uv": [
+            0.25,
+            4.5,
+            5.0833,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#kid_locker",
+          "uv": [
+            8.5,
+            4.5,
+            9.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#kid_locker",
+          "uv": [
+            7.0,
+            4.5,
+            7.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        5.5833,
+        0.0,
+        7.0
+      ],
+      "to": [
+        10.4167,
+        11.5,
+        7.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_kid_lockers_kidlock_cherry_43",
+          "uv": [
+            5.5833,
+            4.5,
+            10.4167,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#kid_locker",
+          "uv": [
+            5.5833,
+            4.5,
+            10.4167,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#kid_locker",
+          "uv": [
+            8.5,
+            4.5,
+            9.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#kid_locker",
+          "uv": [
+            7.0,
+            4.5,
+            7.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        10.9167,
+        0.0,
+        7.0
+      ],
+      "to": [
+        15.75,
+        11.5,
+        7.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_kid_lockers_kidlock_car_43",
+          "uv": [
+            0.25,
+            4.5,
+            5.0833,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#kid_locker",
+          "uv": [
+            10.9167,
+            4.5,
+            15.75,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#kid_locker",
+          "uv": [
+            8.5,
+            4.5,
+            9.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#kid_locker",
+          "uv": [
+            7.0,
+            4.5,
+            7.5,
+            16.0
+          ]
+        }
+      }
+    }
+  ]
+}

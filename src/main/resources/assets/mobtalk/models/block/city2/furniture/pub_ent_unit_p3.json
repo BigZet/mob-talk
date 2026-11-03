@@ -1,0 +1,238 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "plastic_grey": "mobtalk:block/city2/furniture/plastic_grey",
+    "med_grey": "mobtalk:block/city2/furniture/med_grey",
+    "chrome": "mobtalk:block/city2/furniture/chrome",
+    "particle": "mobtalk:block/city2/furniture/plastic_grey"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.0,
+        12.0
+      ],
+      "to": [
+        1.0,
+        5.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plastic_grey",
+          "uv": [
+            15.0,
+            11.0,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#plastic_grey",
+          "uv": [
+            0.0,
+            11.0,
+            1.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#plastic_grey",
+          "uv": [
+            2.0,
+            11.0,
+            4.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#plastic_grey",
+          "uv": [
+            0.0,
+            12.0,
+            1.0,
+            14.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.0,
+        0.0,
+        12.0
+      ],
+      "to": [
+        4.0,
+        5.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plastic_grey",
+          "uv": [
+            12.0,
+            11.0,
+            14.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#plastic_grey",
+          "uv": [
+            2.0,
+            11.0,
+            4.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#plastic_grey",
+          "uv": [
+            2.0,
+            11.0,
+            4.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#plastic_grey",
+          "uv": [
+            12.0,
+            11.0,
+            14.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#plastic_grey",
+          "uv": [
+            2.0,
+            12.0,
+            4.0,
+            14.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.0,
+        0.0,
+        8.0
+      ],
+      "to": [
+        14.0,
+        4.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#med_grey",
+          "uv": [
+            2.0,
+            12.0,
+            10.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#med_grey",
+          "uv": [
+            6.0,
+            12.0,
+            14.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#med_grey",
+          "uv": [
+            2.0,
+            12.0,
+            8.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#med_grey",
+          "uv": [
+            8.0,
+            12.0,
+            14.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#med_grey",
+          "uv": [
+            6.0,
+            8.0,
+            14.0,
+            14.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        12.0,
+        4.0,
+        12.0
+      ],
+      "to": [
+        13.5,
+        16.0,
+        13.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chrome",
+          "uv": [
+            2.5,
+            0.0,
+            4.0,
+            12.0
+          ]
+        },
+        "south": {
+          "texture": "#chrome",
+          "uv": [
+            12.0,
+            0.0,
+            13.5,
+            12.0
+          ]
+        },
+        "east": {
+          "texture": "#chrome",
+          "uv": [
+            2.5,
+            0.0,
+            4.0,
+            12.0
+          ]
+        },
+        "west": {
+          "texture": "#chrome",
+          "uv": [
+            12.0,
+            0.0,
+            13.5,
+            12.0
+          ]
+        },
+        "down": {
+          "texture": "#chrome",
+          "uv": [
+            12.0,
+            2.5,
+            13.5,
+            4.0
+          ]
+        }
+      }
+    }
+  ]
+}

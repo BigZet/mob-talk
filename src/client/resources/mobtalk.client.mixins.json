@@ -6,7 +6,10 @@
     "ChatScreenAccessor",
     "LivingEntityRendererInvoker",
     "VillagerSitPoseMixin",
-    "MobNameTagMixin"
+    "MobNameTagMixin",
+    "LiftStandingRiderMixin",
+    "CarSittingVillagerMixin",
+    "CarRiderScaleMixin"
   ],
   "injectors": {
     "defaultRequire": 1

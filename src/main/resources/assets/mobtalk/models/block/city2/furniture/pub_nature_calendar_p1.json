@@ -1,0 +1,111 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "pub_nature_calendar_nature_calendar_54": "mobtalk:block/city2/furniture/pub_nature_calendar_nature_calendar_54",
+    "birch_ply": "mobtalk:block/city2/furniture/birch_ply",
+    "pub_nature_calendar_nature_calendar_53": "mobtalk:block/city2/furniture/pub_nature_calendar_nature_calendar_53",
+    "particle": "mobtalk:block/city2/furniture/pub_nature_calendar_nature_calendar_54"
+  },
+  "elements": [
+    {
+      "from": [
+        10.0,
+        4.0,
+        15.0
+      ],
+      "to": [
+        16.0,
+        16.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_nature_calendar_nature_calendar_54",
+          "uv": [
+            0.0,
+            0.0,
+            6.0,
+            12.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply",
+          "uv": [
+            10.0,
+            0.0,
+            16.0,
+            12.0
+          ]
+        },
+        "west": {
+          "texture": "#birch_ply",
+          "uv": [
+            15.0,
+            0.0,
+            16.0,
+            12.0
+          ]
+        },
+        "down": {
+          "texture": "#birch_ply",
+          "uv": [
+            10.0,
+            0.0,
+            16.0,
+            1.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        10.0,
+        16.0,
+        15.0
+      ],
+      "to": [
+        16.0,
+        18.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_nature_calendar_nature_calendar_53",
+          "uv": [
+            0.0,
+            14.0,
+            6.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply",
+          "uv": [
+            10.0,
+            14.0,
+            16.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#birch_ply",
+          "uv": [
+            15.0,
+            14.0,
+            16.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply",
+          "uv": [
+            10.0,
+            15.0,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    }
+  ]
+}

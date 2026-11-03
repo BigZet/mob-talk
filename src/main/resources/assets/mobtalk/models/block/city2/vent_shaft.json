@@ -1,0 +1,79 @@
+{
+ "parent": "minecraft:block/block",
+ "textures": {
+  "b": "mobtalk:block/city2/brick",
+  "c": "mobtalk:block/city2/concrete",
+  "particle": "mobtalk:block/city2/brick"
+ },
+ "elements": [
+  {
+   "from": [
+    2,
+    0,
+    2
+   ],
+   "to": [
+    14,
+    16,
+    14
+   ],
+   "faces": {
+    "north": {
+     "texture": "#b",
+     "uv": [
+      2,
+      0,
+      14,
+      16
+     ]
+    },
+    "south": {
+     "texture": "#b",
+     "uv": [
+      2,
+      0,
+      14,
+      16
+     ]
+    },
+    "east": {
+     "texture": "#b",
+     "uv": [
+      2,
+      0,
+      14,
+      16
+     ]
+    },
+    "west": {
+     "texture": "#b",
+     "uv": [
+      2,
+      0,
+      14,
+      16
+     ]
+    },
+    "up": {
+     "texture": "#b",
+     "uv": [
+      2,
+      2,
+      14,
+      14
+     ]
+    },
+    "down": {
+     "texture": "#b",
+     "uv": [
+      2,
+      2,
+      14,
+      14
+     ],
+     "cullface": "down"
+    }
+   }
+  }
+ ]
+}

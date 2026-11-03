@@ -124,6 +124,15 @@ public final class MobTalkMod implements ModInitializer {
         io.github.mobtalk.game.CasinoResort.register();
         io.github.mobtalk.game.CasinoLife.register();
         io.github.mobtalk.game.CardTables.register(); // Игра в 21: колода карт, удары по жителю, /mobtalk cards.
+        io.github.mobtalk.game.CityContent.register(); // Декор города: лавочки, фонари, площадки, Жигули.
+        io.github.mobtalk.game.CityBuild.register(); // Дома городов: стены с обоями, панели, окна, двери, балконы, лестницы.
+        io.github.mobtalk.game.city.CityCars.register(); // Машины городов: сущности, парковки, /cars.
+        io.github.mobtalk.game.city.CityGen.register(); // Города 2.0: свой биом, улицы и кварталы, генерация по чанкам (выключены до отделки: F7, «Города»).
+        io.github.mobtalk.game.Lifts.register(); // Лифты многоэтажек: шахта, двери, кнопки, кабина, лебёдка.
+        io.github.mobtalk.game.Fences.register(); // Советские заборы: рабица, сварные с ромбами, бетонный ПО-2, калитки.
+        io.github.mobtalk.game.CityWorldgen.register(); // Города с панельками вместо части деревень (выключены: cityPerVillages = 0).
+        io.github.mobtalk.game.ShopContent.register(); // Универсам: витрины, кассы, корзины, кассир и охранник.
+        io.github.mobtalk.game.ShopController.register();
         MobGameBridge.initialize();
         MobTalkNet.registerPayloads();
         if (dedicated()) {
