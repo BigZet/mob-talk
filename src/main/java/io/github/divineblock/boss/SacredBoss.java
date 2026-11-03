@@ -403,7 +403,7 @@ public abstract class SacredBoss extends HostileEntity {
     }
     private void closeWeakPoint() {
         exposedTicks = 0;
-        weakCooldown = WEAK_COOLDOWN;
+        weakCooldown = weakCooldownTicks();
         setGlowing(false);
         if (barColor != null) bar.setColor(barColor);
         bar.setName(getDisplayName());
@@ -427,7 +427,7 @@ public abstract class SacredBoss extends HostileEntity {
             particles(ParticleTypes.CRIT, spot.x, spot.y, spot.z, 14, 0.4, 0.4, 0.4, 0.4);
             if (source.getAttacker() instanceof PlayerEntity) sound(SoundEvents.ENTITY_PLAYER_ATTACK_CRIT, 1.5f, 0.7f);
         } else {
-            amount *= TAKEN_NORMAL;
+            amount *= takenNormal();
             if (hintCooldown == 0 && source.getAttacker() instanceof ServerPlayerEntity player) {
                 player.sendMessage(Text.literal(kind().title + " почти неуязвим: " + weakHint()).formatted(Formatting.GOLD), true);
                 hintCooldown = 20 * 25;
@@ -439,6 +439,10 @@ public abstract class SacredBoss extends HostileEntity {
     }
     /** The last word on a blow already scaled by the window: a boss may cap it (the Horsemen never lose a seal to one hit). */
     protected float limitTaken(float amount) { return amount; }
+    /** Share of a blow it takes outside the weak window ({@link #TAKEN_NORMAL} unless a boss is softer to its own weapon). */
+    protected float takenNormal() { return TAKEN_NORMAL; }
+    /** How soon the weak point can open again after it shut ({@link #WEAK_COOLDOWN} unless a boss says otherwise). */
+    protected int weakCooldownTicks() { return WEAK_COOLDOWN; }
     /** The subtitle when the counter opened the weak point. */
     protected String weakReason() { return "бей сейчас — урон впятеро!"; }
 

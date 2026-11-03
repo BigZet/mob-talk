@@ -53,6 +53,7 @@ try {
   Start-Sleep -Seconds 3
   Copy-Item "$mc\logs\latest.log" (Join-Path $Shots 'dodgetest-latest.log') -Force -ErrorAction SilentlyContinue
   Copy-Item $report $Shots -Force -ErrorAction SilentlyContinue
+  if (Test-Path "$mc\seraph-logs") { Copy-Item "$mc\seraph-logs\*.csv" $Shots -Force; Say "seraph-logs -> $Shots" }   # лог боя Серафима
   $pngs = @(Get-ChildItem "$mc\screenshots\dodge-*.png" -ErrorAction SilentlyContinue)
   $pngs | Copy-Item -Destination $Shots -Force
   Say "screenshots: $($pngs.Count) -> $Shots"

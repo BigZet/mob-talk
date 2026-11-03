@@ -2,6 +2,8 @@
 
 python selfplay.py --envs 1024 --updates 3000 --device cuda --out runs/sp1      # на 3080
 python selfplay.py --envs 128 --updates 20 --out runs/smoke                     # проверка на CPU
+python selfplay.py --v3 --resume runs/sp1_u1150.pt --envs 1024 --updates 700 --device cuda --out runs/sp3 --keep 50
+    # v3: бой как в моде, сценарные лучники — люди (--human-frac), группы 40/40/20, снимок duel_uN.pt каждые 50 обновлений
 
 Группы арен в каждом сборе опыта:
   A (50%): текущий Серафим против текущего лучника — учатся оба;
@@ -119,6 +121,9 @@ def main():
     ap.add_argument("--snapshot", type=int, default=20)
     ap.add_argument("--resume", default=None)
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--v3", action="store_true", help="бой как в моде (duel.py v3)")
+    ap.add_argument("--human-frac", type=float, default=0.75, help="v3: доля сценарных лучников-людей среди сценарных")
+    ap.add_argument("--keep", type=int, default=0, help="каждые столько обновлений сохранять duel_uN.pt")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     dev = torch.device(a.device)
@@ -126,14 +131,15 @@ def main():
     if a.device == "cpu":
         torch.set_num_threads(max(1, os.cpu_count() - 1))
     n, S = a.envs, a.steps
-    env = Duel(n, seed=a.seed)
+    env = Duel(n, seed=a.seed, v3=a.v3, human_frac=a.human_frac if a.v3 else 0.0)
+    env.roles_fixed = a.v3
     sn, an = make("s").to(dev), make("a").to(dev)
     if a.resume:
         ck = torch.load(a.resume, map_location=dev); sn.load_state_dict(ck["s"]); an.load_state_dict(ck["a"])
     so, ao = torch.optim.Adam(sn.parameters(), lr=a.lr), torch.optim.Adam(an.parameters(), lr=a.lr)
     pool_s, pool_a = [copy.deepcopy(sn.state_dict())], [copy.deepcopy(an.state_dict())]
     old_s, old_a = make("s").to(dev).eval(), make("a").to(dev).eval()
-    nA, nB = int(n * 0.5), int(n * 0.3)
+    nA, nB = (int(n * 0.4), int(n * 0.4)) if a.v3 else (int(n * 0.5), int(n * 0.3))
     grp = np.array(["A"] * nA + ["B"] * nB + ["C"] * (n - nA - nB))
     log = open(os.path.join(a.out, "log.jsonl"), "a")
     t0 = time.time()
@@ -142,7 +148,8 @@ def main():
         old_s.load_state_dict(pool_s[np.random.randint(len(pool_s))]); old_a.load_state_dict(pool_a[np.random.randint(len(pool_a))])
         # в группе B половина арен — сценарный лучник из v1
         env.scripted[:] = False
-        env.scripted[(grp == "B") & (np.arange(n) % 2 == 0)] = True
+        env.scripted[(grp == "B") & ((np.arange(n) % 4 != 3) if a.v3 else (np.arange(n) % 2 == 0))] = True
+        env.human[:] = env.scripted & (np.random.random(n) < env.human_frac)
         bs, ba = Buffer(S, n, S_TOK, S_ACT, dev), Buffer(S, n, A_TOK, A_ACT, dev)
         bs.learn = torch.as_tensor(grp != "C"); ba.learn = torch.as_tensor(grp != "B")
         use_old_s = torch.as_tensor(grp == "C", device=dev); use_old_a = torch.as_tensor(grp == "B", device=dev)
@@ -190,12 +197,17 @@ def main():
                 if d.get("volleys", 0) > 0:
                     out[f"{gg}_feather_hit_per_volley"] = round(d["feather_hits"] / d["volleys"], 3)
                 out[f"{gg}_reflects"] = d.get("reflects", 0); out[f"{gg}_reflect_hits"] = d.get("reflect_hits", 0)
+                if a.v3:
+                    for key in ("windows", "snow_hits", "ring_hits", "pillar_hits", "descents"):
+                        out[f"{gg}_{key}"] = d.get(key, 0)
             ep_stats = {}
         log.write(json.dumps(out) + "\n"); log.flush()
         if u % 5 == 0 or u == 1:
             print(json.dumps(out), flush=True)
         if u % 50 == 0 or u == a.updates:
             torch.save({"s": sn.state_dict(), "a": an.state_dict()}, os.path.join(a.out, "duel.pt"))
+        if a.keep and u % a.keep == 0:
+            torch.save({"s": sn.state_dict(), "a": an.state_dict()}, os.path.join(a.out, f"duel_u{u}.pt"))
 
 
 if __name__ == "__main__":

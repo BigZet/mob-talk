@@ -2,6 +2,6 @@
   "required": true,
   "package": "io.github.divineblock.mixin",
   "compatibilityLevel": "JAVA_21",
-  "mixins": ["LivingEntityMixin", "ChurchWorldMixin", "ChurchExplosionMixin", "ChurchPlayerMixin", "ChurchCommandMixin"],
+  "mixins": ["LivingEntityMixin", "ChurchWorldMixin", "ChurchExplosionMixin", "ChurchPlayerMixin", "ChurchCommandMixin", "ProjectileGroundAccessor"],
   "injectors": { "defaultRequire": 1 }
 }
