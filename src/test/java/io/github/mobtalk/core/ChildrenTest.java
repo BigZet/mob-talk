@@ -60,7 +60,8 @@ class ChildrenTest {
         UUID wife = UUID.randomUUID(), player = UUID.randomUUID(), baby = UUID.randomUUID();
         store.observe(SocialLayerTest.villager(wife, player, 0, false, "minecraft:air"));
         ConversationStore.Profile p = store.state.profiles.get(wife.toString());
-        p.social.gender = Gender.FEMALE.name(); p.social.traits.clear(); p.relations.get(player.toString()).score = 90;
+        p.social.gender = Gender.FEMALE.name(); p.social.traits.clear(); p.social.persona = Persona.FRIENDLY.name(); // Не меркантильная: иначе бросок по UUID (5%) флагает помолвку с золотым самородком.
+        p.relations.get(player.toString()).score = 90;
         store.setBackstory(wife, "Марфа", "Ты родилась в Ольховке.", "", "", "");
         store.social().applyGesture(wife, player, "Стив", store.profile(SocialLayerTest.villager(wife, player, store.revision(wife), false, "minecraft:gold_nugget"))
                 .socialTurn.intent(Gesture.PROPOSE), 1000);
